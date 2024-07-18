@@ -1,0 +1,27 @@
+﻿@inherits LayoutComponentBase
+@using AntDesign
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            <Button OnClick="@(()=>{ _visible = true; })">Informacja</Button>
+        </div>
+
+        <Modal Title="Informacja o systemie produkcyjnym."
+       @bind-Visible="@_visible">
+        <p>Program autorstwa Leszek Mularski.</p>
+    </Modal>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code {
+    bool _visible = false;
+}

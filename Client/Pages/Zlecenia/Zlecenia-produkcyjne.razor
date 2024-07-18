@@ -1,0 +1,494 @@
+﻿@page "/zlecenia-produkcyjne"
+@using GEORGE.Shared.Models
+@using GEORGE.Shared.Class
+@inject HttpClient Http
+@inject ModalService ModalService;
+@inject ConfirmService ComfirmService;
+@using AntDesign
+
+<h3>Zlecenia Produkcyjne</h3>
+
+<Button Type="primary" OnClick="@(ShowDialogAddNew)">
+    Dodaj Zlecenie
+</Button>
+<Divider></Divider>
+
+@if (zleceniaProdukcyjne == null)
+{
+    <p><em>Czekaj na załadowanie danych...</em></p>
+}
+else
+{
+    <ul>
+        <Table TItem="ZleceniaProdukcyjne" DataSource="@zleceniaProdukcyjne">
+            <Column Title="ID" @bind-Field="@context.Id" Hidden />
+            <Column Title="Numer Zamówienia" @bind-Field="@context.NumerZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
+            <Column Title="Data Produkcji" @bind-Field="@context.DataProdukcji" Sortable />
+            <Column Title="Klient" @bind-Field="@context.Klient" Sortable OnFilter="(a, b) => a == b" Filterable />
+            <Column Title="Nazwa Produktu" @bind-Field="@context.NazwaProduktu" Sortable />
+            <Column Title="Ilość" @bind-Field="@context.Ilosc" Sortable />
+            <Column Title="Wartość" @bind-Field="@context.Wartosc" Sortable />
+
+            <!-- Przykład kolumny dla danych zagnieżdżonych -->
+            <Column Title="Nazwa Produktu 2" TData="string" DataIndex="NazwaProduktu2" Sortable />
+
+            <!-- Przykład kolumny dla daty z formatowaniem -->
+            <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd HH:mm:ss" Sortable />
+            <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
+            <ActionColumn Title="Akcja">
+                <Popconfirm Title="Czy chcesz edytować pozycję?"
+                            OnConfirm="()=> editRow(context.Id)"
+                            OkText="Tak"
+                            CancelText="Nie">
+                    <a>Edytuj</a>
+                </Popconfirm>
+                <br/>
+                <a @onclick="() => FileEdit(context)">Zapisane pliki</a>
+            </ActionColumn>
+        </Table>
+    </ul>
+}
+
+<div class="modal fade @classShow" tabindex="-1" style="display: @display;">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <AntDesign.Form Model="@zlecenie" Layout="FormLayout.Vertical" OnFinish="@HandleSubmit">
+                    <AntDesign.Row Gutter="16">
+                        <AntDesign.Col Span="12">
+                            <AntDesign.FormItem Label="Numer Zamówienia">
+                                <AntDesign.Input @bind-Value="zlecenie.NumerZamowienia" />
+                            </AntDesign.FormItem>
+                        </AntDesign.Col>
+                        <AntDesign.Col Span="12">
+                            <AntDesign.FormItem Label="Numer Umowy">
+                                <AntDesign.Input @bind-Value="zlecenie.NumerUmowy" />
+                            </AntDesign.FormItem>
+                        </AntDesign.Col>
+                    </AntDesign.Row>
+                    <AntDesign.Row Gutter="16">
+                        <AntDesign.Col Span="12">
+                            <AntDesign.FormItem Label="Data Produkcji">
+                                <AntDesign.DatePicker @bind-Value="zlecenie.DataProdukcji" />
+                            </AntDesign.FormItem>
+                        </AntDesign.Col>
+                        <AntDesign.Col Span="12">
+                            <AntDesign.FormItem Label="Data Montażu">
+                                <AntDesign.DatePicker @bind-Value="zlecenie.DataMontazu" />
+                            </AntDesign.FormItem>
+                        </AntDesign.Col>
+                    </AntDesign.Row>
+                    <AntDesign.Row Gutter="16">
+                        <AntDesign.Col Span="12">
+                            <AntDesign.FormItem Label="Data Wysyłki">
+                                <AntDesign.DatePicker @bind-Value="zlecenie.DataWysylki" />
+                            </AntDesign.FormItem>
+                        </AntDesign.Col>
+                        <AntDesign.Col Span="12">
+                            <AntDesign.FormItem Label="Klient">
+                                <AntDesign.Input @bind-Value="zlecenie.Klient" />
+                            </AntDesign.FormItem>
+                        </AntDesign.Col>
+                    </AntDesign.Row>
+                    <AntDesign.Row Gutter="16">
+                        <AntDesign.Col Span="12">
+                            <AntDesign.FormItem Label="Adres">
+                                <AntDesign.Input @bind-Value="zlecenie.Adres" />
+                            </AntDesign.FormItem>
+                        </AntDesign.Col>
+                        <AntDesign.Col Span="12">
+                            <AntDesign.FormItem Label="Miejscowość">
+                                <AntDesign.Input @bind-Value="zlecenie.Miejscowosc" />
+                            </AntDesign.FormItem>
+                        </AntDesign.Col>
+                    </AntDesign.Row>
+                    <AntDesign.Row Gutter="16">
+                        <AntDesign.Col Span="12">
+                            <AntDesign.FormItem Label="Telefon">
+                                <AntDesign.Input @bind-Value="zlecenie.Telefon" />
+                            </AntDesign.FormItem>
+                        </AntDesign.Col>
+                        <AntDesign.Col Span="12">
+                            <AntDesign.FormItem Label="Nazwa Produktu">
+                                <AntDesign.Input @bind-Value="zlecenie.NazwaProduktu" />
+                            </AntDesign.FormItem>
+                        </AntDesign.Col>
+                    </AntDesign.Row>
+                    <AntDesign.Row Gutter="16">
+                        <AntDesign.Col Span="12">
+                            <AntDesign.FormItem Label="Nazwa Produktu 2">
+                                <AntDesign.Input @bind-Value="zlecenie.NazwaProduktu2" />
+                            </AntDesign.FormItem>
+                        </AntDesign.Col>
+                        <AntDesign.Col Span="12">
+                            <AntDesign.FormItem Label="Kod Produktu">
+                                <AntDesign.Input @bind-Value="zlecenie.KodProduktu" />
+                            </AntDesign.FormItem>
+                        </AntDesign.Col>
+                    </AntDesign.Row>
+                    <AntDesign.Row Gutter="16">
+                        <AntDesign.Col Span="12">
+                            <AntDesign.FormItem Label="Ilość">
+                                <AntDesign.InputNumber @bind-Value="zlecenie.Ilosc" />
+                            </AntDesign.FormItem>
+                        </AntDesign.Col>
+                        <AntDesign.Col Span="12">
+                            <AntDesign.FormItem Label="Kto Zapisał">
+                                <AntDesign.Input @bind-Value="zlecenie.KtoZapisal" />
+                            </AntDesign.FormItem>
+                        </AntDesign.Col>
+                    </AntDesign.Row>
+                    <AntDesign.Row Gutter="16">
+                        <AntDesign.Col Span="12">
+                            <AntDesign.FormItem Label="Ostatnia Zmiana">
+                                <AntDesign.Input @bind-Value="zlecenie.OstatniaZmiana" />
+                            </AntDesign.FormItem>
+                        </AntDesign.Col>
+                        <AntDesign.Col Span="12">
+                            <AntDesign.FormItem Label="Zapisano: ">@pliki.Count().ToString()</AntDesign.FormItem>
+                            <InputFile OnChange="HandleSelected" multiple>Wybierz pliki powiązane ze zleceniem</InputFile>
+                        </AntDesign.Col>
+                    </AntDesign.Row>
+                    <AntDesign.Row>
+                        <AntDesign.Col Span="24" class="d-flex justify-content-end">
+                            <AntDesign.Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</AntDesign.Button>
+                            <AntDesign.Button @onclick="@HandleCancel">Anuluj</AntDesign.Button>
+                        </AntDesign.Col>
+                    </AntDesign.Row>
+                </AntDesign.Form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade @classShowFile" tabindex="-1" style="display: @displayFile;">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ilość plików powiązanych: @pliki.Count()</h5>
+            </div>
+            <div class="modal-body">
+                <Table TItem="PlikiZlecenProdukcyjnych" DataSource="@pliki">
+                    <Column Title="ID" @bind-Field="@context.Id" Hidden />
+                    <Column Title="Nazwa pliku" @bind-Field="@context.NazwaPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Title="Typ" @bind-Field="@context.TypPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Title="Data Zapisu" @bind-Field="@context.DataZapisu" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <ActionColumn Title="Akcja">
+                        <Template>
+                            @{
+                                var item = context as PlikiZlecenProdukcyjnych;
+                                if (!string.IsNullOrEmpty(item.NazwaPliku))
+                                {
+                                    <a href="uploads_zlecenia/@item.NazwaPliku" download @onclick="@( () => DownloadFile(item.NazwaPliku) )">Pobierz plik</a>
+                                }
+                            }
+                        </Template>
+                    </ActionColumn>
+                </Table>
+            </div>
+            <div class="modal-footer d-flex">
+                <Button class="ms-auto" @onclick="() => HideDialogFile()">Zakończ</Button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ZleceniaProdukcyjne>? zleceniaProdukcyjne;
+    private List<ZleceniaProdukcyjne>? originalzleceniaProdukcyjne;
+
+    private List<PlikiZlecenProdukcyjnych> pliki = new List<PlikiZlecenProdukcyjnych>();
+
+    private bool _visible = false;
+    private string display = "none;";
+    private string classShow = "";
+
+    IEnumerable<PlikiZlecenProdukcyjnych> _selectedRows = [];
+
+    private string displayFile = "none;";
+    private string classShowFile = "";
+
+    private long cid = -1;
+
+    private ZleceniaProdukcyjne zlecenie = new ZleceniaProdukcyjne();
+
+    protected override async Task OnInitializedAsync()
+    {
+        zleceniaProdukcyjne = await Http.GetFromJsonAsync<List<ZleceniaProdukcyjne>>("api/ZleceniaProdukcyjne");
+    }
+
+    private async Task LoadFiles(string rowId)
+    {
+        var response = await Http.GetAsync($"api/FileUploadZlec/files/{rowId}");
+        if (response.IsSuccessStatusCode)
+        {
+            pliki = await response.Content.ReadFromJsonAsync<List<PlikiZlecenProdukcyjnych>>();
+        }
+        else
+        {
+            // Obsłuż błąd
+        }
+    }
+
+    private async Task DownloadFile(string fileUrl)
+    {
+        var filePath = Path.Combine("uploads_zlecenia", fileUrl); // Tworzy ścieżkę do pliku w folderze uploads
+
+        try
+        {
+            using (var httpClient = new HttpClient())
+            {
+                // Pobierz zawartość pliku jako bajty
+                var response = await httpClient.GetAsync(fileUrl);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    // Uzyskaj zawartość pliku jako bajty
+                    var fileBytes = await response.Content.ReadAsByteArrayAsync();
+
+                    // Tutaj możesz zrobić coś z tymi bajtami, np. zapisać je do pliku lokalnego
+                    // Przykład: Zapisz plik na dysku
+                    //var fileName = "nazwa_pobranego_pliku.pdf"; // Przykładowa nazwa pliku
+                    //var filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), fileName);
+
+                    File.WriteAllBytes(filePath, fileBytes);
+
+                    Console.WriteLine($"Plik został pobrany i zapisany: {filePath}");
+                }
+                else
+                {
+                    Console.WriteLine("Nie udało się pobrać pliku.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message}/ {ex.StackTrace}");
+            Console.WriteLine(filePath);
+        }
+    }
+
+    private async Task FileEdit(ZleceniaProdukcyjne row)
+    {
+        pliki = new List<PlikiZlecenProdukcyjnych>();
+
+        zlecenie = new ZleceniaProdukcyjne();
+
+        if (zleceniaProdukcyjne == null) return;
+
+        var listOfData = zleceniaProdukcyjne.Where(d => d.Id == row.Id).ToArray();
+
+        // Pobierz zlecenie na podstawie indeksu wiersza
+        if (listOfData != null && listOfData.Count() > 0)
+        {
+            zlecenie = listOfData[0];
+
+            await LoadFiles(zlecenie.RowId);
+
+            await ShowDialogFile();
+        }
+
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (_visible == false) return;
+
+        HttpResponseMessage response;
+
+        if (zlecenie.Id == 0)
+        {
+            response = await Http.PostAsJsonAsync("api/ZleceniaProdukcyjne", zlecenie);
+        }
+        else
+        {
+            response = await Http.PutAsJsonAsync($"api/ZleceniaProdukcyjne/{zlecenie.Id}", zlecenie);
+
+            if (zleceniaProdukcyjne != null) originalzleceniaProdukcyjne = zleceniaProdukcyjne.DeepCopyList();
+        }
+
+        if (response.IsSuccessStatusCode)
+        {
+            if (zlecenie.Id == 0)
+            {
+                zleceniaProdukcyjne.Add(zlecenie); // Dodaj nowe zlecenie do listy
+            }
+            else
+            {
+                // Znajdź istniejące zlecenie i zaktualizuj je
+                var index = zleceniaProdukcyjne.FindIndex(z => z.Id == zlecenie.Id);
+
+                if (index != -1)
+                {
+                    zleceniaProdukcyjne[index] = zlecenie;
+                }
+            }
+
+            _visible = false;
+            zlecenie = new ZleceniaProdukcyjne(); // Zresetuj formularz
+
+            await HideDialog();
+
+            StateHasChanged(); // Odśwież widok
+        }
+        else
+        {
+            // Obsługa błędów
+            Console.WriteLine("Błąd podczas zapisywania zlecenia");
+        }
+    }
+
+    public async Task editRow(long id)
+    {
+        //listOfData = listOfData.Where(d => d.Id != id).ToArray();
+        if (zleceniaProdukcyjne == null) return;
+
+        originalzleceniaProdukcyjne = zleceniaProdukcyjne.DeepCopyList();
+
+        // Logika edycji
+        if (_visible)
+        {
+            _visible = false;
+            await HideDialog();
+        }
+        else
+        {
+            zlecenie = new ZleceniaProdukcyjne();
+
+            var  listOfData = zleceniaProdukcyjne.Where(d => d.Id == id).ToArray();
+
+            // Pobierz zlecenie na podstawie indeksu wiersza
+            if (listOfData != null && listOfData.Count() > 0 )
+            {
+                cid = id;
+
+                zlecenie = listOfData[0];
+
+                zlecenie.OstatniaZmiana = "*Zmiana: " + DateTime.Now.ToLongDateString();
+
+                if (string.IsNullOrEmpty(zlecenie.RowId)) zlecenie.RowId = Guid.NewGuid().ToString();
+
+                await LoadFiles(zlecenie.RowId);
+
+                _visible = true;
+
+                await ShowDialog();
+            }
+
+            // Wyświetl numer zamówienia w konsoli
+            Console.WriteLine(zlecenie.NumerZamowienia);
+        }
+
+    }
+
+    public async Task HandleAddNew()
+    {
+        await Task.Delay(1);
+        _visible = true;
+        // await HandleSubmit();
+        // _visible = false;
+        // await HideDialog();
+    }
+
+    public async Task HandleCancel()
+    {
+        _visible = false;
+        await HideDialog();
+    }
+
+    public async Task HandleCloseAdd()
+    {
+        _visible = false;
+        await HideDialog();
+        await HandleSubmit();
+    }
+
+    public async Task ShowDialogAddNew()
+    {
+        zlecenie = new ZleceniaProdukcyjne();
+        cid = -1;
+
+        display = "block";
+        await Task.Delay(50);
+        classShow = "show";
+        StateHasChanged();
+    }
+
+    public async Task ShowDialog()
+    {
+        display = "block";
+        await Task.Delay(50);
+        classShow = "show";
+        StateHasChanged();
+    }
+
+    private async Task HideDialog()
+    {
+        if (cid >0 && zleceniaProdukcyjne != null)
+        {
+            zleceniaProdukcyjne = originalzleceniaProdukcyjne;
+        }
+
+        cid = -1;
+
+        classShow = "";
+        await Task.Delay(200);
+        display = "none";
+
+        StateHasChanged();
+    }
+    //********************************************************************************************************************//
+    public async Task ShowDialogFile()
+    {
+        displayFile = "block";
+        await Task.Delay(50);
+        classShowFile = "show";
+        StateHasChanged();
+    }
+
+    private async Task HideDialogFile()
+    {
+
+        classShowFile = "";
+        await Task.Delay(200);
+        displayFile = "none";
+
+        StateHasChanged();
+    }
+    //********************************************************************************************************************//
+
+    private async Task HandleSelected(InputFileChangeEventArgs e)
+    {
+        Console.WriteLine($"api/FileUploadZlec/upload/{zlecenie.RowId}");
+
+        foreach (var file in e.GetMultipleFiles())
+        {
+            var content = new MultipartFormDataContent();
+
+            content.Add(new StreamContent(file.OpenReadStream(Int64.MaxValue)), "file", file.Name);
+
+            var response = await Http.PostAsync($"api/FileUploadZlec/upload/{zlecenie.RowId}", content);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ResponseModel>();
+                Console.WriteLine($"File uploaded successfully. URL: {result?.url}");
+                //Dodaj akjcę zapisu do bazy danych
+                //zleceniaProdukcyjne.LinkDoKartyNaSerwerze = result?.url;
+            }
+            else
+            {
+                Console.WriteLine("File upload failed.");
+            }
+        }
+    }
+
+
+    public class ResponseModel
+    {
+        public string? name { get; set; }
+        public string? status { get; set; }
+        public string? url { get; set; }
+        public string? thumbUrl { get; set; }
+    }
+
+}

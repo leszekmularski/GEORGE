@@ -1,0 +1,23 @@
+﻿@page "/"
+@using System.Globalization
+
+<PageTitle>Program do wspomagania produkcji</PageTitle>
+
+<h1>System planowania produkcji w firmie GEORGE</h1>
+<br />
+<br />
+<p>Dziś mamy dzień: @DateTime.Now.DayOfYear roku @DateTime.Now.Year, tydzień @GetWeekNumber(DateTime.Now)</p>
+
+@* <SurveyPrompt Title="How is Blazor working for you?" /> *@
+
+
+@code {
+    private int GetWeekNumber(DateTime date)
+    {
+        CultureInfo ci = CultureInfo.CurrentCulture;
+        Calendar calendar = ci.Calendar;
+        CalendarWeekRule calendarWeekRule = ci.DateTimeFormat.CalendarWeekRule;
+        DayOfWeek firstDayOfWeek = ci.DateTimeFormat.FirstDayOfWeek;
+        return calendar.GetWeekOfYear(date, calendarWeekRule, firstDayOfWeek);
+    }
+}
