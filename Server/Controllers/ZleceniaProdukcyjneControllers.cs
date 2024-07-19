@@ -71,6 +71,24 @@ namespace GEORGE.Server.Controllers
             }
         }
 
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> DeleteZlecenieProdukcyjneAsync(long id)
+        {
+            var zlecenie = await _context.ZleceniaProdukcyjne.FindAsync(id);
+            if (zlecenie == null)
+            {
+                return NotFound("Nie znaleziono zlecenia o podanym ID.");
+            }
+
+            _context.ZleceniaProdukcyjne.Remove(zlecenie);
+            await _context.SaveChangesAsync();
+
+            // Wyświetl numer zamówienia w konsoli
+            Console.WriteLine(zlecenie.NumerZamowienia);
+
+            return Ok("Zlecenie zostało pomyślnie usunięte.");
+        }
+
         private bool ZlecenieProdukcyjneExists(long id)
         {
             return _context.ZleceniaProdukcyjne.Any(e => e.Id == id);

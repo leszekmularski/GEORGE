@@ -4,6 +4,7 @@
 @inject HttpClient Http
 @inject ModalService ModalService;
 @inject ConfirmService ComfirmService;
+@inject IMessageService _message
 @using AntDesign
 
 <h3>Zlecenia Produkcyjne</h3>
@@ -22,6 +23,7 @@ else
     <ul>
         <Table TItem="ZleceniaProdukcyjne" DataSource="@zleceniaProdukcyjne">
             <Column Title="ID" @bind-Field="@context.Id" Hidden />
+            <Column Title="Typ Dokumentu" @bind-Field="@context.TypZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Numer Zamówienia" @bind-Field="@context.NumerZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Data Produkcji" @bind-Field="@context.DataProdukcji" Sortable />
             <Column Title="Klient" @bind-Field="@context.Klient" Sortable OnFilter="(a, b) => a == b" Filterable />
@@ -42,6 +44,12 @@ else
                             CancelText="Nie">
                     <a>Edytuj</a>
                 </Popconfirm>
+                <Popconfirm Title="Czy chcesz usunąć pozycję?"
+                            OnConfirm="()=> ShowDialogPass(context.Id)"
+                            OkText="Tak"
+                            CancelText="Nie">
+                    <a style="color:red">Usuń</a>
+                </Popconfirm>
                 <br/>
                 <a @onclick="() => FileEdit(context)">Zapisane pliki</a>
             </ActionColumn>
@@ -54,6 +62,24 @@ else
         <div class="modal-content">
             <div class="modal-header">
                 <AntDesign.Form Model="@zlecenie" Layout="FormLayout.Vertical" OnFinish="@HandleSubmit">
+                    <AntDesign.Row Gutter="16">
+                        <AntDesign.Col Span="12">
+                            <AntDesign.FormItem Label="Typ Dokumentu">
+                                <Select TItem="TypZamowienia"
+                                        TItemValue="string"
+                                        DataSource="@_TypZamowienia"
+                                        @bind-Value="@zlecenie.TypZamowienia"
+                                        ValueName="@nameof(TypZamowienia.Value)"
+                                        LabelName="@nameof(TypZamowienia.Name)"
+                                        GroupName="@nameof(TypZamowienia.Role)"
+                                        SortByLabel="@SortDirection.Ascending"
+                                        SortByGroup="@SortDirection.Ascending"
+                                            DefaultActiveFirstOption="true"
+                                        Style="width: 200px;">
+                                </Select>
+                            </AntDesign.FormItem>
+                        </AntDesign.Col>
+                    </AntDesign.Row>
                     <AntDesign.Row Gutter="16">
                         <AntDesign.Col Span="12">
                             <AntDesign.FormItem Label="Numer Zamówienia">
@@ -146,7 +172,10 @@ else
                         </AntDesign.Col>
                         <AntDesign.Col Span="12">
                             <AntDesign.FormItem Label="Zapisano: ">@pliki.Count().ToString()</AntDesign.FormItem>
-                            <InputFile OnChange="HandleSelected" multiple>Wybierz pliki powiązane ze zleceniem</InputFile>
+                            @if (cid != -1)
+                            {
+                                <InputFile OnChange="HandleSelected" multiple>Wybierz pliki powiązane ze zleceniem</InputFile>
+                            }
                         </AntDesign.Col>
                     </AntDesign.Row>
                     <AntDesign.Row>
@@ -173,9 +202,11 @@ else
                     <Column Title="Nazwa pliku" @bind-Field="@context.NazwaPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Title="Typ" @bind-Field="@context.TypPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Title="Data Zapisu" @bind-Field="@context.DataZapisu" Sortable OnFilter="(a, b) => a == b" Filterable />
-                    <ActionColumn Title="Akcja">
+                    <ActionColumn Title="Uwagi / Akcja">
                         <Template>
                             @{
+                                // <a style="color:blue" @onclick="() => ZmienUwage(context)">@context.Uwagi &nbsp;</a><br/>
+                                <Input Placeholder="Podaj uwagę." @bind-Value="@context.Uwagi" MaxLength="25" OnBlur="@( () => ZmienUwage(context.Id, context.Uwagi))" />
                                 var item = context as PlikiZlecenProdukcyjnych;
                                 if (!string.IsNullOrEmpty(item.NazwaPliku))
                                 {
@@ -193,11 +224,31 @@ else
     </div>
 </div>
 
+<div class="modal fade @classShowPass" tabindex="-1" style="display: @displayPass;">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Aby usunąć zlecenie musisz podać hasło</h5>
+            </div>
+            <div class="modal-body">
+
+                <Input Placeholder="Podaj hasło!!!" @bind-Value="@classPass" MaxLength="25" />
+
+            </div>
+            <div class="modal-footer d-flex">
+                <Button class="ms-auto" @onclick="() => HideDialogPass()">OK</Button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @code {
     private List<ZleceniaProdukcyjne>? zleceniaProdukcyjne;
     private List<ZleceniaProdukcyjne>? originalzleceniaProdukcyjne;
 
     private List<PlikiZlecenProdukcyjnych> pliki = new List<PlikiZlecenProdukcyjnych>();
+
+    List<TypZamowienia>? _TypZamowienia;
 
     private bool _visible = false;
     private string display = "none;";
@@ -208,6 +259,11 @@ else
     private string displayFile = "none;";
     private string classShowFile = "";
 
+    private string displayPass = "none;";
+    private string classShowPass = "";
+    private string classPass = "";
+    private long id_del = -1;
+
     private long cid = -1;
 
     private ZleceniaProdukcyjne zlecenie = new ZleceniaProdukcyjne();
@@ -215,6 +271,16 @@ else
     protected override async Task OnInitializedAsync()
     {
         zleceniaProdukcyjne = await Http.GetFromJsonAsync<List<ZleceniaProdukcyjne>>("api/ZleceniaProdukcyjne");
+
+        _TypZamowienia = new List<TypZamowienia>
+        {
+            new TypZamowienia {Value = "Pomiary", Name = "Pomiary", Role = "Oferta"},
+            new TypZamowienia {Value = "Oferta", Name = "Oferta", Role = "Oferta"},
+            new TypZamowienia {Value = "Zlec.Pomiarów", Name = "Zlec.Pomiarów", Role = "Oferta"},
+            new TypZamowienia {Value = "Zlecenie", Name = "Zlecenie", Role = "Zamówienie"},
+            new TypZamowienia {Value = "Dok.Powykonawczy", Name = "Dok.Powykonawczy", Role = "Zamówienie"},
+            new TypZamowienia {Value = "Zakończono", Name = "Zakończono", Role = "Zamówienie"}
+        };
     }
 
     private async Task LoadFiles(string rowId)
@@ -223,6 +289,18 @@ else
         if (response.IsSuccessStatusCode)
         {
             pliki = await response.Content.ReadFromJsonAsync<List<PlikiZlecenProdukcyjnych>>();
+
+            if (pliki != null)
+            {
+                foreach (var itm in pliki)
+                {
+                    if (string.IsNullOrEmpty(itm.Uwagi))
+                    {
+                        itm.Uwagi = "";
+                    }
+                }
+            }
+
         }
         else
         {
@@ -292,6 +370,8 @@ else
 
     private async Task HandleSubmit()
     {
+        await _message.Info("Rozpoczynam zapis!!!");
+
         if (_visible == false) return;
 
         HttpResponseMessage response;
@@ -329,13 +409,18 @@ else
 
             await HideDialog();
 
+            await _message.Success("Zlecenie zapisano!");
+
             StateHasChanged(); // Odśwież widok
+
         }
         else
         {
             // Obsługa błędów
             Console.WriteLine("Błąd podczas zapisywania zlecenia");
+           await _message.Error("Błąd podczas zapisywania zlecenia");
         }
+
     }
 
     public async Task editRow(long id)
@@ -381,13 +466,41 @@ else
 
     }
 
+    private async Task delRow()
+    {
+        if (classPass != "admin1")
+        {
+            await _message.Error("Błędne hasło");
+            return;
+        }
+
+        var response = await Http.DeleteAsync($"api/ZleceniaProdukcyjne/{id_del}");
+        if (response.IsSuccessStatusCode)
+        {
+            var zlecenie = zleceniaProdukcyjne.FirstOrDefault(z => z.Id == id_del);
+            if (zlecenie != null)
+            {
+                zleceniaProdukcyjne.Remove(zlecenie);
+                await _message.Success("Zlecenie usunięto!");
+            }
+        }
+        else
+        {
+            Console.WriteLine("Błąd podczas usuwania zlecenia.");
+            await _message.Error("Błąd podczas usuwania zlecenia");
+        }
+
+        id_del = -1;
+        classPass = "";
+    }
+
     public async Task HandleAddNew()
     {
         await Task.Delay(1);
         _visible = true;
         // await HandleSubmit();
         // _visible = false;
-        // await HideDialog();
+       // await HideDialog();
     }
 
     public async Task HandleCancel()
@@ -398,9 +511,9 @@ else
 
     public async Task HandleCloseAdd()
     {
-        _visible = false;
         await HideDialog();
         await HandleSubmit();
+        _visible = false;
     }
 
     public async Task ShowDialogAddNew()
@@ -456,6 +569,47 @@ else
         StateHasChanged();
     }
     //********************************************************************************************************************//
+    public async Task ShowDialogPass(long id)
+    {
+        id_del = id;
+        displayPass = "block";
+        await Task.Delay(50);
+        classShowPass = "show";
+        StateHasChanged();
+
+    }
+
+    private async Task HideDialogPass()
+    {
+
+        classShowPass = "";
+        await Task.Delay(200);
+        displayPass = "none";
+
+        StateHasChanged();
+
+       await delRow();
+    }
+
+    private async Task ZmienUwage(long id, string uwaga)
+    {
+        var response = await Http.PostAsJsonAsync($"api/FileUploadZlec/zmien-uwage?id={id}", uwaga);
+        if (response.IsSuccessStatusCode)
+        {
+            // Logika do aktualizacji UI, jeśli potrzebne
+            var plik = pliki.FirstOrDefault(p => p.Id == id);
+            if (plik != null)
+            {
+                plik.Uwagi = uwaga;
+                plik.OstatniaZmiana = "Zmiana: " + DateTime.Now.ToLongDateString();
+            }
+        }
+        else
+        {
+            // Logika do obsługi błędów
+            Console.WriteLine("Błąd podczas zmiany uwagi");
+        }
+    }
 
     private async Task HandleSelected(InputFileChangeEventArgs e)
     {
@@ -489,6 +643,13 @@ else
         public string? status { get; set; }
         public string? url { get; set; }
         public string? thumbUrl { get; set; }
+    }
+
+    class TypZamowienia
+    {
+        public string? Value { get; set; }
+        public string? Name { get; set; }
+        public string? Role { get; set; }
     }
 
 }

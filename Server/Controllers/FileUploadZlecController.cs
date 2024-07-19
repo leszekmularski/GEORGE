@@ -76,4 +76,18 @@ public class FileUploadZlecController : ControllerBase
         return Ok(files);
     }
 
+    [HttpPost("zmien-uwage")]
+    public async Task<IActionResult> ZmienUwage(long id, [FromBody] string uwaga)
+    {
+        var result = await _context.ZmienUwage(id, uwaga);
+        if (result)
+        {
+            return Ok("Uwagi zaktualizowane pomyślnie.");
+        }
+        else
+        {
+            return NotFound("Nie znaleziono pliku o podanym ID.");
+        }
+    }
+
 }

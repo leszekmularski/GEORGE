@@ -9,6 +9,7 @@
         public string? TypPliku { get; set; }
         public DateTime DataZapisu { get; set; } = DateTime.Now;
         public string? KtoZapisal { get; set; }
+        public string? Uwagi { get; set; } = " ";
         public string? OstatniaZmiana { get; set; } = "Zmiana: " + DateTime.Now.ToLongDateString();
     }
 }

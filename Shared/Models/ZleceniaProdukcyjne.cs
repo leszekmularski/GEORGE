@@ -4,6 +4,7 @@
     {
         public long Id { get; set; }
         public string? RowId { get; set; } = Guid.NewGuid().ToString();
+        public string? TypZamowienia { get; set; }
         public string? NumerZamowienia { get; set; }
         public string? NumerUmowy { get; set; }
         public DateTime DataProdukcji { get; set; } = DateTime.Now.AddDays(84);
@@ -19,7 +20,7 @@
         public int Ilosc { get; set; }
         public Single Wartosc { get; set; }
         public DateTime DataZapisu { get; set; } = DateTime.Now;
-        public string? KtoZapisal { get; set; }
+        public string? KtoZapisal { get; set; } //= User.Identity.Name;
         public string? OstatniaZmiana { get; set; } = "Zmiana: " + DateTime.Now.ToLongDateString();
     }
 }

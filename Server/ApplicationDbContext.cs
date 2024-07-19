@@ -16,6 +16,21 @@ namespace GEORGE.Server
         public DbSet<KartyInstrukcyjne> KartyInstrukcyjne { get; set; }
         public DbSet<RodzajeKartInstrukcyjnych> RodzajeKartInstrukcyjnych { get; set; }
         public DbSet<PlikiZlecenProdukcyjnych> PlikiZlecenProdukcyjnych { get; set; }
-        
+
+        public async Task<bool> ZmienUwage(long id, string uwaga)
+        {
+            var plik = await PlikiZlecenProdukcyjnych.FindAsync(id);
+            if (plik == null)
+            {
+                return false;
+            }
+
+            plik.Uwagi = uwaga;
+            plik.OstatniaZmiana = "Zmiana: " + DateTime.Now.ToLongDateString();
+            await SaveChangesAsync();
+            return true;
+
+
+        }
     }
 }
