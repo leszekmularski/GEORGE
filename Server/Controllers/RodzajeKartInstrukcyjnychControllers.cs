@@ -99,5 +99,6 @@ namespace GEORGE.Server.Controllers
         {
             return _context.RodzajeKartInstrukcyjnych.Any(e => e.Id == id);
         }
+
     }
 }

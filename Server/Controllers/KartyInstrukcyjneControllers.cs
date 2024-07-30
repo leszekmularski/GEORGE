@@ -23,7 +23,7 @@ namespace GEORGE.Server.Controllers
         [HttpGet]
         public async Task<ActionResult<List<KartyInstrukcyjne>>> GetZleceniaProdukcyjneAsync()
         {
-            return await _context.KartyInstrukcyjne.ToListAsync();
+            return await _context.KartyInstrukcyjne.OrderBy(e => e.NumerKarty).ToListAsync();
         }
 
         [HttpPost]

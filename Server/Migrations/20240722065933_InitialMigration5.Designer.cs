@@ -4,6 +4,7 @@ using GEORGE.Server;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GEORGE.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240722065933_InitialMigration5")]
+    partial class InitialMigration5
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,65 +24,6 @@ namespace GEORGE.Server.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("GEORGE.Shared.Models.KantowkaDoZlecen", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<DateTime>("DataRealizacji")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("DataZamowienia")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("DataZapisu")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("DlugoscNaGotowo")
-                        .HasColumnType("int");
-
-                    b.Property<int>("DlugoscZamawiana")
-                        .HasColumnType("int");
-
-                    b.Property<string>("GatunekKantowki")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("IloscSztuk")
-                        .HasColumnType("int");
-
-                    b.Property<string>("KodProduktu")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("KtoZapisal")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("MaterialZeStanMagazyn")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("NazwaProduktu")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("OstatniaZmiana")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Przekroj")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("RowIdZlecenia")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Uwagi")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("KantowkaDoZlecen");
-                });
 
             modelBuilder.Entity("GEORGE.Shared.Models.KartyInstrukcyjne", b =>
                 {
@@ -144,9 +88,6 @@ namespace GEORGE.Server.Migrations
                     b.Property<string>("NazwaPliku")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("OryginalnaNazwaPliku")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("OstatniaZmiana")
                         .HasColumnType("nvarchar(max)");
 
@@ -191,7 +132,7 @@ namespace GEORGE.Server.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("NumerRodzajuKart")
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("OpisRodzajuKart")
                         .HasColumnType("nvarchar(max)");
@@ -203,10 +144,6 @@ namespace GEORGE.Server.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("NumerRodzajuKart")
-                        .IsUnique()
-                        .HasFilter("[NumerRodzajuKart] IS NOT NULL");
 
                     b.ToTable("RodzajeKartInstrukcyjnych");
                 });
@@ -233,9 +170,6 @@ namespace GEORGE.Server.Migrations
 
                     b.Property<DateTime>("DataZapisu")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("Email")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Ilosc")
                         .HasColumnType("int");

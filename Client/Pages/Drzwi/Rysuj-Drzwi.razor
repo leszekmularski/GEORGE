@@ -1,0 +1,483 @@
+﻿@page "/Rysuj-Drzwi"
+
+@using Blazor.Extensions
+@using Blazor.Extensions.Canvas
+@using Blazor.Extensions.Canvas.Canvas2D
+@using AntDesign
+
+@using netDxf;
+@using netDxf.Entities;
+@using System.IO;
+
+@inject IJSRuntime JS;
+
+<Tabs @bind-ActiveKey="@activeKey" Animated>
+    <TabPane Tab="Rama dzwi" Key="1">
+        <h7>Szkic ościeżnicy z piórem</h7>
+        <div style="overflow: auto; width: 1250px; height: 450px">
+            <BECanvas Width="2000" Height="2500" @ref="canvasReference"></BECanvas>
+        </div
+
+         <div>
+            <label for="height">Szerokość Drzwi:</label>
+            <input id="height" type="number" @bind="szerDzwi" min="400" max="2000" />
+            <label for="height">Wysokość Drzwi:</label>
+            <input id="height" type="number" @bind="wysDzwi" min="1500" max="2800" />
+            <label for="height">Wysokość Progu:</label>
+            <input id="height" type="number" @bind="wysProgu" min="0" max="100" />
+            <label for="height">Wysokość Pióra:</label>
+            <input id="height" type="number" @bind="wysPiora" min="20" max="200" />
+
+            <label for="lacz_osc">Sposób łączenia ościeżnicy:</label>
+            <select name="lacz_osc" id="lacz_osc" @bind="laczOsc">
+                <option value="45">Kąt 45</option>
+                <option value="90">Proste</option>
+            </select>
+
+        </div>
+
+        <div>
+            <label for="width">Szerokość Ościeżnicy:</label>
+            <input id="width" type="number" @bind="szerOsc" />
+            <label for="height">Głębokość Ościeżnicy:</label>
+            <input id="height" type="number" @bind="glebOsc" />
+        </div
+    </TabPane>
+    <TabPane Tab="Skrzydło" Key="2">
+        <h7>Szkic skrzydła</h7>
+        <div style="overflow: auto; width: 1250px; height: 450px">
+            <BECanvas Width="2000" Height="2500" @ref="canvasReferenceSkrzy"></BECanvas>
+        </div
+         <div>
+            <label for="width">Szerokość ramy skrzydła:</label>
+            <input id="width" type="number" @bind="szerRamSkrz" />
+            <label for="height">Grubość skrzydła:</label>
+            <input id="height" type="number" @bind="gruboscSkrz" />
+            <label for="height">Ilość przeszkleń:</label>
+            <input id="height" type="number" @bind="iloscPrzeszkelen" />
+            <label for="height">Wielkość przeszklenia:</label>
+            <input id="height" type="number" @bind="wielkoscPrzeszklenia" />
+        </div
+    </TabPane>
+    <TabPane Tab="Rama ze skrzydłem" Key="3">
+       <h7>Kompletne drzwi</h7>
+        <div style="overflow: auto; width: 1250px; height: 450px">
+            <BECanvas Width="2000" Height="2500" @ref="canvasReferenceKPL"></BECanvas>
+        </div
+        <div>
+            <button @onclick="ExtractShapesFromCanvasAsync">Generuj DXF</button>
+        </div>
+    </TabPane>
+</Tabs>
+
+<div>
+    <label for="scale">Skala:</label>
+    <input id="scale" type="number" @bind="scale" step="0.1" min="0.1" max="10" />
+    <label for="scale">Margines lewy:</label>
+    <input id="scale" type="number" @bind="startX" step="10" min="0" max="500" />
+    <label for="scale">Margines górny:</label>
+    <input id="scale" type="number" @bind="startY" step="10" min="0" max="500" />
+</div>
+<div>
+    <button @onclick="UpdateShapes">Zaktualizuj Rysunek</button>
+</div>
+
+
+@code {
+    string activeKey { get; set; } = "1";
+
+    private BECanvasComponent? canvasReference;
+    private Canvas2DContext? context;
+    private List<Shape>? shapes;
+
+    private BECanvasComponent? canvasReferenceSkrzy;
+    private Canvas2DContext? contextSkrzy;
+    private List<ShapeSkrzy>? shapesSkrzy;
+
+    private BECanvasComponent? canvasReferenceKPL;
+    private Canvas2DContext? contextKPL;
+
+    private double szerOsc = 45;
+    private double glebOsc = 75;
+    private double szerDzwi = 1250;
+    private double wysDzwi = 2000;
+    private double wysProgu = 30;
+    private double scale = 0.25;
+
+    private double wysPiora = 80;
+
+    private double startX = 200;
+    private double startY = 200;
+
+    private string laczOsc = "";
+
+    //----------------------------------
+
+    private double gruboscSkrz = 50;
+    private double szerRamSkrz = 125;
+    private double iloscPrzeszkelen = 3;
+    private double wielkoscPrzeszklenia = 300;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.Delay(100);
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            context = await canvasReference.CreateCanvas2DAsync();
+
+            await Task.Delay(100);
+            // await DrawShapes();
+            // await DrawShapesSkrzy();
+
+        }
+    }
+
+    private async Task DrawShapes()
+    {
+        if (shapes == null) return;
+
+        await context.ClearRectAsync(0, 0, 2000, 2500); // Ustaw szerokość kanwy na większą, aby zmieścić oba kształty
+
+        foreach (var shape in shapes)
+        {
+            await shape.DrawAsync(context);
+        }
+    }
+
+    private async Task DrawShapesSkrzy()
+    {
+        if (shapesSkrzy == null) return;
+
+        if(contextSkrzy == null)
+            contextSkrzy = await canvasReferenceSkrzy.CreateCanvas2DAsync();
+
+        await contextSkrzy.ClearRectAsync(0, 0, 2000, 2500); // Ustaw szerokość kanwy na większą, aby zmieścić oba kształty
+
+        foreach (var shape in shapesSkrzy)
+        {
+            await shape.DrawAsync(contextSkrzy);
+        }
+    }
+
+    private async Task DrawShapesKPL()
+    {
+        if (shapes == null || shapesSkrzy == null) return;
+
+        if(contextKPL == null)
+            contextKPL = await canvasReferenceKPL.CreateCanvas2DAsync();
+
+        await contextKPL.ClearRectAsync(0, 0, 2000, 2500); // Ustaw szerokość kanwy na większą, aby zmieścić oba kształty
+
+        foreach (var shape in shapes)
+        {
+            await shape.DrawAsync(contextKPL);
+        }
+
+        foreach (var shape in shapesSkrzy)
+        {
+            await shape.DrawAsync(contextKPL);
+        }
+    }
+
+    private async Task UpdateShapes()
+    {
+        startX = 200 * scale;
+        startY = 200 * scale;
+
+        if (startX < wysPiora)
+        {
+            startX = wysPiora;
+        }
+
+        if (startY < wysPiora)
+        {
+            startY = wysPiora;
+        }
+
+        if (startX < szerOsc)
+        {
+            startX = szerOsc;
+        }
+
+        if (startY < szerOsc)
+        {
+            startY = szerOsc;
+        }
+
+        if (startX < glebOsc)
+        {
+            startX = glebOsc;
+        }
+
+        if (startY < glebOsc)
+        {
+            startY = glebOsc;
+        }
+
+        if (activeKey == "1")
+        {
+            if (shapes != null) shapes.Clear();
+            // Zainicjalizuj listę kształtów
+            shapes = new List<Shape>
+            {
+                new COscZPiorem(startX, startY, glebOsc, szerOsc, wysPiora, 20, szerDzwi, wysDzwi, wysProgu, scale, laczOsc)
+            };
+
+            await DrawShapes();
+            await Task.Delay(100);
+            await DrawShapes();
+        }
+        else if(activeKey == "2")
+        {
+
+            if (shapesSkrzy != null) shapesSkrzy.Clear();
+
+            double loffsetY = startY + ((104 + wysPiora + szerOsc) * scale);
+            // Zainicjalizuj listę kształtów
+            shapesSkrzy = new List<ShapeSkrzy>
+            {
+                new CSkrzy3Okna(startX - 10 * scale, startY + (wysPiora + 0) * scale, gruboscSkrz, szerRamSkrz, szerOsc, glebOsc, szerDzwi, wysDzwi, wysProgu, iloscPrzeszkelen, wielkoscPrzeszklenia, wysPiora, scale, loffsetY)
+            };
+
+            await DrawShapesSkrzy();
+            await Task.Delay(100);
+            await DrawShapesSkrzy();
+
+        }
+        else if(activeKey == "3")
+        {
+
+            if (shapesSkrzy != null) shapesSkrzy.Clear();
+            if (shapes != null) shapes.Clear();
+            // Zainicjalizuj listę kształtów
+            double loffsetY = startY + ((104 + wysPiora + szerOsc) * scale);
+
+            shapesSkrzy = new List<ShapeSkrzy>
+            {
+                new CSkrzy3Okna(startX - 10 * scale, startY + (wysPiora + 0) * scale, gruboscSkrz, szerRamSkrz, szerOsc, glebOsc, szerDzwi, wysDzwi, wysProgu, iloscPrzeszkelen, wielkoscPrzeszklenia, wysPiora, scale, loffsetY)
+            };
+
+            shapes = new List<Shape>
+            {
+                new COscZPiorem(startX, startY, glebOsc, szerOsc, wysPiora, 20, szerDzwi, wysDzwi, wysProgu, scale, laczOsc)
+            };
+
+            await DrawShapesKPL();
+            await Task.Delay(100);
+            await DrawShapesKPL();
+
+        }
+
+    }
+
+    //     private async Task ExtractShapesFromCanvasAsync()
+    //     {
+    //         if (shapes == null || shapesSkrzy == null) return;
+
+    //         if (contextKPL == null)
+    //             contextKPL = await canvasReferenceKPL.CreateCanvas2DAsync();
+
+    //         // Załóżmy, że dxf jest obiektem netDxf.DxfDocument
+    //         var dxf = new netDxf.DxfDocument();
+    //         var layer = new netDxf.Tables.Layer("Layer1");
+    //         dxf.Layers.Add(layer);
+
+    //         // Przetwarzanie kształtów z listy `shapes`
+    //         foreach (var shape in shapes)
+    //         {
+    //             switch (shape)
+    //             {
+    //                 case LineShape lineShape:
+    //                     var line = new netDxf.Entities.Line(
+    //                         new netDxf.Vector2(lineShape.StartX, lineShape.StartY),
+    //                         new netDxf.Vector2(lineShape.EndX, lineShape.EndY)
+    //                     );
+    //                     dxf.Entities.Add(line);
+    //                     break;
+
+    //                 // Przypadek dla Arc
+    //                 // case ArcShape arcShape:
+    //                 //     var arc = new netDxf.Entities.Arc(
+    //                 //         new netDxf.Vector2(arcShape.X, arcShape.Y),
+    //                 //         arcShape.Radius, 0, 360
+    //                 //     );
+    //                 //     dxf.Entities.Add(arc);
+    //                 //     break;
+
+    //                 case RectangleShape rectangleShape:
+    //                     // Oblicz wierzchołki prostokąta
+    //                     var topLeft = new netDxf.Vector2(rectangleShape.X, rectangleShape.Y);
+    //                     var topRight = new netDxf.Vector2(rectangleShape.X + rectangleShape.Width, rectangleShape.Y);
+    //                     var bottomRight = new netDxf.Vector2(rectangleShape.X + rectangleShape.Width, rectangleShape.Y + rectangleShape.Height);
+    //                     var bottomLeft = new netDxf.Vector2(rectangleShape.X, rectangleShape.Y + rectangleShape.Height);
+
+    //                     // Dodaj linie prostokąta
+    //                     dxf.Entities.Add(new netDxf.Entities.Line(topLeft, topRight));
+    //                     dxf.Entities.Add(new netDxf.Entities.Line(topRight, bottomRight));
+    //                     dxf.Entities.Add(new netDxf.Entities.Line(bottomRight, bottomLeft));
+    //                     dxf.Entities.Add(new netDxf.Entities.Line(bottomLeft, topLeft));
+    //                     break;
+    //             }
+    //         }
+
+
+    // // private async Task ExtractShapesFromCanvasAsync()
+    // // {
+    // //     if (shapes == null || shapesSkrzy == null) return;
+
+    // //     if (contextKPL == null)
+    // //         contextKPL = await canvasReferenceKPL.CreateCanvas2DAsync();
+
+    // //     var dxf = new netDxf.DxfDocument();
+    // //     var layer = new netDxf.Tables.Layer("Layer1");
+    // //     dxf.Layers.Add(layer);
+
+    // //     foreach (var shape in shapes)
+    // //     {
+    // //         List<Point> points = await shape.;
+
+    // //         // Przetwarzanie punktów na DXF
+    // //         switch (shape)
+    // //         {
+    // //             case LineShape lineShape:
+    // //                 var line = new netDxf.Entities.Line(
+    // //                     new netDxf.Vector2(lineShape.StartX, lineShape.StartY),
+    // //                     new netDxf.Vector2(lineShape.EndX, lineShape.EndY)
+    // //                 );
+    // //                 dxf.Entities.Add(line);
+    // //                 break;
+
+    // //             case RectangleShape rectangleShape:
+    // //                 foreach (var point in points)
+    // //                 {
+    // //                     dxf.Entities.Add(new netDxf.Entities.Line(
+    // //                         new netDxf.Vector2(point.X, point.Y),
+    // //                         new netDxf.Vector2(point.X, point.Y)
+    // //                     ));
+    // //                 }
+    // //                 break;
+    // //         }
+    // //     }
+
+    // //     byte[] dxfBytes = await ConvertDxfToBytesAsync(dxf);
+    // //     string base64String = Convert.ToBase64String(dxfBytes);
+
+    // //     await JS.InvokeVoidAsync("downloadFile", "output.dxf", base64String);
+    // // }
+
+
+    //     // Konwertuj DXF na tablicę bajtów
+    //     byte[] dxfBytes = await ConvertDxfToBytesAsync(dxf);
+    //     string base64String = Convert.ToBase64String(dxfBytes);
+
+    //     // Wywołaj funkcję JavaScript do pobrania pliku
+    //     await JS.InvokeVoidAsync("downloadFile", "output.dxf", base64String);
+    // }
+
+    private async Task ExtractShapesFromCanvasAsync()
+    {
+        if (shapes == null) return;
+
+        if (contextKPL == null) contextKPL = await canvasReferenceKPL.CreateCanvas2DAsync();
+
+        var dxf = new netDxf.DxfDocument();
+        var layer = new netDxf.Tables.Layer("Layer1");
+        dxf.Layers.Add(layer);
+
+        if (shapes != null)
+        {
+            foreach (var shape in shapes)
+            {
+                List<Point> points = await shape.ReturnPoints();
+                List<LinePoint> linepoints = await shape.ReturnLinePoints();
+
+                // Przetwarzanie punktów na DXF
+                switch (shape)
+                {
+                    case LineShape lineShape:
+                        var line = new netDxf.Entities.Line(
+                            new netDxf.Vector2(lineShape.StartX, lineShape.StartY),
+                            new netDxf.Vector2(lineShape.EndX, lineShape.EndY)
+                        );
+                        dxf.Entities.Add(line);
+                        break;
+
+                    case RectangleShape rectangleShape:
+                    case COscZPiorem _:
+                        for (int i = 0; i < points.Count; i++)
+                        {
+                            var startPoint = points[i];
+                            var endPoint = points[(i + 1) % points.Count];
+                            dxf.Entities.Add(new netDxf.Entities.Line(
+                                new netDxf.Vector2(startPoint.X, startPoint.Y),
+                                new netDxf.Vector2(endPoint.X, endPoint.Y)
+                            ));
+                        }
+                         for (int i = 0; i < linepoints.Count; i++)
+                        {
+                            var startPoints = linepoints[i];
+                                dxf.Entities.Add(new netDxf.Entities.Line(
+                                new netDxf.Vector2(startPoints.X1, startPoints.Y1),
+                                new netDxf.Vector2(startPoints.X2, startPoints.Y2)
+                            ));
+                        }
+                        break;
+                }
+            }
+        }
+
+        if (shapes != null)
+        {
+             foreach (var shape in shapesSkrzy)
+            {
+                List<Point> points = await shape.ReturnPoints();
+                List<LinePoint> linepoints = await shape.ReturnLinePoints();
+                // Przetwarzanie punktów na DXF
+                switch (shape)
+                {
+
+                    //case RectangleShape rectangleShape:
+                    case CSkrzy3Okna _:
+                        for (int i = 0; i < points.Count; i++)
+                        {
+                            var startPoint = points[i];
+                            var endPoint = points[(i + 1) % points.Count];
+                            dxf.Entities.Add(new netDxf.Entities.Line(
+                                new netDxf.Vector2(startPoint.X, startPoint.Y),
+                                new netDxf.Vector2(endPoint.X, endPoint.Y)
+                            ));
+                        }
+                        for (int i = 0; i < linepoints.Count; i++)
+                        {
+                            var startPoints = linepoints[i];
+                                dxf.Entities.Add(new netDxf.Entities.Line(
+                                new netDxf.Vector2(startPoints.X1, startPoints.Y1),
+                                new netDxf.Vector2(startPoints.X2, startPoints.Y2)
+                            ));
+                        }
+                        break;
+                }
+            }
+        }
+
+        //Console.WriteLine(dxf.Entities.ToString());
+        byte[] dxfBytes = await ConvertDxfToBytesAsync(dxf);
+        string base64String = Convert.ToBase64String(dxfBytes);
+        //Console.WriteLine(base64String);
+        await JS.InvokeVoidAsync("downloadFileDXF", "output.dxf", base64String);
+    }
+    
+    private async Task<byte[]> ConvertDxfToBytesAsync(netDxf.DxfDocument dxf)
+    {
+        using (var stream = new MemoryStream())
+        {
+            dxf.Save(stream);
+            return stream.ToArray();
+        }
+    }
+}

@@ -1,6 +1,6 @@
 ﻿namespace GEORGE.Shared.Models
 {
-    public class ZleceniaProdukcyjne
+    public class ZleceniaProdukcyjneWew
     {
         public long Id { get; set; }
         public string? RowId { get; set; } = Guid.NewGuid().ToString();
@@ -12,9 +12,8 @@
         public DateTime DataMontazu { get; set; } = DateTime.Now.AddDays(85);
         public string? Klient { get; set; }
         public string? Adres { get; set; }
-        public string? Miejscowosc { get; set; }
+        public string? Miejscowosc { get; set; } = "Marcinkowice";
         public string? Telefon { get; set; }
-        public string? Email { get; set; }
         public string? NazwaProduktu { get; set; }
         public string? NazwaProduktu2 { get; set; }
         public string? KodProduktu { get; set; }

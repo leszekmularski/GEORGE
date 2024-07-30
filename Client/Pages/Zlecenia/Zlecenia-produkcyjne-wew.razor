@@ -1,34 +1,30 @@
-﻿@page "/zlecenia-produkcyjne"
+﻿@page "/Zlecenia-produkcyjne-wew"
 @using GEORGE.Shared.Models
 @using GEORGE.Shared.Class
 @inject HttpClient Http
 @inject ModalService ModalService;
 @inject ConfirmService ComfirmService;
 @inject IMessageService _message
-@inject NavigationManager NavigationManager
 @using AntDesign
 @using System.Net;
 
 <PageTitle>Program do wspomagania produkcji zlecenia</PageTitle>
 
-<h3>Zlecenia Produkcyjne</h3>
+<h3>Zlecenia Produkcyjne Wewnętrzne</h3>
 
 <Button Type="primary" OnClick="@(ShowDialogAddNew)">
-    Dodaj Zlecenie
+    Dodaj Zlecenie Wewnętrzne
 </Button>
 <Divider></Divider>
 
-@if (zleceniaProdukcyjne == null)
+@if (zleceniaProdukcyjneWew == null)
 {
     <p><em>Czekaj na załadowanie danych...</em></p>
 }
 else
 {
     <ul>
-        <Table TItem="ZleceniaProdukcyjne" DataSource="@zleceniaProdukcyjne">
-            <ActionColumn Title="Materiały">
-                <a @onclick="() => DodajKantowke(context)">Kantówka</a>
-            </ActionColumn>
+        <Table TItem="ZleceniaProdukcyjneWew" DataSource="@zleceniaProdukcyjneWew">
             <Column Title="ID" @bind-Field="@context.Id" Hidden />
             <Column Title="Typ Dokumentu" @bind-Field="@context.TypZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Numer Zamówienia" @bind-Field="@context.NumerZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
@@ -37,10 +33,8 @@ else
             <Column Title="Nazwa Produktu" @bind-Field="@context.NazwaProduktu" Sortable />
             <Column Title="Adres" @bind-Field="@context.Adres" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Telefon" @bind-Field="@context.Telefon" Sortable />
-            <Column Title="Email" @bind-Field="@context.Email" Sortable />
-
             <!-- Przykład kolumny dla danych zagnieżdżonych -->
-         @*    <Column Title="Nazwa Produktu 2" TData="string" DataIndex="NazwaProduktu2" Sortable /> *@
+            <Column Title="Nazwa Produktu 2" TData="string" DataIndex="NazwaProduktu2" Sortable />
 
             <!-- Przykład kolumny dla daty z formatowaniem -->
             <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd HH:mm:ss" Sortable />
@@ -143,11 +137,6 @@ else
                             </AntDesign.FormItem>
                         </AntDesign.Col>
                         <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Adres Email">
-                                <AntDesign.Input @bind-Value="zlecenie.Email" />
-                            </AntDesign.FormItem>
-                        </AntDesign.Col>
-                        <AntDesign.Col Span="12">
                             <AntDesign.FormItem Label="Nazwa Produktu">
                                 <AntDesign.Input @bind-Value="zlecenie.NazwaProduktu" />
                             </AntDesign.FormItem>
@@ -213,8 +202,8 @@ else
                 <Table TItem="PlikiZlecenProdukcyjnych" DataSource="@pliki">
                     <Column Title="ID" @bind-Field="@context.Id" Hidden />
                     <Column Title="Nazwa pliku" @bind-Field="@context.NazwaPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
-                    <Column Title="Oryginalna nazwa pliku" @bind-Field="@context.OryginalnaNazwaPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Title="Typ" @bind-Field="@context.TypPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Title="Oryginalna nazwa pliku" @bind-Field="@context.OryginalnaNazwaPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Title="Data Zapisu" @bind-Field="@context.DataZapisu" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <ActionColumn Title="Uwagi / Akcja">
                         <Template>
@@ -257,12 +246,8 @@ else
 </div>
 
 @code {
-
-    [Inject]
-    private NavigationManager? navigationManager { get; set; }
-
-    private List<ZleceniaProdukcyjne>? zleceniaProdukcyjne;
-    private List<ZleceniaProdukcyjne>? originalzleceniaProdukcyjne;
+    private List<ZleceniaProdukcyjneWew>? zleceniaProdukcyjneWew;
+    private List<ZleceniaProdukcyjneWew>? originalzleceniaProdukcyjneWew;
 
     private List<PlikiZlecenProdukcyjnych> pliki = new List<PlikiZlecenProdukcyjnych>();
 
@@ -284,13 +269,14 @@ else
 
     private long cid = -1;
 
-    private ZleceniaProdukcyjne zlecenie = new ZleceniaProdukcyjne();
+    private ZleceniaProdukcyjneWew zlecenie = new ZleceniaProdukcyjneWew();
 
     protected override async Task OnInitializedAsync()
     {
 
         try
         {
+          
             _TypZamowienia = new List<TypZamowienia>
             {
                 new TypZamowienia {Value = "Pomiary", Name = "Pomiary", Role = "Oferta"},
@@ -301,13 +287,14 @@ else
                 new TypZamowienia {Value = "Zakończono", Name = "Zakończono", Role = "Zamówienie"}
             };
 
-            zleceniaProdukcyjne = await Http.GetFromJsonAsync<List<ZleceniaProdukcyjne>>("api/ZleceniaProdukcyjne");
+            zleceniaProdukcyjneWew = await Http.GetFromJsonAsync<List<ZleceniaProdukcyjneWew>>("api/ZleceniaProdukcyjneWew");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message}/ {ex.StackTrace}");
-            zleceniaProdukcyjne = new List<ZleceniaProdukcyjne>();
+            zleceniaProdukcyjneWew = new List<ZleceniaProdukcyjneWew>();
         }
+
     }
 
     private async Task LoadFiles(string rowId)
@@ -333,11 +320,6 @@ else
         {
             // Obsłuż błąd
         }
-    }
-
-    private void DodajKantowke(ZleceniaProdukcyjne row)
-    {
-       navigationManager.NavigateTo($"/Kantowka-do-zlecen/{row.RowId}");
     }
 
     private async Task DownloadFile(string fileUrl)
@@ -378,16 +360,15 @@ else
         }
     }
 
-
-    private async Task FileEdit(ZleceniaProdukcyjne row)
+    private async Task FileEdit(ZleceniaProdukcyjneWew row)
     {
         pliki = new List<PlikiZlecenProdukcyjnych>();
 
-        zlecenie = new ZleceniaProdukcyjne();
+        zlecenie = new ZleceniaProdukcyjneWew();
 
-        if (zleceniaProdukcyjne == null) return;
+        if (zleceniaProdukcyjneWew == null) return;
 
-        var listOfData = zleceniaProdukcyjne.Where(d => d.Id == row.Id).ToArray();
+        var listOfData = zleceniaProdukcyjneWew.Where(d => d.Id == row.Id).ToArray();
 
         // Pobierz zlecenie na podstawie indeksu wiersza
         if (listOfData != null && listOfData.Count() > 0)
@@ -412,15 +393,15 @@ else
 
         if (zlecenie.Id == 0)
         {
-            response = await Http.PostAsJsonAsync("api/ZleceniaProdukcyjne", zlecenie);
+            response = await Http.PostAsJsonAsync("api/ZleceniaProdukcyjneWew", zlecenie);
 
-            zleceniaProdukcyjne = await Http.GetFromJsonAsync<List<ZleceniaProdukcyjne>>("api/ZleceniaProdukcyjne");
+            zleceniaProdukcyjneWew = await Http.GetFromJsonAsync<List<ZleceniaProdukcyjneWew>>("api/ZleceniaProdukcyjneWew");
         }
         else
         {
-            response = await Http.PutAsJsonAsync($"api/ZleceniaProdukcyjne/{zlecenie.Id}", zlecenie);
+            response = await Http.PutAsJsonAsync($"api/ZleceniaProdukcyjneWew/{zlecenie.Id}", zlecenie);
 
-            if (zleceniaProdukcyjne != null) originalzleceniaProdukcyjne = zleceniaProdukcyjne.DeepCopyList();
+            if (zleceniaProdukcyjneWew != null) originalzleceniaProdukcyjneWew = zleceniaProdukcyjneWew.DeepCopyList();
         }
 
         if (response.IsSuccessStatusCode)
@@ -432,16 +413,16 @@ else
             else
             {
                 // Znajdź istniejące zlecenie i zaktualizuj je
-                var index = zleceniaProdukcyjne.FindIndex(z => z.Id == zlecenie.Id);
+                var index = zleceniaProdukcyjneWew.FindIndex(z => z.Id == zlecenie.Id);
 
                 if (index != -1)
                 {
-                    zleceniaProdukcyjne[index] = zlecenie;
+                    zleceniaProdukcyjneWew[index] = zlecenie;
                 }
             }
 
             _visible = false;
-            zlecenie = new ZleceniaProdukcyjne(); // Zresetuj formularz
+            zlecenie = new ZleceniaProdukcyjneWew(); // Zresetuj formularz
 
             await HideDialog();
 
@@ -463,15 +444,15 @@ else
     {
 
         //listOfData = listOfData.Where(d => d.Id != id).ToArray();
-        if (zleceniaProdukcyjne == null) return;
+        if (zleceniaProdukcyjneWew == null) return;
 
         _visible = true;
 
-        originalzleceniaProdukcyjne = zleceniaProdukcyjne.DeepCopyList();
+        originalzleceniaProdukcyjneWew = zleceniaProdukcyjneWew.DeepCopyList();
 
-            zlecenie = new ZleceniaProdukcyjne();
+            zlecenie = new ZleceniaProdukcyjneWew();
 
-            var  listOfData = zleceniaProdukcyjne.Where(d => d.Id == id).ToArray();
+            var  listOfData = zleceniaProdukcyjneWew.Where(d => d.Id == id).ToArray();
 
             // Pobierz zlecenie na podstawie indeksu wiersza
             if (listOfData != null && listOfData.Count() > 0 )
@@ -504,13 +485,13 @@ else
             return;
         }
 
-        var response = await Http.DeleteAsync($"api/ZleceniaProdukcyjne/{id_del}");
+        var response = await Http.DeleteAsync($"api/ZleceniaProdukcyjneWew/{id_del}");
         if (response.IsSuccessStatusCode)
         {
-            var zlecenie = zleceniaProdukcyjne.FirstOrDefault(z => z.Id == id_del);
+            var zlecenie = zleceniaProdukcyjneWew.FirstOrDefault(z => z.Id == id_del);
             if (zlecenie != null)
             {
-                zleceniaProdukcyjne.Remove(zlecenie);
+                zleceniaProdukcyjneWew.Remove(zlecenie);
                 await _message.Success("Zlecenie usunięto!");
             }
         }
@@ -551,7 +532,7 @@ else
     public async Task ShowDialogAddNew()
     {
         _visible = true;
-        zlecenie = new ZleceniaProdukcyjne();
+        zlecenie = new ZleceniaProdukcyjneWew();
         cid = -1;
 
         display = "block";
@@ -570,9 +551,9 @@ else
 
     private async Task HideDialog()
     {
-        if (cid >0 && zleceniaProdukcyjne != null)
+        if (cid >0 && zleceniaProdukcyjneWew != null)
         {
-            zleceniaProdukcyjne = originalzleceniaProdukcyjne;
+            zleceniaProdukcyjneWew = originalzleceniaProdukcyjneWew;
         }
 
         cid = -1;

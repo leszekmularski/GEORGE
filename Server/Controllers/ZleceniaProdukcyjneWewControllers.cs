@@ -9,29 +9,29 @@ namespace GEORGE.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class ZleceniaProdukcyjneController : ControllerBase
+    public class ZleceniaProdukcyjneWewController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
-        private readonly ILogger<ZleceniaProdukcyjneController> _logger;
+        private readonly ILogger<ZleceniaProdukcyjneWewController> _logger;
 
-        public ZleceniaProdukcyjneController(ApplicationDbContext context, ILogger<ZleceniaProdukcyjneController> logger)
+        public ZleceniaProdukcyjneWewController(ApplicationDbContext context, ILogger<ZleceniaProdukcyjneWewController> logger)
         {
             _context = context;
             _logger = logger;
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<ZleceniaProdukcyjne>>> GetZleceniaProdukcyjneAsync()
+        public async Task<ActionResult<List<ZleceniaProdukcyjneWew>>> GetZleceniaProdukcyjneWewAsync()
         {
-            return await _context.ZleceniaProdukcyjne.OrderByDescending(e => e.Id).ToListAsync();
+            return await _context.ZleceniaProdukcyjneWew.OrderByDescending(e => e.Id).ToListAsync();
         }
 
         [HttpPost]
-        public async Task<ActionResult> AddZlecenieProdukcyjneAsync(ZleceniaProdukcyjne zlecenie)
+        public async Task<ActionResult> AddZlecenieProdukcyjneWewAsync(ZleceniaProdukcyjneWew zlecenieWew)
         {
             try
             {
-                _context.ZleceniaProdukcyjne.Add(zlecenie);
+                _context.ZleceniaProdukcyjneWew.Add(zlecenieWew);
                 await _context.SaveChangesAsync();
                 return Ok();
             }
@@ -43,14 +43,14 @@ namespace GEORGE.Server.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult> UpdateZlecenieProdukcyjneAsync(long id, ZleceniaProdukcyjne zlecenie)
+        public async Task<ActionResult> UpdateZlecenieProdukcyjneWewAsync(long id, ZleceniaProdukcyjneWew zlecenieWew)
         {
-            if (id != zlecenie.Id)
+            if (id != zlecenieWew.Id)
             {
                 return BadRequest("ID zlecenia nie pasuje do ID w żądaniu.");
             }
 
-            _context.Entry(zlecenie).State = EntityState.Modified;
+            _context.Entry(zlecenieWew).State = EntityState.Modified;
 
             try
             {
@@ -59,7 +59,7 @@ namespace GEORGE.Server.Controllers
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                if (!ZlecenieProdukcyjneExists(id))
+                if (!ZlecenieProdukcyjneWewExists(id))
                 {
                     return NotFound("Nie znaleziono zlecenia o podanym ID.");
                 }
@@ -72,26 +72,26 @@ namespace GEORGE.Server.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult> DeleteZlecenieProdukcyjneAsync(long id)
+        public async Task<ActionResult> DeleteZlecenieProdukcyjneWewAsync(long id)
         {
-            var zlecenie = await _context.ZleceniaProdukcyjne.FindAsync(id);
-            if (zlecenie == null)
+            var zlecenieWew = await _context.ZleceniaProdukcyjneWew.FindAsync(id);
+            if (zlecenieWew == null)
             {
                 return NotFound("Nie znaleziono zlecenia o podanym ID.");
             }
 
-            _context.ZleceniaProdukcyjne.Remove(zlecenie);
+            _context.ZleceniaProdukcyjneWew.Remove(zlecenieWew);
             await _context.SaveChangesAsync();
 
             // Wyświetl numer zamówienia w konsoli
-            Console.WriteLine(zlecenie.NumerZamowienia);
+            Console.WriteLine(zlecenieWew.NumerZamowienia);
 
             return Ok("Zlecenie zostało pomyślnie usunięte.");
         }
 
-        private bool ZlecenieProdukcyjneExists(long id)
+        private bool ZlecenieProdukcyjneWewExists(long id)
         {
-            return _context.ZleceniaProdukcyjne.Any(e => e.Id == id);
+            return _context.ZleceniaProdukcyjneWew.Any(e => e.Id == id);
         }
 
         // Możesz dodać dodatkowe metody, np. delete, jeśli to konieczne

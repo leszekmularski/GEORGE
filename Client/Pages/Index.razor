@@ -8,8 +8,20 @@
 <br />
 <p>Dziś mamy dzień: @DateTime.Now.DayOfYear roku @DateTime.Now.Year, tydzień @GetWeekNumber(DateTime.Now)</p>
 
-@* <SurveyPrompt Title="How is Blazor working for you?" /> *@
+<div>
+    <img class="marginauto" src="/Images/george_st.jpg" asp-append-version="true" width="800" alt="centered image" />
+</div>
 
+<style>
+    body {
+        background-color: lightblue;
+    }
+
+    .marginauto {
+        margin: 10px auto 20px;
+        display: block;
+    }
+</style>
 
 @code {
     private int GetWeekNumber(DateTime date)

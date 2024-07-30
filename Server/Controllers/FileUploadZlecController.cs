@@ -5,6 +5,7 @@ using static GEORGE.Client.Pages.Zlecenia.Zlecenia_produkcyjne;
 using Microsoft.EntityFrameworkCore;
 using GEORGE.Server;
 using GEORGE.Shared.Models;
+using System.Net;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -19,13 +20,18 @@ public class FileUploadZlecController : ControllerBase
         _context = context;
     }
 
-    [HttpPost("upload/{rowIdZlecenia}")]
-    public async Task<IActionResult> UploadFile(string rowIdZlecenia, IFormFile file)
+    [HttpPost("upload/{rowIdZlecenia}/{orygFileName}")]
+    public async Task<IActionResult> UploadFile(string rowIdZlecenia, string orygFileName, IFormFile file)
     {
         if (file == null || file.Length == 0)
             return BadRequest("Pliku nie wysłano");
 
+        // Dodaj debugowanie
+        var webRootPath = _environment.WebRootPath;
+        Console.WriteLine($"WebRootPath: {webRootPath}");
+
         var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads_zlecenia");
+
         if (!Directory.Exists(uploadsFolder))
         {
             Directory.CreateDirectory(uploadsFolder);
@@ -38,12 +44,15 @@ public class FileUploadZlecController : ControllerBase
             await file.CopyToAsync(stream);
         }
 
+        orygFileName = WebUtility.UrlDecode(orygFileName);
+
         var plik = new PlikiZlecenProdukcyjnych
         {
             RowId = Guid.NewGuid().ToString(),
             RowIdZleceniaProdukcyjne = rowIdZlecenia,
             NazwaPliku = Path.GetFileName(filePath),
-            TypPliku = file.ContentType,
+            OryginalnaNazwaPliku = orygFileName,
+            TypPliku = file.ContentType + "/" + GetFileExtension(orygFileName),
             DataZapisu = DateTime.Now,
             KtoZapisal = User.Identity.Name, // Zakładając, że masz uwierzytelnianie użytkowników
             OstatniaZmiana = "Zmiana: " + DateTime.Now.ToLongDateString()
@@ -88,6 +97,22 @@ public class FileUploadZlecController : ControllerBase
         {
             return NotFound("Nie znaleziono pliku o podanym ID.");
         }
+    }
+
+    public string GetFileExtension(string fileName)
+    {
+        if (string.IsNullOrEmpty(fileName))
+        {
+            return string.Empty;
+        }
+
+        int lastDotIndex = fileName.LastIndexOf('.');
+        if (lastDotIndex < 0)
+        {
+            return string.Empty;
+        }
+
+        return fileName.Substring(lastDotIndex + 1);
     }
 
 }

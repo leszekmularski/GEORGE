@@ -7,21 +7,58 @@
     </div>
 
     <main>
+
+
         <div class="top-row px-4">
-            <Button OnClick="@(()=>{ _visible = true; })">Informacja</Button>
+            <a @onclick="@(()=>{ ShowDialogPass(); })">Informacja</a>
         </div>
 
-        <Modal Title="Informacja o systemie produkcyjnym."
-       @bind-Visible="@_visible">
-        <p>Program autorstwa Leszek Mularski.</p>
-    </Modal>
+        <div class="modal fade @classShowPass" tabindex="-1" style="display: @displayPass;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 25%;">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Informacja o systemie</h5>
+                    </div>
+                    <div class="modal-body">
+
+                        <label>Program autorstwa: Leszek Mularski</label> 
+
+                    </div>
+                    <div class="modal-footer d-flex">
+                        <Button class="ms-auto" @onclick="() => HideDialogPass()">OK</Button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <article class="content px-4">
             @Body
         </article>
+
     </main>
 </div>
 
 @code {
-    bool _visible = false;
+    private string displayPass = "none;";
+    private string classShowPass = "";
+
+    public async Task ShowDialogPass()
+    {
+
+        displayPass = "block";
+        await Task.Delay(50);
+        classShowPass = "show";
+        StateHasChanged();
+
+    }
+
+    private async Task HideDialogPass()
+    {
+
+        classShowPass = "";
+        await Task.Delay(200);
+        displayPass = "none";
+
+        StateHasChanged();
+    }
 }

@@ -16,6 +16,9 @@ namespace GEORGE.Server
         public DbSet<KartyInstrukcyjne> KartyInstrukcyjne { get; set; }
         public DbSet<RodzajeKartInstrukcyjnych> RodzajeKartInstrukcyjnych { get; set; }
         public DbSet<PlikiZlecenProdukcyjnych> PlikiZlecenProdukcyjnych { get; set; }
+        public DbSet<ZleceniaProdukcyjneWew>? ZleceniaProdukcyjneWew { get; set; }
+        public DbSet<KantowkaDoZlecen>? KantowkaDoZlecen { get; set; }
+        
 
         public async Task<bool> ZmienUwage(long id, string uwaga)
         {
@@ -31,6 +34,12 @@ namespace GEORGE.Server
             return true;
 
 
+        }
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<RodzajeKartInstrukcyjnych>()
+                .HasIndex(r => r.NumerRodzajuKart)
+                .IsUnique();
         }
     }
 }

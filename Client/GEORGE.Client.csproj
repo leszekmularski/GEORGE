@@ -8,8 +8,11 @@
 
   <ItemGroup>
     <PackageReference Include="AntDesign" Version="0.19.4" />
+    <PackageReference Include="Blazor.Extensions.Canvas" Version="1.1.1" />
+    <PackageReference Include="itext7" Version="8.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.7" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.7" PrivateAssets="all" />
+    <PackageReference Include="netDxf" Version="2022.11.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,6 +23,13 @@
     <Content Update="Pages\KartyInstrukcyjne\Karty-Instrukcyjne.razor">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </Content>
+    <Content Update="Pages\Zlecenia\Zlecenia-produkcyjne-wew.razor">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\Images\" />
   </ItemGroup>
 
 </Project>
