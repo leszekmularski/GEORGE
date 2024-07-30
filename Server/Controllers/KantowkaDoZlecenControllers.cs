@@ -31,7 +31,7 @@ namespace GEORGE.Server.Controllers
         {
             var result = await _context.KantowkaDoZlecen
                 .Where(x => x.RowIdZlecenia == rowid)
-                .OrderBy(e => e.RowIdZlecenia)
+                .OrderBy(e => e.RowIdZlecenia).OrderBy(z => z.Przekroj).OrderBy(z => z.DlugoscZamawiana).OrderBy(z => z.DlugoscNaGotowo)
                 .ToListAsync();
 
             //if (result == null || !result.Any())

@@ -3,16 +3,41 @@
 @using GEORGE.Shared.Class
 @using GEORGE.Client.Pages
 @inject HttpClient Http
+@inject IJSRuntime JSRuntime
 @using AntDesign
 @inject IMessageService _message
 @inject PdfReaderService PdfReaderService
 @inject GEORGE.Client.Pages.PDF.PdfDataParser PdfDataParser
+ <!DOCTYPE html>
+<html>
+<head>
+     <meta charset="utf-8" />
+    <PageTitle>Zamówiona kantówka do zlecenia</PageTitle>
+
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function () {
+                console.log('Text copied to clipboard');
+            }).catch(function (error) {
+                console.error('Error copying text: ', error);
+            });
+        }
+    </script>
+
+</head>
+<body>
 
 <h3>Zamówiona kantówka do zlecenia</h3>
 
 <Button Type="primary" OnClick="@(ShowDialogAddNew)">
     Dodaj nowe zestawienie materiałów
 </Button>
+@if (kantowkaDoZlecen != null && kantowkaDoZlecen.Count > 0)
+{
+    <Button Type="reset" OnClick="@(CopyKantowkiToClipboard)">
+        Kopiuj do schowka dane
+    </Button>
+}
 <Divider></Divider>
 
 @if (kantowkaDoZlecen == null)
@@ -28,6 +53,7 @@ else
             <Column Title="Przekrój" @bind-Field="@context.Przekroj" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Opis" @bind-Field="@context.NazwaProduktu" Sortable />
             <Column Title="Długość na gotowo" @bind-Field="@context.DlugoscNaGotowo" Sortable OnFilter="(a, b) => a == b" Filterable />
+            <Column Title="Długość na gotowo cd." @bind-Field="@context.DlugoscNaGotowoGrupa" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Długość zamówiona" @bind-Field="@context.DlugoscZamawiana" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Ilość sztuk" @bind-Field="@context.IloscSztuk" Sortable />
                     <Column Title="Wykoż. materiał ze stanu" TData="KantowkaDoZlecen">
@@ -61,13 +87,14 @@ else
 
     <div style="overflow: auto; width: 100%; height: 200px">
 
-    <h7>Wybierz plik ze stolcad z listą materiałów [PDF Reader] </h7>
+    <h7>Wybierz plik ze stolcad z listą materiałów [PDF Reader] (wegeneruj listę cięc)</h7>
     <InputFile OnChange="HandleFileSelected" />
 
     @if (zestawienie != null)
     {
         <div>
-                <Button Type="@ButtonType.Primary" Style="width:100%" OnClick="SaveAll">Zapisz wyszystkie</Button>
+                <Button Type="@ButtonType.Primary" Style="width:49%" OnClick="SaveAll">Zapisz wyszystkie</Button>
+                <Button Type="@ButtonType.Primary" Style="width:49%" OnClick="SaveAllGrupa">Zapisz wyszystkie oraz grupuj</Button>
         </div>
         
         <div>
@@ -173,6 +200,8 @@ else
         </div>
     </div>
 </div>
+    </body>
+</html>
 
 @code {
     [Parameter]
@@ -217,6 +246,18 @@ else
         {
             Console.WriteLine($"******* Błąd {ex.Message}");  
         }
+    }
+
+
+    private async Task CopyKantowkiToClipboard()
+    {
+        if (kantowkaDoZlecen == null || kantowkaDoZlecen.Count == 0) return;
+
+        var kantowkiText = string.Join("\n", kantowkaDoZlecen.Select(k =>
+            $"RowIdZlecenia: {k.RowIdZlecenia}, GatunekKantowki: {k.GatunekKantowki}, Przekroj: {k.Przekroj}, NazwaProduktu: {k.NazwaProduktu}, KodProduktu: {k.KodProduktu}, Uwagi: {k.Uwagi}, DlugoscZamawiana: {k.DlugoscZamawiana}, DlugoscNaGotowo: {k.DlugoscNaGotowo}, IloscSztuk: {k.IloscSztuk}, DataZamowienia: {k.DataZamowienia}, DataRealizacji: {k.DataRealizacji}, DataZapisu: {k.DataZapisu}, KtoZapisal: {k.KtoZapisal}, OstatniaZmiana: {k.OstatniaZmiana}"
+        ));
+
+        await JSRuntime.InvokeVoidAsync("copyToClipboard", kantowkiText);
     }
 
     private void LiczDlugoscZam()
@@ -292,6 +333,7 @@ else
                     Uwagi = "Dane zaimortowano z PDF",
                     DlugoscZamawiana = int.Parse(item.WymiarNaZamowienie) ,
                     DlugoscNaGotowo = int.Parse(item.Wymiar),
+                    DlugoscNaGotowoGrupa = item.Wymiar,
                     IloscSztuk = int.Parse(item.Ilosc),
                     DataZamowienia = DateTime.Now,
                     DataRealizacji = DateTime.Now.AddDays(14),
@@ -328,6 +370,65 @@ else
             Console.WriteLine($"Wystąpił błąd: {ex.Message}");
         }
     }
+
+    private async Task SaveAllGrupa()
+{
+    if (zestawienie == null) return;
+
+    // Grupuj dane według GatunekKantowki, Przekroj i DlugoscZamawiana
+    var groupedData = zestawienie.ListaCieci
+        .GroupBy(item => new 
+        {
+            GatunekKantowki = item.Uwagi,
+            Przekroj = item.Kolor,
+            DlugoscZamawiana = int.Parse(item.WymiarNaZamowienie)
+        })
+        .Select(g => new KantowkaDoZlecen
+        {
+            RowIdZlecenia = RowIdZlecenia,
+            GatunekKantowki = g.Key.GatunekKantowki,
+            Przekroj = g.Key.Przekroj,
+            NazwaProduktu = g.FirstOrDefault()?.Symbol ?? "",
+            KodProduktu = "",
+            Uwagi = "Dane zaimortowano z PDF",
+            DlugoscZamawiana = g.Key.DlugoscZamawiana,
+            DlugoscNaGotowo = g.FirstOrDefault()?.Wymiar != null ? int.Parse(g.FirstOrDefault().Wymiar) : 0,
+            DlugoscNaGotowoGrupa = string.Join("; ", g.Select(item => item.Wymiar)),
+            IloscSztuk = g.Sum(item => int.Parse(item.Ilosc)),
+            DataZamowienia = DateTime.Now,
+            DataRealizacji = DateTime.Now.AddDays(14),
+            DataZapisu = DateTime.Now,
+            KtoZapisal = "Admin"
+        })
+        .ToList();
+
+    try
+    {
+        // Wyślij pogrupowane dane do API
+        var response = await Http.PostAsJsonAsync("api/kantowkaDoZlecen/save-all", groupedData);
+
+        if (response.IsSuccessStatusCode)
+        {
+            // Operacja zakończona sukcesem
+            Console.WriteLine("Dane zostały zapisane pomyślnie.");
+
+            kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecen>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
+
+            zestawienie = null;
+        }
+        else
+        {
+            // Obsłuż błąd
+            Console.WriteLine("Wystąpił błąd podczas zapisywania danych.");
+        }
+    }
+    catch (Exception ex)
+    {
+        // Obsłuż wyjątek
+        Console.WriteLine($"Wystąpił błąd: {ex.Message}");
+    }
+}
+
 
     private async Task HandleSubmit()
     {

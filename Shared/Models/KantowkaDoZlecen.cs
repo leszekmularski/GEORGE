@@ -16,6 +16,7 @@ namespace GEORGE.Shared.Models
         public string? Uwagi { get; set; }
         public int DlugoscZamawiana { get; set; } = 0;
         public int DlugoscNaGotowo { get; set; } = 0;
+        public string DlugoscNaGotowoGrupa { get; set; } = "";
         public int IloscSztuk { get; set; } = 0;
         public DateTime DataZamowienia{ get; set; } = DateTime.Now;
         public DateTime DataRealizacji { get; set; } = DateTime.Now.AddDays(14);

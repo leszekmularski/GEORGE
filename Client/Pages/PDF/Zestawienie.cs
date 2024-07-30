@@ -46,7 +46,10 @@ namespace GEORGE.Client.Pages.PDF
             }
             catch (Exception ex)
             {
-                throw new FormatException("Błąd w parsowaniu nagłówka zestawienia: " + ex.Message);
+                Console.WriteLine("Błąd w parsowaniu nagłówka zestawienia: " + ex.Message);
+                zestawienie.NrZestawienia = "Błąd, lub brak danych";
+                zestawienie.Data = DateTime.Now;
+                zestawienie.Odbiorca = "";
             }
 
             string strUwagi = "";
