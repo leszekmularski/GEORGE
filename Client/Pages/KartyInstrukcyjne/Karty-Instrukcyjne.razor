@@ -53,7 +53,12 @@ else
                             CancelText="Nie">
                     <a>Edytuj</a>
                 </Popconfirm>
-
+                <Popconfirm Title="Czy chcesz usunąć pozycję?"
+                            OnConfirm="()=> ShowDialogPass(context.Id)"
+                            OkText="Tak"
+                            CancelText="Nie">
+                    <a style="color:red">Usuń</a>
+                </Popconfirm>
             </ActionColumn>
         </Table>
     </ul>
@@ -119,10 +124,31 @@ else
                         </Upload> *@
                         <InputFile OnChange="HandleSelected" >Wybierz plik PDF karty instrukcyjnej</InputFile>
                         <br/>
-                        <AntDesign.Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</AntDesign.Button>
+                        @if (!blokuj_2_click)
+                        {
+                            <AntDesign.Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</AntDesign.Button>
+                        }
                         <AntDesign.Button @onclick="@HandleCancel">Anuluj</AntDesign.Button>
                     </AntDesign.FormItem>
                 </AntDesign.Form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade @classShowPass" tabindex="-1" style="display: @displayPass;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 25%;">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Aby usunąć kartę musisz podać hasło</h5>
+            </div>
+            <div class="modal-body">
+
+                <Input Placeholder="Podaj hasło!!!" @bind-Value="@classPass" MaxLength="25" />
+
+            </div>
+            <div class="modal-footer d-flex">
+                <Button class="ms-auto" @onclick="() => HideDialogPass()">OK</Button>
             </div>
         </div>
     </div>
@@ -141,9 +167,16 @@ else
     private string display = "none;";
     private string classShow = "";
 
+    private string displayPass = "none;";
+    private string classShowPass = "";
+    private string classPass = "";
+    private long id_del = -1;
+
     private long cid = -1;
 
     private KartyInstrukcyjne karty = new KartyInstrukcyjne();
+
+    private bool blokuj_2_click = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -198,7 +231,7 @@ else
             return;
         }
 
-        if (_visible == false) return;
+        //if (_visible == false) return;
 
         HttpResponseMessage response;
 
@@ -215,9 +248,12 @@ else
 
         if (response.IsSuccessStatusCode)
         {
+
             if (karty.Id == 0)
             {
                 kartyInstrukcyjne.Add(karty); // Dodaj nowe karty do listy
+
+                blokuj_2_click = false;
             }
             else
             {
@@ -231,9 +267,14 @@ else
             }
 
             _visible = false;
+
             karty = new KartyInstrukcyjne(); // Zresetuj formularz
 
             await HideDialog();
+
+            kartyInstrukcyjne = await Http.GetFromJsonAsync<List<KartyInstrukcyjne>>("api/KartyInstrukcyjne");
+
+            if (kartyInstrukcyjne != null) originalkartyInstrukcyjne = kartyInstrukcyjne.DeepCopyList();
 
             StateHasChanged(); // Odśwież widok
         }
@@ -244,10 +285,65 @@ else
         }
     }
 
+    public async Task ShowDialogPass(long id)
+    {
+        id_del = id;
+        displayPass = "block";
+        await Task.Delay(50);
+        classShowPass = "show";
+        StateHasChanged();
+
+    }
+
+    private async Task HideDialogPass()
+    {
+
+        classShowPass = "";
+        await Task.Delay(200);
+        displayPass = "none";
+
+        StateHasChanged();
+
+        await delRow();
+    }
+
+    private async Task delRow()
+    {
+        if (classPass != "admin1")
+        {
+            await _message.Error("Błędne hasło");
+            return;
+        }
+
+        var response = await Http.DeleteAsync($"api/KartyInstrukcyjne/{id_del}");
+
+        if (response.IsSuccessStatusCode)
+        {
+            var zlecenie = kartyInstrukcyjne.FirstOrDefault(z => z.Id == id_del);
+            if (zlecenie != null)
+            {
+                kartyInstrukcyjne.Remove(zlecenie);
+                await _message.Success("Kartę usunięto!");
+            }
+        }
+        else
+        {
+            Console.WriteLine("Błąd podczas usuwania karty.");
+            await _message.Error("Błąd podczas usuwania karty");
+        }
+
+        id_del = -1;
+        classPass = "";
+
+        kartyInstrukcyjne = await Http.GetFromJsonAsync<List<KartyInstrukcyjne>>("api/KartyInstrukcyjne");
+    }
+
     public async Task editRow(long id)
     {
         //listOfData = listOfData.Where(d => d.Id != id).ToArray();
         if (kartyInstrukcyjne == null) return;
+
+        blokuj_2_click = false;
 
         originalkartyInstrukcyjne = kartyInstrukcyjne.DeepCopyList();
 
@@ -288,6 +384,8 @@ else
         await Task.Delay(1);
 
         _visible = true;
+
+        blokuj_2_click = true;
 
         //await HandleSubmit();
         // _visible = false;

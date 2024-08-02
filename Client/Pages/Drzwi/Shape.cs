@@ -414,6 +414,8 @@ namespace GEORGE.Client.Pages.Drzwi
 
             await context.ClosePathAsync();
 
+            await context.RectAsync(offsetX - (Width - 15) * Skala, loffsetY + Height * Skala, -WysPiora * Skala, GrubPiora * Skala); // Pióro
+
             if (!lutro)
             {
                 AddLinePoints(offsetX, loffsetY, offsetX - Width * Skala, loffsetY);
@@ -426,11 +428,11 @@ namespace GEORGE.Client.Pages.Drzwi
                 AddLinePoints(offsetX - (Width - 23) * Skala, loffsetY + (Height - 20) * Skala, offsetX - (Width - 25) * Skala, loffsetY + (Height - 15) * Skala);
                 AddLinePoints(offsetX - (Width - 25) * Skala, loffsetY + (Height - 15) * Skala, offsetX, loffsetY + (Height - 15) * Skala);
                 AddLinePoints(offsetX, loffsetY + (Height - 15) * Skala, offsetX, loffsetY);
+
+                AddRectanglePoints(offsetX - (Width - 15) * Skala, loffsetY + Height * Skala, -WysPiora * Skala, GrubPiora * Skala);
             }
 
-            await context.RectAsync(offsetX - (Width - 15) * Skala, loffsetY + Height * Skala, -WysPiora * Skala, GrubPiora * Skala); // Pióro
-
-            AddRectanglePoints(offsetX - (Width - 15) * Skala, loffsetY + Height * Skala, -WysPiora * Skala, GrubPiora * Skala);
+    
 
             await context.StrokeAsync();
         }
@@ -449,8 +451,6 @@ namespace GEORGE.Client.Pages.Drzwi
             AddRectanglePoints(offsetX - (Width - Width) * Skala, offsetY + (Width + Width) * Skala, (SzerDrzwi - Width * 2) * Skala, (WysDrzwi - Width * 2) * Skala); // #2
             AddRectanglePoints(offsetX - (Width + WysPiora - 15) * Skala, offsetY + (Width - (WysPiora - 15)) * Skala, (SzerDrzwi + (WysPiora - 15) * 2) * Skala, (WysDrzwi + WysPiora - Width - 15) * Skala); // #3
             AddRectanglePoints(offsetX, offsetY + (WysDrzwi - WysProgu) * Skala, (SzerDrzwi - 2 * Width) * Skala, WysProgu * Skala); //PRÓG
-
-            
 
             await context.StrokeAsync();
         }

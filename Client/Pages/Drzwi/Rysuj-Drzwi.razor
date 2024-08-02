@@ -4,6 +4,7 @@
 @using Blazor.Extensions.Canvas
 @using Blazor.Extensions.Canvas.Canvas2D
 @using AntDesign
+@inject IconService iconService
 
 @using netDxf;
 @using netDxf.Entities;
@@ -11,80 +12,162 @@
 
 @inject IJSRuntime JS;
 
-<Tabs @bind-ActiveKey="@activeKey" Animated>
-    <TabPane Tab="Rama dzwi" Key="1">
-        <h7>Szkic ościeżnicy z piórem</h7>
-        <div style="overflow: auto; width: 1250px; height: 450px">
-            <BECanvas Width="2000" Height="2500" @ref="canvasReference"></BECanvas>
-        </div
+<div style="display: flex; align-items: flex-start;">
+     <div style="width: 256px;">
+        <Menu Style="width: 256px;"
+              DefaultSelectedKeys=@(new[] { "1" })
+              DefaultOpenKeys=@(new[] { "sub1" })
+              Mode=@MenuMode.Inline>
+            <SubMenu Key="sub1" TitleTemplate="@sub1Title">
+                <MenuItemGroup Key="g1" Title="Wymiary">
+                    <MenuItem Key="001">
+                        <label for="szerDzwi">Szerokość Drzwi:</label>
+                        <input id="szerDzwi" type="number" @bind="szerDzwi" min="400" max="2000" />
+                    </MenuItem>
+                    <MenuItem Key="002">
+                        <label for="wysDzwi">Wysokość Drzwi:</label>
+                        <input id="wysDzwi" type="number" @bind="wysDzwi" min="1500" max="2800" />
+                    </MenuItem>
+                    <MenuItem Key="003">
+                    <div>
+                        <label for="width">Ościężnica:</label>
+                        <select name="typOscieznicy" id="typOscieznicy" @bind="typOscieznicy">
+                            <option value="Pioro">Z piórem</option>
+                        </select>
+                    </div>
+                </MenuItem>
+                </MenuItemGroup>
+            </SubMenu>
+            <SubMenu Key="sub2" TitleTemplate=@subOscTitle>
+                <MenuItemGroup Key="g3" Title="Ościeżnica">
+                    <MenuItem Key="3">
+                        <label for="wysProgu">Wysokość Progu:</label>
+                        <input id="wysProgu" type="number" @bind="wysProgu" min="0" max="100" />
+                    </MenuItem>
+                    <MenuItem Key="4">
+                        <label for="wysPiora">Wysokość Pióra:</label>
+                        <input id="wysPiora" type="number" @bind="wysPiora" min="20" max="200" />
+                    </MenuItem>
+                    <MenuItem Key="4.0">
+                        <label for="szerOsc">Szerokość:</label>
+                        <input id="szerOsc" type="number" @bind="szerOsc" min="20" max="200" />
+                    </MenuItem>
+                    <MenuItem Key="4.1">
+                        <label for="glebOsc">Głębokość:</label>
+                        <input id="glebOsc" type="number" @bind="glebOsc" min="20" max="1000" />
+                    </MenuItem>
+                    <MenuItem Key="4.2">
+                        <div style="width: 206px;">
+                            <label for="laczOsc">Sposób łączenia:</label>
+                            <select name="laczOsc" id="laczOsc" @bind="laczOsc">
+                                <option value="90">Proste</option>
+                                <option value="45">Kąt 45</option>
+                            </select>
+                        </div>
+                    </MenuItem>
+                </MenuItemGroup>
+            </SubMenu>
+            <SubMenu Key="sub21" TitleTemplate=@subSkrzTitle>
+                 <MenuItemGroup Key="g3" Title="Skrzydło">
+                     <MenuItem Key="4.20">
+                        <label for="width">Typ:</label>
+                         <select name="laczOsc" id="typSkrzydla" @bind="typSkrzydla">
+                                <option value="Typ1">Typ 1</option>
+                                <option value="Typ2">Typ 2</option>
+                            </select>
+                    </MenuItem>
+                    <MenuItem Key="4.21">
+                        <label for="width">Szerokość:</label>
+                        <input id="width" type="number" @bind="szerRamSkrz" min="20" max="300"/>
+                    </MenuItem>
+                    <MenuItem Key="4.22">
+                        <label for="height">Grubość:</label>
+                        <input id="height" type="number" @bind="gruboscSkrz" min="10" max="100"/>
+                    </MenuItem>
+                    </MenuItemGroup>
+                    <MenuItemGroup Key="g3" Title="Przeszklenia">
+                    <MenuItem Key="4.23">
+                        <label for="height">Ilość:</label>
+                        <input id="height" type="number" @bind="iloscPrzeszkelen" min="0" max="20"/>
+                    </MenuItem>
+                     <MenuItem Key="4.24">
+                        <label for="height">Wielkość:</label>
+                        <input id="height" type="number" @bind="wielkoscPrzeszklenia" min="50" max="1000"/>
+                   </MenuItem>
+                  </MenuItemGroup>
+            </SubMenu>
 
-         <div>
-            <label for="height">Szerokość Drzwi:</label>
-            <input id="height" type="number" @bind="szerDzwi" min="400" max="2000" />
-            <label for="height">Wysokość Drzwi:</label>
-            <input id="height" type="number" @bind="wysDzwi" min="1500" max="2800" />
-            <label for="height">Wysokość Progu:</label>
-            <input id="height" type="number" @bind="wysProgu" min="0" max="100" />
-            <label for="height">Wysokość Pióra:</label>
-            <input id="height" type="number" @bind="wysPiora" min="20" max="200" />
+            <SubMenu Key="sub222" TitleTemplate=@subKierOtwTitle>
+                <MenuItem Key="551">
+                    <div>
+                       < br/>
+                      <RadioGroup Style="display: block;height:30px;line-height:30px" @bind-Value="ratioKierOtw" ButtonStyle="@RadioButtonStyle.Solid">
+                        <Radio RadioButton Value="@("N")">X</Radio>
+                        <Radio RadioButton Value="@("L")">LEWE</Radio>
+                        <Radio RadioButton Value="@("R")">PRAWE</Radio>
+                    </RadioGroup>
+                      < br/>
+                    </div>
+                </MenuItem>
+                 <MenuItem Key="552">
+                       <label for="scale">Ilość zawiasów:</label>
+                       <input id="scale" type="number" @bind="iloscZawiasow" step="1" min="2" max="5" />
+                 </MenuItem>
+            </SubMenu>
+          
+            <SubMenu Key="sub22" TitleTemplate=@sub3Title>
+                <MenuItem Key="5">
+                      <label for="scale">Skala:</label>
+                       <input id="scale" type="number" @bind="scale" step="0.1" min="0.1" max="10" />
+                </MenuItem>
+                <SubMenu Key="sub51" Title="Marginesy">
+                    <MenuItem Key="52">
+                        <label for="scale">Margines lewy:</label>
+                        <input id="scale" type="number" @bind="startX" step="10" min="0" max="500" /></MenuItem>
+                    <MenuItem Key="53">
+                        <label for="scale">Margines górny:</label>
+                        <input id="scale" type="number" @bind="startY" step="10" min="0" max="500" /></MenuItem>
+                </SubMenu>
+            </SubMenu>
 
-            <label for="lacz_osc">Sposób łączenia ościeżnicy:</label>
-            <select name="lacz_osc" id="lacz_osc" @bind="laczOsc">
-                <option value="45">Kąt 45</option>
-                <option value="90">Proste</option>
-            </select>
 
-        </div>
 
+            <SubMenu Key="sub6" TitleTemplate=@sub4Title>
+                <MenuItem Key="61">
+                    <button @onclick="ExtractShapesFromCanvasAsync">Generuj DXF</button>
+                </MenuItem>
+            </SubMenu>
+        </Menu>
         <div>
-            <label for="width">Szerokość Ościeżnicy:</label>
-            <input id="width" type="number" @bind="szerOsc" />
-            <label for="height">Głębokość Ościeżnicy:</label>
-            <input id="height" type="number" @bind="glebOsc" />
-        </div
-    </TabPane>
-    <TabPane Tab="Skrzydło" Key="2">
-        <h7>Szkic skrzydła</h7>
-        <div style="overflow: auto; width: 1250px; height: 450px">
-            <BECanvas Width="2000" Height="2500" @ref="canvasReferenceSkrzy"></BECanvas>
-        </div
-         <div>
-            <label for="width">Szerokość ramy skrzydła:</label>
-            <input id="width" type="number" @bind="szerRamSkrz" />
-            <label for="height">Grubość skrzydła:</label>
-            <input id="height" type="number" @bind="gruboscSkrz" />
-            <label for="height">Ilość przeszkleń:</label>
-            <input id="height" type="number" @bind="iloscPrzeszkelen" />
-            <label for="height">Wielkość przeszklenia:</label>
-            <input id="height" type="number" @bind="wielkoscPrzeszklenia" />
-        </div
-    </TabPane>
-    <TabPane Tab="Rama ze skrzydłem" Key="3">
-       <h7>Kompletne drzwi</h7>
-        <div style="overflow: auto; width: 1250px; height: 450px">
-            <BECanvas Width="2000" Height="2500" @ref="canvasReferenceKPL"></BECanvas>
-        </div
-        <div>
-            <button @onclick="ExtractShapesFromCanvasAsync">Generuj DXF</button>
+            <button @onclick="UpdateShapes">Zaktualizuj Rysunek</button>
         </div>
-    </TabPane>
-</Tabs>
-
-<div>
-    <label for="scale">Skala:</label>
-    <input id="scale" type="number" @bind="scale" step="0.1" min="0.1" max="10" />
-    <label for="scale">Margines lewy:</label>
-    <input id="scale" type="number" @bind="startX" step="10" min="0" max="500" />
-    <label for="scale">Margines górny:</label>
-    <input id="scale" type="number" @bind="startY" step="10" min="0" max="500" />
+    </div>
+    <div style="flex-grow: 1; margin-left: 16px;">
+        <Tabs @bind-ActiveKey="@activeKey" Animated>
+            <TabPane Tab="Rama dzwi" Key="1">
+                <h7>Szkic ościeżnicy z piórem</h7>
+                <div style="overflow: auto; width: 1000px; height: 580px">
+                    <BECanvas Width="2000" Height="2500" @ref="canvasReference"></BECanvas>
+                </div
+            </TabPane>
+            <TabPane Tab="Skrzydło" Key="2">
+                <h7>Szkic skrzydła</h7>
+                <div style="overflow: auto; width: 1000px; height: 580px">
+                    <BECanvas Width="2000" Height="2500" @ref="canvasReferenceSkrzy"></BECanvas>
+                </div
+            </TabPane>
+            <TabPane Tab="Rama ze skrzydłem" Key="3">
+               <h7>Kompletne drzwi [widok od wewnątrz]</h7>
+                <div style="overflow: auto; width: 1000px; height: 580px">
+                    <BECanvas Width="2000" Height="2500" @ref="canvasReferenceKPL"></BECanvas>
+                </div
+            </TabPane>
+        </Tabs>
+    </div>
 </div>
-<div>
-    <button @onclick="UpdateShapes">Zaktualizuj Rysunek</button>
-</div>
-
 
 @code {
-    string activeKey { get; set; } = "1";
+    string activeKey { get; set; } = "3";
 
     private BECanvasComponent? canvasReference;
     private Canvas2DContext? context;
@@ -99,7 +182,7 @@
 
     private double szerOsc = 45;
     private double glebOsc = 75;
-    private double szerDzwi = 1250;
+    private double szerDzwi = 1000;
     private double wysDzwi = 2000;
     private double wysProgu = 30;
     private double scale = 0.25;
@@ -109,7 +192,7 @@
     private double startX = 200;
     private double startY = 200;
 
-    private string laczOsc = "";
+    private string laczOsc = "90";
 
     //----------------------------------
 
@@ -117,6 +200,15 @@
     private double szerRamSkrz = 125;
     private double iloscPrzeszkelen = 3;
     private double wielkoscPrzeszklenia = 300;
+
+    private double iloscZawiasow = 3;
+
+    private string typSkrzydla = "Typ1";
+    private string typOscieznicy = "Pioro";
+
+    //----------------------------------
+
+    string ratioKierOtw = "N";
 
     protected override async Task OnInitializedAsync()
     {
@@ -128,7 +220,11 @@
     {
         if (firstRender)
         {
-            context = await canvasReference.CreateCanvas2DAsync();
+            // if(context == null)
+            // context = await canvasReference.CreateCanvas2DAsync();
+
+            if(contextKPL == null)
+            contextKPL = await canvasReferenceKPL.CreateCanvas2DAsync();
 
             await Task.Delay(100);
             // await DrawShapes();
@@ -140,6 +236,9 @@
     private async Task DrawShapes()
     {
         if (shapes == null) return;
+
+        if(context == null)
+        context = await canvasReference.CreateCanvas2DAsync();
 
         await context.ClearRectAsync(0, 0, 2000, 2500); // Ustaw szerokość kanwy na większą, aby zmieścić oba kształty
 
@@ -241,7 +340,7 @@
             // Zainicjalizuj listę kształtów
             shapesSkrzy = new List<ShapeSkrzy>
             {
-                new CSkrzy3Okna(startX - 10 * scale, startY + (wysPiora + 0) * scale, gruboscSkrz, szerRamSkrz, szerOsc, glebOsc, szerDzwi, wysDzwi, wysProgu, iloscPrzeszkelen, wielkoscPrzeszklenia, wysPiora, scale, loffsetY)
+                new CSkrzy3Okna(typSkrzydla, ratioKierOtw, iloscZawiasow, startX - 10 * scale, startY + (wysPiora + 0) * scale, gruboscSkrz, szerRamSkrz, szerOsc, glebOsc, szerDzwi, wysDzwi, wysProgu, iloscPrzeszkelen, wielkoscPrzeszklenia, wysPiora, scale, loffsetY)
             };
 
             await DrawShapesSkrzy();
@@ -259,7 +358,7 @@
 
             shapesSkrzy = new List<ShapeSkrzy>
             {
-                new CSkrzy3Okna(startX - 10 * scale, startY + (wysPiora + 0) * scale, gruboscSkrz, szerRamSkrz, szerOsc, glebOsc, szerDzwi, wysDzwi, wysProgu, iloscPrzeszkelen, wielkoscPrzeszklenia, wysPiora, scale, loffsetY)
+                new CSkrzy3Okna(typSkrzydla, ratioKierOtw, iloscZawiasow, startX - 10 * scale, startY + (wysPiora + 0) * scale, gruboscSkrz, szerRamSkrz, szerOsc, glebOsc, szerDzwi, wysDzwi, wysProgu, iloscPrzeszkelen, wielkoscPrzeszklenia, wysPiora, scale, loffsetY)
             };
 
             shapes = new List<Shape>
@@ -274,110 +373,6 @@
         }
 
     }
-
-    //     private async Task ExtractShapesFromCanvasAsync()
-    //     {
-    //         if (shapes == null || shapesSkrzy == null) return;
-
-    //         if (contextKPL == null)
-    //             contextKPL = await canvasReferenceKPL.CreateCanvas2DAsync();
-
-    //         // Załóżmy, że dxf jest obiektem netDxf.DxfDocument
-    //         var dxf = new netDxf.DxfDocument();
-    //         var layer = new netDxf.Tables.Layer("Layer1");
-    //         dxf.Layers.Add(layer);
-
-    //         // Przetwarzanie kształtów z listy `shapes`
-    //         foreach (var shape in shapes)
-    //         {
-    //             switch (shape)
-    //             {
-    //                 case LineShape lineShape:
-    //                     var line = new netDxf.Entities.Line(
-    //                         new netDxf.Vector2(lineShape.StartX, lineShape.StartY),
-    //                         new netDxf.Vector2(lineShape.EndX, lineShape.EndY)
-    //                     );
-    //                     dxf.Entities.Add(line);
-    //                     break;
-
-    //                 // Przypadek dla Arc
-    //                 // case ArcShape arcShape:
-    //                 //     var arc = new netDxf.Entities.Arc(
-    //                 //         new netDxf.Vector2(arcShape.X, arcShape.Y),
-    //                 //         arcShape.Radius, 0, 360
-    //                 //     );
-    //                 //     dxf.Entities.Add(arc);
-    //                 //     break;
-
-    //                 case RectangleShape rectangleShape:
-    //                     // Oblicz wierzchołki prostokąta
-    //                     var topLeft = new netDxf.Vector2(rectangleShape.X, rectangleShape.Y);
-    //                     var topRight = new netDxf.Vector2(rectangleShape.X + rectangleShape.Width, rectangleShape.Y);
-    //                     var bottomRight = new netDxf.Vector2(rectangleShape.X + rectangleShape.Width, rectangleShape.Y + rectangleShape.Height);
-    //                     var bottomLeft = new netDxf.Vector2(rectangleShape.X, rectangleShape.Y + rectangleShape.Height);
-
-    //                     // Dodaj linie prostokąta
-    //                     dxf.Entities.Add(new netDxf.Entities.Line(topLeft, topRight));
-    //                     dxf.Entities.Add(new netDxf.Entities.Line(topRight, bottomRight));
-    //                     dxf.Entities.Add(new netDxf.Entities.Line(bottomRight, bottomLeft));
-    //                     dxf.Entities.Add(new netDxf.Entities.Line(bottomLeft, topLeft));
-    //                     break;
-    //             }
-    //         }
-
-
-    // // private async Task ExtractShapesFromCanvasAsync()
-    // // {
-    // //     if (shapes == null || shapesSkrzy == null) return;
-
-    // //     if (contextKPL == null)
-    // //         contextKPL = await canvasReferenceKPL.CreateCanvas2DAsync();
-
-    // //     var dxf = new netDxf.DxfDocument();
-    // //     var layer = new netDxf.Tables.Layer("Layer1");
-    // //     dxf.Layers.Add(layer);
-
-    // //     foreach (var shape in shapes)
-    // //     {
-    // //         List<Point> points = await shape.;
-
-    // //         // Przetwarzanie punktów na DXF
-    // //         switch (shape)
-    // //         {
-    // //             case LineShape lineShape:
-    // //                 var line = new netDxf.Entities.Line(
-    // //                     new netDxf.Vector2(lineShape.StartX, lineShape.StartY),
-    // //                     new netDxf.Vector2(lineShape.EndX, lineShape.EndY)
-    // //                 );
-    // //                 dxf.Entities.Add(line);
-    // //                 break;
-
-    // //             case RectangleShape rectangleShape:
-    // //                 foreach (var point in points)
-    // //                 {
-    // //                     dxf.Entities.Add(new netDxf.Entities.Line(
-    // //                         new netDxf.Vector2(point.X, point.Y),
-    // //                         new netDxf.Vector2(point.X, point.Y)
-    // //                     ));
-    // //                 }
-    // //                 break;
-    // //         }
-    // //     }
-
-    // //     byte[] dxfBytes = await ConvertDxfToBytesAsync(dxf);
-    // //     string base64String = Convert.ToBase64String(dxfBytes);
-
-    // //     await JS.InvokeVoidAsync("downloadFile", "output.dxf", base64String);
-    // // }
-
-
-    //     // Konwertuj DXF na tablicę bajtów
-    //     byte[] dxfBytes = await ConvertDxfToBytesAsync(dxf);
-    //     string base64String = Convert.ToBase64String(dxfBytes);
-
-    //     // Wywołaj funkcję JavaScript do pobrania pliku
-    //     await JS.InvokeVoidAsync("downloadFile", "output.dxf", base64String);
-    // }
 
     private async Task ExtractShapesFromCanvasAsync()
     {
@@ -401,8 +396,8 @@
                 {
                     case LineShape lineShape:
                         var line = new netDxf.Entities.Line(
-                            new netDxf.Vector2(lineShape.StartX, lineShape.StartY),
-                            new netDxf.Vector2(lineShape.EndX, lineShape.EndY)
+                            new netDxf.Vector2(lineShape.StartX, -lineShape.StartY),
+                            new netDxf.Vector2(lineShape.EndX, -lineShape.EndY)
                         );
                         dxf.Entities.Add(line);
                         break;
@@ -414,16 +409,16 @@
                             var startPoint = points[i];
                             var endPoint = points[(i + 1) % points.Count];
                             dxf.Entities.Add(new netDxf.Entities.Line(
-                                new netDxf.Vector2(startPoint.X, startPoint.Y),
-                                new netDxf.Vector2(endPoint.X, endPoint.Y)
+                                new netDxf.Vector2(startPoint.X, -startPoint.Y),
+                                new netDxf.Vector2(endPoint.X, -endPoint.Y)
                             ));
                         }
                          for (int i = 0; i < linepoints.Count; i++)
                         {
                             var startPoints = linepoints[i];
                                 dxf.Entities.Add(new netDxf.Entities.Line(
-                                new netDxf.Vector2(startPoints.X1, startPoints.Y1),
-                                new netDxf.Vector2(startPoints.X2, startPoints.Y2)
+                                new netDxf.Vector2(startPoints.X1, -startPoints.Y1),
+                                new netDxf.Vector2(startPoints.X2, -startPoints.Y2)
                             ));
                         }
                         break;
@@ -448,16 +443,16 @@
                             var startPoint = points[i];
                             var endPoint = points[(i + 1) % points.Count];
                             dxf.Entities.Add(new netDxf.Entities.Line(
-                                new netDxf.Vector2(startPoint.X, startPoint.Y),
-                                new netDxf.Vector2(endPoint.X, endPoint.Y)
+                                new netDxf.Vector2(startPoint.X, -startPoint.Y),
+                                new netDxf.Vector2(endPoint.X, -endPoint.Y)
                             ));
                         }
                         for (int i = 0; i < linepoints.Count; i++)
                         {
                             var startPoints = linepoints[i];
                                 dxf.Entities.Add(new netDxf.Entities.Line(
-                                new netDxf.Vector2(startPoints.X1, startPoints.Y1),
-                                new netDxf.Vector2(startPoints.X2, startPoints.Y2)
+                                new netDxf.Vector2(startPoints.X1, -startPoints.Y1),
+                                new netDxf.Vector2(startPoints.X2, -startPoints.Y2)
                             ));
                         }
                         break;
@@ -480,4 +475,41 @@
             return stream.ToArray();
         }
     }
+
+    RenderFragment sub1Title =
+    @<span>
+        <Icon Type="mail" Theme="outline"></Icon>
+        <span>Wymiary drzwi</span>
+    </span>;
+
+    RenderFragment subOscTitle =
+    @<span>
+        <Icon Type="appstore" Theme="outline"></Icon>
+        <span>Wymiary ościeżnicy</span>
+    </span>;
+
+    RenderFragment subSkrzTitle =
+    @<span>
+        <Icon Type="appstore" Theme="outline"></Icon>
+        <span>Wymiary skrzydła</span>
+    </span>;
+
+    RenderFragment subKierOtwTitle =
+    @<span>
+        <Icon Type="appstore" Theme="outline"></Icon>
+        <span>Kierunek otwierania</span>
+    </span>;
+
+    RenderFragment sub3Title =
+    @<span>
+        <Icon Type="appstore" Theme="outline"></Icon>
+        <span>Ustawienia rysunku</span>
+    </span>;
+
+    RenderFragment sub4Title =
+    @<span>
+        <Icon Type="setting" Theme="outline"></Icon>
+        <span>Zapisz</span>
+    </span>;
 }
+

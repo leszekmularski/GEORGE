@@ -9,6 +9,25 @@
 @using AntDesign
 @using System.Net;
 
+<style>
+    .custom-link {
+        color: blue;
+    }
+
+    .highlighted-background {
+        background-color: white;
+        overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
+        max-height: calc(100vh - 155px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 150px */
+        width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 300px */
+        box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu wysokości */
+        position: absolute;
+        left: 260px; /* Ustawia lewą krawędź 300px od lewej strony okna */
+        top: 155px; /* Ustawia górną krawędź 150px od góry okna */
+    }
+
+
+</style>
+
 <PageTitle>Program do wspomagania produkcji zlecenia</PageTitle>
 
 <h3>Zlecenia Produkcyjne</h3>
@@ -24,11 +43,24 @@
 }
 else
 {
-    <ul>
+    <div class="highlighted-background">
         <Table TItem="ZleceniaProdukcyjne" DataSource="@zleceniaProdukcyjne">
             <ActionColumn Title="Materiały">
-                <a @onclick="() => DodajKantowke(context)">Kantówka</a>
+                <a @onclick="() => DodajKantowke(context)" class="custom-link">Kantówka</a>
             </ActionColumn>
+            <Column Title="Status" TData="string">
+                @if (context.Tags != null)
+                {
+                    @foreach (var tag in context.Tags)
+                    {
+                        <Tag Color="@(tag.Contains("szyb") ? "volcano" : tag.Contains("do produkcji")  ? "geekblue" : "green")">@tag</Tag>
+                    }
+                }
+                else
+                {
+                    <Tag Color="black">Brak danych</Tag>
+                }
+            </Column>
             <Column Title="ID" @bind-Field="@context.Id" Hidden />
             <Column Title="Typ Dokumentu" @bind-Field="@context.TypZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Numer Zamówienia" @bind-Field="@context.NumerZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
@@ -40,7 +72,7 @@ else
             <Column Title="Email" @bind-Field="@context.Email" Sortable />
 
             <!-- Przykład kolumny dla danych zagnieżdżonych -->
-         @*    <Column Title="Nazwa Produktu 2" TData="string" DataIndex="NazwaProduktu2" Sortable /> *@
+            @*    <Column Title="Nazwa Produktu 2" TData="string" DataIndex="NazwaProduktu2" Sortable /> *@
 
             <!-- Przykład kolumny dla daty z formatowaniem -->
             <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd HH:mm:ss" Sortable />
@@ -58,11 +90,13 @@ else
                             CancelText="Nie">
                     <a style="color:red">Usuń</a>
                 </Popconfirm>
-                <br/>
+                <br />
                 <a @onclick="() => FileEdit(context)">Zapisane pliki</a>
             </ActionColumn>
         </Table>
-    </ul>
+    </div>
+
+
 }
 
 <div class="modal fade @classShow" tabindex="-1" style="display: @display;">
@@ -148,6 +182,11 @@ else
                             </AntDesign.FormItem>
                         </AntDesign.Col>
                         <AntDesign.Col Span="12">
+                            <AntDesign.FormItem Label="Status nowy wpis po [,]">
+                                <InputTextArea @bind-Value="zlecenie.TagsString" />
+                            </AntDesign.FormItem>
+                        </AntDesign.Col>
+                        <AntDesign.Col Span="12">
                             <AntDesign.FormItem Label="Nazwa Produktu">
                                 <AntDesign.Input @bind-Value="zlecenie.NazwaProduktu" />
                             </AntDesign.FormItem>
@@ -193,7 +232,10 @@ else
                     </AntDesign.Row>
                     <AntDesign.Row>
                         <AntDesign.Col Span="24" class="d-flex justify-content-end">
+                            @if(!blokuDwuKlik)
+                            {
                             <AntDesign.Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</AntDesign.Button>
+                            }
                             <AntDesign.Button @onclick="@HandleCancel">Anuluj</AntDesign.Button>
                         </AntDesign.Col>
                     </AntDesign.Row>
@@ -337,7 +379,7 @@ else
 
     private void DodajKantowke(ZleceniaProdukcyjne row)
     {
-       navigationManager.NavigateTo($"/Kantowka-do-zlecen/{row.RowId}");
+        navigationManager.NavigateTo($"/Kantowka-do-zlecen/{row.RowId}");
     }
 
     private async Task DownloadFile(string fileUrl)
@@ -348,26 +390,27 @@ else
         {
             using (var httpClient = new HttpClient())
             {
-                // Pobierz zawartość pliku jako bajty
-                var response = await httpClient.GetAsync(fileUrl);
+                // Ustaw odpowiedni timeout dla dużych plików
+                httpClient.Timeout = TimeSpan.FromMinutes(10);
 
-                if (response.IsSuccessStatusCode)
+                using (var response = await httpClient.GetAsync(fileUrl, HttpCompletionOption.ResponseHeadersRead))
                 {
-                    // Uzyskaj zawartość pliku jako bajty
-                    var fileBytes = await response.Content.ReadAsByteArrayAsync();
+                    if (response.IsSuccessStatusCode)
+                    {
+                        using (var contentStream = await response.Content.ReadAsStreamAsync())
+                        {
+                            using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true))
+                            {
+                                await contentStream.CopyToAsync(fileStream);
+                            }
+                        }
 
-                    // Tutaj możesz zrobić coś z tymi bajtami, np. zapisać je do pliku lokalnego
-                    // Przykład: Zapisz plik na dysku
-                    //var fileName = "nazwa_pobranego_pliku.pdf"; // Przykładowa nazwa pliku
-                    //var filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), fileName);
-
-                    File.WriteAllBytes(filePath, fileBytes);
-
-                    Console.WriteLine($"Plik został pobrany i zapisany: {filePath}");
-                }
-                else
-                {
-                    Console.WriteLine("Nie udało się pobrać pliku.");
+                        Console.WriteLine($"Plik został pobrany i zapisany: {filePath}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Nie udało się pobrać pliku.");
+                    }
                 }
             }
         }
@@ -377,6 +420,7 @@ else
             Console.WriteLine(filePath);
         }
     }
+
 
 
     private async Task FileEdit(ZleceniaProdukcyjne row)
@@ -401,10 +445,14 @@ else
 
     }
 
+    bool blokuDwuKlik = false;
+
     private async Task HandleSubmit()
     {
 
-        if (_visible == false) return;
+        if (_visible == false || blokuDwuKlik) return;
+
+        blokuDwuKlik = true;
 
         HttpResponseMessage response;
 
@@ -456,6 +504,8 @@ else
             Console.WriteLine("Błąd podczas zapisywania zlecenia");
             await _message.Error("Błąd podczas zapisywania zlecenia");
         }
+
+        blokuDwuKlik = false;
 
     }
 

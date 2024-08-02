@@ -27,11 +27,11 @@ namespace GEORGE.Server.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult> AddKartyInstrukcyjneAsync(KartyInstrukcyjne zlecenie)
+        public async Task<ActionResult> AddKartyInstrukcyjneAsync(KartyInstrukcyjne karta)
         {
             try
             {
-                _context.KartyInstrukcyjne.Add(zlecenie);
+                _context.KartyInstrukcyjne.Add(karta);
                 await _context.SaveChangesAsync();
                 return Ok();
             }
@@ -43,14 +43,14 @@ namespace GEORGE.Server.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult> UpdateZlecenieProdukcyjneAsync(long id, KartyInstrukcyjne zlecenie)
+        public async Task<ActionResult> UpdateZlecenieProdukcyjneAsync(long id, KartyInstrukcyjne karta)
         {
-            if (id != zlecenie.Id)
+            if (id != karta.Id)
             {
                 return BadRequest("ID zlecenia nie pasuje do ID w żądaniu.");
             }
 
-            _context.Entry(zlecenie).State = EntityState.Modified;
+            _context.Entry(karta).State = EntityState.Modified;
 
             try
             {
@@ -77,5 +77,23 @@ namespace GEORGE.Server.Controllers
         }
 
         // Możesz dodać dodatkowe metody, np. delete, jeśli to konieczne
+
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> DeleteKartyInstrukcyjneAsync(long id)
+        {
+            var karta = await _context.KartyInstrukcyjne.FindAsync(id);
+            if (karta == null)
+            {
+                return NotFound("Nie znaleziono zlecenia o podanym ID.");
+            }
+
+            _context.KartyInstrukcyjne.Remove(karta);
+            await _context.SaveChangesAsync();
+
+            // Wyświetl numer zamówienia w konsoli
+            Console.WriteLine("Usunołem kartę numer" + karta.NumerKarty);
+
+            return Ok("Karta została pomyślnie usunięta.");
+        }
     }
 }

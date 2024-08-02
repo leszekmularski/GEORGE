@@ -29,6 +29,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Pages\Gantt\" />
     <Folder Include="wwwroot\Images\" />
   </ItemGroup>
 

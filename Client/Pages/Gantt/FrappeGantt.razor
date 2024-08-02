@@ -1,0 +1,836 @@
+﻿@page "/FrappeGantt/{numerSel?}"
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+@inject IMessageService _message
+@inject IConfirmService _confirmService
+@using System.Text.Json
+@using GEORGE.Shared.Models
+@using GEORGE.Shared.Class
+@using Microsoft.JSInterop
+@using System.Text.Json.Serialization
+@using System.Threading.Tasks
+@using AntDesign
+@using System.Globalization
+
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>GEORGE Planowania produkcji GANTT</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" type="text/css" href="../dist/frappe-gantt.css" />
+    <script type="text/javascript" src="../dist/moment.min.js"></script>
+    <script type="text/javascript" src="../dist/snap.svg-min.js"></script>
+    <script src="../Gantt/JFrappeGantt.js"></script>
+    <script type="text/javascript" src="../dist/frappe-gantt.js"></script>
+
+    <style>
+        .container {
+            width: 95%;
+            margin: 0 auto;
+        }
+        /* custom class */
+        .gantt .bar-milestone .bar {
+            fill: tomato;
+        }
+
+        .heading {
+            text-align: center;
+        }
+
+        .gantt-target.dark {
+            background-color: #252525;
+        }
+
+        /* Resetowanie stylów dla table, tr, th */
+        table, tr, th {
+            all: initial;
+            /* Można także użyć unset lub none, w zależności od potrzeb */
+        }
+
+    </style>
+
+</head>
+
+<body>
+    <Spin Spinning=loading>
+
+        @if (!ladujDane)
+        {
+            <Button Style="width:100%; background-color: indigo;" Type="@ButtonType.Primary"
+                    Icon="@IconType.Outline.Dashboard"
+                    OnClick="BazaPobierz">
+                Zaczekaj na załadowanie danych ... lub kliknij w przycisk aby załadować ponownie
+            </Button>
+        }
+
+        <section class="section section-padding-top section-padding-bottom">
+            <div class='container'>
+                <Layout Style="background-color: white;">
+                    <Header Style="background-color: lightblue;">
+                        <h7 class="button-container">
+                            @click_task
+                            <Button class="btn-detail" OnClick="() => OpenDetailModal()">Idź do obiektu (podmiotu)</Button>
+                            <Button class="btn-refresh" Icon="@IconType.Outline.Delete" OnClick="@(async ()=> { await DelTask(ConfirmButtons.YesNo); })"></Button>
+                            <Button class="btn-refresh" Icon="@IconType.Outline.Reload" OnClick="RefreshData"></Button>
+                            <Button type="button" class="btn btn-sm btn-light" Icon="@IconType.Outline.Save" @onclick="SaveView"></Button>
+                            <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
+                        </h7>
+                    </Header>
+                    <Layout>
+                        @*       <Sider Style="background-color: lavender;">@click_task</Sider> *@
+                        <Content>
+                            <div id="gantt"></div>
+                            <br />
+                        </Content>
+                    </Layout>
+                    <Footer>
+                        <div class="mx-auto mt-3 btn-group" role="group">
+                            @*    <button type="button" class="btn btn-sm btn-light" onclick="ChangeView('Quarter Day')">Ćwierć dnia</button> *@
+                            <button type="button" class="btn btn-sm btn-light" @onclick="@(async () => await ChangeView("Half Day"))">Pół dnia</button>
+                            <button type="button" class="btn btn-sm btn-light" @onclick="@(async () => await ChangeView("Day"))">Dzień</button>
+                            <button type="button" class="btn btn-sm btn-light" @onclick="@(async () => await ChangeView("Week"))">Tydzień</button>
+                            <button type="button" class="btn btn-sm btn-light" @onclick="@(async () => await ChangeView("Month"))">Miesiąc</button>
+
+                            &nbsp
+                            <Button type="button" class="btn btn-sm btn-light" @onclick="SaveView">Zapisz zmiany</Button>
+                        </div>
+                    </Footer>
+                </Layout>
+            </div>
+        </section>
+    </Spin>
+</body>
+
+</html>
+
+@code {
+
+    [Parameter]
+    public string? numerSel { get; set; } = "";
+
+    public string? DataStartStop { get; set; }
+
+    private DateTime SDataStart;
+    private DateTime SDataStop;
+
+    private bool loading = false;
+    private bool ladujDane = false;
+
+    private bool blokuj_petle = false;
+
+
+    private string click_task = "";
+    private string click_RowIdPodmiot = "";
+
+    private object? gantt;
+
+    private List<object>? taskArray;
+
+    private List<PodmiotPrzypisPracownikowiViewModel>? dane_full_plan;
+
+    private DotNetObjectReference<FrappeGantt>? dotNetHelper;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        dotNetHelper = DotNetObjectReference.Create(this);
+
+        try
+        {
+
+            if (numerSel == "1")
+            {
+                await AutoGenPlanClick();
+
+                await BazaPobierz();
+            }
+            else
+            {
+                await FetchData();
+
+                await BazaPobierz();
+            }
+
+        }
+        catch (Exception ex)
+        {
+            // Obsługa błędów, np. wyświetlenie komunikatu o błędzie
+            Console.WriteLine($"Wystąpił błąd (OnInitializedAsync): {ex.Message}");
+            click_task = "Sprawdź powiązania podmiot / pracownik wejdź do Moje obiekty";
+        }
+
+    }
+
+    private async Task BazaPobierz()
+    {
+        try
+        {
+            blokuj_petle = false;
+
+            await OnAfterRenderAsync(true);
+
+            ladujDane = true;
+        }
+        catch (Exception ex)
+        {
+            // Obsługa błędów, np. wyświetlenie komunikatu o błędzie
+            Console.WriteLine($"Wystąpił błąd (OnInitializedAsync): {ex.Message}");
+            click_task = $"Wystąpił błąd (OnInitializedAsync): {ex.Message}";
+        }
+    }
+
+    [JSInvokable]
+    private async Task RefreshData()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("refreshGanttData", dotNetHelper);
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            // Obsługa błędów, np. wyświetlenie komunikatu o błędzie
+            Console.WriteLine($"Wystąpił błąd (RefreshData): {ex.Message}");
+        }
+    }
+
+    private async void OpenDetailModal()
+    {
+        if (click_RowIdPodmiot == "")
+        {
+            await _message.Info("Kliknij w obiekt na wykresie");
+            return;
+        }
+        // Przekazujemy informacje o poprzedniej stronie jako parametry
+        NavigationManager.NavigateTo($"/ListaPodmiotowDodaj/{click_RowIdPodmiot}/null");
+
+        return;
+
+    }
+
+    public async Task DelTask(ConfirmButtons confirmButtons)
+    {
+        // Sprawdzenie, czy użytkownik kliknął w obiekt
+        if (string.IsNullOrEmpty(click_RowIdPodmiot))
+        {
+            await _message.Info("Kliknij w obiekt na wykresie, aby go usunąć.");
+            return;
+        }
+
+        // Treść komunikatu i tytuł
+        var content = "Czy chcesz usunąć wskazany obiekt?             Uwaga zmiany automatycznie zostaną zapisane!";
+        var title = "Uwaga!!!";
+
+        // Wyświetlenie komunikatu potwierdzającego
+        var confirmResult = await _confirmService.Show(content, title, confirmButtons);
+
+        // Sprawdzenie wyniku potwierdzenia
+
+        if (confirmResult == ConfirmResult.No)
+        {
+            return;
+        }
+
+        // Ustawienie daty ostatniej kontroli
+        await UstawDateOstatniejKontroli(click_RowIdPodmiot);
+
+        await  UsunRekord(click_RowIdPodmiot);
+
+    }
+
+    private async Task UstawDateOstatniejKontroli(string rowId)
+    {
+        if (przefiltrowaneDaneDoPlanowania == null) return;
+
+        // Znajdź obiekt z odpowiednim RowId
+        var obiektDoAktualizacji = przefiltrowaneDaneDoPlanowania
+            .FirstOrDefault(dane => dane.Podmiot != null && dane.Podmiot.RowId == rowId);
+
+        if (obiektDoAktualizacji != null)
+        {
+            try
+            {
+                // Pobranie danych z wykresu
+                var gantt = await JSRuntime.InvokeAsync<object[]>("SaveGanttData");
+
+                click_task = "";
+
+                bool jestBlad = false;
+
+                foreach (var task in gantt)
+                {
+                    string taskJson = task.ToString();
+
+                    //  Console.WriteLine($"Original JSON: {taskJson}");
+
+                    // Deserialize JSON to a model object
+                    var updateTaskRequest = JsonSerializer.Deserialize<UpdateTaskRequest>(taskJson);
+
+                    if (updateTaskRequest != null)
+                    {
+                        string rowIdPodmiot = updateTaskRequest.Id; // Assuming 'Id' is the 'RowIdPodmiotu'
+                        string rowIdPracownik = "";//RowIdPracownika; // Replace with the appropriate value for 'RowIdPracownika'
+
+                        //  Console.WriteLine($"updateTaskRequest: {updateTaskRequest.Start} - {updateTaskRequest.End}");
+                        // Send PUT request to the server
+                        var response = await Http.PutAsJsonAsync($"api/PodmiotPrzypisPracownikowi/{rowIdPodmiot}/{rowIdPracownik}/{rowId}", updateTaskRequest);
+
+                        if (response.IsSuccessStatusCode)
+                        {
+                            Console.WriteLine($"Pomyślnie zaktualizowano zadanie o identyfikatorze id: {rowIdPodmiot}");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Nie udało się zaktualizować zadania o identyfikatorze id: {rowIdPodmiot}");
+                            jestBlad = true;
+                        }
+                    }
+                }
+
+                if (jestBlad)
+                {
+                    await _message.Error("Zmiany nie zapisano. Sprawdź konsolę");
+
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Wystąpił błąd podczas aktualizacji zadania: {ex.Message}");
+            }
+
+        }
+
+    }
+
+    [JSInvokable]
+    private async Task UsunRekord(string rowId)
+    {
+        if (przefiltrowaneDaneDoPlanowania == null) return;
+
+        // Znajdź obiekt z odpowiednim RowId
+        var obiektDoUsuniecia = przefiltrowaneDaneDoPlanowania
+            .FirstOrDefault(dane => dane.Podmiot != null && dane.Podmiot.RowId == rowId);
+
+        if (obiektDoUsuniecia != null)
+        {
+            // Usuń obiekt z listy
+            przefiltrowaneDaneDoPlanowania.Remove(obiektDoUsuniecia);
+
+            await InitializeFrappeGantt();
+
+            click_task = "";
+            click_RowIdPodmiot = "";
+
+        }
+    }
+
+    [JSInvokable]
+    private async Task ChangeView(string mode)
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("ChangeView", mode, dotNetHelper);
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            // Obsługa błędów, np. wyświetlenie komunikatu o błędzie
+            Console.WriteLine($"Wystąpił błąd (OnInitializedAsync): {ex.Message}");
+        }
+    }
+
+
+    [JSInvokable]
+    public async Task SaveView()
+    {
+        // Pobranie danych z wykresu
+        var gantt = await JSRuntime.InvokeAsync<object[]>("SaveGanttData");
+
+        click_task = "";
+
+        bool jestBlad = false;
+
+        foreach (var task in gantt)
+        {
+            string taskJson = task.ToString();
+
+            // Console.WriteLine($"Original JSON: {taskJson}");
+
+            // Deserialize JSON to a model object
+            var updateTaskRequest = JsonSerializer.Deserialize<UpdateTaskRequest>(taskJson);
+
+            if (updateTaskRequest != null)
+            {
+                string rowIdPodmiot = updateTaskRequest.Id; // Assuming 'Id' is the 'RowIdPodmiotu'
+                string rowIdPracownik = "";// RowIdPracownika; // Replace with the appropriate value for 'RowIdPracownika'
+
+                // Console.WriteLine($"updateTaskRequest: {updateTaskRequest.Start} - {updateTaskRequest.End}");
+                // Send PUT request to the server
+                var response = await Http.PutAsJsonAsync($"api/PodmiotPrzypisPracownikowi/{rowIdPodmiot}/{rowIdPracownik}/null", updateTaskRequest);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"Pomyślnie zaktualizowano zadanie o identyfikatorze id: {rowIdPodmiot}");
+                }
+                else
+                {
+                    Console.WriteLine($"Nie udało się zaktualizować zadania o identyfikatorze id: {rowIdPodmiot}");
+                    jestBlad = true;
+                }
+            }
+        }
+
+        if (jestBlad)
+        {
+            await _message.Error("Zmiany nie zapisano. Sprawdź konsolę");
+        }
+        else
+        {
+            await _message.Success("Zmiany zapisano");
+        }
+
+        click_task = "Zapisano zmiany...";
+        click_RowIdPodmiot = "";
+
+    }
+
+    public class UpdateTaskRequest
+    {
+        [JsonPropertyName("id")]
+        public string? Id { get; set; }
+
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
+
+        [JsonPropertyName("start")]
+        public string? Start { get; set; }
+
+        [JsonPropertyName("end")]
+        public string? End { get; set; }
+
+        [JsonPropertyName("progress")]
+        public int Progress { get; set; }
+
+        [JsonPropertyName("_start")]
+        public string? _Start { get; set; }
+
+        [JsonPropertyName("_end")]
+        public string? _End { get; set; }
+
+        [JsonPropertyName("_progress")]
+        public int _Progress { get; set; }
+    }
+
+
+    [JSInvokable]
+    public async Task OnClick(int taskIndex)
+    {
+        await Task.CompletedTask;
+        var task = await JSRuntime.InvokeAsync<object>("on_click", taskIndex);
+        await Task.Delay(10);
+        //   click_task = task.ToString();
+        if (task.ToString() == null) return;
+
+        var taskDes = JsonSerializer.Deserialize<JsonElement>(task.ToString());
+
+        Console.WriteLine(task.ToString());
+
+        taskArray = new List<object>();
+
+        foreach (var property in taskDes.EnumerateObject())
+        {
+            taskArray.Add(property.Value);
+        }
+
+        click_task = taskArray[1].ToString();
+
+        click_RowIdPodmiot = taskArray[0].ToString().Replace("Task_", "");
+
+        click_task += "\r\n przed zmianą " + FormatDateString(taskArray[2].ToString(), false) + " do: " + FormatDateString(taskArray[3].ToString(), false);
+        // + " po " + FormatDateString(taskArray[7].ToString(),true) + " do: " + FormatDateString(taskArray[8].ToString(),false);
+
+        //  if (taskArray.Count > 7 && taskArray[6] != null && taskArray[7] != null)
+        // click_task += "po " + FormatDateString(taskArray[6].ToString()) + " do: " + FormatDateString(taskArray[7].ToString());
+
+        StateHasChanged();
+    }
+
+    public string FormatDateString(string isoDateString, bool start)
+    {
+        // Parsowanie daty z formatu ISO 8601
+        DateTime dateTime = DateTime.Parse(isoDateString);
+
+        if (dateTime.Hour > 21 && start)
+        {
+            dateTime.AddHours(4);
+        }
+
+        // Formatowanie daty na żądany format
+        //string formattedDateString = dateTime.ToString("yyyy-MM-dd H:mm");
+        string formattedDateString = dateTime.ToString("yyyy-MM-dd");
+        return formattedDateString;
+    }
+
+    // Don't forget to dispose of the DotNetObjectReference to avoid memory leaks
+    public void Dispose()
+    {
+        dotNetHelper?.Dispose();
+    }
+
+    public async Task AutoGenPlanClick()
+    {
+        Console.WriteLine("Start");
+
+        int priorytet = 0;
+        int priorytetMax = 1000;
+
+        dane_full_planowaniePrzezProgram = await Http.GetFromJsonAsync<List<DaneDoPlanowaniaViewModel>>($"api/PlanKontroliDane/{row_id_dzialu}/{priorytet}/{priorytetMax}");
+
+        if (dane_full_planowaniePrzezProgram != null)
+        {
+            Console.WriteLine("1. Pobrano do planu informację o podmiotach ilość danych pobranych z serwera: " + dane_full_planowaniePrzezProgram.Count().ToString());
+        }
+        else
+        {
+            Console.WriteLine("Pobrano do planu informację o podmiotach - Błąd ....");
+        }
+
+        if (dane_full_planowaniePrzezProgram != null)
+        {
+            // //***********************************************************************************************************************************************/
+            dane_full_plan = await Http.GetFromJsonAsync<List<PodmiotPrzypisPracownikowiViewModel>>($"api/PodmiotPrzypisPracownikowi/{RowIdPracownika}");
+            // //***********************************************************************************************************************************************/
+
+            //DateTime today = DateTime.Today;
+            //DateTime sixMonthsAgo = today.AddMonths(-24);
+
+            // dane_full_planowaniePrzezProgram = dane_full_planowaniePrzezProgram
+            //     .Where(dane => dane.DataOstatniejKontroli >= sixMonthsAgo && dane.DataOstatniejKontroli <= today || dane.DataOstatniejKontroli == DateTime.MinValue)
+            //     .OrderByDescending(dane => dane.OcenaRyzyka)
+            //     .ToList();
+
+            //Zmiany sposobu wyszukiwania ostania zmiana 01.06.2024
+            DateTime today = DateTime.Today;
+            DateTime twelveMonthsAgo = today.AddMonths(-12);
+            DateTime twentyFourMonthsAgo = today.AddMonths(-24);
+            DateTime thirtySixMonthsAgo = today.AddMonths(-36);
+
+            dane_full_planowaniePrzezProgram = dane_full_planowaniePrzezProgram
+                .Where(dane =>
+                    (dane.PrzypisanaOcenaRyzyka > 50 &&
+                        (dane.DataOstatniejKontroli <= twelveMonthsAgo || dane.DataOstatniejKontroli == DateTime.MinValue)) ||
+                    (dane.PrzypisanaOcenaRyzyka >= 5 && dane.PrzypisanaOcenaRyzyka <= 50 &&
+                        (dane.DataOstatniejKontroli <= twentyFourMonthsAgo || dane.DataOstatniejKontroli == DateTime.MinValue)) ||
+                    (dane.PrzypisanaOcenaRyzyka < 5 &&
+                        (dane.DataOstatniejKontroli <= thirtySixMonthsAgo || dane.DataOstatniejKontroli == DateTime.MinValue))
+                )
+                .OrderByDescending(dane => dane.OcenaRyzyka)
+                .ThenByDescending(dane => dane.PrzypisanaOcenaRyzyka)
+                .ToList();
+
+
+
+            Console.WriteLine("2. Pobrano do planu informację o podmiotach ilość danych pobranych po dodatkowym filtrze: " + dane_full_planowaniePrzezProgram.Count().ToString());
+
+
+            var danePracownikPodmiot = await Http.GetFromJsonAsync<List<BezPodmiotPrzypisPracownikowiViewModel>>($"api/BezPodmiotPrzypisPracownikowi/{RowIdPracownika}");
+
+            if (danePracownikPodmiot != null)
+            {
+                danePracownikPodmiot = danePracownikPodmiot.OrderBy(e => e.KodPocztowy).ToList();
+
+                Console.WriteLine("3. Rozpoczęto analizę");
+
+                przefiltrowaneDaneDoPlanowania = dane_full_planowaniePrzezProgram;
+
+
+                RozdzielKontroleNaDni(danePracownikPodmiot);
+
+                Console.WriteLine("4. Zakończono analizę");
+            }
+            else
+            {
+                await _message.Error("Brak podmiotów (obiektów) powiązanych z pracownikiem");
+            }
+
+            przefiltrowaneDaneDoPlanowania = dane_full_planowaniePrzezProgram;
+
+
+            Console.WriteLine($"5. Generowanie wykresu dla dane_full_planowaniePrzezProgram {dane_full_planowaniePrzezProgram.Count()}....");
+
+        }
+
+        if (przefiltrowaneDaneDoPlanowania != null)
+        {
+            // click_task = $"Zakończono analizę udało się dodać do wykresu dane obiektów: {przefiltrowaneDaneDoPlanowania.Count()}";
+            click_task = $"Zakończono analizę udało się dodać do wykresu dane obiektów";
+        }
+        else
+        {
+            click_task = $"Zakończono analizę obiekt przefiltrowaneDaneDoPlanowania ma wartość null";
+        }
+
+        Console.WriteLine("7. Koniec :)");
+
+    }
+
+    private void RozdzielKontroleNaDni(List<BezPodmiotPrzypisPracownikowiViewModel> danePracownikPodmiot)
+    {
+        Console.WriteLine($"3.1 przefiltrowaneDaneDoPlanowania - Start");
+
+        if (przefiltrowaneDaneDoPlanowania == null) return;
+
+        Console.WriteLine($"3.2 przefiltrowaneDaneDoPlanowania - Start - Not null - OK");
+
+        DateTime currentDate = DateTime.Now.AddDays(1);
+
+        // Pomijanie soboty i niedzieli
+        if (currentDate.DayOfWeek == DayOfWeek.Saturday)
+        {
+            currentDate = currentDate.AddDays(2);
+        }
+        else if (currentDate.DayOfWeek == DayOfWeek.Sunday)
+        {
+            currentDate = currentDate.AddDays(1);
+        }
+
+        // Ustawienie początkowej godziny na 7 rano
+
+        currentDate = new DateTime(
+                    currentDate.Year,
+                    currentDate.Month,
+                    currentDate.Day,
+                    7,
+                    0,
+                    0
+                    );
+
+        DateTime dataStartGantt;
+        DateTime dataStopGantt;
+
+        int iii = 1;
+
+        foreach (var item in przefiltrowaneDaneDoPlanowania)
+        {
+            // Sprawdzenie, czy podmiot jest przypisany pracownikowi
+            var przypisanyPodmiot = danePracownikPodmiot.FirstOrDefault(p => p.RowIdPodmiotu == item.Podmiot.RowId);
+
+            int kontrolaTime = item.DomyslnyCzasKontroli;
+            if (kontrolaTime == 0) kontrolaTime = 3;
+            if (przypisanyPodmiot != null)
+            {
+
+                // Ustawienie początkowej godziny na 7 rano
+                Console.WriteLine($"currentDate.AddHours(kontrolaTime).Hour={currentDate.AddHours(kontrolaTime).Hour}");
+
+                if (currentDate.AddHours(kontrolaTime).Hour > 16)
+                {
+                    currentDate = currentDate.AddDays(1);
+                    Console.WriteLine("Nowy dzień");
+                    currentDate = new DateTime(
+                    currentDate.Year,
+                    currentDate.Month,
+                    currentDate.Day,
+                    7,
+                    0,
+                    0
+                    );
+                }
+
+                if (currentDate.DayOfWeek == DayOfWeek.Saturday)
+                {
+                    currentDate = currentDate.AddDays(2);
+                }
+                else if (currentDate.DayOfWeek == DayOfWeek.Sunday)
+                {
+                    currentDate = currentDate.AddDays(1);
+                }
+
+                // Ustalenie daty rozpoczęcia i zakończenia kontroli
+                dataStartGantt = currentDate;
+                dataStopGantt = currentDate.AddHours(kontrolaTime);
+
+                currentDate = dataStopGantt;
+
+                Console.WriteLine($"currentDate={currentDate}");
+
+                var matchingItem = dane_full_plan.FirstOrDefault(d => d.RowIdPodmiotu == item.Podmiot.RowId);
+                if (matchingItem != null && matchingItem.PodmiotPrzypisPracownikowi != null)
+                {
+                    matchingItem.PodmiotPrzypisPracownikowi.DataStartGantt = dataStartGantt;
+                    matchingItem.PodmiotPrzypisPracownikowi.DataStopGantt = dataStopGantt;
+                    Console.WriteLine($"{iii++} ----- matchingItem DataStartGantt: {dataStartGantt}/{dataStopGantt}");
+                }
+            }
+        }
+
+
+        // foreach (var item in przefiltrowaneDaneDoPlanowania)
+        // {
+        //     Console.WriteLine($"przefiltrowaneDaneDoPlanowania.RowIdPodmiotu: {item.Podmiot.RowId} Ocena ryzyka po ost.kontroli: {item.PrzypisanaOcenaRyzyka}");
+        // }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await InitializeFrappeGantt();
+
+        }
+    }
+
+    private async Task InitializeFrappeGantt()
+    {
+        if (przefiltrowaneDaneDoPlanowania == null || dane_full_plan == null) return;
+
+        Console.WriteLine("InitializeFrappeGantt.....");
+
+        await JSRuntime.InvokeVoidAsync("console.log", "Calling clearGantt");
+        await JSRuntime.InvokeVoidAsync("clearGantt", "#gantt");
+
+        // if (przefiltrowaneDaneDoPlanowania == null) return;// Sortowanie danych
+
+        // przefiltrowaneDaneDoPlanowania = przefiltrowaneDaneDoPlanowania
+        //         .OrderBy(x => x.DataOstatniejKontroli)
+        //         .ToList();
+
+        var tasks = new List<object>();
+
+        Console.WriteLine("InitializeFrappeGantt foreach.....");
+
+        foreach (var item in przefiltrowaneDaneDoPlanowania)
+        {
+            var itemPlan = dane_full_plan.FirstOrDefault(x => x.PodmiotPrzypisPracownikowi.RowIdPodmiotu == item.Podmiot.RowId);
+
+            if (itemPlan != null)
+            {
+                if (itemPlan.PodmiotPrzypisPracownikowi.DataStartGantt >= itemPlan.PodmiotPrzypisPracownikowi.DataStopGantt)
+                    itemPlan.PodmiotPrzypisPracownikowi.DataStopGantt = itemPlan.PodmiotPrzypisPracownikowi.DataStartGantt.AddHours(4);
+
+                var task = new
+                {
+                    id = $"Task_{item.Podmiot.RowId}",
+                    name = $"{item.Podmiot?.Nazwapodmiotu} {item.Podmiot?.Miejscowosc}",
+                    start = itemPlan.PodmiotPrzypisPracownikowi.DataStartGantt,
+                    end = itemPlan.PodmiotPrzypisPracownikowi.DataStopGantt,
+                    _start = itemPlan.PodmiotPrzypisPracownikowi.DataStartGantt,
+                    _end = itemPlan.PodmiotPrzypisPracownikowi.DataStopGantt,
+                    progress = itemPlan.PodmiotPrzypisPracownikowi.Procent,
+                    dependencies = "",
+                    custom_class = "bar-milestone"
+                };
+
+                Console.WriteLine($"task: start: {task.start} stop: {task.end}");
+                tasks.Add(task);
+            }
+            else
+            {
+                if (numerSel == "0")
+                {
+                    var task = new
+                    {
+                        id = $"Task_{item.Podmiot?.RowId}",
+                        name = $"{item.Podmiot?.Nazwapodmiotu} {item.Podmiot?.Miejscowosc} Brak powiązania podmiotu.",
+                        start = DateTime.Now.ToString("yyyy-MM-dd"),
+                        end = DateTime.Now.AddHours(3).ToString("yyyy-MM-dd"),
+                        _start = DateTime.Now.ToString("yyyy-MM-dd"),
+                        _end = DateTime.Now.AddHours(3).ToString("yyyy-MM-dd"),
+                        progress = 100,
+                        dependencies = ""
+                    };
+                    tasks.Add(task);
+                }
+            }
+        }
+
+        Console.WriteLine($"Załadowano danych do wykresu Gannt'a: {tasks.Count} z {przefiltrowaneDaneDoPlanowania.Count} w dniu {DateTime.Now}");
+
+        var optionsJson = JsonSerializer.Serialize(new
+        {
+            header_height = 50,
+            column_width = 30,
+            step = 24,
+            view_modes = new[] { "Quarter Day", "Half Day", "Day", "Week", "Month" },
+            bar_height = 20,
+            bar_corner_radius = 3,
+            arrow_curve = 5,
+            padding = 18,
+            view_mode = "Day",
+            language = "pl",
+            custom_popup_html = (string)null
+        });
+
+        try
+        {
+            var tasksJson = JsonSerializer.Serialize(tasks);
+
+            await JSRuntime.InvokeVoidAsync("initializeFrappeGanttFromJson", "#gantt", tasksJson, optionsJson, dotNetHelper);
+            await JSRuntime.InvokeVoidAsync("addGanttClickEvent", "#gantt", dotNetHelper);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Wystąpił błąd [InitializeFrappeGantt]: {ex.Message}");
+        }
+
+        Console.WriteLine("InitializeFrappeGantt koniec..... :) ");
+    }
+
+
+
+    [JSInvokable]
+    private async Task FetchData()
+    {
+        int priorytet = 0;
+        int priorytetMax = 1000;
+
+        if (blokuj_petle) return;
+
+        loading = true;
+
+        try
+        {
+            daneDoPlanowania = await Http.GetFromJsonAsync<List<DaneDoPlanowaniaViewModel>>($"api/PlanKontroliDane/{row_id_dzialu}/{priorytet}/{priorytetMax}");
+
+            dane_full_plan = await Http.GetFromJsonAsync<List<PodmiotPrzypisPracownikowiViewModel>>($"api/PodmiotPrzypisPracownikowi/{RowIdPracownika}");
+
+            // Przefiltruj daneDoPlanowania
+            if (dane_full_plan != null && dane_full_plan.Any())
+            {
+                var rowIdPodmiotuSet = dane_full_plan
+                .Where(d => d.PodmiotPrzypisPracownikowi.DataStartGantt > DateTime.Now.AddDays(-14))
+                .Select(d => d.PodmiotPrzypisPracownikowi.RowIdPodmiotu)
+                .ToHashSet();
+
+                przefiltrowaneDaneDoPlanowania = daneDoPlanowania.Where(d => rowIdPodmiotuSet.Contains(d.Podmiot.RowId)).ToList();
+            }
+            else
+            {
+                przefiltrowaneDaneDoPlanowania = new List<DaneDoPlanowaniaViewModel>();
+            }
+        }
+        catch (Exception ex)
+        {
+            // Obsłuż błąd, np. wyświetlając komunikat użytkownikowi
+            Console.WriteLine($"Wystąpił błąd podczas pobierania danych: {ex.Message}");
+        }
+
+        loading = false;
+
+        if (!blokuj_petle) blokuj_petle = true;
+    }
+
+    //   private PSSE.Client.Pages.Rejestry.DaneRejestru? daneRejestru;
+
+    private async Task GoBack()
+    {
+        await JSRuntime.InvokeVoidAsync("history.back");
+    }
+
+}

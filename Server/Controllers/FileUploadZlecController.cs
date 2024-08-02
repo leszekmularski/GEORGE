@@ -46,6 +46,8 @@ public class FileUploadZlecController : ControllerBase
 
         orygFileName = WebUtility.UrlDecode(orygFileName);
 
+        orygFileName = orygFileName.Replace("..", "."); 
+
         var plik = new PlikiZlecenProdukcyjnych
         {
             RowId = Guid.NewGuid().ToString(),
