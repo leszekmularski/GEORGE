@@ -5,6 +5,7 @@
 @inject IMessageService _message
 @inject IConfirmService _confirmService
 @using System.Text.Json
+@using GEORGE.Shared.ViewModels
 @using GEORGE.Shared.Models
 @using GEORGE.Shared.Class
 @using Microsoft.JSInterop
@@ -72,7 +73,8 @@
                     <Header Style="background-color: lightblue;">
                         <h7 class="button-container">
                             @click_task
-                            <Button class="btn-detail" OnClick="() => OpenDetailModal()">Idź do obiektu (podmiotu)</Button>
+                            <Button class="btn-detail" OnClick="() => AddNewZlec()">Dodaj zlecenie do planu</Button>
+                            <Button class="btn-detail" OnClick="() => OpenDetailModal()">Idź do zlecenia</Button>
                             <Button class="btn-refresh" Icon="@IconType.Outline.Delete" OnClick="@(async ()=> { await DelTask(ConfirmButtons.YesNo); })"></Button>
                             <Button class="btn-refresh" Icon="@IconType.Outline.Reload" OnClick="RefreshData"></Button>
                             <Button type="button" class="btn btn-sm btn-light" Icon="@IconType.Outline.Save" @onclick="SaveView"></Button>
@@ -102,6 +104,17 @@
             </div>
         </section>
     </Spin>
+
+    <Modal Title="Dodaj nowe zlecenie"
+           @bind-Visible="@_visible"
+           Style="width:50%"
+           MaxBodyHeight="@("50vh")">
+        <div>
+            <p style="height: 1000px;">
+                Nie przypisane zlecenia
+            </p>
+        </div>
+    </Modal>
 </body>
 
 </html>
@@ -127,9 +140,13 @@
 
     private object? gantt;
 
+    bool _visible = false;
+
     private List<object>? taskArray;
 
-    private List<PodmiotPrzypisPracownikowiViewModel>? dane_full_plan;
+    //private List<PodmiotPrzypisPracownikowiViewModel>? dane_full_plan;
+
+    private List<DaneDoPlanowaniaViewModel>? przefiltrowaneDaneDoPlanowania;
 
     private DotNetObjectReference<FrappeGantt>? dotNetHelper;
 
@@ -143,7 +160,7 @@
 
             if (numerSel == "1")
             {
-                await AutoGenPlanClick();
+                // await AutoGenPlanClick();
 
                 await BazaPobierz();
             }
@@ -198,6 +215,12 @@
         }
     }
 
+    private async void AddNewZlec()
+    {
+        _visible = true;
+
+    }
+
     private async void OpenDetailModal()
     {
         if (click_RowIdPodmiot == "")
@@ -248,7 +271,7 @@
 
         // Znajdź obiekt z odpowiednim RowId
         var obiektDoAktualizacji = przefiltrowaneDaneDoPlanowania
-            .FirstOrDefault(dane => dane.Podmiot != null && dane.Podmiot.RowId == rowId);
+            .FirstOrDefault(dane => dane.ZleceniaProdukcyjne != null && dane.ZleceniaProdukcyjne.RowId == rowId);
 
         if (obiektDoAktualizacji != null)
         {
@@ -314,7 +337,7 @@
 
         // Znajdź obiekt z odpowiednim RowId
         var obiektDoUsuniecia = przefiltrowaneDaneDoPlanowania
-            .FirstOrDefault(dane => dane.Podmiot != null && dane.Podmiot.RowId == rowId);
+            .FirstOrDefault(dane => dane.ZleceniaProdukcyjne != null && dane.ZleceniaProdukcyjne.RowId == rowId);
 
         if (obiektDoUsuniecia != null)
         {
@@ -389,13 +412,15 @@
         if (jestBlad)
         {
             await _message.Error("Zmiany nie zapisano. Sprawdź konsolę");
+            click_task = "Bład przy zapisie...";
         }
         else
         {
             await _message.Success("Zmiany zapisano");
+            click_task = "Zapisano zmiany...";
         }
 
-        click_task = "Zapisano zmiany...";
+       
         click_RowIdPodmiot = "";
 
     }
@@ -483,199 +508,97 @@
         dotNetHelper?.Dispose();
     }
 
-    public async Task AutoGenPlanClick()
-    {
-        Console.WriteLine("Start");
+    // private void RozdzielKontroleNaDni(List<BezPodmiotPrzypisPracownikowiViewModel> danePracownikPodmiot)
+    // {
+    //     Console.WriteLine($"3.1 przefiltrowaneDaneDoPlanowania - Start");
 
-        int priorytet = 0;
-        int priorytetMax = 1000;
+    //     if (przefiltrowaneDaneDoPlanowania == null) return;
 
-        dane_full_planowaniePrzezProgram = await Http.GetFromJsonAsync<List<DaneDoPlanowaniaViewModel>>($"api/PlanKontroliDane/{row_id_dzialu}/{priorytet}/{priorytetMax}");
+    //     Console.WriteLine($"3.2 przefiltrowaneDaneDoPlanowania - Start - Not null - OK");
 
-        if (dane_full_planowaniePrzezProgram != null)
-        {
-            Console.WriteLine("1. Pobrano do planu informację o podmiotach ilość danych pobranych z serwera: " + dane_full_planowaniePrzezProgram.Count().ToString());
-        }
-        else
-        {
-            Console.WriteLine("Pobrano do planu informację o podmiotach - Błąd ....");
-        }
+    //     DateTime currentDate = DateTime.Now.AddDays(1);
 
-        if (dane_full_planowaniePrzezProgram != null)
-        {
-            // //***********************************************************************************************************************************************/
-            dane_full_plan = await Http.GetFromJsonAsync<List<PodmiotPrzypisPracownikowiViewModel>>($"api/PodmiotPrzypisPracownikowi/{RowIdPracownika}");
-            // //***********************************************************************************************************************************************/
+    //     // Pomijanie soboty i niedzieli
+    //     if (currentDate.DayOfWeek == DayOfWeek.Saturday)
+    //     {
+    //         currentDate = currentDate.AddDays(2);
+    //     }
+    //     else if (currentDate.DayOfWeek == DayOfWeek.Sunday)
+    //     {
+    //         currentDate = currentDate.AddDays(1);
+    //     }
 
-            //DateTime today = DateTime.Today;
-            //DateTime sixMonthsAgo = today.AddMonths(-24);
+    //     // Ustawienie początkowej godziny na 7 rano
 
-            // dane_full_planowaniePrzezProgram = dane_full_planowaniePrzezProgram
-            //     .Where(dane => dane.DataOstatniejKontroli >= sixMonthsAgo && dane.DataOstatniejKontroli <= today || dane.DataOstatniejKontroli == DateTime.MinValue)
-            //     .OrderByDescending(dane => dane.OcenaRyzyka)
-            //     .ToList();
+    //     currentDate = new DateTime(
+    //                 currentDate.Year,
+    //                 currentDate.Month,
+    //                 currentDate.Day,
+    //                 7,
+    //                 0,
+    //                 0
+    //                 );
 
-            //Zmiany sposobu wyszukiwania ostania zmiana 01.06.2024
-            DateTime today = DateTime.Today;
-            DateTime twelveMonthsAgo = today.AddMonths(-12);
-            DateTime twentyFourMonthsAgo = today.AddMonths(-24);
-            DateTime thirtySixMonthsAgo = today.AddMonths(-36);
+    //     DateTime dataStartGantt;
+    //     DateTime dataStopGantt;
 
-            dane_full_planowaniePrzezProgram = dane_full_planowaniePrzezProgram
-                .Where(dane =>
-                    (dane.PrzypisanaOcenaRyzyka > 50 &&
-                        (dane.DataOstatniejKontroli <= twelveMonthsAgo || dane.DataOstatniejKontroli == DateTime.MinValue)) ||
-                    (dane.PrzypisanaOcenaRyzyka >= 5 && dane.PrzypisanaOcenaRyzyka <= 50 &&
-                        (dane.DataOstatniejKontroli <= twentyFourMonthsAgo || dane.DataOstatniejKontroli == DateTime.MinValue)) ||
-                    (dane.PrzypisanaOcenaRyzyka < 5 &&
-                        (dane.DataOstatniejKontroli <= thirtySixMonthsAgo || dane.DataOstatniejKontroli == DateTime.MinValue))
-                )
-                .OrderByDescending(dane => dane.OcenaRyzyka)
-                .ThenByDescending(dane => dane.PrzypisanaOcenaRyzyka)
-                .ToList();
+    //     int iii = 1;
 
+    //     foreach (var item in przefiltrowaneDaneDoPlanowania)
+    //     {
+    //         // Sprawdzenie, czy podmiot jest przypisany pracownikowi
+    //         var przypisanyPodmiot = danePracownikPodmiot.FirstOrDefault(p => p.RowIdPodmiotu == item.Podmiot.RowId);
 
+    //         int kontrolaTime = item.DomyslnyCzasKontroli;
+    //         if (kontrolaTime == 0) kontrolaTime = 3;
+    //         if (przypisanyPodmiot != null)
+    //         {
 
-            Console.WriteLine("2. Pobrano do planu informację o podmiotach ilość danych pobranych po dodatkowym filtrze: " + dane_full_planowaniePrzezProgram.Count().ToString());
+    //             // Ustawienie początkowej godziny na 7 rano
+    //             Console.WriteLine($"currentDate.AddHours(kontrolaTime).Hour={currentDate.AddHours(kontrolaTime).Hour}");
 
+    //             if (currentDate.AddHours(kontrolaTime).Hour > 16)
+    //             {
+    //                 currentDate = currentDate.AddDays(1);
+    //                 Console.WriteLine("Nowy dzień");
+    //                 currentDate = new DateTime(
+    //                 currentDate.Year,
+    //                 currentDate.Month,
+    //                 currentDate.Day,
+    //                 7,
+    //                 0,
+    //                 0
+    //                 );
+    //             }
 
-            var danePracownikPodmiot = await Http.GetFromJsonAsync<List<BezPodmiotPrzypisPracownikowiViewModel>>($"api/BezPodmiotPrzypisPracownikowi/{RowIdPracownika}");
+    //             if (currentDate.DayOfWeek == DayOfWeek.Saturday)
+    //             {
+    //                 currentDate = currentDate.AddDays(2);
+    //             }
+    //             else if (currentDate.DayOfWeek == DayOfWeek.Sunday)
+    //             {
+    //                 currentDate = currentDate.AddDays(1);
+    //             }
 
-            if (danePracownikPodmiot != null)
-            {
-                danePracownikPodmiot = danePracownikPodmiot.OrderBy(e => e.KodPocztowy).ToList();
+    //             // Ustalenie daty rozpoczęcia i zakończenia kontroli
+    //             dataStartGantt = currentDate;
+    //             dataStopGantt = currentDate.AddHours(kontrolaTime);
 
-                Console.WriteLine("3. Rozpoczęto analizę");
+    //             currentDate = dataStopGantt;
 
-                przefiltrowaneDaneDoPlanowania = dane_full_planowaniePrzezProgram;
+    //             Console.WriteLine($"currentDate={currentDate}");
 
+    //             // var matchingItem = dane_full_plan.FirstOrDefault(d => d.RowIdPodmiotu == item.Podmiot.RowId);
+    //             // if (matchingItem != null && matchingItem.PodmiotPrzypisPracownikowi != null)
+    //             // {
+    //             //     matchingItem.PodmiotPrzypisPracownikowi.DataStartGantt = dataStartGantt;
+    //             //     matchingItem.PodmiotPrzypisPracownikowi.DataStopGantt = dataStopGantt;
+    //             //     Console.WriteLine($"{iii++} ----- matchingItem DataStartGantt: {dataStartGantt}/{dataStopGantt}");
+    //             // }
+    //         }
+    //     }
 
-                RozdzielKontroleNaDni(danePracownikPodmiot);
-
-                Console.WriteLine("4. Zakończono analizę");
-            }
-            else
-            {
-                await _message.Error("Brak podmiotów (obiektów) powiązanych z pracownikiem");
-            }
-
-            przefiltrowaneDaneDoPlanowania = dane_full_planowaniePrzezProgram;
-
-
-            Console.WriteLine($"5. Generowanie wykresu dla dane_full_planowaniePrzezProgram {dane_full_planowaniePrzezProgram.Count()}....");
-
-        }
-
-        if (przefiltrowaneDaneDoPlanowania != null)
-        {
-            // click_task = $"Zakończono analizę udało się dodać do wykresu dane obiektów: {przefiltrowaneDaneDoPlanowania.Count()}";
-            click_task = $"Zakończono analizę udało się dodać do wykresu dane obiektów";
-        }
-        else
-        {
-            click_task = $"Zakończono analizę obiekt przefiltrowaneDaneDoPlanowania ma wartość null";
-        }
-
-        Console.WriteLine("7. Koniec :)");
-
-    }
-
-    private void RozdzielKontroleNaDni(List<BezPodmiotPrzypisPracownikowiViewModel> danePracownikPodmiot)
-    {
-        Console.WriteLine($"3.1 przefiltrowaneDaneDoPlanowania - Start");
-
-        if (przefiltrowaneDaneDoPlanowania == null) return;
-
-        Console.WriteLine($"3.2 przefiltrowaneDaneDoPlanowania - Start - Not null - OK");
-
-        DateTime currentDate = DateTime.Now.AddDays(1);
-
-        // Pomijanie soboty i niedzieli
-        if (currentDate.DayOfWeek == DayOfWeek.Saturday)
-        {
-            currentDate = currentDate.AddDays(2);
-        }
-        else if (currentDate.DayOfWeek == DayOfWeek.Sunday)
-        {
-            currentDate = currentDate.AddDays(1);
-        }
-
-        // Ustawienie początkowej godziny na 7 rano
-
-        currentDate = new DateTime(
-                    currentDate.Year,
-                    currentDate.Month,
-                    currentDate.Day,
-                    7,
-                    0,
-                    0
-                    );
-
-        DateTime dataStartGantt;
-        DateTime dataStopGantt;
-
-        int iii = 1;
-
-        foreach (var item in przefiltrowaneDaneDoPlanowania)
-        {
-            // Sprawdzenie, czy podmiot jest przypisany pracownikowi
-            var przypisanyPodmiot = danePracownikPodmiot.FirstOrDefault(p => p.RowIdPodmiotu == item.Podmiot.RowId);
-
-            int kontrolaTime = item.DomyslnyCzasKontroli;
-            if (kontrolaTime == 0) kontrolaTime = 3;
-            if (przypisanyPodmiot != null)
-            {
-
-                // Ustawienie początkowej godziny na 7 rano
-                Console.WriteLine($"currentDate.AddHours(kontrolaTime).Hour={currentDate.AddHours(kontrolaTime).Hour}");
-
-                if (currentDate.AddHours(kontrolaTime).Hour > 16)
-                {
-                    currentDate = currentDate.AddDays(1);
-                    Console.WriteLine("Nowy dzień");
-                    currentDate = new DateTime(
-                    currentDate.Year,
-                    currentDate.Month,
-                    currentDate.Day,
-                    7,
-                    0,
-                    0
-                    );
-                }
-
-                if (currentDate.DayOfWeek == DayOfWeek.Saturday)
-                {
-                    currentDate = currentDate.AddDays(2);
-                }
-                else if (currentDate.DayOfWeek == DayOfWeek.Sunday)
-                {
-                    currentDate = currentDate.AddDays(1);
-                }
-
-                // Ustalenie daty rozpoczęcia i zakończenia kontroli
-                dataStartGantt = currentDate;
-                dataStopGantt = currentDate.AddHours(kontrolaTime);
-
-                currentDate = dataStopGantt;
-
-                Console.WriteLine($"currentDate={currentDate}");
-
-                var matchingItem = dane_full_plan.FirstOrDefault(d => d.RowIdPodmiotu == item.Podmiot.RowId);
-                if (matchingItem != null && matchingItem.PodmiotPrzypisPracownikowi != null)
-                {
-                    matchingItem.PodmiotPrzypisPracownikowi.DataStartGantt = dataStartGantt;
-                    matchingItem.PodmiotPrzypisPracownikowi.DataStopGantt = dataStopGantt;
-                    Console.WriteLine($"{iii++} ----- matchingItem DataStartGantt: {dataStartGantt}/{dataStopGantt}");
-                }
-            }
-        }
-
-
-        // foreach (var item in przefiltrowaneDaneDoPlanowania)
-        // {
-        //     Console.WriteLine($"przefiltrowaneDaneDoPlanowania.RowIdPodmiotu: {item.Podmiot.RowId} Ocena ryzyka po ost.kontroli: {item.PrzypisanaOcenaRyzyka}");
-        // }
-    }
+    // }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -688,18 +611,12 @@
 
     private async Task InitializeFrappeGantt()
     {
-        if (przefiltrowaneDaneDoPlanowania == null || dane_full_plan == null) return;
+        if (przefiltrowaneDaneDoPlanowania == null) return;
 
         Console.WriteLine("InitializeFrappeGantt.....");
 
         await JSRuntime.InvokeVoidAsync("console.log", "Calling clearGantt");
         await JSRuntime.InvokeVoidAsync("clearGantt", "#gantt");
-
-        // if (przefiltrowaneDaneDoPlanowania == null) return;// Sortowanie danych
-
-        // przefiltrowaneDaneDoPlanowania = przefiltrowaneDaneDoPlanowania
-        //         .OrderBy(x => x.DataOstatniejKontroli)
-        //         .ToList();
 
         var tasks = new List<object>();
 
@@ -707,47 +624,47 @@
 
         foreach (var item in przefiltrowaneDaneDoPlanowania)
         {
-            var itemPlan = dane_full_plan.FirstOrDefault(x => x.PodmiotPrzypisPracownikowi.RowIdPodmiotu == item.Podmiot.RowId);
+            // var itemPlan = dane_full_plan.FirstOrDefault(x => x.PodmiotPrzypisPracownikowi.RowIdPodmiotu == item.ZleceniaProdukcyjne.RowId);
 
-            if (itemPlan != null)
-            {
-                if (itemPlan.PodmiotPrzypisPracownikowi.DataStartGantt >= itemPlan.PodmiotPrzypisPracownikowi.DataStopGantt)
-                    itemPlan.PodmiotPrzypisPracownikowi.DataStopGantt = itemPlan.PodmiotPrzypisPracownikowi.DataStartGantt.AddHours(4);
+            // if (itemPlan != null)
+            // {
+            //     if (itemPlan.PodmiotPrzypisPracownikowi.DataStartGantt >= itemPlan.PodmiotPrzypisPracownikowi.DataStopGantt)
+            //         itemPlan.PodmiotPrzypisPracownikowi.DataStopGantt = itemPlan.PodmiotPrzypisPracownikowi.DataStartGantt.AddHours(4);
 
-                var task = new
-                {
-                    id = $"Task_{item.Podmiot.RowId}",
-                    name = $"{item.Podmiot?.Nazwapodmiotu} {item.Podmiot?.Miejscowosc}",
-                    start = itemPlan.PodmiotPrzypisPracownikowi.DataStartGantt,
-                    end = itemPlan.PodmiotPrzypisPracownikowi.DataStopGantt,
-                    _start = itemPlan.PodmiotPrzypisPracownikowi.DataStartGantt,
-                    _end = itemPlan.PodmiotPrzypisPracownikowi.DataStopGantt,
-                    progress = itemPlan.PodmiotPrzypisPracownikowi.Procent,
-                    dependencies = "",
-                    custom_class = "bar-milestone"
-                };
+            //     var task = new
+            //     {
+            //         id = $"Task_{item.ZleceniaProdukcyjne.RowId}",
+            //         name = $"{item.ZleceniaProdukcyjne?.NumerZamowienia} {item.ZleceniaProdukcyjne?.Klient}",
+            //         start = itemPlan.PodmiotPrzypisPracownikowi.DataStartGantt,
+            //         end = itemPlan.PodmiotPrzypisPracownikowi.DataStopGantt,
+            //         _start = itemPlan.PodmiotPrzypisPracownikowi.DataStartGantt,
+            //         _end = itemPlan.PodmiotPrzypisPracownikowi.DataStopGantt,
+            //         progress = itemPlan.PodmiotPrzypisPracownikowi.Procent,
+            //         dependencies = "",
+            //         custom_class = "bar-milestone"
+            //     };
 
-                Console.WriteLine($"task: start: {task.start} stop: {task.end}");
-                tasks.Add(task);
-            }
-            else
-            {
-                if (numerSel == "0")
-                {
-                    var task = new
-                    {
-                        id = $"Task_{item.Podmiot?.RowId}",
-                        name = $"{item.Podmiot?.Nazwapodmiotu} {item.Podmiot?.Miejscowosc} Brak powiązania podmiotu.",
-                        start = DateTime.Now.ToString("yyyy-MM-dd"),
-                        end = DateTime.Now.AddHours(3).ToString("yyyy-MM-dd"),
-                        _start = DateTime.Now.ToString("yyyy-MM-dd"),
-                        _end = DateTime.Now.AddHours(3).ToString("yyyy-MM-dd"),
-                        progress = 100,
-                        dependencies = ""
-                    };
-                    tasks.Add(task);
-                }
-            }
+            //     Console.WriteLine($"task: start: {task.start} stop: {task.end}");
+            //     tasks.Add(task);
+            // }
+            // else
+            // {
+            //     if (numerSel == "0")
+            //     {
+            //         var task = new
+            //         {
+            //             id = $"Task_{item.ZleceniaProdukcyjne?.RowId}",
+            //             name = $"{item.ZleceniaProdukcyjne?.NumerZamowienia} {item.ZleceniaProdukcyjne?.Klient} Brak powiązania podmiotu.",
+            //             start = DateTime.Now.ToString("yyyy-MM-dd"),
+            //             end = DateTime.Now.AddHours(3).ToString("yyyy-MM-dd"),
+            //             _start = DateTime.Now.ToString("yyyy-MM-dd"),
+            //             _end = DateTime.Now.AddHours(3).ToString("yyyy-MM-dd"),
+            //             progress = 100,
+            //             dependencies = ""
+            //         };
+            //         tasks.Add(task);
+            //     }
+            // }
         }
 
         Console.WriteLine($"Załadowano danych do wykresu Gannt'a: {tasks.Count} z {przefiltrowaneDaneDoPlanowania.Count} w dniu {DateTime.Now}");
@@ -796,24 +713,23 @@
 
         try
         {
-            daneDoPlanowania = await Http.GetFromJsonAsync<List<DaneDoPlanowaniaViewModel>>($"api/PlanKontroliDane/{row_id_dzialu}/{priorytet}/{priorytetMax}");
+   
+            // dane_full_plan = await Http.GetFromJsonAsync<List<PodmiotPrzypisPracownikowiViewModel>>($"api/PodmiotPrzypisPracownikowi/{RowIdPracownika}");
 
-            dane_full_plan = await Http.GetFromJsonAsync<List<PodmiotPrzypisPracownikowiViewModel>>($"api/PodmiotPrzypisPracownikowi/{RowIdPracownika}");
+            // // Przefiltruj daneDoPlanowania
+            // if (dane_full_plan != null && dane_full_plan.Any())
+            // {
+            //     var rowIdPodmiotuSet = dane_full_plan
+            //     .Where(d => d.PodmiotPrzypisPracownikowi.DataStartGantt > DateTime.Now.AddDays(-14))
+            //     .Select(d => d.PodmiotPrzypisPracownikowi.RowIdPodmiotu)
+            //     .ToHashSet();
 
-            // Przefiltruj daneDoPlanowania
-            if (dane_full_plan != null && dane_full_plan.Any())
-            {
-                var rowIdPodmiotuSet = dane_full_plan
-                .Where(d => d.PodmiotPrzypisPracownikowi.DataStartGantt > DateTime.Now.AddDays(-14))
-                .Select(d => d.PodmiotPrzypisPracownikowi.RowIdPodmiotu)
-                .ToHashSet();
-
-                przefiltrowaneDaneDoPlanowania = daneDoPlanowania.Where(d => rowIdPodmiotuSet.Contains(d.Podmiot.RowId)).ToList();
-            }
-            else
-            {
-                przefiltrowaneDaneDoPlanowania = new List<DaneDoPlanowaniaViewModel>();
-            }
+            //     przefiltrowaneDaneDoPlanowania = daneDoPlanowania.Where(d => rowIdPodmiotuSet.Contains(d.Podmiot.RowId)).ToList();
+            // }
+            // else
+            // {
+            //     przefiltrowaneDaneDoPlanowania = new List<DaneDoPlanowaniaViewModel>();
+            // }
         }
         catch (Exception ex)
         {
@@ -825,8 +741,6 @@
 
         if (!blokuj_petle) blokuj_petle = true;
     }
-
-    //   private PSSE.Client.Pages.Rejestry.DaneRejestru? daneRejestru;
 
     private async Task GoBack()
     {
