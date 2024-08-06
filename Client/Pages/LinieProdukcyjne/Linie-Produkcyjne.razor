@@ -1,30 +1,30 @@
-﻿@page "/Rodzaje-Kart-Instrukcyjnych"
+﻿@page "/Linie-Produkcyjne"
 @using GEORGE.Shared.Models
 @using GEORGE.Shared.Class
 @inject HttpClient Http
 @using AntDesign
 @inject IMessageService _message
 
-<h3>Rodzaje Kart Instrukcyjnych</h3>
+<h3>Linie produkcyjne</h3>
 
 <Button Type="primary" OnClick="@(ShowDialogAddNew)">
-    Dodaj nowy rodzaj kartę instrukcyjną
+    Dodaj nową linię produkcyjną
 </Button>
 <Divider></Divider>
 
-@if (rodzajeKartInstrukcyjnych == null)
+@if (rodzajeLinieProdukcyjne == null)
 {
     <p><em>Czekaj na załadowanie danych...</em></p>
 }
 else
 {
     <ul>
-        <Table TItem="RodzajeKartInstrukcyjnych" DataSource="@rodzajeKartInstrukcyjnych">
+        <Table TItem="LinieProdukcyjne" DataSource="@rodzajeLinieProdukcyjne">
             <Column Title="ID" @bind-Field="@context.Id" Hidden />
-            <Column Title="Numer Rodzaju Karty" @bind-Field="@context.NumerRodzajuKart" Sortable OnFilter="(a, b) => a == b" Filterable />
-            <Column Title="Opis Rodzaju Karty" @bind-Field="@context.OpisRodzajuKart" Sortable />
-            <Column Title="Nazwa Produktu" @bind-Field="@context.NazwaProduktu" Sortable OnFilter="(a, b) => a == b" Filterable />
-            <Column Title="Nazwa Produktu cd" @bind-Field="@context.NazwaProduktu2" Sortable />
+            <Column Title="Nazwa Linii Produkcyjnej" @bind-Field="@context.NazwaLiniiProdukcyjnej" Sortable OnFilter="(a, b) => a == b" Filterable />
+            <Column Title="Id linii w systemie" @bind-Field="@context.IdLiniiProdukcyjnej" Sortable OnFilter="(a, b) => a == b" Filterable />
+            <Column Title="Dzienna Zdolność Produkcyjna w [JP]" @bind-Field="@context.DziennaZdolnoscProdukcyjna" Sortable />
+            <Column Title="Uwagi" @bind-Field="@context.Uwagi" Sortable />
             <Column Title="Autor zmian" @bind-Field="@context.KtoZapisal" Sortable />
 
             <!-- Przykład kolumny dla daty z formatowaniem -->
@@ -52,27 +52,24 @@ else
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <AntDesign.Form Model="@karty" Layout="FormLayout.Vertical" OnFinish="@HandleSubmit">
-                    <AntDesign.FormItem Label="Rodzaj karty">
-                        <AntDesign.Input @bind-Value="karty.NumerRodzajuKart" MaxLength="3" Required Placeholder="Podaj nazwę grupy np. KKD (Karata Kontroli Drzwi)" />
+                <AntDesign.Form Model="@nlinie" Layout="FormLayout.Vertical" OnFinish="@HandleSubmit">
+                    <AntDesign.FormItem Label="Id linii w systemie">
+                        <AntDesign.Input @bind-Value="nlinie.IdLiniiProdukcyjnej" MaxLength="15" Required Placeholder="Podaj Id linii np #001" />
                     </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Opis rodzaju karty">
-                        <AntDesign.Input @bind-Value="karty.OpisRodzajuKart" Required />
+                    <AntDesign.FormItem Label="Nazwa Linii Produkcyjnej">
+                        <AntDesign.Input @bind-Value="nlinie.NazwaLiniiProdukcyjnej" Required />
                     </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Nazwa Produktu">
-                        <AntDesign.Input @bind-Value="karty.NazwaProduktu" />
+                    <AntDesign.FormItem Label="Dzienna Zdolność Produkcyjna [w jednostkach produkcyjnych]">
+                        <AntDesign.Input @bind-Value="nlinie.DziennaZdolnoscProdukcyjna" />
                     </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Nazwa Produktu 2">
-                        <AntDesign.Input @bind-Value="karty.NazwaProduktu2" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Kod Produktu">
-                        <AntDesign.Input @bind-Value="karty.KodProduktu" />
+                    <AntDesign.FormItem Label="Uwagi">
+                        <AntDesign.Input @bind-Value="nlinie.Uwagi" />
                     </AntDesign.FormItem>
                     <AntDesign.FormItem Label="Kto Zapisał">
-                        <AntDesign.Input @bind-Value="karty.KtoZapisal" Required />
+                        <AntDesign.Input @bind-Value="nlinie.KtoZapisal" Required />
                     </AntDesign.FormItem>
                     <AntDesign.FormItem Label="Ostatnia Zmiana">
-                        <AntDesign.Input @bind-Value="karty.OstatniaZmiana" />
+                        <AntDesign.Input @bind-Value="nlinie.OstatniaZmiana" />
                     </AntDesign.FormItem>
                     <AntDesign.FormItem>
                         <AntDesign.Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</AntDesign.Button>
@@ -85,8 +82,8 @@ else
 </div>
 
 @code {
-    private List<RodzajeKartInstrukcyjnych>? rodzajeKartInstrukcyjnych;
-    private List<RodzajeKartInstrukcyjnych>? originalrodzajeKartInstrukcyjnych;
+    private List<LinieProdukcyjne>? rodzajeLinieProdukcyjne;
+    private List<LinieProdukcyjne>? oryginalLinieProdukcyjne;
 
     private bool _visible = false;
     private string display = "none;";
@@ -94,21 +91,21 @@ else
 
     private long cid = -1;
 
-    private RodzajeKartInstrukcyjnych karty = new RodzajeKartInstrukcyjnych();
+    private LinieProdukcyjne nlinie = new LinieProdukcyjne();
 
     protected override async Task OnInitializedAsync()
     {
 
         try
         {
-            rodzajeKartInstrukcyjnych = await Http.GetFromJsonAsync<List<RodzajeKartInstrukcyjnych>>("api/RodzajeKartInstrukcyjnych");
+            rodzajeLinieProdukcyjne = await Http.GetFromJsonAsync<List<LinieProdukcyjne>>("api/LinieProdukcyjne/");
 
-            karty = new RodzajeKartInstrukcyjnych();
-            karty.Id =  0;     
+            nlinie = new LinieProdukcyjne();
+            nlinie.Id =  0;     
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"******* Błąd {ex.Message}");  
+            Console.WriteLine($"******* Błąd {ex.Message} - LinieProdukcyjne");
         }
     }
 
@@ -120,52 +117,52 @@ else
 
         blokujDwuKlik = true;
 
-        karty.NumerRodzajuKart = karty.NumerRodzajuKart.ToUpper();
+        nlinie.IdLiniiProdukcyjnej = nlinie.IdLiniiProdukcyjnej.ToUpper();
 
         HttpResponseMessage response;
 
-        if (karty.Id == 0)
+        if (nlinie.Id == 0)
         {
             // Sprawdź unikalność NumerRodzajuKart
-            var responsedbl = rodzajeKartInstrukcyjnych.Where(e => e.NumerRodzajuKart == karty.NumerRodzajuKart);
+            var responsedbl = rodzajeLinieProdukcyjne.Where(e => e.IdLiniiProdukcyjnej == nlinie.IdLiniiProdukcyjnej);
 
             if (responsedbl != null && responsedbl.Count() > 0)
             {
                 // Wyświetl komunikat o błędzie, że NumerRodzajuKart nie jest unikalny
-                Console.WriteLine("Numer Rodzaju Kart musi być unikalny.");
-                await _message.Error("Numer Rodzaju Kart musi być unikalny.");
+                Console.WriteLine("Numer LINII musi być unikalny.");
+                await _message.Error("Numer LINII musi być unikalny.");
                 blokujDwuKlik = false;
                 return;
             }
 
-            response = await Http.PostAsJsonAsync("api/RodzajeKartInstrukcyjnych", karty);
+            response = await Http.PostAsJsonAsync("api/LinieProdukcyjne", nlinie);
         }
         else
         {
-            response = await Http.PutAsJsonAsync($"api/RodzajeKartInstrukcyjnych/{karty.Id}", karty);
+            response = await Http.PutAsJsonAsync($"api/LinieProdukcyjne/{nlinie.Id}", nlinie);
 
-            if (rodzajeKartInstrukcyjnych != null) originalrodzajeKartInstrukcyjnych = rodzajeKartInstrukcyjnych.DeepCopyList();
+            if (rodzajeLinieProdukcyjne != null) oryginalLinieProdukcyjne = rodzajeLinieProdukcyjne.DeepCopyList();
         }
 
         if (response.IsSuccessStatusCode)
         {
-            if (karty.Id == 0)
+            if (nlinie.Id == 0)
             {
-                rodzajeKartInstrukcyjnych.Add(karty); // Dodaj nowe karty do listy
+                rodzajeLinieProdukcyjne.Add(nlinie); // Dodaj nowe nlinie do listy
             }
             else
             {
-                // Znajdź istniejące karty i zaktualizuj je
-                var index = rodzajeKartInstrukcyjnych.FindIndex(z => z.Id == karty.Id);
+                // Znajdź istniejące nlinie i zaktualizuj je
+                var index = rodzajeLinieProdukcyjne.FindIndex(z => z.Id == nlinie.Id);
 
                 if (index != -1)
                 {
-                    rodzajeKartInstrukcyjnych[index] = karty;
+                    rodzajeLinieProdukcyjne[index] = nlinie;
                 }
             }
 
             _visible = false;
-            karty = new RodzajeKartInstrukcyjnych(); // Zresetuj formularz
+            nlinie = new LinieProdukcyjne(); // Zresetuj formularz
 
             await HideDialog();
 
@@ -176,23 +173,24 @@ else
         else
         {
             // Obsługa błędów
-            Console.WriteLine("Błąd podczas zapisywania rodzaju karty - źródło RAZOR");
+            Console.WriteLine("Błąd podczas zapisywania rodzaju nlinie - źródło RAZOR");
+
             blokujDwuKlik = false;
         }
     }
 
     public async Task deleteRow(long id)
     {
-        if (rodzajeKartInstrukcyjnych == null) return;
+        if (rodzajeLinieProdukcyjne == null) return;
 
         try
         {
-            var response = await Http.DeleteAsync($"api/RodzajeKartInstrukcyjnych/{id}");
+            var response = await Http.DeleteAsync($"api/LinieProdukcyjne/{id}");
 
             if (response.IsSuccessStatusCode)
             {
                 // Usunięcie rekordu z listy po pomyślnym usunięciu z serwera
-                rodzajeKartInstrukcyjnych = rodzajeKartInstrukcyjnych.Where(r => r.Id != id).ToList();
+                rodzajeLinieProdukcyjne = rodzajeLinieProdukcyjne.Where(r => r.Id != id).ToList();
                 Console.WriteLine("Rekord został pomyślnie usunięty.");
             }
             else
@@ -210,9 +208,9 @@ else
     public async Task editRow(long id)
     {
         //listOfData = listOfData.Where(d => d.Id != id).ToArray();
-        if (rodzajeKartInstrukcyjnych == null) return;
+        if (rodzajeLinieProdukcyjne == null) return;
 
-        originalrodzajeKartInstrukcyjnych = rodzajeKartInstrukcyjnych.DeepCopyList();
+        oryginalLinieProdukcyjne = rodzajeLinieProdukcyjne.DeepCopyList();
 
         // Logika edycji
         if (_visible)
@@ -222,16 +220,16 @@ else
         }
         else
         {
-            karty = new RodzajeKartInstrukcyjnych();
+            nlinie = new LinieProdukcyjne();
 
-            var listOfData = rodzajeKartInstrukcyjnych.Where(d => d.Id == id).ToArray();
+            var listOfData = rodzajeLinieProdukcyjne.Where(d => d.Id == id).ToArray();
 
-            // Pobierz karty na podstawie indeksu wiersza
+            // Pobierz nlinie na podstawie indeksu wiersza
             if (listOfData != null && listOfData.Count() > 0)
             {
                 cid = id;
 
-                karty = listOfData[0];
+                nlinie = listOfData[0];
 
                 _visible = true;
 
@@ -239,7 +237,7 @@ else
             }
 
             // Wyświetl numer zamówienia w konsoli
-            Console.WriteLine(karty.NumerRodzajuKart);
+            Console.WriteLine(nlinie.NazwaLiniiProdukcyjnej);
         }
 
     }
@@ -267,7 +265,7 @@ else
 
     public async Task ShowDialogAddNew()
     {
-        karty = new RodzajeKartInstrukcyjnych();
+        nlinie = new LinieProdukcyjne();
         cid = -1;
 
         display = "block";
@@ -286,9 +284,9 @@ else
 
     private async Task HideDialog()
     {
-        if (cid > 0 && rodzajeKartInstrukcyjnych != null)
+        if (cid > 0 && rodzajeLinieProdukcyjne != null)
         {
-            rodzajeKartInstrukcyjnych = originalrodzajeKartInstrukcyjnych;
+            rodzajeLinieProdukcyjne = oryginalLinieProdukcyjne;
         }
 
         cid = -1;

@@ -9,7 +9,7 @@ namespace GEORGE.Shared.Models
         [Required]
         public string? RowIdLinieProdukcyjne { get; set; }
         [Required]
-        public int RowIdZleceniaProdukcyjne { get; set; }
+        public string? RowIdZleceniaProdukcyjne { get; set; }
         public string? Uwagi { get; set; }
         public DateTime DataZapisu { get; set; } = DateTime.Now;
         public string? OstatniaZmiana { get; set; } = "Zmiana: " + DateTime.Now.ToLongDateString();

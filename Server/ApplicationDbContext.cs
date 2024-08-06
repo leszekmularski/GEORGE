@@ -18,7 +18,8 @@ namespace GEORGE.Server
         public DbSet<PlikiZlecenProdukcyjnych> PlikiZlecenProdukcyjnych { get; set; }
         public DbSet<ZleceniaProdukcyjneWew>? ZleceniaProdukcyjneWew { get; set; }
         public DbSet<KantowkaDoZlecen>? KantowkaDoZlecen { get; set; }
-        
+        public DbSet<LinieProdukcyjne>? LinieProdukcyjne { get; set; }
+        public DbSet<ZleceniaNaLinii>? ZleceniaNaLinii { get; set; }
 
         public async Task<bool> ZmienUwage(long id, string uwaga)
         {

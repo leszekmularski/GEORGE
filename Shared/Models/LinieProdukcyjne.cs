@@ -3,7 +3,7 @@
     public class LinieProdukcyjne
     {
         public long Id { get; set; }
-        public string? NumerKarty { get; set; }
+        public string? IdLiniiProdukcyjnej { get; set; }
         public string? RowId { get; set; } = Guid.NewGuid().ToString(); 
         public string? NazwaLiniiProdukcyjnej { get; set; }
         public int DziennaZdolnoscProdukcyjna { get; set; } = 0;

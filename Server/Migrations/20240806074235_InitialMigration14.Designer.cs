@@ -4,6 +4,7 @@ using GEORGE.Server;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GEORGE.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240806074235_InitialMigration14")]
+    partial class InitialMigration14
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -145,13 +148,13 @@ namespace GEORGE.Server.Migrations
                     b.Property<int>("DziennaZdolnoscProdukcyjna")
                         .HasColumnType("int");
 
-                    b.Property<string>("IdLiniiProdukcyjnej")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("KtoZapisal")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("NazwaLiniiProdukcyjnej")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NumerKarty")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("OstatniaZmiana")
@@ -273,9 +276,8 @@ namespace GEORGE.Server.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("RowIdZleceniaProdukcyjne")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("RowIdZleceniaProdukcyjne")
+                        .HasColumnType("int");
 
                     b.Property<string>("Uwagi")
                         .HasColumnType("nvarchar(max)");
@@ -312,9 +314,6 @@ namespace GEORGE.Server.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Ilosc")
-                        .HasColumnType("int");
-
-                    b.Property<int>("JednostkiNaZlecenie")
                         .HasColumnType("int");
 
                     b.Property<string>("Klient")
@@ -388,9 +387,6 @@ namespace GEORGE.Server.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<int>("Ilosc")
-                        .HasColumnType("int");
-
-                    b.Property<int>("JednostkiNaZlecenie")
                         .HasColumnType("int");
 
                     b.Property<string>("Klient")

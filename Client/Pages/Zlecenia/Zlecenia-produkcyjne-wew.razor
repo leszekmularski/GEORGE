@@ -51,6 +51,7 @@ else
             <Column Title="Nazwa Produktu" @bind-Field="@context.NazwaProduktu" Sortable />
             <Column Title="Adres" @bind-Field="@context.Adres" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Telefon" @bind-Field="@context.Telefon" Sortable />
+            <Column Title="CWZ" @bind-Field="@context.JednostkiNaZlecenie" Style="width:30px" Sortable />
 
             <!-- Przykład kolumny dla danych zagnieżdżonych -->
          @*    <Column Title="Nazwa Produktu 2" TData="string" DataIndex="NazwaProduktu2" Sortable /> *@
@@ -183,6 +184,11 @@ else
                         <AntDesign.Col Span="12">
                             <AntDesign.FormItem Label="Ilość">
                                 <AntDesign.InputNumber @bind-Value="zlecenie.Ilosc" />
+                            </AntDesign.FormItem>
+                        </AntDesign.Col>
+                        <AntDesign.Col Span="12">
+                            <AntDesign.FormItem Label="Jednostki produkcyjne na wyk. Zlecenia">
+                                <AntDesign.InputNumber @bind-Value="zlecenie.JednostkiNaZlecenie" />
                             </AntDesign.FormItem>
                         </AntDesign.Col>
                         <AntDesign.Col Span="12">
