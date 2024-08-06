@@ -108,7 +108,7 @@ namespace GEORGE.Server.Controllers
         {
             if (zleceniaNaLinii == null || !zleceniaNaLinii.Any())
             {
-                return BadRequest("Lista zleceń jest pusta.");
+                return BadRequest("Lista zleceń na linii jest pusta.");
             }
 
             foreach (var zlecenie in zleceniaNaLinii)
