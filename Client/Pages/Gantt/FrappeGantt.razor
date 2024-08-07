@@ -4,8 +4,8 @@
 @inject NavigationManager NavigationManager
 @inject IMessageService _message
 @inject IConfirmService _confirmService
-@inject ModalService ModalService;
-@inject ConfirmService ComfirmService;
+@inject ModalService ModalService
+@inject ConfirmService ComfirmService
 @using System.Text.Json
 @using GEORGE.Shared.ViewModels
 @using GEORGE.Shared.Models
@@ -16,12 +16,11 @@
 @using AntDesign
 @using System.Globalization
 
-
 <!DOCTYPE html>
 <html>
-
 <head>
     <title>GEORGE Planowania produkcji GANTT</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta charset="utf-8" />
     <link rel="stylesheet" type="text/css" href="../dist/frappe-gantt.css" />
     <script type="text/javascript" src="../dist/moment.min.js"></script>
@@ -47,6 +46,11 @@
             background-color: #252525;
         }
 
+        .grid-background {
+            background-color: blue;
+        }
+
+
         /* Resetowanie stylów dla table, tr, th */
         table, tr, th {
             all: initial;
@@ -56,34 +60,27 @@
     </style>
 
 </head>
-
 <body>
     <Spin Spinning=loading>
-
-        @if (!ladujDane)
+        @if (!ladujDane || rodzajeLinieProdukcyjne == null)
         {
-            <Button Style="width:100%; background-color: indigo;" Type="@ButtonType.Primary"
-                    Icon="@IconType.Outline.Dashboard"
-                    OnClick="BazaPobierz">
+            <Button Style="width:100%; background-color: indigo;" Type="@ButtonType.Primary" Icon="@IconType.Outline.Dashboard" OnClick="BazaPobierz">
                 Zaczekaj na załadowanie danych ... lub kliknij w przycisk aby załadować ponownie
             </Button>
         }
 
         <div style="width:40%">
-            <label>Wybierz linię produkcyjną</label>
-            <Select TItem="LinieProdukcyjne"
-                    TItemValue="string"
-                    DataSource="@rodzajeLinieProdukcyjne"
-                    @bind-Value="@_selectedValueGantt"
-                    LabelName="@nameof(LinieProdukcyjne.NazwaLiniiProdukcyjnej)"
-                    ValueName="@nameof(LinieProdukcyjne.RowId)"
-                    Placeholder="Wybierz linię produkcyjną"
-                    DefaultActiveFirstOption="false"
-                    EnableSearch
-                    OnSelectedItemChanged="OnSelectedItemChangedHandlerGantt">
-            </Select>
+            @if (rodzajeLinieProdukcyjne != null)
+            {
+                <label>Wybierz linię produkcyjną</label>
+                <Select TItem="LinieProdukcyjne" TItemValue="string" DataSource="@rodzajeLinieProdukcyjne" @bind-Value="@_selectedValueGantt"
+                        LabelName="@nameof(LinieProdukcyjne.NazwaLiniiProdukcyjnej)" ValueName="@nameof(LinieProdukcyjne.RowId)"
+                        Placeholder="Wybierz linię produkcyjną" DefaultActiveFirstOption="false" EnableSearch
+                        OnSelectedItemChanged="OnSelectedItemChangedHandlerGantt">
+                </Select>
+            }
         </div>
-       <Divider></Divider>
+        <Divider></Divider>
         <section class="section section-padding-top section-padding-bottom">
             <div class='container'>
                 <Layout Style="background-color: white;">
@@ -98,21 +95,22 @@
                             <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
                         </h7>
                     </Header>
-                    <Layout>
-                        @*       <Sider Style="background-color: lavender;">@click_task</Sider> *@
+                    <layout>
                         <Content>
-                            <div id="gantt"></div>
+                            @* <div id="gantt"></div> *@
+                               @*  <div id="gantt-container" class="gantt-container dark" style="overflow: scroll"> *@
+                            <div id="gantt-container" style="overflow: scroll">
+                                <svg id="gantt"></svg>
+		                    </div>
                             <br />
                         </Content>
-                    </Layout>
+                    </layout>
                     <Footer>
                         <div class="mx-auto mt-3 btn-group" role="group">
-                            @*    <button type="button" class="btn btn-sm btn-light" onclick="ChangeView('Quarter Day')">Ćwierć dnia</button> *@
                             <button type="button" class="btn btn-sm btn-light" @onclick="@(async () => await ChangeView("Half Day"))">Pół dnia</button>
                             <button type="button" class="btn btn-sm btn-light" @onclick="@(async () => await ChangeView("Day"))">Dzień</button>
                             <button type="button" class="btn btn-sm btn-light" @onclick="@(async () => await ChangeView("Week"))">Tydzień</button>
                             <button type="button" class="btn btn-sm btn-light" @onclick="@(async () => await ChangeView("Month"))">Miesiąc</button>
-
                             &nbsp
                             <Button type="button" class="btn btn-sm btn-light" @onclick="SaveView">Zapisz zmiany</Button>
                         </div>
@@ -122,24 +120,13 @@
         </section>
     </Spin>
 
-    <Modal Title="Dodaj nowe zlecenie"
-           @bind-Visible="@_visible"
-           Style="width:50%"
-           OkText="@("Zapisz")"
-           CancelText="@("Anuluj")"
-           MaxBodyHeight="@("55vh")" OnOk="AddPlanEdit">
+    <Modal Title="Dodaj nowe zlecenie" @bind-Visible="@_visible" Style="width:50%" OkText="@("Zapisz")" CancelText="@("Anuluj")" MaxBodyHeight="@("55vh")" OnOk="AddPlanEdit">
         <div>
             <p style="height: 500px;">
                 Nie przypisane zlecenia
-                <Select TItem="LinieProdukcyjne"
-                        TItemValue="string"
-                        DataSource="@rodzajeLinieProdukcyjne"
-                        @bind-Value="@_selectedValue"
-                        LabelName="@nameof(LinieProdukcyjne.NazwaLiniiProdukcyjnej)"
-                        ValueName="@nameof(LinieProdukcyjne.RowId)"
-                        Placeholder="Wybierz linię produkcyjną"
-                        DefaultActiveFirstOption="false"
-                        EnableSearch
+                <Select TItem="LinieProdukcyjne" TItemValue="string" DataSource="@rodzajeLinieProdukcyjne" @bind-Value="@_selectedValue"
+                        LabelName="@nameof(LinieProdukcyjne.NazwaLiniiProdukcyjnej)" ValueName="@nameof(LinieProdukcyjne.RowId)"
+                        Placeholder="Wybierz linię produkcyjną" DefaultActiveFirstOption="false" EnableSearch
                         OnSelectedItemChanged="OnSelectedItemChangedHandler">
                 </Select>
                 @if (daneDoPlanowania == null)
@@ -159,15 +146,14 @@
                             <PropertyColumn Title="Czas na wykon." Property="c=>c.DomyslnyCzasProdukcji" />
                         </Table>
                     </div>
-
                 }
             </p>
-
         </div>
     </Modal>
-</body>
 
+</body>
 </html>
+
 
 @code {
 
@@ -198,7 +184,7 @@
     string? _selectedValue;
     LinieProdukcyjne? _selectedItem;
 
-    string? _selectedValueGantt;
+    string? _selectedValueGantt = "";//"cdc0d09a-d248-48b9-b263-f54e254d1290";
     LinieProdukcyjne? _selectedItemGantt;
 
     private List<DaneDoPlanowaniaViewModel>? daneDoPlanowania;
@@ -218,23 +204,10 @@
     protected override async Task OnInitializedAsync()
     {
 
-        // dotNetHelper = DotNetObjectReference.Create(this);
+        //dotNetHelper = DotNetObjectReference.Create(this);
 
         try
         {
-
-            // if (numerSel == "1")
-            // {
-            //     // await AutoGenPlanClick();
-
-            //     await BazaPobierz();
-            // }
-            // else
-            // {
-            //     await FetchData();
-
-            //     await BazaPobierz();
-            // }
 
             rodzajeLinieProdukcyjne = await Http.GetFromJsonAsync<List<LinieProdukcyjne>>("api/LinieProdukcyjne/");
 
@@ -285,11 +258,12 @@
     private async Task OnSelectedItemChangedHandlerGantt(LinieProdukcyjne value)
     {
         ladujDane = false;
-        if(dotNetHelper == null)
-            dotNetHelper = DotNetObjectReference.Create(this);
+        // if(dotNetHelper == null)
+        //     dotNetHelper = DotNetObjectReference.Create(this);
 
         _selectedItemGantt = value;
 
+        Console.WriteLine($"_selectedItemGantt:{_selectedItemGantt.RowId}");
 
         await FetchData();
 
@@ -343,8 +317,8 @@
         catch (Exception ex)
         {
             // Obsługa błędów, np. wyświetlenie komunikatu o błędzie
-            Console.WriteLine($"Wystąpił błąd (OnInitializedAsync): {ex.Message}");
-            click_task = $"Wystąpił błąd (OnInitializedAsync): {ex.Message}";
+            Console.WriteLine($"Wystąpił błąd (BazaPobierz-OnInitializedAsync): {ex.Message}");
+            click_task = $"Wystąpił błąd (BazaPobierz-OnInitializedAsync): {ex.Message}";
         }
     }
 
@@ -375,6 +349,7 @@
         if (click_RowIdZlecenia == "")
         {
             await _message.Info("Kliknij w obiekt na wykresie");
+            Console.WriteLine("Kliknij w obiekt na wykresie");
             return;
         }
         // Przekazujemy informacje o poprzedniej stronie jako parametry
@@ -407,16 +382,19 @@
             return;
         }
 
-        // Ustawienie daty ostatniej kontroli
-        await UstawDateOstatniejKontroli(click_RowIdZlecenia);
+        // Ustawienie daty
+        await UstawDatePlanowaniProdukcji(click_RowIdZlecenia);
 
         await  UsunRekord(click_RowIdZlecenia);
 
     }
 
-    private async Task UstawDateOstatniejKontroli(string rowId)
+    private async Task UstawDatePlanowaniProdukcji(string rowId)
     {
         if (przefiltrowaneDaneDoPlanowania == null) return;
+
+
+        Console.WriteLine($"test - UstawDatePlanowaniProdukcji");
 
         // Znajdź obiekt z odpowiednim RowId
         var obiektDoAktualizacji = przefiltrowaneDaneDoPlanowania
@@ -506,6 +484,7 @@
     {
         try
         {
+          
             await JSRuntime.InvokeVoidAsync("ChangeView", mode, dotNetHelper);
 
             StateHasChanged();
@@ -513,7 +492,7 @@
         catch (Exception ex)
         {
             // Obsługa błędów, np. wyświetlenie komunikatu o błędzie
-            Console.WriteLine($"Wystąpił błąd (OnInitializedAsync): {ex.Message}");
+            Console.WriteLine($"Wystąpił błąd (ChangeView - OnInitializedAsync): {ex.Message}");
         }
     }
 
@@ -637,18 +616,36 @@
 
     public string FormatDateString(string isoDateString, bool start)
     {
-        // Parsowanie daty z formatu ISO 8601
-        DateTime dateTime = DateTime.Parse(isoDateString);
+        // Zamiana separatora '_' na 'T' dla poprawnego parsowania
+        isoDateString = isoDateString.Replace('_', 'T');
 
+        // Parsowanie daty z formatu ISO 8601
+        DateTime dateTime;
+        try
+        {
+            dateTime = DateTime.ParseExact(isoDateString, "yyyy-MM-ddTHH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
+        }
+        catch (FormatException)
+        {
+            // Obsługa przypadku, gdy format daty jest niepoprawny
+            throw new FormatException($"String '{isoDateString}' was not recognized as a valid DateTime.");
+        }
+
+        // Dodawanie godzin, jeśli godzina jest większa niż 21 i jest to start
         if (dateTime.Hour > 21 && start)
         {
-            dateTime.AddHours(4);
+            dateTime = dateTime.AddHours(4);
         }
 
         // Formatowanie daty na żądany format
-        //string formattedDateString = dateTime.ToString("yyyy-MM-dd H:mm");
-        string formattedDateString = dateTime.ToString("yyyy-MM-dd");
+        string formattedDateString = dateTime.ToString("yyyy-MM-dd_HH:mm:ss");
         return formattedDateString;
+    }
+
+
+    private string FormatDate(DateTime date)
+    {
+        return date.ToString("yyyy-MM-dd_HH:mm:ss"); // Upewnij się, że format jest zgodny
     }
 
     // Don't forget to dispose of the DotNetObjectReference to avoid memory leaks
@@ -670,26 +667,25 @@
     {
         if (przefiltrowaneDaneDoPlanowania == null) return;
 
+        dotNetHelper = DotNetObjectReference.Create(this);
+
         Console.WriteLine("InitializeFrappeGantt.....");
 
         await JSRuntime.InvokeVoidAsync("console.log", "Calling clearGantt");
+
         await JSRuntime.InvokeVoidAsync("clearGantt", "#gantt");
 
         var tasks = new List<object>();
 
         Console.WriteLine("InitializeFrappeGantt foreach.....");
 
-        DateTime dataStos = DateTime.MinValue; 
+        DateTime dataStos = DateTime.MinValue;
+
+        string s_dependencies = "";
 
 
         foreach (var item in przefiltrowaneDaneDoPlanowania)
         {
-            // var itemPlan = dane_full_plan.FirstOrDefault(x => x.PodmiotPrzypisPracownikowi.RowIdPodmiotu == item.ZleceniaProdukcyjne.RowId);
-
-            // if (itemPlan != null)
-            // {
-            // if (itemPlan.PodmiotPrzypisPracownikowi.DataStartGantt >= itemPlan.PodmiotPrzypisPracownikowi.DataStopGantt)
-            //     itemPlan.PodmiotPrzypisPracownikowi.DataStopGantt = itemPlan.PodmiotPrzypisPracownikowi.DataStartGantt.AddHours(4);
 
             if (dataStos == DateTime.MinValue)
             {
@@ -700,19 +696,22 @@
             {
                 id = $"Task_{item.ZleceniaProdukcyjne.RowId}",
                 name = $"{item.ZleceniaProdukcyjne?.NumerZamowienia} {item.ZleceniaProdukcyjne?.Klient}",
-                start = dataStos,
-                end = dataStos.AddHours((double)item.ZleceniaProdukcyjne?.JednostkiNaZlecenie),
-                _start = dataStos,
-                _end = dataStos.AddHours((double)item.ZleceniaProdukcyjne?.JednostkiNaZlecenie),
+                start = FormatDate(dataStos),
+                end = FormatDate(dataStos.AddHours((double)item.ZleceniaProdukcyjne?.JednostkiNaZlecenie)),
+                _start = FormatDate(dataStos),
+                _end = FormatDate(dataStos.AddHours((double)item.ZleceniaProdukcyjne?.JednostkiNaZlecenie)),
                 progress = 0,
-                dependencies = item.RowIdLiniiProdukcyjnej,
+                dependencies = s_dependencies,
                 custom_class = "bar-milestone"
             };
 
-            dataStos = dataStos.AddHours((double)item.ZleceniaProdukcyjne?.JednostkiNaZlecenie);
+            if (s_dependencies == "") s_dependencies = $", Task_{item.ZleceniaProdukcyjne.RowId}";
 
-                Console.WriteLine($"task: start: {task.start} stop: {task.end}");
-                tasks.Add(task);
+            dataStos = dataStos.AddHours((double)item.ZleceniaProdukcyjne?.JednostkiNaZlecenie + 1);
+
+            Console.WriteLine($"task: start: {task.start} stop: {task.end} dependencies:{s_dependencies}");
+
+            tasks.Add(task);
 
         }
 
@@ -730,7 +729,8 @@
             padding = 18,
             view_mode = "Week",
             language = "pl",
-            custom_popup_html = (string)null
+            date_format = "YYYY-MM-DD", // Zmieniono format
+            custom_popup_html = "function(task) {const end_date = task._end.format(&quot; MMM D&quot;);return `<div class=&quot;details-container&quot;><h5>${task.name}</h5><p>Expected to finish by ${end_date}</p><p>${task.progress}% completed! </p></div>`;"
         });
 
         try
@@ -753,8 +753,8 @@
     [JSInvokable]
     private async Task FetchData()
     {
-       // int priorytet = 0;
-       // int priorytetMax = 1000;
+        // int priorytet = 0;
+        // int priorytetMax = 1000;
 
         if (blokuj_petle) return;
 
@@ -772,13 +772,15 @@
                 // .Select(d => d.ZleceniaProdukcyjne.Klient)
                 // .ToHashSet();
 
-               // przefiltrowaneDaneDoPlanowania = daneDoPlanowania.Where(d => rowIdPodmiotuSet.Contains(d.ZleceniaProdukcyjne.TypZamowienia)).ToList();
+                // przefiltrowaneDaneDoPlanowania = daneDoPlanowania.Where(d => rowIdPodmiotuSet.Contains(d.ZleceniaProdukcyjne.TypZamowienia)).ToList();
                 przefiltrowaneDaneDoPlanowania = daneDoPlanowania.ToList();
             }
             else
             {
                 przefiltrowaneDaneDoPlanowania = new List<DaneDoPlanowaniaViewModel>();
             }
+
+            Console.WriteLine($"FetchData - OK");
         }
         catch (Exception ex)
         {
@@ -795,5 +797,6 @@
     {
         await JSRuntime.InvokeVoidAsync("history.back");
     }
+
 
 }

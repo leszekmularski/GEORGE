@@ -1,6 +1,9 @@
 .dark > .gantt-container .gantt .grid-header {
     fill: #252525;
     stroke: #616161;
+    position: sticky; /* Upewnij siê, ¿e nag³ówek jest sticky */
+    top: 0px; /* Ustawienie topu na 0 */
+    z-index: 10; /* Ustawienie odpowiedniego z-indexu */
 }
 
 .dark > .gantt-container .gantt .grid-row {
@@ -28,7 +31,7 @@
 }
 
 .dark > .gantt-container .gantt .bar {
-    fill: #616161;
+    fill: #8B4513; /* Br¹zowy kolor paska */
     stroke: none;
 }
 
@@ -50,7 +53,7 @@
 }
 
 .dark > .gantt-container .gantt .bar-wrapper:hover .bar {
-    fill: #6e6e6e;
+    fill: #A0522D; /* Jaœniejszy br¹zowy kolor przy najechaniu */
 }
 
 .dark > .gantt-container .gantt .bar-wrapper:hover .bar-progress {
@@ -58,7 +61,7 @@
 }
 
 .dark > .gantt-container .gantt .bar-wrapper.active .bar {
-    fill: #6e6e6e;
+    fill: #A0522D; /* Jaœniejszy br¹zowy kolor przy aktywacji */
 }
 
 .dark > .gantt-container .gantt .bar-wrapper.active .bar-progress {
@@ -92,8 +95,8 @@
     .gantt-container .grid-header {
         background-color: #ffffff;
         position: sticky;
-        top: 0;
-        left: 0;
+        top: 0px;
+        left: 0px;
         z-index: 10;
     }
 
@@ -104,11 +107,17 @@
     }
 
     .gantt-container .upper-header {
-        height: 40px;
+        position: sticky;
+        top: 0px;
+        left: 0px;
+        z-index: 11; /* Ensure this is above the grid-header */
     }
 
     .gantt-container .lower-header {
-        height: 30px;
+        position: sticky;
+        top: 0px; /* Adjust this based on the height of upper-header */
+        left: 0px;
+        z-index: 11; /* Ensure this is above the grid-header */
     }
 
     .gantt-container .lower-text {

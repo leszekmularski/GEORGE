@@ -10,6 +10,10 @@
     <link href="css/app.css" rel="stylesheet" />
     <link rel="icon" type="image/png" href="logo.jpg" />
     <link href="GEORGE.Client.styles.css" rel="stylesheet" />
+    <link href="_content/AntDesign/css/ant-design-blazor.css" rel="stylesheet" />
+    <script src="/script.js"></script>
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script src="_content/Blazor.Extensions.Canvas/blazor.extensions.canvas.js"></script>
 
 </head>
 
@@ -27,9 +31,9 @@
         <a href="" class="reload">Przeładuj</a>
         <a class="dismiss">🗙</a>
     </div>
-    <script src="_framework/blazor.webassembly.js"></script>
-    <script src="_content/Blazor.Extensions.Canvas/blazor.extensions.canvas.js"></script>
+
     <script>
+
         function downloadFile(fileName, contentType, content) {
             var link = document.createElement('a');
             link.download = fileName;

@@ -256,7 +256,9 @@ var Gantt = (function () {
     function padStart(str, targetLength, padString) {
         str = str + "";
         targetLength = targetLength >> 0;
-        padString = String(typeof padString !== "undefined" ? padString : " ");
+
+        padString = String(typeof padString !== "undefined" || padString.trim().toLowerCase() === "undefined" ? padString : " ");
+
         if (str.length > targetLength) {
             return String(str);
         } else {
@@ -1737,62 +1739,98 @@ var Gantt = (function () {
 
         //compute the horizontal x distance
         computeGridHighlightDimensions(view_mode) {
-            let x = this.options.column_width / 2;
+            try {
+                let x = this.options.column_width / 2;
+                console.log(`Initial x: ${x}`);
 
-            if (this.view_is(VIEW_MODE.DAY)) {
-                let today = date_utils.today();
-                return {
-                    x: x +
-                        (date_utils.diff(today, this.gantt_start, "hour") / this.options.step) *
-                        this.options.column_width,
-                    date: today
+                if (this.view_is(VIEW_MODE.DAY)) {
+                    let today = date_utils.today();
+                    let diff = date_utils.diff(today, this.gantt_start, "hour") / this.options.step;
+                    x += diff * this.options.column_width;
+                    console.log(`Today: ${today}, Diff: ${diff}, x: ${x}`);
+                    return {
+                        x: x,
+                        date: today
+                    };
                 }
-            }
 
-            for (let date of this.dates) {
-                const todayDate = new Date();
-                const startDate = new Date(date);
-                const endDate = new Date(date);
-                switch (view_mode) {
-                    case VIEW_MODE.WEEK:
-                        endDate.setDate(date.getDate() + 7);
-                        break;
-                    case VIEW_MODE.MONTH:
-                        endDate.setMonth(date.getMonth() + 1);
-                        break;
-                    case VIEW_MODE.YEAR:
-                        endDate.setFullYear(date.getFullYear() + 1);
-                        break;
+                for (let date of this.dates) {
+                    const todayDate = new Date();
+                    const startDate = new Date(date);
+                    const endDate = new Date(date);
+                    switch (view_mode) {
+                        case VIEW_MODE.WEEK:
+                            endDate.setDate(date.getDate() + 7);
+                            break;
+                        case VIEW_MODE.MONTH:
+                            endDate.setMonth(date.getMonth() + 1);
+                            break;
+                        case VIEW_MODE.YEAR:
+                            endDate.setFullYear(date.getFullYear() + 1);
+                            break;
+                    }
+                    console.log(`StartDate: ${startDate}, EndDate: ${endDate}, x: ${x}`);
+                    if (todayDate >= startDate && todayDate <= endDate) {
+                        return { x, date: startDate };
+                    } else {
+                        x += this.options.column_width;
+                    }
                 }
-                if (todayDate >= startDate && todayDate <= endDate) {
-                    return { x, date: startDate }
-                } else {
-                    x += this.options.column_width;
-                }
+            } catch (error) {
+                console.error("Error in computeGridHighlightDimensions:", error);
             }
+            return { x: 0, date: new Date() }; // Zwracanie domyślnych wartości w przypadku błędu
         }
 
         make_grid_highlights() {
-            if (this.options.highlight_weekend) this.highlightWeekends();
-            // highlight today's | week's | month's | year's
-            if (
-                this.view_is(VIEW_MODE.DAY) ||
-                this.view_is(VIEW_MODE.WEEK) ||
-                this.view_is(VIEW_MODE.MONTH) ||
-                this.view_is(VIEW_MODE.YEAR)
-            ) {
-                // Used as we must find the _end_ of session if view is not Day
-                const { x: left, date } = this.computeGridHighlightDimensions(this.options.view_mode);
-                const top = this.options.header_height + this.options.padding / 2;
-                const height = (this.options.bar_height + this.options.padding) * this.tasks.length;
-                this.$current_highlight = this.create_el({ top, left, height, classes: 'current-highlight', append_to: this.$container });
-                let $today = document.getElementById(date_utils.format(date).replaceAll(' ', '_'));
+            try {
+                if (this.options.highlight_weekend) this.highlightWeekends();
+                // highlight today's | week's | month's | year's
+                if (
+                    this.view_is(VIEW_MODE.DAY) ||
+                    this.view_is(VIEW_MODE.WEEK) ||
+                    this.view_is(VIEW_MODE.MONTH) ||
+                    this.view_is(VIEW_MODE.YEAR)
+                ) {
+                    const dimensions = this.computeGridHighlightDimensions(this.options.view_mode);
+                    if (dimensions && dimensions.x !== undefined && dimensions.date) {
+                        const { x: left, date } = dimensions;
+                        const top = this.options.header_height + this.options.padding / 2;
+                        const height = (this.options.bar_height + this.options.padding) * this.tasks.length;
+                        this.$current_highlight = this.create_el({ top, left, height, classes: 'current-highlight', append_to: this.$container });
 
-                $today.classList.add('current-date-highlight');
-                $today.style.top = +$today.style.top.slice(0, -2) - 4 + 'px';
-                $today.style.left = +$today.style.left.slice(0, -2) - 8 + 'px';
+                        let formattedDate = date_utils.format(date).replaceAll(' ', '_');
+                        console.log("Formatted date:", formattedDate); // Dodaj to logowanie
+
+                        let $today = document.getElementById(formattedDate);
+
+                        if ($today) {
+                            $today.classList.add('current-date-highlight');
+                            $today.style.top = +$today.style.top.slice(0, -2) - 4 + 'px';
+                            $today.style.left = +$today.style.left.slice(0, -2) - 8 + 'px';
+                        } else {
+                            console.warn("Today's date element not found:", formattedDate);
+                            // Tworzenie nowego elementu dla dzisiejszej daty
+                            const $newToday = this.create_el({
+                                tag: 'div',
+                                classes: 'date-element',
+                                innerHTML: formattedDate,
+                                append_to: this.$container
+                            });
+                            $newToday.id = formattedDate;
+                            $newToday.classList.add('current-date-highlight');
+                            $newToday.style.top = top + 'px';
+                            $newToday.style.left = left + 'px';
+                        }
+                    } else {
+                        console.error("computeGridHighlightDimensions returned invalid dimensions:", dimensions);
+                    }
+                }
+            } catch (error) {
+                console.error("Error in make_grid_highlights:", error);
             }
         }
+
 
         create_el({ left, top, width, height, id, classes, append_to }) {
             let $el = document.createElement("div");
