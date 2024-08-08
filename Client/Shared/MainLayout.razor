@@ -1,46 +1,77 @@
 ﻿@inherits LayoutComponentBase
-@using AntDesign
+@inject IJSRuntime jsRuntime
+@inject HttpClient Http
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
-
-    <main>
-
-
-        <div class="top-row px-4">
-            <a @onclick="@(()=>{ ShowDialogPass(); })">Informacja</a>
+<CascadingValue Value="this">
+    <div class="page">
+        <div class="sidebar">
+            <NavMenu />
         </div>
 
-        <div class="modal fade @classShowPass" tabindex="-1" style="display: @displayPass;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 25%;">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Informacja o systemie</h5>
-                    </div>
-                    <div class="modal-body">
+        <main>
 
-                        <label>Program autorstwa: Leszek Mularski</label> 
+            <div class="top-row px-4">
+                <a @onclick="@(()=>{ ShowDialogPass(); })">Informacja</a>
+                <button class="btn btn-link" @onclick="OnClickEuro">Kurs Euro</button>
+            </div>
 
-                    </div>
-                    <div class="modal-footer d-flex">
-                        <Button class="ms-auto" @onclick="() => HideDialogPass()">OK</Button>
+            <div class="modal fade @classShowPass" tabindex="-1" style="display: @displayPass;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 25%;">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Informacja o systemie</h5>
+                        </div>
+                        <div class="modal-body">
+
+                            <label>Program autorstwa: Leszek Mularski</label> 
+
+                        </div>
+                        <div class="modal-footer d-flex">
+                            <Button class="ms-auto" @onclick="() => HideDialogPass()">OK</Button>
+                        </div>
                     </div>
                 </div>
             </div>
+
+           <div class="content px-4">
+                @Body
+           </div>
+
+        </main>
+    </div>
+</CascadingValue>
+
+<div class="modal-backdrop fade @(showEuro ? "show" : "") @(displayEuro ? "d-block" : "d-none")"></div>
+
+<div class="modal fade @(showEuro ? "show" : "")  @(displayEuro ? "d-block" : "d-none")" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">[Kurs dnia: @DateTime.Now]</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="CloseModal">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="del_zlec" class="form-label">@strkurs</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="CloseModal">Zamknij</button>
+            </div>
         </div>
-
-        <article class="content px-4">
-            @Body
-        </article>
-
-    </main>
+    </div>
 </div>
 
 @code {
+
     private string displayPass = "none;";
     private string classShowPass = "";
+
+    private string strkurs = "";
+    private bool displayEuro = false;
+    private bool showEuro = false;
 
     public async Task ShowDialogPass()
     {
@@ -61,4 +92,44 @@
 
         StateHasChanged();
     }
+
+    private async Task OnClickEuro()
+    {
+        strkurs = "";
+
+        try
+        {
+            //kursdnia = await Http.GetFromJsonAsync<List<Nbp>>("https://api.nbp.pl/api/exchangerates/rates/a/eur/last/1/?format=json");
+            string json = await Http.GetStringAsync("https://api.nbp.pl/api/exchangerates/rates/a/eur/last/1/?format=json");
+            int smid;
+            smid = json.IndexOf("mid");
+
+            //kursdnia= System.Text.Json.JsonSerializer.Deserialize<List<Nbp>>(json);
+            strkurs = "Kurs NBP " + json.Substring(smid + 5, 6) + " PLN za 1€";//Convert.ToString(kursdnia[0].rates[0].mid);
+        }
+        catch (Exception e)
+        {
+            strkurs = e.Message;
+        }
+
+        displayEuro = true;
+        await Task.Delay(100);
+        showEuro = true;
+
+        StateHasChanged();
+
+    }
+
+    public void CloseModal()
+    {
+        // showLog = false;
+        // displayLog = false;
+
+        // show = false;
+        // display = false;
+
+        displayEuro = false;
+        showEuro = false;
+    }
+
 }
