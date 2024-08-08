@@ -173,6 +173,17 @@ function resetHeaderPosition() {
         header.style.top = '0';
     });
 }
-document.querySelector('.viewmode-select').addEventListener('change', function () {
-    initializeGantt();
-});
+//document.querySelector('.viewmode-select').addEventListener('change', function () {
+//    initializeGantt();
+//});
+
+//document.addEventListener('DOMContentLoaded', function () {
+//    var viewModeSelect = document.querySelector('.viewmode-select');
+//    if (viewModeSelect) {
+//        viewModeSelect.addEventListener('change', function () {
+//            initializeGantt();
+//        });
+//    } else {
+//        console.error('Element .viewmode-select not found');
+//    }
+//});

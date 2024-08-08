@@ -94,6 +94,21 @@ namespace GEORGE.Server.Controllers
             return _context.ZleceniaProdukcyjne.Any(e => e.Id == id);
         }
 
+        [HttpPost("zmien-date-produkcji")]
+        public async Task<IActionResult> ZmienDateProdukcji(string rowId, [FromBody] DateTime nowaDataProdukcji)
+        {
+            var result = await _context.ZmienDateProdukcji(rowId, nowaDataProdukcji);
+            if (result)
+            {
+                return Ok("Uwagi zaktualizowane pomyślnie.");
+            }
+            else
+            {
+                return NotFound("Nie znaleziono pliku o podanym ID.");
+            }
+        }
+
         // Możesz dodać dodatkowe metody, np. delete, jeśli to konieczne
     }
+
 }

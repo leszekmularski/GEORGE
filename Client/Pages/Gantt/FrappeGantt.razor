@@ -32,11 +32,18 @@
         .container {
             width: 95%;
             margin: 0 auto;
+            position: sticky; /* Upewnij się, że nagłówek jest sticky */
         }
         /* custom class */
         .gantt .bar-milestone .bar {
             fill: tomato;
         }
+
+        /* custom class */
+        .gantt .bar-secmilestone .bar {
+            fill: cadetblue;
+        }
+
 
         .heading {
             text-align: center;
@@ -96,14 +103,12 @@
                         </h7>
                     </Header>
                     <layout>
-                        <Content>
-                            @* <div id="gantt"></div> *@
-                               @*  <div id="gantt-container" class="gantt-container dark" style="overflow: scroll"> *@
-                            <div id="gantt-container" style="overflow: scroll">
-                                <svg id="gantt"></svg>
-		                    </div>
+                        <content>
+                                <div id="gantt-container">
+                                    <svg id="gantt" style="overflow: scroll"></svg>
+                                </div>
                             <br />
-                        </Content>
+                        </content>
                     </layout>
                     <Footer>
                         <div class="mx-auto mt-3 btn-group" role="group">
@@ -129,6 +134,12 @@
                         Placeholder="Wybierz linię produkcyjną" DefaultActiveFirstOption="false" EnableSearch
                         OnSelectedItemChanged="OnSelectedItemChangedHandler">
                 </Select>
+                <div>
+                    <RadioGroup @bind-Value="@_valueZlecenie" onclick="@ClicRadioGroup()">
+                        <Radio Value="false">Zlecenia zewnętrzne</Radio>
+                        <Radio Value="true">Zlecenia wewnętrzne</Radio>
+                                   </RadioGroup>
+                </div>
                 @if (daneDoPlanowania == null)
                 {
                     <h3>@komunikatOZleceniach</h3>
@@ -136,13 +147,13 @@
                 else
                 {
                     <div style="padding-top:25px">
-                        <Table @ref="_table" PageSize="3" DataSource="@daneDoPlanowania" Total="_total" @bind-SelectedRows="_selectedRows" RowKey="x=>x.ZleceniaProdukcyjne.RowId">
+                        <Table @ref="_table" PageSize="3" DataSource="@daneDoPlanowania" Total="_total" @bind-SelectedRows="_selectedRows" RowKey="x=>x.ZleceniaProdukcyjneDto.RowId">
                             <Selection Title="Wybierz" />
                             <PropertyColumn Title="Data Rozp. Prod." Property="c=>c.PlanowanaDataRozpoczeciaProdukcji" />
-                            <PropertyColumn Title="Typ dokumentu" Property="c=>c.ZleceniaProdukcyjne.TypZamowienia" />
-                            <PropertyColumn Title="Plan. Data Rozp. Prod." Property="c=>c.ZleceniaProdukcyjne.DataProdukcji" />
-                            <PropertyColumn Title="Klient" Property="c=>c.ZleceniaProdukcyjne.Klient" />
-                            <PropertyColumn Title="Numer Zamowienia" Property="c=>c.ZleceniaProdukcyjne.NumerZamowienia" />
+                            <PropertyColumn Title="Typ dokumentu" Property="c=>c.ZleceniaProdukcyjneDto.TypZamowienia" />
+                            <PropertyColumn Title="Plan. Data Rozp. Prod." Property="c=>c.ZleceniaProdukcyjneDto.DataProdukcji" />
+                            <PropertyColumn Title="Klient" Property="c=>c.ZleceniaProdukcyjneDto.Klient" />
+                            <PropertyColumn Title="Numer Zamowienia" Property="c=>c.ZleceniaProdukcyjneDto.NumerZamowienia" />
                             <PropertyColumn Title="Czas na wykon." Property="c=>c.DomyslnyCzasProdukcji" />
                         </Table>
                     </div>
@@ -194,6 +205,7 @@
     List<DaneDoPlanowaniaViewModel> mockDb = new();
 
     private List<DaneDoPlanowaniaViewModel>? przefiltrowaneDaneDoPlanowania;
+
     int _total;
 
     private DotNetObjectReference<FrappeGantt>? dotNetHelper;
@@ -201,10 +213,14 @@
 
     private string komunikatOZleceniach = "Wybierz linię produkcyjną";
 
+    private int wydajnoscWybranejLinii = 1;
+
+    private bool _valueZlecenie = false;
+
     protected override async Task OnInitializedAsync()
     {
 
-        //dotNetHelper = DotNetObjectReference.Create(this);
+        loading = true;
 
         try
         {
@@ -219,6 +235,8 @@
             click_task = "Sprawdź powiązania podmiot / pracownik wejdź do Moje obiekty";
         }
 
+        loading = false;
+
     }
 
     private async Task AddPlanEdit()
@@ -227,9 +245,10 @@
         var noweZleceniaNaLinii = _selectedRows.Select(row => new ZleceniaNaLinii
             {
                 RowIdLinieProdukcyjne = row.RowIdLiniiProdukcyjnej,
-                RowIdZleceniaProdukcyjne = row.ZleceniaProdukcyjne.RowId,
+                RowIdZleceniaProdukcyjne = row.ZleceniaProdukcyjneDto.RowId,
                 Uwagi = "Automatycznie dodane",
                 DataZapisu = DateTime.Now,
+                ZlecenieWewnetrzne = _valueZlecenie,
                 OstatniaZmiana = "Zmiana: " + DateTime.Now.ToLongDateString()
             }).ToList();
 
@@ -254,7 +273,6 @@
         return await ComfirmService.Show(message, "Confirm", ConfirmButtons.YesNo, ConfirmIcon.Warning) == ConfirmResult.Yes;
     }
 
-
     private async Task OnSelectedItemChangedHandlerGantt(LinieProdukcyjne value)
     {
         ladujDane = false;
@@ -263,7 +281,18 @@
 
         _selectedItemGantt = value;
 
-        Console.WriteLine($"_selectedItemGantt:{_selectedItemGantt.RowId}");
+        if (_selectedItemGantt != null)
+        {
+
+            wydajnoscWybranejLinii = _selectedItemGantt.DziennaZdolnoscProdukcyjna;
+
+            Console.WriteLine($"_selectedItemGantt:{_selectedItemGantt.RowId}");
+
+        }
+        else
+        {
+            wydajnoscWybranejLinii = 1;
+        }
 
         await FetchData();
 
@@ -287,6 +316,9 @@
 
             // Zaktualizuj stan
             this.daneDoPlanowania = daneDoPlanowania;
+
+            if (daneDoPlanowania != null)
+                this.daneDoPlanowania = daneDoPlanowania.Where(x => !x.ZlecenieWewnetrzne).ToList();
 
             if (daneDoPlanowania == null || daneDoPlanowania.Count == 0)
             {
@@ -322,6 +354,21 @@
         }
     }
 
+    private async Task ClicRadioGroup()
+    {
+        if (this.daneDoPlanowania != null && przefiltrowaneDaneDoPlanowania != null)
+        {
+            this.daneDoPlanowania = przefiltrowaneDaneDoPlanowania.Where(x => x.ZlecenieWewnetrzne == _valueZlecenie).ToList();
+
+            await Task.Delay(10);
+            // Odśwież widok (jeśli używasz Blazor)
+            StateHasChanged();
+
+            Console.WriteLine($"daneDoPlanowania.Count:{this.daneDoPlanowania.Count()} _valueZlecenie:{_valueZlecenie}");
+        }
+    }
+
+
     [JSInvokable]
     private async Task RefreshData()
     {
@@ -341,19 +388,34 @@
     private async void AddNewZlec()
     {
         _visible = true;
-
+        await Task.Delay(1);
     }
 
     private async void OpenDetailModal()
     {
-        if (click_RowIdZlecenia == "")
+        if (click_RowIdZlecenia == "" || przefiltrowaneDaneDoPlanowania == null)
         {
             await _message.Info("Kliknij w obiekt na wykresie");
             Console.WriteLine("Kliknij w obiekt na wykresie");
             return;
         }
-        // Przekazujemy informacje o poprzedniej stronie jako parametry
-        NavigationManager.NavigateTo($"/ListaPodmiotowDodaj/{click_RowIdZlecenia}/null");
+
+        var obiektDoAktualizacji = przefiltrowaneDaneDoPlanowania
+        .FirstOrDefault(dane => dane.ZleceniaProdukcyjneDto != null && dane.ZleceniaProdukcyjneDto.RowId == (click_RowIdZlecenia));
+
+        if (obiektDoAktualizacji != null)
+        {
+            if (!obiektDoAktualizacji.ZlecenieWewnetrzne)
+            {
+                // Przekazujemy informacje o poprzedniej stronie jako parametry
+                NavigationManager.NavigateTo($"/zlecenia-produkcyjne/{click_RowIdZlecenia}");
+            }
+            else
+            {
+                // Przekazujemy informacje o poprzedniej stronie jako parametry
+                NavigationManager.NavigateTo($"/zlecenia-/Zlecenia-produkcyjne-wew/{click_RowIdZlecenia}");
+            }
+        }
 
         return;
 
@@ -362,7 +424,7 @@
     public async Task DelTask(ConfirmButtons confirmButtons)
     {
         // Sprawdzenie, czy użytkownik kliknął w obiekt
-        if (string.IsNullOrEmpty(click_RowIdZlecenia))
+        if (string.IsNullOrEmpty(click_RowIdZlecenia) || _selectedItem == null)
         {
             await _message.Info("Kliknij w obiekt na wykresie, aby go usunąć.");
             return;
@@ -382,89 +444,89 @@
             return;
         }
 
-        // Ustawienie daty
-        await UstawDatePlanowaniProdukcji(click_RowIdZlecenia);
+        // // Ustawienie daty
+        // await UstawDatePlanowaniProdukcji(click_RowIdZlecenia);
 
-        await  UsunRekord(click_RowIdZlecenia);
-
-    }
-
-    private async Task UstawDatePlanowaniProdukcji(string rowId)
-    {
-        if (przefiltrowaneDaneDoPlanowania == null) return;
-
-
-        Console.WriteLine($"test - UstawDatePlanowaniProdukcji");
-
-        // Znajdź obiekt z odpowiednim RowId
-        var obiektDoAktualizacji = przefiltrowaneDaneDoPlanowania
-            .FirstOrDefault(dane => dane.ZleceniaProdukcyjne != null && dane.ZleceniaProdukcyjne.RowId == rowId);
-
-        if (obiektDoAktualizacji != null)
-        {
-            try
-            {
-                // Pobranie danych z wykresu
-                var gantt = await JSRuntime.InvokeAsync<object[]>("SaveGanttData");
-
-                click_task = "";
-
-                bool jestBlad = false;
-
-                foreach (var task in gantt)
-                {
-                    string taskJson = task.ToString();
-
-                    //  Console.WriteLine($"Original JSON: {taskJson}");
-
-                    // Deserialize JSON to a model object
-                    var updateTaskRequest = JsonSerializer.Deserialize<UpdateTaskRequest>(taskJson);
-
-                    if (updateTaskRequest != null)
-                    {
-                        string rowIdPodmiot = updateTaskRequest.Id; // Assuming 'Id' is the 'RowIdPodmiotu'
-                        string rowIdPracownik = "";//RowIdPracownika; // Replace with the appropriate value for 'RowIdPracownika'
-
-                        //  Console.WriteLine($"updateTaskRequest: {updateTaskRequest.Start} - {updateTaskRequest.End}");
-                        // Send PUT request to the server
-                        var response = await Http.PutAsJsonAsync($"api/PodmiotPrzypisPracownikowi/{rowIdPodmiot}/{rowIdPracownik}/{rowId}", updateTaskRequest);
-
-                        if (response.IsSuccessStatusCode)
-                        {
-                            Console.WriteLine($"Pomyślnie zaktualizowano zadanie o identyfikatorze id: {rowIdPodmiot}");
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Nie udało się zaktualizować zadania o identyfikatorze id: {rowIdPodmiot}");
-                            jestBlad = true;
-                        }
-                    }
-                }
-
-                if (jestBlad)
-                {
-                    await _message.Error("Zmiany nie zapisano. Sprawdź konsolę");
-
-                }
-
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Wystąpił błąd podczas aktualizacji zadania: {ex.Message}");
-            }
-
-        }
+        await UsunRekord(click_RowIdZlecenia, _selectedItem.RowId);
 
     }
+
+    // private async Task UstawDatePlanowaniProdukcji(string rowId)
+    // {
+    //     if (przefiltrowaneDaneDoPlanowania == null) return;
+
+
+    //     Console.WriteLine($"test - UstawDatePlanowaniProdukcji");
+
+    //     // Znajdź obiekt z odpowiednim RowId
+    //     var obiektDoAktualizacji = przefiltrowaneDaneDoPlanowania
+    //         .FirstOrDefault(dane => dane.ZleceniaProdukcyjne != null && dane.ZleceniaProdukcyjne.RowId == rowId);
+
+    //     if (obiektDoAktualizacji != null)
+    //     {
+    //         try
+    //         {
+    //             // Pobranie danych z wykresu
+    //             var gantt = await JSRuntime.InvokeAsync<object[]>("SaveGanttData");
+
+    //             click_task = "";
+
+    //             bool jestBlad = false;
+
+    //             foreach (var task in gantt)
+    //             {
+    //                 string taskJson = task.ToString();
+
+    //                 //  Console.WriteLine($"Original JSON: {taskJson}");
+
+    //                 // Deserialize JSON to a model object
+    //                 var updateTaskRequest = JsonSerializer.Deserialize<UpdateTaskRequest>(taskJson);
+
+    //                 if (updateTaskRequest != null)
+    //                 {
+    //                     string rowIdPodmiot = updateTaskRequest.Id; // Assuming 'Id' is the 'RowIdPodmiotu'
+    //                     string rowIdPracownik = "";//RowIdPracownika; // Replace with the appropriate value for 'RowIdPracownika'
+
+    //                     //  Console.WriteLine($"updateTaskRequest: {updateTaskRequest.Start} - {updateTaskRequest.End}");
+    //                     // Send PUT request to the server
+    //                     var response = await Http.PutAsJsonAsync($"api/PodmiotPrzypisPracownikowi/{rowIdPodmiot}/{rowIdPracownik}/{rowId}", updateTaskRequest);
+
+    //                     if (response.IsSuccessStatusCode)
+    //                     {
+    //                         Console.WriteLine($"Pomyślnie zaktualizowano zadanie o identyfikatorze id: {rowIdPodmiot}");
+    //                     }
+    //                     else
+    //                     {
+    //                         Console.WriteLine($"Nie udało się zaktualizować zadania o identyfikatorze id: {rowIdPodmiot}");
+    //                         jestBlad = true;
+    //                     }
+    //                 }
+    //             }
+
+    //             if (jestBlad)
+    //             {
+    //                 await _message.Error("Zmiany nie zapisano. Sprawdź konsolę");
+
+    //             }
+
+    //         }
+    //         catch (Exception ex)
+    //         {
+    //             Console.WriteLine($"Wystąpił błąd podczas aktualizacji zadania: {ex.Message}");
+    //         }
+
+    //     }
+
+    // }
 
     [JSInvokable]
-    private async Task UsunRekord(string rowId)
+    private async Task UsunRekord(string rowId, string rowIdLinii)
     {
         if (przefiltrowaneDaneDoPlanowania == null) return;
 
         // Znajdź obiekt z odpowiednim RowId
         var obiektDoUsuniecia = przefiltrowaneDaneDoPlanowania
-            .FirstOrDefault(dane => dane.ZleceniaProdukcyjne != null && dane.ZleceniaProdukcyjne.RowId == rowId);
+            .FirstOrDefault(dane => dane.ZleceniaProdukcyjneDto != null && dane.ZleceniaProdukcyjneDto.RowId == rowId && dane.RowIdLiniiProdukcyjnej == rowIdLinii);
 
         if (obiektDoUsuniecia != null)
         {
@@ -484,7 +546,7 @@
     {
         try
         {
-          
+
             await JSRuntime.InvokeVoidAsync("ChangeView", mode, dotNetHelper);
 
             StateHasChanged();
@@ -500,6 +562,8 @@
     [JSInvokable]
     public async Task SaveView()
     {
+
+        loading = true;
         // Pobranie danych z wykresu
         var gantt = await JSRuntime.InvokeAsync<object[]>("SaveGanttData");
 
@@ -518,20 +582,29 @@
 
             if (updateTaskRequest != null)
             {
-                string rowIdPodmiot = updateTaskRequest.Id; // Assuming 'Id' is the 'RowIdPodmiotu'
-                string rowIdPracownik = "";// RowIdPracownika; // Replace with the appropriate value for 'RowIdPracownika'
+                string rowID = updateTaskRequest.Id.Replace("Task_0_", "").Replace("Task_1_", ""); // Assuming 'Id' is the 'RowIdZlec'
+
+                DateTime nowaData = DateTime.ParseExact(updateTaskRequest._Start,
+                "yyyy-MM-ddTHH:mm:ss.fffZ",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
+
+
+                nowaData= nowaData.AddHours(3); //Poprawka błedu JS z wartości _start 22:00
+
 
                 // Console.WriteLine($"updateTaskRequest: {updateTaskRequest.Start} - {updateTaskRequest.End}");
                 // Send PUT request to the server
-                var response = await Http.PutAsJsonAsync($"api/PodmiotPrzypisPracownikowi/{rowIdPodmiot}/{rowIdPracownik}/null", updateTaskRequest);
+                var response = await Http.PostAsJsonAsync($"api/ZleceniaProdukcyjne/zmien-date-produkcji?rowid={rowID}", nowaData);
 
                 if (response.IsSuccessStatusCode)
                 {
-                    Console.WriteLine($"Pomyślnie zaktualizowano zadanie o identyfikatorze id: {rowIdPodmiot}");
+                    Console.WriteLine($"Pomyślnie zaktualizowano zadanie o identyfikatorze rowID: {rowID}");
                 }
                 else
                 {
-                    Console.WriteLine($"Nie udało się zaktualizować zadania o identyfikatorze id: {rowIdPodmiot}");
+                    Console.WriteLine($"Nie udało się zaktualizować zadania o identyfikatorze rowID: {rowID}");
+                    Console.WriteLine($"DateTime NowaData = Convert.ToDateTime({updateTaskRequest._Start})");
                     jestBlad = true;
                 }
             }
@@ -550,6 +623,8 @@
 
 
         click_RowIdZlecenia = "";
+
+        loading = false;
 
     }
 
@@ -578,6 +653,7 @@
 
         [JsonPropertyName("_progress")]
         public int _Progress { get; set; }
+
     }
 
 
@@ -586,7 +662,9 @@
     {
         await Task.CompletedTask;
         var task = await JSRuntime.InvokeAsync<object>("on_click", taskIndex);
-        await Task.Delay(10);
+
+        await Task.Delay(5);
+
         //   click_task = task.ToString();
         if (task.ToString() == null) return;
 
@@ -605,11 +683,7 @@
 
         click_RowIdZlecenia = taskArray[0].ToString().Replace("Task_", "");
 
-        click_task += "\r\n przed zmianą " + FormatDateString(taskArray[2].ToString(), false) + " do: " + FormatDateString(taskArray[3].ToString(), false);
-        // + " po " + FormatDateString(taskArray[7].ToString(),true) + " do: " + FormatDateString(taskArray[8].ToString(),false);
-
-        //  if (taskArray.Count > 7 && taskArray[6] != null && taskArray[7] != null)
-        // click_task += "po " + FormatDateString(taskArray[6].ToString()) + " do: " + FormatDateString(taskArray[7].ToString());
+        click_task += $"\r\n przed zmianą {FormatDateString(taskArray[2].ToString(), false)} do: {FormatDateString(taskArray[3].ToString(), false)} [po zmianie: {FormatDateStringMove(taskArray[4].ToString(), false)}]";
 
         StateHasChanged();
     }
@@ -628,7 +702,7 @@
         catch (FormatException)
         {
             // Obsługa przypadku, gdy format daty jest niepoprawny
-            throw new FormatException($"String '{isoDateString}' was not recognized as a valid DateTime.");
+            throw new FormatException($"String '{isoDateString}' was not recognized as a valid DateTime - FormatDateString.");
         }
 
         // Dodawanie godzin, jeśli godzina jest większa niż 21 i jest to start
@@ -638,15 +712,48 @@
         }
 
         // Formatowanie daty na żądany format
-        string formattedDateString = dateTime.ToString("yyyy-MM-dd_HH:mm:ss");
+        string formattedDateString = dateTime.ToString("yyyy-MM-dd");
         return formattedDateString;
     }
 
-
-    private string FormatDate(DateTime date)
+    public string FormatDateStringMove(string isoDateString, bool start)
     {
-        return date.ToString("yyyy-MM-dd_HH:mm:ss"); // Upewnij się, że format jest zgodny
+        // Zamiana separatora '_' na 'T' dla poprawnego parsowania
+        isoDateString = isoDateString.Replace('_', 'T');
+
+        // Parsowanie daty z formatu ISO 8601 z milisekundami i strefą czasową
+        DateTimeOffset dateTimeOffset;
+        try
+        {
+            dateTimeOffset = DateTimeOffset.ParseExact(isoDateString, "yyyy-MM-ddTHH:mm:ss.fffK", System.Globalization.CultureInfo.InvariantCulture);
+        }
+        catch (FormatException)
+        {
+            // Obsługa przypadku, gdy format daty jest niepoprawny
+            throw new FormatException($"String '{isoDateString}' was not recognized as a valid DateTime - FormatDateStringMove.");
+        }
+
+        // Konwersja do lokalnego czasu (jeśli potrzebne)
+        DateTime dateTime = dateTimeOffset.LocalDateTime;
+
+        // Dodawanie godzin, jeśli godzina jest większa niż 21 i jest to start
+        if (dateTime.Hour > 21 && start)
+        {
+            dateTime = dateTime.AddHours(4);
+        }
+
+        // Formatowanie daty na żądany format (bez godzin)
+        string formattedDateString = dateTime.ToString("yyyy-MM-dd");
+        return formattedDateString;
     }
+
+    private string FormatDate(DateTime date, int godzina)
+    {
+        // Ustawianie godziny na 07:00:00
+        DateTime adjustedDate = new DateTime(date.Year, date.Month, date.Day, godzina, 0, 0);
+        return adjustedDate.ToString("yyyy-MM-dd_HH:mm:ss");
+    }
+
 
     // Don't forget to dispose of the DotNetObjectReference to avoid memory leaks
     public void Dispose()
@@ -679,41 +786,62 @@
 
         Console.WriteLine("InitializeFrappeGantt foreach.....");
 
-        DateTime dataStos = DateTime.MinValue;
-
         string s_dependencies = "";
-
 
         foreach (var item in przefiltrowaneDaneDoPlanowania)
         {
+            var czasProdukcjiWDniach = (double)item.ZleceniaProdukcyjneDto?.JednostkiNaZlecenie / wydajnoscWybranejLinii;
+            var czasProdukcjiWHours = czasProdukcjiWDniach * 24;
 
-            if (dataStos == DateTime.MinValue)
+            DateTime start = item.PlanowanaDataRozpoczeciaProdukcji;
+            DateTime end = start.AddHours(czasProdukcjiWHours);
+
+            // Funkcja sprawdzająca, czy dzień jest dniem roboczym
+            bool IsWorkingDay(DateTime date)
             {
-                dataStos = item.PlanowanaDataRozpoczeciaProdukcji;
+                return date.DayOfWeek != DayOfWeek.Saturday && date.DayOfWeek != DayOfWeek.Sunday;
             }
+
+            // Jeśli start przypada na weekend, przesuwamy na najbliższy poniedziałek
+            if (!IsWorkingDay(start))
+            {
+                start = start.AddDays((DayOfWeek.Monday - start.DayOfWeek + 7) % 7);
+            }
+
+            // Jeśli end przypada na weekend, przesuwamy na najbliższy poniedziałek i wydłużamy czas produkcji
+            if (!IsWorkingDay(end))
+            {
+                end = end.AddDays((DayOfWeek.Monday - end.DayOfWeek + 7) % 7);
+            }
+
+            // Ponowne przeliczenie czasu produkcji w godzinach, aby uwzględnić przesunięcie na dni robocze
+            czasProdukcjiWHours = (end - start).TotalHours;
+
+            char tzlec;
+            tzlec = item.ZlecenieWewnetrzne ? '1' : '0';
+
+            string miles = item.ZlecenieWewnetrzne ? "bar-secmilestone" : "bar-milestone";
 
             var task = new
             {
-                id = $"Task_{item.ZleceniaProdukcyjne.RowId}",
-                name = $"{item.ZleceniaProdukcyjne?.NumerZamowienia} {item.ZleceniaProdukcyjne?.Klient}",
-                start = FormatDate(dataStos),
-                end = FormatDate(dataStos.AddHours((double)item.ZleceniaProdukcyjne?.JednostkiNaZlecenie)),
-                _start = FormatDate(dataStos),
-                _end = FormatDate(dataStos.AddHours((double)item.ZleceniaProdukcyjne?.JednostkiNaZlecenie)),
+                id = $"Task_{tzlec}_{item.ZleceniaProdukcyjneDto.RowId}",
+                name = $"{item.ZleceniaProdukcyjneDto?.NumerZamowienia} {item.ZleceniaProdukcyjneDto?.Klient}",
+                start = FormatDate(start, 7),
+                end = FormatDate(end, 15),
+                _start = FormatDate(start, 7),
+                _end = FormatDate(end, 15),
                 progress = 0,
                 dependencies = s_dependencies,
-                custom_class = "bar-milestone"
+                custom_class = miles
             };
-
-            if (s_dependencies == "") s_dependencies = $", Task_{item.ZleceniaProdukcyjne.RowId}";
-
-            dataStos = dataStos.AddHours((double)item.ZleceniaProdukcyjne?.JednostkiNaZlecenie + 1);
+  
+            if (s_dependencies == "") s_dependencies = $", Task_{tzlec}_{item.ZleceniaProdukcyjneDto.RowId}";
 
             Console.WriteLine($"task: start: {task.start} stop: {task.end} dependencies:{s_dependencies}");
 
             tasks.Add(task);
-
         }
+
 
         Console.WriteLine($"Załadowano danych do wykresu Gannt'a: {tasks.Count} z {przefiltrowaneDaneDoPlanowania.Count} w dniu {DateTime.Now}");
 
@@ -727,7 +855,7 @@
             bar_corner_radius = 3,
             arrow_curve = 5,
             padding = 18,
-            view_mode = "Week",
+            view_mode = "Day",
             language = "pl",
             date_format = "YYYY-MM-DD", // Zmieniono format
             custom_popup_html = "function(task) {const end_date = task._end.format(&quot; MMM D&quot;);return `<div class=&quot;details-container&quot;><h5>${task.name}</h5><p>Expected to finish by ${end_date}</p><p>${task.progress}% completed! </p></div>`;"
@@ -767,12 +895,7 @@
             // Przefiltruj daneDoPlanowania
             if (daneDoPlanowania != null && daneDoPlanowania.Any())
             {
-                // var rowIdPodmiotuSet = daneDoPlanowania
-                // .Where(d => d.PlanowanaDataRozpoczeciaProdukcji > DateTime.Now.AddDays(-14))
-                // .Select(d => d.ZleceniaProdukcyjne.Klient)
-                // .ToHashSet();
 
-                // przefiltrowaneDaneDoPlanowania = daneDoPlanowania.Where(d => rowIdPodmiotuSet.Contains(d.ZleceniaProdukcyjne.TypZamowienia)).ToList();
                 przefiltrowaneDaneDoPlanowania = daneDoPlanowania.ToList();
             }
             else

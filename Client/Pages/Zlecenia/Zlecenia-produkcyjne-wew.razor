@@ -1,4 +1,4 @@
-﻿@page "/Zlecenia-produkcyjne-wew"
+﻿@page "/Zlecenia-produkcyjne-wew/{RowIdZlecenia?}"
 @using GEORGE.Shared.Models
 @using GEORGE.Shared.Class
 @inject HttpClient Http
@@ -8,6 +8,31 @@
 @inject NavigationManager NavigationManager
 @using AntDesign
 @using System.Net;
+
+<style>
+    .custom-link {
+        color: blue;
+    }
+
+    .highlighted-background {
+        background-color: white;
+        overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
+        max-height: calc(100vh - 155px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 150px */
+        width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 300px */
+        box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu wysokości */
+        position: absolute;
+        left: 260px; /* Ustawia lewą krawędź 300px od lewej strony okna */
+        top: 155px; /* Ustawia górną krawędź 150px od góry okna */
+    }
+
+    .zlealizowano, .zlealizowano > td {
+        background-color: forestgreen !important;
+    }
+
+        .zlealizowano:hover, .zlealizowano:hover > td {
+            background-color: forestgreen !important;
+        }
+</style>
 
 <PageTitle>Program do wspomagania produkcji zlecenia</PageTitle>
 
@@ -26,7 +51,8 @@ else
 {
     <div style="display: flex; align-items: flex-start;">
     <ul>
-        <Table TItem="ZleceniaProdukcyjneWew" DataSource="@zleceniaProdukcyjneWew">
+
+            <Table TItem="ZleceniaProdukcyjneWew" DataSource="@zleceniaProdukcyjneWew" RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : "" )">
             <ActionColumn Title="Materiały">
                 <a @onclick="() => DodajKantowke(context)">Kantówka</a>
             </ActionColumn>
@@ -52,6 +78,7 @@ else
             <Column Title="Adres" @bind-Field="@context.Adres" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Telefon" @bind-Field="@context.Telefon" Sortable />
             <Column Title="CWZ" @bind-Field="@context.JednostkiNaZlecenie" Style="width:30px" Sortable />
+            <PropertyColumn Property="c=>context.ZlecZrealizowane"></PropertyColumn>
 
             <!-- Przykład kolumny dla danych zagnieżdżonych -->
          @*    <Column Title="Nazwa Produktu 2" TData="string" DataIndex="NazwaProduktu2" Sortable /> *@
@@ -102,6 +129,14 @@ else
                                 </Select>
                             </AntDesign.FormItem>
                         </AntDesign.Col>
+                        <AntDesign.Col Span="12">
+                            <AntDesign.FormItem Label="Zapisano">
+                                <div>
+                                    <AntDesign.Input ReadOnly Value="@(zlecenie.DataZapisu.ToString("yyyy-MM-dd"))" Style="width:120px" />
+                                    <Button OnClick="DataProdUstaw" Style="width:180px">Ustaw datę produkcji</Button>
+                                </div>
+                            </AntDesign.FormItem>
+                        </AntDesign.Col>
                     </AntDesign.Row>
                     <AntDesign.Row Gutter="16">
                         <AntDesign.Col Span="12">
@@ -117,7 +152,7 @@ else
                     </AntDesign.Row>
                     <AntDesign.Row Gutter="16">
                         <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Data Produkcji">
+                            <AntDesign.FormItem Label="Data Rozp. Produkcji">
                                 <AntDesign.DatePicker @bind-Value="zlecenie.DataProdukcji" />
                             </AntDesign.FormItem>
                         </AntDesign.Col>
@@ -198,6 +233,11 @@ else
                         </AntDesign.Col>
                     </AntDesign.Row>
                     <AntDesign.Row Gutter="16">
+                        <AntDesign.Col Span="12">
+                            <AntDesign.FormItem Label="Zlecenie zrealizowane">
+                                <AntDesign.Checkbox @bind-Value="zlecenie.ZlecZrealizowane" />
+                            </AntDesign.FormItem>
+                        </AntDesign.Col>
                         <AntDesign.Col Span="12">
                             <AntDesign.FormItem Label="Ostatnia Zmiana">
                                 <AntDesign.Input @bind-Value="zlecenie.OstatniaZmiana" />
@@ -280,6 +320,9 @@ else
 </div>
 
 @code {
+    [Parameter]
+    public string? RowIdZlecenia { get; set; }
+
     [Inject]
     private NavigationManager? navigationManager { get; set; }
 
@@ -325,12 +368,44 @@ else
             };
 
             zleceniaProdukcyjneWew = await Http.GetFromJsonAsync<List<ZleceniaProdukcyjneWew>>("api/ZleceniaProdukcyjneWew");
+
+            if (RowIdZlecenia != null && RowIdZlecenia != "")
+            {
+              await editRow(RowIdZlecenia);
+            }
+
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message}/ {ex.StackTrace}");
             zleceniaProdukcyjneWew = new List<ZleceniaProdukcyjneWew>();
         }
+
+    }
+
+    private void DataProdUstaw()
+    {
+        if (zlecenie.Id == 0)
+        {
+            zlecenie.DataProdukcji = DateTime.Now.AddDays(8 * 7);//8 tygodni * 7 dni;
+        }
+        else
+        {
+            zlecenie.DataProdukcji = zlecenie.DataZapisu.AddDays(8 * 7);//8 tygodni * 7 dni;
+        }
+
+        bool IsWorkingDay(DateTime date)
+        {
+            return date.DayOfWeek != DayOfWeek.Saturday && date.DayOfWeek != DayOfWeek.Sunday;
+        }
+
+        if (!IsWorkingDay(zlecenie.DataProdukcji))
+        {
+            zlecenie.DataProdukcji = zlecenie.DataProdukcji.AddDays((DayOfWeek.Monday - zlecenie.DataProdukcji.DayOfWeek + 7) % 7);
+        }
+
+        zlecenie.DataWysylki = zlecenie.DataProdukcji.AddDays(3 * 7);
+        zlecenie.DataMontazu = zlecenie.DataZapisu.AddDays(12 * 7);
 
     }
 
@@ -484,6 +559,43 @@ else
         }
 
         blokuDwuKlik = false;
+    }
+
+    public async Task editRow(string row_id)
+    {
+
+        //listOfData = listOfData.Where(d => d.Id != id).ToArray();
+        if (zleceniaProdukcyjneWew == null) return;
+
+        _visible = true;
+
+        originalzleceniaProdukcyjneWew = zleceniaProdukcyjneWew.DeepCopyList();
+
+        zlecenie = new ZleceniaProdukcyjneWew();
+
+        var listOfData = zleceniaProdukcyjneWew.Where(d => d.RowId == row_id).ToArray();
+
+        // Pobierz zlecenie na podstawie indeksu wiersza
+        if (listOfData != null && listOfData.Count() > 0)
+        {
+            cid = listOfData[0].Id;
+
+            zlecenie = listOfData[0];
+
+            zlecenie.OstatniaZmiana = "*Zmiana: " + DateTime.Now.ToLongDateString();
+
+            if (string.IsNullOrEmpty(zlecenie.RowId)) zlecenie.RowId = Guid.NewGuid().ToString();
+
+            await LoadFiles(zlecenie.RowId);
+
+            _visible = true;
+
+            await ShowDialog();
+        }
+
+        // Wyświetl numer zamówienia w konsoli
+        Console.WriteLine(zlecenie.NumerZamowienia);
+
     }
 
     public async Task editRow(long id)

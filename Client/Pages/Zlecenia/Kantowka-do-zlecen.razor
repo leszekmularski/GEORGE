@@ -52,7 +52,7 @@
     @if (kantowkaDoZlecen != null && kantowkaDoZlecen.Count > 0)
     {
         <Button Type="reset" OnClick="@(CopyKantowkiToClipboard)">
-            Kopiuj do schowka dane
+            @uwagaKopiuj
         </Button>
     }
     <Divider></Divider>
@@ -241,6 +241,8 @@
 
     private List<KantowkaDoZlecen>? kantowki;
 
+    private string uwagaKopiuj = "Kopiuj do schowka dane";
+
     protected override async Task OnInitializedAsync()
     {
         if (string.IsNullOrWhiteSpace(RowIdZlecenia))
@@ -275,6 +277,10 @@
         ));
 
         await JSRuntime.InvokeVoidAsync("copyToClipboard", kantowkiText);
+
+        uwagaKopiuj = "Dane skopiowano do schowka";
+
+       await _message.Success("Dane skopiowano do schowka");
     }
 
     private void LiczDlugoscZam()

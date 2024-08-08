@@ -1,4 +1,4 @@
-﻿@page "/zlecenia-produkcyjne"
+﻿@page "/zlecenia-produkcyjne/{RowIdZlecenia?}"
 @using GEORGE.Shared.Models
 @using GEORGE.Shared.Class
 @inject HttpClient Http
@@ -25,6 +25,13 @@
         top: 155px; /* Ustawia górną krawędź 150px od góry okna */
     }
 
+    .zlealizowano, .zlealizowano > td {
+        background-color: forestgreen !important;
+    }
+
+    .zlealizowano:hover, .zlealizowano:hover > td {
+        background-color: forestgreen !important;
+    }
 
 </style>
 
@@ -44,7 +51,7 @@
 else
 {
     <div class="highlighted-background">
-        <Table TItem="ZleceniaProdukcyjne" DataSource="@zleceniaProdukcyjne">
+        <Table TItem="ZleceniaProdukcyjne" DataSource="@zleceniaProdukcyjne" RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : "" )">
             <ActionColumn Title="Materiały">
                 <a @onclick="() => DodajKantowke(context)" class="custom-link">Kantówka</a>
             </ActionColumn>
@@ -105,7 +112,7 @@ else
         <div class="modal-content">
             <div class="modal-header">
                 <AntDesign.Form Model="@zlecenie" Layout="FormLayout.Vertical">
-                    <AntDesign.Row Gutter="16">
+                       <AntDesign.Row Gutter="16">
                         <AntDesign.Col Span="12">
                             <AntDesign.FormItem Label="Typ Dokumentu">
                                 <Select TItem="TypZamowienia"
@@ -120,6 +127,14 @@ else
                                             DefaultActiveFirstOption="true"
                                         Style="width: 200px;">
                                 </Select>
+                            </AntDesign.FormItem>
+                        </AntDesign.Col>
+                        <AntDesign.Col Span="12">
+                            <AntDesign.FormItem Label="Zapisano">
+                                <div>
+                                    <AntDesign.Input ReadOnly Value="@(zlecenie.DataZapisu.ToString("yyyy-MM-dd"))" Style="width:120px" />
+                                    <Button OnClick="DataProdUstaw" Style="width:180px">Ustaw datę produkcji</Button>
+                                </div>
                             </AntDesign.FormItem>
                         </AntDesign.Col>
                     </AntDesign.Row>
@@ -137,7 +152,7 @@ else
                     </AntDesign.Row>
                     <AntDesign.Row Gutter="16">
                         <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Data Produkcji">
+                            <AntDesign.FormItem Label="Data Rozp. Produkcji">
                                 <AntDesign.DatePicker @bind-Value="zlecenie.DataProdukcji" />
                             </AntDesign.FormItem>
                         </AntDesign.Col>
@@ -224,6 +239,11 @@ else
                     </AntDesign.Row>
                     <AntDesign.Row Gutter="16">
                         <AntDesign.Col Span="12">
+                            <AntDesign.FormItem Label="Zlecenie zrealizowane">
+                                <AntDesign.Checkbox @bind-Value="zlecenie.ZlecZrealizowane" />
+                            </AntDesign.FormItem>
+                        </AntDesign.Col>
+                        <AntDesign.Col Span="12">
                             <AntDesign.FormItem Label="Ostatnia Zmiana">
                                 <AntDesign.Input @bind-Value="zlecenie.OstatniaZmiana" />
                             </AntDesign.FormItem>
@@ -305,6 +325,8 @@ else
 </div>
 
 @code {
+    [Parameter]
+    public string? RowIdZlecenia { get; set; }
 
     [Inject]
     private NavigationManager? navigationManager { get; set; }
@@ -350,12 +372,43 @@ else
             };
 
             zleceniaProdukcyjne = await Http.GetFromJsonAsync<List<ZleceniaProdukcyjne>>("api/ZleceniaProdukcyjne");
+
+            if (RowIdZlecenia != null && RowIdZlecenia != "")
+            {
+                await editRow(RowIdZlecenia);
+            }
+
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message}/ {ex.StackTrace}");
             zleceniaProdukcyjne = new List<ZleceniaProdukcyjne>();
         }
+    }
+
+    private void DataProdUstaw()
+    {
+        if (zlecenie.Id == 0)
+        {
+            zlecenie.DataProdukcji = DateTime.Now.AddDays(8 * 7);//8 tygodni * 7 dni;
+        }
+        else
+        {
+            zlecenie.DataProdukcji = zlecenie.DataZapisu.AddDays(8 * 7);//8 tygodni * 7 dni;
+        }
+
+        bool IsWorkingDay(DateTime date)
+        {
+            return date.DayOfWeek != DayOfWeek.Saturday && date.DayOfWeek != DayOfWeek.Sunday;
+        }
+
+        if (!IsWorkingDay(zlecenie.DataProdukcji))
+        {
+            zlecenie.DataProdukcji = zlecenie.DataProdukcji.AddDays((DayOfWeek.Monday - zlecenie.DataProdukcji.DayOfWeek + 7) % 7);
+        }
+
+        zlecenie.DataWysylki = zlecenie.DataProdukcji.AddDays(3 * 7);
+        zlecenie.DataMontazu = zlecenie.DataZapisu.AddDays(12 * 7);
     }
 
     private async Task LoadFiles(string rowId)
@@ -510,6 +563,43 @@ else
         }
 
         blokuDwuKlik = false;
+
+    }
+
+    public async Task editRow(string row_id)
+    {
+
+        //listOfData = listOfData.Where(d => d.Id != id).ToArray();
+        if (zleceniaProdukcyjne == null) return;
+
+        _visible = true;
+
+        originalzleceniaProdukcyjne = zleceniaProdukcyjne.DeepCopyList();
+
+        zlecenie = new ZleceniaProdukcyjne();
+
+        var listOfData = zleceniaProdukcyjne.Where(d => d.RowId == row_id).ToArray();
+
+        // Pobierz zlecenie na podstawie indeksu wiersza
+        if (listOfData != null && listOfData.Count() > 0)
+        {
+            cid = listOfData[0].Id;
+
+            zlecenie = listOfData[0];
+
+            zlecenie.OstatniaZmiana = "*Zmiana: " + DateTime.Now.ToLongDateString();
+
+            if (string.IsNullOrEmpty(zlecenie.RowId)) zlecenie.RowId = Guid.NewGuid().ToString();
+
+            await LoadFiles(zlecenie.RowId);
+
+            _visible = true;
+
+            await ShowDialog();
+        }
+
+        // Wyświetl numer zamówienia w konsoli
+        Console.WriteLine(zlecenie.NumerZamowienia);
 
     }
 

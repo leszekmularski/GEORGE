@@ -27,7 +27,7 @@
     private int GetWeekNumber(DateTime date)
     {
         CultureInfo ci = CultureInfo.CurrentCulture;
-        Calendar calendar = ci.Calendar;
+        System.Globalization.Calendar calendar = ci.Calendar;
         CalendarWeekRule calendarWeekRule = ci.DateTimeFormat.CalendarWeekRule;
         DayOfWeek firstDayOfWeek = ci.DateTimeFormat.FirstDayOfWeek;
         return calendar.GetWeekOfYear(date, calendarWeekRule, firstDayOfWeek);
