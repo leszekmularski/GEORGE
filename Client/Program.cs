@@ -11,6 +11,8 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
+builder.Services.AddScoped<HttpClient>(s => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+
 builder.Services.AddAntDesign();
 
 builder.Services.AddSingleton<Utilities.ILocalStorage, Utilities.LocalStorage>();
@@ -18,4 +20,8 @@ builder.Services.AddSingleton<Utilities.ILocalStorage, Utilities.LocalStorage>()
 builder.Services.AddScoped<PdfReaderService>();
 builder.Services.AddScoped<PdfDataParser>();
 
+// Konfiguracja niestandardowej weryfikacji certyfikatu
+ServicePointManager.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
+
 await builder.Build().RunAsync();
+

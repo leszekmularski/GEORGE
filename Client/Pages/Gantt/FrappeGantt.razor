@@ -93,7 +93,9 @@
                 <Layout Style="background-color: white;">
                     <Header Style="background-color: lightblue;">
                         <h7 class="button-container">
-                            @click_task
+
+                            <AntDesign.TextArea ReadOnly Value="@(click_task)" Style="width:25%; height:65px; font-size:10px; background-color: lightblue;" />
+          
                             <Button class="btn-detail" OnClick="() => AddNewZlec()">Dodaj zlecenie do planu</Button>
                             <Button class="btn-detail" OnClick="() => OpenDetailModal()">Idź do zlecenia</Button>
                             <Button class="btn-refresh" Icon="@IconType.Outline.Delete" OnClick="@(async ()=> { await DelTask(ConfirmButtons.YesNo); })"></Button>
@@ -424,9 +426,10 @@
     public async Task DelTask(ConfirmButtons confirmButtons)
     {
         // Sprawdzenie, czy użytkownik kliknął w obiekt
-        if (string.IsNullOrEmpty(click_RowIdZlecenia) || _selectedItem == null)
+        if (string.IsNullOrEmpty(click_RowIdZlecenia) || _selectedItemGantt == null)
         {
             await _message.Info("Kliknij w obiekt na wykresie, aby go usunąć.");
+            click_task = "Kliknij w obiekt na wykresie, aby go usunąć.";
             return;
         }
 
@@ -447,7 +450,7 @@
         // // Ustawienie daty
         // await UstawDatePlanowaniProdukcji(click_RowIdZlecenia);
 
-        await UsunRekord(click_RowIdZlecenia, _selectedItem.RowId);
+        await UsunRekord(click_RowIdZlecenia, _selectedItemGantt.RowId);
 
     }
 
@@ -539,6 +542,7 @@
             click_RowIdZlecenia = "";
 
         }
+
     }
 
     [JSInvokable]
@@ -681,7 +685,7 @@
 
         click_task = taskArray[1].ToString();
 
-        click_RowIdZlecenia = taskArray[0].ToString().Replace("Task_", "");
+        click_RowIdZlecenia = taskArray[0].ToString().Replace("Task_0_", "").Replace("Task_1_", "");
 
         click_task += $"\r\n przed zmianą {FormatDateString(taskArray[2].ToString(), false)} do: {FormatDateString(taskArray[3].ToString(), false)} [po zmianie: {FormatDateStringMove(taskArray[4].ToString(), false)}]";
 

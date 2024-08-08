@@ -9,6 +9,7 @@
 <p>Dziś mamy dzień: @DateTime.Now.DayOfYear roku @DateTime.Now.Year, tydzień @GetWeekNumber(DateTime.Now)</p>
 
 <div>
+    <h9 style="color:white;">[Wersja:@version]</h9>
     <img class="marginauto" src="/Images/george_st.jpg" asp-append-version="true" width="800" alt="centered image" />
 </div>
 
@@ -24,6 +25,19 @@
 </style>
 
 @code {
+
+    private string? version = "1.0";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var xversion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+
+        if (xversion != null)
+        {
+            version = xversion.ToString();
+        }
+    }
+
     private int GetWeekNumber(DateTime date)
     {
         CultureInfo ci = CultureInfo.CurrentCulture;
@@ -32,4 +46,5 @@
         DayOfWeek firstDayOfWeek = ci.DateTimeFormat.FirstDayOfWeek;
         return calendar.GetWeekOfYear(date, calendarWeekRule, firstDayOfWeek);
     }
+
 }
