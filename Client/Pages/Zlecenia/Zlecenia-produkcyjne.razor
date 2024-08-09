@@ -33,6 +33,14 @@
         background-color: forestgreen !important;
     }
 
+    .zlecenie, .zlecenie > td {
+        background-color: lightblue !important;
+    }
+
+    .zlecenie:hover, .zlecenie:hover > td {
+            background-color: lightblue !important;
+    }
+
 </style>
 
 <PageTitle>Program do wspomagania produkcji zlecenia</PageTitle>
@@ -51,7 +59,7 @@
 else
 {
     <div class="highlighted-background">
-        <Table TItem="ZleceniaProdukcyjne" DataSource="@zleceniaProdukcyjne" RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : "" )">
+        <Table TItem="ZleceniaProdukcyjne" DataSource="@zleceniaProdukcyjne" RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "" )">
             <ActionColumn Title="Materiały">
                 <a @onclick="() => DodajKantowke(context)" class="custom-link">Kantówka</a>
             </ActionColumn>
@@ -71,8 +79,8 @@ else
             <Column Title="ID" @bind-Field="@context.Id" Hidden />
             <Column Title="Typ Dokumentu" @bind-Field="@context.TypZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Numer Zamówienia" @bind-Field="@context.NumerZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
-            <Column Title="Data Produkcji" @bind-Field="@context.DataProdukcji" Sortable />
-            <Column Title="Klient" @bind-Field="@context.Klient" Sortable OnFilter="(a, b) => a == b" Filterable />
+            <Column Title="Data Produkcji" @bind-Field="@context.DataProdukcji" Format="yyyy-MM-dd" Sortable />
+            <Column Title="Klient" @bind-Field="@context.Klient" Style="font-weight:bold" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Nazwa Produktu" @bind-Field="@context.NazwaProduktu" Sortable />
             <Column Title="Adres" @bind-Field="@context.Adres" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Telefon" @bind-Field="@context.Telefon" Sortable />
@@ -83,7 +91,7 @@ else
             @*    <Column Title="Nazwa Produktu 2" TData="string" DataIndex="NazwaProduktu2" Sortable /> *@
 
             <!-- Przykład kolumny dla daty z formatowaniem -->
-            <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd HH:mm:ss" Sortable />
+            <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd" Sortable />
             <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
             <ActionColumn Title="Akcja">
                 <Popconfirm Title="Czy chcesz edytować pozycję?"
@@ -111,7 +119,7 @@ else
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <AntDesign.Form Model="@zlecenie" Layout="FormLayout.Vertical">
+                <AntDesign.Form TModel="ZleceniaProdukcyjne" Model="@zlecenie" Layout="FormLayout.Vertical">
                        <AntDesign.Row Gutter="16">
                         <AntDesign.Col Span="12">
                             <AntDesign.FormItem Label="Typ Dokumentu">
@@ -170,7 +178,7 @@ else
                         </AntDesign.Col>
                         <AntDesign.Col Span="12">
                             <AntDesign.FormItem Label="Klient">
-                                <AntDesign.Input @bind-Value="zlecenie.Klient" />
+                                <AntDesign.Input Style="font-weight:bold" @bind-Value="zlecenie.Klient" />
                             </AntDesign.FormItem>
                         </AntDesign.Col>
                     </AntDesign.Row>
@@ -229,6 +237,14 @@ else
                         <AntDesign.Col Span="12">
                             <AntDesign.FormItem Label="Jednostki produkcyjne na wyk. Zlecenia">
                                 <AntDesign.InputNumber @bind-Value="zlecenie.JednostkiNaZlecenie" />
+                                @if (cid == -1)
+                                {
+                                    <AntDesign.Button Type="@ButtonType.Link" Disabled>Dodaj pozostałe czasy na inne linie</AntDesign.Button>
+                                }
+                                else
+                                {
+                                    <AntDesign.Button Type="@ButtonType.Link" OnClick="@NavigateToCzasyZlecenNaLinii">Dodaj pozostałe czasy na inne linie</AntDesign.Button>
+                                }
                             </AntDesign.FormItem>
                         </AntDesign.Col>
                         <AntDesign.Col Span="12">
@@ -384,6 +400,13 @@ else
             Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message}/ {ex.StackTrace}");
             zleceniaProdukcyjne = new List<ZleceniaProdukcyjne>();
         }
+    }
+
+    private void NavigateToCzasyZlecenNaLinii()
+    {
+
+        // Nawigacja do strony z przekazaniem parametru
+        NavigationManager.NavigateTo($"/Czasy-Zlecen-Na-Linii/{zlecenie.RowId}");
     }
 
     private void DataProdUstaw()

@@ -20,6 +20,8 @@ namespace GEORGE.Server
         public DbSet<KantowkaDoZlecen>? KantowkaDoZlecen { get; set; }
         public DbSet<LinieProdukcyjne>? LinieProdukcyjne { get; set; }
         public DbSet<ZleceniaNaLinii>? ZleceniaNaLinii { get; set; }
+        public DbSet<ZleceniaCzasNaLinieProd>? ZleceniaCzasNaLinieProd { get; set; }
+        
 
         //***********************************************************************************************************************************************************************************************
 

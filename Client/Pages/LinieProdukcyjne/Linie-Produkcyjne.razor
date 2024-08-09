@@ -207,39 +207,63 @@ else
 
     public async Task editRow(long id)
     {
-        //listOfData = listOfData.Where(d => d.Id != id).ToArray();
-        if (rodzajeLinieProdukcyjne == null) return;
-
-        oryginalLinieProdukcyjne = rodzajeLinieProdukcyjne.DeepCopyList();
-
-        // Logika edycji
-        if (_visible)
+        try
         {
-            _visible = false;
-            await HideDialog();
-        }
-        else
-        {
-            nlinie = new LinieProdukcyjne();
-
-            var listOfData = rodzajeLinieProdukcyjne.Where(d => d.Id == id).ToArray();
-
-            // Pobierz nlinie na podstawie indeksu wiersza
-            if (listOfData != null && listOfData.Count() > 0)
+            if (rodzajeLinieProdukcyjne == null)
             {
-                cid = id;
-
-                nlinie = listOfData[0];
-
-                _visible = true;
-
-                await ShowDialog();
+                await _message.Error("Lista linii produkcyjnych nie została załadowana.");
+                return;
             }
 
-            // Wyświetl numer zamówienia w konsoli
-            Console.WriteLine(nlinie.NazwaLiniiProdukcyjnej);
-        }
+            // Tworzenie kopii listy
+            oryginalLinieProdukcyjne = rodzajeLinieProdukcyjne.DeepCopyList();
 
+            if (_visible)
+            {
+                _visible = false;
+                await HideDialog();
+            }
+            else
+            {
+                // Inicjalizacja obiektu nlinie
+                nlinie = new LinieProdukcyjne();
+
+                // Znajdowanie wiersza do edycji
+                var listOfData = rodzajeLinieProdukcyjne.FirstOrDefault(d => d.Id == id);
+
+                if (listOfData != null)
+                {
+                    cid = id;
+                    nlinie = listOfData;  // Przypisanie wybranego wiersza do nlinie
+
+                    // nlinie.Id = listOfData.Id;
+                    // nlinie.RowId = listOfData.RowId;
+                    // nlinie.NazwaLiniiProdukcyjnej = listOfData.NazwaLiniiProdukcyjnej;
+                    // nlinie.IdLiniiProdukcyjnej = listOfData.IdLiniiProdukcyjnej;
+                    // nlinie.Uwagi = listOfData.Uwagi;
+                    // nlinie.DataZapisu = listOfData.DataZapisu;
+                    // nlinie.DziennaZdolnoscProdukcyjna = listOfData.DziennaZdolnoscProdukcyjna;
+                    nlinie.OstatniaZmiana = "Zmiana: " + DateTime.Now.ToLongDateString();
+                    // nlinie.KtoZapisal = listOfData.KtoZapisal;
+
+                    _visible = true;
+
+                    await ShowDialog();
+
+                    // Wyświetl numer zamówienia w konsoli dla celów debugowania
+                    Console.WriteLine(nlinie.NazwaLiniiProdukcyjnej);
+                }
+                else
+                {
+                    await _message.Error("Nie znaleziono danych do edycji.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await _message.Error($"Wystąpił błąd: {ex.Message}");
+            Console.WriteLine(ex.StackTrace);
+        }
     }
 
     public async Task HandleAddNew()
