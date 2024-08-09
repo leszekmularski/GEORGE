@@ -1,0 +1,122 @@
+﻿@page "/Czasy-Zlecen-Na-Linii/{RowIdZlecenia}"
+@using GEORGE.Shared.Models
+@using GEORGE.Shared.ViewModels
+@using GEORGE.Shared.Class
+@inject HttpClient Http
+@inject ModalService ModalService;
+@inject ConfirmService ComfirmService;
+@inject IMessageService _message
+@inject NavigationManager NavigationManager
+@using AntDesign
+@using System.Net;
+@inject IJSRuntime JSRuntime
+
+
+@* Przyjmujemy, że lista zleceń to `zleceniaCzasNaLinieProdList` *@
+<table class="table table-bordered">
+    <thead>
+        <tr>
+
+            <th>#Id - Linii</th>
+            <th>Linia Produkcyjna</th>
+            <th>Ilość jednostek produkcyjnych potrzenych do wyk. zlecenia na linii</th>
+            <th>Akcja</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (linieProdukcyjneWithCzasViewModel != null)
+        {
+            @foreach (var zlecenie in linieProdukcyjneWithCzasViewModel)
+            {
+                <tr>
+                    <td>@zlecenie.IdLiniiProdukcyjnej</td>
+                    <td>@zlecenie.NazwaLiniiProdukcyjnej</td>
+                    <td>
+                        <input type="number" class="form-control" @bind="zlecenie.CzasNaZlecenie" />
+                    </td>
+                    <Button Type="@ButtonType.Primary" @onclick="() => SaveChanges(zlecenie)">Zapisz zmianę</Button>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+<Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
+@code {
+    [Parameter]
+    public string? RowIdZlecenia { get; set; }
+
+    private List<LinieProdukcyjneWithCzasViewModel>? linieProdukcyjneWithCzasViewModel;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Upewnij się, że RowIdZlecenia jest prawidłowy i nie jest pusty
+            if (string.IsNullOrEmpty(RowIdZlecenia))
+            {
+                Console.WriteLine("RowIdZlecenia is null or empty.");
+                return;
+            }
+
+            // Sprawdź URL API
+            var url = $"api/ZleceniaCzasNaLinieProd/rowid/{RowIdZlecenia}";
+            Console.WriteLine($"Fetching data from: {url}");
+
+            // Wywołaj API i przypisz wynik do zmiennej
+            linieProdukcyjneWithCzasViewModel = await Http.GetFromJsonAsync<List<LinieProdukcyjneWithCzasViewModel>>(url);
+
+            // Sprawdź, czy dane zostały poprawnie załadowane
+            if (linieProdukcyjneWithCzasViewModel == null)
+            {
+                Console.WriteLine("No data returned from API.");
+            }
+            else
+            {
+                Console.WriteLine($"Data loaded successfully. Number of items: {linieProdukcyjneWithCzasViewModel.Count}");
+            }
+        }
+        catch (HttpRequestException httpEx)
+        {
+            Console.WriteLine($"HTTP error occurred: {httpEx.Message}");
+        }
+        catch (NotSupportedException notSupEx)
+        {
+            Console.WriteLine($"Unsupported content type: {notSupEx.Message}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading data: {ex.Message}");
+        }
+    }
+
+    private async Task SaveChanges(LinieProdukcyjneWithCzasViewModel zlecenie)
+    {
+        try
+        {
+            // Send the updated data to the API
+            var response = await Http.PutAsJsonAsync($"api/ZleceniaCzasNaLinieProd/{zlecenie.RowIdZlecnia}", zlecenie);
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Handle success (e.g., show a message or update the UI)
+                Console.WriteLine("Changes saved successfully.");
+            }
+            else
+            {
+                // Handle failure (e.g., show an error message)
+                Console.WriteLine("Failed to save changes.");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exceptions (e.g., log the error or show an error message)
+            Console.WriteLine($"Error saving changes: {ex.Message}");
+        }
+    }
+
+    private async Task GoBack()
+    {
+        await JSRuntime.InvokeVoidAsync("history.back");
+    }
+
+}

@@ -99,6 +99,7 @@
                             <Button class="btn-detail" OnClick="() => AddNewZlec()">Dodaj zlecenie do planu</Button>
                             <Button class="btn-detail" OnClick="() => OpenDetailModal()">Idź do zlecenia</Button>
                             <Button class="btn-refresh" Icon="@IconType.Outline.Delete" OnClick="@(async ()=> { await DelTask(ConfirmButtons.YesNo); })"></Button>
+                            <Button class="btn-refresh" Icon="@IconType.Outline.Delete" OnClick="@(async ()=> { await DelTaskALL(ConfirmButtons.YesNo); })">Wszędzie</Button>
                             <Button class="btn-refresh" Icon="@IconType.Outline.Reload" OnClick="RefreshData"></Button>
                             <Button type="button" class="btn btn-sm btn-light" Icon="@IconType.Outline.Save" @onclick="SaveView"></Button>
                             <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
@@ -127,9 +128,9 @@
         </section>
     </Spin>
 
-    <Modal Title="Dodaj nowe zlecenie" @bind-Visible="@_visible" Style="width:50%" OkText="@("Zapisz")" CancelText="@("Anuluj")" MaxBodyHeight="@("55vh")" OnOk="AddPlanEdit">
-        <div>
-            <p style="height: 500px;">
+    <Modal Title="Dodaj nowe zlecenie" @bind-Visible="@_visible" Style="width:60%" OkText="@("Zapisz")" CancelText="@("Anuluj")" MaxBodyHeight="@("55vh")" OnOk="AddPlanEdit">
+        <div style="width:100%">
+            <p style="height: 500px;width:100%;">
                 Nie przypisane zlecenia
                 <Select TItem="LinieProdukcyjne" TItemValue="string" DataSource="@rodzajeLinieProdukcyjne" @bind-Value="@_selectedValue"
                         LabelName="@nameof(LinieProdukcyjne.NazwaLiniiProdukcyjnej)" ValueName="@nameof(LinieProdukcyjne.RowId)"
@@ -142,21 +143,27 @@
                         <Radio Value="true">Zlecenia wewnętrzne</Radio>
                                    </RadioGroup>
                 </div>
-                @if (daneDoPlanowania == null)
+                @if (przefiltrowanedaneNiezaplanowane == null)
                 {
-                    <h3>@komunikatOZleceniach</h3>
+                    <div style="padding-top:25px; color: red;">
+                        <h3>@komunikatOZleceniach</h3>
+                    </div>
                 }
                 else
                 {
-                    <div style="padding-top:25px">
-                        <Table @ref="_table" PageSize="3" DataSource="@daneDoPlanowania" Total="_total" @bind-SelectedRows="_selectedRows" RowKey="x=>x.ZleceniaProdukcyjneDto.RowId">
-                            <Selection Title="Wybierz" />
-                            <PropertyColumn Title="Data Rozp. Prod." Property="c=>c.PlanowanaDataRozpoczeciaProdukcji" />
-                            <PropertyColumn Title="Typ dokumentu" Property="c=>c.ZleceniaProdukcyjneDto.TypZamowienia" />
-                            <PropertyColumn Title="Plan. Data Rozp. Prod." Property="c=>c.ZleceniaProdukcyjneDto.DataProdukcji" />
-                            <PropertyColumn Title="Klient" Property="c=>c.ZleceniaProdukcyjneDto.Klient" />
-                            <PropertyColumn Title="Numer Zamowienia" Property="c=>c.ZleceniaProdukcyjneDto.NumerZamowienia" />
-                            <PropertyColumn Title="Czas na wykon." Property="c=>c.DomyslnyCzasProdukcji" />
+                    <!-- Tabela z przefiltrowanymi danymi -->
+                    <div style="padding-top:25px;padding-left:5px;padding-right:5px;width:100%;">
+                        <Table @ref="_table" PageSize="3" DataSource="@przefiltrowanedaneNiezaplanowane" Total="_total"
+                               @bind-SelectedRows="_selectedRows" Style="width: 100%; font-size: 9px;" RowKey="x => x.ZleceniaProdukcyjneDto.RowId">
+
+                            <Selection Style="width:25px" Title="Wybierz"> </Selection>
+                            <PropertyColumn Style="width:85px" Title="Klient" Property="c => c.ZleceniaProdukcyjneDto.Klient" />
+                            <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan_Prod." Property="c => c.PlanowanaDataRozpoczeciaProdukcji" />
+                            <PropertyColumn Style="width:35px" Title="Typ_Dok." Property="c => c.ZleceniaProdukcyjneDto.TypZamowienia" />
+                            <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan._Zakoń." Property="c => c.ZleceniaProdukcyjneDto.DataProdukcji" />
+                            <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan._Mont." Property="c => c.ZleceniaProdukcyjneDto.DataMontazu" />
+                            <PropertyColumn Style="width:35px" Title="Nr_Zam." Property="c => c.ZleceniaProdukcyjneDto.NumerZamowienia" />
+                            <PropertyColumn Style="width:35px" Title="Czas_wyk." Property="c => c.DomyslnyCzasProdukcji" />
                         </Table>
                     </div>
                 }
@@ -200,7 +207,8 @@
     string? _selectedValueGantt = "";//"cdc0d09a-d248-48b9-b263-f54e254d1290";
     LinieProdukcyjne? _selectedItemGantt;
 
-    private List<DaneDoPlanowaniaViewModel>? daneDoPlanowania;
+    private List<DaneDoPlanowaniaViewModel>? daneNiezaplanowane;
+    private List<DaneDoPlanowaniaViewModel>? przefiltrowanedaneNiezaplanowane;
 
     ITable? _table;
     IEnumerable<DaneDoPlanowaniaViewModel> _selectedRows = [];
@@ -239,22 +247,29 @@
 
         loading = false;
 
-      await _message.Loading("Załadowano dane wykresu");
-
     }
 
     private async Task AddPlanEdit()
     {
-        // Konwersja wybranych elementów na ZleceniaNaLinii
+        // Sprawdzenie, czy są wybrane wiersze
+        if (_selectedRows == null || !_selectedRows.Any())
+        {
+            Console.WriteLine("Nie wybrano żadnych zleceń.");
+            return; // Nic nie rób, jeśli nie ma zaznaczonych wierszy
+        }
+
+        Console.WriteLine($"_selectedRows:{_selectedRows.Count()}");
+
         var noweZleceniaNaLinii = _selectedRows.Select(row => new ZleceniaNaLinii
             {
                 RowIdLinieProdukcyjne = row.RowIdLiniiProdukcyjnej,
                 RowIdZleceniaProdukcyjne = row.ZleceniaProdukcyjneDto.RowId,
                 Uwagi = "Automatycznie dodane",
                 DataZapisu = DateTime.Now,
-                ZlecenieWewnetrzne = _valueZlecenie,
+                ZlecenieWewnetrzne = row.ZlecenieWewnetrzne, // lub _valueZlecenie jeśli dotyczy to całej operacji
                 OstatniaZmiana = "Zmiana: " + DateTime.Now.ToLongDateString()
             }).ToList();
+
 
         // Wysyłanie danych do API
         var response = await Http.PostAsJsonAsync("api/ZleceniaNaLinii", noweZleceniaNaLinii);
@@ -264,13 +279,20 @@
             Console.WriteLine("Zlecenia zostały dodane.");
             _visible = false; // Zamknięcie modalnego okna po dodaniu
 
-            daneDoPlanowania = null;
+            // Jeśli chcesz usunąć zaznaczone wiersze z listy danych niezaplanowanych
+            mockDb = mockDb.Except(_selectedRows).ToList();
+
+            _selectedRows = null; // Wyczyść zaznaczone wiersze
         }
         else
         {
             Console.WriteLine("Wystąpił błąd podczas dodawania zleceń.");
         }
+
+        // Odśwież widok (jeśli używasz Blazora)
+        StateHasChanged();
     }
+
 
     private async Task<bool> Comfirm(string message)
     {
@@ -319,10 +341,10 @@
             var daneDoPlanowania = await Http.GetFromJsonAsync<List<DaneDoPlanowaniaViewModel>>($"api/ZleceniaNaLinii/GetDaneDoPlanowania/{value.RowId}/NIE");
 
             // Zaktualizuj stan
-            this.daneDoPlanowania = daneDoPlanowania;
+            daneNiezaplanowane = daneDoPlanowania;
 
             if (daneDoPlanowania != null)
-                this.daneDoPlanowania = daneDoPlanowania.Where(x => !x.ZlecenieWewnetrzne).ToList();
+                przefiltrowanedaneNiezaplanowane = daneDoPlanowania.Where(x => !x.ZlecenieWewnetrzne).ToList();
 
             if (daneDoPlanowania == null || daneDoPlanowania.Count == 0)
             {
@@ -360,15 +382,15 @@
 
     private async Task ClicRadioGroup()
     {
-        if (this.daneDoPlanowania != null && przefiltrowaneDaneDoPlanowania != null)
+        if (daneNiezaplanowane != null && daneNiezaplanowane != null)
         {
-            this.daneDoPlanowania = przefiltrowaneDaneDoPlanowania.Where(x => x.ZlecenieWewnetrzne == _valueZlecenie).ToList();
+            przefiltrowanedaneNiezaplanowane = daneNiezaplanowane.Where(x => x.ZlecenieWewnetrzne == _valueZlecenie).ToList();
 
             await Task.Delay(10);
             // Odśwież widok (jeśli używasz Blazor)
             StateHasChanged();
 
-            Console.WriteLine($"daneDoPlanowania.Count:{this.daneDoPlanowania.Count()} _valueZlecenie:{_valueZlecenie}");
+            Console.WriteLine($"daneDoPlanowania.Count:{this.przefiltrowanedaneNiezaplanowane.Count()} _valueZlecenie:{_valueZlecenie}");
         }
     }
 
@@ -417,7 +439,7 @@
             else
             {
                 // Przekazujemy informacje o poprzedniej stronie jako parametry
-                NavigationManager.NavigateTo($"/zlecenia-/Zlecenia-produkcyjne-wew/{click_RowIdZlecenia}");
+                NavigationManager.NavigateTo($"/zlecenia-produkcyjne-wew/{click_RowIdZlecenia}");
             }
         }
 
@@ -449,80 +471,37 @@
             return;
         }
 
-        // // Ustawienie daty
-        // await UstawDatePlanowaniProdukcji(click_RowIdZlecenia);
 
         await UsunRekord(click_RowIdZlecenia, _selectedItemGantt.RowId);
 
     }
 
-    // private async Task UstawDatePlanowaniProdukcji(string rowId)
-    // {
-    //     if (przefiltrowaneDaneDoPlanowania == null) return;
+    public async Task DelTaskALL(ConfirmButtons confirmButtons)
+    {
+        // Sprawdzenie, czy użytkownik kliknął w obiekt
+        if (string.IsNullOrEmpty(click_RowIdZlecenia) || _selectedItemGantt == null)
+        {
+            await _message.Info("Kliknij w obiekt na wykresie, aby go usunąć.");
+            click_task = "Kliknij w obiekt na wykresie, aby go usunąć.";
+            return;
+        }
 
+        // Treść komunikatu i tytuł
+        var content = "Czy chcesz usunąć ze wszystkich linii wskazany obiekt?             Uwaga zmiany automatycznie zostaną zapisane!";
+        var title = "Uwaga!!!";
 
-    //     Console.WriteLine($"test - UstawDatePlanowaniProdukcji");
+        // Wyświetlenie komunikatu potwierdzającego
+        var confirmResult = await _confirmService.Show(content, title, confirmButtons);
 
-    //     // Znajdź obiekt z odpowiednim RowId
-    //     var obiektDoAktualizacji = przefiltrowaneDaneDoPlanowania
-    //         .FirstOrDefault(dane => dane.ZleceniaProdukcyjne != null && dane.ZleceniaProdukcyjne.RowId == rowId);
+        // Sprawdzenie wyniku potwierdzenia
 
-    //     if (obiektDoAktualizacji != null)
-    //     {
-    //         try
-    //         {
-    //             // Pobranie danych z wykresu
-    //             var gantt = await JSRuntime.InvokeAsync<object[]>("SaveGanttData");
+        if (confirmResult == ConfirmResult.No)
+        {
+            return;
+        }
 
-    //             click_task = "";
-
-    //             bool jestBlad = false;
-
-    //             foreach (var task in gantt)
-    //             {
-    //                 string taskJson = task.ToString();
-
-    //                 //  Console.WriteLine($"Original JSON: {taskJson}");
-
-    //                 // Deserialize JSON to a model object
-    //                 var updateTaskRequest = JsonSerializer.Deserialize<UpdateTaskRequest>(taskJson);
-
-    //                 if (updateTaskRequest != null)
-    //                 {
-    //                     string rowIdPodmiot = updateTaskRequest.Id; // Assuming 'Id' is the 'RowIdPodmiotu'
-    //                     string rowIdPracownik = "";//RowIdPracownika; // Replace with the appropriate value for 'RowIdPracownika'
-
-    //                     //  Console.WriteLine($"updateTaskRequest: {updateTaskRequest.Start} - {updateTaskRequest.End}");
-    //                     // Send PUT request to the server
-    //                     var response = await Http.PutAsJsonAsync($"api/PodmiotPrzypisPracownikowi/{rowIdPodmiot}/{rowIdPracownik}/{rowId}", updateTaskRequest);
-
-    //                     if (response.IsSuccessStatusCode)
-    //                     {
-    //                         Console.WriteLine($"Pomyślnie zaktualizowano zadanie o identyfikatorze id: {rowIdPodmiot}");
-    //                     }
-    //                     else
-    //                     {
-    //                         Console.WriteLine($"Nie udało się zaktualizować zadania o identyfikatorze id: {rowIdPodmiot}");
-    //                         jestBlad = true;
-    //                     }
-    //                 }
-    //             }
-
-    //             if (jestBlad)
-    //             {
-    //                 await _message.Error("Zmiany nie zapisano. Sprawdź konsolę");
-
-    //             }
-
-    //         }
-    //         catch (Exception ex)
-    //         {
-    //             Console.WriteLine($"Wystąpił błąd podczas aktualizacji zadania: {ex.Message}");
-    //         }
-
-    //     }
-
-    // }
+        await UsunRekord(click_RowIdZlecenia, "----");
+    }
 
     [JSInvokable]
     private async Task UsunRekord(string rowId, string rowIdLinii)
@@ -530,21 +509,65 @@
         if (przefiltrowaneDaneDoPlanowania == null) return;
 
         // Znajdź obiekt z odpowiednim RowId
-        var obiektDoUsuniecia = przefiltrowaneDaneDoPlanowania
+        if (rowIdLinii == "----")
+        {
+            var obiektDoUsuniecia = przefiltrowaneDaneDoPlanowania
+          .FirstOrDefault(dane => dane.ZleceniaProdukcyjneDto != null && dane.ZleceniaProdukcyjneDto.RowId == rowId);
+
+            if (obiektDoUsuniecia != null)
+            {
+                await _message.Loading("Usuwam zlecenie ze wystkich linii");
+                await deleteRow(rowId, rowIdLinii);
+            }
+            else
+            {
+                await _message.Info("Nie znaleziono zleceń!!!. Nic nie usunołem.");
+            }
+        }
+        else
+        {
+            var obiektDoUsuniecia = przefiltrowaneDaneDoPlanowania
             .FirstOrDefault(dane => dane.ZleceniaProdukcyjneDto != null && dane.ZleceniaProdukcyjneDto.RowId == rowId && dane.RowIdLiniiProdukcyjnej == rowIdLinii);
 
-        if (obiektDoUsuniecia != null)
-        {
-            // Usuń obiekt z listy
-            przefiltrowaneDaneDoPlanowania.Remove(obiektDoUsuniecia);
-
-            await InitializeFrappeGantt();
-
-            click_task = "";
-            click_RowIdZlecenia = "";
-
+            if (obiektDoUsuniecia != null)
+            {
+                await deleteRow(rowId, rowIdLinii);
+            }
         }
 
+    }
+
+    public async Task deleteRow(string rowIdZlecenia, string rowIdLinii)
+    {
+        try
+        {
+            var response = await Http.DeleteAsync($"api/ZleceniaNaLinii/{rowIdZlecenia}/{rowIdLinii}");
+
+            if (response.IsSuccessStatusCode && przefiltrowaneDaneDoPlanowania != null)
+            {
+                var obiektDoUsuniecia = przefiltrowaneDaneDoPlanowania
+                .FirstOrDefault(dane => dane.ZleceniaProdukcyjneDto != null && dane.ZleceniaProdukcyjneDto.RowId == rowIdZlecenia && dane.RowIdLiniiProdukcyjnej == rowIdLinii);
+
+                przefiltrowaneDaneDoPlanowania.Remove(obiektDoUsuniecia);
+
+                await InitializeFrappeGantt();
+
+                click_task = "";
+                click_RowIdZlecenia = "";
+                Console.WriteLine("Rekord został pomyślnie usunięty.");
+               await _message.Success("Pozycja została pomyślnie usunieta.");
+            }
+            else
+            {
+                Console.WriteLine($"Błąd podczas usuwania rekordu: {response.ReasonPhrase}");
+                await _message.Error($"Błąd podczas usuwania rekordu: {response.ReasonPhrase}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"******* Błąd {ex.Message}");
+            await _message.Error($"Błąd podczas usuwania rekordu!");
+        }
     }
 
     [JSInvokable]

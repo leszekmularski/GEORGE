@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using GEORGE.Shared.ViewModels;
 using System.ComponentModel.DataAnnotations.Schema;
+using AntDesign;
 
 namespace GEORGE.Server.Controllers
 {
@@ -31,15 +32,21 @@ namespace GEORGE.Server.Controllers
         [HttpGet("GetDaneDoPlanowania/{rowIdLinii}/{juzZapisane}")]
         public List<DaneDoPlanowaniaViewModel> GetDaneDoPlanowania(string rowIdLinii, string juzZapisane)
         {
+            var TabelaPowiazan = _context.ZleceniaNaLinii
+                .OrderBy(x => x.DataZapisu)
+                .ToList();
+
+            Console.WriteLine($"*************************** TABELA ZleceniaNaLinii Ilość rekordów: {TabelaPowiazan.Count()} ************************************");  
+
             // Pobierz wszystkie zlecenia produkcyjne
             var zleceniaProdukcyjne = _context.ZleceniaProdukcyjne
-                .Where(zp => zp.JednostkiNaZlecenie > 0 && zp.DataProdukcji > DateTime.Now.AddMonths(-6) && !zp.ZlecZrealizowane)
+                .Where(zp => zp.JednostkiNaZlecenie > 0 && zp.DataProdukcji > DateTime.Now.AddMonths(-12) && !zp.ZlecZrealizowane)
                 .OrderBy(x => x.DataZapisu)
                 .ToList();
 
             // Pobierz wszystkie zlecenia produkcyjne wewnętrzne
             var zleceniaProdukcyjneWew = _context.ZleceniaProdukcyjneWew
-                .Where(zw => zw.JednostkiNaZlecenie > 0 && zw.DataProdukcji > DateTime.Now.AddMonths(-6) && !zw.ZlecZrealizowane)
+                .Where(zw => zw.JednostkiNaZlecenie > 0 && zw.DataProdukcji > DateTime.Now.AddMonths(-12) && !zw.ZlecZrealizowane)
                 .OrderBy(x => x.DataZapisu)
                 .ToList();
 
@@ -119,9 +126,12 @@ namespace GEORGE.Server.Controllers
             if (juzZapisane == "NIE")
             {
                 // Filtruj zlecenia produkcyjne, aby wykluczyć te, które mają RowId równe RowIdZleceniaProdukcyjne w ZleceniaNaLinii
+                //var filteredZleceniaProdukcyjne = wszystkieZleceniaProdukcyjneDto
+                //    .Where(zp => !zleceniaNaLinii.Any(znl => znl.RowIdZleceniaProdukcyjne == zp.RowId && znl.RowIdLinieProdukcyjne == rowIdLinii))
+                //    .ToList();
                 var filteredZleceniaProdukcyjne = wszystkieZleceniaProdukcyjneDto
-                    .Where(zp => !zleceniaNaLinii.Any(znl => znl.RowIdZleceniaProdukcyjne == zp.RowId && znl.RowIdLinieProdukcyjne == rowIdLinii))
-                    .ToList();
+              .Where(zp => !zleceniaNaLinii.Any(znl => znl.RowIdZleceniaProdukcyjne == zp.RowId && znl.RowIdLinieProdukcyjne == rowIdLinii))
+              .ToList();
 
                 // Mapuj przefiltrowane zlecenia produkcyjne do modelu widoku
                 var daneDoPlanowania = filteredZleceniaProdukcyjne.Select(zp =>
@@ -143,13 +153,14 @@ namespace GEORGE.Server.Controllers
                 }).ToList();
 
                 return daneDoPlanowania;
+
             }
             else
             {
                 // Filtruj zlecenia produkcyjne, aby wykluczyć te, które mają RowId równe RowIdZleceniaProdukcyjne w ZleceniaNaLinii
                 var filteredZleceniaProdukcyjne = wszystkieZleceniaProdukcyjneDto
-                    .Where(zp => zleceniaNaLinii.Any(znl => znl.RowIdLinieProdukcyjne == rowIdLinii))
-                    .ToList();
+                .Where(zp => zleceniaNaLinii.Any(znl => znl.RowIdZleceniaProdukcyjne == zp.RowId && znl.RowIdLinieProdukcyjne == rowIdLinii))
+                .ToList();
 
                 // Mapuj przefiltrowane zlecenia produkcyjne do modelu widoku
                 var daneDoPlanowania = filteredZleceniaProdukcyjne.Select(zp =>
@@ -245,24 +256,70 @@ namespace GEORGE.Server.Controllers
         }
 
         // Możesz dodać dodatkowe metody, np. delete, jeśli to konieczne
-
-        [HttpDelete("{id}")]
-        public async Task<ActionResult> DeleteLinieProdukcyjneAsync(long id)
+        [HttpDelete("{rowIdZlecenia}/{rowIdLinii}")]
+        public async Task<ActionResult> DeleteLinieProdukcyjneAsync(string rowIdZlecenia, string rowIdLinii)
         {
-            var zl = await _context.ZleceniaNaLinii.FindAsync(id);
+            //// METODA USUNIĘCIA WSZYTKICH DANYCH!!!
+            //// Pobierz wszystkie rekordy z tabeli
+            //var wszystkieZleceniaNaLinii = _context.ZleceniaNaLinii.ToList();
+            //// Usuń wszystkie rekordy
+            //_context.ZleceniaNaLinii.RemoveRange(wszystkieZleceniaNaLinii);
+            //// Zapisz zmiany do bazy danych
+            //await _context.SaveChangesAsync();
+
+            ///*************************************************************************************************************************
+
+
+            // Znajdź zlecenie na podstawie rowId i rowIdLinii
+            var zl = await _context.ZleceniaNaLinii
+                .FirstOrDefaultAsync(z => z.RowIdZleceniaProdukcyjne == rowIdZlecenia && z.RowIdLinieProdukcyjne == rowIdLinii);
+
             if (zl == null)
             {
-                return NotFound("Nie znaleziono zlecenia o podanym ID.");
+                if(rowIdLinii == "----")
+                {
+                   /// rowIdZlecenia = "1844f7d3-4eee-4d1e-b043-a8e22531b395"; //???  coś tu jest nie teges .....
+                    var zlratuj = await _context.ZleceniaNaLinii.FirstOrDefaultAsync(z => z.RowIdZleceniaProdukcyjne == rowIdZlecenia);
+
+                    if (zlratuj == null)
+                    {
+                        return NotFound("Nie znaleziono zlecenia o podanych RowId.");
+                    }
+                    else
+                    {
+                        //// METODA USUNIĘCIA WSZYTKICH DANYCH!!!
+                        //// Pobierz wszystkie rekordy z tabeli
+                        //var wszystkieZleceniaNaLinii = _context.ZleceniaNaLinii.ToList();
+                        //// Usuń wszystkie rekordy
+                        //_context.ZleceniaNaLinii.RemoveRange(wszystkieZleceniaNaLinii);
+                        //// Zapisz zmiany do bazy danych
+                        //await _context.SaveChangesAsync();
+
+                        _context.ZleceniaNaLinii.Remove(zlratuj);
+                        await _context.SaveChangesAsync();
+
+                        Console.WriteLine("Usunięto zlecenie z dnia ze wszystkich linii " + zlratuj.DataZapisu);
+
+                    }
+                }
+                else
+                {
+                    return NotFound("Nie znaleziono zlecenia o podanych RowId.");
+                }
+            }
+            else
+            {
+                // Wyświetl numer zamówienia w konsoli
+                Console.WriteLine("Usunięto zlecenie z dnia " + zl.DataZapisu);
+
+                _context.ZleceniaNaLinii.Remove(zl);
+                await _context.SaveChangesAsync();
+
             }
 
-            _context.ZleceniaNaLinii.Remove(zl);
-            await _context.SaveChangesAsync();
-
-            // Wyświetl numer zamówienia w konsoli
-            Console.WriteLine("Usunołem zlec z dnia " + zl.DataZapisu);
-
-            return Ok("Zlec. na linii usunięto.");
+            return Ok("Zlecenie na linii usunięto.");
         }
+
     }
 
 }

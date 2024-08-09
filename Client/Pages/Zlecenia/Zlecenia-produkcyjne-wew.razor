@@ -32,6 +32,14 @@
         .zlealizowano:hover, .zlealizowano:hover > td {
             background-color: forestgreen !important;
         }
+
+    .zlecenie, .zlecenie > td {
+        background-color: lightblue !important;
+    }
+
+        .zlecenie:hover, .zlecenie:hover > td {
+            background-color: lightblue !important;
+        }
 </style>
 
 <PageTitle>Program do wspomagania produkcji zlecenia</PageTitle>
@@ -52,7 +60,7 @@ else
     <div style="display: flex; align-items: flex-start;">
     <ul>
 
-            <Table TItem="ZleceniaProdukcyjneWew" DataSource="@zleceniaProdukcyjneWew" RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : "" )">
+            <Table TItem="ZleceniaProdukcyjneWew" DataSource="@zleceniaProdukcyjneWew" RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "" )">
             <ActionColumn Title="Materiały">
                 <a @onclick="() => DodajKantowke(context)">Kantówka</a>
             </ActionColumn>
@@ -72,7 +80,7 @@ else
             <Column Title="ID" @bind-Field="@context.Id" Hidden />
             <Column Title="Typ Dokumentu" @bind-Field="@context.TypZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Numer Zamówienia" @bind-Field="@context.NumerZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
-            <Column Title="Data Produkcji" @bind-Field="@context.DataProdukcji" Sortable />
+            <Column Title="Data Produkcji" @bind-Field="@context.DataProdukcji" Format="yyyy-MM-dd" Sortable />
             <Column Title="Klient" @bind-Field="@context.Klient" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Nazwa Produktu" @bind-Field="@context.NazwaProduktu" Sortable />
             <Column Title="Adres" @bind-Field="@context.Adres" Sortable OnFilter="(a, b) => a == b" Filterable />
@@ -84,7 +92,7 @@ else
          @*    <Column Title="Nazwa Produktu 2" TData="string" DataIndex="NazwaProduktu2" Sortable /> *@
 
             <!-- Przykład kolumny dla daty z formatowaniem -->
-            <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd HH:mm:ss" Sortable />
+            <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd" Sortable />
             <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
             <ActionColumn Title="Akcja">
                 <Popconfirm Title="Czy chcesz edytować pozycję?"
