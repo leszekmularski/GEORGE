@@ -101,7 +101,7 @@ else
             rodzajeLinieProdukcyjne = await Http.GetFromJsonAsync<List<LinieProdukcyjne>>("api/LinieProdukcyjne/");
 
             nlinie = new LinieProdukcyjne();
-            nlinie.Id =  0;     
+            nlinie.Id = 0;
         }
         catch (Exception ex)
         {

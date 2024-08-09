@@ -69,11 +69,11 @@ else
         <div class="modal-content">
             <div class="modal-header">
 
-                <AntDesign.Form Model="@karty" Layout="FormLayout.Vertical" OnFinish="@HandleSubmit">
+                <Form Model="@karty" Layout="FormLayout.Vertical" OnFinish="@HandleSubmit" ValidateMode=@FormValidateMode.Complex>
 
                     @if (!_edit)
                     {
-                        <AntDesign.FormItem Label="Wybierz rodzaj karty">
+                        <FormItem Label="Wybierz rodzaj karty" >
                             <Select TItem="RodzajeKartInstrukcyjnych"
                                     TItemValue="string"
                                     DataSource="@rodzajeKartInstrukcyjnych"
@@ -89,32 +89,32 @@ else
                                     OnSearch="OnSearch"
                                     FilterExpression="(item, searchValue) => CultureInfo.CurrentCulture.CompareInfo.IndexOf(item.Label, searchValue, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase) >= 0">
                             </Select>
-                            <AntDesign.Button Type="primary" @onclick="@GenerateNewNumber">Generuj nowy numer</AntDesign.Button>
-                        </AntDesign.FormItem>
+                            <Button Type="primary" @onclick="@GenerateNewNumber">Generuj nowy numer</Button>
+                        </FormItem>
                     }
 
-                    <AntDesign.FormItem Label="Numer Karty" Required>
-                        <AntDesign.Input @bind-Value="karty.NumerKarty" ReadOnly/>
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Opis karty">
-                        <AntDesign.Input @bind-Value="karty.OpisKarty" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Nazwa Produktu">
-                        <AntDesign.Input @bind-Value="karty.NazwaProduktu" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Nazwa Produktu 2">
-                        <AntDesign.Input @bind-Value="karty.NazwaProduktu2" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Kod Produktu / System">
-                        <AntDesign.Input @bind-Value="karty.KodProduktu" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Kto Zapisał">
-                        <AntDesign.Input @bind-Value="karty.KtoZapisal" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Ostatnia Zmiana">
-                        <AntDesign.Input @bind-Value="karty.OstatniaZmiana" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem>
+                    <FormItem Label="Numer Karty" Required>
+                        <Input @bind-Value="karty.NumerKarty" ReadOnly/>
+                    </FormItem>
+                    <FormItem Label="Opis karty">
+                        <Input @bind-Value="karty.OpisKarty" />
+                    </FormItem>
+                    <FormItem Label="Nazwa Produktu">
+                        <Input @bind-Value="karty.NazwaProduktu" />
+                    </FormItem>
+                    <FormItem Label="Nazwa Produktu 2">
+                        <Input @bind-Value="karty.NazwaProduktu2" />
+                    </FormItem>
+                    <FormItem Label="Kod Produktu / System">
+                        <Input @bind-Value="karty.KodProduktu" />
+                    </FormItem>
+                    <FormItem Label="Kto Zapisał">
+                        <Input @bind-Value="karty.KtoZapisal" />
+                    </FormItem>
+                    <FormItem Label="Ostatnia Zmiana">
+                        <Input @bind-Value="karty.OstatniaZmiana" />
+                    </FormItem>
+                    <FormItem>
  @*                        <Upload Action="https://www.mocky.io/v2/5cc8019d300000980a055e76"
                                 Name="files"
                                 OnSingleCompleted="OnSingleCompleted">
@@ -126,11 +126,11 @@ else
                         <br/>
                         @if (!blokuj_2_click)
                         {
-                            <AntDesign.Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</AntDesign.Button>
+                            <Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</Button>
                         }
-                        <AntDesign.Button @onclick="@HandleCancel">Anuluj</AntDesign.Button>
-                    </AntDesign.FormItem>
-                </AntDesign.Form>
+                        <Button @onclick="@HandleCancel">Anuluj</Button>
+                    </FormItem>
+                </Form>
             </div>
         </div>
     </div>

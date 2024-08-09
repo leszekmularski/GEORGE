@@ -552,21 +552,9 @@
 
                 await InitializeFrappeGantt();
 
-                click_task = "";
-                click_RowIdZlecenia = "";
-                Console.WriteLine("Rekord został pomyślnie usunięty.");
-                await _message.Success("Pozycja została pomyślnie usunieta.");
-            }
-            else
-            {
-                Console.WriteLine($"Błąd podczas usuwania rekordu: {response.ReasonPhrase}");
-                await _message.Error($"Błąd podczas usuwania rekordu: {response.ReasonPhrase}");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"******* Błąd {ex.Message}");
-            await _message.Error($"Błąd podczas usuwania rekordu!");
+            click_task = "";
+            click_RowIdZlecenia = "";
+
         }
     }
 
