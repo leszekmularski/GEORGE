@@ -55,6 +55,7 @@
             @uwagaKopiuj
         </Button>
     }
+    <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
     <Divider></Divider>
 
     @if (kantowkaDoZlecen == null)
@@ -217,6 +218,7 @@
             </div>
         </div>
     </div>
+
 </body>
 </html>
 
@@ -632,6 +634,11 @@
         display = "none";
 
         StateHasChanged();
+    }
+
+    private async Task GoBack()
+    {
+        await JSRuntime.InvokeVoidAsync("history.back");
     }
 
 }

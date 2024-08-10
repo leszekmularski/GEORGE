@@ -63,6 +63,20 @@
             all: initial;
             /* Można także użyć unset lub none, w zależności od potrzeb */
         }
+        #gantt-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        .details-container {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            position: absolute;
+        }
 
     </style>
 
@@ -76,7 +90,7 @@
             </Button>
         }
 
-        <div style="width:40%">
+        <div style="width:49%">
             @if (rodzajeLinieProdukcyjne != null)
             {
                 <label>Wybierz linię produkcyjną</label>
@@ -89,7 +103,7 @@
         </div>
         <Divider></Divider>
         <section class="section section-padding-top section-padding-bottom">
-            <div class='container'>
+            <div class='container' style="height:100%">
                 <Layout Style="background-color: white;">
                     <Header Style="background-color: lightblue;">
                         <h7 class="button-container">
@@ -105,14 +119,14 @@
                             <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
                         </h7>
                     </Header>
-                    <layout>
-                        <content>
-                            <div id="gantt-container">
-                                <svg id="gantt" style="overflow: scroll"></svg>
+                    <Layout>
+                        <Content>
+                            <div id="gantt-container" style="display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr;">
+                                <svg id="gantt" style="width: 100%; height: 100%;"></svg>
                             </div>
                             <br />
-                        </content>
-                    </layout>
+                        </Content>
+                    </Layout>
                     <Footer>
                         <div class="mx-auto mt-3 btn-group" role="group">
                             <button type="button" class="btn btn-sm btn-light" @onclick="@(async () => await ChangeView("Half Day"))">Pół dnia</button>
@@ -283,11 +297,23 @@
             mockDb = mockDb.Except(_selectedRows).ToList();
 
             _selectedRows = null; // Wyczyść zaznaczone wiersze
+
+            await FetchData();
+
+            await InitializeFrappeGantt();
+
+            click_task = "";
+            click_RowIdZlecenia = "";
+            Console.WriteLine("Zlecenia dodano.");
+            await _message.Success("Zlecenia dodano.");
+       
         }
         else
         {
             Console.WriteLine("Wystąpił błąd podczas dodawania zleceń.");
         }
+
+        await InitializeFrappeGantt();
 
         // Odśwież widok (jeśli używasz Blazora)
         StateHasChanged();
@@ -442,6 +468,10 @@
                 NavigationManager.NavigateTo($"/zlecenia-produkcyjne-wew/{click_RowIdZlecenia}");
             }
         }
+        else
+        {
+            await _message.Info($"Coś poszło nie ta. Kliknij w obiekt na wykresie [{click_RowIdZlecenia}]");
+        }
 
         return;
 
@@ -592,9 +622,16 @@
     public async Task SaveView()
     {
 
-        loading = true;
         // Pobranie danych z wykresu
         var gantt = await JSRuntime.InvokeAsync<object[]>("SaveGanttData");
+        if (gantt == null || przefiltrowaneDaneDoPlanowania == null || przefiltrowaneDaneDoPlanowania.Count() == 0)
+        {
+            await _message.Info("Brak danych na wykresie!");
+            return;
+        }
+
+        loading = true;
+
 
         click_task = "";
 
@@ -604,13 +641,17 @@
         {
             string taskJson = task.ToString();
 
-            // Console.WriteLine($"Original JSON: {taskJson}");
 
             // Deserialize JSON to a model object
             var updateTaskRequest = JsonSerializer.Deserialize<UpdateTaskRequest>(taskJson);
 
             if (updateTaskRequest != null)
             {
+                bool wewnetrzne = false;
+                if (updateTaskRequest.Id.StartsWith("Task_1_"))
+                {
+                    wewnetrzne = true;
+                }
                 string rowID = updateTaskRequest.Id.Replace("Task_0_", "").Replace("Task_1_", ""); // Assuming 'Id' is the 'RowIdZlec'
 
                 DateTime nowaData = DateTime.ParseExact(updateTaskRequest._Start,
@@ -621,20 +662,37 @@
 
                 nowaData = nowaData.AddHours(3); //Poprawka błedu JS z wartości _start 22:00
 
-
-                // Console.WriteLine($"updateTaskRequest: {updateTaskRequest.Start} - {updateTaskRequest.End}");
-                // Send PUT request to the server
-                var response = await Http.PostAsJsonAsync($"api/ZleceniaProdukcyjne/zmien-date-produkcji?rowid={rowID}", nowaData);
-
-                if (response.IsSuccessStatusCode)
+                if (!wewnetrzne)
                 {
-                    Console.WriteLine($"Pomyślnie zaktualizowano zadanie o identyfikatorze rowID: {rowID}");
+                    // Send PUT request to the server
+                    var response = await Http.PostAsJsonAsync($"api/ZleceniaProdukcyjne/zmien-date-produkcji?rowid={rowID}", nowaData);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine($"Pomyślnie zaktualizowano zadanie o identyfikatorze rowID: {rowID}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Nie udało się zaktualizować zadania o identyfikatorze rowID: {rowID}");
+                        Console.WriteLine($"DateTime NowaData = Convert.ToDateTime({updateTaskRequest.Name})");
+                        jestBlad = true;
+                    }
                 }
                 else
                 {
-                    Console.WriteLine($"Nie udało się zaktualizować zadania o identyfikatorze rowID: {rowID}");
-                    Console.WriteLine($"DateTime NowaData = Convert.ToDateTime({updateTaskRequest._Start})");
-                    jestBlad = true;
+                    // Send PUT request to the server
+                    var response = await Http.PostAsJsonAsync($"api/ZleceniaProdukcyjneWew/zmien-date-produkcji?rowid={rowID}", nowaData);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine($"Pomyślnie zaktualizowano zadanie o identyfikatorze rowID: {rowID}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Nie udało się zaktualizować zadania o identyfikatorze rowID: {rowID}");
+                        Console.WriteLine($"DateTime NowaData = Convert.ToDateTime({updateTaskRequest.Name})");
+                        jestBlad = true;
+                    }
                 }
             }
         }
@@ -799,6 +857,7 @@
         }
     }
 
+ 
     private async Task InitializeFrappeGantt()
     {
         if (przefiltrowaneDaneDoPlanowania == null) return;
@@ -807,9 +866,13 @@
 
         Console.WriteLine("InitializeFrappeGantt.....");
 
-        await JSRuntime.InvokeVoidAsync("console.log", "Calling clearGantt");
+        await JSRuntime.InvokeVoidAsync("removeGanttEventListeners");
 
-        await JSRuntime.InvokeVoidAsync("clearGantt", "#gantt");
+        // Usuwanie poprzedniego elementu SVG
+        await JSRuntime.InvokeVoidAsync("clearGantt", "#gantt-container");
+
+        // Tworzenie nowego elementu SVG
+        await JSRuntime.InvokeVoidAsync("createNewGanttSVG", "#gantt-container");
 
         var tasks = new List<object>();
 
@@ -819,8 +882,10 @@
 
         foreach (var item in przefiltrowaneDaneDoPlanowania)
         {
-            var czasProdukcjiWDniach = (double)item.ZleceniaProdukcyjneDto?.JednostkiNaZlecenie / wydajnoscWybranejLinii;
+            var czasProdukcjiWDniach = (double)item.JednostkiNaZlecenie / wydajnoscWybranejLinii;
             var czasProdukcjiWHours = czasProdukcjiWDniach * 24;
+
+            Console.WriteLine($"jednostki: {item.JednostkiNaZlecenie} czasProdukcjiWHours: {czasProdukcjiWHours} dla {item.NumerZlecenia}");
 
             DateTime start = item.PlanowanaDataRozpoczeciaProdukcji;
             DateTime end = start.AddHours(czasProdukcjiWHours);
@@ -849,8 +914,6 @@
             char tzlec;
             tzlec = item.ZlecenieWewnetrzne ? '1' : '0';
 
-            string miles = item.ZlecenieWewnetrzne ? "bar-secmilestone" : "bar-milestone";
-
             var task = new
             {
                 id = $"Task_{tzlec}_{item.ZleceniaProdukcyjneDto.RowId}",
@@ -861,12 +924,12 @@
                 _end = FormatDate(end, 15),
                 progress = 0,
                 dependencies = s_dependencies,
-                custom_class = miles
+                custom_class = item.ZlecenieWewnetrzne ? "bar-secmilestone" : "bar-milestone"
             };
 
             if (s_dependencies == "") s_dependencies = $", Task_{tzlec}_{item.ZleceniaProdukcyjneDto.RowId}";
 
-            Console.WriteLine($"task: start: {task.start} stop: {task.end} dependencies:{s_dependencies}");
+            //Console.WriteLine($"task: start: {task.start} stop: {task.end} dependencies:{s_dependencies}");
 
             tasks.Add(task);
         }
@@ -886,15 +949,20 @@
             padding = 18,
             view_mode = "Day",
             language = "pl",
-            date_format = "YYYY-MM-DD", // Zmieniono format
-            custom_popup_html = "function(task) {const end_date = task._end.format(&quot; MMM D&quot;);return `<div class=&quot;details-container&quot;><h5>${task.name}</h5><p>Expected to finish by ${end_date}</p><p>${task.progress}% completed! </p></div>`;"
+            date_format = "YYYY-MM-DD"
         });
 
+        var customPopupHtml = @"
+        function(task) {
+            const end_date = task._end.format('MMM D');
+            return `<div class=""details-container""><h5>${task.name}</h5><p>Expected to finish by ${end_date}</p><p>${task.progress}% completed!</p></div>`;
+        }";
+
+    
         try
         {
             var tasksJson = JsonSerializer.Serialize(tasks);
-
-            await JSRuntime.InvokeVoidAsync("initializeFrappeGanttFromJson", "#gantt", tasksJson, optionsJson, dotNetHelper);
+            await JSRuntime.InvokeVoidAsync("initializeFrappeGanttFromJson", "#gantt", tasksJson, optionsJson, customPopupHtml, dotNetHelper);
             await JSRuntime.InvokeVoidAsync("addGanttClickEvent", "#gantt", dotNetHelper);
         }
         catch (Exception ex)
@@ -904,7 +972,6 @@
 
         Console.WriteLine("InitializeFrappeGantt koniec..... :) ");
     }
-
 
 
     [JSInvokable]

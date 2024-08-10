@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using netDxf.Entities;
 
 namespace GEORGE.Server.Controllers
 {
@@ -32,14 +33,15 @@ namespace GEORGE.Server.Controllers
                                 {
                                     Id = linia.Id,
                                     RowIdLinieProdukcyjne = linia.RowId,
-                                    RowIdZlecnia = subzlecenie.RowId,
+                                    RowIdZlecnia = rowid,
                                     IdLiniiProdukcyjnej = linia.IdLiniiProdukcyjnej,
                                     NazwaLiniiProdukcyjnej = linia.NazwaLiniiProdukcyjnej,
                                     DziennaZdolnoscProdukcyjna = linia.DziennaZdolnoscProdukcyjna,
                                     Uwagi = linia.Uwagi,
                                     KtoZapisal = linia.KtoZapisal,
                                     OstatniaZmiana = linia.OstatniaZmiana,
-                                    CzasNaZlecenie = subzlecenie != null ? subzlecenie.CzasNaZlecenie : 0
+                                    CzasNaZlecenie = subzlecenie != null ? subzlecenie.CzasNaZlecenie : 0,
+                                    ZlecenieWewnetrzne = subzlecenie != null ? subzlecenie.ZlecenieWewnetrzne : false
                                 })
                                 .OrderBy(e => e.IdLiniiProdukcyjnej) // Sortowanie według IdLiniiProdukcyjnej, jeśli chcesz sortować według innego pola, zmień tutaj
                                 .ToListAsync();
@@ -66,48 +68,91 @@ namespace GEORGE.Server.Controllers
 
 
         [HttpPut("{rowId}")]
-        public async Task<IActionResult> UpdateZlecenieCzasNaLinieProd(string rowId, [FromBody] LinieProdukcyjneWithCzasViewModel updatedZlecenie)
+        public async Task<IActionResult> UpdateZlecenieCzasNaLinieProd(string rowId, [FromBody] LinieProdukcyjneWithCzasViewModel czaszmiana)
         {
-            if (rowId != updatedZlecenie.RowIdZlecnia)
-            {
-                return BadRequest();
-            }
 
+            //// METODA USUNIĘCIA WSZYTKICH DANYCH!!!
+            //// Pobierz wszystkie rekordy z tabeli
+            //var wszystkieZleceniaNaLinii = _context.ZleceniaCzasNaLinieProd.ToList();
+            //// Usuń wszystkie rekordy
+            //_context.ZleceniaCzasNaLinieProd.RemoveRange(wszystkieZleceniaNaLinii);
+            //// Zapisz zmiany do bazy danych
+            //await _context.SaveChangesAsync();
+
+            // Znalezienie istniejącego zlecenia
             var existingZlecenie = await _context.ZleceniaCzasNaLinieProd
-                .FirstOrDefaultAsync(z => z.RowIdZleceniaProdukcyjne == rowId);
+                .FirstOrDefaultAsync(z => z.RowIdZleceniaProdukcyjne == rowId && z.RowIdLinieProdukcyjne == czaszmiana.RowIdLinieProdukcyjne);
 
             if (existingZlecenie == null)
             {
-                return NotFound();
-            }
-
-            existingZlecenie.CzasNaZlecenie = updatedZlecenie.CzasNaZlecenie;
-            // Update other fields if necessary
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!ZlecenieCzasNaLinieProdExists(rowId))
+                // Jeśli rekord nie istnieje, utwórz nowy
+                var newZlecenie = new ZleceniaCzasNaLinieProd
                 {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+                    RowIdZleceniaProdukcyjne = rowId,
+                    RowIdLinieProdukcyjne = czaszmiana.RowIdLinieProdukcyjne,
+                    CzasNaZlecenie = czaszmiana.CzasNaZlecenie,
+                    ZlecenieWewnetrzne = czaszmiana.ZlecenieWewnetrzne,
+                    Uwagi = czaszmiana.Uwagi,
+                    DataZapisu = DateTime.Now,
+                    KtoZapisal = czaszmiana.KtoZapisal
+                };
 
-            return NoContent();
+                // Dodaj nowy rekord do kontekstu
+                await _context.ZleceniaCzasNaLinieProd.AddAsync(newZlecenie);
+
+                try
+                {
+                    // Zapisz zmiany w bazie danych
+                    await _context.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    // Obsłuż ewentualne wyjątki podczas zapisu
+                    return StatusCode(StatusCodes.Status500InternalServerError, $"Błąd podczas dodawania nowego rekordu: {ex.Message}");
+                }
+
+                // Zwróć odpowiedź z kodem 201 Created
+                return CreatedAtAction(nameof(UpdateZlecenieCzasNaLinieProd), new { rowId = newZlecenie.RowIdZleceniaProdukcyjne }, newZlecenie);
+            }
+            else
+            {
+                // Jeśli rekord istnieje, zaktualizuj go
+                existingZlecenie.CzasNaZlecenie = czaszmiana.CzasNaZlecenie;
+                existingZlecenie.RowIdLinieProdukcyjne = czaszmiana.RowIdLinieProdukcyjne;
+                existingZlecenie.ZlecenieWewnetrzne = czaszmiana.ZlecenieWewnetrzne;
+                existingZlecenie.Uwagi = czaszmiana.Uwagi;
+                existingZlecenie.OstatniaZmiana = "Zmiana: " + DateTime.Now.ToLongDateString();
+                existingZlecenie.KtoZapisal = czaszmiana.KtoZapisal;
+
+                try
+                {
+                    // Zapisz zmiany w bazie danych
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    // Jeśli rekord nie istnieje podczas zapisu (np. został usunięty), zwróć kod 404 Not Found
+                    if (!ZlecenieCzasNaLinieProdExists(rowId))
+                    {
+                        return NotFound();
+                    }
+                    else
+                    {
+                        // Ponowne zgłoszenie wyjątku
+                        throw;
+                    }
+                }
+
+                // Zwróć odpowiedź z kodem 204 No Content
+                return NoContent();
+            }
         }
-
 
         private bool ZlecenieCzasNaLinieProdExists(string rowId)
         {
             return _context.ZleceniaCzasNaLinieProd.Any(e => e.RowIdZleceniaProdukcyjne == rowId);
         }
+
 
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteZlecenieProdukcyjneAsync(long id)

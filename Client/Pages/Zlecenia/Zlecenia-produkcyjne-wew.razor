@@ -63,6 +63,8 @@ else
             <Table TItem="ZleceniaProdukcyjneWew" DataSource="@zleceniaProdukcyjneWew" RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "" )">
             <ActionColumn Title="Materiały">
                 <a @onclick="() => DodajKantowke(context)">Kantówka</a>
+                <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">Czasy</a>
+                <a @onclick="() => FileEdit(context)">Pliki</a>
             </ActionColumn>
                 <Column Title="Status" TData="string">
                 @if (context.Tags != null)
@@ -106,9 +108,7 @@ else
                             OkText="Tak"
                             CancelText="Nie">
                     <a style="color:red">Usuń</a>
-                </Popconfirm>
-                <br/>
-                <a @onclick="() => FileEdit(context)">Zapisane pliki</a>
+                </Popconfirm>  
             </ActionColumn>
         </Table>
     </ul>
@@ -231,6 +231,7 @@ else
                         </AntDesign.Col>
                         <AntDesign.Col Span="12">
                             <AntDesign.FormItem Label="Jednostki produkcyjne na wyk. Zlecenia">
+                                <label>(jeżeli czasy do linii zostaną uzupełnione to ten wpis zostanie pominięty)</label>
                                 <AntDesign.InputNumber @bind-Value="zlecenie.JednostkiNaZlecenie" />
                             </AntDesign.FormItem>
                         </AntDesign.Col>
@@ -327,7 +328,27 @@ else
     </div>
 </div>
 
+<div class="modal fade @classShowTWZ" tabindex="-1" style="display: @displayTWZ;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 40%;">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ustaw czas produkcji na różnych liniach</h5>
+            </div>
+            <div class="modal-body">
+                @if(rowIdClick != "")
+                {
+                    <Czasy_Zlecen_Na_Linii RowIdZlecenia="@rowIdClick" NowaStronaRazor="false" />
+                } 
+            </div>
+            <div class="modal-footer d-flex">
+                <Button class="ms-auto" @onclick="() => HideDialogTWZ()">Zakończ</Button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @code {
+
     [Parameter]
     public string? RowIdZlecenia { get; set; }
 
@@ -354,6 +375,12 @@ else
     private string classShowPass = "";
     private string classPass = "";
     private long id_del = -1;
+
+    private string displayTWZ = "none;";
+    private string classShowTWZ = "";
+    private string classTWZ = "";
+
+    private string rowIdClick = "";
 
     private long cid = -1;
 
@@ -505,6 +532,19 @@ else
     private void DodajKantowke(ZleceniaProdukcyjneWew row)
     {
         navigationManager.NavigateTo($"/Kantowka-do-zlecen/{row.RowId}");
+    }
+
+    private async Task DodajCzasyWykonaia(ZleceniaProdukcyjneWew row)
+    {
+        rowIdClick = row.RowId == null ? "" : row.RowId;
+
+        Console.WriteLine($"rowIdClick: {rowIdClick}");
+
+        await Task.Delay(1);
+        displayTWZ = "block";
+        await Task.Delay(50);
+        classShowTWZ = "show";
+        StateHasChanged();
     }
 
     bool blokuDwuKlik = false;
@@ -769,6 +809,17 @@ else
         StateHasChanged();
 
        await delRow();
+    }
+
+    private async Task HideDialogTWZ()
+    {
+        displayTWZ = "";
+        await Task.Delay(200);
+        displayTWZ = "none";
+
+        StateHasChanged();
+
+        rowIdClick = "";
     }
 
     private async Task ZmienUwage(long id, string uwaga)

@@ -12,6 +12,7 @@
         public string? KtoZapisal { get; set; }
         public string? OstatniaZmiana { get; set; }
         public int CzasNaZlecenie { get; set; } = 0;
+        public bool ZlecenieWewnetrzne { get; set; } = false;
     }
 
 }

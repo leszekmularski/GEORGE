@@ -62,6 +62,8 @@ else
         <Table TItem="ZleceniaProdukcyjne" DataSource="@zleceniaProdukcyjne" RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "" )">
             <ActionColumn Title="Materiały">
                 <a @onclick="() => DodajKantowke(context)" class="custom-link">Kantówka</a>
+                <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">Czasy</a>
+                <a @onclick="() => FileEdit(context)">Pliki</a>
             </ActionColumn>
             <Column Title="Status" TData="string">
                 @if (context.Tags != null)
@@ -106,8 +108,6 @@ else
                             CancelText="Nie">
                     <a style="color:red">Usuń</a>
                 </Popconfirm>
-                <br />
-                <a @onclick="() => FileEdit(context)">Zapisane pliki</a>
             </ActionColumn>
         </Table>
     </div>
@@ -236,6 +236,7 @@ else
                         </AntDesign.Col>
                         <AntDesign.Col Span="12">
                             <AntDesign.FormItem Label="Jednostki produkcyjne na wyk. Zlecenia">
+                                <label>(jeżeli czasy do linii zostaną uzupełnione to ten wpis zostanie pominięty)</label>
                                 <AntDesign.InputNumber @bind-Value="zlecenie.JednostkiNaZlecenie" />
                                 @if (cid == -1)
                                 {
@@ -322,7 +323,7 @@ else
     </div>
 </div>
 
-    <div class="modal fade @classShowPass" tabindex="-1" style="display: @displayPass;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 25%;">
+<div class="modal fade @classShowPass" tabindex="-1" style="display: @displayPass;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 25%;">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
@@ -331,10 +332,28 @@ else
             <div class="modal-body">
 
                 <Input Placeholder="Podaj hasło!!!" @bind-Value="@classPass" MaxLength="25" />
-
             </div>
             <div class="modal-footer d-flex">
                 <Button class="ms-auto" @onclick="() => HideDialogPass()">OK</Button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade @classShowTWZ" tabindex="-1" style="display: @displayTWZ;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 40%;">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ustaw czas produkcji na różnych liniach</h5>
+            </div>
+            <div class="modal-body">
+                @if(rowIdClick != "")
+                {
+                    <Czasy_Zlecen_Na_Linii RowIdZlecenia="@rowIdClick" NowaStronaRazor="false" />
+                } 
+            </div>
+            <div class="modal-footer d-flex">
+                <Button class="ms-auto" @onclick="() => HideDialogTWZ()">Zakończ</Button>
             </div>
         </div>
     </div>
@@ -366,9 +385,17 @@ else
     private string displayPass = "none;";
     private string classShowPass = "";
     private string classPass = "";
+
+
+    private string displayTWZ = "none;";
+    private string classShowTWZ = "";
+    private string classTWZ = "";
+
     private long id_del = -1;
 
     private long cid = -1;
+
+    private string rowIdClick = "";
 
     private ZleceniaProdukcyjne zlecenie = new ZleceniaProdukcyjne();
 
@@ -457,6 +484,19 @@ else
         {
             // Obsłuż błąd
         }
+    }
+
+    private async Task DodajCzasyWykonaia(ZleceniaProdukcyjne row)
+    {
+        rowIdClick = row.RowId == null ? "" : row.RowId;
+
+        Console.WriteLine($"rowIdClick: {rowIdClick}");
+
+        await Task.Delay(1);
+        displayTWZ = "block";
+        await Task.Delay(50);
+        classShowTWZ = "show";
+        StateHasChanged();
     }
 
     private void DodajKantowke(ZleceniaProdukcyjne row)
@@ -555,7 +595,7 @@ else
         {
             if (zlecenie.Id == 0)
             {
-              //  zleceniaProdukcyjne.Add(zlecenie); // Dodaj nowe zlecenie do listy
+                //  zleceniaProdukcyjne.Add(zlecenie); // Dodaj nowe zlecenie do listy
             }
             else
             {
@@ -636,30 +676,30 @@ else
 
         originalzleceniaProdukcyjne = zleceniaProdukcyjne.DeepCopyList();
 
-            zlecenie = new ZleceniaProdukcyjne();
+        zlecenie = new ZleceniaProdukcyjne();
 
-            var  listOfData = zleceniaProdukcyjne.Where(d => d.Id == id).ToArray();
+        var  listOfData = zleceniaProdukcyjne.Where(d => d.Id == id).ToArray();
 
-            // Pobierz zlecenie na podstawie indeksu wiersza
-            if (listOfData != null && listOfData.Count() > 0 )
-            {
-                cid = id;
+        // Pobierz zlecenie na podstawie indeksu wiersza
+        if (listOfData != null && listOfData.Count() > 0 )
+        {
+            cid = id;
 
-                zlecenie = listOfData[0];
+            zlecenie = listOfData[0];
 
-                zlecenie.OstatniaZmiana = "*Zmiana: " + DateTime.Now.ToLongDateString();
+            zlecenie.OstatniaZmiana = "*Zmiana: " + DateTime.Now.ToLongDateString();
 
-                if (string.IsNullOrEmpty(zlecenie.RowId)) zlecenie.RowId = Guid.NewGuid().ToString();
+            if (string.IsNullOrEmpty(zlecenie.RowId)) zlecenie.RowId = Guid.NewGuid().ToString();
 
-                await LoadFiles(zlecenie.RowId);
+            await LoadFiles(zlecenie.RowId);
 
-                _visible = true;
+            _visible = true;
 
-                await ShowDialog();
-            }
+            await ShowDialog();
+        }
 
-            // Wyświetl numer zamówienia w konsoli
-            Console.WriteLine(zlecenie.NumerZamowienia);
+        // Wyświetl numer zamówienia w konsoli
+        Console.WriteLine(zlecenie.NumerZamowienia);
 
     }
 
@@ -699,7 +739,7 @@ else
         await HandleSubmit();
         // await HandleSubmit();
         // _visible = false;
-       // await HideDialog();
+        // await HideDialog();
     }
 
     public async Task HandleCancel()
@@ -781,14 +821,26 @@ else
 
     private async Task HideDialogPass()
     {
-
+        displayTWZ = "";
         classShowPass = "";
         await Task.Delay(200);
         displayPass = "none";
+        displayTWZ = "none";
 
         StateHasChanged();
 
-       await delRow();
+        await delRow();
+    }
+
+    private async Task HideDialogTWZ()
+    {
+        displayTWZ = "";
+        await Task.Delay(200);
+        displayTWZ = "none";
+
+        StateHasChanged();
+
+        rowIdClick = "";
     }
 
     private async Task ZmienUwage(long id, string uwaga)
@@ -840,7 +892,6 @@ else
             }
         }
     }
-
 
     public class ResponseModel
     {

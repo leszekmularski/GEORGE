@@ -52,30 +52,47 @@ else
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <AntDesign.Form Model="@nlinie" Layout="FormLayout.Vertical" OnFinish="@HandleSubmit">
-                    <AntDesign.FormItem Label="Id linii w systemie">
-                        <AntDesign.Input @bind-Value="nlinie.IdLiniiProdukcyjnej" MaxLength="15" Required Placeholder="Podaj Id linii np #001" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Nazwa Linii Produkcyjnej">
-                        <AntDesign.Input @bind-Value="nlinie.NazwaLiniiProdukcyjnej" Required />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Dzienna Zdolność Produkcyjna [w jednostkach produkcyjnych]">
-                        <AntDesign.Input @bind-Value="nlinie.DziennaZdolnoscProdukcyjna" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Uwagi">
-                        <AntDesign.Input @bind-Value="nlinie.Uwagi" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Kto Zapisał">
-                        <AntDesign.Input @bind-Value="nlinie.KtoZapisal" Required />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Ostatnia Zmiana">
-                        <AntDesign.Input @bind-Value="nlinie.OstatniaZmiana" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem>
-                        <AntDesign.Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</AntDesign.Button>
-                        <AntDesign.Button @onclick="@HandleCancel">Anuluj</AntDesign.Button>
-                    </AntDesign.FormItem>
-                </AntDesign.Form>
+                <form onsubmit="@HandleSubmit">
+                    <div class="mb-3">
+                        <label for="idLinii" class="form-label">Id linii w systemie</label>
+                        <input type="text" class="form-control" id="idLinii" @bind="@nlinie.IdLiniiProdukcyjnej" maxlength="15" required placeholder="Podaj Id linii np #001" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="nazwaLinii" class="form-label">Nazwa Linii Produkcyjnej</label>
+                        <input type="text" class="form-control" id="nazwaLinii" @bind="@nlinie.NazwaLiniiProdukcyjnej" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="zdolnoscProdukcyjna" class="form-label">Dzienna Zdolność Produkcyjna [w jednostkach produkcyjnych]</label>
+                        <input type="number" class="form-control" id="zdolnoscProdukcyjna" @bind="@nlinie.DziennaZdolnoscProdukcyjna" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="uwagi" class="form-label">Uwagi</label>
+                        <input type="text" class="form-control" id="uwagi" @bind="@nlinie.Uwagi" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="ktoZapisal" class="form-label">Kto Zapisał</label>
+                        <input type="text" class="form-control" id="ktoZapisal" @bind="@nlinie.KtoZapisal" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="ostatniaZmiana" class="form-label">Ostatnia Zmiana</label>
+                        <input type="text" class="form-control" id="ostatniaZmiana" @bind="@nlinie.OstatniaZmiana" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="rowId" class="form-label">RowId</label>
+                        <input type="text" class="form-control" id="rowId" @bind="@nlinie.RowId" readonly />
+                    </div>
+
+                    <div class="mb-3">
+                        <button type="submit" class="btn btn-primary">Zapisz</button>
+                        <button type="button" class="btn btn-secondary" @onclick="@HandleCancel">Anuluj</button>
+                    </div
+               </form>
             </div>
         </div>
     </div>
@@ -84,6 +101,7 @@ else
 @code {
     private List<LinieProdukcyjne>? rodzajeLinieProdukcyjne;
     private List<LinieProdukcyjne>? oryginalLinieProdukcyjne;
+
 
     private bool _visible = false;
     private string display = "none;";
@@ -100,7 +118,6 @@ else
         {
             rodzajeLinieProdukcyjne = await Http.GetFromJsonAsync<List<LinieProdukcyjne>>("api/LinieProdukcyjne/");
 
-            nlinie = new LinieProdukcyjne();
             nlinie.Id = 0;
         }
         catch (Exception ex)
@@ -110,72 +127,83 @@ else
     }
 
     bool blokujDwuKlik = false;
+
     private async Task HandleSubmit()
     {
+        Console.WriteLine("HandleSubmit()");
 
-        if (_visible == false || blokujDwuKlik) return;
-
-        blokujDwuKlik = true;
-
-        nlinie.IdLiniiProdukcyjnej = nlinie.IdLiniiProdukcyjnej.ToUpper();
-
-        HttpResponseMessage response;
-
-        if (nlinie.Id == 0)
+        try
         {
-            // Sprawdź unikalność NumerRodzajuKart
-            var responsedbl = rodzajeLinieProdukcyjne.Where(e => e.IdLiniiProdukcyjnej == nlinie.IdLiniiProdukcyjnej);
+            if (_visible == false || blokujDwuKlik) return;
 
-            if (responsedbl != null && responsedbl.Count() > 0)
-            {
-                // Wyświetl komunikat o błędzie, że NumerRodzajuKart nie jest unikalny
-                Console.WriteLine("Numer LINII musi być unikalny.");
-                await _message.Error("Numer LINII musi być unikalny.");
-                blokujDwuKlik = false;
-                return;
-            }
+            blokujDwuKlik = true;
 
-            response = await Http.PostAsJsonAsync("api/LinieProdukcyjne", nlinie);
-        }
-        else
-        {
-            response = await Http.PutAsJsonAsync($"api/LinieProdukcyjne/{nlinie.Id}", nlinie);
+            nlinie.IdLiniiProdukcyjnej = nlinie.IdLiniiProdukcyjnej.ToUpper();
 
-            if (rodzajeLinieProdukcyjne != null) oryginalLinieProdukcyjne = rodzajeLinieProdukcyjne.DeepCopyList();
-        }
+            HttpResponseMessage response;
 
-        if (response.IsSuccessStatusCode)
-        {
             if (nlinie.Id == 0)
             {
-                rodzajeLinieProdukcyjne.Add(nlinie); // Dodaj nowe nlinie do listy
+                // Sprawdź unikalność NumerRodzajuKart
+                var responsedbl = rodzajeLinieProdukcyjne.Where(e => e.IdLiniiProdukcyjnej == nlinie.IdLiniiProdukcyjnej);
+
+                if (responsedbl != null && responsedbl.Count() > 0)
+                {
+                    // Wyświetl komunikat o błędzie, że NumerRodzajuKart nie jest unikalny
+                    Console.WriteLine("Numer LINII musi być unikalny.");
+                    await _message.Error("Numer LINII musi być unikalny.");
+                    blokujDwuKlik = false;
+                    return;
+                }
+
+                response = await Http.PostAsJsonAsync("api/LinieProdukcyjne", nlinie);
             }
             else
             {
-                // Znajdź istniejące nlinie i zaktualizuj je
-                var index = rodzajeLinieProdukcyjne.FindIndex(z => z.Id == nlinie.Id);
+                response = await Http.PutAsJsonAsync($"api/LinieProdukcyjne/{nlinie.Id}", nlinie);
 
-                if (index != -1)
-                {
-                    rodzajeLinieProdukcyjne[index] = nlinie;
-                }
+                if (rodzajeLinieProdukcyjne != null) oryginalLinieProdukcyjne = rodzajeLinieProdukcyjne.DeepCopyList();
             }
 
-            _visible = false;
-            nlinie = new LinieProdukcyjne(); // Zresetuj formularz
+            if (response.IsSuccessStatusCode)
+            {
+                if (nlinie.Id == 0)
+                {
+                    rodzajeLinieProdukcyjne.Add(nlinie); // Dodaj nowe nlinie do listy
+                }
+                else
+                {
+                    // Znajdź istniejące nlinie i zaktualizuj je
+                    var index = rodzajeLinieProdukcyjne.FindIndex(z => z.Id == nlinie.Id);
 
-            await HideDialog();
+                    if (index != -1)
+                    {
+                        rodzajeLinieProdukcyjne[index] = nlinie;
+                    }
+                }
 
-            StateHasChanged(); // Odśwież widok
+                _visible = false;
+                nlinie = new LinieProdukcyjne(); // Zresetuj formularz
 
-            blokujDwuKlik = false;
+                await HideDialog();
+
+                StateHasChanged(); // Odśwież widok
+
+                blokujDwuKlik = false;
+            }
+            else
+            {
+                // Obsługa błędów
+                Console.WriteLine("Błąd podczas zapisywania rodzaju nlinie - źródło RAZOR");
+
+                blokujDwuKlik = false;
+            }
+
         }
-        else
+        catch (Exception ex)
         {
-            // Obsługa błędów
-            Console.WriteLine("Błąd podczas zapisywania rodzaju nlinie - źródło RAZOR");
-
-            blokujDwuKlik = false;
+            await _message.Error(ex.Message);
+            Console.WriteLine(ex.StackTrace);
         }
     }
 
@@ -243,7 +271,7 @@ else
                     // nlinie.Uwagi = listOfData.Uwagi;
                     // nlinie.DataZapisu = listOfData.DataZapisu;
                     // nlinie.DziennaZdolnoscProdukcyjna = listOfData.DziennaZdolnoscProdukcyjna;
-                    nlinie.OstatniaZmiana = "Zmiana: " + DateTime.Now.ToLongDateString();
+                     nlinie.OstatniaZmiana = "Zmiana: " + DateTime.Now.ToLongDateString();
                     // nlinie.KtoZapisal = listOfData.KtoZapisal;
 
                     _visible = true;

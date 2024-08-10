@@ -3,13 +3,24 @@ var gantt;
 var tasks;
 var options;
 
-window.initializeFrappeGanttFromJson = function (selector, tasksJson, optionsJson, dotNetHelper) {
+window.initializeFrappeGanttFromJson = function (selector, tasksJson, optionsJson, customPopupHtml, dotNetHelper) {
     try {
-
         resetHeaderPosition();
 
         tasks = JSON.parse(tasksJson);
         options = JSON.parse(optionsJson);
+
+        console.log("customPopupHtml received:", customPopupHtml);
+
+        if (typeof customPopupHtml === 'string') {
+            try {
+                options.custom_popup_html = eval('(' + customPopupHtml + ')');
+                console.log("Custom popup HTML function successfully created.");
+            } catch (parseError) {
+                console.error("Error parsing customPopupHtml function:", parseError);
+                throw parseError;
+            }
+        }
 
         if (typeof Gantt !== 'undefined') {
             gantt = new Gantt(selector, tasks, options, {
@@ -19,6 +30,9 @@ window.initializeFrappeGanttFromJson = function (selector, tasksJson, optionsJso
                     if (dotNetHelper) {
                         dotNetHelper.invokeMethodAsync('OnClick', taskIndex);
                     }
+                    // Debugowanie: Wywołanie custom_popup_html
+                    var popupContent = options.custom_popup_html(task);
+                    console.log("Popup content generated:", popupContent);
                 },
                 on_date_change: function (task, start, end) {
                     console.log(task, start, end);
@@ -39,12 +53,12 @@ window.initializeFrappeGanttFromJson = function (selector, tasksJson, optionsJso
                 console.error("set_scroll_position function is not defined");
             }
 
-            // Add event listener for each bar in the Gantt chart
+            // Adding event listener for each bar in the Gantt chart
             setTimeout(() => {
                 document.querySelectorAll(".bar-wrapper").forEach((bar, index) => {
                     bar.setAttribute("data-task-id", index);
                     bar.addEventListener("click", function (event) {
-                        event.stopPropagation(); // Prevent the SVG click event
+                        event.stopPropagation(); // Prevents the SVG click event
                         dotNetHelper.invokeMethodAsync('OnClick', index);
                     });
                 });
@@ -56,6 +70,7 @@ window.initializeFrappeGanttFromJson = function (selector, tasksJson, optionsJso
         console.error("Error initializing Gantt chart:", e);
     }
 };
+
 
 // Function to save Gantt data
 window.SaveGanttData = function () {
@@ -158,21 +173,56 @@ window.clearGantt = function (selector) {
     try {
         var element = document.querySelector(selector);
         if (element) {
-            element.innerHTML = '';
-            console.log("clearGantt: element cleared");
+            while (element.firstChild) {
+                element.removeChild(element.firstChild);
+            }
+            element.removeAttribute("viewBox");
+            element.removeAttribute("width");
+            element.removeAttribute("height");
+            console.log("clearGantt: element został wyczyszczony");
+
+            if (gantt) {
+                gantt = null;
+            }
         } else {
-            console.error("clearGantt: element not found!");
+            console.error("clearGantt: nie znaleziono elementu!");
         }
     } catch (e) {
-        console.error("Error clearing Gantt:", e);
+        console.error("Błąd podczas czyszczenia wykresu Gantta:", e);
     }
 };
+
+function removeGanttEventListeners() {
+    document.querySelectorAll(".bar-wrapper").forEach((bar) => {
+        var newBar = bar.cloneNode(true); // Tworzenie kopii elementu bez nasłuchiwania
+        bar.parentNode.replaceChild(newBar, bar); // Zastąpienie starego elementu nowym
+    });
+}
+
 function resetHeaderPosition() {
     const headers = document.querySelectorAll('.gantt-container .grid-header, .gantt-container .upper-header, .gantt-container .lower-header');
     headers.forEach(header => {
         header.style.top = '0';
     });
 }
+
+window.createNewGanttSVG = function (selector) {
+    try {
+        var container = document.querySelector(selector);
+        if (container) {
+            var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svg.setAttribute("id", "gantt");
+            svg.style.overflow = "scroll";
+            container.appendChild(svg);
+            console.log("createNewGanttSVG: nowy element SVG został dodany");
+        } else {
+            console.error("createNewGanttSVG: nie znaleziono kontenera!");
+        }
+    } catch (e) {
+        console.error("Błąd podczas tworzenia nowego elementu SVG:", e);
+    }
+};
+
 //document.querySelector('.viewmode-select').addEventListener('change', function () {
 //    initializeGantt();
 //});

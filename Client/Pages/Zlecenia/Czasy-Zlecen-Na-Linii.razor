@@ -34,18 +34,36 @@
                     <td>
                         <input type="number" class="form-control" @bind="zlecenie.CzasNaZlecenie" />
                     </td>
-                    <Button Type="@ButtonType.Primary" @onclick="() => SaveChanges(zlecenie)">Zapisz zmianę</Button>
+                    <Button Icon="@IconType.Outline.Save" Style="width:55px" @onclick="() => SaveChanges(zlecenie)"></Button>
                 </tr>
+            }
+            @if (jakiBlad != "")
+            {
+                <td colspan="4">
+                    <Alert Type="@AlertType.Error"
+                           Message="Błąd!!"
+                           Description="@jakiBlad"
+                           ShowIcon="true" />
+                </td>
             }
         }
     </tbody>
 </table>
-<Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
+@if (NowaStronaRazor)
+{
+    <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
+}
+
 @code {
     [Parameter]
     public string? RowIdZlecenia { get; set; }
 
+    [Parameter]
+    public bool NowaStronaRazor { get; set; } = true;
+
     private List<LinieProdukcyjneWithCzasViewModel>? linieProdukcyjneWithCzasViewModel;
+
+    private string jakiBlad = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -90,28 +108,30 @@
         }
     }
 
-    private async Task SaveChanges(LinieProdukcyjneWithCzasViewModel zlecenie)
+    private async Task SaveChanges(LinieProdukcyjneWithCzasViewModel czaszlecenie)
     {
         try
         {
             // Send the updated data to the API
-            var response = await Http.PutAsJsonAsync($"api/ZleceniaCzasNaLinieProd/{zlecenie.RowIdZlecnia}", zlecenie);
+            var response = await Http.PutAsJsonAsync($"api/ZleceniaCzasNaLinieProd/{RowIdZlecenia}/", czaszlecenie);
 
             if (response.IsSuccessStatusCode)
             {
                 // Handle success (e.g., show a message or update the UI)
-                Console.WriteLine("Changes saved successfully.");
+                Console.WriteLine("Zmiany zostały zapisane pomyślnie.");
             }
             else
             {
                 // Handle failure (e.g., show an error message)
-                Console.WriteLine("Failed to save changes.");
+                Console.WriteLine("Nie udało się zapisać zmian.");
+                jakiBlad = "Nie udało się zapisać zmian.";
             }
         }
         catch (Exception ex)
         {
             // Handle exceptions (e.g., log the error or show an error message)
-            Console.WriteLine($"Error saving changes: {ex.Message}");
+            Console.WriteLine($"Błąd przy zapisie: {ex.Message}");
+            jakiBlad = $"Błąd przy zapisie: {ex.Message}";
         }
     }
 

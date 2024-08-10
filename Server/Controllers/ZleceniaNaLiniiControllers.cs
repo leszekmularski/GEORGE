@@ -30,29 +30,28 @@ namespace GEORGE.Server.Controllers
         }
 
         [HttpGet("GetDaneDoPlanowania/{rowIdLinii}/{juzZapisane}")]
-        public List<DaneDoPlanowaniaViewModel> GetDaneDoPlanowania(string rowIdLinii, string juzZapisane)
+        public async Task<List<DaneDoPlanowaniaViewModel>> GetDaneDoPlanowania(string rowIdLinii, string juzZapisane)
         {
             var TabelaPowiazan = _context.ZleceniaNaLinii
                 .OrderBy(x => x.DataZapisu)
                 .ToList();
 
-            Console.WriteLine($"*************************** TABELA ZleceniaNaLinii Ilość rekordów: {TabelaPowiazan.Count()} ************************************");  
+            Console.WriteLine($"*************************** TABELA ZleceniaNaLinii Ilość rekordów: {TabelaPowiazan.Count()} ************************************");
 
             // Pobierz wszystkie zlecenia produkcyjne
             var zleceniaProdukcyjne = _context.ZleceniaProdukcyjne
-                .Where(zp => zp.JednostkiNaZlecenie > 0 && zp.DataProdukcji > DateTime.Now.AddMonths(-12) && !zp.ZlecZrealizowane)
+                .Where(zp => zp.DataProdukcji > DateTime.Now.AddMonths(-12) && !zp.ZlecZrealizowane)
                 .OrderBy(x => x.DataZapisu)
                 .ToList();
 
             // Pobierz wszystkie zlecenia produkcyjne wewnętrzne
             var zleceniaProdukcyjneWew = _context.ZleceniaProdukcyjneWew
-                .Where(zw => zw.JednostkiNaZlecenie > 0 && zw.DataProdukcji > DateTime.Now.AddMonths(-12) && !zw.ZlecZrealizowane)
+                .Where(zw => zw.DataProdukcji > DateTime.Now.AddMonths(-12) && !zw.ZlecZrealizowane)
                 .OrderBy(x => x.DataZapisu)
                 .ToList();
 
             var zleceniaProdukcyjneDto = zleceniaProdukcyjne.Select(zp => new ZleceniaProdukcyjneDto
             {
-
                 Id = zp.Id,
                 RowId = zp.RowId,
                 TypZamowienia = zp.TypZamowienia,
@@ -112,7 +111,6 @@ namespace GEORGE.Server.Controllers
             // Połącz zlecenia produkcyjne z wewnętrznymi
             var wszystkieZleceniaProdukcyjneDto = zleceniaProdukcyjneDto.Concat(zleceniaProdukcyjneWewDto).ToList();
 
-
             // Pobierz wszystkie zlecenia na linii
             var zleceniaNaLinii = _context.ZleceniaNaLinii.ToList();
 
@@ -125,19 +123,21 @@ namespace GEORGE.Server.Controllers
 
             if (juzZapisane == "NIE")
             {
-                // Filtruj zlecenia produkcyjne, aby wykluczyć te, które mają RowId równe RowIdZleceniaProdukcyjne w ZleceniaNaLinii
-                //var filteredZleceniaProdukcyjne = wszystkieZleceniaProdukcyjneDto
-                //    .Where(zp => !zleceniaNaLinii.Any(znl => znl.RowIdZleceniaProdukcyjne == zp.RowId && znl.RowIdLinieProdukcyjne == rowIdLinii))
-                //    .ToList();
                 var filteredZleceniaProdukcyjne = wszystkieZleceniaProdukcyjneDto
-              .Where(zp => !zleceniaNaLinii.Any(znl => znl.RowIdZleceniaProdukcyjne == zp.RowId && znl.RowIdLinieProdukcyjne == rowIdLinii))
-              .ToList();
+                    .Where(zp => !zleceniaNaLinii.Any(znl => znl.RowIdZleceniaProdukcyjne == zp.RowId && znl.RowIdLinieProdukcyjne == rowIdLinii))
+                    .ToList();
 
                 // Mapuj przefiltrowane zlecenia produkcyjne do modelu widoku
-                var daneDoPlanowania = filteredZleceniaProdukcyjne.Select(zp =>
+                var daneDoPlanowania = filteredZleceniaProdukcyjne.Select(async zp =>
                 {
+                    // Sprawdź, czy istnieje rekord w ZleceniaCzasNaLinieProd
+                    var existingZlecenie = await _context.ZleceniaCzasNaLinieProd
+                        .FirstOrDefaultAsync(z => z.RowIdZleceniaProdukcyjne == zp.RowId && z.RowIdLinieProdukcyjne == rowIdLinii);
+
                     // Oblicz czas na wykonanie zlecenia
-                    var czasProdukcjiWDniach = (double)zp.JednostkiNaZlecenie / liniaProdukcyjna.DziennaZdolnoscProdukcyjna;
+                    int jednostkiNaZlecenie = existingZlecenie != null ? existingZlecenie.CzasNaZlecenie : zp.JednostkiNaZlecenie;
+                    
+                    var czasProdukcjiWDniach = (double)jednostkiNaZlecenie / liniaProdukcyjna.DziennaZdolnoscProdukcyjna;
                     var czasProdukcjiWHours = czasProdukcjiWDniach * 24;
 
                     return new DaneDoPlanowaniaViewModel
@@ -146,27 +146,32 @@ namespace GEORGE.Server.Controllers
                         ZleceniaProdukcyjneDto = zp,
                         Wyrob = zp.NazwaProduktu,
                         NumerZlecenia = zp.NumerZamowienia,
+                        JednostkiNaZlecenie = jednostkiNaZlecenie,
                         DomyslnyCzasProdukcji = (int)czasProdukcjiWHours, // Przypisz czas produkcji w godzinach
                         RowIdLiniiProdukcyjnej = rowIdLinii, // Możesz dostosować to pole w zależności od wymagań
                         ZlecenieWewnetrzne = zp.ZlecenieWewnetrzne
                     };
-                }).ToList();
+                }).Select(t => t.Result).ToList();
 
                 return daneDoPlanowania;
-
             }
             else
             {
                 // Filtruj zlecenia produkcyjne, aby wykluczyć te, które mają RowId równe RowIdZleceniaProdukcyjne w ZleceniaNaLinii
                 var filteredZleceniaProdukcyjne = wszystkieZleceniaProdukcyjneDto
-                .Where(zp => zleceniaNaLinii.Any(znl => znl.RowIdZleceniaProdukcyjne == zp.RowId && znl.RowIdLinieProdukcyjne == rowIdLinii))
-                .ToList();
+                    .Where(zp => zleceniaNaLinii.Any(znl => znl.RowIdZleceniaProdukcyjne == zp.RowId && znl.RowIdLinieProdukcyjne == rowIdLinii))
+                    .ToList();
 
                 // Mapuj przefiltrowane zlecenia produkcyjne do modelu widoku
-                var daneDoPlanowania = filteredZleceniaProdukcyjne.Select(zp =>
+                var daneDoPlanowania = filteredZleceniaProdukcyjne.Select(async zp =>
                 {
+                    // Sprawdź, czy istnieje rekord w ZleceniaCzasNaLinieProd
+                    var existingZlecenie = await _context.ZleceniaCzasNaLinieProd
+                        .FirstOrDefaultAsync(z => z.RowIdZleceniaProdukcyjne == zp.RowId && z.RowIdLinieProdukcyjne == rowIdLinii);
+
                     // Oblicz czas na wykonanie zlecenia
-                    var czasProdukcjiWDniach = (double)zp.JednostkiNaZlecenie / liniaProdukcyjna.DziennaZdolnoscProdukcyjna;
+                    int jednostkiNaZlecenie = existingZlecenie != null ? existingZlecenie.CzasNaZlecenie : zp.JednostkiNaZlecenie;
+                    var czasProdukcjiWDniach = (double)jednostkiNaZlecenie / liniaProdukcyjna.DziennaZdolnoscProdukcyjna;
                     var czasProdukcjiWHours = czasProdukcjiWDniach * 24;
 
                     return new DaneDoPlanowaniaViewModel
@@ -175,11 +180,12 @@ namespace GEORGE.Server.Controllers
                         ZleceniaProdukcyjneDto = zp,
                         Wyrob = zp.NazwaProduktu,
                         NumerZlecenia = zp.NumerZamowienia,
+                        JednostkiNaZlecenie = jednostkiNaZlecenie,
                         DomyslnyCzasProdukcji = (int)czasProdukcjiWHours, // Przypisz czas produkcji w godzinach
                         RowIdLiniiProdukcyjnej = rowIdLinii, // Możesz dostosować to pole w zależności od wymagań
                         ZlecenieWewnetrzne = zp.ZlecenieWewnetrzne
                     };
-                }).ToList();
+                }).Select(t => t.Result).ToList();
 
                 return daneDoPlanowania;
             }
