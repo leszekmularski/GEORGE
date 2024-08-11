@@ -2,6 +2,7 @@
 @inject IJSRuntime jsRuntime
 @inject HttpClient Http
 @inject Utilities.ILocalStorage LocalStorage
+@inject NavigationManager NavigationManager
 @using System.Net;
 @using GEORGE.Shared.Models
 
@@ -175,6 +176,8 @@
 </div>
 
 @code {
+    [Inject]
+    private NavigationManager? navigationManager { get; set; }
 
     private string displayInfo = "none;";
     private string classShowInfo = "";
@@ -392,6 +395,8 @@
         pokazbladLogowania = false;
         showLog = false;
         displayLog = false;
+
+        NavigationManager.NavigateTo($"", true);
 
     }
 
