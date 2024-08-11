@@ -1,0 +1,163 @@
+﻿@page "/ListaPracownikow"
+@using GEORGE.Shared.Models
+@using GEORGE.Shared.ViewModels
+@inject HttpClient Http;
+@inject Utilities.ILocalStorage LocalStorage
+@using AntDesign.TableModels;
+@using System.Text.Json;
+@using System
+@inject NavigationManager NavigationManager;
+<style>
+  .button-like {
+    display: inline-block;
+    background-color: #4CAF50;
+    color: white;
+    padding: 8px 16px;
+    text-align: center;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+</style>
+
+<link id="dynamic-css" rel="stylesheet" href="../usun_styl.css" />
+
+<h1>Użytkownicy w systemie</h1>
+
+@if (listaDzialow == null)
+{
+    <p><em>@infStatus</em></p>
+}
+else
+{
+    <div>
+
+        <br />
+
+        <Table DataSource="data" OnChange="OnChange" TItem="Data">
+            <PropertyColumn Hidden Property="c=>c.Id"
+                                    Sortable
+                                    Filterable />
+
+            <PropertyColumn Property="c=>c.Dzial"
+                        SorterCompare="@((a,b)=> string.Compare(a,b))"
+                        SortDirections="new[] { SortDirection.Descending }"
+                                    Filterable />
+
+            <PropertyColumn Property="c=>c.Imie"
+                        SorterCompare="@((a,b)=> string.Compare(a,b))"
+                        SortDirections="new[] { SortDirection.Descending, SortDirection.Ascending }"
+                                    Filterable />
+
+            <PropertyColumn Property="c=>c.Nazwisko"
+                        SorterCompare="@((a,b)=> string.Compare(a,b))"
+                        SortDirections="new[] { SortDirection.Descending, SortDirection.Ascending }"
+                                    Filterable />
+
+            <PropertyColumn Property="c=>c.DateZapisu"
+                        Format="yyyy/MM/dd"
+                                    Sortable
+                                    Filterable />
+
+            <PropertyColumn Title="Pracownik już nie pracuje" Property="c=>c.Czy_pracuje"
+                                    Sortable
+                                    Filterable />
+
+        </Table>
+
+    </div>
+}
+<style>
+    .save {
+        margin-right: 8px;
+    }
+</style>
+
+@code {
+    private DzialPracownikaViewModel? dzial { get; set; }
+    private List<DzialPracownikaViewModel>? listaDzialow;
+
+    private string infStatus = "Czekam na załadowanie danych....";
+
+    private string user = "";
+
+    private bool bAdmin = false;
+    private bool pusty_rekord = true;
+    private string infSatusZapisu = "";
+
+    Data[]? data;
+
+    protected override async Task OnInitializedAsync()
+    {
+        listaDzialow = await Http.GetFromJsonAsync<List<DzialPracownikaViewModel>>("/api/DzialIPracownicy");
+
+        if (listaDzialow != null)
+        {
+            data = new Data[listaDzialow.Count];
+
+            for (int i = 0; i < listaDzialow.Count; i++)
+            {
+                var item = listaDzialow[i];
+
+                string dzial = "NaN";
+                string imie = "NaN";
+                string nazwisko = "NaN";
+
+                if (item.NazwaDzialu != null) dzial = item.NazwaDzialu;
+                if (item.Imie != null) imie = item.Imie;
+                if (item.Nazwisko != null) nazwisko = item.Nazwisko;
+
+
+                Data dataItem = new Data(
+                    id: item.Id,
+                    dzial: dzial,
+                    imie: imie,
+                    nazwisko: nazwisko,
+                    datezapisu: item.Datautowrzenia,
+                    czy_pracuje: item.Nieaktywny
+                );
+
+                data[i] = dataItem;
+
+            }
+        }
+
+        user = await LocalStorage.GetStringAsync("user");
+
+        if (user == null || user == "")
+        {
+            NavigationManager.NavigateTo($"", true);
+            return;
+        }
+
+        base.OnInitialized();
+    }
+
+    void OnChange(QueryModel<Data> query)
+    {
+        Console.WriteLine(JsonSerializer.Serialize(query));
+    }
+
+    class Data
+    {
+        public Data(long id ,string dzial, string imie, string nazwisko, DateTime datezapisu, bool czy_pracuje)
+        {
+            Id = id;
+            Dzial = dzial;
+            Imie = imie;
+            Nazwisko = nazwisko;
+            DateZapisu = datezapisu;
+            Czy_pracuje = czy_pracuje;
+        }
+
+        public long Id { get; set; }
+        public string Dzial { get; set; }
+        public string Imie { get; set; }
+        public string Nazwisko { get; set; }
+        public DateTime DateZapisu { get; set; }
+        public bool Czy_pracuje { get; set; }
+    }
+
+
+}

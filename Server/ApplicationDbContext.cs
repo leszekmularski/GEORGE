@@ -23,6 +23,7 @@ namespace GEORGE.Server
         public DbSet<ZleceniaCzasNaLinieProd>? ZleceniaCzasNaLinieProd { get; set; }
         public DbSet<Pracownicy>? Pracownicy { get; set; }
         public DbSet<Logowania> Logowania => Set<Logowania>();
+        public DbSet<RodzajeDzialow> RodzajeDzialow => Set<RodzajeDzialow>();
 
         //***********************************************************************************************************************************************************************************************
 
