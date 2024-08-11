@@ -1,0 +1,371 @@
+﻿@* @page "/PanelAdmin" *@
+@using GEORGE.Shared.Models
+@using GEORGE.Shared.ViewModels
+@inject HttpClient Http;
+@using Microsoft.AspNetCore.Components.Web
+@inject Utilities.ILocalStorage LocalStorage
+@inject NavigationManager NavigationManager
+
+@if (bAdmin == false)
+{
+    <p><em>Nie masz uprawnień....</em></p>
+}
+else
+{
+
+    @if (infStat != "")
+    {
+        <h6 style="background-color: red; color: white;">@infStat</h6>
+    }
+
+    @if (nowyPracownik != null)
+    {
+        <form style="display: flex;">
+
+            <div style="flex-basis: 50%;">
+                <div class="form-row">
+                    <div class="form-group col-md-8">
+                        <label for="imie">Imię:</label>
+                        <input type="text" class="form-control" id="imie" @bind="@nowyPracownik.Imie" />
+                    </div>
+                    <div class="form-group col-md-8">
+                        <label for="nazwisko">Nazwisko:</label>
+                        <input type="text" class="form-control" id="nazwisko" @bind="@nowyPracownik.Nazwisko" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-8">
+                        <label for="telefon">Telefon:</label>
+                        <input type="text" class="form-control" id="telefon" @bind="@nowyPracownik.Telefon" />
+                    </div>
+                    <div class="form-group col-md-8">
+                        <label for="telefon">Stanowisko:</label>
+                        <input type="text" class="form-control" id="stanowisko" @bind="@nowyPracownik.Stanowisko" />
+                    </div>
+                    <div class="form-group col-md-8">
+                        <label for="telefon">Stanowisko w systemie:</label>
+
+                        <Select TItem="Item"
+                                TItemValue="string"
+                                DataSource="@_items"
+                        @bind-Value="@nowyPracownik.StanowiskoSystem"
+                                ValueName="@nameof(Item.Value)"
+                                LabelName="@nameof(Item.Name)"
+                                            DefaultActiveFirstOption
+                                 Style="width: 100%;"
+                                 OnSelectedItemChanged="OnSelectedItemChangedHandler">
+                             <ItemTemplate>
+                                 <span>@((context as Item).DisplayName)</span>
+                            </ItemTemplate>
+                        </Select>
+                    </div>
+                    <div class="form-group col-md-8">
+                        <label for="telefon">Wybierz dział:</label>
+                        <Select TItem="RodzajeDzialow"
+                        TItemValue="string"
+                        DataSource="@listaDzialow"
+                        @bind-Value="@nowyPracownik.RowIdDzialu"
+                        LabelName="@nameof(RodzajeDzialow.NazwaDzialu)"
+                        ValueName="@nameof(RodzajeDzialow.RowId)"
+                        Placeholder="Wybierz dział"
+                        DefaultActiveFirstOption="false"
+                                            EnableSearch
+                        OnBlur="OnBlur"
+                        OnFocus="OnFocus"
+                        OnSelectedItemChanged="OnSelectedItemChangedHandler"
+                        OnSearch="OnSearch">
+                        </Select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-8">
+                        <label for="telefon">Nazwa Użytkownika w systemie:</label>
+                         <label style="background-color: red; color: white;" for="inicjaly2">@uzytkowniksystem</label>
+                        <input type="text" class="form-control" id="uzytkowniksql" @bind="@nowyPracownik.UzytkownikSQL" @oninput="SprawdzUzytkownik" />
+                    </div>
+                    <div class="form-group col-md-8">
+                        <label for="telefon">Hasło do systemu:</label>
+                        <input type="text" class="form-control" id="haslosql" @bind="@nowyPracownik.HasloSQL" />
+                    </div>
+                </div>
+            </div>
+
+            <div style="flex-basis: 50%;">
+                <div class="form-row">
+                    <div class="form-group col-md-10">
+                        <label for="telefon">Notatka:</label>
+                        <input type="text" class="form-control" id="haslosql" @bind="@nowyPracownik.Notatka" />
+                    </div>
+                </div>
+            </div>
+
+        </form>
+        <br />
+        <button class="btn btn-dark" style="font-weight: bold; font-size: 1.2rem; width: 100%; margin-right: 4px;" @onclick="Zapisz">Zapisz</button>
+    }
+    else
+    {
+        <h2 style="background-color: red; color: white;">Nie znaleziono użytkownika [@user.ToUpper()]!!!!</h2>
+    }
+}
+
+
+@code {
+    [Parameter]
+    public Pracownicy? pracownik { get; set; }
+
+    public class Item
+    {
+        public string? Value { get; set; }
+        public string? Name { get; set; }
+        public string? DisplayName { get; set; }
+    }
+
+    private bool edycjaDanych = true;
+
+    private List<Pracownicy>? pracownicy;
+    private List<Pracownicy>? pracownicyspr;
+    private List<RodzajeDzialow>? listaDzialow;
+    private Pracownicy? nowyPracownik;
+    private string? user;
+
+    List<Item>? _items;
+    Item? _selectedItemUS;
+
+    string infStat = "";
+    string infinicjaly = "";
+    string uzytkowniksystem = "";
+
+    string? _selectedValue;
+    RodzajeDzialow? _selectedItem;
+
+
+    private bool bAdmin = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _items = new List<Item> 
+        {
+            new Item { Value = "Gość", Name = "Gość", DisplayName = "Gość - dostęp do zasobów działu z ograniczeniami gościa"},
+            new Item { Value = "Dyrektor", Name = "Dyrektor", DisplayName = "Dyrektor - dostęp do wszystkich zasobów"},
+            new Item { Value = "Kierownik", Name = "Kierownik", DisplayName = "Kierownik - dostęp do zasobów działu"},
+            new Item { Value = "Pracownik", Name = "Pracownik", DisplayName = "Pracownik - dostęp do zasobów działu z ograniczeniami"},
+            new Item { Value = "Stażysta", Name = "Stażysta", DisplayName = "Stażysta - dostęp do zasobów działu z ograniczeniami stażysty"}, 
+        };
+
+        //    await Laduj_Uprawnienia();
+
+        if (pracownik == null) return;
+
+        if (pracownik.UzytkownikSQL == "") edycjaDanych = false;
+
+        nowyPracownik = pracownik;
+
+        user = await LocalStorage.GetStringAsync("user");
+
+        pracownicyspr = await Http.GetFromJsonAsync<List<Pracownicy>>("api/Pracownicy");
+
+        if (pracownicyspr == null) return;
+
+        if (bAdmin == false) infStat = "Nie masz uprawnień w systemie do zmian";
+
+        listaDzialow = await Http.GetFromJsonAsync<List<RodzajeDzialow>>("/api/RodzajeDzialow");
+
+    }
+
+    private async Task SprawdzUzytkownik(ChangeEventArgs e)
+    {
+        // Pobierz aktualne wpisane inicjały
+        string wpisaneUzytkownik = e.Value.ToString();
+
+        // Pobierz dane pracowników
+        pracownicyspr = await Http.GetFromJsonAsync<List<Pracownicy>>("api/Pracownicy");
+
+        // Sprawdź, czy istnieją już takie inicjały w danych pracowników
+
+        bool inicjalyIstnieja = pracownicyspr.Any(p => string.Equals(p.UzytkownikSQL, wpisaneUzytkownik, StringComparison.OrdinalIgnoreCase));
+
+        if (inicjalyIstnieja)
+        {
+            // Tutaj możesz obsłużyć sytuację, gdy inicjały już istnieją
+            uzytkowniksystem = "Użytkownik już istnieje w danych pracowników.";
+        }
+        else
+        {
+            uzytkowniksystem = "";
+        }
+    }
+
+    private void OnSelectedItemChangedHandler(Item value)
+    {
+        _selectedItemUS = value;
+        Console.WriteLine($"selected: ${value?.Name}");
+    }
+
+    private async Task Zapisz()
+    {
+
+        if(nowyPracownik == null)
+        {
+            infStat = "Nie udało się zapisać. Sprawdź dane!";
+            return;
+        }
+
+        //var response = await Http.PutAsJsonAsync("/api/Pracownicy", nowyPracownik);// zmiana danych
+
+        if (nowyPracownik.Imie == "") { infStat = "Podaj Imię"; return; }
+        if (nowyPracownik.Nazwisko == "") { infStat = "Podaj Nazwisko"; return; }
+        if (nowyPracownik.HasloSQL == "") { infStat = "Podaj hasło do systemu"; return; }
+        if (nowyPracownik.RowIdDzialu == "") { infStat = "Dodaj pracownika do działu wybór wymagany!!"; return; }
+
+        if (nowyPracownik.UzytkownikSQL == null)
+        {
+            infStat = "Podaj użytkownika do systemu"; return;
+        }
+        else
+        {
+            if (nowyPracownik.UzytkownikSQL.Trim() == "") { infStat = "Podaj użytkownika do systemu"; return; } 
+        }
+        if (nowyPracownik.RowIdDzialu == null) { infStat = "Wybierz dział"; return; }
+        if (nowyPracownik.RowIdDzialu == "") { infStat = "Wybierz dział"; return; }
+
+        //nowyPracownik.RowIdDzialu = _selectedValue;
+
+        pracownicy = await Http.GetFromJsonAsync<List<Pracownicy>>($"api/Pracownicy/{nowyPracownik.UzytkownikSQL}/Add");
+
+        if (pracownicy != null)
+        {
+            if (pracownicy.Count > 0 && !edycjaDanych)
+            {
+                infStat = "Jest już użytkownik o nazwie: " + nowyPracownik.UzytkownikSQL + " w systemie. Zmień nazwę a następnie ponownie zapisz.";
+                return;
+            }
+            // nowyPracownik = pracownicy.FirstOrDefault(x => x.UzytkownikSQL.ToLower() == user.ToLower() && x.HasloSQL == pass);
+        }
+
+        if (!edycjaDanych)
+        {
+            var result = await Http.PostAsJsonAsync("/api/Pracownicy", nowyPracownik);
+
+            if (result.IsSuccessStatusCode)
+            {
+                pracownicy = await Http.GetFromJsonAsync<List<Pracownicy>>($"api/Pracownicy/{user}/Add");
+
+                if (pracownicy != null)
+                {
+                    nowyPracownik = pracownicy.FirstOrDefault(x => x.UzytkownikSQL.ToLower() == user.ToLower());
+                }
+
+                NavigationManager.NavigateTo("/paneladminall");
+            }
+            else
+            {
+                infStat = "Nie udało się zapisać";
+            }
+        }
+        else
+        {
+            await UpdatePracownik(nowyPracownik);
+
+        }
+
+    }
+
+    public async Task UpdatePracownik(Pracownicy nowyPracownik)
+    {
+        try
+        {
+            // Wysyłamy żądanie PUT do API z danymi pracownika
+            var response = await Http.PutAsJsonAsync("/api/Pracownicy", nowyPracownik);
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Pobieramy aktualną listę pracowników po zapisaniu
+                pracownicy = await Http.GetFromJsonAsync<List<Pracownicy>>("/api/Pracownicy");
+
+                if (pracownicy != null)
+                {
+                    // Znajdujemy zaktualizowanego pracownika na podstawie identyfikatora lub innego pola unikalnego
+                    nowyPracownik = pracownicy.FirstOrDefault(x => x.UzytkownikSQL.Equals(nowyPracownik.UzytkownikSQL, StringComparison.OrdinalIgnoreCase));
+                }
+            }
+            else
+            {
+                // Jeśli zapisywanie się nie powiodło, ustawiamy komunikat informujący o błędzie
+                infStat = "Nie udało się zapisać zmian. Kod błędu: " + response.StatusCode;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Obsługa wszelkich wyjątków, które mogą wystąpić podczas procesu
+            infStat = $"Wystąpił błąd: {ex.Message}";
+        }
+    }
+
+
+    private void OnSelectedItemChangedHandler(RodzajeDzialow value)
+    {
+        _selectedItem = value;
+        Console.WriteLine($"selected: ${value?.NazwaDzialu}");
+    }
+
+    private void OnBlur()
+    {
+        Console.WriteLine("blur");
+    }
+
+    private void OnFocus()
+    {
+        Console.WriteLine("focus");
+    }
+
+    private void OnSearch(string value)
+    {
+        Console.WriteLine($"search: {value}");
+    }
+
+@*     private bool boolOdczyt = false;
+    private bool boolZmian = false;
+    private bool boolUsuniecia = false;
+    private bool boolAdmin = false;
+    private bool boolZapis = false;
+    private string RowIdPracownik = "";
+    private string Inicjaly = "";
+    private List<UprawnieniaPracownikaViewModel>? uprawnienia;
+    private async Task Laduj_Uprawnienia()
+    {
+        user = await LocalStorage.GetStringAsync("user");
+        if (user == null || user == "")
+        {
+            NavigationManager.NavigateTo($"/account", true);
+            return;
+        }
+        string nazwaTabeli = "Uprawnieniapracownika";
+        uprawnienia = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"api/ZwrocSatus/{user}/{nazwaTabeli}");
+        if (uprawnienia != null)
+        {
+            if (uprawnienia.Count > 0)
+            {
+                boolAdmin = uprawnienia[0].Administrator;
+                var znalezioneElementy = uprawnienia.Where(uprawnienie => uprawnienie.TableName == nazwaTabeli);
+                if (znalezioneElementy.Count() > 0)
+                {
+
+                    var szuk = znalezioneElementy.FirstOrDefault(x => x.TableName == nazwaTabeli);
+                    if (szuk != null)
+                    {
+                        boolOdczyt = szuk.Odczyt;
+                        boolZmian = szuk.Zmiana;
+                        boolUsuniecia = szuk.Usuniecie;
+                        boolZapis = szuk.Zapis;
+                        Inicjaly = szuk.Ident_w_rejestrze;
+                        RowIdPracownik = szuk.RowId;
+                    }
+                }
+                // await Laduj_Uprawnienia();
+            }
+        }
+    } *@
+
+}
+

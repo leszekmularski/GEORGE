@@ -8,6 +8,7 @@
 @inject NavigationManager NavigationManager
 @using AntDesign
 @using System.Net;
+@inject Utilities.ILocalStorage LocalStorage
 
 <style>
     .custom-link {
@@ -757,6 +758,15 @@ else
 
     public async Task ShowDialogAddNew()
     {
+
+       var user = await LocalStorage.GetStringAsync("user");
+
+        if (user == null || user == "")
+        {
+            await _message.Info("Nie masz uprawnień do zmiany danych!!!!");
+            return;
+        }
+
         _visible = true;
         zlecenie = new ZleceniaProdukcyjne();
         cid = -1;

@@ -126,7 +126,7 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="loginEmail" class="form-label">Witaj w systemie rejestracji PSSE.</label>
+                        <label for="loginEmail" class="form-label">Zalogowałeś się do systemu.</label>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -195,6 +195,17 @@
 
     private ElementReference loginInput;
     private ElementReference frmOk;
+
+    protected override async Task OnInitializedAsync()
+    {
+        user = await LocalStorage.GetStringAsync("user");
+
+        if(user != null)
+        {
+            loggedIn = true;
+            infDzien = await LocalStorage.GetStringAsync("loginTime");
+        }
+    }
 
     public async Task ShowDialogInfo()
     {
