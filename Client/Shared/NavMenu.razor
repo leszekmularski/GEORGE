@@ -1,5 +1,6 @@
 ﻿@using AntDesign
 @inject IconService iconService
+@inject Utilities.ILocalStorage LocalStorage
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
@@ -62,6 +63,14 @@
                             <span class="oi oi-person" aria-hidden="true"></span>&nbsp;&nbsp;Użytkownicy
                         </NavLink>
                     </MenuItem>
+                    @if (user != "")
+                    {
+                        <MenuItem Key="4">
+                            <NavLink class="nav-link" href="PanelAdminUpraw">
+                                <span class="oi oi-wrench" aria-hidden="true"></span>&nbsp;&nbsp;Opcje
+                            </NavLink>
+                        </MenuItem>
+                    }
                 </SubMenu>
             </Menu>
     </div>
@@ -72,6 +81,8 @@
     private bool collapseNavMenu = true;
 
     bool collapsed = false;
+
+    string user = "";
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
@@ -84,6 +95,12 @@
     @<span>
         <Icon Type="setting" Theme="outline"></Icon>
         <span>Ustawienia systemu</span>
-    </span>;
+    </span>
+    ;
+
+    protected override async Task OnInitializedAsync()
+    {
+        user = await LocalStorage.GetStringAsync("user");
+    }
 
 }

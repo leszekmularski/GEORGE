@@ -1,0 +1,666 @@
+﻿@page "/PanelAdminUpraw"
+@using GEORGE.Shared.Models
+@using GEORGE.Shared.Class
+@inject HttpClient Http;
+@using Microsoft.AspNetCore.Components.Web
+@inject Utilities.ILocalStorage LocalStorage
+@using System.Net.Http.Json
+@using System.Net;
+@inject IMessageService _message
+@* @using Microsoft.EntityFrameworkCore; *@
+@using System.Collections.Generic;
+@using System.Linq;
+@using System.Threading.Tasks;
+@inject NavigationManager NavigationManager;
+
+<h1>Użytkownicy systemu [@user.ToUpper()]  Dział (sekcja): @str_wybrano_dzial </h1>
+
+<link id="dynamic-css" rel="stylesheet" href="../usun_styl.css" />
+
+@if (listaPracownikow == null)
+{
+    <p>Ładowanie danych...</p>
+}
+else if (listaPracownikow.Count == 0)
+{
+    <p>Brak danych o użytkownikach. </p>
+}
+else
+{
+    <html>
+    <head>
+        <title>Strona Administratora systemu</title>
+        <style>
+            /* Styl pola input */
+            input[type="text"] {
+                border: none;
+                background-color: #f5f5f5;
+                padding: 5px;
+                font-size: 16px;
+                font-family: Arial, sans-serif;
+            }
+
+            .form-control {
+                padding: 6px 12px;
+                font-size: 14px;
+                line-height: 1.42857143;
+                color: #555555;
+                background-color: #ffffff;
+                background-image: none;
+                border: 1px solid #cccccc;
+                border-radius: 4px;
+                box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+                transition: border-color ease-in-out 0.15s, box-shadow ease-in-out 0.15s;
+                width: 100%;
+                max-width: 400px;
+            }
+
+            .my-btn {
+                background-color: black;
+                color: white;
+                font-size: 16px;
+                padding: 4px 8px;
+                border: none;
+                border-radius: 4px;
+            }
+
+            tr:nth-child(even) {
+                background-color: #f2f2f2;
+            }
+
+            tr:hover {
+                background-color: #ddd;
+            }
+        </style>
+    </head>
+    <body>
+        <p>@infStatus</p>
+        <label>Wybierz użytkownika programu</label>
+        <label>(Kliknij Ustaw domyśny dostep dla nowego użytkownika!!!)</label>
+        <br/>
+        
+        @*       <button class="my-btn" @onclick="OdswiezDane">Pokaż wszystkich</button>*@
+
+        <div class="d-flex align-items-center">
+            <select class="form-control flex-grow-1" @onchange="@(async (args) => await WybierzOpcje(args))" required>
+                <option value="puste_dane"></option>
+                @foreach (var pracownik in listaPracownikow)
+                {
+                    <option value="@pracownik.RowId|@pracownik.RowIdDzialu">@pracownik.Nazwisko, @pracownik.Imie [@pracownik.UzytkownikSQL]</option>
+                }
+            </select>
+
+            <button class="my-btn ml-2" style="margin-left: 10px;" @onclick="StartDomOpcje">Ustaw domyślny dostęp</button>
+        </div>
+
+        <br />
+        @if (listaUprawnien == null)
+        {
+            <p> @infWybor </p>
+        }
+        else
+        {
+             <Collapse OnChange="Callback">
+         @*   <Collapse DefaultActiveKey="@(new[]{"1"})" OnChange="Callback">*@
+                <Panel Header="Dostęp do tabel" Key="1">
+                    <table>
+                        <thead>
+                            @if (listaUprawnien.Count > 0)
+                            {
+                                <tr>
+                                    <th>Użytkownik</th>
+                                    <th>-Odczyt-</th>
+                                    <th> Zapis </th>
+                                    <th>-Zmiana-</th>
+                                    <th> Usunięcie </th>
+                                    <th>-Administrator-</th>
+                                    <th>Dotyczy tabeli</th>
+                                    <th>Uwagi</th>
+                                    <th>Data utworzenia</th>
+                                    <th></th>
+                                </tr>
+                            }
+                            else
+                            {
+                                @if (pusty_rekord != true)
+                                {
+                                    <tr>Użytkownik nie ma jeszcze żadnych uprawnień <br />Aby nadać podstawowe uprawnienia kliknij "Ustaw domyślny dostęp"</tr>
+                                }
+                                else
+                                {
+                                    <tr>Wybierz użytkownika</tr>
+                                }
+
+                            }
+
+                        </thead>
+                        <tbody>
+                            @foreach (var pracownikupr in listaUprawnien)
+                            {
+
+                                <tr>
+                                    <td><input type="text" @bind="@pracownikupr.UzytkownikSQL" style="width: auto;" readonly /></td>
+                                    <td><input type="checkbox" @bind="@pracownikupr.Odczyt" style="width: 100%;" /></td>
+                                    <td><input type="checkbox" @bind="@pracownikupr.Zapis" style="width: 100%;" /></td>
+                                    <td><input type="checkbox" @bind="@pracownikupr.Zmiana" style="width: 100%;" /></td>
+                                    <td><input type="checkbox" @bind="@pracownikupr.Usuniecie" style="width: 100%;" /></td>
+                                    <td><input type="checkbox" @bind="@pracownikupr.Administrator" style="width: 100%;" /></td>
+                                    <td><input type="text" @bind="@pracownikupr.TableName" style="width: 100%;" readonly /></td>
+                                    <td><input type="text" @bind="@pracownikupr.Uwagi" style="width: 100%;" /></td>
+                                    <td><input type="datetime" @bind="@pracownikupr.Datautowrzenia" readonly style="width: 100%;" /></td>
+                                    <td><button class="btn btn-primary" @onclick="() => ZapiszDane(pracownikupr)">Zapisz</button></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </Panel>
+
+                @if (boolAdmin)
+                {
+
+                <Panel Header="Wybierz dział (sekcje) dla pracownika" Key="3">
+                        <div class="d-flex align-items-center" style="margin-right: 10px;">
+                        <Space>
+                            <SpaceItem>
+                            <select class="form-control flex-grow-1" style="padding-right: 20px; width: 100%; margin-right: 10px;" @onchange="@(async (args) => await WybierzOpcjeDzial(args))" required>
+                                @if (listaDzialow != null)
+                                {
+                                    @foreach (var dzial in listaDzialow)
+                                    {
+                                        @if (@dzial.RowId == RowIdDzal)
+                                        {
+                                            <option value="@dzial.RowId" selected>@dzial.NazwaDzialu</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@dzial.RowId">@dzial.NazwaDzialu</option>
+                                        }
+                                   
+                                    }
+                                }
+                            </select>
+                            </SpaceItem>
+                            <SpaceItem>
+                            <Button Style="padding-right: 20px; width: 100%; margin-right: 10px;" OnClick="ZapiszZmianeDzialu">Zapisz zmianę działu</Button>
+                            </SpaceItem>
+                        </Space>
+                    </div>
+                 </Panel>
+
+                 <Panel Header="Id pracownika i rejestru" Key="4">
+                        <label>RowId pracownika: @RowIdSelect</label>
+                        <label>[RowId powiązany rejestr: @usunInne]</label>
+                 </Panel>
+                
+                <Panel Header="Powiązane obiekty (podmioty)" Key="6">
+                    <div>
+                            <TransferDual RowIdDzal="@RowIdDzialuSelect" RowIdPracownika="@RowIdSelect" StrUser="@user" pokaz_szukaj = "false"/> @* RowIdSelect - pobrane z listy*@
+                    </div>
+                </Panel>
+                }
+
+            </Collapse>
+        }
+        <br/>
+    </body>
+
+    </html>
+}
+
+@code {
+
+    private List<Pracownicy>? listaPracownikow;
+    private Pracownicy? pracownik;
+    private List<UprawnieniaPracownikaViewModel>? listaUprawnien;
+    private List<UprawnieniaPracownikaViewModel>? listaUprawnienMaster;
+    private List<TabeleNaSerwerzeViewModel>? tabeleNaSerwerzeViewModel;
+    private List<RodzajeDzialow>? listaDzialow;
+    private List<RodzajeDzialow>? listaDzialowfiltr;
+
+
+    private string wybr_dzial = "";
+    private string infStatus = "";
+    private string infWybor = "Czekam aż wybierzesz użytkownika....";
+
+    private string user = "";
+    string IdWybor = "";
+    private string RowIdSelect = "";
+    private string RowIdDzialuSelect = "";
+    private string RowIdDzal = "";
+
+    private string txtSzukaj = "";
+
+    private string RowIdDzalSelect = "";
+
+    // private bool bAdmin = false;
+    private bool pusty_rekord = true;
+    private string infSatusZapisu = "";
+    private string usunInne = "";
+    private string dodajInne = "";
+
+    private string str_wybrano_dzial = "Brak danych";
+
+    string? _selectedValue;
+    private string _sizeValue = AntSizeLDSType.Default;
+
+    private bool czakajNaImport = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Laduj_Uprawnienia();
+
+        if (boolOdczyt == false)
+        {
+            infStatus = "Nie masz uprawnień do odczytu";
+            return;
+        }
+
+        try
+        {
+            listaPracownikow = await Http.GetFromJsonAsync<List<Pracownicy>>("api/Pracownicy");
+
+            tabeleNaSerwerzeViewModel = await Http.GetFromJsonAsync<List<TabeleNaSerwerzeViewModel>>("api/SqlTabeleNaSerwerze");
+
+            listaDzialow = await Http.GetFromJsonAsync<List<RodzajeDzialow>>("/api/RodzajeDzialow");
+
+            if (listaDzialow != null)
+                listaDzialowfiltr = new List<RodzajeDzialow>(listaDzialow);
+
+            //uprawnieniaPracownikaDoRejestru = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaDoRejestru>>("api/UprawnieniaPracownikaDoRejestru/" + RowIdSelect);
+        }
+        catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            infStatus = "Nie udało się załadować danych!!";
+        }
+        catch (Exception ex)
+        {
+            infWybor = ex.Message;
+        }
+
+    }
+
+    private OneOf.OneOf<string, RenderFragment> Render(TransferItem item)
+    {
+        return $"{item.Title} - {item.Description}";
+    }
+
+    private async Task filtruj_dzial()
+    {
+        if (wybr_dzial != "")
+        {
+            listaDzialowfiltr = listaDzialowfiltr.Where(s => s.RowId == wybr_dzial).ToList();
+            Console.WriteLine("wybr_dzial: " + wybr_dzial);
+        }
+        else
+        {
+            listaDzialow = await Http.GetFromJsonAsync<List<RodzajeDzialow>>("/api/RodzajeDzialow");
+            if (listaDzialow != null)
+                listaDzialowfiltr = new List<RodzajeDzialow>(listaDzialow);
+            // listaDzialowfiltr = listaDzialowfiltr.ToList();
+
+            Console.WriteLine("wybr_dzial: ALL");
+        }
+
+    }
+
+
+    void Callback(string[] keys)
+    {
+        Console.WriteLine(string.Join(',', keys));
+    }
+
+    private async Task ZapiszDane(UprawnieniaPracownikaViewModel uprawnienia)
+    {
+        //listaUprawnien = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>("api/UprawnieniaMVC");
+        // wyślij zapytanie PUT do serwera z danymi
+        var zmianaUprawnienia = new Uprawnieniapracownika
+            {
+                Id = uprawnienia.Id,
+                RowId = uprawnienia.RowId,
+                RowIdPracownicy = uprawnienia.RowIdPracownicy,
+                TableName = uprawnienia.TableName,
+                Odczyt = uprawnienia.Odczyt,
+                Zapis = uprawnienia.Zapis,
+                Zmiana = uprawnienia.Zmiana,
+                Usuniecie = uprawnienia.Usuniecie,
+                Administrator = uprawnienia.Administrator,
+                RowIdRejestrejestrow = uprawnienia.RowIdRejestrejestrow,
+                Uwagi = uprawnienia.Uwagi,
+                Datautowrzenia = DateTime.Now,
+                Autorzmiany = "Autor ostatniej zmiany: " + user
+
+            };
+
+        //var resultupr = await Http.PostAsJsonAsync("/api/Uprawnienia", zmianaUprawnienia);
+        //   await Http.PutAsJsonAsync("api/Pracownicy/" + pracownik.Id, pracownik);
+        var response = await Http.PutAsJsonAsync("/api/Uprawnienia/" + zmianaUprawnienia.Id, zmianaUprawnienia);// zmiana danych
+
+        if (response.IsSuccessStatusCode)
+        {
+            listaUprawnien = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>("api/UprawnieniaMVC/" + RowIdSelect);
+        }
+        else
+        {
+            listaUprawnien = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>("api/UprawnieniaMVC/" + zmianaUprawnienia.RowIdPracownicy);
+        }
+
+        infSatusZapisu = " uprawnienia.Id = " + zmianaUprawnienia.Id.ToString() + "/" + zmianaUprawnienia.RowId.ToString() + "/"
+        + zmianaUprawnienia.RowIdRejestrejestrow.ToString() + zmianaUprawnienia.TableName.ToString();
+    }
+
+    private async Task WybierzOpcje(ChangeEventArgs e)
+    {
+        str_wybrano_dzial = "Szukam....";
+
+        if (e.Value == null) return;
+
+
+        //RowId = e.Value.ToString();
+
+        string[] parts = e.Value.ToString().Split('|');
+
+        RowIdSelect = parts[0]; // Pierwsza część
+        RowIdDzialuSelect = parts[1]; // Druga część
+
+
+        if (e.Value.ToString() == "puste_dane")
+        {
+            infWybor = "Czekam aż wybierzesz użytkownia....";
+            pusty_rekord = true;
+            if (listaUprawnien != null) listaUprawnien = null;
+            if (listaDzialow != null) listaDzialow = null;
+
+            return;
+        }
+        if (listaUprawnien != null) listaUprawnien = null;
+
+
+        try
+        {
+
+            listaUprawnien = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>("api/UprawnieniaMVC/" + RowIdSelect);
+
+        }
+        catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            Console.WriteLine($"Brak danych");
+        }
+
+        infWybor = "Wybrano opcję: " + RowIdSelect;
+
+        if (listaPracownikow != null)
+        {
+            pracownik = listaPracownikow.SingleOrDefault(p => p.RowId == RowIdSelect);
+            if (pracownik.RowIdDzialu != null) {
+                RowIdDzal = pracownik.RowIdDzialu;
+
+                if (listaDzialow != null)
+                {
+                    var filteredData = listaDzialow.Where(d => d.RowId == pracownik.RowIdDzialu).ToList();
+
+                    if (filteredData.Count > 0)
+                        str_wybrano_dzial = filteredData[0].NazwaDzialu;
+
+                }
+            }
+        }
+
+        infSatusZapisu = RowIdDzal;
+        //StateHasChanged();
+
+        RowIdDzalSelect = RowIdDzal;
+
+        pusty_rekord = false;
+
+    }
+
+    private async Task WybierzOpcjeMaster(ChangeEventArgs e)
+    {
+
+        if (e.Value == null) return;
+
+        string RowIdMaster = e.Value.ToString();
+
+        if (e.Value.ToString() == "puste_dane")
+        {
+            if (listaUprawnienMaster != null) listaUprawnienMaster = null;
+            return;
+        }
+
+        if (listaUprawnienMaster != null) listaUprawnienMaster = null;
+
+        try
+        {
+
+            listaUprawnienMaster = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>("api/UprawnieniaMVC/" + RowIdMaster);
+        }
+        catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            Console.WriteLine($"Brak danych");
+        }
+
+    }
+
+    private async Task StartDomOpcje()
+    {
+        if (tabeleNaSerwerzeViewModel == null || listaUprawnien == null || RowIdSelect == "" || RowIdSelect == "puste_dane") return;
+
+        foreach (var nazwa_tabeli in tabeleNaSerwerzeViewModel)
+        {
+            var znalezioneElementy = listaUprawnien.Where(uprawnienie => uprawnienie.TableName == nazwa_tabeli.TableName);
+
+            if (znalezioneElementy.Count() == 0)
+            {
+                var noweUprawnienia = new Uprawnieniapracownika
+                    {
+                        Odczyt = true,
+                        Administrator = false,
+                        Zapis = false,
+                        Zmiana = false,
+                        Usuniecie = false,
+                        Datautowrzenia = DateTime.Now,
+                        RowId = Guid.NewGuid().ToString(),
+                        RowIdPracownicy = RowIdSelect,
+                        TableName = nazwa_tabeli.TableName,
+                        RowIdRejestrejestrow = "---",
+                        Autorzmiany = "Autor zmiany: " + user,
+                        Uwagi = ""
+                    };
+
+                var resultupr = await Http.PostAsJsonAsync("/api/Uprawnienia", noweUprawnienia);
+
+            }
+        }
+
+        listaUprawnien = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>("api/UprawnieniaMVC/" + RowIdSelect);
+
+    }
+
+    private async Task OdswiezDane()
+    {
+        listaUprawnien = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>("api/UprawnieniaMVC");
+    }
+
+    private void OnChangeSize(string value)
+    {
+        _sizeValue = value;
+        Console.WriteLine($"selected size: ${value}");
+    }
+
+    private void OnSelectedItemChangedHandler(string value)
+    {
+        Console.WriteLine($"selected: ${value}");
+    }
+
+    private async Task WybierzOpcjeDzial(ChangeEventArgs e)
+    {
+        if (e.Value.ToString() != "" &&  e.Value != null)
+        {
+            RowIdDzalSelect = e.Value.ToString();
+        }
+
+        // if (boolOdczyt == false)
+        // {
+        //     infSatusZapisu = "Nie masz uprawnień!!!!";
+        //     return;
+        // }
+
+        // if (e.Value == null) return;
+
+        // if (e.Value.ToString() != "")
+        // {
+
+        //     rejestrejestrow = await Http.GetFromJsonAsync<List<Rejestrejestrow>>("/api/RejestrGlowny/" + e.Value.ToString());
+        //     infStatus = "Załadowałem wszystkie rejetry dla wybranego działu";
+        // }
+        // else
+        // {
+        //     rejestrejestrow = await Http.GetFromJsonAsync<List<Rejestrejestrow>>($"/api/RejestrGlowny/");
+        //     infStatus = "Załadowałem wszystkie zapisane rejetry";
+        // }
+
+        //Console.WriteLine($"selected: ${value}");
+    }
+
+    private async Task OnSelectedItemsChangedHandler(IEnumerable<string> values)
+    {
+        if (values != null)
+        {
+            Console.WriteLine($"selected: ${string.Join(",", values)}");
+            usunInne = string.Format("'{0}'", string.Join("', '", values));
+            dodajInne = string.Format("{0}", string.Join(", ", values));
+
+        }
+
+    }
+
+    private async Task ZapiszZmianeDzialu()
+    {
+
+        var RejestrejestrowViewModel = await Http.GetFromJsonAsync<List<Logowania>>($"api/SqlZmienDzialParacownia/{RowIdSelect}/{RowIdDzalSelect}");
+
+        if (RejestrejestrowViewModel != null)
+        {
+
+            if(RejestrejestrowViewModel.Count() > 0)
+            {
+
+                if (RejestrejestrowViewModel[0].Uzytkownik != "OK")
+                {
+                    await _message.Error("Błąd zapisu!!!!", 0.9);
+                }
+                else
+                {
+                    await _message.Success("Dział zmieniono!!!", 0.7);
+                }
+
+            }
+
+        }
+
+    }
+
+    private async Task StartDomOpcjeMaster()
+    {
+        if (tabeleNaSerwerzeViewModel == null || listaUprawnien == null || RowIdSelect == "" || RowIdSelect == "puste_dane" || listaUprawnienMaster == null) return;
+
+        foreach (var nazwa_tabeli in tabeleNaSerwerzeViewModel)
+        {
+            var znalezioneElementy = listaUprawnien.Where(uprawnienie => uprawnienie.TableName == nazwa_tabeli.TableName);
+
+            var uprawnieniaMaster = listaUprawnienMaster.Where(uprawnienie => uprawnienie.TableName == nazwa_tabeli.TableName).ToList();
+
+            bool xOdczyt = true;
+            bool xAdministrator = false;
+            bool xZapis = false;
+            bool xZmiana = false;
+            bool xUsuniecie = false;
+
+            if (uprawnieniaMaster.Count() > 0)
+            {
+                xOdczyt = uprawnieniaMaster[0].Odczyt;
+                xAdministrator = uprawnieniaMaster[0].Administrator;
+                xZapis = uprawnieniaMaster[0].Zapis;
+                xZmiana = uprawnieniaMaster[0].Zmiana;
+                xUsuniecie = uprawnieniaMaster[0].Usuniecie;
+            }
+
+            if (znalezioneElementy.Count() == 0)
+            {
+                var noweUprawnienia = new Uprawnieniapracownika
+                    {
+                        Odczyt = xOdczyt,
+                        Administrator = xAdministrator,
+                        Zapis = xZapis,
+                        Zmiana = xZmiana,
+                        Usuniecie = xUsuniecie,
+                        Datautowrzenia = DateTime.Now,
+                        RowId = Guid.NewGuid().ToString(),
+                        RowIdPracownicy = RowIdSelect,
+                        TableName = nazwa_tabeli.TableName,
+                        RowIdRejestrejestrow = "---",
+                        Autorzmiany = "Autor zmiany: " + user,
+                        Uwagi = ""
+                    };
+
+                var resultupr = await Http.PostAsJsonAsync("/api/Uprawnienia", noweUprawnienia);
+
+            }
+        }
+
+    }
+
+
+    private bool boolOdczyt = false;
+    private bool boolZmian = false;
+    private bool boolUsuniecia = false;
+    private bool boolAdmin = false;
+    private string RowIdPracownika = "";
+    private List<UprawnieniaPracownikaViewModel>? uprawnienia;
+    private async Task Laduj_Uprawnienia()
+    {
+        user = await LocalStorage.GetStringAsync("user");
+        if (user == null || user == "")
+        {
+            NavigationManager.NavigateTo($"/account", true);
+            return;
+        }
+        string nazwaTabeli = "Uprawnieniapracownika";
+
+        try
+        {
+            uprawnienia = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"api/ZwrocSatus/{user}/{nazwaTabeli}");
+        }
+        catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            Console.WriteLine("Brak danych!!!");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+
+        if (uprawnienia != null)
+        {
+            if (uprawnienia.Count > 0)
+            {
+                var znalezioneElementy = uprawnienia.Where(uprawnienie => uprawnienie.TableName == nazwaTabeli);
+                Console.WriteLine("Znaleziono uprawnienia dla użytkownika: " + user + " w tabeli: " + nazwaTabeli + " ilość rekordów: " + znalezioneElementy.Count());
+                if (znalezioneElementy.Count() > 0)
+                {
+                    var szuk = znalezioneElementy.FirstOrDefault(x => x.TableName == nazwaTabeli);
+                    if (szuk != null)
+                    {
+                        boolOdczyt = szuk.Odczyt;
+                        boolZmian = szuk.Zmiana;
+                        boolUsuniecia = szuk.Usuniecie;
+                        boolAdmin = szuk.Administrator;
+                        RowIdPracownika = szuk.RowId;
+                    }
+                }
+                // await Laduj_Uprawnienia();
+            }
+        }
+    }
+
+}
