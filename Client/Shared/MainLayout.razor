@@ -280,7 +280,10 @@
         pass = null;
 
         zaladowalem = true;
+
         SetHeaderAndBody();
+
+        NavigationManager.NavigateTo($"", true);
 
     }
 
@@ -385,6 +388,8 @@
         showLog = false;
         displayLog = false;
 
+        NavigationManager.NavigateTo($"", true);
+
     }
 
     private async Task Close()
@@ -395,8 +400,6 @@
         pokazbladLogowania = false;
         showLog = false;
         displayLog = false;
-
-        NavigationManager.NavigateTo($"", true);
 
     }
 
