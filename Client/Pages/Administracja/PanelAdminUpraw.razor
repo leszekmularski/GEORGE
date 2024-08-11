@@ -15,8 +15,6 @@
 
 <h1>Użytkownicy systemu [@user.ToUpper()]  Dział (sekcja): @str_wybrano_dzial </h1>
 
-<link id="dynamic-css" rel="stylesheet" href="../usun_styl.css" />
-
 @if (listaPracownikow == null)
 {
     <p>Ładowanie danych...</p>
@@ -91,6 +89,7 @@ else
             </select>
 
             <button class="my-btn ml-2" style="margin-left: 10px;" @onclick="StartDomOpcje">Ustaw domyślny dostęp</button>
+
         </div>
 
         <br />
@@ -187,16 +186,9 @@ else
                     </div>
                  </Panel>
 
-                 <Panel Header="Id pracownika i rejestru" Key="4">
+                 <Panel Header="Id pracownika" Key="4">
                         <label>RowId pracownika: @RowIdSelect</label>
-                        <label>[RowId powiązany rejestr: @usunInne]</label>
                  </Panel>
-                
-                <Panel Header="Powiązane obiekty (podmioty)" Key="6">
-                    <div>
-                            <TransferDual RowIdDzal="@RowIdDzialuSelect" RowIdPracownika="@RowIdSelect" StrUser="@user" pokaz_szukaj = "false"/> @* RowIdSelect - pobrane z listy*@
-                    </div>
-                </Panel>
                 }
 
             </Collapse>
@@ -252,16 +244,16 @@ else
         if (boolOdczyt == false)
         {
             infStatus = "Nie masz uprawnień do odczytu";
-            return;
+            //return;
         }
 
         try
         {
-            listaPracownikow = await Http.GetFromJsonAsync<List<Pracownicy>>("api/Pracownicy");
+            listaPracownikow = await Http.GetFromJsonAsync<List<Pracownicy>>("api/Pracownicy/");
 
-            tabeleNaSerwerzeViewModel = await Http.GetFromJsonAsync<List<TabeleNaSerwerzeViewModel>>("api/SqlTabeleNaSerwerze");
+            tabeleNaSerwerzeViewModel = await Http.GetFromJsonAsync<List<TabeleNaSerwerzeViewModel>>("api/SqlTabeleNaSerwerze/");
 
-            listaDzialow = await Http.GetFromJsonAsync<List<RodzajeDzialow>>("/api/RodzajeDzialow");
+            listaDzialow = await Http.GetFromJsonAsync<List<RodzajeDzialow>>("/api/RodzajeDzialow/");
 
             if (listaDzialow != null)
                 listaDzialowfiltr = new List<RodzajeDzialow>(listaDzialow);
@@ -333,19 +325,37 @@ else
 
         //var resultupr = await Http.PostAsJsonAsync("/api/Uprawnienia", zmianaUprawnienia);
         //   await Http.PutAsJsonAsync("api/Pracownicy/" + pracownik.Id, pracownik);
-        var response = await Http.PutAsJsonAsync("/api/Uprawnienia/" + zmianaUprawnienia.Id, zmianaUprawnienia);// zmiana danych
 
-        if (response.IsSuccessStatusCode)
+        try
         {
-            listaUprawnien = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>("api/UprawnieniaMVC/" + RowIdSelect);
+
+            var response = await Http.PutAsJsonAsync($"/api/Uprawnienia/{zmianaUprawnienia.Id}", zmianaUprawnienia);// zmiana danych
+
+            if (string.IsNullOrEmpty(RowIdSelect))
+            {
+                RowIdSelect = zmianaUprawnienia.RowIdPracownicy;
+            }
+
+            Console.WriteLine($"RowIdSelect: {RowIdSelect}");
+
+            if (response.IsSuccessStatusCode && !string.IsNullOrEmpty(RowIdSelect))
+            {
+                listaUprawnien = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"api/UprawnieniaMVC/{RowIdSelect}");
+            }
+            else
+            {
+                listaUprawnien = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"api/UprawnieniaMVC/{zmianaUprawnienia.RowIdPracownicy}");
+            }
+
+            infSatusZapisu = " uprawnienia.Id = " + zmianaUprawnienia.Id.ToString() + "/" + zmianaUprawnienia.RowId.ToString() + "/"
+            + zmianaUprawnienia.RowIdRejestrejestrow.ToString() + zmianaUprawnienia.TableName.ToString();
+
         }
-        else
+        catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
-            listaUprawnien = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>("api/UprawnieniaMVC/" + zmianaUprawnienia.RowIdPracownicy);
+            Console.WriteLine($"Brak danych {ex.Message}");
         }
 
-        infSatusZapisu = " uprawnienia.Id = " + zmianaUprawnienia.Id.ToString() + "/" + zmianaUprawnienia.RowId.ToString() + "/"
-        + zmianaUprawnienia.RowIdRejestrejestrow.ToString() + zmianaUprawnienia.TableName.ToString();
     }
 
     private async Task WybierzOpcje(ChangeEventArgs e)
@@ -360,6 +370,8 @@ else
         string[] parts = e.Value.ToString().Split('|');
 
         RowIdSelect = parts[0]; // Pierwsza część
+
+        if (parts.Length>1)
         RowIdDzialuSelect = parts[1]; // Druga część
 
 
@@ -372,13 +384,13 @@ else
 
             return;
         }
-        if (listaUprawnien != null) listaUprawnien = null;
 
+        if (listaUprawnien != null) listaUprawnien = null;
 
         try
         {
 
-            listaUprawnien = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>("api/UprawnieniaMVC/" + RowIdSelect);
+            listaUprawnien = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"api/UprawnieniaMVC/{RowIdSelect}/");
 
         }
         catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
@@ -472,7 +484,7 @@ else
             }
         }
 
-        listaUprawnien = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>("api/UprawnieniaMVC/" + RowIdSelect);
+        listaUprawnien = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"api/UprawnieniaMVC/{RowIdSelect}");
 
     }
 
@@ -499,27 +511,14 @@ else
             RowIdDzalSelect = e.Value.ToString();
         }
 
-        // if (boolOdczyt == false)
-        // {
-        //     infSatusZapisu = "Nie masz uprawnień!!!!";
-        //     return;
-        // }
+        if (boolOdczyt == false)
+        {
+            infSatusZapisu = "Nie masz uprawnień!!!!";
+            return;
+        }
 
-        // if (e.Value == null) return;
+        if (e.Value == null) return;
 
-        // if (e.Value.ToString() != "")
-        // {
-
-        //     rejestrejestrow = await Http.GetFromJsonAsync<List<Rejestrejestrow>>("/api/RejestrGlowny/" + e.Value.ToString());
-        //     infStatus = "Załadowałem wszystkie rejetry dla wybranego działu";
-        // }
-        // else
-        // {
-        //     rejestrejestrow = await Http.GetFromJsonAsync<List<Rejestrejestrow>>($"/api/RejestrGlowny/");
-        //     infStatus = "Załadowałem wszystkie zapisane rejetry";
-        // }
-
-        //Console.WriteLine($"selected: ${value}");
     }
 
     private async Task OnSelectedItemsChangedHandler(IEnumerable<string> values)
@@ -617,27 +616,34 @@ else
     private bool boolAdmin = false;
     private string RowIdPracownika = "";
     private List<UprawnieniaPracownikaViewModel>? uprawnienia;
+  
     private async Task Laduj_Uprawnienia()
     {
         user = await LocalStorage.GetStringAsync("user");
-        if (user == null || user == "")
+
+        if (string.IsNullOrEmpty(user))
         {
-            NavigationManager.NavigateTo($"/account", true);
+            NavigationManager.NavigateTo($"", true);
             return;
         }
+
         string nazwaTabeli = "Uprawnieniapracownika";
+
+        Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");
 
         try
         {
-            uprawnienia = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"api/ZwrocSatus/{user}/{nazwaTabeli}");
+            uprawnienia = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"/api/ZwrocSatus/{user}/{nazwaTabeli}");
         }
         catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
             Console.WriteLine("Brak danych!!!");
+            await _message.Error("Brak danych - status użytkownika");
         }
         catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
+            await _message.Error(ex.Message);
         }
 
         if (uprawnienia != null)
@@ -646,7 +652,7 @@ else
             {
                 var znalezioneElementy = uprawnienia.Where(uprawnienie => uprawnienie.TableName == nazwaTabeli);
                 Console.WriteLine("Znaleziono uprawnienia dla użytkownika: " + user + " w tabeli: " + nazwaTabeli + " ilość rekordów: " + znalezioneElementy.Count());
-                if (znalezioneElementy.Count() > 0)
+                if (znalezioneElementy.Any())
                 {
                     var szuk = znalezioneElementy.FirstOrDefault(x => x.TableName == nazwaTabeli);
                     if (szuk != null)
@@ -658,9 +664,9 @@ else
                         RowIdPracownika = szuk.RowId;
                     }
                 }
-                // await Laduj_Uprawnienia();
             }
         }
     }
+
 
 }
