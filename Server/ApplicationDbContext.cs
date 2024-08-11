@@ -21,7 +21,8 @@ namespace GEORGE.Server
         public DbSet<LinieProdukcyjne>? LinieProdukcyjne { get; set; }
         public DbSet<ZleceniaNaLinii>? ZleceniaNaLinii { get; set; }
         public DbSet<ZleceniaCzasNaLinieProd>? ZleceniaCzasNaLinieProd { get; set; }
-        
+        public DbSet<Pracownicy>? Pracownicy { get; set; }
+        public DbSet<Logowania> Logowania => Set<Logowania>();
 
         //***********************************************************************************************************************************************************************************************
 

@@ -306,7 +306,7 @@
             click_RowIdZlecenia = "";
             Console.WriteLine("Zlecenia dodano.");
             await _message.Success("Zlecenia dodano.");
-       
+
         }
         else
         {
@@ -356,36 +356,55 @@
     private async Task OnSelectedItemChangedHandler(LinieProdukcyjne value)
     {
         komunikatOZleceniach = "Czekaj na załadowanie danych...";
-
         _selectedItem = value;
 
         Console.WriteLine($"selected: {value?.RowId}");
 
+        // Sprawdź, czy wybrano poprawną linię produkcyjną
         if (value?.RowId != null)
         {
-            // Pobierz dane z API dla wybranego elementu
-            var daneDoPlanowania = await Http.GetFromJsonAsync<List<DaneDoPlanowaniaViewModel>>($"api/ZleceniaNaLinii/GetDaneDoPlanowania/{value.RowId}/NIE");
-
-            // Zaktualizuj stan
-            daneNiezaplanowane = daneDoPlanowania;
-
-            if (daneDoPlanowania != null)
-                przefiltrowanedaneNiezaplanowane = daneDoPlanowania.Where(x => !x.ZlecenieWewnetrzne).ToList();
-
-            if (daneDoPlanowania == null || daneDoPlanowania.Count == 0)
+            try
             {
-                komunikatOZleceniach = "Brak DANYCH - wszystkie zlecenia są zaplanowane";
+                // Pobierz dane z API dla wybranego elementu
+                var response = await Http.GetAsync($"api/ZleceniaNaLinii/GetDaneDoPlanowania/{value.RowId}/NIE");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var daneDoPlanowania = await response.Content.ReadFromJsonAsync<List<DaneDoPlanowaniaViewModel>>();
+
+                    if (daneDoPlanowania != null && daneDoPlanowania.Any())
+                    {
+                        // Zaktualizuj stan tylko dla niepustych danych
+                        daneNiezaplanowane = daneDoPlanowania.Where(f => f.TypZamowienia != "BRAK_DANYCH").ToList();
+                        przefiltrowanedaneNiezaplanowane = daneNiezaplanowane.Where(x => !x.ZlecenieWewnetrzne).ToList();
+
+                        komunikatOZleceniach = $"Wyszukano dane: {daneNiezaplanowane.Count}";
+                    }
+                    else
+                    {
+                        komunikatOZleceniach = "Brak DANYCH - wszystkie zlecenia są zaplanowane";
+                        daneNiezaplanowane = new List<DaneDoPlanowaniaViewModel>();
+                        przefiltrowanedaneNiezaplanowane = new List<DaneDoPlanowaniaViewModel>();
+                    }
+                }
+                else
+                {
+                    komunikatOZleceniach = "Błąd w połączeniu z serwerem: " + response.ReasonPhrase;
+                }
             }
-            else
+            catch (Exception ex)
             {
-                komunikatOZleceniach = "Wyszukano dane: " + daneDoPlanowania.Count.ToString();
+                komunikatOZleceniach = "Wystąpił błąd podczas pobierania danych: " + ex.Message;
             }
         }
         else
         {
-            komunikatOZleceniach = "Błąd - wybierz linię produkcyjna";
+            komunikatOZleceniach = "Błąd - wybierz linię produkcyjną";
+            daneNiezaplanowane = new List<DaneDoPlanowaniaViewModel>();
+            przefiltrowanedaneNiezaplanowane = new List<DaneDoPlanowaniaViewModel>();
         }
     }
+
 
 
     private async Task BazaPobierz()
@@ -857,7 +876,7 @@
         }
     }
 
- 
+
     private async Task InitializeFrappeGantt()
     {
         if (przefiltrowaneDaneDoPlanowania == null) return;
@@ -958,7 +977,7 @@
             return `<div class=""details-container""><h5>${task.name}</h5><p>Expected to finish by ${end_date}</p><p>${task.progress}% completed!</p></div>`;
         }";
 
-    
+
         try
         {
             var tasksJson = JsonSerializer.Serialize(tasks);

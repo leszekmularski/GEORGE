@@ -17,6 +17,7 @@ namespace GEORGE.Shared.ViewModels
         public string? NumerZlecenia { get; set; }
         public string? RowIdLiniiProdukcyjnej { get; set; }
         public bool ZlecenieWewnetrzne { get; set; } = false;
+        public string? TypZamowienia { get; set; }
     }
 
 }

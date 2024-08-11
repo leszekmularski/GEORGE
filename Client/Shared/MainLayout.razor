@@ -1,6 +1,9 @@
 ﻿@inherits LayoutComponentBase
 @inject IJSRuntime jsRuntime
 @inject HttpClient Http
+@inject Utilities.ILocalStorage LocalStorage
+@using System.Net;
+@using GEORGE.Shared.Models
 
 <CascadingValue Value="this">
     <div class="page">
@@ -11,11 +14,25 @@
         <main>
 
             <div class="top-row px-4">
-                <a @onclick="@(()=>{ ShowDialogPass(); })">Informacja</a>
+
+                <a @onclick="@(()=>{ ShowDialogInfo(); })">Informacja</a>
                 <button class="btn btn-link" @onclick="OnClickEuro">Kurs Euro</button>
+   
+                @if (loggedIn)
+                {
+                    <label style="font-size: 14px; width: 500px; text-align: right;"> &ensp; Data logowania: @infDzien &ensp; Zalogowany użytkownik: @user &ensp; </label>
+                    <a class="btn btn-sm btn-primary text-white" title="Konto" href="account"><span class="oi oi-key"></span></a>
+                    <button class="btn btn-sm btn-danger" title="Wyloguj" @onclick="Logout"><span class="oi oi-account-logout"></span></button>
+                }
+                else
+                {
+                    <label style="font-size: 14px; width: 500px; text-align: right;">&ensp; Dziś mamy: @infDzien &ensp; Proszę się zalogować.  &ensp; </label>
+                    <button class="btn btn-sm btn-success" title="Zaloguj" @onclick="OpenLogin"><span class="oi oi-account-login"></span></button>
+                }
+
             </div>
 
-            <div class="modal fade @classShowPass" tabindex="-1" style="display: @displayPass;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 25%;">
+            <div class="modal fade @classShowInfo" tabindex="-1" style="display: @displayInfo;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 25%;">
                 <div class="modal-dialog modal-lg">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -27,7 +44,7 @@
 
                         </div>
                         <div class="modal-footer d-flex">
-                            <Button class="ms-auto" @onclick="() => HideDialogPass()">OK</Button>
+                            <Button class="ms-auto" @onclick="() => HideDialogInfo()">OK</Button>
                         </div>
                     </div>
                 </div>
@@ -64,31 +81,137 @@
     </div>
 </div>
 
+<div class="modal fade @(showLog ? "show" : "")   @(displayLog ? "d-block" : "d-none") fixed-position" tabindex="0" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Formularz logowania</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="loginEmail" class="form-label">Użytkownik</label>
+                    <input type="text" class="form-control" id="loginEmail" placeholder="Podaj nazwę użytkownika" autocomplete="on" required @bind="user" @ref="loginInput" @onkeydown="HandleKeyDown" />
+                </div>
+                <div class="mb-3">
+                    <label for="loginPassword" class="form-label">Hasło</label>
+                    <input type="password" class="form-control" placeholder="Podaj hasło" id="loginPassword" required @bind-value="pass" @onkeydown="HandleKeyDown" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div tabindex="0">
+                    <button type="button" class="btn btn-success" @onclick="Login">Zaloguj</button>
+                </div>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="Close">Zakończ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal-backdrop fade @(pokazbladLogowania ? "show" : "") @(pokazbladLogowania ? "d-block" : "d-none")"></div>
+
+<div class="modal fade @(pokazbladLogowania ? "show" : "") @(pokazbladLogowania ? "d-block" : "d-none")" @ref="frmOk" @onfocus="CloseOK" @onkeypress="CloseOK" tabindex="0" role="dialog">
+    <div class="modal-dialog" role="document">
+        @if (loggedIn)
+        {
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Logowanie powiodło się</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="CloseOK">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="loginEmail" class="form-label">Witaj w systemie rejestracji PSSE.</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="CloseOK">Zakończ</button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Sprawdź uprawnienia....</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        @if (pokazbladPolaczenia)
+                        {
+                            <label for="loginEmail" class="form-label">Błąd połączenia do bazy danych!!!. Zgłoś problem administratorowi.</label>
+                        }
+                        else
+                        {
+                            <label for="loginEmail" class="form-label">
+                                Nie udało zalogować się do systemu.
+                                <br />
+                                <br />Zgłoś problem administratorowi.
+                                <br />
+                                <br />Sprawdź czy masz dostęp do sieci.
+                                <br />
+                                <br />Otwórz konsole i sprawdź logi.
+                                <br />
+                                <br />
+                            </label>
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="Close">Zakończ</button>
+                </div>
+            </div>
+        }
+
+    </div>
+</div>
+
 @code {
 
-    private string displayPass = "none;";
-    private string classShowPass = "";
+    private string displayInfo = "none;";
+    private string classShowInfo = "";
 
     private string strkurs = "";
     private bool displayEuro = false;
     private bool showEuro = false;
 
-    public async Task ShowDialogPass()
+    private bool showLog, displayLog, loggedIn, pokazbladLogowania, pokazbladPolaczenia;
+
+    private string? user;
+    private string? pass;
+    private bool zaladowalem = false;
+
+    private string infDzien = DateTime.Now.ToString("dd MMMM");
+
+    private List<Pracownicy>? pracownicy;
+
+    private ElementReference loginInput;
+    private ElementReference frmOk;
+
+    public async Task ShowDialogInfo()
     {
 
-        displayPass = "block";
+        displayInfo = "block";
         await Task.Delay(50);
-        classShowPass = "show";
+        classShowInfo = "show";
         StateHasChanged();
 
     }
 
-    private async Task HideDialogPass()
+    private async Task HideDialogInfo()
     {
 
-        classShowPass = "";
+        classShowInfo = "";
         await Task.Delay(200);
-        displayPass = "none";
+        displayInfo = "none";
 
         StateHasChanged();
     }
@@ -122,14 +245,154 @@
 
     public void CloseModal()
     {
-        // showLog = false;
-        // displayLog = false;
-
-        // show = false;
-        // display = false;
-
         displayEuro = false;
         showEuro = false;
     }
 
+    public async Task OpenLogin()
+    {
+        displayLog = true;
+        showLog = true;
+        await Task.Delay(100);
+    }
+
+    public async Task Logout()
+    {
+
+        await LocalStorage.RemoveAsync("user");
+        await LocalStorage.RemoveAsync("loginTime");
+
+        loggedIn = false;
+        pass = null;
+
+        zaladowalem = true;
+        SetHeaderAndBody();
+
+    }
+
+    private async Task Login()
+    {
+        if (!string.IsNullOrEmpty(user) && !string.IsNullOrEmpty(pass))
+        {
+            await Close();
+
+            try
+            {
+
+                pracownicy = await Http.GetFromJsonAsync<List<Pracownicy>>($"api/Pracownicy/{user}/{DateTime.Now.DayOfYear}/{pass}");
+
+                pokazbladLogowania = true;
+
+                if (pracownicy != null)
+                {
+                    if (pracownicy.Count > 0)
+                    {
+                        loggedIn = true;
+                        zaladowalem = true;
+                        await LocalStorage.SaveStringAsync("user", user);
+                        await LocalStorage.SaveStringAsync("loginTime", DateTime.Now.ToString());
+
+                        var userAgent = await jsRuntime.InvokeAsync<string>("eval", "navigator.userAgent");
+                        var logowania = new Logowania
+                            {
+                                Uzytkownik = user,
+                                RodzajPrzegladarki = userAgent,
+                                Datalogowania = DateTime.Now,
+                            };
+
+                        await Http.PostAsJsonAsync($"/api/Logowania", logowania);
+
+          
+                    }
+                    else
+                    {
+                        pokazbladLogowania = true;
+                        pass = null;
+                        loggedIn = false;
+                    }
+                }
+                else
+                {
+                    pokazbladLogowania = true;
+                    pass = null;
+                    loggedIn = false;
+                }
+
+                //NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+                pokazbladLogowania = true;
+                pass = null;
+                loggedIn = false;
+                Console.WriteLine("Brak danych - próba zalogowania!");
+            }
+
+        }
+
+        try
+        {
+
+            SetHeaderAndBody();
+
+            if (loggedIn == false)
+            {
+
+                await OpenLogin();
+
+            }
+
+            //await jsRuntime.InvokeVoidAsync("focusElement", frmOk);
+
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            Console.WriteLine($"Brak danych - próba zalogowania! Info:{ex.Message}");
+        }
+    }
+
+    public void SetHeaderAndBody()
+    {
+        StateHasChanged();
+        zaladowalem = false;
+    }
+
+    private async Task CloseOK()
+    {
+        if (loggedIn)
+        {
+            await Task.Delay(1000);
+        }
+        else
+        {
+            await Task.Delay(22000);
+        }
+
+        pokazbladLogowania = false;
+        showLog = false;
+        displayLog = false;
+
+    }
+
+    private async Task Close()
+    {
+
+        await Task.Delay(350);
+
+        pokazbladLogowania = false;
+        showLog = false;
+        displayLog = false;
+
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await Login();
+
+            await CloseOK();
+        }
+    }
 }
