@@ -241,10 +241,10 @@ else
     {
         await Laduj_Uprawnienia();
 
-        if (boolOdczyt == false)
+        if (boolOdczyt == false && string.IsNullOrEmpty(user))
         {
             infStatus = "Nie masz uprawnień do odczytu";
-            //return;
+            return;
         }
 
         try
@@ -329,7 +329,17 @@ else
         try
         {
 
-            var response = await Http.PutAsJsonAsync($"/api/Uprawnienia/{zmianaUprawnienia.Id}", zmianaUprawnienia);// zmiana danych
+            var response = await Http.PutAsJsonAsync($"/api/Uprawnienia/{zmianaUprawnienia.Id}", zmianaUprawnienia);
+
+            // Dodaj ten kod
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"Błąd: {response.StatusCode}");
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Treść błędu: {errorContent}");
+                infSatusZapisu = "Nie udało się zapisać zmian w uprawnieniach.";
+                return;
+            }
 
             if (string.IsNullOrEmpty(RowIdSelect))
             {
@@ -340,7 +350,7 @@ else
 
             if (response.IsSuccessStatusCode && !string.IsNullOrEmpty(RowIdSelect))
             {
-                listaUprawnien = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"api/UprawnieniaMVC/{RowIdSelect}");
+                listaUprawnien = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"api/UprawnieniaMVC/{RowIdSelect}/");
             }
             else
             {
@@ -350,10 +360,15 @@ else
             infSatusZapisu = " uprawnienia.Id = " + zmianaUprawnienia.Id.ToString() + "/" + zmianaUprawnienia.RowId.ToString() + "/"
             + zmianaUprawnienia.RowIdRejestrejestrow.ToString() + zmianaUprawnienia.TableName.ToString();
 
+
         }
         catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
-            Console.WriteLine($"Brak danych {ex.Message}");
+            Console.WriteLine("Nie udało się załadować danych!!");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message + " ---- " + ex.StackTrace);
         }
 
     }
