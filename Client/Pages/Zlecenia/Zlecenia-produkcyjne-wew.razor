@@ -6,6 +6,7 @@
 @inject ConfirmService ComfirmService;
 @inject IMessageService _message
 @inject NavigationManager NavigationManager
+@inject Utilities.ILocalStorage LocalStorage
 @using AntDesign
 @using System.Net;
 
@@ -46,9 +47,12 @@
 
 <h3>Zlecenia Produkcyjne Wewnętrzne</h3>
 
-<Button Type="primary" OnClick="@(ShowDialogAddNew)">
-    Dodaj Zlecenie Wewnętrzne
-</Button>
+@if (boolAdmin || boolZmian)
+{
+    <Button Type="primary" OnClick="@(ShowDialogAddNew)">
+        Dodaj Zlecenie Wewnętrzne
+    </Button>
+}
 <Divider></Divider>
 
 @if (zleceniaProdukcyjneWew == null)
@@ -82,10 +86,12 @@ else
             <Column Title="ID" @bind-Field="@context.Id" Hidden />
             <Column Title="Typ Dokumentu" @bind-Field="@context.TypZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Numer Zamówienia" @bind-Field="@context.NumerZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
-            <Column Title="Data Produkcji" @bind-Field="@context.DataProdukcji" Format="yyyy-MM-dd" Sortable />
-            <Column Title="Klient" @bind-Field="@context.Klient" Sortable OnFilter="(a, b) => a == b" Filterable />
+            <Column Title="Data Produkcji" @bind-Field="@context.DataProdukcji" Style="font-weight:bold;color:red" Format="yyyy-MM-dd" Sortable />
+            <Column Title="Data Gotowości" TData="DateTime" DataIndex="DataGotowosci" Style="font-weight:bold" Format="yyyy-MM-dd" Sortable />
+            <Column Title="Klient" @bind-Field="@context.Klient" Style="font-weight:bold" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Nazwa Produktu" @bind-Field="@context.NazwaProduktu" Sortable />
             <Column Title="Adres" @bind-Field="@context.Adres" Sortable OnFilter="(a, b) => a == b" Filterable />
+            <Column Title="Miejscowość" @bind-Field="@context.Miejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Telefon" @bind-Field="@context.Telefon" Sortable />
             <Column Title="CWZ" @bind-Field="@context.JednostkiNaZlecenie" Style="width:30px" Sortable />
             <PropertyColumn Property="c=>context.ZlecZrealizowane"></PropertyColumn>
@@ -94,22 +100,29 @@ else
          @*    <Column Title="Nazwa Produktu 2" TData="string" DataIndex="NazwaProduktu2" Sortable /> *@
 
             <!-- Przykład kolumny dla daty z formatowaniem -->
-            <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd" Sortable />
+                <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd" Sortable />
+               
             <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
-            <ActionColumn Title="Akcja">
-                <Popconfirm Title="Czy chcesz edytować pozycję?"
-                            OnConfirm="()=> editRow(context.Id)"
-                            OkText="Tak"
-                            CancelText="Nie">
-                    <a>Edytuj</a>
-                </Popconfirm>
-                <Popconfirm Title="Czy chcesz usunąć pozycję?"
-                            OnConfirm="()=> ShowDialogPass(context.Id)"
-                            OkText="Tak"
-                            CancelText="Nie">
-                    <a style="color:red">Usuń</a>
-                </Popconfirm>  
-            </ActionColumn>
+                <ActionColumn Title="Akcja">
+                    @if (boolAdmin || boolZmian)
+                    {
+                        <Popconfirm Title="Czy chcesz edytować pozycję?"
+                                    OnConfirm="()=> editRow(context.Id)"
+                                    OkText="Tak"
+                                    CancelText="Nie">
+                            <a>Edytuj</a>
+                        </Popconfirm>
+                    }
+                    @if (boolAdmin || boolUsuniecia)
+                    {
+                        <Popconfirm Title="Czy chcesz usunąć pozycję?"
+                                    OnConfirm="()=> ShowDialogPass(context.Id)"
+                                    OkText="Tak"
+                                    CancelText="Nie">
+                            <a style="color:red">Usuń</a>
+                        </Popconfirm>
+                    }
+                </ActionColumn>
         </Table>
     </ul>
     </div>
@@ -119,6 +132,7 @@ else
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
+
                 <AntDesign.Form Model="@zlecenie" Layout="FormLayout.Vertical">
                     <AntDesign.Row Gutter="16">
                         <AntDesign.Col Span="12">
@@ -132,8 +146,8 @@ else
                                         GroupName="@nameof(TypZamowienia.Role)"
                                         SortByLabel="@SortDirection.Ascending"
                                         SortByGroup="@SortDirection.Ascending"
-                                            DefaultActiveFirstOption="true"
-                                        Style="width: 200px;">
+                                        DefaultActiveFirstOption="true"
+                                        Style="width: 200px;" OnSelectedItemChanged="OnSelectedItemChangedHandler">
                                 </Select>
                             </AntDesign.FormItem>
                         </AntDesign.Col>
@@ -141,11 +155,12 @@ else
                             <AntDesign.FormItem Label="Zapisano">
                                 <div>
                                     <AntDesign.Input ReadOnly Value="@(zlecenie.DataZapisu.ToString("yyyy-MM-dd"))" Style="width:120px" />
-                                    <Button OnClick="DataProdUstaw" Style="width:180px">Ustaw datę produkcji</Button>
+                                    <AntDesign.Button OnClick="DataProdUstaw" Style="width:180px">Ustaw datę produkcji</AntDesign.Button>
                                 </div>
                             </AntDesign.FormItem>
                         </AntDesign.Col>
                     </AntDesign.Row>
+
                     <AntDesign.Row Gutter="16">
                         <AntDesign.Col Span="12">
                             <AntDesign.FormItem Label="Numer Zamówienia">
@@ -158,7 +173,13 @@ else
                             </AntDesign.FormItem>
                         </AntDesign.Col>
                     </AntDesign.Row>
+
                     <AntDesign.Row Gutter="16">
+                        <AntDesign.Col Span="12">
+                            <AntDesign.FormItem Label="Data Gotowości Do Produkcji">
+                                <AntDesign.DatePicker Disabled="@czyZamowienie" @bind-Value="zlecenie.DataGotowosci" />
+                            </AntDesign.FormItem>
+                        </AntDesign.Col>
                         <AntDesign.Col Span="12">
                             <AntDesign.FormItem Label="Data Rozp. Produkcji">
                                 <AntDesign.DatePicker @bind-Value="zlecenie.DataProdukcji" />
@@ -170,6 +191,7 @@ else
                             </AntDesign.FormItem>
                         </AntDesign.Col>
                     </AntDesign.Row>
+
                     <AntDesign.Row Gutter="16">
                         <AntDesign.Col Span="12">
                             <AntDesign.FormItem Label="Data Wysyłki">
@@ -182,6 +204,7 @@ else
                             </AntDesign.FormItem>
                         </AntDesign.Col>
                     </AntDesign.Row>
+
                     <AntDesign.Row Gutter="16">
                         <AntDesign.Col Span="12">
                             <AntDesign.FormItem Label="Adres">
@@ -194,6 +217,7 @@ else
                             </AntDesign.FormItem>
                         </AntDesign.Col>
                     </AntDesign.Row>
+
                     <AntDesign.Row Gutter="16">
                         <AntDesign.Col Span="12">
                             <AntDesign.FormItem Label="Telefon">
@@ -211,6 +235,7 @@ else
                             </AntDesign.FormItem>
                         </AntDesign.Col>
                     </AntDesign.Row>
+
                     <AntDesign.Row Gutter="16">
                         <AntDesign.Col Span="12">
                             <AntDesign.FormItem Label="Nazwa Produktu 2">
@@ -223,6 +248,7 @@ else
                             </AntDesign.FormItem>
                         </AntDesign.Col>
                     </AntDesign.Row>
+
                     <AntDesign.Row Gutter="16">
                         <AntDesign.Col Span="12">
                             <AntDesign.FormItem Label="Ilość">
@@ -241,6 +267,7 @@ else
                             </AntDesign.FormItem>
                         </AntDesign.Col>
                     </AntDesign.Row>
+
                     <AntDesign.Row Gutter="16">
                         <AntDesign.Col Span="12">
                             <AntDesign.FormItem Label="Zlecenie zrealizowane">
@@ -260,6 +287,7 @@ else
                             }
                         </AntDesign.Col>
                     </AntDesign.Row>
+
                     <AntDesign.Row>
                         <AntDesign.Col Span="24" class="d-flex justify-content-end">
                             @if(!blokuDwuKlik)
@@ -270,6 +298,8 @@ else
                         </AntDesign.Col>
                     </AntDesign.Row>
                 </AntDesign.Form>
+
+            
             </div>
         </div>
     </div>
@@ -384,10 +414,14 @@ else
 
     private long cid = -1;
 
+    private bool czyZamowienie = false;
+
     private ZleceniaProdukcyjneWew zlecenie = new ZleceniaProdukcyjneWew();
 
     protected override async Task OnInitializedAsync()
     {
+
+        await Laduj_Uprawnienia();
 
         try
         {
@@ -406,7 +440,7 @@ else
 
             if (RowIdZlecenia != null && RowIdZlecenia != "")
             {
-              await editRow(RowIdZlecenia);
+                await editRow(RowIdZlecenia);
             }
 
         }
@@ -418,6 +452,29 @@ else
 
     }
 
+    private void OnSelectedItemChangedHandler(TypZamowienia value)
+    {
+        try
+        {
+            Console.WriteLine($"selected: ${value?.Name}");
+
+            if (value?.Name == "Zlecenie")
+            {
+                czyZamowienie = false;
+               if (zlecenie.DataGotowosci == DateTime.MinValue) zlecenie.DataGotowosci = DateTime.Now;
+            }
+            else
+            {
+                czyZamowienie = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message}/ {ex.StackTrace}");
+            zleceniaProdukcyjneWew = new List<ZleceniaProdukcyjneWew>();
+        }
+    }
+
     private void DataProdUstaw()
     {
         if (zlecenie.Id == 0)
@@ -426,7 +483,7 @@ else
         }
         else
         {
-            zlecenie.DataProdukcji = zlecenie.DataZapisu.AddDays(8 * 7);//8 tygodni * 7 dni;
+            zlecenie.DataProdukcji = zlecenie.DataGotowosci.AddDays(8 * 7);//8 tygodni * 7 dni;
         }
 
         bool IsWorkingDay(DateTime date)
@@ -440,7 +497,7 @@ else
         }
 
         zlecenie.DataWysylki = zlecenie.DataProdukcji.AddDays(3 * 7);
-        zlecenie.DataMontazu = zlecenie.DataZapisu.AddDays(12 * 7);
+        zlecenie.DataMontazu = zlecenie.DataGotowosci.AddDays(12 * 7);
 
     }
 
@@ -872,6 +929,66 @@ else
         }
     }
 
+    //await Laduj_Uprawnienia();
+
+    private bool boolOdczyt = false;
+    private bool boolZmian = false;
+    private bool boolUsuniecia = false;
+    private bool boolAdmin = false;
+    private string RowIdPracownika = "";
+    private string? user;
+    private List<UprawnieniaPracownikaViewModel>? uprawnienia;
+
+    private async Task Laduj_Uprawnienia()
+    {
+        user = await LocalStorage.GetStringAsync("user");
+
+        if (string.IsNullOrEmpty(user))
+        {
+            //NavigationManager.NavigateTo($"", true);
+            return;
+        }
+        
+        string nazwaTabeli = "ZleceniaProdukcyjneWew";
+
+        Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");
+
+        try
+        {
+            uprawnienia = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"/api/ZwrocSatus/{user}/{nazwaTabeli}");
+        }
+        catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            Console.WriteLine("Brak danych!!!");
+            await _message.Error("Brak danych - status użytkownika");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            await _message.Error(ex.Message);
+        }
+
+        if (uprawnienia != null)
+        {
+            if (uprawnienia.Count > 0)
+            {
+                var znalezioneElementy = uprawnienia.Where(uprawnienie => uprawnienie.TableName == nazwaTabeli);
+                Console.WriteLine("Znaleziono uprawnienia dla użytkownika: " + user + " w tabeli: " + nazwaTabeli + " ilość rekordów: " + znalezioneElementy.Count());
+                if (znalezioneElementy.Any())
+                {
+                    var szuk = znalezioneElementy.FirstOrDefault(x => x.TableName == nazwaTabeli);
+                    if (szuk != null)
+                    {
+                        boolOdczyt = szuk.Odczyt;
+                        boolZmian = szuk.Zmiana;
+                        boolUsuniecia = szuk.Usuniecie;
+                        boolAdmin = szuk.Administrator;
+                        RowIdPracownika = szuk.RowId;
+                    }
+                }
+            }
+        }
+    }
 
     public class ResponseModel
     {

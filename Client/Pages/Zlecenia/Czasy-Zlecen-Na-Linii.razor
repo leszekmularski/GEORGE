@@ -10,6 +10,7 @@
 @using AntDesign
 @using System.Net;
 @inject IJSRuntime JSRuntime
+@inject Utilities.ILocalStorage LocalStorage
 
 
 @* Przyjmujemy, że lista zleceń to `zleceniaCzasNaLinieProdList` *@
@@ -34,7 +35,10 @@
                     <td>
                         <input type="number" class="form-control" @bind="zlecenie.CzasNaZlecenie" />
                     </td>
-                    <Button Icon="@IconType.Outline.Save" Style="width:55px" @onclick="() => SaveChanges(zlecenie)"></Button>
+                    @if(boolAdmin || boolZmian)
+                    {
+                        <Button Icon="@IconType.Outline.Save" Style="width:55px" @onclick="() => SaveChanges(zlecenie)"></Button>
+                    }
                 </tr>
             }
             @if (jakiBlad != "")
@@ -69,6 +73,7 @@
     {
         try
         {
+            await Laduj_Uprawnienia();
             // Upewnij się, że RowIdZlecenia jest prawidłowy i nie jest pusty
             if (string.IsNullOrEmpty(RowIdZlecenia))
             {
@@ -140,4 +145,67 @@
         await JSRuntime.InvokeVoidAsync("history.back");
     }
 
+    //await Laduj_Uprawnienia();
+    //@inject Utilities.ILocalStorage LocalStorage
+    //@inject HttpClient Http
+    //@using System.Net;
+
+    private bool boolOdczyt = false;
+    private bool boolZmian = false;
+    private bool boolUsuniecia = false;
+    private bool boolAdmin = false;
+    private string RowIdPracownika = "";
+    private string? user;
+    private List<UprawnieniaPracownikaViewModel>? uprawnienia;
+
+    private async Task Laduj_Uprawnienia()
+    {
+        user = await LocalStorage.GetStringAsync("user");
+
+        if (string.IsNullOrEmpty(user))
+        {
+            //NavigationManager.NavigateTo($"", true);
+            return;
+        }
+        
+        string nazwaTabeli = "LinieProdukcyjne";
+
+        Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");
+
+        try
+        {
+            uprawnienia = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"/api/ZwrocSatus/{user}/{nazwaTabeli}");
+        }
+        catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            Console.WriteLine("Brak danych!!!");
+            await _message.Error("Brak danych - status użytkownika");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            await _message.Error(ex.Message);
+        }
+
+        if (uprawnienia != null)
+        {
+            if (uprawnienia.Count > 0)
+            {
+                var znalezioneElementy = uprawnienia.Where(uprawnienie => uprawnienie.TableName == nazwaTabeli);
+                Console.WriteLine("Znaleziono uprawnienia dla użytkownika: " + user + " w tabeli: " + nazwaTabeli + " ilość rekordów: " + znalezioneElementy.Count());
+                if (znalezioneElementy.Any())
+                {
+                    var szuk = znalezioneElementy.FirstOrDefault(x => x.TableName == nazwaTabeli);
+                    if (szuk != null)
+                    {
+                        boolOdczyt = szuk.Odczyt;
+                        boolZmian = szuk.Zmiana;
+                        boolUsuniecia = szuk.Usuniecie;
+                        boolAdmin = szuk.Administrator;
+                        RowIdPracownika = szuk.RowId;
+                    }
+                }
+            }
+        }
+    }
 }

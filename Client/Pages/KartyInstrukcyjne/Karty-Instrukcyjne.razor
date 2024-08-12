@@ -2,7 +2,8 @@
 @inject HttpClient Http
 @inject IMessageService _message
 @inject NavigationManager NavigationManager
-
+@inject Utilities.ILocalStorage LocalStorage
+@using System.Net;
 @using GEORGE.Shared.Models
 @using GEORGE.Shared.Class
 @using AntDesign
@@ -12,9 +13,12 @@
 
 <h3>Karty Instrukcyjne</h3>
 
-<Button Type="primary" OnClick="@(ShowDialogAddNew)">
-    Dodaj nowy rodzaj kart instrukcyjnych
-</Button>
+@if (boolAdmin || boolZmian)
+{
+    <Button Type="primary" OnClick="@(ShowDialogAddNew)">
+        Dodaj nowy rodzaj kart instrukcyjnych
+    </Button>
+}
 <Divider></Divider>
 
 @if (kartyInstrukcyjne == null)
@@ -45,20 +49,26 @@ else
                         {
                             <a href="@item.LinkDoKartyNaSerwerze" download @onclick="@( () => DownloadFile(item.LinkDoKartyNaSerwerze) )">Pobierz kartę</a>
                         }
-                      }
+                    }
                 </Template>
-                <Popconfirm Title="Czy chcesz edytować pozycję?"
-                            OnConfirm="()=> editRow(context.Id)"
-                            OkText="Tak"
-                            CancelText="Nie">
-                    <a>Edytuj</a>
-                </Popconfirm>
-                <Popconfirm Title="Czy chcesz usunąć pozycję?"
-                            OnConfirm="()=> ShowDialogPass(context.Id)"
-                            OkText="Tak"
-                            CancelText="Nie">
-                    <a style="color:red">Usuń</a>
-                </Popconfirm>
+                @if (boolAdmin || boolZmian)
+                {
+                    <Popconfirm Title="Czy chcesz edytować pozycję?"
+                                OnConfirm="()=> editRow(context.Id)"
+                                OkText="Tak"
+                                CancelText="Nie">
+                        <a>Edytuj</a>
+                    </Popconfirm>
+                }
+                @if (boolAdmin || boolUsuniecia)
+                {
+                    <Popconfirm Title="Czy chcesz usunąć pozycję?"
+                                OnConfirm="()=> ShowDialogPass(context.Id)"
+                                OkText="Tak"
+                                CancelText="Nie">
+                        <a style="color:red">Usuń</a>
+                    </Popconfirm>
+                }
             </ActionColumn>
         </Table>
     </ul>
@@ -180,6 +190,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await Laduj_Uprawnienia();
+
         rodzajeKartInstrukcyjnych = await Http.GetFromJsonAsync<List<RodzajeKartInstrukcyjnych>>("api/RodzajeKartInstrukcyjnych");
 
         kartyInstrukcyjne = await Http.GetFromJsonAsync<List<KartyInstrukcyjne>>("api/KartyInstrukcyjne");
@@ -526,6 +538,64 @@ else
         }
     }
 
+    private bool boolOdczyt = false;
+    private bool boolZmian = false;
+    private bool boolUsuniecia = false;
+    private bool boolAdmin = false;
+    private string RowIdPracownika = "";
+    private string? user;
+    private List<UprawnieniaPracownikaViewModel>? uprawnienia;
+
+    private async Task Laduj_Uprawnienia()
+    {
+        user = await LocalStorage.GetStringAsync("user");
+
+        if (string.IsNullOrEmpty(user))
+        {
+            //NavigationManager.NavigateTo($"", true);
+            return;
+        }
+        
+        string nazwaTabeli = "KartyInstrukcyjne";
+
+        Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");
+
+        try
+        {
+            uprawnienia = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"/api/ZwrocSatus/{user}/{nazwaTabeli}");
+        }
+        catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            Console.WriteLine("Brak danych!!!");
+            await _message.Error("Brak danych - status użytkownika");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            await _message.Error(ex.Message);
+        }
+
+        if (uprawnienia != null)
+        {
+            if (uprawnienia.Count > 0)
+            {
+                var znalezioneElementy = uprawnienia.Where(uprawnienie => uprawnienie.TableName == nazwaTabeli);
+                Console.WriteLine("Znaleziono uprawnienia dla użytkownika: " + user + " w tabeli: " + nazwaTabeli + " ilość rekordów: " + znalezioneElementy.Count());
+                if (znalezioneElementy.Any())
+                {
+                    var szuk = znalezioneElementy.FirstOrDefault(x => x.TableName == nazwaTabeli);
+                    if (szuk != null)
+                    {
+                        boolOdczyt = szuk.Odczyt;
+                        boolZmian = szuk.Zmiana;
+                        boolUsuniecia = szuk.Usuniecie;
+                        boolAdmin = szuk.Administrator;
+                        RowIdPracownika = szuk.RowId;
+                    }
+                }
+            }
+        }
+    }
 
     // void OnSingleCompleted(UploadInfo fileinfo)
     // {

@@ -23,6 +23,7 @@ namespace GEORGE.Shared.Models
         public int Ilosc { get; set; }
         public Single Wartosc { get; set; }
         public DateTime DataZapisu { get; set; } = DateTime.Now;
+        public DateTime DataGotowosci { get; set; } = DateTime.MinValue;
         public string? KtoZapisal { get; set; } //= User.Identity.Name;
         public string? OstatniaZmiana { get; set; } = "Zmiana: " + DateTime.Now.ToLongDateString();
         public string[]? Tags { get; set; }
