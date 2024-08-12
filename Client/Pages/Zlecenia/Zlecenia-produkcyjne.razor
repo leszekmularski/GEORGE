@@ -64,7 +64,9 @@
 else
 {
     <div class="highlighted-background">
-        <Table TItem="ZleceniaProdukcyjne" DataSource="@zleceniaProdukcyjne" RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "" )">
+        <Table TItem="ZleceniaProdukcyjne" DataSource="@zleceniaProdukcyjne" 
+            RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "" )"
+               ScrollX="1950" PageSize="6" Size="TableSize.Small">
             <ActionColumn Title="Materiały">
                 <a @onclick="() => DodajKantowke(context)" class="custom-link">Kantówka</a>
                 <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">Czasy</a>
@@ -103,7 +105,7 @@ else
             <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd" Sortable />
             
             <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
-            <ActionColumn Title="Akcja">
+            <ActionColumn Title="Akcja" Width="100" Fixed="right">
                 @if (boolAdmin || boolZmian)
                 {
                     <Popconfirm Title="Czy chcesz edytować pozycję?"
@@ -116,7 +118,7 @@ else
                 @if (boolAdmin || boolUsuniecia)
                 {
                     <Popconfirm Title="Czy chcesz usunąć pozycję?"
-                                OnConfirm="()=> ShowDialogPass(context.Id)"
+                                OnConfirm="()=> deleteRow(context.Id)"
                                 OkText="Tak"
                                 CancelText="Nie">
                         <a style="color:red">Usuń</a>
@@ -339,23 +341,6 @@ else
     </div>
 </div>
 
-<div class="modal fade @classShowPass" tabindex="-1" style="display: @displayPass;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 25%;">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Aby usunąć zlecenie musisz podać hasło</h5>
-            </div>
-            <div class="modal-body">
-
-                <Input Placeholder="Podaj hasło!!!" @bind-Value="@classPass" MaxLength="25" />
-            </div>
-            <div class="modal-footer d-flex">
-                <Button class="ms-auto" @onclick="() => HideDialogPass()">OK</Button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="modal fade @classShowTWZ" tabindex="-1" style="display: @displayTWZ;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 40%;">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -398,16 +383,9 @@ else
     private string displayFile = "none;";
     private string classShowFile = "";
 
-    private string displayPass = "none;";
-    private string classShowPass = "";
-    private string classPass = "";
-
-
     private string displayTWZ = "none;";
     private string classShowTWZ = "";
     private string classTWZ = "";
-
-    private long id_del = -1;
 
     private long cid = -1;
 
@@ -415,7 +393,7 @@ else
 
     private ZleceniaProdukcyjne zlecenie = new ZleceniaProdukcyjne();
 
-    private bool czyZamowienie = false;
+    private bool czyZamowienie = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -746,18 +724,12 @@ else
 
     }
 
-    private async Task delRow()
+    private async Task deleteRow(long id)
     {
-        if (classPass != "admin1")
-        {
-            await _message.Error("Błędne hasło");
-            return;
-        }
-
-        var response = await Http.DeleteAsync($"api/ZleceniaProdukcyjne/{id_del}");
+        var response = await Http.DeleteAsync($"api/ZleceniaProdukcyjne/{id}");
         if (response.IsSuccessStatusCode)
         {
-            var zlecenie = zleceniaProdukcyjne.FirstOrDefault(z => z.Id == id_del);
+            var zlecenie = zleceniaProdukcyjne.FirstOrDefault(z => z.Id == id);
             if (zlecenie != null)
             {
                 zleceniaProdukcyjne.Remove(zlecenie);
@@ -769,9 +741,6 @@ else
             Console.WriteLine("Błąd podczas usuwania zlecenia.");
             await _message.Error("Błąd podczas usuwania zlecenia");
         }
-
-        id_del = -1;
-        classPass = "";
     }
 
     public async Task HandleAddNew()
@@ -803,7 +772,7 @@ else
 
         var user = await LocalStorage.GetStringAsync("user");
 
-        if (user == null || user == "")
+        if (string.IsNullOrEmpty(user) || (!boolZmian && !boolAdmin))
         {
             await _message.Info("Nie masz uprawnień do zmiany danych!!!!");
             return;
@@ -811,6 +780,7 @@ else
 
         _visible = true;
         zlecenie = new ZleceniaProdukcyjne();
+        zlecenie.KtoZapisal = user;
         cid = -1;
 
         display = "block";
@@ -861,28 +831,6 @@ else
         StateHasChanged();
     }
     //********************************************************************************************************************//
-    public async Task ShowDialogPass(long id)
-    {
-        id_del = id;
-        displayPass = "block";
-        await Task.Delay(50);
-        classShowPass = "show";
-        StateHasChanged();
-
-    }
-
-    private async Task HideDialogPass()
-    {
-        displayTWZ = "";
-        classShowPass = "";
-        await Task.Delay(200);
-        displayPass = "none";
-        displayTWZ = "none";
-
-        StateHasChanged();
-
-        await delRow();
-    }
 
     private async Task HideDialogTWZ()
     {
