@@ -45,7 +45,38 @@
 
 <PageTitle>Program do wspomagania produkcji zlecenia</PageTitle>
 
-<h3>Zlecenia Produkcyjne Wewnętrzne</h3>
+<div style="display: flex; align-items: center; gap: 10px;">
+    <h3>Zlecenia Produkcyjne Wewnętrzne</h3>
+
+    <div style="display: flex; align-items: center;">
+        <Text style="margin-right: 5px;">Ilość widocznych linii</Text>
+        <AntDesign.InputNumber TValue="int"
+                               @bind-Value="iloscRekordow"
+                               Min="2"
+                               Max="25"
+                               Bordered="false"
+                               OnChange="@(e => OnClickChange(e))"
+                               Style="width: 100px; padding: 0; border-radius: 4px;" />
+
+    </div>
+
+    @if (_TypZamowienia != null)
+    {
+        <Select TItem="TypZamowienia"
+                TItemValue="string"
+                DataSource="@_TypZamowienia"
+                @bind-Value="@filtrTypZamowienia"
+                ValueName="@nameof(TypZamowienia.Value)"
+                LabelName="@nameof(TypZamowienia.Name)"
+                GroupName="@nameof(TypZamowienia.Role)"
+                SortByLabel="@SortDirection.Ascending"
+                SortByGroup="@SortDirection.Ascending"
+                DefaultActiveFirstOption="false"
+                AllowClear
+                Style="width: 200px;" OnSelectedItemChanged="OnSelectedItemChangedHandlerFiltr">
+        </Select>
+    }
+</div>
 
 @if (boolAdmin || boolNowy)
 {
@@ -395,6 +426,9 @@ else
 
     private string rowIdClick = "";
 
+    private int iloscRekordow = 6;
+    private string? filtrTypZamowienia = "";
+
     private long cid = -1;
 
     private bool czyZamowienie = false;
@@ -408,6 +442,8 @@ else
 
         try
         {
+            iloscRekordow = Convert.ToInt32((await LocalStorage.GetStringAsync("zlecenie_ile_widocznych")));
+            if (iloscRekordow == 0) iloscRekordow = 6;
 
             _TypZamowienia = new List<TypZamowienia>
             {
@@ -421,10 +457,13 @@ else
 
             zleceniaProdukcyjneWew = await Http.GetFromJsonAsync<List<ZleceniaProdukcyjneWew>>("api/ZleceniaProdukcyjneWew");
 
+            originalzleceniaProdukcyjneWew = zleceniaProdukcyjneWew;
+
             if (RowIdZlecenia != null && RowIdZlecenia != "")
             {
                 await editRow(RowIdZlecenia);
             }
+
 
         }
         catch (Exception ex)
@@ -432,6 +471,13 @@ else
             Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message}/ {ex.StackTrace}");
             zleceniaProdukcyjneWew = new List<ZleceniaProdukcyjneWew>();
         }
+
+    }
+
+    private async Task OnClickChange(int e)
+    {
+        Console.WriteLine("Zapisano ilość widocznych" + e);
+        await LocalStorage.SaveStringAsync("zlecenie_ile_widocznych", e.ToString());
 
     }
 
@@ -455,6 +501,42 @@ else
         {
             Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message}/ {ex.StackTrace}");
             zleceniaProdukcyjneWew = new List<ZleceniaProdukcyjneWew>();
+        }
+    }
+
+    private async Task OnSelectedItemChangedHandlerFiltr(TypZamowienia value)
+    {
+        try
+        {
+            Console.WriteLine($"Selected: {value?.Name}");
+
+            if (!string.IsNullOrEmpty(filtrTypZamowienia))
+            {
+                // Filter the list of orders based on the filter value
+                zleceniaProdukcyjneWew = originalzleceniaProdukcyjneWew
+                    .Where(f => f.TypZamowienia.Contains(filtrTypZamowienia, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+            else
+            {
+                // If no filter value is provided, fetch all orders
+                zleceniaProdukcyjneWew = await Http.GetFromJsonAsync<List<ZleceniaProdukcyjneWew>>("api/ZleceniaProdukcyjneWew");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An error occurred while fetching the data: {ex.Message}\n{ex.StackTrace}");
+            zleceniaProdukcyjneWew = new List<ZleceniaProdukcyjneWew>();
+
+            try
+            {
+                // Retry fetching the data from the API
+                zleceniaProdukcyjneWew = await Http.GetFromJsonAsync<List<ZleceniaProdukcyjneWew>>("api/ZleceniaProdukcyjneWew");
+            }
+            catch (Exception innerEx)
+            {
+                Console.WriteLine($"Retry failed: {innerEx.Message}\n{innerEx.StackTrace}");
+            }
         }
     }
 
@@ -793,6 +875,12 @@ else
     {
         _visible = true;
         zlecenie = new ZleceniaProdukcyjneWew();
+
+        if (!string.IsNullOrEmpty(user))
+        {
+            zlecenie.KtoZapisal = user;
+        }
+
         cid = -1;
 
         display = "block";

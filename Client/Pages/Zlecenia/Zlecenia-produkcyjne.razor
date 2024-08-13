@@ -46,7 +46,38 @@
 
 <PageTitle>Program do wspomagania produkcji zlecenia</PageTitle>
 
-<h3>Zlecenia Produkcyjne</h3>
+<div style="display: flex; align-items: center; gap: 10px;">
+    <h3 style="margin: 0;">Zlecenia Produkcyjne</h3>
+
+    <div style="display: flex; align-items: center;">
+        <Text style="margin-right: 5px;">Ilość widocznych linii</Text>
+        <AntDesign.InputNumber TValue="int"
+                               @bind-Value="iloscRekordow"
+                               Min="2"
+                               Max="25"
+                               Bordered="false"
+                               OnChange="@(e => OnClickChange(e))"
+                               Style="width: 100px; padding: 0; border-radius: 4px;" />
+
+    </div>
+
+    @if (_TypZamowienia != null)
+    {
+        <Select TItem="TypZamowienia"
+                TItemValue="string"
+                DataSource="@_TypZamowienia"
+                @bind-Value="@filtrTypZamowienia"
+                ValueName="@nameof(TypZamowienia.Value)"
+                LabelName="@nameof(TypZamowienia.Name)"
+                GroupName="@nameof(TypZamowienia.Role)"
+                SortByLabel="@SortDirection.Ascending"
+                SortByGroup="@SortDirection.Ascending"
+                DefaultActiveFirstOption="false"
+                AllowClear
+                Style="width: 200px;" OnSelectedItemChanged="OnSelectedItemChangedHandlerFiltr">
+        </Select>
+    }
+</div>
 
 @if (boolAdmin || boolNowy)
 {
@@ -66,7 +97,7 @@ else
     <div class="highlighted-background">
         <Table TItem="ZleceniaProdukcyjne" DataSource="@zleceniaProdukcyjne"
                RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "" )"
-               ScrollX="1950" PageSize="6" Size="TableSize.Small">
+               ScrollX="1950" PageSize="@iloscRekordow" Size="TableSize.Small">
             <ActionColumn Title="Materiały">
                 <a @onclick="() => DodajKantowke(context)" class="custom-link">Kantówka</a>
                 <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">Czasy</a>
@@ -392,6 +423,8 @@ else
     private string classShowTWZ = "";
     private string classTWZ = "";
 
+    private int iloscRekordow = 6;
+    private string? filtrTypZamowienia = "";
 
     private long cid = -1;
 
@@ -408,6 +441,10 @@ else
 
         try
         {
+            
+            iloscRekordow = Convert.ToInt32((await LocalStorage.GetStringAsync("zlecenie_ile_widocznych")));
+            if (iloscRekordow == 0) iloscRekordow = 6;
+
             _TypZamowienia = new List<TypZamowienia>
             {
                 new TypZamowienia {Value = "Pomiary", Name = "Pomiary", Role = "Oferta"},
@@ -420,6 +457,8 @@ else
 
             zleceniaProdukcyjne = await Http.GetFromJsonAsync<List<ZleceniaProdukcyjne>>("api/ZleceniaProdukcyjne");
 
+            originalzleceniaProdukcyjne = zleceniaProdukcyjne;
+
             if (RowIdZlecenia != null && RowIdZlecenia != "")
             {
                 await editRow(RowIdZlecenia);
@@ -431,6 +470,13 @@ else
             Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message}/ {ex.StackTrace}");
             zleceniaProdukcyjne = new List<ZleceniaProdukcyjne>();
         }
+    }
+
+    private async Task OnClickChange(int e)
+    {
+        Console.WriteLine("Zapisano ilość widocznych" + e);
+        await LocalStorage.SaveStringAsync("zlecenie_ile_widocznych", e.ToString());
+
     }
 
     private void OnSelectedItemChangedHandler(TypZamowienia value)
@@ -453,6 +499,42 @@ else
         {
             Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message}/ {ex.StackTrace}");
             zleceniaProdukcyjne = new List<ZleceniaProdukcyjne>();
+        }
+    }
+
+    private async Task OnSelectedItemChangedHandlerFiltr(TypZamowienia value)
+    {
+        try
+        {
+            Console.WriteLine($"Selected: {value?.Name}");
+
+            if (!string.IsNullOrEmpty(filtrTypZamowienia))
+            {
+                // Filter the list of orders based on the filter value
+                zleceniaProdukcyjne = originalzleceniaProdukcyjne
+                    .Where(f => f.TypZamowienia.Contains(filtrTypZamowienia, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+            else
+            {
+                // If no filter value is provided, fetch all orders
+                zleceniaProdukcyjne = await Http.GetFromJsonAsync<List<ZleceniaProdukcyjne>>("api/ZleceniaProdukcyjne");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An error occurred while fetching the data: {ex.Message}\n{ex.StackTrace}");
+            zleceniaProdukcyjne = new List<ZleceniaProdukcyjne>();
+
+            try
+            {
+                // Retry fetching the data from the API
+                zleceniaProdukcyjne = await Http.GetFromJsonAsync<List<ZleceniaProdukcyjne>>("api/ZleceniaProdukcyjne");
+            }
+            catch (Exception innerEx)
+            {
+                Console.WriteLine($"Retry failed: {innerEx.Message}\n{innerEx.StackTrace}");
+            }
         }
     }
 
@@ -809,6 +891,12 @@ else
 
         _visible = true;
         zlecenie = new ZleceniaProdukcyjne();
+
+        if(!string.IsNullOrEmpty(user))
+        {
+            zlecenie.KtoZapisal = user;
+        }
+
         cid = -1;
 
         display = "block";
