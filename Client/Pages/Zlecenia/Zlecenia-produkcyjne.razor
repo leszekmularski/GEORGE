@@ -30,17 +30,17 @@
         background-color: forestgreen !important;
     }
 
-    .zlealizowano:hover, .zlealizowano:hover > td {
-        background-color: forestgreen !important;
-    }
+        .zlealizowano:hover, .zlealizowano:hover > td {
+            background-color: forestgreen !important;
+        }
 
     .zlecenie, .zlecenie > td {
         background-color: lightblue !important;
     }
 
-    .zlecenie:hover, .zlecenie:hover > td {
+        .zlecenie:hover, .zlecenie:hover > td {
             background-color: lightblue !important;
-    }
+        }
 
 </style>
 
@@ -64,7 +64,10 @@
 else
 {
     <div class="highlighted-background">
-        <Table TItem="ZleceniaProdukcyjne" DataSource="@zleceniaProdukcyjne" RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "" )">
+        <Table TItem="ZleceniaProdukcyjne" DataSource="@zleceniaProdukcyjne"
+               RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "" )"
+               ScrollX="1950" PageSize="6" Size="TableSize.Small">
+
             <ActionColumn Title="Materiały">
                 <a @onclick="() => DodajKantowke(context)" class="custom-link">Kantówka</a>
                 <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">Czasy</a>
@@ -101,7 +104,7 @@ else
 
             <!-- Przykład kolumny dla daty z formatowaniem -->
             <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd" Sortable />
-            
+
             <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
             <ActionColumn Title="Akcja">
                 @if (boolAdmin || boolZmian)
@@ -121,7 +124,7 @@ else
                                 CancelText="Nie">
                         <a style="color:red">Usuń</a>
                     </Popconfirm>
-                } 
+                }
             </ActionColumn>
         </Table>
     </div>
@@ -363,10 +366,10 @@ else
                 <h5 class="modal-title">Ustaw czas produkcji na różnych liniach</h5>
             </div>
             <div class="modal-body">
-                @if(rowIdClick != "")
+                @if (rowIdClick != "")
                 {
                     <Czasy_Zlecen_Na_Linii RowIdZlecenia="@rowIdClick" NowaStronaRazor="false" />
-                } 
+                }
             </div>
             <div class="modal-footer d-flex">
                 <Button class="ms-auto" @onclick="() => HideDialogTWZ()">Zakończ</Button>
@@ -721,10 +724,10 @@ else
 
         zlecenie = new ZleceniaProdukcyjne();
 
-        var  listOfData = zleceniaProdukcyjne.Where(d => d.Id == id).ToArray();
+        var listOfData = zleceniaProdukcyjne.Where(d => d.Id == id).ToArray();
 
         // Pobierz zlecenie na podstawie indeksu wiersza
-        if (listOfData != null && listOfData.Count() > 0 )
+        if (listOfData != null && listOfData.Count() > 0)
         {
             cid = id;
 
@@ -829,7 +832,7 @@ else
 
     private async Task HideDialog()
     {
-        if (cid >0 && zleceniaProdukcyjne != null)
+        if (cid > 0 && zleceniaProdukcyjne != null)
         {
             zleceniaProdukcyjne = originalzleceniaProdukcyjne;
         }

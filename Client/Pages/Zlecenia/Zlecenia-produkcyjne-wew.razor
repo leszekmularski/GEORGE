@@ -61,48 +61,49 @@
 }
 else
 {
-    <div style="display: flex; align-items: flex-start;">
-    <ul>
+    <div class="highlighted-background">
+        <Table TItem="ZleceniaProdukcyjneWew" DataSource="@zleceniaProdukcyjneWew"
+           RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "" )"
+           ScrollX="1950" PageSize="6" Size="TableSize.Small">
 
-            <Table TItem="ZleceniaProdukcyjneWew" DataSource="@zleceniaProdukcyjneWew" RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "" )">
-            <ActionColumn Title="Materiały">
-                <a @onclick="() => DodajKantowke(context)">Kantówka</a>
-                <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">Czasy</a>
-                <a @onclick="() => FileEdit(context)">Pliki</a>
-            </ActionColumn>
+                <ActionColumn Title="Materiały">
+                    <a @onclick="() => DodajKantowke(context)">Kantówka</a>
+                    <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">Czasy</a>
+                    <a @onclick="() => FileEdit(context)">Pliki</a>
+                </ActionColumn>
                 <Column Title="Status" TData="string">
-                @if (context.Tags != null)
-                {
-                    @foreach (var tag in context.Tags)
+                    @if (context.Tags != null)
                     {
-                        <Tag Color="@(tag.Contains("szyb") ? "volcano" : tag.Contains("do produkcji")  ? "geekblue" : "green")">@tag</Tag>
+                        @foreach (var tag in context.Tags)
+                        {
+                            <Tag Color="@(tag.Contains("szyb") ? "volcano" : tag.Contains("do produkcji")  ? "geekblue" : "green")">@tag</Tag>
+                        }
                     }
-                }
-                else
-                {
-                    <Tag Color="@("black")">Brak danych</Tag>
-                }
-            </Column>
-            <Column Title="ID" @bind-Field="@context.Id" Hidden />
-            <Column Title="Typ Dokumentu" @bind-Field="@context.TypZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
-            <Column Title="Numer Zamówienia" @bind-Field="@context.NumerZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
-            <Column Title="Data Produkcji" @bind-Field="@context.DataProdukcji" Style="font-weight:bold;color:red" Format="yyyy-MM-dd" Sortable />
-            <Column Title="Data Gotowości" TData="DateTime" DataIndex="DataGotowosci" Style="font-weight:bold" Format="yyyy-MM-dd" Sortable />
-            <Column Title="Klient" @bind-Field="@context.Klient" Style="font-weight:bold" Sortable OnFilter="(a, b) => a == b" Filterable />
-            <Column Title="Nazwa Produktu" @bind-Field="@context.NazwaProduktu" Sortable />
-            <Column Title="Adres" @bind-Field="@context.Adres" Sortable OnFilter="(a, b) => a == b" Filterable />
-            <Column Title="Miejscowość" @bind-Field="@context.Miejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable />
-            <Column Title="Telefon" @bind-Field="@context.Telefon" Sortable />
-            <Column Title="CWZ" @bind-Field="@context.JednostkiNaZlecenie" Style="width:30px" Sortable />
-            <PropertyColumn Property="c=>context.ZlecZrealizowane"></PropertyColumn>
+                    else
+                    {
+                        <Tag Color="@("black")">Brak danych</Tag>
+                    }
+                </Column>
+                <Column Title="ID" @bind-Field="@context.Id" Hidden />
+                <Column Title="Typ Dokumentu" @bind-Field="@context.TypZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
+                <Column Title="Numer Zamówienia" @bind-Field="@context.NumerZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
+                <Column Title="Data Produkcji" @bind-Field="@context.DataProdukcji" Style="font-weight:bold;color:red" Format="yyyy-MM-dd" Sortable />
+                <Column Title="Data Gotowości" TData="DateTime" DataIndex="DataGotowosci" Style="font-weight:bold" Format="yyyy-MM-dd" Sortable />
+                <Column Title="Klient" @bind-Field="@context.Klient" Style="font-weight:bold" Sortable OnFilter="(a, b) => a == b" Filterable />
+                <Column Title="Nazwa Produktu" @bind-Field="@context.NazwaProduktu" Sortable />
+                <Column Title="Adres" @bind-Field="@context.Adres" Sortable OnFilter="(a, b) => a == b" Filterable />
+                <Column Title="Miejscowość" @bind-Field="@context.Miejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable />
+                <Column Title="Telefon" @bind-Field="@context.Telefon" Sortable />
+                <Column Title="CWZ" @bind-Field="@context.JednostkiNaZlecenie" Style="width:30px" Sortable />
+                <PropertyColumn Property="c=>context.ZlecZrealizowane"></PropertyColumn>
 
-            <!-- Przykład kolumny dla danych zagnieżdżonych -->
-         @*    <Column Title="Nazwa Produktu 2" TData="string" DataIndex="NazwaProduktu2" Sortable /> *@
+                <!-- Przykład kolumny dla danych zagnieżdżonych -->
+                @*    <Column Title="Nazwa Produktu 2" TData="string" DataIndex="NazwaProduktu2" Sortable /> *@
 
-            <!-- Przykład kolumny dla daty z formatowaniem -->
+                <!-- Przykład kolumny dla daty z formatowaniem -->
                 <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd" Sortable />
-               
-            <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
+
+                <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
                 <ActionColumn Title="Akcja">
                     @if (boolAdmin || boolZmian)
                     {
@@ -123,8 +124,7 @@ else
                         </Popconfirm>
                     }
                 </ActionColumn>
-        </Table>
-    </ul>
+            </Table>
     </div>
 }
 
@@ -290,7 +290,7 @@ else
 
                     <AntDesign.Row>
                         <AntDesign.Col Span="24" class="d-flex justify-content-end">
-                            @if(!blokuDwuKlik)
+                            @if (!blokuDwuKlik)
                             {
                                 <AntDesign.Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</AntDesign.Button>
                             }
@@ -299,7 +299,7 @@ else
                     </AntDesign.Row>
                 </AntDesign.Form>
 
-            
+
             </div>
         </div>
     </div>
@@ -340,7 +340,7 @@ else
     </div>
 </div>
 
-    <div class="modal fade @classShowPass" tabindex="-1" style="display: @displayPass;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 25%;">
+<div class="modal fade @classShowPass" tabindex="-1" style="display: @displayPass;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 25%;">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
@@ -365,10 +365,10 @@ else
                 <h5 class="modal-title">Ustaw czas produkcji na różnych liniach</h5>
             </div>
             <div class="modal-body">
-                @if(rowIdClick != "")
+                @if (rowIdClick != "")
                 {
                     <Czasy_Zlecen_Na_Linii RowIdZlecenia="@rowIdClick" NowaStronaRazor="false" />
-                } 
+                }
             </div>
             <div class="modal-footer d-flex">
                 <Button class="ms-auto" @onclick="() => HideDialogTWZ()">Zakończ</Button>
@@ -715,10 +715,10 @@ else
 
         zlecenie = new ZleceniaProdukcyjneWew();
 
-        var  listOfData = zleceniaProdukcyjneWew.Where(d => d.Id == id).ToArray();
+        var listOfData = zleceniaProdukcyjneWew.Where(d => d.Id == id).ToArray();
 
         // Pobierz zlecenie na podstawie indeksu wiersza
-        if (listOfData != null && listOfData.Count() > 0 )
+        if (listOfData != null && listOfData.Count() > 0)
         {
             cid = id;
 
@@ -814,7 +814,7 @@ else
 
     private async Task HideDialog()
     {
-        if (cid >0 && zleceniaProdukcyjneWew != null)
+        if (cid > 0 && zleceniaProdukcyjneWew != null)
         {
             zleceniaProdukcyjneWew = originalzleceniaProdukcyjneWew;
         }
@@ -949,7 +949,7 @@ else
             //NavigationManager.NavigateTo($"", true);
             return;
         }
-        
+
         string nazwaTabeli = "ZleceniaProdukcyjneWew";
 
         Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");
