@@ -76,7 +76,20 @@ namespace GEORGE.Server
             }
 
             plik.Uwagi = uwaga;
-            plik.OstatniaZmiana = "Zmiana: " + DateTime.Now.ToLongDateString();
+            plik.OstatniaZmiana = "Zmiana. Uwagi: " + DateTime.Now.ToLongDateString();
+            await SaveChangesAsync();
+            return true;
+        }
+        public async Task<bool> ZmienWidocznosc(long id, bool widocznosc)
+        {
+            var plik = await PlikiZlecenProdukcyjnych.FindAsync(id);
+            if (plik == null)
+            {
+                return false;
+            }
+
+            plik.WidocznyDlaWszystkich = widocznosc;
+            plik.OstatniaZmiana = "Zmiana. Widoczności pliku: " + DateTime.Now.ToLongDateString();
             await SaveChangesAsync();
             return true;
         }

@@ -11,6 +11,7 @@
         public DateTime DataZapisu { get; set; } = DateTime.Now;
         public string? KtoZapisal { get; set; }
         public string? Uwagi { get; set; } = " ";
+        public bool WidocznyDlaWszystkich { get; set; } = false;
         public string? OstatniaZmiana { get; set; } = "Zmiana: " + DateTime.Now.ToLongDateString();
     }
 }

@@ -64,7 +64,9 @@
 else
 {
     <div class="highlighted-background">
-        <Table TItem="ZleceniaProdukcyjne" DataSource="@zleceniaProdukcyjne" RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "" )">
+        <Table TItem="ZleceniaProdukcyjne" DataSource="@zleceniaProdukcyjne"
+               RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "" )"
+               ScrollX="1950" PageSize="6" Size="TableSize.Small">
             <ActionColumn Title="Materiały">
                 <a @onclick="() => DodajKantowke(context)" class="custom-link">Kantówka</a>
                 <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">Czasy</a>
@@ -116,7 +118,7 @@ else
                 @if (boolAdmin || boolUsuniecia)
                 {
                     <Popconfirm Title="Czy chcesz usunąć pozycję?"
-                                OnConfirm="()=> deleteRow(context.Id)"
+                                OnConfirm="()=> delRow(context.Id)"
                                 OkText="Tak"
                                 CancelText="Nie">
                         <a style="color:red">Usuń</a>
@@ -321,6 +323,11 @@ else
                         <Template>
                             @{
                                 // <a style="color:blue" @onclick="() => ZmienUwage(context)">@context.Uwagi &nbsp;</a><br/>
+                                @if (boolAdmin)
+                                {
+                                    <label>Widoczny dla wszystkich:</label>
+                                    <Checkbox Placeholder="Widoczny dla wszystkich." @bind-Value="@context.WidocznyDlaWszystkich" OnChange="@( () => ZmienWidocznosc(context.Id, context.WidocznyDlaWszystkich))" />
+                                }
                                 <Input Placeholder="Podaj uwagę." @bind-Value="@context.Uwagi" MaxLength="45" OnBlur="@( () => ZmienUwage(context.Id, context.Uwagi))" />
                                 var item = context as PlikiZlecenProdukcyjnych;
                                 if (!string.IsNullOrEmpty(item.NazwaPliku))
@@ -385,13 +392,14 @@ else
     private string classShowTWZ = "";
     private string classTWZ = "";
 
+
     private long cid = -1;
 
     private string rowIdClick = "";
 
     private ZleceniaProdukcyjne zlecenie = new ZleceniaProdukcyjne();
 
-    private bool czyZamowienie = true;
+    private bool czyZamowienie = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -482,28 +490,49 @@ else
 
     private async Task LoadFiles(string rowId)
     {
-        var response = await Http.GetAsync($"api/FileUploadZlec/files/{rowId}");
-        if (response.IsSuccessStatusCode)
+        try
         {
-            pliki = await response.Content.ReadFromJsonAsync<List<PlikiZlecenProdukcyjnych>>();
+            var response = await Http.GetAsync($"api/FileUploadZlec/files/{rowId}");
 
-            if (pliki != null)
+            if (response.IsSuccessStatusCode)
             {
-                foreach (var itm in pliki)
+                var fileList = await response.Content.ReadFromJsonAsync<List<PlikiZlecenProdukcyjnych>>();
+                if (fileList != null)
                 {
-                    if (string.IsNullOrEmpty(itm.Uwagi))
+                    // Filtruj pliki, jeśli użytkownik nie jest administratorem
+                    if (!boolAdmin)
                     {
-                        itm.Uwagi = "";
+                        fileList = fileList.Where(p => p.WidocznyDlaWszystkich).ToList();
                     }
+
+                    // Upewnij się, że pole Uwagi nie jest null lub pusty string
+                    foreach (var itm in fileList)
+                    {
+                        itm.Uwagi ??= string.Empty;
+                    }
+
+                    pliki = fileList;
+                }
+                else
+                {
+                    pliki = new List<PlikiZlecenProdukcyjnych>();
                 }
             }
-
+            else
+            {
+                // Obsługa błędów dla przypadków nieudanych odpowiedzi
+                Console.Error.WriteLine($"Error loading files: {response.StatusCode} - {response.ReasonPhrase}");
+                pliki = new List<PlikiZlecenProdukcyjnych>();
+            }
         }
-        else
+        catch (Exception ex)
         {
-            // Obsłuż błąd
+            // Globalna obsługa wyjątków
+            Console.Error.WriteLine($"An error occurred while loading files: {ex.Message}");
+            pliki = new List<PlikiZlecenProdukcyjnych>();
         }
     }
+
 
     private async Task DodajCzasyWykonaia(ZleceniaProdukcyjne row)
     {
@@ -722,8 +751,9 @@ else
 
     }
 
-    private async Task deleteRow(long id)
+    private async Task delRow(long id)
     {
+
         var response = await Http.DeleteAsync($"api/ZleceniaProdukcyjne/{id}");
         if (response.IsSuccessStatusCode)
         {
@@ -739,6 +769,7 @@ else
             Console.WriteLine("Błąd podczas usuwania zlecenia.");
             await _message.Error("Błąd podczas usuwania zlecenia");
         }
+
     }
 
     public async Task HandleAddNew()
@@ -770,7 +801,7 @@ else
 
         var user = await LocalStorage.GetStringAsync("user");
 
-        if (string.IsNullOrEmpty(user) || (!boolZmian && !boolAdmin))
+        if (user == null || user == "")
         {
             await _message.Info("Nie masz uprawnień do zmiany danych!!!!");
             return;
@@ -778,7 +809,6 @@ else
 
         _visible = true;
         zlecenie = new ZleceniaProdukcyjne();
-        zlecenie.KtoZapisal = user;
         cid = -1;
 
         display = "block";
@@ -860,6 +890,27 @@ else
             Console.WriteLine("Błąd podczas zmiany uwagi");
         }
     }
+
+    private async Task ZmienWidocznosc(long id, bool widocznosc)
+    {
+        var response = await Http.PostAsJsonAsync($"api/FileUploadZlec/zmien-widocznosc?id={id}", widocznosc);
+        if (response.IsSuccessStatusCode)
+        {
+            // Logika do aktualizacji UI, jeśli potrzebne
+            var plik = pliki.FirstOrDefault(p => p.Id == id);
+            if (plik != null)
+            {
+                plik.WidocznyDlaWszystkich = widocznosc;
+                plik.OstatniaZmiana = "Zmiana: " + DateTime.Now.ToLongDateString();
+            }
+        }
+        else
+        {
+            // Logika do obsługi błędów
+            Console.WriteLine("Błąd podczas zmiany uwagi");
+        }
+    }
+   
 
     private async Task HandleSelected(InputFileChangeEventArgs e)
     {

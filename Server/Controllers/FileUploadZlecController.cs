@@ -101,6 +101,20 @@ public class FileUploadZlecController : ControllerBase
         }
     }
 
+    [HttpPost("zmien-widocznosc")]
+    public async Task<IActionResult> ZmienWidocznosc(long id, [FromBody] bool widocznosc)
+    {
+        var result = await _context.ZmienWidocznosc(id, widocznosc);
+        if (result)
+        {
+            return Ok("Uwagi zaktualizowane pomyślnie.");
+        }
+        else
+        {
+            return NotFound("Nie znaleziono pliku o podanym ID.");
+        }
+    }
+
     public string GetFileExtension(string fileName)
     {
         if (string.IsNullOrEmpty(fileName))

@@ -61,15 +61,16 @@
 }
 else
 {
-    <div style="display: flex; align-items: flex-start;">
-    <ul>
+    <div class="highlighted-background">
 
-            <Table TItem="ZleceniaProdukcyjneWew" DataSource="@zleceniaProdukcyjneWew" RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "" )">
-            <ActionColumn Title="Materiały">
-                <a @onclick="() => DodajKantowke(context)">Kantówka</a>
-                <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">Czasy</a>
-                <a @onclick="() => FileEdit(context)">Pliki</a>
-            </ActionColumn>
+            <Table TItem="ZleceniaProdukcyjneWew" DataSource="@zleceniaProdukcyjneWew"
+                   RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "" )"
+                   ScrollX="1950" PageSize="6" Size="TableSize.Small">
+                <ActionColumn Title="Materiały">
+                    <a @onclick="() => DodajKantowke(context)">Kantówka</a>
+                    <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">Czasy</a>
+                    <a @onclick="() => FileEdit(context)">Pliki</a>
+                </ActionColumn>
                 <Column Title="Status" TData="string">
                     @if (context.Tags != null)
                     {
@@ -101,9 +102,9 @@ else
 
                 <!-- Przykład kolumny dla daty z formatowaniem -->
                 <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd" Sortable />
-               
-            <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
-                <ActionColumn Title="Akcja">
+
+                <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
+            <ActionColumn Title="Akcja" Width="100" Fixed="right">
                     @if (boolAdmin || boolZmian)
                     {
                         <Popconfirm Title="Czy chcesz edytować pozycję?"
@@ -116,15 +117,15 @@ else
                     @if (boolAdmin || boolUsuniecia)
                     {
                         <Popconfirm Title="Czy chcesz usunąć pozycję?"
-                                    OnConfirm="()=> delRow(context.Id)"
+                                OnConfirm="()=> delRow(context.Id)"
                                     OkText="Tak"
                                     CancelText="Nie">
                             <a style="color:red">Usuń</a>
                         </Popconfirm>
                     }
                 </ActionColumn>
-        </Table>
-    </ul>
+            </Table>
+
     </div>
 }
 
@@ -315,13 +316,18 @@ else
                 <Table TItem="PlikiZlecenProdukcyjnych" DataSource="@pliki">
                     <Column Title="ID" @bind-Field="@context.Id" Hidden />
                     <Column Title="Nazwa pliku" @bind-Field="@context.NazwaPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
-                    <Column Title="Typ" @bind-Field="@context.TypPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Title="Oryginalna nazwa pliku" @bind-Field="@context.OryginalnaNazwaPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Title="Typ" @bind-Field="@context.TypPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Title="Data Zapisu" @bind-Field="@context.DataZapisu" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <ActionColumn Title="Uwagi / Akcja">
                         <Template>
                             @{
                                 // <a style="color:blue" @onclick="() => ZmienUwage(context)">@context.Uwagi &nbsp;</a><br/>
+                                @if (boolAdmin)
+                                {
+                                    <label>Widoczny dla wszystkich:</label>
+                                    <Checkbox Placeholder="Widoczny dla wszystkich." @bind-Value="@context.WidocznyDlaWszystkich" OnChange="@( () => ZmienWidocznosc(context.Id, context.WidocznyDlaWszystkich))" />
+                                }
                                 <Input Placeholder="Podaj uwagę." @bind-Value="@context.Uwagi" MaxLength="45" OnBlur="@( () => ZmienUwage(context.Id, context.Uwagi))" />
                                 var item = context as PlikiZlecenProdukcyjnych;
                                 if (!string.IsNullOrEmpty(item.NazwaPliku))
@@ -335,24 +341,6 @@ else
             </div>
             <div class="modal-footer d-flex">
                 <Button class="ms-auto" @onclick="() => HideDialogFile()">Zakończ</Button>
-            </div>
-        </div>
-    </div>
-</div>
-
-    <div class="modal fade @classShowPass" tabindex="-1" style="display: @displayPass;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 25%;">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Aby usunąć zlecenie musisz podać hasło</h5>
-            </div>
-            <div class="modal-body">
-
-                <Input Placeholder="Podaj hasło!!!" @bind-Value="@classPass" MaxLength="25" />
-
-            </div>
-            <div class="modal-footer d-flex">
-                <Button class="ms-auto" @onclick="() => HideDialogPass()">OK</Button>
             </div>
         </div>
     </div>
@@ -409,7 +397,7 @@ else
 
     private long cid = -1;
 
-    private bool czyZamowienie = true;
+    private bool czyZamowienie = false;
 
     private ZleceniaProdukcyjneWew zlecenie = new ZleceniaProdukcyjneWew();
 
@@ -498,28 +486,49 @@ else
 
     private async Task LoadFiles(string rowId)
     {
-        var response = await Http.GetAsync($"api/FileUploadZlec/files/{rowId}");
-        if (response.IsSuccessStatusCode)
+        try
         {
-            pliki = await response.Content.ReadFromJsonAsync<List<PlikiZlecenProdukcyjnych>>();
+            var response = await Http.GetAsync($"api/FileUploadZlec/files/{rowId}");
 
-            if (pliki != null)
+            if (response.IsSuccessStatusCode)
             {
-                foreach (var itm in pliki)
+                var fileList = await response.Content.ReadFromJsonAsync<List<PlikiZlecenProdukcyjnych>>();
+                if (fileList != null)
                 {
-                    if (string.IsNullOrEmpty(itm.Uwagi))
+                    // Filtruj pliki, jeśli użytkownik nie jest administratorem
+                    if (!boolAdmin)
                     {
-                        itm.Uwagi = "";
+                        fileList = fileList.Where(p => p.WidocznyDlaWszystkich).ToList();
                     }
+
+                    // Upewnij się, że pole Uwagi nie jest null lub pusty string
+                    foreach (var itm in fileList)
+                    {
+                        itm.Uwagi ??= string.Empty;
+                    }
+
+                    pliki = fileList;
+                }
+                else
+                {
+                    pliki = new List<PlikiZlecenProdukcyjnych>();
                 }
             }
-
+            else
+            {
+                // Obsługa błędów dla przypadków nieudanych odpowiedzi
+                Console.Error.WriteLine($"Error loading files: {response.StatusCode} - {response.ReasonPhrase}");
+                pliki = new List<PlikiZlecenProdukcyjnych>();
+            }
         }
-        else
+        catch (Exception ex)
         {
-            // Obsłuż błąd
+            // Globalna obsługa wyjątków
+            Console.Error.WriteLine($"An error occurred while loading files: {ex.Message}");
+            pliki = new List<PlikiZlecenProdukcyjnych>();
         }
     }
+
 
     private async Task DownloadFile(string fileUrl)
     {
@@ -737,6 +746,7 @@ else
 
     private async Task delRow(long id)
     {
+
         var response = await Http.DeleteAsync($"api/ZleceniaProdukcyjneWew/{id}");
         if (response.IsSuccessStatusCode)
         {
@@ -781,17 +791,9 @@ else
 
     public async Task ShowDialogAddNew()
     {
-        if (string.IsNullOrEmpty(user) || (!boolZmian && !boolAdmin)) 
-        {
-            await _message.Info("Nie masz uprawnień do zmiany danych!!!!");
-            return;
-        }
-
         _visible = true;
         zlecenie = new ZleceniaProdukcyjneWew();
         cid = -1;
-
-        zlecenie.KtoZapisal = user;
 
         display = "block";
         await Task.Delay(50);
@@ -841,27 +843,6 @@ else
         StateHasChanged();
     }
     //********************************************************************************************************************//
-    public async Task ShowDialogPass(long id)
-    {
-        id_del = id;
-        displayPass = "block";
-        await Task.Delay(50);
-        classShowPass = "show";
-        StateHasChanged();
-
-    }
-
-    private async Task HideDialogPass()
-    {
-
-        classShowPass = "";
-        await Task.Delay(200);
-        displayPass = "none";
-
-        StateHasChanged();
-
-       await delRow();
-    }
 
     private async Task HideDialogTWZ()
     {
@@ -884,6 +865,26 @@ else
             if (plik != null)
             {
                 plik.Uwagi = uwaga;
+                plik.OstatniaZmiana = "Zmiana: " + DateTime.Now.ToLongDateString();
+            }
+        }
+        else
+        {
+            // Logika do obsługi błędów
+            Console.WriteLine("Błąd podczas zmiany uwagi");
+        }
+    }
+
+    private async Task ZmienWidocznosc(long id, bool widocznosc)
+    {
+        var response = await Http.PostAsJsonAsync($"api/FileUploadZlec/zmien-widocznosc?id={id}", widocznosc);
+        if (response.IsSuccessStatusCode)
+        {
+            // Logika do aktualizacji UI, jeśli potrzebne
+            var plik = pliki.FirstOrDefault(p => p.Id == id);
+            if (plik != null)
+            {
+                plik.WidocznyDlaWszystkich = widocznosc;
                 plik.OstatniaZmiana = "Zmiana: " + DateTime.Now.ToLongDateString();
             }
         }
