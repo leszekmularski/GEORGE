@@ -61,16 +61,15 @@
 }
 else
 {
-    <div class="highlighted-background">
-        <Table TItem="ZleceniaProdukcyjneWew" DataSource="@zleceniaProdukcyjneWew"
-           RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "" )"
-           ScrollX="1950" PageSize="6" Size="TableSize.Small">
+    <div style="display: flex; align-items: flex-start;">
+    <ul>
 
-                <ActionColumn Title="Materiały">
-                    <a @onclick="() => DodajKantowke(context)">Kantówka</a>
-                    <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">Czasy</a>
-                    <a @onclick="() => FileEdit(context)">Pliki</a>
-                </ActionColumn>
+            <Table TItem="ZleceniaProdukcyjneWew" DataSource="@zleceniaProdukcyjneWew" RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "" )">
+            <ActionColumn Title="Materiały">
+                <a @onclick="() => DodajKantowke(context)">Kantówka</a>
+                <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">Czasy</a>
+                <a @onclick="() => FileEdit(context)">Pliki</a>
+            </ActionColumn>
                 <Column Title="Status" TData="string">
                     @if (context.Tags != null)
                     {
@@ -102,8 +101,8 @@ else
 
                 <!-- Przykład kolumny dla daty z formatowaniem -->
                 <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd" Sortable />
-
-                <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
+               
+            <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
                 <ActionColumn Title="Akcja">
                     @if (boolAdmin || boolZmian)
                     {
@@ -117,14 +116,15 @@ else
                     @if (boolAdmin || boolUsuniecia)
                     {
                         <Popconfirm Title="Czy chcesz usunąć pozycję?"
-                                    OnConfirm="()=> ShowDialogPass(context.Id)"
+                                    OnConfirm="()=> delRow(context.Id)"
                                     OkText="Tak"
                                     CancelText="Nie">
                             <a style="color:red">Usuń</a>
                         </Popconfirm>
                     }
                 </ActionColumn>
-            </Table>
+        </Table>
+    </ul>
     </div>
 }
 
@@ -340,7 +340,7 @@ else
     </div>
 </div>
 
-<div class="modal fade @classShowPass" tabindex="-1" style="display: @displayPass;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 25%;">
+    <div class="modal fade @classShowPass" tabindex="-1" style="display: @displayPass;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 25%;">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
@@ -401,11 +401,6 @@ else
     private string displayFile = "none;";
     private string classShowFile = "";
 
-    private string displayPass = "none;";
-    private string classShowPass = "";
-    private string classPass = "";
-    private long id_del = -1;
-
     private string displayTWZ = "none;";
     private string classShowTWZ = "";
     private string classTWZ = "";
@@ -414,7 +409,7 @@ else
 
     private long cid = -1;
 
-    private bool czyZamowienie = false;
+    private bool czyZamowienie = true;
 
     private ZleceniaProdukcyjneWew zlecenie = new ZleceniaProdukcyjneWew();
 
@@ -740,18 +735,12 @@ else
 
     }
 
-    private async Task delRow()
+    private async Task delRow(long id)
     {
-        if (classPass != "admin1")
-        {
-            await _message.Error("Błędne hasło");
-            return;
-        }
-
-        var response = await Http.DeleteAsync($"api/ZleceniaProdukcyjneWew/{id_del}");
+        var response = await Http.DeleteAsync($"api/ZleceniaProdukcyjneWew/{id}");
         if (response.IsSuccessStatusCode)
         {
-            var zlecenie = zleceniaProdukcyjneWew.FirstOrDefault(z => z.Id == id_del);
+            var zlecenie = zleceniaProdukcyjneWew.FirstOrDefault(z => z.Id == id);
             if (zlecenie != null)
             {
                 zleceniaProdukcyjneWew.Remove(zlecenie);
@@ -764,8 +753,6 @@ else
             await _message.Error("Błąd podczas usuwania zlecenia");
         }
 
-        id_del = -1;
-        classPass = "";
     }
 
     public async Task HandleAddNew()
@@ -794,9 +781,17 @@ else
 
     public async Task ShowDialogAddNew()
     {
+        if (string.IsNullOrEmpty(user) || (!boolZmian && !boolAdmin)) 
+        {
+            await _message.Info("Nie masz uprawnień do zmiany danych!!!!");
+            return;
+        }
+
         _visible = true;
         zlecenie = new ZleceniaProdukcyjneWew();
         cid = -1;
+
+        zlecenie.KtoZapisal = user;
 
         display = "block";
         await Task.Delay(50);
@@ -865,7 +860,7 @@ else
 
         StateHasChanged();
 
-        await delRow();
+       await delRow();
     }
 
     private async Task HideDialogTWZ()
