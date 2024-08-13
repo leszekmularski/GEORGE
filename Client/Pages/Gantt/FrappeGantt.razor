@@ -6,6 +6,7 @@
 @inject IConfirmService _confirmService
 @inject ModalService ModalService
 @inject ConfirmService ComfirmService
+@inject Utilities.ILocalStorage LocalStorage
 @using System.Text.Json
 @using GEORGE.Shared.ViewModels
 @using GEORGE.Shared.Models
@@ -15,6 +16,7 @@
 @using System.Threading.Tasks
 @using AntDesign
 @using System.Globalization
+@using System.Net;
 
 <!DOCTYPE html>
 <html>
@@ -109,13 +111,24 @@
                         <h7 class="button-container">
 
                             <AntDesign.TextArea ReadOnly Value="@(click_task)" Style="width:25%; height:65px; font-size:10px; background-color: lightblue;" />
-
-                            <Button class="btn-detail" OnClick="() => AddNewZlec()">Dodaj zlecenie do planu</Button>
-                            <Button class="btn-detail" OnClick="() => OpenDetailModal()">Idź do zlecenia</Button>
-                            <Button class="btn-refresh" Icon="@IconType.Outline.Delete" OnClick="@(async ()=> { await DelTask(ConfirmButtons.YesNo); })"></Button>
-                            <Button class="btn-refresh" Icon="@IconType.Outline.Delete" OnClick="@(async ()=> { await DelTaskALL(ConfirmButtons.YesNo); })">Wszędzie</Button>
+                            
+                            @if(boolNowy || boolAdmin)
+                            {
+                                <Button class="btn-detail" OnClick="() => AddNewZlec()">Dodaj zlecenie do planu</Button>
+                            }
+                            @if (boolUsuniecia || boolAdmin)
+                            {
+                                <Button class="btn-detail" OnClick="() => OpenDetailModal()">Idź do zlecenia</Button>
+                                <Button class="btn-refresh" Icon="@IconType.Outline.Delete" OnClick="@(async ()=> { await DelTask(ConfirmButtons.YesNo); })"></Button>
+                                <Button class="btn-refresh" Icon="@IconType.Outline.Delete" OnClick="@(async ()=> { await DelTaskALL(ConfirmButtons.YesNo); })">Wszędzie</Button>
+                            }
                             <Button class="btn-refresh" Icon="@IconType.Outline.Reload" OnClick="RefreshData"></Button>
-                            <Button type="button" class="btn btn-sm btn-light" Icon="@IconType.Outline.Save" @onclick="SaveView"></Button>
+                            
+                            @if (boolZmian || boolAdmin)
+                            {
+                                <Button type="button" class="btn btn-sm btn-light" Icon="@IconType.Outline.Save" @onclick="SaveView"></Button>
+                            }
+
                             <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
                         </h7>
                     </Header>
@@ -134,7 +147,10 @@
                             <button type="button" class="btn btn-sm btn-light" @onclick="@(async () => await ChangeView("Week"))">Tydzień</button>
                             <button type="button" class="btn btn-sm btn-light" @onclick="@(async () => await ChangeView("Month"))">Miesiąc</button>
                             &nbsp
-                            <Button type="button" class="btn btn-sm btn-light" @onclick="SaveView">Zapisz zmiany</Button>
+                            @if (boolZmian || boolAdmin)
+                            {
+                                   <Button type="button" class="btn btn-sm btn-light" @onclick="SaveView">Zapisz zmiany</Button>
+                            }
                         </div>
                     </Footer>
                 </Layout>
@@ -245,6 +261,8 @@
     {
 
         loading = true;
+
+        await Laduj_Uprawnienia();
 
         try
         {
@@ -1036,5 +1054,66 @@
         await JSRuntime.InvokeVoidAsync("history.back");
     }
 
+    //await Laduj_Uprawnienia();
 
+    private bool boolOdczyt = false;
+    private bool boolZmian = false;
+    private bool boolNowy = false;
+    private bool boolUsuniecia = false;
+    private bool boolAdmin = false;
+    private string RowIdPracownika = "";
+    private string? user;
+    private List<UprawnieniaPracownikaViewModel>? uprawnienia;
+
+    private async Task Laduj_Uprawnienia()
+    {
+        user = await LocalStorage.GetStringAsync("user");
+
+        if (string.IsNullOrEmpty(user))
+        {
+            //NavigationManager.NavigateTo($"", true);
+            return;
+        }
+
+        string nazwaTabeli = "ZleceniaProdukcyjne";
+
+        Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");
+
+        try
+        {
+            uprawnienia = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"/api/ZwrocSatus/{user}/{nazwaTabeli}");
+        }
+        catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            Console.WriteLine("Brak danych!!!");
+            await _message.Error("Brak danych - status użytkownika");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            await _message.Error(ex.Message);
+        }
+
+        if (uprawnienia != null)
+        {
+            if (uprawnienia.Count > 0)
+            {
+                var znalezioneElementy = uprawnienia.Where(uprawnienie => uprawnienie.TableName == nazwaTabeli);
+                Console.WriteLine("Znaleziono uprawnienia dla użytkownika: " + user + " w tabeli: " + nazwaTabeli + " ilość rekordów: " + znalezioneElementy.Count());
+                if (znalezioneElementy.Any())
+                {
+                    var szuk = znalezioneElementy.FirstOrDefault(x => x.TableName == nazwaTabeli);
+                    if (szuk != null)
+                    {
+                        boolOdczyt = szuk.Odczyt;
+                        boolZmian = szuk.Zmiana;
+                        boolUsuniecia = szuk.Usuniecie;
+                        boolAdmin = szuk.Administrator;
+                        boolNowy = szuk.Zapis;
+                        RowIdPracownika = szuk.RowId;
+                    }
+                }
+            }
+        }
+    }
 }

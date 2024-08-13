@@ -47,7 +47,7 @@
 
 <h3>Zlecenia Produkcyjne Wewnętrzne</h3>
 
-@if (boolAdmin || boolZmian)
+@if (boolAdmin || boolNowy)
 {
     <Button Type="primary" OnClick="@(ShowDialogAddNew)">
         Dodaj Zlecenie Wewnętrzne
@@ -461,7 +461,7 @@ else
             if (value?.Name == "Zlecenie")
             {
                 czyZamowienie = false;
-               if (zlecenie.DataGotowosci == DateTime.MinValue) zlecenie.DataGotowosci = DateTime.Now;
+                if (zlecenie.DataGotowosci == DateTime.MinValue) zlecenie.DataGotowosci = DateTime.Now;
             }
             else
             {
@@ -633,7 +633,7 @@ else
         {
             if (zlecenie.Id == 0)
             {
-              //  zleceniaProdukcyjne.Add(zlecenie); // Dodaj nowe zlecenie do listy
+                //  zleceniaProdukcyjne.Add(zlecenie); // Dodaj nowe zlecenie do listy
             }
             else
             {
@@ -713,30 +713,30 @@ else
 
         originalzleceniaProdukcyjneWew = zleceniaProdukcyjneWew.DeepCopyList();
 
-            zlecenie = new ZleceniaProdukcyjneWew();
+        zlecenie = new ZleceniaProdukcyjneWew();
 
-            var  listOfData = zleceniaProdukcyjneWew.Where(d => d.Id == id).ToArray();
+        var  listOfData = zleceniaProdukcyjneWew.Where(d => d.Id == id).ToArray();
 
-            // Pobierz zlecenie na podstawie indeksu wiersza
-            if (listOfData != null && listOfData.Count() > 0 )
-            {
-                cid = id;
+        // Pobierz zlecenie na podstawie indeksu wiersza
+        if (listOfData != null && listOfData.Count() > 0 )
+        {
+            cid = id;
 
-                zlecenie = listOfData[0];
+            zlecenie = listOfData[0];
 
-                zlecenie.OstatniaZmiana = "*Zmiana: " + DateTime.Now.ToLongDateString();
+            zlecenie.OstatniaZmiana = "*Zmiana: " + DateTime.Now.ToLongDateString();
 
-                if (string.IsNullOrEmpty(zlecenie.RowId)) zlecenie.RowId = Guid.NewGuid().ToString();
+            if (string.IsNullOrEmpty(zlecenie.RowId)) zlecenie.RowId = Guid.NewGuid().ToString();
 
-                await LoadFiles(zlecenie.RowId);
+            await LoadFiles(zlecenie.RowId);
 
-                _visible = true;
+            _visible = true;
 
-                await ShowDialog();
-            }
+            await ShowDialog();
+        }
 
-            // Wyświetl numer zamówienia w konsoli
-            Console.WriteLine(zlecenie.NumerZamowienia);
+        // Wyświetl numer zamówienia w konsoli
+        Console.WriteLine(zlecenie.NumerZamowienia);
 
     }
 
@@ -776,7 +776,7 @@ else
         await HandleSubmit();
         // await HandleSubmit();
         // _visible = false;
-       // await HideDialog();
+        // await HideDialog();
     }
 
     public async Task HandleCancel()
@@ -865,7 +865,7 @@ else
 
         StateHasChanged();
 
-       await delRow();
+        await delRow();
     }
 
     private async Task HideDialogTWZ()
@@ -935,6 +935,7 @@ else
     private bool boolZmian = false;
     private bool boolUsuniecia = false;
     private bool boolAdmin = false;
+    private bool boolNowy = false;
     private string RowIdPracownika = "";
     private string? user;
     private List<UprawnieniaPracownikaViewModel>? uprawnienia;
@@ -983,6 +984,7 @@ else
                         boolZmian = szuk.Zmiana;
                         boolUsuniecia = szuk.Usuniecie;
                         boolAdmin = szuk.Administrator;
+                        boolNowy = szuk.Zapis;
                         RowIdPracownika = szuk.RowId;
                     }
                 }

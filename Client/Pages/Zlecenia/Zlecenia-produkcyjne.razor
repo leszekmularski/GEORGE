@@ -48,7 +48,7 @@
 
 <h3>Zlecenia Produkcyjne</h3>
 
-@if (boolAdmin || boolZmian)
+@if (boolAdmin || boolNowy)
 {
     <Button Type="primary" OnClick="@(ShowDialogAddNew)">
         Dodaj Zlecenie
@@ -949,6 +949,7 @@ else
 
     private bool boolOdczyt = false;
     private bool boolZmian = false;
+    private bool boolNowy = false;
     private bool boolUsuniecia = false;
     private bool boolAdmin = false;
     private string RowIdPracownika = "";
@@ -964,7 +965,7 @@ else
             //NavigationManager.NavigateTo($"", true);
             return;
         }
-        
+
         string nazwaTabeli = "ZleceniaProdukcyjne";
 
         Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");
@@ -999,6 +1000,7 @@ else
                         boolZmian = szuk.Zmiana;
                         boolUsuniecia = szuk.Usuniecie;
                         boolAdmin = szuk.Administrator;
+                        boolNowy = szuk.Zapis;
                         RowIdPracownika = szuk.RowId;
                     }
                 }
