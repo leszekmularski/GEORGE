@@ -7,54 +7,77 @@
 @using GEORGE.Shared.Models
 
 <CascadingValue Value="this">
+@* <CascadingValue Value="AppState"> *@
     <div class="page">
         <div class="sidebar">
             <NavMenu />
         </div>
 
-        <main>
+        <main >
 
-            <div class="top-row px-4">
+            <div class="main-layout">
 
-                <a @onclick="@(()=>{ ShowDialogInfo(); })">Informacja</a>
-                <button class="btn btn-link" @onclick="OnClickEuro">Kurs Euro</button>
-   
-                @if (loggedIn)
-                {
-                    <label style="font-size: 14px; width: 500px; text-align: right;"> &ensp; Data logowania: @infDzien &ensp; Zalogowany użytkownik: @user &ensp; </label>
-                    <a class="btn btn-sm btn-primary text-white" title="Konto" href="account"><span class="oi oi-key"></span></a>
-                    <button class="btn btn-sm btn-danger" title="Wyloguj" @onclick="Logout"><span class="oi oi-account-logout"></span></button>
-                }
-                else
-                {
-                    <label style="font-size: 14px; width: 500px; text-align: right;">&ensp; Dziś mamy: @infDzien &ensp; Proszę się zalogować.  &ensp; </label>
-                    <button class="btn btn-sm btn-success" title="Zaloguj" @onclick="OpenLogin"><span class="oi oi-account-login"></span></button>
-                }
+                <div class="top-row px-4">
 
-            </div>
+                    <!-- Przycisk wywołujący akcję na stronie -->
+                    @if (!string.IsNullOrEmpty(AppState.SomeData))
+             @*        @if (!string.IsNullOrEmpty(opisPrzycisku)) *@
+                    {
+                        <Button Type="primary" Style="width:100%" OnClick="@(async () =>
+                            {
+                                if (OnShowDialogAddNew.HasDelegate)
+                                {
+                                    await OnShowDialogAddNew.InvokeAsync(null);
+                                    Console.WriteLine("EventCallback wywołany");
+                                }
+                                else
+                                {
+                                    Console.WriteLine("EventCallback nie przypisany");
+                                }
+                            })">
+                            @AppState.SomeData
+                        </Button>
+                    }
 
-            <div class="modal fade @classShowInfo" tabindex="-1" style="display: @displayInfo;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 25%;">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Informacja o systemie</h5>
-                        </div>
-                        <div class="modal-body">
+                    <a @onclick="@(()=>{ ShowDialogInfo(); })">Informacja</a>
+                    <button class="btn btn-link" @onclick="OnClickEuro">Kurs Euro</button>
 
-                            <label>Program autorstwa: Leszek Mularski</label> 
+                    @if (loggedIn)
+                    {
+                        <label style="font-size: 14px; width: 500px; text-align: right;"> &ensp; Data logowania: @infDzien &ensp; Zalogowany użytkownik: @user &ensp; </label>
+                        <a class="btn btn-sm btn-primary text-white" title="Konto" href="account"><span class="oi oi-key"></span></a>
+                        <button class="btn btn-sm btn-danger" title="Wyloguj" @onclick="Logout"><span class="oi oi-account-logout"></span></button>
+                    }
+                    else
+                    {
+                        <label style="font-size: 14px; width: 500px; text-align: right;">&ensp; Dziś mamy: @infDzien &ensp; Proszę się zalogować.  &ensp; </label>
+                        <button class="btn btn-sm btn-success" title="Zaloguj" @onclick="OpenLogin"><span class="oi oi-account-login"></span></button>
+                    }
 
-                        </div>
-                        <div class="modal-footer d-flex">
-                            <Button class="ms-auto" @onclick="() => HideDialogInfo()">OK</Button>
+                </div>
+
+                <div class="modal fade @classShowInfo" tabindex="-1" style="display: @displayInfo;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 25%;">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Informacja o systemie</h5>
+                            </div>
+                            <div class="modal-body">
+
+                                <label>Program autorstwa: Leszek Mularski</label>
+
+                            </div>
+                            <div class="modal-footer d-flex">
+                                <Button class="ms-auto" @onclick="() => HideDialogInfo()">OK</Button>
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                <div class="content px-4">
+                    @Body
+                </div>
             </div>
-
-           <div class="content px-4">
-                @Body
-           </div>
-
         </main>
     </div>
 </CascadingValue>
@@ -176,6 +199,11 @@
 </div>
 
 @code {
+    [Parameter]
+    public EventCallback OnShowDialogAddNew { get; set; }
+
+    [Inject] private AppState AppState { get; set; } = default!;
+
     [Inject]
     private NavigationManager? navigationManager { get; set; }
 
@@ -203,11 +231,18 @@
     {
         user = await LocalStorage.GetStringAsync("user");
 
-        if(user != null)
+        if (user != null)
         {
             loggedIn = true;
             infDzien = await LocalStorage.GetStringAsync("loginTime");
         }
+
+        AppState.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        AppState.OnChange -= StateHasChanged;
     }
 
     public async Task ShowDialogInfo()
@@ -319,7 +354,7 @@
 
                         await Http.PostAsJsonAsync($"/api/Logowania", logowania);
 
-          
+
                     }
                     else
                     {

@@ -10,6 +10,7 @@
 @inject GEORGE.Client.Pages.PDF.PdfDataParser PdfDataParser
 @inject Utilities.ILocalStorage LocalStorage
 @using System.Net;
+@using System.Text.Json;
 
 
 <!DOCTYPE html>
@@ -41,7 +42,68 @@
                 document.body.removeChild(textArea);
             }
         }
+ 
+        function saveAsExcel(jsonData) {
+            const data = JSON.parse(jsonData);
+            const csvRows = [];
+
+            // Extract headers
+            const headers = Object.keys(data[0]);
+            csvRows.push(headers.join(','));
+
+            // Extract rows
+            for (const row of data) {
+                const values = headers.map(header => {
+                    const escaped = ('' + row[header]).replace(/"/g, '\\"');
+                    return `"${escaped}"`;
+                });
+                csvRows.push(values.join(','));
+            }
+
+            // Create CSV file
+            const csvString = csvRows.join('\n');
+            const blob = new Blob([csvString], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', 'kantowka_all.csv');
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function saveAsExcel(jsonData) {
+            const data = JSON.parse(jsonData);
+            const csvRows = [];
+
+            // Define headers
+            const headers = ["GatunekKantowki", "Przekroj", "NazwaProduktu", "DlugoscZamawiana", "DlugoscNaGotowoGrupa", "IloscSztuk"];
+            csvRows.push(headers.join(','));
+
+            // Extract rows
+            for (const row of data) {
+                const values = headers.map(header => {
+                    const escaped = ('' + row[header]).replace(/"/g, '\\"');
+                    return `"${escaped}"`;
+                });
+                csvRows.push(values.join(','));
+            }
+
+            // Create CSV file
+            const csvString = csvRows.join('\n');
+            const blob = new Blob([csvString], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', 'kantowak.csv');
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
     </script>
+
 
 </head>
 <body>
@@ -59,6 +121,12 @@
     {
         <Button Type="reset" OnClick="@(CopyKantowkiToClipboard)">
             @uwagaKopiuj
+        </Button>
+        <Button Type="reset" OnClick="@(ExportToExcel)">
+            Zapisz do pliku CSV - wszystko
+        </Button>
+        <Button Type="reset" OnClick="@(ExportSelectedColumnsToExcel)">
+            Zapisz do pliku CSV - tylko wymagane kolumny
         </Button>
     }
     <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
@@ -280,6 +348,34 @@
         catch (Exception ex)
         {
             Console.WriteLine($"******* Błąd {ex.Message}");
+        }
+    }
+
+    public async Task ExportToExcel()
+    {
+        if (kantowkaDoZlecen != null)
+        {
+            var jsonData = JsonSerializer.Serialize(kantowkaDoZlecen);
+            await JSRuntime.InvokeVoidAsync("saveAsExcel", jsonData);
+        }
+    }
+
+    public async Task ExportSelectedColumnsToExcel()
+    {
+        if (kantowkaDoZlecen != null)
+        {
+            var selectedData = kantowkaDoZlecen.Select(k => new
+            {
+                k.GatunekKantowki,
+                k.Przekroj,
+                k.NazwaProduktu,
+                k.DlugoscZamawiana,
+                k.DlugoscNaGotowoGrupa,
+                k.IloscSztuk
+            });
+
+            var jsonData = JsonSerializer.Serialize(selectedData);
+            await JSRuntime.InvokeVoidAsync("saveAsExcel", jsonData);
         }
     }
 

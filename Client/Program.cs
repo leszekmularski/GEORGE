@@ -17,6 +17,9 @@ builder.Services.AddAntDesign();
 
 builder.Services.AddSingleton<Utilities.ILocalStorage, Utilities.LocalStorage>();
 
+builder.Services.AddSingleton<AppState>();
+builder.Services.AddSingleton<DialogService>();
+
 builder.Services.AddScoped<PdfReaderService>();
 builder.Services.AddScoped<PdfDataParser>();
 

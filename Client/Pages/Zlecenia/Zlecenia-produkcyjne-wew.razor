@@ -1,4 +1,5 @@
 ﻿@page "/Zlecenia-produkcyjne-wew/{RowIdZlecenia?}"
+@layout MainLayout
 @using GEORGE.Shared.Models
 @using GEORGE.Shared.Class
 @inject HttpClient Http
@@ -7,6 +8,8 @@
 @inject IMessageService _message
 @inject NavigationManager NavigationManager
 @inject Utilities.ILocalStorage LocalStorage
+@inherits LayoutComponentBase
+@inject DialogService DialogService
 @using AntDesign
 @using System.Net;
 
@@ -46,9 +49,8 @@
 <PageTitle>Program do wspomagania produkcji zlecenia</PageTitle>
 
 <div style="display: flex; align-items: center; gap: 10px;">
-    <h3>Zlecenia Produkcyjne Wewnętrzne</h3>
-
-    <div style="display: flex; align-items: center;">
+  
+    <div style="display: flex; align-items: center;padding-left:15px">
         <Text style="margin-right: 5px;">Ilość widocznych linii</Text>
         <AntDesign.InputNumber TValue="int"
                                @bind-Value="iloscRekordow"
@@ -62,6 +64,7 @@
 
     @if (_TypZamowienia != null)
     {
+        <label>Filtruj po:</label>
         <Select TItem="TypZamowienia"
                 TItemValue="string"
                 DataSource="@_TypZamowienia"
@@ -78,12 +81,12 @@
     }
 </div>
 
-@if (boolAdmin || boolNowy)
+@* @if (boolAdmin || boolNowy)
 {
-    <Button Type="primary" OnClick="@(ShowDialogAddNew)">
+    <Button Type="primary" Style="width:100%" OnClick="@(ShowDialogAddNew)">
         Dodaj Zlecenie Wewnętrzne
     </Button>
-}
+} *@
 <Divider></Divider>
 
 @if (zleceniaProdukcyjneWew == null)
@@ -330,8 +333,6 @@ else
                         </AntDesign.Col>
                     </AntDesign.Row>
                 </AntDesign.Form>
-
-
             </div>
         </div>
     </div>
@@ -397,6 +398,11 @@ else
 </div>
 
 @code {
+
+    [CascadingParameter]
+    private MainLayout? Layout { get; set; }
+
+    [Inject] private AppState AppState { get; set; } = default!;
 
     [Parameter]
     public string? RowIdZlecenia { get; set; }
@@ -470,6 +476,31 @@ else
         {
             Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message}/ {ex.StackTrace}");
             zleceniaProdukcyjneWew = new List<ZleceniaProdukcyjneWew>();
+        }
+
+        if (boolAdmin || boolNowy)
+        {
+            if (AppState != null)
+            {
+                // Zmień dane w AppState
+                Console.WriteLine("Dodaj Produkcyjne Wewnętrzn");
+                AppState.SomeData = "Dodaj Produkcyjne Wewnętrzne";
+            }
+        }
+
+        // Console.WriteLine(Layout == null ? "Layout jest null" : "Layout dostępny");
+        // await base.OnInitializedAsync();
+
+        // Powiązanie EventCallback z metodą
+        if (Layout != null)
+        {
+            Layout.OnShowDialogAddNew = EventCallback.Factory.Create(this, ShowDialogAddNew);
+      
+            Console.WriteLine("EventCallback przypisany");
+        }
+        else
+        {
+            Console.WriteLine("Layout jest null");
         }
 
     }
@@ -873,6 +904,9 @@ else
 
     public async Task ShowDialogAddNew()
     {
+        Console.WriteLine("Metoda ShowDialogAddNew została wywołana");
+        await DialogService.ShowDialogAsync("Dodaj nowe zlecenie wewnętrzne");
+
         _visible = true;
         zlecenie = new ZleceniaProdukcyjneWew();
 
