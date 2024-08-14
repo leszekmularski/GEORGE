@@ -10,6 +10,7 @@
 @using System.Net;
 @inject Utilities.ILocalStorage LocalStorage
 @inject DialogService DialogService
+@using System.Text.Json;
 
 <style>
     .custom-link {
@@ -168,161 +169,203 @@ else
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
+                <h5 class="modal-title">Zlecenie wewnętrzne dodaj / zmień</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="HandleCancel">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
 
                 <AntDesign.Form Model="@zlecenie" Layout="FormLayout.Vertical">
-                    <AntDesign.Row Gutter="16">
-                        <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Typ Dokumentu">
-                                <Select TItem="TypZamowienia"
-                                        TItemValue="string"
-                                        DataSource="@_TypZamowienia"
-                                        @bind-Value="@zlecenie.TypZamowienia"
-                                        ValueName="@nameof(TypZamowienia.Value)"
-                                        LabelName="@nameof(TypZamowienia.Name)"
-                                        GroupName="@nameof(TypZamowienia.Role)"
-                                        SortByLabel="@SortDirection.Ascending"
-                                        SortByGroup="@SortDirection.Ascending"
-                                        DefaultActiveFirstOption="true"
-                                        Style="width: 200px;" OnSelectedItemChanged="OnSelectedItemChangedHandler">
-                                </Select>
-                            </AntDesign.FormItem>
-                        </AntDesign.Col>
-                        <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Zapisano">
-                                <div>
-                                    <AntDesign.Input ReadOnly Value="@(zlecenie.DataZapisu.ToString("yyyy-MM-dd"))" Style="width:120px" />
-                                    <AntDesign.Button OnClick="DataProdUstaw" Style="width:180px">Ustaw datę produkcji</AntDesign.Button>
-                                </div>
-                            </AntDesign.FormItem>
-                        </AntDesign.Col>
-                    </AntDesign.Row>
 
-                    <AntDesign.Row Gutter="16">
-                        <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Numer Zamówienia">
-                                <AntDesign.Input @bind-Value="zlecenie.NumerZamowienia" />
-                            </AntDesign.FormItem>
-                        </AntDesign.Col>
-                        <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Numer Umowy">
-                                <AntDesign.Input @bind-Value="zlecenie.NumerUmowy" />
-                            </AntDesign.FormItem>
-                        </AntDesign.Col>
-                    </AntDesign.Row>
+                    <Tabs DefaultActiveKey="tw1" TabPosition="TabPosition.Left" Style="height: 100%; width: 100%">
+                        <TabPane Key="twPozInformacje" Tab=@($"Pozostałe informacje")>
+                            <!-- Section for Other Information Fields -->
+                            <AntDesign.Row Gutter="16">
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Typ Dokumentu">
+                                        <Select TItem="TypZamowienia"
+                                                TItemValue="string"
+                                                DataSource="@_TypZamowienia"
+                                                @bind-Value="@zlecenie.TypZamowienia"
+                                                ValueName="@nameof(TypZamowienia.Value)"
+                                                LabelName="@nameof(TypZamowienia.Name)"
+                                                GroupName="@nameof(TypZamowienia.Role)"
+                                                SortByLabel="@SortDirection.Ascending"
+                                                SortByGroup="@SortDirection.Ascending"
+                                                DefaultActiveFirstOption="true"
+                                                Style="width: 200px;" OnSelectedItemChanged="OnSelectedItemChangedHandler">
+                                        </Select>
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Numer Zamówienia">
+                                        <AntDesign.Input @bind-Value="zlecenie.NumerZamowienia" />
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
+                            </AntDesign.Row>
+                            <AntDesign.Row Gutter="16">
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Numer Umowy">
+                                        <AntDesign.Input @bind-Value="zlecenie.NumerUmowy" />
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
+                            </AntDesign.Row>
+                        </TabPane>
 
-                    <AntDesign.Row Gutter="16">
-                        <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Data Gotowości Do Produkcji">
-                                <AntDesign.DatePicker Disabled="@czyZamowienie" @bind-Value="zlecenie.DataGotowosci" />
-                            </AntDesign.FormItem>
-                        </AntDesign.Col>
-                        <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Data Rozp. Produkcji">
-                                <AntDesign.DatePicker @bind-Value="zlecenie.DataProdukcji" />
-                            </AntDesign.FormItem>
-                        </AntDesign.Col>
-                        <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Data Montażu">
-                                <AntDesign.DatePicker @bind-Value="zlecenie.DataMontazu" />
-                            </AntDesign.FormItem>
-                        </AntDesign.Col>
-                    </AntDesign.Row>
+                        <TabPane Key="twKlient" Tab=@($"Klient")>
+                            <!-- Section for Client Fields -->
+                            <AntDesign.Row Gutter="16">
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Klient">
+                                        <AntDesign.Input @bind-Value="zlecenie.Klient" />
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
+                            </AntDesign.Row>
+                            <AntDesign.Row Gutter="16">
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Adres">
+                                        <AntDesign.Input @bind-Value="zlecenie.Adres" />
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
+                            </AntDesign.Row>
+                            <AntDesign.Row Gutter="16">
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Miejscowość">
+                                        <AntDesign.Input @bind-Value="zlecenie.Miejscowosc" />
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
+                            </AntDesign.Row>
+                            <AntDesign.Row Gutter="16">
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Numer Telefonu">
+                                        <AntDesign.Input @bind-Value="zlecenie.Telefon" />
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Adres email">
+                                        <AntDesign.Input @bind-Value="zlecenie.Email" />
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
+                            </AntDesign.Row>
+                        </TabPane>
 
-                    <AntDesign.Row Gutter="16">
-                        <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Data Wysyłki">
-                                <AntDesign.DatePicker @bind-Value="zlecenie.DataWysylki" />
-                            </AntDesign.FormItem>
-                        </AntDesign.Col>
-                        <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Klient">
-                                <AntDesign.Input @bind-Value="zlecenie.Klient" />
-                            </AntDesign.FormItem>
-                        </AntDesign.Col>
-                    </AntDesign.Row>
+                        <TabPane Key="twDaty" Tab=@($"Daty w zleceniu")>
+                            <!-- Section for Date Fields -->
+                            <AntDesign.Row Gutter="16">
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Data Gotowości Do Produkcji">
+                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                            <AntDesign.DatePicker Disabled="@czyZamowienie" @bind-Value="zlecenie.DataGotowosci" />
+                                            <AntDesign.Button Disabled="@czyZamowienie" OnClick="DataProdUstaw" Style="width:180px">Ustaw datę produkcji</AntDesign.Button>
+                                        </div>
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
+                            </AntDesign.Row>
+                            <AntDesign.Row Gutter="16">
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Data Rozp. Produkcji">
+                                        <AntDesign.DatePicker Disabled="@czyZamowienie" @bind-Value="zlecenie.DataProdukcji" />
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
+                            </AntDesign.Row>
+                            <AntDesign.Row Gutter="16">
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Data Montażu">
+                                        <AntDesign.DatePicker Disabled="@czyZamowienie" @bind-Value="zlecenie.DataMontazu" />
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Data Wysyłki">
+                                        <AntDesign.DatePicker Disabled="@czyZamowienie" @bind-Value="zlecenie.DataWysylki" />
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
+                            </AntDesign.Row>
+                            <AntDesign.Row Gutter="16">
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Zapisano">
+                                        <AntDesign.Input ReadOnly Value="@(zlecenie.DataZapisu.ToString("yyyy-MM-dd"))" Style="width:120px" />
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
+                            </AntDesign.Row>
+                        </TabPane>
 
-                    <AntDesign.Row Gutter="16">
-                        <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Adres">
-                                <AntDesign.Input @bind-Value="zlecenie.Adres" />
-                            </AntDesign.FormItem>
-                        </AntDesign.Col>
-                        <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Miejscowość">
-                                <AntDesign.Input @bind-Value="zlecenie.Miejscowosc" />
-                            </AntDesign.FormItem>
-                        </AntDesign.Col>
-                    </AntDesign.Row>
+                        <TabPane Key="tw2" Tab=@($"Produkt ilość sztuk")>
+                            <AntDesign.Row Gutter="16">
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Nazwa Produktu">
+                                        <AntDesign.Input @bind-Value="zlecenie.NazwaProduktu" />
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Nazwa Produktu 2">
+                                        <AntDesign.Input @bind-Value="zlecenie.NazwaProduktu2" />
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
+                            </AntDesign.Row>
+                            <AntDesign.Row Gutter="16">
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Kod Produktu">
+                                        <AntDesign.Input @bind-Value="zlecenie.KodProduktu" />
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
+                            </AntDesign.Row>
+                            <AntDesign.Row Gutter="16">
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Ilość sztuk w zleceniu">
+                                        <AntDesign.InputNumber @bind-Value="zlecenie.Ilosc" />
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
+                            </AntDesign.Row>
+                        </TabPane>
 
-                    <AntDesign.Row Gutter="16">
-                        <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Telefon">
-                                <AntDesign.Input @bind-Value="zlecenie.Telefon" />
-                            </AntDesign.FormItem>
-                        </AntDesign.Col>
-                        <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Status nowy wpis po [,]">
-                                <InputTextArea @bind-Value="zlecenie.TagsString" />
-                            </AntDesign.FormItem>
-                        </AntDesign.Col>
-                        <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Nazwa Produktu">
-                                <AntDesign.Input @bind-Value="zlecenie.NazwaProduktu" />
-                            </AntDesign.FormItem>
-                        </AntDesign.Col>
-                    </AntDesign.Row>
+                        <TabPane Key="twStatus" Tab=@($"Status")>
+                            <AntDesign.Row Gutter="16">
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Status nowy wpis po [,]">
+                                        <InputTextArea @bind-Value="zlecenie.TagsString" />
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Jednostki produkcyjne na wyk. Zlecenia">
+                                        <label>(jeżeli czasy do linii zostaną uzupełnione to ten wpis zostanie pominięty)</label>
+                                        <AntDesign.InputNumber @bind-Value="zlecenie.JednostkiNaZlecenie" />
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
+                            </AntDesign.Row>
+                            <AntDesign.Row Gutter="16">
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Style="font:bold" Label="Zlecenie zrealizowane">
+                                        <AntDesign.Checkbox @bind-Value="zlecenie.ZlecZrealizowane" />
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Ostatnia Zmiana">
+                                        <AntDesign.Input ReadOnly @bind-Value="zlecenie.OstatniaZmiana" />
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
+                            </AntDesign.Row>
+                            <AntDesign.Row Gutter="16">
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Kto Zapisał">
+                                        <AntDesign.Input @bind-Value="zlecenie.KtoZapisal" />
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
+                            </AntDesign.Row>
+                        </TabPane>
 
-                    <AntDesign.Row Gutter="16">
-                        <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Nazwa Produktu 2">
-                                <AntDesign.Input @bind-Value="zlecenie.NazwaProduktu2" />
-                            </AntDesign.FormItem>
-                        </AntDesign.Col>
-                        <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Kod Produktu">
-                                <AntDesign.Input @bind-Value="zlecenie.KodProduktu" />
-                            </AntDesign.FormItem>
-                        </AntDesign.Col>
-                    </AntDesign.Row>
-
-                    <AntDesign.Row Gutter="16">
-                        <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Ilość">
-                                <AntDesign.InputNumber @bind-Value="zlecenie.Ilosc" />
-                            </AntDesign.FormItem>
-                        </AntDesign.Col>
-                        <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Jednostki produkcyjne na wyk. Zlecenia">
-                                <label>(jeżeli czasy do linii zostaną uzupełnione to ten wpis zostanie pominięty)</label>
-                                <AntDesign.InputNumber @bind-Value="zlecenie.JednostkiNaZlecenie" />
-                            </AntDesign.FormItem>
-                        </AntDesign.Col>
-                        <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Kto Zapisał">
-                                <AntDesign.Input @bind-Value="zlecenie.KtoZapisal" />
-                            </AntDesign.FormItem>
-                        </AntDesign.Col>
-                    </AntDesign.Row>
-
-                    <AntDesign.Row Gutter="16">
-                        <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Zlecenie zrealizowane">
-                                <AntDesign.Checkbox @bind-Value="zlecenie.ZlecZrealizowane" />
-                            </AntDesign.FormItem>
-                        </AntDesign.Col>
-                        <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Ostatnia Zmiana">
-                                <AntDesign.Input @bind-Value="zlecenie.OstatniaZmiana" />
-                            </AntDesign.FormItem>
-                        </AntDesign.Col>
-                        <AntDesign.Col Span="12">
-                            <AntDesign.FormItem Label="Zapisano: ">@pliki.Count().ToString()</AntDesign.FormItem>
-                            @if (cid != -1)
-                            {
-                                <InputFile OnChange="HandleSelected" multiple>Wybierz pliki powiązane ze zleceniem</InputFile>
-                            }
-                        </AntDesign.Col>
-                    </AntDesign.Row>
+                        <TabPane Key="twPliki" Tab=@($"Załącz pliki")>
+                            <AntDesign.Row Gutter="16">
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Zapisano ">@pliki.Count().ToString()</AntDesign.FormItem>
+                                    @if (cid != -1)
+                                    {
+                                        <InputFile OnChange="HandleSelected" multiple>Wybierz pliki powiązane ze zleceniem</InputFile>
+                                    }
+                                </AntDesign.Col>
+                            </AntDesign.Row>
+                        </TabPane>
+                    </Tabs>
 
                     <AntDesign.Row>
                         <AntDesign.Col Span="24" class="d-flex justify-content-end">
@@ -333,6 +376,7 @@ else
                             <AntDesign.Button @onclick="@HandleCancel">Anuluj</AntDesign.Button>
                         </AntDesign.Col>
                     </AntDesign.Row>
+
                 </AntDesign.Form>
 
             </div>
@@ -441,7 +485,7 @@ else
 
     private ZleceniaProdukcyjne zlecenie = new ZleceniaProdukcyjne();
 
-    private bool czyZamowienie = false;
+    private bool czyZamowienie = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -633,17 +677,39 @@ else
             else
             {
                 // Obsługa błędów dla przypadków nieudanych odpowiedzi
-                Console.Error.WriteLine($"Error loading files: {response.StatusCode} - {response.ReasonPhrase}");
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    // Obsługa przypadku 404 Not Found
+                    Console.Error.WriteLine($"404 Not Found: The file with RowId {rowId} was not found.");
+                }
+                else
+                {
+                    // Obsługa innych błędów
+                    Console.Error.WriteLine($"Error loading files: {response.StatusCode} - {response.ReasonPhrase}");
+                }
                 pliki = new List<PlikiZlecenProdukcyjnych>();
             }
         }
+        catch (HttpRequestException httpRequestException)
+        {
+            // Obsługa błędów połączenia HTTP
+            Console.Error.WriteLine($"HTTP request error: {httpRequestException.Message}");
+            pliki = new List<PlikiZlecenProdukcyjnych>();
+        }
+        catch (JsonException jsonException)
+        {
+            // Obsługa błędów deserializacji JSON
+            Console.Error.WriteLine($"JSON parsing error: {jsonException.Message}");
+            pliki = new List<PlikiZlecenProdukcyjnych>();
+        }
         catch (Exception ex)
         {
-            // Globalna obsługa wyjątków
-            Console.Error.WriteLine($"An error occurred while loading files: {ex.Message}");
+            // Globalna obsługa innych wyjątków
+            Console.Error.WriteLine($"An unexpected error occurred while loading files: {ex.Message}");
             pliki = new List<PlikiZlecenProdukcyjnych>();
         }
     }
+
 
 
     private async Task DodajCzasyWykonaia(ZleceniaProdukcyjne row)
@@ -831,6 +897,14 @@ else
 
         //listOfData = listOfData.Where(d => d.Id != id).ToArray();
         if (zleceniaProdukcyjne == null) return;
+
+        czyZamowienie = true;
+
+        if (zlecenie != null && zlecenie.TypZamowienia != null)
+        {
+            if (zlecenie.TypZamowienia.Contains("Zlecenie")) czyZamowienie = false;
+        }
+
 
         _visible = true;
 

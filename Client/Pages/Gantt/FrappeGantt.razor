@@ -211,6 +211,8 @@
     [Parameter]
     public string? numerSel { get; set; } = "";
 
+    [Inject] private AppState AppState { get; set; } = default!;
+
     public string? DataStartStop { get; set; }
 
     private DateTime SDataStart;
@@ -260,6 +262,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        if (AppState != null)
+        {
+            AppState.SomeData = "";
+        }
 
         loading = true;
 

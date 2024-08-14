@@ -107,6 +107,9 @@ else
 </div>
 
 @code {
+
+    [Inject] private AppState AppState { get; set; } = default!;
+
     private List<LinieProdukcyjne>? rodzajeLinieProdukcyjne;
     private List<LinieProdukcyjne>? oryginalLinieProdukcyjne;
 
@@ -121,6 +124,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        if (AppState != null)
+        {
+            AppState.SomeData = "";
+        }
 
         await Laduj_Uprawnienia();
 

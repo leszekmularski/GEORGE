@@ -114,6 +114,8 @@ else
     [Parameter]
     public Pracownicy? pracownik { get; set; }
 
+    [Inject] private AppState AppState { get; set; } = default!;
+
     public class Item
     {
         public string? Value { get; set; }
@@ -144,6 +146,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        if (AppState != null)
+        {
+            AppState.SomeData = "";
+        }
+
         _items = new List<Item> 
         {
             new Item { Value = "Gość", Name = "Gość", DisplayName = "Gość - dostęp do zasobów działu z ograniczeniami gościa"},

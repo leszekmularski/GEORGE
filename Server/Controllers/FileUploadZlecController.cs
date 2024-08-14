@@ -81,8 +81,8 @@ public class FileUploadZlecController : ControllerBase
                                   .Where(f => f.RowIdZleceniaProdukcyjne == rowIdZlecenia)
                                   .ToListAsync();
 
-        if (files == null || !files.Any())
-            return NotFound();
+        //if (files == null || !files.Any())
+        //    return NotFound();
 
         return Ok(files);
     }

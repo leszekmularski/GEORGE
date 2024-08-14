@@ -131,6 +131,8 @@ else
     [CascadingParameter]
     public MainLayout? mainLayout { get; set; }
 
+    [Inject] private AppState AppState { get; set; } = default!;
+
     private bool showNewUser, displayNewUser;
 
     private DzialPracownikaViewModel? dzial { get; set; }
@@ -155,6 +157,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        if (AppState != null)
+        {
+            AppState.SomeData = "";
+        }
+
         listaDzialow = await Http.GetFromJsonAsync<List<DzialPracownikaViewModel>>("/api/DzialIPracownicy");
 
         if (listaDzialow != null)

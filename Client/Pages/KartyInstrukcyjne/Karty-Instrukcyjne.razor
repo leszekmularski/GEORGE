@@ -165,6 +165,9 @@ else
 </div>
 
 @code {
+
+    [Inject] private AppState AppState { get; set; } = default!;
+
     private List<KartyInstrukcyjne>? kartyInstrukcyjne;
     private List<KartyInstrukcyjne>? originalkartyInstrukcyjne;
     private List<RodzajeKartInstrukcyjnych>? rodzajeKartInstrukcyjnych;
@@ -190,6 +193,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        if (AppState != null)
+        {
+            AppState.SomeData = "";
+        }
+
         await Laduj_Uprawnienia();
 
         rodzajeKartInstrukcyjnych = await Http.GetFromJsonAsync<List<RodzajeKartInstrukcyjnych>>("api/RodzajeKartInstrukcyjnych");

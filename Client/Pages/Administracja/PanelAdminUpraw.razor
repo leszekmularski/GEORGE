@@ -201,6 +201,8 @@ else
 
 @code {
 
+    [Inject] private AppState AppState { get; set; } = default!;
+
     private List<Pracownicy>? listaPracownikow;
     private Pracownicy? pracownik;
     private List<UprawnieniaPracownikaViewModel>? listaUprawnien;
@@ -239,6 +241,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        if (AppState != null)
+        {
+            AppState.SomeData = "";
+        }
+
         await Laduj_Uprawnienia();
 
         if (boolOdczyt == false && string.IsNullOrEmpty(user))
