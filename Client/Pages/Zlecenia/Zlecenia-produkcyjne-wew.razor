@@ -13,6 +13,7 @@
 @using AntDesign
 @using System.Net;
 @using System.Text.Json;
+@inject IJSRuntime JSRuntime
 
 <style>
     .custom-link {
@@ -357,6 +358,7 @@ else
                                         <InputFile OnChange="HandleSelected" multiple>Wybierz pliki powiązane ze zleceniem</InputFile>
                                     }
                                 </AntDesign.Col>
+                                @bladZapisuPliku
                             </AntDesign.Row>
                         </TabPane>
                     </Tabs>
@@ -393,7 +395,6 @@ else
                     <ActionColumn Title="Uwagi / Akcja">
                         <Template>
                             @{
-                                // <a style="color:blue" @onclick="() => ZmienUwage(context)">@context.Uwagi &nbsp;</a><br/>
                                 @if (boolAdmin)
                                 {
                                     <label>Widoczny dla wszystkich:</label>
@@ -403,7 +404,15 @@ else
                                 var item = context as PlikiZlecenProdukcyjnych;
                                 if (!string.IsNullOrEmpty(item.NazwaPliku))
                                 {
-                                    <a href="uploads_zlecenia/@item.NazwaPliku" download @onclick="@( () => DownloadFile(item.NazwaPliku) )">Pobierz plik</a>
+                                    <Spin Spinning=@czekajNaUsuniecie>
+                                        <a href="uploads_zlecenia/@item.NazwaPliku" download @onclick="@( () => DownloadFile(item.NazwaPliku) )">Pobierz plik  &nbsp &nbsp</a>
+                                        <Popconfirm Title="Czy chcesz usunąć plik?"
+                                                    OnConfirm="()=> deleteFile(item.Id, item.NazwaPliku, item.RowIdZleceniaProdukcyjne)"
+                                                    OkText="Tak"
+                                                    CancelText="Nie">
+                                            <a style="color:red">Usuń plik</a>
+                                        </Popconfirm>
+                                    </Spin>
                                 }
                             }
                         </Template>
@@ -479,6 +488,8 @@ else
     private bool czyZamowienie = true;
 
     private ZleceniaProdukcyjneWew zlecenie = new ZleceniaProdukcyjneWew();
+
+    private bool czekajNaUsuniecie = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -715,23 +726,32 @@ else
                 // Pobierz zawartość pliku jako bajty
                 var response = await httpClient.GetAsync(fileUrl);
 
-                if (response.IsSuccessStatusCode)
+                // if (response.IsSuccessStatusCode)
+                // {
+                //     // Uzyskaj zawartość pliku jako bajty
+                //     var fileBytes = await response.Content.ReadAsByteArrayAsync();
+
+                //     // Tutaj możesz zrobić coś z tymi bajtami, np. zapisać je do pliku lokalnego
+                //     // Przykład: Zapisz plik na dysku
+                //     //var fileName = "nazwa_pobranego_pliku.pdf"; // Przykładowa nazwa pliku
+                //     //var filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), fileName);
+
+                //     File.WriteAllBytes(filePath, fileBytes);
+
+                //     Console.WriteLine($"Plik został pobrany i zapisany: {filePath}");
+                // }
+                // else
+                // {
+                //     Console.WriteLine("Nie udało się pobrać pliku.");
+                // }
+
+                // Pobierz dane pliku
+                var fileData = await response.Content.ReadAsByteArrayAsync();
+
+                if (response != null)
                 {
-                    // Uzyskaj zawartość pliku jako bajty
-                    var fileBytes = await response.Content.ReadAsByteArrayAsync();
-
-                    // Tutaj możesz zrobić coś z tymi bajtami, np. zapisać je do pliku lokalnego
-                    // Przykład: Zapisz plik na dysku
-                    //var fileName = "nazwa_pobranego_pliku.pdf"; // Przykładowa nazwa pliku
-                    //var filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), fileName);
-
-                    File.WriteAllBytes(filePath, fileBytes);
-
-                    Console.WriteLine($"Plik został pobrany i zapisany: {filePath}");
-                }
-                else
-                {
-                    Console.WriteLine("Nie udało się pobrać pliku.");
+                    await JSRuntime.InvokeVoidAsync("saveByteArray", fileData, filePath);
+                    //await JSRuntime.InvokeVoidAsync("saveByteArray", response, fileName);
                 }
             }
         }
@@ -740,6 +760,46 @@ else
             Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message}/ {ex.StackTrace}");
             Console.WriteLine(filePath);
         }
+    }
+
+    private async Task deleteFile(long id, string fileUrl, string roIdZlec)
+    {
+        czekajNaUsuniecie = true;
+        // Step 1: Attempt to delete the record in the database
+        var response = await Http.DeleteAsync($"api/FileUploadZlec/{id}");
+
+        if (response.IsSuccessStatusCode)
+        {
+            // If record deletion is successful, proceed to delete the file
+            var fileResponse = await Http.DeleteAsync(fileUrl);
+
+            if (fileResponse.IsSuccessStatusCode)
+            {
+                // Remove the order from the list only after the file is successfully deleted
+                var zlecenie = zleceniaProdukcyjneWew.FirstOrDefault(z => z.Id == id);
+                if (zlecenie != null)
+                {
+                    zleceniaProdukcyjneWew.Remove(zlecenie);
+                    await _message.Success("Zapis inf. i plik usunięto!");
+                }
+            }
+            else
+            {
+                // If file deletion fails, log the error
+                Console.WriteLine("Błąd podczas usuwania pliku.");
+                await _message.Error("Błąd podczas usuwania pliku.");
+            }
+
+            await LoadFiles(roIdZlec);
+        }
+        else
+        {
+            // If record deletion fails, log the error
+            Console.WriteLine("Błąd podczas usuwania zapis inf..");
+            await _message.Error("Błąd podczas usuwania zapis inf..");
+        }
+
+        czekajNaUsuniecie = false;
     }
 
     private async Task FileEdit(ZleceniaProdukcyjneWew row)
@@ -1085,6 +1145,7 @@ else
         }
     }
 
+    private string bladZapisuPliku = "";
     private async Task HandleSelected(InputFileChangeEventArgs e)
     {
 
@@ -1111,8 +1172,12 @@ else
             else
             {
                 Console.WriteLine("File upload failed.");
+                bladZapisuPliku = "Błąd przy zapisie pliku na serwerze.";
+
             }
         }
+
+        await LoadFiles(zlecenie.RowId);
     }
 
     //await Laduj_Uprawnienia();

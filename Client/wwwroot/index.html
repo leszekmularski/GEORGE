@@ -61,6 +61,20 @@
                 console.error('Error copying text: ', error);
             });
         }
+
+        function saveByteArray(byteArray, fileName) {
+            var blob = new Blob([byteArray], { type: "application/octet-stream" });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement("a");
+            document.body.appendChild(a);
+            a.style.display = "none";
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }
+
     </script>
 </body>
 

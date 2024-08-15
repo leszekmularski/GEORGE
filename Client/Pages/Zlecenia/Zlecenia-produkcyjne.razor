@@ -362,6 +362,7 @@ else
                                     {
                                         <InputFile OnChange="HandleSelected" multiple>Wybierz pliki powiązane ze zleceniem</InputFile>
                                     }
+                                    @bladZapisuPliku
                                 </AntDesign.Col>
                             </AntDesign.Row>
                         </TabPane>
@@ -391,27 +392,35 @@ else
                 <h5 class="modal-title">Ilość plików powiązanych: @pliki.Count()</h5>
             </div>
             <div class="modal-body">
-                <Table TItem="PlikiZlecenProdukcyjnych" DataSource="@pliki">
+                <Table TItem="PlikiZlecenProdukcyjnych" DataSource="@pliki" ScrollX="1650" PageSize="@(iloscRekordow - 1)" Size="TableSize.Small">
                     <Column Title="ID" @bind-Field="@context.Id" Hidden />
-                    <Column Title="Nazwa pliku" @bind-Field="@context.NazwaPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Title="Oryginalna nazwa pliku" @bind-Field="@context.OryginalnaNazwaPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Title="Typ" @bind-Field="@context.TypPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Title="Data Zapisu" @bind-Field="@context.DataZapisu" Sortable OnFilter="(a, b) => a == b" Filterable />
-                    <ActionColumn Title="Uwagi / Akcja">
+                    <Column Title="Nazwa pliku" @bind-Field="@context.NazwaPliku" Filterable Style="width:10%" />
+                    <ActionColumn Title="Akcja" Width="205" Fixed="right">
                         <Template>
                             @{
-                                // <a style="color:blue" @onclick="() => ZmienUwage(context)">@context.Uwagi &nbsp;</a><br/>
-                                @if (boolAdmin)
-                                {
-                                    <label>Widoczny dla wszystkich:</label>
-                                    <Checkbox Placeholder="Widoczny dla wszystkich." @bind-Value="@context.WidocznyDlaWszystkich" OnChange="@( () => ZmienWidocznosc(context.Id, context.WidocznyDlaWszystkich))" />
-                                }
-                                <Input Placeholder="Podaj uwagę." @bind-Value="@context.Uwagi" MaxLength="45" OnBlur="@( () => ZmienUwage(context.Id, context.Uwagi))" />
-                                var item = context as PlikiZlecenProdukcyjnych;
-                                if (!string.IsNullOrEmpty(item.NazwaPliku))
-                                {
-                                    <a href="uploads_zlecenia/@item.NazwaPliku" download @onclick="@( () => DownloadFile(item.NazwaPliku) )">Pobierz plik</a>
-                                }
+                             
+                                    @if (boolAdmin)
+                                    {
+                                        <label>Widoczny dla wszystkich:</label>
+                                        <Checkbox Placeholder="Widoczny dla wszystkich." @bind-Value="@context.WidocznyDlaWszystkich" OnChange="@( () => ZmienWidocznosc(context.Id, context.WidocznyDlaWszystkich))" />
+                                    }
+                                    <Input Placeholder="Podaj uwagę." @bind-Value="@context.Uwagi" MaxLength="45" OnBlur="@( () => ZmienUwage(context.Id, context.Uwagi))" />
+                                    var item = context as PlikiZlecenProdukcyjnych;
+                                    if (!string.IsNullOrEmpty(item.NazwaPliku))
+                                    {
+                                    <Spin Spinning=@czekajNaUsuniecie>
+                                        <a href="uploads_zlecenia/@item.NazwaPliku" download @onclick="@( () => DownloadFile(item.NazwaPliku) )">Pobierz plik  &nbsp &nbsp</a>
+                                        <Popconfirm Title="Czy chcesz usunąć plik?"
+                                                    OnConfirm="()=> deleteFile(item.Id, item.NazwaPliku, item.RowIdZleceniaProdukcyjne)"
+                                                    OkText="Tak"
+                                                    CancelText="Nie">
+                                            <a style="color:red">Usuń plik</a>
+                                        </Popconfirm>
+                                    </Spin>
+                                    }
                             }
                         </Template>
                     </ActionColumn>
@@ -487,6 +496,8 @@ else
 
     private bool czyZamowienie = true;
 
+    private bool czekajNaUsuniecie = false;
+
     protected override async Task OnInitializedAsync()
     {
 
@@ -494,7 +505,7 @@ else
 
         try
         {
-            
+
             iloscRekordow = Convert.ToInt32((await LocalStorage.GetStringAsync("zlecenie_ile_widocznych")));
             if (iloscRekordow == 0) iloscRekordow = 6;
 
@@ -710,8 +721,6 @@ else
         }
     }
 
-
-
     private async Task DodajCzasyWykonaia(ZleceniaProdukcyjne row)
     {
         rowIdClick = row.RowId == null ? "" : row.RowId;
@@ -728,6 +737,46 @@ else
     private void DodajKantowke(ZleceniaProdukcyjne row)
     {
         navigationManager.NavigateTo($"/Kantowka-do-zlecen/{row.RowId}");
+    }
+
+    private async Task deleteFile(long id, string fileUrl, string roIdZlec)
+    {
+        czekajNaUsuniecie = true;
+        // Step 1: Attempt to delete the record in the database
+        var response = await Http.DeleteAsync($"api/FileUploadZlec/{id}");
+
+        if (response.IsSuccessStatusCode)
+        {
+            // If record deletion is successful, proceed to delete the file
+            var fileResponse = await Http.DeleteAsync(fileUrl);
+
+            if (fileResponse.IsSuccessStatusCode)
+            {
+                // Remove the order from the list only after the file is successfully deleted
+                var zlecenie = zleceniaProdukcyjne.FirstOrDefault(z => z.Id == id);
+                if (zlecenie != null)
+                {
+                    zleceniaProdukcyjne.Remove(zlecenie);
+                    await _message.Success("Zapis inf. i plik usunięto!");
+                }
+            }
+            else
+            {
+                // If file deletion fails, log the error
+                Console.WriteLine("Błąd podczas usuwania pliku.");
+                await _message.Error("Błąd podczas usuwania pliku.");
+            }
+
+            await LoadFiles(roIdZlec);
+        }
+        else
+        {
+            // If record deletion fails, log the error
+            Console.WriteLine("Błąd podczas usuwania zapis inf..");
+            await _message.Error("Błąd podczas usuwania zapis inf..");
+        }
+
+        czekajNaUsuniecie = false;
     }
 
     private async Task DownloadFile(string fileUrl)
@@ -1104,8 +1153,8 @@ else
             Console.WriteLine("Błąd podczas zmiany uwagi");
         }
     }
-   
 
+    private string bladZapisuPliku = "";
     private async Task HandleSelected(InputFileChangeEventArgs e)
     {
 
@@ -1132,8 +1181,12 @@ else
             else
             {
                 Console.WriteLine("File upload failed.");
+                bladZapisuPliku = "Błąd przy zapisie pliku na serwerze.";
+
             }
         }
+
+        await LoadFiles(zlecenie.RowId);
     }
 
     //await Laduj_Uprawnienia();

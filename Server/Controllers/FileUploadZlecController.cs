@@ -131,4 +131,20 @@ public class FileUploadZlecController : ControllerBase
         return fileName.Substring(lastDotIndex + 1);
     }
 
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> DeleteAsync(int id)
+    {
+        var Pracownicy = await _context.PlikiZlecenProdukcyjnych.SingleOrDefaultAsync(b => b.Id.Equals(id));
+
+        if (Pracownicy == null)
+        {
+            return NotFound();
+        }
+
+        _context.PlikiZlecenProdukcyjnych.Remove(Pracownicy);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
 }
