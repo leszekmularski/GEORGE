@@ -30,6 +30,11 @@ public class FileUploadZlecController : ControllerBase
         var webRootPath = _environment.WebRootPath;
         Console.WriteLine($"WebRootPath: {webRootPath}");
 
+        if(webRootPath == null)
+        {
+            return BadRequest("Pliku nie wysłano. Brak dostępu do katalogu - WebRootPath/uploads_zlecenia");
+        }
+
         var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads_zlecenia");
 
         if (!Directory.Exists(uploadsFolder))

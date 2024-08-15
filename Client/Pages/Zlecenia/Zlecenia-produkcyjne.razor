@@ -294,7 +294,13 @@ else
                             <AntDesign.Row Gutter="16">
                                 <AntDesign.Col Span="12">
                                     <AntDesign.FormItem Label="Nazwa Produktu">
-                                        <AntDesign.Input @bind-Value="zlecenie.NazwaProduktu" />
+                                        <AutoComplete Placeholder="Nazwa Produktu" @bind-Value="@zlecenie.NazwaProduktu" Options="optionsProdukt" CompareWith="CompareWith"
+                                                      OnSelectionChange="OnSelectionChangeProdukt">
+                                            <OptionTemplate Context="option">
+                                                <AutoCompleteOption Value="@option.Value" Label="@option.Label">
+                                                </AutoCompleteOption>
+                                            </OptionTemplate>
+                                        </AutoComplete>
                                     </AntDesign.FormItem>
                                 </AntDesign.Col>
                                 <AntDesign.Col Span="12">
@@ -427,6 +433,7 @@ else
                 </Table>
             </div>
             <div class="modal-footer d-flex">
+                Załącz nowe pliki <InputFile OnChange="HandleSelected" multiple>Wybierz pliki powiązane ze zleceniem</InputFile>@bladZapisuPliku
                 <Button class="ms-auto" @onclick="() => HideDialogFile()">Zakończ</Button>
             </div>
         </div>
@@ -498,10 +505,16 @@ else
 
     private bool czekajNaUsuniecie = false;
 
+    private AutoCompleteOption? selectItemProdukt;
+
+    ObjectValueProduktOption[]? optionsProdukt;
+
     protected override async Task OnInitializedAsync()
     {
 
         await Laduj_Uprawnienia();
+
+        await SearchProdukt();
 
         try
         {
@@ -651,7 +664,7 @@ else
             zlecenie.DataProdukcji = zlecenie.DataProdukcji.AddDays((DayOfWeek.Monday - zlecenie.DataProdukcji.DayOfWeek + 7) % 7);
         }
 
-        zlecenie.DataWysylki = zlecenie.DataProdukcji.AddDays(3 * 7);
+        zlecenie.DataWysylki = zlecenie.DataGotowosci.AddDays(12 * 7 - 5);
         zlecenie.DataMontazu = zlecenie.DataGotowosci.AddDays(12 * 7);
     }
 
@@ -1154,6 +1167,14 @@ else
         }
     }
 
+    private async Task OnSelectionChangeProdukt(AutoCompleteOption item)
+    {
+        selectItemProdukt = item;
+
+        Console.WriteLine("selectItemPowiat.Value" + selectItemProdukt.Value);
+
+    }
+
     private string bladZapisuPliku = "";
     private async Task HandleSelected(InputFileChangeEventArgs e)
     {
@@ -1181,12 +1202,39 @@ else
             else
             {
                 Console.WriteLine("File upload failed.");
-                bladZapisuPliku = "Błąd przy zapisie pliku na serwerze.";
+                bladZapisuPliku = $"Błąd przy zapisie pliku na serwerze. {response.Content.ReadAsStringAsync().Result}";
 
             }
         }
 
         await LoadFiles(zlecenie.RowId);
+    }
+
+    private async Task SearchProdukt()
+    {
+
+        try
+        {
+
+            var listapowiat = await Http.GetFromJsonAsync<List<string>>("/api/ZlecenieProdukt");
+
+            if (listapowiat != null)
+            {
+                optionsProdukt = listapowiat.Select(kod => new ObjectValueProduktOption()
+                    {
+                        value = kod.ToString()
+                    }).ToArray();
+
+                zlecenie.NazwaProduktu = zlecenie.NazwaProduktu;
+
+            }
+
+
+        }
+        catch (Exception)
+        {
+            Console.WriteLine("Metoda -  SearchPowiat");
+        }
     }
 
     //await Laduj_Uprawnienia();
@@ -1267,4 +1315,25 @@ else
         public string? Role { get; set; }
     }
 
+    public class ObjectValueProduktOption
+    {
+        public string? value { get; set; }
+
+        public override string ToString()
+        {
+            return $"{value}";
+        }
+    }
+
+    Func<object, object, bool> CompareWith = (a, b) =>
+       {
+           if (a is ObjectValueProduktOption o1 && b is ObjectValueProduktOption o2)
+       {
+           return o1.value == o2.value;
+       }
+       else
+       {
+           return false;
+       }
+       };
 }
