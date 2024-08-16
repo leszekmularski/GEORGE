@@ -235,6 +235,19 @@
         {
             loggedIn = true;
             infDzien = await LocalStorage.GetStringAsync("loginTime");
+
+            var datalogowania = await LocalStorage.GetStringAsync("loginTime");
+
+            if (!string.IsNullOrEmpty(datalogowania))
+            {
+                var loginTime = Convert.ToDateTime(datalogowania);
+
+                if (loginTime.AddMonths(1) < DateTime.Now)
+                {
+                    infDzien = "Zaloguj się ponownie.";
+                    await Logout();
+                }
+            }
         }
 
         AppState.OnChange += StateHasChanged;

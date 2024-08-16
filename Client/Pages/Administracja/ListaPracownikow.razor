@@ -118,10 +118,14 @@ else
                     {
                         <PanelAdmin pracownik="pracownik" />
                     }
+                    @if (nowyPracownik != null)
+                    {
+                        <PanelAdmin pracownik="nowyPracownik" />
+                    }
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="CloseModal">Zamknij</button>
+  @*           </div>
+            <div class="modal-footer"> *@
+                <button type="button" class="btn btn-secondary" style="width:100%" data-dismiss="modal" @onclick="CloseModal">Zamknij</button>
             </div>
         </div>
     </div>
@@ -139,6 +143,7 @@ else
     private List<DzialPracownikaViewModel>? listaDzialow;
 
     public Pracownicy? pracownik { get; set; }
+    public Pracownicy? nowyPracownik { get; set; }
 
     private string infStatus = "Czekam na załadowanie danych....";
 
@@ -252,6 +257,9 @@ else
 
         opisModal = "Edytuj użytkownika";
 
+        nowyPracownik = null;
+        pracownik = null;
+
         try
         {
             // Pobranie danych z API
@@ -270,10 +278,17 @@ else
 
                     if (szukanyPracownik != null)
                     {
+                        pracownik = null;
+                        pracownik = new Pracownicy();
                         pracownik = szukanyPracownik;
+
+                        opisModal += " " + pracownik.UzytkownikSQL;
+
+                        await Task.Delay(100);
+
                         displayNewUser = true;
                         showNewUser = true;
-                        await Task.Delay(100);
+                        
                     }
                 }
                 else
@@ -299,13 +314,18 @@ else
 
         opisModal = "Dodaj nowego użytkownika";
 
+        nowyPracownik = null;
+        pracownik = null;
+
+        nowyPracownik = new Pracownicy();
+
         if (rowIdDzialu == "") 
         {
             await _message.Warning("Musisz się poprawnie zalogować aby zrobić zmiany");
             return; 
         }
 
-        pracownik = new Pracownicy
+        nowyPracownik = new Pracownicy
             {
                 RowId = Guid.NewGuid().ToString(),
                 Kodkreskowy = "*//*",
