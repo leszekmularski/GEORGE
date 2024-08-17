@@ -5,6 +5,7 @@
 @inject NavigationManager NavigationManager
 @using System.Net;
 @using GEORGE.Shared.Models
+@using System.Timers;
 
 <CascadingValue Value="this">
 @* <CascadingValue Value="AppState"> *@
@@ -150,7 +151,7 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="loginEmail" class="form-label">Zalogowałeś się do systemu.</label>
+                        <label for="loginEmail" class="form-label">Zalogowałeś się do systemu. [@(14 - counter_timer)]</label>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -255,6 +256,7 @@
 
     public void Dispose()
     {
+        Timer1?.Dispose();
         AppState.OnChange -= StateHasChanged;
     }
 
@@ -367,6 +369,7 @@
 
                         await Http.PostAsJsonAsync($"/api/Logowania", logowania);
 
+                        InicjalizujTimer();
 
                     }
                     else
@@ -443,7 +446,7 @@
     private async Task Close()
     {
 
-        await Task.Delay(350);
+        await Task.Delay(10);
 
         pokazbladLogowania = false;
         showLog = false;
@@ -460,4 +463,35 @@
             await CloseOK();
         }
     }
+
+
+    private Timer? Timer1;
+    private int counter_timer = 0;
+
+    public void InicjalizujTimer()
+    {
+        Timer1 = new Timer(1000);
+        Timer1.Elapsed += async (sender, e) => await ObslugaZdarzeniaTimera(sender, e);
+        Timer1.AutoReset = true;
+        Timer1.Start();
+    }
+
+    private async Task ObslugaZdarzeniaTimera(object? sender, ElapsedEventArgs e)
+    {
+        Timer1?.Stop();
+        counter_timer++;
+
+        if (counter_timer >= 15)
+        {
+            counter_timer = 0;
+            Dispose();
+            await CloseOK();
+        }
+        else
+        {
+            await InvokeAsync(StateHasChanged);
+            Timer1?.Start();
+        }
+    }
+
 }
