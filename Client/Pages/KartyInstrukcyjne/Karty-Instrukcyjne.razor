@@ -109,9 +109,15 @@ else
                     <FormItem Label="Opis karty">
                         <Input @bind-Value="karty.OpisKarty" />
                     </FormItem>
-                    <FormItem Label="Nazwa Produktu">
-                        <Input @bind-Value="karty.NazwaProduktu" />
-                    </FormItem>
+                    <AntDesign.FormItem Label="Nazwa Produktu">
+                        <AutoComplete Placeholder="Nazwa Produktu" @bind-Value="@karty.NazwaProduktu" Options="optionsProdukt" CompareWith="CompareWith"
+                                      OnSelectionChange="OnSelectionChangeProdukt">
+                            <OptionTemplate Context="option">
+                                <AutoCompleteOption Value="@option.Value" Label="@option.Label">
+                                </AutoCompleteOption>
+                            </OptionTemplate>
+                        </AutoComplete>
+                    </AntDesign.FormItem>
                     <FormItem Label="Nazwa Produktu 2">
                         <Input @bind-Value="karty.NazwaProduktu2" />
                     </FormItem>
@@ -189,6 +195,10 @@ else
 
     private KartyInstrukcyjne karty = new KartyInstrukcyjne();
 
+    private AutoCompleteOption? selectItemProdukt;
+
+    ObjectValueProduktOption[]? optionsProdukt;
+
     private bool blokuj_2_click = false;
 
     protected override async Task OnInitializedAsync()
@@ -200,9 +210,19 @@ else
 
         await Laduj_Uprawnienia();
 
+        await SearchProdukt();
+
         rodzajeKartInstrukcyjnych = await Http.GetFromJsonAsync<List<RodzajeKartInstrukcyjnych>>("api/RodzajeKartInstrukcyjnych");
 
         kartyInstrukcyjne = await Http.GetFromJsonAsync<List<KartyInstrukcyjne>>("api/KartyInstrukcyjne");
+    }
+
+    private async Task OnSelectionChangeProdukt(AutoCompleteOption item)
+    {
+        selectItemProdukt = item;
+
+        Console.WriteLine("selectItemPowiat.Value" + selectItemProdukt.Value);
+
     }
 
     private void GenerateNewNumber()
@@ -239,6 +259,33 @@ else
 
             karty.NumerKarty = $"{_selectedValue}-{lastNumber + 1:D3}";
             Console.WriteLine($"Generated new number: {karty.NumerKarty}");
+        }
+    }
+
+    private async Task SearchProdukt()
+    {
+
+        try
+        {
+
+            var listaprodukt = await Http.GetFromJsonAsync<List<string>>("/api/KartaInstrProdukt");
+
+            if (listaprodukt != null)
+            {
+                optionsProdukt = listaprodukt.Select(kod => new ObjectValueProduktOption()
+                    {
+                        value = kod.ToString()
+                    }).ToArray();
+
+                karty.NazwaProduktu = karty.NazwaProduktu;
+
+            }
+
+
+        }
+        catch (Exception)
+        {
+            Console.WriteLine("Metoda -  SearchPowiat");
         }
     }
 
@@ -614,6 +661,16 @@ else
     //     }
     // }
 
+    public class ObjectValueProduktOption
+    {
+        public string? value { get; set; }
+
+        public override string ToString()
+        {
+            return $"{value}";
+        }
+    }
+
     public class ResponseModel
     {
         public string? name { get; set; }
@@ -621,5 +678,17 @@ else
         public string? url { get; set; }
         public string? thumbUrl { get; set; }
     }
+
+    Func<object, object, bool> CompareWith = (a, b) =>
+       {
+       if (a is ObjectValueProduktOption o1 && b is ObjectValueProduktOption o2)
+       {
+           return o1.value == o2.value;
+       }
+       else
+       {
+           return false;
+       }
+       };
 
 }

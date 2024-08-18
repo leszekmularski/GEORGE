@@ -80,6 +80,7 @@
                 AllowClear
                 Style="width: 200px;" OnSelectedItemChanged="OnSelectedItemChangedHandlerFiltr">
         </Select>
+        <CheckboxGroup Options="@plainOptions" @bind-Value="@_valueFiltr" TValue="string" OnChange="OnChange" />
     }
 </div>
 
@@ -502,6 +503,9 @@ else
 
     ObjectValueProduktOption[]? optionsProdukt;
 
+    string[] _valueFiltr = new[] { "Zaplanowane", "Nie zaplanowane" };
+    string[] plainOptions = { "Zaplanowane", "Nie zaplanowane" };
+
     protected override async Task OnInitializedAsync()
     {
         await SearchProdukt();
@@ -565,6 +569,46 @@ else
             Console.WriteLine("Layout jest null");
         }
 
+    }
+
+    private async Task OnChange(string[] checkedValues)
+    {
+        // Pobierz listę zleceń produkcyjnych
+
+
+        // Serializuj wybrane wartości i wyświetl w konsoli
+        Console.WriteLine($"checked = {JsonSerializer.Serialize(checkedValues)}");
+
+        // Sprawdź, czy konkretny element jest zaznaczony
+        bool isNieZaplanowaneChecked = checkedValues.Contains("Nie zaplanowane");
+        bool isZaplanowaneChecked = checkedValues.Contains("Zaplanowane");
+
+        // Wykonaj akcje na podstawie zaznaczonych wartości
+        if (isNieZaplanowaneChecked && checkedValues.Length == 1)
+        {
+            Console.WriteLine("Zaznaczono: Nie zaplanowane");
+            zleceniaProdukcyjneWew = await Http.GetFromJsonAsync<List<ZleceniaProdukcyjneWew>>("/api/ZlecenieWewProdukt/bez-linii");
+        }
+
+        if (isZaplanowaneChecked && checkedValues.Length == 1)
+        {
+            Console.WriteLine("Zaznaczono: Zaplanowane");
+            zleceniaProdukcyjneWew = await Http.GetFromJsonAsync<List<ZleceniaProdukcyjneWew>>("/api/ZlecenieWewProdukt/z-linia");
+        }
+
+        // Dodatkowa logika w zależności od liczby zaznaczonych elementów
+        if (checkedValues.Length == 2)
+        {
+            Console.WriteLine("Zaznaczono obydwa elementy.");
+            zleceniaProdukcyjneWew = await Http.GetFromJsonAsync<List<ZleceniaProdukcyjneWew>>("api/ZleceniaProdukcyjneWew");
+        }
+
+        // Dodatkowa logika w zależności od liczby zaznaczonych elementów
+        if (checkedValues.Length == 0 && zleceniaProdukcyjneWew != null)
+        {
+            Console.WriteLine("Nie Zaznaczono obydwa elementy.");
+            zleceniaProdukcyjneWew.Clear();
+        }
     }
 
     private async Task OnClickChange(int e)
@@ -1206,11 +1250,11 @@ else
         try
         {
 
-            var listapowiat = await Http.GetFromJsonAsync<List<string>>("/api/ZlecenieWewProdukt");
+            var listaprodukt = await Http.GetFromJsonAsync<List<string>>("/api/ZlecenieWewProdukt");
 
-            if (listapowiat != null)
+            if (listaprodukt != null)
             {
-                optionsProdukt = listapowiat.Select(kod => new ObjectValueProduktOption()
+                optionsProdukt = listaprodukt.Select(kod => new ObjectValueProduktOption()
                     {
                         value = kod.ToString()
                     }).ToArray();

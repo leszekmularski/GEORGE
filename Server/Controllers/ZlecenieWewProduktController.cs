@@ -40,5 +40,47 @@ namespace GEORGE.Server.Controllers
             }
 
         }
+
+        [HttpGet("bez-linii")]
+        [ProducesResponseType(typeof(IEnumerable<ZleceniaProdukcyjneWew>), (int)HttpStatusCode.OK)]
+        public async Task<ActionResult<List<ZleceniaProdukcyjneWew>>> ListWithoutLinesAsync()
+        {
+            try
+            {
+                // Pobierz wszystkie ZleceniaProdukcyjne, które nie mają powiązania w ZleceniaNaLinii
+                var zleceniaBezLinii = await context.ZleceniaProdukcyjneWew
+                    .Where(zp => !context.ZleceniaNaLinii
+                        .Any(znl => znl.RowIdZleceniaProdukcyjne == zp.RowId))
+                    .ToListAsync();
+
+                return Ok(zleceniaBezLinii);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                return NotFound();
+            }
+        }
+
+        [HttpGet("z-linia")]
+        [ProducesResponseType(typeof(IEnumerable<ZleceniaProdukcyjneWew>), (int)HttpStatusCode.OK)]
+        public async Task<ActionResult<List<ZleceniaProdukcyjneWew>>> ListWithLinesAsync()
+        {
+            try
+            {
+                // Pobierz wszystkie ZleceniaProdukcyjne, które mają powiązanie w ZleceniaNaLinii
+                var zleceniaZLinia = await context.ZleceniaProdukcyjneWew
+                    .Where(zp => context.ZleceniaNaLinii
+                        .Any(znl => znl.RowIdZleceniaProdukcyjne == zp.RowId))
+                    .ToListAsync();
+
+                return Ok(zleceniaZLinia);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                return NotFound();
+            }
+        }
     }
 }
