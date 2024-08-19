@@ -85,13 +85,6 @@
     }
 </div>
 
-@* @if (boolAdmin || boolNowy)
-{
-    <Button Type="primary" Style="width:100%" OnClick="@(ShowDialogAddNew)">
-        Dodaj Zlecenie
-    </Button>
-} *@
-
 <Divider></Divider>
 
 @if (zleceniaProdukcyjne == null)
@@ -400,31 +393,35 @@ else
                 <h5 class="modal-title">Ilość plików powiązanych: @pliki.Count()</h5>
             </div>
             <div class="modal-body">
-                <Table TItem="PlikiZlecenProdukcyjnych" DataSource="@pliki" ScrollX="1650" PageSize="@(iloscRekordow - 1)" Size="TableSize.Small">
+                <Table TItem="PlikiZlecenProdukcyjnych" DataSource="@pliki">
                     <Column Title="ID" @bind-Field="@context.Id" Hidden />
+                    <Column Title="Nazwa pliku" @bind-Field="@context.NazwaPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Title="Oryginalna nazwa pliku" @bind-Field="@context.OryginalnaNazwaPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Title="Typ" @bind-Field="@context.TypPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Title="Data Zapisu" @bind-Field="@context.DataZapisu" Sortable OnFilter="(a, b) => a == b" Filterable />
-                    <Column Title="Nazwa pliku" @bind-Field="@context.NazwaPliku" Filterable Style="width:10%" />
-                    <ActionColumn Title="Akcja" Width="205" Fixed="right">
+                    <ActionColumn Title="Uwagi / Akcja">
                         <Template>
                             @{
-                             
-                                    @if (boolAdmin)
-                                    {
-                                        <label>Widoczny dla wszystkich:</label>
-                                        <Checkbox Placeholder="Widoczny dla wszystkich." @bind-Value="@context.WidocznyDlaWszystkich" OnChange="@( () => ZmienWidocznosc(context.Id, context.WidocznyDlaWszystkich))" />
-                                        <InputFile id="fileInput" OnChange="@(e => ReplaceUploadFiles(e, context.NazwaPliku))" hidden multiple />
-                                        <Upload Name="files" FileList="fileList">
-                                            <label class="ant-btn" for="fileInput">
+                                if (boolAdmin)
+                                {
+                                    <label>Widoczny dla wszystkich:</label>
+                                    <Checkbox Placeholder="Widoczny dla wszystkich." @bind-Value="@context.WidocznyDlaWszystkich" OnChange="@( () => ZmienWidocznosc(context.Id, context.WidocznyDlaWszystkich))" />
+
+                                    var uniqueId = $"{context.Id}";
+                                    <InputFile id="@uniqueId" OnChange="@(e => ReplaceUploadFiles(e, context.NazwaPliku))" hidden multiple />
+                                    <Upload Name="files" FileList="fileList">
+                                        <Tooltip Placement="@Placement.Right" Title="Zastąp istniejący plik innym">
+                                            <label class="ant-btn" for="@uniqueId">
                                                 <Icon Type="upload" />
                                             </label>
-                                        </Upload>
-                                    }
-                                    <Input Placeholder="Podaj uwagę." @bind-Value="@context.Uwagi" MaxLength="45" OnBlur="@( () => ZmienUwage(context.Id, context.Uwagi))" />
-                                    var item = context as PlikiZlecenProdukcyjnych;
-                                    if (!string.IsNullOrEmpty(item.NazwaPliku))
-                                    {
+                                        </Tooltip>
+                                    </Upload>
+                                }
+                                <Input Placeholder="Podaj uwagę." @bind-Value="@context.Uwagi" MaxLength="45" OnBlur="@( () => ZmienUwage(context.Id, context.Uwagi))" />
+
+                                var item = context as PlikiZlecenProdukcyjnych;
+                                if (!string.IsNullOrEmpty(item.NazwaPliku))
+                                {
                                     <Spin Spinning=@czekajNaUsuniecie>
                                         <a href="uploads_zlecenia/@item.NazwaPliku" download @onclick="@( () => DownloadFile(item.NazwaPliku) )">Pobierz plik  &nbsp &nbsp</a>
                                         <Popconfirm Title="Czy chcesz usunąć plik?"
@@ -434,11 +431,12 @@ else
                                             <a style="color:red">Usuń plik</a>
                                         </Popconfirm>
                                     </Spin>
-                                    }
+                                }
                             }
                         </Template>
                     </ActionColumn>
                 </Table>
+
             </div>
             <div class="modal-footer d-flex">
                 Załącz nowe pliki <InputFile OnChange="HandleSelected" multiple>Wybierz pliki powiązane ze zleceniem</InputFile>@bladZapisuPliku
@@ -591,6 +589,15 @@ else
             var content = new MultipartFormDataContent();
 
             var tmpFileName = WebUtility.UrlEncode(file.Name);
+
+            string tmpFileExtension = Path.GetExtension(tmpFileName);
+            string idFileExtension = Path.GetExtension(rowIdS);
+
+            if (tmpFileExtension != idFileExtension)
+            {
+                bladZapisuPliku = $"Błąd przy zapisie pliku na serwerze. Niezgodność typów";
+                return;
+            }
 
             Console.WriteLine($"api/FileUploadZlec/upload/{zlecenie.RowId}/{tmpFileName}");
 
@@ -879,34 +886,42 @@ else
         czekajNaUsuniecie = false;
     }
 
-    private async Task DownloadFile(string fileUrl)
+    private async Task DownloadFile(string fileName)
     {
         try
         {
+            // Konstrukcja pełnego URL
+            var baseUrl = NavigationManager.BaseUri; // Pobierz podstawowy adres URL aplikacji
+            var fileUrl = $"{baseUrl}uploads_zlecenia/{fileName}";
+
+            if (!Uri.TryCreate(fileUrl, UriKind.Absolute, out var uri))
+            {
+                Console.WriteLine("Nieprawidłowy URL: " + fileUrl);
+                return;
+            }
+
             using (var httpClient = new HttpClient())
             {
-                // Ustaw odpowiedni timeout dla dużych plików
                 httpClient.Timeout = TimeSpan.FromMinutes(10);
+                Console.WriteLine($"Pobieranie pliku z URL: {fileUrl}");
 
-                // Pobierz plik jako strumień
-                using (var response = await httpClient.GetAsync(fileUrl, HttpCompletionOption.ResponseHeadersRead))
+                using (var response = await httpClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead))
                 {
                     if (response.IsSuccessStatusCode)
                     {
                         var contentStream = await response.Content.ReadAsStreamAsync();
-                        var fileName = Path.GetFileName(fileUrl);
+                        var actualFileName = Path.GetFileName(uri.LocalPath);
 
-                        // Pobierz plik przez przeglądarkę
                         using (var memoryStream = new MemoryStream())
                         {
                             await contentStream.CopyToAsync(memoryStream);
                             memoryStream.Seek(0, SeekOrigin.Begin);
 
                             // Wywołaj JavaScript do pobrania pliku
-                            await JSRuntime.InvokeVoidAsync("BlazorDownloadFile", fileName, memoryStream.ToArray());
+                            await JSRuntime.InvokeVoidAsync("BlazorDownloadFile", actualFileName, memoryStream.ToArray());
                         }
 
-                        Console.WriteLine($"Plik został pobrany i zapisany: {fileName}");
+                        Console.WriteLine($"Plik został pobrany i zapisany: {actualFileName}");
                     }
                     else
                     {

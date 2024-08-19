@@ -402,18 +402,23 @@ else
                     <ActionColumn Title="Uwagi / Akcja">
                         <Template>
                             @{
-                                @if (boolAdmin)
+                                if (boolAdmin)
                                 {
                                     <label>Widoczny dla wszystkich:</label>
                                     <Checkbox Placeholder="Widoczny dla wszystkich." @bind-Value="@context.WidocznyDlaWszystkich" OnChange="@( () => ZmienWidocznosc(context.Id, context.WidocznyDlaWszystkich))" />
-                                    <InputFile id="fileInput" OnChange="@(e => ReplaceUploadFiles(e, context.NazwaPliku))" hidden multiple />
+
+                                    var uniqueId = $"{context.Id}";
+                                    <InputFile id="@uniqueId" OnChange="@(e => ReplaceUploadFiles(e, context.NazwaPliku))" hidden multiple />
                                     <Upload Name="files" FileList="fileList">
-                                        <label class="ant-btn" for="fileInput">
-                                            <Icon Type="upload" />
-                                        </label>
+                                        <Tooltip Placement="@Placement.Right" Title="Zastąp istniejący plik innym">
+                                            <label class="ant-btn" for="@uniqueId">
+                                                <Icon Type="upload" />
+                                            </label>
+                                        </Tooltip>
                                     </Upload>
                                 }
                                 <Input Placeholder="Podaj uwagę." @bind-Value="@context.Uwagi" MaxLength="45" OnBlur="@( () => ZmienUwage(context.Id, context.Uwagi))" />
+
                                 var item = context as PlikiZlecenProdukcyjnych;
                                 if (!string.IsNullOrEmpty(item.NazwaPliku))
                                 {
@@ -431,6 +436,7 @@ else
                         </Template>
                     </ActionColumn>
                 </Table>
+
             </div>
             <div class="modal-footer d-flex">
                 Załącz nowe pliki <InputFile OnChange="HandleSelected" multiple>Wybierz pliki powiązane ze zleceniem</InputFile>@bladZapisuPliku
@@ -580,7 +586,7 @@ else
 
     }
 
-    private async Task ReplaceUploadFiles(InputFileChangeEventArgs e, string rowIdS)
+    private async Task ReplaceUploadFiles(InputFileChangeEventArgs e, string idFile)
     {
         foreach (var file in e.GetMultipleFiles())
         {
@@ -588,11 +594,20 @@ else
 
             var tmpFileName = WebUtility.UrlEncode(file.Name);
 
-            Console.WriteLine($"api/FileUploadZlec/upload/{zlecenie.RowId}/{tmpFileName}");
+            string tmpFileExtension = Path.GetExtension(tmpFileName);
+            string idFileExtension = Path.GetExtension(idFile);
+
+            if (tmpFileExtension != idFileExtension)
+            {
+                bladZapisuPliku = $"Błąd przy zapisie pliku na serwerze. Niezgodność typów";
+                return;
+            }
+
+            Console.WriteLine($"api/FileUploadZlec/upload/{zlecenie.RowId}/{tmpFileName}/{idFile}");
 
             content.Add(new StreamContent(file.OpenReadStream(Int64.MaxValue)), "file", file.Name);
 
-            var response = await Http.PostAsync($"api/FileUploadZlec/upload/{zlecenie.RowId}/{tmpFileName}/{rowIdS}", content);
+            var response = await Http.PostAsync($"api/FileUploadZlec/upload/{zlecenie.RowId}/{tmpFileName}/{idFile}", content);
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<ResponseModel>();
@@ -811,34 +826,42 @@ else
         }
     }
 
-    private async Task DownloadFile(string fileUrl)
+    private async Task DownloadFile(string fileName)
     {
         try
         {
+            // Konstrukcja pełnego URL
+            var baseUrl = NavigationManager.BaseUri; // Pobierz podstawowy adres URL aplikacji
+            var fileUrl = $"{baseUrl}uploads_zlecenia/{fileName}";
+
+            if (!Uri.TryCreate(fileUrl, UriKind.Absolute, out var uri))
+            {
+                Console.WriteLine("Nieprawidłowy URL: " + fileUrl);
+                return;
+            }
+
             using (var httpClient = new HttpClient())
             {
-                // Ustaw odpowiedni timeout dla dużych plików
                 httpClient.Timeout = TimeSpan.FromMinutes(10);
+                Console.WriteLine($"Pobieranie pliku z URL: {fileUrl}");
 
-                // Pobierz plik jako strumień
-                using (var response = await httpClient.GetAsync(fileUrl, HttpCompletionOption.ResponseHeadersRead))
+                using (var response = await httpClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead))
                 {
                     if (response.IsSuccessStatusCode)
                     {
                         var contentStream = await response.Content.ReadAsStreamAsync();
-                        var fileName = Path.GetFileName(fileUrl);
+                        var actualFileName = Path.GetFileName(uri.LocalPath);
 
-                        // Pobierz plik przez przeglądarkę
                         using (var memoryStream = new MemoryStream())
                         {
                             await contentStream.CopyToAsync(memoryStream);
                             memoryStream.Seek(0, SeekOrigin.Begin);
 
                             // Wywołaj JavaScript do pobrania pliku
-                            await JSRuntime.InvokeVoidAsync("BlazorDownloadFile", fileName, memoryStream.ToArray());
+                            await JSRuntime.InvokeVoidAsync("BlazorDownloadFile", actualFileName, memoryStream.ToArray());
                         }
 
-                        Console.WriteLine($"Plik został pobrany i zapisany: {fileName}");
+                        Console.WriteLine($"Plik został pobrany i zapisany: {actualFileName}");
                     }
                     else
                     {
@@ -852,6 +875,8 @@ else
             Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message} / {ex.StackTrace}");
         }
     }
+
+
 
     private async Task deleteFile(long id, string fileUrl, string roIdZlec)
     {

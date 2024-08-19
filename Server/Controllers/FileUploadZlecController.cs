@@ -103,6 +103,12 @@ public class FileUploadZlecController : ControllerBase
 
         var filePath = Path.Combine(uploadsFolder, staraNazwaPliku);
 
+        if (System.IO.File.Exists(filePath))
+        {
+            Console.WriteLine("******************************* KASUJE ISTNIEJACY PLIK ************************");  
+            System.IO.File.Delete(filePath);
+        }
+
         using (var stream = new FileStream(filePath, FileMode.Create))
         {
             await file.CopyToAsync(stream);
