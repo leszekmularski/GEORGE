@@ -405,7 +405,13 @@ else
                                 @if (boolAdmin)
                                 {
                                     <label>Widoczny dla wszystkich:</label>
-                                    <Checkbox Placeholder="Widoczny dla wszystkich." @bind-Value="@context.WidocznyDlaWszystkich" OnChange="@( () => ZmienWidocznosc(context.Id, context.WidocznyDlaWszystkich))" />                          
+                                    <Checkbox Placeholder="Widoczny dla wszystkich." @bind-Value="@context.WidocznyDlaWszystkich" OnChange="@( () => ZmienWidocznosc(context.Id, context.WidocznyDlaWszystkich))" />
+                                    <InputFile id="fileInput" OnChange="@(e => ReplaceUploadFiles(e, context.NazwaPliku))" hidden multiple />
+                                    <Upload Name="files" FileList="fileList">
+                                        <label class="ant-btn" for="fileInput">
+                                            <Icon Type="upload" />
+                                        </label>
+                                    </Upload>
                                 }
                                 <Input Placeholder="Podaj uwagę." @bind-Value="@context.Uwagi" MaxLength="45" OnBlur="@( () => ZmienUwage(context.Id, context.Uwagi))" />
                                 var item = context as PlikiZlecenProdukcyjnych;
@@ -506,6 +512,9 @@ else
     string[] _valueFiltr = new[] { "Zaplanowane", "Nie zaplanowane" };
     string[] plainOptions = { "Zaplanowane", "Nie zaplanowane" };
 
+    List<UploadFileItem> fileList = new List<UploadFileItem>();
+    IList<IBrowserFile> files = new List<IBrowserFile>();
+
     protected override async Task OnInitializedAsync()
     {
         await SearchProdukt();
@@ -568,6 +577,39 @@ else
         {
             Console.WriteLine("Layout jest null");
         }
+
+    }
+
+    private async Task ReplaceUploadFiles(InputFileChangeEventArgs e, string rowIdS)
+    {
+        foreach (var file in e.GetMultipleFiles())
+        {
+            var content = new MultipartFormDataContent();
+
+            var tmpFileName = WebUtility.UrlEncode(file.Name);
+
+            Console.WriteLine($"api/FileUploadZlec/upload/{zlecenie.RowId}/{tmpFileName}");
+
+            content.Add(new StreamContent(file.OpenReadStream(Int64.MaxValue)), "file", file.Name);
+
+            var response = await Http.PostAsync($"api/FileUploadZlec/upload/{zlecenie.RowId}/{tmpFileName}/{rowIdS}", content);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ResponseModel>();
+                Console.WriteLine($"File uploaded successfully. URL: {result?.url}");
+                //Dodaj akjcę zapisu do bazy danych
+                //zleceniaProdukcyjne.LinkDoKartyNaSerwerze = result?.url;
+            }
+            else
+            {
+                Console.WriteLine("File upload failed.");
+                bladZapisuPliku = $"Błąd przy zapisie pliku na serwerze. {response.Content.ReadAsStringAsync().Result}";
+
+            }
+        }
+        //TODO upload the files to the server
+
+        await LoadFiles(zlecenie.RowId);
 
     }
 
@@ -769,52 +811,45 @@ else
         }
     }
 
-
-
     private async Task DownloadFile(string fileUrl)
     {
-        var filePath = Path.Combine("uploads_zlecenia", fileUrl); // Tworzy ścieżkę do pliku w folderze uploads
-
         try
         {
             using (var httpClient = new HttpClient())
             {
-                // Pobierz zawartość pliku jako bajty
-                var response = await httpClient.GetAsync(fileUrl);
+                // Ustaw odpowiedni timeout dla dużych plików
+                httpClient.Timeout = TimeSpan.FromMinutes(10);
 
-                // if (response.IsSuccessStatusCode)
-                // {
-                //     // Uzyskaj zawartość pliku jako bajty
-                //     var fileBytes = await response.Content.ReadAsByteArrayAsync();
-
-                //     // Tutaj możesz zrobić coś z tymi bajtami, np. zapisać je do pliku lokalnego
-                //     // Przykład: Zapisz plik na dysku
-                //     //var fileName = "nazwa_pobranego_pliku.pdf"; // Przykładowa nazwa pliku
-                //     //var filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), fileName);
-
-                //     File.WriteAllBytes(filePath, fileBytes);
-
-                //     Console.WriteLine($"Plik został pobrany i zapisany: {filePath}");
-                // }
-                // else
-                // {
-                //     Console.WriteLine("Nie udało się pobrać pliku.");
-                // }
-
-                // Pobierz dane pliku
-                var fileData = await response.Content.ReadAsByteArrayAsync();
-
-                if (response != null)
+                // Pobierz plik jako strumień
+                using (var response = await httpClient.GetAsync(fileUrl, HttpCompletionOption.ResponseHeadersRead))
                 {
-                    await JSRuntime.InvokeVoidAsync("saveByteArray", fileData, filePath);
-                    //await JSRuntime.InvokeVoidAsync("saveByteArray", response, fileName);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var contentStream = await response.Content.ReadAsStreamAsync();
+                        var fileName = Path.GetFileName(fileUrl);
+
+                        // Pobierz plik przez przeglądarkę
+                        using (var memoryStream = new MemoryStream())
+                        {
+                            await contentStream.CopyToAsync(memoryStream);
+                            memoryStream.Seek(0, SeekOrigin.Begin);
+
+                            // Wywołaj JavaScript do pobrania pliku
+                            await JSRuntime.InvokeVoidAsync("BlazorDownloadFile", fileName, memoryStream.ToArray());
+                        }
+
+                        Console.WriteLine($"Plik został pobrany i zapisany: {fileName}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Nie udało się pobrać pliku.");
+                    }
                 }
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message}/ {ex.StackTrace}");
-            Console.WriteLine(filePath);
+            Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message} / {ex.StackTrace}");
         }
     }
 

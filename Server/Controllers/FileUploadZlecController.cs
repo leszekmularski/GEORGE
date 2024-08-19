@@ -79,6 +79,46 @@ public class FileUploadZlecController : ControllerBase
         return Ok(response);
     }
 
+    [HttpPost("upload/{rowIdZlecenia}/{orygFileName}/{staraNazwaPliku}")]
+    public async Task<IActionResult> ReplaceUploadFile(string rowIdZlecenia, string orygFileName, string staraNazwaPliku, IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest("Pliku nie wysłano");
+
+        // Dodaj debugowanie
+        var webRootPath = _environment.WebRootPath;
+        Console.WriteLine($"WebRootPath: {webRootPath}");
+
+        if (webRootPath == null)
+        {
+            return BadRequest("Pliku nie wysłano. Brak dostępu do katalogu - WebRootPath/uploads_zlecenia");
+        }
+
+        var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads_zlecenia");
+
+        if (!Directory.Exists(uploadsFolder))
+        {
+            Directory.CreateDirectory(uploadsFolder);
+        }
+
+        var filePath = Path.Combine(uploadsFolder, staraNazwaPliku);
+
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        var response = new ResponseModel
+        {
+            name = Path.GetFileName(filePath),
+            status = "Success",
+            url = Path.Combine("uploads_zlecenia", Path.GetFileName(filePath)),
+            thumbUrl = null // Optional: Add logic to generate thumbnail URL if needed
+        };
+
+        return Ok(response);
+    }
+
     [HttpGet("files/{rowIdZlecenia}")]
     public async Task<IActionResult> GetFiles(string rowIdZlecenia)
     {

@@ -5,8 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 	<Version>1.0.3</Version>
-	<AssemblyVersion>1.0.3.1</AssemblyVersion>
-	<FileVersion>1.0.3.1</FileVersion>
+	<AssemblyVersion>1.0.3.4</AssemblyVersion>
+	<FileVersion>1.0.3.4</FileVersion>
 	<InformationalVersion>1.0.3</InformationalVersion>
   </PropertyGroup>
 

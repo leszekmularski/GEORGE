@@ -8,6 +8,7 @@
 @using GEORGE.Shared.Class
 @using AntDesign
 @using System.Globalization
+@inject IJSRuntime JSRuntime
 
 <PageTitle>Program do wspomagania produkcji karty instrukcyjne</PageTitle>
 
@@ -215,7 +216,22 @@ else
         rodzajeKartInstrukcyjnych = await Http.GetFromJsonAsync<List<RodzajeKartInstrukcyjnych>>("api/RodzajeKartInstrukcyjnych");
 
         kartyInstrukcyjne = await Http.GetFromJsonAsync<List<KartyInstrukcyjne>>("api/KartyInstrukcyjne");
+
+        // var url = "http://leszekm:5000/";
+        // var response = await Http.GetAsync(url);
+
+        // if (response.IsSuccessStatusCode)
+        // {
+        //     var content = await response.Content.ReadAsStringAsync();
+        //     Console.WriteLine("Pobrano dane: " + content);
+        // }
+        // else
+        // {
+        //     Console.WriteLine($"Błąd podczas pobierania danych. Status: {response.StatusCode}");
+        // }
+
     }
+
 
     private async Task OnSelectionChangeProdukt(AutoCompleteOption item)
     {
@@ -558,40 +574,46 @@ else
 
     private async Task DownloadFile(string fileUrl)
     {
-        var filePath = Path.Combine("uploads", fileUrl); // Tworzy ścieżkę do pliku w folderze uploads
-
         try
         {
             using (var httpClient = new HttpClient())
             {
-                // Pobierz zawartość pliku jako bajty
-                var response = await httpClient.GetAsync(fileUrl);
+                // Ustaw odpowiedni timeout dla dużych plików
+                httpClient.Timeout = TimeSpan.FromMinutes(10);
 
-                if (response.IsSuccessStatusCode)
+                // Pobierz plik jako strumień
+                using (var response = await httpClient.GetAsync(fileUrl, HttpCompletionOption.ResponseHeadersRead))
                 {
-                    // Uzyskaj zawartość pliku jako bajty
-                    var fileBytes = await response.Content.ReadAsByteArrayAsync();
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var contentStream = await response.Content.ReadAsStreamAsync();
+                        var fileName = Path.GetFileName(fileUrl);
 
-                    // Tutaj możesz zrobić coś z tymi bajtami, np. zapisać je do pliku lokalnego
-                    // Przykład: Zapisz plik na dysku
-                    //var fileName = "nazwa_pobranego_pliku.pdf"; // Przykładowa nazwa pliku
-                    //var filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), fileName);
+                        // Pobierz plik przez przeglądarkę
+                        using (var memoryStream = new MemoryStream())
+                        {
+                            await contentStream.CopyToAsync(memoryStream);
+                            memoryStream.Seek(0, SeekOrigin.Begin);
 
-                    File.WriteAllBytes(filePath, fileBytes);
+                            // Wywołaj JavaScript do pobrania pliku
+                            await JSRuntime.InvokeVoidAsync("BlazorDownloadFile", fileName, memoryStream.ToArray());
+                        }
 
-                    Console.WriteLine($"Plik został pobrany i zapisany: {filePath}");
-                }
-                else
-                {
-                    Console.WriteLine("Nie udało się pobrać pliku.");
+                        Console.WriteLine($"Plik został pobrany i zapisany: {fileName}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Nie udało się pobrać pliku.");
+                    }
                 }
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message}");
+            Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message} / {ex.StackTrace}");
         }
     }
+
 
     private bool boolOdczyt = false;
     private bool boolZmian = false;

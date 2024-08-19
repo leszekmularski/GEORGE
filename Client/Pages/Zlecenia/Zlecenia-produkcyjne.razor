@@ -11,6 +11,7 @@
 @inject Utilities.ILocalStorage LocalStorage
 @inject DialogService DialogService
 @using System.Text.Json;
+@inject IJSRuntime JSRuntime
 
 <style>
     .custom-link {
@@ -413,6 +414,12 @@ else
                                     {
                                         <label>Widoczny dla wszystkich:</label>
                                         <Checkbox Placeholder="Widoczny dla wszystkich." @bind-Value="@context.WidocznyDlaWszystkich" OnChange="@( () => ZmienWidocznosc(context.Id, context.WidocznyDlaWszystkich))" />
+                                        <InputFile id="fileInput" OnChange="@(e => ReplaceUploadFiles(e, context.NazwaPliku))" hidden multiple />
+                                        <Upload Name="files" FileList="fileList">
+                                            <label class="ant-btn" for="fileInput">
+                                                <Icon Type="upload" />
+                                            </label>
+                                        </Upload>
                                     }
                                     <Input Placeholder="Podaj uwagę." @bind-Value="@context.Uwagi" MaxLength="45" OnBlur="@( () => ZmienUwage(context.Id, context.Uwagi))" />
                                     var item = context as PlikiZlecenProdukcyjnych;
@@ -513,6 +520,9 @@ else
     string[] _valueFiltr = new[] { "Zaplanowane", "Nie zaplanowane" };
     string[] plainOptions = { "Zaplanowane", "Nie zaplanowane" };
 
+    List<UploadFileItem> fileList = new List<UploadFileItem>();
+    IList<IBrowserFile> files = new List<IBrowserFile>();
+
     protected override async Task OnInitializedAsync()
     {
 
@@ -572,6 +582,39 @@ else
             Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message}/ {ex.StackTrace}");
             zleceniaProdukcyjne = new List<ZleceniaProdukcyjne>();
         }
+    }
+
+    private async Task ReplaceUploadFiles(InputFileChangeEventArgs e, string rowIdS)
+    {
+        foreach (var file in e.GetMultipleFiles())
+        {
+            var content = new MultipartFormDataContent();
+
+            var tmpFileName = WebUtility.UrlEncode(file.Name);
+
+            Console.WriteLine($"api/FileUploadZlec/upload/{zlecenie.RowId}/{tmpFileName}");
+
+            content.Add(new StreamContent(file.OpenReadStream(Int64.MaxValue)), "file", file.Name);
+
+            var response = await Http.PostAsync($"api/FileUploadZlec/upload/{zlecenie.RowId}/{tmpFileName}/{rowIdS}", content);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ResponseModel>();
+                Console.WriteLine($"File uploaded successfully. URL: {result?.url}");
+                //Dodaj akjcę zapisu do bazy danych
+                //zleceniaProdukcyjne.LinkDoKartyNaSerwerze = result?.url;
+            }
+            else
+            {
+                Console.WriteLine("File upload failed.");
+                bladZapisuPliku = $"Błąd przy zapisie pliku na serwerze. {response.Content.ReadAsStringAsync().Result}";
+
+            }
+        }
+        //TODO upload the files to the server
+
+        await LoadFiles(zlecenie.RowId);
+
     }
 
     private async Task OnChange(string[] checkedValues)
@@ -838,8 +881,6 @@ else
 
     private async Task DownloadFile(string fileUrl)
     {
-        var filePath = Path.Combine("uploads_zlecenia", fileUrl); // Tworzy ścieżkę do pliku w folderze uploads
-
         try
         {
             using (var httpClient = new HttpClient())
@@ -847,19 +888,25 @@ else
                 // Ustaw odpowiedni timeout dla dużych plików
                 httpClient.Timeout = TimeSpan.FromMinutes(10);
 
+                // Pobierz plik jako strumień
                 using (var response = await httpClient.GetAsync(fileUrl, HttpCompletionOption.ResponseHeadersRead))
                 {
                     if (response.IsSuccessStatusCode)
                     {
-                        using (var contentStream = await response.Content.ReadAsStreamAsync())
+                        var contentStream = await response.Content.ReadAsStreamAsync();
+                        var fileName = Path.GetFileName(fileUrl);
+
+                        // Pobierz plik przez przeglądarkę
+                        using (var memoryStream = new MemoryStream())
                         {
-                            using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true))
-                            {
-                                await contentStream.CopyToAsync(fileStream);
-                            }
+                            await contentStream.CopyToAsync(memoryStream);
+                            memoryStream.Seek(0, SeekOrigin.Begin);
+
+                            // Wywołaj JavaScript do pobrania pliku
+                            await JSRuntime.InvokeVoidAsync("BlazorDownloadFile", fileName, memoryStream.ToArray());
                         }
 
-                        Console.WriteLine($"Plik został pobrany i zapisany: {filePath}");
+                        Console.WriteLine($"Plik został pobrany i zapisany: {fileName}");
                     }
                     else
                     {
@@ -870,8 +917,7 @@ else
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message}/ {ex.StackTrace}");
-            Console.WriteLine(filePath);
+            Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message} / {ex.StackTrace}");
         }
     }
 
