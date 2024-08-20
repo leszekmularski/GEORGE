@@ -445,7 +445,7 @@
         catch (Exception ex)
         {
             // Obsługa błędów, np. wyświetlenie komunikatu o błędzie
-            Console.WriteLine($"Wystąpił błąd (BazaPobierz-OnInitializedAsync): {ex.Message}");
+            Console.WriteLine($"Wystąpił błąd (BazaPobierz-OnInitializedAsync): {ex.Message} / {ex.StackTrace}");
             click_task = $"Wystąpił błąd (BazaPobierz-OnInitializedAsync): {ex.Message}";
         }
     }
@@ -926,6 +926,12 @@
 
         foreach (var item in przefiltrowaneDaneDoPlanowania)
         {
+            if (wydajnoscWybranejLinii == 0) 
+            { 
+                await _message.Error($"Popraw wydajność linii -- czas wykonania jest nieprawidłowy");
+                wydajnoscWybranejLinii = 1; 
+            }
+
             var czasProdukcjiWDniach = (double)item.JednostkiNaZlecenie / wydajnoscWybranejLinii;
             var czasProdukcjiWHours = czasProdukcjiWDniach * 24;
 
