@@ -9,17 +9,17 @@
 
 <h3>Linie produkcyjne</h3>
 
-<Button Type="primary" OnClick="@(ShowDialogAddNew)">
-    Dodaj nową linię produkcyjną
-</Button>
-<Divider></Divider>
-
 @if (rodzajeLinieProdukcyjne == null)
 {
     <p><em>Czekaj na załadowanie danych...</em></p>
 }
 else
 {
+     <Button Type="primary" OnClick="@(ShowDialogAddNew)">
+        Dodaj nową linię produkcyjną
+    </Button>
+    <Divider></Divider>
+
     <ul>
         <Table TItem="LinieProdukcyjne" DataSource="@rodzajeLinieProdukcyjne">
             <Column Title="ID" @bind-Field="@context.Id" Hidden />
@@ -60,6 +60,9 @@ else
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
+                <h5>@ShowErr</h5>
+            </div>
+            <div class="modal-body">
                 <AntDesign.Form Model="@nlinie" Layout="FormLayout.Vertical" OnFinish="@HandleSubmit">
                     <AntDesign.FormItem Label="Id linii w systemie">
                         <AntDesign.Input @bind-Value="nlinie.IdLiniiProdukcyjnej" MaxLength="15" Required Placeholder="Podaj Id linii np #001" />
@@ -85,9 +88,9 @@ else
                     </AntDesign.FormItem>
                 </AntDesign.Form>
             </div>
-            <div class="modal-footer d-flex">
+@*             <div class="modal-footer d-flex">
                 @ShowErr
-            </div>
+            </div> *@
         </div>
     </div>
 </div>
@@ -135,7 +138,7 @@ else
 
     private async Task HandleSubmit()
     {
-        Console.WriteLine("HandleSubmit()");
+        //  Console.WriteLine("HandleSubmit()");
 
         ShowErr = "";
 
@@ -160,6 +163,13 @@ else
                     Console.WriteLine("Numer LINII musi być unikalny.");
                     //await _message.Error("Numer LINII musi być unikalny.");
                     ShowErr = "Numer LINII musi być unikalny.";
+                    blokujDwuKlik = false;
+                    return;
+                }
+
+                if (nlinie.DziennaZdolnoscProdukcyjna == 0)
+                {
+                    ShowErr = "Dzienna Zdolność Produkcyjna musi być większa od 0.";
                     blokujDwuKlik = false;
                     return;
                 }
@@ -252,7 +262,7 @@ else
                 await _message.Error("Lista linii produkcyjnych nie została załadowana.");
                 return;
             }
-
+       
             // Tworzenie kopii listy
             oryginalLinieProdukcyjne = rodzajeLinieProdukcyjne.DeepCopyList();
 
@@ -273,7 +283,7 @@ else
                 {
                     cid = id;
                     nlinie = listOfData;  // Przypisanie wybranego wiersza do nlinie
-
+                    ShowErr = "Edytujesz linię: " + nlinie.IdLiniiProdukcyjnej;
                     // nlinie.Id = listOfData.Id;
                     // nlinie.RowId = listOfData.RowId;
                     // nlinie.NazwaLiniiProdukcyjnej = listOfData.NazwaLiniiProdukcyjnej;
@@ -330,7 +340,8 @@ else
     {
         nlinie = new LinieProdukcyjne();
         cid = -1;
-        ShowErr = "";
+
+        ShowErr = "Dodaj nową linię produkcyjną";
 
         if (rodzajeLinieProdukcyjne != null)
         {

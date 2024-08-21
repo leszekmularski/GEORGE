@@ -64,7 +64,7 @@ else
                 @if (boolAdmin || boolUsuniecia)
                 {
                     <Popconfirm Title="Czy chcesz usunąć pozycję?"
-                                OnConfirm="()=> ShowDialogPass(context.Id)"
+                                OnConfirm="()=> delRow(context.Id)"
                                 OkText="Tak"
                                 CancelText="Nie">
                         <a style="color:red">Usuń</a>
@@ -153,23 +153,6 @@ else
     </div>
 </div>
 
-<div class="modal fade @classShowPass" tabindex="-1" style="display: @displayPass;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 25%;">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Aby usunąć kartę musisz podać hasło</h5>
-            </div>
-            <div class="modal-body">
-
-                <Input Placeholder="Podaj hasło!!!" @bind-Value="@classPass" MaxLength="25" />
-
-            </div>
-            <div class="modal-footer d-flex">
-                <Button class="ms-auto" @onclick="() => HideDialogPass()">OK</Button>
-            </div>
-        </div>
-    </div>
-</div>
 
 @code {
 
@@ -187,9 +170,6 @@ else
     private string display = "none;";
     private string classShow = "";
 
-    private string displayPass = "none;";
-    private string classShowPass = "";
-    private string classPass = "";
     private long id_del = -1;
 
     private long cid = -1;
@@ -314,7 +294,7 @@ else
             return;
         }
 
-        //if (_visible == false) return;
+        blokuj_2_click = true;
 
         HttpResponseMessage response;
 
@@ -368,35 +348,16 @@ else
         }
     }
 
-    public async Task ShowDialogPass(long id)
+
+    private async Task delRow(long xid_del)
     {
-        id_del = id;
-        displayPass = "block";
-        await Task.Delay(50);
-        classShowPass = "show";
-        StateHasChanged();
-
-    }
-
-    private async Task HideDialogPass()
-    {
-
-        classShowPass = "";
-        await Task.Delay(200);
-        displayPass = "none";
-
-        StateHasChanged();
-
-        await delRow();
-    }
-
-    private async Task delRow()
-    {
-        if (classPass != "admin1")
+        if (!boolUsuniecia)
         {
             await _message.Error("Błędne hasło");
             return;
         }
+
+        id_del = xid_del;
 
         var response = await Http.DeleteAsync($"api/KartyInstrukcyjne/{id_del}");
 
@@ -406,19 +367,19 @@ else
             if (zlecenie != null)
             {
                 kartyInstrukcyjne.Remove(zlecenie);
+                kartyInstrukcyjne = await Http.GetFromJsonAsync<List<KartyInstrukcyjne>>("api/KartyInstrukcyjne");
                 await _message.Success("Kartę usunięto!");
             }
         }
         else
         {
+            kartyInstrukcyjne = await Http.GetFromJsonAsync<List<KartyInstrukcyjne>>("api/KartyInstrukcyjne");
             Console.WriteLine("Błąd podczas usuwania karty.");
             await _message.Error("Błąd podczas usuwania karty");
         }
 
         id_del = -1;
-        classPass = "";
 
-        kartyInstrukcyjne = await Http.GetFromJsonAsync<List<KartyInstrukcyjne>>("api/KartyInstrukcyjne");
     }
 
     public async Task editRow(long id)
@@ -468,9 +429,7 @@ else
 
         _visible = true;
 
-        blokuj_2_click = true;
-
-        //await HandleSubmit();
+           //await HandleSubmit();
         // _visible = false;
         // await HideDialog();
     }
@@ -491,6 +450,8 @@ else
     public async Task ShowDialogAddNew()
     {
         _edit = false;
+
+        blokuj_2_click = false;
 
         karty = new KartyInstrukcyjne();
         cid = -1;
