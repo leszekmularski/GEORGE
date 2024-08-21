@@ -51,7 +51,7 @@ else
         {
             <button type="button" class="btn btn-success" @onclick="AddUser">Dodaj nowego użytkownika</button>
         }
-         <br />
+      <Divider></Divider>
 
         <Table DataSource="data" OnChange="OnChange" TItem="Data">
             <PropertyColumn Hidden Property="c=>c.Id"
@@ -116,16 +116,14 @@ else
                 <div class="mb-3">
                     @if (pracownik != null)
                     {
-                        <PanelAdmin pracownik="pracownik" />
+                        <PanelAdmin pracownik="pracownik" OnButtonClicked="CloseModal" />
+
                     }
                     @if (nowyPracownik != null)
                     {
-                        <PanelAdmin pracownik="nowyPracownik" />
+                        <PanelAdmin pracownik="nowyPracownik" OnButtonClicked="CloseModal" />
                     }
                 </div>
-  @*           </div>
-            <div class="modal-footer"> *@
-                <button type="button" class="btn btn-secondary" style="width:100%" data-dismiss="modal" @onclick="CloseModal">Zamknij</button>
             </div>
         </div>
     </div>
@@ -167,50 +165,7 @@ else
             AppState.SomeData = "";
         }
 
-        listaDzialow = await Http.GetFromJsonAsync<List<DzialPracownikaViewModel>>("/api/DzialIPracownicy");
-
-        if (listaDzialow != null)
-        {
-            if (listaDzialow.Count == 0)
-            {
-                strPierwszeLogowanie = "Witaj w systemie produkcyjnym kliknij w przycisk <Pierwsze uruchomienia programu>. Automatycznie zostanie utworzony użytkownik: Admin oraz hasło: sysdba. Po ponownym zalogowaniu wejdź do panelu użytkownicy!!!";
-                return;
-            }
-            else
-            {
-                strPierwszeLogowanie = "";
-            }
-
-            data = new Data[listaDzialow.Count];
-
-            for (int i = 0; i < listaDzialow.Count; i++)
-            {
-                var item = listaDzialow[i];
-
-                string dzial = "NaN";
-                string imie = "NaN";
-                string nazwisko = "NaN";
-
-                if (item.NazwaDzialu != null) dzial = item.NazwaDzialu;
-                if (item.Imie != null) imie = item.Imie;
-                if (item.Nazwisko != null) nazwisko = item.Nazwisko;
-
-
-                Data dataItem = new Data(
-                    id: item.Id,
-                    dzial: dzial,
-                    imie: imie,
-                    nazwisko: nazwisko,
-                    datezapisu: item.Datautowrzenia,
-                    czy_pracuje: item.Nieaktywny
-                );
-
-                data[i] = dataItem;
-
-                if (rowIdDzialu == "") rowIdDzialu = item.RowIdDzialu;
-
-            }
-        }
+        await loadData();
 
         user = await LocalStorage.GetStringAsync("user");
 
@@ -236,7 +191,7 @@ else
             if (response.IsSuccessStatusCode)
             {
                 // Usunięcie rekordu z listy po pomyślnym usunięciu z serwera
-                listaDzialow = await Http.GetFromJsonAsync<List<DzialPracownikaViewModel>>("/api/DzialIPracownicy");
+                await loadData();
                 Console.WriteLine("Rekord został pomyślnie usunięty.");
             }
             else
@@ -288,7 +243,7 @@ else
 
                         displayNewUser = true;
                         showNewUser = true;
-                        
+
                     }
                 }
                 else
@@ -303,6 +258,53 @@ else
         }
     }
 
+    private async Task loadData()
+    {
+        listaDzialow = await Http.GetFromJsonAsync<List<DzialPracownikaViewModel>>("/api/DzialIPracownicy");
+
+        if (listaDzialow != null)
+        {
+            if (listaDzialow.Count == 0)
+            {
+                strPierwszeLogowanie = "Witaj w systemie produkcyjnym kliknij w przycisk <Pierwsze uruchomienia programu>. Automatycznie zostanie utworzony użytkownik: Admin oraz hasło: sysdba. Po ponownym zalogowaniu wejdź do panelu użytkownicy!!!";
+                return;
+            }
+            else
+            {
+                strPierwszeLogowanie = "";
+            }
+
+            data = new Data[listaDzialow.Count];
+
+            for (int i = 0; i < listaDzialow.Count; i++)
+            {
+                var item = listaDzialow[i];
+
+                string dzial = "NaN";
+                string imie = "NaN";
+                string nazwisko = "NaN";
+
+                if (item.NazwaDzialu != null) dzial = item.NazwaDzialu;
+                if (item.Imie != null) imie = item.Imie;
+                if (item.Nazwisko != null) nazwisko = item.Nazwisko;
+
+
+                Data dataItem = new Data(
+                    id: item.Id,
+                    dzial: dzial,
+                    imie: imie,
+                    nazwisko: nazwisko,
+                    datezapisu: item.Datautowrzenia,
+                    czy_pracuje: item.Nieaktywny
+                );
+
+                data[i] = dataItem;
+
+                if (rowIdDzialu == "") rowIdDzialu = item.RowIdDzialu;
+
+            }
+        }
+    }
 
     void OnChange(QueryModel<Data> query)
     {
@@ -351,7 +353,7 @@ else
     {
         displayNewUser = false;
         showNewUser = false;
-        listaDzialow = await Http.GetFromJsonAsync<List<DzialPracownikaViewModel>>("/api/DzialIPracownicy");
+        await loadData();
     }
 
     private async Task Zapisz()

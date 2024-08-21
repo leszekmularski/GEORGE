@@ -64,6 +64,9 @@ else
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
+                <h5>@strErr</h5>
+            </div>
+                <div class="modal-body">
                 <AntDesign.Form Model="@karty" Layout="FormLayout.Vertical" OnFinish="@HandleSubmit">
                     <AntDesign.FormItem Label="Rodzaj karty">
                         <AntDesign.Input @bind-Value="karty.NumerRodzajuKart" MaxLength="3" Required Placeholder="Podaj nazwę grupy np. KKD (Karata Kontroli Drzwi)" />
@@ -108,6 +111,8 @@ else
     private string classShow = "";
 
     private long cid = -1;
+
+    private string strErr = "";
 
     private RodzajeKartInstrukcyjnych karty = new RodzajeKartInstrukcyjnych();
 
@@ -212,8 +217,10 @@ else
 
             if (response.IsSuccessStatusCode)
             {
+                rodzajeKartInstrukcyjnych = await Http.GetFromJsonAsync<List<RodzajeKartInstrukcyjnych>>("api/RodzajeKartInstrukcyjnych");
                 // Usunięcie rekordu z listy po pomyślnym usunięciu z serwera
-                rodzajeKartInstrukcyjnych = rodzajeKartInstrukcyjnych.Where(r => r.Id != id).ToList();
+                if (rodzajeKartInstrukcyjnych != null)
+                    rodzajeKartInstrukcyjnych = rodzajeKartInstrukcyjnych.Where(r => r.Id != id).ToList();
                 Console.WriteLine("Rekord został pomyślnie usunięty.");
             }
             else
@@ -234,6 +241,8 @@ else
         if (rodzajeKartInstrukcyjnych == null) return;
 
         originalrodzajeKartInstrukcyjnych = rodzajeKartInstrukcyjnych.DeepCopyList();
+
+        strErr = "Edytuj rodzaj kart";
 
         // Logika edycji
         if (_visible)
@@ -267,10 +276,30 @@ else
 
     public async Task HandleAddNew()
     {
+        // Sprawdź unikalność NumerRodzajuKart
+        var responsedbl = rodzajeKartInstrukcyjnych.Where(e => e.NumerRodzajuKart == karty.NumerRodzajuKart.ToUpper());
+
+        if (responsedbl != null && responsedbl.Count() > 0)
+        {
+            // Wyświetl komunikat o błędzie, że NumerRodzajuKart nie jest unikalny
+            Console.WriteLine("Numer Rodzaju Kart musi być unikalny.");
+            strErr = "Numer Rodzaju Kart musi być unikalny.";
+            blokujDwuKlik = false;
+            return;
+        }
+
+        if (string.IsNullOrEmpty(karty.OpisRodzajuKart))
+        {
+            strErr = "Opis Rodzaju Kart musi być unikalny.";
+            return;
+        }
+
         await Task.Delay(1);
 
         _visible = true;
-        // await HandleSubmit();
+        await HandleSubmit();
+
+        rodzajeKartInstrukcyjnych = await Http.GetFromJsonAsync<List<RodzajeKartInstrukcyjnych>>("api/RodzajeKartInstrukcyjnych");
     }
 
     public async Task HandleCancel()
@@ -288,8 +317,15 @@ else
 
     public async Task ShowDialogAddNew()
     {
+
+        blokujDwuKlik = false;
+
+        strErr = "Dodaj nowy rodzaj kart";
+
         karty = new RodzajeKartInstrukcyjnych();
         cid = -1;
+
+        karty.KtoZapisal = user;
 
         display = "block";
         await Task.Delay(50);

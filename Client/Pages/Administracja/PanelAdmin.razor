@@ -114,6 +114,9 @@ else
     [Parameter]
     public Pracownicy? pracownik { get; set; }
 
+    [Parameter]
+    public EventCallback OnButtonClicked { get; set; }
+
     [Inject] private AppState AppState { get; set; } = default!;
 
     public class Item
@@ -263,7 +266,7 @@ else
                     nowyPracownik = pracownicy.FirstOrDefault(x => x.UzytkownikSQL.ToLower() == user.ToLower());
                 }
 
-                NavigationManager.NavigateTo("/paneladminall");
+                //NavigationManager.NavigateTo("/paneladminall");
             }
             else
             {
@@ -274,6 +277,11 @@ else
         {
             await UpdatePracownik(nowyPracownik);
 
+        }
+
+        if (OnButtonClicked.HasDelegate)
+        {
+            await OnButtonClicked.InvokeAsync();
         }
 
     }
