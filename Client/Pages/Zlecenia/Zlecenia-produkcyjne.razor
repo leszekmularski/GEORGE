@@ -136,15 +136,12 @@ else
 
             <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
             <ActionColumn Title="Akcja" Width="100" Fixed="right">
-                @if (boolAdmin || boolZmian)
-                {
                     <Popconfirm Title="Czy chcesz edytować pozycję?"
                                 OnConfirm="()=> editRow(context.Id)"
                                 OkText="Tak"
                                 CancelText="Nie">
                         <a>Edytuj</a>
                     </Popconfirm>
-                }
                 @if (boolAdmin || boolUsuniecia)
                 {
                     <Popconfirm Title="Czy chcesz usunąć pozycję?"
@@ -371,7 +368,7 @@ else
 
                     <AntDesign.Row>
                         <AntDesign.Col Span="24" class="d-flex justify-content-end">
-                            @if (!blokuDwuKlik)
+                            @if (!blokuDwuKlik && (boolAdmin || boolZmian))
                             {
                                 <AntDesign.Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</AntDesign.Button>
                             }
@@ -424,12 +421,15 @@ else
                                 {
                                     <Spin Spinning=@czekajNaUsuniecie>
                                         <a href="uploads_zlecenia/@item.NazwaPliku" download @onclick="@( () => DownloadFile(item.NazwaPliku) )">Pobierz plik  &nbsp &nbsp</a>
-                                        <Popconfirm Title="Czy chcesz usunąć plik?"
-                                                    OnConfirm="()=> deleteFile(item.Id, item.NazwaPliku, item.RowIdZleceniaProdukcyjne)"
-                                                    OkText="Tak"
-                                                    CancelText="Nie">
-                                            <a style="color:red">Usuń plik</a>
-                                        </Popconfirm>
+                                        @if (boolAdmin || boolUsuniecia)
+                                        {
+                                            <Popconfirm Title="Czy chcesz usunąć plik?"
+                                                        OnConfirm="()=> deleteFile(item.Id, item.NazwaPliku, item.RowIdZleceniaProdukcyjne)"
+                                                        OkText="Tak"
+                                                        CancelText="Nie">
+                                                <a style="color:red">Usuń plik</a>
+                                            </Popconfirm>
+                                        }
                                     </Spin>
                                 }
                             }

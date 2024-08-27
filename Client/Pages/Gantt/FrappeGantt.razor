@@ -117,9 +117,9 @@
                             {
                                 <Button class="btn-detail" OnClick="() => AddNewZlec()">Dodaj zlecenie do planu</Button>
                             }
+                            <Button class="btn-detail" OnClick="() => OpenDetailModal()">Idź do zlecenia</Button>
                             @if (boolUsuniecia || boolAdmin)
                             {
-                                <Button class="btn-detail" OnClick="() => OpenDetailModal()">Idź do zlecenia</Button>
                                 <Button class="btn-refresh" Icon="@IconType.Outline.Delete" OnClick="@(async ()=> { await DelTask(ConfirmButtons.YesNo); })"></Button>
                                 <Button class="btn-refresh" Icon="@IconType.Outline.Delete" OnClick="@(async ()=> { await DelTaskALL(ConfirmButtons.YesNo); })">Wszędzie</Button>
                             }

@@ -15,9 +15,12 @@
 }
 else
 {
-     <Button Type="primary" OnClick="@(ShowDialogAddNew)">
-        Dodaj nową linię produkcyjną
-    </Button>
+    @if (boolAdmin || boolDodaj)
+    {
+        <Button Type="primary" OnClick="@(ShowDialogAddNew)">
+            Dodaj nową linię produkcyjną
+        </Button>
+    }
     <Divider></Divider>
 
     <ul>
@@ -401,6 +404,7 @@ else
     private bool boolZmian = false;
     private bool boolUsuniecia = false;
     private bool boolAdmin = false;
+    private bool boolDodaj = false;
     private string RowIdPracownika = "";
     private string? user;
     private List<UprawnieniaPracownikaViewModel>? uprawnienia;
@@ -449,6 +453,7 @@ else
                         boolZmian = szuk.Zmiana;
                         boolUsuniecia = szuk.Usuniecie;
                         boolAdmin = szuk.Administrator;
+                        boolDodaj = szuk.Zapis;
                         RowIdPracownika = szuk.RowId;
                     }
                 }
