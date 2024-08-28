@@ -14,6 +14,7 @@
 @using System.Net;
 @using System.Text.Json;
 @inject IJSRuntime JSRuntime
+@inject INotificationService _notice
 
 <style>
     .custom-link {
@@ -868,6 +869,13 @@ else
                     else
                     {
                         Console.WriteLine($"Nie udało się pobrać pliku. {response.Content.Headers}");
+
+                        _ = _notice.Error(new()
+                            {
+                                Message = "Nie udało się pobrać pliku.",
+                                Description = response.Content.Headers.ToString(),
+                                Placement = NotificationPlacement.BottomLeft
+                            });
                     }
                 }
             }
@@ -875,6 +883,12 @@ else
         catch (Exception ex)
         {
             Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message} / {ex.StackTrace}");
+            _ = _notice.Error(new()
+                {
+                    Message = ex.Message,
+                    Description = ex.StackTrace,
+                    Placement = NotificationPlacement.BottomLeft
+                });
         }
     }
 
