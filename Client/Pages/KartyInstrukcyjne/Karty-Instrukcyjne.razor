@@ -80,6 +80,12 @@ else
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
+                <h5 class="modal-title">Karty instrukcyjne dodaj / zmień</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="HandleCancel">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
 
                 <Form Model="@karty" Layout="FormLayout.Vertical" OnFinish="@HandleSubmit" ValidateMode=@FormValidateMode.Complex>
 
