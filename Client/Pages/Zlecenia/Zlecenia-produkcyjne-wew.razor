@@ -50,7 +50,7 @@
 
     /* Nowe klasy dla PDF i DXF */
     .pdf-class {
-        background-color: lightcoral; /* Kolor tła dla plików PDF */
+        background-color: lightyellow; /* Kolor tła dla plików PDF */
     }
 
     .dxf-class {
@@ -402,7 +402,7 @@ else
             </div>
             <div class="modal-body">
                 <Table TItem="PlikiZlecenProdukcyjnych" DataSource="@pliki" ScrollX="1350" PageSize="3" Size="TableSize.Small"
-                       RowClassName="@(x => x.Data.TypPliku == "/PDF" ? "pdf-class" : x.Data.TypPliku == "/DXF" ? "dxf-class" : "")">
+                       RowClassName="@(x => x.Data.TypPliku == "/pdf" ? "pdf-class" : x.Data.TypPliku == "/dxf" || x.Data.TypPliku == "/dwg" ? "dxf-class" : "")">
                     <Column Title="ID" @bind-Field="@context.Id" Hidden />
                     <Column Title="Nazwa pliku" @bind-Field="@context.NazwaPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Title="Oryginalna nazwa pliku" @bind-Field="@context.OryginalnaNazwaPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
