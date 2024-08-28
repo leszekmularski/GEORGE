@@ -35,7 +35,7 @@
                     <td>
                         <input type="number" class="form-control" @bind="zlecenie.CzasNaZlecenie" />
                     </td>
-                    @if(boolAdmin || boolZmian)
+                    @if (boolAdmin || boolZmian || boolNowy)
                     {
                         <Button Icon="@IconType.Outline.Save" Style="width:55px" @onclick="() => SaveChanges(zlecenie)"></Button>
                     }
@@ -161,6 +161,7 @@
     private bool boolZmian = false;
     private bool boolUsuniecia = false;
     private bool boolAdmin = false;
+    private bool boolNowy = false;
     private string RowIdPracownika = "";
     private string? user;
     private List<UprawnieniaPracownikaViewModel>? uprawnienia;
@@ -174,8 +175,8 @@
             //NavigationManager.NavigateTo($"", true);
             return;
         }
-        
-        string nazwaTabeli = "LinieProdukcyjne";
+
+        string nazwaTabeli = "ZleceniaCzasNaLinieProd";
 
         Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");
 
@@ -209,7 +210,10 @@
                         boolZmian = szuk.Zmiana;
                         boolUsuniecia = szuk.Usuniecie;
                         boolAdmin = szuk.Administrator;
+                        boolNowy = szuk.Zapis;
                         RowIdPracownika = szuk.RowId;
+
+                        Console.WriteLine($"{boolAdmin} || {boolZmian} || {boolNowy}");
                     }
                 }
             }

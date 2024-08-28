@@ -45,7 +45,19 @@ else
 app.UseHttpsRedirection();
 
 app.UseBlazorFrameworkFiles();
-app.UseStaticFiles();
+//app.UseStaticFiles();
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    ContentTypeProvider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider
+    {
+        Mappings =
+        {
+            [".dwg"] = "application/acad"
+        }
+    }
+});
+
 app.UseAuthorization();
 
 app.UseRouting();

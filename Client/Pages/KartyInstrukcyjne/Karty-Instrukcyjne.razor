@@ -572,7 +572,7 @@ else
                     }
                     else
                     {
-                        Console.WriteLine("Nie udało się pobrać pliku.");
+                        Console.WriteLine($"Nie udało się pobrać pliku. {response.Content.Headers}");
                     }
                 }
             }
@@ -582,7 +582,6 @@ else
             Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message} / {ex.StackTrace}");
         }
     }
-
 
 
     private bool boolOdczyt = false;

@@ -75,13 +75,17 @@
             document.body.removeChild(a);
         }
 
-            window.BlazorDownloadFile = function (fileName, byteArray) {
-            var blob = new Blob([byteArray], {type: "application/octet-stream" });
+        window.BlazorDownloadFile = function (fileName, byteArray) {
+            console.log("BlazorDownloadFile wywołana dla pliku: " + fileName);
+            var blob = new Blob([byteArray], { type: "application/octet-stream" });
             var link = document.createElement('a');
             link.href = window.URL.createObjectURL(blob);
             link.download = fileName;
             link.click();
+            window.URL.revokeObjectURL(link.href); // Clean up
+            console.log("Plik pobrany: " + fileName);
         }
+
     </script>
 
 </body>

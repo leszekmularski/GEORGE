@@ -191,8 +191,8 @@
             @if (zestawienie != null)
             {
                 <div>
-                    <Button Type="@ButtonType.Primary" Style="width:49%" OnClick="SaveAll">Zapisz wyszystkie</Button>
-                    <Button Type="@ButtonType.Primary" Style="width:49%" OnClick="SaveAllGrupa">Zapisz wyszystkie oraz grupuj</Button>
+                    <Button Type="@ButtonType.Primary" Style="width:49%" Disabled="@isNotDisabled" OnClick="SaveAll">Zapisz wyszystkie</Button>
+                    <Button Type="@ButtonType.Primary" Style="width:49%" Disabled="@isNotDisabled" OnClick="SaveAllGrupa">Zapisz wyszystkie oraz grupuj</Button>
                 </div>
 
                 <div>
@@ -480,7 +480,7 @@
                     DataZamowienia = DateTime.Now,
                     DataRealizacji = DateTime.Now.AddDays(14),
                     DataZapisu = DateTime.Now,
-                    KtoZapisal = "Admin",
+                    KtoZapisal = user,
                 };
 
             kantowki.Add(kantowka);
@@ -540,7 +540,7 @@
                     DataZamowienia = DateTime.Now,
                     DataRealizacji = DateTime.Now.AddDays(14),
                     DataZapisu = DateTime.Now,
-                    KtoZapisal = "Admin"
+                    KtoZapisal = user
                 })
             .ToList();
 
@@ -764,6 +764,7 @@
     private bool boolAdmin = false;
     private string RowIdPracownika = "";
     private string? user;
+    private bool isNotDisabled => !boolZmian || !boolAdmin;
     private List<UprawnieniaPracownikaViewModel>? uprawnienia;
 
     private async Task Laduj_Uprawnienia()
@@ -773,6 +774,7 @@
         if (string.IsNullOrEmpty(user))
         {
             //NavigationManager.NavigateTo($"", true);
+            user = "NaN";
             return;
         }
         

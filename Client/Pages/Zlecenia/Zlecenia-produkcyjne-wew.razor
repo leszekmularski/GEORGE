@@ -414,13 +414,15 @@ else
                                         </Tooltip>
                                     </Upload>
                                 }
-                                <Input Placeholder="Podaj uwagę." @bind-Value="@context.Uwagi" MaxLength="45" OnBlur="@( () => ZmienUwage(context.Id, context.Uwagi))" />
+                                <Input Placeholder="Podaj uwagę." @bind-Value="@context.Uwagi" MaxLength="55" Disabled="@isNotDisabled" OnBlur="@( () => ZmienUwage(context.Id, context.Uwagi))" />
 
                                 var item = context as PlikiZlecenProdukcyjnych;
                                 if (!string.IsNullOrEmpty(item.NazwaPliku))
                                 {
+                                     <a href="uploads_zlecenia/@item.NazwaPliku" download @onclick="@( () => DownloadFile(item.NazwaPliku) )">Pobierz plik  &nbsp &nbsp</a>
+
                                     <Spin Spinning=@czekajNaUsuniecie>
-                                        <a href="uploads_zlecenia/@item.NazwaPliku" download @onclick="@( () => DownloadFile(item.NazwaPliku) )">Pobierz plik  &nbsp &nbsp</a>
+
                                         @if (boolAdmin || boolUsuniecia)
                                         {
                                             <Popconfirm Title="Czy chcesz usunąć plik?"
@@ -832,7 +834,7 @@ else
         {
             // Konstrukcja pełnego URL
             var baseUrl = NavigationManager.BaseUri; // Pobierz podstawowy adres URL aplikacji
-            var fileUrl = $"{baseUrl}uploads_zlecenia/{fileName}";
+            var fileUrl = $"{baseUrl}uploads/{fileName}";
 
             if (!Uri.TryCreate(fileUrl, UriKind.Absolute, out var uri))
             {
@@ -865,7 +867,7 @@ else
                     }
                     else
                     {
-                        Console.WriteLine("Nie udało się pobrać pliku.");
+                        Console.WriteLine($"Nie udało się pobrać pliku. {response.Content.Headers}");
                     }
                 }
             }
@@ -875,7 +877,6 @@ else
             Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message} / {ex.StackTrace}");
         }
     }
-
 
 
     private async Task deleteFile(long id, string fileUrl, string roIdZlec)
@@ -1340,6 +1341,7 @@ else
     private bool boolNowy = false;
     private string RowIdPracownika = "";
     private string? user;
+    private bool isNotDisabled => !boolZmian;
     private List<UprawnieniaPracownikaViewModel>? uprawnienia;
 
     private async Task Laduj_Uprawnienia()
