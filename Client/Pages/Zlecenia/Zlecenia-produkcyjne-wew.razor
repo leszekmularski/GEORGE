@@ -37,7 +37,8 @@
     }
 
         .zlealizowano:hover, .zlealizowano:hover > td {
-            background-color: forestgreen !important;
+            background-color: lime !important;
+            font-size: 1.1em;
         }
 
     .zlecenie, .zlecenie > td {
@@ -45,7 +46,17 @@
     }
 
         .zlecenie:hover, .zlecenie:hover > td {
-            background-color: lightblue !important;
+            background-color: lime !important;
+            font-size: 1.1em;
+        }
+
+    .zlecenieNaN, .zlecenieNaN > td {
+        background-color: white !important;
+    }
+
+        .zlecenieNaN:hover, .zlecenieNaN:hover > td {
+            background-color: lime !important;
+            font-size: 1.1em;
         }
 
     /* Nowe klasy dla PDF i DXF */
@@ -56,6 +67,17 @@
     .dxf-class {
         background-color: lightgreen; /* Kolor tła dla plików DXF */
     }
+
+    .pdf-class:hover, .pdf-class:hover > td {
+        background-color: lime !important;
+        font-size: 1.1em;
+    }
+
+    .dxf-class:hover, .dxf-class:hover > td {
+        background-color: lime !important;
+        font-size: 1.1em;
+    }
+
 </style>
 
 
@@ -112,8 +134,8 @@ else
     <div class="highlighted-background">
 
             <Table TItem="ZleceniaProdukcyjneWew" DataSource="@zleceniaProdukcyjneWew"
-                   RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "" )"
-                   ScrollX="1950" PageSize="6" Size="TableSize.Small">
+               RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "zlecenieNaN" )"
+               ScrollX="1950" PageSize="6" Size="TableSize.Small" >
                 <ActionColumn Title="Materiały">
                     <a @onclick="() => DodajKantowke(context)">Kantówka</a>
                     <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">Czasy</a>
@@ -402,7 +424,7 @@ else
             </div>
             <div class="modal-body">
                 <Table TItem="PlikiZlecenProdukcyjnych" DataSource="@pliki" ScrollX="1350" PageSize="3" Size="TableSize.Small"
-                       RowClassName="@(x => x.Data.TypPliku == "/pdf" ? "pdf-class" : x.Data.TypPliku == "/dxf" || x.Data.TypPliku == "/dwg" ? "dxf-class" : "")">
+                       RowClassName="@(x => x.Data.TypPliku.ToLower() == "/pdf" ? "pdf-class" : x.Data.TypPliku.ToLower() == "/dxf" || x.Data.TypPliku.ToLower() == "/dwg" ? "dxf-class" : "zlecenieNaN")">
                     <Column Title="ID" @bind-Field="@context.Id" Hidden />
                     <Column Title="Nazwa pliku" @bind-Field="@context.NazwaPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Title="Oryginalna nazwa pliku" @bind-Field="@context.OryginalnaNazwaPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
