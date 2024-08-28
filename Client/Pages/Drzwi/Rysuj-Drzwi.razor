@@ -101,7 +101,7 @@
                 <MenuItem Key="551">
                     <div>
                        < br/>
-                      <RadioGroup Style="display: block;height:30px;line-height:30px" @bind-Value="ratioKierOtw" ButtonStyle="@RadioButtonStyle.Solid">
+                      <RadioGroup @onChange="@UpdateShapes()" Style="display: block;height:30px;line-height:30px" @bind-Value="ratioKierOtw" ButtonStyle="@RadioButtonStyle.Solid">
                         <Radio RadioButton Value="@("N")">X</Radio>
                         <Radio RadioButton Value="@("L")">LEWE</Radio>
                         <Radio RadioButton Value="@("R")">PRAWE</Radio>
@@ -129,8 +129,6 @@
                         <input id="scale" type="number" @bind="startY" step="10" min="0" max="500" /></MenuItem>
                 </SubMenu>
             </SubMenu>
-
-
 
             <SubMenu Key="sub6" TitleTemplate=@sub4Title>
                 <MenuItem Key="61">

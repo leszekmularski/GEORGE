@@ -9,6 +9,7 @@
 @using AntDesign
 @using System.Globalization
 @inject IJSRuntime JSRuntime
+@inject INotificationService _notice
 
 <PageTitle>Program do wspomagania produkcji karty instrukcyjne</PageTitle>
 
@@ -573,6 +574,13 @@ else
                     else
                     {
                         Console.WriteLine($"Nie udało się pobrać pliku. {response.Content.Headers}");
+
+                        _ = _notice.Error(new()
+                            {
+                                Message = "Nie udało się pobrać pliku.",
+                                Description = response.Content.Headers.ToString(),
+                                Placement = NotificationPlacement.BottomLeft
+                            });
                     }
                 }
             }
@@ -580,6 +588,13 @@ else
         catch (Exception ex)
         {
             Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message} / {ex.StackTrace}");
+
+            _ = _notice.Error(new()
+                {
+                    Message = ex.Message,
+                    Description = ex.StackTrace,
+                    Placement = NotificationPlacement.BottomLeft
+                });
         }
     }
 
