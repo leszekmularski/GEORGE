@@ -1034,6 +1034,9 @@ else
 
         blokuDwuKlik = true;
 
+        if (zlecenie.ZlecZrealizowane) zlecenie.TypZamowienia = "Zakończono";
+        if (zlecenie.TypZamowienia == "Zakończono") zlecenie.ZlecZrealizowane = true;
+
         HttpResponseMessage response;
 
         _visible = false;
