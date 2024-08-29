@@ -67,6 +67,20 @@ namespace GEORGE.Server
             await SaveChangesAsync();
             return true;
         }
+        public async Task<bool> ZmienNazwePliku(long id, string nazwaPliku)
+        {
+            var plik = await PlikiZlecenProdukcyjnych.FindAsync(id);
+            if (plik == null)
+            {
+                return false;
+            }
+
+            plik.OryginalnaNazwaPliku = nazwaPliku;
+            plik.DataZapisu = DateTime.Now;   
+            plik.OstatniaZmiana = "Zmiana. Uwagi: " + DateTime.Now.ToLongDateString();
+            await SaveChangesAsync();
+            return true;
+        }
         public async Task<bool> ZmienUwage(long id, string uwaga)
         {
             var plik = await PlikiZlecenProdukcyjnych.FindAsync(id);

@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using GEORGE.Server;
 using GEORGE.Shared.Models;
 using System.Net;
+using static iText.StyledXmlParser.Jsoup.Select.Evaluator;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -79,8 +80,8 @@ public class FileUploadZlecController : ControllerBase
         return Ok(response);
     }
 
-    [HttpPost("upload/{rowIdZlecenia}/{orygFileName}/{staraNazwaPliku}")]
-    public async Task<IActionResult> ReplaceUploadFile(string rowIdZlecenia, string orygFileName, string staraNazwaPliku, IFormFile file)
+    [HttpPost("upload/{rowIdZlecenia}/{orygFileName}/{staraNazwaPliku}/{id}")]
+    public async Task<IActionResult> ReplaceUploadFile(string rowIdZlecenia, string orygFileName, string staraNazwaPliku, long id, IFormFile file)
     {
         if (file == null || file.Length == 0)
             return BadRequest("Pliku nie wysłano");
@@ -122,6 +123,8 @@ public class FileUploadZlecController : ControllerBase
             thumbUrl = null // Optional: Add logic to generate thumbnail URL if needed
         };
 
+        await _context.ZmienNazwePliku(id, orygFileName);
+
         return Ok(response);
     }
 
@@ -137,6 +140,7 @@ public class FileUploadZlecController : ControllerBase
 
         return Ok(files);
     }
+
 
     [HttpPost("zmien-uwage")]
     public async Task<IActionResult> ZmienUwage(long id, [FromBody] string uwaga)

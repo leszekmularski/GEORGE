@@ -45,10 +45,10 @@
         background-color: lightblue !important;
     }
 
-        .zlecenie:hover, .zlecenie:hover > td {
-            background-color: lime !important;
-            font-size: 1.1em;
-        }
+    .zlecenie:hover, .zlecenie:hover > td {
+        background-color: lime !important;
+        font-size: 1.1em;
+    }
 
     .zlecenieNaN, .zlecenieNaN > td {
         background-color: white !important;
@@ -439,7 +439,7 @@ else
                                     <Checkbox Placeholder="Widoczny dla wszystkich." @bind-Value="@context.WidocznyDlaWszystkich" OnChange="@( () => ZmienWidocznosc(context.Id, context.WidocznyDlaWszystkich))" />
 
                                     var uniqueId = $"{context.Id}";
-                                    <InputFile id="@uniqueId" OnChange="@(e => ReplaceUploadFiles(e, context.NazwaPliku))" hidden multiple />
+                                    <InputFile id="@uniqueId" OnChange="@(e => ReplaceUploadFiles(e, context.NazwaPliku, context.Id))" hidden multiple />
                                     <Upload Name="files" FileList="fileList">
                                         <Tooltip Placement="@Placement.Right" Title="Zastąp istniejący plik innym">
                                             <label class="ant-btn" for="@uniqueId">
@@ -448,7 +448,7 @@ else
                                         </Tooltip>
                                     </Upload>
                                 }
-                                <Input Placeholder="Podaj uwagę." @bind-Value="@context.Uwagi" MaxLength="55" Disabled="@isNotDisabled" OnBlur="@( () => ZmienUwage(context.Id, context.Uwagi))" />
+                                <Input Placeholder="Podaj uwagę." @bind-Value="@context.Uwagi" MaxLength="55" ReadOnly="@isNotDisabled" OnBlur="@( () => ZmienUwage(context.Id, context.Uwagi))" />
 
                                 var item = context as PlikiZlecenProdukcyjnych;
                                 if (!string.IsNullOrEmpty(item.NazwaPliku))
@@ -626,7 +626,7 @@ else
 
     }
 
-    private async Task ReplaceUploadFiles(InputFileChangeEventArgs e, string idFile)
+    private async Task ReplaceUploadFiles(InputFileChangeEventArgs e, string idFile, long id)
     {
         foreach (var file in e.GetMultipleFiles())
         {
@@ -643,15 +643,22 @@ else
                 return;
             }
 
-            Console.WriteLine($"api/FileUploadZlec/upload/{zlecenie.RowId}/{tmpFileName}/{idFile}");
+            Console.WriteLine($"api/FileUploadZlec/upload/{zlecenie.RowId}/{tmpFileName}/{idFile}/{id}");
 
             content.Add(new StreamContent(file.OpenReadStream(Int64.MaxValue)), "file", file.Name);
 
-            var response = await Http.PostAsync($"api/FileUploadZlec/upload/{zlecenie.RowId}/{tmpFileName}/{idFile}", content);
+            var response = await Http.PostAsync($"api/FileUploadZlec/upload/{zlecenie.RowId}/{tmpFileName}/{idFile}/{id}", content);
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<ResponseModel>();
                 Console.WriteLine($"File uploaded successfully. URL: {result?.url}");
+
+                _ = _notice.Success(new()
+                    {
+                        Message = "Plik zastąpiłem.",
+                        Description = $"{result?.url}",
+                        Placement = NotificationPlacement.BottomLeft
+                    });
                 //Dodaj akjcę zapisu do bazy danych
                 //zleceniaProdukcyjne.LinkDoKartyNaSerwerze = result?.url;
             }
@@ -659,6 +666,13 @@ else
             {
                 Console.WriteLine("File upload failed.");
                 bladZapisuPliku = $"Błąd przy zapisie pliku na serwerze. {response.Content.ReadAsStringAsync().Result}";
+
+                _ = _notice.Error(new()
+                    {
+                        Message = "Błąd przy zapisie pliku na serwerze.",
+                        Description = $"{response.Content.ReadAsStringAsync().Result}",
+                        Placement = NotificationPlacement.BottomLeft
+                    });
 
             }
         }

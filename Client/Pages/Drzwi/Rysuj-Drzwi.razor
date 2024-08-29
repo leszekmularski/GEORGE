@@ -48,6 +48,10 @@
                         <label for="wysPiora">Wysokość Pióra:</label>
                         <input id="wysPiora" type="number" @bind="wysPiora" min="20" max="200" />
                     </MenuItem>
+                    <MenuItem Key="4.0.0">
+                        <label for="wysPiora">Grubość Pióra:</label>
+                        <input id="gruboscPiora" type="number" @bind="gruboscPiora" min="2" max="100" />
+                    </MenuItem>
                     <MenuItem Key="4.0">
                         <label for="szerOsc">Szerokość:</label>
                         <input id="szerOsc" type="number" @bind="szerOsc" min="20" max="200" />
@@ -190,6 +194,8 @@
 
     private double wysPiora = 80;
 
+    private double gruboscPiora = 20;
+
     private double startX = 200;
     private double startY = 200;
 
@@ -330,7 +336,7 @@
             // Zainicjalizuj listę kształtów
             shapes = new List<Shape>
             {
-                new COscZPiorem(startX, startY, glebOsc, szerOsc, wysPiora, 20, szerDzwi, wysDzwi, wysProgu, scale, laczOsc)
+                new COscZPiorem(startX, startY, glebOsc, szerOsc, wysPiora, gruboscPiora, szerDzwi, wysDzwi, wysProgu, scale, laczOsc)
             };
 
             await DrawShapes();
@@ -369,7 +375,7 @@
 
             shapes = new List<Shape>
             {
-                new COscZPiorem(startX, startY, glebOsc, szerOsc, wysPiora, 20, szerDzwi, wysDzwi, wysProgu, scale, laczOsc)
+                new COscZPiorem(startX, startY, glebOsc, szerOsc, wysPiora, gruboscPiora, szerDzwi, wysDzwi, wysProgu, scale, laczOsc)
             };
 
             await DrawShapesKPL();

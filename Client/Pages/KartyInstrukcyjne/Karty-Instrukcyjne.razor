@@ -11,6 +11,40 @@
 @inject IJSRuntime JSRuntime
 @inject INotificationService _notice
 
+<style>
+    .custom-link {
+        color: blue;
+    }
+
+    .karta1, .karta1 > td {
+        background-color: lightblue !important;
+    }
+
+    .karta1:hover, .karta1:hover > td {
+    background-color: lime !important;
+    font-size: 1.0em;
+    }
+
+    .karta2, .karta2 > td {
+        background-color: lightslategray !important;
+    }
+
+    .karta2:hover, .karta2:hover > td {
+        background-color: lime !important;
+        font-size: 1.0em;
+    }
+
+    .move-class {
+        background-color: lightblue; 
+    }
+
+    .move-class:hover, .dxf-class:hover > td {
+        background-color: white !important;
+        font-size: 1.0em;
+    }
+
+</style>
+
 <PageTitle>Program do wspomagania produkcji karty instrukcyjne</PageTitle>
 
 <h3>Karty Instrukcyjne</h3>
@@ -30,7 +64,8 @@
 else
 {
     <ul>
-        <Table TItem="KartyInstrukcyjne" DataSource="@kartyInstrukcyjne">
+        <Table TItem="KartyInstrukcyjne" DataSource="@kartyInstrukcyjne"
+               RowClassName="@(x => x.Data.NumerKarty.ToLower().Contains("KCB") ? "karta1" : x.Data.NumerKarty.ToLower().Contains("KMB") ? "karta2" : "move-class")">
             <Column Title="ID" @bind-Field="@context.Id" Hidden />
             <Column Title="Numer Karty" @bind-Field="@context.NumerKarty" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Opis Karty" @bind-Field="@context.OpisKarty" Sortable />
