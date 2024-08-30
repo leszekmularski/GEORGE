@@ -11,48 +11,97 @@
 @using System.Net;
 @inject IJSRuntime JSRuntime
 @inject Utilities.ILocalStorage LocalStorage
+@inject INotificationService _notice
 
 
-@* Przyjmujemy, że lista zleceń to `zleceniaCzasNaLinieProdList` *@
-<table class="table table-bordered">
-    <thead>
-        <tr>
-
-            <th>#Id - Linii</th>
-            <th>Linia Produkcyjna</th>
-            <th>Ilość jednostek produkcyjnych potrzenych do wyk. zlecenia na linii</th>
-            <th>Akcja</th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (linieProdukcyjneWithCzasViewModel != null)
-        {
-            @foreach (var zlecenie in linieProdukcyjneWithCzasViewModel)
-            {
+<Tabs Animated @bind-ActiveKey="@activeKey" OnChange="ShowData">
+    <TabPane Tab="Czasy na liniach" Key="1">
+        <table class="table table-bordered">
+            <thead>
                 <tr>
-                    <td>@zlecenie.IdLiniiProdukcyjnej</td>
-                    <td>@zlecenie.NazwaLiniiProdukcyjnej</td>
-                    <td>
-                        <input type="number" class="form-control" @bind="zlecenie.CzasNaZlecenie" />
-                    </td>
-                    @if (boolAdmin || boolZmian || boolNowy)
-                    {
-                        <Button Icon="@IconType.Outline.Save" Style="width:55px" @onclick="() => SaveChanges(zlecenie)"></Button>
-                    }
+
+                    <th>#Id - Linii</th>
+                    <th>Linia Produkcyjna</th>
+                    <th>Ilość jednostek produkcyjnych potrzenych do wyk. zlecenia na linii</th>
+                    <th>Akcja</th>
                 </tr>
-            }
-            @if (jakiBlad != "")
+            </thead>
+            <tbody>
+
+                @if (linieProdukcyjneWithCzasViewModel != null)
+                {
+                    @foreach (var zlecenie in linieProdukcyjneWithCzasViewModel)
+                    {
+                        <tr>
+                            <td>@zlecenie.IdLiniiProdukcyjnej</td>
+                            <td>@zlecenie.NazwaLiniiProdukcyjnej</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    @if (boolAdmin || boolZmian || boolNowy)
+                                    {
+                                        <input type="number" class="form-control" style="width:40%" @bind="zlecenie.CzasNaZlecenie" />
+                                        <button style="font-size:0.8em; width:60%; height:40px" @onclick="() => PasteStolcad(zlecenie)">Wklej czasy z <br /> STOLCAD [PLANOWANIE]</button>
+                                    }
+                                    else
+                                    {
+                                        <input type="number" class="form-control" style="width:100%" @bind="zlecenie.CzasNaZlecenie" />
+                                    }
+                                </div>
+                            </td>
+                            @if (boolAdmin || boolZmian || boolNowy)
+                            {
+                                <Button Icon="@IconType.Outline.Save" Style="width:55px" @onclick="() => SaveChanges(zlecenie)"></Button>
+                            }
+                        </tr>
+                    }
+                    @if (jakiBlad != "")
+                    {
+                    <td colspan="4">
+                        <Alert Type="@AlertType.Error"
+                               Message="Błąd!!"
+                               Description="@jakiBlad"
+                               ShowIcon="true" />
+                    </td>
+                    }
+                }
+
+            </tbody>
+        </table>
+    </TabPane>
+    <TabPane Tab="Dane do zlecenia" Key="2">
+        @if (wykazPozycjiDoZlecenia != null)
+        {
+            <Table DataSource="@wykazPozycjiDoZlecenia" PageSize="5" Size="TableSize.Small">
+                <PropertyColumn Property="c=>c.Nr" Title="Lp" />
+                <PropertyColumn Property="c=>c.System" />
+                <PropertyColumn Property="c=>c.Kolor" />
+                <PropertyColumn Property="c=>c.Szerokosc" Title="Szerokość" />
+                <PropertyColumn Property="c=>c.Wysokosc" Title="Wysokość" />
+                <PropertyColumn Property="c=>c.IloscOkien" Title="Ilość"/>
+                <PropertyColumn Property="c=>c.Ciezar1Sztuki" Title="Ciężar 1 sztuki"/>
+                <PropertyColumn Property="c=>c.JednostkiOkienDoPoz" Title="Jed. produkcyjne" />
+                <PropertyColumn Property="c=>c.Iloscskrzydel" Title="Ilość skrzydel" />
+            </Table>
+
+            @if (boolAdmin || boolUsuniecia)
             {
-                <td colspan="4">
-                    <Alert Type="@AlertType.Error"
-                           Message="Błąd!!"
-                           Description="@jakiBlad"
-                           ShowIcon="true" />
-                </td>
+                <Popconfirm Title="Czy chcesz usunąć dane do zlecenia?"
+                            OnConfirm="()=> DellAllData()"
+                            OkText="Tak"
+                            CancelText="Nie">
+                    <a style="color:red">Usuń wszystkie dane</a>
+                </Popconfirm>
             }
         }
-    </tbody>
-</table>
+        else
+        {
+            <h2>Czekaj na załadowanie danych...</h2>
+        }
+    </TabPane>
+</Tabs>
+
+
+
 @if (NowaStronaRazor)
 {
     <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
@@ -69,7 +118,11 @@
 
     private List<LinieProdukcyjneWithCzasViewModel>? linieProdukcyjneWithCzasViewModel;
 
+    private List<PozDoZlecen>? wykazPozycjiDoZlecenia;
+
     private string jakiBlad = "";
+
+    string activeKey { get; set; } = "1";
 
     protected override async Task OnInitializedAsync()
     {
@@ -91,7 +144,7 @@
             // Sprawdź URL API
             var url = $"api/ZleceniaCzasNaLinieProd/rowid/{RowIdZlecenia}/";
 
-            Console.WriteLine($"Fetching data from: {url}");
+            // Console.WriteLine($"Fetching data from: {url}");
 
             // Wywołaj API i przypisz wynik do zmiennej
             linieProdukcyjneWithCzasViewModel = await Http.GetFromJsonAsync<List<LinieProdukcyjneWithCzasViewModel>>(url);
@@ -119,6 +172,146 @@
             Console.WriteLine($"Error loading data: {ex.Message}");
         }
     }
+
+    public async Task ShowData()
+    {
+        if (activeKey != "2") return;
+
+        wykazPozycjiDoZlecenia = await Http.GetFromJsonAsync<List<PozDoZlecen>>($"api/PozWZleceniu/GetDaneDoZlecenia/{RowIdZlecenia}");
+
+        StateHasChanged();
+    }
+    private async Task DellAllData()
+    {
+        var deleteResponse = await Http.DeleteAsync($"api/PozWZleceniu/rowid/{RowIdZlecenia}");
+        if (!deleteResponse.IsSuccessStatusCode)
+        {
+            _ = _notice.Error(new()
+                {
+                    Message = "Błąd podczas usuwania",
+                    Description = $"Nie udało się usunąć istniejących danych dla RowIdZlecenia: {RowIdZlecenia}. Kod odpowiedzi: {deleteResponse.StatusCode}",
+                    Placement = NotificationPlacement.BottomLeft
+                });
+            return; // Opcjonalnie przerwij proces
+        }
+        else
+        {
+            _ = _notice.Success(new()
+                {
+                    Message = "W zleceniu",
+                    Description = $"Usunołem wszytkie pozycje!",
+                    Placement = NotificationPlacement.BottomLeft
+                });
+        }
+    }
+
+    private async Task PasteStolcad(LinieProdukcyjneWithCzasViewModel czaszlecenie)
+    {
+        try
+        {
+            // Pobranie danych ze schowka
+            var clipboardText = await JSRuntime.InvokeAsync<string>("navigator.clipboard.readText");
+
+            // Podział danych na poszczególne linie
+            var lines = clipboardText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+            var list = new List<PozDoZlecen>();
+
+            foreach (var line in lines.Skip(1)) // Pomiń pierwszy wiersz nagłówków
+            {
+                var values = line.Split('\t'); // Zakładam, że dane są oddzielone tabulacjami
+
+                if (values.Length < 6) continue; // Sprawdzenie, czy linia ma wystarczającą liczbę kolumn
+
+                var pozDoZlecen = new PozDoZlecen
+                    {
+                        RowIdZlecenia = RowIdZlecenia,
+                        RowIdLiniiProdukcyjnej = czaszlecenie.RowIdLinieProdukcyjne,
+                        Nr = float.Parse(values[1].Replace(".", ",")),
+                        IloscOkien = int.Parse(values[2]),
+                        JednostkiOkienDoPoz = float.Parse(values[4].Replace(".", ",")) / int.Parse(values[2]),
+                        JednostkiOkienSumaDoPoz = float.Parse(values[4].Replace(".", ",")),
+                        JednostkiOkienDoPozZrobione = float.Parse(values[5].Replace(".", ",")),
+                        Szerokosc = float.Parse(values[6].Replace(".", ",")),
+                        Wysokosc = float.Parse(values[7].Replace(".", ",")),
+                        System = values[8].Trim(),
+                        Technologia = values[9].Trim(),
+                        Kolor = values[10].Trim(),
+                        Ciezar1Sztuki = float.Parse(values[11].Replace(".", ",")),
+                        Iloscskrzydel = int.Parse(values[12]),
+                        Szyba = values[13].Trim(),
+                    };
+
+                list.Add(pozDoZlecen);
+            }
+
+            if (list.Any())
+            {
+                // Usunięcie istniejących danych
+                var deleteResponse = await Http.DeleteAsync($"api/PozWZleceniu/rowid/{RowIdZlecenia}");
+
+                if (!deleteResponse.IsSuccessStatusCode)
+                {
+                    _ = _notice.Error(new()
+                        {
+                            Message = $"Błąd podczas usuwania {DateTime.Now}",
+                            Description = $"Nie udało się usunąć istniejących danych dla RowIdZlecenia: {RowIdZlecenia}. Kod odpowiedzi: {deleteResponse.StatusCode}",
+                            Placement = NotificationPlacement.BottomLeft
+                        });
+                    return; // Przerwij proces, jeśli usuwanie się nie powiodło
+                }
+            }
+
+            // Wysłanie każdego elementu listy do serwera
+            foreach (var item in list)
+            {
+                var response = await Http.PostAsJsonAsync("api/PozWZleceniu", item);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    // Obsługa błędów
+                    _ = _notice.Error(new()
+                        {
+                            Message = "Błąd podczas zapisu",
+                            Description = $"Nie udało się zapisać elementu z Nr: {item.Nr}. Kod odpowiedzi: {response.StatusCode}",
+                            Placement = NotificationPlacement.BottomLeft
+                        });
+                    return; // Przerwij proces, jeśli zapis się nie powiódł
+                }
+            }
+
+            var suma = list.Sum(f => f.JednostkiOkienSumaDoPoz);
+
+            _ = _notice.Success(new()
+                {
+                    Message = "Załadowałem i zapisałem dane ze schowka.",
+                    Description = $"Ilość pozycji: {list.Count()} Suma wszystkich jednostek: {suma}",
+                    Placement = NotificationPlacement.BottomLeft
+                });
+
+            if (czaszlecenie != null)
+            {
+                czaszlecenie.CzasNaZlecenie = (int)Math.Ceiling(suma);
+
+                await SaveChanges(czaszlecenie);
+            }
+            else
+            {
+                Console.WriteLine($"Nie zmieniłem czasu wykonania zlecenia IdLinii:{czaszlecenie.RowIdLinieProdukcyjne}");
+            }
+
+        }
+        catch (Exception ex)
+        {
+            _ = _notice.Error(new()
+                {
+                    Message = ex.Message,
+                    Description = ex.StackTrace,
+                    Placement = NotificationPlacement.BottomLeft
+                });
+        }
+    }
+
 
     private async Task SaveChanges(LinieProdukcyjneWithCzasViewModel czaszlecenie)
     {

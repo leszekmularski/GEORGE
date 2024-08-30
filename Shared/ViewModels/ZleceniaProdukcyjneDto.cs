@@ -25,7 +25,7 @@ namespace GEORGE.Shared.ViewModels
         public string? KtoZapisal { get; set; }
         public string? OstatniaZmiana { get; set; }
         public string[]? Tags { get; set; }
-        public int JednostkiNaZlecenie { get; set; }
+        public float JednostkiNaZlecenie { get; set; }
         public bool ZlecZrealizowane { get; set; }
         public bool ZlecenieWewnetrzne { get; set; } = false;
 

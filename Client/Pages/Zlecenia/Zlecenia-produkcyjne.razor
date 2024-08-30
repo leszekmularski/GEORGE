@@ -36,7 +36,7 @@
 
         .zlealizowano:hover, .zlealizowano:hover > td {
             background-color: lime !important;
-            font-size: 1.1em;
+            font-size: 1.01em;
         }
 
     .zlecenie, .zlecenie > td {
@@ -45,7 +45,7 @@
 
         .zlecenie:hover, .zlecenie:hover > td {
             background-color: lime !important;
-            font-size: 1.1em;
+            font-size: 1.01em;
         }
 
     .zlecenieNaN, .zlecenieNaN > td {
@@ -54,7 +54,7 @@
 
         .zlecenieNaN:hover, .zlecenieNaN:hover > td {
             background-color: lime !important;
-            font-size: 1.1em;
+            font-size: 1.01em;
         }
 
     /* Nowe klasy dla PDF i DXF */
@@ -68,12 +68,12 @@
 
     .pdf-class:hover, .pdf-class:hover > td {
         background-color: lime !important;
-        font-size: 1.1em;
+        font-size: 1.01em;
     }
 
     .dxf-class:hover, .dxf-class:hover > td {
         background-color: lime !important;
-        font-size: 1.1em;
+        font-size: 1.01em;
     }
 
 </style>
@@ -131,7 +131,7 @@ else
                ScrollX="1950" PageSize="@iloscRekordow" Size="TableSize.Small">
             <ActionColumn Title="Materiały">
                 <a @onclick="() => DodajKantowke(context)" class="custom-link">Kantówka</a>
-                <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">Czasy</a>
+                <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">Szczegóły</a>
                 <a @onclick="() => FileEdit(context)">Pliki</a>
             </ActionColumn>
             <Column Title="Status" TData="string">
@@ -983,7 +983,7 @@ else
 
                         _ = _notice.Error(new()
                             {
-                                Message = "Nie udało się pobrać pliku.",
+                                Message = "System napotkał problem. Plik mógł zostać niepoprawnie pobrany",
                                 Description = response.Content.Headers.ToString(),
                                 Placement = NotificationPlacement.BottomLeft
                             });
@@ -1354,6 +1354,11 @@ else
     private async Task HandleSelected(InputFileChangeEventArgs e)
     {
 
+        if (!boolAdmin && !boolZmian)
+        {
+            bladZapisuPliku = $"Nie masz uprawnień do zapisu plików";
+            return;
+        }
         //NazwaRejestru = WebUtility.UrlEncode(NazwaRejestru);
 
         foreach (var file in e.GetMultipleFiles())

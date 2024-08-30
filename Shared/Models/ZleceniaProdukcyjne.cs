@@ -27,8 +27,9 @@ namespace GEORGE.Shared.Models
         public string? KtoZapisal { get; set; } //= User.Identity.Name;
         public string? OstatniaZmiana { get; set; } = "Zmiana: " + DateTime.Now.ToLongDateString();
         public string[]? Tags { get; set; }
-        public int JednostkiNaZlecenie { get; set; } = 0;
+        public float JednostkiNaZlecenie { get; set; } = 0;
         public bool ZlecZrealizowane { get; set; } = false;
+        public DateTime DataRozpProdukcji { get; set; } = DateTime.MinValue;
 
         [NotMapped]
         public string TagsString

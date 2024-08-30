@@ -137,7 +137,7 @@ namespace GEORGE.Server.Controllers
 
                     // Oblicz czas na wykonanie zlecenia
 
-                    int jednostkiNaZlecenie = existingZlecenie != null ? existingZlecenie.CzasNaZlecenie : zp.JednostkiNaZlecenie;
+                    float jednostkiNaZlecenie = existingZlecenie != null ? existingZlecenie.CzasNaZlecenie : zp.JednostkiNaZlecenie;
                     
                     var czasProdukcjiWDniach = (double)jednostkiNaZlecenie / liniaProdukcyjna.DziennaZdolnoscProdukcyjna;
                     var czasProdukcjiWHours = czasProdukcjiWDniach * 24;
@@ -179,7 +179,7 @@ namespace GEORGE.Server.Controllers
                         .FirstOrDefaultAsync(z => z.RowIdZleceniaProdukcyjne == zp.RowId && z.RowIdLinieProdukcyjne == rowIdLinii);
 
                     // Oblicz czas na wykonanie zlecenia
-                    int jednostkiNaZlecenie = existingZlecenie != null ? existingZlecenie.CzasNaZlecenie : zp.JednostkiNaZlecenie;
+                    float jednostkiNaZlecenie = existingZlecenie != null ? existingZlecenie.CzasNaZlecenie : zp.JednostkiNaZlecenie;
                     var czasProdukcjiWDniach = (double)jednostkiNaZlecenie / liniaProdukcyjna.DziennaZdolnoscProdukcyjna;
                     var czasProdukcjiWHours = czasProdukcjiWDniach * 24;
                     string zam = "Zlecenie";

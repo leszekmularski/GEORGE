@@ -4,6 +4,7 @@ using GEORGE.Server;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GEORGE.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240830073419_InitialMigration25")]
+    partial class InitialMigration25
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -242,16 +245,10 @@ namespace GEORGE.Server.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
-                    b.Property<float>("Ciezar1Sztuki")
-                        .HasColumnType("real");
-
                     b.Property<DateTime>("DataZapisu")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("IloscOkien")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Iloscskrzydel")
                         .HasColumnType("int");
 
                     b.Property<float>("JednostkiOkienDoPoz")
@@ -263,9 +260,6 @@ namespace GEORGE.Server.Migrations
                     b.Property<float>("JednostkiOkienSumaDoPoz")
                         .HasColumnType("real");
 
-                    b.Property<string>("Kolor")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("KtoZapisal")
                         .HasColumnType("nvarchar(max)");
 
@@ -276,34 +270,14 @@ namespace GEORGE.Server.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("RowId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RwoIdZlecenia")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("RowIdLiniiProdukcyjnej")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("RowIdZlecenia")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("System")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<float>("Szerokosc")
-                        .HasColumnType("real");
-
-                    b.Property<string>("Szyba")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Technologia")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Uwagi")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<float>("Wysokosc")
-                        .HasColumnType("real");
 
                     b.HasKey("Id");
 

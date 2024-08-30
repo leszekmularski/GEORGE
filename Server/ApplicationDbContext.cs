@@ -25,6 +25,8 @@ namespace GEORGE.Server
         public DbSet<Logowania> Logowania => Set<Logowania>();
         public DbSet<RodzajeDzialow> RodzajeDzialow => Set<RodzajeDzialow>();
         public DbSet<Uprawnieniapracownika> Uprawnieniapracownika => Set<Uprawnieniapracownika>();
+        public DbSet<PozDoZlecen> PozDoZlecen => Set<PozDoZlecen>();
+        
 
         //***********************************************************************************************************************************************************************************************
 
