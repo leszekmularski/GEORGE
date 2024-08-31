@@ -59,13 +59,6 @@
             background-color: blue;
         }
 
-
-        /* Resetowanie stylów dla table, tr, th */
-        table, tr, th {
-            all: initial;
-            /* Można także użyć unset lub none, w zależności od potrzeb */
-        }
-
         #gantt-container {
             width: 100%;
             height: 100%;
@@ -159,9 +152,11 @@
         </section>
     </Spin>
 
-    <Modal Title="Dodaj nowe zlecenie" @bind-Visible="@_visible" Style="width:60%" OkText="@("Zapisz")" CancelText="@("Anuluj")" MaxBodyHeight="@("55vh")" OnOk="AddPlanEdit">
+</body>
+
+    <Modal Title="Dodaj nowe zlecenie" @bind-Visible="@_visible" Style="width:60%" OkText="@("Zapisz do planu")" CancelText="@("Anuluj")" MaxBodyHeight="@("65vh")" OnOk="AddPlanEdit">
         <div style="width:100%">
-            <p style="height: 500px;width:100%;">
+            <p style="height: 100%; width:100%;">
                 Nie przypisane zlecenia
                 <Select TItem="LinieProdukcyjne" TItemValue="string" DataSource="@rodzajeLinieProdukcyjne" @bind-Value="@_selectedValue"
                         LabelName="@nameof(LinieProdukcyjne.NazwaLiniiProdukcyjnej)" ValueName="@nameof(LinieProdukcyjne.RowId)"
@@ -182,27 +177,39 @@
                 }
                 else
                 {
+                    @if (przefiltrowanedaneNiezaplanowane.Count > 0)
+                    {
                     <!-- Tabela z przefiltrowanymi danymi -->
+                    <Divider>Znalezione zlecenia</Divider>
                     <div style="padding-top:25px;padding-left:5px;padding-right:5px;width:100%;">
-                        <Table @ref="_table" PageSize="3" DataSource="@przefiltrowanedaneNiezaplanowane" Total="_total"
-                               @bind-SelectedRows="_selectedRows" Style="width: 100%; font-size: 9px;" RowKey="x => x.ZleceniaProdukcyjneDto.RowId">
+                        <Table @ref="_table" PageSize="4" DataSource="@przefiltrowanedaneNiezaplanowane" Total="_total"
+                               @bind-SelectedRows="_selectedRows" Style="width: 100%; font-size: 9px;" RowKey="x => x.ZleceniaProdukcyjneDto.RowId"
+                               Size="TableSize.Small">
 
                             <Selection Style="width:25px" Title="Wybierz"> </Selection>
-                            <PropertyColumn Style="width:85px" Title="Klient" Property="c => c.ZleceniaProdukcyjneDto.Klient" />
-                            <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan_Prod." Property="c => c.PlanowanaDataRozpoczeciaProdukcji" />
-                            <PropertyColumn Style="width:35px" Title="Typ_Dok." Property="c => c.ZleceniaProdukcyjneDto.TypZamowienia" />
-                            <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan._Zakoń." Property="c => c.ZleceniaProdukcyjneDto.DataProdukcji" />
-                            <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan._Mont." Property="c => c.ZleceniaProdukcyjneDto.DataMontazu" />
-                            <PropertyColumn Style="width:35px" Title="Nr_Zam." Property="c => c.ZleceniaProdukcyjneDto.NumerZamowienia" />
-                            <PropertyColumn Style="width:35px" Title="Czas_wyk." Property="c => c.DomyslnyCzasProdukcji" />
+                            <PropertyColumn Width="85px" Title="Klient" Property="c => c.ZleceniaProdukcyjneDto.Klient" Sortable OnFilter="(a, b) => a == b" Filterable />
+                            <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan_Prod." Property="c => c.PlanowanaDataRozpoczeciaProdukcji" Sortable />
+                            <PropertyColumn Style="width:35px" Title="Typ_Dok." Property="c => c.ZleceniaProdukcyjneDto.TypZamowienia" Sortable />
+                            <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan._Zakoń." Property="c => c.ZleceniaProdukcyjneDto.DataProdukcji" Sortable />
+                            <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan._Mont." Property="c => c.ZleceniaProdukcyjneDto.DataMontazu" Sortable />
+                            <PropertyColumn Style="width:35px" Title="Nr_Zam." Property="c => c.ZleceniaProdukcyjneDto.NumerZamowienia" Sortable />
+                            <PropertyColumn Style="width:35px" Title="Czas_wyk." Property="c => c.DomyslnyCzasProdukcji" Sortable />
                         </Table>
                     </div>
+                    }
+                    else
+                    {
+                        <div style="padding-top:55px;">
+                            <BadgeRibbon Text="Brak danych na wybraną linię" Color="orange">
+                                <Card Bordered Style="font-size:50px; color:green">Brak w systemie zleceń do zaplanowania.</Card>
+                            </BadgeRibbon>
+                        </div>
+                    }
                 }
             </p>
         </div>
     </Modal>
 
-</body>
 </html>
 
 

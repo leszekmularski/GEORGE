@@ -71,7 +71,7 @@
     <TabPane Tab="Dane do zlecenia" Key="2">
         @if (wykazPozycjiDoZlecenia != null)
         {
-            <Table DataSource="@wykazPozycjiDoZlecenia" PageSize="5" Size="TableSize.Small">
+            <Table DataSource="@wykazPozycjiDoZlecenia" PageSize="5" Size="TableSize.Small" ScrollY="290px">
                 <PropertyColumn Property="c=>c.Nr" Title="Lp" />
                 <PropertyColumn Property="c=>c.System" />
                 <PropertyColumn Property="c=>c.Kolor" />
@@ -91,6 +91,7 @@
                             CancelText="Nie">
                     <a style="color:red">Usuń wszystkie dane</a>
                 </Popconfirm>
+                <label style="inset-inline-start:inherit; padding-left:255px">Ilość sztuk: @iloszSztukPoz</label>
             }
         }
         else
@@ -124,6 +125,8 @@
 
     string activeKey { get; set; } = "1";
 
+    int iloszSztukPoz = 0;
+
     protected override async Task OnInitializedAsync()
     {
         if (AppState != null)
@@ -134,7 +137,7 @@
         try
         {
             await Laduj_Uprawnienia();
-            // Upewnij się, że RowIdZlecenia jest prawidłowy i nie jest pusty
+
             if (string.IsNullOrEmpty(RowIdZlecenia))
             {
                 Console.WriteLine("RowIdZlecenia is null or empty.");
@@ -178,6 +181,8 @@
         if (activeKey != "2") return;
 
         wykazPozycjiDoZlecenia = await Http.GetFromJsonAsync<List<PozDoZlecen>>($"api/PozWZleceniu/GetDaneDoZlecenia/{RowIdZlecenia}");
+
+        if (wykazPozycjiDoZlecenia != null) iloszSztukPoz = wykazPozycjiDoZlecenia.Sum(x => x.IloscOkien);
 
         StateHasChanged();
     }

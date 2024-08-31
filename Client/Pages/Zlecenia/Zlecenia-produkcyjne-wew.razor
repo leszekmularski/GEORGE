@@ -80,13 +80,12 @@
 
 </style>
 
-
 <PageTitle>Program do wspomagania produkcji zlecenia</PageTitle>
 
 <div style="display: flex; align-items: center; gap: 10px;">
     <h3 style="margin: 0;">Zlecenia Produkcyjne Wewnętrzne</h3>
     <div style="display: flex; align-items: center;padding-left:15px">
-        <Text style="margin-right: 5px;">Ilość widocznych linii</Text>
+        <Text style="margin-right: 5px;">Ilość widocznych rekordów</Text>
         <AntDesign.InputNumber TValue="int"
                                @bind-Value="iloscRekordow"
                                Min="2"
@@ -113,7 +112,7 @@
                 AllowClear
                 Style="width: 200px;" OnSelectedItemChanged="OnSelectedItemChangedHandlerFiltr">
         </Select>
-        <CheckboxGroup Options="@plainOptions" @bind-Value="@_valueFiltr" TValue="string" OnChange="OnChange" />
+        <CheckboxGroup Options="@plainOptions" @bind-Value="@_valueFiltr" TValue="string" Disabled="@blokojFiltr" OnChange="OnChange" />
     }
 </div>
 
@@ -133,9 +132,9 @@ else
 {
     <div class="highlighted-background">
 
-            <Table TItem="ZleceniaProdukcyjneWew" DataSource="@zleceniaProdukcyjneWew"
+        <Table TItem="ZleceniaProdukcyjneWew" DataSource="@zleceniaProdukcyjneWew"
                RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "zlecenieNaN" )"
-               ScrollX="1950" PageSize="6" Size="TableSize.Small" >
+               ScrollX="1950" PageSize="@iloscRekordow" PageIndex="@numerStrony" Size="TableSize.Small">
                 <ActionColumn Title="Materiały">
                     <a @onclick="() => DodajKantowke(context)">Kantówka</a>
                     <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">Szczegóły</a>
@@ -346,6 +345,7 @@ else
                                 <AntDesign.Col Span="12">
                                     <AntDesign.FormItem Label="Ilość sztuk w zleceniu">
                                         <AntDesign.InputNumber @bind-Value="zlecenie.Ilosc" />
+                                        <Button OnClick="PobierzSztukiZeStolCad">Pobierz ilość sztuk</Button>
                                     </AntDesign.FormItem>
                                 </AntDesign.Col>
                             </AntDesign.Row>
@@ -482,7 +482,7 @@ else
     </div>
 </div>
 
-<div class="modal fade @classShowTWZ" tabindex="-1" style="display: @displayTWZ;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 40%;">
+<div class="modal fade @classShowTWZ" tabindex="-1" style="display: @displayTWZ;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 80%;">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
@@ -537,6 +537,7 @@ else
     private string rowIdClick = "";
 
     private int iloscRekordow = 6;
+    private int numerStrony = 0;
     private string? filtrTypZamowienia = "";
 
     private long cid = -1;
@@ -556,6 +557,8 @@ else
 
     List<UploadFileItem> fileList = new List<UploadFileItem>();
     IList<IBrowserFile> files = new List<IBrowserFile>();
+
+    private bool blokojFiltr = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -626,6 +629,35 @@ else
 
     }
 
+    private async Task PobierzSztukiZeStolCad()
+    {
+        if (zlecenie == null) return;
+
+        var wykazPozycjiDoZlecenia = await Http.GetFromJsonAsync<List<PozDoZlecen>>($"api/PozWZleceniu/GetDaneDoZlecenia/{zlecenie.RowId}");
+
+        if (wykazPozycjiDoZlecenia != null && wykazPozycjiDoZlecenia.Count == 0)
+        {
+            _ = _notice.Info(new()
+                {
+                    Message = "Brak danych.",
+                    Description = $"Nie zmieniłem ilości",
+                    Placement = NotificationPlacement.BottomLeft
+                });
+            return;
+        }
+
+        zlecenie.Ilosc = wykazPozycjiDoZlecenia.Sum(x => x.IloscOkien);
+
+        _ = _notice.Success(new()
+            {
+                Message = "Uwaga.",
+                Description = $"Zmieniłem ilość",
+                Placement = NotificationPlacement.BottomLeft
+            });
+        return;
+
+    }
+
     private async Task ReplaceUploadFiles(InputFileChangeEventArgs e, string idFile, long id)
     {
         foreach (var file in e.GetMultipleFiles())
@@ -686,7 +718,6 @@ else
     {
         // Pobierz listę zleceń produkcyjnych
 
-
         // Serializuj wybrane wartości i wyświetl w konsoli
         Console.WriteLine($"checked = {JsonSerializer.Serialize(checkedValues)}");
 
@@ -726,7 +757,7 @@ else
     {
         Console.WriteLine("Zapisano ilość widocznych" + e);
         await LocalStorage.SaveStringAsync("zlecenie_ile_widocznych", e.ToString());
-
+        numerStrony = 1;
     }
 
     private void OnSelectedItemChangedHandler(TypZamowienia value)
@@ -760,6 +791,8 @@ else
 
             if (!string.IsNullOrEmpty(filtrTypZamowienia))
             {
+                bool typZam = filtrTypZamowienia.Contains("Zlecenie");
+                blokojFiltr = !typZam;
                 // Filter the list of orders based on the filter value
                 zleceniaProdukcyjneWew = originalzleceniaProdukcyjneWew
                     .Where(f => f.TypZamowienia.Contains(filtrTypZamowienia, StringComparison.OrdinalIgnoreCase))
