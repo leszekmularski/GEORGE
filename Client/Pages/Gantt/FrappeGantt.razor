@@ -17,6 +17,10 @@
 @using AntDesign
 @using System.Globalization
 @using System.Net;
+@using AntDesign.TableModels
+@using System.ComponentModel
+@using System.Net.Http.Headers
+
 
 <!DOCTYPE html>
 <html>
@@ -79,6 +83,7 @@
 </head>
 <body>
     <Spin Spinning=loading>
+
         @if (!ladujDane || rodzajeLinieProdukcyjne == null)
         {
             <Button Style="width:100%; background-color: indigo;" Type="@ButtonType.Primary" Icon="@IconType.Outline.Dashboard" OnClick="BazaPobierz">
@@ -154,7 +159,8 @@
 
 </body>
 
-    <Modal Title="Dodaj nowe zlecenie" @bind-Visible="@_visible" Style="width:60%" OkText="@("Zapisz do planu")" CancelText="@("Anuluj")" MaxBodyHeight="@("65vh")" OnOk="AddPlanEdit">
+    <Modal Title="Dodaj nowe zlecenie" @bind-Visible="@_visible" Style="width:60%" OkText="@("Zapisz do planu zaznaczone zlecenia")" CancelText="@("Anuluj")"
+       MaxBodyHeight="@("65vh")" OnOk="AddPlanEdit" OkButtonProps="@okButtonProps">
         <div style="width:100%">
             <p style="height: 100%; width:100%;">
                 Nie przypisane zlecenia
@@ -164,7 +170,7 @@
                         OnSelectedItemChanged="OnSelectedItemChangedHandler">
                 </Select>
                 <div>
-                    <RadioGroup @bind-Value="@_valueZlecenie" onclick="@ClicRadioGroup()">
+                <RadioGroup @bind-Value="@_valueZlecenie" TValue="bool" OnChange="ClicRadioGroup">
                         <Radio Value="false">Zlecenia zewnętrzne</Radio>
                         <Radio Value="true">Zlecenia wewnętrzne</Radio>
                     </RadioGroup>
@@ -182,18 +188,18 @@
                     <!-- Tabela z przefiltrowanymi danymi -->
                     <Divider>Znalezione zlecenia</Divider>
                     <div style="padding-top:25px;padding-left:5px;padding-right:5px;width:100%;">
-                        <Table @ref="_table" PageSize="4" DataSource="@przefiltrowanedaneNiezaplanowane" Total="_total"
+                        <Table @ref="_table" TItem="DaneDoPlanowaniaViewModel" PageSize="4" DataSource="@przefiltrowanedaneNiezaplanowane" Total="_total"
                                @bind-SelectedRows="_selectedRows" Style="width: 100%; font-size: 9px;" RowKey="x => x.ZleceniaProdukcyjneDto.RowId"
-                               Size="TableSize.Small">
+                               Size="TableSize.Small" OnRow="OnRow" OnRowClick="OnChangeTblClik" Loading="_loading">
 
-                            <Selection Style="width:25px" Title="Wybierz"> </Selection>
+                            <Selection Style="width:25px" Title="Wybierz"></Selection>
                             <PropertyColumn Width="85px" Title="Klient" Property="c => c.ZleceniaProdukcyjneDto.Klient" Sortable OnFilter="(a, b) => a == b" Filterable />
-                            <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan_Prod." Property="c => c.PlanowanaDataRozpoczeciaProdukcji" Sortable />
+                            <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan Prod." Property="c => c.PlanowanaDataRozpoczeciaProdukcji" Sortable />
                             <PropertyColumn Style="width:35px" Title="Typ_Dok." Property="c => c.ZleceniaProdukcyjneDto.TypZamowienia" Sortable />
-                            <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan._Zakoń." Property="c => c.ZleceniaProdukcyjneDto.DataProdukcji" Sortable />
-                            <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan._Mont." Property="c => c.ZleceniaProdukcyjneDto.DataMontazu" Sortable />
-                            <PropertyColumn Style="width:35px" Title="Nr_Zam." Property="c => c.ZleceniaProdukcyjneDto.NumerZamowienia" Sortable />
-                            <PropertyColumn Style="width:35px" Title="Czas_wyk." Property="c => c.DomyslnyCzasProdukcji" Sortable />
+                            <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan. Zakoń." Property="c => c.ZleceniaProdukcyjneDto.DataProdukcji" Sortable />
+                            <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan. Mont." Property="c => c.ZleceniaProdukcyjneDto.DataMontazu" Sortable />
+                            <PropertyColumn Style="width:35px" Title="Nr Zam." Property="c => c.ZleceniaProdukcyjneDto.NumerZamowienia" Sortable />
+                            <PropertyColumn Style="width:35px" Title="Czas wyk." Property="c => c.DomyslnyCzasProdukcji" Sortable />
                         </Table>
                     </div>
                     }
@@ -258,6 +264,8 @@
 
     int _total;
 
+    bool _loading = false;
+
     private DotNetObjectReference<FrappeGantt>? dotNetHelper;
     //private List<PodmiotPrzypisPracownikowiViewModel>? dane_full_plan;
 
@@ -266,6 +274,8 @@
     private int wydajnoscWybranejLinii = 1;
 
     private bool _valueZlecenie = false;
+
+    private AntDesign.ButtonProps okButtonProps = new AntDesign.ButtonProps();
 
     protected override async Task OnInitializedAsync()
     {
@@ -293,6 +303,82 @@
 
         loading = false;
 
+        okButtonProps.Disabled = true;
+
+    }
+
+    private async Task OnChangeTblClik()
+    {
+        Console.WriteLine("test");
+        // Sprawdzenie, czy są zaznaczone wiersze
+        if (_selectedRows == null || !_selectedRows.Any())
+        {
+            okButtonProps.Disabled = true;
+        }
+        else
+        {
+            okButtonProps.Disabled = false;
+        }
+
+        // Możesz dodać logikę asynchroniczną tutaj, jeśli jest potrzebna
+        await Task.CompletedTask;
+
+    }
+
+    // private async Task OnChangeTblClik(QueryModel<DaneDoPlanowaniaViewModel> query)
+    // {
+
+    //     Console.WriteLine(query.ToString());  
+
+    //     // Sprawdzenie, czy są zaznaczone wiersze
+    //     if (_selectedRows == null || !_selectedRows.Any())
+    //     {
+    //         okButtonProps.Disabled = true;
+    //     }
+    //     else
+    //     {
+    //         okButtonProps.Disabled = false;
+    //     }
+
+    //     // Możesz dodać logikę asynchroniczną tutaj, jeśli jest potrzebna
+    //     await Task.CompletedTask;
+
+    // }
+
+    Dictionary<string, object> OnRow(RowData<DaneDoPlanowaniaViewModel> row)
+    {
+        Action<MouseEventArgs> OnClick = args =>
+        {
+            Console.WriteLine($"row {row.Data.TypZamowienia} was clicked");
+
+                // Sprawdzenie, czy są zaznaczone wiersze
+                if (_selectedRows == null || !_selectedRows.Any())
+                {
+                    okButtonProps.Disabled = true;
+                }
+                else
+                {
+                    okButtonProps.Disabled = false;
+                }
+        };
+
+        return new Dictionary<string, object>
+        {
+            { "onclick", OnClick },
+        };
+    }
+
+    private void ClicRadioGroup()
+    {
+        if (daneNiezaplanowane != null && daneNiezaplanowane != null)
+        {
+            przefiltrowanedaneNiezaplanowane = daneNiezaplanowane.Where(x => x.ZlecenieWewnetrzne == _valueZlecenie).ToList();
+
+            // Odśwież widok (jeśli używasz Blazor)
+            StateHasChanged();
+
+            Console.WriteLine($"daneDoPlanowania.Count:{this.przefiltrowanedaneNiezaplanowane.Count()} _valueZlecenie:{_valueZlecenie}");
+        }
     }
 
     private async Task AddPlanEdit()
@@ -383,6 +469,7 @@
         await BazaPobierz();
 
         ladujDane = true;
+
     }
 
     private async Task OnSelectedItemChangedHandler(LinieProdukcyjne value)
@@ -391,6 +478,8 @@
         _selectedItem = value;
 
         Console.WriteLine($"selected: {value?.RowId}");
+
+        _loading = true;
 
         // Sprawdź, czy wybrano poprawną linię produkcyjną
         if (value?.RowId != null)
@@ -435,6 +524,8 @@
             daneNiezaplanowane = new List<DaneDoPlanowaniaViewModel>();
             przefiltrowanedaneNiezaplanowane = new List<DaneDoPlanowaniaViewModel>();
         }
+
+        _loading = false;
     }
 
 
@@ -454,20 +545,6 @@
             // Obsługa błędów, np. wyświetlenie komunikatu o błędzie
             Console.WriteLine($"Wystąpił błąd (BazaPobierz-OnInitializedAsync): {ex.Message} / {ex.StackTrace}");
             click_task = $"Wystąpił błąd (BazaPobierz-OnInitializedAsync): {ex.Message}";
-        }
-    }
-
-    private async Task ClicRadioGroup()
-    {
-        if (daneNiezaplanowane != null && daneNiezaplanowane != null)
-        {
-            przefiltrowanedaneNiezaplanowane = daneNiezaplanowane.Where(x => x.ZlecenieWewnetrzne == _valueZlecenie).ToList();
-
-            await Task.Delay(10);
-            // Odśwież widok (jeśli używasz Blazor)
-            StateHasChanged();
-
-            Console.WriteLine($"daneDoPlanowania.Count:{this.przefiltrowanedaneNiezaplanowane.Count()} _valueZlecenie:{_valueZlecenie}");
         }
     }
 
@@ -683,7 +760,6 @@
 
         loading = true;
 
-
         click_task = "";
 
         bool jestBlad = false;
@@ -709,7 +785,6 @@
                 "yyyy-MM-ddTHH:mm:ss.fffZ",
                 CultureInfo.InvariantCulture,
                 DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
-
 
                 nowaData = nowaData.AddHours(3); //Poprawka błedu JS z wartości _start 22:00
 
