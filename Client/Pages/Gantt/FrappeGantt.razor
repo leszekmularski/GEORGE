@@ -126,6 +126,9 @@
                             @if (boolZmian || boolAdmin)
                             {
                                 <Button type="button" class="btn btn-sm btn-light" Icon="@IconType.Outline.Save" @onclick="SaveView"></Button>
+                                <Tooltip Placement="@Placement.Top" Title="Produkcja rozpoczęta">
+                                    <Button type="button" class="btn btn-sm btn-light" Icon="@IconType.Outline.Loading" OnClick="@(async ()=> { await SaveWorks(ConfirmButtons.YesNo); })"></Button>
+                                </Tooltip>
                             }
 
                             <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
@@ -351,15 +354,15 @@
         {
             Console.WriteLine($"row {row.Data.TypZamowienia} was clicked");
 
-                // Sprawdzenie, czy są zaznaczone wiersze
-                if (_selectedRows == null || !_selectedRows.Any())
-                {
-                    okButtonProps.Disabled = true;
-                }
-                else
-                {
-                    okButtonProps.Disabled = false;
-                }
+            // Sprawdzenie, czy są zaznaczone wiersze
+            if (_selectedRows == null || !_selectedRows.Any())
+            {
+                okButtonProps.Disabled = true;
+            }
+            else
+            {
+                okButtonProps.Disabled = false;
+            }
         };
 
         return new Dictionary<string, object>
@@ -374,10 +377,12 @@
         {
             przefiltrowanedaneNiezaplanowane = daneNiezaplanowane.Where(x => x.ZlecenieWewnetrzne == _valueZlecenie).ToList();
 
+            OnChangeTblClik();
             // Odśwież widok (jeśli używasz Blazor)
             StateHasChanged();
 
             Console.WriteLine($"daneDoPlanowania.Count:{this.przefiltrowanedaneNiezaplanowane.Count()} _valueZlecenie:{_valueZlecenie}");
+
         }
     }
 
@@ -469,6 +474,8 @@
         await BazaPobierz();
 
         ladujDane = true;
+
+        await OnChangeTblClik();
 
     }
 
@@ -629,7 +636,6 @@
             return;
         }
 
-
         await UsunRekord(click_RowIdZlecenia, _selectedItemGantt.RowId);
 
     }
@@ -743,6 +749,109 @@
             // Obsługa błędów, np. wyświetlenie komunikatu o błędzie
             Console.WriteLine($"Wystąpił błąd (ChangeView - OnInitializedAsync): {ex.Message}");
         }
+    }
+
+    [JSInvokable]
+    public async Task SaveWorks(ConfirmButtons confirmButtons)
+    {
+        // Pobranie danych z wykresu
+        var gantt = await JSRuntime.InvokeAsync<object[]>("SaveGanttData");
+        if (gantt == null || przefiltrowaneDaneDoPlanowania == null || przefiltrowaneDaneDoPlanowania.Count() == 0)
+        {
+            await _message.Info("Brak danych na wykresie!");
+            return;
+        }
+
+        // Sprawdzenie, czy użytkownik kliknął w obiekt
+        if (string.IsNullOrEmpty(click_RowIdZlecenia) || _selectedItemGantt == null)
+        {
+            await _message.Info("Kliknij w obiekt na wykresie, aby go ustawić datę roz. produkcji");
+            click_task = "Kliknij w obiekt na wykresie, aby go ustawić datę roz. produkcji";
+            return;
+        }
+
+        // Treść komunikatu i tytuł
+        var content = "Czy chcesz ustawić status - Na PRODUKCJA ROZPOCZĘTA?             Uwaga zmiany automatycznie zostaną zapisane!";
+        var title = "Uwaga!!!";
+
+        // Wyświetlenie komunikatu potwierdzającego
+        var confirmResult = await _confirmService.Show(content, title, confirmButtons);
+
+        // Sprawdzenie wyniku potwierdzenia
+
+        if (confirmResult == ConfirmResult.No)
+        {
+            return;
+        }
+
+        //*******************************************************************************************************************************************************//
+
+        if (przefiltrowaneDaneDoPlanowania == null) return;
+
+
+        // Znajdź obiekt z odpowiednim RowId
+
+        var obiektDoUsawDateStartProd = przefiltrowaneDaneDoPlanowania
+        .FirstOrDefault(dane => dane.ZleceniaProdukcyjneDto != null && dane.ZleceniaProdukcyjneDto.RowId == click_RowIdZlecenia && dane.RowIdLiniiProdukcyjnej == _selectedItemGantt.RowId);
+
+        if (obiektDoUsawDateStartProd != null)
+        {
+
+            var zmienDate = DateTime.Now;
+
+            if (obiektDoUsawDateStartProd.RzeczywistaDataRozpoczeciaProdukcji != DateTime.MinValue)
+            {
+                zmienDate = DateTime.MinValue;
+            }
+
+            try
+            {
+
+                if (!obiektDoUsawDateStartProd.ZlecenieWewnetrzne)
+                {
+                    // Send PUT request to the server
+                    var response = await Http.PostAsJsonAsync($"api/ZleceniaProdukcyjne/zmien-date-rozpoczecia-produkcji?rowid={click_RowIdZlecenia}", zmienDate);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine($"Pomyślnie zaktualizowano zadanie o identyfikatorze rowID: {click_RowIdZlecenia}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Nie udało się zaktualizować zadania o identyfikatorze rowID: {click_RowIdZlecenia}");
+
+                    }
+                }
+                else
+                {
+                    // Send PUT request to the server
+                    var response = await Http.PostAsJsonAsync($"api/ZleceniaProdukcyjneWew/zmien-date-rozpoczecia-produkcji?rowid={click_RowIdZlecenia}", zmienDate);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine($"Pomyślnie zaktualizowano zadanie o identyfikatorze rowID: {click_RowIdZlecenia}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Nie udało się zaktualizować zadania o identyfikatorze rowID: {click_RowIdZlecenia}");
+                    }
+                }
+
+                await FetchData();
+
+                await BazaPobierz();
+
+                await InitializeFrappeGantt();
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"******* Błąd {ex.Message}");
+                await _message.Error($"Błąd podczas usuwania rekordu!");
+            }
+
+        }
+
     }
 
 
@@ -1049,12 +1158,12 @@
             var task = new
             {
                 id = $"Task_{tzlec}_{item.ZleceniaProdukcyjneDto.RowId}",
-                name = $"{item.ZleceniaProdukcyjneDto?.NumerZamowienia} {item.ZleceniaProdukcyjneDto?.Klient}",
+                name = $"{item.ZleceniaProdukcyjneDto?.NumerZamowienia} {item.ZleceniaProdukcyjneDto?.Klient} [{item.RzeczywistaDataRozpoczeciaProdukcji.ToShortDateString()}]",
                 start = FormatDate(start, 7),
                 end = FormatDate(end, 15),
                 _start = FormatDate(start, 7),
                 _end = FormatDate(end, 15),
-                progress = 0,
+                progress = item.ProcentWykonania,
                 dependencies = s_dependencies,
                 custom_class = item.ZlecenieWewnetrzne ? "bar-secmilestone" : "bar-milestone"
             };

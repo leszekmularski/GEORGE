@@ -76,7 +76,9 @@ namespace GEORGE.Server.Controllers
                 Tags = zp.Tags,
                 JednostkiNaZlecenie = zp.JednostkiNaZlecenie,
                 ZlecZrealizowane = zp.ZlecZrealizowane,
-                ZlecenieWewnetrzne = false  // Ustawiamy false, ponieważ to nie jest zlecenie wewnętrzne
+                ZlecenieWewnetrzne = false,  // Ustawiamy false, ponieważ to nie jest zlecenie wewnętrzne
+                ProcentWykonania = zp.ProcentWykonania,
+                DataRozpProdukcji =zp.DataRozpProdukcji,
             }).ToList();
 
             var zleceniaProdukcyjneWewDto = zleceniaProdukcyjneWew.Select(zw => new ZleceniaProdukcyjneDto
@@ -105,7 +107,9 @@ namespace GEORGE.Server.Controllers
                 Tags = zw.Tags,
                 JednostkiNaZlecenie = zw.JednostkiNaZlecenie,
                 ZlecZrealizowane = zw.ZlecZrealizowane,
-                ZlecenieWewnetrzne = true  // Ustawiamy true, ponieważ to jest zlecenie wewnętrzne
+                ZlecenieWewnetrzne = true,  // Ustawiamy true, ponieważ to jest zlecenie wewnętrzne
+                ProcentWykonania = zw.ProcentWykonania,
+                DataRozpProdukcji = zw.DataRozpProdukcji,
             }).ToList();
 
             // Połącz zlecenia produkcyjne z wewnętrznymi
@@ -191,7 +195,8 @@ namespace GEORGE.Server.Controllers
 
                     return new DaneDoPlanowaniaViewModel
                     {
-                        PlanowanaDataRozpoczeciaProdukcji = zp.DataProdukcji < DateTime.Now ? DateTime.Now.AddDays(7 * 8) : zp.DataProdukcji, // Możesz dostosować to pole w zależności od wymagań
+                        PlanowanaDataRozpoczeciaProdukcji = zp.DataProdukcji.AddYears(1) < DateTime.Now ? DateTime.Now.AddDays(7 * 8) : zp.DataProdukcji, // Możesz dostosować to pole w zależności od wymagań -- AddYears(1) sztucznie
+                        RzeczywistaDataRozpoczeciaProdukcji = zp.DataRozpProdukcji,
                         ZleceniaProdukcyjneDto = zp,
                         Wyrob = zp.NazwaProduktu,
                         NumerZlecenia = zp.NumerZamowienia,
@@ -200,6 +205,7 @@ namespace GEORGE.Server.Controllers
                         RowIdLiniiProdukcyjnej = rowIdLinii, // Możesz dostosować to pole w zależności od wymagań
                         ZlecenieWewnetrzne = zp.ZlecenieWewnetrzne,
                         TypZamowienia = zam,
+                        ProcentWykonania = zp.ProcentWykonania,
                     };
                 }).Select(t => t.Result).ToList();
 

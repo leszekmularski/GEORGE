@@ -69,6 +69,48 @@ namespace GEORGE.Server
             await SaveChangesAsync();
             return true;
         }
+
+        public async Task<bool> ZmienDateRozpoczeciaProdukcji(string rowid, DateTime nowaDataProdukcji)
+        {
+            // Używamy FirstOrDefaultAsync do wyszukiwania po kolumnie RowId
+            var zlec = await ZleceniaProdukcyjne
+                .FirstOrDefaultAsync(z => z.RowId == rowid);
+
+            if (zlec == null)
+            {
+                return false;
+            }
+
+            // Aktualizowanie danych
+            zlec.DataRozpProdukcji = nowaDataProdukcji;
+            zlec.OstatniaZmiana = zlec.OstatniaZmiana + "ZP/RZOP.P.:[" + DateTime.Now.ToLongDateString() + "]";
+            zlec.ProcentWykonania = nowaDataProdukcji != DateTime.MinValue ? 10 : 0; 
+
+            // Zapisanie zmian
+            await SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> ZmienDateRozpoczeciaProdukcjiWew(string rowid, DateTime nowaDataProdukcji)
+        {
+            // Używamy FirstOrDefaultAsync do wyszukiwania po kolumnie RowId
+            var zlec = await ZleceniaProdukcyjneWew
+                .FirstOrDefaultAsync(z => z.RowId != rowid);
+
+            if (zlec == null)
+            {
+                return false;
+            }
+
+            // Aktualizowanie danych
+            zlec.DataRozpProdukcji = nowaDataProdukcji;
+            zlec.OstatniaZmiana = zlec.OstatniaZmiana + "ZP/RZOP.P.:[" + DateTime.Now.ToLongDateString() + "]";
+            zlec.ProcentWykonania = nowaDataProdukcji == DateTime.MinValue ? 10 : 0;
+
+            // Zapisanie zmian
+            await SaveChangesAsync();
+            return true;
+        }
         public async Task<bool> ZmienNazwePliku(long id, string nazwaPliku)
         {
             var plik = await PlikiZlecenProdukcyjnych.FindAsync(id);

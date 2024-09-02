@@ -104,7 +104,21 @@ namespace GEORGE.Server.Controllers
             }
             else
             {
-                return NotFound("Nie znaleziono pliku o podanym rowid.");
+                return NotFound("Nie znaleziono rekordu o podanym rowid.");
+            }
+        }
+
+        [HttpPost("zmien-date-rozpoczecia-produkcji")]
+        public async Task<IActionResult> ZmienDateRozpoczeciaProdukcji(string rowId, [FromBody] DateTime nowaDataProdukcji)
+        {
+            var result = await _context.ZmienDateRozpoczeciaProdukcjiWew(rowId, nowaDataProdukcji);
+            if (result)
+            {
+                return Ok("Uwagi zaktualizowane pomyślnie.");
+            }
+            else
+            {
+                return NotFound("Nie znaleziono rekordu o podanym ID.");
             }
         }
 

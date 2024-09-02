@@ -28,6 +28,8 @@ namespace GEORGE.Shared.ViewModels
         public float JednostkiNaZlecenie { get; set; }
         public bool ZlecZrealizowane { get; set; }
         public bool ZlecenieWewnetrzne { get; set; } = false;
+        public int ProcentWykonania { get; set; } = 0;
+        public DateTime DataRozpProdukcji { get; set; } = DateTime.MinValue;
 
     }
 }

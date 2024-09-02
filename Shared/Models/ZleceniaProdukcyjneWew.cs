@@ -29,6 +29,7 @@ namespace GEORGE.Shared.Models
         public float JednostkiNaZlecenie { get; set; } = 0;
         public bool ZlecZrealizowane { get; set; } = false;
         public DateTime DataRozpProdukcji { get; set; } = DateTime.MinValue;
+        public int ProcentWykonania { get; set; } = 0;
 
         [NotMapped]
         public string TagsString

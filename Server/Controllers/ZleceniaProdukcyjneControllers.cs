@@ -104,10 +104,23 @@ namespace GEORGE.Server.Controllers
             }
             else
             {
-                return NotFound("Nie znaleziono pliku o podanym ID.");
+                return NotFound("Nie znaleziono rekordu o podanym ID.");
             }
         }
 
+        [HttpPost("zmien-date-rozpoczecia-produkcji")]
+        public async Task<IActionResult> ZmienDateRozpoczeciaProdukcji(string rowId, [FromBody] DateTime nowaDataProdukcji)
+        {
+            var result = await _context.ZmienDateRozpoczeciaProdukcji(rowId, nowaDataProdukcji);
+            if (result)
+            {
+                return Ok("Uwagi zaktualizowane pomyślnie.");
+            }
+            else
+            {
+                return NotFound("Nie znaleziono rekordu o podanym ID.");
+            }
+        }
         // Możesz dodać dodatkowe metody, np. delete, jeśli to konieczne
     }
 
