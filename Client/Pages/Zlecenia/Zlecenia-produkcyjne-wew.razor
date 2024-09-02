@@ -21,6 +21,10 @@
         color: blue;
     }
 
+    .custom-linkszy {
+        color: darkblue;
+    }
+
     .highlighted-background {
         background-color: white;
         overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
@@ -136,9 +140,10 @@ else
                RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "zlecenieNaN" )"
                ScrollX="1950" PageSize="@iloscRekordow" PageIndex="@numerStrony" Size="TableSize.Small">
                 <ActionColumn Title="Materiały">
-                    <a @onclick="() => DodajKantowke(context)">Kantówka</a>
-                    <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">Szczegóły</a>
-                    <a @onclick="() => FileEdit(context)">Pliki</a>
+                <a @onclick="() => DodajKantowke(context)">Kantówka</a>
+                <a @onclick="() => DodajSzybe(context)" class="custom-link">Szyby</a>
+                <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-linkszy" style="color:chocolate; width:38px">T.W.Z / Pozycje</a>
+                <a @onclick="() => FileEdit(context)">Pliki</a>
                 </ActionColumn>
                 <Column Title="Status" TData="string">
                     @if (context.Tags != null)
@@ -1042,6 +1047,11 @@ else
     private void DodajKantowke(ZleceniaProdukcyjneWew row)
     {
         navigationManager.NavigateTo($"/Kantowka-do-zlecen/{row.RowId}");
+    }
+
+    private void DodajSzybe(ZleceniaProdukcyjneWew row)
+    {
+        navigationManager.NavigateTo($"/Szyby-do-zlecen/{row.RowId}");
     }
 
     private async Task DodajCzasyWykonaia(ZleceniaProdukcyjneWew row)

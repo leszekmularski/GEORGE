@@ -1,4 +1,4 @@
-﻿@page "/Kantowka-do-zlecen/{RowIdZlecenia}"
+﻿@page "/Szyby-do-zlecen/{RowIdZlecenia}"
 @using GEORGE.Shared.Models
 @using GEORGE.Shared.Class
 @using GEORGE.Client.Pages
@@ -7,7 +7,7 @@
 @using AntDesign
 @inject IMessageService _message
 @inject PdfReaderService PdfReaderService
-@inject GEORGE.Client.Pages.PDF.PdfDataParser PdfDataParser
+@inject GEORGE.Client.Pages.PDF.PdfDataParserSzyby PdfDataParserSz
 @inject Utilities.ILocalStorage LocalStorage
 @using System.Net;
 @using System.Text.Json;
@@ -17,7 +17,7 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <PageTitle>Zamówiona kantówka do zlecenia</PageTitle>
+    <PageTitle>Zamówiona szyby do zlecenia</PageTitle>
 
     <script>
         function copyToClipboard(text) {
@@ -108,7 +108,7 @@
 </head>
 <body>
 
-    <h3>Zamówiona kantówka do zlecenia</h3>
+    <h3>Zamówione szyby do zlecenia</h3>
 
      @if (boolAdmin || boolZmian)
     {
@@ -117,9 +117,9 @@
         </Button>
     }
 
-    @if (kantowkaDoZlecen != null && kantowkaDoZlecen.Count > 0)
+    @if (szybyDoZlecen != null && szybyDoZlecen.Count > 0)
     {
-        <Button Type="reset" OnClick="@(CopyKantowkiToClipboard)">
+        <Button Type="reset" OnClick="@(CopySzybyToClipboard)">
             @uwagaKopiuj
         </Button>
         <Button Type="reset" OnClick="@(ExportToExcel)">
@@ -132,25 +132,29 @@
     <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
     <Divider></Divider>
 
-    @if (kantowkaDoZlecen == null)
+    @if (szybyDoZlecen == null)
     {
         <p><em>Czekaj na załadowanie danych...</em></p>
     }
     else
     {
         <ul>
-            <Table TItem="KantowkaDoZlecen" DataSource="@kantowkaDoZlecen">
+            <Table TItem="SzybyDoZlecen" DataSource="@szybyDoZlecen">
                 <Column Title="ID" @bind-Field="@context.Id" Hidden />
-                <Column Title="Gatunek" @bind-Field="@context.GatunekKantowki" Sortable OnFilter="(a, b) => a == b" Filterable />
-                <Column Title="Przekrój" @bind-Field="@context.Przekroj" Sortable OnFilter="(a, b) => a == b" Filterable />
-                <Column Title="Opis" @bind-Field="@context.NazwaProduktu" Sortable />
-                <Column Title="Długość na gotowo" @bind-Field="@context.DlugoscNaGotowo" Sortable OnFilter="(a, b) => a == b" Filterable />
-                <Column Title="Długość na gotowo cd." @bind-Field="@context.DlugoscNaGotowoGrupa" Sortable OnFilter="(a, b) => a == b" Filterable />
-                <Column Title="Długość zamówiona" @bind-Field="@context.DlugoscZamawiana" Sortable OnFilter="(a, b) => a == b" Filterable />
+                <Column Title="Szerokość" @bind-Field="@context.Szerokosc" Sortable OnFilter="(a, b) => a == b" Filterable />
+                <Column Title="Wysokość" @bind-Field="@context.Wysokosc" Sortable OnFilter="(a, b) => a == b" Filterable />
+                <Column Title="Opis szyby" @bind-Field="@context.RodzajSzyby" Sortable />
+                <Column Title="Rodzaj ramki" @bind-Field="@context.RodzajRamki" Sortable OnFilter="(a, b) => a == b" Filterable />
+                <Column Title="Opis" @bind-Field="@context.NazwaProduktu" Sortable OnFilter="(a, b) => a == b" Filterable />
                 <Column Title="Ilość sztuk" @bind-Field="@context.IloscSztuk" Sortable />
-                <Column Title="Wykoż. materiał ze stanu" TData="KantowkaDoZlecen">
+                <Column Title="Czy kształt" TData="SzybyDoZlecen">
                     <Template>
-                        <Checkbox @bind-Checked="@context.MaterialZeStanMagazyn" OnChange="(e)=>Handle(e, context.Id)" />
+                        <Checkbox @bind-Checked="@context.CzyKsztalt" OnChange="(e)=>Handle(e, context.Id)" />
+                    </Template>
+                </Column>
+                <Column Title="Poz. dostarczono" TData="SzybyDoZlecen">
+                    <Template>
+                        <Checkbox @bind-Checked="@context.PozDostarczono" OnChange="(e)=>Handle(e, context.Id)" />
                     </Template>
                 </Column>
                 <Column Title="Uwagi" @bind-Field="@context.Uwagi" Sortable />
@@ -185,14 +189,13 @@
 
         <div style="overflow: auto; width: 100%; height: 200px">
 
-            <h7>Wybierz plik ze stolcad z listą materiałów C:\STOLCAD\Rob\PrnPdf [PDF Reader] (wegeneruj listę cięc)</h7>
+            <h7>Wybierz plik ze stolcad z listą materiałów C:\STOLCAD\Rob\PrnPdf [PDF Reader] (zestawienie szyb)</h7>
             <InputFile OnChange="HandleFileSelected" />
 
             @if (zestawienie != null)
             {
                 <div>
-                    <Button Type="@ButtonType.Primary" Style="width:49%" Disabled="@isNotDisabled" OnClick="SaveAll">Zapisz wyszystkie</Button>
-                    <Button Type="@ButtonType.Primary" Style="width:49%" Disabled="@isNotDisabled" OnClick="SaveAllGrupa">Zapisz wyszystkie oraz grupuj</Button>
+                    <Button Type="@ButtonType.Primary" Style="width:99%" Disabled="@isNotDisabled" OnClick="SaveAll">Zapisz wyszystkie</Button>
                 </div>
 
                 <div>
@@ -205,26 +208,26 @@
                         <thead>
                             <tr>
                                 <th>Lp</th>
-                                <th>Symbol</th>
-                                <th>Przekrój</th>
+                                <th>Szerokość</th>
+                                <th>Wysokość</th>
                                 <th>Ilość</th>
-                                <th>Wymiar</th>
-                                <th>Kąt</th>
-                                <th>Wymiar Zamowiony</th>
+                                <th>Rodz. Szyby</th>
+                                <th>Rodz. Ramki</th>
+                                <th>Powierchnia</th>
                                 <th>Uwagi</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var item in zestawienie.ListaCieci)
+                            @foreach (var item in zestawienie.ListaSzyb)
                             {
                                 <tr>
                                     <td>@item.Lp</td>
-                                    <td>@item.Symbol</td>
-                                    <td>@item.Kolor</td>
+                                    <td>@item.Szerokosc</td>
+                                    <td>@item.Wysokosc</td>
                                     <td>@item.Ilosc</td>
-                                    <td>@item.Wymiar</td>
-                                    <td>@item.Kat</td>
-                                    <td>@item.WymiarNaZamowienie</td>
+                                    <td>@item.RodzajSzyby</td>
+                                    <td>@item.RodzajRamki</td>
+                                    <td>@item.Powierzchnia</td>
                                     <td>@item.Uwagi</td>
                                 </tr>
                             }
@@ -239,58 +242,58 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Kantówki dodaj / zmień</h5>
+                    <h5 class="modal-title">Szyby dodaj / zmień</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="HandleCancel">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
                 <div class="modal-body">
-                    <AntDesign.Form Model="@kantowka" Layout="FormLayout.Horizontal" OnFinish="@HandleSubmit">
+                    <AntDesign.Form Model="@szyby" Layout="FormLayout.Horizontal" OnFinish="@HandleSubmit">
                         <div class="row">
                             <!-- Kolumna 1 -->
                             <div class="col-md-6">
-                                <AntDesign.FormItem Label="Gatunek drewna">
-                                    <AntDesign.Input @bind-Value="kantowka.GatunekKantowki" MaxLength="80" Required Placeholder="Podaj gatunek kantówki" />
+                                <AntDesign.FormItem Label="Szerokość">
+                                    <AntDesign.InputNumber @bind-Value="szyby.Szerokosc" Min="50" Required />
                                 </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Przekrój">
-                                    <AntDesign.Input @bind-Value="kantowka.Przekroj" Required />
+                                <AntDesign.FormItem Label="Wysokość">
+                                    <AntDesign.InputNumber @bind-Value="szyby.Wysokosc"  Min="50" Required />
                                 </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Nazwa Produktu">
-                                    <AntDesign.Input @bind-Value="kantowka.NazwaProduktu" Required />
+                                <AntDesign.FormItem Label="Rodzaj szyby">
+                                    <AntDesign.Input @bind-Value="szyby.RodzajSzyby" Required Placeholder="Podaj rodzaj szyby" />
                                 </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Kod Produktu">
-                                    <AntDesign.Input @bind-Value="kantowka.KodProduktu" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Długość wyliczona">
-                                    <AntDesign.Input @bind-Value="kantowka.DlugoscNaGotowo" OnBlur="LiczDlugoscZam" />
+                                <AntDesign.FormItem Label="Rodzaj ramki">
+                                    <AntDesign.Input @bind-Value="szyby.RodzajRamki" Required Placeholder="Podaj rodzaj ramki" />
                                 </AntDesign.FormItem>
                                 <AntDesign.FormItem Label="Ilość sztuk">
-                                    <AntDesign.Input @bind-Value="kantowka.IloscSztuk" />
+                                    <AntDesign.InputNumber @bind-Value="szyby.IloscSztuk" Min="1" Required />
+                                </AntDesign.FormItem>
+                    @*             <AntDesign.FormItem Label="Czy kształy">
+                                    <Switch @bind-Value="@context.CzyKsztalt" />
+                                </AntDesign.FormItem> *@
+                                <AntDesign.FormItem Label="Czy kształt">
+                                    <AntDesign.Checkbox @bind-Value="szyby.CzyKsztalt" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Czy dostarczono">
+                                    <Switch @bind-Value="@context.PozDostarczono" />
                                 </AntDesign.FormItem>
                             </div>
 
                             <!-- Kolumna 2 -->
                             <div class="col-md-6">
                                 <AntDesign.FormItem Label="Uwagi">
-                                    <AntDesign.Input @bind-Value="kantowka.Uwagi" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Długość zamówiona">
-                                    <AntDesign.Input @bind-Value="kantowka.DlugoscZamawiana" />
+                                    <AntDesign.Input @bind-Value="szyby.Uwagi" />
                                 </AntDesign.FormItem>
                                 <AntDesign.FormItem Label="Data Zamówienia">
-                                    <AntDesign.Input @bind-Value="kantowka.DataZamowienia" Required />
+                                    <DatePicker @bind-Value="szyby.DataZamowienia" Required />
                                 </AntDesign.FormItem>
                                 <AntDesign.FormItem Label="Data Realizacji">
-                                    <AntDesign.Input @bind-Value="kantowka.DataRealizacji" Required />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Materiał jest na stanie magazynowy">
-                                    <AntDesign.Checkbox @bind-Value="kantowka.MaterialZeStanMagazyn" />
+                                    <DatePicker @bind-Value="szyby.DataRealizacji" Required />
                                 </AntDesign.FormItem>
                                 <AntDesign.FormItem Label="Kto Zapisał">
-                                    <AntDesign.Input @bind-Value="kantowka.KtoZapisal" Required />
+                                    <AntDesign.Input @bind-Value="szyby.KtoZapisal" Required />
                                 </AntDesign.FormItem>
                                 <AntDesign.FormItem Label="Ostatnia Zmiana">
-                                    <AntDesign.Input @bind-Value="kantowka.OstatniaZmiana" />
+                                    <AntDesign.Input @bind-Value="szyby.OstatniaZmiana" ReadOnly />
                                 </AntDesign.FormItem>
                             </div>
                         </div>
@@ -316,10 +319,10 @@
 
     private string? pdfContent;
 
-    private List<KantowkaDoZlecen>? kantowkaDoZlecen;
-    private List<KantowkaDoZlecen>? oryginalkantowkaDoZlecen;
+    private List<SzybyDoZlecen>? szybyDoZlecen;
+    private List<SzybyDoZlecen>? oryginalSzybyDoZlecen;
 
-    private GEORGE.Client.Pages.PDF.Zestawienie? zestawienie;
+    private GEORGE.Client.Pages.PDF.ZestawienieSzyb? zestawienie;
 
     private bool _visible = false;
     private string display = "none;";
@@ -327,9 +330,9 @@
 
     private long cid = -1;
 
-    private KantowkaDoZlecen kantowka = new KantowkaDoZlecen();
+    private SzybyDoZlecen szyby = new SzybyDoZlecen();
 
-    private List<KantowkaDoZlecen>? kantowki;
+    private List<SzybyDoZlecen>? szybyall;
 
     private string uwagaKopiuj = "Kopiuj do schowka dane";
 
@@ -353,10 +356,10 @@
 
         try
         {
-            kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecen>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
+            szybyDoZlecen = await Http.GetFromJsonAsync<List<SzybyDoZlecen>>($"api/SzybyDoZlecen/rowid/{RowIdZlecenia}");
 
-            kantowka = new KantowkaDoZlecen();
-            kantowka.Id = 0;
+            szyby = new SzybyDoZlecen();
+            szyby.Id = 0;
         }
         catch (Exception ex)
         {
@@ -366,25 +369,25 @@
 
     public async Task ExportToExcel()
     {
-        if (kantowkaDoZlecen != null)
+        if (szybyDoZlecen != null)
         {
-            var jsonData = JsonSerializer.Serialize(kantowkaDoZlecen);
+            var jsonData = JsonSerializer.Serialize(szybyDoZlecen);
             await JSRuntime.InvokeVoidAsync("saveAsExcel", jsonData);
         }
     }
 
     public async Task ExportSelectedColumnsToExcel()
     {
-        if (kantowkaDoZlecen != null)
+        if (szybyDoZlecen != null)
         {
-            var selectedData = kantowkaDoZlecen.Select(k => new
+            var selectedData = szybyDoZlecen.Select(k => new
             {
-                k.GatunekKantowki,
-                k.Przekroj,
-                k.NazwaProduktu,
-                k.DlugoscZamawiana,
-                k.DlugoscNaGotowoGrupa,
-                k.IloscSztuk
+                k.Szerokosc,
+                k.Wysokosc,
+                k.RodzajSzyby,
+                k.RodzajRamki,
+                k.IloscSztuk,
+                k.CzyKsztalt
             });
 
             var jsonData = JsonSerializer.Serialize(selectedData);
@@ -393,27 +396,19 @@
     }
 
 
-    private async Task CopyKantowkiToClipboard()
+    private async Task CopySzybyToClipboard()
     {
-        if (kantowkaDoZlecen == null || kantowkaDoZlecen.Count == 0) return;
+        if (szybyDoZlecen == null || szybyDoZlecen.Count == 0) return;
 
-        var kantowkiText = string.Join("\n", kantowkaDoZlecen.Select(k =>
-            $"RowIdZlecenia: {k.RowIdZlecenia}, GatunekKantowki: {k.GatunekKantowki}, Przekroj: {k.Przekroj}, NazwaProduktu: {k.NazwaProduktu}, KodProduktu: {k.KodProduktu}, Uwagi: {k.Uwagi}, DlugoscZamawiana: {k.DlugoscZamawiana}, DlugoscNaGotowo: {k.DlugoscNaGotowo}, IloscSztuk: {k.IloscSztuk}, DataZamowienia: {k.DataZamowienia}, DataRealizacji: {k.DataRealizacji}, DataZapisu: {k.DataZapisu}, KtoZapisal: {k.KtoZapisal}, OstatniaZmiana: {k.OstatniaZmiana}"
+        var kantowkiText = string.Join("\n", szybyDoZlecen.Select(k =>
+            $"RowIdZlecenia: {k.RowIdZlecenia}, Szrokość: {k.Szerokosc}, Wysokość: {k.Wysokosc}, Rozaj Szyby: {k.RodzajSzyby}, Rodzaj Ramki: {k.RodzajRamki}, Ilość: {k.IloscSztuk}, Uwagi: {k.Uwagi}, DataZamowienia: {k.DataZamowienia}, DataRealizacji: {k.DataRealizacji}, DataZapisu: {k.DataZapisu}, KtoZapisal: {k.KtoZapisal}, OstatniaZmiana: {k.OstatniaZmiana}"
         ));
 
         await JSRuntime.InvokeVoidAsync("copyToClipboard", kantowkiText);
 
         uwagaKopiuj = "Dane skopiowano do schowka";
 
-       await _message.Success("Dane skopiowano do schowka");
-    }
-
-    private void LiczDlugoscZam()
-    {
-        if (!string.IsNullOrWhiteSpace(kantowka.DlugoscNaGotowo.ToString()))
-        {
-            kantowka.DlugoscZamawiana = int.Parse(PdfDataParser.DlugoscHandlowa(kantowka.DlugoscNaGotowo.ToString()));
-        }
+        await _message.Success("Dane skopiowano do schowka");
     }
 
     private async void Handle(bool value, long idr)
@@ -426,13 +421,13 @@
     {
         //  var aktualizacja = new { Id = idr, MaterialZeStanMagazyn = nowyStan };
 
-        var response = await Http.PutAsJsonAsync($"api/kantowkaDoZlecen/{idr}/updateMaterialZeStanMagazyn", nowyStan);
+        var response = await Http.PutAsJsonAsync($"api/szybyDoZlecen/{idr}/updateCzyKsztalt", nowyStan);
 
         if (response.IsSuccessStatusCode)
         {
-            if (kantowkaDoZlecen != null)
+            if (szybyDoZlecen != null)
             {
-                oryginalkantowkaDoZlecen = kantowkaDoZlecen.DeepCopyList();
+                oryginalSzybyDoZlecen = szybyDoZlecen.DeepCopyList();
             }
         }
         else
@@ -454,7 +449,8 @@
             }
 
             pdfContent = PdfReaderService.ReadPdfTable(path);
-            zestawienie = PdfDataParser.ParsePdfData(pdfContent);
+     
+            zestawienie = PdfDataParserSz.ParsePdfDataSzyby(pdfContent);
 
             StateHasChanged();
 
@@ -464,45 +460,42 @@
 
     private async Task SaveAll()
     {
-        kantowki = new List<KantowkaDoZlecen>();
+        szybyall = new List<SzybyDoZlecen>();
 
         if (zestawienie == null) return;
 
-        @foreach (var item in zestawienie.ListaCieci)
+        @foreach (var item in zestawienie.ListaSzyb)
         {
 
-            var kantowka = new KantowkaDoZlecen
+            var szyby = new SzybyDoZlecen
                 {
                     RowIdZlecenia = RowIdZlecenia,
-                    GatunekKantowki = item.Uwagi,
-                    Przekroj = item.Kolor,
-                    NazwaProduktu = item.Symbol,
-                    KodProduktu = "",
+                    Szerokosc = string.IsNullOrEmpty(item.Szerokosc) ? 0 : float.Parse(item.Szerokosc),
+                    Wysokosc = string.IsNullOrEmpty(item.Wysokosc) ? 0 : float.Parse(item.Wysokosc),
+                    RodzajSzyby = item.RodzajSzyby,
+                    RodzajRamki = item.RodzajRamki,
                     Uwagi = "Dane zaimortowano z PDF",
-                    DlugoscZamawiana = int.Parse(item.WymiarNaZamowienie),
-                    DlugoscNaGotowo = int.Parse(item.Wymiar),
-                    DlugoscNaGotowoGrupa = item.Wymiar,
-                    IloscSztuk = int.Parse(item.Ilosc),
+                    IloscSztuk = string.IsNullOrEmpty(item.Ilosc) ? 0 : int.Parse(item.Ilosc),
                     DataZamowienia = DateTime.Now,
                     DataRealizacji = DateTime.Now.AddDays(14),
                     DataZapisu = DateTime.Now,
                     KtoZapisal = user,
                 };
 
-            kantowki.Add(kantowka);
+            szybyall.Add(szyby);
         }
 
         try
         {
             // Wyślij dane do API
-            var response = await Http.PostAsJsonAsync("api/kantowkaDoZlecen/save-all", kantowki);
+            var response = await Http.PostAsJsonAsync("api/szybyDoZlecen/save-all", szybyall);
 
             if (response.IsSuccessStatusCode)
             {
                 // Operacja zakończona sukcesem
                 Console.WriteLine("Dane zostały zapisane pomyślnie.");
 
-                kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecen>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
+                szybyDoZlecen = await Http.GetFromJsonAsync<List<SzybyDoZlecen>>($"api/SzybyDoZlecen/rowid/{RowIdZlecenia}");
 
                 zestawienie = null;
             }
@@ -518,79 +511,20 @@
             Console.WriteLine($"Wystąpił błąd: {ex.Message}");
         }
     }
-
-    private async Task SaveAllGrupa()
-    {
-        if (zestawienie == null) return;
-
-        // Grupuj dane według GatunekKantowki, Przekroj i DlugoscZamawiana
-        var groupedData = zestawienie.ListaCieci
-            .GroupBy(item => new
-            {
-                GatunekKantowki = item.Uwagi,
-                Przekroj = item.Kolor,
-                DlugoscZamawiana = int.Parse(item.WymiarNaZamowienie)
-            })
-            .Select(g => new KantowkaDoZlecen
-                {
-                    RowIdZlecenia = RowIdZlecenia,
-                    GatunekKantowki = g.Key.GatunekKantowki,
-                    Przekroj = g.Key.Przekroj,
-                    NazwaProduktu = g.FirstOrDefault()?.Symbol ?? "",
-                    KodProduktu = "",
-                    Uwagi = "Dane zaimortowano z PDF",
-                    DlugoscZamawiana = g.Key.DlugoscZamawiana,
-                    DlugoscNaGotowo = g.FirstOrDefault()?.Wymiar != null ? int.Parse(g.FirstOrDefault().Wymiar) : 0,
-                    DlugoscNaGotowoGrupa = string.Join("; ", g.Select(item => item.Wymiar)),
-                    IloscSztuk = g.Sum(item => int.Parse(item.Ilosc)),
-                    DataZamowienia = DateTime.Now,
-                    DataRealizacji = DateTime.Now.AddDays(14),
-                    DataZapisu = DateTime.Now,
-                    KtoZapisal = user
-                })
-            .ToList();
-
-        try
-        {
-            // Wyślij pogrupowane dane do API
-            var response = await Http.PostAsJsonAsync("api/kantowkaDoZlecen/save-all", groupedData);
-
-            if (response.IsSuccessStatusCode)
-            {
-                // Operacja zakończona sukcesem
-                Console.WriteLine("Dane zostały zapisane pomyślnie.");
-
-                kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecen>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
-
-                zestawienie = null;
-            }
-            else
-            {
-                // Obsłuż błąd
-                Console.WriteLine("Wystąpił błąd podczas zapisywania danych.");
-            }
-        }
-        catch (Exception ex)
-        {
-            // Obsłuż wyjątek
-            Console.WriteLine($"Wystąpił błąd: {ex.Message}");
-        }
-    }
-
 
     private async Task HandleSubmit()
     {
 
         if (_visible == false) return;
 
-        kantowka.Przekroj = kantowka.Przekroj.ToUpper();
+        szyby.RodzajSzyby = szyby.RodzajSzyby.ToUpper();
 
         HttpResponseMessage response;
 
-        if (kantowka.Id == 0)
+        if (szyby.Id == 0)
         {
             // Sprawdź unikalność NumerRodzajuKart
-            var responsedbl = kantowkaDoZlecen.Where(e => e.RowIdZlecenia == kantowka.RowIdZlecenia);
+            var responsedbl = szybyDoZlecen.Where(e => e.RowIdZlecenia == szyby.RowIdZlecenia);
 
             if (responsedbl != null && responsedbl.Count() > 0)
             {
@@ -600,34 +534,34 @@
                 // return;
             }
 
-            response = await Http.PostAsJsonAsync("api/KantowkaDoZlecen", kantowka);
+            response = await Http.PostAsJsonAsync("api/SzybyDoZlecen", szyby);
         }
         else
         {
-            response = await Http.PutAsJsonAsync($"api/KantowkaDoZlecen/{kantowka.Id}", kantowka);
+            response = await Http.PutAsJsonAsync($"api/SzybyDoZlecen/{szyby.Id}", szyby);
 
-            if (kantowkaDoZlecen != null) oryginalkantowkaDoZlecen = kantowkaDoZlecen.DeepCopyList();
+            if (szybyDoZlecen != null) oryginalSzybyDoZlecen = szybyDoZlecen.DeepCopyList();
         }
 
         if (response.IsSuccessStatusCode)
         {
-            if (kantowka.Id == 0)
+            if (szyby.Id == 0)
             {
-                kantowkaDoZlecen.Add(kantowka); // Dodaj nowe kantowka do listy
+                szybyDoZlecen.Add(szyby); // Dodaj nowe szyby do listy
             }
             else
             {
-                // Znajdź istniejące kantowka i zaktualizuj je
-                var index = kantowkaDoZlecen.FindIndex(z => z.Id == kantowka.Id);
+                // Znajdź istniejące szyby i zaktualizuj je
+                var index = szybyDoZlecen.FindIndex(z => z.Id == szyby.Id);
 
                 if (index != -1)
                 {
-                    kantowkaDoZlecen[index] = kantowka;
+                    szybyDoZlecen[index] = szyby;
                 }
             }
 
             _visible = false;
-            kantowka = new KantowkaDoZlecen(); // Zresetuj formularz
+            szyby = new SzybyDoZlecen(); // Zresetuj formularz
 
             await HideDialog();
 
@@ -636,22 +570,22 @@
         else
         {
             // Obsługa błędów
-            Console.WriteLine("Błąd podczas zapisywania rodzaju kantowka - źródło RAZOR");
+            Console.WriteLine("Błąd podczas zapisywania rodzaju szyby - źródło RAZOR");
         }
     }
 
     public async Task deleteRow(long id)
     {
-        if (kantowkaDoZlecen == null) return;
+        if (szybyDoZlecen == null) return;
 
         try
         {
-            var response = await Http.DeleteAsync($"api/KantowkaDoZlecen/{id}");
+            var response = await Http.DeleteAsync($"api/SzybyDoZlecen/{id}");
 
             if (response.IsSuccessStatusCode)
             {
                 // Usunięcie rekordu z listy po pomyślnym usunięciu z serwera
-                kantowkaDoZlecen = kantowkaDoZlecen.Where(r => r.Id != id).ToList();
+                szybyDoZlecen = szybyDoZlecen.Where(r => r.Id != id).ToList();
                 Console.WriteLine("Rekord został pomyślnie usunięty.");
             }
             else
@@ -669,9 +603,9 @@
     public async Task editRow(long id)
     {
         //listOfData = listOfData.Where(d => d.Id != id).ToArray();
-        if (kantowkaDoZlecen == null) return;
+        if (szybyDoZlecen == null) return;
 
-        oryginalkantowkaDoZlecen = kantowkaDoZlecen.DeepCopyList();
+        oryginalSzybyDoZlecen = szybyDoZlecen.DeepCopyList();
 
         // Logika edycji
         if (_visible)
@@ -681,16 +615,16 @@
         }
         else
         {
-            kantowka = new KantowkaDoZlecen();
+            szyby = new SzybyDoZlecen();
 
-            var listOfData = kantowkaDoZlecen.Where(d => d.Id == id).ToArray();
+            var listOfData = szybyDoZlecen.Where(d => d.Id == id).ToArray();
 
-            // Pobierz kantowka na podstawie indeksu wiersza
+            // Pobierz szyby na podstawie indeksu wiersza
             if (listOfData != null && listOfData.Count() > 0)
             {
                 cid = id;
 
-                kantowka = listOfData[0];
+                szyby = listOfData[0];
 
                 _visible = true;
 
@@ -698,7 +632,7 @@
             }
 
             // Wyświetl numer zamówienia w konsoli
-            Console.WriteLine(kantowka.Przekroj);
+            Console.WriteLine(szyby.RodzajSzyby);
         }
 
     }
@@ -726,7 +660,7 @@
 
     public async Task ShowDialogAddNew()
     {
-        kantowka = new KantowkaDoZlecen();
+        szyby = new SzybyDoZlecen();
         cid = -1;
 
         display = "block";
@@ -745,9 +679,9 @@
 
     private async Task HideDialog()
     {
-        if (cid > 0 && kantowkaDoZlecen != null)
+        if (cid > 0 && szybyDoZlecen != null)
         {
-            kantowkaDoZlecen = oryginalkantowkaDoZlecen;
+            szybyDoZlecen = oryginalSzybyDoZlecen;
         }
 
         cid = -1;
@@ -784,7 +718,7 @@
             return;
         }
         
-        string nazwaTabeli = "KantowkaDoZlecen";
+        string nazwaTabeli = "SzybyDoZlecen";
 
         Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");
 

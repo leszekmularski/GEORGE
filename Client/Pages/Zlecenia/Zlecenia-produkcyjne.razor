@@ -19,6 +19,10 @@
         color: blue;
     }
 
+    .custom-linkszy {
+        color: darkblue;
+    }
+
     .highlighted-background {
         background-color: white;
         overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
@@ -131,7 +135,8 @@ else
                ScrollX="1950" PageSize="@iloscRekordow" PageIndex="@numerStrony" Size="TableSize.Small">
             <ActionColumn Title="Materiały">
                 <a @onclick="() => DodajKantowke(context)" class="custom-link">Kantówka</a>
-                <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">Szczegóły</a>
+                <a @onclick="() => DodajSzybe(context)" class="custom-linkszy">Szyby</a>
+                <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">T.W.Z / Pozycje</a>
                 <a @onclick="() => FileEdit(context)">Pliki</a>
             </ActionColumn>
             <Column Title="Status" TData="string">
@@ -933,6 +938,11 @@ else
     private void DodajKantowke(ZleceniaProdukcyjne row)
     {
         navigationManager.NavigateTo($"/Kantowka-do-zlecen/{row.RowId}");
+    }
+
+    private void DodajSzybe(ZleceniaProdukcyjne row)
+    {
+        navigationManager.NavigateTo($"/Szyby-do-zlecen/{row.RowId}");
     }
 
     private async Task deleteFile(long id, string fileUrl, string roIdZlec)

@@ -22,6 +22,7 @@ builder.Services.AddSingleton<DialogService>();
 
 builder.Services.AddScoped<PdfReaderService>();
 builder.Services.AddScoped<PdfDataParser>();
+builder.Services.AddScoped<PdfDataParserSzyby>();
 
 // Konfiguracja niestandardowej weryfikacji certyfikatu
 ServicePointManager.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;

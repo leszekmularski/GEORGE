@@ -18,6 +18,7 @@ namespace GEORGE.Server
         public DbSet<RodzajeKartInstrukcyjnych> RodzajeKartInstrukcyjnych { get; set; }
         public DbSet<PlikiZlecenProdukcyjnych> PlikiZlecenProdukcyjnych { get; set; }   
         public DbSet<KantowkaDoZlecen>? KantowkaDoZlecen { get; set; }
+        public DbSet<SzybyDoZlecen>? SzybyDoZlecen { get; set; }
         public DbSet<LinieProdukcyjne>? LinieProdukcyjne { get; set; }
         public DbSet<ZleceniaNaLinii>? ZleceniaNaLinii { get; set; }
         public DbSet<ZleceniaCzasNaLinieProd>? ZleceniaCzasNaLinieProd { get; set; }
