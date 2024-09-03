@@ -191,7 +191,8 @@
             @if (zestawienie != null)
             {
                 <div>
-                    <Button Type="@ButtonType.Primary" Style="width:49%" Disabled="@isNotDisabled" OnClick="SaveAll">Zapisz wyszystkie</Button>
+                    <Divider></Divider>
+                    <Button Type="@ButtonType.Primary" Style="width:49%" Disabled="@isNotDisabled" OnClick="SaveAll">Zapisz wyszystkie z poniżeszej tabeli</Button>
                     <Button Type="@ButtonType.Primary" Style="width:49%" Disabled="@isNotDisabled" OnClick="SaveAllGrupa">Zapisz wyszystkie oraz grupuj</Button>
                 </div>
 

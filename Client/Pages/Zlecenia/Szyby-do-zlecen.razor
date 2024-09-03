@@ -150,12 +150,12 @@
                 <Column Title="Ilość sztuk" @bind-Field="@context.IloscSztuk" Sortable />
                 <Column Title="Czy kształt" TData="SzybyDoZlecen">
                     <Template>
-                        <Checkbox @bind-Checked="@context.CzyKsztalt" OnChange="(e)=>Handle(e, context.Id)" />
+                        <Checkbox @bind-Checked="@context.CzyKsztalt" OnChange="(e)=>Handle(e, context.Id)" Disabled="isNotDisabled" />
                     </Template>
                 </Column>
                 <Column Title="Poz. dostarczono" TData="SzybyDoZlecen">
                     <Template>
-                        <Checkbox @bind-Checked="@context.PozDostarczono" OnChange="(e)=>Handle(e, context.Id)" />
+                        <Checkbox @bind-Checked="@context.PozDostarczono" OnChange="(e)=>Handle(e, context.Id)" Disabled="isNotDisabled" />
                     </Template>
                 </Column>
                 <Column Title="Uwagi" @bind-Field="@context.Uwagi" Sortable />
@@ -189,16 +189,22 @@
         </ul>
 
         <div style="overflow: auto; width: 100%; height: 200px">
+            <div>
+                <label for="fileInput" style="font-size:1em; font-weight:bold;">
+                    Wybierz plik ze Stolcad z listą materiałów (C:\STOLCAD\Rob\PrnPdf - zestawienie szyb):
+                </label>
+                <InputFile id="fileInput" OnChange="HandleFileSelected" />
 
-            <h7>Wybierz plik ze stolcad z listą materiałów C:\STOLCAD\Rob\PrnPdf [PDF Reader] (zestawienie szyb)</h7>
-            <InputFile OnChange="HandleFileSelected" />
-            <br/>
-            <button style="font-size:0.8em; width:60%; height:38px" @onclick="() => PasteStolcad()">Wklej szyby z STOLCAD [ODWOŁANIA]</button>
+                <Button Type="@ButtonType.Link" style="font-size:1.2em; height:30px; margin-top:10px; font-style:revert-layer; color:brown" @onclick="() => PasteStolcad()">
+                    Wklej ze schowka szyby z STOLCAD [ODWOŁANIA]
+                </Button>
+            </div>
 
             @if (zestawienie != null)
             {
                 <div>
-                    <Button Type="@ButtonType.Primary" Style="width:99%" Disabled="@isNotDisabled" OnClick="SaveAll">Zapisz wyszystkie</Button>
+                    <Divider></Divider>
+                    <Button Type="@ButtonType.Primary" Style="width:99%" Disabled="@isNotDisabled" OnClick="SaveAll">Zapisz wyszystkie zapisane z poniższej tabeli</Button>
                 </div>
 
                 <div>
