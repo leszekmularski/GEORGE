@@ -31,69 +31,123 @@ namespace GEORGE.Client.Pages.PDF
     {
         public ZestawienieSzyb ParsePdfDataSzyby(string pdfText)
         {
-            pdfText = pdfText.ToUpper();
+           // pdfText = pdfText.ToUpper();
 
             var zestawienieSz = new ZestawienieSzyb();
             var lines = pdfText.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-            var szybyList = new List<GlassListItem>();
-
-            int jestUG = 0;
+            string liniaZPoprawnymiDanymi = "";
+            int foundUG = 0;
 
             foreach (var line in lines)
             {
-                jestUG++;
-                Console.WriteLine($"line: {line} {jestUG}");  
-                
-                if(jestUG  == 6)
-                { 
-                  var items = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                // Usuwanie dodatkowych spacji
+                var items = Regex.Split(liniaZPoprawnymiDanymi.Trim(), @"\s+");
 
-                    if (items.Length >= 6) // Zakładam, że linia musi mieć co najmniej 10 elementów
-                    {
-                        try
-                        {
-                            var cutListSz = new GlassListItem
-                            {
-                                Lp = items[0],
-                                Wysokosc = items[0],
-                                Szerokosc = items[1],
-                                Ilosc = items[2],
-                                 RodzajSzyby = string.Join(" ", items[3], items[4], items[5], items[6]), // Scalanie elementów rodzaju szyby
-                                //RodzajRamki = string.Join(" ", items.Skip(7).Take(3)), // Scalanie elementów rodzaju ramki
-                                //Powierzchnia = items[8],
-                                Uwagi = line // Cała linia jako uwagi
-                            };
+                Console.WriteLine($"liniaZPoprawnymiDanymi: {liniaZPoprawnymiDanymi} bierząca: {line}"); 
 
-                            // Dodajemy element do listy tylko, jeśli "Ilosc" jest poprawnym numerem
-                            if (int.TryParse(items[2], out _))
-                            {
-                                zestawienieSz.ListaSzyb.Add(cutListSz);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Błąd w parsowaniu linii: {ex.Message}");
-                        }
-                    }
-                    else
+                if (items.Length >= 7 && foundUG == 2) // Minimalna liczba elementów
+                {
+                    try
                     {
-                        Console.WriteLine($"Za mało elementów w linii: {line}");
+                        // Przygotowanie elementu GlassListItem
+                        var cutListSz = new GlassListItem
+                        {
+                            Lp = (zestawienieSz.ListaSzyb.Count() + 1).ToString(),// items[0],
+                            Wysokosc = items[0], //items[2],
+                            Szerokosc = items[1], //items[1],
+                            Ilosc = items[2], //items[3],
+                            RodzajSzyby = string.Join(" ", items.Skip(3).Take(items.Length - 4)), // Łączenie elementów rodzaju szyby
+                            Powierzchnia = items.Length >= 8 ? items[items.Length - 1] : "0", // Powierzchnia, jeśli dostępna
+                            RodzajRamki = line, // Ramka, jeśli dostępna
+                            Uwagi = items.Length >= 9 ? items.Last() : "" // Uwagi, jeśli dostępne
+                        };
+
+                        zestawienieSz.ListaSzyb.Add(cutListSz);
                     }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Błąd w parsowaniu linii: {ex.Message}");
+                    }
+
+                    liniaZPoprawnymiDanymi = "";
+                    foundUG = 0;
+                }
+                else
+                {
+                    Console.WriteLine($"Za mało elementów w linii: {line}");
                 }
 
-                // Sprawdzamy, czy linia zawiera kluczowy identyfikator (np. "UG=")
+                // Wykrywanie ramki międzyszybowej
+                if (foundUG == 2)
+                {
+                    liniaZPoprawnymiDanymi += " " + line.Trim();
+                    Console.WriteLine($"foundUG == 2: {liniaZPoprawnymiDanymi}");
+                }
+
+
+                // Wykrywanie powierzchni
+                if (foundUG == 1)
+                {
+                    liniaZPoprawnymiDanymi += " " + line.Trim();
+                    Console.WriteLine($"foundUG == 1: {liniaZPoprawnymiDanymi}");
+                    foundUG++;
+                }
+
+                // Sprawdzanie, czy linia zawiera "UG="
                 if (line.ToUpper().Contains("UG="))
                 {
-                    jestUG = 0;
-                    Console.WriteLine($"jestUG = 0");
+                    liniaZPoprawnymiDanymi += " " + line.Trim();
+                    Console.WriteLine($"UG=: {liniaZPoprawnymiDanymi}");
+                    foundUG++;
                 }
             }
 
             Console.WriteLine($"zestawienieSz ListaSzyb.Count: {zestawienieSz.ListaSzyb.Count()}");
-
             return zestawienieSz;
         }
 
+
+        public ZestawienieSzyb ParseClipboardData(string clipboardText)
+        {
+            var zestawienieSz = new ZestawienieSzyb();
+            var lines = clipboardText.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var line in lines.Skip(2)) // Pomijamy pierwsze dwie linie (Data/Godzina i nagłówki)
+            {
+                var items = line.Split(new[] { '\t' }, StringSplitOptions.RemoveEmptyEntries);
+
+                if (items.Length >= 9) // Zakładamy, że linia musi mieć co najmniej 10 elementów
+                {
+                    try
+                    {
+                        var glassItem = new GlassListItem
+                        {
+                            RodzajSzyby = items[0].Trim(),
+                            RodzajRamki = items[items.Count() - 1].Trim(),
+                            Ilosc = items[1].Trim(),
+                            Szerokosc = items[2].Trim(),
+                            Wysokosc = items[3].Trim(),
+                            Powierzchnia = items[4].Trim(),
+                            Lp = items[6].Trim(),
+                            Uwagi = line//items[9].Trim() // Przyjmuję, że ostatni element jest opisem, ale możesz to dostosować
+                        };
+
+                        zestawienieSz.ListaSzyb.Add(glassItem);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Błąd w parsowaniu linii: {ex.Message}");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"Za mało elementów w linii: {line}");
+                }
+            }
+
+            Console.WriteLine($"ZestawienieSz ListaSzyb.Count: {zestawienieSz.ListaSzyb.Count()}");
+            return zestawienieSz;
+        }
 
     }
 }

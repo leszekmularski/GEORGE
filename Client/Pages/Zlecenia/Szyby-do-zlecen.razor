@@ -11,6 +11,7 @@
 @inject Utilities.ILocalStorage LocalStorage
 @using System.Net;
 @using System.Text.Json;
+@inject INotificationService _notice
 
 
 <!DOCTYPE html>
@@ -191,6 +192,8 @@
 
             <h7>Wybierz plik ze stolcad z listą materiałów C:\STOLCAD\Rob\PrnPdf [PDF Reader] (zestawienie szyb)</h7>
             <InputFile OnChange="HandleFileSelected" />
+            <br/>
+            <button style="font-size:0.8em; width:60%; height:38px" @onclick="() => PasteStolcad()">Wklej szyby z STOLCAD [ODWOŁANIA]</button>
 
             @if (zestawienie != null)
             {
@@ -454,6 +457,29 @@
 
             StateHasChanged();
 
+        }
+    }
+
+    private async Task PasteStolcad()
+    {
+        try
+        {
+            // Pobranie danych ze schowka
+            var clipboardText = await JSRuntime.InvokeAsync<string>("navigator.clipboard.readText");
+
+            zestawienie = PdfDataParserSz.ParseClipboardData(clipboardText);
+
+            StateHasChanged();
+
+        }
+        catch (Exception ex)
+        {
+            _ = _notice.Error(new()
+                {
+                    Message = ex.Message,
+                    Description = ex.StackTrace,
+                    Placement = NotificationPlacement.BottomLeft
+                });
         }
     }
 
