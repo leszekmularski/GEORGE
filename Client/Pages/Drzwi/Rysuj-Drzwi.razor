@@ -390,6 +390,8 @@
     {
         if (shapes == null) return;
 
+        double old_scale = scale;
+
         scale = 1;
 
        await UpdateShapes(); 
@@ -481,6 +483,10 @@
         string base64String = Convert.ToBase64String(dxfBytes);
         //Console.WriteLine(base64String);
         await JS.InvokeVoidAsync("downloadFileDXF", "output.dxf", base64String);
+
+        scale = old_scale;
+
+       await UpdateShapes(); 
     }
     
     private async Task<byte[]> ConvertDxfToBytesAsync(netDxf.DxfDocument dxf)
