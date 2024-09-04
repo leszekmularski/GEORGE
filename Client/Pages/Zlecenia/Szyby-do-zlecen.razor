@@ -74,12 +74,12 @@
             document.body.removeChild(a);
         }
 
-        function saveAsExcel(jsonData) {
+        function saveAsExcelSel(jsonData) {
             const data = JSON.parse(jsonData);
             const csvRows = [];
 
             // Define headers
-            const headers = ["GatunekKantowki", "Przekroj", "NazwaProduktu", "DlugoscZamawiana", "DlugoscNaGotowoGrupa", "IloscSztuk"];
+            const headers = ["Szerokosc", "Wysokosc", "RodzajSzyby", "RodzajRamki", "IloscSztuk", "CzyKsztalt"];
             csvRows.push(headers.join(','));
 
             // Extract rows
@@ -400,7 +400,7 @@
             });
 
             var jsonData = JsonSerializer.Serialize(selectedData);
-            await JSRuntime.InvokeVoidAsync("saveAsExcel", jsonData);
+            await JSRuntime.InvokeVoidAsync("saveAsExcelSel", jsonData);
         }
     }
 
