@@ -73,7 +73,7 @@
             document.body.removeChild(a);
         }
 
-        function saveAsExcel(jsonData) {
+        function saveAsExcelSel(jsonData) {
             const data = JSON.parse(jsonData);
             const csvRows = [];
 
@@ -389,7 +389,7 @@
             });
 
             var jsonData = JsonSerializer.Serialize(selectedData);
-            await JSRuntime.InvokeVoidAsync("saveAsExcel", jsonData);
+            await JSRuntime.InvokeVoidAsync("saveAsExcelSel", jsonData);
         }
     }
 

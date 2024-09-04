@@ -82,10 +82,9 @@
             const headers = ["Szerokosc", "Wysokosc", "RodzajSzyby", "RodzajRamki", "IloscSztuk", "CzyKsztalt"];
             csvRows.push(headers.join(','));
 
-            // Extract rows
             for (const row of data) {
                 const values = headers.map(header => {
-                    const escaped = ('' + row[header]).replace(/"/g, '\\"');
+                    const escaped = ('' + (row[header] || "")).replace(/"/g, '\\"');
                     return `"${escaped}"`;
                 });
                 csvRows.push(values.join(','));
@@ -403,7 +402,6 @@
             await JSRuntime.InvokeVoidAsync("saveAsExcelSel", jsonData);
         }
     }
-
 
     private async Task CopySzybyToClipboard()
     {
