@@ -236,7 +236,7 @@
             // context = await canvasReference.CreateCanvas2DAsync();
 
             if(contextKPL == null)
-            contextKPL = await canvasReferenceKPL.CreateCanvas2DAsync();
+                contextKPL = await canvasReferenceKPL.CreateCanvas2DAsync();
 
             await Task.Delay(100);
             // await DrawShapes();
@@ -250,7 +250,7 @@
         if (shapes == null) return;
 
         if(context == null)
-        context = await canvasReference.CreateCanvas2DAsync();
+            context = await canvasReference.CreateCanvas2DAsync();
 
         await context.ClearRectAsync(0, 0, 2000, 2500); // Ustaw szerokość kanwy na większą, aby zmieścić oba kształty
 
@@ -389,6 +389,10 @@
     private async Task ExtractShapesFromCanvasAsync()
     {
         if (shapes == null) return;
+
+        scale = 1;
+
+       await UpdateShapes(); 
 
         if (contextKPL == null) contextKPL = await canvasReferenceKPL.CreateCanvas2DAsync();
 
