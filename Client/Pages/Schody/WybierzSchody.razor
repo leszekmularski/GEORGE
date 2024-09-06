@@ -1,0 +1,64 @@
+﻿@page "/WybierzSchody"
+@using System.Globalization
+@using System.Net;
+
+<h3>Wybierz typ schodów</h3>
+<Divider></Divider>
+<div class="nav-item px-3">
+
+    <NavLink class="nav-link" href="@{$"_14_z_l/{WebUtility.UrlEncode("Schody 1/4 zabieg w prawo")}"}">
+        <span class="oi oi-brush" aria-hidden="true"></span> Schody 1/4 zabieg w lewo
+    </NavLink>
+    <NavLink class="nav-link" href="@{$"_14_z_l/{WebUtility.UrlEncode("Schody 1/4 zabieg w prawo")}"}">
+            <span class="oi oi-brush" aria-hidden="true"></span> Schody 1/4 zabieg w prawo
+    </NavLink>
+    <NavLink class="nav-link" href="@{$"_14_p_l/{WebUtility.UrlEncode("Schody 1/4 podest w lewo")}"}">
+        <span class="oi oi-brush" aria-hidden="true"></span> Schody 1/4 podest w lewo
+    </NavLink>
+    <NavLink class="nav-link" href="@{$"_14_p_l/{WebUtility.UrlEncode("Schody 1/4 podest w prawo")}"}">
+        <span class="oi oi-brush" aria-hidden="true"></span> Schody 1/4 podest w prawo
+    </NavLink>
+    <NavLink class="nav-link" href="@{$"_24_z_l/{WebUtility.UrlEncode("Schody 2/4 zabieg w lewo")}"}">
+        <span class="oi oi-brush" aria-hidden="true"></span> Schody 2/4 zabieg w lewo
+    </NavLink>
+    <NavLink class="nav-link" href="@{$"_24_z_l/{WebUtility.UrlEncode("Schody 2/4 zabieg w prawo")}"}">
+        <span class="oi oi-brush" aria-hidden="true"></span> Schody 2/4 zabieg w prawo
+    </NavLink>
+    <NavLink class="nav-link" href="@{$"_12_p_l/{WebUtility.UrlEncode("Schody 1/2 podest w lewo")}"}">
+        <span class="oi oi-brush" aria-hidden="true"></span> Schody 1/2 podest w lewo
+    </NavLink>
+    <NavLink class="nav-link" href="@{$"_12_p_l/{WebUtility.UrlEncode("Schody 1/2 podest w prawo")}"}">
+        <span class="oi oi-brush" aria-hidden="true"></span> Schody 1/2 podest w prawo
+    </NavLink>
+    <NavLink class="nav-link" href="@{$"_p_l/{WebUtility.UrlEncode("Schody proste w lewo")}"}">
+        <span class="oi oi-brush" aria-hidden="true"></span> Schody proste w lewo
+    </NavLink>
+    <NavLink class="nav-link" href="@{$"_p_l/{WebUtility.UrlEncode("Schody proste w prawo")}"}">
+        <span class="oi oi-brush" aria-hidden="true"></span> Schody proste w prawo
+    </NavLink>
+    <NavLink class="nav-link" href="@{$"_k_l/{WebUtility.UrlEncode("Schody kręte w lewo")}"}">
+        <span class="oi oi-brush" aria-hidden="true"></span> Schody kręte w lewo
+    </NavLink>
+    <NavLink class="nav-link" href="@{$"_k_l/{WebUtility.UrlEncode("Schody kręte w prawo")}"}">
+        <span class="oi oi-brush" aria-hidden="true"></span> Schody kręte w prawo
+    </NavLink>
+</div>
+
+@code {
+
+    [Inject] private AppState AppState { get; set; } = default!;
+
+    private string encodedUrl = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AppState != null)
+        {
+            AppState.SomeData = "";
+        }
+        await Task.CompletedTask;
+
+        encodedUrl = "Schody 1/4 zabieg w lewo";
+    }
+    
+}

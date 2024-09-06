@@ -116,8 +116,9 @@
                 AllowClear
                 Style="width: 200px;" OnSelectedItemChanged="OnSelectedItemChangedHandlerFiltr">
         </Select>
-        <CheckboxGroup Options="@plainOptions" @bind-Value="@_valueFiltr" TValue="string" Disabled="@blokojFiltr" OnChange="OnChange" />
+      
     }
+    <CheckboxGroup Options="@plainOptions" @bind-Value="@_valueFiltr" TValue="string" Disabled="@blokojFiltr" OnChange="OnChange" />
 </div>
 
 @* @if (boolAdmin || boolNowy)

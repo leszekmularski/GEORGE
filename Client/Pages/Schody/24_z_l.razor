@@ -1,0 +1,155 @@
+﻿@page "/_24_z_l/{TypSchodow}"
+@inject IJSRuntime JSRuntime
+
+<h3>Obliczenia Schodów typu: @TypSchodow</h3>
+<Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
+<Divider></Divider>
+<!-- Form inputs -->
+<div>
+    <label>Długość Otworu:</label>
+    <input type="number" @bind="DlugoscOtworu" />
+</div>
+<div>
+    <label>Szerokość Otworu:</label>
+    <input type="number" @bind="SzerokoscOtworu" />
+</div>
+<div>
+    <label>Długość na Wejściu:</label>
+    <input type="number" @bind="DlugoscNaWejsciu" />
+</div>
+<div>
+    <label>Wysokość do Stropu:</label>
+    <input type="number" @bind="WysokoscDoStropu" />
+</div>
+<div>
+    <label>Wysokość Całkowita:</label>
+    <input type="number" @bind="WysokoscCalkowita" />
+</div>
+<div>
+    <label>Liczba Podniesień Stopni:</label>
+    <input type="number" @bind="LiczbaPodniesienStopni" />
+</div>
+<div>
+    <label>Szerokość Ostatniego Stopnia:</label>
+    <input type="number" @bind="SzerokoscOstatniegoStopnia" />
+</div>
+<div>
+    <label>Szerokość Biegu Schodów:</label>
+    <input type="number" @bind="SzerokoscBieguSchodow" />
+</div>
+
+<!-- Buttons -->
+<button @onclick="Oblicz">Oblicz</button>
+<button @onclick="Resetuj">Reset</button>
+
+<!-- Results -->
+<h4>Wyniki:</h4>
+<div>
+    <p>Długość Linii Biegu: @DlugoscLiniiBiegu</p>
+    <p>Kąt Nachylenia: @KatNachylenia</p>
+    <p>Szerokość Schodów: @SzerokoscSchodow</p>
+    <p>Wysokość Podniesienia Stopnia: @WysokoscPodniesieniaStopnia</p>
+    <p>Głębokość Stopnia: @GlebokoscStopnia</p>
+    <p>Przeciętna Długość Kroku: @PrzecietnaDlugoscKroku</p>
+    <p>Przestrzeń Swobodna nad Głową: @PrzestrzenSwobodnaNadGlowa</p>
+</div>
+
+@code {
+    [Parameter]
+    public string? TypSchodow { get; set; }
+
+    // Input properties
+    private double DlugoscOtworu { get; set; }
+    private double SzerokoscOtworu { get; set; }
+    private double DlugoscNaWejsciu { get; set; }
+    private double WysokoscDoStropu { get; set; }
+    private double WysokoscCalkowita { get; set; }
+    private double LiczbaPodniesienStopni { get; set; }
+    private double SzerokoscOstatniegoStopnia { get; set; }
+    private double SzerokoscBieguSchodow { get; set; }
+
+    // Output properties
+    private double DlugoscLiniiBiegu { get; set; }
+    private double KatNachylenia { get; set; }
+    private double SzerokoscSchodow { get; set; }
+    private double WysokoscPodniesieniaStopnia { get; set; }
+    private double GlebokoscStopnia { get; set; }
+    private double PrzecietnaDlugoscKroku { get; set; }
+    private double PrzestrzenSwobodnaNadGlowa { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        TypSchodow = System.Net.WebUtility.UrlDecode(TypSchodow);
+        await Task.CompletedTask;
+    }
+
+    // Calculation method
+    private void Oblicz()
+    {
+        // Walidacje wartości, tak jak w JS
+        if (DlugoscOtworu < SzerokoscBieguSchodow) DlugoscOtworu = SzerokoscBieguSchodow;
+        if (DlugoscOtworu >= 3000) DlugoscOtworu = 2999;
+        if (SzerokoscOtworu < SzerokoscBieguSchodow) SzerokoscOtworu = SzerokoscBieguSchodow;
+        if (SzerokoscOtworu >= 3000) SzerokoscOtworu = 2999;
+        if (DlugoscNaWejsciu < SzerokoscBieguSchodow) DlugoscNaWejsciu = SzerokoscBieguSchodow;
+        if (DlugoscNaWejsciu >= 4000) DlugoscNaWejsciu = 3999;
+        if (WysokoscDoStropu > WysokoscCalkowita) WysokoscDoStropu = WysokoscCalkowita;
+        if (WysokoscDoStropu >= 600) WysokoscDoStropu = 599;
+        if (WysokoscCalkowita < WysokoscDoStropu) WysokoscCalkowita = WysokoscDoStropu;
+        if (WysokoscCalkowita >= 700) WysokoscCalkowita = 699;
+        if (LiczbaPodniesienStopni <= 2) LiczbaPodniesienStopni = 3;
+        if (LiczbaPodniesienStopni >= 30) LiczbaPodniesienStopni = 29;
+        if (SzerokoscOstatniegoStopnia < 0) SzerokoscOstatniegoStopnia = 0;
+        if (SzerokoscOstatniegoStopnia > (SzerokoscOtworu - SzerokoscBieguSchodow)) SzerokoscOstatniegoStopnia = SzerokoscOtworu - SzerokoscBieguSchodow;
+        if (SzerokoscBieguSchodow <= 60) SzerokoscBieguSchodow = 60;
+
+        // Długość linii biegu
+        DlugoscLiniiBiegu = Math.Round(SzerokoscOtworu + DlugoscOtworu + DlugoscNaWejsciu - (4 * SzerokoscBieguSchodow) + 2 * (15 * Math.PI + SzerokoscBieguSchodow - 60) - SzerokoscOstatniegoStopnia, 2);
+
+        // Głębokość stopnia
+        GlebokoscStopnia = Math.Round(DlugoscLiniiBiegu / (LiczbaPodniesienStopni - 1), 2);
+
+        // Wysokość podniesienia stopnia
+        WysokoscPodniesieniaStopnia = Math.Round(WysokoscCalkowita / LiczbaPodniesienStopni, 2);
+
+        // Kąt nachylenia
+        KatNachylenia = Math.Round(Math.Atan((WysokoscCalkowita - (WysokoscCalkowita / LiczbaPodniesienStopni)) / DlugoscLiniiBiegu) * 180 / Math.PI, 2);
+
+        // Przestrzeń swobodna nad głową
+        PrzestrzenSwobodnaNadGlowa = Math.Round(WysokoscDoStropu - WysokoscPodniesieniaStopnia - (DlugoscNaWejsciu - SzerokoscOtworu) * Math.Tan(KatNachylenia * Math.PI / 180), 2);
+
+        // Szerokość schodów
+        SzerokoscSchodow = Math.Round(SzerokoscBieguSchodow, 2);
+
+        // Przeciętna długość kroku
+        PrzecietnaDlugoscKroku = Math.Round((2 * WysokoscPodniesieniaStopnia) + GlebokoscStopnia, 2);
+    }
+
+    // Reset method
+    private void Resetuj()
+    {
+        // Resetowanie wartości
+        DlugoscOtworu = 200;
+        SzerokoscOtworu = 200;
+        DlugoscNaWejsciu = 220;
+        WysokoscDoStropu = 260;
+        WysokoscCalkowita = 295;
+        LiczbaPodniesienStopni = 16;
+        SzerokoscOstatniegoStopnia = 8;
+        SzerokoscBieguSchodow = 90;
+
+        // Reset wyników
+        DlugoscLiniiBiegu = 0;
+        KatNachylenia = 0;
+        SzerokoscSchodow = 0;
+        WysokoscPodniesieniaStopnia = 0;
+        GlebokoscStopnia = 0;
+        PrzecietnaDlugoscKroku = 0;
+        PrzestrzenSwobodnaNadGlowa = 0;
+    }
+
+    private async Task GoBack()
+    {
+        await JSRuntime.InvokeVoidAsync("history.back");
+    }
+}

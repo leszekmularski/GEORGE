@@ -1,0 +1,22 @@
+﻿@page "/_k_l/{TypSchodow}"
+@inject IJSRuntime JSRuntime
+
+<h3>Obliczenia Schodów typu: @TypSchodow</h3>
+
+<Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
+<Divider></Divider>
+@code {
+    [Parameter]
+    public string? TypSchodow { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        TypSchodow = System.Net.WebUtility.UrlDecode(TypSchodow);
+        await Task.CompletedTask;
+    }
+
+    private async Task GoBack()
+    {
+        await JSRuntime.InvokeVoidAsync("history.back");
+    }
+}
