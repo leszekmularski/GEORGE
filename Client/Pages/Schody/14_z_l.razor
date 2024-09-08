@@ -47,26 +47,29 @@
 <div>
     <p>Długość Linii Biegu: @DlugoscLiniiBiegu</p>
     <p>Kąt Nachylenia: @KatNachylenia</p>
-    <div>
-        <p>Szerokość Schodów: @SzerokoscSchodow</p>
-        <span>>= 80 cm</span>
+    <div style="display: flex; align-items: center; gap: 25px;">
+        <p style="margin: 0;">Szerokość Schodów: @SzerokoscSchodow</p>
+        <span style="margin: 0; color:@(PrzestrzenSwobodnaNadGlowa >= 80 ? "green" : "red");">>= 80 cm</span>
     </div>
-    <div>
-        <p>Wysokość Podniesienia Stopnia: @WysokoscPodniesieniaStopnia</p>
-        <span>14 - 20 cm</span>
+    <div style="display: flex; align-items: center; gap: 25px;">
+        <p style="margin: 0;">Wysokość Podniesienia Stopnia: @WysokoscPodniesieniaStopnia</p>
+        <span style="margin: 0; color:@(WysokoscPodniesieniaStopnia < 14 || WysokoscPodniesieniaStopnia > 20 ? "red" : "green");">14 - 20 cm</span>
     </div>
-    <div>
-        <p>Głębokość Stopnia: @GlebokoscStopnia</p>
-        <span>22 - 35 cm</span>
+    <div style="display: flex; align-items: center; gap: 25px;">
+        <p style="margin: 0;">Głębokość Stopnia: @GlebokoscStopnia</p>
+        <span style="margin: 0; color:@(GlebokoscStopnia < 22 || GlebokoscStopnia > 35 ? "red" : "green");">22 - 35 cm</span>
     </div>
-    <div>
-        <p>Przeciętna Długość Kroku: @PrzecietnaDlugoscKroku</p>
-        <span>60 - 65 cm</span>
+    <div style="display: flex; align-items: center; gap: 25px;">
+        <p style="margin: 0;">Przeciętna Długość Kroku: @PrzecietnaDlugoscKroku</p>
+        <span style="margin: 0; color:@(PrzecietnaDlugoscKroku < 60 || PrzecietnaDlugoscKroku > 65 ? "red" : "green");">60 - 65 cm</span>
     </div>
-    <div>
-        <p>Przestrzeń Swobodna nad Głową: @PrzestrzenSwobodnaNadGlowa</p>
-        <span>>200 cm</span>
+    <div style="display: flex; align-items: center; gap: 25px;">
+        <p style="margin: 0;">Przestrzeń Swobodna nad Głową: @PrzestrzenSwobodnaNadGlowa</p>
+        <span style="margin: 0; color:@(PrzestrzenSwobodnaNadGlowa >= 200 ? "green" : "red");">
+            >200 cm
+        </span>
     </div>
+
 </div>
 
 @code {
