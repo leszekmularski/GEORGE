@@ -4,72 +4,106 @@
 <h3>Obliczenia Schodów typu: @TypSchodow</h3>
 <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
 <Divider></Divider>
+
 <!-- Form inputs -->
-<div>
-    <label>Długość Otworu:</label>
-    <input type="number" @bind="DlugoscOtworu" />
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+    <div>
+        <label>Długość Otworu:</label>
+        <input type="number" @bind="DlugoscOtworu" />
+    </div>
+    <div>
+        <label>Szerokość Otworu:</label>
+        <input type="number" @bind="SzerokoscOtworu" />
+    </div>
+    <div>
+        <label>Długość na Wejściu:</label>
+        <input type="number" @bind="DlugoscNaWejsciu" />
+    </div>
+    <div>
+        <label>Wysokość do Stropu:</label>
+        <input type="number" @bind="WysokoscDoStropu" />
+    </div>
+    <div>
+        <label>Wysokość Całkowita:</label>
+        <input type="number" @bind="WysokoscCalkowita" />
+    </div>
+    <div>
+        <label>Liczba (Podniesień) Stopni:</label>
+        <input type="number" @bind="LiczbaPodniesienStopni" />
+    </div>
+    <div>
+        <label>Szerokość Ostatniego Stopnia:</label>
+        <input type="number" @bind="SzerokoscOstatniegoStopnia" />
+    </div>
+    <div>
+        <label>Szerokość Biegu Schodów:</label>
+        <input type="number" @bind="SzerokoscBieguSchodow" />
+    </div>
 </div>
-<div>
-    <label>Szerokość Otworu:</label>
-    <input type="number" @bind="SzerokoscOtworu" />
-</div>
-<div>
-    <label>Długość na Wejściu:</label>
-    <input type="number" @bind="DlugoscNaWejsciu" />
-</div>
-<div>
-    <label>Wysokość do Stropu:</label>
-    <input type="number" @bind="WysokoscDoStropu" />
-</div>
-<div>
-    <label>Wysokość Całkowita:</label>
-    <input type="number" @bind="WysokoscCalkowita" />
-</div>
-<div>
-    <label>Liczba Podniesień Stopni:</label>
-    <input type="number" @bind="LiczbaPodniesienStopni" />
-</div>
-<div>
-    <label>Szerokość Ostatniego Stopnia:</label>
-    <input type="number" @bind="SzerokoscOstatniegoStopnia" />
-</div>
-<div>
-    <label>Szerokość Biegu Schodów:</label>
-    <input type="number" @bind="SzerokoscBieguSchodow" />
-</div>
+
 
 <!-- Calculation and reset buttons -->
 <button @onclick="Oblicz">Oblicz</button>
 <button @onclick="Resetuj">Reset</button>
 
-<!-- Display results -->
-<h4>Wyniki:</h4>
-<div>
-    <p>Długość Linii Biegu: @DlugoscLiniiBiegu</p>
-    <p>Kąt Nachylenia: @KatNachylenia</p>
-    <div style="display: flex; align-items: center; gap: 25px;">
-        <p style="margin: 0;">Szerokość Schodów: @SzerokoscSchodow</p>
-        <span style="margin: 0; color:@(PrzestrzenSwobodnaNadGlowa >= 80 ? "green" : "red");">>= 80 cm</span>
-    </div>
-    <div style="display: flex; align-items: center; gap: 25px;">
-        <p style="margin: 0;">Wysokość Podniesienia Stopnia: @WysokoscPodniesieniaStopnia</p>
-        <span style="margin: 0; color:@(WysokoscPodniesieniaStopnia < 14 || WysokoscPodniesieniaStopnia > 20 ? "red" : "green");">14 - 20 cm</span>
-    </div>
-    <div style="display: flex; align-items: center; gap: 25px;">
-        <p style="margin: 0;">Głębokość Stopnia: @GlebokoscStopnia</p>
-        <span style="margin: 0; color:@(GlebokoscStopnia < 22 || GlebokoscStopnia > 35 ? "red" : "green");">22 - 35 cm</span>
-    </div>
-    <div style="display: flex; align-items: center; gap: 25px;">
-        <p style="margin: 0;">Przeciętna Długość Kroku: @PrzecietnaDlugoscKroku</p>
-        <span style="margin: 0; color:@(PrzecietnaDlugoscKroku < 60 || PrzecietnaDlugoscKroku > 65 ? "red" : "green");">60 - 65 cm</span>
-    </div>
-    <div style="display: flex; align-items: center; gap: 25px;">
-        <p style="margin: 0;">Przestrzeń Swobodna nad Głową: @PrzestrzenSwobodnaNadGlowa</p>
-        <span style="margin: 0; color:@(PrzestrzenSwobodnaNadGlowa >= 200 ? "green" : "red");">
-            >200 cm
-        </span>
+<!-- Flexbox container for results and drawing -->
+<div style="display: flex; gap: 25px;">
+    <!-- Display results -->
+    <div>
+        <h4>Wyniki:</h4>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div>
+                <p style="margin: 0;">Długość Linii Biegu: @DlugoscLiniiBiegu</p>
+            </div>
+            <div>
+                <p style="margin: 0;">Kąt Nachylenia: @KatNachylenia</p>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 25px;">
+                <p style="margin: 0;">Szerokość Schodów: @SzerokoscSchodow</p>
+                <Tooltip Placement="Placement.TopLeft" Title="Całkowita szerokość schodów">
+                    <span style="margin: 0; color:@(SzerokoscSchodow >= 800 ? "green" : "red");">>= 800 mm</span>
+                </Tooltip>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 25px;">
+                <p style="margin: 0;">Wysokość Podniesienia Stopnia: @WysokoscPodniesieniaStopnia</p>
+                <span style="margin: 0; color:@(WysokoscPodniesieniaStopnia < 140 || WysokoscPodniesieniaStopnia > 200 ? "red" : "green");">
+                    140 - 200 mm
+                </span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 25px;">
+                <p style="margin: 0;">Głębokość Stopnia: @GlebokoscStopnia</p>
+                <span style="margin: 0; color:@(GlebokoscStopnia < 220 || GlebokoscStopnia > 350 ? "red" : "green");">
+                    220 - 350 mm
+                </span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 25px;">
+                <p style="margin: 0;">Przeciętna Długość Kroku: @PrzecietnaDlugoscKroku</p>
+                <span style="margin: 0; color:@(PrzecietnaDlugoscKroku < 600 || PrzecietnaDlugoscKroku > 650 ? "red" : "green");">
+                    600 - 650 mm
+                </span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 25px;">
+                <p style="margin: 0;">Przestrzeń Swobodna nad Głową: @PrzestrzenSwobodnaNadGlowa</p>
+                <span style="margin: 0; color:@(PrzestrzenSwobodnaNadGlowa >= 2000 ? "green" : "red");">
+                    > 2000 mm
+                </span>
+            </div>
+        </div>
     </div>
 
+    <!-- Drawing canvas -->
+    <div>
+        <h4>Rysunek schodów:</h4>
+        <div style="overflow: auto; width: 1000px; height: 580px;">
+            <BECanvas Width="2000" Height="2500" @ref="canvasReferenceKPL"></BECanvas>
+        </div>
+    </div>
 </div>
 
 @code {
@@ -95,10 +129,26 @@
     private double PrzecietnaDlugoscKroku { get; set; }
     private double PrzestrzenSwobodnaNadGlowa { get; set; }
 
+    private BECanvasComponent? canvasReferenceKPL;
+    private Canvas2DContext? contextKPL;
+
     protected override async Task OnInitializedAsync()
     {
         TypSchodow = System.Net.WebUtility.UrlDecode(TypSchodow);
         await Task.CompletedTask;
+    }
+
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if(contextKPL == null)
+                contextKPL = await canvasReferenceKPL.CreateCanvas2DAsync();
+
+            await Task.Delay(100);
+
+
+        }
     }
 
     // Calculation method
@@ -106,46 +156,46 @@
     {
         // Sprawdzanie ograniczeń tak jak w JS
         if (DlugoscOtworu < SzerokoscBieguSchodow) DlugoscOtworu = SzerokoscBieguSchodow;
-        if (DlugoscOtworu >= 3000) DlugoscOtworu = 2999;
+        if (DlugoscOtworu >= 30000) DlugoscOtworu = 29999;
         if (SzerokoscOtworu < SzerokoscBieguSchodow) SzerokoscOtworu = SzerokoscBieguSchodow;
-        if (SzerokoscOtworu >= 3000) SzerokoscOtworu = 2999;
+        if (SzerokoscOtworu >= 30000) SzerokoscOtworu = 29999;
         if (DlugoscNaWejsciu < SzerokoscBieguSchodow) DlugoscNaWejsciu = SzerokoscBieguSchodow;
-        if (DlugoscNaWejsciu >= 4000) DlugoscNaWejsciu = 3999;
+        if (DlugoscNaWejsciu >= 40000) DlugoscNaWejsciu = 39999;
 
         // Długość Linii Biegu
-        DlugoscLiniiBiegu = Math.Round(DlugoscOtworu + DlugoscNaWejsciu - 2 * SzerokoscBieguSchodow + (15 * Math.PI + SzerokoscBieguSchodow - 60) - SzerokoscOstatniegoStopnia, 2);
+        DlugoscLiniiBiegu = Math.Round(DlugoscOtworu + DlugoscNaWejsciu - 2 * SzerokoscBieguSchodow + (150 * Math.PI + SzerokoscBieguSchodow - 600) - SzerokoscOstatniegoStopnia, 0);
 
         // Kąt Nachylenia
         KatNachylenia = Math.Round(Math.Atan((WysokoscCalkowita - (WysokoscCalkowita / LiczbaPodniesienStopni)) / DlugoscLiniiBiegu) * 180 / Math.PI, 2);
 
         // Szerokość Schodów
-        SzerokoscSchodow = Math.Round(SzerokoscBieguSchodow, 2);
+        SzerokoscSchodow = Math.Round(SzerokoscBieguSchodow, 0);
 
         // Wysokość Podniesienia Stopnia
-        WysokoscPodniesieniaStopnia = Math.Round(WysokoscCalkowita / LiczbaPodniesienStopni, 2);
+        WysokoscPodniesieniaStopnia = Math.Round(WysokoscCalkowita / LiczbaPodniesienStopni, 0);
 
         // Głębokość Stopnia
-        GlebokoscStopnia = Math.Round(DlugoscLiniiBiegu / (LiczbaPodniesienStopni - 1), 2);
+        GlebokoscStopnia = Math.Round(DlugoscLiniiBiegu / (LiczbaPodniesienStopni - 1), 0);
 
         // Przeciętna Długość Kroku
-        PrzecietnaDlugoscKroku = Math.Round(2 * WysokoscPodniesieniaStopnia + GlebokoscStopnia, 2);
+        PrzecietnaDlugoscKroku = Math.Round(2 * WysokoscPodniesieniaStopnia + GlebokoscStopnia, 0);
 
         // Przestrzeń Swobodna nad Głową
-        PrzestrzenSwobodnaNadGlowa = Math.Round(WysokoscDoStropu - WysokoscPodniesieniaStopnia - (DlugoscNaWejsciu - SzerokoscOtworu) * Math.Tan(KatNachylenia * Math.PI / 180), 2);
+        PrzestrzenSwobodnaNadGlowa = Math.Round(WysokoscDoStropu - WysokoscPodniesieniaStopnia - (DlugoscNaWejsciu - SzerokoscOtworu) * Math.Tan(KatNachylenia * Math.PI / 180), 0);
     }
 
     // Reset method
     private void Resetuj()
     {
         // Resetowanie wartości
-        DlugoscOtworu = 250;
-        SzerokoscOtworu = 140;
-        DlugoscNaWejsciu = 190;
-        WysokoscDoStropu = 260;
-        WysokoscCalkowita = 280;
+        DlugoscOtworu = 2500;
+        SzerokoscOtworu = 1400;
+        DlugoscNaWejsciu = 1900;
+        WysokoscDoStropu = 2600;
+        WysokoscCalkowita = 2800;
         LiczbaPodniesienStopni = 15;
-        SzerokoscOstatniegoStopnia = 8;
-        SzerokoscBieguSchodow = 85;
+        SzerokoscOstatniegoStopnia = 80;
+        SzerokoscBieguSchodow = 850;
 
         // Reset wyników
         DlugoscLiniiBiegu = 0;
