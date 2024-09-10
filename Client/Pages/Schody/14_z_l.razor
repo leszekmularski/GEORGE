@@ -131,6 +131,7 @@
 
     private BECanvasComponent? canvasReferenceKPL;
     private Canvas2DContext? contextKPL;
+    private List<Shape>? shapes;
 
     protected override async Task OnInitializedAsync()
     {
@@ -138,21 +139,20 @@
         await Task.CompletedTask;
     }
 
-        protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             if(contextKPL == null)
                 contextKPL = await canvasReferenceKPL.CreateCanvas2DAsync();
 
-            await Task.Delay(100);
-
+            await Task.Delay(10);
 
         }
     }
 
     // Calculation method
-    private void Oblicz()
+    private async void Oblicz()
     {
         // Sprawdzanie ograniczeń tak jak w JS
         if (DlugoscOtworu < SzerokoscBieguSchodow) DlugoscOtworu = SzerokoscBieguSchodow;
@@ -182,8 +182,41 @@
 
         // Przestrzeń Swobodna nad Głową
         PrzestrzenSwobodnaNadGlowa = Math.Round(WysokoscDoStropu - WysokoscPodniesieniaStopnia - (DlugoscNaWejsciu - SzerokoscOtworu) * Math.Tan(KatNachylenia * Math.PI / 180), 0);
+
+        await UpdateShapes();
+
     }
 
+    private async Task UpdateShapes()
+    {
+        if (shapes != null) shapes.Clear();
+        // Zainicjalizuj listę kształtów
+        shapes = new List<Shape>
+        {
+            new CSchody(0, 0, 0.25, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
+            SzerokoscOstatniegoStopnia, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
+            GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow)
+        };
+
+        await DrawShapes();
+        await Task.Delay(10);
+        await DrawShapes();
+    }
+
+    private async Task DrawShapes()
+    {
+        if (shapes == null) return;
+
+        if (contextKPL == null)
+            contextKPL = await canvasReferenceKPL.CreateCanvas2DAsync();
+
+        await contextKPL.ClearRectAsync(0, 0, DlugoscOtworu + 50, SzerokoscOtworu + 50); // Ustaw szerokość kanwy na większą, aby zmieścić oba kształty
+
+        foreach (var shape in shapes)
+        {
+            await shape.DrawAsync(contextKPL);
+        }
+    }
     // Reset method
     private void Resetuj()
     {

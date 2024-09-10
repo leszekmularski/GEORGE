@@ -1,6 +1,4 @@
 ﻿using Blazor.Extensions.Canvas.Canvas2D;
-using System.Linq.Expressions;
-using GEORGE.Client.Pages.Schody;
 
 namespace GEORGE.Client.Pages.Schody
 {
@@ -12,8 +10,8 @@ namespace GEORGE.Client.Pages.Schody
     }
 
     //---------------------------------------------------------------- PIÓRO -------------------------------------------------------------------------------------------
-    public class CSchody : C14_z_l
-{
+    public class CSchody : Shape
+    {
         public List<Point>? Xpoints;
         public List<LinePoint>? XLinePoint;
         public double X { get; set; }
@@ -70,34 +68,88 @@ namespace GEORGE.Client.Pages.Schody
             Xpoints = new List<Point>();
             XLinePoint = new List<LinePoint>();
 
-            double delatY = 0;//((WysSamegoSkrzydla - 50) / (IloscPrzeszkelen + 1)) * Skala;
+            double currentX = X; // Początkowa pozycja X
+            double currentY = Y; // Początkowa pozycja Y
 
-            double delatX = 0;// X + (SzerDrzwi / 2 - WielkoscPrzeszklenia / 2) * Skala;
-            double delatYKrok = 0;
+            double stepWidth = GlebokoscStopnia * Skala;  // Szerokość stopnia (długość biegu schodów)
+            double stepHeight = SzerokoscBieguSchodow * Skala;  // Szerokość stopnia
+            double totalHeight = WysokoscPodniesieniaStopnia * LiczbaPodniesienStopni * Skala;  // Całkowita wysokość
 
-
+            // Rysujemy obrys schodów (widok od góry)
             await DrawShapeObrys(context, X, Y);
 
+            // Wyświetlenie informacji
             await DrawTextAsync(context, X + (100) * Skala, Y - 45, $"Informacja: {Opis}");
-      
+
+            double delatXKrok = 0;  // Przesunięcie po osi X
+            double delatYKrok = 0;  // Przesunięcie po osi Y
+
+            // Rysowanie stopni (widok od góry)
             for (int i = 0; i < LiczbaPodniesienStopni; i++)
             {
+                // Aktualizacja pozycji każdego stopnia
+                currentX = X + delatXKrok;
+                currentY = Y + delatYKrok;
 
-                delatYKrok += delatY;
-                await DrawShapeStopnie(context, delatX, delatYKrok, Y);
-                //Console.WriteLine(delatYKrok);
+                // Sprawdzamy, czy jesteśmy w prawym górnym rogu (trapezowe stopnie)
+                if (currentX + stepWidth > X + DlugoscOtworu * Skala)
+                {
+                    // Rysowanie trapezowego stopnia (zawijanie schodów)
+                    double topWidth = stepWidth * 0.8;  // Górna szerokość trapezu
+                    double bottomWidth = stepWidth;  // Dolna szerokość trapezu
+
+                    await DrawTrapezoidAsync(context, currentX, currentY, bottomWidth, topWidth, stepHeight);
+
+                    // Aktualizujemy krok po osi Y, aby przesuwać się do góry
+                    delatYKrok -= stepHeight;  // Przesunięcie w górę po osi Y (zawijanie schodów)
+                }
+                else
+                {
+                    // Rysowanie prostokątnego stopnia
+                    await context.BeginPathAsync();
+                    await context.RectAsync(currentX, currentY, stepWidth, stepHeight);
+                    await context.StrokeAsync();
+
+                    Console.WriteLine($"Stopień {i}: X = {currentX}, Y = {currentY}, Szerokość = {stepWidth}, Wysokość = {stepHeight}");
+                }
+
+                // Aktualizacja przesunięcia dla kolejnych stopni
+                delatXKrok += stepWidth;  // Przesuwamy stopnie w prawo
+
+                // Ostatni stopień (obracamy o 90 stopni w prawym dolnym rogu)
+                if (i == LiczbaPodniesienStopni - 1)
+                {
+                    // Pozycja ostatniego stopnia (obracany o 90 stopni)
+                    double lastStepX = X + DlugoscOtworu * Skala - stepHeight;
+                    double lastStepY = Y + SzerokoscOtworu * Skala - stepWidth;
+
+                    await context.SaveAsync();
+                    await context.TranslateAsync(lastStepX, lastStepY);
+                    await context.RotateAsync((float)(Math.PI / 2));
+
+                    // Rysowanie obróconego stopnia
+                    await context.RectAsync(0, 0, stepHeight, stepWidth);
+                    await context.StrokeAsync();
+                    await context.RestoreAsync();
+                }
             }
-
-            // Draw the mirrored shape
-            // Translate the context to the position where the mirrored shape will be drawn
-            await context.TranslateAsync(0, 0);
-
-            // Scale by -1 on the X axis to mirror the shape
-            await context.ScaleAsync(-1, 1);
-
-            await context.RestoreAsync();
-
         }
+
+        // Funkcja pomocnicza do rysowania trapezów (dla schodów zabiegowych)
+        private async Task DrawTrapezoidAsync(Canvas2DContext context, double x, double y, double bottomWidth, double topWidth, double height)
+        {
+            double halfDiff = (bottomWidth - topWidth) / 2;
+
+            await context.BeginPathAsync();
+            await context.MoveToAsync(x + halfDiff, y);  // Lewy dolny róg trapezu
+            await context.LineToAsync(x + bottomWidth, y);  // Prawy dolny róg trapezu
+            await context.LineToAsync(x + bottomWidth - halfDiff, y - height);  // Prawy górny róg trapezu
+            await context.LineToAsync(x + halfDiff, y - height);  // Lewy górny róg trapezu
+            await context.ClosePathAsync();
+
+            await context.StrokeAsync();  // Rysowanie konturu trapezu
+        }
+
 
         private async Task DrawShapeObrys(Canvas2DContext context, double offsetX, double offsetY)
         {
@@ -106,6 +158,7 @@ namespace GEORGE.Client.Pages.Schody
 
             // Draw outer rectangle
             await context.RectAsync(offsetX, offsetY, DlugoscOtworu * Skala, SzerokoscOtworu * Skala); // #OBRYS SCHODOW
+            await context.RectAsync(offsetX + 1, offsetY + 1, DlugoscOtworu * Skala - 1, SzerokoscOtworu * Skala - 1); // #OBRYS SCHODOW
 
             AddRectanglePoints(offsetX, offsetY, DlugoscOtworu * Skala, SzerokoscOtworu * Skala);
 
@@ -114,20 +167,18 @@ namespace GEORGE.Client.Pages.Schody
             await context.StrokeAsync();
         }
 
-        private async Task DrawShapeStopnie(Canvas2DContext context, double offsetX, double offsetY, double Y)
-        {
+        //private async Task DrawShapeStopnie(Canvas2DContext context, double offsetX, double offsetY, double x, double y)
+        //{
 
-            await context.BeginPathAsync();
+        //    await context.BeginPathAsync();
 
-            // Draw outer rectangle
-            await context.RectAsync(offsetX - ((10 + Wyspiora / 2) * Skala), offsetY + Y - ((SzerRamSk / 2 * Skala) + (Wyspiora / 2 + 10) * Skala), (WielkoscPrzeszklenia + 20) * Skala, (WielkoscPrzeszklenia + 20) * Skala); // #Ramka przeszklenia ZEW
-            await context.RectAsync(offsetX - (Wyspiora / 2 * Skala), offsetY + Y - (SzerRamSk / 2 * Skala + (Wyspiora / 2 * Skala)), WielkoscPrzeszklenia * Skala, WielkoscPrzeszklenia * Skala);  // #Ramka przeszklenia WEW
-                                                                                                                                                                                                    //   await context.ClosePathAsync();
-            AddRectanglePoints(offsetX - ((10 + Wyspiora / 2) * Skala), offsetY + Y - ((SzerRamSk / 2 * Skala) + (Wyspiora / 2 + 10) * Skala), (WielkoscPrzeszklenia + 20) * Skala, (WielkoscPrzeszklenia + 20) * Skala); // #Ramka przeszklenia ZEW
-            AddRectanglePoints(offsetX - (Wyspiora / 2 * Skala), offsetY + Y - (SzerRamSk / 2 * Skala + (Wyspiora / 2 * Skala)), WielkoscPrzeszklenia * Skala, WielkoscPrzeszklenia * Skala);  // #Ramka przeszklenia WEW
+        //    // Draw outer rectangle
+        //    await context.RectAsync(offsetX, offsetY, GlebokoscStopnia * Skala, SzerokoscBieguSchodow * Skala); // #OBRYS STOPNIA
+            
+        //    AddRectanglePoints(offsetX, offsetY, GlebokoscStopnia * Skala, SzerokoscBieguSchodow * Skala); // #Ramka przeszklenia ZEW
 
-            await context.StrokeAsync();
-        }
+        //    await context.StrokeAsync();
+        //}
 
         private async Task DrawTextAsync(Canvas2DContext context, double x, double y, string text)
         {
@@ -145,10 +196,6 @@ namespace GEORGE.Client.Pages.Schody
         }
         private void AddRectanglePoints(double x, double y, double width, double height)
         {
-            //Xpoints.Add(new Point(x, y)); // Top-left corner
-            //Xpoints.Add(new Point(x + width, y)); // Top-right corner
-            //Xpoints.Add(new Point(x + width, y + height)); // Bottom-right corner
-            //Xpoints.Add(new Point(x, y + height)); // Bottom-left corner
             XLinePoint.Add(new LinePoint(x, y, x + width, y));
             XLinePoint.Add(new LinePoint(x + width, y, x + width, y + height));
             XLinePoint.Add(new LinePoint(x + width, y + height, x, y + height));
