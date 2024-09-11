@@ -215,6 +215,8 @@ namespace GEORGE.Client.Pages.Schody
         }
         private void AddRectanglePoints(double x, double y, double width, double height)
         {
+            if (XLinePoint == null) return;
+
             XLinePoint.Add(new LinePoint(x, y, x + width, y));
             XLinePoint.Add(new LinePoint(x + width, y, x + width, y + height));
             XLinePoint.Add(new LinePoint(x + width, y + height, x, y + height));
@@ -223,7 +225,9 @@ namespace GEORGE.Client.Pages.Schody
 
         private void AddLinePoints(double x1, double y1, double x2, double y2)
         {
-            XLinePoint.Add(new LinePoint(x1, y1, x2, y2));
+           if (XLinePoint == null) return;
+
+           XLinePoint.Add(new LinePoint(x1, y1, x2, y2));
         }
         public override Task<List<LinePoint>> ReturnLinePoints()
         {
