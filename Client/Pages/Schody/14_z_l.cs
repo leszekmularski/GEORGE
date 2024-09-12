@@ -167,9 +167,6 @@ namespace GEORGE.Client.Pages.Schody
             await context.StrokeAsync();  // Rysowanie konturu trapezu
         }
 
-
-
-
         private async Task DrawShapeObrys(Canvas2DContext context, double offsetX, double offsetY)
         {
 
