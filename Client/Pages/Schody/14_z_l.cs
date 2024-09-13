@@ -35,10 +35,11 @@ namespace GEORGE.Client.Pages.Schody
         private double PrzecietnaDlugoscKroku { get; set; }
         private double PrzestrzenSwobodnaNadGlowa { get; set; }
         private string Opis { get; set; }
+        private double KatZabiegu { get; set; }
 
         public CSchody(double x, double y, double skala, double dlugoscOtworu, double szerokoscOtworu, double dlugoscNaWejsciu, double wysokoscDoStropu, double wysokoscCalkowita, double liczbaPodniesienStopni, 
             double szerokoscOstatniegoStopnia, double szerokoscBieguSchodow, double dlugoscLiniiBiegu, double katNachylenia, double szerokoscSchodow, double wysokoscPodniesieniaStopnia, 
-            double glebokoscStopnia, double przecietnaDlugoscKroku, double przestrzenSwobodnaNadGlowa , string opis)
+            double glebokoscStopnia, double przecietnaDlugoscKroku, double przestrzenSwobodnaNadGlowa , string opis, double katZabiegu)
         {
 
             X = x;
@@ -60,7 +61,7 @@ namespace GEORGE.Client.Pages.Schody
             GlebokoscStopnia = glebokoscStopnia;
             PrzecietnaDlugoscKroku = przecietnaDlugoscKroku;
             Opis = opis;
-
+            KatZabiegu = katZabiegu;
         }
 
         public override async Task DrawAsync(Canvas2DContext context)
@@ -92,7 +93,7 @@ namespace GEORGE.Client.Pages.Schody
             // Liczba poziomych stopni
             double poziomeStopnie = LiczbaPodniesienStopni - pionoweStopnie;
 
-            double delatXKrok = 0;  // Przesunięcie po osi X
+            //double delatXKrok = 0;  // Przesunięcie po osi X ???
             double delatYKrok = 0;  // Przesunięcie po osi Y
 
             // Rysowanie poziomych stopni
@@ -103,68 +104,156 @@ namespace GEORGE.Client.Pages.Schody
                 await context.RectAsync(currentX, currentY, stepWidth, stepHeight); // W poziomie: Szerokość Biegu Schodów jest wzdłuż osi X
                 await context.StrokeAsync();
 
-                Console.WriteLine($"Poziomy stopień {i + pionoweStopnie}: X = {currentX}, Y = {currentY}, Szerokość = {stepWidth}, Wysokość = {stepHeight}");
+              // Console.WriteLine($"Poziomy stopień {i + pionoweStopnie}: X = {currentX}, Y = {currentY}, Szerokość = {stepWidth}, Wysokość = {stepHeight}");
 
                 // Przesuwamy się w prawo po osi X
                 currentX += stepWidth;
             }
 
-            // Rysowanie stopni trapezowych na rogu
-            //int liczbaTrapezow = 6;
-            //double trapezStartWidth = stepWidth;  // Pełna szerokość na początku (poziome stopnie)
-            //double trapezEndWidth = stepHeight;  // Pełna szerokość na końcu (pionowe stopnie)
-            //double trapezHeight = stepHeight / liczbaTrapezow;  // Wysokość pojedynczego trapezu
+            //*******************************************************************************************************************************************************
 
-            //for (int i = 0; i < liczbaTrapezow; i++)
-            //{
-            //    // Obliczamy szerokości górną i dolną dla każdego trapezu
-            //    double topWidth = trapezStartWidth - (i * (trapezStartWidth - trapezEndWidth) / liczbaTrapezow);
-            //    double bottomWidth = trapezStartWidth - ((i + 1) * (trapezStartWidth - trapezEndWidth) / liczbaTrapezow);
+            // Tworzymy instancję klasy Wzory
+            Wzory wzory = new Wzory();
 
-            //    // Rysowanie trapezu
-            //    await DrawTrapezoidAsync(context, currentX, currentY, topWidth, bottomWidth, trapezHeight);
+            // Obliczamy promień okręgu
+            double Radius = wzory.WartoscZaczepPromnienia(SzerokoscBieguSchodow, KatZabiegu / 2);
 
-            //    Console.WriteLine($"Trapezowy stopień {i}: X = {currentX}, Y = {currentY}, TopWidth = {topWidth}, BottomWidth = {bottomWidth}, Height = {trapezHeight}");
+            // DlugoscOtworu / GlebokoscStopnia
+            double szukanyStopien = (int)Math.Ceiling((DlugoscOtworu - Radius) / GlebokoscStopnia);
 
-            //    // Przesunięcie po osi Y dla kolejnego trapezu
-            //    currentY += trapezHeight;
-            //}
+            Console.WriteLine($"Radius wylicz: {Radius} / Radius real: {DlugoscOtworu - szukanyStopien * GlebokoscStopnia} GlebokoscStopnia:{GlebokoscStopnia} szukanyStopien: {szukanyStopien}");
 
+            Radius = DlugoscOtworu - szukanyStopien * GlebokoscStopnia;
+
+            // Określamy kąty w stopniach
+            double startAngleDegrees = 270;  // Kąt startu łuku
+            double endAngleDegrees = startAngleDegrees + KatZabiegu;   // Kąt zakończenia łuku
+            double iloscSchodowZabiegowych = 6;
+
+            // Obliczamy kąty w radianach
+            double startAngle = startAngleDegrees * (Math.PI / 180);  // Kąt startu w radianach
+            double endAngle = endAngleDegrees * (Math.PI / 180);      // Kąt końcowy w radianach
+
+            // Obliczamy środek okręgu
+            double centerX = X + (DlugoscOtworu - Radius) * Skala;
+            double centerY = Y + Radius * Skala;
+
+            // Obliczamy długość boku kwadratu wpisanego w okrąg
+            double squareSide = Radius * 2 * Skala;  // Bok kwadratu = 2 * średnica okręgu
+
+            // Obliczamy współrzędne kwadratu (kwadrat styczny do okręgu)
+            double squareX1 = centerX - squareSide / 2;  // Lewa górna krawędź kwadratu
+            double squareY1 = centerY - squareSide / 2;  // Lewa górna krawędź kwadratu
+            double squareX2 = centerX + squareSide / 2;  // Prawa dolna krawędź kwadratu
+            double squareY2 = centerY + squareSide / 2;  // Prawa dolna krawędź kwadratu
+
+            //// Rysowanie kwadratu
+            //await context.BeginPathAsync();
+            //await context.MoveToAsync(squareX1, squareY1);  // Lewy górny róg
+            //await context.LineToAsync(squareX2, squareY1);  // Prawy górny róg
+            //await context.LineToAsync(squareX2, squareY2);  // Prawy dolny róg
+            //await context.LineToAsync(squareX1, squareY2);  // Lewy dolny róg
+            //await context.LineToAsync(squareX1, squareY1);  // Powrót do lewego górnego rogu
+            //await context.StrokeAsync();
+
+            //// Rysowanie okręgu wpisanego w kwadrat
+            //await context.BeginPathAsync();
+            //await context.ArcAsync(centerX, centerY, Radius * Skala, 0, 2 * Math.PI);  // Rysujemy okrąg wpisany w kwadrat
+            //await context.StrokeAsync();
+
+            // Rysowanie fragmentu okręgu (łuku)
+            await context.BeginPathAsync();
+            await context.ArcAsync(centerX, centerY, Radius * Skala, startAngle, endAngle);  // Rysujemy łuk
+            await context.StrokeAsync();
+
+            // Obliczamy środek okręgu
+            double centerXOsi = X + (DlugoscOtworu - SzerokoscBieguSchodow) * Skala;
+            double centerYOsi = Y + SzerokoscBieguSchodow * Skala;
+            // Rysowanie fragmentu okręgu (łuku) - oś schodów do poprawy
+            await context.BeginPathAsync();
+            await context.ArcAsync(centerXOsi, centerYOsi, (SzerokoscBieguSchodow / 2) * Skala, startAngle, endAngle);  // Rysujemy łuk
+            await context.StrokeAsync();
+
+            // Rysowanie linii wewnątrz łuku, ale kończących się na krawędziach kwadratu
+            double angleRange = endAngle - startAngle;  // Zakres kąta, który musimy pokryć liniami
+            double angleStep = angleRange / (iloscSchodowZabiegowych - 1);  // Krok kąta dla linii
+
+            for (int i = 0; i < iloscSchodowZabiegowych; i++)
+            {
+                // Obliczamy kąt dla danej linii w radianach
+                double angle = startAngle + i * angleStep;  // Kąt między startowym a końcowym
+
+                // Obliczamy nachylenie linii (dy/dx)
+                double slope = Math.Tan(angle);
+
+                // Współrzędne końcowe linii (domyślnie w obrębie kwadratu)
+                double endX, endY;
+
+                // Sprawdzamy, z którą krawędzią kwadratu linia przecina się najpierw
+                if (Math.Abs(Math.Cos(angle)) > Math.Abs(Math.Sin(angle)))
+                {
+                    // Linia przecięła się najpierw z lewą lub prawą krawędzią kwadratu
+                    if (Math.Cos(angle) > 0)
+                    {
+                        // Prawa krawędź kwadratu
+                        endX = squareX2;
+                        endY = centerY + slope * (squareX2 - centerX);
+                    }
+                    else
+                    {
+                        // Lewa krawędź kwadratu
+                        endX = squareX1;
+                        endY = centerY + slope * (squareX1 - centerX);
+                    }
+                }
+                else
+                {
+                    // Linia przecięła się najpierw z górną lub dolną krawędzią kwadratu
+                    if (Math.Sin(angle) > 0)
+                    {
+                        // Dolna krawędź kwadratu
+                        endY = squareY2;
+                        endX = centerX + (squareY2 - centerY) / slope;
+                    }
+                    else
+                    {
+                        // Górna krawędź kwadratu
+                        endY = squareY1;
+                        endX = centerX + (squareY1 - centerY) / slope;
+                    }
+                }
+
+                // Rysowanie linii
+                await context.BeginPathAsync();
+                await context.MoveToAsync(centerX, centerY);  // Początek linii w środku okręgu
+                await context.LineToAsync(endX, endY);        // Koniec linii na krawędzi kwadratu
+                await context.StrokeAsync();
+            }
+
+
+            //*******************************************************************************************************************************************************
             // Po trapezach resetujemy pozycje X i Y dla pionowych stopni (po bocznej krawędzi)
             currentX = X + DlugoscOtworu * Skala - stepHeight; // Przesunięcie na dolną krawędź prostokąta
             currentY = Y + stepHeight; // Ustawiamy Y poniżej trapezów
+
+            pionoweStopnie = pionoweStopnie - iloscSchodowZabiegowych + 1;
 
             // Rysowanie pionowych stopni
             for (int i = 0; i < pionoweStopnie; i++)
             {
                 // Rysujemy pionowe stopnie wzdłuż lewej krawędzi
-                currentY = Y + delatYKrok;
+                currentY = Y + delatYKrok + (Radius * Skala);
 
                 // Rysowanie prostokątnego stopnia pionowo
                 await context.BeginPathAsync();
                 await context.RectAsync(currentX, currentY, stepHeight, stepWidth); // W pionie: Szerokość Biegu Schodów jest wzdłuż osi Y
                 await context.StrokeAsync();
 
-                Console.WriteLine($"Pionowy stopień {i}: X = {currentX}, Y = {currentY}, Szerokość = {stepHeight}, Wysokość = {stepWidth}");
+              //  Console.WriteLine($"Pionowy stopień {i}: X = {currentX}, Y = {currentY}, Szerokość = {stepHeight}, Wysokość = {stepWidth}");
 
                 // Przesuwamy się w dół
                 delatYKrok += stepWidth;
             }
-        }
-
-        // Funkcja pomocnicza do rysowania trapezów (dla przejścia stopni pionowych na poziome)
-        private async Task DrawTrapezoidAsync(Canvas2DContext context, double x, double y, double topWidth, double bottomWidth, double height)
-        {
-            double halfDiff = (topWidth - bottomWidth) / 2;
-
-            await context.BeginPathAsync();
-            await context.MoveToAsync(x + halfDiff, y);  // Lewy dolny róg trapezu
-            await context.LineToAsync(x + bottomWidth + halfDiff, y);  // Prawy dolny róg trapezu
-            await context.LineToAsync(x + topWidth, y - height);  // Prawy górny róg trapezu
-            await context.LineToAsync(x, y - height);  // Lewy górny róg trapezu
-            await context.ClosePathAsync();
-
-            await context.StrokeAsync();  // Rysowanie konturu trapezu
         }
 
         private async Task DrawShapeObrys(Canvas2DContext context, double offsetX, double offsetY)

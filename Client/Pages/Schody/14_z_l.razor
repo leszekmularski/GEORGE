@@ -39,6 +39,10 @@
         <label>Szerokość Biegu Schodów:</label>
         <input type="number" @bind="SzerokoscBieguSchodow" />
     </div>
+    <div>
+        <label>Kąt zabiegu:</label>
+        <input type="number" @bind="KatZabiegu" />
+    </div>
 </div>
 
 
@@ -94,6 +98,14 @@
                     > 2000 mm
                 </span>
             </div>
+
+            <div style="display: flex; align-items: center; gap: 25px;">
+                <p style="margin: 0;">Kąt zabiegu: @KatZabiegu</p>
+                <span style="margin: 0; color:@(KatZabiegu < 45 || KatZabiegu > 179 ? "red" : "green");">
+                    45 - 179°
+                </span>
+            </div>
+
         </div>
     </div>
 
@@ -120,6 +132,8 @@
     private double SzerokoscOstatniegoStopnia { get; set; }
     private double SzerokoscBieguSchodow { get; set; }
 
+    private double KatZabiegu { get; set; } = 90;
+
     // Output properties (results)
     private double DlugoscLiniiBiegu { get; set; }
     private double KatNachylenia { get; set; }
@@ -128,6 +142,7 @@
     private double GlebokoscStopnia { get; set; }
     private double PrzecietnaDlugoscKroku { get; set; }
     private double PrzestrzenSwobodnaNadGlowa { get; set; }
+
 
     private BECanvasComponent? canvasReferenceKPL;
     private Canvas2DContext? contextKPL;
@@ -195,7 +210,7 @@
         {
             new CSchody(0, 0, 0.25, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
             SzerokoscOstatniegoStopnia, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
-            GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow)
+            GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, KatZabiegu)
         };
 
         await DrawShapes();
@@ -229,6 +244,7 @@
         LiczbaPodniesienStopni = 15;
         SzerokoscOstatniegoStopnia = 80;
         SzerokoscBieguSchodow = 850;
+        KatZabiegu = 90;
 
         // Reset wyników
         DlugoscLiniiBiegu = 0;

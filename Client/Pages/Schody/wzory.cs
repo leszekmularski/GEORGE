@@ -19,14 +19,18 @@
                   
             double x = (c - b) * cosAlpha;
 
-            // Wyświetlenie wyniku wydłużenie zaczepienia promienia w pozomie i pionie
+            // Wyświetlenie wyniku wydłużenie zaczepienia promienia w poziomie i pionie
+            //Console.WriteLine($"WartoscZaczepPromnienia: {x + b} x={x} b={b}");  
+
             return x + b;
 
         }
-        public double KatZaczepPromnienia(double b, double alphaDegrees)
-        {
+        //public double KatZaczepPromnienia(double b, double alphaDegrees = 90)
+        //{
+        //    // b - ilość podziałów
+        //    // alphaDegrees - kąt zabiegu domyślnie 90°
 
-            return 0;
-        }
+        //    return alphaDegrees / b;
+        //}
     }
 }
