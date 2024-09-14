@@ -36,10 +36,11 @@ namespace GEORGE.Client.Pages.Schody
         private double PrzestrzenSwobodnaNadGlowa { get; set; }
         private string Opis { get; set; }
         private double KatZabiegu { get; set; }
+        private double IloscSchodowZabiegowych { get; set; }
 
         public CSchody(double x, double y, double skala, double dlugoscOtworu, double szerokoscOtworu, double dlugoscNaWejsciu, double wysokoscDoStropu, double wysokoscCalkowita, double liczbaPodniesienStopni, 
             double szerokoscOstatniegoStopnia, double szerokoscBieguSchodow, double dlugoscLiniiBiegu, double katNachylenia, double szerokoscSchodow, double wysokoscPodniesieniaStopnia, 
-            double glebokoscStopnia, double przecietnaDlugoscKroku, double przestrzenSwobodnaNadGlowa , string opis, double katZabiegu)
+            double glebokoscStopnia, double przecietnaDlugoscKroku, double przestrzenSwobodnaNadGlowa , string opis, double katZabiegu, double iloscSchodowZabiegowych)
         {
 
             X = x;
@@ -53,6 +54,7 @@ namespace GEORGE.Client.Pages.Schody
             LiczbaPodniesienStopni = liczbaPodniesienStopni;
             SzerokoscOstatniegoStopnia = szerokoscOstatniegoStopnia;
             SzerokoscBieguSchodow = szerokoscBieguSchodow;
+            IloscSchodowZabiegowych = iloscSchodowZabiegowych;
 
             DlugoscLiniiBiegu = dlugoscLiniiBiegu;
             KatNachylenia = katNachylenia;
@@ -79,38 +81,8 @@ namespace GEORGE.Client.Pages.Schody
             await DrawShapeObrys(context, X, Y);
 
             // Wyświetlenie informacji
-            await DrawTextAsync(context, X + (100) * Skala, Y - 45, $"Informacja: {Opis}");
+            await DrawTextAsync(context, X + 10, Y + 45, $"Informacja: {Opis}");
 
-            // Obliczenie liczby pionowych stopni (zmieszczących się w SzerokoscOtworu)
-            double pionoweStopnie = (int)Math.Floor(SzerokoscOtworu / stepHeight);
-
-            // Jeżeli liczba pionowych stopni jest większa niż liczba wszystkich stopni, wszystkie będą pionowe
-            if (pionoweStopnie > LiczbaPodniesienStopni)
-            {
-                pionoweStopnie = LiczbaPodniesienStopni;
-            }
-
-            // Liczba poziomych stopni
-            double poziomeStopnie = LiczbaPodniesienStopni - pionoweStopnie;
-
-            //double delatXKrok = 0;  // Przesunięcie po osi X ???
-            double delatYKrok = 0;  // Przesunięcie po osi Y
-
-            // Rysowanie poziomych stopni
-            for (int i = 0; i < poziomeStopnie; i++)
-            {
-                // Rysowanie prostokątnego stopnia poziomo
-                await context.BeginPathAsync();
-                await context.RectAsync(currentX, currentY, stepWidth, stepHeight); // W poziomie: Szerokość Biegu Schodów jest wzdłuż osi X
-                await context.StrokeAsync();
-
-              // Console.WriteLine($"Poziomy stopień {i + pionoweStopnie}: X = {currentX}, Y = {currentY}, Szerokość = {stepWidth}, Wysokość = {stepHeight}");
-
-                // Przesuwamy się w prawo po osi X
-                currentX += stepWidth;
-            }
-
-            //*******************************************************************************************************************************************************
 
             // Tworzymy instancję klasy Wzory
             Wzory wzory = new Wzory();
@@ -125,10 +97,48 @@ namespace GEORGE.Client.Pages.Schody
 
             Radius = DlugoscOtworu - szukanyStopien * GlebokoscStopnia;
 
+            // Obliczenie liczby pionowych stopni (zmieszczących się w SzerokoscOtworu)
+            double pionoweStopnie = (int)Math.Ceiling((SzerokoscOtworu - Radius) / GlebokoscStopnia);
+
+            // Jeżeli liczba pionowych stopni jest większa niż liczba wszystkich stopni, wszystkie będą pionowe
+            if (pionoweStopnie > LiczbaPodniesienStopni)
+            {
+                pionoweStopnie = LiczbaPodniesienStopni;
+            }
+            //await DrawTextAsync(context, X + 10, Y + 85, $"pionoweStopnie: {pionoweStopnie} {SzerokoscOtworu} / {GlebokoscStopnia}");
+
+            double polawaIloscSchodowZabiegowychPoz = (int)Math.Floor(IloscSchodowZabiegowych / 2);
+
+            double polawaIloscSchodowZabiegowychPion = IloscSchodowZabiegowych - polawaIloscSchodowZabiegowychPoz;
+
+            //pionoweStopnie = pionoweStopnie - (IloscSchodowZabiegowych - polawaIloscSchodowZabiegowychPion);
+
+            await DrawTextAsync(context, X + 10, Y + 105, $"pionoweStopnie: {pionoweStopnie}");
+
+            // Liczba poziomych stopni
+            double poziomeStopnie = szukanyStopien;// LiczbaPodniesienStopni - pionoweStopnie - IloscSchodowZabiegowych;
+
+            //double delatXKrok = 0;  // Przesunięcie po osi X ???
+            double delatYKrok = 0;  // Przesunięcie po osi Y
+
+            // Rysowanie poziomych stopni
+            for (int i = 0; i < poziomeStopnie; i++)
+            {
+                // Rysowanie prostokątnego stopnia poziomo
+                await context.BeginPathAsync();
+                await context.RectAsync(currentX, currentY, stepWidth, stepHeight); // W poziomie: Szerokość Biegu Schodów jest wzdłuż osi X
+                await context.StrokeAsync();
+
+                  // Console.WriteLine($"Poziomy stopień {i + pionoweStopnie}: X = {currentX}, Y = {currentY}, Szerokość = {stepWidth}, Wysokość = {stepHeight}");
+                  // Przesuwamy się w prawo po osi X
+                currentX += stepWidth;
+            }
+
+            //*******************************************************************************************************************************************************
+
             // Określamy kąty w stopniach
             double startAngleDegrees = 270;  // Kąt startu łuku
             double endAngleDegrees = startAngleDegrees + KatZabiegu;   // Kąt zakończenia łuku
-            double iloscSchodowZabiegowych = 6;
 
             // Obliczamy kąty w radianach
             double startAngle = startAngleDegrees * (Math.PI / 180);  // Kąt startu w radianach
@@ -176,9 +186,9 @@ namespace GEORGE.Client.Pages.Schody
 
             // Rysowanie linii wewnątrz łuku, ale kończących się na krawędziach kwadratu
             double angleRange = endAngle - startAngle;  // Zakres kąta, który musimy pokryć liniami
-            double angleStep = angleRange / (iloscSchodowZabiegowych - 1);  // Krok kąta dla linii
+            double angleStep = angleRange / (IloscSchodowZabiegowych - 1);  // Krok kąta dla linii
 
-            for (int i = 0; i < iloscSchodowZabiegowych; i++)
+            for (int i = 0; i < IloscSchodowZabiegowych; i++)
             {
                 // Obliczamy kąt dla danej linii w radianach
                 double angle = startAngle + i * angleStep;  // Kąt między startowym a końcowym
@@ -236,7 +246,6 @@ namespace GEORGE.Client.Pages.Schody
             currentX = X + DlugoscOtworu * Skala - stepHeight; // Przesunięcie na dolną krawędź prostokąta
             currentY = Y + stepHeight; // Ustawiamy Y poniżej trapezów
 
-            pionoweStopnie = pionoweStopnie - iloscSchodowZabiegowych + 1;
 
             // Rysowanie pionowych stopni
             for (int i = 0; i < pionoweStopnie; i++)
@@ -254,6 +263,16 @@ namespace GEORGE.Client.Pages.Schody
                 // Przesuwamy się w dół
                 delatYKrok += stepWidth;
             }
+
+            await context.SetFontAsync("16px Arial");
+            await context.SetFillStyleAsync("red");
+
+            // Draw text
+            await context.FillTextAsync($"Poziome: {poziomeStopnie}({poziomeStopnie * GlebokoscStopnia} = {poziomeStopnie * GlebokoscStopnia + Radius})" +
+                $" Pionowe {pionoweStopnie}({pionoweStopnie * GlebokoscStopnia} = {pionoweStopnie * GlebokoscStopnia + Radius})" +
+                $" Promień:{Radius} Wysokość: {WysokoscPodniesieniaStopnia * (poziomeStopnie + pionoweStopnie + IloscSchodowZabiegowych - 1)}" +
+                $" - Suma {poziomeStopnie + pionoweStopnie + IloscSchodowZabiegowych - 1}", X + 10, Y + 20);
+    
         }
 
         private async Task DrawShapeObrys(Canvas2DContext context, double offsetX, double offsetY)

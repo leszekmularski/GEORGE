@@ -4,47 +4,53 @@
 <h3>Obliczenia Schodów typu: @TypSchodow</h3>
 <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
 <Divider></Divider>
+<Collapse Animation>
+    <Panel Header="Parametry wykonania schodów" Key="1">
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; align-items: center;">
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <label>Długość Otworu:</label>
+                <input type="number" @bind="DlugoscOtworu" />
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <label>Szerokość Otworu:</label>
+                <input type="number" @bind="SzerokoscOtworu" />
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <label>Długość na Wejściu:</label>
+                <input type="number" @bind="DlugoscNaWejsciu" />
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <label>Wysokość do Stropu:</label>
+                <input type="number" @bind="WysokoscDoStropu" />
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <label>Wysokość Całkowita:</label>
+                <input type="number" @bind="WysokoscCalkowita" />
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <label>Liczba (Podniesień) Stopni:</label>
+                <input type="number" @bind="LiczbaPodniesienStopni" />
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <label>Szerokość Ostatniego Stopnia:</label>
+                <input type="number" @bind="SzerokoscOstatniegoStopnia" />
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <label>Szerokość Biegu Schodów:</label>
+                <input type="number" @bind="SzerokoscBieguSchodow" />
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <label>Kąt zabiegu:</label>
+                <input type="number" @bind="KatZabiegu" readonly />
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <label>Ilość schodów zabiegowych:</label>
+                <input type="number" @bind="IloscSchodowZabiegowych" min="2" max="7" />
+            </div>
+        </div>
 
-<!-- Form inputs -->
-<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
-    <div>
-        <label>Długość Otworu:</label>
-        <input type="number" @bind="DlugoscOtworu" />
-    </div>
-    <div>
-        <label>Szerokość Otworu:</label>
-        <input type="number" @bind="SzerokoscOtworu" />
-    </div>
-    <div>
-        <label>Długość na Wejściu:</label>
-        <input type="number" @bind="DlugoscNaWejsciu" />
-    </div>
-    <div>
-        <label>Wysokość do Stropu:</label>
-        <input type="number" @bind="WysokoscDoStropu" />
-    </div>
-    <div>
-        <label>Wysokość Całkowita:</label>
-        <input type="number" @bind="WysokoscCalkowita" />
-    </div>
-    <div>
-        <label>Liczba (Podniesień) Stopni:</label>
-        <input type="number" @bind="LiczbaPodniesienStopni" />
-    </div>
-    <div>
-        <label>Szerokość Ostatniego Stopnia:</label>
-        <input type="number" @bind="SzerokoscOstatniegoStopnia" />
-    </div>
-    <div>
-        <label>Szerokość Biegu Schodów:</label>
-        <input type="number" @bind="SzerokoscBieguSchodow" />
-    </div>
-    <div>
-        <label>Kąt zabiegu:</label>
-        <input type="number" @bind="KatZabiegu" />
-    </div>
-</div>
-
+    </Panel>
+</Collapse>
 
 <!-- Calculation and reset buttons -->
 <button @onclick="Oblicz">Oblicz</button>
@@ -79,7 +85,7 @@
             </div>
 
             <div style="display: flex; align-items: center; gap: 25px;">
-                <p style="margin: 0;">Głębokość Stopnia: @GlebokoscStopnia</p>
+                <p style="margin: 0; color: darkblue; font-style: oblique; font-weight: bold;">Głębokość Stopnia: @GlebokoscStopnia</p>
                 <span style="margin: 0; color:@(GlebokoscStopnia < 220 || GlebokoscStopnia > 350 ? "red" : "green");">
                     220 - 350 mm
                 </span>
@@ -133,6 +139,7 @@
     private double SzerokoscBieguSchodow { get; set; }
 
     private double KatZabiegu { get; set; } = 90;
+    private double IloscSchodowZabiegowych { get; set; } = 5;
 
     // Output properties (results)
     private double DlugoscLiniiBiegu { get; set; }
@@ -210,7 +217,7 @@
         {
             new CSchody(0, 0, 0.25, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
             SzerokoscOstatniegoStopnia, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
-            GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, KatZabiegu)
+            GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, KatZabiegu, IloscSchodowZabiegowych + 1)
         };
 
         await DrawShapes();
@@ -245,6 +252,7 @@
         SzerokoscOstatniegoStopnia = 80;
         SzerokoscBieguSchodow = 850;
         KatZabiegu = 90;
+        IloscSchodowZabiegowych = 5;
 
         // Reset wyników
         DlugoscLiniiBiegu = 0;
