@@ -47,6 +47,10 @@
                 <label>Ilość schodów zabiegowych:</label>
                 <input type="number" @bind="IloscSchodowZabiegowych" min="2" max="7" />
             </div>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <label style="color:forestgreen">Skala wyświetlania:</label>
+                <input type="number" @bind="SkalaWyswietlania" min="1" max="100" />
+            </div>
         </div>
 
     </Panel>
@@ -141,6 +145,8 @@
     private double KatZabiegu { get; set; } = 90;
     private double IloscSchodowZabiegowych { get; set; } = 5;
 
+    private int SkalaWyswietlania { get; set; } = 25;
+
     // Output properties (results)
     private double DlugoscLiniiBiegu { get; set; }
     private double KatNachylenia { get; set; }
@@ -215,7 +221,7 @@
         // Zainicjalizuj listę kształtów
         shapes = new List<Shape>
         {
-            new CSchody(0, 0, 0.25, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
+            new CSchody(0, 0, (double)SkalaWyswietlania / 100, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
             SzerokoscOstatniegoStopnia, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
             GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, KatZabiegu, IloscSchodowZabiegowych + 1)
         };
