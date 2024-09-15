@@ -213,6 +213,9 @@ namespace GEORGE.Client.Pages.Schody
             double centerYOsi = Y + SzerokoscBieguSchodow * Skala;
             // Rysowanie fragmentu okręgu (łuku) - oś schodów
             await context.BeginPathAsync();
+            await context.LineToAsync(0, (SzerokoscBieguSchodow / 2) * Skala);      // Koniec linii na dużym kwadracie
+            await context.LineToAsync(20, (SzerokoscBieguSchodow / 2) * Skala + 5);      // Koniec linii na dużym kwadracie
+            await context.LineToAsync(20, (SzerokoscBieguSchodow / 2) * Skala - 5);      // Koniec linii na dużym kwadracie
             await context.LineToAsync(0, (SzerokoscBieguSchodow / 2) * Skala);
             await context.ArcAsync(centerXOsi, centerYOsi, (SzerokoscBieguSchodow / 2) * Skala, startAngle, endAngle);  // Rysujemy łuk
             await context.LineToAsync(centerXOsi + (SzerokoscBieguSchodow / 2) * Skala, SzerokoscOtworu * Skala);      // Koniec linii na dużym kwadracie
@@ -251,7 +254,7 @@ namespace GEORGE.Client.Pages.Schody
             // Draw text
             await context.FillTextAsync($"Poziome: {poziomeStopnie}({poziomeStopnie * GlebokoscStopnia} = {poziomeStopnie * GlebokoscStopnia + Radius})" +
                 $" Pionowe {pionoweStopnie}({pionoweStopnie * GlebokoscStopnia} = {pionoweStopnie * GlebokoscStopnia + Radius})" +
-                $" Promień:{Radius} Wysokość: {WysokoscPodniesieniaStopnia * (poziomeStopnie + pionoweStopnie + IloscSchodowZabiegowych - 1)}" +
+                $" Promień:{Radius} Wysokość:{WysokoscPodniesieniaStopnia} x {(poziomeStopnie + pionoweStopnie + IloscSchodowZabiegowych - 1)} = {WysokoscPodniesieniaStopnia * (poziomeStopnie + pionoweStopnie + IloscSchodowZabiegowych - 1)}" +
                 $" - Suma {poziomeStopnie + pionoweStopnie + IloscSchodowZabiegowych - 1}", X + 10, Y + 20);
         }
 
