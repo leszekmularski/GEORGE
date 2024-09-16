@@ -20,7 +20,7 @@
             double x = (c - b) * cosAlpha;
 
             // Wyświetlenie wyniku wydłużenie zaczepienia promienia w poziomie i pionie
-            //Console.WriteLine($"WartoscZaczepPromnienia: {x + b} x={x} b={b}");  
+            Console.WriteLine($"WartoscZaczepPromnienia: {x + b} x={x} b={b}");  
 
             return x + b;
 

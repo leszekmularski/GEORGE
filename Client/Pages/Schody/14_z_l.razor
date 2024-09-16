@@ -57,7 +57,8 @@
 </Collapse>
 
 <!-- Calculation and reset buttons -->
-<button @onclick="Oblicz">Oblicz</button>
+<button @onclick="()=> Oblicz(false)">Oblicz</button>
+<button @onclick="()=> Oblicz(true)">Zapisz do DXF</button>
 <button @onclick="Resetuj">Reset</button>
 
 <!-- Flexbox container for results and drawing -->
@@ -180,7 +181,7 @@
     }
 
     // Calculation method
-    private async void Oblicz()
+    private async void Oblicz(bool saveDxf)
     {
         // Sprawdzanie ograniczeń tak jak w JS
         if (DlugoscOtworu < SzerokoscBieguSchodow) DlugoscOtworu = SzerokoscBieguSchodow;
@@ -189,7 +190,8 @@
         if (SzerokoscOtworu >= 30000) SzerokoscOtworu = 29999;
         if (DlugoscNaWejsciu < SzerokoscBieguSchodow) DlugoscNaWejsciu = SzerokoscBieguSchodow;
         if (DlugoscNaWejsciu >= 40000) DlugoscNaWejsciu = 39999;
-
+        if (SkalaWyswietlania > 110) SkalaWyswietlania = 110;
+        
         // Długość Linii Biegu
         DlugoscLiniiBiegu = Math.Round(DlugoscOtworu + DlugoscNaWejsciu - 2 * SzerokoscBieguSchodow + (150 * Math.PI + SzerokoscBieguSchodow - 600) - SzerokoscOstatniegoStopnia, 0);
 
@@ -211,24 +213,66 @@
         // Przestrzeń Swobodna nad Głową
         PrzestrzenSwobodnaNadGlowa = Math.Round(WysokoscDoStropu - WysokoscPodniesieniaStopnia - (DlugoscNaWejsciu - SzerokoscOtworu) * Math.Tan(KatNachylenia * Math.PI / 180), 0);
 
-        await UpdateShapes();
+        // Jeśli saveDxf = true, wywołaj zapis DXF
+        if (saveDxf)
+        {
+            // Aktualizacja kształtów
+            await UpdateShapes(true);
 
+            if (shapes == null) return;
+
+            // Szukanie obiektów CSchody w liście shapes i zapisywanie do pliku DXF
+            foreach (var shape in shapes)
+            {
+                if (shape is CSchody schody)
+                {
+                    await schody.SaveToDxfAsync();
+                }
+            }
+
+            await UpdateShapes();
+        }
+        else
+        {
+            await UpdateShapes();
+        }
     }
 
-    private async Task UpdateShapes()
+    private async Task UpdateShapes(bool skala1do1 = false)
     {
         if (shapes != null) shapes.Clear();
         // Zainicjalizuj listę kształtów
-        shapes = new List<Shape>
-        {
-            new CSchody(0, 0, (double)SkalaWyswietlania / 100, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
-            SzerokoscOstatniegoStopnia, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
-            GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, KatZabiegu, IloscSchodowZabiegowych + 1)
-        };
 
-        await DrawShapes();
-        await Task.Delay(10);
-        await DrawShapes();
+        var skalaRys = (double)SkalaWyswietlania / 100;
+
+        if (skala1do1)
+        {
+            skalaRys = 1;
+
+            shapes = new List<Shape>
+            {
+                new CSchody(JSRuntime,  0, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
+                SzerokoscOstatniegoStopnia, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
+                GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, KatZabiegu, IloscSchodowZabiegowych + 1)
+            };
+
+        }
+        else
+        {
+
+            shapes = new List<Shape>
+            {
+                new CSchody(JSRuntime,  0, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
+                SzerokoscOstatniegoStopnia, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
+                GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, KatZabiegu, IloscSchodowZabiegowych + 1)
+            };
+
+            await DrawShapes();
+            await Task.Delay(10);
+            await DrawShapes();
+            
+        }
+
     }
 
     private async Task DrawShapes()
