@@ -356,6 +356,11 @@ namespace GEORGE.Client.Pages.Schody
             double szukanyStopien = (int)Math.Ceiling((DlugoscOtworu - Radius) / GlebokoscStopnia);
             Radius = DlugoscOtworu - szukanyStopien * GlebokoscStopnia;
 
+            if (Radius < SzerokoscBieguSchodow)
+            {
+                Radius = SzerokoscBieguSchodow;
+            }
+
             // Obliczenie liczby pionowych stopni (zmieszczących się w SzerokoscOtworu)
             double pionoweStopnie = (int)Math.Ceiling((SzerokoscOtworu - Radius) / GlebokoscStopnia);
             if (pionoweStopnie > LiczbaPodniesienStopni)
