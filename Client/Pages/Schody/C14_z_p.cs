@@ -129,13 +129,23 @@ namespace GEORGE.Client.Pages.Schody
 
             double poziomeStopnie = szukanyStopien;
 
-            // Rysowanie poziomych stopni
             for (int i = 0; i < poziomeStopnie; i++)
             {
                 await context.BeginPathAsync();
-                await context.RectAsync(currentX, currentY, stepWidth, stepHeight);
-                await context.StrokeAsync();
-                currentX -= stepWidth;
+
+                if (i == 0)
+                {
+                    await context.RectAsync(currentX - SzerokoscOstatniegoStopnia * Skala, currentY, stepWidth + SzerokoscOstatniegoStopnia * Skala, stepHeight);
+                    await context.StrokeAsync();
+                    currentX -= stepWidth + SzerokoscOstatniegoStopnia * Skala;
+                }
+                else
+                {
+                    await context.RectAsync(currentX, currentY, stepWidth, stepHeight);
+                    await context.StrokeAsync();
+                    currentX -= stepWidth;
+                }
+
             }
 
             //*******************************************************************************************************************************************************
@@ -150,8 +160,8 @@ namespace GEORGE.Client.Pages.Schody
             double endAngle = endAngleDegrees * (Math.PI / 180);
 
             // Obliczamy środek okręgu
-            double centerX = X + Radius * Skala;
-            double centerY = Y + Radius * Skala;
+            double centerX = X + Radius * Skala - SzerokoscOstatniegoStopnia * Skala;
+            double centerY = Y + Radius * Skala - SzerokoscOstatniegoStopnia * Skala;
 
             Console.WriteLine($"{X} + ({Radius}) * {Skala}");
             Console.WriteLine($"{Y} + {Radius} * {Skala}");
