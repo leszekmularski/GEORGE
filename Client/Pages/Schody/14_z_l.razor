@@ -28,7 +28,7 @@
                 <input type="number" @bind="WysokoscCalkowita" />
             </div>
             <div style="display: flex; flex-direction: column; gap: 5px;">
-                <label>Liczba (Podniesień) Stopni:</label>
+                <label>Sugerowana liczba (Podniesień) Stopni:</label>
                 <input type="number" @bind="LiczbaPodniesienStopni" />
             </div>
             <div style="display: flex; flex-direction: column; gap: 5px;">
@@ -124,7 +124,7 @@
     <div>
         <h4>Rysunek schodów:</h4>
         <div style="overflow: auto; width: 1000px; height: 580px;">
-            <BECanvas Width="2000" Height="2500" @ref="canvasReferenceKPL"></BECanvas>
+            <BECanvas Width="@Convert.ToInt64(SzerokoscOtworu)" Height="@Convert.ToInt64(DlugoscOtworu)" @ref="canvasReferenceKPL"></BECanvas>
         </div>
     </div>
 </div>
@@ -134,8 +134,8 @@
     public string? TypSchodow { get; set; }
 
     // Input properties
-    private double DlugoscOtworu { get; set; }
-    private double SzerokoscOtworu { get; set; }
+    private double DlugoscOtworu { get; set; } = 2500;
+    private double SzerokoscOtworu { get; set; } = 2000;
     private double DlugoscNaWejsciu { get; set; }
     private double WysokoscDoStropu { get; set; }
     private double WysokoscCalkowita { get; set; }
@@ -162,9 +162,17 @@
     private Canvas2DContext? contextKPL;
     private List<Shape>? shapes;
 
+    private bool boolLewe = true;
+
     protected override async Task OnInitializedAsync()
     {
         TypSchodow = System.Net.WebUtility.UrlDecode(TypSchodow);
+
+        if (TypSchodow != null && TypSchodow.Trim().EndsWith("prawo"))
+        {
+            boolLewe = false;
+        }
+
         await Task.CompletedTask;
     }
 
@@ -191,7 +199,7 @@
         if (DlugoscNaWejsciu < SzerokoscBieguSchodow) DlugoscNaWejsciu = SzerokoscBieguSchodow;
         if (DlugoscNaWejsciu >= 40000) DlugoscNaWejsciu = 39999;
         if (SkalaWyswietlania > 110) SkalaWyswietlania = 110;
-        
+
         // Długość Linii Biegu
         DlugoscLiniiBiegu = Math.Round(DlugoscOtworu + DlugoscNaWejsciu - 2 * SzerokoscBieguSchodow + (150 * Math.PI + SzerokoscBieguSchodow - 600) - SzerokoscOstatniegoStopnia, 0);
 
@@ -222,11 +230,25 @@
             if (shapes == null) return;
 
             // Szukanie obiektów CSchody w liście shapes i zapisywanie do pliku DXF
-            foreach (var shape in shapes)
+            if (boolLewe)
             {
-                if (shape is CSchody schody)
+                foreach (var shape in shapes)
                 {
-                    await schody.SaveToDxfAsync();
+                    if (shape is CSchodyL schody)
+                    {
+                        await schody.SaveToDxfAsync();
+                    }
+                }
+
+            }
+            else
+            {
+                foreach (var shape in shapes)
+                {
+                    if (shape is CSchodyP schody)
+                    {
+                        await schody.SaveToDxfAsync();
+                    }
                 }
             }
 
@@ -249,23 +271,46 @@
         {
             skalaRys = 1;
 
-            shapes = new List<Shape>
+            if (boolLewe)
             {
-                new CSchody(JSRuntime,  0, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
-                SzerokoscOstatniegoStopnia, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
-                GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, KatZabiegu, IloscSchodowZabiegowych + 1)
-            };
+                shapes = new List<Shape>
+                {
+                    new CSchodyL(JSRuntime,  0, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
+                    SzerokoscOstatniegoStopnia, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
+                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, KatZabiegu, IloscSchodowZabiegowych + 1)
+                };
+            }
+            else
+            {
+                shapes = new List<Shape>
+                {
+                    new CSchodyP(JSRuntime,  0, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
+                    SzerokoscOstatniegoStopnia, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
+                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, KatZabiegu, IloscSchodowZabiegowych + 1)
+                };
+            }
 
         }
         else
         {
-
-            shapes = new List<Shape>
+            if (boolLewe)
             {
-                new CSchody(JSRuntime,  0, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
-                SzerokoscOstatniegoStopnia, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
-                GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, KatZabiegu, IloscSchodowZabiegowych + 1)
-            };
+                shapes = new List<Shape>
+                {
+                    new CSchodyL(JSRuntime,  0, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
+                    SzerokoscOstatniegoStopnia, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
+                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, KatZabiegu, IloscSchodowZabiegowych + 1)
+                };
+            }
+            else
+            {
+                shapes = new List<Shape>
+                {
+                    new CSchodyP(JSRuntime,  0, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
+                    SzerokoscOstatniegoStopnia, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
+                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, KatZabiegu, IloscSchodowZabiegowych + 1)
+                };
+            }
 
             await DrawShapes();
             await Task.Delay(10);
