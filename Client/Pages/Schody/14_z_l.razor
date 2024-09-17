@@ -77,7 +77,7 @@
 
             <div style="display: flex; align-items: center; gap: 25px;">
                 <p style="margin: 0;">Szerokość Schodów: @SzerokoscSchodow</p>
-                <Tooltip Placement="Placement.TopLeft" Title="Całkowita szerokość schodów">
+                <Tooltip Placement="Placement.TopLeft" Title="Szerokość schodów">
                     <span style="margin: 0; color:@(SzerokoscSchodow >= 800 ? "green" : "red");">>= 800 mm</span>
                 </Tooltip>
             </div>
@@ -124,7 +124,7 @@
     <div>
         <h4>Rysunek schodów:</h4>
         <div style="overflow: auto; width: 1000px; height: 580px;">
-            <BECanvas Width="@Convert.ToInt64(SzerokoscOtworu)" Height="@Convert.ToInt64(DlugoscOtworu)" @ref="canvasReferenceKPL"></BECanvas>
+            <BECanvas Width="@Convert.ToInt64(DlugoscOtworu + SzerokoscOstatniegoStopnia)" Height="@Convert.ToInt64(SzerokoscOtworu)" @ref="canvasReferenceKPL"></BECanvas>
         </div>
     </div>
 </div>

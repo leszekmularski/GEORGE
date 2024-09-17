@@ -2,75 +2,121 @@
 @inject IJSRuntime JSRuntime
 
 <h3>Obliczenia Schodów typu: @TypSchodow</h3>
-
 <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
 <Divider></Divider>
-@* https://planuj.schody.pl/index.php?type=14_p_l *@
-<div>
-    <label>Długość Otworu:</label>
-    <input @bind="DlugoscOtworu" type="number" />
-</div>
-<div>
-    <label>Szerokość Otworu:</label>
-    <input @bind="SzerokoscOtworu" type="number" />
-</div>
-<div>
-    <label>Wysokość do Stropu:</label>
-    <input @bind="WysokoscDoStropu" type="number" />
-</div>
-<div>
-    <label>Wysokość Całkowita:</label>
-    <input @bind="WysokoscCalkowita" type="number" />
-</div>
-<div>
-    <label>Liczba Podniesień Stopni:</label>
-    <input @bind="LiczbaPodniesienStopni" type="number" />
-</div>
-<div>
-    <label>Szerokość Ostatniego Stopnia:</label>
-    <input @bind="SzerokoscOstatniegoStopnia" type="number" />
-</div>
-<div>
-    <label>Szerokość Biegu Schodów:</label>
-    <input @bind="SzerokoscBieguSchodow" type="number" />
-</div>
-<div>
-    <label>Długość Podestu:</label>
-    <input @bind="PodestDlugosc" type="number" />
-</div>
-<div>
-    <label>Szerokość Podestu:</label>
-    <input @bind="PodestSzerokosc" type="number" />
-</div>
-<div>
-    <label>Podest Jako Stopień nr:</label>
-    <input @bind="PodestJakoStopienNr" type="number" />
-</div>
+<Collapse Animation>
+    <Panel Header="Parametry wykonania schodów" Key="1">
+        @* https://planuj.schody.pl/index.php?type=14_p_l *@
+       <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; align-items: center;">
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <label>Długość Otworu:</label>
+                <input @bind="DlugoscOtworu" type="number" />
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <label>Szerokość Otworu:</label>
+                <input @bind="SzerokoscOtworu" type="number" />
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <label>Wysokość do Stropu:</label>
+                <input @bind="WysokoscDoStropu" type="number" />
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <label>Wysokość Całkowita:</label>
+                <input @bind="WysokoscCalkowita" type="number" />
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <label>Liczba Podniesień Stopni:</label>
+                <input @bind="LiczbaPodniesienStopni" type="number" />
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <label>Szerokość Ostatniego Stopnia:</label>
+                <input @bind="SzerokoscOstatniegoStopnia" type="number" />
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <label>Długość Podestu:</label>
+                <input @bind="PodestDlugosc" type="number" />
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <label>Szerokość Podestu:</label>
+                <input @bind="PodestSzerokosc" type="number" />
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <label>Podest Jako Stopień nr:</label>
+                <input @bind="PodestJakoStopienNr" type="number" />
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <label style="color:forestgreen">Skala wyświetlania [%]:</label>
+                <input type="number" @bind="SkalaWyswietlania" min="1" max="100" />
+            </div>
+        </div>
+    </Panel>
+</Collapse>
 
-<button @onclick="Oblicz">Oblicz</button>
+<button @onclick="()=> Oblicz(false)">Oblicz</button>
+<button @onclick="()=> Oblicz(true)">Zapisz do DXF</button>
 <button @onclick="Resetuj">Reset</button>
 
-<h4>Wyniki:</h4>
-<div>
-    <p>Długość Linii Biegu: @DlugoscLiniiBiegu</p>
-    <p>Przestrzeń Nad Głową: @PrzestrzenSwobodnaNadGlowa</p>
-    <p>Głębokość Stopnia: @GlebokoscStopnia</p>
-    <p>Przeciętna Długość Kroku: @PrzecietnaDlugoscKroku</p>
-    <p>Wysokość Podniesienia Stopnia: @WysokoscPodniesieniaStopnia</p>
-    <p>Kąt Nachylenia: @KatNachylenia</p>
+<div style="display: flex; gap: 25px;">
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+        <h4>Wyniki:</h4>
+        <div>
+            <p style="margin: 0;">Długość Linii Biegu: @DlugoscLiniiBiegu</p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 25px;">
+            <p style="margin: 0;">Przestrzeń Swobodna nad Głową: @PrzestrzenSwobodnaNadGlowa</p>
+            <span style="margin: 0; color:@(PrzestrzenSwobodnaNadGlowa >= 2000 ? "green" : "red");">
+                > 2000 mm
+            </span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 25px;">
+            <p style="margin: 0; color: darkblue; font-style: oblique; font-weight: bold;">Głębokość Stopnia: @GlebokoscStopnia</p>
+            <span style="margin: 0; color:@(GlebokoscStopnia < 220 || GlebokoscStopnia > 350 ? "red" : "green");">
+                220 - 350 mm
+            </span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 25px;">
+            <p style="margin: 0;">Przeciętna Długość Kroku: @PrzecietnaDlugoscKroku</p>
+            <span style="margin: 0; color:@(PrzecietnaDlugoscKroku < 600 || PrzecietnaDlugoscKroku > 650 ? "red" : "green");">
+                600 - 650 mm
+            </span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 25px;">
+            <p style="margin: 0;">Wysokość Podniesienia Stopnia: @WysokoscPodniesieniaStopnia</p>
+            <span style="margin: 0; color:@(WysokoscPodniesieniaStopnia < 140 || WysokoscPodniesieniaStopnia > 200 ? "red" : "green");">
+                140 - 200 mm
+            </span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 25px;">
+            <p style="margin: 0;">Przestrzeń Swobodna nad Głową: @PrzestrzenSwobodnaNadGlowa</p>
+            <span style="margin: 0; color:@(PrzestrzenSwobodnaNadGlowa >= 2000 ? "green" : "red");">
+                > 2000 mm
+            </span>
+        </div>
+
+        <p>Kąt Nachylenia: @KatNachylenia</p>
+    </div>
+
+    <!-- Drawing canvas -->
+    <div>
+        <h4>Rysunek schodów:</h4>
+        <div style="overflow: auto; width: 1000px; height: 580px;">
+            <BECanvas Width="@Convert.ToInt64(DlugoscOtworu + SzerokoscOstatniegoStopnia)" Height="@Convert.ToInt64(SzerokoscOtworu)" @ref="canvasReferenceKPL"></BECanvas>
+        </div>
+    </div>
 </div>
 
 @code {
     [Parameter]
     public string? TypSchodow { get; set; }
 
-    private double DlugoscOtworu { get; set; }
-    private double SzerokoscOtworu { get; set; }
+    private double DlugoscOtworu { get; set; } = 4000;
+    private double SzerokoscOtworu { get; set; } = 1000;
     private double WysokoscDoStropu { get; set; }
     private double WysokoscCalkowita { get; set; }
     private double LiczbaPodniesienStopni { get; set; }
     private double SzerokoscOstatniegoStopnia { get; set; }
-    private double SzerokoscBieguSchodow { get; set; }
+
     private double PodestDlugosc { get; set; }
     private double PodestSzerokosc { get; set; }
     private double PodestJakoStopienNr { get; set; }
@@ -82,42 +128,175 @@
     private double WysokoscPodniesieniaStopnia { get; set; }
     private double KatNachylenia { get; set; }
 
+    private double SkalaWyswietlania { get; set; } = 25;
+
+    private BECanvasComponent? canvasReferenceKPL;
+    private Canvas2DContext? contextKPL;
+    private List<Shape>? shapes;
+
+    private bool boolLewe = true;
+
     protected override async Task OnInitializedAsync()
     {
         TypSchodow = System.Net.WebUtility.UrlDecode(TypSchodow);
         await Task.CompletedTask;
     }
 
-    private void Oblicz()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (contextKPL == null)
+                contextKPL = await canvasReferenceKPL.CreateCanvas2DAsync();
+
+            await Task.Delay(10);
+
+        }
+    }
+
+    private async void Oblicz(bool saveDxf)
     {
         // Obliczenia podobne do JS
         GlebokoscStopnia = Math.Round(((DlugoscOtworu - SzerokoscOstatniegoStopnia - PodestDlugosc + 4) /
-            (LiczbaPodniesienStopni - PodestJakoStopienNr - 1)), 2);
+            (LiczbaPodniesienStopni - PodestJakoStopienNr - 1)), 0);
 
-        WysokoscPodniesieniaStopnia = Math.Round(WysokoscCalkowita / LiczbaPodniesienStopni, 2);
+        WysokoscPodniesieniaStopnia = Math.Round(WysokoscCalkowita / LiczbaPodniesienStopni, 0);
 
-        KatNachylenia = Math.Round(Math.Atan(WysokoscPodniesieniaStopnia / GlebokoscStopnia) * 180 / Math.PI, 2);
+        KatNachylenia = Math.Round(Math.Atan(WysokoscPodniesieniaStopnia / GlebokoscStopnia) * 180 / Math.PI, 0);
 
         DlugoscLiniiBiegu = Math.Round(GlebokoscStopnia * (LiczbaPodniesienStopni - 2) +
-            (Math.PI / 2 * (PodestDlugosc + PodestSzerokosc) / 4), 2);
+            (Math.PI / 2 * (PodestDlugosc + PodestSzerokosc) / 4), 0);
 
         PrzestrzenSwobodnaNadGlowa = Math.Round(WysokoscDoStropu - WysokoscPodniesieniaStopnia -
             ((PodestSzerokosc + GlebokoscStopnia * (PodestJakoStopienNr - 1)) - SzerokoscOtworu) *
-            Math.Tan(KatNachylenia * Math.PI / 180), 2);
+            Math.Tan(KatNachylenia * Math.PI / 180), 0);
 
-        PrzecietnaDlugoscKroku = Math.Round(2 * WysokoscPodniesieniaStopnia + GlebokoscStopnia, 2);
+        PrzecietnaDlugoscKroku = Math.Round(2 * WysokoscPodniesieniaStopnia + GlebokoscStopnia, 0);
+
+        // Jeśli saveDxf = true, wywołaj zapis DXF
+        if (saveDxf)
+        {
+            // Aktualizacja kształtów
+            await UpdateShapes(true);
+
+            if (shapes == null) return;
+
+            // Szukanie obiektów CSchody w liście shapes i zapisywanie do pliku DXF
+            if (boolLewe)
+            {
+                foreach (var shape in shapes)
+                {
+                    if (shape is CSchodyL schody)
+                    {
+                     //   await schody.SaveToDxfAsync();
+                    }
+                }
+
+            }
+            else
+            {
+                foreach (var shape in shapes)
+                {
+                    if (shape is CSchodyP schody)
+                    {
+                       // await schody.SaveToDxfAsync();
+                    }
+                }
+            }
+
+            await UpdateShapes();
+        }
+        else
+        {
+            await UpdateShapes();
+        }
+    }
+
+    private async Task UpdateShapes(bool skala1do1 = false)
+    {
+        if (shapes != null) shapes.Clear();
+        // Zainicjalizuj listę kształtów
+
+        var skalaRys = (double)SkalaWyswietlania / 100;
+
+        if (skala1do1)
+        {
+            skalaRys = 1;
+
+            if (boolLewe)
+            {
+                shapes = new List<Shape>
+                {
+                    new CSchody_Podest_L(JSRuntime,0, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
+                    SzerokoscOstatniegoStopnia, PodestDlugosc, PodestSzerokosc, PodestJakoStopienNr, DlugoscLiniiBiegu, KatNachylenia,
+                    WysokoscPodniesieniaStopnia, GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa , TypSchodow)
+                };
+            }
+            else
+            {
+                // shapes = new List<Shape>
+                // {
+                //     new CSchodyP(JSRuntime,  0, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
+                //     SzerokoscOstatniegoStopnia, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
+                //     GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, KatZabiegu, IloscSchodowZabiegowych + 1)
+                // };
+            }
+
+        }
+        else
+        {
+            if (boolLewe)
+            {
+                shapes = new List<Shape>
+                {
+                    new CSchody_Podest_L(JSRuntime,0, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
+                    SzerokoscOstatniegoStopnia, PodestDlugosc, PodestSzerokosc, PodestJakoStopienNr, DlugoscLiniiBiegu, KatNachylenia,
+                    WysokoscPodniesieniaStopnia, GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa , TypSchodow)
+                };
+            }
+            else
+            {
+                // shapes = new List<Shape>
+                // {
+                //     new CSchodyP(JSRuntime,  0, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
+                //     SzerokoscOstatniegoStopnia, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
+                //     GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, KatZabiegu, IloscSchodowZabiegowych + 1)
+                // };
+            }
+
+            await DrawShapes();
+            await Task.Delay(10);
+            await DrawShapes();
+
+        }
+
+    }
+
+    private async Task DrawShapes()
+    {
+        if (shapes == null) return;
+
+        if (contextKPL == null)
+            contextKPL = await canvasReferenceKPL.CreateCanvas2DAsync();
+
+        await contextKPL.ClearRectAsync(0, 0, DlugoscOtworu + 50, SzerokoscOtworu + 50); // Ustaw szerokość kanwy na większą, aby zmieścić oba kształty
+
+        foreach (var shape in shapes)
+        {
+            await shape.DrawAsync(contextKPL);
+        }
     }
 
     private void Resetuj()
     {
-        DlugoscOtworu = 400;
-        SzerokoscOtworu = 100;
-        WysokoscDoStropu = 250;
-        WysokoscCalkowita = 285;
+        DlugoscOtworu = 4000;
+        SzerokoscOtworu = 1000;
+        WysokoscDoStropu = 2500;
+        WysokoscCalkowita = 2850;
         LiczbaPodniesienStopni = 15;
-        SzerokoscOstatniegoStopnia = 10;
-        PodestDlugosc = 95;
-        PodestSzerokosc = 95;
+        SzerokoscOstatniegoStopnia = 100;
+        PodestDlugosc = 950;
+        PodestSzerokosc = 950;
         PodestJakoStopienNr = 2;
 
         // Zerowanie wyników
