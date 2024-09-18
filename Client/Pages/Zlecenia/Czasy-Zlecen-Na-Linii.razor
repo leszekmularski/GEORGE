@@ -299,8 +299,14 @@
 
             if (czaszlecenie != null)
             {
-                czaszlecenie.CzasNaZlecenie = (int)Math.Ceiling(suma);
-
+                if (isCheckedZastapPozycje)
+                {
+                    czaszlecenie.CzasNaZlecenie = (int)Math.Ceiling(suma);
+                }
+                else
+                {
+                    czaszlecenie.CzasNaZlecenie += (int)Math.Ceiling(suma);
+                }
                 await SaveChanges(czaszlecenie);
             }
             else
