@@ -13,9 +13,9 @@
 @inject Utilities.ILocalStorage LocalStorage
 @inject INotificationService _notice
 
-
 <Tabs Animated @bind-ActiveKey="@activeKey" OnChange="ShowData">
     <TabPane Tab="Czasy na liniach" Key="1">
+        <Checkbox @bind-Checked="isCheckedZastapPozycje">Zastąp pozycje przed wklejeniem</Checkbox>
         <table class="table table-bordered">
             <thead>
                 <tr>
@@ -126,6 +126,8 @@
     string activeKey { get; set; } = "1";
 
     int iloszSztukPoz = 0;
+
+    private bool isCheckedZastapPozycje = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -250,8 +252,9 @@
                 list.Add(pozDoZlecen);
             }
 
-            if (list.Any())
+            if (list.Any() && isCheckedZastapPozycje)
             {
+
                 // Usunięcie istniejących danych
                 var deleteResponse = await Http.DeleteAsync($"api/PozWZleceniu/rowid/{RowIdZlecenia}");
 
