@@ -29,7 +29,7 @@
                 <input @bind="LiczbaPodniesienStopni" type="number" />
             </div>
             <div style="display: flex; flex-direction: column; gap: 5px;">
-                <label>Szerokość Ostatniego Stopnia:</label>
+                <label>Ostatniego Stopień Wydłużony o:</label>
                 <input @bind="SzerokoscOstatniegoStopnia" type="number" />
             </div>
             <div style="display: flex; flex-direction: column; gap: 5px;">
@@ -140,6 +140,8 @@
     {
         TypSchodow = System.Net.WebUtility.UrlDecode(TypSchodow);
         await Task.CompletedTask;
+
+        Resetuj();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -289,12 +291,12 @@
 
     private void Resetuj()
     {
-        DlugoscOtworu = 4000;
+        DlugoscOtworu = 3650;
         SzerokoscOtworu = 1000;
-        WysokoscDoStropu = 2500;
+        WysokoscDoStropu = 2400;
         WysokoscCalkowita = 2850;
         LiczbaPodniesienStopni = 15;
-        SzerokoscOstatniegoStopnia = 100;
+        SzerokoscOstatniegoStopnia = 60;
         PodestDlugosc = 950;
         PodestSzerokosc = 950;
         PodestJakoStopienNr = 2;

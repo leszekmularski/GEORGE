@@ -99,13 +99,25 @@ namespace GEORGE.Client.Pages.Schody
             for (int i = 0; i < poziomeStopnie - 1; i++)
             {
                 await context.BeginPathAsync();
-                await context.RectAsync(currentX, currentY, stepWidth, stepHeightPoz);
-                await context.StrokeAsync();
-                currentX += stepWidth;
+
+                if (i == 0)
+                {
+                    await context.BeginPathAsync();
+                    await context.RectAsync(currentX, currentY, stepWidth + SzerokoscOstatniegoStopnia * Skala, stepHeightPoz);
+                    await context.StrokeAsync();
+                    currentX += stepWidth + SzerokoscOstatniegoStopnia * Skala;
+                }
+                else
+                {
+                    await context.BeginPathAsync();
+                    await context.RectAsync(currentX, currentY, stepWidth, stepHeightPoz);
+                    await context.StrokeAsync();
+                    currentX += stepWidth;
+                }
+
             }
 
             //Spocznik
-
             await context.BeginPathAsync();
             await context.RectAsync(currentX, currentY, stepHeightPion, stepHeightPoz);
             await context.StrokeAsync();
@@ -175,18 +187,29 @@ namespace GEORGE.Client.Pages.Schody
 
         private async Task DrawShapeObrys(Canvas2DContext context, double offsetX, double offsetY)
         {
-
             await context.BeginPathAsync();
 
-            // Draw outer rectangle
+            // Ustaw kolor linii na czerwony
+            await context.SetStrokeStyleAsync("red");
+
+            // Ustaw grubość linii (na przykład na 3 piksele)
+            await context.SetLineWidthAsync(3);
+
+            // Rysowanie zewnętrznego prostokąta
             await context.RectAsync(offsetX, offsetY, DlugoscOtworu * Skala, SzerokoscOtworu * Skala); // #OBRYS SCHODOW
             await context.RectAsync(offsetX + 1, offsetY + 1, DlugoscOtworu * Skala - 1, SzerokoscOtworu * Skala - 1); // #OBRYS SCHODOW
 
+            // Dodanie punktów prostokąta do listy
             AddRectanglePoints(offsetX, offsetY, DlugoscOtworu * Skala, SzerokoscOtworu * Skala);
 
-            //   await context.ClosePathAsync();
-
+            // Rysowanie konturu
             await context.StrokeAsync();
+
+            // Ustaw kolor linii na czerwony
+            await context.SetStrokeStyleAsync("black");
+
+            // Ustaw grubość linii (na przykład na 3 piksele)
+            await context.SetLineWidthAsync(1);
         }
 
         private async Task DrawTextAsync(Canvas2DContext context, double x, double y, string text)

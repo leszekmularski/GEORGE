@@ -194,6 +194,7 @@
                     <Divider></Divider>
                     <Button Type="@ButtonType.Primary" Style="width:49%" Disabled="@isNotDisabled" OnClick="SaveAll">Zapisz wyszystkie z poniżeszej tabeli</Button>
                     <Button Type="@ButtonType.Primary" Style="width:49%" Disabled="@isNotDisabled" OnClick="SaveAllGrupa">Zapisz wyszystkie oraz grupuj</Button>
+                    <Checkbox @bind-Checked="isCheckedDelAll">Usuń wszystkie dane przed zapisem nowych</Checkbox>
                 </div>
 
                 <div>
@@ -333,6 +334,8 @@
     private List<KantowkaDoZlecen>? kantowki;
 
     private string uwagaKopiuj = "Kopiuj do schowka dane";
+
+    private bool isCheckedDelAll = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -496,7 +499,7 @@
         try
         {
             // Wyślij dane do API
-            var response = await Http.PostAsJsonAsync("api/kantowkaDoZlecen/save-all", kantowki);
+            var response = await Http.PostAsJsonAsync($"api/kantowkaDoZlecen/save-all/{isCheckedDelAll}", kantowki);
 
             if (response.IsSuccessStatusCode)
             {
@@ -554,7 +557,7 @@
         try
         {
             // Wyślij pogrupowane dane do API
-            var response = await Http.PostAsJsonAsync("api/kantowkaDoZlecen/save-all", groupedData);
+            var response = await Http.PostAsJsonAsync($"api/kantowkaDoZlecen/save-all/{isCheckedDelAll}", groupedData);
 
             if (response.IsSuccessStatusCode)
             {

@@ -107,7 +107,7 @@ namespace GEORGE.Client.Pages.Schody
 
             Console.WriteLine($"Radius wylicz: {Radius} / Radius real: {DlugoscOtworu - szukanyStopien * GlebokoscStopnia} GlebokoscStopnia:{GlebokoscStopnia} szukanyStopien: {szukanyStopien}");
 
-            Radius = DlugoscOtworu - szukanyStopien * GlebokoscStopnia;
+            Radius = DlugoscOtworu - szukanyStopien * GlebokoscStopnia - SzerokoscOstatniegoStopnia;
 
             if (Radius < SzerokoscBieguSchodow)
             {
@@ -115,7 +115,7 @@ namespace GEORGE.Client.Pages.Schody
 
                 szukanyStopien = (int)Math.Floor((DlugoscOtworu - Radius) / GlebokoscStopnia);
 
-                Radius = DlugoscOtworu - szukanyStopien * GlebokoscStopnia;
+                Radius = DlugoscOtworu - szukanyStopien * GlebokoscStopnia - SzerokoscOstatniegoStopnia;
             }
 
             // Obliczenie liczby pionowych stopni (zmieszczących się w SzerokoscOtworu)
@@ -160,8 +160,8 @@ namespace GEORGE.Client.Pages.Schody
             double endAngle = endAngleDegrees * (Math.PI / 180);
 
             // Obliczamy środek okręgu
-            double centerX = X + Radius * Skala - SzerokoscOstatniegoStopnia * Skala;
-            double centerY = Y + Radius * Skala - SzerokoscOstatniegoStopnia * Skala;
+            double centerX = X + Radius * Skala;
+            double centerY = Y + Radius * Skala;
 
             Console.WriteLine($"{X} + ({Radius}) * {Skala}");
             Console.WriteLine($"{Y} + {Radius} * {Skala}");
@@ -240,7 +240,7 @@ namespace GEORGE.Client.Pages.Schody
             await context.StrokeAsync();
             Console.WriteLine($"Radius * Skala: {Radius * Skala} centerX: {centerX}");  
             // Obliczamy środek okręgu
-            double centerXOsi = centerX - GlebokoscStopnia * Skala; // Tylko aby pokazć szkic środkA
+            double centerXOsi = X + SzerokoscBieguSchodow * Skala; // Tylko aby pokazć szkic środkA
             double centerYOsi = Y + SzerokoscBieguSchodow * Skala;
             // Rysowanie fragmentu okręgu (łuku) - oś schodów
             await context.BeginPathAsync();
@@ -296,18 +296,29 @@ namespace GEORGE.Client.Pages.Schody
 
         private async Task DrawShapeObrys(Canvas2DContext context, double offsetX, double offsetY)
         {
-
             await context.BeginPathAsync();
 
-            // Draw outer rectangle
+            // Ustaw kolor linii na czerwony
+            await context.SetStrokeStyleAsync("red");
+
+            // Ustaw grubość linii (na przykład na 3 piksele)
+            await context.SetLineWidthAsync(3);
+
+            // Rysowanie zewnętrznego prostokąta
             await context.RectAsync(offsetX, offsetY, DlugoscOtworu * Skala, SzerokoscOtworu * Skala); // #OBRYS SCHODOW
             await context.RectAsync(offsetX + 1, offsetY + 1, DlugoscOtworu * Skala - 1, SzerokoscOtworu * Skala - 1); // #OBRYS SCHODOW
 
+            // Dodanie punktów prostokąta do listy
             AddRectanglePoints(offsetX, offsetY, DlugoscOtworu * Skala, SzerokoscOtworu * Skala);
 
-            //   await context.ClosePathAsync();
-
+            // Rysowanie konturu
             await context.StrokeAsync();
+
+            // Ustaw kolor linii na czerwony
+            await context.SetStrokeStyleAsync("black");
+
+            // Ustaw grubość linii (na przykład na 3 piksele)
+            await context.SetLineWidthAsync(1);
         }
 
         private async Task DrawTextAsync(Canvas2DContext context, double x, double y, string text)
@@ -365,14 +376,14 @@ namespace GEORGE.Client.Pages.Schody
 
             // DlugoscOtworu / GlebokoscStopnia
             double szukanyStopien = (int)Math.Ceiling((DlugoscOtworu - Radius) / GlebokoscStopnia);
-            Radius = DlugoscOtworu - szukanyStopien * GlebokoscStopnia;
+            Radius = DlugoscOtworu - szukanyStopien * GlebokoscStopnia - SzerokoscOstatniegoStopnia;
 
             // Jeżeli promień jest mniejszy od szerokości biegu schodów, dostosowujemy go
             if (Radius < SzerokoscBieguSchodow)
             {
                 Radius = SzerokoscBieguSchodow;
                 szukanyStopien = (int)Math.Floor((DlugoscOtworu - Radius) / GlebokoscStopnia);
-                Radius = DlugoscOtworu - szukanyStopien * GlebokoscStopnia;
+                Radius = DlugoscOtworu - szukanyStopien * GlebokoscStopnia - SzerokoscOstatniegoStopnia;
             }
 
             // Obliczamy liczbę pionowych stopni
@@ -390,8 +401,19 @@ namespace GEORGE.Client.Pages.Schody
             // Dodajemy poziome stopnie jako prostokąty do pliku DXF
             for (int i = 0; i < poziomeStopnie; i++)
             {
-                AddRectangleToDxf(dxf, currentX, currentY, stepWidth, stepHeight); // Dodajemy poziomy prostokąt (stopień)
-                currentX += stepWidth;
+                //AddRectangleToDxf(dxf, currentX, currentY, stepWidth, stepHeight); // Dodajemy poziomy prostokąt (stopień)
+                //currentX += stepWidth;
+                if (i == 0)
+                {
+
+                    AddRectangleToDxf(dxf, currentX, currentY, stepWidth + SzerokoscOstatniegoStopnia * Skala, stepHeight); // Dodajemy poziomy prostokąt (stopień)
+                    currentX += stepWidth + SzerokoscOstatniegoStopnia * Skala;
+                }
+                else
+                {
+                    AddRectangleToDxf(dxf, currentX, currentY, stepWidth, stepHeight); // Dodajemy poziomy prostokąt (stopień)
+                    currentX += stepWidth;
+                }
             }
 
             // Rysowanie linii wewnątrz łuku (konwersja na linie w DXF)
@@ -488,7 +510,7 @@ namespace GEORGE.Client.Pages.Schody
                 string base64String = Convert.ToBase64String(stream.ToArray());
 
                 // Wywołanie JavaScript w celu pobrania pliku
-                await _jsRuntime.InvokeVoidAsync("downloadFileDXF", "14_z_l.dxf", base64String);
+                await _jsRuntime.InvokeVoidAsync("downloadFileDXF", "14_z_p.dxf", base64String);
             }
 
             Console.WriteLine("Plik DXF został wygenerowany.");

@@ -107,7 +107,7 @@ namespace GEORGE.Client.Pages.Schody
 
             Console.WriteLine($"Radius wylicz: {Radius} / Radius real: {DlugoscOtworu - szukanyStopien * GlebokoscStopnia} GlebokoscStopnia:{GlebokoscStopnia} szukanyStopien: {szukanyStopien}");
 
-            Radius = DlugoscOtworu - szukanyStopien * GlebokoscStopnia;
+            Radius = DlugoscOtworu - szukanyStopien * GlebokoscStopnia - SzerokoscOstatniegoStopnia;
 
             if (Radius < SzerokoscBieguSchodow)
             {
@@ -135,7 +135,7 @@ namespace GEORGE.Client.Pages.Schody
 
             double poziomeStopnie = szukanyStopien;
 
-            // Rysowanie poziomych stopni
+            // Rysowanie poziomych stopni (rysowane stopnie w poziomie)
             for (int i = 0; i < poziomeStopnie; i++)
             {
                 await context.BeginPathAsync();
@@ -170,8 +170,8 @@ namespace GEORGE.Client.Pages.Schody
             double centerX = X + (DlugoscOtworu - Radius) * Skala;
             double centerY = Y + Radius * Skala;
 
-            Console.WriteLine($"{X} + ({DlugoscOtworu} - {Radius}) * {Skala}");
-            Console.WriteLine($"{Y} + {Radius} * {Skala}");
+            //Console.WriteLine($"{X} + ({DlugoscOtworu} - {Radius}) * {Skala}");
+            //Console.WriteLine($"{Y} + {Radius} * {Skala}");
 
             // Bok małego kwadratu wynosi 140, uwzględniamy skalę
             double smallSquareSide = (Radius - SzerokoscBieguSchodow) * Skala * 2;
@@ -299,18 +299,29 @@ namespace GEORGE.Client.Pages.Schody
 
         private async Task DrawShapeObrys(Canvas2DContext context, double offsetX, double offsetY)
         {
-
             await context.BeginPathAsync();
 
-            // Draw outer rectangle
+            // Ustaw kolor linii na czerwony
+            await context.SetStrokeStyleAsync("red");
+
+            // Ustaw grubość linii (na przykład na 3 piksele)
+            await context.SetLineWidthAsync(3);
+
+            // Rysowanie zewnętrznego prostokąta
             await context.RectAsync(offsetX, offsetY, DlugoscOtworu * Skala, SzerokoscOtworu * Skala); // #OBRYS SCHODOW
             await context.RectAsync(offsetX + 1, offsetY + 1, DlugoscOtworu * Skala - 1, SzerokoscOtworu * Skala - 1); // #OBRYS SCHODOW
 
+            // Dodanie punktów prostokąta do listy
             AddRectanglePoints(offsetX, offsetY, DlugoscOtworu * Skala, SzerokoscOtworu * Skala);
 
-            //   await context.ClosePathAsync();
-
+            // Rysowanie konturu
             await context.StrokeAsync();
+
+            // Ustaw kolor linii na czerwony
+            await context.SetStrokeStyleAsync("black");
+
+            // Ustaw grubość linii (na przykład na 3 piksele)
+            await context.SetLineWidthAsync(1);
         }
 
         private async Task DrawTextAsync(Canvas2DContext context, double x, double y, string text)
@@ -368,7 +379,7 @@ namespace GEORGE.Client.Pages.Schody
 
             // DlugoscOtworu / GlebokoscStopnia
             double szukanyStopien = (int)Math.Ceiling((DlugoscOtworu - Radius) / GlebokoscStopnia);
-            Radius = DlugoscOtworu - szukanyStopien * GlebokoscStopnia;
+            Radius = DlugoscOtworu - szukanyStopien * GlebokoscStopnia - SzerokoscOstatniegoStopnia;
 
             if (Radius < SzerokoscBieguSchodow)
             {
@@ -394,8 +405,18 @@ namespace GEORGE.Client.Pages.Schody
             // Dodawanie poziomych stopni jako prostokątów do pliku DXF
             for (int i = 0; i < poziomeStopnie; i++)
             {
-                AddRectangleToDxf(dxf, currentX, currentY, stepWidth, stepHeight); // Dodajemy poziomy prostokąt (stopień)
-                currentX += stepWidth;
+                
+
+                if (i == 0)
+                {
+                    AddRectangleToDxf(dxf, currentX, currentY, stepWidth + SzerokoscOstatniegoStopnia * Skala, stepHeight); // Dodajemy poziomy prostokąt (stopień)
+                    currentX += stepWidth + SzerokoscOstatniegoStopnia * Skala;
+                }
+                else
+                {
+                    AddRectangleToDxf(dxf, currentX, currentY, stepWidth, stepHeight); // Dodajemy poziomy prostokąt (stopień)
+                    currentX += stepWidth;
+                }
             }
 
             // Rysowanie linii wewnątrz łuku (konwersja na linie w DXF)

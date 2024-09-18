@@ -59,8 +59,8 @@ namespace GEORGE.Server.Controllers
             }
         }
 
-        [HttpPost("save-all")]
-        public async Task<ActionResult> SaveAll(List<KantowkaDoZlecen> kantowki)
+        [HttpPost("save-all/{usunAll}")]
+        public async Task<ActionResult> SaveAll(List<KantowkaDoZlecen> kantowki, bool usunAll)
         {
             try
             {
@@ -74,8 +74,11 @@ namespace GEORGE.Server.Controllers
                     .Where(k => k.RowIdZlecenia == rowIdZleceniaPattern)
                     .ToListAsync();
 
-                // Usuń istniejące rekordy pasujące do wzorca
-                _context.KantowkaDoZlecen.RemoveRange(recordsToDelete);
+                if (usunAll)
+                {
+                    // Usuń istniejące rekordy pasujące do wzorca
+                    _context.KantowkaDoZlecen.RemoveRange(recordsToDelete);
+                }
 
                 // Dodaj nowe rekordy
                 _context.KantowkaDoZlecen.AddRange(kantowki);
