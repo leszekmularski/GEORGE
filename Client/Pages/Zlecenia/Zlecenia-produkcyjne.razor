@@ -137,6 +137,7 @@ else
                 <a @onclick="() => DodajKantowke(context)" class="custom-link">Kantówka</a>
                 <a @onclick="() => DodajSzybe(context)" class="custom-linkszy">Szyby</a>
                 <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">T.W.Z / Pozycje</a>
+                <a @onclick="() => DodajZamowienia(context)">Zamówienia</a>
                 <a @onclick="() => FileEdit(context)">Pliki</a>
             </ActionColumn>
             <Column Title="Status" TData="string">
@@ -938,6 +939,11 @@ else
     private void DodajKantowke(ZleceniaProdukcyjne row)
     {
         navigationManager.NavigateTo($"/Kantowka-do-zlecen/{row.RowId}");
+    }
+
+    private void DodajZamowienia(ZleceniaProdukcyjne row)
+    {
+        navigationManager.NavigateTo($"/Elementy-do-zlecen/{row.RowId}");
     }
 
     private void DodajSzybe(ZleceniaProdukcyjne row)

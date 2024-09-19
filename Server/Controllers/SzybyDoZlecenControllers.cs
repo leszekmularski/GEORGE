@@ -21,13 +21,13 @@ namespace GEORGE.Server.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<SzybyDoZlecen>>> GetZleceniaProdukcyjneAsync()
+        public async Task<ActionResult<List<SzybyDoZlecen>>> GetSzybyDoZlecenAsync()
         {
             return await _context.SzybyDoZlecen.OrderBy(e => e.RowIdZlecenia).ToListAsync();
         }
 
         [HttpGet("rowid/{rowid}")]
-        public async Task<ActionResult<List<SzybyDoZlecen>>> GetZleceniaProdukcyjneRowIdAsync(string rowid)
+        public async Task<ActionResult<List<SzybyDoZlecen>>> GetSzybyDoZlecenRowIdAsync(string rowid)
         {
             var result = await _context.SzybyDoZlecen
                 .Where(x => x.RowIdZlecenia == rowid)
@@ -44,7 +44,7 @@ namespace GEORGE.Server.Controllers
 
 
         [HttpPost]
-        public async Task<ActionResult> AddKartyInstrukcyjneAsync(SzybyDoZlecen szyba)
+        public async Task<ActionResult> AddSzybyDoZleceneAsync(SzybyDoZlecen szyba)
         {
             try
             {
@@ -54,13 +54,13 @@ namespace GEORGE.Server.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Błąd podczas dodawania Karty Instrukcyjne.");
+                _logger.LogError(ex, "Błąd podczas dodawania SzybyDoZlecen.");
                 return StatusCode(500, "Wystąpił błąd podczas przetwarzania żądania.");
             }
         }
 
-        [HttpPost("save-all")]
-        public async Task<ActionResult> SaveAll(List<SzybyDoZlecen> kantowki)
+        [HttpPost("save-all/{kasujPrzedZapisem}")]
+        public async Task<ActionResult> SaveAll(List<SzybyDoZlecen> kantowki, bool kasujPrzedZapisem)
         {
             try
             {
@@ -75,7 +75,7 @@ namespace GEORGE.Server.Controllers
                     .ToListAsync();
 
                 // Usuń istniejące rekordy pasujące do wzorca
-                _context.SzybyDoZlecen.RemoveRange(recordsToDelete);
+                if(kasujPrzedZapisem) _context.SzybyDoZlecen.RemoveRange(recordsToDelete);
 
                 // Dodaj nowe rekordy
                 _context.SzybyDoZlecen.AddRange(kantowki);
@@ -94,7 +94,7 @@ namespace GEORGE.Server.Controllers
 
 
         [HttpPut("{id}")]
-        public async Task<ActionResult> UpdateZlecenieProdukcyjneAsync(long id, SzybyDoZlecen szyba)
+        public async Task<ActionResult> UpdateSzybyDoZlecenAsync(long id, SzybyDoZlecen szyba)
         {
             if (id != szyba.Id)
             {

@@ -1,0 +1,474 @@
+﻿@page "/Producenci"
+@using GEORGE.Shared.Models
+@using GEORGE.Shared.Class
+@inject HttpClient Http
+@using AntDesign
+@using System.Net;
+@inject IMessageService _message
+@inject Utilities.ILocalStorage LocalStorage
+
+<h3>Producenci / Podwykonawcy</h3>
+
+@if (boolAdmin || boolZmiana)
+{
+    <Button Type="primary" OnClick="@(ShowDialogAddNew)">
+        Dodaj nowego producenta lub podwykonawcę
+    </Button>
+}
+
+<Divider></Divider>
+
+@if (rodzajeProducentow == null)
+{
+    <p><em>Czekaj na załadowanie danych...</em></p>
+}
+else
+{
+    <ul>
+        <Table TItem="ProducenciPodwykonawcy" DataSource="@rodzajeProducentow">
+            <Column Title="ID" @bind-Field="@context.Id" Hidden />
+            <Column Title="Nazwa Producenta" @bind-Field="@context.NazwaProducenta" Sortable OnFilter="(a, b) => a == b" Filterable />
+            <Column Title="Adres" @bind-Field="@context.Adres" Sortable />
+            <Column Title="Miejscowość" @bind-Field="@context.Miejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable />
+            <Column Title="Telefon" @bind-Field="@context.Telefon" Sortable />
+            <Column Title="Email" @bind-Field="@context.Email" Sortable />
+            <Column Title="Osoba Kontaktowa" @bind-Field="@context.OsobaKontaktowa1" Sortable />
+            <Column Title="Telefon do os. konkt." @bind-Field="@context.TelefonOsobyKontaktowej1" Sortable />
+            <Column Title="Autor zmian" @bind-Field="@context.KtoZapisal" Sortable />
+
+            <!-- Przykład kolumny dla daty z formatowaniem -->
+            <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd HH:mm:ss" Sortable />
+            <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
+            <ActionColumn Title="Akcja">
+                @if (boolAdmin || boolZmiana)
+                {
+                    <Popconfirm Title="Czy chcesz edytować pozycję?"
+                                OnConfirm="()=> editRow(context.Id)"
+                                OkText="Tak"
+                                CancelText="Nie">
+                        <a>Edytuj</a>
+                    </Popconfirm>
+                }
+                @if (boolAdmin || boolUsuniecia)
+                {
+                    <Popconfirm Title="Czy chcesz usunąć pozycję?"
+                                OnConfirm="()=> deleteRow(context.Id)"
+                                OkText="Tak"
+                                CancelText="Nie">
+                        <a style="color:red">Usuń</a>
+                    </Popconfirm>
+                }
+            </ActionColumn>
+        </Table>
+    </ul>
+}
+
+<div class="modal fade @classShow" tabindex="-1" style="display: @display;">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5>@strErr</h5>
+            </div>
+                <div class="modal-body">
+                    <AntDesign.Form Model="@producent" Layout="FormLayout.Vertical" OnFinish="@HandleSubmit">
+                       <Tabs Animated>
+                            <TabPane Tab="Opis producenta">
+                                <AntDesign.FormItem Label="Nazwa Producenta">
+                                    <AntDesign.Input @bind-Value="producent.NazwaProducenta" MaxLength="100" Required Placeholder="Podaj nazwę Producenta" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Adres">
+                                    <AntDesign.Input @bind-Value="producent.Adres" Required />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Miejscowość">
+                                    <AntDesign.Input @bind-Value="producent.Miejscowosc" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Telefon">
+                                    <AntDesign.Input @bind-Value="producent.Telefon" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Adres Email">
+                                    <AntDesign.Input @bind-Value="producent.Email" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="NIP">
+                                    <AntDesign.Input @bind-Value="producent.NIP" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="REGON">
+                                    <AntDesign.Input @bind-Value="producent.REGON" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Adres WWW">
+                                    <AntDesign.Input @bind-Value="producent.AdresWWW1" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Adres WWW inny">
+                                    <AntDesign.Input @bind-Value="producent.AdresWWW2" />
+                                </AntDesign.FormItem>
+                            </TabPane>
+                            <TabPane Tab="Osoby kontaktowe">
+                                <AntDesign.FormItem Label="Osoba kontaktowa">
+                                    <AntDesign.Input @bind-Value="producent.OsobaKontaktowa1" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Telefon Osoby Kontaktowej">
+                                    <AntDesign.Input @bind-Value="producent.TelefonOsobyKontaktowej1" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Email Osoby Kontaktowej">
+                                    <AntDesign.Input @bind-Value="producent.EmailOsobyKontaktowej1" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Osoba kontaktowa 2">
+                                    <AntDesign.Input @bind-Value="producent.OsobaKontaktowa2" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Telefon Osoby Kontaktowej 2">
+                                    <AntDesign.Input @bind-Value="producent.TelefonOsobyKontaktowej2" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Email Osoby Kontaktowej2">
+                                    <AntDesign.Input @bind-Value="producent.EmailOsobyKontaktowej2" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Osoba kontaktowa 3">
+                                    <AntDesign.Input @bind-Value="producent.OsobaKontaktowa3" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Telefon Osoby Kontaktowej 3">
+                                    <AntDesign.Input @bind-Value="producent.TelefonOsobyKontaktowej3" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Email Osoby Kontaktowej3">
+                                    <AntDesign.Input @bind-Value="producent.EmailOsobyKontaktowej3" />
+                                </AntDesign.FormItem>
+                            </TabPane>
+                            <TabPane Tab="Pozostałe informacje">
+                                <AntDesign.FormItem Label="Ilość Dni Realizacji">
+                                    <AntDesign.InputNumber @bind-Value="producent.IloscDniRealizacji" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Uwagi">
+                                    <AntDesign.Input @bind-Value="producent.Uwagi" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Kto Zapisał">
+                                    <AntDesign.Input @bind-Value="producent.KtoZapisal" Required />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Ostatnia Zmiana">
+                                    <AntDesign.Input @bind-Value="producent.OstatniaZmiana" />
+                                </AntDesign.FormItem>
+                            </TabPane>
+                             </Tabs>
+                            <AntDesign.FormItem>
+                                <AntDesign.Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</AntDesign.Button>
+                                <AntDesign.Button @onclick="@HandleCancel">Anuluj</AntDesign.Button>
+                            </AntDesign.FormItem>
+                        </AntDesign.Form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    [Inject] private AppState AppState { get; set; } = default!;
+
+    private List<ProducenciPodwykonawcy>? rodzajeProducentow;
+    private List<ProducenciPodwykonawcy>? originalrodzajeProducentow;
+
+    private bool _visible = false;
+    private string display = "none;";
+    private string classShow = "";
+
+    private long cid = -1;
+
+    private string strErr = "";
+
+    private ProducenciPodwykonawcy producent = new ProducenciPodwykonawcy();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AppState != null)
+        {
+            AppState.SomeData = "";
+        }
+
+        await Laduj_Uprawnienia();
+
+        try
+        {
+            rodzajeProducentow = await Http.GetFromJsonAsync<List<ProducenciPodwykonawcy>>("api/ProducenciPodwykonawcy");
+
+            producent = new ProducenciPodwykonawcy();
+            producent.Id =  0;     
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"******* Błąd {ex.Message}");  
+        }
+    }
+
+    bool blokujDwuKlik = false;
+    private async Task HandleSubmit()
+    {
+
+        if (_visible == false || blokujDwuKlik || producent.NazwaProducenta == null) return;
+
+        blokujDwuKlik = true;
+
+        producent.NazwaProducenta = producent.NazwaProducenta.Trim(); 
+
+        HttpResponseMessage response;
+
+        if (producent.Id == 0)
+        {
+            // Sprawdź unikalność NumerRodzajuKart
+            var responsedbl = rodzajeProducentow.Where(e => e.NazwaProducenta.ToLower() == producent.NazwaProducenta.ToLower());
+
+            if (responsedbl != null && responsedbl.Count() > 0)
+            {
+                // Wyświetl komunikat o błędzie, że NumerRodzajuKart nie jest unikalny
+                Console.WriteLine("Nazwa Producenta musi być unikalna.");
+                await _message.Error("Nazwa Producenta musi być unikalna.");
+                blokujDwuKlik = false;
+                return;
+            }
+
+            response = await Http.PostAsJsonAsync("api/ProducenciPodwykonawcy", producent);
+        }
+        else
+        {
+            response = await Http.PutAsJsonAsync($"api/ProducenciPodwykonawcy/{producent.Id}", producent);
+
+            if (rodzajeProducentow != null) originalrodzajeProducentow = rodzajeProducentow.DeepCopyList();
+        }
+
+        if (response.IsSuccessStatusCode)
+        {
+            if (producent.Id == 0)
+            {
+                rodzajeProducentow.Add(producent); // Dodaj nowe producent do listy
+            }
+            else
+            {
+                // Znajdź istniejące producent i zaktualizuj je
+                var index = rodzajeProducentow.FindIndex(z => z.Id == producent.Id);
+
+                if (index != -1)
+                {
+                    rodzajeProducentow[index] = producent;
+                }
+            }
+
+            _visible = false;
+            producent = new ProducenciPodwykonawcy(); // Zresetuj formularz
+
+            await HideDialog();
+
+            StateHasChanged(); // Odśwież widok
+
+            blokujDwuKlik = false;
+        }
+        else
+        {
+            // Obsługa błędów
+            Console.WriteLine("Błąd podczas zapisywania rodzaju producent - źródło RAZOR");
+            blokujDwuKlik = false;
+        }
+    }
+
+    public async Task deleteRow(long id)
+    {
+        if (rodzajeProducentow == null) return;
+
+        try
+        {
+            var response = await Http.DeleteAsync($"api/ProducenciPodwykonawcy/{id}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                rodzajeProducentow = await Http.GetFromJsonAsync<List<ProducenciPodwykonawcy>>("api/ProducenciPodwykonawcy");
+                // Usunięcie rekordu z listy po pomyślnym usunięciu z serwera
+                if (rodzajeProducentow != null)
+                    rodzajeProducentow = rodzajeProducentow.Where(r => r.Id != id).ToList();
+                Console.WriteLine("Rekord został pomyślnie usunięty.");
+            }
+            else
+            {
+                Console.WriteLine($"Błąd podczas usuwania rekordu: {response.ReasonPhrase}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"******* Błąd {ex.Message}");
+        }
+    }
+
+
+    public async Task editRow(long id)
+    {
+        //listOfData = listOfData.Where(d => d.Id != id).ToArray();
+        if (rodzajeProducentow == null) return;
+
+        originalrodzajeProducentow = rodzajeProducentow.DeepCopyList();
+
+        strErr = "Edytuj rodzaj kart";
+
+        // Logika edycji
+        if (_visible)
+        {
+            _visible = false;
+            await HideDialog();
+        }
+        else
+        {
+            producent = new ProducenciPodwykonawcy();
+
+            var listOfData = rodzajeProducentow.Where(d => d.Id == id).ToArray();
+
+            // Pobierz producent na podstawie indeksu wiersza
+            if (listOfData != null && listOfData.Count() > 0)
+            {
+                cid = id;
+
+                producent = listOfData[0];
+
+                _visible = true;
+
+                await ShowDialog();
+            }
+
+            // Wyświetl numer zamówienia w konsoli
+            Console.WriteLine(producent.NazwaProducenta);
+        }
+
+    }
+
+    public async Task HandleAddNew()
+    {
+        // Sprawdź unikalność NumerRodzajuKart
+        var responsedbl = rodzajeProducentow.Where(e => e.NazwaProducenta.ToLower() == producent.NazwaProducenta.ToLower());
+
+        if (responsedbl != null && responsedbl.Count() > 0)
+        {
+            // Wyświetl komunikat o błędzie, że NumerRodzajuKart nie jest unikalny
+            Console.WriteLine("Numer Rodzaju Kart musi być unikalny.");
+            strErr = "Numer Rodzaju Kart musi być unikalny.";
+            blokujDwuKlik = false;
+            return;
+        }
+
+        if (string.IsNullOrEmpty(producent.NIP))
+        {
+            strErr = "NIP musi być unikalny.";
+            return;
+        }
+
+        await Task.Delay(1);
+
+        _visible = true;
+        await HandleSubmit();
+
+        rodzajeProducentow = await Http.GetFromJsonAsync<List<ProducenciPodwykonawcy>>("api/ProducenciPodwykonawcy");
+    }
+
+    public async Task HandleCancel()
+    {
+        _visible = false;
+        await HideDialog();
+    }
+
+    public async Task HandleCloseAdd()
+    {
+        _visible = false;
+        await HideDialog();
+        await HandleSubmit();
+    }
+
+    public async Task ShowDialogAddNew()
+    {
+
+        blokujDwuKlik = false;
+
+        strErr = "Podaj nazwę PRODUCENTA lub PODWYKONAWCY";
+
+        producent = new ProducenciPodwykonawcy();
+        cid = -1;
+
+        producent.KtoZapisal = user;
+
+        display = "block";
+        await Task.Delay(50);
+        classShow = "show";
+        StateHasChanged();
+    }
+
+    public async Task ShowDialog()
+    {
+        display = "block";
+        await Task.Delay(50);
+        classShow = "show";
+        StateHasChanged();
+    }
+
+    private async Task HideDialog()
+    {
+        if (cid > 0 && rodzajeProducentow != null)
+        {
+            rodzajeProducentow = originalrodzajeProducentow;
+        }
+
+        cid = -1;
+
+        classShow = "";
+        await Task.Delay(200);
+        display = "none";
+
+        StateHasChanged();
+    }
+
+    private bool boolOdczyt = false;
+    private bool boolZmiana = false;
+    private bool boolUsuniecia = false;
+    private bool boolAdmin = false;
+    private string RowIdPracownika = "";
+    private string? user;
+    private List<UprawnieniaPracownikaViewModel>? uprawnienia;
+
+    private async Task Laduj_Uprawnienia()
+    {
+        user = await LocalStorage.GetStringAsync("user");
+
+        if (string.IsNullOrEmpty(user))
+        {
+            //NavigationManager.NavigateTo($"", true);
+            return;
+        }
+        
+        string nazwaTabeli = "ProducenciPodwykonawcy";
+
+        Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");
+
+        try
+        {
+            uprawnienia = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"/api/ZwrocSatus/{user}/{nazwaTabeli}");
+        }
+        catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            Console.WriteLine("Brak danych!!!");
+            await _message.Error("Brak danych - status użytkownika - sprawdź dostęp!");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            await _message.Error(ex.Message);
+        }
+
+        if (uprawnienia != null)
+        {
+            if (uprawnienia.Count > 0)
+            {
+                var znalezioneElementy = uprawnienia.Where(uprawnienie => uprawnienie.TableName == nazwaTabeli);
+                Console.WriteLine("Znaleziono uprawnienia dla użytkownika: " + user + " w tabeli: " + nazwaTabeli + " ilość rekordów: " + znalezioneElementy.Count());
+                if (znalezioneElementy.Any())
+                {
+                    var szuk = znalezioneElementy.FirstOrDefault(x => x.TableName == nazwaTabeli);
+                    if (szuk != null)
+                    {
+                        boolOdczyt = szuk.Odczyt;
+                        boolZmiana = szuk.Zmiana;
+                        boolUsuniecia = szuk.Usuniecie;
+                        boolAdmin = szuk.Administrator;
+                        RowIdPracownika = szuk.RowId;
+                    }
+                }
+            }
+        }
+    }
+}

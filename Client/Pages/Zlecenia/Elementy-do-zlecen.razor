@@ -1,5 +1,6 @@
-﻿@page "/Szyby-do-zlecen/{RowIdZlecenia}"
+﻿@page "/Elementy-do-zlecen/{RowIdZlecenia}"
 @using GEORGE.Shared.Models
+@using GEORGE.Shared.ViewModels
 @using GEORGE.Shared.Class
 @using GEORGE.Client.Pages
 @inject HttpClient Http
@@ -7,7 +8,7 @@
 @using AntDesign
 @inject IMessageService _message
 @inject PdfReaderService PdfReaderService
-@inject GEORGE.Client.Pages.PDF.PdfDataParserSzyby PdfDataParserSz
+@inject GEORGE.Client.Pages.PDF.PdfDataParserElementy PdfDataParserElement
 @inject Utilities.ILocalStorage LocalStorage
 @using System.Net;
 @using System.Text.Json;
@@ -18,7 +19,7 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <PageTitle>Zamówiona szyby do zlecenia</PageTitle>
+    <PageTitle>Zamówiona elementy do zlecenia</PageTitle>
 
     <script>
         function copyToClipboard(text) {
@@ -97,27 +98,26 @@
             const a = document.createElement('a');
             a.setAttribute('hidden', '');
             a.setAttribute('href', url);
-            a.setAttribute('download', 'szyby.csv');
+            a.setAttribute('download', 'elementyZamowienia.csv');
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
         }
     </script>
 
-
 </head>
 <body>
 
-    <h3>Zamówione szyby do zlecenia</h3>
+    <h3>Zamówione elementy do zlecenia</h3>
 
-     @if (boolAdmin || boolZmian)
+     @if (boolAdmin || boolZmiana)
     {
         <Button Type="primary" OnClick="@(ShowDialogAddNew)">
-            Dodaj nowe zestawienie materiałów
+            Dodaj nową pozycję do zamówienia na elementy
         </Button>
     }
 
-    @if (szybyDoZlecen != null && szybyDoZlecen.Count > 0)
+    @if (elementyDoZlecen != null && elementyDoZlecen.Count > 0)
     {
         <Button Type="reset" OnClick="@(CopySzybyToClipboard)">
             @uwagaKopiuj
@@ -132,70 +132,82 @@
     <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
     <Divider></Divider>
 
-    @if (szybyDoZlecen == null)
+    @if (elementyDoZlecen == null)
     {
         <p><em>Czekaj na załadowanie danych...</em></p>
     }
     else
     {
-        <ul>
-            <Table TItem="SzybyDoZlecen" DataSource="@szybyDoZlecen">
-                <Column Title="ID" @bind-Field="@context.Id" Hidden />
-                <Column Title="Szerokość" @bind-Field="@context.Szerokosc" Sortable OnFilter="(a, b) => a == b" Filterable />
-                <Column Title="Wysokość" @bind-Field="@context.Wysokosc" Sortable OnFilter="(a, b) => a == b" Filterable />
-                <Column Title="Opis szyby" @bind-Field="@context.RodzajSzyby" Sortable />
-                <Column Title="Rodzaj ramki" @bind-Field="@context.RodzajRamki" Sortable OnFilter="(a, b) => a == b" Filterable />
-                <Column Title="Opis" @bind-Field="@context.NazwaProduktu" Sortable OnFilter="(a, b) => a == b" Filterable />
-                <Column Title="Ilość sztuk" @bind-Field="@context.IloscSztuk" Sortable />
-                <Column Title="Czy kształt" TData="SzybyDoZlecen">
-                    <Template>
-                        <Checkbox @bind-Checked="@context.CzyKsztalt" OnChange="(e)=>Handle(e, context.Id)" Disabled="isNotDisabled" />
-                    </Template>
-                </Column>
-                <Column Title="Poz. dostarczono" TData="SzybyDoZlecen">
-                    <Template>
-                        <Checkbox @bind-Checked="@context.PozDostarczono" OnChange="(e)=>Handle(e, context.Id)" Disabled="isNotDisabled" />
-                    </Template>
-                </Column>
-                <Column Title="Uwagi" @bind-Field="@context.Uwagi" Sortable />
-                <Column Title="Autor zmian" @bind-Field="@context.KtoZapisal" Sortable />
+        if(elementyDoZlecen.Count > 0)
+        {
+            <ul>
+                <Table TItem="ElemetZamDoZlecenWithProducent" DataSource="@elementyDoZlecen">
+                    <Column Title="ID" @bind-Field="@context.ElemetZamDoZlecen.Id" Hidden />
+                    <Column Title="Nazwa Producenta" @bind-Field="@context.ProducenciPodwykonawcy.NazwaProducenta" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Title="Produkt" @bind-Field="@context.ElemetZamDoZlecen.NazwaProduktu" />
+                    <Column Title="Numer Katalogowy" @bind-Field="@context.ElemetZamDoZlecen.NumerKatalogowy" />
+                    <Column Title="Kolor" @bind-Field="@context.ElemetZamDoZlecen.Kolor" />
+                    <Column Title="Szerokość" @bind-Field="@context.ElemetZamDoZlecen.Szerokosc" />
+                    <Column Title="Wysokość" @bind-Field="@context.ElemetZamDoZlecen.Wysokosc" />
+                    <Column Title="Długość" @bind-Field="@context.ElemetZamDoZlecen.Dlugosc" />
+                    <Column Title="Objętość" @bind-Field="@context.ElemetZamDoZlecen.Objetosc" />
+                    <Column Title="Jednostka" @bind-Field="@context.ElemetZamDoZlecen.Jednostka" />
+                    <Column Title="Ilość sztuk" @bind-Field="@context.ElemetZamDoZlecen.IloscSztuk" />
+                    <Column Title="Data Zamówienia" TData="DateTime" @bind-Field="@context.ElemetZamDoZlecen.DataZamowienia" Format="yyyy-MM-dd" />
+                    <Column Title="Opis" @bind-Field="@context.ElemetZamDoZlecen.Opis" />
+                    <Column Title="Czy zamówiono" TData="ElemetZamDoZlecenWithProducent">
+                        <Template>
+                            <Checkbox @bind-Checked="@context.ElemetZamDoZlecen.CzyZamowiono" OnChange="(e)=>Handle(e, context.ElemetZamDoZlecen.Id)" Disabled="isNotDisabled" />
+                        </Template>
+                    </Column>
+                    <Column Title="Poz. dostarczono" TData="ElemetZamDoZlecenWithProducent">
+                        <Template>
+                            <Checkbox @bind-Checked="@context.ElemetZamDoZlecen.PozDostarczono" OnChange="(e)=>Handle(e, context.ElemetZamDoZlecen.Id)" Disabled="isNotDisabled" />
+                        </Template>
+                    </Column>
+                    <Column Title="Uwagi" @bind-Field="@context.ElemetZamDoZlecen.Uwagi" />
+                    <Column Title="Autor zmian" @bind-Field="@context.ElemetZamDoZlecen.KtoZapisal" />
 
-                <!-- Przykład kolumny dla daty z formatowaniem -->
-                <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd HH:mm:ss" Sortable />
-                <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
-                <ActionColumn Title="Akcja">
-                    @if (boolAdmin || boolZmian)
-                    {
-                        <Popconfirm Title="Czy chcesz edytować pozycję?"
-                                    OnConfirm="()=> editRow(context.Id)"
-                                    OkText="Tak"
-                                    CancelText="Nie">
-                            <a>Edytuj</a>
-                        </Popconfirm>
-                    }
-                    @if (boolAdmin || boolUsuniecia)
-                    {
-                        <Popconfirm Title="Czy chcesz usunąć pozycję?"
-                                    OnConfirm="()=> deleteRow(context.Id)"
-                                    OkText="Tak"
-                                    CancelText="Nie">
-                            <a style="color:red">Usuń</a>
-                        </Popconfirm>
-                    }
-                </ActionColumn>
-            </Table>
-
-        </ul>
+                    <!-- Przykład kolumny dla daty z formatowaniem -->
+                    <Column Title="Data Zapisu" TData="DateTime" @bind-Field="@context.ElemetZamDoZlecen.DataZapisu" Format="yyyy-MM-dd HH:mm:ss" />
+                    <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
+                    <ActionColumn Title="Akcja">
+                        @if (boolAdmin || boolZmiana)
+                        {
+                            <Popconfirm Title="Czy chcesz edytować pozycję?"
+                                        OnConfirm="()=> editRow(context.ElemetZamDoZlecen.Id)"
+                                        OkText="Tak"
+                                        CancelText="Nie">
+                                <a>Edytuj</a>
+                            </Popconfirm>
+                        }
+                        @if (boolAdmin || boolUsuniecia)
+                        {
+                            <Popconfirm Title="Czy chcesz usunąć pozycję?"
+                                        OnConfirm="()=> deleteRow(context.ElemetZamDoZlecen.Id)"
+                                        OkText="Tak"
+                                        CancelText="Nie">
+                                <a style="color:red">Usuń</a>
+                            </Popconfirm>
+                        }
+                    </ActionColumn>
+                </Table>
+            </ul>
+        }
+        else
+        {
+            <h2>Do tego zlecenia (oferty) nie zamówiono żadnych elementów</h2>
+        }
 
         <div style="overflow: auto; width: 100%; height: 200px">
             <div>
                 <label for="fileInput" style="font-size:1em; font-weight:bold;">
-                    Wybierz plik ze Stolcad z listą materiałów (C:\STOLCAD\Rob\PrnPdf - zestawienie szyb):
+                    Wybierz plik ze Stolcad z listą materiałów (C:\STOLCAD\Rob\PrnPdf - zestawienie elementów):
                 </label>
                 <InputFile id="fileInput" OnChange="HandleFileSelected" />
 
                 <Button Type="@ButtonType.Link" style="font-size:1.2em; height:30px; margin-top:10px; font-style:revert-layer; color:brown" @onclick="() => PasteStolcad()">
-                    Wklej ze schowka szyby z STOLCAD [ODWOŁANIA]
+                    Wklej ze schowka elementyZamowienia z STOLCAD [ODWOŁANIA]
                 </Button>
                 <Checkbox @bind-Checked="isCheckedDelAll">Usuń wszystkie dane przed zapisem nowych</Checkbox>
             </div>
@@ -227,15 +239,15 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var item in zestawienie.ListaSzyb)
+                            @foreach (var item in zestawienie.ListaElementow)
                             {
                                 <tr>
                                     <td>@item.Lp</td>
                                     <td>@item.Szerokosc</td>
                                     <td>@item.Wysokosc</td>
-                                    <td>@item.Ilosc</td>
-                                    <td>@item.RodzajSzyby</td>
-                                    <td>@item.RodzajRamki</td>
+                                    <td>@item.IloscSztuk</td>
+                                    <td>@item.NazwaProduktu</td>
+                                    <td>@item.NumerKatalogowy</td>
                                     <td>@item.Powierzchnia</td>
                                     <td>@item.Uwagi</td>
                                 </tr>
@@ -245,77 +257,30 @@
                 </div>
             }
         </div>
-    }
 
-    <div class="modal fade @classShow" tabindex="-1" style="display: @display;">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Szyby dodaj / zmień</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="HandleCancel">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <AntDesign.Form Model="@szyby" Layout="FormLayout.Horizontal" OnFinish="@HandleSubmit">
-                        <div class="row">
-                            <!-- Kolumna 1 -->
-                            <div class="col-md-6">
-                                <AntDesign.FormItem Label="Szerokość">
-                                    <AntDesign.InputNumber @bind-Value="szyby.Szerokosc" Min="50" Required />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Wysokość">
-                                    <AntDesign.InputNumber @bind-Value="szyby.Wysokosc"  Min="50" Required />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Rodzaj szyby">
-                                    <AntDesign.Input @bind-Value="szyby.RodzajSzyby" Required Placeholder="Podaj rodzaj szyby" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Rodzaj ramki">
-                                    <AntDesign.Input @bind-Value="szyby.RodzajRamki" Required Placeholder="Podaj rodzaj ramki" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Ilość sztuk">
-                                    <AntDesign.InputNumber @bind-Value="szyby.IloscSztuk" Min="1" Required />
-                                </AntDesign.FormItem>
-                    @*             <AntDesign.FormItem Label="Czy kształy">
-                                    <Switch @bind-Value="@context.CzyKsztalt" />
-                                </AntDesign.FormItem> *@
-                                <AntDesign.FormItem Label="Czy kształt">
-                                    <AntDesign.Checkbox @bind-Value="szyby.CzyKsztalt" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Czy dostarczono">
-                                    <Switch @bind-Value="@context.PozDostarczono" />
-                                </AntDesign.FormItem>
-                            </div>
-
-                            <!-- Kolumna 2 -->
-                            <div class="col-md-6">
-                                <AntDesign.FormItem Label="Uwagi">
-                                    <AntDesign.Input @bind-Value="szyby.Uwagi" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Data Zamówienia">
-                                    <DatePicker @bind-Value="szyby.DataZamowienia" Required />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Data Realizacji">
-                                    <DatePicker @bind-Value="szyby.DataRealizacji" Required />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Kto Zapisał">
-                                    <AntDesign.Input @bind-Value="szyby.KtoZapisal" Required />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Ostatnia Zmiana">
-                                    <AntDesign.Input @bind-Value="szyby.OstatniaZmiana" ReadOnly />
-                                </AntDesign.FormItem>
-                            </div>
-                        </div>
-
-                        <AntDesign.FormItem>
-                            <AntDesign.Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</AntDesign.Button>
-                            <AntDesign.Button @onclick="@HandleCancel">Anuluj</AntDesign.Button>
-                        </AntDesign.FormItem>
-                    </AntDesign.Form>
+        <div class="modal fade @classShow" tabindex="-1" style="display: @display;">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Poz. do zamówienia dodaj / zmień</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="HandleCancel">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                        <div class="modal-body">
+                            @if (elementyDoZlecen != null && elementyZamowienia.ElemetZamDoZlecen != null && elementyZamowienia.ProducenciPodwykonawcy != null)
+                            {
+                                <NowaPozZamowienia elementyZamowienia="elementyZamowienia" elementyDoZlecen="elementyDoZlecen" OnButtonClicked="CloseModal" />
+                            }
+                            else
+                            {
+                                <h4>Czekaj na załadowanie formatki!</h4>
+                            }
+                       </div>
                 </div>
             </div>
         </div>
-    </div>
+    }
 
 </body>
 </html>
@@ -328,10 +293,10 @@
 
     private string? pdfContent;
 
-    private List<SzybyDoZlecen>? szybyDoZlecen;
-    private List<SzybyDoZlecen>? oryginalSzybyDoZlecen;
+    private List<ElemetZamDoZlecenWithProducent>? elementyDoZlecen;
+    private List<ElemetZamDoZlecenWithProducent>? oryginalElementyDoZlecen;
 
-    private GEORGE.Client.Pages.PDF.ZestawienieSzyb? zestawienie;
+    private GEORGE.Client.Pages.PDF.ZestawienieElementZamowienia? zestawienie;
 
     private bool _visible = false;
     private string display = "none;";
@@ -339,16 +304,35 @@
 
     private long cid = -1;
 
-    private SzybyDoZlecen szyby = new SzybyDoZlecen();
+    private ElemetZamDoZlecenWithProducent elementyZamowienia = new ElemetZamDoZlecenWithProducent();
 
-    private List<SzybyDoZlecen>? szybyall;
+    private List<ElemetZamDoZlecenWithProducent>? zamowieniaall;
 
     private string uwagaKopiuj = "Kopiuj do schowka dane";
 
-    private bool isCheckedDelAll = true;
+    private bool isCheckedDelAll = false;
 
     protected override async Task OnInitializedAsync()
     {
+        elementyZamowienia = new ElemetZamDoZlecenWithProducent
+        {
+            ElemetZamDoZlecen = new ElemetZamDoZlecen
+            {
+                Id = 0,
+                RowIdZlecenia = RowIdZlecenia, 
+                DataZamowienia = DateTime.MinValue, 
+                DataRealizacji = DateTime.MinValue,
+                DataZapisu = DateTime.Now,
+                KtoZapisal = user
+            },
+            ProducenciPodwykonawcy = new ProducenciPodwykonawcy
+            {
+                // Przypisz odpowiednie wartości dla właściwości ProducenciPodwykonawcy
+                NazwaProducenta = "" // Przykładowa wartość
+            },
+            DodatkowaInformacja = "Dane z dnia" + DateTime.Now  
+        };
+
         if (AppState != null)
         {
             AppState.SomeData = "";
@@ -367,10 +351,8 @@
 
         try
         {
-            szybyDoZlecen = await Http.GetFromJsonAsync<List<SzybyDoZlecen>>($"api/SzybyDoZlecen/rowid/{RowIdZlecenia}");
+            elementyDoZlecen = await Http.GetFromJsonAsync<List<ElemetZamDoZlecenWithProducent>>($"api/ElementyDoZlecen/rowid/{RowIdZlecenia}");
 
-            szyby = new SzybyDoZlecen();
-            szyby.Id = 0;
         }
         catch (Exception ex)
         {
@@ -380,25 +362,24 @@
 
     public async Task ExportToExcel()
     {
-        if (szybyDoZlecen != null)
+        if (elementyDoZlecen != null)
         {
-            var jsonData = JsonSerializer.Serialize(szybyDoZlecen);
+            var jsonData = JsonSerializer.Serialize(elementyDoZlecen);
             await JSRuntime.InvokeVoidAsync("saveAsExcel", jsonData);
         }
     }
 
     public async Task ExportSelectedColumnsToExcel()
     {
-        if (szybyDoZlecen != null)
+        if (elementyDoZlecen != null)
         {
-            var selectedData = szybyDoZlecen.Select(k => new
+            var selectedData = elementyDoZlecen.Select(k => new
             {
-                k.Szerokosc,
-                k.Wysokosc,
-                k.RodzajSzyby,
-                k.RodzajRamki,
-                k.IloscSztuk,
-                k.CzyKsztalt
+                k.ElemetZamDoZlecen.NazwaProduktu,
+                k.ElemetZamDoZlecen.NumerKatalogowy,
+                k.ElemetZamDoZlecen.Szerokosc,
+                k.ElemetZamDoZlecen.Wysokosc,
+                k.ElemetZamDoZlecen.IloscSztuk,
             });
 
             var jsonData = JsonSerializer.Serialize(selectedData);
@@ -408,10 +389,10 @@
 
     private async Task CopySzybyToClipboard()
     {
-        if (szybyDoZlecen == null || szybyDoZlecen.Count == 0) return;
+        if (elementyDoZlecen == null || elementyDoZlecen.Count == 0) return;
 
-        var kantowkiText = string.Join("\n", szybyDoZlecen.Select(k =>
-            $"RowIdZlecenia: {k.RowIdZlecenia}, Szrokość: {k.Szerokosc}, Wysokość: {k.Wysokosc}, Rozaj Szyby: {k.RodzajSzyby}, Rodzaj Ramki: {k.RodzajRamki}, Ilość: {k.IloscSztuk}, Uwagi: {k.Uwagi}, DataZamowienia: {k.DataZamowienia}, DataRealizacji: {k.DataRealizacji}, DataZapisu: {k.DataZapisu}, KtoZapisal: {k.KtoZapisal}, OstatniaZmiana: {k.OstatniaZmiana}"
+        var kantowkiText = string.Join("\n", elementyDoZlecen.Select(k =>
+            $"RowIdZlecenia: {k.ElemetZamDoZlecen.RowIdZlecenia}, Szrokość: {k.ElemetZamDoZlecen.Szerokosc}, Wysokość: {k.ElemetZamDoZlecen.Wysokosc}, Nazwa Produktu: {k.ElemetZamDoZlecen.NazwaProduktu}, Numer Katalogowy: {k.ElemetZamDoZlecen.NumerKatalogowy}, Ilość: {k.ElemetZamDoZlecen.IloscSztuk}, Uwagi: {k.ElemetZamDoZlecen.Uwagi}, DataZamowienia: {k.ElemetZamDoZlecen.DataZamowienia}, DataRealizacji: {k.ElemetZamDoZlecen.DataRealizacji}, DataZapisu: {k.ElemetZamDoZlecen.DataZapisu}, KtoZapisal: {k.ElemetZamDoZlecen.KtoZapisal}, OstatniaZmiana: {k.ElemetZamDoZlecen.OstatniaZmiana}"
         ));
 
         await JSRuntime.InvokeVoidAsync("copyToClipboard", kantowkiText);
@@ -431,13 +412,13 @@
     {
         //  var aktualizacja = new { Id = idr, MaterialZeStanMagazyn = nowyStan };
 
-        var response = await Http.PutAsJsonAsync($"api/szybyDoZlecen/{idr}/updateCzyKsztalt", nowyStan);
+        var response = await Http.PutAsJsonAsync($"api/elementyDoZlecen/{idr}/updateCzyKsztalt", nowyStan);
 
         if (response.IsSuccessStatusCode)
         {
-            if (szybyDoZlecen != null)
+            if (elementyDoZlecen != null)
             {
-                oryginalSzybyDoZlecen = szybyDoZlecen.DeepCopyList();
+                oryginalElementyDoZlecen = elementyDoZlecen.DeepCopyList();
             }
         }
         else
@@ -460,7 +441,7 @@
 
             pdfContent = PdfReaderService.ReadPdfTable(path);
      
-            zestawienie = PdfDataParserSz.ParsePdfDataSzyby(pdfContent);
+           //--- zestawienie = PdfDataParserElement.ParsePdfDataElementy(pdfContent);
 
             StateHasChanged();
 
@@ -474,7 +455,7 @@
             // Pobranie danych ze schowka
             var clipboardText = await JSRuntime.InvokeAsync<string>("navigator.clipboard.readText");
 
-            zestawienie = PdfDataParserSz.ParseClipboardData(clipboardText);
+            zestawienie = PdfDataParserElement.ParseClipboardData(clipboardText);
 
             StateHasChanged();
 
@@ -493,47 +474,48 @@
 
     private async Task SaveAll()
     {
-        szybyall = new List<SzybyDoZlecen>();
+        zamowieniaall = new List<ElemetZamDoZlecenWithProducent>();
 
         if (zestawienie == null) return;
-
-        @foreach (var item in zestawienie.ListaSzyb)
+        @foreach (var item in zestawienie.ListaElementow)
         {
             float numSzerokosc;
 
             if (float.TryParse(item.Szerokosc, out numSzerokosc))
             {
-                var szyby = new SzybyDoZlecen
+                var elementyZamowienia = new ElemetZamDoZlecenWithProducent
                     {
-                        RowIdZlecenia = RowIdZlecenia,
-                        Szerokosc = string.IsNullOrEmpty(item.Szerokosc) ? 0 : numSzerokosc,
-                        Wysokosc = string.IsNullOrEmpty(item.Wysokosc) ? 0 : float.Parse(item.Wysokosc),
-                        RodzajSzyby = item.RodzajSzyby,
-                        RodzajRamki = item.RodzajRamki,
-                        Uwagi = "Dane zaimortowano z PDF",
-                        IloscSztuk = string.IsNullOrEmpty(item.Ilosc) ? 0 : int.Parse(item.Ilosc),
-                        DataZamowienia = DateTime.Now,
-                        DataRealizacji = DateTime.Now.AddDays(14),
-                        DataZapisu = DateTime.Now,
-                        KtoZapisal = user,
+                        ElemetZamDoZlecen = new ElemetZamDoZlecen
+                        {
+                            RowIdZlecenia = RowIdZlecenia,
+                            Szerokosc = string.IsNullOrEmpty(item.Szerokosc) ? 0 : numSzerokosc,
+                            Wysokosc = string.IsNullOrEmpty(item.Wysokosc) ? 0 : float.Parse(item.Wysokosc),
+                            NazwaProduktu = item.NazwaProduktu,
+                            IloscSztuk = string.IsNullOrEmpty(item.IloscSztuk) ? 0 : int.Parse(item.IloscSztuk),
+                            DataZamowienia = DateTime.Now,
+                            DataRealizacji = DateTime.Now.AddDays(14),
+                            DataZapisu = DateTime.Now,
+                            KtoZapisal = user
+                        },
+                        DodatkowaInformacja = "Dane zaimportowano z PDF" // Zamiast Uwagi
                     };
 
-                szybyall.Add(szyby);
+                zamowieniaall.Add(elementyZamowienia);
             }
-
         }
+
 
         try
         {
             // Wyślij dane do API
-            var response = await Http.PostAsJsonAsync($"api/szybyDoZlecen/save-all/{isCheckedDelAll}", szybyall);
+            var response = await Http.PostAsJsonAsync($"api/elementyDoZlecen/save-all/{isCheckedDelAll}", zamowieniaall);
 
             if (response.IsSuccessStatusCode)
             {
                 // Operacja zakończona sukcesem
                 Console.WriteLine("Dane zostały zapisane pomyślnie.");
 
-                szybyDoZlecen = await Http.GetFromJsonAsync<List<SzybyDoZlecen>>($"api/SzybyDoZlecen/rowid/{RowIdZlecenia}");
+                elementyDoZlecen = await Http.GetFromJsonAsync<List<ElemetZamDoZlecenWithProducent>>($"api/ElementyDoZlecen/rowid/{RowIdZlecenia}");
 
                 zestawienie = null;
             }
@@ -555,75 +537,26 @@
 
         if (_visible == false) return;
 
-        szyby.RodzajSzyby = szyby.RodzajSzyby.ToUpper();
+        _visible = false;
 
-        HttpResponseMessage response;
+        await HideDialog();
 
-        if (szyby.Id == 0)
-        {
-            // Sprawdź unikalność NumerRodzajuKart
-            var responsedbl = szybyDoZlecen.Where(e => e.RowIdZlecenia == szyby.RowIdZlecenia);
+        StateHasChanged(); // Odśwież widok
 
-            if (responsedbl != null && responsedbl.Count() > 0)
-            {
-                // Wyświetl komunikat o błędzie, że NumerRodzajuKart nie jest unikalny
-                Console.WriteLine("Zapisuje kolejne dane do zlecenia!!!.");
-                // await _message.Error("Numer Rodzaju Kart musi być unikalny.");
-                // return;
-            }
-
-            response = await Http.PostAsJsonAsync("api/SzybyDoZlecen", szyby);
-        }
-        else
-        {
-            response = await Http.PutAsJsonAsync($"api/SzybyDoZlecen/{szyby.Id}", szyby);
-
-            if (szybyDoZlecen != null) oryginalSzybyDoZlecen = szybyDoZlecen.DeepCopyList();
-        }
-
-        if (response.IsSuccessStatusCode)
-        {
-            if (szyby.Id == 0)
-            {
-                szybyDoZlecen.Add(szyby); // Dodaj nowe szyby do listy
-            }
-            else
-            {
-                // Znajdź istniejące szyby i zaktualizuj je
-                var index = szybyDoZlecen.FindIndex(z => z.Id == szyby.Id);
-
-                if (index != -1)
-                {
-                    szybyDoZlecen[index] = szyby;
-                }
-            }
-
-            _visible = false;
-            szyby = new SzybyDoZlecen(); // Zresetuj formularz
-
-            await HideDialog();
-
-            StateHasChanged(); // Odśwież widok
-        }
-        else
-        {
-            // Obsługa błędów
-            Console.WriteLine("Błąd podczas zapisywania rodzaju szyby - źródło RAZOR");
-        }
     }
 
     public async Task deleteRow(long id)
     {
-        if (szybyDoZlecen == null) return;
+        if (elementyDoZlecen == null) return;
 
         try
         {
-            var response = await Http.DeleteAsync($"api/SzybyDoZlecen/{id}");
+            var response = await Http.DeleteAsync($"api/ElementyDoZlecen/{id}");
 
             if (response.IsSuccessStatusCode)
             {
                 // Usunięcie rekordu z listy po pomyślnym usunięciu z serwera
-                szybyDoZlecen = szybyDoZlecen.Where(r => r.Id != id).ToList();
+                elementyDoZlecen = elementyDoZlecen.Where(r => r.ElemetZamDoZlecen.Id != id).ToList();
                 Console.WriteLine("Rekord został pomyślnie usunięty.");
             }
             else
@@ -637,13 +570,12 @@
         }
     }
 
-
     public async Task editRow(long id)
     {
         //listOfData = listOfData.Where(d => d.Id != id).ToArray();
-        if (szybyDoZlecen == null) return;
+        if (elementyDoZlecen == null) return;
 
-        oryginalSzybyDoZlecen = szybyDoZlecen.DeepCopyList();
+        oryginalElementyDoZlecen = elementyDoZlecen.DeepCopyList();
 
         // Logika edycji
         if (_visible)
@@ -653,16 +585,16 @@
         }
         else
         {
-            szyby = new SzybyDoZlecen();
+            elementyZamowienia = new ElemetZamDoZlecenWithProducent();
 
-            var listOfData = szybyDoZlecen.Where(d => d.Id == id).ToArray();
+            var listOfData = elementyDoZlecen.Where(d => d.ElemetZamDoZlecen.Id == id).ToArray();
 
-            // Pobierz szyby na podstawie indeksu wiersza
+            // Pobierz elementyZamowienia na podstawie indeksu wiersza
             if (listOfData != null && listOfData.Count() > 0)
             {
                 cid = id;
 
-                szyby = listOfData[0];
+                elementyZamowienia = listOfData[0];
 
                 _visible = true;
 
@@ -670,17 +602,20 @@
             }
 
             // Wyświetl numer zamówienia w konsoli
-            Console.WriteLine(szyby.RodzajSzyby);
+            Console.WriteLine(elementyZamowienia.ElemetZamDoZlecen.NazwaProduktu);
         }
 
     }
 
-    public async Task HandleAddNew()
+    private async Task CloseModal()
     {
-        await Task.Delay(1);
+        Console.WriteLine("CloseModal");
 
-        _visible = true;
-        // await HandleSubmit();
+        await HandleCancel();
+
+        if (elementyDoZlecen != null) oryginalElementyDoZlecen = elementyDoZlecen.DeepCopyList();
+
+        elementyDoZlecen = await Http.GetFromJsonAsync<List<ElemetZamDoZlecenWithProducent>>($"api/ElementyDoZlecen/rowid/{RowIdZlecenia}");
     }
 
     public async Task HandleCancel()
@@ -698,13 +633,33 @@
 
     public async Task ShowDialogAddNew()
     {
-        szyby = new SzybyDoZlecen();
+
+        elementyZamowienia = new ElemetZamDoZlecenWithProducent
+            {
+                ElemetZamDoZlecen = new ElemetZamDoZlecen
+                {
+                    Id = 0,
+                    RowIdZlecenia = RowIdZlecenia,
+                    DataZamowienia = DateTime.MinValue,
+                    DataRealizacji = DateTime.MinValue,
+                    DataZapisu = DateTime.Now,
+                    KtoZapisal = user
+                },
+                ProducenciPodwykonawcy = new ProducenciPodwykonawcy
+                {
+                    // Przypisz odpowiednie wartości dla właściwości ProducenciPodwykonawcy
+                    NazwaProducenta = "" // Przykładowa wartość
+                },
+                DodatkowaInformacja = "Dane z dnia" + DateTime.Now
+            };
+
         cid = -1;
 
         display = "block";
-        await Task.Delay(50);
         classShow = "show";
         StateHasChanged();
+
+        await Task.CompletedTask;
     }
 
     public async Task ShowDialog()
@@ -717,9 +672,9 @@
 
     private async Task HideDialog()
     {
-        if (cid > 0 && szybyDoZlecen != null)
+        if (cid > 0 && elementyDoZlecen != null)
         {
-            szybyDoZlecen = oryginalSzybyDoZlecen;
+            elementyDoZlecen = oryginalElementyDoZlecen;
         }
 
         cid = -1;
@@ -737,12 +692,12 @@
     }
 
     private bool boolOdczyt = false;
-    private bool boolZmian = false;
+    private bool boolZmiana = false;
     private bool boolUsuniecia = false;
     private bool boolAdmin = false;
     private string RowIdPracownika = "";
     private string? user;
-    private bool isNotDisabled => !boolZmian || !boolAdmin;
+    private bool isNotDisabled => !boolZmiana || !boolAdmin;
     private List<UprawnieniaPracownikaViewModel>? uprawnienia;
 
     private async Task Laduj_Uprawnienia()
@@ -756,7 +711,7 @@
             return;
         }
         
-        string nazwaTabeli = "SzybyDoZlecen";
+        string nazwaTabeli = "ElemetZamDoZlecen";
 
         Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");
 
@@ -787,7 +742,7 @@
                     if (szuk != null)
                     {
                         boolOdczyt = szuk.Odczyt;
-                        boolZmian = szuk.Zmiana;
+                        boolZmiana = szuk.Zmiana;
                         boolUsuniecia = szuk.Usuniecie;
                         boolAdmin = szuk.Administrator;
                         RowIdPracownika = szuk.RowId;
