@@ -18,6 +18,28 @@
 <!DOCTYPE html>
 <html>
 <head>
+     <style>
+        .custom-link {
+            color: blue;
+        }
+
+        .custom-linkszy {
+            color: darkblue;
+        }
+
+        .highlighted-background {
+            background-color: white;
+            overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
+            max-height: calc(100vh - 155px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 155px */
+            width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 260px */
+            box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu wysokości */
+            position: absolute;
+            left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
+            top: 155px; /* Ustawia górną krawędź 155px od góry okna */
+        }
+
+    </style>
+
     <meta charset="utf-8" />
     <PageTitle>Zamówiona elementy do zlecenia</PageTitle>
 
@@ -140,21 +162,22 @@
     {
         if(elementyDoZlecen.Count > 0)
         {
-            <ul>
-                <Table TItem="ElemetZamDoZlecenWithProducent" DataSource="@elementyDoZlecen">
-                    <Column Title="ID" @bind-Field="@context.ElemetZamDoZlecen.Id" Hidden />
-                    <Column Title="Nazwa Producenta" @bind-Field="@context.ProducenciPodwykonawcy.NazwaProducenta" Sortable OnFilter="(a, b) => a == b" Filterable />
-                    <Column Title="Produkt" @bind-Field="@context.ElemetZamDoZlecen.NazwaProduktu" />
-                    <Column Title="Numer Katalogowy" @bind-Field="@context.ElemetZamDoZlecen.NumerKatalogowy" />
-                    <Column Title="Kolor" @bind-Field="@context.ElemetZamDoZlecen.Kolor" />
-                    <Column Title="Szerokość" @bind-Field="@context.ElemetZamDoZlecen.Szerokosc" />
-                    <Column Title="Wysokość" @bind-Field="@context.ElemetZamDoZlecen.Wysokosc" />
-                    <Column Title="Długość" @bind-Field="@context.ElemetZamDoZlecen.Dlugosc" />
-                    <Column Title="Objętość" @bind-Field="@context.ElemetZamDoZlecen.Objetosc" />
-                    <Column Title="Jednostka" @bind-Field="@context.ElemetZamDoZlecen.Jednostka" />
-                    <Column Title="Ilość sztuk" @bind-Field="@context.ElemetZamDoZlecen.IloscSztuk" />
-                    <Column Title="Data Zamówienia" TData="DateTime" @bind-Field="@context.ElemetZamDoZlecen.DataZamowienia" Format="yyyy-MM-dd" />
-                    <Column Title="Opis" @bind-Field="@context.ElemetZamDoZlecen.Opis" />
+            <div class="highlighted-background">
+                <Table TItem="ElemetZamDoZlecenWithProducent" DataSource="elementyDoZlecen" @bind-PageSize="@_pageSize"
+                       Loading="false" ScrollX="1950" Size="TableSize.Small">
+                    <PropertyColumn Title="ID" Property="c=>c.ElemetZamDoZlecen.Id" Hidden />
+                    <PropertyColumn Title="Nazwa Producenta" Property="c=>c.ProducentIMiejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <PropertyColumn Property="c=>c.ElemetZamDoZlecen.NazwaProduktu" Sortable DefaultSortOrder="SortDirection.Ascending" Filterable></PropertyColumn>
+                    <PropertyColumn Title="Numer Katalogowy" Property="c=>c.ElemetZamDoZlecen.NumerKatalogowy" />
+                    <PropertyColumn Title="Kolor" Property="c=>c.ElemetZamDoZlecen.Kolor" />
+                    <PropertyColumn Title="Szerokość" Property="c=>c.ElemetZamDoZlecen.Szerokosc" />
+                    <PropertyColumn Title="Wysokość" Property="c=>c.ElemetZamDoZlecen.Wysokosc" />
+                    <PropertyColumn Title="Długość" Property="c=>c.ElemetZamDoZlecen.Dlugosc" />
+                    <PropertyColumn Title="Objętość" Property="c=>c.ElemetZamDoZlecen.Objetosc" />
+                    <PropertyColumn Title="Jednostka" Property="c=>c.ElemetZamDoZlecen.Jednostka" />
+                    <PropertyColumn Title="Ilość sztuk" Property="c=>c.ElemetZamDoZlecen.IloscSztuk" />
+                    <PropertyColumn Title="Data Zamówienia" Property="c=>c.ElemetZamDoZlecen.DataZamowienia" Format="yyyy-MM-dd" />
+                    <PropertyColumn Title="Opis" Property="c=>c.ElemetZamDoZlecen.Opis" />
                     <Column Title="Czy zamówiono" TData="ElemetZamDoZlecenWithProducent">
                         <Template>
                             <Checkbox @bind-Checked="@context.ElemetZamDoZlecen.CzyZamowiono" OnChange="(e)=>Handle(e, context.ElemetZamDoZlecen.Id)" Disabled="isNotDisabled" />
@@ -162,16 +185,16 @@
                     </Column>
                     <Column Title="Poz. dostarczono" TData="ElemetZamDoZlecenWithProducent">
                         <Template>
-                            <Checkbox @bind-Checked="@context.ElemetZamDoZlecen.PozDostarczono" OnChange="(e)=>Handle(e, context.ElemetZamDoZlecen.Id)" Disabled="isNotDisabled" />
+                                <Checkbox @bind-Checked="@context.ElemetZamDoZlecen.PozDostarczono" OnChange="(e)=>HandleDost(e, context.ElemetZamDoZlecen.Id)" Disabled="isNotDisabled" />
                         </Template>
                     </Column>
-                    <Column Title="Uwagi" @bind-Field="@context.ElemetZamDoZlecen.Uwagi" />
-                    <Column Title="Autor zmian" @bind-Field="@context.ElemetZamDoZlecen.KtoZapisal" />
+                    <PropertyColumn Title="Uwagi" Property="c=>c.ElemetZamDoZlecen.Uwagi" />
+                    <PropertyColumn Title="Autor zmian" Property="c=>c.ElemetZamDoZlecen.KtoZapisal" />
 
                     <!-- Przykład kolumny dla daty z formatowaniem -->
-                    <Column Title="Data Zapisu" TData="DateTime" @bind-Field="@context.ElemetZamDoZlecen.DataZapisu" Format="yyyy-MM-dd HH:mm:ss" />
+                    <PropertyColumn Title="Data Zapisu" Property="c=>c.ElemetZamDoZlecen.DataZapisu" Format="yyyy-MM-dd HH:mm:ss" />
                     <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
-                    <ActionColumn Title="Akcja">
+                        <ActionColumn Title="Akcja" Width="100" Fixed="right">
                         @if (boolAdmin || boolZmiana)
                         {
                             <Popconfirm Title="Czy chcesz edytować pozycję?"
@@ -190,15 +213,16 @@
                                 <a style="color:red">Usuń</a>
                             </Popconfirm>
                         }
-                    </ActionColumn>
+                    </ActionColumn> 
                 </Table>
-            </ul>
+
+            </div>
         }
         else
         {
             <h2>Do tego zlecenia (oferty) nie zamówiono żadnych elementów</h2>
         }
-
+        <Divider></Divider>
         <div style="overflow: auto; width: 100%; height: 200px">
             <div>
                 <label for="fileInput" style="font-size:1em; font-weight:bold;">
@@ -312,6 +336,8 @@
 
     private bool isCheckedDelAll = false;
 
+    int _pageSize = 7;
+
     protected override async Task OnInitializedAsync()
     {
         elementyZamowienia = new ElemetZamDoZlecenWithProducent
@@ -405,14 +431,39 @@
     private async void Handle(bool value, long idr)
     {
         Console.WriteLine($"{value} / {idr}");
-        await ZapiszUstawienieStanu(idr, value);
+        await ZapiszUstawienieStanuCzyZam(idr, value);
     }
 
-    private async Task ZapiszUstawienieStanu(long idr, bool nowyStan)
+    private async Task ZapiszUstawienieStanuCzyZam(long idr, bool nowyStan)
     {
         //  var aktualizacja = new { Id = idr, MaterialZeStanMagazyn = nowyStan };
 
-        var response = await Http.PutAsJsonAsync($"api/elementyDoZlecen/{idr}/updateCzyKsztalt", nowyStan);
+        var response = await Http.PutAsJsonAsync($"api/ElementyDoZlecen/{idr}/updateCzyZamowiono", nowyStan);
+
+        if (response.IsSuccessStatusCode)
+        {
+            if (elementyDoZlecen != null)
+            {
+                oryginalElementyDoZlecen = elementyDoZlecen.DeepCopyList();
+            }
+        }
+        else
+        {
+            // Obsłuż sytuację błędu
+        }
+    }
+
+    private async void HandleDost(bool value, long idr)
+    {
+        Console.WriteLine($"{value} / {idr}");
+        await ZapiszUstawienieStanuCzyCzyDostarczono(idr, value);
+    }
+
+    private async Task ZapiszUstawienieStanuCzyCzyDostarczono(long idr, bool nowyStan)
+    {
+        //  var aktualizacja = new { Id = idr, MaterialZeStanMagazyn = nowyStan };
+
+        var response = await Http.PutAsJsonAsync($"api/ElementyDoZlecen/{idr}/updateCzyDostarczono", nowyStan);
 
         if (response.IsSuccessStatusCode)
         {

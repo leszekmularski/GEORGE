@@ -16,6 +16,29 @@
 <!DOCTYPE html>
 <html>
 <head>
+
+        <style>
+        .custom-link {
+            color: blue;
+        }
+
+        .custom-linkszy {
+            color: darkblue;
+        }
+
+        .highlighted-background {
+            background-color: white;
+            overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
+            max-height: calc(100vh - 155px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 155px */
+            width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 260px */
+            box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu wysokości */
+            position: absolute;
+            left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
+            top: 155px; /* Ustawia górną krawędź 155px od góry okna */
+        }
+
+    </style>
+
     <meta charset="utf-8" />
     <PageTitle>Zamówiona kantówka do zlecenia</PageTitle>
 
@@ -130,7 +153,6 @@
         </Button>
     }
     <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
-    <Divider></Divider>
 
     @if (kantowkaDoZlecen == null)
     {
@@ -138,8 +160,9 @@
     }
     else
     {
-        <ul>
-            <Table TItem="KantowkaDoZlecen" DataSource="@kantowkaDoZlecen">
+        <Divider></Divider>
+         <div class="highlighted-background">
+            <Table TItem="KantowkaDoZlecen" DataSource="@kantowkaDoZlecen" ScrollX="1950" @bind-PageSize="@_pageSize" Size="TableSize.Small">
                 <Column Title="ID" @bind-Field="@context.Id" Hidden />
                 <Column Title="Gatunek" @bind-Field="@context.GatunekKantowki" Sortable OnFilter="(a, b) => a == b" Filterable />
                 <Column Title="Przekrój" @bind-Field="@context.Przekroj" Sortable OnFilter="(a, b) => a == b" Filterable />
@@ -159,7 +182,7 @@
                 <!-- Przykład kolumny dla daty z formatowaniem -->
                 <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd HH:mm:ss" Sortable />
                 <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
-                <ActionColumn Title="Akcja">
+                <ActionColumn Title="Akcja" Width="100" Fixed="right">
                     @if (boolAdmin || boolZmian)
                     {
                         <Popconfirm Title="Czy chcesz edytować pozycję?"
@@ -181,7 +204,7 @@
                 </ActionColumn>
             </Table>
 
-        </ul>
+        </div>
 
         <div style="overflow: auto; width: 100%; height: 200px">
 
@@ -336,6 +359,8 @@
     private string uwagaKopiuj = "Kopiuj do schowka dane";
 
     private bool isCheckedDelAll = true;
+
+    int _pageSize = 7;
 
     protected override async Task OnInitializedAsync()
     {

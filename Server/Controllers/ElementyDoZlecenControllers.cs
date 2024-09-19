@@ -39,7 +39,8 @@ namespace GEORGE.Server.Controllers
                                 {
                                     ElemetZamDoZlecen = elemet,
                                     ProducenciPodwykonawcy = subproducent,
-                                    DodatkowaInformacja = "Dane załadowano: " + DateTime.Now 
+                                    DodatkowaInformacja = "Dane załadowano: " + DateTime.Now,
+                                    ProducentIMiejscowosc = subproducent.NazwaProducenta + " " + subproducent.Miejscowosc
                                 })
                                 .OrderBy(e => e.ElemetZamDoZlecen.RowIdProducent)
                                 .ThenBy(e => e.ElemetZamDoZlecen.NazwaProduktu)
@@ -141,6 +142,44 @@ namespace GEORGE.Server.Controllers
 
             // Zaktualizuj wartość
             pozZlec.CzyZamowiono = czyZamowiono;
+            pozZlec.DataZamowienia = DateTime.Now;
+
+            // Oznacz obiekt jako zmodyfikowany
+            _context.Entry(pozZlec).State = EntityState.Modified;
+
+            try
+            {
+                // Zapisz zmiany w bazie danych
+                await _context.SaveChangesAsync();
+                return Ok();
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                if (!ElementZamExists(id))
+                {
+                    return NotFound("Nie znaleziono ElemetZamDoZlecen o podanym ID.");
+                }
+                else
+                {
+                    _logger.LogError(ex, "Błąd podczas aktualizacji ElemetZamDoZlecen.");
+                    return StatusCode(500, "Wystąpił błąd podczas przetwarzania żądania.");
+                }
+            }
+        }
+
+        [HttpPut("{id}/updateCzyDostarczono")]
+        public async Task<ActionResult> UpdateMaterialDostarczononMagazynAsync(long id, [FromBody] bool czyDostarczono)
+        {
+            // Sprawdź, czy istnieje obiekt o podanym ID
+            var pozZlec = await _context.ElemetZamDoZlecen.FindAsync(id);
+            if (pozZlec == null)
+            {
+                return NotFound("Nie znaleziono ElemetZamDoZlecen o podanym ID.");
+            }
+
+            // Zaktualizuj wartość
+            pozZlec.PozDostarczono = czyDostarczono;
+            pozZlec.DataDostarczenia = DateTime.Now;
 
             // Oznacz obiekt jako zmodyfikowany
             _context.Entry(pozZlec).State = EntityState.Modified;

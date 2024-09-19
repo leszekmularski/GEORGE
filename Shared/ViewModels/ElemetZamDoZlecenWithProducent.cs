@@ -14,6 +14,8 @@ namespace GEORGE.Shared.ViewModels
         public ProducenciPodwykonawcy? ProducenciPodwykonawcy { get; set; }
 
         public string? DodatkowaInformacja { get; set; } = "";
+
+        public string? ProducentIMiejscowosc { get; set; } = "";
     }
 
 }

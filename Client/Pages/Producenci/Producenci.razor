@@ -131,6 +131,9 @@ else
                                 </AntDesign.FormItem>
                             </TabPane>
                             <TabPane Tab="Pozostałe informacje">
+                            <AntDesign.FormItem Label="Status nowy wpis po [,]">
+                                <InputTextArea @bind-Value="producent.TagsString" />
+                            </AntDesign.FormItem>
                                 <AntDesign.FormItem Label="Ilość Dni Realizacji">
                                     <AntDesign.InputNumber @bind-Value="producent.IloscDniRealizacji" />
                                 </AntDesign.FormItem>

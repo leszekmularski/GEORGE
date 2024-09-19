@@ -17,6 +17,28 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <style>
+        .custom-link {
+            color: blue;
+        }
+
+        .custom-linkszy {
+            color: darkblue;
+        }
+
+        .highlighted-background {
+            background-color: white;
+            overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
+            max-height: calc(100vh - 155px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 155px */
+            width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 260px */
+            box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu wysokości */
+            position: absolute;
+            left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
+            top: 155px; /* Ustawia górną krawędź 155px od góry okna */
+        }
+
+    </style>
+
     <meta charset="utf-8" />
     <PageTitle>Zamówiona szyby do zlecenia</PageTitle>
 
@@ -138,8 +160,8 @@
     }
     else
     {
-        <ul>
-            <Table TItem="SzybyDoZlecen" DataSource="@szybyDoZlecen">
+        <div class="highlighted-background">
+            <Table TItem="SzybyDoZlecen" DataSource="@szybyDoZlecen" @bind-PageSize="@_pageSize"ScrollX="1950" Size="TableSize.Small">
                 <Column Title="ID" @bind-Field="@context.Id" Hidden />
                 <Column Title="Szerokość" @bind-Field="@context.Szerokosc" Sortable OnFilter="(a, b) => a == b" Filterable />
                 <Column Title="Wysokość" @bind-Field="@context.Wysokosc" Sortable OnFilter="(a, b) => a == b" Filterable />
@@ -154,7 +176,7 @@
                 </Column>
                 <Column Title="Poz. dostarczono" TData="SzybyDoZlecen">
                     <Template>
-                        <Checkbox @bind-Checked="@context.PozDostarczono" OnChange="(e)=>Handle(e, context.Id)" Disabled="isNotDisabled" />
+                        <Checkbox @bind-Checked="@context.PozDostarczono" OnChange="(e)=>HandleDostarczono(e, context.Id)" Disabled="isNotDisabled" />
                     </Template>
                 </Column>
                 <Column Title="Uwagi" @bind-Field="@context.Uwagi" Sortable />
@@ -163,7 +185,7 @@
                 <!-- Przykład kolumny dla daty z formatowaniem -->
                 <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd HH:mm:ss" Sortable />
                 <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
-                <ActionColumn Title="Akcja">
+                <ActionColumn Title="Akcja" Width="100" Fixed="right">
                     @if (boolAdmin || boolZmian)
                     {
                         <Popconfirm Title="Czy chcesz edytować pozycję?"
@@ -185,8 +207,8 @@
                 </ActionColumn>
             </Table>
 
-        </ul>
-
+        </div>
+        <Divider></Divider>
         <div style="overflow: auto; width: 100%; height: 200px">
             <div>
                 <label for="fileInput" style="font-size:1em; font-weight:bold;">
@@ -298,6 +320,9 @@
                                 <AntDesign.FormItem Label="Data Realizacji">
                                     <DatePicker @bind-Value="szyby.DataRealizacji" Required />
                                 </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Data Dostarczenia">
+                                    <DatePicker @bind-Value="szyby.DataDostarczenia" Required />
+                                </AntDesign.FormItem>
                                 <AntDesign.FormItem Label="Kto Zapisał">
                                     <AntDesign.Input @bind-Value="szyby.KtoZapisal" Required />
                                 </AntDesign.FormItem>
@@ -346,6 +371,8 @@
     private string uwagaKopiuj = "Kopiuj do schowka dane";
 
     private bool isCheckedDelAll = true;
+
+    int _pageSize = 7;
 
     protected override async Task OnInitializedAsync()
     {
@@ -428,6 +455,31 @@
     }
 
     private async Task ZapiszUstawienieStanu(long idr, bool nowyStan)
+    {
+        //  var aktualizacja = new { Id = idr, MaterialZeStanMagazyn = nowyStan };
+
+        var response = await Http.PutAsJsonAsync($"api/szybyDoZlecen/{idr}/updateCzyKsztalt", nowyStan);
+
+        if (response.IsSuccessStatusCode)
+        {
+            if (szybyDoZlecen != null)
+            {
+                oryginalSzybyDoZlecen = szybyDoZlecen.DeepCopyList();
+            }
+        }
+        else
+        {
+            // Obsłuż sytuację błędu
+        }
+    }
+
+    private async void HandleDostarczono(bool value, long idr)
+    {
+        Console.WriteLine($"{value} / {idr}");
+        await ZapiszUstawienieStanuDostarczono(idr, value);
+    }
+
+    private async Task ZapiszUstawienieStanuDostarczono(long idr, bool nowyStan)
     {
         //  var aktualizacja = new { Id = idr, MaterialZeStanMagazyn = nowyStan };
 
