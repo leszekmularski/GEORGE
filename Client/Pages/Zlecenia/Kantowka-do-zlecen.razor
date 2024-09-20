@@ -130,7 +130,7 @@
 
 </head>
 <body>
-
+    <div class="highlighted-background">
     <h3>Zamówiona kantówka do zlecenia</h3>
 
      @if (boolAdmin || boolZmian)
@@ -161,7 +161,7 @@
     else
     {
         <Divider></Divider>
-         <div class="highlighted-background">
+         <div>
             <Table TItem="KantowkaDoZlecen" DataSource="@kantowkaDoZlecen" ScrollX="1950" @bind-PageSize="@_pageSize" Size="TableSize.Small">
                 <Column Title="ID" @bind-Field="@context.Id" Hidden />
                 <Column Title="Gatunek" @bind-Field="@context.GatunekKantowki" Sortable OnFilter="(a, b) => a == b" Filterable />
@@ -329,7 +329,7 @@
             </div>
         </div>
     </div>
-
+    </div>
 </body>
 </html>
 

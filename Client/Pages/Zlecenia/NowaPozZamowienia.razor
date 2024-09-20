@@ -14,96 +14,96 @@ else
 
     <AntDesign.Form Model="@elementyZamowienia" Layout="FormLayout.Horizontal" OnFinish="@HandleSubmit">
         <Tabs DefaultActiveKey="0" TabPosition="TabPosition.Left">
-                <TabPane Key="0" Tab="Pozycje zamówienia">
-                    <FormItem Required Label="Wybierz producenta">
-                        <Select Mode="default"
-                                DataSource="@_producenci"
-                                @bind-Value="@context.ElemetZamDoZlecen.RowIdProducent"
-                                LabelName="@nameof(Producent.NazwaProducenta)"
-                                ValueName="@nameof(Producent.RowId)">
-                        </Select>
-                    </FormItem>
-                    <AntDesign.FormItem Label="Nazwa produktu">
-                        <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.NazwaProduktu" Required Placeholder="Podaj Nazwę produktu" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Numer Katalogowy">
-                        <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.NumerKatalogowy" Placeholder="Podaj numer katalogowy producemnta" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Jednostka">
-                        <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Jednostka" Placeholder="Podaj jednostkę (szt. kpl. litr, metr)" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Kolor">
-                        <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Kolor" Placeholder="Podaj kolor" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Ilość sztuk">
-                        <AntDesign.Input Type="number" Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.IloscSztuk" Required />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Długość">
+            <TabPane Key="0" Tab="Pozycje zamówienia">
+                <FormItem Required Label="Wybierz producenta (dostawcę)">
+                    <Select Mode="default"
+                            DataSource="@_producenci"
+                            @bind-Value="@context.ElemetZamDoZlecen.RowIdProducent"
+                            LabelName="@nameof(Producent.NazwaProducenta)"
+                            ValueName="@nameof(Producent.RowId)">
+                    </Select>
+                </FormItem>
+                <AntDesign.FormItem Label="Nazwa produktu">
+                    <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.NazwaProduktu" Required Placeholder="Podaj Nazwę produktu" />
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Numer Katalogowy">
+                    <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.NumerKatalogowy" Placeholder="Podaj numer katalogowy producemnta" />
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Jednostka">
+                    <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Jednostka" Placeholder="Podaj jednostkę (szt. kpl. litr, metr)" />
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Kolor">
+                    <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Kolor" Placeholder="Podaj kolor" />
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Ilość sztuk">
+                    <AntDesign.Input Type="number" Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.IloscSztuk" Required />
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Typ">
+                    <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Typ" Placeholder="Podaj typ produktu" />
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Czy zamówiono">
+                    <AntDesign.Checkbox @bind-Value="elementyZamowienia.ElemetZamDoZlecen.CzyZamowiono" />
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Czy dostarczono">
+                    <Switch @bind-Value="@context.ElemetZamDoZlecen.PozDostarczono" />
+                </AntDesign.FormItem>
+            </TabPane>
+
+            <!-- Kolumna 2 -->
+            <TabPane Key="1" Tab="Daty w zamówienu">
+                <AntDesign.FormItem Label="Data Zamówienia">
+                    <DatePicker @bind-Value="elementyZamowienia.ElemetZamDoZlecen.DataZamowienia" />
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Data Realizacji">
+                    <DatePicker @bind-Value="elementyZamowienia.ElemetZamDoZlecen.DataRealizacji" />
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Kto Zapisał">
+                    <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.KtoZapisal" Required ReadOnly />
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Data Dostarczenia">
+                    <DatePicker @bind-Value="elementyZamowienia.ElemetZamDoZlecen.DataDostarczenia" />
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Ostatnia Zmiana">
+                    <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.OstatniaZmiana" ReadOnly />
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Uwagi">
+                    <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Uwagi" />
+                </AntDesign.FormItem>
+            </TabPane>
+
+            <TabPane Key="2" Tab="Jednostki">
+                <AntDesign.FormItem Label="Długość">
                     <AntDesign.Input Type="number" Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Dlugosc" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Czy zamówiono">
-                        <AntDesign.Checkbox @bind-Value="elementyZamowienia.ElemetZamDoZlecen.CzyZamowiono" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Czy dostarczono">
-                        <Switch @bind-Value="@context.ElemetZamDoZlecen.PozDostarczono" />
-                    </AntDesign.FormItem>
-                </TabPane>
-
-                <!-- Kolumna 2 -->
-                <TabPane Key="1" Tab="Daty w zamówienu">
-                   <AntDesign.FormItem Label="Data Zamówienia">
-                        <DatePicker @bind-Value="elementyZamowienia.ElemetZamDoZlecen.DataZamowienia" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Data Realizacji">
-                        <DatePicker @bind-Value="elementyZamowienia.ElemetZamDoZlecen.DataRealizacji" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Kto Zapisał">
-                        <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.KtoZapisal" Required ReadOnly />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Data Dostarczenia">
-                        <DatePicker @bind-Value="elementyZamowienia.ElemetZamDoZlecen.DataDostarczenia" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Ostatnia Zmiana">
-                        <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.OstatniaZmiana" ReadOnly />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Uwagi">
-                        <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Uwagi" />
-                    </AntDesign.FormItem>
-                </TabPane>
-
-                <TabPane Key="2" Tab="Jednostki">
-                    <AntDesign.FormItem Label="Szerokość">
-                        <AntDesign.Input Type="number" Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Szerokosc" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Wysokość">
-                        <AntDesign.Input Type="number" Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Wysokosc" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Waga">
-                        <AntDesign.Input Type="number" Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Waga " Placeholder="Podaj wagę" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Powierzchnia">
-                        <AntDesign.Input Type="number" Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Powierzchnia" Placeholder="Podaj powierzchnię" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Objętość">
-                        <AntDesign.Input Type="number" Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Objetosc" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Cena Netto">
-                        <AntDesign.Input Type="number" Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.CenaNetto" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Typ">
-                        <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Typ" Placeholder="Podaj typ produktu" />
-                    </AntDesign.FormItem>
-                    <AntDesign.FormItem Label="Opis">
-                        <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Opis" Placeholder="Podaj opis produktu" />
-                    </AntDesign.FormItem>
-                </TabPane>
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Szerokość">
+                    <AntDesign.Input Type="number" Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Szerokosc" />
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Wysokość">
+                    <AntDesign.Input Type="number" Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Wysokosc" />
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Waga">
+                    <AntDesign.Input Type="number" Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Waga " Placeholder="Podaj wagę" />
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Powierzchnia">
+                    <AntDesign.Input Type="number" Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Powierzchnia" Placeholder="Podaj powierzchnię" />
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Objętość">
+                    <AntDesign.Input Type="number" Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Objetosc" />
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Cena Netto">
+                    <AntDesign.Input Type="number" Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.CenaNetto" />
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Opis">
+                    <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Opis" Placeholder="Podaj opis produktu" />
+                </AntDesign.FormItem>
+            </TabPane>
         </Tabs>
 
-            <AntDesign.FormItem>
-                <AntDesign.Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</AntDesign.Button>
-                <AntDesign.Button @onclick="@HandleCancel">Anuluj</AntDesign.Button>
-            </AntDesign.FormItem>
-    
+        <AntDesign.FormItem>
+            <AntDesign.Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</AntDesign.Button>
+            <AntDesign.Button @onclick="@HandleCancel">Anuluj</AntDesign.Button>
+        </AntDesign.FormItem>
+
     </AntDesign.Form>
 
 }
@@ -157,7 +157,7 @@ else
             // Sprawdź unikalność NumerRodzajuKart
             var responsedbl = elementyDoZlecen.Where(e => e.ElemetZamDoZlecen.RowIdZlecenia == elementyZamowienia.ElemetZamDoZlecen.RowIdZlecenia);
 
-            elementyZamowienia.ElemetZamDoZlecen.DataZapisu = DateTime.Now; 
+            elementyZamowienia.ElemetZamDoZlecen.DataZapisu = DateTime.Now;
 
             if (responsedbl != null && responsedbl.Count() > 0)
             {
@@ -177,7 +177,7 @@ else
 
         if (response.IsSuccessStatusCode)
         {
-           // Obsługa błędów
+            // Obsługa błędów
             Console.WriteLine("Błąd podczas zapisywania rodzaju elementyZamowienia - źródło RAZOR");
         }
 
@@ -189,7 +189,7 @@ else
     public async Task HandleAddNew()
     {
         if (submitOk)
-        await HandleCancel();
+            await HandleCancel();
     }
 
     public async Task HandleCancel()

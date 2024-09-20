@@ -24,8 +24,8 @@ namespace GEORGE.Shared.Models
         public string? Kolor { get; set; } = "";
         public float IloscSztuk { get; set; } = 0;
         public string? Uwagi { get; set; } = "";
-        public DateTime DataZamowienia{ get; set; } = DateTime.Now;
-        public DateTime DataRealizacji { get; set; } = DateTime.Now.AddDays(14);
+        public DateTime DataZamowienia{ get; set; } = DateTime.MinValue;
+        public DateTime DataRealizacji { get; set; } = DateTime.MinValue;
         public DateTime DataZapisu { get; set; } = DateTime.Now;
         public string? KtoZapisal { get; set; } = "NaN";
         public string? OstatniaZmiana { get; set; } = "Zmiana: " + DateTime.Now.ToLongDateString();

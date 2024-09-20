@@ -69,90 +69,90 @@ else
             <div class="modal-header">
                 <h5>@strErr</h5>
             </div>
-                <div class="modal-body">
-                    <AntDesign.Form Model="@producent" Layout="FormLayout.Vertical" OnFinish="@HandleSubmit">
-                       <Tabs Animated>
-                            <TabPane Tab="Opis producenta">
-                                <AntDesign.FormItem Label="Nazwa Producenta">
-                                    <AntDesign.Input @bind-Value="producent.NazwaProducenta" MaxLength="100" Required Placeholder="Podaj nazwę Producenta" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Adres">
-                                    <AntDesign.Input @bind-Value="producent.Adres" Required />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Miejscowość">
-                                    <AntDesign.Input @bind-Value="producent.Miejscowosc" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Telefon">
-                                    <AntDesign.Input @bind-Value="producent.Telefon" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Adres Email">
-                                    <AntDesign.Input @bind-Value="producent.Email" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="NIP">
-                                    <AntDesign.Input @bind-Value="producent.NIP" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="REGON">
-                                    <AntDesign.Input @bind-Value="producent.REGON" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Adres WWW">
-                                    <AntDesign.Input @bind-Value="producent.AdresWWW1" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Adres WWW inny">
-                                    <AntDesign.Input @bind-Value="producent.AdresWWW2" />
-                                </AntDesign.FormItem>
-                            </TabPane>
-                            <TabPane Tab="Osoby kontaktowe">
-                                <AntDesign.FormItem Label="Osoba kontaktowa">
-                                    <AntDesign.Input @bind-Value="producent.OsobaKontaktowa1" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Telefon Osoby Kontaktowej">
-                                    <AntDesign.Input @bind-Value="producent.TelefonOsobyKontaktowej1" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Email Osoby Kontaktowej">
-                                    <AntDesign.Input @bind-Value="producent.EmailOsobyKontaktowej1" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Osoba kontaktowa 2">
-                                    <AntDesign.Input @bind-Value="producent.OsobaKontaktowa2" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Telefon Osoby Kontaktowej 2">
-                                    <AntDesign.Input @bind-Value="producent.TelefonOsobyKontaktowej2" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Email Osoby Kontaktowej2">
-                                    <AntDesign.Input @bind-Value="producent.EmailOsobyKontaktowej2" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Osoba kontaktowa 3">
-                                    <AntDesign.Input @bind-Value="producent.OsobaKontaktowa3" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Telefon Osoby Kontaktowej 3">
-                                    <AntDesign.Input @bind-Value="producent.TelefonOsobyKontaktowej3" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Email Osoby Kontaktowej3">
-                                    <AntDesign.Input @bind-Value="producent.EmailOsobyKontaktowej3" />
-                                </AntDesign.FormItem>
-                            </TabPane>
-                            <TabPane Tab="Pozostałe informacje">
+            <div class="modal-body">
+                <AntDesign.Form Model="@producent" Layout="FormLayout.Vertical" OnFinish="@HandleSubmit">
+                    <Tabs Animated>
+                        <TabPane Key="0" Tab="Opis producenta">
+                            <AntDesign.FormItem Label="Nazwa Producenta">
+                                <AntDesign.Input @bind-Value="producent.NazwaProducenta" MaxLength="100" Required Placeholder="Podaj nazwę Producenta" />
+                            </AntDesign.FormItem>
+                            <AntDesign.FormItem Label="Adres">
+                                <AntDesign.Input @bind-Value="producent.Adres" Required />
+                            </AntDesign.FormItem>
+                            <AntDesign.FormItem Label="Miejscowość">
+                                <AntDesign.Input @bind-Value="producent.Miejscowosc" />
+                            </AntDesign.FormItem>
+                            <AntDesign.FormItem Label="Telefon">
+                                <AntDesign.Input @bind-Value="producent.Telefon" />
+                            </AntDesign.FormItem>
+                            <AntDesign.FormItem Label="Adres Email">
+                                <AntDesign.Input @bind-Value="producent.Email" />
+                            </AntDesign.FormItem>
+                            <AntDesign.FormItem Label="NIP">
+                                <AntDesign.Input @bind-Value="producent.NIP" />
+                            </AntDesign.FormItem>
+                            <AntDesign.FormItem Label="REGON">
+                                <AntDesign.Input @bind-Value="producent.REGON" />
+                            </AntDesign.FormItem>
+                            <AntDesign.FormItem Label="Adres WWW">
+                                <AntDesign.Input @bind-Value="producent.AdresWWW1" />
+                            </AntDesign.FormItem>
+                            <AntDesign.FormItem Label="Adres WWW inny">
+                                <AntDesign.Input @bind-Value="producent.AdresWWW2" />
+                            </AntDesign.FormItem>
+                        </TabPane>
+                        <TabPane Key="1" Tab="Osoby kontaktowe">
+                            <AntDesign.FormItem Label="Osoba kontaktowa">
+                                <AntDesign.Input @bind-Value="producent.OsobaKontaktowa1" />
+                            </AntDesign.FormItem>
+                            <AntDesign.FormItem Label="Telefon Osoby Kontaktowej">
+                                <AntDesign.Input @bind-Value="producent.TelefonOsobyKontaktowej1" />
+                            </AntDesign.FormItem>
+                            <AntDesign.FormItem Label="Email Osoby Kontaktowej">
+                                <AntDesign.Input @bind-Value="producent.EmailOsobyKontaktowej1" />
+                            </AntDesign.FormItem>
+                            <AntDesign.FormItem Label="Osoba kontaktowa 2">
+                                <AntDesign.Input @bind-Value="producent.OsobaKontaktowa2" />
+                            </AntDesign.FormItem>
+                            <AntDesign.FormItem Label="Telefon Osoby Kontaktowej 2">
+                                <AntDesign.Input @bind-Value="producent.TelefonOsobyKontaktowej2" />
+                            </AntDesign.FormItem>
+                            <AntDesign.FormItem Label="Email Osoby Kontaktowej2">
+                                <AntDesign.Input @bind-Value="producent.EmailOsobyKontaktowej2" />
+                            </AntDesign.FormItem>
+                            <AntDesign.FormItem Label="Osoba kontaktowa 3">
+                                <AntDesign.Input @bind-Value="producent.OsobaKontaktowa3" />
+                            </AntDesign.FormItem>
+                            <AntDesign.FormItem Label="Telefon Osoby Kontaktowej 3">
+                                <AntDesign.Input @bind-Value="producent.TelefonOsobyKontaktowej3" />
+                            </AntDesign.FormItem>
+                            <AntDesign.FormItem Label="Email Osoby Kontaktowej3">
+                                <AntDesign.Input @bind-Value="producent.EmailOsobyKontaktowej3" />
+                            </AntDesign.FormItem>
+                        </TabPane>
+                        <TabPane Key="2" Tab="Pozostałe informacje">
                             <AntDesign.FormItem Label="Status nowy wpis po [,]">
                                 <InputTextArea @bind-Value="producent.TagsString" />
                             </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Ilość Dni Realizacji">
-                                    <AntDesign.InputNumber @bind-Value="producent.IloscDniRealizacji" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Uwagi">
-                                    <AntDesign.Input @bind-Value="producent.Uwagi" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Kto Zapisał">
-                                    <AntDesign.Input @bind-Value="producent.KtoZapisal" Required />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Ostatnia Zmiana">
-                                    <AntDesign.Input @bind-Value="producent.OstatniaZmiana" />
-                                </AntDesign.FormItem>
-                            </TabPane>
-                             </Tabs>
-                            <AntDesign.FormItem>
-                                <AntDesign.Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</AntDesign.Button>
-                                <AntDesign.Button @onclick="@HandleCancel">Anuluj</AntDesign.Button>
+                            <AntDesign.FormItem Label="Ilość Dni Realizacji">
+                                <AntDesign.InputNumber @bind-Value="producent.IloscDniRealizacji" />
                             </AntDesign.FormItem>
-                        </AntDesign.Form>
+                            <AntDesign.FormItem Label="Uwagi">
+                                <AntDesign.Input @bind-Value="producent.Uwagi" />
+                            </AntDesign.FormItem>
+                            <AntDesign.FormItem Label="Kto Zapisał">
+                                <AntDesign.Input @bind-Value="producent.KtoZapisal" Required />
+                            </AntDesign.FormItem>
+                            <AntDesign.FormItem Label="Ostatnia Zmiana">
+                                <AntDesign.Input @bind-Value="producent.OstatniaZmiana" />
+                            </AntDesign.FormItem>
+                        </TabPane>
+                    </Tabs>
+                    <AntDesign.FormItem>
+                        <AntDesign.Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</AntDesign.Button>
+                        <AntDesign.Button @onclick="@HandleCancel">Anuluj</AntDesign.Button>
+                    </AntDesign.FormItem>
+                </AntDesign.Form>
             </div>
         </div>
     </div>
@@ -189,11 +189,11 @@ else
             rodzajeProducentow = await Http.GetFromJsonAsync<List<ProducenciPodwykonawcy>>("api/ProducenciPodwykonawcy");
 
             producent = new ProducenciPodwykonawcy();
-            producent.Id =  0;     
+            producent.Id = 0;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"******* Błąd {ex.Message}");  
+            Console.WriteLine($"******* Błąd {ex.Message}");
         }
     }
 
@@ -205,7 +205,7 @@ else
 
         blokujDwuKlik = true;
 
-        producent.NazwaProducenta = producent.NazwaProducenta.Trim(); 
+        producent.NazwaProducenta = producent.NazwaProducenta.Trim();
 
         HttpResponseMessage response;
 
@@ -433,7 +433,7 @@ else
             //NavigationManager.NavigateTo($"", true);
             return;
         }
-        
+
         string nazwaTabeli = "ProducenciPodwykonawcy";
 
         Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");

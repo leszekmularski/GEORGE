@@ -29,12 +29,12 @@
         .highlighted-background {
             background-color: white;
             overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
-            max-height: calc(100vh - 155px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 155px */
+            max-height: calc(100vh - 20px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 155px */
             width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 260px */
             box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu wysokości */
             position: absolute;
             left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
-            top: 155px; /* Ustawia górną krawędź 155px od góry okna */
+            top: 20px; /* Ustawia górną krawędź 155px od góry okna */
         }
 
     </style>
@@ -65,7 +65,7 @@
                 document.body.removeChild(textArea);
             }
         }
- 
+
         function saveAsExcel(jsonData) {
             const data = JSON.parse(jsonData);
             const csvRows = [];
@@ -129,219 +129,219 @@
 
 </head>
 <body>
+    <div class="highlighted-background">
+        <h3>Zamówione szyby do zlecenia</h3>
 
-    <h3>Zamówione szyby do zlecenia</h3>
+        @if (boolAdmin || boolZmian)
+        {
+            <Button Type="primary" OnClick="@(ShowDialogAddNew)">
+                Dodaj nowe zestawienie materiałów (nowa szyba)
+            </Button>
+        }
 
-     @if (boolAdmin || boolZmian)
-    {
-        <Button Type="primary" OnClick="@(ShowDialogAddNew)">
-            Dodaj nowe zestawienie materiałów
-        </Button>
-    }
-
-    @if (szybyDoZlecen != null && szybyDoZlecen.Count > 0)
-    {
-        <Button Type="reset" OnClick="@(CopySzybyToClipboard)">
-            @uwagaKopiuj
-        </Button>
-        <Button Type="reset" OnClick="@(ExportToExcel)">
-            Zapisz do pliku CSV - wszystko
-        </Button>
-        <Button Type="reset" OnClick="@(ExportSelectedColumnsToExcel)">
-            Zapisz do pliku CSV - tylko wymagane kolumny
-        </Button>
-    }
-    <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
-    <Divider></Divider>
-
-    @if (szybyDoZlecen == null)
-    {
-        <p><em>Czekaj na załadowanie danych...</em></p>
-    }
-    else
-    {
-        <div class="highlighted-background">
-            <Table TItem="SzybyDoZlecen" DataSource="@szybyDoZlecen" @bind-PageSize="@_pageSize"ScrollX="1950" Size="TableSize.Small">
-                <Column Title="ID" @bind-Field="@context.Id" Hidden />
-                <Column Title="Szerokość" @bind-Field="@context.Szerokosc" Sortable OnFilter="(a, b) => a == b" Filterable />
-                <Column Title="Wysokość" @bind-Field="@context.Wysokosc" Sortable OnFilter="(a, b) => a == b" Filterable />
-                <Column Title="Opis szyby" @bind-Field="@context.RodzajSzyby" Sortable />
-                <Column Title="Rodzaj ramki" @bind-Field="@context.RodzajRamki" Sortable OnFilter="(a, b) => a == b" Filterable />
-                <Column Title="Opis" @bind-Field="@context.NazwaProduktu" Sortable OnFilter="(a, b) => a == b" Filterable />
-                <Column Title="Ilość sztuk" @bind-Field="@context.IloscSztuk" Sortable />
-                <Column Title="Czy kształt" TData="SzybyDoZlecen">
-                    <Template>
-                        <Checkbox @bind-Checked="@context.CzyKsztalt" OnChange="(e)=>Handle(e, context.Id)" Disabled="isNotDisabled" />
-                    </Template>
-                </Column>
-                <Column Title="Poz. dostarczono" TData="SzybyDoZlecen">
-                    <Template>
-                        <Checkbox @bind-Checked="@context.PozDostarczono" OnChange="(e)=>HandleDostarczono(e, context.Id)" Disabled="isNotDisabled" />
-                    </Template>
-                </Column>
-                <Column Title="Uwagi" @bind-Field="@context.Uwagi" Sortable />
-                <Column Title="Autor zmian" @bind-Field="@context.KtoZapisal" Sortable />
-
-                <!-- Przykład kolumny dla daty z formatowaniem -->
-                <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd HH:mm:ss" Sortable />
-                <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
-                <ActionColumn Title="Akcja" Width="100" Fixed="right">
-                    @if (boolAdmin || boolZmian)
-                    {
-                        <Popconfirm Title="Czy chcesz edytować pozycję?"
-                                    OnConfirm="()=> editRow(context.Id)"
-                                    OkText="Tak"
-                                    CancelText="Nie">
-                            <a>Edytuj</a>
-                        </Popconfirm>
-                    }
-                    @if (boolAdmin || boolUsuniecia)
-                    {
-                        <Popconfirm Title="Czy chcesz usunąć pozycję?"
-                                    OnConfirm="()=> deleteRow(context.Id)"
-                                    OkText="Tak"
-                                    CancelText="Nie">
-                            <a style="color:red">Usuń</a>
-                        </Popconfirm>
-                    }
-                </ActionColumn>
-            </Table>
-
-        </div>
+        @if (szybyDoZlecen != null && szybyDoZlecen.Count > 0)
+        {
+            <Button Type="reset" OnClick="@(CopySzybyToClipboard)">
+                @uwagaKopiuj
+            </Button>
+            <Button Type="reset" OnClick="@(ExportToExcel)">
+                Zapisz do pliku CSV - wszystko
+            </Button>
+            <Button Type="reset" OnClick="@(ExportSelectedColumnsToExcel)">
+                Zapisz do pliku CSV - tylko wymagane kolumny
+            </Button>
+        }
+        <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
         <Divider></Divider>
-        <div style="overflow: auto; width: 100%; height: 200px">
+
+        @if (szybyDoZlecen == null)
+        {
+            <p><em>Czekaj na załadowanie danych...</em></p>
+        }
+        else
+        {
             <div>
-                <label for="fileInput" style="font-size:1em; font-weight:bold;">
-                    Wybierz plik ze Stolcad z listą materiałów (C:\STOLCAD\Rob\PrnPdf - zestawienie szyb):
-                </label>
-                <InputFile id="fileInput" OnChange="HandleFileSelected" />
+                <Table TItem="SzybyDoZlecen" DataSource="@szybyDoZlecen" @bind-PageSize="@_pageSize" ScrollX="1950" Size="TableSize.Small">
+                    <Column Title="ID" @bind-Field="@context.Id" Hidden />
+                    <Column Title="Szerokość" @bind-Field="@context.Szerokosc" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Title="Wysokość" @bind-Field="@context.Wysokosc" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Title="Opis szyby" @bind-Field="@context.RodzajSzyby" Sortable />
+                    <Column Title="Rodzaj ramki" @bind-Field="@context.RodzajRamki" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Title="Opis" @bind-Field="@context.NazwaProduktu" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Title="Ilość sztuk" @bind-Field="@context.IloscSztuk" Sortable />
+                    <Column Title="Czy kształt" TData="SzybyDoZlecen">
+                        <Template>
+                            <Checkbox @bind-Checked="@context.CzyKsztalt" OnChange="(e)=>Handle(e, context.Id)" Disabled="isNotDisabled" />
+                        </Template>
+                    </Column>
+                    <Column Title="Poz. dostarczono" TData="SzybyDoZlecen">
+                        <Template>
+                            <Checkbox @bind-Checked="@context.PozDostarczono" OnChange="(e)=>HandleDostarczono(e, context.Id)" Disabled="isNotDisabled" />
+                        </Template>
+                    </Column>
+                    <Column Title="Uwagi" @bind-Field="@context.Uwagi" Sortable />
+                    <Column Title="Autor zmian" @bind-Field="@context.KtoZapisal" Sortable />
 
-                <Button Type="@ButtonType.Link" style="font-size:1.2em; height:30px; margin-top:10px; font-style:revert-layer; color:brown" @onclick="() => PasteStolcad()">
-                    Wklej ze schowka szyby z STOLCAD [ODWOŁANIA]
-                </Button>
-                <Checkbox @bind-Checked="isCheckedDelAll">Usuń wszystkie dane przed zapisem nowych</Checkbox>
+                    <!-- Przykład kolumny dla daty z formatowaniem -->
+                    <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd HH:mm:ss" Sortable />
+                    <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
+                    <ActionColumn Title="Akcja" Width="100" Fixed="right">
+                        @if (boolAdmin || boolZmian)
+                        {
+                            <Popconfirm Title="Czy chcesz edytować pozycję?"
+                                        OnConfirm="()=> editRow(context.Id)"
+                                        OkText="Tak"
+                                        CancelText="Nie">
+                                <a>Edytuj</a>
+                            </Popconfirm>
+                        }
+                        @if (boolAdmin || boolUsuniecia)
+                        {
+                            <Popconfirm Title="Czy chcesz usunąć pozycję?"
+                                        OnConfirm="()=> deleteRow(context.Id)"
+                                        OkText="Tak"
+                                        CancelText="Nie">
+                                <a style="color:red">Usuń</a>
+                            </Popconfirm>
+                        }
+                    </ActionColumn>
+                </Table>
+
             </div>
-
-            @if (zestawienie != null)
-            {
+            <Divider></Divider>
+            <div style="overflow: auto; width: 100%; height: 200px">
                 <div>
-                    <Divider></Divider>
-                    <Button Type="@ButtonType.Primary" Style="width:99%" Disabled="@isNotDisabled" OnClick="SaveAll">Zapisz wyszystkie zapisane z poniższej tabeli</Button>
+                    <label for="fileInput" style="font-size:1em; font-weight:bold;">
+                        Wybierz plik ze Stolcad z listą materiałów (C:\STOLCAD\Rob\PrnPdf - zestawienie szyb):
+                    </label>
+                    <InputFile id="fileInput" OnChange="HandleFileSelected" />
+
+                    <Button Type="@ButtonType.Link" style="font-size:1.2em; height:30px; margin-top:10px; font-style:revert-layer; color:brown" @onclick="() => PasteStolcad()">
+                        Wklej ze schowka szyby z STOLCAD [ODWOŁANIA]
+                    </Button>
+                    <Checkbox @bind-Checked="isCheckedDelAll">Usuń wszystkie dane przed zapisem nowych</Checkbox>
                 </div>
 
-                <div>
+                @if (zestawienie != null)
+                {
+                    <div>
+                        <Divider></Divider>
+                        <Button Type="@ButtonType.Primary" Style="width:99%" Disabled="@isNotDisabled" OnClick="SaveAll">Zapisz wyszystkie zapisane z poniższej tabeli</Button>
+                    </div>
 
-                    <h4>Zestawienie Nr: @zestawienie.NrZestawienia</h4>
-                    <p>Data: @zestawienie.Data.ToString("yyyy/MM/dd")</p>
-                    <p>Odbiorca: @zestawienie.Odbiorca</p>
+                    <div style="overflow: auto; width: 100%; height: 200px">
 
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Lp</th>
-                                <th>Szerokość</th>
-                                <th>Wysokość</th>
-                                <th>Ilość</th>
-                                <th>Rodz. Szyby</th>
-                                <th>Rodz. Ramki</th>
-                                <th>Powierchnia</th>
-                                <th>Uwagi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var item in zestawienie.ListaSzyb)
-                            {
+                        <h4>Zestawienie Nr: @zestawienie.NrZestawienia</h4>
+                        <p>Data: @zestawienie.Data.ToString("yyyy/MM/dd")</p>
+                        <p>Odbiorca: @zestawienie.Odbiorca</p>
+
+                        <table class="table">
+                            <thead>
                                 <tr>
-                                    <td>@item.Lp</td>
-                                    <td>@item.Szerokosc</td>
-                                    <td>@item.Wysokosc</td>
-                                    <td>@item.Ilosc</td>
-                                    <td>@item.RodzajSzyby</td>
-                                    <td>@item.RodzajRamki</td>
-                                    <td>@item.Powierzchnia</td>
-                                    <td>@item.Uwagi</td>
+                                    <th>Lp</th>
+                                    <th>Szerokość</th>
+                                    <th>Wysokość</th>
+                                    <th>Ilość</th>
+                                    <th>Rodz. Szyby</th>
+                                    <th>Rodz. Ramki</th>
+                                    <th>Powierchnia</th>
+                                    <th>Uwagi</th>
                                 </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </div>
-    }
+                            </thead>
+                            <tbody>
+                                @foreach (var item in zestawienie.ListaSzyb)
+                                {
+                                    <tr>
+                                        <td>@item.Lp</td>
+                                        <td>@item.Szerokosc</td>
+                                        <td>@item.Wysokosc</td>
+                                        <td>@item.Ilosc</td>
+                                        <td>@item.RodzajSzyby</td>
+                                        <td>@item.RodzajRamki</td>
+                                        <td>@item.Powierzchnia</td>
+                                        <td>@item.Uwagi</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        }
 
-    <div class="modal fade @classShow" tabindex="-1" style="display: @display;">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Szyby dodaj / zmień</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="HandleCancel">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <AntDesign.Form Model="@szyby" Layout="FormLayout.Horizontal" OnFinish="@HandleSubmit">
-                        <div class="row">
-                            <!-- Kolumna 1 -->
-                            <div class="col-md-6">
-                                <AntDesign.FormItem Label="Szerokość">
-                                    <AntDesign.InputNumber @bind-Value="szyby.Szerokosc" Min="50" Required />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Wysokość">
-                                    <AntDesign.InputNumber @bind-Value="szyby.Wysokosc"  Min="50" Required />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Rodzaj szyby">
-                                    <AntDesign.Input @bind-Value="szyby.RodzajSzyby" Required Placeholder="Podaj rodzaj szyby" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Rodzaj ramki">
-                                    <AntDesign.Input @bind-Value="szyby.RodzajRamki" Required Placeholder="Podaj rodzaj ramki" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Ilość sztuk">
-                                    <AntDesign.InputNumber @bind-Value="szyby.IloscSztuk" Min="1" Required />
-                                </AntDesign.FormItem>
-                    @*             <AntDesign.FormItem Label="Czy kształy">
+        <div class="modal fade @classShow" tabindex="-1" style="display: @display;">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Szyby dodaj / zmień</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="HandleCancel">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <AntDesign.Form Model="@szyby" Layout="FormLayout.Horizontal" OnFinish="@HandleSubmit">
+                            <div class="row">
+                                <!-- Kolumna 1 -->
+                                <div class="col-md-6">
+                                    <AntDesign.FormItem Label="Szerokość">
+                                        <AntDesign.InputNumber @bind-Value="szyby.Szerokosc" Min="50" Required />
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Wysokość">
+                                        <AntDesign.InputNumber @bind-Value="szyby.Wysokosc" Min="50" Required />
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Rodzaj szyby">
+                                        <AntDesign.Input @bind-Value="szyby.RodzajSzyby" Required Placeholder="Podaj rodzaj szyby" />
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Rodzaj ramki">
+                                        <AntDesign.Input @bind-Value="szyby.RodzajRamki" Required Placeholder="Podaj rodzaj ramki" />
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Ilość sztuk">
+                                        <AntDesign.InputNumber @bind-Value="szyby.IloscSztuk" Min="1" Required />
+                                    </AntDesign.FormItem>
+                                    @*             <AntDesign.FormItem Label="Czy kształy">
                                     <Switch @bind-Value="@context.CzyKsztalt" />
-                                </AntDesign.FormItem> *@
-                                <AntDesign.FormItem Label="Czy kształt">
-                                    <AntDesign.Checkbox @bind-Value="szyby.CzyKsztalt" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Czy dostarczono">
-                                    <Switch @bind-Value="@context.PozDostarczono" />
-                                </AntDesign.FormItem>
+                                    </AntDesign.FormItem> *@
+                                    <AntDesign.FormItem Label="Czy kształt">
+                                        <AntDesign.Checkbox @bind-Value="szyby.CzyKsztalt" />
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Czy dostarczono">
+                                        <Switch @bind-Value="@context.PozDostarczono" />
+                                    </AntDesign.FormItem>
+                                </div>
+
+                                <!-- Kolumna 2 -->
+                                <div class="col-md-6">
+                                    <AntDesign.FormItem Label="Uwagi">
+                                        <AntDesign.Input @bind-Value="szyby.Uwagi" />
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Data Zamówienia">
+                                        <DatePicker @bind-Value="szyby.DataZamowienia" Required />
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Data Realizacji">
+                                        <DatePicker @bind-Value="szyby.DataRealizacji" Required />
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Data Dostarczenia">
+                                        <DatePicker @bind-Value="szyby.DataDostarczenia" Required />
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Kto Zapisał">
+                                        <AntDesign.Input @bind-Value="szyby.KtoZapisal" Required />
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Ostatnia Zmiana">
+                                        <AntDesign.Input @bind-Value="szyby.OstatniaZmiana" ReadOnly />
+                                    </AntDesign.FormItem>
+                                </div>
                             </div>
 
-                            <!-- Kolumna 2 -->
-                            <div class="col-md-6">
-                                <AntDesign.FormItem Label="Uwagi">
-                                    <AntDesign.Input @bind-Value="szyby.Uwagi" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Data Zamówienia">
-                                    <DatePicker @bind-Value="szyby.DataZamowienia" Required />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Data Realizacji">
-                                    <DatePicker @bind-Value="szyby.DataRealizacji" Required />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Data Dostarczenia">
-                                    <DatePicker @bind-Value="szyby.DataDostarczenia" Required />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Kto Zapisał">
-                                    <AntDesign.Input @bind-Value="szyby.KtoZapisal" Required />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Ostatnia Zmiana">
-                                    <AntDesign.Input @bind-Value="szyby.OstatniaZmiana" ReadOnly />
-                                </AntDesign.FormItem>
-                            </div>
-                        </div>
-
-                        <AntDesign.FormItem>
-                            <AntDesign.Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</AntDesign.Button>
-                            <AntDesign.Button @onclick="@HandleCancel">Anuluj</AntDesign.Button>
-                        </AntDesign.FormItem>
-                    </AntDesign.Form>
+                            <AntDesign.FormItem>
+                                <AntDesign.Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</AntDesign.Button>
+                                <AntDesign.Button @onclick="@HandleCancel">Anuluj</AntDesign.Button>
+                            </AntDesign.FormItem>
+                        </AntDesign.Form>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-
 </body>
 </html>
 
@@ -511,7 +511,7 @@
             }
 
             pdfContent = PdfReaderService.ReadPdfTable(path);
-     
+
             zestawienie = PdfDataParserSz.ParsePdfDataSzyby(pdfContent);
 
             StateHasChanged();
@@ -602,67 +602,96 @@
         }
     }
 
+    bool dblBlokClick = false;
+
     private async Task HandleSubmit()
     {
+        if (_visible == false || dblBlokClick) return;
 
-        if (_visible == false) return;
+        dblBlokClick = true;
 
+        // Zmiana tekstu na wielkie litery
         szyby.RodzajSzyby = szyby.RodzajSzyby.ToUpper();
 
         HttpResponseMessage response;
 
         if (szyby.Id == 0)
         {
-            // Sprawdź unikalność NumerRodzajuKart
-            var responsedbl = szybyDoZlecen.Where(e => e.RowIdZlecenia == szyby.RowIdZlecenia);
+            // Console.WriteLine("Dodaje nową szybę 1");
 
-            if (responsedbl != null && responsedbl.Count() > 0)
-            {
-                // Wyświetl komunikat o błędzie, że NumerRodzajuKart nie jest unikalny
-                Console.WriteLine("Zapisuje kolejne dane do zlecenia!!!.");
-                // await _message.Error("Numer Rodzaju Kart musi być unikalny.");
-                // return;
-            }
+            // // Sprawdź unikalność na podstawie RowIdZlecenia
+            // var responsedbl = szybyDoZlecen.Where(e => e.Id == szyby.Id);
 
-            response = await Http.PostAsJsonAsync("api/SzybyDoZlecen", szyby);
+            // if (responsedbl != null && responsedbl.Any())
+            // {
+            //     // Wyświetl komunikat o błędzie, jeśli rekord nie jest unikalny
+            //     Console.WriteLine("Błąd: Rekord o tym samym RowIdZlecenia już istnieje.");
+            //     await _message.Error("Rodzaj szyby o tym samym RowIdZlecenia już istnieje.");
+            //     dblBlokClick = false; // Odblokowanie przycisku
+
+            //     _visible = false;
+            //     await HideDialog();
+
+            //     return;
+            // }
+            //Console.WriteLine("Dodaje nową szybę 2");
+            // Użycie POST do dodania nowego rekordu
+            response = await Http.PostAsJsonAsync($"api/SzybyDoZlecen/", szyby);
+
+            //Console.WriteLine("Dodaje nową szybę 3");
+
         }
         else
         {
+            // Użycie PUT do aktualizacji istniejącego rekordu
             response = await Http.PutAsJsonAsync($"api/SzybyDoZlecen/{szyby.Id}", szyby);
 
-            if (szybyDoZlecen != null) oryginalSzybyDoZlecen = szybyDoZlecen.DeepCopyList();
+            // Zaktualizowanie lokalnej kopii danych
+            if (szybyDoZlecen != null)
+            {
+                oryginalSzybyDoZlecen = szybyDoZlecen.DeepCopyList();
+            }
         }
 
         if (response.IsSuccessStatusCode)
         {
             if (szyby.Id == 0)
             {
-                szybyDoZlecen.Add(szyby); // Dodaj nowe szyby do listy
+                // Dodanie nowego rekordu do listy
+                szybyDoZlecen.Add(szyby);
             }
             else
             {
-                // Znajdź istniejące szyby i zaktualizuj je
+                // Znalezienie i aktualizacja istniejącego rekordu
                 var index = szybyDoZlecen.FindIndex(z => z.Id == szyby.Id);
-
                 if (index != -1)
                 {
                     szybyDoZlecen[index] = szyby;
                 }
             }
 
+            _visible = false;  // Ukrycie formularza
+            szyby = new SzybyDoZlecen();  // Zresetowanie danych formularza
+
+            await HideDialog(); // Zamknięcie dialogu
+            StateHasChanged(); // Odświeżenie widoku
+
             _visible = false;
-            szyby = new SzybyDoZlecen(); // Zresetuj formularz
-
             await HideDialog();
-
-            StateHasChanged(); // Odśwież widok
         }
         else
         {
             // Obsługa błędów
             Console.WriteLine("Błąd podczas zapisywania rodzaju szyby - źródło RAZOR");
+            await _message.Error("Wystąpił błąd podczas zapisywania danych.");
         }
+
+        dblBlokClick = false; // Odblokowanie przycisku po zakończeniu
+
+        _visible = false;
+        await HideDialog();
     }
+
 
     public async Task deleteRow(long id)
     {
@@ -675,8 +704,10 @@
             if (response.IsSuccessStatusCode)
             {
                 // Usunięcie rekordu z listy po pomyślnym usunięciu z serwera
-                szybyDoZlecen = szybyDoZlecen.Where(r => r.Id != id).ToList();
+                szybyDoZlecen = null;
                 Console.WriteLine("Rekord został pomyślnie usunięty.");
+
+                szybyDoZlecen = await Http.GetFromJsonAsync<List<SzybyDoZlecen>>($"api/SzybyDoZlecen/rowid/{RowIdZlecenia}");
             }
             else
             {
@@ -732,7 +763,14 @@
         await Task.Delay(1);
 
         _visible = true;
-        // await HandleSubmit();
+
+        if (szyby.Wysokosc == 0 || szyby.Szerokosc == 0 || szyby.IloscSztuk == 0 ||
+        string.IsNullOrEmpty(szyby.RodzajSzyby) || string.IsNullOrEmpty(szyby.RodzajRamki))
+        {
+            return;
+        }
+
+        await HandleSubmit();
     }
 
     public async Task HandleCancel()
@@ -751,11 +789,16 @@
     public async Task ShowDialogAddNew()
     {
         szyby = new SzybyDoZlecen();
+
+        szyby.Id = 0;
+        szyby.RowIdZlecenia = RowIdZlecenia;
+
         cid = -1;
 
         display = "block";
         await Task.Delay(50);
         classShow = "show";
+
         StateHasChanged();
     }
 
@@ -807,7 +850,7 @@
             user = "NaN";
             return;
         }
-        
+
         string nazwaTabeli = "SzybyDoZlecen";
 
         Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");

@@ -42,19 +42,18 @@ namespace GEORGE.Server.Controllers
             return Ok(result);
         }
 
-
         [HttpPost]
         public async Task<ActionResult> AddSzybyDoZleceneAsync(SzybyDoZlecen szyba)
         {
             try
             {
-                _context.SzybyDoZlecen.Add(szyba);
+                _ = _context.SzybyDoZlecen.Add(szyba);
                 await _context.SaveChangesAsync();
                 return Ok();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Błąd podczas dodawania SzybyDoZlecen.");
+                _logger.LogError(ex, "Błąd podczas dodawania Karty Instrukcyjne.");
                 return StatusCode(500, "Wystąpił błąd podczas przetwarzania żądania.");
             }
         }
@@ -171,6 +170,8 @@ namespace GEORGE.Server.Controllers
 
             // Zaktualizuj wartość
             szyba.PozDostarczono = czyDostarczono;
+
+            if(szyba.DataDostarczenia == DateTime.MinValue && czyDostarczono)
             szyba.DataDostarczenia = DateTime.Now;
 
             // Oznacz obiekt jako zmodyfikowany

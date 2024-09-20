@@ -142,7 +142,8 @@ namespace GEORGE.Server.Controllers
 
             // Zaktualizuj wartość
             pozZlec.CzyZamowiono = czyZamowiono;
-            pozZlec.DataZamowienia = DateTime.Now;
+            if (pozZlec.DataZamowienia == DateTime.MinValue && czyZamowiono)
+                pozZlec.DataZamowienia = DateTime.Now;
 
             // Oznacz obiekt jako zmodyfikowany
             _context.Entry(pozZlec).State = EntityState.Modified;
@@ -179,7 +180,8 @@ namespace GEORGE.Server.Controllers
 
             // Zaktualizuj wartość
             pozZlec.PozDostarczono = czyDostarczono;
-            pozZlec.DataDostarczenia = DateTime.Now;
+            if (pozZlec.DataDostarczenia == DateTime.MinValue && czyDostarczono)
+                pozZlec.DataDostarczenia = DateTime.Now;
 
             // Oznacz obiekt jako zmodyfikowany
             _context.Entry(pozZlec).State = EntityState.Modified;

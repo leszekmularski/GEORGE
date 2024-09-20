@@ -9,13 +9,13 @@ namespace GEORGE.Shared.Models
 
         [Required]
         public string? RowIdZlecenia { get; set; }
-        public string? NazwaProduktu { get; set; }
+        public string? NazwaProduktu { get; set; } = string.Empty;
         public float? Szerokosc { get; set; }
         public float? Wysokosc { get; set; }   
-        public string? RodzajSzyby { get; set; }
-        public string? RodzajRamki { get; set; }
+        public string? RodzajSzyby { get; set; } = string.Empty;
+        public string? RodzajRamki { get; set; } = string.Empty;
         public int IloscSztuk { get; set; } = 0;
-        public string? Uwagi { get; set; }
+        public string? Uwagi { get; set; } = string.Empty;
         public DateTime DataZamowienia{ get; set; } = DateTime.Now;
         public DateTime DataRealizacji { get; set; } = DateTime.Now.AddDays(14);
         public DateTime DataZapisu { get; set; } = DateTime.Now;

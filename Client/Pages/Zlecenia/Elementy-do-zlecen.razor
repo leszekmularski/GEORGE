@@ -18,7 +18,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-     <style>
+    <style>
         .custom-link {
             color: blue;
         }
@@ -30,12 +30,12 @@
         .highlighted-background {
             background-color: white;
             overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
-            max-height: calc(100vh - 155px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 155px */
+            max-height: calc(100vh - 5px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 155px */
             width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 260px */
             box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu wysokości */
             position: absolute;
             left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
-            top: 155px; /* Ustawia górną krawędź 155px od góry okna */
+            top: 5px; /* Ustawia górną krawędź 155px od góry okna */
         }
 
     </style>
@@ -66,7 +66,7 @@
                 document.body.removeChild(textArea);
             }
         }
- 
+
         function saveAsExcel(jsonData) {
             const data = JSON.parse(jsonData);
             const csvRows = [];
@@ -91,7 +91,7 @@
             const a = document.createElement('a');
             a.setAttribute('hidden', '');
             a.setAttribute('href', url);
-            a.setAttribute('download', 'szyby_all.csv');
+            a.setAttribute('download', 'zamowienia_all.csv');
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -102,7 +102,7 @@
             const csvRows = [];
 
             // Define headers
-            const headers = ["Szerokosc", "Wysokosc", "RodzajSzyby", "RodzajRamki", "IloscSztuk", "CzyKsztalt"];
+                const headers = ["NazwaProduktu", "NumerKatalogowy", "Typ", "IloscSztuk", "IloscSztuk", "Dlugosc", "Szerokosc", "Wysokosc"];
             csvRows.push(headers.join(','));
 
             for (const row of data) {
@@ -130,182 +130,193 @@
 </head>
 <body>
 
-    <h3>Zamówione elementy do zlecenia</h3>
-
-     @if (boolAdmin || boolZmiana)
-    {
-        <Button Type="primary" OnClick="@(ShowDialogAddNew)">
-            Dodaj nową pozycję do zamówienia na elementy
-        </Button>
-    }
-
-    @if (elementyDoZlecen != null && elementyDoZlecen.Count > 0)
-    {
-        <Button Type="reset" OnClick="@(CopySzybyToClipboard)">
-            @uwagaKopiuj
-        </Button>
-        <Button Type="reset" OnClick="@(ExportToExcel)">
-            Zapisz do pliku CSV - wszystko
-        </Button>
-        <Button Type="reset" OnClick="@(ExportSelectedColumnsToExcel)">
-            Zapisz do pliku CSV - tylko wymagane kolumny
-        </Button>
-    }
-    <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
-    <Divider></Divider>
-
-    @if (elementyDoZlecen == null)
-    {
-        <p><em>Czekaj na załadowanie danych...</em></p>
-    }
-    else
-    {
-        if(elementyDoZlecen.Count > 0)
-        {
-            <div class="highlighted-background">
-                <Table TItem="ElemetZamDoZlecenWithProducent" DataSource="elementyDoZlecen" @bind-PageSize="@_pageSize"
-                       Loading="false" ScrollX="1950" Size="TableSize.Small">
-                    <PropertyColumn Title="ID" Property="c=>c.ElemetZamDoZlecen.Id" Hidden />
-                    <PropertyColumn Title="Nazwa Producenta" Property="c=>c.ProducentIMiejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable />
-                    <PropertyColumn Property="c=>c.ElemetZamDoZlecen.NazwaProduktu" Sortable DefaultSortOrder="SortDirection.Ascending" Filterable></PropertyColumn>
-                    <PropertyColumn Title="Numer Katalogowy" Property="c=>c.ElemetZamDoZlecen.NumerKatalogowy" />
-                    <PropertyColumn Title="Kolor" Property="c=>c.ElemetZamDoZlecen.Kolor" />
-                    <PropertyColumn Title="Szerokość" Property="c=>c.ElemetZamDoZlecen.Szerokosc" />
-                    <PropertyColumn Title="Wysokość" Property="c=>c.ElemetZamDoZlecen.Wysokosc" />
-                    <PropertyColumn Title="Długość" Property="c=>c.ElemetZamDoZlecen.Dlugosc" />
-                    <PropertyColumn Title="Objętość" Property="c=>c.ElemetZamDoZlecen.Objetosc" />
-                    <PropertyColumn Title="Jednostka" Property="c=>c.ElemetZamDoZlecen.Jednostka" />
-                    <PropertyColumn Title="Ilość sztuk" Property="c=>c.ElemetZamDoZlecen.IloscSztuk" />
-                    <PropertyColumn Title="Data Zamówienia" Property="c=>c.ElemetZamDoZlecen.DataZamowienia" Format="yyyy-MM-dd" />
-                    <PropertyColumn Title="Opis" Property="c=>c.ElemetZamDoZlecen.Opis" />
-                    <Column Title="Czy zamówiono" TData="ElemetZamDoZlecenWithProducent">
-                        <Template>
-                            <Checkbox @bind-Checked="@context.ElemetZamDoZlecen.CzyZamowiono" OnChange="(e)=>Handle(e, context.ElemetZamDoZlecen.Id)" Disabled="isNotDisabled" />
-                        </Template>
-                    </Column>
-                    <Column Title="Poz. dostarczono" TData="ElemetZamDoZlecenWithProducent">
-                        <Template>
-                                <Checkbox @bind-Checked="@context.ElemetZamDoZlecen.PozDostarczono" OnChange="(e)=>HandleDost(e, context.ElemetZamDoZlecen.Id)" Disabled="isNotDisabled" />
-                        </Template>
-                    </Column>
-                    <PropertyColumn Title="Uwagi" Property="c=>c.ElemetZamDoZlecen.Uwagi" />
-                    <PropertyColumn Title="Autor zmian" Property="c=>c.ElemetZamDoZlecen.KtoZapisal" />
-
-                    <!-- Przykład kolumny dla daty z formatowaniem -->
-                    <PropertyColumn Title="Data Zapisu" Property="c=>c.ElemetZamDoZlecen.DataZapisu" Format="yyyy-MM-dd HH:mm:ss" />
-                    <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
-                        <ActionColumn Title="Akcja" Width="100" Fixed="right">
-                        @if (boolAdmin || boolZmiana)
-                        {
-                            <Popconfirm Title="Czy chcesz edytować pozycję?"
-                                        OnConfirm="()=> editRow(context.ElemetZamDoZlecen.Id)"
-                                        OkText="Tak"
-                                        CancelText="Nie">
-                                <a>Edytuj</a>
-                            </Popconfirm>
-                        }
-                        @if (boolAdmin || boolUsuniecia)
-                        {
-                            <Popconfirm Title="Czy chcesz usunąć pozycję?"
-                                        OnConfirm="()=> deleteRow(context.ElemetZamDoZlecen.Id)"
-                                        OkText="Tak"
-                                        CancelText="Nie">
-                                <a style="color:red">Usuń</a>
-                            </Popconfirm>
-                        }
-                    </ActionColumn> 
-                </Table>
-
-            </div>
-        }
-        else
-        {
-            <h2>Do tego zlecenia (oferty) nie zamówiono żadnych elementów</h2>
-        }
-        <Divider></Divider>
-        <div style="overflow: auto; width: 100%; height: 200px">
-            <div>
-                <label for="fileInput" style="font-size:1em; font-weight:bold;">
-                    Wybierz plik ze Stolcad z listą materiałów (C:\STOLCAD\Rob\PrnPdf - zestawienie elementów):
-                </label>
-                <InputFile id="fileInput" OnChange="HandleFileSelected" />
-
-                <Button Type="@ButtonType.Link" style="font-size:1.2em; height:30px; margin-top:10px; font-style:revert-layer; color:brown" @onclick="() => PasteStolcad()">
-                    Wklej ze schowka elementyZamowienia z STOLCAD [ODWOŁANIA]
-                </Button>
-                <Checkbox @bind-Checked="isCheckedDelAll">Usuń wszystkie dane przed zapisem nowych</Checkbox>
-            </div>
-
-            @if (zestawienie != null)
+    <Layout class="highlighted-background">
+        <Header Style="height:50%">
+            <h3>Zamówione elementy do zlecenia</h3>
+            @if (boolAdmin || boolZmiana)
             {
-                <div>
-                    <Divider></Divider>
-                    <Button Type="@ButtonType.Primary" Style="width:99%" Disabled="@isNotDisabled" OnClick="SaveAll">Zapisz wyszystkie zapisane z poniższej tabeli</Button>
-                </div>
-
-                <div>
-
-                    <h4>Zestawienie Nr: @zestawienie.NrZestawienia</h4>
-                    <p>Data: @zestawienie.Data.ToString("yyyy/MM/dd")</p>
-                    <p>Odbiorca: @zestawienie.Odbiorca</p>
-
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Lp</th>
-                                <th>Szerokość</th>
-                                <th>Wysokość</th>
-                                <th>Ilość</th>
-                                <th>Rodz. Szyby</th>
-                                <th>Rodz. Ramki</th>
-                                <th>Powierchnia</th>
-                                <th>Uwagi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var item in zestawienie.ListaElementow)
-                            {
-                                <tr>
-                                    <td>@item.Lp</td>
-                                    <td>@item.Szerokosc</td>
-                                    <td>@item.Wysokosc</td>
-                                    <td>@item.IloscSztuk</td>
-                                    <td>@item.NazwaProduktu</td>
-                                    <td>@item.NumerKatalogowy</td>
-                                    <td>@item.Powierzchnia</td>
-                                    <td>@item.Uwagi</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
+                <Button Type="primary" OnClick="@(ShowDialogAddNew)">
+                    Dodaj nową pozycję do zamówienia na elementy
+                </Button>
             }
-        </div>
 
-        <div class="modal fade @classShow" tabindex="-1" style="display: @display;">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Poz. do zamówienia dodaj / zmień</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="HandleCancel">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
+            @if (elementyDoZlecen != null && elementyDoZlecen.Count > 0)
+            {
+                <Button Type="reset" OnClick="@(CopySzybyToClipboard)">
+                    @uwagaKopiuj
+                </Button>
+                <Button Type="reset" OnClick="@(ExportToExcel)">
+                    Zapisz do pliku CSV - wszystko
+                </Button>
+                <Button Type="reset" OnClick="@(ExportSelectedColumnsToExcel)">
+                    Zapisz do pliku CSV - tylko wymagane kolumny
+                </Button>
+            }
+            <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
+            <AntDesign.InputNumber @bind-Value="_pageSize" Min="1" Max="25" DefaultValue="7" PlaceHolder="Ilość widocznych wierszy"></AntDesign.InputNumber>
+        </Header>
+
+        <Content Style="height:80%">
+
+            @if (elementyDoZlecen == null)
+            {
+                <p><em>Czekaj na załadowanie danych...</em></p>
+            }
+            else
+            {
+
+                if (elementyDoZlecen.Count > 0)
+                {
+                    <div>
+                        <Table TItem="ElemetZamDoZlecenWithProducent" DataSource="elementyDoZlecen" @bind-PageSize="@_pageSize"
+                               Loading="false" ScrollX="1950" Size="TableSize.Small">
+                            <PropertyColumn Title="ID" Property="c=>c.ElemetZamDoZlecen.Id" Hidden />
+                            <PropertyColumn Width="250" Title="Nazwa Producenta" Property="c=>c.ProducentIMiejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable />
+                            <PropertyColumn Width="220" Property="c=>c.ElemetZamDoZlecen.NazwaProduktu" Sortable Filterable></PropertyColumn>@* DefaultSortOrder="SortDirection.Ascending" *@
+                            <PropertyColumn Title="Numer Katalogowy" Property="c=>c.ElemetZamDoZlecen.NumerKatalogowy" Sortable Filterable />
+                            <PropertyColumn Title="Kolor" Property="c=>c.ElemetZamDoZlecen.Kolor" Sortable />
+                            <PropertyColumn Title="Typ" Property="c=>c.ElemetZamDoZlecen.Typ" Sortable />
+                            <PropertyColumn Title="Jednostka" Property="c=>c.ElemetZamDoZlecen.Jednostka" />
+                            <PropertyColumn Title="Ilość sztuk" Property="c=>c.ElemetZamDoZlecen.IloscSztuk" />
+                            <PropertyColumn Title="Data Zamówienia" Property="c=>c.ElemetZamDoZlecen.DataZamowienia" Format="yyyy-MM-dd" />
+                            <PropertyColumn Title="Opis" Property="c=>c.ElemetZamDoZlecen.Opis" />
+                            <Column Title="Czy zamówiono" TData="ElemetZamDoZlecenWithProducent">
+                                <Template>
+                                    <Checkbox @bind-Checked="@context.ElemetZamDoZlecen.CzyZamowiono" OnChange="(e)=>Handle(e, context.ElemetZamDoZlecen.Id)" Disabled="isNotDisabled" />
+                                </Template>
+                            </Column>
+                            <Column Title="Poz. dostarczono" TData="ElemetZamDoZlecenWithProducent">
+                                <Template>
+                                    <Checkbox @bind-Checked="@context.ElemetZamDoZlecen.PozDostarczono" OnChange="(e)=>HandleDost(e, context.ElemetZamDoZlecen.Id)" Disabled="isNotDisabled" />
+                                </Template>
+                            </Column>
+                             <PropertyColumn Title="Szerokość" Property="c=>c.ElemetZamDoZlecen.Szerokosc" />
+                            <PropertyColumn Title="Wysokość" Property="c=>c.ElemetZamDoZlecen.Wysokosc" />
+                            <PropertyColumn Title="Długość" Property="c=>c.ElemetZamDoZlecen.Dlugosc" />
+                            <PropertyColumn Title="Objętość" Property="c=>c.ElemetZamDoZlecen.Objetosc" />
+                            <PropertyColumn Title="Uwagi" Property="c=>c.ElemetZamDoZlecen.Uwagi" />
+                            <PropertyColumn Title="Autor zmian" Property="c=>c.ElemetZamDoZlecen.KtoZapisal" />
+
+                            <!-- Przykład kolumny dla daty z formatowaniem -->
+                            <PropertyColumn Title="Data Zapisu" Property="c=>c.ElemetZamDoZlecen.DataZapisu" Format="yyyy-MM-dd HH:mm:ss" />
+                            <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
+                            <ActionColumn Title="Akcja" Width="100" Fixed="right">
+                                @if (boolAdmin || boolZmiana)
+                                {
+                                    <Popconfirm Title="Czy chcesz edytować pozycję?"
+                                                OnConfirm="()=> editRow(context.ElemetZamDoZlecen.Id)"
+                                                OkText="Tak"
+                                                CancelText="Nie">
+                                        <a>Edytuj</a>
+                                    </Popconfirm>
+                                }
+                                @if (boolAdmin || boolUsuniecia)
+                                {
+                                    <Popconfirm Title="Czy chcesz usunąć pozycję?"
+                                                OnConfirm="()=> deleteRow(context.ElemetZamDoZlecen.Id)"
+                                                OkText="Tak"
+                                                CancelText="Nie">
+                                        <a style="color:red">Usuń</a>
+                                    </Popconfirm>
+                                }
+                            </ActionColumn>
+                        </Table>
+
                     </div>
-                        <div class="modal-body">
-                            @if (elementyDoZlecen != null && elementyZamowienia.ElemetZamDoZlecen != null && elementyZamowienia.ProducenciPodwykonawcy != null)
-                            {
-                                <NowaPozZamowienia elementyZamowienia="elementyZamowienia" elementyDoZlecen="elementyDoZlecen" OnButtonClicked="CloseModal" />
-                            }
-                            else
-                            {
-                                <h4>Czekaj na załadowanie formatki!</h4>
-                            }
-                       </div>
+                }
+                else
+                {
+                    <h2>Do tego zlecenia (oferty) nie zamówiono żadnych elementów</h2>
+                }
+            }
+        </Content>
+
+        <Footer >
+            <div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <label for="fileInput" style="font-size:0.7em; font-weight:bold;">
+                        Wybierz plik ze Stolcad z listą materiałów (C:\STOLCAD\Rob\PrnPdf - zestawienie elementów):
+                    </label>
+                    <InputFile id="fileInput" OnChange="HandleFileSelected" />
+
+                    <Button Type="@ButtonType.Link" style="font-size:1.0em; height:30px; margin-top:0; font-style:revert-layer; color:brown" @onclick="() => PasteStolcad()">
+                        Wklej ze schowka elementyZamowienia z STOLCAD [ODWOŁANIA]
+                    </Button>
+                    <Checkbox @bind-Checked="isCheckedDelAll">Usuń wszystkie dane przed zapisem nowych</Checkbox>
+                </div>
+
+
+                @if (zestawienie != null)
+                {
+                    <div>
+                        <Divider></Divider>
+                        <Button Type="@ButtonType.Primary" Style="width:99%" Disabled="@isNotDisabled" OnClick="SaveAll">Zapisz wyszystkie zapisane z poniższej tabeli</Button>
+                    </div>
+
+                    <div style="overflow: auto; width: 100%; height: 200px">
+
+                        <h4>Zestawienie Nr: @zestawienie.NrZestawienia</h4>
+                        <p>Data: @zestawienie.Data.ToString("yyyy/MM/dd")</p>
+                        <p>Odbiorca: @zestawienie.Odbiorca</p>
+
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Lp</th>
+                                    <th>Szerokość</th>
+                                    <th>Wysokość</th>
+                                    <th>Ilość</th>
+                                    <th>Nazwa Produktu</th>
+                                    <th>Numer Katalogowy</th>
+                                    <th>Powierchnia</th>
+                                    <th>Uwagi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in zestawienie.ListaElementow)
+                                {
+                                    <tr>
+                                        <td>@item.Lp</td>
+                                        <td>@item.Szerokosc</td>
+                                        <td>@item.Wysokosc</td>
+                                        <td>@item.IloscSztuk</td>
+                                        <td>@item.NazwaProduktu</td>
+                                        <td>@item.NumerKatalogowy</td>
+                                        <td>@item.Powierzchnia</td>
+                                        <td>@item.Uwagi</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </Footer>
+
+    </Layout>
+
+    <div class="modal fade @classShow" tabindex="-1" style="display: @display;">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Poz. do zamówienia dodaj / zmień</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="HandleCancel">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    @if (elementyDoZlecen != null && elementyZamowienia.ElemetZamDoZlecen != null && elementyZamowienia.ProducenciPodwykonawcy != null)
+                    {
+                        <NowaPozZamowienia elementyZamowienia="elementyZamowienia" elementyDoZlecen="elementyDoZlecen" OnButtonClicked="CloseModal" />
+                    }
+                    else
+                    {
+                        <h4>Czekaj na załadowanie formatki!</h4>
+                    }
                 </div>
             </div>
         </div>
-    }
-
+    </div>
 </body>
 </html>
 
@@ -341,23 +352,23 @@
     protected override async Task OnInitializedAsync()
     {
         elementyZamowienia = new ElemetZamDoZlecenWithProducent
-        {
-            ElemetZamDoZlecen = new ElemetZamDoZlecen
             {
-                Id = 0,
-                RowIdZlecenia = RowIdZlecenia, 
-                DataZamowienia = DateTime.MinValue, 
-                DataRealizacji = DateTime.MinValue,
-                DataZapisu = DateTime.Now,
-                KtoZapisal = user
-            },
-            ProducenciPodwykonawcy = new ProducenciPodwykonawcy
-            {
-                // Przypisz odpowiednie wartości dla właściwości ProducenciPodwykonawcy
-                NazwaProducenta = "" // Przykładowa wartość
-            },
-            DodatkowaInformacja = "Dane z dnia" + DateTime.Now  
-        };
+                ElemetZamDoZlecen = new ElemetZamDoZlecen
+                {
+                    Id = 0,
+                    RowIdZlecenia = RowIdZlecenia,
+                    DataZamowienia = DateTime.MinValue,
+                    DataRealizacji = DateTime.MinValue,
+                    DataZapisu = DateTime.Now,
+                    KtoZapisal = user
+                },
+                ProducenciPodwykonawcy = new ProducenciPodwykonawcy
+                {
+                    // Przypisz odpowiednie wartości dla właściwości ProducenciPodwykonawcy
+                    NazwaProducenta = "" // Przykładowa wartość
+                },
+                DodatkowaInformacja = "Dane z dnia" + DateTime.Now
+            };
 
         if (AppState != null)
         {
@@ -378,11 +389,11 @@
         try
         {
             elementyDoZlecen = await Http.GetFromJsonAsync<List<ElemetZamDoZlecenWithProducent>>($"api/ElementyDoZlecen/rowid/{RowIdZlecenia}");
-
         }
         catch (Exception ex)
         {
             Console.WriteLine($"******* Błąd {ex.Message}");
+            await _message.Error("Błąd ładowania danych");
         }
     }
 
@@ -401,17 +412,28 @@
         {
             var selectedData = elementyDoZlecen.Select(k => new
             {
-                k.ElemetZamDoZlecen.NazwaProduktu,
-                k.ElemetZamDoZlecen.NumerKatalogowy,
-                k.ElemetZamDoZlecen.Szerokosc,
-                k.ElemetZamDoZlecen.Wysokosc,
-                k.ElemetZamDoZlecen.IloscSztuk,
+                NazwaProduktu = RemoveWhitespace(k.ElemetZamDoZlecen.NazwaProduktu),
+                NumerKatalogowy = RemoveWhitespace(k.ElemetZamDoZlecen.NumerKatalogowy),
+                Typ = RemoveWhitespace(k.ElemetZamDoZlecen.Typ),
+                IloscSztuk = k.ElemetZamDoZlecen.IloscSztuk,
+                Dlugosc = k.ElemetZamDoZlecen.Dlugosc,
+                Szerokosc = k.ElemetZamDoZlecen.Szerokosc,
+                Wysokosc = k.ElemetZamDoZlecen.Wysokosc,
             });
 
             var jsonData = JsonSerializer.Serialize(selectedData);
             await JSRuntime.InvokeVoidAsync("saveAsExcelSel", jsonData);
         }
     }
+
+    private string RemoveWhitespace(string input)
+    {
+        if (string.IsNullOrEmpty(input)) return input;
+
+        // Usuwamy tabulatory i podwójne spacje
+        return System.Text.RegularExpressions.Regex.Replace(input, @"\s+", " ").Trim();
+    }
+
 
     private async Task CopySzybyToClipboard()
     {
@@ -432,6 +454,7 @@
     {
         Console.WriteLine($"{value} / {idr}");
         await ZapiszUstawienieStanuCzyZam(idr, value);
+
     }
 
     private async Task ZapiszUstawienieStanuCzyZam(long idr, bool nowyStan)
@@ -444,12 +467,21 @@
         {
             if (elementyDoZlecen != null)
             {
-                oryginalElementyDoZlecen = elementyDoZlecen.DeepCopyList();
+                var element = elementyDoZlecen.FirstOrDefault(e => e.ElemetZamDoZlecen.Id == idr);
+
+                if (element != null)
+                {
+                    element.ElemetZamDoZlecen.DataZamowienia = DateTime.Now;
+                    oryginalElementyDoZlecen = elementyDoZlecen.DeepCopyList();
+                    await _message.Success("Zmieniono status");
+                    StateHasChanged();
+                }
+
             }
         }
         else
         {
-            // Obsłuż sytuację błędu
+            await _message.Error("Nie zmieniono status");
         }
     }
 
@@ -461,20 +493,36 @@
 
     private async Task ZapiszUstawienieStanuCzyCzyDostarczono(long idr, bool nowyStan)
     {
-        //  var aktualizacja = new { Id = idr, MaterialZeStanMagazyn = nowyStan };
-
+        // Aktualizacja stanu dostarczenia w API
         var response = await Http.PutAsJsonAsync($"api/ElementyDoZlecen/{idr}/updateCzyDostarczono", nowyStan);
 
         if (response.IsSuccessStatusCode)
         {
             if (elementyDoZlecen != null)
             {
-                oryginalElementyDoZlecen = elementyDoZlecen.DeepCopyList();
+                // Znalezienie właściwego elementu na podstawie Id
+                var element = elementyDoZlecen.FirstOrDefault(e => e.ElemetZamDoZlecen.Id == idr);
+
+                if (element != null)
+                {
+                    // Ustawienie daty dostarczenia
+                    element.ElemetZamDoZlecen.DataDostarczenia = DateTime.Now;
+
+                    // Tworzenie kopii listy po aktualizacji
+                    oryginalElementyDoZlecen = elementyDoZlecen.DeepCopyList();
+
+                    // Informowanie użytkownika o sukcesie
+                    await _message.Success("Zmieniono status");
+
+                    // Odświeżenie komponentu
+                    StateHasChanged();
+                }
             }
         }
         else
         {
-            // Obsłuż sytuację błędu
+            // Informowanie użytkownika o niepowodzeniu
+            await _message.Error("Nie zmieniono status");
         }
     }
 
@@ -491,8 +539,8 @@
             }
 
             pdfContent = PdfReaderService.ReadPdfTable(path);
-     
-           //--- zestawienie = PdfDataParserElement.ParsePdfDataElementy(pdfContent);
+
+           zestawienie = PdfDataParserElement.ParsePdfDataElementy(pdfContent);
 
             StateHasChanged();
 
@@ -761,7 +809,7 @@
             user = "NaN";
             return;
         }
-        
+
         string nazwaTabeli = "ElemetZamDoZlecen";
 
         Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");
