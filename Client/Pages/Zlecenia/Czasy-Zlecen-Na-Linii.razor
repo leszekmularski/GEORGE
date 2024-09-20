@@ -71,16 +71,188 @@
     <TabPane Tab="Dane do zlecenia" Key="2">
         @if (wykazPozycjiDoZlecenia != null)
         {
-            <Table DataSource="@wykazPozycjiDoZlecenia" PageSize="5" Size="TableSize.Small" ScrollY="290px">
-                <PropertyColumn Property="c=>c.Nr" Title="Lp" />
-                <PropertyColumn Property="c=>c.System" />
-                <PropertyColumn Property="c=>c.Kolor" />
-                <PropertyColumn Property="c=>c.Szerokosc" Title="Szerokość" />
-                <PropertyColumn Property="c=>c.Wysokosc" Title="Wysokość" />
-                <PropertyColumn Property="c=>c.IloscOkien" Title="Ilość"/>
-                <PropertyColumn Property="c=>c.Ciezar1Sztuki" Title="Ciężar 1 sztuki"/>
-                <PropertyColumn Property="c=>c.JednostkiOkienDoPoz" Title="Jed. produkcyjne" />
-                <PropertyColumn Property="c=>c.Iloscskrzydel" Title="Ilość skrzydel" />
+           <Table DataSource="wykazPozycjiDoZlecenia" TItem="PozDoZlecen" PageSize="5" Size="TableSize.Small" ScrollY="290px" RowClassName="@(_=>"editable-row")" Bordered TableLayout="fixed">
+          @*   <Table DataSource="wykazPozycjiDoZlecenia" TItem="PozDoZlecen" RowClassName="@(_=>"editable-row")" Bordered TableLayout="fixed"> *@
+                <ChildContent Context="data">
+                    <PropertyColumn Hidden Property="c=>c.Id" />
+
+                    <PropertyColumn Title="Lp" Property="c=>c.Nr" Sortable>
+                        @if (editCache.ContainsKey(data.Id))
+                        {
+                            @if (!editCache[data.Id].edit)
+                            {
+                                @data.Nr
+                            }
+                            else
+                            {
+                                <Input @bind-Value="editCache[data.Id].data.Nr" />
+                            }
+                        }
+                        else
+                        {
+                            @data.Nr
+                        }
+                    </PropertyColumn>
+                    <Column TData="string" Title="System" Sortable Filterable>
+                        @if (editCache.ContainsKey(data.Id))
+                        {
+                            @if (!editCache[data.Id].edit)
+                            {
+                                @data.System
+                            }
+                            else
+                            {
+                                <Input @bind-Value="editCache[data.Id].data.System" />
+                            }
+                        }
+                        else
+                        {
+                            @data.System
+                        }
+                    </Column>
+                    <Column TData="string" Title="Kolor" Sortable Filterable>
+                        @if (editCache.ContainsKey(data.Id))
+                        {
+                            @if (!editCache[data.Id].edit)
+                            {
+                                @data.Kolor
+                            }
+                            else
+                            {
+                                <Input @bind-Value="editCache[data.Id].data.Kolor" />
+                            }
+                        }
+                        else
+                        {
+                            @data.Kolor
+                        }
+                    </Column>
+                    <Column TData="string" Title="Szerokość" Sortable Filterable>
+                        @if (editCache.ContainsKey(data.Id))
+                        {
+                            @if (!editCache[data.Id].edit)
+                            {
+                                @data.Szerokosc
+                            }
+                            else
+                            {
+                                <Input @bind-Value="editCache[data.Id].data.Szerokosc" />
+                            }
+                        }
+                        else
+                        {
+                            @data.Szerokosc
+                        }
+                    </Column>
+                    <Column TData="string" Title="Wysokość" Sortable Filterable>
+                        @if (editCache.ContainsKey(data.Id))
+                        {
+                            @if (!editCache[data.Id].edit)
+                            {
+                                @data.Wysokosc
+                            }
+                            else
+                            {
+                                <Input @bind-Value="editCache[data.Id].data.Wysokosc" />
+                            }
+                        }
+                        else
+                        {
+                            @data.Wysokosc
+                        }
+                    </Column>
+                    <Column TData="string" Title="Ilość" Sortable>
+                        @if (editCache.ContainsKey(data.Id))
+                        {
+                            @if (!editCache[data.Id].edit)
+                            {
+                                @data.IloscOkien
+                            }
+                            else
+                            {
+                                <Input @bind-Value="editCache[data.Id].data.IloscOkien" />
+                            }
+                        }
+                        else
+                        {
+                            @data.IloscOkien
+                        }
+                    </Column>
+                    <Column TData="string" Title="Ciężar 1 szt." Sortable>
+                        @if (editCache.ContainsKey(data.Id))
+                        {
+                            @if (!editCache[data.Id].edit)
+                            {
+                                @data.Ciezar1Sztuki
+                            }
+                            else
+                            {
+                                <Input @bind-Value="editCache[data.Id].data.Ciezar1Sztuki" />
+                            }
+                        }
+                        else
+                        {
+                            @data.Ciezar1Sztuki
+                        }
+                    </Column>
+                    <Column TData="string" Title="Jed. produk." Sortable>
+                        @if (editCache.ContainsKey(data.Id))
+                        {
+                            @if (!editCache[data.Id].edit)
+                            {
+                                @data.JednostkiOkienDoPoz
+                            }
+                            else
+                            {
+                                <Input @bind-Value="editCache[data.Id].data.JednostkiOkienDoPoz" />
+                            }
+                        }
+                        else
+                        {
+                            @data.JednostkiOkienDoPoz
+                        }
+                    </Column>
+                    <Column TData="string" Title="Ilość skrz." Sortable>
+                        @if (editCache.ContainsKey(data.Id))
+                        {
+                            @if (!editCache[data.Id].edit)
+                            {
+                                @data.Iloscskrzydel
+                            }
+                            else
+                            {
+                                <Input @bind-Value="editCache[data.Id].data.Iloscskrzydel" />
+                            }
+                        }
+                        else
+                        {
+                            @data.Iloscskrzydel
+                        }
+                    </Column>
+                    <ActionColumn Title="Akcja">
+                        @if (editCache.ContainsKey(data.Id))
+                        {
+                            @if (!editCache[data.Id].edit)
+                            {
+                                <Button Type="@ButtonType.Link" @onclick="() => startEdit(data.Id)">Edytuj</Button>
+                            }
+                            else
+                            {
+                                <a @onclick="() => saveEdit(data.Id)" class="save">Zapisz</a>
+                                <Popconfirm Title="Odrzucić zmiany?"
+                                            OnConfirm="() => cancelEdit(data.Id)"
+                                            OkText="Tak"
+                                            CancelText="Nie">
+                                    <a>Anuluj</a>
+                                </Popconfirm>
+                            }
+                        }
+                        else
+                        {
+                            <Button Type="@ButtonType.Link" @onclick="() => startEdit(data.Id)">Edytuj</Button>
+                        }
+                    </ActionColumn>
+                </ChildContent>
             </Table>
 
             @if (boolAdmin || boolUsuniecia)
@@ -93,6 +265,11 @@
                 </Popconfirm>
                 <label style="inset-inline-start:inherit; padding-left:255px">Ilość sztuk: @iloszSztukPoz</label>
             }
+            @if (boolAdmin || boolNowy)
+            {
+                <Button Icon="@IconType.Fill.Copy" Style="padding-left:15px; margin-left:60px" @onclick="() => AddNew()"> Dodaj pusty rekord</Button>
+
+            }
         }
         else
         {
@@ -100,7 +277,6 @@
         }
     </TabPane>
 </Tabs>
-
 
 
 @if (NowaStronaRazor)
@@ -128,6 +304,9 @@
     int iloszSztukPoz = 0;
 
     private bool isCheckedZastapPozycje = true;
+
+    string? editId;
+    IDictionary<long, (bool edit, PozDoZlecen data)> editCache = new Dictionary<long, (bool edit, PozDoZlecen data)>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -178,6 +357,57 @@
         }
     }
 
+    void startEdit(long id)
+    {
+        // Sprawdź, czy klucz istnieje w słowniku
+        if (!editCache.ContainsKey(id))
+        {
+            // Inicjalizacja nowego wpisu w cache, jeśli nie istnieje
+            var pozycja = wykazPozycjiDoZlecenia.FirstOrDefault(x => x.Id == id);
+            if (pozycja != null)
+            {
+                editCache[id] = (true, pozycja); // Dodaj wpis z trybem edycji = true
+            }
+            else
+            {
+                // Obsługa błędu, jeśli pozycja nie istnieje
+                Console.WriteLine($"Nie znaleziono pozycji dla id: {id}");
+                return;
+            }
+        }
+        else
+        {
+            // Jeśli klucz istnieje, włącz tryb edycji
+            var data = editCache[id];
+            var datax = data.data;
+            editCache[id] = (true, datax); // Ustaw tryb edycji na true
+        }
+    }
+
+    void cancelEdit(long id)
+    {
+        var data = wykazPozycjiDoZlecenia.FirstOrDefault(item => item.Id == id);
+        editCache[id] = (false, data); // recovery
+    }
+
+    async Task saveEdit(long id)
+    {
+        if (!boolAdmin && !boolZmian)
+        {
+            await _message.Info("Nie posiadasz uprawnień do zmiany danych!!");
+            return;
+        }
+        var index = wykazPozycjiDoZlecenia.FindIndex(item => item.Id == id);
+        wykazPozycjiDoZlecenia[index] = editCache[id].data; // apply the copy to data source
+        editCache[id] = (false, wykazPozycjiDoZlecenia[index]); // don't affect rows in editing
+
+        await Http.PutAsJsonAsync("/api/PozWZleceniu", wykazPozycjiDoZlecenia[index]);
+
+        activeKey = "2";
+        await ShowData();
+
+    }
+
     public async Task ShowData()
     {
         if (activeKey != "2") return;
@@ -186,8 +416,12 @@
 
         if (wykazPozycjiDoZlecenia != null) iloszSztukPoz = wykazPozycjiDoZlecenia.Sum(x => x.IloscOkien);
 
+        if (wykazPozycjiDoZlecenia != null)
+            iloszSztukPoz = wykazPozycjiDoZlecenia.Count();
+
         StateHasChanged();
     }
+
     private async Task DellAllData()
     {
         var deleteResponse = await Http.DeleteAsync($"api/PozWZleceniu/rowid/{RowIdZlecenia}");
@@ -210,6 +444,8 @@
                     Placement = NotificationPlacement.BottomLeft
                 });
         }
+
+        await ShowData();
     }
 
     private async Task PasteStolcad(LinieProdukcyjneWithCzasViewModel czaszlecenie)
@@ -324,8 +560,51 @@
                     Placement = NotificationPlacement.BottomLeft
                 });
         }
+
+        if (wykazPozycjiDoZlecenia != null)
+            iloszSztukPoz = wykazPozycjiDoZlecenia.Count();
     }
 
+    private async Task AddNew()
+    {
+        var pozDoZlecen = new PozDoZlecen
+            {
+                RowId = Guid.NewGuid().ToString(),
+                RowIdZlecenia = RowIdZlecenia,
+                RowIdLiniiProdukcyjnej = "---",
+                Nr = wykazPozycjiDoZlecenia == null ? 1 : wykazPozycjiDoZlecenia.Count() + 1,
+                IloscOkien = 0,
+                JednostkiOkienDoPoz = 0,
+                JednostkiOkienSumaDoPoz = 0,
+                JednostkiOkienDoPozZrobione = 0,
+                Szerokosc = 0,
+                Wysokosc = 0,
+                System = "",
+                Technologia = "",
+                Kolor = "",
+                Ciezar1Sztuki = 0,
+                Iloscskrzydel = 0,
+                Szyba = "",
+                OstatniaZmiana = "Dodano dnia:" + DateTime.Now,
+                KtoZapisal = user,
+                Uwagi = "",
+            };
+
+        var response = await Http.PostAsJsonAsync("api/PozWZleceniu", pozDoZlecen);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _ = _notice.Error(new()
+                {
+                    Message = $"Błąd zapisu {DateTime.Now}",
+                    Description = $"Nie udało sioę dodać pusty wiersz dla RowIdZlecenia: {RowIdZlecenia}.",
+                    Placement = NotificationPlacement.BottomLeft
+                });
+            return; // Przerwij proces, jeśli usuwanie się nie powiodło
+        }
+
+        await ShowData();
+    }
 
     private async Task SaveChanges(LinieProdukcyjneWithCzasViewModel czaszlecenie)
     {

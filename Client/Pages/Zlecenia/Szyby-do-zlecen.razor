@@ -151,7 +151,7 @@
                 Zapisz do pliku CSV - tylko wymagane kolumny
             </Button>
         }
-        <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
+        <Button class="btn-back" Icon="@IconType.Fill.Backward" OnClick="GoBack"></Button>
         <Divider></Divider>
 
         @if (szybyDoZlecen == null)
@@ -163,18 +163,18 @@
             <div>
                 <Table TItem="SzybyDoZlecen" DataSource="@szybyDoZlecen" @bind-PageSize="@_pageSize" ScrollX="1950" Size="TableSize.Small">
                     <Column Title="ID" @bind-Field="@context.Id" Hidden />
-                    <Column Title="Szerokość" @bind-Field="@context.Szerokosc" Sortable OnFilter="(a, b) => a == b" Filterable />
-                    <Column Title="Wysokość" @bind-Field="@context.Wysokosc" Sortable OnFilter="(a, b) => a == b" Filterable />
-                    <Column Title="Opis szyby" @bind-Field="@context.RodzajSzyby" Sortable />
+                    <Column Width="80" Title="Szerokość" @bind-Field="@context.Szerokosc" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Width="80" Title="Wysokość" @bind-Field="@context.Wysokosc" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Width="250" Title="Opis szyby" @bind-Field="@context.RodzajSzyby" Sortable />
                     <Column Title="Rodzaj ramki" @bind-Field="@context.RodzajRamki" Sortable OnFilter="(a, b) => a == b" Filterable />
-                    <Column Title="Opis" @bind-Field="@context.NazwaProduktu" Sortable OnFilter="(a, b) => a == b" Filterable />
-                    <Column Title="Ilość sztuk" @bind-Field="@context.IloscSztuk" Sortable />
-                    <Column Title="Czy kształt" TData="SzybyDoZlecen">
+                    <Column Width="100" Title="Opis" @bind-Field="@context.NazwaProduktu" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Width="80" Title="Ilość" @bind-Field="@context.IloscSztuk" Sortable />
+                    <Column Width="80" Title="Czy kształt" TData="SzybyDoZlecen">
                         <Template>
                             <Checkbox @bind-Checked="@context.CzyKsztalt" OnChange="(e)=>Handle(e, context.Id)" Disabled="isNotDisabled" />
                         </Template>
                     </Column>
-                    <Column Title="Poz. dostarczono" TData="SzybyDoZlecen">
+                    <Column Width="80" Title="Poz. dostarcz." TData="SzybyDoZlecen">
                         <Template>
                             <Checkbox @bind-Checked="@context.PozDostarczono" OnChange="(e)=>HandleDostarczono(e, context.Id)" Disabled="isNotDisabled" />
                         </Template>
@@ -465,11 +465,12 @@
             if (szybyDoZlecen != null)
             {
                 oryginalSzybyDoZlecen = szybyDoZlecen.DeepCopyList();
+                await _message.Success("Status zmieniono",1);
             }
         }
         else
         {
-            // Obsłuż sytuację błędu
+            await _message.Error("Status nie zmieniono");
         }
     }
 
@@ -483,18 +484,19 @@
     {
         //  var aktualizacja = new { Id = idr, MaterialZeStanMagazyn = nowyStan };
 
-        var response = await Http.PutAsJsonAsync($"api/szybyDoZlecen/{idr}/updateCzyKsztalt", nowyStan);
+        var response = await Http.PutAsJsonAsync($"api/szybyDoZlecen/{idr}/updateDostarczono", nowyStan);
 
         if (response.IsSuccessStatusCode)
         {
             if (szybyDoZlecen != null)
             {
                 oryginalSzybyDoZlecen = szybyDoZlecen.DeepCopyList();
+                await _message.Success("Status zmieniono",1);
             }
         }
         else
         {
-            // Obsłuż sytuację błędu
+            await _message.Error("Status nie zmieniono");
         }
     }
 

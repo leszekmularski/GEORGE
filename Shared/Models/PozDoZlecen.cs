@@ -12,8 +12,8 @@ namespace GEORGE.Shared.Models
         public string? RowIdZlecenia { get; set; } = "";
         [Required]
         public string? RowIdLiniiProdukcyjnej { get; set; } = "";
-        public float Nr { get; set; } = 1;
-        public int IloscOkien { get; set; } = 1;
+        public float Nr { get; set; } = 0;
+        public int IloscOkien { get; set; } = 0;
         public float JednostkiOkienDoPoz { get; set; } = 0;
         public float JednostkiOkienSumaDoPoz { get; set; } = 0;
         public float JednostkiOkienDoPozZrobione { get; set; } = 0;
