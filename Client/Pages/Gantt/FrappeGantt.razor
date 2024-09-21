@@ -131,7 +131,10 @@
                                 </Tooltip>
                             }
 
-                            <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
+                            <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
+                                <Button class="btn-back" Icon="@IconType.Fill.Backward" OnClick="GoBack"></Button>
+                            </Tooltip>
+
                         </h7>
                     </Header>
                     <Layout>

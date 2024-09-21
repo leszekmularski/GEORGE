@@ -1,8 +1,15 @@
 ﻿@page "/WybierzSchody"
 @using System.Globalization
 @using System.Net;
+@inject IJSRuntime JSRuntime
 
-<h3>Wybierz typ schodów</h3>
+<div style="display: flex; align-items: center; gap: 10px;">
+    <h3>Wybierz typ schodów</h3>
+    <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
+        <Button class="btn-back" Icon="@IconType.Fill.Backward" OnClick="GoBack"></Button>
+    </Tooltip>
+</div>
+
 <Divider></Divider>
 <div class="nav-item px-3">
 
@@ -60,5 +67,11 @@
 
         encodedUrl = "Schody 1/4 zabieg w lewo";
     }
+
+    private async Task GoBack()
+    {
+        await JSRuntime.InvokeVoidAsync("history.back");
+    }
+
     
 }

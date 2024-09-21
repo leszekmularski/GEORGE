@@ -151,7 +151,9 @@
                 Zapisz do pliku CSV - tylko wymagane kolumny
             </Button>
         }
-        <Button class="btn-back" Icon="@IconType.Fill.Backward" OnClick="GoBack"></Button>
+         <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
+            <Button class="btn-back" Icon="@IconType.Fill.Backward" OnClick="GoBack"></Button>
+        </Tooltip>
         <Divider></Divider>
 
         @if (szybyDoZlecen == null)

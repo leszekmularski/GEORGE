@@ -12,6 +12,8 @@
 @inject IJSRuntime JSRuntime
 @inject Utilities.ILocalStorage LocalStorage
 @inject INotificationService _notice
+@using AntDesign.TableModels
+@using System.ComponentModel.DataAnnotations
 
 <Tabs Animated @bind-ActiveKey="@activeKey" OnChange="ShowData">
     <TabPane Tab="Czasy na liniach" Key="1">
@@ -71,12 +73,12 @@
     <TabPane Tab="Dane do zlecenia" Key="2">
         @if (wykazPozycjiDoZlecenia != null)
         {
-           <Table DataSource="wykazPozycjiDoZlecenia" TItem="PozDoZlecen" PageSize="5" Size="TableSize.Small" ScrollY="290px" RowClassName="@(_=>"editable-row")" Bordered TableLayout="fixed">
-          @*   <Table DataSource="wykazPozycjiDoZlecenia" TItem="PozDoZlecen" RowClassName="@(_=>"editable-row")" Bordered TableLayout="fixed"> *@
+            <Table DataSource="wykazPozycjiDoZlecenia" TItem="PozDoZlecen" PageSize="5" Size="TableSize.Small" ScrollY="280px" ScrollX="1300" RowClassName="@(_=>"editable-row")" Bordered TableLayout="fixed">
+                @*   <Table DataSource="wykazPozycjiDoZlecenia" TItem="PozDoZlecen" RowClassName="@(_=>"editable-row")" Bordered TableLayout="fixed"> *@
                 <ChildContent Context="data">
                     <PropertyColumn Hidden Property="c=>c.Id" />
 
-                    <PropertyColumn Title="Lp" Property="c=>c.Nr" Sortable>
+                    <PropertyColumn Width="50" Title="Lp" Property="c=>c.Nr" Sortable>
                         @if (editCache.ContainsKey(data.Id))
                         {
                             @if (!editCache[data.Id].edit)
@@ -93,7 +95,7 @@
                             @data.Nr
                         }
                     </PropertyColumn>
-                    <Column TData="string" Title="System" Sortable Filterable>
+                    <Column Width="200" TData="string" Title="System" Sortable Filterable>
                         @if (editCache.ContainsKey(data.Id))
                         {
                             @if (!editCache[data.Id].edit)
@@ -110,7 +112,7 @@
                             @data.System
                         }
                     </Column>
-                    <Column TData="string" Title="Kolor" Sortable Filterable>
+                    <Column Width="100" TData="string" Title="Kolor" Sortable Filterable>
                         @if (editCache.ContainsKey(data.Id))
                         {
                             @if (!editCache[data.Id].edit)
@@ -229,12 +231,17 @@
                             @data.Iloscskrzydel
                         }
                     </Column>
-                    <ActionColumn Title="Akcja">
+                    <ActionColumn Title="Akcja" Width="95" Fixed="right">
                         @if (editCache.ContainsKey(data.Id))
                         {
                             @if (!editCache[data.Id].edit)
                             {
-                                <Button Type="@ButtonType.Link" @onclick="() => startEdit(data.Id)">Edytuj</Button>
+                                <Tooltip Placement="@Placement.Top" Title="Edytuj">
+                                    <Button Icon="@IconType.Outline.Edit" @onclick="() => startEdit(data.Id)"></Button>
+                                </Tooltip>
+                                <Tooltip Placement="@Placement.Top" Title="Usuń">
+                                    <Button Icon="@IconType.Outline.Delete" @onclick="() => Delete(data)"></Button>
+                                </Tooltip>
                             }
                             else
                             {
@@ -249,7 +256,12 @@
                         }
                         else
                         {
-                            <Button Type="@ButtonType.Link" @onclick="() => startEdit(data.Id)">Edytuj</Button>
+                            <Tooltip Placement="@Placement.Top" Title="Edytuj">
+                                <Button Icon="@IconType.Outline.Edit" @onclick="() => startEdit(data.Id)"></Button>
+                            </Tooltip>
+                            <Tooltip Placement="@Placement.Top" Title="Usuń">
+                                <Button Icon="@IconType.Outline.Delete" @onclick="() => Delete(data)"></Button>
+                            </Tooltip>
                         }
                     </ActionColumn>
                 </ChildContent>
@@ -356,6 +368,34 @@
             Console.WriteLine($"Error loading data: {ex.Message}");
         }
     }
+
+    async Task Delete(PozDoZlecen row)
+    {
+        // if (!await Comfirm($"Czy usunąć poz nr: [{row.Nr}]?"))
+        //     return;
+
+        var response = await Http.DeleteAsync($"api/PozWZleceniu/{row.Id}");
+        if (response.IsSuccessStatusCode)
+        {
+            var poz = wykazPozycjiDoZlecenia.FirstOrDefault(z => z.Id == row.Id);
+            if (poz != null)
+            {
+                wykazPozycjiDoZlecenia.Remove(poz);
+                await _message.Success("Pozycję usunięto!");
+            }
+        }
+        else
+        {
+            Console.WriteLine("Błąd podczas usuwania pozycji.");
+            await _message.Error("Błąd podczas usuwania pozycji");
+        }
+
+    }
+
+    // private async Task<bool> Comfirm(string message)
+    // {
+    //     return await ComfirmService.Show(message, "Uwaga!!", ConfirmButtons.YesNo, ConfirmIcon.Warning) == ConfirmResult.Yes;
+    // }
 
     void startEdit(long id)
     {

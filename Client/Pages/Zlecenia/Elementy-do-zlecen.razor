@@ -152,8 +152,12 @@
                     Zapisz do pliku CSV - tylko wymagane kolumny
                 </Button>
             }
-            <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
+            <Tooltip Placement="@Placement.TopRight" Title="Ilość widocznych wierszy">
             <AntDesign.InputNumber @bind-Value="_pageSize" Min="1" Max="25" DefaultValue="7" PlaceHolder="Ilość widocznych wierszy"></AntDesign.InputNumber>
+            </Tooltip>
+            <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
+                <Button class="btn-back" Icon="@IconType.Fill.Backward" OnClick="GoBack"></Button>
+            </Tooltip>
         </Header>
 
         <Content Style="height:80%">
