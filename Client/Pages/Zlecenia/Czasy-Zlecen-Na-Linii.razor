@@ -73,7 +73,7 @@
     <TabPane Tab="Dane do zlecenia" Key="2">
         @if (wykazPozycjiDoZlecenia != null)
         {
-            <Table DataSource="wykazPozycjiDoZlecenia" TItem="PozDoZlecen" PageSize="5" Size="TableSize.Small" ScrollY="280px" ScrollX="1300" RowClassName="@(_=>"editable-row")" Bordered TableLayout="fixed">
+            <Table DataSource="wykazPozycjiDoZlecenia" TItem="PozDoZlecen" PageSize="6" Size="TableSize.Small" ScrollY="280px" ScrollX="1300" RowClassName="@(_=>"editable-row")" Bordered TableLayout="fixed">
                 @*   <Table DataSource="wykazPozycjiDoZlecenia" TItem="PozDoZlecen" RowClassName="@(_=>"editable-row")" Bordered TableLayout="fixed"> *@
                 <ChildContent Context="data">
                     <PropertyColumn Hidden Property="c=>c.Id" />
