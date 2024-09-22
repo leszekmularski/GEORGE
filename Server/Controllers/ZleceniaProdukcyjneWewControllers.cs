@@ -26,6 +26,17 @@ namespace GEORGE.Server.Controllers
             return await _context.ZleceniaProdukcyjneWew.OrderByDescending(e => e.Id).ToListAsync();
         }
 
+        [HttpGet("ostrok")]
+        public async Task<ActionResult<List<ZleceniaProdukcyjneWew>>> GetZleceniaProdukcyjneYearAsync()
+        {
+            var rokTemu = DateTime.Now.AddMonths(-12);  // Ostatnie 12 miesięcy
+            return await _context.ZleceniaProdukcyjneWew
+                                 .Where(c => c.DataZapisu > rokTemu)  // Filtruj zlecenia z ostatniego roku
+                                 .OrderByDescending(e => e.Id)
+                                 .ToListAsync();
+        }
+
+
         [HttpPost]
         public async Task<ActionResult> AddZlecenieProdukcyjneWewAsync(ZleceniaProdukcyjneWew zlecenieWew)
         {

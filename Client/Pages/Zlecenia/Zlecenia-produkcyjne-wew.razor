@@ -181,7 +181,7 @@ else
 
                 <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
             <ActionColumn Title="Akcja" Width="100" Fixed="right">
-                        <Popconfirm Title="Czy chcesz edytować pozycję?"
+                <Popconfirm Placement="@Placement.Left" Title="Czy chcesz edytować pozycję?"
                                     OnConfirm="()=> editRow(context.Id)"
                                     OkText="Tak"
                                     CancelText="Nie">
@@ -189,7 +189,7 @@ else
                         </Popconfirm>
                     @if (boolAdmin || boolUsuniecia)
                     {
-                        <Popconfirm Title="Czy chcesz usunąć pozycję?"
+                    <Popconfirm Placement="@Placement.Left" Title="Czy chcesz usunąć pozycję?"
                                 OnConfirm="()=> delRow(context.Id)"
                                     OkText="Tak"
                                     CancelText="Nie">
@@ -656,7 +656,7 @@ else
         if (zlecenie != null)
         {
             // Krok 1: Pobranie listy istniejących zleceń z API
-            var zleceniaProdukcyjne = await Http.GetFromJsonAsync<List<ZleceniaProdukcyjneWew>>("api/ZleceniaProdukcyjneWew");
+            var zleceniaProdukcyjne = await Http.GetFromJsonAsync<List<ZleceniaProdukcyjneWew>>("api/ZleceniaProdukcyjneWew/ostrok");
 
             // Krok 2: Znalezienie ostatniego zlecenia z numerem
             var ostatnieZlecenie = zleceniaProdukcyjne?
