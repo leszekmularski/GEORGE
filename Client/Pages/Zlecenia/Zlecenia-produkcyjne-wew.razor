@@ -174,7 +174,7 @@ else
                 <PropertyColumn Property="c=>context.ZlecZrealizowane"></PropertyColumn>
 
                 <!-- Przykład kolumny dla danych zagnieżdżonych -->
-                @*    <Column Title="Nazwa Produktu 2" TData="string" DataIndex="NazwaProduktu2" Sortable /> *@
+                <Column Title="Numer Zlecenia" TData="string" DataIndex="NumerZlecenia" Style="width:38px" />
 
                 <!-- Przykład kolumny dla daty z formatowaniem -->
                 <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd" Sortable />
@@ -245,6 +245,19 @@ else
                                 <AntDesign.Col Span="12">
                                     <AntDesign.FormItem Label="Numer Umowy">
                                         <AntDesign.Input @bind-Value="zlecenie.NumerUmowy" />
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Numer Zlecenia">
+                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                            <AntDesign.Input @bind-Value="zlecenie.NumerZlecenia" ReadOnly />
+                                            @if (string.IsNullOrEmpty(zlecenie.NumerZlecenia))
+                                            {
+                                                <Tooltip Placement="@Placement.Top" Title="Nadaj nowy numer zlecenia">
+                                                    <Button Icon="@IconType.Outline.Hdd" @onclick="() => AddNewZlec()"></Button>
+                                                </Tooltip>
+                                            }
+                                        </div>
                                     </AntDesign.FormItem>
                                 </AntDesign.Col>
                             </AntDesign.Row>
@@ -634,6 +647,61 @@ else
             Console.WriteLine("Layout jest null");
         }
 
+    }
+
+    private bool SprawdzPrzedZapisem = false;
+
+    private async Task AddNewZlec()
+    {
+        if (zlecenie != null)
+        {
+            // Krok 1: Pobranie listy istniejących zleceń z API
+            var zleceniaProdukcyjne = await Http.GetFromJsonAsync<List<ZleceniaProdukcyjneWew>>("api/ZleceniaProdukcyjneWew");
+
+            // Krok 2: Znalezienie ostatniego zlecenia z numerem
+            var ostatnieZlecenie = zleceniaProdukcyjne?
+                .Where(z => !string.IsNullOrEmpty(z.NumerZlecenia)) // Filtrowanie zleceń mających numer
+                .OrderByDescending(z => z.Id)  // Sortowanie malejąco po Id
+                .FirstOrDefault();
+
+            // Krok 3: Pobranie aktualnego roku i ustalenie numeracji
+            var teraz = DateTime.Now;
+            string obecnyRok = teraz.Year.ToString();
+            string miesiac = teraz.Month.ToString("D2");
+
+            int kolejnyNumer = 1;  // Domyślnie zaczynamy od 1
+
+            if (ostatnieZlecenie != null)
+            {
+                var ostatniRok = ostatnieZlecenie.NumerZlecenia.Split('/')[2];
+
+                // Jeśli ostatnie zlecenie jest z tego samego roku, zwiększamy numer
+                if (ostatniRok == obecnyRok)
+                {
+                    kolejnyNumer = int.Parse(ostatnieZlecenie.NumerZlecenia.Split('/')[0]) + 1;
+                }
+            }
+
+            // Krok 4: Generowanie nowego numeru zlecenia
+            string nowyNumerZlecenia = $"{kolejnyNumer}/{miesiac}/{obecnyRok}/ZW";
+
+            // Krok 5: Sprawdzenie, czy nowy numer już istnieje
+            while (zleceniaProdukcyjne.Any(z => z.NumerZlecenia == nowyNumerZlecenia))
+            {
+                // Jeśli numer istnieje, zwiększamy go o 1 i tworzymy nowy
+                kolejnyNumer++;
+                nowyNumerZlecenia = $"{kolejnyNumer}/{miesiac}/{obecnyRok}/ZW";
+            }
+
+            // Krok 6: Aktualizacja numeru zlecenia
+            zlecenie.NumerZlecenia = nowyNumerZlecenia;
+
+            // Flaga na sprawdzenie przed zapisem
+            SprawdzPrzedZapisem = true;
+
+            // Log nowego numeru (opcjonalne debugowanie)
+            Console.WriteLine($"Nowy numer zlecenia: {nowyNumerZlecenia}");
+        }
     }
 
     private async Task PobierzSztukiZeStolCad()
@@ -1081,6 +1149,12 @@ else
         if (_visible == false || blokuDwuKlik) return;
 
         blokuDwuKlik = true;
+
+        if (SprawdzPrzedZapisem)
+        {
+            SprawdzPrzedZapisem = false;
+            await AddNewZlec();
+        }
 
         if (zlecenie.ZlecZrealizowane) zlecenie.TypZamowienia = "Zakończono";
         if (zlecenie.TypZamowienia == "Zakończono") zlecenie.ZlecZrealizowane = true;

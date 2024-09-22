@@ -91,7 +91,7 @@
     <div style="display: flex; align-items: center;padding-left:15px">
 
         <Text style="margin-right: 5px;">Ilość widocznych rekordów</Text>
-     
+
         <AntDesign.InputNumber TValue="int"
                                @bind-Value="iloscRekordow"
                                Min="2"
@@ -159,7 +159,7 @@ else
             <Column Title="Data Produkcji" @bind-Field="@context.DataProdukcji" Style="font-weight:bold;color:red" Format="yyyy-MM-dd" Sortable />
             <Column Title="Data Gotowości" TData="DateTime" DataIndex="DataGotowosci" Style="font-weight:bold" Format="yyyy-MM-dd" Sortable />
             <Column Title="Klient" @bind-Field="@context.Klient" Style="font-weight:bold" Sortable OnFilter="(a, b) => a == b" Filterable />
-            <Column Title="Nazwa Produktu" @bind-Field="@context.NazwaProduktu" Sortable Filterable/>
+            <Column Title="Nazwa Produktu" @bind-Field="@context.NazwaProduktu" Sortable Filterable />
             <Column Title="Adres" @bind-Field="@context.Adres" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Miejscowość" @bind-Field="@context.Miejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Telefon" @bind-Field="@context.Telefon" Sortable />
@@ -167,19 +167,19 @@ else
             <Column Title="CWZ" @bind-Field="@context.JednostkiNaZlecenie" Style="width:30px" Sortable />
 
             <!-- Przykład kolumny dla danych zagnieżdżonych -->
-            @*    <Column Title="Nazwa Produktu 2" TData="string" DataIndex="NazwaProduktu2" Sortable /> *@
+            <Column Title="Numer Zlecenia" TData="string" DataIndex="NumerZlecenia" Style="width:38px" />
 
             <!-- Przykład kolumny dla daty z formatowaniem -->
             <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd" Sortable />
 
             <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
             <ActionColumn Title="Akcja" Width="100" Fixed="right">
-                    <Popconfirm Title="Czy chcesz edytować pozycję?"
-                                OnConfirm="()=> editRow(context.Id)"
-                                OkText="Tak"
-                                CancelText="Nie">
-                        <a>Edytuj</a>
-                    </Popconfirm>
+                <Popconfirm Title="Czy chcesz edytować pozycję?"
+                            OnConfirm="()=> editRow(context.Id)"
+                            OkText="Tak"
+                            CancelText="Nie">
+                    <a>Edytuj</a>
+                </Popconfirm>
                 @if (boolAdmin || boolUsuniecia)
                 {
                     <Popconfirm Title="Czy chcesz usunąć pozycję?"
@@ -238,6 +238,19 @@ else
                                 <AntDesign.Col Span="12">
                                     <AntDesign.FormItem Label="Numer Umowy">
                                         <AntDesign.Input @bind-Value="zlecenie.NumerUmowy" />
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Numer Zlecenia">
+                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                            <AntDesign.Input @bind-Value="zlecenie.NumerZlecenia" ReadOnly />
+                                            @if (string.IsNullOrEmpty(zlecenie.NumerZlecenia))
+                                            {
+                                                <Tooltip Placement="@Placement.Top" Title="Nadaj nowy numer zlecenia">
+                                                    <Button Icon="@IconType.Outline.Hdd" @onclick="() => AddNewZlec()"></Button>
+                                                </Tooltip>
+                                            }
+                                        </div>
                                     </AntDesign.FormItem>
                                 </AntDesign.Col>
                             </AntDesign.Row>
@@ -630,6 +643,62 @@ else
             zleceniaProdukcyjne = new List<ZleceniaProdukcyjne>();
         }
     }
+
+    private bool SprawdzPrzedZapisem = false;
+
+    private async Task AddNewZlec()
+    {
+        if (zlecenie != null)
+        {
+            // Krok 1: Pobranie listy istniejących zleceń z API
+            var zleceniaProdukcyjne = await Http.GetFromJsonAsync<List<ZleceniaProdukcyjne>>("api/ZleceniaProdukcyjne");
+
+            // Krok 2: Znalezienie ostatniego zlecenia z numerem
+            var ostatnieZlecenie = zleceniaProdukcyjne?
+                .Where(z => !string.IsNullOrEmpty(z.NumerZlecenia)) // Filtrowanie zleceń mających numer
+                .OrderByDescending(z => z.Id)  // Sortowanie malejąco po Id
+                .FirstOrDefault();
+
+            // Krok 3: Pobranie aktualnego roku i ustalenie numeracji
+            var teraz = DateTime.Now;
+            string obecnyRok = teraz.Year.ToString();
+            string miesiac = teraz.Month.ToString("D2");
+
+            int kolejnyNumer = 1;  // Domyślnie zaczynamy od 1
+
+            if (ostatnieZlecenie != null)
+            {
+                var ostatniRok = ostatnieZlecenie.NumerZlecenia.Split('/')[2];
+
+                // Jeśli ostatnie zlecenie jest z tego samego roku, zwiększamy numer
+                if (ostatniRok == obecnyRok)
+                {
+                    kolejnyNumer = int.Parse(ostatnieZlecenie.NumerZlecenia.Split('/')[0]) + 1;
+                }
+            }
+
+            // Krok 4: Generowanie nowego numeru zlecenia
+            string nowyNumerZlecenia = $"{kolejnyNumer}/{miesiac}/{obecnyRok}/ZZ";
+
+            // Krok 5: Sprawdzenie, czy nowy numer już istnieje
+            while (zleceniaProdukcyjne.Any(z => z.NumerZlecenia == nowyNumerZlecenia))
+            {
+                // Jeśli numer istnieje, zwiększamy go o 1 i tworzymy nowy
+                kolejnyNumer++;
+                nowyNumerZlecenia = $"{kolejnyNumer}/{miesiac}/{obecnyRok}/ZZ";
+            }
+
+            // Krok 6: Aktualizacja numeru zlecenia
+            zlecenie.NumerZlecenia = nowyNumerZlecenia;
+
+            // Flaga na sprawdzenie przed zapisem
+            SprawdzPrzedZapisem = true;
+
+            // Log nowego numeru (opcjonalne debugowanie)
+            Console.WriteLine($"Nowy numer zlecenia: {nowyNumerZlecenia}");
+        }
+    }
+
 
     private async Task PobierzSztukiZeStolCad()
     {
@@ -1085,6 +1154,12 @@ else
 
         blokuDwuKlik = true;
 
+        if (SprawdzPrzedZapisem)
+        {
+            SprawdzPrzedZapisem = false;
+            await AddNewZlec();
+        }
+
         if (zlecenie.ZlecZrealizowane) zlecenie.TypZamowienia = "Zakończono";
         if (zlecenie.TypZamowienia == "Zakończono") zlecenie.ZlecZrealizowane = true;
 
@@ -1286,7 +1361,7 @@ else
         _visible = true;
         zlecenie = new ZleceniaProdukcyjne();
 
-        if(!string.IsNullOrEmpty(user))
+        if (!string.IsNullOrEmpty(user))
         {
             zlecenie.KtoZapisal = user;
         }
@@ -1560,12 +1635,12 @@ else
     Func<object, object, bool> CompareWith = (a, b) =>
        {
            if (a is ObjectValueProduktOption o1 && b is ObjectValueProduktOption o2)
-       {
-           return o1.value == o2.value;
-       }
-       else
-       {
-           return false;
-       }
-    };
+           {
+               return o1.value == o2.value;
+           }
+           else
+           {
+               return false;
+           }
+       };
 }

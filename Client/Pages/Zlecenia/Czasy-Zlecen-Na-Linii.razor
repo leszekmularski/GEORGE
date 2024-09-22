@@ -129,7 +129,7 @@
                             @data.Kolor
                         }
                     </Column>
-                    <Column TData="string" Title="Szerokość" Sortable Filterable>
+                    <Column TData="float" Title="Szerokość" Sortable Filterable>
                         @if (editCache.ContainsKey(data.Id))
                         {
                             @if (!editCache[data.Id].edit)
@@ -146,7 +146,7 @@
                             @data.Szerokosc
                         }
                     </Column>
-                    <Column TData="string" Title="Wysokość" Sortable Filterable>
+                    <Column TData="float" Title="Wysokość" Sortable Filterable>
                         @if (editCache.ContainsKey(data.Id))
                         {
                             @if (!editCache[data.Id].edit)
@@ -163,7 +163,7 @@
                             @data.Wysokosc
                         }
                     </Column>
-                    <Column TData="string" Title="Ilość" Sortable>
+                    <Column TData="float" Title="Ilość" Sortable>
                         @if (editCache.ContainsKey(data.Id))
                         {
                             @if (!editCache[data.Id].edit)
@@ -180,7 +180,7 @@
                             @data.IloscOkien
                         }
                     </Column>
-                    <Column TData="string" Title="Ciężar 1 szt." Sortable>
+                    <Column TData="float" Title="Ciężar 1 szt." Sortable>
                         @if (editCache.ContainsKey(data.Id))
                         {
                             @if (!editCache[data.Id].edit)
@@ -197,7 +197,7 @@
                             @data.Ciezar1Sztuki
                         }
                     </Column>
-                    <Column TData="string" Title="Jed. produk." Sortable>
+                    <Column TData="float" Title="Jed. produk." Sortable>
                         @if (editCache.ContainsKey(data.Id))
                         {
                             @if (!editCache[data.Id].edit)
@@ -214,7 +214,7 @@
                             @data.JednostkiOkienDoPoz
                         }
                     </Column>
-                    <Column TData="string" Title="Ilość skrz." Sortable>
+                    <Column TData="float" Title="Ilość skrz." Sortable>
                         @if (editCache.ContainsKey(data.Id))
                         {
                             @if (!editCache[data.Id].edit)
