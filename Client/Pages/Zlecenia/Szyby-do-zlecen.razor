@@ -132,7 +132,7 @@
     <div class="highlighted-background">
         <h3>Zamówione szyby do zlecenia</h3>
 
-        @if (boolAdmin || boolZmian)
+        @if (boolAdmin || boolZmiana)
         {
             <Button Type="primary" OnClick="@(ShowDialogAddNew)">
                 Dodaj nowe zestawienie materiałów (nowa szyba)
@@ -188,7 +188,7 @@
                     <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd HH:mm:ss" Sortable />
                     <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
                     <ActionColumn Title="Akcja" Width="100" Fixed="right">
-                        @if (boolAdmin || boolZmian)
+                        @if (boolAdmin || boolZmiana)
                         {
                             <Popconfirm Title="Czy chcesz edytować pozycję?"
                                         OnConfirm="()=> editRow(context.Id)"
@@ -617,6 +617,8 @@
         // Zmiana tekstu na wielkie litery
         szyby.RodzajSzyby = szyby.RodzajSzyby.ToUpper();
 
+        szyby.OstatniaZmiana = $"Zmieniono: {DateTime.Now} {user}";
+
         HttpResponseMessage response;
 
         if (szyby.Id == 0)
@@ -793,6 +795,8 @@
     public async Task ShowDialogAddNew()
     {
         szyby = new SzybyDoZlecen();
+        szyby.KtoZapisal = user;
+        szyby.OstatniaZmiana = $"Dodano {DateTime.Now} {user}";
 
         szyby.Id = 0;
         szyby.RowIdZlecenia = RowIdZlecenia;
@@ -836,12 +840,12 @@
     }
 
     private bool boolOdczyt = false;
-    private bool boolZmian = false;
+    private bool boolZmiana = false;
     private bool boolUsuniecia = false;
     private bool boolAdmin = false;
     private string RowIdPracownika = "";
     private string? user;
-    private bool isNotDisabled => !boolZmian || !boolAdmin;
+    private bool isNotDisabled => !boolZmiana || !boolAdmin;
     private List<UprawnieniaPracownikaViewModel>? uprawnienia;
 
     private async Task Laduj_Uprawnienia()
@@ -886,7 +890,7 @@
                     if (szuk != null)
                     {
                         boolOdczyt = szuk.Odczyt;
-                        boolZmian = szuk.Zmiana;
+                        boolZmiana = szuk.Zmiana;
                         boolUsuniecia = szuk.Usuniecie;
                         boolAdmin = szuk.Administrator;
                         RowIdPracownika = szuk.RowId;
