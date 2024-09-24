@@ -25,6 +25,12 @@ namespace GEORGE.Shared.Models
         public string? OsobaKontaktowa3 { get; set; }
         public string? EmailOsobyKontaktowej3 { get; set; }
         public string? TelefonOsobyKontaktowej3 { get; set; }
+        public string? OsobaKontaktowa4 { get; set; }
+        public string? EmailOsobyKontaktowej4 { get; set; }
+        public string? TelefonOsobyKontaktowej4 { get; set; }
+        public string? OsobaKontaktowa5 { get; set; }
+        public string? EmailOsobyKontaktowej5 { get; set; }
+        public string? TelefonOsobyKontaktowej5 { get; set; }
         public int IloscDniRealizacji { get; set; } = 0;
         public DateTime DataZapisu { get; set; } = DateTime.Now;
         public string? KtoZapisal { get; set; }
