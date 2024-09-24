@@ -1116,17 +1116,17 @@ else
 
     private void DodajKantowke(ZleceniaProdukcyjneWew row)
     {
-        navigationManager.NavigateTo($"/Kantowka-do-zlecen/{row.RowId}");
+        navigationManager.NavigateTo($"/Kantowka-do-zlecen/{row.RowId}/wew");
     }
 
     private void DodajZamowienia(ZleceniaProdukcyjneWew row)
     {
-        navigationManager.NavigateTo($"/Elementy-do-zlecen/{row.RowId}");
+        navigationManager.NavigateTo($"/Elementy-do-zlecen/{row.RowId}/wew");
     }
 
     private void DodajSzybe(ZleceniaProdukcyjneWew row)
     {
-        navigationManager.NavigateTo($"/Szyby-do-zlecen/{row.RowId}");
+        navigationManager.NavigateTo($"/Szyby-do-zlecen/{row.RowId}/wew");
     }
 
     private async Task DodajCzasyWykonaia(ZleceniaProdukcyjneWew row)

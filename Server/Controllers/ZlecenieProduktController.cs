@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using GEORGE.Shared.Models;
 using System.Net;
+using GEORGE.Shared.ViewModels;
 
 namespace GEORGE.Server.Controllers
 {
@@ -34,6 +35,62 @@ namespace GEORGE.Server.Controllers
             {
                 Console.WriteLine(e.Message);
                 return NotFound();
+            }
+        }
+
+        [HttpGet("getzlecclickzew/{rowId}")]
+        public async Task<ActionResult<List<ZleceniaProdukcyjne>>> GetZlecClickZew(string rowId)
+        {
+            try
+            {
+                // Używamy przekazanego parametru rowId do porównania
+                var zleceniaProdukcyjne = await context.ZleceniaProdukcyjne
+                    .Where(p => p.RowId == rowId) // Poprawiamy porównanie
+                    .ToListAsync();
+
+                // Sprawdzamy, czy lista jest pusta
+                if (zleceniaProdukcyjne == null || !zleceniaProdukcyjne.Any())
+                {
+                    // Zwracamy NotFound z wiadomością
+                    return NotFound("Nie znaleziono żadnych produktów dla podanego RowId.");
+                }
+
+                // Zwracamy dane w odpowiedzi Ok
+                return Ok(zleceniaProdukcyjne);
+            }
+            catch (Exception e)
+            {
+                // Obsługa błędów - logujemy i zwracamy status 500
+                Console.WriteLine(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Wystąpił błąd serwera.");
+            }
+        }
+
+        [HttpGet("getzlecclickwew/{rowId}")]
+        public async Task<ActionResult<List<ZleceniaProdukcyjne>>> GetZlecClickWew(string rowId)
+        {
+            try
+            {
+                // Używamy przekazanego parametru rowId do porównania
+                var zleceniaProdukcyjne = await context.ZleceniaProdukcyjneWew
+                    .Where(p => p.RowId == rowId) // Poprawiamy porównanie
+                    .ToListAsync();
+
+                // Sprawdzamy, czy lista jest pusta
+                if (zleceniaProdukcyjne == null || !zleceniaProdukcyjne.Any())
+                {
+                    // Zwracamy NotFound z wiadomością
+                    return NotFound("Nie znaleziono żadnych produktów dla podanego RowId.");
+                }
+
+                // Zwracamy dane w odpowiedzi Ok
+                return Ok(zleceniaProdukcyjne);
+            }
+            catch (Exception e)
+            {
+                // Obsługa błędów - logujemy i zwracamy status 500
+                Console.WriteLine(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Wystąpił błąd serwera.");
             }
         }
 

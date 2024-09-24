@@ -1015,17 +1015,17 @@ else
 
     private void DodajKantowke(ZleceniaProdukcyjne row)
     {
-        navigationManager.NavigateTo($"/Kantowka-do-zlecen/{row.RowId}");
+        navigationManager.NavigateTo($"/Kantowka-do-zlecen/{row.RowId}/zew");
     }
 
     private void DodajZamowienia(ZleceniaProdukcyjne row)
     {
-        navigationManager.NavigateTo($"/Elementy-do-zlecen/{row.RowId}");
+        navigationManager.NavigateTo($"/Elementy-do-zlecen/{row.RowId}/zew");
     }
 
     private void DodajSzybe(ZleceniaProdukcyjne row)
     {
-        navigationManager.NavigateTo($"/Szyby-do-zlecen/{row.RowId}");
+        navigationManager.NavigateTo($"/Szyby-do-zlecen/{row.RowId}/zew");
     }
 
     private async Task deleteFile(long id, string fileUrl, string roIdZlec)

@@ -1,4 +1,4 @@
-﻿@page "/Elementy-do-zlecen/{RowIdZlecenia}"
+﻿@page "/Elementy-do-zlecen/{RowIdZlecenia}/{typ}"
 @using GEORGE.Shared.Models
 @using GEORGE.Shared.ViewModels
 @using GEORGE.Shared.Class
@@ -30,12 +30,12 @@
         .highlighted-background {
             background-color: white;
             overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
-            max-height: calc(100vh - 5px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 155px */
+            max-height: calc(100vh - 55px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 155px */
             width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 260px */
             box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu wysokości */
             position: absolute;
             left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
-            top: 5px; /* Ustawia górną krawędź 155px od góry okna */
+            top: 55px; /* Ustawia górną krawędź 155px od góry okna */
         }
 
     </style>
@@ -131,12 +131,12 @@
 <body>
 
     <Layout class="highlighted-background">
-        <Header Style="height:50%">
-            <h3>Zamówione elementy do zlecenia</h3>
+        <Header Style="height:50%;">
+            <h6 style="color:yellow; padding-top:5px">Zamówione elementy do zlecenia: @dotyczyZlecenia</h6>
             @if (boolAdmin || boolZmiana)
             {
                 <Button Type="primary" OnClick="@(ShowDialogAddNew)">
-                    Dodaj nową pozycję do zamówienia na elementy
+                    Dodaj nową pozycję do zamówienia
                 </Button>
             }
 
@@ -328,6 +328,9 @@
     [Parameter]
     public string? RowIdZlecenia { get; set; }
 
+    [Parameter]
+    public string? typ { get; set; }
+
     [Inject] private AppState AppState { get; set; } = default!;
 
     private string? pdfContent;
@@ -352,6 +355,8 @@
     private bool isCheckedDelAll = false;
 
     int _pageSize = 7;
+
+    string dotyczyZlecenia = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -398,6 +403,45 @@
         {
             Console.WriteLine($"******* Błąd {ex.Message}");
             await _message.Error("Błąd ładowania danych");
+        }
+
+        try
+        {
+            if(typ == "zew")
+            {
+                var response = await Http.GetAsync($"api/ZlecenieProdukt/getzlecclickzew/{RowIdZlecenia}");
+
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var zleceniaProdukcyjne = await response.Content.ReadFromJsonAsync<List<ZleceniaProdukcyjne>>();
+
+                    if (zleceniaProdukcyjne != null && zleceniaProdukcyjne.Count > 0)
+                    {
+                        dotyczyZlecenia = $"{zleceniaProdukcyjne[0].TypZamowienia} / {zleceniaProdukcyjne[0].NumerZamowienia} / {zleceniaProdukcyjne[0].Klient}";
+                    }
+                }
+            }
+            else if (typ == "wew")
+            {
+                var response = await Http.GetAsync($"api/ZlecenieProdukt/getzlecclickwew/{RowIdZlecenia}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var zleceniaProdukcyjne = await response.Content.ReadFromJsonAsync<List<ZleceniaProdukcyjneWew>>();
+
+                    if (zleceniaProdukcyjne != null && zleceniaProdukcyjne.Count > 0)
+                    {
+                        dotyczyZlecenia = $"{zleceniaProdukcyjne[0].TypZamowienia ?? ""} / {zleceniaProdukcyjne[0].NumerZamowienia ?? ""} / {zleceniaProdukcyjne[0].Klient ?? ""}";
+
+                    }
+                }
+            }
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Błąd pobierania zleceń produkcyjnych: {ex.Message}");
         }
     }
 
