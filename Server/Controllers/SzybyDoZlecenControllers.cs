@@ -197,6 +197,45 @@ namespace GEORGE.Server.Controllers
             }
         }
 
+        [HttpPut("{id}/updateZamowiono")]
+        public async Task<ActionResult> UpdateMaterialZamowionoAsync(long id, [FromBody] bool czyDostarczono)
+        {
+            // Sprawdź, czy istnieje obiekt o podanym ID
+            var szyba = await _context.SzybyDoZlecen.FindAsync(id);
+            if (szyba == null)
+            {
+                return NotFound("Nie znaleziono SzybyDoZlecen o podanym ID.");
+            }
+
+            // Zaktualizuj wartość
+            szyba.CzyZamowiono = czyDostarczono;
+
+            if (szyba.DataZamowienia == DateTime.MinValue && czyDostarczono)
+                szyba.DataZamowienia = DateTime.Now;
+
+            // Oznacz obiekt jako zmodyfikowany
+            _context.Entry(szyba).State = EntityState.Modified;
+
+            try
+            {
+                // Zapisz zmiany w bazie danych
+                await _context.SaveChangesAsync();
+                return Ok();
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                if (!SzybaExists(id))
+                {
+                    return NotFound("Nie znaleziono SzybyDoZlecen o podanym ID.");
+                }
+                else
+                {
+                    _logger.LogError(ex, "Błąd podczas aktualizacji SzybyDoZlecen.");
+                    return StatusCode(500, "Wystąpił błąd podczas przetwarzania żądania.");
+                }
+            }
+        }
+
         private bool SzybaExists(long id)
         {
             return _context.SzybyDoZlecen.Any(e => e.Id == id);

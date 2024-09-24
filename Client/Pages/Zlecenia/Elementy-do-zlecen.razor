@@ -173,7 +173,7 @@
                 {
                     <div>
                         <Table TItem="ElemetZamDoZlecenWithProducent" DataSource="elementyDoZlecen" @bind-PageSize="@_pageSize"
-                               Loading="false" ScrollX="1950" Size="TableSize.Small">
+                               Loading="false" ScrollX="2450" Size="TableSize.Small">
                             <PropertyColumn Title="ID" Property="c=>c.ElemetZamDoZlecen.Id" Hidden />
                             <PropertyColumn Width="250" Title="Nazwa Producenta" Property="c=>c.ProducentIMiejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable />
                             <PropertyColumn Width="220" Property="c=>c.ElemetZamDoZlecen.NazwaProduktu" Sortable Filterable></PropertyColumn>@* DefaultSortOrder="SortDirection.Ascending" *@

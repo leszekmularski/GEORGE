@@ -301,6 +301,9 @@ else
                                         <div style="display: flex; align-items: center; gap: 10px;">
                                             <AntDesign.DatePicker Disabled="@czyZamowienie" @bind-Value="zlecenie.DataGotowosci" />
                                             <AntDesign.Button Disabled="@czyZamowienie" OnClick="DataProdUstaw" Style="width:180px">Ustaw datę produkcji</AntDesign.Button>
+                                            <Tooltip Placement="@Placement.Left" Title="Dodaj ilość tygodni do daty gotowości">
+                                                <AntDesign.InputNumber @bind-Value="iloscTygodniDodaj" />
+                                            </Tooltip>
                                         </div>
                                     </AntDesign.FormItem>
                                 </AntDesign.Col>
@@ -578,6 +581,8 @@ else
     IList<IBrowserFile> files = new List<IBrowserFile>();
 
     private bool blokojFiltr = true;
+
+    private int iloscTygodniDodaj = 8;
 
     protected override async Task OnInitializedAsync()
     {
@@ -904,13 +909,15 @@ else
 
     private void DataProdUstaw()
     {
+        if (iloscTygodniDodaj < 0) iloscTygodniDodaj = 0;
+
         if (zlecenie.Id == 0)
         {
-            zlecenie.DataProdukcji = DateTime.Now.AddDays(8 * 7);//8 tygodni * 7 dni;
+            zlecenie.DataProdukcji = DateTime.Now.AddDays(iloscTygodniDodaj * 7);//8 tygodni * 7 dni;
         }
         else
         {
-            zlecenie.DataProdukcji = zlecenie.DataGotowosci.AddDays(8 * 7);//8 tygodni * 7 dni;
+            zlecenie.DataProdukcji = zlecenie.DataGotowosci.AddDays(iloscTygodniDodaj * 7);//8 tygodni * 7 dni;
         }
 
         bool IsWorkingDay(DateTime date)
@@ -923,8 +930,8 @@ else
             zlecenie.DataProdukcji = zlecenie.DataProdukcji.AddDays((DayOfWeek.Monday - zlecenie.DataProdukcji.DayOfWeek + 7) % 7);
         }
 
-        zlecenie.DataWysylki = zlecenie.DataGotowosci.AddDays(12 * 7 - 5);
-        zlecenie.DataMontazu = zlecenie.DataGotowosci.AddDays(12 * 7);
+        zlecenie.DataWysylki = zlecenie.DataGotowosci.AddDays((iloscTygodniDodaj + 4) * 7 - 5);
+        zlecenie.DataMontazu = zlecenie.DataGotowosci.AddDays((iloscTygodniDodaj + 4) * 7);
     }
 
     private async Task LoadFiles(string rowId)

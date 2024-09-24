@@ -163,7 +163,7 @@
         else
         {
             <div>
-                <Table TItem="SzybyDoZlecen" DataSource="@szybyDoZlecen" @bind-PageSize="@_pageSize" ScrollX="1950" Size="TableSize.Small">
+                <Table TItem="SzybyDoZlecen" DataSource="@szybyDoZlecen" @bind-PageSize="@_pageSize" ScrollX="2150" Size="TableSize.Small">
                     <Column Title="ID" @bind-Field="@context.Id" Hidden />
                     <Column Width="80" Title="Szerokość" @bind-Field="@context.Szerokosc" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Width="80" Title="Wysokość" @bind-Field="@context.Wysokosc" Sortable OnFilter="(a, b) => a == b" Filterable />
@@ -174,6 +174,11 @@
                     <Column Width="80" Title="Czy kształt" TData="SzybyDoZlecen">
                         <Template>
                             <Checkbox @bind-Checked="@context.CzyKsztalt" OnChange="(e)=>Handle(e, context.Id)" Disabled="isNotDisabled" />
+                        </Template>
+                    </Column>
+                    <Column Width="80" Title="Poz. zamów." TData="SzybyDoZlecen">
+                        <Template>
+                            <Checkbox @bind-Checked="@context.CzyZamowiono" OnChange="(e)=>HandleZamowiono(e, context.Id)" Disabled="isNotDisabled" />
                         </Template>
                     </Column>
                     <Column Width="80" Title="Poz. dostarcz." TData="SzybyDoZlecen">
@@ -305,6 +310,9 @@
                                     </AntDesign.FormItem> *@
                                     <AntDesign.FormItem Label="Czy kształt">
                                         <AntDesign.Checkbox @bind-Value="szyby.CzyKsztalt" />
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Czy Zamowiono">
+                                        <Switch @bind-Value="@context.CzyZamowiono" />
                                     </AntDesign.FormItem>
                                     <AntDesign.FormItem Label="Czy dostarczono">
                                         <Switch @bind-Value="@context.PozDostarczono" />
@@ -476,10 +484,36 @@
         }
     }
 
+    private async void HandleZamowiono(bool value, long idr)
+    {
+        Console.WriteLine($"{value} / {idr}");
+        await ZapiszUstawienieStanuZamowiono(idr, value);
+    }
+
     private async void HandleDostarczono(bool value, long idr)
     {
         Console.WriteLine($"{value} / {idr}");
         await ZapiszUstawienieStanuDostarczono(idr, value);
+    }
+
+    private async Task ZapiszUstawienieStanuZamowiono(long idr, bool nowyStan)
+    {
+        //  var aktualizacja = new { Id = idr, MaterialZeStanMagazyn = nowyStan };
+
+        var response = await Http.PutAsJsonAsync($"api/szybyDoZlecen/{idr}/updateZamowiono", nowyStan);
+
+        if (response.IsSuccessStatusCode)
+        {
+            if (szybyDoZlecen != null)
+            {
+                oryginalSzybyDoZlecen = szybyDoZlecen.DeepCopyList();
+                await _message.Success("Status zmieniono", 1);
+            }
+        }
+        else
+        {
+            await _message.Error("Status nie zmieniono");
+        }
     }
 
     private async Task ZapiszUstawienieStanuDostarczono(long idr, bool nowyStan)
@@ -796,6 +830,7 @@
     {
         szyby = new SzybyDoZlecen();
         szyby.KtoZapisal = user;
+        szyby.DataZamowienia = DateTime.MinValue; 
         szyby.OstatniaZmiana = $"Dodano {DateTime.Now} {user}";
 
         szyby.Id = 0;
