@@ -176,7 +176,7 @@
                             <Checkbox @bind-Checked="@context.CzyKsztalt" OnChange="(e)=>Handle(e, context.Id)" Disabled="isNotDisabled" />
                         </Template>
                     </Column>
-                    <Column Width="80" Title="Poz. zamów." TData="SzybyDoZlecen">
+                    <Column Width="80" Title="Czy zamówiono" TData="SzybyDoZlecen">
                         <Template>
                             <Checkbox @bind-Checked="@context.CzyZamowiono" OnChange="(e)=>HandleZamowiono(e, context.Id)" Disabled="isNotDisabled" />
                         </Template>
