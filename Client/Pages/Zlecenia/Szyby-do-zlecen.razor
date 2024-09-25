@@ -644,12 +644,13 @@
                         Wysokosc = string.IsNullOrEmpty(item.Wysokosc) ? 0 : float.Parse(item.Wysokosc),
                         RodzajSzyby = item.RodzajSzyby,
                         RodzajRamki = item.RodzajRamki,
-                        Uwagi = "Dane zaimortowano z PDF",
+                        Uwagi = "Dane zaimortowano z PDF - oraz nadano datę zamówienia",
                         IloscSztuk = string.IsNullOrEmpty(item.Ilosc) ? 0 : int.Parse(item.Ilosc),
                         DataZamowienia = DateTime.Now,
                         DataRealizacji = DateTime.Now.AddDays(14),
                         DataZapisu = DateTime.Now,
                         KtoZapisal = user,
+                        CzyZamowiono = true,
                     };
 
                 szybyall.Add(szyby);

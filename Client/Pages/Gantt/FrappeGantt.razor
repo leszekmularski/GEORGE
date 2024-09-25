@@ -196,7 +196,7 @@
                     <div style="padding-top:25px;padding-left:5px;padding-right:5px;width:100%;">
                         <Table @ref="_table" TItem="DaneDoPlanowaniaViewModel" PageSize="4" DataSource="@przefiltrowanedaneNiezaplanowane" Total="_total"
                                @bind-SelectedRows="_selectedRows" Style="width: 100%; font-size: 9px;" RowKey="x => x.ZleceniaProdukcyjneDto.RowId"
-                               Size="TableSize.Small" OnRow="OnRow" OnRowClick="OnChangeTblClik" Loading="_loading">
+                               Size="TableSize.Small" OnRow="OnRow" OnRowClick="OnChangeTblClik" Loading="_loading" OnChange="OnChange">
 
                             <Selection Style="width:25px" Title="Wybierz"></Selection>
                             <PropertyColumn Width="85px" Title="Klient" Property="c => c.ZleceniaProdukcyjneDto.Klient" Sortable OnFilter="(a, b) => a == b" Filterable />
@@ -329,6 +329,20 @@
         // Możesz dodać logikę asynchroniczną tutaj, jeśli jest potrzebna
         await Task.CompletedTask;
 
+    }
+
+    void OnChange(QueryModel<DaneDoPlanowaniaViewModel> query)
+    {
+        var _total = mockDb.AsQueryable().ExecuteTableQuery(query).Count();
+        var _dataSource = mockDb.AsQueryable().ExecuteTableQuery(query).CurrentPagedRecords(query).ToList();
+        if (_total == 0)
+        {
+            okButtonProps.Disabled = false;
+        }
+        else
+        {
+            okButtonProps.Disabled = true;
+        }
     }
 
     // private async Task OnChangeTblClik(QueryModel<DaneDoPlanowaniaViewModel> query)

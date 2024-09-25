@@ -294,20 +294,22 @@ else
                         </TabPane>
 
                         <TabPane Key="twDaty" Tab=@($"Daty w zleceniu")>
+
                             <!-- Section for Date Fields -->
                             <AntDesign.Row Gutter="16">
                                 <AntDesign.Col Span="12">
                                     <AntDesign.FormItem Label="Data Gotowości Do Produkcji">
-                                        <div style="display: flex; align-items: center; gap: 10px;">
-                                            <AntDesign.DatePicker Disabled="@czyZamowienie" @bind-Value="zlecenie.DataGotowosci" />
-                                            <AntDesign.Button Disabled="@czyZamowienie" OnClick="DataProdUstaw" Style="width:180px">Ustaw datę produkcji</AntDesign.Button>
-                                            <Tooltip Placement="@Placement.Left" Title="Dodaj ilość tygodni do daty gotowości">
-                                                <AntDesign.InputNumber @bind-Value="iloscTygodniDodaj" />
+                                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; width:600px ">
+                                            <AntDesign.DatePicker Style="width: 320px;" Disabled="@czyZamowienie" @bind-Value="zlecenie.DataGotowosci" />
+                                            <AntDesign.Button Disabled="@czyZamowienie" OnClick="DataProdUstaw" Style="width: 180px;">Ustaw datę produkcji</AntDesign.Button>
+                                            <Tooltip  Style="width: 100%;" Placement="@Placement.Left" Title="Dodaj ilość tygodni do daty gotowości">
+                                                <AntDesign.InputNumber Style="width: 50px;" @bind-Value="iloscTygodniDodaj" />
                                             </Tooltip>
                                         </div>
                                     </AntDesign.FormItem>
                                 </AntDesign.Col>
                             </AntDesign.Row>
+
                             <AntDesign.Row Gutter="16">
                                 <AntDesign.Col Span="12">
                                     <AntDesign.FormItem Label="Data Rozp. Produkcji">
