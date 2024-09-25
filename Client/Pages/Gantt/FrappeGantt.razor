@@ -716,6 +716,42 @@
             }
         }
 
+        if (_selectedItemGantt == null) return;
+
+        try
+        {
+            // Pobierz dane z API dla wybranego elementu
+            var response = await Http.GetAsync($"api/ZleceniaNaLinii/GetDaneDoPlanowania/{_selectedItemGantt.RowId}/NIE");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var daneDoPlanowania = await response.Content.ReadFromJsonAsync<List<DaneDoPlanowaniaViewModel>>();
+
+                if (daneDoPlanowania != null && daneDoPlanowania.Any())
+                {
+                    // Zaktualizuj stan tylko dla niepustych danych
+                    daneNiezaplanowane = daneDoPlanowania.Where(f => f.TypZamowienia != "BRAK_DANYCH").ToList();
+                    przefiltrowanedaneNiezaplanowane = daneNiezaplanowane.Where(x => !x.ZlecenieWewnetrzne).ToList();
+
+                    komunikatOZleceniach = $"Wyszukano dane: {daneNiezaplanowane.Count}";
+                }
+                else
+                {
+                    komunikatOZleceniach = "Brak DANYCH - wszystkie zlecenia są zaplanowane";
+                    daneNiezaplanowane = new List<DaneDoPlanowaniaViewModel>();
+                    przefiltrowanedaneNiezaplanowane = new List<DaneDoPlanowaniaViewModel>();
+                }
+            }
+            else
+            {
+                komunikatOZleceniach = "Błąd w połączeniu z serwerem: " + response.ReasonPhrase;
+            }
+        }
+        catch (Exception ex)
+        {
+            komunikatOZleceniach = "Wystąpił błąd podczas pobierania danych: " + ex.Message;
+        }
+
     }
 
     public async Task deleteRow(string rowIdZlecenia, string rowIdLinii)
@@ -964,6 +1000,42 @@
         click_RowIdZlecenia = "";
 
         loading = false;
+
+        if (_selectedItemGantt == null) return;
+
+        try
+        {
+            // Pobierz dane z API dla wybranego elementu
+            var response = await Http.GetAsync($"api/ZleceniaNaLinii/GetDaneDoPlanowania/{_selectedItemGantt.RowId}/NIE");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var daneDoPlanowania = await response.Content.ReadFromJsonAsync<List<DaneDoPlanowaniaViewModel>>();
+
+                if (daneDoPlanowania != null && daneDoPlanowania.Any())
+                {
+                    // Zaktualizuj stan tylko dla niepustych danych
+                    daneNiezaplanowane = daneDoPlanowania.Where(f => f.TypZamowienia != "BRAK_DANYCH").ToList();
+                    przefiltrowanedaneNiezaplanowane = daneNiezaplanowane.Where(x => !x.ZlecenieWewnetrzne).ToList();
+
+                    komunikatOZleceniach = $"Wyszukano dane: {daneNiezaplanowane.Count}";
+                }
+                else
+                {
+                    komunikatOZleceniach = "Brak DANYCH - wszystkie zlecenia są zaplanowane";
+                    daneNiezaplanowane = new List<DaneDoPlanowaniaViewModel>();
+                    przefiltrowanedaneNiezaplanowane = new List<DaneDoPlanowaniaViewModel>();
+                }
+            }
+            else
+            {
+                komunikatOZleceniach = "Błąd w połączeniu z serwerem: " + response.ReasonPhrase;
+            }
+        }
+        catch (Exception ex)
+        {
+            komunikatOZleceniach = "Wystąpił błąd podczas pobierania danych: " + ex.Message;
+        }
 
     }
 
