@@ -165,13 +165,20 @@ else
                         <Input @bind-Value="karty.NazwaProduktu2" />
                     </FormItem>
                     <FormItem Label="Kod Produktu / System">
-                        <Input @bind-Value="karty.KodProduktu" />
+ @*                        <Input @bind-Value="karty.KodProduktu" /> *@
+                        <AutoComplete Placeholder="Kod Produktu / System" @bind-Value="@karty.KodProduktu" Options="optionsSystem" CompareWith="CompareWithSystem"
+                                      OnSelectionChange="OnSelectionChangeSystem">
+                            <OptionTemplate Context="system">
+                                <AutoCompleteOption Value="@system.Value" Label="@system.Label">
+                                </AutoCompleteOption>
+                            </OptionTemplate>
+                        </AutoComplete>
                     </FormItem>
                     <FormItem Label="Kto Zapisał">
-                        <Input @bind-Value="karty.KtoZapisal" />
+                        <Input @bind-Value="karty.KtoZapisal" ReadOnly />
                     </FormItem>
                     <FormItem Label="Ostatnia Zmiana">
-                        <Input @bind-Value="karty.OstatniaZmiana" />
+                        <Input @bind-Value="karty.OstatniaZmiana" ReadOnly />
                     </FormItem>
                     <FormItem>
  @*                        <Upload Action="https://www.mocky.io/v2/5cc8019d300000980a055e76"
@@ -220,7 +227,11 @@ else
 
     private AutoCompleteOption? selectItemProdukt;
 
+    private AutoCompleteOption? selectItemSystem;
+
     ObjectValueProduktOption[]? optionsProdukt;
+
+    ObjectValueSystemOption[]? optionsSystem;
 
     private bool blokuj_2_click = false;
 
@@ -235,22 +246,11 @@ else
 
         await SearchProdukt();
 
+        await SearchSystem();
+
         rodzajeKartInstrukcyjnych = await Http.GetFromJsonAsync<List<RodzajeKartInstrukcyjnych>>("api/RodzajeKartInstrukcyjnych");
 
         kartyInstrukcyjne = await Http.GetFromJsonAsync<List<KartyInstrukcyjne>>("api/KartyInstrukcyjne");
-
-        // var url = "http://leszekm:5000/";
-        // var response = await Http.GetAsync(url);
-
-        // if (response.IsSuccessStatusCode)
-        // {
-        //     var content = await response.Content.ReadAsStringAsync();
-        //     Console.WriteLine("Pobrano dane: " + content);
-        // }
-        // else
-        // {
-        //     Console.WriteLine($"Błąd podczas pobierania danych. Status: {response.StatusCode}");
-        // }
 
     }
 
@@ -260,6 +260,18 @@ else
         selectItemProdukt = item;
 
         Console.WriteLine("selectItemPowiat.Value" + selectItemProdukt.Value);
+
+        await Task.CompletedTask;
+
+    }
+
+    private async Task OnSelectionChangeSystem(AutoCompleteOption item)
+    {
+        selectItemSystem = item;
+
+        Console.WriteLine("selectItemPowiat.Value" + selectItemSystem.Value);
+
+        await Task.CompletedTask;
 
     }
 
@@ -327,6 +339,32 @@ else
         }
     }
 
+    private async Task SearchSystem()
+    {
+
+        try
+        {
+
+            var listasystem = await Http.GetFromJsonAsync<List<string>>("/api/KartaInstrSystem");
+
+            if (listasystem != null)
+            {
+                optionsSystem = listasystem.Select(system => new ObjectValueSystemOption()
+                    {
+                        value = system.ToString()
+                    }).ToArray();
+
+                karty.KodProduktu = karty.KodProduktu;
+
+            }
+
+        }
+        catch (Exception)
+        {
+            Console.WriteLine("Metoda -  SearchPowiat");
+        }
+    }
+
 
     private async Task HandleSubmit()
     {
@@ -346,6 +384,8 @@ else
         }
         else
         {
+            karty.OstatniaZmiana = "Ostatnia zmiana: " + user + " Data: " + DateTime.Now;
+
             response = await Http.PutAsJsonAsync($"api/KartyInstrukcyjne/{karty.Id}", karty);
 
             if (kartyInstrukcyjne != null) originalkartyInstrukcyjne = kartyInstrukcyjne.DeepCopyList();
@@ -471,7 +511,7 @@ else
 
         _visible = true;
 
-           //await HandleSubmit();
+        //await HandleSubmit();
         // _visible = false;
         // await HideDialog();
     }
@@ -496,6 +536,11 @@ else
         blokuj_2_click = false;
 
         karty = new KartyInstrukcyjne();
+
+        karty.KtoZapisal = user;
+
+        karty.OstatniaZmiana = "Dodał: " + user + " Data: " + DateTime.Now;
+
         cid = -1;
 
         display = "block";
@@ -718,6 +763,17 @@ else
         }
     }
 
+    public class ObjectValueSystemOption
+    {
+        public string? value { get; set; }
+
+        public override string ToString()
+        {
+            return $"{value}";
+        }
+    }
+
+
     public class ResponseModel
     {
         public string? name { get; set; }
@@ -737,5 +793,17 @@ else
            return false;
        }
        };
+
+    Func<object, object, bool> CompareWithSystem = (a, b) =>
+    {
+    if (a is ObjectValueSystemOption o1 && b is ObjectValueSystemOption o2)
+    {
+        return o1.value == o2.value;
+    }
+    else
+    {
+        return false;
+    }
+    };
 
 }
