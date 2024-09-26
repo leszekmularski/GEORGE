@@ -13,6 +13,8 @@
 @using System.Net;
 @using System.Text.Json;
 @inject INotificationService _notice
+@using AntDesign.TableModels
+@using System.ComponentModel.DataAnnotations
 
 
 <!DOCTYPE html>
@@ -158,6 +160,7 @@
             <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
                 <Button class="btn-back" Icon="@IconType.Fill.Backward" OnClick="GoBack"></Button>
             </Tooltip>
+            <label style="color:aqua; padding-left:8px">Zaznaczyłeś wierszy: @_iloscZaznaczonych</label>
         </Header>
 
         <Content Style="height:80%">
@@ -171,9 +174,11 @@
 
                 if (elementyDoZlecen.Count > 0)
                 {
-                    <div>
+  
                         <Table TItem="ElemetZamDoZlecenWithProducent" DataSource="elementyDoZlecen" @bind-PageSize="@_pageSize"
-                               Loading="false" ScrollX="2450" Size="TableSize.Small">
+                           Loading="false" ScrollX="2450" Size="TableSize.Small" OnChange="OnChangeSel">
+                                <ColumnDefinitions Context="context">
+                                <Selection />
                             <PropertyColumn Title="ID" Property="c=>c.ElemetZamDoZlecen.Id" Hidden />
                             <PropertyColumn Width="250" Title="Nazwa Producenta" Property="c=>c.ProducentIMiejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable />
                             <PropertyColumn Width="220" Property="c=>c.ElemetZamDoZlecen.NazwaProduktu" Sortable Filterable></PropertyColumn>@* DefaultSortOrder="SortDirection.Ascending" *@
@@ -224,9 +229,8 @@
                                     </Popconfirm>
                                 }
                             </ActionColumn>
+                            </ColumnDefinitions>
                         </Table>
-
-                    </div>
                 }
                 else
                 {
@@ -338,6 +342,8 @@
     private List<ElemetZamDoZlecenWithProducent>? elementyDoZlecen;
     private List<ElemetZamDoZlecenWithProducent>? oryginalElementyDoZlecen;
 
+    List<ElemetZamDoZlecenWithProducent> mockDb = new();
+
     private GEORGE.Client.Pages.PDF.ZestawienieElementZamowienia? zestawienie;
 
     private bool _visible = false;
@@ -357,6 +363,8 @@
     int _pageSize = 7;
 
     string dotyczyZlecenia = "";
+
+    int _iloscZaznaczonych = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -443,6 +451,13 @@
         {
             Console.WriteLine($"Błąd pobierania zleceń produkcyjnych: {ex.Message}");
         }
+    }
+
+    void OnChangeSel(QueryModel<ElemetZamDoZlecenWithProducent> query)
+    {
+        _iloscZaznaczonych = mockDb.AsQueryable().ExecuteTableQuery(query).Count();
+        var _dataSourceTest = mockDb.AsQueryable().ExecuteTableQuery(query).CurrentPagedRecords(query).ToList();
+        Console.WriteLine($"Zaznaczyłeś ilość wierszy: {_iloscZaznaczonych}");
     }
 
     public async Task ExportToExcel()

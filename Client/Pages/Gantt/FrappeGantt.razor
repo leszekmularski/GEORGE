@@ -134,7 +134,6 @@
                             <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
                                 <Button class="btn-back" Icon="@IconType.Fill.Backward" OnClick="GoBack"></Button>
                             </Tooltip>
-
                         </h7>
                     </Header>
                     <Layout>
@@ -196,7 +195,7 @@
                     <div style="padding-top:25px;padding-left:5px;padding-right:5px;width:100%;">
                         <Table @ref="_table" TItem="DaneDoPlanowaniaViewModel" PageSize="4" DataSource="@przefiltrowanedaneNiezaplanowane" Total="_total"
                                @bind-SelectedRows="_selectedRows" Style="width: 100%; font-size: 9px;" RowKey="x => x.ZleceniaProdukcyjneDto.RowId"
-                               Size="TableSize.Small" OnRow="OnRow" OnRowClick="OnChangeTblClik" Loading="_loading" OnChange="OnChange">
+                               Size="TableSize.Small" OnRow="OnRow" OnRowClick="OnChangeTblClik" Loading="_loading" OnChange="OnChangeSelFG">
 
                             <Selection Style="width:25px" Title="Wybierz"></Selection>
                             <PropertyColumn Width="85px" Title="Klient" Property="c => c.ZleceniaProdukcyjneDto.Klient" Sortable OnFilter="(a, b) => a == b" Filterable />
@@ -207,6 +206,7 @@
                             <PropertyColumn Style="width:35px" Title="Nr Zam." Property="c => c.ZleceniaProdukcyjneDto.NumerZamowienia" Sortable />
                             <PropertyColumn Style="width:35px" Title="Czas wyk." Property="c => c.DomyslnyCzasProdukcji" Sortable />
                         </Table>
+                        <label style="padding-left:6px">Ilość zaznaczonych: @_totalSelect</label>
                     </div>
                     }
                     else
@@ -268,7 +268,9 @@
 
     private List<DaneDoPlanowaniaViewModel>? przefiltrowaneDaneDoPlanowania;
 
-    int _total;
+    private int _total;
+
+    private int _totalSelect;
 
     bool _loading = false;
 
@@ -315,15 +317,17 @@
 
     private async Task OnChangeTblClik()
     {
-        Console.WriteLine("test");
+        Console.WriteLine("OnChangeTblClik");
         // Sprawdzenie, czy są zaznaczone wiersze
-        if (_selectedRows == null || !_selectedRows.Any())
+        if (_selectedRows != null || !_selectedRows.Any())
         {
             okButtonProps.Disabled = true;
+            Console.WriteLine("OnChangeTblClik - OK");
         }
         else
         {
             okButtonProps.Disabled = false;
+            Console.WriteLine("OnChangeTblClik - NOK");
         }
 
         // Możesz dodać logikę asynchroniczną tutaj, jeśli jest potrzebna
@@ -331,11 +335,11 @@
 
     }
 
-    void OnChange(QueryModel<DaneDoPlanowaniaViewModel> query)
+    void OnChangeSelFG(QueryModel<DaneDoPlanowaniaViewModel> query)
     {
-        var _total = mockDb.AsQueryable().ExecuteTableQuery(query).Count();
-        var _dataSource = mockDb.AsQueryable().ExecuteTableQuery(query).CurrentPagedRecords(query).ToList();
-        if (_total == 0)
+        _totalSelect = mockDb.AsQueryable().ExecuteTableQuery(query).Count();
+        var _dataSourceTest = mockDb.AsQueryable().ExecuteTableQuery(query).CurrentPagedRecords(query).ToList();
+        if (_totalSelect == 0)
         {
             okButtonProps.Disabled = false;
         }
@@ -344,26 +348,6 @@
             okButtonProps.Disabled = true;
         }
     }
-
-    // private async Task OnChangeTblClik(QueryModel<DaneDoPlanowaniaViewModel> query)
-    // {
-
-    //     Console.WriteLine(query.ToString());  
-
-    //     // Sprawdzenie, czy są zaznaczone wiersze
-    //     if (_selectedRows == null || !_selectedRows.Any())
-    //     {
-    //         okButtonProps.Disabled = true;
-    //     }
-    //     else
-    //     {
-    //         okButtonProps.Disabled = false;
-    //     }
-
-    //     // Możesz dodać logikę asynchroniczną tutaj, jeśli jest potrzebna
-    //     await Task.CompletedTask;
-
-    // }
 
     Dictionary<string, object> OnRow(RowData<DaneDoPlanowaniaViewModel> row)
     {
