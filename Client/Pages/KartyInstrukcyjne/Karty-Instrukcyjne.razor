@@ -17,20 +17,20 @@
     }
 
     .karta1, .karta1 > td {
-        background-color: lightblue !important;
+        background-color: lightskyblue !important;
     }
 
     .karta1:hover, .karta1:hover > td {
-    background-color: lime !important;
+    background-color: bisque !important;
     font-size: 1.0em;
     }
 
     .karta2, .karta2 > td {
-        background-color: lightslategray !important;
+        background-color: lightcoral !important;
     }
 
     .karta2:hover, .karta2:hover > td {
-        background-color: lime !important;
+            background-color: bisque !important;
         font-size: 1.0em;
     }
 
@@ -39,7 +39,7 @@
     }
 
     .move-class:hover, .dxf-class:hover > td {
-        background-color: white !important;
+            background-color: bisque !important;
         font-size: 1.0em;
     }
 
@@ -65,7 +65,7 @@ else
 {
     <ul>
         <Table TItem="KartyInstrukcyjne" DataSource="@kartyInstrukcyjne"
-               RowClassName="@(x => x.Data.NumerKarty.ToLower().Contains("KCB") ? "karta1" : x.Data.NumerKarty.ToLower().Contains("KMB") ? "karta2" : "move-class")">
+               RowClassName="@(x => x.Data.NumerKarty.ToUpper().StartsWith("KCB") ? "karta1" : x.Data.NumerKarty.ToUpper().StartsWith("KMB") ? "karta2" : "move-class")">
             <Column Title="ID" @bind-Field="@context.Id" Hidden />
             <Column Title="Numer Karty" @bind-Field="@context.NumerKarty" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Opis Karty" @bind-Field="@context.OpisKarty" Sortable />

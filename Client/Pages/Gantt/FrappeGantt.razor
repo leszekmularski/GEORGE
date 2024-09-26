@@ -195,10 +195,9 @@
                     <div style="padding-top:25px;padding-left:5px;padding-right:5px;width:100%;">
                         <Table @ref="_table" TItem="DaneDoPlanowaniaViewModel" PageSize="4" DataSource="@przefiltrowanedaneNiezaplanowane" Total="_total"
                                @bind-SelectedRows="_selectedRows" Style="width: 100%; font-size: 9px;" RowKey="x => x.ZleceniaProdukcyjneDto.RowId"
-                               Size="TableSize.Small" OnRow="OnRow" OnRowClick="OnChangeTblClik" Loading="_loading" OnChange="OnChangeSelFG">
-
-                            <Selection Style="width:25px" Title="Wybierz"></Selection>
-                            <PropertyColumn Width="85px" Title="Klient" Property="c => c.ZleceniaProdukcyjneDto.Klient" Sortable OnFilter="(a, b) => a == b" Filterable />
+                               Size="TableSize.Small" OnSelectAll="testClick" OnRowClick="testClick" >
+                            <Selection Style="width:25px" CheckStrictly="_checkStrictly"  />
+                            <PropertyColumn Width="85px" Title="Klient" Property="c => c.ZleceniaProdukcyjneDto.Klient" Sortable OnFilter="(a, b) => a == b" Filterable/>
                             <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan Prod." Property="c => c.PlanowanaDataRozpoczeciaProdukcji" Sortable />
                             <PropertyColumn Style="width:35px" Title="Typ_Dok." Property="c => c.ZleceniaProdukcyjneDto.TypZamowienia" Sortable />
                             <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan. Zakoń." Property="c => c.ZleceniaProdukcyjneDto.DataProdukcji" Sortable />
@@ -206,7 +205,7 @@
                             <PropertyColumn Style="width:35px" Title="Nr Zam." Property="c => c.ZleceniaProdukcyjneDto.NumerZamowienia" Sortable />
                             <PropertyColumn Style="width:35px" Title="Czas wyk." Property="c => c.DomyslnyCzasProdukcji" Sortable />
                         </Table>
-                        <label style="padding-left:6px">Ilość zaznaczonych: @_totalSelect</label>
+                        <label style="padding-left:6px">Ilość zaznaczonych: @(_selectedRows == null ? 0 : _selectedRows.Count())</label>
                     </div>
                     }
                     else
@@ -264,15 +263,16 @@
 
     ITable? _table;
     IEnumerable<DaneDoPlanowaniaViewModel> _selectedRows = [];
-    List<DaneDoPlanowaniaViewModel> mockDb = new();
 
     private List<DaneDoPlanowaniaViewModel>? przefiltrowaneDaneDoPlanowania;
 
     private int _total;
 
-    private int _totalSelect;
+    //  private int _totalSelect;
 
     bool _loading = false;
+
+    bool _checkStrictly;
 
     private DotNetObjectReference<FrappeGantt>? dotNetHelper;
     //private List<PodmiotPrzypisPracownikowiViewModel>? dane_full_plan;
@@ -315,62 +315,80 @@
 
     }
 
-    private async Task OnChangeTblClik()
+    private async Task testClick()
     {
-        Console.WriteLine("OnChangeTblClik");
-        // Sprawdzenie, czy są zaznaczone wiersze
+
         if (_selectedRows != null || !_selectedRows.Any())
         {
-            okButtonProps.Disabled = true;
-            Console.WriteLine("OnChangeTblClik - OK");
-        }
-        else
-        {
-            okButtonProps.Disabled = false;
-            Console.WriteLine("OnChangeTblClik - NOK");
-        }
-
-        // Możesz dodać logikę asynchroniczną tutaj, jeśli jest potrzebna
-        await Task.CompletedTask;
-
-    }
-
-    void OnChangeSelFG(QueryModel<DaneDoPlanowaniaViewModel> query)
-    {
-        _totalSelect = mockDb.AsQueryable().ExecuteTableQuery(query).Count();
-        var _dataSourceTest = mockDb.AsQueryable().ExecuteTableQuery(query).CurrentPagedRecords(query).ToList();
-        if (_totalSelect == 0)
-        {
-            okButtonProps.Disabled = false;
-        }
-        else
-        {
-            okButtonProps.Disabled = true;
-        }
-    }
-
-    Dictionary<string, object> OnRow(RowData<DaneDoPlanowaniaViewModel> row)
-    {
-        Action<MouseEventArgs> OnClick = args =>
-        {
-            Console.WriteLine($"row {row.Data.TypZamowienia} was clicked");
-
-            // Sprawdzenie, czy są zaznaczone wiersze
-            if (_selectedRows == null || !_selectedRows.Any())
-            {
-                okButtonProps.Disabled = true;
-            }
-            else
+            if (_selectedRows.Count() == 0)
             {
                 okButtonProps.Disabled = false;
             }
-        };
+            else
+            {
+                okButtonProps.Disabled = true;
+            }
+        }
 
-        return new Dictionary<string, object>
-        {
-            { "onclick", OnClick },
-        };
+        await Task.CompletedTask;
     }
+
+    // private async Task OnChangeTblClik()
+    // {
+    //     Console.WriteLine("OnChangeTblClik");
+    //     // Sprawdzenie, czy są zaznaczone wiersze
+    //     if (_selectedRows != null || !_selectedRows.Any())
+    //     {
+    //         okButtonProps.Disabled = true;
+    //         Console.WriteLine("OnChangeTblClik - OK");
+    //     }
+    //     else
+    //     {
+    //         okButtonProps.Disabled = false;
+    //         Console.WriteLine("OnChangeTblClik - NOK");
+    //     }
+
+    //     // Możesz dodać logikę asynchroniczną tutaj, jeśli jest potrzebna
+    //     await Task.CompletedTask;
+
+    // }
+
+    // void OnChangeSelFG(QueryModel<DaneDoPlanowaniaViewModel> query)
+    // {
+    //     _totalSelect = mockDb.AsQueryable().ExecuteTableQuery(query).Count();
+    //     var _dataSourceTest = mockDb.AsQueryable().ExecuteTableQuery(query).CurrentPagedRecords(query).ToList();
+    //     if (_totalSelect == 0)
+    //     {
+    //         okButtonProps.Disabled = false;
+    //     }
+    //     else
+    //     {
+    //         okButtonProps.Disabled = true;
+    //     }
+    // }
+
+    // Dictionary<string, object> OnRow(RowData<DaneDoPlanowaniaViewModel> row)
+    // {
+    //     Action<MouseEventArgs> OnClick = args =>
+    //     {
+    //         Console.WriteLine($"row {row.Data.TypZamowienia} was clicked");
+
+    //         // Sprawdzenie, czy są zaznaczone wiersze
+    //         if (_selectedRows == null || !_selectedRows.Any())
+    //         {
+    //             okButtonProps.Disabled = true;
+    //         }
+    //         else
+    //         {
+    //             okButtonProps.Disabled = false;
+    //         }
+    //     };
+
+    //     return new Dictionary<string, object>
+    //     {
+    //         { "onclick", OnClick },
+    //     };
+    // }
 
     private void ClicRadioGroup()
     {
@@ -378,7 +396,7 @@
         {
             przefiltrowanedaneNiezaplanowane = daneNiezaplanowane.Where(x => x.ZlecenieWewnetrzne == _valueZlecenie).ToList();
 
-            OnChangeTblClik();
+            //OnChangeTblClik();
             // Odśwież widok (jeśli używasz Blazor)
             StateHasChanged();
 
@@ -418,9 +436,9 @@
             _visible = false; // Zamknięcie modalnego okna po dodaniu
 
             // Jeśli chcesz usunąć zaznaczone wiersze z listy danych niezaplanowanych
-            mockDb = mockDb.Except(_selectedRows).ToList();
-
             _selectedRows = null; // Wyczyść zaznaczone wiersze
+
+            przefiltrowanedaneNiezaplanowane = null;
 
             await FetchData();
 
@@ -429,6 +447,9 @@
             click_task = "";
             click_RowIdZlecenia = "";
             Console.WriteLine("Zlecenia dodano.");
+
+            _selectedValue = null;
+
             await _message.Success("Zlecenia dodano.");
 
         }
@@ -437,7 +458,7 @@
             Console.WriteLine("Wystąpił błąd podczas dodawania zleceń.");
         }
 
-        await InitializeFrappeGantt();
+       // await InitializeFrappeGantt();
 
         // Odśwież widok (jeśli używasz Blazora)
         StateHasChanged();
@@ -476,7 +497,7 @@
 
         ladujDane = true;
 
-        await OnChangeTblClik();
+        //await OnChangeTblClik();
 
     }
 

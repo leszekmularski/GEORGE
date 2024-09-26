@@ -103,19 +103,23 @@
             const data = JSON.parse(jsonData);
             const csvRows = [];
 
-            // Define headers
-                const headers = ["NazwaProduktu", "NumerKatalogowy", "Typ", "IloscSztuk", "IloscSztuk", "Dlugosc", "Szerokosc", "Wysokosc"];
+            // Zdefiniuj nagłówki - unikamy powtórzeń i zachowujemy kolejność zgodnie z C#
+            const headers = ["NazwaProduktu", "NumerKatalogowy", "Typ", "IloscSztuk", "Dlugosc", "Szerokosc", "Wysokosc"];
             csvRows.push(headers.join(','));
 
+            // Przetwarzaj dane
             for (const row of data) {
                 const values = headers.map(header => {
-                    const escaped = ('' + (row[header] || "")).replace(/"/g, '\\"');
-                    return `"${escaped}"`;
+                    // Użyj klucza header do pobrania odpowiedniej wartości z każdego wiersza
+                    const value = row[header] || "";  // Używamy pustego stringa jeśli wartość jest null lub undefined
+                    // Ucieczka znaków podwójnych cudzysłowów i innych specjalnych znaków
+                    const escaped = ('' + value).replace(/"/g, '""');
+                    return `"${escaped}"`;  // Zwróć wartość otoczoną cudzysłowami
                 });
                 csvRows.push(values.join(','));
             }
 
-            // Create CSV file
+            // Stworzenie pliku CSV
             const csvString = csvRows.join('\n');
             const blob = new Blob([csvString], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
@@ -127,6 +131,7 @@
             a.click();
             document.body.removeChild(a);
         }
+
     </script>
 
 </head>
@@ -144,23 +149,26 @@
 
             @if (elementyDoZlecen != null && elementyDoZlecen.Count > 0)
             {
-                <Button Type="reset" OnClick="@(CopySzybyToClipboard)">
-                    @uwagaKopiuj
-                </Button>
+                <Tooltip Placement="@Placement.BottomCenter" Title="@uwagaKopiuj">
+                    <Button Type="reset" Icon="@IconType.Fill.Copy" OnClick="@(CopyElementyToClipboard)" />
+                </Tooltip>
                 <Button Type="reset" OnClick="@(ExportToExcel)">
                     Zapisz do pliku CSV - wszystko
                 </Button>
-                <Button Type="reset" OnClick="@(ExportSelectedColumnsToExcel)">
-                    Zapisz do pliku CSV - tylko wymagane kolumny
+                <Tooltip Placement="@Placement.BottomCenter" Title="Zapisz do pliku CSV - tylko wymagane">
+                    <Button Type="reset" Icon="@IconType.Fill.FileExcel" OnClick="@(ExportSelectedColumnsToExcel)"/>
+                </Tooltip>
+                <Button Type="reset" OnClick="@(ExportSelectedColumnsItemsToExcel)">
+                    Zapisz do pliku CSV - zaznaczone
                 </Button>
             }
             <Tooltip Placement="@Placement.TopRight" Title="Ilość widocznych wierszy">
-            <AntDesign.InputNumber @bind-Value="_pageSize" Min="1" Max="25" DefaultValue="7" PlaceHolder="Ilość widocznych wierszy"></AntDesign.InputNumber>
+                <AntDesign.InputNumber @bind-Value="_pageSize" Min="1" Max="25" DefaultValue="7" PlaceHolder="Ilość widocznych wierszy"></AntDesign.InputNumber>
             </Tooltip>
             <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
                 <Button class="btn-back" Icon="@IconType.Fill.Backward" OnClick="GoBack"></Button>
             </Tooltip>
-            <label style="color:aqua; padding-left:8px">Zaznaczyłeś wierszy: @_iloscZaznaczonych</label>
+            <label style="color:aqua; padding-left:8px">Zaznaczyłeś wierszy: @(_items == null ? 0 : _items.Count())</label>
         </Header>
 
         <Content Style="height:80%">
@@ -174,11 +182,11 @@
 
                 if (elementyDoZlecen.Count > 0)
                 {
-  
-                        <Table TItem="ElemetZamDoZlecenWithProducent" DataSource="elementyDoZlecen" @bind-PageSize="@_pageSize"
-                           Loading="false" ScrollX="2450" Size="TableSize.Small" OnChange="OnChangeSel">
-                                <ColumnDefinitions Context="context">
-                                <Selection />
+
+                    <Table TItem="ElemetZamDoZlecenWithProducent" DataSource="elementyDoZlecen" @bind-PageSize="@_pageSize"
+                           Loading="_loading" ScrollX="2450" Size="TableSize.Small" RowKey="x=>x.ElemetZamDoZlecen.Id" @bind-SelectedRows="_items">
+                        <ColumnDefinitions Context="context">
+                            <Selection Width="25px" />
                             <PropertyColumn Title="ID" Property="c=>c.ElemetZamDoZlecen.Id" Hidden />
                             <PropertyColumn Width="250" Title="Nazwa Producenta" Property="c=>c.ProducentIMiejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable />
                             <PropertyColumn Width="220" Property="c=>c.ElemetZamDoZlecen.NazwaProduktu" Sortable Filterable></PropertyColumn>@* DefaultSortOrder="SortDirection.Ascending" *@
@@ -186,7 +194,7 @@
                             <PropertyColumn Title="Kolor" Property="c=>c.ElemetZamDoZlecen.Kolor" Sortable />
                             <PropertyColumn Title="Typ" Property="c=>c.ElemetZamDoZlecen.Typ" Sortable />
                             <PropertyColumn Title="Jednostka" Property="c=>c.ElemetZamDoZlecen.Jednostka" />
-                            <PropertyColumn Title="Ilość" Property="c=>c.ElemetZamDoZlecen.IloscSztuk" />
+                            <PropertyColumn Title="Ilość" Width="50px" Property="c=>c.ElemetZamDoZlecen.IloscSztuk" />
                             <PropertyColumn Title="Data Zamówienia" Property="c=>c.ElemetZamDoZlecen.DataZamowienia" Format="yyyy-MM-dd" />
                             <PropertyColumn Title="Opis" Property="c=>c.ElemetZamDoZlecen.Opis" />
                             <Column Title="Czy zamówiono" TData="ElemetZamDoZlecenWithProducent">
@@ -199,7 +207,7 @@
                                     <Checkbox @bind-Checked="@context.ElemetZamDoZlecen.PozDostarczono" OnChange="(e)=>HandleDost(e, context.ElemetZamDoZlecen.Id)" Disabled="isNotDisabled" />
                                 </Template>
                             </Column>
-                             <PropertyColumn Title="Szerokość" Property="c=>c.ElemetZamDoZlecen.Szerokosc" />
+                            <PropertyColumn Title="Szerokość" Property="c=>c.ElemetZamDoZlecen.Szerokosc" />
                             <PropertyColumn Title="Wysokość" Property="c=>c.ElemetZamDoZlecen.Wysokosc" />
                             <PropertyColumn Title="Długość" Property="c=>c.ElemetZamDoZlecen.Dlugosc" />
                             <PropertyColumn Title="Objętość" Property="c=>c.ElemetZamDoZlecen.Objetosc" />
@@ -229,8 +237,8 @@
                                     </Popconfirm>
                                 }
                             </ActionColumn>
-                            </ColumnDefinitions>
-                        </Table>
+                        </ColumnDefinitions>
+                    </Table>
                 }
                 else
                 {
@@ -239,7 +247,7 @@
             }
         </Content>
 
-        <Footer >
+        <Footer>
             <div>
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <label for="fileInput" style="font-size:0.7em; font-weight:bold;">
@@ -364,7 +372,9 @@
 
     string dotyczyZlecenia = "";
 
-    int _iloscZaznaczonych = 0;
+   bool _loading = false;
+
+    IEnumerable<ElemetZamDoZlecenWithProducent>? _items;
 
     protected override async Task OnInitializedAsync()
     {
@@ -403,6 +413,8 @@
             Console.WriteLine($"RowIdZlecenia: {RowIdZlecenia}");
         }
 
+        _loading = true;
+
         try
         {
             elementyDoZlecen = await Http.GetFromJsonAsync<List<ElemetZamDoZlecenWithProducent>>($"api/ElementyDoZlecen/rowid/{RowIdZlecenia}");
@@ -415,7 +427,7 @@
 
         try
         {
-            if(typ == "zew")
+            if (typ == "zew")
             {
                 var response = await Http.GetAsync($"api/ZlecenieProdukt/getzlecclickzew/{RowIdZlecenia}");
 
@@ -451,14 +463,17 @@
         {
             Console.WriteLine($"Błąd pobierania zleceń produkcyjnych: {ex.Message}");
         }
+
+        _loading = false;
     }
 
-    void OnChangeSel(QueryModel<ElemetZamDoZlecenWithProducent> query)
-    {
-        _iloscZaznaczonych = mockDb.AsQueryable().ExecuteTableQuery(query).Count();
-        var _dataSourceTest = mockDb.AsQueryable().ExecuteTableQuery(query).CurrentPagedRecords(query).ToList();
-        Console.WriteLine($"Zaznaczyłeś ilość wierszy: {_iloscZaznaczonych}");
-    }
+    // void OnChangeSel(QueryModel<ElemetZamDoZlecenWithProducent> query)
+    // {
+    //     _iloscZaznaczonych = mockDb.AsQueryable().ExecuteTableQuery(query).Count();
+    //     var _dataSourceTest = mockDb.AsQueryable().ExecuteTableQuery(query).CurrentPagedRecords(query).ToList();
+    //     Console.WriteLine($"Zaznaczyłeś ilość wierszy: {_iloscZaznaczonych}");
+    // }
+
 
     public async Task ExportToExcel()
     {
@@ -468,6 +483,33 @@
             await JSRuntime.InvokeVoidAsync("saveAsExcel", jsonData);
         }
     }
+
+    public async Task ExportSelectedColumnsItemsToExcel()
+    {
+        // Sprawdzenie, czy są zaznaczone elementy
+        if (_items != null && _items.Any())
+        {
+            var selectedData = _items.Select(k => new
+            {
+                NazwaProduktu = RemoveWhitespace(k.ElemetZamDoZlecen.NazwaProduktu),
+                NumerKatalogowy = RemoveWhitespace(k.ElemetZamDoZlecen.NumerKatalogowy),
+                Typ = RemoveWhitespace(k.ElemetZamDoZlecen.Typ),
+                IloscSztuk = k.ElemetZamDoZlecen.IloscSztuk,
+                Dlugosc = k.ElemetZamDoZlecen.Dlugosc,
+                Szerokosc = k.ElemetZamDoZlecen.Szerokosc,
+                Wysokosc = k.ElemetZamDoZlecen.Wysokosc,
+            });
+
+            var jsonData = JsonSerializer.Serialize(selectedData);
+            await JSRuntime.InvokeVoidAsync("saveAsExcelSel", jsonData);
+        }
+        else
+        {
+            // Można dodać komunikat dla użytkownika, że nie wybrano żadnych elementów
+            Console.WriteLine("Brak zaznaczonych elementów do eksportu.");
+        }
+    }
+
 
     public async Task ExportSelectedColumnsToExcel()
     {
@@ -498,7 +540,7 @@
     }
 
 
-    private async Task CopySzybyToClipboard()
+    private async Task CopyElementyToClipboard()
     {
         if (elementyDoZlecen == null || elementyDoZlecen.Count == 0) return;
 
@@ -603,7 +645,7 @@
 
             pdfContent = PdfReaderService.ReadPdfTable(path);
 
-           zestawienie = PdfDataParserElement.ParsePdfDataElementy(pdfContent);
+            zestawienie = PdfDataParserElement.ParsePdfDataElementy(pdfContent);
 
             StateHasChanged();
 
