@@ -102,40 +102,43 @@ else
                             </AntDesign.FormItem>
                         </TabPane>
                         <TabPane Key="1" Tab="Osoby kontaktowe">
-                            <AntDesign.FormItem Label="Osoba kontaktowa">
+                            <AntDesign.FormItem Label="Osoba kontaktowa 1" Style="margin-bottom: 5px;">
                                 <AntDesign.Input @bind-Value="producent.OsobaKontaktowa1" />
                             </AntDesign.FormItem>
-                            <AntDesign.FormItem Label="Telefon Osoby Kontaktowej">
+                            <AntDesign.FormItem Label="Telefon Osoby Kontaktowej 1" Style="margin-bottom: 5px;">
                                 <AntDesign.Input @bind-Value="producent.TelefonOsobyKontaktowej1" />
                             </AntDesign.FormItem>
-                            <AntDesign.FormItem Label="Email Osoby Kontaktowej">
+                            <AntDesign.FormItem Label="Email Osoby Kontaktowej 1" Style="margin-bottom: 5px;">
                                 <AntDesign.Input @bind-Value="producent.EmailOsobyKontaktowej1" />
                             </AntDesign.FormItem>
-                            <AntDesign.FormItem Label="Osoba kontaktowa 2">
+                            <hr style="margin: 10px 0; color:darkblue" />
+                            <AntDesign.FormItem Label="Osoba kontaktowa 2" Style="margin-bottom: 5px;">
                                 <AntDesign.Input @bind-Value="producent.OsobaKontaktowa2" />
                             </AntDesign.FormItem>
-                            <AntDesign.FormItem Label="Telefon Osoby Kontaktowej 2">
+                            <AntDesign.FormItem Label="Telefon Osoby Kontaktowej 2" Style="margin-bottom: 5px;">
                                 <AntDesign.Input @bind-Value="producent.TelefonOsobyKontaktowej2" />
                             </AntDesign.FormItem>
-                            <AntDesign.FormItem Label="Email Osoby Kontaktowej2">
+                            <AntDesign.FormItem Label="Email Osoby Kontaktowej2" Style="margin-bottom: 5px;">
                                 <AntDesign.Input @bind-Value="producent.EmailOsobyKontaktowej2" />
                             </AntDesign.FormItem>
-                            <AntDesign.FormItem Label="Osoba kontaktowa 3">
+                            <hr style="margin: 10px 0; color:darkblue" />
+                            <AntDesign.FormItem Label="Osoba kontaktowa 3" Style="margin-bottom: 5px;">
                                 <AntDesign.Input @bind-Value="producent.OsobaKontaktowa3" />
                             </AntDesign.FormItem>
-                            <AntDesign.FormItem Label="Telefon Osoby Kontaktowej 3">
+                            <AntDesign.FormItem Label="Telefon Osoby Kontaktowej 3" Style="margin-bottom: 5px;">
                                 <AntDesign.Input @bind-Value="producent.TelefonOsobyKontaktowej3" />
                             </AntDesign.FormItem>
-                            <AntDesign.FormItem Label="Email Osoby Kontaktowej3">
+                            <AntDesign.FormItem Label="Email Osoby Kontaktowej3" Style="margin-bottom: 5px;">
                                 <AntDesign.Input @bind-Value="producent.EmailOsobyKontaktowej3" />
                             </AntDesign.FormItem>
-                            <AntDesign.FormItem Label="Osoba kontaktowa 4">
+                            <hr style="margin: 10px 0; color:darkblue" />
+                            <AntDesign.FormItem Label="Osoba kontaktowa 4" Style="margin-bottom: 5px;">
                                 <AntDesign.Input @bind-Value="producent.OsobaKontaktowa4" />
                             </AntDesign.FormItem>
-                            <AntDesign.FormItem Label="Telefon Osoby Kontaktowej 4">
+                            <AntDesign.FormItem Label="Telefon Osoby Kontaktowej 4" Style="margin-bottom: 5px;">
                                 <AntDesign.Input @bind-Value="producent.TelefonOsobyKontaktowej4" />
                             </AntDesign.FormItem>
-                            <AntDesign.FormItem Label="Email Osoby Kontaktowej4">
+                            <AntDesign.FormItem Label="Email Osoby Kontaktowej4" Style="margin-bottom: 5px;">
                                 <AntDesign.Input @bind-Value="producent.EmailOsobyKontaktowej4" />
                             </AntDesign.FormItem>
                         </TabPane>
@@ -158,7 +161,7 @@ else
                         </TabPane>
                     </Tabs>
                     <AntDesign.FormItem>
-                        <AntDesign.Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</AntDesign.Button>
+                        <AntDesign.Button Type="primary" @onclick="@HandleAddNew" Disabled="@blokujDwuKlik" HtmlType="submit">Zapisz</AntDesign.Button>
                         <AntDesign.Button @onclick="@HandleCancel">Anuluj</AntDesign.Button>
                     </AntDesign.FormItem>
                 </AntDesign.Form>
@@ -344,6 +347,9 @@ else
 
     public async Task HandleAddNew()
     {
+
+        if (string.IsNullOrEmpty(producent.NazwaProducenta)) return;
+
         // Sprawdź unikalność NumerRodzajuKart
         var responsedbl = rodzajeProducentow.Where(e => e.NazwaProducenta.ToLower() == producent.NazwaProducenta.ToLower());
 

@@ -151,6 +151,9 @@
         <Button Type="reset" OnClick="@(ExportSelectedColumnsToExcel)">
             Zapisz do pliku CSV - tylko wymagane kolumny
         </Button>
+        <Button Type="reset" OnClick="@(UstawDateZamowienia)">
+            Kantówkę zamówiono
+        </Button>
     }
     <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
         <Button class="btn-back" Icon="@IconType.Fill.Backward" OnClick="GoBack"></Button>
@@ -182,7 +185,8 @@
                 <Column Title="Autor zmian" @bind-Field="@context.KtoZapisal" Sortable />
 
                 <!-- Przykład kolumny dla daty z formatowaniem -->
-                <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd HH:mm:ss" Sortable />
+                    <Column Title="Data zamówienia" TData="DateTime" DataIndex="DataZamowienia" Format="yyyy-MM-dd" Sortable />
+                <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd" Sortable />
                 <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
                 <ActionColumn Title="Akcja" Width="100" Fixed="right">
                     @if (boolAdmin || boolZmian)
@@ -292,7 +296,7 @@
                                     <AntDesign.Input @bind-Value="kantowka.DlugoscNaGotowo" OnBlur="LiczDlugoscZam" />
                                 </AntDesign.FormItem>
                                 <AntDesign.FormItem Label="Ilość sztuk">
-                                    <AntDesign.Input @bind-Value="kantowka.IloscSztuk" />
+                                        <AntDesign.InputNumber @bind-Value="kantowka.IloscSztuk" />
                                 </AntDesign.FormItem>
                             </div>
 
@@ -305,10 +309,10 @@
                                     <AntDesign.Input @bind-Value="kantowka.DlugoscZamawiana" />
                                 </AntDesign.FormItem>
                                 <AntDesign.FormItem Label="Data Zamówienia">
-                                    <AntDesign.Input @bind-Value="kantowka.DataZamowienia" Required />
+                                        <AntDesign.DatePicker @bind-Value="kantowka.DataZamowienia" Required />
                                 </AntDesign.FormItem>
                                 <AntDesign.FormItem Label="Data Realizacji">
-                                    <AntDesign.Input @bind-Value="kantowka.DataRealizacji" Required />
+                                        <AntDesign.DatePicker @bind-Value="kantowka.DataRealizacji" Required />
                                 </AntDesign.FormItem>
                                 <AntDesign.FormItem Label="Materiał jest na stanie magazynowy">
                                     <AntDesign.Checkbox @bind-Value="kantowka.MaterialZeStanMagazyn" />
@@ -480,7 +484,29 @@
 
         uwagaKopiuj = "Dane skopiowano do schowka";
 
-       await _message.Success("Dane skopiowano do schowka");
+        await _message.Success("Dane skopiowano do schowka");
+    }
+
+    public async Task UstawDateZamowienia()
+    {
+        //  var aktualizacja = new { Id = idr, MaterialZeStanMagazyn = nowyStan };
+
+        var response = await Http.PutAsJsonAsync($"api/kantowkaDoZlecen/{RowIdZlecenia}/updateDateZamowienia","");
+
+        if (response.IsSuccessStatusCode)
+        {
+            if (kantowkaDoZlecen != null)
+            {
+                kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecen>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
+                oryginalkantowkaDoZlecen = kantowkaDoZlecen.DeepCopyList();
+
+                await _message.Success("Ustawiono datę zamówienia kantówki");
+            }
+        }
+        else
+        {
+            await _message.Error("Błąd aktualiazcji danych");
+        }
     }
 
     private void LiczDlugoscZam()
@@ -512,7 +538,7 @@
         }
         else
         {
-            // Obsłuż sytuację błędu
+           await _message.Error("Błąd aktualiazcji danych");
         }
     }
 
@@ -558,8 +584,8 @@
                     DlugoscNaGotowo = int.Parse(item.Wymiar),
                     DlugoscNaGotowoGrupa = item.Wymiar,
                     IloscSztuk = int.Parse(item.Ilosc),
-                    DataZamowienia = DateTime.Now,
-                    DataRealizacji = DateTime.Now.AddDays(14),
+                    DataZamowienia = DateTime.MinValue,
+                    DataRealizacji = DateTime.MinValue,
                     DataZapisu = DateTime.Now,
                     KtoZapisal = user,
                 };
@@ -618,8 +644,8 @@
                     DlugoscNaGotowo = g.FirstOrDefault()?.Wymiar != null ? int.Parse(g.FirstOrDefault().Wymiar) : 0,
                     DlugoscNaGotowoGrupa = string.Join("; ", g.Select(item => item.Wymiar)),
                     IloscSztuk = g.Sum(item => int.Parse(item.Ilosc)),
-                    DataZamowienia = DateTime.Now,
-                    DataRealizacji = DateTime.Now.AddDays(14),
+                    DataZamowienia = DateTime.MinValue,
+                    DataRealizacji = DateTime.MinValue,
                     DataZapisu = DateTime.Now,
                     KtoZapisal = user
                 })

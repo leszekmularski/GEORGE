@@ -611,11 +611,13 @@ else
 
                 karty.LinkDoKartyNaSerwerze = result?.url;
                 //Tylko pierwsza!!!!!
+                await _message.Success("Plik zapisano na serwerze", 5);
                 return;
             }
             else
             {
                 Console.WriteLine("File upload failed.");
+                await _message.Error("Błąd przy zapisie pliku na serwerze"); 
             }
         }
     }

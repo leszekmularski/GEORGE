@@ -26,16 +26,11 @@ public class FileUploadController : ControllerBase
             Directory.CreateDirectory(uploadsFolder);
         }
 
-        if (_environment.WebRootPath != null) Console.WriteLine($"_environment.WebRootPath {_environment.WebRootPath}");
+        Console.WriteLine($"_environment.WebRootPath {_environment.WebRootPath}");
 
         var filePath = Path.Combine(uploadsFolder, Guid.NewGuid().ToString() + Path.GetExtension(file.FileName));
 
-        if (!System.IO.File.Exists(filePath))
-        {
-            return BadRequest("Plik nie istnieje!!!!");
-        }
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
+        using (var stream = new FileStream(filePath, FileMode.Create))
         {
             await file.CopyToAsync(stream);
         }
@@ -50,4 +45,5 @@ public class FileUploadController : ControllerBase
 
         return Ok(response);
     }
+
 }

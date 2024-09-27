@@ -18,7 +18,7 @@ namespace GEORGE.Shared.Models
         public int DlugoscNaGotowo { get; set; } = 0;
         public string DlugoscNaGotowoGrupa { get; set; } = "";
         public int IloscSztuk { get; set; } = 0;
-        public DateTime DataZamowienia{ get; set; } = DateTime.Now;
+        public DateTime DataZamowienia{ get; set; } = DateTime.MinValue;
         public DateTime DataRealizacji { get; set; } = DateTime.Now.AddDays(14);
         public DateTime DataZapisu { get; set; } = DateTime.Now;
         public string? KtoZapisal { get; set; }
