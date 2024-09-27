@@ -29,9 +29,22 @@ else
                 <AntDesign.FormItem Label="Numer Katalogowy">
                     <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.NumerKatalogowy" Placeholder="Podaj numer katalogowy producemnta" />
                 </AntDesign.FormItem>
+
                 <AntDesign.FormItem Label="Jednostka">
-                    <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Jednostka" Placeholder="Podaj jednostkę (szt. kpl. litr, metr)" />
+                  @*   <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Jednostka" Placeholder="Podaj jednostkę (szt. kpl. litr, metr)" /> *@
+                   <Select TItem="Item"  TItemValue="string"
+                                            DataSource="@_itemsJednostki"
+                                            @bind-Value="@elementyZamowienia.ElemetZamDoZlecen.Jednostka"
+                        ValueName="@nameof(Item.Value)"
+                        LabelName="@nameof(Item.Name)"
+                        DefaultActiveFirstOption
+		                Style="width: 200px;">
+                   @*  <ItemTemplate>
+                        <span>@((contextX as Item).DisplayName)</span>
+                    </ItemTemplate> *@
+                </Select> 
                 </AntDesign.FormItem>
+
                 <AntDesign.FormItem Label="Kolor">
                     <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Kolor" Placeholder="Podaj kolor" />
                 </AntDesign.FormItem>
@@ -135,6 +148,19 @@ else
             AppState.SomeData = "";
         }
 
+        _itemsJednostki = new List<Item>
+        {
+            new Item { Value = "szt.", Name = "szt.", DisplayName = "sztuki"},
+            new Item { Value = "kpl.", Name = "kpl.", DisplayName = "komplet"},
+            new Item { Value = "mb", Name = "mb", DisplayName = "metry bierzące"},
+            new Item { Value = "l", Name = "l", DisplayName = "litry"},
+            new Item { Value = "kg", Name = "kg", DisplayName = "kilogramy"},
+            new Item { Value = "g", Name = "g", DisplayName = "gramy"},
+            new Item { Value = "t", Name = "t", DisplayName = "tony"},
+            new Item { Value = "m3", Name = "m3", DisplayName = "metry sześcienny"},
+        };
+
+
         _producenci = await Http.GetFromJsonAsync<List<ProducenciPodwykonawcy>>($"api/ProducenciPodwykonawcy");
 
     }
@@ -199,6 +225,16 @@ else
         {
             await OnButtonClicked.InvokeAsync();
         }
+    }
+
+
+    List<Item>? _itemsJednostki;
+
+    public class Item
+    {
+        public string? Value { get; set; }
+        public string? Name { get; set; }
+        public string? DisplayName { get; set; }
     }
 }
 
