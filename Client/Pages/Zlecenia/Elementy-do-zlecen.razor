@@ -40,6 +40,24 @@
             top: 55px; /* Ustawia górną krawędź 155px od góry okna */
         }
 
+        .uwaga, .uwaga > td {
+            background-color: lightcoral !important;
+        }
+
+            .uwaga:hover, .uwaga:hover > td {
+                background-color: lightpink !important;
+                font-size: 1.0em;
+            }
+
+        .move-class {
+            background-color: lightcyan;
+        }
+
+            .move-class:hover, .uwaga-class:hover > td {
+                background-color: gold !important;
+                font-size: 1.0em;
+            }
+
     </style>
 
     <meta charset="utf-8" />
@@ -184,7 +202,8 @@
                 {
 
                     <Table TItem="ElemetZamDoZlecenWithProducent" DataSource="elementyDoZlecen" @bind-PageSize="@_pageSize"
-                           Loading="_loading" ScrollX="2450" Size="TableSize.Small" RowKey="x=>x.ElemetZamDoZlecen.Id" @bind-SelectedRows="_items">
+                           Loading="_loading" ScrollX="2450" Size="TableSize.Small" RowKey="x=>x.ElemetZamDoZlecen.Id" @bind-SelectedRows="_items"
+                           RowClassName="@(x => x.Data.ElemetZamDoZlecen.Opis.ToUpper().StartsWith("SPRAWDZ") ? "uwaga" : "move-class")">
                         <ColumnDefinitions Context="context">
                             <Selection Width="25px" />
                             <PropertyColumn Title="ID" Property="c=>c.ElemetZamDoZlecen.Id" Hidden />
