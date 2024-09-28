@@ -32,33 +32,33 @@
         .highlighted-background {
             background-color: white;
             overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
-            max-height: calc(100vh - 55px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 155px */
+            max-height: calc(100vh - 55px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 55px */
             width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 260px */
             box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu wysokości */
             position: absolute;
             left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
-            top: 55px; /* Ustawia górną krawędź 155px od góry okna */
+            top: 55px; /* Ustawia górną krawędź 55px od góry okna */
         }
 
+        /* Zwiększona widoczność klasy uwaga */
         .uwaga, .uwaga > td {
-            background-color: lightcoral !important;
+            background-color: #ff4d4d !important; /* Mocniejszy, bardziej jaskrawy czerwony */
+            color: white !important; /* Tekst biały dla lepszej czytelności */
+            font-weight: bold; /* Pogrubienie tekstu */
+            border: 2px solid red; /* Dodanie czerwonej ramki */
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Lekki cień dla wrażenia głębi */
+            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Animacja płynnej zmiany koloru i cienia */
         }
 
-            .uwaga:hover, .uwaga:hover > td {
-                background-color: lightpink !important;
-                font-size: 1.0em;
-            }
-
-        .move-class {
-            background-color: lightcyan;
-        }
-
-            .move-class:hover, .uwaga-class:hover > td {
-                background-color: gold !important;
-                font-size: 1.0em;
+            .uwaga:hover, .move-class:hover > td {
+                background-color: antiquewhite !important; /* Jasniejszy różowy na hover */
+                color: black !important; /* Tekst zmienia się na czarny na hover */
+                box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.3); /* Większy cień podczas hover */
+                font-size: 1.05em; /* Zwiększenie rozmiaru tekstu podczas hover */
             }
 
     </style>
+
 
     <meta charset="utf-8" />
     <PageTitle>Zamówiona elementy do zlecenia</PageTitle>
@@ -239,7 +239,7 @@
                             <ActionColumn Title="Akcja" Width="100" Fixed="right">
                                 @if (boolAdmin || boolZmiana)
                                 {
-                                    <Popconfirm Title="Czy chcesz edytować pozycję?"
+                                    <Popconfirm Placement="@Placement.Left" Title="Czy chcesz edytować pozycję?"
                                                 OnConfirm="()=> editRow(context.ElemetZamDoZlecen.Id)"
                                                 OkText="Tak"
                                                 CancelText="Nie">
@@ -248,7 +248,7 @@
                                 }
                                 @if (boolAdmin || boolUsuniecia)
                                 {
-                                    <Popconfirm Title="Czy chcesz usunąć pozycję?"
+                                    <Popconfirm Placement="@Placement.Left" Title="Czy chcesz usunąć pozycję?"
                                                 OnConfirm="()=> deleteRow(context.ElemetZamDoZlecen.Id)"
                                                 OkText="Tak"
                                                 CancelText="Nie">

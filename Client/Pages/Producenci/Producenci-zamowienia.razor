@@ -1,0 +1,254 @@
+﻿@page "/Producenci-zamowienia/{RowIdProducenta}"
+@using GEORGE.Shared.Models
+@using GEORGE.Shared.ViewModels
+@using GEORGE.Shared.Class
+@inject HttpClient Http
+@using AntDesign
+@using System.Net
+@using System.ComponentModel
+@inject IMessageService _message
+@inject Utilities.ILocalStorage LocalStorage
+@inject IJSRuntime JSRuntime
+
+<style>
+    #calosc {
+        background-color: #1a1a1a;
+        border: 1px dashed red;
+        font-size: 1.2em; /* Zmniejszenie rozmiaru czcionki dla mniejszych kontenerów */
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-around;
+        padding: 1px; /* Mniejsze paddingi */
+        color: white; /* Biały tekst dla lepszej widoczności */
+        border-radius: 5px; /* Zaokrąglone rogi */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5); /* Lekki cień dla głębi */
+        height: 5vh; /* Wysokość 5% wysokości okna przeglądarki */
+        min-height: 50px; /* Minimalna wysokość dla zapewnienia miejsca na treść */
+    }
+
+    #kol1, #kol2 {
+        flex: 1 1 25%; /* Kolumny mają elastyczną szerokość i zajmują 45% */
+        margin: 5px; /* Mniejszy margines dla kolumn */
+        padding: 1px; /* Mniejszy padding */
+        border-radius: 3px; /* Zaokrąglone rogi dla kolumn */
+        text-align: center; /* Centrowanie tekstu */
+    }
+
+    #kol1 {
+        background-color: #3e8eec; /* Mocniejszy, bardziej kontrastujący niebieski */
+        color: white; /* Biały tekst dla lepszej widoczności */
+    }
+
+    #kol2 {
+        background-color: #5cd65c; /* Mocniejszy zielony dla lepszego kontrastu */
+        color: white;
+    }
+
+    h2, h3 {
+        margin: 5px 0; /* Mniejsze marginesy dla nagłówków */
+        font-size: 1em; /* Zmniejszenie rozmiaru tekstu w nagłówkach */
+    }
+
+    /* Stylowanie przycisku dla lepszego wyglądu */
+    .btn-back {
+        background-color: #ff4d4d; /* Czerwony kolor przycisku */
+        color: white;
+        font-weight: bold;
+        border-radius: 2px; /* Zaokrąglone rogi */
+        border: none; /* Bez ramki */
+        transition: background-color 0.3s ease; /* Animacja przejścia koloru */
+        padding: 5px 10px; /* Zmniejszenie paddingu dla lepszej czytelności */
+        font-size: 0.9em; /* Zmniejszenie rozmiaru czcionki */
+    }
+
+        /* Efekt hover dla przycisku */
+        .btn-back:hover {
+            background-color: #e63939; /* Ciemniejszy czerwony na hover */
+            color: #ffffff;
+        }
+</style>
+
+
+@if (zleceniaSzczegoly == null && !brakDanych)
+{
+    <div id="calosc">
+        <div id="kol1">
+            <h3>Producenci / Podwykonawcy</h3>
+        </div>
+        <div id="kol2">
+            <p><em>Czekaj na załadowanie danych...</em></p>
+        </div>
+
+    </div>
+
+}
+else if (brakDanych)
+{
+    <h3>Producenci / Podwykonawcy</h3>
+    <Divider>Informacja: brak zleceń</Divider>
+    <div id="calosc">
+        <div id="kol1">
+            <h2>Nie znaleziono zamówień do wybranego klienta</h2>
+        </div>
+        <div id="kol2">
+            <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony" Style="width:100%">
+                <Button class="btn-back" Icon="@IconType.Fill.Backward" Style="width:100%" OnClick="GoBack">Wróć do poprzedniej strony</Button>
+            </Tooltip>
+        </div>
+    </div>
+}
+else
+{
+    <div id="calosc">
+        <div id="kol1">
+            <h3>Producenci / Podwykonawcy</h3>
+        </div>
+        <div id="kol2">
+            <Tooltip Placement="@Placement.TopRight" Style="width:100%" Title="Wróć do poprzedniej strony">
+                <Button class="btn-back" Style="width:100%" Icon="@IconType.Fill.Backward" OnClick="GoBack">Wróć do poprzedniej strony</Button>
+            </Tooltip>
+        </div>
+
+    </div>
+
+    <ul>
+        <Table DataSource="zleceniaSzczegoly" Bordered>
+            <GroupTitleTemplate Context="group">
+                <span style="min-width: 120px;">
+                    @(group.Level == 1 ? "NumerZlecenia" : "NazwaProduktu") : @group.Key
+                </span>
+            </GroupTitleTemplate>
+            <GroupFooterTemplate Context="group">
+                @if (group.Level == 1)
+                {
+                    <span style="padding: 8px; float: right; ">
+                        Suma sztuk: @group.Items.Sum(x => x.ElemetZamDoZlecen.IloscSztuk)
+                    </span>
+                }
+            </GroupFooterTemplate>
+            <ColumnDefinitions>
+                <PropertyColumn Property="c=>c.NumerZlecenia" Width="12%" Grouping />
+                <PropertyColumn Property="c=>c.Klient" Width="10%" />
+                <PropertyColumn Property="c=>c.ElemetZamDoZlecen.NazwaProduktu" Width="15%" />
+                <PropertyColumn Property="c=>c.ElemetZamDoZlecen.NumerKatalogowy" Width="10%" />
+                <PropertyColumn Property="c=>c.ElemetZamDoZlecen.Typ" Width="10%" />
+                <PropertyColumn Property="c=>c.ElemetZamDoZlecen.IloscSztuk" Width="10%" />
+                <PropertyColumn Property="c=>c.ElemetZamDoZlecen.Jednostka" Width="10%" />
+                <PropertyColumn Property="c=>c.ElemetZamDoZlecen.Dlugosc" Width="10%" />
+                <PropertyColumn Property="c=>c.ElemetZamDoZlecen.DataZamowienia" Width="10%" Format="yyyy-MM-dd" />
+                @*                 <PropertyColumn Property="c=>c.ElemetZamDoZlecen.DataRealizacji" Width="30%" Grouping GroupBy="GradeGroupBy" Sortable /> *@
+            </ColumnDefinitions>
+        </Table>
+    </ul>
+}
+
+@code {
+
+    [Inject] private AppState AppState { get; set; } = default!;
+
+    [Parameter]
+    public string? RowIdProducenta { get; set; }
+
+    private List<ElemetZamDoZlecenWithProducent>? zleceniaSzczegoly;
+
+    bool brakDanych = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AppState != null)
+        {
+            AppState.SomeData = "";
+        }
+
+        await Laduj_Uprawnienia();
+
+        try
+        {
+            var response = await Http.GetAsync($"api/ProducenciPodwykonawcy/{RowIdProducenta}");
+
+            if (response.IsSuccessStatusCode) // Sprawdź, czy odpowiedź jest poprawna (status 2xx)
+            {
+                zleceniaSzczegoly = await response.Content.ReadFromJsonAsync<List<ElemetZamDoZlecenWithProducent>>();
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound) // Obsłuż błąd 404
+            {
+                Console.WriteLine("******* Błąd: Brak danych dla podanego producenta");
+                // Możesz tu dodać logikę, np. ustawienie zmiennej dla wyświetlenia komunikatu o braku danych
+                brakDanych = true; // Przykład flagi, aby wyświetlić komunikat w UI
+            }
+            else
+            {
+                Console.WriteLine($"******* Inny błąd: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"******* Ogólny błąd: {ex.Message}");
+        }
+
+    }
+
+    private async Task GoBack()
+    {
+        await JSRuntime.InvokeVoidAsync("history.back");
+    }
+
+    private bool boolOdczyt = false;
+    private bool boolZmiana = false;
+    private bool boolUsuniecia = false;
+    private bool boolAdmin = false;
+    private string RowIdPracownika = "";
+    private string? user;
+    private List<UprawnieniaPracownikaViewModel>? uprawnienia;
+
+    private async Task Laduj_Uprawnienia()
+    {
+        user = await LocalStorage.GetStringAsync("user");
+
+        if (string.IsNullOrEmpty(user))
+        {
+            //NavigationManager.NavigateTo($"", true);
+            return;
+        }
+
+        string nazwaTabeli = "ProducenciPodwykonawcy";
+
+        Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");
+
+        try
+        {
+            uprawnienia = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"/api/ZwrocSatus/{user}/{nazwaTabeli}");
+        }
+        catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            Console.WriteLine("Brak danych!!!");
+            await _message.Error("Brak danych - status użytkownika - sprawdź dostęp!");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            await _message.Error(ex.Message);
+        }
+
+        if (uprawnienia != null)
+        {
+            if (uprawnienia.Count > 0)
+            {
+                var znalezioneElementy = uprawnienia.Where(uprawnienie => uprawnienie.TableName == nazwaTabeli);
+                Console.WriteLine("Znaleziono uprawnienia dla użytkownika: " + user + " w tabeli: " + nazwaTabeli + " ilość rekordów: " + znalezioneElementy.Count());
+                if (znalezioneElementy.Any())
+                {
+                    var szuk = znalezioneElementy.FirstOrDefault(x => x.TableName == nazwaTabeli);
+                    if (szuk != null)
+                    {
+                        boolOdczyt = szuk.Odczyt;
+                        boolZmiana = szuk.Zmiana;
+                        boolUsuniecia = szuk.Usuniecie;
+                        boolAdmin = szuk.Administrator;
+                        RowIdPracownika = szuk.RowId;
+                    }
+                }
+            }
+        }
+    }
+}

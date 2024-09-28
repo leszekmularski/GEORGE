@@ -1,4 +1,5 @@
 ﻿using GEORGE.Shared.Models;
+using GEORGE.Shared.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,6 +23,57 @@ namespace GEORGE.Server.Controllers
         public async Task<ActionResult<List<ProducenciPodwykonawcy>>> GetProducenciAsync()
         {
             return await _context.ProducenciPodwykonawcy.ToListAsync();
+        }
+
+        [HttpGet("{RowIdProducenta}")]
+        public async Task<ActionResult<List<ElemetZamDoZlecenWithProducent>>> GetZamowieniaWithProducentAsync(string RowIdProducenta)
+        {
+            var zamowieniaWithProducent = await _context.ElemetZamDoZlecen
+                .Where(e => e.RowIdProducent == RowIdProducenta) // Filtr na RowIdProducenta
+                .Select(e => new ElemetZamDoZlecenWithProducent
+                {
+                    ElemetZamDoZlecen = e, // Przypisanie danych zamówienia
+
+                    // Pobranie producenta (może być null)
+                    ProducenciPodwykonawcy = _context.ProducenciPodwykonawcy
+                        .FirstOrDefault(p => p.RowId == e.RowIdProducent),
+
+                    // Pobranie producenta i miejscowości
+                    ProducentIMiejscowosc = _context.ProducenciPodwykonawcy
+                        .Where(p => p.RowId == e.RowIdProducent)
+                        .Select(p => p.NazwaProducenta + " - " + p.Miejscowosc)
+                        .FirstOrDefault(),
+
+                    // Pobranie informacji o kliencie, zaczynając od ZleceniaProdukcyjne, a jeśli brak, szukamy w ZleceniaProdukcyjneWew
+                    Klient = _context.ZleceniaProdukcyjne
+                                .Where(z => z.RowId == e.RowIdZlecenia)
+                                .Select(z => z.Klient)
+                                .FirstOrDefault()
+                                ?? _context.ZleceniaProdukcyjneWew
+                                .Where(zw => zw.RowId == e.RowIdZlecenia)
+                                .Select(zw => zw.Klient)
+                                .FirstOrDefault(),
+
+                    // Pobranie NumerZamowienia podobnie jak Klient
+                    NumerZlecenia = _context.ZleceniaProdukcyjne
+                                .Where(z => z.RowId == e.RowIdZlecenia)
+                                .Select(z => z.NumerZamowienia)
+                                .FirstOrDefault()
+                                ?? _context.ZleceniaProdukcyjneWew
+                                .Where(zw => zw.RowId == e.RowIdZlecenia)
+                                .Select(zw => zw.NumerZamowienia)
+                                .FirstOrDefault(),
+
+                    DodatkowaInformacja = "Dane z dnia: " + DateTime.Now
+                })
+                .ToListAsync();
+
+            if (zamowieniaWithProducent == null || zamowieniaWithProducent.Count == 0)
+            {
+                return NotFound(); // Zwróć 404 jeśli brak danych
+            }
+
+            return zamowieniaWithProducent;
         }
 
         [HttpPost]

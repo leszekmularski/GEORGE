@@ -16,6 +16,10 @@ namespace GEORGE.Shared.ViewModels
         public string? DodatkowaInformacja { get; set; } = "";
 
         public string? ProducentIMiejscowosc { get; set; } = "";
+
+        public string? Klient { get; set; } = "";
+        public string? NumerZlecenia { get; set; } = "";
+
     }
 
 }

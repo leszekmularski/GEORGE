@@ -90,7 +90,7 @@ else
                 </Template>
                 @if (boolAdmin || boolZmian)
                 {
-                    <Popconfirm Title="Czy chcesz edytować pozycję?"
+                    <Popconfirm Placement="@Placement.Left" Title="Czy chcesz edytować pozycję?"
                                 OnConfirm="()=> editRow(context.Id)"
                                 OkText="Tak"
                                 CancelText="Nie">
@@ -99,7 +99,7 @@ else
                 }
                 @if (boolAdmin || boolUsuniecia)
                 {
-                    <Popconfirm Title="Czy chcesz usunąć pozycję?"
+                    <Popconfirm Placement="@Placement.Left" Title="Czy chcesz usunąć pozycję?"
                                 OnConfirm="()=> delRow(context.Id)"
                                 OkText="Tak"
                                 CancelText="Nie">
@@ -180,7 +180,7 @@ else
                     <FormItem Label="Ostatnia Zmiana">
                         <Input @bind-Value="karty.OstatniaZmiana" ReadOnly />
                     </FormItem>
-                    <FormItem>
+                    <FormItem Style="justify-content: flex-end; display: flex; gap: 10px;">
  @*                        <Upload Action="https://www.mocky.io/v2/5cc8019d300000980a055e76"
                                 Name="files"
                                 OnSingleCompleted="OnSingleCompleted">

@@ -142,9 +142,19 @@
 
     @if (kantowkaDoZlecen != null && kantowkaDoZlecen.Count > 0)
     {
-        <Button Type="reset" OnClick="@(CopyKantowkiToClipboard)">
-            @uwagaKopiuj
-        </Button>
+            @if (kopiuj)
+            {
+                <Tooltip Placement="@Placement.BottomCenter" Title="Kopiuj dane">
+                    <Button Type="reset" Icon="@IconType.Fill.Copy" OnClick="@(CopyKantowkiToClipboard)" />
+                </Tooltip>
+            }
+            else
+            {
+                <Tooltip Placement="@Placement.BottomCenter" Title="Wklej dane w innej aplikacji">
+                    <Button Type="reset" Icon="@IconType.Fill.Read" OnClick="@(CopyKantowkiToClipboard)" />
+                </Tooltip>
+            }
+
         <Button Type="reset" OnClick="@(ExportToExcel)">
             Zapisz do pliku CSV - wszystko
         </Button>
@@ -365,7 +375,7 @@
 
     private List<KantowkaDoZlecen>? kantowki;
 
-    private string uwagaKopiuj = "Kopiuj do schowka dane";
+    private bool kopiuj = true;
 
     private bool isCheckedDelAll = true;
 
@@ -482,7 +492,7 @@
 
         await JSRuntime.InvokeVoidAsync("copyToClipboard", kantowkiText);
 
-        uwagaKopiuj = "Dane skopiowano do schowka";
+        kopiuj = false;
 
         await _message.Success("Dane skopiowano do schowka");
     }

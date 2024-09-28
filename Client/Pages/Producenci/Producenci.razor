@@ -6,6 +6,7 @@
 @using System.Net;
 @inject IMessageService _message
 @inject Utilities.ILocalStorage LocalStorage
+@inject NavigationManager NavigationManager
 
 <h3>Producenci / Podwykonawcy</h3>
 
@@ -27,6 +28,14 @@ else
     <ul>
         <Table TItem="ProducenciPodwykonawcy" DataSource="@rodzajeProducentow">
             <Column Title="ID" @bind-Field="@context.Id" Hidden />
+            <ActionColumn Title="Zamówienia">
+                <Popconfirm Title="Czy chcesz wyświetlić zamówienia?"
+                            OnConfirm="()=> schowZamow(context.RowId)"
+                            OkText="Tak"
+                            CancelText="Nie">
+                    <a>Pokaż</a>
+                </Popconfirm>
+            </ActionColumn>
             <Column Title="Nazwa Producenta" @bind-Field="@context.NazwaProducenta" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Adres" @bind-Field="@context.Adres" Sortable />
             <Column Title="Miejscowość" @bind-Field="@context.Miejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable />
@@ -174,6 +183,10 @@ else
 
     [Inject] private AppState AppState { get; set; } = default!;
 
+
+    [Inject]
+    private NavigationManager? navigationManager { get; set; }
+
     private List<ProducenciPodwykonawcy>? rodzajeProducentow;
     private List<ProducenciPodwykonawcy>? originalrodzajeProducentow;
 
@@ -305,6 +318,10 @@ else
         }
     }
 
+    public void schowZamow(string rowid)
+    {
+        navigationManager.NavigateTo($"/Producenci-zamowienia/{rowid}");
+    }
 
     public async Task editRow(long id)
     {
