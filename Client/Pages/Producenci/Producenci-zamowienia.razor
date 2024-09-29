@@ -101,7 +101,14 @@ else
 {
     <div id="calosc">
         <div id="kol1">
-            <h3>Producenci / Podwykonawcy</h3>
+                @if(zleceniaSzczegoly.Count() > 0)
+                {
+                     <h5>@zleceniaSzczegoly[0].ProducentIMiejscowosc</h5>
+                }
+                else
+                {
+                    <h3>Producenci / Podwykonawcy</h3>
+                }
         </div>
         <div id="kol2">
             <Tooltip Placement="@Placement.TopRight" Style="width:100%" Title="Wróć do poprzedniej strony">

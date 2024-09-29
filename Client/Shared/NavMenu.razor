@@ -20,32 +20,37 @@
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="zlecenia-produkcyjne">
-                <span class="oi oi-plus" aria-hidden="true"></span> Lista zleceń
+                <span class="oi oi-collapse-left" aria-hidden="true"></span> Lista zleceń
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="zlecenia-produkcyjne-wew">
-                <span class="oi oi-calculator" aria-hidden="true"></span> Lista zleceń wewn.
+                <span class="oi oi-collapse-right" aria-hidden="true"></span> Lista zleceń wewn.
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="Producenci">
+                <span class="oi oi-wrench" aria-hidden="true"></span>&nbsp;&nbsp;Producenci
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="Karty-Instrukcyjne">
-                <span class="oi oi-list-rich" aria-hidden="true"></span> Karty Instrukcyjne
+                <span class="oi oi-layers" aria-hidden="true"></span> Karty Instrukcyjne
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="FrappeGantt">
-                <span class="oi oi-document" aria-hidden="true"></span> Planowanie Produkcji
+                <span class="oi oi-bar-chart" aria-hidden="true"></span> Planowanie Produkcji
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="Rysuj-Drzwi">
-                <span class="oi oi-brush" aria-hidden="true"></span> Generator Drzwi
+                <span class="oi oi-pencil" aria-hidden="true"></span> Generator Drzwi
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="WybierzSchody">
-                <span class="oi oi-layers" aria-hidden="true"></span> Generator Schodów
+                <span class="oi oi-project" aria-hidden="true"></span> Generator Schodów
             </NavLink>
         </div>
          <div class="nav-item px-3">
@@ -66,11 +71,6 @@
                     <MenuItem Key="3">
                         <NavLink class="nav-link" href="ListaPracownikow">
                             <span class="oi oi-person" aria-hidden="true"></span>&nbsp;&nbsp;Użytkownicy
-                        </NavLink>
-                    </MenuItem>
-                    <MenuItem Key="4">
-                        <NavLink class="nav-link" href="Producenci">
-                            <span class="oi oi-command" aria-hidden="true"></span>&nbsp;&nbsp;Producenci
                         </NavLink>
                     </MenuItem>
                     @if (!string.IsNullOrEmpty(user))
