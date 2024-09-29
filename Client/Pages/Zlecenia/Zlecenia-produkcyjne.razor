@@ -588,6 +588,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        iloscRekordow = Convert.ToInt32((await LocalStorage.GetStringAsync("zlecenie_ile_widocznych")));
+        if (iloscRekordow == 0) iloscRekordow = 6;
 
         await Laduj_Uprawnienia();
 
@@ -595,9 +597,6 @@ else
 
         try
         {
-
-            iloscRekordow = Convert.ToInt32((await LocalStorage.GetStringAsync("zlecenie_ile_widocznych")));
-            if (iloscRekordow == 0) iloscRekordow = 6;
 
             _TypZamowienia = new List<TypZamowienia>
             {

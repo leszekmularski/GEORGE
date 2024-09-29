@@ -198,10 +198,10 @@
             else
             {
 
-                if (elementyDoZlecen.Count > 0)
+                if (elementyDoZlecen != null && elementyDoZlecen.Count > 0)
                 {
 
-                    <Table TItem="ElemetZamDoZlecenWithProducent" DataSource="elementyDoZlecen" @bind-PageSize="@_pageSize"
+                    <Table TItem="ElemetZamDoZlecenWithProducent" DataSource="elementyDoZlecen" PageSize="@_pageSize"
                            Loading="_loading" ScrollX="2450" Size="TableSize.Small" RowKey="x=>x.ElemetZamDoZlecen.Id" @bind-SelectedRows="_items"
                            RowClassName="@(x => x.Data.ElemetZamDoZlecen.Opis.ToUpper().StartsWith("SPRAWDZ") ? "uwaga" : "move-class")">
                         <ColumnDefinitions Context="context">

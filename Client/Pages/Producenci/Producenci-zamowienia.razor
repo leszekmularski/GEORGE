@@ -40,7 +40,7 @@
     }
 
     #kol2 {
-        background-color: #5cd65c; /* Mocniejszy zielony dla lepszego kontrastu */
+        background-color: black; /* Mocniejszy zielony dla lepszego kontrastu */
         color: white;
     }
 
@@ -108,37 +108,76 @@ else
                 <Button class="btn-back" Style="width:100%" Icon="@IconType.Fill.Backward" OnClick="GoBack">Wróć do poprzedniej strony</Button>
             </Tooltip>
         </div>
-
+        <div>
+            <RadioGroup @bind-Value="@_grupujPoNrZlec" Style="color:beige">
+                <Radio Style="color:beige" Value="true">Grupuj po numerze zlecenia</Radio>
+                <Radio Style="color:antiquewhite" Value="false">Grupuj po kliencie</Radio>
+            </RadioGroup>
+        </div>
     </div>
 
     <ul>
-        <Table DataSource="zleceniaSzczegoly" Bordered>
-            <GroupTitleTemplate Context="group">
-                <span style="min-width: 120px;">
-                    @(group.Level == 1 ? "NumerZlecenia" : "NazwaProduktu") : @group.Key
-                </span>
-            </GroupTitleTemplate>
-            <GroupFooterTemplate Context="group">
-                @if (group.Level == 1)
-                {
-                    <span style="padding: 8px; float: right; ">
-                        Suma sztuk: @group.Items.Sum(x => x.ElemetZamDoZlecen.IloscSztuk)
+        @if (_grupujPoNrZlec)
+        {
+            <Table DataSource="zleceniaSzczegoly" Bordered>
+                <GroupTitleTemplate Context="group">
+                    <span style="min-width: 120px;">
+                        @(group.Level == 1 ? "NumerZlecenia" : "NazwaProduktu") : @group.Key
                     </span>
-                }
-            </GroupFooterTemplate>
-            <ColumnDefinitions>
-                <PropertyColumn Property="c=>c.NumerZlecenia" Width="12%" Grouping />
-                <PropertyColumn Property="c=>c.Klient" Width="10%" />
-                <PropertyColumn Property="c=>c.ElemetZamDoZlecen.NazwaProduktu" Width="15%" />
-                <PropertyColumn Property="c=>c.ElemetZamDoZlecen.NumerKatalogowy" Width="10%" />
-                <PropertyColumn Property="c=>c.ElemetZamDoZlecen.Typ" Width="10%" />
-                <PropertyColumn Property="c=>c.ElemetZamDoZlecen.IloscSztuk" Width="10%" />
-                <PropertyColumn Property="c=>c.ElemetZamDoZlecen.Jednostka" Width="10%" />
-                <PropertyColumn Property="c=>c.ElemetZamDoZlecen.Dlugosc" Width="10%" />
-                <PropertyColumn Property="c=>c.ElemetZamDoZlecen.DataZamowienia" Width="10%" Format="yyyy-MM-dd" />
-                @*                 <PropertyColumn Property="c=>c.ElemetZamDoZlecen.DataRealizacji" Width="30%" Grouping GroupBy="GradeGroupBy" Sortable /> *@
-            </ColumnDefinitions>
-        </Table>
+                </GroupTitleTemplate>
+                <GroupFooterTemplate Context="group">
+                    @if (group.Level == 1)
+                    {
+                        <span style="padding: 8px; float: right; ">
+                            Suma sztuk: @group.Items.Sum(x => x.ElemetZamDoZlecen.IloscSztuk)
+                        </span>
+                    }
+                </GroupFooterTemplate>
+                <ColumnDefinitions>
+                    <PropertyColumn Property="c=>c.NumerZlecenia" Width="12%" Grouping />
+                    <PropertyColumn Property="c=>c.Klient" Width="10%" />
+                    <PropertyColumn Title="Nazwa Produktu" Property="c=>c.ElemetZamDoZlecen.NazwaProduktu" Width="15%" />
+                    <PropertyColumn Title="Nr Katalogowy" Property="c=>c.ElemetZamDoZlecen.NumerKatalogowy" Width="15%" />
+                    <PropertyColumn Property="c=>c.ElemetZamDoZlecen.Typ" Width="10%" />
+                    <PropertyColumn Title="Ilość" Property="c=>c.ElemetZamDoZlecen.IloscSztuk" Width="10%" />
+                    <PropertyColumn Property="c=>c.ElemetZamDoZlecen.Jednostka" Width="10%" />
+                    <PropertyColumn Title="Długość" Property="c=>c.ElemetZamDoZlecen.Dlugosc" Width="10%" />
+                    <PropertyColumn Title="Data Zamówienia" Property="c=>c.ElemetZamDoZlecen.DataZamowienia" Width="10%" Format="yyyy-MM-dd" />
+                    @*                 <PropertyColumn Property="c=>c.ElemetZamDoZlecen.DataRealizacji" Width="30%" Grouping GroupBy="GradeGroupBy" Sortable /> *@
+                </ColumnDefinitions>
+            </Table>
+        }
+        else
+        {
+            <Table DataSource="zleceniaSzczegoly" Bordered>
+                <GroupTitleTemplate Context="group">
+                    <span style="min-width: 120px;">
+                        @(group.Level == 1 ? "Klient" : "NazwaProduktu") : @group.Key
+                    </span>
+                </GroupTitleTemplate>
+                <GroupFooterTemplate Context="group">
+                    @if (group.Level == 1)
+                    {
+                        <span style="padding: 8px; float: right; ">
+                            Suma sztuk: @group.Items.Sum(x => x.ElemetZamDoZlecen.IloscSztuk)
+                        </span>
+                    }
+                </GroupFooterTemplate>
+                <ColumnDefinitions>
+                    <PropertyColumn Property="c=>c.Klient" Width="12%" Grouping />
+                    <PropertyColumn Property="c=>c.NumerZlecenia" Width="10%" />
+                    <PropertyColumn Title="Nazwa Produktu" Property="c=>c.ElemetZamDoZlecen.NazwaProduktu" Width="15%" />
+                    <PropertyColumn Title="Nr Katalogowy" Property="c=>c.ElemetZamDoZlecen.NumerKatalogowy" Width="15%" />
+                    <PropertyColumn Property="c=>c.ElemetZamDoZlecen.Typ" Width="10%" />
+                    <PropertyColumn Title="Ilość" Property="c=>c.ElemetZamDoZlecen.IloscSztuk" Width="10%" />
+                    <PropertyColumn Property="c=>c.ElemetZamDoZlecen.Jednostka" Width="10%" />
+                    <PropertyColumn Title="Długość" Property="c=>c.ElemetZamDoZlecen.Dlugosc" Width="10%" />
+                    <PropertyColumn Title="Data Zamówienia" Property="c=>c.ElemetZamDoZlecen.DataZamowienia" Width="10%" Format="yyyy-MM-dd" />
+                    @*                 <PropertyColumn Property="c=>c.ElemetZamDoZlecen.DataRealizacji" Width="30%" Grouping GroupBy="GradeGroupBy" Sortable /> *@
+                </ColumnDefinitions>
+            </Table>
+        }
+
     </ul>
 }
 
@@ -151,7 +190,8 @@ else
 
     private List<ElemetZamDoZlecenWithProducent>? zleceniaSzczegoly;
 
-    bool brakDanych = false;
+    private bool brakDanych = false;
+    private bool _grupujPoNrZlec = true;
 
     protected override async Task OnInitializedAsync()
     {

@@ -11,7 +11,7 @@
 @inject Utilities.ILocalStorage LocalStorage
 @using System.Net;
 @using System.Text.Json;
-
+@inject IConfirmService _confirmService
 
 <!DOCTYPE html>
 <html>
@@ -164,6 +164,9 @@
         <Button Type="reset" OnClick="@(UstawDateZamowienia)">
             Kantówkę zamówiono
         </Button>
+         <Tooltip Placement="@Placement.BottomCenter" Title="Wylicz ilość farby do malowania">
+                <Button Icon="@IconType.Fill.Compass" Type="reset" OnClick="@(WyliczIloscFarby)" />
+         </Tooltip>
     }
     <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
         <Button class="btn-back" Icon="@IconType.Fill.Backward" OnClick="GoBack"></Button>
@@ -461,6 +464,61 @@
             await JSRuntime.InvokeVoidAsync("saveAsExcel", jsonData);
         }
     }
+
+    public async Task WyliczIloscFarby()
+    {
+        if (kantowkaDoZlecen != null)
+        {
+            // Stała dla zużycia farby (0,25 litra na 1 m²)
+            const double zuzycieFarbyNaMetrKwadratowy = 0.25;
+
+            // Lista przechowująca wyliczoną ilość farby dla każdej kantówki
+            var iloscFarbyLista = new List<double>();
+            var powCalkowiat = new List<double>();
+            // Przetwarzanie każdej kantówki
+            foreach (var k in kantowkaDoZlecen)
+            {
+                // Rozdziel przekrój (zakładamy format "80x60")
+                var wymiary = k.Przekroj.ToLower().Split('x');
+
+                if (wymiary.Length == 2 && double.TryParse(wymiary[0], out double szerokosc) && double.TryParse(wymiary[1], out double wysokosc))
+                {
+
+                    // Obliczenie obwodu przekroju (2 * (szerokość + wysokość))
+                    double obwod = 2 * (szerokosc / 1000 + wysokosc / 1000); // Przekształcenie do metrów
+
+                    // Powierzchnia kantówki (obwód * długość)
+                    double powierzchnia = obwod * (k.DlugoscZamawiana / 1000); // Przekształcenie długości do metrów
+
+                    // Powierzchnia całkowita (dla wszystkich sztuk)
+                    double powierzchniaCalkowita = powierzchnia * k.IloscSztuk;
+                    //Console.WriteLine($"powierzchnia:{powierzchnia} dlugoscNaGotowo:{dlugoscNaGotowo} obwod:{obwod} k.IloscSztuk;:{k.IloscSztuk} k.DlugoscNaGotowoGrupa:{k.DlugoscNaGotowoGrupa}");
+                    // Ilość farby potrzebna na daną kantówkę (powierzchnia * zużycie)
+                    double iloscFarby = powierzchniaCalkowita * zuzycieFarbyNaMetrKwadratowy;
+
+                    // Dodanie wyniku do listy
+                    iloscFarbyLista.Add(iloscFarby);
+
+                    powCalkowiat.Add(powierzchniaCalkowita);
+
+                }
+            }
+
+            // Sumowanie ilości farby dla wszystkich kantówek
+            double lacznaIloscFarby = iloscFarbyLista.Sum();
+
+            await ShowConfirmIcon(ConfirmIcon.Info, $"Łączna ilość farby: {Math.Round(lacznaIloscFarby, 1)} litrów - przy malowaniu jednokrotym oraz {Math.Round(lacznaIloscFarby, 1) * 2} litrów przy malowaniu dwukrotnym - powierzchnia do malowania: {Math.Round(powCalkowiat.Sum(), 1)}");
+        }
+    }
+
+    private async Task ShowConfirmIcon(ConfirmIcon confirmIcon, string content)
+    {
+        var title = confirmIcon.ToString();
+        var confirmResult = await _confirmService.Show(content, title, ConfirmButtons.OK, confirmIcon);
+
+        //var _ = _message.Info($"{confirmResult}!", 2);
+    }
+
 
     public async Task ExportSelectedColumnsToExcel()
     {
