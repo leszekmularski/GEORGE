@@ -2,6 +2,7 @@
 @using GEORGE.Shared.ViewModels
 @inject HttpClient Http;
 @using Microsoft.AspNetCore.Components.Web
+@using System.Text
 @inject Utilities.ILocalStorage LocalStorage
 @inject NavigationManager NavigationManager
 
@@ -144,12 +145,17 @@ else
                             <Switch @bind-Value="@wkladkoGalka" />
                         </AntDesign.FormItem>
                         <AntDesign.FormItem Label="Zapisz wynik obliczeń" Class="form-item-small-margin">
-                            <Button OnClick="ZapiszWynikObliczeńWkladki">Zapisz wynik obliczeń do Nazwa produktu</Button>
+                            <Button OnClick="ZapiszWynikObliczenWkladki">Zapisz wynik obliczeń do Nazwa produktu</Button>
                         </AntDesign.FormItem>
                     </AntDesign.Col>
                 </AntDesign.Row>
             </TabPane>
-
+              <TabPane Key="4" Tab="Wylicz okapiki">
+                <AntDesign.FormItem Label="Zapisz wynik obliczeń" Class="form-item-small-margin">
+                    <Button OnClick="ZapiszWynikObliczenOkapik">Kliknij aby system wyliczył ilość sztang okapików</Button>
+                </AntDesign.FormItem>
+                <h5 style="color:blue">@wyliczonoOkapikow</h5>
+              </TabPane>
         </Tabs>
 
         <AntDesign.FormItem Style="justify-content: flex-end; display: flex; gap: 10px;">
@@ -186,6 +192,8 @@ else
     private int wkladka_wymB = 0;
     private int wkladka_szyldZew = 0;
     private bool wkladkoGalka = false;
+
+    private string wyliczonoOkapikow = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -279,7 +287,89 @@ else
         await Task.CompletedTask;
     }
 
-    public async Task ZapiszWynikObliczeńWkladki()
+    public async Task ZapiszWynikObliczenOkapik()
+    {
+        if (elementyZamowienia == null || elementyZamowienia.ElemetZamDoZlecen == null)
+        {
+            wyliczonoOkapikow = "Brak danych potrzebych do wyliczeń ilości oraz długości okapików.";
+            return;
+        }
+
+        // Sprawdź URL API
+        var url = $"api/PozWZleceniu/GetDaneDoZlecenia/{elementyZamowienia.ElemetZamDoZlecen.RowIdZlecenia}/";
+
+        // Wywołaj API i przypisz wynik do zmiennej
+        var szukajDlugosci = await Http.GetFromJsonAsync<List<PozDoZlecen>>(url);
+
+        if (szukajDlugosci == null)
+        {
+            wyliczonoOkapikow = "Brak lub błąd danych potrzebych do wyliczeń ilości oraz długości okapików.";
+            Console.WriteLine("No data returned from API.");
+        }
+        else
+        {
+            // Zmienna do przechowywania cięć na każdej sztandze
+            List<List<float>> listaCiec = new List<List<float>>();
+            float dlugoscSztangi = 6000f;
+
+            // Tworzymy listę wszystkich odcinków do wycięcia
+            List<float> wszystkieOdcinki = new List<float>();
+            foreach (var pozycja in szukajDlugosci)
+            {
+                // Dodajemy wszystkie szerokości do listy cięć
+                for (int i = 0; i < pozycja.IloscOkien; i++)
+                {
+                    wszystkieOdcinki.Add(pozycja.Szerokosc);
+                }
+            }
+
+            // Sortujemy odcinki malejąco (żeby zacząć od największych)
+            wszystkieOdcinki.Sort((a, b) => b.CompareTo(a));
+
+            // Algorytm Best Fit (umieszczanie odcinków w dostępnych sztangach)
+            foreach (var odcinek in wszystkieOdcinki)
+            {
+                bool dopasowano = false;
+
+                // Próbujemy umieścić odcinek w istniejących sztangach
+                foreach (var sztanga in listaCiec)
+                {
+                    float sumaCiecWSztandze = sztanga.Sum();
+                    if (sumaCiecWSztandze + odcinek <= dlugoscSztangi)
+                    {
+                        sztanga.Add(odcinek);
+                        dopasowano = true;
+                        break;
+                    }
+                }
+
+                // Jeśli nie udało się dopasować do istniejących sztang, tworzymy nową sztangę
+                if (!dopasowano)
+                {
+                    listaCiec.Add(new List<float> { odcinek });
+                }
+            }
+
+            // Tworzymy listę opisującą cięcia na każdej sztandze
+            StringBuilder wynikCiec = new StringBuilder();
+            int numerSztangi = 1;
+            foreach (var sztanga in listaCiec)
+            {
+                wynikCiec.AppendLine($"Sztanga {numerSztangi}: {string.Join(", ", sztanga)} (Suma: {sztanga.Sum()})");
+                numerSztangi++;
+            }
+
+            // Wynik zapiszemy do zmiennej wyliczonoOkapikow
+            wyliczonoOkapikow = $"Wyliczono cięcia: \n{wynikCiec.ToString()}";
+            Console.WriteLine($"Optymalizacja zakończona sukcesem: {listaCiec.Count} sztang");
+        }
+
+        await Task.CompletedTask;
+    }
+
+
+
+    public async Task ZapiszWynikObliczenWkladki()
     {
         // Funkcja zaokrąglająca w górę do najbliższej wartości będącej wielokrotnością 5
         double ZaokraglijWGoreDo5mm(double wartosc)
