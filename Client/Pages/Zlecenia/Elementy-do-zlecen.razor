@@ -198,7 +198,7 @@
             else
             {
 
-                if (elementyDoZlecen != null && elementyDoZlecen.Count > 0)
+                if (elementyDoZlecen != null && elementyDoZlecen.Count > 0 && _pageSize > 0)
                 {
 
                     <Table TItem="ElemetZamDoZlecenWithProducent" DataSource="elementyDoZlecen" PageSize="@_pageSize"

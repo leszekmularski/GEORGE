@@ -18,9 +18,8 @@
 }
 else
 {
-
     <AntDesign.Form Model="@elementyZamowienia" Layout="FormLayout.Horizontal" OnFinish="@HandleSubmit">
-        <Tabs DefaultActiveKey="0" TabPosition="TabPosition.Left">
+        <Tabs DefaultActiveKey="0" @bind-ActiveKey="activeKey" TabPosition="TabPosition.Left">
             <TabPane Key="0" Tab="Pozycje zamówienia">
                 <FormItem Required Label="Wybierz producenta (dostawcę)">
                     <Select Mode="default"
@@ -153,8 +152,12 @@ else
               <TabPane Key="4" Tab="Wylicz okapiki">
                 <AntDesign.FormItem Label="Zapisz wynik obliczeń" Class="form-item-small-margin">
                     <Button OnClick="ZapiszWynikObliczenOkapik">Kliknij aby system wyliczył ilość sztang okapików</Button>
+                    <Tooltip Placement="@Placement.TopLeft" Title="Zapisz wynik obliczeń do Nazwa produktu">
+                        <Button Icon="@IconType.Fill.Appstore" OnClick="ZapiszWynikObliczenOkapikDoNazProd" />
+                    </Tooltip>
+                    <Button OnClick="ZapiszGrupyDlugoscOkapik">Wylicz pogrupowane długości i ilości</Button>
                 </AntDesign.FormItem>
-                <h5 style="color:blue">@wyliczonoOkapikow</h5>
+                <h5 style="color:blue">@((MarkupString)wyliczonoOkapikow)</h5>
               </TabPane>
         </Tabs>
 
@@ -185,6 +188,8 @@ else
     private ProducenciPodwykonawcy? Producent;
 
     private bool bAdmin = true;
+
+    private string? activeKey = "0";
 
     private int wkladka_wys = 3;
     private int wkladka_szyldWew = 0;
@@ -287,7 +292,7 @@ else
         await Task.CompletedTask;
     }
 
-    public async Task ZapiszWynikObliczenOkapik()
+    public async Task ZapiszGrupyDlugoscOkapik()
     {
         if (elementyZamowienia == null || elementyZamowienia.ElemetZamDoZlecen == null)
         {
@@ -295,10 +300,7 @@ else
             return;
         }
 
-        // Sprawdź URL API
         var url = $"api/PozWZleceniu/GetDaneDoZlecenia/{elementyZamowienia.ElemetZamDoZlecen.RowIdZlecenia}/";
-
-        // Wywołaj API i przypisz wynik do zmiennej
         var szukajDlugosci = await Http.GetFromJsonAsync<List<PozDoZlecen>>(url);
 
         if (szukajDlugosci == null)
@@ -308,30 +310,86 @@ else
         }
         else
         {
-            // Zmienna do przechowywania cięć na każdej sztandze
-            List<List<float>> listaCiec = new List<List<float>>();
-            float dlugoscSztangi = 6000f;
-
-            // Tworzymy listę wszystkich odcinków do wycięcia
+            // Tworzymy listę wszystkich odcinków
             List<float> wszystkieOdcinki = new List<float>();
             foreach (var pozycja in szukajDlugosci)
             {
-                // Dodajemy wszystkie szerokości do listy cięć
                 for (int i = 0; i < pozycja.IloscOkien; i++)
                 {
                     wszystkieOdcinki.Add(pozycja.Szerokosc);
                 }
             }
 
-            // Sortujemy odcinki malejąco (żeby zacząć od największych)
+            // Grupujemy odcinki według długości i sumujemy ilości
+            var grupyOdcinkow = wszystkieOdcinki
+                .GroupBy(dlugosc => dlugosc)
+                .Select(grupa => new
+                {
+                    Dlugosc = grupa.Key,
+                    Ilosc = grupa.Count(),
+                    SumaDlugosci = grupa.Sum()
+                })
+                .OrderBy(grupa => grupa.Dlugosc) // Sortujemy rosnąco po długości
+                .ToList();
+
+            // Tworzymy tabelę HTML
+            StringBuilder wynikTabeli = new StringBuilder();
+            wynikTabeli.Append("<table style='width:100%; border:1px solid black;'>");
+            wynikTabeli.Append("<thead><tr><th>Długość Odcinka</th><th>Ilość</th><th>Suma Długości</th></tr></thead><tbody>");
+
+            foreach (var grupa in grupyOdcinkow)
+            {
+                wynikTabeli.Append($"<tr><td>{grupa.Dlugosc}</td><td>{grupa.Ilosc}</td><td>{grupa.SumaDlugosci}</td></tr>");
+            }
+
+            wynikTabeli.Append("</tbody></table>");
+            wyliczonoOkapikow = wynikTabeli.ToString();
+
+            Console.WriteLine($"Grupowanie zakończone sukcesem: {grupyOdcinkow.Count} grup.");
+        }
+
+        await Task.CompletedTask;
+    }
+
+
+    int iloscSztangZap = 0;
+    public async Task ZapiszWynikObliczenOkapik()
+    {
+        iloscSztangZap = 0;
+        if (elementyZamowienia == null || elementyZamowienia.ElemetZamDoZlecen == null)
+        {
+            wyliczonoOkapikow = "Brak danych potrzebych do wyliczeń ilości oraz długości okapików.";
+            return;
+        }
+
+        var url = $"api/PozWZleceniu/GetDaneDoZlecenia/{elementyZamowienia.ElemetZamDoZlecen.RowIdZlecenia}/";
+        var szukajDlugosci = await Http.GetFromJsonAsync<List<PozDoZlecen>>(url);
+
+        if (szukajDlugosci == null)
+        {
+            wyliczonoOkapikow = "Brak lub błąd danych potrzebych do wyliczeń ilości oraz długości okapików.";
+            Console.WriteLine("No data returned from API.");
+        }
+        else
+        {
+            List<List<float>> listaCiec = new List<List<float>>();
+            float dlugoscSztangi = 6000f;
+            List<float> wszystkieOdcinki = new List<float>();
+
+            foreach (var pozycja in szukajDlugosci)
+            {
+                for (int i = 0; i < pozycja.IloscOkien; i++)
+                {
+                    wszystkieOdcinki.Add(pozycja.Szerokosc);
+                }
+            }
+
             wszystkieOdcinki.Sort((a, b) => b.CompareTo(a));
 
-            // Algorytm Best Fit (umieszczanie odcinków w dostępnych sztangach)
             foreach (var odcinek in wszystkieOdcinki)
             {
                 bool dopasowano = false;
 
-                // Próbujemy umieścić odcinek w istniejących sztangach
                 foreach (var sztanga in listaCiec)
                 {
                     float sumaCiecWSztandze = sztanga.Sum();
@@ -343,31 +401,44 @@ else
                     }
                 }
 
-                // Jeśli nie udało się dopasować do istniejących sztang, tworzymy nową sztangę
                 if (!dopasowano)
                 {
                     listaCiec.Add(new List<float> { odcinek });
                 }
             }
 
-            // Tworzymy listę opisującą cięcia na każdej sztandze
-            StringBuilder wynikCiec = new StringBuilder();
+            // Stworzenie HTML dla tabeli
+            StringBuilder wynikTabeli = new StringBuilder();
+            wynikTabeli.Append("<table style='width:100%; border:1px solid black;'>");
+            wynikTabeli.Append("<thead><tr><th>Sztanga</th><th>Cięcia</th><th>Suma Długości</th></tr></thead><tbody>");
+
             int numerSztangi = 1;
             foreach (var sztanga in listaCiec)
             {
-                wynikCiec.AppendLine($"Sztanga {numerSztangi}: {string.Join(", ", sztanga)} (Suma: {sztanga.Sum()})");
+                wynikTabeli.Append($"<tr><td>{numerSztangi}</td><td>{string.Join(", ", sztanga)}</td><td>{sztanga.Sum()}</td></tr>");
                 numerSztangi++;
             }
 
-            // Wynik zapiszemy do zmiennej wyliczonoOkapikow
-            wyliczonoOkapikow = $"Wyliczono cięcia: \n{wynikCiec.ToString()}";
+            iloscSztangZap = numerSztangi;
+
+            wynikTabeli.Append("</tbody></table>");
+            wyliczonoOkapikow = wynikTabeli.ToString();
             Console.WriteLine($"Optymalizacja zakończona sukcesem: {listaCiec.Count} sztang");
         }
 
         await Task.CompletedTask;
     }
 
+    public async Task ZapiszWynikObliczenOkapikDoNazProd()
+    {
+        elementyZamowienia.ElemetZamDoZlecen.NazwaProduktu = "Okapik okienny";
+        elementyZamowienia.ElemetZamDoZlecen.IloscSztuk = iloscSztangZap;
+        elementyZamowienia.ElemetZamDoZlecen.Jednostka = "mb";
+        elementyZamowienia.ElemetZamDoZlecen.Dlugosc = 6;
+        await Task.CompletedTask;
 
+        activeKey = "0";
+    }
 
     public async Task ZapiszWynikObliczenWkladki()
     {
@@ -395,6 +466,8 @@ else
         }
 
         await Task.CompletedTask;
+
+        activeKey = "0";
     }
 
 
