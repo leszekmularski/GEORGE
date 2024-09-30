@@ -5,6 +5,12 @@
 @inject Utilities.ILocalStorage LocalStorage
 @inject NavigationManager NavigationManager
 
+<style>
+    .form-item-small-margin {
+        margin-bottom: 8px; /* Możesz dostosować tę wartość */
+    }
+</style>
+
 @if (bAdmin == false)
 {
     <p><em>Nie masz uprawnień....</em></p>
@@ -51,7 +57,7 @@ else
                 <AntDesign.FormItem Label="Ilość">
                     <AntDesign.Input Type="number" Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.IloscSztuk" Required />
                 </AntDesign.FormItem>
-                <AntDesign.FormItem Label="Typ">
+                <AntDesign.FormItem Label="Typ (Kod producenta)">
                     <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Typ" Placeholder="Podaj typ produktu" />
                 </AntDesign.FormItem>
                 <AntDesign.FormItem Label="Czy zamówiono">
@@ -59,6 +65,9 @@ else
                 </AntDesign.FormItem>
                 <AntDesign.FormItem Label="Czy dostarczono">
                     <Switch @bind-Value="@context.ElemetZamDoZlecen.PozDostarczono" />
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Dodaj uwagę sprawdzić!!!">
+                    <Button OnClick="DodajUwSprawdz">Dodaj uwagę - Sprawdź!!!</Button>
                 </AntDesign.FormItem>
             </TabPane>
 
@@ -110,6 +119,37 @@ else
                     <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Opis" Placeholder="Podaj opis produktu" />
                 </AntDesign.FormItem>
             </TabPane>
+            <TabPane Key="3" Tab="Wylicz wkładkę">
+                <AntDesign.Row Gutter="16">
+                    <AntDesign.Col Span="12">
+                        <img src="../Images/dob_wkladek.jpg" style="width: 100%; max-width: 400px;" />
+                    </AntDesign.Col>
+                    <AntDesign.Col Span="18">
+                        <AntDesign.FormItem Label="Wartość wysunięcia poza szyld domyślnie 2-3mm" Class="form-item-small-margin">
+                            <AntDesign.Input Type="number" Step="0.01" @bind-Value="@wkladka_wys" />
+                        </AntDesign.FormItem>
+                        <AntDesign.FormItem Label="Grubość szyldu / Rozety wew.">
+                            <AntDesign.Input Type="number" Step="0.01" @bind-Value="@wkladka_szyldWew" Class="form-item-small-margin" />
+                        </AntDesign.FormItem>
+                        <AntDesign.FormItem Label="Odległość od pow. drzwi do środka rowka - Wymiar A" Class="form-item-small-margin">
+                            <AntDesign.Input Type="number" Step="0.01" @bind-Value="@wkladka_wymA" />
+                        </AntDesign.FormItem>
+                        <AntDesign.FormItem Label="Odległość od pow. drzwi do środka rowka - Wymiar B" Class="form-item-small-margin">
+                            <AntDesign.Input Type="number" Step="0.01" @bind-Value="@wkladka_wymB" />
+                        </AntDesign.FormItem>
+                        <AntDesign.FormItem Label="Grubość szyldu / Rozety zew." Class="form-item-small-margin">
+                            <AntDesign.Input Type="number" Step="0.01" @bind-Value="@wkladka_szyldZew" />
+                        </AntDesign.FormItem>
+                        <AntDesign.FormItem Label="Wkładko gałka" Class="form-item-small-margin">
+                            <Switch @bind-Value="@wkladkoGalka" />
+                        </AntDesign.FormItem>
+                        <AntDesign.FormItem Label="Zapisz wynik obliczeń" Class="form-item-small-margin">
+                            <Button OnClick="ZapiszWynikObliczeńWkladki">Zapisz wynik obliczeń do Nazwa produktu</Button>
+                        </AntDesign.FormItem>
+                    </AntDesign.Col>
+                </AntDesign.Row>
+            </TabPane>
+
         </Tabs>
 
         <AntDesign.FormItem Style="justify-content: flex-end; display: flex; gap: 10px;">
@@ -138,8 +178,14 @@ else
 
     private ProducenciPodwykonawcy? Producent;
 
-
     private bool bAdmin = true;
+
+    private int wkladka_wys = 3;
+    private int wkladka_szyldWew = 0;
+    private int wkladka_wymA = 0;
+    private int wkladka_wymB = 0;
+    private int wkladka_szyldZew = 0;
+    private bool wkladkoGalka = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -225,6 +271,40 @@ else
         {
             await OnButtonClicked.InvokeAsync();
         }
+    }
+
+    public async Task DodajUwSprawdz()
+    {
+        elementyZamowienia.ElemetZamDoZlecen.Opis = $"Sprawdzić!! - Zapisano: {DateTime.Now}";
+        await Task.CompletedTask;
+    }
+
+    public async Task ZapiszWynikObliczeńWkladki()
+    {
+        // Funkcja zaokrąglająca w górę do najbliższej wartości będącej wielokrotnością 5
+        double ZaokraglijWGoreDo5mm(double wartosc)
+        {
+            return Math.Ceiling(wartosc / 5) * 5;
+        }
+
+        // Obliczanie wartości A i B oraz ich zaokrąglanie
+        double sumaA = wkladka_wys + wkladka_szyldWew + wkladka_wymA;
+        double sumaB = wkladka_wys + wkladka_szyldZew + wkladka_wymB;
+
+        double zaokraglonaA = ZaokraglijWGoreDo5mm(sumaA);
+        double zaokraglonaB = ZaokraglijWGoreDo5mm(sumaB);
+
+        // Sprawdzamy, czy wkładko gałka jest ustawione na true
+        if (wkladkoGalka)
+        {
+            elementyZamowienia.ElemetZamDoZlecen.NazwaProduktu = $"Wkładka Gałka Klasa C Standard E8 A={zaokraglonaA} B={zaokraglonaB}";
+        }
+        else
+        {
+            elementyZamowienia.ElemetZamDoZlecen.NazwaProduktu = $"Wkładka Klasa C Standard E8 A={zaokraglonaA} B={zaokraglonaB}";
+        }
+
+        await Task.CompletedTask;
     }
 
 

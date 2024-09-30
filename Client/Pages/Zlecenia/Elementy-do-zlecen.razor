@@ -122,7 +122,7 @@
             const csvRows = [];
 
             // Zdefiniuj nagłówki - unikamy powtórzeń i zachowujemy kolejność zgodnie z C#
-            const headers = ["NazwaProduktu", "NumerKatalogowy", "Typ", "IloscSztuk", "Dlugosc", "Szerokosc", "Wysokosc"];
+            const headers = ["NazwaProduktu", "NumerKatalogowy", "Typ", "IloscSztuk", "Kolor", "Dlugosc", "Szerokosc", "Wysokosc"];
             csvRows.push(headers.join(','));
 
             // Przetwarzaj dane
@@ -352,6 +352,9 @@
             </div>
         </div>
     </div>
+
+
+
 </body>
 </html>
 
@@ -514,6 +517,7 @@
                 NumerKatalogowy = RemoveWhitespace(k.ElemetZamDoZlecen.NumerKatalogowy),
                 Typ = RemoveWhitespace(k.ElemetZamDoZlecen.Typ),
                 IloscSztuk = k.ElemetZamDoZlecen.IloscSztuk,
+                Kolor = k.ElemetZamDoZlecen.Kolor,
                 Dlugosc = k.ElemetZamDoZlecen.Dlugosc,
                 Szerokosc = k.ElemetZamDoZlecen.Szerokosc,
                 Wysokosc = k.ElemetZamDoZlecen.Wysokosc,
@@ -540,6 +544,7 @@
                 NumerKatalogowy = RemoveWhitespace(k.ElemetZamDoZlecen.NumerKatalogowy),
                 Typ = RemoveWhitespace(k.ElemetZamDoZlecen.Typ),
                 IloscSztuk = k.ElemetZamDoZlecen.IloscSztuk,
+                Kolor = k.ElemetZamDoZlecen.Kolor,
                 Dlugosc = k.ElemetZamDoZlecen.Dlugosc,
                 Szerokosc = k.ElemetZamDoZlecen.Szerokosc,
                 Wysokosc = k.ElemetZamDoZlecen.Wysokosc,
