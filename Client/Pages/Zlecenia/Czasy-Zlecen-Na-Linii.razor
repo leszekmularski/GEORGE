@@ -275,7 +275,7 @@
                             CancelText="Nie">
                     <a style="color:red">Usuń wszystkie dane</a>
                 </Popconfirm>
-                <label style="inset-inline-start:inherit; padding-left:255px">Ilość sztuk: @iloszSztukPoz</label>
+                <label style="inset-inline-start:inherit; padding-left:255px">Ilość pozycji: @iloszSztukPoz / Sztuk: @sumailoszSztukPoz / Skrzydeł: @sumailoszSkrzydelPoz</label>
             }
             @if (boolAdmin || boolNowy)
             {
@@ -314,6 +314,8 @@
     string activeKey { get; set; } = "1";
 
     int iloszSztukPoz = 0;
+    int sumailoszSztukPoz = 0;
+    int sumailoszSkrzydelPoz = 0;
 
     private bool isCheckedZastapPozycje = true;
 
@@ -454,10 +456,12 @@
 
         wykazPozycjiDoZlecenia = await Http.GetFromJsonAsync<List<PozDoZlecen>>($"api/PozWZleceniu/GetDaneDoZlecenia/{RowIdZlecenia}");
 
-        if (wykazPozycjiDoZlecenia != null) iloszSztukPoz = wykazPozycjiDoZlecenia.Sum(x => x.IloscOkien);
-
-        if (wykazPozycjiDoZlecenia != null)
+        if (wykazPozycjiDoZlecenia != null) 
+        { 
             iloszSztukPoz = wykazPozycjiDoZlecenia.Count();
+            sumailoszSztukPoz = wykazPozycjiDoZlecenia.Sum(x => x.IloscOkien); 
+            sumailoszSkrzydelPoz = wykazPozycjiDoZlecenia.Sum(x => x.Iloscskrzydel);
+        }
 
         StateHasChanged();
     }

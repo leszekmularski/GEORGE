@@ -22,7 +22,7 @@ namespace GEORGE.Server.Controllers
         [HttpGet]
         public async Task<ActionResult<List<ProducenciPodwykonawcy>>> GetProducenciAsync()
         {
-            return await _context.ProducenciPodwykonawcy.ToListAsync();
+            return await _context.ProducenciPodwykonawcy.OrderBy(e => e.NazwaProducenta).ToListAsync();
         }
 
         [HttpGet("{RowIdProducenta}")]

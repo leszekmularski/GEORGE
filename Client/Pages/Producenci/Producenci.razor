@@ -36,7 +36,10 @@ else
                     <a>Pokaż</a>
                 </Popconfirm>
             </ActionColumn>
-            <Column Title="Nazwa Producenta" @bind-Field="@context.NazwaProducenta" Sortable OnFilter="(a, b) => a == b" Filterable />
+    @*         <Column Title="Nazwa Producenta" @bind-Field="@context.NazwaProducenta" Sortable OnFilter="(a, b) => a == b" Filterable /> *@
+            <PropertyColumn Property="c=>c.NazwaProducenta" Sortable OnFilter="(a, b) => a == b" Filterable>
+                <a href="@context.AdresWWW1" target="_blank">@context.NazwaProducenta</a>
+            </PropertyColumn>
             <Column Title="Adres" @bind-Field="@context.Adres" Sortable />
             <Column Title="Miejscowość" @bind-Field="@context.Miejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Telefon" @bind-Field="@context.Telefon" Sortable />
