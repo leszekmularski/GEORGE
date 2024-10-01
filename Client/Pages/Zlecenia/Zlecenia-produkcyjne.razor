@@ -230,14 +230,14 @@ else
                                 </AntDesign.Col>
                                 <AntDesign.Col Span="12">
                                     <AntDesign.FormItem Label="Numer Zamówienia">
-                                        <AntDesign.Input @bind-Value="zlecenie.NumerZamowienia" />
+                                        <AntDesign.Input @bind-Value="zlecenie.NumerZamowienia" Required />
                                     </AntDesign.FormItem>
                                 </AntDesign.Col>
                             </AntDesign.Row>
                             <AntDesign.Row Gutter="16">
                                 <AntDesign.Col Span="12">
                                     <AntDesign.FormItem Label="Numer Umowy">
-                                        <AntDesign.Input @bind-Value="zlecenie.NumerUmowy" />
+                                        <AntDesign.Input @bind-Value="zlecenie.NumerUmowy" Required />
                                     </AntDesign.FormItem>
                                 </AntDesign.Col>
                                 <AntDesign.Col Span="12">
@@ -261,7 +261,7 @@ else
                             <AntDesign.Row Gutter="16">
                                 <AntDesign.Col Span="12">
                                     <AntDesign.FormItem Label="Klient">
-                                        <AntDesign.Input @bind-Value="zlecenie.Klient" />
+                                        <AntDesign.Input @bind-Value="zlecenie.Klient" Required />
                                     </AntDesign.FormItem>
                                 </AntDesign.Col>
                             </AntDesign.Row>
@@ -403,7 +403,7 @@ else
                             <AntDesign.Row Gutter="16">
                                 <AntDesign.Col Span="12">
                                     <AntDesign.FormItem Label="Kto Zapisał">
-                                        <AntDesign.Input @bind-Value="zlecenie.KtoZapisal" />
+                                        <AntDesign.Input @bind-Value="zlecenie.KtoZapisal" Required />
                                     </AntDesign.FormItem>
                                 </AntDesign.Col>
                             </AntDesign.Row>
@@ -1334,6 +1334,8 @@ else
     {
         // await Task.Delay(1);
         // _visible = true;
+
+        if (string.IsNullOrEmpty(zlecenie.NumerZamowienia) || string.IsNullOrEmpty(zlecenie.Klient) || string.IsNullOrEmpty(zlecenie.KtoZapisal)) return;
 
         await HandleSubmit();
         // await HandleSubmit();
