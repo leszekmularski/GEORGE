@@ -227,6 +227,7 @@
                         Wklej ze schowka szyby z STOLCAD [ODWOŁANIA]
                     </Button>
                     <Checkbox @bind-Checked="isCheckedDelAll">Usuń wszystkie dane przed zapisem nowych</Checkbox>
+                    <Checkbox @bind-Checked="isCheckedZamAll">Ustaw status przy imporcie na zamówiono</Checkbox>
                 </div>
 
                 @if (zestawienie != null)
@@ -384,6 +385,7 @@
     private string uwagaKopiuj = "Kopiuj do schowka dane";
 
     private bool isCheckedDelAll = true;
+    private bool isCheckedZamAll = false;
 
     int _pageSize = 7;
 
@@ -646,11 +648,11 @@
                         RodzajRamki = item.RodzajRamki,
                         Uwagi = "Dane zaimortowano z PDF - oraz nadano datę zamówienia",
                         IloscSztuk = string.IsNullOrEmpty(item.Ilosc) ? 0 : int.Parse(item.Ilosc),
-                        DataZamowienia = DateTime.Now,
-                        DataRealizacji = DateTime.Now.AddDays(14),
+                        DataZamowienia = isCheckedZamAll ? DateTime.Now : DateTime.MinValue,
+                        DataRealizacji = isCheckedZamAll ? DateTime.Now.AddDays(14) : DateTime.MinValue,
                         DataZapisu = DateTime.Now,
                         KtoZapisal = user,
-                        CzyZamowiono = true,
+                        CzyZamowiono = isCheckedZamAll,
                     };
 
                 szybyall.Add(szyby);
