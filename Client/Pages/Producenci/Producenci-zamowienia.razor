@@ -150,6 +150,9 @@ else
                     <PropertyColumn Property="c=>c.ElemetZamDoZlecen.Jednostka" Width="10%" />
                     <PropertyColumn Title="Długość" Property="c=>c.ElemetZamDoZlecen.Dlugosc" Width="10%" />
                     <PropertyColumn Title="Data Zamówienia" Property="c=>c.ElemetZamDoZlecen.DataZamowienia" Width="10%" Format="yyyy-MM-dd" />
+                    <PropertyColumn Title="Czy zamówiono" Property="c=>c.ElemetZamDoZlecen.CzyZamowiono" >
+                        <a>@(context.ElemetZamDoZlecen.CzyZamowiono ? "Tak" : "Nie")</a>
+                    </PropertyColumn>
                     @*                 <PropertyColumn Property="c=>c.ElemetZamDoZlecen.DataRealizacji" Width="30%" Grouping GroupBy="GradeGroupBy" Sortable /> *@
                 </ColumnDefinitions>
             </Table>
