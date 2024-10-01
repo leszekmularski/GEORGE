@@ -202,8 +202,8 @@
                 {
 
                     <Table TItem="ElemetZamDoZlecenWithProducent" DataSource="elementyDoZlecen" PageSize="@_pageSize"
-                           Loading="_loading" ScrollX="2450" Size="TableSize.Small" RowKey="x=>x.ElemetZamDoZlecen.Id" @bind-SelectedRows="_items"
-                           RowClassName="@(x => x.Data.ElemetZamDoZlecen.Opis.ToUpper().StartsWith("SPRAWDZ") ? "uwaga" : "move-class")">
+                           Loading="_loading" ScrollX="2450" Size="TableSize.Small" RowKey="x => x?.ElemetZamDoZlecen?.Id" @bind-SelectedRows="_items"
+                           RowClassName="@(x => x?.Data?.ElemetZamDoZlecen?.Opis?.ToUpper().StartsWith("SPRAWDZ") == true ? "uwaga" : "move-class")">
                         <ColumnDefinitions Context="context">
                             <Selection Width="25px" />
                             <PropertyColumn Title="ID" Property="c=>c.ElemetZamDoZlecen.Id" Hidden />
