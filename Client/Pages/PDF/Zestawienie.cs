@@ -57,32 +57,33 @@ namespace GEORGE.Client.Pages.PDF
             bool capturing = false;
             foreach (var line in lines)
             {
-              
+
                 if (line.Contains("KANTÓWKA"))
                 {
                     capturing = true;
                     tempLine.Clear();
 
-                    strUwagi = line;  
-                   
+                    strUwagi = line;
+
                 }
 
                 if (capturing)
                 {
                     var items = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                     tempLine.AddRange(items);
-                   // Console.WriteLine(line);
+                    // Console.WriteLine(line);
                     // Check if the accumulated line has the required number of elements
                     if (tempLine.Count >= 7)
                     {
                         var matchedLine = string.Join(" ", tempLine);
                         kantowkaList.Add(matchedLine);
                         capturing = false;
+                        Console.WriteLine($"matchedLine: {matchedLine}");
                     }
                 }
             }
 
-            Console.WriteLine(kantowkaList.Count());  
+            Console.WriteLine(kantowkaList.Count());
 
             foreach (var kantowka in kantowkaList)
             {
@@ -101,7 +102,7 @@ namespace GEORGE.Client.Pages.PDF
                             Wymiar = items[4],
                             Kat = (items.Length > 6 ? items[6] : ""),
                             WymiarNaZamowienie = DlugoscHandlowa(items[4]),
-                            Uwagi = strUwagi,
+                            Uwagi = strUwagi.Substring(0, strUwagi.IndexOf("-")).TrimEnd()//ZwrocOpis(kantowka)//strUwagi,
                         };
 
                         if (int.TryParse(items[3], out _))
@@ -118,6 +119,33 @@ namespace GEORGE.Client.Pages.PDF
             }
 
             return zestawienie;
+        }
+
+        private string ZwrocOpis(string linia)
+        {
+            if (linia.Contains("KANTÓWKA"))
+            {
+
+                return linia;
+
+            }
+            else
+            {
+                var tempLine = new List<string>();
+                var items = linia.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                tempLine.AddRange(items);
+                // Console.WriteLine(line);
+                // Check if the accumulated line has the required number of elements
+                if (tempLine.Count >= 7)
+                {
+                    var matchedLine = string.Join(" ", tempLine);
+                    return matchedLine;
+                }
+                else
+                {
+                    return "Brak danych....";
+                }
+            }
         }
 
         public string DlugoscHandlowa(string dlugoscWyliczona)

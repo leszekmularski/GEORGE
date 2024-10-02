@@ -656,6 +656,17 @@ else
     {
         if (zlecenie != null)
         {
+            if (zlecenie.TypZamowienia != "Zlecenie")
+            {
+                await _message.Warning("");
+                _ = _notice.Info(new()
+                    {
+                        Message = "Uwaga. Nie dodałem nowego numeru!",
+                        Description = $"Typ dokumentu musi być ZLECENIEM",
+                        Placement = NotificationPlacement.BottomLeft
+                    });
+                return;
+            }
 
             // Krok 1: Pobranie listy istniejących zleceń z API
             var zleceniaProdukcyjne = await Http.GetFromJsonAsync<List<ZleceniaProdukcyjne>>("api/ZleceniaProdukcyjne/ostrok");

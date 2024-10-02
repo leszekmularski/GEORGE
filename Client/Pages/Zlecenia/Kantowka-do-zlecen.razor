@@ -303,13 +303,17 @@
                                     <AntDesign.Input @bind-Value="kantowka.NazwaProduktu" Required />
                                 </AntDesign.FormItem>
                                 <AntDesign.FormItem Label="Kod Produktu">
-                                    <AntDesign.Input @bind-Value="kantowka.KodProduktu" />
+                                        <AntDesign.Input @bind-Value="kantowka.KodProduktu" />
                                 </AntDesign.FormItem>
                                 <AntDesign.FormItem Label="Długość wyliczona">
                                     <AntDesign.Input @bind-Value="kantowka.DlugoscNaGotowo" OnBlur="LiczDlugoscZam" />
                                 </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Długość na gotowo(2) - grupa">
+                                    <AntDesign.Input @bind-Value="kantowka.DlugoscNaGotowoGrupa" OnBlur="LiczDlugoscZam" />
+                                </AntDesign.FormItem>
+    
                                 <AntDesign.FormItem Label="Ilość sztuk">
-                                        <AntDesign.InputNumber @bind-Value="kantowka.IloscSztuk" />
+                                        <AntDesign.InputNumber @bind-Value="kantowka.IloscSztuk" Required />
                                 </AntDesign.FormItem>
                             </div>
 
@@ -460,7 +464,8 @@
     {
         if (kantowkaDoZlecen != null)
         {
-            var jsonData = JsonSerializer.Serialize(kantowkaDoZlecen);
+            var skantowka = kantowkaDoZlecen.OrderBy(x => x.Przekroj);
+            var jsonData = JsonSerializer.Serialize(skantowka);
             await JSRuntime.InvokeVoidAsync("saveAsExcel", jsonData);
         }
     }
@@ -532,7 +537,7 @@
                 k.DlugoscZamawiana,
                 k.DlugoscNaGotowoGrupa,
                 k.IloscSztuk
-            });
+            }).OrderBy(x => x.Przekroj);
 
             var jsonData = JsonSerializer.Serialize(selectedData);
             await JSRuntime.InvokeVoidAsync("saveAsExcelSel", jsonData);
@@ -746,11 +751,11 @@
         }
     }
 
-
+    bool blokujDwuKlik = false;
     private async Task HandleSubmit()
     {
 
-        if (_visible == false) return;
+        if (_visible == false || blokujDwuKlik) return;
 
         kantowka.Przekroj = kantowka.Przekroj.ToUpper();
 
@@ -768,7 +773,7 @@
                 // await _message.Error("Numer Rodzaju Kart musi być unikalny.");
                 // return;
             }
-
+            blokujDwuKlik = true;
             response = await Http.PostAsJsonAsync("api/KantowkaDoZlecen", kantowka);
         }
         else
@@ -807,6 +812,11 @@
             // Obsługa błędów
             Console.WriteLine("Błąd podczas zapisywania rodzaju kantowka - źródło RAZOR");
         }
+
+        kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecen>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
+        if (kantowkaDoZlecen != null) oryginalkantowkaDoZlecen = kantowkaDoZlecen.DeepCopyList();
+
+        blokujDwuKlik = false;
     }
 
     public async Task deleteRow(long id)
@@ -874,6 +884,7 @@
 
     public async Task HandleAddNew()
     {
+
         await Task.Delay(1);
 
         _visible = true;
@@ -895,7 +906,25 @@
 
     public async Task ShowDialogAddNew()
     {
-        kantowka = new KantowkaDoZlecen();
+
+        kantowka = new KantowkaDoZlecen
+            {
+                RowIdZlecenia = RowIdZlecenia,
+                GatunekKantowki = "",
+                Przekroj = "",
+                NazwaProduktu = "KANTÓWKA",
+                KodProduktu = "",
+                Uwagi = "Wpisano ręcznie dnia: " + DateTime.Now,
+                DlugoscZamawiana = 0,
+                DlugoscNaGotowo = 0,
+                DlugoscNaGotowoGrupa = "",
+                IloscSztuk = 0,
+                DataZamowienia = DateTime.MinValue,
+                DataRealizacji = DateTime.MinValue,
+                DataZapisu = DateTime.Now,
+                KtoZapisal = user,
+            };
+
         cid = -1;
 
         display = "block";
