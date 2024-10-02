@@ -121,33 +121,32 @@ namespace GEORGE.Client.Pages.PDF
             return zestawienie;
         }
 
-        private string ZwrocOpis(string linia)
-        {
-            if (linia.Contains("KANTÓWKA"))
-            {
+        //private string ZwrocOpis(string linia)
+        //{
+        //    if (linia.Contains("KANTÓWKA"))
+        //    {
 
-                return linia;
+        //        return linia;
 
-            }
-            else
-            {
-                var tempLine = new List<string>();
-                var items = linia.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                tempLine.AddRange(items);
-                // Console.WriteLine(line);
-                // Check if the accumulated line has the required number of elements
-                if (tempLine.Count >= 7)
-                {
-                    var matchedLine = string.Join(" ", tempLine);
-                    return matchedLine;
-                }
-                else
-                {
-                    return "Brak danych....";
-                }
-            }
-        }
-
+        //    }
+        //    else
+        //    {
+        //        var tempLine = new List<string>();
+        //        var items = linia.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        //        tempLine.AddRange(items);
+        //        // Console.WriteLine(line);
+        //        // Check if the accumulated line has the required number of elements
+        //        if (tempLine.Count >= 7)
+        //        {
+        //            var matchedLine = string.Join(" ", tempLine);
+        //            return matchedLine;
+        //        }
+        //        else
+        //        {
+        //            return "Brak danych....";
+        //        }
+        //    }
+        //}
         public string DlugoscHandlowa(string dlugoscWyliczona)
         {
             if (!int.TryParse(dlugoscWyliczona, out int dlugoscX))
