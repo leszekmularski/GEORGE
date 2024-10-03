@@ -329,7 +329,14 @@ else
                             <AntDesign.Row Gutter="16">
                                 <AntDesign.Col Span="12">
                                     <AntDesign.FormItem Label="Zapisano">
+                                        @if (boolAdmin)
+                                        {
+                                            <AntDesign.DatePicker @bind-Value="zlecenie.DataZapisu" Style="width:120px" />
+                                        }
+                                        else
+                                        {
                                             <AntDesign.Input ReadOnly Value="@(zlecenie.DataZapisu.ToString("yyyy-MM-dd"))" Style="width:120px" />
+                                        }
                                     </AntDesign.FormItem>
                                 </AntDesign.Col>
                             </AntDesign.Row>
