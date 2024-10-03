@@ -543,8 +543,8 @@
     {
         if (kantowkaDoZlecen != null)
         {
-            // Stała dla zużycia farby (0,25 litra na 1 m²)
-            const double zuzycieFarbyNaMetrKwadratowy = 0.25;
+            // Stała dla zużycia farby (0,35 litra na 1 m²)
+            const double zuzycieFarbyNaMetrKwadratowy = 0.35;
 
             // Lista przechowująca wyliczoną ilość farby dla każdej kantówki
             var iloscFarbyLista = new List<double>();
@@ -578,10 +578,12 @@
                 }
             }
 
+            powCalkowiat.Add(1);//Dodaję 1 m2 na zaokrąglenia powierzchni w górę
+
             // Sumowanie ilości farby dla wszystkich kantówek
             double lacznaIloscFarby = iloscFarbyLista.Sum();
 
-            await ShowConfirmIcon(ConfirmIcon.Info, $"Łączna ilość farby: {Math.Round(lacznaIloscFarby, 1)} litrów - przy malowaniu jednokrotym oraz {Math.Round(lacznaIloscFarby, 1) * 2} litrów przy malowaniu dwukrotnym - powierzchnia do malowania: {Math.Round(powCalkowiat.Sum(), 1)}");
+            await ShowConfirmIcon(ConfirmIcon.Info, $"Łączna ilość farby: {Math.Round(lacznaIloscFarby, 1)} litrów - przy malowaniu jednokrotym oraz {Math.Round(lacznaIloscFarby, 1) * 2} litrów przy malowaniu dwukrotnym - powierzchnia malowana: {Math.Round(powCalkowiat.Sum(), 1)} m² sugerowane zużce farby na 1m² = {zuzycieFarbyNaMetrKwadratowy.ToString()}l");
         }
     }
 
