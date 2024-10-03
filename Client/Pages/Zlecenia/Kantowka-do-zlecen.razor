@@ -1,5 +1,6 @@
 ﻿@page "/Kantowka-do-zlecen/{RowIdZlecenia}/{typ}"
 @using GEORGE.Shared.Models
+@using GEORGE.Shared.ViewModels
 @using GEORGE.Shared.Class
 @using GEORGE.Client.Pages
 @inject HttpClient Http
@@ -36,6 +37,23 @@
             left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
             top: 65px; /* Ustawia górną krawędź 155px od góry okna */
         }
+
+        /* Zwiększona widoczność klasy uwaga */
+        .zamowiono, .zamowiono > td {
+            background-color: green !important; /* Mocniejszy, bardziej jaskrawy czerwony */
+            color: black !important; /* Tekst biały dla lepszej czytelności */
+            font-weight: normal; /* Pogrubienie tekstu */
+            border: 1px solid black; /* Dodanie czerwonej ramki */
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Lekki cień dla wrażenia głębi */
+            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Animacja płynnej zmiany koloru i cienia */
+        }
+
+            .zamowiono:hover, .move-class:hover > td {
+                background-color: wheat !important; /* Jasniejszy różowy na hover */
+                color: black !important; /* Tekst zmienia się na czarny na hover */
+                box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.3); /* Większy cień podczas hover */
+                font-size: 1em; /* Zwiększenie rozmiaru tekstu podczas hover */
+            }
 
     </style>
 
@@ -162,7 +180,7 @@
             Zapisz do pliku CSV - tylko wymagane kolumny
         </Button>
         <Button Type="reset" OnClick="@(UstawDateZamowienia)">
-            Kantówkę zamówiono
+            Kantówkę zamówiono (wygeneruj wpis do zamówień)
         </Button>
          <Tooltip Placement="@Placement.BottomCenter" Title="Wylicz ilość farby do malowania">
                 <Button Icon="@IconType.Fill.Compass" Type="reset" OnClick="@(WyliczIloscFarby)" />
@@ -180,7 +198,8 @@
     {
         <Divider></Divider>
          <div>
-            <Table TItem="KantowkaDoZlecen" DataSource="@kantowkaDoZlecen" ScrollX="1950" @bind-PageSize="@_pageSize" Size="TableSize.Small">
+            <Table TItem="KantowkaDoZlecen" DataSource="@kantowkaDoZlecen" ScrollX="1950" @bind-PageSize="@_pageSize" Size="TableSize.Small"
+                       RowClassName="@(x => x?.Data?.WyslanoDoZamowien == true ? "zamowiono" : "move-class")">
                 <Column Title="ID" @bind-Field="@context.Id" Hidden />
                 <Column Title="Gatunek" @bind-Field="@context.GatunekKantowki" Sortable OnFilter="(a, b) => a == b" Filterable />
                 <Column Title="Przekrój" @bind-Field="@context.Przekroj" Sortable OnFilter="(a, b) => a == b" Filterable />
@@ -196,6 +215,8 @@
                 </Column>
                 <Column Title="Uwagi" @bind-Field="@context.Uwagi" Sortable />
                 <Column Title="Autor zmian" @bind-Field="@context.KtoZapisal" Sortable />
+                    <Column Title="Wysłano do zamówienia" @bind-Field="@context.WyslanoDoZamowien" Hidden />
+                    
 
                 <!-- Przykład kolumny dla daty z formatowaniem -->
                     <Column Title="Data zamówienia" TData="DateTime" DataIndex="DataZamowienia" Format="yyyy-MM-dd" Sortable />
@@ -311,8 +332,7 @@
                                 <AntDesign.FormItem Label="Długość na gotowo(2) - grupa">
                                     <AntDesign.Input @bind-Value="kantowka.DlugoscNaGotowoGrupa" OnBlur="LiczDlugoscZam" />
                                 </AntDesign.FormItem>
-    
-                                <AntDesign.FormItem Label="Ilość sztuk">
+                                   <AntDesign.FormItem Label="Ilość sztuk">
                                         <AntDesign.InputNumber @bind-Value="kantowka.IloscSztuk" Required />
                                 </AntDesign.FormItem>
                             </div>
@@ -334,6 +354,9 @@
                                 <AntDesign.FormItem Label="Materiał jest na stanie magazynowy">
                                     <AntDesign.Checkbox @bind-Value="kantowka.MaterialZeStanMagazyn" />
                                 </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Wygenerowano zamówienie">
+                                    <AntDesign.Checkbox @bind-Value="kantowka.WyslanoDoZamowien" />
+                                </AntDesign.FormItem>
                                 <AntDesign.FormItem Label="Kto Zapisał">
                                     <AntDesign.Input @bind-Value="kantowka.KtoZapisal" Required />
                                 </AntDesign.FormItem>
@@ -352,6 +375,43 @@
             </div>
         </div>
     </div>
+
+        @if(_producenci != null && elementyZamowienia != null)
+        {
+            <div class="modal fade @classShowKantowka" tabindex="-1" style="display: @displayKantowka;">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Wybierz producenta kantówki</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="HandleKantowkaCancel">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <AntDesign.Form Model="@elementyZamowienia" Layout="FormLayout.Horizontal" OnFinish="@HandleKantowkaSubmit">
+                                <div class="row">
+                                    <div>
+                                        <FormItem Style="width:100%" Required Label="Wybierz producenta (dostawcę)">
+                                            <Select Mode="default"
+                                                    DataSource="@_producenci"
+                                                    @bind-Value="@context.ElemetZamDoZlecen.RowIdProducent"
+                                                    LabelName="@nameof(Producent.NazwaProducenta)"
+                                                    ValueName="@nameof(Producent.RowId)">
+                                            </Select>
+                                        </FormItem>
+                                    </div>
+                                </div>
+
+                                <AntDesign.FormItem>
+                                    <AntDesign.Button Disabled="@wylaczZapiszKantowke" Type="primary" @onclick="@HandleAddNewKantowka" HtmlType="submit">Wybierz producenta i zapisz jako nową pozycję zamówienia</AntDesign.Button>
+                                    <AntDesign.Button @onclick="@HandleCancelKantowka">Anuluj</AntDesign.Button>
+                                </AntDesign.FormItem>
+                            </AntDesign.Form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
     </div>
 </body>
 </html>
@@ -365,6 +425,9 @@
 
     [Inject] private AppState AppState { get; set; } = default!;
 
+    private ElemetZamDoZlecenWithProducent? elementyZamowienia { get; set; }
+    private ProducenciPodwykonawcy? Producent;
+
     private string? pdfContent;
 
     private List<KantowkaDoZlecen>? kantowkaDoZlecen;
@@ -372,9 +435,15 @@
 
     private GEORGE.Client.Pages.PDF.Zestawienie? zestawienie;
 
+    private List<ProducenciPodwykonawcy>? _producenci;
+
     private bool _visible = false;
     private string display = "none;";
     private string classShow = "";
+
+    private bool _visibleKantowka = false;
+    private string displayKantowka = "none;";
+    private string classShowKantowka = "";
 
     private long cid = -1;
 
@@ -524,7 +593,6 @@
         //var _ = _message.Info($"{confirmResult}!", 2);
     }
 
-
     public async Task ExportSelectedColumnsToExcel()
     {
         if (kantowkaDoZlecen != null)
@@ -562,24 +630,11 @@
 
     public async Task UstawDateZamowienia()
     {
-        //  var aktualizacja = new { Id = idr, MaterialZeStanMagazyn = nowyStan };
 
-        var response = await Http.PutAsJsonAsync($"api/kantowkaDoZlecen/{RowIdZlecenia}/updateDateZamowienia","");
+        _producenci = await Http.GetFromJsonAsync<List<ProducenciPodwykonawcy>>($"api/ProducenciPodwykonawcy");
 
-        if (response.IsSuccessStatusCode)
-        {
-            if (kantowkaDoZlecen != null)
-            {
-                kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecen>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
-                oryginalkantowkaDoZlecen = kantowkaDoZlecen.DeepCopyList();
+       await ShowDialogKantowka();
 
-                await _message.Success("Ustawiono datę zamówienia kantówki");
-            }
-        }
-        else
-        {
-            await _message.Error("Błąd aktualiazcji danych");
-        }
     }
 
     private void LiczDlugoscZam()
@@ -634,7 +689,6 @@
 
         }
     }
-
 
     private async Task SaveAll()
     {
@@ -749,6 +803,64 @@
             // Obsłuż wyjątek
             Console.WriteLine($"Wystąpił błąd: {ex.Message}");
         }
+    }
+
+    private bool wylaczZapiszKantowke = false;
+
+    private async Task HandleKantowkaSubmit()
+    {
+
+        if (!_visibleKantowka) return;
+
+        wylaczZapiszKantowke = true;
+
+        //  Ddodano nowy wpis w zamówieniu !!!
+
+        Console.WriteLine($"Start zapisu RowIdProducent: {elementyZamowienia.ElemetZamDoZlecen.RowIdProducent}.");
+
+        elementyZamowienia.ElemetZamDoZlecen.NazwaProduktu = elementyZamowienia.ElemetZamDoZlecen.NazwaProduktu.Trim();
+
+
+        HttpResponseMessage responseKant;
+
+        if (elementyZamowienia.ElemetZamDoZlecen.Id == 0)
+        {
+
+            responseKant = await Http.PostAsJsonAsync("api/ElementyDoZlecen", elementyZamowienia.ElemetZamDoZlecen);
+        }
+        else
+        {
+            responseKant = await Http.PutAsJsonAsync($"api/ElementyDoZlecen/{elementyZamowienia.ElemetZamDoZlecen.Id}", elementyZamowienia.ElemetZamDoZlecen);
+            // if (elementyDoZlecen != null) oryginalElementyDoZlecen = elementyDoZlecen.DeepCopyList();
+        }
+
+        if (responseKant.IsSuccessStatusCode)
+        {
+            // Obsługa błędów
+            Console.WriteLine("Błąd podczas zapisywania rodzaju elementyZamowienia - źródło RAZOR");
+        }
+
+        //  Ddodano nowy wpis w zamówieniu !!!
+
+        //Zmień datę zamówienia
+        var response = await Http.PutAsJsonAsync($"api/kantowkaDoZlecen/{RowIdZlecenia}/updateDateZamowieniaStatusZamow", "");
+
+        if (response.IsSuccessStatusCode)
+        {
+            if (kantowkaDoZlecen != null)
+            {
+                kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecen>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
+                oryginalkantowkaDoZlecen = kantowkaDoZlecen.DeepCopyList();
+
+                await _message.Success("Ustawiono datę zamówienia kantówki");
+            }
+        }
+        else
+        {
+            await _message.Error("Błąd aktualiazcji danych");
+        }
+
+        await HideDialogKantowka();
     }
 
     bool blokujDwuKlik = false;
@@ -882,6 +994,15 @@
 
     }
 
+    public async Task HandleAddNewKantowka()
+    {
+
+        _visibleKantowka = true;
+
+        await Task.CompletedTask;
+
+    }
+
     public async Task HandleAddNew()
     {
 
@@ -891,11 +1012,24 @@
         // await HandleSubmit();
     }
 
+    public async Task HandleCancelKantowka()
+    {
+        _visibleKantowka = false;
+        await HideDialogKantowka();
+    }
+
     public async Task HandleCancel()
     {
         _visible = false;
         await HideDialog();
     }
+
+    public async Task HandleKantowkaCancel()
+    {
+        _visibleKantowka = false;
+        await HideKantowkaDialog();
+    }
+
 
     public async Task HandleCloseAdd()
     {
@@ -933,11 +1067,64 @@
         StateHasChanged();
     }
 
+    public async Task ShowDialogKantowka()
+    {
+
+
+        elementyZamowienia = new ElemetZamDoZlecenWithProducent
+            {
+                ElemetZamDoZlecen = new ElemetZamDoZlecen
+                {
+                    RowIdZlecenia = RowIdZlecenia,
+                    Szerokosc = 0,
+                    Wysokosc = 0,
+                    NazwaProduktu = $"Kantówka (klejonka){(kantowkaDoZlecen == null || kantowkaDoZlecen.Count() == 0 ? "" : " - " + kantowkaDoZlecen[0].GatunekKantowki)}",
+                    IloscSztuk = kantowkaDoZlecen == null ? 0 : kantowkaDoZlecen.Sum(x => x.IloscSztuk),
+                    Jednostka = "szt.",
+                    DataZamowienia = DateTime.Now,
+                    DataRealizacji = DateTime.Now.AddDays(14),
+                    DataZapisu = DateTime.Now,
+                    Uwagi = "Zapis automatycznie został wygenerowany - Zamów kantówkę",
+                    CzyZamowiono = true,
+                    KtoZapisal = user
+                },
+                ProducenciPodwykonawcy = new ProducenciPodwykonawcy
+                {
+                    // Przypisz odpowiednie wartości dla właściwości ProducenciPodwykonawcy
+                    NazwaProducenta = "" // Przykładowa wartość
+                },
+                DodatkowaInformacja = "Dane z dnia" + DateTime.Now
+            };
+
+        displayKantowka = "block";
+        await Task.Delay(50);
+        classShowKantowka = "show";
+        await Task.CompletedTask;
+        StateHasChanged();
+
+    }
+
     public async Task ShowDialog()
     {
         display = "block";
         await Task.Delay(50);
         classShow = "show";
+        StateHasChanged();
+    }
+
+    private async Task HideDialogKantowka()
+    {
+        if (cid > 0 && kantowkaDoZlecen != null)
+        {
+            kantowkaDoZlecen = oryginalkantowkaDoZlecen;
+        }
+
+        cid = -1;
+
+        classShowKantowka = "";
+        await Task.Delay(20);
+        displayKantowka = "none";
+
         StateHasChanged();
     }
 
@@ -951,6 +1138,23 @@
         cid = -1;
 
         classShow = "";
+        await Task.Delay(200);
+        display = "none";
+
+        StateHasChanged();
+    }
+
+
+    private async Task HideKantowkaDialog()
+    {
+        if (cid > 0 && kantowkaDoZlecen != null)
+        {
+            kantowkaDoZlecen = oryginalkantowkaDoZlecen;
+        }
+
+        cid = -1;
+
+        classShowKantowka = "";
         await Task.Delay(200);
         display = "none";
 

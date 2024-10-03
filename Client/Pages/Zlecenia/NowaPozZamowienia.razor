@@ -88,9 +88,7 @@ else
                 <AntDesign.FormItem Label="Ostatnia Zmiana">
                     <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.OstatniaZmiana" ReadOnly />
                 </AntDesign.FormItem>
-                <AntDesign.FormItem Label="Uwagi">
-                    <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Uwagi" />
-                </AntDesign.FormItem>
+
             </TabPane>
 
             <TabPane Key="2" Tab="Jednostki">
@@ -115,10 +113,8 @@ else
                 <AntDesign.FormItem Label="Cena Netto">
                     <AntDesign.Input Type="number" Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.CenaNetto" />
                 </AntDesign.FormItem>
-                <AntDesign.FormItem Label="Opis">
-                    <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Opis" Placeholder="Podaj opis produktu" />
-                </AntDesign.FormItem>
             </TabPane>
+
             <TabPane Key="3" Tab="Wylicz wkładkę">
                 <AntDesign.Row Gutter="16">
                     <AntDesign.Col Span="12">
@@ -149,7 +145,8 @@ else
                     </AntDesign.Col>
                 </AntDesign.Row>
             </TabPane>
-              <TabPane Key="4" Tab="Wylicz okapiki">
+            
+            <TabPane Key="4" Tab="Wylicz okapiki">
                 <AntDesign.FormItem Label="Zapisz wynik obliczeń" Class="form-item-small-margin">
                     <Button OnClick="ZapiszWynikObliczenOkapik">Kliknij aby system wyliczył ilość sztang okapików</Button>
                     <Tooltip Placement="@Placement.TopLeft" Title="Zapisz wynik obliczeń do Nazwa produktu">
@@ -158,7 +155,16 @@ else
                     <Button OnClick="ZapiszGrupyDlugoscOkapik">Wylicz pogrupowane długości i ilości</Button>
                 </AntDesign.FormItem>
                 <h5 style="color:blue">@((MarkupString)wyliczonoOkapikow)</h5>
-              </TabPane>
+             </TabPane>
+
+            <TabPane Key="5" Tab="Pozostałe informacje">
+                <AntDesign.FormItem Label="Opis">
+                    <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Opis" Placeholder="Podaj opis produktu" />
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Uwagi">
+                    <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Uwagi" Placeholder="Podaj uwagi do pozycji" />
+                </AntDesign.FormItem>
+            </TabPane>
         </Tabs>
 
         <AntDesign.FormItem Style="justify-content: flex-end; display: flex; gap: 10px;">
@@ -219,7 +225,6 @@ else
             new Item { Value = "t", Name = "t", DisplayName = "tony"},
             new Item { Value = "m3", Name = "m3", DisplayName = "metry sześcienny"},
         };
-
 
         _producenci = await Http.GetFromJsonAsync<List<ProducenciPodwykonawcy>>($"api/ProducenciPodwykonawcy");
 

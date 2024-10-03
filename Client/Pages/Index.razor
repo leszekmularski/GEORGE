@@ -45,7 +45,7 @@
             version = xversion.ToString();
         }
 
-        await Task.Delay(1);
+        await Task.CompletedTask;
     }
 
     private int GetWeekNumber(DateTime date)
