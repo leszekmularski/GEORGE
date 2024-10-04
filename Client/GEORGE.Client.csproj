@@ -8,7 +8,9 @@
 	<AssemblyVersion>1.0.7.5</AssemblyVersion>
 	<FileVersion>1.0.7.5</FileVersion>
 	<InformationalVersion>1.0.7</InformationalVersion>
-  </PropertyGroup>
+    <WasmEnableSimdSupport>false</WasmEnableSimdSupport>
+</PropertyGroup>
+
 
   <ItemGroup>
     <PackageReference Include="AntDesign" Version="0.20.4.2" />

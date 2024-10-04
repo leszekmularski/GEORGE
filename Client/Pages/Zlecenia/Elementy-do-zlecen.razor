@@ -56,6 +56,15 @@
                 box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.3); /* Większy cień podczas hover */
                 font-size: 1em; /* Zwiększenie rozmiaru tekstu podczas hover */
             }
+        /* Zwiększona widoczność klasy zamowiono */
+        .zamowiono, .zamowiono > td {
+            background-color: lightseagreen !important; /* Mocniejszy, bardziej jaskrawy czerwony */
+            color: black !important; /* Tekst biały dla lepszej czytelności */
+            font-weight: normal; /* Pogrubienie tekstu */
+            border: 1px solid black; /* Dodanie czerwonej ramki */
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Lekki cień dla wrażenia głębi */
+            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Animacja płynnej zmiany koloru i cienia */
+        }
 
     </style>
 
@@ -200,10 +209,11 @@
 
                 if (elementyDoZlecen != null && elementyDoZlecen.Count > 0 && _pageSize > 0)
                 {
-
                     <Table TItem="ElemetZamDoZlecenWithProducent" DataSource="elementyDoZlecen" PageSize="@_pageSize"
-                           Loading="_loading" ScrollX="2450" Size="TableSize.Small" RowKey="x => x?.ElemetZamDoZlecen?.Id" @bind-SelectedRows="_items"
-                           RowClassName="@(x => x?.Data?.ElemetZamDoZlecen?.Opis?.ToUpper().StartsWith("SPRAWDZ") == true ? "uwaga" : "move-class")">
+                           Loading="_loading" ScrollX="2450" Size="TableSize.Small" RowKey="x => x?.ElemetZamDoZlecen?.Id"
+                           @bind-SelectedRows="_items"
+                           RowClassName="@(x => x?.Data?.ElemetZamDoZlecen?.Opis?.ToUpper().StartsWith("SPRAWDZ") == true ?
+                         "uwaga" : (x?.Data?.ElemetZamDoZlecen?.CzyZamowiono == true ? "zamowiono" : "move-class"))">
                         <ColumnDefinitions Context="context">
                             <Selection Width="25px" />
                             <PropertyColumn Title="ID" Property="c=>c.ElemetZamDoZlecen.Id" Hidden />

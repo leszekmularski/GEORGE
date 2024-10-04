@@ -18,7 +18,7 @@
 <html>
 <head>
 
-        <style>
+    <style>
         .custom-link {
             color: blue;
         }
@@ -30,32 +30,42 @@
         .highlighted-background {
             background-color: white;
             overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
-            max-height: calc(100vh - 65px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 155px */
+            max-height: calc(100vh - 65px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 65px */
             width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 260px */
             box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu wysokości */
             position: absolute;
             left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
-            top: 65px; /* Ustawia górną krawędź 155px od góry okna */
+            top: 65px; /* Ustawia górną krawędź 65px od góry okna */
         }
 
-        /* Zwiększona widoczność klasy uwaga */
+        /* Zwiększona widoczność klasy zamowiono */
         .zamowiono, .zamowiono > td {
-            background-color: green !important; /* Mocniejszy, bardziej jaskrawy czerwony */
-            color: black !important; /* Tekst biały dla lepszej czytelności */
-            font-weight: normal; /* Pogrubienie tekstu */
-            border: 1px solid black; /* Dodanie czerwonej ramki */
+            background-color: lightseagreen !important;
+            color: black !important;
+            font-weight: bold; /* Zmieniono na bold dla lepszej widoczności */
+            border: 1px solid black;
             box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Lekki cień dla wrażenia głębi */
-            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Animacja płynnej zmiany koloru i cienia */
+            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Płynne przejścia na hover */
         }
 
-            .zamowiono:hover, .move-class:hover > td {
-                background-color: wheat !important; /* Jasniejszy różowy na hover */
-                color: black !important; /* Tekst zmienia się na czarny na hover */
-                box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.3); /* Większy cień podczas hover */
-                font-size: 1em; /* Zwiększenie rozmiaru tekstu podczas hover */
-            }
+        /* Definicja klasy move-class */
+        .move-class, .move-class > td {
+            background-color: lightgray; /* Podstawowy kolor dla move-class */
+            color: black; /* Kolor tekstu */
+            border: 1px solid gray; /* Dodanie obramowania */
+            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Płynne przejście podczas hover */
+        }
 
+            /* Efekty hover dla zamowiono i move-class */
+            .zamowiono:hover, .move-class:hover > td {
+                background-color: wheat !important; /* Zmiana tła na jaśniejszy kolor */
+                color: black !important;
+                box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.3); /* Większy cień podczas hover */
+                font-size: 1.05em; /* Niewielkie powiększenie tekstu na hover */
+                transition: background-color 0.3s ease, box-shadow 0.3s ease, font-size 0.3s ease; /* Płynne przejście na hover */
+            }
     </style>
+
 
     <meta charset="utf-8" />
     <PageTitle>Zamówiona kantówka do zlecenia</PageTitle>
@@ -544,7 +554,7 @@
         if (kantowkaDoZlecen != null)
         {
             // Stała dla zużycia farby (0,35 litra na 1 m²)
-            const double zuzycieFarbyNaMetrKwadratowy = 0.35;
+            const double zuzycieFarbyNaMetrKwadratowy = 0.45;
 
             // Lista przechowująca wyliczoną ilość farby dla każdej kantówki
             var iloscFarbyLista = new List<double>();

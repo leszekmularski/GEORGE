@@ -29,15 +29,42 @@
         .highlighted-background {
             background-color: white;
             overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
-            max-height: calc(100vh - 55px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 155px */
+            max-height: calc(100vh - 65px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 65px */
             width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 260px */
             box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu wysokości */
             position: absolute;
             left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
-            top: 55px; /* Ustawia górną krawędź 155px od góry okna */
+            top: 65px; /* Ustawia górną krawędź 65px od góry okna */
         }
 
+        /* Zwiększona widoczność klasy zamowiono */
+        .zamowiono, .zamowiono > td {
+            background-color: lightseagreen !important;
+            color: black !important;
+            font-weight: bold; /* Zmieniono na bold dla lepszej widoczności */
+            border: 1px solid black;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Lekki cień dla wrażenia głębi */
+            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Płynne przejścia na hover */
+        }
+
+        /* Definicja klasy move-class */
+        .move-class, .move-class > td {
+            background-color: lightgray; /* Podstawowy kolor dla move-class */
+            color: black; /* Kolor tekstu */
+            border: 1px solid gray; /* Dodanie obramowania */
+            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Płynne przejście podczas hover */
+        }
+
+            /* Efekty hover dla zamowiono i move-class */
+            .zamowiono:hover, .move-class:hover > td {
+                background-color: wheat !important; /* Zmiana tła na jaśniejszy kolor */
+                color: black !important;
+                box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.3); /* Większy cień podczas hover */
+                font-size: 1.05em; /* Niewielkie powiększenie tekstu na hover */
+                transition: background-color 0.3s ease, box-shadow 0.3s ease, font-size 0.3s ease; /* Płynne przejście na hover */
+            }
     </style>
+
 
     <meta charset="utf-8" />
     <PageTitle>Zamówiona szyby do zlecenia</PageTitle>
@@ -163,7 +190,8 @@
         else
         {
             <div>
-                <Table TItem="SzybyDoZlecen" DataSource="@szybyDoZlecen" @bind-PageSize="@_pageSize" ScrollX="2150" Size="TableSize.Small">
+                <Table TItem="SzybyDoZlecen" DataSource="@szybyDoZlecen" @bind-PageSize="@_pageSize" ScrollX="2150" Size="TableSize.Small"
+                       RowClassName="@(x => x?.Data?.CzyZamowiono == true ? "zamowiono" : "move-class")">
                     <Column Title="ID" @bind-Field="@context.Id" Hidden />
                     <Column Width="80" Title="Szerokość" @bind-Field="@context.Szerokosc" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Width="80" Title="Wysokość" @bind-Field="@context.Wysokosc" Sortable OnFilter="(a, b) => a == b" Filterable />
