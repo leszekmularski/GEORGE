@@ -236,6 +236,49 @@ namespace GEORGE.Server.Controllers
             }
         }
 
+        [HttpPut("{rowIdZlecenia}/updateDateZamowieniaStatusZamow")]
+        public async Task<ActionResult> UpdateDateZamowieniaStatusZamow(string rowIdZlecenia)
+        {
+            // Znajdź wszystkie rekordy spełniające warunek
+            var szyby = await _context.SzybyDoZlecen
+                .Where(k => k.RowIdZlecenia == rowIdZlecenia)
+                .ToListAsync();
+
+            // Jeśli nie znaleziono żadnych rekordów, zwróć NotFound
+            if (szyby == null || szyby.Count == 0)
+            {
+                return NotFound("Nie znaleziono KantowkaDoZlecen o podanym ID.");
+            }
+
+            // Zaktualizuj pole DataZamowienia dla każdego rekordu
+            foreach (var szyba in szyby)
+            {
+                szyba.DataZamowienia = DateTime.Now;
+                szyba.CzyZamowiono = true;
+                _context.Entry(szyba).State = EntityState.Modified;
+            }
+
+            try
+            {
+                // Zapisz zmiany w bazie danych
+                await _context.SaveChangesAsync();
+                return Ok("Zaktualizowano wszystkie zamówienia.");
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogError(ex, "Błąd podczas aktualizacji KantowkaDoZlecen.");
+
+                // Sprawdź, czy istnieją jakiekolwiek rekordy spełniające warunek
+                var exists = await _context.SzybyDoZlecen.AnyAsync(e => e.RowIdZlecenia == rowIdZlecenia);
+                if (!exists)
+                {
+                    return NotFound("Nie znaleziono KantowkaDoZlecen o podanym ID.");
+                }
+
+                return StatusCode(500, "Wystąpił błąd podczas przetwarzania żądania.");
+            }
+        }
+
         private bool SzybaExists(long id)
         {
             return _context.SzybyDoZlecen.Any(e => e.Id == id);

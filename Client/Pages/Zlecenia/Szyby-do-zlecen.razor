@@ -1,5 +1,6 @@
 ﻿@page "/Szyby-do-zlecen/{RowIdZlecenia}/{typ}"
 @using GEORGE.Shared.Models
+@using GEORGE.Shared.ViewModels
 @using GEORGE.Shared.Class
 @using GEORGE.Client.Pages
 @inject HttpClient Http
@@ -168,20 +169,31 @@
 
         @if (szybyDoZlecen != null && szybyDoZlecen.Count > 0)
         {
-            <Button Type="reset" OnClick="@(CopySzybyToClipboard)">
-                @uwagaKopiuj
-            </Button>
-            <Button Type="reset" OnClick="@(ExportToExcel)">
-                Zapisz do pliku CSV - wszystko
-            </Button>
+            <Tooltip Placement="@Placement.TopRight" Title="@uwagaKopiuj">
+                <Button Icon="@IconType.Fill.Copy" Type="reset" OnClick="@(CopySzybyToClipboard)"/>
+            </Tooltip>
+            <Tooltip Placement="@Placement.TopRight" Title="Zapisz do pliku CSV - wszystko">
+                <Button Type="reset" Icon="@IconType.Fill.Save" OnClick="@(ExportToExcel)" />
+            </Tooltip>
             <Button Type="reset" OnClick="@(ExportSelectedColumnsToExcel)">
                 Zapisz do pliku CSV - tylko wymagane kolumny
             </Button>
+            <Button Type="reset" OnClick="@(DodajWpisZamowSzyby)">
+                Szyby zamówiono (wygeneruj wpis do zamówień)
+            </Button>
+            <Tooltip Placement="@Placement.BottomCenter" Style="width: 100px;" Title="Ilość widocznych rekordów">
+            <AntDesign.InputNumber TValue="int"
+                                       @bind-Value="_pageSize"
+                                   Min="2"
+                                   Max="25"
+                                   Bordered="false"
+                                   OnChange="@(e => OnClickChange(e))"
+                                   Style="width: 100px; padding: 0; border-radius: 4px;" />
+                                   </Tooltip>
         }
          <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
             <Button class="btn-back" Icon="@IconType.Fill.Backward" OnClick="GoBack"></Button>
         </Tooltip>
-        <Divider></Divider>
 
         @if (szybyDoZlecen == null)
         {
@@ -189,8 +201,10 @@
         }
         else
         {
+           <Divider>Ilość pozycji do zamówienia: @szybyDoZlecen.Count(), suma sztuk: @szybyDoZlecen.Sum(x => x.IloscSztuk).ToString()</Divider>
+
             <div>
-                <Table TItem="SzybyDoZlecen" DataSource="@szybyDoZlecen" @bind-PageSize="@_pageSize" ScrollX="2150" Size="TableSize.Small"
+                <Table TItem="SzybyDoZlecen" DataSource="@szybyDoZlecen" PageSize="@_pageSize" ScrollX="2150" Size="TableSize.Small"
                        RowClassName="@(x => x?.Data?.CzyZamowiono == true ? "zamowiono" : "move-class")">
                     <Column Title="ID" @bind-Field="@context.Id" Hidden />
                     <Column Width="80" Title="Szerokość" @bind-Field="@context.Szerokosc" Sortable OnFilter="(a, b) => a == b" Filterable />
@@ -381,6 +395,44 @@
             </div>
         </div>
     </div>
+
+        @if(_producenci != null && elementyZamowienia != null)
+        {
+            <div class="modal fade @classShowSzyba" tabindex="-1" style="display: @displaySzyba;">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Wybierz producenta kantówki</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="HandleSzybaCancel">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <AntDesign.Form Model="@elementyZamowienia" Layout="FormLayout.Horizontal" OnFinish="@HandleSzybaSubmit">
+                                <div class="row">
+                                    <div>
+                                        <FormItem Style="width:100%" Required Label="Wybierz producenta (dostawcę) szyb">
+                                            <Select Mode="default"
+                                                    DataSource="@_producenci"
+                                                    @bind-Value="@context.ElemetZamDoZlecen.RowIdProducent"
+                                                    LabelName="@nameof(Producent.NazwaProducenta)"
+                                                    ValueName="@nameof(Producent.RowId)">
+                                            </Select>
+                                        </FormItem>
+                                    </div>
+                                </div>
+
+                                <AntDesign.FormItem>
+                                    <AntDesign.Button Disabled="@wylaczZapiszSzybe" Type="primary" @onclick="@HandleAddNewSzyba" HtmlType="submit">Wybierz producenta i zapisz jako nową pozycję zamówienia</AntDesign.Button>
+                                    <AntDesign.Button @onclick="@HandleCancelSzyba">Anuluj</AntDesign.Button>
+                                </AntDesign.FormItem>
+                            </AntDesign.Form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
 </body>
 </html>
 
@@ -410,17 +462,28 @@
 
     private List<SzybyDoZlecen>? szybyall;
 
+    private ElemetZamDoZlecenWithProducent? elementyZamowienia { get; set; }
+    private List<ProducenciPodwykonawcy>? _producenci;
+    private ProducenciPodwykonawcy? Producent;
+
     private string uwagaKopiuj = "Kopiuj do schowka dane";
 
     private bool isCheckedDelAll = true;
     private bool isCheckedZamAll = false;
 
-    int _pageSize = 7;
+    int _pageSize = 6;
 
     string dotyczyZlecenia = "";
 
+    private bool _visibleSzyba = false;
+    private string displaySzyba = "none;";
+    private string classShowSzyba = "";
+
     protected override async Task OnInitializedAsync()
     {
+        _pageSize = Convert.ToInt32((await LocalStorage.GetStringAsync("szyby_ile_widocznych")));
+        if (_pageSize == 0) _pageSize = 6;
+
         if (AppState != null)
         {
             AppState.SomeData = "";
@@ -487,6 +550,168 @@
         {
             Console.WriteLine($"Błąd pobierania zleceń produkcyjnych: {ex.Message}");
         }
+    }
+
+    public async Task DodajWpisZamowSzyby()
+    {
+
+        _producenci = await Http.GetFromJsonAsync<List<ProducenciPodwykonawcy>>($"api/ProducenciPodwykonawcy");
+
+        await ShowDialogZamowSzyby();
+
+    }
+
+    public async Task ShowDialogZamowSzyby()
+    {
+
+
+        elementyZamowienia = new ElemetZamDoZlecenWithProducent
+            {
+                ElemetZamDoZlecen = new ElemetZamDoZlecen
+                {
+                    RowIdZlecenia = RowIdZlecenia,
+                    Szerokosc = 0,
+                    Wysokosc = 0,
+                    NazwaProduktu = $"Zamówionio szyb: {(szybyDoZlecen == null || szybyDoZlecen.Count() == 0 ? "" : ", szyba poz.1: " + szybyDoZlecen[0].RodzajSzyby)}",
+                    IloscSztuk = szybyDoZlecen == null ? 0 : szybyDoZlecen.Sum(x => x.IloscSztuk),
+                    Jednostka = "szt.",
+                    DataZamowienia = DateTime.Now,
+                    DataRealizacji = DateTime.Now.AddDays(14),
+                    DataZapisu = DateTime.Now,
+                    Uwagi = "Zapis automatycznie został wygenerowany - Zamów szyby",
+                    CzyZamowiono = true,
+                    KtoZapisal = user
+                },
+                ProducenciPodwykonawcy = new ProducenciPodwykonawcy
+                {
+                    // Przypisz odpowiednie wartości dla właściwości ProducenciPodwykonawcy
+                    NazwaProducenta = "" // Przykładowa wartość
+                },
+                DodatkowaInformacja = "Dane z dnia" + DateTime.Now
+            };
+
+        displaySzyba= "block";
+        await Task.Delay(50);
+        classShowSzyba= "show";
+        await Task.CompletedTask;
+        StateHasChanged();
+
+    }
+
+    public async Task HandleSzybaCancel()
+    {
+        _visibleSzyba = false;
+        await HideSzybaDialog();
+    }
+
+    private async Task HideSzybaDialog()
+    {
+        if (cid > 0 && szybyDoZlecen != null)
+        {
+            szybyDoZlecen = oryginalSzybyDoZlecen;
+        }
+
+        cid = -1;
+
+        classShowSzyba = "";
+        await Task.Delay(100);
+        display = "none";
+
+        StateHasChanged();
+    }
+
+    private bool wylaczZapiszSzybe = false;
+
+    private async Task HandleSzybaSubmit()
+    {
+
+        if (!_visibleSzyba) return;
+
+        wylaczZapiszSzybe = true;
+
+        //  Ddodano nowy wpis w zamówieniu !!!
+
+        Console.WriteLine($"Start zapisu RowIdProducent: {elementyZamowienia.ElemetZamDoZlecen.RowIdProducent}.");
+
+        elementyZamowienia.ElemetZamDoZlecen.NazwaProduktu = elementyZamowienia.ElemetZamDoZlecen.NazwaProduktu.Trim();
+
+
+        HttpResponseMessage responseKant;
+
+        if (elementyZamowienia.ElemetZamDoZlecen.Id == 0)
+        {
+
+            responseKant = await Http.PostAsJsonAsync("api/ElementyDoZlecen", elementyZamowienia.ElemetZamDoZlecen);
+        }
+        else
+        {
+            responseKant = await Http.PutAsJsonAsync($"api/ElementyDoZlecen/{elementyZamowienia.ElemetZamDoZlecen.Id}", elementyZamowienia.ElemetZamDoZlecen);
+            // if (elementyDoZlecen != null) oryginalElementyDoZlecen = elementyDoZlecen.DeepCopyList();
+        }
+
+        if (responseKant.IsSuccessStatusCode)
+        {
+            // Obsługa błędów
+            Console.WriteLine("Błąd podczas zapisywania rodzaju elementyZamowienia - źródło RAZOR");
+        }
+
+        //  Ddodano nowy wpis w zamówieniu !!!
+
+        //Zmień datę zamówienia
+        var response = await Http.PutAsJsonAsync($"api/SzybyDoZlecen/{RowIdZlecenia}/updateDateZamowieniaStatusZamow", "");
+
+        if (response.IsSuccessStatusCode)
+        {
+            if (szybyDoZlecen != null)
+            {
+                szybyDoZlecen = await Http.GetFromJsonAsync<List<SzybyDoZlecen>>($"api/SzybyDoZlecen/rowid/{RowIdZlecenia}");
+                oryginalSzybyDoZlecen = szybyDoZlecen.DeepCopyList();
+
+                _ = _notice.Success(new()
+                    {
+                        Message = "Ustawiono datę zamówienia szyb",
+                        Description = "Uwaga!!!",
+                        Placement = NotificationPlacement.BottomLeft
+                    });
+            }
+        }
+        else
+        {
+            await _message.Error("Błąd aktualiazcji danych");
+        }
+
+        await HideDialogSzyba();
+    }
+
+    private async Task HideDialogSzyba()
+    {
+        if (cid > 0 && szybyDoZlecen != null)
+        {
+            szybyDoZlecen = oryginalSzybyDoZlecen;
+        }
+
+        cid = -1;
+
+        classShowSzyba = "";
+        await Task.Delay(5);
+        displaySzyba= "none";
+
+        StateHasChanged();
+    }
+
+    public async Task HandleAddNewSzyba()
+    {
+
+        _visibleSzyba = true;
+
+        await Task.CompletedTask;
+
+    }
+
+    public async Task HandleCancelSzyba()
+    {
+        _visibleSzyba = false;
+        await HideDialogSzyba();
     }
 
     public async Task ExportToExcel()
@@ -947,6 +1172,14 @@
     private async Task GoBack()
     {
         await JSRuntime.InvokeVoidAsync("history.back");
+    }
+
+    private async Task OnClickChange(int e)
+    {
+        if (_pageSize == e) return;
+
+        Console.WriteLine("Zapisano ilość widocznych" + e);
+        await LocalStorage.SaveStringAsync("szyby_ile_widocznych", e.ToString());
     }
 
     private bool boolOdczyt = false;

@@ -139,7 +139,7 @@ else
 
         <Table TItem="ZleceniaProdukcyjneWew" DataSource="@zleceniaProdukcyjneWew"
                RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "zlecenieNaN" )"
-               ScrollX="1950" PageSize="@iloscRekordow" PageIndex="@numerStrony" Size="TableSize.Small">
+               ScrollX="1950" PageSize="@iloscRekordow" Size="TableSize.Small">
                 <ActionColumn Title="Materiały">
                 <a @onclick="() => DodajKantowke(context)">Kantówka</a>
                 <a @onclick="() => DodajSzybe(context)" class="custom-link">Szyby</a>
@@ -564,7 +564,6 @@ else
     private string rowIdClick = "";
 
     private int iloscRekordow = 6;
-    private int numerStrony = 0;
     private string? filtrTypZamowienia = "";
 
     private long cid = -1;
@@ -851,9 +850,10 @@ else
 
     private async Task OnClickChange(int e)
     {
+        if (iloscRekordow == e) return;
+
         Console.WriteLine("Zapisano ilość widocznych" + e);
         await LocalStorage.SaveStringAsync("zlecenie_ile_widocznych", e.ToString());
-        numerStrony = 1;
     }
 
     private void OnSelectedItemChangedHandler(TypZamowienia value)

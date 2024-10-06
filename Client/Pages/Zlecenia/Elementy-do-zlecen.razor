@@ -189,9 +189,16 @@
                     Zapisz do pliku CSV - zaznaczone
                 </Button>
             }
-            <Tooltip Placement="@Placement.TopRight" Title="Ilość widocznych wierszy">
-                <AntDesign.InputNumber @bind-Value="_pageSize" Min="1" Max="25" DefaultValue="7" PlaceHolder="Ilość widocznych wierszy"></AntDesign.InputNumber>
+            <Tooltip Placement="@Placement.BottomCenter" Style="width: 50px;" Title="Ilość widocznych rekordów">
+                <AntDesign.InputNumber TValue="int"
+                                       @bind-Value="_pageSize"
+                                       Min="2"
+                                       Max="25"
+                                       Bordered="false"
+                                       OnChange="@(e => OnClickChange(e))"
+                                       Style="width: 100%; padding: 0; border-radius: 4px; color:navajowhite" />
             </Tooltip>
+
             <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
                 <Button class="btn-back" Icon="@IconType.Fill.Backward" OnClick="GoBack"></Button>
             </Tooltip>
@@ -206,9 +213,10 @@
             }
             else
             {
-
                 if (elementyDoZlecen != null && elementyDoZlecen.Count > 0 && _pageSize > 0)
                 {
+                    <Divider>Ilość pozycji do zamówienia: @elementyDoZlecen.Count(), suma sztuk: @elementyDoZlecen.Sum(x => x.ElemetZamDoZlecen.IloscSztuk).ToString()</Divider>
+
                     <Table TItem="ElemetZamDoZlecenWithProducent" DataSource="elementyDoZlecen" PageSize="@_pageSize"
                            Loading="_loading" ScrollX="2450" Size="TableSize.Small" RowKey="x => x?.ElemetZamDoZlecen?.Id"
                            @bind-SelectedRows="_items"
@@ -408,6 +416,9 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _pageSize = Convert.ToInt32((await LocalStorage.GetStringAsync("elementy_ile_widocznych")));
+        if (_pageSize == 0) _pageSize = 6;
+
         elementyZamowienia = new ElemetZamDoZlecenWithProducent
             {
                 ElemetZamDoZlecen = new ElemetZamDoZlecen
@@ -931,6 +942,12 @@
     private async Task GoBack()
     {
         await JSRuntime.InvokeVoidAsync("history.back");
+    }
+
+    private async Task OnClickChange(int e)
+    {
+        Console.WriteLine("Zapisano ilość widocznych" + e);
+        await LocalStorage.SaveStringAsync("elementy_ile_widocznych", e.ToString());
     }
 
     private bool boolOdczyt = false;

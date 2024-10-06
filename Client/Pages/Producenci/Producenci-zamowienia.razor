@@ -9,6 +9,8 @@
 @inject IMessageService _message
 @inject Utilities.ILocalStorage LocalStorage
 @inject IJSRuntime JSRuntime
+@inject INotificationService _notice
+@using AntDesign.TableModels
 
 <style>
     #calosc {
@@ -101,14 +103,14 @@ else
 {
     <div id="calosc">
         <div id="kol1">
-                @if(zleceniaSzczegoly.Count() > 0)
-                {
-                     <h6>@zleceniaSzczegoly[0].ProducentIMiejscowosc</h6>
-                }
-                else
-                {
-                    <h3>Producenci / Podwykonawcy</h3>
-                }
+            @if (zleceniaSzczegoly.Count() > 0)
+            {
+                <h6>@zleceniaSzczegoly[0].ProducentIMiejscowosc</h6>
+            }
+            else
+            {
+                <h3>Producenci / Podwykonawcy</h3>
+            }
         </div>
         <div id="kol2">
             <Tooltip Placement="@Placement.TopRight" Style="width:100%" Title="Wróć do poprzedniej strony">
@@ -126,7 +128,7 @@ else
     <ul>
         @if (_grupujPoNrZlec)
         {
-            <Table DataSource="zleceniaSzczegoly" Bordered>
+            <Table DataSource="zleceniaSzczegoly" TItem="ElemetZamDoZlecenWithProducent" Bordered>
                 <GroupTitleTemplate Context="group">
                     <span style="min-width: 120px;">
                         @(group.Level == 1 ? "NumerZlecenia" : "NazwaProduktu") : @group.Key
@@ -150,16 +152,35 @@ else
                     <PropertyColumn Property="c=>c.ElemetZamDoZlecen.Jednostka" Width="10%" />
                     <PropertyColumn Title="Długość" Property="c=>c.ElemetZamDoZlecen.Dlugosc" Width="10%" />
                     <PropertyColumn Title="Data Zamówienia" Property="c=>c.ElemetZamDoZlecen.DataZamowienia" Width="10%" Format="yyyy-MM-dd" />
-                    <PropertyColumn Title="Czy zamówiono" Property="c=>c.ElemetZamDoZlecen.CzyZamowiono" >
+                    <PropertyColumn Title="Czy zamówiono" Property="c=>c.ElemetZamDoZlecen.CzyZamowiono">
                         <a>@(context.ElemetZamDoZlecen.CzyZamowiono ? "Tak" : "Nie")</a>
                     </PropertyColumn>
+
+                    <ActionColumn Title="Czy dostarczono">
+                        <CellRender Context="cellData">
+                            <Space Size="@("middle")">
+                                <SpaceItem>
+                                    @if (context != null)
+                                    {
+                                        <Popconfirm Title="@GetPopconfirmTitle(context.ElemetZamDoZlecen.PozDostarczono)"
+                                                    OnConfirm="() => HandleDost(context.ElemetZamDoZlecen.PozDostarczono, context, cellData)"
+                                                    OkText="Tak"
+                                                    CancelText="Nie">
+                                            <a style="color:blue">@(context.ElemetZamDoZlecen.PozDostarczono ? "Tak" : "Nie")</a>
+                                        </Popconfirm>
+                                    }
+                                </SpaceItem>
+                            </Space>
+                        </CellRender>
+                    </ActionColumn>
                     @*                 <PropertyColumn Property="c=>c.ElemetZamDoZlecen.DataRealizacji" Width="30%" Grouping GroupBy="GradeGroupBy" Sortable /> *@
                 </ColumnDefinitions>
             </Table>
         }
         else
         {
-            <Table DataSource="zleceniaSzczegoly" Bordered>
+            <Table @ref="table" DataSource="zleceniaSzczegoly" TItem="ElemetZamDoZlecenWithProducent" Bordered>
+                @* OnExpand="OnRowExpand" *@
                 <GroupTitleTemplate Context="group">
                     <span style="min-width: 120px;">
                         @(group.Level == 1 ? "Klient" : "NazwaProduktu") : @group.Key
@@ -168,7 +189,7 @@ else
                 <GroupFooterTemplate Context="group">
                     @if (group.Level == 1)
                     {
-                        <span style="padding: 8px; float: right; ">
+                        <span style="padding: 8px; float: right;">
                             Suma sztuk: @group.Items.Sum(x => x.ElemetZamDoZlecen.IloscSztuk)
                         </span>
                     }
@@ -186,9 +207,30 @@ else
                     <PropertyColumn Title="Czy zamówiono" Property="c=>c.ElemetZamDoZlecen.CzyZamowiono">
                         <a>@(context.ElemetZamDoZlecen.CzyZamowiono ? "Tak" : "Nie")</a>
                     </PropertyColumn>
+
+                    <ActionColumn Title="Czy dostarczono">
+                        <CellRender Context="cellData">
+                            <Space Size="@("middle")">
+                                <SpaceItem>
+                                    @if (context != null)
+                                    {
+                                        <Popconfirm Title="@GetPopconfirmTitle(context.ElemetZamDoZlecen.PozDostarczono)"
+                                                    OnConfirm="() => HandleDost(context.ElemetZamDoZlecen.PozDostarczono, context, cellData)"
+                                                    OkText="Tak"
+                                                    CancelText="Nie">
+                                    @*         <a style="color:blue">@(context.ElemetZamDoZlecen.PozDostarczono ? "Tak" : "Nie")</a> *@
+                                            <Button OnClick="@(()=> {cellData.RowData.Expanded=true;})" Type="@ButtonType.Link">@(context.ElemetZamDoZlecen.PozDostarczono ? "Tak" : "Nie")</Button>
+                                        </Popconfirm>
+                                    }
+                                </SpaceItem>
+                            </Space>
+                        </CellRender>
+                    </ActionColumn>
+
                     @*                 <PropertyColumn Property="c=>c.ElemetZamDoZlecen.DataRealizacji" Width="30%" Grouping GroupBy="GradeGroupBy" Sortable /> *@
                 </ColumnDefinitions>
             </Table>
+            <Button OnClick="()=> table.ExpandAll()">Rozwiń wszystkie elementy drzewa</Button>
         }
 
     </ul>
@@ -201,10 +243,14 @@ else
     [Parameter]
     public string? RowIdProducenta { get; set; }
 
+    private Table<ElemetZamDoZlecenWithProducent>? table; // Referencja do tabeli
+                                                          // private List<RowData<ElemetZamDoZlecenWithProducent>> expandedGroups = new(); // Lista rozwiniętych wierszy
+
     private List<ElemetZamDoZlecenWithProducent>? zleceniaSzczegoly;
 
     private bool brakDanych = false;
     private bool _grupujPoNrZlec = false;
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -215,6 +261,7 @@ else
 
         await Laduj_Uprawnienia();
 
+
         try
         {
             var response = await Http.GetAsync($"api/ProducenciPodwykonawcy/{RowIdProducenta}");
@@ -222,6 +269,7 @@ else
             if (response.IsSuccessStatusCode) // Sprawdź, czy odpowiedź jest poprawna (status 2xx)
             {
                 zleceniaSzczegoly = await response.Content.ReadFromJsonAsync<List<ElemetZamDoZlecenWithProducent>>();
+
             }
             else if (response.StatusCode == System.Net.HttpStatusCode.NotFound) // Obsłuż błąd 404
             {
@@ -241,9 +289,115 @@ else
 
     }
 
+    private string GetPopconfirmTitle(bool pozDostarczono)
+    {
+        return $"Czy zmienić status {(pozDostarczono ? "na nie" : "na")} dostarczono?";
+    }
+
     private async Task GoBack()
     {
         await JSRuntime.InvokeVoidAsync("history.back");
+    }
+
+    private async Task HandleDost(bool nowyStan, ElemetZamDoZlecenWithProducent elementyDoZlecen, CellData cdF)
+    {
+
+        if (nowyStan)
+        {
+            nowyStan = false;
+        }
+        else
+        {
+            nowyStan = true;
+        }
+
+        if (!boolZmiana && boolAdmin)
+        {
+            _ = _notice.Info(new()
+                {
+                    Message = "Nie posiadasz uprawnień do zmiany danych.",
+                    Description = "Uwaga!!!",
+                    Placement = NotificationPlacement.BottomLeft
+                });
+            return;
+        }
+        // Aktualizacja stanu dostarczenia w API
+        var response = await Http.PutAsJsonAsync($"api/ElementyDoZlecen/{elementyDoZlecen.ElemetZamDoZlecen.Id}/updateCzyDostarczono", nowyStan);
+
+        if (response.IsSuccessStatusCode)
+        {
+
+            if (elementyDoZlecen != null)
+            {
+                elementyDoZlecen.ElemetZamDoZlecen.PozDostarczono = nowyStan;
+                await _message.Success("Potwierdzono dostarczenie wybranej pozycji", 1);
+            }
+            else
+            {
+                await _message.Error("Nie zmieniono status");
+            }
+
+        }
+        else
+        {
+            // Informowanie użytkownika o niepowodzeniu
+            await _message.Error("Nie zmieniono status");
+        }
+   
+        // Wymuś odświeżenie komponentu po zmianie stanu Expanded
+        StateHasChanged();
+
+        if(table != null)
+        {
+            table.ExpandAll();
+            //table.CollapseAll();
+            cdF.RowData.Expanded = true;
+        }
+
+        Console.WriteLine($"cdF.RowData.Expanded = {cdF.RowData.Expanded}");
+
+    }
+
+    // async Task OnRowExpand(RowData<ElemetZamDoZlecenWithProducent> rowData)
+    // {
+    //     // Dodaj rozwinięty wiersz do listy, jeśli nie jest już w niej
+    //     if (!expandedGroups.Contains(rowData))
+    //     {
+    //         if (rowData.Expanded)
+    //         {
+    //             expandedGroups.Add(rowData);
+    //         }
+    //         else
+    //         {
+    //             expandedGroups.Remove(rowData);
+    //         }
+
+    //     }
+
+    //     await Task.CompletedTask;
+
+    // }
+
+    // private async Task RestoreGroupExpansionState()
+    // {
+    //     // Przywróć stan grup po odświeżeniu danych
+    //     if (expandedGroups != null && expandedGroups.Any())
+    //     {
+    //         foreach (var rowData in expandedGroups)
+    //         {
+    //             rowData.Expanded = true; // Ponownie ustaw stan na rozwinięty
+    //         }
+    //     }
+    // }
+
+    private async Task FetchUpdatedData()
+    {
+        var response = await Http.GetAsync($"api/ProducenciPodwykonawcy/{RowIdProducenta}");
+
+        if (response.IsSuccessStatusCode) // Sprawdź, czy odpowiedź jest poprawna (status 2xx)
+        {
+            zleceniaSzczegoly = await response.Content.ReadFromJsonAsync<List<ElemetZamDoZlecenWithProducent>>();
+        }
     }
 
     private bool boolOdczyt = false;

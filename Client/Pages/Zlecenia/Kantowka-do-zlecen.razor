@@ -93,7 +93,7 @@
                 document.body.removeChild(textArea);
             }
         }
- 
+
         function saveAsExcel(jsonData) {
             const data = JSON.parse(jsonData);
             const csvRows = [];
@@ -161,15 +161,15 @@
     <div class="highlighted-background">
         <h6 style="color:brown; padding-top:5px">Zamówiona kantówka do zlecenia: @dotyczyZlecenia</h6>
 
-     @if (boolAdmin || boolZmian)
-    {
-        <Button Type="primary" OnClick="@(ShowDialogAddNew)">
-            Dodaj nowe zestawienie materiałów
-        </Button>
-    }
+        @if (boolAdmin || boolZmian)
+        {
+            <Button Type="primary" OnClick="@(ShowDialogAddNew)">
+                Dodaj nowe zestawienie materiałów
+            </Button>
+        }
 
-    @if (kantowkaDoZlecen != null && kantowkaDoZlecen.Count > 0)
-    {
+        @if (kantowkaDoZlecen != null && kantowkaDoZlecen.Count > 0)
+        {
             @if (kopiuj)
             {
                 <Tooltip Placement="@Placement.BottomCenter" Title="Kopiuj dane">
@@ -182,211 +182,220 @@
                     <Button Type="reset" Icon="@IconType.Fill.Read" OnClick="@(CopyKantowkiToClipboard)" />
                 </Tooltip>
             }
-
-        <Button Type="reset" OnClick="@(ExportToExcel)">
-            Zapisz do pliku CSV - wszystko
-        </Button>
-        <Button Type="reset" OnClick="@(ExportSelectedColumnsToExcel)">
-            Zapisz do pliku CSV - tylko wymagane kolumny
-        </Button>
-        <Button Type="reset" OnClick="@(UstawDateZamowienia)">
-            Kantówkę zamówiono (wygeneruj wpis do zamówień)
-        </Button>
-         <Tooltip Placement="@Placement.BottomCenter" Title="Wylicz ilość farby do malowania">
+            <Tooltip Placement="@Placement.BottomCenter" Title="Zapisz do pliku CSV - wszystko">
+                <Button Type="reset" Icon="@IconType.Fill.Save" OnClick="@(ExportToExcel)">
+                </Button>
+            </Tooltip>
+            <Button Type="reset" OnClick="@(ExportSelectedColumnsToExcel)">
+                Zapisz do pliku CSV - tylko wymagane kolumny
+            </Button>
+            <Button Type="reset" OnClick="@(UstawDateZamowienia)">
+                Kantówkę zamówiono (wygeneruj wpis do zamówień)
+            </Button>
+            <Tooltip Placement="@Placement.BottomCenter" Title="Wylicz ilość farby do malowania">
                 <Button Icon="@IconType.Fill.Compass" Type="reset" OnClick="@(WyliczIloscFarby)" />
-         </Tooltip>
-    }
-    <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
-        <Button class="btn-back" Icon="@IconType.Fill.Backward" OnClick="GoBack"></Button>
-    </Tooltip>
+            </Tooltip>
+            <Tooltip Placement="@Placement.BottomCenter" Style="width: 50px;" Title="Ilość widocznych rekordów">
+                <AntDesign.InputNumber TValue="int"
+                                       @bind-Value="_pageSize"
+                                       Min="2"
+                                       Max="25"
+                                       Bordered="false"
+                                       OnChange="@(e => OnClickChange(e))"
+                                       Style="width: 100%; padding: 0; border-radius: 4px;" />
+            </Tooltip>
+        }
+        <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
+            <Button class="btn-back" Icon="@IconType.Fill.Backward" OnClick="GoBack"></Button>
+        </Tooltip>
 
-    @if (kantowkaDoZlecen == null)
-    {
-        <p><em>Czekaj na załadowanie danych...</em></p>
-    }
-    else
-    {
-        <Divider></Divider>
-         <div>
-            <Table TItem="KantowkaDoZlecen" DataSource="@kantowkaDoZlecen" ScrollX="1950" @bind-PageSize="@_pageSize" Size="TableSize.Small"
+        @if (kantowkaDoZlecen == null)
+        {
+            <p><em>Czekaj na załadowanie danych...</em></p>
+        }
+        else
+        {
+            <Divider>Ilość pozycji do zamówienia: @kantowkaDoZlecen.Count(), suma sztuk: @kantowkaDoZlecen.Sum(x => x.IloscSztuk).ToString()</Divider>
+            <div>
+                <Table TItem="KantowkaDoZlecen" DataSource="@kantowkaDoZlecen" ScrollX="1950" PageSize="@_pageSize" Size="TableSize.Small"
                        RowClassName="@(x => x?.Data?.WyslanoDoZamowien == true ? "zamowiono" : "move-class")">
-                <Column Title="ID" @bind-Field="@context.Id" Hidden />
-                <Column Title="Gatunek" @bind-Field="@context.GatunekKantowki" Sortable OnFilter="(a, b) => a == b" Filterable />
-                <Column Title="Przekrój" @bind-Field="@context.Przekroj" Sortable OnFilter="(a, b) => a == b" Filterable />
-                <Column Title="Opis" @bind-Field="@context.NazwaProduktu" Sortable />
-                <Column Title="Długość na gotowo" @bind-Field="@context.DlugoscNaGotowo" Sortable OnFilter="(a, b) => a == b" Filterable />
-                <Column Title="Długość na gotowo cd." @bind-Field="@context.DlugoscNaGotowoGrupa" Sortable OnFilter="(a, b) => a == b" Filterable />
-                <Column Title="Długość zamówiona" @bind-Field="@context.DlugoscZamawiana" Sortable OnFilter="(a, b) => a == b" Filterable />
-                <Column Title="Ilość sztuk" @bind-Field="@context.IloscSztuk" Sortable />
-                <Column Title="Wykoż. materiał ze stanu" TData="KantowkaDoZlecen">
-                    <Template>
-                        <Checkbox @bind-Checked="@context.MaterialZeStanMagazyn" OnChange="(e)=>Handle(e, context.Id)" />
-                    </Template>
-                </Column>
-                <Column Title="Uwagi" @bind-Field="@context.Uwagi" Sortable />
-                <Column Title="Autor zmian" @bind-Field="@context.KtoZapisal" Sortable />
+                    <Column Title="ID" @bind-Field="@context.Id" Hidden />
+                    <Column Title="Gatunek" @bind-Field="@context.GatunekKantowki" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Title="Przekrój" @bind-Field="@context.Przekroj" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Title="Opis" @bind-Field="@context.NazwaProduktu" Sortable />
+                    <Column Title="Długość na gotowo" @bind-Field="@context.DlugoscNaGotowo" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Title="Długość na gotowo cd." @bind-Field="@context.DlugoscNaGotowoGrupa" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Title="Długość zamówiona" @bind-Field="@context.DlugoscZamawiana" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Title="Ilość sztuk" @bind-Field="@context.IloscSztuk" Sortable />
+                    <Column Title="Wykoż. materiał ze stanu" TData="KantowkaDoZlecen">
+                        <Template>
+                            <Checkbox @bind-Checked="@context.MaterialZeStanMagazyn" OnChange="(e)=>Handle(e, context.Id)" />
+                        </Template>
+                    </Column>
+                    <Column Title="Uwagi" @bind-Field="@context.Uwagi" Sortable />
+                    <Column Title="Autor zmian" @bind-Field="@context.KtoZapisal" Sortable />
                     <Column Title="Wysłano do zamówienia" @bind-Field="@context.WyslanoDoZamowien" Hidden />
-                    
 
-                <!-- Przykład kolumny dla daty z formatowaniem -->
+
+                    <!-- Przykład kolumny dla daty z formatowaniem -->
                     <Column Title="Data zamówienia" TData="DateTime" DataIndex="DataZamowienia" Format="yyyy-MM-dd" Sortable />
-                <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd" Sortable />
-                <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
-                <ActionColumn Title="Akcja" Width="100" Fixed="right">
-                    @if (boolAdmin || boolZmian)
-                    {
-                        <Popconfirm Title="Czy chcesz edytować pozycję?"
-                                    OnConfirm="()=> editRow(context.Id)"
-                                    OkText="Tak"
-                                    CancelText="Nie">
-                            <a>Edytuj</a>
-                        </Popconfirm>
-                    }
-                    @if (boolAdmin || boolUsuniecia)
-                    {
-                        <Popconfirm Title="Czy chcesz usunąć pozycję?"
-                                    OnConfirm="()=> deleteRow(context.Id)"
-                                    OkText="Tak"
-                                    CancelText="Nie">
-                            <a style="color:red">Usuń</a>
-                        </Popconfirm>
-                    }
-                </ActionColumn>
-            </Table>
+                    <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd" Sortable />
+                    <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
+                    <ActionColumn Title="Akcja" Width="100" Fixed="right">
+                        @if (boolAdmin || boolZmian)
+                        {
+                            <Popconfirm Title="Czy chcesz edytować pozycję?"
+                                        OnConfirm="()=> editRow(context.Id)"
+                                        OkText="Tak"
+                                        CancelText="Nie">
+                                <a>Edytuj</a>
+                            </Popconfirm>
+                        }
+                        @if (boolAdmin || boolUsuniecia)
+                        {
+                            <Popconfirm Title="Czy chcesz usunąć pozycję?"
+                                        OnConfirm="()=> deleteRow(context.Id)"
+                                        OkText="Tak"
+                                        CancelText="Nie">
+                                <a style="color:red">Usuń</a>
+                            </Popconfirm>
+                        }
+                    </ActionColumn>
+                </Table>
 
-        </div>
+            </div>
 
-        <div style="overflow: auto; width: 100%; height: 200px">
+            <div style="overflow: auto; width: 100%; height: 200px">
 
-            <h7>Wybierz plik ze stolcad z listą materiałów C:\STOLCAD\Rob\PrnPdf [PDF Reader] (wegeneruj listę cięc)</h7>
-            <InputFile OnChange="HandleFileSelected" />
+                <h7>Wybierz plik ze stolcad z listą materiałów C:\STOLCAD\Rob\PrnPdf [PDF Reader] (wegeneruj listę cięc)</h7>
+                <InputFile OnChange="HandleFileSelected" />
 
-            @if (zestawienie != null)
-            {
-                <div>
-                    <Divider></Divider>
-                    <Button Type="@ButtonType.Primary" Style="width:49%" Disabled="@isNotDisabled" OnClick="SaveAll">Zapisz wyszystkie z poniżeszej tabeli</Button>
-                    <Button Type="@ButtonType.Primary" Style="width:49%" Disabled="@isNotDisabled" OnClick="SaveAllGrupa">Zapisz wyszystkie oraz grupuj</Button>
-                    <Checkbox @bind-Checked="isCheckedDelAll">Usuń wszystkie dane przed zapisem nowych</Checkbox>
-                </div>
+                @if (zestawienie != null)
+                {
+                    <div>
+                        <Divider></Divider>
+                        <Button Type="@ButtonType.Primary" Style="width:49%" Disabled="@isNotDisabled" OnClick="SaveAll">Zapisz wyszystkie z poniżeszej tabeli</Button>
+                        <Button Type="@ButtonType.Primary" Style="width:49%" Disabled="@isNotDisabled" OnClick="SaveAllGrupa">Zapisz wyszystkie oraz grupuj</Button>
+                        <Checkbox @bind-Checked="isCheckedDelAll">Usuń wszystkie dane przed zapisem nowych</Checkbox>
+                    </div>
 
-                <div>
+                    <div>
 
-                    <h4>Zestawienie Nr: @zestawienie.NrZestawienia</h4>
-                    <p>Data: @zestawienie.Data.ToString("yyyy/MM/dd")</p>
-                    <p>Odbiorca: @zestawienie.Odbiorca</p>
+                        <h4>Zestawienie Nr: @zestawienie.NrZestawienia</h4>
+                        <p>Data: @zestawienie.Data.ToString("yyyy/MM/dd")</p>
+                        <p>Odbiorca: @zestawienie.Odbiorca</p>
 
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Lp</th>
-                                <th>Symbol</th>
-                                <th>Przekrój</th>
-                                <th>Ilość</th>
-                                <th>Wymiar</th>
-                                <th>Kąt</th>
-                                <th>Wymiar Zamowiony</th>
-                                <th>Uwagi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var item in zestawienie.ListaCieci)
-                            {
+                        <table class="table">
+                            <thead>
                                 <tr>
-                                    <td>@item.Lp</td>
-                                    <td>@item.Symbol</td>
-                                    <td>@item.Kolor</td>
-                                    <td>@item.Ilosc</td>
-                                    <td>@item.Wymiar</td>
-                                    <td>@item.Kat</td>
-                                    <td>@item.WymiarNaZamowienie</td>
-                                    <td>@item.Uwagi</td>
+                                    <th>Lp</th>
+                                    <th>Symbol</th>
+                                    <th>Przekrój</th>
+                                    <th>Ilość</th>
+                                    <th>Wymiar</th>
+                                    <th>Kąt</th>
+                                    <th>Wymiar Zamowiony</th>
+                                    <th>Uwagi</th>
                                 </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </div>
-    }
+                            </thead>
+                            <tbody>
+                                @foreach (var item in zestawienie.ListaCieci)
+                                {
+                                    <tr>
+                                        <td>@item.Lp</td>
+                                        <td>@item.Symbol</td>
+                                        <td>@item.Kolor</td>
+                                        <td>@item.Ilosc</td>
+                                        <td>@item.Wymiar</td>
+                                        <td>@item.Kat</td>
+                                        <td>@item.WymiarNaZamowienie</td>
+                                        <td>@item.Uwagi</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        }
 
-    <div class="modal fade @classShow" tabindex="-1" style="display: @display;">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Kantówki dodaj / zmień</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="HandleCancel">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <AntDesign.Form Model="@kantowka" Layout="FormLayout.Horizontal" OnFinish="@HandleSubmit">
-                        <div class="row">
-                            <!-- Kolumna 1 -->
-                            <div class="col-md-6">
-                                <AntDesign.FormItem Label="Gatunek drewna">
-                                    <AntDesign.Input @bind-Value="kantowka.GatunekKantowki" MaxLength="80" Required Placeholder="Podaj gatunek kantówki" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Przekrój">
-                                    <AntDesign.Input @bind-Value="kantowka.Przekroj" Required />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Nazwa Produktu">
-                                    <AntDesign.Input @bind-Value="kantowka.NazwaProduktu" Required />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Kod Produktu">
+        <div class="modal fade @classShow" tabindex="-1" style="display: @display;">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Kantówki dodaj / zmień</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="HandleCancel">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <AntDesign.Form Model="@kantowka" Layout="FormLayout.Horizontal" OnFinish="@HandleSubmit">
+                            <div class="row">
+                                <!-- Kolumna 1 -->
+                                <div class="col-md-6">
+                                    <AntDesign.FormItem Label="Gatunek drewna">
+                                        <AntDesign.Input @bind-Value="kantowka.GatunekKantowki" MaxLength="80" Required Placeholder="Podaj gatunek kantówki" />
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Przekrój">
+                                        <AntDesign.Input @bind-Value="kantowka.Przekroj" Required />
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Nazwa Produktu">
+                                        <AntDesign.Input @bind-Value="kantowka.NazwaProduktu" Required />
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Kod Produktu">
                                         <AntDesign.Input @bind-Value="kantowka.KodProduktu" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Długość wyliczona">
-                                    <AntDesign.Input @bind-Value="kantowka.DlugoscNaGotowo" OnBlur="LiczDlugoscZam" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Długość na gotowo(2) - grupa">
-                                    <AntDesign.Input @bind-Value="kantowka.DlugoscNaGotowoGrupa" OnBlur="LiczDlugoscZam" />
-                                </AntDesign.FormItem>
-                                   <AntDesign.FormItem Label="Ilość sztuk">
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Długość wyliczona">
+                                        <AntDesign.Input @bind-Value="kantowka.DlugoscNaGotowo" OnBlur="LiczDlugoscZam" />
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Długość na gotowo(2) - grupa">
+                                        <AntDesign.Input @bind-Value="kantowka.DlugoscNaGotowoGrupa" OnBlur="LiczDlugoscZam" />
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Ilość sztuk">
                                         <AntDesign.InputNumber @bind-Value="kantowka.IloscSztuk" Required />
-                                </AntDesign.FormItem>
-                            </div>
+                                    </AntDesign.FormItem>
+                                </div>
 
-                            <!-- Kolumna 2 -->
-                            <div class="col-md-6">
-                                <AntDesign.FormItem Label="Uwagi">
-                                    <AntDesign.Input @bind-Value="kantowka.Uwagi" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Długość zamówiona">
-                                    <AntDesign.Input @bind-Value="kantowka.DlugoscZamawiana" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Data Zamówienia">
+                                <!-- Kolumna 2 -->
+                                <div class="col-md-6">
+                                    <AntDesign.FormItem Label="Uwagi">
+                                        <AntDesign.Input @bind-Value="kantowka.Uwagi" />
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Długość zamówiona">
+                                        <AntDesign.Input @bind-Value="kantowka.DlugoscZamawiana" />
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Data Zamówienia">
                                         <AntDesign.DatePicker @bind-Value="kantowka.DataZamowienia" Required />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Data Realizacji">
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Data Realizacji">
                                         <AntDesign.DatePicker @bind-Value="kantowka.DataRealizacji" Required />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Materiał jest na stanie magazynowy">
-                                    <AntDesign.Checkbox @bind-Value="kantowka.MaterialZeStanMagazyn" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Wygenerowano zamówienie">
-                                    <AntDesign.Checkbox @bind-Value="kantowka.WyslanoDoZamowien" />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Kto Zapisał">
-                                    <AntDesign.Input @bind-Value="kantowka.KtoZapisal" Required />
-                                </AntDesign.FormItem>
-                                <AntDesign.FormItem Label="Ostatnia Zmiana">
-                                    <AntDesign.Input @bind-Value="kantowka.OstatniaZmiana" />
-                                </AntDesign.FormItem>
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Materiał jest na stanie magazynowy">
+                                        <AntDesign.Checkbox @bind-Value="kantowka.MaterialZeStanMagazyn" />
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Wygenerowano zamówienie">
+                                        <AntDesign.Checkbox @bind-Value="kantowka.WyslanoDoZamowien" />
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Kto Zapisał">
+                                        <AntDesign.Input @bind-Value="kantowka.KtoZapisal" Required />
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Ostatnia Zmiana">
+                                        <AntDesign.Input @bind-Value="kantowka.OstatniaZmiana" />
+                                    </AntDesign.FormItem>
+                                </div>
                             </div>
-                        </div>
 
-                        <AntDesign.FormItem>
-                            <AntDesign.Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</AntDesign.Button>
-                            <AntDesign.Button @onclick="@HandleCancel">Anuluj</AntDesign.Button>
-                        </AntDesign.FormItem>
-                    </AntDesign.Form>
+                            <AntDesign.FormItem>
+                                <AntDesign.Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</AntDesign.Button>
+                                <AntDesign.Button @onclick="@HandleCancel">Anuluj</AntDesign.Button>
+                            </AntDesign.FormItem>
+                        </AntDesign.Form>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-        @if(_producenci != null && elementyZamowienia != null)
+        @if (_producenci != null && elementyZamowienia != null)
         {
             <div class="modal fade @classShowKantowka" tabindex="-1" style="display: @displayKantowka;">
                 <div class="modal-dialog modal-lg">
@@ -471,6 +480,9 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _pageSize = Convert.ToInt32((await LocalStorage.GetStringAsync("kantowka_ile_widocznych")));
+        if (_pageSize == 0) _pageSize = 6;
+
         if (AppState != null)
         {
             AppState.SomeData = "";
@@ -553,47 +565,44 @@
     {
         if (kantowkaDoZlecen != null)
         {
-            // Stała dla zużycia farby (0,35 litra na 1 m²)
-            const double zuzycieFarbyNaMetrKwadratowy = 0.45;
+            // Stała dla zużycia farby (0,45 litra na 1 m²)
+            const double zuzycieFarbyNaMetrKwadratowy = 0.3;
 
-            // Lista przechowująca wyliczoną ilość farby dla każdej kantówki
-            var iloscFarbyLista = new List<double>();
-            var powCalkowiat = new List<double>();
+            double powierzchniaCalkowitaKantowek = 0; // Całkowita powierzchnia dla wszystkich kantówek
+
             // Przetwarzanie każdej kantówki
             foreach (var k in kantowkaDoZlecen)
             {
-                // Rozdziel przekrój (zakładamy format "80x60")
-                var wymiary = k.Przekroj.ToLower().Split('x');
+                // Rozdziel przekrój na szerokość i wysokość (np. "96x86")
+                var wymiary = k.Przekroj.Trim().ToLower().Split('x');
 
                 if (wymiary.Length == 2 && double.TryParse(wymiary[0], out double szerokosc) && double.TryParse(wymiary[1], out double wysokosc))
                 {
+                    // Obliczenie powierzchni: (szerokość * długość * 2) + (wysokość * długość * 2) w metrach
+                    double powierzchniaJednejKantowki =
+                        (((szerokosc / 1000 * k.DlugoscZamawiana / 1000) * 2) +
+                        (wysokosc / 1000 * k.DlugoscZamawiana / 1000 * 2));
 
-                    // Obliczenie obwodu przekroju (2 * (szerokość + wysokość))
-                    double obwod = 2 * (szerokosc / 1000 + wysokosc / 1000); // Przekształcenie do metrów
+                    // Powierzchnia całkowita dla wszystkich sztuk danej kantówki
+                    double powierzchniaCalkowitaDlaKantowki = powierzchniaJednejKantowki * k.IloscSztuk;
 
-                    // Powierzchnia kantówki (obwód * długość)
-                    double powierzchnia = obwod * (k.DlugoscZamawiana / 1000); // Przekształcenie długości do metrów
-
-                    // Powierzchnia całkowita (dla wszystkich sztuk)
-                    double powierzchniaCalkowita = powierzchnia * k.IloscSztuk;
-                    //Console.WriteLine($"powierzchnia:{powierzchnia} dlugoscNaGotowo:{dlugoscNaGotowo} obwod:{obwod} k.IloscSztuk;:{k.IloscSztuk} k.DlugoscNaGotowoGrupa:{k.DlugoscNaGotowoGrupa}");
-                    // Ilość farby potrzebna na daną kantówkę (powierzchnia * zużycie)
-                    double iloscFarby = powierzchniaCalkowita * zuzycieFarbyNaMetrKwadratowy;
-
-                    // Dodanie wyniku do listy
-                    iloscFarbyLista.Add(iloscFarby);
-
-                    powCalkowiat.Add(powierzchniaCalkowita);
-
+                    // Dodaj powierzchnię tej kantówki do całkowitej powierzchni
+                    powierzchniaCalkowitaKantowek += powierzchniaCalkowitaDlaKantowki;
+                }
+                else
+                {
+                    Console.WriteLine($"Nie rozpoznano przekroju: {k.Przekroj}");
                 }
             }
 
-            powCalkowiat.Add(1);//Dodaję 1 m2 na zaokrąglenia powierzchni w górę
+            // Zakładamy, że dodajemy 1 m² na zaokrąglenia
+            powierzchniaCalkowitaKantowek += 1;
 
-            // Sumowanie ilości farby dla wszystkich kantówek
-            double lacznaIloscFarby = iloscFarbyLista.Sum();
+            // Wylicz ilość farby potrzebnej na całą powierzchnię
+            double lacznaIloscFarby = powierzchniaCalkowitaKantowek * zuzycieFarbyNaMetrKwadratowy;
 
-            await ShowConfirmIcon(ConfirmIcon.Info, $"Łączna ilość farby: {Math.Round(lacznaIloscFarby, 1)} litrów - przy malowaniu jednokrotym oraz {Math.Round(lacznaIloscFarby, 1) * 2} litrów przy malowaniu dwukrotnym - powierzchnia malowana: {Math.Round(powCalkowiat.Sum(), 1)} m² sugerowane zużce farby na 1m² = {zuzycieFarbyNaMetrKwadratowy.ToString()}l");
+            // Wyświetl wynik
+            await ShowConfirmIcon(ConfirmIcon.Info, $"Łączna ilość farby: {Math.Round(lacznaIloscFarby, 1)} litrów - przy malowaniu jednokrotnym oraz {Math.Round(lacznaIloscFarby * 2, 1)} litrów przy malowaniu dwukrotnym - powierzchnia malowana: {Math.Round(powierzchniaCalkowitaKantowek, 1)} m², sugerowane zużycie farby na 1m² = {zuzycieFarbyNaMetrKwadratowy.ToString()}l");
         }
     }
 
@@ -645,7 +654,7 @@
 
         _producenci = await Http.GetFromJsonAsync<List<ProducenciPodwykonawcy>>($"api/ProducenciPodwykonawcy");
 
-       await ShowDialogKantowka();
+        await ShowDialogKantowka();
 
     }
 
@@ -678,7 +687,7 @@
         }
         else
         {
-           await _message.Error("Błąd aktualiazcji danych");
+            await _message.Error("Błąd aktualiazcji danych");
         }
     }
 
@@ -1178,6 +1187,14 @@
         await JSRuntime.InvokeVoidAsync("history.back");
     }
 
+    private async Task OnClickChange(int e)
+    {
+        if (_pageSize == e) return;
+
+        Console.WriteLine("Zapisano ilość widocznych" + e);
+        await LocalStorage.SaveStringAsync("kantowka_ile_widocznych", e.ToString());
+    }
+
     private bool boolOdczyt = false;
     private bool boolZmian = false;
     private bool boolUsuniecia = false;
@@ -1197,7 +1214,7 @@
             user = "NaN";
             return;
         }
-        
+
         string nazwaTabeli = "KantowkaDoZlecen";
 
         Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");
