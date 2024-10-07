@@ -6,7 +6,8 @@ using netDxf.Tables;
 
 namespace GEORGE.Client.Pages.Schody
 {
-    public abstract partial class C14_p_l
+
+    public abstract partial class C14_p_p
     {
         public abstract Task DrawAsync(Canvas2DContext context);
         public abstract Task<List<Point>> ReturnPoints();
@@ -15,7 +16,7 @@ namespace GEORGE.Client.Pages.Schody
     }
 
     //---------------------------------------------------------------- PIÓRO -------------------------------------------------------------------------------------------
-    public class CSchody_Podest_L : Shape
+    public class CSchody_Podest_P : Shape
     {
         private readonly IJSRuntime _jsRuntime;
 
@@ -43,7 +44,7 @@ namespace GEORGE.Client.Pages.Schody
         private double PrzestrzenSwobodnaNadGlowa { get; set; }
         private string Opis { get; set; }
 
-        public CSchody_Podest_L(IJSRuntime jsRuntime, double x, double y, double skala, double dlugoscOtworu, double szerokoscOtworu, double wysokoscDoStropu, double wysokoscCalkowita, double liczbaPodniesienStopni, 
+        public CSchody_Podest_P(IJSRuntime jsRuntime, double x, double y, double skala, double dlugoscOtworu, double szerokoscOtworu, double wysokoscDoStropu, double wysokoscCalkowita, double liczbaPodniesienStopni, 
             double szerokoscOstatniegoStopnia, double podestDlugosc, double podestSzerokosc, double podestJakoStopienNr, double dlugoscLiniiBiegu, double katNachylenia, 
             double wysokoscPodniesieniaStopnia, 
             double glebokoscStopnia, double przecietnaDlugoscKroku, double przestrzenSwobodnaNadGlowa , string opis)
@@ -77,14 +78,14 @@ namespace GEORGE.Client.Pages.Schody
             Xpoints = new List<Point>();
             XLinePoint = new List<LinePoint>();
 
-            double currentX = X; // Początkowa pozycja X
-            double currentY = Y; // Początkowa pozycja Y
+            double currentX = X ; // Początkowa pozycja X
+            double currentY = Y ; // Początkowa pozycja Y
 
             double stepWidth = GlebokoscStopnia * Skala;  // Szerokość stopnia (długość biegu schodów)
             double stepHeightPoz = PodestSzerokosc * Skala;  // Wysokość stopnia (szerokość biegu schodów)
             double stepHeightPion = PodestDlugosc * Skala;  // Wysokość stopnia (szerokość biegu schodów)
 
-            double delatYKrok = 0;  // Przesunięcie po osi Y
+            double delatYKrok = stepHeightPion;  // Przesunięcie po osi Y
 
             // Rysujemy obrys schodów (widok od góry)
             await DrawShapeObrys(context, X, Y);
@@ -92,8 +93,31 @@ namespace GEORGE.Client.Pages.Schody
             // Wyświetlenie informacji
             await DrawTextAsync(context, X + 10, Y + 45, $"Informacja: {Opis}");
 
+
             double poziomeStopnie = LiczbaPodniesienStopni - PodestJakoStopienNr;
 
+            double pionoweStopnie = LiczbaPodniesienStopni - poziomeStopnie;
+
+            //Spocznik
+            await context.BeginPathAsync();
+            await context.RectAsync(currentX, currentY, stepHeightPion, stepHeightPoz);
+            await context.StrokeAsync();
+
+            // Rysowanie pionowych stopni
+            for (int i = 0; i < pionoweStopnie - 1; i++)
+            {
+                currentY = Y + delatYKrok;
+                await context.BeginPathAsync();
+                await context.RectAsync(currentX, currentY, stepHeightPion, stepWidth);
+                await context.StrokeAsync();
+                delatYKrok += stepWidth;
+            }
+
+            double centerXOsi = currentX;
+            double centerYOsi = currentY;
+
+            currentX = stepHeightPion;
+            currentY = Y;
             // Rysowanie poziomych stopni - 1 pomijam spocznik
             for (int i = 0; i < poziomeStopnie - 1; i++)
             {
@@ -115,11 +139,6 @@ namespace GEORGE.Client.Pages.Schody
                 }
 
             }
-
-            //Spocznik
-            await context.BeginPathAsync();
-            await context.RectAsync(currentX, currentY, stepHeightPion, stepHeightPoz);
-            await context.StrokeAsync();
        
             // Po trapezach resetujemy pozycje X i Y dla pionowych stopni (po bocznej krawędzi)
             // currentX = X + DlugoscOtworu * Skala - stepHeightPion;  // Przesunięcie na dolną krawędź prostokąta
@@ -127,38 +146,41 @@ namespace GEORGE.Client.Pages.Schody
 
             delatYKrok = currentY;
 
-            double centerXOsi = currentX;
-            double centerYOsi = currentY;
-
-            double pionoweStopnie = LiczbaPodniesienStopni - poziomeStopnie;
-
-            // Rysowanie pionowych stopni
-            for (int i = 0; i < pionoweStopnie - 1; i++)
-            {
-                currentY = Y + delatYKrok;
-                await context.BeginPathAsync();
-                await context.RectAsync(currentX, currentY, stepHeightPion, stepWidth);
-                await context.StrokeAsync();
-                delatYKrok += stepWidth;
-            }
-
             // Rysowanie fragmentu okręgu (łuku) - oś schodów
             await context.BeginPathAsync();
-            await context.LineToAsync(0, (stepHeightPoz / 2));      // Koniec linii na dużym kwadracie
-            await context.LineToAsync(20, (stepHeightPoz / 2) + 5);      // Koniec linii na dużym kwadracie
-            await context.LineToAsync(20, (stepHeightPoz / 2) - 5);      // Koniec linii na dużym kwadracie
+            await context.LineToAsync(DlugoscOtworu * Skala, (stepHeightPoz / 2));      // Koniec linii na dużym kwadracie
+            await context.LineToAsync(DlugoscOtworu * Skala - 20, (stepHeightPoz / 2) + 5);      // Koniec linii na dużym kwadracie
+            await context.LineToAsync(DlugoscOtworu * Skala - 20, (stepHeightPoz / 2) - 5);      // Koniec linii na dużym kwadracie
             await context.ClosePathAsync();
             await context.StrokeAsync();
 
-            double startAngle = 270 * (Math.PI / 180);
-            double endAngle = 0 * (Math.PI / 180);
+
+            double startAngle = 180 * (Math.PI / 180);  // Kąt startu łuku w radianach (180 stopni)
+            double endAngle = 270 * (Math.PI / 180);    // Kąt zakończenia łuku w radianach (270 stopni)
 
             await context.BeginPathAsync();
-            await context.MoveToAsync(0, stepHeightPoz / 2);
-            await context.LineToAsync((poziomeStopnie - 1) * GlebokoscStopnia * Skala, stepHeightPoz / 2);
-            await context.ArcAsync(centerXOsi, centerYOsi, (stepHeightPoz / 2), startAngle, endAngle);  // Rysujemy łuk
-            await context.LineToAsync(centerXOsi + (stepHeightPoz / 2), (SzerokoscOtworu + GlebokoscStopnia) * Skala);
-            await context.StrokeAsync();
+
+            // 1. Pierwsza linia (linia pozioma)
+            await context.MoveToAsync(DlugoscOtworu * Skala, stepHeightPoz / 2);  // Początek linii
+            await context.LineToAsync(centerXOsi + stepHeightPoz, stepHeightPion / 2);  // Koniec pierwszej linii
+
+            // 2. Rysowanie łuku pomiędzy liniami
+            await context.ArcAsync(centerXOsi + stepHeightPoz, centerYOsi, stepHeightPoz / 2, startAngle, endAngle);  // Rysujemy łuk od 180° do 270°
+
+            await context.StrokeAsync();  // Zakończ rysowanie pierwszej linii i łuku
+
+            // 3. Zaczynamy nową linię, aby uniknąć niepożądanego łączenia
+            await context.BeginPathAsync();
+
+            // 4. Druga linia (linia pionowa, od końca łuku)
+            await context.MoveToAsync(centerXOsi + stepHeightPoz / 2, centerYOsi + stepHeightPoz / 2);  // Punkt, gdzie kończy się łuk
+            await context.LineToAsync(centerXOsi + stepHeightPoz / 2, (SzerokoscOtworu + SzerokoscOstatniegoStopnia) * Skala + stepWidth);  // Koniec drugiej linii
+
+            await context.StrokeAsync();  // Zakończ rysowanie
+
+
+
+
 
             //// Rysowanie fragmentu okręgu (łuku) - oś schodów
             //await context.BeginPathAsync();

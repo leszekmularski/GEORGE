@@ -139,6 +139,12 @@
     protected override async Task OnInitializedAsync()
     {
         TypSchodow = System.Net.WebUtility.UrlDecode(TypSchodow);
+
+        if (TypSchodow != null && TypSchodow.Trim().EndsWith("prawo"))
+        {
+            boolLewe = false;
+        }
+
         await Task.CompletedTask;
 
         Resetuj();
@@ -236,12 +242,12 @@
             }
             else
             {
-                // shapes = new List<Shape>
-                // {
-                //     new CSchodyP(JSRuntime,  0, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
-                //     SzerokoscOstatniegoStopnia, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
-                //     GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, KatZabiegu, IloscSchodowZabiegowych + 1)
-                // };
+                shapes = new List<Shape>
+                {
+                    new CSchody_Podest_P(JSRuntime,0, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
+                    SzerokoscOstatniegoStopnia, PodestDlugosc, PodestSzerokosc, PodestJakoStopienNr, DlugoscLiniiBiegu, KatNachylenia,
+                    WysokoscPodniesieniaStopnia, GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa , TypSchodow)
+                };
             }
 
         }
@@ -258,12 +264,12 @@
             }
             else
             {
-                // shapes = new List<Shape>
-                // {
-                //     new CSchodyP(JSRuntime,  0, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
-                //     SzerokoscOstatniegoStopnia, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
-                //     GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, KatZabiegu, IloscSchodowZabiegowych + 1)
-                // };
+                shapes = new List<Shape>
+                {
+                    new CSchody_Podest_P(JSRuntime,0, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
+                    SzerokoscOstatniegoStopnia, PodestDlugosc, PodestSzerokosc, PodestJakoStopienNr, DlugoscLiniiBiegu, KatNachylenia,
+                    WysokoscPodniesieniaStopnia, GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa , TypSchodow)
+                };
             }
 
             await DrawShapes();

@@ -5,8 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 	<Version>1.0.7</Version>
-	<AssemblyVersion>1.0.7.5</AssemblyVersion>
-	<FileVersion>1.0.7.5</FileVersion>
+	<AssemblyVersion>1.0.7.6</AssemblyVersion>
+	<FileVersion>1.0.7.6</FileVersion>
 	<InformationalVersion>1.0.7</InformationalVersion>
     <WasmEnableSimdSupport>false</WasmEnableSimdSupport>
 </PropertyGroup>
