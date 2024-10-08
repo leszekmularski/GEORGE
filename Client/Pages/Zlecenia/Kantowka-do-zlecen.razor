@@ -61,7 +61,7 @@
                 background-color: wheat !important; /* Zmiana tła na jaśniejszy kolor */
                 color: black !important;
                 box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.3); /* Większy cień podczas hover */
-                font-size: 1.05em; /* Niewielkie powiększenie tekstu na hover */
+                font-size: 1.0em; /* Niewielkie powiększenie tekstu na hover */
                 transition: background-color 0.3s ease, box-shadow 0.3s ease, font-size 0.3s ease; /* Płynne przejście na hover */
             }
     </style>
@@ -727,7 +727,7 @@
                     Przekroj = item.Kolor,
                     NazwaProduktu = item.Symbol,
                     KodProduktu = "",
-                    Uwagi = "Dane zaimortowano z PDF",
+                    Uwagi = "Dane zaimortowano z PDF dnia: " + DateTime.Now,
                     DlugoscZamawiana = int.Parse(item.WymiarNaZamowienie),
                     DlugoscNaGotowo = int.Parse(item.Wymiar),
                     DlugoscNaGotowoGrupa = item.Wymiar,
@@ -787,7 +787,7 @@
                     Przekroj = g.Key.Przekroj,
                     NazwaProduktu = g.FirstOrDefault()?.Symbol ?? "",
                     KodProduktu = "",
-                    Uwagi = "Dane zaimortowano z PDF",
+                    Uwagi = "Dane zaimortowano z PDF dnia: " + DateTime.Now,
                     DlugoscZamawiana = g.Key.DlugoscZamawiana,
                     DlugoscNaGotowo = g.FirstOrDefault()?.Wymiar != null ? int.Parse(g.FirstOrDefault().Wymiar) : 0,
                     DlugoscNaGotowoGrupa = string.Join("; ", g.Select(item => item.Wymiar)),

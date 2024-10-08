@@ -4,54 +4,99 @@
 <h3>Obliczenia Schodów typu: @TypSchodow</h3>
 <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
 <Divider></Divider>
-<!-- Form inputs -->
-<div>
-    <label>Długość Otworu:</label>
-    <input type="number" @bind="DlugoscOtworu" />
-</div>
-<div>
-    <label>Szerokość Otworu:</label>
-    <input type="number" @bind="SzerokoscOtworu" />
-</div>
-<div>
-    <label>Długość na Wejściu:</label>
-    <input type="number" @bind="DlugoscNaWejsciu" />
-</div>
-<div>
-    <label>Wysokość do Stropu:</label>
-    <input type="number" @bind="WysokoscDoStropu" />
-</div>
-<div>
-    <label>Wysokość Całkowita:</label>
-    <input type="number" @bind="WysokoscCalkowita" />
-</div>
-<div>
-    <label>Liczba Podniesień Stopni:</label>
-    <input type="number" @bind="LiczbaPodniesienStopni" />
-</div>
-<div>
-    <label>Szerokość Ostatniego Stopnia:</label>
-    <input type="number" @bind="SzerokoscOstatniegoStopnia" />
-</div>
-<div>
-    <label>Szerokość Biegu Schodów:</label>
-    <input type="number" @bind="SzerokoscBieguSchodow" />
-</div>
+<Collapse Animation>
+    <Panel Header="Parametry wykonania schodów" Key="1">
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; align-items: center;">
+                <!-- Form inputs -->
+                <div>
+                    <label>Długość Otworu:</label>
+                    <input type="number" @bind="DlugoscOtworu" />
+                </div>
+                <div>
+                    <label>Szerokość Otworu:</label>
+                    <input type="number" @bind="SzerokoscOtworu" />
+                </div>
+                <div>
+                    <label>Długość na Wejściu:</label>
+                    <input type="number" @bind="DlugoscNaWejsciu" />
+                </div>
+                <div>
+                    <label>Wysokość do Stropu:</label>
+                    <input type="number" @bind="WysokoscDoStropu" />
+                </div>
+                <div>
+                    <label>Wysokość Całkowita:</label>
+                    <input type="number" @bind="WysokoscCalkowita" />
+                </div>
+                <div>
+                    <label>Liczba Podniesień Stopni:</label>
+                    <input type="number" @bind="LiczbaPodniesienStopni" />
+                </div>
+                <div>
+                    <label>Szerokość Ostatniego Stopnia:</label>
+                    <input type="number" @bind="SzerokoscOstatniegoStopnia" />
+                </div>
+                <div>
+                    <label>Szerokość Biegu Schodów:</label>
+                    <input type="number" @bind="SzerokoscBieguSchodow" />
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 5px;">
+                    <label style="color:forestgreen">Skala wyświetlania [%]:</label>
+                    <input type="number" @bind="SkalaWyswietlania" min="1" max="100" />
+                </div>
+        </div>
+    </Panel>
+</Collapse>
 
-<!-- Buttons -->
-<button @onclick="Oblicz">Oblicz</button>
+<!-- Calculation and reset buttons -->
+<button @onclick="()=> Oblicz(false)">Oblicz</button>
+<button @onclick="()=> Oblicz(true)">Zapisz do DXF</button>
 <button @onclick="Resetuj">Reset</button>
 
-<!-- Results -->
-<h4>Wyniki:</h4>
-<div>
-    <p>Długość Linii Biegu: @DlugoscLiniiBiegu</p>
-    <p>Kąt Nachylenia: @KatNachylenia</p>
-    <p>Szerokość Schodów: @SzerokoscSchodow</p>
-    <p>Wysokość Podniesienia Stopnia: @WysokoscPodniesieniaStopnia</p>
-    <p>Głębokość Stopnia: @GlebokoscStopnia</p>
-    <p>Przeciętna Długość Kroku: @PrzecietnaDlugoscKroku</p>
-    <p>Przestrzeń Swobodna nad Głową: @PrzestrzenSwobodnaNadGlowa</p>
+<div style="display: flex; gap: 25px;">
+    <!-- Drawing canvas -->
+    <div>
+        <h4>Rysunek schodów:</h4>
+        <div style="overflow: auto; width: 1000px; height: 580px;">
+            <BECanvas Width="@Convert.ToInt64(DlugoscOtworu + SzerokoscOstatniegoStopnia)" Height="@Convert.ToInt64(SzerokoscOtworu)" @ref="canvasReferenceKPL"></BECanvas>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <h4>Wyniki:</h4>
+    <div>
+        <div>
+            <p style="margin: 0;">Długość Linii Biegu: @DlugoscLiniiBiegu</p>
+        </div>
+        <div>
+            <p style="margin: 0;">Kąt Nachylenia: @KatNachylenia</p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 25px;">
+            <p style="margin: 0;">Szerokość Schodów: @SzerokoscSchodow</p>
+            <Tooltip Placement="Placement.TopLeft" Title="Szerokość schodów">
+                <span style="margin: 0; color:@(SzerokoscSchodow >= 800 ? "green" : "red");">>= 800 mm</span>
+            </Tooltip>
+        </div>
+        <p>Wysokość Podniesienia Stopnia: @WysokoscPodniesieniaStopnia</p>
+        <div style="display: flex; align-items: center; gap: 25px;">
+            <p style="margin: 0; color: darkblue; font-style: oblique; font-weight: bold;">Głębokość Stopnia: @GlebokoscStopnia</p>
+            <span style="margin: 0; color:@(GlebokoscStopnia < 220 || GlebokoscStopnia > 350 ? "red" : "green");">
+                220 - 350 mm
+            </span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 25px;">
+            <p style="margin: 0;">Przeciętna Długość Kroku: @PrzecietnaDlugoscKroku</p>
+            <span style="margin: 0; color:@(PrzecietnaDlugoscKroku < 600 || PrzecietnaDlugoscKroku > 650 ? "red" : "green");">
+                600 - 650 mm
+            </span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 25px;">
+            <p style="margin: 0;">Przestrzeń Swobodna nad Głową: @PrzestrzenSwobodnaNadGlowa</p>
+            <span style="margin: 0; color:@(PrzestrzenSwobodnaNadGlowa >= 2000 ? "green" : "red");">
+                > 2000 mm
+            </span>
+        </div>
+    </div>
 </div>
 
 @code {
@@ -77,31 +122,60 @@
     private double PrzecietnaDlugoscKroku { get; set; }
     private double PrzestrzenSwobodnaNadGlowa { get; set; }
 
+    private int SkalaWyswietlania { get; set; } = 25;
+
+    private BECanvasComponent? canvasReferenceKPL;
+    private Canvas2DContext? contextKPL;
+    private List<Shape>? shapes;
+
+    private bool boolLewe = true;
+
     protected override async Task OnInitializedAsync()
     {
         TypSchodow = System.Net.WebUtility.UrlDecode(TypSchodow);
+
+        if (TypSchodow != null && TypSchodow.Trim().EndsWith("prawo"))
+        {
+            boolLewe = false;
+        }
+
+        Resetuj();
+
         await Task.CompletedTask;
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (contextKPL == null)
+                contextKPL = await canvasReferenceKPL.CreateCanvas2DAsync();
+
+            await Task.Delay(10);
+
+        }
+    }
+
+
     // Calculation method
-    private void Oblicz()
+    private async void Oblicz(bool saveDxf)
     {
         // Walidacja
         if (DlugoscOtworu < SzerokoscBieguSchodow) DlugoscOtworu = SzerokoscBieguSchodow;
-        if (DlugoscOtworu >= 3000) DlugoscOtworu = 2999;
+        if (DlugoscOtworu >= 30000) DlugoscOtworu = 29999;
         if (SzerokoscOtworu < SzerokoscBieguSchodow) SzerokoscOtworu = SzerokoscBieguSchodow;
-        if (SzerokoscOtworu >= 3000) SzerokoscOtworu = 2999;
+        if (SzerokoscOtworu >= 30000) SzerokoscOtworu = 29999;
         if (DlugoscNaWejsciu < SzerokoscBieguSchodow) DlugoscNaWejsciu = SzerokoscBieguSchodow;
-        if (DlugoscNaWejsciu >= 4000) DlugoscNaWejsciu = 3999;
+        if (DlugoscNaWejsciu >= 40000) DlugoscNaWejsciu = 39999;
         if (WysokoscDoStropu > WysokoscCalkowita) WysokoscDoStropu = WysokoscCalkowita;
-        if (WysokoscDoStropu >= 600) WysokoscDoStropu = 599;
+        if (WysokoscDoStropu >= 6000) WysokoscDoStropu = 5999;
         if (WysokoscCalkowita < WysokoscDoStropu) WysokoscCalkowita = WysokoscDoStropu;
-        if (WysokoscCalkowita >= 700) WysokoscCalkowita = 699;
+        if (WysokoscCalkowita >= 7000) WysokoscCalkowita = 6999;
         if (LiczbaPodniesienStopni <= 2) LiczbaPodniesienStopni = 3;
         if (LiczbaPodniesienStopni >= 30) LiczbaPodniesienStopni = 29;
         if (SzerokoscOstatniegoStopnia < 0) SzerokoscOstatniegoStopnia = 0;
         if (SzerokoscOstatniegoStopnia > (SzerokoscOtworu - SzerokoscBieguSchodow)) SzerokoscOstatniegoStopnia = SzerokoscOtworu - SzerokoscBieguSchodow;
-        if (SzerokoscBieguSchodow <= 40) SzerokoscBieguSchodow = 40;
+        if (SzerokoscBieguSchodow <= 400) SzerokoscBieguSchodow = 400;
 
         // Obliczenia
         WysokoscPodniesieniaStopnia = Math.Round(WysokoscCalkowita / LiczbaPodniesienStopni, 2);
@@ -111,20 +185,133 @@
         SzerokoscSchodow = Math.Round(SzerokoscBieguSchodow, 2);
         GlebokoscStopnia = Math.Round(DlugoscLiniiBiegu / (LiczbaPodniesienStopni - 1), 2);
         PrzecietnaDlugoscKroku = Math.Round(2 * WysokoscPodniesieniaStopnia + GlebokoscStopnia, 2);
+
+        // Jeśli saveDxf = true, wywołaj zapis DXF
+        if (saveDxf)
+        {
+            // Aktualizacja kształtów
+            await UpdateShapes(true);
+
+            if (shapes == null) return;
+
+            // Szukanie obiektów CSchody w liście shapes i zapisywanie do pliku DXF
+            if (boolLewe)
+            {
+                foreach (var shape in shapes)
+                {
+                    if (shape is CSchodyL schody)
+                    {
+                        // await schody.SaveToDxfAsync();
+                    }
+                }
+
+            }
+            else
+            {
+                foreach (var shape in shapes)
+                {
+                    if (shape is CSchodyP schody)
+                    {
+                        // await schody.SaveToDxfAsync();
+                    }
+                }
+            }
+
+            await UpdateShapes();
+        }
+        else
+        {
+            await UpdateShapes();
+        }
+    }
+
+    private async Task UpdateShapes(bool skala1do1 = false)
+    {
+        if (shapes != null) shapes.Clear();
+        // Zainicjalizuj listę kształtów
+
+        var skalaRys = (double)SkalaWyswietlania / 100;
+
+        if (skala1do1)
+        {
+            skalaRys = 1;
+
+            if (boolLewe)
+            {
+                shapes = new List<Shape>
+                {
+                    new CSchodyPL(JSRuntime,  0, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
+                    SzerokoscOstatniegoStopnia, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
+                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'l')
+                };
+            }
+            else
+            {
+                shapes = new List<Shape>
+                {
+                    new CSchodyPL(JSRuntime,  0, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
+                    SzerokoscOstatniegoStopnia, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
+                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'p')
+                };
+            }
+
+        }
+        else
+        {
+            if (boolLewe)
+            {
+                shapes = new List<Shape>
+                {
+                    new CSchodyPL(JSRuntime,  0, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
+                    SzerokoscOstatniegoStopnia, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
+                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'l')
+                };
+            }
+            else
+            {
+                shapes = new List<Shape>
+                {
+                    new CSchodyPL(JSRuntime,  0, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
+                    SzerokoscOstatniegoStopnia, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
+                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'p')
+                };
+            }
+
+            await DrawShapes();
+            await Task.Delay(10);
+            await DrawShapes();
+
+        }
+
+    }
+
+    private async Task DrawShapes()
+    {
+        if (shapes == null) return;
+
+        if (contextKPL == null)
+            contextKPL = await canvasReferenceKPL.CreateCanvas2DAsync();
+
+        await contextKPL.ClearRectAsync(0, 0, DlugoscOtworu + 50, SzerokoscOtworu + 50); // Ustaw szerokość kanwy na większą, aby zmieścić oba kształty
+
+        foreach (var shape in shapes)
+        {
+            await shape.DrawAsync(contextKPL);
+        }
     }
 
     // Reset method
     private void Resetuj()
     {
         // Resetowanie wartości
-        DlugoscOtworu = 300;
-        SzerokoscOtworu = 100;
-        DlugoscNaWejsciu = 340;
-        WysokoscDoStropu = 270;
-        WysokoscCalkowita = 300;
+        DlugoscOtworu = 3000;
+        SzerokoscOtworu = 1000;
+        DlugoscNaWejsciu = 3400;
+        WysokoscDoStropu = 2700;
+        WysokoscCalkowita = 3000;
         LiczbaPodniesienStopni = 15;
-        SzerokoscOstatniegoStopnia = 5;
-        SzerokoscBieguSchodow = 85;
+        SzerokoscOstatniegoStopnia = 50;
+        SzerokoscBieguSchodow = 850;
 
         // Reset wyników
         DlugoscLiniiBiegu = 0;

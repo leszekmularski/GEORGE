@@ -163,17 +163,17 @@ namespace GEORGE.Client.Pages.Schody
             // 1. Pierwsza linia (linia pozioma)
             await context.MoveToAsync(DlugoscOtworu * Skala, stepHeightPoz / 2);  // Początek linii
             await context.LineToAsync(centerXOsi + stepHeightPoz, stepHeightPion / 2);  // Koniec pierwszej linii
+            await context.StrokeAsync();  // Zakończ rysowa
 
+            await context.BeginPathAsync();
             // 2. Rysowanie łuku pomiędzy liniami
             await context.ArcAsync(centerXOsi + stepHeightPoz, centerYOsi, stepHeightPoz / 2, startAngle, endAngle);  // Rysujemy łuk od 180° do 270°
-
             await context.StrokeAsync();  // Zakończ rysowanie pierwszej linii i łuku
 
             // 3. Zaczynamy nową linię, aby uniknąć niepożądanego łączenia
             await context.BeginPathAsync();
-
             // 4. Druga linia (linia pionowa, od końca łuku)
-            await context.MoveToAsync(centerXOsi + stepHeightPoz / 2, centerYOsi + stepHeightPoz / 2);  // Punkt, gdzie kończy się łuk
+            await context.MoveToAsync(centerXOsi + stepHeightPoz / 2, centerYOsi);  // Punkt, gdzie kończy się łuk
             await context.LineToAsync(centerXOsi + stepHeightPoz / 2, (SzerokoscOtworu + SzerokoscOstatniegoStopnia) * Skala + stepWidth);  // Koniec drugiej linii
 
             await context.StrokeAsync();  // Zakończ rysowanie

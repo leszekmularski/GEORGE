@@ -58,7 +58,7 @@ namespace GEORGE.Client.Pages.PDF
             foreach (var line in lines)
             {
 
-                if (line.Contains("KANTÓWKA"))
+                if (line.ToUpper().Contains("KANTÓWKA"))
                 {
                     capturing = true;
                     tempLine.Clear();
@@ -109,7 +109,23 @@ namespace GEORGE.Client.Pages.PDF
                         {
                             zestawienie.ListaCieci.Add(cutListItem);
                         }
-                       
+                        else
+                        {
+                            if((items[3].ToUpper() == "HG" || items[3].ToUpper() == "HB") && int.TryParse(items[4], out _))
+                            {
+                                cutListItem.Ilosc = items[4];
+                                cutListItem.Wymiar = items[5];
+                                cutListItem.Kat = (items.Length > 6 ? items[6] : "");
+                                cutListItem.WymiarNaZamowienie = DlugoscHandlowa(items[5]);
+                                cutListItem.Uwagi = strUwagi.Substring(0, strUwagi.IndexOf("-")).TrimEnd();
+                                //DLA ZESTAWIEN MATERIAŁOWYCH HS ZMIANA W POZYCJI ILOŚCI SZTUK
+                                zestawienie.ListaCieci.Add(cutListItem);
+                            }
+                            else
+                            {
+                                Console.WriteLine($"Nie doddano wiersza: {kantowka.ToString()}, items.Length:{items.Length.ToString()} ilość sztuk: {items[3]}");
+                            }
+                        }
                     }
                     catch (Exception ex)
                     {
