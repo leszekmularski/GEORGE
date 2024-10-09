@@ -3,6 +3,8 @@ using netDxf;
 using netDxf.Entities;
 using Microsoft.JSInterop;
 using netDxf.Tables;
+using netDxf.Units;
+using netDxf.Header;
 
 namespace GEORGE.Client.Pages.Schody
 {
@@ -44,7 +46,6 @@ namespace GEORGE.Client.Pages.Schody
         private double PrzestrzenSwobodnaNadGlowa { get; set; }
         private string Opis { get; set; }
         private char Lewe { get; set; }
-
         public CSchodyPL(IJSRuntime jsRuntime, double x, double y, double skala, double dlugoscOtworu, double szerokoscOtworu, double dlugoscNaWejsciu, double wysokoscDoStropu, double wysokoscCalkowita, double liczbaPodniesienStopni,
             double szerokoscOstatniegoStopnia, double szerokoscBieguSchodow, double dlugoscLiniiBiegu, double katNachylenia, double szerokoscSchodow, double wysokoscPodniesieniaStopnia,
             double glebokoscStopnia, double przecietnaDlugoscKroku, double przestrzenSwobodnaNadGlowa, string opis, char lewe)
@@ -73,7 +74,6 @@ namespace GEORGE.Client.Pages.Schody
 
             _jsRuntime = jsRuntime ?? throw new ArgumentNullException(nameof(jsRuntime));
         }
-
         public override async Task DrawAsync(Canvas2DContext context)
         {
             Xpoints = new List<Point>();
@@ -85,21 +85,24 @@ namespace GEORGE.Client.Pages.Schody
             double stepWidth = GlebokoscStopnia * Skala;  // Szerokość stopnia (długość biegu schodów)
             double stepHeight = SzerokoscBieguSchodow * Skala;  // Wysokość stopnia (szerokość biegu schodów)
 
-            // Rysujemy obrys schodów (widok od góry)
-            await DrawShapeObrys(context, X, Y);
-
-            // Wyświetlenie informacji
-            await DrawTextAsync(context, X + 10, Y + 45, $"Informacja: {Opis}");
+            double gruboscStopnia = 40 * Skala; // Zrobić zmienną!!!!!!
 
             if (Lewe == 'l')
             {
-                currentX = X + (DlugoscOtworu - GlebokoscStopnia) * Skala; // Początkowa pozycja X
+
+                // Rysujemy obrys schodów (widok od góry)
+                await DrawShapeObrys(context, X, Y);
+
+                // Wyświetlenie informacji
+                await DrawTextAsync(context, X + 10, Y + 45, $"Informacja: {Opis}");
+
+                currentX = X + (DlugoscOtworu - GlebokoscStopnia) * Skala + (DlugoscNaWejsciu - DlugoscOtworu) * Skala + stepWidth; // Początkowa pozycja X
 
                 for (int i = 0; i < LiczbaPodniesienStopni; i++)
                 {
                     await context.BeginPathAsync();
 
-                    if (i == 0)
+                    if (i == LiczbaPodniesienStopni - 1)
                     {
                         await context.RectAsync(currentX - SzerokoscOstatniegoStopnia * Skala, currentY, stepWidth + SzerokoscOstatniegoStopnia * Skala, stepHeight);
                         await context.StrokeAsync();
@@ -129,18 +132,61 @@ namespace GEORGE.Client.Pages.Schody
                 await context.MoveToAsync(DlugoscOtworu * Skala, SzerokoscSchodow * Skala / 2);  // Początek linii
                 await context.LineToAsync(X, SzerokoscSchodow * Skala / 2);  // Koniec pierwszej linii
                 await context.StrokeAsync();  // Zakończ rysowa
-            }
+
+                //Rysowanie schodów widok z boku ------------------------------------------------------------------------------------------------------------------------------
+                currentX = X + (DlugoscOtworu - GlebokoscStopnia) * Skala + (DlugoscNaWejsciu - DlugoscOtworu) * Skala + stepWidth; // Początkowa pozycja X
+
+                currentY = SzerokoscOtworu * Skala + ((LiczbaPodniesienStopni + 1) * WysokoscPodniesieniaStopnia) * Skala;
+
+                // Zapisz początkowe wartości do obliczenia rozmiaru obwiedni
+                double startX = currentX;
+                double startY = currentY;
+
+                for (int i = 0; i < LiczbaPodniesienStopni; i++)
+                {
+                    await context.BeginPathAsync();
+
+                    if (i == LiczbaPodniesienStopni - 1)
+                    {
+                        await DrawShapeStopinRysBok(context, currentX - SzerokoscOstatniegoStopnia * Skala, currentY, stepWidth + SzerokoscOstatniegoStopnia * Skala, gruboscStopnia);
+                        currentX -= stepWidth + SzerokoscOstatniegoStopnia * Skala;
+                        currentY -= WysokoscPodniesieniaStopnia * Skala;
+                    }
+                    else
+                    {
+                        await DrawShapeStopinRysBok(context, currentX, currentY,stepWidth, gruboscStopnia);
+                        currentX -= stepWidth;
+                        currentY -= WysokoscPodniesieniaStopnia * Skala;
+                    }
+
+                }
+
+
+                await DrawObrysZKatem(context, startX + stepWidth, startY + WysokoscPodniesieniaStopnia * Skala, currentY + WysokoscPodniesieniaStopnia * Skala, DlugoscLiniiBiegu * Skala, 
+                    ((LiczbaPodniesienStopni + 1) * WysokoscPodniesieniaStopnia) * Skala, 90 + KatNachylenia, stepWidth + SzerokoscOstatniegoStopnia * Skala);
+
+
+            //Rysowanie schodów widok z boku KONIEC --------------------------------------------------------------------------------------------------------------------------
+
+        }
             else if (Lewe == 'p')
             {
+
+                // Rysujemy obrys schodów (widok od góry)
+                await DrawShapeObrys(context, X + (DlugoscNaWejsciu - DlugoscOtworu) * Skala + stepWidth, Y);
+
+                // Wyświetlenie informacji
+                await DrawTextAsync(context, X + 10, Y + 45, $"Informacja: {Opis}");
+
                 currentX = X; // Początkowa pozycja X
 
                 for (int i = 0; i < LiczbaPodniesienStopni; i++)
                 {
                     await context.BeginPathAsync();
 
-                    if (i == LiczbaPodniesienStopni)
+                    if (i == LiczbaPodniesienStopni - 1)
                     {
-                        await context.RectAsync(currentX - SzerokoscOstatniegoStopnia * Skala, currentY, stepWidth + SzerokoscOstatniegoStopnia * Skala, stepHeight);
+                        await context.RectAsync(currentX, currentY, stepWidth + SzerokoscOstatniegoStopnia * Skala, stepHeight);
                         await context.StrokeAsync();
                         currentX += stepWidth + SzerokoscOstatniegoStopnia * Skala;
                     }
@@ -155,9 +201,9 @@ namespace GEORGE.Client.Pages.Schody
 
                 // Rysowanie grotu strzałki
                 await context.BeginPathAsync();
-                await context.LineToAsync(DlugoscOtworu * Skala, (SzerokoscSchodow * Skala / 2));      // Koniec linii na dużym kwadracie
-                await context.LineToAsync(DlugoscOtworu * Skala - 20, (SzerokoscSchodow * Skala / 2) + 5);      // Koniec linii na dużym kwadracie
-                await context.LineToAsync(DlugoscOtworu * Skala - 20, (SzerokoscSchodow * Skala / 2) - 5);      // Koniec linii na dużym kwadracie
+                await context.LineToAsync(DlugoscOtworu * Skala + (DlugoscNaWejsciu - DlugoscOtworu) * Skala + stepWidth, (SzerokoscSchodow * Skala / 2));      // Koniec linii na dużym kwadracie
+                await context.LineToAsync(DlugoscOtworu * Skala - 20 + (DlugoscNaWejsciu - DlugoscOtworu) * Skala + stepWidth, (SzerokoscSchodow * Skala / 2) + 5);      // Koniec linii na dużym kwadracie
+                await context.LineToAsync(DlugoscOtworu * Skala - 20 + (DlugoscNaWejsciu - DlugoscOtworu) * Skala + stepWidth, (SzerokoscSchodow * Skala / 2) - 5);      // Koniec linii na dużym kwadracie
                 await context.ClosePathAsync();
                 await context.StrokeAsync();
 
@@ -165,8 +211,8 @@ namespace GEORGE.Client.Pages.Schody
                 await context.BeginPathAsync();
 
                 // 1. Pierwsza linia (linia pozioma)
-                await context.MoveToAsync(DlugoscOtworu * Skala, SzerokoscSchodow * Skala / 2);  // Początek linii
-                await context.LineToAsync(X, SzerokoscSchodow * Skala / 2);  // Koniec pierwszej linii
+                await context.MoveToAsync(DlugoscOtworu * Skala + (DlugoscNaWejsciu - DlugoscOtworu) * Skala + stepWidth, SzerokoscSchodow * Skala / 2);  // Początek linii
+                await context.LineToAsync(X + (DlugoscNaWejsciu - DlugoscOtworu) * Skala + stepWidth, SzerokoscSchodow * Skala / 2);  // Koniec pierwszej linii
                 await context.StrokeAsync();  // Zakończ rysowa
             }
 
@@ -175,9 +221,9 @@ namespace GEORGE.Client.Pages.Schody
 
             // Wyświetlanie dodatkowych informacji
             // Draw text
-            await context.FillTextAsync($"Poziome: {LiczbaPodniesienStopni}({LiczbaPodniesienStopni * GlebokoscStopnia} = {LiczbaPodniesienStopni * GlebokoscStopnia})" +
+            await context.FillTextAsync($"Poziome: {LiczbaPodniesienStopni} = ({System.Math.Round(LiczbaPodniesienStopni * GlebokoscStopnia + SzerokoscOstatniegoStopnia, 0)})" +
                $" Wysokość:{WysokoscPodniesieniaStopnia} x {(LiczbaPodniesienStopni + 1)} = {WysokoscPodniesieniaStopnia * (LiczbaPodniesienStopni + 1)}" +
-               $" - Suma stopni {LiczbaPodniesienStopni}", X + 10, Y + 20);
+               $" -> Suma stopni {LiczbaPodniesienStopni}", X + 10, Y + 20);
         }
 
         private async Task DrawShapeObrys(Canvas2DContext context, double offsetX, double offsetY)
@@ -201,6 +247,86 @@ namespace GEORGE.Client.Pages.Schody
             await context.StrokeAsync();
 
             // Ustaw kolor linii na czerwony
+            await context.SetStrokeStyleAsync("black");
+
+            // Ustaw grubość linii (na przykład na 3 piksele)
+            await context.SetLineWidthAsync(1);
+        }
+
+        // Funkcja rysująca obrys pod kątem
+        private async Task DrawObrysZKatem(Canvas2DContext context, double startX, double startY, double YStartStopienGorny, double szerokosc, double wysokosc,
+                                           double katNachylenia, double stepWidth)
+        {
+            // Konwersja kąta nachylenia na radiany
+            double katRadians = katNachylenia * (Math.PI / 180);
+
+            // Obliczenie przesunięć wzdłuż osi X i Y
+            double deltaX = szerokosc * Math.Cos(katRadians);
+            double deltaY = wysokosc * Math.Sin(katRadians);
+
+            // Punkt początkowy
+            double endX = startX + deltaX;
+            double endY = startY - deltaY;
+
+            // Ustaw kolor na czerwony i zwiększ grubość linii
+            await context.SetStrokeStyleAsync("red");
+            await context.SetLineWidthAsync(3);
+
+            // Rysowanie nachylonego prostokąta
+            await context.BeginPathAsync();
+
+            // Punkt początkowy (lewy dolny róg)
+            await context.MoveToAsync(startX - stepWidth, startY);
+            AddLinePoints(startX - stepWidth, startY, startX, startY); // Dodanie linii z lewego do prawego dolnego rogu
+
+            // Linia pozioma (lewy dolny do prawy dolny)
+            await context.LineToAsync(startX, startY);
+            AddLinePoints(startX, startY, startX, startY - WysokoscPodniesieniaStopnia * Skala); // Dodanie linii pionowej
+
+            // Linia pionowa (prawy dolny do prawy górny)
+            await context.LineToAsync(startX, startY - WysokoscPodniesieniaStopnia * Skala);
+            AddLinePoints(startX, startY - WysokoscPodniesieniaStopnia * Skala, X + stepWidth, YStartStopienGorny);  // Dodanie linii skośnej
+
+            // Skośna linia (od prawego górnego punktu do prawego górnego stopnia)
+            await context.LineToAsync(X + stepWidth, YStartStopienGorny);
+            AddLinePoints(X + stepWidth, YStartStopienGorny, X, YStartStopienGorny); // Dodanie poziomej linii górnej
+
+            // Linia pozioma na górze
+            await context.LineToAsync(X, YStartStopienGorny);
+            AddLinePoints(X, YStartStopienGorny, X, YStartStopienGorny + WysokoscPodniesieniaStopnia * Skala - SzerokoscOstatniegoStopnia * Skala); // Dodanie końcowej linii pionowej
+
+            // Linia końcowa pionowa
+            await context.LineToAsync(X, YStartStopienGorny + WysokoscPodniesieniaStopnia * Skala - SzerokoscOstatniegoStopnia * Skala);
+
+            // Zamknięcie ścieżki
+            await context.ClosePathAsync();
+            await context.StrokeAsync();
+
+            // Ustawienie koloru i grubości linii z powrotem do standardowych wartości
+            await context.SetStrokeStyleAsync("black");
+            await context.SetLineWidthAsync(1);
+        }
+
+        private async Task DrawShapeStopinRysBok(Canvas2DContext context, double offsetX, double offsetY, double szerStopnia, double gruboscStopnia)
+        {
+            await context.BeginPathAsync();
+
+            // Ustaw kolor linii na czerwony
+            await context.SetStrokeStyleAsync("blue");
+
+            // Ustaw grubość linii (na przykład na 3 piksele)
+            await context.SetLineWidthAsync(2);
+
+            // Rysowanie zewnętrznego prostokąta
+            await context.RectAsync(offsetX, offsetY, szerStopnia, gruboscStopnia); // #OBRYS SCHODOW
+
+            // Dodanie punktów prostokąta do listy
+            AddRectanglePoints(offsetX, offsetY, szerStopnia, gruboscStopnia);
+
+            // Rysowanie konturu
+            await context.StrokeAsync();
+
+            // Ustaw kolor linii na czarny
             await context.SetStrokeStyleAsync("black");
 
             // Ustaw grubość linii (na przykład na 3 piksele)
@@ -243,166 +369,86 @@ namespace GEORGE.Client.Pages.Schody
         }
 
         // Funkcja zapisująca rysunek do pliku DXF
+
         public async Task SaveToDxfAsync()
         {
             DxfDocument dxf = new DxfDocument();
 
             // Ustawienia podstawowe
-            double currentX = X;
-            double currentY = Y;
-            double stepWidth = GlebokoscStopnia * Skala;
-            double stepHeight = SzerokoscBieguSchodow * Skala;
-            double delatYKrok = 0;
+            double currentX = 0; // Początkowa pozycja X
+            double currentY = Y; // Początkowa pozycja Y
+            double stepWidth = GlebokoscStopnia * Skala;  // Szerokość stopnia (długość biegu schodów)
+            double stepHeight = SzerokoscBieguSchodow * Skala;  // Wysokość stopnia (szerokość biegu schodów)
+            double gruboscStopnia = 40 * Skala; // Grubość stopnia
 
-            // Tworzymy instancję klasy Wzory
-            Wzory wzory = new Wzory();
+            // Obliczenie początkowych wartości schodów
+            double startX = X + (DlugoscOtworu - GlebokoscStopnia) * Skala + (DlugoscNaWejsciu - DlugoscOtworu) * Skala + stepWidth;
+            double startY = SzerokoscOtworu * Skala + ((LiczbaPodniesienStopni + 1) * WysokoscPodniesieniaStopnia) * Skala;
 
-            // Obliczamy promień okręgu
-            double Radius = wzory.WartoscZaczepPromnienia(SzerokoscBieguSchodow, 90 / 2);
-
-            // DlugoscOtworu / GlebokoscStopnia
-            double szukanyStopien = (int)Math.Ceiling((DlugoscOtworu - Radius) / GlebokoscStopnia);
-            Radius = DlugoscOtworu - szukanyStopien * GlebokoscStopnia - SzerokoscOstatniegoStopnia;
-
-            // Jeżeli promień jest mniejszy od szerokości biegu schodów, dostosowujemy go
-            if (Radius < SzerokoscBieguSchodow)
-            {
-                Radius = SzerokoscBieguSchodow;
-                szukanyStopien = (int)Math.Floor((DlugoscOtworu - Radius) / GlebokoscStopnia);
-                Radius = DlugoscOtworu - szukanyStopien * GlebokoscStopnia - SzerokoscOstatniegoStopnia;
-            }
-
-            // Obliczamy liczbę pionowych stopni
-            double pionoweStopnie = (int)Math.Ceiling((SzerokoscOtworu - Radius) / GlebokoscStopnia);
-            if (pionoweStopnie > LiczbaPodniesienStopni)
-            {
-                pionoweStopnie = LiczbaPodniesienStopni;
-            }
-
-            double poziomeStopnie = szukanyStopien;
-
-            // ** Dodanie obrysu schodów **
+            // Obrys schodów widok z góry
             AddObrysSchodow(dxf, X, Y, DlugoscOtworu * Skala, SzerokoscOtworu * Skala);
 
-            // Dodajemy poziome stopnie jako prostokąty do pliku DXF
-            for (int i = 0; i < poziomeStopnie; i++)
-            {
-                //AddRectangleToDxf(dxf, currentX, currentY, stepWidth, stepHeight); // Dodajemy poziomy prostokąt (stopień)
-                //currentX += stepWidth;
-                if (i == 0)
-                {
+            // Rysowanie stopni (widok od góry)
+            currentX = startX;
+            currentY = Y;
 
-                    AddRectangleToDxf(dxf, currentX, currentY, stepWidth + SzerokoscOstatniegoStopnia * Skala, stepHeight); // Dodajemy poziomy prostokąt (stopień)
-                    currentX += stepWidth + SzerokoscOstatniegoStopnia * Skala;
+            for (int i = 0; i < LiczbaPodniesienStopni; i++)
+            {
+                if (i == LiczbaPodniesienStopni - 1)
+                {
+                    // Ostatni stopień ma dodatkową szerokość
+                    AddRectangleToDxf(dxf, currentX - SzerokoscOstatniegoStopnia * Skala, currentY, stepWidth + SzerokoscOstatniegoStopnia * Skala, stepHeight);
+                    currentX -= stepWidth + SzerokoscOstatniegoStopnia * Skala;
                 }
                 else
                 {
-                    AddRectangleToDxf(dxf, currentX, currentY, stepWidth, stepHeight); // Dodajemy poziomy prostokąt (stopień)
-                    currentX += stepWidth;
+                    AddRectangleToDxf(dxf, currentX, currentY, stepWidth, stepHeight);
+                    currentX -= stepWidth;
                 }
             }
 
-            // Rysowanie linii wewnątrz łuku (konwersja na linie w DXF)
-            double startAngleDegrees = 270;
-            double endAngleDegrees = startAngleDegrees + 90;
-            double startAngle = startAngleDegrees * (Math.PI / 180);
-            double endAngle = endAngleDegrees * (Math.PI / 180);
-            double centerX = X + (DlugoscOtworu - Radius) * Skala;
-            double centerY = Y + Radius * Skala;
+            // Rysowanie grotu strzałki
+           // AddArrowToDxf(dxf, 0, SzerokoscSchodow * Skala / 2);
 
-            double smallSquareSide = (Radius - SzerokoscBieguSchodow) * Skala * 2;
-            double largeSquareSide = Radius * 2 * Skala;
+            // Rysowanie schodów widok z boku
+            currentX = startX;
+            currentY = startY;
 
-            double angleRange = endAngle - startAngle;
-            double angleStep = angleRange / (1 - 1);
-
-            // Dodawanie linii zabiegowych
-            for (int i = 0; i < 1; i++)
+            for (int i = 0; i < LiczbaPodniesienStopni; i++)
             {
-                double angle = startAngle + i * angleStep;
-
-                // Początek linii na krawędzi małego kwadratu
-                double startX = centerX + (smallSquareSide / 2) * Math.Cos(angle);
-                double startY = centerY + (smallSquareSide / 2) * Math.Sin(angle);
-
-                // Koniec linii na krawędzi dużego kwadratu
-                double endX, endY;
-                double slope = Math.Tan(angle);
-
-                if (Math.Abs(Math.Cos(angle)) > Math.Abs(Math.Sin(angle)))
+                if (i == LiczbaPodniesienStopni - 1)
                 {
-                    if (Math.Cos(angle) > 0)
-                    {
-                        endX = centerX + largeSquareSide / 2;
-                        endY = centerY + slope * (largeSquareSide / 2);
-                    }
-                    else
-                    {
-                        endX = centerX - largeSquareSide / 2;
-                        endY = centerY + slope * (-largeSquareSide / 2);
-                    }
+                    // Ostatni stopień z dodatkową szerokością
+                    AddRectangleToDxf(dxf, currentX - SzerokoscOstatniegoStopnia * Skala, currentY, stepWidth + SzerokoscOstatniegoStopnia * Skala, gruboscStopnia);
+                    currentX -= stepWidth + SzerokoscOstatniegoStopnia * Skala;
+                    currentY -= WysokoscPodniesieniaStopnia * Skala;
                 }
                 else
                 {
-                    if (Math.Sin(angle) > 0)
-                    {
-                        endY = centerY + largeSquareSide / 2;
-                        endX = centerX + (largeSquareSide / 2) / slope;
-                    }
-                    else
-                    {
-                        endY = centerY - largeSquareSide / 2;
-                        endX = centerX + (-largeSquareSide / 2) / slope;
-                    }
+                    AddRectangleToDxf(dxf, currentX, currentY, stepWidth, gruboscStopnia);
+                    currentX -= stepWidth;
+                    currentY -= WysokoscPodniesieniaStopnia * Skala;
                 }
-
-                // Dodawanie linii zabiegowej do pliku DXF
-                Line zabiegLine = new Line(new Vector2(startX, startY), new Vector2(endX, endY));
-                dxf.Entities.Add(zabiegLine);
             }
 
-            // Dodanie fragmentu okręgu (łuku) do pliku DXF
-            Arc arc = new Arc(new Vector2(centerX, centerY), Radius * Skala, startAngleDegrees, endAngleDegrees);
-            dxf.Entities.Add(arc);
+            //// Dodanie obwiedni z kątem nachylenia
+            //await DrawObrysZKatem(context, startX + stepWidth, startY + WysokoscPodniesieniaStopnia * Skala, currentY + WysokoscPodniesieniaStopnia * Skala,
+            //                      DlugoscLiniiBiegu * Skala, ((LiczbaPodniesienStopni + 1) * WysokoscPodniesieniaStopnia) * Skala, 90 + KatNachylenia, stepWidth + SzerokoscOstatniegoStopnia * Skala);
 
-            // Dodanie wewnętrznego fragmentu okręgu (mniejszy łuk)
-            Arc arc2 = new Arc(new Vector2(centerX, centerY), (Radius - SzerokoscBieguSchodow) * Skala, startAngleDegrees, endAngleDegrees);
-            dxf.Entities.Add(arc2);
 
-            // Resetowanie pozycji X i Y dla pionowych stopni
-            currentX = X + DlugoscOtworu * Skala - stepHeight;
-            currentY = Y + stepHeight;
-
-            // Dodawanie pionowych stopni
-            for (int i = 0; i < pionoweStopnie; i++)
-            {
-                currentY = Y + delatYKrok + (Radius * Skala);
-                AddRectangleToDxf(dxf, currentX, currentY, stepHeight, stepWidth); // Dodaj pionowy prostokąt
-                delatYKrok += stepWidth;
-            }
-
-            // Aktualizacja stylu tekstu (np. dla wymiarów)
-            UpdateDimensionStyleTextHeight(dxf, "Standard", 35, "arial.ttf");
-
-            // Przekształcanie ujemnych współrzędnych (jeśli potrzebne)
             SetNegativeCoordinates(dxf);
 
-            // Zapis pliku DXF
+            UpdateDimensionStyleTextHeightAndFitView(dxf, "Standard", 35, "arial.ttf");
+
+            // Zapis pliku DXF do strumienia i pobranie go
             using (MemoryStream stream = new MemoryStream())
             {
                 dxf.Save(stream);
-
-                // Konwersja do Base64
                 string base64String = Convert.ToBase64String(stream.ToArray());
-
-                // Wywołanie JavaScript w celu pobrania pliku
-                await _jsRuntime.InvokeVoidAsync("downloadFileDXF", "14_z_p.dxf", base64String);
+                await _jsRuntime.InvokeVoidAsync("downloadFileDXF", $"schody_proste_{Lewe}.dxf", base64String);
             }
-
-            Console.WriteLine("Plik DXF został wygenerowany.");
         }
-
-        void UpdateDimensionStyleTextHeight(DxfDocument dxf, string dimensionStyleName, double newTextHeight, string fontFilePath)
+        void UpdateDimensionStyleTextHeightAndFitView(DxfDocument dxf, string dimensionStyleName, double newTextHeight, string fontFilePath)
         {
             // Sprawdź, czy styl wymiarów istnieje
             if (dxf.DimensionStyles.TryGetValue(dimensionStyleName, out DimensionStyle dimensionStyle))
@@ -429,7 +475,17 @@ namespace GEORGE.Client.Pages.Schody
             {
                 Console.WriteLine("Nie znaleziono stylu wymiarów o nazwie: " + dimensionStyleName);
             }
+
+            // Automatyczne dopasowanie widoku (ustawienie granic rysunku)
+            FitDrawingInView(dxf);
         }
+
+        void FitDrawingInView(DxfDocument dxf)
+        {
+            dxf.DrawingVariables.InsUnits = DrawingUnits.Millimeters;
+            dxf.DrawingVariables.LwDisplay = true;
+        }
+
         void SetNegativeCoordinates(DxfDocument dxf)
         {
             var entities = dxf.Entities;

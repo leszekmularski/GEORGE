@@ -18,7 +18,9 @@
                 </div>
                 <div>
                     <label>Długość na Wejściu:</label>
-                    <input type="number" @bind="DlugoscNaWejsciu" />
+                    <Tooltip Placement="@Placement.Top" Title="Całkowiata długość schodów.">
+                        <input type="number" @bind="DlugoscNaWejsciu" />
+                    </Tooltip>
                 </div>
                 <div>
                     <label>Wysokość do Stropu:</label>
@@ -33,7 +35,7 @@
                     <input type="number" @bind="LiczbaPodniesienStopni" />
                 </div>
                 <div>
-                    <label>Szerokość Ostatniego Stopnia:</label>
+                <label>Ostatniego Stopień Wydłużony o:</label>
                     <input type="number" @bind="SzerokoscOstatniegoStopnia" />
                 </div>
                 <div>
@@ -58,7 +60,7 @@
     <div>
         <h4>Rysunek schodów:</h4>
         <div style="overflow: auto; width: 1000px; height: 580px;">
-            <BECanvas Width="@Convert.ToInt64(DlugoscOtworu + SzerokoscOstatniegoStopnia)" Height="@Convert.ToInt64(SzerokoscOtworu)" @ref="canvasReferenceKPL"></BECanvas>
+            <BECanvas Width="@Convert.ToInt64(DlugoscOtworu + SzerokoscOstatniegoStopnia)" Height="@Convert.ToInt64(SzerokoscOtworu * 2)" @ref="canvasReferenceKPL"></BECanvas>
         </div>
     </div>
 
@@ -199,9 +201,9 @@
             {
                 foreach (var shape in shapes)
                 {
-                    if (shape is CSchodyL schody)
+                    if (shape is CSchodyPL schody)
                     {
-                        // await schody.SaveToDxfAsync();
+                        await schody.SaveToDxfAsync();
                     }
                 }
 
@@ -210,9 +212,9 @@
             {
                 foreach (var shape in shapes)
                 {
-                    if (shape is CSchodyP schody)
+                    if (shape is CSchodyPL schody)
                     {
-                        // await schody.SaveToDxfAsync();
+                        await schody.SaveToDxfAsync();
                     }
                 }
             }
@@ -240,7 +242,7 @@
             {
                 shapes = new List<Shape>
                 {
-                    new CSchodyPL(JSRuntime,  0, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
+                    new CSchodyPL(JSRuntime, 0, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
                     SzerokoscOstatniegoStopnia, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
                     GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'l')
                 };
