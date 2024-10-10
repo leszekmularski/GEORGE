@@ -125,7 +125,7 @@ namespace GEORGE.Client.Pages.Schody
             }
 
             // Obliczenie liczby pionowych stopni (zmieszczących się w SzerokoscOtworu)
-            double pionoweStopnie = (int)Math.Ceiling((SzerokoscOtworu - Radius) / GlebokoscStopnia);
+            double pionoweStopnie = (int)Math.Ceiling((DlugoscNaWejsciu - Radius) / GlebokoscStopnia);
 
             // Jeżeli liczba pionowych stopni jest większa niż liczba wszystkich stopni, wszystkie będą pionowe
             if (pionoweStopnie > LiczbaPodniesienStopni)
