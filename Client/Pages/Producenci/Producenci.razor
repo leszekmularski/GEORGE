@@ -7,26 +7,131 @@
 @inject IMessageService _message
 @inject Utilities.ILocalStorage LocalStorage
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 
 <h3>Producenci / Podwykonawcy</h3>
 
+<style>
+        .highlighted-background {
+        background-color: white;
+        overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
+        max-height: calc(100vh - 255px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 155px */
+        width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 260px */
+        box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu wysokości */
+        position: absolute;
+        left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
+        top: 255px; /* Ustawia górną krawędź 155px od góry okna */
+    }
+
+    #calosc {
+        background-color: #1a1a1a;
+        border: 1px dashed red;
+        font-size: 1.0em;
+        display: flex;
+        justify-content: space-between; /* Rozmieszczenie elementów obok siebie */
+        align-items: center; /* Centrowanie w pionie */
+        padding: 1px; /* Większy padding */
+        color: white;
+        border-radius: 5px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        height: auto; /* Dynamiczna wysokość */
+        min-height: 30px;
+    }
+
+    #kol1, #kol2 {
+        display: flex; /* Ustawiamy każdy element wewnątrz flexboxa */
+        flex-direction: row; /* Elementy wewnątrz będą w jednym wierszu */
+        align-items: center; /* Wyrównanie elementów w pionie */
+        flex: 1; /* Kolumny zajmują równo przestrzeń */
+        margin: 5px;
+        padding: 5px;
+        border-radius: 3px;
+        text-align: center;
+    }
+
+    #kol1 {
+        color: white;
+    }
+
+    #kol2 {
+        background-color: black;
+        color: white;
+        justify-content: space-around; /* Elementy wewnątrz #kol2 będą rozstawione */
+    }
+
+    button {
+        padding: 10px 20px;
+        border-radius: 5px;
+        font-size: 1em;
+        cursor: pointer;
+    }
+</style>
+
+
 @if (boolAdmin || boolZmiana)
 {
-    <Button Type="primary" OnClick="@(ShowDialogAddNew)">
-        Dodaj nowego producenta lub podwykonawcę
-    </Button>
-}
-
-<Divider></Divider>
-
-@if (rodzajeProducentow == null)
-{
-    <p><em>Czekaj na załadowanie danych...</em></p>
+    if (rodzajeProducentow != null)
+    {
+        <div id="calosc">
+            <div id="kol1">
+                <Button Style="width:100%" Type="primary" OnClick="@(ShowDialogAddNew)">
+                    Dodaj nowego producenta lub podwykonawcę
+                </Button>
+            </div>
+            <div id="kol2">
+                <div style="color:yellow;">
+                 <Tooltip Placement="@Placement.TopRight" Title="Ilość widocznych rekordów" Style="width:100%">
+                        <AntDesign.InputNumber TValue="int"
+                                               @bind-Value="iloscRekordow"
+                                               Min="2"
+                                               Max="250"
+                                               Bordered="false"
+                                               OnChange="@(e => OnClickChange(e))"
+                                               Style="width: 90px; padding: 0; border-radius: 4px; color:beige; align-content:center;" />
+                 </Tooltip>
+                </div>
+                <div style="width:100%">
+                    <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony" Style="width:100%">
+                        <Button class="btn-back" Icon="@IconType.Fill.Backward" Style="width:100%" OnClick="GoBack">Wróć do poprzedniej strony</Button>
+                    </Tooltip>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <Button Style="width:100%" Type="primary" OnClick="@(ShowDialogAddNew)">
+            Dodaj nowego producenta lub podwykonawcę
+        </Button>
+    }
 }
 else
 {
+    <div id="kol1">
+        <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony" Style="width:100%">
+            <Button class="btn-back" Icon="@IconType.Fill.Backward" Style="width:100%" OnClick="GoBack">Wróć do poprzedniej strony</Button>
+        </Tooltip>
+    </div>
+    if (rodzajeProducentow != null)
+    {
+    <div id="kol2">
+           <Tooltip Placement="@Placement.TopRight" Title="Ilość widocznych rekordów" Style="width:100%">
+                <AntDesign.InputNumber TValue="int"
+                                       @bind-Value="iloscRekordow"
+                                       Min="2"
+                                       Max="250"
+                                       OnChange="@(e => OnClickChange(e))"
+                                       Bordered="false"
+                                       Style="width: 90px; padding: 0; border-radius: 4px; align-content:center" />
+        </Tooltip>
+    </div>
+    }
+}
+
+<Divider>Zapisani producenci w systemie</Divider>
+ <div class="highlighted-background">
     <ul>
-        <Table TItem="ProducenciPodwykonawcy" DataSource="@rodzajeProducentow">
+    <Table TItem="ProducenciPodwykonawcy" DataSource="@rodzajeProducentow" Loading="rodzajeProducentow==null" ScrollX="1500" PageSize="@iloscRekordow" Size="TableSize.Small">
             <Column Title="ID" @bind-Field="@context.Id" Hidden />
             <ActionColumn Title="Zamówienia">
                 <Popconfirm Title="Czy chcesz wyświetlić zamówienia?"
@@ -73,7 +178,7 @@ else
             </ActionColumn>
         </Table>
     </ul>
-}
+    </div>
 
 <div class="modal fade @classShow" tabindex="-1" style="display: @display;">
     <div class="modal-dialog modal-lg">
@@ -201,6 +306,8 @@ else
 
     private string strErr = "";
 
+    private int iloscRekordow = 6;
+
     private ProducenciPodwykonawcy producent = new ProducenciPodwykonawcy();
 
     protected override async Task OnInitializedAsync()
@@ -209,6 +316,9 @@ else
         {
             AppState.SomeData = "";
         }
+
+        iloscRekordow = Convert.ToInt32((await LocalStorage.GetStringAsync("prod_ile_widocznych")));
+        if (iloscRekordow == 0) iloscRekordow = 6;
 
         await Laduj_Uprawnienia();
 
@@ -409,6 +519,12 @@ else
         await HandleSubmit();
     }
 
+    private async Task OnClickChange(int e)
+    {
+        Console.WriteLine("Zapisano ilość widocznych" + e);
+        await LocalStorage.SaveStringAsync("prod_ile_widocznych", e.ToString());
+    }
+
     public async Task ShowDialogAddNew()
     {
 
@@ -449,6 +565,11 @@ else
         display = "none";
 
         StateHasChanged();
+    }
+
+    private async Task GoBack()
+    {
+        await JSRuntime.InvokeVoidAsync("history.back");
     }
 
     private bool boolOdczyt = false;

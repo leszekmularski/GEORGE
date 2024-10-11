@@ -1176,8 +1176,6 @@
 
     private async Task OnClickChange(int e)
     {
-        if (_pageSize == e) return;
-
         Console.WriteLine("Zapisano ilość widocznych" + e);
         await LocalStorage.SaveStringAsync("szyby_ile_widocznych", e.ToString());
     }

@@ -71,7 +71,7 @@ else
                         <AntDesign.Input @bind-Value="nlinie.IdLiniiProdukcyjnej" MaxLength="15" Required Placeholder="Podaj Id linii np #001" />
                     </AntDesign.FormItem>
                     <AntDesign.FormItem Label="Nazwa Linii Produkcyjnej">
-                        <AntDesign.Input @bind-Value="nlinie.NazwaLiniiProdukcyjnej" Required />
+                        <AntDesign.Input MaxLength="50" @bind-Value="nlinie.NazwaLiniiProdukcyjnej" Required />
                     </AntDesign.FormItem>
                     <AntDesign.FormItem Label="Dzienna Zdolność Produkcyjna [w jednostkach produkcyjnych]">
                         <AntDesign.Input @bind-Value="nlinie.DziennaZdolnoscProdukcyjna" />
