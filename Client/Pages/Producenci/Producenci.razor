@@ -9,18 +9,18 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 
-<h3>Producenci / Podwykonawcy</h3>
-
+@* <h3>Producenci / Podwykonawcy</h3>
+ *@
 <style>
         .highlighted-background {
         background-color: white;
         overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
-        max-height: calc(100vh - 255px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 155px */
+        max-height: calc(100vh - 185px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 155px */
         width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 260px */
         box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu wysokości */
         position: absolute;
         left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
-        top: 255px; /* Ustawia górną krawędź 155px od góry okna */
+        top: 185px; /* Ustawia górną krawędź 155px od góry okna */
     }
 
     #calosc {
@@ -128,7 +128,7 @@ else
     }
 }
 
-<Divider>Zapisani producenci w systemie</Divider>
+<Divider Style="font-weight:bold; font-size:large">Producenci w systemie</Divider>
  <div class="highlighted-background">
     <ul>
     <Table TItem="ProducenciPodwykonawcy" DataSource="@rodzajeProducentow" Loading="rodzajeProducentow==null" ScrollX="1500" PageSize="@iloscRekordow" Size="TableSize.Small">

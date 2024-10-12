@@ -47,7 +47,7 @@
 
 <PageTitle>Program do wspomagania produkcji karty instrukcyjne</PageTitle>
 
-<h3>Karty Instrukcyjne</h3>
+@* <h3>Karty Instrukcyjne</h3> *@
 
 @if (boolAdmin || boolZmian)
 {
@@ -55,11 +55,12 @@
         Dodaj nowy rodzaj kart instrukcyjnych
     </Button>
 }
-<Divider></Divider>
+<Divider Style="font-weight:bold; font-size:large">Karty Instrukcyjne</Divider>
 
 @if (kartyInstrukcyjne == null)
 {
-    <p><em>Czekaj na załadowanie danych...</em></p>
+    <Spin Style="margin-left:47%" size="large" />
+    <p style="margin-left:40%"><em>Czekaj na załadowanie danych...</em></p>
 }
 else
 {

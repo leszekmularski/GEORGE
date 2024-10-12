@@ -29,7 +29,7 @@
 
 <link id="dynamic-css" rel="stylesheet" href="../usun_styl.css" />
 
-<h1>Użytkownicy w systemie</h1>
+@* <h1>Użytkownicy w systemie</h1> *@
 
 @if (strPierwszeLogowanie != "")
 {
@@ -51,7 +51,7 @@ else
         {
             <button type="button" class="btn btn-success" @onclick="AddUser">Dodaj nowego użytkownika</button>
         }
-      <Divider></Divider>
+        <Divider Style="font-weight:bold; font-size:large">Użytkownicy w systemie</Divider>
 
         <Table DataSource="data" OnChange="OnChange" TItem="Data">
             <PropertyColumn Hidden Property="c=>c.Id"

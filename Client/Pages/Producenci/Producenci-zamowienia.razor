@@ -73,16 +73,18 @@
 
 @if (zleceniaSzczegoly == null && !brakDanych)
 {
-    <div id="calosc">
-        <div id="kol1">
-            <h3>Producenci / Podwykonawcy</h3>
-        </div>
-        <div id="kol2">
-            <p><em>Czekaj na załadowanie danych...</em></p>
-        </div>
+    <Spin size="large" >
+        <div id="calosc">
+            <div id="kol1">
+                <h3>Producenci / Podwykonawcy</h3>
+            </div>
+            <div id="kol2">
+           
+                <p style="margin-left:40%"><em>Czekaj na załadowanie danych...</em></p>
+            </div>
 
-    </div>
-
+        </div>
+    </Spin>
 }
 else if (brakDanych)
 {

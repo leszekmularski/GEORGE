@@ -102,7 +102,7 @@
                 </Select>
             }
         </div>
-        <Divider Orientation="right">Plan produkcji stan na dzień: @DateTime.Now.ToShortDateString()</Divider>
+        <Divider Style="font-weight:bold; font-size:large">Plan produkcji stan na dzień: @DateTime.Now.ToShortDateString()</Divider>
         <section class="section section-padding-top section-padding-bottom">
             <div class='container' style="height:100%">
                 <Layout Style="background-color: white;">
@@ -164,8 +164,14 @@
 
 </body>
 
-    <Modal Title="Dodaj nowe zlecenie" @bind-Visible="@_visible" Style="width:60%" OkText="@("Zapisz do planu zaznaczone zlecenia")" CancelText="@("Anuluj")"
-       MaxBodyHeight="@("65vh")" OnOk="AddPlanEdit" OkButtonProps="@okButtonProps">
+  @*   <Modal Title="Dodaj nowe zlecenie" @bind-Visible="@_visible" Style="width:60%"  OkText="@("Zapisz do planu zaznaczone zlecenia")" CancelText="@("Anuluj")"
+       MaxBodyHeight="@("65vh")" OnOk="AddPlanEdit" OkButtonProps="@okButtonProps"> *@
+<Modal Title="Dodaj nowe zlecenie" Style="width: 60%;" MaxBodyHeight="65vh"
+       @bind-Visible="@_visible"
+       OkButtonProps="new AntDesign.ButtonProps { Disabled = (_selectedRows == null || _selectedRows.Count() == 0), }"
+       OkText=@("Zapisz do planu zaznaczone zlecenia")
+       CancelButtonProps="new AntDesign.ButtonProps { Disabled = false }">
+
         <div style="width:100%">
             <p style="height: 100%; width:100%;">
                 Nie przypisane zlecenia
@@ -195,7 +201,7 @@
                     <div style="padding-top:25px;padding-left:5px;padding-right:5px;width:100%;">
                         <Table @ref="_table" TItem="DaneDoPlanowaniaViewModel" PageSize="4" DataSource="@przefiltrowanedaneNiezaplanowane" Total="_total"
                                @bind-SelectedRows="_selectedRows" Style="width: 100%; font-size: 9px;" RowKey="x => x.ZleceniaProdukcyjneDto.RowId"
-                               Size="TableSize.Small" OnSelectAll="testClick" OnRowClick="testClick" >
+                               Size="TableSize.Small" >
                             <Selection Style="width:25px" CheckStrictly="_checkStrictly"  />
                             <PropertyColumn Width="85px" Title="Klient" Property="c => c.ZleceniaProdukcyjneDto.Klient" Sortable OnFilter="(a, b) => a == b" Filterable/>
                             <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan Prod." Property="c => c.PlanowanaDataRozpoczeciaProdukcji" Sortable />
@@ -314,81 +320,6 @@
         okButtonProps.Disabled = true;
 
     }
-
-    private async Task testClick()
-    {
-
-        if (_selectedRows != null || !_selectedRows.Any())
-        {
-            if (_selectedRows.Count() == 0)
-            {
-                okButtonProps.Disabled = false;
-            }
-            else
-            {
-                okButtonProps.Disabled = true;
-            }
-        }
-
-        await Task.CompletedTask;
-    }
-
-    // private async Task OnChangeTblClik()
-    // {
-    //     Console.WriteLine("OnChangeTblClik");
-    //     // Sprawdzenie, czy są zaznaczone wiersze
-    //     if (_selectedRows != null || !_selectedRows.Any())
-    //     {
-    //         okButtonProps.Disabled = true;
-    //         Console.WriteLine("OnChangeTblClik - OK");
-    //     }
-    //     else
-    //     {
-    //         okButtonProps.Disabled = false;
-    //         Console.WriteLine("OnChangeTblClik - NOK");
-    //     }
-
-    //     // Możesz dodać logikę asynchroniczną tutaj, jeśli jest potrzebna
-    //     await Task.CompletedTask;
-
-    // }
-
-    // void OnChangeSelFG(QueryModel<DaneDoPlanowaniaViewModel> query)
-    // {
-    //     _totalSelect = mockDb.AsQueryable().ExecuteTableQuery(query).Count();
-    //     var _dataSourceTest = mockDb.AsQueryable().ExecuteTableQuery(query).CurrentPagedRecords(query).ToList();
-    //     if (_totalSelect == 0)
-    //     {
-    //         okButtonProps.Disabled = false;
-    //     }
-    //     else
-    //     {
-    //         okButtonProps.Disabled = true;
-    //     }
-    // }
-
-    // Dictionary<string, object> OnRow(RowData<DaneDoPlanowaniaViewModel> row)
-    // {
-    //     Action<MouseEventArgs> OnClick = args =>
-    //     {
-    //         Console.WriteLine($"row {row.Data.TypZamowienia} was clicked");
-
-    //         // Sprawdzenie, czy są zaznaczone wiersze
-    //         if (_selectedRows == null || !_selectedRows.Any())
-    //         {
-    //             okButtonProps.Disabled = true;
-    //         }
-    //         else
-    //         {
-    //             okButtonProps.Disabled = false;
-    //         }
-    //     };
-
-    //     return new Dictionary<string, object>
-    //     {
-    //         { "onclick", OnClick },
-    //     };
-    // }
 
     private void ClicRadioGroup()
     {

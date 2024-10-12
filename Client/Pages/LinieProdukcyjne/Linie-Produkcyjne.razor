@@ -7,11 +7,12 @@
 @inject Utilities.ILocalStorage LocalStorage
 @using System.Net;
 
-<h3>Linie produkcyjne</h3>
+@* <h3>Linie produkcyjne</h3> *@
 
 @if (rodzajeLinieProdukcyjne == null)
 {
-    <p><em>Czekaj na załadowanie danych...</em></p>
+    <Spin Style="margin-left:47%" size="large" />
+    <p style="margin-left:40%"><em>Czekaj na załadowanie danych...</em></p>
 }
 else
 {
@@ -21,7 +22,8 @@ else
             Dodaj nową linię produkcyjną
         </Button>
     }
-    <Divider></Divider>
+
+    <Divider Style="font-weight:bold; font-size:large">Linie produkcyjne</Divider>
 
     <ul>
         <Table TItem="LinieProdukcyjne" DataSource="@rodzajeLinieProdukcyjne">
