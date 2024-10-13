@@ -5,7 +5,8 @@
 @using AntDesign
 @inject IMessageService _message
 @inject Utilities.ILocalStorage LocalStorage
-@using System.Net;
+@using System.Net
+@inject IJSRuntime JSRuntime
 
 @* <h3>Linie produkcyjne</h3> *@
 
@@ -16,14 +17,25 @@
 }
 else
 {
-    @if (boolAdmin || boolDodaj)
-    {
-        <Button Type="primary" OnClick="@(ShowDialogAddNew)">
-            Dodaj nową linię produkcyjną
-        </Button>
-    }
 
-    <Divider Style="font-weight:bold; font-size:large">Linie produkcyjne</Divider>
+    <Divider Style="font-weight:bold; font-size:large; display:flex; justify-content:space-between; align-items:center;">
+        <span>Linie produkcyjne</span>
+
+
+        <span>
+            &nbsp &nbsp &nbsp &nbsp
+            @if (boolAdmin || boolZmiana)
+            {
+                <Button Icon="@IconType.Fill.FolderAdd" OnClick="@(ShowDialogAddNew)">
+                    Dodaj nową linię produkcyjną
+                </Button>
+            }
+            <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
+                <Button class="btn-back" Icon="@IconType.Fill.Backward" Style="width:55px" OnClick="GoBack" />
+            </Tooltip>
+        </span>
+
+    </Divider>
 
     <ul>
         <Table TItem="LinieProdukcyjne" DataSource="@rodzajeLinieProdukcyjne">
@@ -38,7 +50,7 @@ else
             <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd HH:mm:ss" Sortable />
             <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
             <ActionColumn Title="Akcja">
-                    @if (boolAdmin || boolZmian)
+                    @if (boolAdmin || boolZmiana)
                     {
                         <Popconfirm Title="Czy chcesz edytować pozycję?"
                                     OnConfirm="()=> editRow(context.Id)"
@@ -402,8 +414,13 @@ else
         StateHasChanged();
     }
 
+    private async Task GoBack()
+    {
+        await JSRuntime.InvokeVoidAsync("history.back");
+    }
+
     private bool boolOdczyt = false;
-    private bool boolZmian = false;
+    private bool boolZmiana = false;
     private bool boolUsuniecia = false;
     private bool boolAdmin = false;
     private bool boolDodaj = false;
@@ -452,7 +469,7 @@ else
                     if (szuk != null)
                     {
                         boolOdczyt = szuk.Odczyt;
-                        boolZmian = szuk.Zmiana;
+                        boolZmiana = szuk.Zmiana;
                         boolUsuniecia = szuk.Usuniecie;
                         boolAdmin = szuk.Administrator;
                         boolDodaj = szuk.Zapis;

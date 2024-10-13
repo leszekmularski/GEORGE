@@ -49,13 +49,25 @@
 
 @* <h3>Karty Instrukcyjne</h3> *@
 
-@if (boolAdmin || boolZmian)
-{
-    <Button Type="primary" OnClick="@(ShowDialogAddNew)">
-        Dodaj nowy rodzaj kart instrukcyjnych
-    </Button>
-}
-<Divider Style="font-weight:bold; font-size:large">Karty Instrukcyjne</Divider>
+<Divider Style="font-weight:bold; font-size:large; display:flex; justify-content:space-between; align-items:center;">
+    <span>Karty Instrukcyjne</span>
+
+   
+        <span>
+            &nbsp &nbsp &nbsp &nbsp
+            @if (boolAdmin || boolZmian)
+            {
+                <Button Icon="@IconType.Fill.FolderAdd" OnClick="@(ShowDialogAddNew)">
+                    Dodaj nową kartę instrukcyjną
+                </Button>
+            }
+            <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
+                <Button class="btn-back" Icon="@IconType.Fill.Backward" Style="width:55px" OnClick="GoBack" />
+            </Tooltip>
+        </span>
+   
+</Divider>
+
 
 @if (kartyInstrukcyjne == null)
 {
@@ -685,6 +697,11 @@ else
                     Placement = NotificationPlacement.BottomLeft
                 });
         }
+    }
+
+    private async Task GoBack()
+    {
+        await JSRuntime.InvokeVoidAsync("history.back");
     }
 
 

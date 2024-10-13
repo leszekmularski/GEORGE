@@ -6,17 +6,29 @@
 @using System.Net;
 @inject IMessageService _message
 @inject Utilities.ILocalStorage LocalStorage
+@inject IJSRuntime JSRuntime
 
 @* <h3>Rodzaje Kart Instrukcyjnych</h3> *@
 
-@if (boolAdmin || boolZmian)
-{
-    <Button Type="primary" OnClick="@(ShowDialogAddNew)">
-        Dodaj nowy rodzaj kart instrukcyjnych
-    </Button>
-}
+<Divider Style="font-weight:bold; font-size:large; display:flex; justify-content:space-between; align-items:center;">
+    <span>Rodzaje Kart Instrukcyjnych</span>
 
-<Divider Style="font-weight:bold; font-size:large">Rodzaje Kart Instrukcyjnych</Divider>
+
+    <span>
+        &nbsp &nbsp &nbsp &nbsp
+        @if (boolAdmin || boolZmian)
+        {
+            <Button Icon="@IconType.Fill.FolderAdd" OnClick="@(ShowDialogAddNew)">
+                Dodaj nowy rodzaj kart instrukcyjnych
+            </Button>
+        }
+        <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
+            <Button class="btn-back" Icon="@IconType.Fill.Backward" Style="width:55px" OnClick="GoBack" />
+        </Tooltip>
+    </span>
+
+</Divider>
+
 
 @if (rodzajeKartInstrukcyjnych == null)
 {
@@ -355,6 +367,11 @@ else
         display = "none";
 
         StateHasChanged();
+    }
+
+    private async Task GoBack()
+    {
+        await JSRuntime.InvokeVoidAsync("history.back");
     }
 
     private bool boolOdczyt = false;
