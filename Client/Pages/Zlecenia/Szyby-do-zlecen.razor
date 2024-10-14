@@ -501,17 +501,7 @@
             Console.WriteLine($"RowIdZlecenia: {RowIdZlecenia}");
         }
 
-        try
-        {
-            szybyDoZlecen = await Http.GetFromJsonAsync<List<SzybyDoZlecen>>($"api/SzybyDoZlecen/rowid/{RowIdZlecenia}");
-
-            szyby = new SzybyDoZlecen();
-            szyby.Id = 0;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"******* Błąd {ex.Message}");
-        }
+        await PobierzDane();
 
         try
         {
@@ -551,6 +541,23 @@
         {
             Console.WriteLine($"Błąd pobierania zleceń produkcyjnych: {ex.Message}");
         }
+
+    }
+
+    public async Task PobierzDane()
+    {
+        try
+        {
+            szybyDoZlecen = await Http.GetFromJsonAsync<List<SzybyDoZlecen>>($"api/SzybyDoZlecen/rowid/{RowIdZlecenia}");
+
+            szyby = new SzybyDoZlecen();
+            szyby.Id = 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"******* Błąd {ex.Message}");
+        }
+
     }
 
     public async Task DodajWpisZamowSzyby()
@@ -958,25 +965,7 @@
 
         if (szyby.Id == 0)
         {
-            // Console.WriteLine("Dodaje nową szybę 1");
 
-            // // Sprawdź unikalność na podstawie RowIdZlecenia
-            // var responsedbl = szybyDoZlecen.Where(e => e.Id == szyby.Id);
-
-            // if (responsedbl != null && responsedbl.Any())
-            // {
-            //     // Wyświetl komunikat o błędzie, jeśli rekord nie jest unikalny
-            //     Console.WriteLine("Błąd: Rekord o tym samym RowIdZlecenia już istnieje.");
-            //     await _message.Error("Rodzaj szyby o tym samym RowIdZlecenia już istnieje.");
-            //     dblBlokClick = false; // Odblokowanie przycisku
-
-            //     _visible = false;
-            //     await HideDialog();
-
-            //     return;
-            // }
-            //Console.WriteLine("Dodaje nową szybę 2");
-            // Użycie POST do dodania nowego rekordu
             response = await Http.PostAsJsonAsync($"api/SzybyDoZlecen/", szyby);
 
             //Console.WriteLine("Dodaje nową szybę 3");
@@ -999,7 +988,9 @@
             if (szyby.Id == 0)
             {
                 // Dodanie nowego rekordu do listy
-                szybyDoZlecen.Add(szyby);
+               // szybyDoZlecen.Add(szyby);
+                await PobierzDane();
+
             }
             else
             {
