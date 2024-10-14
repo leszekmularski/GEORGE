@@ -1511,6 +1511,7 @@ else
         if (!boolAdmin && !boolZmian)
         {
             bladZapisuPliku = $"Nie masz uprawnień do zapisu plików";
+            await OpenWithPlacement(NotificationPlacement.BottomRight, bladZapisuPliku);
             return;
         }
         //NazwaRejestru = WebUtility.UrlEncode(NazwaRejestru);
@@ -1542,6 +1543,21 @@ else
         }
 
         await LoadFiles(zlecenie.RowId);
+    }
+
+    private async Task OpenWithPlacement(NotificationPlacement placement, string text)
+    {
+        var config = new NotificationConfig()
+            {
+                Message = $"Ważna informacja!",
+                Description = text,
+                Placement = placement
+            };
+#if DEBUG
+    config.Duration = 0;
+#endif
+
+        await _notice.Open(config);
     }
 
     private async Task SearchProdukt()

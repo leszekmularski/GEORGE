@@ -170,7 +170,7 @@
        @bind-Visible="@_visible"
        OkButtonProps="new AntDesign.ButtonProps { Disabled = (_selectedRows == null || _selectedRows.Count() == 0), }"
        OkText=@("Zapisz do planu zaznaczone zlecenia")
-       CancelButtonProps="new AntDesign.ButtonProps { Disabled = false }">
+       CancelButtonProps="new AntDesign.ButtonProps { Disabled = false }" OnOk="AddPlanEdit">
 
         <div style="width:100%">
             <p style="height: 100%; width:100%;">
