@@ -240,6 +240,7 @@
 
                     <!-- Przykład kolumny dla daty z formatowaniem -->
                     <Column Title="Data zamówienia" TData="DateTime" DataIndex="DataZamowienia" Format="yyyy-MM-dd" Sortable />
+                    <Column Title="Data dostarczenia" TData="DateTime" DataIndex="DataRealizacji" Format="yyyy-MM-dd" Sortable />
                     <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd" Sortable />
                     <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
                     <ActionColumn Title="Akcja" Width="100" Fixed="right">
@@ -368,7 +369,7 @@
                                     <AntDesign.FormItem Label="Data Zamówienia">
                                         <AntDesign.DatePicker @bind-Value="kantowka.DataZamowienia" Required />
                                     </AntDesign.FormItem>
-                                    <AntDesign.FormItem Label="Data Realizacji">
+                                    <AntDesign.FormItem Label="Data Dostarczenia">
                                         <AntDesign.DatePicker @bind-Value="kantowka.DataRealizacji" Required />
                                     </AntDesign.FormItem>
                                     <AntDesign.FormItem Label="Materiał jest na stanie magazynowy">

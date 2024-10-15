@@ -243,7 +243,7 @@
             {
                 var loginTime = Convert.ToDateTime(datalogowania);
 
-                if (loginTime.AddMonths(1) < DateTime.Now)
+                if (loginTime.AddMonths(12) < DateTime.Now)
                 {
                     infDzien = "Zaloguj się ponownie.";
                     await Logout();
@@ -274,7 +274,7 @@
     {
 
         classShowInfo = "";
-        await Task.Delay(200);
+        await Task.Delay(100);
         displayInfo = "none";
 
         StateHasChanged();
@@ -428,7 +428,7 @@
     {
         if (loggedIn)
         {
-            await Task.Delay(1000);
+            await Task.Delay(500);
         }
         else
         {
