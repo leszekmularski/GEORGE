@@ -158,6 +158,48 @@ namespace GEORGE.Server.Controllers
             }
         }
 
+        [HttpPut("{rowId}/updateDostarczonoPoRowId")]
+        public async Task<ActionResult> UpdateMaterialDostarczonoAsync(string rowId, [FromBody] bool czyDostarczono)
+        {
+            // Sprawdź, czy istnieje obiekt o podanym ID
+            // Znajdź obiekt na podstawie RowIdZlecenia
+            var szyba = await _context.SzybyDoZlecen
+                .FirstOrDefaultAsync(s => s.RowIdZlecenia == rowId);
+
+            if (szyba == null)
+            {
+                return NotFound("Nie znaleziono SzybyDoZlecen o podanym ID.");
+            }
+
+            // Zaktualizuj wartość
+            szyba.PozDostarczono = czyDostarczono;
+
+            if (szyba.DataDostarczenia == DateTime.MinValue && czyDostarczono)  szyba.DataDostarczenia = DateTime.Now;
+            if(!czyDostarczono) szyba.DataDostarczenia = DateTime.MinValue;
+
+            // Oznacz obiekt jako zmodyfikowany
+            _context.Entry(szyba).State = EntityState.Modified;
+
+            try
+            {
+                // Zapisz zmiany w bazie danych
+                await _context.SaveChangesAsync();
+                return Ok();
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                if (!SzybaExistRowId(rowId))
+                {
+                    return NotFound("Nie znaleziono SzybyDoZlecen o podanym rowId.");
+                }
+                else
+                {
+                    _logger.LogError(ex, "Błąd podczas aktualizacji SzybyDoZlecen.");
+                    return StatusCode(500, "Wystąpił błąd podczas przetwarzania żądania.");
+                }
+            }
+        }
+
         [HttpPut("{id}/updateDostarczono")]
         public async Task<ActionResult> UpdateMaterialDostarczonoAsync(long id, [FromBody] bool czyDostarczono)
         {
@@ -282,6 +324,12 @@ namespace GEORGE.Server.Controllers
         private bool SzybaExists(long id)
         {
             return _context.SzybyDoZlecen.Any(e => e.Id == id);
+        }
+
+        private bool SzybaExistRowId(string roIdZlec)
+        {
+            return _context.SzybyDoZlecen.Any(s => s.RowIdZlecenia == roIdZlec);
+
         }
 
         [HttpDelete("{id}")]

@@ -242,7 +242,7 @@
                             </Column>
                             <Column Title="Poz. dost." TData="ElemetZamDoZlecenWithProducent">
                                 <Template>
-                                    <Checkbox @bind-Checked="@context.ElemetZamDoZlecen.PozDostarczono" OnChange="(e)=>HandleDost(e, context.ElemetZamDoZlecen.Id)" Disabled="isNotDisabled" />
+                                    <Checkbox @bind-Checked="@context.ElemetZamDoZlecen.PozDostarczono" OnChange="(e)=>HandleDost(e, context.ElemetZamDoZlecen.Id, context.ElemetZamDoZlecen.RowIdZlecenia, context.ElemetZamDoZlecen.RowIdProducent)" Disabled="isNotDisabled" />
                                 </Template>
                             </Column>
                             <PropertyColumn Title="Szerokość" Property="c=>c.ElemetZamDoZlecen.Szerokosc" />
@@ -634,19 +634,46 @@
         }
     }
 
-    private async void HandleDost(bool value, long idr)
+    private async void HandleDost(bool value, long idr, string rowIdZlec, string rowIdProducent)
     {
         Console.WriteLine($"{value} / {idr}");
-        await ZapiszUstawienieStanuCzyCzyDostarczono(idr, value);
+        await ZapiszUstawienieStanuCzyCzyDostarczono(idr, rowIdZlec, rowIdProducent, value);
     }
 
-    private async Task ZapiszUstawienieStanuCzyCzyDostarczono(long idr, bool nowyStan)
+    private async Task ZapiszUstawienieStanuCzyCzyDostarczono(long idr,string rowIdZlec, string rowIdProducent,  bool nowyStan)
     {
         // Aktualizacja stanu dostarczenia w API
         var response = await Http.PutAsJsonAsync($"api/ElementyDoZlecen/{idr}/updateCzyDostarczono", nowyStan);
 
         if (response.IsSuccessStatusCode)
         {
+
+            // //jeżeli w tabelach SzybyDoZlecen lub KantowkaDoZlecen są rekordy to ustaw datę dostarczenie
+
+            // var responseszyby = await Http.PutAsJsonAsync($"api/szybyDoZlecen/{rowIdZlec}/updateDostarczonoPoRowId", nowyStan);
+
+            // if (responseszyby.IsSuccessStatusCode)
+            // {
+
+            //    await _message.Success("Status w danych Szyby zmieniono", 1);
+            // }
+            // else
+            // {
+            //     await _message.Error("Status Szyby nie zmieniono");
+            // }
+
+            // var responsekantowka = await Http.PutAsJsonAsync($"api/KantowkaDoZlecen/{rowIdZlec}/updateDateRealizacji", nowyStan);
+
+            // if (responsekantowka.IsSuccessStatusCode)
+            // {
+
+            //     await _message.Success("Status w danych Kantówki zmieniono", 1);
+            // }
+            // else
+            // {
+            //     await _message.Error("Status Kantówki nie zmieniono");
+            // }
+
             if (elementyDoZlecen != null)
             {
                 // Znalezienie właściwego elementu na podstawie Id

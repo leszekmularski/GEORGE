@@ -45,7 +45,7 @@ namespace GEORGE.Server.Controllers
 
 
         [HttpPost]
-        public async Task<ActionResult> AddKartyInstrukcyjneAsync(KantowkaDoZlecen kantowka)
+        public async Task<ActionResult> AddKantowekDoZlecAsync(KantowkaDoZlecen kantowka)
         {
             try
             {
@@ -181,6 +181,56 @@ namespace GEORGE.Server.Controllers
             foreach (var kantowka in kantowki)
             {
                 kantowka.DataZamowienia = DateTime.Now;
+                _context.Entry(kantowka).State = EntityState.Modified;
+            }
+
+            try
+            {
+                // Zapisz zmiany w bazie danych
+                await _context.SaveChangesAsync();
+                return Ok("Zaktualizowano wszystkie zamówienia.");
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogError(ex, "Błąd podczas aktualizacji KantowkaDoZlecen.");
+
+                // Sprawdź, czy istnieją jakiekolwiek rekordy spełniające warunek
+                var exists = await _context.KantowkaDoZlecen.AnyAsync(e => e.RowIdZlecenia == rowIdZlecenia);
+                if (!exists)
+                {
+                    return NotFound("Nie znaleziono KantowkaDoZlecen o podanym ID.");
+                }
+
+                return StatusCode(500, "Wystąpił błąd podczas przetwarzania żądania.");
+            }
+        }
+
+        [HttpPut("{rowIdZlecenia}/updateDateRealizacji")]
+        public async Task<ActionResult> UpdateDateRealizacji(string rowIdZlecenia, [FromBody] bool czyDostarczono)
+        {
+            // Znajdź wszystkie rekordy spełniające warunek
+            var kantowki = await _context.KantowkaDoZlecen
+                .Where(k => k.RowIdZlecenia == rowIdZlecenia)
+                .ToListAsync();
+
+            // Jeśli nie znaleziono żadnych rekordów, zwróć NotFound
+            if (kantowki == null || kantowki.Count == 0)
+            {
+                return NotFound("Nie znaleziono KantowkaDoZlecen o podanym ID.");
+            }
+
+            // Zaktualizuj pole DataZamowienia dla każdego rekordu
+            foreach (var kantowka in kantowki)
+            {
+                if (czyDostarczono)
+                {
+                    kantowka.DataRealizacji = DateTime.Now;
+                }
+                else
+                {
+                    kantowka.DataRealizacji = DateTime.MinValue;
+                }
+      
                 _context.Entry(kantowka).State = EntityState.Modified;
             }
 
