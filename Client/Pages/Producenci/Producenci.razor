@@ -217,6 +217,19 @@ else
                             <AntDesign.FormItem Label="Adres WWW inny">
                                 <AntDesign.Input @bind-Value="producent.AdresWWW2" />
                             </AntDesign.FormItem>
+                             <AntDesign.FormItem Label="Producent lub firma oferująca">
+                                <Select TItem="TypProdukcji"
+                                    TItemValue="int?"
+                                    DataSource="@_typProdukcji"
+                                        @bind-Value="@_selectedTypProdukcji"
+                                    ValueName="@nameof(TypProdukcji.Id)"
+                                    LabelName="@nameof(TypProdukcji.RodzajProdukcji)"
+                                    Style="width: 100%"
+                                    Placeholder="Wybierz typ produkcji"
+                                    AllowClear
+                                    OnSelectedItemChanged="OnSelectedItemChangedHandler">
+                            </Select>
+                            </AntDesign.FormItem>
                         </TabPane>
                         <TabPane Key="1" Tab="Osoby kontaktowe">
                             <AntDesign.FormItem Label="Osoba kontaktowa 1" Style="margin-bottom: 5px;">
@@ -320,6 +333,8 @@ else
         iloscRekordow = Convert.ToInt32((await LocalStorage.GetStringAsync("prod_ile_widocznych")));
         if (iloscRekordow == 0) iloscRekordow = 6;
 
+        await Laduj_TypyProdukcji();
+
         await Laduj_Uprawnienia();
 
         try
@@ -365,6 +380,9 @@ else
         }
         else
         {
+
+            producent.RodzajProdukcjiWykonywanej = _selectedTypProdukcjiOpis;
+
             response = await Http.PutAsJsonAsync($"api/ProducenciPodwykonawcy/{producent.Id}", producent);
 
             if (rodzajeProducentow != null) originalrodzajeProducentow = rodzajeProducentow.DeepCopyList();
@@ -463,6 +481,18 @@ else
                 cid = id;
 
                 producent = listOfData[0];
+
+                _selectedTypProdukcji = null;
+
+                if(_typProdukcji != null)
+                {
+                    var typ = _typProdukcji.FirstOrDefault(s => s.RodzajProdukcji == producent.RodzajProdukcjiWykonywanej);
+
+                    if (typ != null)
+                    {
+                        _selectedTypProdukcji = typ.Id;
+                    }
+                }
 
                 _visible = true;
 
@@ -629,5 +659,58 @@ else
                 }
             }
         }
+    }
+
+    List<TypProdukcji>? _typProdukcji;
+    int? _selectedTypProdukcji;
+    string? _selectedTypProdukcjiOpis;
+
+    private void OnSelectedItemChangedHandler(TypProdukcji value)
+    {
+
+        if (_typProdukcji?.Any(x => x.Id == _selectedTypProdukcji) != true)
+        {
+            _selectedTypProdukcji = _typProdukcji?.FirstOrDefault()?.Id;
+        }
+
+        _selectedTypProdukcjiOpis = _typProdukcji?.FirstOrDefault(x => x.Id == _selectedTypProdukcji)?.RodzajProdukcji;
+
+        Console.WriteLine($"_selectedTypProdukcjiOpis: {_selectedTypProdukcjiOpis}");
+        Console.WriteLine($"_selectedTypProdukcji: {_selectedTypProdukcji}");
+    }
+
+    private async Task Laduj_TypyProdukcji()
+    {
+        _typProdukcji = new List<TypProdukcji>()
+        {
+            new TypProdukcji()
+            {
+                Id = 1,
+                    RodzajProdukcji = "Producent szyb",
+                },
+                new TypProdukcji()
+            {
+                Id = 2,
+                    RodzajProdukcji = "Producent kantówki",
+                },
+                new TypProdukcji()
+            {
+                Id = 3,
+                    RodzajProdukcji = "Producent okuć",
+                },
+                new TypProdukcji()
+            {
+                Id = 4,
+                RodzajProdukcji = "Pozostali producenci",
+            }
+        };
+
+        await Task.CompletedTask; 
+    }
+
+    class TypProdukcji
+    {
+        public int Id { get; set; }
+        public string? RodzajProdukcji { get; set; }
     }
 }

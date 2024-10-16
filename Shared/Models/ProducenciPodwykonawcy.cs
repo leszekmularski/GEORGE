@@ -37,6 +37,7 @@ namespace GEORGE.Shared.Models
         public string? OstatniaZmiana { get; set; } = "Zmiana: " + DateTime.Now.ToLongDateString();
         public string[]? Tags { get; set; }
         public bool KlienetWymagaProforma { get; set; } = false;
+        public string? RodzajProdukcjiWykonywanej { get; set; }
 
         [NotMapped]
         public string TagsString
