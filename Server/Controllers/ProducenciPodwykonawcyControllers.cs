@@ -76,6 +76,17 @@ namespace GEORGE.Server.Controllers
             return zamowieniaWithProducent;
         }
 
+        [HttpGet("rowidpodmiot/{rowidpodmiot}")]
+        public async Task<ActionResult<List<ProducenciPodwykonawcy>>> GetRodzajDzialanosciAsync(string rowidpodmiot)
+        {
+            var result = await _context.ProducenciPodwykonawcy
+                .Where(x => x.RowId == rowidpodmiot)
+                .OrderByDescending(e => e.OstatniaZmiana)
+                .ToListAsync();
+
+            return Ok(result);
+        }
+
         [HttpPost]
         public async Task<ActionResult> AddProducencihAsync(ProducenciPodwykonawcy producenci)
         {

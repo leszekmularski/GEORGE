@@ -184,6 +184,7 @@ namespace GEORGE.Server.Controllers
             {
                 // Zapisz zmiany w bazie danych
                 await _context.SaveChangesAsync();
+                Console.WriteLine($"Zaktualizowano wszystkie zamówienia - dotyczące zamówień szyb. {czyDostarczono}");  
                 return Ok();
             }
             catch (DbUpdateConcurrencyException ex)

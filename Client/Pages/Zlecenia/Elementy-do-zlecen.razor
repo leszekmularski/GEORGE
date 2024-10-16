@@ -15,6 +15,7 @@
 @inject INotificationService _notice
 @using AntDesign.TableModels
 @using System.ComponentModel.DataAnnotations
+@inject ModalService _modalService
 
 
 <!DOCTYPE html>
@@ -411,7 +412,7 @@
 
     string dotyczyZlecenia = "";
 
-   bool _loading = false;
+    bool _loading = false;
 
     IEnumerable<ElemetZamDoZlecenWithProducent>? _items;
 
@@ -640,67 +641,128 @@
         await ZapiszUstawienieStanuCzyCzyDostarczono(idr, rowIdZlec, rowIdProducent, value);
     }
 
-    private async Task ZapiszUstawienieStanuCzyCzyDostarczono(long idr,string rowIdZlec, string rowIdProducent,  bool nowyStan)
+    bool pytanieOK = false;
+
+    private async Task ZapiszUstawienieStanuCzyCzyDostarczono(long idr, string rowIdZlec, string rowIdProducent, bool nowyStan)
     {
         // Aktualizacja stanu dostarczenia w API
         var response = await Http.PutAsJsonAsync($"api/ElementyDoZlecen/{idr}/updateCzyDostarczono", nowyStan);
 
         if (response.IsSuccessStatusCode)
         {
+            var podmiot = await Http.GetFromJsonAsync<List<ProducenciPodwykonawcy>>($"api/ProducenciPodwykonawcy/rowidpodmiot/{rowIdProducent}");
 
-            // //jeżeli w tabelach SzybyDoZlecen lub KantowkaDoZlecen są rekordy to ustaw datę dostarczenie
+            if (podmiot != null && podmiot.Count() > 0)
+            {
+                var rodzDzial = podmiot[0].RodzajProdukcjiWykonywanej;
 
-            // var responseszyby = await Http.PutAsJsonAsync($"api/szybyDoZlecen/{rowIdZlec}/updateDostarczonoPoRowId", nowyStan);
+                if (!string.IsNullOrEmpty(rodzDzial))
+                {
+                    if (rodzDzial == "Producent szyb")
+                    {
+                        // Otwórz modal i poczekaj na odpowiedź
+                        await OpenModal("Uwaga", "Czy potwierdzić status w zamówieniach szyb");
 
-            // if (responseszyby.IsSuccessStatusCode)
-            // {
+                        if (pytanieOK)
+                        {
+                            var responseszyby = await Http.PutAsJsonAsync($"api/szybyDoZlecen/{rowIdZlec}/updateDostarczonoPoRowId", nowyStan);
+                            if (responseszyby.IsSuccessStatusCode)
+                            {
+                                await _message.Success("Status w danych Szyby zmieniono", 1);
+                            }
+                            else
+                            {
+                                await _message.Error("Status Szyby nie zmieniono");
+                            }
+                        }
+                    }
+                    else if (rodzDzial == "Producent kantówki")
+                    {
+                        // Otwórz modal i poczekaj na odpowiedź
+                        await OpenModal("Uwaga", "Czy potwierdzić status w zamówieniach kantówki");
 
-            //    await _message.Success("Status w danych Szyby zmieniono", 1);
-            // }
-            // else
-            // {
-            //     await _message.Error("Status Szyby nie zmieniono");
-            // }
+                        if (pytanieOK)
+                        {
+                            var responsekantowka = await Http.PutAsJsonAsync($"api/KantowkaDoZlecen/{rowIdZlec}/updateDateRealizacji", nowyStan);
+                            if (responsekantowka.IsSuccessStatusCode)
+                            {
+                                await _message.Success("Status w danych Kantówki zmieniono", 1);
+                            }
+                            else
+                            {
+                                await _message.Error("Status Kantówki nie zmieniono");
+                            }
+                        }
+                    }
+                }
+            }
 
-            // var responsekantowka = await Http.PutAsJsonAsync($"api/KantowkaDoZlecen/{rowIdZlec}/updateDateRealizacji", nowyStan);
-
-            // if (responsekantowka.IsSuccessStatusCode)
-            // {
-
-            //     await _message.Success("Status w danych Kantówki zmieniono", 1);
-            // }
-            // else
-            // {
-            //     await _message.Error("Status Kantówki nie zmieniono");
-            // }
-
+            // Aktualizacja stanu dostarczenia w liście elementów
             if (elementyDoZlecen != null)
             {
-                // Znalezienie właściwego elementu na podstawie Id
                 var element = elementyDoZlecen.FirstOrDefault(e => e.ElemetZamDoZlecen.Id == idr);
-
                 if (element != null)
                 {
-                    // Ustawienie daty dostarczenia
                     element.ElemetZamDoZlecen.DataDostarczenia = DateTime.Now;
-
-                    // Tworzenie kopii listy po aktualizacji
                     oryginalElementyDoZlecen = elementyDoZlecen.DeepCopyList();
-
-                    // Informowanie użytkownika o sukcesie
                     await _message.Success("Zmieniono status");
-
-                    // Odświeżenie komponentu
                     StateHasChanged();
                 }
             }
         }
         else
         {
-            // Informowanie użytkownika o niepowodzeniu
-            await _message.Error("Nie zmieniono status");
+            await _message.Error("Nie zmieniono statusu");
         }
     }
+
+    private async Task OpenModal(string _title, string _contentText)
+    {
+        var modalCompletionSource = new TaskCompletionSource<bool>();
+
+        RenderFragment content = @<div>@_contentText</div>;
+
+        var options = new ConfirmOptions()
+            {
+                Title = _title,
+                Width = 350,
+                Content = content,
+                OkText = "Tak",           // Zmieniono tekst przycisku OK
+                CancelText = "Nie",       // Zmieniono tekst przycisku Anuluj
+                OnOk = async e =>
+                {
+                    Console.WriteLine("OnOk");
+                    pytanieOK = true;
+                    modalCompletionSource.SetResult(true);
+                    await Task.CompletedTask;
+                },
+                OnCancel = async e =>
+                {
+                    Console.WriteLine("OnCancel");
+                    pytanieOK = false;
+                    modalCompletionSource.SetResult(false);
+                    await Task.CompletedTask;
+                }
+            };
+
+        var confirmRef = await _modalService.CreateConfirmAsync(options);
+
+        confirmRef.OnOpen = () =>
+        {
+            Console.WriteLine("Open Modal");
+            return Task.CompletedTask;
+        };
+
+        confirmRef.OnClose = () =>
+        {
+            Console.WriteLine("Close Modal");
+            return Task.CompletedTask;
+        };
+
+        // Czekaj na zakończenie działania modalu
+        await modalCompletionSource.Task;
+    }
+
 
     private async Task HandleFileSelected(InputFileChangeEventArgs e)
     {

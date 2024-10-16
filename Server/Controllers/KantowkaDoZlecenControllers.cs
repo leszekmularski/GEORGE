@@ -238,7 +238,8 @@ namespace GEORGE.Server.Controllers
             {
                 // Zapisz zmiany w bazie danych
                 await _context.SaveChangesAsync();
-                return Ok("Zaktualizowano wszystkie zamówienia.");
+                Console.WriteLine($"Zaktualizowano wszystkie zamówienia - dotyczące zamówień kantówki {czyDostarczono}.");
+                return Ok("Zaktualizowano wszystkie zamówienia - dotyczące zamówień kantówki.");
             }
             catch (DbUpdateConcurrencyException ex)
             {
