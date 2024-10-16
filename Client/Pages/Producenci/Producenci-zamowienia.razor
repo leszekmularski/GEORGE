@@ -147,14 +147,14 @@ else
                 <ColumnDefinitions>
                     <PropertyColumn Title="Numer Zlecenia" Property="c=>c.NumerZlecenia" Width="12%" Grouping />
                     <PropertyColumn Property="c=>c.Klient" Width="10%" />
-                    <PropertyColumn Title="Nazwa Produktu" Property="c=>c.ElemetZamDoZlecen.NazwaProduktu" Width="15%" />
-                    <PropertyColumn Title="Nr Katalogowy" Property="c=>c.ElemetZamDoZlecen.NumerKatalogowy" Width="15%" />
+                    <PropertyColumn Title="Nazwa Produktu" Property="c=>c.ElemetZamDoZlecen.NazwaProduktu" Width="15%" Filterable />
+                    <PropertyColumn Title="Nr Katalogowy" Property="c=>c.ElemetZamDoZlecen.NumerKatalogowy" Width="15%" Filterable />
                     <PropertyColumn Property="c=>c.ElemetZamDoZlecen.Typ" Width="10%" />
                     <PropertyColumn Title="Ilość" Property="c=>c.ElemetZamDoZlecen.IloscSztuk" Width="10%" />
                     <PropertyColumn Property="c=>c.ElemetZamDoZlecen.Jednostka" Width="10%" />
                     <PropertyColumn Title="Długość" Property="c=>c.ElemetZamDoZlecen.Dlugosc" Width="10%" />
                     <PropertyColumn Title="Data Zamówienia" Property="c=>c.ElemetZamDoZlecen.DataZamowienia" Width="10%" Format="yyyy-MM-dd" />
-                    <PropertyColumn Title="Czy zamówiono" Property="c=>c.ElemetZamDoZlecen.CzyZamowiono">
+                    <PropertyColumn Title="Czy zamówiono" Property="c=>c.ElemetZamDoZlecen.CzyZamowiono" Sortable Filterable>
                         <a>@(context.ElemetZamDoZlecen.CzyZamowiono ? "Tak" : "Nie")</a>
                     </PropertyColumn>
 
@@ -199,14 +199,14 @@ else
                 <ColumnDefinitions>
                     <PropertyColumn Property="c=>c.Klient" Width="12%" Grouping />
                     <PropertyColumn Property="c=>c.NumerZlecenia" Width="10%" />
-                    <PropertyColumn Title="Nazwa Produktu" Property="c=>c.ElemetZamDoZlecen.NazwaProduktu" Width="15%" />
-                    <PropertyColumn Title="Nr Katalogowy" Property="c=>c.ElemetZamDoZlecen.NumerKatalogowy" Width="15%" />
+                    <PropertyColumn Title="Nazwa Produktu" Property="c=>c.ElemetZamDoZlecen.NazwaProduktu" Width="15%" Filterable />
+                    <PropertyColumn Title="Nr Katalogowy" Property="c=>c.ElemetZamDoZlecen.NumerKatalogowy" Width="15%" Filterable />
                     <PropertyColumn Property="c=>c.ElemetZamDoZlecen.Typ" Width="10%" />
                     <PropertyColumn Title="Ilość" Property="c=>c.ElemetZamDoZlecen.IloscSztuk" Width="10%" />
                     <PropertyColumn Property="c=>c.ElemetZamDoZlecen.Jednostka" Width="10%" />
                     <PropertyColumn Title="Długość" Property="c=>c.ElemetZamDoZlecen.Dlugosc" Width="10%" />
                     <PropertyColumn Title="Data Zamówienia" Property="c=>c.ElemetZamDoZlecen.DataZamowienia" Width="10%" Format="yyyy-MM-dd" />
-                    <PropertyColumn Title="Czy zamówiono" Property="c=>c.ElemetZamDoZlecen.CzyZamowiono">
+                    <PropertyColumn Title="Czy zamówiono" Property="c=>c.ElemetZamDoZlecen.CzyZamowiono" Sortable Filterable>
                         <a>@(context.ElemetZamDoZlecen.CzyZamowiono ? "Tak" : "Nie")</a>
                     </PropertyColumn>
 
