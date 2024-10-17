@@ -107,25 +107,27 @@
 }
 else
 {
-    <div id="kol1">
-        <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony" Style="width:100%">
-            <Button class="btn-back" Icon="@IconType.Fill.Backward" Style="width:100%" OnClick="GoBack">Wróć do poprzedniej strony</Button>
-        </Tooltip>
-    </div>
-    if (rodzajeProducentow != null)
-    {
-    <div id="kol2">
-           <Tooltip Placement="@Placement.TopRight" Title="Ilość widocznych rekordów" Style="width:100%">
+    <div id="calosc">
+        <div id="kol1">
+            <Tooltip Placement="@Placement.TopRight" Title="Ilość widocznych rekordów" Style="width:100%">
                 <AntDesign.InputNumber TValue="int"
                                        @bind-Value="iloscRekordow"
                                        Min="2"
                                        Max="250"
                                        OnChange="@(e => OnClickChange(e))"
                                        Bordered="false"
-                                       Style="width: 90px; padding: 0; border-radius: 4px; align-content:center" />
-        </Tooltip>
+                                       Style="width: 90px; padding: 0; border-radius: 4px; align-content:center; color:antiquewhite" />
+            </Tooltip>
+        </div>
+        @if (rodzajeProducentow != null)
+        {
+        <div id="kol2">
+            <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony" Style="width:100%">
+                <Button class="btn-back" Icon="@IconType.Fill.Backward" Style="width:100%" OnClick="GoBack">Wróć do poprzedniej strony</Button>
+            </Tooltip>
+        </div>
+        }
     </div>
-    }
 }
 
 <Divider Style="font-weight:bold; font-size:large">Producenci w systemie</Divider>
