@@ -17,7 +17,6 @@
 <!DOCTYPE html>
 <html>
 <head>
-
     <style>
         .custom-link {
             color: blue;
@@ -30,40 +29,60 @@
         .highlighted-background {
             background-color: white;
             overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
-            max-height: calc(100vh - 65px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 65px */
+            max-height: calc(100vh - 55px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 155px */
             width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 260px */
             box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu wysokości */
             position: absolute;
             left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
-            top: 65px; /* Ustawia górną krawędź 65px od góry okna */
+            top: 55px; /* Ustawia górną krawędź 155px od góry okna */
         }
 
-        /* Zwiększona widoczność klasy zamowiono */
-        .zamowiono, .zamowiono > td {
-            background-color: lightseagreen !important;
-            color: black !important;
-            font-weight: bold; /* Zmieniono na bold dla lepszej widoczności */
-            border: 1px solid black;
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Lekki cień dla wrażenia głębi */
-            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Płynne przejścia na hover */
+        .zrealizowano, .zlealizowano > td {
+            background-color: forestgreen !important;
         }
 
-        /* Definicja klasy move-class */
-        .move-class, .move-class > td {
-            background-color: lightgray; /* Podstawowy kolor dla move-class */
-            color: black; /* Kolor tekstu */
-            border: 1px solid gray; /* Dodanie obramowania */
-            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Płynne przejście podczas hover */
-        }
-
-            /* Efekty hover dla zamowiono i move-class */
-            .zamowiono:hover, .move-class:hover > td {
-                background-color: wheat !important; /* Zmiana tła na jaśniejszy kolor */
-                color: black !important;
-                box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.3); /* Większy cień podczas hover */
-                font-size: 1.0em; /* Niewielkie powiększenie tekstu na hover */
-                transition: background-color 0.3s ease, box-shadow 0.3s ease, font-size 0.3s ease; /* Płynne przejście na hover */
+            .zrealizowano:hover, .zlealizowano:hover > td {
+                background-color: lime !important;
+                font-size: 1.0em;
             }
+
+        .zamowiono, .zamowiono > td {
+            background-color: lightblue !important;
+        }
+
+            .zamowiono:hover, .zamowiono:hover > td {
+                background-color: lime !important;
+                font-size: 1.0em;
+            }
+
+        .zlecenieNaN, .zlecenieNaN > td {
+            background-color: whitesmoke !important;
+        }
+
+            .zlecenieNaN:hover, .zlecenieNaN:hover > td {
+                background-color: lime !important;
+                font-size: 1.0em;
+            }
+
+        /* Nowe klasy dla PDF i DXF */
+        .pdf-class {
+            background-color: lightyellow; /* Kolor tła dla plików PDF */
+        }
+
+        .dxf-class {
+            background-color: lightgreen; /* Kolor tła dla plików DXF */
+        }
+
+        .pdf-class:hover, .pdf-class:hover > td {
+            background-color: lime !important;
+            font-size: 1.0em;
+        }
+
+        .dxf-class:hover, .dxf-class:hover > td {
+            background-color: lime !important;
+            font-size: 1.0em;
+        }
+
     </style>
 
 
@@ -219,7 +238,7 @@
             <Divider>Ilość pozycji do zamówienia: @kantowkaDoZlecen.Count(), suma sztuk: @kantowkaDoZlecen.Sum(x => x.IloscSztuk).ToString()</Divider>
             <div>
                 <Table TItem="KantowkaDoZlecen" DataSource="@kantowkaDoZlecen" ScrollX="1950" PageSize="@_pageSize" Size="TableSize.Small"
-                       RowClassName="@(x => x?.Data?.WyslanoDoZamowien == true ? "zamowiono" : "move-class")">
+                       RowClassName="@(x => x?.Data?.WyslanoDoZamowien == true ? (x?.Data?.PozDostarczono == true ? "zrealizowano" : "zamowiono") : "zlecenieNaN")">
                     <Column Title="ID" @bind-Field="@context.Id" Hidden />
                     <Column Title="Gatunek" @bind-Field="@context.GatunekKantowki" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Title="Przekrój" @bind-Field="@context.Przekroj" Sortable OnFilter="(a, b) => a == b" Filterable />
@@ -240,7 +259,9 @@
 
                     <!-- Przykład kolumny dla daty z formatowaniem -->
                     <Column Title="Data zamówienia" TData="DateTime" DataIndex="DataZamowienia" Format="yyyy-MM-dd" Sortable />
-                    <Column Title="Data dostarczenia" TData="DateTime" DataIndex="DataRealizacji" Format="yyyy-MM-dd" Sortable />
+                    <Column Title="Max. Data realiazcji" TData="DateTime" DataIndex="DataRealizacji" Format="yyyy-MM-dd" Sortable />
+                    <Column Title="Data dostarczenia" TData="DateTime" DataIndex="DataDostarczenia" Format="yyyy-MM-dd" Sortable />
+                    
                     <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd" Sortable />
                     <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
                     <ActionColumn Title="Akcja" Width="100" Fixed="right">
@@ -369,14 +390,20 @@
                                     <AntDesign.FormItem Label="Data Zamówienia">
                                         <AntDesign.DatePicker @bind-Value="kantowka.DataZamowienia" Required />
                                     </AntDesign.FormItem>
-                                    <AntDesign.FormItem Label="Data Dostarczenia">
+                                    <AntDesign.FormItem Label="Data dostarczenia przez klienta zew.">
                                         <AntDesign.DatePicker @bind-Value="kantowka.DataRealizacji" Required />
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Data Dostarczenia">
+                                        <AntDesign.DatePicker @bind-Value="kantowka.DataDostarczenia" Required />
                                     </AntDesign.FormItem>
                                     <AntDesign.FormItem Label="Materiał jest na stanie magazynowy">
                                         <AntDesign.Checkbox @bind-Value="kantowka.MaterialZeStanMagazyn" />
                                     </AntDesign.FormItem>
                                     <AntDesign.FormItem Label="Wygenerowano zamówienie">
                                         <AntDesign.Checkbox @bind-Value="kantowka.WyslanoDoZamowien" />
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Kantówkę dostarczono">
+                                        <AntDesign.Checkbox @bind-Value="kantowka.PozDostarczono" />
                                     </AntDesign.FormItem>
                                     <AntDesign.FormItem Label="Kto Zapisał">
                                         <AntDesign.Input @bind-Value="kantowka.KtoZapisal" Required />
@@ -738,6 +765,10 @@
                     DataRealizacji = DateTime.MinValue,
                     DataZapisu = DateTime.Now,
                     KtoZapisal = user,
+                    DataDostarczenia = DateTime.MinValue,
+                    PozDostarczono =false,
+                    WyslanoDoZamowien = false,
+                    MaterialZeStanMagazyn = false,
                 };
 
             kantowki.Add(kantowka);
@@ -796,8 +827,12 @@
                     IloscSztuk = g.Sum(item => int.Parse(item.Ilosc)),
                     DataZamowienia = DateTime.MinValue,
                     DataRealizacji = DateTime.MinValue,
+                    DataDostarczenia = DateTime.MinValue,
                     DataZapisu = DateTime.Now,
-                    KtoZapisal = user
+                    KtoZapisal = user,
+                    PozDostarczono = false,
+                    WyslanoDoZamowien = false,
+                    MaterialZeStanMagazyn = false,
                 })
             .ToList();
 
@@ -913,6 +948,24 @@
         }
         else
         {
+            if (kantowka.DataDostarczenia > DateTime.MinValue) 
+            { 
+                kantowka.PozDostarczono = true; 
+            }
+            else
+            {
+                kantowka.PozDostarczono = false;
+            }
+
+            if (kantowka.PozDostarczono)
+            {
+                kantowka.DataDostarczenia = DateTime.Now;
+            }
+            else
+            {
+                kantowka.DataDostarczenia = DateTime.MinValue;
+            }
+
             response = await Http.PutAsJsonAsync($"api/KantowkaDoZlecen/{kantowka.Id}", kantowka);
 
             if (kantowkaDoZlecen != null) oryginalkantowkaDoZlecen = kantowkaDoZlecen.DeepCopyList();
@@ -1078,8 +1131,12 @@
                 IloscSztuk = 0,
                 DataZamowienia = DateTime.MinValue,
                 DataRealizacji = DateTime.MinValue,
+                DataDostarczenia = DateTime.MinValue,
                 DataZapisu = DateTime.Now,
                 KtoZapisal = user,
+                PozDostarczono = false,
+                WyslanoDoZamowien = false,
+                MaterialZeStanMagazyn = false,
             };
 
         cid = -1;
