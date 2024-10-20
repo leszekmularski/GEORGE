@@ -18,6 +18,7 @@
 <html>
 <head>
     <style>
+        /* Styl dla linków */
         .custom-link {
             color: blue;
         }
@@ -26,64 +27,59 @@
             color: darkblue;
         }
 
+        /* Główna tabela */
         .highlighted-background {
             background-color: white;
-            overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
-            max-height: calc(100vh - 55px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 155px */
-            width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 260px */
-            box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu wysokości */
+            overflow: auto; /* Dodaje paski przewijania w razie potrzeby */
+            max-height: calc(100vh - 55px); /* Maksymalna wysokość dostosowana do rozmiaru okna */
+            width: calc(100% - 260px); /* Ustawia szerokość na 100% minus 260px */
+            box-sizing: border-box; /* Uwzględnia padding i border w rozmiarze */
             position: absolute;
-            left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
-            top: 55px; /* Ustawia górną krawędź 155px od góry okna */
+            left: 260px; /* Lewa krawędź 260px od lewej */
+            top: 55px; /* Górna krawędź 55px od góry */
         }
 
-        .zrealizowano, .zlealizowano > td {
+        /* Klasy podświetlające */
+        .zrealizowano, .zrealizowano > td {
             background-color: forestgreen !important;
+            color: white; /* Kontrastujący kolor tekstu */
         }
 
-            .zrealizowano:hover, .zlealizowano:hover > td {
-                background-color: lime !important;
+            /* Podświetlenie w przypadku najechania myszką */
+            .zrealizowano:hover, .zrealizowano:hover > td {
+                background-color: mediumslateblue !important;
                 font-size: 1.0em;
             }
 
+        /* Zamówiono */
         .zamowiono, .zamowiono > td {
             background-color: lightblue !important;
+            color: black; /* Kontrastujący kolor tekstu */
         }
 
             .zamowiono:hover, .zamowiono:hover > td {
-                background-color: lime !important;
+                background-color: mediumslateblue !important;
                 font-size: 1.0em;
             }
 
+        /* ZlecenieNaN */
         .zlecenieNaN, .zlecenieNaN > td {
             background-color: whitesmoke !important;
+            color: black; /* Kontrastujący kolor tekstu */
         }
 
             .zlecenieNaN:hover, .zlecenieNaN:hover > td {
-                background-color: lime !important;
+                background-color: mediumslateblue !important;
                 font-size: 1.0em;
             }
 
-        /* Nowe klasy dla PDF i DXF */
-        .pdf-class {
-            background-color: lightyellow; /* Kolor tła dla plików PDF */
+        /* Klasa zawsze podświetlonego wiersza */
+        .highlighted-row, .highlighted-row > td {
+            background-color: yellow !important; /* Zmienna podświetlenia */
+            color: black !important; /* Kontrastujący kolor tekstu */
         }
-
-        .dxf-class {
-            background-color: lightgreen; /* Kolor tła dla plików DXF */
-        }
-
-        .pdf-class:hover, .pdf-class:hover > td {
-            background-color: lime !important;
-            font-size: 1.0em;
-        }
-
-        .dxf-class:hover, .dxf-class:hover > td {
-            background-color: lime !important;
-            font-size: 1.0em;
-        }
-
     </style>
+
 
 
     <meta charset="utf-8" />
@@ -238,7 +234,8 @@
             <Divider>Ilość pozycji do zamówienia: @kantowkaDoZlecen.Count(), suma sztuk: @kantowkaDoZlecen.Sum(x => x.IloscSztuk).ToString()</Divider>
             <div>
                 <Table TItem="KantowkaDoZlecen" DataSource="@kantowkaDoZlecen" ScrollX="1950" PageSize="@_pageSize" Size="TableSize.Small"
-                       RowClassName="@(x => x?.Data?.WyslanoDoZamowien == true ? (x?.Data?.PozDostarczono == true ? "zrealizowano" : "zamowiono") : "zlecenieNaN")">
+                       RowClassName="@(x => x?.Data?.WyslanoDoZamowien == true ? (x?.Data?.PozDostarczono == true ? "zrealizowano" : "zamowiono") : 
+                        (x?.Data?.PozDostarczono == true ? "zrealizowano" : "zlecenieNaN"))">
                     <Column Title="ID" @bind-Field="@context.Id" Hidden />
                     <Column Title="Gatunek" @bind-Field="@context.GatunekKantowki" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Title="Przekrój" @bind-Field="@context.Przekroj" Sortable OnFilter="(a, b) => a == b" Filterable />
@@ -393,9 +390,9 @@
                                     <AntDesign.FormItem Label="Data dostarczenia przez klienta zew.">
                                         <AntDesign.DatePicker @bind-Value="kantowka.DataRealizacji" Required />
                                     </AntDesign.FormItem>
-                                    <AntDesign.FormItem Label="Data Dostarczenia">
+                             @*        <AntDesign.FormItem Label="Data Dostarczenia">
                                         <AntDesign.DatePicker @bind-Value="kantowka.DataDostarczenia" Required />
-                                    </AntDesign.FormItem>
+                                    </AntDesign.FormItem> *@
                                     <AntDesign.FormItem Label="Materiał jest na stanie magazynowy">
                                         <AntDesign.Checkbox @bind-Value="kantowka.MaterialZeStanMagazyn" />
                                     </AntDesign.FormItem>
@@ -905,9 +902,10 @@
 
         if (response.IsSuccessStatusCode)
         {
+             kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecen>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
+
             if (kantowkaDoZlecen != null)
             {
-                kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecen>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
                 oryginalkantowkaDoZlecen = kantowkaDoZlecen.DeepCopyList();
 
                 await _message.Success("Ustawiono datę zamówienia kantówki");
@@ -948,15 +946,6 @@
         }
         else
         {
-            if (kantowka.DataDostarczenia > DateTime.MinValue) 
-            { 
-                kantowka.PozDostarczono = true; 
-            }
-            else
-            {
-                kantowka.PozDostarczono = false;
-            }
-
             if (kantowka.PozDostarczono)
             {
                 kantowka.DataDostarczenia = DateTime.Now;
@@ -973,20 +962,24 @@
 
         if (response.IsSuccessStatusCode)
         {
-            if (kantowka.Id == 0)
-            {
-                kantowkaDoZlecen.Add(kantowka); // Dodaj nowe kantowka do listy
-            }
-            else
-            {
-                // Znajdź istniejące kantowka i zaktualizuj je
-                var index = kantowkaDoZlecen.FindIndex(z => z.Id == kantowka.Id);
+            // if (kantowka.Id == 0)
+            // {
+            //     kantowkaDoZlecen.Add(kantowka); // Dodaj nowe kantowka do listy
+            // }
+            // else
+            // {
+            //     // Znajdź istniejące kantowka i zaktualizuj je
+            //     var index = kantowkaDoZlecen.FindIndex(z => z.Id == kantowka.Id);
 
-                if (index != -1)
-                {
-                    kantowkaDoZlecen[index] = kantowka;
-                }
-            }
+            //     if (index != -1)
+            //     {
+            //         kantowkaDoZlecen[index] = kantowka;
+            //     }
+            // }
+
+            kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecen>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
+
+            if (kantowkaDoZlecen != null) oryginalkantowkaDoZlecen = kantowkaDoZlecen.DeepCopyList();
 
             _visible = false;
             kantowka = new KantowkaDoZlecen(); // Zresetuj formularz
@@ -1000,9 +993,6 @@
             // Obsługa błędów
             Console.WriteLine("Błąd podczas zapisywania rodzaju kantowka - źródło RAZOR");
         }
-
-        kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecen>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
-        if (kantowkaDoZlecen != null) oryginalkantowkaDoZlecen = kantowkaDoZlecen.DeepCopyList();
 
         blokujDwuKlik = false;
     }

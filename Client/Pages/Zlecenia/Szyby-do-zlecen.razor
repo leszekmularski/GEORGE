@@ -48,6 +48,18 @@
             transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Płynne przejścia na hover */
         }
 
+        /* Klasy podświetlające */
+        .zrealizowano, .zrealizowano > td {
+            background-color: forestgreen !important;
+            color: white; /* Kontrastujący kolor tekstu */
+        }
+
+        /* Podświetlenie w przypadku najechania myszką */
+        .zrealizowano:hover, .zrealizowano:hover > td {
+            background-color: mediumslateblue !important;
+            font-size: 1.0em;
+        }
+
         /* Definicja klasy move-class */
         .move-class, .move-class > td {
             background-color: lightgray; /* Podstawowy kolor dla move-class */
@@ -56,14 +68,14 @@
             transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Płynne przejście podczas hover */
         }
 
-            /* Efekty hover dla zamowiono i move-class */
-            .zamowiono:hover, .move-class:hover > td {
-                background-color: wheat !important; /* Zmiana tła na jaśniejszy kolor */
-                color: black !important;
-                box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.3); /* Większy cień podczas hover */
-                font-size: 1.0em; /* Niewielkie powiększenie tekstu na hover */
-                transition: background-color 0.3s ease, box-shadow 0.3s ease, font-size 0.3s ease; /* Płynne przejście na hover */
-            }
+        /* Efekty hover dla zamowiono i move-class */
+        .zamowiono:hover, .move-class:hover > td {
+            background-color: wheat !important; /* Zmiana tła na jaśniejszy kolor */
+            color: black !important;
+            box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.3); /* Większy cień podczas hover */
+            font-size: 1.0em; /* Niewielkie powiększenie tekstu na hover */
+            transition: background-color 0.3s ease, box-shadow 0.3s ease, font-size 0.3s ease; /* Płynne przejście na hover */
+        }
     </style>
 
 
@@ -205,8 +217,12 @@
            <Divider>Ilość pozycji do zamówienia: @szybyDoZlecen.Count(), suma sztuk: @szybyDoZlecen.Sum(x => x.IloscSztuk).ToString()</Divider>
 
             <div>
+   @*              <Table TItem="SzybyDoZlecen" DataSource="@szybyDoZlecen" PageSize="@_pageSize" ScrollX="2150" Size="TableSize.Small"
+                       RowClassName="@(x => x?.Data?.CzyZamowiono == true ? "zamowiono" : "move-class")"> *@
+
                 <Table TItem="SzybyDoZlecen" DataSource="@szybyDoZlecen" PageSize="@_pageSize" ScrollX="2150" Size="TableSize.Small"
-                       RowClassName="@(x => x?.Data?.CzyZamowiono == true ? "zamowiono" : "move-class")">
+                       RowClassName="@(x => x?.Data?.CzyZamowiono == true ? (x?.Data?.PozDostarczono == true ? "zrealizowano" : "zamowiono") :
+                        (x?.Data?.PozDostarczono == true ? "zrealizowano" : "move-class"))">
                     <Column Title="ID" @bind-Field="@context.Id" Hidden />
                     <Column Width="80" Title="Szerokość" @bind-Field="@context.Szerokosc" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Width="80" Title="Wysokość" @bind-Field="@context.Wysokosc" Sortable OnFilter="(a, b) => a == b" Filterable />
@@ -483,6 +499,7 @@
     protected override async Task OnInitializedAsync()
     {
         _pageSize = Convert.ToInt32((await LocalStorage.GetStringAsync("szyby_ile_widocznych")));
+
         if (_pageSize == 0) _pageSize = 6;
 
         if (AppState != null)
