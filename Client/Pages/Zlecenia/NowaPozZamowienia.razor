@@ -164,6 +164,14 @@ else
                 <AntDesign.FormItem Label="Uwagi">
                     <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Uwagi" Placeholder="Podaj uwagi do pozycji" />
                 </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Wybierz plik załącznika">
+                    <Select Mode="default"
+                            DataSource="@_producenci"
+                            @bind-Value="@context.ElemetZamDoZlecen.RowIdProducent"
+                            LabelName="@nameof(Producent.NazwaProducenta)"
+                            ValueName="@nameof(Producent.RowId)">
+                    </Select>
+                </AntDesign.FormItem>
             </TabPane>
         </Tabs>
 

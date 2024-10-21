@@ -27,5 +27,6 @@ namespace GEORGE.Shared.Models
         public bool PozDostarczono { get; set; } = false;
         public DateTime DataDostarczenia { get; set; } = DateTime.MinValue;
         public bool WyslanoDoZamowien { get; set; } = false;
+        public string? RowIdPliku { get; set; }
     }
 }
