@@ -321,7 +321,7 @@
 
     }
 
-    private void ClicRadioGroup()
+    private async Task ClicRadioGroup()
     {
         if (daneNiezaplanowane != null && daneNiezaplanowane != null)
         {
@@ -333,6 +333,12 @@
 
             Console.WriteLine($"daneDoPlanowania.Count:{this.przefiltrowanedaneNiezaplanowane.Count()} _valueZlecenie:{_valueZlecenie}");
 
+        }
+        else
+        {
+            loading = true;
+            await BazaPobierz();
+            loading = false;
         }
     }
 
