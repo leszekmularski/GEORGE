@@ -582,6 +582,11 @@
 
         _producenci = await Http.GetFromJsonAsync<List<ProducenciPodwykonawcy>>($"api/ProducenciPodwykonawcy");
 
+        if (_producenci != null)
+            _producenci = _producenci
+             .Where(p => p.RodzajProdukcjiWykonywanej == "Producent szyb")
+             .ToList();
+
         await ShowDialogZamowSzyby();
 
     }
