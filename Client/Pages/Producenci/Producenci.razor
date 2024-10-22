@@ -133,14 +133,14 @@ else
 <Divider Style="font-weight:bold; font-size:large">Producenci w systemie</Divider>
  <div class="highlighted-background">
     <ul>
-    <Table TItem="ProducenciPodwykonawcy" DataSource="@rodzajeProducentow" Loading="rodzajeProducentow==null" ScrollX="1500" PageSize="@iloscRekordow" Size="TableSize.Small">
+    <Table TItem="ProducenciPodwykonawcy" DataSource="@rodzajeProducentow" Loading="rodzajeProducentow==null" ScrollX="2400" PageSize="@iloscRekordow" Size="TableSize.Small">
             <Column Title="ID" @bind-Field="@context.Id" Hidden />
-            <ActionColumn Title="Zamówienia">
+            <ActionColumn Width="90" Title="Zamówienia">
                 <Popconfirm Title="Czy chcesz wyświetlić zamówienia?"
                             OnConfirm="()=> schowZamow(context.RowId)"
                             OkText="Tak"
                             CancelText="Nie">
-                    <a>Pokaż</a>
+                    <a style="color:brown">Pokaż</a>
                 </Popconfirm>
             </ActionColumn>
     @*         <Column Title="Nazwa Producenta" @bind-Field="@context.NazwaProducenta" Sortable OnFilter="(a, b) => a == b" Filterable /> *@
@@ -158,7 +158,7 @@ else
             <!-- Przykład kolumny dla daty z formatowaniem -->
             <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd HH:mm:ss" Sortable />
             <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
-            <ActionColumn Title="Akcja">
+            <ActionColumn Title="Akcja" Width="100" Fixed="right">
                 @if (boolAdmin || boolZmiana)
                 {
                     <Popconfirm Title="Czy chcesz edytować pozycję?"

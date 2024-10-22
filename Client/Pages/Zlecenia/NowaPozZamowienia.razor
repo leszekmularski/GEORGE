@@ -5,6 +5,10 @@
 @using System.Text
 @inject Utilities.ILocalStorage LocalStorage
 @inject NavigationManager NavigationManager
+@using System.Text.Json;
+@using System.Net;
+@inject IJSRuntime JSRuntime
+@inject INotificationService _notice
 
 <style>
     .form-item-small-margin {
@@ -19,7 +23,7 @@
 else
 {
     <AntDesign.Form Model="@elementyZamowienia" Layout="FormLayout.Horizontal" OnFinish="@HandleSubmit">
-        <Tabs DefaultActiveKey="0" @bind-ActiveKey="activeKey" TabPosition="TabPosition.Left">
+        <Tabs DefaultActiveKey="0" @bind-ActiveKey="activeKey" TabPosition="TabPosition.Left" OnChange="OnTabClick">
             <TabPane Key="0" Tab="Pozycje zamówienia">
                 <FormItem Required Label="Wybierz producenta (dostawcę)">
                     <Select Mode="default"
@@ -165,12 +169,20 @@ else
                     <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Uwagi" Placeholder="Podaj uwagi do pozycji" />
                 </AntDesign.FormItem>
                 <AntDesign.FormItem Label="Wybierz plik załącznika">
-                    <Select Mode="default"
-                            DataSource="@_producenci"
-                            @bind-Value="@context.ElemetZamDoZlecen.RowIdProducent"
-                            LabelName="@nameof(Producent.NazwaProducenta)"
-                            ValueName="@nameof(Producent.RowId)">
-                    </Select>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <Select Mode="default"
+                                DataSource="@pliki"
+                                @bind-Value="@elementyZamowienia.ElemetZamDoZlecen.RowIdPliku"
+                                LabelName="@nameof(Plik.OryginalnaNazwaPliku)"
+                                AllowClear
+                                ValueName="@nameof(Plik.RowId)">
+                        </Select>
+
+                        <Button Type="@ButtonType.Primary"
+                                Icon="@IconType.Outline.Download"
+                                Size="@ButtonSize.Default"
+                                OnClick="() => OnFileChange(elementyZamowienia.ElemetZamDoZlecen.RowIdPliku)" />
+                    </div>
                 </AntDesign.FormItem>
             </TabPane>
         </Tabs>
@@ -200,6 +212,10 @@ else
     private List<ProducenciPodwykonawcy>? _producenci;
 
     private ProducenciPodwykonawcy? Producent;
+
+    private List<PlikiZlecenProdukcyjnych> pliki = new List<PlikiZlecenProdukcyjnych>();
+
+    private PlikiZlecenProdukcyjnych? Plik;
 
     private bool bAdmin = true;
 
@@ -484,6 +500,162 @@ else
         activeKey = "0";
     }
 
+    private async Task OnTabClick()
+    {
+
+        if(activeKey == "5" && elementyZamowienia.ElemetZamDoZlecen.RowIdZlecenia != null)
+        {
+            Console.WriteLine("Wyszukuję pasujące pliki");  
+            await LoadFiles(elementyZamowienia.ElemetZamDoZlecen.RowIdZlecenia);
+        }
+
+    }
+
+    private async Task LoadFiles(string rowId)
+    {
+        try
+        {
+            var response = await Http.GetAsync($"api/FileUploadZlec/files/{rowId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var fileList = await response.Content.ReadFromJsonAsync<List<PlikiZlecenProdukcyjnych>>();
+                if (fileList != null)
+                {
+                    // Filtruj pliki, jeśli użytkownik nie jest administratorem
+                    //if (!boolAdmin)
+                    //{
+                    fileList = fileList.Where(p => p.WidocznyDlaWszystkich).ToList();
+                    //}
+
+                    // Upewnij się, że pole Uwagi nie jest null lub pusty string
+                    foreach (var itm in fileList)
+                    {
+                        itm.Uwagi ??= string.Empty;
+                    }
+
+                    pliki = fileList;
+                }
+                else
+                {
+                    pliki = new List<PlikiZlecenProdukcyjnych>();
+                }
+            }
+            else
+            {
+                // Obsługa błędów dla przypadków nieudanych odpowiedzi
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    // Obsługa przypadku 404 Not Found
+                    Console.Error.WriteLine($"404 Not Found: The file with RowId {rowId} was not found.");
+                }
+                else
+                {
+                    // Obsługa innych błędów
+                    Console.Error.WriteLine($"Error loading files: {response.StatusCode} - {response.ReasonPhrase}");
+                }
+                pliki = new List<PlikiZlecenProdukcyjnych>();
+            }
+        }
+        catch (HttpRequestException httpRequestException)
+        {
+            // Obsługa błędów połączenia HTTP
+            Console.Error.WriteLine($"HTTP request error: {httpRequestException.Message}");
+            pliki = new List<PlikiZlecenProdukcyjnych>();
+        }
+        catch (JsonException jsonException)
+        {
+            // Obsługa błędów deserializacji JSON
+            Console.Error.WriteLine($"JSON parsing error: {jsonException.Message}");
+            pliki = new List<PlikiZlecenProdukcyjnych>();
+        }
+        catch (Exception ex)
+        {
+            // Globalna obsługa innych wyjątków
+            Console.Error.WriteLine($"An unexpected error occurred while loading files: {ex.Message}");
+            pliki = new List<PlikiZlecenProdukcyjnych>();
+        }
+    }
+
+    private async Task OnFileChange(string rowIdPliku)
+    {
+        if (string.IsNullOrEmpty(rowIdPliku))
+        {
+            _ = _notice.Info(new()
+                {
+                    Message = "Uwaga!!!!",
+                    Description = "Zamówienie nie posiada załączonego pliku!!!",
+                    Placement = NotificationPlacement.BottomLeft
+                });
+            return;
+        }
+        Plik = pliki.FirstOrDefault(p => p.RowId == rowIdPliku);
+        await DownloadFile(Plik.NazwaPliku);
+    }
+
+    private async Task DownloadFile(string fileName)
+    {
+        try
+        {
+            //await Task.Delay(1000);  // Czekaj 2 sekundy przed próbą pobrania
+
+            // Konstrukcja pełnego URL dla plików w wwwroot/uploads/
+            var fileUrl = $"{NavigationManager.BaseUri}uploads_zlecenia/{fileName}";
+
+            if (!Uri.TryCreate(fileUrl, UriKind.Absolute, out var uri))
+            {
+                Console.WriteLine("Nieprawidłowy URL: " + fileUrl);
+                return;
+            }
+
+            using (var httpClient = new HttpClient())
+            {
+                httpClient.Timeout = TimeSpan.FromMinutes(10);
+                Console.WriteLine($"Pobieranie pliku z URL: {fileUrl}");
+
+                using (var response = await httpClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead))
+                {
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var contentStream = await response.Content.ReadAsStreamAsync();
+                        var actualFileName = Path.GetFileName(uri.LocalPath);
+
+                        using (var memoryStream = new MemoryStream())
+                        {
+                            await contentStream.CopyToAsync(memoryStream);
+                            memoryStream.Seek(0, SeekOrigin.Begin);
+
+                            // Wywołaj JavaScript do pobrania pliku
+                            await JSRuntime.InvokeVoidAsync("BlazorDownloadFile", actualFileName, memoryStream.ToArray());
+                        }
+
+                        Console.WriteLine($"Plik został pobrany i zapisany: {actualFileName}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Nie udało się pobrać pliku. {response.Content.Headers}");
+
+                        _ = _notice.Error(new()
+                            {
+                                Message = "System napotkał problem. Plik mógł zostać niepoprawnie pobrany",
+                                Description = response.Content.Headers.ToString(),
+                                Placement = NotificationPlacement.BottomLeft
+                            });
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message} / {ex.StackTrace}");
+            _ = _notice.Error(new()
+                {
+                    Message = ex.Message,
+                    Description = ex.StackTrace,
+                    Placement = NotificationPlacement.BottomLeft
+                });
+        }
+    }
 
     List<Item>? _itemsJednostki;
 

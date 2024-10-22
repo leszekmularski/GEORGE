@@ -82,7 +82,6 @@
 
 </style>
 
-
 <PageTitle>Program do wspomagania produkcji zlecenia</PageTitle>
 
 <div style="display: flex; align-items: center; gap: 10px;">
@@ -1092,7 +1091,7 @@ else
         {
             // Konstrukcja pełnego URL
             var baseUrl = NavigationManager.BaseUri; // Pobierz podstawowy adres URL aplikacji
-            var fileUrl = $"{baseUrl}uploads/{fileName}";
+            var fileUrl = $"{baseUrl}uploads_zlecenia/{fileName}";
 
             if (!Uri.TryCreate(fileUrl, UriKind.Absolute, out var uri))
             {

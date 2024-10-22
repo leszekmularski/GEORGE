@@ -40,7 +40,7 @@ public class FileUploadController : ControllerBase
             name = Path.GetFileName(filePath),
             status = "Success",
             url = Path.Combine("uploads", Path.GetFileName(filePath)),
-            thumbUrl = null // Optional: Add logic to generate thumbnail URL if needed
+            thumbUrl = null // Opcjonalnie: w razie potrzeby dodaj logikę, aby wygenerować adres URL miniatury
         };
 
         return Ok(response);
