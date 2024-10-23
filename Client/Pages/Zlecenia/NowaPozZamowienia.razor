@@ -168,7 +168,7 @@ else
                 <AntDesign.FormItem Label="Uwagi">
                     <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Uwagi" Placeholder="Podaj uwagi do pozycji" />
                 </AntDesign.FormItem>
-                <AntDesign.FormItem Label="Wybierz plik załącznika">
+                <AntDesign.FormItem Label="Wybierz plik załącznika #1">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <Select Mode="default"
                                 DataSource="@pliki"
@@ -182,6 +182,22 @@ else
                                 Icon="@IconType.Outline.Download"
                                 Size="@ButtonSize.Default"
                                 OnClick="() => OnFileChange(elementyZamowienia.ElemetZamDoZlecen.RowIdPliku)" />
+                    </div>
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Wybierz plik załącznika #2">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <Select Mode="default"
+                                DataSource="@pliki"
+                                @bind-Value="@elementyZamowienia.ElemetZamDoZlecen.RowIdPlikuDodatkowy"
+                                LabelName="@nameof(Plik.OryginalnaNazwaPliku)"
+                                AllowClear
+                                ValueName="@nameof(Plik.RowId)">
+                        </Select>
+
+                        <Button Type="@ButtonType.Primary"
+                                Icon="@IconType.Outline.Download"
+                                Size="@ButtonSize.Default"
+                                OnClick="() => OnFileChange(elementyZamowienia.ElemetZamDoZlecen.RowIdPlikuDodatkowy)" />
                     </div>
                 </AntDesign.FormItem>
             </TabPane>
@@ -264,6 +280,18 @@ else
 
         elementyZamowienia.ElemetZamDoZlecen.NazwaProduktu = elementyZamowienia.ElemetZamDoZlecen.NazwaProduktu.Trim();
 
+        if (elementyZamowienia.ElemetZamDoZlecen.RowIdPliku == elementyZamowienia.ElemetZamDoZlecen.RowIdPlikuDodatkowy && !string.IsNullOrEmpty(elementyZamowienia.ElemetZamDoZlecen.RowIdPlikuDodatkowy))
+        {
+            elementyZamowienia.ElemetZamDoZlecen.RowIdPlikuDodatkowy = "";
+
+            _ = _notice.Info(new()
+                {
+                    Message = "Uwaga zapisano tylko jeden plik!!!!",
+                    Description = "Nie można zapisać dwóch tych samych plików do jedej pozycji zamówienia!!!",
+                    Placement = NotificationPlacement.BottomLeft
+                });
+        }
+
 
         HttpResponseMessage response;
 
@@ -299,6 +327,43 @@ else
         await HandleCancel();
 
         submitOk = true;
+
+        if (elementyDoZlecen != null)
+        {
+            // Filtrowanie elementów, które mają zgodny RowIdPliku lub RowIdPlikuDodatkowy
+            var elementdbl1 = elementyDoZlecen
+                .Where(e => (e.ElemetZamDoZlecen.RowIdPliku == elementyZamowienia.ElemetZamDoZlecen.RowIdPliku
+                         || e.ElemetZamDoZlecen.RowIdPliku == elementyZamowienia.ElemetZamDoZlecen.RowIdPlikuDodatkowy) && !string.IsNullOrEmpty(e.ElemetZamDoZlecen.RowIdPliku))
+                .ToList();
+
+            // Sprawdzenie, czy znaleziono więcej niż jeden taki element
+            if (elementdbl1.Count > 1)
+            {
+                _ = _notice.Info(new()
+                    {
+                        Message = "Ważna informacja plik #1",
+                        Description = $"Plik jest już dodany do innej pozycji zamówienia: {elementdbl1[0].ElemetZamDoZlecen.NazwaProduktu}",
+                        Placement = NotificationPlacement.BottomLeft,
+                        Duration = 3,
+                    });
+            }
+
+            var elementdbl2 = elementyDoZlecen
+                .Where(e => (e.ElemetZamDoZlecen.RowIdPlikuDodatkowy == elementyZamowienia.ElemetZamDoZlecen.RowIdPliku
+                         || e.ElemetZamDoZlecen.RowIdPlikuDodatkowy == elementyZamowienia.ElemetZamDoZlecen.RowIdPlikuDodatkowy) && !string.IsNullOrEmpty(e.ElemetZamDoZlecen.RowIdPlikuDodatkowy))
+                .ToList();
+
+            if (elementdbl2.Count() > 1)
+            {
+                _ = _notice.Info(new()
+                    {
+                        Message = "Ważna informacja plik #2",
+                        Description = $"Plik jest już dodany do innej pozycji zamówienia: {elementdbl2[0].ElemetZamDoZlecen.NazwaProduktu}",
+                        Placement = NotificationPlacement.BottomLeft,
+                        Duration = 3,
+                    });
+            }
+        }
     }
 
     public async Task HandleAddNew()
