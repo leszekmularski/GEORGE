@@ -146,7 +146,7 @@ else
                 <a @onclick="() => DodajSzybe(context)" class="custom-link">Szyby</a>
                 <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-linkszy" style="color:chocolate; width:38px">T.W.Z / Pozycje</a>
                 <a @onclick="() => DodajZamowienia(context)">Zamówienia</a>
-                <a @onclick="() => FileEdit(context)">Pliki</a>
+                <a style="font-weight: bold" @onclick="() => FileEdit(context)">Pliki</a>
                 </ActionColumn>
                 <Column Title="Status" TData="string">
                     @if (context.Tags != null)
@@ -1009,8 +1009,13 @@ else
         }
     }
 
+    bool czekajNaPobranie = false;
     private async Task DownloadFile(string fileName)
     {
+       if (czekajNaPobranie) return;
+
+        czekajNaPobranie = true;
+
         try
         {
             // Konstrukcja pełnego URL
@@ -1025,7 +1030,7 @@ else
 
             using (var httpClient = new HttpClient())
             {
-                httpClient.Timeout = TimeSpan.FromMinutes(10);
+                httpClient.Timeout = TimeSpan.FromMinutes(1);
                 Console.WriteLine($"Pobieranie pliku z URL: {fileUrl}");
 
                 using (var response = await httpClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead))
@@ -1045,6 +1050,8 @@ else
                         }
 
                         Console.WriteLine($"Plik został pobrany i zapisany: {actualFileName}");
+
+                        czekajNaPobranie = false;
                     }
                     else
                     {
@@ -1056,6 +1063,8 @@ else
                                 Description = response.Content.Headers.ToString(),
                                 Placement = NotificationPlacement.BottomLeft
                             });
+
+                        czekajNaPobranie = false;
                     }
                 }
             }
@@ -1069,6 +1078,8 @@ else
                     Description = ex.StackTrace,
                     Placement = NotificationPlacement.BottomLeft
                 });
+
+            czekajNaPobranie = false;
         }
     }
 
@@ -1539,6 +1550,7 @@ else
         selectItemProdukt = item;
 
         Console.WriteLine("selectItemPowiat.Value" + selectItemProdukt.Value);
+        await Task.CompletedTask;
 
     }
 

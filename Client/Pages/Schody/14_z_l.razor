@@ -1,5 +1,6 @@
 ﻿@page "/_14_z_l/{TypSchodow}"
 @inject IJSRuntime JSRuntime
+@inject Utilities.ILocalStorage LocalStorage
 
 <h3>Obliczenia Schodów typu: @TypSchodow</h3>
 <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
@@ -51,8 +52,12 @@
                 <label style="color:forestgreen">Skala wyświetlania [%]:</label>
                 <input type="number" @bind="SkalaWyswietlania" min="1" max="100" />
             </div>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <label style="color:forestgreen">&nbsp;</label>
+                <Button Icon="@IconType.Outline.Save" @onclick="@ZapiszDomyslneWartosci">Zapisz jako domyślne wartości</Button>
+            </div>
         </div>
-
+        
     </Panel>
 </Collapse>
 
@@ -130,8 +135,8 @@
 </div>
 
 @code {
-    [Parameter]
-    public string? TypSchodow { get; set; }
+        [Parameter]
+        public string? TypSchodow { get; set; }
 
     // Input properties
     private double DlugoscOtworu { get; set; } = 2500;
@@ -317,7 +322,7 @@
             await DrawShapes();
             await Task.Delay(10);
             await DrawShapes();
-            
+
         }
 
     }
@@ -337,8 +342,15 @@
         }
     }
     // Reset method
-    private void Resetuj()
+    private async void Resetuj()
     {
+        var zapisaneZmiennie = await LocalStorage.GetStringAsync("_14_z_l");
+
+        if (!string.IsNullOrEmpty(zapisaneZmiennie))
+        {
+            await OdczytajDomyslneWartosci();
+            return;
+        }
         // Resetowanie wartości
         DlugoscOtworu = 2500;
         SzerokoscOtworu = 1400;
@@ -359,6 +371,53 @@
         GlebokoscStopnia = 0;
         PrzecietnaDlugoscKroku = 0;
         PrzestrzenSwobodnaNadGlowa = 0;
+    }
+
+    private async Task ZapiszDomyslneWartosci()
+    {
+        // Tworzymy ciąg znaków zawierający wszystkie zmienne, oddzielone średnikami
+        string wszystkieZmiennie = $"{DlugoscOtworu};{SzerokoscOtworu};{DlugoscNaWejsciu};{WysokoscDoStropu};{WysokoscCalkowita};" +
+                                   $"{LiczbaPodniesienStopni};{SzerokoscOstatniegoStopnia};{SzerokoscBieguSchodow};{KatZabiegu};{IloscSchodowZabiegowych};" +
+                                   $"{DlugoscLiniiBiegu};{KatNachylenia};{SzerokoscSchodow};{WysokoscPodniesieniaStopnia};{GlebokoscStopnia};" +
+                                   $"{PrzecietnaDlugoscKroku};{PrzestrzenSwobodnaNadGlowa}";
+
+        // Zapisujemy ciąg znaków do LocalStorage
+        await LocalStorage.SaveStringAsync("_14_z_l", wszystkieZmiennie);
+
+    }
+
+    // Metoda do odczytu danych z LocalStorage i przypisania ich do zmiennych
+    private async Task OdczytajDomyslneWartosci()
+    {
+        // Odczytujemy dane z LocalStorage
+        var zapisaneZmiennie = await LocalStorage.GetStringAsync("_14_z_l");
+
+        if (!string.IsNullOrEmpty(zapisaneZmiennie))
+        {
+            // Rozdzielamy dane na poszczególne wartości przy pomocy Split
+            var zmienneArray = zapisaneZmiennie.Split(';');
+
+            // Przypisujemy odczytane wartości do odpowiednich zmiennych
+            DlugoscOtworu = double.Parse(zmienneArray[0]);
+            SzerokoscOtworu = double.Parse(zmienneArray[1]);
+            DlugoscNaWejsciu = double.Parse(zmienneArray[2]);
+            WysokoscDoStropu = double.Parse(zmienneArray[3]);
+            WysokoscCalkowita = double.Parse(zmienneArray[4]);
+            LiczbaPodniesienStopni = int.Parse(zmienneArray[5]);
+            SzerokoscOstatniegoStopnia = double.Parse(zmienneArray[6]);
+            SzerokoscBieguSchodow = double.Parse(zmienneArray[7]);
+            KatZabiegu = double.Parse(zmienneArray[8]);
+            IloscSchodowZabiegowych = int.Parse(zmienneArray[9]);
+
+            // Odczyt resetowanych zmiennych
+            DlugoscLiniiBiegu = double.Parse(zmienneArray[10]);
+            KatNachylenia = double.Parse(zmienneArray[11]);
+            SzerokoscSchodow = double.Parse(zmienneArray[12]);
+            WysokoscPodniesieniaStopnia = double.Parse(zmienneArray[13]);
+            GlebokoscStopnia = double.Parse(zmienneArray[14]);
+            PrzecietnaDlugoscKroku = double.Parse(zmienneArray[15]);
+            PrzestrzenSwobodnaNadGlowa = double.Parse(zmienneArray[16]);
+        }
     }
 
     private async Task GoBack()

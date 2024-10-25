@@ -37,6 +37,7 @@
     <script>
 
         function downloadFile(fileName, contentType, content) {
+            console.log("downloadFile wywołana dla pliku: " + fileName);
             var link = document.createElement('a');
             link.download = fileName;
             link.href = "data:" + contentType + ";base64," + btoa(String.fromCharCode.apply(null, new Uint8Array(content)));
@@ -46,6 +47,7 @@
         }
 
         function downloadFileDXF(fileName, byteBase64) {
+            console.log("downloadFileDXF wywołana dla pliku: " + fileName);
             const link = document.createElement('a');
             link.href = 'data:application/octet-stream;base64,' + byteBase64;
             link.download = fileName;
@@ -83,7 +85,7 @@
             link.download = fileName;
             link.click();
             window.URL.revokeObjectURL(link.href); // Clean up
-            console.log("Plik pobrany: " + fileName);
+            console.log("Plik pobrany [BlazorDownloadFile]: " + fileName);
         }
 
     </script>

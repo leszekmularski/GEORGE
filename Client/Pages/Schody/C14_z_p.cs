@@ -105,23 +105,17 @@ namespace GEORGE.Client.Pages.Schody
             // DlugoscOtworu / GlebokoscStopnia
             double szukanyStopien = (int)Math.Ceiling((DlugoscOtworu - Radius) / GlebokoscStopnia);
 
-            Console.WriteLine($"Radius wylicz: {Radius} / Radius real: {DlugoscOtworu - szukanyStopien * GlebokoscStopnia} GlebokoscStopnia:{GlebokoscStopnia} szukanyStopien: {szukanyStopien}");
-
             Radius = DlugoscOtworu - szukanyStopien * GlebokoscStopnia - SzerokoscOstatniegoStopnia;
 
             if (Radius < SzerokoscBieguSchodow)
             {
                 Radius = SzerokoscBieguSchodow;
-
                 szukanyStopien = (int)Math.Floor((DlugoscOtworu - Radius) / GlebokoscStopnia);
-
                 Radius = DlugoscOtworu - szukanyStopien * GlebokoscStopnia - SzerokoscOstatniegoStopnia;
             }
 
             // Obliczenie liczby pionowych stopni (zmieszczących się w SzerokoscOtworu)
             double pionoweStopnie = (int)Math.Ceiling((DlugoscNaWejsciu - Radius) / GlebokoscStopnia);
-
-            // Jeżeli liczba pionowych stopni jest większa niż liczba wszystkich stopni, wszystkie będą pionowe
             if (pionoweStopnie > LiczbaPodniesienStopni)
             {
                 pionoweStopnie = LiczbaPodniesienStopni;
@@ -132,7 +126,6 @@ namespace GEORGE.Client.Pages.Schody
             for (int i = 0; i < poziomeStopnie; i++)
             {
                 await context.BeginPathAsync();
-
                 if (i == 0)
                 {
                     await context.RectAsync(currentX - SzerokoscOstatniegoStopnia * Skala, currentY, stepWidth + SzerokoscOstatniegoStopnia * Skala, stepHeight);
@@ -145,17 +138,13 @@ namespace GEORGE.Client.Pages.Schody
                     await context.StrokeAsync();
                     currentX -= stepWidth;
                 }
-
             }
 
-            //*******************************************************************************************************************************************************
-            // Rysowanie linii wewnątrz łuku, zaczynających się od kwadratu o boku 140
+            // Rysowanie linii wewnątrz łuku
+            double startAngleDegrees = 180;
+            double endAngleDegrees = startAngleDegrees + KatZabiegu;
 
-            // Określamy kąty w stopniach
-            double startAngleDegrees = 180;  // Kąt startu łuku
-            double endAngleDegrees = startAngleDegrees + KatZabiegu;   // Kąt zakończenia łuku
-
-            // Obliczamy kąty w radianach
+            // Kąty w radianach
             double startAngle = startAngleDegrees * (Math.PI / 180);
             double endAngle = endAngleDegrees * (Math.PI / 180);
 
@@ -163,122 +152,73 @@ namespace GEORGE.Client.Pages.Schody
             double centerX = X + Radius * Skala;
             double centerY = Y + Radius * Skala;
 
-            Console.WriteLine($"{X} + ({Radius}) * {Skala}");
-            Console.WriteLine($"{Y} + {Radius} * {Skala}");
-
-            // Bok małego kwadratu wynosi 140, uwzględniamy skalę
+            // Bok małego kwadratu
             double smallSquareSide = (Radius - SzerokoscBieguSchodow) * Skala * 2;
 
-            // Bok większego kwadratu stycznego do małego
+            // Bok większego kwadratu
             double largeSquareSide = Radius * 2 * Skala;
 
-            // Obliczamy współrzędne małego kwadratu (kwadrat wpisany w okrąg)
-            double smallSquareX1 = centerX - smallSquareSide / 2;  // Lewa górna krawędź kwadratu
-            double smallSquareY1 = centerY - smallSquareSide / 2;  // Lewa górna krawędź kwadratu
-            double smallSquareX2 = centerX + smallSquareSide / 2;  // Prawa dolna krawędź kwadratu
-            double smallSquareY2 = centerY + smallSquareSide / 2;  // Prawa dolna krawędź kwadratu
+            // Obliczamy współrzędne kwadratów
+            double smallSquareX1 = centerX - smallSquareSide / 2;
+            double smallSquareY1 = centerY - smallSquareSide / 2;
+            double smallSquareX2 = centerX + smallSquareSide / 2;
+            double smallSquareY2 = centerY + smallSquareSide / 2;
 
-            // Obliczamy współrzędne dużego kwadratu (kwadrat styczny do okręgu)
             double largeSquareX1 = centerX - largeSquareSide / 2;
             double largeSquareY1 = centerY - largeSquareSide / 2;
             double largeSquareX2 = centerX + largeSquareSide / 2;
             double largeSquareY2 = centerY + largeSquareSide / 2;
 
-            // Rysowanie linii zaczynających się od krawędzi małego kwadratu i kończących się na krawędzi większego kwadratu
+            // Rysowanie linii wewnątrz łuku
             double angleRange = endAngle - startAngle;
             double angleStep = angleRange / (IloscSchodowZabiegowych - 1);
 
             for (int i = 0; i < IloscSchodowZabiegowych; i++)
             {
                 double angle = startAngle + i * angleStep;
-
-                // Początek linii na krawędzi małego kwadratu
                 double startX = centerX + (smallSquareSide / 2) * Math.Cos(angle);
                 double startY = centerY + (smallSquareSide / 2) * Math.Sin(angle);
 
-                // Koniec linii na krawędzi dużego kwadratu
                 double endX, endY;
                 double slope = Math.Tan(angle);
 
                 if (Math.Abs(Math.Cos(angle)) > Math.Abs(Math.Sin(angle)))
                 {
-                    if (Math.Cos(angle) > 0)
-                    {
-                        endX = largeSquareX2;
-                        endY = centerY + slope * (largeSquareX2 - centerX);
-                    }
-                    else
-                    {
-                        endX = largeSquareX1;
-                        endY = centerY + slope * (largeSquareX1 - centerX);
-                    }
+                    endX = Math.Cos(angle) > 0 ? largeSquareX2 : largeSquareX1;
+                    endY = centerY + slope * (endX - centerX);
                 }
                 else
                 {
-                    if (Math.Sin(angle) > 0)
-                    {
-                        endY = largeSquareY2;
-                        endX = centerX + (largeSquareY2 - centerY) / slope;
-                    }
-                    else
-                    {
-                        endY = largeSquareY1;
-                        endX = centerX + (largeSquareY1 - centerY) / slope;
-                    }
+                    endY = Math.Sin(angle) > 0 ? largeSquareY2 : largeSquareY1;
+                    endX = centerX + (endY - centerY) / slope;
                 }
 
-                // Rysowanie linii
                 await context.BeginPathAsync();
-                await context.MoveToAsync(startX, startY);  // Początek linii na małym kwadracie
-                await context.LineToAsync(endX, endY);      // Koniec linii na dużym kwadracie
+                await context.MoveToAsync(startX, startY);
+                await context.LineToAsync(endX, endY);
                 await context.StrokeAsync();
             }
 
-            // Rysowanie fragmentu okręgu (łuku)
+            // ** Rysowanie fragmentu okręgu (łuku) **
             await context.BeginPathAsync();
-            await context.ArcAsync(centerX, centerY, Radius * Skala, startAngle, endAngle);  // Rysujemy łuk
-            await context.StrokeAsync();
-            Console.WriteLine($"Radius * Skala: {Radius * Skala} centerX: {centerX}");  
-            // Obliczamy środek okręgu
-            double centerXOsi = X + SzerokoscBieguSchodow * Skala; // Tylko aby pokazć szkic środkA
-            double centerYOsi = Y + SzerokoscBieguSchodow * Skala;
-            // Rysowanie fragmentu okręgu (łuku) - oś schodów
-            await context.BeginPathAsync();
-            await context.LineToAsync(DlugoscOtworu * Skala, (SzerokoscBieguSchodow / 2) * Skala);      // Koniec linii na dużym kwadracie
-            await context.LineToAsync(DlugoscOtworu * Skala - 20, (SzerokoscBieguSchodow / 2) * Skala + 5);      // Koniec linii na dużym kwadracie
-            await context.LineToAsync(DlugoscOtworu * Skala - 20, (SzerokoscBieguSchodow / 2) * Skala - 5);      // Koniec linii na dużym kwadracie
-            await context.ClosePathAsync();
+
+            if (Radius * Skala > 0 && startAngle != endAngle)
+            {
+                await context.ArcAsync(centerX, centerY, Radius * Skala, startAngle, endAngle);
+            }
+            else
+            {
+                Console.WriteLine("Promień jest nieprawidłowy lub kąty są równe.");
+            }
             await context.StrokeAsync();
 
-            await context.BeginPathAsync();
-            await context.LineToAsync(X + (SzerokoscBieguSchodow / 2) * Skala, SzerokoscOtworu * Skala);
-            await context.ArcAsync(centerXOsi, centerYOsi, (SzerokoscBieguSchodow / 2) * Skala, startAngle, endAngle);  // Rysujemy łuk
-            await context.LineToAsync(DlugoscOtworu * Skala, (SzerokoscBieguSchodow / 2) * Skala);
-            await context.StrokeAsync();
-
-            // Rysowanie fragmentu okręgu (łuku) minimum
-            await context.BeginPathAsync();
-            await context.MoveToAsync(centerX, centerY - (Radius - SzerokoscBieguSchodow) * Skala);
-            await context.LineToAsync((SzerokoscBieguSchodow) * Skala, centerY - (Radius - SzerokoscBieguSchodow) * Skala);
-            await context.LineToAsync((SzerokoscBieguSchodow) * Skala, centerY);
-            await context.StrokeAsync();
-
-            await context.BeginPathAsync();
-            await context.ArcAsync(centerX, centerY, (Radius - SzerokoscBieguSchodow) * Skala, startAngle, endAngle);  // Rysujemy łuk
-            await context.StrokeAsync();
-
-            //*******************************************************************************************************************************************************
-            // Po trapezach resetujemy pozycje X i Y dla pionowych stopni (po bocznej krawędzi)
-            currentX = X + DlugoscOtworu * Skala - stepHeight;  // Przesunięcie na dolną krawędź prostokąta
-            currentY = Y + stepHeight;  // Ustawiamy Y poniżej trapezów
-
-            // Rysowanie pionowych stopni (po lewej stronie)
+            // Resetowanie pozycji X i Y dla pionowych stopni
             currentX = X; // Ustawienie currentX na lewą stronę
             for (int i = 0; i < pionoweStopnie; i++)
             {
                 currentY = Y + delatYKrok + (Radius * Skala);
                 await context.BeginPathAsync();
-                await context.RectAsync(currentX, currentY, stepHeight, stepWidth);  // Rysowanie pionowych stopni po lewej stronie
+                await context.RectAsync(currentX, currentY, stepHeight, stepWidth);
                 await context.StrokeAsync();
                 delatYKrok += stepWidth;
             }
@@ -286,13 +226,12 @@ namespace GEORGE.Client.Pages.Schody
             await context.SetFontAsync("16px Arial");
             await context.SetFillStyleAsync("red");
 
-            // Wyświetlanie dodatkowych informacji
-            // Draw text
             await context.FillTextAsync($"Poziome: {poziomeStopnie}({poziomeStopnie * GlebokoscStopnia} = {poziomeStopnie * GlebokoscStopnia + Radius})" +
                $" Pionowe {pionoweStopnie}({pionoweStopnie * GlebokoscStopnia} = {pionoweStopnie * GlebokoscStopnia + Radius})" +
                $" Promień:{Radius} Wysokość:{WysokoscPodniesieniaStopnia} x {(poziomeStopnie + pionoweStopnie + IloscSchodowZabiegowych)} = {WysokoscPodniesieniaStopnia * (poziomeStopnie + pionoweStopnie + IloscSchodowZabiegowych)}" +
                $" - Suma stopni {poziomeStopnie + pionoweStopnie + IloscSchodowZabiegowych - 1}", X + 10, Y + 20);
         }
+
 
         private async Task DrawShapeObrys(Canvas2DContext context, double offsetX, double offsetY)
         {
