@@ -40,7 +40,7 @@
 
         .zlealizowano:hover, .zlealizowano:hover > td {
             background-color: lime !important;
-            font-size: 1.01em;
+            font-size: 0.99em;
         }
 
     .zlecenie, .zlecenie > td {
@@ -49,7 +49,7 @@
 
         .zlecenie:hover, .zlecenie:hover > td {
             background-color: lime !important;
-            font-size: 1.01em;
+            font-size: 0.99em;
         }
 
     .zlecenieNaN, .zlecenieNaN > td {
@@ -58,7 +58,7 @@
 
         .zlecenieNaN:hover, .zlecenieNaN:hover > td {
             background-color: lime !important;
-            font-size: 1.01em;
+            font-size: 0.99em;
         }
 
     /* Nowe klasy dla PDF i DXF */
@@ -158,7 +158,7 @@ else
             <Column Title="Numer Zamówienia" @bind-Field="@context.NumerZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Data Produkcji" @bind-Field="@context.DataProdukcji" Style="font-weight:bold;color:red" Format="yyyy-MM-dd" Sortable />
             <Column Title="Data Gotowości" TData="DateTime" DataIndex="DataGotowosci" Style="font-weight:bold" Format="yyyy-MM-dd" Sortable />
-            <Column Title="Klient" @bind-Field="@context.Klient" Style="font-weight:bold" Sortable OnFilter="(a, b) => a == b" Filterable />
+            <Column Title="Klient" Width="195" @bind-Field="@context.Klient" Style="font-weight:bold" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Nazwa Produktu" @bind-Field="@context.NazwaProduktu" Sortable Filterable />
             <Column Title="Adres" @bind-Field="@context.Adres" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Miejscowość" @bind-Field="@context.Miejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable />
@@ -448,7 +448,7 @@ else
 </div>
 
 <div class="modal fade @classShowFile" tabindex="-1" style="display: @displayFile;">
-    <div class="modal-dialog" style="max-width: 80%;">
+    <div class="modal-dialog" style="max-width: 70%;">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Ilość plików powiązanych: @pliki.Count()</h5>
@@ -457,8 +457,8 @@ else
                 <Table TItem="PlikiZlecenProdukcyjnych" DataSource="@pliki" ScrollX="1350" PageSize="3" Size="TableSize.Small"
                        RowClassName="@(x => x.Data.TypPliku.ToLower() == "/pdf" ? "pdf-class" : x.Data.TypPliku.ToLower() == "/dxf" || x.Data.TypPliku.ToLower() == "/dwg" ? "dxf-class" : "zlecenieNaN")">
                     <Column Title="ID" @bind-Field="@context.Id" Hidden />
-                    <Column Title="Nazwa pliku" @bind-Field="@context.NazwaPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
-                    <Column Title="Oryginalna nazwa pliku" @bind-Field="@context.OryginalnaNazwaPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Title="Nazwa pliku" @bind-Field="@context.NazwaPliku" OnFilter="(a, b) => a == b" Width="100px" Style="font-size:10px" />
+                    <Column Title="Oryginalna nazwa pliku" Style="color:blue; font-weight:bold" @bind-Field="@context.OryginalnaNazwaPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Title="Typ" @bind-Field="@context.TypPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Title="Data Zapisu" @bind-Field="@context.DataZapisu" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <ActionColumn Title="Uwagi / Akcja" Width="250" Fixed="right">
@@ -479,25 +479,28 @@ else
                                         </Tooltip>
                                     </Upload>
                                 }
+
                                 <Input Placeholder="Podaj uwagę." @bind-Value="@context.Uwagi" MaxLength="55" ReadOnly="@isNotDisabled" OnBlur="@( () => ZmienUwage(context.Id, context.Uwagi))" />
 
                                 var item = context as PlikiZlecenProdukcyjnych;
                                 if (!string.IsNullOrEmpty(item.NazwaPliku))
                                 {
-                                    <a href="uploads_zlecenia/@item.NazwaPliku" download @onclick="@( () => DownloadFile(item.NazwaPliku) )">Pobierz plik  &nbsp &nbsp</a>
+                                    <div class="modal-footer d-flex">
+                                        <a style="font-weight: bold; color:blue" @onclick="@( () => DownloadFile(item.NazwaPliku) )">Pobierz plik  &nbsp &nbsp</a>
 
-                                    <Spin Spinning=@czekajNaUsuniecie>
+                                        <Spin Spinning=@czekajNaUsuniecie>
 
-                                        @if (boolAdmin || boolUsuniecia)
-                                        {
-                                            <Popconfirm Title="Czy chcesz usunąć plik?"
-                                                        OnConfirm="()=> deleteFile(item.Id, item.NazwaPliku, item.RowIdZleceniaProdukcyjne)"
-                                                        OkText="Tak"
-                                                        CancelText="Nie">
-                                                <a style="color:red">Usuń plik</a>
-                                            </Popconfirm>
-                                        }
-                                    </Spin>
+                                            @if (boolAdmin || boolUsuniecia)
+                                            {
+                                                <Popconfirm Title="Czy chcesz usunąć plik?"
+                                                            OnConfirm="()=> deleteFile(item.Id, item.NazwaPliku, item.RowIdZleceniaProdukcyjne)"
+                                                            OkText="Tak"
+                                                            CancelText="Nie">
+                                                    <a style="color:red">Usuń plik</a>
+                                                </Popconfirm>
+                                            }
+                                        </Spin>
+                                    </div>
                                 }
                             }
                         </Template>
@@ -506,7 +509,11 @@ else
 
             </div>
             <div class="modal-footer d-flex">
-                Załącz nowe pliki <InputFile OnChange="HandleSelected" multiple>Wybierz pliki powiązane ze zleceniem</InputFile>@bladZapisuPliku
+                Załącz nowe pliki <InputFile OnChange="HandleSelected" multiple>Wybierz pliki powiązane ze zleceniem</InputFile>
+                @if (string.IsNullOrEmpty(@bladZapisuPliku))
+                {
+                    <Alert Message="@bladZapisuPliku" Type="Error" Closable />
+                }
                 <Button class="ms-auto" @onclick="() => HideDialogFile()">Zakończ</Button>
             </div>
         </div>
@@ -1088,6 +1095,7 @@ else
     bool czekajNaPobranie = false;
     private async Task DownloadFile(string fileName)
     {
+
         if (czekajNaPobranie) return;
 
         czekajNaPobranie = true;
@@ -1101,6 +1109,14 @@ else
             if (!Uri.TryCreate(fileUrl, UriKind.Absolute, out var uri))
             {
                 Console.WriteLine("Nieprawidłowy URL: " + fileUrl);
+
+                _ = _notice.Error(new()
+                    {
+                        Message = "Błąd!!!!",
+                        Description = "Nieprawidłowy URL: " + fileUrl,
+                        Placement = NotificationPlacement.BottomLeft
+                    });
+
                 return;
             }
 
@@ -1126,9 +1142,7 @@ else
                         }
 
                         Console.WriteLine($"Plik został pobrany i zapisany: {actualFileName}");
-
-                        await Task.Delay(5000);
-
+   
                         czekajNaPobranie = false;
                     }
                     else
@@ -1551,7 +1565,15 @@ else
             else
             {
                 Console.WriteLine("File upload failed.");
+
                 bladZapisuPliku = $"Błąd przy zapisie pliku na serwerze. {response.Content.ReadAsStringAsync().Result}";
+
+                _ = _notice.Error(new()
+                    {
+                        Message = "Błąd przy zapisie pliku na serwerze.",
+                        Description = $"{response.Content.ReadAsStringAsync().Result}",
+                        Placement = NotificationPlacement.BottomLeft
+                    });
 
             }
         }
