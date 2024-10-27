@@ -1,15 +1,26 @@
 ﻿@page "/"
 @using System.Globalization
+@inject IJSRuntime JS
+@inject IMessageService _message
+
 
 <PageTitle>Program do wspomagania produkcji</PageTitle>
 
-<h1>System produkcyjny >> GEORGE &lt;&lt; [Wersja:@version]</h1>
+<h1 style="color: green;">
+    System produkcyjny w firmie <span style="font-weight: bold;">PPHU "GEORGE"</span> <span style="font-weight: normal; font-size:14px; color:crimson">[Wersja:@version]</span>
+</h1>
+
 <p>Dziś mamy dzień: @DateTime.Now.DayOfYear roku @DateTime.Now.Year, tydzień @GetWeekNumber(DateTime.Now)</p>
 
 <div>
-    <img class="marginauto" src="/Images/george_st.jpg" asp-append-version="true" width="800" alt="centered image" />
+    <img class="marginauto" src="/Images/george_st.jpg" asp-append-version="true" style="height: 68vh;" alt="centered image" />
 </div>
- PPHU "GEORGE" Marcinkowice 351, 33-393 Marcinkowice tel:(+48 18) 44-33-111 Dziś: @DateTime.Now.ToShortDateString()  
+
+<Tooltip Placement="@Placement.Top" Title="Kliknij w poniższy napis aby go skopiować">
+    <h6 @onclick="CopyToClipboard" style="cursor: pointer; color: darkblue;">
+        @textAdres
+    </h6>
+</Tooltip>
 <style>
     body {
         background-color: lightblue;
@@ -27,6 +38,7 @@
 
     [Inject] private AppState AppState { get; set; } = default!;
 
+    private string textAdres = $"PPHU \"GEORGE\" Marcinkowice 351, 33-393 Marcinkowice tel:(+48 18) 44-33-111 Dziś: {DateTime.Now.ToShortDateString()}";
     protected override async Task OnInitializedAsync()
     {
 
@@ -43,6 +55,15 @@
         }
 
         await Task.CompletedTask;
+    }
+
+  
+    private async Task CopyToClipboard()
+    {
+        // Tekst do skopiowania
+        // Wywołanie metody JavaScript
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", textAdres);
+        await _message.Success("Adres skopiowano do pamięci.");
     }
 
     private int GetWeekNumber(DateTime date)

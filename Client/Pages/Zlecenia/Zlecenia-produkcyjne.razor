@@ -40,7 +40,7 @@
 
         .zlealizowano:hover, .zlealizowano:hover > td {
             background-color: lime !important;
-            font-size: 0.99em;
+            font-size: 1.0em;
         }
 
     .zlecenie, .zlecenie > td {
@@ -49,7 +49,7 @@
 
         .zlecenie:hover, .zlecenie:hover > td {
             background-color: lime !important;
-            font-size: 0.99em;
+            font-size: 1.0em;
         }
 
     .zlecenieNaN, .zlecenieNaN > td {
@@ -58,7 +58,7 @@
 
         .zlecenieNaN:hover, .zlecenieNaN:hover > td {
             background-color: lime !important;
-            font-size: 0.99em;
+            font-size: 1.0em;
         }
 
     /* Nowe klasy dla PDF i DXF */
@@ -133,9 +133,10 @@ else
         <Table TItem="ZleceniaProdukcyjne" DataSource="@zleceniaProdukcyjne"
                RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "zlecenieNaN" )"
                ScrollX="1950" PageSize="@iloscRekordow" Size="TableSize.Small">
-            <ActionColumn Title="Materiały">
+            <ActionColumn Title="Materiały" Width="155">
                 <a @onclick="() => DodajKantowke(context)" class="custom-link">Kantówka</a>
                 <a @onclick="() => DodajSzybe(context)" class="custom-linkszy">Szyby</a>
+                <br/>
                 <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">T.W.Z / Pozycje</a>
                 <a @onclick="() => DodajZamowienia(context)">Zamówienia</a>
                 <a style="font-weight: bold" @onclick="() => FileEdit(context)">Pliki</a>
