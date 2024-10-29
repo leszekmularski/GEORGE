@@ -87,8 +87,17 @@ namespace GEORGE.Server
             zlec.OstatniaZmiana = zlec.OstatniaZmiana + "ZP/RZOP.P.:[" + DateTime.Now.ToLongDateString() + "]";
             zlec.ProcentWykonania = nowaDataProdukcji != DateTime.MinValue ? 10 : 0; 
 
+           var zlecNaLinii = await ZleceniaNaLinii
+          .FirstOrDefaultAsync(z => z.RowId == rowid);
+
+            if (zlecNaLinii != null)
+            {
+                zlecNaLinii.DataRozpProdukcjiNaLinii = nowaDataProdukcji;
+            }
+
             // Zapisanie zmian
             await SaveChangesAsync();
+
             return true;
         }
 
@@ -107,6 +116,14 @@ namespace GEORGE.Server
             zlec.DataRozpProdukcji = nowaDataProdukcji;
             zlec.OstatniaZmiana = zlec.OstatniaZmiana + "ZP/RZOP.P.:[" + DateTime.Now.ToLongDateString() + "]";
             zlec.ProcentWykonania = nowaDataProdukcji == DateTime.MinValue ? 10 : 0;
+
+            var zlecNaLinii = await ZleceniaNaLinii
+            .FirstOrDefaultAsync(z => z.RowId == rowid);
+
+            if (zlecNaLinii != null)
+            {
+                zlecNaLinii.DataRozpProdukcjiNaLinii = nowaDataProdukcji;
+            }
 
             // Zapisanie zmian
             await SaveChangesAsync();

@@ -11,6 +11,7 @@ namespace GEORGE.Shared.ViewModels
     {
         public DateTime PlanowanaDataRozpoczeciaProdukcji { get; set; }
         public DateTime RzeczywistaDataRozpoczeciaProdukcji { get; set; } = DateTime.MinValue;
+        public DateTime RzeczywistaDataRozpoczeciaProdukcjiNaLinii { get; set; } = DateTime.MinValue;
         public ZleceniaProdukcyjneDto? ZleceniaProdukcyjneDto { get; set; }
         public string? Wyrob { get; set; }
         public int DomyslnyCzasProdukcji{ get; set; } = 24;//  Wartość domyślna

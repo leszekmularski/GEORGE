@@ -139,6 +139,10 @@ namespace GEORGE.Server.Controllers
                     var existingZlecenie = await _context.ZleceniaCzasNaLinieProd
                         .FirstOrDefaultAsync(z => z.RowIdZleceniaProdukcyjne == zp.RowId && z.RowIdLinieProdukcyjne == rowIdLinii);
 
+                    // Sprawdź, czas ustawienia produkcji na linii w ZleceniaNaLinii
+                    var czasStartleceniaNaLinii = await _context.ZleceniaNaLinii
+                        .FirstOrDefaultAsync(z => z.RowIdZleceniaProdukcyjne == zp.RowId && z.RowIdLinieProdukcyjne == rowIdLinii);
+
                     // Oblicz czas na wykonanie zlecenia
 
                     float jednostkiNaZlecenie = existingZlecenie != null ? existingZlecenie.CzasNaZlecenie : zp.JednostkiNaZlecenie;
@@ -156,6 +160,9 @@ namespace GEORGE.Server.Controllers
                     {
                         PlanowanaDataRozpoczeciaProdukcji = DateTime.Now.AddDays(7 * 8), // Możesz dostosować to pole w zależności od wymagań
                         ZleceniaProdukcyjneDto = zp,
+                        RzeczywistaDataRozpoczeciaProdukcjiNaLinii = czasStartleceniaNaLinii != null && czasStartleceniaNaLinii.DataRozpProdukcjiNaLinii != default(DateTime)
+                        ? czasStartleceniaNaLinii.DataRozpProdukcjiNaLinii
+                        : DateTime.MinValue,
                         Wyrob = zp.NazwaProduktu,
                         NumerZlecenia = zp.NumerZamowienia,
                         JednostkiNaZlecenie = jednostkiNaZlecenie,
@@ -174,6 +181,10 @@ namespace GEORGE.Server.Controllers
                 var filteredZleceniaProdukcyjne = wszystkieZleceniaProdukcyjneDto
                     .Where(zp => zleceniaNaLinii.Any(znl => znl.RowIdZleceniaProdukcyjne == zp.RowId && znl.RowIdLinieProdukcyjne == rowIdLinii))
                     .ToList();
+
+                // Sprawdź, czas ustawienia produkcji na linii w ZleceniaNaLinii
+                var czasStartleceniaNaLinii = await _context.ZleceniaNaLinii
+                    .FirstOrDefaultAsync(z => z.RowIdZleceniaProdukcyjne == z.RowId && z.RowIdLinieProdukcyjne == rowIdLinii);
 
                 // Mapuj przefiltrowane zlecenia produkcyjne do modelu widoku
                 var daneDoPlanowania = filteredZleceniaProdukcyjne.Select(async zp =>
@@ -197,6 +208,9 @@ namespace GEORGE.Server.Controllers
                     {
                         PlanowanaDataRozpoczeciaProdukcji = zp.DataProdukcji.AddYears(1) < DateTime.Now ? DateTime.Now.AddDays(7 * 8) : zp.DataProdukcji, // Możesz dostosować to pole w zależności od wymagań -- AddYears(1) sztucznie
                         RzeczywistaDataRozpoczeciaProdukcji = zp.DataRozpProdukcji,
+                        RzeczywistaDataRozpoczeciaProdukcjiNaLinii = czasStartleceniaNaLinii != null && czasStartleceniaNaLinii.DataRozpProdukcjiNaLinii != default(DateTime)
+                        ? czasStartleceniaNaLinii.DataRozpProdukcjiNaLinii
+                        : DateTime.MinValue,
                         ZleceniaProdukcyjneDto = zp,
                         Wyrob = zp.NazwaProduktu,
                         NumerZlecenia = zp.NumerZamowienia,

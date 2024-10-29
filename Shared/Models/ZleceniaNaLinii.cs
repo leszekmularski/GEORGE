@@ -12,6 +12,7 @@ namespace GEORGE.Shared.Models
         public string? RowIdZleceniaProdukcyjne { get; set; }
         public string? Uwagi { get; set; }
         public bool ZlecenieWewnetrzne { get; set; } = false;
+        public DateTime DataRozpProdukcjiNaLinii { get; set; } = DateTime.MinValue;
         public DateTime DataZapisu { get; set; } = DateTime.Now;
         public string? OstatniaZmiana { get; set; } = "Zmiana: " + DateTime.Now.ToLongDateString();
     }

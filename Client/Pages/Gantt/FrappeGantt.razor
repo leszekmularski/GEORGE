@@ -395,7 +395,7 @@
             Console.WriteLine("Wystąpił błąd podczas dodawania zleceń.");
         }
 
-       // await InitializeFrappeGantt();
+        // await InitializeFrappeGantt();
 
         // Odśwież widok (jeśli używasz Blazora)
         StateHasChanged();
@@ -900,6 +900,7 @@
                     if (response.IsSuccessStatusCode)
                     {
                         Console.WriteLine($"Pomyślnie zaktualizowano zadanie o identyfikatorze rowID: {rowID}");
+                        await FetchData();
                     }
                     else
                     {
@@ -916,6 +917,7 @@
                     if (response.IsSuccessStatusCode)
                     {
                         Console.WriteLine($"Pomyślnie zaktualizowano zadanie o identyfikatorze rowID: {rowID}");
+                        await FetchData();
                     }
                     else
                     {

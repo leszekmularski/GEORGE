@@ -245,7 +245,7 @@
                             <Checkbox @bind-Checked="@context.PozDostarczono" OnChange="(e)=>HandleDostarczono(e, context.Id)" Disabled="isNotDisabled" />
                         </Template>
                     </Column>
-                    <Column Title="Uwagi" @bind-Field="@context.Uwagi" Sortable />
+                    <Column Width="520" Title="Uwagi" @bind-Field="@context.Uwagi" Sortable />
                     <Column Title="Autor zmian" @bind-Field="@context.KtoZapisal" Sortable />
 
                     <!-- Przykład kolumny dla daty z formatowaniem -->
