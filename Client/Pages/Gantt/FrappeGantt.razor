@@ -794,7 +794,7 @@
 
             var zmienDate = DateTime.Now;
 
-            if (obiektDoUsawDateStartProd.RzeczywistaDataRozpoczeciaProdukcji != DateTime.MinValue)
+            if (obiektDoUsawDateStartProd.RzeczywistaDataRozpoczeciaProdukcji != DateTime.MinValue && obiektDoUsawDateStartProd.RzeczywistaDataRozpoczeciaProdukcjiNaLinii != DateTime.MinValue)
             {
                 zmienDate = DateTime.MinValue;
             }
@@ -805,7 +805,7 @@
                 if (!obiektDoUsawDateStartProd.ZlecenieWewnetrzne)
                 {
                     // Send PUT request to the server
-                    var response = await Http.PostAsJsonAsync($"api/ZleceniaProdukcyjne/zmien-date-rozpoczecia-produkcji?rowid={click_RowIdZlecenia}", zmienDate);
+                    var response = await Http.PostAsJsonAsync($"api/ZleceniaProdukcyjne/zmien-date-rozpoczecia-produkcji?rowid={click_RowIdZlecenia}&rowIdLinia={_selectedItemGantt.RowId}", zmienDate);
 
                     if (response.IsSuccessStatusCode)
                     {
@@ -820,7 +820,7 @@
                 else
                 {
                     // Send PUT request to the server
-                    var response = await Http.PostAsJsonAsync($"api/ZleceniaProdukcyjneWew/zmien-date-rozpoczecia-produkcji?rowid={click_RowIdZlecenia}", zmienDate);
+                    var response = await Http.PostAsJsonAsync($"api/ZleceniaProdukcyjneWew/zmien-date-rozpoczecia-produkcji?rowid={click_RowIdZlecenia}&rowIdLinia={_selectedItemGantt.RowId}", zmienDate);
 
                     if (response.IsSuccessStatusCode)
                     {
@@ -1191,7 +1191,7 @@
             var task = new
             {
                 id = $"Task_{tzlec}_{item.ZleceniaProdukcyjneDto.RowId}",
-                name = $"{item.ZleceniaProdukcyjneDto?.NumerZamowienia} {item.ZleceniaProdukcyjneDto?.Klient} [{item.RzeczywistaDataRozpoczeciaProdukcji.ToShortDateString()}]",
+                name = $"{item.ZleceniaProdukcyjneDto?.NumerZamowienia} {item.ZleceniaProdukcyjneDto?.Klient} [{item.RzeczywistaDataRozpoczeciaProdukcji.ToShortDateString()} na linii:{item.RzeczywistaDataRozpoczeciaProdukcjiNaLinii.ToShortDateString()}]",
                 start = FormatDate(start, 7),
                 end = FormatDate(end, 15),
                 _start = FormatDate(start, 7),

@@ -116,7 +116,6 @@
                 AllowClear
                 Style="width: 200px;" OnSelectedItemChanged="OnSelectedItemChangedHandlerFiltr">
         </Select>
-      
     }
     <CheckboxGroup Options="@plainOptions" @bind-Value="@_valueFiltr" TValue="string" Disabled="@blokojFiltr" OnChange="OnChange" />
 </div>
@@ -127,7 +126,14 @@
         Dodaj Zlecenie Wewnętrzne
     </Button>
 } *@
-<Divider Style="font-weight:bold; font-size:large">Zlecenia Produkcyjne Wewnętrzne</Divider>
+<Divider Style="font-weight:bold; font-size:large"> 
+    Zlecenia Produkcyjne Wewnętrzne
+    @if (zleceniaProdukcyjneWew != null)
+    {
+        @($" [Ilość zarejestrowanych: {zleceniaProdukcyjneWew.Count()}]")
+    }
+</Divider>
+
 
 @if (zleceniaProdukcyjneWew == null)
 {
@@ -136,6 +142,7 @@
 }
 else
 {
+
     <div class="highlighted-background">
 
         <Table TItem="ZleceniaProdukcyjneWew" DataSource="@zleceniaProdukcyjneWew"
@@ -149,7 +156,7 @@ else
                     <a @onclick="() => DodajZamowienia(context)">Zamówienia</a>
                     <a style="font-weight: bold" @onclick="() => FileEdit(context)">Pliki</a>
                 </ActionColumn>
-                <Column Title="Status" TData="string">
+                <Column Width="230" Title="Status" TData="string">
                     @if (context.Tags != null)
                     {
                         @foreach (var tag in context.Tags)

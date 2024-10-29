@@ -139,10 +139,6 @@ namespace GEORGE.Server.Controllers
                     var existingZlecenie = await _context.ZleceniaCzasNaLinieProd
                         .FirstOrDefaultAsync(z => z.RowIdZleceniaProdukcyjne == zp.RowId && z.RowIdLinieProdukcyjne == rowIdLinii);
 
-                    // Sprawdź, czas ustawienia produkcji na linii w ZleceniaNaLinii
-                    var czasStartleceniaNaLinii = await _context.ZleceniaNaLinii
-                        .FirstOrDefaultAsync(z => z.RowIdZleceniaProdukcyjne == zp.RowId && z.RowIdLinieProdukcyjne == rowIdLinii);
-
                     // Oblicz czas na wykonanie zlecenia
 
                     float jednostkiNaZlecenie = existingZlecenie != null ? existingZlecenie.CzasNaZlecenie : zp.JednostkiNaZlecenie;
@@ -150,11 +146,20 @@ namespace GEORGE.Server.Controllers
                     var czasProdukcjiWDniach = (double)jednostkiNaZlecenie / liniaProdukcyjna.DziennaZdolnoscProdukcyjna;
                     var czasProdukcjiWHours = czasProdukcjiWDniach * 24;
                     string zam = "Zlecenie";
+
+                    string rIdZlec = "---null---";
                     if (existingZlecenie == null)
                     {
                         zam = "BRAK_DANYCH";
-
                     }
+                    else
+                    {
+                        rIdZlec = existingZlecenie.RowIdZleceniaProdukcyjne;
+                    }
+
+                    // Sprawdź, czas ustawienia produkcji na linii w ZleceniaNaLinii
+                    var czasStartleceniaNaLinii = await _context.ZleceniaNaLinii
+                        .FirstOrDefaultAsync(z => z.RowIdZleceniaProdukcyjne == rIdZlec && z.RowIdLinieProdukcyjne == rowIdLinii);
 
                     return new DaneDoPlanowaniaViewModel
                     {
@@ -182,9 +187,6 @@ namespace GEORGE.Server.Controllers
                     .Where(zp => zleceniaNaLinii.Any(znl => znl.RowIdZleceniaProdukcyjne == zp.RowId && znl.RowIdLinieProdukcyjne == rowIdLinii))
                     .ToList();
 
-                // Sprawdź, czas ustawienia produkcji na linii w ZleceniaNaLinii
-                var czasStartleceniaNaLinii = await _context.ZleceniaNaLinii
-                    .FirstOrDefaultAsync(z => z.RowIdZleceniaProdukcyjne == z.RowId && z.RowIdLinieProdukcyjne == rowIdLinii);
 
                 // Mapuj przefiltrowane zlecenia produkcyjne do modelu widoku
                 var daneDoPlanowania = filteredZleceniaProdukcyjne.Select(async zp =>
@@ -198,11 +200,20 @@ namespace GEORGE.Server.Controllers
                     var czasProdukcjiWDniach = (double)jednostkiNaZlecenie / liniaProdukcyjna.DziennaZdolnoscProdukcyjna;
                     var czasProdukcjiWHours = czasProdukcjiWDniach * 24;
                     string zam = "Zlecenie";
+
+                    string rIdZlec = "---null---";
                     if (existingZlecenie == null)
                     {
                         zam = "BRAK_DANYCH";
-
                     }
+                    else
+                    {
+                        rIdZlec = existingZlecenie.RowIdZleceniaProdukcyjne;
+                    }
+
+                    // Sprawdź, czas ustawienia produkcji na linii w ZleceniaNaLinii
+                    var czasStartleceniaNaLinii = await _context.ZleceniaNaLinii
+                        .FirstOrDefaultAsync(z => z.RowIdZleceniaProdukcyjne == rIdZlec && z.RowIdLinieProdukcyjne == rowIdLinii);
 
                     return new DaneDoPlanowaniaViewModel
                     {

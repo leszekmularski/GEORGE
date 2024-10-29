@@ -71,7 +71,7 @@ namespace GEORGE.Server
             return true;
         }
 
-        public async Task<bool> ZmienDateRozpoczeciaProdukcji(string rowid, DateTime nowaDataProdukcji)
+        public async Task<bool> ZmienDateRozpoczeciaProdukcji(string rowid, string rowidlinia, DateTime nowaDataProdukcji)
         {
             // Używamy FirstOrDefaultAsync do wyszukiwania po kolumnie RowId
             var zlec = await ZleceniaProdukcyjne
@@ -82,16 +82,20 @@ namespace GEORGE.Server
                 return false;
             }
 
-            // Aktualizowanie danych
-            zlec.DataRozpProdukcji = nowaDataProdukcji;
-            zlec.OstatniaZmiana = zlec.OstatniaZmiana + "ZP/RZOP.P.:[" + DateTime.Now.ToLongDateString() + "]";
-            zlec.ProcentWykonania = nowaDataProdukcji != DateTime.MinValue ? 10 : 0; 
-
            var zlecNaLinii = await ZleceniaNaLinii
-          .FirstOrDefaultAsync(z => z.RowId == rowid);
+          .FirstOrDefaultAsync(z => z.RowIdZleceniaProdukcyjne == rowid && z.RowIdLinieProdukcyjne == rowidlinia);
 
             if (zlecNaLinii != null)
             {
+
+                // Aktualizowanie danych
+                if (zlec.DataRozpProdukcji == DateTime.MinValue || (nowaDataProdukcji == DateTime.MinValue && zlecNaLinii.DataRozpProdukcjiNaLinii == zlec.DataRozpProdukcji))
+                {
+                    zlec.DataRozpProdukcji = nowaDataProdukcji;
+                    zlec.OstatniaZmiana = zlec.OstatniaZmiana + "ZP/RZOP.P.:[" + DateTime.Now.ToLongDateString() + "]";
+                    zlec.ProcentWykonania = nowaDataProdukcji != DateTime.MinValue ? 10 : 0;
+                }
+
                 zlecNaLinii.DataRozpProdukcjiNaLinii = nowaDataProdukcji;
             }
 
@@ -101,7 +105,7 @@ namespace GEORGE.Server
             return true;
         }
 
-        public async Task<bool> ZmienDateRozpoczeciaProdukcjiWew(string rowid, DateTime nowaDataProdukcji)
+        public async Task<bool> ZmienDateRozpoczeciaProdukcjiWew(string rowid, string rowidlinia, DateTime nowaDataProdukcji)
         {
             // Używamy FirstOrDefaultAsync do wyszukiwania po kolumnie RowId
             var zlec = await ZleceniaProdukcyjneWew
@@ -113,15 +117,21 @@ namespace GEORGE.Server
             }
 
             // Aktualizowanie danych
-            zlec.DataRozpProdukcji = nowaDataProdukcji;
-            zlec.OstatniaZmiana = zlec.OstatniaZmiana + "ZP/RZOP.P.:[" + DateTime.Now.ToLongDateString() + "]";
-            zlec.ProcentWykonania = nowaDataProdukcji == DateTime.MinValue ? 10 : 0;
 
             var zlecNaLinii = await ZleceniaNaLinii
-            .FirstOrDefaultAsync(z => z.RowId == rowid);
+            .FirstOrDefaultAsync(z => z.RowIdZleceniaProdukcyjne == rowid && z.RowIdLinieProdukcyjne == rowidlinia);
 
             if (zlecNaLinii != null)
             {
+                
+                // Aktualizowanie danych
+                if (zlec.DataRozpProdukcji == DateTime.MinValue || (nowaDataProdukcji == DateTime.MinValue && zlecNaLinii.DataRozpProdukcjiNaLinii == zlec.DataRozpProdukcji))
+                {
+                    zlec.DataRozpProdukcji = nowaDataProdukcji;
+                    zlec.OstatniaZmiana = zlec.OstatniaZmiana + "ZP/RZOP.P.:[" + DateTime.Now.ToLongDateString() + "]";
+                    zlec.ProcentWykonania = nowaDataProdukcji != DateTime.MinValue ? 10 : 0;
+                }
+
                 zlecNaLinii.DataRozpProdukcjiNaLinii = nowaDataProdukcji;
             }
 

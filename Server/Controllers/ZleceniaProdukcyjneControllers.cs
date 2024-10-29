@@ -120,9 +120,9 @@ namespace GEORGE.Server.Controllers
         }
 
         [HttpPost("zmien-date-rozpoczecia-produkcji")]
-        public async Task<IActionResult> ZmienDateRozpoczeciaProdukcji(string rowId, [FromBody] DateTime nowaDataProdukcji)
+        public async Task<IActionResult> ZmienDateRozpoczeciaProdukcji(string rowId, string rowIdLinia, [FromBody] DateTime nowaDataProdukcji)
         {
-            var result = await _context.ZmienDateRozpoczeciaProdukcji(rowId, nowaDataProdukcji);
+            var result = await _context.ZmienDateRozpoczeciaProdukcji(rowId, rowIdLinia, nowaDataProdukcji);
             if (result)
             {
                 return Ok("Uwagi zaktualizowane pomyślnie.");

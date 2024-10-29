@@ -120,7 +120,13 @@
     }
 </div>
 
-<Divider Style="font-weight:bold; font-size:large">Zlecenia Produkcyjne</Divider>
+<Divider Style="font-weight:bold; font-size:large"> 
+    Zlecenia Produkcyjne 
+    @if (zleceniaProdukcyjne != null) 
+    { 
+        @($" [Ilość zarejestrowanych: {zleceniaProdukcyjne.Count()}]") 
+    }
+</Divider>
 
 @if (zleceniaProdukcyjne == null)
 {
@@ -141,7 +147,7 @@ else
                 <a @onclick="() => DodajZamowienia(context)">Zamówienia</a>
                 <a style="font-weight: bold" @onclick="() => FileEdit(context)">Pliki</a>
             </ActionColumn>
-            <Column Title="Status" TData="string">
+            <Column Width="230" Title="Status" TData="string">
                 @if (context.Tags != null)
                 {
                     @foreach (var tag in context.Tags)
