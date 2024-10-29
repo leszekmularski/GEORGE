@@ -203,11 +203,13 @@ else
                         </Upload> *@
                         <InputFile OnChange="HandleSelected" >Wybierz plik PDF karty instrukcyjnej</InputFile>
                         <br/>
-                        @if (!blokuj_2_click)
-                        {
-                            <Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</Button>
-                        }
-                        <Button @onclick="@HandleCancel">Anuluj</Button>
+                        <div class="modal-footer d-flex">
+                            @if (!blokuj_2_click)
+                            {
+                                <Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</Button>
+                            }
+                            <Button @onclick="@HandleCancel">Anuluj</Button>
+                        </div>
                     </FormItem>
                 </Form>
             </div>
