@@ -97,7 +97,9 @@ else
                         var item = context as KartyInstrukcyjne;
                         if (!string.IsNullOrEmpty(item.LinkDoKartyNaSerwerze))
                         {
-                            <a href="@item.LinkDoKartyNaSerwerze" download @onclick="@( () => DownloadFile(item.LinkDoKartyNaSerwerze) )">Pobierz kartę</a>
+                            <Button Icon="@IconType.Fill.Save">
+                                <a href="@item.LinkDoKartyNaSerwerze" download @onclick="@( () => DownloadFile(item.LinkDoKartyNaSerwerze) )">Pobierz kartę</a>
+                            </Button>
                         }
                     }
                 </Template>
@@ -194,21 +196,24 @@ else
                         <Input @bind-Value="karty.OstatniaZmiana" ReadOnly />
                     </FormItem>
                     <FormItem Style="justify-content: flex-end; display: flex; gap: 10px;">
- @*                        <Upload Action="https://www.mocky.io/v2/5cc8019d300000980a055e76"
-                                Name="files"
-                                OnSingleCompleted="OnSingleCompleted">
-                            <Button Icon="upload">
-                                <span>Załącz plik PDF karty instrukcyjnej</span>
-                            </Button>
-                        </Upload> *@
-                        <InputFile OnChange="HandleSelected" >Wybierz plik PDF karty instrukcyjnej</InputFile>
-                        <br/>
-                        <div class="modal-footer d-flex">
-                            @if (!blokuj_2_click)
+                         <div class="modal-footer d-flex">
+                            @if (!string.IsNullOrEmpty(karty.LinkDoKartyNaSerwerze))
                             {
-                                <Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</Button>
+                                <Button Icon="@IconType.Fill.Save">
+                                    <a href="@karty.LinkDoKartyNaSerwerze" download @onclick="@( () => DownloadFile(karty.LinkDoKartyNaSerwerze) )">Pobierz kartę</a>
+                                </Button>
+                               
                             }
-                            <Button @onclick="@HandleCancel">Anuluj</Button>
+                            <InputFile OnChange="HandleSelected" >Wybierz plik PDF karty instrukcyjnej</InputFile>
+
+                            <br/>
+                            <div class="modal-footer d-flex">
+                                @if (!blokuj_2_click)
+                                {
+                                    <Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</Button>
+                                }
+                                <Button @onclick="@HandleCancel">Anuluj</Button>
+                            </div>
                         </div>
                     </FormItem>
                 </Form>
