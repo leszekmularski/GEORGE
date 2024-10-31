@@ -112,7 +112,7 @@
                 <p style="margin: 0;">Długość Linii Biegu: @DlugoscLiniiBiegu</p>
             </div>
             <div>
-                <p style="margin: 0;">Kąt Nachylenia: @KatNachylenia</p>
+                <p style="margin: 0;">Kąt Nachylenia: @Math.Round(KatNachylenia, 1)</p>
             </div>
             <div style="display: flex; align-items: center; gap: 25px;">
                 <p style="margin: 0;">Szerokość Schodów: @SzerokoscSchodow</p>
@@ -265,7 +265,7 @@
         // Obliczenia
         WysokoscPodniesieniaStopnia = Math.Round(WysokoscCalkowita / LiczbaPodniesienStopni, 2);
         DlugoscLiniiBiegu = Math.Round(DlugoscNaWejsciu - SzerokoscOstatniegoStopnia, 2);
-        KatNachylenia = Math.Round(Math.Atan((WysokoscCalkowita - (WysokoscCalkowita / LiczbaPodniesienStopni)) / DlugoscLiniiBiegu) * 180 / Math.PI, 2);
+        KatNachylenia = Math.Round(Math.Atan((WysokoscCalkowita - (WysokoscCalkowita / LiczbaPodniesienStopni)) / DlugoscLiniiBiegu) * 180 / Math.PI, 8);
         PrzestrzenSwobodnaNadGlowa = Math.Round(WysokoscDoStropu - WysokoscPodniesieniaStopnia - (DlugoscNaWejsciu - DlugoscOtworu) * Math.Tan(KatNachylenia * Math.PI / 180), 2);
         SzerokoscSchodow = Math.Round(SzerokoscBieguSchodow, 2);
         GlebokoscStopnia = Math.Round(DlugoscLiniiBiegu / (LiczbaPodniesienStopni - 1), 2);
@@ -360,6 +360,8 @@
                     GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'p')
                 };
             }
+
+            await DrawShapes();
 
         }
         else
