@@ -20,11 +20,11 @@
             const maxHeight = Math.floor(window.innerHeight * 0.8); // Użyj Math.floor dla wartości całkowitych
 
             // Sprawdź wartości i ustaw domyślnie na 1000, jeśli są równe 0
-            const calculatedWidth = DlugoscNaWejsciu || 1000; // Zmieniono 0 na 1000
+            const calculatedWidth = DlugoscNaWejsciu || 1400; // Zmieniono 0 na 1000
             const calculatedHeight = (WysokoscCalkowita + SzerokoscSchodow) || 1000; // Zmieniono 0 na 1000
 
             // Użyj Math.floor, aby zapewnić, że wartości są całkowite
-            const width = Math.floor(Math.min(maxWidth, scale * (calculatedWidth > 0 ? calculatedWidth : 1000)) + MarginesPrawy * scale);
+            const width = Math.floor(Math.min(maxWidth, scale * (calculatedWidth > 0 ? calculatedWidth : 1400)) + MarginesPrawy * scale);
             const height = Math.floor(Math.min(maxHeight, scale * (calculatedHeight > 0 ? calculatedHeight : 1000)) + ((IloscStopni + 1) * WyskoscPodnoszenia) * scale);
 
             console.log("Width:", width, "Height:", height); // Dodaj logi
@@ -45,7 +45,7 @@
                 <!-- Form inputs -->
                 <div>
                     <label>Długość Otworu:</label>
-                    <input type="number" @bind="DlugoscOtworu" />
+                    <input type="number" @bind="DlugoscOtworu" @onclick="()=> Oblicz(false)" />
                 </div>
                 <div>
                     <label>Szerokość Otworu:</label>
@@ -54,7 +54,7 @@
                 <div>
                     <label>Długość na Wejściu:</label>
                     <Tooltip Placement="@Placement.Top" Title="Całkowiata długość schodów.">
-                        <input type="number" @bind="DlugoscNaWejsciu" />
+                        <input type="number" @bind="DlugoscNaWejsciu" @onclick="()=> Oblicz(false)" />
                     </Tooltip>
                 </div>
                 <div>
@@ -67,7 +67,7 @@
                 </div>
                 <div>
                     <label>Liczba Podniesień Stopni:</label>
-                    <input type="number" @bind="LiczbaPodniesienStopni" />
+                    <input type="number" @bind="LiczbaPodniesienStopni" @onclick="()=> Oblicz(false)" />
                 </div>
                 <div>
                     <label>Ostatniego Stopień Wydłużony o:</label>
@@ -95,19 +95,9 @@
     <button @onclick="Resetuj">Reset</button>
 
     <div style="display: flex; gap: 25px;">
-        <!-- Drawing canvas -->
-        <div>
-            <h4>Rysunek schodów:</h4>
-    
-                <div style="overflow: auto; width: @(canvasWidth)px; height: @(canvasHeight)px;">
-                    <BECanvas Width="@(Convert.ToInt64(canvasWidth))" Height="@(Convert.ToInt64(canvasHeight))" @ref="canvasReferenceKPL"></BECanvas>
-                </div>
-
-       </div>
-
         <!-- Results -->
-        <h4>Wyniki:</h4>
-        <div>
+        <div style="min-width: 240px;">
+            <h4>Wyniki:</h4>
             <div>
                 <p style="margin: 0;">Długość Linii Biegu: @DlugoscLiniiBiegu</p>
             </div>
@@ -140,6 +130,16 @@
                 </span>
             </div>
         </div>
+        <!-- Drawing canvas -->
+        <div>
+            <h4>Rysunek schodów:</h4>
+    
+                <div style="overflow: auto; width: @(canvasWidth)px; height: @(canvasHeight)px;">
+                    <BECanvas Width="@(Convert.ToInt64(canvasWidth))" Height="@(Convert.ToInt64(canvasHeight))" @ref="canvasReferenceKPL"></BECanvas>
+                </div>
+
+       </div>
+
     </div>
 </body>
 </html>
