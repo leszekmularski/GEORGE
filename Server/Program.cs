@@ -53,7 +53,8 @@ app.UseStaticFiles(new StaticFileOptions
     {
         Mappings =
         {
-            [".dwg"] = "application/acad"
+            [".dwg"] = "application/acad",
+            [".dxf"] = "application/acad",
         }
     }
 });
