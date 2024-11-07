@@ -24,9 +24,9 @@
             const calculatedHeight = (WysokoscCalkowita + SzerokoscSchodow) || 1000; // Zmieniono 0 na 1000
 
             // Użyj Math.floor, aby zapewnić, że wartości są całkowite
-            const width = Math.floor(Math.min(maxWidth, scale * (calculatedWidth > 0 ? calculatedWidth : 1400)) + MarginesPrawy * scale);
-            const height = Math.floor(Math.min(maxHeight, scale * (calculatedHeight > 0 ? calculatedHeight : 1000)) + ((IloscStopni + 1) * WyskoscPodnoszenia) * scale);
-
+             const width = Math.floor(Math.min(maxWidth, scale * (calculatedWidth > 0 ? calculatedWidth : 1400)) + MarginesPrawy * scale);
+             const height = Math.floor(Math.min(maxHeight, scale * (calculatedHeight > 0 ? calculatedHeight : 1000)) + ((IloscStopni + 1) * WyskoscPodnoszenia) * scale);
+            
             console.log("Width:", width, "Height:", height); // Dodaj logi
 
             return { width: width, height: height }; // Zwróć wartości jako liczby całkowite
@@ -287,6 +287,8 @@
 
             canvasWidth = Convert.ToDouble(dimensions.Width);
             canvasHeight = Convert.ToDouble(dimensions.Height);
+
+            if (canvasWidth < 1000) canvasWidth = 1000;
 
         }
 

@@ -748,6 +748,13 @@
 
         if (zestawienie == null) return;
 
+        string xversion = "";
+
+        if (System.Reflection.Assembly.GetExecutingAssembly().GetName().Version != null)
+        {
+            xversion = " [" + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString() + "]";
+        }
+
         @foreach (var item in zestawienie.ListaCieci)
         {
 
@@ -758,7 +765,7 @@
                     Przekroj = item.Kolor,
                     NazwaProduktu = item.Symbol,
                     KodProduktu = "",
-                    Uwagi = "Dane zaimortowano z PDF dnia: " + DateTime.Now,
+                    Uwagi = "Zaimortowano z PDF dnia: " + DateTime.Now + xversion,
                     DlugoscZamawiana = int.Parse(item.WymiarNaZamowienie),
                     DlugoscNaGotowo = int.Parse(item.Wymiar),
                     DlugoscNaGotowoGrupa = item.Wymiar,
@@ -807,6 +814,14 @@
     {
         if (zestawienie == null) return;
 
+        string xversion = "";
+
+        if (System.Reflection.Assembly.GetExecutingAssembly().GetName().Version != null)
+        {
+            xversion = " [" + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString() + "]";
+        }
+
+
         // Grupuj dane według GatunekKantowki, Przekroj i DlugoscZamawiana
         var groupedData = zestawienie.ListaCieci
             .GroupBy(item => new
@@ -822,7 +837,7 @@
                     Przekroj = g.Key.Przekroj,
                     NazwaProduktu = g.FirstOrDefault()?.Symbol ?? "",
                     KodProduktu = "",
-                    Uwagi = "Dane zaimortowano z PDF dnia: " + DateTime.Now,
+                    Uwagi = "Zaimortowano z PDF dnia: " + DateTime.Now + xversion,
                     DlugoscZamawiana = g.Key.DlugoscZamawiana,
                     DlugoscNaGotowo = g.FirstOrDefault()?.Wymiar != null ? int.Parse(g.FirstOrDefault().Wymiar) : 0,
                     DlugoscNaGotowoGrupa = string.Join("; ", g.Select(item => item.Wymiar)),
