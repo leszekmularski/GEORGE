@@ -493,7 +493,7 @@ else
                                 if (!string.IsNullOrEmpty(item.NazwaPliku))
                                 {
                                     <div class="modal-footer d-flex">
-                                        <a style="font-weight: bold; color:blue" @onclick="@( () => DownloadFile(item.NazwaPliku) )">Pobierz plik  &nbsp &nbsp</a>
+                                        <a style="font-weight: bold; color:blue" @onclick="@( () => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku) )">Pobierz plik  &nbsp &nbsp</a>
 
                                         <Spin Spinning=@czekajNaUsuniecie>
 
@@ -1100,7 +1100,7 @@ else
     }
 
     bool czekajNaPobranie = false;
-    private async Task DownloadFile(string fileName)
+    private async Task DownloadFile(string fileName, string oryginalfileName)
     {
 
         if (czekajNaPobranie) return;
@@ -1145,11 +1145,11 @@ else
                             memoryStream.Seek(0, SeekOrigin.Begin);
 
                             // Wywołaj JavaScript do pobrania pliku
-                            await JSRuntime.InvokeVoidAsync("BlazorDownloadFile", actualFileName, memoryStream.ToArray());
+                            await JSRuntime.InvokeVoidAsync("BlazorDownloadFile", oryginalfileName, memoryStream.ToArray());
                         }
 
-                        Console.WriteLine($"Plik został pobrany i zapisany: {actualFileName}");
-   
+                        Console.WriteLine($"Plik został pobrany i zapisany: {oryginalfileName}");
+                        await _message.Success($"Plik został pobrany i zapisany: {oryginalfileName}", 5);
                         czekajNaPobranie = false;
                     }
                     else
