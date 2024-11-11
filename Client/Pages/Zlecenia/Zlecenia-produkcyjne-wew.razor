@@ -472,7 +472,7 @@ else
                                 if (boolAdmin)
                                 {
                                     <label>Widoczny dla wszystkich:</label>
-                                    <Checkbox Placeholder="Widoczny dla wszystkich." @bind-Value="@context.WidocznyDlaWszystkich" OnChange="@( () => ZmienWidocznosc(context.Id, conte xt.WidocznyDlaWszystkich))" />
+                                    <Checkbox Placeholder="Widoczny dla wszystkich." @bind-Value="@context.WidocznyDlaWszystkich" OnChange="@( () => ZmienWidocznosc(context.Id, context.WidocznyDlaWszystkich))" />
 
                                     var uniqueId = $"{context.Id}";
                                     <InputFile id="@uniqueId" OnChange="@(e => ReplaceUploadFiles(e, context.NazwaPliku, context.Id))" hidden multiple />
