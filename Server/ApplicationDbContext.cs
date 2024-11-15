@@ -97,6 +97,7 @@ namespace GEORGE.Server
                 }
 
                 zlecNaLinii.DataRozpProdukcjiNaLinii = nowaDataProdukcji;
+                zlecNaLinii.OstatniaZmiana = "Ostatnia zmiana [Data rozpocz. produkcji]: " + DateTime.Now.ToLongDateString();
             }
 
             // Zapisanie zmian

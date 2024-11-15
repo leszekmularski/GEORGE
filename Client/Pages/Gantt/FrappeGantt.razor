@@ -36,46 +36,46 @@
 
     <style>
         .container {
-            width: 95%;
-            margin: 0 auto;
-            position: sticky; /* Upewnij się, że nagłówek jest sticky */
+        width: 95%;
+        margin: 0 auto;
+        position: sticky; /* Upewnij się, że nagłówek jest sticky */
         }
         /* custom class */
         .gantt .bar-milestone .bar {
-            fill: tomato;
+        fill: tomato;
         }
 
         /* custom class */
         .gantt .bar-secmilestone .bar {
-            fill: cadetblue;
+        fill: cadetblue;
         }
 
 
         .heading {
-            text-align: center;
+        text-align: center;
         }
 
         .gantt-target.dark {
-            background-color: #252525;
+        background-color: #252525;
         }
 
         .grid-background {
-            background-color: blue;
+        background-color: blue;
         }
 
         #gantt-container {
-            width: 100%;
-            height: 100%;
+        width: 100%;
+        height: 100%;
         }
 
         .details-container {
-            background-color: #fff;
-            border: 1px solid #ccc;
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-            position: absolute;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+        position: absolute;
         }
 
     </style>
@@ -96,9 +96,9 @@
             {
                 <label>Wybierz linię produkcyjną</label>
                 <Select TItem="LinieProdukcyjne" TItemValue="string" DataSource="@rodzajeLinieProdukcyjne" @bind-Value="@_selectedValueGantt"
-                        LabelName="@nameof(LinieProdukcyjne.NazwaLiniiProdukcyjnej)" ValueName="@nameof(LinieProdukcyjne.RowId)"
-                        Placeholder="Wybierz linię produkcyjną" DefaultActiveFirstOption="false" EnableSearch
-                        OnSelectedItemChanged="OnSelectedItemChangedHandlerGantt">
+                LabelName="@nameof(LinieProdukcyjne.NazwaLiniiProdukcyjnej)" ValueName="@nameof(LinieProdukcyjne.RowId)"
+                Placeholder="Wybierz linię produkcyjną" DefaultActiveFirstOption="false" EnableSearch
+                OnSelectedItemChanged="OnSelectedItemChangedHandlerGantt">
                 </Select>
             }
         </div>
@@ -123,7 +123,7 @@
                             }
                             <Button class="btn-refresh" Icon="@IconType.Outline.Reload" OnClick="RefreshData"></Button>
 
-                            @if (boolZmian || boolAdmin)
+                            @if (boolZmiana || boolAdmin)
                             {
                                 <Button type="button" class="btn btn-sm btn-light" Icon="@IconType.Outline.Save" @onclick="SaveView"></Button>
                                 <Tooltip Placement="@Placement.Top" Title="Produkcja rozpoczęta">
@@ -151,7 +151,7 @@
                             <button type="button" class="btn btn-sm btn-light" @onclick="@(async () => await ChangeView("Week"))">Tydzień</button>
                             <button type="button" class="btn btn-sm btn-light" @onclick="@(async () => await ChangeView("Month"))">Miesiąc</button>
                             &nbsp
-                            @if (boolZmian || boolAdmin)
+                            @if (boolZmiana || boolAdmin)
                             {
                                 <Button type="button" class="btn btn-sm btn-light" @onclick="SaveView">Zapisz zmiany</Button>
                             }
@@ -164,44 +164,44 @@
 
 </body>
 
-  @*   <Modal Title="Dodaj nowe zlecenie" @bind-Visible="@_visible" Style="width:60%"  OkText="@("Zapisz do planu zaznaczone zlecenia")" CancelText="@("Anuluj")"
+@*   <Modal Title="Dodaj nowe zlecenie" @bind-Visible="@_visible" Style="width:60%"  OkText="@("Zapisz do planu zaznaczone zlecenia")" CancelText="@("Anuluj")"
        MaxBodyHeight="@("65vh")" OnOk="AddPlanEdit" OkButtonProps="@okButtonProps"> *@
 <Modal Title="Dodaj nowe zlecenie" Style="width: 60%;" MaxBodyHeight="65vh"
-       @bind-Visible="@_visible"
-       OkButtonProps="new AntDesign.ButtonProps { Disabled = (_selectedRows == null || _selectedRows.Count() == 0), }"
-       OkText=@("Zapisz do planu zaznaczone zlecenia")
-       CancelButtonProps="new AntDesign.ButtonProps { Disabled = false }" OnOk="AddPlanEdit">
+@bind-Visible="@_visible"
+OkButtonProps="new AntDesign.ButtonProps { Disabled = (_selectedRows == null || _selectedRows.Count() == 0), }"
+OkText=@("Zapisz do planu zaznaczone zlecenia")
+CancelButtonProps="new AntDesign.ButtonProps { Disabled = false }" OnOk="AddPlanEdit">
 
-        <div style="width:100%">
-            <p style="height: 100%; width:100%;">
-                Nie przypisane zlecenia
-                <Select TItem="LinieProdukcyjne" TItemValue="string" DataSource="@rodzajeLinieProdukcyjne" @bind-Value="@_selectedValue"
-                        LabelName="@nameof(LinieProdukcyjne.NazwaLiniiProdukcyjnej)" ValueName="@nameof(LinieProdukcyjne.RowId)"
-                        Placeholder="Wybierz linię produkcyjną" DefaultActiveFirstOption="false" EnableSearch
-                        OnSelectedItemChanged="OnSelectedItemChangedHandler">
-                </Select>
-                <div>
+    <div style="width:100%">
+        <p style="height: 100%; width:100%;">
+            Nie przypisane zlecenia
+            <Select TItem="LinieProdukcyjne" TItemValue="string" DataSource="@rodzajeLinieProdukcyjne" @bind-Value="@_selectedValue"
+            LabelName="@nameof(LinieProdukcyjne.NazwaLiniiProdukcyjnej)" ValueName="@nameof(LinieProdukcyjne.RowId)"
+            Placeholder="Wybierz linię produkcyjną" DefaultActiveFirstOption="false" EnableSearch
+            OnSelectedItemChanged="OnSelectedItemChangedHandler">
+            </Select>
+            <div>
                 <RadioGroup @bind-Value="@_valueZlecenie" TValue="bool" OnChange="ClicRadioGroup">
-                        <Radio Value="false">Zlecenia zewnętrzne</Radio>
-                        <Radio Value="true">Zlecenia wewnętrzne</Radio>
-                    </RadioGroup>
+                    <Radio Value="false">Zlecenia zewnętrzne</Radio>
+                    <Radio Value="true">Zlecenia wewnętrzne</Radio>
+                </RadioGroup>
+            </div>
+            @if (przefiltrowanedaneNiezaplanowane == null)
+            {
+                <div style="padding-top:25px; color: red;">
+                    <h3>@komunikatOZleceniach</h3>
                 </div>
-                @if (przefiltrowanedaneNiezaplanowane == null)
+            }
+            else
+            {
+                @if (przefiltrowanedaneNiezaplanowane.Count > 0)
                 {
-                    <div style="padding-top:25px; color: red;">
-                        <h3>@komunikatOZleceniach</h3>
-                    </div>
-                }
-                else
-                {
-                    @if (przefiltrowanedaneNiezaplanowane.Count > 0)
-                    {
                     <!-- Tabela z przefiltrowanymi danymi -->
                     <Divider>Znalezione zlecenia</Divider>
                     <div style="padding-top:25px;padding-left:5px;padding-right:5px;width:100%;">
                         <Table @ref="_table" TItem="DaneDoPlanowaniaViewModel" PageSize="4" DataSource="@przefiltrowanedaneNiezaplanowane" Total="_total"
-                               @bind-SelectedRows="_selectedRows" Style="width: 100%; font-size: 9px;" RowKey="x => x.ZleceniaProdukcyjneDto.RowId"
-                               Size="TableSize.Small" >
+                        @bind-SelectedRows="_selectedRows" Style="width: 100%; font-size: 9px;" RowKey="x => x.ZleceniaProdukcyjneDto.RowId"
+                        Size="TableSize.Small" >
                             <Selection Style="width:25px" CheckStrictly="_checkStrictly"  />
                             <PropertyColumn Width="85px" Title="Klient" Property="c => c.ZleceniaProdukcyjneDto.Klient" Sortable OnFilter="(a, b) => a == b" Filterable/>
                             <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan Prod." Property="c => c.PlanowanaDataRozpoczeciaProdukcji" Sortable />
@@ -213,19 +213,19 @@
                         </Table>
                         <label style="padding-left:6px">Ilość zaznaczonych: @(_selectedRows == null ? 0 : _selectedRows.Count())</label>
                     </div>
-                    }
-                    else
-                    {
-                        <div style="padding-top:55px;">
-                            <BadgeRibbon Text="Brak danych na wybraną linię" Color="orange">
-                                <Card Bordered Style="font-size:50px; color:green">Brak w systemie zleceń do zaplanowania.</Card>
-                            </BadgeRibbon>
-                        </div>
-                    }
                 }
-            </p>
-        </div>
-    </Modal>
+                else
+                {
+                    <div style="padding-top:55px;">
+                        <BadgeRibbon Text="Brak danych na wybraną linię" Color="orange">
+                            <Card Bordered Style="font-size:50px; color:green">Brak w systemie zleceń do zaplanowania.</Card>
+                        </BadgeRibbon>
+                    </div>
+                }
+            }
+        </p>
+    </div>
+</Modal>
 
 </html>
 
@@ -783,7 +783,6 @@
 
         if (przefiltrowaneDaneDoPlanowania == null) return;
 
-
         // Znajdź obiekt z odpowiednim RowId
 
         var obiektDoUsawDateStartProd = przefiltrowaneDaneDoPlanowania
@@ -809,11 +808,11 @@
 
                     if (response.IsSuccessStatusCode)
                     {
-                        Console.WriteLine($"Pomyślnie zaktualizowano zadanie o identyfikatorze rowID: {click_RowIdZlecenia}");
+                        Console.WriteLine($"Pomyślnie zaktualizowano zadanie o identyfikatorze [ZZ] rowID: {click_RowIdZlecenia}");
                     }
                     else
                     {
-                        Console.WriteLine($"Nie udało się zaktualizować zadania o identyfikatorze rowID: {click_RowIdZlecenia}");
+                        Console.WriteLine($"Nie udało się zaktualizować zadania o identyfikatorze [ZZ] rowID: {click_RowIdZlecenia}");
 
                     }
                 }
@@ -824,11 +823,11 @@
 
                     if (response.IsSuccessStatusCode)
                     {
-                        Console.WriteLine($"Pomyślnie zaktualizowano zadanie o identyfikatorze rowID: {click_RowIdZlecenia}");
+                        Console.WriteLine($"Pomyślnie zaktualizowano zadanie o identyfikatorze [ZW] rowID: {click_RowIdZlecenia}");
                     }
                     else
                     {
-                        Console.WriteLine($"Nie udało się zaktualizować zadania o identyfikatorze rowID: {click_RowIdZlecenia}");
+                        Console.WriteLine($"Nie udało się zaktualizować zadania o identyfikatorze [ZW] rowID: {click_RowIdZlecenia}");
                     }
                 }
 
@@ -845,6 +844,9 @@
                 await _message.Error($"Błąd podczas usuwania rekordu!");
             }
 
+        }
+        else{
+            await _message.Info("Nie znaleziono powiązanego obiektu !!! Nie ustawiłem daty produckji!");  
         }
 
     }
@@ -1037,6 +1039,8 @@
         click_task = taskArray[1].ToString();
 
         click_RowIdZlecenia = taskArray[0].ToString().Replace("Task_0_", "").Replace("Task_1_", "");
+
+        Console.WriteLine($"Wybrany RowIDZlecenia: {click_RowIdZlecenia} **************************************************************************************");
 
         click_task += $"\r\n przed zmianą {FormatDateString(taskArray[2].ToString(), false)} do: {FormatDateString(taskArray[3].ToString(), false)} [po zmianie: {FormatDateStringMove(taskArray[4].ToString(), false)}]";
 
@@ -1294,7 +1298,7 @@
     //await Laduj_Uprawnienia();
 
     private bool boolOdczyt = false;
-    private bool boolZmian = false;
+    private bool boolZmiana = false;
     private bool boolNowy = false;
     private bool boolUsuniecia = false;
     private bool boolAdmin = false;
@@ -1343,7 +1347,7 @@
                     if (szuk != null)
                     {
                         boolOdczyt = szuk.Odczyt;
-                        boolZmian = szuk.Zmiana;
+                        boolZmiana = szuk.Zmiana;
                         boolUsuniecia = szuk.Usuniecie;
                         boolAdmin = szuk.Administrator;
                         boolNowy = szuk.Zapis;

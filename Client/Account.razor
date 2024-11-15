@@ -21,63 +21,63 @@
     <title>Konto użytkownika systemu</title>
     <style>
         body {
-            margin: 0;
-            padding: 0;
-            height: 100vh; /* Ustala wysokość na 100% widoku */
-            background-color: blue; /* Jasno niebieski kolor */
-            background-image: url('images\george_st.jpg');
-            background-size: 33%; /* Ustawia tło na 50% oryginalnego rozmiaru */
-            background-repeat: no-repeat; /* Zapobiega powtarzaniu się tła */
-            background-position: center; /* Ustawia tło na środku */
-            background-attachment: fixed; /* Opcjonalnie, aby tło nie przewijało się */
+        margin: 0;
+        padding: 0;
+        height: 100vh; /* Ustala wysokość na 100% widoku */
+        background-color: azure; /* Jasno niebieski kolor */
+        background-image: url('images/logoG.png');
+        background-size: 15%; /* Ustawia tło na 50% oryginalnego rozmiaru */
+        background-repeat: no-repeat; /* Zapobiega powtarzaniu się tła */
+        background-position: right; /* Ustawia tło */
+        background-attachment: fixed; /* Opcjonalnie, aby tło nie przewijało się */
         }
 
         table {
-            border-collapse: collapse;
-            width: 100%;
+        border-collapse: collapse;
+        width: 100%;
         }
 
         th, td {
-            border: 1px solid black;
-            padding: 8px;
-            text-align: left;
+        border: 1px solid black;
+        padding: 8px;
+        text-align: left;
         }
 
         tr:nth-child(even) {
-            background-color: #f2f2f2;
+        background-color: #f2f2f2;
         }
 
         tr:hover {
-            background-color: #ddd;
+        background-color: #ddd;
         }
 
         .my-table .ant-table-tbody > tr > td,
         .my-table .ant-table-thead > tr > th {
-            height: 15px;
-            font-size: 10px;
+        height: 15px;
+        font-size: 10px;
         }
 
         .my-divo {
-            display: block; /* Ustawienie blokowe - obrazy ułożą się jeden pod drugim */
-            text-align: center; /* Opcjonalnie - wycentruje obrazy na środku diva */
+        display: block; /* Ustawienie blokowe - obrazy ułożą się jeden pod drugim */
+        text-align: center; /* Opcjonalnie - wycentruje obrazy na środku diva */
         }
 
-            .my-divo img {
-                width: 100%;
-                height: auto; /* Opcjonalnie - zachowa proporcje obrazu */
-                max-width: 100%; /* Opcjonalnie - zapobiega powiększaniu obrazów powyżej ich oryginalnej wielkości */
-            }
+        .my-divo img {
+        width: 100%;
+        height: auto; /* Opcjonalnie - zachowa proporcje obrazu */
+        max-width: 100%; /* Opcjonalnie - zapobiega powiększaniu obrazów powyżej ich oryginalnej wielkości */
+        }
 
         h1 {
-            background-color: blue;
-            color: yellow;
-            padding: 10px;
+        background-color: blue;
+        color: yellow;
+        padding: 10px;
         }
 
         .my-div {
-            background-color: #F7D9D9;
-            border: 1px solid #E62929;
-            padding: 10px;
+        background-color: #F7D9D9;
+        border: 1px solid #E62929;
+        padding: 10px;
         }
     </style>
 
@@ -85,179 +85,161 @@
 
 
 <body>
+    <Spin Spinning=loading>
+        @if (txtValueErrConnect != "")
 
-    @if (txtValueErrConnect != "")
+        {
+            <h1 class="my-4">@txtValueErrConnect</h1>
+        }
 
-    {
-        <h1 class="my-4">@txtValueErrConnect</h1>
-    }
+        @if (loggedIn)
+        {
+            <h3 class="my-4">Twoje konto</h3>
 
-    @if (loggedIn)
-
-    {
-        <h3 class="my-4">Twoje konto</h3>
-
-        <div style="display: flex;">
-            <div style="flex: 1;">
-                <p>Zalogowany użytkownik: @user</p>
-            </div>
-            <div style="flex: 1;">
-                <div style="display: flex;">
-                    <button @onclick="ShowPassword" style="background-color: #4CAF50; color: white;">Pokaż hasło</button>
-                    @if (showPassword)
-                    {
-                        <p id="password" style="margin-left: 10px;">Hasło użytkownika: @maskedPassword</p>
-                    }
-                    else
-                    {
-                        <p id="password" style="margin-left: 10px;">Hasło użytkownika: @maskedPassword</p>
-                    }
+            <div style="display: flex;">
+                <div style="flex: 1;">
+                    <p>Zalogowany użytkownik: @user</p>
+                </div>
+                <div style="flex: 1;">
+                    <div style="display: flex;">
+                        <button @onclick="ShowPassword" style="background-color: #4CAF50; color: white;">Pokaż hasło</button>
+                        @if (showPassword)
+                        {
+                            <p id="password" style="margin-left: 10px;">Hasło użytkownika: @maskedPassword</p>
+                        }
+                        else
+                        {
+                            <p id="password" style="margin-left: 10px;">Hasło użytkownika: @maskedPassword</p>
+                        }
+                    </div>
                 </div>
             </div>
-        </div>
 
-        @if (uprawnieniapracownika != null)
+            @if (uprawnieniapracownika != null)
+            {
+                <Collapse OnChange="Callback">
 
-        {
-            <Collapse OnChange="Callback">
+                    <Panel Header="Sprawdź jaki masz dostęp do tabel" Key="0">
+                        <div style="width: 100%; height: 300px; overflow-y: scroll;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Odczyt</th>
+                                        <th>Zapis</th>
+                                        <th>Usuwanie</th>
+                                        <th>Nazwa tabeli</th>
+                                        <th>Data ost. zmiany</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (uprawnieniapracownika != null)
 
-                <Panel Header="Sprawdź jaki masz dostęp do tabel" Key="0">
-                    <div style="width: 100%; height: 300px; overflow-y: scroll;">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Odczyt</th>
-                                    <th>Zapis</th>
-                                    <th>Usuwanie</th>
-                                    <th>Nazwa tabeli</th>
-                                    <th>Data ost. zmiany</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @if (uprawnieniapracownika != null)
-
-                                {
-                                    @foreach (var upr in uprawnieniapracownika)
                                     {
-                                        <tr>
-                                            <td>@(@upr.Odczyt ? "Tak" : "Nie")</td>
-                                            <td>@(@upr.Zapis ? "Tak" : "Nie")</td>
-                                            <td>@(@upr.Usuniecie ? "Tak" : "Nie")</td>
-                                            <td>@upr.TableName</td>
-                                            <td>@upr.Datautowrzenia</td>
-                                        </tr>
+                                        @foreach (var upr in uprawnieniapracownika)
+                                        {
+                                            <tr>
+                                                <td>@(@upr.Odczyt ? "Tak" : "Nie")</td>
+                                                <td>@(@upr.Zapis ? "Tak" : "Nie")</td>
+                                                <td>@(@upr.Usuniecie ? "Tak" : "Nie")</td>
+                                                <td>@upr.TableName</td>
+                                                <td>@upr.Datautowrzenia</td>
+                                            </tr>
 
+                                        }
                                     }
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </Panel>
+                                </tbody>
+                            </table>
+                        </div>
+                    </Panel>
 
 
-                <Panel Header="Dane ostanich logowań" Key="2">
-                    <Table Class="my-table" DataSource="@logowania" Bordered>
-                        <PropertyColumn Property="c=>c.Uzytkownik" Title="Użytkownik"></PropertyColumn>
-                        <PropertyColumn Property="c=>c.Datalogowania" Title="Data logowania"></PropertyColumn>
-                        <PropertyColumn Property="c=>c.RodzajPrzegladarki" Title="Rodzaj przeglądarki"></PropertyColumn>
-                    </Table>
-                </Panel>
+                    <Panel Header="Dane ostanich logowań" Key="2">
+                        <Table Class="my-table" DataSource="@logowania" Bordered>
+                            <PropertyColumn Property="c=>c.Uzytkownik" Title="Użytkownik"></PropertyColumn>
+                            <PropertyColumn Property="c=>c.Datalogowania" Title="Data logowania"></PropertyColumn>
+                            <PropertyColumn Property="c=>c.RodzajPrzegladarki" Title="Rodzaj przeglądarki"></PropertyColumn>
+                        </Table>
+                    </Panel>
 
-                @if (bConnetErr)
-
-                {
-                    <br />
-                    <div class="my-div">
-                        <label>Test połączenia do bazy danych:</label>
-                        <Input Placeholder="Podaj dane od połączenia" @bind-Value="@valueConnetionString" />
+                    @if (bConnetErr)
+                    {
                         <br />
-                        <Button Type="@ButtonType.Primary" OnClick="TestPolaczenia" style="background-color: #E62929; color: black;">
-                            Testuj połączenia do bazy danych
-                        </Button>
+                        <div class="my-div">
+                            <label>Test połączenia do bazy danych:</label>
+                            <Input Placeholder="Podaj dane od połączenia" @bind-Value="@valueConnetionString" />
+                            <br />
+                            <Button Type="@ButtonType.Primary" OnClick="TestPolaczenia" style="background-color: #E62929; color: black;">
+                                Testuj połączenia do bazy danych
+                            </Button>
 
-                        <br />
-                        <Text>@txtValue</Text>
-                    </div>
-                }
+                            <br />
+                            <Text>@txtValue</Text>
+                        </div>
+                    }
 
-            </Collapse>
-        }
-        <br />
-        <button type="button" class="btn btn-danger" @onclick="mainLayout.Logout">Wyloguj</button>
-        <p>
+                </Collapse>
+            }
             <br />
-            <label>Ponownie musisz się zalogować po: @loginTime.AddHours(8).ToString("HH:mm dd/MM/yyyy") za około @(Math.Abs(Math.Round((loginTime.AddMonths(6) - DateTime.Now).TotalDays))) dni</label>
-        </p>
+            <button type="button" class="btn btn-danger" @onclick="mainLayout.Logout">Wyloguj</button>
+            <p>
+                <br />
+                    <label>Ponownie musisz się zalogować po: @loginTime.AddMonths(6).ToString("dd/MM/yyyy") za około @(Math.Abs(Math.Round((loginTime.AddMonths(6) - DateTime.Now).TotalDays))) dni</label>
+            </p>
 
-    }
-
-    else
-
-    {
-        <h3 class="my-4">Proszę się zalogować</h3>
-
-        @if (strPierwszeLogowanie != "")
-
-        {
-            <h1 class="my-4">@strPierwszeLogowanie</h1>
-            <button type="button" class="btn btn-success" @onclick="Zapisz">Pierwsze uruchomienie programu</button>
         }
-
         else
-
         {
-            <button type="button" class="btn btn-success" @onclick="mainLayout.OpenLogin">Zaloguj sie</button>
+            @if(loading)
+            {
+                 <h3 class="my-4">Czekaj na załadowanie danych.....</h3>
+            }
+            else
+            {
+                <h3 class="my-4">Proszę się zalogować</h3>
+
+                <button type="button" class="btn btn-success" @onclick="mainLayout.OpenLogin">Zaloguj sie</button>
+            }
+
+
+            @if (bConnetErr)
+            {
+                <br />
+                <br />
+                <Collapse OnChange="Callback">
+                    <Panel Header="Narzędzia do testów" Key="0">
+                        <div class="my-div">
+                            <label>Test połączenia do bazy danych:</label>
+                            <Input Placeholder="Podaj dane od połączenia" @bind-Value="@valueConnetionString" />
+                            <br />
+                            <Button Type="@ButtonType.Primary" OnClick="TestPolaczenia">Testuj połączenia do bazy danych</Button>
+                            <br />
+                            <Text>@txtValue</Text>
+                        </div>
+                    </Panel>
+                </Collapse>
+            }
+
         }
-
-        @if (bConnetErr)
-
-        {
-            <br />
-            <br />
-            <Collapse OnChange="Callback">
-                <Panel Header="Narzędzia do testów" Key="0">
-                    <div class="my-div">
-                        <label>Test połączenia do bazy danych:</label>
-                        <Input Placeholder="Podaj dane od połączenia" @bind-Value="@valueConnetionString" />
-                        <br />
-                        <Button Type="@ButtonType.Primary" OnClick="TestPolaczenia">Testuj połączenia do bazy danych</Button>
-                        <br />
-                        <Text>@txtValue</Text>
-                    </div>
-                </Panel>
-            </Collapse>
-        }
-
-    }
-
+    </Spin>
 </body>
 </html>
 
 @code {
 
     [CascadingParameter]
-
     public MainLayout? mainLayout { get; set; }
 
     private bool _switchValue;
-
     private bool loggedIn;
-
     private bool bAdmin = false;
-
     private bool bConnetErr = false;
-
     private List<Uprawnieniapracownika>? uprawnieniapracownika;
-
     private List<Logowania>? logowania;
 
     private string? user;
-
     private string? pass = "***";
 
-    //private string RowId = Guid.NewGuid().ToString();
-
-    private string strPierwszeLogowanie = "";
+    //    private string strPierwszeLogowanie = "";
 
     private bool boolAdminSlownik = false;
 
@@ -280,221 +262,88 @@
 
     DateTime loginTime;
 
+    private bool loading = true;
+
     private void ShowPassword()
-
     {
-
         showPassword = true;
-
     }
 
 
     protected override async Task OnInitializedAsync()
-
     {
 
         await Laduj_Uprawnienia();
-
-
-        if (user == null)
-
-        {
-
-            try
-
-            {
-
-                var listaPracownikow = await Http.GetFromJsonAsync<List<Pracownicy>>("api/Pracownicy");
-
-
-                if (listaPracownikow != null)
-
-                {
-
-                    int iloscRekordow = listaPracownikow.Count;
-
-
-
-                    if (iloscRekordow == 0)
-
-                    {
-
-                        strPierwszeLogowanie = "Witaj w systemie --LM-- kliknij w przycisk <br/> <Pierwsze uruchomienia programu>. <br/> Automatycznie zostanie utworzony użytkownik: SYSDBA oraz hasło: masterkey. Po ponownym zalogowaniu wejdź do panelu administratora!!!";
-
-                        return;
-
-                    }
-
-                }
-
-                return;
-
-            }
-
-            catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
-
-            {
-
-                Console.WriteLine("Brak danych!!!");
-
-                return;
-
-            }
-
-            catch (Exception ex)
-
-            {
-
-                Console.WriteLine(ex.Message);
-
-                return;
-
-            }
-
-        }
-
-        user = await LocalStorage.GetStringAsync("user");
-
-        // pass = await LocalStorage.GetStringAsync("pass");
-
-        loggedIn = !string.IsNullOrEmpty(user);
-
-        // RowId = await LocalStorage.GetStringAsync("RowId");
-
-
 
         if (uprawnieniapracownika != null)
 
             uprawnieniapracownika.Clear();
 
-
-
         try
-
         {
-
             uprawnieniapracownika = await Http.GetFromJsonAsync<List<Uprawnieniapracownika>>($"api/Uprawnienia/{RowIdPracownika}");
-
         }
-
         catch (Exception ex)
-
         {
-
             // Obsługa błędu
-
             Console.WriteLine($"Wystąpił błąd podczas pobierania danych: {ex.Message}");
-
             txtValueErrConnect = "Użytkownik nie posiada poprawnie skonfigurowanego konta. Zgłoś problem administratorowi systemu!";
-
             // Dodatkowa obsługa błędu, np. wyświetlenie komunikatu dla użytkownika
-
         }
 
         if (uprawnieniapracownika != null)
-
         {
-
             var uprawnieniaAdmina = uprawnieniapracownika.FirstOrDefault(x => x.Administrator == true);
 
-
             if (uprawnieniaAdmina != null)
-
             {
-
                 bAdmin = uprawnieniaAdmina.Administrator;
-
             }
 
-
-
         }
-
 
         if (boolAdmin)
-
         {
-
             logowania = await Http.GetFromJsonAsync<List<Logowania>>("api/Logowania");
 
-            logowania = await Http.GetFromJsonAsync<List<Logowania>>("api/SqlTestPolaczenia");
-
-            if (logowania != null && logowania.Count > 0)
-
-            {
-
-                valueConnetionString = logowania[0].Uzytkownik;
-
-            }
-
-            else
-
-            {
-
-                valueConnetionString = "Server=.\\SQLExpress;Database=nazwa_bazy;Trusted_Connection=Yes;Integrated Security=True;MultipleActiveResultSets=True;TrustServerCertificate=true;";
-
-            }
-
         }
-
         else
-
         {
-
             logowania = await Http.GetFromJsonAsync<List<Logowania>>("api/Logowania/" + user);
-
         }
 
 
         var datalogowania = await LocalStorage.GetStringAsync("loginTime");
 
         if (!string.IsNullOrEmpty(datalogowania))
-
         {
-
             loginTime = Convert.ToDateTime(datalogowania);
-
         }
 
         if (RowIdDzal != "")
-
         {
-
             var rodzajDzialu = await Http.GetFromJsonAsync<RodzajeDzialow>($"/api/RodzajeDzialow/{RowIdDzal}");
 
-
-
             if (rodzajDzialu != null)
-
             {
-
                 NazwaDzialu = rodzajDzialu.NazwaDzialu;
-
             }
-
         }
 
+        loggedIn = !string.IsNullOrEmpty(user);
 
-
+        loading = false;
     }
-
 
     RenderFragment icon = @<Icon Type="exclamation-circle" Theme="outline"></Icon>;
 
     private async Task TestPolaczenia()
-
     {
-
         try
-
         {
-
             if (string.IsNullOrWhiteSpace(valueConnetionString))
-
             {
-
                 txtValue = "Podaj wartość do testów połączenia!!";
-
                 return;
 
             }
@@ -502,140 +351,20 @@
             txtValue = "Czekaj....";
 
             string encodeValue = WebUtility.UrlEncode(valueConnetionString);
-
         }
-
         catch (Exception e)
-
         {
-
             txtValue = $"Wystąpił błąd: {e.Message}";
-
             Console.WriteLine(e.Message);
-
         }
 
+        await Task.CompletedTask;
     }
-
-
-    private async Task Zapisz()
-
-    {
-
-        await LocalStorage.RemoveAsync("user");
-
-        await LocalStorage.RemoveAsync("pass");
-
-        await LocalStorage.RemoveAsync("RowId");
-
-        string guid_dzial = Guid.NewGuid().ToString();
-
-
-
-        var nowyPracownik = new Pracownicy
-            {
-                RowId = Guid.NewGuid().ToString(),
-                Kodkreskowy = "ADMIN/",
-                Imie = "Administrator",
-                Nazwisko = "Systemu PSSE",
-                Stanowisko = "",
-                Dzial = "---",
-                RowIdDzialu = guid_dzial,
-                UzytkownikSQL = "SYSDBA",
-                HasloSQL = "masterkey",
-                Telefon = "500 040 556",
-                Uwagi = "Telefon do autora systemu",
-                Datautowrzenia = DateTime.Now,
-                Autorzmiany = "Autor zmian: /Start Systemu/"
-            };
-
-
-
-        var noweUprawnienia = new Uprawnieniapracownika
-            {
-                Odczyt = true,
-                Administrator = true,
-                Zapis = true,
-                Zmiana = true,
-                Usuniecie = true,
-                Datautowrzenia = DateTime.Now,
-                RowId = Guid.NewGuid().ToString(),
-                RowIdPracownicy = nowyPracownik.RowId,
-                TableName = "Uprawnieniapracownika",
-                RowIdRejestrejestrow = "---",
-                Autorzmiany = nowyPracownik.Autorzmiany,
-                Uwagi = "Uprawnienia pierwszego uruchomienia"
-            };
-
-
-
-        var nowyDzail = new RodzajeDzialow
-            {
-                Datautowrzenia = DateTime.Now,
-                RowId = guid_dzial,
-                NazwaDzialu = "Dział ---",
-                Notatka = "Zmień dane",
-                Autorzmiany = nowyPracownik.Autorzmiany,
-                Uwagi = "Domyślny dział"
-            };
-
-
-
-        var result = await Http.PostAsJsonAsync("/api/Pracownicy", nowyPracownik);
-
-        if (result.IsSuccessStatusCode)
-
-        {
-
-            user = "SYSDBA";
-            pass = "masterkey";
-
-            loggedIn = true;
-
-            var resultupr = await Http.PostAsJsonAsync("/api/Uprawnienia", noweUprawnienia);
-
-
-
-            var resultdzal = await Http.PostAsJsonAsync("/api/RodzajeDzialow", nowyDzail);
-
-
-
-            if (resultupr.IsSuccessStatusCode)
-
-            {
-
-                NavigationManager.NavigateTo("", true);
-
-            }
-
-
-
-        }
-
-        else
-
-        {
-
-            user = "Nie udało się zalogować!!!!";
-
-            pass = "";
-
-        }
-
-        if (mainLayout != null) await mainLayout.Logout();
-
-    }
-
-
 
     void Callback(string[] keys)
-
     {
-
         Console.WriteLine(string.Join(',', keys));
-
     }
-
 
     private bool boolOdczyt = false;
     private bool boolZmian = false;
@@ -647,73 +376,43 @@
     private List<UprawnieniaPracownikaViewModel>? uprawnienia;
 
     private async Task Laduj_Uprawnienia()
-
     {
 
         user = await LocalStorage.GetStringAsync("user");
 
         string nazwaTabeli = "Uprawnieniapracownika";
 
-
-
         if (user == null)
-
         {
-
-            // strPierwszeLogowanie = "Bład ładowania danych użytkownika";
-
             return;
-
         }
-
-
 
         try
-
         {
-
             uprawnienia = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"api/ZwrocSatus/{user}/{nazwaTabeli}");
-
         }
-
         catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
-
         {
-
             Console.WriteLine("Brak danych!!!");
-
         }
-
         catch (Exception ex)
-
         {
-
             Console.WriteLine($"Błąd!!! Info:{ex.Message}");
-
         }
-
-
 
         if (uprawnienia != null)
-
         {
-
             if (uprawnienia.Count > 0)
-
             {
 
                 var znalezioneElementy = uprawnienia.Where(uprawnienie => uprawnienie.TableName == nazwaTabeli);
 
                 if (znalezioneElementy.Count() > 0)
-
                 {
-
                     var szuk = znalezioneElementy.FirstOrDefault(x => x.TableName == nazwaTabeli);
 
                     if (szuk != null)
-
                     {
-
                         boolOdczyt = szuk.Odczyt;
                         boolZmian = szuk.Zmiana;
                         boolUsuniecia = szuk.Usuniecie;
@@ -725,14 +424,9 @@
                         PoziomDostepu = szuk.StanowiskoSystem is null ? "Brak danych!!!" : szuk.StanowiskoSystem;
 
                         pass = szuk.HasloSQL;
-
                     }
-
                 }
-
             }
-
         }
-
     }
 }

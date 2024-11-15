@@ -16,23 +16,23 @@
 
     <script>
         function setCanvasSize(scale, DlugoscNaWejsciu, WysokoscCalkowita, SzerokoscSchodow, IloscStopni, WyskoscPodnoszenia, MarginesPrawy) {
-            const maxWidth = Math.floor(window.innerWidth * 0.8); // Użyj Math.floor dla wartości całkowitych
-            const maxHeight = Math.floor(window.innerHeight * 0.8); // Użyj Math.floor dla wartości całkowitych
+        const maxWidth = Math.floor(window.innerWidth * 0.8); // Użyj Math.floor dla wartości całkowitych
+        const maxHeight = Math.floor(window.innerHeight * 0.8); // Użyj Math.floor dla wartości całkowitych
 
-            // Sprawdź wartości i ustaw domyślnie na 1000, jeśli są równe 0
-            const calculatedWidth = DlugoscNaWejsciu || 1400; // Zmieniono 0 na 1000
-            const calculatedHeight = (WysokoscCalkowita + SzerokoscSchodow) || 1000; // Zmieniono 0 na 1000
+        // Sprawdź wartości i ustaw domyślnie na 1000, jeśli są równe 0
+        const calculatedWidth = DlugoscNaWejsciu || 1400; // Zmieniono 0 na 1000
+        const calculatedHeight = (WysokoscCalkowita + SzerokoscSchodow) || 1000; // Zmieniono 0 na 1000
 
-            // Użyj Math.floor, aby zapewnić, że wartości są całkowite
-             const width = Math.floor(Math.min(maxWidth, scale * (calculatedWidth > 0 ? calculatedWidth : 1400)) + MarginesPrawy * scale);
-             const height = Math.floor(Math.min(maxHeight, scale * (calculatedHeight > 0 ? calculatedHeight : 1000)) + ((IloscStopni + 1) * WyskoscPodnoszenia) * scale);
-            
-            console.log("Width:", width, "Height:", height); // Dodaj logi
+        // Użyj Math.floor, aby zapewnić, że wartości są całkowite
+        const width = Math.floor(Math.min(maxWidth, scale * (calculatedWidth > 0 ? calculatedWidth : 1400)) + MarginesPrawy * scale);
+        const height = Math.floor(Math.min(maxHeight, scale * (calculatedHeight > 0 ? calculatedHeight : 1000)) + ((IloscStopni + 1) * WyskoscPodnoszenia) * scale);
 
-            return { width: width, height: height }; // Zwróć wartości jako liczby całkowite
+        console.log("Width:", width, "Height:", height); // Dodaj logi
+
+        return { width: width, height: height }; // Zwróć wartości jako liczby całkowite
         }
     </script>
-@*     <script src="_framework/blazor.webassembly.js"></script> *@
+    @*     <script src="_framework/blazor.webassembly.js"></script> *@
 
     <h3>Obliczenia Schodów typu: @TypSchodow</h3>
 
@@ -70,7 +70,7 @@
                     <input type="number" @bind="LiczbaPodniesienStopni" @onclick="()=> Oblicz(false)" />
                 </div>
                 <div>
-                    <label>Ostatniego Stopień Wydłużony o:</label>
+                    <label>Teoretyczna szerokość ostatniego stopnia:</label>
                     <input type="number" @bind="SzerokoscOstatniegoStopnia" />
                 </div>
                 <div>
@@ -133,12 +133,12 @@
         <!-- Drawing canvas -->
         <div>
             <h4>Rysunek schodów:</h4>
-    
-                <div style="overflow: auto; width: @(canvasWidth)px; height: @(canvasHeight)px;">
-                    <BECanvas Width="@(Convert.ToInt64(canvasWidth))" Height="@(Convert.ToInt64(canvasHeight))" @ref="canvasReferenceKPL"></BECanvas>
-                </div>
 
-       </div>
+            <div style="overflow: auto; width: @(canvasWidth)px; height: @(canvasHeight)px;">
+                <BECanvas Width="@(Convert.ToInt64(canvasWidth))" Height="@(Convert.ToInt64(canvasHeight))" @ref="canvasReferenceKPL"></BECanvas>
+            </div>
+
+        </div>
 
     </div>
 </body>
@@ -159,7 +159,7 @@
     private double WysokoscDoStropu { get; set; } = 1000;
     private double WysokoscCalkowita { get; set; } = 3000;
     private double LiczbaPodniesienStopni { get; set; } = 10;
-    private double SzerokoscOstatniegoStopnia { get; set; } = 100;
+    private double SzerokoscOstatniegoStopnia { get; set; } = 200;
     private double ZachodzenieStopniZaSiebie { get; set; } = 10;
     private double SzerokoscBieguSchodow { get; set; } = 1000;
 
@@ -257,19 +257,21 @@
         if (WysokoscCalkowita >= 7000) WysokoscCalkowita = 6999;
         if (LiczbaPodniesienStopni <= 2) LiczbaPodniesienStopni = 3;
         if (LiczbaPodniesienStopni >= 30) LiczbaPodniesienStopni = 29;
-        if (SzerokoscOstatniegoStopnia < 0) SzerokoscOstatniegoStopnia = 0;
+        if (SzerokoscOstatniegoStopnia < 0) SzerokoscOstatniegoStopnia = 200;
         if (SzerokoscOstatniegoStopnia > (SzerokoscOtworu - SzerokoscBieguSchodow)) SzerokoscOstatniegoStopnia = SzerokoscOtworu - SzerokoscBieguSchodow;
         if (SzerokoscBieguSchodow <= 400) SzerokoscBieguSchodow = 400;
         if (ZachodzenieStopniZaSiebie < -200 || ZachodzenieStopniZaSiebie > 200) ZachodzenieStopniZaSiebie = 0;
 
         // Obliczenia
         WysokoscPodniesieniaStopnia = Math.Round(WysokoscCalkowita / LiczbaPodniesienStopni, 2);
-        DlugoscLiniiBiegu = Math.Round(DlugoscNaWejsciu - SzerokoscOstatniegoStopnia, 2);
+        DlugoscLiniiBiegu = Math.Round(DlugoscNaWejsciu, 2);
         KatNachylenia = Math.Round(Math.Atan((WysokoscCalkowita - (WysokoscCalkowita / LiczbaPodniesienStopni)) / DlugoscLiniiBiegu) * 180 / Math.PI, 8);
         PrzestrzenSwobodnaNadGlowa = Math.Round(WysokoscDoStropu - WysokoscPodniesieniaStopnia - (DlugoscNaWejsciu - DlugoscOtworu) * Math.Tan(KatNachylenia * Math.PI / 180), 2);
         SzerokoscSchodow = Math.Round(SzerokoscBieguSchodow, 2);
         GlebokoscStopnia = Math.Round(DlugoscLiniiBiegu / (LiczbaPodniesienStopni - 1), 2);
         PrzecietnaDlugoscKroku = Math.Round(2 * WysokoscPodniesieniaStopnia + GlebokoscStopnia, 2);
+
+        SzerokoscOstatniegoStopnia = GlebokoscStopnia;
 
         if (JSRuntime != null)
         {
@@ -420,7 +422,7 @@
         WysokoscDoStropu = 2700;
         WysokoscCalkowita = 3000;
         LiczbaPodniesienStopni = 15;
-        SzerokoscOstatniegoStopnia = 50;
+        SzerokoscOstatniegoStopnia = 200;
         SzerokoscBieguSchodow = 850;
         ZachodzenieStopniZaSiebie = 0;
 

@@ -13,9 +13,9 @@
     <link href="GEORGE.Client.styles.css" rel="stylesheet" />
     <link href="_content/AntDesign/css/ant-design-blazor.css" rel="stylesheet" />
     <script src="/script.js"></script>
-    <script src="_framework/blazor.webassembly.js"></script>
     <script src="_content/Blazor.Extensions.Canvas/blazor.extensions.canvas.js"></script>
     <script src="_content/AntDesign/js/ant-design-blazor.js"></script>
+    <script src="_framework/blazor.webassembly.js" autostart="false"></script>
 
 </head>
 
@@ -87,6 +87,12 @@
             window.URL.revokeObjectURL(link.href); // Clean up
             console.log("Plik pobrany [BlazorDownloadFile]: " + fileName);
         }
+
+        Blazor.start({
+            configureGlobalization: {
+                loadGlobalizationData: true
+            }
+        });
 
     </script>
 

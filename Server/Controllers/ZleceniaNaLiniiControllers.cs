@@ -131,6 +131,9 @@ namespace GEORGE.Server.Controllers
                 var filteredZleceniaProdukcyjne = wszystkieZleceniaProdukcyjneDto
                     .Where(zp => !zleceniaNaLinii.Any(znl => znl.RowIdZleceniaProdukcyjne == zp.RowId && znl.RowIdLinieProdukcyjne == rowIdLinii))
                     .ToList();
+                //var filteredZleceniaProdukcyjne = wszystkieZleceniaProdukcyjneDto
+                // .Where(zp => !zleceniaNaLinii.Any(znl => znl.RowIdLinieProdukcyjne == rowIdLinii))
+                // .ToList();
 
                 // Mapuj przefiltrowane zlecenia produkcyjne do modelu widoku
                 var daneDoPlanowania = filteredZleceniaProdukcyjne.Select(async zp =>
@@ -186,6 +189,9 @@ namespace GEORGE.Server.Controllers
                 var filteredZleceniaProdukcyjne = wszystkieZleceniaProdukcyjneDto
                     .Where(zp => zleceniaNaLinii.Any(znl => znl.RowIdZleceniaProdukcyjne == zp.RowId && znl.RowIdLinieProdukcyjne == rowIdLinii))
                     .ToList();
+                //var filteredZleceniaProdukcyjne = wszystkieZleceniaProdukcyjneDto
+                //.Where(zp => zleceniaNaLinii.Any(znl => znl.RowIdLinieProdukcyjne == rowIdLinii))
+                //.ToList();
 
 
                 // Mapuj przefiltrowane zlecenia produkcyjne do modelu widoku
@@ -250,7 +256,7 @@ namespace GEORGE.Server.Controllers
                 }
 
                 var existingZlecenia = await _context.ZleceniaNaLinii
-                    .ToListAsync();  // Pobierz wszystkie rekordy na raz
+                    .ToListAsync(); // Pobierz wszystkie rekordy na raz
 
                 // Porównanie z wykorzystaniem Linq po stronie klienta
                 var newZlecenia = zleceniaNaLinii
@@ -265,6 +271,23 @@ namespace GEORGE.Server.Controllers
                 await _context.ZleceniaNaLinii.AddRangeAsync(newZlecenia);
                 await _context.SaveChangesAsync();
 
+                // Pobranie istniejących zleceń do przetwarzania
+                var existingZlecenie = await _context.ZleceniaCzasNaLinieProd
+                    .Where(z => existingZlecenia.Any(ez => ez.RowIdZleceniaProdukcyjne == z.RowIdLinieProdukcyjne && ez.RowIdZleceniaProdukcyjne == z.RowIdZleceniaProdukcyjne))
+                    .ToListAsync();
+
+                // Aktualizacja wartości CzasNaZlecenie, jeśli jest równa 0
+                foreach (var zlecenie in existingZlecenie)
+                {
+                    if (zlecenie.CzasNaZlecenie == 0)
+                    {
+                        zlecenie.CzasNaZlecenie = 1000;
+                    }
+                }
+
+                // Zapisanie zmian w bazie danych
+                await _context.SaveChangesAsync();
+
                 return Ok("Zlecenia zostały dodane.");
             }
             catch (Exception ex)
@@ -272,6 +295,7 @@ namespace GEORGE.Server.Controllers
                 return BadRequest($"Błąd. {ex.Message}");
             }
         }
+
 
 
         [HttpPut("{id}")]

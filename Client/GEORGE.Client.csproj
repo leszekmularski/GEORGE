@@ -5,10 +5,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 	<Version>1.1.0</Version>
-	<AssemblyVersion>1.1.0.0</AssemblyVersion>
-	<FileVersion>1.1.0.0</FileVersion>
+	<AssemblyVersion>1.1.0.1</AssemblyVersion>
+	<FileVersion>1.1.0.1</FileVersion>
 	<InformationalVersion>1.1.0</InformationalVersion>
     <WasmEnableSimdSupport>false</WasmEnableSimdSupport>
+	<InvariantGlobalization>false</InvariantGlobalization>
 </PropertyGroup>
 
 
@@ -44,7 +45,6 @@
 
   <ItemGroup>
     <Folder Include="Pages\Gantt\" />
-    <Folder Include="wwwroot\Images\" />
     <Folder Include="wwwroot\src\" />
   </ItemGroup>
 

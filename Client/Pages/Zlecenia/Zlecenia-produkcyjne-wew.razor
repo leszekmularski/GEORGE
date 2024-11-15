@@ -409,7 +409,9 @@ else
                                 </AntDesign.Col>
                                 <AntDesign.Col Span="12">
                                     <AntDesign.FormItem Label="Ostatnia Zmiana">
-                                        <AntDesign.Input ReadOnly @bind-Value="zlecenie.OstatniaZmiana" />
+                                         <Tooltip Placement="@Placement.TopLeft" Title="@zlecenie.RowId">
+                                            <AntDesign.Input ReadOnly @bind-Value="zlecenie.OstatniaZmiana" />
+                                        </Tooltip>
                                     </AntDesign.FormItem>
                                 </AntDesign.Col>
                             </AntDesign.Row>
