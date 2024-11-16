@@ -1,11 +1,14 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GEORGE.Shared.Models
 {
     public class ZleceniaProdukcyjneWew
     {
         public long Id { get; set; }
+        [Required]
         public string? RowId { get; set; } = Guid.NewGuid().ToString();
+        [Required]
         public string? TypZamowienia { get; set; }
         public string? NumerZamowienia { get; set; }
         public string? NumerUmowy { get; set; }

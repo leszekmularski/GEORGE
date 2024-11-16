@@ -267,26 +267,28 @@ namespace GEORGE.Server.Controllers
                 {
                     return BadRequest("Żadne z nowych zleceń nie zostało dodane, ponieważ wszystkie już istnieją.");
                 }
-
+          
                 await _context.ZleceniaNaLinii.AddRangeAsync(newZlecenia);
                 await _context.SaveChangesAsync();
 
-                // Pobranie istniejących zleceń do przetwarzania
-                var existingZlecenie = await _context.ZleceniaCzasNaLinieProd
-                    .Where(z => existingZlecenia.Any(ez => ez.RowIdZleceniaProdukcyjne == z.RowIdLinieProdukcyjne && ez.RowIdZleceniaProdukcyjne == z.RowIdZleceniaProdukcyjne))
+                //To do poprawy......
+                // Pobranie identyfikatorów powiązanych zleceń
+                var rowIdsZlecenia = zleceniaNaLinii.Select(z => z.RowIdZleceniaProdukcyjne).ToList();
+
+                // Znalezienie pasujących rekordów w ZleceniaCzasNaLinieProd
+                var zleceniaDoAktualizacji = await _context.ZleceniaCzasNaLinieProd
+                    .Where(z => rowIdsZlecenia.Contains(z.RowIdZleceniaProdukcyjne) && z.CzasNaZlecenie == 0)
                     .ToListAsync();
 
-                // Aktualizacja wartości CzasNaZlecenie, jeśli jest równa 0
-                foreach (var zlecenie in existingZlecenie)
+                // Aktualizacja wartości CzasNaZlecenie
+                foreach (var zlecenie in zleceniaDoAktualizacji)
                 {
-                    if (zlecenie.CzasNaZlecenie == 0)
-                    {
-                        zlecenie.CzasNaZlecenie = 1000;
-                    }
+                    zlecenie.CzasNaZlecenie = 1000;
                 }
 
                 // Zapisanie zmian w bazie danych
                 await _context.SaveChangesAsync();
+
 
                 return Ok("Zlecenia zostały dodane.");
             }

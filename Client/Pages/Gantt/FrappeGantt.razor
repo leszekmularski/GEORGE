@@ -95,7 +95,7 @@
             @if (rodzajeLinieProdukcyjne != null)
             {
                 <label>Wybierz linię produkcyjną</label>
-                <Select TItem="LinieProdukcyjne" TItemValue="string" DataSource="@rodzajeLinieProdukcyjne" @bind-Value="@_selectedValueGantt"
+                <Select TItem="LinieProdukcyjne" Style="font-size:18px; font-display:optional; width:319px" TItemValue="string" DataSource="@rodzajeLinieProdukcyjne" @bind-Value="@_selectedValueGantt"
                 LabelName="@nameof(LinieProdukcyjne.NazwaLiniiProdukcyjnej)" ValueName="@nameof(LinieProdukcyjne.RowId)"
                 Placeholder="Wybierz linię produkcyjną" DefaultActiveFirstOption="false" EnableSearch
                 OnSelectedItemChanged="OnSelectedItemChangedHandlerGantt">
@@ -164,8 +164,7 @@
 
 </body>
 
-@*   <Modal Title="Dodaj nowe zlecenie" @bind-Visible="@_visible" Style="width:60%"  OkText="@("Zapisz do planu zaznaczone zlecenia")" CancelText="@("Anuluj")"
-       MaxBodyHeight="@("65vh")" OnOk="AddPlanEdit" OkButtonProps="@okButtonProps"> *@
+
 <Modal Title="Dodaj nowe zlecenie" Style="width: 60%;" MaxBodyHeight="65vh"
 @bind-Visible="@_visible"
 OkButtonProps="new AntDesign.ButtonProps { Disabled = (_selectedRows == null || _selectedRows.Count() == 0), }"
@@ -199,19 +198,23 @@ CancelButtonProps="new AntDesign.ButtonProps { Disabled = false }" OnOk="AddPlan
                     <!-- Tabela z przefiltrowanymi danymi -->
                     <Divider>Znalezione zlecenia</Divider>
                     <div style="padding-top:25px;padding-left:5px;padding-right:5px;width:100%;">
-                        <Table @ref="_table" TItem="DaneDoPlanowaniaViewModel" PageSize="4" DataSource="@przefiltrowanedaneNiezaplanowane" Total="_total"
-                        @bind-SelectedRows="_selectedRows" Style="width: 100%; font-size: 9px;" RowKey="x => x.ZleceniaProdukcyjneDto.RowId"
-                        Size="TableSize.Small" >
-                            <Selection Style="width:25px" CheckStrictly="_checkStrictly"  />
-                            <PropertyColumn Width="85px" Title="Klient" Property="c => c.ZleceniaProdukcyjneDto.Klient" Sortable OnFilter="(a, b) => a == b" Filterable/>
-                            <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan Prod." Property="c => c.PlanowanaDataRozpoczeciaProdukcji" Sortable />
-                            <PropertyColumn Style="width:35px" Title="Typ_Dok." Property="c => c.ZleceniaProdukcyjneDto.TypZamowienia" Sortable />
-                            <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan. Zakoń." Property="c => c.ZleceniaProdukcyjneDto.DataProdukcji" Sortable />
-                            <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan. Mont." Property="c => c.ZleceniaProdukcyjneDto.DataMontazu" Sortable />
-                            <PropertyColumn Style="width:35px" Title="Nr Zam." Property="c => c.ZleceniaProdukcyjneDto.NumerZamowienia" Sortable />
-                            <PropertyColumn Style="width:35px" Title="Czas wyk." Property="c => c.DomyslnyCzasProdukcji" Sortable />
-                        </Table>
-                        <label style="padding-left:6px">Ilość zaznaczonych: @(_selectedRows == null ? 0 : _selectedRows.Count())</label>
+                        <BadgeRibbon Text="Zaplanuj zlecenie na linie" Color="blue">
+                            <Card Bordered Style="font-size:15px; color:green">
+                                <Table @ref="_table" TItem="DaneDoPlanowaniaViewModel" PageSize="4" DataSource="@przefiltrowanedaneNiezaplanowane" Total="_total"
+                                @bind-SelectedRows="_selectedRows" Style="width: 100%; font-size: 9px;" RowKey="x => x.ZleceniaProdukcyjneDto.RowId"
+                                Size="TableSize.Small" >
+                                    <Selection Style="width:25px" CheckStrictly="_checkStrictly"  />
+                                    <PropertyColumn Width="85px" Title="Klient" Property="c => c.ZleceniaProdukcyjneDto.Klient" Sortable OnFilter="(a, b) => a == b" Filterable/>
+                                    <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan Prod." Property="c => c.PlanowanaDataRozpoczeciaProdukcji" Sortable />
+                                    <PropertyColumn Style="width:35px" Title="Typ_Dok." Property="c => c.ZleceniaProdukcyjneDto.TypZamowienia" Sortable />
+                                    <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan. Zakoń." Property="c => c.ZleceniaProdukcyjneDto.DataProdukcji" Sortable />
+                                    <PropertyColumn Style="width:35px" Format="yyyy-MM-dd" Title="Plan. Mont." Property="c => c.ZleceniaProdukcyjneDto.DataMontazu" Sortable />
+                                    <PropertyColumn Style="width:35px" Title="Nr Zam." Property="c => c.ZleceniaProdukcyjneDto.NumerZamowienia" Sortable />
+                                    <PropertyColumn Style="width:35px" Title="Czas wyk." Property="c => c.DomyslnyCzasProdukcji" Sortable />
+                                </Table>
+                                <label style="padding-left:6px;font-size:15px">Ilość zaznaczonych: @(_selectedRows == null ? 0 : _selectedRows.Count())</label>
+                            </Card>
+                        </BadgeRibbon>
                     </div>
                 }
                 else
@@ -393,6 +396,7 @@ CancelButtonProps="new AntDesign.ButtonProps { Disabled = false }" OnOk="AddPlan
         else
         {
             Console.WriteLine("Wystąpił błąd podczas dodawania zleceń.");
+            await _message.Error("Wystąpił błąd podczas dodawania zleceń.", 3);
         }
 
         // await InitializeFrappeGantt();
@@ -534,7 +538,10 @@ CancelButtonProps="new AntDesign.ButtonProps { Disabled = false }" OnOk="AddPlan
     private async void AddNewZlec()
     {
         _visible = true;
-        await Task.Delay(1);
+
+        if (_selectedItemGantt == null || rodzajeLinieProdukcyjne ==null) przefiltrowanedaneNiezaplanowane = null;
+
+        await Task.CompletedTask;
     }
 
     private async void OpenDetailModal()

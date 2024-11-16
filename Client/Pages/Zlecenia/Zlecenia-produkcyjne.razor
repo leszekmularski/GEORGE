@@ -190,7 +190,7 @@ else
                 @if (boolAdmin || boolUsuniecia)
                 {
                     <Popconfirm Placement="@Placement.Left" Title="Czy chcesz usunąć pozycję?"
-                                OnConfirm="()=> delRow(context.Id)"
+                                OnConfirm="()=> delRow(context.Id, context.RowId)"
                                 OkText="Tak"
                                 CancelText="Nie">
                         <a style="color:red">Usuń</a>
@@ -1361,7 +1361,7 @@ else
 
     }
 
-    private async Task delRow(long id)
+    private async Task delRow(long id, string rowIdZlecenia)
     {
 
         var response = await Http.DeleteAsync($"api/ZleceniaProdukcyjne/{id}");
@@ -1372,6 +1372,12 @@ else
             {
                 zleceniaProdukcyjne.Remove(zlecenie);
                 await _message.Success("Zlecenie usunięto!");
+            }
+
+            var responselinia = await Http.DeleteAsync($"api/ZleceniaNaLinii/{rowIdZlecenia}/----");
+            if (!responselinia.IsSuccessStatusCode)
+            {
+                Console.WriteLine("Błąd podczas usuwania zlecenia na linii.");
             }
         }
         else
