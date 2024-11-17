@@ -470,7 +470,7 @@ namespace GEORGE.Client.Pages.Schody
                 else
                 {
                     // Jeśli brak stylu tekstu, utwórz nowy styl tekstu
-                    var newTextStyle = new TextStyle(fontFilePath)
+                    var newTextStyle = new TextStyle(fontFilePath, "Arial")
                     {
                         WidthFactor = 1,
                         Height = newTextHeight

@@ -4,8 +4,15 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using AntDesign;
 using GEORGE.Client.Pages.PDF;
 using System.Net;
+using netDxf;
+using System.Globalization;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
+
+// W³¹czenie Invariant Globalization
+AppContext.SetSwitch("System.Globalization.Invariant", true);
+
+
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
@@ -27,6 +34,9 @@ builder.Services.AddScoped<PdfDataParserSzyby>();
 
 builder.Services.AddScoped<PdfDataParserElementy>();
 builder.Services.AddScoped<PdfDataParserElementy>();
+
+await builder.Build().RunAsync();
+
 
 // Konfiguracja niestandardowej weryfikacji certyfikatu
 ServicePointManager.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
