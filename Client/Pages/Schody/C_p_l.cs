@@ -592,9 +592,13 @@ namespace GEORGE.Client.Pages.Schody
             try
             {
                 Console.WriteLine($"Rozpoczęcie zapisu pliku DXF.");
- 
+
+                var headerVariables = new HeaderVariables {AcadVer = DxfVersion.AutoCad2000 };
+                DxfDocument dxf = new(headerVariables);
+
+
                 // Tworzymy nowy dokument DXF
-                DxfDocument dxf = new(DxfVersion.AutoCad2000);
+                //  DxfDocument dxf = new(DxfVersion.AutoCad2000);
 
                 Console.WriteLine($"Załadowanie biblioteki DXF.");
                 // Sprawdzamy, czy lista XLinePoint zawiera punkty
