@@ -163,7 +163,8 @@ else
             <Column Title="ID" @bind-Field="@context.Id" Hidden />
             <Column Title="Typ Dokumentu" @bind-Field="@context.TypZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Numer Zamówienia" @bind-Field="@context.NumerZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
-            <Column Title="Data Produkcji" @bind-Field="@context.DataProdukcji" Style="font-weight:bold;color:red" Format="yyyy-MM-dd" Sortable />
+            <Column Title="Data Montażu" @bind-Field="@context.DataMontazu" Style="font-weight:bold;color:red" Format="yyyy-MM-dd" Sortable />
+            <Column Title="Data Produkcji" @bind-Field="@context.DataProdukcji" Style="font-weight:bold;color:orangered" Format="yyyy-MM-dd" Sortable />
             <Column Title="Data Gotowości" TData="DateTime" DataIndex="DataGotowosci" Style="font-weight:bold" Format="yyyy-MM-dd" Sortable />
             <Column Title="Klient" Width="195" @bind-Field="@context.Klient" Style="font-weight:bold" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Nazwa Produktu" @bind-Field="@context.NazwaProduktu" Sortable Filterable />

@@ -5,12 +5,12 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 	<Version>1.1.0</Version>
-	<AssemblyVersion>1.1.0.1</AssemblyVersion>
-	<FileVersion>1.1.0.1</FileVersion>
+	<AssemblyVersion>1.1.0.2</AssemblyVersion>
+	<FileVersion>1.1.0.2</FileVersion>
 	<InformationalVersion>1.1.0</InformationalVersion>
-    <WasmEnableSimdSupport>false</WasmEnableSimdSupport>
 	<InvariantGlobalization>false</InvariantGlobalization>
-    <BlazorEnableTimeZoneSupport>true</BlazorEnableTimeZoneSupport>
+	<BlazorEnableTimeZoneSupport>true</BlazorEnableTimeZoneSupport>
+	<WasmEnableSimdSupport>false</WasmEnableSimdSupport>
 </PropertyGroup>
 
 
@@ -48,5 +48,9 @@
     <Folder Include="Pages\Gantt\" />
     <Folder Include="wwwroot\src\" />
   </ItemGroup>
+
+  <ItemGroup>
+     <BlazorWebAssemblyIcuData Include="all" />
+   </ItemGroup>
 
 </Project>

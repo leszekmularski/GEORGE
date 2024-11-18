@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -9,6 +9,9 @@
 	<FileVersion>1.1.0.0</FileVersion>
 	<InvariantGlobalization>false</InvariantGlobalization>
     <BlazorEnableTimeZoneSupport>true</BlazorEnableTimeZoneSupport>
+    <SignAssembly>False</SignAssembly>
+    <IncludeSymbols>True</IncludeSymbols>
+    <AnalysisLevel>latest</AnalysisLevel>
   </PropertyGroup>
 
   <ItemGroup>
@@ -36,6 +39,10 @@
     <ProjectReference Include="..\Client\GEORGE.Client.csproj" />
     <ProjectReference Include="..\Shared\GEORGE.Shared.csproj" />
   </ItemGroup>
+  
+  	<ItemGroup>
+		<BlazorWebAssemblyIcuData Include="all" />
+	</ItemGroup>
 
 
 </Project>

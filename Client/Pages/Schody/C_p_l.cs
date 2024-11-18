@@ -9,6 +9,11 @@ using Aspose.ThreeD.Entities;
 using Aspose.ThreeD.Shading;
 using GEORGE.Client.Pages.Drzwi;
 using System.Numerics;
+using netDxf.Blocks;
+using netDxf.Collections;
+using GTE = netDxf.GTE;
+using netDxf.Header;
+using netDxf.Objects;
 
 namespace GEORGE.Client.Pages.Schody
 {
@@ -345,6 +350,12 @@ namespace GEORGE.Client.Pages.Schody
             double endX = startX + deltaX;
             double endY = startY - deltaY;
 
+            double offset20 = Math.Abs(20 / Math.Sin(katRadians));
+           
+            double liniaDol = Math.Abs(20 / Math.Cos(katRadians));
+
+            double liniaDolStart = GlebokoscStopnia - Math.Abs((WysokoscPodniesieniaStopnia - GruboscStopnia - 20) / Math.Sin(katRadians));// to do poprawy!!!-----------------
+
             // Ustaw kolor na zielony i zwiększ grubość linii
             await context.SetStrokeStyleAsync("green");
             await context.SetLineWidthAsync(2);
@@ -353,10 +364,10 @@ namespace GEORGE.Client.Pages.Schody
             await context.BeginPathAsync();
             ClearPathAndAddFinalLineAsync();
             // Punkt początkowy (lewy dolny róg)
-            double leftBottomX = startX - (((SzerokoscOstatniegoStopnia - dlugoscZaczepuX) * Skala) * Math.Sin(katNachylenia * (Math.PI / 180)));
+            double leftBottomX = startX - liniaDolStart * Skala;//startX - (((SzerokoscOstatniegoStopnia - dlugoscZaczepuX) * Skala) * Math.Sin(katNachylenia * (Math.PI / 180)));// to do poprawy!!!-----------------
             double leftBottomY = startY;
-
-            await DrawTextAsync(context, leftBottomX, leftBottomY, $"X:{Math.Round(leftBottomX / Skala, 1)} Y:{Math.Round(leftBottomY / Skala, 1)}");
+            Console.WriteLine($"offset20: {offset20} liniaDol: {liniaDol} leftBottomX: {leftBottomX} liniaDolStart: {liniaDolStart}");
+            //  await DrawTextAsync(context, leftBottomX, leftBottomY, $"X:{Math.Round(leftBottomX / Skala, 1)} Y:{Math.Round(leftBottomY / Skala, 1)}");
 
             await context.MoveToAsync(leftBottomX, leftBottomY);
             AddLineWithPreviousPointAsync(leftBottomX, leftBottomY); // Dodanie linii z lewego do prawego dolnego rogu
@@ -364,10 +375,10 @@ namespace GEORGE.Client.Pages.Schody
             // Linia pozioma (lewy dolny do prawy dolny)
             await context.LineToAsync(startX, startY);
             AddLineWithPreviousPointAsync(startX, startY); // Dodanie linii pionowej
-
+             
             // Linia pionowa (prawy dolny do prawego górnego)
             double rightBottomX = startX;
-            double rightBottomY = startY - (WysokoscPodniesieniaStopnia + wysokoscZaczepuY) * Skala;
+            double rightBottomY = startY - (WysokoscPodniesieniaStopnia + offset20) * Skala; //??????????????????????????????????????????????????????????????????????????????????????????????????
             await context.LineToAsync(rightBottomX, rightBottomY);
             AddLineWithPreviousPointAsync(rightBottomX, rightBottomY); // Dodanie linii skośnej
 
@@ -378,18 +389,14 @@ namespace GEORGE.Client.Pages.Schody
             Console.WriteLine($"przeciwProstokatna: {przeciwProstokatna}  / katNachylenia: {katNachylenia} / Punkt Y: {WysokoscPodniesieniaStopnia + wysokoscZaczepuY}");
 
             // **Skośna linia (od prawego górnego punktu do prawego górnego stopnia)**
-            double rightUpperX = X + 50 * Skala;// + stepWidth;  // Współrzędne prawego górnego rogu ostatniego stopnia
+            double rightUpperX = X + liniaDol * Skala - 50 * Skala;// + stepWidth;  // Współrzędne prawego górnego rogu ostatniego stopnia //??????????????????????????????????????????????????????????????????
             double rightUpperY = YStartStopienGorny - GruboscStopnia * Skala;
 
             // Rysowanie skośnej linii do prawego górnego rogu ostatniego stopnia
-            await context.LineToAsync(rightUpperX, rightUpperY);
+            await context.LineToAsync(rightUpperX, rightUpperY); //Linia równoległa do osi schodów w odległości ~20mm od krawędzi stopnia
             AddLineWithPreviousPointAsync(rightUpperX, rightUpperY); // Dodanie skośnej linii
 
-            //   double xKoniec = rightUpperX + przeciwProstokatna * Math.Cos(katNachylenia * (Math.PI / 180));
-            //   double endYFinal = rightUpperY + przeciwProstokatna * Math.Sin(katNachylenia * (Math.PI / 180));
             double endYFinal = rightUpperY + Math.Sqrt(Math.Pow(przeciwProstokatna, 2) - Math.Pow((WysokoscPodniesieniaStopnia * Skala) * Math.Cos(katNachylenia * (Math.PI / 180)), 2));
-
-            // await context.StrokeAsync();
 
             //********************************************************************************************************************************************************
 
@@ -399,14 +406,12 @@ namespace GEORGE.Client.Pages.Schody
             // Dodanie linii do wydłużonego końca
             double extendedUpperX = rightUpperX + deltaXWydl;
             double extendedUpperY = rightUpperY + deltaYWydl;
-            // await context.LineToAsync(extendedUpperX, extendedUpperY);
-            // AddLineWithPreviousPointAsync( extendedUpperX, extendedUpperY); // Dodanie wydłużonej linii
 
             //********************************************************************************************************************************************************
 
             // Zaczep górny
             double hookX1 = X - dlugoscZaczepuX * Skala;
-            double hookY1 = rightUpperY + deltaYWydl;
+            double hookY1 = rightUpperY;// + deltaYWydl;
             double hookX2 = hookX1;
             double hookY2 = hookY1 + wysokoscZaczepuY * Skala;
             double hookX3 = X;
@@ -419,21 +424,12 @@ namespace GEORGE.Client.Pages.Schody
             await context.LineToAsync(hookX3, hookY3);
             AddLineWithPreviousPointAsync(hookX3, hookY3); // Dodanie poziomej linii zaczepu
 
-            // Linia pozioma na górze
-            // await context.LineToAsync(X, YStartStopienGorny + WysokoscPodniesieniaStopnia * Skala);
-            // AddLineWithPreviousPointAsync(X, YStartStopienGorny + WysokoscPodniesieniaStopnia * Skala); // Dodanie poziomej linii
 
             // Linia końcowa pionowa
             double endXFinal = X;
-            // double endYFinal = YStartStopienGorny + GruboscStopnia * Skala + WysokoscPodniesieniaStopnia * Skala;//--------------------------------------------------------- rightBottomY
 
-            // double endYFinal = 0;//YStartStopienGorny + GruboscStopnia * Skala + (WysokoscPodniesieniaStopnia - wysokoscZaczepuY) * Skala;//--------------------------------------------------------- rightBottomY
-
-            //  endXFinal = xKoniec;
-            //   endYFinal = yKoniec;
-
-            await context.LineToAsync(endXFinal, endYFinal + GruboscStopnia * Skala);
-            AddLineWithPreviousPointAsync(endXFinal, endYFinal + GruboscStopnia * Skala); // Dodanie końcowej pionowej linii
+            await context.LineToAsync(endXFinal, endYFinal + GruboscStopnia * Skala + offset20 * Skala);
+            AddLineWithPreviousPointAsync(endXFinal, endYFinal + GruboscStopnia * Skala + offset20 * Skala); // Dodanie końcowej pionowej linii
 
             // Zamknięcie ścieżki
             await context.ClosePathAsync();
@@ -595,9 +591,12 @@ namespace GEORGE.Client.Pages.Schody
         {
             try
             {
+                Console.WriteLine($"Rozpoczęcie zapisu pliku DXF.");
+ 
                 // Tworzymy nowy dokument DXF
-                DxfDocument dxf = new DxfDocument();
+                DxfDocument dxf = new(DxfVersion.AutoCad2000);
 
+                Console.WriteLine($"Załadowanie biblioteki DXF.");
                 // Sprawdzamy, czy lista XLinePoint zawiera punkty
                 if (XLinePoint != null)
                 {
@@ -610,7 +609,7 @@ namespace GEORGE.Client.Pages.Schody
                             new netDxf.Vector2(linePoint.X2, linePoint.Y2)
                         );
 
-                        if (linePoint.typeLine.ToLower() == "dashed")
+                        if (string.Equals(linePoint.typeLine, "dashed", StringComparison.OrdinalIgnoreCase))
                         {
                             dxfLine.Linetype = Linetype.Dashed;
                         }
@@ -627,18 +626,19 @@ namespace GEORGE.Client.Pages.Schody
                 SetNegativeCoordinates(dxf);
 
                 UpdateDimensionStyleTextHeightAndFitView(dxf, "Standard", 35, "arial.ttf");
-
+                Console.WriteLine($"Ustawienie stylu DXF.");
                 // Zapis pliku DXF do strumienia i pobranie go
 
                 // Zapis pliku DXF do strumienia i pobranie go
                 using (MemoryStream stream = new MemoryStream())
                 {
                     dxf.Save(stream);
-                    string base64String = Convert.ToBase64String(stream.ToArray());
+                    Console.WriteLine($"Rozmiar pliku DXF w bajtach: {stream.Length}");
 
-                    // Wywołanie JavaScript w celu pobrania pliku (w Blazor WebAssembly)
+                    string base64String = Convert.ToBase64String(stream.ToArray());
                     await _jsRuntime.InvokeVoidAsync("downloadFileDXF", $"schody_proste_{Lewe}.dxf", base64String);
                 }
+
 
                 if (XLinePoint != null)
                 {
@@ -716,34 +716,41 @@ namespace GEORGE.Client.Pages.Schody
 
         void UpdateDimensionStyleTextHeightAndFitView(DxfDocument dxf, string dimensionStyleName, double newTextHeight, string fontFilePath)
         {
-            // Sprawdź, czy styl wymiarów istnieje
-            if (dxf.DimensionStyles.TryGetValue(dimensionStyleName, out DimensionStyle dimensionStyle))
+            try
             {
-                // Sprawdź, czy styl tekstu istnieje
-                if (dimensionStyle.TextStyle != null)
+                // Sprawdź, czy styl wymiarów istnieje
+                if (dxf.DimensionStyles.TryGetValue(dimensionStyleName, out DimensionStyle dimensionStyle))
                 {
-                    // Zmieniaj wysokość czcionki
-                    dimensionStyle.TextStyle.WidthFactor = 1;
-                    dimensionStyle.TextStyle.Height = newTextHeight;
+                    // Sprawdź, czy styl tekstu istnieje
+                    if (dimensionStyle.TextStyle != null)
+                    {
+                        // Zmieniaj wysokość czcionki
+                        dimensionStyle.TextStyle.WidthFactor = 1;
+                        dimensionStyle.TextStyle.Height = newTextHeight;
+                    }
+                    else
+                    {
+                        // Jeśli brak stylu tekstu, utwórz nowy styl tekstu
+                        var newTextStyle = new TextStyle(fontFilePath, "Arial")
+                        {
+                            WidthFactor = 1,
+                            Height = newTextHeight
+                        };
+                        dimensionStyle.TextStyle = newTextStyle;
+                    }
                 }
                 else
                 {
-                    // Jeśli brak stylu tekstu, utwórz nowy styl tekstu
-                    var newTextStyle = new TextStyle(fontFilePath, "Arial")
-                    {
-                        WidthFactor = 1,
-                        Height = newTextHeight
-                    };
-                    dimensionStyle.TextStyle = newTextStyle;
+                    Console.WriteLine("Nie znaleziono stylu wymiarów o nazwie: " + dimensionStyleName);
                 }
-            }
-            else
-            {
-                Console.WriteLine("Nie znaleziono stylu wymiarów o nazwie: " + dimensionStyleName);
-            }
 
-            // Automatyczne dopasowanie widoku (ustawienie granic rysunku)
-            FitDrawingInView(dxf);
+                // Automatyczne dopasowanie widoku (ustawienie granic rysunku)
+                FitDrawingInView(dxf);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Błąd:{ex.Message} / {ex.StackTrace}");
+            }
         }
 
         void FitDrawingInView(DxfDocument dxf)
