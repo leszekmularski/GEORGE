@@ -593,8 +593,13 @@ namespace GEORGE.Client.Pages.Schody
             {
                 Console.WriteLine($"Rozpoczęcie zapisu pliku DXF.");
 
-                var headerVariables = new HeaderVariables {AcadVer = DxfVersion.AutoCad2000 };
-                DxfDocument dxf = new(headerVariables);
+                //var headerVariables = new HeaderVariables {AcadVer = DxfVersion.AutoCad2000 };
+
+                //DxfDocument dxf = new(headerVariables);
+                var supportFolders = new SupportFolders(); // lub zgodnie z wymaganiami
+                var drawingVariables = new HeaderVariables();
+
+                DxfDocument dxf = new(drawingVariables, supportFolders);
 
 
                 // Tworzymy nowy dokument DXF
