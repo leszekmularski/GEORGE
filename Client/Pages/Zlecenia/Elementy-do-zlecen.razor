@@ -16,6 +16,8 @@
 @using AntDesign.TableModels
 @using System.ComponentModel.DataAnnotations
 @inject ModalService _modalService
+@using System.Text.RegularExpressions
+@inject IConfirmService _confirmService
 
 
 <!DOCTYPE html>
@@ -24,67 +26,67 @@
     <style>
         /* Styl dla linków */
         .custom-link {
-            color: blue;
+        color: blue;
         }
 
         .custom-linkszy {
-            color: darkblue;
+        color: darkblue;
         }
 
         /* Główna tabela z przewijaniem */
         .highlighted-background {
-            background-color: white;
-            overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
-            max-height: calc(100vh - 55px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 55px */
-            width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 260px */
-            box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu rozmiarów */
-            position: absolute;
-            left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
-            top: 55px; /* Ustawia górną krawędź 55px od góry okna */
+        background-color: white;
+        overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
+        max-height: calc(100vh - 55px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 55px */
+        width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 260px */
+        box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu rozmiarów */
+        position: absolute;
+        left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
+        top: 55px; /* Ustawia górną krawędź 55px od góry okna */
         }
 
         /* Klasa "uwaga" z mocnym podświetleniem */
         .uwaga, .uwaga > td {
-            background-color: #ff4d4d !important; /* Mocny czerwony */
-            color: white !important; /* Biały tekst dla lepszej widoczności */
-            font-weight: bold; /* Pogrubienie tekstu */
-            border: 2px solid red; /* Czerwona ramka */
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Delikatny cień dla głębi */
-            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Płynna zmiana koloru i cienia */
+        background-color: #ff4d4d !important; /* Mocny czerwony */
+        color: white !important; /* Biały tekst dla lepszej widoczności */
+        font-weight: bold; /* Pogrubienie tekstu */
+        border: 2px solid red; /* Czerwona ramka */
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Delikatny cień dla głębi */
+        transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Płynna zmiana koloru i cienia */
         }
 
-            .uwaga:hover, .uwaga:hover > td {
-                background-color: antiquewhite !important; /* Zmiana tła na jasnoróżowy przy najechaniu */
-                color: black !important; /* Tekst zmienia się na czarny przy najechaniu */
-                box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.3); /* Większy cień przy najechaniu */
-                font-size: 1.0em; /* Zachowanie wielkości czcionki */
-            }
+        .uwaga:hover, .uwaga:hover > td {
+        background-color: antiquewhite !important; /* Zmiana tła na jasnoróżowy przy najechaniu */
+        color: black !important; /* Tekst zmienia się na czarny przy najechaniu */
+        box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.3); /* Większy cień przy najechaniu */
+        font-size: 1.0em; /* Zachowanie wielkości czcionki */
+        }
 
         /* Klasa "zamowiono" z wyrazistymi stylami */
         .zamowiono, .zamowiono > td {
-            background-color: lightseagreen !important; /* Wyrazisty zielony */
-            color: black !important; /* Czarny tekst dla kontrastu */
-            font-weight: normal; /* Normalny tekst */
-            border: 1px solid black; /* Czarna ramka */
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Delikatny cień dla głębi */
-            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Płynna zmiana stylów */
+        background-color: lightseagreen !important; /* Wyrazisty zielony */
+        color: black !important; /* Czarny tekst dla kontrastu */
+        font-weight: normal; /* Normalny tekst */
+        border: 1px solid black; /* Czarna ramka */
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Delikatny cień dla głębi */
+        transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Płynna zmiana stylów */
         }
 
-            .zamowiono:hover, .zamowiono:hover > td {
-                background-color: mediumslateblue !important; /* Zmiana tła na fioletowy przy najechaniu */
-                font-size: 1.0em; /* Zachowanie wielkości czcionki */
-            }
+        .zamowiono:hover, .zamowiono:hover > td {
+        background-color: mediumslateblue !important; /* Zmiana tła na fioletowy przy najechaniu */
+        font-size: 1.0em; /* Zachowanie wielkości czcionki */
+        }
 
         /* Klasa "zrealizowano" z zielonym podświetleniem */
         .zrealizowano, .zrealizowano > td {
-            background-color: forestgreen !important; /* Mocny zielony dla zrealizowanych zamówień */
-            color: white; /* Biały tekst dla lepszej widoczności */
+        background-color: forestgreen !important; /* Mocny zielony dla zrealizowanych zamówień */
+        color: white; /* Biały tekst dla lepszej widoczności */
         }
 
-            .zrealizowano:hover, .zrealizowano:hover > td {
-                background-color: mediumslateblue !important; /* Zmiana tła na fioletowy przy najechaniu */
-                font-size: 1.0em; /* Zachowanie wielkości czcionki */
-            }
+        .zrealizowano:hover, .zrealizowano:hover > td {
+        background-color: mediumslateblue !important; /* Zmiana tła na fioletowy przy najechaniu */
+        font-size: 1.0em; /* Zachowanie wielkości czcionki */
+        }
     </style>
 
 
@@ -94,89 +96,89 @@
 
     <script>
         function copyToClipboard(text) {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(function () {
-                    console.log('Text copied to clipboard');
-                }).catch(function (error) {
-                    console.error('Error copying text: ', error);
-                });
-            } else {
-                // Fallback method
-                var textArea = document.createElement("textarea");
-                textArea.value = text;
-                document.body.appendChild(textArea);
-                textArea.select();
-                try {
-                    document.execCommand('copy');
-                    console.log('Text copied to clipboard');
-                } catch (err) {
-                    console.error('Error copying text: ', err);
-                }
-                document.body.removeChild(textArea);
-            }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+        console.log('Text copied to clipboard');
+        }).catch(function (error) {
+        console.error('Error copying text: ', error);
+        });
+        } else {
+        // Fallback method
+        var textArea = document.createElement("textarea");
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+        document.execCommand('copy');
+        console.log('Text copied to clipboard');
+        } catch (err) {
+        console.error('Error copying text: ', err);
+        }
+        document.body.removeChild(textArea);
+        }
         }
 
         function saveAsExcel(jsonData) {
-            const data = JSON.parse(jsonData);
-            const csvRows = [];
+        const data = JSON.parse(jsonData);
+        const csvRows = [];
 
-            // Extract headers
-            const headers = Object.keys(data[0]);
-            csvRows.push(headers.join(','));
+        // Extract headers
+        const headers = Object.keys(data[0]);
+        csvRows.push(headers.join(','));
 
-            // Extract rows
-            for (const row of data) {
-                const values = headers.map(header => {
-                    const escaped = ('' + row[header]).replace(/"/g, '\\"');
-                    return `"${escaped}"`;
-                });
-                csvRows.push(values.join(','));
-            }
+        // Extract rows
+        for (const row of data) {
+        const values = headers.map(header => {
+        const escaped = ('' + row[header]).replace(/"/g, '\\"');
+        return `"${escaped}"`;
+        });
+        csvRows.push(values.join(','));
+        }
 
-            // Create CSV file
-            const csvString = csvRows.join('\n');
-            const blob = new Blob([csvString], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.setAttribute('hidden', '');
-            a.setAttribute('href', url);
-            a.setAttribute('download', 'zamowienia_all.csv');
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+        // Create CSV file
+        const csvString = csvRows.join('\n');
+        const blob = new Blob([csvString], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.setAttribute('hidden', '');
+        a.setAttribute('href', url);
+        a.setAttribute('download', 'zamowienia_all.csv');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
         }
 
         function saveAsExcelSel(jsonData) {
-            const data = JSON.parse(jsonData);
-            const csvRows = [];
+        const data = JSON.parse(jsonData);
+        const csvRows = [];
 
-            // Zdefiniuj nagłówki - unikamy powtórzeń i zachowujemy kolejność zgodnie z C#
-            const headers = ["NazwaProduktu", "NumerKatalogowy", "Typ", "IloscSztuk", "Kolor", "Dlugosc", "Szerokosc", "Wysokosc"];
-            csvRows.push(headers.join(','));
+        // Zdefiniuj nagłówki - unikamy powtórzeń i zachowujemy kolejność zgodnie z C#
+        const headers = ["NazwaProduktu", "NumerKatalogowy", "Typ", "IloscSztuk", "Kolor", "Dlugosc", "Szerokosc", "Wysokosc"];
+        csvRows.push(headers.join(','));
 
-            // Przetwarzaj dane
-            for (const row of data) {
-                const values = headers.map(header => {
-                    // Użyj klucza header do pobrania odpowiedniej wartości z każdego wiersza
-                    const value = row[header] || "";  // Używamy pustego stringa jeśli wartość jest null lub undefined
-                    // Ucieczka znaków podwójnych cudzysłowów i innych specjalnych znaków
-                    const escaped = ('' + value).replace(/"/g, '""');
-                    return `"${escaped}"`;  // Zwróć wartość otoczoną cudzysłowami
-                });
-                csvRows.push(values.join(','));
-            }
+        // Przetwarzaj dane
+        for (const row of data) {
+        const values = headers.map(header => {
+        // Użyj klucza header do pobrania odpowiedniej wartości z każdego wiersza
+        const value = row[header] || "";  // Używamy pustego stringa jeśli wartość jest null lub undefined
+        // Ucieczka znaków podwójnych cudzysłowów i innych specjalnych znaków
+        const escaped = ('' + value).replace(/"/g, '""');
+        return `"${escaped}"`;  // Zwróć wartość otoczoną cudzysłowami
+        });
+        csvRows.push(values.join(','));
+        }
 
-            // Stworzenie pliku CSV
-            const csvString = csvRows.join('\n');
-            const blob = new Blob([csvString], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.setAttribute('hidden', '');
-            a.setAttribute('href', url);
-            a.setAttribute('download', 'elementyZamowienia.csv');
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+        // Stworzenie pliku CSV
+        const csvString = csvRows.join('\n');
+        const blob = new Blob([csvString], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.setAttribute('hidden', '');
+        a.setAttribute('href', url);
+        a.setAttribute('download', 'elementyZamowienia.csv');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
         }
 
     </script>
@@ -199,6 +201,12 @@
                 <Tooltip Placement="@Placement.BottomCenter" Title="@uwagaKopiuj">
                     <Button Type="reset" Icon="@IconType.Fill.Copy" OnClick="@(CopyElementyToClipboard)" />
                 </Tooltip>
+                <Tooltip Placement="@Placement.BottomCenter" Title="Kopiuj zaznaczone dane do schowka">
+                    <Button Type="reset" Icon="@IconType.Fill.Copy" OnClick="@(CopyElementyChekToClipboard)" />
+                </Tooltip>
+                <Tooltip Placement="@Placement.Top" Title="Wklej skopiowane pozycje z innego zamówienia!">
+                    <Button type="button" class="btn btn-sm btn-light" Icon="@IconType.Outline.PaperClip" OnClick="@(async ()=> { await PasteElementyFromClipboard(ConfirmButtons.YesNo); })"></Button>
+                </Tooltip>
                 <Button Type="reset" OnClick="@(ExportToExcel)">
                     Zapisz do pliku CSV - wszystko
                 </Button>
@@ -211,12 +219,12 @@
             }
             <Tooltip Placement="@Placement.BottomCenter" Style="width: 50px;" Title="Ilość widocznych rekordów">
                 <AntDesign.InputNumber TValue="int"
-                                       @bind-Value="_pageSize"
-                                       Min="2"
-                                       Max="25"
-                                       Bordered="false"
-                                       OnChange="@(e => OnClickChange(e))"
-                                       Style="width: 100%; padding: 0; border-radius: 4px; color:navajowhite" />
+                @bind-Value="_pageSize"
+                Min="2"
+                Max="25"
+                Bordered="false"
+                OnChange="@(e => OnClickChange(e))"
+                Style="width: 100%; padding: 0; border-radius: 4px; color:navajowhite" />
             </Tooltip>
 
             <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
@@ -239,9 +247,9 @@
                     <Divider>Ilość pozycji do zamówienia: @elementyDoZlecen.Count(), suma sztuk: @elementyDoZlecen.Sum(x => x.ElemetZamDoZlecen.IloscSztuk).ToString()</Divider>
 
                     <Table TItem="ElemetZamDoZlecenWithProducent" DataSource="elementyDoZlecen" PageSize="@_pageSize"
-                           Loading="_loading" ScrollX="2450" Size="TableSize.Small" RowKey="x => x?.ElemetZamDoZlecen?.Id"
-                           @bind-SelectedRows="_items"
-                           RowClassName="@(x =>
+                    Loading="_loading" ScrollX="2450" Size="TableSize.Small" RowKey="x => x?.ElemetZamDoZlecen?.Id"
+                    @bind-SelectedRows="_items"
+                    RowClassName="@(x =>
                             x?.Data?.ElemetZamDoZlecen?.Opis?.ToUpper().StartsWith("SPRAWDZ") == true ? "uwaga" :
                             (x?.Data?.ElemetZamDoZlecen?.CzyZamowiono == true ? (x?.Data?.ElemetZamDoZlecen?.DataDostarczenia > DateTime.MinValue ? "zrealizowano" :
                             "zamowiono") :
@@ -283,18 +291,18 @@
                                 @if (boolAdmin || boolZmiana)
                                 {
                                     <Popconfirm Placement="@Placement.Left" Title="Czy chcesz edytować pozycję?"
-                                                OnConfirm="()=> editRow(context.ElemetZamDoZlecen.Id)"
-                                                OkText="Tak"
-                                                CancelText="Nie">
+                                    OnConfirm="()=> editRow(context.ElemetZamDoZlecen.Id)"
+                                    OkText="Tak"
+                                    CancelText="Nie">
                                         <a>Edytuj</a>
                                     </Popconfirm>
                                 }
                                 @if (boolAdmin || boolUsuniecia)
                                 {
                                     <Popconfirm Placement="@Placement.Left" Title="Czy chcesz usunąć pozycję?"
-                                                OnConfirm="()=> deleteRow(context.ElemetZamDoZlecen.Id)"
-                                                OkText="Tak"
-                                                CancelText="Nie">
+                                    OnConfirm="()=> deleteRow(context.ElemetZamDoZlecen.Id)"
+                                    OkText="Tak"
+                                    CancelText="Nie">
                                         <a style="color:red">Usuń</a>
                                     </Popconfirm>
                                 }
@@ -396,7 +404,7 @@
         </div>
     </div>
 
-    </body>
+</body>
 </html>
 
 @code {
@@ -621,6 +629,146 @@
         uwagaKopiuj = "Dane skopiowano do schowka";
 
         await _message.Success("Dane skopiowano do schowka");
+    }
+
+    private async Task CopyElementyChekToClipboard()
+    {
+        // Sprawdzenie, czy są zaznaczone elementy
+        if (_items != null && _items.Any())
+        {
+            var selectedData = string.Join("\n", _items.Select(k => new
+            {
+                RowIdProducent = RemoveWhitespace(k.ElemetZamDoZlecen.RowIdProducent),
+                NazwaProduktu = RemoveWhitespace(k.ElemetZamDoZlecen.NazwaProduktu),
+                NumerKatalogowy = RemoveWhitespace(k.ElemetZamDoZlecen.NumerKatalogowy),
+                Typ = RemoveWhitespace(k.ElemetZamDoZlecen.Typ),
+                IloscSztuk = k.ElemetZamDoZlecen.IloscSztuk,
+                Kolor = k.ElemetZamDoZlecen.Kolor,
+                Dlugosc = k.ElemetZamDoZlecen.Dlugosc,
+                Szerokosc = k.ElemetZamDoZlecen.Szerokosc,
+                Wysokosc = k.ElemetZamDoZlecen.Wysokosc,
+            }));
+
+            await JSRuntime.InvokeVoidAsync("copyToClipboard", selectedData);
+
+            uwagaKopiuj = "Dane skopiowano do schowka";
+
+            await _message.Success("Zaznaczone dane skopiowano do schowka");
+        }
+        else
+        {
+            // Można dodać komunikat dla użytkownika, że nie wybrano żadnych elementów
+            Console.WriteLine("Brak zaznaczonych elementów do eksportu.");
+        }
+    }
+
+    private async Task PasteElementyFromClipboard(ConfirmButtons confirmButtons)
+    {
+        // Treść komunikatu i tytuł
+        var content = "Czy wkleić skopiowane pozycje z innego zamówienia?";
+        var title = "Uwaga!!!";
+
+        // Wyświetlenie komunikatu potwierdzającego
+        var confirmResult = await _confirmService.Show(content, title, confirmButtons);
+
+        // Sprawdzenie wyniku potwierdzenia
+
+        if (confirmResult == ConfirmResult.No)
+        {
+            return;
+        }
+        // Pobranie danych ze schowka
+        var daneZeSchowka = await JSRuntime.InvokeAsync<string>("navigator.clipboard.readText");
+
+        daneZeSchowka = daneZeSchowka.Trim();
+
+        if (!daneZeSchowka.StartsWith("{") || !daneZeSchowka.EndsWith("}"))
+        {
+            await _message.Info("Niepoprawny format danych!!!"); 
+            return;
+        }
+
+        // Parsowanie tekstu do listy obiektów ElemetZamDoZlecen
+        var elementyDoZlecenC = new List<ElemetZamDoZlecen>();
+
+        // Regex do dopasowania właściwości w wierszu
+        var regex = new Regex(@"\s*(\w+)\s*=\s*(.*?)(?:,|$)");
+
+        // Iteracja po każdej linii
+        foreach (var linia in daneZeSchowka.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var element = new ElemetZamDoZlecen();
+
+            foreach (Match match in regex.Matches(linia))
+            {
+                string key = match.Groups[1].Value.Trim();
+                string value = match.Groups[2].Value.Trim().Trim('\"');
+
+                // Przypisanie wartości do odpowiednich właściwości
+                switch (key)
+                {
+                    case "RowIdProducent":
+                        element.RowIdProducent = value;
+                        break;
+                    case "NazwaProduktu":
+                        element.NazwaProduktu = value;
+                        break;
+                    case "NumerKatalogowy":
+                        element.NumerKatalogowy = value;
+                        break;
+                    case "Typ":
+                        element.Typ = value;
+                        break;
+                    case "IloscSztuk":
+                        element.IloscSztuk = float.TryParse(value, out var ilosc) ? ilosc : 0;
+                        break;
+                    case "Kolor":
+                        element.Kolor = value;
+                        break;
+                    case "Dlugosc":
+                        element.Dlugosc = float.TryParse(value, out var dlugosc) ? dlugosc : 0;
+                        break;
+                    case "Szerokosc":
+                        element.Szerokosc = float.TryParse(value, out var szerokosc) ? szerokosc : 0;
+                        break;
+                    case "Wysokosc":
+                        element.Wysokosc = float.TryParse(value, out var wysokosc) ? wysokosc : 0;
+                        break;
+                }
+            }
+
+            element.RowIdZlecenia = RowIdZlecenia;
+
+            elementyDoZlecenC.Add(element);
+
+        }
+
+        // Wysłanie danych za pomocą HttpClient
+        using var httpClient = new HttpClient();
+
+        try
+        {
+           // var response = await httpClient.PostAsJsonAsync($"api/ElementyDoZlecen", elementyDoZlecenC);
+            var response = await Http.PostAsJsonAsync($"api/elementyDoZlecen/save-all/{false}", elementyDoZlecenC);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Console.WriteLine("Dane zostały pomyślnie zapisane.");
+                elementyDoZlecen = await Http.GetFromJsonAsync<List<ElemetZamDoZlecenWithProducent>>($"api/ElementyDoZlecen/rowid/{RowIdZlecenia}");
+                if (elementyDoZlecen != null) oryginalElementyDoZlecen = elementyDoZlecen.DeepCopyList();
+                await _message.Success($"Dane zostały pomyślnie zapisane. ilość nowych wpisów: {elementyDoZlecenC.Count()}");
+            }
+            else
+            {
+                Console.WriteLine($"Błąd podczas zapisywania danych: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Wystąpił błąd: {ex.Message}");
+            await _message.Error($"Wystąpił błąd: {ex.Message}");
+        }
+
     }
 
     private async void Handle(bool value, long idr)

@@ -12,7 +12,7 @@
 
 <style>
     .form-item-small-margin {
-        margin-bottom: 8px; /* Możesz dostosować tę wartość */
+    margin-bottom: 8px; /* Możesz dostosować tę wartość */
     }
 </style>
 
@@ -27,10 +27,10 @@ else
             <TabPane Key="0" Tab="Pozycje zamówienia">
                 <FormItem Required Label="Wybierz producenta (dostawcę)">
                     <Select Mode="default"
-                            DataSource="@_producenci"
-                            @bind-Value="@context.ElemetZamDoZlecen.RowIdProducent"
-                            LabelName="@nameof(Producent.NazwaProducenta)"
-                            ValueName="@nameof(Producent.RowId)">
+                    DataSource="@_producenci"
+                    @bind-Value="@context.ElemetZamDoZlecen.RowIdProducent"
+                    LabelName="@nameof(Producent.NazwaProducenta)"
+                    ValueName="@nameof(Producent.RowId)">
                     </Select>
                 </FormItem>
                 <AntDesign.FormItem Label="Nazwa produktu">
@@ -41,18 +41,18 @@ else
                 </AntDesign.FormItem>
 
                 <AntDesign.FormItem Label="Jednostka">
-                  @*   <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Jednostka" Placeholder="Podaj jednostkę (szt. kpl. litr, metr)" /> *@
-                   <Select TItem="Item"  TItemValue="string"
-                                            DataSource="@_itemsJednostki"
-                                            @bind-Value="@elementyZamowienia.ElemetZamDoZlecen.Jednostka"
-                        ValueName="@nameof(Item.Value)"
-                        LabelName="@nameof(Item.Name)"
-                        DefaultActiveFirstOption
-		                Style="width: 200px;">
-                   @*  <ItemTemplate>
+                    @*   <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Jednostka" Placeholder="Podaj jednostkę (szt. kpl. litr, metr)" /> *@
+                    <Select TItem="Item"  TItemValue="string"
+                    DataSource="@_itemsJednostki"
+                    @bind-Value="@elementyZamowienia.ElemetZamDoZlecen.Jednostka"
+                    ValueName="@nameof(Item.Value)"
+                    LabelName="@nameof(Item.Name)"
+                    DefaultActiveFirstOption
+                    Style="width: 200px;">
+                        @*  <ItemTemplate>
                         <span>@((contextX as Item).DisplayName)</span>
                     </ItemTemplate> *@
-                </Select> 
+                    </Select> 
                 </AntDesign.FormItem>
 
                 <AntDesign.FormItem Label="Kolor">
@@ -149,7 +149,7 @@ else
                     </AntDesign.Col>
                 </AntDesign.Row>
             </TabPane>
-            
+
             <TabPane Key="4" Tab="Wylicz okapiki">
                 <AntDesign.FormItem Label="Zapisz wynik obliczeń" Class="form-item-small-margin">
                     <Button OnClick="ZapiszWynikObliczenOkapik">Kliknij aby system wyliczył ilość sztang okapików</Button>
@@ -159,7 +159,7 @@ else
                     <Button OnClick="ZapiszGrupyDlugoscOkapik">Wylicz pogrupowane długości i ilości</Button>
                 </AntDesign.FormItem>
                 <h5 style="color:blue">@((MarkupString)wyliczonoOkapikow)</h5>
-             </TabPane>
+            </TabPane>
 
             <TabPane Key="5" Tab="Pozostałe informacje">
                 <AntDesign.FormItem Label="Opis">
@@ -171,33 +171,33 @@ else
                 <AntDesign.FormItem Label="Wybierz plik załącznika #1">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <Select Mode="default"
-                                DataSource="@pliki"
-                                @bind-Value="@elementyZamowienia.ElemetZamDoZlecen.RowIdPliku"
-                                LabelName="@nameof(Plik.OryginalnaNazwaPliku)"
-                                AllowClear
-                                ValueName="@nameof(Plik.RowId)">
+                        DataSource="@pliki"
+                        @bind-Value="@elementyZamowienia.ElemetZamDoZlecen.RowIdPliku"
+                        LabelName="@nameof(Plik.OryginalnaNazwaPliku)"
+                        AllowClear
+                        ValueName="@nameof(Plik.RowId)">
                         </Select>
 
                         <Button Type="@ButtonType.Primary"
-                                Icon="@IconType.Outline.Download"
-                                Size="@ButtonSize.Default"
-                                OnClick="() => OnFileChange(elementyZamowienia.ElemetZamDoZlecen.RowIdPliku)" />
+                        Icon="@IconType.Outline.Download"
+                        Size="@ButtonSize.Default"
+                        OnClick="() => OnFileChange(elementyZamowienia.ElemetZamDoZlecen.RowIdPliku)" />
                     </div>
                 </AntDesign.FormItem>
                 <AntDesign.FormItem Label="Wybierz plik załącznika #2">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <Select Mode="default"
-                                DataSource="@pliki"
-                                @bind-Value="@elementyZamowienia.ElemetZamDoZlecen.RowIdPlikuDodatkowy"
-                                LabelName="@nameof(Plik.OryginalnaNazwaPliku)"
-                                AllowClear
-                                ValueName="@nameof(Plik.RowId)">
+                        DataSource="@pliki"
+                        @bind-Value="@elementyZamowienia.ElemetZamDoZlecen.RowIdPlikuDodatkowy"
+                        LabelName="@nameof(Plik.OryginalnaNazwaPliku)"
+                        AllowClear
+                        ValueName="@nameof(Plik.RowId)">
                         </Select>
 
                         <Button Type="@ButtonType.Primary"
-                                Icon="@IconType.Outline.Download"
-                                Size="@ButtonSize.Default"
-                                OnClick="() => OnFileChange(elementyZamowienia.ElemetZamDoZlecen.RowIdPlikuDodatkowy)" />
+                        Icon="@IconType.Outline.Download"
+                        Size="@ButtonSize.Default"
+                        OnClick="() => OnFileChange(elementyZamowienia.ElemetZamDoZlecen.RowIdPlikuDodatkowy)" />
                     </div>
                 </AntDesign.FormItem>
             </TabPane>
@@ -383,6 +383,7 @@ else
 
     public async Task DodajUwSprawdz()
     {
+        if (elementyZamowienia == null) return;
         elementyZamowienia.ElemetZamDoZlecen.Opis = $"Sprawdzić!! - Zapisano: {DateTime.Now}";
         await Task.CompletedTask;
     }
