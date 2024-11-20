@@ -201,7 +201,7 @@
                 <Tooltip Placement="@Placement.BottomCenter" Title="@uwagaKopiuj">
                     <Button Type="reset" Icon="@IconType.Fill.Copy" OnClick="@(CopyElementyToClipboard)" />
                 </Tooltip>
-                <Tooltip Placement="@Placement.BottomCenter" Title="Kopiuj zaznaczone dane do schowka">
+                <Tooltip Placement="@Placement.BottomCenter" Title="Kopiuj zaznaczone dane do schowka. Te dane można wkleić w innym zleceniu.">
                     <Button Type="reset" Icon="@IconType.Fill.Copy" OnClick="@(CopyElementyChekToClipboard)" />
                 </Tooltip>
                 <Tooltip Placement="@Placement.Top" Title="Wklej skopiowane pozycje z innego zamówienia!">
@@ -682,7 +682,7 @@
 
         daneZeSchowka = daneZeSchowka.Trim();
 
-        if (!daneZeSchowka.StartsWith("{") || !daneZeSchowka.EndsWith("}"))
+        if (!daneZeSchowka.StartsWith("{") || !daneZeSchowka.EndsWith("}") || !daneZeSchowka.Contains("RowIdProducent"))
         {
             await _message.Info("Niepoprawny format danych!!!"); 
             return;
