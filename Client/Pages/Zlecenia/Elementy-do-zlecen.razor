@@ -247,7 +247,7 @@
                     <Divider>Ilość pozycji do zamówienia: @elementyDoZlecen.Count(), suma sztuk: @elementyDoZlecen.Sum(x => x.ElemetZamDoZlecen.IloscSztuk).ToString()</Divider>
 
                     <Table TItem="ElemetZamDoZlecenWithProducent" DataSource="elementyDoZlecen" PageSize="@_pageSize"
-                    Loading="_loading" ScrollX="2450" Size="TableSize.Small" RowKey="x => x?.ElemetZamDoZlecen?.Id"
+                    Loading="_loading" ScrollX="2950" Size="TableSize.Small" RowKey="x => x?.ElemetZamDoZlecen?.Id"
                     @bind-SelectedRows="_items"
                     RowClassName="@(x =>
                             x?.Data?.ElemetZamDoZlecen?.Opis?.ToUpper().StartsWith("SPRAWDZ") == true ? "uwaga" :
@@ -259,14 +259,13 @@
                             <Selection Width="25px" />
                             <PropertyColumn Title="ID" Property="c=>c.ElemetZamDoZlecen.Id" Hidden />
                             <PropertyColumn Width="250" Title="Nazwa Producenta" Property="c=>c.ProducentIMiejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable />
-                            <PropertyColumn Title="Nazwa Produktu" Width="220" Property="c=>c.ElemetZamDoZlecen.NazwaProduktu" Sortable Filterable></PropertyColumn>@* DefaultSortOrder="SortDirection.Ascending" *@
-                            <PropertyColumn Width="160" Title="Numer Katalogowy" Property="c=>c.ElemetZamDoZlecen.NumerKatalogowy" Sortable Filterable />
+                            <PropertyColumn Title="Nazwa Produktu" Width="280" Property="c=>c.ElemetZamDoZlecen.NazwaProduktu" Sortable Filterable></PropertyColumn>@* DefaultSortOrder="SortDirection.Ascending" *@
+                            <PropertyColumn Width="250" Title="Numer Katalogowy" Property="c=>c.ElemetZamDoZlecen.NumerKatalogowy" Sortable Filterable />
                             <PropertyColumn Width="160" Title="Kolor" Property="c=>c.ElemetZamDoZlecen.Kolor" Sortable />
                             <PropertyColumn Width="160" Title="Typ" Property="c=>c.ElemetZamDoZlecen.Typ" Sortable />
-                            <PropertyColumn Title="Jednostka" Property="c=>c.ElemetZamDoZlecen.Jednostka" />
+                            <PropertyColumn Width="60" Title="Jednostka" Property="c=>c.ElemetZamDoZlecen.Jednostka" />
                             <PropertyColumn Title="Ilość" Width="50px" Property="c=>c.ElemetZamDoZlecen.IloscSztuk" />
                             <PropertyColumn Width="95" Title="Data Zamówienia" Property="c=>c.ElemetZamDoZlecen.DataZamowienia" Format="yyyy-MM-dd" />
-                            <PropertyColumn Width="160" Title="Opis" Property="c=>c.ElemetZamDoZlecen.Opis" />
                             <Column Title="Czy zam." TData="ElemetZamDoZlecenWithProducent">
                                 <Template>
                                     <Checkbox @bind-Checked="@context.ElemetZamDoZlecen.CzyZamowiono" OnChange="(e)=>Handle(e, context.ElemetZamDoZlecen.Id)" Disabled="isNotDisabled" />
@@ -277,12 +276,15 @@
                                     <Checkbox @bind-Checked="@context.ElemetZamDoZlecen.PozDostarczono" OnChange="(e)=>HandleDost(e, context.ElemetZamDoZlecen.Id, context.ElemetZamDoZlecen.RowIdZlecenia, context.ElemetZamDoZlecen.RowIdProducent)" Disabled="isNotDisabled" />
                                 </Template>
                             </Column>
+
+                            <PropertyColumn Width="160" Title="Opis" Property="c=>c.ElemetZamDoZlecen.Opis" />
+  
                             <PropertyColumn Title="Szerokość" Property="c=>c.ElemetZamDoZlecen.Szerokosc" />
                             <PropertyColumn Title="Wysokość" Property="c=>c.ElemetZamDoZlecen.Wysokosc" />
                             <PropertyColumn Title="Długość" Property="c=>c.ElemetZamDoZlecen.Dlugosc" />
                             <PropertyColumn Title="Objętość" Property="c=>c.ElemetZamDoZlecen.Objetosc" />
                             <PropertyColumn Title="Uwagi" Width="460" Property="c=>c.ElemetZamDoZlecen.Uwagi" />
-                            <PropertyColumn Width="105" Title="Autor zmian" Property="c=>c.ElemetZamDoZlecen.KtoZapisal" />
+                            <PropertyColumn Width="195" Title="Autor zmian" Property="c=>c.ElemetZamDoZlecen.KtoZapisal" />
 
                             <!-- Przykład kolumny dla daty z formatowaniem -->
                             <PropertyColumn Width="95" Title="Data Zapisu" Property="c=>c.ElemetZamDoZlecen.DataZapisu" Format="yyyy-MM-dd HH:mm:ss" />
@@ -393,7 +395,7 @@
                 <div class="modal-body">
                     @if (elementyDoZlecen != null && elementyZamowienia.ElemetZamDoZlecen != null && elementyZamowienia.ProducenciPodwykonawcy != null)
                     {
-                        <NowaPozZamowienia elementyZamowienia="elementyZamowienia" elementyDoZlecen="elementyDoZlecen" OnButtonClicked="CloseModal" />
+                        <NowaPozZamowienia elementyZamowienia="elementyZamowienia" elementyDoZlecen="elementyDoZlecen" OnButtonClicked="CloseModal" user="user"/>
                     }
                     else
                     {
@@ -452,6 +454,8 @@
         _pageSize = Convert.ToInt32((await LocalStorage.GetStringAsync("elementy_ile_widocznych")));
         if (_pageSize == 0) _pageSize = 6;
 
+        await Laduj_Uprawnienia();
+
         elementyZamowienia = new ElemetZamDoZlecenWithProducent
             {
                 ElemetZamDoZlecen = new ElemetZamDoZlecen
@@ -461,7 +465,7 @@
                     DataZamowienia = DateTime.MinValue,
                     DataRealizacji = DateTime.MinValue,
                     DataZapisu = DateTime.Now,
-                    KtoZapisal = user
+                    KtoZapisal = "Autor zmiany: " + user
                 },
                 ProducenciPodwykonawcy = new ProducenciPodwykonawcy
                 {
@@ -475,8 +479,6 @@
         {
             AppState.SomeData = "";
         }
-
-        await Laduj_Uprawnienia();
 
         if (string.IsNullOrWhiteSpace(RowIdZlecenia))
         {
@@ -569,6 +571,7 @@
                 NumerKatalogowy = RemoveWhitespace(k.ElemetZamDoZlecen.NumerKatalogowy),
                 Typ = RemoveWhitespace(k.ElemetZamDoZlecen.Typ),
                 IloscSztuk = k.ElemetZamDoZlecen.IloscSztuk,
+                Jednostka = k.ElemetZamDoZlecen.Jednostka,
                 Kolor = k.ElemetZamDoZlecen.Kolor,
                 Dlugosc = k.ElemetZamDoZlecen.Dlugosc,
                 Szerokosc = k.ElemetZamDoZlecen.Szerokosc,
@@ -596,6 +599,7 @@
                 NumerKatalogowy = RemoveWhitespace(k.ElemetZamDoZlecen.NumerKatalogowy),
                 Typ = RemoveWhitespace(k.ElemetZamDoZlecen.Typ),
                 IloscSztuk = k.ElemetZamDoZlecen.IloscSztuk,
+                Jednostka = k.ElemetZamDoZlecen.Jednostka,
                 Kolor = k.ElemetZamDoZlecen.Kolor,
                 Dlugosc = k.ElemetZamDoZlecen.Dlugosc,
                 Szerokosc = k.ElemetZamDoZlecen.Szerokosc,
@@ -643,6 +647,7 @@
                 NumerKatalogowy = RemoveWhitespace(k.ElemetZamDoZlecen.NumerKatalogowy),
                 Typ = RemoveWhitespace(k.ElemetZamDoZlecen.Typ),
                 IloscSztuk = k.ElemetZamDoZlecen.IloscSztuk,
+                Jednostka = k.ElemetZamDoZlecen.Jednostka,
                 Kolor = k.ElemetZamDoZlecen.Kolor,
                 Dlugosc = k.ElemetZamDoZlecen.Dlugosc,
                 Szerokosc = k.ElemetZamDoZlecen.Szerokosc,
@@ -722,6 +727,9 @@
                     case "IloscSztuk":
                         element.IloscSztuk = float.TryParse(value, out var ilosc) ? ilosc : 0;
                         break;
+                    case "Jednostka":
+                        element.Jednostka = value; 
+                        break;
                     case "Kolor":
                         element.Kolor = value;
                         break;
@@ -738,6 +746,8 @@
             }
 
             element.RowIdZlecenia = RowIdZlecenia;
+
+            element.KtoZapisal = "Autor zmiany (CTRL+V): " + user;
 
             elementyDoZlecenC.Add(element);
 
@@ -1003,7 +1013,7 @@
                             DataZamowienia = DateTime.Now,
                             DataRealizacji = DateTime.Now.AddDays(14),
                             DataZapisu = DateTime.Now,
-                            KtoZapisal = user
+                            KtoZapisal = "Autor zmiany: " + user
                         },
                         DodatkowaInformacja = "Dane zaimportowano z PDF" // Zamiast Uwagi
                     };
@@ -1157,7 +1167,7 @@
                     DataZamowienia = DateTime.MinValue,
                     DataRealizacji = DateTime.MinValue,
                     DataZapisu = DateTime.Now,
-                    KtoZapisal = user
+                    KtoZapisal = "Autor zmiany: " + user
                 },
                 ProducenciPodwykonawcy = new ProducenciPodwykonawcy
                 {

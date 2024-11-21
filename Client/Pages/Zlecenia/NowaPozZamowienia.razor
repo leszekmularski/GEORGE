@@ -223,6 +223,9 @@ else
     [Parameter]
     public EventCallback OnButtonClicked { get; set; }
 
+    [Parameter]
+    public string? user { get; set; }
+
     [Inject] private AppState AppState { get; set; } = default!;
 
     private List<ProducenciPodwykonawcy>? _producenci;
@@ -267,6 +270,8 @@ else
         };
 
         _producenci = await Http.GetFromJsonAsync<List<ProducenciPodwykonawcy>>($"api/ProducenciPodwykonawcy");
+
+        if (elementyZamowienia != null && elementyZamowienia.ElemetZamDoZlecen != null)  elementyZamowienia.ElemetZamDoZlecen.KtoZapisal = "Autor ostatniej zmiany: " + user + " [" + DateTime.Now + "]";
 
     }
 
@@ -314,6 +319,7 @@ else
         }
         else
         {
+            if (elementyZamowienia != null && elementyZamowienia.ElemetZamDoZlecen != null) elementyZamowienia.ElemetZamDoZlecen.KtoZapisal = "Autor ostatniej zmiany: " + user + " [" + DateTime.Now + "]";
             response = await Http.PutAsJsonAsync($"api/ElementyDoZlecen/{elementyZamowienia.ElemetZamDoZlecen.Id}", elementyZamowienia.ElemetZamDoZlecen);
             // if (elementyDoZlecen != null) oryginalElementyDoZlecen = elementyDoZlecen.DeepCopyList();
         }
