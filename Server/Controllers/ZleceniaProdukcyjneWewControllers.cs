@@ -65,6 +65,41 @@ namespace GEORGE.Server.Controllers
 
             try
             {
+                // Utwórz nowy rekord w tabeli ZleceniaProdukcyjneZmianyStatusu
+                var zmianaStatusu = new ZleceniaProdukcyjneZmianyStatusu
+                {
+                    RowId = Guid.NewGuid().ToString(),
+                    RowIdZlecenia = zlecenieWew.RowId.ToString(),
+                    TypZamowienia = zlecenieWew.TypZamowienia,
+                    NumerZamowienia = zlecenieWew.NumerZamowienia,
+                    DataZapisu = DateTime.Now,
+                    OstatniaZmiana = "Zmiana: " + DateTime.Now.ToLongDateString(),
+                    KtoZapisal = zlecenieWew.KtoZapisal,
+                    NumerZlecenia = zlecenieWew.NumerZlecenia,
+                    Klient = zlecenieWew.Klient,
+                    Miejscowosc = zlecenieWew.Miejscowosc,
+                    Adres = zlecenieWew.Adres,
+                    Telefon = zlecenieWew.Telefon,
+                    Email = "",
+                    NazwaProduktu = zlecenieWew.NazwaProduktu,
+                    Ilosc = zlecenieWew.Ilosc,
+                    Wartosc = zlecenieWew.Wartosc,
+                    DataProdukcji = zlecenieWew.DataProdukcji,
+                    DataWysylki = zlecenieWew.DataWysylki,
+                    DataMontazu = zlecenieWew.DataMontazu,
+                    ZlecenieWewnatrzne = true,
+                    DataGotowosci = zlecenieWew.DataGotowosci,
+                    DataRozpProdukcji = zlecenieWew.DataRozpProdukcji,
+                    NumerUmowy = zlecenieWew.NumerUmowy,
+                    JednostkiNaZlecenie = zlecenieWew.JednostkiNaZlecenie,
+                    KodProduktu = zlecenieWew.KodProduktu,
+                    Tags = zlecenieWew.Tags,
+                    NazwaProduktu2 = zlecenieWew.NazwaProduktu2,
+                };
+
+                // Dodaj rekord do kontekstu
+                _context.ZleceniaProdukcyjneZmianyStatusu.Add(zmianaStatusu);
+
                 await _context.SaveChangesAsync();
                 return Ok();
             }

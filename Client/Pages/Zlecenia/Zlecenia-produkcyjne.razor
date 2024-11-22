@@ -89,7 +89,7 @@
 
     <div style="display: flex; align-items: center;padding-left:15px">
 
-        <Text style="margin-right: 5px;">Ilość widocznych rekordów</Text>
+        <Text style="margin-right: 5px;">Ilość widocznych rekordów na stronie</Text>
 
         <AntDesign.InputNumber TValue="int"
                                @bind-Value="iloscRekordow"
@@ -422,6 +422,9 @@ else
                                     <AntDesign.FormItem Label="Kto Zapisał">
                                         <AntDesign.Input @bind-Value="zlecenie.KtoZapisal" Required />
                                     </AntDesign.FormItem>
+                                    <a class="nav-link" href=@($"Zlecenia-produkcyjneHistoriaZmian/{zlecenie.RowId}") >
+                                        <span class="oi oi-header" aria-hidden="true"></span> Historia zmian
+                                    </a>
                                 </AntDesign.Col>
                             </AntDesign.Row>
                         </TabPane>
@@ -442,7 +445,7 @@ else
 
                     <AntDesign.Row>
                         <AntDesign.Col Span="24" class="d-flex justify-content-end">
-                            @if (!blokuDwuKlik && (boolAdmin || boolZmian))
+                            @if (!blokuDwuKlik && (boolAdmin || boolZmiana))
                             {
                                 <AntDesign.Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</AntDesign.Button>
                             }
@@ -1552,7 +1555,7 @@ else
     private async Task HandleSelected(InputFileChangeEventArgs e)
     {
 
-        if (!boolAdmin && !boolZmian)
+        if (!boolAdmin && !boolZmiana)
         {
             bladZapisuPliku = $"Nie masz uprawnień do zapisu plików";
             await OpenWithPlacement(NotificationPlacement.BottomRight, bladZapisuPliku);
@@ -1642,13 +1645,13 @@ else
     //await Laduj_Uprawnienia();
 
     private bool boolOdczyt = false;
-    private bool boolZmian = false;
+    private bool boolZmiana = false;
     private bool boolNowy = false;
     private bool boolUsuniecia = false;
     private bool boolAdmin = false;
     private string RowIdPracownika = "";
     private string? user;
-    private bool isNotDisabled => !boolZmian;
+    private bool isNotDisabled => !boolZmiana;
     private List<UprawnieniaPracownikaViewModel>? uprawnienia;
 
     private async Task Laduj_Uprawnienia()
@@ -1692,7 +1695,7 @@ else
                     if (szuk != null)
                     {
                         boolOdczyt = szuk.Odczyt;
-                        boolZmian = szuk.Zmiana;
+                        boolZmiana = szuk.Zmiana;
                         boolUsuniecia = szuk.Usuniecie;
                         boolAdmin = szuk.Administrator;
                         boolNowy = szuk.Zapis;

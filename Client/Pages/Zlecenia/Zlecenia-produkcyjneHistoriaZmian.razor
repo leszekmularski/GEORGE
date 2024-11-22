@@ -1,0 +1,412 @@
+﻿@page "/Zlecenia-produkcyjneHistoriaZmian/{RowIdZlecenia}"
+@using GEORGE.Shared.Models
+@using GEORGE.Shared.Class
+@inject HttpClient Http
+@inject ModalService ModalService;
+@inject ConfirmService ComfirmService;
+@inject IMessageService _message
+@inject NavigationManager NavigationManager
+@using AntDesign
+@using System.Net;
+@inject Utilities.ILocalStorage LocalStorage
+@inject DialogService DialogService
+@using System.Text.Json;
+@inject IJSRuntime JSRuntime
+@inject INotificationService _notice
+
+<style>
+    .custom-link {
+    color: blue;
+    }
+
+    .custom-linkszy {
+    color: darkblue;
+    }
+
+    .highlighted-background {
+    background-color: white;
+    overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
+    max-height: calc(100vh - 155px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 155px */
+    width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 260px */
+    box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu wysokości */
+    position: absolute;
+    left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
+    top: 155px; /* Ustawia górną krawędź 155px od góry okna */
+    }
+
+    .zlealizowano, .zlealizowano > td {
+    background-color: forestgreen !important;
+    }
+
+    .zlealizowano:hover, .zlealizowano:hover > td {
+    background-color: lime !important;
+    font-size: 1.0em;
+    }
+
+    .zlecenie, .zlecenie > td {
+    background-color: lightblue !important;
+    }
+
+    .zlecenie:hover, .zlecenie:hover > td {
+    background-color: lime !important;
+    font-size: 1.0em;
+    }
+
+    .zlecenieNaN, .zlecenieNaN > td {
+    background-color: white !important;
+    }
+
+    .zlecenieNaN:hover, .zlecenieNaN:hover > td {
+    background-color: lime !important;
+    font-size: 1.0em;
+    }
+
+    /* Nowe klasy dla PDF i DXF */
+    .pdf-class {
+    background-color: lightyellow; /* Kolor tła dla plików PDF */
+    }
+
+    .dxf-class {
+    background-color: lightgreen; /* Kolor tła dla plików DXF */
+    }
+
+    .pdf-class:hover, .pdf-class:hover > td {
+    background-color: lime !important;
+    font-size: 1.01em;
+    }
+
+    .dxf-class:hover, .dxf-class:hover > td {
+    background-color: lime !important;
+    font-size: 1.01em;
+    }
+
+</style>
+
+<PageTitle>Historia zmian w zleceniu produkcyjnym</PageTitle>
+
+<div style="display: flex; align-items: center; gap: 10px;">
+    @*   <h3 style="margin: 0;">Zlecenia Produkcyjne</h3> *@
+
+    <div style="display: flex; align-items: center;padding-left:15px">
+
+        <Text style="margin-right: 5px;">Ilość widocznych rekordów</Text>
+
+        <AntDesign.InputNumber TValue="int"
+        @bind-Value="iloscRekordow"
+        Min="2"
+        Max="250"
+        Bordered="false"
+        OnChange="@(e => OnClickChange(e))"
+        Style="width: 100px; padding: 0; border-radius: 4px;" />
+    </div>
+
+
+</div>
+
+<Divider Style="font-weight:bold; font-size:large"> 
+    Zlecenia Produkcyjne - Historia zmian
+    @if (zleceniaProdukcyjneZmianyStatus != null) 
+    { 
+        @($" [Ilość zarejestrowanych zmian: {zleceniaProdukcyjneZmianyStatus.Count()}]") 
+    }
+    <Button class="btn-refresh" Icon="@IconType.Outline.Reload" OnClick="LadujDane"></Button>
+</Divider>
+
+@if (zleceniaProdukcyjneZmianyStatus == null)
+{
+    <Spin Style="margin-left:47%" size="large" />
+    <p style="margin-left:40%"><em>Czekaj na załadowanie danych...</em></p>
+}
+else
+{
+    <div class="highlighted-background">
+        <Table TItem="ZleceniaProdukcyjneZmianyStatusu" DataSource="@zleceniaProdukcyjneZmianyStatus"
+        RowClassName="@(x => x.Data.ZlecenieWewnatrzne == false ? "zlecenie" : "zlecenieNaN" )"
+        ScrollX="1950" PageSize="@iloscRekordow" Size="TableSize.Small">
+            <Column Width="230" Title="Status" TData="string">
+                @if (context.Tags != null)
+                {
+                    @foreach (var tag in context.Tags)
+                    {
+                        <Tag Color="@(tag.Contains("szyb") ? "volcano" : tag.Contains("do produkcji")  ? "geekblue" : "green")">@tag</Tag>
+                    }
+                }
+                else
+                {
+                    <Tag Color="black">Brak danych</Tag>
+                }
+            </Column>
+            <Column Title="ID" @bind-Field="@context.Id" Hidden />
+            <Column Title="Typ Dokumentu" @bind-Field="@context.TypZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
+            <Column Title="Numer Zamówienia" @bind-Field="@context.NumerZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
+            <Column Title="Data Montażu" @bind-Field="@context.DataMontazu" Style="font-weight:bold;color:red" Format="yyyy-MM-dd" Sortable />
+            <Column Title="Data Produkcji" @bind-Field="@context.DataProdukcji" Style="font-weight:bold;color:orangered" Format="yyyy-MM-dd" Sortable />
+            <Column Title="Data Gotowości" TData="DateTime" DataIndex="DataGotowosci" Style="font-weight:bold" Format="yyyy-MM-dd" Sortable />
+            <Column Title="Klient" Width="195" @bind-Field="@context.Klient" Style="font-weight:bold" Sortable OnFilter="(a, b) => a == b" Filterable />
+            <Column Title="Nazwa Produktu" @bind-Field="@context.NazwaProduktu" Sortable Filterable />
+            <Column Title="Adres" @bind-Field="@context.Adres" Sortable OnFilter="(a, b) => a == b" Filterable />
+            <Column Title="Miejscowość" @bind-Field="@context.Miejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable />
+            <Column Title="Telefon" @bind-Field="@context.Telefon" Sortable />
+            <Column Title="Email" @bind-Field="@context.Email" Sortable />
+            <Column Title="CWZ" @bind-Field="@context.JednostkiNaZlecenie" Style="width:30px" Sortable />
+
+            <!-- Przykład kolumny dla danych zagnieżdżonych -->
+            <Column Title="Numer Zlecenia" TData="string" DataIndex="NumerZlecenia" Style="width:38px" />
+
+            <!-- Przykład kolumny dla daty z formatowaniem -->
+            <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd" Sortable />
+
+        </Table>
+    </div>
+
+}
+
+@code {
+    [Parameter]
+    public string? RowIdZlecenia { get; set; }
+
+    [CascadingParameter]
+    private MainLayout? Layout { get; set; }
+
+    [Inject] private AppState AppState { get; set; } = default!;
+
+    [Inject]
+    private NavigationManager? navigationManager { get; set; }
+
+    private List<ZleceniaProdukcyjneZmianyStatusu>? zleceniaProdukcyjneZmianyStatus;
+
+    private string rowIdClick = "";
+
+    private ZleceniaProdukcyjneZmianyStatusu zlecenie = new ZleceniaProdukcyjneZmianyStatusu();
+
+    private bool czyZamowienie = true;
+
+    private bool czekajNaUsuniecie = false;
+
+    private AutoCompleteOption? selectItemProdukt;
+
+    ObjectValueProduktOption[]? optionsProdukt;
+
+    int iloscRekordow = 6;
+
+    string[] _valueFiltr = new[] { "Zaplanowane", "Nie zaplanowane" };
+    string[] plainOptions = { "Zaplanowane", "Nie zaplanowane" };
+
+    List<UploadFileItem> fileList = new List<UploadFileItem>();
+    IList<IBrowserFile> files = new List<IBrowserFile>();
+
+    private bool blokojFiltr = true;
+
+    private int iloscTygodniDodaj = 8;
+
+    protected override async Task OnInitializedAsync()
+    {
+        iloscRekordow = Convert.ToInt32((await LocalStorage.GetStringAsync("zlecenie_ile_widocznych")));
+        if (iloscRekordow == 0) iloscRekordow = 6;
+
+        await Laduj_Uprawnienia();
+
+        await SearchProdukt();
+
+        AppState.SomeData = "";
+
+        await LadujDane();
+
+    }
+
+    // protected override async Task OnParametersSetAsync()
+    // {
+    //     Console.WriteLine($"RowIdZlecenia (OnParametersSetAsync): {RowIdZlecenia}");
+    //     await LadujDane();
+    // }
+
+
+    private async Task LadujDane()
+    {
+        if (string.IsNullOrEmpty(RowIdZlecenia))
+        {
+            Console.WriteLine("RowIdZlecenia jest null lub pusty.");
+            return;
+        }
+
+        var response = await Http.GetAsync($"api/ZleceniaProdukcyjneZmianyStatusu/{RowIdZlecenia}");
+        if (response.IsSuccessStatusCode)
+        {
+            var jsonString = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Odpowiedź JSON: {jsonString}");
+            zleceniaProdukcyjneZmianyStatus = JsonSerializer.Deserialize<List<ZleceniaProdukcyjneZmianyStatusu>>(jsonString);
+        }
+        else
+        {
+            Console.WriteLine($"Błąd API: {response.StatusCode}, {await response.Content.ReadAsStringAsync()}");
+        }
+    }
+
+
+    private async Task OnClickChange(int e)
+    {
+        Console.WriteLine("Zapisano ilość widocznych" + e);
+        await LocalStorage.SaveStringAsync("zlecenie_ile_widocznych", e.ToString());
+    }
+
+    private void OnSelectedItemChangedHandler(TypZamowienia value)
+    {
+        try
+        {
+            Console.WriteLine($"selected: ${value?.Name}");
+
+            if (value?.Name == "Zlecenie")
+            {
+                czyZamowienie = false;
+                if (zlecenie.DataGotowosci == DateTime.MinValue) zlecenie.DataGotowosci = DateTime.Now;
+            }
+            else
+            {
+                czyZamowienie = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message}/ {ex.StackTrace}");
+            zleceniaProdukcyjneZmianyStatus = new List<ZleceniaProdukcyjneZmianyStatusu>();
+        }
+    }
+
+    private async Task OnSelectionChangeProdukt(AutoCompleteOption item)
+    {
+        selectItemProdukt = item;
+
+        Console.WriteLine("selectItemPowiat.Value" + selectItemProdukt.Value);
+
+        await Task.CompletedTask; 
+
+    }
+
+    private async Task SearchProdukt()
+    {
+
+        try
+        {
+
+            var listaprodukt = await Http.GetFromJsonAsync<List<string>>("/api/ZlecenieProdukt");
+
+            if (listaprodukt != null)
+            {
+                optionsProdukt = listaprodukt.Select(kod => new ObjectValueProduktOption()
+                    {
+                        value = kod.ToString()
+                    }).ToArray();
+
+                zlecenie.NazwaProduktu = zlecenie.NazwaProduktu;
+
+            }
+
+
+        }
+        catch (Exception)
+        {
+            Console.WriteLine("Metoda -  SearchPowiat");
+        }
+    }
+
+    //await Laduj_Uprawnienia();
+
+    private bool boolOdczyt = false;
+    private bool boolZmiana = false;
+    private bool boolNowy = false;
+    private bool boolUsuniecia = false;
+    private bool boolAdmin = false;
+    private string RowIdPracownika = "";
+    private string? user;
+    private bool isNotDisabled => !boolZmiana;
+    private List<UprawnieniaPracownikaViewModel>? uprawnienia;
+
+    private async Task Laduj_Uprawnienia()
+    {
+        user = await LocalStorage.GetStringAsync("user");
+
+        if (string.IsNullOrEmpty(user))
+        {
+            //NavigationManager.NavigateTo($"", true);
+            return;
+        }
+
+        string nazwaTabeli = "ZleceniaProdukcyjneZmianyStatusu";
+
+        Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");
+
+        try
+        {
+            uprawnienia = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"/api/ZwrocSatus/{user}/{nazwaTabeli}");
+        }
+        catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            Console.WriteLine("Brak danych!!!");
+            await _message.Error("Brak danych - status użytkownika");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            await _message.Error(ex.Message);
+        }
+
+        if (uprawnienia != null)
+        {
+            if (uprawnienia.Count > 0)
+            {
+                var znalezioneElementy = uprawnienia.Where(uprawnienie => uprawnienie.TableName == nazwaTabeli);
+                Console.WriteLine("Znaleziono uprawnienia dla użytkownika: " + user + " w tabeli: " + nazwaTabeli + " ilość rekordów: " + znalezioneElementy.Count());
+                if (znalezioneElementy.Any())
+                {
+                    var szuk = znalezioneElementy.FirstOrDefault(x => x.TableName == nazwaTabeli);
+                    if (szuk != null)
+                    {
+                        boolOdczyt = szuk.Odczyt;
+                        boolZmiana = szuk.Zmiana;
+                        boolUsuniecia = szuk.Usuniecie;
+                        boolAdmin = szuk.Administrator;
+                        boolNowy = szuk.Zapis;
+                        RowIdPracownika = szuk.RowId;
+                    }
+                }
+            }
+        }
+    }
+
+    public class ResponseModel
+    {
+        public string? name { get; set; }
+        public string? status { get; set; }
+        public string? url { get; set; }
+        public string? thumbUrl { get; set; }
+    }
+
+    class TypZamowienia
+    {
+        public string? Value { get; set; }
+        public string? Name { get; set; }
+        public string? Role { get; set; }
+    }
+
+    public class ObjectValueProduktOption
+    {
+        public string? value { get; set; }
+
+        public override string ToString()
+        {
+            return $"{value}";
+        }
+    }
+
+    Func<object, object, bool> CompareWith = (a, b) =>
+       {
+           if (a is ObjectValueProduktOption o1 && b is ObjectValueProduktOption o2)
+           {
+               return o1.value == o2.value;
+           }
+           else
+           {
+               return false;
+           }
+       };
+}

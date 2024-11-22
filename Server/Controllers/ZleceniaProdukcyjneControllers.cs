@@ -65,7 +65,44 @@ namespace GEORGE.Server.Controllers
 
             try
             {
+                // Utwórz nowy rekord w tabeli ZleceniaProdukcyjneZmianyStatusu
+                var zmianaStatusu = new ZleceniaProdukcyjneZmianyStatusu
+                {
+                    RowId = Guid.NewGuid().ToString(),
+                    RowIdZlecenia = zlecenie.RowId.ToString(),
+                    TypZamowienia = zlecenie.TypZamowienia, 
+                    NumerZamowienia = zlecenie.NumerZamowienia,
+                    DataZapisu = DateTime.Now,
+                    OstatniaZmiana = "Zmiana: " + DateTime.Now.ToLongDateString(),
+                    KtoZapisal = zlecenie.KtoZapisal, 
+                    NumerZlecenia = zlecenie.NumerZlecenia,
+                    Klient = zlecenie.Klient,
+                    Miejscowosc = zlecenie.Miejscowosc,
+                    Adres = zlecenie.Adres,
+                    Telefon = zlecenie.Telefon,
+                    Email = zlecenie.Email,
+                    NazwaProduktu = zlecenie.NazwaProduktu,
+                    Ilosc = zlecenie.Ilosc,
+                    Wartosc = zlecenie.Wartosc,
+                    DataProdukcji = zlecenie.DataProdukcji,
+                    DataWysylki = zlecenie.DataWysylki,
+                    DataMontazu = zlecenie.DataMontazu,
+                    ZlecenieWewnatrzne = false,
+                    DataGotowosci = zlecenie.DataGotowosci,
+                    DataRozpProdukcji = zlecenie.DataRozpProdukcji,
+                    NumerUmowy =zlecenie.NumerUmowy,
+                    JednostkiNaZlecenie = zlecenie.JednostkiNaZlecenie,
+                    KodProduktu = zlecenie.KodProduktu,
+                    Tags = zlecenie.Tags,
+                    NazwaProduktu2 = zlecenie.NazwaProduktu2,
+                };
+
+                // Dodaj rekord do kontekstu
+                _context.ZleceniaProdukcyjneZmianyStatusu.Add(zmianaStatusu);
+
+                // Zapisz zmiany
                 await _context.SaveChangesAsync();
+
                 return Ok();
             }
             catch (DbUpdateConcurrencyException ex)
@@ -81,6 +118,7 @@ namespace GEORGE.Server.Controllers
                 }
             }
         }
+
 
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteZlecenieProdukcyjneAsync(long id)
