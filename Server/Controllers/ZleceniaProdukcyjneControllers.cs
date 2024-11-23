@@ -65,40 +65,49 @@ namespace GEORGE.Server.Controllers
 
             try
             {
-                // Utwórz nowy rekord w tabeli ZleceniaProdukcyjneZmianyStatusu
-                var zmianaStatusu = new ZleceniaProdukcyjneZmianyStatusu
+                // Pobierz aktualny stan zlecenia z bazy danych
+                var existingZlecenie = await _context.ZleceniaProdukcyjne.AsNoTracking().FirstOrDefaultAsync(z => z.Id == id);
+                if (existingZlecenie != null)
                 {
-                    RowId = Guid.NewGuid().ToString(),
-                    RowIdZlecenia = zlecenie.RowId.ToString(),
-                    TypZamowienia = zlecenie.TypZamowienia, 
-                    NumerZamowienia = zlecenie.NumerZamowienia,
-                    DataZapisu = DateTime.Now,
-                    OstatniaZmiana = "Zmiana: " + DateTime.Now.ToLongDateString(),
-                    KtoZapisal = zlecenie.KtoZapisal, 
-                    NumerZlecenia = zlecenie.NumerZlecenia,
-                    Klient = zlecenie.Klient,
-                    Miejscowosc = zlecenie.Miejscowosc,
-                    Adres = zlecenie.Adres,
-                    Telefon = zlecenie.Telefon,
-                    Email = zlecenie.Email,
-                    NazwaProduktu = zlecenie.NazwaProduktu,
-                    Ilosc = zlecenie.Ilosc,
-                    Wartosc = zlecenie.Wartosc,
-                    DataProdukcji = zlecenie.DataProdukcji,
-                    DataWysylki = zlecenie.DataWysylki,
-                    DataMontazu = zlecenie.DataMontazu,
-                    ZlecenieWewnatrzne = false,
-                    DataGotowosci = zlecenie.DataGotowosci,
-                    DataRozpProdukcji = zlecenie.DataRozpProdukcji,
-                    NumerUmowy =zlecenie.NumerUmowy,
-                    JednostkiNaZlecenie = zlecenie.JednostkiNaZlecenie,
-                    KodProduktu = zlecenie.KodProduktu,
-                    Tags = zlecenie.Tags,
-                    NazwaProduktu2 = zlecenie.NazwaProduktu2,
-                };
+                    if (!AreZleceniaEqual(existingZlecenie, zlecenie))
+                    {
+                        // Utwórz nowy rekord w tabeli ZleceniaProdukcyjneZmianyStatusu
+                        var zmianaStatusu = new ZleceniaProdukcyjneZmianyStatusu
+                        {
+                            RowId = Guid.NewGuid().ToString(),
+                            RowIdZlecenia = zlecenie.RowId.ToString(),
+                            TypZamowienia = zlecenie.TypZamowienia,
+                            NumerZamowienia = zlecenie.NumerZamowienia,
+                            DataZapisu = DateTime.Now,
+                            OstatniaZmiana = "Zmiana: " + DateTime.Now.ToLongDateString(),
+                            KtoZapisal = zlecenie.KtoZapisal,
+                            NumerZlecenia = zlecenie.NumerZlecenia,
+                            Klient = zlecenie.Klient,
+                            Miejscowosc = zlecenie.Miejscowosc,
+                            Adres = zlecenie.Adres,
+                            Telefon = zlecenie.Telefon,
+                            Email = zlecenie.Email,
+                            NazwaProduktu = zlecenie.NazwaProduktu,
+                            Ilosc = zlecenie.Ilosc,
+                            Wartosc = zlecenie.Wartosc,
+                            DataProdukcji = zlecenie.DataProdukcji,
+                            DataWysylki = zlecenie.DataWysylki,
+                            DataMontazu = zlecenie.DataMontazu,
+                            ZlecenieWewnatrzne = false,
+                            DataGotowosci = zlecenie.DataGotowosci,
+                            DataRozpProdukcji = zlecenie.DataRozpProdukcji,
+                            NumerUmowy = zlecenie.NumerUmowy,
+                            JednostkiNaZlecenie = zlecenie.JednostkiNaZlecenie,
+                            KodProduktu = zlecenie.KodProduktu,
+                            Tags = zlecenie.Tags,
+                            NazwaProduktu2 = zlecenie.NazwaProduktu2,
+                        };
 
-                // Dodaj rekord do kontekstu
-                _context.ZleceniaProdukcyjneZmianyStatusu.Add(zmianaStatusu);
+                        // Dodaj rekord do kontekstu
+                        _context.ZleceniaProdukcyjneZmianyStatusu.Add(zmianaStatusu);
+
+                    }
+                }
 
                 // Zapisz zmiany
                 await _context.SaveChangesAsync();
@@ -119,6 +128,29 @@ namespace GEORGE.Server.Controllers
             }
         }
 
+        private bool AreZleceniaEqual(ZleceniaProdukcyjne existing, ZleceniaProdukcyjne updated)
+        {
+            return existing.TypZamowienia == updated.TypZamowienia &&
+                   existing.NumerZamowienia == updated.NumerZamowienia &&
+                   existing.Klient == updated.Klient &&
+                   existing.Miejscowosc == updated.Miejscowosc &&
+                   existing.Adres == updated.Adres &&
+                   existing.Telefon == updated.Telefon &&
+                   existing.Email == updated.Email &&
+                   existing.NazwaProduktu == updated.NazwaProduktu &&
+                   existing.Ilosc == updated.Ilosc &&
+                   existing.Wartosc == updated.Wartosc &&
+                   existing.DataProdukcji == updated.DataProdukcji &&
+                   existing.DataWysylki == updated.DataWysylki &&
+                   existing.DataMontazu == updated.DataMontazu &&
+                   existing.DataGotowosci == updated.DataGotowosci &&
+                   existing.DataRozpProdukcji == updated.DataRozpProdukcji &&
+                   existing.NumerUmowy == updated.NumerUmowy &&
+                   existing.JednostkiNaZlecenie == updated.JednostkiNaZlecenie &&
+                   existing.KodProduktu == updated.KodProduktu &&
+                   existing.Tags == updated.Tags &&
+                   existing.NazwaProduktu2 == updated.NazwaProduktu2;
+        }
 
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteZlecenieProdukcyjneAsync(long id)

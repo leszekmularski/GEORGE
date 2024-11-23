@@ -8,33 +8,51 @@ using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// 1. Dodanie serwisów do kontenera
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
-// Configure Kestrel to use the settings from appsettings.json
+// Konfiguracja Kestrel z ustawieniami z appsettings.json
 builder.WebHost.ConfigureKestrel((context, options) =>
 {
-    var kestrelOptions = context.Configuration.GetSection("Kestrel");
-    options.Configure(kestrelOptions);
+    var kestrelSection = context.Configuration.GetSection("Kestrel");
+    options.Configure(kestrelSection);
 });
 
-// Enable HTTPS Redirection
+// Wymuszenie przekierowania na HTTPS
 builder.Services.AddHttpsRedirection(options =>
 {
     options.RedirectStatusCode = StatusCodes.Status308PermanentRedirect;
-    options.HttpsPort = 5001; // Port, na którym nas³uchuje HTTPS
+    options.HttpsPort = 5001; // Port HTTPS
 });
 
+// Konfiguracja Entity Framework z SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+);
 
+// Konfiguracja logowania
+builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.SetMinimumLevel(LogLevel.Debug);
 
+// Konfiguracja obs³ugi plików statycznych (obs³uga specyficznych rozszerzeñ)
+builder.Services.Configure<StaticFileOptions>(options =>
+{
+    options.ContentTypeProvider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider
+    {
+        Mappings =
+        {
+            [".dwg"] = "application/acad",
+            [".dxf"] = "application/acad",
+        }
+    };
+});
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// 2. Œrodkowe oprogramowanie (Middleware)
+// Obs³uga œrodowiska
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
@@ -45,28 +63,20 @@ else
     app.UseHsts();
 }
 
-// Enable HTTPS Redirection
+// Wymuszenie HTTPS
 app.UseHttpsRedirection();
 
+// Obs³uga plików statycznych
 app.UseBlazorFrameworkFiles();
-//app.UseStaticFiles();
+app.UseStaticFiles();
 
-app.UseStaticFiles(new StaticFileOptions
-{
-    ContentTypeProvider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider
-    {
-        Mappings =
-        {
-            [".dwg"] = "application/acad",
-            [".dxf"] = "application/acad",
-        }
-    }
-});
-
-app.UseAuthorization();
-
+// Routing
 app.UseRouting();
 
+// Obs³uga autoryzacji
+app.UseAuthorization();
+
+// Mapowanie endpointów
 app.MapRazorPages();
 app.MapControllers();
 app.MapFallbackToFile("index.html");

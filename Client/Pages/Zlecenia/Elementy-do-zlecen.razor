@@ -188,7 +188,7 @@
 
     <Layout class="highlighted-background">
         <Header Style="height:50%;">
-            <h6 style="color:yellow; padding-top:5px">Zamówione elementy do zlecenia: @dotyczyZlecenia</h6>
+            <h6 style="color:yellow; padding-top:5px">Zamówione elementy do: @dotyczyZlecenia</h6>
             @if (boolAdmin || boolZmiana)
             {
                 <Button Type="primary" OnClick="@(ShowDialogAddNew)">
@@ -198,6 +198,9 @@
 
             @if (elementyDoZlecen != null && elementyDoZlecen.Count > 0)
             {
+                <Tooltip Placement="@Placement.BottomCenter" Title="Wygeneruj zamówioenie i wyslij pocztą elektroniczną.">
+                    <Button Type="reset" Icon="@IconType.Fill.Mail" OnClick="@(SendElementChekToEmail)" />
+                </Tooltip>
                 <Tooltip Placement="@Placement.BottomCenter" Title="@uwagaKopiuj">
                     <Button Type="reset" Icon="@IconType.Fill.Copy" OnClick="@(CopyElementyToClipboard)" />
                 </Tooltip>
@@ -617,6 +620,42 @@
 
         // Usuwamy tabulatory i podwójne spacje
         return System.Text.RegularExpressions.Regex.Replace(input, @"\s+", " ").Trim();
+    }
+
+    private async Task SendElementChekToEmail()
+    {
+        if (elementyDoZlecen == null || elementyDoZlecen.Count == 0)
+        {
+            await _message.Warning("Brak danych do wysłania.");
+            return;
+        }
+
+        // Tworzenie nagłówków wiadomości
+        var emailSubject = "Zamówienie z firmy GEORGE z dnia: " + DateTime.Now.ToShortDateString();
+
+        var emailBody =
+        "Nazwa Produktu\tNumer Katalogowy\tIlość\tSzerokość\tWysokość\n" +
+        "--------------\t-----------------\t-----\t---------\t--------\n" +
+        string.Join("\n", elementyDoZlecen.Select(k =>
+            $"{k.ElemetZamDoZlecen.NazwaProduktu}\t" +
+            $"{k.ElemetZamDoZlecen.NumerKatalogowy}\t" +
+            $"{k.ElemetZamDoZlecen.IloscSztuk}\t" +
+            $"{k.ElemetZamDoZlecen.Szerokosc}\t" +
+            $"{k.ElemetZamDoZlecen.Wysokosc}"
+        ));
+
+        // HTML w mailto jest ograniczone — najlepiej użyć SMTP
+        var encodedSubject = Uri.EscapeDataString(emailSubject);
+        var encodedBody = Uri.EscapeDataString(emailBody);
+
+        // Wyświetl dane w konsoli, aby upewnić się, że wszystko działa
+        Console.WriteLine(emailBody);
+
+        // Dla mailto HTML będzie problematyczny, dlatego warto przejść na SMTP
+        var mailtoLink = $"mailto:?subject={encodedSubject}&body={encodedBody}";
+        await JSRuntime.InvokeVoidAsync("window.open", mailtoLink);
+
+        await _message.Success("Otworzono domyślną aplikację pocztową.");
     }
 
 

@@ -1,12 +1,13 @@
-﻿using GEORGE.Shared.Models;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
+using GEORGE.Shared.Models;
+using System.Net;
+using GEORGE.Shared.ViewModels;
 
 namespace GEORGE.Server.Controllers
 {
-    [ApiController]
     [Route("api/[controller]")]
+    [ApiController]
     public class ZleceniaProdukcyjneZmianyStatusuController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -19,16 +20,34 @@ namespace GEORGE.Server.Controllers
         }
 
         [HttpGet("{rowIdZlecenia}")]
-        public async Task<ActionResult<List<ZleceniaProdukcyjneZmianyStatusu>>> GetZleceniaProdukcyjneStatusAsync(string rowIdZlecenia)
+        public async Task<ActionResult<List<ZleceniaProdukcyjne>>> GetZleceniaProdukcyjneStatusAsync(string rowIdZlecenia)
         {
-            var result = await _context.ZleceniaProdukcyjneZmianyStatusu
-                                       .Where(x => x.RowIdZlecenia == rowIdZlecenia)
-                                       .OrderByDescending(e => e.DataZapisu)
-                                       .ToListAsync();
+            if (string.IsNullOrWhiteSpace(rowIdZlecenia))
+            {
+                return BadRequest("RowIdZlecenia nie może być pusty.");
+            }
 
-            //Console.WriteLine($"RowIdZlecenia: {rowIdZlecenia}, Znalezione rekordy: {result.Count}");
-            return result;
+            try
+            {
+                var result = await _context.ZleceniaProdukcyjneZmianyStatusu
+                                           .Where(x => x.RowIdZlecenia == rowIdZlecenia)
+                                           .OrderByDescending(e => e.DataZapisu)
+                                           .ToListAsync();
+
+                //if (!result.Any())
+                //{
+                //    return NotFound($"Brak wyników dla rowIdZlecenia: {rowIdZlecenia}.");
+                //}
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Wystąpił błąd podczas pobierania statusów zlecenia.");
+                return StatusCode(500, "Wystąpił błąd serwera.");
+            }
         }
+
 
 
 

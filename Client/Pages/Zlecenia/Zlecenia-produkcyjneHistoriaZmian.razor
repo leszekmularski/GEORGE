@@ -109,7 +109,7 @@
     { 
         @($" [Ilość zarejestrowanych zmian: {zleceniaProdukcyjneZmianyStatus.Count()}]") 
     }
-    <Button class="btn-refresh" Icon="@IconType.Outline.Reload" OnClick="LadujDane"></Button>
+    <Button class="btn-refresh" Icon="@IconType.Outline.Reload" OnClick="LadujDaneAsync"></Button>
 </Divider>
 
 @if (zleceniaProdukcyjneZmianyStatus == null)
@@ -156,6 +156,17 @@ else
             <!-- Przykład kolumny dla daty z formatowaniem -->
             <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd" Sortable />
 
+            <ActionColumn Title="Akcja" Width="100" Fixed="right">
+                @if (boolAdmin || boolUsuniecia)
+                {
+                    <Popconfirm Placement="@Placement.Left" Title="Czy chcesz usunąć pozycję?"
+                    OnConfirm="()=> delRow(context.Id, context.RowId)"
+                    OkText="Tak"
+                    CancelText="Nie">
+                        <a style="color:red">Usuń</a>
+                    </Popconfirm>
+                }
+            </ActionColumn>
         </Table>
     </div>
 
@@ -210,38 +221,53 @@ else
 
         AppState.SomeData = "";
 
-        await LadujDane();
+        await LadujDaneAsync();
 
     }
 
-    // protected override async Task OnParametersSetAsync()
-    // {
-    //     Console.WriteLine($"RowIdZlecenia (OnParametersSetAsync): {RowIdZlecenia}");
-    //     await LadujDane();
-    // }
-
-
-    private async Task LadujDane()
+    private async Task LadujDaneAsync()
     {
-        if (string.IsNullOrEmpty(RowIdZlecenia))
+        if (string.IsNullOrWhiteSpace(RowIdZlecenia))
         {
             Console.WriteLine("RowIdZlecenia jest null lub pusty.");
             return;
         }
 
-        var response = await Http.GetAsync($"api/ZleceniaProdukcyjneZmianyStatusu/{RowIdZlecenia}");
-        if (response.IsSuccessStatusCode)
+        try
         {
-            var jsonString = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"Odpowiedź JSON: {jsonString}");
-            zleceniaProdukcyjneZmianyStatus = JsonSerializer.Deserialize<List<ZleceniaProdukcyjneZmianyStatusu>>(jsonString);
+            zleceniaProdukcyjneZmianyStatus = await Http.GetFromJsonAsync<List<ZleceniaProdukcyjneZmianyStatusu>>($"api/ZleceniaProdukcyjneZmianyStatusu/{RowIdZlecenia}");
         }
-        else
+        catch (Exception ex)
         {
-            Console.WriteLine($"Błąd API: {response.StatusCode}, {await response.Content.ReadAsStringAsync()}");
+            Console.WriteLine($"Wystąpił błąd: {ex.Message}");
         }
     }
 
+    bool blokujDell = false;
+    private async Task delRow(long id, string rowIdZlecenia)
+    {
+        if (blokujDell) return;
+
+        blokujDell = true;
+
+        var response = await Http.DeleteAsync($"api/ZleceniaProdukcyjneZmianyStatusu/{id}");
+        if (response.IsSuccessStatusCode)
+        {
+            var zlecenie = zleceniaProdukcyjneZmianyStatus.FirstOrDefault(z => z.Id == id);
+            if (zlecenie != null)
+            {
+                zleceniaProdukcyjneZmianyStatus.Remove(zlecenie);
+                await _message.Success("Pozycję Zlecenie Historia usunięto!", 1);
+            }
+
+        }
+        else
+        {
+            Console.WriteLine("Błąd podczas usuwania zlecenia historia.");
+            await _message.Error("Błąd podczas usuwania zlecenia historia");
+        }
+        blokujDell = false;
+    }
 
     private async Task OnClickChange(int e)
     {

@@ -66,39 +66,48 @@ namespace GEORGE.Server.Controllers
             try
             {
                 // Utwórz nowy rekord w tabeli ZleceniaProdukcyjneZmianyStatusu
-                var zmianaStatusu = new ZleceniaProdukcyjneZmianyStatusu
+                var existingZlecenie = await _context.ZleceniaProdukcyjneWew.AsNoTracking().FirstOrDefaultAsync(z => z.Id == id);
+                if (existingZlecenie != null)
                 {
-                    RowId = Guid.NewGuid().ToString(),
-                    RowIdZlecenia = zlecenieWew.RowId.ToString(),
-                    TypZamowienia = zlecenieWew.TypZamowienia,
-                    NumerZamowienia = zlecenieWew.NumerZamowienia,
-                    DataZapisu = DateTime.Now,
-                    OstatniaZmiana = "Zmiana: " + DateTime.Now.ToLongDateString(),
-                    KtoZapisal = zlecenieWew.KtoZapisal,
-                    NumerZlecenia = zlecenieWew.NumerZlecenia,
-                    Klient = zlecenieWew.Klient,
-                    Miejscowosc = zlecenieWew.Miejscowosc,
-                    Adres = zlecenieWew.Adres,
-                    Telefon = zlecenieWew.Telefon,
-                    Email = "",
-                    NazwaProduktu = zlecenieWew.NazwaProduktu,
-                    Ilosc = zlecenieWew.Ilosc,
-                    Wartosc = zlecenieWew.Wartosc,
-                    DataProdukcji = zlecenieWew.DataProdukcji,
-                    DataWysylki = zlecenieWew.DataWysylki,
-                    DataMontazu = zlecenieWew.DataMontazu,
-                    ZlecenieWewnatrzne = true,
-                    DataGotowosci = zlecenieWew.DataGotowosci,
-                    DataRozpProdukcji = zlecenieWew.DataRozpProdukcji,
-                    NumerUmowy = zlecenieWew.NumerUmowy,
-                    JednostkiNaZlecenie = zlecenieWew.JednostkiNaZlecenie,
-                    KodProduktu = zlecenieWew.KodProduktu,
-                    Tags = zlecenieWew.Tags,
-                    NazwaProduktu2 = zlecenieWew.NazwaProduktu2,
-                };
+                    if (!AreZleceniaEqual(existingZlecenie, zlecenieWew))
+                    {
+                        // Utwórz nowy rekord w tabeli ZleceniaProdukcyjneZmianyStatusu
+                        var zmianaStatusu = new ZleceniaProdukcyjneZmianyStatusu
+                        {
+                            RowId = Guid.NewGuid().ToString(),
+                            RowIdZlecenia = zlecenieWew.RowId.ToString(),
+                            TypZamowienia = zlecenieWew.TypZamowienia,
+                            NumerZamowienia = zlecenieWew.NumerZamowienia,
+                            DataZapisu = DateTime.Now,
+                            OstatniaZmiana = "Zmiana: " + DateTime.Now.ToLongDateString(),
+                            KtoZapisal = zlecenieWew.KtoZapisal,
+                            NumerZlecenia = zlecenieWew.NumerZlecenia,
+                            Klient = zlecenieWew.Klient,
+                            Miejscowosc = zlecenieWew.Miejscowosc,
+                            Adres = zlecenieWew.Adres,
+                            Telefon = zlecenieWew.Telefon,
+                            Email = "",
+                            NazwaProduktu = zlecenieWew.NazwaProduktu,
+                            Ilosc = zlecenieWew.Ilosc,
+                            Wartosc = zlecenieWew.Wartosc,
+                            DataProdukcji = zlecenieWew.DataProdukcji,
+                            DataWysylki = zlecenieWew.DataWysylki,
+                            DataMontazu = zlecenieWew.DataMontazu,
+                            ZlecenieWewnatrzne = true,
+                            DataGotowosci = zlecenieWew.DataGotowosci,
+                            DataRozpProdukcji = zlecenieWew.DataRozpProdukcji,
+                            NumerUmowy = zlecenieWew.NumerUmowy,
+                            JednostkiNaZlecenie = zlecenieWew.JednostkiNaZlecenie,
+                            KodProduktu = zlecenieWew.KodProduktu,
+                            Tags = zlecenieWew.Tags,
+                            NazwaProduktu2 = zlecenieWew.NazwaProduktu2,
+                        };
 
-                // Dodaj rekord do kontekstu
-                _context.ZleceniaProdukcyjneZmianyStatusu.Add(zmianaStatusu);
+                        // Dodaj rekord do kontekstu
+                        _context.ZleceniaProdukcyjneZmianyStatusu.Add(zmianaStatusu);
+
+                    }
+                }
 
                 await _context.SaveChangesAsync();
                 return Ok();
@@ -115,6 +124,29 @@ namespace GEORGE.Server.Controllers
                     return StatusCode(500, "Wystąpił błąd podczas przetwarzania żądania.");
                 }
             }
+        }
+
+        private bool AreZleceniaEqual(ZleceniaProdukcyjneWew existing, ZleceniaProdukcyjneWew updated)
+        {
+            return existing.TypZamowienia == updated.TypZamowienia &&
+                   existing.NumerZamowienia == updated.NumerZamowienia &&
+                   existing.Klient == updated.Klient &&
+                   existing.Miejscowosc == updated.Miejscowosc &&
+                   existing.Adres == updated.Adres &&
+                   existing.Telefon == updated.Telefon &&
+                   existing.NazwaProduktu == updated.NazwaProduktu &&
+                   existing.Ilosc == updated.Ilosc &&
+                   existing.Wartosc == updated.Wartosc &&
+                   existing.DataProdukcji == updated.DataProdukcji &&
+                   existing.DataWysylki == updated.DataWysylki &&
+                   existing.DataMontazu == updated.DataMontazu &&
+                   existing.DataGotowosci == updated.DataGotowosci &&
+                   existing.DataRozpProdukcji == updated.DataRozpProdukcji &&
+                   existing.NumerUmowy == updated.NumerUmowy &&
+                   existing.JednostkiNaZlecenie == updated.JednostkiNaZlecenie &&
+                   existing.KodProduktu == updated.KodProduktu &&
+                   existing.Tags == updated.Tags &&
+                   existing.NazwaProduktu2 == updated.NazwaProduktu2;
         }
 
         [HttpDelete("{id}")]

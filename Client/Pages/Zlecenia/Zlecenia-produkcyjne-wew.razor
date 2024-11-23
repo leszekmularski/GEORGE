@@ -174,7 +174,7 @@ else
                 <Column Title="Numer Zamówienia" @bind-Field="@context.NumerZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
                 <Column Title="Data Produkcji" @bind-Field="@context.DataProdukcji" Style="font-weight:bold;color:red" Format="yyyy-MM-dd" Sortable />
                 <Column Title="Data Gotowości" TData="DateTime" DataIndex="DataGotowosci" Style="font-weight:bold" Format="yyyy-MM-dd" Sortable />
-            <Column Title="Klient" Width="195" @bind-Field="@context.Klient" Style="font-weight:bold" Sortable OnFilter="(a, b) => a == b" Filterable />
+                <Column Title="Klient" Width="195" @bind-Field="@context.Klient" Style="font-weight:bold" Sortable OnFilter="(a, b) => a == b" Filterable />
                 <Column Title="Nazwa Produktu" @bind-Field="@context.NazwaProduktu" Sortable Filterable/>
                 <Column Title="Adres" @bind-Field="@context.Adres" Sortable OnFilter="(a, b) => a == b" Filterable />
                 <Column Title="Miejscowość" @bind-Field="@context.Miejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable />
@@ -420,7 +420,7 @@ else
                                     <AntDesign.FormItem Label="Kto Zapisał">
                                         <AntDesign.Input @bind-Value="zlecenie.KtoZapisal" Required />
                                     </AntDesign.FormItem>
-                                    <a class="nav-link" href=@($"Zlecenia-produkcyjneHistoriaZmian/{zlecenie.RowId}") >
+                                    <a class="nav-link" href=@($"Zlecenia-produkcyjneHistoriaZmian/{zlecenie.RowId}") target="_blank" rel="noopener noreferrer">
                                         <span class="oi oi-header" aria-hidden="true"></span> Historia zmian
                                     </a>
                                 </AntDesign.Col>
