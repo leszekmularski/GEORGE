@@ -624,40 +624,41 @@
 
     private async Task SendElementChekToEmail()
     {
-        if (elementyDoZlecen == null || elementyDoZlecen.Count == 0)
+        if (_items != null && _items.Any())
+        {
+            // Tworzenie nagłówków wiadomości
+            var emailSubject = "Zamówienie z firmy GEORGE z dnia: " + DateTime.Now.ToShortDateString();
+
+            var emailBody =
+        "Nazwa Produktu\tNumer Katalogowy\tIlość\tSzerokość\tWysokość\n" +
+        "--------------\t-----------------\t-----\t---------\t--------\n" +
+            string.Join("\n", _items.Select(k =>
+                    $"{k.ElemetZamDoZlecen.NazwaProduktu}\t" +
+                    $"{k.ElemetZamDoZlecen.NumerKatalogowy}\t" +
+                    $"{k.ElemetZamDoZlecen.IloscSztuk}\t" +
+                    $"{k.ElemetZamDoZlecen.Szerokosc}\t" +
+                    $"{k.ElemetZamDoZlecen.Wysokosc}"
+                ));
+
+            // HTML w mailto jest ograniczone — najlepiej użyć SMTP
+            var encodedSubject = Uri.EscapeDataString(emailSubject);
+            var encodedBody = Uri.EscapeDataString(emailBody);
+
+            // Wyświetl dane w konsoli, aby upewnić się, że wszystko działa
+            Console.WriteLine(emailBody);
+
+            // Dla mailto HTML będzie problematyczny, dlatego warto przejść na SMTP
+            var mailtoLink = $"mailto:?subject={encodedSubject}&body={encodedBody}";
+            await JSRuntime.InvokeVoidAsync("window.open", mailtoLink);
+
+            await _message.Success("Otworzono domyślną aplikację pocztową.");
+        }
+        else
         {
             await _message.Warning("Brak danych do wysłania.");
             return;
         }
-
-        // Tworzenie nagłówków wiadomości
-        var emailSubject = "Zamówienie z firmy GEORGE z dnia: " + DateTime.Now.ToShortDateString();
-
-        var emailBody =
-        "Nazwa Produktu\tNumer Katalogowy\tIlość\tSzerokość\tWysokość\n" +
-        "--------------\t-----------------\t-----\t---------\t--------\n" +
-        string.Join("\n", elementyDoZlecen.Select(k =>
-            $"{k.ElemetZamDoZlecen.NazwaProduktu}\t" +
-            $"{k.ElemetZamDoZlecen.NumerKatalogowy}\t" +
-            $"{k.ElemetZamDoZlecen.IloscSztuk}\t" +
-            $"{k.ElemetZamDoZlecen.Szerokosc}\t" +
-            $"{k.ElemetZamDoZlecen.Wysokosc}"
-        ));
-
-        // HTML w mailto jest ograniczone — najlepiej użyć SMTP
-        var encodedSubject = Uri.EscapeDataString(emailSubject);
-        var encodedBody = Uri.EscapeDataString(emailBody);
-
-        // Wyświetl dane w konsoli, aby upewnić się, że wszystko działa
-        Console.WriteLine(emailBody);
-
-        // Dla mailto HTML będzie problematyczny, dlatego warto przejść na SMTP
-        var mailtoLink = $"mailto:?subject={encodedSubject}&body={encodedBody}";
-        await JSRuntime.InvokeVoidAsync("window.open", mailtoLink);
-
-        await _message.Success("Otworzono domyślną aplikację pocztową.");
     }
-
 
     private async Task CopyElementyToClipboard()
     {
@@ -703,6 +704,7 @@
         {
             // Można dodać komunikat dla użytkownika, że nie wybrano żadnych elementów
             Console.WriteLine("Brak zaznaczonych elementów do eksportu.");
+            await _message.Info("Brak zaznaczonych elementów do eksportu.");
         }
     }
 
