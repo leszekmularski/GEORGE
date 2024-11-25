@@ -92,6 +92,13 @@
             globalizationMode: "invariant"
         });
 
+        window.networkInformation = {
+            isOnline: function () {
+                return navigator.onLine;
+            }
+        };
+
+
     </script>
 
 </body>

@@ -13,6 +13,7 @@
 @using System.Net;
 @using System.Text.Json;
 @inject IConfirmService _confirmService
+@inject INotificationService _notice
 
 <!DOCTYPE html>
 <html>
@@ -20,63 +21,63 @@
     <style>
         /* Styl dla linków */
         .custom-link {
-            color: blue;
+        color: blue;
         }
 
         .custom-linkszy {
-            color: darkblue;
+        color: darkblue;
         }
 
         /* Główna tabela */
         .highlighted-background {
-            background-color: white;
-            overflow: auto; /* Dodaje paski przewijania w razie potrzeby */
-            max-height: calc(100vh - 55px); /* Maksymalna wysokość dostosowana do rozmiaru okna */
-            width: calc(100% - 260px); /* Ustawia szerokość na 100% minus 260px */
-            box-sizing: border-box; /* Uwzględnia padding i border w rozmiarze */
-            position: absolute;
-            left: 260px; /* Lewa krawędź 260px od lewej */
-            top: 55px; /* Górna krawędź 55px od góry */
+        background-color: white;
+        overflow: auto; /* Dodaje paski przewijania w razie potrzeby */
+        max-height: calc(100vh - 55px); /* Maksymalna wysokość dostosowana do rozmiaru okna */
+        width: calc(100% - 260px); /* Ustawia szerokość na 100% minus 260px */
+        box-sizing: border-box; /* Uwzględnia padding i border w rozmiarze */
+        position: absolute;
+        left: 260px; /* Lewa krawędź 260px od lewej */
+        top: 55px; /* Górna krawędź 55px od góry */
         }
 
         /* Klasy podświetlające */
         .zrealizowano, .zrealizowano > td {
-            background-color: forestgreen !important;
-            color: white; /* Kontrastujący kolor tekstu */
+        background-color: forestgreen !important;
+        color: white; /* Kontrastujący kolor tekstu */
         }
 
-            /* Podświetlenie w przypadku najechania myszką */
-            .zrealizowano:hover, .zrealizowano:hover > td {
-                background-color: mediumslateblue !important;
-                font-size: 1.0em;
-            }
+        /* Podświetlenie w przypadku najechania myszką */
+        .zrealizowano:hover, .zrealizowano:hover > td {
+        background-color: mediumslateblue !important;
+        font-size: 1.0em;
+        }
 
         /* Zamówiono */
         .zamowiono, .zamowiono > td {
-            background-color: lightblue !important;
-            color: black; /* Kontrastujący kolor tekstu */
+        background-color: lightblue !important;
+        color: black; /* Kontrastujący kolor tekstu */
         }
 
-            .zamowiono:hover, .zamowiono:hover > td {
-                background-color: mediumslateblue !important;
-                font-size: 1.0em;
-            }
+        .zamowiono:hover, .zamowiono:hover > td {
+        background-color: mediumslateblue !important;
+        font-size: 1.0em;
+        }
 
         /* ZlecenieNaN */
         .zlecenieNaN, .zlecenieNaN > td {
-            background-color: whitesmoke !important;
-            color: black; /* Kontrastujący kolor tekstu */
+        background-color: whitesmoke !important;
+        color: black; /* Kontrastujący kolor tekstu */
         }
 
-            .zlecenieNaN:hover, .zlecenieNaN:hover > td {
-                background-color: mediumslateblue !important;
-                font-size: 1.0em;
-            }
+        .zlecenieNaN:hover, .zlecenieNaN:hover > td {
+        background-color: mediumslateblue !important;
+        font-size: 1.0em;
+        }
 
         /* Klasa zawsze podświetlonego wiersza */
         .highlighted-row, .highlighted-row > td {
-            background-color: yellow !important; /* Zmienna podświetlenia */
-            color: black !important; /* Kontrastujący kolor tekstu */
+        background-color: yellow !important; /* Zmienna podświetlenia */
+        color: black !important; /* Kontrastujący kolor tekstu */
         }
     </style>
 
@@ -87,86 +88,86 @@
 
     <script>
         function copyToClipboard(text) {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(function () {
-                    console.log('Text copied to clipboard');
-                }).catch(function (error) {
-                    console.error('Error copying text: ', error);
-                });
-            } else {
-                // Fallback method
-                var textArea = document.createElement("textarea");
-                textArea.value = text;
-                document.body.appendChild(textArea);
-                textArea.select();
-                try {
-                    document.execCommand('copy');
-                    console.log('Text copied to clipboard');
-                } catch (err) {
-                    console.error('Error copying text: ', err);
-                }
-                document.body.removeChild(textArea);
-            }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+        console.log('Text copied to clipboard');
+        }).catch(function (error) {
+        console.error('Error copying text: ', error);
+        });
+        } else {
+        // Fallback method
+        var textArea = document.createElement("textarea");
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+        document.execCommand('copy');
+        console.log('Text copied to clipboard');
+        } catch (err) {
+        console.error('Error copying text: ', err);
+        }
+        document.body.removeChild(textArea);
+        }
         }
 
         function saveAsExcel(jsonData) {
-            const data = JSON.parse(jsonData);
-            const csvRows = [];
+        const data = JSON.parse(jsonData);
+        const csvRows = [];
 
-            // Extract headers
-            const headers = Object.keys(data[0]);
-            csvRows.push(headers.join(','));
+        // Extract headers
+        const headers = Object.keys(data[0]);
+        csvRows.push(headers.join(','));
 
-            // Extract rows
-            for (const row of data) {
-                const values = headers.map(header => {
-                    const escaped = ('' + row[header]).replace(/"/g, '\\"');
-                    return `"${escaped}"`;
-                });
-                csvRows.push(values.join(','));
-            }
+        // Extract rows
+        for (const row of data) {
+        const values = headers.map(header => {
+        const escaped = ('' + row[header]).replace(/"/g, '\\"');
+        return `"${escaped}"`;
+        });
+        csvRows.push(values.join(','));
+        }
 
-            // Create CSV file
-            const csvString = csvRows.join('\n');
-            const blob = new Blob([csvString], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.setAttribute('hidden', '');
-            a.setAttribute('href', url);
-            a.setAttribute('download', 'kantowka_all.csv');
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+        // Create CSV file
+        const csvString = csvRows.join('\n');
+        const blob = new Blob([csvString], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.setAttribute('hidden', '');
+        a.setAttribute('href', url);
+        a.setAttribute('download', 'kantowka_all.csv');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
         }
 
         function saveAsExcelSel(jsonData) {
-            const data = JSON.parse(jsonData);
-            const csvRows = [];
+        const data = JSON.parse(jsonData);
+        const csvRows = [];
 
-            // Define headers
-            const headers = ["GatunekKantowki", "Przekroj", "NazwaProduktu", "DlugoscZamawiana", "DlugoscNaGotowoGrupa", "IloscSztuk"];
-            csvRows.push(headers.join(','));
+        // Define headers
+        const headers = ["GatunekKantowki", "Przekroj", "NazwaProduktu", "DlugoscZamawiana", "DlugoscNaGotowoGrupa", "IloscSztuk"];
+        csvRows.push(headers.join(','));
 
-            // Extract rows
-            for (const row of data) {
-                const values = headers.map(header => {
-                    const escaped = ('' + row[header]).replace(/"/g, '\\"');
-                    return `"${escaped}"`;
-                });
-                csvRows.push(values.join(','));
-            }
+        // Extract rows
+        for (const row of data) {
+        const values = headers.map(header => {
+        const escaped = ('' + row[header]).replace(/"/g, '\\"');
+        return `"${escaped}"`;
+        });
+        csvRows.push(values.join(','));
+        }
 
-            // Create CSV file
-            const csvString = csvRows.join('\n');
-            const blob = new Blob([csvString], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.setAttribute('hidden', '');
-            a.setAttribute('href', url);
-            a.setAttribute('download', 'kantowka.csv');
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+        // Create CSV file
+        const csvString = csvRows.join('\n');
+        const blob = new Blob([csvString], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.setAttribute('hidden', '');
+        a.setAttribute('href', url);
+        a.setAttribute('download', 'kantowka.csv');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
         }
     </script>
 
@@ -212,12 +213,12 @@
             </Tooltip>
             <Tooltip Placement="@Placement.BottomCenter" Style="width: 50px;" Title="Ilość widocznych rekordów">
                 <AntDesign.InputNumber TValue="int"
-                                       @bind-Value="_pageSize"
-                                       Min="2"
-                                       Max="25"
-                                       Bordered="false"
-                                       OnChange="@(e => OnClickChange(e))"
-                                       Style="width: 100%; padding: 0; border-radius: 4px;" />
+                @bind-Value="_pageSize"
+                Min="2"
+                Max="25"
+                Bordered="false"
+                OnChange="@(e => OnClickChange(e))"
+                Style="width: 100%; padding: 0; border-radius: 4px;" />
             </Tooltip>
         }
         <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
@@ -234,14 +235,14 @@
             <Divider>Ilość pozycji do zamówienia: @kantowkaDoZlecen.Count(), suma sztuk: @kantowkaDoZlecen.Sum(x => x.IloscSztuk).ToString()</Divider>
             <div>
                 <Table TItem="KantowkaDoZlecen" DataSource="@kantowkaDoZlecen" ScrollX="1950" PageSize="@_pageSize" Size="TableSize.Small"
-                       RowClassName="@(x => x?.Data?.WyslanoDoZamowien == true ? (x?.Data?.PozDostarczono == true ? "zrealizowano" : "zamowiono") : 
+                RowClassName="@(x => x?.Data?.WyslanoDoZamowien == true ? (x?.Data?.PozDostarczono == true ? "zrealizowano" : "zamowiono") : 
                         (x?.Data?.PozDostarczono == true ? "zrealizowano" : "zlecenieNaN"))">
                     <Column Title="ID" @bind-Field="@context.Id" Hidden />
                     <Column Title="Gatunek" @bind-Field="@context.GatunekKantowki" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Title="Przekrój" @bind-Field="@context.Przekroj" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Title="Opis" @bind-Field="@context.NazwaProduktu" Sortable />
                     <Column Title="Długość na gotowo" @bind-Field="@context.DlugoscNaGotowo" Sortable OnFilter="(a, b) => a == b" Filterable />
-                    <Column Title="Długość na gotowo cd." @bind-Field="@context.DlugoscNaGotowoGrupa" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Width="150" Title="Długość na gotowo cd." @bind-Field="@context.DlugoscNaGotowoGrupa" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Title="Długość zamówiona" @bind-Field="@context.DlugoscZamawiana" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Title="Ilość sztuk" @bind-Field="@context.IloscSztuk" Sortable />
                     <Column Title="Wykoż. materiał ze stanu" TData="KantowkaDoZlecen">
@@ -258,25 +259,25 @@
                     <Column Title="Data zamówienia" TData="DateTime" DataIndex="DataZamowienia" Format="yyyy-MM-dd" Sortable />
                     <Column Title="Max. Data realiazcji" TData="DateTime" DataIndex="DataRealizacji" Format="yyyy-MM-dd" Sortable />
                     <Column Title="Data dostarczenia" TData="DateTime" DataIndex="DataDostarczenia" Format="yyyy-MM-dd" Sortable />
-                    
+
                     <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd" Sortable />
                     <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
                     <ActionColumn Title="Akcja" Width="100" Fixed="right">
                         @if (boolAdmin || boolZmian)
                         {
                             <Popconfirm Title="Czy chcesz edytować pozycję?"
-                                        OnConfirm="()=> editRow(context.Id)"
-                                        OkText="Tak"
-                                        CancelText="Nie">
+                            OnConfirm="()=> editRow(context.Id)"
+                            OkText="Tak"
+                            CancelText="Nie">
                                 <a>Edytuj</a>
                             </Popconfirm>
                         }
                         @if (boolAdmin || boolUsuniecia)
                         {
                             <Popconfirm Title="Czy chcesz usunąć pozycję?"
-                                        OnConfirm="()=> deleteRow(context.Id)"
-                                        OkText="Tak"
-                                        CancelText="Nie">
+                            OnConfirm="()=> deleteRow(context.Id)"
+                            OkText="Tak"
+                            CancelText="Nie">
                                 <a style="color:red">Usuń</a>
                             </Popconfirm>
                         }
@@ -289,6 +290,10 @@
 
                 <h7>Wybierz plik ze stolcad z listą materiałów C:\STOLCAD\Rob\PrnPdf [PDF Reader] (wegeneruj listę cięc)</h7>
                 <InputFile OnChange="HandleFileSelected" />
+
+                <Button Type="@ButtonType.Link" style="font-size:1.2em; height:30px; margin-top:10px; font-style:revert-layer; color:brown" @onclick="() => PasteStolcad()">
+                    Wklej ze schowka dane pobrane z STOLCAD
+                </Button>
 
                 @if (zestawienie != null)
                 {
@@ -390,7 +395,7 @@
                                     <AntDesign.FormItem Label="Data dostarczenia przez klienta zew.">
                                         <AntDesign.DatePicker @bind-Value="kantowka.DataRealizacji" Required />
                                     </AntDesign.FormItem>
-                             @*        <AntDesign.FormItem Label="Data Dostarczenia">
+                                    @*        <AntDesign.FormItem Label="Data Dostarczenia">
                                         <AntDesign.DatePicker @bind-Value="kantowka.DataDostarczenia" Required />
                                     </AntDesign.FormItem> *@
                                     <AntDesign.FormItem Label="Materiał jest na stanie magazynowy">
@@ -411,7 +416,7 @@
                                 </div>
                             </div>
 
-                            <AntDesign.FormItem>
+                            <AntDesign.FormItem Style="justify-content: flex-end; display: flex; gap: 10px;">
                                 <AntDesign.Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</AntDesign.Button>
                                 <AntDesign.Button @onclick="@HandleCancel">Anuluj</AntDesign.Button>
                             </AntDesign.FormItem>
@@ -438,16 +443,16 @@
                                     <div>
                                         <FormItem Style="width:100%" Required Label="Wybierz producenta (dostawcę)">
                                             <Select Mode="default"
-                                                    DataSource="@_producenci"
-                                                    @bind-Value="@context.ElemetZamDoZlecen.RowIdProducent"
-                                                    LabelName="@nameof(Producent.NazwaProducenta)"
-                                                    ValueName="@nameof(Producent.RowId)">
+                                            DataSource="@_producenci"
+                                            @bind-Value="@context.ElemetZamDoZlecen.RowIdProducent"
+                                            LabelName="@nameof(Producent.NazwaProducenta)"
+                                            ValueName="@nameof(Producent.RowId)">
                                             </Select>
                                         </FormItem>
                                     </div>
                                 </div>
 
-                                <AntDesign.FormItem>
+                                <AntDesign.FormItem Style="justify-content: flex-end; display: flex; gap: 10px;">
                                     <AntDesign.Button Disabled="@wylaczZapiszKantowke" Type="primary" @onclick="@HandleAddNewKantowka" HtmlType="submit">Wybierz producenta i zapisz jako nową pozycję zamówienia</AntDesign.Button>
                                     <AntDesign.Button @onclick="@HandleCancelKantowka">Anuluj</AntDesign.Button>
                                 </AntDesign.FormItem>
@@ -681,9 +686,9 @@
         _producenci = await Http.GetFromJsonAsync<List<ProducenciPodwykonawcy>>($"api/ProducenciPodwykonawcy");
 
         if(_producenci != null)
-        _producenci = _producenci
-         .Where(p => p.RodzajProdukcjiWykonywanej == "Producent kantówki")
-         .ToList();
+            _producenci = _producenci
+             .Where(p => p.RodzajProdukcjiWykonywanej == "Producent kantówki")
+             .ToList();
 
         await ShowDialogKantowka();
 
@@ -742,6 +747,29 @@
         }
     }
 
+    private async Task PasteStolcad()
+    {
+        try
+        {
+            // Pobranie danych ze schowka
+            var clipboardText = await JSRuntime.InvokeAsync<string>("navigator.clipboard.readText");
+
+            zestawienie = PdfDataParser.ParseClipboardData(clipboardText);
+
+            StateHasChanged();
+
+        }
+        catch (Exception ex)
+        {
+            _ = _notice.Error(new()
+                {
+                    Message = ex.Message,
+                    Description = ex.StackTrace,
+                    Placement = NotificationPlacement.BottomLeft
+                });
+        }
+    }
+
     private async Task SaveAll()
     {
         kantowki = new List<KantowkaDoZlecen>();
@@ -765,7 +793,7 @@
                     Przekroj = item.Kolor,
                     NazwaProduktu = item.Symbol,
                     KodProduktu = "",
-                    Uwagi = "Zaimortowano z PDF dnia: " + DateTime.Now + xversion,
+                    Uwagi = "Zaimportowano z PDF dnia: " + DateTime.Now + xversion,
                     DlugoscZamawiana = int.Parse(item.WymiarNaZamowienie),
                     DlugoscNaGotowo = int.Parse(item.Wymiar),
                     DlugoscNaGotowoGrupa = item.Wymiar,
@@ -837,7 +865,7 @@
                     Przekroj = g.Key.Przekroj,
                     NazwaProduktu = g.FirstOrDefault()?.Symbol ?? "",
                     KodProduktu = "",
-                    Uwagi = "Zaimortowano z PDF dnia: " + DateTime.Now + xversion,
+                    Uwagi = "Zaimportowano z PDF dnia: " + DateTime.Now + xversion,
                     DlugoscZamawiana = g.Key.DlugoscZamawiana,
                     DlugoscNaGotowo = g.FirstOrDefault()?.Wymiar != null ? int.Parse(g.FirstOrDefault().Wymiar) : 0,
                     DlugoscNaGotowoGrupa = string.Join("; ", g.Select(item => item.Wymiar)),
@@ -905,6 +933,7 @@
         }
         else
         {
+        
             responseKant = await Http.PutAsJsonAsync($"api/ElementyDoZlecen/{elementyZamowienia.ElemetZamDoZlecen.Id}", elementyZamowienia.ElemetZamDoZlecen);
             // if (elementyDoZlecen != null) oryginalElementyDoZlecen = elementyDoZlecen.DeepCopyList();
         }
@@ -974,6 +1003,9 @@
             {
                 kantowka.DataDostarczenia = DateTime.MinValue;
             }
+
+            kantowka.KtoZapisal = user;
+            kantowka.Uwagi = $"Zmiana z dnia: {DateTime.Now}";
 
             response = await Http.PutAsJsonAsync($"api/KantowkaDoZlecen/{kantowka.Id}", kantowka);
 

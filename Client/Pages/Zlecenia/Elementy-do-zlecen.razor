@@ -18,75 +18,78 @@
 @inject ModalService _modalService
 @using System.Text.RegularExpressions
 @inject IConfirmService _confirmService
-
-
+@* @using MimeKit
+@using MailKit.Net.Smtp
+@using System.Linq
+@using System.Threading.Tasks
+ *@
 <!DOCTYPE html>
 <html>
 <head>
     <style>
         /* Styl dla linków */
         .custom-link {
-        color: blue;
+            color: blue;
         }
 
         .custom-linkszy {
-        color: darkblue;
+            color: darkblue;
         }
 
         /* Główna tabela z przewijaniem */
         .highlighted-background {
-        background-color: white;
-        overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
-        max-height: calc(100vh - 55px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 55px */
-        width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 260px */
-        box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu rozmiarów */
-        position: absolute;
-        left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
-        top: 55px; /* Ustawia górną krawędź 55px od góry okna */
+            background-color: white;
+            overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
+            max-height: calc(100vh - 55px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 55px */
+            width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 260px */
+            box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu rozmiarów */
+            position: absolute;
+            left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
+            top: 55px; /* Ustawia górną krawędź 55px od góry okna */
         }
 
         /* Klasa "uwaga" z mocnym podświetleniem */
         .uwaga, .uwaga > td {
-        background-color: #ff4d4d !important; /* Mocny czerwony */
-        color: white !important; /* Biały tekst dla lepszej widoczności */
-        font-weight: bold; /* Pogrubienie tekstu */
-        border: 2px solid red; /* Czerwona ramka */
-        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Delikatny cień dla głębi */
-        transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Płynna zmiana koloru i cienia */
+            background-color: #ff4d4d !important; /* Mocny czerwony */
+            color: white !important; /* Biały tekst dla lepszej widoczności */
+            font-weight: bold; /* Pogrubienie tekstu */
+            border: 2px solid red; /* Czerwona ramka */
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Delikatny cień dla głębi */
+            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Płynna zmiana koloru i cienia */
         }
 
-        .uwaga:hover, .uwaga:hover > td {
-        background-color: antiquewhite !important; /* Zmiana tła na jasnoróżowy przy najechaniu */
-        color: black !important; /* Tekst zmienia się na czarny przy najechaniu */
-        box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.3); /* Większy cień przy najechaniu */
-        font-size: 1.0em; /* Zachowanie wielkości czcionki */
-        }
+            .uwaga:hover, .uwaga:hover > td {
+                background-color: antiquewhite !important; /* Zmiana tła na jasnoróżowy przy najechaniu */
+                color: black !important; /* Tekst zmienia się na czarny przy najechaniu */
+                box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.3); /* Większy cień przy najechaniu */
+                font-size: 1.0em; /* Zachowanie wielkości czcionki */
+            }
 
         /* Klasa "zamowiono" z wyrazistymi stylami */
         .zamowiono, .zamowiono > td {
-        background-color: lightseagreen !important; /* Wyrazisty zielony */
-        color: black !important; /* Czarny tekst dla kontrastu */
-        font-weight: normal; /* Normalny tekst */
-        border: 1px solid black; /* Czarna ramka */
-        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Delikatny cień dla głębi */
-        transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Płynna zmiana stylów */
+            background-color: lightseagreen !important; /* Wyrazisty zielony */
+            color: black !important; /* Czarny tekst dla kontrastu */
+            font-weight: normal; /* Normalny tekst */
+            border: 1px solid black; /* Czarna ramka */
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Delikatny cień dla głębi */
+            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Płynna zmiana stylów */
         }
 
-        .zamowiono:hover, .zamowiono:hover > td {
-        background-color: mediumslateblue !important; /* Zmiana tła na fioletowy przy najechaniu */
-        font-size: 1.0em; /* Zachowanie wielkości czcionki */
-        }
+            .zamowiono:hover, .zamowiono:hover > td {
+                background-color: mediumslateblue !important; /* Zmiana tła na fioletowy przy najechaniu */
+                font-size: 1.0em; /* Zachowanie wielkości czcionki */
+            }
 
         /* Klasa "zrealizowano" z zielonym podświetleniem */
         .zrealizowano, .zrealizowano > td {
-        background-color: forestgreen !important; /* Mocny zielony dla zrealizowanych zamówień */
-        color: white; /* Biały tekst dla lepszej widoczności */
+            background-color: forestgreen !important; /* Mocny zielony dla zrealizowanych zamówień */
+            color: white; /* Biały tekst dla lepszej widoczności */
         }
 
-        .zrealizowano:hover, .zrealizowano:hover > td {
-        background-color: mediumslateblue !important; /* Zmiana tła na fioletowy przy najechaniu */
-        font-size: 1.0em; /* Zachowanie wielkości czcionki */
-        }
+            .zrealizowano:hover, .zrealizowano:hover > td {
+                background-color: mediumslateblue !important; /* Zmiana tła na fioletowy przy najechaniu */
+                font-size: 1.0em; /* Zachowanie wielkości czcionki */
+            }
     </style>
 
 
@@ -198,9 +201,12 @@
 
             @if (elementyDoZlecen != null && elementyDoZlecen.Count > 0)
             {
-                <Tooltip Placement="@Placement.BottomCenter" Title="Wygeneruj zamówioenie i wyslij pocztą elektroniczną.">
-                    <Button Type="reset" Icon="@IconType.Fill.Mail" OnClick="@(SendElementChekToEmail)" />
+                <Tooltip Placement="@Placement.BottomCenter" Title="Wygeneruj zamówienie i wyslij pocztą elektroniczną.">
+                    <Button Type="reset" Icon="@IconType.Fill.Mail" OnClick="@(OpenDefaultEmailApp)" />
                 </Tooltip>
+    @*             <Tooltip Placement="@Placement.BottomCenter" Title="Wygeneruj zamówienie i wyslij pocztą elektroniczną (metoda MimeKit).">
+                    <Button Type="reset" Icon="@IconType.Fill.Mail" OnClick="@(SendElementCheckToEmailViaSmtp)" />
+                </Tooltip> *@
                 <Tooltip Placement="@Placement.BottomCenter" Title="@uwagaKopiuj">
                     <Button Type="reset" Icon="@IconType.Fill.Copy" OnClick="@(CopyElementyToClipboard)" />
                 </Tooltip>
@@ -214,7 +220,7 @@
                     Zapisz do pliku CSV - wszystko
                 </Button>
                 <Tooltip Placement="@Placement.BottomCenter" Title="Zapisz do pliku CSV - tylko wymagane">
-                    <Button Type="reset" Icon="@IconType.Fill.FileExcel" OnClick="@(ExportSelectedColumnsToExcel)"/>
+                    <Button Type="reset" Icon="@IconType.Fill.FileExcel" OnClick="@(ExportSelectedColumnsToExcel)" />
                 </Tooltip>
                 <Button Type="reset" OnClick="@(ExportSelectedColumnsItemsToExcel)">
                     Zapisz do pliku CSV - zaznaczone
@@ -222,12 +228,12 @@
             }
             <Tooltip Placement="@Placement.BottomCenter" Style="width: 50px;" Title="Ilość widocznych rekordów">
                 <AntDesign.InputNumber TValue="int"
-                @bind-Value="_pageSize"
-                Min="2"
-                Max="25"
-                Bordered="false"
-                OnChange="@(e => OnClickChange(e))"
-                Style="width: 100%; padding: 0; border-radius: 4px; color:navajowhite" />
+                                       @bind-Value="_pageSize"
+                                       Min="2"
+                                       Max="25"
+                                       Bordered="false"
+                                       OnChange="@(e => OnClickChange(e))"
+                                       Style="width: 100%; padding: 0; border-radius: 4px; color:navajowhite" />
             </Tooltip>
 
             <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
@@ -250,9 +256,9 @@
                     <Divider>Ilość pozycji do zamówienia: @elementyDoZlecen.Count(), suma sztuk: @elementyDoZlecen.Sum(x => x.ElemetZamDoZlecen.IloscSztuk).ToString()</Divider>
 
                     <Table TItem="ElemetZamDoZlecenWithProducent" DataSource="elementyDoZlecen" PageSize="@_pageSize"
-                    Loading="_loading" ScrollX="2950" Size="TableSize.Small" RowKey="x => x?.ElemetZamDoZlecen?.Id"
-                    @bind-SelectedRows="_items"
-                    RowClassName="@(x =>
+                           Loading="_loading" ScrollX="2950" Size="TableSize.Small" RowKey="x => x?.ElemetZamDoZlecen?.Id"
+                           @bind-SelectedRows="_items"
+                           RowClassName="@(x =>
                             x?.Data?.ElemetZamDoZlecen?.Opis?.ToUpper().StartsWith("SPRAWDZ") == true ? "uwaga" :
                             (x?.Data?.ElemetZamDoZlecen?.CzyZamowiono == true ? (x?.Data?.ElemetZamDoZlecen?.DataDostarczenia > DateTime.MinValue ? "zrealizowano" :
                             "zamowiono") :
@@ -281,7 +287,7 @@
                             </Column>
 
                             <PropertyColumn Width="160" Title="Opis" Property="c=>c.ElemetZamDoZlecen.Opis" />
-  
+
                             <PropertyColumn Title="Szerokość" Property="c=>c.ElemetZamDoZlecen.Szerokosc" />
                             <PropertyColumn Title="Wysokość" Property="c=>c.ElemetZamDoZlecen.Wysokosc" />
                             <PropertyColumn Title="Długość" Property="c=>c.ElemetZamDoZlecen.Dlugosc" />
@@ -296,18 +302,18 @@
                                 @if (boolAdmin || boolZmiana)
                                 {
                                     <Popconfirm Placement="@Placement.Left" Title="Czy chcesz edytować pozycję?"
-                                    OnConfirm="()=> editRow(context.ElemetZamDoZlecen.Id)"
-                                    OkText="Tak"
-                                    CancelText="Nie">
+                                                OnConfirm="()=> editRow(context.ElemetZamDoZlecen.Id)"
+                                                OkText="Tak"
+                                                CancelText="Nie">
                                         <a>Edytuj</a>
                                     </Popconfirm>
                                 }
                                 @if (boolAdmin || boolUsuniecia)
                                 {
                                     <Popconfirm Placement="@Placement.Left" Title="Czy chcesz usunąć pozycję?"
-                                    OnConfirm="()=> deleteRow(context.ElemetZamDoZlecen.Id)"
-                                    OkText="Tak"
-                                    CancelText="Nie">
+                                                OnConfirm="()=> deleteRow(context.ElemetZamDoZlecen.Id)"
+                                                OkText="Tak"
+                                                CancelText="Nie">
                                         <a style="color:red">Usuń</a>
                                     </Popconfirm>
                                 }
@@ -398,7 +404,7 @@
                 <div class="modal-body">
                     @if (elementyDoZlecen != null && elementyZamowienia.ElemetZamDoZlecen != null && elementyZamowienia.ProducenciPodwykonawcy != null)
                     {
-                        <NowaPozZamowienia elementyZamowienia="elementyZamowienia" elementyDoZlecen="elementyDoZlecen" OnButtonClicked="CloseModal" user="user"/>
+                        <NowaPozZamowienia elementyZamowienia="elementyZamowienia" elementyDoZlecen="elementyDoZlecen" OnButtonClicked="CloseModal" user="user" />
                     }
                     else
                     {
@@ -460,23 +466,23 @@
         await Laduj_Uprawnienia();
 
         elementyZamowienia = new ElemetZamDoZlecenWithProducent
-            {
-                ElemetZamDoZlecen = new ElemetZamDoZlecen
                 {
-                    Id = 0,
-                    RowIdZlecenia = RowIdZlecenia,
-                    DataZamowienia = DateTime.MinValue,
-                    DataRealizacji = DateTime.MinValue,
-                    DataZapisu = DateTime.Now,
-                    KtoZapisal = "Autor zmiany: " + user
-                },
-                ProducenciPodwykonawcy = new ProducenciPodwykonawcy
-                {
-                    // Przypisz odpowiednie wartości dla właściwości ProducenciPodwykonawcy
-                    NazwaProducenta = "" // Przykładowa wartość
-                },
-                DodatkowaInformacja = "Dane z dnia" + DateTime.Now
-            };
+                    ElemetZamDoZlecen = new ElemetZamDoZlecen
+                    {
+                        Id = 0,
+                        RowIdZlecenia = RowIdZlecenia,
+                        DataZamowienia = DateTime.MinValue,
+                        DataRealizacji = DateTime.MinValue,
+                        DataZapisu = DateTime.Now,
+                        KtoZapisal = "Autor zmiany: " + user
+                    },
+                    ProducenciPodwykonawcy = new ProducenciPodwykonawcy
+                    {
+                        // Przypisz odpowiednie wartości dla właściwości ProducenciPodwykonawcy
+                        NazwaProducenta = "" // Przykładowa wartość
+                    },
+                    DodatkowaInformacja = "Dane z dnia" + DateTime.Now
+                };
 
         if (AppState != null)
         {
@@ -622,51 +628,104 @@
         return System.Text.RegularExpressions.Regex.Replace(input, @"\s+", " ").Trim();
     }
 
-    private async Task SendElementChekToEmail()
+    private async Task OpenDefaultEmailApp()
     {
         if (_items != null && _items.Any())
         {
-            // Tworzenie nagłówków wiadomości
-            var emailSubject = "Zamówienie z firmy GEORGE z dnia: " + DateTime.Now.ToShortDateString();
-
-            var emailBody =
+            var emailSubject = Uri.EscapeDataString("Zamówienie z firmy GEORGE z dnia: " + DateTime.Now.ToShortDateString());
+            var emailBody = Uri.EscapeDataString(
         "Nazwa Produktu\tNumer Katalogowy\tIlość\tSzerokość\tWysokość\n" +
         "--------------\t-----------------\t-----\t---------\t--------\n" +
-            string.Join("\n", _items.Select(k =>
-                    $"{k.ElemetZamDoZlecen.NazwaProduktu}\t" +
-                    $"{k.ElemetZamDoZlecen.NumerKatalogowy}\t" +
-                    $"{k.ElemetZamDoZlecen.IloscSztuk}\t" +
-                    $"{k.ElemetZamDoZlecen.Szerokosc}\t" +
-                    $"{k.ElemetZamDoZlecen.Wysokosc}"
-                ));
+        string.Join("\n", _items.Select(k =>
+            $"{k.ElemetZamDoZlecen.NazwaProduktu}\t" +
+            $"{k.ElemetZamDoZlecen.NumerKatalogowy}\t" +
+            $"{k.ElemetZamDoZlecen.IloscSztuk}\t" +
+            $"{k.ElemetZamDoZlecen.Szerokosc}\t" +
+            $"{k.ElemetZamDoZlecen.Wysokosc}"
+        ))
+    );
 
-            // HTML w mailto jest ograniczone — najlepiej użyć SMTP
-            var encodedSubject = Uri.EscapeDataString(emailSubject);
-            var encodedBody = Uri.EscapeDataString(emailBody);
-
-            // Wyświetl dane w konsoli, aby upewnić się, że wszystko działa
-            Console.WriteLine(emailBody);
-
-            // Dla mailto HTML będzie problematyczny, dlatego warto przejść na SMTP
-            var mailtoLink = $"mailto:?subject={encodedSubject}&body={encodedBody}";
+            var mailtoLink = $"mailto:?subject={emailSubject}&body={emailBody}";
             await JSRuntime.InvokeVoidAsync("window.open", mailtoLink);
-
-            await _message.Success("Otworzono domyślną aplikację pocztową.");
         }
         else
         {
             await _message.Warning("Brak danych do wysłania.");
-            return;
         }
     }
+
+
+    private async Task SendElementCheckToEmailViaSmtp()
+    {
+        if (_items != null && _items.Any())
+        {
+            await _message.Info("Czekaj na wysłanie wiadomości.", 1);
+
+            var emailSubject = "Zamówienie z firmy GEORGE z dnia: " + DateTime.Now.ToShortDateString();
+
+            // Tworzenie treści wiadomości jako tabeli HTML
+            var builder = new System.Text.StringBuilder();
+            builder.AppendLine("<html>");
+            builder.AppendLine("<body>");
+            builder.AppendLine("<h2>Zamówienie z firmy GEORGE</h2>");
+            builder.AppendLine("<table border='1' style='border-collapse: collapse; width: 100%; text-align: left;'>");
+            builder.AppendLine("<thead><tr><th>Nazwa Produktu</th><th>Numer Katalogowy</th><th>Ilość</th><th>Szerokość</th><th>Wysokość</th></tr></thead>");
+            builder.AppendLine("<tbody>");
+            foreach (var k in _items)
+            {
+                builder.AppendLine($"<tr><td>{k.ElemetZamDoZlecen.NazwaProduktu}</td><td>{k.ElemetZamDoZlecen.NumerKatalogowy}</td><td>{k.ElemetZamDoZlecen.IloscSztuk}</td><td>{k.ElemetZamDoZlecen.Szerokosc}</td><td>{k.ElemetZamDoZlecen.Wysokosc}</td></tr>");
+            }
+            builder.AppendLine("</tbody>");
+            builder.AppendLine("</table>");
+            builder.AppendLine("</body>");
+            builder.AppendLine("</html>");
+
+            var emailBody = builder.ToString();
+
+        //     try
+        //     {
+
+        //         // Konfiguracja klienta SMTP
+        //         using var smtp = new SmtpClient();
+        //         // Konfiguracja wysyłania wiadomości za pomocą SMTP
+        //         var email = new MimeMessage();
+        //         email.From.Add(new MailboxAddress("Firma GEORGE Marcinkowice", "leszek.mularski@george.pl")); // Zmień na swoje dane
+        //         email.To.Add(new MailboxAddress("Odbiorca", "leszek.mularski@george.pl")); // Zmień na adres odbiorcy
+        //         email.Subject = emailSubject;
+
+        //         // Dodanie treści HTML do wiadomości
+        //         email.Body = new TextPart("html")
+        //                 {
+        //                     Text = emailBody
+        //                 };
+
+        //         await smtp.ConnectAsync("ssl0.ovh.net", 465, MailKit.Security.SecureSocketOptions.SslOnConnect); // Zmień na dane swojego serwera SMTP
+        //         await smtp.AuthenticateAsync("leszek.mularski@george.pl", "!LEsz43.M"); // Zmień na dane logowania
+        //         await smtp.SendAsync(email);
+        //         await smtp.DisconnectAsync(true);
+
+        //         await _message.Success("Wiadomość została wysłana pomyślnie.");
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         await _message.Error($"Błąd podczas wysyłania wiadomości: {ex.Message}");
+        //     }
+        // }
+        // else
+        // {
+        //     await _message.Warning("Brak danych do wysłania.");
+        }
+    }
+
+
 
     private async Task CopyElementyToClipboard()
     {
         if (elementyDoZlecen == null || elementyDoZlecen.Count == 0) return;
 
         var kantowkiText = string.Join("\n", elementyDoZlecen.Select(k =>
-            $"RowIdZlecenia: {k.ElemetZamDoZlecen.RowIdZlecenia}, Szrokość: {k.ElemetZamDoZlecen.Szerokosc}, Wysokość: {k.ElemetZamDoZlecen.Wysokosc}, Nazwa Produktu: {k.ElemetZamDoZlecen.NazwaProduktu}, Numer Katalogowy: {k.ElemetZamDoZlecen.NumerKatalogowy}, Ilość: {k.ElemetZamDoZlecen.IloscSztuk}, Uwagi: {k.ElemetZamDoZlecen.Uwagi}, DataZamowienia: {k.ElemetZamDoZlecen.DataZamowienia}, DataRealizacji: {k.ElemetZamDoZlecen.DataRealizacji}, DataZapisu: {k.ElemetZamDoZlecen.DataZapisu}, KtoZapisal: {k.ElemetZamDoZlecen.KtoZapisal}, OstatniaZmiana: {k.ElemetZamDoZlecen.OstatniaZmiana}"
-        ));
+        $"RowIdZlecenia: {k.ElemetZamDoZlecen.RowIdZlecenia}, Szrokość: {k.ElemetZamDoZlecen.Szerokosc}, Wysokość: {k.ElemetZamDoZlecen.Wysokosc}, Nazwa Produktu: {k.ElemetZamDoZlecen.NazwaProduktu}, Numer Katalogowy: {k.ElemetZamDoZlecen.NumerKatalogowy}, Ilość: {k.ElemetZamDoZlecen.IloscSztuk}, Uwagi: {k.ElemetZamDoZlecen.Uwagi}, DataZamowienia: {k.ElemetZamDoZlecen.DataZamowienia}, DataRealizacji: {k.ElemetZamDoZlecen.DataRealizacji}, DataZapisu: {k.ElemetZamDoZlecen.DataZapisu}, KtoZapisal: {k.ElemetZamDoZlecen.KtoZapisal}, OstatniaZmiana: {k.ElemetZamDoZlecen.OstatniaZmiana}"
+    ));
 
         await JSRuntime.InvokeVoidAsync("copyToClipboard", kantowkiText);
 
@@ -730,7 +789,7 @@
 
         if (!daneZeSchowka.StartsWith("{") || !daneZeSchowka.EndsWith("}") || !daneZeSchowka.Contains("RowIdProducent"))
         {
-            await _message.Info("Niepoprawny format danych!!!"); 
+            await _message.Info("Niepoprawny format danych!!!");
             return;
         }
 
@@ -769,7 +828,7 @@
                         element.IloscSztuk = float.TryParse(value, out var ilosc) ? ilosc : 0;
                         break;
                     case "Jednostka":
-                        element.Jednostka = value; 
+                        element.Jednostka = value;
                         break;
                     case "Kolor":
                         element.Kolor = value;
@@ -799,7 +858,7 @@
 
         try
         {
-           // var response = await httpClient.PostAsJsonAsync($"api/ElementyDoZlecen", elementyDoZlecenC);
+            // var response = await httpClient.PostAsJsonAsync($"api/ElementyDoZlecen", elementyDoZlecenC);
             var response = await Http.PostAsJsonAsync($"api/elementyDoZlecen/save-all/{false}", elementyDoZlecenC);
 
             if (response.IsSuccessStatusCode)
