@@ -20,6 +20,8 @@ namespace GEORGE.Shared.Models
         public string? Telefon { get; set; }
         public string? Uwagi { get; set; }
         public string? Notatka { get; set; }
+        public string? Email { get; set; }
+        public string? HasloDoPoczty { get; set; } = "---";
         public DateTime Datautowrzenia { get; set; } = System.DateTime.Now;
         public string? Autorzmiany { get; set; }
         public bool Nieaktywny { get; set; }

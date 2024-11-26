@@ -16,6 +16,8 @@
     public string? UzytkownikSQL { get; set; }
     public string? HasloSQL { get; set; }
     public string? Adres { get; set; }
+    public string? Email { get; set; }
+    public string? HasloDoPoczty { get; set; }
     public string? KodPocztowy { get; set; }
     public string? Miejscowosc { get; set; }
     public string? Uwagi { get; set; }

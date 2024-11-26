@@ -32,6 +32,9 @@ builder.Services.AddScoped<PdfDataParserSzyby>();
 builder.Services.AddScoped<PdfDataParserElementy>();
 builder.Services.AddScoped<PdfDataParserElementy>();
 
+//builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://twoj-serwer-api.com/") });
+
+
 // W³¹czenie Invariant Globalization
 AppContext.SetSwitch("System.Globalization.Invariant", true);
 

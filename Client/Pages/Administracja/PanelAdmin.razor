@@ -22,7 +22,7 @@ else
     {
         <form style="display: flex;">
 
-            <div style="flex-basis: 50%;">
+            <div style="flex-basis: 99%;">
                 <div class="form-row">
                     <div class="form-group col-md-8">
                         <label for="imie">Imię:</label>
@@ -46,16 +46,16 @@ else
                         <label for="telefon">Stanowisko w systemie:</label>
 
                         <Select TItem="Item"
-                                TItemValue="string"
-                                DataSource="@_items"
+                        TItemValue="string"
+                        DataSource="@_items"
                         @bind-Value="@nowyPracownik.StanowiskoSystem"
-                                ValueName="@nameof(Item.Value)"
-                                LabelName="@nameof(Item.Name)"
-                                            DefaultActiveFirstOption
-                                 Style="width: 100%;"
-                                 OnSelectedItemChanged="OnSelectedItemChangedHandler">
-                             <ItemTemplate>
-                                 <span>@((context as Item).DisplayName)</span>
+                        ValueName="@nameof(Item.Value)"
+                        LabelName="@nameof(Item.Name)"
+                        DefaultActiveFirstOption
+                        Style="width: 100%;"
+                        OnSelectedItemChanged="OnSelectedItemChangedHandler">
+                            <ItemTemplate>
+                                <span>@((context as Item).DisplayName)</span>
                             </ItemTemplate>
                         </Select>
                     </div>
@@ -69,7 +69,7 @@ else
                         ValueName="@nameof(RodzajeDzialow.RowId)"
                         Placeholder="Wybierz dział"
                         DefaultActiveFirstOption="false"
-                                            EnableSearch
+                        EnableSearch
                         OnBlur="OnBlur"
                         OnFocus="OnFocus"
                         OnSelectedItemChanged="OnSelectedItemChangedHandler"
@@ -80,16 +80,28 @@ else
                 <div class="form-row">
                     <div class="form-group col-md-8">
                         <label for="telefon">Nazwa Użytkownika w systemie:</label>
-                         <label style="background-color: red; color: white;" for="inicjaly2">@uzytkowniksystem</label>
+                        <label style="background-color: red; color: white;" for="inicjaly2">@uzytkowniksystem</label>
                         <input type="text" class="form-control" id="uzytkowniksql" @bind="@nowyPracownik.UzytkownikSQL" @oninput="SprawdzUzytkownik" />
                     </div>
                     <div class="form-group col-md-8">
                         <label for="telefon">Hasło do systemu:</label>
                         <input type="text" class="form-control" id="haslosql" @bind="@nowyPracownik.HasloSQL" />
                     </div>
+                    <div class="form-group col-md-8">
+                        <label for="telefon">Adres E-MAIL:</label>
+                        <input type="text" class="form-control" id="haslosql" @bind="@nowyPracownik.Email" />
+                    </div>
+                    <div class="form-group col-md-8">
+                        <label for="telefon">Hasło do poczty E-MAIL:</label>
+                        <input type="text" class="form-control" id="haslosql" @bind="@nowyPracownik.HasloDoPoczty" />
+                    </div>
+                    <div class="form-group col-md-8">
+                        <label for="telefon">Notatka:</label>
+                        <input type="text" class="form-control" id="haslosql" @bind="@nowyPracownik.Notatka" />
+                    </div>
                 </div>
             </div>
-
+            @* 
             <div style="flex-basis: 50%;">
                 <div class="form-row">
                     <div class="form-group col-md-10">
@@ -97,7 +109,7 @@ else
                         <input type="text" class="form-control" id="haslosql" @bind="@nowyPracownik.Notatka" />
                     </div>
                 </div>
-            </div>
+            </div> *@
 
         </form>
         <br />
@@ -220,6 +232,8 @@ else
             infStat = "Nie udało się zapisać. Sprawdź dane!";
             return;
         }
+
+        if (string.IsNullOrEmpty(nowyPracownik.HasloDoPoczty)) nowyPracownik.HasloDoPoczty = "---";
 
         //var response = await Http.PutAsJsonAsync("/api/Pracownicy", nowyPracownik);// zmiana danych
 

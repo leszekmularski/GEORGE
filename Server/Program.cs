@@ -5,6 +5,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using System.Globalization;
+using AntDesign;
+using ReservationBookingSystem.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,6 +37,12 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.SetMinimumLevel(LogLevel.Debug);
+
+// Rejestracja konfiguracji MailSettings z appsettings.json
+builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
+
+// Rejestracja MailService jako serwis
+builder.Services.AddScoped<IMailService, MailService>();
 
 // Konfiguracja obs³ugi plików statycznych (obs³uga specyficznych rozszerzeñ)
 builder.Services.Configure<StaticFileOptions>(options =>

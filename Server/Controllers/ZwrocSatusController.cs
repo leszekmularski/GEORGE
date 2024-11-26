@@ -49,6 +49,8 @@ public class ZwrocSatusController : Controller
                     RowId = x.Pracownik.RowId,
                     RowIdDzialu = x.Pracownik.RowIdDzialu,
                     StanowiskoSystem = x.Pracownik.StanowiskoSystem,
+                    Email = x.Pracownik.Email,
+                    HasloDoPoczty = x.Pracownik.HasloDoPoczty
                 }).ToListAsync();
 
             if (uprawnienia == null || !uprawnienia.Any())
