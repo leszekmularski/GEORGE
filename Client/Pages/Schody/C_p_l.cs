@@ -340,6 +340,7 @@ namespace GEORGE.Client.Pages.Schody
             double wysokoscZaczepuY = 40;
             double dlugoscZaczepuX = 50;
             // Konwersja kąta nachylenia na radiany
+            katNachylenia = katNachylenia - 90;
             double katRadians = katNachylenia * (Math.PI / 180);
 
             // Obliczenie przesunięć wzdłuż osi X i Y
@@ -350,11 +351,15 @@ namespace GEORGE.Client.Pages.Schody
             double endX = startX + deltaX;
             double endY = startY - deltaY;
 
-            double offset20 = Math.Abs(20 / Math.Sin(katRadians));
-           
-            double liniaDol = Math.Abs(20 / Math.Cos(katRadians));
+            double offsetKr = 30 + ZachodzenieStopniZaSiebie;
 
-            double liniaDolStart = GlebokoscStopnia - Math.Abs((WysokoscPodniesieniaStopnia - GruboscStopnia - 20) / Math.Sin(katRadians));// to do poprawy!!!-----------------
+            double offset20 = Math.Abs(offsetKr / Math.Sin((katNachylenia) * (Math.PI / 180)));
+           
+            double liniaDol = Math.Abs(offsetKr / Math.Cos((katNachylenia) * (Math.PI / 180)));
+
+            double liniaDolStart = (GlebokoscStopnia + offset20) - Math.Abs((WysokoscPodniesieniaStopnia - GruboscStopnia) / Math.Atan(katNachylenia * (Math.PI / 180)));
+
+            Console.WriteLine($"liniaDolStart: {liniaDolStart}");  
 
             // Ustaw kolor na zielony i zwiększ grubość linii
             await context.SetStrokeStyleAsync("green");
@@ -366,7 +371,7 @@ namespace GEORGE.Client.Pages.Schody
             // Punkt początkowy (lewy dolny róg)
             double leftBottomX = startX - liniaDolStart * Skala;//startX - (((SzerokoscOstatniegoStopnia - dlugoscZaczepuX) * Skala) * Math.Sin(katNachylenia * (Math.PI / 180)));// to do poprawy!!!-----------------
             double leftBottomY = startY;
-            Console.WriteLine($"offset20: {offset20} liniaDol: {liniaDol} leftBottomX: {leftBottomX} liniaDolStart: {liniaDolStart}");
+            Console.WriteLine($"offset20: {offset20} liniaDol: {liniaDol} leftBottomX: {leftBottomX} liniaDolStart: {liniaDolStart} katNachylenia: {katNachylenia}");
             //  await DrawTextAsync(context, leftBottomX, leftBottomY, $"X:{Math.Round(leftBottomX / Skala, 1)} Y:{Math.Round(leftBottomY / Skala, 1)}");
 
             await context.MoveToAsync(leftBottomX, leftBottomY);
@@ -389,7 +394,7 @@ namespace GEORGE.Client.Pages.Schody
             Console.WriteLine($"przeciwProstokatna: {przeciwProstokatna}  / katNachylenia: {katNachylenia} / Punkt Y: {WysokoscPodniesieniaStopnia + wysokoscZaczepuY}");
 
             // **Skośna linia (od prawego górnego punktu do prawego górnego stopnia)**
-            double rightUpperX = X + liniaDol * Skala - 50 * Skala;// + stepWidth;  // Współrzędne prawego górnego rogu ostatniego stopnia //??????????????????????????????????????????????????????????????????
+            double rightUpperX = X + liniaDol * Skala - 50 * Skala ;// + stepWidth;  // Współrzędne prawego górnego rogu ostatniego stopnia // do poprawy!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             double rightUpperY = YStartStopienGorny - GruboscStopnia * Skala;
 
             // Rysowanie skośnej linii do prawego górnego rogu ostatniego stopnia
@@ -423,7 +428,6 @@ namespace GEORGE.Client.Pages.Schody
 
             await context.LineToAsync(hookX3, hookY3);
             AddLineWithPreviousPointAsync(hookX3, hookY3); // Dodanie poziomej linii zaczepu
-
 
             // Linia końcowa pionowa
             double endXFinal = X;

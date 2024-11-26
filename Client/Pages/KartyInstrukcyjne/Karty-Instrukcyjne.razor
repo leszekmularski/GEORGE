@@ -195,7 +195,7 @@ else
                     <FormItem Label="Ostatnia Zmiana">
                         <Input @bind-Value="karty.OstatniaZmiana" ReadOnly />
                     </FormItem>
-                    <FormItem Style="justify-content: flex-end; display: flex; gap: 10px;">
+                    <AntDesign.FormItem Style="justify-content: flex-end; display: flex; gap: 10px;">
                          <div class="modal-footer d-flex">
                             @if (!string.IsNullOrEmpty(karty.LinkDoKartyNaSerwerze))
                             {
@@ -215,7 +215,7 @@ else
                                 <Button @onclick="@HandleCancel">Anuluj</Button>
                             </div>
                         </div>
-                    </FormItem>
+                    </AntDesign.FormItem>
                 </Form>
             </div>
         </div>

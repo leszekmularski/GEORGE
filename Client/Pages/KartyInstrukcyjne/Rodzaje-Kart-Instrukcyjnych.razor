@@ -101,7 +101,7 @@ else
                     <AntDesign.FormItem Label="Ostatnia Zmiana">
                         <AntDesign.Input @bind-Value="karty.OstatniaZmiana" />
                     </AntDesign.FormItem>
-                    <AntDesign.FormItem>
+                    <AntDesign.FormItem Style="justify-content: flex-end; display: flex; gap: 10px;">
                         <AntDesign.Button Type="primary" @onclick="@HandleAddNew" HtmlType="submit">Zapisz</AntDesign.Button>
                         <AntDesign.Button @onclick="@HandleCancel">Anuluj</AntDesign.Button>
                     </AntDesign.FormItem>
