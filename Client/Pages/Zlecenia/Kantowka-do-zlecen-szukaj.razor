@@ -1,0 +1,353 @@
+﻿@page "/Kantowka-do-zlecen-szukaj"
+@using GEORGE.Shared.Models
+@using GEORGE.Shared.ViewModels
+@using GEORGE.Shared.Class
+@using GEORGE.Client.Pages
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@using AntDesign
+@inject IMessageService _message
+@inject PdfReaderService PdfReaderService
+@inject GEORGE.Client.Pages.PDF.PdfDataParser PdfDataParser
+@inject Utilities.ILocalStorage LocalStorage
+@using System.Net;
+@using System.Text.Json;
+@inject IConfirmService _confirmService
+@inject INotificationService _notice
+
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        /* Styl dla linków */
+        .custom-link {
+        color: blue;
+        }
+
+        .custom-linkszy {
+        color: darkblue;
+        }
+
+        /* Główna tabela */
+        .highlighted-background {
+        background-color: white;
+        overflow: auto; /* Dodaje paski przewijania w razie potrzeby */
+        max-height: calc(100vh - 55px); /* Maksymalna wysokość dostosowana do rozmiaru okna */
+        width: calc(100% - 260px); /* Ustawia szerokość na 100% minus 260px */
+        box-sizing: border-box; /* Uwzględnia padding i border w rozmiarze */
+        position: absolute;
+        left: 260px; /* Lewa krawędź 260px od lewej */
+        top: 55px; /* Górna krawędź 55px od góry */
+        }
+
+        /* Klasy podświetlające */
+        .zrealizowano, .zrealizowano > td {
+        background-color: forestgreen !important;
+        color: white; /* Kontrastujący kolor tekstu */
+        }
+
+        /* Podświetlenie w przypadku najechania myszką */
+        .zrealizowano:hover, .zrealizowano:hover > td {
+        background-color: mediumslateblue !important;
+        font-size: 1.0em;
+        }
+
+        /* Zamówiono */
+        .zamowiono, .zamowiono > td {
+        background-color: lightblue !important;
+        color: black; /* Kontrastujący kolor tekstu */
+        }
+
+        .zamowiono:hover, .zamowiono:hover > td {
+        background-color: mediumslateblue !important;
+        font-size: 1.0em;
+        }
+
+        /* ZlecenieNaN */
+        .zlecenieNaN, .zlecenieNaN > td {
+        background-color: whitesmoke !important;
+        color: black; /* Kontrastujący kolor tekstu */
+        }
+
+        .zlecenieNaN:hover, .zlecenieNaN:hover > td {
+        background-color: mediumslateblue !important;
+        font-size: 1.0em;
+        }
+
+        /* Klasa zawsze podświetlonego wiersza */
+        .highlighted-row, .highlighted-row > td {
+        background-color: yellow !important; /* Zmienna podświetlenia */
+        color: black !important; /* Kontrastujący kolor tekstu */
+        }
+    </style>
+
+
+
+    <meta charset="utf-8" />
+    <PageTitle>Zamówiona kantówka do zlecenia</PageTitle>
+
+    <script>
+        function copyToClipboard(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+        console.log('Text copied to clipboard');
+        }).catch(function (error) {
+        console.error('Error copying text: ', error);
+        });
+        } else {
+        // Fallback method
+        var textArea = document.createElement("textarea");
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+        document.execCommand('copy');
+        console.log('Text copied to clipboard');
+        } catch (err) {
+        console.error('Error copying text: ', err);
+        }
+        document.body.removeChild(textArea);
+        }
+        }
+
+        function saveAsExcel(jsonData) {
+        const data = JSON.parse(jsonData);
+        const csvRows = [];
+
+        // Extract headers
+        const headers = Object.keys(data[0]);
+        csvRows.push(headers.join(','));
+
+        // Extract rows
+        for (const row of data) {
+        const values = headers.map(header => {
+        const escaped = ('' + row[header]).replace(/"/g, '\\"');
+        return `"${escaped}"`;
+        });
+        csvRows.push(values.join(','));
+        }
+
+        // Create CSV file
+        const csvString = csvRows.join('\n');
+        const blob = new Blob([csvString], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.setAttribute('hidden', '');
+        a.setAttribute('href', url);
+        a.setAttribute('download', 'kantowka_all.csv');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        }
+
+        function saveAsExcelSel(jsonData) {
+        const data = JSON.parse(jsonData);
+        const csvRows = [];
+
+        // Define headers
+        const headers = ["GatunekKantowki", "Przekroj", "NazwaProduktu", "DlugoscZamawiana", "DlugoscNaGotowoGrupa", "IloscSztuk"];
+        csvRows.push(headers.join(','));
+
+        // Extract rows
+        for (const row of data) {
+        const values = headers.map(header => {
+        const escaped = ('' + row[header]).replace(/"/g, '\\"');
+        return `"${escaped}"`;
+        });
+        csvRows.push(values.join(','));
+        }
+
+        // Create CSV file
+        const csvString = csvRows.join('\n');
+        const blob = new Blob([csvString], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.setAttribute('hidden', '');
+        a.setAttribute('href', url);
+        a.setAttribute('download', 'kantowka.csv');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        }
+    </script>
+
+
+</head>
+<body>
+    <div class="highlighted-background">
+        <h6 style="color:brown; padding-top:5px">Wyszukaj kantówkę po długości</h6>
+        <Text>Wyszukaj po długości:</Text>
+        <AntDesign.InputNumber @bind-Value="@_int_dlugosc" />
+        <Text>Wyszukaj w zakresie</Text>
+        <AntDesign.InputNumber @bind-Value="@_int_zakres" />
+        <Button Icon="@IconType.Outline.Search" OnClick="SzukZakres">Szukaj</Button>
+        <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
+            <Button class="btn-back" Icon="@IconType.Fill.Backward" OnClick="GoBack"></Button>
+        </Tooltip>
+
+        @if (kantowkaDoZlecen == null)
+        {
+            <Spin Style="margin-left:47%" size="large" />
+            <p style="margin-left:43%"><em>Czekaj na załadowanie danych...</em></p>
+        }
+        else
+        {
+            <Divider>Ilość pozycji do zamówienia: @kantowkaDoZlecen.Count(), suma sztuk: @kantowkaDoZlecen.Sum(x => x.IloscSztuk).ToString()</Divider>
+            <div>
+                <Table TItem="KantowkaDoZlecenViewModel" DataSource="@kantowkaDoZlecen" ScrollX="1950" PageSize="@_pageSize" Size="TableSize.Small"
+                RowClassName="@(x => x?.Data?.WyslanoDoZamowien == true ? (x?.Data?.PozDostarczono == true ? "zrealizowano" : "zamowiono") : 
+                        (x?.Data?.PozDostarczono == true ? "zrealizowano" : "zlecenieNaN"))">
+                    <Column Title="ID" @bind-Field="@context.Id" Hidden />
+                    <Column Title="Klient" @bind-Field="@context.TylkoKlient" Sortable Filterable />
+                    <Column Title="Gatunek" @bind-Field="@context.GatunekKantowki" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Title="Przekrój" @bind-Field="@context.Przekroj" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Title="Opis" @bind-Field="@context.NazwaProduktu" Sortable />
+                    <Column Title="Długość na gotowo" @bind-Field="@context.DlugoscNaGotowo" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Width="150" Title="Długość na gotowo cd." @bind-Field="@context.DlugoscNaGotowoGrupa" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Title="Długość zamówiona" @bind-Field="@context.DlugoscZamawiana" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Title="Ilość sztuk" @bind-Field="@context.IloscSztuk" Sortable />
+                    <Column Title="Wykoż. materiał ze stanu" TData="KantowkaDoZlecenViewModel">
+                        <Template>
+                            <Checkbox @bind-Checked="@context.MaterialZeStanMagazyn" Disabled />
+                        </Template>
+                    </Column>
+                    <Column Width="350" Title="Uwagi" @bind-Field="@context.Uwagi" Sortable />
+                    <Column Title="Autor zmian" @bind-Field="@context.KtoZapisal" Sortable />
+                    <Column Title="Wysłano do zamówienia" @bind-Field="@context.WyslanoDoZamowien" Hidden />
+
+
+                    <!-- Przykład kolumny dla daty z formatowaniem -->
+                    <Column Title="Data zamówienia" TData="DateTime" DataIndex="DataZamowienia" Format="yyyy-MM-dd" Sortable />
+                    <Column Title="Max. Data realiazcji" TData="DateTime" DataIndex="DataRealizacji" Format="yyyy-MM-dd" Sortable />
+                    <Column Title="Data dostarczenia" TData="DateTime" DataIndex="DataDostarczenia" Format="yyyy-MM-dd" Sortable />
+
+                    <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd" Sortable />
+
+                </Table>
+
+            </div>
+
+        }
+
+    </div>
+</body>
+</html>
+
+@code {
+
+    [Inject] private AppState AppState { get; set; } = default!;
+
+    private List<KantowkaDoZlecenViewModel>? kantowkaDoZlecen;
+
+    int _int_dlugosc = 0;
+    int _int_zakres = 250;
+
+    int _pageSize = 7;
+
+    string dotyczyZlecenia = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _pageSize = Convert.ToInt32((await LocalStorage.GetStringAsync("kantowka_ile_widocznych")));
+        if (_pageSize == 0) _pageSize = 6;
+
+        if (AppState != null)
+        {
+            AppState.SomeData = "";
+        }
+
+        await Laduj_Uprawnienia();
+
+        try
+        {
+            kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecenViewModel>>($"api/KantowkaDoZlecen/dlugosc/{-999}/zakres/{0}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"******* Błąd {ex.Message}");
+        }
+
+    }
+
+
+    private async Task SzukZakres()
+    {
+        try
+        {
+            kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecenViewModel>>($"api/KantowkaDoZlecen/dlugosc/{_int_dlugosc}/zakres/{_int_zakres}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"******* Błąd {ex.Message}");
+        }
+
+    }
+
+    private async Task GoBack()
+    {
+        await JSRuntime.InvokeVoidAsync("history.back");
+    }
+
+
+
+    private bool boolOdczyt = false;
+    private bool boolZmian = false;
+    private bool boolUsuniecia = false;
+    private bool boolAdmin = false;
+    private string RowIdPracownika = "";
+    private string? user;
+    private bool isNotDisabled => !boolZmian || !boolAdmin;
+    private List<UprawnieniaPracownikaViewModel>? uprawnienia;
+
+    private async Task Laduj_Uprawnienia()
+    {
+        user = await LocalStorage.GetStringAsync("user");
+
+        if (string.IsNullOrEmpty(user))
+        {
+            //NavigationManager.NavigateTo($"", true);
+            user = "NaN";
+            return;
+        }
+
+        string nazwaTabeli = "KantowkaDoZlecen";
+
+        Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");
+
+        try
+        {
+            uprawnienia = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"/api/ZwrocSatus/{user}/{nazwaTabeli}");
+        }
+        catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            Console.WriteLine("Brak danych!!!");
+            await _message.Error("Brak danych - status użytkownika");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            await _message.Error(ex.Message);
+        }
+
+        if (uprawnienia != null)
+        {
+            if (uprawnienia.Count > 0)
+            {
+                var znalezioneElementy = uprawnienia.Where(uprawnienie => uprawnienie.TableName == nazwaTabeli);
+                Console.WriteLine("Znaleziono uprawnienia dla użytkownika: " + user + " w tabeli: " + nazwaTabeli + " ilość rekordów: " + znalezioneElementy.Count());
+                if (znalezioneElementy.Any())
+                {
+                    var szuk = znalezioneElementy.FirstOrDefault(x => x.TableName == nazwaTabeli);
+                    if (szuk != null)
+                    {
+                        boolOdczyt = szuk.Odczyt;
+                        boolZmian = szuk.Zmiana;
+                        boolUsuniecia = szuk.Usuniecie;
+                        boolAdmin = szuk.Administrator;
+                        RowIdPracownika = szuk.RowId;
+                    }
+                }
+            }
+        }
+    }
+}

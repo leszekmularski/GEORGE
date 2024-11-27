@@ -36,6 +36,9 @@
     <Content Update="Pages\KartyInstrukcyjne\Karty-Instrukcyjne.razor">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </Content>
+    <Content Update="Pages\Zlecenia\Kantowka-do-zlecen-szukaj.razor">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
     <Content Update="Pages\Zlecenia\NowaPozZamowienia.razor">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </Content>

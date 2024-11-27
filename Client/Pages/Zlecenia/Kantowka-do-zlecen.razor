@@ -234,7 +234,7 @@
         {
             <Divider>Ilość pozycji do zamówienia: @kantowkaDoZlecen.Count(), suma sztuk: @kantowkaDoZlecen.Sum(x => x.IloscSztuk).ToString()</Divider>
             <div>
-                <Table TItem="KantowkaDoZlecen" DataSource="@kantowkaDoZlecen" ScrollX="1950" PageSize="@_pageSize" Size="TableSize.Small"
+                <Table TItem="KantowkaDoZlecenViewModel" DataSource="@kantowkaDoZlecen" ScrollX="1950" PageSize="@_pageSize" Size="TableSize.Small"
                 RowClassName="@(x => x?.Data?.WyslanoDoZamowien == true ? (x?.Data?.PozDostarczono == true ? "zrealizowano" : "zamowiono") : 
                         (x?.Data?.PozDostarczono == true ? "zrealizowano" : "zlecenieNaN"))">
                     <Column Title="ID" @bind-Field="@context.Id" Hidden />
@@ -245,7 +245,7 @@
                     <Column Width="150" Title="Długość na gotowo cd." @bind-Field="@context.DlugoscNaGotowoGrupa" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Title="Długość zamówiona" @bind-Field="@context.DlugoscZamawiana" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Title="Ilość sztuk" @bind-Field="@context.IloscSztuk" Sortable />
-                    <Column Title="Wykoż. materiał ze stanu" TData="KantowkaDoZlecen">
+                    <Column Title="Wykoż. materiał ze stanu" TData="KantowkaDoZlecenViewModel">
                         <Template>
                             <Checkbox @bind-Checked="@context.MaterialZeStanMagazyn" OnChange="(e)=>Handle(e, context.Id)" />
                         </Template>
@@ -480,8 +480,8 @@
 
     private string? pdfContent;
 
-    private List<KantowkaDoZlecen>? kantowkaDoZlecen;
-    private List<KantowkaDoZlecen>? oryginalkantowkaDoZlecen;
+    private List<KantowkaDoZlecenViewModel>? kantowkaDoZlecen;
+    private List<KantowkaDoZlecenViewModel>? oryginalkantowkaDoZlecen;
 
     private GEORGE.Client.Pages.PDF.Zestawienie? zestawienie;
 
@@ -497,9 +497,9 @@
 
     private long cid = -1;
 
-    private KantowkaDoZlecen kantowka = new KantowkaDoZlecen();
+    private KantowkaDoZlecenViewModel kantowka = new KantowkaDoZlecenViewModel();
 
-    private List<KantowkaDoZlecen>? kantowki;
+    private List<KantowkaDoZlecenViewModel>? kantowki;
 
     private bool kopiuj = true;
 
@@ -532,9 +532,9 @@
 
         try
         {
-            kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecen>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
+            kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecenViewModel>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
 
-            kantowka = new KantowkaDoZlecen();
+            kantowka = new KantowkaDoZlecenViewModel();
             kantowka.Id = 0;
         }
         catch (Exception ex)
@@ -772,7 +772,7 @@
 
     private async Task SaveAll()
     {
-        kantowki = new List<KantowkaDoZlecen>();
+        kantowki = new List<KantowkaDoZlecenViewModel>();
 
         if (zestawienie == null) return;
 
@@ -786,7 +786,7 @@
         @foreach (var item in zestawienie.ListaCieci)
         {
 
-            var kantowka = new KantowkaDoZlecen
+            var kantowka = new KantowkaDoZlecenViewModel
                 {
                     RowIdZlecenia = RowIdZlecenia,
                     GatunekKantowki = item.Uwagi,
@@ -821,7 +821,7 @@
                 // Operacja zakończona sukcesem
                 Console.WriteLine("Dane zostały zapisane pomyślnie.");
 
-                kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecen>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
+                kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecenViewModel>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
 
                 zestawienie = null;
             }
@@ -858,7 +858,7 @@
                 Przekroj = item.Kolor,
                 DlugoscZamawiana = int.Parse(item.WymiarNaZamowienie)
             })
-            .Select(g => new KantowkaDoZlecen
+            .Select(g => new KantowkaDoZlecenViewModel
                 {
                     RowIdZlecenia = RowIdZlecenia,
                     GatunekKantowki = g.Key.GatunekKantowki,
@@ -891,7 +891,7 @@
                 // Operacja zakończona sukcesem
                 Console.WriteLine("Dane zostały zapisane pomyślnie.");
 
-                kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecen>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
+                kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecenViewModel>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
 
                 zestawienie = null;
             }
@@ -951,7 +951,7 @@
 
         if (response.IsSuccessStatusCode)
         {
-             kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecen>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
+             kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecenViewModel>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
 
             if (kantowkaDoZlecen != null)
             {
@@ -1029,12 +1029,12 @@
             //     }
             // }
 
-            kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecen>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
+            kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecenViewModel>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
 
             if (kantowkaDoZlecen != null) oryginalkantowkaDoZlecen = kantowkaDoZlecen.DeepCopyList();
 
             _visible = false;
-            kantowka = new KantowkaDoZlecen(); // Zresetuj formularz
+            kantowka = new KantowkaDoZlecenViewModel(); // Zresetuj formularz
 
             await HideDialog();
 
@@ -1090,7 +1090,7 @@
         }
         else
         {
-            kantowka = new KantowkaDoZlecen();
+            kantowka = new KantowkaDoZlecenViewModel();
 
             var listOfData = kantowkaDoZlecen.Where(d => d.Id == id).ToArray();
 
@@ -1159,7 +1159,7 @@
     public async Task ShowDialogAddNew()
     {
 
-        kantowka = new KantowkaDoZlecen
+        kantowka = new KantowkaDoZlecenViewModel
             {
                 RowIdZlecenia = RowIdZlecenia,
                 GatunekKantowki = "",
