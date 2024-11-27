@@ -34,7 +34,8 @@ namespace ReservationBookingSystem.Services
 
             MailMessage message = new MailMessage();
             SmtpClient smtp = new SmtpClient();
-            message.From = new MailAddress(_mailSettings.FromEmail);
+           // message.From = new MailAddress(_mailSettings.FromEmail);
+            message.From = new MailAddress(toEmail);
             message.To.Add(new MailAddress(toEmail));
             message.Subject = subject;
             message.IsBodyHtml = true;
