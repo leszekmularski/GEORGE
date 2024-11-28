@@ -85,7 +85,7 @@
 <PageTitle>Program do wspomagania produkcji zlecenia</PageTitle>
 
 <div style="display: flex; align-items: center; gap: 10px;">
-  @*   <h3 style="margin: 0;">Zlecenia Produkcyjne</h3> *@
+    @*   <h3 style="margin: 0;">Zlecenia Produkcyjne</h3> *@
 
     <div style="display: flex; align-items: center;padding-left:15px">
 
@@ -120,11 +120,11 @@
     }
 </div>
 
-<Divider Style="font-weight:bold; font-size:large"> 
-    Zlecenia Produkcyjne 
-    @if (zleceniaProdukcyjne != null) 
-    { 
-        @($" [Ilość zarejestrowanych: {zleceniaProdukcyjne.Count()}]") 
+<Divider Style="font-weight:bold; font-size:large">
+    Zlecenia Produkcyjne
+    @if (zleceniaProdukcyjne != null)
+    {
+        @($" [Ilość zarejestrowanych: {zleceniaProdukcyjne.Count()}]")
     }
 </Divider>
 
@@ -142,7 +142,7 @@ else
             <ActionColumn Title="Materiały" Width="155">
                 <a @onclick="() => DodajKantowke(context)" class="custom-link">Kantówka</a>
                 <a @onclick="() => DodajSzybe(context)" class="custom-linkszy">Szyby</a>
-                <br/>
+                <br />
                 <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">T.W.Z / Pozycje</a>
                 <a @onclick="() => DodajZamowienia(context)">Zamówienia</a>
                 <a style="font-weight: bold" @onclick="() => FileEdit(context)">Pliki</a>
@@ -310,7 +310,7 @@ else
                                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; width:600px ">
                                             <AntDesign.DatePicker Style="width: 320px;" Disabled="@czyZamowienie" @bind-Value="zlecenie.DataGotowosci" />
                                             <AntDesign.Button Disabled="@czyZamowienie" OnClick="DataProdUstaw" Style="width: 180px;">Ustaw datę produkcji</AntDesign.Button>
-                                            <Tooltip  Style="width: 100%;" Placement="@Placement.Left" Title="Dodaj ilość tygodni do daty gotowości">
+                                            <Tooltip Style="width: 100%;" Placement="@Placement.Left" Title="Dodaj ilość tygodni do daty gotowości">
                                                 <AntDesign.InputNumber Style="width: 50px;" @bind-Value="iloscTygodniDodaj" />
                                             </Tooltip>
                                         </div>
@@ -340,13 +340,13 @@ else
                             <AntDesign.Row Gutter="16">
                                 <AntDesign.Col Span="12">
                                     <AntDesign.FormItem Label="Zapisano">
-                                        @if(boolAdmin)
+                                        @if (boolAdmin)
                                         {
                                             <AntDesign.DatePicker @bind-Value="zlecenie.DataZapisu" Style="width:120px" />
                                         }
                                         else
                                         {
-                                           <AntDesign.Input ReadOnly Value="@(zlecenie.DataZapisu.ToString("yyyy-MM-dd"))" Style="width:120px" /> 
+                                            <AntDesign.Input ReadOnly Value="@(zlecenie.DataZapisu.ToString("yyyy-MM-dd"))" Style="width:120px" />
                                         }
                                     </AntDesign.FormItem>
                                 </AntDesign.Col>
@@ -411,7 +411,7 @@ else
                                 </AntDesign.Col>
                                 <AntDesign.Col Span="12">
                                     <AntDesign.FormItem Label="Ostatnia Zmiana">
-                                         <Tooltip Placement="@Placement.TopLeft" Title="@zlecenie.RowId">
+                                        <Tooltip Placement="@Placement.TopLeft" Title="@zlecenie.RowId">
                                             <AntDesign.Input ReadOnly @bind-Value="zlecenie.OstatniaZmiana" />
                                         </Tooltip>
                                     </AntDesign.FormItem>
@@ -477,54 +477,54 @@ else
                     <ActionColumn Title="Uwagi / Akcja" Width="250" Fixed="right">
                         <Template>
                             <div>
-                                    @{
-                                        if(context.TypPliku.ToLower().EndsWith("pdf"))
-                                        {
-                                            <Tooltip Placement="@Placement.Left" Title="Generuj Dokument Produkcyjny">
-                                                <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.FilePdf" />
-                                            </Tooltip>
-                                        }
-
-                                        if (boolAdmin)
-                                        {
-                                            <label>Widoczny dla wszystkich:</label>
-                                            <Checkbox Placeholder="Widoczny dla wszystkich." @bind-Value="@context.WidocznyDlaWszystkich" OnChange="@( () => ZmienWidocznosc(context.Id, context.WidocznyDlaWszystkich))" />
-
-                                            var uniqueId = $"{context.Id}";
-                                            <InputFile id="@uniqueId" OnChange="@(e => ReplaceUploadFiles(e, context.NazwaPliku, context.Id))" hidden multiple />
-                                            <Upload Name="files" FileList="fileList">
-                                                <Tooltip Placement="@Placement.Right" Title="Zastąp istniejący plik innym">
-                                                    <label class="ant-btn" for="@uniqueId">
-                                                        <Icon Type="upload" />
-                                                    </label>
-                                                </Tooltip>
-                                            </Upload>
-
-                                        }
-      
-                                        <Input Placeholder="Podaj uwagę." @bind-Value="@context.Uwagi" MaxLength="55" ReadOnly="@isNotDisabled" OnBlur="@( () => ZmienUwage(context.Id, context.Uwagi))" />
-
-                                        var item = context as PlikiZlecenProdukcyjnych;
-                                        if (!string.IsNullOrEmpty(item.NazwaPliku))
-                                        {
-                                            <div class="modal-footer d-flex">
-                                                <a style="font-weight: bold; color:blue" @onclick="@( () => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku) )">Pobierz plik  &nbsp &nbsp</a>
-
-                                                <Spin Spinning=@czekajNaUsuniecie>
-
-                                                    @if (boolAdmin || boolUsuniecia)
-                                                    {
-                                                        <Popconfirm Title="Czy chcesz usunąć plik?"
-                                                                    OnConfirm="()=> deleteFile(item.Id, item.NazwaPliku, item.RowIdZleceniaProdukcyjne)"
-                                                                    OkText="Tak"
-                                                                    CancelText="Nie">
-                                                            <a style="color:red">Usuń plik</a>
-                                                        </Popconfirm>
-                                                    }
-                                                </Spin>
-                                            </div>
-                                        }
+                                @{
+                                    if (context.TypPliku.ToLower().EndsWith("pdf"))
+                                    {
+                                        <Tooltip Placement="@Placement.Left" Title="Generuj Dokument Produkcyjny">
+                                            <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.FilePdf" onclick="@(e => WydrukProdukcyjny(context.NazwaPliku))" />
+                                        </Tooltip>
                                     }
+
+                                    if (boolAdmin)
+                                    {
+                                        <label>Widoczny dla wszystkich:</label>
+                                        <Checkbox Placeholder="Widoczny dla wszystkich." @bind-Value="@context.WidocznyDlaWszystkich" OnChange="@( () => ZmienWidocznosc(context.Id, context.WidocznyDlaWszystkich))" />
+
+                                        var uniqueId = $"{context.Id}";
+                                        <InputFile id="@uniqueId" OnChange="@(e => ReplaceUploadFiles(e, context.NazwaPliku, context.Id))" hidden multiple />
+                                        <Upload Name="files" FileList="fileList">
+                                            <Tooltip Placement="@Placement.Right" Title="Zastąp istniejący plik innym">
+                                                <label class="ant-btn" for="@uniqueId">
+                                                    <Icon Type="upload" />
+                                                </label>
+                                            </Tooltip>
+                                        </Upload>
+
+                                    }
+
+                                    <Input Placeholder="Podaj uwagę." @bind-Value="@context.Uwagi" MaxLength="55" ReadOnly="@isNotDisabled" OnBlur="@( () => ZmienUwage(context.Id, context.Uwagi))" />
+
+                                    var item = context as PlikiZlecenProdukcyjnych;
+                                    if (!string.IsNullOrEmpty(item.NazwaPliku))
+                                    {
+                                        <div class="modal-footer d-flex">
+                                            <a style="font-weight: bold; color:blue" @onclick="@( () => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku) )">Pobierz plik  &nbsp &nbsp</a>
+
+                                            <Spin Spinning=@czekajNaUsuniecie>
+
+                                                @if (boolAdmin || boolUsuniecia)
+                                                {
+                                                    <Popconfirm Title="Czy chcesz usunąć plik?"
+                                                                OnConfirm="()=> deleteFile(item.Id, item.NazwaPliku, item.RowIdZleceniaProdukcyjne)"
+                                                                OkText="Tak"
+                                                                CancelText="Nie">
+                                                        <a style="color:red">Usuń plik</a>
+                                                    </Popconfirm>
+                                                }
+                                            </Spin>
+                                        </div>
+                                    }
+                                }
 
                             </div>
                         </Template>
@@ -563,16 +563,16 @@ else
     </div>
 </div>
 
-<div class="modal fade @classShowTWZ" tabindex="-1" style="display: @displayTWZ;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 80%;">
+<div class="modal fade @classShowPDFWP" tabindex="-1" style="display: @displayPDFWP;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 80%;">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Ustaw czas produkcji na różnych liniach</h5>
+                <h5 class="modal-title">Wygenerowany wydruk produkcujny</h5>
             </div>
             <div class="modal-body">
-                @if (rowIdClick != "")
+                @if (filePDFWydProd != "")
                 {
-                    <WydrukProdukcyjny scieszkaDoPliku="@rowIdClick" />
+                    <WydrukProdukcyjny scieszkaDoPliku="@filePDFWydProd" />
                 }
             </div>
             <div class="modal-footer d-flex">
@@ -614,6 +614,9 @@ else
     private string displayTWZ = "none;";
     private string classShowTWZ = "";
     private string classTWZ = "";
+
+    private string displayPDFWP = "none;";
+    private string classShowPDFWP = "";
 
     private int iloscRekordow = 6;
     private string? filtrTypZamowienia = "";
@@ -1080,17 +1083,33 @@ else
         StateHasChanged();
     }
 
-    private async Task WydrukProdukcyjny(ZleceniaProdukcyjne row)
+    string filePDFWydProd = "";
+    private async Task WydrukProdukcyjny(string nazwa_pliku)
     {
-        rowIdClick = row.RowId == null ? "" : row.RowId;
+        try
+        {
+            filePDFWydProd = "";
+            if (string.IsNullOrEmpty(nazwa_pliku)) return;
 
-        Console.WriteLine($"rowIdClick: {rowIdClick}");
+            filePDFWydProd = nazwa_pliku;
+            Console.WriteLine($"rowIdClick: {nazwa_pliku}");
 
-        await Task.Delay(1);
-        displayTWZ = "block";
-        await Task.Delay(50);
-        classShowTWZ = "show";
-        StateHasChanged();
+            await Task.Delay(1);
+            displayPDFWP = "block";
+            await Task.Delay(50);
+            classShowPDFWP = "show";
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            _ = _notice.Error(new()
+                {
+                    Message = "Błąd generowania dokumentu.",
+                    Description = $"{ex.Message}",
+                    Placement = NotificationPlacement.BottomLeft
+                });
+
+        }
     }
 
     private void DodajKantowke(ZleceniaProdukcyjne row)
@@ -1536,12 +1555,15 @@ else
     private async Task HideDialogTWZ()
     {
         displayTWZ = "";
+        displayPDFWP = "";
         await Task.Delay(200);
         displayTWZ = "none";
+        displayPDFWP = "none";
 
         StateHasChanged();
 
         rowIdClick = "";
+        filePDFWydProd = "";
     }
 
     private async Task ZmienUwage(long id, string uwaga)
@@ -1590,7 +1612,7 @@ else
 
         Console.WriteLine("selectItemPowiat.Value" + selectItemProdukt.Value);
 
-        await Task.CompletedTask; 
+        await Task.CompletedTask;
 
     }
 

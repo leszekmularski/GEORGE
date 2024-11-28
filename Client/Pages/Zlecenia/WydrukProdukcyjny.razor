@@ -45,11 +45,24 @@
     {
         if (!string.IsNullOrEmpty(scieszkaDoPliku))
         {
-            // Odczyt danych PDF
-            PdfViewModel = PdfParserRys.ParsePdfDataRysunek(scieszkaDoPliku);
-        }
+            try
+            {
+                // Odczyt danych PDF
+                PdfViewModel = PdfParserRys.ParsePdfDataRysunek(scieszkaDoPliku);
 
-        await Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                _ = _notice.Error(new()
+                    {
+                        Message = "Błąd generowania dokumentu.",
+                        Description = $"{ex.Message}",
+                        Placement = NotificationPlacement.BottomLeft
+                    });
+
+            }
+
+            await Task.CompletedTask;
+        }
     }
 }
-

@@ -9,31 +9,40 @@ public class PdfReaderServiceRys
 {
     public (string Text, List<LineData> Lines) ReadPdfWithDrawings(string filePath)
     {
-        var lines = new List<LineData>();
-        var text = new StringBuilder();
-
-        using (var reader = new PdfReader(filePath))
-        using (var pdfDoc = new PdfDocument(reader))
+        try
         {
-            for (int i = 1; i <= pdfDoc.GetNumberOfPages(); i++)
+            var lines = new List<LineData>();
+            var text = new StringBuilder();
+
+            using (var reader = new PdfReader(filePath))
+            using (var pdfDoc = new PdfDocument(reader))
             {
-                var page = pdfDoc.GetPage(i);
+                for (int i = 1; i <= pdfDoc.GetNumberOfPages(); i++)
+                {
+                    var page = pdfDoc.GetPage(i);
 
-                // Extract text
-                var strategy = new LocationTextExtractionStrategy();
-                string pageText = PdfTextExtractor.GetTextFromPage(page, strategy);
-                text.Append(pageText);
+                    // Extract text
+                    var strategy = new LocationTextExtractionStrategy();
+                    string pageText = PdfTextExtractor.GetTextFromPage(page, strategy);
+                    text.Append(pageText);
 
-                // Extract drawing elements
-                var drawingStrategy = new MyCustomDrawingStrategy();
-                PdfCanvasProcessor processor = new PdfCanvasProcessor(drawingStrategy);
-                processor.ProcessPageContent(page);
+                    // Extract drawing elements
+                    var drawingStrategy = new MyCustomDrawingStrategy();
+                    PdfCanvasProcessor processor = new PdfCanvasProcessor(drawingStrategy);
+                    processor.ProcessPageContent(page);
 
-                lines.AddRange(drawingStrategy.Lines);
+                    lines.AddRange(drawingStrategy.Lines);
+                }
             }
-        }
 
-        return (text.ToString(), lines);
+            return (text.ToString(), lines);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            return (null, null);
+
+        }
     }
 }
 
