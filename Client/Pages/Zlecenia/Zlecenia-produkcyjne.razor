@@ -476,46 +476,57 @@ else
                     <Column Title="Data Zapisu" @bind-Field="@context.DataZapisu" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <ActionColumn Title="Uwagi / Akcja" Width="250" Fixed="right">
                         <Template>
-                            @{
-                                if (boolAdmin)
-                                {
-                                    <label>Widoczny dla wszystkich:</label>
-                                    <Checkbox Placeholder="Widoczny dla wszystkich." @bind-Value="@context.WidocznyDlaWszystkich" OnChange="@( () => ZmienWidocznosc(context.Id, context.WidocznyDlaWszystkich))" />
+                            <div>
+                                    @{
+                                        if(context.TypPliku.ToLower().EndsWith("pdf"))
+                                        {
+                                            <Tooltip Placement="@Placement.Left" Title="Generuj Dokument Produkcyjny">
+                                                <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.FilePdf" />
+                                            </Tooltip>
+                                        }
 
-                                    var uniqueId = $"{context.Id}";
-                                    <InputFile id="@uniqueId" OnChange="@(e => ReplaceUploadFiles(e, context.NazwaPliku, context.Id))" hidden multiple />
-                                    <Upload Name="files" FileList="fileList">
-                                        <Tooltip Placement="@Placement.Right" Title="Zastąp istniejący plik innym">
-                                            <label class="ant-btn" for="@uniqueId">
-                                                <Icon Type="upload" />
-                                            </label>
-                                        </Tooltip>
-                                    </Upload>
-                                }
+                                        if (boolAdmin)
+                                        {
+                                            <label>Widoczny dla wszystkich:</label>
+                                            <Checkbox Placeholder="Widoczny dla wszystkich." @bind-Value="@context.WidocznyDlaWszystkich" OnChange="@( () => ZmienWidocznosc(context.Id, context.WidocznyDlaWszystkich))" />
 
-                                <Input Placeholder="Podaj uwagę." @bind-Value="@context.Uwagi" MaxLength="55" ReadOnly="@isNotDisabled" OnBlur="@( () => ZmienUwage(context.Id, context.Uwagi))" />
+                                            var uniqueId = $"{context.Id}";
+                                            <InputFile id="@uniqueId" OnChange="@(e => ReplaceUploadFiles(e, context.NazwaPliku, context.Id))" hidden multiple />
+                                            <Upload Name="files" FileList="fileList">
+                                                <Tooltip Placement="@Placement.Right" Title="Zastąp istniejący plik innym">
+                                                    <label class="ant-btn" for="@uniqueId">
+                                                        <Icon Type="upload" />
+                                                    </label>
+                                                </Tooltip>
+                                            </Upload>
 
-                                var item = context as PlikiZlecenProdukcyjnych;
-                                if (!string.IsNullOrEmpty(item.NazwaPliku))
-                                {
-                                    <div class="modal-footer d-flex">
-                                        <a style="font-weight: bold; color:blue" @onclick="@( () => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku) )">Pobierz plik  &nbsp &nbsp</a>
+                                        }
+      
+                                        <Input Placeholder="Podaj uwagę." @bind-Value="@context.Uwagi" MaxLength="55" ReadOnly="@isNotDisabled" OnBlur="@( () => ZmienUwage(context.Id, context.Uwagi))" />
 
-                                        <Spin Spinning=@czekajNaUsuniecie>
+                                        var item = context as PlikiZlecenProdukcyjnych;
+                                        if (!string.IsNullOrEmpty(item.NazwaPliku))
+                                        {
+                                            <div class="modal-footer d-flex">
+                                                <a style="font-weight: bold; color:blue" @onclick="@( () => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku) )">Pobierz plik  &nbsp &nbsp</a>
 
-                                            @if (boolAdmin || boolUsuniecia)
-                                            {
-                                                <Popconfirm Title="Czy chcesz usunąć plik?"
-                                                            OnConfirm="()=> deleteFile(item.Id, item.NazwaPliku, item.RowIdZleceniaProdukcyjne)"
-                                                            OkText="Tak"
-                                                            CancelText="Nie">
-                                                    <a style="color:red">Usuń plik</a>
-                                                </Popconfirm>
-                                            }
-                                        </Spin>
-                                    </div>
-                                }
-                            }
+                                                <Spin Spinning=@czekajNaUsuniecie>
+
+                                                    @if (boolAdmin || boolUsuniecia)
+                                                    {
+                                                        <Popconfirm Title="Czy chcesz usunąć plik?"
+                                                                    OnConfirm="()=> deleteFile(item.Id, item.NazwaPliku, item.RowIdZleceniaProdukcyjne)"
+                                                                    OkText="Tak"
+                                                                    CancelText="Nie">
+                                                            <a style="color:red">Usuń plik</a>
+                                                        </Popconfirm>
+                                                    }
+                                                </Spin>
+                                            </div>
+                                        }
+                                    }
+
+                            </div>
                         </Template>
                     </ActionColumn>
                 </Table>
@@ -543,6 +554,25 @@ else
                 @if (rowIdClick != "")
                 {
                     <Czasy_Zlecen_Na_Linii RowIdZlecenia="@rowIdClick" NowaStronaRazor="false" />
+                }
+            </div>
+            <div class="modal-footer d-flex">
+                <Button class="ms-auto" @onclick="() => HideDialogTWZ()">Zakończ</Button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade @classShowTWZ" tabindex="-1" style="display: @displayTWZ;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 80%;">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ustaw czas produkcji na różnych liniach</h5>
+            </div>
+            <div class="modal-body">
+                @if (rowIdClick != "")
+                {
+                    <WydrukProdukcyjny scieszkaDoPliku="@rowIdClick" />
                 }
             </div>
             <div class="modal-footer d-flex">
@@ -1038,6 +1068,19 @@ else
     }
 
     private async Task DodajCzasyWykonaia(ZleceniaProdukcyjne row)
+    {
+        rowIdClick = row.RowId == null ? "" : row.RowId;
+
+        Console.WriteLine($"rowIdClick: {rowIdClick}");
+
+        await Task.Delay(1);
+        displayTWZ = "block";
+        await Task.Delay(50);
+        classShowTWZ = "show";
+        StateHasChanged();
+    }
+
+    private async Task WydrukProdukcyjny(ZleceniaProdukcyjne row)
     {
         rowIdClick = row.RowId == null ? "" : row.RowId;
 

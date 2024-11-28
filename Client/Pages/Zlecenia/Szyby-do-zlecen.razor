@@ -229,7 +229,7 @@
                     <Column Width="80" Title="Wysokość" @bind-Field="@context.Wysokosc" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Width="250" Title="Opis szyby" @bind-Field="@context.RodzajSzyby" Sortable />
                     <Column Title="Rodzaj ramki" @bind-Field="@context.RodzajRamki" Sortable OnFilter="(a, b) => a == b" Filterable />
-                    <Column Width="100" Title="Opis" @bind-Field="@context.NazwaProduktu" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Width="190" Title="Opis/Produkt" @bind-Field="@context.NazwaProduktu" Sortable OnFilter="(a, b) => a == b" Filterable />
                     <Column Width="80" Title="Ilość" @bind-Field="@context.IloscSztuk" Sortable />
                     <Column Width="80" Title="Czy kształt" TData="SzybyDoZlecen">
                         <Template>
@@ -384,6 +384,9 @@
                                 <div class="col-md-6">
                                     <AntDesign.FormItem Label="Uwagi">
                                         <AntDesign.Input @bind-Value="szyby.Uwagi" />
+                                    </AntDesign.FormItem>
+                                    <AntDesign.FormItem Label="Opis/Produkt">
+                                        <AntDesign.Input @bind-Value="szyby.NazwaProduktu" />
                                     </AntDesign.FormItem>
                                     <AntDesign.FormItem Label="Data Zamówienia">
                                         <DatePicker @bind-Value="szyby.DataZamowienia" Required />

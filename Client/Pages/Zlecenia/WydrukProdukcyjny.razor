@@ -1,0 +1,55 @@
+﻿@using GEORGE.Shared.Models
+@using GEORGE.Shared.ViewModels
+@using GEORGE.Client.Pages.PDF
+@inject HttpClient Http;
+@using Microsoft.AspNetCore.Components.Web
+@using System.Text
+@inject Utilities.ILocalStorage LocalStorage
+@inject NavigationManager NavigationManager
+@using System.Text.Json;
+@using System.Net;
+@inject IJSRuntime JSRuntime
+@inject INotificationService _notice
+@inject PdfDataParserRys PdfParserRys
+
+<style>
+    .form-item-small-margin {
+    margin-bottom: 8px; /* Możesz dostosować tę wartość */
+    }
+</style>
+
+<h3>Tekst PDF:</h3>
+<pre>@PdfViewModel?.Text</pre>
+
+<h3>Linie z PDF:</h3>
+<svg width="800" height="600" style="border:1px solid black">
+    @if (PdfViewModel?.Lines != null)
+    {
+        @foreach (var line in PdfViewModel.Lines)
+        {
+            <line x1="@line.Start.Get(0)" y1="@line.Start.Get(1)"
+            x2="@line.End.Get(0)" y2="@line.End.Get(1)"
+            style="stroke:black;stroke-width:2" />
+        }
+    }
+</svg>
+
+
+@code {
+    [Parameter]
+    public string? scieszkaDoPliku { get; set; }
+
+    private PdfDrawingViewModel? PdfViewModel;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(scieszkaDoPliku))
+        {
+            // Odczyt danych PDF
+            PdfViewModel = PdfParserRys.ParsePdfDataRysunek(scieszkaDoPliku);
+        }
+
+        await Task.CompletedTask;
+    }
+}
+
