@@ -1,39 +1,29 @@
 ﻿@using GEORGE.Shared.Models
 @using GEORGE.Shared.ViewModels
 @using GEORGE.Client.Pages.PDF
-@inject HttpClient Http;
+@inject HttpClient Http
 @using Microsoft.AspNetCore.Components.Web
 @using System.Text
 @inject Utilities.ILocalStorage LocalStorage
 @inject NavigationManager NavigationManager
-@using System.Text.Json;
-@using System.Net;
+@using System.Text.Json
+@using System.Net
 @inject IJSRuntime JSRuntime
 @inject INotificationService _notice
 @inject PdfDataParserRys PdfParserRys
 
 <style>
     .form-item-small-margin {
-    margin-bottom: 8px; /* Możesz dostosować tę wartość */
+        margin-bottom: 8px; /* Możesz dostosować tę wartość */
     }
 </style>
 
-<h3>Tekst PDF:</h3>
-<pre>@PdfViewModel?.Text</pre>
+@* <h3>Tekst PDF:</h3>
+<pre>@PdfViewModel?.Text</pre> *@
 
-<h3>Linie z PDF:</h3>
-<svg width="800" height="600" style="border:1px solid black">
-    @if (PdfViewModel?.Lines != null)
-    {
-        @foreach (var line in PdfViewModel.Lines)
-        {
-            <line x1="@line.Start.Get(0)" y1="@line.Start.Get(1)"
-            x2="@line.End.Get(0)" y2="@line.End.Get(1)"
-            style="stroke:black;stroke-width:2" />
-        }
-    }
-</svg>
+<h3>Dane produkcyjne:</h3>
 
+<div>@GetSvgContent()</div>
 
 @code {
     [Parameter]
@@ -47,22 +37,48 @@
         {
             try
             {
-                // Odczyt danych PDF
-                PdfViewModel = PdfParserRys.ParsePdfDataRysunek(scieszkaDoPliku);
-
+                // Odczyt danych PDF (await jest wymagany dla metody asynchronicznej)
+                PdfViewModel = await PdfParserRys.ParsePdfDataRysunekAsync(scieszkaDoPliku);
             }
             catch (Exception ex)
             {
-                _ = _notice.Error(new()
+                await _notice.Error(new()
                     {
                         Message = "Błąd generowania dokumentu.",
                         Description = $"{ex.Message}",
                         Placement = NotificationPlacement.BottomLeft
                     });
-
             }
-
-            await Task.CompletedTask;
         }
     }
+
+    public MarkupString GetSvgContent()
+    {
+        var svgContent = "<svg width='1200' height='800' style='border:1px solid black'>";
+
+        if (PdfViewModel?.Lines != null)
+        {
+            foreach (var line in PdfViewModel.Lines)
+            {
+                svgContent += $@"<line x1='{line.Start.Get(0)}' y1='{line.Start.Get(1)}'
+                             x2='{line.End.Get(0)}' y2='{line.End.Get(1)}'
+                             style='stroke:black;stroke-width:2' />";
+            }
+        }
+
+        if (PdfViewModel?.Texts != null)
+        {
+            foreach (var text in PdfViewModel.Texts)
+            {
+                svgContent += $@"<text x='{text.Position.Get(0)}' y='{text.Position.Get(1)}' font-family='Arial' font-size='12' fill='blue'>
+                         {text.Text}</text>";
+            }
+        }
+
+        svgContent += "</svg>";
+
+        return new MarkupString(svgContent);
+    }
+
+
 }

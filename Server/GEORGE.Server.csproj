@@ -43,6 +43,10 @@
   	<ItemGroup>
 		<BlazorWebAssemblyIcuData Include="all" />
 	</ItemGroup>
+  
+  	<ItemGroup>
+  	  <Folder Include="wwwroot\uploads_zlecenia\" />
+  	</ItemGroup>
 
 
 </Project>

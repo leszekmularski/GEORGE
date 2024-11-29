@@ -1,30 +1,32 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Text.RegularExpressions;
-
-namespace GEORGE.Client.Pages.PDF
+﻿namespace GEORGE.Client.Pages.PDF
 {
     public class PdfDrawingViewModel
     {
-        public string? Text { get; set; }
-        public List<LineData>? Lines { get; set; }
+        public string? Text { get; set; }  // Tekst PDF, ogólnie
+        public List<LineData>? Lines { get; set; }  // Linie
+        public List<TextData>? Texts { get; set; }  // Nowa właściwość do przechowywania tekstów
     }
 
     public class PdfDataParserRys
     {
-        public PdfDrawingViewModel ParsePdfDataRysunek(string pdfText)
+        private readonly PdfReaderServiceRys _service;
+
+        // Konstruktor wstrzykujący serwis
+        public PdfDataParserRys(PdfReaderServiceRys service)
         {
-            var service = new PdfReaderServiceRys();
-            var pdfData = service.ReadPdfWithDrawings(pdfText);
+            _service = service;
+        }
+
+        public async Task<PdfDrawingViewModel> ParsePdfDataRysunekAsync(string pdfText)
+        {
+            var pdfData = await _service.ReadPdfWithDrawingsAsync(pdfText);
 
             return new PdfDrawingViewModel
             {
                 Text = pdfData.Text,
-                Lines = pdfData.Lines
+                Lines = pdfData.Lines,
+                Texts = pdfData.Texts  // Dodajemy listę tekstów
             };
         }
     }
-
 }
