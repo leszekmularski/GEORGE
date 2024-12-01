@@ -4,13 +4,6 @@ using iText.Kernel.Pdf.Canvas.Parser.Listener;
 using iText.Kernel.Pdf.Canvas.Parser.Data;
 using iText.Kernel.Geom;
 using System.Text;
-using System;
-using System.Net.Http;
-using iText.Commons.Utils;
-using System.Net.Http;
-using System.Runtime.InteropServices.Marshalling;
-using iText.Layout.Font;
-using System.Text.Unicode;
 
 public class PdfReaderServiceRys
 {
@@ -28,84 +21,37 @@ public class PdfReaderServiceRys
         {
             var lines = new List<LineData>();
             var text = new StringBuilder();
-            var texts = new List<TextData>();  // Lista do przechowywania tekstów
+            var texts = new List<TextData>(); // Lista do przechowywania tekstów
 
+            // Pobierz bajty PDF
             var pdfBytes = await _httpClient.GetByteArrayAsync(fileUrl);
 
             using (var stream = new MemoryStream(pdfBytes))
             using (var reader = new PdfReader(stream))
             using (var pdfDoc = new PdfDocument(reader))
             {
- 
-                //for (int i = 1; i <= pdfDoc.GetNumberOfPages(); i++)
-                //{
-                //    var page = pdfDoc.GetPage(i);
-                //    var resources = page.GetResources();
-
-                //    // Pobranie mapy czcionek
-                //    var fontResources = resources.GetResource(PdfName.Font);
-
-                //    if (fontResources is PdfDictionary fontDict)
-                //    {
-                //        foreach (var fontEntry in fontDict.EntrySet())
-                //        {
-                //            var fontObject = fontEntry.Value;
-                //            if (fontObject is PdfDictionary fontDefinition)
-                //            {
-                //                var fontName = fontEntry.Key.ToString();
-                //                Console.WriteLine($"Font found: {fontName}");
-
-                //                // Pobieranie szczegółowych informacji o czcionce
-                //                if (fontDefinition.ContainsKey(PdfName.BaseFont))
-                //                {
-                //                    var baseFont = fontDefinition.GetAsName(PdfName.BaseFont);
-                //                    Console.WriteLine($"  Base font: {baseFont}");
-                //                }
-
-                //                if (fontDefinition.ContainsKey(PdfName.Subtype))
-                //                {
-                //                    var subtype = fontDefinition.GetAsName(PdfName.Subtype);
-                //                    Console.WriteLine($"  Subtype: {subtype}");
-                //                }
-
-                //                if (fontDefinition.ContainsKey(PdfName.Encoding))
-                //                {
-                //                    var encoding = fontDefinition.GetAsName(PdfName.Encoding);
-                //                    Console.WriteLine($"  Encoding: {encoding}");
-                //                }
-
-                //                if (fontDefinition.ContainsKey(PdfName.ToUnicode))
-                //                {
-                //                    var toUnicodeStream = fontDefinition.GetAsStream(PdfName.ToUnicode);
-                //                    Console.WriteLine("ToUnicode stream found. This might be needed for proper decoding.");
-                //                }
-
-                //            }
-                //        }
-                //    }
-                //}
-
-
-
                 for (int i = 1; i <= pdfDoc.GetNumberOfPages(); i++)
                 {
                     var page = pdfDoc.GetPage(i);
 
                     // Wyciąganie tekstu
-                    var strategy = new SimpleTextExtractionStrategy();
-                    string pageText = PdfTextExtractor.GetTextFromPage(page, strategy);
+                    //ITextExtractionStrategy strategy = new LocationTextExtractionStrategy();
+                    //ITextExtractionStrategy strategy = new SimpleTextExtractionStrategy();
+                    ITextExtractionStrategy strategy = new GroupedTextExtractionStrategy();
+                    var pageText = PdfTextExtractor.GetTextFromPage(page, strategy);
 
-                    Console.WriteLine(pageText);
-      
-                    text.Append(pageText);
+                    // Użycie GetActualText(), jeśli dostępne
+                    text.AppendLine(pageText);
 
-                    // Wyciąganie rysunków
+                    // Wyciąganie rysunków i dodatkowych danych tekstowych
                     var drawingStrategy = new MyCustomDrawingStrategy();
                     var processor = new PdfCanvasProcessor(drawingStrategy);
                     processor.ProcessPageContent(page);
 
+                    // Dodawanie zebranych linii i tekstów
                     lines.AddRange(drawingStrategy.Lines);
-                    texts.AddRange(drawingStrategy.Texts);  // Dodajemy zebrane teksty
+
+                    texts.AddRange(drawingStrategy.Texts);
                 }
             }
 
@@ -117,7 +63,9 @@ public class PdfReaderServiceRys
             return (null, null, null);
         }
     }
+
 }
+
 
 // Custom strategy to extract lines
 
@@ -126,14 +74,56 @@ public class MyCustomDrawingStrategy : IEventListener
     public List<LineData> Lines { get; } = new List<LineData>();
     public List<TextData> Texts { get; } = new List<TextData>(); // Lista do przechowywania danych tekstowych
 
+
     public void EventOccurred(IEventData data, EventType type)
     {
         if (type == EventType.RENDER_PATH && data is PathRenderInfo pathInfo)
         {
-            // Pobierz ścieżkę rysowaną na stronie
             var path = pathInfo.GetPath();
             var subpaths = path.GetSubpaths();
 
+            // Pobierz grubość linii
+            float lineWidth = pathInfo.GetLineWidth();
+
+            // Zmienna do przechowywania DashPattern
+            float[]? dashPatternArray = null; // Zmienna na konwersję PdfArray do float[]
+            string lineStyle = "solid"; // Domyślnie przyjmujemy linię jako solidną
+
+            // Pobierz GraphicsState
+            var graphicsState = pathInfo.GetGraphicsState();
+
+            // Sprawdzamy DashPattern
+            if (graphicsState != null)
+            {
+                var dashPattern = graphicsState.GetDashPattern();
+                if (dashPattern != null && dashPattern.Size() > 0)
+                {
+                    Console.WriteLine($"dashPattern.Size():{dashPattern.Size()}");  
+
+                    bool isDashed = false;
+
+                    // Iteracja po elementach w DashPattern
+                    for (int i = 0; i < dashPattern.Size(); i++)
+                    {
+                        // Pobieramy wartość jako PdfNumber
+                        var dashValue = dashPattern.GetAsNumber(i)?.GetValue();
+
+                        // Sprawdzamy, czy wartość większa niż 0
+                        if (dashValue.HasValue && dashValue.Value > 0)
+                        {
+                            isDashed = true;
+                            break;
+                        }
+                    }
+
+                    // Jeśli mamy przerywaną linię, zmieniamy styl
+                    if (isDashed)
+                    {
+                        lineStyle = "dashed";
+                    }
+                }
+            }
+            
             var pageHeight = 800;
 
             foreach (var subpath in subpaths)
@@ -143,7 +133,7 @@ public class MyCustomDrawingStrategy : IEventListener
                 {
                     if (segment is iText.Kernel.Geom.Line line)
                     {
-                        var points = line.GetBasePoints(); // Zwróci listę punktów, z których dwa są interesujące
+                        var points = line.GetBasePoints();
 
                         float startX = (float)Math.Round(points[0].GetX(), 0);
                         float startY = (float)Math.Round(points[0].GetY(), 0);
@@ -155,17 +145,22 @@ public class MyCustomDrawingStrategy : IEventListener
 
                         Lines.Add(new LineData
                         {
-                            Start = new Vector(startX, startY, 0), // Punkt początkowy
-                            End = new Vector(endX, endY, 0),        // Punkt końcowy
+                            Start = new Vector(startX, startY, 0),
+                            End = new Vector(endX, endY, 0),
+                            LineWidth = lineWidth,
+                            LineStyle = lineStyle,
+                            DashPattern = dashPatternArray // Przypisujemy skonwertowaną tablicę float[]
                         });
                     }
                 }
             }
         }
+
         // Obsługuje także tekst
         if (type == EventType.RENDER_TEXT && data is TextRenderInfo textInfo)
         {
-            var text = textInfo.GetText();
+            var text = textInfo.GetActualText() ?? textInfo.GetText();
+
             var textPosition = textInfo.GetBaseline().GetStartPoint();
 
             float x = (float)Math.Round(textPosition.Get(0), 0);
@@ -182,6 +177,8 @@ public class MyCustomDrawingStrategy : IEventListener
         }
     }
 
+
+
     public ICollection<EventType> GetSupportedEvents() => new List<EventType> { EventType.RENDER_PATH, EventType.RENDER_TEXT };
 }
 
@@ -190,6 +187,9 @@ public class LineData
 {
     public Vector? Start { get; set; }
     public Vector? End { get; set; }
+    public float LineWidth { get; set; } // Grubość linii
+    public string? LineStyle { get; set; } // Typ linii: "solid" lub "dashed"
+   public float[]? DashPattern { get; set; } // Szczegóły przerywanego wzoru
 }
 
 public class TextData

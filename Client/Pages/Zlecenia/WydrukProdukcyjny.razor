@@ -14,7 +14,7 @@
 
 <style>
     .form-item-small-margin {
-        margin-bottom: 8px; /* Możesz dostosować tę wartość */
+    margin-bottom: 8px; /* Możesz dostosować tę wartość */
     }
 </style>
 
@@ -54,15 +54,17 @@
 
     public MarkupString GetSvgContent()
     {
-        var svgContent = "<svg width='1200' height='800' style='border:1px solid black'>";
+        var svgContent = "<svg width='1200' height='800' style='border:1px solid blue'>";
 
         if (PdfViewModel?.Lines != null)
         {
             foreach (var line in PdfViewModel.Lines)
             {
+                var lineStyle = line.LineStyle == "dashed" ? "stroke-dasharray:4,4;" : "stroke-dasharray:none;";
                 svgContent += $@"<line x1='{line.Start.Get(0)}' y1='{line.Start.Get(1)}'
                              x2='{line.End.Get(0)}' y2='{line.End.Get(1)}'
-                             style='stroke:black;stroke-width:2' />";
+                             style='stroke:black;stroke-width:{line.LineWidth};{lineStyle}' />";
+                //Console.WriteLine($"Line: Start({line.Start.Get(0)}, {line.Start.Get(1)}) End({line.End.Get(0)}, {line.End.Get(1)}) Style: {line.LineStyle}");
             }
         }
 
@@ -70,8 +72,10 @@
         {
             foreach (var text in PdfViewModel.Texts)
             {
-                svgContent += $@"<text x='{text.Position.Get(0)}' y='{text.Position.Get(1)}' font-family='Arial' font-size='12' fill='blue'>
-                         {text.Text}</text>";
+                var encodedText = NormalizeAndFixText(System.Net.WebUtility.HtmlEncode(text.Text));
+
+                svgContent += $@"<text x='{text.Position.Get(0)}' y='{text.Position.Get(1)}' font-family='Roboto' font-size='12' fill='blue'>
+                 {encodedText}</text>";
             }
         }
 
@@ -81,4 +85,36 @@
     }
 
 
+
+    private string NormalizeAndFixText(string text)
+    {
+       // Console.WriteLine($"text-{text}");
+        // Normalizacja Unicode
+        text = text.Normalize(NormalizationForm.FormC);
+         return text.ToString().TrimStart()
+        .Replace("Szk��o", "Szkło")
+        .Replace("Z��oty", "Złoty")
+        .Replace("os��onek", "osłonek")
+        .Replace("cię��", "cięć")
+        .Replace("Iloś��", "Ilość")
+        .Replace("Skrzyd��o", "Skrzydło")
+        .Replace("ś��", "ść")
+        .Replace("ę��", "ęć")
+        .Replace("��", "ł");
+
+        // var builder = new StringBuilder();
+        // foreach (var ch in text)
+        // {
+        //     // Usuń niewidoczne i problematyczne znaki (np. \ufffd)
+        //     if (char.IsControl(ch) || ch == '\ufffd')
+        //     {
+        //         continue;
+        //     }
+        //     builder.Append(ch);
+        // }
+
+        // // Opcjonalne ręczne poprawki
+        // return builder.ToString();
+    }
+    //Roboto
 }
