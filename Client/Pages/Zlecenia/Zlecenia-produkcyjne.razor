@@ -478,7 +478,7 @@ else
                         <Template>
                             <div>
                                 @{
-                                    if (context.TypPliku.ToLower().EndsWith("pdf"))
+                                    if (context.TypPliku.ToLower().EndsWith("pdf") && boolAdmin)
                                     {
                                         <Tooltip Placement="@Placement.Left" Title="Generuj Dokument Produkcyjny">
                                             <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.FilePdf" onclick="@(e => WydrukProdukcyjny(context.NazwaPliku))" />

@@ -175,7 +175,7 @@
 </head>
 <body>
     <div class="highlighted-background">
-        <h6 style="color:brown; padding-top:5px">Zamówiona kantówka do zlecenia: @dotyczyZlecenia</h6>
+        <h6 style="color:brown; padding-top:5px">Zamówiona kantówka do zlecenia: @dotyczyZlecenia. Suma długości do zamówienia: @(kantowkaDoZlecenSuma/1000) mb</h6>
 
         @if (boolAdmin || boolZmian)
         {
@@ -509,6 +509,8 @@
 
     string dotyczyZlecenia = "";
 
+    int kantowkaDoZlecenSuma = 0;
+
     protected override async Task OnInitializedAsync()
     {
         _pageSize = Convert.ToInt32((await LocalStorage.GetStringAsync("kantowka_ile_widocznych")));
@@ -533,6 +535,11 @@
         try
         {
             kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecenViewModel>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
+
+            if (kantowkaDoZlecen != null)
+            {
+                kantowkaDoZlecenSuma = kantowkaDoZlecen.Sum(k => k.DlugoscZamawiana * k.IloscSztuk);
+            }
 
             kantowka = new KantowkaDoZlecenViewModel();
             kantowka.Id = 0;
