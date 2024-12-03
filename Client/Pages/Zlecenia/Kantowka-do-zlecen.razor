@@ -175,7 +175,7 @@
 </head>
 <body>
     <div class="highlighted-background">
-        <h6 style="color:brown; padding-top:5px">Zamówiona kantówka do zlecenia: @dotyczyZlecenia. Suma długości do zamówienia: @(kantowkaDoZlecenSuma/1000) mb</h6>
+        <h6 style="color:brown; padding-top:5px">Zamówiona kantówka do zlecenia: @dotyczyZlecenia</h6>
 
         @if (boolAdmin || boolZmian)
         {
@@ -232,7 +232,7 @@
         }
         else
         {
-            <Divider>Ilość pozycji do zamówienia: @kantowkaDoZlecen.Count(), suma sztuk: @kantowkaDoZlecen.Sum(x => x.IloscSztuk).ToString()</Divider>
+            <Divider>Ilość pozycji do zamówienia: @kantowkaDoZlecen.Count(), suma sztuk: @kantowkaDoZlecen.Sum(x => x.IloscSztuk).ToString(). Suma długości do zamówienia: @(kantowkaDoZlecenSuma / 1000)mb</Divider>
             <div>
                 <Table TItem="KantowkaDoZlecenViewModel" DataSource="@kantowkaDoZlecen" ScrollX="1950" PageSize="@_pageSize" Size="TableSize.Small"
                 RowClassName="@(x => x?.Data?.WyslanoDoZamowien == true ? (x?.Data?.PozDostarczono == true ? "zrealizowano" : "zamowiono") : 
