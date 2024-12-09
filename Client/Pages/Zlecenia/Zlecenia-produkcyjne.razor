@@ -207,7 +207,7 @@ else
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Zlecenie wewnętrzne dodaj / zmień</h5>
+                <h5 class="modal-title">Zlecenie wewnętrzne dodaj / zmień [@zlecenie.Klient]</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="HandleCancel">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -464,7 +464,7 @@ else
     <div class="modal-dialog" style="max-width: 70%;">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Ilość plików powiązanych: @pliki.Count()</h5>
+                <h5 class="modal-title">Ilość plików powiązanych: @pliki.Count() [@zlecenie.Klient]</h5>
             </div>
             <div class="modal-body">
                 <Table TItem="PlikiZlecenProdukcyjnych" DataSource="@pliki" ScrollX="1350" PageSize="3" Size="TableSize.Small"

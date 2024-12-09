@@ -13,11 +13,11 @@
 
 <style>
     .custom-link {
-        color: blue;
+    color: blue;
     }
 
     .karta1, .karta1 > td {
-        background-color: lightskyblue !important;
+    background-color: lightskyblue !important;
     }
 
     .karta1:hover, .karta1:hover > td {
@@ -26,21 +26,21 @@
     }
 
     .karta2, .karta2 > td {
-        background-color: lightgreen !important;
+    background-color: lightgreen !important;
     }
 
     .karta2:hover, .karta2:hover > td {
-            background-color: bisque !important;
-        font-size: 1.0em;
+    background-color: bisque !important;
+    font-size: 1.0em;
     }
 
     .move-class {
-        background-color: lightblue; 
+    background-color: lightblue; 
     }
 
     .move-class:hover, .dxf-class:hover > td {
-            background-color: bisque !important;
-        font-size: 1.0em;
+    background-color: bisque !important;
+    font-size: 1.0em;
     }
 
 </style>
@@ -52,20 +52,20 @@
 <Divider Style="font-weight:bold; font-size:large; display:flex; justify-content:space-between; align-items:center;">
     <span>Karty Instrukcyjne</span>
 
-   
-        <span>
-            &nbsp &nbsp &nbsp &nbsp
-            @if (boolAdmin || boolZmian)
-            {
-                <Button Icon="@IconType.Fill.FolderAdd" OnClick="@(ShowDialogAddNew)">
-                    Dodaj nową kartę instrukcyjną
-                </Button>
-            }
-            <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
-                <Button class="btn-back" Icon="@IconType.Fill.Backward" Style="width:55px" OnClick="GoBack" />
-            </Tooltip>
-        </span>
-   
+
+    <span>
+        &nbsp &nbsp &nbsp &nbsp
+        @if (boolAdmin || boolZmian)
+        {
+            <Button Icon="@IconType.Fill.FolderAdd" OnClick="@(ShowDialogAddNew)">
+                Dodaj nową kartę instrukcyjną
+            </Button>
+        }
+        <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
+            <Button class="btn-back" Icon="@IconType.Fill.Backward" Style="width:55px" OnClick="GoBack" />
+        </Tooltip>
+    </span>
+
 </Divider>
 
 
@@ -78,14 +78,14 @@ else
 {
     <ul>
         <Table TItem="KartyInstrukcyjne" DataSource="@kartyInstrukcyjne"
-               RowClassName="@(x => x.Data.NumerKarty.ToUpper().StartsWith("KCB") ? "karta1" : x.Data.NumerKarty.ToUpper().StartsWith("KMB") ? "karta2" : "move-class")">
+        RowClassName="@(x => x.Data.NumerKarty.ToUpper().StartsWith("KCB") ? "karta1" : x.Data.NumerKarty.ToUpper().StartsWith("KMB") ? "karta2" : "move-class")">
             <Column Title="ID" @bind-Field="@context.Id" Hidden />
             <Column Title="Numer Karty" @bind-Field="@context.NumerKarty" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Opis Karty" @bind-Field="@context.OpisKarty" Sortable />
             <Column Title="Nazwa Produktu" @bind-Field="@context.NazwaProduktu" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Nazwa Produktu cd" @bind-Field="@context.NazwaProduktu2" Sortable />
             <Column Title="Kod prod./System" @bind-Field="@context.KodProduktu" Sortable OnFilter="(a, b) => a == b" Filterable />
-            
+
 
             <!-- Przykład kolumny dla daty z formatowaniem -->
             <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd HH:mm:ss" Sortable />
@@ -95,10 +95,10 @@ else
                 <Template>
                     @{
                         var item = context as KartyInstrukcyjne;
-                        if (!string.IsNullOrEmpty(item.LinkDoKartyNaSerwerze))
+                        if (!string.IsNullOrEmpty(item.LinkDoKartyNaSerwerze) && !string.IsNullOrEmpty(item.NumerKarty))
                         {
                             <Button Icon="@IconType.Fill.Save">
-                                <a href="@item.LinkDoKartyNaSerwerze" download @onclick="@( () => DownloadFile(item.LinkDoKartyNaSerwerze) )">Pobierz kartę</a>
+                                <a style="font-weight: bold; color:blue" @onclick="@( () => DownloadFile(item.LinkDoKartyNaSerwerze, item.NumerKarty) )">Pobierz kartę</a>
                             </Button>
                         }
                     }
@@ -106,18 +106,18 @@ else
                 @if (boolAdmin || boolZmian)
                 {
                     <Popconfirm Placement="@Placement.Left" Title="Czy chcesz edytować pozycję?"
-                                OnConfirm="()=> editRow(context.Id)"
-                                OkText="Tak"
-                                CancelText="Nie">
+                    OnConfirm="()=> editRow(context.Id)"
+                    OkText="Tak"
+                    CancelText="Nie">
                         <a>Edytuj</a>
                     </Popconfirm>
                 }
                 @if (boolAdmin || boolUsuniecia)
                 {
                     <Popconfirm Placement="@Placement.Left" Title="Czy chcesz usunąć pozycję?"
-                                OnConfirm="()=> delRow(context.Id)"
-                                OkText="Tak"
-                                CancelText="Nie">
+                    OnConfirm="()=> delRow(context.Id)"
+                    OkText="Tak"
+                    CancelText="Nie">
                         <a style="color:red">Usuń</a>
                     </Popconfirm>
                 }
@@ -143,19 +143,19 @@ else
                     {
                         <FormItem Label="Wybierz rodzaj karty" >
                             <Select TItem="RodzajeKartInstrukcyjnych"
-                                    TItemValue="string"
-                                    DataSource="@rodzajeKartInstrukcyjnych"
-                                    @bind-Value="@_selectedValue"
-                                    LabelName="@nameof(RodzajeKartInstrukcyjnych.NumerRodzajuKart)"
-                                    ValueName="@nameof(RodzajeKartInstrukcyjnych.NumerRodzajuKart)"
-                                    Placeholder="Wybierz rodzaj karty"
-                                    DefaultActiveFirstOption="false"
-                                    EnableSearch
-                                    OnBlur="OnBlur"
-                                    OnFocus="OnFocus"
-                                    OnSelectedItemChanged="OnSelectedItemChangedHandler"
-                                    OnSearch="OnSearch"
-                                    FilterExpression="(item, searchValue) => CultureInfo.CurrentCulture.CompareInfo.IndexOf(item.Label, searchValue, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase) >= 0">
+                            TItemValue="string"
+                            DataSource="@rodzajeKartInstrukcyjnych"
+                            @bind-Value="@_selectedValue"
+                            LabelName="@nameof(RodzajeKartInstrukcyjnych.NumerRodzajuKart)"
+                            ValueName="@nameof(RodzajeKartInstrukcyjnych.NumerRodzajuKart)"
+                            Placeholder="Wybierz rodzaj karty"
+                            DefaultActiveFirstOption="false"
+                            EnableSearch
+                            OnBlur="OnBlur"
+                            OnFocus="OnFocus"
+                            OnSelectedItemChanged="OnSelectedItemChangedHandler"
+                            OnSearch="OnSearch"
+                            FilterExpression="(item, searchValue) => CultureInfo.CurrentCulture.CompareInfo.IndexOf(item.Label, searchValue, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase) >= 0">
                             </Select>
                             <Button Type="primary" @onclick="@GenerateNewNumber">Generuj nowy numer</Button>
                         </FormItem>
@@ -169,7 +169,7 @@ else
                     </FormItem>
                     <AntDesign.FormItem Label="Nazwa Produktu">
                         <AutoComplete Placeholder="Nazwa Produktu" @bind-Value="@karty.NazwaProduktu" Options="optionsProdukt" CompareWith="CompareWith"
-                                      OnSelectionChange="OnSelectionChangeProdukt">
+                        OnSelectionChange="OnSelectionChangeProdukt">
                             <OptionTemplate Context="option">
                                 <AutoCompleteOption Value="@option.Value" Label="@option.Label">
                                 </AutoCompleteOption>
@@ -180,9 +180,9 @@ else
                         <Input @bind-Value="karty.NazwaProduktu2" />
                     </FormItem>
                     <FormItem Label="Kod Produktu / System">
- @*                        <Input @bind-Value="karty.KodProduktu" /> *@
+                        @*                        <Input @bind-Value="karty.KodProduktu" /> *@
                         <AutoComplete Placeholder="Kod Produktu / System" @bind-Value="@karty.KodProduktu" Options="optionsSystem" CompareWith="CompareWithSystem"
-                                      OnSelectionChange="OnSelectionChangeSystem">
+                        OnSelectionChange="OnSelectionChangeSystem">
                             <OptionTemplate Context="system">
                                 <AutoCompleteOption Value="@system.Value" Label="@system.Label">
                                 </AutoCompleteOption>
@@ -196,13 +196,13 @@ else
                         <Input @bind-Value="karty.OstatniaZmiana" ReadOnly />
                     </FormItem>
                     <AntDesign.FormItem Style="justify-content: flex-end; display: flex; gap: 10px;">
-                         <div class="modal-footer d-flex">
-                            @if (!string.IsNullOrEmpty(karty.LinkDoKartyNaSerwerze))
+                        <div class="modal-footer d-flex">
+                            @if (!string.IsNullOrEmpty(karty.LinkDoKartyNaSerwerze) && !string.IsNullOrEmpty(karty.NumerKarty))
                             {
                                 <Button Icon="@IconType.Fill.Save">
-                                    <a href="@karty.LinkDoKartyNaSerwerze" download @onclick="@( () => DownloadFile(karty.LinkDoKartyNaSerwerze) )">Pobierz kartę</a>
+                                    <a style="font-weight: bold; color:blue" @onclick="@( () => DownloadFile(karty.LinkDoKartyNaSerwerze, karty.NumerKarty) )">Pobierz kartę</a>
                                 </Button>
-                               
+
                             }
                             <InputFile OnChange="HandleSelected" >Wybierz plik PDF karty instrukcyjnej</InputFile>
 
@@ -642,23 +642,54 @@ else
         }
     }
 
-    private async Task DownloadFile(string fileName)
+    bool czekajNaPobranie = false;
+    private async Task DownloadFile(string fileName, string oryginalfileName)
     {
+
+
+        // Wyciągnięcie rozszerzenia pliku
+        string rozsz = Path.GetExtension(fileName);
+
+        // Usunięcie kropki z rozszerzenia (opcjonalne)
+        if (!string.IsNullOrEmpty(rozsz) && rozsz.StartsWith("."))
+        {
+            oryginalfileName = oryginalfileName + "." + rozsz.Substring(1);
+        }
+        else
+        {
+            oryginalfileName = "";
+        }
+
+
+        if (czekajNaPobranie) return;
+
+        czekajNaPobranie = true;
+
         try
         {
             // Konstrukcja pełnego URL
             var baseUrl = NavigationManager.BaseUri; // Pobierz podstawowy adres URL aplikacji
-            var fileUrl = $"{baseUrl}uploads/{fileName}";
+            var fileUrl = $"{baseUrl}{fileName}";
 
             if (!Uri.TryCreate(fileUrl, UriKind.Absolute, out var uri))
             {
                 Console.WriteLine("Nieprawidłowy URL: " + fileUrl);
+
+                _ = _notice.Error(new()
+                    {
+                        Message = "Błąd!!!!",
+                        Description = "Nieprawidłowy URL: " + fileUrl,
+                        Placement = NotificationPlacement.BottomLeft
+                    });
+
                 return;
             }
 
+            if (oryginalfileName == "") oryginalfileName = Path.GetFileName(uri.LocalPath);
+
             using (var httpClient = new HttpClient())
             {
-                httpClient.Timeout = TimeSpan.FromMinutes(10);
+                httpClient.Timeout = TimeSpan.FromMinutes(1);
                 Console.WriteLine($"Pobieranie pliku z URL: {fileUrl}");
 
                 using (var response = await httpClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead))
@@ -674,10 +705,12 @@ else
                             memoryStream.Seek(0, SeekOrigin.Begin);
 
                             // Wywołaj JavaScript do pobrania pliku
-                            await JSRuntime.InvokeVoidAsync("BlazorDownloadFile", actualFileName, memoryStream.ToArray());
+                            await JSRuntime.InvokeVoidAsync("BlazorDownloadFile", oryginalfileName, memoryStream.ToArray());
                         }
 
-                        Console.WriteLine($"Plik został pobrany i zapisany: {actualFileName}");
+                        Console.WriteLine($"Plik został pobrany i zapisany: {oryginalfileName}");
+                        await _message.Success($"Plik został pobrany i zapisany: {oryginalfileName}", 5);
+                        czekajNaPobranie = false;
                     }
                     else
                     {
@@ -685,10 +718,12 @@ else
 
                         _ = _notice.Error(new()
                             {
-                                Message = "Nie udało się pobrać pliku.",
+                                Message = "System napotkał problem. Plik mógł zostać niepoprawnie pobrany",
                                 Description = response.Content.Headers.ToString(),
                                 Placement = NotificationPlacement.BottomLeft
                             });
+
+                        czekajNaPobranie = false;
                     }
                 }
             }
@@ -696,13 +731,14 @@ else
         catch (Exception ex)
         {
             Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message} / {ex.StackTrace}");
-
             _ = _notice.Error(new()
                 {
                     Message = ex.Message,
                     Description = ex.StackTrace,
                     Placement = NotificationPlacement.BottomLeft
                 });
+
+            czekajNaPobranie = false;
         }
     }
 
