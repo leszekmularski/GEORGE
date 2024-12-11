@@ -686,11 +686,11 @@ else
 
             if (zlecenie.TypZamowienia != "Zlecenie")
             {
-                await _message.Warning("");
+                Console.WriteLine($"Dokument musi być ZLECENIEM");
                 _ = _notice.Info(new()
                     {
                         Message = "Uwaga. Nie dodałem nowego numeru!",
-                        Description = $"Typ dokumentu musi być ZLECENIEM",
+                        Description = $"Dokument musi być ZLECENIEM",
                         Placement = NotificationPlacement.BottomLeft
                     });
                 return;
