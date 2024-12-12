@@ -1,5 +1,9 @@
 ﻿@page "/_p_l/{TypSchodow}"
 
+@inject Utilities.ILocalStorage LocalStorage
+@using System.Text.Json
+@inject IMessageService _message
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -15,6 +19,11 @@
     <app>Czekaj na załadowanie danych...</app> <!-- Upewnij się, że to jest jedyny komponent w tym elemencie -->
 
     <script>
+        
+        function clearConsole() {
+            console.clear();
+        }
+
         function setCanvasSize(scale, DlugoscNaWejsciu, WysokoscCalkowita, SzerokoscSchodow, IloscStopni, WyskoscPodnoszenia, MarginesPrawy) {
         const maxWidth = Math.floor(window.innerWidth * 0.8); // Użyj Math.floor dla wartości całkowitych
         const maxHeight = Math.floor(window.innerHeight * 0.8); // Użyj Math.floor dla wartości całkowitych
@@ -52,9 +61,9 @@
                     <input type="number" @bind="SzerokoscOtworu" />
                 </div>
                 <div>
-                    <label>Długość na Wejściu:</label>
+                    <label style="font-weight: bold; color:crimson">Długość na Wejściu:</label>
                     <Tooltip Placement="@Placement.Top" Title="Całkowiata długość schodów.">
-                        <input type="number" @bind="DlugoscNaWejsciu" @onclick="()=> Oblicz(false)" />
+                        <input style="font-weight: bold; color:crimson" type="number" @bind="DlugoscNaWejsciu" @onclick="()=> Oblicz(false)" />
                     </Tooltip>
                 </div>
                 <div>
@@ -62,12 +71,12 @@
                     <input type="number" @bind="WysokoscDoStropu" />
                 </div>
                 <div>
-                    <label>Wysokość Całkowita:</label>
-                    <input type="number" @bind="WysokoscCalkowita" />
+                    <label style="font-weight: bold; color:crimson">Wysokość Całkowita:</label>
+                    <input style="font-weight: bold; color:crimson" type="number" @bind="WysokoscCalkowita" />
                 </div>
                 <div>
-                    <label>Liczba Podniesień Stopni:</label>
-                    <input type="number" @bind="LiczbaPodniesienStopni" @onclick="()=> Oblicz(false)" />
+                    <label style="font-weight: bold; color:crimson">Liczba Podniesień Stopni:</label>
+                    <input style="font-weight: bold; color:crimson" type="number" @bind="LiczbaPodniesienStopni" @onclick="()=> Oblicz(false)" />
                 </div>
                 <div>
                     <label>Teoretyczna szerokość ostatniego stopnia:</label>
@@ -101,6 +110,7 @@
     <button @onclick="()=> Oblicz(false)">Rysuj schody</button>
     <button @onclick="()=> Oblicz(true)">Zapisz do DXF</button>
     <button @onclick="Resetuj">Reset</button>
+    <button @onclick="SaveToLocalStorage">Ustaw jako domyślne</button>
 
     <div style="display: flex; gap: 25px;">
         <!-- Results -->
@@ -200,7 +210,7 @@
             boolLewe = false;
         }
 
-        Resetuj();
+        await LoadFromLocalStorage();
 
         await Task.CompletedTask;
     }
@@ -274,12 +284,15 @@
         if (OdsadzenieStopniaOdBrzegu < 0 || OdsadzenieStopniaOdBrzegu > 120) OdsadzenieStopniaOdBrzegu = 20;
         if (OdsadzeniePierwszStopniaOdBrzegu < 0 || OdsadzeniePierwszStopniaOdBrzegu > 150) OdsadzeniePierwszStopniaOdBrzegu = 50;
 
-       // Console.WriteLine($"OdsadzeniePierwszStopniaOdBrzegu: {OdsadzeniePierwszStopniaOdBrzegu} DlugoscNaWejsciu: {DlugoscNaWejsciu}");
+        // Console.WriteLine($"OdsadzeniePierwszStopniaOdBrzegu: {OdsadzeniePierwszStopniaOdBrzegu} DlugoscNaWejsciu: {DlugoscNaWejsciu}");
 
         // Obliczenia
         WysokoscPodniesieniaStopnia = Math.Round(WysokoscCalkowita / LiczbaPodniesienStopni, 2);
         DlugoscLiniiBiegu = Math.Round(DlugoscNaWejsciu - OdsadzeniePierwszStopniaOdBrzegu, 2);
-        KatNachylenia = Math.Round(Math.Atan((WysokoscCalkowita - (WysokoscCalkowita / LiczbaPodniesienStopni)) / DlugoscLiniiBiegu) * 180 / Math.PI, 8);
+
+        KatNachylenia = Math.Round(Math.Atan((WysokoscCalkowita - (WysokoscCalkowita / LiczbaPodniesienStopni)) / (DlugoscLiniiBiegu - 35)) * 180 / Math.PI, 8);//35 - odsuniecie o zaczep górny - do ????
+
+
         PrzestrzenSwobodnaNadGlowa = Math.Round(WysokoscDoStropu - WysokoscPodniesieniaStopnia - (DlugoscNaWejsciu - (DlugoscOtworu + OdsadzeniePierwszStopniaOdBrzegu)) * Math.Tan(KatNachylenia * Math.PI / 180), 2);
         SzerokoscSchodow = Math.Round(SzerokoscBieguSchodow, 2);
         GlebokoscStopnia = Math.Round(DlugoscLiniiBiegu / (LiczbaPodniesienStopni - 1), 2);
@@ -405,6 +418,9 @@
 
             await DrawShapes();
             await Task.Delay(10);
+
+            await JSRuntime.InvokeVoidAsync("clearConsole");
+
             await DrawShapes();
 
         }
@@ -427,7 +443,82 @@
     }
 
     // Reset method
-    private void Resetuj()
+    private async void Resetuj()
+    {
+        await LocalStorage.RemoveAsync("SchodyData");
+
+        await UstWartDomyslne();
+
+        StateHasChanged();
+    }
+
+    private async Task SaveToLocalStorage()
+    {
+        // Konwersja danych na tablicę stringów
+        var data = new string[]
+        {
+        DlugoscOtworu.ToString(),
+        SzerokoscOtworu.ToString(),
+        DlugoscNaWejsciu.ToString(),
+        WysokoscDoStropu.ToString(),
+        WysokoscCalkowita.ToString(),
+        LiczbaPodniesienStopni.ToString(),
+        SzerokoscOstatniegoStopnia.ToString(),
+        ZachodzenieStopniZaSiebie.ToString(),
+        OdsadzenieStopniaOdBrzegu.ToString(),
+        OdsadzeniePierwszStopniaOdBrzegu.ToString(),
+        SzerokoscBieguSchodow.ToString(),
+        DlugoscLiniiBiegu.ToString(),
+        KatNachylenia.ToString(),
+        SzerokoscSchodow.ToString(),
+        WysokoscPodniesieniaStopnia.ToString(),
+        GlebokoscStopnia.ToString(),
+        PrzecietnaDlugoscKroku.ToString(),
+        PrzestrzenSwobodnaNadGlowa.ToString(),
+        SkalaWyswietlania.ToString()
+        };
+
+        // Zapis do LocalStorage
+        await LocalStorage.SaveStringArrayAsync("SchodyData", data);
+
+        await _message.Info("Zapisano domyśle ustawienia", 1);
+    }
+
+    private async Task LoadFromLocalStorage()
+    {
+        // Odczyt tablicy stringów z LocalStorage
+        var data = await LocalStorage.GetStringArrayAsync("SchodyData");
+
+        if (data != null && data.Length >= 19) // Sprawdź, czy dane są kompletne
+        {
+            // Konwersja tablicy stringów na wartości
+            DlugoscOtworu = double.Parse(data[0]);
+            SzerokoscOtworu = double.Parse(data[1]);
+            DlugoscNaWejsciu = double.Parse(data[2]);
+            WysokoscDoStropu = double.Parse(data[3]);
+            WysokoscCalkowita = double.Parse(data[4]);
+            LiczbaPodniesienStopni = double.Parse(data[5]);
+            SzerokoscOstatniegoStopnia = double.Parse(data[6]);
+            ZachodzenieStopniZaSiebie = double.Parse(data[7]);
+            OdsadzenieStopniaOdBrzegu = double.Parse(data[8]);
+            OdsadzeniePierwszStopniaOdBrzegu = double.Parse(data[9]);
+            SzerokoscBieguSchodow = double.Parse(data[10]);
+            DlugoscLiniiBiegu = double.Parse(data[11]);
+            KatNachylenia = double.Parse(data[12]);
+            SzerokoscSchodow = double.Parse(data[13]);
+            WysokoscPodniesieniaStopnia = double.Parse(data[14]);
+            GlebokoscStopnia = double.Parse(data[15]);
+            PrzecietnaDlugoscKroku = double.Parse(data[16]);
+            PrzestrzenSwobodnaNadGlowa = double.Parse(data[17]);
+            SkalaWyswietlania = double.Parse(data[18]);
+        }
+        else
+        {
+          await UstWartDomyslne();
+        }
+    }
+
+    private async Task UstWartDomyslne()
     {
         // Resetowanie wartości
         DlugoscOtworu = 3000;
@@ -451,11 +542,41 @@
         PrzestrzenSwobodnaNadGlowa = 0;
 
         SkalaWyswietlania = 25;
+
+        await Task.CompletedTask;
+
     }
+
 
     private async Task GoBack()
     {
         await JSRuntime.InvokeVoidAsync("history.back");
     }
+
+    public class SchodyData
+    {
+        public double DlugoscOtworu { get; set; }
+        public double SzerokoscOtworu { get; set; }
+        public double DlugoscNaWejsciu { get; set; }
+        public double WysokoscDoStropu { get; set; }
+        public double WysokoscCalkowita { get; set; }
+        public double LiczbaPodniesienStopni { get; set; }
+        public double SzerokoscOstatniegoStopnia { get; set; }
+        public double ZachodzenieStopniZaSiebie { get; set; }
+        public double OdsadzenieStopniaOdBrzegu { get; set; }
+        public double OdsadzeniePierwszStopniaOdBrzegu { get; set; }
+        public double SzerokoscBieguSchodow { get; set; }
+
+        // Output properties
+        public double DlugoscLiniiBiegu { get; set; }
+        public double KatNachylenia { get; set; }
+        public double SzerokoscSchodow { get; set; }
+        public double WysokoscPodniesieniaStopnia { get; set; }
+        public double GlebokoscStopnia { get; set; }
+        public double PrzecietnaDlugoscKroku { get; set; }
+        public double PrzestrzenSwobodnaNadGlowa { get; set; }
+        public double SkalaWyswietlania { get; set; }
+    }
+
 }
 

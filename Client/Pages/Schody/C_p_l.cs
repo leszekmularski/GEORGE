@@ -371,12 +371,12 @@ namespace GEORGE.Client.Pages.Schody
             double endX = startX + deltaX;
             double endY = startY - deltaY;
 
-            double offsetKr = OdsadzenieStopniaOdBrzegu;
+            //double offsetKr = OdsadzenieStopniaOdBrzegu;
+            double offsetKr = 1;
 
             double offset20 = Math.Abs(offsetKr / Math.Cos((katNachylenia) * (Math.PI / 180))); // OK
            
             double liniaDol = Math.Abs(offsetKr / Math.Sin((katNachylenia) * (Math.PI / 180)));
-
 
 
             double liniaDolStart = (GlebokoscStopnia + liniaDol) * Math.Tan(katNachylenia * (Math.PI / 180)) + OdsadzeniePierwszStopniaOdBrzegu;
@@ -392,7 +392,6 @@ namespace GEORGE.Client.Pages.Schody
             Console.WriteLine($"liniaDolStart #3: {liniaDolStart}");
 
 
-
             // Ustaw kolor na zielony i zwiększ grubość linii
             await context.SetStrokeStyleAsync("green");
             await context.SetLineWidthAsync(2);
@@ -403,10 +402,10 @@ namespace GEORGE.Client.Pages.Schody
             // Punkt początkowy (lewy dolny róg)
             double leftBottomX = startX - liniaDolStart * Skala;
             double leftBottomY = startY;
-            Console.WriteLine($"offset20: {offset20} liniaDol: {liniaDol} leftBottomX: {leftBottomX} liniaDolStart: {liniaDolStart} katNachylenia: {katNachylenia}");
+            Console.WriteLine($"offset20: {offset20} liniaDol: {liniaDol} leftBottomX: {leftBottomX} liniaDolStart: {liniaDolStart} katNachylenia: {katNachylenia} leftBottomY: {leftBottomY}");
             //  await DrawTextAsync(context, leftBottomX, leftBottomY, $"X:{Math.Round(leftBottomX / Skala, 1)} Y:{Math.Round(leftBottomY / Skala, 1)}");
 
-            await context.MoveToAsync(leftBottomX, leftBottomY);
+            await context.MoveToAsync(leftBottomX, leftBottomY); // ---------------------------------------------------------------------------- ????????????????????????????
             AddLineWithPreviousPointAsync(leftBottomX, leftBottomY); // Dodanie linii z lewego do prawego dolnego rogu
 
             // Linia pozioma (lewy dolny do prawy dolny)
@@ -428,7 +427,7 @@ namespace GEORGE.Client.Pages.Schody
 
             double liniaXGora = (GlebokoscStopnia + liniaDol) * Math.Tan(katNachylenia * (Math.PI / 180));
 
-            Console.WriteLine($"liniaXGora #1: {liniaXGora} Suma: {(GlebokoscStopnia + liniaDol)}");
+            Console.WriteLine($"liniaXGora #1: {liniaXGora} Suma: {(GlebokoscStopnia + liniaDol)} rightBottomY: {rightBottomY}");
 
             //liniaXGora = liniaXGora - (WysokoscPodniesieniaStopnia + wysokoscZaczepuY);
 
@@ -482,8 +481,18 @@ namespace GEORGE.Client.Pages.Schody
             // Linia końcowa pionowa
             double endXFinal = (X + OdsadzeniePierwszStopniaOdBrzegu * Skala);
 
-            await context.LineToAsync(endXFinal, endYFinal + GruboscStopnia * Skala + offset20 * Skala);
-            AddLineWithPreviousPointAsync(endXFinal, endYFinal + GruboscStopnia * Skala + offset20 * Skala); // Dodanie końcowej pionowej linii
+            double endYFinalTMP = endYFinal + GruboscStopnia * Skala + offset20 * Skala;
+
+            await context.LineToAsync(endXFinal, endYFinalTMP);
+            AddLineWithPreviousPointAsync(endXFinal, endYFinal + GruboscStopnia * Skala + offset20 * Skala); // Dodanie końcowej pionowej linii --------------?????????????????????????????????
+
+ 
+            double xDodatLiniiPoz = (leftBottomY - endYFinalTMP) * Math.Tan((90 - katNachylenia) * (Math.PI / 180));//Dodatkowa linia pozioma przed zamknięciem konturu
+            Console.WriteLine($"xDodatLiniiPoz: {xDodatLiniiPoz} katNachylenia: {katNachylenia} hookY3: {hookY3} startY: {startY} endYFinalTMP: {endYFinalTMP} (leftBottomY - endYFinalTMP) = {(leftBottomY - endYFinalTMP)}");  
+
+            await context.LineToAsync(xDodatLiniiPoz, leftBottomY);
+            AddLineWithPreviousPointAsync(xDodatLiniiPoz, leftBottomY); // Dodanie linii pionowej
+
 
             // Zamknięcie ścieżki
             await context.ClosePathAsync();
