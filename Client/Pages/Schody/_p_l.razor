@@ -19,9 +19,9 @@
     <app>Czekaj na załadowanie danych...</app> <!-- Upewnij się, że to jest jedyny komponent w tym elemencie -->
 
     <script>
-        
+
         function clearConsole() {
-            console.clear();
+        console.clear();
         }
 
         function setCanvasSize(scale, DlugoscNaWejsciu, WysokoscCalkowita, SzerokoscSchodow, IloscStopni, WyskoscPodnoszenia, MarginesPrawy) {
@@ -290,7 +290,9 @@
         WysokoscPodniesieniaStopnia = Math.Round(WysokoscCalkowita / LiczbaPodniesienStopni, 2);
         DlugoscLiniiBiegu = Math.Round(DlugoscNaWejsciu - OdsadzeniePierwszStopniaOdBrzegu, 2);
 
-        KatNachylenia = Math.Round(Math.Atan((WysokoscCalkowita - (WysokoscCalkowita / LiczbaPodniesienStopni)) / (DlugoscLiniiBiegu - 35)) * 180 / Math.PI, 8);//35 - odsuniecie o zaczep górny - do ????
+        double odsunOdZacz = 0;//35 - odsuniecie o zaczep górny - do ????
+
+        KatNachylenia = Math.Round(Math.Atan((WysokoscCalkowita - (WysokoscCalkowita / LiczbaPodniesienStopni)) / (DlugoscLiniiBiegu - odsunOdZacz)) * 180 / Math.PI, 8);
 
 
         PrzestrzenSwobodnaNadGlowa = Math.Round(WysokoscDoStropu - WysokoscPodniesieniaStopnia - (DlugoscNaWejsciu - (DlugoscOtworu + OdsadzeniePierwszStopniaOdBrzegu)) * Math.Tan(KatNachylenia * Math.PI / 180), 2);
