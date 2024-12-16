@@ -89,6 +89,8 @@ namespace GEORGE.Client.Pages.Schody
             Opis = opis;
             Lewe = lewe;
 
+            SzerokoscOstatniegoStopnia = glebokoscStopnia;//???????????????????????????????????????????????????????
+
             _jsRuntime = jsRuntime ?? throw new ArgumentNullException(nameof(jsRuntime));
         }
         public override async Task DrawAsync(Canvas2DContext context)
@@ -99,12 +101,16 @@ namespace GEORGE.Client.Pages.Schody
             double currentX = X; // Początkowa pozycja X
             double currentY = Y; // Początkowa pozycja Y
 
-            Console.WriteLine($"Wartść X={X}");
-
             await context.ClearRectAsync(0, 0, DlugoscNaWejsciu + GlebokoscStopnia, WysokoscPodniesieniaStopnia * (LiczbaPodniesienStopni + 1) + SzerokoscOtworu + 500);
 
             double stepWidth = GlebokoscStopnia * Skala;  // Szerokość stopnia (długość biegu schodów)
             double stepHeight = SzerokoscBieguSchodow * Skala;  // Wysokość stopnia (szerokość biegu schodów)
+
+            //Wyliczanie kroku w rysowaniu kolejnego stopnia
+            //stepWidth = (WysokoscPodniesieniaStopnia * Math.Tan((90 - (KatNachylenia + 1.057)) * (Math.PI / 180))) * Skala;//16.12.2024
+            double stepWidthTMP = (WysokoscPodniesieniaStopnia * Math.Tan((90 - KatNachylenia) * (Math.PI / 180))) * Skala;//16.12.2024
+
+            Console.WriteLine($"Wartść X={X} DlugoscLiniiBiegu:{DlugoscLiniiBiegu} ZachodzenieStopniZaSiebie:{ZachodzenieStopniZaSiebie} stepWidth:{stepWidth}");
 
             double gruboscStopnia = GruboscStopnia * Skala; // Zrobić zmienną jak będzie poptrzeba!!!!!!
 
@@ -137,7 +143,7 @@ namespace GEORGE.Client.Pages.Schody
                 {
                     await context.BeginPathAsync();
 
-                    if (i == LiczbaPodniesienStopni - 1)
+                    if (i == LiczbaPodniesienStopni - 1000)
                     {
                         await context.SetStrokeStyleAsync("blue");
                         // Ustaw grubość linii (na przykład na 3 piksele)
@@ -147,7 +153,7 @@ namespace GEORGE.Client.Pages.Schody
                         await context.StrokeAsync();
                         await context.SetStrokeStyleAsync("black");
                         await context.SetLineWidthAsync(1);
-                        currentX -= stepWidth + SzerokoscOstatniegoStopnia * Skala;
+                        currentX -= stepWidthTMP + SzerokoscOstatniegoStopnia * Skala;
                     }
                     else
                     {
@@ -165,7 +171,7 @@ namespace GEORGE.Client.Pages.Schody
                         AddRectanglePoints(currentX - ZachodzenieStopniZaSiebie * Skala, currentY, stepWidth + ZachodzenieStopniZaSiebie * Skala, stepHeight, "dashed");
                         await context.StrokeAsync();
                         await context.SetLineDashAsync(new float[] { });
-                        currentX -= stepWidth;
+                        currentX -= stepWidthTMP;
                     }
 
                 }
@@ -208,18 +214,18 @@ namespace GEORGE.Client.Pages.Schody
                 {
                     await context.BeginPathAsync();
 
-                    if (i == LiczbaPodniesienStopni - 1)
+                    if (i == LiczbaPodniesienStopni - 1000)
                     {
                         await context.SetStrokeStyleAsync("blue");
                         // Ustaw grubość linii (na przykład na 3 piksele)
                         await context.SetLineWidthAsync(3);
                         await context.SetLineDashAsync(new float[] { 5, 5 }); // Ustaw przerywaną linię
-                        await DrawShapeStopinRysBok(context, currentX, currentY, SzerokoscOstatniegoStopnia * Skala, gruboscStopnia);
+                        await DrawShapeStopinRysBok(context, X, currentY, (SzerokoscOstatniegoStopnia + ZachodzenieStopniZaSiebie) * Skala, gruboscStopnia);
                         await context.StrokeAsync();
                         await context.SetStrokeStyleAsync("black");
                         await context.SetLineWidthAsync(1);
                         await context.SetLineDashAsync(new float[] { });
-                        currentX -= stepWidth + SzerokoscOstatniegoStopnia * Skala;
+                        currentX -= stepWidthTMP + SzerokoscOstatniegoStopnia * Skala;
                         currentY -= WysokoscPodniesieniaStopnia * Skala;
                     }
                     else
@@ -239,7 +245,7 @@ namespace GEORGE.Client.Pages.Schody
                         await context.SetLineWidthAsync(1);
                         await context.SetLineDashAsync(new float[] { });
 
-                        currentX -= stepWidth;
+                        currentX -= stepWidthTMP;
                         currentY -= WysokoscPodniesieniaStopnia * Skala;
                     }
 
@@ -372,12 +378,11 @@ namespace GEORGE.Client.Pages.Schody
             double endY = startY - deltaY;
 
             //double offsetKr = OdsadzenieStopniaOdBrzegu;
-            double offsetKr = 1;
+            double offsetKr = 1;// Odległość rogu stopnia od linii wangi
 
             double offset20 = Math.Abs(offsetKr / Math.Cos((katNachylenia) * (Math.PI / 180))); // OK
            
             double liniaDol = Math.Abs(offsetKr / Math.Sin((katNachylenia) * (Math.PI / 180)));
-
 
             double liniaDolStart = (GlebokoscStopnia + liniaDol) * Math.Tan(katNachylenia * (Math.PI / 180)) + OdsadzeniePierwszStopniaOdBrzegu;
 
@@ -416,6 +421,8 @@ namespace GEORGE.Client.Pages.Schody
             double rightBottomX = startX;
             double startYlP1 = ((OdsadzeniePierwszStopniaOdBrzegu - liniaDol) * Math.Tan(katNachylenia * (Math.PI / 180)));
             double rightBottomY = startY - ((WysokoscPodniesieniaStopnia - startYlP1) * Skala); //??????????????????????????????????????????????????????????????????????????????????????????????????
+
+
             await context.LineToAsync(rightBottomX, rightBottomY);
             AddLineWithPreviousPointAsync(rightBottomX, rightBottomY); // Dodanie linii skośnej
 
@@ -446,9 +453,14 @@ namespace GEORGE.Client.Pages.Schody
             double rightUpperX = X + liniaXGora * Skala;
             double rightUpperY = YStartStopienGorny - GruboscStopnia * Skala;
 
+            double xSzukaLiniaSkosnaGora = (((WysokoscCalkowita + wysokoscZaczepuY) - (WysokoscPodniesieniaStopnia - startYlP1)) * Math.Tan((90 - KatNachylenia) * (Math.PI / 180)));
+
+            Console.WriteLine($"(((WysokoscCalkowita + wysokoscZaczepuY) - (WysokoscPodniesieniaStopnia - startYlP1)): {((WysokoscCalkowita + wysokoscZaczepuY) - (WysokoscPodniesieniaStopnia - startYlP1))}");
+            Console.WriteLine($"xSzukaLiniaSkosnaGora: {xSzukaLiniaSkosnaGora} WysokoscPodniesieniaStopnia - startYlP1: {WysokoscPodniesieniaStopnia - startYlP1}");  
+
             // Rysowanie skośnej linii do prawego górnego rogu ostatniego stopnia
-            await context.LineToAsync(rightUpperX, rightUpperY); //Linia równoległa do osi schodów w odległości ~20mm od krawędzi stopnia
-            AddLineWithPreviousPointAsync(rightUpperX, rightUpperY); // Dodanie skośnej linii
+            await context.LineToAsync(rightBottomX - xSzukaLiniaSkosnaGora * Skala, rightUpperY); //Linia równoległa do osi schodów w odległości ~20mm od krawędzi stopnia
+            AddLineWithPreviousPointAsync(rightBottomX - xSzukaLiniaSkosnaGora * Skala, rightUpperY); // Dodanie skośnej linii
 
             double endYFinal = rightUpperY + Math.Sqrt(Math.Pow(przeciwProstokatna, 2) - Math.Pow((WysokoscPodniesieniaStopnia * Skala) * Math.Cos(katNachylenia * (Math.PI / 180)), 2));
 
@@ -486,12 +498,24 @@ namespace GEORGE.Client.Pages.Schody
             await context.LineToAsync(endXFinal, endYFinalTMP);
             AddLineWithPreviousPointAsync(endXFinal, endYFinal + GruboscStopnia * Skala + offset20 * Skala); // Dodanie końcowej pionowej linii --------------?????????????????????????????????
 
- 
-            double xDodatLiniiPoz = (leftBottomY - endYFinalTMP) * Math.Tan((90 - katNachylenia) * (Math.PI / 180));//Dodatkowa linia pozioma przed zamknięciem konturu
-            Console.WriteLine($"xDodatLiniiPoz: {xDodatLiniiPoz} katNachylenia: {katNachylenia} hookY3: {hookY3} startY: {startY} endYFinalTMP: {endYFinalTMP} (leftBottomY - endYFinalTMP) = {(leftBottomY - endYFinalTMP)}");  
 
-            await context.LineToAsync(xDodatLiniiPoz, leftBottomY);
-            AddLineWithPreviousPointAsync(xDodatLiniiPoz, leftBottomY); // Dodanie linii pionowej
+            double xDodatLiniiPoz = ((WysokoscPodniesieniaStopnia - GruboscStopnia) * Math.Tan((90 - KatNachylenia) * (Math.PI / 180))) * Skala;// (leftBottomY - endYFinalTMP) * Math.Tan((90 - katNachylenia) * (Math.PI / 180));//Dodatkowa linia pozioma przed zamknięciem konturu
+            Console.WriteLine($"xDodatLiniiPoz: {xDodatLiniiPoz} katNachylenia: {katNachylenia} hookY3: {hookY3} startY: {startY} endYFinalTMP: {endYFinalTMP} (leftBottomY - endYFinalTMP) = {(leftBottomY - endYFinalTMP)}");
+
+         //   xDodatLiniiPoz = X + (DlugoscOtworu - 2 * GlebokoscStopnia) * Skala + (DlugoscNaWejsciu - DlugoscOtworu) * Skala + stepWidth; // Początkowa pozycja X
+
+            //xDodatLiniiPoz = (xDodatLiniiPoz * Math.Tan((90 - KatNachylenia) * (Math.PI / 180)));//16.12.2024
+
+            Console.WriteLine($"xDodatLiniiPoz: {xDodatLiniiPoz} katNachylenia: {katNachylenia} hookY3: {hookY3} startY: {startY} endYFinalTMP: {endYFinalTMP} (leftBottomY - endYFinalTMP) = {(leftBottomY - endYFinalTMP)} GlebokoscStopnia * Skala:{GlebokoscStopnia * Skala} startX:{startX}");
+
+
+            double xRownolegle = ((WysokoscCalkowita - WysokoscPodniesieniaStopnia - GruboscStopnia) * Math.Tan((90 - KatNachylenia) * (Math.PI / 180))) * Skala;
+
+            await context.LineToAsync(hookX3 + xRownolegle, leftBottomY);
+            AddLineWithPreviousPointAsync(hookX3 + xRownolegle, leftBottomY); // Dodanie linii poziomej
+
+            //await context.LineToAsync(startX - (GlebokoscStopnia + ZachodzenieStopniZaSiebie) * Skala + xDodatLiniiPoz, leftBottomY);
+            //AddLineWithPreviousPointAsync(startX - (GlebokoscStopnia + ZachodzenieStopniZaSiebie) + xDodatLiniiPoz, leftBottomY); // Dodanie linii poziomej
 
 
             // Zamknięcie ścieżki

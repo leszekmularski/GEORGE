@@ -290,9 +290,8 @@
         WysokoscPodniesieniaStopnia = Math.Round(WysokoscCalkowita / LiczbaPodniesienStopni, 2);
         DlugoscLiniiBiegu = Math.Round(DlugoscNaWejsciu - OdsadzeniePierwszStopniaOdBrzegu, 2);
 
-        double odsunOdZacz = 0;//35 - odsuniecie o zaczep górny - do ????
 
-        KatNachylenia = Math.Round(Math.Atan((WysokoscCalkowita - (WysokoscCalkowita / LiczbaPodniesienStopni)) / (DlugoscLiniiBiegu - odsunOdZacz)) * 180 / Math.PI, 8);
+        KatNachylenia = Math.Round(Math.Atan((WysokoscCalkowita - (WysokoscCalkowita / LiczbaPodniesienStopni)) / (DlugoscLiniiBiegu - 65)) * 180 / Math.PI, 8);//gdzie -50 jest to wartość odsunięcia na zaczep górny
 
 
         PrzestrzenSwobodnaNadGlowa = Math.Round(WysokoscDoStropu - WysokoscPodniesieniaStopnia - (DlugoscNaWejsciu - (DlugoscOtworu + OdsadzeniePierwszStopniaOdBrzegu)) * Math.Tan(KatNachylenia * Math.PI / 180), 2);
