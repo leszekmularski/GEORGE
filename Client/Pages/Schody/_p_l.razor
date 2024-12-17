@@ -84,15 +84,15 @@
                 </div>
                 <div>
                     <label>Zachodzenie stopni za siebie:</label>
-                    <input type="number" @bind="ZachodzenieStopniZaSiebie" />
+                    <input type="number" @bind="ZachodzenieStopniZaSiebie" @onclick="()=> Oblicz(false)" />
                 </div>
                 <div>
-                    <label>Odsadzenie stopini o brzegu:</label>
-                    <input type="number" @bind="OdsadzenieStopniaOdBrzegu" />
+                    <label>Odsadzenie stopini o brzegu u góry:</label>
+                    <input type="number" @bind="OsadzenieOdGory" @onclick="()=> Oblicz(false)" />
                 </div>
                 <div>
-                    <label>Pierwszy stopień odsuń od brzegu:</label>
-                    <input type="number" @bind="OdsadzeniePierwszStopniaOdBrzegu" />
+                    <label>Odsadzenie stopini o brzegu u dołu:</label>
+                    <input type="number" @bind="OsadzenieOdDolu" />
                 </div>
                 <div>
                     <label>Szerokość Biegu Schodów:</label>
@@ -179,8 +179,8 @@
     private double LiczbaPodniesienStopni { get; set; } = 10;
     private double SzerokoscOstatniegoStopnia { get; set; } = 200;
     private double ZachodzenieStopniZaSiebie { get; set; } = 0;
-    private double OdsadzenieStopniaOdBrzegu { get; set; } = 20;
-    private double OdsadzeniePierwszStopniaOdBrzegu { get; set; } = 50;
+    private double OsadzenieOdGory { get; set; } = 20;
+    private double OsadzenieOdDolu { get; set; } = 20;
     private double SzerokoscBieguSchodow { get; set; } = 1000;
 
     // Output properties (results)
@@ -281,20 +281,18 @@
         if (SzerokoscOstatniegoStopnia > (SzerokoscOtworu - SzerokoscBieguSchodow)) SzerokoscOstatniegoStopnia = SzerokoscOtworu - SzerokoscBieguSchodow;
         if (SzerokoscBieguSchodow <= 400) SzerokoscBieguSchodow = 400;
         if (ZachodzenieStopniZaSiebie < -200 || ZachodzenieStopniZaSiebie > 200) ZachodzenieStopniZaSiebie = 0;
-        if (OdsadzenieStopniaOdBrzegu < 0 || OdsadzenieStopniaOdBrzegu > 120) OdsadzenieStopniaOdBrzegu = 20;
-        if (OdsadzeniePierwszStopniaOdBrzegu < 0 || OdsadzeniePierwszStopniaOdBrzegu > 150) OdsadzeniePierwszStopniaOdBrzegu = 50;
+        if (OsadzenieOdGory < -120 || OsadzenieOdGory > 120) OsadzenieOdGory = 20;
+        if (OsadzenieOdDolu < -120 || OsadzenieOdDolu > 150) OsadzenieOdDolu = 20;
 
-        // Console.WriteLine($"OdsadzeniePierwszStopniaOdBrzegu: {OdsadzeniePierwszStopniaOdBrzegu} DlugoscNaWejsciu: {DlugoscNaWejsciu}");
 
         // Obliczenia
         WysokoscPodniesieniaStopnia = Math.Round(WysokoscCalkowita / LiczbaPodniesienStopni, 2);
-        DlugoscLiniiBiegu = Math.Round(DlugoscNaWejsciu - OdsadzeniePierwszStopniaOdBrzegu, 2);
+        DlugoscLiniiBiegu = Math.Round(DlugoscNaWejsciu, 2);
+
+        KatNachylenia = Math.Round(Math.Atan((WysokoscCalkowita - (WysokoscCalkowita / LiczbaPodniesienStopni)) / (DlugoscLiniiBiegu - 65)) * 180 / Math.PI, 8);//gdzie -65 jest to wartość odsunięcia na zaczep górny
 
 
-        KatNachylenia = Math.Round(Math.Atan((WysokoscCalkowita - (WysokoscCalkowita / LiczbaPodniesienStopni)) / (DlugoscLiniiBiegu - 65)) * 180 / Math.PI, 8);//gdzie -50 jest to wartość odsunięcia na zaczep górny
-
-
-        PrzestrzenSwobodnaNadGlowa = Math.Round(WysokoscDoStropu - WysokoscPodniesieniaStopnia - (DlugoscNaWejsciu - (DlugoscOtworu + OdsadzeniePierwszStopniaOdBrzegu)) * Math.Tan(KatNachylenia * Math.PI / 180), 2);
+        PrzestrzenSwobodnaNadGlowa = Math.Round(WysokoscDoStropu - WysokoscPodniesieniaStopnia - (DlugoscNaWejsciu - DlugoscOtworu) * Math.Tan(KatNachylenia * Math.PI / 180), 2);
         SzerokoscSchodow = Math.Round(SzerokoscBieguSchodow, 2);
         GlebokoscStopnia = Math.Round(DlugoscLiniiBiegu / (LiczbaPodniesienStopni - 1), 2);
         PrzecietnaDlugoscKroku = Math.Round(2 * WysokoscPodniesieniaStopnia + GlebokoscStopnia, 2);
@@ -379,7 +377,7 @@
                 shapes = new List<Shape>
                 {
                     new CSchodyPL(JSRuntime, 50, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
-                    SzerokoscOstatniegoStopnia, ZachodzenieStopniZaSiebie, OdsadzenieStopniaOdBrzegu, OdsadzeniePierwszStopniaOdBrzegu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
+                    SzerokoscOstatniegoStopnia, ZachodzenieStopniZaSiebie, OsadzenieOdGory, OsadzenieOdDolu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
                     GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'l')
                 };
             }
@@ -388,7 +386,7 @@
                 shapes = new List<Shape>
                 {
                     new CSchodyPL(JSRuntime,  50, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
-                    SzerokoscOstatniegoStopnia, ZachodzenieStopniZaSiebie, OdsadzenieStopniaOdBrzegu, OdsadzeniePierwszStopniaOdBrzegu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
+                    SzerokoscOstatniegoStopnia, ZachodzenieStopniZaSiebie, OsadzenieOdGory, OsadzenieOdDolu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
                     GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'p')
                 };
             }
@@ -403,7 +401,7 @@
                 shapes = new List<Shape>
                 {
                     new CSchodyPL(JSRuntime,  50, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
-                    SzerokoscOstatniegoStopnia, ZachodzenieStopniZaSiebie, OdsadzenieStopniaOdBrzegu, OdsadzeniePierwszStopniaOdBrzegu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
+                    SzerokoscOstatniegoStopnia, ZachodzenieStopniZaSiebie, OsadzenieOdGory, OsadzenieOdDolu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
                     GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'l')
                 };
             }
@@ -412,7 +410,7 @@
                 shapes = new List<Shape>
                 {
                     new CSchodyPL(JSRuntime,  50, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
-                    SzerokoscOstatniegoStopnia, ZachodzenieStopniZaSiebie, OdsadzenieStopniaOdBrzegu, OdsadzeniePierwszStopniaOdBrzegu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
+                    SzerokoscOstatniegoStopnia, ZachodzenieStopniZaSiebie, OsadzenieOdGory, OsadzenieOdDolu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
                     GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'p')
                 };
             }
@@ -466,8 +464,8 @@
         LiczbaPodniesienStopni.ToString(),
         SzerokoscOstatniegoStopnia.ToString(),
         ZachodzenieStopniZaSiebie.ToString(),
-        OdsadzenieStopniaOdBrzegu.ToString(),
-        OdsadzeniePierwszStopniaOdBrzegu.ToString(),
+        OsadzenieOdGory.ToString(),
+        OsadzenieOdDolu.ToString(),
         SzerokoscBieguSchodow.ToString(),
         DlugoscLiniiBiegu.ToString(),
         KatNachylenia.ToString(),
@@ -501,8 +499,8 @@
             LiczbaPodniesienStopni = double.Parse(data[5]);
             SzerokoscOstatniegoStopnia = double.Parse(data[6]);
             ZachodzenieStopniZaSiebie = double.Parse(data[7]);
-            OdsadzenieStopniaOdBrzegu = double.Parse(data[8]);
-            OdsadzeniePierwszStopniaOdBrzegu = double.Parse(data[9]);
+            OsadzenieOdGory = double.Parse(data[8]);
+            OsadzenieOdDolu = double.Parse(data[9]);
             SzerokoscBieguSchodow = double.Parse(data[10]);
             DlugoscLiniiBiegu = double.Parse(data[11]);
             KatNachylenia = double.Parse(data[12]);
@@ -515,7 +513,7 @@
         }
         else
         {
-          await UstWartDomyslne();
+            await UstWartDomyslne();
         }
     }
 
@@ -531,7 +529,8 @@
         SzerokoscOstatniegoStopnia = 200;
         SzerokoscBieguSchodow = 850;
         ZachodzenieStopniZaSiebie = 0;
-        OdsadzenieStopniaOdBrzegu = 20;
+        OsadzenieOdGory = 20;
+        OsadzenieOdDolu = 20;
 
         // Reset wyników
         DlugoscLiniiBiegu = 0;
@@ -564,8 +563,8 @@
         public double LiczbaPodniesienStopni { get; set; }
         public double SzerokoscOstatniegoStopnia { get; set; }
         public double ZachodzenieStopniZaSiebie { get; set; }
-        public double OdsadzenieStopniaOdBrzegu { get; set; }
-        public double OdsadzeniePierwszStopniaOdBrzegu { get; set; }
+        public double OsadzenieOdGory { get; set; }
+        public double OsadzenieOdDolu { get; set; }
         public double SzerokoscBieguSchodow { get; set; }
 
         // Output properties
