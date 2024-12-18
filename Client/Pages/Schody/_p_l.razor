@@ -40,6 +40,16 @@
 
         return { width: width, height: height }; // Zwróć wartości jako liczby całkowite
         }
+        
+        function downloadFileGCode(fileName, contentBase64) {
+            const element = document.createElement("a");
+            element.setAttribute("href", "data:application/octet-stream;base64," + contentBase64);
+            element.setAttribute("download", fileName);
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+        }
+
     </script>
     @*     <script src="_framework/blazor.webassembly.js"></script> *@
 
@@ -50,59 +60,86 @@
     <Divider></Divider>
     <Collapse Animation>
         <Panel Header="Parametry wykonania schodów" Key="1">
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; align-items: center;">
-                <!-- Form inputs -->
-                <div>
-                    <label>Długość Otworu:</label>
-                    <input type="number" @bind="DlugoscOtworu" @onclick="()=> Oblicz(false)" />
+
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px 10px; align-items: center;">
+
+                <!-- Długość Otworu -->
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <label style="font-weight: bold; color: forestgreen;">Długość Otworu:</label>
+                    <input style="font-weight: bold; color: forestgreen; width: 8ch;" type="number" @bind="DlugoscOtworu" @onclick="()=> Oblicz(false)" />
                 </div>
-                <div>
-                    <label>Szerokość Otworu:</label>
-                    <input type="number" @bind="SzerokoscOtworu" />
+
+                <!-- Szerokość Otworu -->
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <label style="font-weight: bold; color: forestgreen;">Szerokość Otworu:</label>
+                    <input style="font-weight: bold; color: forestgreen; width: 8ch;" type="number" @bind="SzerokoscOtworu" />
                 </div>
-                <div>
-                    <label style="font-weight: bold; color:crimson">Długość na Wejściu:</label>
-                    <Tooltip Placement="@Placement.Top" Title="Całkowiata długość schodów.">
-                        <input style="font-weight: bold; color:crimson" type="number" @bind="DlugoscNaWejsciu" @onclick="()=> Oblicz(false)" />
+
+                <!-- Długość na Wejściu -->
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <label style="font-weight: bold; color: crimson;">Długość na Wejściu:</label>
+                    <Tooltip Placement="@Placement.Top" Title="Całkowita długość schodów.">
+                        <input style="font-weight: bold; color: crimson; width: 8ch;" type="number" @bind="DlugoscNaWejsciu" @onclick="()=> Oblicz(false)" />
                     </Tooltip>
                 </div>
-                <div>
-                    <label>Wysokość do Stropu:</label>
-                    <input type="number" @bind="WysokoscDoStropu" />
+
+                <!-- Wysokość do Stropu -->
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <label style="font-weight: bold; color: forestgreen;">Wysokość do Stropu:</label>
+                    <input style="font-weight: bold; color: forestgreen; width: 8ch;" type="number" @bind="WysokoscDoStropu" />
                 </div>
-                <div>
-                    <label style="font-weight: bold; color:crimson">Wysokość Całkowita:</label>
-                    <input style="font-weight: bold; color:crimson" type="number" @bind="WysokoscCalkowita" />
+
+                <!-- Wysokość Całkowita -->
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <label style="font-weight: bold; color: crimson;">Wysokość Całkowita:</label>
+                    <input style="font-weight: bold; color: crimson; width: 8ch;" type="number" @bind="WysokoscCalkowita" />
                 </div>
-                <div>
-                    <label style="font-weight: bold; color:crimson">Liczba Podniesień Stopni:</label>
-                    <input style="font-weight: bold; color:crimson" type="number" @bind="LiczbaPodniesienStopni" @onclick="()=> Oblicz(false)" />
+
+                <!-- Liczba Podniesień Stopni -->
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <label style="font-weight: bold; color: crimson;">Liczba Podniesień Stopni:</label>
+                    <input style="font-weight: bold; color: crimson; width: 8ch;" type="number" @bind="LiczbaPodniesienStopni" @onclick="()=> Oblicz(false)" />
                 </div>
-                <div>
-                    <label>Teoretyczna szerokość ostatniego stopnia:</label>
-                    <input type="number" @bind="SzerokoscOstatniegoStopnia" />
+
+                <!-- Wydłuż ostatni stopień -->
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <label style="font-weight: bold; color: crimson;">Wydłuż ostatni stopień o:</label>
+                    <input style="font-weight: bold; color: crimson; width: 8ch;" type="number" @bind="WydluzOstatniStopien" />
                 </div>
-                <div>
-                    <label>Zachodzenie stopni za siebie:</label>
-                    <input type="number" @bind="ZachodzenieStopniZaSiebie" @onclick="()=> Oblicz(false)" />
+
+                <!-- Zachodzenie stopni za siebie -->
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <label style="font-weight: bold; color: crimson;">Zachodzenie stopni za siebie:</label>
+                    <input style="font-weight: bold; color: crimson; width: 8ch;" type="number" @bind="ZachodzenieStopniZaSiebie" @onclick="()=> Oblicz(false)" />
                 </div>
-                <div>
-                    <label>Odsadzenie stopini o brzegu u góry:</label>
-                    <input type="number" @bind="OsadzenieOdGory" @onclick="()=> Oblicz(false)" />
+
+                <!-- Odsadzenie stopni od brzegu u góry -->
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <label style="font-weight: bold; color: crimson;">Odsadzenie stopni od brzegu u góry:</label>
+                    <input style="font-weight: bold; color: crimson; width: 8ch;" type="number" @bind="OsadzenieOdGory" @onclick="()=> Oblicz(false)" />
                 </div>
-                <div>
-                    <label>Odsadzenie stopini o brzegu u dołu:</label>
-                    <input type="number" @bind="OsadzenieOdDolu" />
+
+                <!-- Odsadzenie stopni od brzegu u dołu -->
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <label style="font-weight: bold; color: crimson;">Odsadzenie stopni od brzegu u dołu:</label>
+                    <input style="font-weight: bold; color: crimson; width: 8ch;" type="number" @bind="OsadzenieOdDolu" />
                 </div>
-                <div>
-                    <label>Szerokość Biegu Schodów:</label>
-                    <input type="number" @bind="SzerokoscBieguSchodow" />
+
+                <!-- Szerokość Biegu Schodów -->
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <label style="font-weight: bold; color: forestgreen;">Szerokość Biegu Schodów:</label>
+                    <input style="font-weight: bold; color: forestgreen; width: 8ch;" type="number" @bind="SzerokoscBieguSchodow" />
                 </div>
+
+                <!-- Skala wyświetlania -->
                 <div style="display: flex; flex-direction: column; gap: 5px;">
-                    <label style="color:forestgreen">Skala wyświetlania @SkalaWyswietlania [%]:</label>
+                    <label style="font-weight: bold; color: forestgreen;">Skala wyświetlania @SkalaWyswietlania [%]:</label>
                     <Slider TValue="double" Min="1" Max="100" Step="1" @bind-Value="@SkalaWyswietlania" />
                 </div>
+
             </div>
+
+
         </Panel>
     </Collapse>
 
@@ -111,6 +148,8 @@
     <button @onclick="()=> Oblicz(true)">Zapisz do DXF</button>
     <button @onclick="Resetuj">Reset</button>
     <button @onclick="SaveToLocalStorage">Ustaw jako domyślne</button>
+    <button @onclick="()=> GerujCNCCode()">Generuj program CNC</button>
+    
 
     <div style="display: flex; gap: 25px;">
         <!-- Results -->
@@ -120,7 +159,7 @@
                 <p style="margin: 0;">Długość Linii Biegu: @DlugoscLiniiBiegu</p>
             </div>
             <div>
-                <p style="margin: 0;">Kąt Nachylenia: @Math.Round(KatNachylenia, 1)</p>
+                <p style="margin: 0;">Kąt Nachylenia: @Math.Round(KatNachylenia, 3)</p>
             </div>
             <div style="display: flex; align-items: center; gap: 25px;">
                 <p style="margin: 0;">Szerokość Schodów: @SzerokoscSchodow</p>
@@ -128,13 +167,21 @@
                     <span style="margin: 0; color:@(SzerokoscSchodow >= 800 ? "green" : "red");">>= 800 mm</span>
                 </Tooltip>
             </div>
-            <p>Wysokość Podniesienia Stopnia: @WysokoscPodniesieniaStopnia</p>
+
             <div style="display: flex; align-items: center; gap: 25px;">
-                <p style="margin: 0; color: darkblue; font-style: oblique; font-weight: bold;">Głębokość Stopnia: @(Math.Round(GlebokoscStopnia + ZachodzenieStopniZaSiebie, 2))</p>
+                <p style="margin: 0;">Wysokość Podniesienia Stopnia: @WysokoscPodniesieniaStopnia</p>
+                <span style="margin: 0; color:@(WysokoscPodniesieniaStopnia < 140 || WysokoscPodniesieniaStopnia > 200 ? "red" : "green");">
+                    140 - 200 mm
+                </span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 25px;">
+                <p style="margin: 0; color: darkblue; font-style: oblique; font-weight: bold;">Głębokość Stopnia: @(Math.Round(GlebokoscStopnia + ZachodzenieStopniZaSiebie, 2)) [@((Math.Round(GlebokoscStopnia, 2)))]</p>
                 <span style="margin: 0; color:@(GlebokoscStopnia + ZachodzenieStopniZaSiebie < 220 || GlebokoscStopnia + ZachodzenieStopniZaSiebie > 350 ? "red" : "green");">
                     220 - 350 mm
                 </span>
             </div>
+
             <div style="display: flex; align-items: center; gap: 25px;">
                 <p style="margin: 0;">Przeciętna Długość Kroku: @PrzecietnaDlugoscKroku</p>
                 <span style="margin: 0; color:@(PrzecietnaDlugoscKroku < 600 || PrzecietnaDlugoscKroku > 650 ? "red" : "green");">
@@ -177,7 +224,7 @@
     private double WysokoscDoStropu { get; set; } = 1000;
     private double WysokoscCalkowita { get; set; } = 3000;
     private double LiczbaPodniesienStopni { get; set; } = 10;
-    private double SzerokoscOstatniegoStopnia { get; set; } = 200;
+    private double WydluzOstatniStopien { get; set; } = 0;
     private double ZachodzenieStopniZaSiebie { get; set; } = 0;
     private double OsadzenieOdGory { get; set; } = 20;
     private double OsadzenieOdDolu { get; set; } = 20;
@@ -230,7 +277,7 @@
         if (firstRender)
         {
             if (SkalaWyswietlania == 0) SkalaWyswietlania = 100;
-            if(DlugoscNaWejsciu == 0) DlugoscNaWejsciu = 3000;
+            if (DlugoscNaWejsciu == 0) DlugoscNaWejsciu = 3000;
             if (WysokoscCalkowita == 0) WysokoscCalkowita = 3000;
             if (SzerokoscSchodow == 0) SzerokoscSchodow = 1000;
 
@@ -277,8 +324,9 @@
         if (WysokoscCalkowita >= 7000) WysokoscCalkowita = 6999;
         if (LiczbaPodniesienStopni <= 2) LiczbaPodniesienStopni = 3;
         if (LiczbaPodniesienStopni >= 30) LiczbaPodniesienStopni = 29;
-        if (SzerokoscOstatniegoStopnia < 0) SzerokoscOstatniegoStopnia = 200;
-        if (SzerokoscOstatniegoStopnia > (SzerokoscOtworu - SzerokoscBieguSchodow)) SzerokoscOstatniegoStopnia = SzerokoscOtworu - SzerokoscBieguSchodow;
+
+        if (WydluzOstatniStopien < -120 || WydluzOstatniStopien > 120) WydluzOstatniStopien = 0;
+
         if (SzerokoscBieguSchodow <= 400) SzerokoscBieguSchodow = 400;
         if (ZachodzenieStopniZaSiebie < -200 || ZachodzenieStopniZaSiebie > 200) ZachodzenieStopniZaSiebie = 0;
         if (OsadzenieOdGory < -120 || OsadzenieOdGory > 120) OsadzenieOdGory = 20;
@@ -297,7 +345,6 @@
         GlebokoscStopnia = Math.Round(DlugoscLiniiBiegu / (LiczbaPodniesienStopni - 1), 2);
         PrzecietnaDlugoscKroku = Math.Round(2 * WysokoscPodniesieniaStopnia + GlebokoscStopnia, 2);
 
-        SzerokoscOstatniegoStopnia = GlebokoscStopnia;
 
         if (JSRuntime != null)
         {
@@ -326,7 +373,7 @@
         if (saveDxf)
         {
             // Aktualizacja kształtów
-            await UpdateShapes(true);
+            await UpdateShapes(true); //- true to mam być domyślne skala 1:1
 
             if (shapes == null) return;
 
@@ -361,6 +408,20 @@
         }
     }
 
+
+    private async Task GerujCNCCode()
+    {
+        if (shapes == null) return;
+
+        foreach (var shape in shapes)
+        {
+            if (shape is CSchodyPL schody)
+            {
+                await schody.SaveToDxfAndGCodeAsync(-KatNachylenia);
+            }
+        }
+    }
+
     private async Task UpdateShapes(bool skala1do1 = false)
     {
         if (shapes != null) shapes.Clear();
@@ -377,7 +438,7 @@
                 shapes = new List<Shape>
                 {
                     new CSchodyPL(JSRuntime, 50, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
-                    SzerokoscOstatniegoStopnia, ZachodzenieStopniZaSiebie, OsadzenieOdGory, OsadzenieOdDolu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
+                    WydluzOstatniStopien, ZachodzenieStopniZaSiebie, OsadzenieOdGory, OsadzenieOdDolu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
                     GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'l')
                 };
             }
@@ -386,7 +447,7 @@
                 shapes = new List<Shape>
                 {
                     new CSchodyPL(JSRuntime,  50, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
-                    SzerokoscOstatniegoStopnia, ZachodzenieStopniZaSiebie, OsadzenieOdGory, OsadzenieOdDolu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
+                    WydluzOstatniStopien, ZachodzenieStopniZaSiebie, OsadzenieOdGory, OsadzenieOdDolu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
                     GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'p')
                 };
             }
@@ -401,7 +462,7 @@
                 shapes = new List<Shape>
                 {
                     new CSchodyPL(JSRuntime,  50, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
-                    SzerokoscOstatniegoStopnia, ZachodzenieStopniZaSiebie, OsadzenieOdGory, OsadzenieOdDolu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
+                    WydluzOstatniStopien, ZachodzenieStopniZaSiebie, OsadzenieOdGory, OsadzenieOdDolu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
                     GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'l')
                 };
             }
@@ -410,7 +471,7 @@
                 shapes = new List<Shape>
                 {
                     new CSchodyPL(JSRuntime,  50, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
-                    SzerokoscOstatniegoStopnia, ZachodzenieStopniZaSiebie, OsadzenieOdGory, OsadzenieOdDolu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
+                    WydluzOstatniStopien, ZachodzenieStopniZaSiebie, OsadzenieOdGory, OsadzenieOdDolu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
                     GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'p')
                 };
             }
@@ -462,7 +523,7 @@
         WysokoscDoStropu.ToString(),
         WysokoscCalkowita.ToString(),
         LiczbaPodniesienStopni.ToString(),
-        SzerokoscOstatniegoStopnia.ToString(),
+        WydluzOstatniStopien.ToString(),
         ZachodzenieStopniZaSiebie.ToString(),
         OsadzenieOdGory.ToString(),
         OsadzenieOdDolu.ToString(),
@@ -497,7 +558,7 @@
             WysokoscDoStropu = double.Parse(data[3]);
             WysokoscCalkowita = double.Parse(data[4]);
             LiczbaPodniesienStopni = double.Parse(data[5]);
-            SzerokoscOstatniegoStopnia = double.Parse(data[6]);
+            WydluzOstatniStopien = double.Parse(data[6]);
             ZachodzenieStopniZaSiebie = double.Parse(data[7]);
             OsadzenieOdGory = double.Parse(data[8]);
             OsadzenieOdDolu = double.Parse(data[9]);
@@ -526,7 +587,7 @@
         WysokoscDoStropu = 2700;
         WysokoscCalkowita = 3000;
         LiczbaPodniesienStopni = 15;
-        SzerokoscOstatniegoStopnia = 200;
+        WydluzOstatniStopien = 0;
         SzerokoscBieguSchodow = 850;
         ZachodzenieStopniZaSiebie = 0;
         OsadzenieOdGory = 20;
@@ -561,7 +622,7 @@
         public double WysokoscDoStropu { get; set; }
         public double WysokoscCalkowita { get; set; }
         public double LiczbaPodniesienStopni { get; set; }
-        public double SzerokoscOstatniegoStopnia { get; set; }
+        public double WydluzOstatniStopien { get; set; }
         public double ZachodzenieStopniZaSiebie { get; set; }
         public double OsadzenieOdGory { get; set; }
         public double OsadzenieOdDolu { get; set; }
