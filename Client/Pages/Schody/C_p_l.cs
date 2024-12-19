@@ -154,7 +154,8 @@ namespace GEORGE.Client.Pages.Schody
                         await context.SetLineWidthAsync(1);
                         await context.SetLineDashAsync(new float[] { 5, 5 }); // Ustaw przerywaną linię
                         await context.RectAsync(currentX - (ZachodzenieStopniZaSiebie + WydluzOstatniStopien) * Skala , currentY, stepWidth + (ZachodzenieStopniZaSiebie + WydluzOstatniStopien) * Skala, stepHeight);
-                        AddRectanglePoints(currentX - (ZachodzenieStopniZaSiebie + WydluzOstatniStopien) * Skala, currentY, stepWidth + (ZachodzenieStopniZaSiebie + WydluzOstatniStopien) * Skala, stepHeight, "dashed");
+                       // AddRectanglePoints(currentX - (ZachodzenieStopniZaSiebie + WydluzOstatniStopien) * Skala, currentY, stepWidth + (ZachodzenieStopniZaSiebie + WydluzOstatniStopien) * Skala, stepHeight, "dashed","S_G", "STOPIEN_W1", true);
+                        AddPointsStopienObrys(currentX - (ZachodzenieStopniZaSiebie + WydluzOstatniStopien) * Skala, currentY, stepWidth + (ZachodzenieStopniZaSiebie + WydluzOstatniStopien) * Skala, stepHeight, "dashed", "S_G", "STOPIEN_W2", i.ToString(), true);
                         await context.StrokeAsync();
                         await context.SetLineDashAsync(new float[] { });
 
@@ -173,7 +174,17 @@ namespace GEORGE.Client.Pages.Schody
                         await context.SetLineWidthAsync(1);
                         await context.SetLineDashAsync(new float[] { 5, 5 }); // Ustaw przerywaną linię
                         await context.RectAsync(currentX - ZachodzenieStopniZaSiebie * Skala, currentY, stepWidth + ZachodzenieStopniZaSiebie * Skala, stepHeight);
-                        AddRectanglePoints(currentX - ZachodzenieStopniZaSiebie * Skala, currentY, stepWidth + ZachodzenieStopniZaSiebie * Skala, stepHeight, "dashed");
+
+                        if (i == LiczbaPodniesienStopni - 3 || LiczbaPodniesienStopni == 2)
+                        {
+                            //AddRectanglePoints(currentX - ZachodzenieStopniZaSiebie * Skala, currentY, stepWidth + ZachodzenieStopniZaSiebie * Skala, stepHeight, "dashed","S_D", "STOPIEN_W1", true);
+                            AddPointsStopienObrys(currentX - ZachodzenieStopniZaSiebie * Skala, currentY, stepWidth + ZachodzenieStopniZaSiebie * Skala, stepHeight, "dashed", "S_D", "STOPIEN_W2", i.ToString(), true);
+                        }
+                        else
+                        {
+                            AddRectanglePoints(currentX - ZachodzenieStopniZaSiebie * Skala, currentY, stepWidth + ZachodzenieStopniZaSiebie * Skala, stepHeight, "dashed");
+                        }
+                        
                         await context.StrokeAsync();
                         await context.SetLineDashAsync(new float[] { });
 
@@ -229,6 +240,8 @@ namespace GEORGE.Client.Pages.Schody
 
                         await context.SetLineDashAsync(new float[] { 5, 5 }); // Ustaw przerywaną linię
                         await DrawShapeStopinRysBok(context, currentX - (ZachodzenieStopniZaSiebie + WydluzOstatniStopien) * Skala, currentY, stepWidth + (ZachodzenieStopniZaSiebie + WydluzOstatniStopien) * Skala, gruboscStopnia);
+                        await DrawShapeStopinRysBok(context, currentX - (ZachodzenieStopniZaSiebie + WydluzOstatniStopien - 17) * Skala, currentY + 13, stepWidth + (ZachodzenieStopniZaSiebie + WydluzOstatniStopien - 17 * 2) * Skala,
+                            gruboscStopnia - 13, "dashed", "W_L", "WANGA_KIESZEN", i.ToString(),  true);
                         await context.StrokeAsync();
                         await context.SetStrokeStyleAsync("black");
                         await context.SetLineWidthAsync(1);
@@ -248,6 +261,8 @@ namespace GEORGE.Client.Pages.Schody
   
                         await context.SetLineDashAsync(new float[] { 5, 5 }); // Ustaw przerywaną linię
                         await DrawShapeStopinRysBok(context, currentX - ZachodzenieStopniZaSiebie * Skala, currentY, stepWidth + ZachodzenieStopniZaSiebie * Skala, gruboscStopnia);
+                        await DrawShapeStopinRysBok(context, currentX - ((ZachodzenieStopniZaSiebie - 17) * Skala), currentY + 13, stepWidth + ((ZachodzenieStopniZaSiebie - 17 * 2) * Skala), 
+                            gruboscStopnia - 13, "dashed", "W_L", "WANGA_KIESZEN", i.ToString(), true);
                         await context.StrokeAsync();
                         await context.SetStrokeStyleAsync("black");
                         await context.SetLineWidthAsync(1);
@@ -362,7 +377,6 @@ namespace GEORGE.Client.Pages.Schody
             // Ustaw grubość linii (na przykład na 3 piksele)
             await context.SetLineWidthAsync(1);
 
-  
 
         }
 
@@ -433,11 +447,11 @@ namespace GEORGE.Client.Pages.Schody
             //  await DrawTextAsync(context, leftBottomX, leftBottomY, $"X:{Math.Round(leftBottomX / Skala, 1)} Y:{Math.Round(leftBottomY / Skala, 1)}");
 
             await context.MoveToAsync(leftBottomX, leftBottomY); // ---------------------------------------------------------------------------- ????????????????????????????
-            AddLineWithPreviousPointAsync(leftBottomX, leftBottomY); // Dodanie linii z lewego do prawego dolnego rogu
+            AddLineWithPreviousPointAsync(leftBottomX, leftBottomY, "", "W_L", "WANGA_OBRYS","1", true); // Dodanie linii z lewego do prawego dolnego rogu
 
             // Linia pozioma (lewy dolny do prawy dolny)
             await context.LineToAsync(startX, startY);
-            AddLineWithPreviousPointAsync(startX, startY); // Dodanie linii pionowej
+            AddLineWithPreviousPointAsync(startX, startY, "", "W_L", "WANGA_OBRYS", "1", true); // Dodanie linii pionowej
 
 
             // Linia pionowa (prawy dolny do prawego górnego)
@@ -451,7 +465,7 @@ namespace GEORGE.Client.Pages.Schody
             double rightBottomY = startY - ((WysokoscPodniesieniaStopnia - startYlP1) * Skala); //??????????????????????????????????????????????????????????????????????????????????????????????????
 
             await context.LineToAsync(rightBottomX, rightBottomY);
-            AddLineWithPreviousPointAsync(rightBottomX, rightBottomY); // Dodanie linii skośnej
+            AddLineWithPreviousPointAsync(rightBottomX, rightBottomY, "", "W_L", "WANGA_OBRYS", "1", true); // Dodanie linii skośnej
 
 
             double liniaXGora = (GlebokoscStopnia + liniaDol) * Math.Tan(katNachylenia * (Math.PI / 180));
@@ -482,7 +496,7 @@ namespace GEORGE.Client.Pages.Schody
 
             // Rysowanie skośnej linii do prawego górnego rogu ostatniego stopnia
             await context.LineToAsync(rightBottomX - xSzukaLiniaSkosnaGora * Skala, rightUpperY); //Linia równoległa do osi schodów w odległości ~20mm od krawędzi stopnia
-            AddLineWithPreviousPointAsync(rightBottomX - xSzukaLiniaSkosnaGora * Skala, rightUpperY); // Dodanie skośnej linii
+            AddLineWithPreviousPointAsync(rightBottomX - xSzukaLiniaSkosnaGora * Skala, rightUpperY, "", "W_L", "WANGA_OBRYS", "1", true); // Dodanie skośnej linii
 
             double endYFinal = YStartStopienGorny + ((WysokoscPodniesieniaStopnia + GruboscStopnia) * Skala);// rightUpperY + Math.Sqrt(Math.Pow(przeciwProstokatna, 2) - Math.Pow((WysokoscPodniesieniaStopnia * Skala) * Math.Cos(katNachylenia * (Math.PI / 180)), 2));
 
@@ -505,12 +519,12 @@ namespace GEORGE.Client.Pages.Schody
             double hookX3 = X;
             double hookY3 = hookY2;
             await context.LineToAsync(hookX1, hookY1);
-            AddLineWithPreviousPointAsync(hookX1, hookY1); // Dodanie linii zaczepu
+            AddLineWithPreviousPointAsync(hookX1, hookY1, "", "W_L", "WANGA_OBRYS", "1", true); // Dodanie linii zaczepu
             await context.LineToAsync(hookX2, hookY2);
-            AddLineWithPreviousPointAsync(hookX2, hookY2); // Dodanie pionowej linii zaczepu
+            AddLineWithPreviousPointAsync(hookX2, hookY2, "", "W_L", "WANGA_OBRYS", "1", true); // Dodanie pionowej linii zaczepu
 
             await context.LineToAsync(hookX3, hookY3);
-            AddLineWithPreviousPointAsync(hookX3, hookY3); // Dodanie poziomej linii zaczepu
+            AddLineWithPreviousPointAsync(hookX3, hookY3, "", "W_L", "WANGA_OBRYS", "1", true); // Dodanie poziomej linii zaczepu
 
             // Linia końcowa pionowa
             //double endXFinal = X;
@@ -522,7 +536,7 @@ namespace GEORGE.Client.Pages.Schody
             double endYFinalTMP = endYFinal - wartXGornegoStopnia;
 
             await context.LineToAsync(X, endYFinalTMP);
-            AddLineWithPreviousPointAsync(X, endYFinalTMP); // Dodanie końcowej pionowej linii z uwględnieniem odsunięcia
+            AddLineWithPreviousPointAsync(X, endYFinalTMP, "", "W_L", "WANGA_OBRYS", "1", true); // Dodanie końcowej pionowej linii z uwględnieniem odsunięcia
 
 
             //Console.WriteLine($"katNachylenia: {katNachylenia} hookY3: {hookY3} startY: {startY} endYFinalTMP: {endYFinalTMP} (leftBottomY - endYFinalTMP) = {(leftBottomY - endYFinalTMP)} endYFinal: {endYFinal}");
@@ -535,7 +549,7 @@ namespace GEORGE.Client.Pages.Schody
         //    Console.WriteLine($"xRownolegle: {xRownolegle}");
 
             await context.LineToAsync(X + xRownolegle, leftBottomY);
-            AddLineWithPreviousPointAsync(X + xRownolegle, leftBottomY); // Dodanie linii poziomej
+            AddLineWithPreviousPointAsync(X + xRownolegle, leftBottomY, "", "W_L", "WANGA_OBRYS", "1", true); // Dodanie linii poziomej
 
             //await context.LineToAsync(startX - (GlebokoscStopnia + ZachodzenieStopniZaSiebie) * Skala + xDodatLiniiPoz, leftBottomY);
             //AddLineWithPreviousPointAsync(startX - (GlebokoscStopnia + ZachodzenieStopniZaSiebie) + xDodatLiniiPoz, leftBottomY); // Dodanie linii poziomej
@@ -544,7 +558,7 @@ namespace GEORGE.Client.Pages.Schody
             // Zamknięcie ścieżki
             await context.ClosePathAsync();
 
-            ClosePathAndAddFinalLineAsync();
+            ClosePathAndAddFinalLineAsync("", "W_L", "WANGA_OBRYS", "1", true);
 
             await context.StrokeAsync();
 
@@ -583,7 +597,7 @@ namespace GEORGE.Client.Pages.Schody
 
         }
 
-        private async Task DrawShapeStopinRysBok(Canvas2DContext context, double offsetX, double offsetY, double szerStopnia, double gruboscStopnia)
+        private async Task DrawShapeStopinRysBok(Canvas2DContext context, double offsetX, double offsetY, double szerStopnia, double gruboscStopnia, string typeLine = "", string fileNCName = "", string nameMacro = "", string idOBJ = "", bool addGcode = false)
         {
             await context.BeginPathAsync();
 
@@ -597,7 +611,7 @@ namespace GEORGE.Client.Pages.Schody
             await context.RectAsync(offsetX, offsetY, szerStopnia, gruboscStopnia); // #OBRYS SCHODOW
 
             // Dodanie punktów prostokąta do listy
-            AddRectanglePoints(offsetX, offsetY, szerStopnia, gruboscStopnia);
+            AddRectanglePoints(offsetX, offsetY, szerStopnia, gruboscStopnia, typeLine, fileNCName, nameMacro, idOBJ, addGcode);
 
             // Rysowanie konturu
             await context.StrokeAsync();
@@ -623,21 +637,44 @@ namespace GEORGE.Client.Pages.Schody
         {
             return Task.FromResult(Xpoints ?? new List<Point>());
         }
-        private void AddRectanglePoints(double x, double y, double width, double height, string typeLine = "")
+        private void AddRectanglePoints(double x, double y, double width, double height, string typeLine = "", string fileNCName = "", string nameMacro = "", string idOBJ = "", bool addGcode = false)
         {
             if (XLinePoint == null) return;
 
-            XLinePoint.Add(new LinePoint(x, y, x + width, y, typeLine));
-            XLinePoint.Add(new LinePoint(x + width, y, x + width, y + height, typeLine));
-            XLinePoint.Add(new LinePoint(x + width, y + height, x, y + height, typeLine));
-            XLinePoint.Add(new LinePoint(x, y + height, x, y, typeLine));
+            XLinePoint.Add(new LinePoint(x, y, x + width, y, typeLine, fileNCName, nameMacro, idOBJ, addGcode));
+            XLinePoint.Add(new LinePoint(x + width, y, x + width, y + height, typeLine, fileNCName, nameMacro, idOBJ, addGcode));
+            XLinePoint.Add(new LinePoint(x + width, y + height, x, y + height, typeLine, fileNCName, nameMacro, idOBJ, addGcode));
+            XLinePoint.Add(new LinePoint(x, y + height, x, y, typeLine, fileNCName, nameMacro, idOBJ, addGcode));
         }
 
-        private void AddLinePoints(double x1, double y1, double x2, double y2, string typeLine = "")
+        private void AddPointsStopienObrys(double x, double y, double width, double height, string typeLine = "", string fileNCName = "", string nameMacro = "", string idOBJ = "", bool addGcode = false)
         {
             if (XLinePoint == null) return;
 
-            XLinePoint.Add(new LinePoint(x1, y1, x2, y2, typeLine));
+            XLinePoint.Add(new LinePoint(x, y, x + 17, y, typeLine, fileNCName, nameMacro, idOBJ, addGcode)); //#1
+            XLinePoint.Add(new LinePoint(x + 17, y, x + 17, y - 20, typeLine, fileNCName, nameMacro, idOBJ, addGcode));//#2
+            XLinePoint.Add(new LinePoint(x + 17, y - 20, x + width - 17, y - 20, typeLine, fileNCName, nameMacro, idOBJ, addGcode));//#3
+            XLinePoint.Add(new LinePoint(x + width - 17, y - 20, x + width - 17, y, typeLine, fileNCName, nameMacro, idOBJ, addGcode));//#4
+            XLinePoint.Add(new LinePoint(x + width - 17, y, x + width, y, typeLine, fileNCName, nameMacro, idOBJ, addGcode));//#5
+            XLinePoint.Add(new LinePoint(x + width, y, x + width, y + height, typeLine, fileNCName, nameMacro, idOBJ, addGcode));//#6
+            XLinePoint.Add(new LinePoint(x + width, y + height, x + width - 17, y + height, typeLine, fileNCName, nameMacro, idOBJ, addGcode));//#7
+            XLinePoint.Add(new LinePoint(x + width - 17, y + height, x + width - 17, y + height + 20, typeLine, fileNCName, nameMacro, idOBJ, addGcode));//#8
+            XLinePoint.Add(new LinePoint(x + width - 17, y + height + 20, x + 17, y + height + 20, typeLine, fileNCName, nameMacro, idOBJ, addGcode));//#9
+            XLinePoint.Add(new LinePoint(x + 17, y + height + 20, x + 17, y + height, typeLine, fileNCName, nameMacro, idOBJ, addGcode));//#10
+            XLinePoint.Add(new LinePoint(x + 17, y + height, x, y + height, typeLine, fileNCName, nameMacro, idOBJ, addGcode));//#11
+            XLinePoint.Add(new LinePoint(x, y + height, x, y, typeLine, fileNCName, nameMacro, idOBJ, addGcode));//#12
+            //Dodanie OBRYSU FREZOWANIA ZAKONCZEN
+            nameMacro += "_F";//F - FREZOWANIE ZAKOŃCZEŃ
+            AddRectanglePoints(x + 17, y - 20, width - 2 * 17, 20, typeLine, fileNCName, nameMacro, idOBJ, addGcode);
+            AddRectanglePoints(x + 17, y + height, width - 2 * 17, 20, typeLine, fileNCName, nameMacro, idOBJ, addGcode);
+
+        }
+
+        private void AddLinePoints(double x1, double y1, double x2, double y2, string typeLine = "", string fileNCName = "", string nameMacro = "", string idOBJ = "", bool addGcode = false)
+        {
+            if (XLinePoint == null) return;
+
+            XLinePoint.Add(new LinePoint(x1, y1, x2, y2, typeLine, fileNCName, nameMacro, idOBJ, addGcode));
         }
 
         // Zmienna do śledzenia punktu poprzedniego
@@ -649,13 +686,13 @@ namespace GEORGE.Client.Pages.Schody
         double? firstY = null;
 
         // Funkcja do dodawania linii z użyciem poprzedniego punktu
-        private void AddLineWithPreviousPointAsync(double x, double y, string typeLine = "")
+        private void AddLineWithPreviousPointAsync(double x, double y, string typeLine = "", string fileNCName = "", string nameMacro = "", string idOBJ = "",bool addGcode = false)
         {
             // Sprawdzamy, czy istnieje poprzedni punkt, aby utworzyć linię
             if (previousX.HasValue && previousY.HasValue)
             {
                 // Dodajemy linię do XLinePoint od poprzedniego punktu do bieżącego
-                AddLinePoints(previousX.Value, previousY.Value, x, y, typeLine);
+                AddLinePoints(previousX.Value, previousY.Value, x, y, typeLine, fileNCName, nameMacro, idOBJ, addGcode);
             }
             else
             {
@@ -670,12 +707,12 @@ namespace GEORGE.Client.Pages.Schody
         }
 
         // Funkcja do zamknięcia ścieżki z dodaniem ostatniego segmentu do XLinePoint
-        private void ClosePathAndAddFinalLineAsync(string typeLine = "")
+        private void ClosePathAndAddFinalLineAsync(string typeLine = "", string fileNCName = "", string nameMacro = "", string idOBJ = "",  bool addGcode = false)
         {
             if (previousX.HasValue && previousY.HasValue && firstX.HasValue && firstY.HasValue)
             {
                 // Dodajemy ostatnią linię od ostatniego punktu do pierwszego
-                AddLinePoints(previousX.Value, previousY.Value, firstX.Value, firstY.Value, typeLine);
+                AddLinePoints(previousX.Value, previousY.Value, firstX.Value, firstY.Value, typeLine, fileNCName, nameMacro, idOBJ, addGcode);
 
                 ClearPathAndAddFinalLineAsync();
             }
@@ -776,16 +813,21 @@ namespace GEORGE.Client.Pages.Schody
             }
         }
 
-        public async Task SaveToDxfAndGCodeAsync(double KatObrotu)
+        public async Task SaveToDxfAndGCodeAsync()
         {
             CGCode gcodeGenerator = new CGCode(); // Tworzenie instancji klasy
 
+            double KatObrotuStopien = 90;
+            double KatObrotuWanga = -KatNachylenia;
+
+
             try
             {
-                Console.WriteLine($"Rozpoczęcie zapisu pliku DXF oraz generowania GCode. Kąt obrotu: {KatObrotu} stopni.");
+                Console.WriteLine($"Rozpoczęcie zapisu pliku DXF oraz generowania GCode. Kąty obrotu: {KatObrotuStopien} oraz {KatObrotuWanga} stopni.");
 
                 // Konwersja kąta na radiany (dla obliczeń matematycznych)
-                double katRadians = KatObrotu * (Math.PI / 180);
+                double KatObrotuStopientRadians = KatObrotuStopien * (Math.PI / 180);
+                double KatKatObrotuWanga = KatObrotuWanga * (Math.PI / 180);
 
                 // Inicjalizacja dokumentu DXF
                 var supportFolders = new SupportFolders();
@@ -800,31 +842,42 @@ namespace GEORGE.Client.Pages.Schody
                 {
                     foreach (var linePoint in XLinePoint)
                     {
-                        // Obrót punktów według podanego kąta
-                        var rotatedStart = gcodeGenerator.RotatePoint(linePoint.X1, linePoint.Y1, katRadians);
-                        var rotatedEnd = gcodeGenerator.RotatePoint(linePoint.X2, linePoint.Y2, katRadians);
-
-                        // Tworzenie obróconej linii
-                        netDxf.Entities.Line dxfLine = new netDxf.Entities.Line(
-                            new netDxf.Vector2(rotatedStart.X, rotatedStart.Y),
-                            new netDxf.Vector2(rotatedEnd.X, rotatedEnd.Y)
-                        );
-
-                        // Ustawienie typu linii
-                        if (string.Equals(linePoint.typeLine, "dashed", StringComparison.OrdinalIgnoreCase))
+                        if (linePoint.addGcode)
                         {
-                            dxfLine.Linetype = Linetype.Dashed;
-                         }
-                        else
-                        {
-                            dxfLine.Linetype = Linetype.Continuous;
+                            double katRadians = KatObrotuStopientRadians;
+
+                            if (linePoint.nameMacro.StartsWith("wanga", StringComparison.OrdinalIgnoreCase))
+                            {
+                                katRadians = KatKatObrotuWanga;
+                            }
+
+                            // Obrót punktów według podanego kąta
+                            var rotatedStart = gcodeGenerator.RotatePoint(linePoint.X1, linePoint.Y1, katRadians);
+                            var rotatedEnd = gcodeGenerator.RotatePoint(linePoint.X2, linePoint.Y2, katRadians);
+
+                            // Tworzenie obróconej linii
+                            netDxf.Entities.Line dxfLine = new netDxf.Entities.Line(
+                                new netDxf.Vector2(rotatedStart.X, rotatedStart.Y),
+                                new netDxf.Vector2(rotatedEnd.X, rotatedEnd.Y)
+                            );
+
+                            // Ustawienie typu linii
+                            if (string.Equals(linePoint.typeLine, "dashed", StringComparison.OrdinalIgnoreCase))
+                            {
+                                dxfLine.Linetype = Linetype.Dashed;
+                            }
+                            else
+                            {
+                                dxfLine.Linetype = Linetype.Continuous;
+                            }
+
+                            // Dodanie linii do dokumentu DXF
+                            dxf.Entities.Add(dxfLine);
+
+                            // Zapisanie obróconej linii do nowej listy (dla GCode)
+                            rotatedLines.Add(new LinePoint(rotatedStart.X, rotatedStart.Y, rotatedEnd.X, rotatedEnd.Y, linePoint.typeLine, linePoint.fileNCName, linePoint.nameMacro, linePoint.idOBJ, linePoint.addGcode));
                         }
 
-                        // Dodanie linii do dokumentu DXF
-                        dxf.Entities.Add(dxfLine);
-
-                        // Zapisanie obróconej linii do nowej listy (dla GCode)
-                        rotatedLines.Add(new LinePoint(rotatedStart.X, rotatedStart.Y, rotatedEnd.X, rotatedEnd.Y));
                     }
                 }
 
@@ -842,26 +895,60 @@ namespace GEORGE.Client.Pages.Schody
                     Console.WriteLine($"Rozmiar pliku DXF w bajtach: {stream.Length}");
 
                     string base64String = Convert.ToBase64String(stream.ToArray());
-                    await _jsRuntime.InvokeVoidAsync("downloadFileDXF", $"schody_proste_{Lewe}_obrot_{Math.Abs(KatObrotu)}.dxf", base64String);
+                    await _jsRuntime.InvokeVoidAsync("downloadFileDXF", $"schody_proste_{Lewe}_obrot_{Math.Abs(KatKatObrotuWanga)}.dxf", base64String);
                 }
 
                 Console.WriteLine($"Plik DXF został wygenerowany. Ilość Wektorów: {rotatedLines.Count}");
 
-                // Generowanie GCode na podstawie obróconych linii
-                string gcode = gcodeGenerator.GenerateGCode(rotatedLines);
+                await GenerateCNCFilesAsync(rotatedLines, gcodeGenerator, _jsRuntime);
 
-                // Pobranie pliku GCode
-                var gcodeBytes = System.Text.Encoding.UTF8.GetBytes(gcode);
-                string gcodeBase64 = Convert.ToBase64String(gcodeBytes);
-                await _jsRuntime.InvokeVoidAsync("downloadFileGCode", $"schody_proste_{Lewe}_obrot_{Math.Abs(KatObrotu)}.p", gcodeBase64);
-
-                Console.WriteLine($"Plik GCode został wygenerowany.");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Błąd: {ex.Message} / {ex.StackTrace}");
             }
         }
+
+        public async Task GenerateCNCFilesAsync(List<LinePoint> linePoints, CGCode gcodeGenerator, IJSRuntime jsRuntime)
+        {
+            try
+            {
+                // Grupowanie linii według fileNCName
+                var groupedLines = linePoints
+                    .Where(lp => !string.IsNullOrEmpty(lp.fileNCName)) // Ignoruj wpisy bez fileNCName
+                    .GroupBy(lp => lp.fileNCName);
+
+                Console.WriteLine($"Powstanie programów. Ilość groupedLines: {groupedLines.Count()}");
+
+                foreach (var group in groupedLines)
+                {
+                    string fileName = group.Key; // Nazwa pliku (fileNCName)
+                    var rotatedLines = group.Select(lp =>
+                    {
+                        double angleRadians = 0;/* tutaj oblicz kąt obrotu w radianach, jeśli jest wymagany */;
+
+
+                        var rotatedStart = gcodeGenerator.RotatePoint(lp.X1, lp.Y1, angleRadians);
+                        var rotatedEnd = gcodeGenerator.RotatePoint(lp.X2, lp.Y2, angleRadians);
+                        return new LinePoint(rotatedStart.X, rotatedStart.Y, rotatedEnd.X, rotatedEnd.Y, lp.typeLine, lp.fileNCName, lp.nameMacro, lp.idOBJ, lp.addGcode);
+                    }).ToList();
+
+                    // Generowanie G-Code dla aktualnej grupy
+                    string gcode = gcodeGenerator.GenerateGCode(rotatedLines);
+
+                    // Konwersja do Base64
+                    string gcodeBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(gcode));
+
+                    // Pobranie pliku
+                    await jsRuntime.InvokeVoidAsync("downloadFileGCode", $"{fileName}.p", gcodeBase64);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Błąd podczas generowania plików CNC: {ex.Message}");
+            }
+        }
+
 
 
         public async Task SaveToStlAsync()

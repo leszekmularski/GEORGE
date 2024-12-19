@@ -413,13 +413,17 @@
     {
         if (shapes == null) return;
 
+        await UpdateShapes(true); //- true to mam być domyślne skala 1:1
+
         foreach (var shape in shapes)
         {
             if (shape is CSchodyPL schody)
             {
-                await schody.SaveToDxfAndGCodeAsync(-KatNachylenia);
+                await schody.SaveToDxfAndGCodeAsync();
             }
         }
+
+        await UpdateShapes();
     }
 
     private async Task UpdateShapes(bool skala1do1 = false)
@@ -457,6 +461,7 @@
         }
         else
         {
+
             if (boolLewe)
             {
                 shapes = new List<Shape>
@@ -478,8 +483,6 @@
 
             await DrawShapes();
             await Task.Delay(10);
-
-            await JSRuntime.InvokeVoidAsync("clearConsole");
 
             await DrawShapes();
 
@@ -510,6 +513,8 @@
         await UstWartDomyslne();
 
         StateHasChanged();
+
+        if (JSRuntime != null) await JSRuntime.InvokeVoidAsync("clearConsole");
     }
 
     private async Task SaveToLocalStorage()
