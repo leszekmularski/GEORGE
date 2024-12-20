@@ -166,7 +166,8 @@ namespace GEORGE.Client.Pages.Schody
             }
             else if (line.nameMacro == "WANGA_OBRYS")
             {
-                gcodeBuilder.AppendLine($"G0 G40 X{(line.X1).ToString("F2", CultureInfo.InvariantCulture)} Y{(line.Y1 + 50).ToString("F2", CultureInfo.InvariantCulture)} Z50.");
+                gcodeBuilder.AppendLine($"G0 G40 Z50.");
+                gcodeBuilder.AppendLine($"X{(line.X1).ToString("F2", CultureInfo.InvariantCulture)} Y{(line.Y1 + 50).ToString("F2", CultureInfo.InvariantCulture)}");
                 gcodeBuilder.AppendLine($"G1 G42 X{line.X1.ToString("F2", CultureInfo.InvariantCulture)} Y{line.Y1.ToString("F2", CultureInfo.InvariantCulture)} {zPoziom} F2500");
                 gcodeBuilder.AppendLine($"X{line.X2.ToString("F2", CultureInfo.InvariantCulture)} Y{line.Y2.ToString("F2", CultureInfo.InvariantCulture)} F6000;{line.idOBJ}");
             }
@@ -186,7 +187,8 @@ namespace GEORGE.Client.Pages.Schody
             }
             else
             {
-                gcodeBuilder.AppendLine($"G0 G40 X{line.X1.ToString("F2", CultureInfo.InvariantCulture)} Y{line.Y1.ToString("F2", CultureInfo.InvariantCulture)} Z50.");
+                gcodeBuilder.AppendLine($"G0 G40 Z50.");
+                gcodeBuilder.AppendLine($"G0 G40 X{line.X1.ToString("F2", CultureInfo.InvariantCulture)} Y{line.Y1.ToString("F2", CultureInfo.InvariantCulture)}");
                 gcodeBuilder.AppendLine($"G1 {zPoziom} F1500");
                 gcodeBuilder.AppendLine($"X{line.X2.ToString("F2", CultureInfo.InvariantCulture)} Y{line.Y2.ToString("F2", CultureInfo.InvariantCulture)} ;NaN{line.idOBJ}");
             }
