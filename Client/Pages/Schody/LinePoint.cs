@@ -6,22 +6,58 @@
         public double Y1 { get; set; }
         public double X2 { get; set; }
         public double Y2 { get; set; }
-        public string typeLine { get; set; }
-        public bool addGcode { get; set; }
-        public string fileNCName { get; set; }
-        public string nameMacro { get; set; }
-        public string idOBJ { get; set; }
 
-        public LinePoint(double x1, double y1, double x2, double y2, string typeLine = "", string fileNCName = "", string nameMacro = "", string idOBJ = "", bool addGcode = false)
+        private string _typeLine = string.Empty;
+        public string typeLine
+        {
+            get => _typeLine;
+            set => _typeLine = value ?? string.Empty;
+        }
+
+        private string _fileNCName = string.Empty;
+        public string fileNCName
+        {
+            get => _fileNCName;
+            set => _fileNCName = value ?? string.Empty;
+        }
+
+        private string _nameMacro = string.Empty;
+        public string nameMacro
+        {
+            get => _nameMacro;
+            set => _nameMacro = value ?? string.Empty;
+        }
+
+        private string _idOBJ = string.Empty;
+        public string idOBJ
+        {
+            get => _idOBJ;
+            set => _idOBJ = value ?? string.Empty;
+        }
+
+        private string[] _zRobocze = Array.Empty<string>();
+        public string[] zRobocze
+        {
+            get => _zRobocze;
+            set => _zRobocze = value ?? Array.Empty<string>();
+        }
+        public double idRuchNarzWObj { get; set; }
+
+        public bool addGcode { get; set; }
+
+        public LinePoint(double x1, double y1, double x2, double y2, string? typeLine = null, string? fileNCName = null,
+                         string? nameMacro = null, string? idOBJ = null, string[]? zRobocze = null, double idRuchNarzWObj = 0, bool addGcode = false)
         {
             X1 = x1;
             Y1 = y1;
             X2 = x2;
             Y2 = y2;
-            this.typeLine = typeLine;
-            this.fileNCName = fileNCName;
-            this.nameMacro = nameMacro;
-            this.idOBJ = idOBJ;
+            this.typeLine = typeLine ?? string.Empty;
+            this.fileNCName = fileNCName ?? string.Empty;
+            this.nameMacro = nameMacro ?? string.Empty;
+            this.idOBJ = idOBJ ?? string.Empty;
+            this.zRobocze = zRobocze ?? Array.Empty<string>();
+            this.idRuchNarzWObj = idRuchNarzWObj;
             this.addGcode = addGcode;
         }
     }
