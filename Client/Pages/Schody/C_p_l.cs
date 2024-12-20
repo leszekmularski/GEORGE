@@ -408,8 +408,7 @@ namespace GEORGE.Client.Pages.Schody
 
             double liniaDolStart = (GlebokoscStopnia + liniaDol) * Math.Tan(katNachylenia * (Math.PI / 180));
 
-            Console.WriteLine($"wartoscXOstatniegoSopopniaGornego: {wartoscXOstatniegoSopopniaGornego} - pobrana");
-
+          //  Console.WriteLine($"wartoscXOstatniegoSopopniaGornego: {wartoscXOstatniegoSopopniaGornego} - pobrana");
 
             string zRob = "Z21,Z2,";//Kolejne kroki frezowania 
 
@@ -419,7 +418,7 @@ namespace GEORGE.Client.Pages.Schody
 
             double odsadzStopniaSuma = (OsadzenieOdDolu * Skala) / Math.Cos(KatNachylenia * (Math.PI / 180));
 
-            Console.WriteLine($"odsadzStopniaSuma: {odsadzStopniaSuma} + wartXGornegoStopnia {wartXGornegoStopnia} = {wartXGornegoStopnia + odsadzStopniaSuma}");
+            //Console.WriteLine($"odsadzStopniaSuma: {odsadzStopniaSuma} + wartXGornegoStopnia {wartXGornegoStopnia} = {wartXGornegoStopnia + odsadzStopniaSuma}");
 
             wartXGornegoStopnia = wartXGornegoStopnia - odsadzStopniaSuma;
 
@@ -440,11 +439,11 @@ namespace GEORGE.Client.Pages.Schody
             double leftBottomY = startY;
 
             await context.MoveToAsync(leftBottomX, leftBottomY); // ---------------------------------------------------------------------------- ????????????????????????????
-            AddLineWithPreviousPointAsync(leftBottomX, leftBottomY, "", "W_L", "WANGA_OBRYS","1", zRob.Split(','), 4, true); // Dodanie linii z lewego do prawego dolnego rogu
+            AddLineWithPreviousPointAsync(leftBottomX, leftBottomY, "", "W_L", "WANGA_OBRYS","1", zRob.Split(','), 5, true); // Dodanie linii z lewego do prawego dolnego rogu
 
             // Linia pozioma (lewy dolny do prawy dolny)
             await context.LineToAsync(startX, startY);
-            AddLineWithPreviousPointAsync(startX, startY, "", "W_L", "WANGA_OBRYS", "1", zRob.Split(','), 5, true); // Dodanie linii pionowej
+            AddLineWithPreviousPointAsync(startX, startY, "", "W_L", "WANGA_OBRYS", "1", zRob.Split(','), 6, true); // Dodanie linii pionowej
 
 
             // Linia pionowa (prawy dolny do prawego górnego)
@@ -456,7 +455,7 @@ namespace GEORGE.Client.Pages.Schody
             double rightBottomY = startY - ((WysokoscPodniesieniaStopnia - startYlP1) * Skala); //??????????????????????????????????????????????????????????????????????????????????????????????????
 
             await context.LineToAsync(rightBottomX, rightBottomY);
-            AddLineWithPreviousPointAsync(rightBottomX, rightBottomY, "", "W_L", "WANGA_OBRYS", "1", zRob.Split(','), 6, true); // Dodanie linii skośnej
+            AddLineWithPreviousPointAsync(rightBottomX, rightBottomY, "", "W_L", "WANGA_OBRYS", "1", zRob.Split(','), 7, true); // Dodanie linii skośnej
 
 
             double liniaXGora = (GlebokoscStopnia + liniaDol) * Math.Tan(katNachylenia * (Math.PI / 180));
@@ -475,7 +474,7 @@ namespace GEORGE.Client.Pages.Schody
 
             // Rysowanie skośnej linii do prawego górnego rogu ostatniego stopnia
             await context.LineToAsync(rightBottomX - xSzukaLiniaSkosnaGora * Skala, rightUpperY); //Linia równoległa do osi schodów w odległości ~20mm od krawędzi stopnia
-            AddLineWithPreviousPointAsync(rightBottomX - xSzukaLiniaSkosnaGora * Skala, rightUpperY, "", "W_L", "WANGA_OBRYS", "1", zRob.Split(','), 7, true); // Dodanie skośnej linii
+            AddLineWithPreviousPointAsync(rightBottomX - xSzukaLiniaSkosnaGora * Skala, rightUpperY, "", "W_L", "WANGA_OBRYS", "1", zRob.Split(','), 8, true); // Dodanie skośnej linii
 
             double endYFinal = YStartStopienGorny + ((WysokoscPodniesieniaStopnia + GruboscStopnia) * Skala);// rightUpperY + Math.Sqrt(Math.Pow(przeciwProstokatna, 2) - Math.Pow((WysokoscPodniesieniaStopnia * Skala) * Math.Cos(katNachylenia * (Math.PI / 180)), 2));
 
@@ -498,7 +497,7 @@ namespace GEORGE.Client.Pages.Schody
             double hookX3 = X;
             double hookY3 = hookY2;
             await context.LineToAsync(hookX1, hookY1);
-            AddLineWithPreviousPointAsync(hookX1, hookY1, "", "W_L", "WANGA_OBRYS", "1", zRob.Split(','), 8, true); // Dodanie linii zaczepu
+            AddLineWithPreviousPointAsync(hookX1, hookY1, "", "W_L", "WANGA_OBRYS", "1", zRob.Split(','), 9, true); // Dodanie linii zaczepu
             await context.LineToAsync(hookX2, hookY2);
             AddLineWithPreviousPointAsync(hookX2, hookY2, "", "W_L", "WANGA_OBRYS", "1", zRob.Split(','), 0, true); // Dodanie pionowej linii zaczepu
 
@@ -521,7 +520,7 @@ namespace GEORGE.Client.Pages.Schody
             // Zamknięcie ścieżki
             await context.ClosePathAsync();
 
-            ClosePathAndAddFinalLineAsync("", "W_L", "WANGA_OBRYS", "1", zRob.Split(','), 2, true);
+            ClosePathAndAddFinalLineAsync("", "W_L", "WANGA_OBRYS", "1", zRob.Split(','), 4, true);
 
             await context.StrokeAsync();
 

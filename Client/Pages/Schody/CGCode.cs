@@ -92,12 +92,12 @@ namespace GEORGE.Client.Pages.Schody
                 .GroupBy(lp => lp.nameMacro);                    // Grupowanie według `nameMacro`
 
 
-            Console.WriteLine($"------------------------------------------------------------");
-            foreach (var line in linesX)
-            {
-                Console.WriteLine($"X2: {line.X2} Y2: {line.Y2}  line.nameMacro: {line.nameMacro} line.idOBJ:{line.idOBJ} line.zRobocze: {line.zRobocze[0]} line.zRobocze.Count: {line.zRobocze.Count()}");
-            }
-            Console.WriteLine($"------------------------------------------------------------");
+            //Console.WriteLine($"------------------------------------------------------------");
+            //foreach (var line in linesX)
+            //{
+            //    Console.WriteLine($"X2: {line.X2} Y2: {line.Y2}  line.nameMacro: {line.nameMacro} line.idOBJ:{line.idOBJ} line.zRobocze: {line.zRobocze[0]} line.zRobocze.Count: {line.zRobocze.Count()}");
+            //}
+            //Console.WriteLine($"------------------------------------------------------------");
 
             // Iteracja przez grupy
             foreach (var group in groupedLines)
