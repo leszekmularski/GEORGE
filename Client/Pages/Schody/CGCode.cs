@@ -196,12 +196,16 @@ namespace GEORGE.Client.Pages.Schody
             return gcodeBuilder;
         }
 
-
         public (double X, double Y) RotatePoint(double x, double y, double angleRadians)
         {
             double rotatedX = x * Math.Cos(angleRadians) - y * Math.Sin(angleRadians);
             double rotatedY = x * Math.Sin(angleRadians) + y * Math.Cos(angleRadians);
             return (rotatedX, rotatedY);
+        }
+
+        public (double X, double Y) MirrorPointHorizontally(double x, double y, double shiftY)
+        {
+            return (x, -y + shiftY);
         }
 
         public List<LinePoint> ShiftLinesToOrigin(List<LinePoint> lines)

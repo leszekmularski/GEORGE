@@ -788,7 +788,7 @@ namespace GEORGE.Client.Pages.Schody
 
             double KatObrotuStopien = 90;
             double KatObrotuWanga = -KatNachylenia;
-
+            double przesuniecieYOdbicia = 900; // wartość przesunięcia w osi Y dla lustrzanego odbicia
 
             try
             {
@@ -844,10 +844,31 @@ namespace GEORGE.Client.Pages.Schody
                             dxf.Entities.Add(dxfLine);
 
                             // Zapisanie obróconej linii do nowej listy (dla GCode)
-                            rotatedLines.Add(new LinePoint(rotatedStart.X, rotatedStart.Y, rotatedEnd.X, rotatedEnd.Y, linePoint.typeLine, linePoint.fileNCName, linePoint.nameMacro, linePoint.idOBJ, 
+                            rotatedLines.Add(new LinePoint(rotatedStart.X, rotatedStart.Y, rotatedEnd.X, rotatedEnd.Y, linePoint.typeLine, linePoint.fileNCName, linePoint.nameMacro, linePoint.idOBJ,
                                 linePoint.zRobocze, linePoint.idRuchNarzWObj, linePoint.addGcode));
-                        }
 
+                            // Sprawdzenie warunku dla linii z "wanga" i tworzenie odbicia lustrzanego
+                            if (linePoint.nameMacro.StartsWith("wanga", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var mirroredStart = gcodeGenerator.MirrorPointHorizontally(rotatedStart.X, rotatedStart.Y, przesuniecieYOdbicia);
+                                var mirroredEnd = gcodeGenerator.MirrorPointHorizontally(rotatedEnd.X, rotatedEnd.Y, przesuniecieYOdbicia);
+
+                                // Tworzenie linii odbicia lustrzanego
+                                netDxf.Entities.Line mirroredLine = new netDxf.Entities.Line(
+                                    new netDxf.Vector2(mirroredStart.X, mirroredStart.Y),
+                                    new netDxf.Vector2(mirroredEnd.X, mirroredEnd.Y)
+                                );
+
+                                mirroredLine.Linetype = dxfLine.Linetype;
+
+                                // Dodanie odbicia lustrzanego do dokumentu DXF
+                                dxf.Entities.Add(mirroredLine);
+
+                                // Zapisanie odbitej linii do listy (dla GCode)
+                                rotatedLines.Add(new LinePoint(mirroredStart.X, mirroredStart.Y, mirroredEnd.X, mirroredEnd.Y, linePoint.typeLine, "M_" + linePoint.fileNCName, linePoint.nameMacro, linePoint.idOBJ,
+                                    linePoint.zRobocze, linePoint.idRuchNarzWObj, linePoint.addGcode));
+                            }
+                        }
                     }
                 }
 
@@ -856,6 +877,7 @@ namespace GEORGE.Client.Pages.Schody
 
                 // Ustawienia stylu DXF i dopasowanie widoku
                 UpdateDimensionStyleTextHeightAndFitView(dxf, "Standard", 35, "arial.ttf");
+
                 Console.WriteLine($"Ustawienie stylu DXF zakończone.");
 
                 // Zapis pliku DXF
