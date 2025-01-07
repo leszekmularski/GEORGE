@@ -22,7 +22,7 @@ namespace GEORGE.Shared.Models
         public string? NazwaProduktu { get; set; }
         public string? Opis { get; set; } = "";
         public string? Kolor { get; set; } = "";
-        public float IloscSztuk { get; set; } = 0;
+        public double IloscSztuk { get; set; } = 0;
         public string? Uwagi { get; set; } = "";
         public DateTime DataZamowienia{ get; set; } = DateTime.MinValue;
         public DateTime DataRealizacji { get; set; } = DateTime.MinValue;
