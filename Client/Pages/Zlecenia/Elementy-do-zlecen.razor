@@ -916,7 +916,6 @@
                 if (element != null)
                 {
                     element.ElemetZamDoZlecen.DataZamowienia = DateTime.Now;
-                    element.ElemetZamDoZlecen.KtoZapisal = "Zmienił status zamówienia: " + user;
                     oryginalElementyDoZlecen = elementyDoZlecen.DeepCopyList();
                     await _message.Success("Zmieniono status");
                     StateHasChanged();

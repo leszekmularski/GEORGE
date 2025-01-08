@@ -147,7 +147,7 @@ else
 
         <Table TItem="ZleceniaProdukcyjneWew" DataSource="@zleceniaProdukcyjneWew"
                RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "zlecenieNaN" )"
-               ScrollX="1950" PageSize="@iloscRekordow" Size="TableSize.Small">
+               ScrollX="1990" PageSize="@iloscRekordow" Size="TableSize.Small">
                 <ActionColumn Title="Materiały" Width="155">
                     <a @onclick="() => DodajKantowke(context)" class="custom-link">Kantówka</a>
                     <a @onclick="() => DodajSzybe(context)" class="custom-linkszy">Szyby</a>
@@ -176,7 +176,7 @@ else
                 <Column Title="Data Gotowości" TData="DateTime" DataIndex="DataGotowosci" Style="font-weight:bold" Format="yyyy-MM-dd" Sortable />
                 <Column Title="Klient" Width="195" @bind-Field="@context.Klient" Style="font-weight:bold" Sortable OnFilter="(a, b) => a == b" Filterable />
                 <Column Title="Nazwa Produktu" @bind-Field="@context.NazwaProduktu" Sortable Filterable/>
-                <Column Title="Adres" @bind-Field="@context.Adres" Sortable OnFilter="(a, b) => a == b" Filterable />
+                <Column Title="Adres" Width="135" @bind-Field="@context.Adres" Sortable OnFilter="(a, b) => a == b" Filterable />
                 <Column Title="Miejscowość" @bind-Field="@context.Miejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable />
                 <Column Title="Telefon" @bind-Field="@context.Telefon" Sortable />
                 <Column Title="CWZ" @bind-Field="@context.JednostkiNaZlecenie" Style="width:30px" Sortable />
