@@ -667,7 +667,8 @@ else
                 new TypZamowienia {Value = "Zlec.Pomiarów", Name = "Zlec.Pomiarów", Role = "Oferta"},
                 new TypZamowienia {Value = "Zlecenie", Name = "Zlecenie", Role = "Zamówienie"},
                 new TypZamowienia {Value = "Dok.Powykonawczy", Name = "Dok.Powykonawczy", Role = "Zamówienie"},
-                new TypZamowienia {Value = "Zakończono", Name = "Zakończono", Role = "Zamówienie"}
+                new TypZamowienia {Value = "Zakończono", Name = "Zakończono", Role = "Zamówienie"},
+                new TypZamowienia {Value = "Reklamacja", Name = "Reklamacja", Role = "Zamówienie"},
             };
 
             zleceniaProdukcyjne = await Http.GetFromJsonAsync<List<ZleceniaProdukcyjne>>("api/ZleceniaProdukcyjne");
