@@ -40,14 +40,14 @@
 
         return { width: width, height: height }; // Zwróć wartości jako liczby całkowite
         }
-        
+
         function downloadFileGCode(fileName, contentBase64) {
-            const element = document.createElement("a");
-            element.setAttribute("href", "data:application/octet-stream;base64," + contentBase64);
-            element.setAttribute("download", fileName);
-            document.body.appendChild(element);
-            element.click();
-            document.body.removeChild(element);
+        const element = document.createElement("a");
+        element.setAttribute("href", "data:application/octet-stream;base64," + contentBase64);
+        element.setAttribute("download", fileName);
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
         }
 
     </script>
@@ -149,7 +149,7 @@
     <button @onclick="Resetuj">Reset</button>
     <button @onclick="SaveToLocalStorage">Ustaw jako domyślne</button>
     <button @onclick="()=> GerujCNCCode()">Generuj program CNC</button>
-    
+
 
     <div style="display: flex; gap: 25px;">
         <!-- Results -->
@@ -430,6 +430,8 @@
     {
         if (shapes != null) shapes.Clear();
         // Zainicjalizuj listę kształtów
+
+        if (string.IsNullOrEmpty(TypSchodow)) TypSchodow = "???";
 
         var skalaRys = (double)SkalaWyswietlania / 100;
 

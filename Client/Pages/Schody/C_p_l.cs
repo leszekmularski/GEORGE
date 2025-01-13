@@ -343,6 +343,78 @@ namespace GEORGE.Client.Pages.Schody
                 AddLineWithPreviousPointAsync(X + (DlugoscNaWejsciu - DlugoscOtworu) * Skala + stepWidth, SzerokoscSchodow * Skala / 2);
                 await context.StrokeAsync();  // Zakończ rysowa
                 ClearPathAndAddFinalLineAsync();
+
+                //--------------------------------------------------- Rysowanie schodów widok z boku ------------------------------------------------------------------------------------------------------------------------------
+
+                string zRob = "Z21,Z2,";
+
+                currentX = X + ((DlugoscOtworu - 2 * GlebokoscStopnia) * Skala) + ((DlugoscNaWejsciu - DlugoscOtworu) * Skala) + stepWidth; // Początkowa pozycja X
+
+                currentY = (SzerokoscOtworu + ((LiczbaPodniesienStopni + 1) * WysokoscPodniesieniaStopnia)) * Skala + 25; //25 stały margines
+
+                // Zapisz początkowe wartości do obliczenia rozmiaru obwiedni
+                double startX = currentX;
+                double startY = currentY;
+                zRob = "Z19.8,";
+
+                string iSort = ""; //Sposób sortowanie frezowań
+
+                for (int i = 0; i < LiczbaPodniesienStopni; i++)
+                {
+                    await context.BeginPathAsync();
+
+                    iSort += "1";
+
+                    if (i == LiczbaPodniesienStopni - 1)
+                    {
+                        // Ustaw kolor linii na niebieski
+                        await context.SetStrokeStyleAsync("blue");
+                        // Ustaw grubość linii (na przykład na 3 piksele)
+                        await context.SetLineWidthAsync(3);
+
+                        await context.SetLineDashAsync(new float[] { 5, 5 }); // Ustaw przerywaną linię
+                        await DrawShapeStopinRysBok(context, currentX - (ZachodzenieStopniZaSiebie + WydluzOstatniStopien) * Skala, currentY, stepWidth + (ZachodzenieStopniZaSiebie + WydluzOstatniStopien) * Skala, gruboscStopnia);
+                        await DrawShapeStopinRysBok(context, currentX - (ZachodzenieStopniZaSiebie + WydluzOstatniStopien - 17) * Skala, currentY + 13 * Skala, stepWidth + (ZachodzenieStopniZaSiebie + WydluzOstatniStopien - 17 * 2) * Skala,
+                            gruboscStopnia - 13 * Skala, "dashed", "W_L", "WANGA_KIESZEN", iSort, zRob.Split(','), i, true);
+                        await context.StrokeAsync();
+                        await context.SetStrokeStyleAsync("black");
+                        await context.SetLineWidthAsync(1);
+                        await context.SetLineDashAsync(new float[] { });
+
+                        // Console.WriteLine($"-------> currentX:{currentX} X: {X}");
+
+                        //   currentX -= stepWidthTMP;
+                        currentY -= WysokoscPodniesieniaStopnia * Skala;
+                    }
+                    else
+                    {
+                        // Ustaw kolor linii na niebieski
+                        await context.SetStrokeStyleAsync("blue");
+                        // Ustaw grubość linii (na przykład na 3 piksele)
+                        await context.SetLineWidthAsync(3);
+
+                        await context.SetLineDashAsync(new float[] { 5, 5 }); // Ustaw przerywaną linię
+                        await DrawShapeStopinRysBok(context, currentX - ZachodzenieStopniZaSiebie * Skala, currentY, stepWidth + ZachodzenieStopniZaSiebie * Skala, gruboscStopnia);
+                        await DrawShapeStopinRysBok(context, currentX - ((ZachodzenieStopniZaSiebie - 17) * Skala), currentY + 13 * Skala, stepWidth + ((ZachodzenieStopniZaSiebie - 17 * 2) * Skala),
+                            gruboscStopnia - 13 * Skala, "dashed", "W_L", "WANGA_KIESZEN", iSort, zRob.Split(','), i, true);
+                        await context.StrokeAsync();
+                        await context.SetStrokeStyleAsync("black");
+                        await context.SetLineWidthAsync(1);
+                        await context.SetLineDashAsync(new float[] { });
+
+                        currentX -= stepWidthTMP;
+                        currentY -= WysokoscPodniesieniaStopnia * Skala;
+                    }
+
+                }
+
+                ClosePathAndAddFinalLineAsync();
+
+                await DrawObrysZKatem(context, startX + stepWidth, startY + WysokoscPodniesieniaStopnia * Skala, currentY, DlugoscLiniiBiegu * Skala,
+                    ((LiczbaPodniesienStopni + 1) * WysokoscPodniesieniaStopnia) * Skala, 90 + KatNachylenia, stepWidth + GlebokoscStopnia * Skala, currentX - ZachodzenieStopniZaSiebie * Skala - X);
+
+
+                //Rysowanie schodów widok z boku KONIEC --------------------------------------------------------------------------------------------------------------------------
             }
 
             await context.SetFontAsync("16px Arial");
