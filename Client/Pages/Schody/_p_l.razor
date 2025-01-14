@@ -415,11 +415,18 @@
 
         await UpdateShapes(true); //- true to mam być domyślne skala 1:1
 
+        string kiedunekSCH = "l";
+
+        if (TypSchodow != null && TypSchodow.Trim().EndsWith("prawo"))
+        {
+            kiedunekSCH = "p";
+        }
+
         foreach (var shape in shapes)
         {
             if (shape is CSchodyPL schody)
             {
-                await schody.SaveToDxfAndGCodeAsync();
+                await schody.SaveToDxfAndGCodeAsync(kiedunekSCH);
             }
         }
 
