@@ -45,8 +45,18 @@
 
         public bool addGcode { get; set; }
 
+        public int IloscSztuk { get; set; }
+
+        private string _nazwaProgramu = string.Empty;
+        public string NazwaProgramu
+        {
+            get => _nazwaProgramu;
+            set => _nazwaProgramu = value ?? string.Empty;
+        }
+
         public LinePoint(double x1, double y1, double x2, double y2, string? typeLine = null, string? fileNCName = null,
-                         string? nameMacro = null, string? idOBJ = null, string[]? zRobocze = null, double idRuchNarzWObj = 0, bool addGcode = false)
+                         string? nameMacro = null, string? idOBJ = null, string[]? zRobocze = null, double idRuchNarzWObj = 0, 
+                         bool addGcode = false, int iloscSztuk = 0, string nazwaProgramu = "")
         {
             X1 = x1;
             Y1 = y1;
@@ -59,6 +69,8 @@
             this.zRobocze = zRobocze ?? Array.Empty<string>();
             this.idRuchNarzWObj = idRuchNarzWObj;
             this.addGcode = addGcode;
+            IloscSztuk = iloscSztuk;
+            this.NazwaProgramu = nazwaProgramu ?? string.Empty;
         }
     }
 }

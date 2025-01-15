@@ -3,6 +3,7 @@
 @inject Utilities.ILocalStorage LocalStorage
 @using System.Text.Json
 @inject IMessageService _message
+@inject HttpClient Http
 
 <!DOCTYPE html>
 <html>
@@ -19,7 +20,6 @@
     <app>Czekaj na załadowanie danych...</app> <!-- Upewnij się, że to jest jedyny komponent w tym elemencie -->
 
     <script>
-
         function clearConsole() {
         console.clear();
         }
@@ -29,7 +29,7 @@
         const maxHeight = Math.floor(window.innerHeight * 0.8); // Użyj Math.floor dla wartości całkowitych
 
         // Sprawdź wartości i ustaw domyślnie na 1000, jeśli są równe 0
-        const calculatedWidth = DlugoscNaWejsciu || 1400; // Zmieniono 0 na 1000
+        const calculatedWidth = DlugoscNaWejsciu || 1400; // Zmieniono 0 na 1400
         const calculatedHeight = (WysokoscCalkowita + SzerokoscSchodow) || 1000; // Zmieniono 0 na 1000
 
         // Użyj Math.floor, aby zapewnić, że wartości są całkowite
@@ -41,6 +41,15 @@
         return { width: width, height: height }; // Zwróć wartości jako liczby całkowite
         }
 
+        function downloadFile(fileName, mimeType, contentBase64) {
+        const element = document.createElement("a");
+        element.setAttribute("href", `data:${mimeType};base64,${contentBase64}`);
+        element.setAttribute("download", fileName);
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+        }
+
         function downloadFileGCode(fileName, contentBase64) {
         const element = document.createElement("a");
         element.setAttribute("href", "data:application/octet-stream;base64," + contentBase64);
@@ -49,15 +58,15 @@
         element.click();
         document.body.removeChild(element);
         }
-
     </script>
+
     @*     <script src="_framework/blazor.webassembly.js"></script> *@
 
     <h3>Obliczenia Schodów typu: @TypSchodow</h3>
 
 
     <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
-    <Divider></Divider>
+    <Divider> Podaj nazwę programu CNC: <input style="font-weight: bold; color: forestgreen; width: 8ch;" type="text" @bind="NazwaProgramuCNC" /></Divider>
     <Collapse Animation>
         <Panel Header="Parametry wykonania schodów" Key="1">
 
@@ -240,6 +249,8 @@
     private double PrzestrzenSwobodnaNadGlowa { get; set; } = 1000;
 
     private double SkalaWyswietlania { get; set; } = 25;
+
+    private string NazwaProgramuCNC { get; set; } = "";
 
     private BECanvasComponent? canvasReferenceKPL;
     private Canvas2DContext? contextKPL;
@@ -426,7 +437,7 @@
         {
             if (shape is CSchodyPL schody)
             {
-                await schody.SaveToDxfAndGCodeAsync(kiedunekSCH);
+                await schody.SaveToDxfAndGCodeAsync(kiedunekSCH, Http);
             }
         }
 
@@ -452,7 +463,7 @@
                 {
                     new CSchodyPL(JSRuntime, 50, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
                     WydluzOstatniStopien, ZachodzenieStopniZaSiebie, OsadzenieOdGory, OsadzenieOdDolu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
-                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'l')
+                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'l', NazwaProgramuCNC)
                 };
             }
             else
@@ -461,7 +472,7 @@
                 {
                     new CSchodyPL(JSRuntime,  50, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
                     WydluzOstatniStopien, ZachodzenieStopniZaSiebie, OsadzenieOdGory, OsadzenieOdDolu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
-                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'p')
+                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'p', NazwaProgramuCNC)
                 };
             }
 
@@ -477,7 +488,7 @@
                 {
                     new CSchodyPL(JSRuntime,  50, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
                     WydluzOstatniStopien, ZachodzenieStopniZaSiebie, OsadzenieOdGory, OsadzenieOdDolu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
-                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'l')
+                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'l', NazwaProgramuCNC)
                 };
             }
             else
@@ -486,7 +497,7 @@
                 {
                     new CSchodyPL(JSRuntime,  50, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
                     WydluzOstatniStopien, ZachodzenieStopniZaSiebie, OsadzenieOdGory, OsadzenieOdDolu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
-                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'p')
+                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'p', NazwaProgramuCNC)
                 };
             }
 

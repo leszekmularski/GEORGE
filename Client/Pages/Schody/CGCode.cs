@@ -37,7 +37,9 @@ namespace GEORGE.Client.Pages.Schody
                             line.idOBJ + zValue.TrimStart('Z').Replace(".",""),
                             new[] { zValue }, // Zastąp `zRobocze` pojedynczą wartością
                             line.idRuchNarzWObj,
-                            line.addGcode
+                            line.addGcode,
+                            line.IloscSztuk,
+                            line.NazwaProgramu
                             ));
                         }
                     }
@@ -58,8 +60,8 @@ namespace GEORGE.Client.Pages.Schody
             // Nagłówek programu
             if (lines.Count > 0)
             {
-                gcodeBuilder.AppendLine($"%_N_{lines[0].fileNCName}_MPF");
-                gcodeBuilder.AppendLine($";$PATH=/_N_WKS_DIR/{lines[0].fileNCName}_WPD");
+                gcodeBuilder.AppendLine($"%_N_{lines[0].NazwaProgramu + "_" + lines[0].fileNCName}_MPF");
+                gcodeBuilder.AppendLine($";$PATH=/_N_WKS_DIR/{lines[0].NazwaProgramu + "_" + lines[0].fileNCName}_WPD");
             }
             else
             {
@@ -135,7 +137,6 @@ namespace GEORGE.Client.Pages.Schody
                         }
 
                     }
-
 
                 }
 
@@ -231,7 +232,9 @@ namespace GEORGE.Client.Pages.Schody
                 idOBJ: line.idOBJ,
                 zRobocze: line.zRobocze,
                 idRuchNarzWObj: line.idRuchNarzWObj,
-                addGcode: line.addGcode
+                addGcode: line.addGcode,
+                iloscSztuk: line.IloscSztuk,
+                nazwaProgramu: line.NazwaProgramu
             )).ToList();
 
             Console.WriteLine($"Przesunięcie o wartość minX: {minX} minY: {minY}");
