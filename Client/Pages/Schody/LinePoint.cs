@@ -54,9 +54,16 @@
             set => _nazwaProgramu = value ?? string.Empty;
         }
 
+        private string _nazwaElementu = string.Empty;
+        public string NazwaElementu
+        {
+            get => _nazwaElementu;
+            set => _nazwaElementu = value ?? string.Empty;
+        }
+
         public LinePoint(double x1, double y1, double x2, double y2, string? typeLine = null, string? fileNCName = null,
                          string? nameMacro = null, string? idOBJ = null, string[]? zRobocze = null, double idRuchNarzWObj = 0, 
-                         bool addGcode = false, int iloscSztuk = 0, string nazwaProgramu = "")
+                         bool addGcode = false, int iloscSztuk = 0, string nazwaProgramu = "", string nazwaElementu = "")
         {
             X1 = x1;
             Y1 = y1;
@@ -71,6 +78,7 @@
             this.addGcode = addGcode;
             IloscSztuk = iloscSztuk;
             this.NazwaProgramu = nazwaProgramu ?? string.Empty;
+            this.NazwaElementu = nazwaElementu ?? string.Empty;
         }
     }
 }
