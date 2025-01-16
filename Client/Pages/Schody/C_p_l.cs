@@ -1,31 +1,28 @@
-﻿using Blazor.Extensions.Canvas.Canvas2D;
-using netDxf;
-using netDxf.Entities;
-using Microsoft.JSInterop;
-using netDxf.Tables;
-using netDxf.Units;
-using Aspose.ThreeD;
+﻿using Aspose.ThreeD;
 using Aspose.ThreeD.Entities;
 using Aspose.ThreeD.Shading;
+using Blazor.Extensions.Canvas.Canvas2D;
 using GEORGE.Client.Pages.Drzwi;
-using System.Numerics;
-using netDxf.Blocks;
-using netDxf.Collections;
-using GTE = netDxf.GTE;
-using netDxf.Header;
-using netDxf.Objects;
-using iText.Kernel.Colors;
-using iText.Kernel.Pdf.Canvas.Draw;
-using iText.Kernel.Pdf;
-using iText.Layout.Element;
-using iText.Layout;
-using iText.Layout.Properties;
-using iText.Layout.Borders;
-using System.IO;
-using iText.Kernel.Exceptions;
+using iText.Commons.Datastructures;
 using iText.IO.Font;
+using iText.IO.Image;
+using iText.Kernel.Colors;
+using iText.Kernel.Exceptions;
 using iText.Kernel.Font;
-using System.Net.Http;
+using iText.Kernel.Geom;
+using iText.Kernel.Pdf;
+using iText.Kernel.Pdf.Canvas;
+using iText.Kernel.Pdf.Canvas.Draw;
+using iText.Layout;
+using iText.Layout.Element;
+using iText.Layout.Properties;
+using Microsoft.JSInterop;
+using netDxf;
+using netDxf.Collections;
+using netDxf.Entities;
+using netDxf.Header;
+using netDxf.Tables;
+using netDxf.Units;
 
 namespace GEORGE.Client.Pages.Schody
 {
@@ -193,7 +190,7 @@ namespace GEORGE.Client.Pages.Schody
 
                         if (i == LiczbaPodniesienStopni - 3 || LiczbaPodniesienStopni == 2)//Ten warunek służy wyłączmie tylko do wygenerowaniu 1 programu.
                         {
-                            AddPointsStopienObrys(currentX - ZachodzenieStopniZaSiebie * Skala, currentY, stepWidth + ZachodzenieStopniZaSiebie * Skala, stepHeight, "dashed", "S_D", "STOPIEN_W2", 
+                            AddPointsStopienObrys(currentX - ZachodzenieStopniZaSiebie * Skala, currentY, stepWidth + ZachodzenieStopniZaSiebie * Skala, stepHeight, "dashed", "S_D", "STOPIEN_W2",
                                 "FO" + i.ToString(), zRob.Split(','), i, true, "Z27.1,", (int)(LiczbaPodniesienStopni - 1), NazwaProgramuCNC, "Pozostałe stopnie");
                         }
                         else
@@ -366,7 +363,7 @@ namespace GEORGE.Client.Pages.Schody
 
                         if (i == LiczbaPodniesienStopni - 3 || LiczbaPodniesienStopni == 2)//Ten warunek służy wyłączmie tylko do wygenerowaniu 1 programu.
                         {
-                            AddPointsStopienObrys(currentX - ZachodzenieStopniZaSiebie * Skala, currentY, stepWidth + ZachodzenieStopniZaSiebie * Skala, stepHeight, "dashed", "S_D", "STOPIEN_W2", "FO" + i.ToString(), 
+                            AddPointsStopienObrys(currentX - ZachodzenieStopniZaSiebie * Skala, currentY, stepWidth + ZachodzenieStopniZaSiebie * Skala, stepHeight, "dashed", "S_D", "STOPIEN_W2", "FO" + i.ToString(),
                                 zRob.Split(','), i, true, "Z27.1,", (int)(LiczbaPodniesienStopni - 1), NazwaProgramuCNC, "Pozostałe stopnie");
                         }
                         else
@@ -815,7 +812,7 @@ namespace GEORGE.Client.Pages.Schody
 
             await context.LineToAsync(hookX3, endYFinalTMP);
             AddLineWithPreviousPointAsync(hookX3, endYFinalTMP, "", "W_L", "WANGA_OBRYS", "1", zRob.Split(','), 2, true, 1, NazwaProgramuCNC); // Dodanie końcowej pionowej linii z uwględnieniem odsunięcia
-                                                                                                                          // Console.WriteLine($"wartXGornegoStopnia: {wartXGornegoStopnia}"); 
+                                                                                                                                               // Console.WriteLine($"wartXGornegoStopnia: {wartXGornegoStopnia}"); 
             double xRownolegle = ((WysokoscCalkowita - (WysokoscPodniesieniaStopnia + GruboscStopnia - wartXGornegoStopnia / Skala)) * Math.Tan((90 - KatNachylenia) * (Math.PI / 180))) * Skala;
 
             await context.LineToAsync(X + DlugoscLiniiBiegu * Skala - xRownolegle, leftBottomY);
@@ -905,7 +902,7 @@ namespace GEORGE.Client.Pages.Schody
         {
             return Task.FromResult(Xpoints ?? new List<Point>());
         }
-        private void AddRectanglePoints(double x, double y, double width, double height, string typeLine = "", string fileNCName = "", string nameMacro = "", string idOBJ = "", string[]? zRobocze = null, double idRuchNarzWObj = 0, 
+        private void AddRectanglePoints(double x, double y, double width, double height, string typeLine = "", string fileNCName = "", string nameMacro = "", string idOBJ = "", string[]? zRobocze = null, double idRuchNarzWObj = 0,
             bool addGcode = false, int iloscSztuk = 0, string nazwaProgramy = "", string nazwaElementu = "")
         {
             if (XLinePoint == null) return;
@@ -943,7 +940,7 @@ namespace GEORGE.Client.Pages.Schody
 
         }
 
-        private void AddLinePoints(double x1, double y1, double x2, double y2, string typeLine = "", string fileNCName = "", string nameMacro = "", string idOBJ = "", string[]? zRobocze = null, double idRuchNarzWObj = 0, 
+        private void AddLinePoints(double x1, double y1, double x2, double y2, string typeLine = "", string fileNCName = "", string nameMacro = "", string idOBJ = "", string[]? zRobocze = null, double idRuchNarzWObj = 0,
             bool addGcode = false, int iloscSztuk = 0, string nazwaProgramy = "", string nazwaElementu = "")
         {
             if (XLinePoint == null) return;
@@ -960,7 +957,7 @@ namespace GEORGE.Client.Pages.Schody
         double? firstY = null;
 
         // Funkcja do dodawania linii z użyciem poprzedniego punktu
-        private void AddLineWithPreviousPointAsync(double x, double y, string typeLine = "", string fileNCName = "", string nameMacro = "", string idOBJ = "", string[]? zRobocze = null, double idRuchNarzWObj = 0, 
+        private void AddLineWithPreviousPointAsync(double x, double y, string typeLine = "", string fileNCName = "", string nameMacro = "", string idOBJ = "", string[]? zRobocze = null, double idRuchNarzWObj = 0,
             bool addGcode = false, int iloscSztuk = 0, string nazwaProgramy = "", string nazwaElementu = "")
         {
             // Sprawdzamy, czy istnieje poprzedni punkt, aby utworzyć linię
@@ -982,7 +979,7 @@ namespace GEORGE.Client.Pages.Schody
         }
 
         // Funkcja do zamknięcia ścieżki z dodaniem ostatniego segmentu do XLinePoint
-        private void ClosePathAndAddFinalLineAsync(string typeLine = "", string fileNCName = "", string nameMacro = "", string idOBJ = "", string[]? zRobocze = null, double idRuchNarzWObj = 0, 
+        private void ClosePathAndAddFinalLineAsync(string typeLine = "", string fileNCName = "", string nameMacro = "", string idOBJ = "", string[]? zRobocze = null, double idRuchNarzWObj = 0,
             bool addGcode = false, int iloscSztuk = 0, string nazwaProgramy = "", string nazwaElementu = "")
         {
             if (previousX.HasValue && previousY.HasValue && firstX.HasValue && firstY.HasValue)
@@ -1214,7 +1211,7 @@ namespace GEORGE.Client.Pages.Schody
                 Console.WriteLine($"Błąd: {ex.Message} / {ex.StackTrace}");
             }
         }
-             
+
         private async Task<PdfFont> LoadFontAsync(HttpClient httpClient)
         {
             // Ścieżka do czcionki w `wwwroot/fonts`
@@ -1324,7 +1321,7 @@ namespace GEORGE.Client.Pages.Schody
                             .Select(x => x.NazwaElementu)
                             .FirstOrDefault() ?? string.Empty;
 
-                            AddGroupToDocument(document, group, group.Max(lp => lp.IloscSztuk), NazwaProgramuCNC, NazwaElementu, pdfFont);
+                            AddGroupToDocument(document, group, group.Max(lp => lp.IloscSztuk), NazwaProgramuCNC, NazwaElementu, pdfFont, linePoints);
                         }
 
                         document.Close();
@@ -1345,7 +1342,7 @@ namespace GEORGE.Client.Pages.Schody
             }
         }
 
-        private async void AddGroupToDocument(Document document, IGrouping<string, LinePoint> group, int countEL, string programCNCName, string nazwaElementu ,PdfFont pdfFont)
+        private async void AddGroupToDocument(Document document, IGrouping<string, LinePoint> group, int countEL, string programCNCName, string nazwaElementu, PdfFont pdfFont, List<LinePoint> linePoints)
         {
             string fileName = group.Key;
 
@@ -1386,12 +1383,71 @@ namespace GEORGE.Client.Pages.Schody
             // Dodanie tabeli do dokumentu
             document.Add(table);
 
+            // Rysowanie obrazka na podstawie danych
+            DrawLinesOnPdf(document, linePoints, pdfFont);
+
             // Dodanie separatora między sekcjami
             document.Add(new LineSeparator(new SolidLine()).SetMarginTop(10).SetMarginBottom(10));
             Console.WriteLine($"Tabela wymiarów dodana dla grupy: {fileName}");
 
-            await Task.CompletedTask; 
+            await Task.CompletedTask;
         }
+
+        private void DrawLinesOnPdf(Document document, List<LinePoint> linePoints, PdfFont pdfFont)
+        {
+            // Pobieranie rozmiaru strony z uwzględnieniem marginesów
+            var pageSize = PageSize.A4;
+            double margin = 50; // Marginesy
+
+            double availableWidth = pageSize.GetWidth() - 2 * margin;
+            double availableHeight = pageSize.GetHeight() - 2 * margin;
+
+            // Obliczanie zakresów współrzędnych w danych
+            double minX = linePoints.Min(line => Math.Min(line.X1, line.X2));
+            double minY = linePoints.Min(line => Math.Min(line.Y1, line.Y2));
+            double maxX = linePoints.Max(line => Math.Max(line.X1, line.X2));
+            double maxY = linePoints.Max(line => Math.Max(line.Y1, line.Y2));
+
+            double rangeX = maxX - minX;
+            double rangeY = maxY - minY;
+
+            // Obliczanie skali, aby dopasować rysunek do strony
+            double scaleX = availableWidth / rangeX;
+            double scaleY = availableHeight / rangeY;
+            double scale = Math.Min(scaleX, scaleY); // Zachowanie proporcji
+
+            // Przesunięcie, aby umieścić rysunek w centrum dostępnego obszaru
+            double offsetX = margin - minX * scale;
+            double offsetY = margin - minY * scale;
+
+            // Tworzenie nowej strony i dodanie jej do dokumentu
+            var pdfCanvas = new PdfCanvas(document.GetPdfDocument().AddNewPage(pageSize));
+
+            // Ustawienia rysowania
+            var canvas = new Canvas(pdfCanvas, pageSize);
+            pdfCanvas.SetLineWidth(1f);
+            pdfCanvas.SetStrokeColor(ColorConstants.BLACK);
+
+            // Rysowanie linii
+            foreach (var line in linePoints)
+            {
+                double x1 = offsetX + line.X1 * scale;
+                double y1 = offsetY + line.Y1 * scale;
+                double x2 = offsetX + line.X2 * scale;
+                double y2 = offsetY + line.Y2 * scale;
+
+                pdfCanvas.MoveTo((float)x1, (float)y1);
+                pdfCanvas.LineTo((float)x2, (float)y2);
+            }
+
+            // Zakończenie rysowania
+            pdfCanvas.Stroke();
+
+            // Dodanie opisu
+            canvas.Add(new Paragraph("Podgląd linii:").SetFont(pdfFont).SetFontSize(12).SetBold().SetMarginBottom(10));
+            canvas.Close();
+        }
+
 
         public async Task SaveToStlAsync()
         {
@@ -1431,7 +1487,7 @@ namespace GEORGE.Client.Pages.Schody
             }
 
             // Ścieżka do pliku wyjściowego
-            var filePath = Path.Combine(Path.GetTempPath(), $"schody_proste_{Lewe}.stl");
+            var filePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"schody_proste_{Lewe}.stl");
 
             // Zapis sceny do pliku STL
             scene.Save(filePath, FileFormat.STLBinary);

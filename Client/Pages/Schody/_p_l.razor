@@ -58,7 +58,15 @@
         element.click();
         document.body.removeChild(element);
         }
+
+        function captureCanvas(canvasId) {
+            var canvas = document.getElementById(canvasId);
+            return canvas.toDataURL("image/png").replace("data:image/png;base64,", "");
+        }
+
     </script>
+
+
 
     @*     <script src="_framework/blazor.webassembly.js"></script> *@
 
