@@ -2,19 +2,16 @@
 using Aspose.ThreeD.Entities;
 using Aspose.ThreeD.Shading;
 using Blazor.Extensions.Canvas.Canvas2D;
-using GEORGE.Client.Pages.Drzwi;
-using iText.Commons.Datastructures;
 using iText.IO.Font;
-using iText.IO.Image;
 using iText.Kernel.Colors;
 using iText.Kernel.Exceptions;
 using iText.Kernel.Font;
-using iText.Kernel.Geom;
 using iText.Kernel.Pdf;
 using iText.Kernel.Pdf.Canvas;
 using iText.Kernel.Pdf.Canvas.Draw;
 using iText.Layout;
 using iText.Layout.Element;
+using iText.Layout.Layout;
 using iText.Layout.Properties;
 using Microsoft.JSInterop;
 using netDxf;
@@ -23,6 +20,8 @@ using netDxf.Entities;
 using netDxf.Header;
 using netDxf.Tables;
 using netDxf.Units;
+using Org.BouncyCastle.Asn1.Pkcs;
+using iText.Kernel.Geom;
 
 namespace GEORGE.Client.Pages.Schody
 {
@@ -1274,9 +1273,14 @@ namespace GEORGE.Client.Pages.Schody
                 Console.WriteLine($"Błąd podczas generowania plików CNC: {ex.Message}");
             }
         }
+
+        private double currentYPosition = 0; // Początkowa pozycja generowania rysunków
+
         public async Task GeneratePDFReportAsync(List<LinePoint> linePoints, IJSRuntime jsRuntime, HttpClient httpClient)
         {
-            Console.WriteLine("Rozpoczynam generowania raportu PDF.");
+            currentYPosition = 750; // Ustaw początkową pozycję poniżej nagłówka
+
+            Console.WriteLine($"Rozpoczynam generowania raportu PDF. [currentYPosition: {currentYPosition}]");
 
             try
             {
@@ -1312,23 +1316,29 @@ namespace GEORGE.Client.Pages.Schody
                         var groupedLines = linePoints
                             .Where(lp => !string.IsNullOrEmpty(lp.fileNCName)) // Ignoruj elementy bez fileNCName
                             .GroupBy(lp => lp.fileNCName);
-
+                        int idObj = 0;
                         foreach (var group in groupedLines)
                         {
                             string NazwaProgramuCNC = $"{group.First().NazwaProgramu}_{group.First().fileNCName}";
-                            string NazwaElementu = group
-                            .Where(x => !string.IsNullOrEmpty(x.NazwaElementu))
-                            .Select(x => x.NazwaElementu)
-                            .FirstOrDefault() ?? string.Empty;
 
-                            AddGroupToDocument(document, group, group.Max(lp => lp.IloscSztuk), NazwaProgramuCNC, NazwaElementu, pdfFont, linePoints);
+                            string onlyFileName = group
+                                .Where(x => !string.IsNullOrEmpty(x.fileNCName))
+                                .Select(x => x.fileNCName)
+                                .FirstOrDefault() ?? string.Empty;
+
+                            string NazwaElementu = group
+                                .Where(x => !string.IsNullOrEmpty(x.NazwaElementu))
+                                .Select(x => x.NazwaElementu)
+                                .FirstOrDefault() ?? string.Empty;
+
+                            AddGroupToDocument(document, group, group.Max(lp => lp.IloscSztuk), NazwaProgramuCNC, NazwaElementu, pdfFont, linePoints, onlyFileName, idObj++);
                         }
 
                         document.Close();
                     }
 
                     string pdfBase64 = Convert.ToBase64String(stream.ToArray());
-                    await jsRuntime.InvokeVoidAsync("downloadFile", $"Raport_{NazwaProgramuCNC}_CNC.pdf", "application/pdf", pdfBase64);
+                    await jsRuntime.InvokeVoidAsync("downloadFile", $"Raport_CNC.pdf", "application/pdf", pdfBase64);
                     Console.WriteLine("Plik PDF został wygenerowany i przesłany do przeglądarki.");
                 }
             }
@@ -1342,17 +1352,20 @@ namespace GEORGE.Client.Pages.Schody
             }
         }
 
-        private async void AddGroupToDocument(Document document, IGrouping<string, LinePoint> group, int countEL, string programCNCName, string nazwaElementu, PdfFont pdfFont, List<LinePoint> linePoints)
+        private int intDrwHeight = 0;
+        private async void AddGroupToDocument(Document document, IGrouping<string, LinePoint> group, int countEL, string programCNCName, string nazwaElementu, PdfFont pdfFont, List<LinePoint> linePoints, 
+            string onlyFileName, int idObj)
         {
             string fileName = group.Key;
 
+            document.Add(new Paragraph("").SetMarginTop(intDrwHeight)); // Odstęp przed tabelą
             // Dodanie nagłówka sekcji
             document.Add(new Paragraph($"Nazwa Programu: {programCNCName}")
                 .SetFont(pdfFont)
                 .SetBold()
                 .SetFontSize(14)
                 .SetMarginTop(10));
-            Console.WriteLine($"Dodano sekcję dla grupy: {programCNCName}");
+            Console.WriteLine($"1. ----------> Dodano sekcję dla grupy: {programCNCName} intDrwHeight: {intDrwHeight} / currentYPosition: {currentYPosition}");
 
             // Tabela wymiarów z równymi szerokościami kolumn
             var table = new Table(UnitValue.CreatePercentArray(5)).UseAllAvailableWidth();
@@ -1374,80 +1387,141 @@ namespace GEORGE.Client.Pages.Schody
             double gabY = Math.Ceiling(maxY - minY); // Szerokość
 
             // Dodanie danych do tabeli
-            table.AddCell(new Cell().Add(new Paragraph(nazwaElementu.ToString()).SetFont(pdfFont)));  // Nazwa elementu
+            table.AddCell(new Cell().Add(new Paragraph(nazwaElementu).SetFont(pdfFont)));  // Nazwa elementu
             table.AddCell(new Cell().Add(new Paragraph(gabX.ToString("F0")).SetFont(pdfFont))); // Długość
             table.AddCell(new Cell().Add(new Paragraph(gabY.ToString("F0")).SetFont(pdfFont))); // Szerokość
-            table.AddCell(new Cell().Add(new Paragraph(40.ToString("F0")).SetFont(pdfFont)));   // Grubość (przykładowa wartość do analizy)
+            table.AddCell(new Cell().Add(new Paragraph("40").SetFont(pdfFont)));   // Grubość (przykładowa wartość)
             table.AddCell(new Cell().Add(new Paragraph(countEL.ToString()).SetFont(pdfFont)));  // Ilość sztuk
 
             // Dodanie tabeli do dokumentu
+
             document.Add(table);
+          
+            // Rysowanie schodów dla grupy na tej samej stronie
+            var drawingHeight = DrawLinesForGroup(document, group.ToList(), pdfFont, onlyFileName, idObj);
+            intDrwHeight = (int)drawingHeight;
+            // Dodanie odstępu poniżej rysunku
+          //  currentYPosition -= 20; // Dodatkowy odstęp
 
-            // Rysowanie obrazka na podstawie danych
-            DrawLinesOnPdf(document, linePoints, pdfFont);
-
-            // Dodanie separatora między sekcjami
-            document.Add(new LineSeparator(new SolidLine()).SetMarginTop(10).SetMarginBottom(10));
             Console.WriteLine($"Tabela wymiarów dodana dla grupy: {fileName}");
 
             await Task.CompletedTask;
         }
-
-        private void DrawLinesOnPdf(Document document, List<LinePoint> linePoints, PdfFont pdfFont)
+        private double DrawLinesForGroup(Document document, List<LinePoint> linePoints, PdfFont pdfFont, string fileCNCName, int idObj)
         {
-            // Pobieranie rozmiaru strony z uwzględnieniem marginesów
-            var pageSize = PageSize.A4;
-            double margin = 50; // Marginesy
+            var pdfDocument = document.GetPdfDocument();
+            var currentPage = pdfDocument.GetLastPage();
+            var pageSize = currentPage.GetPageSize();
 
+            // Filtrowanie linii spełniających warunek
+            var filteredLines = linePoints.Where(line => line.fileNCName == fileCNCName).ToList();
+
+            if (!filteredLines.Any())
+            {
+                Console.WriteLine($"Brak linii do rysowania dla fileCNCName: {fileCNCName}");
+                return 0;
+            }
+
+            // Przesunięcie linii do początku układu współrzędnych
+            CGCode cgCodeInstance = new CGCode();
+            var shiftedLines = cgCodeInstance.ShiftLinesToOrigin(filteredLines);
+
+            double margin = 150; // Marginesy
             double availableWidth = pageSize.GetWidth() - 2 * margin;
-            double availableHeight = pageSize.GetHeight() - 2 * margin;
+            double availableHeight = currentYPosition - margin; // Dostępna przestrzeń (uwzględnia marginesy i odstęp pod rysunkiem)
+
+            if (availableHeight <= 0)
+            {
+                Console.WriteLine("Brak miejsca na stronie. Rysunek zostanie pominięty.");
+                return 0;
+            }
 
             // Obliczanie zakresów współrzędnych w danych
-            double minX = linePoints.Min(line => Math.Min(line.X1, line.X2));
-            double minY = linePoints.Min(line => Math.Min(line.Y1, line.Y2));
-            double maxX = linePoints.Max(line => Math.Max(line.X1, line.X2));
-            double maxY = linePoints.Max(line => Math.Max(line.Y1, line.Y2));
+            double minX = shiftedLines.Min(line => Math.Min(line.X1, line.X2));
+            double minY = shiftedLines.Min(line => Math.Min(line.Y1, line.Y2));
+            double maxX = shiftedLines.Max(line => Math.Max(line.X1, line.X2));
+            double maxY = shiftedLines.Max(line => Math.Max(line.Y1, line.Y2));
 
             double rangeX = maxX - minX;
             double rangeY = maxY - minY;
 
-            // Obliczanie skali, aby dopasować rysunek do strony
+            if (rangeX == 0 || rangeY == 0)
+            {
+                Console.WriteLine($"Nieprawidłowy zakres współrzędnych dla programu: {fileCNCName}");
+                return 0;
+            }
+
+            // Obliczanie skali, aby dopasować rysunek do dostępnego obszaru
             double scaleX = availableWidth / rangeX;
             double scaleY = availableHeight / rangeY;
-            double scale = Math.Min(scaleX, scaleY); // Zachowanie proporcji
+            double scale = Math.Min(scaleX, scaleY);
 
-            // Przesunięcie, aby umieścić rysunek w centrum dostępnego obszaru
+            intDrwHeight = (int)(rangeY * scale);
+
+              Console.WriteLine($"2. -----> intDrwHeight: {intDrwHeight} / xcurrentYPosition: {currentYPosition} idObj: {idObj}");
+            // Przesunięcie rysunku w układzie współrzędnych
             double offsetX = margin - minX * scale;
-            double offsetY = margin - minY * scale;
 
-            // Tworzenie nowej strony i dodanie jej do dokumentu
-            var pdfCanvas = new PdfCanvas(document.GetPdfDocument().AddNewPage(pageSize));
+            double offsetY = 0;// currentYPosition - rangeY * scale - 60;// - intDrwHeight; // Dodano przesunięcie o przesunRysunek jednostek pomiędzy rysunkami
 
-            // Ustawienia rysowania
-            var canvas = new Canvas(pdfCanvas, pageSize);
+            if (idObj == 0)
+            {
+                offsetY = currentYPosition - 5 - rangeY * scale - 60;// - intDrwHeight; // Dodano przesunięcie o przesunRysunek jednostek pomiędzy rysunkami
+            }
+            else if (idObj == 1) 
+            {
+                offsetY = currentYPosition - 100 - rangeY * scale - 60;// - intDrwHeight; // Dodano przesunięcie o przesunRysunek jednostek pomiędzy rysunkami
+            }
+            else if (idObj == 2)
+            {
+                offsetY = currentYPosition - 180 - rangeY * scale - 60;// - intDrwHeight; // Dodano przesunięcie o przesunRysunek jednostek pomiędzy rysunkami
+            }
+            else if (idObj == 3)
+            {
+                offsetY = currentYPosition - 280 - rangeY * scale - 60;// - intDrwHeight; // Dodano przesunięcie o przesunRysunek jednostek pomiędzy rysunkami
+            }
+            else if (idObj == 4)
+            {
+                offsetY = currentYPosition - 370 - rangeY * scale - 60;// - intDrwHeight; // Dodano przesunięcie o przesunRysunek jednostek pomiędzy rysunkami
+            }
+
+            // Ustawienia rysowania na istniejącej stronie
+            var pdfCanvas = new PdfCanvas(currentPage);
             pdfCanvas.SetLineWidth(1f);
             pdfCanvas.SetStrokeColor(ColorConstants.BLACK);
 
             // Rysowanie linii
-            foreach (var line in linePoints)
+            foreach (var line in shiftedLines)
             {
                 double x1 = offsetX + line.X1 * scale;
                 double y1 = offsetY + line.Y1 * scale;
-                double x2 = offsetX + line.X2 * scale;
+                double x2 = offsetX  + line.X2 * scale;
                 double y2 = offsetY + line.Y2 * scale;
 
                 pdfCanvas.MoveTo((float)x1, (float)y1);
                 pdfCanvas.LineTo((float)x2, (float)y2);
             }
 
-            // Zakończenie rysowania
             pdfCanvas.Stroke();
 
-            // Dodanie opisu
-            canvas.Add(new Paragraph("Podgląd linii:").SetFont(pdfFont).SetFontSize(12).SetBold().SetMarginBottom(10));
+            // Dodanie opisu rysunku poniżej
+            var canvas = new Canvas(pdfCanvas, pageSize);
+            canvas.SetFont(pdfFont);
+            canvas.Add(new Paragraph($"Obiekt: {fileCNCName}")
+                .SetFont(pdfFont)
+                .SetFontSize(10)
+                .SetBold()
+                .SetFixedPosition((float)margin, (float)(offsetY - 20), (float)(pageSize.GetWidth() - 2 * margin)));
             canvas.Close();
-        }
 
+            // Obliczenie wysokości rysunku i opisu
+            double totalHeight = rangeY * scale + 30; // Wysokość rysunku + odstęp + przesunięcie
+
+            // Aktualizacja pozycji Y dla kolejnego rysunku
+            currentYPosition -= totalHeight;
+            Console.WriteLine($"currentYPosition: {currentYPosition}");
+            return totalHeight;
+        }
 
         public async Task SaveToStlAsync()
         {
