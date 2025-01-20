@@ -56,14 +56,50 @@
 
 <!-- Results -->
 <h4>Wyniki:</h4>
+<label>Uwaga! SCHODY Z PODESTEM <br>Głębokość stopnia (przeunięcie) liczona jest na WYJŚCIU. Na WEJŚCIU dodawane są wyliczone stopnie</label>
 <div>
-    <p>Długość Linii Biegu: @DlugoscLiniiBiegu</p>
-    <p>Kąt Nachylenia: @KatNachylenia</p>
-    <p>Szerokość Schodów: @SzerokoscSchodow</p>
-    <p>Wysokość Podniesienia Stopnia: @WysokoscPodniesieniaStopnia</p>
-    <p>Głębokość Stopnia: @GlebokoscStopnia</p>
-    <p>Przeciętna Długość Kroku: @PrzecietnaDlugoscKroku</p>
-    <p>Przestrzeń Swobodna nad Głową: @PrzestrzenSwobodnaNadGlowa</p>
+    <div>
+        <p style="margin: 0;">Długość Linii Biegu: @DlugoscLiniiBiegu</p>
+    </div>
+
+    <div>
+        <p style="margin: 0;">Kąt Nachylenia: @Math.Round(KatNachylenia, 3)</p>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 25px;">
+        <p style="margin: 0;">Szerokość Schodów: @SzerokoscSchodow</p>
+        <Tooltip Placement="Placement.TopLeft" Title="Szerokość schodów">
+            <span style="margin: 0; color:@(SzerokoscSchodow >= 800 ? "green" : "red");">>= 800 mm</span>
+        </Tooltip>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 25px;">
+        <p style="margin: 0;">Wysokość Podniesienia Stopnia: @WysokoscPodniesieniaStopnia</p>
+        <span style="margin: 0; color:@(WysokoscPodniesieniaStopnia < 140 || WysokoscPodniesieniaStopnia > 200 ? "red" : "green");">
+            140 - 200 mm
+        </span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 25px;">
+        <p style="margin: 0; color: darkblue; font-style: oblique; font-weight: bold;">Głębokość Stopnia: @(Math.Round(GlebokoscStopnia, 2)) </p>
+        <span style="margin: 0; color:@(GlebokoscStopnia < 220 || GlebokoscStopnia > 350 ? "red" : "green");">
+            220 - 350 mm
+        </span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 25px;">
+        <p style="margin: 0;">Przeciętna Długość Kroku: @PrzecietnaDlugoscKroku</p>
+        <span style="margin: 0; color:@(PrzecietnaDlugoscKroku < 600 || PrzecietnaDlugoscKroku > 650 ? "red" : "green");">
+            600 - 650 mm
+        </span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 25px;">
+        <p style="margin: 0;">Przestrzeń Swobodna nad Głową: @PrzestrzenSwobodnaNadGlowa</p>
+        <span style="margin: 0; color:@(PrzestrzenSwobodnaNadGlowa >= 2000 ? "green" : "red");">
+            > 2000 mm
+        </span>
+    </div>
 </div>
 
 @code {
@@ -103,33 +139,33 @@
     {
         // Walidacja tak jak w JS
         if (DlugoscOtworu < SzerokoscBieguSchodow) DlugoscOtworu = SzerokoscBieguSchodow;
-        if (DlugoscOtworu >= 3000) DlugoscOtworu = 2999;
+        if (DlugoscOtworu >= 30000) DlugoscOtworu = 29999;
         if (SzerokoscOtworu < SzerokoscBieguSchodow) SzerokoscOtworu = SzerokoscBieguSchodow;
-        if (SzerokoscOtworu >= 3000) SzerokoscOtworu = 2999;
+        if (SzerokoscOtworu >= 30000) SzerokoscOtworu = 29999;
         if (DlugoscNaWejsciu < SzerokoscBieguSchodow) DlugoscNaWejsciu = SzerokoscBieguSchodow;
-        if (DlugoscNaWejsciu >= 4000) DlugoscNaWejsciu = 3999;
+        if (DlugoscNaWejsciu >= 40000) DlugoscNaWejsciu = 39999;
         if (WysokoscDoStropu > WysokoscCalkowita) WysokoscDoStropu = WysokoscCalkowita;
-        if (WysokoscDoStropu >= 600) WysokoscDoStropu = 599;
+        if (WysokoscDoStropu >= 6000) WysokoscDoStropu = 5999;
         if (WysokoscCalkowita < WysokoscDoStropu) WysokoscCalkowita = WysokoscDoStropu;
-        if (WysokoscCalkowita >= 700) WysokoscCalkowita = 699;
+        if (WysokoscCalkowita >= 7000) WysokoscCalkowita = 6999;
         if (LiczbaPodniesienStopni <= 2) LiczbaPodniesienStopni = 3;
         if (LiczbaPodniesienStopni >= 30) LiczbaPodniesienStopni = 29;
         if (SzerokoscOstatniegoStopnia < 0) SzerokoscOstatniegoStopnia = 0;
         if (SzerokoscOstatniegoStopnia > (SzerokoscOtworu - SzerokoscBieguSchodow)) SzerokoscOstatniegoStopnia = SzerokoscOtworu - SzerokoscBieguSchodow;
-        if (SzerokoscBieguSchodow <= 40) SzerokoscBieguSchodow = 40;
-        if (PodestDlugosc < 60) PodestDlugosc = 60;
-        if (PodestDlugosc > (DlugoscOtworu - SzerokoscOstatniegoStopnia - 21)) PodestDlugosc = DlugoscOtworu - SzerokoscOstatniegoStopnia - 21;
-        if (PodestSzerokosc < 60) PodestSzerokosc = 60;
+        if (SzerokoscBieguSchodow <= 400) SzerokoscBieguSchodow = 400;
+        if (PodestDlugosc < 600) PodestDlugosc = 600;
+        if (PodestDlugosc > (DlugoscOtworu - SzerokoscOstatniegoStopnia - 210)) PodestDlugosc = DlugoscOtworu - SzerokoscOstatniegoStopnia - 210;
+        if (PodestSzerokosc < 600) PodestSzerokosc = 600;
         if (PodestDlugosc > SzerokoscOtworu) PodestSzerokosc = SzerokoscOtworu;
         if (PodestJakoStopienNr < 0) PodestJakoStopienNr = 1;
         if (PodestJakoStopienNr > (LiczbaPodniesienStopni - 1)) PodestJakoStopienNr = LiczbaPodniesienStopni - 1;
 
         // Obliczenia
-        GlebokoscStopnia = Math.Round((SzerokoscOtworu - SzerokoscOstatniegoStopnia - PodestSzerokosc + 4) / (LiczbaPodniesienStopni - PodestJakoStopienNr - 1), 2);
+        GlebokoscStopnia = Math.Round((SzerokoscOtworu - SzerokoscOstatniegoStopnia - PodestSzerokosc + 40) / (LiczbaPodniesienStopni - PodestJakoStopienNr - 1), 2);
         WysokoscPodniesieniaStopnia = Math.Round(WysokoscCalkowita / LiczbaPodniesienStopni, 2);
         KatNachylenia = Math.Round(Math.Atan(WysokoscPodniesieniaStopnia / GlebokoscStopnia) * 180 / Math.PI, 2);
         DlugoscNaWejsciu = Math.Round(PodestSzerokosc + GlebokoscStopnia * (PodestJakoStopienNr - 1), 2);
-        DlugoscLiniiBiegu = Math.Round(GlebokoscStopnia * (LiczbaPodniesienStopni - 2) + PodestSzerokosc + DlugoscOtworu - SzerokoscBieguSchodow - 25.8, 2);
+        DlugoscLiniiBiegu = Math.Round(GlebokoscStopnia * (LiczbaPodniesienStopni - 2) + PodestSzerokosc + DlugoscOtworu - SzerokoscBieguSchodow - 258, 2);
         PrzestrzenSwobodnaNadGlowa = Math.Round(WysokoscDoStropu - WysokoscPodniesieniaStopnia - ((PodestSzerokosc + GlebokoscStopnia * (PodestJakoStopienNr - 1)) - SzerokoscOtworu) * Math.Tan(KatNachylenia * Math.PI / 180), 2);
         SzerokoscSchodow = Math.Round(SzerokoscBieguSchodow, 2);
         PrzecietnaDlugoscKroku = Math.Round(2 * WysokoscPodniesieniaStopnia + GlebokoscStopnia, 2);
@@ -139,16 +175,16 @@
     private void Resetuj()
     {
         // Resetowanie wartości
-        DlugoscOtworu = 250;
-        SzerokoscOtworu = 270;
-        DlugoscNaWejsciu = 244;
-        WysokoscDoStropu = 250;
-        WysokoscCalkowita = 285;
+        DlugoscOtworu = 2500;
+        SzerokoscOtworu = 2700;
+        DlugoscNaWejsciu = 2405.8;
+        WysokoscDoStropu = 2500;
+        WysokoscCalkowita = 2850;
         LiczbaPodniesienStopni = 15;
-        SzerokoscOstatniegoStopnia = 10;
-        SzerokoscBieguSchodow = 95;
-        PodestDlugosc = 250;
-        PodestSzerokosc = 100;
+        SzerokoscOstatniegoStopnia = 100;
+        SzerokoscBieguSchodow = 950;
+        PodestDlugosc = 2500;
+        PodestSzerokosc = 1000;
         PodestJakoStopienNr = 7;
 
         // Reset wyników

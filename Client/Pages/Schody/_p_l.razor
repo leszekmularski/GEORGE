@@ -172,12 +172,15 @@
         <!-- Results -->
         <div style="min-width: 240px;">
             <h4>Wyniki:</h4>
+
             <div>
                 <p style="margin: 0;">Długość Linii Biegu: @DlugoscLiniiBiegu</p>
             </div>
+
             <div>
                 <p style="margin: 0;">Kąt Nachylenia: @Math.Round(KatNachylenia, 3)</p>
             </div>
+
             <div style="display: flex; align-items: center; gap: 25px;">
                 <p style="margin: 0;">Szerokość Schodów: @SzerokoscSchodow</p>
                 <Tooltip Placement="Placement.TopLeft" Title="Szerokość schodów">
@@ -205,6 +208,7 @@
                     600 - 650 mm
                 </span>
             </div>
+
             <div style="display: flex; align-items: center; gap: 25px;">
                 <p style="margin: 0;">Przestrzeń Swobodna nad Głową: @PrzestrzenSwobodnaNadGlowa</p>
                 <span style="margin: 0; color:@(PrzestrzenSwobodnaNadGlowa >= 2000 ? "green" : "red");">
