@@ -72,7 +72,6 @@
 
     <h3>Obliczenia Schodów typu: @TypSchodow</h3>
 
-
     <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
     <Divider> Podaj nazwę programu CNC: <input style="font-weight: bold; color: forestgreen; width: 8ch;" type="text" @bind="NazwaProgramuCNC" /></Divider>
     <Collapse Animation>
@@ -407,7 +406,7 @@
                 {
                     if (shape is CSchodyPL schody)
                     {
-                        await schody.SaveToDxfAsync();
+                        await schody.SaveToDxfAsync("schody_proste");
                     }
                 }
 
@@ -418,7 +417,7 @@
                 {
                     if (shape is CSchodyPL schody)
                     {
-                        await schody.SaveToDxfAsync();
+                        await schody.SaveToDxfAsync("schody_proste");
                     }
                 }
             }

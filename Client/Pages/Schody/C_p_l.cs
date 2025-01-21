@@ -1006,7 +1006,7 @@ namespace GEORGE.Client.Pages.Schody
 
         // Funkcja zapisująca rysunek do pliku DXF
 
-        public async Task SaveToDxfAsync()
+        public async Task SaveToDxfAsync(string nazPlikSchody)
         {
             try
             {
@@ -1064,7 +1064,7 @@ namespace GEORGE.Client.Pages.Schody
                     Console.WriteLine($"Rozmiar pliku DXF w bajtach: {stream.Length}");
 
                     string base64String = Convert.ToBase64String(stream.ToArray());
-                    await _jsRuntime.InvokeVoidAsync("downloadFileDXF", $"schody_proste_{Lewe}.dxf", base64String);
+                    await _jsRuntime.InvokeVoidAsync("downloadFileDXF", $"{nazPlikSchody}_{Lewe}.dxf", base64String);
                 }
 
 
@@ -1306,6 +1306,7 @@ namespace GEORGE.Client.Pages.Schody
                         var pdfFont = await LoadFontAsync(httpClient);
 
                         Console.WriteLine("Dodanie nagłówka dokumentu.");
+
                         document.Add(new Paragraph($"Materiały do wykonania schodów: {DateTime.Now.ToShortDateString()}")
                             .SetFont(pdfFont)
                             .SetTextAlignment(iText.Layout.Properties.TextAlignment.CENTER)

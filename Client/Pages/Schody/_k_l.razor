@@ -1,5 +1,6 @@
 ﻿@page "/_k_l/{TypSchodow}"
 @inject IJSRuntime JSRuntime
+@inject IMessageService _message
 
 <script>
     function clearConsole() {
@@ -93,8 +94,9 @@
 
 
 <!-- Buttons -->
-<button @onclick="Oblicz">Rysuj schody</button>
+<button @onclick="()=> Oblicz()">Rysuj schody</button>
 <button @onclick="Resetuj">Restetuj</button>
+<button @onclick="()=> Oblicz(100, true)">Zapisz do DXF</button>
 <!-- Results -->
 <h4>Wyniki:</h4>
 <div colspan="3" style="text-align:justify; font-stretch:narrower;">
@@ -201,7 +203,7 @@
     }
 
     // Calculation method
-    private async Task Oblicz()
+    private async Task Oblicz(int skala = 0, bool saveDxf = false)
     {
         // Obliczenia
         /*DŁUGOŚĆ LINII BIEGU*/
@@ -234,7 +236,43 @@
 
             if (canvasWidth < 1000) canvasWidth = 1000;
 
-            await UpdateShapes();
+            await UpdateShapes(skala);
+
+            // Jeśli saveDxf = true, wywołaj zapis DXF
+            if (saveDxf)
+            {
+
+                if (shapes == null)
+                {
+                    await _message.Info("Brak danych do wygenerowania pliku DXF", 1);
+                    Console.WriteLine("Brak danych do wygenerowania pliku DXF");
+                    return;
+                }
+
+                // Szukanie obiektów CSchody w liście shapes i zapisywanie do pliku DXF
+                if (boolLewe)
+                {
+                    foreach (var shape in shapes)
+                    {
+                        if (shape is CSchodyKL schody)
+                        {
+                            await schody.SaveToDxfAsync("schody_krete");
+                        }
+                    }
+
+                }
+                else
+                {
+                    foreach (var shape in shapes)
+                    {
+                        if (shape is CSchodyKL schody)
+                        {
+                            await schody.SaveToDxfAsync("schody_krete");
+                        }
+                    }
+                }
+
+            }
 
             StateHasChanged();
 
@@ -244,7 +282,7 @@
 
     }
 
-    private async Task UpdateShapes(bool skala1do1 = false)
+    private async Task UpdateShapes(int skalaX = 0)
     {
         if (shapes != null) shapes.Clear();
         // Zainicjalizuj listę kształtów
@@ -253,31 +291,40 @@
 
         var skalaRys = (double)SkalaWyswietlania / 100;
 
+        if (skalaX == 100) 
+        {
+            Console.WriteLine($"Generuje rysunek o skali {skalaX}%");
+            skalaRys = skalaX / 100; 
+        }
 
-            if (boolLewe)
-            {
-                shapes = new List<Shape>
+        if (boolLewe)
+        {
+            shapes = new List<Shape>
                 {
                     new CSchodyKL(JSRuntime, 50, 0, skalaRys, SrednicaRuru, WysokoscCalkowita, LiczbaPodniesienStopni, SrednicaSchodow, KatRozwarciaSchodow, DlugoscLiniiBiegu,
                     SzerokoscSchodow, WysokoscPodniesieniaStopnia, GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, GlebokoscZewnatrz, KatRozwarciaPodestuWyjsciowego, TypSchodow, 'l', NazwaProgramuCNC)
                 };
-            }
-            else
-            {
-                shapes = new List<Shape>
+        }
+        else
+        {
+            shapes = new List<Shape>
                 {
                     new CSchodyKL(JSRuntime, 50, 0, skalaRys, SrednicaRuru, WysokoscCalkowita, LiczbaPodniesienStopni, SrednicaSchodow, KatRozwarciaSchodow, DlugoscLiniiBiegu,
                     SzerokoscSchodow, WysokoscPodniesieniaStopnia, GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, GlebokoscZewnatrz, KatRozwarciaPodestuWyjsciowego, TypSchodow, 'p', NazwaProgramuCNC)
                 };
-            }
+        }
 
-            await DrawShapes();
+        await DrawShapes();
 
     }
 
     private async Task DrawShapes()
     {
-        if (shapes == null) return;
+        if (shapes == null) 
+        {
+            Console.WriteLine($"Obiekt shapes jest pusty!");
+            return; 
+        }
 
         if (contextKPL == null)
             contextKPL = await canvasReferenceKPL.CreateCanvas2DAsync();

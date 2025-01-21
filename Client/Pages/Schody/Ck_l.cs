@@ -22,6 +22,7 @@ using netDxf.Tables;
 using netDxf.Units;
 using Org.BouncyCastle.Asn1.Pkcs;
 using iText.Kernel.Geom;
+using AntDesign;
 
 namespace GEORGE.Client.Pages.Schody
 {
@@ -169,6 +170,8 @@ namespace GEORGE.Client.Pages.Schody
                 // Rysowanie linii
                 await context.MoveToAsync(innerX, innerY);
                 await context.LineToAsync(outerX, outerY);
+
+                AddLinePoints(innerX, innerY, outerX, outerY, "dashed", "", "", "", null, 0, false, 0, "", "Promieniowy obrys stopnia"); //Generuj linie pod DXF
             }
 
             // Zakończenie rysowania
@@ -208,7 +211,7 @@ namespace GEORGE.Client.Pages.Schody
 
             try
             {
-                await DrawArcWithArrow(context, centerX, centerY, innerDiameter, outerDiameter,numberOfSteps,finalStepAngle); 
+                await DrawArcWithArrow(context, centerX, centerY, innerDiameter, outerDiameter, numberOfSteps, finalStepAngle);
             }
             catch (Exception ex)
             {
@@ -301,6 +304,8 @@ namespace GEORGE.Client.Pages.Schody
                 await context.ClosePathAsync();
                 await context.SetFillStyleAsync("brown");          // Wypełnienie strzałki
                 await context.FillAsync();
+
+              //  AddLinePoints(leftX, leftY, rightX, rightY, "dashed", "", "", "", null, 0, false, 0, "", "Promieniowy obrys stopnia"); //Generuj linie pod DXF
             }
             catch (Exception ex)
             {
@@ -332,6 +337,7 @@ namespace GEORGE.Client.Pages.Schody
 
             // Rysowanie okręgu
             await context.ArcAsync(centerX, centerY, radius, 0, 2 * Math.PI);
+
             // Rysowanie konturu okręgu
             await context.StrokeAsync();
 
@@ -342,7 +348,8 @@ namespace GEORGE.Client.Pages.Schody
             await context.StrokeAsync();
 
             // Dodanie punktów dla okręgu do listy, jeśli potrzebne (opcjonalnie)
-            AddCirclePoints(100, 100, 50, "Continuous", "CNC_File", "Macro1", "OBJ1", new string[] { "Z1" }, 0.1, true, 1, "Program1", "Element1");
+            AddCirclePoints(centerX, centerY, radius, "Continuous", "CNC_File", "Macro1", "OBJ1", new string[] { "Z1" }, 0.1, true, 1, "Program1", "Element1");
+            AddCirclePoints(centerX, centerY, radiusRura, "Continuous", "CNC_File", "Macro1", "OBJ1", new string[] { "Z1" }, 0.1, true, 1, "Program1", "Element1");
 
             // Ustaw kolor linii z powrotem na czarny
             await context.SetStrokeStyleAsync("black");
@@ -407,8 +414,13 @@ namespace GEORGE.Client.Pages.Schody
                 previousY = currentY;
             }
         }
+        private void AddLinePoints(double x1, double y1, double x2, double y2, string typeLine = "", string fileNCName = "", string nameMacro = "", string idOBJ = "", string[]? zRobocze = null, double idRuchNarzWObj = 0,
+        bool addGcode = false, int iloscSztuk = 0, string nazwaProgramy = "", string nazwaElementu = "")
+        {
+            if (XLinePoint == null) return;
 
-
+            XLinePoint.Add(new LinePoint(x1, y1, x2, y2, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu));
+        }
 
         // Zmienna do śledzenia punktu poprzedniego
         double? previousX = null;
@@ -455,6 +467,166 @@ namespace GEORGE.Client.Pages.Schody
             XLinePoint.Add(new LinePoint(x + width, y, x + width, y + height, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu));
             XLinePoint.Add(new LinePoint(x + width, y + height, x, y + height, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu));
             XLinePoint.Add(new LinePoint(x, y + height, x, y, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy));
+        }
+
+        //------------------------------------------------------------------------------------------------------- ZAPIS DXF ---------------------------------------------------------------------------------------------------------
+
+        public async Task SaveToDxfAsync(string nazPlikSchody)
+        {
+            try
+            {
+                Console.WriteLine($"Rozpoczęcie zapisu pliku DXF.");
+
+                //var headerVariables = new HeaderVariables {AcadVer = DxfVersion.AutoCad2000 };
+
+                //DxfDocument dxf = new(headerVariables);
+                var supportFolders = new SupportFolders(); // lub zgodnie z wymaganiami
+                var drawingVariables = new HeaderVariables();
+
+                DxfDocument dxf = new(drawingVariables, supportFolders);
+
+
+                // Tworzymy nowy dokument DXF
+                //  DxfDocument dxf = new(DxfVersion.AutoCad2000);
+
+                Console.WriteLine($"Załadowanie biblioteki DXF.");
+                // Sprawdzamy, czy lista XLinePoint zawiera punkty
+                if (XLinePoint != null)
+                {
+                    // Iteracja przez każdy punkt w XLinePoint
+                    foreach (var linePoint in XLinePoint)
+                    {
+                        // Tworzenie linii w DXF na podstawie danych z LinePoint
+                        netDxf.Entities.Line dxfLine = new netDxf.Entities.Line(
+                            new netDxf.Vector2(linePoint.X1, linePoint.Y1),
+                            new netDxf.Vector2(linePoint.X2, linePoint.Y2)
+                        );
+
+                        if (string.Equals(linePoint.typeLine, "dashed", StringComparison.OrdinalIgnoreCase))
+                        {
+                            dxfLine.Linetype = Linetype.Dashed;
+                        }
+                        else
+                        {
+                            dxfLine.Linetype = Linetype.Continuous;
+                        }
+
+                        // Dodanie linii do dokumentu DXF
+                        dxf.Entities.Add(dxfLine);
+                    }
+                }
+
+                SetNegativeCoordinates(dxf);
+
+                UpdateDimensionStyleTextHeightAndFitView(dxf, "Standard", 35, "arial.ttf");
+
+                Console.WriteLine($"Ustawienie stylu DXF.");
+                // Zapis pliku DXF do strumienia i pobranie go
+
+                // Zapis pliku DXF do strumienia i pobranie go
+                using (MemoryStream stream = new MemoryStream())
+                {
+                    dxf.Save(stream);
+                    Console.WriteLine($"Rozmiar pliku DXF w bajtach: {stream.Length}");
+
+                    string base64String = Convert.ToBase64String(stream.ToArray());
+                    await _jsRuntime.InvokeVoidAsync("downloadFileDXF", $"{nazPlikSchody}_{Lewe}.dxf", base64String);
+                }
+
+
+                if (XLinePoint != null)
+                {
+                    Console.WriteLine($"Plik DXF został wygenerowany. Ilość Wektorów {XLinePoint.Count()}");
+                }
+                else
+                {
+                    Console.WriteLine($"Plik DXF został wygenerowany. XLinePoint - NULL");
+                }
+
+                // await SaveToStlAsync(); // to do poprawy
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Błąd:{ex.Message} / {ex.StackTrace}");
+            }
+        }
+
+        void SetNegativeCoordinates(DxfDocument dxf)
+        {
+            var entities = dxf.Entities;
+
+            if (entities != null)
+            {
+                foreach (var line in entities.Lines)
+                {
+                    if (line is netDxf.Entities.Line)
+                    {
+                        // Przypisujemy nowe współrzędne z konwersją na Vector3
+                        line.StartPoint = new netDxf.Vector3(line.StartPoint.X, -line.StartPoint.Y, line.StartPoint.Z);
+                        line.EndPoint = new netDxf.Vector3(line.EndPoint.X, -line.EndPoint.Y, line.EndPoint.Z);
+                    }
+                }
+
+                foreach (var arc in entities.Arcs)
+                {
+                    if (arc is Arc)
+                    {
+                        // Przypisujemy nowe współrzędne z konwersją na Vector3
+                        arc.Center = new netDxf.Vector3(arc.Center.X, -arc.Center.Y, arc.Center.Z);
+
+                        // Przekształcamy kąty, aby dostosować się do nowego układu współrzędnych
+                        // Zakładamy, że kąty są wyrażone w stopniach lub radianach, więc zmiana znaku jest potrzebna
+                        arc.StartAngle = 90 + arc.StartAngle;
+                        arc.EndAngle = 90 + arc.EndAngle;
+
+                    }
+                }
+
+                // Dodaj inne przypadki dla różnych typów obiektów, które mogą zawierać współrzędne
+            }
+        }
+        void UpdateDimensionStyleTextHeightAndFitView(DxfDocument dxf, string dimensionStyleName, double newTextHeight, string fontFilePath)
+        {
+            try
+            {
+                // Sprawdź, czy styl wymiarów istnieje
+                if (dxf.DimensionStyles.TryGetValue(dimensionStyleName, out DimensionStyle dimensionStyle))
+                {
+                    // Sprawdź, czy styl tekstu istnieje
+                    if (dimensionStyle.TextStyle != null)
+                    {
+                        // Zmieniaj wysokość czcionki
+                        dimensionStyle.TextStyle.WidthFactor = 1;
+                        dimensionStyle.TextStyle.Height = newTextHeight;
+                    }
+                    else
+                    {
+                        // Jeśli brak stylu tekstu, utwórz nowy styl tekstu
+                        var newTextStyle = new TextStyle(fontFilePath, "Arial")
+                        {
+                            WidthFactor = 1,
+                            Height = newTextHeight
+                        };
+                        dimensionStyle.TextStyle = newTextStyle;
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Nie znaleziono stylu wymiarów o nazwie: " + dimensionStyleName);
+                }
+
+                // Automatyczne dopasowanie widoku (ustawienie granic rysunku)
+                FitDrawingInView(dxf);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Błąd:{ex.Message} / {ex.StackTrace}");
+            }
+        }
+        void FitDrawingInView(DxfDocument dxf)
+        {
+            dxf.DrawingVariables.InsUnits = DrawingUnits.Millimeters;
+            dxf.DrawingVariables.LwDisplay = true;
         }
     }
 }
