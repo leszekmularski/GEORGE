@@ -1,0 +1,16 @@
+"Server=ec2-52-212-228-71.eu-west-1.compute.amazonaws.com;
+Database=d3j27u1l9mrqnb;
+Username=voljnuiojvudvg;
+Password=a13a952ac0c4314470d7aca9a7eb556f20a066d2c68dd67fd006fa86c6f953b4;"
+
+
+dotnet ef dbcontext scaffold "Host=ec2-52-212-228-71.eu-west-1.compute.amazonaws.com;Database=d3j27u1l9mrqnb;Username=voljnuiojvudvg;Password=a13a952ac0c4314470d7aca9a7eb556f20a066d2c68dd67fd006fa86c6f953b4" 
+Npgsql.EntityFrameworkCore.PostgreSQL
+
+Trust Server Certificate = True
+
+Add-Migration InitialPersistedGrantDbMigration -c AppDbContext -o Data/Migrations
+
+dotnet ef dbcontext scaffold "Host=ec2-52-212-228-71.eu-west-1.compute.amazonaws.com;Database=d3j27u1l9mrqnb;Username=voljnuiojvudvg;Password=a13a952ac0c4314470d7aca9a7eb556f20a066d2c68dd67fd006fa86c6f953b4" Npgsql.EntityFrameworkCore.PostgreSQL
+
+
