@@ -1114,7 +1114,8 @@ else
                 {
                     Message = "Błąd generowania dokumentu.",
                     Description = $"{ex.Message}",
-                    Placement = NotificationPlacement.BottomLeft
+                    Placement = NotificationPlacement.BottomLeft, 
+                    Duration = 12,
                 });
 
         }
