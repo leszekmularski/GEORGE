@@ -477,7 +477,12 @@ else
                                 if (context.TypPliku.ToLower().EndsWith("pdf") && boolAdmin)
                                 {
                                     <Tooltip Placement="@Placement.Left" Title="Generuj Dokument Produkcyjny">
-                                        <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.FilePdf" onclick="@(e => WydrukProdukcyjny(context.NazwaPliku))" />
+
+                                        <Button Type="ButtonType.Primary"
+                                                Icon="@IconType.Outline.FilePdf"
+                                                Loading="_onlyIconLoadingPdf"
+                                                OnClick="@(e => WydrukProdukcyjny(context.NazwaPliku))" />
+
                                     </Tooltip>
                                 }
                                 if (boolAdmin)
@@ -636,6 +641,8 @@ else
     IList<IBrowserFile> files = new List<IBrowserFile>();
 
     private bool blokojFiltr = true;
+
+    private bool _onlyIconLoadingPdf = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -1227,9 +1234,9 @@ else
     string filePDFWydProd = "";
     private async Task WydrukProdukcyjny(string nazwa_pliku)
     {
+        _onlyIconLoadingPdf = true;
         try
         {
-
             var baseUrl = NavigationManager.BaseUri; // Pobierz podstawowy adres URL aplikacji
             var fileUrl = $"{baseUrl}uploads_zlecenia/{nazwa_pliku}";
 
@@ -1256,6 +1263,7 @@ else
                 });
 
         }
+        _onlyIconLoadingPdf = false;
     }
 
     bool blokuDwuKlik = false;
