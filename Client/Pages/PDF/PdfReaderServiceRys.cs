@@ -48,6 +48,18 @@ public class PdfReaderServiceRys
                     var processor = new PdfCanvasProcessor(drawingStrategy);
                     processor.ProcessPageContent(page);
 
+                    // Ustawienie numeru strony dla każdej linii
+                    foreach (var line in drawingStrategy.Lines)
+                    {
+                        line.PageNumber = i; // Przypisanie numeru strony
+                    }
+
+                    // Ustawienie numeru strony dla każdego tekstu
+                    foreach (var textData in drawingStrategy.Texts)
+                    {
+                        textData.PageNumber = i; // Przypisanie numeru strony
+                    }
+
                     // Dodawanie zebranych linii i tekstów
                     lines.AddRange(drawingStrategy.Lines);
 
@@ -98,7 +110,7 @@ public class MyCustomDrawingStrategy : IEventListener
                 var dashPattern = graphicsState.GetDashPattern();
                 if (dashPattern != null && dashPattern.Size() > 0)
                 {
-                    Console.WriteLine($"dashPattern.Size():{dashPattern.Size()}");  
+                    //Console.WriteLine($"dashPattern.Size():{dashPattern.Size()}");  
 
                     bool isDashed = false;
 
@@ -190,11 +202,13 @@ public class LineData
     public float LineWidth { get; set; } // Grubość linii
     public string? LineStyle { get; set; } // Typ linii: "solid" lub "dashed"
    public float[]? DashPattern { get; set; } // Szczegóły przerywanego wzoru
+    public int PageNumber { get; internal set; }
 }
 
 public class TextData
 {
     public string? Text { get; set; }
     public Vector? Position { get; set; }
+    public int PageNumber { get; internal set; }
 }
 

@@ -279,8 +279,10 @@ namespace GEORGE.Client.Pages.Schody
                     arrowEndX = centerX + arcRadius * Math.Cos(startAngle);
                     arrowEndY = centerY + arcRadius * Math.Sin(startAngle);
 
-                    obrucGrot = -75;
+                    obrucGrot = -(totalAngle + 67.67);
                 }
+
+                //Console.WriteLine($"totalAngle: {totalAngle} / startAngle: {startAngle} / endAngle: {endAngle}/ KatRozwarciaPodestuWyjsciowego: {KatRozwarciaPodestuWyjsciowego} / KatRozwarciaSchodow: {KatRozwarciaSchodow}/ obrucGrot: {obrucGrot}");
 
                 // Obliczanie wektora stycznego w punkcie końcowym
                 double tangentAngle = endAngle; // Kierunek styczny to kąt końca łuku

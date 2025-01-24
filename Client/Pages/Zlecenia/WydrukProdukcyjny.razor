@@ -54,19 +54,40 @@
 
     public MarkupString GetSvgContent()
     {
-        var svgContent = "<svg width='1200' height='800' style='border:1px solid blue'>";
+        var (minY, maxY) = FindMinMaxY(PdfViewModel);
+
+        int minYOccurrences = CountMinYOccurrences(PdfViewModel, minY);
+
+        double moveY = 0;
+
+        int iloscStron = PdfViewModel?.Texts?.Any() == true
+        ? PdfViewModel.Texts.Max(t => t.PageNumber)
+        : 0;
+
+
+        Console.WriteLine($"Minimalna wartość Y: {minY}/{maxY * iloscStron}, Liczba iloscStron: {iloscStron}");
+
+        var svgContent = $"<svg width='1200' height='{iloscStron * maxY}' style='border:1px solid blue'>";
 
         if (PdfViewModel?.Lines != null)
         {
             foreach (var line in PdfViewModel.Lines)
             {
                 var lineStyle = line.LineStyle == "dashed" ? "stroke-dasharray:4,4;" : "stroke-dasharray:none;";
-                svgContent += $@"<line x1='{line.Start.Get(0)}' y1='{line.Start.Get(1)}'
-                             x2='{line.End.Get(0)}' y2='{line.End.Get(1)}'
+                svgContent += $@"<line x1='{line.Start.Get(0)}' y1='{line.Start.Get(1) + moveY}'
+                             x2='{line.End.Get(0)}' y2='{line.End.Get(1) + moveY}'
                              style='stroke:black;stroke-width:{line.LineWidth};{lineStyle}' />";
-                //Console.WriteLine($"Line: Start({line.Start.Get(0)}, {line.Start.Get(1)}) End({line.End.Get(0)}, {line.End.Get(1)}) Style: {line.LineStyle}");
+
+                moveY = (line.PageNumber - 1) * maxY;
+
+                //Console.WriteLine($"line.PageNumber: {line.PageNumber}");
+
+                //Console.WriteLine($"Line: Start({line.Start.Get(0)}, {line.Start.Get(1)}) End({line.End.Get(0)}, {line.End.Get(1)}) Style: {line.LineStyle} minY_L: {minY_L}");
+
             }
         }
+
+        moveY = 0;
 
         if (PdfViewModel?.Texts != null)
         {
@@ -74,14 +95,107 @@
             {
                 var encodedText = NormalizeAndFixText(System.Net.WebUtility.HtmlEncode(text.Text));
 
-                svgContent += $@"<text x='{text.Position.Get(0)}' y='{text.Position.Get(1)}' font-family='Roboto' font-size='12' fill='blue'>
-                 {encodedText}</text>";
+                svgContent += $@"<text x='{text.Position.Get(0)}' y='{text.Position.Get(1) + moveY}' font-family='Roboto' font-size='12' fill='blue'>
+                {encodedText}</text>";
+
+                moveY = (text.PageNumber - 1) * maxY;
+
+                //Console.WriteLine($"moveY: {moveY}");
+
+                //Console.WriteLine($@"<text x='{text.Position.Get(0)}' y='{text.Position.Get(1)}' minY_T: {minY_T} font-family='Roboto' font-size='12' fill='blue'>{encodedText}</text>");
             }
         }
 
         svgContent += "</svg>";
 
         return new MarkupString(svgContent);
+    }
+
+    public int CountMinYOccurrences(PdfDrawingViewModel pdfViewModel, double minY)
+    {
+        int count = 0;
+
+        // Sprawdzanie linii
+        if (pdfViewModel?.Lines != null)
+        {
+            foreach (var line in pdfViewModel.Lines)
+            {
+                // Porównaj wartość Y dla Start i End z minY
+                if (Math.Abs(line.Start.Get(1) - minY) < 0.0001) // Porównanie z tolerancją
+                {
+                    count++;
+                }
+
+                if (Math.Abs(line.End.Get(1) - minY) < 0.0001) // Porównanie z tolerancją
+                {
+                    count++;
+                }
+            }
+        }
+
+        // Sprawdzanie tekstów
+        if (pdfViewModel?.Texts != null)
+        {
+            foreach (var text in pdfViewModel.Texts)
+            {
+                // Porównaj wartość Y z minY
+                if (Math.Abs(text.Position.Get(1) - minY) < 0.0001) // Porównanie z tolerancją
+                {
+                    count++;
+                }
+            }
+        }
+
+        return count;
+    }
+
+
+    public (double MinY, double MaxY) FindMinMaxY(PdfDrawingViewModel pdfViewModel)
+    {
+        double? minY = null;
+        double? maxY = null;
+
+        // Sprawdzanie linii
+        if (pdfViewModel?.Lines != null)
+        {
+            foreach (var line in pdfViewModel.Lines)
+            {
+                var lineMinY = Math.Min(line.Start.Get(1), line.End.Get(1));
+                var lineMaxY = Math.Max(line.Start.Get(1), line.End.Get(1));
+
+                if (minY == null || lineMinY < minY)
+                {
+                    minY = lineMinY;
+                }
+
+                if (maxY == null || lineMaxY > maxY)
+                {
+                    maxY = lineMaxY;
+                }
+            }
+        }
+
+        // Sprawdzanie tekstów
+        if (pdfViewModel?.Texts != null)
+        {
+            foreach (var text in pdfViewModel.Texts)
+            {
+                var textY = text.Position.Get(1);
+
+                if (minY == null || textY < minY)
+                {
+                    minY = textY;
+                }
+
+                if (maxY == null || textY > maxY)
+                {
+                    maxY = textY;
+                }
+            }
+        }
+
+        // Jeśli nie znaleziono żadnych wartości, ustaw domyślne 0
+        return (minY ?? 0, maxY ?? 0);
     }
 
 

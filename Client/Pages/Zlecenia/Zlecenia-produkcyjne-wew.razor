@@ -474,6 +474,12 @@ else
                     <ActionColumn Title="Uwagi / Akcja" Width="250" Fixed="right">
                         <Template>
                             @{
+                                if (context.TypPliku.ToLower().EndsWith("pdf") && boolAdmin)
+                                {
+                                    <Tooltip Placement="@Placement.Left" Title="Generuj Dokument Produkcyjny">
+                                        <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.FilePdf" onclick="@(e => WydrukProdukcyjny(context.NazwaPliku))" />
+                                    </Tooltip>
+                                }
                                 if (boolAdmin)
                                 {
                                     <label>Widoczny dla wszystkich:</label>
@@ -549,6 +555,27 @@ else
     </div>
 </div>
 
+<div class="modal fade @classShowPDFWP" tabindex="-1"
+     style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute;
+            width: 100%; height: 100vh; max-width: 100%; max-height: 100vh; overflow: auto;">
+    <div class="modal-dialog modal-lg" style="width: 100%; max-width: 100%; margin: 0;">
+        <div class="modal-content" style="height: 100%; width: 100%;">
+            <div class="modal-header">
+                <h5 class="modal-title">Wygenerowany wydruk produkcyjny</h5>
+            </div>
+            <div class="modal-body" style="overflow: auto;">
+                @if (filePDFWydProd != "")
+                {
+                    <WydrukProdukcyjny scieszkaDoPliku="@filePDFWydProd" />
+                }
+            </div>
+            <div class="modal-footer d-flex">
+                <Button class="ms-auto" @onclick="() => HideDialogTWZ()">Zakończ</Button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @code {
 
     [CascadingParameter]
@@ -581,6 +608,9 @@ else
     private string displayTWZ = "none;";
     private string classShowTWZ = "";
     private string classTWZ = "";
+
+    private string displayPDFWP = "none;";
+    private string classShowPDFWP = "";
 
     private string rowIdClick = "";
 
@@ -1194,6 +1224,40 @@ else
         StateHasChanged();
     }
 
+    string filePDFWydProd = "";
+    private async Task WydrukProdukcyjny(string nazwa_pliku)
+    {
+        try
+        {
+
+            var baseUrl = NavigationManager.BaseUri; // Pobierz podstawowy adres URL aplikacji
+            var fileUrl = $"{baseUrl}uploads_zlecenia/{nazwa_pliku}";
+
+            filePDFWydProd = "";
+            if (string.IsNullOrEmpty(nazwa_pliku)) return;
+
+            filePDFWydProd = fileUrl;
+            Console.WriteLine($"fileUrl: {fileUrl}");
+
+            await Task.Delay(1);
+            displayPDFWP = "block";
+            await Task.Delay(50);
+            classShowPDFWP = "show";
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            _ = _notice.Error(new()
+                {
+                    Message = "Błąd generowania dokumentu.",
+                    Description = $"{ex.Message}",
+                    Placement = NotificationPlacement.BottomLeft,
+                    Duration = 12,
+                });
+
+        }
+    }
+
     bool blokuDwuKlik = false;
     private async Task HandleSubmit()
     {
@@ -1467,12 +1531,15 @@ else
     private async Task HideDialogTWZ()
     {
         displayTWZ = "";
+        displayPDFWP = "";
         await Task.Delay(200);
         displayTWZ = "none";
+        displayPDFWP = "none";
 
         StateHasChanged();
 
         rowIdClick = "";
+        filePDFWydProd = "";
     }
 
     private async Task ZmienUwage(long id, string uwaga)
