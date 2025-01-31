@@ -58,7 +58,7 @@
 
         int minYOccurrences = CountMinYOccurrences(PdfViewModel, minY);
 
-        double moveY = 0;
+        double moveY = 10;
 
         int iloscStron = PdfViewModel?.Texts?.Any() == true
         ? PdfViewModel.Texts.Max(t => t.PageNumber)
@@ -67,7 +67,7 @@
 
         Console.WriteLine($"Minimalna wartość Y: {minY}/{maxY * iloscStron}, Liczba iloscStron: {iloscStron}");
 
-        var svgContent = $"<svg width='1200' height='{iloscStron * maxY}' style='border:1px solid blue'>";
+        var svgContent = $"<svg width='1000' height='{iloscStron * maxY}' style='border:1px solid blue'>";
 
         if (PdfViewModel?.Lines != null)
         {

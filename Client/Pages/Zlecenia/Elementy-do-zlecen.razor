@@ -223,6 +223,12 @@
                     Zapisz do pliku CSV - zaznaczone
                 </Button>
             }
+            else
+            {
+                <Tooltip Placement="@Placement.Top" Title="Wklej skopiowane pozycje z innego zamówienia!">
+                    <Button type="button" class="btn btn-sm btn-light" Icon="@IconType.Outline.PaperClip" OnClick="@(async ()=> { await PasteElementyFromClipboard(ConfirmButtons.YesNo); })"></Button>
+                </Tooltip>
+            }
             <Tooltip Placement="@Placement.BottomCenter" Style="width: 50px;" Title="Ilość widocznych rekordów">
                 <AntDesign.InputNumber TValue="int"
                 @bind-Value="_pageSize"
@@ -879,7 +885,7 @@
                 Console.WriteLine("Dane zostały pomyślnie zapisane.");
                 elementyDoZlecen = await Http.GetFromJsonAsync<List<ElemetZamDoZlecenWithProducent>>($"api/ElementyDoZlecen/rowid/{RowIdZlecenia}");
                 if (elementyDoZlecen != null) oryginalElementyDoZlecen = elementyDoZlecen.DeepCopyList();
-                await _message.Success($"Dane zostały pomyślnie zapisane. ilość nowych wpisów: {elementyDoZlecenC.Count()}");
+                await _message.Success($"Dane zostały pomyślnie zapisane. ilość nowych wpisów: {elementyDoZlecenC.Count()}" , 1);
             }
             else
             {

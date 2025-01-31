@@ -1,57 +1,79 @@
 ﻿@page "/_12_p_l/{TypSchodow}"
-@inject IJSRuntime JSRuntime
+
+@inject Utilities.ILocalStorage LocalStorage
+@using System.Text.Json
+@inject IMessageService _message
+@inject HttpClient Http
 
 <h3>Obliczenia Schodów typu: @TypSchodow</h3>
 <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
 <Divider></Divider>
-<!-- Form inputs -->
-<div>
-    <label>Długość Otworu:</label>
-    <input type="number" @bind="DlugoscOtworu" />
-</div>
-<div>
-    <label>Szerokość Otworu:</label>
-    <input type="number" @bind="SzerokoscOtworu" />
-</div>
-<div>
-    <label>Długość na Wejściu:</label>
-    <input type="number" @bind="DlugoscNaWejsciu" />
-</div>
-<div>
-    <label>Wysokość do Stropu:</label>
-    <input type="number" @bind="WysokoscDoStropu" />
-</div>
-<div>
-    <label>Wysokość Całkowita:</label>
-    <input type="number" @bind="WysokoscCalkowita" />
-</div>
-<div>
-    <label>Liczba Podniesień Stopni:</label>
-    <input type="number" @bind="LiczbaPodniesienStopni" />
-</div>
-<div>
-    <label>Szerokość Ostatniego Stopnia:</label>
-    <input type="number" @bind="SzerokoscOstatniegoStopnia" />
-</div>
-<div>
-    <label>Szerokość Biegu Schodów:</label>
-    <input type="number" @bind="SzerokoscBieguSchodow" />
-</div>
-<div>
-    <label>Długość Podestu:</label>
-    <input type="number" @bind="PodestDlugosc" />
-</div>
-<div>
-    <label>Szerokość Podestu:</label>
-    <input type="number" @bind="PodestSzerokosc" />
-</div>
-<div>
-    <label>Podest jako Stopień nr:</label>
-    <input type="number" @bind="PodestJakoStopienNr" />
-</div>
+<Collapse Animation>
+    <Panel Header="Parametry wykonania schodów" Key="1">
+        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px 10px; align-items: center;">
+            <!-- Form inputs -->
+            <!-- Długość Otworu -->
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <label style="font-weight: bold; color: forestgreen;">Długość Otworu:</label>
+                <input style="font-weight: bold; color: forestgreen; width: 8ch;" type="number" @bind="DlugoscOtworu" @onclick="()=> Oblicz(false)" />
+            </div>
+            <!-- Szerokość Otworu -->
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <label style="font-weight: bold; color: forestgreen;">Szerokość Otworu:</label>
+                <input style="font-weight: bold; color: forestgreen; width: 8ch;" type="number" @bind="SzerokoscOtworu" />
+            </div>
+            <!-- Długość na Wejściu -->
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <label style="font-weight: bold; color: crimson;">Długość na Wejściu:</label>
+                <Tooltip Placement="@Placement.Top" Title="Całkowita długość schodów.">
+                    <input style="font-weight: bold; color: crimson; width: 8ch;" type="number" @bind="DlugoscNaWejsciu" @onclick="()=> Oblicz(false)" />
+                </Tooltip>
+            </div>
+            <!-- Wysokość do Stropu -->
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <label style="font-weight: bold; color: forestgreen;">Wysokość do Stropu:</label>
+                <input style="font-weight: bold; color: forestgreen; width: 8ch;" type="number" @bind="WysokoscDoStropu" />
+            </div>
+            <!-- Wysokość Całkowita -->
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <label style="font-weight: bold; color: crimson;">Wysokość Całkowita:</label>
+                <input style="font-weight: bold; color: crimson; width: 8ch;" type="number" @bind="WysokoscCalkowita" />
+            </div>
+            <!-- Liczba Podniesień Stopni -->
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <label style="font-weight: bold; color: crimson;">Liczba Podniesień Stopni:</label>
+                <input style="font-weight: bold; color: crimson; width: 8ch;" type="number" @bind="LiczbaPodniesienStopni" @onclick="()=> Oblicz(false)" />
+            </div>
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <label style="font-weight: bold; color: forestgreen;">Szerokość Ostatniego Stopnia:</label>
+                <input type="number" @bind="SzerokoscOstatniegoStopnia" />
+            </div>
+            <!-- Szerokość Biegu Schodów -->
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <label style="font-weight: bold; color: forestgreen;">Szerokość Biegu Schodów:</label>
+                <input style="font-weight: bold; color: forestgreen; width: 8ch;" type="number" @bind="SzerokoscBieguSchodow" />
+            </div>
+            <!-- Długość Podestu -->
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <label style="font-weight: bold; color: forestgreen;">Długość Podestu:</label>
+                <input type="number" @bind="PodestDlugosc" />
+            </div>
+            <!-- Szerokość Podestu -->
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <label style="font-weight: bold; color: forestgreen;">Szerokość Podestu:</label>
+                <input type="number" @bind="PodestSzerokosc" />
+            </div>
+            <!-- Podest jako Stopień nr -->
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <label style="font-weight: bold; color: forestgreen;">Podest jako Stopień nr:</label>
+                <input type="number" @bind="PodestJakoStopienNr" />
+            </div>
+        </div>
+    </Panel>
+</Collapse>
 
 <!-- Buttons -->
-<button @onclick="Oblicz">Oblicz</button>
+<button @onclick="()=> Oblicz(false)">Oblicz</button>
 <button @onclick="Resetuj">Reset</button>
 
 <!-- Results -->
@@ -106,6 +128,9 @@
     [Parameter]
     public string? TypSchodow { get; set; }
 
+    [Inject]
+    private IJSRuntime? JSRuntime { get; set; }
+
     // Input properties
     private double DlugoscOtworu { get; set; }
     private double SzerokoscOtworu { get; set; }
@@ -135,7 +160,7 @@
     }
 
     // Calculation method
-    private void Oblicz()
+    private void Oblicz(bool saveDxf)
     {
         // Walidacja tak jak w JS
         if (DlugoscOtworu < SzerokoscBieguSchodow) DlugoscOtworu = SzerokoscBieguSchodow;
@@ -199,6 +224,8 @@
 
     private async Task GoBack()
     {
-        await JSRuntime.InvokeVoidAsync("history.back");
+        if (JSRuntime != null)
+            await JSRuntime.InvokeVoidAsync("history.back");
+        await Task.CompletedTask;
     }
 }

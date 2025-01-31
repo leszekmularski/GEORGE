@@ -60,8 +60,8 @@
         }
 
         function captureCanvas(canvasId) {
-            var canvas = document.getElementById(canvasId);
-            return canvas.toDataURL("image/png").replace("data:image/png;base64,", "");
+        var canvas = document.getElementById(canvasId);
+        return canvas.toDataURL("image/png").replace("data:image/png;base64,", "");
         }
 
     </script>
@@ -644,10 +644,11 @@
 
     }
 
-
     private async Task GoBack()
     {
-        await JSRuntime.InvokeVoidAsync("history.back");
+        if (JSRuntime !=null)
+            await JSRuntime.InvokeVoidAsync("history.back");
+        await Task.CompletedTask; 
     }
 
     public class SchodyData
