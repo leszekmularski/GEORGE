@@ -853,13 +853,13 @@
                         element.Kolor = value;
                         break;
                     case "Dlugosc":
-                        element.Dlugosc = float.TryParse(value, out var dlugosc) ? dlugosc : 0;
+                        element.Dlugosc = decimal.TryParse(value, out var dlugosc) ? dlugosc : 0;
                         break;
                     case "Szerokosc":
-                        element.Szerokosc = float.TryParse(value, out var szerokosc) ? szerokosc : 0;
+                        element.Szerokosc = decimal.TryParse(value, out var szerokosc) ? szerokosc : 0;
                         break;
                     case "Wysokosc":
-                        element.Wysokosc = float.TryParse(value, out var wysokosc) ? wysokosc : 0;
+                        element.Wysokosc = decimal.TryParse(value, out var wysokosc) ? wysokosc : 0;
                         break;
                 }
             }
@@ -1116,9 +1116,9 @@
         if (zestawienie == null) return;
         @foreach (var item in zestawienie.ListaElementow)
         {
-            float numSzerokosc;
+            decimal numSzerokosc;
 
-            if (float.TryParse(item.Szerokosc, out numSzerokosc))
+            if (decimal.TryParse(item.Szerokosc, out numSzerokosc))
             {
                 var elementyZamowienia = new ElemetZamDoZlecenWithProducent
                     {
@@ -1126,7 +1126,7 @@
                         {
                             RowIdZlecenia = RowIdZlecenia,
                             Szerokosc = string.IsNullOrEmpty(item.Szerokosc) ? 0 : numSzerokosc,
-                            Wysokosc = string.IsNullOrEmpty(item.Wysokosc) ? 0 : float.Parse(item.Wysokosc),
+                            Wysokosc = string.IsNullOrEmpty(item.Wysokosc) ? 0 : decimal.Parse(item.Wysokosc),
                             NazwaProduktu = item.NazwaProduktu,
                             IloscSztuk = string.IsNullOrEmpty(item.IloscSztuk) ? 0 : int.Parse(item.IloscSztuk),
                             DataZamowienia = DateTime.Now,
