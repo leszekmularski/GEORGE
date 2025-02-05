@@ -1,5 +1,6 @@
 ﻿@page "/PanelAdminUpraw"
 @using GEORGE.Shared.Models
+@using GEORGE.Shared.ViewModels
 @using GEORGE.Shared.Class
 @inject HttpClient Http;
 @using Microsoft.AspNetCore.Components.Web
@@ -7,12 +8,12 @@
 @using System.Net.Http.Json
 @using System.Net;
 @inject IMessageService _message
-@* @using Microsoft.EntityFrameworkCore; *@
 @using System.Collections.Generic;
 @using System.Linq;
 @using System.Threading.Tasks;
 @inject NavigationManager NavigationManager;
 @inject IJSRuntime JS
+@inject IConfiguration Configuration
 
 <h1>Użytkownicy systemu [@user.ToUpper()]  Dział (sekcja): @str_wybrano_dzial </h1>
 
@@ -207,7 +208,7 @@ else
         @if (boolAdmin)
         {
             @statusMessage
-                    <Button OnClick="UpdateApplication">Sprawdź i pobierz aktualizację oprogramowania</Button>
+            <Button OnClick="UpdateApplication">Sprawdź i pobierz aktualizację oprogramowania</Button>
         }
 
     </body>
@@ -325,13 +326,48 @@ else
                 if (response.IsSuccessStatusCode)
                 {
                     var fileBytes = await response.Content.ReadAsByteArrayAsync();
-                    var filePath = Path.Combine("E:", "ASP_GEORGE", fileName);  // Używamy Path.Combine, aby prawidłowo połączyć ścieżkę
 
-                    // Upewniamy się, że katalog istnieje
-                    Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+                    // var filePath = Path.Combine("E:", "ASP_GEORGE", "UPDATE", fileName);  // Używamy Path.Combine, aby prawidłowo połączyć ścieżkę
+                    string downloadPath = "";
+                    try
+                    {
+                        var settings = await Http.GetFromJsonAsync<JSettings>("/api/jsettings");
+                        if (settings != null)
+                        {
+                            if (settings.DownloadPath != null)
+                            {
+                                downloadPath = settings.DownloadPath;
+                            }
+                        }
 
-                    // Zapisanie pliku na dysku
-                    await File.WriteAllBytesAsync(filePath, fileBytes);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Obsługa błędów, np. wyświetlenie komunikatu o błędzie
+                        Console.WriteLine($"Wystąpił błąd (settings): {ex.Message}");
+                    }
+
+                    var filePath = Path.Combine(downloadPath, fileName); // Dynamiczne łączenie ścieżki
+
+                    Console.WriteLine($"Plik zostanie zapisany do: {filePath}");
+
+                    var data = await response.Content.ReadAsByteArrayAsync();
+                    Console.WriteLine($"----> Rozmiar pobranego pliku: {data.Length} bajtów");
+
+                    try
+                    {
+                        // Upewniamy się, że katalog istnieje
+                        Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+
+                        Console.WriteLine($"Próba zapisu do: {filePath}");
+                        await File.WriteAllBytesAsync(filePath, fileBytes);
+                        Console.WriteLine($"Plik zapisany do: {filePath}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Błąd zapisu pliku: {ex.Message}");
+                    }
+
                     Console.WriteLine($"Plik {fileName} pobrany pomyślnie. Plik zapisano w {filePath}");
                     statusMessage = $"Plik {fileName} pobrany pomyślnie.  Plik zapisano w {filePath}";
                     StateHasChanged();
@@ -776,6 +812,5 @@ else
             }
         }
     }
-
 
 }

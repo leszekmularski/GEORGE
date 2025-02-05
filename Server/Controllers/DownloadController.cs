@@ -17,11 +17,12 @@ namespace GEORGE.Controllers
             var fileUrl = BaseUrl + fileName;
             var response = await client.GetAsync(fileUrl);
             Console.WriteLine(BaseUrl);  
-            Console.WriteLine($"----------------------------------------->  Plik: {fileName}");
+
 
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsByteArrayAsync();
+                Console.WriteLine($"----------------------------------------->  Plik: {fileName} - {content.Length.ToString()}");
                 return File(content, "application/octet-stream", fileName);
             }
             else

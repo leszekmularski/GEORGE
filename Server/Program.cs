@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using System.Globalization;
 using AntDesign;
 using ReservationBookingSystem.Services;
+using GEORGE.Client.Pages.Administracja;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,6 +42,8 @@ builder.Logging.SetMinimumLevel(LogLevel.Debug);
 // Rejestracja konfiguracji MailSettings z appsettings.json
 builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
 
+builder.Services.Configure<FileSettings>(builder.Configuration.GetSection("FileSettings"));
+
 // Rejestracja MailService jako serwis
 builder.Services.AddScoped<IMailService, MailService>();
 
@@ -57,6 +60,7 @@ builder.Services.Configure<StaticFileOptions>(options =>
         }
     };
 });
+
 
 var app = builder.Build();
 
