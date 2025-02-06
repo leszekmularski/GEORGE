@@ -61,8 +61,19 @@ builder.Services.Configure<StaticFileOptions>(options =>
     };
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll",
+        builder => builder.AllowAnyOrigin()
+                          .AllowAnyMethod()
+                          .AllowAnyHeader());
+});
+
+builder.Services.AddHttpClient();
 
 var app = builder.Build();
+
+app.UseCors("AllowAll");
 
 // 2. Œrodkowe oprogramowanie (Middleware)
 // Obs³uga œrodowiska

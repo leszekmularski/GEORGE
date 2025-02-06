@@ -97,25 +97,25 @@ else
 
             <TabPane Key="2" Tab="Jednostki">
                 <AntDesign.FormItem Label="Długość">
-                    <AntDesign.Input Type="number" Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Dlugosc" />
+                    <AntDesign.InputNumber @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Dlugosc" />
                 </AntDesign.FormItem>
                 <AntDesign.FormItem Label="Szerokość">
-                    <AntDesign.Input Type="number" Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Szerokosc" />
+                    <AntDesign.InputNumber @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Szerokosc" />
                 </AntDesign.FormItem>
                 <AntDesign.FormItem Label="Wysokość">
-                    <AntDesign.Input Type="number" Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Wysokosc" />
+                    <AntDesign.InputNumber @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Wysokosc" />
                 </AntDesign.FormItem>
                 <AntDesign.FormItem Label="Waga">
-                    <AntDesign.Input Type="number" Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Waga " Placeholder="Podaj wagę" />
+                    <AntDesign.InputNumber @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Waga " Placeholder="Podaj wagę" />
                 </AntDesign.FormItem>
                 <AntDesign.FormItem Label="Powierzchnia">
-                    <AntDesign.Input Type="number" Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Powierzchnia" Placeholder="Podaj powierzchnię" />
+                    <AntDesign.InputNumber @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Powierzchnia" Placeholder="Podaj powierzchnię" />
                 </AntDesign.FormItem>
                 <AntDesign.FormItem Label="Objętość">
-                    <AntDesign.Input Type="number" Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Objetosc" />
+                    <AntDesign.InputNumber @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Objetosc" />
                 </AntDesign.FormItem>
                 <AntDesign.FormItem Label="Cena Netto">
-                    <AntDesign.Input Type="number" Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.CenaNetto" />
+                    <AntDesign.InputNumber @bind-Value="elementyZamowienia.ElemetZamDoZlecen.CenaNetto" />
                 </AntDesign.FormItem>
             </TabPane>
 
@@ -126,19 +126,19 @@ else
                     </AntDesign.Col>
                     <AntDesign.Col Span="18">
                         <AntDesign.FormItem Label="Wartość wysunięcia poza szyld domyślnie 2-3mm" Class="form-item-small-margin">
-                            <AntDesign.Input Type="number" Step="0.01" @bind-Value="@wkladka_wys" />
+                            <AntDesign.InputNumber @bind-Value="@wkladka_wys" />
                         </AntDesign.FormItem>
                         <AntDesign.FormItem Label="Grubość szyldu / Rozety wew.">
-                            <AntDesign.Input Type="number" Step="0.01" @bind-Value="@wkladka_szyldWew" Class="form-item-small-margin" />
+                            <AntDesign.InputNumber @bind-Value="@wkladka_szyldWew" Class="form-item-small-margin" />
                         </AntDesign.FormItem>
                         <AntDesign.FormItem Label="Odległość od pow. drzwi do środka rowka - Wymiar A" Class="form-item-small-margin">
-                            <AntDesign.Input Type="number" Step="0.01" @bind-Value="@wkladka_wymA" />
+                            <AntDesign.InputNumber @bind-Value="@wkladka_wymA" />
                         </AntDesign.FormItem>
                         <AntDesign.FormItem Label="Odległość od pow. drzwi do środka rowka - Wymiar B" Class="form-item-small-margin">
-                            <AntDesign.Input Type="number" Step="0.01" @bind-Value="@wkladka_wymB" />
+                            <AntDesign.InputNumber @bind-Value="@wkladka_wymB" />
                         </AntDesign.FormItem>
                         <AntDesign.FormItem Label="Grubość szyldu / Rozety zew." Class="form-item-small-margin">
-                            <AntDesign.Input Type="number" Step="0.01" @bind-Value="@wkladka_szyldZew" />
+                            <AntDesign.InputNumber @bind-Value="@wkladka_szyldZew" />
                         </AntDesign.FormItem>
                         <AntDesign.FormItem Label="Wkładko gałka" Class="form-item-small-margin">
                             <Switch @bind-Value="@wkladkoGalka" />

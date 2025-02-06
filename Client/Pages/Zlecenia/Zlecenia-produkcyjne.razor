@@ -467,7 +467,7 @@ else
                 <h5 class="modal-title">Ilość plików powiązanych: @pliki.Count() [@zlecenie.Klient]</h5>
             </div>
             <div class="modal-body">
-                <Table TItem="PlikiZlecenProdukcyjnych" DataSource="@pliki" ScrollX="1350" PageSize="3" Size="TableSize.Small"
+                <Table TItem="PlikiZlecenProdukcyjnych" DataSource="@pliki" ScrollX="1350" PageSize="3" Size="TableSize.Small" PageIndex="@_pageIndex"
                 RowClassName="@(x => x.Data.TypPliku.ToLower() == "/pdf" ? "pdf-class" : x.Data.TypPliku.ToLower() == "/dxf" || x.Data.TypPliku.ToLower() == "/dwg" ? "dxf-class" : "zlecenieNaN")">
                     <Column Title="ID" @bind-Field="@context.Id" Hidden />
                     <Column Title="Nazwa pliku" @bind-Field="@context.NazwaPliku" OnFilter="(a, b) => a == b" Width="100px" Style="font-size:10px" />
@@ -654,6 +654,8 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
     private int iloscTygodniDodaj = 8;
 
     private bool _onlyIconLoadingPdf = false;
+
+    int _pageIndex = 1;
 
     protected override async Task OnInitializedAsync()
     {
@@ -1269,6 +1271,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
 
     private async Task FileEdit(ZleceniaProdukcyjne row)
     {
+
         pliki = new List<PlikiZlecenProdukcyjnych>();
 
         zlecenie = new ZleceniaProdukcyjne();
@@ -1562,10 +1565,12 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
     {
 
         classShowFile = "";
-        await Task.Delay(200);
+        await Task.CompletedTask;
         displayFile = "none";
 
         StateHasChanged();
+
+        _pageIndex = 1;
     }
     //********************************************************************************************************************//
 

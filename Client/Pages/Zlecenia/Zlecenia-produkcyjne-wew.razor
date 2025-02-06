@@ -18,68 +18,68 @@
 
 <style>
     .custom-link {
-        color: blue;
+    color: blue;
     }
 
     .custom-linkszy {
-        color: darkblue;
+    color: darkblue;
     }
 
     .highlighted-background {
-        background-color: white;
-        overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
-        max-height: calc(100vh - 155px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 155px */
-        width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 260px */
-        box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu wysokości */
-        position: absolute;
-        left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
-        top: 155px; /* Ustawia górną krawędź 155px od góry okna */
+    background-color: white;
+    overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
+    max-height: calc(100vh - 155px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 155px */
+    width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 260px */
+    box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu wysokości */
+    position: absolute;
+    left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
+    top: 155px; /* Ustawia górną krawędź 155px od góry okna */
     }
 
     .zlealizowano, .zlealizowano > td {
-        background-color: forestgreen !important;
+    background-color: forestgreen !important;
     }
 
-        .zlealizowano:hover, .zlealizowano:hover > td {
-            background-color: lime !important;
-            font-size: 1.0em;
-        }
+    .zlealizowano:hover, .zlealizowano:hover > td {
+    background-color: lime !important;
+    font-size: 1.0em;
+    }
 
     .zlecenie, .zlecenie > td {
-        background-color: lightblue !important;
+    background-color: lightblue !important;
     }
 
     .zlecenie:hover, .zlecenie:hover > td {
-        background-color: lime !important;
-        font-size: 1.0em;
+    background-color: lime !important;
+    font-size: 1.0em;
     }
 
     .zlecenieNaN, .zlecenieNaN > td {
-        background-color: white !important;
+    background-color: white !important;
     }
 
-        .zlecenieNaN:hover, .zlecenieNaN:hover > td {
-            background-color: lime !important;
-            font-size: 1.0em;
-        }
+    .zlecenieNaN:hover, .zlecenieNaN:hover > td {
+    background-color: lime !important;
+    font-size: 1.0em;
+    }
 
     /* Nowe klasy dla PDF i DXF */
     .pdf-class {
-        background-color: lightyellow; /* Kolor tła dla plików PDF */
+    background-color: lightyellow; /* Kolor tła dla plików PDF */
     }
 
     .dxf-class {
-        background-color: lightgreen; /* Kolor tła dla plików DXF */
+    background-color: lightgreen; /* Kolor tła dla plików DXF */
     }
 
     .pdf-class:hover, .pdf-class:hover > td {
-        background-color: lime !important;
-        font-size: 1.0em;
+    background-color: lime !important;
+    font-size: 1.0em;
     }
 
     .dxf-class:hover, .dxf-class:hover > td {
-        background-color: lime !important;
-        font-size: 1.0em;
+    background-color: lime !important;
+    font-size: 1.0em;
     }
 
 </style>
@@ -87,16 +87,16 @@
 <PageTitle>Program do wspomagania produkcji zlecenia</PageTitle>
 
 <div style="display: flex; align-items: center; gap: 10px;">
- @*    <h3 style="margin: 0;">Zlecenia Produkcyjne Wewnętrzne</h3> *@
+    @*    <h3 style="margin: 0;">Zlecenia Produkcyjne Wewnętrzne</h3> *@
     <div style="display: flex; align-items: center;padding-left:15px">
         <Text style="margin-right: 5px;">Ilość widocznych rekordów</Text>
         <AntDesign.InputNumber TValue="int"
-                               @bind-Value="iloscRekordow"
-                               Min="2"
-                               Max="250"
-                               Bordered="false"
-                               OnChange="@(e => OnClickChange(e))"
-                               Style="width: 100px; padding: 0; border-radius: 4px;" />
+        @bind-Value="iloscRekordow"
+        Min="2"
+        Max="250"
+        Bordered="false"
+        OnChange="@(e => OnClickChange(e))"
+        Style="width: 100px; padding: 0; border-radius: 4px;" />
 
     </div>
 
@@ -104,17 +104,17 @@
     {
         <label>Filtruj po:</label>
         <Select TItem="TypZamowienia"
-                TItemValue="string"
-                DataSource="@_TypZamowienia"
-                @bind-Value="@filtrTypZamowienia"
-                ValueName="@nameof(TypZamowienia.Value)"
-                LabelName="@nameof(TypZamowienia.Name)"
-                GroupName="@nameof(TypZamowienia.Role)"
-                SortByLabel="@SortDirection.Ascending"
-                SortByGroup="@SortDirection.Ascending"
-                DefaultActiveFirstOption="false"
-                AllowClear
-                Style="width: 200px;" OnSelectedItemChanged="OnSelectedItemChangedHandlerFiltr">
+        TItemValue="string"
+        DataSource="@_TypZamowienia"
+        @bind-Value="@filtrTypZamowienia"
+        ValueName="@nameof(TypZamowienia.Value)"
+        LabelName="@nameof(TypZamowienia.Name)"
+        GroupName="@nameof(TypZamowienia.Role)"
+        SortByLabel="@SortDirection.Ascending"
+        SortByGroup="@SortDirection.Ascending"
+        DefaultActiveFirstOption="false"
+        AllowClear
+        Style="width: 200px;" OnSelectedItemChanged="OnSelectedItemChangedHandlerFiltr">
         </Select>
     }
     <CheckboxGroup Options="@plainOptions" @bind-Value="@_valueFiltr" TValue="string" Disabled="@blokojFiltr" OnChange="OnChange" />
@@ -146,67 +146,67 @@ else
     <div class="highlighted-background">
 
         <Table TItem="ZleceniaProdukcyjneWew" DataSource="@zleceniaProdukcyjneWew"
-               RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "zlecenieNaN" )"
-               ScrollX="1990" PageSize="@iloscRekordow" Size="TableSize.Small">
-                <ActionColumn Title="Materiały" Width="155">
-                    <a @onclick="() => DodajKantowke(context)" class="custom-link">Kantówka</a>
-                    <a @onclick="() => DodajSzybe(context)" class="custom-linkszy">Szyby</a>
-                    <br />
-                    <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">T.W.Z / Pozycje</a>
-                    <a @onclick="() => DodajZamowienia(context)">Zamówienia</a>
-                    <a style="font-weight: bold" @onclick="() => FileEdit(context)">Pliki</a>
-                </ActionColumn>
-                <Column Width="230" Title="Status" TData="string">
-                    @if (context.Tags != null)
+        RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "zlecenieNaN" )"
+        ScrollX="1990" PageSize="@iloscRekordow" Size="TableSize.Small">
+            <ActionColumn Title="Materiały" Width="155">
+                <a @onclick="() => DodajKantowke(context)" class="custom-link">Kantówka</a>
+                <a @onclick="() => DodajSzybe(context)" class="custom-linkszy">Szyby</a>
+                <br />
+                <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">T.W.Z / Pozycje</a>
+                <a @onclick="() => DodajZamowienia(context)">Zamówienia</a>
+                <a style="font-weight: bold" @onclick="() => FileEdit(context)">Pliki</a>
+            </ActionColumn>
+            <Column Width="230" Title="Status" TData="string">
+                @if (context.Tags != null)
+                {
+                    @foreach (var tag in context.Tags)
                     {
-                        @foreach (var tag in context.Tags)
-                        {
-                            <Tag Color="@(tag.Contains("szyb") ? "volcano" : tag.Contains("do produkcji")  ? "geekblue" : "green")">@tag</Tag>
-                        }
+                        <Tag Color="@(tag.Contains("szyb") ? "volcano" : tag.Contains("do produkcji")  ? "geekblue" : "green")">@tag</Tag>
                     }
-                    else
-                    {
-                        <Tag Color="@("black")">Brak danych</Tag>
-                    }
-                </Column>
-                <Column Title="ID" @bind-Field="@context.Id" Hidden />
-                <Column Title="Typ Dokumentu" @bind-Field="@context.TypZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
-                <Column Title="Numer Zamówienia" @bind-Field="@context.NumerZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
-                <Column Title="Data Produkcji" @bind-Field="@context.DataProdukcji" Style="font-weight:bold;color:red" Format="yyyy-MM-dd" Sortable />
-                <Column Title="Data Gotowości" TData="DateTime" DataIndex="DataGotowosci" Style="font-weight:bold" Format="yyyy-MM-dd" Sortable />
-                <Column Title="Klient" Width="195" @bind-Field="@context.Klient" Style="font-weight:bold" Sortable OnFilter="(a, b) => a == b" Filterable />
-                <Column Title="Nazwa Produktu" @bind-Field="@context.NazwaProduktu" Sortable Filterable/>
-                <Column Title="Adres" Width="135" @bind-Field="@context.Adres" Sortable OnFilter="(a, b) => a == b" Filterable />
-                <Column Title="Miejscowość" @bind-Field="@context.Miejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable />
-                <Column Title="Telefon" @bind-Field="@context.Telefon" Sortable />
-                <Column Title="CWZ" @bind-Field="@context.JednostkiNaZlecenie" Style="width:30px" Sortable />
-                <PropertyColumn Property="c=>context.ZlecZrealizowane"></PropertyColumn>
+                }
+                else
+                {
+                    <Tag Color="@("black")">Brak danych</Tag>
+                }
+            </Column>
+            <Column Title="ID" @bind-Field="@context.Id" Hidden />
+            <Column Title="Typ Dokumentu" @bind-Field="@context.TypZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
+            <Column Title="Numer Zamówienia" @bind-Field="@context.NumerZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
+            <Column Title="Data Produkcji" @bind-Field="@context.DataProdukcji" Style="font-weight:bold;color:red" Format="yyyy-MM-dd" Sortable />
+            <Column Title="Data Gotowości" TData="DateTime" DataIndex="DataGotowosci" Style="font-weight:bold" Format="yyyy-MM-dd" Sortable />
+            <Column Title="Klient" Width="195" @bind-Field="@context.Klient" Style="font-weight:bold" Sortable OnFilter="(a, b) => a == b" Filterable />
+            <Column Title="Nazwa Produktu" @bind-Field="@context.NazwaProduktu" Sortable Filterable/>
+            <Column Title="Adres" Width="135" @bind-Field="@context.Adres" Sortable OnFilter="(a, b) => a == b" Filterable />
+            <Column Title="Miejscowość" @bind-Field="@context.Miejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable />
+            <Column Title="Telefon" @bind-Field="@context.Telefon" Sortable />
+            <Column Title="CWZ" @bind-Field="@context.JednostkiNaZlecenie" Style="width:30px" Sortable />
+            <PropertyColumn Property="c=>context.ZlecZrealizowane"></PropertyColumn>
 
-                <!-- Przykład kolumny dla danych zagnieżdżonych -->
-                <Column Title="Numer Zlecenia" TData="string" DataIndex="NumerZlecenia" Style="width:38px" />
+            <!-- Przykład kolumny dla danych zagnieżdżonych -->
+            <Column Title="Numer Zlecenia" TData="string" DataIndex="NumerZlecenia" Style="width:38px" />
 
-                <!-- Przykład kolumny dla daty z formatowaniem -->
-                <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd" Sortable />
+            <!-- Przykład kolumny dla daty z formatowaniem -->
+            <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd" Sortable />
 
-                <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
+            <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
             <ActionColumn Title="Akcja" Width="100" Fixed="right">
                 <Popconfirm Placement="@Placement.Left" Title="Czy chcesz edytować pozycję?"
-                                    OnConfirm="()=> editRow(context.Id)"
-                                    OkText="Tak"
-                                    CancelText="Nie">
-                            <a>Edytuj</a>
-                        </Popconfirm>
-                    @if (boolAdmin || boolUsuniecia)
-                    {
+                OnConfirm="()=> editRow(context.Id)"
+                OkText="Tak"
+                CancelText="Nie">
+                    <a>Edytuj</a>
+                </Popconfirm>
+                @if (boolAdmin || boolUsuniecia)
+                {
                     <Popconfirm Placement="@Placement.Left" Title="Czy chcesz usunąć pozycję?"
-                                OnConfirm="()=> delRow(context.Id, context.RowId)"
-                                    OkText="Tak"
-                                    CancelText="Nie">
-                            <a style="color:red">Usuń</a>
-                        </Popconfirm>
-                    }
-                </ActionColumn>
-            </Table>
+                    OnConfirm="()=> delRow(context.Id, context.RowId)"
+                    OkText="Tak"
+                    CancelText="Nie">
+                        <a style="color:red">Usuń</a>
+                    </Popconfirm>
+                }
+            </ActionColumn>
+        </Table>
 
     </div>
 }
@@ -231,16 +231,16 @@ else
                                 <AntDesign.Col Span="12">
                                     <AntDesign.FormItem Label="Typ Dokumentu">
                                         <Select TItem="TypZamowienia"
-                                                TItemValue="string"
-                                                DataSource="@_TypZamowienia"
-                                                @bind-Value="@zlecenie.TypZamowienia"
-                                                ValueName="@nameof(TypZamowienia.Value)"
-                                                LabelName="@nameof(TypZamowienia.Name)"
-                                                GroupName="@nameof(TypZamowienia.Role)"
-                                                SortByLabel="@SortDirection.Ascending"
-                                                SortByGroup="@SortDirection.Ascending"
-                                                DefaultActiveFirstOption="true"
-                                                Style="width: 200px;" OnSelectedItemChanged="OnSelectedItemChangedHandler">
+                                        TItemValue="string"
+                                        DataSource="@_TypZamowienia"
+                                        @bind-Value="@zlecenie.TypZamowienia"
+                                        ValueName="@nameof(TypZamowienia.Value)"
+                                        LabelName="@nameof(TypZamowienia.Name)"
+                                        GroupName="@nameof(TypZamowienia.Role)"
+                                        SortByLabel="@SortDirection.Ascending"
+                                        SortByGroup="@SortDirection.Ascending"
+                                        DefaultActiveFirstOption="true"
+                                        Style="width: 200px;" OnSelectedItemChanged="OnSelectedItemChangedHandler">
                                         </Select>
                                     </AntDesign.FormItem>
                                 </AntDesign.Col>
@@ -309,7 +309,7 @@ else
                             <AntDesign.Row Gutter="16">
                                 <AntDesign.Col Span="12">
                                     <AntDesign.FormItem Label="Data Gotowości Do Produkcji">
-                                         <div style="display: flex; align-items: center; gap: 10px;">
+                                        <div style="display: flex; align-items: center; gap: 10px;">
                                             <AntDesign.DatePicker Disabled="@czyZamowienie" @bind-Value="zlecenie.DataGotowosci" />
                                             <AntDesign.Button Disabled="@czyZamowienie" OnClick="DataProdUstaw" Style="width:180px">Ustaw datę produkcji</AntDesign.Button>
                                         </div>
@@ -349,19 +349,19 @@ else
                                     </AntDesign.FormItem>
                                 </AntDesign.Col>
                             </AntDesign.Row>
-                            </TabPane>
+                        </TabPane>
 
                         <TabPane Key="tw2" Tab=@($"Produkt ilość sztuk")>
                             <AntDesign.Row Gutter="16">
                                 <AntDesign.Col Span="12">
                                     <AntDesign.FormItem Label="Nazwa Produktu">
-                                            <AutoComplete Placeholder="Nazwa Produktu" @bind-Value="@zlecenie.NazwaProduktu" Options="optionsProdukt" CompareWith="CompareWith"
-                                                          OnSelectionChange="OnSelectionChangeProdukt">
-                                                <OptionTemplate Context="option">
-                                                    <AutoCompleteOption Value="@option.Value" Label="@option.Label">
-                                                    </AutoCompleteOption>
-                                                </OptionTemplate>
-                                            </AutoComplete>
+                                        <AutoComplete Placeholder="Nazwa Produktu" @bind-Value="@zlecenie.NazwaProduktu" Options="optionsProdukt" CompareWith="CompareWith"
+                                        OnSelectionChange="OnSelectionChangeProdukt">
+                                            <OptionTemplate Context="option">
+                                                <AutoCompleteOption Value="@option.Value" Label="@option.Label">
+                                                </AutoCompleteOption>
+                                            </OptionTemplate>
+                                        </AutoComplete>
                                     </AntDesign.FormItem>
                                 </AntDesign.Col>
                                 <AntDesign.Col Span="12">
@@ -376,7 +376,7 @@ else
                                         <AntDesign.Input @bind-Value="zlecenie.KodProduktu" />
                                     </AntDesign.FormItem>
                                 </AntDesign.Col>
-                                 </AntDesign.Row>
+                            </AntDesign.Row>
                             <AntDesign.Row Gutter="16">
                                 <AntDesign.Col Span="12">
                                     <AntDesign.FormItem Label="Ilość sztuk w zleceniu">
@@ -389,11 +389,11 @@ else
 
                         <TabPane Key="twStatus" Tab=@($"Status")>
                             <AntDesign.Row Gutter="16">
-                                    <AntDesign.Col Span="12">
-                                        <AntDesign.FormItem Label="Status nowy wpis po [,]">
-                                            <InputTextArea @bind-Value="zlecenie.TagsString" />
-                                        </AntDesign.FormItem>
-                                    </AntDesign.Col>
+                                <AntDesign.Col Span="12">
+                                    <AntDesign.FormItem Label="Status nowy wpis po [,]">
+                                        <InputTextArea @bind-Value="zlecenie.TagsString" />
+                                    </AntDesign.FormItem>
+                                </AntDesign.Col>
                                 <AntDesign.Col Span="12">
                                     <AntDesign.FormItem Label="Jednostki produkcyjne na wyk. Zlecenia">
                                         <label>(jeżeli czasy do linii zostaną uzupełnione to ten wpis zostanie pominięty)</label>
@@ -409,7 +409,7 @@ else
                                 </AntDesign.Col>
                                 <AntDesign.Col Span="12">
                                     <AntDesign.FormItem Label="Ostatnia Zmiana">
-                                         <Tooltip Placement="@Placement.TopLeft" Title="@zlecenie.RowId">
+                                        <Tooltip Placement="@Placement.TopLeft" Title="@zlecenie.RowId">
                                             <AntDesign.Input ReadOnly @bind-Value="zlecenie.OstatniaZmiana" />
                                         </Tooltip>
                                     </AntDesign.FormItem>
@@ -450,8 +450,8 @@ else
                             <AntDesign.Button @onclick="@HandleCancel">Anuluj</AntDesign.Button>
                         </AntDesign.Col>
                     </AntDesign.Row>
-                
-                 </AntDesign.Form>
+
+                </AntDesign.Form>
             </div>
         </div>
     </div>
@@ -464,8 +464,8 @@ else
                 <h5 class="modal-title">Ilość plików powiązanych: @pliki.Count()  [@zlecenie.Klient]</h5>
             </div>
             <div class="modal-body">
-                <Table TItem="PlikiZlecenProdukcyjnych" DataSource="@pliki" ScrollX="1350" PageSize="3" Size="TableSize.Small"
-                       RowClassName="@(x => x.Data.TypPliku.ToLower() == "/pdf" ? "pdf-class" : x.Data.TypPliku.ToLower() == "/dxf" || x.Data.TypPliku.ToLower() == "/dwg" ? "dxf-class" : "zlecenieNaN")">
+                <Table TItem="PlikiZlecenProdukcyjnych" DataSource="@pliki" ScrollX="1350" PageSize="3" Size="TableSize.Small" PageIndex="@_pageIndex"
+                RowClassName="@(x => x.Data.TypPliku.ToLower() == "/pdf" ? "pdf-class" : x.Data.TypPliku.ToLower() == "/dxf" || x.Data.TypPliku.ToLower() == "/dwg" ? "dxf-class" : "zlecenieNaN")">
                     <Column Title="ID" @bind-Field="@context.Id" Hidden />
                     <Column Title="Nazwa pliku" @bind-Field="@context.NazwaPliku" OnFilter="(a, b) => a == b" Width="100px" Style="font-size:10px" />
                     <Column Title="Oryginalna nazwa pliku" Style="color:blue; font-weight:bold" @bind-Field="@context.OryginalnaNazwaPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
@@ -479,9 +479,9 @@ else
                                     <Tooltip Placement="@Placement.Left" Title="Generuj Dokument Produkcyjny">
 
                                         <Button Type="ButtonType.Primary"
-                                                Icon="@IconType.Outline.FilePdf"
-                                                Loading="_onlyIconLoadingPdf"
-                                                OnClick="@(e => WydrukProdukcyjny(context.NazwaPliku))" />
+                                        Icon="@IconType.Outline.FilePdf"
+                                        Loading="_onlyIconLoadingPdf"
+                                        OnClick="@(e => WydrukProdukcyjny(context.NazwaPliku))" />
 
                                     </Tooltip>
                                 }
@@ -514,9 +514,9 @@ else
                                             @if (boolAdmin || boolUsuniecia)
                                             {
                                                 <Popconfirm Title="Czy chcesz usunąć plik?"
-                                                            OnConfirm="()=> deleteFile(item.Id, item.NazwaPliku, item.RowIdZleceniaProdukcyjne)"
-                                                            OkText="Tak"
-                                                            CancelText="Nie">
+                                                OnConfirm="()=> deleteFile(item.Id, item.NazwaPliku, item.RowIdZleceniaProdukcyjne)"
+                                                OkText="Tak"
+                                                CancelText="Nie">
                                                     <a style="color:red">Usuń plik</a>
                                                 </Popconfirm>
                                             }
@@ -561,7 +561,7 @@ else
 </div>
 
 <div class="modal fade @classShowPDFWP" tabindex="-1"
-     style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute;
+style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute;
             width: 100%; height: 100vh; max-width: 100%; max-height: 100vh; overflow: auto;">
     <div class="modal-dialog modal-lg" style="width: 100%; max-width: 100%; margin: 0;">
         <div class="modal-content" style="height: 100%; width: 100%;">
@@ -643,6 +643,8 @@ else
     private bool blokojFiltr = true;
 
     private bool _onlyIconLoadingPdf = false;
+
+    int _pageIndex = 1;
 
     protected override async Task OnInitializedAsync()
     {
@@ -1069,7 +1071,7 @@ else
     bool czekajNaPobranie = false;
     private async Task DownloadFile(string fileName, string oryginalfileName)
     {
-       if (czekajNaPobranie) return;
+        if (czekajNaPobranie) return;
 
         czekajNaPobranie = true;
 
@@ -1183,6 +1185,7 @@ else
 
     private async Task FileEdit(ZleceniaProdukcyjneWew row)
     {
+
         pliki = new List<PlikiZlecenProdukcyjnych>();
 
         zlecenie = new ZleceniaProdukcyjneWew();
@@ -1529,10 +1532,12 @@ else
     {
 
         classShowFile = "";
-        await Task.Delay(200);
+        await Task.CompletedTask;
         displayFile = "none";
 
         StateHasChanged();
+
+        _pageIndex = 1;
     }
     //********************************************************************************************************************//
 

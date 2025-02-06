@@ -11,6 +11,8 @@
 @using System.Collections.Generic;
 @using System.Linq;
 @using System.Threading.Tasks;
+@using System.Diagnostics;
+
 @inject NavigationManager NavigationManager;
 @inject IJSRuntime JS
 @inject IConfiguration Configuration
@@ -73,7 +75,7 @@ else
             }
         </style>
         <script>
-            window.downloadFile = (url, filename) => {
+            window.downloadFileXX = (url, filename) => {
             const link = document.createElement('a');
             link.href = url;
             link.download = filename;
@@ -81,6 +83,23 @@ else
             link.click();
             document.body.removeChild(link);
             };
+
+            window.downloadFile = (fileName, content) => {
+            const blob = new Blob([content], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            URL.revokeObjectURL(url);
+            };
+
+
         </script>
     </head>
     <body>
@@ -299,6 +318,72 @@ else
 
     private async Task UpdateApplication()
     {
+
+                string downloadPath = "";
+                    try
+                    {
+                        var settings = await Http.GetFromJsonAsync<JSettings>("/api/jsettings");
+                        if (settings != null)
+                        {
+                            if (settings.DownloadPath != null)
+                            {
+                                downloadPath = settings.DownloadPath;
+                                Console.WriteLine($"downloadPath: {downloadPath}");
+                            }
+                        }
+
+                    }
+                    catch (Exception ex)
+                    {
+                        // Obsługa błędów, np. wyświetlenie komunikatu o błędzie
+                        Console.WriteLine($"Wystąpił błąd (settings): {ex.Message}");
+                    }
+
+        string[] filesToDownload = {
+        "GEORGE.Client.dll",
+        "GEORGE.Client.pdb",
+        "GEORGE.Server.deps.json",
+        "GEORGE.Server.dll",
+        "GEORGE.Server.exe"
+    };
+
+        foreach (var fileName in filesToDownload)
+        {
+            try
+            {
+                Console.WriteLine($"Pobieranie: {fileName}");
+                var response = await Http.GetAsync($"api/FileDownload/download/{fileName}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var fileBytes = await response.Content.ReadAsByteArrayAsync();
+                    var filePath = Path.Combine(downloadPath, fileName);
+
+                    Directory.CreateDirectory(Path.GetDirectoryName(filePath)); // Tworzenie katalogu
+                    await File.WriteAllBytesAsync(filePath, fileBytes);
+
+                    Console.WriteLine($"Pobrano: {fileName}");
+                }
+                else
+                {
+                    // Wyświetl szczegółowy błąd
+                    string errorContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Błąd pobierania: {fileName}, Status: {response.StatusCode}, Odpowiedź: {errorContent}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Błąd: {ex.Message}");
+            }
+        }
+    }
+
+
+
+    private async Task UpdateApplicationXX()
+    {
+
+        return;
         // Lista plików do pobrania
         var filesToDownload = new string[]
       {
@@ -357,11 +442,14 @@ else
                     try
                     {
                         // Upewniamy się, że katalog istnieje
-                        Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+                       // Directory.CreateDirectory(Path.GetDirectoryName(filePath));
 
                         Console.WriteLine($"Próba zapisu do: {filePath}");
-                        await File.WriteAllBytesAsync(filePath, fileBytes);
-                        Console.WriteLine($"Plik zapisany do: {filePath}");
+                        //await File.WriteAllBytesAsync(filePath, fileBytes);
+                        //Console.WriteLine($"Plik zapisany do: {filePath}");
+
+                        await JS.InvokeVoidAsync("downloadFile", fileName, fileBytes);
+
                     }
                     catch (Exception ex)
                     {
@@ -372,6 +460,7 @@ else
                     statusMessage = $"Plik {fileName} pobrany pomyślnie.  Plik zapisano w {filePath}";
                     StateHasChanged();
                     await Task.Delay(800); // Dodatkowe opóźnienie dla UI
+
                 }
                 else
                 {
@@ -517,7 +606,7 @@ else
         RowIdSelect = parts[0]; // Pierwsza część
 
         if (parts.Length>1)
-        RowIdDzialuSelect = parts[1]; // Druga część
+            RowIdDzialuSelect = parts[1]; // Druga część
 
 
         if (e.Value.ToString() == "puste_dane")
@@ -576,9 +665,9 @@ else
 
         if (e.Value == null) return;
 
-        string RowIdMaster = e.Value.ToString();
+        string RowIdMaster = e.Value.ToString() ?? "";
 
-        if (e.Value.ToString() == "puste_dane")
+        if (e.Value.ToString() == "puste_dane" || e.Value.ToString()== "")
         {
             if (listaUprawnienMaster != null) listaUprawnienMaster = null;
             return;
@@ -675,6 +764,8 @@ else
             dodajInne = string.Format("{0}", string.Join(", ", values));
 
         }
+
+        await Task.CompletedTask;
 
     }
 
@@ -806,7 +897,7 @@ else
                         boolZmian = szuk.Zmiana;
                         boolUsuniecia = szuk.Usuniecie;
                         boolAdmin = szuk.Administrator;
-                        RowIdPracownika = szuk.RowId;
+                        RowIdPracownika = szuk.RowId ?? "";
                     }
                 }
             }
