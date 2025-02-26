@@ -45,7 +45,7 @@
                 </SpaceItem>
                 <SpaceItem>
                     <Button OnClick="() => hnadleClickWyrob(2)" Style="width: 100%; height:100px; padding: 0px">
-                        <img src="../Images/OKN_RUP_1SK.jpg" />
+                        <img src="../Images/OKN_RUP_2SK.jpg" />
                     </Button>
                 </SpaceItem>
             </Space>
@@ -260,7 +260,7 @@
             // Zainicjalizuj listę kształtów okno 1 skrzydłowe
             shapes = new List<ShapeOkno>
             {
-                new COKN1SK68(100, 100, szerOkna, wysOkna, otwWew ?? "TAK", sposobOtwierania ?? "" , skala)
+                new COKN1SK68(10, 10, szerOkna, wysOkna, otwWew ?? "TAK", sposobOtwierania ?? "" , skala)
             };
         }
         else if (idWyrClick == 2)
@@ -268,7 +268,7 @@
             // Zainicjalizuj listę kształtów okno 1 skrzydłowe
             shapes = new List<ShapeOkno>
             {
-                new COKN2SK68(100, 100, szerOkna, wysOkna, liniaPodzialSkrzydla, otwWew ?? "TAK", sposobOtwierania ?? "" , skala)
+                new COKN2SK68(10, 10, szerOkna, wysOkna, liniaPodzialSkrzydla, otwWew ?? "TAK", sposobOtwierania ?? "" , skala)
             };
         }
 

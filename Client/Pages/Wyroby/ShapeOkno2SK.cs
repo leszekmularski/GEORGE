@@ -86,113 +86,113 @@ namespace GEORGE.Client.Pages.Wyroby
         }
         private async Task DrawSposOtwLines(Canvas2DContext context, double xWewSkrzy, double yWewSkrzyd)
         {
-            //if (SposOtwierania == "R/RUP")
-            //{
-            //    // Rysowanie linii promienistych
-            //    await context.BeginPathAsync();
-            //    await context.SetStrokeStyleAsync("black"); // Kolor linii
-            //    await context.SetLineWidthAsync(1);
-            //    await context.SetLineDashAsync(new float[] { 5, 5 }); // Ustaw przerywaną linię
+            if (SposOtwierania == "R/RUP")
+            {
+                // Rysowanie linii promienistych
+                await context.BeginPathAsync();
+                await context.SetStrokeStyleAsync("black"); // Kolor linii
+                await context.SetLineWidthAsync(1);
+                await context.SetLineDashAsync(new float[] { 5, 5 }); // Ustaw przerywaną linię
 
-            //    // WymiarWewOknaWidth, WymiarWewOknaHeight, SzerokoscRamy, SzerokoscSkrzydla, SkrzydloMniejszczeO
+                // WymiarWewOknaWidth, WymiarWewOknaHeight, SzerokoscRamy, SzerokoscSkrzydla, SkrzydloMniejszczeO
 
-            //    // Rysowanie linii
-            //    await context.MoveToAsync(xWewSkrzy, yWewSkrzyd);
-            //    await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + (WymiarWewOknaHeight / 2 * Skala));
-            //    await context.LineToAsync(xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight * Skala);
-            //    await context.StrokeAsync();
+                // Rysowanie linii
+                await context.MoveToAsync(xWewSkrzy, yWewSkrzyd);
+                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth1SK * Skala, yWewSkrzyd + (WymiarWewOknaHeight1SK / 2 * Skala));
+                await context.LineToAsync(xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
+                await context.StrokeAsync();
 
-            //    await context.MoveToAsync(xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight * Skala);
-            //    await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth / 2 * Skala, yWewSkrzyd);
-            //    await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaHeight * Skala);
-            //    await context.StrokeAsync();
+                await context.MoveToAsync(xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
+                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth1SK / 2 * Skala, yWewSkrzyd);
+                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth1SK * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
+                await context.StrokeAsync();
 
-            //    await DrawKlamkaLines(context, xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaHeight / 2 * Skala, 'P');
+                await DrawKlamkaLines(context, xWewSkrzy + WymiarWewOknaWidth1SK * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK / 2 * Skala, 'P');
 
-            //    //AddLinePoints(xWewSkrzy, yWewSkrzyd, xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaWidth / 2 * Skala, "dashed"); //Generuj linie pod DXF
-            //    //AddLinePoints(xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaWidth / 2 * Skala, xWewSkrzy, yWewSkrzyd + WymiarWewOknaWidth * Skala, "dashed"); //Generuj linie pod DXF
-            //    //AddLinePoints(xWewSkrzy, yWewSkrzyd + WymiarWewOknaWidth * Skala, xWewSkrzy, yWewSkrzyd + WymiarWewOknaWidth * Skala, "dashed"); //Generuj linie pod DXF
-            //}
-            //else if (SposOtwierania == "RUL/R")
-            //{
-            //    // Rysowanie linii promienistych
-            //    await context.BeginPathAsync();
-            //    await context.SetStrokeStyleAsync("black"); // Kolor linii
-            //    await context.SetLineWidthAsync(1);
-            //    await context.SetLineDashAsync(new float[] { 5, 5 }); // Ustaw przerywaną linię
+                //AddLinePoints(xWewSkrzy, yWewSkrzyd, xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaWidth / 2 * Skala, "dashed"); //Generuj linie pod DXF
+                //AddLinePoints(xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaWidth / 2 * Skala, xWewSkrzy, yWewSkrzyd + WymiarWewOknaWidth * Skala, "dashed"); //Generuj linie pod DXF
+                //AddLinePoints(xWewSkrzy, yWewSkrzyd + WymiarWewOknaWidth * Skala, xWewSkrzy, yWewSkrzyd + WymiarWewOknaWidth * Skala, "dashed"); //Generuj linie pod DXF
+            }
+            else if (SposOtwierania == "RUL/R")
+            {
+                // Rysowanie linii promienistych
+                await context.BeginPathAsync();
+                await context.SetStrokeStyleAsync("black"); // Kolor linii
+                await context.SetLineWidthAsync(1);
+                await context.SetLineDashAsync(new float[] { 5, 5 }); // Ustaw przerywaną linię
 
-            //    // WymiarWewOknaWidth, WymiarWewOknaHeight, SzerokoscRamy, SzerokoscSkrzydla, SkrzydloMniejszczeO
+                // WymiarWewOknaWidth, WymiarWewOknaHeight, SzerokoscRamy, SzerokoscSkrzydla, SkrzydloMniejszczeO
 
-            //    // Rysowanie linii
-            //    await context.MoveToAsync(xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd);
-            //    await context.LineToAsync(xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight / 2 * Skala);
-            //    await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaHeight * Skala);
-            //    await context.StrokeAsync();
+                // Rysowanie linii
+                await context.MoveToAsync(xWewSkrzy + WymiarWewOknaWidth1SK * Skala, yWewSkrzyd);
+                await context.LineToAsync(xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight1SK / 2 * Skala);
+                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth1SK * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
+                await context.StrokeAsync();
 
-            //    await context.MoveToAsync(xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight * Skala);
-            //    await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth / 2 * Skala, yWewSkrzyd);
-            //    await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaHeight * Skala);
-            //    await context.StrokeAsync();
+                await context.MoveToAsync(xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
+                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth1SK / 2 * Skala, yWewSkrzyd);
+                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth1SK * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
+                await context.StrokeAsync();
 
-            //    await DrawKlamkaLines(context, xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight / 2 * Skala, 'L');
+                await DrawKlamkaLines(context, xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight1SK / 2 * Skala, 'L');
 
-            //}
-            //else if (SposOtwierania == "U")
-            //{
-            //    // Rysowanie linii promienistych
-            //    await context.BeginPathAsync();
-            //    await context.SetStrokeStyleAsync("black"); // Kolor linii
-            //    await context.SetLineWidthAsync(1);
-            //    await context.SetLineDashAsync(new float[] { 5, 5 }); // Ustaw przerywaną linię
+            }
+            else if (SposOtwierania == "U")
+            {
+                // Rysowanie linii promienistych
+                await context.BeginPathAsync();
+                await context.SetStrokeStyleAsync("black"); // Kolor linii
+                await context.SetLineWidthAsync(1);
+                await context.SetLineDashAsync(new float[] { 5, 5 }); // Ustaw przerywaną linię
 
-            //    // WymiarWewOknaWidth, WymiarWewOknaHeight, SzerokoscRamy, SzerokoscSkrzydla, SkrzydloMniejszczeO
+                // WymiarWewOknaWidth, WymiarWewOknaHeight, SzerokoscRamy, SzerokoscSkrzydla, SkrzydloMniejszczeO
 
-            //    await context.MoveToAsync(xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight * Skala);
-            //    await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth / 2 * Skala, yWewSkrzyd);
-            //    await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaHeight * Skala);
-            //    await context.StrokeAsync();
+                await context.MoveToAsync(xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
+                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth1SK / 2 * Skala, yWewSkrzyd);
+                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth1SK * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
+                await context.StrokeAsync();
 
-            //    await DrawKlamkaLines(context, xWewSkrzy + WymiarWewOknaWidth / 2 * Skala, yWewSkrzyd, 'U');
+                await DrawKlamkaLines(context, xWewSkrzy + WymiarWewOknaWidth1SK / 2 * Skala, yWewSkrzyd, 'U');
 
-            //}
-            //else if (SposOtwierania == "RP")
-            //{
-            //    // Rysowanie linii promienistych
-            //    await context.BeginPathAsync();
-            //    await context.SetStrokeStyleAsync("black"); // Kolor linii
-            //    await context.SetLineWidthAsync(1);
-            //    await context.SetLineDashAsync(new float[] { 5, 5 }); // Ustaw przerywaną linię
+            }
+            else if (SposOtwierania == "RP")
+            {
+                // Rysowanie linii promienistych
+                await context.BeginPathAsync();
+                await context.SetStrokeStyleAsync("black"); // Kolor linii
+                await context.SetLineWidthAsync(1);
+                await context.SetLineDashAsync(new float[] { 5, 5 }); // Ustaw przerywaną linię
 
-            //    // WymiarWewOknaWidth, WymiarWewOknaHeight, SzerokoscRamy, SzerokoscSkrzydla, SkrzydloMniejszczeO
+                // WymiarWewOknaWidth, WymiarWewOknaHeight, SzerokoscRamy, SzerokoscSkrzydla, SkrzydloMniejszczeO
 
-            //    // Rysowanie linii
-            //    await context.MoveToAsync(xWewSkrzy, yWewSkrzyd);
-            //    await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaHeight / 2 * Skala);
-            //    await context.LineToAsync(xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight * Skala);
-            //    await context.StrokeAsync();
+                // Rysowanie linii
+                await context.MoveToAsync(xWewSkrzy, yWewSkrzyd);
+                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth1SK * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK / 2 * Skala);
+                await context.LineToAsync(xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
+                await context.StrokeAsync();
 
-            //    await DrawKlamkaLines(context, xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaHeight / 2 * Skala, 'P');
+                await DrawKlamkaLines(context, xWewSkrzy + WymiarWewOknaWidth1SK * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK / 2 * Skala, 'P');
 
-            //}
-            //else if (SposOtwierania == "RL")
-            //{
-            //    // Rysowanie linii promienistych
-            //    await context.BeginPathAsync();
-            //    await context.SetStrokeStyleAsync("black"); // Kolor linii
-            //    await context.SetLineWidthAsync(1);
-            //    await context.SetLineDashAsync(new float[] { 5, 5 }); // Ustaw przerywaną linię
+            }
+            else if (SposOtwierania == "RL")
+            {
+                // Rysowanie linii promienistych
+                await context.BeginPathAsync();
+                await context.SetStrokeStyleAsync("black"); // Kolor linii
+                await context.SetLineWidthAsync(1);
+                await context.SetLineDashAsync(new float[] { 5, 5 }); // Ustaw przerywaną linię
 
-            //    // WymiarWewOknaWidth, WymiarWewOknaHeight, SzerokoscRamy, SzerokoscSkrzydla, SkrzydloMniejszczeO
+                // WymiarWewOknaWidth, WymiarWewOknaHeight, SzerokoscRamy, SzerokoscSkrzydla, SkrzydloMniejszczeO
 
-            //    // Rysowanie linii
-            //    await context.MoveToAsync(xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd);
-            //    await context.LineToAsync(xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight / 2 * Skala);
-            //    await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaHeight * Skala);
-            //    await context.StrokeAsync();
+                // Rysowanie linii
+                await context.MoveToAsync(xWewSkrzy + WymiarWewOknaWidth1SK * Skala, yWewSkrzyd);
+                await context.LineToAsync(xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight1SK / 2 * Skala);
+                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth1SK * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
+                await context.StrokeAsync();
 
-            //    await DrawKlamkaLines(context, xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight / 2 * Skala, 'L');
+                await DrawKlamkaLines(context, xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight1SK / 2 * Skala, 'L');
 
-            //}
+            }
 
         }
         private async Task DrawKlamkaLines(Canvas2DContext context, double xOsObr, double yOsObr, char strona)
@@ -237,13 +237,14 @@ namespace GEORGE.Client.Pages.Wyroby
         {
             await context.BeginPathAsync();
             await context.SetLineWidthAsync(3);
+            await context.SetStrokeStyleAsync("black"); // Kolor linii
             await context.SetLineDashAsync(new float[] { });
 
             if(numer_skrzydla ==  1)
             {
                 double podzialLiniaX = LiniaPodzialuSkrzydel;
 
-                WymiarZewOknaWidth1SK = podzialLiniaX - 2 * SzerokoscSkrzydla + SkrzydloMniejszczeO_Lewa ;
+                WymiarZewOknaWidth1SK = podzialLiniaX - SzerokoscSkrzydla + SkrzydloMniejszczeO_Lewa ;
                 WymiarZewOknaHeight1SK = Height - 2 * SzerokoscSkrzydla + SkrzydloMniejszczeO_Gora + SkrzydloMniejszczeO_Dol;
 
                 WymiarWewOknaWidth1SK = WymiarZewOknaWidth1SK - 2 * GrboscRdzeniaSkrzydla - 2 * WysPiora;
@@ -260,9 +261,9 @@ namespace GEORGE.Client.Pages.Wyroby
             {
                 double podzialLiniaX = Width - LiniaPodzialuSkrzydel;
 
-                offsetX += podzialLiniaX - 140 * Skala; //50 zachodzenie za siebie skrzydeł
+                offsetX = offsetX + ((podzialLiniaX - SzerokoscSkrzydla + SkrzydloMniejszczeO_Prawa) * Skala);//50 zachodzenie za siebie skrzydeł
 
-                WymiarZewOknaWidth2SK = podzialLiniaX - 2 * SzerokoscSkrzydla + SkrzydloMniejszczeO_Prawa;
+                WymiarZewOknaWidth2SK = podzialLiniaX - SzerokoscSkrzydla + SkrzydloMniejszczeO_Prawa;
                 WymiarZewOknaHeight2SK = Height - 2 * SzerokoscSkrzydla + SkrzydloMniejszczeO_Gora + SkrzydloMniejszczeO_Dol;
 
                 WymiarWewOknaWidth2SK = WymiarZewOknaWidth2SK - 2 * GrboscRdzeniaSkrzydla - 2 * WysPiora;
