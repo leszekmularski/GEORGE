@@ -13,11 +13,11 @@
 @inject IJSRuntime JS;
 
 <div style="display: flex; align-items: flex-start;">
-     <div style="width: 256px;">
+    <div style="width: 256px;">
         <Menu Style="width: 256px;"
-              DefaultSelectedKeys=@(new[] { "1" })
-              DefaultOpenKeys=@(new[] { "sub1" })
-              Mode=@MenuMode.Inline>
+        DefaultSelectedKeys=@(new[] { "1" })
+        DefaultOpenKeys=@(new[] { "sub1" })
+        Mode=@MenuMode.Inline>
             <SubMenu Key="sub1" TitleTemplate="@sub1Title">
                 <MenuItemGroup Key="g1" Title="Wymiary">
                     <MenuItem Key="001">
@@ -29,13 +29,13 @@
                         <input id="wysDzwi" type="number" @bind="wysDzwi" min="1500" max="2800" />
                     </MenuItem>
                     <MenuItem Key="003">
-                    <div>
-                        <label for="width">Ościężnica:</label>
-                        <select name="typOscieznicy" id="typOscieznicy" @bind="typOscieznicy">
-                            <option value="Pioro">Z piórem</option>
-                        </select>
-                    </div>
-                </MenuItem>
+                        <div>
+                            <label for="width">Ościężnica:</label>
+                            <select name="typOscieznicy" id="typOscieznicy" @bind="typOscieznicy">
+                                <option value="Pioro">Z piórem</option>
+                            </select>
+                        </div>
+                    </MenuItem>
                 </MenuItemGroup>
             </SubMenu>
             <SubMenu Key="sub2" TitleTemplate=@subOscTitle>
@@ -72,13 +72,13 @@
                 </MenuItemGroup>
             </SubMenu>
             <SubMenu Key="sub21" TitleTemplate=@subSkrzTitle>
-                 <MenuItemGroup Key="g3" Title="Skrzydło">
-                     <MenuItem Key="4.20">
+                <MenuItemGroup Key="g3" Title="Skrzydło">
+                    <MenuItem Key="4.20">
                         <label for="width">Typ:</label>
-                         <select name="laczOsc" id="typSkrzydla" @bind="typSkrzydla">
-                                <option value="Typ1">Typ 1</option>
-                                <option value="Typ2">Typ 2</option>
-                            </select>
+                        <select name="laczOsc" id="typSkrzydla" @bind="typSkrzydla">
+                            <option value="Typ1">Typ 1</option>
+                            <option value="Typ2">Typ 2</option>
+                        </select>
                     </MenuItem>
                     <MenuItem Key="4.21">
                         <label for="width">Szerokość:</label>
@@ -88,41 +88,41 @@
                         <label for="height">Grubość:</label>
                         <input id="height" type="number" @bind="gruboscSkrz" min="10" max="100"/>
                     </MenuItem>
-                    </MenuItemGroup>
-                    <MenuItemGroup Key="g3" Title="Przeszklenia">
+                </MenuItemGroup>
+                <MenuItemGroup Key="g3" Title="Przeszklenia">
                     <MenuItem Key="4.23">
                         <label for="height">Ilość:</label>
                         <input id="height" type="number" @bind="iloscPrzeszkelen" min="0" max="20"/>
                     </MenuItem>
-                     <MenuItem Key="4.24">
+                    <MenuItem Key="4.24">
                         <label for="height">Wielkość:</label>
                         <input id="height" type="number" @bind="wielkoscPrzeszklenia" min="50" max="1000"/>
-                   </MenuItem>
-                  </MenuItemGroup>
+                    </MenuItem>
+                </MenuItemGroup>
             </SubMenu>
 
             <SubMenu Key="sub222" TitleTemplate=@subKierOtwTitle>
                 <MenuItem Key="551">
                     <div>
-                       < br/>
-                      <RadioGroup @onChange="@UpdateShapes()" Style="display: block;height:30px;line-height:30px" @bind-Value="ratioKierOtw" ButtonStyle="@RadioButtonStyle.Solid">
-                        <Radio RadioButton Value="@("N")">X</Radio>
-                        <Radio RadioButton Value="@("L")">LEWE</Radio>
-                        <Radio RadioButton Value="@("R")">PRAWE</Radio>
-                    </RadioGroup>
-                      < br/>
+                        < br/>
+                        <RadioGroup @onChange="@UpdateShapes()" Style="display: block;height:30px;line-height:30px" @bind-Value="ratioKierOtw" ButtonStyle="@RadioButtonStyle.Solid">
+                            <Radio RadioButton Value="@("N")">X</Radio>
+                            <Radio RadioButton Value="@("L")">LEWE</Radio>
+                            <Radio RadioButton Value="@("R")">PRAWE</Radio>
+                        </RadioGroup>
+                        < br/>
                     </div>
                 </MenuItem>
-                 <MenuItem Key="552">
-                       <label for="scale">Ilość zawiasów:</label>
-                       <input id="scale" type="number" @bind="iloscZawiasow" step="1" min="2" max="5" />
-                 </MenuItem>
+                <MenuItem Key="552">
+                    <label for="scale">Ilość zawiasów:</label>
+                    <input id="scale" type="number" @bind="iloscZawiasow" step="1" min="2" max="5" />
+                </MenuItem>
             </SubMenu>
-          
+
             <SubMenu Key="sub22" TitleTemplate=@sub3Title>
                 <MenuItem Key="5">
-                      <label for="scale">Skala:</label>
-                       <input id="scale" type="number" @bind="scale" step="0.1" min="0.1" max="10" />
+                    <label for="scale">Skala:</label>
+                    <input id="scale" type="number" @bind="scale" step="0.1" min="0.1" max="10" />
                 </MenuItem>
                 <SubMenu Key="sub51" Title="Marginesy">
                     <MenuItem Key="52">
@@ -150,19 +150,19 @@
                 <h7>Szkic ościeżnicy z piórem</h7>
                 <div style="overflow: auto; width: 1000px; height: 580px">
                     <BECanvas Width="2000" Height="2500" @ref="canvasReference"></BECanvas>
-                </div
+                </div>
             </TabPane>
             <TabPane Tab="Skrzydło" Key="2">
                 <h7>Szkic skrzydła</h7>
                 <div style="overflow: auto; width: 1000px; height: 580px">
                     <BECanvas Width="2000" Height="2500" @ref="canvasReferenceSkrzy"></BECanvas>
-                </div
+                </div>
             </TabPane>
             <TabPane Tab="Rama ze skrzydłem" Key="3">
-               <h7>Kompletne drzwi [widok od wewnątrz]</h7>
+                <h7>Kompletne drzwi [widok od wewnątrz]</h7>
                 <div style="overflow: auto; width: 1000px; height: 580px">
                     <BECanvas Width="2000" Height="2500" @ref="canvasReferenceKPL"></BECanvas>
-                </div
+                </div>
             </TabPane>
         </Tabs>
     </div>
@@ -394,7 +394,7 @@
 
         scale = 1;
 
-       await UpdateShapes(); 
+        await UpdateShapes(); 
 
         if (contextKPL == null) contextKPL = await canvasReferenceKPL.CreateCanvas2DAsync();
 
@@ -431,22 +431,22 @@
                                 new netDxf.Vector2(endPoint.X, -endPoint.Y)
                             ));
                         }
-                         for (int i = 0; i < linepoints.Count; i++)
+                        for (int i = 0; i < linepoints.Count; i++)
                         {
                             var startPoints = linepoints[i];
-                                dxf.Entities.Add(new netDxf.Entities.Line(
-                                new netDxf.Vector2(startPoints.X1, -startPoints.Y1),
-                                new netDxf.Vector2(startPoints.X2, -startPoints.Y2)
-                            ));
+                            dxf.Entities.Add(new netDxf.Entities.Line(
+                            new netDxf.Vector2(startPoints.X1, -startPoints.Y1),
+                            new netDxf.Vector2(startPoints.X2, -startPoints.Y2)
+                        ));
                         }
                         break;
                 }
             }
         }
 
-        if (shapes != null)
+        if (shapes != null && shapesSkrzy != null)
         {
-             foreach (var shape in shapesSkrzy)
+            foreach (var shape in shapesSkrzy)
             {
                 List<Point> points = await shape.ReturnPoints();
                 List<LinePoint> linepoints = await shape.ReturnLinePoints();
@@ -468,10 +468,10 @@
                         for (int i = 0; i < linepoints.Count; i++)
                         {
                             var startPoints = linepoints[i];
-                                dxf.Entities.Add(new netDxf.Entities.Line(
-                                new netDxf.Vector2(startPoints.X1, -startPoints.Y1),
-                                new netDxf.Vector2(startPoints.X2, -startPoints.Y2)
-                            ));
+                            dxf.Entities.Add(new netDxf.Entities.Line(
+                            new netDxf.Vector2(startPoints.X1, -startPoints.Y1),
+                            new netDxf.Vector2(startPoints.X2, -startPoints.Y2)
+                        ));
                         }
                         break;
                 }
@@ -486,16 +486,18 @@
 
         scale = old_scale;
 
-       await UpdateShapes(); 
+        await UpdateShapes(); 
     }
-    
+
     private async Task<byte[]> ConvertDxfToBytesAsync(netDxf.DxfDocument dxf)
     {
         using (var stream = new MemoryStream())
         {
             dxf.Save(stream);
+            await Task.CompletedTask;
             return stream.ToArray();
         }
+
     }
 
     RenderFragment sub1Title =

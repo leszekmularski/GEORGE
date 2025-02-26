@@ -25,16 +25,16 @@ namespace ReservationBookingSystem.Services
         public async Task SendEmailAsync(string toEmail, string subject, string htmlBody, string password)
         {
             // Implementacja metody wysyłającej wiadomość e-mail
-            Console.WriteLine($"Sending email to {toEmail} with subject '{subject}'");
+            Console.WriteLine($"Sending email to {toEmail} with subject '{subject}' Host: {_mailSettings.Host} Port: {_mailSettings.Port}");
 
-            if(password == "---")
+            if (password == "---")
             {
                 password = _mailSettings.Password;
             }
 
             MailMessage message = new MailMessage();
             SmtpClient smtp = new SmtpClient();
-           // message.From = new MailAddress(_mailSettings.FromEmail);
+            // message.From = new MailAddress(_mailSettings.FromEmail);
             message.From = new MailAddress(toEmail);
             message.To.Add(new MailAddress(toEmail));
             message.Subject = subject;

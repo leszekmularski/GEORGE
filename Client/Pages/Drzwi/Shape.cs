@@ -432,8 +432,6 @@ namespace GEORGE.Client.Pages.Drzwi
                 AddRectanglePoints(offsetX - (Width - 15) * Skala, loffsetY + Height * Skala, -WysPiora * Skala, GrubPiora * Skala);
             }
 
-    
-
             await context.StrokeAsync();
         }
 
@@ -508,6 +506,7 @@ namespace GEORGE.Client.Pages.Drzwi
 
         private void AddLinePoints(double x1, double y1, double x2, double y2)
         {
+            if(XLinePoint != null)
             XLinePoint.Add(new LinePoint(x1, y1, x2, y2));
         }
         public override Task<List<LinePoint>> ReturnLinePoints()

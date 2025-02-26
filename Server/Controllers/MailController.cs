@@ -22,7 +22,7 @@ public class MailController : ControllerBase
 
         try
         {
-            await _mailService.SendEmailAsync(request.ToEmail, request.Subject, request.HtmlBody, request.Password);
+            await _mailService.SendEmailAsync(request.ToEmail, request.Subject, request.HtmlBody ?? "---", request.Password ?? "---");
             return Ok("Wiadomość wysłana pomyślnie.");
         }
         catch (Exception ex)

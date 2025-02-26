@@ -152,9 +152,10 @@ else
                 <a @onclick="() => DodajKantowke(context)" class="custom-link">Kantówka</a>
                 <a @onclick="() => DodajSzybe(context)" class="custom-linkszy">Szyby</a>
                 <br />
-                <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">T.W.Z / Pozycje</a>
+                <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">Pozycje</a>
+                <a @onclick="() => DodajWyrob(context)" class="custom-link" style="color:darkviolet; width:38px">Dodaj</a>
                 <a @onclick="() => DodajZamowienia(context)">Zamówienia</a>
-                <a style="font-weight: bold" @onclick="() => FileEdit(context)">Pliki</a>
+                <a style="font-weight: bold" @onclick="() => FileEdit(context, 1)">Pliki</a>
             </ActionColumn>
             <Column Width="230" Title="Status" TData="string">
                 @if (context.Tags != null)
@@ -464,7 +465,7 @@ else
                 <h5 class="modal-title">Ilość plików powiązanych: @pliki.Count()  [@zlecenie.Klient]</h5>
             </div>
             <div class="modal-body">
-                <Table TItem="PlikiZlecenProdukcyjnych" DataSource="@pliki" ScrollX="1350" PageSize="3" Size="TableSize.Small" PageIndex="@_pageIndex"
+                <Table TItem="PlikiZlecenProdukcyjnych" DataSource="@pliki" ScrollX="1350" PageSize="4" Size="TableSize.Small" 
                 RowClassName="@(x => x.Data.TypPliku.ToLower() == "/pdf" ? "pdf-class" : x.Data.TypPliku.ToLower() == "/dxf" || x.Data.TypPliku.ToLower() == "/dwg" ? "dxf-class" : "zlecenieNaN")">
                     <Column Title="ID" @bind-Field="@context.Id" Hidden />
                     <Column Title="Nazwa pliku" @bind-Field="@context.NazwaPliku" OnFilter="(a, b) => a == b" Width="100px" Style="font-size:10px" />
@@ -1183,7 +1184,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
         czekajNaUsuniecie = false;
     }
 
-    private async Task FileEdit(ZleceniaProdukcyjneWew row)
+    private async Task FileEdit(ZleceniaProdukcyjneWew row, int strona)
     {
 
         pliki = new List<PlikiZlecenProdukcyjnych>();
@@ -1201,7 +1202,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
 
             await LoadFiles(zlecenie.RowId);
 
-            await ShowDialogFile();
+            await ShowDialogFile(strona);
         }
 
     }
@@ -1220,6 +1221,12 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
     {
         navigationManager.NavigateTo($"/Szyby-do-zlecen/{row.RowId}/wew");
     }
+
+    private void DodajWyrob(ZleceniaProdukcyjneWew row)
+    {
+        navigationManager.NavigateTo($"/NoweOkno/{row.RowId}/wew");
+    }
+
 
     private async Task DodajCzasyWykonaia(ZleceniaProdukcyjneWew row)
     {
@@ -1520,8 +1527,10 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
         StateHasChanged();
     }
     //********************************************************************************************************************//
-    public async Task ShowDialogFile()
+    public async Task ShowDialogFile(int pgIndex)
     {
+      //  _pageIndex = pgIndex;
+
         displayFile = "block";
         await Task.Delay(50);
         classShowFile = "show";
@@ -1537,7 +1546,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
 
         StateHasChanged();
 
-        _pageIndex = 1;
+  
     }
     //********************************************************************************************************************//
 

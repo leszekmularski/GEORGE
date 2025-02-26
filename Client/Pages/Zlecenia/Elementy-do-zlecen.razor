@@ -411,7 +411,7 @@
                     }
                     else
                     {
-                        <h4>Czekaj na załadowanie formatki!</h4>
+                        <h4>Czekaj na załadowanie formatki!!!</h4>
                     }
                 </div>
             </div>
@@ -481,7 +481,7 @@
                     },
                     ProducenciPodwykonawcy = new ProducenciPodwykonawcy
                     {
-                        // Przypisz odpowiednie wartości dla właściwości ProducenciPodwykonawcy
+                // Przypisz odpowiednie wartości dla właściwości ProducenciPodwykonawcy
                         NazwaProducenta = "" // Przykładowa wartość
                     },
                     DodatkowaInformacja = "Dane z dnia" + DateTime.Now
@@ -637,7 +637,7 @@
         {
             var emailSubject = Uri.EscapeDataString("Zamówienie z firmy GEORGE z dnia: " + DateTime.Now.ToShortDateString());
             var emailBody = Uri.EscapeDataString(
-        $"Dotyczy: {dotyczyZlecenia}\n" +
+    $"<html>Dotyczy: { dotyczyZlecenia}\n" +
     "Nazwa Produktu\tNumer Katalogowy\tTyp\tIlość\tJednostka\tKolor\n" +
         "--------------\t-----------------\t-----\t---------\t--------\n" +
         string.Join("\n", _items.Select(k =>
@@ -647,7 +647,7 @@
             $"{k.ElemetZamDoZlecen.IloscSztuk}\t" +
         $"{k.ElemetZamDoZlecen.Jednostka}\t" +
             $"{k.ElemetZamDoZlecen.Kolor}"
-    )) + "\n\n\n" + $"Zamówienie wygenerował {Uimie} {Unazwisko} System produkcyjny PPHU GEORGE Marcinkowice 351, 33-393 Marcinkowice tel:(+48 18) 44-33-111"
+    )) + "\n\n\n" + $"Zamówienie wygenerował {Uimie} {Unazwisko} System produkcyjny PPHU GEORGE Marcinkowice 351, 33-393 Marcinkowice tel:(+48 18) 44-33-111</html>"
     );
 
             var mailtoLink = $"mailto:?subject={emailSubject}&body={emailBody}";
@@ -722,12 +722,14 @@
                 else
                 {
                     var error = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Błąd: {error}");
                     await _message.Error($"Błąd: {error}");
                 }
             }
             catch (Exception ex)
             {
                 await _message.Error($"Błąd podczas wysyłania wiadomości: {ex.Message}");
+                Console.WriteLine($"Błąd: {ex.Message}");
             }
         }
         else

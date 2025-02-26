@@ -16,7 +16,7 @@
     }
 </style>
 
-@if (bAdmin == false)
+@if (!bAdmin)
 {
     <p><em>Nie masz uprawnień....</em></p>
 }
@@ -144,7 +144,9 @@ else
                             <Switch @bind-Value="@wkladkoGalka" />
                         </AntDesign.FormItem>
                         <AntDesign.FormItem Label="Zapisz wynik obliczeń" Class="form-item-small-margin">
-                            <Button OnClick="ZapiszWynikObliczenWkladki">Zapisz wynik obliczeń do Nazwa produktu</Button>
+                            <Tooltip Placement="Placement.Top" Title="Np. dla skrzydła 90mm domyślne ustawienia zew:34mm wew:56mm + szer. wkładki">
+                                <Button OnClick="ZapiszWynikObliczenWkladki">Zapisz wynik obliczeń do Nazwa produktu</Button>
+                            </Tooltip>
                         </AntDesign.FormItem>
                     </AntDesign.Col>
                 </AntDesign.Row>

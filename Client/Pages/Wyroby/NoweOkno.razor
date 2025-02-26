@@ -1,0 +1,393 @@
+﻿@page "/NoweOkno/{RowIdZlecenia}/{typ}"
+@using GEORGE.Shared.Models
+@using GEORGE.Shared.ViewModels
+@using GEORGE.Shared.Class
+@using GEORGE.Client.Pages
+@using GEORGE.Client.Pages.Wyroby
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@using AntDesign
+@inject IMessageService _message
+@inject PdfReaderService PdfReaderService
+@inject GEORGE.Client.Pages.PDF.PdfDataParserElementy PdfDataParserElement
+@inject Utilities.ILocalStorage LocalStorage
+@using System.Net;
+@using System.Text.Json;
+@inject INotificationService _notice
+@using AntDesign.TableModels
+@using System.ComponentModel.DataAnnotations
+@inject ModalService _modalService
+@using System.Text.RegularExpressions
+@inject IConfirmService _confirmService
+@using ReservationBookingSystem.Services;
+
+@using Blazor.Extensions
+@using Blazor.Extensions.Canvas
+@using Blazor.Extensions.Canvas.Canvas2D
+
+<!DOCTYPE html>
+<html>
+<head>
+
+    <meta charset="utf-8" />
+    <PageTitle>Nowa pozycja do zamówienia</PageTitle>
+
+</head>
+<body>
+    <div style="height:100%;">
+        <Header style="width: 100%; height:110px; background-color: #333; color: white; text-align: center; padding: 5px; font-size: 1.2em;">
+            Wybierz wyrób: 
+            <Space>
+                <SpaceItem>
+                    <Button OnClick="() => hnadleClickWyrob(1)" Style="width: 100%; height:100px; padding: 0px">
+                        <img src="../Images/OKN_RUP_1SK.jpg" />
+                    </Button>
+                </SpaceItem>
+                <SpaceItem>
+                    <Button OnClick="() => hnadleClickWyrob(2)" Style="width: 100%; height:100px; padding: 0px">
+                        <img src="../Images/OKN_RUP_1SK.jpg" />
+                    </Button>
+                </SpaceItem>
+            </Space>
+        </Header>
+
+        <Layout class="highlighted-background" style="display: flex; height: 100vh;">
+            <Sider style="padding: 5px; background-color: #222; color: yellow;">
+                <h6 style="padding-top: 5px; color: yellow;">Dodaj nowe okno</h6>
+
+                @if (boolAdmin || boolZmiana)
+                {
+                    <Button Type="primary" OnClick="@(GenerujOkno)">Wygeneruj dane</Button>
+                }
+
+                <label style="color: yellow;">Szerokość</label>
+                <AntDesign.InputNumber Style="width:180px" @bind-Value="szerOkna" Min="250" Max="3000" PlaceHolder="Podaj szerokość okna"></AntDesign.InputNumber>
+
+                <label style="color: yellow;">Wysokość</label>
+                <AntDesign.InputNumber Style="width:180px" @bind-Value="wysOkna" Min="250" Max="3000" PlaceHolder="Podaj wysokość okna"></AntDesign.InputNumber>
+
+                <label style="color: yellow;">Otwierano do zew/wew</label>
+                <SimpleSelect DefaultValue="TAK" Style="width:180px;" OnSelectedItemChanged="handleChangeZewWew">
+                    <SelectOptions>
+                        <SimpleSelectOption Value="TAK" Label="Do wewnątrz"></SimpleSelectOption>
+                        <SimpleSelectOption Value="NIE" Label="Na zewnątrz"></SimpleSelectOption>
+                    </SelectOptions>
+                </SimpleSelect>
+                @if (idWyrClick == 1)
+                {
+                    <label style="color: yellow;">Sposób otwierania</label>
+                    <SimpleSelect DefaultValue="BRAK" Style="width:180px;" OnSelectedItemChanged="handleChange">
+                        <SelectOptions>
+                            <SimpleSelectOption Value="BRAK" Label="BRAK"></SimpleSelectOption>
+                            <SimpleSelectOption Value="RUP" Label="RUP"></SimpleSelectOption>
+                            <SimpleSelectOption Value="RUL" Label="RUL"></SimpleSelectOption>
+                            <SimpleSelectOption Value="RP" Label="RP"></SimpleSelectOption>
+                            <SimpleSelectOption Value="RL" Label="RL"></SimpleSelectOption>
+                            <SimpleSelectOption Value="U" Label="U"></SimpleSelectOption>
+                        </SelectOptions>
+                    </SimpleSelect>
+                }
+                @if (idWyrClick == 2)
+                {
+                    <label style="color: yellow;">Linia podziału skrzydeł</label>
+                    <AntDesign.InputNumber Style="width:180px" @bind-Value="liniaPodzialSkrzydla" Min="150" Max="3000" PlaceHolder="Podaj szerokość skrzydła"></AntDesign.InputNumber>
+                    <label style="color: yellow;">Sposób otwierania</label>
+                    <SimpleSelect DefaultValue="BRAK" Style="width:180px;" OnSelectedItemChanged="handleChange">
+                        <SelectOptions>
+                            <SimpleSelectOption Value="BRAK" Label="BRAK"></SimpleSelectOption>
+                            <SimpleSelectOption Value="R/RUP" Label="R/RUP"></SimpleSelectOption>
+                            <SimpleSelectOption Value="RUL/R" Label="RUL/R"></SimpleSelectOption>
+                            <SimpleSelectOption Value="RP" Label="RP"></SimpleSelectOption>
+                            <SimpleSelectOption Value="RL" Label="RL"></SimpleSelectOption>
+                            <SimpleSelectOption Value="U" Label="U"></SimpleSelectOption>
+                        </SelectOptions>
+                    </SimpleSelect>
+                }
+                <label style="color: yellow;">Ilość sztuk</label>
+                <AntDesign.InputNumber Style="width:180px" @bind-Value="iloscSztuk" Min="1" Max="100" PlaceHolder="Podaj ilość sztuk"></AntDesign.InputNumber>
+            </Sider>
+
+            <Content style="flex-grow: 1; height: 100%; overflow: auto; padding: 10px;">
+                <BECanvas Width="(long)szerOkna" Height="(long)wysOkna" @ref="canvasNowWyrob"></BECanvas>
+            </Content>
+            @if (infoOkno != null)
+            {
+                <Sider style="background-color: #222; color: white; padding:10px">
+                    <h4 style="color: yellow;">Informacja o wyrobie:</h4>
+
+                    @if (infoOkno != null && infoOkno.Any())
+                    {
+                        <p>Liczba wpisów: @infoOkno.Count()</p>
+                        <ul>
+                            @foreach (var wymiar in infoOkno)
+                            {
+                                <li>
+                                    <strong>Szer. szyby:</strong> @wymiar.SzerokoscSzyby mm <br />
+                                    <strong>Wys. szyby:</strong> @wymiar.WysokoscSzyby mm <br />
+                                    <strong>Szer. skrzydła:</strong> @wymiar.SzerokoscSkrzydla mm <br />
+                                    <strong>Wys. skrzydła:</strong> @wymiar.WysokoscSkrzydla mm <br />
+                                    <strong>Szer. wew. skrzydła:</strong> @wymiar.WymiarWewSzeSkrzydla mm <br />
+                                    <strong>Wys. wew. skrzydła:</strong> @wymiar.WymiarWewWyskrzydla mm <br />
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p>Brak danych o wyrobie.</p>
+                    }
+                </Sider>
+            }
+        </Layout>
+    </div>
+
+</body>
+</html>
+
+@code {
+    [Parameter]
+    public string? RowIdZlecenia { get; set; }
+
+    [Parameter]
+    public string? typ { get; set; }
+
+    [Inject] private AppState AppState { get; set; } = default!;
+
+    int _pageSize = 7;
+
+    private string dotyczyZlecenia = "";
+
+    bool _loading = false;
+
+    private BECanvasComponent? canvasNowWyrob;
+    private Canvas2DContext? context;
+    private List<ShapeOkno>? shapes;
+    private List<WymiaryOpis>? infoOkno;
+
+    private int idWyrClick = 1;
+
+    private string? sposobOtwierania;
+    private double szerOkna = 1000;
+    private double wysOkna = 1000;
+    private double liniaPodzialSkrzydla = 500;
+    private int iloscSztuk = 1;
+    private string? otwWew = "TAK";
+
+    IEnumerable<ElemetZamDoZlecenWithProducent>? _items;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AppState != null)
+        {
+            AppState.SomeData = "";
+        }
+
+        _pageSize = Convert.ToInt32((await LocalStorage.GetStringAsync("elementy_ile_widocznych")));
+
+        if (_pageSize == 0) _pageSize = 6;
+
+        await Laduj_Uprawnienia();
+
+        if (string.IsNullOrWhiteSpace(RowIdZlecenia))
+        {
+            Console.WriteLine($"Bład: brak danych w RowIdZlecenia");
+        }
+        else
+        {
+            Console.WriteLine($"RowIdZlecenia: {RowIdZlecenia}");
+        }
+
+        _loading = true;
+
+        try
+        {
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Błąd pobierania zleceń produkcyjnych: {ex.Message}");
+        }
+
+        _loading = false;
+    }
+
+    void handleChange(string value)
+    {
+        sposobOtwierania = value;
+        Console.WriteLine(value);
+    }
+
+    void handleChangeZewWew(string value)
+    {
+        otwWew = value;
+    }
+
+    private async Task hnadleClickWyrob(int value)
+    {
+        idWyrClick = value;
+
+        StateHasChanged();
+
+        await Task.CompletedTask;
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (context == null)
+                context = await canvasNowWyrob.CreateCanvas2DAsync();
+
+            //await Task.Delay(10);
+            await Task.CompletedTask;
+
+        }
+    }
+
+    private async Task GenerujOkno()
+    {
+        if (shapes != null) shapes.Clear();
+
+        double skala = Math.Round((3000.0 / szerOkna) * 0.25, 2);
+
+        if (Math.Round((3000.0 / szerOkna) * 0.25, 2) < skala) skala = Math.Round((3000.0 / szerOkna) * 0.25, 2);
+
+        Console.WriteLine($"skala :{skala}");
+
+        if (idWyrClick == 1)
+        {
+            // Zainicjalizuj listę kształtów okno 1 skrzydłowe
+            shapes = new List<ShapeOkno>
+            {
+                new COKN1SK68(100, 100, szerOkna, wysOkna, otwWew ?? "TAK", sposobOtwierania ?? "" , skala)
+            };
+        }
+        else if (idWyrClick == 2)
+        {
+            // Zainicjalizuj listę kształtów okno 1 skrzydłowe
+            shapes = new List<ShapeOkno>
+            {
+                new COKN2SK68(100, 100, szerOkna, wysOkna, liniaPodzialSkrzydla, otwWew ?? "TAK", sposobOtwierania ?? "" , skala)
+            };
+        }
+
+        await DrawShapes();
+
+        if (shapes != null && shapes.Any())
+        {
+            infoOkno = new List<WymiaryOpis>();
+
+            foreach (var shape in shapes)
+            {
+                var wymiary = await shape.ReturnWymiaryOpis(); // Pobranie wymiarów z obiektu ShapeOkno
+                if (wymiary != null)
+                {
+                    infoOkno.AddRange(wymiary); // Dodanie wszystkich wymiarów do listy infoOkno
+                }
+            }
+        }
+        await Task.Delay(100);
+
+        await DrawShapes();
+
+    }
+
+    private async Task DrawShapes()
+    {
+        if (shapes == null) return;
+
+        if (context == null)
+            context = await canvasNowWyrob.CreateCanvas2DAsync();
+
+        await context.ClearRectAsync(0, 0, szerOkna + 100, wysOkna + 100); // Ustaw szerokość kanwy na większą, aby zmieścić oba kształty
+
+        foreach (var shape in shapes)
+        {
+            await shape.DrawAsync(context);
+
+           // infoOkno = shape.ReturnWymiaryOpis();
+        }
+
+    }
+
+    private async Task GoBack()
+    {
+        await JSRuntime.InvokeVoidAsync("history.back");
+    }
+
+    private async Task OnClickChange(int e)
+    {
+        Console.WriteLine("Zapisano ilość widocznych" + e);
+        await LocalStorage.SaveStringAsync("elementy_ile_widocznych", e.ToString());
+    }
+
+    private bool boolOdczyt = false;
+    private bool boolZmiana = false;
+    private bool boolUsuniecia = false;
+    private bool boolAdmin = false;
+    private string RowIdPracownika = "";
+    private string? user;
+    private string? adresEmail = "";
+    private string? hasloPoczta = "";
+    private string? Uimie = "";
+    private string? Unazwisko = "";
+    private bool isNotDisabled => !boolZmiana || !boolAdmin;
+    private List<UprawnieniaPracownikaViewModel>? uprawnienia;
+
+    private async Task Laduj_Uprawnienia()
+    {
+        user = await LocalStorage.GetStringAsync("user");
+
+        if (string.IsNullOrEmpty(user))
+        {
+            //NavigationManager.NavigateTo($"", true);
+            user = "NaN";
+            return;
+        }
+
+        string nazwaTabeli = "ElemetZamDoZlecen";
+
+        Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");
+
+        try
+        {
+            uprawnienia = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"/api/ZwrocSatus/{user}/{nazwaTabeli}");
+        }
+        catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            Console.WriteLine("Brak danych!!!");
+            await _message.Error("Brak danych - status użytkownika");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            await _message.Error(ex.Message);
+        }
+
+        if (uprawnienia != null)
+        {
+            if (uprawnienia.Count > 0)
+            {
+                var znalezioneElementy = uprawnienia.Where(uprawnienie => uprawnienie.TableName == nazwaTabeli);
+                Console.WriteLine("Znaleziono uprawnienia dla użytkownika: " + user + " w tabeli: " + nazwaTabeli + " ilość rekordów: " + znalezioneElementy.Count());
+                if (znalezioneElementy.Any())
+                {
+                    var szuk = znalezioneElementy.FirstOrDefault(x => x.TableName == nazwaTabeli);
+                    if (szuk != null)
+                    {
+                        boolOdczyt = szuk.Odczyt;
+                        boolZmiana = szuk.Zmiana;
+                        boolUsuniecia = szuk.Usuniecie;
+                        boolAdmin = szuk.Administrator;
+                        RowIdPracownika = szuk.RowId ?? "---";
+                        adresEmail = szuk.Email;
+                        hasloPoczta = szuk.HasloDoPoczty;
+                        Uimie = szuk.Imie;
+                        Unazwisko = szuk.Nazwisko;
+                    }
+                }
+            }
+        }
+    }
+}
