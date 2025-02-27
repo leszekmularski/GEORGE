@@ -1,0 +1,31 @@
+﻿@page "/KonfiguratorOkien"
+@using GEORGE.Shared.Models
+@using GEORGE.Shared.Class
+@inject HttpClient Http
+@using AntDesign
+@inject IMessageService _message
+@inject Utilities.ILocalStorage LocalStorage
+@using System.Net
+@inject IJSRuntime JSRuntime
+<Divider Style="font-weight:bold; font-size:large; display:flex; justify-content:space-between; align-items:center;">
+    <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
+        <Button class="btn-back" Icon="@IconType.Fill.Backward" Style="width:55px" OnClick="GoBack" />
+    </Tooltip>
+</Divider>
+@code 
+{
+    [Inject] private AppState AppState { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AppState != null)
+        {
+            AppState.SomeData = "";
+        }
+    }
+
+    private async Task GoBack()
+    {
+        await JSRuntime.InvokeVoidAsync("history.back");
+    }
+}
