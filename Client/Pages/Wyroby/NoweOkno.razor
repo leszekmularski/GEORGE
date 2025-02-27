@@ -272,9 +272,15 @@
         else if (idWyrClick == 2)
         {
             // Zainicjalizuj listę kształtów okno 1 skrzydłowe
+            int nrSkrzCzynnego = 1;
+            if (sposobOtwierania == "RUP/RL" || sposobOtwierania == "RP/RL" || sposobOtwierania == "/RL")
+            {
+                nrSkrzCzynnego = 2;
+            }
+
             shapes = new List<ShapeOkno>
             {
-                new COKN2SK68(10, 10, szerOkna, wysOkna, liniaPodzialSkrzydla, otwWew ?? "TAK", sposobOtwierania ?? "" , skala)
+                new COKN2SK68(10, 10, szerOkna, wysOkna, liniaPodzialSkrzydla, otwWew ?? "TAK", sposobOtwierania ?? "", nrSkrzCzynnego, skala)
             };
         }
 

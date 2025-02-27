@@ -15,6 +15,7 @@ namespace GEORGE.Client.Pages.Wyroby
         public double LiniaPodzialuSkrzydel { get; set; }
         public string OtwDoWenatrz { get; set; }
         public string SposOtwierania { get; set; }
+        public int NrSkrzydlaCzynnego { get; set; }
         public double Skala { get; set; }
 
         //--------------------------------------------------------------  STAŁE  -----------------------------------------------------------------------------------------
@@ -49,7 +50,7 @@ namespace GEORGE.Client.Pages.Wyroby
         private double WymiarZewOknaWidth2SK = 0;
         private double WymiarZewOknaHeight2SK = 0;
 
-        public COKN2SK68(double x, double y, double szerokosc, double wysokosc, double liniaPodzialuSkrzydel, string otwdowenatrz, string sposotwierania, double skala)
+        public COKN2SK68(double x, double y, double szerokosc, double wysokosc, double liniaPodzialuSkrzydel, string otwdowenatrz, string sposotwierania, int nrSkrzydlaCzynnego, double skala)
         {
             X = x;
             Y = y;
@@ -58,6 +59,7 @@ namespace GEORGE.Client.Pages.Wyroby
             OtwDoWenatrz = otwdowenatrz;
             SposOtwierania = sposotwierania;
             LiniaPodzialuSkrzydel = liniaPodzialuSkrzydel;
+            NrSkrzydlaCzynnego = nrSkrzydlaCzynnego;
             Skala = skala;
         }
         public override async Task DrawAsync(Canvas2DContext context)
@@ -67,15 +69,22 @@ namespace GEORGE.Client.Pages.Wyroby
             XWymiaryOpis = new List<WymiaryOpis>();
 
             // await DrawTextAsync(context, X + (Width / 4) * Skala, Y, $"S: {Width} x W: {Height}");
+            if (OtwDoWenatrz != "TAK") return;
 
-            if (OtwDoWenatrz == "TAK") await DrawShapeObrRam(context, X, Y); // Rama Okna
+            await context.SetFillStyleAsync("white"); // Ustawienie koloru wypełnienia na biały
+
+            await DrawShapeObrRam(context, X, Y, false); // Rama Okna
 
             await context.RestoreAsync();
 
-            await DrawShapeObrSkrzydloAsync2SK(context, X, Y , 1); // Skrzydło 1
-            await DrawShapeObrSkrzydloAsync2SK(context, X, Y, 2); // Skrzydło 2
+            string[] spsOTW = SposOtwierania.Split('/');
 
-            Console.WriteLine($"DrawAsync - SzerDrzwi: {Width} x {Height} / Skala: {Skala}");
+            await DrawShapeObrSkrzydloAsync2SK(context, X, Y, 1, spsOTW, NrSkrzydlaCzynnego); // Skrzydło 1
+            await DrawShapeObrSkrzydloAsync2SK(context, X, Y, 2, spsOTW, NrSkrzydlaCzynnego); // Skrzydło 2
+
+           Console.WriteLine($"DrawAsync - SzerDrzwi: {Width} x {Height} / Skala: {Skala}");
+
+            await DrawShapeObrRam(context, X, Y, true); // Rama Okna
 
             await AddWymInformacja(WymiarWewOknaWidth1SK + (2 * WysPiora - 2 * LuzPomiedzySkrzyASzyba), WymiarWewOknaHeight1SK + (2 * WysPiora - 2 * LuzPomiedzySkrzyASzyba), 
                 WymiarZewOknaWidth1SK, WymiarZewOknaHeight1SK, WymiarWewOknaWidth1SK, WymiarWewOknaHeight1SK, Guid.NewGuid().ToString());
@@ -112,7 +121,9 @@ namespace GEORGE.Client.Pages.Wyroby
                 await context.StrokeAsync();
 
                 if (sposoOTW.Length > 2)
+                {
                     await DrawKlamkaLines(context, xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK / 2 * Skala, 'P');
+                }
 
                 //AddLinePoints(xWewSkrzy, yWewSkrzyd, xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaWidth / 2 * Skala, "dashed"); //Generuj linie pod DXF
                 //AddLinePoints(xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaWidth / 2 * Skala, xWewSkrzy, yWewSkrzyd + WymiarWewOknaWidth * Skala, "dashed"); //Generuj linie pod DXF
@@ -140,7 +151,9 @@ namespace GEORGE.Client.Pages.Wyroby
                 await context.StrokeAsync();
 
                 if (sposoOTW.Length > 2)
+                {
                     await DrawKlamkaLines(context, xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight1SK / 2 * Skala, 'L');
+                }
 
             }
             else if (sposoOTW == "U")
@@ -214,7 +227,8 @@ namespace GEORGE.Client.Pages.Wyroby
             if (strona == 'L')
             {
                 await context.RectAsync(xOsObr - 10 * Skala, yOsObr - 10 * Skala, 90 * Skala, 10 * Skala); // #1
-                AddRectanglePoints(xOsObr - 10 * Skala, yOsObr - 10 * Skala, 90 * Skala, 10 * Skala); // #1
+                AddRectanglePoints(xOsObr - 10 * Skala, yOsObr - 10 * Skala, 90 * Skala, 10 * Skala); // #1        
+ 
             }
             else if (strona == 'P')
             {
@@ -242,14 +256,12 @@ namespace GEORGE.Client.Pages.Wyroby
 
             await Task.CompletedTask;
         }
-        private async Task DrawShapeObrSkrzydloAsync2SK(Canvas2DContext context, double offsetX, double offsetY, int numer_skrzydla)
+        private async Task DrawShapeObrSkrzydloAsync2SK(Canvas2DContext context, double offsetX, double offsetY, int numer_skrzydla, string[] spsOTW, int numerSkrzyUkryj)
         {
             await context.BeginPathAsync();
             await context.SetLineWidthAsync(3);
             await context.SetStrokeStyleAsync("black"); // Kolor linii
             await context.SetLineDashAsync(new float[] { });
-
-            string[] spsOTW = SposOtwierania.Split('/');
 
             if (numer_skrzydla ==  1)
             {
@@ -261,7 +273,6 @@ namespace GEORGE.Client.Pages.Wyroby
                 WymiarWewOknaWidth1SK = WymiarZewOknaWidth1SK - 2 * GrboscRdzeniaSkrzydla - 2 * WysPiora;
                 WymiarWewOknaHeight1SK = WymiarZewOknaHeight1SK - 2 * GrboscRdzeniaSkrzydla - 2 * WysPiora;
 
-                // Draw outer rectangle
                 await context.RectAsync(offsetX + (SzerokoscSkrzydla - SkrzydloMniejszczeO_Lewa) * Skala, offsetY + (SzerokoscSkrzydla - SkrzydloMniejszczeO_Gora) * Skala,
                     WymiarZewOknaWidth1SK * Skala, WymiarZewOknaHeight1SK * Skala); // #1
 
@@ -290,11 +301,30 @@ namespace GEORGE.Client.Pages.Wyroby
                 WymiarWewOknaHeight2SK = WymiarZewOknaHeight2SK - 2 * GrboscRdzeniaSkrzydla - 2 * WysPiora;
 
                 // Draw outer rectangle
+                if (numerSkrzyUkryj == 1)
+                {
+                    await context.FillRectAsync(offsetX + (SzerokoscSkrzydla - SkrzydloMniejszczeO_Lewa) * Skala, offsetY + (SzerokoscSkrzydla - SkrzydloMniejszczeO_Gora) * Skala,
+                    WymiarZewOknaWidth2SK * Skala, WymiarZewOknaHeight2SK * Skala); // #1
+
+                }
+
                 await context.RectAsync(offsetX + (SzerokoscSkrzydla - SkrzydloMniejszczeO_Lewa) * Skala, offsetY + (SzerokoscSkrzydla - SkrzydloMniejszczeO_Gora) * Skala,
                     WymiarZewOknaWidth2SK * Skala, WymiarZewOknaHeight2SK * Skala); // #1
 
                 await context.RectAsync(offsetX + (SzerokoscSkrzydla - SkrzydloMniejszczeO_Lewa + SzerokoscSkrzydla) * Skala, offsetY + (SzerokoscSkrzydla - SkrzydloMniejszczeO_Gora + SzerokoscSkrzydla) * Skala,
                     WymiarWewOknaWidth2SK * Skala, WymiarWewOknaHeight2SK * Skala); // #2
+
+                if (numerSkrzyUkryj == 2)
+                {
+                    await context.RectAsync(offsetX + (SzerokoscSkrzydla - SkrzydloMniejszczeO_Lewa) * Skala, offsetY + (SzerokoscSkrzydla - SkrzydloMniejszczeO_Gora) * Skala,
+                   WymiarZewOknaWidth1SK * Skala, WymiarZewOknaHeight1SK * Skala); // #1
+                    await context.RectAsync(offsetX + (SzerokoscSkrzydla - SkrzydloMniejszczeO_Lewa + SzerokoscSkrzydla) * Skala, offsetY + (SzerokoscSkrzydla - SkrzydloMniejszczeO_Gora + SzerokoscSkrzydla) * Skala,
+                        WymiarWewOknaWidth1SK * Skala, WymiarWewOknaHeight1SK * Skala); // #2
+                                                                                        // Draw outer rectangle
+                    await context.FillRectAsync(offsetX + (SzerokoscSkrzydla - SkrzydloMniejszczeO_Lewa) * Skala, offsetY + (SzerokoscSkrzydla - SkrzydloMniejszczeO_Gora) * Skala,
+                   WymiarZewOknaWidth1SK * Skala, WymiarZewOknaHeight1SK * Skala);// #1
+
+                }
 
                 //Poniże zmienne pod dxf
                 //AddRectanglePoints(offsetX + SkrzydloMniejszczeO * Skala, offsetY + SkrzydloMniejszczeO * Skala, (Width - 2 * SkrzydloMniejszczeO) * Skala, (Height - 2 * SkrzydloMniejszczeO) * Skala); // #1
@@ -311,24 +341,33 @@ namespace GEORGE.Client.Pages.Wyroby
             }
 
         }
-        private async Task DrawShapeObrRam(Canvas2DContext context, double offsetX, double offsetY)
+        private async Task DrawShapeObrRam(Canvas2DContext context, double offsetX, double offsetY , bool tylko_srodek)
         {
             await context.BeginPathAsync();
-            await context.SetLineWidthAsync(3);
-            // Ustaw kolor linii na czarny
-            await context.SetStrokeStyleAsync("black");
-            // Draw outer rectangle
-            await context.SetLineDashAsync(new float[] { });
-            await context.RectAsync(offsetX, offsetY, Width * Skala, Height * Skala); // #1
-            await context.StrokeAsync();
 
-            await context.SetLineWidthAsync(1);
-            await context.RectAsync(offsetX + SzerokoscRamy * Skala, offsetY + SzerokoscRamy * Skala, (Width - 2 * SzerokoscRamy) * Skala, (Height - 2 * SzerokoscRamy) * Skala); // #2 Continuous
-            await context.SetLineDashAsync(new float[] { 10, 5 }); // Ustaw przerywaną linię
-            await context.StrokeAsync();
+            await context.SetStrokeStyleAsync("black"); // Kolor linii
 
-            AddRectanglePoints(offsetX, offsetY, Width * Skala, Height * Skala); // #1
-            AddRectanglePoints(offsetX + SzerokoscRamy * Skala, offsetY + SzerokoscRamy * Skala, (Width - 2 * SzerokoscRamy) * Skala, (Height - 2 * SzerokoscRamy) * Skala); // #2 dashed
+            if (!tylko_srodek)
+            {
+                await context.SetLineWidthAsync(3);
+                // Ustaw kolor linii na czarny
+                await context.SetStrokeStyleAsync("black");
+                // Draw outer rectangle
+                await context.SetLineDashAsync(new float[] { });
+                await context.FillRectAsync(offsetX, offsetY, Width * Skala, Height * Skala); // #1
+                await context.RectAsync(offsetX, offsetY, Width * Skala, Height * Skala); // #1
+                await context.StrokeAsync();
+                AddRectanglePoints(offsetX, offsetY, Width * Skala, Height * Skala); // #1
+            }
+            else
+            {
+
+                await context.SetLineWidthAsync(1);
+                await context.RectAsync(offsetX + SzerokoscRamy * Skala, offsetY + SzerokoscRamy * Skala, (Width - 2 * SzerokoscRamy) * Skala, (Height - 2 * SzerokoscRamy) * Skala); // #2 Continuous
+                await context.SetLineDashAsync(new float[] { 10, 5 }); // Ustaw przerywaną linię
+                await context.StrokeAsync();
+                AddRectanglePoints(offsetX + SzerokoscRamy * Skala, offsetY + SzerokoscRamy * Skala, (Width - 2 * SzerokoscRamy) * Skala, (Height - 2 * SzerokoscRamy) * Skala); // #2 dashed
+            }
 
         }
         private async Task DrawTextAsync(Canvas2DContext context, double x, double y, string text)
