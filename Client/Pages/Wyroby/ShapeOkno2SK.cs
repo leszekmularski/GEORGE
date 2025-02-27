@@ -34,6 +34,8 @@ namespace GEORGE.Client.Pages.Wyroby
 
         private double LuzPomiedzySkrzyASzyba = 6;
 
+        private double ZachodzenieZaSiebieSkrzydel = 13; //Zachodzienie skrzydeł za siebie w oknach bez słupka stałego
+
         //-------------------------------------------------------------  ZMIENNE WEW  ----------------------------------------------------------------------------------------
         private double WymiarWewOknaWidth1SK = 0; // od tego wymiaru liczymy szklenie - wymiar szkła WymiarWewOknaWidth - LuzPomiedzySkrzyASzyba = ??
         private double WymiarWewOknaHeight1SK = 0;
@@ -70,23 +72,25 @@ namespace GEORGE.Client.Pages.Wyroby
 
             await context.RestoreAsync();
 
-            await DrawShapeObrSkrzydloAsync2SK(context, X, Y , 1, true); // Skrzydło 1
-            await DrawShapeObrSkrzydloAsync2SK(context, X, Y, 2, true); // Skrzydło 2
+            await DrawShapeObrSkrzydloAsync2SK(context, X, Y , 1); // Skrzydło 1
+            await DrawShapeObrSkrzydloAsync2SK(context, X, Y, 2); // Skrzydło 2
 
             Console.WriteLine($"DrawAsync - SzerDrzwi: {Width} x {Height} / Skala: {Skala}");
 
-            await AddWymInformacja(WymiarWewOknaWidth1SK + (2 * WysPiora - 2 * LuzPomiedzySkrzyASzyba), WymiarWewOknaHeight1SK + (2 * WysPiora - 2 * LuzPomiedzySkrzyASzyba), WymiarZewOknaWidth1SK, WymiarZewOknaHeight1SK, WymiarWewOknaWidth1SK, WymiarWewOknaHeight1SK, Guid.NewGuid().ToString());
+            await AddWymInformacja(WymiarWewOknaWidth1SK + (2 * WysPiora - 2 * LuzPomiedzySkrzyASzyba), WymiarWewOknaHeight1SK + (2 * WysPiora - 2 * LuzPomiedzySkrzyASzyba), 
+                WymiarZewOknaWidth1SK, WymiarZewOknaHeight1SK, WymiarWewOknaWidth1SK, WymiarWewOknaHeight1SK, Guid.NewGuid().ToString());
 
-            await AddWymInformacja(WymiarWewOknaWidth2SK + (2 * WysPiora - 2 * LuzPomiedzySkrzyASzyba), WymiarWewOknaHeight2SK + (2 * WysPiora - 2 * LuzPomiedzySkrzyASzyba), WymiarZewOknaWidth2SK, WymiarZewOknaHeight2SK, WymiarWewOknaWidth2SK, WymiarWewOknaHeight2SK, Guid.NewGuid().ToString());
+            await AddWymInformacja(WymiarWewOknaWidth2SK + (2 * WysPiora - 2 * LuzPomiedzySkrzyASzyba), WymiarWewOknaHeight2SK + (2 * WysPiora - 2 * LuzPomiedzySkrzyASzyba), 
+                WymiarZewOknaWidth2SK, WymiarZewOknaHeight2SK, WymiarWewOknaWidth2SK, WymiarWewOknaHeight2SK, Guid.NewGuid().ToString());
 
         }
         public override Task<List<Point>> ReturnPoints()
         {
             return Task.FromResult(Xpoints ?? new List<Point>());
         }
-        private async Task DrawSposOtwLines(Canvas2DContext context, double xWewSkrzy, double yWewSkrzyd)
+        private async Task DrawSposOtwLines(Canvas2DContext context, double xWewSkrzy, double yWewSkrzyd, string sposoOTW, double WymiarWewOknaWidth)
         {
-            if (SposOtwierania == "R/RUP")
+            if (sposoOTW == "RUP")
             {
                 // Rysowanie linii promienistych
                 await context.BeginPathAsync();
@@ -98,22 +102,23 @@ namespace GEORGE.Client.Pages.Wyroby
 
                 // Rysowanie linii
                 await context.MoveToAsync(xWewSkrzy, yWewSkrzyd);
-                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth1SK * Skala, yWewSkrzyd + (WymiarWewOknaHeight1SK / 2 * Skala));
+                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + (WymiarWewOknaHeight1SK / 2 * Skala));
                 await context.LineToAsync(xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
                 await context.StrokeAsync();
 
                 await context.MoveToAsync(xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
-                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth1SK / 2 * Skala, yWewSkrzyd);
-                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth1SK * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
+                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth / 2 * Skala, yWewSkrzyd);
+                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
                 await context.StrokeAsync();
 
-                await DrawKlamkaLines(context, xWewSkrzy + WymiarWewOknaWidth1SK * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK / 2 * Skala, 'P');
+                if (sposoOTW.Length > 2)
+                    await DrawKlamkaLines(context, xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK / 2 * Skala, 'P');
 
                 //AddLinePoints(xWewSkrzy, yWewSkrzyd, xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaWidth / 2 * Skala, "dashed"); //Generuj linie pod DXF
                 //AddLinePoints(xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaWidth / 2 * Skala, xWewSkrzy, yWewSkrzyd + WymiarWewOknaWidth * Skala, "dashed"); //Generuj linie pod DXF
                 //AddLinePoints(xWewSkrzy, yWewSkrzyd + WymiarWewOknaWidth * Skala, xWewSkrzy, yWewSkrzyd + WymiarWewOknaWidth * Skala, "dashed"); //Generuj linie pod DXF
             }
-            else if (SposOtwierania == "RUL/R")
+            else if (sposoOTW == "RUL")
             {
                 // Rysowanie linii promienistych
                 await context.BeginPathAsync();
@@ -124,20 +129,21 @@ namespace GEORGE.Client.Pages.Wyroby
                 // WymiarWewOknaWidth, WymiarWewOknaHeight, SzerokoscRamy, SzerokoscSkrzydla, SkrzydloMniejszczeO
 
                 // Rysowanie linii
-                await context.MoveToAsync(xWewSkrzy + WymiarWewOknaWidth1SK * Skala, yWewSkrzyd);
+                await context.MoveToAsync(xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd);
                 await context.LineToAsync(xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight1SK / 2 * Skala);
-                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth1SK * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
+                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
                 await context.StrokeAsync();
 
                 await context.MoveToAsync(xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
-                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth1SK / 2 * Skala, yWewSkrzyd);
-                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth1SK * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
+                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth / 2 * Skala, yWewSkrzyd);
+                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
                 await context.StrokeAsync();
 
-                await DrawKlamkaLines(context, xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight1SK / 2 * Skala, 'L');
+                if (sposoOTW.Length > 2)
+                    await DrawKlamkaLines(context, xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight1SK / 2 * Skala, 'L');
 
             }
-            else if (SposOtwierania == "U")
+            else if (sposoOTW == "U")
             {
                 // Rysowanie linii promienistych
                 await context.BeginPathAsync();
@@ -148,14 +154,15 @@ namespace GEORGE.Client.Pages.Wyroby
                 // WymiarWewOknaWidth, WymiarWewOknaHeight, SzerokoscRamy, SzerokoscSkrzydla, SkrzydloMniejszczeO
 
                 await context.MoveToAsync(xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
-                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth1SK / 2 * Skala, yWewSkrzyd);
-                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth1SK * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
+                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth / 2 * Skala, yWewSkrzyd);
+                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
                 await context.StrokeAsync();
 
-                await DrawKlamkaLines(context, xWewSkrzy + WymiarWewOknaWidth1SK / 2 * Skala, yWewSkrzyd, 'U');
+                if (sposoOTW.Length > 2)
+                    await DrawKlamkaLines(context, xWewSkrzy + WymiarWewOknaWidth / 2 * Skala, yWewSkrzyd, 'U');
 
             }
-            else if (SposOtwierania == "RP")
+            else if (sposoOTW == "RP")
             {
                 // Rysowanie linii promienistych
                 await context.BeginPathAsync();
@@ -167,14 +174,15 @@ namespace GEORGE.Client.Pages.Wyroby
 
                 // Rysowanie linii
                 await context.MoveToAsync(xWewSkrzy, yWewSkrzyd);
-                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth1SK * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK / 2 * Skala);
+                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK / 2 * Skala);
                 await context.LineToAsync(xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
                 await context.StrokeAsync();
 
-                await DrawKlamkaLines(context, xWewSkrzy + WymiarWewOknaWidth1SK * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK / 2 * Skala, 'P');
+                if (sposoOTW.Length > 2)
+                    await DrawKlamkaLines(context, xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK / 2 * Skala, 'P');
 
             }
-            else if (SposOtwierania == "RL")
+            else if (sposoOTW == "RL")
             {
                 // Rysowanie linii promienistych
                 await context.BeginPathAsync();
@@ -185,12 +193,13 @@ namespace GEORGE.Client.Pages.Wyroby
                 // WymiarWewOknaWidth, WymiarWewOknaHeight, SzerokoscRamy, SzerokoscSkrzydla, SkrzydloMniejszczeO
 
                 // Rysowanie linii
-                await context.MoveToAsync(xWewSkrzy + WymiarWewOknaWidth1SK * Skala, yWewSkrzyd);
+                await context.MoveToAsync(xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd);
                 await context.LineToAsync(xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight1SK / 2 * Skala);
-                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth1SK * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
+                await context.LineToAsync(xWewSkrzy + WymiarWewOknaWidth * Skala, yWewSkrzyd + WymiarWewOknaHeight1SK * Skala);
                 await context.StrokeAsync();
 
-                await DrawKlamkaLines(context, xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight1SK / 2 * Skala, 'L');
+                if (sposoOTW.Length > 2)
+                    await DrawKlamkaLines(context, xWewSkrzy, yWewSkrzyd + WymiarWewOknaHeight1SK / 2 * Skala, 'L');
 
             }
 
@@ -233,18 +242,20 @@ namespace GEORGE.Client.Pages.Wyroby
 
             await Task.CompletedTask;
         }
-        private async Task DrawShapeObrSkrzydloAsync2SK(Canvas2DContext context, double offsetX, double offsetY, int numer_skrzydla , bool maKlamke)
+        private async Task DrawShapeObrSkrzydloAsync2SK(Canvas2DContext context, double offsetX, double offsetY, int numer_skrzydla)
         {
             await context.BeginPathAsync();
             await context.SetLineWidthAsync(3);
             await context.SetStrokeStyleAsync("black"); // Kolor linii
             await context.SetLineDashAsync(new float[] { });
 
-            if(numer_skrzydla ==  1)
+            string[] spsOTW = SposOtwierania.Split('/');
+
+            if (numer_skrzydla ==  1)
             {
                 double podzialLiniaX = LiniaPodzialuSkrzydel;
 
-                WymiarZewOknaWidth1SK = podzialLiniaX - SzerokoscSkrzydla + SkrzydloMniejszczeO_Lewa ;
+                WymiarZewOknaWidth1SK = podzialLiniaX - SzerokoscSkrzydla + SkrzydloMniejszczeO_Lewa + ZachodzenieZaSiebieSkrzydel;
                 WymiarZewOknaHeight1SK = Height - 2 * SzerokoscSkrzydla + SkrzydloMniejszczeO_Gora + SkrzydloMniejszczeO_Dol;
 
                 WymiarWewOknaWidth1SK = WymiarZewOknaWidth1SK - 2 * GrboscRdzeniaSkrzydla - 2 * WysPiora;
@@ -256,14 +267,23 @@ namespace GEORGE.Client.Pages.Wyroby
 
                 await context.RectAsync(offsetX + (SzerokoscSkrzydla - SkrzydloMniejszczeO_Lewa + SzerokoscSkrzydla) * Skala, offsetY + (SzerokoscSkrzydla - SkrzydloMniejszczeO_Gora + SzerokoscSkrzydla) * Skala,
                     WymiarWewOknaWidth1SK * Skala, WymiarWewOknaHeight1SK * Skala); // #2
+
+                await context.StrokeAsync();
+
+                if (spsOTW != null && spsOTW.Count() > 0)
+                {
+                    await DrawSposOtwLines(context, offsetX + (SzerokoscSkrzydla - SkrzydloMniejszczeO_Lewa + SzerokoscSkrzydla) * Skala,
+                    offsetY + (SzerokoscSkrzydla - SkrzydloMniejszczeO_Gora + SzerokoscSkrzydla) * Skala, spsOTW[0], WymiarWewOknaWidth1SK); // Sposób otwierania
+                }
+
             }
             else if(numer_skrzydla == 2)
             {
-                double podzialLiniaX = Width - LiniaPodzialuSkrzydel;
+                double podzialLiniaX = LiniaPodzialuSkrzydel;// Width - LiniaPodzialuSkrzydel;
 
-                offsetX = offsetX + ((podzialLiniaX - SzerokoscSkrzydla + SkrzydloMniejszczeO_Prawa) * Skala);//50 zachodzenie za siebie skrzydeł
+                offsetX = offsetX + ((podzialLiniaX - SzerokoscSkrzydla + SkrzydloMniejszczeO_Prawa - ZachodzenieZaSiebieSkrzydel) * Skala);//50 zachodzenie za siebie skrzydeł
 
-                WymiarZewOknaWidth2SK = podzialLiniaX - SzerokoscSkrzydla + SkrzydloMniejszczeO_Prawa;
+                WymiarZewOknaWidth2SK = Width - LiniaPodzialuSkrzydel - SzerokoscSkrzydla + SkrzydloMniejszczeO_Prawa + ZachodzenieZaSiebieSkrzydel;
                 WymiarZewOknaHeight2SK = Height - 2 * SzerokoscSkrzydla + SkrzydloMniejszczeO_Gora + SkrzydloMniejszczeO_Dol;
 
                 WymiarWewOknaWidth2SK = WymiarZewOknaWidth2SK - 2 * GrboscRdzeniaSkrzydla - 2 * WysPiora;
@@ -275,18 +295,19 @@ namespace GEORGE.Client.Pages.Wyroby
 
                 await context.RectAsync(offsetX + (SzerokoscSkrzydla - SkrzydloMniejszczeO_Lewa + SzerokoscSkrzydla) * Skala, offsetY + (SzerokoscSkrzydla - SkrzydloMniejszczeO_Gora + SzerokoscSkrzydla) * Skala,
                     WymiarWewOknaWidth2SK * Skala, WymiarWewOknaHeight2SK * Skala); // #2
-            }
 
-            await context.StrokeAsync();
+                //Poniże zmienne pod dxf
+                //AddRectanglePoints(offsetX + SkrzydloMniejszczeO * Skala, offsetY + SkrzydloMniejszczeO * Skala, (Width - 2 * SkrzydloMniejszczeO) * Skala, (Height - 2 * SkrzydloMniejszczeO) * Skala); // #1
+                //AddRectanglePoints(offsetX + (SkrzydloMniejszczeO + SzerokoscSkrzydla) * Skala, offsetY + (SkrzydloMniejszczeO + SzerokoscSkrzydla) * Skala, (WymiarWewOknaWidth) * Skala, (WymiarWewOknaHeight) * Skala); // #2
+                await context.StrokeAsync();
 
-            //Poniże zmienne pod dxf
-            //AddRectanglePoints(offsetX + SkrzydloMniejszczeO * Skala, offsetY + SkrzydloMniejszczeO * Skala, (Width - 2 * SkrzydloMniejszczeO) * Skala, (Height - 2 * SkrzydloMniejszczeO) * Skala); // #1
-            //AddRectanglePoints(offsetX + (SkrzydloMniejszczeO + SzerokoscSkrzydla) * Skala, offsetY + (SkrzydloMniejszczeO + SzerokoscSkrzydla) * Skala, (WymiarWewOknaWidth) * Skala, (WymiarWewOknaHeight) * Skala); // #2
+                if (spsOTW != null && spsOTW.Count() > 1)
+                {
+                    await DrawSposOtwLines(context, offsetX + (SzerokoscSkrzydla - SkrzydloMniejszczeO_Lewa + SzerokoscSkrzydla) * Skala,
+                    offsetY + (SzerokoscSkrzydla - SkrzydloMniejszczeO_Gora + SzerokoscSkrzydla) * Skala, spsOTW[1], WymiarWewOknaWidth2SK); // Sposób otwierania
+                } 
 
-            if (maKlamke)
-            {
-                await DrawSposOtwLines(context, offsetX + (SzerokoscSkrzydla - SkrzydloMniejszczeO_Lewa + SzerokoscSkrzydla) * Skala,
-                offsetY + (SzerokoscSkrzydla - SkrzydloMniejszczeO_Gora + SzerokoscSkrzydla) * Skala); // Sposób otwierania
+ 
             }
 
         }

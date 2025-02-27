@@ -90,15 +90,19 @@
                 @if (idWyrClick == 2)
                 {
                     <label style="color: yellow;">Linia podziału skrzydeł</label>
-                    <AntDesign.InputNumber Style="width:180px" @bind-Value="liniaPodzialSkrzydla" Min="150" Max="3000" PlaceHolder="Podaj szerokość skrzydła"></AntDesign.InputNumber>
+                    <AntDesign.InputNumber Style="width:120px" @bind-Value="liniaPodzialSkrzydla" Min="150" Max="3000" PlaceHolder="Linia podziału skrzydeł"></AntDesign.InputNumber>
+                    <Button OnClick="@(() => liniaPodzialSkrzydla = szerOkna / 2)">1:1</Button>
                     <label style="color: yellow;">Sposób otwierania</label>
                     <SimpleSelect DefaultValue="BRAK" Style="width:180px;" OnSelectedItemChanged="handleChange">
                         <SelectOptions>
                             <SimpleSelectOption Value="BRAK" Label="BRAK"></SimpleSelectOption>
-                            <SimpleSelectOption Value="R/RUP" Label="R/RUP"></SimpleSelectOption>
-                            <SimpleSelectOption Value="RUL/R" Label="RUL/R"></SimpleSelectOption>
-                            <SimpleSelectOption Value="RP" Label="RP"></SimpleSelectOption>
+                            <SimpleSelectOption Value="RUP/RL" Label="RUP/RL"></SimpleSelectOption>
+                            <SimpleSelectOption Value="RP/RUL" Label="RP/RUL"></SimpleSelectOption>
+                            <SimpleSelectOption Value="RP/RL" Label="RP/RL"></SimpleSelectOption>
                             <SimpleSelectOption Value="RL" Label="RL"></SimpleSelectOption>
+                            <SimpleSelectOption Value="RP" Label="RP"></SimpleSelectOption>
+                            <SimpleSelectOption Value="/RL" Label="/RL"></SimpleSelectOption>
+                            <SimpleSelectOption Value="/RP" Label="/RP"></SimpleSelectOption>
                             <SimpleSelectOption Value="U" Label="U"></SimpleSelectOption>
                         </SelectOptions>
                     </SimpleSelect>
@@ -249,9 +253,11 @@
     {
         if (shapes != null) shapes.Clear();
 
-        double skala = Math.Round((3000.0 / szerOkna) * 0.25, 2);
+        double skala = Math.Round((3000.0 / szerOkna) * 0.20, 2);
 
-        if (Math.Round((3000.0 / szerOkna) * 0.25, 2) < skala) skala = Math.Round((3000.0 / szerOkna) * 0.25, 2);
+        if (Math.Round((3000.0 / szerOkna) * 0.20, 2) < skala) skala = Math.Round((3000.0 / szerOkna) * 0.20, 2);
+
+        //skala = 0.2;
 
         Console.WriteLine($"skala :{skala}");
 
