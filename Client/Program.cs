@@ -6,6 +6,7 @@ using GEORGE.Client.Pages.PDF;
 using System.Net;
 using netDxf;
 using System.Globalization;
+using GEORGE.Client.Pages.KonfiguratorOkien;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
@@ -31,6 +32,10 @@ builder.Services.AddScoped<PdfDataParser>();
 builder.Services.AddScoped<PdfDataParserSzyby>();
 builder.Services.AddScoped<PdfDataParserRys>();
 builder.Services.AddScoped<PdfDataParserElementy>();
+
+// Rejestracja us³ug DXF
+builder.Services.AddSingleton<DxfService>();
+builder.Services.AddSingleton<DxfToSvgConverter>();
 
 builder.Services.AddScoped(sp =>
 {

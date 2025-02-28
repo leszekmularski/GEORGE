@@ -4,23 +4,223 @@
 @inject HttpClient Http
 @using AntDesign
 @inject IMessageService _message
+@inject INotificationService _notice
 @inject Utilities.ILocalStorage LocalStorage
 @using System.Net
+@using System.Xml;
 @inject IJSRuntime JSRuntime
+@inject DxfService DxfService
+@inject DxfToSvgConverter Converter
+
+<style>
+    .scaled-svg {
+        position: relative;
+        width: 100%;
+        height: 500px;
+        overflow: auto;
+        border: 1px solid #ccc;
+    }
+
+    svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    #guide-line-vertical, #guide-line-horizontal, #guide-line-verticalMax, #guide-line-horizontalMax {
+        pointer-events: auto;
+        opacity: 1;
+        z-index: 10; /* Przesunięcie na wierzch */
+    }
+
+    line {
+        cursor: pointer; /* Zmieniaj kursor przy interakcji */
+    }
+
+</style>
+
+<script>
+let isDragging = false;
+let draggedLine = null;
+
+function enableDrag() {
+    const guides = document.querySelectorAll('line[id^="guide-line"]');
+    guides.forEach(guide => {
+        guide.addEventListener('mousedown', startDrag);
+    });
+}
+
+function startDrag(event) {
+    isDragging = true;
+    draggedLine = event.target;
+    // Ustawienie początkowych współrzędnych dla linii
+    draggedLine.dataset.initialX = draggedLine.getAttribute('x1');
+    draggedLine.dataset.initialY = draggedLine.getAttribute('y1');
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', stopDrag);
+}
+
+function drag(event) {
+    if (isDragging && draggedLine) {
+        const rect = draggedLine.closest('svg').getBoundingClientRect();
+        let newX = event.clientX - rect.left;
+        let newY = event.clientY - rect.top;
+
+        // Ustawianie nowej pozycji
+        if (draggedLine.id === 'guide-line-vertical' || draggedLine.id === 'guide-line-verticalMax') {
+            draggedLine.setAttribute('x1', newX);
+            draggedLine.setAttribute('x2', newX);
+        } else if (draggedLine.id === 'guide-line-horizontal' || draggedLine.id === 'guide-line-horizontalMax') {
+            draggedLine.setAttribute('y1', newY);
+            draggedLine.setAttribute('y2', newY);
+        }
+    }
+}
+
+function stopDrag() {
+    isDragging = false;
+    draggedLine = null;
+    document.removeEventListener('mousemove', drag);
+    document.removeEventListener('mouseup', stopDrag);
+}
+
+// Załaduj funkcję drag po załadowaniu strony
+document.addEventListener('DOMContentLoaded', enableDrag);
+
+
+</script>
+
 <Divider Style="font-weight:bold; font-size:large; display:flex; justify-content:space-between; align-items:center;">
     <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
         <Button class="btn-back" Icon="@IconType.Fill.Backward" Style="width:55px" OnClick="GoBack" />
     </Tooltip>
 </Divider>
-@code 
-{
+
+<h3>Podgląd DXF</h3>
+
+<!-- Wyświetlanie SVG w elemencie div -->
+<div class="scaled-svg">
+    @if (!string.IsNullOrEmpty(SvgContent))
+    {
+        @((MarkupString)SvgContent)
+    }
+    else
+    {
+        <p>Wczytaj plik DXF...</p>
+    }
+</div>
+
+<InputFile OnChange="HandleSelected" multiple accept=".dxf">Wybierz pliki DXF</InputFile>
+
+@code {
+
     [Inject] private AppState AppState { get; set; } = default!;
+
+    private string? SvgContent { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         if (AppState != null)
         {
             AppState.SomeData = "";
+        }
+    }
+
+    private async Task HandleSelected(InputFileChangeEventArgs e)
+    {
+        foreach (var file in e.GetMultipleFiles())
+        {
+            Console.WriteLine($"Otwieranie pliku: {file.Name}");
+
+            try
+            {
+                // Wczytanie pliku do pamięci
+                using var stream = file.OpenReadStream();
+                using var memoryStream = new MemoryStream();
+                await stream.CopyToAsync(memoryStream);
+                memoryStream.Position = 0; // Resetowanie pozycji strumienia
+
+                // Wczytanie DXF ze strumienia
+                var dxf = DxfDocument.Load(memoryStream);
+
+                // Sprawdzenie, czy DXF zawiera jakieś elementy
+                if (dxf == null)
+                {
+                    Console.WriteLine("Plik DXF jest pusty lub nie zawiera obsługiwanych elementów.");
+
+                    _ = _notice.Error(new()
+                        {
+                            Message = "Błąd!!!",
+                            Description = "Plik DXF jest pusty lub nie zawiera obsługiwanych elementów.",
+                            Placement = NotificationPlacement.BottomLeft
+                        });
+                    return;
+                }
+                else
+                {
+                    _ = _notice.Info(new()
+                        {
+                            Message = "Informacja!!",
+                            Description = $"Plik DXF jest OK ilość linii: {dxf.Entities.Lines.Count()} łuków: {dxf.Entities.Arcs.Count()}, okręgów: {dxf.Entities.Circles.Count()}",
+                            Placement = NotificationPlacement.BottomLeft,
+                            Duration = 1
+                        });
+                }
+                // Konwersja na SVG
+                SvgContent = Converter.ConvertToSvg(dxf);
+
+                // Dodanie linii prowadnicowych do SVG (po konwersji)
+                var svgDoc = new XmlDocument();
+                svgDoc.LoadXml(SvgContent);
+
+                // Znajdź element <svg> w wygenerowanym SVG
+                var svgElement = svgDoc.GetElementsByTagName("svg")[0];
+
+                // Dodanie pionowej i poziomej linii prowadnicowej
+                XmlElement verticalLine = svgDoc.CreateElement("line");
+                verticalLine.SetAttribute("id", "guide-line-vertical");
+                verticalLine.SetAttribute("x1", "100");
+                verticalLine.SetAttribute("y1", "0");
+                verticalLine.SetAttribute("x2", "100");
+                verticalLine.SetAttribute("y2", "500");
+                verticalLine.SetAttribute("stroke", "red");
+                verticalLine.SetAttribute("stroke-width", "1");
+                verticalLine.SetAttribute("stroke-dasharray", "5,5");
+
+                XmlElement horizontalLine = svgDoc.CreateElement("line");
+                horizontalLine.SetAttribute("id", "guide-line-horizontal");
+                horizontalLine.SetAttribute("x1", "0");
+                horizontalLine.SetAttribute("y1", "250");
+                horizontalLine.SetAttribute("x2", "500");
+                horizontalLine.SetAttribute("y2", "250");
+                horizontalLine.SetAttribute("stroke", "blue");
+                horizontalLine.SetAttribute("stroke-width", "1");
+                horizontalLine.SetAttribute("stroke-dasharray", "5,5");
+
+                // Dodanie linii do SVG
+                svgElement.AppendChild(verticalLine);
+                svgElement.AppendChild(horizontalLine);
+
+                // Zaktualizowanie SVGContent
+                SvgContent = svgDoc.OuterXml;
+
+                // Wymuszenie odświeżenia UI
+                StateHasChanged();
+                
+                // Załaduj funkcje drag-and-drop po wygenerowaniu SVG
+                await JSRuntime.InvokeVoidAsync("enableDrag");
+
+                return; // Przetwarzamy tylko pierwszy plik
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Błąd podczas odczytu DXF: {ex.Message}");
+                _ = _notice.Error(new()
+                    {
+                        Message = "Błąd!!!",
+                        Description = $"Błąd podczas odczytu DXF: {ex.Message}",
+                        Placement = NotificationPlacement.BottomLeft
+                    });
+            }
         }
     }
 

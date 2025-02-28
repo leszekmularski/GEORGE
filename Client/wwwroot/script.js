@@ -13,9 +13,9 @@ function isDevice() {
 
 
 function autoExpand(field) {
-    // Oblicz szerokoœæ tekstu wpisanego w pole <input>
+    // Oblicz szerokoÅ›Ä‡ tekstu wpisanego w pole <input>
     var textWidth = field.scrollWidth;
-    // Ustaw szerokoœæ pola <input> na podstawie szerokoœci tekstu
+    // Ustaw szerokoÅ›Ä‡ pola <input> na podstawie szerokoÅ›ci tekstu
     field.style.width = textWidth + "px";
 }
 
@@ -69,6 +69,6 @@ window.browser = {
 
 window.getSessionStorageItem = function (key) {
     var value = sessionStorage.getItem(key);
-    console.log("Wartoœæ " + key + " w sessionStorage:", value);
+    console.log("WartoÅ›Ä‡ " + key + " w sessionStorage:", value);
     return value;
 };
