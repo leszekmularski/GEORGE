@@ -7,7 +7,8 @@
 @inject INotificationService _notice
 @inject Utilities.ILocalStorage LocalStorage
 @using System.Net
-@using System.Xml;
+@using System.Xml
+@using System.Text.Json
 @inject IJSRuntime JSRuntime
 @inject DxfService DxfService
 @inject DxfToSvgConverter Converter
@@ -15,7 +16,7 @@
 <style>
     .scaled-svg {
         position: relative;
-        width: 100%;
+        width: 500px;
         height: 500px;
         overflow: auto;
         border: 1px solid #ccc;
@@ -39,74 +40,356 @@
 </style>
 
 <script>
-let isDragging = false;
-let draggedLine = null;
 
-function enableDrag() {
-    const guides = document.querySelectorAll('line[id^="guide-line"]');
-    guides.forEach(guide => {
-        guide.addEventListener('mousedown', startDrag);
-    });
-}
+    let isDragging = false;
+    let draggedLine = null;
+    let offsetX = 0; // 🔥 Przechowuje różnicę między kliknięciem a aktualnym X
+    let deleteMode = false; // 🔥 Tryb usuwania
 
-function startDrag(event) {
-    isDragging = true;
-    draggedLine = event.target;
-    // Ustawienie początkowych współrzędnych dla linii
-    draggedLine.dataset.initialX = draggedLine.getAttribute('x1');
-    draggedLine.dataset.initialY = draggedLine.getAttribute('y1');
-    document.addEventListener('mousemove', drag);
-    document.addEventListener('mouseup', stopDrag);
-}
+    // 🔥 Nowe zmienne do przechwycenia wartości prowadnic
+    let verticalGuides = {};
+    let horizontalGuides = {};
 
-function drag(event) {
-    if (isDragging && draggedLine) {
-        const rect = draggedLine.closest('svg').getBoundingClientRect();
-        let newX = event.clientX - rect.left;
-        let newY = event.clientY - rect.top;
+        function enableDrag() {
+        console.log("🔧 enableDrag uruchomiony!");
 
-        // Ustawianie nowej pozycji
-        if (draggedLine.id === 'guide-line-vertical' || draggedLine.id === 'guide-line-verticalMax') {
-            draggedLine.setAttribute('x1', newX);
-            draggedLine.setAttribute('x2', newX);
-        } else if (draggedLine.id === 'guide-line-horizontal' || draggedLine.id === 'guide-line-horizontalMax') {
-            draggedLine.setAttribute('y1', newY);
-            draggedLine.setAttribute('y2', newY);
+        let elements = document.querySelectorAll("svg line, svg path, svg circle");
+
+        elements.forEach(element => {
+            if (!element.dataset.dragEnabled) {
+                element.addEventListener('mousedown', startDragOrDelete);
+                element.dataset.dragEnabled = "true";
+            }
+
+            // Zapisujemy współrzędne tylko dla prowadnic
+            if (element.id.includes("guide-line-vertical")) {
+                verticalGuides[element.id] = parseInt(element.getAttribute("x1"));
+            } else if (element.id.includes("guide-line-horizontal")) {
+                horizontalGuides[element.id] = parseInt(element.getAttribute("y1"));
+            }
+        });
+
+        console.log("✅ Wszystkie elementy SVG aktywowane!");
+
+        // 🔥 Obsługa checkboxa do usuwania
+        document.getElementById("deleteMode").addEventListener("change", function () {
+            deleteMode = this.checked;
+            console.log(`🗑️ Tryb usuwania: ${deleteMode ? "WŁĄCZONY" : "WYŁĄCZONY"}`);
+        });
+    }
+
+    function startDrag(event) {
+        event.preventDefault();
+        isDragging = true;
+        draggedLine = event.target;
+
+        const svg = draggedLine.closest('svg');
+        const rect = svg.getBoundingClientRect();
+        const viewBox = svg.viewBox.baseVal;
+
+        let scaleX = viewBox.width / rect.width; // Skalowanie X
+        let scaleY = viewBox.height / rect.height; // Skalowanie Y
+
+        let mouseX = (event.clientX - rect.left) * scaleX + viewBox.x;
+        let mouseY = (event.clientY - rect.top) * scaleY + viewBox.y;
+
+        if (draggedLine.id.includes('vertical')) {
+            let currentX = parseFloat(draggedLine.getAttribute('x1'));
+            offsetX = mouseX - currentX; // 🔥 Poprawiona wartość offsetX
+        }
+
+        console.log(`🚀 Rozpoczęto przeciąganie: ${draggedLine.id}, offsetX=${offsetX}`);
+
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', stopDrag);
+    }
+
+    function drag(event) {
+        if (isDragging && draggedLine) {
+            const svg = draggedLine.closest('svg');
+            const rect = svg.getBoundingClientRect();
+            const viewBox = svg.viewBox.baseVal;
+
+            let scaleX = viewBox.width / rect.width;
+            let scaleY = viewBox.height / rect.height;
+
+            let newX = (event.clientX - rect.left) * scaleX + viewBox.x - offsetX;
+            let newY = (event.clientY - rect.top) * scaleY + viewBox.y;
+
+            console.log(`🎯 Przesuwam ${draggedLine.id} do X=${newX}, Y=${newY}`);
+
+            if (draggedLine.id.includes('vertical')) {
+                draggedLine.setAttribute('x1', newX);
+                draggedLine.setAttribute('x2', newX);
+            } else if (draggedLine.id.includes('horizontal')) {
+                draggedLine.setAttribute('y1', newY);
+                draggedLine.setAttribute('y2', newY);
+            }
+
+            console.log(`✅ ${draggedLine.id} nowa pozycja: x1=${draggedLine.getAttribute('x1')}, y1=${draggedLine.getAttribute('y1')}`);
         }
     }
-}
 
-function stopDrag() {
-    isDragging = false;
-    draggedLine = null;
-    document.removeEventListener('mousemove', drag);
-    document.removeEventListener('mouseup', stopDrag);
-}
+    // 🔥 Aktualizacja wartości w panelu bocznym
+    function updateGuideValues() {
+        let verticalList = document.getElementById("verticalValues");
+        let horizontalList = document.getElementById("horizontalValues");
 
-// Załaduj funkcję drag po załadowaniu strony
-document.addEventListener('DOMContentLoaded', enableDrag);
+        verticalList.innerHTML = "";
+        horizontalList.innerHTML = "";
 
+        let svg = document.querySelector("svg");
+        if (!svg) {
+            console.error("❌ Nie znaleziono SVG!");
+            return;
+        }
+
+        let viewBox = svg.viewBox.baseVal;
+        let totalHeight = viewBox.height; // 🔥 Całkowita wysokość SVG
+
+        // 🔥 Pionowe prowadnice
+        Object.keys(verticalGuides).forEach(id => {
+            let line = document.getElementById(id);
+            let color = line ? line.getAttribute("stroke") : "black"; // Pobieramy kolor linii
+
+            let li = document.createElement("li");
+            li.innerHTML = `<span style="background-color:${color}; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>
+                            ${id}: ${verticalGuides[id]}px`;
+            verticalList.appendChild(li);
+        });
+
+        // 🔥 Poziome prowadnice (odwrócone względem dołu)
+        Object.keys(horizontalGuides).forEach(id => {
+            let line = document.getElementById(id);
+            let color = line ? line.getAttribute("stroke") : "black"; // Pobieramy kolor linii
+            let originalY = horizontalGuides[id];
+            let flippedY = totalHeight - originalY; // 🔥 Liczymy Y od dołu
+
+            let li = document.createElement("li");
+            li.innerHTML = `<span style="background-color:${color}; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>
+                            ${id}: ${flippedY}px`;
+            horizontalList.appendChild(li);
+        });
+    }
+
+
+    function stopDrag() {
+        if (draggedLine) {
+            console.log(`🛑 Zatrzymano przeciąganie: ${draggedLine.id}`);
+
+            let testLine = document.getElementById(draggedLine.id);
+            if (!testLine) {
+                console.error(`❌ Linia ${draggedLine.id} zniknęła z DOM!`);
+            } else {
+                console.log(`✅ Linia ${draggedLine.id} nadal istnieje w DOM.`);
+            }
+
+            if (draggedLine.id.includes("vertical")) {
+                verticalGuides[draggedLine.id] = parseInt(draggedLine.getAttribute("x1"));
+            } else if (draggedLine.id.includes("horizontal")) {
+                horizontalGuides[draggedLine.id] = parseInt(draggedLine.getAttribute("y1"));
+            }
+
+            updateGuideValues(); // 🔥 Aktualizacja wartości po przesunięciu linii
+        }
+
+        isDragging = false;
+        draggedLine = null;
+        document.removeEventListener('mousemove', drag);
+        document.removeEventListener('mouseup', stopDrag);
+    }
+
+    // 🔥 Nowa funkcja: wybiera czy usunąć czy przesuwać
+    function startDragOrDelete(event) {
+        event.preventDefault();
+
+        if (deleteMode) {
+            deleteLine(event.target);
+        } else {
+            startDrag(event);
+        }
+    }
+
+
+    // 🔥 Usuwanie linii
+        function deleteLine(element) {
+        console.log(`🗑️ Próbuję usunąć element: ${element.tagName}, ID: ${element.id || "brak"}`);
+
+        // Jeśli to prowadnica, NIE usuwamy jej!
+        if (element.id && element.id.includes("guide-line")) {
+            console.warn("❌ Nie można usunąć prowadnic!");
+            return;
+        }
+
+        // Sprawdzenie, czy kliknięto w element SVG
+        if (element.tagName === "line" || element.tagName === "path" || element.tagName === "circle") {
+            element.remove();
+            console.log(`✅ Usunięto element: ${element.tagName}, ID: ${element.id || "brak"}`);
+        } else {
+            console.warn("⚠️ Kliknięto w element, który nie jest linią, łukiem ani okręgiem.");
+        }
+    }
+
+    function rotateSvgElements() {
+        console.log("🔄 Obracam cały obiekt SVG (bez prowadnic) o 90 stopni!");
+
+        let group = document.getElementById("rotate-group");
+        if (!group) {
+            console.error("❌ Nie znaleziono grupy <g id='rotate-group'>! Sprawdź, czy jest w SVG.");
+            return;
+        }
+
+        let svg = group.closest("svg");
+        let bbox = group.getBBox(); // 🔥 Pobiera rzeczywiste granice obiektów w SVG
+
+        let cx = bbox.x + bbox.width / 2;
+        let cy = bbox.y + bbox.height / 2;
+
+        // Pobierz obecny kąt obrotu (jeśli istnieje)
+        let currentTransform = group.getAttribute("transform") || "";
+        let match = currentTransform.match(/rotate\(([-\d.]+)/);
+        let currentAngle = match ? parseFloat(match[1]) : 0;
+
+        // Nowy kąt obrotu (dodajemy do poprzedniego)
+        let newAngle = currentAngle + 90;
+
+        // Ustawienie nowej transformacji na grupie `g`
+        group.setAttribute("transform", `rotate(${newAngle}, ${cx}, ${cy})`);
+
+        console.log(`✅ Obrót zakończony: ${newAngle} stopni wokół (${cx}, ${cy})`);
+    }
+
+    function getSvgPngBase64() {
+        return new Promise((resolve, reject) => {
+            let svg = document.querySelector("svg");
+            if (!svg) {
+                console.error("❌ Nie znaleziono SVG!");
+                reject("");
+                return;
+            }
+
+            let clonedSvg = svg.cloneNode(true);
+            clonedSvg.querySelectorAll("line[id^='guide-line']").forEach(line => line.remove());
+
+            let serializer = new XMLSerializer();
+            let svgString = serializer.serializeToString(clonedSvg);
+
+            let blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+            let url = URL.createObjectURL(blob);
+
+            let img = new Image();
+            img.crossOrigin = "anonymous";
+
+            img.onload = function () {
+                let canvas = document.createElement("canvas");
+                canvas.width = svg.viewBox.baseVal.width;
+                canvas.height = svg.viewBox.baseVal.height;
+                let ctx = canvas.getContext("2d");
+
+                ctx.fillStyle = "white";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                URL.revokeObjectURL(url);
+
+                let base64Png = canvas.toDataURL("image/png").split(",")[1]; // Pobierz tylko base64
+                resolve(base64Png);
+            };
+
+            img.onerror = function () {
+                console.error("❌ Błąd podczas renderowania SVG na PNG!");
+                reject("");
+            };
+
+            img.src = url;
+        });
+    }
+
+     function getGuidesData() {
+        console.log("📡 Pobieram dane prowadnic...");
+
+        let verticalGuides = {};
+        let horizontalGuides = {};
+
+        // Pobieramy wszystkie prowadnice
+        document.querySelectorAll("line[id^='guide-line']").forEach(line => {
+            let id = line.id;
+            let x1 = parseInt(line.getAttribute("x1"));
+            let y1 = parseInt(line.getAttribute("y1"));
+
+            if (id.includes("vertical")) {
+                verticalGuides[id] = x1;
+            } else if (id.includes("horizontal")) {
+                horizontalGuides[id] = y1;
+            }
+        });
+
+        console.log("✅ Prowadnice pobrane:", { vertical: verticalGuides, horizontal: horizontalGuides });
+
+        return { vertical: verticalGuides, horizontal: horizontalGuides };
+    }
+
+    // Automatyczne przypisanie eventów po załadowaniu SVG
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log("🌟 Dokument załadowany, uruchamiam enableDrag()");
+        enableDrag();
+    });
 
 </script>
 
 <Divider Style="font-weight:bold; font-size:large; display:flex; justify-content:space-between; align-items:center;">
     <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
-        <Button class="btn-back" Icon="@IconType.Fill.Backward" Style="width:55px" OnClick="GoBack" />
+        <Button class="btn-back" Icon="@IconType.Fill.Backward" Style="width:25px" OnClick="GoBack" />
+    </Tooltip>
+    <Tooltip Placement="@Placement.TopRight" Title="Zapisz ustawienia">
+        <Button class="btn-back" Icon="@IconType.Fill.Save" Style="width:25px" OnClick="SaveLinieDXF" />
+    </Tooltip>
+    <Tooltip Placement="@Placement.TopRight" Title="Obróć o 90 stopni">
+        <Button class="btn-back" Icon="@IconType.Outline.Loading" Style="width:25px" OnClick="RotateObj" />
     </Tooltip>
 </Divider>
 
-<h3>Podgląd DXF</h3>
+<h6>Podgląd DXF</h6>
 
-<!-- Wyświetlanie SVG w elemencie div -->
-<div class="scaled-svg">
-    @if (!string.IsNullOrEmpty(SvgContent))
-    {
-        @((MarkupString)SvgContent)
-    }
-    else
-    {
-        <p>Wczytaj plik DXF...</p>
-    }
+<!-- Wrapper dla SVG i wartości linii -->
+<div style="display: flex; align-items: flex-start; gap: 20px;">
+
+    <!-- Wyświetlanie SVG -->
+    <div class="scaled-svg" @key="SvgKey" style="flex: 1; padding: 15px">
+        @if (!string.IsNullOrEmpty(SvgContent))
+        {
+            <div>
+                @((MarkupString)SvgContent)
+            </div>
+        }
+        else
+        {
+            <p>Wczytaj plik DXF...</p>
+        }
+    </div>
+
+    <!-- Panel po prawej stronie -->
+    <div style="width: 300px; border-left: 2px solid #ccc; padding-left: 10px;">
+        <h4>📊 Wartości linii</h4>
+
+        <h5>🟥 Pionowe:</h5>
+        <ul id="verticalValues">
+            <li>Brak danych</li>
+        </ul>
+
+        <h5>🟦 Poziome:</h5>
+        <ul id="horizontalValues">
+            <li>Brak danych</li>
+        </ul>
+
+        <hr />
+
+        <!-- 🔥 Checkbox do usuwania linii -->
+        <label>
+            <input type="checkbox" id="deleteMode" /> Tryb usuwania linii 🗑️
+        </label>
+    </div>
+
 </div>
 
 <InputFile OnChange="HandleSelected" multiple accept=".dxf">Wybierz pliki DXF</InputFile>
@@ -116,12 +399,113 @@ document.addEventListener('DOMContentLoaded', enableDrag);
     [Inject] private AppState AppState { get; set; } = default!;
 
     private string? SvgContent { get; set; }
+    private string SvgKey { get; set; } = Guid.NewGuid().ToString(); // 🔥 Zabezpieczenie przed nadpisywaniem
+
+    private List<int> intProwadnicePionowe = new List<int>();
+    private List<int> intProwadnicePoziome = new List<int>();
 
     protected override async Task OnInitializedAsync()
     {
         if (AppState != null)
         {
             AppState.SomeData = "";
+        }
+
+        await Task.CompletedTask;
+    }
+
+    private async Task RotateObj()
+    {
+        await JSRuntime.InvokeVoidAsync("rotateSvgElements");
+        StateHasChanged();
+    }
+
+    private async Task SaveLinieDXF()
+    {
+        try
+        {
+            Console.WriteLine("📡 Pobieranie danych prowadnic...");
+
+            // Pobierz dane prowadnic z JavaScript
+            var guidesData = await JSRuntime.InvokeAsync<Dictionary<string, object>>("getGuidesData");
+
+            if (guidesData == null || !guidesData.ContainsKey("vertical") || !guidesData.ContainsKey("horizontal"))
+            {
+                Console.WriteLine("⚠️ Błąd: Brak danych prowadnic!");
+                return;
+            }
+
+            var verticalGuides = ((JsonElement)guidesData["vertical"]).Deserialize<List<int>>();
+            var horizontalGuides = ((JsonElement)guidesData["horizontal"]).Deserialize<List<int>>();
+
+            if (verticalGuides == null || horizontalGuides == null)
+            {
+                Console.WriteLine("❌ Błąd: Deserializacja danych prowadnic nie powiodła się!");
+                return;
+            }
+
+            Console.WriteLine($"✅ Linie pionowe: {verticalGuides.Count}, poziome: {horizontalGuides.Count}");
+
+            // Pobierz obraz PNG jako base64 z JavaScript
+            string base64Png = await JSRuntime.InvokeAsync<string>("getSvgPngBase64");
+
+            if (string.IsNullOrEmpty(base64Png))
+            {
+                Console.WriteLine("❌ Błąd: Nie udało się pobrać obrazka PNG!");
+                return;
+            }
+
+            // Konwersja base64 → byte[]
+            byte[] pngBytes = Convert.FromBase64String(base64Png);
+
+            // Tworzymy obiekt do zapisania w bazie
+            var konfSystem = new KonfSystem
+                {
+                    PionLewa = verticalGuides.ElementAtOrDefault(0),
+                    PionPrawa = verticalGuides.ElementAtOrDefault(1),
+                    PionOdSzybaOdZew = verticalGuides.ElementAtOrDefault(2),
+                    PionDodatkowa4 = verticalGuides.ElementAtOrDefault(3),
+                    PionDodatkowa5 = verticalGuides.ElementAtOrDefault(4),
+
+                    PoziomDol = horizontalGuides.ElementAtOrDefault(0),
+                    PoziomGora = horizontalGuides.ElementAtOrDefault(1),
+                    PoziomKorpus = horizontalGuides.ElementAtOrDefault(2),
+                    PoziomLiniaSzkla = horizontalGuides.ElementAtOrDefault(3),
+                    PoziomLiniaOkucia = horizontalGuides.ElementAtOrDefault(4),
+                    PoziomOsDormas = horizontalGuides.ElementAtOrDefault(5),
+                    PoziomDodatkowa6 = horizontalGuides.ElementAtOrDefault(6),
+                    PoziomDodatkowa7 = horizontalGuides.ElementAtOrDefault(7),
+
+                    SVG = SvgContent,
+
+                    Rysunek = pngBytes
+                };
+
+            // Wysłanie danych do backendu
+            var response = await Http.PostAsJsonAsync("api/konfsystem", konfSystem);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Console.WriteLine("✅ Dane zapisane w bazie!");
+            }
+            else
+            {
+                Console.WriteLine("❌ Błąd podczas zapisywania w bazie!");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Wystąpił błąd: {ex.Message}");
+        }
+    }
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!string.IsNullOrEmpty(SvgContent))
+        {
+            Console.WriteLine("🔄 Blazor skończył renderować SVG, uruchamiam enableDrag()");
+            await JSRuntime.InvokeVoidAsync("enableDrag");
         }
     }
 
@@ -172,42 +556,14 @@ document.addEventListener('DOMContentLoaded', enableDrag);
                 var svgDoc = new XmlDocument();
                 svgDoc.LoadXml(SvgContent);
 
-                // Znajdź element <svg> w wygenerowanym SVG
-                var svgElement = svgDoc.GetElementsByTagName("svg")[0];
-
-                // Dodanie pionowej i poziomej linii prowadnicowej
-                XmlElement verticalLine = svgDoc.CreateElement("line");
-                verticalLine.SetAttribute("id", "guide-line-vertical");
-                verticalLine.SetAttribute("x1", "100");
-                verticalLine.SetAttribute("y1", "0");
-                verticalLine.SetAttribute("x2", "100");
-                verticalLine.SetAttribute("y2", "500");
-                verticalLine.SetAttribute("stroke", "red");
-                verticalLine.SetAttribute("stroke-width", "1");
-                verticalLine.SetAttribute("stroke-dasharray", "5,5");
-
-                XmlElement horizontalLine = svgDoc.CreateElement("line");
-                horizontalLine.SetAttribute("id", "guide-line-horizontal");
-                horizontalLine.SetAttribute("x1", "0");
-                horizontalLine.SetAttribute("y1", "250");
-                horizontalLine.SetAttribute("x2", "500");
-                horizontalLine.SetAttribute("y2", "250");
-                horizontalLine.SetAttribute("stroke", "blue");
-                horizontalLine.SetAttribute("stroke-width", "1");
-                horizontalLine.SetAttribute("stroke-dasharray", "5,5");
-
-                // Dodanie linii do SVG
-                svgElement.AppendChild(verticalLine);
-                svgElement.AppendChild(horizontalLine);
-
-                // Zaktualizowanie SVGContent
-                SvgContent = svgDoc.OuterXml;
+                //await Task.Delay(100); // Krótkie opóźnienie, żeby upewnić się, że Blazor wyrenderował SVG
+                // await JSRuntime.InvokeVoidAsync("enableDrag");
 
                 // Wymuszenie odświeżenia UI
                 StateHasChanged();
-                
-                // Załaduj funkcje drag-and-drop po wygenerowaniu SVG
-                await JSRuntime.InvokeVoidAsync("enableDrag");
+
+                //   Console.WriteLine($"🎯 Aktualne SVG: {SvgContent}");
+                Console.WriteLine($"🎯 Aktualne SVG - OK");
 
                 return; // Przetwarzamy tylko pierwszy plik
             }

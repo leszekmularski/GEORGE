@@ -2,10 +2,8 @@
 using netDxf;
 using netDxf.Entities;
 
-
 namespace GEORGE.Client.Pages.KonfiguratorOkien
 {
-
     public class DxfToSvgConverter
     {
         public string ConvertToSvg(DxfDocument dxf)
@@ -39,54 +37,40 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 maxY = Math.Max(maxY, arc.Center.Y + arc.Radius);
             }
 
-            double width = maxX - minX;
-            double height = maxY - minY;
+            // 🔥 Przesunięcie rysunku do dodatniej ćwiartki (X, Y >= 0)
+            double offsetX = -minX; // Przesuwamy całość tak, aby minX = 0
+            double offsetY = -minY; // Przesuwamy całość tak, aby minY = 0
 
-            if (width == 0 || height == 0)
-            {
-                width = 500;
-                height = 500;
-            }
+            // 📏 Obliczamy szerokość i wysokość po przesunięciu
+            double width = maxX + offsetX;
+            double height = maxY + offsetY;
 
-            // 📌 Ustawienie viewBox na rzeczywisty obszar rysunku
-            svg.Append($"<svg xmlns='http://www.w3.org/2000/svg' viewBox='{minX.ToString().Replace(',', '.')} {minY.ToString().Replace(',', '.')} {width.ToString().Replace(',', '.')} {height.ToString().Replace(',', '.')}'>");
+            // 📌 Ustawienie `viewBox` tak, aby zaczynał się od (0,0)
+            svg.Append($"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 {width.ToString().Replace(',', '.')} {height.ToString().Replace(',', '.')}' width='{width}' height='{height}'>");
 
-            //// Dodanie linii prowadnicowej (przykład)
-            //double guideX = (maxX + minX) / 2; // Pionowa linia w środku
-            //double guideY = (maxY + minY) / 2; // Pozioma linia w środku
+            // 🔥 Dodanie grupy, którą będziemy obracać
+            svg.Append("<g id='rotate-group'>");
 
-            // Dodanie linii prowadnicowej na całą szerokość i wysokość
-            // Pionowa linia prowadnicza
-            svg.Append($"<line id='guide-line-vertical' x1='{minX.ToString().Replace(',', '.')}' y1='{minY.ToString().Replace(',', '.')}' x2='{minX.ToString().Replace(',', '.')}' y2='{maxY.ToString().Replace(',', '.')}' " +
-                       "stroke='red' stroke-width='1' stroke-dasharray='5,5' />");
-
-            // Pozioma linia prowadnicza
-            svg.Append($"<line id='guide-line-horizontal' x1='{minX.ToString().Replace(',', '.')}' y1='{minY.ToString().Replace(',', '.')}' x2='{maxX.ToString().Replace(',', '.')}' y2='{minY.ToString().Replace(',', '.')}' " +
-                       "stroke='blue' stroke-width='1' stroke-dasharray='5,5' />");
-
-            // Pionowa linia prowadnicza - maksymalna szerokość
-            svg.Append($"<line id='guide-line-verticalMax' x1='{maxX.ToString().Replace(',', '.')}' y1='{minY.ToString().Replace(',', '.')}' x2='{maxX.ToString().Replace(',', '.')}' y2='{maxY.ToString().Replace(',', '.')}' " +
-                       "stroke='green' stroke-width='1' stroke-dasharray='5,5' />");
-
-            // Pozioma linia prowadnicza - maksymalna wysokość
-            svg.Append($"<line id='guide-line-horizontalMax' x1='{minX.ToString().Replace(',', '.')}' y1='{maxY.ToString().Replace(',', '.')}' x2='{maxX.ToString().Replace(',', '.')}' y2='{maxY.ToString().Replace(',', '.')}' " +
-                       "stroke='yellow' stroke-width='1' stroke-dasharray='5,5' />");
-
-
+            // 🖌️ Rysowanie linii
             foreach (var line in dxf.Entities.Lines)
             {
-                svg.Append($"<line x1='{line.StartPoint.X.ToString().Replace(',', '.')} ' y1='{line.StartPoint.Y.ToString().Replace(',', '.')} ' " +
-                           $"x2='{line.EndPoint.X.ToString().Replace(',', '.')} ' y2='{line.EndPoint.Y.ToString().Replace(',', '.')} ' " +
+                svg.Append($"<line x1='{(line.StartPoint.X + offsetX).ToString().Replace(',', '.')}' " +
+                           $"y1='{(line.StartPoint.Y + offsetY).ToString().Replace(',', '.')}' " +
+                           $"x2='{(line.EndPoint.X + offsetX).ToString().Replace(',', '.')}' " +
+                           $"y2='{(line.EndPoint.Y + offsetY).ToString().Replace(',', '.')}' " +
                            "stroke='black' stroke-width='1' />");
             }
 
+            // 🖌️ Rysowanie okręgów
             foreach (var circle in dxf.Entities.Circles)
             {
-                svg.Append($"<circle cx='{circle.Center.X.ToString().Replace(',', '.')} ' cy='{circle.Center.Y.ToString().Replace(',', '.')} ' " +
-                           $"r='{circle.Radius.ToString().Replace(',', '.')} ' " +
+                svg.Append($"<circle cx='{(circle.Center.X + offsetX).ToString().Replace(',', '.')}' " +
+                           $"cy='{(circle.Center.Y + offsetY).ToString().Replace(',', '.')}' " +
+                           $"r='{circle.Radius.ToString().Replace(',', '.')}' " +
                            "stroke='black' stroke-width='1' fill='none' />");
             }
 
+            // 🖌️ Rysowanie łuków
             foreach (var arc in dxf.Entities.Arcs)
             {
                 double startX = arc.Center.X + arc.Radius * Math.Cos(arc.StartAngle * Math.PI / 180);
@@ -94,20 +78,32 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 double endX = arc.Center.X + arc.Radius * Math.Cos(arc.EndAngle * Math.PI / 180);
                 double endY = arc.Center.Y + arc.Radius * Math.Sin(arc.EndAngle * Math.PI / 180);
 
-                svg.Append($"<path d='M {startX.ToString().Replace(',', '.')} {startY.ToString().Replace(',', '.')} A {arc.Radius.ToString().Replace(',', '.')} {arc.Radius.ToString().Replace(',', '.')} 0 0 1 {endX.ToString().Replace(',', '.')} {endY.ToString().Replace(',', '.')} ' " +
+                svg.Append($"<path d='M {(startX + offsetX).ToString().Replace(',', '.')} {(startY + offsetY).ToString().Replace(',', '.')} " +
+                           $"A {arc.Radius.ToString().Replace(',', '.')} {arc.Radius.ToString().Replace(',', '.')} 0 0 1 " +
+                           $"{(endX + offsetX).ToString().Replace(',', '.')} {(endY + offsetY).ToString().Replace(',', '.')}' " +
                            "stroke='black' stroke-width='1' fill='none' />");
             }
+
+            svg.Append("</g>");
+
+            // ➕ Dodanie linii prowadnicowych
+            svg.Append($"<line id='guide-line-vertical' x1='0' y1='0' x2='0' y2='{height.ToString().Replace(',', '.')}' stroke='red' stroke-width='1' stroke-dasharray='5,5' />");
+            svg.Append($"<line id='guide-line-verticalMax' x1='{width.ToString().Replace(',', '.')}' y1='0' x2='{width.ToString().Replace(',', '.')}' y2='{height.ToString().Replace(',', '.')}' stroke='green' stroke-width='1' stroke-dasharray='5,5' />");
+            svg.Append($"<line id='guide-line-verticalOdlSzyby' x1='{width.ToString().Replace(',', '.')}' y1='0' x2='{width.ToString().Replace(',', '.')}' y2='{height.ToString().Replace(',', '.')}' stroke='#43277c' stroke-width='1' stroke-dasharray='5,5' />");
+
+            svg.Append($"<line id='guide-line-horizontal' x1='0' y1='0' x2='{width.ToString().Replace(',', '.')}' y2='0' stroke='blue' stroke-width='1' stroke-dasharray='5,5' />");
+            svg.Append($"<line id='guide-line-horizontalMax' x1='0' y1='{height.ToString().Replace(',', '.')}' x2='{width.ToString().Replace(',', '.')}' y2='{height.ToString().Replace(',', '.')}' stroke='yellow' stroke-width='1' stroke-dasharray='5,5' />");
+            svg.Append($"<line id='guide-line-horizontal-korpus' x1='0' y1='5' x2='{width.ToString().Replace(',', '.')}' y2='5' stroke='brown' stroke-width='1' stroke-dasharray='5,5' />");
+            svg.Append($"<line id='guide-line-horizontal-liniaSzklenia' x1='0' y1='5' x2='{width.ToString().Replace(',', '.')}' y2='5' stroke='#43277c' stroke-width='1' stroke-dasharray='5,5' />");
+            svg.Append($"<line id='guide-line-horizontal-okucie' x1='0' y1='5' x2='{width.ToString().Replace(',', '.')}' y2='5' stroke='#fadb14' stroke-width='1' stroke-dasharray='5,5' />");
+            svg.Append($"<line id='guide-line-horizontal-dormas' x1='0' y1='5' x2='{width.ToString().Replace(',', '.')}' y2='5' stroke='#f5222d' stroke-width='1' stroke-dasharray='5,5' />");
 
             svg.Append("</svg>");
 
             string result = svg.ToString();
-            Console.WriteLine("SVG Content:");
-            Console.WriteLine(result);
 
+            Console.WriteLine("✅ SVG Content OK");
             return result;
         }
-
-
     }
-
 }
