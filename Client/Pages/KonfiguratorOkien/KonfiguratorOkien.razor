@@ -61,19 +61,17 @@
     element.addEventListener('mousedown', startDragOrDelete);
     element.dataset.dragEnabled = "true";
     }
-
-    // Zapisujemy współrzędne tylko dla prowadnic
-    if (element.id.includes("guide-line-vertical")) {
-    verticalGuides[element.id] = parseInt(element.getAttribute("x1"));
-    } else if (element.id.includes("guide-line-horizontal")) {
-    horizontalGuides[element.id] = parseInt(element.getAttribute("y1"));
-    }
     });
-
     console.log("✅ Wszystkie elementy SVG aktywowane!");
 
-    // 🔥 Obsługa checkboxa do usuwania
-    document.getElementById("deleteMode").addEventListener("change", function () {
+    let deleteModeCheckbox = document.getElementById("deleteMode");
+    if (!deleteModeCheckbox) {
+    console.warn("⚠️ Ostrzeżenie: Nie znaleziono elementu #deleteMode! Czekam...");
+    setTimeout(enableDrag, 500); // Spróbuj ponownie po 500ms
+    return;
+    }
+
+    deleteModeCheckbox.addEventListener("change", function () {
     deleteMode = this.checked;
     console.log(`🗑️ Tryb usuwania: ${deleteMode ? "WŁĄCZONY" : "WYŁĄCZONY"}`);
     });
@@ -211,7 +209,6 @@
     }
     }
 
-
     // 🔥 Usuwanie linii
     function deleteLine(element) {
     console.log(`🗑️ Próbuję usunąć element: ${element.tagName}, ID: ${element.id || "brak"}`);
@@ -330,6 +327,57 @@
     return { vertical: verticalGuides, horizontal: horizontalGuides };
     }
 
+    function getUpdatedSvg() {
+    let svg = document.querySelector(".scaled-svg svg");
+    if (!svg) {
+    console.error("❌ Nie znaleziono rysunku SVG!");
+    return "";
+    }
+
+    // 🔥 Naprawiamy problem z obrotem `rotate(...)`
+    svg.querySelectorAll("[transform]").forEach(element => {
+    let transformValue = element.getAttribute("transform");
+
+    if (transformValue && transformValue.includes("rotate")) {
+    // Zamiana przecinków na spacje (poprawny format dla SVG)
+    transformValue = transformValue.replace(/,/g, " ");
+    element.setAttribute("transform", transformValue);
+    }
+    });
+
+    let serializer = new XMLSerializer();
+    return serializer.serializeToString(svg);
+    }
+
+    function setSvgContent(svgString) {
+    let retries = 15; // Więcej prób na wypadek opóźnień Blazora
+    let delay = 300; // Krótszy czas między próbami
+
+    function tryInsertSvg() {
+    let tabContent = document.querySelector(".ant-tabs-tab-active"); // Sprawdza aktywną zakładkę
+    let svgContainer = document.querySelector(".scaled-svg");
+
+    if (!tabContent || !svgContainer) {
+    if (retries > 0) {
+    console.warn(`❌ Nie znaleziono kontenera SVG lub zakładka nieaktywna! Próba ponownie za ${delay}ms...`);
+    retries--;
+    setTimeout(tryInsertSvg, delay);
+    } else {
+    console.error("🚨 Błąd krytyczny: Kontener SVG nadal nie został znaleziony!");
+    }
+    return;
+    }
+
+    svgContainer.innerHTML = svgString;
+    console.log("✅ Zaktualizowano SVG w Blazorze!");
+
+    // 🚀 Ponowne aktywowanie obsługi przesuwania linii
+    enableDrag();
+    }
+
+    setTimeout(tryInsertSvg, delay);
+    }
+
     // Automatyczne przypisanie eventów po załadowaniu SVG
     document.addEventListener('DOMContentLoaded', () => {
     console.log("🌟 Dokument załadowany, uruchamiam enableDrag()");
@@ -355,7 +403,7 @@
     </div>
 </Tooltip>
 
-<hr/>
+<hr />
 
 <Divider Style="font-weight:bold; font-size:large; display:flex; justify-content:space-between; align-items:center;">
     <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
@@ -369,8 +417,8 @@
     </Tooltip>
 </Divider>
 
-<Tabs>
-    <TabPane Tab="Zapisane elementy w konfiguracji" >
+<Tabs DefaultActiveKey="0" @bind-ActiveKey="activeKey" >
+    <TabPane Tab="Zapisane elementy w konfiguracji" Key="0">
         <h3 class="text-center mt-3">📌 Skonfigurowane elementy</h3>
 
         <div class="container mt-4">
@@ -415,7 +463,7 @@
             }
         </div>
     </TabPane>
-    <TabPane Tab="Opis systemu" >
+    <TabPane Tab="Opis systemu" Key="1">
         <div class="container mt-4">
             <h4 class="mb-3">📝 Konfiguracja Systemu</h4>
 
@@ -538,15 +586,21 @@
         </div>
 
     </TabPane>
-    <TabPane Tab="Linie oraz rysunek DXF" >
-        <h6>Podgląd DXF</h6>
+    <TabPane Tab="Linie oraz rysunek DXF" Key="2">
+        <h6>
+            Podgląd DXF
+            <Button OnClick="RefreshSvg" Icon="@IconType.Outline.Fire" Style="margin-left: 10px;">
+                🔄 Odśwież rysunek
+            </Button>
+
+        </h6>
 
         <!-- Wrapper dla SVG i wartości linii -->
         <div style="display: flex; align-items: flex-start; gap: 20px;">
 
             <!-- Wyświetlanie SVG -->
             <div class="scaled-svg" @key="SvgKey" style="flex: 1; padding: 15px">
-                @if (!string.IsNullOrEmpty(SvgContent) && czekajNaDane)
+                @if (czekajNaDane && !string.IsNullOrEmpty(SvgContent) && activeKey == "2")
                 {
                     <div>
                         @((MarkupString)SvgContent)
@@ -554,9 +608,10 @@
                 }
                 else
                 {
-                    <p>Wczytaj plik DXF...</p>
+                    <p>⏳ Wczytywanie rysunku...</p>
                 }
             </div>
+
 
             <!-- Panel po prawej stronie -->
             <div style="width: 300px; border-left: 2px solid #ccc; padding-left: 10px;">
@@ -575,9 +630,12 @@
                 <hr />
 
                 <!-- 🔥 Checkbox do usuwania linii -->
-                <label>
-                    <input type="checkbox" id="deleteMode" /> Tryb usuwania linii 🗑️
-                </label>
+                @if (czekajNaDane && !string.IsNullOrEmpty(SvgContent) && activeKey == "2")
+                {
+                    <label>
+                        <input type="checkbox" id="deleteMode" /> Tryb usuwania linii 🗑️
+                    </label>
+                }
 
                 <hr />
                 <label>
@@ -622,6 +680,8 @@
 
     private List<KonfSystem>? KonfiguracjeSystemu;
 
+    private string? activeKey;
+
     protected override async Task OnInitializedAsync()
     {
         if (AppState != null)
@@ -646,6 +706,7 @@
     }
 
     private bool czekajNaDane = false;
+
     private async Task Edytuj(int id)
     {
         if (!boolZmiana)
@@ -654,38 +715,69 @@
             return;
         }
 
+        activeKey = "2";
+
+        czekajNaDane = false;
+
+        // 📡 Pobierz dane z API
         konfSystem = await Http.GetFromJsonAsync<KonfSystem>($"api/konfsystem/{id}");
 
         if (konfSystem != null)
         {
-            if (konfSystem.SVG != null)
+            if (!string.IsNullOrEmpty(konfSystem.SVG))
             {
-
                 SvgContent = konfSystem.SVG;
-               // Console.WriteLine(SvgContent);
-         
-                await Task.Delay(1000); // Krótkie opóźnienie, żeby upewnić się, że Blazor wyrenderował SVG
-
-                await JSRuntime.InvokeVoidAsync("updateGuideValues");
+                Console.WriteLine("✅ Wczytano zapisany rysunek SVG");
+            }
+            else
+            {
+                Console.WriteLine("⚠️ Brak zapisanego SVG w bazie!");
             }
 
+            // 🚀 Czekamy, aż Blazor wyrenderuje `.scaled-svg`
+            // await Task.Delay(100);
+            //await JSRuntime.InvokeVoidAsync("setSvgContent", SvgContent);
+            //await JSRuntime.InvokeVoidAsync("enableDrag");
         }
-
+        await Task.Delay(100);
         czekajNaDane = true;
-    }
 
+    }
 
     private async Task Usun(int id)
     {
         if (!boolUsuniecia)
         {
-            await  _message.Warning("Nie masz uprawnień do usunięcia danych!");  
+            await _message.Warning("Nie masz uprawnień do usunięcia danych!");
             return;
         }
 
-        await Http.DeleteAsync($"konfsystem/{id}");
+        await Http.DeleteAsync($"api/konfsystem/{id}");
         KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>("api/konfsystem");
     }
+
+    private async Task RefreshSvg()
+    {
+
+       // czekajNaDane = false;
+        SvgKey = Guid.NewGuid().ToString(); // 🔥 Zabezpieczenie przed nadpisywaniem
+       // Console.WriteLine("🔄 Rozpoczynam odświeżanie SVG...");
+        // StateHasChanged(); // 🔄 Pełne odświeżenie UI (ponowne dodanie SVG)
+
+        // 🔥 Czekamy na Blazor, żeby się upewnić, że SVG jest w DOM
+        await Task.Delay(300);
+
+        // 🔥 Ponowne aktywowanie obsługi prowadnic
+        //await JSRuntime.InvokeVoidAsync("setSvgContent", LSvgContent);
+      //  await JSRuntime.InvokeVoidAsync("enableDrag");
+
+        //czekajNaDane = true;
+
+        StateHasChanged();
+
+        Console.WriteLine("✅ SVG odświeżone!");
+    }
+
 
     private async Task Zapisz()
     {
@@ -721,9 +813,21 @@
         if (string.IsNullOrEmpty(SelectedSystemId))
         {
             _ = _notice.Info(new()
+        {
+            Message = "Informacja!!",
+            Description = $"Wybierz System!!!!",
+            Placement = NotificationPlacement.BottomLeft,
+            Duration = 2
+        });
+            return;
+        }
+
+        if (string.IsNullOrEmpty(konfSystem.Nazwa))
+        {
+            _ = _notice.Info(new()
                 {
                     Message = "Informacja!!",
-                    Description = $"Wybierz System!!!!",
+                    Description = $"Podaj nazwę elementu!!!!",
                     Placement = NotificationPlacement.BottomLeft,
                     Duration = 2
                 });
@@ -732,9 +836,8 @@
 
         try
         {
-            Console.WriteLine("📡 Pobieranie danych prowadnic...");
 
-            // Pobierz dane prowadnic z JavaScript
+            Console.WriteLine("📡 Pobieranie danych prowadnic...");
             var guidesData = await JSRuntime.InvokeAsync<Dictionary<string, object>>("getGuidesData");
 
             // Debug JSON
@@ -746,14 +849,12 @@
                 return;
             }
 
-            // **Tutaj deklarujemy listy PRZED ich użyciem**
             List<int> verticalGuides = new();
             List<int> horizontalGuides = new();
 
-            // Sprawdzamy, czy dane "vertical" są obiektem, a nie tablicą
+            // Sprawdzamy, czy dane "vertical" są obiektem
             if (guidesData["vertical"] is JsonElement verticalElement && verticalElement.ValueKind == JsonValueKind.Object)
             {
-                // Uzyskujemy wartości z obiektu, np.:
                 verticalGuides.Add(verticalElement.GetProperty("guide-line-vertical").GetInt32());
                 verticalGuides.Add(verticalElement.GetProperty("guide-line-verticalMax").GetInt32());
                 verticalGuides.Add(verticalElement.GetProperty("guide-line-verticalOdlSzyby").GetInt32());
@@ -764,10 +865,9 @@
                 return;
             }
 
-            // Podobnie dla "horizontal"
+            // Sprawdzamy, czy dane "horizontal" są obiektem
             if (guidesData["horizontal"] is JsonElement horizontalElement && horizontalElement.ValueKind == JsonValueKind.Object)
             {
-                // Uzyskujemy wartości z obiektu, np.:
                 horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal").GetInt32());
                 horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontalMax").GetInt32());
                 horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal-korpus").GetInt32());
@@ -795,7 +895,7 @@
             // Konwersja base64 → byte[]
             byte[] pngBytes = Convert.FromBase64String(base64Png);
 
-            // Tworzymy obiekt do zapisania w bazie
+            // Aktualizujemy obiekt w Blazorze
             konfSystem.PionLewa = verticalGuides.ElementAtOrDefault(0);
             konfSystem.PionPrawa = verticalGuides.ElementAtOrDefault(1);
             konfSystem.PionOdSzybaOdZew = verticalGuides.ElementAtOrDefault(2);
@@ -811,43 +911,43 @@
             konfSystem.PoziomDodatkowa6 = horizontalGuides.ElementAtOrDefault(6);
             konfSystem.PoziomDodatkowa7 = horizontalGuides.ElementAtOrDefault(7);
 
-            konfSystem.SVG = SvgContent;
+            konfSystem.SVG = await JSRuntime.InvokeAsync<string>("getUpdatedSvg");
+            // 🔥 Zamiana przecinków na kropki
+            konfSystem.SVG = konfSystem.SVG.Replace(",", ".");
+
+            Console.WriteLine($"📡 Aktualny SVG przed zapisem: {konfSystem.SVG}");
+
+
+
+            //konfSystem.SVG = SvgContent;
             konfSystem.Rysunek = pngBytes;
             konfSystem.RowIdSystem = Guid.Parse(SelectedSystemId);
 
-            // Wysłanie danych do backendu
+            HttpResponseMessage response;
 
             if (konfSystem.Id == 0)
             {
-                var response = await Http.PostAsJsonAsync("api/konfsystem", konfSystem);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    Console.WriteLine("✅ Dane zapisane w bazie!");
-                    await _message.Success("✅ Dane zapisane w bazie!");
-                }
-                else
-                {
-                    Console.WriteLine("❌ Błąd podczas zapisywania w bazie!");
-                    await _message.Error("❌ Błąd podczas zapisywania w bazie!");
-                }
+                response = await Http.PostAsJsonAsync("api/konfsystem", konfSystem);
             }
             else
             {
-                var response = await Http.PutAsJsonAsync($"api/konfsystem/{konfSystem.Id}", konfSystem);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    Console.WriteLine("✅ Dane zapisane w bazie!");
-                    await _message.Success("✅ Dane zapisane w bazie!");
-                }
-                else
-                {
-                    Console.WriteLine("❌ Błąd podczas zapisywania w bazie!");
-                    await _message.Error("❌ Błąd podczas zapisywania w bazie!");
-                }
+                response = await Http.PutAsJsonAsync($"api/konfsystem/{konfSystem.Id}", konfSystem);
             }
 
+            if (response.IsSuccessStatusCode)
+            {
+                Console.WriteLine("✅ Dane zapisane w bazie!");
+                await _message.Success("✅ Dane zapisane w bazie!");
+
+            }
+            else
+            {
+                Console.WriteLine("❌ Błąd podczas zapisywania w bazie!");
+                await _message.Error("❌ Błąd podczas zapisywania w bazie!");
+
+                // 🔥 Odśwież SVG po zapisie
+                SvgKey = Guid.NewGuid().ToString();
+            }
         }
         catch (Exception ex)
         {
@@ -859,21 +959,26 @@
     {
         try
         {
-            if (!string.IsNullOrEmpty(SvgContent))
+            if (!string.IsNullOrEmpty(SvgContent) && czekajNaDane)
             {
-                await Task.Delay(200);
+                await Task.Delay(100);
                 Console.WriteLine("🔄 Blazor skończył renderować SVG, uruchamiam enableDrag()");
                 await JSRuntime.InvokeVoidAsync("enableDrag");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.Message); 
+            Console.WriteLine(ex.Message);
         }
     }
 
     private async Task HandleSelected(InputFileChangeEventArgs e)
     {
+
+        SvgContent = "";
+        czekajNaDane = false;
+        SvgKey = Guid.NewGuid().ToString(); // 🔥 Zabezpieczenie przed nadpisywaniem
+
         foreach (var file in e.GetMultipleFiles())
         {
             Console.WriteLine($"Otwieranie pliku: {file.Name}");
@@ -927,6 +1032,8 @@
 
                 //   Console.WriteLine($"🎯 Aktualne SVG: {SvgContent}");
                 Console.WriteLine($"🎯 Aktualne SVG - OK");
+
+                czekajNaDane = true;
 
                 return; // Przetwarzamy tylko pierwszy plik
             }
