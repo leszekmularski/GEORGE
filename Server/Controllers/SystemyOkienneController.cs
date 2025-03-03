@@ -17,7 +17,7 @@ public class SystemyOkienneController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<List<SystemyOkienne>>> GetAll()
     {
-        return await _context.SystemyOkienne.ToListAsync();
+        return await _context.SystemyOkienne.OrderBy(e=>e.Nazwa_Systemu).ToListAsync();
     }
 
     [HttpGet("{id}")]

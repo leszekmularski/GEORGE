@@ -370,6 +370,51 @@
 </Divider>
 
 <Tabs>
+    <TabPane Tab="Zapisane elementy w konfiguracji" >
+        <h3 class="text-center mt-3">📌 Skonfigurowane elementy</h3>
+
+        <div class="container mt-4">
+            @*             <button class="btn btn-primary mb-3" @onclick="DodajNowy">
+                <i class="fas fa-plus"></i> Dodaj Nowy System
+            </button>
+ *@
+            @if (KonfiguracjeSystemu != null && KonfiguracjeSystemu.Any())
+            {
+                <table class="table table-striped table-hover">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>Nazwa</th>
+                            <th>Indeks</th>
+                            <th>Uwagi</th>
+                            <th>Akcje</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var konf in KonfiguracjeSystemu)
+                        {
+                            <tr>
+                                <td>@konf.Nazwa</td>
+                                <td>@konf.Indeks</td>
+                                <td>@konf.Uwagi</td>
+                                <td>
+                                    <button class="btn btn-warning btn-sm me-2" @onclick="() => Edytuj(konf.Id)">
+                                        <i class="fas fa-edit"></i> Edytuj
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" @onclick="() => Usun(konf.Id)">
+                                        <i class="fas fa-trash-alt"></i> Usuń
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p class="text-muted text-center">Brak dostępnych.</p>
+            }
+        </div>
+    </TabPane>
     <TabPane Tab="Opis systemu" >
         <div class="container mt-4">
             <h4 class="mb-3">📝 Konfiguracja Systemu</h4>
@@ -501,7 +546,7 @@
 
             <!-- Wyświetlanie SVG -->
             <div class="scaled-svg" @key="SvgKey" style="flex: 1; padding: 15px">
-                @if (!string.IsNullOrEmpty(SvgContent))
+                @if (!string.IsNullOrEmpty(SvgContent) && czekajNaDane)
                 {
                     <div>
                         @((MarkupString)SvgContent)
@@ -575,6 +620,8 @@
 
     KonfSystem konfSystem = new KonfSystem();
 
+    private List<KonfSystem>? KonfiguracjeSystemu;
+
     protected override async Task OnInitializedAsync()
     {
         if (AppState != null)
@@ -582,7 +629,11 @@
             AppState.SomeData = "";
         }
 
+        await Laduj_Uprawnienia();
+
         Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
+
+        KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>("api/konfsystem");
     }
 
     private async Task OnSystemSelected(ChangeEventArgs e)
@@ -594,8 +645,56 @@
         await Task.CompletedTask;
     }
 
+    private bool czekajNaDane = false;
+    private async Task Edytuj(int id)
+    {
+        if (!boolZmiana)
+        {
+            await _message.Warning("Nie masz uprawnień do zmiany danych!");
+            return;
+        }
+
+        konfSystem = await Http.GetFromJsonAsync<KonfSystem>($"api/konfsystem/{id}");
+
+        if (konfSystem != null)
+        {
+            if (konfSystem.SVG != null)
+            {
+
+                SvgContent = konfSystem.SVG;
+               // Console.WriteLine(SvgContent);
+         
+                await Task.Delay(1000); // Krótkie opóźnienie, żeby upewnić się, że Blazor wyrenderował SVG
+
+                await JSRuntime.InvokeVoidAsync("updateGuideValues");
+            }
+
+        }
+
+        czekajNaDane = true;
+    }
+
+
+    private async Task Usun(int id)
+    {
+        if (!boolUsuniecia)
+        {
+            await  _message.Warning("Nie masz uprawnień do usunięcia danych!");  
+            return;
+        }
+
+        await Http.DeleteAsync($"konfsystem/{id}");
+        KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>("api/konfsystem");
+    }
+
     private async Task Zapisz()
     {
+        if (!boolZmiana)
+        {
+            await _message.Warning("Nie masz uprawnień do zmiany danych!");
+            return;
+        }
+
         Console.WriteLine($"Zapisano: {konfSystem.Nazwa}");
         await Http.PostAsJsonAsync("api/systemy-okienne", konfSystem);
     }
@@ -613,6 +712,12 @@
 
     private async Task SaveLinieDXF()
     {
+        if (!boolZmiana)
+        {
+            await _message.Warning("Nie masz uprawnień do zmiany danych!");
+            return;
+        }
+
         if (string.IsNullOrEmpty(SelectedSystemId))
         {
             _ = _notice.Info(new()
@@ -645,28 +750,34 @@
             List<int> verticalGuides = new();
             List<int> horizontalGuides = new();
 
-            // Sprawdzamy, czy dane są tablicami
-            if (guidesData["vertical"] is JsonElement verticalElement && verticalElement.ValueKind == JsonValueKind.Array)
+            // Sprawdzamy, czy dane "vertical" są obiektem, a nie tablicą
+            if (guidesData["vertical"] is JsonElement verticalElement && verticalElement.ValueKind == JsonValueKind.Object)
             {
-                verticalGuides = verticalElement.EnumerateArray()
-                    .Select(x => x.GetInt32()) // Konwersja na int
-                    .ToList();
+                // Uzyskujemy wartości z obiektu, np.:
+                verticalGuides.Add(verticalElement.GetProperty("guide-line-vertical").GetInt32());
+                verticalGuides.Add(verticalElement.GetProperty("guide-line-verticalMax").GetInt32());
+                verticalGuides.Add(verticalElement.GetProperty("guide-line-verticalOdlSzyby").GetInt32());
             }
             else
             {
-                Console.WriteLine("❌ Błąd: 'vertical' nie jest tablicą!");
+                Console.WriteLine("❌ Błąd: 'vertical' nie jest obiektem!!!!!");
                 return;
             }
 
-            if (guidesData["horizontal"] is JsonElement horizontalElement && horizontalElement.ValueKind == JsonValueKind.Array)
+            // Podobnie dla "horizontal"
+            if (guidesData["horizontal"] is JsonElement horizontalElement && horizontalElement.ValueKind == JsonValueKind.Object)
             {
-                horizontalGuides = horizontalElement.EnumerateArray()
-                    .Select(x => x.GetInt32()) // Konwersja na int
-                    .ToList();
+                // Uzyskujemy wartości z obiektu, np.:
+                horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal").GetInt32());
+                horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontalMax").GetInt32());
+                horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal-korpus").GetInt32());
+                horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal-liniaSzklenia").GetInt32());
+                horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal-okucie").GetInt32());
+                horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal-dormas").GetInt32());
             }
             else
             {
-                Console.WriteLine("❌ Błąd: 'horizontal' nie jest tablicą!");
+                Console.WriteLine("❌ Błąd: 'horizontal' nie jest obiektem!!!!!");
                 return;
             }
 
@@ -705,16 +816,38 @@
             konfSystem.RowIdSystem = Guid.Parse(SelectedSystemId);
 
             // Wysłanie danych do backendu
-            var response = await Http.PostAsJsonAsync("api/konfsystem", konfSystem);
 
-            if (response.IsSuccessStatusCode)
+            if (konfSystem.Id == 0)
             {
-                Console.WriteLine("✅ Dane zapisane w bazie!");
+                var response = await Http.PostAsJsonAsync("api/konfsystem", konfSystem);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine("✅ Dane zapisane w bazie!");
+                    await _message.Success("✅ Dane zapisane w bazie!");
+                }
+                else
+                {
+                    Console.WriteLine("❌ Błąd podczas zapisywania w bazie!");
+                    await _message.Error("❌ Błąd podczas zapisywania w bazie!");
+                }
             }
             else
             {
-                Console.WriteLine("❌ Błąd podczas zapisywania w bazie!");
+                var response = await Http.PutAsJsonAsync($"api/konfsystem/{konfSystem.Id}", konfSystem);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine("✅ Dane zapisane w bazie!");
+                    await _message.Success("✅ Dane zapisane w bazie!");
+                }
+                else
+                {
+                    Console.WriteLine("❌ Błąd podczas zapisywania w bazie!");
+                    await _message.Error("❌ Błąd podczas zapisywania w bazie!");
+                }
             }
+
         }
         catch (Exception ex)
         {
@@ -724,10 +857,18 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!string.IsNullOrEmpty(SvgContent))
+        try
         {
-            Console.WriteLine("🔄 Blazor skończył renderować SVG, uruchamiam enableDrag()");
-            await JSRuntime.InvokeVoidAsync("enableDrag");
+            if (!string.IsNullOrEmpty(SvgContent))
+            {
+                await Task.Delay(200);
+                Console.WriteLine("🔄 Blazor skończył renderować SVG, uruchamiam enableDrag()");
+                await JSRuntime.InvokeVoidAsync("enableDrag");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message); 
         }
     }
 
@@ -813,6 +954,68 @@
         NavigationManager.NavigateTo($"/Systemy-okienne");
 
         await Task.CompletedTask;
+    }
+
+    private bool boolOdczyt = false;
+    private bool boolZmiana = false;
+    private bool boolUsuniecia = false;
+    private bool boolAdmin = false;
+    private bool boolNowy = false;
+    private string RowIdPracownika = "";
+    private string? user;
+    private bool isNotDisabled => !boolZmiana;
+    private List<UprawnieniaPracownikaViewModel>? uprawnienia;
+
+    private async Task Laduj_Uprawnienia()
+    {
+        user = await LocalStorage.GetStringAsync("user");
+
+        if (string.IsNullOrEmpty(user))
+        {
+            //NavigationManager.NavigateTo($"", true);
+            return;
+        }
+
+        string nazwaTabeli = "KonfSystem";
+
+        Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");
+
+        try
+        {
+            uprawnienia = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"/api/ZwrocSatus/{user}/{nazwaTabeli}");
+        }
+        catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            Console.WriteLine("Brak danych!!!");
+            await _message.Error("Brak danych - status użytkownika");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            await _message.Error(ex.Message);
+        }
+
+        if (uprawnienia != null)
+        {
+            if (uprawnienia.Count > 0)
+            {
+                var znalezioneElementy = uprawnienia.Where(uprawnienie => uprawnienie.TableName == nazwaTabeli);
+                Console.WriteLine("Znaleziono uprawnienia dla użytkownika: " + user + " w tabeli: " + nazwaTabeli + " ilość rekordów: " + znalezioneElementy.Count());
+                if (znalezioneElementy.Any())
+                {
+                    var szuk = znalezioneElementy.FirstOrDefault(x => x.TableName == nazwaTabeli);
+                    if (szuk != null)
+                    {
+                        boolOdczyt = szuk.Odczyt;
+                        boolZmiana = szuk.Zmiana;
+                        boolUsuniecia = szuk.Usuniecie;
+                        boolAdmin = szuk.Administrator;
+                        boolNowy = szuk.Zapis;
+                        RowIdPracownika = szuk.RowId;
+                    }
+                }
+            }
+        }
     }
 
     record Typ(string Nazwa);
