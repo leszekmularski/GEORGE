@@ -22,7 +22,7 @@ public class KonfSystemController : ControllerBase
             return BadRequest("Dane są puste!");
         }
 
-        //_context.KonfSystem.Add(konfSystem);
+        _context.KonfSystem.Add(konfSystem);
         await _context.SaveChangesAsync();
 
         return Ok("Dane zapisane!");

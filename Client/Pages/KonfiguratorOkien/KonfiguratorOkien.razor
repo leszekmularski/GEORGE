@@ -12,29 +12,30 @@
 @inject IJSRuntime JSRuntime
 @inject DxfService DxfService
 @inject DxfToSvgConverter Converter
+@inject NavigationManager NavigationManager
 
 <style>
     .scaled-svg {
-        position: relative;
-        width: 500px;
-        height: 500px;
-        overflow: auto;
-        border: 1px solid #ccc;
+    position: relative;
+    width: 500px;
+    height: 500px;
+    overflow: auto;
+    border: 1px solid #ccc;
     }
 
     svg {
-        width: 100%;
-        height: 100%;
+    width: 100%;
+    height: 100%;
     }
 
     #guide-line-vertical, #guide-line-horizontal, #guide-line-verticalMax, #guide-line-horizontalMax {
-        pointer-events: auto;
-        opacity: 1;
-        z-index: 10; /* Przesunięcie na wierzch */
+    pointer-events: auto;
+    opacity: 1;
+    z-index: 10; /* Przesunięcie na wierzch */
     }
 
     line {
-        cursor: pointer; /* Zmieniaj kursor przy interakcji */
+    cursor: pointer; /* Zmieniaj kursor przy interakcji */
     }
 
 </style>
@@ -50,292 +51,311 @@
     let verticalGuides = {};
     let horizontalGuides = {};
 
-        function enableDrag() {
-        console.log("🔧 enableDrag uruchomiony!");
+    function enableDrag() {
+    console.log("🔧 enableDrag uruchomiony!");
 
-        let elements = document.querySelectorAll("svg line, svg path, svg circle");
+    let elements = document.querySelectorAll("svg line, svg path, svg circle");
 
-        elements.forEach(element => {
-            if (!element.dataset.dragEnabled) {
-                element.addEventListener('mousedown', startDragOrDelete);
-                element.dataset.dragEnabled = "true";
-            }
+    elements.forEach(element => {
+    if (!element.dataset.dragEnabled) {
+    element.addEventListener('mousedown', startDragOrDelete);
+    element.dataset.dragEnabled = "true";
+    }
 
-            // Zapisujemy współrzędne tylko dla prowadnic
-            if (element.id.includes("guide-line-vertical")) {
-                verticalGuides[element.id] = parseInt(element.getAttribute("x1"));
-            } else if (element.id.includes("guide-line-horizontal")) {
-                horizontalGuides[element.id] = parseInt(element.getAttribute("y1"));
-            }
-        });
+    // Zapisujemy współrzędne tylko dla prowadnic
+    if (element.id.includes("guide-line-vertical")) {
+    verticalGuides[element.id] = parseInt(element.getAttribute("x1"));
+    } else if (element.id.includes("guide-line-horizontal")) {
+    horizontalGuides[element.id] = parseInt(element.getAttribute("y1"));
+    }
+    });
 
-        console.log("✅ Wszystkie elementy SVG aktywowane!");
+    console.log("✅ Wszystkie elementy SVG aktywowane!");
 
-        // 🔥 Obsługa checkboxa do usuwania
-        document.getElementById("deleteMode").addEventListener("change", function () {
-            deleteMode = this.checked;
-            console.log(`🗑️ Tryb usuwania: ${deleteMode ? "WŁĄCZONY" : "WYŁĄCZONY"}`);
-        });
+    // 🔥 Obsługa checkboxa do usuwania
+    document.getElementById("deleteMode").addEventListener("change", function () {
+    deleteMode = this.checked;
+    console.log(`🗑️ Tryb usuwania: ${deleteMode ? "WŁĄCZONY" : "WYŁĄCZONY"}`);
+    });
     }
 
     function startDrag(event) {
-        event.preventDefault();
-        isDragging = true;
-        draggedLine = event.target;
+    event.preventDefault();
+    isDragging = true;
+    draggedLine = event.target;
 
-        const svg = draggedLine.closest('svg');
-        const rect = svg.getBoundingClientRect();
-        const viewBox = svg.viewBox.baseVal;
+    const svg = draggedLine.closest('svg');
+    const rect = svg.getBoundingClientRect();
+    const viewBox = svg.viewBox.baseVal;
 
-        let scaleX = viewBox.width / rect.width; // Skalowanie X
-        let scaleY = viewBox.height / rect.height; // Skalowanie Y
+    let scaleX = viewBox.width / rect.width; // Skalowanie X
+    let scaleY = viewBox.height / rect.height; // Skalowanie Y
 
-        let mouseX = (event.clientX - rect.left) * scaleX + viewBox.x;
-        let mouseY = (event.clientY - rect.top) * scaleY + viewBox.y;
+    let mouseX = (event.clientX - rect.left) * scaleX + viewBox.x;
+    let mouseY = (event.clientY - rect.top) * scaleY + viewBox.y;
 
-        if (draggedLine.id.includes('vertical')) {
-            let currentX = parseFloat(draggedLine.getAttribute('x1'));
-            offsetX = mouseX - currentX; // 🔥 Poprawiona wartość offsetX
-        }
+    if (draggedLine.id.includes('vertical')) {
+    let currentX = parseFloat(draggedLine.getAttribute('x1'));
+    offsetX = mouseX - currentX; // 🔥 Poprawiona wartość offsetX
+    }
 
-        console.log(`🚀 Rozpoczęto przeciąganie: ${draggedLine.id}, offsetX=${offsetX}`);
+    console.log(`🚀 Rozpoczęto przeciąganie: ${draggedLine.id}, offsetX=${offsetX}`);
 
-        document.addEventListener('mousemove', drag);
-        document.addEventListener('mouseup', stopDrag);
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', stopDrag);
     }
 
     function drag(event) {
-        if (isDragging && draggedLine) {
-            const svg = draggedLine.closest('svg');
-            const rect = svg.getBoundingClientRect();
-            const viewBox = svg.viewBox.baseVal;
+    if (isDragging && draggedLine) {
+    const svg = draggedLine.closest('svg');
+    const rect = svg.getBoundingClientRect();
+    const viewBox = svg.viewBox.baseVal;
 
-            let scaleX = viewBox.width / rect.width;
-            let scaleY = viewBox.height / rect.height;
+    let scaleX = viewBox.width / rect.width;
+    let scaleY = viewBox.height / rect.height;
 
-            let newX = (event.clientX - rect.left) * scaleX + viewBox.x - offsetX;
-            let newY = (event.clientY - rect.top) * scaleY + viewBox.y;
+    let newX = (event.clientX - rect.left) * scaleX + viewBox.x - offsetX;
+    let newY = (event.clientY - rect.top) * scaleY + viewBox.y;
 
-            console.log(`🎯 Przesuwam ${draggedLine.id} do X=${newX}, Y=${newY}`);
+    console.log(`🎯 Przesuwam ${draggedLine.id} do X=${newX}, Y=${newY}`);
 
-            if (draggedLine.id.includes('vertical')) {
-                draggedLine.setAttribute('x1', newX);
-                draggedLine.setAttribute('x2', newX);
-            } else if (draggedLine.id.includes('horizontal')) {
-                draggedLine.setAttribute('y1', newY);
-                draggedLine.setAttribute('y2', newY);
-            }
+    if (draggedLine.id.includes('vertical')) {
+    draggedLine.setAttribute('x1', newX);
+    draggedLine.setAttribute('x2', newX);
+    } else if (draggedLine.id.includes('horizontal')) {
+    draggedLine.setAttribute('y1', newY);
+    draggedLine.setAttribute('y2', newY);
+    }
 
-            console.log(`✅ ${draggedLine.id} nowa pozycja: x1=${draggedLine.getAttribute('x1')}, y1=${draggedLine.getAttribute('y1')}`);
-        }
+    console.log(`✅ ${draggedLine.id} nowa pozycja: x1=${draggedLine.getAttribute('x1')}, y1=${draggedLine.getAttribute('y1')}`);
+    }
     }
 
     // 🔥 Aktualizacja wartości w panelu bocznym
     function updateGuideValues() {
-        let verticalList = document.getElementById("verticalValues");
-        let horizontalList = document.getElementById("horizontalValues");
+    let verticalList = document.getElementById("verticalValues");
+    let horizontalList = document.getElementById("horizontalValues");
 
-        verticalList.innerHTML = "";
-        horizontalList.innerHTML = "";
+    verticalList.innerHTML = "";
+    horizontalList.innerHTML = "";
 
-        let svg = document.querySelector("svg");
-        if (!svg) {
-            console.error("❌ Nie znaleziono SVG!");
-            return;
-        }
+    let svg = document.querySelector("svg");
+    if (!svg) {
+    console.error("❌ Nie znaleziono SVG!");
+    return;
+    }
 
-        let viewBox = svg.viewBox.baseVal;
-        let totalHeight = viewBox.height; // 🔥 Całkowita wysokość SVG
+    let viewBox = svg.viewBox.baseVal;
+    let totalHeight = viewBox.height; // 🔥 Całkowita wysokość SVG
 
-        // 🔥 Pionowe prowadnice
-        Object.keys(verticalGuides).forEach(id => {
-            let line = document.getElementById(id);
-            let color = line ? line.getAttribute("stroke") : "black"; // Pobieramy kolor linii
+    // 🔥 Pionowe prowadnice
+    Object.keys(verticalGuides).forEach(id => {
+    let line = document.getElementById(id);
+    let color = line ? line.getAttribute("stroke") : "black"; // Pobieramy kolor linii
 
-            let li = document.createElement("li");
-            li.innerHTML = `<span style="background-color:${color}; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>
-                            ${id}: ${verticalGuides[id]}px`;
-            verticalList.appendChild(li);
-        });
+    let li = document.createElement("li");
+    li.innerHTML = `<span style="background-color:${color}; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>
+    ${id}: ${verticalGuides[id]}px`;
+    verticalList.appendChild(li);
+    });
 
-        // 🔥 Poziome prowadnice (odwrócone względem dołu)
-        Object.keys(horizontalGuides).forEach(id => {
-            let line = document.getElementById(id);
-            let color = line ? line.getAttribute("stroke") : "black"; // Pobieramy kolor linii
-            let originalY = horizontalGuides[id];
-            let flippedY = totalHeight - originalY; // 🔥 Liczymy Y od dołu
+    // 🔥 Poziome prowadnice (odwrócone względem dołu)
+    Object.keys(horizontalGuides).forEach(id => {
+    let line = document.getElementById(id);
+    let color = line ? line.getAttribute("stroke") : "black"; // Pobieramy kolor linii
+    let originalY = horizontalGuides[id];
+    let flippedY = totalHeight - originalY; // 🔥 Liczymy Y od dołu
 
-            let li = document.createElement("li");
-            li.innerHTML = `<span style="background-color:${color}; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>
-                            ${id}: ${flippedY}px`;
-            horizontalList.appendChild(li);
-        });
+    let li = document.createElement("li");
+    li.innerHTML = `<span style="background-color:${color}; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>
+    ${id}: ${flippedY}px`;
+    horizontalList.appendChild(li);
+    });
     }
 
 
     function stopDrag() {
-        if (draggedLine) {
-            console.log(`🛑 Zatrzymano przeciąganie: ${draggedLine.id}`);
+    if (draggedLine) {
+    console.log(`🛑 Zatrzymano przeciąganie: ${draggedLine.id}`);
 
-            let testLine = document.getElementById(draggedLine.id);
-            if (!testLine) {
-                console.error(`❌ Linia ${draggedLine.id} zniknęła z DOM!`);
-            } else {
-                console.log(`✅ Linia ${draggedLine.id} nadal istnieje w DOM.`);
-            }
+    let testLine = document.getElementById(draggedLine.id);
+    if (!testLine) {
+    console.error(`❌ Linia ${draggedLine.id} zniknęła z DOM!`);
+    } else {
+    console.log(`✅ Linia ${draggedLine.id} nadal istnieje w DOM.`);
+    }
 
-            if (draggedLine.id.includes("vertical")) {
-                verticalGuides[draggedLine.id] = parseInt(draggedLine.getAttribute("x1"));
-            } else if (draggedLine.id.includes("horizontal")) {
-                horizontalGuides[draggedLine.id] = parseInt(draggedLine.getAttribute("y1"));
-            }
+    if (draggedLine.id.includes("vertical")) {
+    verticalGuides[draggedLine.id] = parseInt(draggedLine.getAttribute("x1"));
+    } else if (draggedLine.id.includes("horizontal")) {
+    horizontalGuides[draggedLine.id] = parseInt(draggedLine.getAttribute("y1"));
+    }
 
-            updateGuideValues(); // 🔥 Aktualizacja wartości po przesunięciu linii
-        }
+    updateGuideValues(); // 🔥 Aktualizacja wartości po przesunięciu linii
+    }
 
-        isDragging = false;
-        draggedLine = null;
-        document.removeEventListener('mousemove', drag);
-        document.removeEventListener('mouseup', stopDrag);
+    isDragging = false;
+    draggedLine = null;
+    document.removeEventListener('mousemove', drag);
+    document.removeEventListener('mouseup', stopDrag);
     }
 
     // 🔥 Nowa funkcja: wybiera czy usunąć czy przesuwać
     function startDragOrDelete(event) {
-        event.preventDefault();
+    event.preventDefault();
 
-        if (deleteMode) {
-            deleteLine(event.target);
-        } else {
-            startDrag(event);
-        }
+    if (deleteMode) {
+    deleteLine(event.target);
+    } else {
+    startDrag(event);
+    }
     }
 
 
     // 🔥 Usuwanie linii
-        function deleteLine(element) {
-        console.log(`🗑️ Próbuję usunąć element: ${element.tagName}, ID: ${element.id || "brak"}`);
+    function deleteLine(element) {
+    console.log(`🗑️ Próbuję usunąć element: ${element.tagName}, ID: ${element.id || "brak"}`);
 
-        // Jeśli to prowadnica, NIE usuwamy jej!
-        if (element.id && element.id.includes("guide-line")) {
-            console.warn("❌ Nie można usunąć prowadnic!");
-            return;
-        }
+    // Jeśli to prowadnica, NIE usuwamy jej!
+    if (element.id && element.id.includes("guide-line")) {
+    console.warn("❌ Nie można usunąć prowadnic!");
+    return;
+    }
 
-        // Sprawdzenie, czy kliknięto w element SVG
-        if (element.tagName === "line" || element.tagName === "path" || element.tagName === "circle") {
-            element.remove();
-            console.log(`✅ Usunięto element: ${element.tagName}, ID: ${element.id || "brak"}`);
-        } else {
-            console.warn("⚠️ Kliknięto w element, który nie jest linią, łukiem ani okręgiem.");
-        }
+    // Sprawdzenie, czy kliknięto w element SVG
+    if (element.tagName === "line" || element.tagName === "path" || element.tagName === "circle") {
+    element.remove();
+    console.log(`✅ Usunięto element: ${element.tagName}, ID: ${element.id || "brak"}`);
+    } else {
+    console.warn("⚠️ Kliknięto w element, który nie jest linią, łukiem ani okręgiem.");
+    }
     }
 
     function rotateSvgElements() {
-        console.log("🔄 Obracam cały obiekt SVG (bez prowadnic) o 90 stopni!");
+    console.log("🔄 Obracam cały obiekt SVG (bez prowadnic) o 90 stopni!");
 
-        let group = document.getElementById("rotate-group");
-        if (!group) {
-            console.error("❌ Nie znaleziono grupy <g id='rotate-group'>! Sprawdź, czy jest w SVG.");
-            return;
-        }
+    let group = document.getElementById("rotate-group");
+    if (!group) {
+    console.error("❌ Nie znaleziono grupy <g id='rotate-group'>! Sprawdź, czy jest w SVG.");
+    return;
+    }
 
-        let svg = group.closest("svg");
-        let bbox = group.getBBox(); // 🔥 Pobiera rzeczywiste granice obiektów w SVG
+    let svg = group.closest("svg");
+    let bbox = group.getBBox(); // 🔥 Pobiera rzeczywiste granice obiektów w SVG
 
-        let cx = bbox.x + bbox.width / 2;
-        let cy = bbox.y + bbox.height / 2;
+    let cx = bbox.x + bbox.width / 2;
+    let cy = bbox.y + bbox.height / 2;
 
-        // Pobierz obecny kąt obrotu (jeśli istnieje)
-        let currentTransform = group.getAttribute("transform") || "";
-        let match = currentTransform.match(/rotate\(([-\d.]+)/);
-        let currentAngle = match ? parseFloat(match[1]) : 0;
+    // Pobierz obecny kąt obrotu (jeśli istnieje)
+    let currentTransform = group.getAttribute("transform") || "";
+    let match = currentTransform.match(/rotate\(([-\d.]+)/);
+    let currentAngle = match ? parseFloat(match[1]) : 0;
 
-        // Nowy kąt obrotu (dodajemy do poprzedniego)
-        let newAngle = currentAngle + 90;
+    // Nowy kąt obrotu (dodajemy do poprzedniego)
+    let newAngle = currentAngle + 90;
 
-        // Ustawienie nowej transformacji na grupie `g`
-        group.setAttribute("transform", `rotate(${newAngle}, ${cx}, ${cy})`);
+    // Ustawienie nowej transformacji na grupie `g`
+    group.setAttribute("transform", `rotate(${newAngle}, ${cx}, ${cy})`);
 
-        console.log(`✅ Obrót zakończony: ${newAngle} stopni wokół (${cx}, ${cy})`);
+    console.log(`✅ Obrót zakończony: ${newAngle} stopni wokół (${cx}, ${cy})`);
     }
 
     function getSvgPngBase64() {
-        return new Promise((resolve, reject) => {
-            let svg = document.querySelector("svg");
-            if (!svg) {
-                console.error("❌ Nie znaleziono SVG!");
-                reject("");
-                return;
-            }
-
-            let clonedSvg = svg.cloneNode(true);
-            clonedSvg.querySelectorAll("line[id^='guide-line']").forEach(line => line.remove());
-
-            let serializer = new XMLSerializer();
-            let svgString = serializer.serializeToString(clonedSvg);
-
-            let blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
-            let url = URL.createObjectURL(blob);
-
-            let img = new Image();
-            img.crossOrigin = "anonymous";
-
-            img.onload = function () {
-                let canvas = document.createElement("canvas");
-                canvas.width = svg.viewBox.baseVal.width;
-                canvas.height = svg.viewBox.baseVal.height;
-                let ctx = canvas.getContext("2d");
-
-                ctx.fillStyle = "white";
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-                URL.revokeObjectURL(url);
-
-                let base64Png = canvas.toDataURL("image/png").split(",")[1]; // Pobierz tylko base64
-                resolve(base64Png);
-            };
-
-            img.onerror = function () {
-                console.error("❌ Błąd podczas renderowania SVG na PNG!");
-                reject("");
-            };
-
-            img.src = url;
-        });
+    return new Promise((resolve, reject) => {
+    let svg = document.querySelector("svg");
+    if (!svg) {
+    console.error("❌ Nie znaleziono SVG!");
+    reject("");
+    return;
     }
 
-     function getGuidesData() {
-        console.log("📡 Pobieram dane prowadnic...");
+    let clonedSvg = svg.cloneNode(true);
+    clonedSvg.querySelectorAll("line[id^='guide-line']").forEach(line => line.remove());
 
-        let verticalGuides = {};
-        let horizontalGuides = {};
+    let serializer = new XMLSerializer();
+    let svgString = serializer.serializeToString(clonedSvg);
 
-        // Pobieramy wszystkie prowadnice
-        document.querySelectorAll("line[id^='guide-line']").forEach(line => {
-            let id = line.id;
-            let x1 = parseInt(line.getAttribute("x1"));
-            let y1 = parseInt(line.getAttribute("y1"));
+    let blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+    let url = URL.createObjectURL(blob);
 
-            if (id.includes("vertical")) {
-                verticalGuides[id] = x1;
-            } else if (id.includes("horizontal")) {
-                horizontalGuides[id] = y1;
-            }
-        });
+    let img = new Image();
+    img.crossOrigin = "anonymous";
 
-        console.log("✅ Prowadnice pobrane:", { vertical: verticalGuides, horizontal: horizontalGuides });
+    img.onload = function () {
+    let canvas = document.createElement("canvas");
+    canvas.width = svg.viewBox.baseVal.width;
+    canvas.height = svg.viewBox.baseVal.height;
+    let ctx = canvas.getContext("2d");
 
-        return { vertical: verticalGuides, horizontal: horizontalGuides };
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    URL.revokeObjectURL(url);
+
+    let base64Png = canvas.toDataURL("image/png").split(",")[1]; // Pobierz tylko base64
+    resolve(base64Png);
+    };
+
+    img.onerror = function () {
+    console.error("❌ Błąd podczas renderowania SVG na PNG!");
+    reject("");
+    };
+
+    img.src = url;
+    });
+    }
+
+    function getGuidesData() {
+    console.log("📡 Pobieram dane prowadnic...");
+
+    let verticalGuides = {};
+    let horizontalGuides = {};
+
+    // Pobieramy wszystkie prowadnice
+    document.querySelectorAll("line[id^='guide-line']").forEach(line => {
+    let id = line.id;
+    let x1 = parseInt(line.getAttribute("x1"));
+    let y1 = parseInt(line.getAttribute("y1"));
+
+    if (id.includes("vertical")) {
+    verticalGuides[id] = x1;
+    } else if (id.includes("horizontal")) {
+    horizontalGuides[id] = y1;
+    }
+    });
+
+    console.log("✅ Prowadnice pobrane:", { vertical: verticalGuides, horizontal: horizontalGuides });
+
+    return { vertical: verticalGuides, horizontal: horizontalGuides };
     }
 
     // Automatyczne przypisanie eventów po załadowaniu SVG
     document.addEventListener('DOMContentLoaded', () => {
-        console.log("🌟 Dokument załadowany, uruchamiam enableDrag()");
-        enableDrag();
+    console.log("🌟 Dokument załadowany, uruchamiam enableDrag()");
+    enableDrag();
     });
 
 </script>
+
+<Tooltip Placement="@Placement.TopRight" Title="Otwórz konfigurator nowego systemu lub wybierz go z listy">
+    <div class="d-flex align-items-center">
+        @if (Systemy != null && Systemy.Any())
+        {
+            <select class="form-select me-2" @onchange="@(async (args) => await OnSystemSelected(args))">
+                <option value="" disabled selected>-- Wybierz system --</option>
+                @foreach (var system in Systemy)
+                {
+                    <option value="@system.RowId">@system.Nazwa_Systemu</option>
+                }
+            </select>
+        }
+        <Button class="btn-back" Icon="@IconType.Fill.Tool" Style="width: 35px; height: 35px;" OnClick="GoKonfiguratorNowegoSystemu">
+        </Button>
+    </div>
+</Tooltip>
+
+<hr/>
 
 <Divider Style="font-weight:bold; font-size:large; display:flex; justify-content:space-between; align-items:center;">
     <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
@@ -349,50 +369,195 @@
     </Tooltip>
 </Divider>
 
-<h6>Podgląd DXF</h6>
+<Tabs>
+    <TabPane Tab="Opis systemu" >
+        <div class="container mt-4">
+            <h4 class="mb-3">📝 Konfiguracja Systemu</h4>
 
-<!-- Wrapper dla SVG i wartości linii -->
-<div style="display: flex; align-items: flex-start; gap: 20px;">
+            <div class="card p-3">
+                <div class="row">
+                    <!-- Wybór Typu Profila -->
+                    <div class="col-md-6">
+                        <label class="form-label">Typ profilu</label>
+                        <Select Mode="SelectMode.Default"
+                        DataSource="@_typ"
+                        @bind-Value="@konfSystem.Typ"
+                        LabelName="@nameof(Typ.Nazwa)"
+                        ValueName="@nameof(Typ.Nazwa)"
+                        Class="form-select">
+                        </Select>
+                    </div>
 
-    <!-- Wyświetlanie SVG -->
-    <div class="scaled-svg" @key="SvgKey" style="flex: 1; padding: 15px">
-        @if (!string.IsNullOrEmpty(SvgContent))
-        {
-            <div>
-                @((MarkupString)SvgContent)
+                    <!-- Indeks -->
+                    <div class="col-md-6">
+                        <label class="form-label">Indeks</label>
+                        <Input class="form-control" @bind-Value="@konfSystem.Indeks" />
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <!-- Nazwa -->
+                    <div class="col-md-12">
+                        <label class="form-label">Nazwa</label>
+                        <TextArea class="form-control" @bind-Value="@konfSystem.Nazwa" />
+                    </div>
+                </div>
+
+                <hr class="my-4" />
+
+                <h5 class="mb-3">📏 Parametry Techniczne</h5>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Kąt Wystąpienia (min)</label>
+                        <Input type="number" class="form-control" @bind-Value="@konfSystem.KatWystapieniaZakresOdMin" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Kąt Wystąpienia (max)</label>
+                        <Input type="number" class="form-control" @bind-Value="@konfSystem.KatWystapieniaZakresOdMax" />
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Zakres Długości (min)</label>
+                        <Input type="number" class="form-control" @bind-Value="@konfSystem.ZakresStosDlugoscOdMin" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Zakres Długości (max)</label>
+                        <Input type="number" class="form-control" @bind-Value="@konfSystem.ZakresStosDlugoscOdMax" />
+                    </div>
+                </div>
+
+                <hr class="my-4" />
+
+                <h5 class="mb-3">💲 Koszty i Waga</h5>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Cena za 1 MB</label>
+                        <Input type="number" class="form-control" step="0.01" @bind-Value="@konfSystem.Cena1MB" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Waga</label>
+                        <Input type="number" class="form-control" step="0.01" @bind-Value="@konfSystem.Waga" />
+                    </div>
+                </div>
+
+                <hr class="my-4" />
+
+                <h5 class="mb-3">📐 Kantówki</h5>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label">Wymiar X Kantówki</label>
+                        <Input type="number" class="form-control" @bind-Value="@konfSystem.WymiarXKantowki1" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Wymiar Y Kantówki</label>
+                        <Input type="number" class="form-control" @bind-Value="@konfSystem.WymiarYKantowki1" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Cena za 1 MB Kantówki</label>
+                        <Input type="number" class="form-control" step="0.01" @bind-Value="@konfSystem.Cena1MBKantowki1" />
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Waga Kantówki</label>
+                        <Input type="number" class="form-control" step="0.01" @bind-Value="@konfSystem.WagaKantowki1" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Długość Kantówki</label>
+                        <Input type="number" class="form-control" step="0.01" @bind-Value="@konfSystem.DlugoscKantowki1" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Ilość Sztuk Kantówki</label>
+                        <Input type="number" class="form-control" step="0.01" @bind-Value="@konfSystem.IloscSztukKantowki1" />
+                    </div>
+                </div>
+
+                <hr class="my-4" />
+
+                <!-- Przyciski akcji -->
+                @*                 <div class="text-end">
+                    <button class="btn btn-success" @onclick="Zapisz">
+                        <i class="fas fa-save"></i> Zapisz
+                    </button>
+                    <button class="btn btn-secondary" @onclick="Anuluj">
+                        <i class="fas fa-times"></i> Anuluj
+                    </button>
+                </div> *@
             </div>
-        }
-        else
-        {
-            <p>Wczytaj plik DXF...</p>
-        }
-    </div>
+        </div>
 
-    <!-- Panel po prawej stronie -->
-    <div style="width: 300px; border-left: 2px solid #ccc; padding-left: 10px;">
-        <h4>📊 Wartości linii</h4>
+    </TabPane>
+    <TabPane Tab="Linie oraz rysunek DXF" >
+        <h6>Podgląd DXF</h6>
 
-        <h5>🟥 Pionowe:</h5>
-        <ul id="verticalValues">
-            <li>Brak danych</li>
-        </ul>
+        <!-- Wrapper dla SVG i wartości linii -->
+        <div style="display: flex; align-items: flex-start; gap: 20px;">
 
-        <h5>🟦 Poziome:</h5>
-        <ul id="horizontalValues">
-            <li>Brak danych</li>
-        </ul>
+            <!-- Wyświetlanie SVG -->
+            <div class="scaled-svg" @key="SvgKey" style="flex: 1; padding: 15px">
+                @if (!string.IsNullOrEmpty(SvgContent))
+                {
+                    <div>
+                        @((MarkupString)SvgContent)
+                    </div>
+                }
+                else
+                {
+                    <p>Wczytaj plik DXF...</p>
+                }
+            </div>
 
-        <hr />
+            <!-- Panel po prawej stronie -->
+            <div style="width: 300px; border-left: 2px solid #ccc; padding-left: 10px;">
+                <h4>📊 Wartości linii</h4>
 
-        <!-- 🔥 Checkbox do usuwania linii -->
-        <label>
-            <input type="checkbox" id="deleteMode" /> Tryb usuwania linii 🗑️
-        </label>
-    </div>
+                <h5>🟥 Pionowe:</h5>
+                <ul id="verticalValues">
+                    <li>Brak danych</li>
+                </ul>
 
-</div>
+                <h5>🟦 Poziome:</h5>
+                <ul id="horizontalValues">
+                    <li>Brak danych</li>
+                </ul>
 
-<InputFile OnChange="HandleSelected" multiple accept=".dxf">Wybierz pliki DXF</InputFile>
+                <hr />
+
+                <!-- 🔥 Checkbox do usuwania linii -->
+                <label>
+                    <input type="checkbox" id="deleteMode" /> Tryb usuwania linii 🗑️
+                </label>
+
+                <hr />
+                <label>
+                    <input type="checkbox" data-bind="@konfSystem.WystepujeDol" /> Występuje na dole
+                </label>
+                <label>
+                    <input type="checkbox" data-bind="@konfSystem.WystepujeLewa" /> Występuje po lewej
+                </label>
+                <label>
+                    <input type="checkbox" data-bind="@konfSystem.WystepujeGora" /> Występuje u góra
+                </label>
+                <label>
+                    <input type="checkbox" data-bind="@konfSystem.WystepujePrawa" /> Występuje po prawej
+                </label>
+                <hr />
+                <label>
+                    <input type="checkbox" data-bind="@konfSystem.CzyMozeBycFix" /> Czy można wstawić szybę
+                </label>
+            </div>
+
+        </div>
+
+        <InputFile OnChange="HandleSelected" multiple accept=".dxf">Wybierz pliki DXF</InputFile>
+    </TabPane>
+</Tabs>
 
 @code {
 
@@ -404,6 +569,12 @@
     private List<int> intProwadnicePionowe = new List<int>();
     private List<int> intProwadnicePoziome = new List<int>();
 
+    private List<SystemyOkienne> Systemy = new();
+
+    private string? SelectedSystemId;
+
+    KonfSystem konfSystem = new KonfSystem();
+
     protected override async Task OnInitializedAsync()
     {
         if (AppState != null)
@@ -411,7 +582,27 @@
             AppState.SomeData = "";
         }
 
+        Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
+    }
+
+    private async Task OnSystemSelected(ChangeEventArgs e)
+    {
+        SelectedSystemId = e.Value.ToString();
+        Console.WriteLine($"Wybrano system o ID: {SelectedSystemId}");
+        // Możesz dodać dalszą logikę, np. przekierowanie do szczegółów systemu
+
         await Task.CompletedTask;
+    }
+
+    private async Task Zapisz()
+    {
+        Console.WriteLine($"Zapisano: {konfSystem.Nazwa}");
+        await Http.PostAsJsonAsync("api/systemy-okienne", konfSystem);
+    }
+
+    private void Anuluj()
+    {
+        //konfSystem = new SystemyOkienne(); // Reset formularza
     }
 
     private async Task RotateObj()
@@ -422,6 +613,18 @@
 
     private async Task SaveLinieDXF()
     {
+        if (string.IsNullOrEmpty(SelectedSystemId))
+        {
+            _ = _notice.Info(new()
+                {
+                    Message = "Informacja!!",
+                    Description = $"Wybierz System!!!!",
+                    Placement = NotificationPlacement.BottomLeft,
+                    Duration = 2
+                });
+            return;
+        }
+
         try
         {
             Console.WriteLine("📡 Pobieranie danych prowadnic...");
@@ -429,18 +632,41 @@
             // Pobierz dane prowadnic z JavaScript
             var guidesData = await JSRuntime.InvokeAsync<Dictionary<string, object>>("getGuidesData");
 
+            // Debug JSON
+            Console.WriteLine($"🔍 Dane JSON: {JsonSerializer.Serialize(guidesData)}");
+
             if (guidesData == null || !guidesData.ContainsKey("vertical") || !guidesData.ContainsKey("horizontal"))
             {
                 Console.WriteLine("⚠️ Błąd: Brak danych prowadnic!");
                 return;
             }
 
-            var verticalGuides = ((JsonElement)guidesData["vertical"]).Deserialize<List<int>>();
-            var horizontalGuides = ((JsonElement)guidesData["horizontal"]).Deserialize<List<int>>();
+            // **Tutaj deklarujemy listy PRZED ich użyciem**
+            List<int> verticalGuides = new();
+            List<int> horizontalGuides = new();
 
-            if (verticalGuides == null || horizontalGuides == null)
+            // Sprawdzamy, czy dane są tablicami
+            if (guidesData["vertical"] is JsonElement verticalElement && verticalElement.ValueKind == JsonValueKind.Array)
             {
-                Console.WriteLine("❌ Błąd: Deserializacja danych prowadnic nie powiodła się!");
+                verticalGuides = verticalElement.EnumerateArray()
+                    .Select(x => x.GetInt32()) // Konwersja na int
+                    .ToList();
+            }
+            else
+            {
+                Console.WriteLine("❌ Błąd: 'vertical' nie jest tablicą!");
+                return;
+            }
+
+            if (guidesData["horizontal"] is JsonElement horizontalElement && horizontalElement.ValueKind == JsonValueKind.Array)
+            {
+                horizontalGuides = horizontalElement.EnumerateArray()
+                    .Select(x => x.GetInt32()) // Konwersja na int
+                    .ToList();
+            }
+            else
+            {
+                Console.WriteLine("❌ Błąd: 'horizontal' nie jest tablicą!");
                 return;
             }
 
@@ -459,27 +685,24 @@
             byte[] pngBytes = Convert.FromBase64String(base64Png);
 
             // Tworzymy obiekt do zapisania w bazie
-            var konfSystem = new KonfSystem
-                {
-                    PionLewa = verticalGuides.ElementAtOrDefault(0),
-                    PionPrawa = verticalGuides.ElementAtOrDefault(1),
-                    PionOdSzybaOdZew = verticalGuides.ElementAtOrDefault(2),
-                    PionDodatkowa4 = verticalGuides.ElementAtOrDefault(3),
-                    PionDodatkowa5 = verticalGuides.ElementAtOrDefault(4),
+            konfSystem.PionLewa = verticalGuides.ElementAtOrDefault(0);
+            konfSystem.PionPrawa = verticalGuides.ElementAtOrDefault(1);
+            konfSystem.PionOdSzybaOdZew = verticalGuides.ElementAtOrDefault(2);
+            konfSystem.PionDodatkowa4 = verticalGuides.ElementAtOrDefault(3);
+            konfSystem.PionDodatkowa5 = verticalGuides.ElementAtOrDefault(4);
 
-                    PoziomDol = horizontalGuides.ElementAtOrDefault(0),
-                    PoziomGora = horizontalGuides.ElementAtOrDefault(1),
-                    PoziomKorpus = horizontalGuides.ElementAtOrDefault(2),
-                    PoziomLiniaSzkla = horizontalGuides.ElementAtOrDefault(3),
-                    PoziomLiniaOkucia = horizontalGuides.ElementAtOrDefault(4),
-                    PoziomOsDormas = horizontalGuides.ElementAtOrDefault(5),
-                    PoziomDodatkowa6 = horizontalGuides.ElementAtOrDefault(6),
-                    PoziomDodatkowa7 = horizontalGuides.ElementAtOrDefault(7),
+            konfSystem.PoziomDol = horizontalGuides.ElementAtOrDefault(0);
+            konfSystem.PoziomGora = horizontalGuides.ElementAtOrDefault(1);
+            konfSystem.PoziomKorpus = horizontalGuides.ElementAtOrDefault(2);
+            konfSystem.PoziomLiniaSzkla = horizontalGuides.ElementAtOrDefault(3);
+            konfSystem.PoziomLiniaOkucia = horizontalGuides.ElementAtOrDefault(4);
+            konfSystem.PoziomOsDormas = horizontalGuides.ElementAtOrDefault(5);
+            konfSystem.PoziomDodatkowa6 = horizontalGuides.ElementAtOrDefault(6);
+            konfSystem.PoziomDodatkowa7 = horizontalGuides.ElementAtOrDefault(7);
 
-                    SVG = SvgContent,
-
-                    Rysunek = pngBytes
-                };
+            konfSystem.SVG = SvgContent;
+            konfSystem.Rysunek = pngBytes;
+            konfSystem.RowIdSystem = Guid.Parse(SelectedSystemId);
 
             // Wysłanie danych do backendu
             var response = await Http.PostAsJsonAsync("api/konfsystem", konfSystem);
@@ -498,7 +721,6 @@
             Console.WriteLine($"❌ Wystąpił błąd: {ex.Message}");
         }
     }
-
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -584,4 +806,23 @@
     {
         await JSRuntime.InvokeVoidAsync("history.back");
     }
+
+    private async Task GoKonfiguratorNowegoSystemu()
+    {
+
+        NavigationManager.NavigateTo($"/Systemy-okienne");
+
+        await Task.CompletedTask;
+    }
+
+    record Typ(string Nazwa);
+    private List<Typ> _typ = new List<Typ>
+        {
+            new Typ(""),
+            new Typ("Rama"),
+            new Typ("Skrzydło"),
+            new Typ("Słupek ruchomy"),
+            new Typ("Słupek stały"),
+            new Typ("listwa przyszybowa"),
+        };
 }

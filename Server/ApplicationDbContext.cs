@@ -30,6 +30,10 @@ namespace GEORGE.Server
         public DbSet<ElemetZamDoZlecen> ElemetZamDoZlecen => Set<ElemetZamDoZlecen>();
         public DbSet<ProducenciPodwykonawcy> ProducenciPodwykonawcy => Set<ProducenciPodwykonawcy>();
         public DbSet<ZleceniaProdukcyjneZmianyStatusu> ZleceniaProdukcyjneZmianyStatusu => Set<ZleceniaProdukcyjneZmianyStatusu>();
+        public DbSet<KonfSystem> KonfSystem => Set<KonfSystem>();
+        public DbSet<SystemyOkienne> SystemyOkienne => Set<SystemyOkienne>();
+        
+
         //***********************************************************************************************************************************************************************************************
 
         public async Task<bool> ZmienDateProdukcji(string rowid, DateTime nowaDataProdukcji)

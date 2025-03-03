@@ -4,6 +4,7 @@ using GEORGE.Server;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GEORGE.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250303064014_InitialMigration48")]
+    partial class InitialMigration48
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -267,9 +270,6 @@ namespace GEORGE.Server.Migrations
                     b.Property<bool>("CzyMozeBycFix")
                         .HasColumnType("bit");
 
-                    b.Property<DateTime>("DataZapisu")
-                        .HasColumnType("datetime2");
-
                     b.Property<double?>("DlugoscKantowki1")
                         .HasColumnType("float");
 
@@ -311,9 +311,6 @@ namespace GEORGE.Server.Migrations
 
                     b.Property<int?>("KatWystapieniaZakresOdMin")
                         .HasColumnType("int");
-
-                    b.Property<string>("KtoZapisal")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Nazwa")
                         .HasColumnType("nvarchar(max)");
@@ -881,40 +878,6 @@ namespace GEORGE.Server.Migrations
                         .HasFilter("[NumerRodzajuKart] IS NOT NULL");
 
                     b.ToTable("RodzajeKartInstrukcyjnych");
-                });
-
-            modelBuilder.Entity("GEORGE.Shared.Models.SystemyOkienne", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("DataZapisu")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("KtoZapisal")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Nazwa_Systemu")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Opis_Systemu")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("RowId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Uwagi")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("Wycofany_z_produkcji")
-                        .HasColumnType("bit");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("SystemyOkienne");
                 });
 
             modelBuilder.Entity("GEORGE.Shared.Models.SzybyDoZlecen", b =>
