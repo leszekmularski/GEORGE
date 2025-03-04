@@ -54,20 +54,32 @@
     function enableDrag() {
     console.log("🔧 enableDrag uruchomiony!");
 
-    let elements = document.querySelectorAll("svg line, svg path, svg circle");
+    let elements = document.querySelectorAll("svg line, svg circle, svg path");
 
-    elements.forEach(element => {
-    if (!element.dataset.dragEnabled) {
+  //  console.log(`📊 Znaleziono ${elements.length} elementów SVG do aktywacji.`);
+
+    let activatedCount = 0;
+
+    elements.forEach((element, index) => {
+    //console.log(`🔹 [${index + 1}/${elements.length}] ID: ${element.id || "(brak)"} - Typ: ${element.tagName}`);
+
+    if (element.tagName === "line" || element.tagName === "circle" || element.tagName === "path") {
+    element.removeEventListener('mousedown', startDragOrDelete);
     element.addEventListener('mousedown', startDragOrDelete);
     element.dataset.dragEnabled = "true";
+    activatedCount++;
+   // console.log(`✅ Aktywowano przesuwanie dla ${element.tagName} (ID: ${element.id || "(brak)"})`);
+    } else {
+    console.warn(`⚠️ Pominięto element ${element.tagName} (ID: ${element.id || "(brak)"})`);
     }
     });
-    console.log("✅ Wszystkie elementy SVG aktywowane!");
+
+    //console.log(`🟢 Aktywowano przesuwanie dla ${activatedCount} z ${elements.length} elementów SVG.`);
 
     let deleteModeCheckbox = document.getElementById("deleteMode");
     if (!deleteModeCheckbox) {
     console.warn("⚠️ Ostrzeżenie: Nie znaleziono elementu #deleteMode! Czekam...");
-    setTimeout(enableDrag, 500); // Spróbuj ponownie po 500ms
+    setTimeout(enableDrag, 500);
     return;
     }
 
@@ -75,6 +87,8 @@
     deleteMode = this.checked;
     console.log(`🗑️ Tryb usuwania: ${deleteMode ? "WŁĄCZONY" : "WYŁĄCZONY"}`);
     });
+
+    console.log("🟢 enableDrag() zakończone!");
     }
 
     function startDrag(event) {
@@ -257,51 +271,37 @@
     console.log(`✅ Obrót zakończony: ${newAngle} stopni wokół (${cx}, ${cy})`);
     }
 
-    function getSvgPngBase64() {
-    return new Promise((resolve, reject) => {
-    let svg = document.querySelector("svg");
-    if (!svg) {
-    console.error("❌ Nie znaleziono SVG!");
-    reject("");
-    return;
+
+        function generatePngFromSvg(svgContent) {
+        return new Promise((resolve, reject) => {
+            let canvas = document.createElement("canvas");
+            let ctx = canvas.getContext("2d");
+
+            let img = new Image();
+            let svgBlob = new Blob([svgContent], { type: "image/svg+xml" });
+            let svgUrl = URL.createObjectURL(svgBlob);
+            img.src = svgUrl;
+
+            img.onload = function() {
+                canvas.width = img.width / 4;  // Skala do miniaturki
+                canvas.height = img.height / 4;
+
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                // Generowanie Base64 PNG bez nagłówka
+                let base64Image = canvas.toDataURL("image/png");
+                let base64Only = base64Image.split(',')[1]; // Usuwamy nagłówek 'data:image/png;base64,'
+                resolve(base64Only);
+            };
+
+            img.onerror = function() {
+                reject("Błąd ładowania SVG do obrazu");
+            };
+        });
     }
 
-    let clonedSvg = svg.cloneNode(true);
-    clonedSvg.querySelectorAll("line[id^='guide-line']").forEach(line => line.remove());
 
-    let serializer = new XMLSerializer();
-    let svgString = serializer.serializeToString(clonedSvg);
 
-    let blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
-    let url = URL.createObjectURL(blob);
-
-    let img = new Image();
-    img.crossOrigin = "anonymous";
-
-    img.onload = function () {
-    let canvas = document.createElement("canvas");
-    canvas.width = svg.viewBox.baseVal.width;
-    canvas.height = svg.viewBox.baseVal.height;
-    let ctx = canvas.getContext("2d");
-
-    ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-    URL.revokeObjectURL(url);
-
-    let base64Png = canvas.toDataURL("image/png").split(",")[1]; // Pobierz tylko base64
-    resolve(base64Png);
-    };
-
-    img.onerror = function () {
-    console.error("❌ Błąd podczas renderowania SVG na PNG!");
-    reject("");
-    };
-
-    img.src = url;
-    });
-    }
 
     function getGuidesData() {
     console.log("📡 Pobieram dane prowadnic...");
@@ -346,6 +346,7 @@
     });
 
     let serializer = new XMLSerializer();
+
     return serializer.serializeToString(svg);
     }
 
@@ -419,7 +420,12 @@
 
 <Tabs DefaultActiveKey="0" @bind-ActiveKey="activeKey" >
     <TabPane Tab="Zapisane elementy w konfiguracji" Key="0">
-        <h3 class="text-center mt-3">📌 Skonfigurowane elementy</h3>
+        <h3 class="text-center mt-3">
+            📌 Skonfigurowane elementy
+            <Tooltip Placement="@Placement.TopRight" Title="Dodaj nowy element konstrukcyjny">
+                <Button class="btn-back" Icon="@IconType.Outline.NodeIndex" OnClick="DodajNowy">Dodaj nowy</Button>
+            </Tooltip>
+        </h3>
 
         <div class="container mt-4">
             @*             <button class="btn btn-primary mb-3" @onclick="DodajNowy">
@@ -434,6 +440,7 @@
                             <th>Nazwa</th>
                             <th>Indeks</th>
                             <th>Uwagi</th>
+                            <th>Miniaturka</th>
                             <th>Akcje</th>
                         </tr>
                     </thead>
@@ -444,6 +451,16 @@
                                 <td>@konf.Nazwa</td>
                                 <td>@konf.Indeks</td>
                                 <td>@konf.Uwagi</td>
+                                <td>
+                                    @if (konf.Rysunek != null && konf.Rysunek.Length > 0)
+                                    {
+                                        <img src="@RysunekToBase64(konf.Rysunek)" alt="Miniatura" style="width: 50px; height: auto; border: 1px solid #ccc;" />
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Brak</span>
+                                    }
+                                </td>
                                 <td>
                                     <button class="btn btn-warning btn-sm me-2" @onclick="() => Edytuj(konf.Id)">
                                         <i class="fas fa-edit"></i> Edytuj
@@ -456,6 +473,7 @@
                         }
                     </tbody>
                 </table>
+
             }
             else
             {
@@ -639,20 +657,20 @@
 
                 <hr />
                 <label>
-                    <input type="checkbox" data-bind="@konfSystem.WystepujeDol" /> Występuje na dole
+                    <input type="checkbox" @bind="@konfSystem.WystepujeDol" /> Występuje na dole
                 </label>
                 <label>
-                    <input type="checkbox" data-bind="@konfSystem.WystepujeLewa" /> Występuje po lewej
+                    <input type="checkbox" @bind="@konfSystem.WystepujeLewa" /> Występuje po lewej
                 </label>
                 <label>
-                    <input type="checkbox" data-bind="@konfSystem.WystepujeGora" /> Występuje u góra
+                    <input type="checkbox" @bind="@konfSystem.WystepujeGora" /> Występuje u góra
                 </label>
                 <label>
-                    <input type="checkbox" data-bind="@konfSystem.WystepujePrawa" /> Występuje po prawej
+                    <input type="checkbox" @bind="@konfSystem.WystepujePrawa" /> Występuje po prawej
                 </label>
                 <hr />
                 <label>
-                    <input type="checkbox" data-bind="@konfSystem.CzyMozeBycFix" /> Czy można wstawić szybę
+                    <input type="checkbox" @bind="@konfSystem.CzyMozeBycFix" /> Czy można wstawić szybę
                 </label>
             </div>
 
@@ -696,6 +714,16 @@
         KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>("api/konfsystem");
     }
 
+    private string RysunekToBase64(byte[]? imageData)
+    {
+        if (imageData == null || imageData.Length == 0)
+        {
+            return "data:image/png;base64,"; // Zapobiega błędom
+        }
+        Console.WriteLine(Convert.ToBase64String(imageData));
+        return $"data:image/png;base64,{Convert.ToBase64String(imageData)}";
+    }
+
     private async Task OnSystemSelected(ChangeEventArgs e)
     {
         SelectedSystemId = e.Value.ToString();
@@ -734,14 +762,21 @@
                 Console.WriteLine("⚠️ Brak zapisanego SVG w bazie!");
             }
 
-            // 🚀 Czekamy, aż Blazor wyrenderuje `.scaled-svg`
-            // await Task.Delay(100);
-            //await JSRuntime.InvokeVoidAsync("setSvgContent", SvgContent);
-            //await JSRuntime.InvokeVoidAsync("enableDrag");
         }
         await Task.Delay(100);
         czekajNaDane = true;
 
+    }
+
+    private async Task DodajNowy()
+    {
+        SvgContent = "";
+        SvgKey = Guid.NewGuid().ToString();
+        konfSystem = new KonfSystem();
+
+        activeKey = "2";
+
+        await Task.CompletedTask; 
     }
 
     private async Task Usun(int id)
@@ -753,15 +788,16 @@
         }
 
         await Http.DeleteAsync($"api/konfsystem/{id}");
+        KonfiguracjeSystemu = null;
         KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>("api/konfsystem");
     }
 
     private async Task RefreshSvg()
     {
 
-       // czekajNaDane = false;
-        SvgKey = Guid.NewGuid().ToString(); // 🔥 Zabezpieczenie przed nadpisywaniem
-       // Console.WriteLine("🔄 Rozpoczynam odświeżanie SVG...");
+        // czekajNaDane = false;
+        //SvgKey = Guid.NewGuid().ToString(); // 🔥 Zabezpieczenie przed nadpisywaniem
+        // Console.WriteLine("🔄 Rozpoczynam odświeżanie SVG...");
         // StateHasChanged(); // 🔄 Pełne odświeżenie UI (ponowne dodanie SVG)
 
         // 🔥 Czekamy na Blazor, żeby się upewnić, że SVG jest w DOM
@@ -769,9 +805,14 @@
 
         // 🔥 Ponowne aktywowanie obsługi prowadnic
         //await JSRuntime.InvokeVoidAsync("setSvgContent", LSvgContent);
-      //  await JSRuntime.InvokeVoidAsync("enableDrag");
+        await JSRuntime.InvokeVoidAsync("enableDrag");
+        //await JSRuntime.InvokeVoidAsync("stopDrag");
+
 
         //czekajNaDane = true;
+
+
+        SvgKey = Guid.NewGuid().ToString(); // 🔥 Zabezpieczenie przed nadpisywaniem
 
         StateHasChanged();
 
@@ -779,22 +820,22 @@
     }
 
 
-    private async Task Zapisz()
-    {
-        if (!boolZmiana)
-        {
-            await _message.Warning("Nie masz uprawnień do zmiany danych!");
-            return;
-        }
+    // private async Task Zapisz()
+    // {
+    //     if (!boolZmiana)
+    //     {
+    //         await _message.Warning("Nie masz uprawnień do zmiany danych!");
+    //         return;
+    //     }
 
-        Console.WriteLine($"Zapisano: {konfSystem.Nazwa}");
-        await Http.PostAsJsonAsync("api/systemy-okienne", konfSystem);
-    }
+    //     Console.WriteLine($"Zapisano: {konfSystem.Nazwa}");
+    //     await Http.PostAsJsonAsync("api/systemy-okienne", konfSystem);
+    // }
 
-    private void Anuluj()
-    {
-        //konfSystem = new SystemyOkienne(); // Reset formularza
-    }
+    // private void Anuluj()
+    // {
+    //     konfSystem = new SystemyOkienne(); // Reset formularza
+    // }
 
     private async Task RotateObj()
     {
@@ -884,16 +925,8 @@
             Console.WriteLine($"✅ Linie pionowe: {verticalGuides.Count}, poziome: {horizontalGuides.Count}");
 
             // Pobierz obraz PNG jako base64 z JavaScript
-            string base64Png = await JSRuntime.InvokeAsync<string>("getSvgPngBase64");
+          //  string base64Png = await JSRuntime.InvokeAsync<string>("getSvgPngBase64");
 
-            if (string.IsNullOrEmpty(base64Png))
-            {
-                Console.WriteLine("❌ Błąd: Nie udało się pobrać obrazka PNG!");
-                return;
-            }
-
-            // Konwersja base64 → byte[]
-            byte[] pngBytes = Convert.FromBase64String(base64Png);
 
             // Aktualizujemy obiekt w Blazorze
             konfSystem.PionLewa = verticalGuides.ElementAtOrDefault(0);
@@ -915,12 +948,27 @@
             // 🔥 Zamiana przecinków na kropki
             konfSystem.SVG = konfSystem.SVG.Replace(",", ".");
 
-            Console.WriteLine($"📡 Aktualny SVG przed zapisem: {konfSystem.SVG}");
+           // Console.WriteLine($"📡 Aktualny SVG przed zapisem: {konfSystem.SVG}");
 
 
+            // Przekazujemy SVG do JavaScript w celu generowania PNG
+            string base64Image = await JSRuntime.InvokeAsync<string>("generatePngFromSvg", konfSystem.SVG);
+
+
+            // Console.WriteLine($"base64Png {base64Png}");
+
+            if (string.IsNullOrEmpty(base64Image))
+            {
+                Console.WriteLine("❌ Błąd: Nie udało się pobrać obrazka PNG!");
+                return;
+            }
+
+            // Konwersja base64 → byte[]
+            byte[] pngBytes = Convert.FromBase64String(base64Image);
 
             //konfSystem.SVG = SvgContent;
             konfSystem.Rysunek = pngBytes;
+
             konfSystem.RowIdSystem = Guid.Parse(SelectedSystemId);
 
             HttpResponseMessage response;
@@ -938,6 +986,9 @@
             {
                 Console.WriteLine("✅ Dane zapisane w bazie!");
                 await _message.Success("✅ Dane zapisane w bazie!");
+
+                KonfiguracjeSystemu = null;
+                KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>("api/konfsystem");
 
             }
             else
@@ -1030,7 +1081,7 @@
                 // Wymuszenie odświeżenia UI
                 StateHasChanged();
 
-                //   Console.WriteLine($"🎯 Aktualne SVG: {SvgContent}");
+                Console.WriteLine($"🎯 Aktualne SVG: {SvgContent}");
                 Console.WriteLine($"🎯 Aktualne SVG - OK");
 
                 czekajNaDane = true;
