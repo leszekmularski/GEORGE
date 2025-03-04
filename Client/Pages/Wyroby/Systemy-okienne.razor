@@ -6,14 +6,21 @@
 @inject IMessageService _message
 @inject INotificationService _notice
 @inject Utilities.ILocalStorage LocalStorage
+@inject IJSRuntime JSRuntime
+
 @using System.Net
 
 <h3 class="text-center mt-3">📌 Systemy Okienne</h3>
 
 <div class="container mt-4">
-    <button class="btn btn-primary mb-3" @onclick="DodajNowy">
-        <i class="fas fa-plus"></i> Dodaj Nowy System
-    </button>
+    <div>
+        <button class="btn btn-primary mb-3" @onclick="DodajNowy">
+            <i class="fas fa-plus"></i> Dodaj Nowy System
+        </button>
+        <button class="btn btn-primary mb-3" @onclick="GoBack">
+            <i class="fas fa-plus"></i> Wróć do poprzedniej strony
+        </button>
+    </div>
 
     @if (Systemy != null && Systemy.Any())
     {
@@ -154,6 +161,12 @@
     {
         EdytowanySystem = null;
     }
+
+    private async Task GoBack()
+    {
+        await JSRuntime.InvokeVoidAsync("history.back");
+    }
+
 
     private bool boolOdczyt = false;
     private bool boolZmiana = false;
