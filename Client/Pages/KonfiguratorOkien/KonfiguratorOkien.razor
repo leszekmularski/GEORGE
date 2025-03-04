@@ -16,279 +16,292 @@
 
 <style>
     .scaled-svg {
-    position: relative;
-    width: 500px;
-    height: 500px;
-    overflow: auto;
-    border: 1px solid #ccc;
+        position: relative;
+        width: 500px;
+        height: 500px;
+        overflow: auto;
+        border: 1px solid #ccc;
     }
 
     svg {
-    width: 100%;
-    height: 100%;
+        width: 100%;
+        height: 100%;
     }
 
     #guide-line-vertical, #guide-line-horizontal, #guide-line-verticalMax, #guide-line-horizontalMax {
-    pointer-events: auto;
-    opacity: 1;
-    z-index: 10; /* Przesunięcie na wierzch */
+        pointer-events: auto;
+        opacity: 1;
+        z-index: 10; /* Przesunięcie na wierzch */
     }
 
     line {
-    cursor: pointer; /* Zmieniaj kursor przy interakcji */
+        cursor: pointer; /* Zmieniaj kursor przy interakcji */
     }
 
 </style>
 
 <script>
 
-    let isDragging = false;
-    let draggedLine = null;
-    let offsetX = 0; // 🔥 Przechowuje różnicę między kliknięciem a aktualnym X
-    let deleteMode = false; // 🔥 Tryb usuwania
+      let isDragging = false;
+      let draggedLine = null;
+      let offsetX = 0; // 🔥 Przechowuje różnicę między kliknięciem a aktualnym X
+      let deleteMode = false; // 🔥 Tryb usuwania
 
-    // 🔥 Nowe zmienne do przechwycenia wartości prowadnic
-    let verticalGuides = {};
-    let horizontalGuides = {};
+      // 🔥 Nowe zmienne do przechwycenia wartości prowadnic
+      let verticalGuides = {};
+      let horizontalGuides = {};
 
-    function enableDrag() {
-    console.log("🔧 enableDrag uruchomiony!");
+      function enableDrag() {
+      console.log("🔧 enableDrag uruchomiony!");
 
-    let elements = document.querySelectorAll("svg line, svg circle, svg path");
+      let elements = document.querySelectorAll("svg line, svg circle, svg path");
 
-  //  console.log(`📊 Znaleziono ${elements.length} elementów SVG do aktywacji.`);
+    //  console.log(`📊 Znaleziono ${elements.length} elementów SVG do aktywacji.`);
 
-    let activatedCount = 0;
+      let activatedCount = 0;
 
-    elements.forEach((element, index) => {
-    //console.log(`🔹 [${index + 1}/${elements.length}] ID: ${element.id || "(brak)"} - Typ: ${element.tagName}`);
+      elements.forEach((element, index) => {
+      //console.log(`🔹 [${index + 1}/${elements.length}] ID: ${element.id || "(brak)"} - Typ: ${element.tagName}`);
 
-    if (element.tagName === "line" || element.tagName === "circle" || element.tagName === "path") {
-    element.removeEventListener('mousedown', startDragOrDelete);
-    element.addEventListener('mousedown', startDragOrDelete);
-    element.dataset.dragEnabled = "true";
-    activatedCount++;
-   // console.log(`✅ Aktywowano przesuwanie dla ${element.tagName} (ID: ${element.id || "(brak)"})`);
-    } else {
-    console.warn(`⚠️ Pominięto element ${element.tagName} (ID: ${element.id || "(brak)"})`);
-    }
-    });
+      if (element.tagName === "line" || element.tagName === "circle" || element.tagName === "path") {
+      element.removeEventListener('mousedown', startDragOrDelete);
+      element.addEventListener('mousedown', startDragOrDelete);
+      element.dataset.dragEnabled = "true";
+      activatedCount++;
+     // console.log(`✅ Aktywowano przesuwanie dla ${element.tagName} (ID: ${element.id || "(brak)"})`);
+      } else {
+      console.warn(`⚠️ Pominięto element ${element.tagName} (ID: ${element.id || "(brak)"})`);
+      }
+      });
 
-    //console.log(`🟢 Aktywowano przesuwanie dla ${activatedCount} z ${elements.length} elementów SVG.`);
+      //console.log(`🟢 Aktywowano przesuwanie dla ${activatedCount} z ${elements.length} elementów SVG.`);
 
-    let deleteModeCheckbox = document.getElementById("deleteMode");
-    if (!deleteModeCheckbox) {
-    console.warn("⚠️ Ostrzeżenie: Nie znaleziono elementu #deleteMode! Czekam...");
-    setTimeout(enableDrag, 500);
-    return;
-    }
+      let deleteModeCheckbox = document.getElementById("deleteMode");
+      if (!deleteModeCheckbox) {
+      console.warn("⚠️ Ostrzeżenie: Nie znaleziono elementu #deleteMode! Czekam...");
+      setTimeout(enableDrag, 500);
+      return;
+      }
 
-    deleteModeCheckbox.addEventListener("change", function () {
-    deleteMode = this.checked;
-    console.log(`🗑️ Tryb usuwania: ${deleteMode ? "WŁĄCZONY" : "WYŁĄCZONY"}`);
-    });
+      deleteModeCheckbox.addEventListener("change", function () {
+      deleteMode = this.checked;
+      console.log(`🗑️ Tryb usuwania: ${deleteMode ? "WŁĄCZONY" : "WYŁĄCZONY"}`);
+      });
 
-    console.log("🟢 enableDrag() zakończone!");
-    }
+      console.log("🟢 enableDrag() zakończone!");
+      }
 
-    function startDrag(event) {
-    event.preventDefault();
-    isDragging = true;
-    draggedLine = event.target;
+      function startDrag(event) {
+      event.preventDefault();
+      isDragging = true;
+      draggedLine = event.target;
 
-    const svg = draggedLine.closest('svg');
-    const rect = svg.getBoundingClientRect();
-    const viewBox = svg.viewBox.baseVal;
+      const svg = draggedLine.closest('svg');
+      const rect = svg.getBoundingClientRect();
+      const viewBox = svg.viewBox.baseVal;
 
-    let scaleX = viewBox.width / rect.width; // Skalowanie X
-    let scaleY = viewBox.height / rect.height; // Skalowanie Y
+      let scaleX = viewBox.width / rect.width; // Skalowanie X
+      let scaleY = viewBox.height / rect.height; // Skalowanie Y
 
-    let mouseX = (event.clientX - rect.left) * scaleX + viewBox.x;
-    let mouseY = (event.clientY - rect.top) * scaleY + viewBox.y;
+      let mouseX = (event.clientX - rect.left) * scaleX + viewBox.x;
+      let mouseY = (event.clientY - rect.top) * scaleY + viewBox.y;
 
-    if (draggedLine.id.includes('vertical')) {
-    let currentX = parseFloat(draggedLine.getAttribute('x1'));
-    offsetX = mouseX - currentX; // 🔥 Poprawiona wartość offsetX
-    }
+      if (draggedLine.id.includes('vertical')) {
+      let currentX = parseFloat(draggedLine.getAttribute('x1'));
+      offsetX = mouseX - currentX; // 🔥 Poprawiona wartość offsetX
+      }
 
-    console.log(`🚀 Rozpoczęto przeciąganie: ${draggedLine.id}, offsetX=${offsetX}`);
+      console.log(`🚀 Rozpoczęto przeciąganie: ${draggedLine.id}, offsetX=${offsetX}`);
 
-    document.addEventListener('mousemove', drag);
-    document.addEventListener('mouseup', stopDrag);
-    }
+      document.addEventListener('mousemove', drag);
+      document.addEventListener('mouseup', stopDrag);
+      }
 
-    function drag(event) {
-    if (isDragging && draggedLine) {
-    const svg = draggedLine.closest('svg');
-    const rect = svg.getBoundingClientRect();
-    const viewBox = svg.viewBox.baseVal;
+      function drag(event) {
+      if (isDragging && draggedLine) {
+      const svg = draggedLine.closest('svg');
+      const rect = svg.getBoundingClientRect();
+      const viewBox = svg.viewBox.baseVal;
 
-    let scaleX = viewBox.width / rect.width;
-    let scaleY = viewBox.height / rect.height;
+      let scaleX = viewBox.width / rect.width;
+      let scaleY = viewBox.height / rect.height;
 
-    let newX = (event.clientX - rect.left) * scaleX + viewBox.x - offsetX;
-    let newY = (event.clientY - rect.top) * scaleY + viewBox.y;
+      let newX = (event.clientX - rect.left) * scaleX + viewBox.x - offsetX;
+      let newY = (event.clientY - rect.top) * scaleY + viewBox.y;
 
-    console.log(`🎯 Przesuwam ${draggedLine.id} do X=${newX}, Y=${newY}`);
+      console.log(`🎯 Przesuwam ${draggedLine.id} do X=${newX}, Y=${newY}`);
 
-    if (draggedLine.id.includes('vertical')) {
-    draggedLine.setAttribute('x1', newX);
-    draggedLine.setAttribute('x2', newX);
-    } else if (draggedLine.id.includes('horizontal')) {
-    draggedLine.setAttribute('y1', newY);
-    draggedLine.setAttribute('y2', newY);
-    }
+      if (draggedLine.id.includes('vertical')) {
+      draggedLine.setAttribute('x1', newX);
+      draggedLine.setAttribute('x2', newX);
+      } else if (draggedLine.id.includes('horizontal')) {
+      draggedLine.setAttribute('y1', newY);
+      draggedLine.setAttribute('y2', newY);
+      }
 
-    console.log(`✅ ${draggedLine.id} nowa pozycja: x1=${draggedLine.getAttribute('x1')}, y1=${draggedLine.getAttribute('y1')}`);
-    }
-    }
+      console.log(`✅ ${draggedLine.id} nowa pozycja: x1=${draggedLine.getAttribute('x1')}, y1=${draggedLine.getAttribute('y1')}`);
+      }
+      }
 
-    // 🔥 Aktualizacja wartości w panelu bocznym
-    function updateGuideValues() {
-    let verticalList = document.getElementById("verticalValues");
-    let horizontalList = document.getElementById("horizontalValues");
+      // 🔥 Aktualizacja wartości w panelu bocznym
+      function updateGuideValues() {
+      let verticalList = document.getElementById("verticalValues");
+      let horizontalList = document.getElementById("horizontalValues");
 
-    verticalList.innerHTML = "";
-    horizontalList.innerHTML = "";
+      verticalList.innerHTML = "";
+      horizontalList.innerHTML = "";
 
-    let svg = document.querySelector("svg");
-    if (!svg) {
-    console.error("❌ Nie znaleziono SVG!");
-    return;
-    }
+      let svg = document.querySelector("svg");
+      if (!svg) {
+      console.error("❌ Nie znaleziono SVG!");
+      return;
+      }
 
-    let viewBox = svg.viewBox.baseVal;
-    let totalHeight = viewBox.height; // 🔥 Całkowita wysokość SVG
+      let viewBox = svg.viewBox.baseVal;
+      let totalHeight = viewBox.height; // 🔥 Całkowita wysokość SVG
 
-    // 🔥 Pionowe prowadnice
-    Object.keys(verticalGuides).forEach(id => {
-    let line = document.getElementById(id);
-    let color = line ? line.getAttribute("stroke") : "black"; // Pobieramy kolor linii
+      // 🔥 Pionowe prowadnice
+      Object.keys(verticalGuides).forEach(id => {
+      let line = document.getElementById(id);
+      let color = line ? line.getAttribute("stroke") : "black"; // Pobieramy kolor linii
 
-    let li = document.createElement("li");
-    li.innerHTML = `<span style="background-color:${color}; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>
-    ${id}: ${verticalGuides[id]}px`;
-    verticalList.appendChild(li);
-    });
+      let li = document.createElement("li");
+      li.innerHTML = `<span style="background-color:${color}; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>
+      ${id}: ${verticalGuides[id]}px`;
+      verticalList.appendChild(li);
+      });
 
-    // 🔥 Poziome prowadnice (odwrócone względem dołu)
-    Object.keys(horizontalGuides).forEach(id => {
-    let line = document.getElementById(id);
-    let color = line ? line.getAttribute("stroke") : "black"; // Pobieramy kolor linii
-    let originalY = horizontalGuides[id];
-    let flippedY = totalHeight - originalY; // 🔥 Liczymy Y od dołu
+      // 🔥 Poziome prowadnice (odwrócone względem dołu)
+      Object.keys(horizontalGuides).forEach(id => {
+      let line = document.getElementById(id);
+      let color = line ? line.getAttribute("stroke") : "black"; // Pobieramy kolor linii
+      let originalY = horizontalGuides[id];
+      let flippedY = totalHeight - originalY; // 🔥 Liczymy Y od dołu
 
-    let li = document.createElement("li");
-    li.innerHTML = `<span style="background-color:${color}; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>
-    ${id}: ${flippedY}px`;
-    horizontalList.appendChild(li);
-    });
-    }
-
-
-    function stopDrag() {
-    if (draggedLine) {
-    console.log(`🛑 Zatrzymano przeciąganie: ${draggedLine.id}`);
-
-    let testLine = document.getElementById(draggedLine.id);
-    if (!testLine) {
-    console.error(`❌ Linia ${draggedLine.id} zniknęła z DOM!`);
-    } else {
-    console.log(`✅ Linia ${draggedLine.id} nadal istnieje w DOM.`);
-    }
-
-    if (draggedLine.id.includes("vertical")) {
-    verticalGuides[draggedLine.id] = parseInt(draggedLine.getAttribute("x1"));
-    } else if (draggedLine.id.includes("horizontal")) {
-    horizontalGuides[draggedLine.id] = parseInt(draggedLine.getAttribute("y1"));
-    }
-
-    updateGuideValues(); // 🔥 Aktualizacja wartości po przesunięciu linii
-    }
-
-    isDragging = false;
-    draggedLine = null;
-    document.removeEventListener('mousemove', drag);
-    document.removeEventListener('mouseup', stopDrag);
-    }
-
-    // 🔥 Nowa funkcja: wybiera czy usunąć czy przesuwać
-    function startDragOrDelete(event) {
-    event.preventDefault();
-
-    if (deleteMode) {
-    deleteLine(event.target);
-    } else {
-    startDrag(event);
-    }
-    }
-
-    // 🔥 Usuwanie linii
-    function deleteLine(element) {
-    console.log(`🗑️ Próbuję usunąć element: ${element.tagName}, ID: ${element.id || "brak"}`);
-
-    // Jeśli to prowadnica, NIE usuwamy jej!
-    if (element.id && element.id.includes("guide-line")) {
-    console.warn("❌ Nie można usunąć prowadnic!");
-    return;
-    }
-
-    // Sprawdzenie, czy kliknięto w element SVG
-    if (element.tagName === "line" || element.tagName === "path" || element.tagName === "circle") {
-    element.remove();
-    console.log(`✅ Usunięto element: ${element.tagName}, ID: ${element.id || "brak"}`);
-    } else {
-    console.warn("⚠️ Kliknięto w element, który nie jest linią, łukiem ani okręgiem.");
-    }
-    }
-
-    function rotateSvgElements() {
-    console.log("🔄 Obracam cały obiekt SVG (bez prowadnic) o 90 stopni!");
-
-    let group = document.getElementById("rotate-group");
-    if (!group) {
-    console.error("❌ Nie znaleziono grupy <g id='rotate-group'>! Sprawdź, czy jest w SVG.");
-    return;
-    }
-
-    let svg = group.closest("svg");
-    let bbox = group.getBBox(); // 🔥 Pobiera rzeczywiste granice obiektów w SVG
-
-    let cx = bbox.x + bbox.width / 2;
-    let cy = bbox.y + bbox.height / 2;
-
-    // Pobierz obecny kąt obrotu (jeśli istnieje)
-    let currentTransform = group.getAttribute("transform") || "";
-    let match = currentTransform.match(/rotate\(([-\d.]+)/);
-    let currentAngle = match ? parseFloat(match[1]) : 0;
-
-    // Nowy kąt obrotu (dodajemy do poprzedniego)
-    let newAngle = currentAngle + 90;
-
-    // Ustawienie nowej transformacji na grupie `g`
-    group.setAttribute("transform", `rotate(${newAngle}, ${cx}, ${cy})`);
-
-    console.log(`✅ Obrót zakończony: ${newAngle} stopni wokół (${cx}, ${cy})`);
-    }
+      let li = document.createElement("li");
+      li.innerHTML = `<span style="background-color:${color}; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>
+      ${id}: ${flippedY}px`;
+      horizontalList.appendChild(li);
+      });
+      }
 
 
-        function generatePngFromSvg(svgContent) {
+      function stopDrag() {
+      if (draggedLine) {
+      console.log(`🛑 Zatrzymano przeciąganie: ${draggedLine.id}`);
+
+      let testLine = document.getElementById(draggedLine.id);
+      if (!testLine) {
+      console.error(`❌ Linia ${draggedLine.id} zniknęła z DOM!`);
+      } else {
+      console.log(`✅ Linia ${draggedLine.id} nadal istnieje w DOM.`);
+      }
+
+      if (draggedLine.id.includes("vertical")) {
+      verticalGuides[draggedLine.id] = parseInt(draggedLine.getAttribute("x1"));
+      } else if (draggedLine.id.includes("horizontal")) {
+      horizontalGuides[draggedLine.id] = parseInt(draggedLine.getAttribute("y1"));
+      }
+
+      updateGuideValues(); // 🔥 Aktualizacja wartości po przesunięciu linii
+      }
+
+      isDragging = false;
+      draggedLine = null;
+      document.removeEventListener('mousemove', drag);
+      document.removeEventListener('mouseup', stopDrag);
+      }
+
+      // 🔥 Nowa funkcja: wybiera czy usunąć czy przesuwać
+      function startDragOrDelete(event) {
+      event.preventDefault();
+
+      if (deleteMode) {
+      deleteLine(event.target);
+      } else {
+      startDrag(event);
+      }
+      }
+
+      // 🔥 Usuwanie linii
+      function deleteLine(element) {
+      console.log(`🗑️ Próbuję usunąć element: ${element.tagName}, ID: ${element.id || "brak"}`);
+
+      // Jeśli to prowadnica, NIE usuwamy jej!
+      if (element.id && element.id.includes("guide-line")) {
+      console.warn("❌ Nie można usunąć prowadnic!");
+      return;
+      }
+
+      // Sprawdzenie, czy kliknięto w element SVG
+      if (element.tagName === "line" || element.tagName === "path" || element.tagName === "circle") {
+      element.remove();
+      console.log(`✅ Usunięto element: ${element.tagName}, ID: ${element.id || "brak"}`);
+      } else {
+      console.warn("⚠️ Kliknięto w element, który nie jest linią, łukiem ani okręgiem.");
+      }
+      }
+
+
+      function rotateSvgElements() {
+      console.log("🔄 Obracam cały obiekt SVG (bez prowadnic) o 90 stopni!");
+
+      let group = document.getElementById("rotate-group");
+      if (!group) {
+      console.error("❌ Nie znaleziono grupy <g id='rotate-group'>! Sprawdź, czy jest w SVG.");
+      return;
+      }
+
+      let svg = group.closest("svg");
+      let bbox = group.getBBox(); // 🔥 Pobiera rzeczywiste granice obiektów w SVG
+
+      let cx = bbox.x + bbox.width / 2;
+      let cy = bbox.y + bbox.height / 2;
+
+      // Pobierz obecny kąt obrotu (jeśli istnieje)
+      let currentTransform = group.getAttribute("transform") || "";
+      let match = currentTransform.match(/rotate\(([-\d.]+)/);
+      let currentAngle = match ? parseFloat(match[1]) : 0;
+
+      // Nowy kąt obrotu (dodajemy do poprzedniego)
+      let newAngle = currentAngle + 90;
+
+      // Ustawienie nowej transformacji na grupie `g`
+      group.setAttribute("transform", `rotate(${newAngle}, ${cx}, ${cy})`);
+
+      console.log(`✅ Obrót zakończony: ${newAngle} stopni wokół (${cx}, ${cy})`);
+      }
+
+
+    function generatePngFromSvg(svgContent) {
         return new Promise((resolve, reject) => {
+            let parser = new DOMParser();
+            let svgDoc = parser.parseFromString(svgContent, "image/svg+xml");
+
+            // Usuwanie elementów, których id zaczyna się od 'guide-line-'
+            let guideLines = svgDoc.querySelectorAll('[id^="guide-line-"]');
+            guideLines.forEach(line => {
+                line.remove();  // Usuwamy element
+            });
+
+            // Teraz przekształcamy zmodyfikowane SVG na Base64
+            let svgWithoutGuideLines = new XMLSerializer().serializeToString(svgDoc);
+
             let canvas = document.createElement("canvas");
             let ctx = canvas.getContext("2d");
 
             let img = new Image();
-            let svgBlob = new Blob([svgContent], { type: "image/svg+xml" });
+            let svgBlob = new Blob([svgWithoutGuideLines], { type: "image/svg+xml" });
             let svgUrl = URL.createObjectURL(svgBlob);
             img.src = svgUrl;
 
             img.onload = function() {
-                canvas.width = img.width / 4;  // Skala do miniaturki
-                canvas.height = img.height / 4;
+                canvas.width = img.width / 1;  // Skala do miniaturki
+                canvas.height = img.height / 1;
 
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-                // Generowanie Base64 PNG bez nagłówka
+                // Generowanie Base64 PNG
                 let base64Image = canvas.toDataURL("image/png");
                 let base64Only = base64Image.split(',')[1]; // Usuwamy nagłówek 'data:image/png;base64,'
                 resolve(base64Only);
@@ -303,100 +316,159 @@
 
 
 
-    function getGuidesData() {
-    console.log("📡 Pobieram dane prowadnic...");
 
-    let verticalGuides = {};
-    let horizontalGuides = {};
+      function getGuidesData() {
+      console.log("📡 Pobieram dane prowadnic...");
 
-    // Pobieramy wszystkie prowadnice
-    document.querySelectorAll("line[id^='guide-line']").forEach(line => {
-    let id = line.id;
-    let x1 = parseInt(line.getAttribute("x1"));
-    let y1 = parseInt(line.getAttribute("y1"));
+      let verticalGuides = {};
+      let horizontalGuides = {};
 
-    if (id.includes("vertical")) {
-    verticalGuides[id] = x1;
-    } else if (id.includes("horizontal")) {
-    horizontalGuides[id] = y1;
-    }
-    });
+      // Pobieramy wszystkie prowadnice
+      document.querySelectorAll("line[id^='guide-line']").forEach(line => {
+      let id = line.id;
+      let x1 = parseInt(line.getAttribute("x1"));
+      let y1 = parseInt(line.getAttribute("y1"));
 
-    console.log("✅ Prowadnice pobrane:", { vertical: verticalGuides, horizontal: horizontalGuides });
+      if (id.includes("vertical")) {
+      verticalGuides[id] = x1;
+      } else if (id.includes("horizontal")) {
+      horizontalGuides[id] = y1;
+      }
+      });
 
-    return { vertical: verticalGuides, horizontal: horizontalGuides };
-    }
+      console.log("✅ Prowadnice pobrane:", { vertical: verticalGuides, horizontal: horizontalGuides });
+
+      return { vertical: verticalGuides, horizontal: horizontalGuides };
+      }
 
 
-function getUpdatedSvg(pionLewa, pionPrawa, poziomDol, poziomGora) {
-    let svg = document.querySelector("svg").cloneNode(true);
-    let elements = svg.querySelectorAll("*");
 
-    console.log("✅ Prowadnice pobrane:", { pionLewa: pionLewa, pionPrawa: pionPrawa, poziomDol: poziomDol, poziomGora: poziomGora });
 
-    elements.forEach(el => {
-        let x = parseFloat(el.getAttribute("x") || el.getAttribute("cx") || el.getAttribute("x1") || el.getAttribute("x2") || "NaN");
-        let y = parseFloat(el.getAttribute("y") || el.getAttribute("cy") || el.getAttribute("y1") || el.getAttribute("y2") || "NaN");
-
-        if (!isNaN(x) && !isNaN(y)) {
-            if (x < pionLewa || x > pionPrawa || y < poziomDol || y > poziomGora) {
-                el.remove();
-            }
+    function getUpdatedSvg() {
+        let svg = document.querySelector(".scaled-svg svg");
+        if (!svg) {
+            console.error("❌ Nie znaleziono rysunku SVG!");
+            return "";
         }
-    });
 
-    // Aktualizacja `viewBox`, ale tylko jeśli wartości są poprawne
-    let width = pionPrawa - pionLewa;
-    let height = poziomGora - poziomDol;
+        let clonedSvg = svg.cloneNode(true);
 
-    if (width > 0 && height > 0) {
-        svg.setAttribute("viewBox", `${pionLewa} ${poziomDol} ${width} ${height}`);
-        svg.setAttribute("width", width);
-        svg.setAttribute("height", height);
-    } else {
-        console.error("❌ Błędne wartości viewBox: obraz może zniknąć!");
+        // 🔥 Naprawiamy problem z obrotem `rotate(...)`
+        clonedSvg.querySelectorAll("[transform]").forEach(element => {
+            let transformValue = element.getAttribute("transform");
+
+            if (transformValue && transformValue.includes("rotate")) {
+                // Zamiana przecinków na spacje (poprawny format dla SVG)
+                transformValue = transformValue.replace(/,/g, " ");
+                element.setAttribute("transform", transformValue);
+            }
+        });
+
+        // 📏 Znajdź rzeczywisty obszar rysunku (bez prowadnic)
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+        clonedSvg.querySelectorAll("line, path, circle, rect, ellipse, polygon, polyline").forEach(el => {
+            let xVals = [], yVals = [];
+
+            ["x", "cx", "x1", "x2"].forEach(attr => {
+                let val = parseFloat(el.getAttribute(attr) || "NaN");
+                if (!isNaN(val)) xVals.push(val);
+            });
+
+            ["y", "cy", "y1", "y2"].forEach(attr => {
+                let val = parseFloat(el.getAttribute(attr) || "NaN");
+                if (!isNaN(val)) yVals.push(val);
+            });
+
+            if (xVals.length > 0) {
+                minX = Math.min(minX, ...xVals);
+                maxX = Math.max(maxX, ...xVals);
+            }
+            if (yVals.length > 0) {
+                minY = Math.min(minY, ...yVals);
+                maxY = Math.max(maxY, ...yVals);
+            }
+        });
+
+        let width = maxX - minX;
+        let height = maxY - minY;
+
+        if (width <= 0 || height <= 0) {
+            console.error(`❌ Błąd: Wymiary SVG są niepoprawne! width=${width}, height=${height}`);
+            return new XMLSerializer().serializeToString(svg);
+        }
+
+        // 🔥 Skracamy prowadnice do granic rysunku!
+        clonedSvg.querySelectorAll("line[id^='guide-line']").forEach(line => {
+            let id = line.id;
+            if (id.includes("vertical")) {
+                let x = parseFloat(line.getAttribute("x1"));
+                if (x < minX) x = minX;
+                if (x > maxX) x = maxX;
+                line.setAttribute("x1", x);
+                line.setAttribute("x2", x);
+                line.setAttribute("y1", minY);
+                line.setAttribute("y2", maxY);
+            } else if (id.includes("horizontal")) {
+                let y = parseFloat(line.getAttribute("y1"));
+                if (y < minY) y = minY;
+                if (y > maxY) y = maxY;
+                line.setAttribute("y1", y);
+                line.setAttribute("y2", y);
+                line.setAttribute("x1", minX);
+                line.setAttribute("x2", maxX);
+            }
+        });
+
+        // 🔥 Dopasowujemy `viewBox`
+        clonedSvg.setAttribute("viewBox", `${minX} ${minY} ${width} ${height}`);
+        clonedSvg.setAttribute("width", width);
+        clonedSvg.setAttribute("height", height);
+
+        console.log(`✅ Nowe viewBox: ${minX} ${minY} ${width} ${height}`);
+
+        return new XMLSerializer().serializeToString(clonedSvg);
     }
 
-    return new XMLSerializer().serializeToString(svg);
-}
+    
+      
+      
+      
+      
+      function setSvgContent(svgString) {
+      let retries = 15; // Więcej prób na wypadek opóźnień Blazora
+      let delay = 300; // Krótszy czas między próbami
 
+      function tryInsertSvg() {
+      let tabContent = document.querySelector(".ant-tabs-tab-active"); // Sprawdza aktywną zakładkę
+      let svgContainer = document.querySelector(".scaled-svg");
 
+      if (!tabContent || !svgContainer) {
+      if (retries > 0) {
+      console.warn(`❌ Nie znaleziono kontenera SVG lub zakładka nieaktywna! Próba ponownie za ${delay}ms...`);
+      retries--;
+      setTimeout(tryInsertSvg, delay);
+      } else {
+      console.error("🚨 Błąd krytyczny: Kontener SVG nadal nie został znaleziony!");
+      }
+      return;
+      }
 
+      svgContainer.innerHTML = svgString;
+      console.log("✅ Zaktualizowano SVG w Blazorze!");
 
-    function setSvgContent(svgString) {
-    let retries = 15; // Więcej prób na wypadek opóźnień Blazora
-    let delay = 300; // Krótszy czas między próbami
+      // 🚀 Ponowne aktywowanie obsługi przesuwania linii
+      enableDrag();
+      }
 
-    function tryInsertSvg() {
-    let tabContent = document.querySelector(".ant-tabs-tab-active"); // Sprawdza aktywną zakładkę
-    let svgContainer = document.querySelector(".scaled-svg");
+      setTimeout(tryInsertSvg, delay);
+      }
 
-    if (!tabContent || !svgContainer) {
-    if (retries > 0) {
-    console.warn(`❌ Nie znaleziono kontenera SVG lub zakładka nieaktywna! Próba ponownie za ${delay}ms...`);
-    retries--;
-    setTimeout(tryInsertSvg, delay);
-    } else {
-    console.error("🚨 Błąd krytyczny: Kontener SVG nadal nie został znaleziony!");
-    }
-    return;
-    }
-
-    svgContainer.innerHTML = svgString;
-    console.log("✅ Zaktualizowano SVG w Blazorze!");
-
-    // 🚀 Ponowne aktywowanie obsługi przesuwania linii
-    enableDrag();
-    }
-
-    setTimeout(tryInsertSvg, delay);
-    }
-
-    // Automatyczne przypisanie eventów po załadowaniu SVG
-    document.addEventListener('DOMContentLoaded', () => {
-    console.log("🌟 Dokument załadowany, uruchamiam enableDrag()");
-    enableDrag();
-    });
+      // Automatyczne przypisanie eventów po załadowaniu SVG
+      document.addEventListener('DOMContentLoaded', () => {
+      console.log("🌟 Dokument załadowany, uruchamiam enableDrag()");
+      enableDrag();
+      });
 
 </script>
 
@@ -413,6 +485,8 @@ function getUpdatedSvg(pionLewa, pionPrawa, poziomDol, poziomGora) {
             </select>
         }
         <Button class="btn-back" Icon="@IconType.Fill.Tool" Style="width: 35px; height: 35px;" OnClick="GoKonfiguratorNowegoSystemu">
+        </Button>
+        <Button class="btn-back" Icon="@IconType.Fill.Windows" Style="width: 35px; height: 35px;" OnClick="GoKonfiguratorNowegoSystemu">
         </Button>
     </div>
 </Tooltip>
@@ -431,7 +505,7 @@ function getUpdatedSvg(pionLewa, pionPrawa, poziomDol, poziomGora) {
     </Tooltip>
 </Divider>
 
-<Tabs DefaultActiveKey="0" @bind-ActiveKey="activeKey" >
+<Tabs DefaultActiveKey="0" @bind-ActiveKey="activeKey">
     <TabPane Tab="Zapisane elementy w konfiguracji" Key="0">
         <h3 class="text-center mt-3">
             📌 Skonfigurowane elementy
@@ -504,11 +578,11 @@ function getUpdatedSvg(pionLewa, pionPrawa, poziomDol, poziomGora) {
                     <div class="col-md-6">
                         <label class="form-label">Typ profilu</label>
                         <Select Mode="SelectMode.Default"
-                        DataSource="@_typ"
-                        @bind-Value="@konfSystem.Typ"
-                        LabelName="@nameof(Typ.Nazwa)"
-                        ValueName="@nameof(Typ.Nazwa)"
-                        Class="form-select">
+                                DataSource="@_typ"
+                                @bind-Value="@konfSystem.Typ"
+                                LabelName="@nameof(Typ.Nazwa)"
+                                ValueName="@nameof(Typ.Nazwa)"
+                                Class="form-select">
                         </Select>
                     </div>
 
@@ -789,7 +863,7 @@ function getUpdatedSvg(pionLewa, pionPrawa, poziomDol, poziomGora) {
 
         activeKey = "2";
 
-        await Task.CompletedTask; 
+        await Task.CompletedTask;
     }
 
     private async Task Usun(int id)
@@ -867,12 +941,12 @@ function getUpdatedSvg(pionLewa, pionPrawa, poziomDol, poziomGora) {
         if (string.IsNullOrEmpty(SelectedSystemId))
         {
             _ = _notice.Info(new()
-        {
-            Message = "Informacja!!",
-            Description = $"Wybierz System!!!!",
-            Placement = NotificationPlacement.BottomLeft,
-            Duration = 2
-        });
+                {
+                    Message = "Informacja!!",
+                    Description = $"Wybierz System!!!!",
+                    Placement = NotificationPlacement.BottomLeft,
+                    Duration = 2
+                });
             return;
         }
 
@@ -938,38 +1012,30 @@ function getUpdatedSvg(pionLewa, pionPrawa, poziomDol, poziomGora) {
             Console.WriteLine($"✅ Linie pionowe: {verticalGuides.Count}, poziome: {horizontalGuides.Count}");
 
             // Pobierz obraz PNG jako base64 z JavaScript
-          //  string base64Png = await JSRuntime.InvokeAsync<string>("getSvgPngBase64");
+            //  string base64Png = await JSRuntime.InvokeAsync<string>("getSvgPngBase64");
 
 
             // Aktualizujemy obiekt w Blazorze
-            // Zakładając, że masz listy verticalGuides i horizontalGuides
-            // Ustawienie PionLewa i PoziomDol na 0
-            konfSystem.PionLewa = 0;
-            konfSystem.PionPrawa = verticalGuides.ElementAtOrDefault(1) - verticalGuides.ElementAtOrDefault(0);
-            konfSystem.PionOdSzybaOdZew = verticalGuides.ElementAtOrDefault(2) - verticalGuides.ElementAtOrDefault(0);
-            konfSystem.PionDodatkowa4 = verticalGuides.ElementAtOrDefault(3) - verticalGuides.ElementAtOrDefault(0);
-            konfSystem.PionDodatkowa5 = verticalGuides.ElementAtOrDefault(4) - verticalGuides.ElementAtOrDefault(0);
+            konfSystem.PionLewa = verticalGuides.ElementAtOrDefault(0);
+            konfSystem.PionPrawa = verticalGuides.ElementAtOrDefault(1);
+            konfSystem.PionOdSzybaOdZew = verticalGuides.ElementAtOrDefault(2);
+            konfSystem.PionDodatkowa4 = verticalGuides.ElementAtOrDefault(3);
+            konfSystem.PionDodatkowa5 = verticalGuides.ElementAtOrDefault(4);
 
-            // Ustawienie PoziomDol na 0
-            konfSystem.PoziomDol = 0;
-            konfSystem.PoziomGora = horizontalGuides.ElementAtOrDefault(1) - horizontalGuides.ElementAtOrDefault(0);
-            konfSystem.PoziomKorpus = horizontalGuides.ElementAtOrDefault(2) - horizontalGuides.ElementAtOrDefault(0);
-            konfSystem.PoziomLiniaSzkla = horizontalGuides.ElementAtOrDefault(3) - horizontalGuides.ElementAtOrDefault(0);
-            konfSystem.PoziomLiniaOkucia = horizontalGuides.ElementAtOrDefault(4) - horizontalGuides.ElementAtOrDefault(0);
-            konfSystem.PoziomOsDormas = horizontalGuides.ElementAtOrDefault(5) - horizontalGuides.ElementAtOrDefault(0);
-            konfSystem.PoziomDodatkowa6 = horizontalGuides.ElementAtOrDefault(6) - horizontalGuides.ElementAtOrDefault(0);
-            konfSystem.PoziomDodatkowa7 = horizontalGuides.ElementAtOrDefault(7) - horizontalGuides.ElementAtOrDefault(0);
+            konfSystem.PoziomDol = horizontalGuides.ElementAtOrDefault(0);
+            konfSystem.PoziomGora = horizontalGuides.ElementAtOrDefault(1);
+            konfSystem.PoziomKorpus = horizontalGuides.ElementAtOrDefault(2);
+            konfSystem.PoziomLiniaSzkla = horizontalGuides.ElementAtOrDefault(3);
+            konfSystem.PoziomLiniaOkucia = horizontalGuides.ElementAtOrDefault(4);
+            konfSystem.PoziomOsDormas = horizontalGuides.ElementAtOrDefault(5);
+            konfSystem.PoziomDodatkowa6 = horizontalGuides.ElementAtOrDefault(6);
+            konfSystem.PoziomDodatkowa7 = horizontalGuides.ElementAtOrDefault(7);
 
-
-            konfSystem.SVG = await JSRuntime.InvokeAsync<string>(
-                "getUpdatedSvg", 
-                konfSystem.PionLewa, konfSystem.PionPrawa, 
-                konfSystem.PoziomDol, konfSystem.PoziomGora
-            );
+            konfSystem.SVG = await JSRuntime.InvokeAsync<string>("getUpdatedSvg");
             // 🔥 Zamiana przecinków na kropki
             konfSystem.SVG = konfSystem.SVG.Replace(",", ".");
 
-           // Console.WriteLine($"📡 Aktualny SVG przed zapisem: {konfSystem.SVG}");
+            // Console.WriteLine($"📡 Aktualny SVG przed zapisem: {konfSystem.SVG}");
 
 
             // Przekazujemy SVG do JavaScript w celu generowania PNG
