@@ -486,7 +486,7 @@
         }
         <Button class="btn-back" Icon="@IconType.Fill.Tool" Style="width: 35px; height: 35px;" OnClick="GoKonfiguratorNowegoSystemu">
         </Button>
-        <Button class="btn-back" Icon="@IconType.Fill.Windows" Style="width: 35px; height: 35px;" OnClick="GoKonfiguratorNowegoSystemu">
+        <Button class="btn-back" Icon="@IconType.Fill.Windows" Style="width: 35px; height: 35px;" OnClick="GoKonfiguratorPolaczen">
         </Button>
     </div>
 </Tooltip>
@@ -1201,6 +1201,14 @@
         await Task.CompletedTask;
     }
 
+    private async Task GoKonfiguratorPolaczen()
+    {
+
+        NavigationManager.NavigateTo($"/KonfiguratorPolaczen");
+
+        await Task.CompletedTask;
+    }
+
     private bool boolOdczyt = false;
     private bool boolZmiana = false;
     private bool boolUsuniecia = false;
@@ -1271,6 +1279,6 @@
             new Typ("Skrzydło"),
             new Typ("Słupek ruchomy"),
             new Typ("Słupek stały"),
-            new Typ("listwa przyszybowa"),
+            new Typ("Listwa przyszybowa"),
         };
 }

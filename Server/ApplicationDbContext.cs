@@ -32,7 +32,8 @@ namespace GEORGE.Server
         public DbSet<ZleceniaProdukcyjneZmianyStatusu> ZleceniaProdukcyjneZmianyStatusu => Set<ZleceniaProdukcyjneZmianyStatusu>();
         public DbSet<KonfSystem> KonfSystem => Set<KonfSystem>();
         public DbSet<SystemyOkienne> SystemyOkienne => Set<SystemyOkienne>();
-        
+        public DbSet<KonfModele> KonfModele => Set<KonfModele>();
+
 
         //***********************************************************************************************************************************************************************************************
 
