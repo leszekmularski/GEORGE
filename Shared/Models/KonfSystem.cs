@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -82,6 +83,9 @@ namespace GEORGE.Shared.Models
 
         public DateTime DataZapisu { get; set; } = DateTime.Now;
         public string? KtoZapisal { get; set; } = "NaN";
+
+        [NotMapped]
+        public bool CzyWybrany { get; set; } = false;
     }
 
 }

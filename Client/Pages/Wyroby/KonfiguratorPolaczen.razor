@@ -94,54 +94,54 @@
     {
         <EditForm Model="EdytowanyModel" OnValidSubmit="Zapisz">
             <DataAnnotationsValidator />
-        <h4>@(EdytowanyModel.Id == 0 ? "Dodaj Nowy Model" : "Edytuj Model")</h4>
-       <div class="mb-3">
-            <label class="form-label">Nazwa konfigurajcji:</label>
-            <InputText required class="form-control" @bind-Value="EdytowanyModel.NazwaKonfiguracji" />
-        </div>
-        <div class="mb-3">
+            <h4>@(EdytowanyModel.Id == 0 ? "Dodaj Nowy Model" : "Edytuj Model")</h4>
+            <div class="mb-3">
+                <label class="form-label">Nazwa konfigurajcji:</label>
+                <InputText required class="form-control" @bind-Value="EdytowanyModel.NazwaKonfiguracji" />
+            </div>
+            <div class="mb-3">
                 <label class="form-label">Typ profilu</label>
                 <Select required Mode="SelectMode.Default"
-                        DataSource="@_typ"
-                        @bind-Value="EdytowanyModel.Typ"
-                        LabelName="@nameof(Typ.Nazwa)"
-                        ValueName="@nameof(Typ.Nazwa)"
-                        Class="form-select">
+                DataSource="@_typ"
+                @bind-Value="EdytowanyModel.Typ"
+                LabelName="@nameof(Typ.Nazwa)"
+                ValueName="@nameof(Typ.Nazwa)"
+                Class="form-select">
                 </Select>
-        </div>
-        <div class="row">
-            <div class="col">
-                <label class="form-label">Kąt (min):</label>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <label class="form-label">Kąt (min):</label>
                     <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control" @bind-Value="EdytowanyModel.KatWystapieniaZakresOdMin" />
-            </div>
-            <div class="col">
-                <label class="form-label">Kąt (max):</label>
+                </div>
+                <div class="col">
+                    <label class="form-label">Kąt (max):</label>
                     <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control" @bind-Value="EdytowanyModel.KatWystapieniaZakresOdMax" />
+                </div>
             </div>
-        </div>
-        <div class="row mt-2">
-            <div class="col">
-                <label class="form-label">Promień (min):</label>
+            <div class="row mt-2">
+                <div class="col">
+                    <label class="form-label">Promień (min):</label>
                     <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control" @bind-Value="EdytowanyModel.PromienWystapieniaZakresOdMin" />
-            </div>
-            <div class="col">
-                <label class="form-label">Promień (max):</label>
+                </div>
+                <div class="col">
+                    <label class="form-label">Promień (max):</label>
                     <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control" @bind-Value="EdytowanyModel.PromienWystapieniaZakresOdMax" />
+                </div>
             </div>
-        </div>
-        <div class="mt-3">
-            <label class="form-label">Uwagi:</label>
-            <InputText class="form-control" @bind-Value="EdytowanyModel.Uwagi" />
-        </div>
-        <div class="mt-3">
-            <label class="form-label">Obrazek DXF:</label>
-            <InputFile OnChange="WczytajRysunek" />
-        </div>
-        <div class="mt-3">
-            <button type="submit" class="btn btn-primary">Zapisz</button>
-            <button type="button" class="btn btn-secondary ms-2" @onclick="Anuluj">Anuluj</button>
-        </div>
-    </EditForm>
+            <div class="mt-3">
+                <label class="form-label">Uwagi:</label>
+                <InputText class="form-control" @bind-Value="EdytowanyModel.Uwagi" />
+            </div>
+            <div class="mt-3">
+                <label class="form-label">Obrazek DXF:</label>
+                <InputFile OnChange="WczytajRysunek" />
+            </div>
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary">Zapisz</button>
+                <button type="button" class="btn btn-secondary ms-2" @onclick="Anuluj">Anuluj</button>
+            </div>
+        </EditForm>
     }
 
     @if (KonfiguracjeSystemu != null && KonfiguracjeSystemu.Any())
@@ -174,12 +174,7 @@
                             }
                         </td>
                         <td>
-                     @*        <button class="btn btn-warning btn-sm me-2" @onclick="() => Edytuj(konf.Id)">
-                                <i class="fas fa-edit"></i> Edytuj
-                            </button> *@
-                        @*     <button class="btn btn-danger btn-sm" @onclick="() => Usun(konf.Id)">
-                                <i class="fas fa-trash-alt"></i> Usuń
-                            </button> *@
+                            <Checkbox @bind-Value="konf.CzyWybrany">Połącz element z konfiguracją</Checkbox>
                         </td>
                     </tr>
                 }
@@ -203,6 +198,8 @@
     private List<KonfModele>? ListaModeli;
     private KonfModele? EdytowanyModel;
 
+    private string SelectedSystemId = "";
+
     protected override async Task OnInitializedAsync()
     {
         await Laduj_Uprawnienia();
@@ -212,7 +209,7 @@
 
     private async Task OnSystemSelected(ChangeEventArgs e)
     {
-        var SelectedSystemId = e.Value.ToString();
+        SelectedSystemId = e.Value.ToString() ?? "";
         Console.WriteLine($"Wybrano system o ID: {SelectedSystemId}");
 
         if (string.IsNullOrEmpty(SelectedSystemId))
@@ -252,18 +249,70 @@
 
     private async Task Zapisz()
     {
+        if (EdytowanyModel == null) return;
+
         if (EdytowanyModel.Id == 0)
         {
-            await Http.PostAsJsonAsync(apiUrl, EdytowanyModel);
+            // Tworzenie nowego modelu
+            var response = await Http.PostAsJsonAsync(apiUrl, EdytowanyModel);
+            if (response.IsSuccessStatusCode)
+            {
+                // Pobieramy dodany model, żeby mieć jego ID
+                EdytowanyModel = await response.Content.ReadFromJsonAsync<KonfModele>();
+            }
         }
         else
         {
+            // Aktualizacja istniejącego modelu
             await Http.PutAsJsonAsync($"{apiUrl}/{EdytowanyModel.Id}", EdytowanyModel);
         }
 
+
+        // Pobieramy istniejące powiązania dla modelu
+        var existingLinks = await Http.GetFromJsonAsync<List<KonfModeleElementy>>($"api/konfmodeleelementy/powiazania/{EdytowanyModel.RowId}");
+
+        // Lista do zapisania
+        List<KonfModeleElementy> nowePowiazania = new();
+
+        foreach (var konf in KonfiguracjeSystemu.Where(k => k.CzyWybrany))
+        {
+            // Sprawdzamy, czy już istnieje w bazie
+            if (!existingLinks.Any(x => x.RowIdElement == konf.RowId))
+            {
+                nowePowiazania.Add(new KonfModeleElementy
+                    {
+                        RowId = Guid.NewGuid(),
+                        RowIdSystem = Guid.Parse(SelectedSystemId),
+                        RowIdElement = konf.RowId,
+                        RowIdKonfModele = EdytowanyModel.RowId,
+                        NazwaKonfiguracji = EdytowanyModel.NazwaKonfiguracji,
+                        KtoZapisal = "Użytkownik"
+                    });
+            }
+        }
+
+        // Wysyłamy nowo dodane powiązania do API
+        if (nowePowiazania.Count > 0)
+        {
+            await Http.PostAsJsonAsync($"api/konfmodeleelementy/powiazania", nowePowiazania);
+        }
+
+        // Usuwamy powiązania, które użytkownik odznaczył
+        var usunPowiazania = existingLinks
+            .Where(x => !KonfiguracjeSystemu.Any(k => k.CzyWybrany && k.RowId == x.RowIdElement))
+            .Select(x => x.Id)
+            .ToList();
+
+        if (usunPowiazania.Count > 0)
+        {
+            await Http.PostAsJsonAsync($"api/konfmodeleelementy/powiazania/usun", usunPowiazania);
+        }
+
+        // Odświeżenie listy modeli
         ListaModeli = await Http.GetFromJsonAsync<List<KonfModele>>(apiUrl);
         EdytowanyModel = null;
     }
+
 
     private async Task Usun(int id)
     {

@@ -33,6 +33,7 @@ namespace GEORGE.Server
         public DbSet<KonfSystem> KonfSystem => Set<KonfSystem>();
         public DbSet<SystemyOkienne> SystemyOkienne => Set<SystemyOkienne>();
         public DbSet<KonfModele> KonfModele => Set<KonfModele>();
+        public DbSet<KonfModeleElementy> KonfModeleElementy => Set<KonfModeleElementy>();
 
 
         //***********************************************************************************************************************************************************************************************
