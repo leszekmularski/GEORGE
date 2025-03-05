@@ -1,6 +1,5 @@
 ﻿using GEORGE.Server;
 using GEORGE.Shared.Models;
-using GEORGE.Shared.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -46,6 +45,21 @@ public class KonfModeleElementyController : ControllerBase
             KonfModeleElementy = powiazaneElementy,
             KonfSystem = konfSystem, // Dodajemy listę KonfSystem
         };
+    }
+
+    [HttpGet("powiazania/{rowIdKonfModele}")]
+    public async Task<ActionResult<List<KonfModeleElementy>>> GetPowiazaniaAll(string rowIdKonfModele)
+    {
+        var powiazania = await _context.KonfModeleElementy
+            .Where(k => k.RowIdKonfModele.ToString() == rowIdKonfModele)
+            .ToListAsync();
+
+        //if (powiazania == null || powiazania.Count == 0)
+        //{
+        //    return NotFound($"Brak powiązań dla RowIdKonfModele: {rowIdKonfModele}");
+        //}
+
+        return Ok(powiazania);
     }
 
 
