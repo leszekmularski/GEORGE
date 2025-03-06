@@ -29,18 +29,20 @@
     }
 </style>
 
-<h3 class="text-center mt-3">
-    📌 Konfigurator połączeń elementów
+<div class="d-flex justify-content-between align-items-center mt-3">
+    <h3 class="text-center flex-grow-1">
+        📌 Konfigurator połączeń elementów
+    </h3>
     <button class="btn btn-primary mb-3" @onclick="GoBack">
         <i class="fas fa-arrow-left"></i> Wróć do poprzedniej strony
     </button>
-</h3>
+</div>
 
 <div class="container mt-4">
 
     <!-- 🔹 Wybór systemu -->
-    <Tooltip Placement="@Placement.TopRight" Title="Otwórz konfigurator nowego systemu lub wybierz go z listy">
-        <div class="d-flex align-items-center">
+    <Tooltip Placement="@Placement.TopRight" Style="width:100%;" Title="Otwórz konfigurator nowego systemu lub wybierz go z listy">
+        <div class="d-flex align-items-center" style="width:100%;">
             @if (Systemy != null && Systemy.Any())
             {
                 <select class="form-select me-2" @onchange="@(async (args) => await OnSystemSelected(args))">
@@ -57,7 +59,7 @@
     <h3>Konfiguracja Modeli</h3>
 
     <!-- 🔘 Przycisk dodawania nowego modelu -->
-    <button class="btn btn-success mb-3" @onclick="DodajNowy">
+    <button style="width:100%;" class="btn btn-success mb-3" @onclick="DodajNowy">
         <i class="fas fa-plus"></i> Dodaj Nowy Model
     </button>
 
@@ -102,7 +104,7 @@
                                 <i class="fas fa-trash-alt"></i> Usuń
                             </button>
                             <button class="btn btn-info btn-sm" @onclick="() => PokazPowiazane(model.RowId.ToString(), model.NazwaKonfiguracji)">
-                                <i class="fas fa-eye"></i> 🛠️ Pokaż powiązane : @(PokazanyModelRowId == model.RowId.ToString() ? $"{WybralesElement}" : "Wszystkie")
+                                <i class="fas fa-eye"></i> 🛠️ @(PokazanyModelRowId == model.RowId.ToString() ? $"Powiązane : {WybralesElement}" : "Wszystkie")
                             </button>
                         </td>
                     </tr>
@@ -166,109 +168,48 @@
                 </div>
             </div>
 
-            <div class="container mt-3">
-
-                <div class="row">
-
-                    <!-- Pierwsza kolumna -->
-                    <div class="col-md-6">
+            <div class="container-fluid h-100 d-flex flex-column justify-content-center align-items-center">
+                <div class="row w-100 flex-grow-1">
+                    <!-- Połączenie Naroży 1 -->
+                    <div class="col-md-6 d-flex flex-column align-items-center justify-content-center">
                         <label class="form-label">Połączenie Naroży 1:</label>
-                        <select @onchange="OnSelectedChangeNar1" class="form-select">
-                            <option value="">Wybierz sposób łączenia naroży</option>
-                            @foreach (var option in ImageOptions1)
-                            {
-                                <option value="@option.Value">@option.Name</option>
-                            }
-                        </select>
-                        @if (!string.IsNullOrEmpty(SelectedValueNar1))
-                        {
-                            var selectedImage = ImageOptions1.FirstOrDefault(x => x.Value == SelectedValueNar1);
-                            if (selectedImage != null)
-                            {
-                                <div class="preview">
-                                    <img src="@selectedImage.ImageUrl" alt="@selectedImage.Name" />
-                                    <p>Wybrałeś: @selectedImage.Name</p>
-                                </div>
-                            }
-                        }
+                        <div class="preview" @onclick="() => ChangeImage(1)">
+                            <img src="@SelectedImage1.ImageUrl" alt="@SelectedImage1.Name" class="img-fluid img-thumbnail shadow" />
+                            <p class="text-center">Wybrałeś: @SelectedImage1.Name</p>
+                        </div>
                     </div>
 
-                    <!-- Druga kolumna -->
-                    <div class="col-md-6">
+                    <!-- Połączenie Naroży 2 -->
+                    <div class="col-md-6 d-flex flex-column align-items-center justify-content-center">
                         <label class="form-label">Połączenie Naroży 2:</label>
-                        <select @onchange="OnSelectedChangeNar2" class="form-select">
-                            <option value="">Wybierz sposób łączenia naroży</option>
-                            @foreach (var option in ImageOptions2)
-                            {
-                                <option value="@option.Value">@option.Name</option>
-                            }
-                        </select>
-                        @if (!string.IsNullOrEmpty(SelectedValueNar2))
-                        {
-                            var selectedImage = ImageOptions2.FirstOrDefault(x => x.Value == SelectedValueNar2);
-                            if (selectedImage != null)
-                            {
-                                <div class="preview">
-                                    <img src="@selectedImage.ImageUrl" alt="@selectedImage.Name" />
-                                    <p>Wybrałeś: @selectedImage.Name</p>
-                                </div>
-                            }
-                        }
+                        <div class="preview" @onclick="() => ChangeImage(2)">
+                            <img src="@SelectedImage2.ImageUrl" alt="@SelectedImage2.Name" class="img-fluid img-thumbnail shadow" />
+                            <p class="text-center">Wybrałeś: @SelectedImage2.Name</p>
+                        </div>
                     </div>
-
                 </div>
 
-                <div class="row mt-3">
-
-                    <!-- Trzecia kolumna -->
-                    <div class="col-md-6">
+                <div class="row w-100 flex-grow-1">
+                    <!-- Połączenie Naroży 3 -->
+                    <div class="col-md-6 d-flex flex-column align-items-center justify-content-center">
                         <label class="form-label">Połączenie Naroży 3:</label>
-                        <select @onchange="OnSelectedChangeNar3" class="form-select">
-                            <option value="">Wybierz sposób łączenia naroży</option>
-                            @foreach (var option in ImageOptions3)
-                            {
-                                <option value="@option.Value">@option.Name</option>
-                            }
-                        </select>
-                        @if (!string.IsNullOrEmpty(SelectedValueNar3))
-                        {
-                            var selectedImage = ImageOptions3.FirstOrDefault(x => x.Value == SelectedValueNar3);
-                            if (selectedImage != null)
-                            {
-                                <div class="preview">
-                                    <img src="@selectedImage.ImageUrl" alt="@selectedImage.Name" />
-                                    <p>Wybrałeś: @selectedImage.Name</p>
-                                </div>
-                            }
-                        }
+                        <div class="preview" @onclick="() => ChangeImage(3)">
+                            <img src="@SelectedImage3.ImageUrl" alt="@SelectedImage3.Name" class="img-fluid img-thumbnail shadow" />
+                            <p class="text-center">Wybrałeś: @SelectedImage3.Name</p>
+                        </div>
                     </div>
 
-                    <!-- Czwarta kolumna -->
-                    <div class="col-md-6">
+                    <!-- Połączenie Naroży 4 -->
+                    <div class="col-md-6 d-flex flex-column align-items-center justify-content-center">
                         <label class="form-label">Połączenie Naroży 4:</label>
-                        <select @onchange="OnSelectedChangeNar4" class="form-select">
-                            <option value="">Wybierz sposób łączenia naroży</option>
-                            @foreach (var option in ImageOptions4)
-                            {
-                                <option value="@option.Value">@option.Name</option>
-                            }
-                        </select>
-                        @if (!string.IsNullOrEmpty(SelectedValueNar1))
-                        {
-                            var selectedImage = ImageOptions4.FirstOrDefault(x => x.Value == SelectedValueNar4);
-                            if (selectedImage != null)
-                            {
-                                <div class="preview">
-                                    <img src="@selectedImage.ImageUrl" alt="@selectedImage.Name" />
-                                    <p>Wybrałeś: @selectedImage.Name</p>
-                                </div>
-                            }
-                        }
+                        <div class="preview" @onclick="() => ChangeImage(4)">
+                            <img src="@SelectedImage4.ImageUrl" alt="@SelectedImage4.Name" class="img-fluid img-thumbnail shadow" />
+                            <p class="text-center">Wybrałeś: @SelectedImage4.Name</p>
+                        </div>
                     </div>
-
-
                 </div>
             </div>
+
 
             <div class="mt-3">
                 <label class="form-label">Uwagi:</label>
@@ -439,14 +380,14 @@
                 var powiazanyModel = EdytowanyModel.PolaczenieNaroza.Split(';');
                 if (powiazanyModel.Length > 3)
                 {
-                    SelectedValueNar1 = powiazanyModel[0].Trim();
-                    SelectedValueNar2 = powiazanyModel[1].Trim();
-                    SelectedValueNar3 = powiazanyModel[2].Trim();
-                    SelectedValueNar4 = powiazanyModel[3].Trim();
+                    SelectedImage1.Value = powiazanyModel[0].Trim();
+                    SelectedImage2.Value = powiazanyModel[1].Trim();
+                    SelectedImage3.Value = powiazanyModel[2].Trim();
+                    SelectedImage4.Value = powiazanyModel[3].Trim();
 
                     Console.WriteLine($"EdytowanyModel.PolaczenieNaroza: {EdytowanyModel.PolaczenieNaroza}");
                 }
-                
+
             }
 
         }
@@ -485,31 +426,36 @@
         if (EdytowanyModel == null)
         {
             Console.WriteLine("EdytowanyModel ma wartość NULL");
+            await _message.Error("EdytowanyModel ma wartość NULL");
             return;
         }
 
         if (string.IsNullOrEmpty(EdytowanyModel.RowId.ToString()))
         {
             Console.WriteLine("EdytowanyModel.RowId ma wartość NULL");
+            await _message.Error("EdytowanyModel.RowId ma wartość NULL");
             return;
         }
 
-        EdytowanyModel.PolaczenieNaroza = $"{SelectedValueNar1 ?? "BRAK"};{SelectedValueNar2 ?? "BRAK"};{SelectedValueNar3 ?? "BRAK"};{SelectedValueNar4 ?? "BRAK"}";
+        EdytowanyModel.PolaczenieNaroza = $"{SelectedImage1?.Value ?? "BRAK"};" +
+                                       $"{SelectedImage2?.Value ?? "BRAK"};" +
+                                       $"{SelectedImage3?.Value ?? "BRAK"};" +
+                                       $"{SelectedImage4?.Value ?? "BRAK"}";
 
         if (EdytowanyModel.Id == 0)
         {
-            // Tworzenie nowego modelu
             var response = await Http.PostAsJsonAsync(apiUrl, EdytowanyModel);
+
             if (response.IsSuccessStatusCode)
             {
-                // Pobieramy dodany model, żeby mieć jego ID
-                EdytowanyModel = await response.Content.ReadFromJsonAsync<KonfModele>();
+                EdytowanyModel = await response.Content.ReadFromJsonAsync<KonfModele>() 
+                                 ?? new KonfModele(); // 🔥 Obsługa przypadku, gdyby coś poszło nie tak
             }
-        }
-        else
-        {
-            // Aktualizacja istniejącego modelu
-            await Http.PutAsJsonAsync($"{apiUrl}/{EdytowanyModel.Id}", EdytowanyModel);
+            else
+            {
+                Console.WriteLine($"❌ Błąd API: {response.StatusCode}");
+                await _message.Error($"❌ Błąd API: {response.StatusCode}");
+            }
         }
 
         // Pobieramy istniejące powiązania dla modelu
@@ -665,11 +611,11 @@
         };
 
     // Lista dostępnych opcji
-    private List<ImageOption> ImageOptions4= new()
+    private List<ImageOption> ImageOptions1 = new()
     {
-        new ImageOption { Name = "Typ 1", Value = "0-T1", ImageUrl = "images/GL_0_T1.png" },
-        new ImageOption { Name = "Typ 2", Value = "0-T2", ImageUrl = "images/GL_0_T2.png" },
-        new ImageOption { Name = "Typ 3", Value = "0-T3", ImageUrl = "images/GL_0_T3.png" }
+        new ImageOption { Name = "Typ 1", Value = "180-T1", ImageUrl = "images/GL_180_T1.png" },
+        new ImageOption { Name = "Typ 2", Value = "180-T2", ImageUrl = "images/GL_180_T2.png" },
+        new ImageOption { Name = "Typ 3", Value = "180-T3", ImageUrl = "images/GL_180_T3.png" }
     };
 
     private List<ImageOption> ImageOptions2 = new()
@@ -679,54 +625,65 @@
         new ImageOption { Name = "Typ 3", Value = "90-T3", ImageUrl = "images/GL_90_T3.png" }
     };
 
-    private List<ImageOption> ImageOptions1 = new()
+    private List<ImageOption> ImageOptions3 = new()
     {
-        new ImageOption { Name = "Typ 1", Value = "180-T1", ImageUrl = "images/GL_180_T1.png" },
-        new ImageOption { Name = "Typ 2", Value = "180-T2", ImageUrl = "images/GL_180_T2.png" },
-        new ImageOption { Name = "Typ 3", Value = "180-T3", ImageUrl = "images/GL_180_T3.png" }
+        new ImageOption { Name = "Typ 1", Value = "0-T1", ImageUrl = "images/GL_0_T1.png" },
+        new ImageOption { Name = "Typ 2", Value = "0-T2", ImageUrl = "images/GL_0_T2.png" },
+        new ImageOption { Name = "Typ 3", Value = "0-T3", ImageUrl = "images/GL_0_T3.png" }
     };
 
-    private List<ImageOption> ImageOptions3 = new()
+    private List<ImageOption> ImageOptions4 = new()
     {
         new ImageOption { Name = "Typ 1", Value = "270-T1", ImageUrl = "images/GL_270_T1.png" },
         new ImageOption { Name = "Typ 2", Value = "270-T2", ImageUrl = "images/GL_270_T2.png" },
         new ImageOption { Name = "Typ 3", Value = "270-T3", ImageUrl = "images/GL_270_T3.png" }
     };
 
-    private string? SelectedValueNar1; // Wybrana wartość
-    private string? SelectedValueNar2; // Wybrana wartość
-    private string? SelectedValueNar3; // Wybrana wartość
-    private string? SelectedValueNar4; // Wybrana wartość
+    private ImageOption SelectedImage1;
+    private ImageOption SelectedImage2;
+    private ImageOption SelectedImage3;
+    private ImageOption SelectedImage4;
 
-    private void OnSelectedChangeNar1(ChangeEventArgs e)
+    protected override void OnInitialized()
     {
-        SelectedValueNar1 = e.Value.ToString();
-        Console.WriteLine($"Wybrano: {SelectedValueNar1}"); // Debugowanie w konsoli
+        // Domyślnie pierwsze obrazki z listy
+        SelectedImage1 = ImageOptions1.First();
+        SelectedImage2 = ImageOptions2.First();
+        SelectedImage3 = ImageOptions3.First();
+        SelectedImage4 = ImageOptions4.First();
     }
 
-    private void OnSelectedChangeNar2(ChangeEventArgs e)
+    private void ChangeImage(int corner)
     {
-        SelectedValueNar2 = e.Value.ToString();
-        Console.WriteLine($"Wybrano: {SelectedValueNar2}"); // Debugowanie w konsoli
+        switch (corner)
+        {
+            case 1:
+                SelectedImage1 = GetNextImage(SelectedImage1, ImageOptions1);
+                break;
+            case 2:
+                SelectedImage2 = GetNextImage(SelectedImage2, ImageOptions2);
+                break;
+            case 3:
+                SelectedImage3 = GetNextImage(SelectedImage3, ImageOptions3);
+                break;
+            case 4:
+                SelectedImage4 = GetNextImage(SelectedImage4, ImageOptions4);
+                break;
+        }
     }
 
-    private void OnSelectedChangeNar3(ChangeEventArgs e)
+    private ImageOption GetNextImage(ImageOption currentImage, List<ImageOption> options)
     {
-        SelectedValueNar3 = e.Value.ToString();
-        Console.WriteLine($"Wybrano: {SelectedValueNar3}"); // Debugowanie w konsoli
+        int currentIndex = options.IndexOf(currentImage);
+        int nextIndex = (currentIndex + 1) % options.Count; // Przechodzenie w kółko
+        return options[nextIndex];
     }
 
-    private void OnSelectedChangeNar4(ChangeEventArgs e)
+    private class ImageOption
     {
-        SelectedValueNar4 = e.Value.ToString();
-        Console.WriteLine($"Wybrano: {SelectedValueNar4}"); // Debugowanie w konsoli
-    }
-
-    public class ImageOption
-    {
-        public string? Name { get; set; }  // Nazwa np. "Jabłko"
-        public string? Value { get; set; } // Wartość np. "apple" (do zapisania w bazie)
-        public string? ImageUrl { get; set; } // Ścieżka do obrazka
+        public string Name { get; set; }
+        public string Value { get; set; }
+        public string ImageUrl { get; set; }
     }
 
 

@@ -29,11 +29,12 @@ public class KonfModeleController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Post(KonfModele model)
+    public async Task<ActionResult<KonfModele>> Post(KonfModele model)
     {
         _context.KonfModele.Add(model);
         await _context.SaveChangesAsync();
-        return Ok();
+
+        return CreatedAtAction(nameof(Get), new { id = model.Id }, model); // 🔥 Zwraca JSON nowego modelu!
     }
 
     [HttpPut("{id}")]
