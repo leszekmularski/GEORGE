@@ -359,8 +359,15 @@
 
     private async Task PokazPowiazane(string rowId, string nazwaWybaranego)
     {
-        // Jeśli kliknięto ten sam model, ukryj powiązane
         WybralesElement = nazwaWybaranego;
+
+        if (SelectedImage1 != null && SelectedImage2 != null && SelectedImage3 != null && SelectedImage4 != null)
+        {
+            SelectedImage1 = new ImageOption();
+            SelectedImage2 = new ImageOption();
+            SelectedImage3 = new ImageOption();
+            SelectedImage4 = new ImageOption();
+        }
 
         if (PokazanyModelRowId == rowId)
         {
@@ -374,25 +381,25 @@
 
             PowiazanyModel?.KonfSystem?.ForEach(e => e.CzyWybrany = true);
 
-
             if (EdytowanyModel != null && !string.IsNullOrEmpty(EdytowanyModel.PolaczenieNaroza))
             {
                 var powiazanyModel = EdytowanyModel.PolaczenieNaroza.Split(';');
                 if (powiazanyModel.Length > 3)
                 {
-                    SelectedImage1.Value = powiazanyModel[0].Trim();
-                    SelectedImage2.Value = powiazanyModel[1].Trim();
-                    SelectedImage3.Value = powiazanyModel[2].Trim();
-                    SelectedImage4.Value = powiazanyModel[3].Trim();
+                    SelectedImage1 = ImageOptions1.FirstOrDefault(x => x.Value == powiazanyModel[0].Trim()) ?? new ImageOption();
+                    SelectedImage2 = ImageOptions2.FirstOrDefault(x => x.Value == powiazanyModel[1].Trim()) ?? new ImageOption();
+                    SelectedImage3 = ImageOptions3.FirstOrDefault(x => x.Value == powiazanyModel[2].Trim()) ?? new ImageOption();
+                    SelectedImage4 = ImageOptions4.FirstOrDefault(x => x.Value == powiazanyModel[3].Trim()) ?? new ImageOption();
 
                     Console.WriteLine($"EdytowanyModel.PolaczenieNaroza: {EdytowanyModel.PolaczenieNaroza}");
                 }
-
             }
-
         }
+
+        StateHasChanged(); // Wymusza odświeżenie UI
     }
 
+    
     private string RysunekToBase64(byte[]? imageData)
     {
         if (imageData == null || imageData.Length == 0)
@@ -417,7 +424,10 @@
     {
         EdytowanyModel = await Http.GetFromJsonAsync<KonfModele>($"{apiUrl}/{id}");
 
-        await PokazPowiazane(rowId, nazwaWybaranego);
+        if (EdytowanyModel != null)
+        {
+            await PokazPowiazane(rowId, nazwaWybaranego);
+        }
     }
 
     private async Task Zapisz()
@@ -457,7 +467,16 @@
                 await _message.Error($"❌ Błąd API: {response.StatusCode}");
             }
         }
+        else
+        {
+            var response = await Http.PutAsJsonAsync($"{apiUrl}/{EdytowanyModel.Id}", EdytowanyModel);
 
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"❌ Błąd API: {response.StatusCode}");
+                await _message.Error($"❌ Błąd API: {response.StatusCode}");
+            }
+        }
         // Pobieramy istniejące powiązania dla modelu
         var existingLinks = await Http.GetFromJsonAsync<List<KonfModeleElementy>>($"api/konfmodeleelementy/powiazania/{EdytowanyModel.RowId.ToString()}");
 
@@ -613,6 +632,7 @@
     // Lista dostępnych opcji
     private List<ImageOption> ImageOptions1 = new()
     {
+        new ImageOption { Name = "Nie wybrano", Value = "BRAK", ImageUrl = "images/GL_0_NULL.png" },
         new ImageOption { Name = "Typ 1", Value = "180-T1", ImageUrl = "images/GL_180_T1.png" },
         new ImageOption { Name = "Typ 2", Value = "180-T2", ImageUrl = "images/GL_180_T2.png" },
         new ImageOption { Name = "Typ 3", Value = "180-T3", ImageUrl = "images/GL_180_T3.png" }
@@ -620,6 +640,7 @@
 
     private List<ImageOption> ImageOptions2 = new()
     {
+        new ImageOption { Name = "Nie wybrano", Value = "BRAK", ImageUrl = "images/GL_0_NULL.png" },
         new ImageOption { Name = "Typ 1", Value = "90-T1", ImageUrl = "images/GL_90_T1.png" },
         new ImageOption { Name = "Typ 2", Value = "90-T2", ImageUrl = "images/GL_90_T2.png" },
         new ImageOption { Name = "Typ 3", Value = "90-T3", ImageUrl = "images/GL_90_T3.png" }
@@ -627,6 +648,7 @@
 
     private List<ImageOption> ImageOptions3 = new()
     {
+        new ImageOption { Name = "Nie wybrano", Value = "BRAK", ImageUrl = "images/GL_0_NULL.png" },
         new ImageOption { Name = "Typ 1", Value = "0-T1", ImageUrl = "images/GL_0_T1.png" },
         new ImageOption { Name = "Typ 2", Value = "0-T2", ImageUrl = "images/GL_0_T2.png" },
         new ImageOption { Name = "Typ 3", Value = "0-T3", ImageUrl = "images/GL_0_T3.png" }
@@ -634,15 +656,16 @@
 
     private List<ImageOption> ImageOptions4 = new()
     {
+        new ImageOption { Name = "Nie wybrano", Value = "BRAK", ImageUrl = "images/GL_0_NULL.png" },
         new ImageOption { Name = "Typ 1", Value = "270-T1", ImageUrl = "images/GL_270_T1.png" },
         new ImageOption { Name = "Typ 2", Value = "270-T2", ImageUrl = "images/GL_270_T2.png" },
         new ImageOption { Name = "Typ 3", Value = "270-T3", ImageUrl = "images/GL_270_T3.png" }
     };
 
-    private ImageOption SelectedImage1;
-    private ImageOption SelectedImage2;
-    private ImageOption SelectedImage3;
-    private ImageOption SelectedImage4;
+    private ImageOption? SelectedImage1;
+    private ImageOption? SelectedImage2;
+    private ImageOption? SelectedImage3;
+    private ImageOption? SelectedImage4;
 
     protected override void OnInitialized()
     {
@@ -681,9 +704,9 @@
 
     private class ImageOption
     {
-        public string Name { get; set; }
-        public string Value { get; set; }
-        public string ImageUrl { get; set; }
+        public string? Name { get; set; }
+        public string? Value { get; set; }
+        public string? ImageUrl { get; set; }
     }
 
 

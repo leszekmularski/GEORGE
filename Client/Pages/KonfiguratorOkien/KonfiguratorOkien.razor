@@ -41,7 +41,7 @@
 </style>
 
 <script>
-    let isDragging = false;
+    let isDraggingOKN = false;
     let draggedLine = null;
     let offsetX = 0; // 🔥 Przechowuje różnicę między kliknięciem a aktualnym X
     let deleteMode = false; // 🔥 Tryb usuwania
@@ -92,7 +92,7 @@
 
     function startDrag(event) {
     event.preventDefault();
-    isDragging = true;
+    isDraggingOKN = true;
     draggedLine = event.target;
 
     const svg = draggedLine.closest('svg');
@@ -117,7 +117,7 @@
     }
 
     function drag(event) {
-    if (isDragging && draggedLine) {
+    if (isDraggingOKN && draggedLine) {
     const svg = draggedLine.closest('svg');
     const rect = svg.getBoundingClientRect();
     const viewBox = svg.viewBox.baseVal;
@@ -205,7 +205,7 @@
     updateGuideValues(); // 🔥 Aktualizacja wartości po przesunięciu linii
     }
 
-    isDragging = false;
+    isDraggingOKN = false;
     draggedLine = null;
     document.removeEventListener('mousemove', drag);
     document.removeEventListener('mouseup', stopDrag);
