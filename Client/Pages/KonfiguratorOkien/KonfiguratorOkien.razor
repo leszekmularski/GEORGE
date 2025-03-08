@@ -974,15 +974,15 @@
                 return;
             }
 
-            List<int> verticalGuides = new();
-            List<int> horizontalGuides = new();
+            List<double> verticalGuides = new();
+            List<double> horizontalGuides = new();
 
             // Sprawdzamy, czy dane "vertical" są obiektem
             if (guidesData["vertical"] is JsonElement verticalElement && verticalElement.ValueKind == JsonValueKind.Object)
             {
-                verticalGuides.Add(verticalElement.GetProperty("guide-line-vertical").GetInt32());
-                verticalGuides.Add(verticalElement.GetProperty("guide-line-verticalMax").GetInt32());
-                verticalGuides.Add(verticalElement.GetProperty("guide-line-verticalOdlSzyby").GetInt32());
+                verticalGuides.Add(verticalElement.GetProperty("guide-line-vertical").GetDouble());
+                verticalGuides.Add(verticalElement.GetProperty("guide-line-verticalMax").GetDouble());
+                verticalGuides.Add(verticalElement.GetProperty("guide-line-verticalOdlSzyby").GetDouble());
             }
             else
             {
@@ -993,12 +993,12 @@
             // Sprawdzamy, czy dane "horizontal" są obiektem
             if (guidesData["horizontal"] is JsonElement horizontalElement && horizontalElement.ValueKind == JsonValueKind.Object)
             {
-                horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal").GetInt32());
-                horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontalMax").GetInt32());
-                horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal-korpus").GetInt32());
-                horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal-liniaSzklenia").GetInt32());
-                horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal-okucie").GetInt32());
-                horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal-dormas").GetInt32());
+                horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal").GetDouble());
+                horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontalMax").GetDouble());
+                horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal-korpus").GetDouble());
+                horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal-liniaSzklenia").GetDouble());
+                horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal-okucie").GetDouble());
+                horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal-dormas").GetDouble());
             }
             else
             {
@@ -1013,20 +1013,22 @@
 
 
             // Aktualizujemy obiekt w Blazorze
-            konfSystem.PionLewa = verticalGuides.ElementAtOrDefault(0);
-            konfSystem.PionPrawa = verticalGuides.ElementAtOrDefault(1);
-            konfSystem.PionOdSzybaOdZew = verticalGuides.ElementAtOrDefault(2);
-            konfSystem.PionDodatkowa4 = verticalGuides.ElementAtOrDefault(3);
-            konfSystem.PionDodatkowa5 = verticalGuides.ElementAtOrDefault(4);
+            konfSystem.PionLewa = Math.Round(verticalGuides.ElementAtOrDefault(0), 1);
+            konfSystem.PionPrawa = Math.Round(verticalGuides.ElementAtOrDefault(1), 1);
+            konfSystem.PionOdSzybaOdZew = Math.Round(verticalGuides.ElementAtOrDefault(2), 1);
+            konfSystem.PionDodatkowa4 = Math.Round(verticalGuides.ElementAtOrDefault(3), 1);
+            konfSystem.PionDodatkowa5 = Math.Round(verticalGuides.ElementAtOrDefault(4), 1);
 
-            konfSystem.PoziomDol = horizontalGuides.ElementAtOrDefault(0);
-            konfSystem.PoziomGora = horizontalGuides.ElementAtOrDefault(1);
-            konfSystem.PoziomKorpus = horizontalGuides.ElementAtOrDefault(2);
-            konfSystem.PoziomLiniaSzkla = horizontalGuides.ElementAtOrDefault(3);
-            konfSystem.PoziomLiniaOkucia = horizontalGuides.ElementAtOrDefault(4);
-            konfSystem.PoziomOsDormas = horizontalGuides.ElementAtOrDefault(5);
-            konfSystem.PoziomDodatkowa6 = horizontalGuides.ElementAtOrDefault(6);
-            konfSystem.PoziomDodatkowa7 = horizontalGuides.ElementAtOrDefault(7);
+            var odwWym = Math.Round(horizontalGuides.ElementAtOrDefault(1), 1);// Zmienna do odwracania wymiarów
+
+            konfSystem.PoziomDol = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(0), 1);
+            konfSystem.PoziomGora = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(1), 1);
+            konfSystem.PoziomKorpus = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(2), 1);
+            konfSystem.PoziomLiniaSzkla = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(3), 1);
+            konfSystem.PoziomLiniaOkucia = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(4), 1);
+            konfSystem.PoziomOsDormas = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(5), 1);
+            konfSystem.PoziomDodatkowa6 = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(6), 1);
+            konfSystem.PoziomDodatkowa7 = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(7), 1);
 
             konfSystem.SVG = await JSRuntime.InvokeAsync<string>("getUpdatedSvg");
             // 🔥 Zamiana przecinków na kropki
@@ -1034,10 +1036,8 @@
 
             // Console.WriteLine($"📡 Aktualny SVG przed zapisem: {konfSystem.SVG}");
 
-
             // Przekazujemy SVG do JavaScript w celu generowania PNG
             string base64Image = await JSRuntime.InvokeAsync<string>("generatePngFromSvg", konfSystem.SVG);
-
 
             // Console.WriteLine($"base64Png {base64Png}");
 

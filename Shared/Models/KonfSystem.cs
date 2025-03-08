@@ -15,21 +15,21 @@ namespace GEORGE.Shared.Models
         public Guid RowIdSystem { get; set; }
 
         // Prowadnice pionowe
-        public int? PionLewa { get; set; }
-        public int? PionPrawa { get; set; }
-        public int? PionOdSzybaOdZew { get; set; }
-        public int? PionDodatkowa4 { get; set; }
-        public int? PionDodatkowa5 { get; set; }
+        public double? PionLewa { get; set; }
+        public double? PionPrawa { get; set; }
+        public double? PionOdSzybaOdZew { get; set; }
+        public double? PionDodatkowa4 { get; set; }
+        public double? PionDodatkowa5 { get; set; }
 
         // Prowadnice poziome
-        public int? PoziomDol { get; set; }
-        public int? PoziomGora { get; set; }
-        public int? PoziomKorpus { get; set; }
-        public int? PoziomLiniaSzkla { get; set; }
-        public int? PoziomLiniaOkucia { get; set; }
-        public int? PoziomOsDormas { get; set; }
-        public int? PoziomDodatkowa6 { get; set; }
-        public int? PoziomDodatkowa7 { get; set; }
+        public double? PoziomDol { get; set; }
+        public double? PoziomGora { get; set; }
+        public double? PoziomKorpus { get; set; }
+        public double? PoziomLiniaSzkla { get; set; }
+        public double? PoziomLiniaOkucia { get; set; }
+        public double? PoziomOsDormas { get; set; }
+        public double? PoziomDodatkowa6 { get; set; }
+        public double? PoziomDodatkowa7 { get; set; }
         public string? Indeks { get; set; }
         public string? Nazwa { get; set; }
         public string? Typ { get; set; } // Typ- Rama, skrzydło, słupek ruchomy, słupek stały
