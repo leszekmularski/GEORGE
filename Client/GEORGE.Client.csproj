@@ -49,11 +49,15 @@
     <Content Update="Pages\Zlecenia\Zlecenia-produkcyjne-wew.razor">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </Content>
+    <Content Update="wwwroot\textures\wood.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Pages\Gantt\" />
     <Folder Include="wwwroot\fonts\" />
+    <Folder Include="wwwroot\textures\" />
     <Folder Include="wwwroot\src\" />
   </ItemGroup>
 
