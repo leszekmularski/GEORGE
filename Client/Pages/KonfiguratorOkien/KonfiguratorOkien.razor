@@ -197,9 +197,9 @@
     }
 
     if (draggedLine.id.includes("vertical")) {
-    verticalGuides[draggedLine.id] = parseInt(draggedLine.getAttribute("x1"));
+    verticalGuides[draggedLine.id] = parseFloat(draggedLine.getAttribute("x1"));
     } else if (draggedLine.id.includes("horizontal")) {
-    horizontalGuides[draggedLine.id] = parseInt(draggedLine.getAttribute("y1"));
+    horizontalGuides[draggedLine.id] = parseFloat(draggedLine.getAttribute("y1"));
     }
 
     updateGuideValues(); // 🔥 Aktualizacja wartości po przesunięciu linii
@@ -322,8 +322,8 @@
     // Pobieramy wszystkie prowadnice
     document.querySelectorAll("line[id^='guide-line']").forEach(line => {
     let id = line.id;
-    let x1 = parseInt(line.getAttribute("x1"));
-    let y1 = parseInt(line.getAttribute("y1"));
+    let x1 = parseFloat(line.getAttribute("x1"));
+    let y1 = parseFloat(line.getAttribute("y1"));
 
     if (id.includes("vertical")) {
     verticalGuides[id] = x1;
@@ -490,6 +490,7 @@
 }
 
 <Divider Style="font-weight:bold; font-size:large; display:flex; justify-content:space-between; align-items:center;">
+
     <Tooltip Placement="@Placement.TopRight" Title="Zapisz ustawienia">
         <Button class="btn-back" Icon="@IconType.Fill.Save" Style="height:35px; padding-right:25px" OnClick="SaveLinieDXF" >Zapisz wszystkie ustawienia </Button>
     </Tooltip>
@@ -575,11 +576,11 @@
                     <div class="col-md-6">
                         <label class="form-label">Typ profilu</label>
                         <Select Mode="SelectMode.Default"
-                                DataSource="@_typ"
-                                @bind-Value="@konfSystem.Typ"
-                                LabelName="@nameof(Typ.Nazwa)"
-                                ValueName="@nameof(Typ.Nazwa)"
-                                Class="form-select">
+                        DataSource="@_typ"
+                        @bind-Value="@konfSystem.Typ"
+                        LabelName="@nameof(Typ.Nazwa)"
+                        ValueName="@nameof(Typ.Nazwa)"
+                        Class="form-select">
                         </Select>
                     </div>
 
@@ -717,6 +718,10 @@
 
             <!-- Panel po prawej stronie -->
             <div style="width: 300px; border-left: 2px solid #ccc; padding-left: 10px;">
+                <div>
+                    <label>Ustaw prezycje zapisu linii:</label>
+                    <AntDesign.InputNumber @bind-Value="prezycjaZapisuLinii" Min="0" Max="3" DefaultValue="0" PlaceHolder="Precyzja zapisu"></AntDesign.InputNumber>
+                </div>
                 <h4>📊 Wartości linii</h4>
 
                 <h5>🟥 Pionowe:</h5>
@@ -783,6 +788,8 @@
     private List<KonfSystem>? KonfiguracjeSystemu;
 
     private string? activeKey;
+
+    private int prezycjaZapisuLinii = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -1013,22 +1020,22 @@
 
 
             // Aktualizujemy obiekt w Blazorze
-            konfSystem.PionLewa = Math.Round(verticalGuides.ElementAtOrDefault(0), 1);
-            konfSystem.PionPrawa = Math.Round(verticalGuides.ElementAtOrDefault(1), 1);
-            konfSystem.PionOdSzybaOdZew = Math.Round(verticalGuides.ElementAtOrDefault(2), 1);
-            konfSystem.PionDodatkowa4 = Math.Round(verticalGuides.ElementAtOrDefault(3), 1);
-            konfSystem.PionDodatkowa5 = Math.Round(verticalGuides.ElementAtOrDefault(4), 1);
+            konfSystem.PionLewa = Math.Round(verticalGuides.ElementAtOrDefault(0), prezycjaZapisuLinii);
+            konfSystem.PionPrawa = Math.Round(verticalGuides.ElementAtOrDefault(1), prezycjaZapisuLinii);
+            konfSystem.PionOdSzybaOdZew = Math.Round(verticalGuides.ElementAtOrDefault(2), prezycjaZapisuLinii);
+            konfSystem.PionDodatkowa4 = Math.Round(verticalGuides.ElementAtOrDefault(3), prezycjaZapisuLinii);
+            konfSystem.PionDodatkowa5 = Math.Round(verticalGuides.ElementAtOrDefault(4), prezycjaZapisuLinii);
 
-            var odwWym = Math.Round(horizontalGuides.ElementAtOrDefault(1), 1);// Zmienna do odwracania wymiarów
+            var odwWym = Math.Round(horizontalGuides.ElementAtOrDefault(1), prezycjaZapisuLinii);// Zmienna do odwracania wymiarów
 
-            konfSystem.PoziomDol = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(0), 1);
-            konfSystem.PoziomGora = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(1), 1);
-            konfSystem.PoziomKorpus = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(2), 1);
-            konfSystem.PoziomLiniaSzkla = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(3), 1);
-            konfSystem.PoziomLiniaOkucia = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(4), 1);
-            konfSystem.PoziomOsDormas = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(5), 1);
-            konfSystem.PoziomDodatkowa6 = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(6), 1);
-            konfSystem.PoziomDodatkowa7 = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(7), 1);
+            konfSystem.PoziomDol = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(0), prezycjaZapisuLinii);
+            konfSystem.PoziomGora = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(1), prezycjaZapisuLinii);
+            konfSystem.PoziomKorpus = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(2), prezycjaZapisuLinii);
+            konfSystem.PoziomLiniaSzkla = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(3), prezycjaZapisuLinii);
+            konfSystem.PoziomLiniaOkucia = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(4), prezycjaZapisuLinii);
+            konfSystem.PoziomOsDormas = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(5), prezycjaZapisuLinii);
+            konfSystem.PoziomDodatkowa6 = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(6), prezycjaZapisuLinii);
+            konfSystem.PoziomDodatkowa7 = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(7), prezycjaZapisuLinii);
 
             konfSystem.SVG = await JSRuntime.InvokeAsync<string>("getUpdatedSvg");
             // 🔥 Zamiana przecinków na kropki
