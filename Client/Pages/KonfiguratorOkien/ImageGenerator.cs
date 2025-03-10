@@ -1,78 +1,113 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
-using SixLabors.Fonts;
+using System.Net.Http;
+using System.Numerics;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Drawing;
 using GEORGE.Shared.Models;
 
 public class ImageGenerator
 {
-    public static byte[] GenerateImage(KonfSystem model, string polaczenia)
+    private readonly HttpClient _httpClient;
+
+    public ImageGenerator(HttpClient httpClient)
+    {
+        _httpClient = httpClient;
+    }
+
+    public async Task<byte[]> GenerateImageAsync(KonfSystem model, string polaczenia, string imageUrl)
     {
         try
         {
-            int imageSize = 500;
-            int borderThickness = 10;
-            int padding = 50;
+            int imageSize = 500; // Rozmiar całego obrazu
+            int profileWidth = 40; // Szerokość profilu okiennego
+            int borderThickness = 5; // Grubość obramowania
+            int padding = 50; // Marginesy od krawędzi
+            int windowFrameThickness = 20; // Grubość ramy w środku okna (między szybą)
 
-            string texturePath = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "textures", "wood.jpg");
-
-            if (!File.Exists(texturePath))
+            // 🔥 Pobranie obrazka z API
+            byte[] imageBytes = await _httpClient.GetByteArrayAsync(imageUrl);
+            if (imageBytes == null || imageBytes.Length == 0)
             {
-                Console.WriteLine($"❌ Błąd: Plik {texturePath} nie istnieje!");
+                Console.WriteLine("❌ Błąd: Nie udało się pobrać obrazka.");
                 return null;
             }
 
-            // 🔥 Wczytaj teksturę drewna
-            using Image<Rgba32> woodTexture = Image.Load<Rgba32>("/textures/wood.jpg");
+            using Image<Rgba32> woodTexture = Image.Load<Rgba32>(imageBytes);
+            woodTexture.Mutate(x => x.Resize(imageSize, imageSize)); // Dopasowanie tekstury
 
-            // 🔥 Dopasowanie tekstury do wymiarów obrazu
-            woodTexture.Mutate(x => x.Resize(imageSize, imageSize));
-
-            // 🔥 Tworzymy nowy obraz i rysujemy tło
             using Image<Rgba32> image = new(imageSize, imageSize);
-            image.Mutate(x => x.DrawImage(woodTexture, new Point(0, 0), 1f)); // Wypełnienie teksturą
 
-            // 🔥 Obliczenie szerokości linii na podstawie modelu
-            int leftWidth = (int)(model.PionLewa ?? 10);
-            int rightWidth = (int)(model.PionPrawa ?? 10);
-            int topWidth = (int)(model.PoziomGora ?? 10);
-            int bottomWidth = (int)(model.PoziomDol ?? 10);
+            // 🔥 Ustawienie białego tła
+            image.Mutate(x => x.Fill(Color.White));
 
-            // 🔥 Rysowanie ramki, linii i tekstu
+            // 🔥 Tworzenie profili okiennych pod kątem 45° i podział na 4 części
             image.Mutate(x =>
             {
-                // 🔥 Rysowanie ramki (czarny kwadrat)
-                x.Draw(Color.Black, borderThickness, new RectangularPolygon(padding, padding, imageSize - 2 * padding, imageSize - 2 * padding));
+                Pen borderPen = Pens.Solid(Color.Black, borderThickness);
+                Brush glassBrush = Brushes.Solid(Color.LightBlue); // "Szyba" (jasnoniebieski)
 
-                Pen pen = Pens.Solid(Color.Blue, 5);
-
-                // 🔥 Tworzenie linii pionowych
+                // 🔥 Definiowanie ramy okna: 2 poziome i 2 pionowe elementy
                 var pathBuilder = new PathBuilder();
-                pathBuilder.AddLine(new PointF(padding + leftWidth, padding), new PointF(padding + leftWidth, imageSize - padding));
-                pathBuilder.AddLine(new PointF(imageSize - padding - rightWidth, padding), new PointF(imageSize - padding - rightWidth, imageSize - padding));
 
-                // 🔥 Tworzenie linii poziomych
-                pathBuilder.AddLine(new PointF(padding, padding + topWidth), new PointF(imageSize - padding, padding + topWidth));
-                pathBuilder.AddLine(new PointF(padding, imageSize - padding - bottomWidth), new PointF(imageSize - padding, imageSize - padding - bottomWidth));
+                // Górna część ramy
+                pathBuilder.MoveTo(new PointF(padding, padding)); // lewy górny róg
+                pathBuilder.LineTo(new PointF(imageSize - padding, padding)); // prawy górny róg
+                pathBuilder.LineTo(new PointF(imageSize - padding, padding + profileWidth)); // prawy dolny róg
+                pathBuilder.LineTo(new PointF(padding, padding + profileWidth)); // lewy dolny róg
+                pathBuilder.CloseFigure();
 
-                // 🔥 Rysowanie linii
-                IPath path = pathBuilder.Build();
-                x.Draw(pen, path);
+                // Dolna część ramy
+                pathBuilder.MoveTo(new PointF(padding, imageSize - padding)); // lewy dolny róg
+                pathBuilder.LineTo(new PointF(imageSize - padding, imageSize - padding)); // prawy dolny róg
+                pathBuilder.LineTo(new PointF(imageSize - padding, imageSize - padding - profileWidth)); // prawy górny róg
+                pathBuilder.LineTo(new PointF(padding, imageSize - padding - profileWidth)); // lewy górny róg
+                pathBuilder.CloseFigure();
 
-                // 🔥 Dodanie opisu sposobu łączenia
-                FontCollection collection = new();
-                FontFamily family = collection.AddSystemFonts().Families.FirstOrDefault();
-                if (family == null)
-                {
-                    family = SystemFonts.Families.First();
-                }
-                Font font = family.CreateFont(16);
-                x.DrawText(polaczenia, font, Color.Black, new PointF(10, 10));
+                // Lewa część ramy
+                pathBuilder.MoveTo(new PointF(padding, padding)); // lewy górny róg
+                pathBuilder.LineTo(new PointF(padding + profileWidth, padding + profileWidth)); // lewy dolny róg
+                pathBuilder.LineTo(new PointF(padding + profileWidth, imageSize - padding - profileWidth)); // lewy dolny róg
+                pathBuilder.LineTo(new PointF(padding, imageSize - padding)); // lewy górny róg
+                pathBuilder.CloseFigure();
+
+                // Prawa część ramy
+                pathBuilder.MoveTo(new PointF(imageSize - padding, padding)); // prawy górny róg
+                pathBuilder.LineTo(new PointF(imageSize - padding - profileWidth, padding + profileWidth)); // prawy dolny róg
+                pathBuilder.LineTo(new PointF(imageSize - padding - profileWidth, imageSize - padding - profileWidth)); // prawy dolny róg
+                pathBuilder.LineTo(new PointF(imageSize - padding, imageSize - padding)); // prawy górny róg
+                pathBuilder.CloseFigure();
+
+                // 🔥 Wypełnianie ramy teksturą
+                Rectangle topFrame = new Rectangle(padding, padding, imageSize - 2 * padding, profileWidth);
+                Rectangle bottomFrame = new Rectangle(padding, imageSize - padding - profileWidth, imageSize - 2 * padding, profileWidth);
+                Rectangle leftFrame = new Rectangle(padding, padding, profileWidth, imageSize - 2 * padding);
+                Rectangle rightFrame = new Rectangle(imageSize - padding - profileWidth, padding, profileWidth, imageSize - 2 * padding);
+
+                // Rysowanie tekstury na ramie
+                x.DrawImage(woodTexture, topFrame, 1f); // Na górnej części
+                x.DrawImage(woodTexture, bottomFrame, 1f); // Na dolnej części
+                x.DrawImage(woodTexture, leftFrame, 1f); // Na lewej części
+                x.DrawImage(woodTexture, rightFrame, 1f); // Na prawej części
+
+                // Rysowanie obramowania
+                x.Draw(borderPen, pathBuilder.Build());
+
+                // 🔥 Dodawanie "szyby" - wypełnienie środka okna
+                var glassPath = new PathBuilder();
+                // Centralny prostokąt (szyba)
+                glassPath.MoveTo(new PointF(padding + profileWidth + windowFrameThickness, padding + profileWidth + windowFrameThickness));
+                glassPath.LineTo(new PointF(imageSize - padding - profileWidth - windowFrameThickness, padding + profileWidth + windowFrameThickness));
+                glassPath.LineTo(new PointF(imageSize - padding - profileWidth - windowFrameThickness, imageSize - padding - profileWidth - windowFrameThickness));
+                glassPath.LineTo(new PointF(padding + profileWidth + windowFrameThickness, imageSize - padding - profileWidth - windowFrameThickness));
+                glassPath.CloseFigure();
+
+                // Wypełnienie szyby jasnoniebieskim kolorem
+                x.Fill(glassBrush, glassPath.Build());
             });
 
             // 🔥 Konwersja do byte[]
@@ -85,6 +120,7 @@ public class ImageGenerator
             Console.WriteLine($"Błąd (ImageGenerator): {ex.Message} / {ex.StackTrace}");
             return null;
         }
-
     }
+
+
 }

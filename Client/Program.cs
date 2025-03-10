@@ -37,6 +37,8 @@ builder.Services.AddScoped<PdfDataParserElementy>();
 builder.Services.AddSingleton<DxfService>();
 builder.Services.AddSingleton<DxfToSvgConverter>();
 
+builder.Services.AddScoped<ImageGenerator>();
+
 builder.Services.AddScoped(sp =>
 {
     var httpClient = new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) };

@@ -50,6 +50,7 @@
   
   	<ItemGroup>
   	  <Folder Include="wwwroot\uploads_zlecenia\" />
+	  <Folder Include="wwwroot\tekstury\" />
   	</ItemGroup>
 
 

@@ -9,6 +9,14 @@
 @inject IJSRuntime JSRuntime
 @using System.Net
 
+@using SixLabors.Fonts;
+@using SixLabors.ImageSharp;
+@using SixLabors.ImageSharp.PixelFormats;
+@using SixLabors.ImageSharp.Drawing.Processing;
+@using SixLabors.ImageSharp.Processing;
+@using SixLabors.ImageSharp.Drawing;
+
+
 <style>
     .image-select {
     width: 200px;
@@ -456,7 +464,22 @@
 
         try
         {
-            EdytowanyModel.Rysunek = ImageGenerator.GenerateImage(PowiazanyModel.KonfSystem[0], "180-T1;90-T1;0-T1;270-T1");
+
+ 
+            var baseUrl = Navigation.BaseUri;
+            var imageUrl = $"{baseUrl}api/images/wood.jpg";
+
+            var imageGenerator = new ImageGenerator(Http);
+           byte[] imageBytes = await imageGenerator.GenerateImageAsync(PowiazanyModel.KonfSystem[0], "180-T1;90-T1;0-T1;270-T1", imageUrl);
+            //byte[] imageBytes = await imageGenerator.GenerateImageAsync(imageUrl);
+
+            if (imageBytes != null)
+            {
+                //var imageData = $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}";
+                EdytowanyModel.Rysunek = imageBytes;
+            }
+
+          
         }
         catch (Exception ex)
         {
@@ -720,6 +743,5 @@
         public string? Value { get; set; }
         public string? ImageUrl { get; set; }
     }
-
 
 }
