@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Net.Http;
-using System.Numerics;
+using System.Linq;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -27,7 +27,7 @@ public class ImageGenerator
             int profileWidth = 40; // Szerokość profilu okiennego
             int borderThickness = 5; // Grubość obramowania
             int padding = 50; // Marginesy od krawędzi
-            int windowFrameThickness = 20; // Grubość ramy w środku okna (między szybą)
+            int windowFrameThickness = 20; // Grubość ramy wewnętrznej
 
             // 🔥 Pobranie obrazka z API
             byte[] imageBytes = await _httpClient.GetByteArrayAsync(imageUrl);
@@ -41,73 +41,55 @@ public class ImageGenerator
             woodTexture.Mutate(x => x.Resize(imageSize, imageSize)); // Dopasowanie tekstury
 
             using Image<Rgba32> image = new(imageSize, imageSize);
+            image.Mutate(x => x.Fill(Color.White)); // Ustawienie tła na białe
 
-            // 🔥 Ustawienie białego tła
-            image.Mutate(x => x.Fill(Color.White));
+            // 🔥 Parsowanie sposobu łączenia naroży
+            var polaczeniaArray = polaczenia.Split(';')
+                .Select(p => p.Split('-'))
+                .Select(parts => (kat: int.Parse(parts[0]), typ: parts[1]))
+                .ToArray();
 
-            // 🔥 Tworzenie profili okiennych pod kątem 45° i podział na 4 części
+            // 🔥 Długości elementów w zależności od typu połączenia
+            int topWidth = (polaczeniaArray[0].typ == "T1" || polaczeniaArray[0].typ == "T2") ? imageSize - 2 * padding : imageSize - 2 * padding - profileWidth;
+            int bottomWidth = (polaczeniaArray[2].typ == "T1" || polaczeniaArray[2].typ == "T2") ? imageSize - 2 * padding : imageSize - 2 * padding - profileWidth;
+            int leftHeight = (polaczeniaArray[1].typ == "T3" || polaczeniaArray[1].typ == "T2") ? imageSize - 2 * padding : imageSize - 2 * padding - profileWidth;
+            int rightHeight = (polaczeniaArray[3].typ == "T3" || polaczeniaArray[3].typ == "T2") ? imageSize - 2 * padding : imageSize - 2 * padding - profileWidth;
+
+            // 🔥 Tworzenie kształtów ramy okna
+            IPath topFrame = new RectangularPolygon(padding, padding, topWidth, profileWidth);
+            IPath bottomFrame = new RectangularPolygon(padding, imageSize - padding - profileWidth, bottomWidth, profileWidth);
+            IPath leftFrame = new RectangularPolygon(padding, padding, profileWidth, leftHeight);
+            IPath rightFrame = new RectangularPolygon(imageSize - padding - profileWidth, padding, profileWidth, rightHeight);
+
+            // 🔥 Przycięcie tekstury do kształtu ramy
+            using Image<Rgba32> topTexture = woodTexture.Clone(x => x.Crop(new Rectangle(0, 0, topWidth, profileWidth)));
+            using Image<Rgba32> bottomTexture = woodTexture.Clone(x => x.Crop(new Rectangle(0, 0, bottomWidth, profileWidth)));
+            using Image<Rgba32> leftTexture = woodTexture.Clone(x => x.Crop(new Rectangle(0, 0, profileWidth, leftHeight)));
+            using Image<Rgba32> rightTexture = woodTexture.Clone(x => x.Crop(new Rectangle(0, 0, profileWidth, rightHeight)));
+
+            // 🔥 Rysowanie przyciętej tekstury na głównym obrazie
             image.Mutate(x =>
             {
+                x.DrawImage(topTexture, new Point(padding, padding), 1f);
+                x.DrawImage(bottomTexture, new Point(padding, imageSize - padding - profileWidth), 1f);
+                x.DrawImage(leftTexture, new Point(padding, padding), 1f);
+                x.DrawImage(rightTexture, new Point(imageSize - padding - profileWidth, padding), 1f);
+
+                // 🔥 Rysowanie obramowania ramy okna
                 Pen borderPen = Pens.Solid(Color.Black, borderThickness);
-                Brush glassBrush = Brushes.Solid(Color.LightBlue); // "Szyba" (jasnoniebieski)
+                x.Draw(borderPen, topFrame);
+                x.Draw(borderPen, bottomFrame);
+                x.Draw(borderPen, leftFrame);
+                x.Draw(borderPen, rightFrame);
 
-                // 🔥 Definiowanie ramy okna: 2 poziome i 2 pionowe elementy
-                var pathBuilder = new PathBuilder();
+                // 🔥 Dodanie "szyby" (jasnoniebieskie wypełnienie)
+                int glassX = padding + profileWidth;
+                int glassY = padding + profileWidth;
+                int glassWidth = imageSize - 2 * (padding + profileWidth);
+                int glassHeight = imageSize - 2 * (padding + profileWidth);
 
-                // Górna część ramy
-                pathBuilder.MoveTo(new PointF(padding, padding)); // lewy górny róg
-                pathBuilder.LineTo(new PointF(imageSize - padding, padding)); // prawy górny róg
-                pathBuilder.LineTo(new PointF(imageSize - padding, padding + profileWidth)); // prawy dolny róg
-                pathBuilder.LineTo(new PointF(padding, padding + profileWidth)); // lewy dolny róg
-                pathBuilder.CloseFigure();
-
-                // Dolna część ramy
-                pathBuilder.MoveTo(new PointF(padding, imageSize - padding)); // lewy dolny róg
-                pathBuilder.LineTo(new PointF(imageSize - padding, imageSize - padding)); // prawy dolny róg
-                pathBuilder.LineTo(new PointF(imageSize - padding, imageSize - padding - profileWidth)); // prawy górny róg
-                pathBuilder.LineTo(new PointF(padding, imageSize - padding - profileWidth)); // lewy górny róg
-                pathBuilder.CloseFigure();
-
-                // Lewa część ramy
-                pathBuilder.MoveTo(new PointF(padding, padding)); // lewy górny róg
-                pathBuilder.LineTo(new PointF(padding + profileWidth, padding + profileWidth)); // lewy dolny róg
-                pathBuilder.LineTo(new PointF(padding + profileWidth, imageSize - padding - profileWidth)); // lewy dolny róg
-                pathBuilder.LineTo(new PointF(padding, imageSize - padding)); // lewy górny róg
-                pathBuilder.CloseFigure();
-
-                // Prawa część ramy
-                pathBuilder.MoveTo(new PointF(imageSize - padding, padding)); // prawy górny róg
-                pathBuilder.LineTo(new PointF(imageSize - padding - profileWidth, padding + profileWidth)); // prawy dolny róg
-                pathBuilder.LineTo(new PointF(imageSize - padding - profileWidth, imageSize - padding - profileWidth)); // prawy dolny róg
-                pathBuilder.LineTo(new PointF(imageSize - padding, imageSize - padding)); // prawy górny róg
-                pathBuilder.CloseFigure();
-
-                // 🔥 Wypełnianie ramy teksturą
-                Rectangle topFrame = new Rectangle(padding, padding, imageSize - 2 * padding, profileWidth);
-                Rectangle bottomFrame = new Rectangle(padding, imageSize - padding - profileWidth, imageSize - 2 * padding, profileWidth);
-                Rectangle leftFrame = new Rectangle(padding, padding, profileWidth, imageSize - 2 * padding);
-                Rectangle rightFrame = new Rectangle(imageSize - padding - profileWidth, padding, profileWidth, imageSize - 2 * padding);
-
-                // Rysowanie tekstury na ramie
-                x.DrawImage(woodTexture, topFrame, 1f); // Na górnej części
-                x.DrawImage(woodTexture, bottomFrame, 1f); // Na dolnej części
-                x.DrawImage(woodTexture, leftFrame, 1f); // Na lewej części
-                x.DrawImage(woodTexture, rightFrame, 1f); // Na prawej części
-
-                // Rysowanie obramowania
-                x.Draw(borderPen, pathBuilder.Build());
-
-                // 🔥 Dodawanie "szyby" - wypełnienie środka okna
-                var glassPath = new PathBuilder();
-                // Centralny prostokąt (szyba)
-                glassPath.MoveTo(new PointF(padding + profileWidth + windowFrameThickness, padding + profileWidth + windowFrameThickness));
-                glassPath.LineTo(new PointF(imageSize - padding - profileWidth - windowFrameThickness, padding + profileWidth + windowFrameThickness));
-                glassPath.LineTo(new PointF(imageSize - padding - profileWidth - windowFrameThickness, imageSize - padding - profileWidth - windowFrameThickness));
-                glassPath.LineTo(new PointF(padding + profileWidth + windowFrameThickness, imageSize - padding - profileWidth - windowFrameThickness));
-                glassPath.CloseFigure();
-
-                // Wypełnienie szyby jasnoniebieskim kolorem
-                x.Fill(glassBrush, glassPath.Build());
+                IPath glassPath = new RectangularPolygon(glassX, glassY, glassWidth, glassHeight);
+                x.Fill(Color.LightBlue, glassPath);
             });
 
             // 🔥 Konwersja do byte[]
@@ -121,6 +103,4 @@ public class ImageGenerator
             return null;
         }
     }
-
-
 }

@@ -13,6 +13,13 @@
 	<WasmEnableSimdSupport>false</WasmEnableSimdSupport>
 </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="wwwroot\textures\**" />
+    <Content Remove="wwwroot\textures\**" />
+    <EmbeddedResource Remove="wwwroot\textures\**" />
+    <None Remove="wwwroot\textures\**" />
+  </ItemGroup>
+
 
   <ItemGroup>
     <PackageReference Include="AntDesign" Version="1.0.0" />
@@ -49,15 +56,11 @@
     <Content Update="Pages\Zlecenia\Zlecenia-produkcyjne-wew.razor">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </Content>
-    <Content Update="wwwroot\textures\wood.jpg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Pages\Gantt\" />
     <Folder Include="wwwroot\fonts\" />
-    <Folder Include="wwwroot\textures\" />
     <Folder Include="wwwroot\src\" />
   </ItemGroup>
 

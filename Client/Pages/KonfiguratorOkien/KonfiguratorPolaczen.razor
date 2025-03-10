@@ -465,20 +465,24 @@
         try
         {
 
- 
+
             var baseUrl = Navigation.BaseUri;
             var imageUrl = $"{baseUrl}api/images/wood.jpg";
 
-            var imageGenerator = new ImageGenerator(Http);
-           byte[] imageBytes = await imageGenerator.GenerateImageAsync(PowiazanyModel.KonfSystem[0], "180-T1;90-T1;0-T1;270-T1", imageUrl);
-            //byte[] imageBytes = await imageGenerator.GenerateImageAsync(imageUrl);
+            var konfSystem = await Http.GetFromJsonAsync<KonfSystem>($"api/konfsystem/ROW_ID/{EdytowanyModel.RowId.ToString()}");
 
-            if (imageBytes != null)
+            if (konfSystem != null)
             {
-                //var imageData = $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}";
-                EdytowanyModel.Rysunek = imageBytes;
-            }
+                var imageGenerator = new ImageGenerator(Http);
+                byte[] imageBytes = await imageGenerator.GenerateImageAsync(konfSystem, EdytowanyModel.PolaczenieNaroza, imageUrl);
+                //byte[] imageBytes = await imageGenerator.GenerateImageAsync(imageUrl);
 
+                if (imageBytes != null)
+                {
+                    //var imageData = $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}";
+                    EdytowanyModel.Rysunek = imageBytes;
+                }
+            }
           
         }
         catch (Exception ex)

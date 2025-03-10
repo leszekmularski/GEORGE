@@ -35,6 +35,14 @@ public class KonfSystemController : ControllerBase
         return konfsystem;
     }
 
+    [HttpGet("ROW_ID/{rowId}")]
+    public async Task<ActionResult<KonfSystem>> GetByRowId(string rowId)
+    {
+        var konfsystem = await _context.KonfSystem.FirstOrDefaultAsync(e => e.RowIdSystem.ToString() == rowId);
+        if (konfsystem == null) return NotFound();
+        return konfsystem;
+    }
+
     [HttpPost]
     public async Task<IActionResult> SaveKonfSystem([FromBody] KonfSystem konfSystem)
     {
