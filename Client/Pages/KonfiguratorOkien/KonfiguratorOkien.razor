@@ -676,6 +676,26 @@
 
                 <hr class="my-4" />
 
+                <h5 class="mb-3">📏 Linie opisujące gabaryty profila</h5>
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label">Wartość linia: pozima dolna</label>
+                        <Input type="number" class="form-control" @bind-Value="@konfSystem.PoziomDol" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Wartość linia: pozima górna</label>
+                        <Input type="number" class="form-control" @bind-Value="@konfSystem.PoziomGora" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Wartość linia: pionowa lewa</label>
+                        <Input type="number" class="form-control" step="0.01" @bind-Value="@konfSystem.PionLewa" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Wartość linia: pionowa prawa</label>
+                        <Input type="number" class="form-control" step="0.01" @bind-Value="@konfSystem.PionPrawa" />
+                    </div>
+                </div>
+
                 <!-- Przyciski akcji -->
                 @*                 <div class="text-end">
                     <button class="btn btn-success" @onclick="Zapisz">
