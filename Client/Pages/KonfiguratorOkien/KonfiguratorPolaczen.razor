@@ -227,11 +227,11 @@
                 <label class="form-label">Obrazek DXF:</label>
                 <InputFile OnChange="WczytajRysunek" />
             </div> *@
-            <Spin Spinning="czakajAzZmieinie" Size="SpinSize.Large">
-            <div class="mt-3">
-                <button type="submit" class="btn btn-primary">Zapisz</button>
-                <button type="button" class="btn btn-secondary ms-2" @onclick="Anuluj">Anuluj</button>
-            </div>
+            <Spin Spinning="czakajAzZmienie" Size="SpinSize.Large">
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">Zapisz</button>
+                    <button type="button" class="btn btn-secondary ms-2" @onclick="Anuluj">Anuluj</button>
+                </div>
             </Spin>
 
         </EditForm>
@@ -405,6 +405,7 @@
                     SelectedImage4 = ImageOptions4.FirstOrDefault(x => x.Value == powiazanyModel[3].Trim()) ?? new ImageOption();
 
                     Console.WriteLine($"EdytowanyModel.PolaczenieNaroza: {EdytowanyModel.PolaczenieNaroza}");
+
                 }
             }
         }
@@ -443,7 +444,7 @@
         }
     }
 
-    private bool czakajAzZmieinie = false;
+    private bool czakajAzZmienie = false;
     private async Task Zapisz()
     {
 
@@ -461,7 +462,7 @@
             return;
         }
 
-        czakajAzZmieinie = true;
+        czakajAzZmienie = true;
 
         EdytowanyModel.PolaczenieNaroza = $"{SelectedImage1?.Value ?? "BRAK"};" +
                                        $"{SelectedImage2?.Value ?? "BRAK"};" +
@@ -559,12 +560,12 @@
         }
 
         // Usuwamy powiązania, które użytkownik odznaczył
-        var usunPowiazania = existingLinks
+        var usunPowiazania = existingLinks?
             .Where(x => !KonfiguracjeSystemu.Any(k => k.CzyWybrany && k.RowId == x.RowIdElement))
             .Select(x => x.Id)
             .ToList();
 
-        if (usunPowiazania.Count > 0)
+        if (usunPowiazania?.Count > 0)
         {
             await Http.PostAsJsonAsync($"api/konfmodeleelementy/powiazania/usun", usunPowiazania);
         }
@@ -573,9 +574,9 @@
         ListaModeli = await Http.GetFromJsonAsync<List<KonfModele>>(apiUrl);
         EdytowanyModel = null;
 
-        czakajAzZmieinie = false;
+        czakajAzZmienie = false;
 
-        await _message.Info("Dane w modelu zaktualizowano!" , 2);  
+        await _message.Info("Dane w modelu zaktualizowano!" , 1);  
     }
 
 
