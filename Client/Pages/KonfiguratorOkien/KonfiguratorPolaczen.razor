@@ -377,7 +377,7 @@
 
     string WybralesElement = "";
 
-    private async Task PokazPowiazane(string rowId, string nazwaWybaranego)
+    private async Task PokazPowiazane(string rowId, string nazwaWybaranego, bool nieZeruj = false)
     {
         WybralesElement = nazwaWybaranego;
 
@@ -389,7 +389,7 @@
             SelectedImage4 = new ImageOption();
         }
 
-        if (PokazanyModelRowId == rowId)
+        if (PokazanyModelRowId == rowId && !nieZeruj)
         {
             PokazanyModelRowId = null;
             PowiazanyModel = null;
@@ -449,7 +449,7 @@
 
         if (EdytowanyModel != null)
         {
-            await PokazPowiazane(rowId, nazwaWybaranego);
+            await PokazPowiazane(rowId, nazwaWybaranego, true);
         }
     }
 

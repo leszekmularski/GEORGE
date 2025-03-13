@@ -65,65 +65,78 @@ public class ImageGenerator
             {
                 PointF[] trapezoidPoints;
 
-                Console.WriteLine($"joinType: {joinType}, cornerId: {cornerId}, X: {x}, Y: {y}, Width: {width}, Height: {height}");
+                Console.WriteLine($"🎨 joinType: {joinType}, cornerId: {cornerId}, X: {x}, Y: {y}, Width: {width}, Height: {height}");
 
-                // Rozdzielenie `joinType` na lewy i prawy narożnik
-                string leftJoin = joinType.Substring(0, 2);  // Pierwsze dwa znaki -> Lewa strona
-                string rightJoin = joinType.Substring(2, 2); // Ostatnie dwa znaki -> Prawa strona
+                // 🔹 Rozdzielenie `joinType` na lewą i prawą stronę
+                string leftJoin = joinType.Substring(0, 2);
+                string rightJoin = joinType.Substring(2, 2);
 
-                // Sprawdzamy, czy dany narożnik ma kąt 45°
+                // 🔥 Sprawdzamy, czy dany narożnik ma kąt 45°
                 bool hasT2Left = leftJoin == "T2";
                 bool hasT2Right = rightJoin == "T2";
 
-                // Definiowanie punktów dla każdego narożnika
+                float innerOffset = height;  // 🔥 Przesunięcie krótszego boku trapezu do środka
+
+                if (cornerId == 1 || cornerId == 3) innerOffset = width;
+
+                // 🔹 Definiowanie punktów dla każdego narożnika
                 switch (cornerId)
                 {
-                    case 0: // Lewy górny róg
+                    case 0: // 🔹 Lewy górny róg (OK)
                         trapezoidPoints = new[]
                         {
-                new PointF(x, y), // Lewy górny
-                new PointF(x + width, y), // Prawy górny
-                new PointF(x + width - (hasT2Right ? (float)profileRight : 0), y + height), // Prawy dolny (skrócony)
-                new PointF(x + (hasT2Left ? (float)profileLeft : 0), y + height) // Lewy dolny (skrócony)
+                new PointF(x, y),  // Lewy górny
+                new PointF(x + width, y),  // Prawy górny
+                new PointF(x + width - (hasT2Right ? innerOffset : 0), y + height), // Prawy dolny 45°
+                new PointF(x + (hasT2Left ? innerOffset : 0), y + height) // Lewy dolny 45°
             };
                         break;
-                    case 1: // Prawy górny róg
+
+                    case 1: // 🔹 Prawy górny róg (Poprawiony!)
                         trapezoidPoints = new[]
                         {
-                new PointF(x, y), // Lewy górny
-                new PointF(x + width, y), // Prawy górny
-                new PointF(x + width, y + height - (hasT2Right ? (float)profileTop : 0)), // Prawy dolny (skrócony)
-                new PointF(x, y + height - (hasT2Left ? (float)profileTop : 0)) // Lewy dolny (skrócony)
+                new PointF(x, y + (hasT2Left ? innerOffset : 0)),  // Lewy górny
+                new PointF(x + width, y),  // Prawy górny
+                new PointF(x + width, y + height), // Prawy dolny 45°
+                new PointF(x , y + height - (hasT2Right ? innerOffset : 0)) // Lewy dolny 45°
             };
                         break;
-                    case 2: // Prawy dolny róg
+
+                    case 2: // 🔹 Prawy dolny róg (Teraz poprawny!)
                         trapezoidPoints = new[]
                         {
-                new PointF(x, y + (hasT2Left ? (float)profileBottom : 0)), // Lewy górny (skrócony)
-                new PointF(x + width, y + (hasT2Right ? (float)profileBottom : 0)), // Prawy górny (skrócony)
-                new PointF(x + width, y + height), // Prawy dolny
-                new PointF(x, y + height) // Lewy dolny
+                new PointF(x + (hasT2Right ? innerOffset : 0), y),  // Lewy górny
+                new PointF(x + width - (hasT2Left ? innerOffset : 0), y),  // Prawy górny
+                new PointF(x + width , y + height), // Prawy dolny 45°
+                new PointF(x , y + height) // Lewy dolny 45°
             };
                         break;
-                    case 3: // Lewy dolny róg
+
+                    case 3: // 🔹 Lewy dolny róg (DODANY!)
                         trapezoidPoints = new[]
                         {
-                new PointF(x, y), // Lewy górny
-                new PointF(x + width, y), // Prawy górny
-                new PointF(x + width - (hasT2Right ? (float)profileRight : 0), y + height), // Prawy dolny (skrócony)
-                new PointF(x + (hasT2Left ? (float)profileLeft : 0), y + height) // Lewy dolny (skrócony)
+                new PointF(x, y),  // Lewy górny
+                new PointF(x + width, y + (hasT2Left ? innerOffset : 0)),  // Prawy górny
+                new PointF(x + width, y + height - (hasT2Right ? innerOffset : 0)), // Prawy dolny 45°
+                new PointF(x, y + height ) // Lewy dolny 45°
             };
                         break;
+
                     default:
-                        throw new Exception($"Nieznany narożnik {cornerId}!");
+                        throw new Exception($"❌ Nieznany narożnik {cornerId}!");
                 }
 
+                // 🔥 Tworzenie trapezu i dodanie do ramy okna
                 var trapezoid = new Polygon(trapezoidPoints);
                 var textureTrapezoid = woodTexture.Clone(x => x.Crop(new Rectangle(0, 0, width, height)));
                 frames.Add((trapezoid, textureTrapezoid, new Point(x, y)));
 
-                Console.WriteLine($"Dodano trapez: {cornerId} | Lewy 45°: {hasT2Left} | Prawy 45°: {hasT2Right}");
+                Console.WriteLine($"✅ Dodano trapez: {cornerId} | Lewy 45°: {hasT2Left} | Prawy 45°: {hasT2Right}");
             }
+
+
+
+
 
 
 
@@ -196,14 +209,7 @@ public class ImageGenerator
             {
                 var (x, y, width, height) = positions[index];
 
-                //if (type == "T2")
-                //{
-                   AddTrapezoidFrame(x, y, width, height, type, index, woodTexture);
-                //}
-                //else
-                //{
-                //    AddFrame(x, y, width, height, type);
-                //}
+                AddTrapezoidFrame(x, y, width, height, type, index, woodTexture);
             }
 
             // 🪟 Dodajemy szybę w środku ramki
