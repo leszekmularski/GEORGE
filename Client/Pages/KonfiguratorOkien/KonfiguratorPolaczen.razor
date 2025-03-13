@@ -200,28 +200,35 @@
                 <div class="row w-100 flex-grow-1">
                     <!-- Połączenie Naroży 3 -->
                     <div class="col-md-6 d-flex flex-column align-items-center justify-content-center">
-                        <label class="form-label">Połączenie Naroży 3:</label>
-                        <div class="preview" @onclick="() => ChangeImage(3)">
-                            <img src="@SelectedImage3.ImageUrl" alt="@SelectedImage3.Name" class="img-fluid img-thumbnail shadow" />
-                            <p class="text-center">Wybrałeś: @SelectedImage3.Name</p>
-                        </div>
-                    </div>
-
-                    <!-- Połączenie Naroży 4 -->
-                    <div class="col-md-6 d-flex flex-column align-items-center justify-content-center">
                         <label class="form-label">Połączenie Naroży 4:</label>
                         <div class="preview" @onclick="() => ChangeImage(4)">
                             <img src="@SelectedImage4.ImageUrl" alt="@SelectedImage4.Name" class="img-fluid img-thumbnail shadow" />
                             <p class="text-center">Wybrałeś: @SelectedImage4.Name</p>
                         </div>
                     </div>
+
+                    <!-- Połączenie Naroży 4 -->
+                    <div class="col-md-6 d-flex flex-column align-items-center justify-content-center">
+                        <label class="form-label">Połączenie Naroży 3:</label>
+                        <div class="preview" @onclick="() => ChangeImage(3)">
+                            <img src="@SelectedImage3.ImageUrl" alt="@SelectedImage3.Name" class="img-fluid img-thumbnail shadow" />
+                            <p class="text-center">Wybrałeś: @SelectedImage3.Name</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-
             <div class="mt-3">
-                <label class="form-label">Uwagi:</label>
-                <InputText class="form-control" @bind-Value="EdytowanyModel.Uwagi" />
+                <div>
+                    <label class="form-label">Łączenie elementów (dotyczy wyłącznie wersja typu T1 lub T3):</label>
+                    <br/>
+                    <Checkbox @bind-Value="EdytowanyModel.SposobLaczeniaCzop">Elementy łączone za pomocą czopa</Checkbox>
+                </div>
+                <br />
+                <div>
+                    <label class="form-label">Uwagi:</label>
+                    <InputText class="form-control" @bind-Value="EdytowanyModel.Uwagi" />
+                </div>
             </div>
             @*          <div class="mt-3">
                 <label class="form-label">Obrazek DXF:</label>
@@ -438,6 +445,8 @@
     {
         EdytowanyModel = await Http.GetFromJsonAsync<KonfModele>($"{apiUrl}/{id}");
 
+        await Task.Delay(50);
+
         if (EdytowanyModel != null)
         {
             await PokazPowiazane(rowId, nazwaWybaranego);
@@ -468,8 +477,6 @@
                                        $"{SelectedImage2?.Value ?? "BRAK"};" +
                                        $"{SelectedImage3?.Value ?? "BRAK"};" +
                                        $"{SelectedImage4?.Value ?? "BRAK"}";
-
-
 
         try
         {
@@ -572,11 +579,12 @@
 
         // Odświeżenie listy modeli
         ListaModeli = await Http.GetFromJsonAsync<List<KonfModele>>(apiUrl);
-        EdytowanyModel = null;
 
         czakajAzZmienie = false;
 
         await _message.Info("Dane w modelu zaktualizowano!" , 1);  
+
+        EdytowanyModel = null;
     }
 
 
@@ -703,7 +711,8 @@
         new ImageOption { Name = "Nie wybrano", Value = "BRAK", ImageUrl = "images/GL_0_NULL.png" },
         new ImageOption { Name = "Typ 1", Value = "0-T1", ImageUrl = "images/GL_0_T1.png" },
         new ImageOption { Name = "Typ 2", Value = "0-T2", ImageUrl = "images/GL_0_T2.png" },
-        new ImageOption { Name = "Typ 3", Value = "0-T3", ImageUrl = "images/GL_0_T3.png" }
+        new ImageOption { Name = "Typ 3", Value = "0-T3", ImageUrl = "images/GL_0_T3.png" },
+        new ImageOption { Name = "Typ 4", Value = "0-T4", ImageUrl = "images/GL_0_T4.png" }
     };
 
     private List<ImageOption> ImageOptions4 = new()
@@ -711,7 +720,8 @@
         new ImageOption { Name = "Nie wybrano", Value = "BRAK", ImageUrl = "images/GL_0_NULL.png" },
         new ImageOption { Name = "Typ 1", Value = "270-T1", ImageUrl = "images/GL_270_T1.png" },
         new ImageOption { Name = "Typ 2", Value = "270-T2", ImageUrl = "images/GL_270_T2.png" },
-        new ImageOption { Name = "Typ 3", Value = "270-T3", ImageUrl = "images/GL_270_T3.png" }
+        new ImageOption { Name = "Typ 3", Value = "270-T3", ImageUrl = "images/GL_270_T3.png" },
+        new ImageOption { Name = "Typ 4", Value = "270-T4", ImageUrl = "images/GL_270_T4.png" }
     };
 
     private ImageOption? SelectedImage1;

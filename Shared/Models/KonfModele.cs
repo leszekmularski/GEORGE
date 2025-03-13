@@ -24,7 +24,8 @@ namespace GEORGE.Shared.Models
         public int? KonstrMinWys { get; set; } = 0;
         public int? KonstrMaxWys { get; set; } = 6500;
         public string? DodatkowyFiltrWystepowania { get; set; }
-        public string? PolaczenieNaroza { get; set; } //Sposob łaczenia narozy czy kat 45;45;45;45 lub 90;90;90;90 lub 0;0;0;0
+        public string? PolaczenieNaroza { get; set; } //Sposob łaczenia narozy czy kat 45;45;45;45 lub 90;90;90;90 lub 0;0;0;0 --> 180-T3;90-T3;0-T3;270-T3
+        public bool SposobLaczeniaCzop { get; set; } = false; // W przypadku wybrania tej opcji elemnty nachodzą na siebie
         public int? NaddatekNaZgrzewNaStrone { get; set; } = 0; //Naddatek na zgrzew na stronę
         public int? ZwiekszNaddatekGdyKatInny90 { get; set; } = 0; //Dodaj do długości gdy kąt inny niż 90 stop
         public string? Uwagi { get; set; }
