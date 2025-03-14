@@ -21,7 +21,7 @@ public class ImageGenerator
             if (model == null || model.Count == 0)
                 throw new ArgumentException("Lista model jest pusta.");
 
-           // int imageSize = 500;
+            bool slupekStaly = false;
 
             int borderThickness = 5;
 
@@ -49,6 +49,11 @@ public class ImageGenerator
             double profileRight = model.FirstOrDefault(e => e.WystepujePrawa)?.PionPrawa ?? 0 - model.FirstOrDefault(e => e.WystepujePrawa)?.PionLewa ?? 0;
             double profileBottom = model.FirstOrDefault(e => e.WystepujeDol)?.PionPrawa ?? 0 - model.FirstOrDefault(e => e.WystepujeDol)?.PionLewa ?? 0;
 
+            if (model.Select(e => !e.WystepujeGora && !e.WystepujeDol && !e.WystepujePrawa && e.WystepujeLewa).Count() == 1)
+            {
+                slupekStaly = true;
+            }
+ 
             profileBottom = Math.Max(profileBottom, 1); // Zapobieganie błędom
 
             var polaczeniaArray = polaczenia.Split(';')
@@ -60,13 +65,6 @@ public class ImageGenerator
                 throw new Exception("Niepełna konfiguracja połączeń.");
 
             var frames = new List<(IPath path, Image<Rgba32> texture, Point position)>();
-
-            //void AddFrame(int x, int y, int width, int height, string joinType)
-            //{
-            //    var frame = new RectangularPolygon(x, y, width, height);
-            //    var texture = woodTexture.Clone(tx => tx.Crop(new Rectangle(0, 0, width, height)));
-            //    frames.Add((frame, texture, new Point(x, y)));
-            //}
 
             void AddTrapezoidFrame(int x, int y, int width, int height, string joinType, int cornerId, Image<Rgba32> woodTexture)
             {
@@ -212,15 +210,19 @@ public class ImageGenerator
                 AddTrapezoidFrame(x, y, width, height, type, index, woodTexture);
             }
 
-            // 🪟 Dodajemy szybę w środku ramki
-            IPath glassPath = new RectangularPolygon(
-                (int)profileLeft,
-                (int)profileTop,
-                imageWidth - (int)profileLeft - (int)profileRight,
-                imageHeight - (int)profileTop - (int)profileBottom
-            );
 
-            frames.Add((glassPath, null, new Point(0, 0))); // Szyba jako przezroczysty element
+                // 🪟 Dodajemy szybę w środku ramki
+                IPath glassPath = new RectangularPolygon(
+                    (int)profileLeft,
+                    (int)profileTop,
+                    imageWidth - (int)profileLeft - (int)profileRight,
+                    imageHeight - (int)profileTop - (int)profileBottom
+                );
+
+            if (!slupekStaly)
+            {
+                frames.Add((glassPath, null, new Point(0, 0))); // Szyba jako przezroczysty element
+            }
 
             image.Mutate(x =>
             {
@@ -236,7 +238,11 @@ public class ImageGenerator
                 Color glassColor = Color.ParseHex(glassColorHex); // Parsowanie HEX na kolor
                 // 🎨 Szyba – przezroczysta warstwa niebieska
                 x.Fill(glassColor, glassPath);
-                x.Draw(Pens.Solid(Color.Black, borderThickness), glassPath);
+
+                if (!slupekStaly)
+                {
+                    x.Draw(Pens.Solid(Color.Black, borderThickness), glassPath);
+                }
             });
 
             using MemoryStream ms = new();
