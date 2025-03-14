@@ -485,12 +485,11 @@
             var baseUrlX = Navigation.BaseUri;
             var imageUrl = $"{baseUrlX}api/images/wood.jpg";
 
-
             if (PowiazanyModel != null)
             {
 
                 var imageGenerator = new ImageGenerator(Http);
-                byte[] imageBytes = await imageGenerator.GenerateImageAsync(PowiazanyModel.KonfSystem, EdytowanyModel.PolaczenieNaroza,500, 500, imageUrl);
+                byte[] imageBytes = await imageGenerator.GenerateImageAsync(PowiazanyModel.KonfSystem, EdytowanyModel.PolaczenieNaroza, 500, 500, imageUrl, "#ADD8E6");
                 //byte[] imageBytes = await imageGenerator.GenerateImageAsync(imageUrl);
 
                 if (imageBytes != null)
@@ -498,11 +497,28 @@
                     //var imageData = $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}";
                     EdytowanyModel.Rysunek = imageBytes;
                 }
+                else
+                {
+                    _ = _notice.Info(new()
+                        {
+                            Message = "Informacja!!",
+                            Description = $"Nie wygenerowano obrazka sprawdź konfigurację!!!!",
+                            Placement = NotificationPlacement.TopRight,
+                            Duration = 1
+                        });
+                }
             }
 
         }
         catch (Exception ex)
         {
+            _ = _notice.Info(new()
+                {
+                    Message = "Informacja!!",
+                    Description = $"Nie wygenerowano obrazka sprawdź konfigurację!!!!",
+                    Placement = NotificationPlacement.TopRight,
+                    Duration = 1
+                });
             Console.WriteLine($"Błąd: {ex.Message} / {ex.StackTrace}");
         }
 
@@ -541,6 +557,16 @@
         if (PowiazanyModel != null)
         {
             KonfiguracjeSystemu = PowiazanyModel.KonfSystem;
+        }
+        else
+        {
+            _ = _notice.Info(new()
+                {
+                    Message = "Informacja!!",
+                    Description = $"Brak powiązanych modeli!!!!",
+                    Placement = NotificationPlacement.TopLeft,
+                    Duration = 2
+                });
         }
 
         foreach (var konf in KonfiguracjeSystemu.Where(k => k.CzyWybrany))
@@ -684,7 +710,7 @@
             new Typ(""),
             new Typ("Rama"),
             new Typ("Skrzydło"),
-            new Typ("Słupek ruchomy"),
+            new Typ("Skrzydło z słupkiem ruchomy"),
             new Typ("Słupek stały"),
             new Typ("Listwa przyszybowa"),
         };

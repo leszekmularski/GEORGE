@@ -17,8 +17,8 @@
 <style>
     .scaled-svg {
     position: relative;
-    width: 500px;
-    height: 500px;
+    width: 505px;
+    height: 505px;
     overflow: auto;
     border: 1px solid #ccc;
     }
@@ -128,6 +128,10 @@
 
     let newX = (event.clientX - rect.left) * scaleX + viewBox.x - offsetX;
     let newY = (event.clientY - rect.top) * scaleY + viewBox.y;
+
+    // 🔹 Zaokrąglenie do 2 miejsc po przecinku
+    newX = parseFloat(newX.toFixed(2));
+    newY = parseFloat(newY.toFixed(2));
 
     console.log(`🎯 Przesuwam ${draggedLine.id} do X=${newX}, Y=${newY}`);
 
@@ -253,8 +257,16 @@
     }
 
     let svg = group.closest("svg");
-    let bbox = group.getBBox(); // 🔥 Pobiera rzeczywiste granice obiektów w SVG
+    let viewBox = svg.viewBox.baseVal;
 
+    // Pobieramy oryginalne wymiary SVG
+    let originalWidth = viewBox.width;
+    let originalHeight = viewBox.height;
+
+    // Pobieramy rzeczywiste granice obiektów w grupie
+    let bbox = group.getBBox();
+
+    // Obliczamy środek obrotu
     let cx = bbox.x + bbox.width / 2;
     let cy = bbox.y + bbox.height / 2;
 
@@ -264,14 +276,174 @@
     let currentAngle = match ? parseFloat(match[1]) : 0;
 
     // Nowy kąt obrotu (dodajemy do poprzedniego)
-    let newAngle = currentAngle + 90;
+    let newAngle = (currentAngle + 90) % 360;
 
     // Ustawienie nowej transformacji na grupie `g`
     group.setAttribute("transform", `rotate(${newAngle}, ${cx}, ${cy})`);
 
     console.log(`✅ Obrót zakończony: ${newAngle} stopni wokół (${cx}, ${cy})`);
+
+    // 🔄 Dostosowanie `viewBox`, aby obiekt był zawsze w centrum
+    let newX = viewBox.x;
+    let newY = viewBox.y;
+    let newWidth = originalWidth;
+    let newHeight = originalHeight;
+
+    if (newAngle === 90) {
+    newX = viewBox.x - (bbox.width - bbox.height) / 2;
+    newY = viewBox.y - (bbox.height - bbox.width) / 2;
+    newWidth = originalHeight;
+    newHeight = originalWidth;
+    } else if (newAngle === 180) {
+    newX = viewBox.x;
+    newY = viewBox.y;
+    } else if (newAngle === 270) {
+    newX = viewBox.x + (bbox.width - bbox.height) / 2;
+    newY = viewBox.y + (bbox.height - bbox.width) / 2;
+    newWidth = originalHeight;
+    newHeight = originalWidth;
     }
 
+    svg.setAttribute("viewBox", `${newX} ${newY} ${newWidth} ${newHeight}`);
+
+    console.log(`🔍 Nowy viewBox: ${newX}, ${newY}, ${newWidth}, ${newHeight}`);
+    }
+
+        function shiftRightSvgElements() {
+        console.log("➡️ Przesuwam cały obiekt SVG o 1px w prawo!");
+
+        let group = document.getElementById("rotate-group");
+        if (!group) {
+            console.error("❌ Nie znaleziono grupy <g id='rotate-group'>! Sprawdź, czy jest w SVG.");
+            return;
+        }
+
+        let svg = group.closest("svg");
+        let viewBox = svg.viewBox.baseVal;
+
+        // Pobieramy obecne transformacje (jeśli istnieją)
+        let currentTransform = group.getAttribute("transform") || "";
+
+        // Dodajemy przesunięcie o 1px w prawo
+        let newTransform = currentTransform + ` translate(1, 0)`; // Przesuwamy w prawo
+
+        // Ustawienie nowej transformacji na grupie `g`
+        group.setAttribute("transform", newTransform);
+
+        console.log(`✅ Przesunięcie zakończone: o 1px w prawo`);
+
+        // 🔄 Dostosowanie `viewBox`, aby obiekt był zawsze widoczny
+        let newX = viewBox.x + 1; // Przesuwamy tylko o 1px w prawo
+        let newY = viewBox.y;     // Nie zmieniamy wartości Y
+        let newWidth = viewBox.width;
+        let newHeight = viewBox.height;
+
+        svg.setAttribute("viewBox", `${newX} ${newY} ${newWidth} ${newHeight}`);
+
+        console.log(`🔍 Nowy viewBox: ${newX}, ${newY}, ${newWidth}, ${newHeight}`);
+    }
+
+        function shiftLeftSvgElements() {
+        console.log("⬅️ Przesuwam cały obiekt SVG o 1px w lewo!");
+
+        let group = document.getElementById("rotate-group");
+        if (!group) {
+            console.error("❌ Nie znaleziono grupy <g id='rotate-group'>! Sprawdź, czy jest w SVG.");
+            return;
+        }
+
+        let svg = group.closest("svg");
+        let viewBox = svg.viewBox.baseVal;
+
+        // Pobieramy obecne transformacje (jeśli istnieją)
+        let currentTransform = group.getAttribute("transform") || "";
+
+        // Dodajemy przesunięcie o 1px w lewo
+        let newTransform = currentTransform + ` translate(-1, 0)`; // Przesuwamy w lewo
+
+        // Ustawienie nowej transformacji na grupie `g`
+        group.setAttribute("transform", newTransform);
+
+        console.log(`✅ Przesunięcie zakończone: o 1px w lewo`);
+
+        // 🔄 Dostosowanie `viewBox`, aby obiekt był zawsze widoczny
+        let newX = viewBox.x - 1; // Przesuwamy tylko o 1px w lewo
+        let newY = viewBox.y;     // Nie zmieniamy wartości Y
+        let newWidth = viewBox.width;
+        let newHeight = viewBox.height;
+
+        svg.setAttribute("viewBox", `${newX} ${newY} ${newWidth} ${newHeight}`);
+
+        console.log(`🔍 Nowy viewBox: ${newX}, ${newY}, ${newWidth}, ${newHeight}`);
+    }
+
+    function shiftUpSvgElements() {
+    console.log("⬆️ Przesuwam cały obiekt SVG o 1px w górę!");
+
+    let group = document.getElementById("rotate-group");
+    if (!group) {
+        console.error("❌ Nie znaleziono grupy <g id='rotate-group'>! Sprawdź, czy jest w SVG.");
+        return;
+    }
+
+    let svg = group.closest("svg");
+    let viewBox = svg.viewBox.baseVal;
+
+    // Pobieramy obecne transformacje (jeśli istnieją)
+    let currentTransform = group.getAttribute("transform") || "";
+
+    // Dodajemy przesunięcie o 1px w górę
+    let newTransform = currentTransform + ` translate(0, -1)`; // Przesuwamy w górę
+
+    // Ustawienie nowej transformacji na grupie `g`
+    group.setAttribute("transform", newTransform);
+
+    console.log(`✅ Przesunięcie zakończone: o 1px w górę`);
+
+    // 🔄 Dostosowanie `viewBox`, aby obiekt był zawsze widoczny
+    let newX = viewBox.x;     // Nie zmieniamy wartości X
+    let newY = viewBox.y - 1; // Przesuwamy o 1px w górę
+    let newWidth = viewBox.width;
+    let newHeight = viewBox.height;
+
+    svg.setAttribute("viewBox", `${newX} ${newY} ${newWidth} ${newHeight}`);
+
+    console.log(`🔍 Nowy viewBox: ${newX}, ${newY}, ${newWidth}, ${newHeight}`);
+}
+
+    function shiftDownSvgElements() {
+        console.log("⬇️ Przesuwam cały obiekt SVG o 1px w dół!");
+
+        let group = document.getElementById("rotate-group");
+        if (!group) {
+            console.error("❌ Nie znaleziono grupy <g id='rotate-group'>! Sprawdź, czy jest w SVG.");
+            return;
+        }
+
+        let svg = group.closest("svg");
+        let viewBox = svg.viewBox.baseVal;
+
+        // Pobieramy obecne transformacje (jeśli istnieją)
+        let currentTransform = group.getAttribute("transform") || "";
+
+        // Dodajemy przesunięcie o 1px w dół
+        let newTransform = currentTransform + ` translate(0, 1)`; // Przesuwamy w dół
+
+        // Ustawienie nowej transformacji na grupie `g`
+        group.setAttribute("transform", newTransform);
+
+        console.log(`✅ Przesunięcie zakończone: o 1px w dół`);
+
+        // 🔄 Dostosowanie `viewBox`, aby obiekt był zawsze widoczny
+        let newX = viewBox.x;     // Nie zmieniamy wartości X
+        let newY = viewBox.y + 1; // Przesuwamy o 1px w dół
+        let newWidth = viewBox.width;
+        let newHeight = viewBox.height;
+
+        svg.setAttribute("viewBox", `${newX} ${newY} ${newWidth} ${newHeight}`);
+
+        console.log(`🔍 Nowy viewBox: ${newX}, ${newY}, ${newWidth}, ${newHeight}`);
+    }
 
     function generatePngFromSvg(svgContent) {
     return new Promise((resolve, reject) => {
@@ -467,6 +639,9 @@
     <Button Icon="@IconType.Fill.Tool" Style="flex-grow: 1; height: 35px;" OnClick="GoKonfiguratorNowegoSystemu">
         Dodaj nowy system
     </Button>
+    <Button Icon="@IconType.Fill.Tool" Style="flex-grow: 1; height: 35px;" OnClick="GoBudujModeleOkien">
+        Modele okien - buduj
+    </Button>
     <Tooltip Placement="@Placement.TopRight" Title="Otwórz konfigurator nowego systemu lub wybierz go z listy">
         <Button Icon="@IconType.Fill.Windows" Style="flex-grow: 1; height: 35px;" OnClick="GoKonfiguratorPolaczen">
             Otwórz konfigurator połączeń naroży
@@ -498,8 +673,13 @@
     @if (activeKey == "2")
     {
         <Tooltip Placement="@Placement.TopRight" Title="Obróć o 90 stopni">
-            <Button class="btn-back" Icon="@IconType.Outline.Loading" Style="width:25px" OnClick="RotateObj" />
+            <Button class="btn-back" Icon="@IconType.Outline.Loading" Style="width:27px" OnClick="RotateObj" />
         </Tooltip>
+
+        <Button class="btn-back" Icon="@IconType.Outline.ArrowLeft" Style="width:27px" OnClick="MoveLeftObj" />
+        <Button class="btn-back" Icon="@IconType.Outline.ArrowRight" Style="width:27px" OnClick="MoveRightObj" />
+        <Button class="btn-back" Icon="@IconType.Outline.ArrowDown" Style="width:27px" OnClick="MoveDownObj" />
+        <Button class="btn-back" Icon="@IconType.Outline.ArrowUp" Style="width:27px" OnClick="MoveUpObj" />
     }
 
 </Divider>
@@ -720,7 +900,7 @@
         </h6>
 
         <!-- Wrapper dla SVG i wartości linii -->
-        <div style="display: flex; align-items: flex-start; gap: 20px;">
+        <div style="display: flex; align-items: flex-start; gap: 15px;">
 
             <!-- Wyświetlanie SVG -->
             <div class="scaled-svg" @key="SvgKey" style="flex: 1; padding: 15px">
@@ -741,7 +921,7 @@
             <div style="width: 300px; border-left: 2px solid #ccc; padding-left: 10px;">
                 <div>
                     <label>Ustaw prezycje zapisu linii:</label>
-                    <AntDesign.InputNumber @bind-Value="prezycjaZapisuLinii" Min="0" Max="3" DefaultValue="0" PlaceHolder="Precyzja zapisu"></AntDesign.InputNumber>
+                    <AntDesign.InputNumber @bind-Value="precyzjaZapisuLinii" Min="0" Max="2" DefaultValue="0" PlaceHolder="Precyzja zapisu"></AntDesign.InputNumber>
                 </div>
                 <h4>📊 Wartości linii</h4>
 
@@ -810,7 +990,7 @@
 
     private string? activeKey;
 
-    private int prezycjaZapisuLinii = 0;
+    private int precyzjaZapisuLinii = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -955,6 +1135,30 @@
         StateHasChanged();
     }
 
+    private async Task MoveRightObj()
+    {
+        await JSRuntime.InvokeVoidAsync("shiftRightSvgElements");
+        StateHasChanged();
+    }
+
+    private async Task MoveLeftObj()
+    {
+        await JSRuntime.InvokeVoidAsync("shiftLeftSvgElements");
+        StateHasChanged();
+    }
+
+    private async Task MoveDownObj()
+    {
+        await JSRuntime.InvokeVoidAsync("shiftDownSvgElements");
+        StateHasChanged();
+    }
+
+    private async Task MoveUpObj()
+    {
+        await JSRuntime.InvokeVoidAsync("shiftUpSvgElements");
+        StateHasChanged();
+    }
+
     private async Task SaveLinieDXF()
     {
         if (!boolZmiana)
@@ -1041,22 +1245,22 @@
 
 
             // Aktualizujemy obiekt w Blazorze
-            konfSystem.PionLewa = Math.Round(verticalGuides.ElementAtOrDefault(0), prezycjaZapisuLinii);
-            konfSystem.PionPrawa = Math.Round(verticalGuides.ElementAtOrDefault(1), prezycjaZapisuLinii);
-            konfSystem.PionOdSzybaOdZew = Math.Round(verticalGuides.ElementAtOrDefault(2), prezycjaZapisuLinii);
-            konfSystem.PionDodatkowa4 = Math.Round(verticalGuides.ElementAtOrDefault(3), prezycjaZapisuLinii);
-            konfSystem.PionDodatkowa5 = Math.Round(verticalGuides.ElementAtOrDefault(4), prezycjaZapisuLinii);
+            konfSystem.PionLewa = Math.Round(verticalGuides.ElementAtOrDefault(0), precyzjaZapisuLinii);
+            konfSystem.PionPrawa = Math.Round(verticalGuides.ElementAtOrDefault(1), precyzjaZapisuLinii);
+            konfSystem.PionOdSzybaOdZew = Math.Round(verticalGuides.ElementAtOrDefault(2), precyzjaZapisuLinii);
+            konfSystem.PionDodatkowa4 = Math.Round(verticalGuides.ElementAtOrDefault(3), precyzjaZapisuLinii);
+            konfSystem.PionDodatkowa5 = Math.Round(verticalGuides.ElementAtOrDefault(4), precyzjaZapisuLinii);
 
-            var odwWym = Math.Round(horizontalGuides.ElementAtOrDefault(1), prezycjaZapisuLinii);// Zmienna do odwracania wymiarów
+            var odwWym = Math.Round(horizontalGuides.ElementAtOrDefault(1), precyzjaZapisuLinii);// Zmienna do odwracania wymiarów
 
-            konfSystem.PoziomDol = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(0), prezycjaZapisuLinii);
-            konfSystem.PoziomGora = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(1), prezycjaZapisuLinii);
-            konfSystem.PoziomKorpus = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(2), prezycjaZapisuLinii);
-            konfSystem.PoziomLiniaSzkla = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(3), prezycjaZapisuLinii);
-            konfSystem.PoziomLiniaOkucia = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(4), prezycjaZapisuLinii);
-            konfSystem.PoziomOsDormas = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(5), prezycjaZapisuLinii);
-            konfSystem.PoziomDodatkowa6 = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(6), prezycjaZapisuLinii);
-            konfSystem.PoziomDodatkowa7 = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(7), prezycjaZapisuLinii);
+            konfSystem.PoziomDol = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(0), precyzjaZapisuLinii);
+            konfSystem.PoziomGora = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(1), precyzjaZapisuLinii);
+            konfSystem.PoziomKorpus = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(2), precyzjaZapisuLinii);
+            konfSystem.PoziomLiniaSzkla = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(3), precyzjaZapisuLinii);
+            konfSystem.PoziomLiniaOkucia = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(4), precyzjaZapisuLinii);
+            konfSystem.PoziomOsDormas = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(5), precyzjaZapisuLinii);
+            konfSystem.PoziomDodatkowa6 = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(6), precyzjaZapisuLinii);
+            konfSystem.PoziomDodatkowa7 = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(7), precyzjaZapisuLinii);
 
             konfSystem.SVG = await JSRuntime.InvokeAsync<string>("getUpdatedSvg");
             // 🔥 Zamiana przecinków na kropki
@@ -1222,6 +1426,14 @@
     {
 
         NavigationManager.NavigateTo($"/Systemy-okienne");
+
+        await Task.CompletedTask;
+    }
+
+    private async Task GoBudujModeleOkien()
+    {
+
+        NavigationManager.NavigateTo($"/Modele-okienne");
 
         await Task.CompletedTask;
     }

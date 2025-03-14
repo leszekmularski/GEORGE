@@ -1,0 +1,318 @@
+﻿@page "/Modele-okienne"
+@using SixLabors.ImageSharp
+@using SixLabors.ImageSharp.PixelFormats
+@using SixLabors.ImageSharp.Drawing.Processing
+@using SixLabors.ImageSharp.Processing
+@using SixLabors.ImageSharp.Drawing
+@using GEORGE.Shared.Models
+@using GEORGE.Shared.Class
+@inject IJSRuntime JS
+@inject Utilities.ILocalStorage LocalStorage
+@inject HttpClient Http
+@using System.Net
+@inject IMessageService _message
+
+<script>
+    let draggedElement = null;
+
+    window.startDrag = (modelName, startX, startY) => {
+    draggedElement = document.getElementById(modelName).cloneNode(true);
+    draggedElement.style.position = 'absolute';
+    draggedElement.style.left = `${startX}px`;
+    draggedElement.style.top = `${startY}px`;
+    draggedElement.style.width = '100px';
+    draggedElement.style.height = 'auto';
+    draggedElement.style.zIndex = 1000;
+    draggedElement.style.pointerEvents = 'none'; // Zapobiega interakcji w trakcie przeciągania
+    document.body.appendChild(draggedElement);
+
+    const moveElement = (e) => {
+    if (draggedElement) {
+    draggedElement.style.left = `${e.clientX - 50}px`;
+    draggedElement.style.top = `${e.clientY - 50}px`;
+    }
+    };
+
+    const stopDrag = (e) => {
+    document.removeEventListener('mousemove', moveElement);
+    document.removeEventListener('mouseup', stopDrag);
+
+    if (draggedElement) {
+    const target = document.getElementById('display-window');
+    const targetRect = target.getBoundingClientRect();
+
+    // Sprawdzamy, czy element jest w obszarze docelowym
+    if (
+    e.clientX > targetRect.left &&
+    e.clientX < targetRect.right &&
+    e.clientY > targetRect.top &&
+    e.clientY < targetRect.bottom
+    ) {
+    // Dodajemy model do okna
+    const finalWindow = document.getElementById('final-window');
+    finalWindow.src = draggedElement.src;
+    }
+
+    draggedElement.remove();
+    draggedElement = null;
+    }
+    };
+
+    document.addEventListener('mousemove', moveElement);
+    document.addEventListener('mouseup', stopDrag);
+    };
+</script>
+
+
+<style>
+
+    /* Ustawienie strony na pełne okno przeglądarki */
+    html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden; /* Zapobiega przewijaniu */
+    }
+
+    /* Kontener główny – pełna wysokość i szerokość */
+    .window-model-container {
+        display: flex;
+        flex-wrap: nowrap; /* Zapobiega zawijaniu elementów */
+        justify-content: space-between;
+        align-items: stretch;
+        width: 100%;
+        height: 100vh; /* Pełna wysokość przeglądarki */
+        background-color: #f1f1f1;
+        padding: 10px;
+        box-sizing: border-box;
+    }
+
+    /* Kontener z listą modeli */
+    .wing-model-container {
+        flex: 0 0 300px; /* Stała szerokość */
+        height: 100%;
+        overflow-y: auto; /* Przewijanie listy modeli */
+        border-right: 2px solid #ccc;
+        padding: 10px;
+        background: #fff;
+    }
+
+        /* Tabela modeli */
+        .wing-model-container table {
+            font-size: 14px;
+            width: 100%;
+        }
+
+        /* Miniatury modeli */
+        .wing-model-container img {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            cursor: grab;
+            transition: transform 0.2s ease-in-out;
+        }
+
+            .wing-model-container img:hover {
+                transform: scale(1.1);
+            }
+
+    /* Główne okno wyświetlania */
+    .display-window {
+        flex-grow: 1; /* Rozciąga się na całą dostępną szerokość */
+        height: 100%;
+        border: 2px solid #ccc;
+        background-color: #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+
+        /* Gotowe okno - obrazek */
+        .display-window img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+</style>
+
+<h3>Modele Okienne</h3>
+
+<!-- 🔹 Wybór systemu -->
+<Tooltip Placement="@Placement.TopRight" Style="width:100%;" Title="Otwórz konfigurator nowego systemu lub wybierz go z listy">
+    <div class="d-flex align-items-center" style="width:100%;">
+        @if (Systemy != null && Systemy.Any())
+        {
+            <select class="form-select me-2" @onchange="@(async (args) => await OnSystemSelected(args))">
+                <option value="" disabled selected>-- Wybierz system --</option>
+                @foreach (var system in Systemy)
+                {
+                    <option value="@system.RowId">@system.Nazwa_Systemu</option>
+                }
+            </select>
+        }
+    </div>
+</Tooltip>
+
+<div class="window-model-container">
+    <!-- Tabela z modelami po lewej stronie -->
+    <div class="wing-model-container">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Typ</th>
+                    <th>Wymiary</th>
+                    <th>Miniaturka</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (ListaModeli != null)
+                {
+                    @foreach (var model in ListaModeli)
+                    {
+                        <tr>
+                            <td>@model.Typ</td>
+                            <td>@model.KonstrMinSzer x @model.KonstrMinWys → @model.KonstrMaxSzer x @model.KonstrMaxWys</td>
+                            <td>
+                                @if (model.Rysunek != null && model.Rysunek.Length > 0)
+                                {
+                                    <img id="@($"wing-{model.Typ}")"
+                                         src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
+                                         style="cursor: grab;"
+                                         @onmousedown="@(e => StartDrag(e, $"wing-{model.Typ}"))" />
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Brak</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Obszar wyświetlania okna po prawej stronie -->
+    <div id="display-window" class="display-window">
+        <img id="final-window" src="images/final-window.png" alt="Gotowe okno" class="img-fluid" />
+    </div>
+</div>
+
+
+@code {
+    // Klasa WingModel definiująca dane dla skrzydła
+    private List<KonfSystem>? KonfiguracjeSystemu;
+
+    private List<SystemyOkienne>? Systemy;
+
+
+    private string SelectedSystemId = "";
+    private List<KonfModele>? ListaModeli;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Laduj_Uprawnienia();
+
+        Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
+    }
+
+    private async Task OnSystemSelected(ChangeEventArgs e)
+    {
+        SelectedSystemId = e.Value.ToString();
+
+        Console.WriteLine($"Wybrano system o ID: {SelectedSystemId}");
+
+        if (string.IsNullOrEmpty(SelectedSystemId))
+        {
+  
+            if (KonfiguracjeSystemu != null) KonfiguracjeSystemu.Clear();
+            return;
+        }
+
+        KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIN_DROWID/{SelectedSystemId}");
+
+        ListaModeli = await Http.GetFromJsonAsync<List<KonfModele>>("api/konfmodele/");
+
+    }
+
+    private void StartDrag(MouseEventArgs e, string modelId)
+    {
+        JS.InvokeVoidAsync("window.startDrag", modelId, e.ClientX, e.ClientY);
+    }
+
+    private string RysunekToBase64(byte[]? imageData)
+    {
+        if (imageData == null || imageData.Length == 0)
+        {
+            return "data:image/png;base64,"; // Zapobiega błędom
+        }
+
+        return $"data:image/png;base64,{Convert.ToBase64String(imageData)}";
+    }
+
+    private bool boolOdczyt = false;
+    private bool boolZmiana = false;
+    private bool boolUsuniecia = false;
+    private bool boolAdmin = false;
+    private bool boolNowy = false;
+    private string RowIdPracownika = "";
+    private string? user;
+    private bool isNotDisabled => !boolZmiana;
+    private List<UprawnieniaPracownikaViewModel>? uprawnienia;
+
+    private async Task Laduj_Uprawnienia()
+    {
+        user = await LocalStorage.GetStringAsync("user");
+
+        if (string.IsNullOrEmpty(user))
+        {
+            //NavigationManager.NavigateTo($"", true);
+            return;
+        }
+
+        string nazwaTabeli = "SystemyOkienne";
+
+        Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");
+
+        try
+        {
+            uprawnienia = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"/api/ZwrocSatus/{user}/{nazwaTabeli}");
+        }
+        catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            Console.WriteLine("Brak danych!!!");
+            await _message.Error("Brak danych - status użytkownika");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            await _message.Error(ex.Message);
+        }
+
+        if (uprawnienia != null)
+        {
+            if (uprawnienia.Count > 0)
+            {
+                var znalezioneElementy = uprawnienia.Where(uprawnienie => uprawnienie.TableName == nazwaTabeli);
+                Console.WriteLine("Znaleziono uprawnienia dla użytkownika: " + user + " w tabeli: " + nazwaTabeli + " ilość rekordów: " + znalezioneElementy.Count());
+                if (znalezioneElementy.Any())
+                {
+                    var szuk = znalezioneElementy.FirstOrDefault(x => x.TableName == nazwaTabeli);
+                    if (szuk != null)
+                    {
+                        boolOdczyt = szuk.Odczyt;
+                        boolZmiana = szuk.Zmiana;
+                        boolUsuniecia = szuk.Usuniecie;
+                        boolAdmin = szuk.Administrator;
+                        boolNowy = szuk.Zapis;
+                        RowIdPracownika = szuk.RowId ?? "??????";
+                    }
+                }
+            }
+        }
+    }
+
+}

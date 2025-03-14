@@ -14,7 +14,7 @@ public class ImageGenerator
         _httpClient = httpClient;
     }
 
-    public async Task<byte[]> GenerateImageAsync(List<KonfSystem> model, string polaczenia, int imageWidth, int imageHeight,  string imageUrl)
+    public async Task<byte[]> GenerateImageAsync(List<KonfSystem> model, string polaczenia, int imageWidth, int imageHeight,  string imageUrl, string glassColorHex)
     {
         try
         {
@@ -37,6 +37,14 @@ public class ImageGenerator
 
             // Pobranie szerokości profili
             double profileLeft = model.FirstOrDefault(e => e.WystepujeLewa)?.PionPrawa ?? 0 - model.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0;
+            //W przypadku słupka ruchomego który jest nadrzędny
+            var profileLeftSH =(model.FirstOrDefault(e => e.Typ == "Słupek ruchomy" && (e.WystepujeLewa || e.WystepujePrawa))?.PionPrawa ?? 0) - (model.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0);
+
+            if (profileLeftSH > 0)
+            {
+                profileLeft = profileLeftSH;
+            }
+
             double profileTop = model.FirstOrDefault(e => e.WystepujeGora)?.PionPrawa ?? 0 - model.FirstOrDefault(e => e.WystepujeGora)?.PionLewa ?? 0;
             double profileRight = model.FirstOrDefault(e => e.WystepujePrawa)?.PionPrawa ?? 0 - model.FirstOrDefault(e => e.WystepujePrawa)?.PionLewa ?? 0;
             double profileBottom = model.FirstOrDefault(e => e.WystepujeDol)?.PionPrawa ?? 0 - model.FirstOrDefault(e => e.WystepujeDol)?.PionLewa ?? 0;
@@ -62,6 +70,10 @@ public class ImageGenerator
 
             void AddTrapezoidFrame(int x, int y, int width, int height, string joinType, int cornerId, Image<Rgba32> woodTexture)
             {
+
+                if(width == 0) width = 1;
+                if(height == 0) height = 1;
+
                 PointF[] trapezoidPoints;
 
                 Console.WriteLine($"🎨 joinType: {joinType}, cornerId: {cornerId}, X: {x}, Y: {y}, Width: {width}, Height: {height}");
@@ -221,9 +233,9 @@ public class ImageGenerator
                     }
                     x.Draw(Pens.Solid(Color.Black, borderThickness), path);
                 }
-
+                Color glassColor = Color.ParseHex(glassColorHex); // Parsowanie HEX na kolor
                 // 🎨 Szyba – przezroczysta warstwa niebieska
-                x.Fill(Color.LightBlue.WithAlpha(0.4f), glassPath);
+                x.Fill(glassColor, glassPath);
                 x.Draw(Pens.Solid(Color.Black, borderThickness), glassPath);
             });
 

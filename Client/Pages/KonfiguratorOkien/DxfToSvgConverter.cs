@@ -37,6 +37,11 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 maxY = Math.Max(maxY, arc.Center.Y + arc.Radius);
             }
 
+            //if (maxX > maxY)
+            //{
+            //    maxY = maxX;
+            //}
+
             // 🔥 Przesunięcie rysunku do dodatniej ćwiartki (X, Y >= 0)
             double offsetX = -minX; // Przesuwamy całość tak, aby minX = 0
             double offsetY = -minY; // Przesuwamy całość tak, aby minY = 0
