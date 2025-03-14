@@ -20,6 +20,7 @@ namespace GEORGE.Shared.Models
         public double? PionOdSzybaOdZew { get; set; }
         public double? PionDodatkowa4 { get; set; }
         public double? PionDodatkowa5 { get; set; }
+        public double? PionOsSymetrii { get; set; }
 
         // Prowadnice poziome
         public double? PoziomDol { get; set; }
@@ -30,6 +31,7 @@ namespace GEORGE.Shared.Models
         public double? PoziomOsDormas { get; set; }
         public double? PoziomDodatkowa6 { get; set; }
         public double? PoziomDodatkowa7 { get; set; }
+        public double? PoziomOsSymetrii { get; set; }
         public string? Indeks { get; set; }
         public string? Nazwa { get; set; }
         public string? Typ { get; set; } // Typ- Rama, skrzydło, słupek ruchomy, słupek stały

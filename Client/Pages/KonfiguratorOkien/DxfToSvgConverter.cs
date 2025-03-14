@@ -95,6 +95,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             svg.Append($"<line id='guide-line-vertical' x1='0' y1='0' x2='0' y2='{height.ToString().Replace(',', '.')}' stroke='red' stroke-width='1' stroke-dasharray='5,5' />");
             svg.Append($"<line id='guide-line-verticalMax' x1='{width.ToString().Replace(',', '.')}' y1='0' x2='{width.ToString().Replace(',', '.')}' y2='{height.ToString().Replace(',', '.')}' stroke='green' stroke-width='1' stroke-dasharray='5,5' />");
             svg.Append($"<line id='guide-line-verticalOdlSzyby' x1='{width.ToString().Replace(',', '.')}' y1='0' x2='{width.ToString().Replace(',', '.')}' y2='{height.ToString().Replace(',', '.')}' stroke='#43277c' stroke-width='1' stroke-dasharray='5,5' />");
+            svg.Append($"<line id='guide-line-verticalOsSymetrii' x1='{width.ToString().Replace(',', '.')}' y1='0' x2='{width.ToString().Replace(',', '.')}' y2='{height.ToString().Replace(',', '.')}' stroke='#c51162' stroke-width='1' stroke-dasharray='5,5' />");
 
             svg.Append($"<line id='guide-line-horizontal' x1='0' y1='0' x2='{width.ToString().Replace(',', '.')}' y2='0' stroke='blue' stroke-width='1' stroke-dasharray='5,5' />");
             svg.Append($"<line id='guide-line-horizontalMax' x1='0' y1='{height.ToString().Replace(',', '.')}' x2='{width.ToString().Replace(',', '.')}' y2='{height.ToString().Replace(',', '.')}' stroke='yellow' stroke-width='1' stroke-dasharray='5,5' />");
@@ -102,6 +103,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             svg.Append($"<line id='guide-line-horizontal-liniaSzklenia' x1='0' y1='5' x2='{width.ToString().Replace(',', '.')}' y2='5' stroke='#43277c' stroke-width='1' stroke-dasharray='5,5' />");
             svg.Append($"<line id='guide-line-horizontal-okucie' x1='0' y1='5' x2='{width.ToString().Replace(',', '.')}' y2='5' stroke='#fadb14' stroke-width='1' stroke-dasharray='5,5' />");
             svg.Append($"<line id='guide-line-horizontal-dormas' x1='0' y1='5' x2='{width.ToString().Replace(',', '.')}' y2='5' stroke='#f5222d' stroke-width='1' stroke-dasharray='5,5' />");
+            svg.Append($"<line id='guide-line-horizontal-OsSymetrii' x1='0' y1='5' x2='{width.ToString().Replace(',', '.')}' y2='5' stroke='#c51162' stroke-width='1' stroke-dasharray='5,5' />");
 
             svg.Append("</svg>");
 

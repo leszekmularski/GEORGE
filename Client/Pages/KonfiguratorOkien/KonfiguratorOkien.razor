@@ -689,7 +689,7 @@
         <h3 class="text-center mt-3">
             📌 Skonfigurowane elementy
             <Tooltip Placement="@Placement.TopRight" Title="Dodaj nowy element konstrukcyjny">
-                <Button class="btn-back" Icon="@IconType.Outline.NodeIndex" OnClick="DodajNowy">Dodaj nowy</Button>
+                <Button class="btn-back" Icon="@IconType.Outline.NodeIndex" OnClick="DodajNowy">Dodaj nowy profil</Button>
             </Tooltip>
         </h3>
 
@@ -1215,6 +1215,9 @@
                 verticalGuides.Add(verticalElement.GetProperty("guide-line-vertical").GetDouble());
                 verticalGuides.Add(verticalElement.GetProperty("guide-line-verticalMax").GetDouble());
                 verticalGuides.Add(verticalElement.GetProperty("guide-line-verticalOdlSzyby").GetDouble());
+
+                verticalGuides.Add(verticalElement.GetProperty("guide-line-verticalOsSymetrii").GetDouble());
+
             }
             else
             {
@@ -1231,6 +1234,8 @@
                 horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal-liniaSzklenia").GetDouble());
                 horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal-okucie").GetDouble());
                 horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal-dormas").GetDouble());
+
+                verticalGuides.Add(verticalElement.GetProperty("guide-line-horizontal-OsSymetrii").GetDouble());
             }
             else
             {
