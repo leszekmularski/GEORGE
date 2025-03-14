@@ -490,7 +490,7 @@
             {
 
                 var imageGenerator = new ImageGenerator(Http);
-                byte[] imageBytes = await imageGenerator.GenerateImageAsync(PowiazanyModel.KonfSystem, EdytowanyModel.PolaczenieNaroza, imageUrl);
+                byte[] imageBytes = await imageGenerator.GenerateImageAsync(PowiazanyModel.KonfSystem, EdytowanyModel.PolaczenieNaroza,500, 500, imageUrl);
                 //byte[] imageBytes = await imageGenerator.GenerateImageAsync(imageUrl);
 
                 if (imageBytes != null)
