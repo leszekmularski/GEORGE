@@ -38,11 +38,12 @@ public class ImageGenerator
             // Pobranie szerokości profili
             double profileLeft = model.FirstOrDefault(e => e.WystepujeLewa)?.PionPrawa ?? 0 - model.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0;
             //W przypadku słupka ruchomego który jest nadrzędny
-            var profileLeftSH =(model.FirstOrDefault(e => e.Typ == "Słupek ruchomy" && (e.WystepujeLewa || e.WystepujePrawa))?.PionPrawa ?? 0) - (model.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0);
+            var profileLeftSH =(model.FirstOrDefault(e => e.Typ == "Słupek stały" && e.WystepujeLewa)?.PionPrawa ?? 0) - (model.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0);
 
             if (profileLeftSH > 0)
             {
                 profileLeft = profileLeftSH;
+                Console.WriteLine("profileLeft = profileLeftSH");  
             }
 
             double profileTop = model.FirstOrDefault(e => e.WystepujeGora)?.PionPrawa ?? 0 - model.FirstOrDefault(e => e.WystepujeGora)?.PionLewa ?? 0;

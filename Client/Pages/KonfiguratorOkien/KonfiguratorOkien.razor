@@ -26,6 +26,8 @@
     svg {
     width: 100%;
     height: 100%;
+    transform-origin: center; /* 🔥 Kluczowe dla poprawnego zoomu */
+    transition: transform 0.2s ease-in-out; /* 🔄 Płynna animacja */
     }
 
     #guide-line-vertical, #guide-line-horizontal, #guide-line-verticalMax, #guide-line-horizontalMax {
@@ -50,6 +52,40 @@
     // 🔥 Nowe zmienne do przechwycenia wartości prowadnic
     let verticalGuides = {};
     let horizontalGuides = {};
+
+    let zoomLevel = 1;  // 🔥 Domyślny poziom zoomu
+    const zoomFactor = 1.1; // 🔥 O ile zmieniamy skalę (10%)
+
+    function zoomInSvg() {
+        console.log("🔍 Powiększam rysunek SVG!");
+        zoomLevel *= zoomFactor;
+        updateSvgZoom();
+    }
+
+    function zoomOutSvg() {
+        console.log("🔎 Pomniejszam rysunek SVG!");
+        zoomLevel /= zoomFactor;
+        updateSvgZoom();
+    }
+
+    function updateSvgZoom() {
+        let svgContainer = document.querySelector(".scaled-svg");
+        let svg = svgContainer.querySelector("svg");
+
+        if (!svg) {
+            console.error("❌ Nie znaleziono rysunku SVG!");
+            return;
+        }
+
+        // 🔥 Skalowanie poprzez `transform: scale()`
+        svg.style.transform = `scale(${zoomLevel})`;
+        svg.style.transformOrigin = "center";
+
+        console.log(`✅ Nowy poziom zoomu: ${zoomLevel}`);
+
+        // 🔄 Aktualizacja wartości prowadnic
+        updateGuideValues();
+    }
 
     function enableDrag() {
     console.log("🔧 enableDrag uruchomiony!");
@@ -148,6 +184,23 @@
     }
 
     // 🔥 Aktualizacja wartości w panelu bocznym
+
+    // 🔥 Mapa zamiany ID na czytelne nazwy
+    const guideLabels = {
+    "guide-line-vertical": "Linia lewa rysunku",
+    "guide-line-verticalMax": "Linia prawa rysunku",
+    "guide-line-verticalOdlSzyby": "Pionowa linia szkła",
+    "guide-line-verticalOsSymetrii": "Oś poprzeczki",
+    "guide-line-horizontal": "Linia górna rysunku",
+    "guide-line-horizontalMax": "Linia dolna rysunku",
+    "guide-line-horizontal-korpus": "Linia korpusu",
+    "guide-line-horizontal-liniaSzklenia": "Pozioma linia szkła",
+    "guide-line-horizontal-okucie": "Pozioma linia OKUCIA",
+    "guide-line-horizontal-dormas": "Pozioma linia DORMAS",
+    "guide-line-horizontal-OsSymetrii": "Oś słupka"
+    };
+
+    // 🔥 Aktualizacja wartości w panelu bocznym
     function updateGuideValues() {
     let verticalList = document.getElementById("verticalValues");
     let horizontalList = document.getElementById("horizontalValues");
@@ -168,10 +221,11 @@
     Object.keys(verticalGuides).forEach(id => {
     let line = document.getElementById(id);
     let color = line ? line.getAttribute("stroke") : "black"; // Pobieramy kolor linii
+    let displayName = guideLabels[id] || id; // Jeśli brak tłumaczenia, użyj ID
 
     let li = document.createElement("li");
     li.innerHTML = `<span style="background-color:${color}; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>
-    ${id}: ${verticalGuides[id]}px`;
+    ${displayName}: ${verticalGuides[id]}px`;
     verticalList.appendChild(li);
     });
 
@@ -181,10 +235,11 @@
     let color = line ? line.getAttribute("stroke") : "black"; // Pobieramy kolor linii
     let originalY = horizontalGuides[id];
     let flippedY = totalHeight - originalY; // 🔥 Liczymy Y od dołu
+    let displayName = guideLabels[id] || id; // Jeśli brak tłumaczenia, użyj ID
 
     let li = document.createElement("li");
     li.innerHTML = `<span style="background-color:${color}; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>
-    ${id}: ${flippedY}px`;
+    ${displayName}: ${flippedY}px`;
     horizontalList.appendChild(li);
     });
     }
@@ -309,140 +364,48 @@
     console.log(`🔍 Nowy viewBox: ${newX}, ${newY}, ${newWidth}, ${newHeight}`);
     }
 
-        function shiftRightSvgElements() {
+    function updateTransform(dx, dy) {
+        let group = document.getElementById("rotate-group");
+        if (!group) {
+            console.error("❌ Nie znaleziono grupy <g id='rotate-group'>! Sprawdź, czy jest w SVG.");
+            return;
+        }
+
+        let currentTransform = group.getAttribute("transform") || "translate(0, 0)";
+        let match = currentTransform.match(/translate\((-?\d+\.?\d*),\s*(-?\d+\.?\d*)\)/);
+
+        let currentX = match ? parseFloat(match[1]) : 0;
+        let currentY = match ? parseFloat(match[2]) : 0;
+
+        // Nowa transformacja
+        let newTransform = `translate(${currentX + dx}, ${currentY + dy})`;
+        group.setAttribute("transform", newTransform);
+
+        console.log(`✅ Przesunięcie zakończone: X=${currentX + dx}, Y=${currentY + dy}`);
+    }
+
+    // Przesunięcie w prawo
+    function shiftRightSvgElements() {
         console.log("➡️ Przesuwam cały obiekt SVG o 1px w prawo!");
-
-        let group = document.getElementById("rotate-group");
-        if (!group) {
-            console.error("❌ Nie znaleziono grupy <g id='rotate-group'>! Sprawdź, czy jest w SVG.");
-            return;
-        }
-
-        let svg = group.closest("svg");
-        let viewBox = svg.viewBox.baseVal;
-
-        // Pobieramy obecne transformacje (jeśli istnieją)
-        let currentTransform = group.getAttribute("transform") || "";
-
-        // Dodajemy przesunięcie o 1px w prawo
-        let newTransform = currentTransform + ` translate(1, 0)`; // Przesuwamy w prawo
-
-        // Ustawienie nowej transformacji na grupie `g`
-        group.setAttribute("transform", newTransform);
-
-        console.log(`✅ Przesunięcie zakończone: o 1px w prawo`);
-
-        // 🔄 Dostosowanie `viewBox`, aby obiekt był zawsze widoczny
-        let newX = viewBox.x + 1; // Przesuwamy tylko o 1px w prawo
-        let newY = viewBox.y;     // Nie zmieniamy wartości Y
-        let newWidth = viewBox.width;
-        let newHeight = viewBox.height;
-
-        svg.setAttribute("viewBox", `${newX} ${newY} ${newWidth} ${newHeight}`);
-
-        console.log(`🔍 Nowy viewBox: ${newX}, ${newY}, ${newWidth}, ${newHeight}`);
+        updateTransform(1, 0);
     }
 
-        function shiftLeftSvgElements() {
+    // Przesunięcie w lewo
+    function shiftLeftSvgElements() {
         console.log("⬅️ Przesuwam cały obiekt SVG o 1px w lewo!");
-
-        let group = document.getElementById("rotate-group");
-        if (!group) {
-            console.error("❌ Nie znaleziono grupy <g id='rotate-group'>! Sprawdź, czy jest w SVG.");
-            return;
-        }
-
-        let svg = group.closest("svg");
-        let viewBox = svg.viewBox.baseVal;
-
-        // Pobieramy obecne transformacje (jeśli istnieją)
-        let currentTransform = group.getAttribute("transform") || "";
-
-        // Dodajemy przesunięcie o 1px w lewo
-        let newTransform = currentTransform + ` translate(-1, 0)`; // Przesuwamy w lewo
-
-        // Ustawienie nowej transformacji na grupie `g`
-        group.setAttribute("transform", newTransform);
-
-        console.log(`✅ Przesunięcie zakończone: o 1px w lewo`);
-
-        // 🔄 Dostosowanie `viewBox`, aby obiekt był zawsze widoczny
-        let newX = viewBox.x - 1; // Przesuwamy tylko o 1px w lewo
-        let newY = viewBox.y;     // Nie zmieniamy wartości Y
-        let newWidth = viewBox.width;
-        let newHeight = viewBox.height;
-
-        svg.setAttribute("viewBox", `${newX} ${newY} ${newWidth} ${newHeight}`);
-
-        console.log(`🔍 Nowy viewBox: ${newX}, ${newY}, ${newWidth}, ${newHeight}`);
+        updateTransform(-1, 0);
     }
 
+    // Przesunięcie w górę
     function shiftUpSvgElements() {
-    console.log("⬆️ Przesuwam cały obiekt SVG o 1px w górę!");
-
-    let group = document.getElementById("rotate-group");
-    if (!group) {
-        console.error("❌ Nie znaleziono grupy <g id='rotate-group'>! Sprawdź, czy jest w SVG.");
-        return;
+        console.log("⬆️ Przesuwam cały obiekt SVG o 1px w górę!");
+        updateTransform(0, -1);
     }
 
-    let svg = group.closest("svg");
-    let viewBox = svg.viewBox.baseVal;
-
-    // Pobieramy obecne transformacje (jeśli istnieją)
-    let currentTransform = group.getAttribute("transform") || "";
-
-    // Dodajemy przesunięcie o 1px w górę
-    let newTransform = currentTransform + ` translate(0, -1)`; // Przesuwamy w górę
-
-    // Ustawienie nowej transformacji na grupie `g`
-    group.setAttribute("transform", newTransform);
-
-    console.log(`✅ Przesunięcie zakończone: o 1px w górę`);
-
-    // 🔄 Dostosowanie `viewBox`, aby obiekt był zawsze widoczny
-    let newX = viewBox.x;     // Nie zmieniamy wartości X
-    let newY = viewBox.y - 1; // Przesuwamy o 1px w górę
-    let newWidth = viewBox.width;
-    let newHeight = viewBox.height;
-
-    svg.setAttribute("viewBox", `${newX} ${newY} ${newWidth} ${newHeight}`);
-
-    console.log(`🔍 Nowy viewBox: ${newX}, ${newY}, ${newWidth}, ${newHeight}`);
-}
-
+    // Przesunięcie w dół
     function shiftDownSvgElements() {
         console.log("⬇️ Przesuwam cały obiekt SVG o 1px w dół!");
-
-        let group = document.getElementById("rotate-group");
-        if (!group) {
-            console.error("❌ Nie znaleziono grupy <g id='rotate-group'>! Sprawdź, czy jest w SVG.");
-            return;
-        }
-
-        let svg = group.closest("svg");
-        let viewBox = svg.viewBox.baseVal;
-
-        // Pobieramy obecne transformacje (jeśli istnieją)
-        let currentTransform = group.getAttribute("transform") || "";
-
-        // Dodajemy przesunięcie o 1px w dół
-        let newTransform = currentTransform + ` translate(0, 1)`; // Przesuwamy w dół
-
-        // Ustawienie nowej transformacji na grupie `g`
-        group.setAttribute("transform", newTransform);
-
-        console.log(`✅ Przesunięcie zakończone: o 1px w dół`);
-
-        // 🔄 Dostosowanie `viewBox`, aby obiekt był zawsze widoczny
-        let newX = viewBox.x;     // Nie zmieniamy wartości X
-        let newY = viewBox.y + 1; // Przesuwamy o 1px w dół
-        let newWidth = viewBox.width;
-        let newHeight = viewBox.height;
-
-        svg.setAttribute("viewBox", `${newX} ${newY} ${newWidth} ${newHeight}`);
-
-        console.log(`🔍 Nowy viewBox: ${newX}, ${newY}, ${newWidth}, ${newHeight}`);
+        updateTransform(0, 1);
     }
 
     function generatePngFromSvg(svgContent) {
@@ -680,6 +643,8 @@
         <Button class="btn-back" Icon="@IconType.Outline.ArrowRight" Style="width:27px" OnClick="MoveRightObj" />
         <Button class="btn-back" Icon="@IconType.Outline.ArrowDown" Style="width:27px" OnClick="MoveDownObj" />
         <Button class="btn-back" Icon="@IconType.Outline.ArrowUp" Style="width:27px" OnClick="MoveUpObj" />
+        <Button class="btn-back" Icon="@IconType.Outline.ZoomIn" Style="width:27px" OnClick="ZoomInObj" />
+        <Button class="btn-back" Icon="@IconType.Outline.ZoomOut" Style="width:27px" OnClick="ZoomOutObj" />
     }
 
 </Divider>
@@ -875,6 +840,14 @@
                         <label class="form-label">Wartość linia: pionowa prawa</label>
                         <Input type="number" class="form-control" step="0.01" @bind-Value="@konfSystem.PionPrawa" />
                     </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Wartość linia: pionowa oś symetrii</label>
+                        <Input type="number" class="form-control" step="0.01" @bind-Value="@konfSystem.PionOsSymetrii" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Wartość linia: pozioma oś symetrii</label>
+                        <Input type="number" class="form-control" step="0.01" @bind-Value="@konfSystem.PoziomOsSymetrii" />
+                    </div>
                 </div>
 
                 <!-- Przyciski akcji -->
@@ -945,18 +918,21 @@
                     </label>
                 }
 
-                <hr />
+                <hr>
+                <label>Występuje:</label> 
+                <br/>
                 <label>
-                    <input type="checkbox" @bind="@konfSystem.WystepujeDol" /> Występuje na dole
+                    <input type="checkbox" @bind="@konfSystem.WystepujeDol" /> Na dole
                 </label>
                 <label>
-                    <input type="checkbox" @bind="@konfSystem.WystepujeLewa" /> Występuje po lewej
+                    <input type="checkbox" @bind="@konfSystem.WystepujeLewa" /> Po lewej (lub słupek)
+                </label>
+                <br/>
+                <label>
+                    <input type="checkbox" @bind="@konfSystem.WystepujeGora" /> U góra (lub poprzeczka)
                 </label>
                 <label>
-                    <input type="checkbox" @bind="@konfSystem.WystepujeGora" /> Występuje u góra
-                </label>
-                <label>
-                    <input type="checkbox" @bind="@konfSystem.WystepujePrawa" /> Występuje po prawej
+                    <input type="checkbox" @bind="@konfSystem.WystepujePrawa" /> Po prawej
                 </label>
                 <hr />
                 <label>
@@ -1159,6 +1135,18 @@
         StateHasChanged();
     }
 
+    private async Task ZoomInObj()
+    {
+        await JSRuntime.InvokeVoidAsync("zoomInSvg");
+        StateHasChanged();
+    }
+
+    private async Task ZoomOutObj()
+    {
+        await JSRuntime.InvokeVoidAsync("zoomOutSvg");
+        StateHasChanged();
+    }
+
     private async Task SaveLinieDXF()
     {
         if (!boolZmiana)
@@ -1205,7 +1193,7 @@
                 Console.WriteLine("⚠️ Błąd: Brak danych prowadnic!");
                 return;
             }
-
+   
             List<double> verticalGuides = new();
             List<double> horizontalGuides = new();
 
@@ -1215,9 +1203,7 @@
                 verticalGuides.Add(verticalElement.GetProperty("guide-line-vertical").GetDouble());
                 verticalGuides.Add(verticalElement.GetProperty("guide-line-verticalMax").GetDouble());
                 verticalGuides.Add(verticalElement.GetProperty("guide-line-verticalOdlSzyby").GetDouble());
-
                 verticalGuides.Add(verticalElement.GetProperty("guide-line-verticalOsSymetrii").GetDouble());
-
             }
             else
             {
@@ -1235,39 +1221,57 @@
                 horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal-okucie").GetDouble());
                 horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal-dormas").GetDouble());
 
-                verticalGuides.Add(verticalElement.GetProperty("guide-line-horizontal-OsSymetrii").GetDouble());
+                // ✅ Sprawdzamy, czy klucz istnieje, zanim go dodamy!
+                if (horizontalElement.TryGetProperty("guide-line-horizontal-OsSymetrii", out JsonElement osSymetriiElement))
+                {
+                    horizontalGuides.Add(osSymetriiElement.GetDouble());
+                }
+                else
+                {
+                    Console.WriteLine("⚠️ Brak wartości dla 'guide-line-horizontal-OsSymetrii'!");
+                }
             }
             else
             {
                 Console.WriteLine("❌ Błąd: 'horizontal' nie jest obiektem!!!!!");
                 return;
             }
-
+     
             Console.WriteLine($"✅ Linie pionowe: {verticalGuides.Count}, poziome: {horizontalGuides.Count}");
 
             // Pobierz obraz PNG jako base64 z JavaScript
             //  string base64Png = await JSRuntime.InvokeAsync<string>("getSvgPngBase64");
 
+            // 🔥 Pobieranie wartości z listy bez ryzyka błędu
+            double GetValueOrDefault(List<double> list, int index)
+            {
+                return (index >= 0 && index < list.Count) ? Math.Round(list[index], precyzjaZapisuLinii) : 0.0;
+            }
 
-            // Aktualizujemy obiekt w Blazorze
-            konfSystem.PionLewa = Math.Round(verticalGuides.ElementAtOrDefault(0), precyzjaZapisuLinii);
-            konfSystem.PionPrawa = Math.Round(verticalGuides.ElementAtOrDefault(1), precyzjaZapisuLinii);
-            konfSystem.PionOdSzybaOdZew = Math.Round(verticalGuides.ElementAtOrDefault(2), precyzjaZapisuLinii);
-            konfSystem.PionDodatkowa4 = Math.Round(verticalGuides.ElementAtOrDefault(3), precyzjaZapisuLinii);
-            konfSystem.PionDodatkowa5 = Math.Round(verticalGuides.ElementAtOrDefault(4), precyzjaZapisuLinii);
+            // ✅ Pionowe linie
+            konfSystem.PionLewa = GetValueOrDefault(verticalGuides, 0);
+            konfSystem.PionPrawa = GetValueOrDefault(verticalGuides, 1);
+            konfSystem.PionOdSzybaOdZew = GetValueOrDefault(verticalGuides, 2);
+            konfSystem.PionDodatkowa4 = GetValueOrDefault(verticalGuides, 3);
+            konfSystem.PionDodatkowa5 = GetValueOrDefault(verticalGuides, 4);
+            konfSystem.PionOsSymetrii = GetValueOrDefault(verticalGuides, 5);
 
-            var odwWym = Math.Round(horizontalGuides.ElementAtOrDefault(1), precyzjaZapisuLinii);// Zmienna do odwracania wymiarów
+            // ✅ Poziome linie (odwrócone względem odwWym)
+            var odwWym = GetValueOrDefault(horizontalGuides, 1);
+            konfSystem.PoziomDol = odwWym - GetValueOrDefault(horizontalGuides, 0);
+            konfSystem.PoziomGora = odwWym - GetValueOrDefault(horizontalGuides, 1);
+            konfSystem.PoziomKorpus = odwWym - GetValueOrDefault(horizontalGuides, 2);
+            konfSystem.PoziomLiniaSzkla = odwWym - GetValueOrDefault(horizontalGuides, 3);
+            konfSystem.PoziomLiniaOkucia = odwWym - GetValueOrDefault(horizontalGuides, 4);
+            konfSystem.PoziomOsDormas = odwWym - GetValueOrDefault(horizontalGuides, 5);
+            konfSystem.PoziomDodatkowa6 = odwWym - GetValueOrDefault(horizontalGuides, 6);
+            konfSystem.PoziomDodatkowa7 = odwWym - GetValueOrDefault(horizontalGuides, 7);
+            konfSystem.PionOsSymetrii = odwWym - GetValueOrDefault(horizontalGuides, 8);
 
-            konfSystem.PoziomDol = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(0), precyzjaZapisuLinii);
-            konfSystem.PoziomGora = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(1), precyzjaZapisuLinii);
-            konfSystem.PoziomKorpus = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(2), precyzjaZapisuLinii);
-            konfSystem.PoziomLiniaSzkla = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(3), precyzjaZapisuLinii);
-            konfSystem.PoziomLiniaOkucia = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(4), precyzjaZapisuLinii);
-            konfSystem.PoziomOsDormas = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(5), precyzjaZapisuLinii);
-            konfSystem.PoziomDodatkowa6 = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(6), precyzjaZapisuLinii);
-            konfSystem.PoziomDodatkowa7 = odwWym - Math.Round(horizontalGuides.ElementAtOrDefault(7), precyzjaZapisuLinii);
 
+            // 🔥 Pobieramy SVG przez JS
             konfSystem.SVG = await JSRuntime.InvokeAsync<string>("getUpdatedSvg");
+
             // 🔥 Zamiana przecinków na kropki
             konfSystem.SVG = konfSystem.SVG.Replace(",", ".");
 
@@ -1324,6 +1328,13 @@
         catch (Exception ex)
         {
             Console.WriteLine($"❌ Wystąpił błąd: {ex.Message}");
+            _ = _notice.Error(new()
+                {
+                    Message = "Bład!!",
+                    Description = $"❌ Wystąpił błąd: {ex.Message}",
+                    Placement = NotificationPlacement.Top,
+                    Duration = 2
+                });
         }
     }
 
