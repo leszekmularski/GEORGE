@@ -10,7 +10,6 @@
 	<InformationalVersion>1.1.4</InformationalVersion>
 	<InvariantGlobalization>false</InvariantGlobalization>
 	<BlazorEnableTimeZoneSupport>true</BlazorEnableTimeZoneSupport>
-	<WasmEnableSimdSupport>false</WasmEnableSimdSupport>
 </PropertyGroup>
 
   <ItemGroup>

@@ -4,6 +4,7 @@
 @using SixLabors.ImageSharp.Drawing.Processing
 @using SixLabors.ImageSharp.Processing
 @using SixLabors.ImageSharp.Drawing
+@using SixLabors.ImageSharp.Formats.Png;
 @using GEORGE.Shared.Models
 @using GEORGE.Shared.Class
 @inject IJSRuntime JS
@@ -13,54 +14,109 @@
 @inject IMessageService _message
 
 <script>
-    let draggedElement = null;
+    window.oknoKonfiguracja = [];
 
-    window.startDrag = (modelName, startX, startY) => {
-    draggedElement = document.getElementById(modelName).cloneNode(true);
-    draggedElement.style.position = 'absolute';
-    draggedElement.style.left = `${startX}px`;
-    draggedElement.style.top = `${startY}px`;
-    draggedElement.style.width = '100px';
-    draggedElement.style.height = 'auto';
-    draggedElement.style.zIndex = 1000;
-    draggedElement.style.pointerEvents = 'none'; // Zapobiega interakcji w trakcie przeciągania
-    document.body.appendChild(draggedElement);
+    window.dodajElementDoOkna = (modelName, x, y, szerokosc, wysokosc, imageSrc) => {
+        let element = {
+            modelName: modelName,
+            x: x,
+            y: y,
+            szerokosc: szerokosc,
+            wysokosc: wysokosc,
+            imageSrc: imageSrc
+        };
 
-    const moveElement = (e) => {
-    if (draggedElement) {
-    draggedElement.style.left = `${e.clientX - 50}px`;
-    draggedElement.style.top = `${e.clientY - 50}px`;
-    }
+        window.oknoKonfiguracja.push(element);
+        window.RysujOkno();
     };
 
-    const stopDrag = (e) => {
-    document.removeEventListener('mousemove', moveElement);
-    document.removeEventListener('mouseup', stopDrag);
+    window.RysujOkno = () => {
+        let canvas = document.getElementById("final-window");
+        let ctx = canvas.getContext("2d");
 
-    if (draggedElement) {
-    const target = document.getElementById('display-window');
-    const targetRect = target.getBoundingClientRect();
+        // Czyszczenie płótna przed ponownym rysowaniem
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Sprawdzamy, czy element jest w obszarze docelowym
-    if (
-    e.clientX > targetRect.left &&
-    e.clientX < targetRect.right &&
-    e.clientY > targetRect.top &&
-    e.clientY < targetRect.bottom
-    ) {
-    // Dodajemy model do okna
-    const finalWindow = document.getElementById('final-window');
-    finalWindow.src = draggedElement.src;
-    }
-
-    draggedElement.remove();
-    draggedElement = null;
-    }
+        // Rysowanie każdego elementu
+        window.oknoKonfiguracja.forEach(element => {
+            let img = new Image();
+            img.src = element.imageSrc;
+            img.onload = function () {
+                ctx.drawImage(img, element.x, element.y, element.szerokosc, element.wysokosc);
+            };
+        });
     };
 
-    document.addEventListener('mousemove', moveElement);
-    document.addEventListener('mouseup', stopDrag);
+    window.dodajKsztalt = (ksztalt, szerokosc, wysokosc, kolor, czyWypelnienie) => {
+        let canvas = document.getElementById("final-window");
+        let ctx = canvas.getContext("2d");
+
+        // Automatyczne dopasowanie rozmiaru (80% szerokości i wysokości canvas)
+        let maxWidth = canvas.width * 0.8;
+        let maxHeight = canvas.height * 0.8;
+        szerokosc = Math.min(szerokosc, maxWidth);
+        wysokosc = Math.min(wysokosc, maxHeight);
+
+        // Obliczenie środka canvas
+        let x = (canvas.width - szerokosc) / 2;
+        let y = (canvas.height - wysokosc) / 2;
+
+        ctx.strokeStyle = kolor;
+        ctx.lineWidth = 3;
+        ctx.fillStyle = czyWypelnienie ? kolor : "transparent";
+
+        switch (ksztalt) {
+            case "prostokat":
+                if (czyWypelnienie) ctx.fillRect(x, y, szerokosc, wysokosc);
+                ctx.strokeRect(x, y, szerokosc, wysokosc);
+                break;
+
+            case "trojkat":
+                ctx.beginPath();
+                ctx.moveTo(x + szerokosc / 2, y);
+                ctx.lineTo(x + szerokosc, y + wysokosc);
+                ctx.lineTo(x, y + wysokosc);
+                ctx.closePath();
+                if (czyWypelnienie) ctx.fill();
+                ctx.stroke();
+                break;
+
+            case "okrag":
+                ctx.beginPath();
+                ctx.arc(canvas.width / 2, canvas.height / 2, szerokosc / 2, 0, Math.PI * 2);
+                if (czyWypelnienie) ctx.fill();
+                ctx.stroke();
+                break;
+
+            case "trapez":
+                ctx.beginPath();
+                ctx.moveTo(x + szerokosc * 0.2, y);
+                ctx.lineTo(x + szerokosc * 0.8, y);
+                ctx.lineTo(x + szerokosc, y + wysokosc);
+                ctx.lineTo(x, y + wysokosc);
+                ctx.closePath();
+                if (czyWypelnienie) ctx.fill();
+                ctx.stroke();
+                break;
+
+            case "romb":
+                ctx.beginPath();
+                ctx.moveTo(x + szerokosc / 2, y);
+                ctx.lineTo(x + szerokosc, y + wysokosc / 2);
+                ctx.lineTo(x + szerokosc / 2, y + wysokosc);
+                ctx.lineTo(x, y + wysokosc / 2);
+                ctx.closePath();
+                if (czyWypelnienie) ctx.fill();
+                ctx.stroke();
+                break;
+
+            case "piksel":
+                ctx.fillRect(canvas.width / 2, canvas.height / 2, 1, 1);
+                break;
+        }
     };
+
+
 </script>
 
 
@@ -136,6 +192,28 @@
             object-fit: contain;
         }
 
+    .canvas-container {
+        width: 800px; /* Domyślny widoczny obszar */
+        height: 600px;
+        overflow: auto; /* Aktywuje paski przewijania */
+        border: 2px solid #ccc;
+        background-color: #fff;
+    }
+
+        /* Stylowanie pasków przewijania */
+        .canvas-container::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        .canvas-container::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 5px;
+        }
+
+            .canvas-container::-webkit-scrollbar-thumb:hover {
+                background: #555;
+            }
 </style>
 
 <div class="d-flex justify-content-between align-items-center mt-3">
@@ -186,7 +264,7 @@
                                     <img id="@($"wing-{model.Typ}")"
                                          src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
                                          style="cursor: grab;"
-                                         @onmousedown="@(e => StartDrag(e, $"wing-{model.Typ}"))" />
+                                         @onmousedown="@(e => DodajElement(model, 0, 0, @Szerokosc, @Wysokosc))" />
                                 }
                                 else
                                 {
@@ -195,15 +273,40 @@
                             </td>
                         </tr>
                     }
+
                 }
             </tbody>
         </table>
     </div>
 
-    <!-- Obszar wyświetlania okna po prawej stronie -->
-    <div id="display-window" class="display-window">
-        <img id="final-window" src="images/final-window.png" alt="Gotowe okno" class="img-fluid" />
+    <div class="toolbar">
+        <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("prostokat"))">🟥 Prostokąt</button>
+        <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("trojkat"))">🔺 Trójkąt</button>
+        <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("okrag"))">⚫ Okrąg</button>
+        <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("trapez"))">🔷 Trapez</button>
+        <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("romb"))">♦ Romb</button>
+        <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("piksel"))">🟧 Piksel</button>
     </div>
+
+    <div class="form-group mt-3">
+        <label>Szerokość:</label>
+        <input type="number" class="form-control" @bind="Szerokosc" />
+
+        <label>Wysokość:</label>
+        <input type="number" class="form-control" @bind="Wysokosc" />
+
+        <label>Kolor:</label>
+        <input type="color" class="form-control" @bind="Kolor" />
+
+        <button class="btn btn-success mt-2" @onclick="DodajKsztalt">Dodaj kształt</button>
+    </div>
+
+    <div id="display-window" class="display-window">
+        <div class="canvas-container">
+            <canvas id="final-window" width="800" height="600"></canvas>
+        </div>
+    </div>
+
 
 </div>
 
@@ -214,6 +317,9 @@
 
     private List<SystemyOkienne>? Systemy;
 
+    private string WybranyKsztalt = "prostokat";
+    private int X = 0, Y = 0, Szerokosc = 1000, Wysokosc = 1000;
+    private string Kolor = "#ff0000"; // Domyślny czerwony
 
     private string SelectedSystemId = "";
     private List<KonfModele>? ListaModeli;
@@ -244,9 +350,30 @@
 
     }
 
-    private void StartDrag(MouseEventArgs e, string modelId)
+
+    private void WybierzKsztalt(string ksztalt)
     {
-        JS.InvokeVoidAsync("window.startDrag", modelId, e.ClientX, e.ClientY);
+        WybranyKsztalt = ksztalt;
+    }
+
+    private bool CzyWypelnienie = false;
+
+    private void DodajKsztalt()
+    {
+        JS.InvokeVoidAsync("window.dodajKsztalt", WybranyKsztalt, Szerokosc, Wysokosc, Kolor, CzyWypelnienie);
+    }
+
+    private void DodajElement(KonfModele model, int x, int y, int szerokosc, int wysokosc)
+    {
+        string base64Image = RysunekToBase64(model.Rysunek);
+        JS.InvokeVoidAsync("window.dodajElementDoOkna", model.Typ, x, y, szerokosc, wysokosc, base64Image);
+    }
+
+
+
+    private void StartDrag(MouseEventArgs e, string modelId, string imageSrc)
+    {
+        JS.InvokeVoidAsync("window.startDrag", modelId, e.ClientX, e.ClientY, imageSrc);
     }
 
     private string RysunekToBase64(byte[]? imageData)
@@ -262,6 +389,21 @@
     private async Task GoBack()
     {
         await JS.InvokeVoidAsync("history.back");
+    }
+
+    public async Task<byte[]> DodajObrazNaWarstwe(byte[] obrazGlownegoOkna, byte[] nowyObraz, int x, int y)
+    {
+        using (var image = SixLabors.ImageSharp.Image.Load(obrazGlownegoOkna))
+        using (var overlay = SixLabors.ImageSharp.Image.Load(nowyObraz))
+        {
+            image.Mutate(ctx => ctx.DrawImage(overlay, new SixLabors.ImageSharp.Point(x, y), 1f));
+
+            using (var ms = new MemoryStream())
+            {
+                image.Save(ms, new PngEncoder());
+                return ms.ToArray();
+            }
+        }
     }
 
     private bool boolOdczyt = false;
