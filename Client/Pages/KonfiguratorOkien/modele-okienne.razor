@@ -14,10 +14,43 @@
 @inject IMessageService _message
 
 <script>
-    window.oknoKonfiguracja = [];
+    if (!window.oknoKonfiguracja) {
+        window.oknoKonfiguracja = [];
+    }
+    if (typeof window.zoomLevel === 'undefined') {
+        window.zoomLevel = 1; // Deklaracja zmiennej zoomLevel
+    }
+    if (typeof window.offsetX === 'undefined') {
+        window.offsetX = 0; // Przesunięcie w osi X
+    }
+    if (typeof window.offsetY === 'undefined') {
+        window.offsetY = 0; // Przesunięcie w osi Y
+    }
 
-    window.dodajElementDoOkna = (modelName, x, y, szerokosc, wysokosc, imageSrc) => {
-        let element = {
+    window.onload = function () {
+        var canvas = document.getElementById("final-window");
+        var ctx = canvas.getContext("2d");
+
+        function dopasujCanvas() {
+            var container = document.querySelector(".canvas-container");
+
+            // Dynamiczne dopasowanie rozmiaru canvas do kontenera
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+
+            // Przerysowanie zawartości po zmianie rozmiaru
+            window.RysujOkno();
+        }
+
+        // Dopasowanie przy starcie
+        dopasujCanvas();
+
+        // Ponowne dopasowanie przy zmianie rozmiaru okna
+        window.addEventListener("resize", dopasujCanvas);
+    };
+
+    window.dodajElementDoOkna = function (modelName, x, y, szerokosc, wysokosc, imageSrc) {
+        var element = {
             modelName: modelName,
             x: x,
             y: y,
@@ -30,36 +63,84 @@
         window.RysujOkno();
     };
 
-    window.RysujOkno = () => {
-        let canvas = document.getElementById("final-window");
-        let ctx = canvas.getContext("2d");
+    window.RysujOkno = function () {
+        var canvas = document.getElementById("final-window");
+        var ctx = canvas.getContext("2d");
 
-        // Czyszczenie płótna przed ponownym rysowaniem
+        // canvas.height = canvas.height * 2;
+        // canvas.width = canvas.height;
+
+        console.log(`RysujOkno -> canvas.width: ${canvas.width} canvas.height: ${canvas.height}`)
+
+        // Czyszczenie płótna
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Rysowanie każdego elementu
-        window.oknoKonfiguracja.forEach(element => {
-            let img = new Image();
+        if (window.oknoKonfiguracja.length === 0) return;
+
+        // Iteracja po wszystkich elementach i rysowanie ich
+        window.oknoKonfiguracja.forEach(function (element) {
+            var img = new Image();
             img.src = element.imageSrc;
+
             img.onload = function () {
-                ctx.drawImage(img, element.x, element.y, element.szerokosc, element.wysokosc);
+                // Skalowanie proporcjonalne, aby obraz zajmował 95% obszaru canvas
+                var scale = Math.min(canvas.width * 0.95 / img.width, canvas.height * 0.95 / img.height) * window.zoomLevel;
+                var scaledWidth = img.width * scale;
+                var scaledHeight = img.height * scale;
+
+                // Rysowanie na środku canvas z uwzględnieniem przesunięcia
+                var x = (canvas.width - scaledWidth) / 2 + window.offsetX;
+                var y = (canvas.height - scaledHeight) / 2 + window.offsetY;
+                ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
             };
         });
     };
 
-    window.dodajKsztalt = (ksztalt, szerokosc, wysokosc, kolor, czyWypelnienie) => {
-        let canvas = document.getElementById("final-window");
-        let ctx = canvas.getContext("2d");
+    window.zoomInCanvas = function () {
+        window.zoomLevel *= 1.1;
+        window.RysujOkno();
+    };
 
-        // Automatyczne dopasowanie rozmiaru (80% szerokości i wysokości canvas)
-        let maxWidth = canvas.width * 0.8;
-        let maxHeight = canvas.height * 0.8;
+    window.zoomOutCanvas = function () {
+        window.zoomLevel /= 1.1;
+        window.RysujOkno();
+    };
+
+    // Obsługa przeciągania i dodawania elementów na canvas
+    window.startDrag = function (modelName, clientX, clientY, imageSrc) {
+        var canvas = document.getElementById("final-window");
+        var rect = canvas.getBoundingClientRect();
+
+        var x = clientX - rect.left;
+        var y = clientY - rect.top;
+
+        var element = {
+            modelName: modelName,
+            x: x,
+            y: y,
+            szerokosc: 100, // Domyślny rozmiar
+            wysokosc: 100,
+            imageSrc: imageSrc
+        };
+        console.log(`startDrag x: ${x}, y: ${y} clientX: ${clientX} clientY: ${clientY}`);
+        window.oknoKonfiguracja.push(element);
+        window.RysujOkno();
+    };
+
+    // Funkcja dodająca figury geometryczne
+    window.dodajKsztalt = function (ksztalt, szerokosc, wysokosc, kolor, czyWypelnienie) {
+        var canvas = document.getElementById("final-window");
+        var ctx = canvas.getContext("2d");
+
+        // Automatyczne dopasowanie rozmiaru (80% dostępnej przestrzeni)
+        var maxWidth = canvas.width * 0.8;
+        var maxHeight = canvas.height * 0.8;
         szerokosc = Math.min(szerokosc, maxWidth);
         wysokosc = Math.min(wysokosc, maxHeight);
 
         // Obliczenie środka canvas
-        let x = (canvas.width - szerokosc) / 2;
-        let y = (canvas.height - wysokosc) / 2;
+        var x = (canvas.width - szerokosc) / 2;
+        var y = (canvas.height - wysokosc) / 2;
 
         ctx.strokeStyle = kolor;
         ctx.lineWidth = 3;
@@ -116,53 +197,65 @@
         }
     };
 
-
 </script>
 
 
 <style>
 
-    /* Ustawienie strony na pełne okno przeglądarki */
+    /* Globalne ustawienia */
     html, body {
         height: 100%;
         margin: 0;
         padding: 0;
-        overflow: hidden; /* Zapobiega przewijaniu */
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+        background-color: #f8f9fa;
     }
 
-    /* Kontener główny – pełna wysokość i szerokość */
+    /* Kontener główny */
     .window-model-container {
         display: flex;
-        flex-wrap: nowrap; /* Zapobiega zawijaniu elementów */
-        justify-content: space-between;
-        align-items: stretch;
-        width: 100%;
-        height: 100vh; /* Pełna wysokość przeglądarki */
-        background-color: #f1f1f1;
+        height: 70vh;
+        background-color: #fff;
         padding: 10px;
         box-sizing: border-box;
     }
 
-    /* Kontener z listą modeli */
+    /* Panel boczny z modelami */
     .wing-model-container {
-        flex: 0 0 300px; /* Stała szerokość */
+        flex: 0 0 250px; /* Zmniejszenie szerokości */
         height: 100%;
-        overflow-y: auto; /* Przewijanie listy modeli */
-        border-right: 2px solid #ccc;
+        overflow-y: auto;
+        border-right: 2px solid #ddd;
         padding: 10px;
-        background: #fff;
+        background: #f8f9fa;
     }
 
         /* Tabela modeli */
         .wing-model-container table {
-            font-size: 14px;
+            font-size: 13px;
             width: 100%;
+            border-collapse: collapse;
+        }
+
+        .wing-model-container th, .wing-model-container td {
+            padding: 6px;
+            text-align: center;
+        }
+
+        .wing-model-container th {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .wing-model-container tr:hover {
+            background-color: rgba(0, 123, 255, 0.1);
         }
 
         /* Miniatury modeli */
         .wing-model-container img {
-            width: 40px;
-            height: 40px;
+            width: 45px;
+            height: 45px;
             object-fit: contain;
             cursor: grab;
             transition: transform 0.2s ease-in-out;
@@ -174,58 +267,91 @@
 
     /* Główne okno wyświetlania */
     .display-window {
-        flex-grow: 1; /* Rozciąga się na całą dostępną szerokość */
+        flex-grow: 1;
         height: 100%;
-        border: 2px solid #ccc;
+        border: 2px solid #ddd;
         background-color: #fff;
         display: flex;
         justify-content: center;
         align-items: center;
-        padding: 20px;
+        padding: 10px;
         box-sizing: border-box;
+        position: relative;
     }
 
-        /* Gotowe okno - obrazek */
-        .display-window img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-
+    /* Kontener canvas - dopasowany do okna */
     .canvas-container {
-        width: 800px; /* Domyślny widoczny obszar */
-        height: 600px;
-        overflow: auto; /* Aktywuje paski przewijania */
-        border: 2px solid #ccc;
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        border: 2px solid #ddd;
         background-color: #fff;
+        border-radius: 5px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: auto; /* Ukrywa przewijanie */
+        position: relative;
     }
 
-        /* Stylowanie pasków przewijania */
-        .canvas-container::-webkit-scrollbar {
-            width: 10px;
-            height: 10px;
+    /* Canvas - dynamiczne skalowanie */
+    canvas {
+        display: block;
+        max-width: 100%;
+        max-height: 100%;
+        background-color: transparent;
+    }
+
+    /* Paski przewijania */
+    .wing-model-container::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .wing-model-container::-webkit-scrollbar-thumb {
+        background: #007bff;
+        border-radius: 5px;
+    }
+
+        .wing-model-container::-webkit-scrollbar-thumb:hover {
+            background: #0056b3;
         }
 
-        .canvas-container::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 5px;
+    /* 🔹 Toolbar z przyciskami */
+    .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        justify-content: center;
+        padding: 10px;
+        background: #fff;
+    }
+
+        /* Styl dla przycisków */
+        .toolbar .btn {
+            flex: 1;
+            min-width: 90px;
+            font-size: 13px;
+            padding: 6px 8px;
+            transition: all 0.2s ease-in-out;
         }
 
-            .canvas-container::-webkit-scrollbar-thumb:hover {
-                background: #555;
+            .toolbar .btn:hover {
+                transform: scale(1.05);
             }
+
 </style>
 
-<div class="d-flex justify-content-between align-items-center mt-3">
-    <h3>Modele Okienne</h3>
-    <button class="btn btn-primary mb-3" @onclick="GoBack">
-        <i class="fas fa-arrow-left"></i> Wróć do poprzedniej strony
+<!-- Nagłówek -->
+<div class="d-flex justify-content-between align-items-center mt-2 mb-2">
+    <h3 class="mb-0">Modele Okienne</h3>
+    <button class="btn btn-primary" @onclick="GoBack">
+        <i class="fas fa-arrow-left"></i> Wróć
     </button>
 </div>
-
 <!-- 🔹 Wybór systemu -->
-<Tooltip Placement="@Placement.TopRight" Style="width:100%;" Title="Otwórz konfigurator nowego systemu lub wybierz go z listy">
-    <div class="d-flex align-items-center" style="width:100%;">
+<Tooltip Placement="@Placement.TopRight" Title="Otwórz konfigurator nowego systemu lub wybierz go z listy">
+    <div class="d-flex">
         @if (Systemy != null && Systemy.Any())
         {
             <select class="form-select me-2" @onchange="@(async (args) => await OnSystemSelected(args))">
@@ -239,8 +365,40 @@
     </div>
 </Tooltip>
 
+<Collapse DefaultActiveKey="@(new[]{"1"})" Animation>
+    <Panel Header="Ustawienia" Key="1">
+
+<!-- Toolbar z przyciskami -->
+        <div class="toolbar">
+            <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("prostokat"))">🟥 Prostokąt</button>
+            <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("trojkat"))">🔺 Trójkąt</button>
+            <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("okrag"))">⚫ Okrąg</button>
+            <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("trapez"))">🔷 Trapez</button>
+            <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("romb"))">♦ Romb</button>
+            <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("piksel"))">🟧 Piksel</button>
+        </div>
+
+
+<!-- Wprowadzenie wartości -->
+<div class="form-group mt-3">
+    <label>Szerokość:</label>
+    <input type="number" class="form-control" @bind="Szerokosc" />
+
+    <label>Wysokość:</label>
+    <input type="number" class="form-control" @bind="Wysokosc" />
+
+    <label>Kolor:</label>
+    <input type="color" class="form-control" @bind="Kolor" />
+
+    <button class="btn btn-success mt-2 w-100" @onclick="DodajKsztalt">Dodaj kształt</button>
+</div>
+</Panel>
+</Collapse>
+<button class="btn btn-outline-primary" @onclick="ZoomIn">🔍 Powiększ</button>
+<button class="btn btn-outline-primary" @onclick="ZoomOut">🔍 Pomniejsz</button>
+<!-- Kontener na modele i canvas -->
 <div class="window-model-container">
-    <!-- Tabela z modelami po lewej stronie -->
+    <!-- Panel boczny z modelami -->
     <div class="wing-model-container">
         <table class="table table-striped">
             <thead>
@@ -263,7 +421,6 @@
                                 {
                                     <img id="@($"wing-{model.Typ}")"
                                          src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
-                                         style="cursor: grab;"
                                          @onmousedown="@(e => DodajElement(model, 0, 0, @Szerokosc, @Wysokosc))" />
                                 }
                                 else
@@ -273,42 +430,19 @@
                             </td>
                         </tr>
                     }
-
                 }
             </tbody>
         </table>
     </div>
 
-    <div class="toolbar">
-        <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("prostokat"))">🟥 Prostokąt</button>
-        <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("trojkat"))">🔺 Trójkąt</button>
-        <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("okrag"))">⚫ Okrąg</button>
-        <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("trapez"))">🔷 Trapez</button>
-        <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("romb"))">♦ Romb</button>
-        <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("piksel"))">🟧 Piksel</button>
-    </div>
-
-    <div class="form-group mt-3">
-        <label>Szerokość:</label>
-        <input type="number" class="form-control" @bind="Szerokosc" />
-
-        <label>Wysokość:</label>
-        <input type="number" class="form-control" @bind="Wysokosc" />
-
-        <label>Kolor:</label>
-        <input type="color" class="form-control" @bind="Kolor" />
-
-        <button class="btn btn-success mt-2" @onclick="DodajKsztalt">Dodaj kształt</button>
-    </div>
-
-    <div id="display-window" class="display-window">
-        <div class="canvas-container">
-            <canvas id="final-window" width="800" height="600"></canvas>
+    <!-- Główne okno wyświetlania -->
+    <div class="display-window">
+        <div class="canvas-container" style="overflow: auto;">
+            <canvas id="final-window" ></canvas>
         </div>
     </div>
-
-
 </div>
+
 
 
 @code {
@@ -329,6 +463,8 @@
         await Laduj_Uprawnienia();
 
         Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
+
+       await JS.InvokeVoidAsync("window.onload");
     }
 
     private async Task OnSystemSelected(ChangeEventArgs e)
@@ -344,12 +480,21 @@
             return;
         }
 
-        KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIN_DROWID/{SelectedSystemId}");
+        KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIN_DROWIDONLYTRUE/{SelectedSystemId}");
 
         ListaModeli = await Http.GetFromJsonAsync<List<KonfModele>>("api/konfmodele/");
 
     }
 
+    private void ZoomIn()
+    {
+        JS.InvokeVoidAsync("window.zoomInCanvas");
+    }
+
+    private void ZoomOut()
+    {
+        JS.InvokeVoidAsync("window.zoomOutCanvas");
+    }
 
     private void WybierzKsztalt(string ksztalt)
     {
@@ -368,8 +513,6 @@
         string base64Image = RysunekToBase64(model.Rysunek);
         JS.InvokeVoidAsync("window.dodajElementDoOkna", model.Typ, x, y, szerokosc, wysokosc, base64Image);
     }
-
-
 
     private void StartDrag(MouseEventArgs e, string modelId, string imageSrc)
     {

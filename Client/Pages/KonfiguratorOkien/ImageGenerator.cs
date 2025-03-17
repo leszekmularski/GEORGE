@@ -42,6 +42,7 @@ public class ImageGenerator
 
             if (profileLeftSH > 0)
             {
+                slupekStaly = true;
                 profileLeft = profileLeftSH;
                 Console.WriteLine("profileLeft = profileLeftSH");  
             }
@@ -49,11 +50,6 @@ public class ImageGenerator
             double profileTop = model.FirstOrDefault(e => e.WystepujeGora)?.PionPrawa ?? 0 - model.FirstOrDefault(e => e.WystepujeGora)?.PionLewa ?? 0;
             double profileRight = model.FirstOrDefault(e => e.WystepujePrawa)?.PionPrawa ?? 0 - model.FirstOrDefault(e => e.WystepujePrawa)?.PionLewa ?? 0;
             double profileBottom = model.FirstOrDefault(e => e.WystepujeDol)?.PionPrawa ?? 0 - model.FirstOrDefault(e => e.WystepujeDol)?.PionLewa ?? 0;
-
-            if (model.Select(e => !e.WystepujeGora && !e.WystepujeDol && !e.WystepujePrawa && e.WystepujeLewa).Count() == 1)
-            {
-                slupekStaly = true;
-            }
  
             profileBottom = Math.Max(profileBottom, 1); // Zapobieganie błędom
 
@@ -208,6 +204,10 @@ public class ImageGenerator
             {
                 var (x, y, width, height) = positions[index];
                 //if(index == 3)
+                if (slupekStaly)
+                {
+                    x = x + imageWidth / 2 - width / 2;
+                }
                 AddTrapezoidFrame(x, y, width, height, type, index, woodTexture);
             }
 
@@ -236,12 +236,13 @@ public class ImageGenerator
                     }
                     x.Draw(Pens.Solid(Color.Black, borderThickness), path);
                 }
-                Color glassColor = Color.ParseHex(glassColorHex); // Parsowanie HEX na kolor
-                // 🎨 Szyba – przezroczysta warstwa niebieska
-                x.Fill(glassColor, glassPath);
 
                 if (!slupekStaly)
                 {
+                    Color glassColor = Color.ParseHex(glassColorHex); // Parsowanie HEX na kolor
+                                                                      // 🎨 Szyba – przezroczysta warstwa niebieska
+                    x.Fill(glassColor, glassPath);
+
                     x.Draw(Pens.Solid(Color.Black, borderThickness), glassPath);
                 }
             });

@@ -29,6 +29,7 @@ namespace GEORGE.Shared.Models
         public int? NaddatekNaZgrzewNaStrone { get; set; } = 0; //Naddatek na zgrzew na stronę
         public int? ZwiekszNaddatekGdyKatInny90 { get; set; } = 0; //Dodaj do długości gdy kąt inny niż 90 stop
         public string? Uwagi { get; set; }
+        public bool WidocznaNaLiscie { get; set; } = true; // Czy widoczna na liscie do wyboru w modelach
 
         // Obrazek DXF w bazie
         public byte[] Rysunek { get; set; } = Array.Empty<byte>();

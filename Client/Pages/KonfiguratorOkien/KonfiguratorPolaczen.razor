@@ -223,6 +223,8 @@
                     <label class="form-label">Łączenie elementów (dotyczy wyłącznie wersja typu T1 lub T3):</label>
                     <br/>
                     <Checkbox @bind-Value="EdytowanyModel.SposobLaczeniaCzop">Elementy łączone za pomocą czopa</Checkbox>
+                    <br />
+                    <Checkbox @bind-Value="EdytowanyModel.WidocznaNaLiscie">Czy model ma być widoczny na liście wyboru</Checkbox>
                 </div>
                 <br />
                 <div>
@@ -473,10 +475,10 @@
 
         czakajAzZmienie = true;
 
-        EdytowanyModel.PolaczenieNaroza = $"{SelectedImage1?.Value ?? "BRAK-T0"};" +
-                                       $"{SelectedImage2?.Value ?? "BRAK-T0"};" +
-                                       $"{SelectedImage3?.Value ?? "BRAK-T0"};" +
-                                       $"{SelectedImage4?.Value ?? "BRAK-T0"}";
+        EdytowanyModel.PolaczenieNaroza = $"{SelectedImage1?.Value ?? "0-T0"};" +
+                                       $"{SelectedImage2?.Value ?? "0-T0"};" +
+                                       $"{SelectedImage3?.Value ?? "0-T0"};" +
+                                       $"{SelectedImage4?.Value ?? "0-T0"}";
 
         try
         {
@@ -718,7 +720,7 @@
     // Lista dostępnych opcji
     private List<ImageOption> ImageOptions1 = new()
     {
-        new ImageOption { Name = "Nie wybrano", Value = "BRAK-T0", ImageUrl = "images/GL_0_NULL.png" },
+        new ImageOption { Name = "Nie wybrano", Value = "0-T0", ImageUrl = "images/GL_0_NULL.png" },
         new ImageOption { Name = "Typ 1", Value = "180-T1", ImageUrl = "images/GL_180_T1.png" },
         new ImageOption { Name = "Typ 2", Value = "180-T2", ImageUrl = "images/GL_180_T2.png" },
         new ImageOption { Name = "Typ 3", Value = "180-T3", ImageUrl = "images/GL_180_T3.png" },
@@ -727,7 +729,7 @@
 
     private List<ImageOption> ImageOptions2 = new()
     {
-        new ImageOption { Name = "Nie wybrano", Value = "BRAK-T0", ImageUrl = "images/GL_0_NULL.png" },
+        new ImageOption { Name = "Nie wybrano", Value = "0-T0", ImageUrl = "images/GL_0_NULL.png" },
         new ImageOption { Name = "Typ 1", Value = "90-T1", ImageUrl = "images/GL_90_T1.png" },
         new ImageOption { Name = "Typ 2", Value = "90-T2", ImageUrl = "images/GL_90_T2.png" },
         new ImageOption { Name = "Typ 3", Value = "90-T3", ImageUrl = "images/GL_90_T3.png" }
@@ -735,7 +737,7 @@
 
     private List<ImageOption> ImageOptions3 = new()
     {
-        new ImageOption { Name = "Nie wybrano", Value = "BRAK-T0", ImageUrl = "images/GL_0_NULL.png" },
+        new ImageOption { Name = "Nie wybrano", Value = "0-T0", ImageUrl = "images/GL_0_NULL.png" },
         new ImageOption { Name = "Typ 1", Value = "0-T1", ImageUrl = "images/GL_0_T1.png" },
         new ImageOption { Name = "Typ 2", Value = "0-T2", ImageUrl = "images/GL_0_T2.png" },
         new ImageOption { Name = "Typ 3", Value = "0-T3", ImageUrl = "images/GL_0_T3.png" },
@@ -744,7 +746,7 @@
 
     private List<ImageOption> ImageOptions4 = new()
     {
-        new ImageOption { Name = "Nie wybrano", Value = "BRAK-T0", ImageUrl = "images/GL_0_NULL.png" },
+        new ImageOption { Name = "Nie wybrano", Value = "270-T0", ImageUrl = "images/GL_0_NULL.png" },
         new ImageOption { Name = "Typ 1", Value = "270-T1", ImageUrl = "images/GL_270_T1.png" },
         new ImageOption { Name = "Typ 2", Value = "270-T2", ImageUrl = "images/GL_270_T2.png" },
         new ImageOption { Name = "Typ 3", Value = "270-T3", ImageUrl = "images/GL_270_T3.png" },

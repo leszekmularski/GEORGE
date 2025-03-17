@@ -79,6 +79,7 @@ namespace GEORGE.Shared.Models
         public double? WagaKantowki5 { get; set; }
         public double? DlugoscKantowki5 { get; set; }
         public double? IloscSztukKantowki5 { get; set; }
+        public bool WidocznaNaLiscie { get; set; } = true; // Czy widoczna na liscie do wyboru w modelach
 
         // Obrazek DXF w bazie
         public byte[] Rysunek { get; set; } = Array.Empty<byte>();
