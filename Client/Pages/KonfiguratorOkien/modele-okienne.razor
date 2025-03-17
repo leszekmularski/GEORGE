@@ -14,6 +14,16 @@
 @inject IMessageService _message
 
 <script>
+
+    if (!window.offscreenCanvas) {
+        window.offscreenCanvas = document.createElement("canvas");
+        window.offscreenCtx = window.offscreenCanvas.getContext("2d");
+    }
+
+    if (!window.wirtualnaWarstwa) {
+        window.wirtualnaWarstwa = [];
+    }
+
     if (!window.oknoKonfiguracja) {
         window.oknoKonfiguracja = [];
     }
@@ -67,31 +77,13 @@
         var canvas = document.getElementById("final-window");
         var ctx = canvas.getContext("2d");
 
-        // canvas.height = canvas.height * 2;
-        // canvas.width = canvas.height;
-
-        console.log(`RysujOkno -> canvas.width: ${canvas.width} canvas.height: ${canvas.height}`)
-
-        // Czyszczenie płótna
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        if (window.oknoKonfiguracja.length === 0) return;
-
-        // Iteracja po wszystkich elementach i rysowanie ich
-        window.oknoKonfiguracja.forEach(function (element) {
+        window.wirtualnaWarstwa.forEach(function (element) {
             var img = new Image();
             img.src = element.imageSrc;
-
             img.onload = function () {
-                // Skalowanie proporcjonalne, aby obraz zajmował 95% obszaru canvas
-                var scale = Math.min(canvas.width * 0.95 / img.width, canvas.height * 0.95 / img.height) * window.zoomLevel;
-                var scaledWidth = img.width * scale;
-                var scaledHeight = img.height * scale;
-
-                // Rysowanie na środku canvas z uwzględnieniem przesunięcia
-                var x = (canvas.width - scaledWidth) / 2 + window.offsetX;
-                var y = (canvas.height - scaledHeight) / 2 + window.offsetY;
-                ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+                ctx.drawImage(img, element.x, element.y, element.szerokosc, element.wysokosc);
             };
         });
     };
@@ -111,50 +103,50 @@
         let ctx = canvas.getContext("2d");
         let rect = canvas.getBoundingClientRect();
 
-        // 🖼️ Tworzymy warstwę poza ekranem (offscreen canvas)
         let offscreenCanvas = document.createElement("canvas");
         offscreenCanvas.width = canvas.width;
         offscreenCanvas.height = canvas.height;
         let offscreenCtx = offscreenCanvas.getContext("2d");
 
-        // 📌 Kopiujemy aktualny `canvas` na warstwę poza ekranem
-        offscreenCtx.drawImage(canvas, 0, 0);
-
         let draggedElement = {
             modelName: modelName,
             x: clientX - rect.left,
             y: clientY - rect.top,
-            szerokosc: 100,
-            wysokosc: 100,
+            szerokosc: 100, // Można dostosować
+            wysokosc: 100, // Można dostosować
             imageSrc: imageSrc,
         };
-
-        let img = new Image();
-        img.src = imageSrc;
 
         function moveElement(e) {
             draggedElement.x = e.clientX - rect.left;
             draggedElement.y = e.clientY - rect.top;
 
-            // 🔥 Zamiast czyścić `canvas`, rysujemy z warstwy poza ekranem
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(offscreenCanvas, 0, 0);
-            ctx.drawImage(img, draggedElement.x, draggedElement.y, draggedElement.szerokosc, draggedElement.wysokosc);
+            offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+            window.wirtualnaWarstwa.forEach(function (element) {
+                let img = new Image();
+                img.src = element.imageSrc;
+                img.onload = function () {
+                    offscreenCtx.drawImage(img, element.x, element.y, element.szerokosc, element.wysokosc);
+                };
+            });
+            let img = new Image();
+            img.src = draggedElement.imageSrc;
+            img.onload = function () {
+                offscreenCtx.drawImage(img, draggedElement.x, draggedElement.y, draggedElement.szerokosc, draggedElement.wysokosc);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(offscreenCanvas, 0, 0);
+            };
         }
 
         function stopDrag() {
             document.removeEventListener("mousemove", moveElement);
             document.removeEventListener("mouseup", stopDrag);
 
-            console.log(`🔥 stopDrag -> X:${draggedElement.x}, Y:${draggedElement.y}`);
-
-            window.oknoKonfiguracja.push(draggedElement);
+            window.wirtualnaWarstwa.push(draggedElement);
             window.RysujOkno();
 
-            canvas.style.cursor = "default"; // 🔥 Przywrócenie kursora
+            canvas.style.cursor = "default";
         }
-
-        console.log(`🔥 startDrag -> Model: ${modelName}, X: ${draggedElement.x}, Y: ${draggedElement.y}`);
 
         canvas.style.cursor = "grabbing";
 
@@ -231,6 +223,11 @@
                 break;
         }
     };
+
+    window.aktualizujWirtualnaWarstwe = function (element) {
+    window.wirtualnaWarstwa.push(element);
+    window.RysujOkno();
+};
 
 </script>
 
@@ -400,7 +397,7 @@
     </div>
 </Tooltip>
 
-<Collapse DefaultActiveKey="@(new[]{"1"})" Animation>
+<Collapse Animation>
     <Panel Header="Ustawienia" Key="1">
 
 <!-- Toolbar z przyciskami -->
