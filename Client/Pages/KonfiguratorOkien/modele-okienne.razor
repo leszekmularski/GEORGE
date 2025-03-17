@@ -106,25 +106,60 @@
         window.RysujOkno();
     };
 
-    // Obsługa przeciągania i dodawania elementów na canvas
     window.startDrag = function (modelName, clientX, clientY, imageSrc) {
-        var canvas = document.getElementById("final-window");
-        var rect = canvas.getBoundingClientRect();
+        let canvas = document.getElementById("final-window");
+        let ctx = canvas.getContext("2d");
+        let rect = canvas.getBoundingClientRect();
 
-        var x = clientX - rect.left;
-        var y = clientY - rect.top;
+        // 🖼️ Tworzymy warstwę poza ekranem (offscreen canvas)
+        let offscreenCanvas = document.createElement("canvas");
+        offscreenCanvas.width = canvas.width;
+        offscreenCanvas.height = canvas.height;
+        let offscreenCtx = offscreenCanvas.getContext("2d");
 
-        var element = {
+        // 📌 Kopiujemy aktualny `canvas` na warstwę poza ekranem
+        offscreenCtx.drawImage(canvas, 0, 0);
+
+        let draggedElement = {
             modelName: modelName,
-            x: x,
-            y: y,
-            szerokosc: 100, // Domyślny rozmiar
+            x: clientX - rect.left,
+            y: clientY - rect.top,
+            szerokosc: 100,
             wysokosc: 100,
-            imageSrc: imageSrc
+            imageSrc: imageSrc,
         };
-        console.log(`startDrag x: ${x}, y: ${y} clientX: ${clientX} clientY: ${clientY}`);
-        window.oknoKonfiguracja.push(element);
-        window.RysujOkno();
+
+        let img = new Image();
+        img.src = imageSrc;
+
+        function moveElement(e) {
+            draggedElement.x = e.clientX - rect.left;
+            draggedElement.y = e.clientY - rect.top;
+
+            // 🔥 Zamiast czyścić `canvas`, rysujemy z warstwy poza ekranem
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(offscreenCanvas, 0, 0);
+            ctx.drawImage(img, draggedElement.x, draggedElement.y, draggedElement.szerokosc, draggedElement.wysokosc);
+        }
+
+        function stopDrag() {
+            document.removeEventListener("mousemove", moveElement);
+            document.removeEventListener("mouseup", stopDrag);
+
+            console.log(`🔥 stopDrag -> X:${draggedElement.x}, Y:${draggedElement.y}`);
+
+            window.oknoKonfiguracja.push(draggedElement);
+            window.RysujOkno();
+
+            canvas.style.cursor = "default"; // 🔥 Przywrócenie kursora
+        }
+
+        console.log(`🔥 startDrag -> Model: ${modelName}, X: ${draggedElement.x}, Y: ${draggedElement.y}`);
+
+        canvas.style.cursor = "grabbing";
+
+        document.addEventListener("mousemove", moveElement);
+        document.addEventListener("mouseup", stopDrag);
     };
 
     // Funkcja dodająca figury geometryczne
@@ -421,7 +456,7 @@
                                 {
                                     <img id="@($"wing-{model.Typ}")"
                                          src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
-                                         @onmousedown="@(e => DodajElement(model, 0, 0, @Szerokosc, @Wysokosc))" />
+                                         @onmousedown="@(e => StartDrag(e, model, 0, 0, @Szerokosc, @Wysokosc))" />
                                 }
                                 else
                                 {
@@ -514,10 +549,25 @@
         JS.InvokeVoidAsync("window.dodajElementDoOkna", model.Typ, x, y, szerokosc, wysokosc, base64Image);
     }
 
-    private void StartDrag(MouseEventArgs e, string modelId, string imageSrc)
+    private void StartDrag(MouseEventArgs e, KonfModele model, int x, int y, int szerokosc, int wysokosc)
     {
-        JS.InvokeVoidAsync("window.startDrag", modelId, e.ClientX, e.ClientY, imageSrc);
+        if (model.Rysunek == null || model.Rysunek.Length == 0)
+        {
+            Console.WriteLine("❌ Błąd: Brak obrazu w modelu!");
+            return;
+        }
+
+        string base64Image = $"data:image/png;base64,{Convert.ToBase64String(model.Rysunek)}";
+
+        Console.WriteLine($"🔥 StartDrag: {model.Id} | X:{e.ClientX}, Y:{e.ClientY}");
+
+        JS.InvokeVoidAsync("window.startDrag", model.Id, e.ClientX, e.ClientY, base64Image);
     }
+
+    // private void StartDrag(MouseEventArgs e, string modelId, string imageSrc)
+    // {
+    //     JS.InvokeVoidAsync("window.startDrag", modelId, e.ClientX, e.ClientY, imageSrc);
+    // }
 
     private string RysunekToBase64(byte[]? imageData)
     {
