@@ -1,10 +1,4 @@
 ﻿@page "/Modele-okienne"
-@using SixLabors.ImageSharp
-@using SixLabors.ImageSharp.PixelFormats
-@using SixLabors.ImageSharp.Drawing.Processing
-@using SixLabors.ImageSharp.Processing
-@using SixLabors.ImageSharp.Drawing
-@using SixLabors.ImageSharp.Formats.Png;
 @using GEORGE.Shared.Models
 @using GEORGE.Shared.Class
 @inject IJSRuntime JS
@@ -14,289 +8,214 @@
 @inject IMessageService _message
 @inject INotificationService _notice
 @inject NavigationManager Navigation
+
 @using Blazor.Extensions
 @using Blazor.Extensions.Canvas
 @using Blazor.Extensions.Canvas.Canvas2D
 
 <script>
-
+    (() => {
     if (!window.offscreenCanvas) {
     window.offscreenCanvas = document.createElement("canvas");
     window.offscreenCtx = window.offscreenCanvas.getContext("2d");
     }
 
-    if (!window.wirtualnaWarstwa) {
-    window.wirtualnaWarstwa = [];
-    }
+    window.wirtualnaWarstwa = window.wirtualnaWarstwa || [];
+    window.oknoKonfiguracja = window.oknoKonfiguracja || [];
+    window.zoomLevel = window.zoomLevel || 1;
+    window.offsetX = window.offsetX || 0;
+    window.offsetY = window.offsetY || 0;
 
-    if (!window.oknoKonfiguracja) {
-    window.oknoKonfiguracja = [];
+    window.onload = () => {
+    const canvas = document.getElementById("final-window");
+    if (!canvas) {
+    console.error("❌ Nie znaleziono canvasu #final-window");
+    return;
     }
-    if (typeof window.zoomLevel === 'undefined') {
-    window.zoomLevel = 1; // Deklaracja zmiennej zoomLevel
-    }
-    if (typeof window.offsetX === 'undefined') {
-    window.offsetX = 0; // Przesunięcie w osi X
-    }
-    if (typeof window.offsetY === 'undefined') {
-    window.offsetY = 0; // Przesunięcie w osi Y
-    }
-
-    window.onload = function () {
-    var canvas = document.getElementById("final-window");
-    var ctx = canvas.getContext("2d");
 
     function dopasujCanvas() {
-    var container = document.querySelector(".canvas-container");
+    const container = document.querySelector(".canvas-container");
+    if (!container) {
+    console.warn("⚠️ Nie znaleziono .canvas-container");
+    return;
+    }
 
-    // Dynamiczne dopasowanie rozmiaru canvas do kontenera
     canvas.width = container.clientWidth;
     canvas.height = container.clientHeight;
-
-    // Przerysowanie zawartości po zmianie rozmiaru
     window.RysujOkno();
     }
 
-    // Dopasowanie przy starcie
     dopasujCanvas();
-
-    // Ponowne dopasowanie przy zmianie rozmiaru okna
     window.addEventListener("resize", dopasujCanvas);
     };
 
-    window.dodajElementDoOkna = function (modelName, x, y, szerokosc, wysokosc, imageSrc) {
-    var element = {
-    modelName: modelName,
-    x: x,
-    y: y,
-    szerokosc: szerokosc,
-    wysokosc: wysokosc,
-    imageSrc: imageSrc
-    };
-
-    window.oknoKonfiguracja.push(element);
+    window.dodajElementDoOkna = (modelName, x, y, szerokosc, wysokosc, imageSrc) => {
+    window.oknoKonfiguracja.push({ modelName, x, y, szerokosc, wysokosc, imageSrc });
     window.RysujOkno();
     };
 
-    window.RysujOkno = function () {
-    var canvas = document.getElementById("final-window");
-    var ctx = canvas.getContext("2d");
+    window.RysujOkno = () => {
+    const canvas = document.getElementById("final-window");
+    if (!canvas) return console.error("❌ Nie znaleziono canvasu!");
 
+    const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    ctx.save(); // Zapisz aktualny stan kontekstu
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.scale(window.zoomLevel, window.zoomLevel);
+    ctx.translate(-canvas.width / 2, -canvas.height / 2);
 
-    // Obliczenie środka canvasu i zastosowanie przesunięcia
-    var centerX = canvas.width / 2;
-    var centerY = canvas.height / 2;
-
-    ctx.translate(centerX, centerY); // Przenosimy układ współrzędnych na środek canvasu
-    ctx.scale(window.zoomLevel, window.zoomLevel); // Skalujemy
-    ctx.translate(-centerX, -centerY); // Cofamy przesunięcie, aby zachować pozycję elementów
-
-    // Rysowanie elementów z uwzględnieniem zoomLevel
-    window.wirtualnaWarstwa.forEach(function (element) {
-    var img = new Image();
-    img.src = element.imageSrc;
-    img.onload = function () {
-    ctx.drawImage(
-    img,
-    (element.x - centerX) * window.zoomLevel + centerX, // Utrzymanie elementów w tym samym miejscu
-    (element.y - centerY) * window.zoomLevel + centerY,
-    element.szerokosc * window.zoomLevel,
-    element.wysokosc * window.zoomLevel
-    );
-    };
+    window.wirtualnaWarstwa.forEach(({ x, y, szerokosc, wysokosc, imageSrc }) => {
+    const img = new Image();
+    img.src = imageSrc;
+    img.onload = () => ctx.drawImage(img, x, y, szerokosc, wysokosc);
     });
 
-    ctx.restore(); // Przywrócenie poprzedniego stanu kontekstu
+    ctx.restore();
     };
 
-
-    window.zoomInCanvas = function () {
+    window.zoomInCanvas = () => {
     window.zoomLevel *= 1.1;
     window.RysujOkno();
     };
 
-    window.zoomOutCanvas = function () {
+    window.zoomOutCanvas = () => {
     window.zoomLevel /= 1.1;
     window.RysujOkno();
     };
 
-    window.startDrag = function (modelName, clientX, clientY, imageSrc) {
-    let canvas = document.getElementById("final-window");
-    let ctx = canvas.getContext("2d");
-    let rect = canvas.getBoundingClientRect();
+    window.startDrag = (modelName, clientX, clientY, imageSrc) => {
+    const canvas = document.getElementById("final-window");
+    if (!canvas) return console.error("❌ Nie znaleziono canvasu!");
 
-    let offscreenCanvas = document.createElement("canvas");
-    offscreenCanvas.width = canvas.width;
-    offscreenCanvas.height = canvas.height;
-    let offscreenCtx = offscreenCanvas.getContext("2d");
+    const ctx = canvas.getContext("2d");
+    const rect = canvas.getBoundingClientRect();
 
-    let draggedElement = {
-    modelName: modelName,
+    const draggedElement = {
+    modelName,
     x: clientX - rect.left,
     y: clientY - rect.top,
-    szerokosc: 100, // Można dostosować
-    wysokosc: 100, // Można dostosować
-    imageSrc: imageSrc,
+    szerokosc: 100,
+    wysokosc: 100,
+    imageSrc
     };
 
     function moveElement(e) {
     draggedElement.x = e.clientX - rect.left;
     draggedElement.y = e.clientY - rect.top;
 
-    offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
-    window.wirtualnaWarstwa.forEach(function (element) {
-    let img = new Image();
-    img.src = element.imageSrc;
-    img.onload = function () {
-    offscreenCtx.drawImage(img, element.x, element.y, element.szerokosc, element.wysokosc);
-    };
-    });
-    let img = new Image();
-    img.src = draggedElement.imageSrc;
-    img.onload = function () {
-    offscreenCtx.drawImage(img, draggedElement.x, draggedElement.y, draggedElement.szerokosc, draggedElement.wysokosc);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(offscreenCanvas, 0, 0);
-    };
+    window.wirtualnaWarstwa.push(draggedElement);
+    window.RysujOkno();
     }
 
     function stopDrag() {
     document.removeEventListener("mousemove", moveElement);
     document.removeEventListener("mouseup", stopDrag);
-
-    window.wirtualnaWarstwa.push(draggedElement);
-    window.RysujOkno();
-
     canvas.style.cursor = "default";
     }
 
     canvas.style.cursor = "grabbing";
-
     document.addEventListener("mousemove", moveElement);
     document.addEventListener("mouseup", stopDrag);
     };
 
-    // Funkcja dodająca figury geometryczne
-    window.dodajKsztalt = function (ksztalt, szerokosc, wysokosc, kolor, czyWypelnienie) {
-    var canvas = document.getElementById("final-window");
-    var ctx = canvas.getContext("2d");
+    window.dodajKsztalt = (ksztalt, szerokosc, wysokosc, kolor, czyWypelnienie) => {
+    const canvas = document.getElementById("final-window");
+    if (!canvas) return console.error("❌ Nie znaleziono canvasu!");
 
-    // Automatyczne dopasowanie rozmiaru (80% dostępnej przestrzeni)
-    var maxWidth = canvas.width * 0.8;
-    var maxHeight = canvas.height * 0.8;
-    szerokosc = Math.min(szerokosc, maxWidth);
-    wysokosc = Math.min(wysokosc, maxHeight);
-
-    // Obliczenie środka canvas
-    var x = (canvas.width - szerokosc) / 2;
-    var y = (canvas.height - wysokosc) / 2;
+    const ctx = canvas.getContext("2d");
+    const x = (canvas.width - szerokosc) / 2;
+    const y = (canvas.height - wysokosc) / 2;
 
     ctx.strokeStyle = kolor;
     ctx.lineWidth = 3;
     ctx.fillStyle = czyWypelnienie ? kolor : "transparent";
 
-    switch (ksztalt) {
-    case "prostokat":
+    ctx.beginPath();
+    if (ksztalt === "prostokat") {
     if (czyWypelnienie) ctx.fillRect(x, y, szerokosc, wysokosc);
     ctx.strokeRect(x, y, szerokosc, wysokosc);
-    break;
-
-    case "trojkat":
-    ctx.beginPath();
+    } else if (ksztalt === "trojkat") {
     ctx.moveTo(x + szerokosc / 2, y);
     ctx.lineTo(x + szerokosc, y + wysokosc);
     ctx.lineTo(x, y + wysokosc);
     ctx.closePath();
-    if (czyWypelnienie) ctx.fill();
-    ctx.stroke();
-    break;
-
-    case "okrag":
-    ctx.beginPath();
+    } else if (ksztalt === "okrag") {
     ctx.arc(canvas.width / 2, canvas.height / 2, szerokosc / 2, 0, Math.PI * 2);
-    if (czyWypelnienie) ctx.fill();
-    ctx.stroke();
-    break;
-
-    case "trapez":
-    ctx.beginPath();
-    ctx.moveTo(x + szerokosc * 0.2, y);
-    ctx.lineTo(x + szerokosc * 0.8, y);
-    ctx.lineTo(x + szerokosc, y + wysokosc);
-    ctx.lineTo(x, y + wysokosc);
-    ctx.closePath();
-    if (czyWypelnienie) ctx.fill();
-    ctx.stroke();
-    break;
-
-    case "romb":
-    ctx.beginPath();
-    ctx.moveTo(x + szerokosc / 2, y);
-    ctx.lineTo(x + szerokosc, y + wysokosc / 2);
-    ctx.lineTo(x + szerokosc / 2, y + wysokosc);
-    ctx.lineTo(x, y + wysokosc / 2);
-    ctx.closePath();
-    if (czyWypelnienie) ctx.fill();
-    ctx.stroke();
-    break;
-
-    case "piksel":
-    ctx.fillRect(canvas.width / 2, canvas.height / 2, 1, 1);
-    break;
     }
+    if (czyWypelnienie) ctx.fill();
+    ctx.stroke();
     };
 
-    window.aktualizujWirtualnaWarstwe = function (element) {
+    window.aktualizujWirtualnaWarstwe = element => {
     window.wirtualnaWarstwa.push(element);
     window.RysujOkno();
     };
 
-
-    window.loadTexture = async function (canvasId, imageUrl) {
+    window.loadTexture = async (canvasId, imageUrl) => {
     console.log("🔹 Próba załadowania obrazu:", imageUrl);
 
     let canvas = document.getElementById(canvasId);
     if (!canvas) {
-    console.warn("⏳ Canvas jeszcze nie istnieje, próbuję ponownie za 500ms...");
-    await new Promise(resolve => setTimeout(resolve, 500)); // Czekaj 500ms
+    console.warn("⏳ Canvas nie istnieje, próbuję ponownie za 500ms...");
+    await new Promise(resolve => setTimeout(resolve, 500));
     canvas = document.getElementById(canvasId);
     }
 
     if (!canvas) {
-    console.error("❌ Nie znaleziono canvasu! Upewnij się, że Blazor go wyrenderował.");
+    console.error("❌ Nie znaleziono canvasu!");
     return null;
     }
 
-    let ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d");
     if (!ctx) {
     console.error("❌ Błąd: Nie można uzyskać kontekstu 2D.");
     return null;
     }
 
-    let img = new Image();
-    img.crossOrigin = "anonymous"; // Zapobiega błędom CORS
+    return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
     img.src = imageUrl;
 
-    return new Promise((resolve, reject) => {
-    img.onload = function () {
+    img.onload = () => {
     console.log("✅ Obrazek załadowany!");
-    let pattern = ctx.createPattern(img, "repeat");
-    resolve(pattern);
+    resolve(ctx.createPattern(img, "repeat"));
     };
 
-    img.onerror = function (err) {
+    img.onerror = err => {
     console.error("❌ Błąd ładowania obrazu!", err);
     reject("Image load error");
     };
     });
     };
+    })();
 
+        // W pliku JavaScript/script.js
+    window.loadAndDrawTexture = async (canvasElement, imageUrl, dotNetHelper) => {
+        const ctx = canvasElement.getContext('2d');
 
+        // Tworzenie wzorca bezpośrednio na docelowym kontekście
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = imageUrl;
+
+        await new Promise((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = reject;
+        });
+
+        const pattern = ctx.createPattern(img, 'repeat');
+        ctx.fillStyle = pattern;
+
+        // Zapis wzorca w kontekście
+        ctx.canvas.dataset.pattern = "wood-pattern";
+
+        // Powiadomienie C# o załadowaniu tekstury
+        await dotNetHelper.invokeMethodAsync('OnTextureLoaded');
+    };
 </script>
-
 
 <style>
 
@@ -466,16 +385,6 @@
 <Collapse Animation>
     <Panel Header="Ustawienia" Key="1">
 
-        <!-- Toolbar z przyciskami -->
-        <div class="toolbar">
-            <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("prostokat"))">🟥 Prostokąt</button>
-            <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("trojkat"))">🔺 Trójkąt</button>
-            <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("okrag"))">⚫ Okrąg</button>
-            <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("trapez"))">🔷 Trapez</button>
-            <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("romb"))">♦ Romb</button>
-            <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("piksel"))">🟧 Piksel</button>
-        </div>
-
         <!-- Wprowadzenie wartości -->
         <div class="form-group mt-3">
             <label>Szerokość:</label>
@@ -487,12 +396,10 @@
             <label>Kolor:</label>
             <input type="color" class="form-control" @bind="Kolor" />
 
-            <button class="btn btn-success mt-2 w-100" @onclick="DodajKsztalt">Dodaj kształt</button>
         </div>
     </Panel>
 </Collapse>
-<button class="btn btn-outline-primary" @onclick="ZoomIn">🔍 Powiększ</button>
-<button class="btn btn-outline-primary" @onclick="ZoomOut">🔍 Pomniejsz</button>
+
 <!-- Kontener na modele i canvas -->
 <div class="window-model-container">
     <!-- Panel boczny z modelami -->
@@ -518,7 +425,7 @@
                                 {
                                     <img id="@($"wing-{model.Typ}")"
                                     src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
-                                    @onmousedown="@(e => StartDrag(e, model, 0, 0, @Szerokosc, @Wysokosc))" />
+                                     />
                                 }
                                 else
                                 {
@@ -535,27 +442,26 @@
     <!-- Główne okno wyświetlania -->
     <div class="display-window">
 
-        @if (CanvasRef == null)
-        {
-            <p style="color: red;">❌ Błąd: CanvasRef jest NULL! Spróbuj odświeżyć stronę.</p>
-        }
-        else
-        {
-            @if (pokazCanvas)
-            {
-                <Content style="flex-grow: 1; height: 100%; overflow: auto; padding: 10px;">
-                    <BECanvas Width="800" Height="600" @ref="CanvasRef"></BECanvas>
-                </Content>
-            }
-
-        }
-        <button @onclick="DrawStructure">Generuj rysunek</button>
         <!-- Główne okno wyświetlania -->
         <div class="display-window">
-            <div class="canvas-container" style="overflow: auto;">
-                <canvas id="final-window"></canvas>
-            </div>
+            @if (hasCanvasError)
+            {
+                <p style="color: red;">❌ Błąd: Nie udało się załadować canvasu! Spróbuj odświeżyć stronę.</p>
+            }
+            else
+            {
+                <BECanvas @ref="CanvasRef" Width="800" Height="600"></BECanvas>
+            }
         </div>
+
+        <button @onclick="DrawStructure">Generuj rysunek</button>
+        @if (!isTextureLoaded)
+        {
+            <div class="texture-loading-overlay">
+                <div class="spinner"></div>
+                <p>Ładowanie tekstur...</p>
+            </div>
+        }
     </div>
 </div>
 
@@ -574,10 +480,8 @@
     private string SelectedSystemId = "";
     private List<KonfModele>? ListaModeli;
 
-    private BECanvas CanvasRef = new(); // Zainicjalizowanie zmiennej
+    private BECanvasComponent? CanvasRef;
     private Canvas2DContext? _context;
-
-    private string canvasElementX = Guid.NewGuid().ToString();
 
     protected override async Task OnInitializedAsync()
     {
@@ -585,40 +489,36 @@
 
         Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
 
-        if (pokazCanvas)
-        {
-            await JS.InvokeVoidAsync("window.onload");
-        }
-
     }
 
-    private object? woodPattern; // 🌳 Przechowywanie wzoru drewna
+
+    private bool hasCanvasError = false; // Nowa flaga do śledzenia błędów
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-
-        if (!pokazCanvas) return;
-
         if (firstRender)
         {
-            StateHasChanged(); // 🔹 Wymuszenie ponownego renderowania Blazora
-            await Task.Delay(500); // 🔹 Dajemy Blazorowi czas na dokończenie renderowania
-
-            if (CanvasRef == null)
+            try
             {
-                Console.WriteLine("❌ CanvasRef nadal jest NULL po ponownym renderowaniu!");
-                return;
+                if (CanvasRef == null)
+                {
+                    hasCanvasError = true;
+                    StateHasChanged(); // Wymuś aktualizację UI
+                    return;
+                }
+
+                _context = await CanvasRef.CreateCanvas2DAsync();
+
+                // Dodatkowa inicjalizacja jeśli potrzebna
             }
-
-            var baseUrlX = Navigation.BaseUri;
-            var imageUrl = $"{baseUrlX}images/wood.jpg";
-            Console.WriteLine($"🔹 Pobieranie tekstury: {imageUrl}");
-
-            _context = await CanvasRef.CreateCanvas2DAsync();
-            woodPattern = await JS.InvokeAsync<object>("loadTexture", "canvasElement", imageUrl);
-            Console.WriteLine("✅ Tekstura załadowana!");
+            catch (Exception ex)
+            {
+                hasCanvasError = true;
+                StateHasChanged(); // Pokazuje komunikat błędu
+                Console.WriteLine($"Błąd inicjalizacji canvas: {ex.Message}");
+            }
         }
     }
-
 
     private async Task OnSystemSelected(ChangeEventArgs e)
     {
@@ -639,162 +539,58 @@
 
     }
 
-    private async Task<byte[]> GetnerujObrazekModelu(KonfModele model, int szerokosc, int wysokosc)
-    {
-        if (model == null)
-        {
 
-            Console.WriteLine("❌ Błąd: Model jest pusty. Nie można wygenerować obrazka!");
-            return null; // Zwracamy `null`, gdy model jest pusty
+
+    private bool isTextureLoaded = false;
+
+    private async Task DrawStructure()
+    {
+        if (CanvasRef == null) return;
+
+        _context ??= await CanvasRef.CreateCanvas2DAsync();
+
+        if (!isTextureLoaded)
+        {
+            var baseUrl = Navigation.BaseUri;
+            var imageUrl = $"{baseUrl}api/images/wood.jpg";
+
+            await JS.InvokeVoidAsync("loadAndDrawTexture",
+                CanvasRef.CanvasReference,
+                imageUrl,
+                DotNetObjectReference.Create(this)
+            );
+            return;
         }
 
-        var baseUrlX = Navigation.BaseUri;
-        var imageUrl = $"{baseUrlX}api/images/wood.jpg";
-
-        var imageGenerator = new ImageGenerator(Http);
-
-        try
-        {
-            byte[] imageBytes = await imageGenerator.GenerateImageAsync(KonfiguracjeSystemu, model.PolaczenieNaroza, szerokosc, wysokosc, imageUrl, "#ADD8E6");
-
-            if (imageBytes == null || imageBytes.Length == 0)
-            {
-
-                Console.WriteLine("❌ Błąd: Nie wygenerowano obrazka, sprawdź konfigurację!");
-
-                return null;
-            }
-            Console.WriteLine("Obrazek OK");
-
-            return imageBytes; // Zwracamy wygenerowane dane obrazu
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("❌ Błąd: Nie wygenerowano obrazka");
-
-            return null; // Zwracamy `null` w przypadku błędu
-        }
+        await RenderFrame();
     }
 
-
-    private double zoomLevel = 1.0;
-
-    private async Task ZoomIn()
+    [JSInvokable]
+    public async Task OnTextureLoaded()
     {
-        zoomLevel *= 1.1;
-        await Redraw();
+        isTextureLoaded = true;
+        await RenderFrame();
+        StateHasChanged();
     }
 
-    private async Task ZoomOut()
-    {
-        zoomLevel /= 1.1;
-        await Redraw();
-    }
-
-    private async Task Redraw()
+    private async Task RenderFrame()
     {
         if (_context == null) return;
 
         await _context.ClearRectAsync(0, 0, 800, 600);
-        await _context.ScaleAsync(zoomLevel, zoomLevel);
 
-        await DrawStructure();
-    }
+        // Rysowanie ramy
+        await _context.SetFillStyleAsync("wood-pattern");
+        await _context.FillRectAsync(50, 50, 20, 500);
+        await _context.FillRectAsync(730, 50, 20, 500);
+        await _context.FillRectAsync(50, 50, 700, 20);
+        await _context.FillRectAsync(50, 530, 700, 20);
 
-    private void WybierzKsztalt(string ksztalt)
-    {
-        WybranyKsztalt = ksztalt;
-    }
-
-    private bool CzyWypelnienie = false;
-
-    private void DodajKsztalt()
-    {
-        JS.InvokeVoidAsync("window.dodajKsztalt", WybranyKsztalt, Szerokosc, Wysokosc, Kolor, CzyWypelnienie);
-    }
-
-    private void DodajElement(KonfModele model, int x, int y, int szerokosc, int wysokosc)
-    {
-        string base64Image = RysunekToBase64(model.Rysunek);
-        JS.InvokeVoidAsync("window.dodajElementDoOkna", model.Typ, x, y, szerokosc, wysokosc, base64Image);
-    }
-
-    private async Task StartDrag(MouseEventArgs e, KonfModele model, int x, int y, int szerokosc, int wysokosc)
-    {
-        if (model.Rysunek == null || model.Rysunek.Length == 0)
-        {
-            Console.WriteLine("❌ Błąd: Brak obrazu w modelu!");
-            return;
-        }
-
-        string base64Image = $"data:image/png;base64,{Convert.ToBase64String(model.Rysunek)}";
-
-        // Console.WriteLine($"🔥 StartDrag: {model.Id} | X:{e.ClientX}, Y:{e.ClientY}");
-
-        //var base64Image = await GetnerujObrazekModelu(model, Szerokosc, Wysokosc);
-
-        if(base64Image != null) JS.InvokeVoidAsync("window.startDrag", model.Id, e.ClientX, e.ClientY, base64Image);
-    }
-
-    // private async Task DrawStructure()
-    // {
-    //     if (_context == null) return;
-
-    //     await _context.ClearRectAsync(0, 0, 800, 600);
-
-    //     var baseUrlX = Navigation.BaseUri;
-    //     var imageUrl = $"{baseUrlX}/images/wood.jpg";
-
-    //     // 🔹 Załaduj teksturę drewna
-    //    // await _context.SetFillStyleAsync($"url(../images/GL_0_T3.png)");
-    //     Console.WriteLine($"Obrazek: {imageUrl}");
-    //     await _context.SetFillStyleAsync(imageUrl);
-
-    //     // 🔹 Rysowanie ramy okna z teksturą drewna
-    //     await _context.FillRectAsync(50, 50, 20, 500); // Lewa rama
-    //     await _context.FillRectAsync(730, 50, 20, 500); // Prawa rama
-    //     await _context.FillRectAsync(50, 50, 700, 20); // Górna rama
-    //     await _context.FillRectAsync(50, 530, 700, 20); // Dolna rama
-
-    //     // 🔹 Rysowanie szyby (kolor niebieski)
-    //     await _context.SetFillStyleAsync("#ADD8E6");
-    //     await _context.FillRectAsync(70, 70, 660, 460);
-    // }
-    bool pokazCanvas = false; 
-    private async Task DrawStructure()
-    {
-        canvasElementX = Guid.NewGuid().ToString();
-
-        pokazCanvas = true;
-
-        if (_context == null)
-        {
-                    var baseUrlX = Navigation.BaseUri;
-        var imageUrl = $"{baseUrlX}api/images/wood.jpg";
-
-            _context = await CanvasRef.CreateCanvas2DAsync();
-            woodPattern = await JS.InvokeAsync<object>("loadTexture", "canvasElement", imageUrl);
-            Console.WriteLine("✅ Tekstura załadowana!");
-        }
-
-        await _context.ClearRectAsync(0, 0, 800, 600);
-
-        // 🔹 Wypełnij ramę teksturą drewna
-        await _context.SetFillStyleAsync(woodPattern);
-        await _context.FillRectAsync(50, 50, 20, 500); // Lewa rama
-        await _context.FillRectAsync(730, 50, 20, 500); // Prawa rama
-        await _context.FillRectAsync(50, 50, 700, 20); // Górna rama
-        await _context.FillRectAsync(50, 530, 700, 20); // Dolna rama
-
-        // 🔹 Rysowanie szyby (kolor niebieski)
+        // Rysowanie szyby
         await _context.SetFillStyleAsync("#ADD8E6");
         await _context.FillRectAsync(70, 70, 660, 460);
     }
 
-    // private void StartDrag(MouseEventArgs e, string modelId, string imageSrc)
-    // {
-    //     JS.InvokeVoidAsync("window.startDrag", modelId, e.ClientX, e.ClientY, imageSrc);
-    // }
 
     private string RysunekToBase64(byte[]? imageData)
     {
@@ -809,21 +605,6 @@
     private async Task GoBack()
     {
         await JS.InvokeVoidAsync("history.back");
-    }
-
-    public async Task<byte[]> DodajObrazNaWarstwe(byte[] obrazGlownegoOkna, byte[] nowyObraz, int x, int y)
-    {
-        using (var image = SixLabors.ImageSharp.Image.Load(obrazGlownegoOkna))
-        using (var overlay = SixLabors.ImageSharp.Image.Load(nowyObraz))
-        {
-            image.Mutate(ctx => ctx.DrawImage(overlay, new SixLabors.ImageSharp.Point(x, y), 1f));
-
-            using (var ms = new MemoryStream())
-            {
-                image.Save(ms, new PngEncoder());
-                return ms.ToArray();
-            }
-        }
     }
 
     private bool boolOdczyt = false;
