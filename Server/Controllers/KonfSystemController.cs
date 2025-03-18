@@ -27,10 +27,11 @@ public class KonfSystemController : ControllerBase
         return await _context.KonfSystem.Where(x => x.RowIdSystem.ToString() == row_id_sys).OrderBy(e => e.Nazwa).ToListAsync();
     }
 
-    [HttpGet("FIN_DROWIDONLYTRUE/{row_id_sys}")]
+    [HttpGet("FIND_ONLY_TRUE/{row_id_sys}")]
     public async Task<ActionResult<List<KonfSystem>>> GetAllByRowIdOnlyTrue(string row_id_sys)
     {
-        return await _context.KonfSystem.Where(x => x.RowIdSystem.ToString() == row_id_sys && x.WidocznaNaLiscie).OrderBy(e => e.Nazwa).ToListAsync();
+        var retrunX = await _context.KonfSystem.Where(x => x.RowIdSystem.ToString() == row_id_sys && x.WidocznaNaLiscie).OrderBy(e => e.Nazwa).ToListAsync();
+        return retrunX;
     }
 
     [HttpGet("{id}")]

@@ -81,19 +81,19 @@
 
                 <!-- Długość Otworu -->
                 <div style="display: flex; align-items: center; gap: 5px;">
-                    <label style="font-weight: bold; color: forestgreen;">Długość Otworu:</label>
+                    <label style="font-weight: bold; color: forestgreen;">Długość Otworu [mm]:</label>
                     <input style="font-weight: bold; color: forestgreen; width: 8ch;" type="number" @bind="DlugoscOtworu" @onclick="()=> Oblicz(false)" />
                 </div>
 
                 <!-- Szerokość Otworu -->
                 <div style="display: flex; align-items: center; gap: 5px;">
-                    <label style="font-weight: bold; color: forestgreen;">Szerokość Otworu:</label>
+                    <label style="font-weight: bold; color: forestgreen;">Szerokość Otworu [mm]:</label>
                     <input style="font-weight: bold; color: forestgreen; width: 8ch;" type="number" @bind="SzerokoscOtworu" />
                 </div>
 
                 <!-- Długość na Wejściu -->
                 <div style="display: flex; align-items: center; gap: 5px;">
-                    <label style="font-weight: bold; color: crimson;">Długość na Wejściu:</label>
+                    <label style="font-weight: bold; color: crimson;">Długość na Wejściu [mm]:</label>
                     <Tooltip Placement="@Placement.Top" Title="Całkowita długość schodów.">
                         <input style="font-weight: bold; color: crimson; width: 8ch;" type="number" @bind="DlugoscNaWejsciu" @onclick="()=> Oblicz(false)" />
                     </Tooltip>
@@ -101,13 +101,13 @@
 
                 <!-- Wysokość do Stropu -->
                 <div style="display: flex; align-items: center; gap: 5px;">
-                    <label style="font-weight: bold; color: forestgreen;">Wysokość do Stropu:</label>
+                    <label style="font-weight: bold; color: forestgreen;">Wysokość do Stropu [mm]:</label>
                     <input style="font-weight: bold; color: forestgreen; width: 8ch;" type="number" @bind="WysokoscDoStropu" />
                 </div>
 
                 <!-- Wysokość Całkowita -->
                 <div style="display: flex; align-items: center; gap: 5px;">
-                    <label style="font-weight: bold; color: crimson;">Wysokość Całkowita:</label>
+                    <label style="font-weight: bold; color: crimson;">Wysokość Schodów [mm]:</label>
                     <input style="font-weight: bold; color: crimson; width: 8ch;" type="number" @bind="WysokoscCalkowita" />
                 </div>
 
@@ -119,37 +119,40 @@
 
                 <!-- Wydłuż ostatni stopień -->
                 <div style="display: flex; align-items: center; gap: 5px;">
-                    <label style="font-weight: bold; color: crimson;">Wydłuż ostatni stopień o:</label>
+                    <label style="font-weight: bold; color: crimson;">Wydłuż ostatni stopień o [mm]:</label>
                     <input style="font-weight: bold; color: crimson; width: 8ch;" type="number" @bind="WydluzOstatniStopien" />
                 </div>
 
                 <!-- Zachodzenie stopni za siebie -->
                 <div style="display: flex; align-items: center; gap: 5px;">
-                    <label style="font-weight: bold; color: crimson;">Zachodzenie stopni za siebie:</label>
+                    <label style="font-weight: bold; color: crimson;">Zachodzenie stopni za siebie [mm]:</label>
                     <input style="font-weight: bold; color: crimson; width: 8ch;" type="number" @bind="ZachodzenieStopniZaSiebie" @onclick="()=> Oblicz(false)" />
                 </div>
 
                 <!-- Odsadzenie stopni od brzegu u góry -->
                 <div style="display: flex; align-items: center; gap: 5px;">
-                    <label style="font-weight: bold; color: crimson;">Odsadzenie stopni od brzegu u góry:</label>
+                    <label style="font-weight: bold; color: crimson;">Odsadzenie stopni od brzegu u góry [mm]:</label>
                     <input style="font-weight: bold; color: crimson; width: 8ch;" type="number" @bind="OsadzenieOdGory" @onclick="()=> Oblicz(false)" />
                 </div>
 
                 <!-- Odsadzenie stopni od brzegu u dołu -->
                 <div style="display: flex; align-items: center; gap: 5px;">
-                    <label style="font-weight: bold; color: crimson;">Odsadzenie stopni od brzegu u dołu:</label>
+                    <label style="font-weight: bold; color: crimson;">Odsadzenie stopni od brzegu u dołu [mm]:</label>
                     <input style="font-weight: bold; color: crimson; width: 8ch;" type="number" @bind="OsadzenieOdDolu" />
                 </div>
 
                 <!-- Szerokość Biegu Schodów -->
                 <div style="display: flex; align-items: center; gap: 5px;">
-                    <label style="font-weight: bold; color: forestgreen;">Szerokość Biegu Schodów:</label>
+                    <label style="font-weight: bold; color: forestgreen;">Szerokość Biegu Schodów [mm]:</label>
                     <input style="font-weight: bold; color: forestgreen; width: 8ch;" type="number" @bind="SzerokoscBieguSchodow" />
+                    <label style="font-weight: normal; color: yellowgreen;">Całkowita szerokość schodów [mm]:</label>
+                    <input style="font-weight: bold; color: forestgreen; width: 8ch;" type="number" @bind="CalkowitaSzerokoscSchodow" @onblur="()=> WyliczSerokoscPrzejscia()" />
+
                 </div>
 
                 <!-- Skala wyświetlania -->
                 <div style="display: flex; flex-direction: column; gap: 5px;">
-                    <label style="font-weight: bold; color: forestgreen;">Skala wyświetlania @SkalaWyswietlania [%]:</label>
+                    <label style="font-weight: bold; color: yellowgreen;">Skala wyświetlania @SkalaWyswietlania [%]:</label>
                     <Slider TValue="double" Min="1" Max="100" Step="1" @bind-Value="@SkalaWyswietlania" />
                 </div>
 
@@ -263,6 +266,8 @@
 
     private string NazwaProgramuCNC { get; set; } = "";
 
+    private double CalkowitaSzerokoscSchodow { get; set; } = 0;
+
     private BECanvasComponent? canvasReferenceKPL;
     private Canvas2DContext? contextKPL;
     private List<Shape>? shapes;
@@ -302,6 +307,8 @@
             if (DlugoscNaWejsciu == 0) DlugoscNaWejsciu = 3000;
             if (WysokoscCalkowita == 0) WysokoscCalkowita = 3000;
             if (SzerokoscSchodow == 0) SzerokoscSchodow = 1000;
+
+            CalkowitaSzerokoscSchodow = SzerokoscSchodow + 40 + 40;
 
             if (JSRuntime != null)
             {
@@ -367,6 +374,7 @@
         GlebokoscStopnia = Math.Round(DlugoscLiniiBiegu / (LiczbaPodniesienStopni - 1), 2);
         PrzecietnaDlugoscKroku = Math.Round(2 * WysokoscPodniesieniaStopnia + GlebokoscStopnia, 2);
 
+        CalkowitaSzerokoscSchodow = SzerokoscSchodow + 40 + 40;
 
         if (JSRuntime != null)
         {
@@ -534,6 +542,12 @@
         {
             await shape.DrawAsync(contextKPL);
         }
+    }
+
+    private async Task WyliczSerokoscPrzejscia()
+    {
+        SzerokoscBieguSchodow = CalkowitaSzerokoscSchodow - 40 - 40;
+        await Task.CompletedTask;
     }
 
     // Reset method

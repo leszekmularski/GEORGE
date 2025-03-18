@@ -480,6 +480,8 @@
                                        $"{SelectedImage3?.Value ?? "0-T0"};" +
                                        $"{SelectedImage4?.Value ?? "0-T0"}";
 
+        EdytowanyModel.RowIdSystem = Guid.Parse(SelectedSystemId);
+
         try
         {
             Console.WriteLine($"EdytowanyModel.PolaczenieNaroza: {EdytowanyModel.PolaczenieNaroza}");

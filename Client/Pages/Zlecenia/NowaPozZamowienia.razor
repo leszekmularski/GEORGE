@@ -33,11 +33,12 @@ else
                     ValueName="@nameof(Producent.RowId)">
                     </Select>
                 </FormItem>
-                <AntDesign.FormItem Label="Nazwa produktu">
-                    <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.NazwaProduktu" Required Placeholder="Podaj Nazwę produktu" />
-                </AntDesign.FormItem>
+                
                 <AntDesign.FormItem Label="Numer Katalogowy">
                     <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.NumerKatalogowy" Placeholder="Podaj numer katalogowy producemnta" />
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Nazwa produktu">
+                    <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.NazwaProduktu" Required Placeholder="Podaj Nazwę produktu" />
                 </AntDesign.FormItem>
 
                 <AntDesign.FormItem Label="Jednostka">

@@ -28,6 +28,12 @@ public class KonfModeleController : ControllerBase
         return model ?? (ActionResult<KonfModele>)NotFound();
     }
 
+    [HttpGet("FIND_ONLY_TRUE/{row_id_sys}")]
+    public async Task<ActionResult<List<KonfModele>>> GetAllByRowIdOnlyTrue(string row_id_sys)
+    {
+        return await _context.KonfModele.Where(x => x.RowIdSystem.ToString() == row_id_sys && x.WidocznaNaLiscie).OrderBy(e => e.NazwaKonfiguracji).ToListAsync();
+    }
+
     [HttpPost]
     public async Task<ActionResult<KonfModele>> Post(KonfModele model)
     {

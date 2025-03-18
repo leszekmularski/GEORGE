@@ -12,222 +12,288 @@
 @inject HttpClient Http
 @using System.Net
 @inject IMessageService _message
+@inject INotificationService _notice
+@inject NavigationManager Navigation
+@using Blazor.Extensions
+@using Blazor.Extensions.Canvas
+@using Blazor.Extensions.Canvas.Canvas2D
 
 <script>
 
     if (!window.offscreenCanvas) {
-        window.offscreenCanvas = document.createElement("canvas");
-        window.offscreenCtx = window.offscreenCanvas.getContext("2d");
+    window.offscreenCanvas = document.createElement("canvas");
+    window.offscreenCtx = window.offscreenCanvas.getContext("2d");
     }
 
     if (!window.wirtualnaWarstwa) {
-        window.wirtualnaWarstwa = [];
+    window.wirtualnaWarstwa = [];
     }
 
     if (!window.oknoKonfiguracja) {
-        window.oknoKonfiguracja = [];
+    window.oknoKonfiguracja = [];
     }
     if (typeof window.zoomLevel === 'undefined') {
-        window.zoomLevel = 1; // Deklaracja zmiennej zoomLevel
+    window.zoomLevel = 1; // Deklaracja zmiennej zoomLevel
     }
     if (typeof window.offsetX === 'undefined') {
-        window.offsetX = 0; // Przesunięcie w osi X
+    window.offsetX = 0; // Przesunięcie w osi X
     }
     if (typeof window.offsetY === 'undefined') {
-        window.offsetY = 0; // Przesunięcie w osi Y
+    window.offsetY = 0; // Przesunięcie w osi Y
     }
 
     window.onload = function () {
-        var canvas = document.getElementById("final-window");
-        var ctx = canvas.getContext("2d");
+    var canvas = document.getElementById("final-window");
+    var ctx = canvas.getContext("2d");
 
-        function dopasujCanvas() {
-            var container = document.querySelector(".canvas-container");
+    function dopasujCanvas() {
+    var container = document.querySelector(".canvas-container");
 
-            // Dynamiczne dopasowanie rozmiaru canvas do kontenera
-            canvas.width = container.clientWidth;
-            canvas.height = container.clientHeight;
+    // Dynamiczne dopasowanie rozmiaru canvas do kontenera
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
 
-            // Przerysowanie zawartości po zmianie rozmiaru
-            window.RysujOkno();
-        }
+    // Przerysowanie zawartości po zmianie rozmiaru
+    window.RysujOkno();
+    }
 
-        // Dopasowanie przy starcie
-        dopasujCanvas();
+    // Dopasowanie przy starcie
+    dopasujCanvas();
 
-        // Ponowne dopasowanie przy zmianie rozmiaru okna
-        window.addEventListener("resize", dopasujCanvas);
+    // Ponowne dopasowanie przy zmianie rozmiaru okna
+    window.addEventListener("resize", dopasujCanvas);
     };
 
     window.dodajElementDoOkna = function (modelName, x, y, szerokosc, wysokosc, imageSrc) {
-        var element = {
-            modelName: modelName,
-            x: x,
-            y: y,
-            szerokosc: szerokosc,
-            wysokosc: wysokosc,
-            imageSrc: imageSrc
-        };
+    var element = {
+    modelName: modelName,
+    x: x,
+    y: y,
+    szerokosc: szerokosc,
+    wysokosc: wysokosc,
+    imageSrc: imageSrc
+    };
 
-        window.oknoKonfiguracja.push(element);
-        window.RysujOkno();
+    window.oknoKonfiguracja.push(element);
+    window.RysujOkno();
     };
 
     window.RysujOkno = function () {
-        var canvas = document.getElementById("final-window");
-        var ctx = canvas.getContext("2d");
+    var canvas = document.getElementById("final-window");
+    var ctx = canvas.getContext("2d");
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        window.wirtualnaWarstwa.forEach(function (element) {
-            var img = new Image();
-            img.src = element.imageSrc;
-            img.onload = function () {
-                ctx.drawImage(img, element.x, element.y, element.szerokosc, element.wysokosc);
-            };
-        });
+    ctx.save(); // Zapisz aktualny stan kontekstu
+
+    // Obliczenie środka canvasu i zastosowanie przesunięcia
+    var centerX = canvas.width / 2;
+    var centerY = canvas.height / 2;
+
+    ctx.translate(centerX, centerY); // Przenosimy układ współrzędnych na środek canvasu
+    ctx.scale(window.zoomLevel, window.zoomLevel); // Skalujemy
+    ctx.translate(-centerX, -centerY); // Cofamy przesunięcie, aby zachować pozycję elementów
+
+    // Rysowanie elementów z uwzględnieniem zoomLevel
+    window.wirtualnaWarstwa.forEach(function (element) {
+    var img = new Image();
+    img.src = element.imageSrc;
+    img.onload = function () {
+    ctx.drawImage(
+    img,
+    (element.x - centerX) * window.zoomLevel + centerX, // Utrzymanie elementów w tym samym miejscu
+    (element.y - centerY) * window.zoomLevel + centerY,
+    element.szerokosc * window.zoomLevel,
+    element.wysokosc * window.zoomLevel
+    );
+    };
+    });
+
+    ctx.restore(); // Przywrócenie poprzedniego stanu kontekstu
     };
 
+
     window.zoomInCanvas = function () {
-        window.zoomLevel *= 1.1;
-        window.RysujOkno();
+    window.zoomLevel *= 1.1;
+    window.RysujOkno();
     };
 
     window.zoomOutCanvas = function () {
-        window.zoomLevel /= 1.1;
-        window.RysujOkno();
+    window.zoomLevel /= 1.1;
+    window.RysujOkno();
     };
 
     window.startDrag = function (modelName, clientX, clientY, imageSrc) {
-        let canvas = document.getElementById("final-window");
-        let ctx = canvas.getContext("2d");
-        let rect = canvas.getBoundingClientRect();
+    let canvas = document.getElementById("final-window");
+    let ctx = canvas.getContext("2d");
+    let rect = canvas.getBoundingClientRect();
 
-        let offscreenCanvas = document.createElement("canvas");
-        offscreenCanvas.width = canvas.width;
-        offscreenCanvas.height = canvas.height;
-        let offscreenCtx = offscreenCanvas.getContext("2d");
+    let offscreenCanvas = document.createElement("canvas");
+    offscreenCanvas.width = canvas.width;
+    offscreenCanvas.height = canvas.height;
+    let offscreenCtx = offscreenCanvas.getContext("2d");
 
-        let draggedElement = {
-            modelName: modelName,
-            x: clientX - rect.left,
-            y: clientY - rect.top,
-            szerokosc: 100, // Można dostosować
-            wysokosc: 100, // Można dostosować
-            imageSrc: imageSrc,
-        };
+    let draggedElement = {
+    modelName: modelName,
+    x: clientX - rect.left,
+    y: clientY - rect.top,
+    szerokosc: 100, // Można dostosować
+    wysokosc: 100, // Można dostosować
+    imageSrc: imageSrc,
+    };
 
-        function moveElement(e) {
-            draggedElement.x = e.clientX - rect.left;
-            draggedElement.y = e.clientY - rect.top;
+    function moveElement(e) {
+    draggedElement.x = e.clientX - rect.left;
+    draggedElement.y = e.clientY - rect.top;
 
-            offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
-            window.wirtualnaWarstwa.forEach(function (element) {
-                let img = new Image();
-                img.src = element.imageSrc;
-                img.onload = function () {
-                    offscreenCtx.drawImage(img, element.x, element.y, element.szerokosc, element.wysokosc);
-                };
-            });
-            let img = new Image();
-            img.src = draggedElement.imageSrc;
-            img.onload = function () {
-                offscreenCtx.drawImage(img, draggedElement.x, draggedElement.y, draggedElement.szerokosc, draggedElement.wysokosc);
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(offscreenCanvas, 0, 0);
-            };
-        }
+    offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+    window.wirtualnaWarstwa.forEach(function (element) {
+    let img = new Image();
+    img.src = element.imageSrc;
+    img.onload = function () {
+    offscreenCtx.drawImage(img, element.x, element.y, element.szerokosc, element.wysokosc);
+    };
+    });
+    let img = new Image();
+    img.src = draggedElement.imageSrc;
+    img.onload = function () {
+    offscreenCtx.drawImage(img, draggedElement.x, draggedElement.y, draggedElement.szerokosc, draggedElement.wysokosc);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(offscreenCanvas, 0, 0);
+    };
+    }
 
-        function stopDrag() {
-            document.removeEventListener("mousemove", moveElement);
-            document.removeEventListener("mouseup", stopDrag);
+    function stopDrag() {
+    document.removeEventListener("mousemove", moveElement);
+    document.removeEventListener("mouseup", stopDrag);
 
-            window.wirtualnaWarstwa.push(draggedElement);
-            window.RysujOkno();
+    window.wirtualnaWarstwa.push(draggedElement);
+    window.RysujOkno();
 
-            canvas.style.cursor = "default";
-        }
+    canvas.style.cursor = "default";
+    }
 
-        canvas.style.cursor = "grabbing";
+    canvas.style.cursor = "grabbing";
 
-        document.addEventListener("mousemove", moveElement);
-        document.addEventListener("mouseup", stopDrag);
+    document.addEventListener("mousemove", moveElement);
+    document.addEventListener("mouseup", stopDrag);
     };
 
     // Funkcja dodająca figury geometryczne
     window.dodajKsztalt = function (ksztalt, szerokosc, wysokosc, kolor, czyWypelnienie) {
-        var canvas = document.getElementById("final-window");
-        var ctx = canvas.getContext("2d");
+    var canvas = document.getElementById("final-window");
+    var ctx = canvas.getContext("2d");
 
-        // Automatyczne dopasowanie rozmiaru (80% dostępnej przestrzeni)
-        var maxWidth = canvas.width * 0.8;
-        var maxHeight = canvas.height * 0.8;
-        szerokosc = Math.min(szerokosc, maxWidth);
-        wysokosc = Math.min(wysokosc, maxHeight);
+    // Automatyczne dopasowanie rozmiaru (80% dostępnej przestrzeni)
+    var maxWidth = canvas.width * 0.8;
+    var maxHeight = canvas.height * 0.8;
+    szerokosc = Math.min(szerokosc, maxWidth);
+    wysokosc = Math.min(wysokosc, maxHeight);
 
-        // Obliczenie środka canvas
-        var x = (canvas.width - szerokosc) / 2;
-        var y = (canvas.height - wysokosc) / 2;
+    // Obliczenie środka canvas
+    var x = (canvas.width - szerokosc) / 2;
+    var y = (canvas.height - wysokosc) / 2;
 
-        ctx.strokeStyle = kolor;
-        ctx.lineWidth = 3;
-        ctx.fillStyle = czyWypelnienie ? kolor : "transparent";
+    ctx.strokeStyle = kolor;
+    ctx.lineWidth = 3;
+    ctx.fillStyle = czyWypelnienie ? kolor : "transparent";
 
-        switch (ksztalt) {
-            case "prostokat":
-                if (czyWypelnienie) ctx.fillRect(x, y, szerokosc, wysokosc);
-                ctx.strokeRect(x, y, szerokosc, wysokosc);
-                break;
+    switch (ksztalt) {
+    case "prostokat":
+    if (czyWypelnienie) ctx.fillRect(x, y, szerokosc, wysokosc);
+    ctx.strokeRect(x, y, szerokosc, wysokosc);
+    break;
 
-            case "trojkat":
-                ctx.beginPath();
-                ctx.moveTo(x + szerokosc / 2, y);
-                ctx.lineTo(x + szerokosc, y + wysokosc);
-                ctx.lineTo(x, y + wysokosc);
-                ctx.closePath();
-                if (czyWypelnienie) ctx.fill();
-                ctx.stroke();
-                break;
+    case "trojkat":
+    ctx.beginPath();
+    ctx.moveTo(x + szerokosc / 2, y);
+    ctx.lineTo(x + szerokosc, y + wysokosc);
+    ctx.lineTo(x, y + wysokosc);
+    ctx.closePath();
+    if (czyWypelnienie) ctx.fill();
+    ctx.stroke();
+    break;
 
-            case "okrag":
-                ctx.beginPath();
-                ctx.arc(canvas.width / 2, canvas.height / 2, szerokosc / 2, 0, Math.PI * 2);
-                if (czyWypelnienie) ctx.fill();
-                ctx.stroke();
-                break;
+    case "okrag":
+    ctx.beginPath();
+    ctx.arc(canvas.width / 2, canvas.height / 2, szerokosc / 2, 0, Math.PI * 2);
+    if (czyWypelnienie) ctx.fill();
+    ctx.stroke();
+    break;
 
-            case "trapez":
-                ctx.beginPath();
-                ctx.moveTo(x + szerokosc * 0.2, y);
-                ctx.lineTo(x + szerokosc * 0.8, y);
-                ctx.lineTo(x + szerokosc, y + wysokosc);
-                ctx.lineTo(x, y + wysokosc);
-                ctx.closePath();
-                if (czyWypelnienie) ctx.fill();
-                ctx.stroke();
-                break;
+    case "trapez":
+    ctx.beginPath();
+    ctx.moveTo(x + szerokosc * 0.2, y);
+    ctx.lineTo(x + szerokosc * 0.8, y);
+    ctx.lineTo(x + szerokosc, y + wysokosc);
+    ctx.lineTo(x, y + wysokosc);
+    ctx.closePath();
+    if (czyWypelnienie) ctx.fill();
+    ctx.stroke();
+    break;
 
-            case "romb":
-                ctx.beginPath();
-                ctx.moveTo(x + szerokosc / 2, y);
-                ctx.lineTo(x + szerokosc, y + wysokosc / 2);
-                ctx.lineTo(x + szerokosc / 2, y + wysokosc);
-                ctx.lineTo(x, y + wysokosc / 2);
-                ctx.closePath();
-                if (czyWypelnienie) ctx.fill();
-                ctx.stroke();
-                break;
+    case "romb":
+    ctx.beginPath();
+    ctx.moveTo(x + szerokosc / 2, y);
+    ctx.lineTo(x + szerokosc, y + wysokosc / 2);
+    ctx.lineTo(x + szerokosc / 2, y + wysokosc);
+    ctx.lineTo(x, y + wysokosc / 2);
+    ctx.closePath();
+    if (czyWypelnienie) ctx.fill();
+    ctx.stroke();
+    break;
 
-            case "piksel":
-                ctx.fillRect(canvas.width / 2, canvas.height / 2, 1, 1);
-                break;
-        }
+    case "piksel":
+    ctx.fillRect(canvas.width / 2, canvas.height / 2, 1, 1);
+    break;
+    }
     };
 
     window.aktualizujWirtualnaWarstwe = function (element) {
     window.wirtualnaWarstwa.push(element);
     window.RysujOkno();
-};
+    };
+
+
+    window.loadTexture = async function (canvasId, imageUrl) {
+    console.log("🔹 Próba załadowania obrazu:", imageUrl);
+
+    let canvas = document.getElementById(canvasId);
+    if (!canvas) {
+    console.warn("⏳ Canvas jeszcze nie istnieje, próbuję ponownie za 500ms...");
+    await new Promise(resolve => setTimeout(resolve, 500)); // Czekaj 500ms
+    canvas = document.getElementById(canvasId);
+    }
+
+    if (!canvas) {
+    console.error("❌ Nie znaleziono canvasu! Upewnij się, że Blazor go wyrenderował.");
+    return null;
+    }
+
+    let ctx = canvas.getContext("2d");
+    if (!ctx) {
+    console.error("❌ Błąd: Nie można uzyskać kontekstu 2D.");
+    return null;
+    }
+
+    let img = new Image();
+    img.crossOrigin = "anonymous"; // Zapobiega błędom CORS
+    img.src = imageUrl;
+
+    return new Promise((resolve, reject) => {
+    img.onload = function () {
+    console.log("✅ Obrazek załadowany!");
+    let pattern = ctx.createPattern(img, "repeat");
+    resolve(pattern);
+    };
+
+    img.onerror = function (err) {
+    console.error("❌ Błąd ładowania obrazu!", err);
+    reject("Image load error");
+    };
+    });
+    };
+
 
 </script>
 
@@ -236,141 +302,141 @@
 
     /* Globalne ustawienia */
     html, body {
-        height: 100%;
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-        font-family: Arial, sans-serif;
-        background-color: #f8f9fa;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    background-color: #f8f9fa;
     }
 
     /* Kontener główny */
     .window-model-container {
-        display: flex;
-        height: 70vh;
-        background-color: #fff;
-        padding: 10px;
-        box-sizing: border-box;
+    display: flex;
+    height: 70vh;
+    background-color: #fff;
+    padding: 10px;
+    box-sizing: border-box;
     }
 
     /* Panel boczny z modelami */
     .wing-model-container {
-        flex: 0 0 250px; /* Zmniejszenie szerokości */
-        height: 100%;
-        overflow-y: auto;
-        border-right: 2px solid #ddd;
-        padding: 10px;
-        background: #f8f9fa;
+    flex: 0 0 250px; /* Zmniejszenie szerokości */
+    height: 100%;
+    overflow-y: auto;
+    border-right: 2px solid #ddd;
+    padding: 10px;
+    background: #f8f9fa;
     }
 
-        /* Tabela modeli */
-        .wing-model-container table {
-            font-size: 13px;
-            width: 100%;
-            border-collapse: collapse;
-        }
+    /* Tabela modeli */
+    .wing-model-container table {
+    font-size: 13px;
+    width: 100%;
+    border-collapse: collapse;
+    }
 
-        .wing-model-container th, .wing-model-container td {
-            padding: 6px;
-            text-align: center;
-        }
+    .wing-model-container th, .wing-model-container td {
+    padding: 6px;
+    text-align: center;
+    }
 
-        .wing-model-container th {
-            background-color: #007bff;
-            color: white;
-        }
+    .wing-model-container th {
+    background-color: #007bff;
+    color: white;
+    }
 
-        .wing-model-container tr:hover {
-            background-color: rgba(0, 123, 255, 0.1);
-        }
+    .wing-model-container tr:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+    }
 
-        /* Miniatury modeli */
-        .wing-model-container img {
-            width: 45px;
-            height: 45px;
-            object-fit: contain;
-            cursor: grab;
-            transition: transform 0.2s ease-in-out;
-        }
+    /* Miniatury modeli */
+    .wing-model-container img {
+    width: 45px;
+    height: 45px;
+    object-fit: contain;
+    cursor: grab;
+    transition: transform 0.2s ease-in-out;
+    }
 
-            .wing-model-container img:hover {
-                transform: scale(1.1);
-            }
+    .wing-model-container img:hover {
+    transform: scale(1.1);
+    }
 
     /* Główne okno wyświetlania */
     .display-window {
-        flex-grow: 1;
-        height: 100%;
-        border: 2px solid #ddd;
-        background-color: #fff;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 10px;
-        box-sizing: border-box;
-        position: relative;
+    flex-grow: 1;
+    height: 100%;
+    border: 2px solid #ddd;
+    background-color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    box-sizing: border-box;
+    position: relative;
     }
 
     /* Kontener canvas - dopasowany do okna */
     .canvas-container {
-        width: 100%;
-        height: 100%;
-        max-width: 100%;
-        max-height: 100%;
-        border: 2px solid #ddd;
-        background-color: #fff;
-        border-radius: 5px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        overflow: auto; /* Ukrywa przewijanie */
-        position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    border: 2px solid #ddd;
+    background-color: #fff;
+    border-radius: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: auto; /* Ukrywa przewijanie */
+    position: relative;
     }
 
     /* Canvas - dynamiczne skalowanie */
     canvas {
-        display: block;
-        max-width: 100%;
-        max-height: 100%;
-        background-color: transparent;
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    background-color: transparent;
     }
 
     /* Paski przewijania */
     .wing-model-container::-webkit-scrollbar {
-        width: 8px;
+    width: 8px;
     }
 
     .wing-model-container::-webkit-scrollbar-thumb {
-        background: #007bff;
-        border-radius: 5px;
+    background: #007bff;
+    border-radius: 5px;
     }
 
-        .wing-model-container::-webkit-scrollbar-thumb:hover {
-            background: #0056b3;
-        }
+    .wing-model-container::-webkit-scrollbar-thumb:hover {
+    background: #0056b3;
+    }
 
     /* 🔹 Toolbar z przyciskami */
     .toolbar {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 5px;
-        justify-content: center;
-        padding: 10px;
-        background: #fff;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    justify-content: center;
+    padding: 10px;
+    background: #fff;
     }
 
-        /* Styl dla przycisków */
-        .toolbar .btn {
-            flex: 1;
-            min-width: 90px;
-            font-size: 13px;
-            padding: 6px 8px;
-            transition: all 0.2s ease-in-out;
-        }
+    /* Styl dla przycisków */
+    .toolbar .btn {
+    flex: 1;
+    min-width: 90px;
+    font-size: 13px;
+    padding: 6px 8px;
+    transition: all 0.2s ease-in-out;
+    }
 
-            .toolbar .btn:hover {
-                transform: scale(1.05);
-            }
+    .toolbar .btn:hover {
+    transform: scale(1.05);
+    }
 
 </style>
 
@@ -400,7 +466,7 @@
 <Collapse Animation>
     <Panel Header="Ustawienia" Key="1">
 
-<!-- Toolbar z przyciskami -->
+        <!-- Toolbar z przyciskami -->
         <div class="toolbar">
             <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("prostokat"))">🟥 Prostokąt</button>
             <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("trojkat"))">🔺 Trójkąt</button>
@@ -410,21 +476,20 @@
             <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("piksel"))">🟧 Piksel</button>
         </div>
 
+        <!-- Wprowadzenie wartości -->
+        <div class="form-group mt-3">
+            <label>Szerokość:</label>
+            <input type="number" class="form-control" @bind="Szerokosc" />
 
-<!-- Wprowadzenie wartości -->
-<div class="form-group mt-3">
-    <label>Szerokość:</label>
-    <input type="number" class="form-control" @bind="Szerokosc" />
+            <label>Wysokość:</label>
+            <input type="number" class="form-control" @bind="Wysokosc" />
 
-    <label>Wysokość:</label>
-    <input type="number" class="form-control" @bind="Wysokosc" />
+            <label>Kolor:</label>
+            <input type="color" class="form-control" @bind="Kolor" />
 
-    <label>Kolor:</label>
-    <input type="color" class="form-control" @bind="Kolor" />
-
-    <button class="btn btn-success mt-2 w-100" @onclick="DodajKsztalt">Dodaj kształt</button>
-</div>
-</Panel>
+            <button class="btn btn-success mt-2 w-100" @onclick="DodajKsztalt">Dodaj kształt</button>
+        </div>
+    </Panel>
 </Collapse>
 <button class="btn btn-outline-primary" @onclick="ZoomIn">🔍 Powiększ</button>
 <button class="btn btn-outline-primary" @onclick="ZoomOut">🔍 Pomniejsz</button>
@@ -452,8 +517,8 @@
                                 @if (model.Rysunek != null && model.Rysunek.Length > 0)
                                 {
                                     <img id="@($"wing-{model.Typ}")"
-                                         src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
-                                         @onmousedown="@(e => StartDrag(e, model, 0, 0, @Szerokosc, @Wysokosc))" />
+                                    src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
+                                    @onmousedown="@(e => StartDrag(e, model, 0, 0, @Szerokosc, @Wysokosc))" />
                                 }
                                 else
                                 {
@@ -469,8 +534,27 @@
 
     <!-- Główne okno wyświetlania -->
     <div class="display-window">
-        <div class="canvas-container" style="overflow: auto;">
-            <canvas id="final-window" ></canvas>
+
+        @if (CanvasRef == null)
+        {
+            <p style="color: red;">❌ Błąd: CanvasRef jest NULL! Spróbuj odświeżyć stronę.</p>
+        }
+        else
+        {
+            @if (pokazCanvas)
+            {
+                <Content style="flex-grow: 1; height: 100%; overflow: auto; padding: 10px;">
+                    <BECanvas Width="800" Height="600" @ref="CanvasRef"></BECanvas>
+                </Content>
+            }
+
+        }
+        <button @onclick="DrawStructure">Generuj rysunek</button>
+        <!-- Główne okno wyświetlania -->
+        <div class="display-window">
+            <div class="canvas-container" style="overflow: auto;">
+                <canvas id="final-window"></canvas>
+            </div>
         </div>
     </div>
 </div>
@@ -490,14 +574,51 @@
     private string SelectedSystemId = "";
     private List<KonfModele>? ListaModeli;
 
+    private BECanvas CanvasRef = new(); // Zainicjalizowanie zmiennej
+    private Canvas2DContext? _context;
+
+    private string canvasElementX = Guid.NewGuid().ToString();
+
     protected override async Task OnInitializedAsync()
     {
         await Laduj_Uprawnienia();
 
         Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
 
-       await JS.InvokeVoidAsync("window.onload");
+        if (pokazCanvas)
+        {
+            await JS.InvokeVoidAsync("window.onload");
+        }
+
     }
+
+    private object? woodPattern; // 🌳 Przechowywanie wzoru drewna
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+
+        if (!pokazCanvas) return;
+
+        if (firstRender)
+        {
+            StateHasChanged(); // 🔹 Wymuszenie ponownego renderowania Blazora
+            await Task.Delay(500); // 🔹 Dajemy Blazorowi czas na dokończenie renderowania
+
+            if (CanvasRef == null)
+            {
+                Console.WriteLine("❌ CanvasRef nadal jest NULL po ponownym renderowaniu!");
+                return;
+            }
+
+            var baseUrlX = Navigation.BaseUri;
+            var imageUrl = $"{baseUrlX}images/wood.jpg";
+            Console.WriteLine($"🔹 Pobieranie tekstury: {imageUrl}");
+
+            _context = await CanvasRef.CreateCanvas2DAsync();
+            woodPattern = await JS.InvokeAsync<object>("loadTexture", "canvasElement", imageUrl);
+            Console.WriteLine("✅ Tekstura załadowana!");
+        }
+    }
+
 
     private async Task OnSystemSelected(ChangeEventArgs e)
     {
@@ -512,20 +633,72 @@
             return;
         }
 
-        KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIN_DROWIDONLYTRUE/{SelectedSystemId}");
+        KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIN_DROWID/{SelectedSystemId}");
 
-        ListaModeli = await Http.GetFromJsonAsync<List<KonfModele>>("api/konfmodele/");
+        ListaModeli = await Http.GetFromJsonAsync<List<KonfModele>>($"api/konfmodele/FIND_ONLY_TRUE/{SelectedSystemId}");
 
     }
 
-    private void ZoomIn()
+    private async Task<byte[]> GetnerujObrazekModelu(KonfModele model, int szerokosc, int wysokosc)
     {
-        JS.InvokeVoidAsync("window.zoomInCanvas");
+        if (model == null)
+        {
+
+            Console.WriteLine("❌ Błąd: Model jest pusty. Nie można wygenerować obrazka!");
+            return null; // Zwracamy `null`, gdy model jest pusty
+        }
+
+        var baseUrlX = Navigation.BaseUri;
+        var imageUrl = $"{baseUrlX}api/images/wood.jpg";
+
+        var imageGenerator = new ImageGenerator(Http);
+
+        try
+        {
+            byte[] imageBytes = await imageGenerator.GenerateImageAsync(KonfiguracjeSystemu, model.PolaczenieNaroza, szerokosc, wysokosc, imageUrl, "#ADD8E6");
+
+            if (imageBytes == null || imageBytes.Length == 0)
+            {
+
+                Console.WriteLine("❌ Błąd: Nie wygenerowano obrazka, sprawdź konfigurację!");
+
+                return null;
+            }
+            Console.WriteLine("Obrazek OK");
+
+            return imageBytes; // Zwracamy wygenerowane dane obrazu
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("❌ Błąd: Nie wygenerowano obrazka");
+
+            return null; // Zwracamy `null` w przypadku błędu
+        }
     }
 
-    private void ZoomOut()
+
+    private double zoomLevel = 1.0;
+
+    private async Task ZoomIn()
     {
-        JS.InvokeVoidAsync("window.zoomOutCanvas");
+        zoomLevel *= 1.1;
+        await Redraw();
+    }
+
+    private async Task ZoomOut()
+    {
+        zoomLevel /= 1.1;
+        await Redraw();
+    }
+
+    private async Task Redraw()
+    {
+        if (_context == null) return;
+
+        await _context.ClearRectAsync(0, 0, 800, 600);
+        await _context.ScaleAsync(zoomLevel, zoomLevel);
+
+        await DrawStructure();
     }
 
     private void WybierzKsztalt(string ksztalt)
@@ -546,7 +719,7 @@
         JS.InvokeVoidAsync("window.dodajElementDoOkna", model.Typ, x, y, szerokosc, wysokosc, base64Image);
     }
 
-    private void StartDrag(MouseEventArgs e, KonfModele model, int x, int y, int szerokosc, int wysokosc)
+    private async Task StartDrag(MouseEventArgs e, KonfModele model, int x, int y, int szerokosc, int wysokosc)
     {
         if (model.Rysunek == null || model.Rysunek.Length == 0)
         {
@@ -556,9 +729,66 @@
 
         string base64Image = $"data:image/png;base64,{Convert.ToBase64String(model.Rysunek)}";
 
-        Console.WriteLine($"🔥 StartDrag: {model.Id} | X:{e.ClientX}, Y:{e.ClientY}");
+        // Console.WriteLine($"🔥 StartDrag: {model.Id} | X:{e.ClientX}, Y:{e.ClientY}");
 
-        JS.InvokeVoidAsync("window.startDrag", model.Id, e.ClientX, e.ClientY, base64Image);
+        //var base64Image = await GetnerujObrazekModelu(model, Szerokosc, Wysokosc);
+
+        if(base64Image != null) JS.InvokeVoidAsync("window.startDrag", model.Id, e.ClientX, e.ClientY, base64Image);
+    }
+
+    // private async Task DrawStructure()
+    // {
+    //     if (_context == null) return;
+
+    //     await _context.ClearRectAsync(0, 0, 800, 600);
+
+    //     var baseUrlX = Navigation.BaseUri;
+    //     var imageUrl = $"{baseUrlX}/images/wood.jpg";
+
+    //     // 🔹 Załaduj teksturę drewna
+    //    // await _context.SetFillStyleAsync($"url(../images/GL_0_T3.png)");
+    //     Console.WriteLine($"Obrazek: {imageUrl}");
+    //     await _context.SetFillStyleAsync(imageUrl);
+
+    //     // 🔹 Rysowanie ramy okna z teksturą drewna
+    //     await _context.FillRectAsync(50, 50, 20, 500); // Lewa rama
+    //     await _context.FillRectAsync(730, 50, 20, 500); // Prawa rama
+    //     await _context.FillRectAsync(50, 50, 700, 20); // Górna rama
+    //     await _context.FillRectAsync(50, 530, 700, 20); // Dolna rama
+
+    //     // 🔹 Rysowanie szyby (kolor niebieski)
+    //     await _context.SetFillStyleAsync("#ADD8E6");
+    //     await _context.FillRectAsync(70, 70, 660, 460);
+    // }
+    bool pokazCanvas = false; 
+    private async Task DrawStructure()
+    {
+        canvasElementX = Guid.NewGuid().ToString();
+
+        pokazCanvas = true;
+
+        if (_context == null)
+        {
+                    var baseUrlX = Navigation.BaseUri;
+        var imageUrl = $"{baseUrlX}api/images/wood.jpg";
+
+            _context = await CanvasRef.CreateCanvas2DAsync();
+            woodPattern = await JS.InvokeAsync<object>("loadTexture", "canvasElement", imageUrl);
+            Console.WriteLine("✅ Tekstura załadowana!");
+        }
+
+        await _context.ClearRectAsync(0, 0, 800, 600);
+
+        // 🔹 Wypełnij ramę teksturą drewna
+        await _context.SetFillStyleAsync(woodPattern);
+        await _context.FillRectAsync(50, 50, 20, 500); // Lewa rama
+        await _context.FillRectAsync(730, 50, 20, 500); // Prawa rama
+        await _context.FillRectAsync(50, 50, 700, 20); // Górna rama
+        await _context.FillRectAsync(50, 530, 700, 20); // Dolna rama
+
+        // 🔹 Rysowanie szyby (kolor niebieski)
+        await _context.SetFillStyleAsync("#ADD8E6");
+        await _context.FillRectAsync(70, 70, 660, 460);
     }
 
     // private void StartDrag(MouseEventArgs e, string modelId, string imageSrc)
