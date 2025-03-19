@@ -13,458 +13,438 @@
 @using Blazor.Extensions.Canvas
 @using Blazor.Extensions.Canvas.Canvas2D
 
-<script>
-    (() => {
-    if (!window.offscreenCanvas) {
-    window.offscreenCanvas = document.createElement("canvas");
-    window.offscreenCtx = window.offscreenCanvas.getContext("2d");
-    }
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <script>
+        // Rejestracja Blazor w JavaScript
+        window.initializeBlazor = (dotNetHelper) => {
+        window.dotNetHelper = dotNetHelper;
+        console.log("✅ Blazor zarejestrowany w JS!");
+        };
 
-    window.wirtualnaWarstwa = window.wirtualnaWarstwa || [];
-    window.oknoKonfiguracja = window.oknoKonfiguracja || [];
-    window.zoomLevel = window.zoomLevel || 1;
-    window.offsetX = window.offsetX || 0;
-    window.offsetY = window.offsetY || 0;
+        // Obsługa zdarzeń myszy dla BECanvas
+        window.initializeCanvasEvents = (canvasElement, dotNetHelper) => {
+        if (!canvasElement) {
+        console.error("❌ Nie znaleziono elementu canvas!");
+        return;
+        }
 
-    window.onload = () => {
-    const canvas = document.getElementById("final-window");
-    if (!canvas) {
-    console.error("❌ Nie znaleziono canvasu #final-window");
-    return;
-    }
+        function dragAvatar(e) {
+        dotNetHelper.invokeMethodAsync('DragAvatar', e.clientX, e.clientY);
+        }
 
-    function dopasujCanvas() {
-    const container = document.querySelector(".canvas-container");
-    if (!container) {
-    console.warn("⚠️ Nie znaleziono .canvas-container");
-    return;
-    }
+        function stopDrag(e) {
+        dotNetHelper.invokeMethodAsync('StopDrag', e.clientX, e.clientY);
+        document.removeEventListener("mousemove", dragAvatar);
+        document.removeEventListener("mouseup", stopDrag);
+        }
 
-    canvas.width = container.clientWidth;
-    canvas.height = container.clientHeight;
-    window.RysujOkno();
-    }
-
-    dopasujCanvas();
-    window.addEventListener("resize", dopasujCanvas);
-    };
-
-    window.dodajElementDoOkna = (modelName, x, y, szerokosc, wysokosc, imageSrc) => {
-    window.oknoKonfiguracja.push({ modelName, x, y, szerokosc, wysokosc, imageSrc });
-    window.RysujOkno();
-    };
-
-    window.RysujOkno = () => {
-    const canvas = document.getElementById("final-window");
-    if (!canvas) return console.error("❌ Nie znaleziono canvasu!");
-
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    ctx.save();
-    ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.scale(window.zoomLevel, window.zoomLevel);
-    ctx.translate(-canvas.width / 2, -canvas.height / 2);
-
-    window.wirtualnaWarstwa.forEach(({ x, y, szerokosc, wysokosc, imageSrc }) => {
-    const img = new Image();
-    img.src = imageSrc;
-    img.onload = () => ctx.drawImage(img, x, y, szerokosc, wysokosc);
-    });
-
-    ctx.restore();
-    };
-
-    window.zoomInCanvas = () => {
-    window.zoomLevel *= 1.1;
-    window.RysujOkno();
-    };
-
-    window.zoomOutCanvas = () => {
-    window.zoomLevel /= 1.1;
-    window.RysujOkno();
-    };
-
-    window.startDrag = (modelName, clientX, clientY, imageSrc) => {
-    const canvas = document.getElementById("final-window");
-    if (!canvas) return console.error("❌ Nie znaleziono canvasu!");
-
-    const ctx = canvas.getContext("2d");
-    const rect = canvas.getBoundingClientRect();
-
-    const draggedElement = {
-    modelName,
-    x: clientX - rect.left,
-    y: clientY - rect.top,
-    szerokosc: 100,
-    wysokosc: 100,
-    imageSrc
-    };
-
-    function moveElement(e) {
-    draggedElement.x = e.clientX - rect.left;
-    draggedElement.y = e.clientY - rect.top;
-
-    window.wirtualnaWarstwa.push(draggedElement);
-    window.RysujOkno();
-    }
-
-    function stopDrag() {
-    document.removeEventListener("mousemove", moveElement);
-    document.removeEventListener("mouseup", stopDrag);
-    canvas.style.cursor = "default";
-    }
-
-    canvas.style.cursor = "grabbing";
-    document.addEventListener("mousemove", moveElement);
-    document.addEventListener("mouseup", stopDrag);
-    };
-
-    window.dodajKsztalt = (ksztalt, szerokosc, wysokosc, kolor, czyWypelnienie) => {
-    const canvas = document.getElementById("final-window");
-    if (!canvas) return console.error("❌ Nie znaleziono canvasu!");
-
-    const ctx = canvas.getContext("2d");
-    const x = (canvas.width - szerokosc) / 2;
-    const y = (canvas.height - wysokosc) / 2;
-
-    ctx.strokeStyle = kolor;
-    ctx.lineWidth = 3;
-    ctx.fillStyle = czyWypelnienie ? kolor : "transparent";
-
-    ctx.beginPath();
-    if (ksztalt === "prostokat") {
-    if (czyWypelnienie) ctx.fillRect(x, y, szerokosc, wysokosc);
-    ctx.strokeRect(x, y, szerokosc, wysokosc);
-    } else if (ksztalt === "trojkat") {
-    ctx.moveTo(x + szerokosc / 2, y);
-    ctx.lineTo(x + szerokosc, y + wysokosc);
-    ctx.lineTo(x, y + wysokosc);
-    ctx.closePath();
-    } else if (ksztalt === "okrag") {
-    ctx.arc(canvas.width / 2, canvas.height / 2, szerokosc / 2, 0, Math.PI * 2);
-    }
-    if (czyWypelnienie) ctx.fill();
-    ctx.stroke();
-    };
-
-    window.aktualizujWirtualnaWarstwe = element => {
-    window.wirtualnaWarstwa.push(element);
-    window.RysujOkno();
-    };
-
-    window.loadTexture = async (canvasId, imageUrl) => {
-    console.log("🔹 Próba załadowania obrazu:", imageUrl);
-
-    let canvas = document.getElementById(canvasId);
-    if (!canvas) {
-    console.warn("⏳ Canvas nie istnieje, próbuję ponownie za 500ms...");
-    await new Promise(resolve => setTimeout(resolve, 500));
-    canvas = document.getElementById(canvasId);
-    }
-
-    if (!canvas) {
-    console.error("❌ Nie znaleziono canvasu!");
-    return null;
-    }
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-    console.error("❌ Błąd: Nie można uzyskać kontekstu 2D.");
-    return null;
-    }
-
-    return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.src = imageUrl;
-
-    img.onload = () => {
-    console.log("✅ Obrazek załadowany!");
-    resolve(ctx.createPattern(img, "repeat"));
-    };
-
-    img.onerror = err => {
-    console.error("❌ Błąd ładowania obrazu!", err);
-    reject("Image load error");
-    };
-    });
-    };
-    })();
-
-        // W pliku JavaScript/script.js
-    window.loadAndDrawTexture = async (canvasElement, imageUrl, dotNetHelper) => {
-        const ctx = canvasElement.getContext('2d');
-
-        // Tworzenie wzorca bezpośrednio na docelowym kontekście
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.src = imageUrl;
-
-        await new Promise((resolve, reject) => {
-            img.onload = () => resolve();
-            img.onerror = reject;
+        canvasElement.addEventListener("mousedown", (e) => {
+        dotNetHelper.invokeMethodAsync('StartDrag', e.clientX, e.clientY);
+        document.addEventListener("mousemove", dragAvatar);
+        document.addEventListener("mouseup", stopDrag);
         });
 
-        const pattern = ctx.createPattern(img, 'repeat');
-        ctx.fillStyle = pattern;
+        console.log("✅ Zdarzenia myszki dodane do canvas!");
+        };
 
-        // Zapis wzorca w kontekście
-        ctx.canvas.dataset.pattern = "wood-pattern";
+        window.initializeCanvas = (canvasElement) => {
+            window.canvasRef = canvasElement; // Przechowujemy referencję do canvas
+            console.log("✅ Canvas został poprawnie zainicjalizowany.");
+        };
 
-        // Powiadomienie C# o załadowaniu tekstury
-        await dotNetHelper.invokeMethodAsync('OnTextureLoaded');
-    };
-</script>
+        // Obsługa przeciągania elementów z Blazor
+        let currentModel = null;
+        let isDragging = false;
 
-<style>
-
-    /* Globalne ustawienia */
-    html, body {
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    font-family: Arial, sans-serif;
-    background-color: #f8f9fa;
-    }
-
-    /* Kontener główny */
-    .window-model-container {
-    display: flex;
-    height: 70vh;
-    background-color: #fff;
-    padding: 10px;
-    box-sizing: border-box;
-    }
-
-    /* Panel boczny z modelami */
-    .wing-model-container {
-    flex: 0 0 250px; /* Zmniejszenie szerokości */
-    height: 100%;
-    overflow-y: auto;
-    border-right: 2px solid #ddd;
-    padding: 10px;
-    background: #f8f9fa;
-    }
-
-    /* Tabela modeli */
-    .wing-model-container table {
-    font-size: 13px;
-    width: 100%;
-    border-collapse: collapse;
-    }
-
-    .wing-model-container th, .wing-model-container td {
-    padding: 6px;
-    text-align: center;
-    }
-
-    .wing-model-container th {
-    background-color: #007bff;
-    color: white;
-    }
-
-    .wing-model-container tr:hover {
-    background-color: rgba(0, 123, 255, 0.1);
-    }
-
-    /* Miniatury modeli */
-    .wing-model-container img {
-    width: 45px;
-    height: 45px;
-    object-fit: contain;
-    cursor: grab;
-    transition: transform 0.2s ease-in-out;
-    }
-
-    .wing-model-container img:hover {
-    transform: scale(1.1);
-    }
-
-    /* Główne okno wyświetlania */
-    .display-window {
-    flex-grow: 1;
-    height: 100%;
-    border: 2px solid #ddd;
-    background-color: #fff;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 10px;
-    box-sizing: border-box;
-    position: relative;
-    }
-
-    /* Kontener canvas - dopasowany do okna */
-    .canvas-container {
-    width: 100%;
-    height: 100%;
-    max-width: 100%;
-    max-height: 100%;
-    border: 2px solid #ddd;
-    background-color: #fff;
-    border-radius: 5px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: auto; /* Ukrywa przewijanie */
-    position: relative;
-    }
-
-    /* Canvas - dynamiczne skalowanie */
-    canvas {
-    display: block;
-    max-width: 100%;
-    max-height: 100%;
-    background-color: transparent;
-    }
-
-    /* Paski przewijania */
-    .wing-model-container::-webkit-scrollbar {
-    width: 8px;
-    }
-
-    .wing-model-container::-webkit-scrollbar-thumb {
-    background: #007bff;
-    border-radius: 5px;
-    }
-
-    .wing-model-container::-webkit-scrollbar-thumb:hover {
-    background: #0056b3;
-    }
-
-    /* 🔹 Toolbar z przyciskami */
-    .toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    justify-content: center;
-    padding: 10px;
-    background: #fff;
-    }
-
-    /* Styl dla przycisków */
-    .toolbar .btn {
-    flex: 1;
-    min-width: 90px;
-    font-size: 13px;
-    padding: 6px 8px;
-    transition: all 0.2s ease-in-out;
-    }
-
-    .toolbar .btn:hover {
-    transform: scale(1.05);
-    }
-
-</style>
-
-<!-- Nagłówek -->
-<div class="d-flex justify-content-between align-items-center mt-2 mb-2">
-    <h3 class="mb-0">Modele Okienne</h3>
-    <button class="btn btn-primary" @onclick="GoBack">
-        <i class="fas fa-arrow-left"></i> Wróć
-    </button>
-</div>
-<!-- 🔹 Wybór systemu -->
-<Tooltip Placement="@Placement.TopRight" Title="Otwórz konfigurator nowego systemu lub wybierz go z listy">
-    <div class="d-flex">
-        @if (Systemy != null && Systemy.Any())
-        {
-            <select class="form-select me-2" @onchange="@(async (args) => await OnSystemSelected(args))">
-                <option value="" disabled selected>-- Wybierz system --</option>
-                @foreach (var system in Systemy)
-                {
-                    <option value="@system.RowId">@system.Nazwa_Systemu</option>
-                }
-            </select>
+        function startDragJS(event, modelType) {
+        event.dataTransfer.setData("modelType", modelType);
+        event.dataTransfer.setData("startX", event.clientX);
+        event.dataTransfer.setData("startY", event.clientY);
         }
+
+        function endDragJS(event) {
+        const modelType = event.dataTransfer.getData("modelType");
+        const x = event.clientX;
+        const y = event.clientY;
+
+        if (window.dotNetHelper) {
+        window.dotNetHelper.invokeMethodAsync('OnModelDropped', modelType, x, y)
+        .catch(error => console.error("Error:", error));
+        }
+        }
+
+        document.addEventListener('mousemove', function(event) {
+        if (isDragging && currentModel) {
+        const mouseX = event.clientX;
+        const mouseY = event.clientY;
+        // Możesz używać mouseX i mouseY do śledzenia pozycji myszy
+        // ale nie rysujesz jeszcze na canvasa
+        }
+        });
+
+        // Rysowanie obrazu na canvas
+        window.drawImageOnCanvas = (imageSrc, x, y, width, height) => {
+            var canvas = window.canvasRef; // Pobieramy canvas z referencji
+            if (!canvas) {
+                console.error("❌ Canvas nie jest dostępny!");
+                return;
+            }
+
+            var ctx = canvas.getContext("2d");
+            if (!ctx) {
+                console.error("❌ Nie można uzyskać kontekstu 2D!");
+                return;
+            }
+
+            var img = new Image();
+            img.src = imageSrc;
+
+            img.onload = function () {
+                console.log(`🎨 Rysowanie obrazka na X:${x}, Y:${y} (Rozmiar: ${width}x${height})`);
+                ctx.drawImage(img, x, y, width, height);
+            };
+
+            img.onerror = function () {
+                console.error("❌ Błąd ładowania obrazu!");
+            };
+        };
+
+        // Ładowanie tekstury i rysowanie na canvas
+        window.loadAndDrawTexture = async (canvasElement, imageUrl, dotNetHelper) => {
+            console.log("🖼️ Próba załadowania tekstury:", imageUrl);
+
+            if (!canvasElement) {
+                console.error("❌ Nie znaleziono elementu canvas!");
+                return;
+            }
+
+            const ctx = canvasElement.getContext('2d');
+
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.src = imageUrl;
+
+            await new Promise((resolve, reject) => {
+                img.onload = () => {
+                    console.log("✅ Tekstura załadowana poprawnie!");
+                    resolve();
+                };
+                img.onerror = (err) => {
+                    console.error("❌ Błąd ładowania obrazu!", err);
+                    reject();
+                };
+            });
+
+            const pattern = ctx.createPattern(img, 'repeat');
+            if (!pattern) {
+                console.error("❌ Nie udało się utworzyć wzorca!");
+                return;
+            }
+
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, canvasElement.width, canvasElement.height);
+            ctx.canvas.dataset.pattern = "wood-pattern";
+
+            console.log("🖌️ Tekstura nałożona na canvas!");
+
+            // Powiadomienie Blazor, że tekstura została załadowana
+            await dotNetHelper.invokeMethodAsync('OnTextureLoaded')
+                .catch(error => console.error("❌ Błąd wywołania OnTextureLoaded w Blazor!", error));
+        };
+
+        window.allowDrop = (event) => {
+        event.preventDefault();
+        };
+
+        window.enableCanvasDrag = (canvasId) => {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) {
+        console.error("❌ Nie znaleziono elementu canvas!");
+        return;
+        }
+
+        canvas.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        });
+
+        console.log("✅ Dragover dla canvas aktywowany!");
+        };
+
+        function dragAvatar(e) {
+        dotNetHelper.invokeMethodAsync('DragAvatar', e.clientX, e.clientY);
+        }
+
+        window.getBoundingClientRect = (element) => {
+        return element.getBoundingClientRect();
+        };
+
+    </script>
+
+    <style>
+
+        /* Globalne ustawienia */
+        html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+        background-color: #f8f9fa;
+        }
+
+        /* Kontener główny */
+        .window-model-container {
+        display: flex;
+        height: 70vh;
+        background-color: #fff;
+        padding: 10px;
+        box-sizing: border-box;
+        }
+
+        /* Panel boczny z modelami */
+        .wing-model-container {
+        flex: 0 0 250px; /* Zmniejszenie szerokości */
+        height: 100%;
+        overflow-y: auto;
+        border-right: 2px solid #ddd;
+        padding: 10px;
+        background: #f8f9fa;
+        }
+
+        /* Tabela modeli */
+        .wing-model-container table {
+        font-size: 13px;
+        width: 100%;
+        border-collapse: collapse;
+        }
+
+        .wing-model-container th, .wing-model-container td {
+        padding: 6px;
+        text-align: center;
+        }
+
+        .wing-model-container th {
+        background-color: #007bff;
+        color: white;
+        }
+
+        .wing-model-container tr:hover {
+        background-color: rgba(0, 123, 255, 0.1);
+        }
+
+        /* Miniatury modeli */
+        .wing-model-container img {
+        width: 45px;
+        height: 45px;
+        object-fit: contain;
+        cursor: grab;
+        pointer-events: auto; /* Umożliwia przeciąganie */
+        transition: transform 0.2s ease-in-out;
+        }
+
+        .wing-model-container img:hover {
+        transform: scale(1.1);
+        }
+
+        /* Główne okno wyświetlania */
+        .display-window {
+        flex-grow: 1;
+        height: 100%;
+        border: 2px solid #ddd;
+        background-color: #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 10px;
+        box-sizing: border-box;
+        position: relative;
+        }
+
+        /* Kontener canvas - dopasowany do okna */
+        .canvas-container {
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        border: 2px solid #ddd;
+        background-color: #fff;
+        border-radius: 5px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: auto; /* Ukrywa przewijanie */
+        position: relative;
+        }
+
+        /* Canvas - dynamiczne skalowanie */
+        canvas {
+        display: block;
+        max-width: 100%;
+        max-height: 100%;
+        background-color: transparent;
+        }
+
+        /* Paski przewijania */
+        .wing-model-container::-webkit-scrollbar {
+        width: 8px;
+        }
+
+        .wing-model-container::-webkit-scrollbar-thumb {
+        background: #007bff;
+        border-radius: 5px;
+        }
+
+        .wing-model-container::-webkit-scrollbar-thumb:hover {
+        background: #0056b3;
+        }
+
+        /* 🔹 Toolbar z przyciskami */
+        .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        justify-content: center;
+        padding: 10px;
+        background: #fff;
+        }
+
+        /* Styl dla przycisków */
+        .toolbar .btn {
+        flex: 1;
+        min-width: 90px;
+        font-size: 13px;
+        padding: 6px 8px;
+        transition: all 0.2s ease-in-out;
+        }
+
+        .toolbar .btn:hover {
+        transform: scale(1.05);
+        }
+
+    </style>
+
+</head>
+
+<body @onmousemove="MouseMove">
+    <!-- Nagłówek -->
+    <div class="d-flex justify-content-between align-items-center mt-2 mb-2">
+        <h3 class="mb-0">Modele Okienne</h3>
+        <button class="btn btn-primary" @onclick="GoBack">
+            <i class="fas fa-arrow-left"></i> Wróć
+        </button>
     </div>
-</Tooltip>
-
-<Collapse Animation>
-    <Panel Header="Ustawienia" Key="1">
-
-        <!-- Wprowadzenie wartości -->
-        <div class="form-group mt-3">
-            <label>Szerokość:</label>
-            <input type="number" class="form-control" @bind="Szerokosc" />
-
-            <label>Wysokość:</label>
-            <input type="number" class="form-control" @bind="Wysokosc" />
-
-            <label>Kolor:</label>
-            <input type="color" class="form-control" @bind="Kolor" />
-
-        </div>
-    </Panel>
-</Collapse>
-
-<!-- Kontener na modele i canvas -->
-<div class="window-model-container">
-    <!-- Panel boczny z modelami -->
-    <div class="wing-model-container">
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Typ</th>
-                    <th>Wymiary</th>
-                    <th>Miniaturka</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (ListaModeli != null)
-                {
-                    @foreach (var model in ListaModeli)
+    <!-- 🔹 Wybór systemu -->
+    <Tooltip Placement="@Placement.TopRight" Title="Otwórz konfigurator nowego systemu lub wybierz go z listy">
+        <div class="d-flex">
+            @if (Systemy != null && Systemy.Any())
+            {
+                <select class="form-select me-2" @onchange="@(async (args) => await OnSystemSelected(args))">
+                    <option value="" disabled selected>-- Wybierz system --</option>
+                    @foreach (var system in Systemy)
                     {
-                        <tr>
-                            <td>@model.Typ</td>
-                            <td>@model.KonstrMinSzer x @model.KonstrMinWys → @model.KonstrMaxSzer x @model.KonstrMaxWys</td>
-                            <td>
-                                @if (model.Rysunek != null && model.Rysunek.Length > 0)
-                                {
-                                    <img id="@($"wing-{model.Typ}")"
-                                    src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
-                                     />
-                                }
-                                else
-                                {
-                                    <span class="text-muted">Brak</span>
-                                }
-                            </td>
-                        </tr>
+                        <option value="@system.RowId">@system.Nazwa_Systemu</option>
                     }
-                }
-            </tbody>
-        </table>
-    </div>
+                </select>
+            }
+        </div>
+    </Tooltip>
 
-    <!-- Główne okno wyświetlania -->
-    <div class="display-window">
+    <Collapse Animation>
+        <Panel Header="Ustawienia" Key="1">
+
+            <!-- Toolbar z przyciskami -->
+            <div class="toolbar">
+                <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("prostokat"))">🟥 Prostokąt</button>
+                <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("trojkat"))">🔺 Trójkąt</button>
+                <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("okrag"))">⚫ Okrąg</button>
+                <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("trapez"))">🔷 Trapez</button>
+                <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("romb"))">♦ Romb</button>
+                <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("piksel"))">🟧 Piksel</button>
+            </div>
+
+            <!-- Wprowadzenie wartości -->
+            <div class="form-group mt-3">
+                <label>Szerokość:</label>
+                <input type="number" class="form-control" @bind="Szerokosc" />
+
+                <label>Wysokość:</label>
+                <input type="number" class="form-control" @bind="Wysokosc" />
+
+                <label>Kolor:</label>
+                <input type="color" class="form-control" @bind="Kolor" />
+
+                <button class="btn btn-success mt-2 w-100" @onclick="DodajKsztalt">Dodaj kształt</button>
+
+            </div>
+        </Panel>
+    </Collapse>
+
+    <!-- Kontener na modele i canvas -->
+    <div class="window-model-container">
+        <!-- Panel boczny z modelami -->
+        <div class="wing-model-container">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Typ</th>
+                        <th>Wymiary</th>
+                        <th>Miniaturka</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (ListaModeli != null)
+                    {
+                        @foreach (var model in ListaModeli ?? new List<KonfModele>())
+                        {
+                            <tr>
+                                <td>@model.Typ</td>
+                                <td>@model.KonstrMinSzer x @model.KonstrMinWys → @model.KonstrMaxSzer x @model.KonstrMaxWys</td>
+                                <td>
+                                    @if (model.Rysunek != null && model.Rysunek.Length > 0)
+                                    {
+                                        <div style="position: relative; display: inline-block;">
+                                            <img id="@($"wing-{model.Typ}")"
+                                            src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
+                                            ondragstart="startDragJS(event, '@model.Typ')"
+                                            ondragend="endDragJS(event)"
+                                            draggable="true"
+                                            style="position: relative; cursor: grab; width: auto; height: auto; max-width: 50px; max-height: 50px;" />
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Brak</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
 
         <!-- Główne okno wyświetlania -->
         <div class="display-window">
-            @if (hasCanvasError)
-            {
-                <p style="color: red;">❌ Błąd: Nie udało się załadować canvasu! Spróbuj odświeżyć stronę.</p>
-            }
-            else
-            {
-                <BECanvas @ref="CanvasRef" Width="800" Height="600"></BECanvas>
-            }
-        </div>
 
-        <button @onclick="DrawStructure">Generuj rysunek</button>
-        @if (!isTextureLoaded)
-        {
-            <div class="texture-loading-overlay">
-                <div class="spinner"></div>
-                <p>Ładowanie tekstur...</p>
+            <!-- Główne okno wyświetlania -->
+            <div class="canvas-container" style="overflow: auto;">
+                @if (hasCanvasError)
+                {
+                    <p style="color: red;">❌ Błąd: Nie udało się załadować canvasu! Spróbuj odświeżyć stronę.</p>
+                }
+                else
+                {
+                    <BECanvas @ref="CanvasRef" Width="800" Height="600"></BECanvas>
+                }
             </div>
-        }
-    </div>
-</div>
 
+        </div>
+    </div>
+</body>
+
+</html>
 
 
 @code {
@@ -483,6 +463,20 @@
     private BECanvasComponent? CanvasRef;
     private Canvas2DContext? _context;
 
+    private bool hasCanvasError = false; // Nowa flaga do śledzenia błędów
+
+    private bool isTextureLoaded = false;
+
+    private bool isDragging = false;
+    private double startX, startY;
+    private KonfModele? draggedModel;
+
+    private double avatarX = 0; // Jeśli to ma być tylko zmienna typu double
+    private double avatarY = 0; // Początkowa pozycja
+    private string avatarImage = "data:image/png;base64,..."; // Tu wstaw Base64 awatara
+
+    private string? draggedModelType = null;
+
     protected override async Task OnInitializedAsync()
     {
         await Laduj_Uprawnienia();
@@ -491,33 +485,155 @@
 
     }
 
-
-    private bool hasCanvasError = false; // Nowa flaga do śledzenia błędów
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            try
-            {
-                if (CanvasRef == null)
-                {
-                    hasCanvasError = true;
-                    StateHasChanged(); // Wymuś aktualizację UI
-                    return;
-                }
+            _context = await CanvasRef.CreateCanvas2DAsync();
 
-                _context = await CanvasRef.CreateCanvas2DAsync();
+            // Załaduj teksturę drewna
+            var baseUrl = Navigation.BaseUri;
+            var imageUrl = $"{baseUrl}api/images/wood.jpg";
 
-                // Dodatkowa inicjalizacja jeśli potrzebna
-            }
-            catch (Exception ex)
-            {
-                hasCanvasError = true;
-                StateHasChanged(); // Pokazuje komunikat błędu
-                Console.WriteLine($"Błąd inicjalizacji canvas: {ex.Message}");
-            }
+            await JS.InvokeVoidAsync("loadAndDrawTexture",
+                CanvasRef.CanvasReference,
+                imageUrl,
+                DotNetObjectReference.Create(this)
+            );
+
+            await JS.InvokeVoidAsync("initializeBlazor", DotNetObjectReference.Create(this));
         }
+    }
+
+
+    [JSInvokable]
+    public async Task StartDrag(double x, double y, string modelType)
+    {
+        if (ListaModeli == null) return;
+
+        isDragging = true;
+
+        // Znajdź model na podstawie modelType
+        draggedModel = ListaModeli.FirstOrDefault(m => m.Typ == modelType);
+
+        if (draggedModel != null)
+        {
+            avatarX = x;
+            avatarY = y;
+        }
+    }
+
+
+    [JSInvokable]
+    public async Task StopDrag(double x, double y)
+    {
+        isDragging = false;
+        avatarX = x;
+        avatarY = y;
+        await RenderFrame(); // Upewnij się, że narysujesz obiekt po zakończeniu przeciągania
+    }
+
+    [JSInvokable]
+    public async Task OnModelDropped(string modelType, double x, double y)
+    {
+        Console.WriteLine($"Model dropped: {modelType} at X:{x}, Y:{y}");
+
+        // Aktualizacja zmiennych
+        draggedModelType = modelType;
+        avatarX = x;
+        avatarY = y;
+
+        // Debugowanie, aby sprawdzić, czy model istnieje
+        var model = ListaModeli?.FirstOrDefault(m => m.Typ == modelType);
+        if (model == null)
+        {
+            Console.WriteLine($"❌ Nie znaleziono modelu {modelType} w ListaModeli!");
+            return;
+        }
+
+        Console.WriteLine($"✅ Znaleziono model {modelType}, rysowanie na canvasie.");
+
+        await RenderFrame();
+    }
+
+
+    [JSInvokable]
+    public async Task DragAvatar(double x, double y)
+    {
+        if (!isDragging || CanvasRef == null) return;
+
+        // Pobierz pozycję canvasu
+        var canvasRect = await JS.InvokeAsync<BoundingClientRect>("getBoundingClientRect", CanvasRef.CanvasReference);
+
+        // Przelicz współrzędne względem canvasu
+        avatarX = x - canvasRect.Left - 25; // 25 jako offset środka obrazka
+        avatarY = y - canvasRect.Top - 25;
+
+        await DrawStructure();
+    }
+
+    private async Task MouseMove(MouseEventArgs e)
+    {
+        if (!isDragging || draggedModel == null) return;
+
+        double deltaX = e.ClientX - startX;
+        double deltaY = e.ClientY - startY;
+
+        startX = e.ClientX;
+        startY = e.ClientY;
+
+        // Aktualizacja pozycji modelu (jeśli używasz modelu z pozycją)
+        Console.WriteLine($"🚀 Przesunięcie: ΔX={deltaX}, ΔY={deltaY}");
+
+        await InvokeAsync(StateHasChanged); // Odświeżenie UI
+    }
+
+
+    private async Task DrawImageOnCanvas(string imageSrc, double x, double y, double width, double height)
+    {
+        if (CanvasRef == null)
+        {
+            Console.WriteLine("❌ CanvasRef jest null, nie można rysować!");
+            return;
+        }
+
+        Console.WriteLine($"🖼️ Rysowanie obrazka na {x}, {y} (Rozmiar: {width}x{height})");
+
+        //await JS.InvokeVoidAsync("drawImageOnCanvas", "final-window", imageSrc, x, y, width, height);
+        await JS.InvokeVoidAsync("drawImageOnCanvas", imageSrc, x, y, width, height);
+
+    }
+
+
+    private string GetImageBase64(string modelType)
+    {
+        // Zwróć Base64 dla odpowiedniego modelu na podstawie modelType
+        return "data:image/png;base64,..."; // przykładowe dane
+    }
+
+    private async Task DrawStructure()
+    {
+        if (_context == null) return;
+
+        // Rysowanie ramki
+        await _context.ClearRectAsync(0, 0, 800, 600);
+
+        if (isDragging)
+        {
+            // Rysowanie ikony na podstawie współrzędnych avatarX, avatarY
+            var imageSrc = GetImageBase64(draggedModelType);
+            await DrawImageOnCanvas(imageSrc, avatarX, avatarY, 50, 50);
+        }
+    }
+
+    private async Task DodajKsztalt()
+    {
+        await RenderShapeAsync(WybranyKsztalt, Szerokosc, Wysokosc, Kolor, false);
+    }
+
+    private void WybierzKsztalt(string ksztalt)
+    {
+        WybranyKsztalt = ksztalt;
     }
 
     private async Task OnSystemSelected(ChangeEventArgs e)
@@ -539,58 +655,111 @@
 
     }
 
-
-
-    private bool isTextureLoaded = false;
-
-    private async Task DrawStructure()
-    {
-        if (CanvasRef == null) return;
-
-        _context ??= await CanvasRef.CreateCanvas2DAsync();
-
-        if (!isTextureLoaded)
-        {
-            var baseUrl = Navigation.BaseUri;
-            var imageUrl = $"{baseUrl}api/images/wood.jpg";
-
-            await JS.InvokeVoidAsync("loadAndDrawTexture",
-                CanvasRef.CanvasReference,
-                imageUrl,
-                DotNetObjectReference.Create(this)
-            );
-            return;
-        }
-
-        await RenderFrame();
-    }
-
     [JSInvokable]
     public async Task OnTextureLoaded()
     {
+        Console.WriteLine("✅ Tekstura została załadowana i zapisana w Blazor!");
         isTextureLoaded = true;
         await RenderFrame();
         StateHasChanged();
     }
 
+
     private async Task RenderFrame()
     {
         if (_context == null) return;
 
-        await _context.ClearRectAsync(0, 0, 800, 600);
+        Console.WriteLine("🎨 Start RenderFrame");
 
-        // Rysowanie ramy
-        await _context.SetFillStyleAsync("wood-pattern");
-        await _context.FillRectAsync(50, 50, 20, 500);
-        await _context.FillRectAsync(730, 50, 20, 500);
-        await _context.FillRectAsync(50, 50, 700, 20);
-        await _context.FillRectAsync(50, 530, 700, 20);
+        await _context.ClearRectAsync(0, 0, 800, 600); // Czyszczenie canvas
 
-        // Rysowanie szyby
-        await _context.SetFillStyleAsync("#ADD8E6");
-        await _context.FillRectAsync(70, 70, 660, 460);
+        if (draggedModel != null && avatarX > 0 && avatarY > 0)
+        {
+            Console.WriteLine($"🪵 Rysowanie tekstury dla {draggedModel.Typ} na X:{avatarX}, Y:{avatarY}");
+
+            await _context.SetFillStyleAsync("wood-pattern");
+            await _context.FillRectAsync(avatarX, avatarY, 100, 100); // Tylko dla obiektu
+
+            var imageSrc = RysunekToBase64(draggedModel.Rysunek);
+            Console.WriteLine($"📸 Wywołanie DrawImageOnCanvas dla {draggedModel.Typ} z obrazkiem: {imageSrc.Substring(0, 30)}...");
+
+            await DrawImageOnCanvas(imageSrc, avatarX, avatarY, 100, 100);
+        }
     }
 
+
+    private async Task RenderShapeAsync(string shape, double width, double height, string color, bool isFilled)
+    {
+        if (_context == null) return;
+
+        // Automatyczne dopasowanie rozmiaru (80% dostępnej przestrzeni)
+        double maxWidth = 800 * 0.8;
+        double maxHeight = 600 * 0.8;
+        width = Math.Min(width, maxWidth);
+        height = Math.Min(height, maxHeight);
+
+        // Obliczenie środka canvas
+        double x = (800 - width) / 2;
+        double y = (600 - height) / 2;
+
+        await _context.SetStrokeStyleAsync(color);
+        await _context.SetLineWidthAsync(3);
+        if (isFilled)
+            await _context.SetFillStyleAsync(color);
+        else
+            await _context.SetFillStyleAsync("transparent");
+
+        switch (shape.ToLower())
+        {
+            case "prostokat":
+                if (isFilled) await _context.FillRectAsync(x, y, width, height);
+                await _context.StrokeRectAsync(x, y, width, height);
+                break;
+
+            case "trojkat":
+                await _context.BeginPathAsync();
+                await _context.MoveToAsync(x + width / 2, y);
+                await _context.LineToAsync(x + width, y + height);
+                await _context.LineToAsync(x, y + height);
+                await _context.ClosePathAsync();
+                if (isFilled) await _context.FillAsync();
+                await _context.StrokeAsync();
+                break;
+
+            case "okrag":
+                await _context.BeginPathAsync();
+                await _context.ArcAsync(400, 300, width / 2, 0, Math.PI * 2);
+                if (isFilled) await _context.FillAsync();
+                await _context.StrokeAsync();
+                break;
+
+            case "trapez":
+                await _context.BeginPathAsync();
+                await _context.MoveToAsync(x + width * 0.2, y);
+                await _context.LineToAsync(x + width * 0.8, y);
+                await _context.LineToAsync(x + width, y + height);
+                await _context.LineToAsync(x, y + height);
+                await _context.ClosePathAsync();
+                if (isFilled) await _context.FillAsync();
+                await _context.StrokeAsync();
+                break;
+
+            case "romb":
+                await _context.BeginPathAsync();
+                await _context.MoveToAsync(x + width / 2, y);
+                await _context.LineToAsync(x + width, y + height / 2);
+                await _context.LineToAsync(x + width / 2, y + height);
+                await _context.LineToAsync(x, y + height / 2);
+                await _context.ClosePathAsync();
+                if (isFilled) await _context.FillAsync();
+                await _context.StrokeAsync();
+                break;
+
+            case "piksel":
+                await _context.FillRectAsync(400, 300, 1, 1);
+                break;
+        }
+    }
 
     private string RysunekToBase64(byte[]? imageData)
     {
@@ -668,5 +837,14 @@
             }
         }
     }
+
+    public class BoundingClientRect
+    {
+        public double Top { get; set; }
+        public double Left { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
+    }
+
 
 }
