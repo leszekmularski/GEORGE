@@ -16,102 +16,15 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+
     <script>
         // Rejestracja Blazor w JavaScript
         window.initializeBlazor = (dotNetHelper) => {
-        window.dotNetHelper = dotNetHelper;
-        console.log("✅ Blazor zarejestrowany w JS!");
+            window.dotNetHelper = dotNetHelper;
+            console.log("✅ Blazor zarejestrowany w JS!");
         };
 
-        // Obsługa zdarzeń myszy dla BECanvas
-        window.initializeCanvasEvents = (canvasElement, dotNetHelper) => {
-        if (!canvasElement) {
-        console.error("❌ Nie znaleziono elementu canvas!");
-        return;
-        }
-
-        function dragAvatar(e) {
-        dotNetHelper.invokeMethodAsync('DragAvatar', e.clientX, e.clientY);
-        }
-
-        function stopDrag(e) {
-        dotNetHelper.invokeMethodAsync('StopDrag', e.clientX, e.clientY);
-        document.removeEventListener("mousemove", dragAvatar);
-        document.removeEventListener("mouseup", stopDrag);
-        }
-
-        canvasElement.addEventListener("mousedown", (e) => {
-        dotNetHelper.invokeMethodAsync('StartDrag', e.clientX, e.clientY);
-        document.addEventListener("mousemove", dragAvatar);
-        document.addEventListener("mouseup", stopDrag);
-        });
-
-        console.log("✅ Zdarzenia myszki dodane do canvas!");
-        };
-
-        window.initializeCanvas = (canvasElement) => {
-            window.canvasRef = canvasElement; // Przechowujemy referencję do canvas
-            console.log("✅ Canvas został poprawnie zainicjalizowany.");
-        };
-
-        // Obsługa przeciągania elementów z Blazor
-        let currentModel = null;
-        let isDragging = false;
-
-        function startDragJS(event, modelType) {
-        event.dataTransfer.setData("modelType", modelType);
-        event.dataTransfer.setData("startX", event.clientX);
-        event.dataTransfer.setData("startY", event.clientY);
-        }
-
-        function endDragJS(event) {
-        const modelType = event.dataTransfer.getData("modelType");
-        const x = event.clientX;
-        const y = event.clientY;
-
-        if (window.dotNetHelper) {
-        window.dotNetHelper.invokeMethodAsync('OnModelDropped', modelType, x, y)
-        .catch(error => console.error("Error:", error));
-        }
-        }
-
-        document.addEventListener('mousemove', function(event) {
-        if (isDragging && currentModel) {
-        const mouseX = event.clientX;
-        const mouseY = event.clientY;
-        // Możesz używać mouseX i mouseY do śledzenia pozycji myszy
-        // ale nie rysujesz jeszcze na canvasa
-        }
-        });
-
-        // Rysowanie obrazu na canvas
-        window.drawImageOnCanvas = (imageSrc, x, y, width, height) => {
-            var canvas = window.canvasRef; // Pobieramy canvas z referencji
-            if (!canvas) {
-                console.error("❌ Canvas nie jest dostępny!");
-                return;
-            }
-
-            var ctx = canvas.getContext("2d");
-            if (!ctx) {
-                console.error("❌ Nie można uzyskać kontekstu 2D!");
-                return;
-            }
-
-            var img = new Image();
-            img.src = imageSrc;
-
-            img.onload = function () {
-                console.log(`🎨 Rysowanie obrazka na X:${x}, Y:${y} (Rozmiar: ${width}x${height})`);
-                ctx.drawImage(img, x, y, width, height);
-            };
-
-            img.onerror = function () {
-                console.error("❌ Błąd ładowania obrazu!");
-            };
-        };
-
-        // Ładowanie tekstury i rysowanie na canvas
+               // Przenieś funkcję na poziom główny i przypisz do window
         window.loadAndDrawTexture = async (canvasElement, imageUrl, dotNetHelper) => {
             console.log("🖼️ Próba załadowania tekstury:", imageUrl);
 
@@ -121,65 +34,105 @@
             }
 
             const ctx = canvasElement.getContext('2d');
-
             const img = new Image();
-            img.crossOrigin = "anonymous";
+
+            // Tymczasowo wyłącz cache busting
             img.src = imageUrl;
+            img.crossOrigin = "anonymous";
 
-            await new Promise((resolve, reject) => {
-                img.onload = () => {
-                    console.log("✅ Tekstura załadowana poprawnie!");
-                    resolve();
-                };
-                img.onerror = (err) => {
-                    console.error("❌ Błąd ładowania obrazu!", err);
-                    reject();
-                };
-            });
+            img.onload = async () => {
+                console.log("✅ Tekstura załadowana poprawnie!");
+                const pattern = ctx.createPattern(img, 'repeat');
+                ctx.fillStyle = pattern;
+                ctx.fillRect(0, 0, canvasElement.width, canvasElement.height);
+                await dotNetHelper.invokeMethodAsync('OnTextureLoaded');
+            };
 
-            const pattern = ctx.createPattern(img, 'repeat');
-            if (!pattern) {
-                console.error("❌ Nie udało się utworzyć wzorca!");
+            img.onerror = async (err) => {
+                console.error("❌ Błąd ładowania tekstury:", err);
+                ctx.fillStyle = "#deb887";
+                ctx.fillRect(0, 0, canvasElement.width, canvasElement.height);
+                await dotNetHelper.invokeMethodAsync('OnTextureLoaded');
+            };
+        };
+
+        // Nowa implementacja obsługi zdarzeń myszy
+        window.initializeCanvasEvents = (canvasElement) => {
+            if (!canvasElement) {
+                console.error("❌ Nie znaleziono elementu canvas!");
                 return;
             }
 
-            ctx.fillStyle = pattern;
-            ctx.fillRect(0, 0, canvasElement.width, canvasElement.height);
-            ctx.canvas.dataset.pattern = "wood-pattern";
+            let isDragging = false;
+            let startX = 0;
+            let startY = 0;
+            let currentModelType = null;
 
-            console.log("🖌️ Tekstura nałożona na canvas!");
+            // Funkcja pomocnicza do obliczania pozycji względem canvas
+            const getCanvasPosition = (clientX, clientY) => {
+                const rect = canvasElement.getBoundingClientRect();
+                return {
+                    x: clientX - rect.left,
+                    y: clientY - rect.top
+                };
+            };
 
-            // Powiadomienie Blazor, że tekstura została załadowana
-            await dotNetHelper.invokeMethodAsync('OnTextureLoaded')
-                .catch(error => console.error("❌ Błąd wywołania OnTextureLoaded w Blazor!", error));
+            // Obsługa zdarzenia rozpoczęcia przeciągania
+            document.querySelectorAll('[data-model-type]').forEach(item => {
+                item.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    currentModelType = e.target.dataset.modelType;
+                    const pos = getCanvasPosition(e.clientX, e.clientY);
+                    startX = pos.x;
+                    startY = pos.y;
+                    window.dotNetHelper.invokeMethodAsync('StartDrag', pos.x, pos.y, currentModelType);
+                });
+            });
+
+            // Obsługa ruchu myszy
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+
+                const pos = getCanvasPosition(e.clientX, e.clientY);
+                window.dotNetHelper.invokeMethodAsync('DragAvatar', pos.x, pos.y);
+            });
+
+            // Obsługa zakończenia przeciągania
+            document.addEventListener('mouseup', (e) => {
+                if (!isDragging) return;
+
+                isDragging = false;
+                const pos = getCanvasPosition(e.clientX, e.clientY);
+                window.dotNetHelper.invokeMethodAsync('StopDrag', pos.x, pos.y, currentModelType);
+                currentModelType = null;
+            });
+
+            console.log("✅ Nowy system zdarzeń myszy zainicjalizowany!");
         };
 
-        window.allowDrop = (event) => {
-        event.preventDefault();
+        // Zaktualizowana funkcja rysowania obrazu
+        window.drawImageOnCanvas = (imageSrc, x, y, width, height) => {
+            const canvas = document.querySelector('canvas');
+            if (!canvas) {
+                console.error("❌ Canvas nie znaleziony!");
+                return;
+            }
+
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+
+            img.onload = () => {
+                // Najpierw wyczyść obszar przed narysowaniem
+                ctx.clearRect(x - 5, y - 5, width + 10, height + 10);
+                ctx.drawImage(img, x, y, width, height);
+                console.log(`✅ Obraz narysowany na [${x}, ${y}]`);
+            };
+
+            img.onerror = () => console.error("❌ Błąd ładowania obrazu");
+            img.src = imageSrc;
         };
 
-        window.enableCanvasDrag = (canvasId) => {
-        const canvas = document.getElementById(canvasId);
-        if (!canvas) {
-        console.error("❌ Nie znaleziono elementu canvas!");
-        return;
-        }
-
-        canvas.addEventListener("dragover", (event) => {
-        event.preventDefault();
-        });
-
-        console.log("✅ Dragover dla canvas aktywowany!");
-        };
-
-        function dragAvatar(e) {
-        dotNetHelper.invokeMethodAsync('DragAvatar', e.clientX, e.clientY);
-        }
-
-        window.getBoundingClientRect = (element) => {
-        return element.getBoundingClientRect();
-        };
-
+        // Pozostałe funkcje pozostają bez zmian...
     </script>
 
     <style>
@@ -436,16 +389,17 @@
                 }
                 else
                 {
-                    <BECanvas @ref="CanvasRef" Width="800" Height="600"></BECanvas>
+                    <BECanvas id="background-layer" @ref="BackgroundCanvas" Width="800" Height="600"></BECanvas>
+                    <BECanvas id="interactive-layer" @ref="InteractiveCanvas" Width="800" Height="600"></BECanvas>
                 }
             </div>
+
 
         </div>
     </div>
 </body>
 
 </html>
-
 
 @code {
     // Klasa WingModel definiująca dane dla skrzydła
@@ -462,6 +416,10 @@
 
     private BECanvasComponent? CanvasRef;
     private Canvas2DContext? _context;
+    private BECanvasComponent? BackgroundCanvas;
+    private BECanvasComponent? InteractiveCanvas;
+    private Canvas2DContext? _backgroundContext;
+    private Canvas2DContext? _interactiveContext;
 
     private bool hasCanvasError = false; // Nowa flaga do śledzenia błędów
 
@@ -489,48 +447,64 @@
     {
         if (firstRender)
         {
-            _context = await CanvasRef.CreateCanvas2DAsync();
+            try
+            {
+                _context = await CanvasRef.CreateCanvas2DAsync();
 
-            // Załaduj teksturę drewna
-            var baseUrl = Navigation.BaseUri;
-            var imageUrl = $"{baseUrl}api/images/wood.jpg";
+                // Poprawna ścieżka do tekstury
+                var imageUrl = $"{Navigation.BaseUri}Images/wood.jpg";
+                Console.WriteLine($"🕵️ Ścieżka do tekstury: {imageUrl}");
 
-            await JS.InvokeVoidAsync("loadAndDrawTexture",
-                CanvasRef.CanvasReference,
-                imageUrl,
-                DotNetObjectReference.Create(this)
-            );
-
-            await JS.InvokeVoidAsync("initializeBlazor", DotNetObjectReference.Create(this));
+                await JS.InvokeVoidAsync(
+                    "loadAndDrawTexture",
+                    CanvasRef.CanvasReference,
+                    imageUrl,
+                    DotNetObjectReference.Create(this)
+                );
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"💥 Błąd inicjalizacji: {ex.Message}");
+                hasCanvasError = true;
+                StateHasChanged();
+            }
         }
     }
 
+    private async Task RetryInit()
+    {
+        hasCanvasError = false;
+        StateHasChanged();
+        await Task.Delay(100);
+        await OnAfterRenderAsync(true);
+    }
 
     [JSInvokable]
     public async Task StartDrag(double x, double y, string modelType)
     {
-        if (ListaModeli == null) return;
+        Console.WriteLine($"🚀 Rozpoczęto przeciąganie: {modelType} na [{x}, {y}]");
 
+        avatarX = x;
+        avatarY = y;
+        draggedModelType = modelType;
         isDragging = true;
 
-        // Znajdź model na podstawie modelType
-        draggedModel = ListaModeli.FirstOrDefault(m => m.Typ == modelType);
-
-        if (draggedModel != null)
-        {
-            avatarX = x;
-            avatarY = y;
-        }
+        // Natychmiastowa aktualizacja UI
+        await InvokeAsync(StateHasChanged);
     }
 
-
     [JSInvokable]
-    public async Task StopDrag(double x, double y)
+    public async Task StopDrag(double x, double y, string modelType)
     {
+        Console.WriteLine($"🛑 Zatrzymano przeciąganie: {modelType} na [{x}, {y}]");
+
         isDragging = false;
         avatarX = x;
         avatarY = y;
-        await RenderFrame(); // Upewnij się, że narysujesz obiekt po zakończeniu przeciągania
+
+        // Końcowe renderowanie z pełnym odświeżeniem
+        await RenderFrame();
+        await InvokeAsync(StateHasChanged);
     }
 
     [JSInvokable]
@@ -560,17 +534,17 @@
     [JSInvokable]
     public async Task DragAvatar(double x, double y)
     {
-        if (!isDragging || CanvasRef == null) return;
+        if (!isDragging) return;
 
-        // Pobierz pozycję canvasu
-        var canvasRect = await JS.InvokeAsync<BoundingClientRect>("getBoundingClientRect", CanvasRef.CanvasReference);
+        // Aktualizuj pozycję z ograniczeniami
+        avatarX = Math.Clamp(x, 0, 800 - 50);
+        avatarY = Math.Clamp(y, 0, 600 - 50);
 
-        // Przelicz współrzędne względem canvasu
-        avatarX = x - canvasRect.Left - 25; // 25 jako offset środka obrazka
-        avatarY = y - canvasRect.Top - 25;
-
-        await DrawStructure();
+        // Częściowe odświeżanie
+        await RenderFrame();
     }
+
+
 
     private async Task MouseMove(MouseEventArgs e)
     {
@@ -655,38 +629,44 @@
 
     }
 
-    [JSInvokable]
-    public async Task OnTextureLoaded()
-    {
-        Console.WriteLine("✅ Tekstura została załadowana i zapisana w Blazor!");
-        isTextureLoaded = true;
-        await RenderFrame();
-        StateHasChanged();
-    }
-
-
     private async Task RenderFrame()
     {
         if (_context == null) return;
 
-        Console.WriteLine("🎨 Start RenderFrame");
+        // 1. Tło jest renderowane tylko raz w OnTextureLoaded
+        //    - Nie czyścimy całego canvasu, tylko obszar modelu
 
-        await _context.ClearRectAsync(0, 0, 800, 600); // Czyszczenie canvas
+        // 2. Wyczyść poprzednią pozycję modelu
+        await _context.ClearRectAsync(
+            Math.Max(0, avatarX - 1),
+            Math.Max(0, avatarY - 1),
+            50 + 2,
+            50 + 2
+        );
 
-        if (draggedModel != null && avatarX > 0 && avatarY > 0)
+        // 3. Narysuj nową pozycję modelu
+        if (draggedModel != null && isDragging)
         {
-            Console.WriteLine($"🪵 Rysowanie tekstury dla {draggedModel.Typ} na X:{avatarX}, Y:{avatarY}");
-
-            await _context.SetFillStyleAsync("wood-pattern");
-            await _context.FillRectAsync(avatarX, avatarY, 100, 100); // Tylko dla obiektu
-
             var imageSrc = RysunekToBase64(draggedModel.Rysunek);
-            Console.WriteLine($"📸 Wywołanie DrawImageOnCanvas dla {draggedModel.Typ} z obrazkiem: {imageSrc.Substring(0, 30)}...");
-
-            await DrawImageOnCanvas(imageSrc, avatarX, avatarY, 100, 100);
+            await DrawImageOnCanvas(imageSrc, avatarX, avatarY, 50, 50);
         }
+
+        Console.WriteLine($"🔄 Zaktualizowano model na pozycji [{avatarX}, {avatarY}]");
     }
 
+    [JSInvokable]
+    public async Task OnTextureLoaded()
+    {
+        // Renderuj tło tylko raz
+        if (_context == null) return;
+
+        await _context.SetFillStyleAsync("wood-pattern");
+        await _context.FillRectAsync(0, 0, 800, 600);
+
+        Console.WriteLine("✅ Tło zostało zrenderowane");
+        isTextureLoaded = true;
+        StateHasChanged();
+    }
 
     private async Task RenderShapeAsync(string shape, double width, double height, string color, bool isFilled)
     {
