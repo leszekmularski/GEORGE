@@ -13,394 +13,424 @@
 @using Blazor.Extensions.Canvas
 @using Blazor.Extensions.Canvas.Canvas2D
 
-<!DOCTYPE html>
-<html lang="pl">
-<head>
+<script>
+    (() => {
+    // Inicjalizacja globalnych obiektów
+    window.offscreenCanvas = window.offscreenCanvas || document.createElement("canvas");
+    window.offscreenCtx = window.offscreenCanvas.getContext("2d");
 
-    <script>
-        // Rejestracja Blazor w JavaScript
-        window.initializeBlazor = (dotNetHelper) => {
-            window.dotNetHelper = dotNetHelper;
-            console.log("✅ Blazor zarejestrowany w JS!");
-        };
+    window.currentDraggedModel = null;
+    window.wirtualnaWarstwa = window.wirtualnaWarstwa || [];
+    window.oknoKonfiguracja = window.oknoKonfiguracja || [];
+    window.zoomLevel = window.zoomLevel || 1;
+    window.offsetX = window.offsetX || 0;
+    window.offsetY = window.offsetY || 0;
 
-               // Przenieś funkcję na poziom główny i przypisz do window
-        window.loadAndDrawTexture = async (canvasElement, imageUrl, dotNetHelper) => {
-            console.log("🖼️ Próba załadowania tekstury:", imageUrl);
+    // 1. POPRAWIONE: Funkcja setCanvasRef
+    window.setCanvasRef = (canvasRef) => {
+    if (!canvasRef) {
+    console.error("❌ Blazor przekazał null do setCanvasRef!");
+    return;
+    }
+    window.blazorCanvas = canvasRef;
+    console.log("✅ Canvas ustawiony!", canvasRef);
 
-            if (!canvasElement) {
-                console.error("❌ Nie znaleziono elementu canvas!");
-                return;
-            }
+    // 2. INICJALIZACJA PO USTANOWIENIU REFERENCJI
+    dopasujCanvas();
+    window.addEventListener("resize", dopasujCanvas);
+    };
 
-            const ctx = canvasElement.getContext('2d');
-            const img = new Image();
+    // 3. PRZENIESIONE: Funkcja dopasujCanvas
+    const dopasujCanvas = () => {
+    if (!window.blazorCanvas) {
+    console.warn("⚠️ Brak canvasu do dostosowania!");
+    return;
+    }
 
-            // Tymczasowo wyłącz cache busting
-            img.src = imageUrl;
-            img.crossOrigin = "anonymous";
+    const container = document.querySelector(".canvas-container");
+    if (!container) {
+    console.warn("⚠️ Brak kontenera canvasu!");
+    return;
+    }
 
-            img.onload = async () => {
-                console.log("✅ Tekstura załadowana poprawnie!");
-                const pattern = ctx.createPattern(img, 'repeat');
-                ctx.fillStyle = pattern;
-                ctx.fillRect(0, 0, canvasElement.width, canvasElement.height);
-                await dotNetHelper.invokeMethodAsync('OnTextureLoaded');
-            };
+    window.blazorCanvas.width = container.clientWidth;
+    window.blazorCanvas.height = container.clientHeight;
+    window.RysujOkno();
+    };
 
-            img.onerror = async (err) => {
-                console.error("❌ Błąd ładowania tekstury:", err);
-                ctx.fillStyle = "#deb887";
-                ctx.fillRect(0, 0, canvasElement.width, canvasElement.height);
-                await dotNetHelper.invokeMethodAsync('OnTextureLoaded');
-            };
-        };
+    window.startDrag = async (modelName, clientX, clientY, imageSrc, dotNetHelper) => {
+    try {
+    const canvas = window.blazorCanvas;
+    if (!canvas) {
+    console.error("❌ Brak referencji do canvasu!");
+    await dotNetHelper?.invokeMethodAsync('OnDragError', 'Canvas nie został zainicjalizowany');
+    return;
+    }
 
-        // Nowa implementacja obsługi zdarzeń myszy
-        window.initializeCanvasEvents = (canvasElement) => {
-            if (!canvasElement) {
-                console.error("❌ Nie znaleziono elementu canvas!");
-                return;
-            }
+    // Zapisz aktualne współrzędne myszy
+    window.currentMouseX = clientX;
+    window.currentMouseY = clientY;
 
-            let isDragging = false;
-            let startX = 0;
-            let startY = 0;
-            let currentModelType = null;
+    console.log(`🖱️ Rozpoczęto przeciąganie na pozycji: (${clientX}, ${clientY})`);
 
-            // Funkcja pomocnicza do obliczania pozycji względem canvas
-            const getCanvasPosition = (clientX, clientY) => {
-                const rect = canvasElement.getBoundingClientRect();
-                return {
-                    x: clientX - rect.left,
-                    y: clientY - rect.top
-                };
-            };
+    // Reszta kodu do przeciągania...
+    } catch (error) {
+    console.error(`🔥 Błąd podczas przeciągania: ${error}`);
+    if (dotNetHelper) {
+    await dotNetHelper.invokeMethodAsync('OnDragError', error.toString());
+    }
+    }
+    };
 
-            // Obsługa zdarzenia rozpoczęcia przeciągania
-            document.querySelectorAll('[data-model-type]').forEach(item => {
-                item.addEventListener('mousedown', (e) => {
-                    isDragging = true;
-                    currentModelType = e.target.dataset.modelType;
-                    const pos = getCanvasPosition(e.clientX, e.clientY);
-                    startX = pos.x;
-                    startY = pos.y;
-                    window.dotNetHelper.invokeMethodAsync('StartDrag', pos.x, pos.y, currentModelType);
-                });
-            });
+    window.stopDrag = async (dotNetHelper) => {
+    try {
+    const canvas = window.blazorCanvas;
+    if (!canvas) {
+    console.error("❌ Brak referencji do canvasu!");
+    return;
+    }
 
-            // Obsługa ruchu myszy
-            document.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = window.currentMouseX - rect.left;
+    const y = window.currentMouseY - rect.top;
 
-                const pos = getCanvasPosition(e.clientX, e.clientY);
-                window.dotNetHelper.invokeMethodAsync('DragAvatar', pos.x, pos.y);
-            });
+    console.log("🔍 Współrzędne przed przekazaniem:", { x, y });
 
-            // Obsługa zakończenia przeciągania
-            document.addEventListener('mouseup', (e) => {
-                if (!isDragging) return;
+    if (typeof x !== 'number' || typeof y !== 'number') {
+    throw new Error("Nieprawidłowe współrzędne!");
+    }
 
-                isDragging = false;
-                const pos = getCanvasPosition(e.clientX, e.clientY);
-                window.dotNetHelper.invokeMethodAsync('StopDrag', pos.x, pos.y, currentModelType);
-                currentModelType = null;
-            });
+    await dotNetHelper.invokeMethodAsync('OnDragEnd', x, y);
+    } catch (error) {
+    console.error(`🔥 Błąd: ${error}`);
+    await dotNetHelper.invokeMethodAsync('OnDragError', error.toString());
+    }
+    };
 
-            console.log("✅ Nowy system zdarzeń myszy zainicjalizowany!");
-        };
+    // 4. POPRAWIONE: Funkcja RysujOkno
+    window.RysujOkno = () => {
+    if (!window.blazorCanvas) {
+    console.error("❌ Brak referencji do canvasu!");
+    return;
+    }
 
-        // Zaktualizowana funkcja rysowania obrazu
-        window.drawImageOnCanvas = (imageSrc, x, y, width, height) => {
-            const canvas = document.querySelector('canvas');
-            if (!canvas) {
-                console.error("❌ Canvas nie znaleziony!");
-                return;
-            }
+    const ctx = window.blazorCanvas.getContext("2d");
+    ctx.clearRect(0, 0, window.blazorCanvas.width, window.blazorCanvas.height);
 
-            const ctx = canvas.getContext('2d');
-            const img = new Image();
+    ctx.save();
+    ctx.translate(
+    window.blazorCanvas.width / 2 + window.offsetX,
+    window.blazorCanvas.height / 2 + window.offsetY
+    );
+    ctx.scale(window.zoomLevel, window.zoomLevel);
+    ctx.translate(
+    -window.blazorCanvas.width / 2,
+    -window.blazorCanvas.height / 2
+    );
 
-            img.onload = () => {
-                // Najpierw wyczyść obszar przed narysowaniem
-                ctx.clearRect(x - 5, y - 5, width + 10, height + 10);
-                ctx.drawImage(img, x, y, width, height);
-                console.log(`✅ Obraz narysowany na [${x}, ${y}]`);
-            };
+    window.wirtualnaWarstwa.forEach(({ x, y, szerokosc, wysokosc, imageSrc }) => {
+    const img = new Image();
+    img.src = imageSrc;
+    img.onload = () => ctx.drawImage(img, x, y, szerokosc, wysokosc);
+    });
 
-            img.onerror = () => console.error("❌ Błąd ładowania obrazu");
-            img.src = imageSrc;
-        };
+    ctx.restore();
+    };
 
-        // Pozostałe funkcje pozostają bez zmian...
-    </script>
+    // 5. USUNIĘTE: Zduplikowana inicjalizacja i nieużywane funkcje
+    })();
 
-    <style>
+    // 6. PRZENIESIONE: Funkcje wymagające bezpośredniego dostępu do window
+    window.loadAndDrawTexture = async (canvasElement, imageUrl, dotNetHelper) => {
+    const ctx = canvasElement.getContext('2d');
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = imageUrl;
 
-        /* Globalne ustawienia */
-        html, body {
-        height: 100%;
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-        font-family: Arial, sans-serif;
-        background-color: #f8f9fa;
+    await new Promise((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = reject;
+    });
+
+    const pattern = ctx.createPattern(img, 'repeat');
+    ctx.fillStyle = pattern;
+    ctx.canvas.dataset.pattern = "wood-pattern";
+    await dotNetHelper.invokeMethodAsync('OnTextureLoaded');
+    };
+
+    // Dodaj do swojego skryptu
+    window.getCanvasPosition = (canvasElement) => {
+        if (!canvasElement) {
+            console.error("❌ Brak elementu canvas!");
+            return { left: 0, top: 0 };
         }
+        const rect = canvasElement.getBoundingClientRect();
+        return { left: rect.left, top: rect.top };
+    };
 
-        /* Kontener główny */
-        .window-model-container {
-        display: flex;
-        height: 70vh;
-        background-color: #fff;
-        padding: 10px;
-        box-sizing: border-box;
+    // Funkcja wywoływana na początku przeciągania
+    window.startDragJS = (event, modelType) => {
+        console.log(`🚀 Rozpoczęto przeciąganie: ${modelType}`);
+
+        // Ustaw ikonę kursora na "grab" (chwytanie)
+        event.dataTransfer.setData("text/plain", modelType);
+        event.dataTransfer.setDragImage(event.target, 0, 0);
+
+        // Zmień ikonę kursora na "move" (przesuwanie)
+        document.body.style.cursor = "move";
+    };
+
+    window.allowDrop = (elementSelector) => {
+        const container = document.querySelector(elementSelector);
+        if (container) {
+            container.style.cursor = "move"; // Zmień kursor na "move"
         }
+    };
 
-        /* Panel boczny z modelami */
-        .wing-model-container {
-        flex: 0 0 250px; /* Zmniejszenie szerokości */
-        height: 100%;
-        overflow-y: auto;
-        border-right: 2px solid #ddd;
-        padding: 10px;
-        background: #f8f9fa;
+    window.handleDragLeave = (elementSelector) => {
+        const container = document.querySelector(elementSelector);
+        if (container) {
+            container.style.cursor = "default"; // Przywróć domyślny kursor
         }
+    };
+</script>
 
-        /* Tabela modeli */
-        .wing-model-container table {
-        font-size: 13px;
-        width: 100%;
-        border-collapse: collapse;
-        }
+<style>
 
-        .wing-model-container th, .wing-model-container td {
-        padding: 6px;
-        text-align: center;
-        }
+    /* Globalne ustawienia */
+    html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    background-color: #f8f9fa;
+    }
 
-        .wing-model-container th {
-        background-color: #007bff;
-        color: white;
-        }
+    /* Kontener główny */
+    .window-model-container {
+    display: flex;
+    height: 70vh;
+    background-color: #fff;
+    padding: 10px;
+    box-sizing: border-box;
+    }
 
-        .wing-model-container tr:hover {
-        background-color: rgba(0, 123, 255, 0.1);
-        }
+    /* Panel boczny z modelami */
+    .wing-model-container {
+    flex: 0 0 250px; /* Zmniejszenie szerokości */
+    height: 100%;
+    overflow-y: auto;
+    border-right: 2px solid #ddd;
+    padding: 10px;
+    background: #f8f9fa;
+    }
 
-        /* Miniatury modeli */
-        .wing-model-container img {
-        width: 45px;
-        height: 45px;
-        object-fit: contain;
-        cursor: grab;
-        pointer-events: auto; /* Umożliwia przeciąganie */
-        transition: transform 0.2s ease-in-out;
-        }
+    /* Tabela modeli */
+    .wing-model-container table {
+    font-size: 13px;
+    width: 100%;
+    border-collapse: collapse;
+    }
 
-        .wing-model-container img:hover {
-        transform: scale(1.1);
-        }
+    .wing-model-container th, .wing-model-container td {
+    padding: 6px;
+    text-align: center;
+    }
 
-        /* Główne okno wyświetlania */
-        .display-window {
-        flex-grow: 1;
-        height: 100%;
-        border: 2px solid #ddd;
-        background-color: #fff;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 10px;
-        box-sizing: border-box;
-        position: relative;
-        }
+    .wing-model-container th {
+    background-color: #007bff;
+    color: white;
+    }
 
-        /* Kontener canvas - dopasowany do okna */
-        .canvas-container {
-        width: 100%;
-        height: 100%;
-        max-width: 100%;
-        max-height: 100%;
-        border: 2px solid #ddd;
-        background-color: #fff;
-        border-radius: 5px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        overflow: auto; /* Ukrywa przewijanie */
-        position: relative;
-        }
+    .wing-model-container tr:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+    }
 
-        /* Canvas - dynamiczne skalowanie */
-        canvas {
-        display: block;
-        max-width: 100%;
-        max-height: 100%;
-        background-color: transparent;
-        }
+    /* Miniatury modeli */
+    .wing-model-container img {
+    width: 45px;
+    height: 45px;
+    object-fit: contain;
+    cursor: grab;
+    transition: transform 0.2s ease-in-out;
+    }
 
-        /* Paski przewijania */
-        .wing-model-container::-webkit-scrollbar {
-        width: 8px;
-        }
+    .wing-model-container img:hover {
+    transform: scale(1.1);
+    }
 
-        .wing-model-container::-webkit-scrollbar-thumb {
-        background: #007bff;
-        border-radius: 5px;
-        }
+    /* Główne okno wyświetlania */
+    .display-window {
+    flex-grow: 1;
+    height: 100%;
+    border: 2px solid #ddd;
+    background-color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden; /* Dodaj, aby uniknąć problemów z przewijaniem */
+    cursor: crosshair; /* Wizualny sygnał, że obszar jest interaktywny */
+    }
 
-        .wing-model-container::-webkit-scrollbar-thumb:hover {
-        background: #0056b3;
-        }
+    /* Kontener canvas - dopasowany do okna */
+    .canvas-container {
+    width: 100%;
+    height: 100%;
+    position: relative; /* Umożliwia prawidłowe pozycjonowanie */
+    }
 
-        /* 🔹 Toolbar z przyciskami */
-        .toolbar {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 5px;
-        justify-content: center;
-        padding: 10px;
-        background: #fff;
-        }
+    /* Canvas - dynamiczne skalowanie */
+    canvas {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    background-color: transparent;
+    }
 
-        /* Styl dla przycisków */
-        .toolbar .btn {
-        flex: 1;
-        min-width: 90px;
-        font-size: 13px;
-        padding: 6px 8px;
-        transition: all 0.2s ease-in-out;
-        }
+    /* Paski przewijania */
+    .wing-model-container::-webkit-scrollbar {
+    width: 8px;
+    }
 
-        .toolbar .btn:hover {
-        transform: scale(1.05);
-        }
+    .wing-model-container::-webkit-scrollbar-thumb {
+    background: #007bff;
+    border-radius: 5px;
+    }
 
-    </style>
+    .wing-model-container::-webkit-scrollbar-thumb:hover {
+    background: #0056b3;
+    }
 
-</head>
+    /* 🔹 Toolbar z przyciskami */
+    .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    justify-content: center;
+    padding: 10px;
+    background: #fff;
+    }
 
-<body @onmousemove="MouseMove">
-    <!-- Nagłówek -->
-    <div class="d-flex justify-content-between align-items-center mt-2 mb-2">
-        <h3 class="mb-0">Modele Okienne</h3>
-        <button class="btn btn-primary" @onclick="GoBack">
-            <i class="fas fa-arrow-left"></i> Wróć
-        </button>
-    </div>
-    <!-- 🔹 Wybór systemu -->
-    <Tooltip Placement="@Placement.TopRight" Title="Otwórz konfigurator nowego systemu lub wybierz go z listy">
-        <div class="d-flex">
-            @if (Systemy != null && Systemy.Any())
-            {
-                <select class="form-select me-2" @onchange="@(async (args) => await OnSystemSelected(args))">
-                    <option value="" disabled selected>-- Wybierz system --</option>
-                    @foreach (var system in Systemy)
-                    {
-                        <option value="@system.RowId">@system.Nazwa_Systemu</option>
-                    }
-                </select>
-            }
-        </div>
-    </Tooltip>
+    /* Styl dla przycisków */
+    .toolbar .btn {
+    flex: 1;
+    min-width: 90px;
+    font-size: 13px;
+    padding: 6px 8px;
+    transition: all 0.2s ease-in-out;
+    }
 
-    <Collapse Animation>
-        <Panel Header="Ustawienia" Key="1">
+    .toolbar .btn:hover {
+    transform: scale(1.05);
+    }
 
-            <!-- Toolbar z przyciskami -->
-            <div class="toolbar">
-                <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("prostokat"))">🟥 Prostokąt</button>
-                <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("trojkat"))">🔺 Trójkąt</button>
-                <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("okrag"))">⚫ Okrąg</button>
-                <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("trapez"))">🔷 Trapez</button>
-                <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("romb"))">♦ Romb</button>
-                <button class="btn btn-outline-primary" @onclick="@(() => WybierzKsztalt("piksel"))">🟧 Piksel</button>
-            </div>
+</style>
 
-            <!-- Wprowadzenie wartości -->
-            <div class="form-group mt-3">
-                <label>Szerokość:</label>
-                <input type="number" class="form-control" @bind="Szerokosc" />
-
-                <label>Wysokość:</label>
-                <input type="number" class="form-control" @bind="Wysokosc" />
-
-                <label>Kolor:</label>
-                <input type="color" class="form-control" @bind="Kolor" />
-
-                <button class="btn btn-success mt-2 w-100" @onclick="DodajKsztalt">Dodaj kształt</button>
-
-            </div>
-        </Panel>
-    </Collapse>
-
-    <!-- Kontener na modele i canvas -->
-    <div class="window-model-container">
-        <!-- Panel boczny z modelami -->
-        <div class="wing-model-container">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Typ</th>
-                        <th>Wymiary</th>
-                        <th>Miniaturka</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (ListaModeli != null)
-                    {
-                        @foreach (var model in ListaModeli ?? new List<KonfModele>())
-                        {
-                            <tr>
-                                <td>@model.Typ</td>
-                                <td>@model.KonstrMinSzer x @model.KonstrMinWys → @model.KonstrMaxSzer x @model.KonstrMaxWys</td>
-                                <td>
-                                    @if (model.Rysunek != null && model.Rysunek.Length > 0)
-                                    {
-                                        <div style="position: relative; display: inline-block;">
-                                            <img id="@($"wing-{model.Typ}")"
-                                            src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
-                                            ondragstart="startDragJS(event, '@model.Typ')"
-                                            ondragend="endDragJS(event)"
-                                            draggable="true"
-                                            style="position: relative; cursor: grab; width: auto; height: auto; max-width: 50px; max-height: 50px;" />
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted">Brak</span>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                    }
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Główne okno wyświetlania -->
-        <div class="display-window">
-
-            <!-- Główne okno wyświetlania -->
-            <div class="canvas-container" style="overflow: auto;">
-                @if (hasCanvasError)
+<!-- Nagłówek -->
+<div class="d-flex justify-content-between align-items-center mt-2 mb-2">
+    <h3 class="mb-0">Modele Okienne</h3>
+    <button class="btn btn-primary" @onclick="GoBack">
+        <i class="fas fa-arrow-left"></i> Wróć
+    </button>
+</div>
+<!-- 🔹 Wybór systemu -->
+<Tooltip Placement="@Placement.TopRight" Title="Otwórz konfigurator nowego systemu lub wybierz go z listy">
+    <div class="d-flex">
+        @if (Systemy != null && Systemy.Any())
+        {
+            <select class="form-select me-2" @onchange="@(async (args) => await OnSystemSelected(args))">
+                <option value="" disabled selected>-- Wybierz system --</option>
+                @foreach (var system in Systemy)
                 {
-                    <p style="color: red;">❌ Błąd: Nie udało się załadować canvasu! Spróbuj odświeżyć stronę.</p>
+                    <option value="@system.RowId">@system.Nazwa_Systemu</option>
                 }
-                else
-                {
-                    <BECanvas id="background-layer" @ref="BackgroundCanvas" Width="800" Height="600"></BECanvas>
-                    <BECanvas id="interactive-layer" @ref="InteractiveCanvas" Width="800" Height="600"></BECanvas>
-                }
-            </div>
+            </select>
+        }
+    </div>
+</Tooltip>
 
+<Collapse Animation>
+    <Panel Header="Ustawienia" Key="1">
+
+        <!-- Wprowadzenie wartości -->
+        <div class="form-group mt-3">
+            <label>Szerokość:</label>
+            <input type="number" class="form-control" @bind="Szerokosc" />
+
+            <label>Wysokość:</label>
+            <input type="number" class="form-control" @bind="Wysokosc" />
+
+            <label>Kolor:</label>
+            <input type="color" class="form-control" @bind="Kolor" />
 
         </div>
+        <Button OnClick="DrawStructure">TEST</Button>
+    </Panel>
+</Collapse>
+
+<!-- Kontener na modele i canvas -->
+<div class="window-model-container">
+    <!-- Panel boczny z modelami -->
+    <div class="wing-model-container">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Typ</th>
+                    <th>Wymiary</th>
+                    <th>Miniaturka</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (ListaModeli != null)
+                {
+                    @foreach (var model in ListaModeli)
+                    {
+                        <tr>
+                            <td>@model.Typ</td>
+                            <td>@model.KonstrMinSzer x @model.KonstrMinWys → @model.KonstrMaxSzer x @model.KonstrMaxWys</td>
+                            <td>
+                                @if (model.Rysunek != null && model.Rysunek.Length > 0)
+                                {
+                                    <img id="@($"wing-{model.Typ}")"
+                                    src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
+                                    @onmousedown='async (e) => await StartDrag(model.Typ, e)'
+                                    @ondragend='async (e) => await EndDrag(model.Typ, e)'
+                                    draggable="true"
+                                    style="cursor: grab; width: auto; height: auto; max-width: 50px; max-height: 50px;" />
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Brak</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
     </div>
-</body>
 
-</html>
-
+    <!-- Główne okno wyświetlania -->
+    <div class="display-window" @onmouseup="OnMouseUp">
+        @if (hasCanvasError)
+        {
+            <p style="color: red;">❌ Błąd: Nie udało się załadować canvasu!</p>
+        }
+        else
+        {
+            <div class="canvas-container"
+                 @ondragover="HandleDragOver"
+                 @ondragleave="HandleDragLeave"
+                 @ondrop="HandleDrop">
+                <BECanvas @ref="CanvasRef" Width="800" Height="600"></BECanvas>
+            </div>
+        }
+    </div>
+</div>
 @code {
     // Klasa WingModel definiująca dane dla skrzydła
     private List<KonfSystem>? KonfiguracjeSystemu;
@@ -414,26 +444,9 @@
     private string SelectedSystemId = "";
     private List<KonfModele>? ListaModeli;
 
-    private BECanvasComponent? CanvasRef;
+    private BECanvasComponent? CanvasRef; // Referencja do komponentu BECanvas
     private Canvas2DContext? _context;
-    private BECanvasComponent? BackgroundCanvas;
-    private BECanvasComponent? InteractiveCanvas;
-    private Canvas2DContext? _backgroundContext;
-    private Canvas2DContext? _interactiveContext;
-
-    private bool hasCanvasError = false; // Nowa flaga do śledzenia błędów
-
-    private bool isTextureLoaded = false;
-
-    private bool isDragging = false;
-    private double startX, startY;
-    private KonfModele? draggedModel;
-
-    private double avatarX = 0; // Jeśli to ma być tylko zmienna typu double
-    private double avatarY = 0; // Początkowa pozycja
-    private string avatarImage = "data:image/png;base64,..."; // Tu wstaw Base64 awatara
-
-    private string? draggedModelType = null;
+    private DotNetObjectReference<Modele_okienne>? _dotNetHelper;
 
     protected override async Task OnInitializedAsync()
     {
@@ -441,173 +454,69 @@
 
         Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
 
+        _dotNetHelper = DotNetObjectReference.Create(this);
+
     }
+
+    private bool hasCanvasError = false; // Nowa flaga do śledzenia błędów
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        if (firstRender && CanvasRef != null)
         {
             try
             {
-                _context = await CanvasRef.CreateCanvas2DAsync();
+                // Sprawdź czy funkcja istnieje przed wywołaniem
+                var isFunctionDefined = await JS.InvokeAsync<bool>("eval", "typeof setCanvasRef === 'function'");
 
-                // Poprawna ścieżka do tekstury
-                var imageUrl = $"{Navigation.BaseUri}Images/wood.jpg";
-                Console.WriteLine($"🕵️ Ścieżka do tekstury: {imageUrl}");
+                if (!isFunctionDefined)
+                    throw new Exception("Funkcja setCanvasRef nie jest zdefiniowana!");
 
-                await JS.InvokeVoidAsync(
-                    "loadAndDrawTexture",
-                    CanvasRef.CanvasReference,
-                    imageUrl,
-                    DotNetObjectReference.Create(this)
-                );
+                await JS.InvokeVoidAsync("setCanvasRef", CanvasRef.CanvasReference);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"💥 Błąd inicjalizacji: {ex.Message}");
+                Console.WriteLine($"🔥 Krytyczny błąd: {ex.Message}");
                 hasCanvasError = true;
                 StateHasChanged();
             }
         }
     }
 
-    private async Task RetryInit()
+    private async Task OnMouseUp(MouseEventArgs e)
     {
-        hasCanvasError = false;
-        StateHasChanged();
-        await Task.Delay(100);
-        await OnAfterRenderAsync(true);
+        Console.WriteLine("🟢 Wywołano OnDragEnd");
+        Console.WriteLine($"🖱️ Przeciąganie zakończone na pozycji: ({e.ClientX}, {e.ClientY})");
+
+        if (_dotNetHelper == null) return;
+
+        // Przekaż współrzędne myszy do JavaScript
+        await JS.InvokeVoidAsync(
+            "stopDrag",
+            _dotNetHelper
+        );
     }
+    // private async Task OnMouseUp(MouseEventArgs e)
+    // {
+    //     Console.WriteLine($"🖱️ Kliknięto na pozycji ({e.ClientX}, {e.ClientY})");
+    //     string modelType = await JS.InvokeAsync<string>("getDraggedModelType"); // Pobieramy typ modelu z JS
+    //     await RenderFrame(e.ClientX, e.ClientY, modelType);
+    // }
+
+    // Dodaj nowe pola w sekcji @code
+    private string? SelectedModelType { get; set; }
+    private int DropX { get; set; }
+    private int DropY { get; set; }
+    private ElementReference canvasElement;
+    private DotNetObjectReference<Modele_okienne>? dotNetHelper;
 
     [JSInvokable]
-    public async Task StartDrag(double x, double y, string modelType)
+    public async Task OnModelDropped(string modelType, int x, int y)
     {
-        Console.WriteLine($"🚀 Rozpoczęto przeciąganie: {modelType} na [{x}, {y}]");
-
-        avatarX = x;
-        avatarY = y;
-        draggedModelType = modelType;
-        isDragging = true;
-
-        // Natychmiastowa aktualizacja UI
-        await InvokeAsync(StateHasChanged);
-    }
-
-    [JSInvokable]
-    public async Task StopDrag(double x, double y, string modelType)
-    {
-        Console.WriteLine($"🛑 Zatrzymano przeciąganie: {modelType} na [{x}, {y}]");
-
-        isDragging = false;
-        avatarX = x;
-        avatarY = y;
-
-        // Końcowe renderowanie z pełnym odświeżeniem
-        await RenderFrame();
-        await InvokeAsync(StateHasChanged);
-    }
-
-    [JSInvokable]
-    public async Task OnModelDropped(string modelType, double x, double y)
-    {
-        Console.WriteLine($"Model dropped: {modelType} at X:{x}, Y:{y}");
-
-        // Aktualizacja zmiennych
-        draggedModelType = modelType;
-        avatarX = x;
-        avatarY = y;
-
-        // Debugowanie, aby sprawdzić, czy model istnieje
-        var model = ListaModeli?.FirstOrDefault(m => m.Typ == modelType);
-        if (model == null)
-        {
-            Console.WriteLine($"❌ Nie znaleziono modelu {modelType} w ListaModeli!");
-            return;
-        }
-
-        Console.WriteLine($"✅ Znaleziono model {modelType}, rysowanie na canvasie.");
-
-        await RenderFrame();
-    }
-
-
-    [JSInvokable]
-    public async Task DragAvatar(double x, double y)
-    {
-        if (!isDragging) return;
-
-        // Aktualizuj pozycję z ograniczeniami
-        avatarX = Math.Clamp(x, 0, 800 - 50);
-        avatarY = Math.Clamp(y, 0, 600 - 50);
-
-        // Częściowe odświeżanie
-        await RenderFrame();
-    }
-
-
-
-    private async Task MouseMove(MouseEventArgs e)
-    {
-        if (!isDragging || draggedModel == null) return;
-
-        double deltaX = e.ClientX - startX;
-        double deltaY = e.ClientY - startY;
-
-        startX = e.ClientX;
-        startY = e.ClientY;
-
-        // Aktualizacja pozycji modelu (jeśli używasz modelu z pozycją)
-        Console.WriteLine($"🚀 Przesunięcie: ΔX={deltaX}, ΔY={deltaY}");
-
-        await InvokeAsync(StateHasChanged); // Odświeżenie UI
-    }
-
-
-    private async Task DrawImageOnCanvas(string imageSrc, double x, double y, double width, double height)
-    {
-        if (CanvasRef == null)
-        {
-            Console.WriteLine("❌ CanvasRef jest null, nie można rysować!");
-            return;
-        }
-
-        Console.WriteLine($"🖼️ Rysowanie obrazka na {x}, {y} (Rozmiar: {width}x{height})");
-
-        //await JS.InvokeVoidAsync("drawImageOnCanvas", "final-window", imageSrc, x, y, width, height);
-        await JS.InvokeVoidAsync("drawImageOnCanvas", imageSrc, x, y, width, height);
-
-    }
-
-
-    private string GetImageBase64(string modelType)
-    {
-        // Zwróć Base64 dla odpowiedniego modelu na podstawie modelType
-        return "data:image/png;base64,..."; // przykładowe dane
-    }
-
-    private async Task DrawStructure()
-    {
-        if (_context == null) return;
-
-        // Rysowanie ramki
-        await _context.ClearRectAsync(0, 0, 800, 600);
-
-        if (isDragging)
-        {
-            // Rysowanie ikony na podstawie współrzędnych avatarX, avatarY
-            var imageSrc = GetImageBase64(draggedModelType);
-            await DrawImageOnCanvas(imageSrc, avatarX, avatarY, 50, 50);
-        }
-    }
-
-    private async Task DodajKsztalt()
-    {
-        await RenderShapeAsync(WybranyKsztalt, Szerokosc, Wysokosc, Kolor, false);
-    }
-
-    private void WybierzKsztalt(string ksztalt)
-    {
-        WybranyKsztalt = ksztalt;
+        SelectedModelType = modelType;
+        DropX = x;
+        DropY = y;
+        await DrawStructure();
     }
 
     private async Task OnSystemSelected(ChangeEventArgs e)
@@ -629,117 +538,197 @@
 
     }
 
-    private async Task RenderFrame()
+    private bool isTextureLoaded = false;
+
+    private async Task DrawStructure()
     {
-        if (_context == null) return;
+        Console.WriteLine("1. DrawStructure");
 
-        // 1. Tło jest renderowane tylko raz w OnTextureLoaded
-        //    - Nie czyścimy całego canvasu, tylko obszar modelu
+        if (CanvasRef == null) return;
 
-        // 2. Wyczyść poprzednią pozycję modelu
-        await _context.ClearRectAsync(
-            Math.Max(0, avatarX - 1),
-            Math.Max(0, avatarY - 1),
-            50 + 2,
-            50 + 2
-        );
+        Console.WriteLine("2. DrawStructure");
 
-        // 3. Narysuj nową pozycję modelu
-        if (draggedModel != null && isDragging)
+        _context ??= await CanvasRef.CreateCanvas2DAsync();
+
+        if (!isTextureLoaded)
         {
-            var imageSrc = RysunekToBase64(draggedModel.Rysunek);
-            await DrawImageOnCanvas(imageSrc, avatarX, avatarY, 50, 50);
+            var baseUrl = Navigation.BaseUri;
+            var imageUrl = $"{baseUrl}api/images/wood.jpg";
+
+            await JS.InvokeVoidAsync("loadAndDrawTexture",
+                CanvasRef.CanvasReference,
+                imageUrl,
+                DotNetObjectReference.Create(this)
+            );
+            return;
         }
 
-        Console.WriteLine($"🔄 Zaktualizowano model na pozycji [{avatarX}, {avatarY}]");
+    }
+
+    [JSInvokable]
+    public async Task OnDrop(string modelType, double x, double y)
+    {
+        Console.WriteLine($"🎯 Upuszczono model: {modelType} na pozycji ({x}, {y})");
+        await DrawStructure();
+        StateHasChanged();
+    }
+
+    private void HandleDragOver(DragEventArgs e)
+    {
+        // Zmień kursor na "move" podczas przeciągania nad kontenerem
+        e.DataTransfer.EffectAllowed = "move";
+        Console.WriteLine("🖱️ Przeciąganie nad canvasem...");
+    }
+
+    private void HandleDragLeave(DragEventArgs e)
+    {
+        // Przywróć domyślny kursor
+        Console.WriteLine("🖱️ Opuszczono obszar canvasu...");
+    }
+
+    private async Task HandleDrop(DragEventArgs e)
+    {
+        // Pobierz współrzędne względem kontenera
+        var container = await JS.InvokeAsync<DOMRect>("getBoundingClientRect", ".canvas-container");
+        var x = e.ClientX - container.Left;
+        var y = e.ClientY - container.Top;
+
+        Console.WriteLine($"🎯 Upuszczono na pozycji: ({x}, {y})");
+        await DrawStructure();
+    }
+
+    private async Task EndDrag(string modelType, MouseEventArgs e)
+    {
+           Console.WriteLine($"StartDrag modelType:{modelType} e.ClientX:{e.ClientX} e.ClientY:{e.ClientY}");
+
+
+        if (CanvasRef == null)
+        {
+            Console.WriteLine("⚠️ Brak referencji do canvasu!");
+            return;
+        }
+
+        // Pobierz pozycję canvasu względem okna
+        var canvasPos = await JS.InvokeAsync<DOMRect>("getCanvasPosition", CanvasRef.CanvasReference);
+
+        // Oblicz współrzędne względem canvasu
+        var x = e.ClientX - canvasPos.Left;
+        var y = e.ClientY - canvasPos.Top;
+
+        Console.WriteLine($"🎯 Pozycja względem canvasu: ({x}, {y})");
+
+        await DrawStructure();
+    }
+
+
+    private async Task StartDrag(string modelType, MouseEventArgs e)
+    {
+          Console.WriteLine($"StartDrag modelType:{modelType} e.ClientX:{e.ClientX} e.ClientY:{e.ClientY}");
+
+        try
+        {
+            var model = ListaModeli.FirstOrDefault(m => m.Typ == modelType);
+            if (model?.Rysunek == null || CanvasRef == null) return;
+
+            // Przekaż tylko ClientX i ClientY, nie cały obiekt zdarzenia
+            await JS.InvokeVoidAsync(
+                "startDrag",
+                modelType,
+                e.ClientX,    // double
+                e.ClientY,    // double
+                $"data:image/png;base64,{Convert.ToBase64String(model.Rysunek)}",
+                _dotNetHelper // Użyj wcześniej utworzonej referencji
+            );
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Błąd podczas przeciągania: {ex.Message}");
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnDragEnd(double x, double y)
+    {
+        Console.WriteLine("🟢 Wywołano OnDragEnd");
+        Console.WriteLine($"🖱️ Przeciąganie zakończone na pozycji: ({x}, {y})");
+
+        await DrawStructure();
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task OnDragUpdate(DragPayload payload)
+    {
+        Console.WriteLine($"Przeciąganie: {payload.ModelName} " +
+                        $"X: {payload.X}px, Y: {payload.Y}px " +
+                        $"(Skala: {payload.Scale}x)");
+
+        // Tutaj możesz aktualizować stan komponentu
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task OnDragError(string message)
+    {
+        await _message.Error(message);
+        StateHasChanged();
+    }
+
+    public class DragPayload
+    {
+        public string? ModelName { get; set; }
+        public int X { get; set; }
+        public int Y { get; set; }
+        public string? Scale { get; set; }
+    }
+
+    public class DOMRect
+    {
+        public double Left { get; set; }
+        public double Top { get; set; }
+        public double Right { get; set; }
+        public double Bottom { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
+        public double X { get; set; }
+        public double Y { get; set; }
+    }
+
+    public void Dispose()
+    {
+        _dotNetHelper?.Dispose();
     }
 
     [JSInvokable]
     public async Task OnTextureLoaded()
     {
-        // Renderuj tło tylko raz
-        if (_context == null) return;
-
-        await _context.SetFillStyleAsync("wood-pattern");
-        await _context.FillRectAsync(0, 0, 800, 600);
-
-        Console.WriteLine("✅ Tło zostało zrenderowane");
         isTextureLoaded = true;
+        await RenderFrame(110,110,"Rama");
         StateHasChanged();
     }
 
-    private async Task RenderShapeAsync(string shape, double width, double height, string color, bool isFilled)
+    private async Task RenderFrame(double x, double y, string modelType)
     {
+        Console.WriteLine($"🎯 Renderowanie modelu: {modelType} na ({x}, {y})");
+
         if (_context == null) return;
 
-        // Automatyczne dopasowanie rozmiaru (80% dostępnej przestrzeni)
-        double maxWidth = 800 * 0.8;
-        double maxHeight = 600 * 0.8;
-        width = Math.Min(width, maxWidth);
-        height = Math.Min(height, maxHeight);
+        await _context.ClearRectAsync(0, 0, 800, 600);
 
-        // Obliczenie środka canvas
-        double x = (800 - width) / 2;
-        double y = (600 - height) / 2;
+        // Rysowanie ramy
+        await _context.SetFillStyleAsync("wood-pattern");
+        await _context.FillRectAsync(50, 50, 20, 500);
+        await _context.FillRectAsync(730, 50, 20, 500);
+        await _context.FillRectAsync(50, 50, 700, 20);
+        await _context.FillRectAsync(50, 530, 700, 20);
 
-        await _context.SetStrokeStyleAsync(color);
-        await _context.SetLineWidthAsync(3);
-        if (isFilled)
-            await _context.SetFillStyleAsync(color);
-        else
-            await _context.SetFillStyleAsync("transparent");
+        // Rysowanie szyby
+        await _context.SetFillStyleAsync("#ADD8E6");
+        await _context.FillRectAsync(70, 70, 660, 460);
 
-        switch (shape.ToLower())
-        {
-            case "prostokat":
-                if (isFilled) await _context.FillRectAsync(x, y, width, height);
-                await _context.StrokeRectAsync(x, y, width, height);
-                break;
-
-            case "trojkat":
-                await _context.BeginPathAsync();
-                await _context.MoveToAsync(x + width / 2, y);
-                await _context.LineToAsync(x + width, y + height);
-                await _context.LineToAsync(x, y + height);
-                await _context.ClosePathAsync();
-                if (isFilled) await _context.FillAsync();
-                await _context.StrokeAsync();
-                break;
-
-            case "okrag":
-                await _context.BeginPathAsync();
-                await _context.ArcAsync(400, 300, width / 2, 0, Math.PI * 2);
-                if (isFilled) await _context.FillAsync();
-                await _context.StrokeAsync();
-                break;
-
-            case "trapez":
-                await _context.BeginPathAsync();
-                await _context.MoveToAsync(x + width * 0.2, y);
-                await _context.LineToAsync(x + width * 0.8, y);
-                await _context.LineToAsync(x + width, y + height);
-                await _context.LineToAsync(x, y + height);
-                await _context.ClosePathAsync();
-                if (isFilled) await _context.FillAsync();
-                await _context.StrokeAsync();
-                break;
-
-            case "romb":
-                await _context.BeginPathAsync();
-                await _context.MoveToAsync(x + width / 2, y);
-                await _context.LineToAsync(x + width, y + height / 2);
-                await _context.LineToAsync(x + width / 2, y + height);
-                await _context.LineToAsync(x, y + height / 2);
-                await _context.ClosePathAsync();
-                if (isFilled) await _context.FillAsync();
-                await _context.StrokeAsync();
-                break;
-
-            case "piksel":
-                await _context.FillRectAsync(400, 300, 1, 1);
-                break;
-        }
+        StateHasChanged();
     }
+
 
     private string RysunekToBase64(byte[]? imageData)
     {
@@ -817,14 +806,5 @@
             }
         }
     }
-
-    public class BoundingClientRect
-    {
-        public double Top { get; set; }
-        public double Left { get; set; }
-        public double Width { get; set; }
-        public double Height { get; set; }
-    }
-
 
 }
