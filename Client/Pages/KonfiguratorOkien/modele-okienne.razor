@@ -26,6 +26,10 @@
     window.offsetX = window.offsetX || 0;
     window.offsetY = window.offsetY || 0;
 
+    window.setDotNetHelper = (dotNetHelper) => {
+        window.dotNetHelper = dotNetHelper;
+        console.log("✅ DotNetHelper ustawiony!");
+    };
     // 1. POPRAWIONE: Funkcja setCanvasRef
     window.setCanvasRef = (canvasRef) => {
     if (!canvasRef) {
@@ -160,38 +164,101 @@
 
     // Dodaj do swojego skryptu
     window.getCanvasPosition = (canvasElement) => {
-        if (!canvasElement) {
-            console.error("❌ Brak elementu canvas!");
-            return { left: 0, top: 0 };
-        }
-        const rect = canvasElement.getBoundingClientRect();
-        return { left: rect.left, top: rect.top };
+    if (!canvasElement) {
+    console.error("❌ Brak elementu canvas!");
+    return { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0, x: 0, y: 0 };
+    }
+    const rect = canvasElement.getBoundingClientRect();
+    return {
+    left: rect.left,
+    top: rect.top,
+    right: rect.right,
+    bottom: rect.bottom,
+    width: rect.width,
+    height: rect.height,
+    x: rect.x,
+    y: rect.y
+    };
+    };
+
+    window.getBoundingClientRect = (elementSelector) => {
+    const element = document.querySelector(elementSelector);
+    if (!element) {
+    console.error("❌ Nie znaleziono elementu!");
+    return { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0, x: 0, y: 0 };
+    }
+    const rect = element.getBoundingClientRect();
+    return {
+    left: rect.left,
+    top: rect.top,
+    right: rect.right,
+    bottom: rect.bottom,
+    width: rect.width,
+    height: rect.height,
+    x: rect.x,
+    y: rect.y
+    };
     };
 
     // Funkcja wywoływana na początku przeciągania
     window.startDragJS = (event, modelType) => {
-        console.log(`🚀 Rozpoczęto przeciąganie: ${modelType}`);
+    console.log(`🚀 Rozpoczęto przeciąganie: ${modelType}`);
 
-        // Ustaw ikonę kursora na "grab" (chwytanie)
-        event.dataTransfer.setData("text/plain", modelType);
-        event.dataTransfer.setDragImage(event.target, 0, 0);
+    // Ustaw ikonę kursora na "grab" (chwytanie)
+    event.dataTransfer.setData("text/plain", modelType);
+    event.dataTransfer.setDragImage(event.target, 0, 0);
 
-        // Zmień ikonę kursora na "move" (przesuwanie)
-        document.body.style.cursor = "move";
+    // Zmień ikonę kursora na "move" (przesuwanie)
+    document.body.style.cursor = "move";
     };
 
     window.allowDrop = (elementSelector) => {
-        const container = document.querySelector(elementSelector);
-        if (container) {
-            container.style.cursor = "move"; // Zmień kursor na "move"
-        }
+    const container = document.querySelector(elementSelector);
+    if (container && container.style.cursor !== "move") {
+    container.style.cursor = "move"; // Zmień kursor tylko raz
+    }
     };
 
     window.handleDragLeave = (elementSelector) => {
-        const container = document.querySelector(elementSelector);
-        if (container) {
-            container.style.cursor = "default"; // Przywróć domyślny kursor
+    const container = document.querySelector(elementSelector);
+    if (container && container.style.cursor !== "default") {
+    container.style.cursor = "default"; // Przywróć kursor tylko raz
+    }
+    };
+
+    window.handleDrop = async (event) => {
+        try {
+            event.preventDefault();
+
+            const modelType = event.dataTransfer.getData("text/plain");
+            const rect = event.target.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            // Sprawdź, czy współrzędne są prawidłowe
+            if (typeof x !== 'number' || typeof y !== 'number') {
+                throw new Error("Nieprawidłowe współrzędne myszy!");
+            }
+
+            console.log(`🎯 Upuszczono model: ${modelType} na pozycji (${x}, ${y})`);
+
+            // Powiadom Blazor o upuszczeniu
+            if (window.dotNetHelper) {
+                await window.dotNetHelper.invokeMethodAsync('OnDragEnd', x, y);
+            } else {
+                throw new Error("DotNetHelper nie został ustawiony!");
+            }
+        } catch (error) {
+            console.error(`🔥 Błąd: ${error}`);
+            if (window.dotNetHelper) {
+                await window.dotNetHelper.invokeMethodAsync('OnDragError', error.toString());
+            }
         }
+    };
+
+    window.endDragJS = (event) => {
+    console.log("🛑 Zakończono przeciąganie");
+    console.log(`🖱️ Współrzędne myszy: (${event.clientX}, ${event.clientY})`);
     };
 </script>
 
@@ -423,9 +490,9 @@
         else
         {
             <div class="canvas-container"
-                 @ondragover="HandleDragOver"
-                 @ondragleave="HandleDragLeave"
-                 @ondrop="HandleDrop">
+            @ondragover="HandleDragOver"
+            @ondragleave="HandleDragLeave"
+            @ondrop="HandleDrop">
                 <BECanvas @ref="CanvasRef" Width="800" Height="600"></BECanvas>
             </div>
         }
@@ -455,6 +522,7 @@
         Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
 
         _dotNetHelper = DotNetObjectReference.Create(this);
+       await JS.InvokeVoidAsync("setDotNetHelper", _dotNetHelper);
 
     }
 
@@ -471,6 +539,7 @@
 
                 if (!isFunctionDefined)
                     throw new Exception("Funkcja setCanvasRef nie jest zdefiniowana!");
+                //await Task.Delay(500);
 
                 await JS.InvokeVoidAsync("setCanvasRef", CanvasRef.CanvasReference);
             }
@@ -485,8 +554,13 @@
 
     private async Task OnMouseUp(MouseEventArgs e)
     {
-        Console.WriteLine("🟢 Wywołano OnDragEnd");
-        Console.WriteLine($"🖱️ Przeciąganie zakończone na pozycji: ({e.ClientX}, {e.ClientY})");
+        if (CanvasRef == null)
+        {
+            Console.WriteLine("⚠️ Brak referencji do canvasu!");
+            return;
+        }
+
+        Console.WriteLine("🟢 Wywołano OnMouseUp");
 
         if (_dotNetHelper == null) return;
 
@@ -542,11 +616,11 @@
 
     private async Task DrawStructure()
     {
-        Console.WriteLine("1. DrawStructure");
+        // Console.WriteLine("1. DrawStructure");
 
         if (CanvasRef == null) return;
 
-        Console.WriteLine("2. DrawStructure");
+        // Console.WriteLine("2. DrawStructure");
 
         _context ??= await CanvasRef.CreateCanvas2DAsync();
 
@@ -560,6 +634,9 @@
                 imageUrl,
                 DotNetObjectReference.Create(this)
             );
+
+            StateHasChanged();
+
             return;
         }
 
@@ -568,39 +645,57 @@
     [JSInvokable]
     public async Task OnDrop(string modelType, double x, double y)
     {
+        if (CanvasRef == null)
+        {
+            Console.WriteLine("⚠️ Brak referencji do canvasu!");
+            return;
+        }
+
         Console.WriteLine($"🎯 Upuszczono model: {modelType} na pozycji ({x}, {y})");
         await DrawStructure();
         StateHasChanged();
     }
 
+    private bool _isDraggingOver = false; // Flaga do śledzenia stanu przeciągania
+
     private void HandleDragOver(DragEventArgs e)
     {
-        // Zmień kursor na "move" podczas przeciągania nad kontenerem
-        e.DataTransfer.EffectAllowed = "move";
-        Console.WriteLine("🖱️ Przeciąganie nad canvasem...");
+        if (CanvasRef == null)
+        {
+            Console.WriteLine("⚠️ Brak referencji do canvasu!");
+            return;
+        }
+
+        if (!_isDraggingOver)
+        {
+            _isDraggingOver = true;
+            Console.WriteLine("🖱️ Przeciąganie nad canvasem...");
+
+            // Zmień kursor na "move" (tylko raz)
+            JS.InvokeVoidAsync("allowDrop", ".canvas-container");
+        }
     }
 
     private void HandleDragLeave(DragEventArgs e)
     {
-        // Przywróć domyślny kursor
-        Console.WriteLine("🖱️ Opuszczono obszar canvasu...");
+        if (CanvasRef == null)
+        {
+            Console.WriteLine("⚠️ Brak referencji do canvasu!");
+            return;
+        }
+
+        if (_isDraggingOver)
+        {
+            _isDraggingOver = false;
+            Console.WriteLine("🖱️ Opuszczono obszar canvasu...");
+
+            // Przywróć domyślny kursor
+            JS.InvokeVoidAsync("handleDragLeave", ".canvas-container");
+        }
     }
 
     private async Task HandleDrop(DragEventArgs e)
     {
-        // Pobierz współrzędne względem kontenera
-        var container = await JS.InvokeAsync<DOMRect>("getBoundingClientRect", ".canvas-container");
-        var x = e.ClientX - container.Left;
-        var y = e.ClientY - container.Top;
-
-        Console.WriteLine($"🎯 Upuszczono na pozycji: ({x}, {y})");
-        await DrawStructure();
-    }
-
-    private async Task EndDrag(string modelType, MouseEventArgs e)
-    {
-           Console.WriteLine($"StartDrag modelType:{modelType} e.ClientX:{e.ClientX} e.ClientY:{e.ClientY}");
-
 
         if (CanvasRef == null)
         {
@@ -608,22 +703,82 @@
             return;
         }
 
-        // Pobierz pozycję canvasu względem okna
-        var canvasPos = await JS.InvokeAsync<DOMRect>("getCanvasPosition", CanvasRef.CanvasReference);
+        try
+        {
+            // Sprawdź, czy przeciąganie miało miejsce
+            if (!e.DataTransfer.Types.Contains("text/plain"))
+            {
+                Console.WriteLine("⚠️ Brak danych do przeciągania!");
+                return;
+            }
 
-        // Oblicz współrzędne względem canvasu
-        var x = e.ClientX - canvasPos.Left;
-        var y = e.ClientY - canvasPos.Top;
+            // Sprawdź współrzędne
+            if (e.ClientX == 0 || e.ClientY == 0)
+            {
+                Console.WriteLine("⚠️ Nieprawidłowe współrzędne myszy!");
+                return;
+            }
 
-        Console.WriteLine($"🎯 Pozycja względem canvasu: ({x}, {y})");
+            var container = await JS.InvokeAsync<DOMRect>("getBoundingClientRect", ".canvas-container");
+            var x = e.ClientX - container.Left;
+            var y = e.ClientY - container.Top;
 
-        await DrawStructure();
+            Console.WriteLine($"🎯 Upuszczono na pozycji: ({x}, {y})");
+
+            await DrawStructure();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"🔥 Błąd podczas upuszczania: {ex.Message}");
+        }
     }
 
+    private async Task EndDrag(string modelType, MouseEventArgs e)
+    {
+        try
+        {
+            Console.WriteLine($"🖱️ Zakończono przeciąganie modelu: {modelType}");
+
+            if (CanvasRef == null)
+            {
+                Console.WriteLine("⚠️ Brak referencji do canvasu!");
+                return;
+            }
+
+            // Sprawdź, czy współrzędne myszy są dostępne
+            if (e == null || e.ClientX == 0 || e.ClientY == 0)
+            {
+                Console.WriteLine("⚠️ Nieprawidłowe współrzędne myszy!");
+                return;
+            }
+
+            // Pobierz pozycję canvasu względem okna
+            var canvasPos = await JS.InvokeAsync<DOMRect>("getCanvasPosition", CanvasRef.CanvasReference);
+
+            // Pozycje są zawsze double, więc wystarczy standardowe odejmowanie
+            var x = e.ClientX - (canvasPos?.Left ?? 0);
+            var y = e.ClientY - (canvasPos?.Top ?? 0);
+
+            Console.WriteLine($"🎯 Pozycja względem canvasu: ({x}, {y})");
+
+            await DrawStructure();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"🔥 Błąd podczas kończenia przeciągania: {ex.Message}");
+        }
+    }
 
     private async Task StartDrag(string modelType, MouseEventArgs e)
     {
-          Console.WriteLine($"StartDrag modelType:{modelType} e.ClientX:{e.ClientX} e.ClientY:{e.ClientY}");
+
+        if (CanvasRef == null)
+        {
+            Console.WriteLine("⚠️ Brak referencji do canvasu!");
+            return;
+        }
+
+        Console.WriteLine($"StartDrag modelType:{modelType} e.ClientX:{e.ClientX} e.ClientY:{e.ClientY}");
 
         try
         {
@@ -649,6 +804,12 @@
     [JSInvokable]
     public async Task OnDragEnd(double x, double y)
     {
+        if (CanvasRef == null)
+        {
+            Console.WriteLine("⚠️ Brak referencji do canvasu!");
+            return;
+        }
+
         Console.WriteLine("🟢 Wywołano OnDragEnd");
         Console.WriteLine($"🖱️ Przeciąganie zakończone na pozycji: ({x}, {y})");
 
@@ -659,6 +820,12 @@
     [JSInvokable]
     public async Task OnDragUpdate(DragPayload payload)
     {
+        if (CanvasRef == null)
+        {
+            Console.WriteLine("⚠️ Brak referencji do canvasu!");
+            return;
+        }
+
         Console.WriteLine($"Przeciąganie: {payload.ModelName} " +
                         $"X: {payload.X}px, Y: {payload.Y}px " +
                         $"(Skala: {payload.Scale}x)");
@@ -703,7 +870,7 @@
     public async Task OnTextureLoaded()
     {
         isTextureLoaded = true;
-        await RenderFrame(110,110,"Rama");
+        await RenderFrame(110, 110, "Rama");
         StateHasChanged();
     }
 
