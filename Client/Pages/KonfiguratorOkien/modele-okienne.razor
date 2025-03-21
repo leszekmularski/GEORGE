@@ -26,11 +26,14 @@
     window.offsetX = window.offsetX || 0;
     window.offsetY = window.offsetY || 0;
 
+    // Ustawienie referencji do obiektu .NET
+
     window.setDotNetHelper = (dotNetHelper) => {
-        window.dotNetHelper = dotNetHelper;
-        console.log("✅ DotNetHelper ustawiony!");
+    window.dotNetHelper = dotNetHelper;
+    console.log("✅ DotNetHelper ustawiony!");
     };
-    // 1. POPRAWIONE: Funkcja setCanvasRef
+
+    // Funkcja do ustawiania referencji do canvasu
     window.setCanvasRef = (canvasRef) => {
     if (!canvasRef) {
     console.error("❌ Blazor przekazał null do setCanvasRef!");
@@ -39,12 +42,16 @@
     window.blazorCanvas = canvasRef;
     console.log("✅ Canvas ustawiony!", canvasRef);
 
-    // 2. INICJALIZACJA PO USTANOWIENIU REFERENCJI
+    // Inicjalizacja canvasu po ustawieniu referencji
     dopasujCanvas();
-    window.addEventListener("resize", dopasujCanvas);
+    let resizeTimeout;
+    window.addEventListener("resize", () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(dopasujCanvas, 100); // Odtwarzaj canvas po 100 ms od ostatniej zmiany rozmiaru
+    });
     };
 
-    // 3. PRZENIESIONE: Funkcja dopasujCanvas
+    // Funkcja dostosowująca rozmiar canvasu
     const dopasujCanvas = () => {
     if (!window.blazorCanvas) {
     console.warn("⚠️ Brak canvasu do dostosowania!");
@@ -57,11 +64,15 @@
     return;
     }
 
+    // Zmień rozmiar canvasu
     window.blazorCanvas.width = container.clientWidth;
     window.blazorCanvas.height = container.clientHeight;
+
+    // Odtwórz zawartość canvasu
     window.RysujOkno();
     };
 
+    // Funkcja rozpoczynająca przeciąganie
     window.startDrag = async (modelName, clientX, clientY, imageSrc, dotNetHelper) => {
     try {
     const canvas = window.blazorCanvas;
@@ -75,9 +86,7 @@
     window.currentMouseX = clientX;
     window.currentMouseY = clientY;
 
-    console.log(`🖱️ Rozpoczęto przeciąganie na pozycji: (${clientX}, ${clientY})`);
-
-    // Reszta kodu do przeciągania...
+    console.log(`🖱️ Rozpoczęto przeciąganie: ${modelName} na pozycji (${clientX}, ${clientY})`);
     } catch (error) {
     console.error(`🔥 Błąd podczas przeciągania: ${error}`);
     if (dotNetHelper) {
@@ -86,6 +95,7 @@
     }
     };
 
+    // Funkcja kończąca przeciąganie
     window.stopDrag = async (dotNetHelper) => {
     try {
     const canvas = window.blazorCanvas;
@@ -95,23 +105,34 @@
     }
 
     const rect = canvas.getBoundingClientRect();
-    const x = window.currentMouseX - rect.left;
-    const y = window.currentMouseY - rect.top;
+
+    // Sprawdź, czy window.currentMouseX i window.currentMouseY są ustawione
+    const currentMouseX = window.currentMouseX ?? 0; // Domyślna wartość 0, jeśli null/undefined
+    const currentMouseY = window.currentMouseY ?? 0; // Domyślna wartość 0, jeśli null/undefined
+
+    // Oblicz współrzędne
+    const x = currentMouseX - rect.left;
+    const y = currentMouseY - rect.top;
 
     console.log("🔍 Współrzędne przed przekazaniem:", { x, y });
 
-    if (typeof x !== 'number' || typeof y !== 'number') {
+    // Sprawdź, czy x i y są liczbami
+    if (typeof x !== 'number' || typeof y !== 'number' || isNaN(x) || isNaN(y)) {
     throw new Error("Nieprawidłowe współrzędne!");
     }
 
+    // Przekaż współrzędne do metody .NET
     await dotNetHelper.invokeMethodAsync('OnDragEnd', x, y);
     } catch (error) {
     console.error(`🔥 Błąd: ${error}`);
+    if (dotNetHelper) {
+    // Przekaż informację o błędzie do metody .NET
     await dotNetHelper.invokeMethodAsync('OnDragError', error.toString());
+    }
     }
     };
 
-    // 4. POPRAWIONE: Funkcja RysujOkno
+    // Funkcja rysująca zawartość canvasu
     window.RysujOkno = () => {
     if (!window.blazorCanvas) {
     console.error("❌ Brak referencji do canvasu!");
@@ -132,6 +153,7 @@
     -window.blazorCanvas.height / 2
     );
 
+    // Odtwórz wszystkie obiekty z wirtualnej warstwy
     window.wirtualnaWarstwa.forEach(({ x, y, szerokosc, wysokosc, imageSrc }) => {
     const img = new Image();
     img.src = imageSrc;
@@ -141,10 +163,7 @@
     ctx.restore();
     };
 
-    // 5. USUNIĘTE: Zduplikowana inicjalizacja i nieużywane funkcje
-    })();
-
-    // 6. PRZENIESIONE: Funkcje wymagające bezpośredniego dostępu do window
+    // Funkcja do ładowania tekstury
     window.loadAndDrawTexture = async (canvasElement, imageUrl, dotNetHelper) => {
     const ctx = canvasElement.getContext('2d');
     const img = new Image();
@@ -162,7 +181,7 @@
     await dotNetHelper.invokeMethodAsync('OnTextureLoaded');
     };
 
-    // Dodaj do swojego skryptu
+    // Funkcja do pobierania pozycji canvasu
     window.getCanvasPosition = (canvasElement) => {
     if (!canvasElement) {
     console.error("❌ Brak elementu canvas!");
@@ -181,6 +200,7 @@
     };
     };
 
+    // Funkcja do pobierania pozycji elementu
     window.getBoundingClientRect = (elementSelector) => {
     const element = document.querySelector(elementSelector);
     if (!element) {
@@ -200,7 +220,7 @@
     };
     };
 
-    // Funkcja wywoływana na początku przeciągania
+    // Funkcja rozpoczynająca przeciąganie (alternatywna)
     window.startDragJS = (event, modelType) => {
     console.log(`🚀 Rozpoczęto przeciąganie: ${modelType}`);
 
@@ -212,53 +232,78 @@
     document.body.style.cursor = "move";
     };
 
+    // Funkcja zezwalająca na upuszczenie
+    let dragOverTimeout;
+
     window.allowDrop = (elementSelector) => {
+    clearTimeout(dragOverTimeout); // Wyczyść poprzedni timeout
+
     const container = document.querySelector(elementSelector);
     if (container && container.style.cursor !== "move") {
     container.style.cursor = "move"; // Zmień kursor tylko raz
+    console.log("🖱️ Przeciąganie nad canvasem...");
     }
     };
 
     window.handleDragLeave = (elementSelector) => {
+    dragOverTimeout = setTimeout(() => {
     const container = document.querySelector(elementSelector);
     if (container && container.style.cursor !== "default") {
     container.style.cursor = "default"; // Przywróć kursor tylko raz
+    console.log("🖱️ Opuszczono obszar canvasu...");
+    }
+    }, 100); // Opóźnienie 100 ms
+    };
+
+    // Funkcja obsługująca upuszczenie
+    let isHandlingDrop = false; // Flaga zapobiegająca wielokrotnemu wywołaniu
+    window.handleDrop = async (event) => {
+    try {
+    event.preventDefault();
+
+    // Pobierz typ modelu
+    const modelType = event.dataTransfer.getData("text/plain");
+
+    // Pobierz współrzędne względem canvasu
+    const rect = event.target.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    // Dodaj obiekt do wirtualnej warstwy
+    window.wirtualnaWarstwa.push({
+    x: x,
+    y: y,
+    szerokosc: 100, // Przykładowa szerokość
+    wysokosc: 100, // Przykładowa wysokość
+    imageSrc: "data:image/png;base64,..." // Przykładowe źródło obrazu
+    });
+
+    // Odtwórz canvas
+    window.RysujOkno();
+    } catch (error) {
+    console.error(`🔥 Błąd: ${error}`);
     }
     };
 
-    window.handleDrop = async (event) => {
-        try {
-            event.preventDefault();
-
-            const modelType = event.dataTransfer.getData("text/plain");
-            const rect = event.target.getBoundingClientRect();
-            const x = event.clientX - rect.left;
-            const y = event.clientY - rect.top;
-
-            // Sprawdź, czy współrzędne są prawidłowe
-            if (typeof x !== 'number' || typeof y !== 'number') {
-                throw new Error("Nieprawidłowe współrzędne myszy!");
-            }
-
-            console.log(`🎯 Upuszczono model: ${modelType} na pozycji (${x}, ${y})`);
-
-            // Powiadom Blazor o upuszczeniu
-            if (window.dotNetHelper) {
-                await window.dotNetHelper.invokeMethodAsync('OnDragEnd', x, y);
-            } else {
-                throw new Error("DotNetHelper nie został ustawiony!");
-            }
-        } catch (error) {
-            console.error(`🔥 Błąd: ${error}`);
-            if (window.dotNetHelper) {
-                await window.dotNetHelper.invokeMethodAsync('OnDragError', error.toString());
-            }
-        }
-    };
-
+    // Funkcja kończąca przeciąganie (alternatywna)
     window.endDragJS = (event) => {
     console.log("🛑 Zakończono przeciąganie");
     console.log(`🖱️ Współrzędne myszy: (${event.clientX}, ${event.clientY})`);
+    };
+    })();
+
+    window.dodajDoWirtualnejWarstwy = (x, y, szerokosc, wysokosc, imageSrc) => {
+    window.wirtualnaWarstwa.push({
+    x: x,
+    y: y,
+    szerokosc: szerokosc,
+    wysokosc: wysokosc,
+    imageSrc: imageSrc
+    });
+    };
+
+    window.getDragData = (event) => {
+    return event.dataTransfer.getData("text/plain");
     };
 </script>
 
@@ -515,42 +560,76 @@
     private Canvas2DContext? _context;
     private DotNetObjectReference<Modele_okienne>? _dotNetHelper;
 
+    // Dodaj nowe pola w sekcji @code
+    private string? SelectedModelType { get; set; }
+    private int DropX { get; set; }
+    private int DropY { get; set; }
+    private ElementReference canvasElement;
+
     protected override async Task OnInitializedAsync()
     {
-        await Laduj_Uprawnienia();
+        try
+        {
+            await Laduj_Uprawnienia();
 
-        Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
+            Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
 
-        _dotNetHelper = DotNetObjectReference.Create(this);
-       await JS.InvokeVoidAsync("setDotNetHelper", _dotNetHelper);
-
+            _dotNetHelper = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("setDotNetHelper", _dotNetHelper);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"🔥 Błąd podczas inicjalizacji: {ex.Message}");
+        }
     }
 
     private bool hasCanvasError = false; // Nowa flaga do śledzenia błędów
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && CanvasRef != null)
+        try
         {
-            try
+            if (firstRender && CanvasRef != null)
             {
-                // Sprawdź czy funkcja istnieje przed wywołaniem
                 var isFunctionDefined = await JS.InvokeAsync<bool>("eval", "typeof setCanvasRef === 'function'");
 
                 if (!isFunctionDefined)
                     throw new Exception("Funkcja setCanvasRef nie jest zdefiniowana!");
-                //await Task.Delay(500);
 
                 await JS.InvokeVoidAsync("setCanvasRef", CanvasRef.CanvasReference);
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"🔥 Krytyczny błąd: {ex.Message}");
-                hasCanvasError = true;
-                StateHasChanged();
-            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"🔥 Krytyczny błąd: {ex.Message}");
+            hasCanvasError = true;
+            StateHasChanged();
         }
     }
+
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
+    // {
+    //     if (firstRender && CanvasRef != null)
+    //     {
+    //         try
+    //         {
+    //             // Sprawdź czy funkcja istnieje przed wywołaniem
+    //             var isFunctionDefined = await JS.InvokeAsync<bool>("eval", "typeof setCanvasRef === 'function'");
+
+    //             if (!isFunctionDefined)
+    //                 throw new Exception("Funkcja setCanvasRef nie jest zdefiniowana!");
+    //             //await Task.Delay(500);
+
+    //             await JS.InvokeVoidAsync("setCanvasRef", CanvasRef.CanvasReference);
+    //         }
+    //         catch (Exception ex)
+    //         {
+    //             Console.WriteLine($"🔥 Krytyczny błąd: {ex.Message}");
+    //             hasCanvasError = true;
+    //             StateHasChanged();
+    //         }
+    //     }
+    // }
 
     private async Task OnMouseUp(MouseEventArgs e)
     {
@@ -577,12 +656,6 @@
     //     await RenderFrame(e.ClientX, e.ClientY, modelType);
     // }
 
-    // Dodaj nowe pola w sekcji @code
-    private string? SelectedModelType { get; set; }
-    private int DropX { get; set; }
-    private int DropY { get; set; }
-    private ElementReference canvasElement;
-    private DotNetObjectReference<Modele_okienne>? dotNetHelper;
 
     [JSInvokable]
     public async Task OnModelDropped(string modelType, int x, int y)
@@ -590,7 +663,9 @@
         SelectedModelType = modelType;
         DropX = x;
         DropY = y;
-        await DrawStructure();
+        await Task.CompletedTask; 
+        // Console.WriteLine($"OnModelDropped? : DrawStructure");
+        // await DrawStructure();
     }
 
     private async Task OnSystemSelected(ChangeEventArgs e)
@@ -616,30 +691,37 @@
 
     private async Task DrawStructure()
     {
-        // Console.WriteLine("1. DrawStructure");
-
-        if (CanvasRef == null) return;
-
-        // Console.WriteLine("2. DrawStructure");
-
-        _context ??= await CanvasRef.CreateCanvas2DAsync();
-
-        if (!isTextureLoaded)
+        try
         {
-            var baseUrl = Navigation.BaseUri;
-            var imageUrl = $"{baseUrl}api/images/wood.jpg";
+            if (CanvasRef == null)
+            {
+                Console.WriteLine("⚠️ Brak referencji do canvasu!");
+                return;
+            }
 
-            await JS.InvokeVoidAsync("loadAndDrawTexture",
-                CanvasRef.CanvasReference,
-                imageUrl,
-                DotNetObjectReference.Create(this)
-            );
+            _context ??= await CanvasRef.CreateCanvas2DAsync();
 
-            StateHasChanged();
+            if (!isTextureLoaded)
+            {
+                var baseUrl = Navigation.BaseUri;
+                var imageUrl = $"{baseUrl}api/images/wood.jpg";
 
-            return;
+                await JS.InvokeVoidAsync("loadAndDrawTexture",
+                    CanvasRef.CanvasReference,
+                    imageUrl,
+                    _dotNetHelper
+                );
+
+                // StateHasChanged();
+                return;
+            }
+
+            // Reszta kodu do rysowania...
         }
-
+        catch (Exception ex)
+        {
+            Console.WriteLine($"🔥 Błąd podczas rysowania: {ex.Message}");
+        }
     }
 
     [JSInvokable]
@@ -651,9 +733,9 @@
             return;
         }
 
-        Console.WriteLine($"🎯 Upuszczono model: {modelType} na pozycji ({x}, {y})");
-        await DrawStructure();
-        StateHasChanged();
+        Console.WriteLine($"🎯 OnDrop Upuszczono model: {modelType} na pozycji ({x}, {y})");
+        //await DrawStructure();
+        //StateHasChanged();
     }
 
     private bool _isDraggingOver = false; // Flaga do śledzenia stanu przeciągania
@@ -671,8 +753,8 @@
             _isDraggingOver = true;
             Console.WriteLine("🖱️ Przeciąganie nad canvasem...");
 
-            // Zmień kursor na "move" (tylko raz)
-            JS.InvokeVoidAsync("allowDrop", ".canvas-container");
+            // Zezwól na upuszczenie (bez generowania rysunku)
+            e.DataTransfer.DropEffect = "move";
         }
     }
 
@@ -696,36 +778,35 @@
 
     private async Task HandleDrop(DragEventArgs e)
     {
-
-        if (CanvasRef == null)
-        {
-            Console.WriteLine("⚠️ Brak referencji do canvasu!");
-            return;
-        }
-
         try
         {
-            // Sprawdź, czy przeciąganie miało miejsce
-            if (!e.DataTransfer.Types.Contains("text/plain"))
+            if (CanvasRef == null)
             {
-                Console.WriteLine("⚠️ Brak danych do przeciągania!");
+                Console.WriteLine("⚠️ Brak referencji do canvasu!");
                 return;
             }
 
-            // Sprawdź współrzędne
-            if (e.ClientX == 0 || e.ClientY == 0)
+            // Pobierz dane z DataTransfer za pomocą JavaScript
+            SelectedModelType = await JS.InvokeAsync<string>("getDragData", e);
+
+            if (string.IsNullOrEmpty(SelectedModelType))
             {
-                Console.WriteLine("⚠️ Nieprawidłowe współrzędne myszy!");
+                Console.WriteLine("⚠️ Brak danych do przeciągania nie wybrano modelu!");
                 return;
             }
 
+            // Pobierz współrzędne
             var container = await JS.InvokeAsync<DOMRect>("getBoundingClientRect", ".canvas-container");
-            var x = e.ClientX - container.Left;
-            var y = e.ClientY - container.Top;
+            DropX = (int)e.ClientX - (int)container.Left;
+            DropY = (int)e.ClientY - (int)container.Top;
 
-            Console.WriteLine($"🎯 Upuszczono na pozycji: ({x}, {y})");
+            Console.WriteLine($"🎯 --> Upuszczono model: {SelectedModelType} na pozycji ({DropX}, {DropY})");
 
-            await DrawStructure();
+            // Dodaj obiekt do wirtualnej warstwy
+            await JS.InvokeVoidAsync("dodajDoWirtualnejWarstwy", DropX, DropY, 100, 100, "data:image/png;base64,...");
+
+            // Odtwórz canvas
+            await JS.InvokeVoidAsync("RysujOkno");
         }
         catch (Exception ex)
         {
@@ -755,13 +836,20 @@
             // Pobierz pozycję canvasu względem okna
             var canvasPos = await JS.InvokeAsync<DOMRect>("getCanvasPosition", CanvasRef.CanvasReference);
 
-            // Pozycje są zawsze double, więc wystarczy standardowe odejmowanie
-            var x = e.ClientX - (canvasPos?.Left ?? 0);
-            var y = e.ClientY - (canvasPos?.Top ?? 0);
+            // Sprawdź, czy pozycja canvasu jest dostępna
+            if (canvasPos == null || canvasPos.Left == 0 || canvasPos.Top == 0)
+            {
+                Console.WriteLine("⚠️ Nie udało się pobrać pozycji canvasu!");
+                return;
+            }
 
-            Console.WriteLine($"🎯 Pozycja względem canvasu: ({x}, {y})");
+            // Oblicz współrzędne względem canvasu
+            // var x = e.ClientX - canvasPos.Left;
+            //var y = e.ClientY - canvasPos.Top;
 
-            await DrawStructure();
+            // Console.WriteLine($"🎯 EndDrag Pozycja względem canvasu: ({x}, {y})");
+
+            //await DrawStructure();
         }
         catch (Exception ex)
         {
@@ -771,74 +859,107 @@
 
     private async Task StartDrag(string modelType, MouseEventArgs e)
     {
-
-        if (CanvasRef == null)
-        {
-            Console.WriteLine("⚠️ Brak referencji do canvasu!");
-            return;
-        }
-
-        Console.WriteLine($"StartDrag modelType:{modelType} e.ClientX:{e.ClientX} e.ClientY:{e.ClientY}");
-
         try
         {
-            var model = ListaModeli.FirstOrDefault(m => m.Typ == modelType);
-            if (model?.Rysunek == null || CanvasRef == null) return;
+            if (CanvasRef == null || _dotNetHelper == null)
+            {
+                Console.WriteLine("⚠️ Brak referencji do canvasu lub DotNetHelper!");
+                return;
+            }
 
-            // Przekaż tylko ClientX i ClientY, nie cały obiekt zdarzenia
+            SelectedModelType = modelType;
+
+            var model = ListaModeli.FirstOrDefault(m => m.Typ == modelType);
+
+            if (model?.Rysunek == null) return;
+
+            Console.WriteLine($"Znaleziono model: {model.Typ}");
+
             await JS.InvokeVoidAsync(
                 "startDrag",
                 modelType,
-                e.ClientX,    // double
-                e.ClientY,    // double
+                e.ClientX,
+                e.ClientY,
                 $"data:image/png;base64,{Convert.ToBase64String(model.Rysunek)}",
-                _dotNetHelper // Użyj wcześniej utworzonej referencji
+                _dotNetHelper
             );
+
+
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Błąd podczas przeciągania: {ex.Message}");
+            Console.WriteLine($"🔥 Błąd podczas przeciągania: {ex.Message}");
         }
     }
 
     [JSInvokable]
     public async Task OnDragEnd(double x, double y)
     {
-        if (CanvasRef == null)
+        try
         {
-            Console.WriteLine("⚠️ Brak referencji do canvasu!");
-            return;
+            if (CanvasRef == null)
+            {
+                Console.WriteLine("⚠️ Brak referencji do canvasu!");
+                return;
+            }
+
+            Console.WriteLine($"🎯 OK - OnDragEnd Upuszczono na pozycji: ({x}, {y})");
+
+            DropX = (int)x;
+            DropY = (int)y;
+
+           // SelectedModelType = modelType;
+
+            await DrawStructure();
+
+            await RenderFrame(DropX, DropY, SelectedModelType);
+
+            StateHasChanged();
         }
-
-        Console.WriteLine("🟢 Wywołano OnDragEnd");
-        Console.WriteLine($"🖱️ Przeciąganie zakończone na pozycji: ({x}, {y})");
-
-        await DrawStructure();
-        StateHasChanged();
+        catch (Exception ex)
+        {
+            Console.WriteLine($"🔥 Błąd podczas kończenia przeciągania: {ex.Message}");
+        }
     }
 
-    [JSInvokable]
-    public async Task OnDragUpdate(DragPayload payload)
-    {
-        if (CanvasRef == null)
-        {
-            Console.WriteLine("⚠️ Brak referencji do canvasu!");
-            return;
-        }
+    // [JSInvokable]
+    // public async Task OnDragUpdate(DragPayload payload)
+    // {
+    //     Console.WriteLine("CZY TO POTRZEBNE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"); 
 
-        Console.WriteLine($"Przeciąganie: {payload.ModelName} " +
-                        $"X: {payload.X}px, Y: {payload.Y}px " +
-                        $"(Skala: {payload.Scale}x)");
+    //     if (CanvasRef == null)
+    //     {
+    //         Console.WriteLine("⚠️ Brak referencji do canvasu!");
+    //         return;
+    //     }
 
-        // Tutaj możesz aktualizować stan komponentu
-        StateHasChanged();
-    }
+    //     Console.WriteLine($"Przeciąganie: {payload.ModelName} " +
+    //                     $"X: {payload.X}px, Y: {payload.Y}px " +
+    //                     $"(Skala: {payload.Scale}x)");
+
+    //     // Tutaj możesz aktualizować stan komponentu
+    //     StateHasChanged();
+    // }
 
     [JSInvokable]
     public async Task OnDragError(string message)
     {
         await _message.Error(message);
         StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void StartDragOver()
+    {
+        _isDraggingOver = true;
+        Console.WriteLine("🖱️ Rozpoczęto przeciąganie nad canvasem...");
+    }
+
+    [JSInvokable]
+    public void EndDragOver()
+    {
+        _isDraggingOver = false;
+        Console.WriteLine("🖱️ Zakończono przeciąganie nad canvasem...");
     }
 
     public class DragPayload
@@ -863,37 +984,81 @@
 
     public void Dispose()
     {
-        _dotNetHelper?.Dispose();
+        try
+        {
+            _dotNetHelper?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"🔥 Błąd podczas zwalniania zasobów: {ex.Message}");
+        }
     }
 
     [JSInvokable]
     public async Task OnTextureLoaded()
     {
-        isTextureLoaded = true;
-        await RenderFrame(110, 110, "Rama");
-        StateHasChanged();
+        try
+        {
+            isTextureLoaded = true;
+            Console.WriteLine("✅ Tekstura załadowana!");
+
+            // if (string.IsNullOrEmpty(SelectedModelType))
+            // {
+            //     //await RenderFrame(0, 0, "Rama");
+            //     Console.WriteLine($"🔥 Błąd SelectedModelType ma wartość NULL");
+            // }
+            // else
+            // {
+            //     await RenderFrame(DropX, DropY, SelectedModelType);
+            // }
+
+            // StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"🔥 Błąd podczas ładowania tekstury: {ex.Message}");
+        }
     }
 
     private async Task RenderFrame(double x, double y, string modelType)
     {
-        Console.WriteLine($"🎯 Renderowanie modelu: {modelType} na ({x}, {y})");
+        try
+        {
+            if (_context == null)
+            {
+                Console.WriteLine("⚠️ Brak kontekstu canvasu!");
+                return;
+            }
 
-        if (_context == null) return;
+            if (string.IsNullOrEmpty(modelType))
+            {
+                Console.WriteLine("⚠️ Nie wybrano modelu!");
+                return;
+            }
 
-        await _context.ClearRectAsync(0, 0, 800, 600);
+            Console.WriteLine($"🎯 Renderowanie modelu: {modelType} na ({x}, {y})");
 
-        // Rysowanie ramy
-        await _context.SetFillStyleAsync("wood-pattern");
-        await _context.FillRectAsync(50, 50, 20, 500);
-        await _context.FillRectAsync(730, 50, 20, 500);
-        await _context.FillRectAsync(50, 50, 700, 20);
-        await _context.FillRectAsync(50, 530, 700, 20);
+            await _context.ClearRectAsync(0, 0, 800, 600);
 
-        // Rysowanie szyby
-        await _context.SetFillStyleAsync("#ADD8E6");
-        await _context.FillRectAsync(70, 70, 660, 460);
+            // Rysowanie ramy
+            await _context.SetFillStyleAsync("wood-pattern");
+            await _context.FillRectAsync(50, 50, 20, 500);
+            await _context.FillRectAsync(730, 50, 20, 500);
+            await _context.FillRectAsync(50, 50, 700, 20);
+            await _context.FillRectAsync(50, 530, 700, 20);
 
-        StateHasChanged();
+            // Rysowanie szyby
+            await _context.SetFillStyleAsync("#ADD8E6");
+            await _context.FillRectAsync(70, 70, 660, 460);
+
+            await _context.StrokeTextAsync(modelType, x, x);
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"🔥 Błąd podczas renderowania: {ex.Message}");
+        }
     }
 
 
