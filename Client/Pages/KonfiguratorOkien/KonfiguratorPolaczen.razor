@@ -501,7 +501,9 @@
                     //var imageData = $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}";
                     EdytowanyModel.Rysunek = imageBytes;
 
-                    EdytowanyModel.Ikona16x16 = ResizeImage(imageBytes, 32, 32);
+                    EdytowanyModel.Ikona16x16 = ResizeImage(imageBytes, 16, 16);
+
+                    EdytowanyModel.Ikona32x32 = ResizeImage(imageBytes, 32, 32);
                 }
                 else
                 {
