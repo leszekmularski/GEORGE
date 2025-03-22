@@ -447,7 +447,7 @@
     {
         EdytowanyModel = await Http.GetFromJsonAsync<KonfModele>($"{apiUrl}/{id}");
 
-        await Task.Delay(50);
+        await Task.Delay(10);
 
         if (EdytowanyModel != null)
         {
@@ -500,6 +500,8 @@
                 {
                     //var imageData = $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}";
                     EdytowanyModel.Rysunek = imageBytes;
+
+                    EdytowanyModel.Ikona16x16 = ResizeImage(imageBytes, 32, 32);
                 }
                 else
                 {
@@ -617,6 +619,16 @@
         EdytowanyModel = null;
     }
 
+    private byte[] ResizeImage(byte[] imageData, int width, int height)
+    {
+        using var inputStream = new MemoryStream(imageData);
+        using var image = SixLabors.ImageSharp.Image.Load(inputStream);
+        image.Mutate(x => x.Resize(width, height));
+
+        using var outputStream = new MemoryStream();
+        image.SaveAsPng(outputStream);
+        return outputStream.ToArray();
+    }
 
     private async Task Usun(int id)
     {

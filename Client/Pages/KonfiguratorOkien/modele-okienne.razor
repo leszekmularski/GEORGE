@@ -20,13 +20,13 @@
 <script>
     (() => {
         // Inicjalizacja globalnych zmiennych
-        window.currentDraggedImage = null;
-        window.currentDraggedType = null;
-        window.isDragging = false;
-        window.blazorCanvas = null;
+    window.currentDraggedImage = null;
+    window.currentDraggedType = null;
+    window.isDragging = false;
+    window.blazorCanvas = null;
 
         // Ustawienie referencji do canvasu
-        window.setCanvasRef = (canvasRef) => {
+    window.setCanvasRef = (canvasRef) => {
             if (!canvasRef) {
                 console.error("❌ Blazor przekazał null do setCanvasRef!");
                 return;
@@ -36,13 +36,13 @@
         };
 
         // Ustawienie referencji do .NET
-        window.setDotNetHelper = (dotNetHelper) => {
+    window.setDotNetHelper = (dotNetHelper) => {
             window.dotNetHelper = dotNetHelper;
             console.log("✅ DotNetHelper ustawiony!");
         };
 
         // Funkcja rozpoczynająca przeciąganie
-        window.startDrag = (modelType, event) => {
+    window.startDrag = (modelType, event) => {
             if (event.button !== 0) return; // Obsługa tylko lewego przycisku myszy
 
             event.preventDefault();
@@ -73,15 +73,15 @@
             window.updateCursorImagePosition(event);
         };
 
-        // Aktualizacja pozycji obrazka kursora
-        window.updateCursorImagePosition = (event) => {
-            if (!window.isDragging || !window.currentDraggedImage) return;
-            window.currentDraggedImage.style.left = `${event.pageX - 25}px`;
-            window.currentDraggedImage.style.top = `${event.pageY - 25}px`;
-        };
+    //     // Aktualizacja pozycji obrazka kursora
+    // window.updateCursorImagePosition = (event) => {
+    //         if (!window.isDragging || !window.currentDraggedImage) return;
+    //         window.currentDraggedImage.style.left = `${event.pageX - 25}px`;
+    //         window.currentDraggedImage.style.top = `${event.pageY - 25}px`;
+    //     };
 
         // Funkcja kończąca przeciąganie
-        window.stopDrag = async (event) => {
+    window.stopDrag = async (event) => {
             if (!window.isDragging) return;
 
             window.isDragging = false;
@@ -111,54 +111,31 @@
         };
 
         // Obsługa aktualizacji kursora
-        document.addEventListener("mousemove", window.updateCursorImagePosition);
+    document.addEventListener("mousemove", window.updateCursorImagePosition);
 
         // Obsługa upuszczenia obrazka
-        document.addEventListener("mouseup", window.stopDrag);
-    })();
+    document.addEventListener("mouseup", window.stopDrag);
 
-    window.SetCustomCursor = (modelType, base64Image) => {
-        console.log(`🔵 SetCustomCursor dla: ${modelType}`);
+    window.SetCustomCursor = (base64Image) => {
+        console.log("🔵 Ustawiam kursor na Base64!");
 
-        // Konwersja Base64 na Blob
-        const byteCharacters = atob(base64Image);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: "image/png" });
-        const url = URL.createObjectURL(blob);
+        const cursorUrl = `data:image/png;base64,${base64Image}`;
+        document.body.style.cursor = `url(${cursorUrl}) 8 8, auto`;
 
-        // Tworzymy kursor
-        const cursorUrl = `url("${url}") 25 25, auto !important`;
-        console.log(`🔍 Ustawiam kursor: ${cursorUrl}`);
-
-        // Próbujemy ustawić na całym `body`
-        document.body.style.setProperty("cursor", cursorUrl, "important");
-
-        // Próbujemy wymusić kursor na `.canvas-container`
-        const canvasContainer = document.querySelector(".canvas-container");
-        if (canvasContainer) {
-            canvasContainer.style.setProperty("cursor", cursorUrl, "important");
-            console.log(`🖱 Kursor ustawiony na .canvas-container`);
-        }
-
-        // Próbujemy wymusić kursor na `canvas`
-        const canvas = document.querySelector("canvas");
-        if (canvas) {
-            canvas.style.setProperty("cursor", cursorUrl, "important");
-            console.log(`🖱 Kursor ustawiony na <canvas>`);
-        }
+       // console.log(`🖱 Kursor ustawiony globalnie: ${cursorUrl}`);
     };
 
+        // JavaScript
+    window.AddCanvasHoverListener = (canvasElement) => {
+        canvasElement.addEventListener('mousemove', () => {
+            // Wymusza aktualizację kursora, jeśli został już ustawiony
+            if (document.body.style.cursor.includes('url')) {
+                document.body.style.cursor = document.body.style.cursor;
+            }
+        });
+    };
 
-    //     window.ResetCursor = () => {
-    //     console.log("🔄 Resetowanie kursora");
-    //     document.querySelector(".canvas-container").style.cursor = "default";
-    //     document.querySelector("canvas").style.cursor = "default";
-    // };
-
+    })();
 
 </script>
 
@@ -193,40 +170,40 @@
         background: #f8f9fa;
     }
 
-        /* Tabela modeli */
-        .wing-model-container table {
-            font-size: 13px;
-            width: 100%;
-            border-collapse: collapse;
-        }
+    /* Tabela modeli */
+    .wing-model-container table {
+        font-size: 13px;
+        width: 100%;
+        border-collapse: collapse;
+    }
 
-        .wing-model-container th, .wing-model-container td {
-            padding: 6px;
-            text-align: center;
-        }
+    .wing-model-container th, .wing-model-container td {
+        padding: 6px;
+        text-align: center;
+    }
 
-        .wing-model-container th {
-            background-color: #007bff;
-            color: white;
-        }
+    .wing-model-container th {
+        background-color: #007bff;
+        color: white;
+    }
 
-        .wing-model-container tr:hover {
-            background-color: rgba(0, 123, 255, 0.1);
-        }
+    .wing-model-container tr:hover {
+        background-color: rgba(0, 123, 255, 0.1);
+    }
 
-        /* Miniatury modeli */
-        .wing-model-container img {
-            width: 45px;
-            height: 45px;
-            object-fit: contain;
-            cursor: -webkit-grab; /* Obsługa w Safari */
-            cursor: grab;
-            transition: transform 0.2s ease-in-out;
-        }
+    /* Miniatury modeli */
+    .wing-model-container img {
+        width: 45px;
+        height: 45px;
+        object-fit: contain;
+        cursor: -webkit-grab; /* Obsługa w Safari */
+        cursor: grab;
+        transition: transform 0.2s ease-in-out;
+    }
 
-            .wing-model-container img:hover {
-                transform: scale(1.1);
-            }
+    .wing-model-container img:hover {
+        transform: scale(1.1);
+    }
 
     /* Główne okno wyświetlania */
     .display-window {
@@ -245,24 +222,29 @@
         cursor: crosshair;
     }
 
-    /* Kontener canvas */
+    .container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+    }
+
     .canvas-container {
         width: 100%;
         height: 100%;
-        position: relative;
-        touch-action: none; /* Zapobiega przewijaniu na urządzeniach dotykowych */
-        cursor: none !important;
+        pointer-events: none; /* Wyłącz interakcje z canvasem */
     }
 
-    /* Canvas - dynamiczne dopasowanie */
     canvas {
-        display: block;
-        width: 100%;
-        height: 100%;
-        background-color: transparent;
-        cursor: none !important;
+        pointer-events: none; /* Kontynuuj ignorowanie zdarzeń */
     }
 
+    .interactive-layer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 2; /* Warstwa NAD canvasem */
+        pointer-events: auto; /* Włącz interakcje */
+    }
     /* Paski przewijania */
     .wing-model-container::-webkit-scrollbar {
         width: 8px;
@@ -273,9 +255,9 @@
         border-radius: 5px;
     }
 
-        .wing-model-container::-webkit-scrollbar-thumb:hover {
-            background: #0056b3;
-        }
+    .wing-model-container::-webkit-scrollbar-thumb:hover {
+        background: #0056b3;
+    }
 
     /* 🔹 Toolbar z przyciskami */
     .toolbar {
@@ -287,18 +269,18 @@
         background: #fff;
     }
 
-        /* Styl dla przycisków */
-        .toolbar .btn {
-            flex: 1;
-            min-width: 90px;
-            font-size: 13px;
-            padding: 6px 8px;
-            transition: all 0.2s ease-in-out;
-        }
+    /* Styl dla przycisków */
+    .toolbar .btn {
+        flex: 1;
+        min-width: 90px;
+        font-size: 13px;
+        padding: 6px 8px;
+        transition: all 0.2s ease-in-out;
+    }
 
-            .toolbar .btn:hover {
-                transform: scale(1.05);
-            }
+    .toolbar .btn:hover {
+        transform: scale(1.05);
+    }
 
 </style>
 
@@ -365,12 +347,11 @@
                             <td>@model.Typ</td>
                             <td>@model.KonstrMinSzer x @model.KonstrMinWys → @model.KonstrMaxSzer x @model.KonstrMaxWys</td>
                             <td>
-                                @if (model.Rysunek != null && model.Rysunek.Length > 0)
+                                @if (model.Rysunek != null && model.Ikona16x16.Length > 0)
                                 {
                                     <img id="@($"wing-{model.Typ}")"
-                                         src="data:image/png;base64,@Convert.ToBase64String(ResizeImage(model.Rysunek, 32, 32))"
-                                         @onmouseover='@(e => JS.InvokeVoidAsync("SetCustomCursor", Convert.ToBase64String(ResizeImage(model.Rysunek, 32, 32))))'
-                                         @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
+                                         src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
+                                         @onclick='@(e => JS.InvokeVoidAsync("SetCustomCursor", Convert.ToBase64String(model.Ikona16x16)))'
                                          draggable="false"
                                          style="cursor: grab; width: auto; height: auto; max-width: 50px; max-height: 50px;" />
 
@@ -388,17 +369,29 @@
     </div>
 
     <!-- Główne okno wyświetlania -->
-    <div class="display-window" @onmouseup="OnMouseUp">
+    <div class="display-window" @onmouseup="OnMouseUp"
+         style="position: relative; /* Wymagane dla warstw */
+            overflow: visible; /* Zapobiega przycinaniu kursora */
+            cursor: inherit; /* Dziedziczy kursor z JS */">
+
         @if (hasCanvasError)
         {
-            <p style="color: red;">❌ Błąd: Nie udało się załadować canvasu!</p>
+            <p style="color: red; position: relative; z-index: 100;">❌ Błąd: Nie udało się załadować canvasu!</p>
         }
         else
         {
-            <div class="canvas-container">
-                <BECanvas @ref="CanvasRef" Width="800" Height="600"></BECanvas>
-            </div>
+            <!-- Warstwa interaktywna (musi być NAD canvasem) -->
+ @*            <div class="interactive-layer"
+                 style="position: absolute; z-index: 2; pointer-events: auto;">
+                <!-- Tutaj elementy reagujące na kursor (np. przyciski) -->
+            </div> *@
 
+            <!-- Canvas -->
+            <div class="canvas-container"
+                 style="position: relative; z-index: 1;
+                    pointer-events: none; /* Kluczowe! */">
+                <BECanvas @ref="CanvasRef" Width="800" Height="600" />
+            </div>
         }
     </div>
 </div>
@@ -441,6 +434,8 @@
             if (!isScriptLoaded)
             {
                 throw new Exception("⚠️ Skrypt dragAndDrop.js nie został poprawnie załadowany!");
+
+                await JS.InvokeVoidAsync("AddCanvasHoverListener", CanvasRef);
             }
         }
         catch (Exception ex)
@@ -512,7 +507,7 @@
             return;
         }
 
-        Console.WriteLine("🟢 Wywołano OnMouseUp");
+        Console.WriteLine($"🟢 Wywołano OnMouseUp {e.ClientX} {e.ClientY} {e.CtrlKey} {SelectedModelType}");
 
         if (_dotNetHelper == null) return;
 
