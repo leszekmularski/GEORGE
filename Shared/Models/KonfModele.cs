@@ -36,6 +36,8 @@ namespace GEORGE.Shared.Models
 
         public byte[] Ikona16x16 { get; set; } = Array.Empty<byte>();
 
+        public byte[] Ikona32x32 { get; set; } = Array.Empty<byte>();
+
         public DateTime DataZapisu { get; set; } = DateTime.Now;
         public string? KtoZapisal { get; set; } = "NaN";
     }
