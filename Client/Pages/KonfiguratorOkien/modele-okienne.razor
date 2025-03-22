@@ -8,6 +8,10 @@
 @inject IMessageService _message
 @inject INotificationService _notice
 @inject NavigationManager Navigation
+@using System.IO;
+@using SixLabors.ImageSharp;
+@using SixLabors.ImageSharp.Processing;
+@using SixLabors.ImageSharp.Formats.Png;
 
 @using Blazor.Extensions
 @using Blazor.Extensions.Canvas
@@ -112,6 +116,50 @@
         // Obsługa upuszczenia obrazka
         document.addEventListener("mouseup", window.stopDrag);
     })();
+
+    window.SetCustomCursor = (modelType, base64Image) => {
+        console.log(`🔵 SetCustomCursor dla: ${modelType}`);
+
+        // Konwersja Base64 na Blob
+        const byteCharacters = atob(base64Image);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: "image/png" });
+        const url = URL.createObjectURL(blob);
+
+        // Tworzymy kursor
+        const cursorUrl = `url("${url}") 25 25, auto !important`;
+        console.log(`🔍 Ustawiam kursor: ${cursorUrl}`);
+
+        // Próbujemy ustawić na całym `body`
+        document.body.style.setProperty("cursor", cursorUrl, "important");
+
+        // Próbujemy wymusić kursor na `.canvas-container`
+        const canvasContainer = document.querySelector(".canvas-container");
+        if (canvasContainer) {
+            canvasContainer.style.setProperty("cursor", cursorUrl, "important");
+            console.log(`🖱 Kursor ustawiony na .canvas-container`);
+        }
+
+        // Próbujemy wymusić kursor na `canvas`
+        const canvas = document.querySelector("canvas");
+        if (canvas) {
+            canvas.style.setProperty("cursor", cursorUrl, "important");
+            console.log(`🖱 Kursor ustawiony na <canvas>`);
+        }
+    };
+
+
+    //     window.ResetCursor = () => {
+    //     console.log("🔄 Resetowanie kursora");
+    //     document.querySelector(".canvas-container").style.cursor = "default";
+    //     document.querySelector("canvas").style.cursor = "default";
+    // };
+
+
 </script>
 
 
@@ -203,6 +251,7 @@
         height: 100%;
         position: relative;
         touch-action: none; /* Zapobiega przewijaniu na urządzeniach dotykowych */
+        cursor: none !important;
     }
 
     /* Canvas - dynamiczne dopasowanie */
@@ -211,6 +260,7 @@
         width: 100%;
         height: 100%;
         background-color: transparent;
+        cursor: none !important;
     }
 
     /* Paski przewijania */
@@ -318,13 +368,11 @@
                                 @if (model.Rysunek != null && model.Rysunek.Length > 0)
                                 {
                                     <img id="@($"wing-{model.Typ}")"
-                                         src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
-                                         @onmousedown='@(e => StartDrag(model.Typ, e))'
-                                         @onmouseover='@(e => JS.InvokeVoidAsync("SetCustomCursor", model.Typ))'
+                                         src="data:image/png;base64,@Convert.ToBase64String(ResizeImage(model.Rysunek, 32, 32))"
+                                         @onmouseover='@(e => JS.InvokeVoidAsync("SetCustomCursor", Convert.ToBase64String(ResizeImage(model.Rysunek, 32, 32))))'
                                          @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
                                          draggable="false"
                                          style="cursor: grab; width: auto; height: auto; max-width: 50px; max-height: 50px;" />
-
 
                                 }
                                 else
@@ -377,8 +425,6 @@
     private int DropY { get; set; }
     private ElementReference canvasElement;
 
-    private IJSObjectReference _jsModule;
-
     protected override async Task OnInitializedAsync()
     {
         try
@@ -389,9 +435,6 @@
 
             _dotNetHelper = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("setDotNetHelper", _dotNetHelper);
-
-            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/dragAndDrop.js");
-            await _jsModule.InvokeVoidAsync("setDotNetHelper", DotNetObjectReference.Create(this));
 
             // Sprawdź, czy skrypt JS został poprawnie załadowany
             var isScriptLoaded = await JS.InvokeAsync<bool>("eval", "typeof setCanvasRef === 'function'");
@@ -909,6 +952,18 @@
 
         return $"data:image/png;base64,{Convert.ToBase64String(imageData)}";
     }
+
+    private byte[] ResizeImage(byte[] imageData, int width, int height)
+    {
+        using var inputStream = new MemoryStream(imageData);
+        using var image = SixLabors.ImageSharp.Image.Load(inputStream);
+        image.Mutate(x => x.Resize(width, height));
+
+        using var outputStream = new MemoryStream();
+        image.SaveAsPng(outputStream);
+        return outputStream.ToArray();
+    }
+
 
     private async Task GoBack()
     {
