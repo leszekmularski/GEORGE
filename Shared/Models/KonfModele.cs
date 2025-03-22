@@ -34,6 +34,8 @@ namespace GEORGE.Shared.Models
         // Obrazek DXF w bazie
         public byte[] Rysunek { get; set; } = Array.Empty<byte>();
 
+        public byte[] Ikona16x16 { get; set; } = Array.Empty<byte>();
+
         public DateTime DataZapisu { get; set; } = DateTime.Now;
         public string? KtoZapisal { get; set; } = "NaN";
     }
