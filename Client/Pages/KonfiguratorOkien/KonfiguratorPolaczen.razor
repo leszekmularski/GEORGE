@@ -147,6 +147,26 @@
             </div>
             <div class="row">
                 <div class="col">
+                    <label class="form-label">Minimalna szerokość konstrukcji:</label>
+                    <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control" @bind-Value="EdytowanyModel.KonstrMinSzer" />
+                </div>
+                <div class="col">
+                    <label class="form-label">Minimalna wysokość konstrukcji:</label>
+                    <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control" @bind-Value="EdytowanyModel.KonstrMinWys" />
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <label class="form-label">Maksymalna szerokość konstrukcji:</label>
+                    <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control" @bind-Value="EdytowanyModel.KonstrMaxSzer" />
+                </div>
+                <div class="col">
+                    <label class="form-label">Maksymalna wysokość konstrukcji:</label>
+                    <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control" @bind-Value="EdytowanyModel.KonstrMaxWys" />
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
                     <label class="form-label">Kąt (min):</label>
                     <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control" @bind-Value="EdytowanyModel.KatWystapieniaZakresOdMin" />
                 </div>

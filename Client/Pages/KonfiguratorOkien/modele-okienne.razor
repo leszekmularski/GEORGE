@@ -195,17 +195,17 @@
     });
 
     window.getCanvasBoundingRect = (canvasRef) => {
-        const canvas = document.getElementById(canvasRef.id);
-        const rect = canvas.getBoundingClientRect();
-        return {
-            left: rect.left,
-            top: rect.top,
-            width: rect.width,
-            height: rect.height
-        };
+    const canvas = document.getElementById(canvasRef.id);
+    const rect = canvas.getBoundingClientRect();
+    return {
+    left: rect.left,
+    top: rect.top,
+    width: rect.width,
+    height: rect.height
     };
-    
-})();
+    };
+
+    })();
 
 </script>
 
@@ -307,24 +307,24 @@
     width: 100%;
     height: 100%;
     pointer-events: none; /* Wyłącz interakcje z canvasem */
-        max-width: 100%;
-        max-height: 100%;
-        border: 2px solid #ddd;
-        background-color: #fff;
-        border-radius: 5px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        overflow: auto; /* Ukrywa przewijanie */
-        position: relative;
+    max-width: 100%;
+    max-height: 100%;
+    border: 2px solid #ddd;
+    background-color: #fff;
+    border-radius: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: auto; /* Ukrywa przewijanie */
+    position: relative;
     }
 
     canvas {
     pointer-events: none; /* Kontynuuj ignorowanie zdarzeń */
-        display: block;
-        max-width: 100%;
-        max-height: 100%;
-        background-color: transparent;
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    background-color: transparent;
     }
 
     .interactive-layer {
@@ -400,6 +400,91 @@
     background-color: #0056b3; /* Ciemniejszy niebieski przy najechaniu */
     }
 
+    /* Panel zajmuje pełną szerokość */
+    .scrollable-panel {
+    width: 100%;
+    max-height: 400px; /* Możesz zmienić na więcej, np. 600px */
+    overflow-y: auto; /* Włącza przewijanie w pionie */
+    }
+
+    /* Sider zajmuje całą szerokość */
+    .info-panel {
+    background-color: #222;
+    color: #ffeb99;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
+    width: 500px; /* Pełna szerokość */
+    max-width: 1000px;
+    }
+
+    /* Lista informacji */
+    .info-list {
+    list-style: none;
+    padding: 0;
+    width: 760px;
+    }
+
+    /* Każdy element ma własne miejsce */
+    .info-item {
+    background: #333;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 760px;
+    }
+
+    /* Tekst jasnożółty */
+    .info-item span {
+    color: #ffeb99;
+    font-size: 1em;
+    }
+
+    .info-item strong {
+    color: #ffcc00;
+    }
+
+    /* Obsługa braku danych */
+    .no-data {
+    color: red;
+    text-align: center;
+    font-style: italic;
+    }
+
+    /* Lista materiałów */
+    .materials-list {
+        list-style: none;
+        padding: 0;
+        width: 100%;
+    }
+
+    /* Pojedynczy materiał */
+    .material-item {
+        background: #333;
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 10px;
+        box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        width: 100%;
+    }
+
+    /* Kolor jasny dla tekstu */
+    .material-item span {
+        color: #ffeb99;
+        font-size: 1em;
+    }
+
+    .material-item strong {
+        color: #ffcc00;
+    }
+
 </style>
 
 <!-- Nagłówek -->
@@ -427,9 +512,7 @@
 </Tooltip>
 
 <Collapse Animation>
-    <Panel Header="Ustawienia" Key="1">
-
-        <!-- Wprowadzenie wartości -->
+    <Panel Header="Wymiary, kolory itp. Okien" Key="1">
         <div class="form-group mt-3">
             <label>Szerokość:</label>
             <input type="number" class="form-control" @bind="Szerokosc" />
@@ -439,11 +522,60 @@
 
             <label>Kolor:</label>
             <input type="color" class="form-control" @bind="Kolor" />
-
         </div>
-        <Button OnClick="DrawStructure">TEST</Button>
+        <Button OnClick="() => DrawStructureAndRestrykcje(0)">Zmień wymiary</Button>
     </Panel>
+
+    <Panel Header="Informacja o wyrobie restrykcje" Key="2" class="scrollable-panel">
+        <Sider class="info-panel">
+            <h4 style="color:aquamarine;">🛠️ Informacja o wyrobie:</h4>
+
+            @if (infoObiekt != null && infoObiekt.Any())
+            {
+                <p class="entries-count"> 📌 Liczba wpisów: <strong>@infoObiekt.Count()</strong></p>
+                <ul class="info-list">
+                    @foreach (var wymiar in infoObiekt)
+                    {
+                        <li class="info-item">
+                            <span ><strong>📏 Szerokość:</strong> @wymiar.Szerokosc mm</span>
+                            <span><strong>📐 Wysokość:</strong> @wymiar.Wysokosc mm</span>
+                            <span><strong>🏗️ Wyrób:</strong> @wymiar.RodzajObiektu</span>
+                            <span><strong>⚠️ Restrykcje:</strong> @wymiar.Restrykcja</span>
+                        </li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <p class="no-data">❌ Brak danych o wyrobie.</p>
+            }
+        </Sider>
+    </Panel>
+    <Panel Header="Materiały" Key="3" class="scrollable-panel">
+        @if (infoBoom != null && infoBoom.Any())
+        {
+            <p class="entries-count">📌 Liczba materiałów: <strong>@infoBoom.Count()</strong></p>
+            <ul class="materials-list">
+                @foreach (var material in infoBoom)
+                {
+                    <li class="material-item">
+                        <span><strong>📏 Długość:</strong> @material.Dlugosc mm</span>
+                        <span><strong>🏷️ Nazwa:</strong> @material.Nazwa</span>
+                        <span><strong>🔢 Indeks:</strong> @material.Indeks</span>
+                        <span><strong>📦 Ilość sztuk:</strong> @material.IloscSztuk</span>
+                        <span><strong>⚠️ Restrykcje:</strong> @material.Restrykcja</span>
+                    </li>
+                }
+            </ul>
+        }
+        else
+        {
+            <p class="no-data">❌ Brak użytych materiałów.</p>
+        }
+    </Panel>
+
 </Collapse>
+
 
 <!-- Kontener na modele i canvas -->
 <div class="window-model-container">
@@ -524,8 +656,8 @@
 
             <!-- Canvas -->
             <div class="canvas-container"
-                 @onmousemove="UpdateZoomCenter"
-                 @onclick="UpdateZoomCenter">
+            @onmousemove="UpdateZoomCenter"
+            @onclick="UpdateZoomCenter">
                 <BECanvas @ref="CanvasRef" Width="@CanvasWidth" Height="@CanvasHeight" />
             </div>
         }
@@ -565,6 +697,10 @@
     private double _zoomCenterX = 500; // Środek canvasu
     private double _zoomCenterY = 300;
 
+    private List<WyrobWymiaryOpis>? infoObiekt;
+
+    private List<WygenerowaneMaterialy> infoBoom = new List<WygenerowaneMaterialy>();
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -574,6 +710,7 @@
             Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
 
             _dotNetHelper = DotNetObjectReference.Create(this);
+
             await JS.InvokeVoidAsync("setDotNetHelper", _dotNetHelper);
 
             // Sprawdź, czy skrypt JS został poprawnie załadowany
@@ -643,7 +780,7 @@
         _currentScale = newScale;
 
         isTextureLoaded = false;
-        await DrawStructure();
+        await DrawStructureAndRestrykcje();
         await RenderFrame();
     }
 
@@ -677,26 +814,99 @@
 
         var selectedType = await GetSelectedModelType();
 
-        if(selectedType != null) SelectedModelType = selectedType;
-
-        await DrawStructure();
-
-        Console.WriteLine($"🖱️ Kliknięto na pozycji ({e.ClientX}, {e.ClientY})");
-
-
         if (!string.IsNullOrEmpty(selectedType))
         {
+            SelectedModelType = selectedType;
+
+            Console.WriteLine($"🖱️ Kliknięto na pozycji ({e.ClientX}, {e.ClientY})");
+
             DropX = e.ClientX;
             DropY = e.ClientY;
             // Logika obsługi wybranego modelu
             Console.WriteLine($"Wybrano model typu: {selectedType}");
-            await RenderFrame();
 
-            StateHasChanged();
+            await DrawStructureAndRestrykcje(0);
+
+            //  await RenderFrame();
+
+            // StateHasChanged();
         }
 
         await JS.InvokeVoidAsync("ResetCursorGlobal");
 
+    }
+
+    private async Task OnlyRestrykcje()
+    {
+
+        if (!string.IsNullOrEmpty(SelectedModelType))
+        {
+
+            if (ListaModeli != null)
+            {
+                Console.WriteLine($"OnlyRestrykcje - Typ --> SelectedModelType: {SelectedModelType}");
+
+                var _ListaModeliResrykcje = ListaModeli.FirstOrDefault(x => x.Typ == SelectedModelType);
+
+                if (_ListaModeliResrykcje != null)
+                {
+                    infoObiekt = new List<WyrobWymiaryOpis>();
+
+                    string restrykcje = "Brak restrykcji :)";
+
+                    if (_ListaModeliResrykcje.KonstrMinSzer > Szerokosc)
+                    {
+                        restrykcje = "Konstrukcja nie spełnia warunku MIN szerokości. ";
+                    }
+                    if (_ListaModeliResrykcje.KonstrMinWys > Wysokosc)
+                    {
+                        restrykcje += "Konstrukcja nie spełnia warunku MIN wysokości. ";
+                    }
+                    if (_ListaModeliResrykcje.KonstrMaxWys < Wysokosc)
+                    {
+                        restrykcje += "Konstrukcja nie spełnia warunku MAX wysokości. ";
+                    }
+                    if (_ListaModeliResrykcje.KonstrMaxWys < Wysokosc)
+                    {
+                        restrykcje += "Konstrukcja nie spełnia warunku MIN wysokości. ";
+                    }
+
+                    // ✅ Poprawione: Utwórz nowy obiekt przed ustawieniem właściwości
+                    WyrobWymiaryOpis opisy = new WyrobWymiaryOpis(Szerokosc, Wysokosc, SelectedModelType, restrykcje);
+
+                    infoObiekt.Add(opisy);
+
+                    if (KonfiguracjeSystemu != null)
+                    {
+                        var _KonfiguracjeSystemu = KonfiguracjeSystemu.OrderBy(x => x.Indeks);
+
+                        if (_KonfiguracjeSystemu != null)
+                        {
+                            foreach (var _kon in _KonfiguracjeSystemu)
+                            {
+                                WygenerowaneMaterialy opisySys = new WygenerowaneMaterialy(
+                                 _kon.PoziomDol ?? 0.0,
+                                 _kon.Nazwa ?? "",
+                                 _kon.Indeks ?? "",
+                                 1,
+                                 ""
+                                 );
+
+                                infoBoom.Add(opisySys);
+                            }
+
+
+                        }
+
+                    }
+
+
+                }
+
+            }
+        }
+
+        await Task.CompletedTask;
     }
 
     private async Task OnSystemSelected(ChangeEventArgs e)
@@ -720,8 +930,10 @@
 
     private bool isTextureLoaded = false;
 
-    private async Task DrawStructure()
+    private async Task DrawStructureAndRestrykcje(int isTextureLoadedNZ = 999)
     {
+        if (isTextureLoadedNZ == 0) isTextureLoaded = false;
+
         try
         {
             if (CanvasRef == null)
@@ -743,9 +955,13 @@
                     _dotNetHelper
                 );
 
+                await OnlyRestrykcje();
+
                 // StateHasChanged();
-                return;
+                // return;
             }
+
+            await  RenderFrame();
 
             // Reszta kodu do rysowania...
         }
@@ -819,6 +1035,8 @@
 
     private async Task RenderFrame()
     {
+       // int margLewy = 50;
+     //   int margGora = 50;
         try
         {
             if (_context == null) return;
