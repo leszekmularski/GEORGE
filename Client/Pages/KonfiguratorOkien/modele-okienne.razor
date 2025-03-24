@@ -8,6 +8,7 @@
 @inject IMessageService _message
 @inject INotificationService _notice
 @inject NavigationManager Navigation
+@inject NavigationManager NavigationManager
 @using System.IO;
 @using SixLabors.ImageSharp;
 @using SixLabors.ImageSharp.Processing;
@@ -494,6 +495,9 @@
     <button class="btn btn-primary" @onclick="GoBack">
         <i class="fas fa-arrow-left"></i> Wróć
     </button>
+    <Button Icon="@IconType.Fill.Tool" Style="flex-grow: 1; height: 35px;" OnClick="GoCAD">
+        OKN-CAD
+    </Button>
 </div>
 <!-- 🔹 Wybór systemu -->
 <Tooltip Placement="@Placement.TopRight" Title="Otwórz konfigurator nowego systemu lub wybierz go z listy">
@@ -663,6 +667,7 @@
         }
     </div>
 </div>
+
 @code {
     // Klasa WingModel definiująca dane dla skrzydła
     private List<KonfSystem>? KonfiguracjeSystemu;
@@ -856,19 +861,19 @@
 
                     if (_ListaModeliResrykcje.KonstrMinSzer > Szerokosc)
                     {
-                        restrykcje = "Konstrukcja nie spełnia warunku MIN szerokości. ";
+                        restrykcje = "<#SYS> Konstrukcja nie spełnia warunku MIN szerokości. ";
                     }
                     if (_ListaModeliResrykcje.KonstrMinWys > Wysokosc)
                     {
-                        restrykcje += "Konstrukcja nie spełnia warunku MIN wysokości. ";
+                        restrykcje += "<#SYS> Konstrukcja nie spełnia warunku MIN wysokości. ";
                     }
                     if (_ListaModeliResrykcje.KonstrMaxWys < Wysokosc)
                     {
-                        restrykcje += "Konstrukcja nie spełnia warunku MAX wysokości. ";
+                        restrykcje += "<#SYS> Konstrukcja nie spełnia warunku MAX wysokości. ";
                     }
                     if (_ListaModeliResrykcje.KonstrMaxWys < Wysokosc)
                     {
-                        restrykcje += "Konstrukcja nie spełnia warunku MIN wysokości. ";
+                        restrykcje += "<#SYS> Konstrukcja nie spełnia warunku MIN wysokości. ";
                     }
 
                     // ✅ Poprawione: Utwórz nowy obiekt przed ustawieniem właściwości
@@ -1088,11 +1093,19 @@
         return outputStream.ToArray();
     }
 
-
     private async Task GoBack()
     {
         await JS.InvokeVoidAsync("ResetCursorGlobal");
         await JS.InvokeVoidAsync("history.back");
+    }
+
+    private async Task GoCAD()
+    {
+        await JS.InvokeVoidAsync("ResetCursorGlobal");
+
+        NavigationManager.NavigateTo($"/DrawCAD");
+
+        await Task.CompletedTask;
     }
 
     private bool boolOdczyt = false;

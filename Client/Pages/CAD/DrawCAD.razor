@@ -1,0 +1,273 @@
+﻿@page "/DrawCAD"
+@inject IJSRuntime JSRuntime
+@using Blazor.Extensions.Canvas.Canvas2D
+@implements IDisposable
+
+<script>
+    function initCanvasEvents(container, dotNetHelper) {
+        const canvas = container.querySelector('canvas');
+
+        // Nasłuchuj zdarzenia na oknie zamiast na canvasie
+        window.addEventListener('keydown', (e) => {
+            if (e.shiftKey) dotNetHelper.invokeMethodAsync('SetForceHV', true);
+        });
+        window.addEventListener('keyup', (e) => {
+            if (!e.shiftKey) dotNetHelper.invokeMethodAsync('SetForceHV', false);
+        });
+
+        // Reszta handlerów bez zmian
+        const handler = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        };
+
+        canvas.addEventListener('mousedown', async (e) => {
+            const {x, y} = handler(e);
+            await dotNetHelper.invokeMethodAsync('HandleMouseDown', x, y);
+        });
+
+        canvas.addEventListener('mousemove', async (e) => {
+            const {x, y} = handler(e);
+            await dotNetHelper.invokeMethodAsync('HandleMouseMove', x, y);
+        });
+
+        canvas.addEventListener('mouseup', async (e) => {
+            const {x, y} = handler(e);
+            await dotNetHelper.invokeMethodAsync('HandleMouseUp', x, y);
+        });
+    }
+</script>
+
+<button @onclick='() => SetTool("line")'>Linia</button>
+<button @onclick='() => SetTool("circle")'>Koło</button>
+<button @onclick='() => SetTool("line_hv")'>Linia pozioma/pionowa</button>
+
+<div @ref="_container" style="position: relative;">
+    <BECanvas Width="@_canvasX" Height="@_canvasY" @ref="_canvas"></BECanvas>
+</div>
+
+@code {
+    private Canvas2DContext? _ctx;
+    private BECanvasComponent? _canvas;
+    private ElementReference _container;
+    private DotNetObjectReference<GEORGE.Client.Pages.CAD.DrawCAD>? _dotNetHelper;
+    private bool _isDrawing = false;
+    private double _startX, _startY, _currentX, _currentY;
+    private string _selectedTool = "line";
+    private List<IShape> _shapes = new List<IShape>();
+
+    // Dodaj nowe pole dla wymuszenia kierunku
+    private bool _forceHV = false;
+
+    private long _canvasX =  1200;
+    private long _canvasY = 800;
+
+
+    [JSInvokable]
+    public void SetForceHV(bool state) => _forceHV = state;
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _ctx = await _canvas.CreateCanvas2DAsync();
+            _dotNetHelper = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("initCanvasEvents", _container, _dotNetHelper);
+            await ClearCanvas();
+        }
+    }
+
+    private void SetTool(string tool) => _selectedTool = tool;
+
+    [JSInvokable]
+    public async Task HandleMouseDown(double x, double y)
+    {
+        _isDrawing = true;
+        _startX = x;
+        _startY = y;
+        _currentX = x;
+        _currentY = y;
+        await Task.CompletedTask;
+    }
+
+    [JSInvokable]
+    public async Task HandleMouseMove(double x, double y)
+    {
+        if (!_isDrawing) return;
+
+        // Rozszerzona logika dla wymuszonego kierunku
+        if (_selectedTool == "line_hv" || _forceHV)
+        {
+            var dx = Math.Abs(x - _startX);
+            var dy = Math.Abs(y - _startY);
+
+            // Próg czułości dla kierunku
+            const double sensitivity = 5;
+            var isHorizontal = dx - dy > sensitivity;
+            var isVertical = dy - dx > sensitivity;
+
+            if (!isHorizontal && !isVertical)
+            {
+                // Domyślnie poziome jeśli równe
+                isHorizontal = dx >= dy;
+            }
+
+            _currentX = isHorizontal ? x : _startX;
+            _currentY = isVertical ? y : _startY;
+        }
+        else
+        {
+            _currentX = x;
+            _currentY = y;
+        }
+
+        await RedrawCanvas();
+    }
+
+    [JSInvokable]
+    public async Task HandleMouseUp(double x, double y)
+    {
+        if (!_isDrawing) return;
+
+        _isDrawing = false;
+        _currentX = x;
+        _currentY = y;
+
+        if (_selectedTool == "line_hv")
+        {
+            // Dodaj finalną linię z poprawionymi współrzędnymi
+            var line = new LineShape(_startX, _startY, _currentX, _currentY);
+            _shapes.Add(line);
+        }
+        else if (_selectedTool == "line")
+        {
+            var line = new LineShape(_startX, _startY, _currentX, _currentY);
+            _shapes.Add(line);
+        }
+        else if (_selectedTool == "circle")
+        {
+            var radius = CalculateRadius();
+            var circle = new CircleShape(_startX, _startY, radius);
+            _shapes.Add(circle);
+        }
+
+        await RedrawCanvas();
+    }
+
+    private async Task RedrawCanvas()
+    {
+        await ClearCanvas();
+
+        foreach (var shape in _shapes)
+        {
+            await shape.Draw(_ctx);
+        }
+
+        if (_isDrawing)
+        {
+            await _ctx.SetStrokeStyleAsync("rgba(0,0,0,0.5)");
+            await _ctx.SetLineWidthAsync(2);
+
+            // Dodaj obsługę podglądu dla line_hv
+            if (_selectedTool == "line" || _selectedTool == "line_hv")
+            {
+                await DrawPreviewLine();
+            }
+            else if (_selectedTool == "circle")
+            {
+                await DrawPreviewCircle();
+            }
+        }
+    }
+
+    private async Task DrawPreviewLine()
+    {
+        await _ctx.BeginPathAsync();
+        await _ctx.MoveToAsync(_startX, _startY);
+        await _ctx.LineToAsync(_currentX, _currentY);
+        await _ctx.StrokeAsync();
+    }
+
+    private async Task DrawPreviewCircle()
+    {
+        var radius = CalculateRadius();
+        await _ctx.BeginPathAsync();
+        await _ctx.ArcAsync(_startX, _startY, radius, 0, 2 * Math.PI);
+        await _ctx.StrokeAsync();
+    }
+
+    private double CalculateRadius()
+    {
+        return Math.Sqrt(Math.Pow(_currentX - _startX, 2) + Math.Pow(_currentY - _startY, 2));
+    }
+
+    private async Task ClearCanvas()
+    {
+        await _ctx.SetFillStyleAsync("white");
+        await _ctx.FillRectAsync(0, 0, _canvasX, _canvasY);
+    }
+
+    public void Dispose()
+    {
+        _dotNetHelper?.Dispose();
+    }
+
+    // Interfejs i klasy kształtów
+    private interface IShape
+    {
+        Task Draw(Canvas2DContext ctx);
+    }
+
+    private class LineShape : IShape
+    {
+        public double X1 { get; }
+        public double Y1 { get; }
+        public double X2 { get; }
+        public double Y2 { get; }
+
+        public LineShape(double x1, double y1, double x2, double y2)
+        {
+            X1 = x1;
+            Y1 = y1;
+            X2 = x2;
+            Y2 = y2;
+        }
+
+        public async Task Draw(Canvas2DContext ctx)
+        {
+            await ctx.SetStrokeStyleAsync("black");
+            await ctx.SetLineWidthAsync(2);
+            await ctx.BeginPathAsync();
+            await ctx.MoveToAsync(X1, Y1);
+            await ctx.LineToAsync(X2, Y2);
+            await ctx.StrokeAsync();
+        }
+    }
+
+    private class CircleShape : IShape
+    {
+        public double X { get; }
+        public double Y { get; }
+        public double Radius { get; }
+
+        public CircleShape(double x, double y, double radius)
+        {
+            X = x;
+            Y = y;
+            Radius = radius;
+        }
+
+        public async Task Draw(Canvas2DContext ctx)
+        {
+            await ctx.SetStrokeStyleAsync("black");
+            await ctx.SetLineWidthAsync(2);
+            await ctx.BeginPathAsync();
+            await ctx.ArcAsync(X, Y, Radius, 0, 2 * Math.PI);
+            await ctx.StrokeAsync();
+        }
+    }
+}
