@@ -5,150 +5,186 @@
 
 <style>
     .toolbar {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 10px;
-        flex-wrap: wrap;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px;
+    background: #f4f4f4;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
 
     .tool-button {
-        padding: 8px 12px;
-        background-color: #f0f0f0;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: all 0.2s;
-        font-size: 14px;
+    background: #ffffff;
+    border: 2px solid #ddd;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: 0.3s;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     }
 
-        .tool-button:hover {
-            background-color: #e0e0e0;
-        }
+    .tool-button:hover {
+    background: #e0e0e0;
+    }
 
-        .tool-button.active {
-            background-color: #007bff;
-            color: white;
-            border-color: #006fe6;
-        }
+    .tool-button.active {
+    background: #007bff;
+    color: white;
+    border-color: #0056b3;
+    }
+
+    .canvas-container {
+    position: relative;
+    border: 3px solid #000;
+    width: @(_canvasX + "px");
+    height: @(_canvasY + "px");
+    margin: 20px auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #fff;
+    overflow: auto;
+    }
+
+    .tool-icon {
+    width: 24px;
+    height: 24px;
+    fill: black;
+    }
+
+    .tool-button.active .tool-icon {
+    fill: white;
+    }
 
     .property-panel {
-        margin-top: 15px;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        background-color: #f9f9f9;
+    margin-top: 15px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f9f9f9;
     }
 
     .property-row {
-        display: flex;
-        margin-bottom: 8px;
-        align-items: center;
+    display: flex;
+    margin-bottom: 8px;
+    align-items: center;
     }
 
     .property-label {
-        width: 100px;
-        font-weight: bold;
+    width: 100px;
+    font-weight: bold;
     }
 
     .property-input {
-        padding: 4px 8px;
-        border: 1px solid #ccc;
-        border-radius: 3px;
-        width: 80px;
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    width: 180px;
     }
 </style>
-
 <script>
     function initCanvasEvents(container, dotNetHelper) {
-        const canvas = container.querySelector('canvas');
+    const canvas = container.querySelector('canvas');
 
-        // Nasłuchuj zdarzenia na oknie zamiast na canvasie
-        window.addEventListener('keydown', (e) => {
-            if (e.shiftKey) dotNetHelper.invokeMethodAsync('SetForceHV', true);
-        });
-        window.addEventListener('keyup', (e) => {
-            if (!e.shiftKey) dotNetHelper.invokeMethodAsync('SetForceHV', false);
-        });
+    // Nasłuchuj zdarzenia na oknie zamiast na canvasie
+    window.addEventListener('keydown', (e) => {
+    if (e.shiftKey) dotNetHelper.invokeMethodAsync('SetForceHV', true);
+    });
+    window.addEventListener('keyup', (e) => {
+    if (!e.shiftKey) dotNetHelper.invokeMethodAsync('SetForceHV', false);
+    });
 
-        // Reszta handlerów bez zmian
-        const handler = (e) => {
-            const rect = canvas.getBoundingClientRect();
-            return {
-                x: e.clientX - rect.left,
-                y: e.clientY - rect.top
-            };
-        };
+    // Reszta handlerów bez zmian
+    const handler = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    return {
+    x: e.clientX - rect.left,
+    y: e.clientY - rect.top
+    };
+    };
 
-        canvas.addEventListener('mousedown', async (e) => {
-            const {x, y} = handler(e);
-            await dotNetHelper.invokeMethodAsync('HandleMouseDown', x, y);
-        });
+    canvas.addEventListener('mousedown', async (e) => {
+    const {x, y} = handler(e);
+    await dotNetHelper.invokeMethodAsync('HandleMouseDown', x, y);
+    });
 
-        canvas.addEventListener('mousemove', async (e) => {
-            const {x, y} = handler(e);
-            await dotNetHelper.invokeMethodAsync('HandleMouseMove', x, y);
-        });
+    canvas.addEventListener('mousemove', async (e) => {
+    const {x, y} = handler(e);
+    await dotNetHelper.invokeMethodAsync('HandleMouseMove', x, y);
+    });
 
-        canvas.addEventListener('mouseup', async (e) => {
-            const {x, y} = handler(e);
-            await dotNetHelper.invokeMethodAsync('HandleMouseUp', x, y);
-        });
+    canvas.addEventListener('mouseup', async (e) => {
+    const {x, y} = handler(e);
+    await dotNetHelper.invokeMethodAsync('HandleMouseUp', x, y);
+    });
     }
 </script>
 
+
 <div class="toolbar">
     <button class="tool-button @(_selectedTool == "line" ? "active" : "")"
-            @onclick='() => SetTool("line")'>
-        Linia
+    @onclick='() => SetTool("line")'>
+        @SvgLine()
     </button>
 
     <button class="tool-button @(_selectedTool == "line_hv" ? "active" : "")"
-            @onclick='() => SetTool("line_hv")'>
-        Linia H/V
+    @onclick='() => SetTool("line_hv")'>
+        @SvgLineHV()
+    </button>
+
+    <button class="tool-button @(_selectedTool == "triangle" ? "active" : "")"
+    @onclick='() => SetTool("triangle")'>
+        @SvgTriangle()
     </button>
 
     <button class="tool-button @(_selectedTool == "circle" ? "active" : "")"
-            @onclick='() => SetTool("circle")'>
-        Koło
+    @onclick='() => SetTool("circle")'>
+        @SvgCircle()
     </button>
 
     <button class="tool-button @(_selectedTool == "square" ? "active" : "")"
-            @onclick='() => SetTool("square")'>
-        Kwadrat
+    @onclick='() => SetTool("square")'>
+        @SvgSquare()
     </button>
 
     <button class="tool-button @(_selectedTool == "rectangle" ? "active" : "")"
-            @onclick='() => SetTool("rectangle")'>
-        Prostokąt
+    @onclick='() => SetTool("rectangle")'>
+        @SvgRectangle()
     </button>
 
     <button class="tool-button @(_selectedTool == "trapezoid" ? "active" : "")"
-            @onclick='() => SetTool("trapezoid")'>
-        Trapez
+    @onclick='() => SetTool("trapezoid")'>
+        @SvgTrapezoid()
     </button>
 
     <button class="tool-button @(_selectedTool == "rounded_rect" ? "active" : "")"
-            @onclick='() => SetTool("rounded_rect")'>
-        Zaokrąglony prostokąt
+    @onclick='() => SetTool("rounded_rect")'>
+        @SvgRoundedRect()
     </button>
 </div>
 
-<div @ref="_container" style="position: relative;border-width:thick; border-block:solid; border-left:double; border-right:double; width:@(_canvasX); height:@(_canvasY)">
+<div class="canvas-container" @ref="_container">
     <BECanvas Width="@_canvasX" Height="@_canvasY" @ref="_canvas"></BECanvas>
 </div>
-
 @if (_selectedShape != null)
 {
     <div class="property-panel">
         <h3>Właściwości kształtu</h3>
-        
+
         @foreach (var prop in _selectedShape.GetEditableProperties())
         {
             <div class="property-row">
                 <span class="property-label">@prop.Label</span>
-                <input class="property-input" type="number" 
-                       @bind="prop.Value" 
-                       @onchange="async () => await RedrawCanvas()" />
+                <input class="property-input" type="number"
+                @bind="prop.Value"
+                @bind:event="onchange"
+                @bind:after="async () => await RedrawCanvas()" />
+
             </div>
         }
     </div>
@@ -167,10 +203,12 @@
     // Dodaj nowe pole dla wymuszenia kierunku
     private bool _forceHV = false;
 
-    private long _canvasX =  1000;
-    private long _canvasY = 650;
+    private long _canvasX = 900;
+    private long _canvasY = 600;
 
     private IShape? _selectedShape;
+
+    private void SetTool(string tool) => _selectedTool = tool;
 
     [JSInvokable]
     public void SetForceHV(bool state) => _forceHV = state;
@@ -186,7 +224,74 @@
         }
     }
 
-    private void SetTool(string tool) => _selectedTool = tool;
+    private RenderFragment SvgLine() => builder =>
+       {
+           builder.AddMarkupContent(0, @"
+        <svg class='tool-icon' viewBox='0 0 24 24'>
+            <line x1='4' y1='12' x2='20' y2='12' stroke='black' stroke-width='2'/>
+        </svg>");
+       };
+
+    private RenderFragment SvgLineHV() => builder =>
+    {
+        builder.AddMarkupContent(0, @"
+        <svg class='tool-icon' viewBox='0 0 24 24'>
+            <line x1='12' y1='4' x2='12' y2='20' stroke='black' stroke-width='2'/>
+            <line x1='4' y1='12' x2='20' y2='12' stroke='black' stroke-width='2'/>
+        </svg>");
+    };
+
+    private RenderFragment SvgTriangle() => builder =>
+    {
+        builder.AddMarkupContent(0, @"
+        <svg class='tool-icon' viewBox='0 0 24 24'>
+            <polygon points='12,4 4,20 20,20'
+                     stroke='black'
+                     stroke-width='2'
+                     fill='none'/>
+        </svg>");
+    };
+
+    private RenderFragment SvgCircle() => builder =>
+    {
+        builder.AddMarkupContent(0, @"
+        <svg class='tool-icon' viewBox='0 0 24 24'>
+            <circle cx='12' cy='12' r='8' stroke='black' stroke-width='2' fill='none'/>
+        </svg>");
+    };
+
+    private RenderFragment SvgSquare() => builder =>
+    {
+        builder.AddMarkupContent(0, @"
+        <svg class='tool-icon' viewBox='0 0 24 24'>
+            <rect x='6' y='6' width='12' height='12' stroke='black' stroke-width='2' fill='none'/>
+        </svg>");
+    };
+
+    private RenderFragment SvgRectangle() => builder =>
+    {
+        builder.AddMarkupContent(0, @"
+        <svg class='tool-icon' viewBox='0 0 24 24'>
+            <rect x='4' y='8' width='16' height='8' stroke='black' stroke-width='2' fill='none'/>
+        </svg>");
+    };
+
+    private RenderFragment SvgTrapezoid() => builder =>
+    {
+        builder.AddMarkupContent(0, @"
+        <svg class='tool-icon' viewBox='0 0 24 24'>
+            <polygon points='6,8 18,8 20,16 4,16' stroke='black' stroke-width='2' fill='none'/>
+        </svg>");
+    };
+
+    private RenderFragment SvgRoundedRect() => builder =>
+    {
+        builder.AddMarkupContent(0, @"
+        <svg class='tool-icon' viewBox='0 0 24 24'>
+            <rect x='5' y='7' width='14' height='10' rx='3' ry='3' stroke='black' stroke-width='2' fill='none'/>
+        </svg>");
+    };
+
 
     [JSInvokable]
     public async Task HandleMouseDown(double x, double y)
@@ -207,25 +312,15 @@
         // Rozszerzona logika dla wymuszonego kierunku
         if (_selectedTool == "line_hv" || _forceHV)
         {
-            // Dodaj próg czułości 2px
+            const double sensitivity = 5;
             var dx = Math.Abs(x - _startX);
             var dy = Math.Abs(y - _startY);
 
-            if (dx < 2 && dy < 2) return; // Ignoruj minimalne ruchy
+            if (dx < sensitivity && dy < sensitivity) return;
 
-            // Próg czułości dla kierunku
-            const double sensitivity = 5;
-            var isHorizontal = dx - dy > sensitivity;
-            var isVertical = dy - dx > sensitivity;
-
-            if (!isHorizontal && !isVertical)
-            {
-                // Domyślnie poziome jeśli równe
-                isHorizontal = dx >= dy;
-            }
-
+            var isHorizontal = dx > dy;
             _currentX = isHorizontal ? x : _startX;
-            _currentY = isVertical ? y : _startY;
+            _currentY = isHorizontal ? _startY : y;
         }
         else
         {
@@ -247,9 +342,10 @@
             "line" => new LineShape(_startX, _startY, _currentX, _currentY),
             "line_hv" => new LineShape(_startX, _startY, _currentX, _currentY),
             "circle" => new CircleShape(_startX, _startY, CalculateRadius()),
+            "triangle" => new TriangleShape(_startX, _startY, _currentX, _currentY),
             "square" => new SquareShape(_startX, _startY, Math.Max(Math.Abs(_currentX - _startX), Math.Abs(_currentY - _startY))),
             "rectangle" => new RectangleShape(_startX, _startY, _currentX - _startX, _currentY - _startY),
-            "trapezoid" => new TrapezoidShape(_startX, _startY, _currentX, _currentY, (_startX + _currentX) / 2),
+            "trapezoid" => new TrapezoidShape(_startX, _startY, _currentX, _currentY, 0.5),
             "rounded_rect" => new RoundedRectangleShape(_startX, _startY, _currentX - _startX, _currentY - _startY, 20),
             _ => throw new NotImplementedException()
         };
@@ -258,6 +354,12 @@
         _selectedShape = newShape;
         await RedrawCanvas();
     }
+
+    private double CalculateRadius()
+    {
+        return Math.Sqrt(Math.Pow(_currentX - _startX, 2) + Math.Pow(_currentY - _startY, 2));
+    }
+
 
     private async Task RedrawCanvas()
     {
@@ -295,6 +397,9 @@
                 case "trapezoid":
                     await DrawPreviewTrapezoid();
                     break;
+                case "triangle":
+                    await DrawPreviewTriangle();
+                    break;
                 case "rounded_rect":
                     await DrawPreviewRoundedRect();
                     break;
@@ -304,6 +409,10 @@
 
     private async Task DrawPreviewSquare()
     {
+        // Reset i czyszczenie
+        _shapes.Clear();
+        await ClearCanvas();
+
         var size = Math.Max(Math.Abs(_currentX - _startX), Math.Abs(_currentY - _startY));
         await _ctx.BeginPathAsync();
         await _ctx.RectAsync(_startX, _startY, size, size);
@@ -312,13 +421,40 @@
 
     private async Task DrawPreviewRectangle()
     {
+        // Reset i czyszczenie
+        _shapes.Clear();
+        await ClearCanvas();
+
         await _ctx.BeginPathAsync();
         await _ctx.RectAsync(_startX, _startY, _currentX - _startX, _currentY - _startY);
         await _ctx.StrokeAsync();
     }
 
+    private async Task DrawPreviewTriangle()
+    {
+        // Reset i czyszczenie
+        _shapes.Clear();
+        await ClearCanvas();
+
+        // Oblicz środkowy punkt podstawy
+        var baseCenterX = (_startX + _currentX) / 2;
+
+        await _ctx.BeginPathAsync();
+        await _ctx.MoveToAsync(baseCenterX, _startY);       // Górny wierzchołek
+        await _ctx.LineToAsync(_currentX, _currentY);      // Prawy dolny wierzchołek
+        await _ctx.LineToAsync(_startX, _currentY);        // Lewy dolny wierzchołek
+        await _ctx.ClosePathAsync();                       // Automatycznie łączy z pierwszym punktem
+
+        await _ctx.StrokeAsync();
+
+    }
+
     private async Task DrawPreviewTrapezoid()
     {
+        // Reset i czyszczenie
+        _shapes.Clear();
+        await ClearCanvas();
+
         var topWidthFactor = 0.6; // Możesz dodać parametr do kontroli
         var topX1 = _startX + (_currentX - _startX) * (1 - topWidthFactor) / 2;
         var topX2 = _startX + (_currentX - _startX) * (1 + topWidthFactor) / 2;
@@ -334,6 +470,10 @@
 
     private async Task DrawPreviewRoundedRect()
     {
+        // Reset i czyszczenie
+        _shapes.Clear();
+        await ClearCanvas();
+
         var radius = 20; // Możesz dodać parametr do kontroli
         var width = _currentX - _startX;
         var height = _currentY - _startY;
@@ -350,32 +490,6 @@
         await _ctx.StrokeAsync();
     }
 
-    // private async Task RedrawCanvas()
-    // {
-    //     await ClearCanvas();
-
-    //     foreach (var shape in _shapes)
-    //     {
-    //         await shape.Draw(_ctx);
-    //     }
-
-    //     if (_isDrawing)
-    //     {
-    //         await _ctx.SetStrokeStyleAsync("rgba(0,0,0,0.5)");
-    //         await _ctx.SetLineWidthAsync(2);
-
-    //         // Dodaj obsługę podglądu dla line_hv
-    //         if (_selectedTool == "line" || _selectedTool == "line_hv")
-    //         {
-    //             await DrawPreviewLine();
-    //         }
-    //         else if (_selectedTool == "circle")
-    //         {
-    //             await DrawPreviewCircle();
-    //         }
-    //     }
-    // }
-
     private async Task DrawPreviewLine()
     {
         await _ctx.BeginPathAsync();
@@ -386,16 +500,16 @@
 
     private async Task DrawPreviewCircle()
     {
+        // Reset i czyszczenie
+        _shapes.Clear();
+        await ClearCanvas();
+
         var radius = CalculateRadius();
         await _ctx.BeginPathAsync();
         await _ctx.ArcAsync(_startX, _startY, radius, 0, 2 * Math.PI);
         await _ctx.StrokeAsync();
     }
 
-    private double CalculateRadius()
-    {
-        return Math.Sqrt(Math.Pow(_currentX - _startX, 2) + Math.Pow(_currentY - _startY, 2));
-    }
 
     private async Task ClearCanvas()
     {
@@ -408,20 +522,20 @@
         _dotNetHelper?.Dispose();
     }
 
-    // Interfejs i klasy kształtów
-    // W sekcji @code dodaj:
+    // 🎨 INTERFEJS KSZTAŁTÓW
     private interface IShape
     {
         Task Draw(Canvas2DContext ctx);
-        List<EditableProperty> GetEditableProperties(); // Dodaj tę deklarację
+        List<EditableProperty> GetEditableProperties();
     }
 
+    // 🖌️ KLASA LINII
     private class LineShape : IShape
     {
-        public double X1 { get; }
-        public double Y1 { get; }
-        public double X2 { get; }
-        public double Y2 { get; }
+        public double X1 { get; set; }
+        public double Y1 { get; set; }
+        public double X2 { get; set; }
+        public double Y2 { get; set; }
 
         public LineShape(double x1, double y1, double x2, double y2)
         {
@@ -435,37 +549,102 @@
         {
             await ctx.SetStrokeStyleAsync("black");
             await ctx.SetLineWidthAsync(2);
+
             await ctx.BeginPathAsync();
             await ctx.MoveToAsync(X1, Y1);
             await ctx.LineToAsync(X2, Y2);
             await ctx.StrokeAsync();
         }
+
+        public List<EditableProperty> GetEditableProperties() => new()
+        {
+            new EditableProperty("X1", () => X1, v => X1 = v),
+            new EditableProperty("Y1", () => Y1, v => Y1 = v),
+            new EditableProperty("X2", () => X2, v => X2 = v),
+            new EditableProperty("Y2", () => Y2, v => Y2 = v)
+        };
     }
 
-    private class CircleShape : IShape
+    // 🟥 Klasa prostokąta (Rectangle)
+    private class RectangleShape : IShape
     {
-        public double X { get; }
-        public double Y { get; }
-        public double Radius { get; }
+        public double X { get; set; }
+        public double Y { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
 
-        public CircleShape(double x, double y, double radius)
+        public RectangleShape(double x, double y, double width, double height)
         {
             X = x;
             Y = y;
-            Radius = radius;
+            Width = width;
+            Height = height;
         }
 
         public async Task Draw(Canvas2DContext ctx)
         {
             await ctx.SetStrokeStyleAsync("black");
             await ctx.SetLineWidthAsync(2);
+
             await ctx.BeginPathAsync();
-            await ctx.ArcAsync(X, Y, Radius, 0, 2 * Math.PI);
+            await ctx.RectAsync(X, Y, Width, Height);
             await ctx.StrokeAsync();
         }
+
+        public List<EditableProperty> GetEditableProperties() => new()
+    {
+        new EditableProperty("X", () => X, v => X = v),
+        new EditableProperty("Y", () => Y, v => Y = v),
+        new EditableProperty("Szerokość", () => Width, v => Width = v),
+        new EditableProperty("Wysokość", () => Height, v => Height = v)
+    };
     }
 
-    // Nowe klasy kształtów
+    // /\ Klasa prostokąta (TriangleShape)
+    private class TriangleShape : IShape
+    {
+        // Współrzędne w przestrzeni "world" (bez transformacji)
+        public double BaseX1 { get; set; }
+        public double BaseY { get; set; }
+        public double BaseWidth { get; set; }
+        public double Height { get; set; }
+
+        public TriangleShape(double startX, double startY, double endX, double endY)
+        {
+            // Konwersja do współrzędnych bazowych
+            BaseX1 = Math.Min(startX, endX);
+            BaseY = Math.Max(startY, endY);
+            BaseWidth = Math.Abs(endX - startX);
+            Height = Math.Abs(startY - endY);
+        }
+
+        public async Task Draw(Canvas2DContext ctx)
+        {
+            var apexX = BaseX1 + BaseWidth / 2;
+            var apexY = BaseY - Height;
+            var baseX2 = BaseX1 + BaseWidth;
+
+            await ctx.SetStrokeStyleAsync("black");
+            await ctx.SetLineWidthAsync(2);
+
+            await ctx.BeginPathAsync();
+            await ctx.MoveToAsync(apexX, apexY);
+            await ctx.LineToAsync(baseX2, BaseY);
+            await ctx.LineToAsync(BaseX1, BaseY);
+            await ctx.ClosePathAsync();
+            await ctx.StrokeAsync();
+        }
+
+        public List<EditableProperty> GetEditableProperties() => new()
+    {
+        new EditableProperty("Lewa podstawa X", () => BaseX1, v => BaseX1 = v),
+        new EditableProperty("Pozycja Y podstawy", () => BaseY, v => BaseY = v),
+        new EditableProperty("Szerokość podstawy", () => BaseWidth, v => BaseWidth = v),
+        new EditableProperty("Wysokość", () => Height, v => Height = v)
+    };
+    }
+
+    // ⬛ Klasa kwadratu (Square)
     private class SquareShape : IShape
     {
         public double X { get; set; }
@@ -481,17 +660,20 @@
 
         public async Task Draw(Canvas2DContext ctx)
         {
+            await ctx.SetStrokeStyleAsync("black");
+            await ctx.SetLineWidthAsync(2);
+
             await ctx.BeginPathAsync();
             await ctx.RectAsync(X, Y, Size, Size);
             await ctx.StrokeAsync();
         }
 
         public List<EditableProperty> GetEditableProperties() => new()
-        {
-            new("X", () => X, v => X = v),
-            new("Y", () => Y, v => Y = v),
-            new("Rozmiar", () => Size, v => Size = v)
-        };
+    {
+        new EditableProperty("X", () => X, v => X = v),
+        new EditableProperty("Y", () => Y, v => Y = v),
+        new EditableProperty("Rozmiar", () => Size, v => Size = v)
+    };
     }
 
     private class RoundedRectangleShape : IShape
@@ -513,6 +695,9 @@
 
         public async Task Draw(Canvas2DContext ctx)
         {
+            await ctx.SetStrokeStyleAsync("black");
+            await ctx.SetLineWidthAsync(2);
+
             await ctx.BeginPathAsync();
             await ctx.MoveToAsync(X + Radius, Y);
             await ctx.LineToAsync(X + Width - Radius, Y);
@@ -535,87 +720,93 @@
         };
     }
 
-    private class RectangleShape : IShape
+    private class TrapezoidShape : IShape
+    {
+        public double BaseWidth { get; set; }
+        public double TopWidth { get; set; }
+        public double Height { get; set; }
+        public double X { get; set; }
+        public double Y { get; set; }
+
+        // Konstruktor przyjmujący współrzędne i współczynnik szerokości góry
+        public TrapezoidShape(double startX, double startY, double endX, double endY, double topWidthFactor)
+        {
+            X = Math.Min(startX, endX);           // Ustal minimalne X (lewy brzeg)
+            Y = Math.Min(startY, endY);           // Ustal minimalne Y (dolny brzeg)
+            BaseWidth = Math.Abs(endX - startX);  // Oblicz szerokość podstawy trapezu
+            Height = Math.Abs(endY - startY);     // Oblicz wysokość trapezu
+            TopWidth = Math.Min(BaseWidth, BaseWidth * topWidthFactor);  // Oblicz szerokość góry trapezu
+        }
+
+        // Metoda rysująca trapez
+        public async Task Draw(Canvas2DContext ctx)
+        {
+            await ctx.SetStrokeStyleAsync("black");
+            await ctx.SetLineWidthAsync(2);
+
+            // Oblicz pozycje wierzchołków trapezu
+            var baseLeft = X;
+            var baseRight = X + BaseWidth;
+            var topLeft = X + (BaseWidth - TopWidth) / 2;   // Oblicz pozycję lewej strony góry
+            var topRight = topLeft + TopWidth;               // Oblicz pozycję prawej strony góry
+            var verticalY = Y + Height;                      // Oblicz wysokość (dolna krawędź)
+
+            // Rysowanie trapezu za pomocą punktów
+            await ctx.BeginPathAsync();
+            await ctx.MoveToAsync(topLeft, Y);            // Lewy górny
+            await ctx.LineToAsync(topRight, Y);           // Prawy górny
+            await ctx.LineToAsync(baseRight, verticalY);  // Prawy dolny
+            await ctx.LineToAsync(baseLeft, verticalY);   // Lewy dolny
+            await ctx.ClosePathAsync();
+
+            await ctx.StrokeAsync();
+        }
+
+        // Właściwości edytowalne
+        public List<EditableProperty> GetEditableProperties() => new()
+    {
+        new("Pozycja X", () => X, v => X = v),
+        new("Pozycja Y", () => Y, v => Y = v),
+        new("Szerokość podstawy", () => BaseWidth, v => BaseWidth = v),
+        new("Szerokość góry", () => TopWidth, v => TopWidth = Math.Clamp(v, 10, BaseWidth - 10)),
+        new("Wysokość", () => Height, v => Height = v)
+    };
+    }
+
+
+    // 🟢 KLASA KOŁA
+    private class CircleShape : IShape
     {
         public double X { get; set; }
         public double Y { get; set; }
-        public double Width { get; set; }
-        public double Height { get; set; }
+        public double Radius { get; set; }
 
-        public RectangleShape(double x, double y, double width, double height)
+        public CircleShape(double x, double y, double radius)
         {
             X = x;
             Y = y;
-            Width = width;
-            Height = height;
+            Radius = radius;
         }
 
         public async Task Draw(Canvas2DContext ctx)
         {
+            await ctx.SetStrokeStyleAsync("black");
+            await ctx.SetLineWidthAsync(2);
+
             await ctx.BeginPathAsync();
-            await ctx.RectAsync(X, Y, Width, Height);
+            await ctx.ArcAsync(X, Y, Radius, 0, 2 * Math.PI);
             await ctx.StrokeAsync();
         }
 
         public List<EditableProperty> GetEditableProperties() => new()
         {
-            new("X", () => X, v => X = v),
-            new("Y", () => Y, v => Y = v),
-            new("Szerokość", () => Width, v => Width = v),
-            new("Wysokość", () => Height, v => Height = v)
+            new EditableProperty("X", () => X, v => X = v),
+            new EditableProperty("Y", () => Y, v => Y = v),
+            new EditableProperty("Promień", () => Radius, v => Radius = v)
         };
     }
 
-    private class TrapezoidShape : IShape
-    {
-        public double TopX1 { get; set; }
-        public double TopY1 { get; set; }
-        public double TopX2 { get; set; }
-        public double BottomX1 { get; set; }
-        public double BottomY1 { get; set; }
-        public double BottomX2 { get; set; }
-
-        public TrapezoidShape(double startX, double startY, double endX, double endY, double topWidthFactor)
-        {
-            double width = endX - startX;
-            double height = endY - startY;
-
-            TopX1 = startX + width * (1 - topWidthFactor) / 2;
-            TopY1 = startY;
-            TopX2 = startX + width * (1 + topWidthFactor) / 2;
-
-            BottomX1 = startX;
-            BottomY1 = endY;
-            BottomX2 = endX;
-        }
-
-        public async Task Draw(Canvas2DContext ctx)
-        {
-            await ctx.BeginPathAsync();
-            await ctx.MoveToAsync(TopX1, TopY1);
-            await ctx.LineToAsync(TopX2, TopY1);
-            await ctx.LineToAsync(BottomX2, BottomY1);
-            await ctx.LineToAsync(BottomX1, BottomY1);
-            await ctx.ClosePathAsync();
-            await ctx.StrokeAsync();
-        }
-
-        public List<EditableProperty> GetEditableProperties() => new()
-        {
-            new("Góra X1", () => TopX1, v => TopX1 = v),
-            new("Góra X2", () => TopX2, v => TopX2 = v),
-            new("Dół X1", () => BottomX1, v => BottomX1 = v),
-            new("Dół X2", () => BottomX2, v => BottomX2 = v),
-            new("Pozycja Y", () => TopY1, v => {
-                var diff = v - TopY1;
-                TopY1 = v;
-                BottomY1 += diff;
-            })
-        };
-    }
-
-    // Pozostałe klasy kształtów (Trapezoid, Rectangle itd.) implementujemy analogicznie
-
+    // 🔧 KLASY EDYTOWALNYCH WŁAŚCIWOŚCI
     public record EditableProperty(string Label, Func<double> GetValue, Action<double> SetValue)
     {
         public double Value
