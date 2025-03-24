@@ -492,12 +492,14 @@
 
 <div class="d-flex justify-content-between align-items-center mt-2 mb-2">
     <h3 class="mb-0">Modele Okienne</h3>
-    <button class="btn btn-primary" @onclick="GoBack">
-        <i class="fas fa-arrow-left"></i> Wróć
-    </button>
     <Button Icon="@IconType.Fill.Tool" Style="flex-grow: 1; height: 35px;" OnClick="GoCAD">
         OKN-CAD
     </Button>
+    <label> </label>
+    <button class="btn btn-primary" @onclick="GoBack">
+        <i class="fas fa-arrow-left"></i> Wróć
+    </button>
+
 </div>
 <!-- 🔹 Wybór systemu -->
 <Tooltip Placement="@Placement.TopRight" Title="Otwórz konfigurator nowego systemu lub wybierz go z listy">
