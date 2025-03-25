@@ -40,7 +40,7 @@
 
     .canvas-container {
     position: relative;
-    border: 3px solid #000;
+    border: 3px solid #001;
     width: @(_canvasX + "px");
     height: @(_canvasY + "px");
     margin: 20px auto;
@@ -50,6 +50,15 @@
     background: #fff;
     overflow: auto;
     }
+
+
+    canvas {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    background-color: transparent;
+    }
+
 
     .tool-icon {
     width: 24px;
@@ -86,7 +95,17 @@
     border-radius: 3px;
     width: 180px;
     }
+
+    .zoom-controls {
+    position: absolute;
+    top: 170px; /* Ustawienie 10px od góry */
+    right: 10px; /* Ustawienie 10px od prawej */
+    display: flex;
+    gap: 10px; /* Odstęp między przyciskami */
+    z-index: 1000; /* Upewnia się, że są na wierzchu */
+    }
 </style>
+
 <script>
     function initCanvasEvents(container, dotNetHelper) {
     const canvas = container.querySelector('canvas');
@@ -125,6 +144,14 @@
     }
 </script>
 
+<!-- Kontener na przyciski -->
+<div class="zoom-controls">
+    <button @onclick="() => ResizeAllShapes(1.1)" class="btn-zoom">➕</button>
+    <button @onclick="() => ResizeAllShapes(0.9)" class="btn-zoom">➖</button>
+    <button @onclick="() => FitToCanvas()" class="btn-zoom">🔄 Dopasuj</button>
+    <button @onclick="RysOkna" class="btn-window">Generuj OKNO</button>
+
+</div>
 
 <div class="toolbar">
     <button class="tool-button @(_selectedTool == "line" ? "active" : "")"
@@ -171,22 +198,35 @@
 <div class="canvas-container" @ref="_container">
     <BECanvas Width="@_canvasX" Height="@_canvasY" @ref="_canvas"></BECanvas>
 </div>
-@if (_selectedShape != null)
+
+@if (_shapes.Count > 0)
 {
     <div class="property-panel">
         <h3>Właściwości kształtu</h3>
 
-        @foreach (var prop in _selectedShape.GetEditableProperties())
+        @if (_selectedShapeIndex >= 0)
         {
-            <div class="property-row">
-                <span class="property-label">@prop.Label</span>
-                <input class="property-input" type="number"
-                @bind="prop.Value"
-                @bind:event="onchange"
-                @bind:after="async () => await RedrawCanvas()" />
-
-            </div>
+            @foreach (var prop in _shapes[_selectedShapeIndex].GetEditableProperties())
+            {
+                <div class="property-row">
+                    <span class="property-label">@prop.Label</span>
+                    @if (!prop.IsReadOnly)
+                    {
+                        <input class="property-input" type="number"
+                               @bind="prop.Value"
+                               @bind:event="onchange"
+                               @bind:after="async () => await RedrawCanvas()" />
+                    }
+                    else
+                    {
+                        <span class="property-value">@prop.Value</span>
+                    }
+                </div>
+            }
         }
+
+        <button @onclick="SelectPreviousShape">Poprzedni obiekt</button>
+        <button @onclick="SelectNextShape">Następny obiekt</button>
     </div>
 }
 
@@ -206,7 +246,11 @@
     private long _canvasX = 900;
     private long _canvasY = 600;
 
-    private IShape? _selectedShape;
+    private int _selectedShapeIndex = -1; // Przechowuje indeks aktualnie edytowanego kształtu
+
+    private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
+
+    public record BoundingBox(double X, double Y, double Width, double Height);
 
     private void SetTool(string tool) => _selectedTool = tool;
 
@@ -339,19 +383,19 @@
 
         IShape newShape = _selectedTool switch
         {
-            "line" => new LineShape(_startX, _startY, _currentX, _currentY),
-            "line_hv" => new LineShape(_startX, _startY, _currentX, _currentY),
-            "circle" => new CircleShape(_startX, _startY, CalculateRadius()),
-            "triangle" => new TriangleShape(_startX, _startY, _currentX, _currentY),
-            "square" => new SquareShape(_startX, _startY, Math.Max(Math.Abs(_currentX - _startX), Math.Abs(_currentY - _startY))),
-            "rectangle" => new RectangleShape(_startX, _startY, _currentX - _startX, _currentY - _startY),
-            "trapezoid" => new TrapezoidShape(_startX, _startY, _currentX, _currentY, 0.5),
-            "rounded_rect" => new RoundedRectangleShape(_startX, _startY, _currentX - _startX, _currentY - _startY, 20),
+            "line" => new LineShape(_startX, _startY, _currentX, _currentY, _scaleFactor),
+            "line_hv" => new LineShape(_startX, _startY, _currentX, _currentY, _scaleFactor),
+            "circle" => new CircleShape(_startX, _startY, CalculateRadius(), _scaleFactor),
+            "triangle" => new TriangleShape(_startX, _startY, _currentX, _currentY, _scaleFactor),
+            "square" => new SquareShape(_startX, _startY, Math.Max(Math.Abs(_currentX - _startX), Math.Abs(_currentY - _startY)), _scaleFactor),
+            "rectangle" => new RectangleShape(_startX, _startY, _currentX - _startX, _currentY - _startY, _scaleFactor),
+            "trapezoid" => new TrapezoidShape(_startX, _startY, _currentX, _currentY, 0.5, _scaleFactor),
+            "rounded_rect" => new RoundedRectangleShape(_startX, _startY, _currentX - _startX, _currentY - _startY, 20, _scaleFactor),
             _ => throw new NotImplementedException()
         };
 
         _shapes.Add(newShape);
-        _selectedShape = newShape;
+
         await RedrawCanvas();
     }
 
@@ -360,18 +404,21 @@
         return Math.Sqrt(Math.Pow(_currentX - _startX, 2) + Math.Pow(_currentY - _startY, 2));
     }
 
-
     private async Task RedrawCanvas()
     {
         if (_ctx == null) return;
 
         await ClearCanvas();
 
-        // Rysuj wszystkie zapisane kształty
+        await _ctx.SaveAsync();
+        await _ctx.ScaleAsync(_scaleFactor, _scaleFactor); // Skalowanie dla całego rysunku
+
         foreach (var shape in _shapes)
         {
             await shape.Draw(_ctx);
         }
+
+        await _ctx.RestoreAsync(); // Przywrócenie oryginalnej skali
 
         // Rysuj podgląd aktualnie rysowanego kształtu
         if (_isDrawing)
@@ -527,6 +574,9 @@
     {
         Task Draw(Canvas2DContext ctx);
         List<EditableProperty> GetEditableProperties();
+        void Scale(double factor);
+        void Move(double offsetX, double offsetY);
+        BoundingBox GetBoundingBox();
     }
 
     // 🖌️ KLASA LINII
@@ -537,24 +587,28 @@
         public double X2 { get; set; }
         public double Y2 { get; set; }
 
-        public LineShape(double x1, double y1, double x2, double y2)
+        private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
+
+        public LineShape(double x1, double y1, double x2, double y2, double scaleFactor)
         {
             X1 = x1;
             Y1 = y1;
             X2 = x2;
             Y2 = y2;
+            _scaleFactor = scaleFactor;
         }
 
         public async Task Draw(Canvas2DContext ctx)
         {
             await ctx.SetStrokeStyleAsync("black");
-            await ctx.SetLineWidthAsync(2);
+            await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
 
             await ctx.BeginPathAsync();
             await ctx.MoveToAsync(X1, Y1);
             await ctx.LineToAsync(X2, Y2);
             await ctx.StrokeAsync();
         }
+
 
         public List<EditableProperty> GetEditableProperties() => new()
         {
@@ -563,6 +617,28 @@
             new EditableProperty("X2", () => X2, v => X2 = v),
             new EditableProperty("Y2", () => Y2, v => Y2 = v)
         };
+
+        public void Scale(double factor)
+        {
+            X2 = X1 + (X2 - X1) * factor;
+            Y2 = Y1 + (Y2 - Y1) * factor;
+        }
+
+        public void Move(double offsetX, double offsetY)
+        {
+            X1 += offsetX;
+            Y1 += offsetY;
+            X2 += offsetX;
+            Y2 += offsetY;
+        }
+
+        public BoundingBox GetBoundingBox()
+        {
+            return new BoundingBox(Math.Min(X1, X2), Math.Min(Y1, Y2), Math.Abs(X2 - X1), Math.Abs(Y2 - Y1));
+        }
+
+
+
     }
 
     // 🟥 Klasa prostokąta (Rectangle)
@@ -573,31 +649,55 @@
         public double Width { get; set; }
         public double Height { get; set; }
 
-        public RectangleShape(double x, double y, double width, double height)
+        private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
+
+        public RectangleShape(double x, double y, double width, double height, double scaleFactor)
         {
             X = x;
             Y = y;
             Width = width;
             Height = height;
+            _scaleFactor = scaleFactor;
         }
 
         public async Task Draw(Canvas2DContext ctx)
         {
             await ctx.SetStrokeStyleAsync("black");
-            await ctx.SetLineWidthAsync(2);
+            await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
 
             await ctx.BeginPathAsync();
             await ctx.RectAsync(X, Y, Width, Height);
             await ctx.StrokeAsync();
         }
 
+
         public List<EditableProperty> GetEditableProperties() => new()
-    {
-        new EditableProperty("X", () => X, v => X = v),
-        new EditableProperty("Y", () => Y, v => Y = v),
-        new EditableProperty("Szerokość", () => Width, v => Width = v),
-        new EditableProperty("Wysokość", () => Height, v => Height = v)
-    };
+        {
+            new EditableProperty("X", () => GetBoundingBox().X, _ => { }, true),
+            new EditableProperty("Y", () => GetBoundingBox().Y, _ => { }, true),
+            new EditableProperty("Szerokość", () => Width, v => Width = v),
+            new EditableProperty("Wysokość", () => Height, v => Height = v)
+        };
+
+
+        public void Scale(double factor)
+        {
+            Width *= factor;
+            Height *= factor;
+        }
+
+        public void Move(double offsetX, double offsetY)
+        {
+            X += offsetX;
+            Y += offsetY;
+        }
+
+        public BoundingBox GetBoundingBox()
+        {
+            return new BoundingBox(X, Y, Width, Height);
+        }
+
+
     }
 
     // /\ Klasa prostokąta (TriangleShape)
@@ -609,13 +709,16 @@
         public double BaseWidth { get; set; }
         public double Height { get; set; }
 
-        public TriangleShape(double startX, double startY, double endX, double endY)
+        private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
+
+        public TriangleShape(double startX, double startY, double endX, double endY, double scaleFactor)
         {
             // Konwersja do współrzędnych bazowych
             BaseX1 = Math.Min(startX, endX);
             BaseY = Math.Max(startY, endY);
             BaseWidth = Math.Abs(endX - startX);
             Height = Math.Abs(startY - endY);
+            _scaleFactor = scaleFactor;
         }
 
         public async Task Draw(Canvas2DContext ctx)
@@ -625,7 +728,7 @@
             var baseX2 = BaseX1 + BaseWidth;
 
             await ctx.SetStrokeStyleAsync("black");
-            await ctx.SetLineWidthAsync(2);
+            await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
 
             await ctx.BeginPathAsync();
             await ctx.MoveToAsync(apexX, apexY);
@@ -637,11 +740,40 @@
 
         public List<EditableProperty> GetEditableProperties() => new()
     {
-        new EditableProperty("Lewa podstawa X", () => BaseX1, v => BaseX1 = v),
-        new EditableProperty("Pozycja Y podstawy", () => BaseY, v => BaseY = v),
+        new EditableProperty("Lewa podstawa X", () => BaseX1, v => BaseX1 = v , true),
+        new EditableProperty("Pozycja Y podstawy", () => BaseY, v => BaseY = v, true),
         new EditableProperty("Szerokość podstawy", () => BaseWidth, v => BaseWidth = v),
         new EditableProperty("Wysokość", () => Height, v => Height = v)
     };
+
+        public void Scale(double factor)
+        {
+            BaseWidth *= factor;
+            Height *= factor;
+            BaseX1 -= (BaseWidth * (factor - 1)) / 2; // Przesuwamy, aby trójkąt skalował się symetrycznie
+            BaseY += (Height * (factor - 1)); // Przesuwamy punkt bazowy
+        }
+
+        public void Move(double offsetX, double offsetY)
+        {
+            BaseX1 += offsetX;
+            BaseY += offsetY;
+        }
+
+        public BoundingBox GetBoundingBox()
+        {
+            double minX = BaseX1;
+            double minY = BaseY - Height; // Wierzchołek trójkąta
+            double maxX = BaseX1 + BaseWidth;
+            double maxY = BaseY;
+
+            double width = maxX - minX;
+            double height = maxY - minY;
+
+            return new BoundingBox(minX, minY, width, height);
+        }
+
+
     }
 
     // ⬛ Klasa kwadratu (Square)
@@ -651,17 +783,20 @@
         public double Y { get; set; }
         public double Size { get; set; }
 
-        public SquareShape(double x, double y, double size)
+        private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
+
+        public SquareShape(double x, double y, double size, double scaleFactor)
         {
             X = x;
             Y = y;
             Size = size;
+            _scaleFactor = scaleFactor;
         }
 
         public async Task Draw(Canvas2DContext ctx)
         {
             await ctx.SetStrokeStyleAsync("black");
-            await ctx.SetLineWidthAsync(2);
+            await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
 
             await ctx.BeginPathAsync();
             await ctx.RectAsync(X, Y, Size, Size);
@@ -670,10 +805,28 @@
 
         public List<EditableProperty> GetEditableProperties() => new()
     {
-        new EditableProperty("X", () => X, v => X = v),
-        new EditableProperty("Y", () => Y, v => Y = v),
+        new EditableProperty("X", () => X, v => X = v, true),
+        new EditableProperty("Y", () => Y, v => Y = v, true),
         new EditableProperty("Rozmiar", () => Size, v => Size = v)
     };
+
+        public void Scale(double factor)
+        {
+            Size *= factor;
+        }
+
+        public void Move(double offsetX, double offsetY)
+        {
+            X += offsetX;
+            Y += offsetY;
+        }
+
+        public BoundingBox GetBoundingBox()
+        {
+            return new BoundingBox(X, Y, Size, Size);
+        }
+
+
     }
 
     private class RoundedRectangleShape : IShape
@@ -684,19 +837,22 @@
         public double Height { get; set; }
         public double Radius { get; set; }
 
-        public RoundedRectangleShape(double x, double y, double width, double height, double radius)
+        private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
+
+        public RoundedRectangleShape(double x, double y, double width, double height, double radius, double scaleFactor)
         {
             X = x;
             Y = y;
             Width = width;
             Height = height;
             Radius = radius;
+            _scaleFactor = scaleFactor;
         }
 
         public async Task Draw(Canvas2DContext ctx)
         {
             await ctx.SetStrokeStyleAsync("black");
-            await ctx.SetLineWidthAsync(2);
+            await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
 
             await ctx.BeginPathAsync();
             await ctx.MoveToAsync(X + Radius, Y);
@@ -712,12 +868,30 @@
 
         public List<EditableProperty> GetEditableProperties() => new()
         {
-            new("X", () => X, v => X = v),
-            new("Y", () => Y, v => Y = v),
+            new("X", () => X, v => X = v, true),
+            new("Y", () => Y, v => Y = v, true),
             new("Szerokość", () => Width, v => Width = v),
             new("Wysokość", () => Height, v => Height = v),
             new("Promień", () => Radius, v => Radius = v)
         };
+
+        public void Scale(double factor)
+        {
+            Width *= factor;
+            Height *= factor;
+            Radius *= factor;
+        }
+        public void Move(double offsetX, double offsetY)
+        {
+            X += offsetX;
+            Y += offsetY;
+        }
+
+        public BoundingBox GetBoundingBox()
+        {
+            return new BoundingBox(X, Y, Width, Height);
+        }
+
     }
 
     private class TrapezoidShape : IShape
@@ -728,21 +902,24 @@
         public double X { get; set; }
         public double Y { get; set; }
 
+        private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
+
         // Konstruktor przyjmujący współrzędne i współczynnik szerokości góry
-        public TrapezoidShape(double startX, double startY, double endX, double endY, double topWidthFactor)
+        public TrapezoidShape(double startX, double startY, double endX, double endY, double topWidthFactor, double scaleFactor)
         {
             X = Math.Min(startX, endX);           // Ustal minimalne X (lewy brzeg)
             Y = Math.Min(startY, endY);           // Ustal minimalne Y (dolny brzeg)
             BaseWidth = Math.Abs(endX - startX);  // Oblicz szerokość podstawy trapezu
             Height = Math.Abs(endY - startY);     // Oblicz wysokość trapezu
             TopWidth = Math.Min(BaseWidth, BaseWidth * topWidthFactor);  // Oblicz szerokość góry trapezu
+            _scaleFactor = scaleFactor;
         }
 
         // Metoda rysująca trapez
         public async Task Draw(Canvas2DContext ctx)
         {
             await ctx.SetStrokeStyleAsync("black");
-            await ctx.SetLineWidthAsync(2);
+            await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
 
             // Oblicz pozycje wierzchołków trapezu
             var baseLeft = X;
@@ -765,14 +942,34 @@
         // Właściwości edytowalne
         public List<EditableProperty> GetEditableProperties() => new()
     {
-        new("Pozycja X", () => X, v => X = v),
-        new("Pozycja Y", () => Y, v => Y = v),
+        new("Pozycja X", () => X, v => X = v, true),
+        new("Pozycja Y", () => Y, v => Y = v, true),
         new("Szerokość podstawy", () => BaseWidth, v => BaseWidth = v),
         new("Szerokość góry", () => TopWidth, v => TopWidth = Math.Clamp(v, 10, BaseWidth - 10)),
         new("Wysokość", () => Height, v => Height = v)
     };
-    }
 
+        public void Scale(double factor)
+        {
+            BaseWidth *= factor;
+            TopWidth *= factor;
+            Height *= factor;
+            X -= (BaseWidth * (factor - 1)) / 2; // Przesuwamy trapez w lewo, aby zachować środek
+            Y -= (Height * (factor - 1)) / 2; // Przesuwamy go w górę
+        }
+
+        public void Move(double offsetX, double offsetY)
+        {
+            X += offsetX;
+            Y += offsetY;
+        }
+
+        public BoundingBox GetBoundingBox()
+        {
+            return new BoundingBox(X, Y, BaseWidth, Height);
+        }
+
+    }
 
     // 🟢 KLASA KOŁA
     private class CircleShape : IShape
@@ -781,17 +978,20 @@
         public double Y { get; set; }
         public double Radius { get; set; }
 
-        public CircleShape(double x, double y, double radius)
+        private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
+
+        public CircleShape(double x, double y, double radius, double scaleFactor)
         {
             X = x;
             Y = y;
             Radius = radius;
+            _scaleFactor = scaleFactor;
         }
 
         public async Task Draw(Canvas2DContext ctx)
         {
             await ctx.SetStrokeStyleAsync("black");
-            await ctx.SetLineWidthAsync(2);
+            await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
 
             await ctx.BeginPathAsync();
             await ctx.ArcAsync(X, Y, Radius, 0, 2 * Math.PI);
@@ -800,19 +1000,258 @@
 
         public List<EditableProperty> GetEditableProperties() => new()
         {
-            new EditableProperty("X", () => X, v => X = v),
-            new EditableProperty("Y", () => Y, v => Y = v),
+            new EditableProperty("X", () => X, v => X = v, true),
+            new EditableProperty("Y", () => Y, v => Y = v, true),
             new EditableProperty("Promień", () => Radius, v => Radius = v)
         };
+
+        public void Scale(double factor)
+        {
+            Radius *= factor;
+        }
+
+        public void Move(double offsetX, double offsetY)
+        {
+            X += offsetX;
+            Y += offsetY;
+        }
+
+        public BoundingBox GetBoundingBox()
+        {
+            return new BoundingBox(X - Radius, Y - Radius, Radius * 2, Radius * 2);
+        }
+
     }
 
     // 🔧 KLASY EDYTOWALNYCH WŁAŚCIWOŚCI
-    public record EditableProperty(string Label, Func<double> GetValue, Action<double> SetValue)
+    public record EditableProperty(string Label, Func<double> GetValue, Action<double> SetValue, bool IsReadOnly = false)
     {
         public double Value
         {
             get => GetValue();
-            set => SetValue(value);
+            set
+            {
+                if (!IsReadOnly) SetValue(value);
+            }
         }
     }
+
+    private void SelectNextShape()
+    {
+        if (_shapes.Count == 0) return;
+        _selectedShapeIndex = (_selectedShapeIndex + 1) % _shapes.Count;
+    }
+
+    private void SelectPreviousShape()
+    {
+        if (_shapes.Count == 0) return;
+        _selectedShapeIndex = (_selectedShapeIndex - 1 + _shapes.Count) % _shapes.Count;
+    }
+
+    private async Task ResizeAllShapes(double factor)
+    {
+        if (_shapes.Count == 0) return;
+
+        _scaleFactor *= factor; // Zmieniamy globalny współczynnik skali
+
+        await RedrawCanvas();
+    }
+
+    private async Task FitToCanvas()
+    {
+        if (_shapes.Count == 0) return;
+
+        // Znajdź granice wszystkich kształtów
+        double minX = _shapes.Min(s => s.GetBoundingBox().X);
+        double minY = _shapes.Min(s => s.GetBoundingBox().Y);
+        double maxX = _shapes.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
+        double maxY = _shapes.Max(s => s.GetBoundingBox().Y + s.GetBoundingBox().Height);
+
+        double shapesWidth = maxX - minX;
+        double shapesHeight = maxY - minY;
+
+        if (shapesWidth == 0 || shapesHeight == 0) return;
+
+        // Obliczamy nowy współczynnik skali
+        double scaleX = _canvasX / shapesWidth;
+        double scaleY = _canvasY / shapesHeight;
+        _scaleFactor = Math.Min(scaleX, scaleY) * 0.9; // Skalujemy z marginesem
+
+        // Obliczamy przesunięcie, aby obiekty były na środku
+        double offsetX = (_canvasX - (shapesWidth * _scaleFactor)) / 2 - (minX * _scaleFactor);
+        double offsetY = (_canvasY - (shapesHeight * _scaleFactor)) / 2 - (minY * _scaleFactor);
+
+        // Przesuń wszystkie kształty
+        foreach (var shape in _shapes)
+        {
+            shape.Move(offsetX, offsetY);
+        }
+
+        await RedrawCanvas();
+    }
+
+    private async Task RysOkna()
+    {
+        if (_selectedShapeIndex < 0 || _selectedShapeIndex >= _shapes.Count) return;
+
+        var windowShape = _shapes[_selectedShapeIndex];
+        var windowBox = windowShape.GetBoundingBox();
+
+        // Znajdź wszystkie linie znajdujące się wewnątrz okna
+        var linesInsideWindow = _shapes
+            .Where((shape, index) => index != _selectedShapeIndex && shape is LineShape)
+            .Cast<LineShape>()
+            .Where(line => IsLineInsideWindow(line, windowBox))
+            .ToList();
+
+        // Skróć każdą linię
+        foreach (var line in linesInsideWindow)
+        {
+            ShortenLineInsideWindow(line, windowBox);
+        }
+
+        await RedrawCanvas();
+    }
+
+    private bool IsLineInsideWindow(LineShape line, BoundingBoxX windowBox)
+    {
+        // Sprawdź czy oba punkty linii znajdują się wewnątrz okna
+        return windowBox.Contains(line.X1, line.Y1) && windowBox.Contains(line.X2, line.Y2);
+    }
+
+    private void ShortenLineInsideWindow(LineShape line, BoundingBoxX windowBox)
+    {
+        // Oblicz wektor kierunkowy linii
+        double dx = line.X2 - line.X1;
+        double dy = line.Y2 - line.Y1;
+
+        // Oblicz punkty przecięcia z wszystkimi krawędziami okna
+        List<Point> intersections = new List<Point>();
+
+        // Sprawdź przecięcia z każdą krawędzią okna
+        CheckEdgeIntersection(windowBox.X, windowBox.Y, windowBox.X + windowBox.Width, windowBox.Y, line, ref intersections); // Górna krawędź
+        CheckEdgeIntersection(windowBox.X + windowBox.Width, windowBox.Y, windowBox.X + windowBox.Width, windowBox.Y + windowBox.Height, line, ref intersections); // Prawa krawędź
+        CheckEdgeIntersection(windowBox.X, windowBox.Y + windowBox.Height, windowBox.X + windowBox.Width, windowBox.Y + windowBox.Height, line, ref intersections); // Dolna krawędź
+        CheckEdgeIntersection(windowBox.X, windowBox.Y, windowBox.X, windowBox.Y + windowBox.Height, line, ref intersections); // Lewa krawędź
+
+        // Jeśli znaleziono dokładnie 2 punkty przecięcia, skróć linię
+        if (intersections.Count == 2)
+        {
+            // Zachowaj oryginalny kierunek linii
+            bool isFirstPointCloserToStart =
+                Distance(line.X1, line.Y1, intersections[0].X, intersections[0].Y) <
+                Distance(line.X1, line.Y1, intersections[1].X, intersections[1].Y);
+
+            if (isFirstPointCloserToStart)
+            {
+                line.X1 = intersections[0].X;
+                line.Y1 = intersections[0].Y;
+                line.X2 = intersections[1].X;
+                line.Y2 = intersections[1].Y;
+            }
+            else
+            {
+                line.X1 = intersections[1].X;
+                line.Y1 = intersections[1].Y;
+                line.X2 = intersections[0].X;
+                line.Y2 = intersections[0].Y;
+            }
+        }
+    }
+
+    private void CheckEdgeIntersection(double edgeX1, double edgeY1, double edgeX2, double edgeY2,
+                                     LineShape line, ref List<Point> intersections)
+    {
+        // Oblicz przecięcie linii z krawędzią okna
+        if (FindIntersection(edgeX1, edgeY1, edgeX2, edgeY2,
+                            line.X1, line.Y1, line.X2, line.Y2,
+                            out double intersectX, out double intersectY))
+        {
+            // Sprawdź czy punkt przecięcia leży na obu odcinkach
+            if (IsPointOnSegment(edgeX1, edgeY1, edgeX2, edgeY2, intersectX, intersectY) &&
+                IsPointOnSegment(line.X1, line.Y1, line.X2, line.Y2, intersectX, intersectY))
+            {
+                intersections.Add(new Point(intersectX, intersectY));
+            }
+        }
+    }
+
+    private bool FindIntersection(double aX1, double aY1, double aX2, double aY2,
+                                 double bX1, double bY1, double bX2, double bY2,
+                                 out double x, out double y)
+    {
+        x = 0;
+        y = 0;
+
+        double d = (aX1 - aX2) * (bY1 - bY2) - (aY1 - aY2) * (bX1 - bX2);
+        if (d == 0) return false; // Linie równoległe
+
+        double t = ((aX1 - bX1) * (bY1 - bY2) - (aY1 - bY1) * (bX1 - bX2)) / d;
+        double u = -((aX1 - aX2) * (aY1 - bY1) - (aY1 - aY2) * (aX1 - bX1)) / d;
+
+        x = aX1 + t * (aX2 - aX1);
+        y = aY1 + t * (aY2 - aY1);
+
+        return true;
+    }
+
+    private bool IsPointOnSegment(double segX1, double segY1, double segX2, double segY2,
+                                 double pointX, double pointY)
+    {
+        // Sprawdź czy punkt leży na odcinku
+        double cross = (segY2 - segY1) * (pointX - segX1) - (segX2 - segX1) * (pointY - segY1);
+        if (Math.Abs(cross) > 0.001) return false;
+
+        double dot = (pointX - segX1) * (segX2 - segX1) + (pointY - segY1) * (segY2 - segY1);
+        if (dot < 0) return false;
+
+        double squaredLength = (segX2 - segX1) * (segX2 - segX1) + (segY2 - segY1) * (segY2 - segY1);
+        if (dot > squaredLength) return false;
+
+        return true;
+    }
+
+    private double Distance(double x1, double y1, double x2, double y2)
+    {
+        return Math.Sqrt(Math.Pow(x2 - x1, 2) + Math.Pow(y2 - y1, 2));
+    }
+
+    private struct Point
+    {
+        public double X { get; set; }
+        public double Y { get; set; }
+        public Point(double x, double y) { X = x; Y = y; }
+    }
+
+    public struct BoundingBoxX
+    {
+        public double X { get; set; }
+        public double Y { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
+
+        public BoundingBoxX(double x, double y, double width, double height)
+        {
+            X = x;
+            Y = y;
+            Width = width;
+            Height = height;
+        }
+
+        // Dodajemy metodę Contains
+        public bool Contains(double pointX, double pointY)
+        {
+            return pointX >= X &&
+                   pointX <= X + Width &&
+                   pointY >= Y &&
+                   pointY <= Y + Height;
+        }
+
+        // Dodatkowe przydatne metody
+        public double Left => X;
+        public double Right => X + Width;
+        public double Top => Y;
+        public double Bottom => Y + Height;
+    }
+
 }
