@@ -149,7 +149,7 @@
     <button @onclick="() => ResizeAllShapes(1.1)" class="btn-zoom">➕</button>
     <button @onclick="() => ResizeAllShapes(0.9)" class="btn-zoom">➖</button>
     <button @onclick="() => FitToCanvas()" class="btn-zoom">🔄 Dopasuj</button>
-    <button @onclick="RysOkna" class="btn-window">Generuj OKNO</button>
+    <button @onclick="() => RysOkna()" class="btn-window">🔥Generuj OKNO</button>
 
 </div>
 
@@ -193,6 +193,19 @@
     @onclick='() => SetTool("rounded_rect")'>
         @SvgRoundedRect()
     </button>
+
+        <button class="tool-button @(_selectedTool == "rounded_rect" ? "active" : "")"
+    @onclick='() => SetTool("rounded_rect")'>
+        @SvgRoundedRect()
+    </button>
+    <button class="tool-button @(_selectedTool == "house" ? "active" : "")"
+            @onclick='() => SetTool("house")'>
+        @SvgHouse()
+    </button>
+    <button class="tool-button @(_selectedTool == "rounded_top_rect" ? "active" : "")"
+            @onclick='() => SetTool("rounded_top_rect")'>
+        @SvgRoundedTopRect()
+    </button>
 </div>
 
 <div class="canvas-container" @ref="_container">
@@ -213,9 +226,9 @@
                     @if (!prop.IsReadOnly)
                     {
                         <input class="property-input" type="number"
-                               @bind="prop.Value"
-                               @bind:event="onchange"
-                               @bind:after="async () => await RedrawCanvas()" />
+                        @bind="prop.Value"
+                        @bind:event="onchange"
+                        @bind:after="async () => await RedrawCanvas()" />
                     }
                     else
                     {
@@ -250,7 +263,13 @@
 
     private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
 
-    public record BoundingBox(double X, double Y, double Width, double Height);
+    public record BoundingBox(double X, double Y, double Width, double Height)
+    {
+        public bool Contains(double pointX, double pointY) =>
+            pointX >= X && pointX <= X + Width &&
+            pointY >= Y && pointY <= Y + Height;
+    }
+
 
     private void SetTool(string tool) => _selectedTool = tool;
 
@@ -336,6 +355,23 @@
         </svg>");
     };
 
+    private RenderFragment SvgHouse() => builder =>
+    {
+        builder.AddMarkupContent(0, @"
+        <svg class='tool-icon' viewBox='0 0 24 24'>
+            <polygon points='12,4 20,10 20,20 4,20 4,10' stroke='black' stroke-width='2' fill='none'/>
+        </svg>");
+    };
+
+
+    private RenderFragment SvgRoundedTopRect() => builder =>
+    {
+    builder.AddMarkupContent(0, @"
+        <svg class='tool-icon' viewBox='0 0 24 24'>
+            <path d='M4 10 Q12 2, 20 10 V20 H4 Z' stroke='black' stroke-width='2' fill='none'/>
+        </svg>");
+    };
+
 
     [JSInvokable]
     public async Task HandleMouseDown(double x, double y)
@@ -391,6 +427,9 @@
             "rectangle" => new RectangleShape(_startX, _startY, _currentX - _startX, _currentY - _startY, _scaleFactor),
             "trapezoid" => new TrapezoidShape(_startX, _startY, _currentX, _currentY, 0.5, _scaleFactor),
             "rounded_rect" => new RoundedRectangleShape(_startX, _startY, _currentX - _startX, _currentY - _startY, 20, _scaleFactor),
+            "house" => new HouseShape(_startX, _startY, _currentX - _startX, _currentY - _startY, _scaleFactor),
+            "rounded_top_rect" => new RoundedTopRectangleShape(_startX, _startY, _currentX - _startX, _currentY - _startY, (_currentX - _startX) / 2, _scaleFactor),
+
             _ => throw new NotImplementedException()
         };
 
@@ -450,6 +489,13 @@
                 case "rounded_rect":
                     await DrawPreviewRoundedRect();
                     break;
+                case "house":
+                    await DrawPreviewHouse();
+                    break;
+                case "rounded_top_rect":
+                    await DrawPreviewRoundedTopRect();
+                    break;
+
             }
         }
     }
@@ -557,6 +603,66 @@
         await _ctx.StrokeAsync();
     }
 
+    private async Task DrawPreviewHouse()
+    {
+        // Reset i czyszczenie
+        _shapes.Clear();
+        await ClearCanvas();
+
+        // Zapewniamy poprawne współrzędne
+        var x = Math.Min(_startX, _currentX);
+        var y = Math.Min(_startY, _currentY);
+        var width = Math.Abs(_currentX - _startX);
+        var height = Math.Abs(_currentY - _startY);
+        var roofHeight = height * 0.5; // Dach zajmuje 50% wysokości
+
+        var baseY = y + roofHeight;
+        var roofPeakX = x + width / 2;
+        var roofPeakY = y;
+
+        await _ctx.BeginPathAsync();
+
+        // Dach (trójkąt) – zaczynamy od lewego rogu dachu
+        await _ctx.MoveToAsync(x, baseY);
+        await _ctx.LineToAsync(roofPeakX, roofPeakY);
+        await _ctx.LineToAsync(x + width, baseY);
+
+        // Podstawa (prostokąt) – rysujemy płynnie
+        await _ctx.LineToAsync(x + width, y + height);
+        await _ctx.LineToAsync(x, y + height);
+        await _ctx.LineToAsync(x, baseY);
+
+        await _ctx.ClosePathAsync();
+        await _ctx.StrokeAsync();
+    }
+
+    private async Task DrawPreviewRoundedTopRect()
+    {
+        // Reset i czyszczenie
+        _shapes.Clear();
+        await ClearCanvas();
+
+        var width = _currentX - _startX;
+        var height = _currentY - _startY;
+        var arcRadius = width / 2; // Łuk rozciąga się na całą szerokość
+
+        await _ctx.BeginPathAsync();
+
+        // Rysowanie dolnej części prostokąta
+        await _ctx.MoveToAsync(_startX, _startY + height);
+        await _ctx.LineToAsync(_startX + width, _startY + height);
+        await _ctx.LineToAsync(_startX + width, _startY + arcRadius);
+
+        // Rysowanie górnego łuku
+        await _ctx.ArcAsync(_startX + arcRadius, _startY + arcRadius, arcRadius, 0, Math.PI, true);
+
+        // Dokończenie prostokąta
+        await _ctx.LineToAsync(_startX, _startY + arcRadius);
+        await _ctx.LineToAsync(_startX, _startY + height);
+
+        await _ctx.ClosePathAsync();
+        await _ctx.StrokeAsync();
+    }
 
     private async Task ClearCanvas()
     {
@@ -636,8 +742,6 @@
         {
             return new BoundingBox(Math.Min(X1, X2), Math.Min(Y1, Y2), Math.Abs(X2 - X1), Math.Abs(Y2 - Y1));
         }
-
-
 
     }
 
@@ -771,6 +875,20 @@
             double height = maxY - minY;
 
             return new BoundingBox(minX, minY, width, height);
+        }
+
+        public List<Point> GetVertices()
+        {
+            var apexX = BaseX1 + BaseWidth / 2;
+            var apexY = BaseY - Height;
+            var baseX2 = BaseX1 + BaseWidth;
+
+            return new List<Point>
+            {
+                new Point(apexX, apexY),  // Wierzchołek trójkąta
+                new Point(baseX2, BaseY), // Prawy dolny róg podstawy
+                new Point(BaseX1, BaseY)  // Lewy dolny róg podstawy
+            };
         }
 
 
@@ -1023,6 +1141,149 @@
 
     }
 
+    public class HouseShape : IShape
+    {
+        public double X { get; set; }
+        public double Y { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
+        private double _scaleFactor;
+
+        public HouseShape(double x, double y, double width, double height, double scaleFactor)
+        {
+            X = x;
+            Y = y;
+            Width = width;
+            Height = height;
+            _scaleFactor = scaleFactor;
+        }
+
+        public async Task Draw(Canvas2DContext ctx)
+        {
+            double roofHeight = Height * 0.5;
+            double baseY = Y + roofHeight;
+            double roofPeakX = X + Width / 2;
+            double roofPeakY = Y;
+
+            await ctx.SetStrokeStyleAsync("black");
+            await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
+
+            await ctx.BeginPathAsync();
+
+            // Dach (trójkąt) – rysujemy od lewego rogu dachu
+            await ctx.MoveToAsync(X, baseY);
+            await ctx.LineToAsync(roofPeakX, roofPeakY);
+            await ctx.LineToAsync(X + Width, baseY);
+
+            // Podstawa (prostokąt) – rysujemy od prawego dolnego rogu
+            await ctx.LineToAsync(X + Width, Y + Height);
+            await ctx.LineToAsync(X, Y + Height);
+            await ctx.LineToAsync(X, baseY); // Powrót do punktu startowego
+
+            await ctx.ClosePathAsync();
+            await ctx.StrokeAsync();
+        }
+
+
+        public BoundingBox GetBoundingBox()
+        {
+            return new BoundingBox(X, Y, Width, Height);
+        }
+
+        public List<EditableProperty> GetEditableProperties() => new()
+    {
+        new EditableProperty("X", () => X, v => X = v, true),
+        new EditableProperty("Y", () => Y, v => Y = v, true),
+        new EditableProperty("Szerokość", () => Width, v => Width = v),
+        new EditableProperty("Wysokość", () => Height, v => Height = v)
+    };
+
+        public void Scale(double factor)
+        {
+            Width *= factor;
+            Height *= factor;
+        }
+
+        public void Move(double offsetX, double offsetY)
+        {
+            X += offsetX;
+            Y += offsetY;
+        }
+    }
+
+    public class RoundedTopRectangleShape : IShape
+    {
+        public double X { get; set; }
+        public double Y { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
+        public double Radius { get; set; }
+        private double _scaleFactor;
+
+        public RoundedTopRectangleShape(double x, double y, double width, double height, double radius, double scaleFactor)
+        {
+            X = x;
+            Y = y;
+            Width = width;
+            Height = height;
+            Radius = radius;
+            _scaleFactor = scaleFactor;
+        }
+
+        public async Task Draw(Canvas2DContext ctx)
+        {
+            double arcCenterX = X + Width / 2;
+            double arcCenterY = Y + Radius; // Środek łuku znajduje się na wysokości promienia
+
+            await ctx.SetStrokeStyleAsync("black");
+            await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
+
+            await ctx.BeginPathAsync();
+
+            // Dolna część prostokąta
+            await ctx.MoveToAsync(X, Y + Height);
+            await ctx.LineToAsync(X + Width, Y + Height);
+            await ctx.LineToAsync(X + Width, arcCenterY);
+
+            // Górny łuk
+            await ctx.ArcAsync(arcCenterX, arcCenterY, Radius, 0, Math.PI, true);
+
+            // Dokończenie prostokąta – BEZ GÓRNEJ LINII!
+            await ctx.LineToAsync(X, arcCenterY);
+            await ctx.LineToAsync(X, Y + Height);
+
+            await ctx.ClosePathAsync();
+            await ctx.StrokeAsync();
+        }
+
+        public BoundingBox GetBoundingBox()
+        {
+            return new BoundingBox(X, Y, Width, Height);
+        }
+
+        public List<EditableProperty> GetEditableProperties() => new()
+    {
+        new EditableProperty("X", () => X, v => X = v, true),
+        new EditableProperty("Y", () => Y, v => Y = v, true),
+        new EditableProperty("Szerokość", () => Width, v => Width = v),
+        new EditableProperty("Wysokość", () => Height, v => Height = v),
+        new EditableProperty("Promień łuku", () => Radius, v => Radius = v)
+    };
+
+        public void Scale(double factor)
+        {
+            Width *= factor;
+            Height *= factor;
+            Radius *= factor;
+        }
+
+        public void Move(double offsetX, double offsetY)
+        {
+            X += offsetX;
+            Y += offsetY;
+        }
+    }
+    
     // 🔧 KLASY EDYTOWALNYCH WŁAŚCIWOŚCI
     public record EditableProperty(string Label, Func<double> GetValue, Action<double> SetValue, bool IsReadOnly = false)
     {
@@ -1092,102 +1353,344 @@
 
     private async Task RysOkna()
     {
+        Console.WriteLine($"Sprawdzanie RysOkna -->  Start");
+
+        if (_selectedShapeIndex < 0 || _selectedShapeIndex >= _shapes.Count)
+        {
+            SelectNextShape();
+        }
+
         if (_selectedShapeIndex < 0 || _selectedShapeIndex >= _shapes.Count) return;
 
-        var windowShape = _shapes[_selectedShapeIndex];
-        var windowBox = windowShape.GetBoundingBox();
+        var closedShapes = _shapes.Where(shape => shape is not LineShape).ToList();
+        var linesToCheck = _shapes.Where(shape => shape is LineShape).Cast<LineShape>().ToList();
 
-        // Znajdź wszystkie linie znajdujące się wewnątrz okna
-        var linesInsideWindow = _shapes
-            .Where((shape, index) => index != _selectedShapeIndex && shape is LineShape)
-            .Cast<LineShape>()
-            .Where(line => IsLineInsideWindow(line, windowBox))
-            .ToList();
-
-        // Skróć każdą linię
-        foreach (var line in linesInsideWindow)
+        foreach (var line in linesToCheck)
         {
-            ShortenLineInsideWindow(line, windowBox);
+            Console.WriteLine($"Sprawdzanie linii ({line.X1}, {line.Y1}) → ({line.X2}, {line.Y2})");
+
+            foreach (var shape in closedShapes)
+            {
+                if (shape is CircleShape circle)
+                {
+                    if (IsLineInsideCircle(line, circle))
+                    {
+                        Console.WriteLine("Linia przecina okrąg – przycinanie.");
+                        ShortenLineInsideCircle(line, circle);
+                    }
+                }
+                else if (shape is TriangleShape triangle)
+                {
+                    var vertices = triangle.GetVertices();
+                    if (IsLineInsidePolygon(line, vertices))
+                    {
+                        Console.WriteLine("Linia przecina trójkąt – przycinanie.");
+                        ShortenLineInsidePolygon(line, vertices);
+                    }
+                }
+                else
+                {
+                    var shapeBox = shape.GetBoundingBox();
+                    Console.WriteLine($"Linia sprawdzana z prostokątem: {shapeBox}");
+                    ShortenLineInsideShape(line, shapeBox);
+                }
+            }
         }
 
         await RedrawCanvas();
     }
 
-    private bool IsLineInsideWindow(LineShape line, BoundingBoxX windowBox)
+    private void ShortenLineInsideCircle(LineShape line, CircleShape circle)
     {
-        // Sprawdź czy oba punkty linii znajdują się wewnątrz okna
-        return windowBox.Contains(line.X1, line.Y1) && windowBox.Contains(line.X2, line.Y2);
-    }
-
-    private void ShortenLineInsideWindow(LineShape line, BoundingBoxX windowBox)
-    {
-        // Oblicz wektor kierunkowy linii
-        double dx = line.X2 - line.X1;
-        double dy = line.Y2 - line.Y1;
-
-        // Oblicz punkty przecięcia z wszystkimi krawędziami okna
         List<Point> intersections = new List<Point>();
 
-        // Sprawdź przecięcia z każdą krawędzią okna
-        CheckEdgeIntersection(windowBox.X, windowBox.Y, windowBox.X + windowBox.Width, windowBox.Y, line, ref intersections); // Górna krawędź
-        CheckEdgeIntersection(windowBox.X + windowBox.Width, windowBox.Y, windowBox.X + windowBox.Width, windowBox.Y + windowBox.Height, line, ref intersections); // Prawa krawędź
-        CheckEdgeIntersection(windowBox.X, windowBox.Y + windowBox.Height, windowBox.X + windowBox.Width, windowBox.Y + windowBox.Height, line, ref intersections); // Dolna krawędź
-        CheckEdgeIntersection(windowBox.X, windowBox.Y, windowBox.X, windowBox.Y + windowBox.Height, line, ref intersections); // Lewa krawędź
+        // Znajdź przecięcia linii z okręgiem
+        FindCircleIntersections(circle, line, ref intersections);
 
-        // Jeśli znaleziono dokładnie 2 punkty przecięcia, skróć linię
         if (intersections.Count == 2)
         {
-            // Zachowaj oryginalny kierunek linii
-            bool isFirstPointCloserToStart =
-                Distance(line.X1, line.Y1, intersections[0].X, intersections[0].Y) <
-                Distance(line.X1, line.Y1, intersections[1].X, intersections[1].Y);
-
-            if (isFirstPointCloserToStart)
+            line.X1 = intersections[0].X;
+            line.Y1 = intersections[0].Y;
+            line.X2 = intersections[1].X;
+            line.Y2 = intersections[1].Y;
+        }
+        else if (intersections.Count == 1)
+        {
+            if (IsPointInsideCircle(line.X1, line.Y1, circle))
             {
-                line.X1 = intersections[0].X;
-                line.Y1 = intersections[0].Y;
-                line.X2 = intersections[1].X;
-                line.Y2 = intersections[1].Y;
+                line.X2 = intersections[0].X;
+                line.Y2 = intersections[0].Y;
             }
             else
             {
-                line.X1 = intersections[1].X;
-                line.Y1 = intersections[1].Y;
-                line.X2 = intersections[0].X;
-                line.Y2 = intersections[0].Y;
+                line.X1 = intersections[0].X;
+                line.Y1 = intersections[0].Y;
             }
         }
     }
 
-    private void CheckEdgeIntersection(double edgeX1, double edgeY1, double edgeX2, double edgeY2,
-                                     LineShape line, ref List<Point> intersections)
+    private bool IsLineInsidePolygon(LineShape line, List<Point> polygonVertices)
     {
-        // Oblicz przecięcie linii z krawędzią okna
-        if (FindIntersection(edgeX1, edgeY1, edgeX2, edgeY2,
-                            line.X1, line.Y1, line.X2, line.Y2,
-                            out double intersectX, out double intersectY))
+        int count = polygonVertices.Count;
+        int intersections = 0;
+
+        for (int i = 0; i < count; i++)
         {
-            // Sprawdź czy punkt przecięcia leży na obu odcinkach
-            if (IsPointOnSegment(edgeX1, edgeY1, edgeX2, edgeY2, intersectX, intersectY) &&
-                IsPointOnSegment(line.X1, line.Y1, line.X2, line.Y2, intersectX, intersectY))
+            Point p1 = polygonVertices[i];
+            Point p2 = polygonVertices[(i + 1) % count];
+
+            if (FindIntersection(p1.X, p1.Y, p2.X, p2.Y,
+                                 line.X1, line.Y1, line.X2, line.Y2,
+                                 out double ix, out double iy))
             {
-                intersections.Add(new Point(intersectX, intersectY));
+                intersections++;
+            }
+        }
+
+        return (intersections % 2) == 1; // Jeśli liczba przecięć jest nieparzysta, linia jest wewnątrz
+    }
+
+    private bool IsLineInsideCircle(LineShape line, CircleShape circle)
+    {
+        double dx = line.X2 - line.X1;
+        double dy = line.Y2 - line.Y1;
+        double fx = line.X1 - circle.X;
+        double fy = line.Y1 - circle.Y;
+
+        double a = dx * dx + dy * dy;
+        double b = 2 * (fx * dx + fy * dy);
+        double c = (fx * fx + fy * fy) - (circle.Radius * circle.Radius);
+
+        double discriminant = b * b - 4 * a * c;
+        return discriminant >= 0; // Jeśli Δ > 0, linia przecina okrąg
+    }
+
+    private void ShortenLineInsideEdges(LineShape line, List<(Point Start, Point End)> edges)
+    {
+        List<Point> intersections = new List<Point>();
+
+        foreach (var edge in edges)
+        {
+            if (FindIntersection(edge.Start.X, edge.Start.Y, edge.End.X, edge.End.Y,
+                                 line.X1, line.Y1, line.X2, line.Y2,
+                                 out double ix, out double iy))
+            {
+                intersections.Add(new Point(ix, iy));
+            }
+        }
+
+        intersections = intersections.Distinct()
+            .OrderBy(p => Distance(line.X1, line.Y1, p.X, p.Y))
+            .ToList();
+
+        if (intersections.Count == 2)
+        {
+            line.X1 = intersections[0].X;
+            line.Y1 = intersections[0].Y;
+            line.X2 = intersections[1].X;
+            line.Y2 = intersections[1].Y;
+        }
+        else if (intersections.Count == 1)
+        {
+            if (IsPointInsideEdges(line.X1, line.Y1, edges))
+            {
+                line.X2 = intersections[0].X;
+                line.Y2 = intersections[0].Y;
+            }
+            else
+            {
+                line.X1 = intersections[0].X;
+                line.Y1 = intersections[0].Y;
+            }
+        }
+    }
+
+
+    private void ShortenLineInsideShape(LineShape line, BoundingBox shapeBox)
+    {
+        List<Point> intersections = new List<Point>();
+
+        // Sprawdź przecięcia z krawędziami zamkniętego kształtu
+        CheckEdgeIntersection(shapeBox.X, shapeBox.Y, shapeBox.X + shapeBox.Width, shapeBox.Y, line, ref intersections); // Góra
+        CheckEdgeIntersection(shapeBox.X + shapeBox.Width, shapeBox.Y, shapeBox.X + shapeBox.Width, shapeBox.Y + shapeBox.Height, line, ref intersections); // Prawa
+        CheckEdgeIntersection(shapeBox.X, shapeBox.Y + shapeBox.Height, shapeBox.X + shapeBox.Width, shapeBox.Y + shapeBox.Height, line, ref intersections); // Dół
+        CheckEdgeIntersection(shapeBox.X, shapeBox.Y, shapeBox.X, shapeBox.Y + shapeBox.Height, line, ref intersections); // Lewa
+
+        intersections = intersections.Distinct()
+            .OrderBy(p => Distance(line.X1, line.Y1, p.X, p.Y))
+            .ToList();
+
+        if (intersections.Count == 2)
+        {
+            line.X1 = intersections[0].X;
+            line.Y1 = intersections[0].Y;
+            line.X2 = intersections[1].X;
+            line.Y2 = intersections[1].Y;
+        }
+        else if (intersections.Count == 1)
+        {
+            if (shapeBox.Contains(line.X1, line.Y1))
+            {
+                line.X2 = intersections[0].X;
+                line.Y2 = intersections[0].Y;
+            }
+            else
+            {
+                line.X1 = intersections[0].X;
+                line.Y1 = intersections[0].Y;
+            }
+        }
+    }
+
+    private void FindCircleIntersections(CircleShape circle, LineShape line, ref List<Point> intersections)
+    {
+        double dx = line.X2 - line.X1;
+        double dy = line.Y2 - line.Y1;
+        double fx = line.X1 - circle.X;
+        double fy = line.Y1 - circle.Y;
+
+        double a = dx * dx + dy * dy;
+        double b = 2 * (fx * dx + fy * dy);
+        double c = (fx * fx + fy * fy) - (circle.Radius * circle.Radius);
+
+        double discriminant = b * b - 4 * a * c;
+
+        if (discriminant < 0) return; // Brak przecięć
+
+        discriminant = Math.Sqrt(discriminant);
+        double t1 = (-b - discriminant) / (2 * a);
+        double t2 = (-b + discriminant) / (2 * a);
+
+        if (t1 >= 0 && t1 <= 1)
+            intersections.Add(new Point(line.X1 + t1 * dx, line.Y1 + t1 * dy));
+
+        if (t2 >= 0 && t2 <= 1)
+            intersections.Add(new Point(line.X1 + t2 * dx, line.Y1 + t2 * dy));
+    }
+
+    private bool IsPointInsideCircle(double x, double y, CircleShape circle)
+    {
+        double dx = x - circle.X;
+        double dy = y - circle.Y;
+        return (dx * dx + dy * dy) <= (circle.Radius * circle.Radius);
+    }
+
+
+    private void ShortenLineInsidePolygon(LineShape line, List<Point> polygonVertices)
+    {
+        List<Point> intersections = new List<Point>();
+
+        int count = polygonVertices.Count;
+        for (int i = 0; i < count; i++)
+        {
+            Point p1 = polygonVertices[i];
+            Point p2 = polygonVertices[(i + 1) % count];
+
+            if (FindIntersection(p1.X, p1.Y, p2.X, p2.Y, line.X1, line.Y1, line.X2, line.Y2, out double ix, out double iy))
+            {
+                intersections.Add(new Point(ix, iy));
+            }
+        }
+
+        intersections = intersections.Distinct()
+            .OrderBy(p => Distance(line.X1, line.Y1, p.X, p.Y))
+            .ToList();
+
+        if (intersections.Count == 2)
+        {
+            line.X1 = intersections[0].X;
+            line.Y1 = intersections[0].Y;
+            line.X2 = intersections[1].X;
+            line.Y2 = intersections[1].Y;
+        }
+        else if (intersections.Count == 1)
+        {
+            if (IsPointInsidePolygon(line.X1, line.Y1, polygonVertices))
+            {
+                line.X2 = intersections[0].X;
+                line.Y2 = intersections[0].Y;
+            }
+            else
+            {
+                line.X1 = intersections[0].X;
+                line.Y1 = intersections[0].Y;
+            }
+        }
+    }
+
+    private bool IsPointInsideEdges(double x, double y, List<(Point Start, Point End)> edges)
+    {
+        int intersections = 0;
+
+        foreach (var edge in edges)
+        {
+            double x1 = edge.Start.X, y1 = edge.Start.Y;
+            double x2 = edge.End.X, y2 = edge.End.Y;
+
+            // Sprawdzamy, czy pozioma linia przechodzi przez odcinek
+            if ((y1 > y) != (y2 > y))
+            {
+                double intersectX = x1 + (y - y1) * (x2 - x1) / (y2 - y1);
+                if (intersectX > x)
+                {
+                    intersections++;
+                }
+            }
+        }
+
+        return (intersections % 2) == 1; // Jeśli liczba przecięć jest nieparzysta, punkt jest wewnątrz
+    }
+
+
+    private bool IsPointInsidePolygon(double x, double y, List<Point> polygonVertices)
+    {
+        int count = polygonVertices.Count;
+        bool inside = false;
+
+        for (int i = 0, j = count - 1; i < count; j = i++)
+        {
+            double xi = polygonVertices[i].X, yi = polygonVertices[i].Y;
+            double xj = polygonVertices[j].X, yj = polygonVertices[j].Y;
+
+            bool intersect = ((yi > y) != (yj > y)) &&
+                             (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+            if (intersect)
+                inside = !inside;
+        }
+
+        return inside;
+    }
+
+
+    private void CheckEdgeIntersection(double edgeX1, double edgeY1, double edgeX2, double edgeY2,
+                                    LineShape line, ref List<Point> intersections)
+    {
+        if (FindIntersection(edgeX1, edgeY1, edgeX2, edgeY2,
+                             line.X1, line.Y1, line.X2, line.Y2,
+                             out double intersectX, out double intersectY))
+        {
+            var newPoint = new Point(intersectX, intersectY);
+            if (!intersections.Any(p => Math.Abs(p.X - newPoint.X) < 0.001 && Math.Abs(p.Y - newPoint.Y) < 0.001))
+            {
+                intersections.Add(newPoint);
             }
         }
     }
 
     private bool FindIntersection(double aX1, double aY1, double aX2, double aY2,
-                                 double bX1, double bY1, double bX2, double bY2,
-                                 out double x, out double y)
+                               double bX1, double bY1, double bX2, double bY2,
+                               out double x, out double y)
     {
         x = 0;
         y = 0;
 
         double d = (aX1 - aX2) * (bY1 - bY2) - (aY1 - aY2) * (bX1 - bX2);
-        if (d == 0) return false; // Linie równoległe
+        if (Math.Abs(d) < 0.001) return false; // Linie równoległe
 
         double t = ((aX1 - bX1) * (bY1 - bY2) - (aY1 - bY1) * (bX1 - bX2)) / d;
         double u = -((aX1 - aX2) * (aY1 - bY1) - (aY1 - aY2) * (aX1 - bX1)) / d;
+
+        if (t < 0 || t > 1 || u < 0 || u > 1) return false; // Punkt przecięcia poza odcinkami
 
         x = aX1 + t * (aX2 - aX1);
         y = aY1 + t * (aY2 - aY1);
@@ -1221,37 +1724,6 @@
         public double X { get; set; }
         public double Y { get; set; }
         public Point(double x, double y) { X = x; Y = y; }
-    }
-
-    public struct BoundingBoxX
-    {
-        public double X { get; set; }
-        public double Y { get; set; }
-        public double Width { get; set; }
-        public double Height { get; set; }
-
-        public BoundingBoxX(double x, double y, double width, double height)
-        {
-            X = x;
-            Y = y;
-            Width = width;
-            Height = height;
-        }
-
-        // Dodajemy metodę Contains
-        public bool Contains(double pointX, double pointY)
-        {
-            return pointX >= X &&
-                   pointX <= X + Width &&
-                   pointY >= Y &&
-                   pointY <= Y + Height;
-        }
-
-        // Dodatkowe przydatne metody
-        public double Left => X;
-        public double Right => X + Width;
-        public double Top => Y;
-        public double Bottom => Y + Height;
     }
 
 }
