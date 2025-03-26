@@ -5,104 +5,104 @@
 
 <style>
     .toolbar {
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-        padding: 10px;
-        background: #f4f4f4;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px;
+    background: #f4f4f4;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
 
     .tool-button {
-        background: #ffffff;
-        border: 2px solid #ddd;
-        padding: 10px;
-        cursor: pointer;
-        border-radius: 6px;
-        transition: 0.3s;
-        width: 50px;
-        height: 50px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    background: #ffffff;
+    border: 2px solid #ddd;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: 0.3s;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     }
 
-        .tool-button:hover {
-            background: #e0e0e0;
-        }
+    .tool-button:hover {
+    background: #e0e0e0;
+    }
 
-        .tool-button.active {
-            background: #007bff;
-            color: white;
-            border-color: #0056b3;
-        }
+    .tool-button.active {
+    background: #007bff;
+    color: white;
+    border-color: #0056b3;
+    }
 
     .canvas-container {
-        position: relative;
-        border: 3px solid #001;
-        width: @(_canvasX + "px");
-        height: @(_canvasY + "px");
-        margin: 20px auto;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background: #fff;
-        overflow: auto;
+    position: relative;
+    border: 3px solid #001;
+    width: @(_canvasX + "px");
+    height: @(_canvasY + "px");
+    margin: 20px auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #fff;
+    overflow: auto;
     }
 
 
     canvas {
-        display: block;
-        max-width: 100%;
-        max-height: 100%;
-        background-color: transparent;
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    background-color: transparent;
     }
 
 
     .tool-icon {
-        width: 24px;
-        height: 24px;
-        fill: black;
+    width: 24px;
+    height: 24px;
+    fill: black;
     }
 
     .tool-button.active .tool-icon {
-        fill: white;
+    fill: white;
     }
 
     .property-panel {
-        margin-top: 15px;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        background-color: #f9f9f9;
+    margin-top: 15px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f9f9f9;
     }
 
     .property-row {
-        display: flex;
-        margin-bottom: 8px;
-        align-items: center;
+    display: flex;
+    margin-bottom: 8px;
+    align-items: center;
     }
 
     .property-label {
-        width: 100px;
-        font-weight: bold;
+    width: 100px;
+    font-weight: bold;
     }
 
     .property-input {
-        padding: 4px 8px;
-        border: 1px solid #ccc;
-        border-radius: 3px;
-        width: 180px;
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    width: 180px;
     }
 
     .zoom-controls {
-        position: absolute;
-        top: 170px; /* Ustawienie 10px od góry */
-        right: 10px; /* Ustawienie 10px od prawej */
-        display: flex;
-        gap: 10px; /* Odstęp między przyciskami */
-        z-index: 1000; /* Upewnia się, że są na wierzchu */
+    position: absolute;
+    top: 170px; /* Ustawienie 10px od góry */
+    right: 10px; /* Ustawienie 10px od prawej */
+    display: flex;
+    gap: 10px; /* Odstęp między przyciskami */
+    z-index: 1000; /* Upewnia się, że są na wierzchu */
     }
 </style>
 
@@ -155,60 +155,60 @@
 
 <div class="toolbar">
     <button class="tool-button @(_selectedTool == "line" ? "active" : "")"
-            @onclick='() => SetTool("line")'>
+    @onclick='() => SetTool("line")'>
         @SvgLine()
     </button>
 
     <button class="tool-button @(_selectedTool == "line_hv" ? "active" : "")"
-            @onclick='() => SetTool("line_hv")'>
+    @onclick='() => SetTool("line_hv")'>
         @SvgLineHV()
     </button>
 
     <button class="tool-button @(_selectedTool == "triangle" ? "active" : "")"
-            @onclick='() => SetTool("triangle")'>
+    @onclick='() => SetTool("triangle")'>
         @SvgTriangle()
     </button>
 
     <button class="tool-button @(_selectedTool == "circle" ? "active" : "")"
-            @onclick='() => SetTool("circle")'>
+    @onclick='() => SetTool("circle")'>
         @SvgCircle()
     </button>
 
     <button class="tool-button @(_selectedTool == "square" ? "active" : "")"
-            @onclick='() => SetTool("square")'>
+    @onclick='() => SetTool("square")'>
         @SvgSquare()
     </button>
 
     <button class="tool-button @(_selectedTool == "rectangle" ? "active" : "")"
-            @onclick='() => SetTool("rectangle")'>
+    @onclick='() => SetTool("rectangle")'>
         @SvgRectangle()
     </button>
 
     <button class="tool-button @(_selectedTool == "trapezoidLeft" ? "active" : "")"
-            @onclick='() => SetTool("trapezoidLeft")'>
+    @onclick='() => SetTool("trapezoidLeft")'>
         @SvgTrapezoidLeft()
     </button>
 
     <button class="tool-button @(_selectedTool == "trapezoidRight" ? "active" : "")"
-            @onclick='() => SetTool("trapezoidRight")'>
+    @onclick='() => SetTool("trapezoidRight")'>
         @SvgTrapezoidRight()
     </button>
 
     <button class="tool-button @(_selectedTool == "trapezoid" ? "active" : "")"
-            @onclick='() => SetTool("trapezoid")'>
+    @onclick='() => SetTool("trapezoid")'>
         @SvgTrapezoid()
     </button>
 
     <button class="tool-button @(_selectedTool == "rounded_rect" ? "active" : "")"
-            @onclick='() => SetTool("rounded_rect")'>
+    @onclick='() => SetTool("rounded_rect")'>
         @SvgRoundedRect()
     </button>
     <button class="tool-button @(_selectedTool == "house" ? "active" : "")"
-            @onclick='() => SetTool("house")'>
+    @onclick='() => SetTool("house")'>
         @SvgHouse()
     </button>
     <button class="tool-button @(_selectedTool == "rounded_top_rect" ? "active" : "")"
-            @onclick='() => SetTool("rounded_top_rect")'>
+    @onclick='() => SetTool("rounded_top_rect")'>
         @SvgRoundedTopRect()
     </button>
 </div>
@@ -231,9 +231,9 @@
                     @if (!prop.IsReadOnly)
                     {
                         <input class="property-input" type="number"
-                               @bind="prop.Value"
-                               @bind:event="onchange"
-                               @bind:after="async () => await RedrawCanvas()" />
+                        @bind="prop.Value"
+                        @bind:event="onchange"
+                        @bind:after="async () => await RedrawCanvas()" />
                     }
                     else
                     {
@@ -532,6 +532,7 @@
         // Reset i czyszczenie
         _shapes.Clear();
         await ClearCanvas();
+        await _ctx.SetStrokeStyleAsync("black");
 
         var size = Math.Max(Math.Abs(_currentX - _startX), Math.Abs(_currentY - _startY));
         await _ctx.BeginPathAsync();
@@ -544,6 +545,7 @@
         // Reset i czyszczenie
         _shapes.Clear();
         await ClearCanvas();
+        await _ctx.SetStrokeStyleAsync("black");
 
         await _ctx.BeginPathAsync();
         await _ctx.RectAsync(_startX, _startY, _currentX - _startX, _currentY - _startY);
@@ -555,6 +557,7 @@
         // Reset i czyszczenie
         _shapes.Clear();
         await ClearCanvas();
+        await _ctx.SetStrokeStyleAsync("black");
 
         // Oblicz środkowy punkt podstawy
         var baseCenterX = (_startX + _currentX) / 2;
@@ -574,6 +577,7 @@
         // Reset i czyszczenie
         _shapes.Clear();
         await ClearCanvas();
+        await _ctx.SetStrokeStyleAsync("black");
 
         var topWidthFactor = 0.6; // Możesz dodać parametr do kontroli
         var topX1 = _startX + (_currentX - _startX) * (1 - topWidthFactor) / 2;
@@ -593,6 +597,7 @@
         // Reset i czyszczenie
         _shapes.Clear();
         await ClearCanvas();
+        await _ctx.SetStrokeStyleAsync("black");
 
         var topWidthFactor = 0.6; // Możesz dodać parametr do kontroli
         var topX1 = _startX;// + (_currentX - _startX) * (1 - topWidthFactor) / 2;
@@ -612,6 +617,7 @@
         // Reset i czyszczenie
         _shapes.Clear();
         await ClearCanvas();
+        await _ctx.SetStrokeStyleAsync("black");
 
         var topWidthFactor = 0.6; // Możesz dodać parametr do kontroli
         var topX1 = _startX + (_currentX - _startX) * (1 - topWidthFactor) / 2;
@@ -630,6 +636,7 @@
         // Reset i czyszczenie
         _shapes.Clear();
         await ClearCanvas();
+        await _ctx.SetStrokeStyleAsync("black");
 
         var radius = 20; // Możesz dodać parametr do kontroli
         var width = _currentX - _startX;
@@ -649,6 +656,7 @@
 
     private async Task DrawPreviewLine()
     {
+        await _ctx.SetStrokeStyleAsync("red");
         await _ctx.BeginPathAsync();
         await _ctx.MoveToAsync(_startX, _startY);
         await _ctx.LineToAsync(_currentX, _currentY);
@@ -659,6 +667,7 @@
     {
         // Reset i czyszczenie
         _shapes.Clear();
+        await _ctx.SetStrokeStyleAsync("black");
         await ClearCanvas();
 
         var radius = CalculateRadius();
@@ -868,7 +877,6 @@
             return new BoundingBox(X, Y, Width, Height);
         }
 
-
     }
 
     // /\ Klasa prostokąta (TriangleShape)
@@ -958,6 +966,19 @@
             };
         }
 
+        public List<(Point Start, Point End)> GetEdges()
+        {
+            var apexX = BaseX1 + BaseWidth / 2;
+            var apexY = BaseY - Height;
+            var baseX2 = BaseX1 + BaseWidth;
+
+            return new List<(Point, Point)>
+            {
+                (new Point(apexX, apexY), new Point(baseX2, BaseY)), // Dolna krawędź
+                (new Point(baseX2, BaseY), new Point(BaseX1, BaseY) ), // Lewa ściana
+                (new Point(BaseX1, BaseY) , new Point(apexX, apexY)) // Prawa ściana
+            };
+        }
     }
 
     // ⬛ Klasa kwadratu (Square)
@@ -1205,15 +1226,39 @@
             var topRight = topLeft + TopWidth;
             var verticalY = Y + Height;
 
-            return new List<(Point, Point)>
-    {
-        (new Point(topLeft, Y), new Point(topRight, Y)),         // Górna krawędź trapezu
-        (new Point(topRight, Y), new Point(baseRight, verticalY)), // Prawa skośna krawędź
-        (new Point(baseRight, verticalY), new Point(baseLeft, verticalY)), // Dolna krawędź
-        (new Point(baseLeft, verticalY), new Point(topLeft, Y))  // Lewa skośna krawędź
-    };
-        }
+            if (Typ == 0)
+            {
+                return new List<(Point, Point)>
+        {
+            (new Point(topLeft, Y), new Point(topRight, Y)),         // Górna krawędź trapezu
+            (new Point(topRight, Y), new Point(baseRight, verticalY)), // Prawa skośna krawędź
+            (new Point(baseRight, verticalY), new Point(baseLeft, verticalY)), // Dolna krawędź
+            (new Point(baseLeft, verticalY), new Point(topLeft, Y))  // Lewa skośna krawędź
+        };
+            }
+            else if (Typ == 1)
+            {
+                return new List<(Point, Point)>
+        {
+            (new Point(baseLeft, Y), new Point(topRight, Y)),        // Górna krawędź trapezu
+            (new Point(topRight, Y), new Point(baseRight, verticalY)), // Prawa skośna krawędź
+            (new Point(baseRight, verticalY), new Point(baseLeft, verticalY)), // Dolna krawędź
+            (new Point(baseLeft, verticalY), new Point(baseLeft, Y))  // Lewa pionowa krawędź
+        };
+            }
+            else if (Typ == 2)
+            {
+                return new List<(Point, Point)>
+        {
+            (new Point(topLeft, Y), new Point(baseRight, Y)),         // Górna krawędź trapezu
+            (new Point(baseRight, Y), new Point(baseRight, verticalY)), // Prawa pionowa krawędź
+            (new Point(baseRight, verticalY), new Point(baseLeft, verticalY)), // Dolna krawędź
+            (new Point(baseLeft, verticalY), new Point(topLeft, Y))  // Lewa skośna krawędź
+        };
+            }
 
+            return new List<(Point, Point)>();
+        }
 
     }
 
@@ -1337,7 +1382,7 @@
             Y += offsetY;
         }
 
-       public List<(Point Start, Point End)> GetEdges()
+        public List<(Point Start, Point End)> GetEdges()
         {
             double roofHeight = Height * 0.5;
             double baseY = Y + roofHeight;
@@ -1562,12 +1607,20 @@
                     if (IsLineInsideCircle(line, circle))
                     {
                         Console.WriteLine("Linia przecina okrąg – przycinanie.");
+
+                        // var edges = circle.GetEdges();
+                        // RemoveLinesOutsideShape(linesToCheck, edges);
+
                         ShortenLineInsideCircle(line, circle);
                     }
                 }
                 else if (shape is TriangleShape triangle)
                 {
                     var vertices = triangle.GetVertices();
+
+                    var edges = triangle.GetEdges();
+                    RemoveLinesOutsideShape(linesToCheck, edges);
+
                     List<Point> intersections = GetLinePolygonIntersections(line, vertices);
 
                     if (intersections.Count >= 2)
@@ -1582,12 +1635,15 @@
 
                     var (roofVertices, houseVertices) = house.GetVertices();
 
+                    var edges = house.GetEdges();
+                    RemoveLinesOutsideShape(linesToCheck, edges);
+
                     // Sprawdzamy przecięcia z dachem (tylko jeśli linia przecina skosy)
                     List<Point> roofIntersections = GetLinePolygonIntersections(line, roofVertices);
                     if (roofIntersections.Count >= 2)
                     {
                         Console.WriteLine("Przycinanie linii dla dowolnego kształtu.");
-                        var edges = house.GetEdges();
+       
                         ShortenLineToShape(line, edges);
                     }
 
@@ -1601,15 +1657,32 @@
                     Console.WriteLine("Linia przecina RoundedTopRectangleShape – przycinanie.");
 
                     var edges = roundedRect.GetEdges();
+
+                    RemoveLinesOutsideShape(linesToCheck, edges);
+
                     Point arcCenter = new Point(roundedRect.X + roundedRect.Width / 2, roundedRect.Y + roundedRect.Radius);
                     ShortenLineInsideEdges(line, edges, arcCenter, roundedRect.Radius);
                 }
-                else
+                else if (shape is TrapezoidShape trapShepae)
                 {
-                    // var edges = closedShapes.GetEdges(); // To zrobić uniwersalne
-                    // ShortenLineToShape(line, edges);
+                    var edges = trapShepae.GetEdges(); // To zrobić uniwersalne
+
+                    RemoveLinesOutsideShape(linesToCheck, edges);
+
+                    ShortenLineToShape(line, edges);
 
                     var shapeBox = shape.GetBoundingBox();
+                    Console.WriteLine($"Linia sprawdzana z prostokątem: {shapeBox}");
+                    ShortenLineInsideShape(line, shapeBox);
+                }
+                else
+                    {
+      
+                    var shapeBox = shape.GetBoundingBox();
+
+                    // var edges = shapeBox.GetEdges(); // To zrobić uniwersalne
+                    // RemoveLinesOutsideShape(linesToCheck, edges);
+
                     Console.WriteLine($"Linia sprawdzana z prostokątem: {shapeBox}");
                     ShortenLineInsideShape(line, shapeBox);
                 }
@@ -1947,6 +2020,30 @@
             Console.WriteLine("Brak przecięć – linia pozostaje bez zmian.");
         }
     }
+
+    public void RemoveLinesOutsideShape(List<LineShape> lines, List<(Point Start, Point End)> edges)
+    {
+
+        // List<Point> polygonVertices = edges
+        //     .SelectMany(e => new[] { e.Start, e.End })
+        //     .Distinct()
+        //     .ToList();
+
+        // lines.RemoveAll(line =>
+        // {
+        //     bool startInside = IsPointInsidePolygon(line.X1, line.Y1, polygonVertices);
+        //     bool endInside = IsPointInsidePolygon(line.X2, line.Y2, polygonVertices);
+
+        //     if (!startInside && !endInside)
+        //     {
+        //         Console.WriteLine($"Linia ({line.X1}, {line.Y1}) → ({line.X2}, {line.Y2}) jest poza kształtem i zostaje usunięta.");
+        //         return true; // Usuń linię, jeśli oba punkty są na zewnątrz
+        //     }
+
+        //     return false; // Zachowaj linię, jeśli choć jeden punkt jest wewnątrz
+        // });
+    }
+
  
     private void ShortenLineInsidePolygon(LineShape line, List<Point> polygonVertices)
     {
