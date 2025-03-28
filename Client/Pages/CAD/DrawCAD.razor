@@ -877,6 +877,12 @@
             return new BoundingBox(X, Y, Width, Height);
         }
 
+        public RectangleShape ToRectangleShape()
+        {
+            return new RectangleShape(X, Y, Width, Height, _scaleFactor);
+        }
+
+
     }
 
     // /\ Klasa prostokąta (TriangleShape)
@@ -1029,6 +1035,11 @@
         public BoundingBox GetBoundingBox()
         {
             return new BoundingBox(X, Y, Size, Size);
+        }
+
+        public RectangleShape ToRectangleShape()
+        {
+            return new RectangleShape(X, Y, Size, Size, _scaleFactor);
         }
 
 
@@ -1260,6 +1271,24 @@
             return new List<(Point, Point)>();
         }
 
+        public List<Point> GetVertices()
+        {
+            var baseLeft = X;
+            var baseRight = X + BaseWidth;
+            var topLeft = X + (BaseWidth - TopWidth) / 2;
+            var topRight = topLeft + TopWidth;
+            var verticalY = Y + Height;
+
+            return new List<Point>
+        {
+            new Point(topLeft, Y),
+            new Point(baseRight, Y),
+            new Point(baseRight, verticalY),
+            new Point(baseLeft, verticalY),
+             new Point(topLeft, Y)
+             // Do sprawdzenia czy działa
+        };
+        }
     }
 
     // 🟢 KLASA KOŁA
@@ -1596,6 +1625,11 @@
         var closedShapes = _shapes.Where(shape => shape is not LineShape).ToList();
         var linesToCheck = _shapes.Where(shape => shape is LineShape).Cast<LineShape>().ToList();
 
+
+        RemoveLinesOutsideShapes();
+
+        linesToCheck = _shapes.Where(shape => shape is LineShape).Cast<LineShape>().ToList();
+
         foreach (var line in linesToCheck)
         {
             Console.WriteLine($"Sprawdzanie linii ({line.X1}, {line.Y1}) → ({line.X2}, {line.Y2})");
@@ -1608,8 +1642,7 @@
                     {
                         Console.WriteLine("Linia przecina okrąg – przycinanie.");
 
-                        // var edges = circle.GetEdges();
-                        // RemoveLinesOutsideShape(linesToCheck, edges);
+
 
                         ShortenLineInsideCircle(line, circle);
                     }
@@ -1619,7 +1652,6 @@
                     var vertices = triangle.GetVertices();
 
                     var edges = triangle.GetEdges();
-                    RemoveLinesOutsideShape(linesToCheck, edges);
 
                     List<Point> intersections = GetLinePolygonIntersections(line, vertices);
 
@@ -1636,14 +1668,13 @@
                     var (roofVertices, houseVertices) = house.GetVertices();
 
                     var edges = house.GetEdges();
-                    RemoveLinesOutsideShape(linesToCheck, edges);
 
                     // Sprawdzamy przecięcia z dachem (tylko jeśli linia przecina skosy)
                     List<Point> roofIntersections = GetLinePolygonIntersections(line, roofVertices);
                     if (roofIntersections.Count >= 2)
                     {
                         Console.WriteLine("Przycinanie linii dla dowolnego kształtu.");
-       
+
                         ShortenLineToShape(line, edges);
                     }
 
@@ -1658,16 +1689,12 @@
 
                     var edges = roundedRect.GetEdges();
 
-                    RemoveLinesOutsideShape(linesToCheck, edges);
-
                     Point arcCenter = new Point(roundedRect.X + roundedRect.Width / 2, roundedRect.Y + roundedRect.Radius);
                     ShortenLineInsideEdges(line, edges, arcCenter, roundedRect.Radius);
                 }
                 else if (shape is TrapezoidShape trapShepae)
                 {
                     var edges = trapShepae.GetEdges(); // To zrobić uniwersalne
-
-                    RemoveLinesOutsideShape(linesToCheck, edges);
 
                     ShortenLineToShape(line, edges);
 
@@ -1676,12 +1703,11 @@
                     ShortenLineInsideShape(line, shapeBox);
                 }
                 else
-                    {
-      
+                {
+
                     var shapeBox = shape.GetBoundingBox();
 
                     // var edges = shapeBox.GetEdges(); // To zrobić uniwersalne
-                    // RemoveLinesOutsideShape(linesToCheck, edges);
 
                     Console.WriteLine($"Linia sprawdzana z prostokątem: {shapeBox}");
                     ShortenLineInsideShape(line, shapeBox);
@@ -2021,30 +2047,143 @@
         }
     }
 
-    public void RemoveLinesOutsideShape(List<LineShape> lines, List<(Point Start, Point End)> edges)
+    public void RemoveLinesOutsideShapes()
     {
+        Console.WriteLine("Start RemoveLinesOutsideShapes");
 
-        // List<Point> polygonVertices = edges
-        //     .SelectMany(e => new[] { e.Start, e.End })
-        //     .Distinct()
-        //     .ToList();
+        if (_shapes == null || !_shapes.Any())
+        {
+            Console.WriteLine("Kolekcja _shapes jest pusta!");
+            return;
+        }
 
-        // lines.RemoveAll(line =>
-        // {
-        //     bool startInside = IsPointInsidePolygon(line.X1, line.Y1, polygonVertices);
-        //     bool endInside = IsPointInsidePolygon(line.X2, line.Y2, polygonVertices);
+        // Pobierz wszystkie linie
+        var linesToCheck = _shapes.OfType<LineShape>().ToList();
 
-        //     if (!startInside && !endInside)
-        //     {
-        //         Console.WriteLine($"Linia ({line.X1}, {line.Y1}) → ({line.X2}, {line.Y2}) jest poza kształtem i zostaje usunięta.");
-        //         return true; // Usuń linię, jeśli oba punkty są na zewnątrz
-        //     }
+        // Pobierz wszystkie zamknięte kształty i ich krawędzie
+        var shapesWithEdges = _shapes
+            .Where(shape => shape is not LineShape)
+            .Select(shape => new
+            {
+                Shape = shape,
+                Edges = GetShapeEdges(shape) // Pobierz krawędzie kształtu
+            })
+            .ToList();
 
-        //     return false; // Zachowaj linię, jeśli choć jeden punkt jest wewnątrz
-        // });
+        // Lista linii do usunięcia
+        var linesToRemove = new List<LineShape>();
+
+        foreach (var line in linesToCheck)
+        {
+            bool isOutsideAllShapes = true;
+
+            foreach (var shapeWithEdges in shapesWithEdges)
+            {
+                var polygonVertices = shapeWithEdges.Edges
+                    .SelectMany(e => new[] { e.Start, e.End })
+                    .Distinct()
+                    .ToList();
+
+                bool startInside = IsPointInsidePolygon(line.X1, line.Y1, polygonVertices);
+                bool endInside = IsPointInsidePolygon(line.X2, line.Y2, polygonVertices);
+
+                if (startInside || endInside)
+                {
+                    isOutsideAllShapes = false;
+                    break;
+                }
+            }
+
+            if (isOutsideAllShapes)
+            {
+                Console.WriteLine($"Linia ({line.X1}, {line.Y1}) → ({line.X2}, {line.Y2}) jest poza wszystkimi kształtami.");
+                linesToRemove.Add(line);
+            }
+        }
+
+        // Usuń linie z głównej kolekcji
+        foreach (var line in linesToRemove)
+        {
+            _shapes.Remove(line);
+        }
+
+        Console.WriteLine($"Usunięto {linesToRemove.Count} linii");
     }
 
- 
+    private List<(Point Start, Point End)> GetShapeEdges(IShape shape)
+    {
+        // Implementacja zależna od typu kształtu
+        switch (shape)
+        {
+            case CircleShape circle:
+                return circle.GetEdgesAsPolygon(); // Przybliżenie okręgu 32-bokowym wielokątem
+            case RectangleShape rect:
+                return rect.GetEdges();
+            case TriangleShape triangle:
+                return triangle.GetEdges();
+            // Dodaj inne typy kształtów
+            default:
+                return shape.GetBoundingBox().GetEdges();
+        }
+    }
+
+    // public void RemoveLinesOutsideShape(List<LineShape> lines, List<(Point Start, Point End)> edges)
+    // {
+
+    //     List<Point> polygonVertices = edges
+    //         .SelectMany(e => new[] { e.Start, e.End })
+    //         .Distinct()
+    //         .ToList();
+
+    //     lines.RemoveAll(line =>
+    //     {
+    //         bool startInside = IsPointInsidePolygon(line.X1, line.Y1, polygonVertices);
+    //         bool endInside = IsPointInsidePolygon(line.X2, line.Y2, polygonVertices);
+
+    //         if (!startInside && !endInside)
+    //         {
+    //             Console.WriteLine($"Linia ({line.X1}, {line.Y1}) → ({line.X2}, {line.Y2}) jest poza kształtem i zostaje usunięta.");
+    //             return true; // Usuń linię, jeśli oba punkty są na zewnątrz
+    //         }
+
+    //         return false; // Zachowaj linię, jeśli choć jeden punkt jest wewnątrz
+    //     });
+    // }
+
+    private bool IsPointInsideAnyShape(double x, double y, List<object> shapes)
+    {
+        foreach (var shape in shapes)
+        {
+            if (shape is CircleShape circle && IsPointInsideCircle(x, y, circle))
+                return true;
+
+            if (shape is TriangleShape triangle && IsPointInsidePolygon(x, y, triangle.GetVertices()))
+                return true;
+
+            if (shape is SquareShape square && IsPointInsideRectangle(x, y, square.ToRectangleShape()))
+                return true;
+
+            if (shape is RectangleShape rectangle && IsPointInsideRectangle(x, y, rectangle.ToRectangleShape()))
+                return true;
+
+            if (shape is TrapezoidShape trapezoid && IsPointInsidePolygon(x, y, trapezoid.GetVertices()))
+                return true;
+
+            if (shape is HouseShape house)
+            {
+                var (roof, walls) = house.GetVertices();
+                if (IsPointInsidePolygon(x, y, roof) || IsPointInsidePolygon(x, y, walls))
+                    return true;
+            }
+
+            if (shape is RoundedTopRectangleShape roundedRect && IsPointInsideRoundedRectangle(x, y, roundedRect))
+                return true;
+        }
+
+        return false; // Jeśli żaden kształt nie zawiera punktu
+    }
+
+
     private void ShortenLineInsidePolygon(LineShape line, List<Point> polygonVertices)
     {
         List<Point> intersections = new List<Point>();
@@ -2170,6 +2309,54 @@
         return (intersections % 2) == 1; // Jeśli liczba przecięć jest nieparzysta, punkt jest wewnątrz
     }
 
+    private bool IsPointInsideRoundedRectangle(double x, double y, RoundedTopRectangleShape rect)
+    {
+        return IsPointInsideRoundedRectangle(x, y, new RoundedRectangleShape(rect.X, rect.Y, rect.Width, rect.Height, rect.Radius, _scaleFactor));
+    }
+
+
+    private bool IsPointInsideRoundedRectangle(double x, double y, RoundedRectangleShape rect)
+    {
+        // Pobieramy wymiary prostokąta i promień zaokrąglenia
+        double left = rect.X;
+        double top = rect.Y;
+        double right = rect.X + rect.Width;
+        double bottom = rect.Y + rect.Height;
+        double radius = rect.Radius;
+
+        // Sprawdzenie, czy punkt znajduje się w prostokątnej części (bez zaokrągleń)
+        if (x >= left + radius && x <= right - radius &&
+            y >= top && y <= bottom)
+        {
+            return true;
+        }
+
+        if (x >= left && x <= right &&
+            y >= top + radius && y <= bottom - radius)
+        {
+            return true;
+        }
+
+        // Sprawdzenie, czy punkt znajduje się w jednym z czterech zaokrąglonych rogów
+        return IsPointInsideCircle(x, y, left + radius, top + radius, radius) ||  // Lewy górny róg
+               IsPointInsideCircle(x, y, right - radius, top + radius, radius) || // Prawy górny róg
+               IsPointInsideCircle(x, y, left + radius, bottom - radius, radius) || // Lewy dolny róg
+               IsPointInsideCircle(x, y, right - radius, bottom - radius, radius);  // Prawy dolny róg
+    }
+
+    // Pomocnicza funkcja sprawdzająca, czy punkt znajduje się wewnątrz okręgu
+    private bool IsPointInsideCircle(double px, double py, double cx, double cy, double radius)
+    {
+        return Math.Pow(px - cx, 2) + Math.Pow(py - cy, 2) <= Math.Pow(radius, 2);
+    }
+
+
+    private bool IsPointInsideRectangle(double x, double y, RectangleShape rectangle)
+    {
+        var bbox = rectangle.GetBoundingBox(); // Powinno zwracać strukturalne dane o prostokącie
+        return x >= bbox.X && x <= (bbox.X + bbox.Width) &&
+               y >= bbox.Y && y <= (bbox.Y + bbox.Height);
+    }
 
     private bool IsPointInsidePolygon(double x, double y, List<Point> polygonVertices)
     {
