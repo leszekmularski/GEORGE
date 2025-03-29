@@ -57,34 +57,34 @@
     const zoomFactor = 1.1; // 🔥 O ile zmieniamy skalę (10%)
 
     function zoomInSvg() {
-        console.log("🔍 Powiększam rysunek SVG!");
-        zoomLevel *= zoomFactor;
-        updateSvgZoom();
+    console.log("🔍 Powiększam rysunek SVG!");
+    zoomLevel *= zoomFactor;
+    updateSvgZoom();
     }
 
     function zoomOutSvg() {
-        console.log("🔎 Pomniejszam rysunek SVG!");
-        zoomLevel /= zoomFactor;
-        updateSvgZoom();
+    console.log("🔎 Pomniejszam rysunek SVG!");
+    zoomLevel /= zoomFactor;
+    updateSvgZoom();
     }
 
     function updateSvgZoom() {
-        let svgContainer = document.querySelector(".scaled-svg");
-        let svg = svgContainer.querySelector("svg");
+    let svgContainer = document.querySelector(".scaled-svg");
+    let svg = svgContainer.querySelector("svg");
 
-        if (!svg) {
-            console.error("❌ Nie znaleziono rysunku SVG!");
-            return;
-        }
+    if (!svg) {
+    console.error("❌ Nie znaleziono rysunku SVG!");
+    return;
+    }
 
-        // 🔥 Skalowanie poprzez `transform: scale()`
-        svg.style.transform = `scale(${zoomLevel})`;
-        svg.style.transformOrigin = "center";
+    // 🔥 Skalowanie poprzez `transform: scale()`
+    svg.style.transform = `scale(${zoomLevel})`;
+    svg.style.transformOrigin = "center";
 
-        console.log(`✅ Nowy poziom zoomu: ${zoomLevel}`);
+    console.log(`✅ Nowy poziom zoomu: ${zoomLevel}`);
 
-        // 🔄 Aktualizacja wartości prowadnic
-        updateGuideValues();
+    // 🔄 Aktualizacja wartości prowadnic
+    updateGuideValues();
     }
 
     function enableDrag() {
@@ -225,7 +225,7 @@
 
     let li = document.createElement("li");
     li.innerHTML = `<span style="background-color:${color}; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>
-    ${displayName}: ${verticalGuides[id]}px`;
+    ${displayName}: ${parseFloat(verticalGuides[id].toFixed(2))}px`;
     verticalList.appendChild(li);
     });
 
@@ -239,11 +239,10 @@
 
     let li = document.createElement("li");
     li.innerHTML = `<span style="background-color:${color}; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>
-    ${displayName}: ${flippedY}px`;
+    ${displayName}: ${parseFloat(flippedY.toFixed(2))}px`;
     horizontalList.appendChild(li);
     });
     }
-
 
     function stopDrag() {
     if (draggedLine) {
@@ -300,7 +299,6 @@
     console.warn("⚠️ Kliknięto w element, który nie jest linią, łukiem ani okręgiem.");
     }
     }
-
 
     function rotateSvgElements() {
     console.log("🔄 Obracam cały obiekt SVG (bez prowadnic) o 90 stopni!");
@@ -365,47 +363,47 @@
     }
 
     function updateTransform(dx, dy) {
-        let group = document.getElementById("rotate-group");
-        if (!group) {
-            console.error("❌ Nie znaleziono grupy <g id='rotate-group'>! Sprawdź, czy jest w SVG.");
-            return;
-        }
+    let group = document.getElementById("rotate-group");
+    if (!group) {
+    console.error("❌ Nie znaleziono grupy <g id='rotate-group'>! Sprawdź, czy jest w SVG.");
+    return;
+    }
 
-        let currentTransform = group.getAttribute("transform") || "translate(0, 0)";
-        let match = currentTransform.match(/translate\((-?\d+\.?\d*),\s*(-?\d+\.?\d*)\)/);
+    let currentTransform = group.getAttribute("transform") || "translate(0, 0)";
+    let match = currentTransform.match(/translate\((-?\d+\.?\d*),\s*(-?\d+\.?\d*)\)/);
 
-        let currentX = match ? parseFloat(match[1]) : 0;
-        let currentY = match ? parseFloat(match[2]) : 0;
+    let currentX = match ? parseFloat(match[1]) : 0;
+    let currentY = match ? parseFloat(match[2]) : 0;
 
-        // Nowa transformacja
-        let newTransform = `translate(${currentX + dx}, ${currentY + dy})`;
-        group.setAttribute("transform", newTransform);
+    // Nowa transformacja
+    let newTransform = `translate(${currentX + dx}, ${currentY + dy})`;
+    group.setAttribute("transform", newTransform);
 
-        console.log(`✅ Przesunięcie zakończone: X=${currentX + dx}, Y=${currentY + dy}`);
+    console.log(`✅ Przesunięcie zakończone: X=${currentX + dx}, Y=${currentY + dy}`);
     }
 
     // Przesunięcie w prawo
     function shiftRightSvgElements() {
-        console.log("➡️ Przesuwam cały obiekt SVG o 1px w prawo!");
-        updateTransform(1, 0);
+    console.log("➡️ Przesuwam cały obiekt SVG o 1px w prawo!");
+    updateTransform(1, 0);
     }
 
     // Przesunięcie w lewo
     function shiftLeftSvgElements() {
-        console.log("⬅️ Przesuwam cały obiekt SVG o 1px w lewo!");
-        updateTransform(-1, 0);
+    console.log("⬅️ Przesuwam cały obiekt SVG o 1px w lewo!");
+    updateTransform(-1, 0);
     }
 
     // Przesunięcie w górę
     function shiftUpSvgElements() {
-        console.log("⬆️ Przesuwam cały obiekt SVG o 1px w górę!");
-        updateTransform(0, -1);
+    console.log("⬆️ Przesuwam cały obiekt SVG o 1px w górę!");
+    updateTransform(0, -1);
     }
 
     // Przesunięcie w dół
     function shiftDownSvgElements() {
-        console.log("⬇️ Przesuwam cały obiekt SVG o 1px w dół!");
-        updateTransform(0, 1);
+    console.log("⬇️ Przesuwam cały obiekt SVG o 1px w dół!");
+    updateTransform(0, 1);
     }
 
     function generatePngFromSvg(svgContent) {
@@ -1193,10 +1191,10 @@
                 Console.WriteLine("⚠️ Błąd: Brak danych prowadnic!");
                 return;
             }
-   
+     
             List<double> verticalGuides = new();
             List<double> horizontalGuides = new();
-
+ 
             // Sprawdzamy, czy dane "vertical" są obiektem
             if (guidesData["vertical"] is JsonElement verticalElement && verticalElement.ValueKind == JsonValueKind.Object)
             {
@@ -1236,7 +1234,7 @@
                 Console.WriteLine("❌ Błąd: 'horizontal' nie jest obiektem!!!!!");
                 return;
             }
-     
+
             Console.WriteLine($"✅ Linie pionowe: {verticalGuides.Count}, poziome: {horizontalGuides.Count}");
 
             // Pobierz obraz PNG jako base64 z JavaScript
@@ -1327,11 +1325,12 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Wystąpił błąd: {ex.Message}");
+            Console.WriteLine($"❌ Wystąpił błąd #1: {ex.Message}");
+
             _ = _notice.Error(new()
                 {
                     Message = "Bład!!",
-                    Description = $"❌ Wystąpił błąd: {ex.Message}",
+                    Description = $"❌ Wystąpił błąd #1: {ex.Message}",
                     Placement = NotificationPlacement.Top,
                     Duration = 2
                 });

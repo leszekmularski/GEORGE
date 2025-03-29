@@ -146,11 +146,8 @@
 
 <!-- Kontener na przyciski -->
 <div class="zoom-controls">
-    <button @onclick="() => ResizeAllShapes(1.1)" class="btn-zoom">➕</button>
-    <button @onclick="() => ResizeAllShapes(0.9)" class="btn-zoom">➖</button>
     <button @onclick="() => FitToCanvas()" class="btn-zoom">🔄 Dopasuj</button>
     <button @onclick="() => RysOkna()" class="btn-window">🔥Generuj OKNO</button>
-
 </div>
 
 <div class="toolbar">
@@ -268,13 +265,36 @@
 
     private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
 
-    public record BoundingBox(double X, double Y, double Width, double Height)
+     public class BoundingBox
     {
+        public double X { get; set; }
+        public double Y { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
+
+        public BoundingBox(double x, double y, double width, double height)
+        {
+            X = x;
+            Y = y;
+            Width = width;
+            Height = height;
+        }
+
+        public List<(Point Start, Point End)> GetEdges()
+        {
+            return new List<(Point, Point)>
+        {
+            (new Point(X, Y), new Point(X + Width, Y)),         // Górna krawędź
+            (new Point(X + Width, Y), new Point(X + Width, Y + Height)), // Prawa krawędź
+            (new Point(X + Width, Y + Height), new Point(X, Y + Height)), // Dolna krawędź
+            (new Point(X, Y + Height), new Point(X, Y))          // Lewa krawędź
+        };
+        }
+
         public bool Contains(double pointX, double pointY) =>
             pointX >= X && pointX <= X + Width &&
             pointY >= Y && pointY <= Y + Height;
     }
-
 
     private void SetTool(string tool) => _selectedTool = tool;
 
@@ -757,6 +777,7 @@
         List<EditableProperty> GetEditableProperties();
         void Scale(double factor);
         void Move(double offsetX, double offsetY);
+        void Transform(double scale, double offsetX, double offsetY);
         BoundingBox GetBoundingBox();
 
     }
@@ -802,8 +823,13 @@
 
         public void Scale(double factor)
         {
-            X2 = X1 + (X2 - X1) * factor;
-            Y2 = Y1 + (Y2 - Y1) * factor;
+            double centerX = (X1 + X2) / 2;
+            double centerY = (Y1 + Y2) / 2;
+
+            X1 = centerX + (X1 - centerX) * factor;
+            Y1 = centerY + (Y1 - centerY) * factor;
+            X2 = centerX + (X2 - centerX) * factor;
+            Y2 = centerY + (Y2 - centerY) * factor;
         }
 
         public void Move(double offsetX, double offsetY)
@@ -812,12 +838,23 @@
             Y1 += offsetY;
             X2 += offsetX;
             Y2 += offsetY;
+
+            Console.WriteLine($"double offsetX:{offsetX}, double offsetY:{offsetY}");
         }
 
         public BoundingBox GetBoundingBox()
         {
             return new BoundingBox(Math.Min(X1, X2), Math.Min(Y1, Y2), Math.Abs(X2 - X1), Math.Abs(Y2 - Y1));
         }
+
+        public void Transform(double scale, double offsetX, double offsetY)
+        {
+            X1 = (X1 * scale) + offsetX;
+            Y1 = (Y1 * scale) + offsetY;
+            X2 = (X2 * scale) + offsetX;
+            Y2 = (Y2 * scale) + offsetY;
+        }
+
 
     }
 
@@ -882,6 +919,26 @@
             return new RectangleShape(X, Y, Width, Height, _scaleFactor);
         }
 
+        public List<(Point Start, Point End)> GetEdges()
+        {
+            List<(Point, Point)> edges = new()
+            {
+                (new Point(X, Y), new Point(X + Width, Y)), // Górna krawędź
+                (new Point(X + Width, Y), new Point(X + Width, Y + Height)), // Prawa krawędź
+                (new Point(X + Width, Y + Height), new Point(X, Y + Height)), // Dolna krawędź
+                (new Point(X, Y + Height), new Point(X, Y)) // Lewa krawędź
+            };
+
+            return edges;
+        }
+
+        public void Transform(double scale, double offsetX, double offsetY)
+        {
+            X = (X * scale) + offsetX;
+            Y = (Y * scale) + offsetY;
+            Width *= scale;
+            Height *= scale;
+        }
 
     }
 
@@ -985,6 +1042,13 @@
                 (new Point(BaseX1, BaseY) , new Point(apexX, apexY)) // Prawa ściana
             };
         }
+
+        public void Transform(double scaleFactor, double offsetX, double offsetY)
+        {
+            Scale(scaleFactor);
+            Move(offsetX, offsetY);
+        }
+
     }
 
     // ⬛ Klasa kwadratu (Square)
@@ -1042,6 +1106,13 @@
             return new RectangleShape(X, Y, Size, Size, _scaleFactor);
         }
 
+        public void Transform(double scale, double offsetX, double offsetY)
+        {
+            // Poprawiona implementacja
+            X = (X * scale) + offsetX;
+            Y = (Y * scale) + offsetY;
+            Size *= scale;
+        }
 
     }
 
@@ -1106,6 +1177,15 @@
         public BoundingBox GetBoundingBox()
         {
             return new BoundingBox(X, Y, Width, Height);
+        }
+
+        public void Transform(double scale, double offsetX, double offsetY)
+        {
+            X = (X * scale) + offsetX;
+            Y = (Y * scale) + offsetY;
+            Width *= scale;
+            Height *= scale;
+            Radius *= scale;
         }
 
     }
@@ -1289,6 +1369,15 @@
              // Do sprawdzenia czy działa
         };
         }
+
+        public void Transform(double scale, double offsetX, double offsetY)
+        {
+            X = (X * scale) + offsetX;
+            Y = (Y * scale) + offsetY;
+            BaseWidth *= scale;
+            TopWidth *= scale;
+            Height *= scale;
+        }
     }
 
     // 🟢 KLASA KOŁA
@@ -1339,6 +1428,13 @@
         public BoundingBox GetBoundingBox()
         {
             return new BoundingBox(X - Radius, Y - Radius, Radius * 2, Radius * 2);
+        }
+
+        public void Transform(double scale, double offsetX, double offsetY)
+        {
+            X = (X * scale) + offsetX;
+            Y = (Y * scale) + offsetY;
+            Radius *= scale;
         }
 
     }
@@ -1458,6 +1554,39 @@
             return (roof, house);
         }
 
+        public (List<(Point Start, Point End)> RoofEdges, List<(Point Start, Point End)> BaseEdges) GetEdgesDel()
+        {
+            double roofHeight = Height * 0.5;
+            double baseY = Y + roofHeight;
+            double roofPeakX = X + Width / 2;
+            double roofPeakY = Y;
+            double bottomY = Y + Height;
+
+            List<(Point, Point)> roofEdges = new()
+    {
+        (new Point(X, baseY), new Point(roofPeakX, roofPeakY)), // Dach - lewa krawędź
+        (new Point(roofPeakX, roofPeakY), new Point(X + Width, baseY)), // Dach - prawa krawędź
+        (new Point(X, baseY), new Point(X + Width, baseY)) // Podstawa dachu
+    };
+
+            List<(Point, Point)> baseEdges = new()
+    {
+        (new Point(X, baseY), new Point(X, bottomY)), // Lewa ściana domu
+        (new Point(X + Width, baseY), new Point(X + Width, bottomY)), // Prawa ściana domu
+        (new Point(X, bottomY), new Point(X + Width, bottomY)) // Podstawa domu
+    };
+
+            return (roofEdges, baseEdges);
+        }
+
+        public void Transform(double scale, double offsetX, double offsetY)
+        {
+            X = (X * scale) + offsetX;
+            Y = (Y * scale) + offsetY;
+            Width *= scale;
+            Height *= scale;
+        }
+
     }
 
     public class RoundedTopRectangleShape : IShape
@@ -1542,7 +1671,39 @@
             };
         }
 
+        public void Transform(double scale, double offsetX, double offsetY)
+        {
+            X = (X * scale) + offsetX;
+            Y = (Y * scale) + offsetY;
+            Width *= scale;
+            Height *= scale;
+            Radius *= scale;
+        }
+
     }
+
+    private List<(Point Start, Point End)> GetApproximateEdges(CircleShape circle, int segments)
+    {
+        var edges = new List<(Point Start, Point End)>();
+        double centerX = circle.X;
+        double centerY = circle.Y;
+        double radius = circle.Radius;
+        double angleStep = 2 * Math.PI / segments;
+
+        Point firstPoint = new Point(centerX + radius * Math.Cos(0), centerY + radius * Math.Sin(0));
+        Point prevPoint = firstPoint;
+
+        for (int i = 1; i <= segments; i++)
+        {
+            double angle = i * angleStep;
+            Point newPoint = new Point(centerX + radius * Math.Cos(angle), centerY + radius * Math.Sin(angle));
+            edges.Add((prevPoint, newPoint));
+            prevPoint = newPoint;
+        }
+
+        return edges;
+    }
+
 
     // 🔧 KLASY EDYTOWALNYCH WŁAŚCIWOŚCI
     public record EditableProperty(string Label, Func<double> GetValue, Action<double> SetValue, bool IsReadOnly = false)
@@ -1569,15 +1730,6 @@
         _selectedShapeIndex = (_selectedShapeIndex - 1 + _shapes.Count) % _shapes.Count;
     }
 
-    private async Task ResizeAllShapes(double factor)
-    {
-        if (_shapes.Count == 0) return;
-
-        _scaleFactor *= factor; // Zmieniamy globalny współczynnik skali
-
-        await RedrawCanvas();
-    }
-
     private async Task FitToCanvas()
     {
         if (_shapes.Count == 0) return;
@@ -1593,19 +1745,80 @@
 
         if (shapesWidth == 0 || shapesHeight == 0) return;
 
-        // Obliczamy nowy współczynnik skali
+        // Oblicz współczynnik skali z marginesem
         double scaleX = _canvasX / shapesWidth;
         double scaleY = _canvasY / shapesHeight;
-        _scaleFactor = Math.Min(scaleX, scaleY) * 0.9; // Skalujemy z marginesem
+        double scaleFactor = Math.Min(scaleX, scaleY) * 0.9;
 
-        // Obliczamy przesunięcie, aby obiekty były na środku
-        double offsetX = (_canvasX - (shapesWidth * _scaleFactor)) / 2 - (minX * _scaleFactor);
-        double offsetY = (_canvasY - (shapesHeight * _scaleFactor)) / 2 - (minY * _scaleFactor);
+        // Oblicz przesunięcie dla skalowanych kształtów
+        double scaledWidth = shapesWidth * scaleFactor;
+        double scaledHeight = shapesHeight * scaleFactor;
+        double offsetX = (_canvasX - scaledWidth) / 2 - (minX * scaleFactor);
+        double offsetY = (_canvasY - scaledHeight) / 2 - (minY * scaleFactor);
 
-        // Przesuń wszystkie kształty
+        // Zastosuj skalowanie i przesunięcie do każdego kształtu
+        // Zastosuj przesunięcie do każdego kształtu
         foreach (var shape in _shapes)
         {
+            // Przesuń kształt przed skalowaniem!
+           // shape.Move(-minX, -minY);
+
+            // Przesuń kształt do środka canvasu
             shape.Move(offsetX, offsetY);
+
+            // Skaluj kształt (zakładając, że metoda Scale istnieje)
+            shape.Scale(scaleFactor);
+
+            // // Przesuń kształt do środka canvasu
+            // shape.Move(offsetX, offsetY);
+        }
+
+
+        await RedrawCanvas();
+
+        await FitToCanvasSpr();
+    }
+
+    private async Task FitToCanvasSpr()
+    {
+        if (_shapes.Count == 0) return;
+
+        // Znajdź granice wszystkich kształtów
+        double minX = _shapes.Min(s => s.GetBoundingBox().X);
+        double minY = _shapes.Min(s => s.GetBoundingBox().Y);
+        double maxX = _shapes.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
+        double maxY = _shapes.Max(s => s.GetBoundingBox().Y + s.GetBoundingBox().Height);
+
+        double shapesWidth = maxX - minX;
+        double shapesHeight = maxY - minY;
+
+        if (shapesWidth == 0 || shapesHeight == 0) return;
+
+        // Oblicz współczynnik skali z marginesem
+        double scaleX = _canvasX / shapesWidth;
+        double scaleY = _canvasY / shapesHeight;
+        double scaleFactor = Math.Min(scaleX, scaleY) * 0.9;
+
+        // Oblicz przesunięcie dla skalowanych kształtów
+        double scaledWidth = shapesWidth * scaleFactor;
+        double scaledHeight = shapesHeight * scaleFactor;
+        double offsetX = (_canvasX - scaledWidth) / 2 - (minX * scaleFactor);
+        double offsetY = (_canvasY - scaledHeight) / 2 - (minY * scaleFactor);
+
+        // Zastosuj skalowanie i przesunięcie do każdego kształtu
+        foreach (var shape in _shapes)
+        {
+            // Przesuń kształt przed skalowaniem!
+            // shape.Move(-minX, -minY);
+
+            // Przesuń kształt do środka canvasu
+            shape.Move(offsetX, offsetY);
+
+            // Skaluj kształt (zakładając, że metoda Scale istnieje)
+            shape.Scale(scaleFactor);
+
+            // // Przesuń kształt do środka canvasu
+            // shape.Move(offsetX, offsetY);
         }
 
         await RedrawCanvas();
@@ -1625,8 +1838,20 @@
         var closedShapes = _shapes.Where(shape => shape is not LineShape).ToList();
         var linesToCheck = _shapes.Where(shape => shape is LineShape).Cast<LineShape>().ToList();
 
-
         RemoveLinesOutsideShapes();
+
+        linesToCheck = _shapes.Where(shape => shape is LineShape).Cast<LineShape>().ToList();
+
+        foreach (var line in linesToCheck)
+        {
+            foreach (var shape in closedShapes)
+            {
+                var bbox = shape.GetBoundingBox();
+                var extendedLine = ExtendLineToBoundingBox(line, bbox);
+                _shapes.Remove(line); // Usuń starą linię
+                _shapes.Add(extendedLine); // Dodaj nową wydłużoną
+            }
+        }
 
         linesToCheck = _shapes.Where(shape => shape is LineShape).Cast<LineShape>().ToList();
 
@@ -1715,6 +1940,8 @@
             }
         }
 
+        _scaleFactor = 1;
+
         await RedrawCanvas();
     }
 
@@ -1776,25 +2003,22 @@
     }
 
 
-    private bool IsLineInsidePolygon(LineShape line, List<Point> polygonVertices)
+    private bool IsLineInsidePolygon(LineShape line, List<Point> polygon)
     {
-        int count = polygonVertices.Count;
-        int intersections = 0;
-
-        for (int i = 0; i < count; i++)
+        // Pobierz kilka dodatkowych punktów na linii i sprawdź, czy wszystkie są wewnątrz
+        int numSamples = 5; // Ilość punktów do sprawdzenia na linii
+        for (int i = 0; i <= numSamples; i++)
         {
-            Point p1 = polygonVertices[i];
-            Point p2 = polygonVertices[(i + 1) % count];
+            double t = (double)i / numSamples;
+            double px = line.X1 + t * (line.X2 - line.X1);
+            double py = line.Y1 + t * (line.Y2 - line.Y1);
 
-            if (FindIntersection(p1.X, p1.Y, p2.X, p2.Y,
-                                 line.X1, line.Y1, line.X2, line.Y2,
-                                 out double ix, out double iy))
+            if (!IsPointInsidePolygon(px, py, polygon))
             {
-                intersections++;
+                return false; // Jeśli jakikolwiek punkt linii jest poza kształtem, linia odpada
             }
         }
-
-        return (intersections % 2) == 1; // Jeśli liczba przecięć jest nieparzysta, linia jest wewnątrz
+        return true;
     }
 
     private bool IsLineInsideCircle(LineShape line, CircleShape circle)
@@ -2047,6 +2271,38 @@
         }
     }
 
+    private LineShape ExtendLineToBoundingBox(LineShape line, BoundingBox bbox)
+    {
+        double x1 = line.X1, y1 = line.Y1, x2 = line.X2, y2 = line.Y2;
+        double dx = x2 - x1, dy = y2 - y1;
+
+        if (dx == 0)
+        {
+            return new LineShape(x1, bbox.Y, x2, bbox.Y + bbox.Height, _scaleFactor);
+        }
+        if (dy == 0)
+        {
+            return new LineShape(bbox.X, y1, bbox.X + bbox.Width, y2, _scaleFactor);
+        }
+
+        double leftFactor = (bbox.X - x1) / dx;
+        double rightFactor = ((bbox.X + bbox.Width) - x1) / dx;
+        double topFactor = (bbox.Y - y1) / dy;
+        double bottomFactor = ((bbox.Y + bbox.Height) - y1) / dy;
+
+        double minFactor = Math.Min(leftFactor, Math.Min(rightFactor, Math.Min(topFactor, bottomFactor)));
+        double maxFactor = Math.Max(leftFactor, Math.Max(rightFactor, Math.Max(topFactor, bottomFactor)));
+
+        double newX1 = x1 + dx * minFactor;
+        double newY1 = y1 + dy * minFactor;
+        double newX2 = x1 + dx * maxFactor;
+        double newY2 = y1 + dy * maxFactor;
+
+        return new LineShape(newX1, newY1, newX2, newY2, _scaleFactor);
+    }
+
+
+
     public void RemoveLinesOutsideShapes()
     {
         Console.WriteLine("Start RemoveLinesOutsideShapes");
@@ -2057,28 +2313,27 @@
             return;
         }
 
-        // Pobierz wszystkie linie
         var linesToCheck = _shapes.OfType<LineShape>().ToList();
 
-        // Pobierz wszystkie zamknięte kształty i ich krawędzie
         var shapesWithEdges = _shapes
             .Where(shape => shape is not LineShape)
             .Select(shape => new
             {
                 Shape = shape,
-                Edges = GetShapeEdges(shape) // Pobierz krawędzie kształtu
+                Edges = GetShapeEdges(shape) ?? new List<(Point Start, Point End)>()
             })
             .ToList();
 
-        // Lista linii do usunięcia
         var linesToRemove = new List<LineShape>();
 
         foreach (var line in linesToCheck)
         {
-            bool isOutsideAllShapes = true;
+            bool isCompletelyOutside = true;
 
             foreach (var shapeWithEdges in shapesWithEdges)
             {
+                if (!shapeWithEdges.Edges.Any()) continue;
+
                 var polygonVertices = shapeWithEdges.Edges
                     .SelectMany(e => new[] { e.Start, e.End })
                     .Distinct()
@@ -2086,22 +2341,23 @@
 
                 bool startInside = IsPointInsidePolygon(line.X1, line.Y1, polygonVertices);
                 bool endInside = IsPointInsidePolygon(line.X2, line.Y2, polygonVertices);
+                bool intersects = DoesLineIntersectPolygon(line, shapeWithEdges.Edges);
 
-                if (startInside || endInside)
+                // Jeśli linia jest CAŁKOWICIE wewnątrz lub ją przecina, nie usuwaj
+                if (startInside || endInside || intersects)
                 {
-                    isOutsideAllShapes = false;
+                    isCompletelyOutside = false;
                     break;
                 }
             }
 
-            if (isOutsideAllShapes)
+            if (isCompletelyOutside)
             {
                 Console.WriteLine($"Linia ({line.X1}, {line.Y1}) → ({line.X2}, {line.Y2}) jest poza wszystkimi kształtami.");
                 linesToRemove.Add(line);
             }
         }
 
-        // Usuń linie z głównej kolekcji
         foreach (var line in linesToRemove)
         {
             _shapes.Remove(line);
@@ -2110,22 +2366,55 @@
         Console.WriteLine($"Usunięto {linesToRemove.Count} linii");
     }
 
+    private bool DoesLineIntersectPolygon(LineShape line, List<(Point Start, Point End)> edges)
+    {
+        foreach (var edge in edges)
+        {
+            if (DoLinesIntersect(line.X1, line.Y1, line.X2, line.Y2,
+                                 edge.Start.X, edge.Start.Y, edge.End.X, edge.End.Y))
+            {
+                return true; // Linia przecina kształt
+            }
+        }
+        return false;
+    }
+
+    private bool DoLinesIntersect(double x1, double y1, double x2, double y2,
+                              double x3, double y3, double x4, double y4)
+    {
+        double d = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+        if (d == 0) return false; // Linie są równoległe
+
+        double t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / d;
+        double u = ((x1 - x3) * (y1 - y2) - (y1 - y3) * (x1 - x2)) / d;
+
+        return t >= 0 && t <= 1 && u >= 0 && u <= 1;
+    }
+
+
+
     private List<(Point Start, Point End)> GetShapeEdges(IShape shape)
     {
-        // Implementacja zależna od typu kształtu
         switch (shape)
         {
             case CircleShape circle:
-                return circle.GetEdgesAsPolygon(); // Przybliżenie okręgu 32-bokowym wielokątem
+                return GetApproximateEdges(circle, 32); // Przybliżenie okręgu wielokątem
             case RectangleShape rect:
                 return rect.GetEdges();
             case TriangleShape triangle:
                 return triangle.GetEdges();
-            // Dodaj inne typy kształtów
+            case TrapezoidShape trapezoid:
+                return trapezoid.GetEdges();
+            case HouseShape house:
+                var (roofEdges, baseEdges) = house.GetEdgesDel();
+                return roofEdges.Concat(baseEdges).ToList();
+            case RoundedTopRectangleShape roundedRect:
+                return roundedRect.GetEdges();
             default:
-                return shape.GetBoundingBox().GetEdges();
+                return shape.GetBoundingBox()?.GetEdges() ?? new List<(Point, Point)>();
         }
     }
+
 
     // public void RemoveLinesOutsideShape(List<LineShape> lines, List<(Point Start, Point End)> edges)
     // {
