@@ -265,19 +265,21 @@
 
     private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
 
-     public class BoundingBox
+    public class BoundingBox
     {
         public double X { get; set; }
         public double Y { get; set; }
         public double Width { get; set; }
         public double Height { get; set; }
+        public string NazwaObiektu { get; set; }
 
-        public BoundingBox(double x, double y, double width, double height)
+        public BoundingBox(double x, double y, double width, double height, string nazwaObiektu)
         {
             X = x;
             Y = y;
             Width = width;
             Height = height;
+            NazwaObiektu = nazwaObiektu;
         }
 
         public List<(Point Start, Point End)> GetEdges()
@@ -458,8 +460,8 @@
 
         IShape newShape = _selectedTool switch
         {
-            "line" => new LineShape(_startX, _startY, _currentX, _currentY, _scaleFactor),
-            "line_hv" => new LineShape(_startX, _startY, _currentX, _currentY, _scaleFactor),
+            "line" => new LineShape(_startX, _startY, _currentX, _currentY, _scaleFactor,"Lina skośna"),
+            "line_hv" => new LineShape(_startX, _startY, _currentX, _currentY, _scaleFactor, "Linia pion. poziom."),
             "circle" => new CircleShape(_startX, _startY, CalculateRadius(), _scaleFactor),
             "triangle" => new TriangleShape(_startX, _startY, _currentX, _currentY, _scaleFactor),
             "square" => new SquareShape(_startX, _startY, Math.Max(Math.Abs(_currentX - _startX), Math.Abs(_currentY - _startY)), _scaleFactor),
@@ -789,16 +791,18 @@
         public double Y1 { get; set; }
         public double X2 { get; set; }
         public double Y2 { get; set; }
+        public string NazwaObj { get; set; }
 
         private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
 
-        public LineShape(double x1, double y1, double x2, double y2, double scaleFactor)
+        public LineShape(double x1, double y1, double x2, double y2, double scaleFactor, string nazwaObj)
         {
             X1 = x1;
             Y1 = y1;
             X2 = x2;
             Y2 = y2;
             _scaleFactor = scaleFactor;
+            NazwaObj = nazwaObj;
         }
 
         public async Task Draw(Canvas2DContext ctx)
@@ -844,7 +848,7 @@
 
         public BoundingBox GetBoundingBox()
         {
-            return new BoundingBox(Math.Min(X1, X2), Math.Min(Y1, Y2), Math.Abs(X2 - X1), Math.Abs(Y2 - Y1));
+            return new BoundingBox(Math.Min(X1, X2), Math.Min(Y1, Y2), Math.Abs(X2 - X1), Math.Abs(Y2 - Y1), NazwaObj);
         }
 
         public void Transform(double scale, double offsetX, double offsetY)
@@ -865,6 +869,7 @@
         public double Y { get; set; }
         public double Width { get; set; }
         public double Height { get; set; }
+        public string NazwaObj { get; set; } = "Prostokąt";
 
         private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
 
@@ -911,7 +916,7 @@
 
         public BoundingBox GetBoundingBox()
         {
-            return new BoundingBox(X, Y, Width, Height);
+            return new BoundingBox(X, Y, Width, Height, "Prostokąt");
         }
 
         public RectangleShape ToRectangleShape()
@@ -950,6 +955,7 @@
         public double BaseY { get; set; }
         public double BaseWidth { get; set; }
         public double Height { get; set; }
+        public string NazwaObj { get; set; } = "Trójkąt";
 
         private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
 
@@ -1012,7 +1018,7 @@
             double width = maxX - minX;
             double height = maxY - minY;
 
-            return new BoundingBox(minX, minY, width, height);
+            return new BoundingBox(minX, minY, width, height, "Trójkąt");
         }
 
         public List<Point> GetVertices()
@@ -1057,6 +1063,7 @@
         public double X { get; set; }
         public double Y { get; set; }
         public double Size { get; set; }
+        public string NazwaObj { get; set; } = "Kwadrat";
 
         private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
 
@@ -1098,7 +1105,7 @@
 
         public BoundingBox GetBoundingBox()
         {
-            return new BoundingBox(X, Y, Size, Size);
+            return new BoundingBox(X, Y, Size, Size, "Kształt inny");
         }
 
         public RectangleShape ToRectangleShape()
@@ -1123,6 +1130,7 @@
         public double Width { get; set; }
         public double Height { get; set; }
         public double Radius { get; set; }
+        public string NazwaObj { get; set; } = "Trapez";
 
         private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
 
@@ -1176,7 +1184,7 @@
 
         public BoundingBox GetBoundingBox()
         {
-            return new BoundingBox(X, Y, Width, Height);
+            return new BoundingBox(X, Y, Width, Height, "Prostokąt");
         }
 
         public void Transform(double scale, double offsetX, double offsetY)
@@ -1197,6 +1205,7 @@
         public double Height { get; set; }
         public double X { get; set; }
         public double Y { get; set; }
+        public string NazwaObj { get; set; } = "Trapezoid";
 
         private int Typ { get; set; }
         private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
@@ -1306,7 +1315,7 @@
 
         public BoundingBox GetBoundingBox()
         {
-            return new BoundingBox(X, Y, BaseWidth, Height);
+            return new BoundingBox(X, Y, BaseWidth, Height ,"Trapezoid");
         }
 
         public List<(Point Start, Point End)> GetEdges()
@@ -1386,6 +1395,7 @@
         public double X { get; set; }
         public double Y { get; set; }
         public double Radius { get; set; }
+        public string NazwaObj { get; set; } = "Okrąg";
 
         private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
 
@@ -1427,7 +1437,7 @@
 
         public BoundingBox GetBoundingBox()
         {
-            return new BoundingBox(X - Radius, Y - Radius, Radius * 2, Radius * 2);
+            return new BoundingBox(X - Radius, Y - Radius, Radius * 2, Radius * 2, "Okrąg");
         }
 
         public void Transform(double scale, double offsetX, double offsetY)
@@ -1446,6 +1456,7 @@
         public double Width { get; set; }
         public double Height { get; set; }
         private double _scaleFactor;
+        public string NazwaObj { get; set; } = "Domek";
 
         public HouseShape(double x, double y, double width, double height, double scaleFactor)
         {
@@ -1484,7 +1495,7 @@
 
         public BoundingBox GetBoundingBox()
         {
-            return new BoundingBox(X, Y, Width, Height);
+            return new BoundingBox(X, Y, Width, Height, "Domek");
         }
 
         public List<EditableProperty> GetEditableProperties() => new()
@@ -1597,6 +1608,7 @@
         public double Height { get; set; }
         public double Radius { get; set; }
         private double _scaleFactor;
+        public string NazwaObj { get; set; } = "Prostokąt z zaokr. naroż.";
 
         public RoundedTopRectangleShape(double x, double y, double width, double height, double radius, double scaleFactor)
         {
@@ -1636,7 +1648,7 @@
 
         public BoundingBox GetBoundingBox()
         {
-            return new BoundingBox(X, Y, Width, Height);
+            return new BoundingBox(X, Y, Width, Height,"Prostokąt z zaokr. narożami");
         }
 
         public List<EditableProperty> GetEditableProperties() => new()
@@ -2278,11 +2290,11 @@
 
         if (dx == 0)
         {
-            return new LineShape(x1, bbox.Y, x2, bbox.Y + bbox.Height, _scaleFactor);
+            return new LineShape(x1, bbox.Y, x2, bbox.Y + bbox.Height, _scaleFactor, bbox.NazwaObiektu);
         }
         if (dy == 0)
         {
-            return new LineShape(bbox.X, y1, bbox.X + bbox.Width, y2, _scaleFactor);
+            return new LineShape(bbox.X, y1, bbox.X + bbox.Width, y2, _scaleFactor, bbox.NazwaObiektu);
         }
 
         double leftFactor = (bbox.X - x1) / dx;
@@ -2298,7 +2310,7 @@
         double newX2 = x1 + dx * maxFactor;
         double newY2 = y1 + dy * maxFactor;
 
-        return new LineShape(newX1, newY1, newX2, newY2, _scaleFactor);
+        return new LineShape(newX1, newY1, newX2, newY2, _scaleFactor, bbox.NazwaObiektu);
     }
 
 

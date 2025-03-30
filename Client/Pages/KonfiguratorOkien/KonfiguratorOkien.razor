@@ -1191,24 +1191,69 @@
                 Console.WriteLine("⚠️ Błąd: Brak danych prowadnic!");
                 return;
             }
-     
+
             List<double> verticalGuides = new();
             List<double> horizontalGuides = new();
- 
+
+            // 🔥 Pobieramy SVG przez JS
+            konfSystem.SVG = await JSRuntime.InvokeAsync<string>("getUpdatedSvg");
+
             // Sprawdzamy, czy dane "vertical" są obiektem
             if (guidesData["vertical"] is JsonElement verticalElement && verticalElement.ValueKind == JsonValueKind.Object)
             {
                 verticalGuides.Add(verticalElement.GetProperty("guide-line-vertical").GetDouble());
                 verticalGuides.Add(verticalElement.GetProperty("guide-line-verticalMax").GetDouble());
                 verticalGuides.Add(verticalElement.GetProperty("guide-line-verticalOdlSzyby").GetDouble());
-                verticalGuides.Add(verticalElement.GetProperty("guide-line-verticalOsSymetrii").GetDouble());
+                //verticalGuides.Add(verticalElement.GetProperty("guide-line-verticalOsSymetrii").GetDouble());
+
+                // ✅ Sprawdzamy, czy klucz istnieje, zanim go dodamy!
+                if (verticalElement.TryGetProperty("guide-line-verticalOsSymetrii", out var osSymetriiElement))
+                {
+                    verticalGuides.Add(osSymetriiElement.GetDouble());
+                }
+                else
+                {
+                    Console.WriteLine("⚠️ Brak wartości dla 'guide-line-verticalOsSymetrii'! Ustawiam 0.");
+
+                    // 🔥 Pobierz width i height z istniejącego SVG (np. z konfSystem.SVG)
+                    var svgDoc = new XmlDocument();
+                    svgDoc.LoadXml(konfSystem.SVG);
+                    var svgElement = svgDoc.DocumentElement;
+
+                    // Parsuj szerokość i wysokość SVG
+                    double width = ParseSvgDimension(svgElement.GetAttribute("width"));
+                    double height = ParseSvgDimension(svgElement.GetAttribute("height"));
+
+                    // Oblicz środek dla PIONOWEJ osi symetrii (width / 2)
+                    double centerX = width / 2;
+
+                    // ✅ Poprawna definicja LINII PIONOWEJ
+                    var newLine = svgDoc.CreateElement("line");
+                    newLine.SetAttribute("id", "guide-line-verticalOsSymetrii");
+                    newLine.SetAttribute("x1", centerX.ToString("G", System.Globalization.CultureInfo.InvariantCulture));
+                    newLine.SetAttribute("y1", "0");
+                    newLine.SetAttribute("x2", centerX.ToString("G", System.Globalization.CultureInfo.InvariantCulture));
+                    newLine.SetAttribute("y2", height.ToString("G", System.Globalization.CultureInfo.InvariantCulture));
+                    newLine.SetAttribute("stroke", "#ffa726");
+                    newLine.SetAttribute("stroke-width", "1");
+                    newLine.SetAttribute("stroke-dasharray", "5,5");
+
+                    svgDoc.DocumentElement.AppendChild(newLine);
+
+                    // Zaktualizuj SVG w konfSystem
+                    konfSystem.SVG = svgDoc.OuterXml;
+
+                    // Dodaj 0 do listy (lub centerY, jeśli to ma sens)
+                    verticalGuides.Add(0.0);
+                }
             }
             else
             {
-                Console.WriteLine("❌ Błąd: 'vertical' nie jest obiektem!!!!!");
+                Console.WriteLine("Błąd: 'vertical' nie jest obiektem!!!!!");
                 return;
             }
 
+            Console.WriteLine("vertical - OK");
             // Sprawdzamy, czy dane "horizontal" są obiektem
             if (guidesData["horizontal"] is JsonElement horizontalElement && horizontalElement.ValueKind == JsonValueKind.Object)
             {
@@ -1226,7 +1271,38 @@
                 }
                 else
                 {
-                    Console.WriteLine("⚠️ Brak wartości dla 'guide-line-horizontal-OsSymetrii'!");
+                    Console.WriteLine("⚠️ Brak wartości dla 'guide-line-horizontal-OsSymetrii'! Ustawiam 0.");
+
+                    // 🔥 Pobierz width i height z istniejącego SVG (np. z konfSystem.SVG)
+                    var svgDoc = new XmlDocument();
+                    svgDoc.LoadXml(konfSystem.SVG);
+                    var svgElement = svgDoc.DocumentElement;
+
+                    // Parsuj szerokość i wysokość SVG
+                    double width = ParseSvgDimension(svgElement.GetAttribute("width"));
+                    double height = ParseSvgDimension(svgElement.GetAttribute("height"));
+
+                    // Oblicz środek dla osi symetrii
+                    double centerY = height / 2;
+
+                    // Dodaj linię do SVG
+                    var newLine = svgDoc.CreateElement("line");
+                    newLine.SetAttribute("id", "guide-line-horizontal-OsSymetrii");
+                    newLine.SetAttribute("x1", "0");
+                    newLine.SetAttribute("y1", centerY.ToString("G", System.Globalization.CultureInfo.InvariantCulture));
+                    newLine.SetAttribute("x2", width.ToString("G", System.Globalization.CultureInfo.InvariantCulture));
+                    newLine.SetAttribute("y2", centerY.ToString("G", System.Globalization.CultureInfo.InvariantCulture));
+                    newLine.SetAttribute("stroke", "#ffa726");
+                    newLine.SetAttribute("stroke-width", "1");
+                    newLine.SetAttribute("stroke-dasharray", "5,5");
+
+                    svgDoc.DocumentElement.AppendChild(newLine);
+
+                    // Zaktualizuj SVG w konfSystem
+                    konfSystem.SVG = svgDoc.OuterXml;
+
+                    // Dodaj 0 do listy (lub centerY, jeśli to ma sens)
+                    horizontalGuides.Add(0.0);
                 }
             }
             else
@@ -1264,14 +1340,15 @@
             konfSystem.PoziomOsDormas = odwWym - GetValueOrDefault(horizontalGuides, 5);
             konfSystem.PoziomDodatkowa6 = odwWym - GetValueOrDefault(horizontalGuides, 6);
             konfSystem.PoziomDodatkowa7 = odwWym - GetValueOrDefault(horizontalGuides, 7);
-            konfSystem.PionOsSymetrii = odwWym - GetValueOrDefault(horizontalGuides, 8);
+            konfSystem.PoziomOsSymetrii = odwWym - GetValueOrDefault(horizontalGuides, 8);
 
-
-            // 🔥 Pobieramy SVG przez JS
-            konfSystem.SVG = await JSRuntime.InvokeAsync<string>("getUpdatedSvg");
+            // // 🔥 Pobieramy SVG przez JS
+            // konfSystem.SVG = await JSRuntime.InvokeAsync<string>("getUpdatedSvg");
 
             // 🔥 Zamiana przecinków na kropki
             konfSystem.SVG = konfSystem.SVG.Replace(",", ".");
+
+            SvgContent = konfSystem.SVG;
 
             // Console.WriteLine($"📡 Aktualny SVG przed zapisem: {konfSystem.SVG}");
 
@@ -1335,6 +1412,14 @@
                     Duration = 2
                 });
         }
+    }
+
+    // Metoda pomocnicza do parsowania wymiarów SVG
+    private double ParseSvgDimension(string value)
+    {
+        // Usuń wszystkie znaki niebędące cyframi lub kropką (np. "100px" → "100")
+        string numericPart = System.Text.RegularExpressions.Regex.Replace(value, @"[^\d.]", "");
+        return double.Parse(numericPart, System.Globalization.CultureInfo.InvariantCulture);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
