@@ -53,8 +53,8 @@ namespace GEORGE.Client.Pages.PDF
                         var cutListSz = new GlassListItem
                         {
                             Lp = (zestawienieSz.ListaSzyb.Count() + 1).ToString(),// items[0],
-                            Wysokosc = items[0], //items[2],
-                            Szerokosc = items[1], //items[1],
+                            Wysokosc = items[1], //items[2],
+                            Szerokosc = items[0], //items[1],
                             Ilosc = items[2], //items[3],
                             RodzajSzyby = string.Join(" ", items.Skip(3).Take(items.Length - 4)), // Łączenie elementów rodzaju szyby
                             Powierzchnia = items.Length >= 8 ? items[items.Length - 1] : "0", // Powierzchnia, jeśli dostępna
