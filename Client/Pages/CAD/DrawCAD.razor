@@ -224,7 +224,7 @@
             @foreach (var prop in _shapes[_selectedShapeIndex].GetEditableProperties())
             {
                 <div class="property-row">
-                    <span class="property-label">@prop.Label</span>
+                    <span class="property-label">[@prop.NazwaObiektu] - @prop.Label</span>
                     @if (!prop.IsReadOnly)
                     {
                         <input class="property-input" type="number"
@@ -791,7 +791,7 @@
         public double Y1 { get; set; }
         public double X2 { get; set; }
         public double Y2 { get; set; }
-        public string NazwaObj { get; set; }
+        public string NazwaObj { get; set; } = "Linia";
 
         private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
 
@@ -819,10 +819,10 @@
 
         public List<EditableProperty> GetEditableProperties() => new()
         {
-            new EditableProperty("X1", () => X1, v => X1 = v),
-            new EditableProperty("Y1", () => Y1, v => Y1 = v),
-            new EditableProperty("X2", () => X2, v => X2 = v),
-            new EditableProperty("Y2", () => Y2, v => Y2 = v)
+            new EditableProperty("X1", () => X1, v => X1 = v, NazwaObj),
+            new EditableProperty("Y1", () => Y1, v => Y1 = v, NazwaObj),
+            new EditableProperty("X2", () => X2, v => X2 = v, NazwaObj),
+            new EditableProperty("Y2", () => Y2, v => Y2 = v, NazwaObj)
         };
 
         public void Scale(double factor)
@@ -895,10 +895,10 @@
 
         public List<EditableProperty> GetEditableProperties() => new()
         {
-            new EditableProperty("X", () => GetBoundingBox().X, _ => { }, true),
-            new EditableProperty("Y", () => GetBoundingBox().Y, _ => { }, true),
-            new EditableProperty("Szerokość", () => Width, v => Width = v),
-            new EditableProperty("Wysokość", () => Height, v => Height = v)
+            new EditableProperty("X", () => GetBoundingBox().X, _ => { }, NazwaObj, true),
+            new EditableProperty("Y", () => GetBoundingBox().Y, _ => { }, NazwaObj, true),
+            new EditableProperty("Szerokość", () => Width, v => Width = v, NazwaObj),
+            new EditableProperty("Wysokość", () => Height, v => Height = v, NazwaObj)
         };
 
 
@@ -988,10 +988,10 @@
 
         public List<EditableProperty> GetEditableProperties() => new()
     {
-        new EditableProperty("Lewa podstawa X", () => BaseX1, v => BaseX1 = v , true),
-        new EditableProperty("Pozycja Y podstawy", () => BaseY, v => BaseY = v, true),
-        new EditableProperty("Szerokość podstawy", () => BaseWidth, v => BaseWidth = v),
-        new EditableProperty("Wysokość", () => Height, v => Height = v)
+        new EditableProperty("Lewa podstawa X", () => BaseX1, v => BaseX1 = v, NazwaObj, true),
+        new EditableProperty("Pozycja Y podstawy", () => BaseY, v => BaseY = v, NazwaObj, true),
+        new EditableProperty("Szerokość podstawy", () => BaseWidth, v => BaseWidth = v, NazwaObj),
+        new EditableProperty("Wysokość", () => Height, v => Height = v, NazwaObj)
     };
 
         public void Scale(double factor)
@@ -1087,9 +1087,9 @@
 
         public List<EditableProperty> GetEditableProperties() => new()
     {
-        new EditableProperty("X", () => X, v => X = v, true),
-        new EditableProperty("Y", () => Y, v => Y = v, true),
-        new EditableProperty("Rozmiar", () => Size, v => Size = v)
+        new EditableProperty("X", () => X, v => X = v, NazwaObj, true),
+        new EditableProperty("Y", () => Y, v => Y = v, NazwaObj, true),
+        new EditableProperty("Rozmiar", () => Size, v => Size = v, NazwaObj)
     };
 
         public void Scale(double factor)
@@ -1163,11 +1163,11 @@
 
         public List<EditableProperty> GetEditableProperties() => new()
         {
-            new("X", () => X, v => X = v, true),
-            new("Y", () => Y, v => Y = v, true),
-            new("Szerokość", () => Width, v => Width = v),
-            new("Wysokość", () => Height, v => Height = v),
-            new("Promień", () => Radius, v => Radius = v)
+            new("X", () => X, v => X = v, NazwaObj, true),
+            new("Y", () => Y, v => Y = v, NazwaObj, true),
+            new("Szerokość", () => Width, v => Width = v, NazwaObj),
+            new("Wysokość", () => Height, v => Height = v, NazwaObj),
+            new("Promień", () => Radius, v => Radius = v, NazwaObj)
         };
 
         public void Scale(double factor)
@@ -1291,11 +1291,11 @@
         // Właściwości edytowalne
         public List<EditableProperty> GetEditableProperties() => new()
     {
-        new("Pozycja X", () => X, v => X = v, true),
-        new("Pozycja Y", () => Y, v => Y = v, true),
-        new("Szerokość podstawy", () => BaseWidth, v => BaseWidth = v),
-        new("Szerokość góry", () => TopWidth, v => TopWidth = Math.Clamp(v, 10, BaseWidth - 10)),
-        new("Wysokość", () => Height, v => Height = v)
+        new("Pozycja X", () => X, v => X = v, NazwaObj, true),
+        new("Pozycja Y", () => Y, v => Y = v, NazwaObj, true),
+        new("Szerokość podstawy", () => BaseWidth, v => BaseWidth = v, NazwaObj),
+        new("Szerokość góry", () => TopWidth, v => TopWidth = Math.Clamp(v, 10, BaseWidth - 10), NazwaObj),
+        new("Wysokość", () => Height, v => Height = v, NazwaObj)
     };
 
         public void Scale(double factor)
@@ -1419,9 +1419,9 @@
 
         public List<EditableProperty> GetEditableProperties() => new()
         {
-            new EditableProperty("X", () => X, v => X = v, true),
-            new EditableProperty("Y", () => Y, v => Y = v, true),
-            new EditableProperty("Promień", () => Radius, v => Radius = v)
+            new EditableProperty("X", () => X, v => X = v, NazwaObj, true),
+            new EditableProperty("Y", () => Y, v => Y = v, NazwaObj, true),
+            new EditableProperty("Promień", () => Radius, v => Radius = v, NazwaObj)
         };
 
         public void Scale(double factor)
@@ -1500,10 +1500,10 @@
 
         public List<EditableProperty> GetEditableProperties() => new()
     {
-        new EditableProperty("X", () => X, v => X = v, true),
-        new EditableProperty("Y", () => Y, v => Y = v, true),
-        new EditableProperty("Szerokość", () => Width, v => Width = v),
-        new EditableProperty("Wysokość", () => Height, v => Height = v)
+        new EditableProperty("X", () => X, v => X = v, NazwaObj, true),
+        new EditableProperty("Y", () => Y, v => Y = v, NazwaObj, true),
+        new EditableProperty("Szerokość", () => Width, v => Width = v, NazwaObj),
+        new EditableProperty("Wysokość", () => Height, v => Height = v, NazwaObj)
     };
 
         public void Scale(double factor)
@@ -1653,11 +1653,11 @@
 
         public List<EditableProperty> GetEditableProperties() => new()
     {
-        new EditableProperty("X", () => X, v => X = v, true),
-        new EditableProperty("Y", () => Y, v => Y = v, true),
-        new EditableProperty("Szerokość", () => Width, v => Width = v),
-        new EditableProperty("Wysokość", () => Height, v => Height = v),
-        new EditableProperty("Promień łuku", () => Radius, v => Radius = v)
+        new EditableProperty("X", () => X, v => X = v, NazwaObj, true),
+        new EditableProperty("Y", () => Y, v => Y = v, NazwaObj, true),
+        new EditableProperty("Szerokość", () => Width, v => Width = v, NazwaObj),
+        new EditableProperty("Wysokość", () => Height, v => Height = v, NazwaObj),
+        new EditableProperty("Promień łuku", () => Radius, v => Radius = v, NazwaObj)
     };
 
         public void Scale(double factor)
@@ -1718,7 +1718,12 @@
 
 
     // 🔧 KLASY EDYTOWALNYCH WŁAŚCIWOŚCI
-    public record EditableProperty(string Label, Func<double> GetValue, Action<double> SetValue, bool IsReadOnly = false)
+    public record EditableProperty(
+        string Label,
+        Func<double> GetValue,
+        Action<double> SetValue,
+        string NazwaObiektu,
+        bool IsReadOnly = false)
     {
         public double Value
         {
@@ -1728,6 +1733,8 @@
                 if (!IsReadOnly) SetValue(value);
             }
         }
+   
+        public EditableProperty SetObjectName(string newName) => this with { NazwaObiektu = newName };
     }
 
     private void SelectNextShape()
@@ -1878,8 +1885,6 @@
                     if (IsLineInsideCircle(line, circle))
                     {
                         Console.WriteLine("Linia przecina okrąg – przycinanie.");
-
-
 
                         ShortenLineInsideCircle(line, circle);
                     }
@@ -2290,11 +2295,11 @@
 
         if (dx == 0)
         {
-            return new LineShape(x1, bbox.Y, x2, bbox.Y + bbox.Height, _scaleFactor, bbox.NazwaObiektu);
+            return new LineShape(x1, bbox.Y, x2, bbox.Y + bbox.Height, _scaleFactor, line.NazwaObj);
         }
         if (dy == 0)
         {
-            return new LineShape(bbox.X, y1, bbox.X + bbox.Width, y2, _scaleFactor, bbox.NazwaObiektu);
+            return new LineShape(bbox.X, y1, bbox.X + bbox.Width, y2, _scaleFactor, line.NazwaObj);
         }
 
         double leftFactor = (bbox.X - x1) / dx;
@@ -2310,10 +2315,8 @@
         double newX2 = x1 + dx * maxFactor;
         double newY2 = y1 + dy * maxFactor;
 
-        return new LineShape(newX1, newY1, newX2, newY2, _scaleFactor, bbox.NazwaObiektu);
+        return new LineShape(newX1, newY1, newX2, newY2, _scaleFactor, line.NazwaObj);
     }
-
-
 
     public void RemoveLinesOutsideShapes()
     {
@@ -2402,8 +2405,6 @@
 
         return t >= 0 && t <= 1 && u >= 0 && u <= 1;
     }
-
-
 
     private List<(Point Start, Point End)> GetShapeEdges(IShape shape)
     {
@@ -2614,7 +2615,6 @@
     {
         return IsPointInsideRoundedRectangle(x, y, new RoundedRectangleShape(rect.X, rect.Y, rect.Width, rect.Height, rect.Radius, _scaleFactor));
     }
-
 
     private bool IsPointInsideRoundedRectangle(double x, double y, RoundedRectangleShape rect)
     {
