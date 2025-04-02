@@ -161,6 +161,11 @@
         @SvgLineHV()
     </button>
 
+    <button class="tool-button @(_selectedTool == "line_hvSLRuch" ? "active" : "")"
+    @onclick='() => SetTool("line_hvSLRuch")'>
+        @SvgLineHVRS()
+    </button>
+
     <button class="tool-button @(_selectedTool == "triangle" ? "active" : "")"
     @onclick='() => SetTool("triangle")'>
         @SvgTriangle()
@@ -331,6 +336,14 @@
         </svg>");
     };
 
+    private RenderFragment SvgLineHVRS() => builder =>
+    {
+        builder.AddMarkupContent(0, @"
+        <svg class='tool-icon' viewBox='0 0 24 24'>
+            <line x1='12' y1='4' x2='12' y2='20' stroke='red' stroke-width='3'/>
+        </svg>");
+    };
+
     private RenderFragment SvgTriangle() => builder =>
     {
         builder.AddMarkupContent(0, @"
@@ -431,7 +444,7 @@
         if (!_isDrawing) return;
 
         // Rozszerzona logika dla wymuszonego kierunku
-        if (_selectedTool == "line_hv" || _forceHV)
+        if (_selectedTool == "line_hv" || _selectedTool == "line_hvSLRuch" || _forceHV)
         {
             const double sensitivity = 5;
             var dx = Math.Abs(x - _startX);
@@ -461,7 +474,8 @@
         IShape newShape = _selectedTool switch
         {
             "line" => new LineShape(_startX, _startY, _currentX, _currentY, _scaleFactor,"Lina skośna"),
-            "line_hv" => new LineShape(_startX, _startY, _currentX, _currentY, _scaleFactor, "Linia pion. poziom."),
+            "line_hv" => new LineShape(_startX, _startY, _currentX, _currentY, _scaleFactor, "Linia pion. poziom.",false, true),
+            "line_hvSLRuch" => new LineShape(_startX, _startY, _currentX, _currentY, _scaleFactor, "Linia pion. sł. ruchomy", true),
             "circle" => new CircleShape(_startX, _startY, CalculateRadius(), _scaleFactor),
             "triangle" => new TriangleShape(_startX, _startY, _currentX, _currentY, _scaleFactor),
             "square" => new SquareShape(_startX, _startY, Math.Max(Math.Abs(_currentX - _startX), Math.Abs(_currentY - _startY)), _scaleFactor),
@@ -470,7 +484,7 @@
             "trapezoidLeft" => new TrapezoidShape(_startX, _startY, _currentX, _currentY, 0.5, _scaleFactor, 1),
             "trapezoidRight" => new TrapezoidShape(_startX, _startY, _currentX, _currentY, 0.5, _scaleFactor, 2),
             "rounded_rect" => new RoundedRectangleShape(_startX, _startY, _currentX - _startX, _currentY - _startY, 20, _scaleFactor),
-            "house" => new HouseShape(_startX, _startY, _currentX - _startX, _currentY - _startY, _scaleFactor),
+            "house" => new HouseShape(_startX, _startY, _currentX - _startX, _currentY - _startY, (_currentY - _startY) * 0.5, (_currentY - _startY) * 0.5, _scaleFactor),
             "rounded_top_rect" => new RoundedTopRectangleShape(_startX, _startY, _currentX - _startX, _currentY - _startY, (_currentX - _startX) / 2, _scaleFactor),
 
             _ => throw new NotImplementedException()
@@ -513,6 +527,9 @@
                 case "line":
                 case "line_hv":
                     await DrawPreviewLine();
+                    break;
+                case "line_hvSLRuch":
+                    await DrawPreviewVerticalLine();
                     break;
                 case "circle":
                     await DrawPreviewCircle();
@@ -678,10 +695,22 @@
 
     private async Task DrawPreviewLine()
     {
-        await _ctx.SetStrokeStyleAsync("red");
+        await _ctx.SetStrokeStyleAsync("blue");
         await _ctx.BeginPathAsync();
         await _ctx.MoveToAsync(_startX, _startY);
         await _ctx.LineToAsync(_currentX, _currentY);
+        await _ctx.StrokeAsync();
+    }
+
+    private async Task DrawPreviewVerticalLine()
+    {
+        await _ctx.SetStrokeStyleAsync("red"); // Kolor linii
+        await _ctx.BeginPathAsync();
+
+        // X nie zmienia się - linia zawsze pionowa!
+        await _ctx.MoveToAsync(_startX, Math.Min(_startY, _currentY));
+        await _ctx.LineToAsync(_startX, Math.Max(_startY, _currentY));
+
         await _ctx.StrokeAsync();
     }
 
@@ -792,10 +821,12 @@
         public double X2 { get; set; }
         public double Y2 { get; set; }
         public string NazwaObj { get; set; } = "Linia";
+        public bool RuchomySlupek { get; set; } = false;
+        public bool PionPoziom { get; set; } = false;
 
-        private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
+        private double _scaleFactor = 1.0; // Skalowanie
 
-        public LineShape(double x1, double y1, double x2, double y2, double scaleFactor, string nazwaObj)
+        public LineShape(double x1, double y1, double x2, double y2, double scaleFactor, string nazwaObj, bool ruchomySlupek = false, bool pionPoziom = false)
         {
             X1 = x1;
             Y1 = y1;
@@ -803,11 +834,39 @@
             Y2 = y2;
             _scaleFactor = scaleFactor;
             NazwaObj = nazwaObj;
+            RuchomySlupek = ruchomySlupek;
+            PionPoziom = pionPoziom;
+            // Wymuszenie pionowej linii
+            if (RuchomySlupek)
+            {
+                X2 = X1;
+            }
+
+            if (PionPoziom)
+            {
+                if (X1 != X2)
+                {
+                    Y2 = Y1;
+                }
+                else
+                {
+                    X2 = X1;
+                }
+            }
         }
 
         public async Task Draw(Canvas2DContext ctx)
         {
-            await ctx.SetStrokeStyleAsync("green");
+            if (RuchomySlupek)
+            {
+                X2 = X1; // Ustawienie X2 równego X1, aby wymusić pionową linię
+                await ctx.SetStrokeStyleAsync("red");
+            }
+            else
+            {
+                await ctx.SetStrokeStyleAsync("green");
+            }
+
             await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
 
             await ctx.BeginPathAsync();
@@ -816,14 +875,43 @@
             await ctx.StrokeAsync();
         }
 
-
-        public List<EditableProperty> GetEditableProperties() => new()
+        public List<EditableProperty> GetEditableProperties()
         {
-            new EditableProperty("X1", () => X1, v => X1 = v, NazwaObj),
-            new EditableProperty("Y1", () => Y1, v => Y1 = v, NazwaObj),
-            new EditableProperty("X2", () => X2, v => X2 = v, NazwaObj),
-            new EditableProperty("Y2", () => Y2, v => Y2 = v, NazwaObj)
-        };
+            bool isReadOnly = RuchomySlupek; // Jeśli RuchomySlupek == false, to Y1 i Y2 mogą być edytowalne
+            bool someOtherFlag = RuchomySlupek; // Jeśli masz drugi parametr, np. do blokowania
+
+            bool someHFlag = false; // Parametr blokowania poziomego ruchu
+            bool someVFlag = false; // Parametr blokowania pionowego ruchu
+
+            if (PionPoziom)
+            {
+                if (X1 != X2)
+                {
+                    someHFlag = true;
+                    Y2 = Y1; // Blokujemy ruch w pionie, ustawiając Y2 na Y1
+                }
+                else
+                {
+                    someVFlag = true;
+                    X2 = X1; // Blokujemy ruch w poziomie, ustawiając X2 na X1
+                }
+            }
+
+            var properties = new List<EditableProperty>
+    {
+        new EditableProperty("X1", () => X1, v => X1 = v, NazwaObj),
+        new EditableProperty("Y1", () => Y1, v => Y1 = v, NazwaObj, isReadOnly, someOtherFlag, someHFlag),
+        new EditableProperty("Y2", () => Y2, v => Y2 = v, NazwaObj, isReadOnly || someHFlag, someOtherFlag, someVFlag) // Jeśli someHFlag = true, Y2 jest tylko do odczytu
+    };
+
+            if (!RuchomySlupek)
+            {
+                properties.Add(new EditableProperty("X2", () => X2, v => X2 = v, NazwaObj, isReadOnly || someVFlag, someOtherFlag, someVFlag)); // Jeśli someVFlag = true, X2 jest tylko do odczytu
+            }
+
+            return properties;
+        }
+
 
         public void Scale(double factor)
         {
@@ -834,6 +922,12 @@
             Y1 = centerY + (Y1 - centerY) * factor;
             X2 = centerX + (X2 - centerX) * factor;
             Y2 = centerY + (Y2 - centerY) * factor;
+
+            // Zapewniamy, że linia pozostaje pionowa, jeśli trzeba
+            if (RuchomySlupek)
+            {
+                X2 = X1;
+            }
         }
 
         public void Move(double offsetX, double offsetY)
@@ -843,7 +937,12 @@
             X2 += offsetX;
             Y2 += offsetY;
 
-            Console.WriteLine($"double offsetX:{offsetX}, double offsetY:{offsetY}");
+            if (RuchomySlupek)
+            {
+                X2 = X1; // Zapewniamy pionową linię po przesunięciu
+            }
+
+            Console.WriteLine($"Offset X: {offsetX}, Offset Y: {offsetY}");
         }
 
         public BoundingBox GetBoundingBox()
@@ -857,9 +956,12 @@
             Y1 = (Y1 * scale) + offsetY;
             X2 = (X2 * scale) + offsetX;
             Y2 = (Y2 * scale) + offsetY;
+
+            if (RuchomySlupek)
+            {
+                X2 = X1; // Zapewniamy pionową linię po transformacji
+            }
         }
-
-
     }
 
     // 🟥 Klasa prostokąta (Rectangle)
@@ -1455,22 +1557,28 @@
         public double Y { get; set; }
         public double Width { get; set; }
         public double Height { get; set; }
+        public double HeightLeft { get; set; }
+        public double HeightRight { get; set; }
         private double _scaleFactor;
         public string NazwaObj { get; set; } = "Domek";
 
-        public HouseShape(double x, double y, double width, double height, double scaleFactor)
+        public HouseShape(double x, double y, double width, double height, double heightLeft, double heightRight, double scaleFactor)
         {
             X = x;
             Y = y;
             Width = width;
             Height = height;
+            HeightLeft = heightLeft;
+            HeightRight = heightRight;
             _scaleFactor = scaleFactor;
         }
 
         public async Task Draw(Canvas2DContext ctx)
         {
-            double roofHeight = Height * 0.5;
-            double baseY = Y + roofHeight;
+            //double roofHeight = Height * 0.5;
+            double baseYL = Y + Height - Math.Max(HeightLeft, 0);
+            double baseYR = Y + Height - Math.Max(HeightRight, 0);
+
             double roofPeakX = X + Width / 2;
             double roofPeakY = Y;
 
@@ -1479,18 +1587,23 @@
 
             await ctx.BeginPathAsync();
 
-            // Dach (trójkąt) – rysujemy od lewego rogu dachu
-            await ctx.MoveToAsync(X, baseY);
-            await ctx.LineToAsync(roofPeakX, roofPeakY);
-            await ctx.LineToAsync(X + Width, baseY);
+            // Dach (trójkąt)
+            await ctx.MoveToAsync(X, baseYL);  // Lewy róg dachu
+            await ctx.LineToAsync(roofPeakX, roofPeakY);  // Szczyt dachu
+            await ctx.LineToAsync(X + Width, baseYR);  // Prawy róg dachu
 
-            // Podstawa (prostokąt) – rysujemy od prawego dolnego rogu
-            await ctx.LineToAsync(X + Width, Y + Height);
-            await ctx.LineToAsync(X, Y + Height);
-            await ctx.LineToAsync(X, baseY); // Powrót do punktu startowego
+            // Podstawa (prostokąt)
+            await ctx.LineToAsync(X + Width, Y + Height);  // Prawy dolny róg
+            await ctx.LineToAsync(X, Y + Height);  // Lewy dolny róg
+            await ctx.LineToAsync(X, baseYL);  // Powrót do początku
 
             await ctx.ClosePathAsync();
             await ctx.StrokeAsync();
+
+            Console.WriteLine($"BaseYL: {baseYL}, BaseYR: {baseYR}, RoofPeakY: {roofPeakY}");
+            Console.WriteLine($"Drawing at: X={X}, Y={Y}, Width={Width}, Height={Height}");
+
+
         }
 
         public BoundingBox GetBoundingBox()
@@ -1503,13 +1616,17 @@
         new EditableProperty("X", () => X, v => X = v, NazwaObj, true),
         new EditableProperty("Y", () => Y, v => Y = v, NazwaObj, true),
         new EditableProperty("Szerokość", () => Width, v => Width = v, NazwaObj),
-        new EditableProperty("Wysokość", () => Height, v => Height = v, NazwaObj)
+        new EditableProperty("Wysokość", () => Height, v => Height = v, NazwaObj),
+        new EditableProperty("Wysokość bok lewy", () => HeightLeft, v => HeightLeft = v, NazwaObj),
+        new EditableProperty("Wysokość bok prawy", () => HeightRight, v => HeightRight = v, NazwaObj)
     };
 
         public void Scale(double factor)
         {
             Width *= factor;
             Height *= factor;
+            HeightRight *= factor;
+            HeightLeft *= factor;
         }
 
         public void Move(double offsetX, double offsetY)
@@ -1539,28 +1656,28 @@
 
         public (List<Point> Roof, List<Point> House) GetVertices()
         {
-            double roofHeight = Height * 0.5;
-            double baseY = Y + roofHeight;
+           // double roofHeight = Height * 0.5;
+            double baseY = Y + HeightLeft;
             double roofPeakX = X + Width / 2;
             double roofPeakY = Y;
             double bottomY = Y + Height; // Dolna krawędź domu
 
             // Trójkąt dachu
-            List<Point> roof = new List<Point>
-    {
-        new Point(X, baseY),         // Lewy dolny róg dachu
-        new Point(roofPeakX, roofPeakY), // Szczyt dachu
-        new Point(X + Width, baseY)  // Prawy dolny róg dachu
-    };
+        List<Point> roof = new List<Point>
+        {
+            new Point(X, baseY),         // Lewy dolny róg dachu
+            new Point(roofPeakX, roofPeakY), // Szczyt dachu
+            new Point(X + Width, baseY)  // Prawy dolny róg dachu
+        };
 
             // Prostokąt (ściany domu)
-            List<Point> house = new List<Point>
-    {
-        new Point(X, baseY),          // Lewy górny róg ściany
-        new Point(X + Width, baseY),  // Prawy górny róg ściany
-        new Point(X + Width, bottomY), // Prawy dolny róg ściany
-        new Point(X, bottomY)         // Lewy dolny róg ściany
-    };
+        List<Point> house = new List<Point>
+        {
+            new Point(X, baseY),          // Lewy górny róg ściany
+            new Point(X + Width, baseY),  // Prawy górny róg ściany
+            new Point(X + Width, bottomY), // Prawy dolny róg ściany
+            new Point(X, bottomY)         // Lewy dolny róg ściany
+        };
 
             return (roof, house);
         }
@@ -1573,19 +1690,19 @@
             double roofPeakY = Y;
             double bottomY = Y + Height;
 
-            List<(Point, Point)> roofEdges = new()
-    {
-        (new Point(X, baseY), new Point(roofPeakX, roofPeakY)), // Dach - lewa krawędź
-        (new Point(roofPeakX, roofPeakY), new Point(X + Width, baseY)), // Dach - prawa krawędź
-        (new Point(X, baseY), new Point(X + Width, baseY)) // Podstawa dachu
-    };
+        List<(Point, Point)> roofEdges = new()
+        {
+            (new Point(X, baseY), new Point(roofPeakX, roofPeakY)), // Dach - lewa krawędź
+            (new Point(roofPeakX, roofPeakY), new Point(X + Width, baseY)), // Dach - prawa krawędź
+            (new Point(X, baseY), new Point(X + Width, baseY)) // Podstawa dachu
+        };
 
-            List<(Point, Point)> baseEdges = new()
-    {
-        (new Point(X, baseY), new Point(X, bottomY)), // Lewa ściana domu
-        (new Point(X + Width, baseY), new Point(X + Width, bottomY)), // Prawa ściana domu
-        (new Point(X, bottomY), new Point(X + Width, bottomY)) // Podstawa domu
-    };
+        List<(Point, Point)> baseEdges = new()
+        {
+            (new Point(X, baseY), new Point(X, bottomY)), // Lewa ściana domu
+            (new Point(X + Width, baseY), new Point(X + Width, bottomY)), // Prawa ściana domu
+            (new Point(X, bottomY), new Point(X + Width, bottomY)) // Podstawa domu
+        };
 
             return (roofEdges, baseEdges);
         }
@@ -1596,6 +1713,8 @@
             Y = (Y * scale) + offsetY;
             Width *= scale;
             Height *= scale;
+            HeightLeft *= scale;
+            HeightRight *= scale;
         }
 
     }
@@ -1723,7 +1842,9 @@
         Func<double> GetValue,
         Action<double> SetValue,
         string NazwaObiektu,
-        bool IsReadOnly = false)
+        bool IsReadOnly = false,
+        bool slupekRuchomy = false,
+        bool pionPoziom = false)
     {
         public double Value
         {
@@ -2295,11 +2416,11 @@
 
         if (dx == 0)
         {
-            return new LineShape(x1, bbox.Y, x2, bbox.Y + bbox.Height, _scaleFactor, line.NazwaObj);
+            return new LineShape(x1, bbox.Y, x2, bbox.Y + bbox.Height, _scaleFactor, line.NazwaObj, line.RuchomySlupek);
         }
         if (dy == 0)
         {
-            return new LineShape(bbox.X, y1, bbox.X + bbox.Width, y2, _scaleFactor, line.NazwaObj);
+            return new LineShape(bbox.X, y1, bbox.X + bbox.Width, y2, _scaleFactor, line.NazwaObj, line.RuchomySlupek);
         }
 
         double leftFactor = (bbox.X - x1) / dx;
@@ -2315,7 +2436,7 @@
         double newX2 = x1 + dx * maxFactor;
         double newY2 = y1 + dy * maxFactor;
 
-        return new LineShape(newX1, newY1, newX2, newY2, _scaleFactor, line.NazwaObj);
+        return new LineShape(newX1, newY1, newX2, newY2, _scaleFactor, line.NazwaObj, line.RuchomySlupek);
     }
 
     public void RemoveLinesOutsideShapes()
