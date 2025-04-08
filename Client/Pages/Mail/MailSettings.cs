@@ -24,31 +24,47 @@ namespace ReservationBookingSystem.Services
 
         public async Task SendEmailAsync(string toEmail, string subject, string htmlBody, string password)
         {
-            // Implementacja metody wysyłającej wiadomość e-mail
-            Console.WriteLine($"Sending email to {toEmail} with subject '{subject}' Host: {_mailSettings.Host} Port: {_mailSettings.Port}");
+            Console.WriteLine($"Serwer -> Sending email to {toEmail} with subject '{subject}' Host: {_mailSettings.Host} Port: {_mailSettings.Port}");
 
             if (password == "---")
             {
                 password = _mailSettings.Password;
             }
 
-            MailMessage message = new MailMessage();
-            SmtpClient smtp = new SmtpClient();
-            // message.From = new MailAddress(_mailSettings.FromEmail);
-            message.From = new MailAddress(toEmail);
-            message.To.Add(new MailAddress(toEmail));
-            message.Subject = subject;
-            message.IsBodyHtml = true;
-            message.Body = htmlBody;
-            smtp.Port = _mailSettings.Port;
-            smtp.Host = _mailSettings.Host;
-            smtp.EnableSsl = true;
-            smtp.UseDefaultCredentials = false;
-            smtp.Credentials = new NetworkCredential(_mailSettings.FromEmail, password);
-            smtp.DeliveryMethod = SmtpDeliveryMethod.Network;
-            await smtp.SendMailAsync(message);
+            using (var smtp = new SmtpClient())
+            {
+                smtp.Host = _mailSettings.Host;            // mail.george.pl
+                smtp.Port = _mailSettings.Port;            // 465
+                smtp.EnableSsl = true;                     // SSL/TLS
+                smtp.UseDefaultCredentials = false;
+                smtp.Credentials = new NetworkCredential(_mailSettings.FromEmail, password);
+                smtp.DeliveryMethod = SmtpDeliveryMethod.Network;
 
-            await Task.CompletedTask; // Dummy async operation
+                var message = new MailMessage
+                {
+                    From = new MailAddress(_mailSettings.FromEmail),
+                    Subject = subject,
+                    Body = htmlBody,
+                    IsBodyHtml = true
+                };
+
+                message.To.Add(toEmail);
+
+                try
+                {
+                    await smtp.SendMailAsync(message);
+                    Console.WriteLine("✅ Email sent successfully.");
+                }
+                catch (SmtpException ex)
+                {
+                    Console.WriteLine($"❌ SMTP error: {ex.StatusCode} - {ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"❌ General error: {ex.Message}");
+                }
+            }
+
         }
     }
     public class MailSettings

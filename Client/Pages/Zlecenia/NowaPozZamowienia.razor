@@ -58,7 +58,15 @@ else
 
                 <AntDesign.FormItem Label="Kolor">
                     <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Kolor" Placeholder="Podaj kolor" />
+                    <div style="font-size: 0.85em; color: #666; margin-top: 4px;">
+                        <strong>Standardowe kolory okuć:</strong><br />
+                        • R05.3 – OLIWKA<br />
+                        • R01.1 – SREBRO<br />
+                        • R07.2 – BIAŁY<br />
+                        • R05.5 – STARE ZŁOTO
+                    </div>
                 </AntDesign.FormItem>
+
                 <AntDesign.FormItem Label="Ilość">
                     <AntDesign.InputNumber Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.IloscSztuk" Required />
                 </AntDesign.FormItem>
