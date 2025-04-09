@@ -41,6 +41,9 @@ builder.Services.AddSingleton<DxfToSvgConverter>();
 
 builder.Services.AddScoped<ImageGenerator>();
 
+//Przekazywanie danych do SVG
+builder.Services.AddSingleton<ShapeTransferService>();
+
 builder.Services.AddScoped(sp =>
 {
     var httpClient = new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) };

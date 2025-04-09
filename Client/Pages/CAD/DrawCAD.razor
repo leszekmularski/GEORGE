@@ -1,5 +1,9 @@
 ﻿@page "/DrawCAD"
 @inject IJSRuntime JSRuntime
+@inject GEORGE.Client.Pages.KonfiguratorOkien.ShapeTransferService ShapeService
+@inject NavigationManager Navigation
+@using GEORGE.Client.Pages.KonfiguratorOkien
+
 @using Blazor.Extensions.Canvas.Canvas2D
 @implements IDisposable
 
@@ -40,7 +44,7 @@
 
     .canvas-container {
     position: relative;
-    border: 3px solid #001;
+        border: 1px solid #fd7e14;
     width: @(_canvasX + "px");
     height: @(_canvasY + "px");
     margin: 20px auto;
@@ -147,7 +151,8 @@
 <!-- Kontener na przyciski -->
 <div class="zoom-controls">
     <button @onclick="() => FitToCanvas()" class="btn-zoom">🔄 Dopasuj</button>
-    <button @onclick="() => RysOkna()" class="btn-window">🔥Generuj OKNO</button>
+    <button @onclick="() => RysOkna()" class="btn-window">🔥 Popraw szkic OKNA</button>
+    <button @onclick="() => PowrotDoGenerowaniaOkna()" class="btn-window">📦 Wróć do budowy OKNA</button>
 </div>
 
 <div class="toolbar">
@@ -266,7 +271,7 @@
     private bool _isDrawing = false;
     private double _startX, _startY, _currentX, _currentY;
     private string _selectedTool = "line";
-    private List<IShape> _shapes = new List<IShape>();
+    private List<IShapeDC> _shapes = new List<IShapeDC>();
 
     // Dodaj nowe pole dla wymuszenia kierunku
     private bool _forceHV = false;
@@ -277,39 +282,6 @@
     private int _selectedShapeIndex = -1; // Przechowuje indeks aktualnie edytowanego kształtu
 
     private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
-
-    public class BoundingBox
-    {
-        public double X { get; set; }
-        public double Y { get; set; }
-        public double Width { get; set; }
-        public double Height { get; set; }
-        public string NazwaObiektu { get; set; }
-
-        public BoundingBox(double x, double y, double width, double height, string nazwaObiektu)
-        {
-            X = x;
-            Y = y;
-            Width = width;
-            Height = height;
-            NazwaObiektu = nazwaObiektu;
-        }
-
-        public List<(Point Start, Point End)> GetEdges()
-        {
-            return new List<(Point, Point)>
-        {
-            (new Point(X, Y), new Point(X + Width, Y)),         // Górna krawędź
-            (new Point(X + Width, Y), new Point(X + Width, Y + Height)), // Prawa krawędź
-            (new Point(X + Width, Y + Height), new Point(X, Y + Height)), // Dolna krawędź
-            (new Point(X, Y + Height), new Point(X, Y))          // Lewa krawędź
-        };
-        }
-
-        public bool Contains(double pointX, double pointY) =>
-            pointX >= X && pointX <= X + Width &&
-            pointY >= Y && pointY <= Y + Height;
-    }
 
     private void SetTool(string tool) => _selectedTool = tool;
 
@@ -524,7 +496,7 @@
         if (!_isDrawing) return;
         _isDrawing = false;
 
-        IShape newShape = _selectedTool switch
+        IShapeDC newShape = _selectedTool switch
         {
             "line" => new LineShape(_startX, _startY, _currentX, _currentY, _scaleFactor,"Lina skośna"),
             "line_hv" => new LineShape(_startX, _startY, _currentX, _currentY, _scaleFactor, "Linia pion. poziom.",false, true),
@@ -906,20 +878,8 @@
         _dotNetHelper?.Dispose();
     }
 
-    // 🎨 INTERFEJS KSZTAŁTÓW
-    private interface IShape
-    {
-        Task Draw(Canvas2DContext ctx);
-        List<EditableProperty> GetEditableProperties();
-        void Scale(double factor);
-        void Move(double offsetX, double offsetY);
-        void Transform(double scale, double offsetX, double offsetY);
-        BoundingBox GetBoundingBox();
-
-    }
-
     // 🖌️ KLASA LINII
-    public class LineShape : IShape
+    public class LineShape : IShapeDC
     {
         public double X1 { get; set; }
         public double Y1 { get; set; }
@@ -1070,7 +1030,7 @@
     }
 
     // 🟥 Klasa prostokąta (Rectangle)
-    private class RectangleShape : IShape
+    private class RectangleShape : IShapeDC
     {
         public double X { get; set; }
         public double Y { get; set; }
@@ -1155,7 +1115,7 @@
     }
 
     // /\ Klasa prostokąta (TriangleShape)
-    private class TriangleShape : IShape
+    private class TriangleShape : IShapeDC
     {
         // Współrzędne w przestrzeni "world" (bez transformacji)
         public double BaseX1 { get; set; }
@@ -1265,7 +1225,7 @@
     }
 
     // ⬛ Klasa kwadratu (Square)
-    private class SquareShape : IShape
+    private class SquareShape : IShapeDC
     {
         public double X { get; set; }
         public double Y { get; set; }
@@ -1330,7 +1290,7 @@
 
     }
 
-    private class RoundedRectangleShape : IShape
+    private class RoundedRectangleShape : IShapeDC
     {
         public double X { get; set; }
         public double Y { get; set; }
@@ -1405,7 +1365,7 @@
 
     }
 
-    private class RoundedRectangleShapeLeft : IShape
+    private class RoundedRectangleShapeLeft : IShapeDC
     {
         public double X { get; set; }
         public double Y { get; set; }
@@ -1479,7 +1439,7 @@
 
     }
 
-    private class RoundedRectangleShapeRight : IShape
+    private class RoundedRectangleShapeRight : IShapeDC
     {
         public double X { get; set; }
         public double Y { get; set; }
@@ -1553,7 +1513,7 @@
 
     }
 
-    private class TrapezoidShape : IShape
+    private class TrapezoidShape : IShapeDC
     {
         public double BaseWidth { get; set; }
         public double TopWidth { get; set; }
@@ -1745,7 +1705,7 @@
     }
 
     // 🟢 KLASA KOŁA
-    private class CircleShape : IShape
+    private class CircleShape : IShapeDC
     {
         public double X { get; set; }
         public double Y { get; set; }
@@ -1804,7 +1764,7 @@
 
     }
 
-    public class HouseShape : IShape
+    public class HouseShape : IShapeDC
     {
         public double X { get; set; }
         public double Y { get; set; }
@@ -1972,7 +1932,7 @@
 
     }
 
-    public class RoundedTopRectangleShape : IShape
+    public class RoundedTopRectangleShape : IShapeDC
     {
         public double X { get; set; }
         public double Y { get; set; }
@@ -2089,27 +2049,27 @@
     }
 
 
-    // 🔧 KLASY EDYTOWALNYCH WŁAŚCIWOŚCI
-    public record EditableProperty(
-        string Label,
-        Func<double> GetValue,
-        Action<double> SetValue,
-        string NazwaObiektu,
-        bool IsReadOnly = false,
-        bool slupekRuchomy = false,
-        bool pionPoziom = false)
-    {
-        public double Value
-        {
-            get => GetValue();
-            set
-            {
-                if (!IsReadOnly) SetValue(value);
-            }
-        }
+    // // 🔧 KLASY EDYTOWALNYCH WŁAŚCIWOŚCI
+    // public record EditableProperty(
+    //     string Label,
+    //     Func<double> GetValue,
+    //     Action<double> SetValue,
+    //     string NazwaObiektu,
+    //     bool IsReadOnly = false,
+    //     bool slupekRuchomy = false,
+    //     bool pionPoziom = false)
+    // {
+    //     public double Value
+    //     {
+    //         get => GetValue();
+    //         set
+    //         {
+    //             if (!IsReadOnly) SetValue(value);
+    //         }
+    //     }
    
-        public EditableProperty SetObjectName(string newName) => this with { NazwaObiektu = newName };
-    }
+    //     public EditableProperty SetObjectName(string newName) => this with { NazwaObiektu = newName };
+    // }
 
     private void SelectNextShape()
     {
@@ -2215,6 +2175,14 @@
         }
 
         await RedrawCanvas();
+    }
+
+    private async Task PowrotDoGenerowaniaOkna()
+    {
+        ShapeService.Shapes = _shapes; // Przekazanie danych do serwisu
+        Navigation.NavigateTo("/Modele-okienne");
+
+        await Task.CompletedTask;
     }
 
     private async Task RysOkna()
@@ -2780,7 +2748,7 @@
         return t >= 0 && t <= 1 && u >= 0 && u <= 1;
     }
 
-    private List<(Point Start, Point End)> GetShapeEdges(IShape shape)
+    private List<(Point Start, Point End)> GetShapeEdges(IShapeDC shape)
     {
         switch (shape)
         {
@@ -2798,33 +2766,13 @@
             case RoundedTopRectangleShape roundedRect:
                 return roundedRect.GetEdges();
             default:
-                return shape.GetBoundingBox()?.GetEdges() ?? new List<(Point, Point)>();
+                return shape.GetBoundingBox()?.GetEdges()
+                .Select(edge => (new Point(edge.Start.X, edge.Start.Y), new Point(edge.End.X, edge.End.Y)))
+                .ToList()
+                ?? new List<(Point, Point)>();
+
         }
     }
-
-
-    // public void RemoveLinesOutsideShape(List<LineShape> lines, List<(Point Start, Point End)> edges)
-    // {
-
-    //     List<Point> polygonVertices = edges
-    //         .SelectMany(e => new[] { e.Start, e.End })
-    //         .Distinct()
-    //         .ToList();
-
-    //     lines.RemoveAll(line =>
-    //     {
-    //         bool startInside = IsPointInsidePolygon(line.X1, line.Y1, polygonVertices);
-    //         bool endInside = IsPointInsidePolygon(line.X2, line.Y2, polygonVertices);
-
-    //         if (!startInside && !endInside)
-    //         {
-    //             Console.WriteLine($"Linia ({line.X1}, {line.Y1}) → ({line.X2}, {line.Y2}) jest poza kształtem i zostaje usunięta.");
-    //             return true; // Usuń linię, jeśli oba punkty są na zewnątrz
-    //         }
-
-    //         return false; // Zachowaj linię, jeśli choć jeden punkt jest wewnątrz
-    //     });
-    // }
 
     private bool IsPointInsideAnyShape(double x, double y, List<object> shapes)
     {
@@ -2947,7 +2895,6 @@
 
         return intersections;
     }
-
 
     private bool IsPointInsideEdges(double x, double y, List<(Point Start, Point End)> edges, Point? arcCenter = null, double arcRadius = 0)
     {
@@ -3127,7 +3074,6 @@
 
         return true; // Punkt leży na odcinku
     }
-
 
     private double Distance(double x1, double y1, double x2, double y2)
     {

@@ -9,6 +9,7 @@
 @inject INotificationService _notice
 @inject NavigationManager Navigation
 @inject NavigationManager NavigationManager
+@inject ShapeTransferService ShapeService
 @using System.IO;
 @using SixLabors.ImageSharp;
 @using SixLabors.ImageSharp.Processing;
@@ -458,32 +459,32 @@
 
     /* Lista materiałów */
     .materials-list {
-        list-style: none;
-        padding: 0;
-        width: 100%;
+    list-style: none;
+    padding: 0;
+    width: 100%;
     }
 
     /* Pojedynczy materiał */
     .material-item {
-        background: #333;
-        padding: 12px;
-        border-radius: 6px;
-        margin-bottom: 10px;
-        box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        width: 100%;
+    background: #333;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
     }
 
     /* Kolor jasny dla tekstu */
     .material-item span {
-        color: #ffeb99;
-        font-size: 1em;
+    color: #ffeb99;
+    font-size: 1em;
     }
 
     .material-item strong {
-        color: #ffcc00;
+    color: #ffcc00;
     }
 
 </style>
@@ -708,11 +709,25 @@
 
     private List<WygenerowaneMaterialy> infoBoom = new List<WygenerowaneMaterialy>();
 
+    private List<IShapeDC> _shapes = new List<IShapeDC>();
+
     protected override async Task OnInitializedAsync()
     {
         try
         {
             await Laduj_Uprawnienia();
+
+
+            _shapes = ShapeService.Shapes; // Odbiór danych z serwisu
+
+            if (_shapes != null)
+            {
+                Console.WriteLine($"Odebrano dane _shapes: {_shapes.Count()}");
+            }
+            else
+            {
+                Console.WriteLine($"Odebrano dane _shapes: null");
+            }
 
             Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
 
@@ -727,6 +742,7 @@
                 throw new Exception("⚠️ Skrypt dragAndDrop.js nie został poprawnie załadowany!");
 
                 await JS.InvokeVoidAsync("AddCanvasHoverListener", CanvasRef);
+
             }
         }
         catch (Exception ex)
@@ -1179,4 +1195,5 @@
         public double Width { get; set; }
         public double Height { get; set; }
     }
+
 }
