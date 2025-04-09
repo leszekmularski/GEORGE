@@ -33,7 +33,7 @@ namespace ReservationBookingSystem.Services
 
             using (var smtp = new SmtpClient())
             {
-                smtp.Host = _mailSettings.Host;            // mail.george.pl
+                smtp.Host = _mailSettings.Host;            // mail.test.pl
                 smtp.Port = _mailSettings.Port;            // 465
                 smtp.EnableSsl = true;                     // SSL/TLS
                 smtp.UseDefaultCredentials = false;

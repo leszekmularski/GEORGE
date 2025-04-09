@@ -205,6 +205,14 @@
     @onclick='() => SetTool("rounded_rect")'>
         @SvgRoundedRect()
     </button>
+    <button class="tool-button @(_selectedTool == "rounded_rect_left" ? "active" : "")"
+            @onclick='() => SetTool("rounded_rect_left")'>
+        @SvgRoundedRectLeft()
+    </button>
+    <button class="tool-button @(_selectedTool == "rounded_rect_right" ? "active" : "")"
+            @onclick='() => SetTool("rounded_rect_right")'>
+        @SvgRoundedRectRight()
+    </button>
     <button class="tool-button @(_selectedTool == "house" ? "active" : "")"
     @onclick='() => SetTool("house")'>
         @SvgHouse()
@@ -407,8 +415,53 @@
     {
         builder.AddMarkupContent(0, @"
         <svg class='tool-icon' viewBox='0 0 24 24'>
-            <rect x='5' y='7' width='14' height='10' rx='3' ry='3' stroke='black' stroke-width='2' fill='none'/>
+            <path d='
+                M8,7
+                a3,3 0 0 0 -3,3
+                v7
+                h14
+                v-7
+                a3,3 0 0 0 -3,-3
+                h-8
+                z
+            ' stroke='black' stroke-width='2' fill='none'/>
         </svg>");
+    };
+
+    private RenderFragment SvgRoundedRectLeft() => builder =>
+    {
+    builder.AddMarkupContent(0, @"
+    <svg class='tool-icon' viewBox='0 0 24 24'>
+        <path d='
+            M8,7
+            a3,3 0 0 0 -3,3 
+            v4
+            a0,0 0 0 0 0,0
+            h14
+            a0,0 0 0 0 0,-0
+            v-7
+            h-11
+            z
+        ' stroke='black' stroke-width='2' fill='none'/>
+    </svg>");
+    };
+
+    private RenderFragment SvgRoundedRectRight() => builder =>
+    {
+    builder.AddMarkupContent(0, @"
+    <svg class='tool-icon' viewBox='0 0 24 24'>
+        <path d='
+            M5,7
+            h11
+            a3,3 0 0 1 3,3
+            v4
+            a0,0 0 0 1 -0,0
+            h-14
+            a0,0 0 0 1 0,0
+            v-7
+            z
+        ' stroke='black' stroke-width='2' fill='none'/>
+    </svg>");
     };
 
     private RenderFragment SvgHouse() => builder =>
@@ -484,6 +537,8 @@
             "trapezoidLeft" => new TrapezoidShape(_startX, _startY, _currentX, _currentY, 0.5, _scaleFactor, 1),
             "trapezoidRight" => new TrapezoidShape(_startX, _startY, _currentX, _currentY, 0.5, _scaleFactor, 2),
             "rounded_rect" => new RoundedRectangleShape(_startX, _startY, _currentX - _startX, _currentY - _startY, 20, _scaleFactor),
+            "rounded_rect_left" => new RoundedRectangleShapeLeft(_startX, _startY, _currentX - _startX, _currentY - _startY, 20, _scaleFactor),//left
+            "rounded_rect_right" => new RoundedRectangleShapeRight(_startX, _startY, _currentX - _startX, _currentY - _startY, 20, _scaleFactor),//right
             "house" => new HouseShape(_startX, _startY, _currentX - _startX, _currentY - _startY, (_currentY - _startY) * 0.5, (_currentY - _startY) * 0.5, _scaleFactor),
             "rounded_top_rect" => new RoundedTopRectangleShape(_startX, _startY, _currentX - _startX, _currentY - _startY, (_currentX - _startX) / 2, _scaleFactor),
 
@@ -554,6 +609,12 @@
                     break;
                 case "rounded_rect":
                     await DrawPreviewRoundedRect();
+                    break;
+                case "rounded_rect_left":
+                    await DrawPreviewRoundedRectLeft();
+                    break;
+                case "rounded_rect_right":
+                    await DrawPreviewRoundedRectRight();
                     break;
                 case "house":
                     await DrawPreviewHouse();
@@ -689,6 +750,50 @@
         await _ctx.LineToAsync(_startX, _startY + height);
         await _ctx.LineToAsync(_startX, _startY + radius);
         await _ctx.ArcToAsync(_startX, _startY, _startX + radius, _startY, radius);
+        await _ctx.ClosePathAsync();
+        await _ctx.StrokeAsync();
+    }
+
+    private async Task DrawPreviewRoundedRectLeft()
+    {
+        // Reset i czyszczenie
+        _shapes.Clear();
+        await ClearCanvas();
+        await _ctx.SetStrokeStyleAsync("black");
+
+        var radius = 20; // Możesz dodać parametr do kontroli
+        var width = _currentX - _startX;
+        var height = _currentY - _startY;
+
+        await _ctx.BeginPathAsync();
+        await _ctx.MoveToAsync(_startX + radius, _startY);
+        await _ctx.LineToAsync(_startX + width, _startY);
+        await _ctx.LineToAsync(_startX + width, _startY + height);
+        await _ctx.LineToAsync(_startX, _startY + height);
+        await _ctx.LineToAsync(_startX, _startY + radius);
+        await _ctx.ArcToAsync(_startX, _startY, _startX + radius, _startY, radius);
+        await _ctx.ClosePathAsync();
+        await _ctx.StrokeAsync();
+    }
+
+    private async Task DrawPreviewRoundedRectRight()
+    {
+        // Reset i czyszczenie
+        _shapes.Clear();
+        await ClearCanvas();
+        await _ctx.SetStrokeStyleAsync("black");
+
+        var radius = 20; // Możesz dodać parametr do kontroli
+        var width = _currentX - _startX;
+        var height = _currentY - _startY;
+
+        await _ctx.BeginPathAsync();
+        await _ctx.MoveToAsync(_startX + radius, _startY);
+        await _ctx.LineToAsync(_startX + width - radius, _startY);
+        await _ctx.ArcToAsync(_startX + width, _startY, _startX + width, _startY + radius, radius);
+        await _ctx.LineToAsync(_startX + width, _startY + height);
+        await _ctx.LineToAsync(_startX, _startY + height);
+        await _ctx.LineToAsync(_startX, _startY);
         await _ctx.ClosePathAsync();
         await _ctx.StrokeAsync();
     }
@@ -1232,7 +1337,7 @@
         public double Width { get; set; }
         public double Height { get; set; }
         public double Radius { get; set; }
-        public string NazwaObj { get; set; } = "Trapez";
+        public string NazwaObj { get; set; } = "Prostoką z zaokr. naroż.";
 
         private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
 
@@ -1259,6 +1364,154 @@
             await ctx.LineToAsync(X, Y + Height);
             await ctx.LineToAsync(X, Y + Radius);
             await ctx.ArcToAsync(X, Y, X + Radius, Y, Radius);
+            await ctx.ClosePathAsync();
+            await ctx.StrokeAsync();
+        }
+
+        public List<EditableProperty> GetEditableProperties() => new()
+        {
+            new("X", () => X, v => X = v, NazwaObj, true),
+            new("Y", () => Y, v => Y = v, NazwaObj, true),
+            new("Szerokość", () => Width, v => Width = v, NazwaObj),
+            new("Wysokość", () => Height, v => Height = v, NazwaObj),
+            new("Promień", () => Radius, v => Radius = v, NazwaObj)
+        };
+
+        public void Scale(double factor)
+        {
+            Width *= factor;
+            Height *= factor;
+            Radius *= factor;
+        }
+        public void Move(double offsetX, double offsetY)
+        {
+            X += offsetX;
+            Y += offsetY;
+        }
+
+        public BoundingBox GetBoundingBox()
+        {
+            return new BoundingBox(X, Y, Width, Height, "Prostokąt");
+        }
+
+        public void Transform(double scale, double offsetX, double offsetY)
+        {
+            X = (X * scale) + offsetX;
+            Y = (Y * scale) + offsetY;
+            Width *= scale;
+            Height *= scale;
+            Radius *= scale;
+        }
+
+    }
+
+    private class RoundedRectangleShapeLeft : IShape
+    {
+        public double X { get; set; }
+        public double Y { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
+        public double Radius { get; set; }
+        public string NazwaObj { get; set; } = "Prostoką z 1 zaokr. naroż. lewym";
+
+        private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
+
+        public RoundedRectangleShapeLeft(double x, double y, double width, double height, double radius, double scaleFactor)
+        {
+            X = x;
+            Y = y;
+            Width = width;
+            Height = height;
+            Radius = radius;
+            _scaleFactor = scaleFactor;
+        }
+
+        public async Task Draw(Canvas2DContext ctx)
+        {
+            await ctx.SetStrokeStyleAsync("black");
+            await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
+
+            await ctx.BeginPathAsync();
+            await ctx.MoveToAsync(X + Radius, Y);
+            await ctx.LineToAsync(X + Width, Y);
+            await ctx.LineToAsync(X + Width, Y + Height);
+            await ctx.LineToAsync(X, Y + Height);
+            await ctx.LineToAsync(X, Y + Radius);
+            await ctx.ArcToAsync(X, Y, X + Radius, Y, Radius);
+            await ctx.ClosePathAsync();
+            await ctx.StrokeAsync();
+        }
+
+        public List<EditableProperty> GetEditableProperties() => new()
+        {
+            new("X", () => X, v => X = v, NazwaObj, true),
+            new("Y", () => Y, v => Y = v, NazwaObj, true),
+            new("Szerokość", () => Width, v => Width = v, NazwaObj),
+            new("Wysokość", () => Height, v => Height = v, NazwaObj),
+            new("Promień", () => Radius, v => Radius = v, NazwaObj)
+        };
+
+        public void Scale(double factor)
+        {
+            Width *= factor;
+            Height *= factor;
+            Radius *= factor;
+        }
+        public void Move(double offsetX, double offsetY)
+        {
+            X += offsetX;
+            Y += offsetY;
+        }
+
+        public BoundingBox GetBoundingBox()
+        {
+            return new BoundingBox(X, Y, Width, Height, "Prostokąt");
+        }
+
+        public void Transform(double scale, double offsetX, double offsetY)
+        {
+            X = (X * scale) + offsetX;
+            Y = (Y * scale) + offsetY;
+            Width *= scale;
+            Height *= scale;
+            Radius *= scale;
+        }
+
+    }
+
+    private class RoundedRectangleShapeRight : IShape
+    {
+        public double X { get; set; }
+        public double Y { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
+        public double Radius { get; set; }
+        public string NazwaObj { get; set; } = "Prostoką z 1 zaokr. naroż. prawym";
+
+        private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
+
+        public RoundedRectangleShapeRight(double x, double y, double width, double height, double radius, double scaleFactor)
+        {
+            X = x;
+            Y = y;
+            Width = width;
+            Height = height;
+            Radius = radius;
+            _scaleFactor = scaleFactor;
+        }
+
+        public async Task Draw(Canvas2DContext ctx)
+        {
+            await ctx.SetStrokeStyleAsync("black");
+            await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
+
+            await ctx.BeginPathAsync();
+            await ctx.MoveToAsync(X + Radius, Y);
+            await ctx.LineToAsync(X + Width - Radius, Y);
+            await ctx.ArcToAsync(X + Width, Y, X + Width, Y + Radius, Radius);
+            await ctx.LineToAsync(X + Width, Y + Height);
+            await ctx.LineToAsync(X, Y + Height);
+            await ctx.LineToAsync(X, Y);
             await ctx.ClosePathAsync();
             await ctx.StrokeAsync();
         }
