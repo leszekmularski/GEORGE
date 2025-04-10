@@ -140,14 +140,8 @@ else
     <Table TItem="ProducenciPodwykonawcy" DataSource="@rodzajeProducentow" Loading="rodzajeProducentow==null" ScrollX="2400" PageSize="@iloscRekordow" Size="TableSize.Small">
             <Column Title="ID" @bind-Field="@context.Id" Hidden />
             <ActionColumn Width="90" Title="Zamówienia">
-                <Popconfirm Title="Czy chcesz wyświetlić zamówienia?"
-                            OnConfirm="()=> schowZamow(context.RowId)"
-                            OkText="Tak"
-                            CancelText="Nie">
-                    <a style="color:brown">Pokaż</a>
-                </Popconfirm>
+                <a style="color:brown" @onclick="@(() => schowZamow(context.RowId))">Pokaż</a>
             </ActionColumn>
-    @*         <Column Title="Nazwa Producenta" @bind-Field="@context.NazwaProducenta" Sortable OnFilter="(a, b) => a == b" Filterable /> *@
             <PropertyColumn Title="Nazwa Producenta" Property="c=>c.NazwaProducenta" Sortable OnFilter="(a, b) => a == b" Filterable>
                 <a href="@context.AdresWWW1" target="_blank">@context.NazwaProducenta</a>
             </PropertyColumn>
@@ -159,9 +153,8 @@ else
             <Column Title="Telefon do os. konkt." @bind-Field="@context.TelefonOsobyKontaktowej1" Sortable />
             <Column Title="Autor zmian" @bind-Field="@context.KtoZapisal" Sortable />
 
-            <!-- Przykład kolumny dla daty z formatowaniem -->
             <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd HH:mm:ss" Sortable />
-            <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
+
             <ActionColumn Title="Akcja" Width="100" Fixed="right">
                 @if (boolAdmin || boolZmiana)
                 {
