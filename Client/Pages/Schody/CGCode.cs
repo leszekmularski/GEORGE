@@ -60,8 +60,8 @@ namespace GEORGE.Client.Pages.Schody
             // Nagłówek programu
             if (lines.Count > 0)
             {
-                gcodeBuilder.AppendLine($"%_N_{lines[0].NazwaProgramu + "_" + lines[0].fileNCName}_MPF");
-                gcodeBuilder.AppendLine($";$PATH=/_N_WKS_DIR/{lines[0].NazwaProgramu + "_" + lines[0].fileNCName}_WPD");
+                gcodeBuilder.AppendLine($"%_N_{lines[0].NazwaProgramu.Replace("-","_") + "_" + lines[0].fileNCName}_MPF");
+                gcodeBuilder.AppendLine($";$PATH=/_N_WKS_DIR/{lines[0].NazwaProgramu.Replace("-", "_") + "_" + lines[0].fileNCName}_WPD");
             }
             else
             {
@@ -69,12 +69,12 @@ namespace GEORGE.Client.Pages.Schody
                 gcodeBuilder.AppendLine($";$PATH=/_N_WKS_DIR/1_WPD");
             }
 
-            gcodeBuilder.AppendLine("N1 G40 G641 ADIS=1 SOFT G54 M51");
+            gcodeBuilder.AppendLine("N1 G641 ADIS=1 SOFT G54 M51");
             gcodeBuilder.AppendLine("N2 CPRECON");
             gcodeBuilder.AppendLine("N3 CFIN");
             gcodeBuilder.AppendLine("N4 G00 G90 G53 D0 Z340");
-            gcodeBuilder.AppendLine("N5 G00 G90 G53 X3740 Y1300");
-            gcodeBuilder.AppendLine("N6 G00 G90 G53 D0 Z340 S0");
+            gcodeBuilder.AppendLine("N5 G53 X3740 Y1300");
+            gcodeBuilder.AppendLine("N6 G53 D0 Z340 S0");
             gcodeBuilder.AppendLine("N7; (Frez FI16)");
             gcodeBuilder.AppendLine("N8 T10");
             gcodeBuilder.AppendLine("N9 DRZ=170 DRR=3");
@@ -101,12 +101,14 @@ namespace GEORGE.Client.Pages.Schody
             //}
             //Console.WriteLine($"------------------------------------------------------------");
 
+            uint i = 0;
+
             // Iteracja przez grupy
             foreach (var group in groupedLines)
             {
                 // Dodanie komentarza z nazwą makra
                 gcodeBuilder.AppendLine($";(Makro: {group.Key})");
-                gcodeBuilder.AppendLine("G0 Z340; Podnies narzedzie przed przejsciem");
+                gcodeBuilder.AppendLine("G53 D0 Z340; Podnies narzedzie przed przejsciem");
 
                 bool startG0 = true;
 
@@ -158,6 +160,8 @@ namespace GEORGE.Client.Pages.Schody
 
             if (string.IsNullOrEmpty(zPoziom)) return gcodeBuilder;
 
+            gcodeBuilder.AppendLine($"G54");
+
             if (line.nameMacro == "WANGA_KIESZEN")
             {
                 gcodeBuilder.AppendLine($"G0 G40 Z50.");
@@ -183,7 +187,7 @@ namespace GEORGE.Client.Pages.Schody
             {
                 gcodeBuilder.AppendLine($"G0 G40 Z50.");
                 gcodeBuilder.AppendLine($"X{(line.X1).ToString("F2", CultureInfo.InvariantCulture)} Y{(line.Y1 - 20).ToString("F2", CultureInfo.InvariantCulture)}");
-                gcodeBuilder.AppendLine($"G1 G41 X{line.X1.ToString("F2", CultureInfo.InvariantCulture)} Y{line.Y1.ToString("F2", CultureInfo.InvariantCulture)} {zPoziom} F2500");
+                gcodeBuilder.AppendLine($"G1 G42 X{line.X1.ToString("F2", CultureInfo.InvariantCulture)} Y{line.Y1.ToString("F2", CultureInfo.InvariantCulture)} {zPoziom} F2500");
                 gcodeBuilder.AppendLine($"X{line.X2.ToString("F2", CultureInfo.InvariantCulture)} Y{line.Y2.ToString("F2", CultureInfo.InvariantCulture)} F6000;{line.nameMacro}");
             }
             else

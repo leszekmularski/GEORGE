@@ -1307,10 +1307,10 @@ namespace GEORGE.Client.Pages.Schody
 
                         Console.WriteLine("Dodanie nagłówka dokumentu.");
 
-                        document.Add(new Paragraph($"Materiały do wykonania schodów: {DateTime.Now.ToShortDateString()}")
+                        document.Add(new Paragraph($"Materiały do wykonania schodów: {DateTime.Now.ToShortDateString()} Wysokość:{WysokoscCalkowita} Długość na wejściu:{DlugoscNaWejsciu} Szerokość całkowita:{SzerokoscBieguSchodow + 40 + 40}")
                             .SetFont(pdfFont)
                             .SetTextAlignment(iText.Layout.Properties.TextAlignment.CENTER)
-                            .SetFontSize(18)
+                            .SetFontSize(12)
                             .SetBold());
 
                         // Grupowanie danych
