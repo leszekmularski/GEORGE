@@ -11,7 +11,7 @@
 @* <CascadingValue Value="AppState"> *@
     <div class="page">
         <div class="sidebar">
-            <NavMenu />
+            <NavMenu ToggleSidebar="ToggleSidebar" />
         </div>
 
         <main >
@@ -228,6 +228,8 @@
     private ElementReference loginInput;
     private ElementReference frmOk;
 
+    private bool showSidebar = false;
+
     protected override async Task OnInitializedAsync()
     {
         user = await LocalStorage.GetStringAsync("user");
@@ -252,6 +254,12 @@
         }
 
         AppState.OnChange += StateHasChanged;
+    }
+
+    private async Task ToggleSidebar(bool show)
+    {
+        showSidebar = show;
+        await InvokeAsync(StateHasChanged);
     }
 
     public void Dispose()

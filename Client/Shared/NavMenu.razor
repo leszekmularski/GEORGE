@@ -4,100 +4,216 @@
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">PPHU GEORGE</a>
+
+        @if (!onlyIcon)
+        {
+            <a class="navbar-brand" href="">PPHU GEORGE</a>
+        }
+      
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
+        </button>
+        <button style="background-color: #003366;
+                                    color: #fff;
+                                    border: none;
+                                    border-radius: 4px;
+                                    padding: 5px 10px;
+                                    font-size: 14px;
+                                    cursor: pointer;"
+                title="Menu tylko '<' ikony lub ikony i opisy '>'" @onclick="IconNavMenu">
+            @if (onlyIcon)
+            {
+                <span>›</span>
+            }
+            else
+            {
+                <span>‹</span>
+            }
         </button>
     </div>
 </div>
 
-<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="oi oi-home" aria-hidden="true"></span> Strona domowa
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="zlecenia-produkcyjne">
-                <span class="oi oi-collapse-left" aria-hidden="true"></span> Lista zleceń
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="Zlecenia-produkcyjne-wew">
-                <span class="oi oi-collapse-right" aria-hidden="true"></span> Lista zleceń wewn.
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="Kantowka-do-zlecen-szukaj">
-                <span class="oi oi-aperture" aria-hidden="true"></span> Kantówki zamówienia
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="Producenci">
-                <span class="oi oi-wrench" aria-hidden="true"></span> Producenci
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="Karty-Instrukcyjne">
-                <span class="oi oi-layers" aria-hidden="true"></span> Karty instrukcyjne
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="FrappeGantt">
-                <span class="oi oi-bar-chart" aria-hidden="true"></span> Planowanie produkcji
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="Rysuj-Drzwi">
-                <span class="oi oi-pencil" aria-hidden="true"></span> Generator drzwi
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="WybierzSchody">
-                <span class="oi oi-project" aria-hidden="true"></span> Generator schodów
-            </NavLink>
-        </div>
-         <div class="nav-item px-3">
-            <Menu Theme="MenuTheme.Dark" Style="background-color: var(--navmenu-background-color);color:aliceblue"
-                  Mode=MenuMode.Inline
-                  InlineCollapsed=collapsed>
-                 <SubMenu Key="sub2" TitleTemplate=@sub1Title>
-                    <MenuItem Key="1">
-                        <NavLink class="nav-link" href="Rodzaje-Kart-Instrukcyjnych">
-                            <span class="oi oi-document" aria-hidden="true"></span>Rodzaje Kart
-                        </NavLink>
-                    </MenuItem>
-                    <MenuItem Key="2">
-                        <NavLink class="nav-link" href="Linie-Produkcyjne">
-                            <span class="oi oi-fork" aria-hidden="true"></span>&nbsp;&nbsp;Linie Produkcyjne
-                        </NavLink>
-                    </MenuItem>
-                    <MenuItem Key="3">
-                        <NavLink class="nav-link" href="ListaPracownikow">
-                            <span class="oi oi-person" aria-hidden="true"></span>&nbsp;&nbsp;Użytkownicy
-                        </NavLink>
-                    </MenuItem>
-                    @if (!string.IsNullOrEmpty(user))
-                    {
-                        <MenuItem Key="100">
-                            <NavLink class="nav-link" href="PanelAdminUpraw">
-                                <span class="oi oi-wrench" aria-hidden="true"></span>&nbsp;&nbsp;Opcje
+@if (onlyIcon)
+{
+    <div class="@NavMenuCssClass" @onclick="ToggleNavMenu" style="width:80px">
+        <nav class="flex-column">
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                    <span class="oi oi-home" aria-hidden="true"></span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="zlecenia-produkcyjne">
+                    <span class="oi oi-collapse-left" aria-hidden="true"></span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="Zlecenia-produkcyjne-wew">
+                    <span class="oi oi-collapse-right" aria-hidden="true"></span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="Kantowka-do-zlecen-szukaj">
+                    <span class="oi oi-aperture" aria-hidden="true"></span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="Producenci">
+                    <span class="oi oi-wrench" aria-hidden="true"></span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="Karty-Instrukcyjne">
+                    <span class="oi oi-layers" aria-hidden="true"></span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="FrappeGantt">
+                    <span class="oi oi-bar-chart" aria-hidden="true"></span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="Rysuj-Drzwi">
+                    <span class="oi oi-pencil" aria-hidden="true"></span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="WybierzSchody">
+                    <span class="oi oi-project" aria-hidden="true"></span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <Menu Theme="MenuTheme.Dark" Style="background-color: var(--navmenu-background-color);color:aliceblue"
+                      Mode=MenuMode.Inline
+                      InlineCollapsed=collapsed>
+                    <SubMenu Key="sub2" TitleTemplate=@sub1Title>
+                        <MenuItem Key="1">
+                            <NavLink class="nav-link" href="Rodzaje-Kart-Instrukcyjnych">
+                                <span class="oi oi-document" aria-hidden="true"></span>
                             </NavLink>
                         </MenuItem>
-                        <MenuItem Key="101">
-                            <NavLink class="nav-link" href="KonfiguratorOkien">
-                                <span class="oi oi-wrench" aria-hidden="true"></span>&nbsp;Konfigurator okien
+                        <MenuItem Key="2">
+                            <NavLink class="nav-link" href="Linie-Produkcyjne">
+                                <span class="oi oi-fork" aria-hidden="true"></span>
                             </NavLink>
                         </MenuItem>
-                    }
-                </SubMenu>
-            </Menu>
+                        <MenuItem Key="3">
+                            <NavLink class="nav-link" href="ListaPracownikow">
+                                <span class="oi oi-person" aria-hidden="true"></span>
+                            </NavLink>
+                        </MenuItem>
+                        @if (!string.IsNullOrEmpty(user))
+                        {
+                            <MenuItem Key="100">
+                                <NavLink class="nav-link" href="PanelAdminUpraw">
+                                    <span class="oi oi-wrench" aria-hidden="true"></span>
+                                </NavLink>
+                            </MenuItem>
+                            <MenuItem Key="101">
+                                <NavLink class="nav-link" href="KonfiguratorOkien">
+                                    <span class="oi oi-wrench" aria-hidden="true"></span>
+                                </NavLink>
+                            </MenuItem>
+                        }
+                    </SubMenu>
+                </Menu>
+            </div>
+        </nav>
     </div>
-    </nav>
-</div>
+}
+else
+{
+    <div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+        <nav class="flex-column">
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                    <span class="oi oi-home" aria-hidden="true"></span> Strona domowa
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="zlecenia-produkcyjne">
+                    <span class="oi oi-collapse-left" aria-hidden="true"></span> Lista zleceń
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="Zlecenia-produkcyjne-wew">
+                    <span class="oi oi-collapse-right" aria-hidden="true"></span> Lista zleceń wewn.
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="Kantowka-do-zlecen-szukaj">
+                    <span class="oi oi-aperture" aria-hidden="true"></span> Kantówki zamówienia
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="Producenci">
+                    <span class="oi oi-wrench" aria-hidden="true"></span> Producenci
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="Karty-Instrukcyjne">
+                    <span class="oi oi-layers" aria-hidden="true"></span> Karty instrukcyjne
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="FrappeGantt">
+                    <span class="oi oi-bar-chart" aria-hidden="true"></span> Planowanie produkcji
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="Rysuj-Drzwi">
+                    <span class="oi oi-pencil" aria-hidden="true"></span> Generator drzwi
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="WybierzSchody">
+                    <span class="oi oi-project" aria-hidden="true"></span> Generator schodów
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <Menu Theme="MenuTheme.Dark" Style="background-color: var(--navmenu-background-color);color:aliceblue"
+                      Mode=MenuMode.Inline
+                      InlineCollapsed=collapsed>
+                    <SubMenu Key="sub2" TitleTemplate=@sub1Title>
+                        <MenuItem Key="1">
+                            <NavLink class="nav-link" href="Rodzaje-Kart-Instrukcyjnych">
+                                <span class="oi oi-document" aria-hidden="true"></span>Rodzaje Kart
+                            </NavLink>
+                        </MenuItem>
+                        <MenuItem Key="2">
+                            <NavLink class="nav-link" href="Linie-Produkcyjne">
+                                <span class="oi oi-fork" aria-hidden="true"></span>&nbsp;&nbsp;Linie Produkcyjne
+                            </NavLink>
+                        </MenuItem>
+                        <MenuItem Key="3">
+                            <NavLink class="nav-link" href="ListaPracownikow">
+                                <span class="oi oi-person" aria-hidden="true"></span>&nbsp;&nbsp;Użytkownicy
+                            </NavLink>
+                        </MenuItem>
+                        @if (!string.IsNullOrEmpty(user))
+                        {
+                            <MenuItem Key="100">
+                                <NavLink class="nav-link" href="PanelAdminUpraw">
+                                    <span class="oi oi-wrench" aria-hidden="true"></span>&nbsp;&nbsp;Opcje
+                                </NavLink>
+                            </MenuItem>
+                            <MenuItem Key="101">
+                                <NavLink class="nav-link" href="KonfiguratorOkien">
+                                    <span class="oi oi-wrench" aria-hidden="true"></span>&nbsp;Konfigurator okien
+                                </NavLink>
+                            </MenuItem>
+                        }
+                    </SubMenu>
+                </Menu>
+            </div>
+        </nav>
+    </div>
+}
 
 @code {
+    [Parameter]
+    public EventCallback<bool> ToggleSidebar { get; set; }
+
     private bool collapseNavMenu = true;
 
     bool collapsed = false;
@@ -106,22 +222,53 @@
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
+    private bool onlyIcon = false;
+
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
     }
 
-    RenderFragment sub1Title =
-    @<span>
-        <Icon Type="setting" Theme="outline"></Icon>
-        <span>Ustawienia systemu</span>
-    </span>
-    ;
+    private async Task IconNavMenu()
+    {
+        if (onlyIcon)
+        {
+            onlyIcon = false;
+            await ToggleSidebar.InvokeAsync(false);
+        }
+        else
+        {
+            onlyIcon = true;
+            await ToggleSidebar.InvokeAsync(true);
+        }
+
+    }
+
+    private RenderFragment sub1Title => builder =>
+    {
+        int seq = 0;
+
+        builder.OpenElement(seq++, "span");
+
+        builder.OpenComponent(seq++, typeof(Icon));
+        builder.AddAttribute(seq++, "Type", "setting");
+        builder.AddAttribute(seq++, "Theme", "outline");
+        builder.CloseComponent();
+
+        if (!onlyIcon)
+        {
+            builder.OpenElement(seq++, "span");
+            builder.AddContent(seq++, "Ustawienia systemu");
+            builder.CloseElement();
+        }
+
+        builder.CloseElement();
+    };
 
     protected override async Task OnInitializedAsync()
     {
         user = await LocalStorage.GetStringAsync("user");
-        //Console.WriteLine($"NavMenu:{user}");  
+        //Console.WriteLine($"NavMenu:{user}");
     }
 
 }
