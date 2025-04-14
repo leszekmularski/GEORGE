@@ -9,18 +9,15 @@
         {
             <a class="navbar-brand" href="">PPHU GEORGE</a>
         }
-      
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
+
         <button style="background-color: #003366;
                                     color: #fff;
                                     border: none;
                                     border-radius: 4px;
-                                    padding: 5px 10px;
-                                    font-size: 14px;
+                                    padding: 5px 5px;
+                                    font-size: 12px;
                                     cursor: pointer;"
-                title="Menu tylko '<' ikony lub ikony i opisy '>'" @onclick="IconNavMenu">
+        title="Menu tylko '<' ikony lub ikony i opisy '>'" @onclick="IconNavMenu">
             @if (onlyIcon)
             {
                 <span>›</span>
@@ -35,7 +32,7 @@
 
 @if (onlyIcon)
 {
-    <div class="@NavMenuCssClass" @onclick="ToggleNavMenu" style="width:80px">
+    <div class="@NavMenuCssClass" @onclick="ToggleNavMenu" style="width:95px">
         <nav class="flex-column">
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
@@ -83,9 +80,9 @@
                 </NavLink>
             </div>
             <div class="nav-item px-3">
-                <Menu Theme="MenuTheme.Dark" Style="background-color: var(--navmenu-background-color);color:aliceblue"
-                      Mode=MenuMode.Inline
-                      InlineCollapsed=collapsed>
+                <Menu Theme="MenuTheme.Dark" Style="background-color: var(--navmenu-background-color);color:aliceblue; width:120px"
+                Mode=MenuMode.Vertical
+                InlineCollapsed=collapsed>
                     <SubMenu Key="sub2" TitleTemplate=@sub1Title>
                         <MenuItem Key="1">
                             <NavLink class="nav-link" href="Rodzaje-Kart-Instrukcyjnych">
@@ -172,8 +169,8 @@ else
             </div>
             <div class="nav-item px-3">
                 <Menu Theme="MenuTheme.Dark" Style="background-color: var(--navmenu-background-color);color:aliceblue"
-                      Mode=MenuMode.Inline
-                      InlineCollapsed=collapsed>
+                Mode=MenuMode.Inline
+                InlineCollapsed=collapsed>
                     <SubMenu Key="sub2" TitleTemplate=@sub1Title>
                         <MenuItem Key="1">
                             <NavLink class="nav-link" href="Rodzaje-Kart-Instrukcyjnych">
@@ -227,6 +224,7 @@ else
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
+        StateHasChanged();
     }
 
     private async Task IconNavMenu()

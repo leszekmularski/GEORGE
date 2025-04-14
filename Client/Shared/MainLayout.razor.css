@@ -78,4 +78,12 @@ main {
         padding-left: 2rem !important;
         padding-right: 1.5rem !important;
     }
+
+    .sidebar.expanded {
+        width: 250px;
+    }
+
+    .sidebar.collapsed {
+        width: 95px;
+    }
 }
