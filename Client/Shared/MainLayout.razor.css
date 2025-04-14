@@ -56,10 +56,17 @@ main {
     }
 
     .sidebar {
+        transition: width 0.3s ease;
+        overflow: hidden;
+    }
+
+    /* i zostaw klasy warunkowe */
+    .sidebar.expanded {
         width: 250px;
-        height: 100vh;
-        position: sticky;
-        top: 0;
+    }
+
+    .sidebar.collapsed {
+        width: 95px;
     }
 
     .top-row {
@@ -79,11 +86,4 @@ main {
         padding-right: 1.5rem !important;
     }
 
-    .sidebar.expanded {
-        width: 250px;
-    }
-
-    .sidebar.collapsed {
-        width: 95px;
-    }
 }

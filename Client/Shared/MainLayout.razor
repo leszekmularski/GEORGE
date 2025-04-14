@@ -10,7 +10,7 @@
 <CascadingValue Value="this">
 @* <CascadingValue Value="AppState"> *@
     <div class="page">
-        <div class="sidebar">
+        <div class="sidebar @(showSidebar ? "collapsed" : "expanded")">
             <NavMenu ToggleSidebar="ToggleSidebar" />
         </div>
 
@@ -202,6 +202,9 @@
 @code {
     [Parameter]
     public EventCallback OnShowDialogAddNew { get; set; }
+
+    [Parameter]
+    public bool OnlyIcon { get; set; }
 
     [Inject] private AppState AppState { get; set; } = default!;
 
