@@ -174,7 +174,7 @@
 
 </head>
 <body>
-    <div class="highlighted-background">
+    <div class="highlighted-background" style="left:@(OnlyIcon ? "95px" : "260px"); width:calc(100% - @(OnlyIcon ? "95px" : "260px"))">
         <h6 style="color:brown; padding-top:5px">Wyszukaj kantówkę po długości</h6>
         <Text>Wyszukaj po długości:</Text>
         <AntDesign.InputNumber @bind-Value="@_int_dlugosc" />
@@ -234,6 +234,8 @@
 </html>
 
 @code {
+    [CascadingParameter]
+    public bool OnlyIcon { get; set; }
 
     [Inject] private AppState AppState { get; set; } = default!;
 

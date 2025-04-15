@@ -135,7 +135,7 @@
 }
 else
 {
-    <div class="highlighted-background">
+    <div class="highlighted-background" style="left:@(OnlyIcon ? "95px" : "260px"); width:calc(100% - @(OnlyIcon ? "95px" : "260px"))">
         <Table TItem="ZleceniaProdukcyjne" DataSource="@zleceniaProdukcyjne"
         RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "zlecenieNaN" )"
         ScrollX="1990" PageSize="@iloscRekordow" Size="TableSize.Small">
@@ -594,6 +594,9 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
 
     [CascadingParameter]
     private MainLayout? Layout { get; set; }
+
+    [CascadingParameter]
+    public bool OnlyIcon { get; set; }
 
     [Inject] private AppState AppState { get; set; } = default!;
 

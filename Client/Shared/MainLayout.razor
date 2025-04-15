@@ -7,7 +7,7 @@
 @using GEORGE.Shared.Models
 @using System.Timers;
 
-<CascadingValue Value="this">
+<CascadingValue Value="OnlyIcon">
 @* <CascadingValue Value="AppState"> *@
     <div class="page">
         <div class="sidebar @(showSidebar ? "collapsed" : "expanded")">
@@ -262,7 +262,9 @@
     private async Task ToggleSidebar(bool show)
     {
         showSidebar = show;
-        await InvokeAsync(StateHasChanged);
+        //await InvokeAsync(StateHasChanged);
+        OnlyIcon = show;
+        StateHasChanged(); // aby odświeżyć widok
     }
 
     public void Dispose()

@@ -135,7 +135,7 @@ else
     [@(rodzajeProducentow != null ? "Ilość zarejestrowanych: " + rodzajeProducentow.Count() : "...")]
 </Divider>
 
-<div class="highlighted-background">
+<div class="highlighted-background" style="left:@(OnlyIcon ? "95px" : "260px"); width:calc(100% - @(OnlyIcon ? "95px" : "260px"))">
     <ul>
     <Table TItem="ProducenciPodwykonawcy" DataSource="@rodzajeProducentow" Loading="rodzajeProducentow==null" ScrollX="2400" PageSize="@iloscRekordow" Size="TableSize.Small">
             <Column Title="ID" @bind-Field="@context.Id" Hidden />
@@ -300,6 +300,8 @@ else
 </div>
 
 @code {
+    [CascadingParameter]
+    public bool OnlyIcon { get; set; }
 
     [Inject] private AppState AppState { get; set; } = default!;
 

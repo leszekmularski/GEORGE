@@ -222,6 +222,10 @@
                 <Button Type="reset" OnClick="@(ExportSelectedColumnsItemsToExcel)">
                     Zapisz do pliku CSV - zaznaczone
                 </Button>
+                <Button OnClick="PrzelaczWidok">
+                    @(pokazujTylkoNiezamowione ? "Pokaż wszystkie" : "Pokaż tylko niezamówione")
+                </Button>
+
             }
             else
             {
@@ -755,6 +759,39 @@
         await _message.Success("Dane skopiowano do schowka");
     }
 
+    // Dodaj tę zmienną w klasie (np. jako pole klasy)
+    private bool pokazujTylkoNiezamowione = false;
+
+    // Funkcja toggle'ująca widok
+    private async Task PrzelaczWidok()
+    {
+        pokazujTylkoNiezamowione = !pokazujTylkoNiezamowione;
+
+        await OdswiezListeElementow();
+    }
+
+    // Funkcja do filtrowania danych w zależności od stanu
+    private async Task OdswiezListeElementow()
+    {
+        if (elementyDoZlecen == null || elementyDoZlecen.Count == 0) return;
+
+        if (pokazujTylkoNiezamowione)
+        {
+            elementyDoZlecen = elementyDoZlecen
+            .Where(k => k.ElemetZamDoZlecen?.CzyZamowiono == false)
+            .ToList();
+        }
+        else
+        {
+            _loading = true;
+            elementyDoZlecen = await Http.GetFromJsonAsync<List<ElemetZamDoZlecenWithProducent>>($"api/ElementyDoZlecen/rowid/{RowIdZlecenia}");
+            _loading = false;
+        }
+
+        StateHasChanged(); // tylko jeśli potrzebne
+
+    }
+
     private async Task CopyElementyChekToClipboard()
     {
         // Sprawdzenie, czy są zaznaczone elementy
@@ -1249,6 +1286,8 @@
     private async Task CloseModal()
     {
         Console.WriteLine("CloseModal");
+
+        pokazujTylkoNiezamowione = false;
 
         await HandleCancel();
 

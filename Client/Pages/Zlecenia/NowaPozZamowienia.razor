@@ -33,7 +33,7 @@ else
                     ValueName="@nameof(Producent.RowId)">
                     </Select>
                 </FormItem>
-                
+
                 <AntDesign.FormItem Label="Numer Katalogowy">
                     <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.NumerKatalogowy" Placeholder="Podaj numer katalogowy producemnta" />
                 </AntDesign.FormItem>
@@ -132,6 +132,12 @@ else
                 <AntDesign.Row Gutter="16">
                     <AntDesign.Col Span="12">
                         <img src="../Images/dob_wkladek.jpg" style="width: 100%; max-width: 400px;" />
+                        <div style="display: flex; gap: 8px; justify-content: left;">
+                            <Button Style="font-size:10px" OnClick="() => DefaultDim(12+20, 19+5+12)">Na zewn. 68 mm</Button>
+                            <Button Style="font-size:10px" OnClick="() => DefaultDim(34, 56)">Na zewn. 90 mm</Button>
+                            <Button Style="font-size:10px" OnClick="() => DefaultDim(19+5+12, 12+20)">Do wew. 68 mm</Button>
+                            <Button Style="font-size:10px" OnClick="() => DefaultDim(56, 34)">Do wew. 90 mm</Button>
+                        </div>
                     </AntDesign.Col>
                     <AntDesign.Col Span="18">
                         <AntDesign.FormItem Label="Wartość wysunięcia poza szyld domyślnie 2-3mm" Class="form-item-small-margin">
@@ -658,6 +664,14 @@ else
             Console.Error.WriteLine($"An unexpected error occurred while loading files: {ex.Message}");
             pliki = new List<PlikiZlecenProdukcyjnych>();
         }
+    }
+
+    private async Task DefaultDim(int wymA, int wymB)
+    {
+        wkladka_wymA = wymA;
+        wkladka_wymB = wymB;
+
+        await Task.CompletedTask;
     }
 
     private async Task OnFileChange(string rowIdPliku)
