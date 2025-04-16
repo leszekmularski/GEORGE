@@ -44,7 +44,7 @@
 
     .canvas-container {
     position: relative;
-        border: 1px solid #fd7e14;
+    border: 1px solid #fd7e14;
     width: @(_canvasX + "px");
     height: @(_canvasY + "px");
     margin: 20px auto;
@@ -156,73 +156,78 @@
 </div>
 
 <div class="toolbar">
-    <button class="tool-button @(_selectedTool == "line" ? "active" : "")"
+    <button class="tool-button @(_selectedTool == "line" ? "active" : "")" title="Linia poprzeczki lub słupka stałego"
     @onclick='() => SetTool("line")'>
         @SvgLine()
     </button>
 
-    <button class="tool-button @(_selectedTool == "line_hv" ? "active" : "")"
+    <button class="tool-button @(_selectedTool == "line_hv" ? "active" : "")" title="Linia poprzeczki lub słupka stałego rysowana tylko w poziomie lub pionie"
     @onclick='() => SetTool("line_hv")'>
         @SvgLineHV()
     </button>
 
-    <button class="tool-button @(_selectedTool == "line_hvSLRuch" ? "active" : "")"
+    <button class="tool-button @(_selectedTool == "line_dual_ram_hv" ? "active" : "")" title="Linia podziału na dwie oddzielne ramy"
+    @onclick='() => SetTool("line_dual_ram_hv")'>
+        @SvgLineDualRamHV()
+    </button>
+
+    <button class="tool-button @(_selectedTool == "line_hvSLRuch" ? "active" : "")" title="Linia podziału słupja ruchomego"
     @onclick='() => SetTool("line_hvSLRuch")'>
         @SvgLineHVRS()
     </button>
 
-    <button class="tool-button @(_selectedTool == "triangle" ? "active" : "")"
+    <button class="tool-button @(_selectedTool == "triangle" ? "active" : "")" title="Kształ ramy - trójkąt"
     @onclick='() => SetTool("triangle")'>
         @SvgTriangle()
     </button>
 
-    <button class="tool-button @(_selectedTool == "circle" ? "active" : "")"
+    <button class="tool-button @(_selectedTool == "circle" ? "active" : "")" title="Kształ ramy - kołowy"
     @onclick='() => SetTool("circle")'>
         @SvgCircle()
     </button>
 
-    <button class="tool-button @(_selectedTool == "square" ? "active" : "")"
+    <button class="tool-button @(_selectedTool == "square" ? "active" : "")" title="Kształ ramy - kwadrat"
     @onclick='() => SetTool("square")'>
         @SvgSquare()
     </button>
 
-    <button class="tool-button @(_selectedTool == "rectangle" ? "active" : "")"
+    <button class="tool-button @(_selectedTool == "rectangle" ? "active" : "")" title="Kształ ramy - prostokąt"
     @onclick='() => SetTool("rectangle")'>
         @SvgRectangle()
     </button>
 
-    <button class="tool-button @(_selectedTool == "trapezoidLeft" ? "active" : "")"
+    <button class="tool-button @(_selectedTool == "trapezoidLeft" ? "active" : "")" title="Kształ ramy - trapezoid"
     @onclick='() => SetTool("trapezoidLeft")'>
         @SvgTrapezoidLeft()
     </button>
 
-    <button class="tool-button @(_selectedTool == "trapezoidRight" ? "active" : "")"
+    <button class="tool-button @(_selectedTool == "trapezoidRight" ? "active" : "")" title="Kształ ramy - trapezoid"
     @onclick='() => SetTool("trapezoidRight")'>
         @SvgTrapezoidRight()
     </button>
 
-    <button class="tool-button @(_selectedTool == "trapezoid" ? "active" : "")"
+    <button class="tool-button @(_selectedTool == "trapezoid" ? "active" : "")" title="Kształ ramy - trapez"
     @onclick='() => SetTool("trapezoid")'>
         @SvgTrapezoid()
     </button>
 
-    <button class="tool-button @(_selectedTool == "rounded_rect" ? "active" : "")"
+    <button class="tool-button @(_selectedTool == "rounded_rect" ? "active" : "")" title="Kształ ramy - prostokąt z zaokrąglonymi górnymi rogami"
     @onclick='() => SetTool("rounded_rect")'>
         @SvgRoundedRect()
     </button>
-    <button class="tool-button @(_selectedTool == "rounded_rect_left" ? "active" : "")"
-            @onclick='() => SetTool("rounded_rect_left")'>
+    <button class="tool-button @(_selectedTool == "rounded_rect_left" ? "active" : "")" title="Kształ ramy - prostokąt z zaokrąglonym lewem rogiem"
+    @onclick='() => SetTool("rounded_rect_left")'>
         @SvgRoundedRectLeft()
     </button>
-    <button class="tool-button @(_selectedTool == "rounded_rect_right" ? "active" : "")"
-            @onclick='() => SetTool("rounded_rect_right")'>
+    <button class="tool-button @(_selectedTool == "rounded_rect_right" ? "active" : "")" title="Kształ ramy - prostokąt z zaokrąglonym prawym rogiem"
+    @onclick='() => SetTool("rounded_rect_right")'>
         @SvgRoundedRectRight()
     </button>
-    <button class="tool-button @(_selectedTool == "house" ? "active" : "")"
+    <button class="tool-button @(_selectedTool == "house" ? "active" : "")" title="Kształ ramy - typ domek"
     @onclick='() => SetTool("house")'>
         @SvgHouse()
     </button>
-    <button class="tool-button @(_selectedTool == "rounded_top_rect" ? "active" : "")"
+    <button class="tool-button @(_selectedTool == "rounded_top_rect" ? "active" : "")" title="Kształ ramy - prostokąt z łukiem u góry"
     @onclick='() => SetTool("rounded_top_rect")'>
         @SvgRoundedTopRect()
     </button>
@@ -316,6 +321,15 @@
         </svg>");
     };
 
+    private RenderFragment SvgLineDualRamHV() => builder =>
+    {
+        builder.AddMarkupContent(0, @"
+        <svg class='tool-icon' viewBox='0 0 24 24'>
+            <line x1='12' y1='4' x2='12' y2='20' stroke='orange' stroke-width='4'/>
+            <line x1='4' y1='12' x2='20' y2='12' stroke='orange' stroke-width='4'/>
+        </svg>");
+    };
+
     private RenderFragment SvgLineHVRS() => builder =>
     {
         builder.AddMarkupContent(0, @"
@@ -402,7 +416,7 @@
 
     private RenderFragment SvgRoundedRectLeft() => builder =>
     {
-    builder.AddMarkupContent(0, @"
+        builder.AddMarkupContent(0, @"
     <svg class='tool-icon' viewBox='0 0 24 24'>
         <path d='
             M8,7
@@ -420,7 +434,7 @@
 
     private RenderFragment SvgRoundedRectRight() => builder =>
     {
-    builder.AddMarkupContent(0, @"
+        builder.AddMarkupContent(0, @"
     <svg class='tool-icon' viewBox='0 0 24 24'>
         <path d='
             M5,7
@@ -469,7 +483,7 @@
         if (!_isDrawing) return;
 
         // Rozszerzona logika dla wymuszonego kierunku
-        if (_selectedTool == "line_hv" || _selectedTool == "line_hvSLRuch" || _forceHV)
+        if (_selectedTool == "line_hv" || _selectedTool == "line_hvSLRuch" || _selectedTool == "line_dual_ram_hv" || _forceHV)
         {
             const double sensitivity = 5;
             var dx = Math.Abs(x - _startX);
@@ -501,6 +515,7 @@
             "line" => new LineShape(_startX, _startY, _currentX, _currentY, _scaleFactor,"Lina skośna"),
             "line_hv" => new LineShape(_startX, _startY, _currentX, _currentY, _scaleFactor, "Linia pion. poziom.",false, true),
             "line_hvSLRuch" => new LineShape(_startX, _startY, _currentX, _currentY, _scaleFactor, "Linia pion. sł. ruchomy", true),
+            "line_dual_ram_hv" => new LineShape(_startX, _startY, _currentX, _currentY, _scaleFactor, "Linia podziału ram", false, true, true),
             "circle" => new CircleShape(_startX, _startY, CalculateRadius(), _scaleFactor),
             "triangle" => new TriangleShape(_startX, _startY, _currentX, _currentY, _scaleFactor),
             "square" => new SquareShape(_startX, _startY, Math.Max(Math.Abs(_currentX - _startX), Math.Abs(_currentY - _startY)), _scaleFactor),
@@ -554,6 +569,9 @@
                 case "line":
                 case "line_hv":
                     await DrawPreviewLine();
+                    break;
+                case "line_dual_ram_hv":
+                    await DrawPreviewDualRamLine();
                     break;
                 case "line_hvSLRuch":
                     await DrawPreviewVerticalLine();
@@ -779,6 +797,15 @@
         await _ctx.StrokeAsync();
     }
 
+    private async Task DrawPreviewDualRamLine()
+    {
+        await _ctx.SetStrokeStyleAsync("orange");
+        await _ctx.BeginPathAsync();
+        await _ctx.MoveToAsync(_startX, _startY);
+        await _ctx.LineToAsync(_currentX, _currentY);
+        await _ctx.StrokeAsync();
+    }
+
     private async Task DrawPreviewVerticalLine()
     {
         await _ctx.SetStrokeStyleAsync("red"); // Kolor linii
@@ -888,10 +915,11 @@
         public string NazwaObj { get; set; } = "Linia";
         public bool RuchomySlupek { get; set; } = false;
         public bool PionPoziom { get; set; } = false;
+        public bool DualRama { get; set; } = false;
 
         private double _scaleFactor = 1.0; // Skalowanie
 
-        public LineShape(double x1, double y1, double x2, double y2, double scaleFactor, string nazwaObj, bool ruchomySlupek = false, bool pionPoziom = false)
+        public LineShape(double x1, double y1, double x2, double y2, double scaleFactor, string nazwaObj, bool ruchomySlupek = false, bool pionPoziom = false, bool dualRama = false)
         {
             X1 = x1;
             Y1 = y1;
@@ -901,6 +929,7 @@
             NazwaObj = nazwaObj;
             RuchomySlupek = ruchomySlupek;
             PionPoziom = pionPoziom;
+            DualRama = dualRama;
             // Wymuszenie pionowej linii
             if (RuchomySlupek)
             {
@@ -929,7 +958,14 @@
             }
             else
             {
-                await ctx.SetStrokeStyleAsync("green");
+                if (DualRama)
+                {
+                    await ctx.SetStrokeStyleAsync("orange");
+                }
+                else
+                {
+                    await ctx.SetStrokeStyleAsync("green");
+                }
             }
 
             await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
@@ -2637,11 +2673,11 @@
 
         if (dx == 0)
         {
-            return new LineShape(x1, bbox.Y, x2, bbox.Y + bbox.Height, _scaleFactor, line.NazwaObj, line.RuchomySlupek);
+            return new LineShape(x1, bbox.Y, x2, bbox.Y + bbox.Height, _scaleFactor, line.NazwaObj, line.RuchomySlupek, line.PionPoziom, line.DualRama);
         }
         if (dy == 0)
         {
-            return new LineShape(bbox.X, y1, bbox.X + bbox.Width, y2, _scaleFactor, line.NazwaObj, line.RuchomySlupek);
+            return new LineShape(bbox.X, y1, bbox.X + bbox.Width, y2, _scaleFactor, line.NazwaObj, line.RuchomySlupek, line.PionPoziom, line.DualRama);
         }
 
         double leftFactor = (bbox.X - x1) / dx;

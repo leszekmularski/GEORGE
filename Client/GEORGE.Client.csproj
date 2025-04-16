@@ -4,10 +4,10 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-	<Version>1.1.5</Version>
-	<AssemblyVersion>1.1.5.9</AssemblyVersion>
-	<FileVersion>1.1.5.9</FileVersion>
-	<InformationalVersion>1.1.5</InformationalVersion>
+	<Version>1.1.6</Version>
+	<AssemblyVersion>1.1.6.1</AssemblyVersion>
+	<FileVersion>1.1.6.1</FileVersion>
+	<InformationalVersion>1.1.6</InformationalVersion>
 	<InvariantGlobalization>false</InvariantGlobalization>
 	<BlazorEnableTimeZoneSupport>true</BlazorEnableTimeZoneSupport>
 </PropertyGroup>
@@ -24,6 +24,7 @@
     <PackageReference Include="AntDesign" Version="1.0.0" />
     <PackageReference Include="Aspose.3D" Version="24.10.0" />
     <PackageReference Include="Blazor.Extensions.Canvas" Version="1.1.1" />
+    <PackageReference Include="ClosedXML" Version="0.104.2" />
     <PackageReference Include="itext7" Version="8.0.5" />
     <PackageReference Include="itext7.bouncy-castle-adapter" Version="8.0.5" />
     <PackageReference Include="lmNetDXF" Version="1.0.3" />

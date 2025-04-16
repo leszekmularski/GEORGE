@@ -30,6 +30,44 @@ public class MailController : ControllerBase
             return StatusCode(500, $"Błąd serwera: {ex.Message}");
         }
     }
+
+    [HttpPost("sendwithattachment")]
+    public async Task<IActionResult> SendWithAttachment()
+    {
+        var form = Request.Form;
+
+        var toEmail = form["ToEmail"].ToString();
+        var subject = form["Subject"].ToString();
+        var htmlBody = form["HtmlBody"].ToString();
+        var password = form["Password"].ToString();
+        var file = form.Files.FirstOrDefault();
+
+        if (string.IsNullOrWhiteSpace(toEmail) || string.IsNullOrWhiteSpace(subject))
+        {
+            return BadRequest("Nieprawidłowe dane.");
+        }
+
+        try
+        {
+            using var stream = new MemoryStream();
+            if (file != null)
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            // Cofnij się na początek strumienia
+            stream.Position = 0;
+
+            await _mailService.SendEmailWithAttachmentAsync(toEmail, subject, htmlBody, password, stream, file?.FileName);
+
+            return Ok("Wiadomość z załącznikiem wysłana.");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Błąd serwera: {ex.Message}");
+        }
+    }
+
 }
 
 public class EmailRequest

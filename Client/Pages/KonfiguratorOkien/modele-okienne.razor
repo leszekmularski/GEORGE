@@ -720,14 +720,6 @@
 
             _shapes = ShapeService.Shapes; // Odbiór danych z serwisu
 
-            if (_shapes != null)
-            {
-                Console.WriteLine($"Odebrano dane _shapes: {_shapes.Count()}");
-            }
-            else
-            {
-                Console.WriteLine($"Odebrano dane _shapes: null");
-            }
 
             Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
 
@@ -744,6 +736,20 @@
                 await JS.InvokeVoidAsync("AddCanvasHoverListener", CanvasRef);
 
             }
+
+            if (_shapes != null)
+            {
+                Console.WriteLine($"Odebrano dane _shapes: {_shapes.Count()}");
+
+                await RedrawCanvas();// to poprawy!!!
+
+                StateHasChanged();
+            }
+            else
+            {
+                Console.WriteLine($"Odebrano dane _shapes: null");
+            }
+
         }
         catch (Exception ex)
         {
@@ -762,15 +768,19 @@
             {
                 Console.WriteLine("🖌️ Inicjalizacja canvasu...");
 
-                // Sprawdzenie, czy funkcja JS istnieje
                 var isFunctionDefined = await JS.InvokeAsync<bool>("eval", "typeof setCanvasRef === 'function'");
-
                 if (!isFunctionDefined)
                     throw new Exception("⚠️ Funkcja setCanvasRef nie jest zdefiniowana!");
 
-                // Przekazanie referencji do canvasu
                 await JS.InvokeVoidAsync("setCanvasRef", CanvasRef.CanvasReference);
                 Console.WriteLine("✅ Canvas ustawiony!");
+
+                // 👇 TU DODAJ
+                _context ??= await CanvasRef.CreateCanvas2DAsync();
+
+                // Możesz od razu wywołać rysowanie
+                if (_shapes?.Any() == true)
+                    await RedrawCanvas();
             }
         }
         catch (Exception ex)
@@ -779,6 +789,39 @@
             hasCanvasError = true;
             StateHasChanged();
         }
+    }
+
+    private async Task RedrawCanvas()
+    {
+        if (_context == null)
+        {
+            Console.WriteLine("❌ Brak kontekstu canvas!");
+            return;
+        }
+
+        await ClearCanvas();
+
+        await _context.SaveAsync();
+        await _context.ScaleAsync(_currentScale, _currentScale);
+
+        Console.WriteLine($"🎨 Rysowanie {_shapes.Count} kształtów");
+
+        foreach (var shape in _shapes)
+        {
+            Console.WriteLine($"🖌️ Rysuję {shape.GetType().Name}");
+            await shape.Draw(_context);
+        }
+
+        await _context.RestoreAsync();
+    }
+
+
+    private async Task ClearCanvas()
+    {
+        await _context.SetFillStyleAsync("white");
+        await _context.FillRectAsync(0, 0, CanvasWidth, CanvasHeight);
+
+        _currentScale = 1.0; // Reset skali
     }
 
     private async Task ZoomIn()
