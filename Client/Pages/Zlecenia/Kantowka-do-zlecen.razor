@@ -12,6 +12,7 @@
 @inject Utilities.ILocalStorage LocalStorage
 @using System.Net;
 @using System.Text.Json;
+@using System.Text.RegularExpressions;
 @inject IConfirmService _confirmService
 @inject INotificationService _notice
 
@@ -81,9 +82,8 @@
         }
     </style>
 
-
-
     <meta charset="utf-8" />
+
     <PageTitle>Zamówiona kantówka do zlecenia</PageTitle>
 
     <script>
@@ -169,6 +169,21 @@
         a.click();
         document.body.removeChild(a);
         }
+
+        window.saveAsExcelKantowki = (base64Excel, fileName) => {
+            const binary = atob(base64Excel);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+
+            const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            link.click();
+        };
+
     </script>
 
 
@@ -177,7 +192,7 @@
     <div class="highlighted-background">
         <h6 style="color:brown; padding-top:5px">Zamówiona kantówka do zlecenia: @dotyczyZlecenia</h6>
 
-        @if (boolAdmin || boolZmian)
+        @if (boolAdmin || boolZmiana)
         {
             <Button Type="primary" OnClick="@(ShowDialogAddNew)">
                 Dodaj nowe zestawienie materiałów
@@ -205,6 +220,12 @@
             <Button Type="reset" OnClick="@(ExportSelectedColumnsToExcel)">
                 Zapisz do pliku CSV - tylko wymagane kolumny
             </Button>
+            <Tooltip Placement="@Placement.BottomCenter" Title="Wygeneruj zamówienie i wyslij pocztą elektroniczną (metoda SMPT z pominięciem programu pocztowego).">
+                <Button Type="reset" Icon="@IconType.Fill.Mail" OnClick="@(SendElementCheckToEmailViaSmtp)" />
+            </Tooltip>
+            <Tooltip Placement="@Placement.BottomCenter" Title="Zapisz sformatowany dokument EXCEL.">
+                <Button Type="reset" Icon="@IconType.Fill.FileExcel" OnClick="@(ZapiszExcelKantowkiPoStronieKlienta)" />
+            </Tooltip>
             <Button Type="reset" OnClick="@(UstawDateZamowienia)">
                 Kantówkę zamówiono (wygeneruj wpis do zamówień)
             </Button>
@@ -263,7 +284,7 @@
                     <Column Title="Data Zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd" Sortable />
                     <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
                     <ActionColumn Title="Akcja" Width="100" Fixed="right">
-                        @if (boolAdmin || boolZmian)
+                        @if (boolAdmin || boolZmiana)
                         {
                             <Popconfirm Title="Czy chcesz edytować pozycję?"
                             OnConfirm="()=> editRow(context.Id)"
@@ -505,11 +526,18 @@
 
     private bool isCheckedDelAll = true;
 
-    int _pageSize = 7;
+    private int _pageSize = 7;
 
-    string dotyczyZlecenia = "";
+    private string dotyczyZlecenia = "";
+    private string dotyczyKlienta = "";
 
-    int kantowkaDoZlecenSuma = 0;
+    private int kantowkaDoZlecenSuma = 0;
+
+    private string? adresEmail = "";
+    private string? hasloPoczta = "";
+
+    private string? Uimie = "";
+    private string? Unazwisko = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -563,6 +591,7 @@
                     if (zleceniaProdukcyjne != null && zleceniaProdukcyjne.Count > 0)
                     {
                         dotyczyZlecenia = $"{zleceniaProdukcyjne[0].TypZamowienia} / {zleceniaProdukcyjne[0].NumerZamowienia} / {zleceniaProdukcyjne[0].Klient}";
+                        dotyczyKlienta = zleceniaProdukcyjne[0].Klient ?? "";
                     }
                 }
             }
@@ -577,6 +606,7 @@
                     if (zleceniaProdukcyjne != null && zleceniaProdukcyjne.Count > 0)
                     {
                         dotyczyZlecenia = $"{zleceniaProdukcyjne[0].TypZamowienia ?? ""} / {zleceniaProdukcyjne[0].NumerZamowienia ?? ""} / {zleceniaProdukcyjne[0].Klient ?? ""}";
+                        dotyczyKlienta = zleceniaProdukcyjne[0].Klient ?? "";
 
                     }
                 }
@@ -597,6 +627,196 @@
             var jsonData = JsonSerializer.Serialize(skantowka);
             await JSRuntime.InvokeVoidAsync("saveAsExcel", jsonData);
         }
+    }
+
+    private async Task ZapiszExcelKantowkiPoStronieKlienta()
+    {
+        if (kantowkaDoZlecen == null || !kantowkaDoZlecen.Any())
+        {
+            await _message.Warning("Brak danych do zapisania.");
+            return;
+        }
+
+        using var workbook = new ClosedXML.Excel.XLWorkbook();
+        var worksheet = workbook.Worksheets.Add("Zamówienie");
+
+        worksheet.Cell(1, 1).Value = "Gatunek kantówki";
+        worksheet.Cell(1, 2).Value = "Przekrój";
+        worksheet.Cell(1, 3).Value = "Nazwa produktu";
+        worksheet.Cell(1, 4).Value = "Długość zamówiona";
+        worksheet.Cell(1, 5).Value = "Ilość sztuk";
+
+        for (int col = 1; col <= 5; col++)
+        {
+            var cell = worksheet.Cell(1, col);
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontSize = 14;
+            cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
+            cell.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+            cell.Style.Border.InsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+            cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+        }
+
+        int row = 2;
+        foreach (var k in kantowkaDoZlecen)
+        {
+            worksheet.Cell(row, 1).Value = k.GatunekKantowki;
+            worksheet.Cell(row, 2).Value = k.Przekroj;
+            worksheet.Cell(row, 3).Value = k.NazwaProduktu;
+            worksheet.Cell(row, 4).Value = k.DlugoscZamawiana;
+            worksheet.Cell(row, 5).Value = k.IloscSztuk;
+
+            for (int col = 1; col <= 5; col++)
+            {
+                var cell = worksheet.Cell(row, col);
+                cell.Style.Font.FontSize = 14;
+                cell.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                cell.Style.Border.InsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Left;
+                cell.Style.Alignment.Vertical = ClosedXML.Excel.XLAlignmentVerticalValues.Center;
+            }
+
+            row++;
+        }
+
+        worksheet.Columns().AdjustToContents();
+
+        await using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        stream.Position = 0;
+
+        var base64 = Convert.ToBase64String(stream.ToArray());
+
+        string nazwaKlienta = Regex.Replace(dotyczyKlienta ?? "klient", $"[{Regex.Escape(new string(Path.GetInvalidFileNameChars()))}]", "_");
+        string fileName = $"Zamowienie_{nazwaKlienta}.xlsx";
+
+        await JSRuntime.InvokeVoidAsync("saveAsExcelKantowki", base64, fileName);
+        await _message.Success("Plik Excel został pobrany.");
+    }
+
+    bool czekajNaWysWiad = false;
+    private async Task SendElementCheckToEmailViaSmtp()
+    {
+        if (string.IsNullOrEmpty(adresEmail) || string.IsNullOrEmpty(hasloPoczta))
+        {
+            await _message.Info("Nie masz poprawnie skonfigurowanego adresu e-mail.", 5);
+            return;
+        }
+
+        if (czekajNaWysWiad) return;
+
+        if (kantowkaDoZlecen != null && kantowkaDoZlecen.Any())
+        {
+            await _message.Info("Czekaj na wysłanie wiadomości.", 1);
+            czekajNaWysWiad = true;
+
+            var emailSubject = "Zamówienie na kantówkę z firmy GEORGE z dnia: " + DateTime.Now.ToShortDateString();
+
+            // Generowanie HTML
+            var builder = new System.Text.StringBuilder();
+            builder.AppendLine("<html><body>");
+            builder.AppendLine($"<h2>Zamówienie z firmy GEORGE Dotyczy: {dotyczyZlecenia}</h2>");
+            builder.AppendLine("<br/>");
+            builder.AppendLine("<br/>");
+            builder.AppendLine("<br/>");
+            builder.AppendLine("<br/>");
+            builder.AppendLine($"<h4>Zamówienie wygenerował {Uimie} {Unazwisko}</h4>");
+            builder.AppendLine("</body></html>");
+
+            var emailBody = builder.ToString();
+
+            // 📄 GENERUJEMY EXCELA
+            using var workbook = new ClosedXML.Excel.XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("Zamówienie");
+
+            // Nagłówki
+            var headerRow = worksheet.Row(1);
+            worksheet.Cell(1, 1).Value = "Gatunek kantówki";
+            worksheet.Cell(1, 2).Value = "Przekrój";
+            worksheet.Cell(1, 3).Value = "Nazwa produktu";
+            worksheet.Cell(1, 4).Value = "Długość zamówiona";
+            worksheet.Cell(1, 5).Value = "Ilość sztuk";
+
+            // Styl nagłówków
+            for (int col = 1; col <= 5; col++)
+            {
+                var cell = worksheet.Cell(1, col);
+                cell.Style.Font.Bold = true;
+                cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
+                cell.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                cell.Style.Border.InsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+            }
+
+            int row = 2;
+            foreach (var k in kantowkaDoZlecen)
+            {
+                worksheet.Cell(row, 1).Value = k.GatunekKantowki;
+                worksheet.Cell(row, 2).Value = k.Przekroj;
+                worksheet.Cell(row, 3).Value = k.NazwaProduktu;
+                worksheet.Cell(row, 4).Value = k.DlugoscZamawiana;
+                worksheet.Cell(row, 5).Value = k.IloscSztuk;
+
+                for (int col = 1; col <= 5; col++)
+                {
+                    var cell = worksheet.Cell(row, col);
+                    cell.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                    cell.Style.Border.InsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                    cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Left;
+                    cell.Style.Alignment.Vertical = ClosedXML.Excel.XLAlignmentVerticalValues.Center;
+                }
+
+                row++;
+            }
+
+            // Auto-dopasowanie kolumn
+            worksheet.Columns().AdjustToContents();
+
+            await using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            stream.Position = 0;
+
+            // Usuń niedozwolone znaki z nazwy pliku
+            string nazwaPliku = string.Concat(dotyczyKlienta.Split(Path.GetInvalidFileNameChars()));
+
+            // 📤 Wysyłka multipart/form-data
+            var formContent = new MultipartFormDataContent
+            {
+            { new StringContent(adresEmail), "ToEmail" },
+            { new StringContent(hasloPoczta), "Password" },
+            { new StringContent(emailSubject), "Subject" },
+            { new StringContent(emailBody), "HtmlBody" },
+            { new StreamContent(stream), "Attachment", $"Zamowienie_{nazwaPliku}.xlsx" }
+            };
+
+            try
+            {
+                var response = await Http.PostAsync("api/mail/sendwithattachment", formContent);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    await _message.Success("Wiadomość z załącznikiem została wysłana.");
+                }
+                else
+                {
+                    Console.WriteLine($"Kod odpowiedzi: {(int)response.StatusCode} ({response.StatusCode})");
+
+                    var error = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Błąd: {error}");
+                    await _message.Error($"Błąd: {error}");
+                }
+            }
+            catch (Exception ex)
+            {
+                await _message.Error($"Błąd podczas wysyłania wiadomości: {ex.Message}");
+            }
+        }
+        else
+        {
+            await _message.Warning("Brak danych do wysłania.");
+        }
+
+        czekajNaWysWiad = false;
     }
 
     public async Task WyliczIloscFarby()
@@ -940,7 +1160,7 @@
         }
         else
         {
-        
+
             responseKant = await Http.PutAsJsonAsync($"api/ElementyDoZlecen/{elementyZamowienia.ElemetZamDoZlecen.Id}", elementyZamowienia.ElemetZamDoZlecen);
             // if (elementyDoZlecen != null) oryginalElementyDoZlecen = elementyDoZlecen.DeepCopyList();
         }
@@ -958,7 +1178,7 @@
 
         if (response.IsSuccessStatusCode)
         {
-             kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecenViewModel>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
+            kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecenViewModel>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
 
             if (kantowkaDoZlecen != null)
             {
@@ -1219,7 +1439,7 @@
                 },
                 ProducenciPodwykonawcy = new ProducenciPodwykonawcy
                 {
-                    // Przypisz odpowiednie wartości dla właściwości ProducenciPodwykonawcy
+                // Przypisz odpowiednie wartości dla właściwości ProducenciPodwykonawcy
                     NazwaProducenta = "" // Przykładowa wartość
                 },
                 DodatkowaInformacja = "Dane z dnia" + DateTime.Now
@@ -1303,12 +1523,12 @@
     }
 
     private bool boolOdczyt = false;
-    private bool boolZmian = false;
+    private bool boolZmiana = false;
     private bool boolUsuniecia = false;
     private bool boolAdmin = false;
     private string RowIdPracownika = "";
     private string? user;
-    private bool isNotDisabled => !boolZmian || !boolAdmin;
+    private bool isNotDisabled => !boolZmiana || !boolAdmin;
     private List<UprawnieniaPracownikaViewModel>? uprawnienia;
 
     private async Task Laduj_Uprawnienia()
@@ -1353,10 +1573,14 @@
                     if (szuk != null)
                     {
                         boolOdczyt = szuk.Odczyt;
-                        boolZmian = szuk.Zmiana;
+                        boolZmiana = szuk.Zmiana;
                         boolUsuniecia = szuk.Usuniecie;
                         boolAdmin = szuk.Administrator;
                         RowIdPracownika = szuk.RowId;
+                        adresEmail = szuk.Email;
+                        hasloPoczta = szuk.HasloDoPoczty;
+                        Uimie = szuk.Imie;
+                        Unazwisko = szuk.Nazwisko;
                     }
                 }
             }

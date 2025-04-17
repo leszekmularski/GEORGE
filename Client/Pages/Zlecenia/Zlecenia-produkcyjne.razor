@@ -1,5 +1,6 @@
 ﻿@page "/zlecenia-produkcyjne/{RowIdZlecenia?}"
 @using GEORGE.Shared.Models
+@using GEORGE.Shared
 @using GEORGE.Shared.Class
 @inject HttpClient Http
 @inject ModalService ModalService;
@@ -592,8 +593,8 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
 
 @code {
 
-    [CascadingParameter]
-    private MainLayout? Layout { get; set; }
+    [CascadingParameter(Name = "MainLayoutInstance")]
+    public MainLayout? Layout { get; set; }
 
     [CascadingParameter]
     public bool OnlyIcon { get; set; }
@@ -1506,7 +1507,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
     public async Task ShowDialogAddNew()
     {
         Console.WriteLine("Metoda ShowDialogAddNew została wywołana");
-        await DialogService.ShowDialogAsync("Dodaj nowe zlecenie wewnętrzne");
+        await DialogService.ShowDialogAsync("Dodaj nowe zlecenie");
 
         var user = await LocalStorage.GetStringAsync("user");
 

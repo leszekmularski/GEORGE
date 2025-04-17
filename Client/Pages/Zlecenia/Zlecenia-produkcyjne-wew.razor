@@ -1,6 +1,7 @@
 ﻿@page "/Zlecenia-produkcyjne-wew/{RowIdZlecenia?}"
 @layout MainLayout
 @using GEORGE.Shared.Models
+@using GEORGE.Shared
 @using GEORGE.Shared.Class
 @inject HttpClient Http
 @inject ModalService ModalService;
@@ -584,8 +585,8 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
 
 @code {
 
-    [CascadingParameter]
-    private MainLayout? Layout { get; set; }
+    [CascadingParameter(Name = "MainLayoutInstance")]
+    public MainLayout? Layout { get; set; }
 
     [CascadingParameter]
     public bool OnlyIcon { get; set; }

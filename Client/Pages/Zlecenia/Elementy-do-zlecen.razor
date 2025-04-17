@@ -90,10 +90,7 @@
         }
     </style>
 
-
-
     <meta charset="utf-8" />
-    <PageTitle>Zamówiona elementy do zlecenia</PageTitle>
 
     <script>
         function copyToClipboard(text) {
@@ -184,7 +181,10 @@
 
     </script>
 
+    <PageTitle>Zamówiona elementy do zlecenia</PageTitle>
+
 </head>
+
 <body>
 
     <Layout class="highlighted-background">
@@ -460,7 +460,8 @@
 
     int _pageSize = 7;
 
-    string dotyczyZlecenia = "";
+    private string dotyczyZlecenia = "";
+    private string dotyczyKlienta = "";
 
     bool _loading = false;
 
@@ -532,6 +533,7 @@
                     if (zleceniaProdukcyjne != null && zleceniaProdukcyjne.Count > 0)
                     {
                         dotyczyZlecenia = $"{zleceniaProdukcyjne[0].TypZamowienia} / {zleceniaProdukcyjne[0].NumerZamowienia} / {zleceniaProdukcyjne[0].Klient}";
+                        dotyczyKlienta = zleceniaProdukcyjne[0].Klient ?? "";
                     }
                 }
             }
@@ -546,7 +548,7 @@
                     if (zleceniaProdukcyjne != null && zleceniaProdukcyjne.Count > 0)
                     {
                         dotyczyZlecenia = $"{zleceniaProdukcyjne[0].TypZamowienia ?? ""} / {zleceniaProdukcyjne[0].NumerZamowienia ?? ""} / {zleceniaProdukcyjne[0].Klient ?? ""}";
-
+                        dotyczyKlienta = zleceniaProdukcyjne[0].Klient ?? "";
                     }
                 }
             }
@@ -642,18 +644,18 @@
         {
             var emailSubject = Uri.EscapeDataString("Zamówienie z firmy GEORGE z dnia: " + DateTime.Now.ToShortDateString());
             var emailBody = Uri.EscapeDataString(
-    $"<html>Dotyczy: { dotyczyZlecenia}\n" +
-    "Nazwa Produktu\tNumer Katalogowy\tTyp\tIlość\tJednostka\tKolor\n" +
-        "--------------\t-----------------\t-----\t---------\t--------\n" +
-        string.Join("\n", _items.Select(k =>
-            $"{k.ElemetZamDoZlecen.NazwaProduktu}\t" +
-            $"{k.ElemetZamDoZlecen.NumerKatalogowy}\t" +
-            $"{k.ElemetZamDoZlecen.Typ}\t" +
-            $"{k.ElemetZamDoZlecen.IloscSztuk}\t" +
-        $"{k.ElemetZamDoZlecen.Jednostka}\t" +
-            $"{k.ElemetZamDoZlecen.Kolor}"
-    )) + "\n\n\n" + $"Zamówienie wygenerował {Uimie} {Unazwisko} System produkcyjny PPHU GEORGE Marcinkowice 351, 33-393 Marcinkowice tel:(+48 18) 44-33-111</html>"
-    );
+            $"<html>Dotyczy: { dotyczyZlecenia}\n" +
+            "Nazwa Produktu\tNumer Katalogowy\tTyp\tIlość\tJednostka\tKolor\n" +
+                "--------------\t-----------------\t-----\t---------\t--------\n" +
+                string.Join("\n", _items.Select(k =>
+                    $"{k.ElemetZamDoZlecen.NazwaProduktu}\t" +
+                    $"{k.ElemetZamDoZlecen.NumerKatalogowy}\t" +
+                    $"{k.ElemetZamDoZlecen.Typ}\t" +
+                    $"{k.ElemetZamDoZlecen.IloscSztuk}\t" +
+                $"{k.ElemetZamDoZlecen.Jednostka}\t" +
+                    $"{k.ElemetZamDoZlecen.Kolor}"
+            )) + "\n\n\n" + $"Zamówienie wygenerował {Uimie} {Unazwisko} System produkcyjny PPHU GEORGE Marcinkowice 351, 33-393 Marcinkowice tel:(+48 18) 44-33-111</html>"
+            );
 
             var mailtoLink = $"mailto:?subject={emailSubject}&body={emailBody}";
             await JSRuntime.InvokeVoidAsync("window.open", mailtoLink);
@@ -752,6 +754,9 @@
             workbook.SaveAs(stream);
             stream.Position = 0;
 
+            // Usuń niedozwolone znaki z nazwy pliku
+            string nazwaPliku = string.Concat(dotyczyKlienta.Split(Path.GetInvalidFileNameChars()));
+
             // 📤 Wysyłka multipart/form-data
             var formContent = new MultipartFormDataContent
             {
@@ -759,7 +764,7 @@
             { new StringContent(hasloPoczta), "Password" },
             { new StringContent(emailSubject), "Subject" },
             { new StringContent(emailBody), "HtmlBody" },
-            { new StreamContent(stream), "Attachment", $"Zamowienie_{DateTime.Now.DayOfYear}.xlsx" }
+            { new StreamContent(stream), "Attachment", $"Zamowienie_{nazwaPliku}.xlsx" }
             };
 
             try
