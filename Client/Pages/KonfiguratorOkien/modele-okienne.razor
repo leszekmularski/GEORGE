@@ -813,16 +813,17 @@
             await shape.Draw(_context);
         }
 
+        Console.WriteLine("Rozpoczynam przekazywanie danych z _shapes do GenerujRegionyZPodzialu");
         // 🔽 PRZEKAZANIE DO ANALIZY REGIONÓW PO RYSOWANIU
         var regiony = GeometryUtils.GenerujRegionyZPodzialu(_shapes);
 
         Console.WriteLine($"📦 Wygenerowano {regiony.Count} regionów");
         await _message.Info($"📦 Wygenerowano {regiony.Count} regionów", 1);
-        // foreach (var region in regiony)
-        // {
-        //     Console.WriteLine($"🔍 Analizuję region: {region}");
-        //     // Dodaj logikę analizy regionów
-        // }
+
+        foreach (var region in regiony)
+        {
+            Console.WriteLine($"🔍 Analizuję region - TypKształtu: {region.TypKształtu} - ilość Wierzcholkow: { region.Wierzcholki.Count()}");
+        }
 
         await _context.RestoreAsync();
     }

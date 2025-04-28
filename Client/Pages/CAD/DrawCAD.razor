@@ -3,6 +3,7 @@
 @inject GEORGE.Client.Pages.KonfiguratorOkien.ShapeTransferService ShapeService
 @inject NavigationManager Navigation
 @using GEORGE.Client.Pages.KonfiguratorOkien
+@using GEORGE.Client.Pages.Models
 
 @using Blazor.Extensions.Canvas.Canvas2D
 @implements IDisposable
@@ -1905,14 +1906,14 @@
 
         public (List<Point> Roof, List<Point> House) GetVertices()
         {
-           // double roofHeight = Height * 0.5;
+            // double roofHeight = Height * 0.5;
             double baseY = Y + HeightLeft;
             double roofPeakX = X + Width / 2;
             double roofPeakY = Y;
             double bottomY = Y + Height; // Dolna krawędź domu
 
             // Trójkąt dachu
-        List<Point> roof = new List<Point>
+            List<Point> roof = new List<Point>
         {
             new Point(X, baseY),         // Lewy dolny róg dachu
             new Point(roofPeakX, roofPeakY), // Szczyt dachu
@@ -1920,7 +1921,7 @@
         };
 
             // Prostokąt (ściany domu)
-        List<Point> house = new List<Point>
+            List<Point> house = new List<Point>
         {
             new Point(X, baseY),          // Lewy górny róg ściany
             new Point(X + Width, baseY),  // Prawy górny róg ściany
@@ -1939,14 +1940,14 @@
             double roofPeakY = Y;
             double bottomY = Y + Height;
 
-        List<(Point, Point)> roofEdges = new()
+            List<(Point, Point)> roofEdges = new()
         {
             (new Point(X, baseY), new Point(roofPeakX, roofPeakY)), // Dach - lewa krawędź
             (new Point(roofPeakX, roofPeakY), new Point(X + Width, baseY)), // Dach - prawa krawędź
             (new Point(X, baseY), new Point(X + Width, baseY)) // Podstawa dachu
         };
 
-        List<(Point, Point)> baseEdges = new()
+            List<(Point, Point)> baseEdges = new()
         {
             (new Point(X, baseY), new Point(X, bottomY)), // Lewa ściana domu
             (new Point(X + Width, baseY), new Point(X + Width, bottomY)), // Prawa ściana domu
@@ -2103,7 +2104,7 @@
     //             if (!IsReadOnly) SetValue(value);
     //         }
     //     }
-   
+
     //     public EditableProperty SetObjectName(string newName) => this with { NazwaObiektu = newName };
     // }
 
@@ -2150,7 +2151,7 @@
         foreach (var shape in _shapes)
         {
             // Przesuń kształt przed skalowaniem!
-           // shape.Move(-minX, -minY);
+            // shape.Move(-minX, -minY);
 
             // Przesuń kształt do środka canvasu
             shape.Move(offsetX, offsetY);
@@ -2215,7 +2216,9 @@
 
     private async Task PowrotDoGenerowaniaOkna()
     {
-        ShapeService.Shapes = _shapes; // Przekazanie danych do serwisu
+        var noweShapes = _shapes.Select(ConvertOldShapeToNew).ToList();
+
+        ShapeService.Shapes = noweShapes; // Przekazanie danych do serwisu
         Navigation.NavigateTo("/Modele-okienne");
 
         await Task.CompletedTask;
@@ -3123,4 +3126,40 @@
         public Point(double x, double y) { X = x; Y = y; }
     }
 
+    public static IShapeDC ConvertOldShapeToNew(IShapeDC oldShape)
+    {
+        switch (oldShape)
+        {
+            case LineShape line:
+              //  return line;
+               return new XLineShape(line.X1, line.Y1, line.X2, line.Y2, 1.0, line.NazwaObj, line.RuchomySlupek, line.PionPoziom, line.DualRama);
+
+            case RectangleShape rect:
+                 return new XRectangleShape(rect.X, rect.Y, rect.Width, rect.Height, 1.0);
+
+            case CircleShape circle:
+                return new XCircleShape(circle.X, circle.Y, circle.Radius, 1.0);
+
+            case TriangleShape triangle:
+                return new XTriangleShape(triangle.BaseX1, triangle.BaseY, triangle.BaseWidth, triangle.BaseWidth, 1.0);
+
+            case TrapezoidShape trapezoid:
+                return new XTrapezoidShape(trapezoid.X, trapezoid.Y, trapezoid.X + trapezoid.BaseWidth, trapezoid.Y + trapezoid.Height, 0.5, 1.0, 0);
+
+            case HouseShape house:
+                return new XHouseShape(house.X, house.Y, house.Width, house.Height, house.HeightLeft, house.HeightRight, 1.0);
+
+            case RoundedRectangleShape rounded:
+                return new XRoundedTopRectangleShape(rounded.X, rounded.Y, rounded.Width, rounded.Height, rounded.Radius, 1.0);
+
+            case RoundedTopRectangleShape roundedTop:
+                return new XRoundedTopRectangleShape(roundedTop.X, roundedTop.Y, roundedTop.Width, roundedTop.Height, roundedTop.Radius, 1.0);
+
+            // Dodaj pozostałe typy jeśli masz
+
+            default:
+                Console.WriteLine($"Nieznany typ kształtu: {oldShape.GetType()}");
+                return oldShape;
+        }
+    }
 }
