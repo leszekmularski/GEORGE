@@ -168,7 +168,7 @@ namespace GEORGE.Client.Pages.Models
         /// <summary>
         /// Zwraca cztery wierzchołki trapezu zgodnie z aktualnym typem trapezu.
         /// </summary>
-        public List<PointDC> GetVertices()
+        public List<XPoint> GetVertices()
         {
             var baseLeft = X;
             var baseRight = X + BaseWidth;
@@ -178,38 +178,38 @@ namespace GEORGE.Client.Pages.Models
 
             if (Typ == 0)
             {
-                return new List<PointDC>
+                return new List<XPoint>
         {
-            new PointDC(topLeft, Y),       // Lewy górny
-            new PointDC(topRight, Y),      // Prawy górny
-            new PointDC(baseRight, verticalY), // Prawy dolny
-            new PointDC(baseLeft, verticalY)   // Lewy dolny
+            new XPoint(topLeft, Y),       // Lewy górny
+            new XPoint(topRight, Y),      // Prawy górny
+            new XPoint(baseRight, verticalY), // Prawy dolny
+            new XPoint(baseLeft, verticalY)   // Lewy dolny
         };
             }
             else if (Typ == 1)
             {
-                return new List<PointDC>
+                return new List<XPoint>
         {
-            new PointDC(baseLeft, Y),       // Lewy górny (podstawa zaczyna się nisko)
-            new PointDC(topRight, Y),        // Prawy górny
-            new PointDC(baseRight, verticalY), // Prawy dolny
-            new PointDC(baseLeft, verticalY)   // Lewy dolny
+            new XPoint(baseLeft, Y),       // Lewy górny (podstawa zaczyna się nisko)
+            new XPoint(topRight, Y),        // Prawy górny
+            new XPoint(baseRight, verticalY), // Prawy dolny
+            new XPoint(baseLeft, verticalY)   // Lewy dolny
         };
             }
             else if (Typ == 2)
             {
-                return new List<PointDC>
+                return new List<XPoint>
         {
-            new PointDC(topLeft, Y),       // Lewy górny
-            new PointDC(baseRight, Y),      // Prawy górny (cała szerokość podstawy)
-            new PointDC(baseRight, verticalY), // Prawy dolny
-            new PointDC(baseLeft, verticalY)   // Lewy dolny
+            new XPoint(topLeft, Y),       // Lewy górny
+            new XPoint(baseRight, Y),      // Prawy górny (cała szerokość podstawy)
+            new XPoint(baseRight, verticalY), // Prawy dolny
+            new XPoint(baseLeft, verticalY)   // Lewy dolny
         };
             }
             else
             {
                 // Jeśli Typ jest nieznany - zwróć pustą listę
-                return new List<PointDC>();
+                return new List<XPoint>();
             }
         }
 

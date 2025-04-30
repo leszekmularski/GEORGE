@@ -19,6 +19,7 @@
 @using Blazor.Extensions
 @using Blazor.Extensions.Canvas
 @using Blazor.Extensions.Canvas.Canvas2D
+@using GEORGE.Client.Pages.Models
 
 <script>
     (() => {
@@ -651,17 +652,6 @@
         }
         else
         {
-            <!-- Warstwa interaktywna (musi być NAD canvasem) -->
-            @*             <div class="interactive-layer"
-            style="position: absolute; z-index: 2; pointer-events: auto;">
-                <!-- Tutaj elementy reagujące na kursor (np. przyciski) -->
-                <div class="controls">
-                    <button @onclick="ZoomIn" class="btn-zoom">➕</button>
-                    <br/>
-                    <button @onclick="ZoomOut" class="btn-zoom">➖</button>
-                </div>
-            </div> *@
-
             <!-- Canvas -->
             <div class="canvas-container"
             @onmousemove="UpdateZoomCenter"
@@ -712,6 +702,8 @@
 
     private List<IShapeDC> _shapes = new List<IShapeDC>();
 
+    private List<ShapeRegion> _regions = new();
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -721,6 +713,10 @@
 
             _shapes = ShapeService.Shapes; // Odbiór danych z serwisu
 
+            if (_shapes != null)
+            {
+                _regions = GeometryUtils.GenerujRegionyZPodzialu(_shapes);
+            }
 
             Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
 
@@ -1113,21 +1109,17 @@
 
     private async Task RenderFrame()
     {
-       // int margLewy = 50;
-     //   int margGora = 50;
         try
         {
             if (_context == null) return;
 
-            // Reset i czyszczenie
             await _context.SetTransformAsync(1, 0, 0, 1, 0, 0);
             await _context.ClearRectAsync(0, 0, CanvasWidth, CanvasHeight);
 
-            // Nowe transformacje w poprawnej kolejności
             await _context.TranslateAsync(_panX, _panY);
             await _context.ScaleAsync(_currentScale, _currentScale);
 
-            // Współrzędne geometryczne BEZ dzielenia przez skalę
+            // Rysuj ramę tła
             await _context.SetFillStyleAsync("wood-pattern");
             await _context.FillRectAsync(50, 50, 20, 500);
             await _context.FillRectAsync(730, 50, 20, 500);
@@ -1137,11 +1129,50 @@
             await _context.SetFillStyleAsync("#ADD8E6");
             await _context.FillRectAsync(70, 70, 660, 460);
 
+            // 🔁 Rysuj regiony
+            foreach (var region in _regions)
+            {
+                var punkty = region.Wierzcholki;
+                if (punkty == null || punkty.Count == 0)
+                    continue;
+
+                await _context.BeginPathAsync();
+
+                var start = punkty[0];
+                await _context.MoveToAsync(start.X, start.Y);
+
+                for (int i = 1; i < punkty.Count; i++)
+                {
+                    var p = punkty[i];
+                    await _context.LineToAsync(p.X, p.Y);
+                }
+
+                await _context.ClosePathAsync();
+
+                // 🖌️ Styl w zależności od typu kształtu
+                string kolor = region.TypKształtu switch
+                {
+                    "okrąg" => "lightblue",
+                    "prostokąt" => "lightgreen",
+                    "trójkąt" => "khaki",
+                    "trapez" => "wheat",
+                    "domek" => "lightcoral",
+                    _ => "gray"
+                };
+
+                await _context.SetFillStyleAsync(kolor);
+                await _context.FillAsync();
+
+                await _context.SetStrokeStyleAsync("black");
+                await _context.SetLineWidthAsync(2);
+                await _context.StrokeAsync();
+            }
+
             StateHasChanged();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"🔥 Błąd: {ex.Message}");
+            Console.WriteLine($"🔥 Błąd RenderFrame: {ex.Message}");
         }
     }
 

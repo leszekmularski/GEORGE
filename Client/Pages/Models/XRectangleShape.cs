@@ -89,9 +89,9 @@ namespace GEORGE.Client.Pages.Models
         /// <summary>
         /// Zwraca listę wierzchołków prostokąta w kolejności (zgodnie z ruchem wskazówek zegara).
         /// </summary>
-        public List<PointDC> GetCorners()
+        public List<XPoint> GetCorners()
         {
-            return new List<PointDC>
+            return new List<XPoint>
         {
             new(X, Y),
             new(X + Width, Y),

@@ -11,7 +11,7 @@ namespace GEORGE.Client.Pages.Models
         /// <summary>
         /// Wierzchołki definiujące kształt regionu (np. prostokąt, trójkąt).
         /// </summary>
-        public List<PointDC> Wierzcholki { get; set; } = new();
+        public List<XPoint> Wierzcholki { get; set; } = new();
 
         /// <summary>
         /// Typ geometryczny regionu (np. prostokąt, trójkąt, trapez, inny).
@@ -26,7 +26,7 @@ namespace GEORGE.Client.Pages.Models
         /// <summary>
         /// Identyfikator regionu (opcjonalny).
         /// </summary>
-        public string? Id { get; set; }
+        public string? Id { get; set; } = Guid.NewGuid().ToString();
 
         /// <summary>
         /// Zwraca prostokąt ograniczający (bounding box).
@@ -44,7 +44,7 @@ namespace GEORGE.Client.Pages.Models
         /// <summary>
         /// Sprawdza, czy punkt znajduje się wewnątrz regionu (prosty test bounding box).
         /// </summary>
-        public bool ContainsPoint(PointDC point)
+        public bool ContainsPoint(XPoint point)
         {
             var bbox = GetBoundingBox();
             return point.X >= bbox.X && point.X <= bbox.X + bbox.Width &&

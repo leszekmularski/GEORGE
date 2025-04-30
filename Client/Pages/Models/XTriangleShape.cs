@@ -93,27 +93,27 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         /// <summary>
         /// Zwraca 3 wierzchołki trójkąta (kolejność: góra, prawy dolny, lewy dolny).
         /// </summary>
-        public List<PointDC> GetVertices()
+        public List<XPoint> GetVertices()
         {
             var apexX = BaseX1 + BaseWidth / 2;
             var apexY = BaseY - Height;
             var baseX2 = BaseX1 + BaseWidth;
 
-            return new List<PointDC>
+            return new List<XPoint>
             {
-                new PointDC(apexX, apexY),        // Wierzchołek górny
-                new PointDC(baseX2, BaseY),        // Prawy dolny róg
-                new PointDC(BaseX1, BaseY)         // Lewy dolny róg
+                new XPoint(apexX, apexY),        // Wierzchołek górny
+                new XPoint(baseX2, BaseY),        // Prawy dolny róg
+                new XPoint(BaseX1, BaseY)         // Lewy dolny róg
             };
         }
 
         /// <summary>
         /// Zwraca listę krawędzi trójkąta jako pary punktów (Start, End).
         /// </summary>
-        public List<(PointDC Start, PointDC End)> GetEdges()
+        public List<(XPoint Start, XPoint End)> GetEdges()
         {
             var vertices = GetVertices();
-            return new List<(PointDC, PointDC)>
+            return new List<(XPoint, XPoint)>
             {
                 (vertices[0], vertices[1]),
                 (vertices[1], vertices[2]),

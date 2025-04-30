@@ -3,21 +3,22 @@ using GEORGE.Client.Pages.KonfiguratorOkien;
 
 namespace GEORGE.Client.Pages.Models
 {
-    // 🟢 KLASA KOŁA
-    public class XCircleShape : IShapeDC
+
+    // ⬛ Klasa kwadratu (Square)
+    public class XSquareShape : IShapeDC
     {
-        public double X { get; set; } // Środek okręgu
+        public double X { get; set; }
         public double Y { get; set; }
-        public double Radius { get; set; }
-        public string NazwaObj { get; set; } = "Okrąg";
+        public double Size { get; set; }
+        public string NazwaObj { get; set; } = "Kwadrat";
 
         private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
 
-        public XCircleShape(double x, double y, double radius, double scaleFactor)
+        public XSquareShape(double x, double y, double size, double scaleFactor)
         {
             X = x;
             Y = y;
-            Radius = radius;
+            Size = size;
             _scaleFactor = scaleFactor;
         }
 
@@ -27,7 +28,7 @@ namespace GEORGE.Client.Pages.Models
             await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
 
             await ctx.BeginPathAsync();
-            await ctx.ArcAsync(X, Y, Radius, 0, 2 * Math.PI);
+            await ctx.RectAsync(X, Y, Size, Size);
             await ctx.StrokeAsync();
         }
 
@@ -35,12 +36,12 @@ namespace GEORGE.Client.Pages.Models
     {
         new EditableProperty("X", () => X, v => X = v, NazwaObj, true),
         new EditableProperty("Y", () => Y, v => Y = v, NazwaObj, true),
-        new EditableProperty("Promień", () => Radius, v => Radius = v, NazwaObj)
+        new EditableProperty("Rozmiar", () => Size, v => Size = v, NazwaObj)
     };
 
         public void Scale(double factor)
         {
-            Radius *= factor;
+            Size *= factor;
         }
 
         public void Move(double offsetX, double offsetY)
@@ -51,34 +52,22 @@ namespace GEORGE.Client.Pages.Models
 
         public BoundingBox GetBoundingBox()
         {
-            return new BoundingBox(X - Radius, Y - Radius, Radius * 2, Radius * 2, "Okrąg");
+            return new BoundingBox(X, Y, Size, Size, "Kształt inny");
+        }
+
+        public XRectangleShape ToRectangleShape()
+        {
+            return new XRectangleShape(X, Y, Size, Size, _scaleFactor);
         }
 
         public void Transform(double scale, double offsetX, double offsetY)
         {
+            // Poprawiona implementacja
             X = (X * scale) + offsetX;
             Y = (Y * scale) + offsetY;
-            Radius *= scale;
+            Size *= scale;
         }
 
-        /// <summary>
-        /// Przybliża okrąg jako wielokąt o podanej liczbie segmentów.
-        /// </summary>
-        public List<XPoint> GetVertices(int segments = 32)
-        {
-            var points = new List<XPoint>();
-
-            for (int i = 0; i < segments; i++)
-            {
-                double angle = 2 * Math.PI * i / segments;
-                points.Add(new XPoint(
-                    X + Radius * Math.Cos(angle),
-                    Y + Radius * Math.Sin(angle)
-                ));
-            }
-
-            return points;
-        }
     }
 
 }

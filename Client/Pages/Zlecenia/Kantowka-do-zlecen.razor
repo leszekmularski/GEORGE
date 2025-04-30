@@ -637,6 +637,13 @@
             return;
         }
 
+        // 📊 Sortowanie danych
+        var danePosortowane = kantowkaDoZlecen
+            .OrderBy(k => k.GatunekKantowki)
+            .ThenBy(k => k.Przekroj)
+            .ThenBy(k => k.DlugoscZamawiana)
+            .ToList();
+
         using var workbook = new ClosedXML.Excel.XLWorkbook();
         var worksheet = workbook.Worksheets.Add("Zamówienie");
 
@@ -658,7 +665,7 @@
         }
 
         int row = 2;
-        foreach (var k in kantowkaDoZlecen)
+        foreach (var k in danePosortowane)
         {
             worksheet.Cell(row, 1).Value = k.GatunekKantowki;
             worksheet.Cell(row, 2).Value = k.Przekroj;

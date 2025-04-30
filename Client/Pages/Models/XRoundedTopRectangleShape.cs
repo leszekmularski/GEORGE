@@ -98,18 +98,18 @@ namespace GEORGE.Client.Pages.Models
         /// <summary>
         /// Zwraca wierzchołki prostokąta z zaokrąglonymi rogami (jako lista PointDC).
         /// </summary>
-        public List<PointDC> GetVertices()
+        public List<XPoint> GetVertices()
         {
-            var vertices = new List<PointDC>();
+            var vertices = new List<XPoint>();
 
             double arcCenterX = X + Width / 2;
             double arcCenterY = Y + Radius;
 
             // Punkty narożników (dolna część prostokąta)
-            vertices.Add(new PointDC(X, Y + Height));           // Lewy dolny
-            vertices.Add(new PointDC(X + Width, Y + Height));    // Prawy dolny
-            vertices.Add(new PointDC(X + Width, arcCenterY));    // Prawy przy łuku
-            vertices.Add(new PointDC(X, arcCenterY));            // Lewy przy łuku
+            vertices.Add(new XPoint(X, Y + Height));           // Lewy dolny
+            vertices.Add(new XPoint(X + Width, Y + Height));    // Prawy dolny
+            vertices.Add(new XPoint(X + Width, arcCenterY));    // Prawy przy łuku
+            vertices.Add(new XPoint(X, arcCenterY));            // Lewy przy łuku
 
             return vertices;
         }

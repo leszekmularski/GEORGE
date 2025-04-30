@@ -1,4 +1,6 @@
-﻿namespace GEORGE.Client.Pages.KonfiguratorOkien
+﻿using GEORGE.Client.Pages.Models;
+
+namespace GEORGE.Client.Pages.KonfiguratorOkien
 {
     public class BoundingBox
     {
@@ -17,14 +19,14 @@
             NazwaObiektu = nazwaObiektu;
         }
 
-        public List<(PointDC Start, PointDC End)> GetEdges()
+        public List<(XPoint Start, XPoint End)> GetEdges()
         {
-            return new List<(PointDC, PointDC)>
+            return new List<(XPoint, XPoint)>
     {
-        (new PointDC(X, Y), new PointDC(X + Width, Y)),         // Górna krawędź
-        (new PointDC(X + Width, Y), new PointDC(X + Width, Y + Height)), // Prawa krawędź
-        (new PointDC(X + Width, Y + Height), new PointDC(X, Y + Height)), // Dolna krawędź
-        (new PointDC(X, Y + Height), new PointDC(X, Y))          // Lewa krawędź
+        (new XPoint(X, Y), new XPoint(X + Width, Y)),         // Górna krawędź
+        (new XPoint(X + Width, Y), new XPoint(X + Width, Y + Height)), // Prawa krawędź
+        (new XPoint(X + Width, Y + Height), new XPoint(X, Y + Height)), // Dolna krawędź
+        (new XPoint(X, Y + Height), new XPoint(X, Y))          // Lewa krawędź
     };
         }
 
@@ -33,11 +35,11 @@
             pointY >= Y && pointY <= Y + Height;
     }
 
-    public struct PointDC
-    {
-        public double X { get; set; }
-        public double Y { get; set; }
-        public PointDC(double x, double y) { X = x; Y = y; }
-    }
+    //public struct PointDC
+    //{
+    //    public double X { get; set; }
+    //    public double Y { get; set; }
+    //    public PointDC(double x, double y) { X = x; Y = y; }
+    //}
 
 }

@@ -9,72 +9,97 @@ namespace GEORGE.Client.Pages.Utils
     {
         public static List<ShapeRegion> GenerujRegionyZPodzialu(List<IShapeDC> shapes)
         {
-            Console.WriteLine($"Analizuje dane wewnątrz GenerujRegionyZPodzialu shapes: {shapes.Count}");
+            Console.WriteLine($"🔍 Analizuje dane wewnątrz GenerujRegionyZPodzialu shapes: {shapes.Count}");
 
             var regions = new List<ShapeRegion>();
 
-            var linie = shapes.OfType<XLineShape>().ToList(); // Wszystkie linie dzielące
+            // Wydziel linie, które są typami podziałowymi
+            var linieDzielace = shapes
+                .OfType<XLineShape>()
+                .Where(l => l.DualRama)
+                .ToList();
 
             foreach (var shape in shapes)
             {
-                List<PointDC> wierzcholki = new();
+                List<XPoint> wierzcholki = new();
                 string typKształtu = "inny";
 
-                if (shape is XRectangleShape rect)
+                switch (shape)
                 {
-                    wierzcholki = rect.GetCorners();
-                    typKształtu = "prostokąt";
-                }
-                else if (shape is XTriangleShape triangle)
-                {
-                    wierzcholki = triangle.GetVertices();
-                    typKształtu = "trójkąt";
-                }
-                else if (shape is XTrapezoidShape trapezoid)
-                {
-                    wierzcholki = trapezoid.GetVertices();
-                    typKształtu = "trapez";
-                }
-                else if (shape is XCircleShape circle)
-                {
-                    // Możesz przybliżyć okrąg wielokątem np. 32 wierzchołki
-                    wierzcholki = GenerateCircleVertices(circle.X, circle.Y, circle.Radius, 32);
-                    typKształtu = "okrąg";
-                }
-                else if (shape is XHouseShape house)
-                {
-                    var (roof, walls) = house.GetVertices();
-                    wierzcholki.AddRange(roof.Select(p => new PointDC(p.X, p.Y)));
-                    wierzcholki.AddRange(walls.Select(p => new PointDC(p.X, p.Y)));
-                    typKształtu = "domek";
-                }
+                    case XRectangleShape rect:
+                        wierzcholki = rect.GetCorners();
+                        typKształtu = "prostokąt";
+                        break;
 
-                else if (shape is XRoundedTopRectangleShape roundedRect)
-                {
-                    wierzcholki = roundedRect.GetVertices();
-                    typKształtu = "zaokrąglony prostokąt";
-                }
-                else
-                {
-                    Console.WriteLine("⚠️ Nieznany kształt w kolekcji shapes.");
-                    continue;
+                    case XTriangleShape triangle:
+                        wierzcholki = triangle.GetVertices();
+                        typKształtu = "trójkąt";
+                        break;
+
+                    case XTrapezoidShape trapezoid:
+                        wierzcholki = trapezoid.GetVertices();
+                        typKształtu = "trapez";
+                        break;
+
+                    case XCircleShape circle:
+                        wierzcholki = GenerateCircleVertices(circle.X, circle.Y, circle.Radius, 32);
+                        typKształtu = "okrąg";
+                        break;
+
+                    case XHouseShape house:
+                        var (roof, walls) = house.GetVertices();
+                        wierzcholki.AddRange(roof.Select(p => new XPoint(p.X, p.Y)));
+                        wierzcholki.AddRange(walls.Select(p => new XPoint(p.X, p.Y)));
+                        typKształtu = "domek";
+                        break;
+
+                    case XRoundedTopRectangleShape roundedTop:
+                        wierzcholki = roundedTop.GetVertices();
+                        typKształtu = "zaokrąglony prostokąt (góra)";
+                        break;
+
+                    case XRoundedRectangleShape rounded:
+                        wierzcholki = rounded.GetVertices();
+                        typKształtu = "zaokrąglony prostokąt";
+                        break;
+
+                    case XRoundedRectangleShapeLeft roundedLeft:
+                        wierzcholki = roundedLeft.GetVertices();
+                        typKształtu = "zaokrąglony lewy prostokąt";
+                        break;
+
+                    case XRoundedRectangleShapeRight roundedRight:
+                        wierzcholki = roundedRight.GetVertices();
+                        typKształtu = "zaokrąglony prawy prostokąt";
+                        break;
+
+                    case XLineShape linia:
+                        // Traktuj wszystkie linie jako osobne regiony
+                        wierzcholki = new List<XPoint> { new(linia.X1, linia.Y1), new(linia.X2, linia.Y2) };
+                        typKształtu = linia.NazwaObj ?? "linia";
+                        regions.Add(new ShapeRegion
+                        {
+                            Wierzcholki = wierzcholki,
+                            TypKształtu = typKształtu
+                        });
+                        continue;
+
+                    default:
+                        Console.WriteLine("⚠️ Nieznany kształt w kolekcji shapes. Pominięto.");
+                        continue;
                 }
 
                 var bbox = CalculateBoundingBox(wierzcholki);
                 var podzielony = false;
 
-                foreach (var linia in linie)
+                foreach (var linia in linieDzielace)
                 {
-                    if (LiniaPrzecinaProstokat(linia, bbox))
+                    if (LiniaPrzecinaProstokat(linia, bbox) && shape is XRectangleShape)
                     {
-                        // Na razie podział tylko dla prostokątów (możesz rozszerzyć później dla innych)
-                        if (typKształtu == "prostokąt")
-                        {
-                            var noweRegiony = PodzielProstokat((XRectangleShape)shape, linia);
-                            regions.AddRange(noweRegiony);
-                            podzielony = true;
-                            break;
-                        }
+                        var noweRegiony = PodzielProstokat((XRectangleShape)shape, linia);
+                        regions.AddRange(noweRegiony);
+                        podzielony = true;
+                        break;
                     }
                 }
 
@@ -90,14 +115,14 @@ namespace GEORGE.Client.Pages.Utils
 
             return regions;
         }
-        private static List<PointDC> GenerateCircleVertices(double centerX, double centerY, double radius, int segments)
+        private static List<XPoint> GenerateCircleVertices(double centerX, double centerY, double radius, int segments)
         {
-            var points = new List<PointDC>();
+            var points = new List<XPoint>();
 
             for (int i = 0; i < segments; i++)
             {
                 double angle = 2 * Math.PI * i / segments;
-                points.Add(new PointDC(
+                points.Add(new XPoint(
                     centerX + radius * Math.Cos(angle),
                     centerY + radius * Math.Sin(angle)
                 ));
@@ -105,7 +130,7 @@ namespace GEORGE.Client.Pages.Utils
 
             return points;
         }
-        private static XBoundingBox CalculateBoundingBox(List<PointDC> points)
+        private static XBoundingBox CalculateBoundingBox(List<XPoint> points)
         {
             double minX = points.Min(p => p.X);
             double minY = points.Min(p => p.Y);
@@ -154,7 +179,7 @@ namespace GEORGE.Client.Pages.Utils
                     // Lewy region
                     result.Add(new ShapeRegion
                     {
-                        Wierzcholki = new List<PointDC>
+                        Wierzcholki = new List<XPoint>
                     {
                         new(bbox.X, bbox.Y),
                         new(x, bbox.Y),
@@ -162,13 +187,14 @@ namespace GEORGE.Client.Pages.Utils
                         new(bbox.X, bbox.Y + bbox.Height)
                     },
                         TypKształtu = "prostokąt",
-                        LinieDzielace = new List<XLineShape> { linia }
+                        LinieDzielace = new List<XLineShape> { linia },
+                        Id = Guid.NewGuid().ToString()
                     });
 
                     // Prawy region
                     result.Add(new ShapeRegion
                     {
-                        Wierzcholki = new List<PointDC>
+                        Wierzcholki = new List<XPoint>
                     {
                         new(x, bbox.Y),
                         new(bbox.X + bbox.Width, bbox.Y),
@@ -176,7 +202,8 @@ namespace GEORGE.Client.Pages.Utils
                         new(x, bbox.Y + bbox.Height)
                     },
                         TypKształtu = "prostokąt",
-                        LinieDzielace = new List<XLineShape> { linia }
+                        LinieDzielace = new List<XLineShape> { linia },
+                        Id = Guid.NewGuid().ToString()
                     });
                 }
             }
