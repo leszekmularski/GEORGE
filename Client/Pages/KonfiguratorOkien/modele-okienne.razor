@@ -159,6 +159,10 @@
 
     const pattern = ctx.createPattern(img, 'repeat');
     ctx.fillStyle = pattern;
+
+    // ❗ Dodaj tę linię, aby wypełnić aktualną ścieżkę!
+    ctx.fill("evenodd");
+
     ctx.canvas.dataset.pattern = "wood-pattern";
     await dotNetHelper.invokeMethodAsync('OnTextureLoaded');
     };
@@ -546,7 +550,7 @@
                     @foreach (var wymiar in infoObiekt)
                     {
                         <li class="info-item">
-                            <span ><strong>📏 Szerokość:</strong> @wymiar.Szerokosc mm</span>
+                            <span><strong>📏 Szerokość:</strong> @wymiar.Szerokosc mm</span>
                             <span><strong>📐 Wysokość:</strong> @wymiar.Wysokosc mm</span>
                             <span><strong>🏗️ Wyrób:</strong> @wymiar.RodzajObiektu</span>
                             <span><strong>⚠️ Restrykcje:</strong> @wymiar.Restrykcja</span>
@@ -645,7 +649,6 @@
             cursor: inherit; /* Dziedziczy kursor z JS */">
 
         <!-- Tutaj elementy reagujące na kursor (np. przyciski) -->
-
         @if (hasCanvasError)
         {
             <p style="color: red; position: relative; z-index: 100;">❌ Błąd: Nie udało się załadować canvasu!</p>
@@ -703,6 +706,8 @@
     private List<IShapeDC> _shapes = new List<IShapeDC>();
 
     private List<ShapeRegion> _regions = new();
+
+    private string woodPatternName = "sosna.jpg"; // Nazwa pliku do wzoru drewna meranti.jpg wood.jpg
 
     protected override async Task OnInitializedAsync()
     {
@@ -818,7 +823,7 @@
 
         foreach (var region in regiony)
         {
-            Console.WriteLine($"🔍 Analizuję region - TypKształtu: {region.TypKształtu} - ilość Wierzcholkow: { region.Wierzcholki.Count()}");
+            Console.WriteLine($"🔍 Analizuję region - TypKształtu: {region.TypKształtu} - ilość Wierzcholkow: {region.Wierzcholki.Count()}");
         }
 
         await _context.RestoreAsync();
@@ -1021,7 +1026,7 @@
             if (!isTextureLoaded)
             {
                 var baseUrl = Navigation.BaseUri;
-                var imageUrl = $"{baseUrl}api/images/wood.jpg";
+                var imageUrl = $"{baseUrl}api/images/{woodPatternName}";
 
                 await JS.InvokeVoidAsync("loadAndDrawTexture",
                     CanvasRef.CanvasReference,
@@ -1035,7 +1040,7 @@
                 // return;
             }
 
-            await  RenderFrame();
+            await RenderFrame();
 
             // Reszta kodu do rysowania...
         }
@@ -1119,15 +1124,45 @@
             await _context.TranslateAsync(_panX, _panY);
             await _context.ScaleAsync(_currentScale, _currentScale);
 
-            // Rysuj ramę tła
-            await _context.SetFillStyleAsync("wood-pattern");
-            await _context.FillRectAsync(50, 50, 20, 500);
-            await _context.FillRectAsync(730, 50, 20, 500);
-            await _context.FillRectAsync(50, 50, 700, 20);
-            await _context.FillRectAsync(50, 530, 700, 20);
+            // // Rysuj ramę tła
 
-            await _context.SetFillStyleAsync("#ADD8E6");
-            await _context.FillRectAsync(70, 70, 660, 460);
+            float gr_ramy = 60;
+
+            foreach (var region in _regions)
+            {
+                var outer = region.Wierzcholki.Select(p => new Point((float)p.X, (float)p.Y)).ToList();
+                var inner = GeometryUtilsOffest.OffsetPolygon(outer, gr_ramy);
+
+                await _context.BeginPathAsync();
+
+                var start = outer[0];
+                await _context.MoveToAsync(start.X, start.Y);
+                for (int i = 1; i < outer.Count; i++)
+                    await _context.LineToAsync(outer[i].X, outer[i].Y);
+                await _context.ClosePathAsync();
+
+                start = inner[0];
+                await _context.MoveToAsync(start.X, start.Y);
+                for (int i = 1; i < inner.Count; i++)
+                    await _context.LineToAsync(inner[i].X, inner[i].Y);
+                await _context.ClosePathAsync();
+
+
+                var baseUrl = Navigation.BaseUri;
+                var imageUrl = $"{baseUrl}api/images/{woodPatternName}";
+                //var imageUrl = $"{baseUrl}api/images/wood.jpg";
+
+                Console.WriteLine(imageUrl);
+
+                await JS.InvokeVoidAsync("loadAndDrawTexture",
+                    CanvasRef.CanvasReference,
+                    imageUrl,
+                    _dotNetHelper
+                );
+
+                break; // To poprawić 
+            }
+
 
             // 🔁 Rysuj regiony
             foreach (var region in _regions)
@@ -1136,6 +1171,7 @@
                 if (punkty == null || punkty.Count == 0)
                     continue;
 
+                await _context.SetLineWidthAsync((float)0.1);
                 await _context.BeginPathAsync();
 
                 var start = punkty[0];
@@ -1149,19 +1185,19 @@
 
                 await _context.ClosePathAsync();
 
-                // 🖌️ Styl w zależności od typu kształtu
-                string kolor = region.TypKształtu switch
-                {
-                    "okrąg" => "lightblue",
-                    "prostokąt" => "lightgreen",
-                    "trójkąt" => "khaki",
-                    "trapez" => "wheat",
-                    "domek" => "lightcoral",
-                    _ => "gray"
-                };
+                // // 🖌️ Styl w zależności od typu kształtu
+                // string kolor = region.TypKształtu switch
+                // {
+                //     "okrąg" => "lightblue",
+                //     "prostokąt" => "lightgreen",
+                //     "trójkąt" => "khaki",
+                //     "trapez" => "wheat",
+                //     "domek" => "lightcoral",
+                //     _ => "gray"
+                // };
 
-                await _context.SetFillStyleAsync(kolor);
-                await _context.FillAsync();
+                // await _context.SetFillStyleAsync(kolor);
+                // await _context.FillAsync();
 
                 await _context.SetStrokeStyleAsync("black");
                 await _context.SetLineWidthAsync(2);
