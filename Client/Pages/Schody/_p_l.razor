@@ -73,7 +73,7 @@
     <h3>Obliczenia Schodów typu: @TypSchodow</h3>
 
     <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
-    <Divider> Podaj nazwę programu CNC: <input style="font-weight: bold; color: forestgreen; width: 8ch;" type="text" @bind="NazwaProgramuCNC" /></Divider>
+    <Divider Orientation="DividerOrientation.Left"> Podaj nazwę programu CNC: <input style="font-weight: bold; color: forestgreen; width: 8ch;" type="text" @bind="NazwaProgramuCNC" />&nbsp;&nbsp; Projekt: &nbsp;<input placeholder="Podaj nazwę oraz numer projektu" style="font-weight: bold; color: forestgreen; width: 350px;" type="text" @bind="NazwaINumerProjektu" /></Divider>
     <Collapse Animation>
         <Panel Header="Parametry wykonania schodów" Key="1">
 
@@ -266,6 +266,8 @@
 
     private string NazwaProgramuCNC { get; set; } = "";
 
+    private string NazwaINumerProjektu { get; set; } = "";
+
     private double CalkowitaSzerokoscSchodow { get; set; } = 0;
 
     private BECanvasComponent? canvasReferenceKPL;
@@ -443,6 +445,12 @@
     {
         if (shapes == null) return;
 
+        if (string.IsNullOrEmpty(NazwaINumerProjektu))
+        {
+            await _message.Error("Podaj nazwę oraz numer projektu", 2);
+            return; 
+        }
+
         await UpdateShapes(true); //- true to mam być domyślne skala 1:1
 
         string kiedunekSCH = "l";
@@ -482,7 +490,7 @@
                 {
                     new CSchodyPL(JSRuntime, 50, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
                     WydluzOstatniStopien, ZachodzenieStopniZaSiebie, OsadzenieOdGory, OsadzenieOdDolu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
-                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'l', NazwaProgramuCNC)
+                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'l', NazwaProgramuCNC, NazwaINumerProjektu)
                 };
             }
             else
@@ -491,7 +499,7 @@
                 {
                     new CSchodyPL(JSRuntime,  50, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
                     WydluzOstatniStopien, ZachodzenieStopniZaSiebie, OsadzenieOdGory, OsadzenieOdDolu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
-                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'p', NazwaProgramuCNC)
+                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'p', NazwaProgramuCNC, NazwaINumerProjektu)
                 };
             }
 
@@ -507,7 +515,7 @@
                 {
                     new CSchodyPL(JSRuntime,  50, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
                     WydluzOstatniStopien, ZachodzenieStopniZaSiebie, OsadzenieOdGory, OsadzenieOdDolu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
-                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'l', NazwaProgramuCNC)
+                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'l', NazwaProgramuCNC, NazwaINumerProjektu)
                 };
             }
             else
@@ -516,7 +524,7 @@
                 {
                     new CSchodyPL(JSRuntime,  50, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
                     WydluzOstatniStopien, ZachodzenieStopniZaSiebie, OsadzenieOdGory, OsadzenieOdDolu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
-                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'p', NazwaProgramuCNC)
+                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'p', NazwaProgramuCNC, NazwaINumerProjektu)
                 };
             }
 

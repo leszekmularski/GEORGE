@@ -67,11 +67,12 @@ namespace GEORGE.Client.Pages.Schody
         private string Opis { get; set; }
         private char Lewe { get; set; }
         private string NazwaProgramuCNC { get; set; }
+        private string NazwaINumerProjektu { get; set; } // Nazwa i numer projektu
 
         private double GruboscStopnia = 40;//40 mm grubość stopni
         public CSchodyPL(IJSRuntime jsRuntime, double x, double y, double skala, double dlugoscOtworu, double szerokoscOtworu, double dlugoscNaWejsciu, double wysokoscDoStropu, double wysokoscCalkowita, double liczbaPodniesienStopni,
             double wydluzOstatniStopien, double zachodzenieStopniZaSiebie, double osadzenieOdGory, double osadzenieOdDolu, double szerokoscBieguSchodow, double dlugoscLiniiBiegu, double katNachylenia, double szerokoscSchodow, double wysokoscPodniesieniaStopnia,
-            double glebokoscStopnia, double przecietnaDlugoscKroku, double przestrzenSwobodnaNadGlowa, string opis, char lewe, string nazwaProgramuCNC)
+            double glebokoscStopnia, double przecietnaDlugoscKroku, double przestrzenSwobodnaNadGlowa, string opis, char lewe, string nazwaProgramuCNC, string nazwaINumerProjektu)
         {
 
             X = x;
@@ -98,6 +99,8 @@ namespace GEORGE.Client.Pages.Schody
             Opis = opis;
             Lewe = lewe;
             NazwaProgramuCNC = nazwaProgramuCNC.Replace("/", "_").Replace("\\", "_").Replace(".", "_").Replace(",", "_");
+
+            NazwaINumerProjektu = nazwaINumerProjektu;
 
             _jsRuntime = jsRuntime ?? throw new ArgumentNullException(nameof(jsRuntime));
         }
@@ -910,6 +913,7 @@ namespace GEORGE.Client.Pages.Schody
             XLinePoint.Add(new LinePoint(x + width, y, x + width, y + height, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu));
             XLinePoint.Add(new LinePoint(x + width, y + height, x, y + height, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu));
             XLinePoint.Add(new LinePoint(x, y + height, x, y, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy));
+            XLinePoint.Add(new LinePoint(x, y, x + width - 20, y, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu));
         }
 
         private void AddPointsStopienObrys(double x, double y, double width, double height, string typeLine = "", string fileNCName = "", string nameMacro = "", string idOBJ = "",
@@ -1256,7 +1260,7 @@ namespace GEORGE.Client.Pages.Schody
                     }).ToList();
 
                     // Generowanie G-Code dla aktualnej grupy
-                    string gcode = gcodeGenerator.GenerateGCode(rotatedLines);
+                    string gcode = gcodeGenerator.GenerateGCode(rotatedLines, group.First().NazwaElementu);
 
                     // Konwersja do Base64
                     string gcodeBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(gcode));
@@ -1307,7 +1311,7 @@ namespace GEORGE.Client.Pages.Schody
 
                         Console.WriteLine("Dodanie nagłówka dokumentu.");
 
-                        document.Add(new Paragraph($"Materiały do wykonania schodów: {DateTime.Now.ToShortDateString()} Wysokość:{WysokoscCalkowita} Długość na wejściu:{DlugoscNaWejsciu} Szerokość całkowita:{SzerokoscBieguSchodow + 40 + 40}")
+                        document.Add(new Paragraph($"Materiały do wykonania schodów: {DateTime.Now.ToShortDateString()} Wysokość:{WysokoscCalkowita} Długość na wejściu:{DlugoscNaWejsciu} Szerokość całkowita:{SzerokoscBieguSchodow + 40 + 40} Dotyczy projektu: {NazwaINumerProjektu}")
                             .SetFont(pdfFont)
                             .SetTextAlignment(iText.Layout.Properties.TextAlignment.CENTER)
                             .SetFontSize(12)
@@ -1318,9 +1322,10 @@ namespace GEORGE.Client.Pages.Schody
                             .Where(lp => !string.IsNullOrEmpty(lp.fileNCName)) // Ignoruj elementy bez fileNCName
                             .GroupBy(lp => lp.fileNCName);
                         int idObj = 0;
+                        string NazwaProgramuCNC = "";
                         foreach (var group in groupedLines)
                         {
-                            string NazwaProgramuCNC = $"{group.First().NazwaProgramu}_{group.First().fileNCName}";
+                            NazwaProgramuCNC = $"{group.First().NazwaProgramu}_{group.First().fileNCName}";
 
                             string onlyFileName = group
                                 .Where(x => !string.IsNullOrEmpty(x.fileNCName))
@@ -1339,7 +1344,7 @@ namespace GEORGE.Client.Pages.Schody
                     }
 
                     string pdfBase64 = Convert.ToBase64String(stream.ToArray());
-                    await jsRuntime.InvokeVoidAsync("downloadFile", $"Raport_CNC.pdf", "application/pdf", pdfBase64);
+                    await jsRuntime.InvokeVoidAsync("downloadFile", $"Raport_CNC-{NazwaProgramuCNC}.pdf", "application/pdf", pdfBase64);
                     Console.WriteLine("Plik PDF został wygenerowany i przesłany do przeglądarki.");
                 }
             }
