@@ -650,11 +650,12 @@ namespace GEORGE.Client.Pages.Schody
             await context.LineToAsync(X + xRownolegle, leftBottomY);
             AddLineWithPreviousPointAsync(X + xRownolegle, leftBottomY, "", "W_L", "WANGA_OBRYS", "1", zRob.Split(','), 3, true, 1, NazwaProgramuCNC); // Dodanie linii poziomej
 
-
             // Zamknięcie ścieżki
             await context.ClosePathAsync();
 
             ClosePathAndAddFinalLineAsync("", "W_L", "WANGA_OBRYS", "1", zRob.Split(','), 4, true, 1, NazwaProgramuCNC);
+
+            AddLinePoints(hookX1, hookY1, hookX2, hookY2, "", "W_L", "WANGA_OBRYS", "1", zRob.Split(','), 99, true, 1, NazwaProgramuCNC);// Dodanie linii zaczepu aby frez zakończył w tym miejscu
 
             await context.StrokeAsync();
 

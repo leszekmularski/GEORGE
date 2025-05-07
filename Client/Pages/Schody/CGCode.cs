@@ -13,10 +13,11 @@ namespace GEORGE.Client.Pages.Schody
 
             string strinG40G41 = "G41";
 
-            if (nazwaElementu.Trim() == "Wanga druga strona")
+            if (nazwaElementu.Trim().Contains("Wanga druga strona", StringComparison.OrdinalIgnoreCase))
             {
                 strinG40G41 = "G42";
             }
+
             // Przesunięcie linii do początku układu współrzędnych
             var linesX = ShiftLinesToOrigin(lines);
 
@@ -109,7 +110,7 @@ namespace GEORGE.Client.Pages.Schody
             //}
             //Console.WriteLine($"------------------------------------------------------------");
 
-            uint i = 0;
+            //uint i = 0;
 
             // Iteracja przez grupy
             foreach (var group in groupedLines)
@@ -130,22 +131,25 @@ namespace GEORGE.Client.Pages.Schody
                     for (int j = 0; j < line.zRobocze.Count(); j++)
                     {
 
-                     // Console.WriteLine($"line.zRobocze: {line.zRobocze[j]} startG0: {startG0} idObj: {idObj} line.idOBJ: {line.idOBJ}");  
+                        // Console.WriteLine($"line.zRobocze: {line.zRobocze[j]} startG0: {startG0} idObj: {idObj} line.idOBJ: {line.idOBJ}");  
+                       // gcodeBuilder.AppendLine($";----->{line.idOBJ} line.idRuchNarzWObj: {line.idRuchNarzWObj}");
 
                         if (startG0)
                         {
+
                             // Przejście do pierwszego punktu linii (bez cięcia)
                             gcodeBuilder.Append(WejscieWKontur(line, line.zRobocze[j], startDojazdDoPierwszego, strinG40G41));
 
                             startG0 = false;
                             idObj = line.idOBJ;
                             startDojazdDoPierwszego = false;
+
+
                         }
                         else
                         {
-                            // Ruch z cięciem do drugiego punktu linii
-                            gcodeBuilder.AppendLine($"X{line.X2.ToString("F2", CultureInfo.InvariantCulture)} Y{line.Y2.ToString("F2", CultureInfo.InvariantCulture)}");
-
+                               // Ruch z cięciem do drugiego punktu linii
+                                gcodeBuilder.AppendLine($"X{line.X2.ToString("F2", CultureInfo.InvariantCulture)} Y{line.Y2.ToString("F2", CultureInfo.InvariantCulture)}");
                         }
 
                     }
@@ -153,7 +157,7 @@ namespace GEORGE.Client.Pages.Schody
                 }
 
                 // Podniesienie narzędzia na koniec grupy
-                gcodeBuilder.AppendLine("G0 G40 Z340 ; Podnies narzedzie na koniec makra");
+               gcodeBuilder.AppendLine($"G0 D0 G40 Z340 ; Podnies narzedzie na koniec makra {group.Key}");
             }
 
             // Stop programu
@@ -176,6 +180,7 @@ namespace GEORGE.Client.Pages.Schody
                 gcodeBuilder.AppendLine($"G40");
             }
 
+            gcodeBuilder.AppendLine($"D1");
             gcodeBuilder.AppendLine($"X{(line.X1 + 12).ToString("F2", CultureInfo.InvariantCulture)} Y{(line.Y1).ToString("F2", CultureInfo.InvariantCulture)}; PRZEJAZD NAD KONTUR");
           
             if (line.nameMacro == "WANGA_KIESZEN")
@@ -200,7 +205,7 @@ namespace GEORGE.Client.Pages.Schody
                 gcodeBuilder.AppendLine($"G1 X{startX.ToString("F2", CultureInfo.InvariantCulture)} Y{startY.ToString("F2", CultureInfo.InvariantCulture)} F2500; START OD SRODKA POD KATEM");
                 gcodeBuilder.AppendLine($"G1 {strinG40G41} X{midX.ToString("F2", CultureInfo.InvariantCulture)} Y{midY.ToString("F2", CultureInfo.InvariantCulture)} {zPoziom} F2500");
                 // Dalej idź po linii
-                gcodeBuilder.AppendLine($"X{line.X2.ToString("F2", CultureInfo.InvariantCulture)} Y{line.Y2.ToString("F2", CultureInfo.InvariantCulture)} F6000;{line.nameMacro}");
+                gcodeBuilder.AppendLine($"X{line.X2.ToString("F2", CultureInfo.InvariantCulture)} Y{line.Y2.ToString("F2", CultureInfo.InvariantCulture)} F6000; Makro:{line.nameMacro}");
 
             }
             else if (line.nameMacro == "WANGA_OBRYS")
@@ -208,7 +213,7 @@ namespace GEORGE.Client.Pages.Schody
                 gcodeBuilder.AppendLine($"G0 G40 Z50.;OBRYS");
                 gcodeBuilder.AppendLine($"X{(line.X1 - 20).ToString("F2", CultureInfo.InvariantCulture)} Y{(line.Y1 + 50).ToString("F2", CultureInfo.InvariantCulture)}");
                 gcodeBuilder.AppendLine($"G1 {strinG40G41} X{line.X1.ToString("F2", CultureInfo.InvariantCulture)} Y{line.Y1.ToString("F2", CultureInfo.InvariantCulture)} {zPoziom} F2500");
-                gcodeBuilder.AppendLine($"X{line.X2.ToString("F2", CultureInfo.InvariantCulture)} Y{line.Y2.ToString("F2", CultureInfo.InvariantCulture)} F6000;{line.idOBJ}");
+                gcodeBuilder.AppendLine($"X{line.X2.ToString("F2", CultureInfo.InvariantCulture)} Y{line.Y2.ToString("F2", CultureInfo.InvariantCulture)} F6000; ID-OBJ:{line.idOBJ}");
             }
             else if (line.nameMacro == "STOPIEN_W2")
             {
