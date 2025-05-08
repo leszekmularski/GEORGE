@@ -16,7 +16,7 @@ namespace GEORGE.Client.Pages.Models
         /// <summary>
         /// Typ geometryczny regionu (np. prostokąt, trójkąt, trapez, inny).
         /// </summary>
-        public string TypKształtu { get; set; } = "nieokreślony";
+        public string TypKsztaltu { get; set; } = "nieokreślony";
 
         /// <summary>
         /// Linie, które brały udział w podziale tego regionu (jeśli dotyczy).
@@ -38,7 +38,7 @@ namespace GEORGE.Client.Pages.Models
             var maxX = Wierzcholki.Max(p => p.X);
             var maxY = Wierzcholki.Max(p => p.Y);
 
-            return new BoundingBox(minX, minY, maxX - minX, maxY - minY, TypKształtu);
+            return new BoundingBox(minX, minY, maxX - minX, maxY - minY, TypKsztaltu);
         }
 
         /// <summary>
@@ -56,7 +56,7 @@ namespace GEORGE.Client.Pages.Models
         /// </summary>
         public void RozpoznajTyp()
         {
-            TypKształtu = Wierzcholki.Count switch
+            TypKsztaltu = Wierzcholki.Count switch
             {
                 3 => "trójkąt",
                 4 => "prostokąt",

@@ -20,6 +20,7 @@
 @using Blazor.Extensions.Canvas
 @using Blazor.Extensions.Canvas.Canvas2D
 @using GEORGE.Client.Pages.Models
+@using GEORGE.Client.Pages.Okna
 
 <script>
     (() => {
@@ -823,7 +824,7 @@
 
         foreach (var region in regiony)
         {
-            Console.WriteLine($"🔍 Analizuję region - TypKształtu: {region.TypKształtu} - ilość Wierzcholkow: {region.Wierzcholki.Count()}");
+            Console.WriteLine($"🔍 Analizuję region - TypKształtu: {region.TypKsztaltu} - ilość Wierzcholkow: {region.Wierzcholki.Count()}");
         }
 
         await _context.RestoreAsync();
@@ -1092,19 +1093,6 @@
             isTextureLoaded = true;
             Console.WriteLine("✅ Tekstura załadowana!");
             await Task.CompletedTask;
-            // to poprawy
-
-            // if (string.IsNullOrEmpty(SelectedModelType))
-            // {
-            //     //await RenderFrame(0, 0, "Rama");
-            //     Console.WriteLine($"🔥 Błąd SelectedModelType ma wartość NULL");
-            // }
-            // else
-            // {
-            //     await RenderFrame(DropX, DropY, SelectedModelType);
-            // }
-
-            // StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -1112,8 +1100,83 @@
         }
     }
 
+    private async Task RenderFrameTEST()
+    {
+        // Przykładowa metoda do renderowania ramy okiennej
+        foreach (var region in _regions)
+        {
+            var punkty = region.Wierzcholki;
+            if (punkty == null || punkty.Count < 3)
+                continue;
+
+            Console.WriteLine($"Regiona składa się z: {punkty.Count} punków");
+
+            var szerokosc = punkty.Max(p => p.X) - punkty.Min(p => p.X);
+            var wysokosc = punkty.Max(p => p.Y) - punkty.Min(p => p.Y);
+
+            float grLewo = 60;
+            float grPrawo = 60;
+            float grGora = 70;
+            float grDol = 80;
+
+            // 🧱 Tworzenie kształtu ramy
+            var ksztaltRamowy = new KsztaltElementu
+                {
+                    TypKsztaltu = region.TypKsztaltu ?? "prostokat",
+                    Wierzcholki = punkty.Select(p => new XPoint(p.X, p.Y)).ToList(),
+                    WypelnienieZewnetrzne = "wood-pattern",
+                    WypelnienieWewnetrzne = "#ADD8E6",
+                    CzyZawieraOtwor = true
+                };
+
+            // 🔲 Tworzenie elementów ramy
+            var elementyRamy = new List<ElementRamowy>
+        {
+            new() { Nazwa = "Lewy pion", Dlugosc = (float)wysokosc, Grubosc = grLewo },
+            new() { Nazwa = "Prawy pion", Dlugosc = (float)wysokosc, Grubosc = grPrawo },
+            new() { Nazwa = "Gora", Dlugosc = (float)szerokosc, Grubosc = grGora },
+            new() { Nazwa = "Dol", Dlugosc = (float)szerokosc, Grubosc = grDol },
+        };
+
+            var okno = new OknoModel
+                {
+                    Szerokosc = (float)szerokosc,
+                    Wysokosc = (float)wysokosc,
+                    GruboscLewo = grLewo,
+                    GruboscPrawo = grPrawo,
+                    GruboscGora = grGora,
+                    GruboscDol = grDol,
+                    KolorZewnetrzny = "#CCCCCC",
+                    KolorWewnetrzny = "#FFFFFF",
+                    Waga = 0, // Można liczyć z sumy ramek, np. szer. * grubosc * gęstość
+                    TypKsztaltu = region.TypKsztaltu ?? "prostokat",
+
+                    Polaczenia = new List<PolaczenieElementu>
+            {
+                new() { NaroznikId = 0, TypPolaczenia = "T1" },
+                new() { NaroznikId = 1, TypPolaczenia = "T2" },
+                new() { NaroznikId = 2, TypPolaczenia = "T3" },
+                new() { NaroznikId = 3, TypPolaczenia = "T1" },
+            },
+
+                    ElementyRamy = elementyRamy,
+                    ElementyRamyRysowane = new List<KsztaltElementu> { ksztaltRamowy },
+                    GruboscSzyby = 24,
+                    KolorSzyby = "#ADD8E6"
+                };
+
+            // 🔧 Możesz teraz użyć `okno` do dalszego renderowania lub debugowania
+            Console.WriteLine($"🪟 Okno wygenerowane: {okno.TypKsztaltu}, szer: {okno.Szerokosc}, wys: {okno.Wysokosc}");
+           
+        }
+
+        await Task.CompletedTask;
+    }
+
     private async Task RenderFrame()
     {
+       await RenderFrameTEST();
+
         try
         {
             if (_context == null) return;
@@ -1124,30 +1187,60 @@
             await _context.TranslateAsync(_panX, _panY);
             await _context.ScaleAsync(_currentScale, _currentScale);
 
-            // // Rysuj ramę tła
+            // 🪵 Grubości ramy (indywidualne)
+            float gr_ramyDol = 60;
+            float gr_ramyGora = 160;
+            float gr_ramyLewa = 60;
+            float gr_ramyPrawa = 60;
 
-            float gr_ramy = 60;
+            // // Rysuj ramę tła
 
             foreach (var region in _regions)
             {
                 var outer = region.Wierzcholki.Select(p => new Point((float)p.X, (float)p.Y)).ToList();
-                var inner = GeometryUtilsOffest.OffsetPolygon(outer, gr_ramy);
+                List<Point> inner;
+
+                switch (region.TypKsztaltu)
+                {
+                    case "prostokąt":
+                        inner = OffsetRectangleManually(outer, gr_ramyLewa, gr_ramyPrawa, gr_ramyGora, gr_ramyDol);
+                        break;
+                    case "trójkąt":
+                        inner = OffsetTriangleManually(outer, gr_ramyLewa, gr_ramyPrawa);
+                        break;
+                    case "koło":
+                        inner = OffsetCircleManually(outer, gr_ramyLewa); // lub gr_ramyPrawa
+                        break;
+                    case "trapez":
+                        inner = OffsetRectangleManually(outer, gr_ramyLewa, gr_ramyPrawa, gr_ramyGora, gr_ramyDol);
+                        break;
+                    case "romb":
+                        inner = OffsetPolygonManually(outer, gr_ramyLewa, gr_ramyPrawa, gr_ramyGora, gr_ramyDol);
+                        break;
+                    default:
+                        inner = OffsetPolygonManually(outer, gr_ramyLewa, gr_ramyPrawa, gr_ramyGora, gr_ramyDol);
+                        continue;
+                }
+
+                if (inner.Count < 3)
+                    continue;
 
                 await _context.BeginPathAsync();
 
-                var start = outer[0];
-                await _context.MoveToAsync(start.X, start.Y);
+                // Zewnętrzny kontur
+                await _context.MoveToAsync(outer[0].X, outer[0].Y);
                 for (int i = 1; i < outer.Count; i++)
                     await _context.LineToAsync(outer[i].X, outer[i].Y);
                 await _context.ClosePathAsync();
 
-                start = inner[0];
-                await _context.MoveToAsync(start.X, start.Y);
+                // Wewnętrzny kontur (odwrotny)
+                inner.Reverse();
+                await _context.MoveToAsync(inner[0].X, inner[0].Y);
                 for (int i = 1; i < inner.Count; i++)
                     await _context.LineToAsync(inner[i].X, inner[i].Y);
                 await _context.ClosePathAsync();
 
-
+                // Wypełnienie ramy
                 var baseUrl = Navigation.BaseUri;
                 var imageUrl = $"{baseUrl}api/images/{woodPatternName}";
                 //var imageUrl = $"{baseUrl}api/images/wood.jpg";
@@ -1159,8 +1252,6 @@
                     imageUrl,
                     _dotNetHelper
                 );
-
-                break; // To poprawić 
             }
 
 
@@ -1210,6 +1301,148 @@
         {
             Console.WriteLine($"🔥 Błąd RenderFrame: {ex.Message}");
         }
+    }
+
+    public static List<Point> OffsetRectangleManually(List<Point> outer, float left, float right, float top, float bottom)
+    {
+        if (outer.Count != 4)
+            throw new ArgumentException("OffsetRectangleManually działa tylko dla prostokątów o 4 punktach.");
+
+        var leftX = outer[0].X + left;
+        var rightX = outer[1].X - right;
+        var topY = outer[0].Y + top;
+        var bottomY = outer[2].Y - bottom;
+
+        return new List<Point>
+    {
+        new Point(leftX, topY),
+        new Point(rightX, topY),
+        new Point(rightX, bottomY),
+        new Point(leftX, bottomY)
+    };
+    }
+
+    public static List<Point> OffsetTriangleManually(List<Point> outer, float offsetLeft, float offsetRight)
+    {
+        if (outer.Count != 3)
+            throw new ArgumentException("OffsetTriangleManually działa tylko dla trójkątów.");
+
+        var centerX = outer.Average(p => p.X);
+        var centerY = outer.Average(p => p.Y);
+
+        // Skieruj każdy punkt do środka, aby „pomniejszyć” kształt
+        var inner = new List<Point>();
+        foreach (var p in outer)
+        {
+            var dx = centerX - p.X;
+            var dy = centerY - p.Y;
+
+            // Zmniejszanie o średnią offsetu
+            float offset = (offsetLeft + offsetRight) / 2;
+            var len = MathF.Sqrt(dx * dx + dy * dy);
+            var scale = (len - offset) / len;
+
+            inner.Add(new Point(p.X + dx * scale, p.Y + dy * scale));
+        }
+
+        return inner;
+    }
+
+    public static List<Point> OffsetCircleManually(List<Point> outer, float thickness)
+    {
+        if (outer == null || outer.Count < 3)
+            throw new ArgumentException("outer musi zawierać co najmniej 3 punkty.");
+
+        float centerX = outer.Average(p => p.X);
+        float centerY = outer.Average(p => p.Y);
+
+        var inner = new List<Point>();
+
+        foreach (var p in outer)
+        {
+            float dx = p.X - centerX;
+            float dy = p.Y - centerY;
+            float len = MathF.Sqrt(dx * dx + dy * dy);
+
+            if (len <= thickness + 1)
+                len = thickness + 1.01f;
+
+            float scale = (len - thickness) / len;
+
+            float newX = centerX + dx * scale;
+            float newY = centerY + dy * scale;
+
+            inner.Add(new Point(newX, newY));
+        }
+
+        // 🔁 Odwróć wewnętrzny kontur — bardzo ważne dla "evenodd"
+        inner.Reverse();
+
+        // 🛡️ Zamknij kontur jeśli niezamknięty
+        if (inner.Count > 0 &&
+            (inner[0].X != inner[^1].X || inner[0].Y != inner[^1].Y))
+        {
+            inner.Add(inner[0]);
+        }
+
+        return inner;
+    }
+
+
+    public static List<Point> OffsetPolygonManually(List<Point> polygon, float offsetLeft, float offsetRight, float offsetTop, float offsetBottom)
+    {
+        var result = new List<Point>();
+        int count = polygon.Count;
+
+        for (int i = 0; i < count; i++)
+        {
+            var prev = polygon[(i - 1 + count) % count];
+            var curr = polygon[i];
+            var next = polygon[(i + 1) % count];
+
+            var v1 = Normalize(new Point(curr.X - prev.X, curr.Y - prev.Y));
+            var v2 = Normalize(new Point(next.X - curr.X, next.Y - curr.Y));
+
+            var n1 = new Point(-v1.Y, v1.X);
+            var n2 = new Point(-v2.Y, v2.X);
+
+            var bisector = Normalize(new Point(n1.X + n2.X, n1.Y + n2.Y));
+
+            // wybierz offset w zależności od kierunku
+            float dx = bisector.X;
+            float dy = bisector.Y;
+
+            float offset = 0;
+            if (Math.Abs(dx) > Math.Abs(dy))
+                offset = dx < 0 ? offsetLeft : offsetRight;
+            else
+                offset = dy < 0 ? offsetTop : offsetBottom;
+
+            float dot = Dot(bisector, n1);
+            if (Math.Abs(dot) < 0.0001f) dot = 0.0001f;
+
+            var newPoint = new Point(
+                curr.X + bisector.X * offset / dot,
+                curr.Y + bisector.Y * offset / dot
+            );
+
+            result.Add(newPoint);
+        }
+
+        return result;
+    }
+
+
+
+    private static Point Normalize(Point v)
+    {
+        float length = MathF.Sqrt(v.X * v.X + v.Y * v.Y);
+        return length == 0 ? new Point(0, 0) : new Point(v.X / length, v.Y / length);
+    }
+
+    private static float Dot(Point a, Point b)
+    {
+        return a.X * b.X + a.Y * b.Y;
     }
 
     private string RysunekToBase64(byte[]? imageData)

@@ -544,6 +544,7 @@ else
                 {
                     <Alert Message="@bladZapisuPliku" Type="Error" Closable />
                 }
+                <Button Type="ButtonType.Primary" Loading="isLoadingAll" Icon="@IconType.Outline.Download" @onclick="() => DownloadAllFile()">Pobierz wszystkie pliki</Button>
                 <Button class="ms-auto" @onclick="() => HideDialogFile()">Zakończ</Button>
             </div>
         </div>
@@ -1190,13 +1191,46 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
         czekajNaUsuniecie = false;
     }
 
+    private bool isLoadingAll = false;
+    private async Task DownloadAllFile()
+    {
+        if (czekajNaPobranie || pliki == null || pliki.Count() == 0 || isLoadingAll) return;
+
+        isLoadingAll = true;
+
+        foreach (var item in pliki)
+        {
+            await DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, true);
+        }
+
+        czekajNaPobranie = false;
+        isLoadingAll = false;
+
+        _notice.Info(new()
+            {
+                Message = "Pobieranie plików zakończone.",
+                Description = $"Pobrano {pliki.Count()} plików.",
+                Placement = NotificationPlacement.BottomLeft
+            });
+
+    }
+
     bool czekajNaPobranie = false;
-    private async Task DownloadFile(string fileName, string oryginalfileName)
+    private async Task DownloadFile(string fileName, string oryginalfileName, bool zamienNCnaP = false)
     {
 
         if (czekajNaPobranie) return;
 
         czekajNaPobranie = true;
+
+        if (zamienNCnaP)
+        {
+            var extension = Path.GetExtension(oryginalfileName);
+            if (extension.Equals(".nc", StringComparison.OrdinalIgnoreCase))
+            {
+                oryginalfileName = Path.ChangeExtension(oryginalfileName, ".p");
+            }
+        }
 
         try
         {

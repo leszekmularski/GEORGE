@@ -80,7 +80,7 @@ namespace GEORGE.Client.Pages.Utils
                         regions.Add(new ShapeRegion
                         {
                             Wierzcholki = wierzcholki,
-                            TypKształtu = typKształtu
+                            TypKsztaltu = typKształtu
                         });
                         continue;
 
@@ -108,7 +108,7 @@ namespace GEORGE.Client.Pages.Utils
                     regions.Add(new ShapeRegion
                     {
                         Wierzcholki = wierzcholki,
-                        TypKształtu = typKształtu
+                        TypKsztaltu = typKształtu
                     });
                 }
             }
@@ -186,7 +186,7 @@ namespace GEORGE.Client.Pages.Utils
                         new(x, bbox.Y + bbox.Height),
                         new(bbox.X, bbox.Y + bbox.Height)
                     },
-                        TypKształtu = "prostokąt",
+                        TypKsztaltu = "prostokąt",
                         LinieDzielace = new List<XLineShape> { linia },
                         Id = Guid.NewGuid().ToString()
                     });
@@ -201,7 +201,7 @@ namespace GEORGE.Client.Pages.Utils
                         new(bbox.X + bbox.Width, bbox.Y + bbox.Height),
                         new(x, bbox.Y + bbox.Height)
                     },
-                        TypKształtu = "prostokąt",
+                        TypKsztaltu = "prostokąt",
                         LinieDzielace = new List<XLineShape> { linia },
                         Id = Guid.NewGuid().ToString()
                     });
