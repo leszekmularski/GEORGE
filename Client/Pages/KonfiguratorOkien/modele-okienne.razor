@@ -820,7 +820,9 @@
         var regiony = GeometryUtils.GenerujRegionyZPodzialu(_shapes);
 
         Console.WriteLine($"📦 Wygenerowano {regiony.Count} regionów");
-        await _message.Info($"📦 Wygenerowano {regiony.Count} regionów", 1);
+
+        if (regiony.Count()>0)
+            await _message.Info($"📦 Wygenerowano {regiony.Count} regionów", 1);
 
         foreach (var region in regiony)
         {
@@ -1100,370 +1102,390 @@
         }
     }
 
-    private async Task RenderFrameTEST()
+    private List<KsztaltElementu> ksztalty = new();
+
+    private async Task DodajOknoG()
     {
-        // Przykładowa metoda do renderowania ramy okiennej
-        foreach (var region in _regions)
+        var generator = new Generator();
+        generator.GruboscDol = 82;
+        generator.GruboscGora = 82;
+        generator.GruboscLewo = 82;
+        generator.GruboscPrawo = 82;
+
+        generator.Szerokosc = Szerokosc;
+        generator.Wysokosc = Wysokosc;
+
+        generator.AddElements(_regions);
+        ksztalty = generator.ElementyRamyRysowane;
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"Liczba wygenerowanych kształtów: {ksztalty.Count}");
+
+        for (int i = 0; i < ksztalty.Count; i++)
         {
-            var punkty = region.Wierzcholki;
-            if (punkty == null || punkty.Count < 3)
-                continue;
+            var ksztalt = ksztalty[i];
+            sb.AppendLine($"Kształt {i + 1}:");
+            sb.AppendLine($"- Typ: {ksztalt.TypKsztaltu}");
+            sb.AppendLine($"- Grupa: {ksztalt.Grupa}");
+            sb.AppendLine($"- Wypełnienie zewnętrzne: {ksztalt.WypelnienieZewnetrzne}");
+            sb.AppendLine($"- Wypełnienie wewnętrzne: {ksztalt.WypelnienieWewnetrzne}");
+            sb.AppendLine($"- Liczba punktów: {ksztalt.Wierzcholki?.Count ?? 0}");
 
-            Console.WriteLine($"Regiona składa się z: {punkty.Count} punków");
-
-            var szerokosc = punkty.Max(p => p.X) - punkty.Min(p => p.X);
-            var wysokosc = punkty.Max(p => p.Y) - punkty.Min(p => p.Y);
-
-            float grLewo = 60;
-            float grPrawo = 60;
-            float grGora = 70;
-            float grDol = 80;
-
-            // 🧱 Tworzenie kształtu ramy
-            var ksztaltRamowy = new KsztaltElementu
-                {
-                    TypKsztaltu = region.TypKsztaltu ?? "prostokat",
-                    Wierzcholki = punkty.Select(p => new XPoint(p.X, p.Y)).ToList(),
-                    WypelnienieZewnetrzne = "wood-pattern",
-                    WypelnienieWewnetrzne = "#ADD8E6",
-                    CzyZawieraOtwor = true
-                };
-
-            // 🔲 Tworzenie elementów ramy
-            var elementyRamy = new List<ElementRamowy>
-        {
-            new() { Nazwa = "Lewy pion", Dlugosc = (float)wysokosc, Grubosc = grLewo },
-            new() { Nazwa = "Prawy pion", Dlugosc = (float)wysokosc, Grubosc = grPrawo },
-            new() { Nazwa = "Gora", Dlugosc = (float)szerokosc, Grubosc = grGora },
-            new() { Nazwa = "Dol", Dlugosc = (float)szerokosc, Grubosc = grDol },
-        };
-
-            var okno = new OknoModel
-                {
-                    Szerokosc = (float)szerokosc,
-                    Wysokosc = (float)wysokosc,
-                    GruboscLewo = grLewo,
-                    GruboscPrawo = grPrawo,
-                    GruboscGora = grGora,
-                    GruboscDol = grDol,
-                    KolorZewnetrzny = "#CCCCCC",
-                    KolorWewnetrzny = "#FFFFFF",
-                    Waga = 0, // Można liczyć z sumy ramek, np. szer. * grubosc * gęstość
-                    TypKsztaltu = region.TypKsztaltu ?? "prostokat",
-
-                    Polaczenia = new List<PolaczenieElementu>
+            if (ksztalt.Wierzcholki != null)
             {
-                new() { NaroznikId = 0, TypPolaczenia = "T1" },
-                new() { NaroznikId = 1, TypPolaczenia = "T2" },
-                new() { NaroznikId = 2, TypPolaczenia = "T3" },
-                new() { NaroznikId = 3, TypPolaczenia = "T1" },
-            },
-
-                    ElementyRamy = elementyRamy,
-                    ElementyRamyRysowane = new List<KsztaltElementu> { ksztaltRamowy },
-                    GruboscSzyby = 24,
-                    KolorSzyby = "#ADD8E6"
-                };
-
-            // 🔧 Możesz teraz użyć `okno` do dalszego renderowania lub debugowania
-            Console.WriteLine($"🪟 Okno wygenerowane: {okno.TypKsztaltu}, szer: {okno.Szerokosc}, wys: {okno.Wysokosc}");
-           
+                sb.AppendLine("  Punkty:");
+                foreach (var punkt in ksztalt.Wierzcholki)
+                {
+                    sb.AppendLine($"  - X: {punkt.X}, Y: {punkt.Y}");
+                }
+            }
         }
 
+        Console.WriteLine(sb.ToString());
         await Task.CompletedTask;
     }
 
+
     private async Task RenderFrame()
     {
-       await RenderFrameTEST();
+        await DodajOknoG();
 
         try
         {
-            if (_context == null) return;
+            if (_context == null || ksztalty == null || !ksztalty.Any())
+                return;
 
+            // Przygotowanie canvas
             await _context.SetTransformAsync(1, 0, 0, 1, 0, 0);
             await _context.ClearRectAsync(0, 0, CanvasWidth, CanvasHeight);
-
             await _context.TranslateAsync(_panX, _panY);
             await _context.ScaleAsync(_currentScale, _currentScale);
 
-            // 🪵 Grubości ramy (indywidualne)
-            float gr_ramyDol = 60;
-            float gr_ramyGora = 160;
-            float gr_ramyLewa = 60;
-            float gr_ramyPrawa = 60;
+            // Przygotowanie tekstury
+            var baseUrl = Navigation.BaseUri;
+            var imageUrl = $"{baseUrl}api/images/{woodPatternName}";
 
-            // // Rysuj ramę tła
-
-            foreach (var region in _regions)
+            // Rysowanie każdego kształtu
+            foreach (var ksztalt in ksztalty)
             {
-                var outer = region.Wierzcholki.Select(p => new Point((float)p.X, (float)p.Y)).ToList();
-                List<Point> inner;
-
-                switch (region.TypKsztaltu)
-                {
-                    case "prostokąt":
-                        inner = OffsetRectangleManually(outer, gr_ramyLewa, gr_ramyPrawa, gr_ramyGora, gr_ramyDol);
-                        break;
-                    case "trójkąt":
-                        inner = OffsetTriangleManually(outer, gr_ramyLewa, gr_ramyPrawa);
-                        break;
-                    case "koło":
-                        inner = OffsetCircleManually(outer, gr_ramyLewa); // lub gr_ramyPrawa
-                        break;
-                    case "trapez":
-                        inner = OffsetRectangleManually(outer, gr_ramyLewa, gr_ramyPrawa, gr_ramyGora, gr_ramyDol);
-                        break;
-                    case "romb":
-                        inner = OffsetPolygonManually(outer, gr_ramyLewa, gr_ramyPrawa, gr_ramyGora, gr_ramyDol);
-                        break;
-                    default:
-                        inner = OffsetPolygonManually(outer, gr_ramyLewa, gr_ramyPrawa, gr_ramyGora, gr_ramyDol);
-                        continue;
-                }
-
-                if (inner.Count < 3)
+                if (ksztalt.Wierzcholki == null || ksztalt.Wierzcholki.Count < 3)
                     continue;
 
-                await _context.BeginPathAsync();
-
-                // Zewnętrzny kontur
-                await _context.MoveToAsync(outer[0].X, outer[0].Y);
-                for (int i = 1; i < outer.Count; i++)
-                    await _context.LineToAsync(outer[i].X, outer[i].Y);
-                await _context.ClosePathAsync();
-
-                // Wewnętrzny kontur (odwrotny)
-                inner.Reverse();
-                await _context.MoveToAsync(inner[0].X, inner[0].Y);
-                for (int i = 1; i < inner.Count; i++)
-                    await _context.LineToAsync(inner[i].X, inner[i].Y);
-                await _context.ClosePathAsync();
-
-                // Wypełnienie ramy
-                var baseUrl = Navigation.BaseUri;
-                var imageUrl = $"{baseUrl}api/images/{woodPatternName}";
-                //var imageUrl = $"{baseUrl}api/images/wood.jpg";
-
-                Console.WriteLine(imageUrl);
-
-                await JS.InvokeVoidAsync("loadAndDrawTexture",
-                    CanvasRef.CanvasReference,
-                    imageUrl,
-                    _dotNetHelper
-                );
-            }
-
-
-            // 🔁 Rysuj regiony
-            foreach (var region in _regions)
-            {
-                var punkty = region.Wierzcholki;
-                if (punkty == null || punkty.Count == 0)
-                    continue;
-
-                await _context.SetLineWidthAsync((float)0.1);
-                await _context.BeginPathAsync();
-
-                var start = punkty[0];
-                await _context.MoveToAsync(start.X, start.Y);
-
-                for (int i = 1; i < punkty.Count; i++)
-                {
-                    var p = punkty[i];
-                    await _context.LineToAsync(p.X, p.Y);
-                }
-
-                await _context.ClosePathAsync();
-
-                // // 🖌️ Styl w zależności od typu kształtu
-                // string kolor = region.TypKształtu switch
-                // {
-                //     "okrąg" => "lightblue",
-                //     "prostokąt" => "lightgreen",
-                //     "trójkąt" => "khaki",
-                //     "trapez" => "wheat",
-                //     "domek" => "lightcoral",
-                //     _ => "gray"
-                // };
-
-                // await _context.SetFillStyleAsync(kolor);
-                // await _context.FillAsync();
-
-                await _context.SetStrokeStyleAsync("black");
-                await _context.SetLineWidthAsync(2);
-                await _context.StrokeAsync();
+                await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl);
             }
 
             StateHasChanged();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"🔥 Błąd RenderFrame: {ex.Message}");
+            Console.WriteLine($"Błąd renderowania: {ex.Message}\n{ex.StackTrace}");
         }
     }
 
-    public static List<Point> OffsetRectangleManually(List<Point> outer, float left, float right, float top, float bottom)
+    private async Task DrawShapeWithVariableOffset(Canvas2DContext context, KsztaltElementu ksztalt, string textureUrl)
     {
-        if (outer.Count != 4)
-            throw new ArgumentException("OffsetRectangleManually działa tylko dla prostokątów o 4 punktach.");
+        var outerPoints = ksztalt.Wierzcholki;
 
-        var leftX = outer[0].X + left;
-        var rightX = outer[1].X - right;
-        var topY = outer[0].Y + top;
-        var bottomY = outer[2].Y - bottom;
+        // Pobierz odpowiednie wartości przesunięć w zależności od grupy elementu
+        var offsets = GetOffsetsForGroup(ksztalt.Grupa);
 
-        return new List<Point>
-    {
-        new Point(leftX, topY),
-        new Point(rightX, topY),
-        new Point(rightX, bottomY),
-        new Point(leftX, bottomY)
-    };
+        // Oblicz wewnętrzne punkty z różnymi przesunięciami
+        var innerPoints = CalculateOffsetPolygonWithVariableOffset(
+            outerPoints, ksztalt.TypKsztaltu);
+
+        // Rysowanie podwójnego konturu
+        await DrawDoubleContour(context, outerPoints, innerPoints);
+
+        // Wypełnij obszar teksturą
+        await JS.InvokeVoidAsync("loadAndDrawTexture",
+            CanvasRef.CanvasReference,
+            textureUrl,
+            _dotNetHelper
+        );
+
+        // Obramowanie
+        await context.SetStrokeStyleAsync("#000000");
+        await context.SetLineWidthAsync(1.5f);
+        await context.StrokeAsync();
     }
 
-    public static List<Point> OffsetTriangleManually(List<Point> outer, float offsetLeft, float offsetRight)
+    private (float left, float right, float top, float bottom) GetOffsetsForGroup(string grupa)
     {
-        if (outer.Count != 3)
-            throw new ArgumentException("OffsetTriangleManually działa tylko dla trójkątów.");
+        // Domyślne wartości (można dostosować)
+        float grLewo = 82;
+        float grPrawo = 82;
+        float grGora = 82;
+        float grDol = 92;
 
-        var centerX = outer.Average(p => p.X);
-        var centerY = outer.Average(p => p.Y);
-
-        // Skieruj każdy punkt do środka, aby „pomniejszyć” kształt
-        var inner = new List<Point>();
-        foreach (var p in outer)
+        return grupa switch
         {
-            var dx = centerX - p.X;
-            var dy = centerY - p.Y;
-
-            // Zmniejszanie o średnią offsetu
-            float offset = (offsetLeft + offsetRight) / 2;
-            var len = MathF.Sqrt(dx * dx + dy * dy);
-            var scale = (len - offset) / len;
-
-            inner.Add(new Point(p.X + dx * scale, p.Y + dy * scale));
-        }
-
-        return inner;
+            "Lewo" => (grLewo, 0, 0, 0),
+            "Prawo" => (0, grPrawo, 0, 0),
+            "Gora" => (0, 0, grGora, 0),
+            "Dol" => (0, 0, 0, grDol),
+            _ => (grLewo, grPrawo, grGora, grDol) // Domyślne dla innych przypadków
+        };
     }
 
-    public static List<Point> OffsetCircleManually(List<Point> outer, float thickness)
+    private List<XPoint> CalculateOffsetPolygonWithVariableOffset(
+    List<XPoint> points, string typ)
     {
-        if (outer == null || outer.Count < 3)
-            throw new ArgumentException("outer musi zawierać co najmniej 3 punkty.");
+        if (points == null || points.Count != 4)
+            return new List<XPoint>();
 
-        float centerX = outer.Average(p => p.X);
-        float centerY = outer.Average(p => p.Y);
+        Console.WriteLine($"CalculateOffsetPolygonWithVariableOffset - Obliczanie offsetu dla {typ} z {points.Count} punktami");
 
-        var inner = new List<Point>();
-
-        foreach (var p in outer)
+        if (typ == "prostokąt")
         {
-            float dx = p.X - centerX;
-            float dy = p.Y - centerY;
-            float len = MathF.Sqrt(dx * dx + dy * dy);
+            // Sortowanie dla prostokątów (axis-aligned)
+            float minX = (float)points.Min(p => p.X);
+            float maxX = (float)points.Max(p => p.X);
+            float minY = (float)points.Min(p => p.Y);
+            float maxY = (float)points.Max(p => p.Y);
 
-            if (len <= thickness + 1)
-                len = thickness + 1.01f;
+            var lewyGorny = points.FirstOrDefault(p => Math.Abs(p.X - minX) < 0.1f && Math.Abs(p.Y - minY) < 0.1f);
+            var prawyGorny = points.FirstOrDefault(p => Math.Abs(p.X - maxX) < 0.1f && Math.Abs(p.Y - minY) < 0.1f);
+            var prawyDolny = points.FirstOrDefault(p => Math.Abs(p.X - maxX) < 0.1f && Math.Abs(p.Y - maxY) < 0.1f);
+            var lewyDolny = points.FirstOrDefault(p => Math.Abs(p.X - minX) < 0.1f && Math.Abs(p.Y - maxY) < 0.1f);
 
-            float scale = (len - thickness) / len;
-
-            float newX = centerX + dx * scale;
-            float newY = centerY + dy * scale;
-
-            inner.Add(new Point(newX, newY));
+            return new List<XPoint> { lewyGorny, prawyGorny, prawyDolny, lewyDolny };
         }
-
-        // 🔁 Odwróć wewnętrzny kontur — bardzo ważne dla "evenodd"
-        inner.Reverse();
-
-        // 🛡️ Zamknij kontur jeśli niezamknięty
-        if (inner.Count > 0 &&
-            (inner[0].X != inner[^1].X || inner[0].Y != inner[^1].Y))
+        else if (typ == "trapez")
         {
-            inner.Add(inner[0]);
-        }
+            // Sortowanie dla trapezów - znajdź podstawy i boki
+            var sortedByY = points.OrderBy(p => p.Y).ToList();
 
-        return inner;
+            // Załóżmy że dwa najwyższe punkty to górna podstawa
+            var gornaPodstawa = sortedByY.Take(2).OrderBy(p => p.X).ToList();
+            var dolnaPodstawa = sortedByY.Skip(2).OrderBy(p => p.X).ToList();
+
+            // Połącz punkty w kolejności: lewy-górny, prawy-górny, prawy-dolny, lewy-dolny
+            return new List<XPoint>
+        {
+            gornaPodstawa[0], // lewy-górny
+            gornaPodstawa[1], // prawy-górny
+            dolnaPodstawa[1], // prawy-dolny
+            dolnaPodstawa[0]  // lewy-dolny
+        };
+        }
+        else
+        {
+            // Domyślne sortowanie dla innych czworokątów - według kąta od środka
+            var centroid = new XPoint(points.Average(p => p.X), points.Average(p => p.Y));
+            return points.OrderBy(p => Math.Atan2(p.Y - centroid.Y, p.X - centroid.X))
+                       .ToList();
+        }
     }
 
-
-    public static List<Point> OffsetPolygonManually(List<Point> polygon, float offsetLeft, float offsetRight, float offsetTop, float offsetBottom)
+    private List<XPoint> CalculateOffsetPolygonWithVariableOffset_temm(
+        List<XPoint> points, string typ)
     {
-        var result = new List<Point>();
-        int count = polygon.Count;
+        var result = new List<XPoint>();
+        var count = points.Count;
 
-        for (int i = 0; i < count; i++)
+        Console.WriteLine($"CalculateOffsetPolygonWithVariableOffset - Obliczanie offsetu dla {typ} z {count} punktami");
+
+        // Dla prostokątów (4 punkty) stosujemy uproszczoną metodę
+        if (count == 4 && typ == "prostokąt")
         {
-            var prev = polygon[(i - 1 + count) % count];
-            var curr = polygon[i];
-            var next = polygon[(i + 1) % count];
+            // Sortujemy punkty w kolejności: lewy-górny, prawy-górny, prawy-dolny, lewy-dolny
+            var sorted = points.OrderBy(p => p.X).ThenBy(p => p.Y).ToList();
 
-            var v1 = Normalize(new Point(curr.X - prev.X, curr.Y - prev.Y));
-            var v2 = Normalize(new Point(next.X - curr.X, next.Y - curr.Y));
+            // Upewniamy się, że mamy właściwą kolejność
+            if (sorted[0].Y > sorted[1].Y) (sorted[0], sorted[1]) = (sorted[1], sorted[0]);
+            if (sorted[2].Y < sorted[3].Y) (sorted[2], sorted[3]) = (sorted[3], sorted[2]);
 
-            var n1 = new Point(-v1.Y, v1.X);
-            var n2 = new Point(-v2.Y, v2.X);
+            // Obliczamy wewnętrzny prostokąt z offsetami
+            return new List<XPoint>
+            {
+                new XPoint(sorted[0].X, sorted[0].Y),     // Lewy górny
+                new XPoint(sorted[1].X, sorted[1].Y),   // Prawy górny
+                new XPoint(sorted[2].X, sorted[2].Y), // Prawy dolny
+                new XPoint(sorted[3].X, sorted[3].Y)   // Lewy dolny
 
-            var bisector = Normalize(new Point(n1.X + n2.X, n1.Y + n2.Y));
+            };
+        }
+        else
+        {
+            // Sortujemy punkty w kolejności: lewy-górny, prawy-górny, prawy-dolny, lewy-dolny
+            var sorted = points.OrderBy(p => p.X).ThenBy(p => p.Y).ToList();
 
-            // wybierz offset w zależności od kierunku
-            float dx = bisector.X;
-            float dy = bisector.Y;
+            // Upewniamy się, że mamy właściwą kolejność
+            if (sorted[0].Y > sorted[1].Y) (sorted[0], sorted[1]) = (sorted[1], sorted[0]);
+            if (sorted[2].Y < sorted[3].Y) (sorted[2], sorted[3]) = (sorted[3], sorted[2]);
 
-            float offset = 0;
-            if (Math.Abs(dx) > Math.Abs(dy))
-                offset = dx < 0 ? offsetLeft : offsetRight;
-            else
-                offset = dy < 0 ? offsetTop : offsetBottom;
+            // Obliczamy wewnętrzny prostokąt z offsetami
+            return new List<XPoint>
+            {
+                new XPoint(sorted[1].X, sorted[1].Y),     // Lewy górny
+                new XPoint(sorted[0].X, sorted[0].Y),   // Prawy górny
+                new XPoint(sorted[3].X, sorted[3].Y), // Prawy dolny
+                new XPoint(sorted[2].X, sorted[2].Y)   // Lewy dolny
 
-            float dot = Dot(bisector, n1);
-            if (Math.Abs(dot) < 0.0001f) dot = 0.0001f;
-
-            var newPoint = new Point(
-                curr.X + bisector.X * offset / dot,
-                curr.Y + bisector.Y * offset / dot
-            );
-
-            result.Add(newPoint);
+            };
         }
 
         return result;
     }
 
-
-
-    private static Point Normalize(Point v)
+    private List<XPoint> CalculateOffsetPolygonWithVariableOffset_Do_ANALIZY_W_DOMU(List<XPoint> points)
     {
-        float length = MathF.Sqrt(v.X * v.X + v.Y * v.Y);
-        return length == 0 ? new Point(0, 0) : new Point(v.X / length, v.Y / length);
-    }
+        var result = new List<XPoint>();
+        int count = points.Count;
 
-    private static float Dot(Point a, Point b)
-    {
-        return a.X * b.X + a.Y * b.Y;
-    }
-
-    private string RysunekToBase64(byte[]? imageData)
-    {
-        if (imageData == null || imageData.Length == 0)
+        if (count == 4)
         {
-            return "data:image/png;base64,"; // Zapobiega błędom
+            // Zakładamy prostokąt i przesuwamy wszystkie punkty do wewnątrz o stałą wartość
+            float offset = 20f;
+
+            var centroid = new XPoint(points.Average(p => p.X), points.Average(p => p.Y));
+            foreach (var p in points)
+            {
+                var dx = p.X - centroid.X;
+                var dy = p.Y - centroid.Y;
+                var len = Math.Sqrt(dx * dx + dy * dy);
+                if (len == 0) continue;
+
+                var scale = (len - offset) / len;
+                result.Add(new XPoint(
+                    centroid.X + dx * scale,
+                    centroid.Y + dy * scale));
+            }
+
+            return result;
+        }
+        else if (count == 3)
+        {
+            float offset = 20f;
+
+            // Oblicz wektory normalne dla każdego boku
+            var normals = new Dictionary<int, XPoint>();
+            for (int i = 0; i < 3; i++)
+            {
+                int next = (i + 1) % 3;
+                var dx = points[next].X - points[i].X;
+                var dy = points[next].Y - points[i].Y;
+
+                var normal = new XPoint(-dy, dx);
+                var len = Math.Sqrt(normal.X * normal.X + normal.Y * normal.Y);
+                normals[i] = new XPoint(normal.X / len, normal.Y / len);
+            }
+
+            // Oblicz offset dla każdego wierzchołka jako średnią z dwóch sąsiadujących normalnych
+            for (int i = 0; i < 3; i++)
+            {
+                var prev = normals[(i - 1 + 3) % 3];
+                var next = normals[i];
+
+                var avgNormal = new XPoint(
+                    (prev.X + next.X) / 2,
+                    (prev.Y + next.Y) / 2
+                );
+
+                var len = Math.Sqrt(avgNormal.X * avgNormal.X + avgNormal.Y * avgNormal.Y);
+                avgNormal = new XPoint(avgNormal.X / len, avgNormal.Y / len);
+
+                var offsetPoint = new XPoint(
+                    points[i].X + avgNormal.X * offset,
+                    points[i].Y + avgNormal.Y * offset
+                );
+
+                result.Add(offsetPoint);
+            }
+
+            return result;
         }
 
-        return $"data:image/png;base64,{Convert.ToBase64String(imageData)}";
+        // Jeśli nie prostokąt ani trójkąt – zwróć oryginał (lub obsłuż osobno)
+        return points;
     }
 
-    private byte[] ResizeImage(byte[] imageData, int width, int height)
+    // Oblicza prostokątny obszar ograniczający dla listy punktów
+    private (float left, float right, float top, float bottom) CalculateBoundingBox(List<XPoint> points)
     {
-        using var inputStream = new MemoryStream(imageData);
-        using var image = SixLabors.ImageSharp.Image.Load(inputStream);
-        image.Mutate(x => x.Resize(width, height));
+        return (
+            left: (float)points.Min(p => p.X),
+            right: (float)points.Max(p => p.X),
+            top: (float)points.Min(p => p.Y),
+            bottom: (float)points.Max(p => p.Y)
+        );
+    }
 
-        using var outputStream = new MemoryStream();
-        image.SaveAsPng(outputStream);
-        return outputStream.ToArray();
+    private async Task DrawDoubleContour(Canvas2DContext context, List<XPoint> outerPoints, List<XPoint> innerPoints)
+    {
+        // Rysuj zewnętrzny kontur
+        await context.BeginPathAsync();
+        await context.MoveToAsync(outerPoints[0].X, outerPoints[0].Y);
+        for (int i = 1; i < outerPoints.Count; i++)
+        {
+            await context.LineToAsync(outerPoints[i].X, outerPoints[i].Y);
+        }
+        await context.ClosePathAsync();
+
+        // Rysuj wewnętrzny kontur (odwrócony)
+        await context.BeginPathAsync();
+        innerPoints.Reverse();
+        await context.MoveToAsync(innerPoints[0].X, innerPoints[0].Y);
+        for (int i = 1; i < innerPoints.Count; i++)
+        {
+            await context.LineToAsync(innerPoints[i].X, innerPoints[i].Y);
+        }
+        await context.ClosePathAsync();
+    }
+
+    private async Task DrawShapeWithFill(Canvas2DContext context, KsztaltElementu ksztalt, string textureUrl)
+    {
+        // Utwórz ścieżkę dla zewnętrznego konturu
+        await context.BeginPathAsync();
+        var outerPoints = ksztalt.Wierzcholki;
+        await context.MoveToAsync(outerPoints[0].X, outerPoints[0].Y);
+        for (int i = 1; i < outerPoints.Count; i++)
+        {
+            await context.LineToAsync(outerPoints[i].X, outerPoints[i].Y);
+        }
+        await context.ClosePathAsync();
+
+        // Utwórz ścieżkę dla wewnętrznego konturu (przesuniętego)
+        await context.BeginPathAsync();
+        var innerPoints = CalculateInnerPoints(outerPoints, 10); // 10 to przesunięcie dla wewnętrznego konturu
+        innerPoints.Reverse(); // Odwróć kolejność punktów dla prawidłowego wypełnienia
+        await context.MoveToAsync(innerPoints[0].X, innerPoints[0].Y);
+        for (int i = 1; i < innerPoints.Count; i++)
+        {
+            await context.LineToAsync(innerPoints[i].X, innerPoints[i].Y);
+        }
+        await context.ClosePathAsync();
+
+        // Wypełnij obszar między konturami teksturą
+        await JS.InvokeVoidAsync("loadAndDrawTexture",
+            CanvasRef.CanvasReference,
+            textureUrl,
+            _dotNetHelper
+        );
+
+        // Dodatkowe obramowanie dla lepszej widoczności
+        await context.SetStrokeStyleAsync("#000000");
+        await context.SetLineWidthAsync(1);
+        await context.StrokeAsync();
+
+        Console.WriteLine($"Narysowano kształt: {ksztalt.TypKsztaltu} z wypełnieniem teksturą");
+    }
+
+    private List<XPoint> CalculateInnerPoints(List<XPoint> outerPoints, float offset)
+    {
+        // Prosta implementacja przesunięcia punktów do wewnątrz
+        var innerPoints = new List<XPoint>();
+        for (int i = 0; i < outerPoints.Count; i++)
+        {
+            // To uproszczone podejście - dla rzeczywistej aplikacji potrzebny byłby
+            // bardziej zaawansowany algorytm przesunięcia równoległego
+            var point = outerPoints[i];
+            innerPoints.Add(new XPoint(
+                point.X + (i % 2 == 0 ? offset : -offset),
+                point.Y + (i % 2 == 0 ? offset : -offset)
+            ));
+        }
+        return innerPoints;
     }
 
     private async Task GoBack()
@@ -1549,6 +1571,14 @@
         public double Top { get; set; }
         public double Width { get; set; }
         public double Height { get; set; }
+    }
+
+    private class PointClassification
+    {
+        public bool IsLeft { get; set; }
+        public bool IsRight { get; set; }
+        public bool IsTop { get; set; }
+        public bool IsBottom { get; set; }
     }
 
 }
