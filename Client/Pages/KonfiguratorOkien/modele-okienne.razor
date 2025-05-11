@@ -597,6 +597,8 @@
     <div class="zoom-controls">
         <button @onclick="ZoomIn" class="btn-zoom">➕</button>
         <button @onclick="ZoomOut" class="btn-zoom">➖</button>
+        <button @onclick="PokazModal" class="btn-zoom">💎</button>
+
     </div>
     <!-- Panel boczny z modelami -->
     <div class="wing-model-container">
@@ -666,6 +668,99 @@
     </div>
 </div>
 
+<div class="modal fade @classShowTWZ" tabindex="-1"
+style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 80%;">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Punkty elementów okien</h5>
+                <button type="button" class="btn-close" aria-label="Close" @onclick="ZamknijModal"></button>
+            </div>
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto; font-size: 0.85rem; font-family: Consolas, monospace;">
+                @if (ksztalty is not null && ksztalty.Any())
+                {
+
+                    @foreach (var ksztalt in ksztalty)
+                    {
+                        <div class="card my-2 shadow-sm">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>Typ:</strong> @ksztalt.TypKsztaltu &nbsp;|&nbsp;
+                                    <strong>Grupa:</strong> @ksztalt.Grupa &nbsp;|&nbsp;
+                                    <strong>ZIndex:</strong> @ksztalt.ZIndex
+                                </div>
+                                <button class="btn btn-sm btn-primary" @onclick="@(() => EdytujKsztalt(ksztalt.Id))">Edytuj</button>
+                            </div>
+                            <div class="card-body">
+                                @if (edytowanyId == ksztalt.Id)
+                                {
+                                    <div class="mb-2">
+                                        <label>Typ kształtu</label>
+                                        <input class="form-control" @bind="ksztalt.TypKsztaltu" />
+                                    </div>
+                                    <!-- Pozostałe inputy jak wcześniej... -->
+
+                                    <div class="mb-2">
+                                        <label><strong>Wierzchołki (X, Y):</strong></label>
+                                        @for (int i = 0; i < ksztalt.Wierzcholki.Count; i++)
+                                        {
+                                            var punkt = ksztalt.Wierzcholki[i];
+                                            <div class="d-flex align-items-center mb-1">
+                                                <span class="me-2">[@i]</span>
+                                                <input class="form-control me-1" style="width: 100px;" type="number"
+                                                step="0.01" value="@punkt.X"
+                                                @onchange="@(e => ZmienX(ksztalt, i, e))" placeholder="X" />
+                                                <input class="form-control me-1" style="width: 100px;" type="number"
+                                                step="0.01" value="@punkt.Y"
+                                                @onchange="@(e => ZmienY(ksztalt, i, e))" placeholder="Y" />
+                                                <button class="btn btn-sm btn-danger" title="Usuń"
+                                                @onclick="@(() => UsunWierzcholek(ksztalt, i))">
+                                                    ❌
+                                                </button>
+                                            </div>
+                                        }
+                                        <button class="btn btn-sm btn-outline-success mt-2" @onclick="@(() => DodajWierzcholek(ksztalt))">
+                                            ➕ Dodaj wierzchołek
+                                        </button>
+                                    </div>
+
+
+                                    <button class="btn btn-success btn-sm" @onclick="@ZapiszKsztalt">Zapisz</button>
+                                    <button class="btn btn-secondary btn-sm ms-2" @onclick="@AnulujEdycje">Anuluj</button>
+                                }
+                                else
+                                {
+                                    <p><strong>Wypełnienie wewnętrzne:</strong> <span style="color:@ksztalt.WypelnienieWewnetrzne">@ksztalt.WypelnienieWewnetrzne</span></p>
+                                    <p><strong>Wypełnienie zewnętrzne:</strong> <span style="color:@ksztalt.WypelnienieZewnetrzne">@ksztalt.WypelnienieZewnetrzne</span></p>
+                                    <p><strong>Grubość obramowania:</strong> @ksztalt.GruboscObramowania px</p>
+                                    <p><strong>Czy zawiera otwór:</strong> @(ksztalt.CzyZawieraOtwor ? "Tak" : "Nie")</p>
+                                    <p><strong>Widoczny:</strong> @(ksztalt.Widoczny ? "Tak" : "Nie")</p>
+                                    <p><strong>Wierzchołki:</strong></p>
+                                    <ul class="list-group list-group-flush">
+                                        @foreach (var p in ksztalt.Wierzcholki)
+                                        {
+                                            <li class="list-group-item">
+                                                X: @p.X, Y: @p.Y
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                }
+                else
+                {
+                    <p class="text-muted">Brak danych do wyświetlenia 😔</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
 @code {
     // Klasa WingModel definiująca dane dla skrzydła
     private List<KonfSystem>? KonfiguracjeSystemu;
@@ -709,6 +804,12 @@
     private List<ShapeRegion> _regions = new();
 
     private string woodPatternName = "sosna.jpg"; // Nazwa pliku do wzoru drewna meranti.jpg wood.jpg
+
+    private bool hasCanvasError = false; // Nowa flaga do śledzenia błędów
+
+    private string classShowTWZ = "";
+    private string displayTWZ = "none";
+    private string edytowanyId = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -760,8 +861,71 @@
         }
     }
 
+    private void DodajWierzcholek(KsztaltElementu ksztalt)
+    {
+        ksztalt.Wierzcholki.Add(new XPoint(0, 0));
+    }
 
-    private bool hasCanvasError = false; // Nowa flaga do śledzenia błędów
+    private void UsunWierzcholek(KsztaltElementu ksztalt, int index)
+    {
+        if (index >= 0 && index < ksztalt.Wierzcholki.Count)
+        {
+            ksztalt.Wierzcholki.RemoveAt(index);
+        }
+    }
+
+    private void ZmienX(KsztaltElementu ksztalt, int index, ChangeEventArgs e)
+    {
+        if (float.TryParse(e.Value?.ToString(), out var newX))
+        {
+            var punkt = ksztalt.Wierzcholki[index];
+            punkt.X = newX;
+            ksztalt.Wierzcholki[index] = punkt;
+        }
+    }
+
+    private void ZmienY(KsztaltElementu ksztalt, int index, ChangeEventArgs e)
+    {
+        if (float.TryParse(e.Value?.ToString(), out var newY))
+        {
+            var punkt = ksztalt.Wierzcholki[index];
+            punkt.Y = newY;
+            ksztalt.Wierzcholki[index] = punkt;
+        }
+    }
+
+
+    private void EdytujKsztalt(string id)
+    {
+        edytowanyId = id;
+        Console.WriteLine($"edytowanyId: {edytowanyId}");
+    }
+
+    private async Task ZapiszKsztalt()
+    {
+        edytowanyId = ""; // automatycznie aktualizuje dane dzięki bindingowi
+
+        await RenderFrame(false);
+    }
+
+    private void AnulujEdycje()
+    {
+        edytowanyId = "";
+    }
+
+    private async Task ZamknijModal()
+    {
+        classShowTWZ = "";
+        displayTWZ = "none";
+        await Task.CompletedTask;
+
+    }
+
+    public void PokazModal()
+    {
+        classShowTWZ = "show";
+        displayTWZ = "block";
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -821,7 +985,7 @@
 
         Console.WriteLine($"📦 Wygenerowano {regiony.Count} regionów");
 
-        if (regiony.Count()>0)
+        if (regiony.Count() > 0)
             await _message.Info($"📦 Wygenerowano {regiony.Count} regionów", 1);
 
         foreach (var region in regiony)
@@ -842,14 +1006,14 @@
 
     private async Task ZoomIn()
     {
-        var newScale = _currentScale * 1.1;
+        var newScale = _currentScale * 1.2;
         await ApplyZoom(newScale);
     }
 
     private async Task ZoomOut()
     {
-        var newScale = _currentScale / 1.1;
-        await ApplyZoom(Math.Max(newScale, 0.1));
+        var newScale = _currentScale / 1.2;
+        await ApplyZoom(Math.Max(newScale, 0.12));
     }
 
     private async Task ApplyZoom(double newScale)
@@ -909,7 +1073,9 @@
 
             await DrawStructureAndRestrykcje(0);
 
-            //  await RenderFrame();
+            await DodajOknoG();
+
+            await RenderFrame();
 
             // StateHasChanged();
         }
@@ -1145,11 +1311,8 @@
         await Task.CompletedTask;
     }
 
-
-    private async Task RenderFrame()
+    private async Task RenderFrame(bool calculate = true)
     {
-        await DodajOknoG();
-
         try
         {
             if (_context == null || ksztalty == null || !ksztalty.Any())
@@ -1171,7 +1334,7 @@
                 if (ksztalt.Wierzcholki == null || ksztalt.Wierzcholki.Count < 3)
                     continue;
 
-                await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl);
+                await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
             }
 
             StateHasChanged();
@@ -1182,19 +1345,22 @@
         }
     }
 
-    private async Task DrawShapeWithVariableOffset(Canvas2DContext context, KsztaltElementu ksztalt, string textureUrl)
+    private async Task DrawShapeWithVariableOffset(Canvas2DContext context, KsztaltElementu ksztalt, string textureUrl, bool calculate)
     {
         var outerPoints = ksztalt.Wierzcholki;
 
-        // Pobierz odpowiednie wartości przesunięć w zależności od grupy elementu
-        var offsets = GetOffsetsForGroup(ksztalt.Grupa);
+        if (calculate)
+        {
+            // Pobierz odpowiednie wartości przesunięć w zależności od grupy elementu
+            var offsets = GetOffsetsForGroup(ksztalt.Grupa);
 
-        // Oblicz wewnętrzne punkty z różnymi przesunięciami
-        var innerPoints = CalculateOffsetPolygonWithVariableOffset(
-            outerPoints, ksztalt.TypKsztaltu);
+            // Oblicz wewnętrzne punkty z różnymi przesunięciami
+            var innerPoints = CalculateOffsetPolygonWithVariableOffset(
+                outerPoints, ksztalt.TypKsztaltu);
 
-        // Rysowanie podwójnego konturu
-        await DrawDoubleContour(context, outerPoints, innerPoints);
+            // Rysowanie podwójnego konturu
+            await DrawDoubleContour(context, outerPoints, innerPoints);
+        }
 
         // Wypełnij obszar teksturą
         await JS.InvokeVoidAsync("loadAndDrawTexture",
@@ -1275,129 +1441,6 @@
             return points.OrderBy(p => Math.Atan2(p.Y - centroid.Y, p.X - centroid.X))
                        .ToList();
         }
-    }
-
-    private List<XPoint> CalculateOffsetPolygonWithVariableOffset_temm(
-        List<XPoint> points, string typ)
-    {
-        var result = new List<XPoint>();
-        var count = points.Count;
-
-        Console.WriteLine($"CalculateOffsetPolygonWithVariableOffset - Obliczanie offsetu dla {typ} z {count} punktami");
-
-        // Dla prostokątów (4 punkty) stosujemy uproszczoną metodę
-        if (count == 4 && typ == "prostokąt")
-        {
-            // Sortujemy punkty w kolejności: lewy-górny, prawy-górny, prawy-dolny, lewy-dolny
-            var sorted = points.OrderBy(p => p.X).ThenBy(p => p.Y).ToList();
-
-            // Upewniamy się, że mamy właściwą kolejność
-            if (sorted[0].Y > sorted[1].Y) (sorted[0], sorted[1]) = (sorted[1], sorted[0]);
-            if (sorted[2].Y < sorted[3].Y) (sorted[2], sorted[3]) = (sorted[3], sorted[2]);
-
-            // Obliczamy wewnętrzny prostokąt z offsetami
-            return new List<XPoint>
-            {
-                new XPoint(sorted[0].X, sorted[0].Y),     // Lewy górny
-                new XPoint(sorted[1].X, sorted[1].Y),   // Prawy górny
-                new XPoint(sorted[2].X, sorted[2].Y), // Prawy dolny
-                new XPoint(sorted[3].X, sorted[3].Y)   // Lewy dolny
-
-            };
-        }
-        else
-        {
-            // Sortujemy punkty w kolejności: lewy-górny, prawy-górny, prawy-dolny, lewy-dolny
-            var sorted = points.OrderBy(p => p.X).ThenBy(p => p.Y).ToList();
-
-            // Upewniamy się, że mamy właściwą kolejność
-            if (sorted[0].Y > sorted[1].Y) (sorted[0], sorted[1]) = (sorted[1], sorted[0]);
-            if (sorted[2].Y < sorted[3].Y) (sorted[2], sorted[3]) = (sorted[3], sorted[2]);
-
-            // Obliczamy wewnętrzny prostokąt z offsetami
-            return new List<XPoint>
-            {
-                new XPoint(sorted[1].X, sorted[1].Y),     // Lewy górny
-                new XPoint(sorted[0].X, sorted[0].Y),   // Prawy górny
-                new XPoint(sorted[3].X, sorted[3].Y), // Prawy dolny
-                new XPoint(sorted[2].X, sorted[2].Y)   // Lewy dolny
-
-            };
-        }
-
-        return result;
-    }
-
-    private List<XPoint> CalculateOffsetPolygonWithVariableOffset_Do_ANALIZY_W_DOMU(List<XPoint> points)
-    {
-        var result = new List<XPoint>();
-        int count = points.Count;
-
-        if (count == 4)
-        {
-            // Zakładamy prostokąt i przesuwamy wszystkie punkty do wewnątrz o stałą wartość
-            float offset = 20f;
-
-            var centroid = new XPoint(points.Average(p => p.X), points.Average(p => p.Y));
-            foreach (var p in points)
-            {
-                var dx = p.X - centroid.X;
-                var dy = p.Y - centroid.Y;
-                var len = Math.Sqrt(dx * dx + dy * dy);
-                if (len == 0) continue;
-
-                var scale = (len - offset) / len;
-                result.Add(new XPoint(
-                    centroid.X + dx * scale,
-                    centroid.Y + dy * scale));
-            }
-
-            return result;
-        }
-        else if (count == 3)
-        {
-            float offset = 20f;
-
-            // Oblicz wektory normalne dla każdego boku
-            var normals = new Dictionary<int, XPoint>();
-            for (int i = 0; i < 3; i++)
-            {
-                int next = (i + 1) % 3;
-                var dx = points[next].X - points[i].X;
-                var dy = points[next].Y - points[i].Y;
-
-                var normal = new XPoint(-dy, dx);
-                var len = Math.Sqrt(normal.X * normal.X + normal.Y * normal.Y);
-                normals[i] = new XPoint(normal.X / len, normal.Y / len);
-            }
-
-            // Oblicz offset dla każdego wierzchołka jako średnią z dwóch sąsiadujących normalnych
-            for (int i = 0; i < 3; i++)
-            {
-                var prev = normals[(i - 1 + 3) % 3];
-                var next = normals[i];
-
-                var avgNormal = new XPoint(
-                    (prev.X + next.X) / 2,
-                    (prev.Y + next.Y) / 2
-                );
-
-                var len = Math.Sqrt(avgNormal.X * avgNormal.X + avgNormal.Y * avgNormal.Y);
-                avgNormal = new XPoint(avgNormal.X / len, avgNormal.Y / len);
-
-                var offsetPoint = new XPoint(
-                    points[i].X + avgNormal.X * offset,
-                    points[i].Y + avgNormal.Y * offset
-                );
-
-                result.Add(offsetPoint);
-            }
-
-            return result;
-        }
-
-        // Jeśli nie prostokąt ani trójkąt – zwróć oryginał (lub obsłuż osobno)
-        return points;
     }
 
     // Oblicza prostokątny obszar ograniczający dla listy punktów
