@@ -623,14 +623,16 @@
                                 {
                                     <img id="@($"wing-{model.Typ}")"
                                     src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
-                                    @onclick='@(e => {
-                                             JS.InvokeVoidAsync("SetCustomCursor", Convert.ToBase64String(model.Ikona32x32));
-                                             JS.InvokeVoidAsync("SetCurrentModel", model.Typ);
-                                         })'
+                                    @onclick='@(() => WybierzModel(model))'
                                     @ondragstart='@(e => JS.InvokeVoidAsync("SetCurrentModel", model.Typ))'
                                     @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
                                     draggable="true"
-                                    style="cursor: grab; width: auto; height: auto; max-width: 50px; max-height: 50px;" />
+                                    style="cursor: grab;
+                                  width: auto;
+                                  height: auto;
+                                  max-width: 50px;
+                                  max-height: 50px;
+                                  border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
 
                                 }
                                 else
@@ -705,7 +707,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                                         @for (int i = 0; i < ksztalt.Wierzcholki.Count; i++)
                                         {
                                             var punkt = ksztalt.Wierzcholki[i];
-                                            <div class="d-flex align-items-center mb-1">
+                                            <div class="d-flex align-items-center mb-1" @key="ksztalt.Id + '_' + i">
                                                 <span class="me-2">[@i]</span>
                                                 <input class="form-control me-1" style="width: 100px;" type="number"
                                                 step="0.01" value="@punkt.X"
@@ -713,17 +715,9 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                                                 <input class="form-control me-1" style="width: 100px;" type="number"
                                                 step="0.01" value="@punkt.Y"
                                                 @onchange="@(e => ZmienY(ksztalt, i, e))" placeholder="Y" />
-                                                <button class="btn btn-sm btn-danger" title="Usuń"
-                                                @onclick="@(() => UsunWierzcholek(ksztalt, i))">
-                                                    ❌
-                                                </button>
                                             </div>
                                         }
-                                        <button class="btn btn-sm btn-outline-success mt-2" @onclick="@(() => DodajWierzcholek(ksztalt))">
-                                            ➕ Dodaj wierzchołek
-                                        </button>
                                     </div>
-
 
                                     <button class="btn btn-success btn-sm" @onclick="@ZapiszKsztalt">Zapisz</button>
                                     <button class="btn btn-secondary btn-sm ms-2" @onclick="@AnulujEdycje">Anuluj</button>
@@ -766,6 +760,8 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
     private List<KonfSystem>? KonfiguracjeSystemu;
 
     private List<SystemyOkienne>? Systemy;
+
+    private KonfModele? WybranyModel { get; set; }
 
     private string WybranyKsztalt = "prostokat";
     private int X = 0, Y = 0, Szerokosc = 1000, Wysokosc = 1000;
@@ -861,39 +857,61 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         }
     }
 
-    private void DodajWierzcholek(KsztaltElementu ksztalt)
+    private void WybierzModel(KonfModele model)
     {
-        ksztalt.Wierzcholki.Add(new XPoint(0, 0));
-    }
-
-    private void UsunWierzcholek(KsztaltElementu ksztalt, int index)
-    {
-        if (index >= 0 && index < ksztalt.Wierzcholki.Count)
-        {
-            ksztalt.Wierzcholki.RemoveAt(index);
-        }
+        WybranyModel = model;
+        // Dodatkowe akcje przy wyborze modelu
+        JS.InvokeVoidAsync("SetCustomCursor", Convert.ToBase64String(model.Ikona32x32));
+        JS.InvokeVoidAsync("SetCurrentModel", model.Typ);
     }
 
     private void ZmienX(KsztaltElementu ksztalt, int index, ChangeEventArgs e)
     {
-        if (float.TryParse(e.Value?.ToString(), out var newX))
+        try
         {
-            var punkt = ksztalt.Wierzcholki[index];
-            punkt.X = newX;
-            ksztalt.Wierzcholki[index] = punkt;
+            if (ksztalt?.Wierzcholki == null || index < 0 || index >= ksztalt.Wierzcholki.Count)
+            {
+                Console.WriteLine($"⚠️ Nieprawidłowy indeks: {index} dla ksztaltu z {ksztalt?.Wierzcholki?.Count ?? 0} punktami.");
+                return;
+            }
+
+            if (float.TryParse(e.Value?.ToString(), out var newX))
+            {
+                var punkt = ksztalt.Wierzcholki[index];
+                punkt.X = newX;
+                ksztalt.Wierzcholki[index] = punkt;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"🔥 Błąd podczas ZmienX: {ex.Message}");
         }
     }
+
 
     private void ZmienY(KsztaltElementu ksztalt, int index, ChangeEventArgs e)
     {
-        if (float.TryParse(e.Value?.ToString(), out var newY))
+        try
         {
-            var punkt = ksztalt.Wierzcholki[index];
-            punkt.Y = newY;
-            ksztalt.Wierzcholki[index] = punkt;
+            if (ksztalt?.Wierzcholki == null || index < 0 || index >= ksztalt.Wierzcholki.Count)
+            {
+                Console.WriteLine($"⚠️ Nieprawidłowy indeks: {index} dla ksztaltu z {ksztalt?.Wierzcholki?.Count ?? 0} punktami.");
+                return;
+            }
+
+            if (float.TryParse(e.Value?.ToString(), out var newY))
+            {
+                var punkt = ksztalt.Wierzcholki[index];
+                punkt.Y = newY;
+                ksztalt.Wierzcholki[index] = punkt;
+            }
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"🔥 Błąd podczas ZmienY: {ex.Message}");
         }
     }
-
 
     private void EdytujKsztalt(string id)
     {
@@ -903,22 +921,21 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
     private async Task ZapiszKsztalt()
     {
-        edytowanyId = ""; // automatycznie aktualizuje dane dzięki bindingowi
-
+        // Nie zmieniaj listy ksztalty – dane są już w niej zaktualizowane przez binding
+        edytowanyId = "";
         await RenderFrame(false);
     }
+
 
     private void AnulujEdycje()
     {
         edytowanyId = "";
     }
 
-    private async Task ZamknijModal()
+    private void ZamknijModal()
     {
         classShowTWZ = "";
         displayTWZ = "none";
-        await Task.CompletedTask;
-
     }
 
     public void PokazModal()
@@ -1272,6 +1289,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
     private async Task DodajOknoG()
     {
+
         var generator = new Generator();
         generator.GruboscDol = 82;
         generator.GruboscGora = 82;
@@ -1280,6 +1298,20 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
         generator.Szerokosc = Szerokosc;
         generator.Wysokosc = Wysokosc;
+
+        if (KonfiguracjeSystemu != null)
+        {
+            generator.KonfiguracjeSystemu = KonfiguracjeSystemu;
+        }
+        else
+        {
+            var kofiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIN_DROWID/{SelectedSystemId}");
+            generator.KonfiguracjeSystemu = kofiguracjeSystemu;
+            Console.WriteLine("Ponowinie pobrano kofiguracjeSystemu..............................................");
+        }
+
+        generator.EdytowanyModel = WybranyModel;
+        generator.TypKsztaltu = WybranyKsztalt;
 
         generator.AddElements(_regions);
         ksztalty = generator.ElementyRamyRysowane;
@@ -1331,9 +1363,10 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
             // Rysowanie każdego kształtu
             foreach (var ksztalt in ksztalty)
             {
+                Console.WriteLine($"Rysuję kształt: {ksztalt.TypKsztaltu}");
                 if (ksztalt.Wierzcholki == null || ksztalt.Wierzcholki.Count < 3)
                     continue;
-
+                Console.WriteLine($"ksztalt: {ksztalt.Id}");
                 await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
             }
 
@@ -1349,31 +1382,29 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
     {
         var outerPoints = ksztalt.Wierzcholki;
 
-        if (calculate)
-        {
-            // Pobierz odpowiednie wartości przesunięć w zależności od grupy elementu
-            var offsets = GetOffsetsForGroup(ksztalt.Grupa);
+        Console.WriteLine($"outerPoints: {outerPoints.Count}");  
 
-            // Oblicz wewnętrzne punkty z różnymi przesunięciami
-            var innerPoints = CalculateOffsetPolygonWithVariableOffset(
-                outerPoints, ksztalt.TypKsztaltu);
+        var offsets = GetOffsetsForGroup(ksztalt.Grupa);
 
-            // Rysowanie podwójnego konturu
-            await DrawDoubleContour(context, outerPoints, innerPoints);
-        }
+        List<XPoint> innerPoints;
 
-        // Wypełnij obszar teksturą
+
+       await DrawSingleContour(context, outerPoints);
+
+
+       // await DrawDoubleContour(context, outerPoints, innerPoints);
+
         await JS.InvokeVoidAsync("loadAndDrawTexture",
             CanvasRef.CanvasReference,
             textureUrl,
             _dotNetHelper
         );
 
-        // Obramowanie
         await context.SetStrokeStyleAsync("#000000");
         await context.SetLineWidthAsync(1.5f);
         await context.StrokeAsync();
     }
+
 
     private (float left, float right, float top, float bottom) GetOffsetsForGroup(string grupa)
     {
@@ -1393,142 +1424,29 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         };
     }
 
-    private List<XPoint> CalculateOffsetPolygonWithVariableOffset(
-    List<XPoint> points, string typ)
+    private async Task DrawSingleContour(Canvas2DContext context, List<XPoint> outerPoints)
     {
-        if (points == null || points.Count != 4)
-            return new List<XPoint>();
+        if (outerPoints == null || outerPoints.Count < 2) return;
 
-        Console.WriteLine($"CalculateOffsetPolygonWithVariableOffset - Obliczanie offsetu dla {typ} z {points.Count} punktami");
-
-        if (typ == "prostokąt")
-        {
-            // Sortowanie dla prostokątów (axis-aligned)
-            float minX = (float)points.Min(p => p.X);
-            float maxX = (float)points.Max(p => p.X);
-            float minY = (float)points.Min(p => p.Y);
-            float maxY = (float)points.Max(p => p.Y);
-
-            var lewyGorny = points.FirstOrDefault(p => Math.Abs(p.X - minX) < 0.1f && Math.Abs(p.Y - minY) < 0.1f);
-            var prawyGorny = points.FirstOrDefault(p => Math.Abs(p.X - maxX) < 0.1f && Math.Abs(p.Y - minY) < 0.1f);
-            var prawyDolny = points.FirstOrDefault(p => Math.Abs(p.X - maxX) < 0.1f && Math.Abs(p.Y - maxY) < 0.1f);
-            var lewyDolny = points.FirstOrDefault(p => Math.Abs(p.X - minX) < 0.1f && Math.Abs(p.Y - maxY) < 0.1f);
-
-            return new List<XPoint> { lewyGorny, prawyGorny, prawyDolny, lewyDolny };
-        }
-        else if (typ == "trapez")
-        {
-            // Sortowanie dla trapezów - znajdź podstawy i boki
-            var sortedByY = points.OrderBy(p => p.Y).ToList();
-
-            // Załóżmy że dwa najwyższe punkty to górna podstawa
-            var gornaPodstawa = sortedByY.Take(2).OrderBy(p => p.X).ToList();
-            var dolnaPodstawa = sortedByY.Skip(2).OrderBy(p => p.X).ToList();
-
-            // Połącz punkty w kolejności: lewy-górny, prawy-górny, prawy-dolny, lewy-dolny
-            return new List<XPoint>
-        {
-            gornaPodstawa[0], // lewy-górny
-            gornaPodstawa[1], // prawy-górny
-            dolnaPodstawa[1], // prawy-dolny
-            dolnaPodstawa[0]  // lewy-dolny
-        };
-        }
-        else
-        {
-            // Domyślne sortowanie dla innych czworokątów - według kąta od środka
-            var centroid = new XPoint(points.Average(p => p.X), points.Average(p => p.Y));
-            return points.OrderBy(p => Math.Atan2(p.Y - centroid.Y, p.X - centroid.X))
-                       .ToList();
-        }
-    }
-
-    // Oblicza prostokątny obszar ograniczający dla listy punktów
-    private (float left, float right, float top, float bottom) CalculateBoundingBox(List<XPoint> points)
-    {
-        return (
-            left: (float)points.Min(p => p.X),
-            right: (float)points.Max(p => p.X),
-            top: (float)points.Min(p => p.Y),
-            bottom: (float)points.Max(p => p.Y)
-        );
-    }
-
-    private async Task DrawDoubleContour(Canvas2DContext context, List<XPoint> outerPoints, List<XPoint> innerPoints)
-    {
-        // Rysuj zewnętrzny kontur
+        // Rysuj pojedynczy kontur zewnętrzny
         await context.BeginPathAsync();
+
+        // Rozpocznij od pierwszego punktu
         await context.MoveToAsync(outerPoints[0].X, outerPoints[0].Y);
+
+        // Rysuj linie do kolejnych punktów
         for (int i = 1; i < outerPoints.Count; i++)
         {
             await context.LineToAsync(outerPoints[i].X, outerPoints[i].Y);
         }
+
+        // Zamknij kształt
         await context.ClosePathAsync();
 
-        // Rysuj wewnętrzny kontur (odwrócony)
-        await context.BeginPathAsync();
-        innerPoints.Reverse();
-        await context.MoveToAsync(innerPoints[0].X, innerPoints[0].Y);
-        for (int i = 1; i < innerPoints.Count; i++)
-        {
-            await context.LineToAsync(innerPoints[i].X, innerPoints[i].Y);
-        }
-        await context.ClosePathAsync();
-    }
-
-    private async Task DrawShapeWithFill(Canvas2DContext context, KsztaltElementu ksztalt, string textureUrl)
-    {
-        // Utwórz ścieżkę dla zewnętrznego konturu
-        await context.BeginPathAsync();
-        var outerPoints = ksztalt.Wierzcholki;
-        await context.MoveToAsync(outerPoints[0].X, outerPoints[0].Y);
-        for (int i = 1; i < outerPoints.Count; i++)
-        {
-            await context.LineToAsync(outerPoints[i].X, outerPoints[i].Y);
-        }
-        await context.ClosePathAsync();
-
-        // Utwórz ścieżkę dla wewnętrznego konturu (przesuniętego)
-        await context.BeginPathAsync();
-        var innerPoints = CalculateInnerPoints(outerPoints, 10); // 10 to przesunięcie dla wewnętrznego konturu
-        innerPoints.Reverse(); // Odwróć kolejność punktów dla prawidłowego wypełnienia
-        await context.MoveToAsync(innerPoints[0].X, innerPoints[0].Y);
-        for (int i = 1; i < innerPoints.Count; i++)
-        {
-            await context.LineToAsync(innerPoints[i].X, innerPoints[i].Y);
-        }
-        await context.ClosePathAsync();
-
-        // Wypełnij obszar między konturami teksturą
-        await JS.InvokeVoidAsync("loadAndDrawTexture",
-            CanvasRef.CanvasReference,
-            textureUrl,
-            _dotNetHelper
-        );
-
-        // Dodatkowe obramowanie dla lepszej widoczności
-        await context.SetStrokeStyleAsync("#000000");
-        await context.SetLineWidthAsync(1);
+        // Opcjonalne stylowanie
+        await context.SetStrokeStyleAsync("black");
+        await context.SetLineWidthAsync(2);
         await context.StrokeAsync();
-
-        Console.WriteLine($"Narysowano kształt: {ksztalt.TypKsztaltu} z wypełnieniem teksturą");
-    }
-
-    private List<XPoint> CalculateInnerPoints(List<XPoint> outerPoints, float offset)
-    {
-        // Prosta implementacja przesunięcia punktów do wewnątrz
-        var innerPoints = new List<XPoint>();
-        for (int i = 0; i < outerPoints.Count; i++)
-        {
-            // To uproszczone podejście - dla rzeczywistej aplikacji potrzebny byłby
-            // bardziej zaawansowany algorytm przesunięcia równoległego
-            var point = outerPoints[i];
-            innerPoints.Add(new XPoint(
-                point.X + (i % 2 == 0 ? offset : -offset),
-                point.Y + (i % 2 == 0 ? offset : -offset)
-            ));
-        }
-        return innerPoints;
     }
 
     private async Task GoBack()

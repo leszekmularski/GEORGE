@@ -1,4 +1,5 @@
 ﻿using Blazor.Extensions.Canvas.Canvas2D;
+using DocumentFormat.OpenXml.Drawing.Charts;
 using GEORGE.Client.Pages.KonfiguratorOkien;
 
 namespace GEORGE.Client.Pages.Models
@@ -66,6 +67,20 @@ namespace GEORGE.Client.Pages.Models
             X = (X * scale) + offsetX;
             Y = (Y * scale) + offsetY;
             Size *= scale;
+        }
+
+        /// <summary>
+        /// Zwraca listę wierzchołków prostokąta w kolejności (zgodnie z ruchem wskazówek zegara).
+        /// </summary>
+        public List<XPoint> GetCorners()
+        {
+            return new List<XPoint>
+        {
+            new(X, Y),
+            new(X + Size, Y),
+            new(X + Size, Y + Size),
+            new(X, Y + Size)
+        };
         }
 
     }

@@ -26,6 +26,11 @@ namespace GEORGE.Client.Pages.Utils
 
                 switch (shape)
                 {
+                    case XSquareShape rect:
+                        wierzcholki = rect.GetCorners();
+                        typKształtu = "kwadrat";
+                        break;
+
                     case XRectangleShape rect:
                         wierzcholki = rect.GetCorners();
                         typKształtu = "prostokąt";

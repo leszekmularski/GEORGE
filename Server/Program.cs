@@ -57,6 +57,7 @@ builder.Services.Configure<StaticFileOptions>(options =>
         {
             [".dwg"] = "application/acad",
             [".dxf"] = "application/acad",
+            [".sat"] = "application/acad",
             [ ".p" ] = "text/plain",
         }
     };

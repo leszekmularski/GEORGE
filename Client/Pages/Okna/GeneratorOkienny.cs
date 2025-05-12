@@ -1,4 +1,5 @@
 ﻿using GEORGE.Client.Pages.Models;
+using GEORGE.Shared.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,6 +9,10 @@ namespace GEORGE.Client.Pages.Okna
     public class Generator : GenerujOkno
     {
         public new List<KsztaltElementu> ElementyRamyRysowane { get; set; } = new();
+        public List<KonfSystem> KonfiguracjeSystemu { get; set; } = new(); // Dodaj tę linię
+
+        public KonfModele? EdytowanyModel;
+
 
         public Generator()
         {
@@ -24,11 +29,27 @@ namespace GEORGE.Client.Pages.Okna
             TypKsztaltu = "prostokąt";
             GruboscSzyby = 24;
             KolorSzyby = "#ADD8E6";
+            KonfiguracjeSystemu = new List<KonfSystem>();
+            EdytowanyModel = null;
         }
 
         public void AddElements(List<ShapeRegion> regions)
         {
             if (regions == null) return;
+
+            if(KonfiguracjeSystemu == null)
+            {
+                Console.WriteLine($"Brak KonfiguracjeSystemu !!!!");
+                return;
+            }
+
+            if (EdytowanyModel == null)
+            {
+                Console.WriteLine($"Brak EdytowanyModel !!!!");
+                return;
+            }
+
+            Console.WriteLine($"EdytowanyModel.PolaczenieNaroza: {EdytowanyModel.PolaczenieNaroza}");  
 
             Console.WriteLine($"Szerokosc: {Szerokosc}"); 
 
@@ -58,9 +79,9 @@ namespace GEORGE.Client.Pages.Okna
                     grLewo, grPrawo, grGora, grDol);
 
                 // Generuj elementy ramy w zależności od typu kształtu
-                if (region.TypKsztaltu == "prostokąt")
+                if (region.TypKsztaltu == "prostokąt" || region.TypKsztaltu == "kwadrat")
                 {
-                    GenerateRectangleElements(punkty, wewnetrznyKontur, grLewo, grPrawo, grGora, grDol);
+                    GenerateRectangleElements(punkty, wewnetrznyKontur, grLewo, grPrawo, grGora, grDol, region.TypKsztaltu, EdytowanyModel.PolaczenieNaroza, KonfiguracjeSystemu);
                 }
                 else if (region.TypKsztaltu == "trójkąt")
                 {
@@ -73,84 +94,130 @@ namespace GEORGE.Client.Pages.Okna
             }
         }
 
-        private void GenerateRectangleElements(List<XPoint> outer, List<XPoint> inner,
-            float leftOffset, float rightOffset, float topOffset, float bottomOffset)
+    private void GenerateRectangleElements(List<XPoint> outer, List<XPoint> inner,
+    float leftOffset, float rightOffset, float topOffset, float bottomOffset,
+    string typKsztalt, string polaczenia, List<KonfSystem> model)
         {
-            // 4 elementy dla prostokąta (dół, góra, lewo, prawo)
-            var minX = outer.Min(p => p.X);
-            var maxX = outer.Max(p => p.X);
-            var minY = outer.Min(p => p.Y);
-            var maxY = outer.Max(p => p.Y);
+            // Oblicz bounding box
+            float minX = (float)outer.Min(p => p.X);
+            float maxX = (float)outer.Max(p => p.X);
+            float minY = (float)outer.Min(p => p.Y);
+            float maxY = (float)outer.Max(p => p.Y);
+            float imageWidth = maxX - minX;
+            float imageHeight = maxY - minY;
 
-            // Dół
+            // Pobierz konfigurację połączeń
+            var polaczeniaArray = polaczenia.Split(';')
+                .Select(p => p.Split('-'))
+                .Select(parts => (kat: int.Parse(parts[0]), typ: parts[1].Trim()))
+                .ToArray();
+
+            // Oblicz rzeczywiste grubości z modelu
+            //float profileLeft = (float)(model.FirstOrDefault(e => e.WystepujeLewa)?.PionPrawa ?? 0 -
+            //                          model.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0);
+            //float profileRight = (float)(model.FirstOrDefault(e => e.WystepujePrawa)?.PionPrawa ?? 0 -
+            //                           model.FirstOrDefault(e => e.WystepujePrawa)?.PionLewa ?? 0);
+            //float profileTop = (float)(model.FirstOrDefault(e => e.WystepujeGora)?.PionPrawa ?? 0 -
+            //                         model.FirstOrDefault(e => e.WystepujeGora)?.PionLewa ?? 0);
+            //float profileBottom = (float)(model.FirstOrDefault(e => e.WystepujeDol)?.PionPrawa ?? 0 -
+            //                            model.FirstOrDefault(e => e.WystepujeDol)?.PionLewa ?? 0);
+
+            float profileLeft = leftOffset;
+            float profileRight = rightOffset;
+            float profileTop = topOffset;
+            float profileBottom = bottomOffset;
+
+            // Korekta wymiarów na podstawie połączeń
+            float goraWidth = imageWidth;
+            float dolWidth = imageWidth;
+            float lewaHeight = imageHeight;
+            float prawaHeight = imageHeight;
+
+            // Koryguj szerokości dla połączeń typu T3
+            if (polaczeniaArray[0].typ == "T3") goraWidth -= profileLeft;
+            if (polaczeniaArray[1].typ == "T3") goraWidth -= profileRight;
+            if (polaczeniaArray[2].typ == "T3") dolWidth -= profileRight;
+            if (polaczeniaArray[3].typ == "T3") dolWidth -= profileLeft;
+
+            // Koryguj wysokości dla połączeń typu T1
+            if (polaczeniaArray[0].typ == "T1") lewaHeight -= profileTop;
+            if (polaczeniaArray[3].typ == "T1") lewaHeight -= profileBottom;
+            if (polaczeniaArray[1].typ == "T1") prawaHeight -= profileTop;
+            if (polaczeniaArray[2].typ == "T1") prawaHeight -= profileBottom;
+
+            // Oblicz pozycje startowe
+            float goraX = polaczeniaArray[0].typ == "T3" ? profileLeft : 0;
+            float dolX = polaczeniaArray[3].typ == "T3" ? profileLeft : 0;
+            float lewaY = polaczeniaArray[0].typ == "T1" ? profileTop : 0;
+            float prawaY = polaczeniaArray[1].typ == "T1" ? profileTop : 0;
+
+            // Utwórz elementy z uwzględnieniem korekt
             ElementyRamyRysowane.Add(new KsztaltElementu
             {
-                TypKsztaltu = "prostokąt",
+                TypKsztaltu = typKsztalt,
                 Wierzcholki = new List<XPoint>
-                {
-                    new(minX, maxY - bottomOffset),
-                    new(maxX, maxY - bottomOffset),
-                    new(maxX, maxY),
-                    new(minX, maxY)
-                },
+        {
+            new(minX + goraX, maxY - profileBottom),
+            new(minX + goraX + dolWidth, maxY - profileBottom),
+            new(minX + goraX + dolWidth, maxY),
+            new(minX + goraX, maxY)
+        },
                 WypelnienieZewnetrzne = "wood-pattern",
                 WypelnienieWewnetrzne = KolorSzyby,
                 Grupa = "Dol"
             });
 
-            // Góra
             ElementyRamyRysowane.Add(new KsztaltElementu
             {
-                TypKsztaltu = "prostokąt",
+                TypKsztaltu = typKsztalt,
                 Wierzcholki = new List<XPoint>
-                {
-                    new(minX, minY),
-                    new(maxX, minY),
-                    new(maxX, minY + topOffset),
-                    new(minX, minY + topOffset)
-                },
+        {
+            new(minX + goraX, minY),
+            new(minX + goraX + goraWidth, minY),
+            new(minX + goraX + goraWidth, minY + profileTop),
+            new(minX + goraX, minY + profileTop)
+        },
                 WypelnienieZewnetrzne = "wood-pattern",
                 WypelnienieWewnetrzne = KolorSzyby,
                 Grupa = "Gora"
             });
 
-            // Lewo
             ElementyRamyRysowane.Add(new KsztaltElementu
             {
-                TypKsztaltu = "prostokąt",
+                TypKsztaltu = typKsztalt,
                 Wierzcholki = new List<XPoint>
-                {
-                    new(minX, minY),
-                    new(minX + leftOffset, minY),
-                    new(minX + leftOffset, maxY),
-                    new(minX, maxY)
-                },
+        {
+            new(minX, minY + lewaY),
+            new(minX + profileLeft, minY + lewaY),
+            new(minX + profileLeft, minY + lewaY + lewaHeight),
+            new(minX, minY + lewaY + lewaHeight)
+        },
                 WypelnienieZewnetrzne = "wood-pattern",
                 WypelnienieWewnetrzne = KolorSzyby,
                 Grupa = "Lewo"
             });
 
-            // Prawo
             ElementyRamyRysowane.Add(new KsztaltElementu
             {
-                TypKsztaltu = "prostokąt",
+                TypKsztaltu = typKsztalt,
                 Wierzcholki = new List<XPoint>
-                {
-                    new(maxX - rightOffset, minY),
-                    new(maxX, minY),
-                    new(maxX, maxY),
-                    new(maxX - rightOffset, maxY)
-                },
+    {
+        new(maxX - profileRight, minY + prawaY),
+        new(maxX, minY + prawaY),
+        new(maxX, minY + prawaY + prawaHeight),
+        new(maxX - profileRight, minY + prawaY + prawaHeight)
+    },
                 WypelnienieZewnetrzne = "wood-pattern",
                 WypelnienieWewnetrzne = KolorSzyby,
                 Grupa = "Prawo"
             });
+
         }
 
-
         private void GenerateTriangleElements(List<XPoint> outer, List<XPoint> inner,
-    float leftOffset, float rightOffset, float topOffset, float bottomOffset)
+            float leftOffset, float rightOffset, float topOffset, float bottomOffset)
         {
+
             double maxLength = 0;
             int baseIndex1 = 0, baseIndex2 = 1;
 
@@ -173,11 +240,23 @@ namespace GEORGE.Client.Pages.Okna
             {
                 int next = (i + 1) % 3;
 
-                var isBase = (i == baseIndex1 && next == baseIndex2) || (i == baseIndex2 && next == baseIndex1);
-                var isVertexSide = (i == vertexIndex || next == vertexIndex);
+                bool isBase = (i == baseIndex1 && next == baseIndex2) || (i == baseIndex2 && next == baseIndex1);
+                string grupa;
 
-                string grupa = isBase ? "Podstawa" :
-                    outer[i].X < outer[next].X ? "LewyBok" : "PrawyBok";
+                if (isBase)
+                {
+                    grupa = "Podstawa";
+                }
+                else if (i == vertexIndex || next == vertexIndex)
+                {
+                    // Rozróżnij boki względem X wierzchołka
+                    var drugiPunkt = (i == vertexIndex) ? outer[next] : outer[i];
+                    grupa = drugiPunkt.X < outer[vertexIndex].X ? "LewyBok" : "PrawyBok";
+                }
+                else
+                {
+                    grupa = "NieznanyBok";
+                }
 
                 ElementyRamyRysowane.Add(new KsztaltElementu
                 {
