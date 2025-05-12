@@ -76,11 +76,11 @@
         <table class="table table-striped">
             <thead>
                 <tr>
+                    <th>Nazwa</th>
                     <th>Typ</th>
                     <th>Zakres Kąta</th>
                     <th>Zakres Promienia</th>
                     <th>Wymiary</th>
-                    <th>Uwagi</th>
                     <th>Miniaturka</th>
                     <th>Akcje</th>
                 </tr>
@@ -89,11 +89,11 @@
                 @foreach (var model in ListaModeli)
                 {
                     <tr>
+                        <td>@model.NazwaKonfiguracji</td>
                         <td>@model.Typ</td>
                         <td>@model.KatWystapieniaZakresOdMin° - @model.KatWystapieniaZakresOdMax°</td>
                         <td>@model.PromienWystapieniaZakresOdMin mm - @model.PromienWystapieniaZakresOdMax mm</td>
                         <td>@model.KonstrMinSzer x @model.KonstrMinWys → @model.KonstrMaxSzer x @model.KonstrMaxWys</td>
-                        <td>@model.Uwagi</td>
                         <td>
                             @if (model.Rysunek != null && model.Rysunek.Length > 0)
                             {
@@ -112,7 +112,9 @@
                                 <i class="fas fa-trash-alt"></i> Usuń
                             </button>
                             <button class="btn btn-info btn-sm" @onclick="() => PokazPowiazane(model.RowId.ToString(), model.NazwaKonfiguracji)">
-                                <i class="fas fa-eye"></i> 🛠️ @(PokazanyModelRowId == model.RowId.ToString() ? $"Powiązane : {WybralesElement}" : "Wszystkie")
+                                 <Tooltip Placement="Placement.Top" Title="Kliknij aby pokazać wszytkie lub wybrane">
+                                    <i class="fas fa-eye"></i> 🛠️ @(PokazanyModelRowId == model.RowId.ToString() ? $"Powiązane : {WybralesElement}" : "Pokaż wszystkie")
+                                </Tooltip>
                             </button>
                         </td>
                     </tr>
@@ -342,8 +344,10 @@
             </tbody>
         </table>
     }
-
 </div>
+
+<br />
+<br />
 
 @code {
     private bool PokazTylkoPowiazane = false;
@@ -473,6 +477,7 @@
         {
             await PokazPowiazane(rowId, nazwaWybaranego, true);
         }
+
     }
 
     private bool czakajAzZmienie = false;
@@ -507,7 +512,7 @@
             Console.WriteLine($"EdytowanyModel.PolaczenieNaroza: {EdytowanyModel.PolaczenieNaroza}");
 
             var baseUrlX = Navigation.BaseUri;
-            var imageUrl = $"{baseUrlX}api/images/wood.jpg";
+            var imageUrl = $"{baseUrlX}api/images/sosna.jpg";
 
             if (PowiazanyModel != null)
             {
@@ -530,9 +535,9 @@
                     _ = _notice.Info(new()
                         {
                             Message = "Informacja!!",
-                            Description = $"Nie wygenerowano obrazka sprawdź konfigurację!!!!",
+                            Description = $"Nie wygenerowano obrazka sprawdź konfigurację! kliknij --> Pokaż wszystkie",
                             Placement = NotificationPlacement.TopRight,
-                            Duration = 3
+                            Duration = 5
                         });
                 }
             }
