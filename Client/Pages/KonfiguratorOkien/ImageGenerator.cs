@@ -35,22 +35,22 @@ public class ImageGenerator
             using Image<Rgba32> image = new(imageWidth, imageHeight);
             image.Mutate(x => x.Fill(Color.White));
 
+            double profileTop = model.FirstOrDefault(e => e.WystepujeGora)?.PionPrawa ?? 0 - model.FirstOrDefault(e => e.WystepujeGora)?.PionLewa ?? 0;
+            double profileRight = model.FirstOrDefault(e => e.WystepujePrawa)?.PionPrawa ?? 0 - model.FirstOrDefault(e => e.WystepujePrawa)?.PionLewa ?? 0;
+            double profileBottom = model.FirstOrDefault(e => e.WystepujeDol)?.PionPrawa ?? 0 - model.FirstOrDefault(e => e.WystepujeDol)?.PionLewa ?? 0;
+            double profileLeft = model.FirstOrDefault(e => e.WystepujePrawa)?.PionPrawa ?? 0 - model.FirstOrDefault(e => e.WystepujePrawa)?.PionLewa ?? 0;
+
             // Pobranie szerokości profili
-            double profileLeft = model.FirstOrDefault(e => e.WystepujeLewa)?.PionPrawa ?? 0 - model.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0;
             //W przypadku słupka ruchomego który jest nadrzędny
-            var profileLeftSH =(model.FirstOrDefault(e => e.Typ == "Słupek stały" && e.WystepujeLewa)?.PionPrawa ?? 0) - (model.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0);
+            var profileLeftSH = (model.FirstOrDefault(e => e.Typ == "Słupek stały" && e.WystepujeLewa)?.PionPrawa ?? 0) - (model.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0);
 
             if (profileLeftSH > 0)
             {
                 slupekStaly = true;
                 profileLeft = profileLeftSH;
-                Console.WriteLine("profileLeft = profileLeftSH");  
+                Console.WriteLine("profileLeft = profileLeftSH");
             }
 
-            double profileTop = model.FirstOrDefault(e => e.WystepujeGora)?.PionPrawa ?? 0 - model.FirstOrDefault(e => e.WystepujeGora)?.PionLewa ?? 0;
-            double profileRight = model.FirstOrDefault(e => e.WystepujePrawa)?.PionPrawa ?? 0 - model.FirstOrDefault(e => e.WystepujePrawa)?.PionLewa ?? 0;
-            double profileBottom = model.FirstOrDefault(e => e.WystepujeDol)?.PionPrawa ?? 0 - model.FirstOrDefault(e => e.WystepujeDol)?.PionLewa ?? 0;
- 
             profileBottom = Math.Max(profileBottom, 1); // Zapobieganie błędom
 
             var polaczeniaArray = polaczenia.Split(';')
@@ -95,7 +95,7 @@ public class ImageGenerator
                 new PointF(x + width, y),  // Prawy górny
                 new PointF(x + width - (hasT2Right ? innerOffset : 0), y + height), // Prawy dolny 45°
                 new PointF(x + (hasT2Left ? innerOffset : 0), y + height) // Lewy dolny 45°
-            };
+                };
                         break;
 
                     case 1: // 🔹 Prawy górny róg (Poprawiony!)
@@ -105,7 +105,7 @@ public class ImageGenerator
                 new PointF(x + width, y),  // Prawy górny
                 new PointF(x + width, y + height), // Prawy dolny 45°
                 new PointF(x , y + height - (hasT2Right ? innerOffset : 0)) // Lewy dolny 45°
-            };
+                };
                         break;
 
                     case 2: // 🔹 Prawy dolny róg (Teraz poprawny!)
@@ -115,7 +115,7 @@ public class ImageGenerator
                 new PointF(x + width - (hasT2Left ? innerOffset : 0), y),  // Prawy górny
                 new PointF(x + width , y + height), // Prawy dolny 45°
                 new PointF(x , y + height) // Lewy dolny 45°
-            };
+                };
                         break;
 
                     case 3: // 🔹 Lewy dolny róg (DODANY!)
@@ -125,7 +125,7 @@ public class ImageGenerator
                 new PointF(x + width, y + (hasT2Left ? innerOffset : 0)),  // Prawy górny
                 new PointF(x + width, y + height - (hasT2Right ? innerOffset : 0)), // Prawy dolny 45°
                 new PointF(x, y + height) // Lewy dolny 45°
-            };
+                };
                         break;
 
                     default:
@@ -148,11 +148,11 @@ public class ImageGenerator
             int dolWidth = imageWidth - ((polaczeniaArray[2].typ.Trim() == "T3") ? (int)profileRight : 0);
             dolWidth = imageWidth - ((polaczeniaArray[3].typ.Trim() == "T3") ? (int)profileLeft : 0);
 
-            int prawaHeight = imageHeight - ((polaczeniaArray[1].typ.Trim()  == "T1") ? (int)profileTop : 0);
-            prawaHeight = imageHeight - ((polaczeniaArray[2].typ.Trim() == "T1") ? (int)profileBottom : 0);
+            int prawaHeight = imageHeight - ((polaczeniaArray[1].typ.Trim()  == "T1" || polaczeniaArray[1].typ.Trim() == "T4") ? (int)profileTop : 0);
+            prawaHeight = imageHeight - ((polaczeniaArray[2].typ.Trim() == "T1" || polaczeniaArray[2].typ.Trim() == "T4") ? (int)profileBottom : 0);
                   
-            int lewaHeight = imageHeight - ((polaczeniaArray[0].typ == "T1") ? (int)profileTop : 0);
-            lewaHeight = imageHeight - ((polaczeniaArray[3].typ == "T1") ? (int)profileBottom : 0);
+            int lewaHeight = imageHeight - ((polaczeniaArray[0].typ == "T1" || polaczeniaArray[0].typ == "T4") ? (int)profileTop : 0);
+            lewaHeight = imageHeight - ((polaczeniaArray[3].typ == "T1" || polaczeniaArray[3].typ == "T4") ? (int)profileBottom : 0);
 
             if (polaczeniaArray[0].typ == "T3" && polaczeniaArray[1].typ == "T3")
             {
@@ -162,19 +162,20 @@ public class ImageGenerator
             {
                 dolWidth = imageWidth - (int)profileLeft - (int)profileRight;
             }
-            if (polaczeniaArray[1].typ == "T1" && polaczeniaArray[2].typ == "T1")
+            if (polaczeniaArray[1].typ == "T1" && polaczeniaArray[2].typ == "T1" || polaczeniaArray[1].typ == "T1" && polaczeniaArray[2].typ == "T4")
             {
                 prawaHeight = imageHeight - (int)profileTop - (int)profileBottom;
             }
-            if (polaczeniaArray[0].typ == "T1" && polaczeniaArray[3].typ == "T1")
+            if (polaczeniaArray[0].typ == "T1" && polaczeniaArray[3].typ == "T1" || polaczeniaArray[0].typ == "T1" && polaczeniaArray[3].typ == "T4")
             {
                 lewaHeight = imageHeight - (int)profileTop - (int)profileBottom;
             }
 
             int goraX = (polaczeniaArray[0].typ == "T3") ? (int)profileLeft : 0;
-            int dolX = (polaczeniaArray[3].typ == "T3") ? (int)profileLeft : 0;
-            int prawaY = (polaczeniaArray[1].typ == "T1") ? (int)profileTop : 0;
-            int lewaY = (polaczeniaArray[0].typ == "T1") ? (int)profileBottom : 0;
+            int dolX = (polaczeniaArray[1].typ == "T3") ? (int)profileLeft : 0;
+            int prawaY = (polaczeniaArray[2].typ == "T1" || polaczeniaArray[2].typ == "T4") ? (int)profileTop : 0;
+            int lewaY = (polaczeniaArray[3].typ == "T1") ? (int)profileBottom : 0;
+            lewaY = (polaczeniaArray[0].typ == "T1") ? (int)profileTop : 0;
 
             Console.WriteLine($"profileLeft:{profileLeft}, profileRight:{profileRight}, profileTop:{profileTop}, profileBottom:{profileBottom}");
             Console.WriteLine($"goraWidth:{goraWidth}, dolWidth:{dolWidth}, prawaHeight:{prawaHeight}, lewaHeight:{lewaHeight}");

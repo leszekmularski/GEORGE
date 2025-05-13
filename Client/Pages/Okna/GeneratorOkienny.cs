@@ -1,8 +1,11 @@
-﻿using GEORGE.Client.Pages.Models;
+﻿using DocumentFormat.OpenXml.Drawing.Spreadsheet;
+using DocumentFormat.OpenXml.Office2016.Drawing;
+using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using static System.Net.WebRequestMethods;
 
 namespace GEORGE.Client.Pages.Okna
 {
@@ -13,16 +16,14 @@ namespace GEORGE.Client.Pages.Okna
 
         public KonfModele? EdytowanyModel;
 
+        public MVCKonfModele? PowiazanyModel;
+
 
         public Generator()
         {
             // Inicjalizacja domyślnych wartości
             Szerokosc = 1000;
             Wysokosc = 1000;
-            GruboscLewo = 50;
-            GruboscPrawo = 50;
-            GruboscGora = 50;
-            GruboscDol = 50;
             KolorZewnetrzny = "#FFFFFF";
             KolorWewnetrzny = "#FFFFFF";
             Waga = 0;
@@ -31,6 +32,9 @@ namespace GEORGE.Client.Pages.Okna
             KolorSzyby = "#ADD8E6";
             KonfiguracjeSystemu = new List<KonfSystem>();
             EdytowanyModel = null;
+            RowIdSystemu = Guid.NewGuid();
+            RowIdModelu = Guid.NewGuid();
+            PowiazanyModel = null;
         }
 
         public void AddElements(List<ShapeRegion> regions)
@@ -67,25 +71,36 @@ namespace GEORGE.Client.Pages.Okna
                 float minY = (float)punkty.Min(p => p.Y);
                 float maxY = (float)punkty.Max(p => p.Y);
 
-                // Ustal grubości ramy
-                float grLewo = GruboscLewo;
-                float grPrawo = GruboscPrawo;
-                float grGora = GruboscGora;
-                float grDol = GruboscDol;
+                Console.WriteLine($"EdytowanyModel.NazwaKonfiguracji: {EdytowanyModel.NazwaKonfiguracji}");
+
+
+                // Oblicz rzeczywiste grubości z modelu
+                var systemLewy = KonfiguracjeSystemu.FirstOrDefault(e => e.WystepujeLewa && e.RowIdSystem == RowIdSystemu && e.RowId == RowIdModelu);
+                var systemPrawy = KonfiguracjeSystemu.FirstOrDefault(e => e.WystepujePrawa && e.RowIdSystem == RowIdSystemu && e.Nazwa == EdytowanyModel.NazwaKonfiguracji);
+                var systemGora = KonfiguracjeSystemu.FirstOrDefault(e => e.WystepujeGora && e.RowIdSystem == RowIdSystemu && e.Nazwa == EdytowanyModel.NazwaKonfiguracji);
+                var systemDol = KonfiguracjeSystemu.FirstOrDefault(e => e.WystepujeDol && e.RowIdSystem == RowIdSystemu && e.Nazwa == EdytowanyModel.NazwaKonfiguracji);
+
+                float profileLeft = systemLewy != null ? (float)(systemLewy.PionPrawa - systemLewy.PionLewa) : 0;
+                float profileRight = systemPrawy != null ? (float)(systemPrawy.PionPrawa - systemPrawy.PionLewa) : 0;
+                float profileTop = systemGora != null ? (float)(systemGora.PionPrawa - systemGora.PionLewa) : 0;
+                float profileBottom = systemDol != null ? (float)(systemDol.PionPrawa - systemDol.PionLewa) : 0;
+
+
+                Console.WriteLine($"System ilość konfiguracji: {KonfiguracjeSystemu.Count()} Pobrane grubości profili: profileLeft: {profileLeft} profileRight: {profileRight} profileTop: {profileTop} profileBottom: {profileBottom}");
 
                 // Oblicz wewnętrzny kontur
                 var wewnetrznyKontur = CalculateOffsetPolygon(
                     punkty.Select(p => new XPoint(p.X, p.Y)).ToList(),
-                    grLewo, grPrawo, grGora, grDol);
+                    profileLeft, profileRight, profileTop, profileBottom);
 
                 // Generuj elementy ramy w zależności od typu kształtu
                 if (region.TypKsztaltu == "prostokąt" || region.TypKsztaltu == "kwadrat")
                 {
-                    GenerateRectangleElements(punkty, wewnetrznyKontur, grLewo, grPrawo, grGora, grDol, region.TypKsztaltu, EdytowanyModel.PolaczenieNaroza, KonfiguracjeSystemu);
+                    GenerateRectangleElements(punkty, wewnetrznyKontur, profileLeft, profileRight, profileTop, profileBottom, region.TypKsztaltu, EdytowanyModel.PolaczenieNaroza, KonfiguracjeSystemu);
                 }
                 else if (region.TypKsztaltu == "trójkąt")
                 {
-                    GenerateTriangleElements(punkty, wewnetrznyKontur, grLewo, grPrawo, grGora, grDol);
+                    GenerateTriangleElements(punkty, wewnetrznyKontur, profileLeft, profileRight, profileTop, profileBottom);
                 }
                 else
                 {

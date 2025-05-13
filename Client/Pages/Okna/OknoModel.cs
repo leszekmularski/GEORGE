@@ -1,4 +1,6 @@
-﻿namespace GEORGE.Client.Pages.Okna
+﻿using GEORGE.Shared.Models;
+
+namespace GEORGE.Client.Pages.Okna
 {
     public class OknoModel
     {
@@ -25,10 +27,10 @@
         public string? TypKsztaltu { get; set; } = "prostokąt";
 
         // 🔗 Połączenia narożników
-        public List<PolaczenieElementu> Polaczenia { get; set; } = new();
+        public KonfModele? EdytowanyModel;
 
         // 📏 Informacja o profilach
-        public List<ElementRamowy> ElementyRamy { get; set; } = new();
+        public MVCKonfModele? PowiazanyModel;
 
         // 📏 Informacja o profilach
         public List<KsztaltElementu> ElementyRamyRysowane { get; set; } = new();

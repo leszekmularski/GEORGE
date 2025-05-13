@@ -184,14 +184,30 @@
 
     let currentModel = null;
 
-    window.SetCurrentModel = (modelType) => {
+    window.SetCurrentModel = (modelType, modelRowId) => {
     currentModel = modelType;
-    document.documentElement.setAttribute('data-current-model', modelType);
+    window.currentDraggedModel = {
+    type: modelType,
+    rowId: modelRowId
     };
 
-    window.getDraggedModelType = () => {
-    return currentModel || document.documentElement.getAttribute('data-current-model') || "";
+    document.documentElement.setAttribute('data-current-model', modelType);
+    document.documentElement.setAttribute('data-model-row-id', modelRowId);
+    console.log(`📦 Ustawiono model: ${modelType}, ID: ${modelRowId}`);
     };
+
+    window.getDraggedModelInfo = () => {
+    if (!window.currentDraggedModel) {
+    console.warn("⚠️ currentDraggedModel is not set.");
+    return null;
+    }
+
+    return {
+    type: window.currentDraggedModel.type,
+    rowId: window.currentDraggedModel.rowId
+    };
+    };
+
 
     window.clearCurrentModel = () => {
     currentModel = null;
@@ -509,21 +525,6 @@
     </button>
 
 </div>
-<!-- 🔹 Wybór systemu -->
-<Tooltip Placement="@Placement.TopRight" Title="Otwórz konfigurator nowego systemu lub wybierz go z listy">
-    <div class="d-flex">
-        @if (Systemy != null && Systemy.Any())
-        {
-            <select class="form-select me-2" @onchange="@(async (args) => await OnSystemSelected(args))">
-                <option value="" disabled selected>-- Wybierz system --</option>
-                @foreach (var system in Systemy)
-                {
-                    <option value="@system.RowId">@system.Nazwa_Systemu</option>
-                }
-            </select>
-        }
-    </div>
-</Tooltip>
 
 <Collapse Animation>
     <Panel Header="Wymiary, kolory itp. Okien" Key="1">
@@ -602,6 +603,22 @@
     </div>
     <!-- Panel boczny z modelami -->
     <div class="wing-model-container">
+        <!-- 🔹 Wybór systemu -->
+        <Tooltip Placement="@Placement.TopRight" Title="Otwórz konfigurator nowego systemu lub wybierz go z listy">
+            <div class="d-flex">
+                @if (Systemy != null && Systemy.Any())
+                {
+                    <select class="form-select me-2" style="width:100%" @onchange="@(async (args) => await OnSystemSelected(args))">
+                        <option value="" disabled selected>-- Wybierz system --</option>
+                        @foreach (var system in Systemy)
+                        {
+                            <option value="@system.RowId">@system.Nazwa_Systemu</option>
+                        }
+                    </select>
+                }
+            </div>
+        </Tooltip>
+
         <table class="table table-striped">
             <thead>
                 <tr>
@@ -624,7 +641,7 @@
                                     <img id="@($"wing-{model.Typ}")"
                                     src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
                                     @onclick='@(() => WybierzModel(model))'
-                                    @ondragstart='@(e => JS.InvokeVoidAsync("SetCurrentModel", model.Typ))'
+                                    @ondragstart='@(e => JS.InvokeVoidAsync("SetCurrentModel", model.Typ, model.RowId))'
                                     @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
                                     draggable="true"
                                     style="cursor: grab;
@@ -776,6 +793,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
     // Dodaj nowe pola w sekcji @code
     private string? SelectedModelType { get; set; }
+    private string? SelectedRowIdType { get; set; }
     private double DropX { get; set; }
     private double DropY { get; set; }
     private ElementReference canvasElement;
@@ -862,7 +880,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         WybranyModel = model;
         // Dodatkowe akcje przy wyborze modelu
         JS.InvokeVoidAsync("SetCustomCursor", Convert.ToBase64String(model.Ikona32x32));
-        JS.InvokeVoidAsync("SetCurrentModel", model.Typ);
+        JS.InvokeVoidAsync("SetCurrentModel", model.Typ, model.RowId);
     }
 
     private void ZmienX(KsztaltElementu ksztalt, int index, ChangeEventArgs e)
@@ -1065,8 +1083,8 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
             return;
         }
 
-        Console.WriteLine($"🟢 Wywołano OnMouseUp {e.ClientX} {e.ClientY} {e.CtrlKey} {SelectedModelType}");
-
+        Console.WriteLine($"🟢 Wywołano OnMouseUp {e.ClientX} {e.ClientY} {e.CtrlKey}");
+  
         if (_dotNetHelper == null) return;
 
         // Przekaż współrzędne myszy do JavaScript
@@ -1075,27 +1093,50 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
             _dotNetHelper
         );
 
-        var selectedType = await GetSelectedModelType();
-
-        if (!string.IsNullOrEmpty(selectedType))
+        var draggedInfo = await GetDraggedModelInfoAsync();
+        if (draggedInfo != null && !string.IsNullOrEmpty(draggedInfo.Type))
         {
-            SelectedModelType = selectedType;
+            SelectedModelType = draggedInfo.Type;
+            SelectedRowIdType = draggedInfo.RowId;
+
 
             Console.WriteLine($"🖱️ Kliknięto na pozycji ({e.ClientX}, {e.ClientY})");
 
             DropX = e.ClientX;
             DropY = e.ClientY;
             // Logika obsługi wybranego modelu
-            Console.WriteLine($"Wybrano model typu: {selectedType}");
+            Console.WriteLine($"Wybrano model typu: {SelectedModelType} SelectedRowIdType: {SelectedRowIdType}");
 
             await DrawStructureAndRestrykcje(0);
 
             await DodajOknoG();
 
             await RenderFrame();
-
-            // StateHasChanged();
         }
+
+        Console.WriteLine($"🟢 Wywołano OnMouseUp {e.ClientX} {e.ClientY} {e.CtrlKey} SelectedModelType: {SelectedModelType} SelectedRowIdType:{SelectedRowIdType}");
+
+        // if (!string.IsNullOrEmpty(selectedType))
+        // {
+        //     SelectedModelType = selectedType;
+
+        //     SelectedRowIdType = selectedIdType;
+
+        //     Console.WriteLine($"🖱️ Kliknięto na pozycji ({e.ClientX}, {e.ClientY})");
+
+        //     DropX = e.ClientX;
+        //     DropY = e.ClientY;
+        //     // Logika obsługi wybranego modelu
+        //     Console.WriteLine($"Wybrano model typu: {selectedType}");
+
+        //     await DrawStructureAndRestrykcje(0);
+
+        //     await DodajOknoG();
+
+        //     await RenderFrame();
+
+        //     // StateHasChanged();
+        // }
 
         await JS.InvokeVoidAsync("ResetCursorGlobal");
 
@@ -1236,18 +1277,18 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         }
     }
 
-    public async Task<string> GetSelectedModelType()
+    public async Task<DraggedModelInfo> GetDraggedModelInfoAsync()
     {
         try
         {
-            var modelType = await JS.InvokeAsync<string>("getDraggedModelType");
-            await JS.InvokeVoidAsync("clearCurrentModel"); // Opcjonalne czyszczenie
-            return modelType;
+            var info = await JS.InvokeAsync<DraggedModelInfo>("getDraggedModelInfo");
+            await JS.InvokeVoidAsync("clearCurrentModel"); // Opcjonalne czyszczenie po odczycie
+            return info;
         }
         catch (JSException ex)
         {
-            Console.WriteLine($"Błąd pobierania modelu: {ex.Message}");
-            return string.Empty;
+            Console.WriteLine($"Błąd pobierania informacji o modelu: {ex.Message}");
+            return null;
         }
     }
 
@@ -1302,6 +1343,19 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         if (KonfiguracjeSystemu != null)
         {
             generator.KonfiguracjeSystemu = KonfiguracjeSystemu;
+            generator.RowIdSystemu = Guid.Parse(SelectedSystemId);
+
+            if (!string.IsNullOrEmpty(SelectedRowIdType))
+            {
+               generator.RowIdModelu = Guid.Parse(SelectedRowIdType);
+
+                var powiazanyModel = await Http.GetFromJsonAsync<MVCKonfModele>($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{SelectedRowIdType}");
+                if (powiazanyModel != null)
+                {
+                    generator.PowiazanyModel = powiazanyModel;
+                }
+            }
+
         }
         else
         {
@@ -1540,6 +1594,12 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         public bool IsRight { get; set; }
         public bool IsTop { get; set; }
         public bool IsBottom { get; set; }
+    }
+
+    public class DraggedModelInfo
+    {
+        public string Type { get; set; }
+        public string RowId { get; set; }
     }
 
 }

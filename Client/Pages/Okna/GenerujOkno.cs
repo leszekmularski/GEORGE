@@ -1,4 +1,6 @@
-﻿namespace GEORGE.Client.Pages.Okna
+﻿using GEORGE.Shared.Models;
+
+namespace GEORGE.Client.Pages.Okna
 {
     public abstract class GenerujOkno
     {
@@ -18,10 +20,8 @@
         public float Waga { get; set; }
         // 🧩 Typ kształtu ramy: prostokąt, koło, trójkąt, trapez, romb
         public string? TypKsztaltu { get; set; } = "prostokąt";
-        // 🔗 Połączenia narożników
-        public List<PolaczenieElementu> Polaczenia { get; set; } = new();
         // 📏 Informacja o profilach
-        public List<ElementRamowy> ElementyRamy { get; set; } = new();
+        public MVCKonfModele? PowiazanyModel;
         // 📏 Informacja o profilach
         public List<KsztaltElementu> ElementyRamyRysowane { get; set; } = new();
         // 🪟 Informacje o szybie
@@ -29,5 +29,7 @@
         public string KolorSzyby { get; set; } = "#ADD8E6";
         // 🧪 Możliwość przechowywania danych dodatkowych
         public Dictionary<string, string> WlasciwosciDodatkowe { get; set; } = new();
+        public Guid RowIdSystemu { get; set; }
+        public Guid RowIdModelu { get; set; }
     }
 }
