@@ -32,8 +32,8 @@ namespace GEORGE.Client.Pages.Okna
             KolorSzyby = "#ADD8E6";
             KonfiguracjeSystemu = new List<KonfSystem>();
             EdytowanyModel = null;
-            RowIdSystemu = Guid.NewGuid();
-            RowIdModelu = Guid.NewGuid();
+            //RowIdSystemu = Guid.NewGuid();
+            //RowIdModelu = Guid.NewGuid();
             PowiazanyModel = null;
         }
 
@@ -41,7 +41,7 @@ namespace GEORGE.Client.Pages.Okna
         {
             if (regions == null) return;
 
-            if(KonfiguracjeSystemu == null)
+            if(KonfiguracjeSystemu == null || PowiazanyModel == null)
             {
                 Console.WriteLine($"Brak KonfiguracjeSystemu !!!!");
                 return;
@@ -75,15 +75,15 @@ namespace GEORGE.Client.Pages.Okna
 
 
                 // Oblicz rzeczywiste grubości z modelu
-                var systemLewy = KonfiguracjeSystemu.FirstOrDefault(e => e.WystepujeLewa && e.RowIdSystem == RowIdSystemu && e.RowId == RowIdModelu);
-                var systemPrawy = KonfiguracjeSystemu.FirstOrDefault(e => e.WystepujePrawa && e.RowIdSystem == RowIdSystemu && e.Nazwa == EdytowanyModel.NazwaKonfiguracji);
-                var systemGora = KonfiguracjeSystemu.FirstOrDefault(e => e.WystepujeGora && e.RowIdSystem == RowIdSystemu && e.Nazwa == EdytowanyModel.NazwaKonfiguracji);
-                var systemDol = KonfiguracjeSystemu.FirstOrDefault(e => e.WystepujeDol && e.RowIdSystem == RowIdSystemu && e.Nazwa == EdytowanyModel.NazwaKonfiguracji);
 
-                float profileLeft = systemLewy != null ? (float)(systemLewy.PionPrawa - systemLewy.PionLewa) : 0;
-                float profileRight = systemPrawy != null ? (float)(systemPrawy.PionPrawa - systemPrawy.PionLewa) : 0;
-                float profileTop = systemGora != null ? (float)(systemGora.PionPrawa - systemGora.PionLewa) : 0;
-                float profileBottom = systemDol != null ? (float)(systemDol.PionPrawa - systemDol.PionLewa) : 0;
+                float profileLeft = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.PionPrawa ?? 0 -
+                                          PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0);
+                float profileRight = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.PionPrawa ?? 0 -
+                                           PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.PionLewa ?? 0);
+                float profileTop = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.PionPrawa ?? 0 -
+                                         PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.PionLewa ?? 0);
+                float profileBottom = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionPrawa ?? 0 -
+                                            PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionLewa ?? 0);
 
 
                 Console.WriteLine($"System ilość konfiguracji: {KonfiguracjeSystemu.Count()} Pobrane grubości profili: profileLeft: {profileLeft} profileRight: {profileRight} profileTop: {profileTop} profileBottom: {profileBottom}");
