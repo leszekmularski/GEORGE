@@ -179,6 +179,22 @@
         document.body.removeChild(a);
         }
 
+        
+        window.saveAsExcelExcelPozycje = (base64Excel, fileName) => {
+            const binary = atob(base64Excel);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+
+            const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            link.click();
+        };
+
+
     </script>
 
     <PageTitle>Zamówiona elementy do zlecenia</PageTitle>
@@ -223,6 +239,9 @@
                 <Button Type="reset" OnClick="@(ExportSelectedColumnsItemsToExcel)">
                     Zapisz do pliku CSV - zaznaczone
                 </Button>
+                <Tooltip Placement="@Placement.BottomCenter" Title="Zapisz sformatowany dokument EXCEL.">
+                    <Button Type="reset" Icon="@IconType.Fill.FileExcel" OnClick="@(ZapiszExcelPozycjePoStronieKlienta)" />
+                </Tooltip>
                 <Button OnClick="PrzelaczWidok">
                     @(pokazujTylkoNiezamowione ? "Pokaż wszystkie" : "Pokaż tylko niezamówione")
                 </Button>
@@ -577,6 +596,91 @@
             var jsonData = JsonSerializer.Serialize(elementyDoZlecen);
             await JSRuntime.InvokeVoidAsync("saveAsExcel", jsonData);
         }
+    }
+
+    private async Task ZapiszExcelPozycjePoStronieKlienta()
+    {
+
+        if (_items == null || !_items.Any())
+        {
+            await _message.Warning("Brak zaznaczonych pozycji do zapisania.");
+            return;
+        }
+
+        var dane = _items.Select(k => new
+        {
+            NazwaProduktu = RemoveWhitespace(k.ElemetZamDoZlecen.NazwaProduktu),
+            NumerKatalogowy = RemoveWhitespace(k.ElemetZamDoZlecen.NumerKatalogowy),
+            Typ = RemoveWhitespace(k.ElemetZamDoZlecen.Typ),
+            IloscSztuk = k.ElemetZamDoZlecen.IloscSztuk,
+            Jednostka = k.ElemetZamDoZlecen.Jednostka,
+            Kolor = k.ElemetZamDoZlecen.Kolor,
+            Dlugosc = k.ElemetZamDoZlecen.Dlugosc,
+            Szerokosc = k.ElemetZamDoZlecen.Szerokosc,
+            Wysokosc = k.ElemetZamDoZlecen.Wysokosc,
+        }).ToList();
+
+        using var workbook = new ClosedXML.Excel.XLWorkbook();
+        var worksheet = workbook.Worksheets.Add("Elementy");
+
+        // Nagłówki
+        var headers = new[]
+        {
+            "Nazwa produktu", "Numer katalogowy", "Typ", "Ilość sztuk", "Jednostka",
+            "Kolor", "Długość", "Szerokość", "Wysokość"
+        };
+
+        for (int col = 0; col < headers.Length; col++)
+        {
+            var cell = worksheet.Cell(1, col + 1);
+            cell.Value = headers[col];
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontSize = 14;
+            cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
+            cell.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+            cell.Style.Border.InsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+            cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+        }
+
+        int row = 2;
+        foreach (var item in dane)
+        {
+            worksheet.Cell(row, 1).Value = item.NazwaProduktu;
+            worksheet.Cell(row, 2).Value = item.NumerKatalogowy;
+            worksheet.Cell(row, 3).Value = item.Typ;
+            worksheet.Cell(row, 4).Value = item.IloscSztuk;
+            worksheet.Cell(row, 5).Value = item.Jednostka;
+            worksheet.Cell(row, 6).Value = item.Kolor;
+            worksheet.Cell(row, 7).Value = item.Dlugosc;
+            worksheet.Cell(row, 8).Value = item.Szerokosc;
+            worksheet.Cell(row, 9).Value = item.Wysokosc;
+
+            for (int col = 1; col <= 9; col++)
+            {
+                var cell = worksheet.Cell(row, col);
+                cell.Style.Font.FontSize = 12;
+                cell.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                cell.Style.Border.InsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Left;
+                cell.Style.Alignment.Vertical = ClosedXML.Excel.XLAlignmentVerticalValues.Center;
+            }
+
+            row++;
+        }
+
+        worksheet.Columns().AdjustToContents();
+
+        await using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        stream.Position = 0;
+
+        var base64 = Convert.ToBase64String(stream.ToArray());
+
+        string nazwaKlienta = Regex.Replace(dotyczyKlienta ?? "klient", $"[{Regex.Escape(new string(Path.GetInvalidFileNameChars()))}]", "_");
+        string fileName = $"Zamowienie_{nazwaKlienta}.xlsx";
+
+        await JSRuntime.InvokeVoidAsync("saveAsExcelExcelPozycje", base64, fileName);
+        await _message.Success("Plik Excel został pobrany.");
     }
 
     public async Task ExportSelectedColumnsItemsToExcel()

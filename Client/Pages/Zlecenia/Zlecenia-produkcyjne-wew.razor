@@ -1028,7 +1028,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
                 if (fileList != null)
                 {
                     // Filtruj pliki, jeśli użytkownik nie jest administratorem
-                    if (!boolAdmin)
+                    if (!boolAdmin || !boolZmiana)
                     {
                         fileList = fileList.Where(p => p.WidocznyDlaWszystkich).ToList();
                     }
