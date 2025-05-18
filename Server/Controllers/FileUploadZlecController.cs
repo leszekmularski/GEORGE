@@ -21,8 +21,8 @@ public class FileUploadZlecController : ControllerBase
         _context = context;
     }
 
-    [HttpPost("upload/{rowIdZlecenia}/{orygFileName}")]
-    public async Task<IActionResult> UploadFile(string rowIdZlecenia, string orygFileName, IFormFile file)
+    [HttpPost("upload/{rowIdZlecenia}/{orygFileName}/{czyWidocznyDlaWszystkich}")]
+    public async Task<IActionResult> UploadFile(string rowIdZlecenia, string orygFileName, bool czyWidocznyDlaWszystkich, IFormFile file)
     {
         if (file == null || file.Length == 0)
             return BadRequest("Pliku nie wysłano");
@@ -63,6 +63,7 @@ public class FileUploadZlecController : ControllerBase
             TypPliku = file.ContentType + "/" + GetFileExtension(orygFileName),
             DataZapisu = DateTime.Now,
             KtoZapisal = User.Identity.Name, // Zakładając, że masz uwierzytelnianie użytkowników
+            WidocznyDlaWszystkich = czyWidocznyDlaWszystkich,
             OstatniaZmiana = "Zmiana: " + DateTime.Now.ToLongDateString()
         };
 

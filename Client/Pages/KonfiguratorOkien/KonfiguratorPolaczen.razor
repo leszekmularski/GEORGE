@@ -111,11 +111,11 @@
                             <button class="btn btn-danger btn-sm me-2" @onclick="() => Usun(model.Id)">
                                 <i class="fas fa-trash-alt"></i> Usuń
                             </button>
-                            <button class="btn btn-info btn-sm" @onclick="() => PokazPowiazane(model.RowId.ToString(), model.NazwaKonfiguracji)">
+    @*                         <button class="btn btn-info btn-sm" @onclick="() => PokazPowiazane(model.RowId.ToString(), model.NazwaKonfiguracji)">
                                 <Tooltip Placement="Placement.Bottom" Title="Kliknij aby pokazać wszytkie lub wybrane">
                                     <i class="fas fa-eye"></i> 🛠️ @(PokazanyModelRowId == model.RowId.ToString() ? $"Powiązane : {WybralesElement}" : "Pokaż wszystkie")
                                 </Tooltip>
-                            </button>
+                            </button> *@
                         </td>
                     </tr>
                 }
@@ -353,6 +353,19 @@
             </tbody>
         </table>
     }
+    else
+    {
+        <Divider>Wybierz i powiąż elementy (Następnie zapisz)</Divider>
+
+        <h5>
+            🛠️ Powiązania elementów dla Modelu: @(PokazanyModelRowId != null ? $"->{WybralesElement}" : "Wszystkie")
+
+            <button class="btn btn-info btn-sm" @onclick="() => PokazWszystkieZModelu(PokazanyModelRowId)">
+                <i class="fas fa-eye"></i> 🛠️ Pokaż wszystkie
+            </button>
+
+        </h5>
+    }
 </div>
 
 <br />
@@ -462,6 +475,17 @@
 
     private async Task PokazWszystkieZModelu(string rowId)
     {
+        if (string.IsNullOrEmpty(SelectedSystemId))
+        {
+            _ = _notice.Info(new()
+                {
+                    Message = "Informacja!!",
+                    Description = $"Wybierz system!!",
+                    Placement = NotificationPlacement.TopRight,
+                    Duration = 5
+                });
+                return;
+        }
 
         KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIN_DROWID/{SelectedSystemId}");
 
@@ -474,7 +498,6 @@
         StateHasChanged(); // Wymusza odświeżenie UI
 
     }
-
 
     private string RysunekToBase64(byte[]? imageData)
     {
@@ -529,6 +552,26 @@
         {
             Console.WriteLine("EdytowanyModel.RowId ma wartość NULL");
             await _message.Error("EdytowanyModel.RowId ma wartość NULL");
+            return;
+        }
+
+        if (PowiazanyModel.KonfSystem == null || PowiazanyModel == null)
+        {
+            Console.WriteLine("PowiazanyModel.KonfSystem ma wartość NULL");
+            await _message.Error("PowiazanyModel.KonfSystem ma wartość NULL");
+            return;
+        }
+
+        if (PowiazanyModel.KonfSystem.Count() == 0)
+        {
+            Console.WriteLine("PowiazanyModel.KonfSystem ma wartość równą zero");
+            PowiazanyModel.KonfSystem = KonfiguracjeSystemu;
+        }
+
+        if (PowiazanyModel.KonfSystem.Count() == 0)
+        {
+            Console.WriteLine("PowiazanyModel.KonfSystem ma wartość równą zero");
+            await _message.Error("PowiazanyModel.KonfSystem ma wartość równą zero");
             return;
         }
 

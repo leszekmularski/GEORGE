@@ -1440,8 +1440,6 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
         var offsets = GetOffsetsForGroup(ksztalt.Grupa);
 
-        List<XPoint> innerPoints;
-
 
        await DrawSingleContour(context, outerPoints);
 
@@ -1598,8 +1596,8 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
     public class DraggedModelInfo
     {
-        public string Type { get; set; }
-        public string RowId { get; set; }
+        public string? Type { get; set; }
+        public string? RowId { get; set; }
     }
 
 }

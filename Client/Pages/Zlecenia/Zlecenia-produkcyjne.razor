@@ -1593,7 +1593,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
     //********************************************************************************************************************//
     public async Task ShowDialogFile(int pgIndex)
     {
-       // _pageIndex = pgIndex;
+        // _pageIndex = pgIndex;
 
         displayFile = "block";
         await Task.Delay(50);
@@ -1609,7 +1609,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
         displayFile = "none";
 
         StateHasChanged();
-     
+
     }
     //********************************************************************************************************************//
 
@@ -1689,6 +1689,12 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
         }
         //NazwaRejestru = WebUtility.UrlEncode(NazwaRejestru);
 
+        bool wiocznyDlaWszystkich = false;
+        if (!boolAdmin)
+        {
+            wiocznyDlaWszystkich = true;
+        }
+
         foreach (var file in e.GetMultipleFiles())
         {
             var content = new MultipartFormDataContent();
@@ -1699,7 +1705,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
 
             content.Add(new StreamContent(file.OpenReadStream(Int64.MaxValue)), "file", file.Name);
 
-            var response = await Http.PostAsync($"api/FileUploadZlec/upload/{zlecenie.RowId}/{tmpFileName}", content);
+            var response = await Http.PostAsync($"api/FileUploadZlec/upload/{zlecenie.RowId}/{tmpFileName}/{wiocznyDlaWszystkich}", content);
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<ResponseModel>();
