@@ -1689,6 +1689,13 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
         }
         //NazwaRejestru = WebUtility.UrlEncode(NazwaRejestru);
 
+       if (e.FileCount > 10)
+        {
+            bladZapisuPliku = $"Nie można dodać więcej niż 10 plików. Zaznaczono: {e.FileCount}";
+            await OpenWithPlacement(NotificationPlacement.TopLeft, bladZapisuPliku);
+            return;
+        }
+
         bool wiocznyDlaWszystkich = false;
         if (!boolAdmin)
         {

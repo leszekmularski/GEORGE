@@ -2,6 +2,7 @@
 using DocumentFormat.OpenXml.Office2016.Drawing;
 using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.Models;
+using iText.Kernel.Pdf.Canvas.Parser.ClipperLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,7 +17,7 @@ namespace GEORGE.Client.Pages.Okna
 
         public KonfModele? EdytowanyModel;
 
-        public MVCKonfModele? PowiazanyModel;
+        public new MVCKonfModele? PowiazanyModel;
 
 
         public Generator()
@@ -85,7 +86,6 @@ namespace GEORGE.Client.Pages.Okna
                 float profileBottom = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionPrawa ?? 0 -
                                             PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionLewa ?? 0);
 
-
                 Console.WriteLine($"System ilość konfiguracji: {KonfiguracjeSystemu.Count()} Pobrane grubości profili: profileLeft: {profileLeft} profileRight: {profileRight} profileTop: {profileTop} profileBottom: {profileBottom}");
 
                 // Oblicz wewnętrzny kontur
@@ -97,6 +97,7 @@ namespace GEORGE.Client.Pages.Okna
                 if (region.TypKsztaltu == "prostokąt" || region.TypKsztaltu == "kwadrat")
                 {
                     GenerateRectangleElements(punkty, wewnetrznyKontur, profileLeft, profileRight, profileTop, profileBottom, region.TypKsztaltu, EdytowanyModel.PolaczenieNaroza, KonfiguracjeSystemu);
+                   
                 }
                 else if (region.TypKsztaltu == "trójkąt")
                 {
@@ -107,9 +108,55 @@ namespace GEORGE.Client.Pages.Okna
                     GenerateGenericElements(punkty, wewnetrznyKontur);
                 }
             }
+
+            //0 - Lewy górny
+            //1 - Prawy górny
+            //2 - Prawy dolny
+            //3 - Lewy dolny
+
         }
 
-    private void GenerateRectangleElements(List<XPoint> outer, List<XPoint> inner,
+        private void GenerateTop(
+        float profileTop, float profileLeft, float profileRight,
+        (int kat, string typ) naroznik1, (int kat, string typ) naroznik2, float minX, float minY, float width)
+        {
+            // Czy któryś narożnik to T2?
+            bool leftT2 = naroznik1.typ == "T2"; // && naroznik1.kat == 45; // dla narożnika 0
+            bool rightT2 = naroznik2.typ == "T2"; // && naroznik2.kat == 45; // dla narożnika 1
+
+            Console.WriteLine($"GenerateTop: leftT2: {leftT2}, rightT2: {rightT2} naroznik1.typ: {naroznik1.typ}  naroznik2.typ: {naroznik2.typ}");
+
+            float x1 = minX;
+            float x2 = minX + width;
+            float y1 = minY;
+            float y2 = minY + profileTop;
+
+            var points = new List<XPoint>();
+
+            // Lewy górny
+            points.Add(new XPoint(x1 + (leftT2 ? profileTop : 0), y1));
+
+            // Prawy górny
+            points.Add(new XPoint(x2 - (rightT2 ? profileTop : 0), y1));
+
+            // Prawy dolny
+            points.Add(new XPoint(x2, y2));
+
+            // Lewy dolny
+            points.Add(new XPoint(x1, y2));
+
+            ElementyRamyRysowane.Add(new KsztaltElementu
+            {
+                TypKsztaltu = "trapez", // możesz zachować "prostokąt", jeśli geometria działa
+                Wierzcholki = points,
+                WypelnienieZewnetrzne = "wood-pattern",
+                WypelnienieWewnetrzne = KolorSzyby,
+                Grupa = "Gora"
+            });
+        }
+
+
+        private void GenerateRectangleElements(List<XPoint> outer, List<XPoint> inner,
     float leftOffset, float rightOffset, float topOffset, float bottomOffset,
     string typKsztalt, string polaczenia, List<KonfSystem> model)
         {
@@ -171,42 +218,45 @@ namespace GEORGE.Client.Pages.Okna
             {
                 TypKsztaltu = typKsztalt,
                 Wierzcholki = new List<XPoint>
-        {
-            new(minX + goraX, maxY - profileBottom),
-            new(minX + goraX + dolWidth, maxY - profileBottom),
-            new(minX + goraX + dolWidth, maxY),
-            new(minX + goraX, maxY)
-        },
+            {
+                new(minX + goraX, maxY - profileBottom),
+                new(minX + goraX + dolWidth, maxY - profileBottom),
+                new(minX + goraX + dolWidth, maxY),
+                new(minX + goraX, maxY)
+            },
                 WypelnienieZewnetrzne = "wood-pattern",
                 WypelnienieWewnetrzne = KolorSzyby,
                 Grupa = "Dol"
             });
 
-            ElementyRamyRysowane.Add(new KsztaltElementu
-            {
-                TypKsztaltu = typKsztalt,
-                Wierzcholki = new List<XPoint>
-        {
-            new(minX + goraX, minY),
-            new(minX + goraX + goraWidth, minY),
-            new(minX + goraX + goraWidth, minY + profileTop),
-            new(minX + goraX, minY + profileTop)
-        },
-                WypelnienieZewnetrzne = "wood-pattern",
-                WypelnienieWewnetrzne = KolorSzyby,
-                Grupa = "Gora"
-            });
+
+
+            GenerateTop(profileTop, profileLeft, profileRight, polaczeniaArray[0], polaczeniaArray[1], minX, minY, goraWidth);
+            //ElementyRamyRysowane.Add(new KsztaltElementu
+            //{
+            //    TypKsztaltu = typKsztalt,
+            //    Wierzcholki = new List<XPoint>
+            //{
+            //    new(minX + goraX, minY),
+            //    new(minX + goraX + goraWidth, minY),
+            //    new(minX + goraX + goraWidth, minY + profileTop),
+            //    new(minX + goraX, minY + profileTop)
+            //},
+            //    WypelnienieZewnetrzne = "wood-pattern",
+            //    WypelnienieWewnetrzne = KolorSzyby,
+            //    Grupa = "Gora"
+            //});
 
             ElementyRamyRysowane.Add(new KsztaltElementu
             {
                 TypKsztaltu = typKsztalt,
                 Wierzcholki = new List<XPoint>
-        {
-            new(minX, minY + lewaY),
-            new(minX + profileLeft, minY + lewaY),
-            new(minX + profileLeft, minY + lewaY + lewaHeight),
-            new(minX, minY + lewaY + lewaHeight)
-        },
+            {
+                new(minX, minY + lewaY),
+                new(minX + profileLeft, minY + lewaY),
+                new(minX + profileLeft, minY + lewaY + lewaHeight),
+                new(minX, minY + lewaY + lewaHeight)
+            },
                 WypelnienieZewnetrzne = "wood-pattern",
                 WypelnienieWewnetrzne = KolorSzyby,
                 Grupa = "Lewo"
@@ -216,12 +266,12 @@ namespace GEORGE.Client.Pages.Okna
             {
                 TypKsztaltu = typKsztalt,
                 Wierzcholki = new List<XPoint>
-    {
-        new(maxX - profileRight, minY + prawaY),
-        new(maxX, minY + prawaY),
-        new(maxX, minY + prawaY + prawaHeight),
-        new(maxX - profileRight, minY + prawaY + prawaHeight)
-    },
+        {
+            new(maxX - profileRight, minY + prawaY),
+            new(maxX, minY + prawaY),
+            new(maxX, minY + prawaY + prawaHeight),
+            new(maxX - profileRight, minY + prawaY + prawaHeight)
+        },
                 WypelnienieZewnetrzne = "wood-pattern",
                 WypelnienieWewnetrzne = KolorSzyby,
                 Grupa = "Prawo"
