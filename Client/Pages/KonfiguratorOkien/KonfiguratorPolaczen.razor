@@ -7,6 +7,7 @@
 @inject INotificationService _notice
 @inject Utilities.ILocalStorage LocalStorage
 @inject IJSRuntime JSRuntime
+@inject AntDesign.ModalService _modalService
 @using System.Net
 
 @using SixLabors.Fonts;
@@ -318,7 +319,11 @@
                                 }
                             </td>
                             <td>
-                                <Checkbox @bind-Value="konf.CzyWybrany">Połącz element z konfiguracją</Checkbox>
+                                 <Checkbox 
+                                    @bind-Value="konf.CzyWybrany" 
+                                    @bind-Value:after="() => OnChangeCzyWybrany(konf.CzyWybrany, konf)">
+                                    Połącz element z konfiguracją
+                                </Checkbox>
                             </td>
                         </tr>
                     }
@@ -343,7 +348,11 @@
                                 }
                             </td>
                             <td>
-                                <Checkbox @bind-Value="konf.CzyWybrany">Połącz element z konfiguracją</Checkbox>
+                                <Checkbox 
+                                    @bind-Value="konf.CzyWybrany" 
+                                    @bind-Value:after="() => OnChangeCzyWybrany(konf.CzyWybrany, konf)">
+                                    Połącz element z konfiguracją
+                                </Checkbox>
                             </td>
                         </tr>
                     }
@@ -389,6 +398,8 @@
     private MVCKonfModele? PowiazanyModel;
 
     private MVCKonfModele? PowiazanyModelPierwszyZapis;
+
+    private bool pytanieOK = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -484,7 +495,7 @@
                     Placement = NotificationPlacement.TopRight,
                     Duration = 5
                 });
-                return;
+            return;
         }
 
         KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIN_DROWID/{SelectedSystemId}");
@@ -532,13 +543,27 @@
 
     }
 
+    private async Task OnChangeCzyWybrany(bool checkedValue, KonfSystem konf)
+    {
+        Console.WriteLine($"Dla konfiguracji {konf.Nazwa}: checked = {checkedValue} konf.RowIdSystem: {konf.RowIdSystem}");
+
+        // if(PowiazanyModelPierwszyZapis == null)
+        // {
+        //     PowiazanyModelPierwszyZapis = await Http.GetFromJsonAsync<MVCKonfModele>($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{konf.RowIdSystem}");
+        //     Console.WriteLine($"Pobrałem dane do PowiazanyModelPierwszyZapis");
+        // }
+        // Tutaj masz dostęp do pełnego obiektu "konf"
+    }
+
     private bool czakajAzZmienie = false;
+
     private async Task Zapisz()
     {
 
         if (PowiazanyModel == null && PowiazanyModelPierwszyZapis != null)
         {
             PowiazanyModel = PowiazanyModelPierwszyZapis;
+            Console.WriteLine("EdytowanyModel ma wartość PowiazanyModel --> Pobieram dane z PowiazanyModelPierwszyZapis");
         }
 
         if (EdytowanyModel == null)
@@ -555,25 +580,34 @@
             return;
         }
 
-        if (PowiazanyModel.KonfSystem == null || PowiazanyModel == null)
+        if (PowiazanyModel == null && KonfiguracjeSystemu == null)
         {
-            Console.WriteLine("PowiazanyModel.KonfSystem ma wartość NULL");
-            await _message.Error("PowiazanyModel.KonfSystem ma wartość NULL");
+            Console.WriteLine("PowiazanyModel ma wartość NULL");
+            await _message.Error("Wybierz z listy 🛠️ Powiązania elementów dla Modelu. Następnie kliknij ZAPISZ", 5);
             return;
         }
 
-        if (PowiazanyModel.KonfSystem.Count() == 0)
-        {
-            Console.WriteLine("PowiazanyModel.KonfSystem ma wartość równą zero");
-            PowiazanyModel.KonfSystem = KonfiguracjeSystemu;
-        }
+        // if (PowiazanyModel.KonfSystem == null)
+        // {
+        //     Console.WriteLine("PowiazanyModel.KonfSystem ma wartość NULL");
+        //     await _message.Error("PowiazanyModel.KonfSystem ma wartość NULL");
+        //     return;
+        // }
 
-        if (PowiazanyModel.KonfSystem.Count() == 0)
-        {
-            Console.WriteLine("PowiazanyModel.KonfSystem ma wartość równą zero");
-            await _message.Error("PowiazanyModel.KonfSystem ma wartość równą zero");
-            return;
-        }
+        // if (PowiazanyModel.KonfSystem.Count() == 0)
+        // {
+        //     Console.WriteLine("PowiazanyModel.KonfSystem ma wartość równą zero");
+        //     PowiazanyModel.KonfSystem = KonfiguracjeSystemu;
+        // }
+
+        // if (PowiazanyModel.KonfSystem.Count() == 0)
+        // {
+        //     Console.WriteLine("PowiazanyModel.KonfSystem ma wartość równą zero");
+        //     await _message.Error("PowiazanyModel.KonfSystem ma wartość równą zero");
+        //     return;
+        // }
+
+        Console.WriteLine($"EdytowanyModel.RowId: {EdytowanyModel.RowId}");
 
         czakajAzZmienie = true;
 
@@ -591,11 +625,37 @@
             var baseUrlX = Navigation.BaseUri;
             var imageUrl = $"{baseUrlX}api/images/sosna.jpg";
 
-            if (PowiazanyModel != null)
+            if (PowiazanyModel != null || KonfiguracjeSystemu != null)
             {
+                 Console.WriteLine($"Rozpoczynam generowania imageGenerator.GenerateImageAsync");
 
                 var imageGenerator = new ImageGenerator(Http);
-                byte[] imageBytes = await imageGenerator.GenerateImageAsync(PowiazanyModel.KonfSystem, EdytowanyModel.PolaczenieNaroza, 500, 500, imageUrl, "#ADD8E6");
+
+                // Sprawdź wszystkie możliwe null-e
+                if (imageGenerator == null) 
+                    throw new ArgumentNullException(nameof(imageGenerator));
+        
+                if (EdytowanyModel == null) 
+                    throw new ArgumentNullException(nameof(EdytowanyModel));
+        
+                if (PowiazanyModel == null && KonfiguracjeSystemu == null)
+                    throw new InvalidOperationException("Brak danych konfiguracyjnych");
+
+                var konfSystem = PowiazanyModel?.KonfSystem ?? KonfiguracjeSystemu;
+        
+                if (konfSystem == null)
+                    throw new InvalidOperationException("Konfiguracja systemu jest null");
+
+                // Wywołaj metodę
+                byte[] imageBytes = await imageGenerator.GenerateImageAsync(
+                    konfSystem,
+                    EdytowanyModel.PolaczenieNaroza,
+                    500, 
+                    500, 
+                    imageUrl, 
+                    "#ADD8E6"
+                );
+                // byte[] imageBytes = await imageGenerator.GenerateImageAsync(PowiazanyModel.KonfSystem ?? KonfiguracjeSystemu, EdytowanyModel.PolaczenieNaroza, 500, 500, imageUrl, "#ADD8E6");
                 //byte[] imageBytes = await imageGenerator.GenerateImageAsync(imageUrl);
 
                 if (imageBytes != null)
@@ -627,7 +687,7 @@
                     Message = "Informacja!!",
                     Description = $"Nie wygenerowano obrazka sprawdź konfigurację!!!!",
                     Placement = NotificationPlacement.TopRight,
-                    Duration = 3
+                    Duration = 5
                 });
             Console.WriteLine($"Błąd: {ex.Message} / {ex.StackTrace}");
         }
@@ -670,14 +730,25 @@
         }
         else
         {
-            _ = _notice.Info(new()
+
+            // if(!string.IsNullOrEmpty(EdytowanyModel.RowId.ToString()))
+            // {
+            //     PowiazanyModel = await Http.GetFromJsonAsync<MVCKonfModele>($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{EdytowanyModel.RowId.ToString()}");
+            // }
+
+            if (PowiazanyModel == null)
+            {
+                _ = _notice.Info(new()
                 {
                     Message = "Informacja!!",
                     Description = $"Brak powiązanych modeli!!!!",
                     Placement = NotificationPlacement.TopLeft,
-                    Duration = 2
+                    Duration = 5
                 });
+            }
+
         }
+
 
         foreach (var konf in KonfiguracjeSystemu.Where(k => k.CzyWybrany))
         {
@@ -700,6 +771,7 @@
         if (nowePowiazania.Count > 0)
         {
             await Http.PostAsJsonAsync($"api/konfmodeleelementy/powiazania", nowePowiazania);
+
         }
 
         // Usuwamy powiązania, które użytkownik odznaczył
@@ -738,9 +810,25 @@
 
     private async Task Usun(int id)
     {
-        await Http.DeleteAsync($"{apiUrl}/{id}");
-        ListaModeli = await Http.GetFromJsonAsync<List<KonfModele>>(apiUrl);
+
+        await OpenModal("Potwierdzenie usunięcia", "Czy na pewno chcesz usunąć ten element?");
+           
+
+    // Jeśli użytkownik potwierdził
+    if (pytanieOK)
+    {
+        try
+        {
+            await Http.DeleteAsync($"{apiUrl}/{id}");
+            ListaModeli = await Http.GetFromJsonAsync<List<KonfModele>>(apiUrl);
+            await PokazWszystkieZModelu(PokazanyModelRowId);
+        }
+        catch (Exception ex)
+        {
+           await _message.Error(ex.Message);
+        }
     }
+}
 
     private void Anuluj()
     {
@@ -912,6 +1000,54 @@
         int currentIndex = options.IndexOf(currentImage);
         int nextIndex = (currentIndex + 1) % options.Count; // Przechodzenie w kółko
         return options[nextIndex];
+    }
+
+    
+    private async Task OpenModal(string _title, string _contentText)
+    {
+        var modalCompletionSource = new TaskCompletionSource<bool>();
+
+        RenderFragment content = @<div>@_contentText</div>;
+
+        var options = new ConfirmOptions()
+            {
+                Title = _title,
+                Width = 350,
+                Content = content,
+                OkText = "Tak",
+                CancelText = "Nie",
+                OnOk = async e =>
+                {
+                    Console.WriteLine("OnOk");
+                    pytanieOK = true;
+                    modalCompletionSource.SetResult(true);
+                    await Task.CompletedTask;
+                },
+                OnCancel = async e =>
+                {
+                    Console.WriteLine("OnCancel");
+                    pytanieOK = false;
+                    modalCompletionSource.SetResult(false);
+                    await Task.CompletedTask;
+                }
+            };
+
+        var confirmRef = await _modalService.CreateConfirmAsync(options);
+
+        confirmRef.OnOpen = () =>
+        {
+            Console.WriteLine("Open Modal");
+            return Task.CompletedTask;
+        };
+
+        confirmRef.OnClose = () =>
+        {
+            Console.WriteLine("Close Modal");
+            return Task.CompletedTask;
+        };
+
+        // Czekaj na zakończenie działania modalu
+        await modalCompletionSource.Task;
     }
 
     private class ImageOption
