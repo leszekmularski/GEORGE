@@ -83,15 +83,28 @@ public class ImageGenerator
                         new PointF(x + (isLeftT2 ? offset : 0), y + height)
                     };
                         break;
-                    case 1: // Right
-                        points = new[]
+                    case 1: // Right (odbicie lustrzane w poziomie)
                         {
-                        new PointF(x, y),
-                        new PointF(x + width, y + (isRightT2 ? offset : 0)),
-                        new PointF(x + width, y + height - (isLeftT2 ? offset : 0)),
-                        new PointF(x, y + height)
-                    };
-                        break;
+                            var x0 = x;
+                            var x1 = x + width;
+
+                            var y0 = y;
+                            var y1 = y + height;
+
+                            // Zmienne do przesunięć 45°
+                            var offsetTop = isRightT2 ? offset : 0;
+                            var offsetBottom = isLeftT2 ? offset : 0;
+
+                            // Zmodyfikowane punkty (odbite poziomo)
+                            points = new[]
+                            {
+                                new PointF(x0, y0 + offsetTop),          // góra lewa
+                                new PointF(x1, y0),                      // góra prawa
+                                new PointF(x1, y1),                      // dół prawa
+                                new PointF(x0, y1 - offsetBottom)        // dół lewa
+                            };
+                            break;
+                        }
                     case 2: // Bottom
                         points = new[]
                         {
@@ -114,6 +127,9 @@ public class ImageGenerator
                         throw new Exception($"Nieznany indeks ramki {index}");
                 }
 
+                if (height == 0) height = 1; // Zapewnienie, że wysokość nie jest zerowa - będzie inaczej błąd przy rysowaniu
+                if (width == 0) width = 1; // Zapewnienie, że wysokość nie jest zerowa - będzie inaczej błąd przy rysowaniu
+
                 var polygon = new Polygon(points);
                 var cropped = woodTexture.Clone(c => c.Crop(new Rectangle(0, 0, width, height)));
                 frames.Add((polygon, cropped, new Point(x, y)));
@@ -121,54 +137,92 @@ public class ImageGenerator
 
             // Obliczenia pozycji i szerokości
             int topX = (joinTypes[0].Left == "T3") ? (int)profileLeft : 0;
-            int topW = imageWidth - ((joinTypes[0].Left == "T3" ? (int)profileLeft : 0) + (joinTypes[0].Right == "T3" ? (int)profileRight : 0));
+            int topW = imageWidth - ((joinTypes[0].Left == "T3" ? (int)profileLeft : 0) +
+                                     (joinTypes[0].Right == "T3" ? (int)profileRight : 0));
 
             int rightY = (joinTypes[1].Left == "T1") ? (int)profileTop : 0;
-            int rightH = imageHeight - ((joinTypes[1].Left == "T1" ? (int)profileTop : 0) + (joinTypes[1].Right == "T1" ? (int)profileBottom : 0));
+            int rightH = imageHeight - ((joinTypes[1].Left == "T1" ? (int)profileTop : 0) +
+                                        (joinTypes[1].Right == "T1" ? (int)profileBottom : 0));
 
-            int bottomX = (joinTypes[2].Left == "T3") ? (int)profileLeft : 0;
-            int bottomW = imageWidth - ((joinTypes[2].Left == "T3" ? (int)profileLeft : 0) + (joinTypes[2].Right == "T3" ? (int)profileRight : 0));
+            int bottomX = 0;
+            if (joinTypes[2].Right == "T3")
+                bottomX += (int)profileLeft;
 
-            int leftY = (joinTypes[3].Left == "T1") ? (int)profileTop : 0;
-            int leftH = imageHeight - ((joinTypes[3].Left == "T1" ? (int)profileTop : 0) + (joinTypes[3].Right == "T1" ? (int)profileBottom : 0));
+            int bottomW = imageWidth;
+            if (joinTypes[2].Left == "T3")
+                bottomW -= (int)profileLeft;
+            if (joinTypes[2].Right == "T3")
+                bottomW -= (int)profileRight;
 
-            AddMiterFrame(0, topX, 0, topW, (int)profileTop, joinTypes[0].Left, joinTypes[0].Right); // Top
-            AddMiterFrame(1, imageWidth - (int)profileRight, rightY, (int)profileRight, rightH, joinTypes[1].Left, joinTypes[1].Right); // Right
-            AddMiterFrame(2, bottomX, imageHeight - (int)profileBottom, bottomW, (int)profileBottom, joinTypes[2].Left, joinTypes[2].Right); // Bottom
-            AddMiterFrame(3, 0, leftY, (int)profileLeft, leftH, joinTypes[3].Left, joinTypes[3].Right); // Left
 
-            // Szyba
-            var glass = new RectangularPolygon(
-                (int)profileLeft,
-                (int)profileTop,
-                imageWidth - (int)profileLeft - (int)profileRight,
-                imageHeight - (int)profileTop - (int)profileBottom
-            );
-            frames.Add((glass, null, new Point(0, 0)));
+            int leftY = (joinTypes[3].Right == "T1") ? (int)profileTop : 0;
+            int leftH = imageHeight - ((joinTypes[3].Left == "T1" ? (int)profileTop : 0) +
+                                       (joinTypes[3].Right == "T1" ? (int)profileBottom : 0));
 
-            image.Mutate(x =>
+            int wydSzybe = 0;
+
+            if(joinTypes[2].Right == "T4" && joinTypes[2].Left == "T4")
             {
-                foreach (var (path, texture, pos) in frames)
+                bottomW = 1;//1 żeby nie było błędu przy rysowaniu
+                wydSzybe += (int)profileLeft;
+            }
+
+            if (joinTypes[0].Left == "T5" && joinTypes[3].Right == "T5")
+            {
+                AddMiterFrame(3, (int)imageWidth / 2 - (int)profileLeft / 2, leftY, (int)profileLeft, leftH, joinTypes[3].Right, joinTypes[3].Left); // Left
+
+                image.Mutate(x =>
                 {
-                    if (texture != null)
+                    foreach (var (path, texture, pos) in frames)
                     {
-                        x.Fill(Color.White, path);
-                        x.DrawImage(texture, pos, 1f);
+                        if (texture != null)
+                        {
+                            x.Fill(Color.White, path);
+                            x.DrawImage(texture, pos, 1f);
+                        }
+                        x.Draw(Pens.Solid(Color.Black, borderThickness), path);
                     }
-                    x.Draw(Pens.Solid(Color.Black, borderThickness), path);
-                }
+                });
+            }
+            else
+            {
+                AddMiterFrame(0, topX, 0, topW, (int)profileTop, joinTypes[0].Left, joinTypes[0].Right); // Top - OK
+                AddMiterFrame(1, imageWidth - (int)profileRight, rightY, (int)profileRight, rightH, joinTypes[1].Right, joinTypes[1].Left); // <== ZAMIANA miejsc // Right - OK
+                AddMiterFrame(2, bottomX, imageHeight - (int)profileBottom, bottomW, (int)profileBottom, joinTypes[2].Right, joinTypes[2].Left); // Bottom (zamień typy!)
+                AddMiterFrame(3, 0, leftY, (int)profileLeft, leftH, joinTypes[3].Right, joinTypes[3].Left); // Left
 
-                x.Fill(Color.ParseHex(glassColorHex), glass);
-                x.Draw(Pens.Solid(Color.Black, borderThickness), glass);
-            });
+                // Szyba
+                var glass = new RectangularPolygon(
+                    (int)profileLeft,
+                    (int)profileTop,
+                    imageWidth - (int)profileLeft - (int)profileRight,
+                    imageHeight - (int)profileTop - (int)profileBottom + wydSzybe
+                );
+                frames.Add((glass, null, new Point(0, 0)));
 
+                image.Mutate(x =>
+                {
+                    foreach (var (path, texture, pos) in frames)
+                    {
+                        if (texture != null)
+                        {
+                            x.Fill(Color.White, path);
+                            x.DrawImage(texture, pos, 1f);
+                        }
+                        x.Draw(Pens.Solid(Color.Black, borderThickness), path);
+                    }
+
+                    x.Fill(Color.ParseHex(glassColorHex), glass);
+                    x.Draw(Pens.Solid(Color.Black, borderThickness), glass);
+                });
+            }
             using var ms = new MemoryStream();
             image.SaveAsPng(ms);
             return ms.ToArray();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Błąd generowania: {ex.Message}");
+            Console.WriteLine($"❌ Błąd generowania: {ex.Message} -> {ex.StackTrace}");
             return null;
         }
     }

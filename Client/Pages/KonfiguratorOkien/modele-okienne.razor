@@ -746,6 +746,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                                     <p><strong>Grubość obramowania:</strong> @ksztalt.GruboscObramowania px</p>
                                     <p><strong>Czy zawiera otwór:</strong> @(ksztalt.CzyZawieraOtwor ? "Tak" : "Nie")</p>
                                     <p><strong>Widoczny:</strong> @(ksztalt.Widoczny ? "Tak" : "Nie")</p>
+                                    <p><strong>Długość: @ksztalt.DlogoscElementu</strong></p>
                                     <p><strong>Wierzchołki:</strong></p>
                                     <ul class="list-group list-group-flush">
                                         @foreach (var p in ksztalt.Wierzcholki)
@@ -1084,7 +1085,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         }
 
         Console.WriteLine($"🟢 Wywołano OnMouseUp {e.ClientX} {e.ClientY} {e.CtrlKey}");
-  
+
         if (_dotNetHelper == null) return;
 
         // Przekaż współrzędne myszy do JavaScript
@@ -1252,14 +1253,14 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
             if (!isTextureLoaded)
             {
-                var baseUrl = Navigation.BaseUri;
-                var imageUrl = $"{baseUrl}api/images/{woodPatternName}";
+                // var baseUrl = Navigation.BaseUri;
+                // var imageUrl = $"{baseUrl}api/images/{woodPatternName}";
 
-                await JS.InvokeVoidAsync("loadAndDrawTexture",
-                    CanvasRef.CanvasReference,
-                    imageUrl,
-                    _dotNetHelper
-                );
+                // await JS.InvokeVoidAsync("loadAndDrawTexture",
+                //     CanvasRef.CanvasReference,
+                //     imageUrl,
+                //     _dotNetHelper
+                // );
 
                 await OnlyRestrykcje();
 
@@ -1347,7 +1348,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
             if (!string.IsNullOrEmpty(SelectedRowIdType))
             {
-               generator.RowIdModelu = Guid.Parse(SelectedRowIdType);
+                generator.RowIdModelu = Guid.Parse(SelectedRowIdType);
 
                 var powiazanyModel = await Http.GetFromJsonAsync<MVCKonfModele>($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{SelectedRowIdType}");
                 if (powiazanyModel != null)
@@ -1361,7 +1362,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         {
             var kofiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIN_DROWID/{SelectedSystemId}");
             generator.KonfiguracjeSystemu = kofiguracjeSystemu;
-            Console.WriteLine("Ponowinie pobrano kofiguracjeSystemu..............................................");
+            Console.WriteLine("--------->             Ponowinie pobrano kofiguracjeSystemu..............................................");
         }
 
         generator.EdytowanyModel = WybranyModel;
@@ -1382,6 +1383,8 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
             sb.AppendLine($"- Wypełnienie zewnętrzne: {ksztalt.WypelnienieZewnetrzne}");
             sb.AppendLine($"- Wypełnienie wewnętrzne: {ksztalt.WypelnienieWewnetrzne}");
             sb.AppendLine($"- Liczba punktów: {ksztalt.Wierzcholki?.Count ?? 0}");
+
+            ksztalt.DlogoscElementu = (float)generator.DlugoscElementu(ksztalt.Wierzcholki);
 
             if (ksztalt.Wierzcholki != null)
             {
@@ -1441,16 +1444,19 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         var offsets = GetOffsetsForGroup(ksztalt.Grupa);
 
 
-       await DrawSingleContour(context, outerPoints);
+        await DrawSingleContour(context, outerPoints);
 
 
-       // await DrawDoubleContour(context, outerPoints, innerPoints);
+        // await DrawDoubleContour(context, outerPoints, innerPoints);
+        //if (!isTextureLoaded)
+       // {
+            await JS.InvokeVoidAsync("loadAndDrawTexture",
+                CanvasRef.CanvasReference,
+                textureUrl,
+                _dotNetHelper
+            ); 
+       // }
 
-        await JS.InvokeVoidAsync("loadAndDrawTexture",
-            CanvasRef.CanvasReference,
-            textureUrl,
-            _dotNetHelper
-        );
 
         await context.SetStrokeStyleAsync("#000000");
         await context.SetLineWidthAsync(1.5f);

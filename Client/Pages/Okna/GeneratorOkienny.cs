@@ -105,7 +105,8 @@ namespace GEORGE.Client.Pages.Okna
                 }
                 else
                 {
-                    GenerateGenericElements(punkty, wewnetrznyKontur);
+                    //GenerateGenericElements(punkty, wewnetrznyKontur);
+                    GenerateGenericElementsWithJoins(punkty, wewnetrznyKontur, profileLeft, profileRight, profileTop, profileBottom, region.TypKsztaltu, EdytowanyModel.PolaczenieNaroza, KonfiguracjeSystemu);
                 }
             }
 
@@ -115,168 +116,106 @@ namespace GEORGE.Client.Pages.Okna
             //3 - Lewy dolny
 
         }
-
-        private void GenerateTop(
-        float profileTop, float profileLeft, float profileRight,
-        (int kat, string typ) naroznik1, (int kat, string typ) naroznik2, float minX, float minY, float width)
+        private void GenerateRectangleElements(
+            List<XPoint> outer, List<XPoint> inner,
+            float profileLeft, float profileRight, float profileTop, float profileBottom,
+            string typKsztalt, string polaczenia, List<KonfSystem> model)
         {
-            // Czy któryś narożnik to T2?
-            bool leftT2 = naroznik1.typ == "T2"; // && naroznik1.kat == 45; // dla narożnika 0
-            bool rightT2 = naroznik2.typ == "T2"; // && naroznik2.kat == 45; // dla narożnika 1
+            float minX = outer.Min(p => (float)p.X);
+            float maxX = outer.Max(p => (float)p.X);
+            float minY = outer.Min(p => (float)p.Y);
+            float maxY = outer.Max(p => (float)p.Y);
 
-            Console.WriteLine($"GenerateTop: leftT2: {leftT2}, rightT2: {rightT2} naroznik1.typ: {naroznik1.typ}  naroznik2.typ: {naroznik2.typ}");
-
-            float x1 = minX;
-            float x2 = minX + width;
-            float y1 = minY;
-            float y2 = minY + profileTop;
-
-            var points = new List<XPoint>();
-
-            // Lewy górny
-            points.Add(new XPoint(x1 + (leftT2 ? profileTop : 0), y1));
-
-            // Prawy górny
-            points.Add(new XPoint(x2 - (rightT2 ? profileTop : 0), y1));
-
-            // Prawy dolny
-            points.Add(new XPoint(x2, y2));
-
-            // Lewy dolny
-            points.Add(new XPoint(x1, y2));
-
-            ElementyRamyRysowane.Add(new KsztaltElementu
-            {
-                TypKsztaltu = "trapez", // możesz zachować "prostokąt", jeśli geometria działa
-                Wierzcholki = points,
-                WypelnienieZewnetrzne = "wood-pattern",
-                WypelnienieWewnetrzne = KolorSzyby,
-                Grupa = "Gora"
-            });
-        }
-
-
-        private void GenerateRectangleElements(List<XPoint> outer, List<XPoint> inner,
-    float leftOffset, float rightOffset, float topOffset, float bottomOffset,
-    string typKsztalt, string polaczenia, List<KonfSystem> model)
-        {
-            // Oblicz bounding box
-            float minX = (float)outer.Min(p => p.X);
-            float maxX = (float)outer.Max(p => p.X);
-            float minY = (float)outer.Min(p => p.Y);
-            float maxY = (float)outer.Max(p => p.Y);
             float imageWidth = maxX - minX;
             float imageHeight = maxY - minY;
 
-            // Pobierz konfigurację połączeń
             var polaczeniaArray = polaczenia.Split(';')
                 .Select(p => p.Split('-'))
                 .Select(parts => (kat: int.Parse(parts[0]), typ: parts[1].Trim()))
                 .ToArray();
 
-            // Oblicz rzeczywiste grubości z modelu
-            //float profileLeft = (float)(model.FirstOrDefault(e => e.WystepujeLewa)?.PionPrawa ?? 0 -
-            //                          model.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0);
-            //float profileRight = (float)(model.FirstOrDefault(e => e.WystepujePrawa)?.PionPrawa ?? 0 -
-            //                           model.FirstOrDefault(e => e.WystepujePrawa)?.PionLewa ?? 0);
-            //float profileTop = (float)(model.FirstOrDefault(e => e.WystepujeGora)?.PionPrawa ?? 0 -
-            //                         model.FirstOrDefault(e => e.WystepujeGora)?.PionLewa ?? 0);
-            //float profileBottom = (float)(model.FirstOrDefault(e => e.WystepujeDol)?.PionPrawa ?? 0 -
-            //                            model.FirstOrDefault(e => e.WystepujeDol)?.PionLewa ?? 0);
+            if (polaczeniaArray.Length != 4)
+                throw new Exception("Oczekiwano 4 połączeń narożników.");
 
-            float profileLeft = leftOffset;
-            float profileRight = rightOffset;
-            float profileTop = topOffset;
-            float profileBottom = bottomOffset;
-
-            // Korekta wymiarów na podstawie połączeń
-            float goraWidth = imageWidth;
-            float dolWidth = imageWidth;
-            float lewaHeight = imageHeight;
-            float prawaHeight = imageHeight;
-
-            // Koryguj szerokości dla połączeń typu T3
-            if (polaczeniaArray[0].typ == "T3") goraWidth -= profileLeft;
-            if (polaczeniaArray[1].typ == "T3") goraWidth -= profileRight;
-            if (polaczeniaArray[2].typ == "T3") dolWidth -= profileRight;
-            if (polaczeniaArray[3].typ == "T3") dolWidth -= profileLeft;
-
-            // Koryguj wysokości dla połączeń typu T1
-            if (polaczeniaArray[0].typ == "T1") lewaHeight -= profileTop;
-            if (polaczeniaArray[3].typ == "T1") lewaHeight -= profileBottom;
-            if (polaczeniaArray[1].typ == "T1") prawaHeight -= profileTop;
-            if (polaczeniaArray[2].typ == "T1") prawaHeight -= profileBottom;
-
-            // Oblicz pozycje startowe
-            float goraX = polaczeniaArray[0].typ == "T3" ? profileLeft : 0;
-            float dolX = polaczeniaArray[3].typ == "T3" ? profileLeft : 0;
-            float lewaY = polaczeniaArray[0].typ == "T1" ? profileTop : 0;
-            float prawaY = polaczeniaArray[1].typ == "T1" ? profileTop : 0;
-
-            // Utwórz elementy z uwzględnieniem korekt
-            ElementyRamyRysowane.Add(new KsztaltElementu
+            var joinTypes = new[]
             {
-                TypKsztaltu = typKsztalt,
-                Wierzcholki = new List<XPoint>
+        (Left: polaczeniaArray[0].typ, Right: polaczeniaArray[1].typ), // Top
+        (Left: polaczeniaArray[1].typ, Right: polaczeniaArray[2].typ), // Right
+        (Left: polaczeniaArray[2].typ, Right: polaczeniaArray[3].typ), // Bottom
+        (Left: polaczeniaArray[3].typ, Right: polaczeniaArray[0].typ), // Left
+    };
+
+            // Obliczenia pozycji i długości
+            int topX = (joinTypes[0].Left == "T3") ? (int)profileLeft : 0;
+            int topW = (int)imageWidth - ((joinTypes[0].Left == "T3" ? (int)profileLeft : 0) +
+                                          (joinTypes[0].Right == "T3" ? (int)profileRight : 0));
+
+            int rightY = (joinTypes[1].Left == "T1") ? (int)profileTop : 0;
+            int rightH = (int)imageHeight - ((joinTypes[1].Left == "T1" ? (int)profileTop : 0) +
+                                             (joinTypes[1].Right == "T1" ? (int)profileBottom : 0));
+
+            int bottomX = (joinTypes[2].Left == "T3") ? (int)profileLeft : 0;
+            int bottomW = (int)imageWidth - ((joinTypes[2].Left == "T3" ? (int)profileLeft : 0) +
+                                             (joinTypes[2].Right == "T3" ? (int)profileRight : 0));
+
+            int leftY = (joinTypes[3].Left == "T1" || joinTypes[0].Left == "T1") ? (int)profileTop : 0;
+            int leftH = (int)imageHeight - ((joinTypes[3].Left == "T1" || joinTypes[2].Left == "T4" ? (int)profileTop : 0) +
+                                            (joinTypes[3].Right == "T1" ? (int)profileBottom : 0));
+
+            void AddElement(int index, int x, int y, int w, int h, string typLewy, string typPrawy, string grupa)
             {
-                new(minX + goraX, maxY - profileBottom),
-                new(minX + goraX + dolWidth, maxY - profileBottom),
-                new(minX + goraX + dolWidth, maxY),
-                new(minX + goraX, maxY)
+                int offset = (index % 2 == 0) ? h : w;
+                bool isLeftT2 = typLewy == "T2";
+                bool isRightT2 = typPrawy == "T2";
+
+                var points = index switch
+                {
+                    0 => new List<XPoint> // Góra
+            {
+                new(minX + x, minY + y),
+                new(minX + x + w, minY + y),
+                new(minX + x + w - (isRightT2 ? offset : 0), minY + y + h),
+                new(minX + x + (isLeftT2 ? offset : 0), minY + y + h),
             },
-                WypelnienieZewnetrzne = "wood-pattern",
-                WypelnienieWewnetrzne = KolorSzyby,
-                Grupa = "Dol"
-            });
-
-
-
-            GenerateTop(profileTop, profileLeft, profileRight, polaczeniaArray[0], polaczeniaArray[1], minX, minY, goraWidth);
-            //ElementyRamyRysowane.Add(new KsztaltElementu
-            //{
-            //    TypKsztaltu = typKsztalt,
-            //    Wierzcholki = new List<XPoint>
-            //{
-            //    new(minX + goraX, minY),
-            //    new(minX + goraX + goraWidth, minY),
-            //    new(minX + goraX + goraWidth, minY + profileTop),
-            //    new(minX + goraX, minY + profileTop)
-            //},
-            //    WypelnienieZewnetrzne = "wood-pattern",
-            //    WypelnienieWewnetrzne = KolorSzyby,
-            //    Grupa = "Gora"
-            //});
-
-            ElementyRamyRysowane.Add(new KsztaltElementu
+                    1 => new List<XPoint> // Prawa
             {
-                TypKsztaltu = typKsztalt,
-                Wierzcholki = new List<XPoint>
-            {
-                new(minX, minY + lewaY),
-                new(minX + profileLeft, minY + lewaY),
-                new(minX + profileLeft, minY + lewaY + lewaHeight),
-                new(minX, minY + lewaY + lewaHeight)
+                new(maxX - profileRight, minY + y + (isLeftT2 ? offset : 0)),
+                new(maxX, minY + y),
+                new(maxX, minY + y + h),
+                new(maxX - profileRight, minY + y + h - (isRightT2 ? offset : 0)),
             },
-                WypelnienieZewnetrzne = "wood-pattern",
-                WypelnienieWewnetrzne = KolorSzyby,
-                Grupa = "Lewo"
-            });
-
-            ElementyRamyRysowane.Add(new KsztaltElementu
+                    2 => new List<XPoint> // Dół
             {
-                TypKsztaltu = typKsztalt,
-                Wierzcholki = new List<XPoint>
-        {
-            new(maxX - profileRight, minY + prawaY),
-            new(maxX, minY + prawaY),
-            new(maxX, minY + prawaY + prawaHeight),
-            new(maxX - profileRight, minY + prawaY + prawaHeight)
-        },
-                WypelnienieZewnetrzne = "wood-pattern",
-                WypelnienieWewnetrzne = KolorSzyby,
-                Grupa = "Prawo"
-            });
+                new(minX + x + (isLeftT2 ? offset : 0), maxY - h),
+                new(minX + x + w - (isRightT2 ? offset : 0), maxY - h),
+                new(minX + x + w, maxY),
+                new(minX + x, maxY),
+            },
+                    3 => new List<XPoint> // Lewa
+            {
+                new(minX, minY + y),
+                new(minX + profileLeft, minY + y + (isRightT2 ? offset : 0)),
+                new(minX + profileLeft, minY + y + h - (isLeftT2 ? offset : 0)),
+                new(minX, minY + y + h),
+            },
+                    _ => throw new ArgumentOutOfRangeException()
+                };
 
+                ElementyRamyRysowane.Add(new KsztaltElementu
+                {
+                    TypKsztaltu = "trapez",
+                    Wierzcholki = points,
+                    WypelnienieZewnetrzne = "wood-pattern",
+                    WypelnienieWewnetrzne = KolorSzyby,
+                    Grupa = grupa
+                });
+            }
+
+            // Generuj wszystkie ramy
+            AddElement(0, topX, 0, topW, (int)profileTop, joinTypes[0].Left, joinTypes[0].Right, "Gora");
+            AddElement(1, 0, rightY, (int)profileRight, rightH, joinTypes[1].Left, joinTypes[1].Right, "Prawo");
+            AddElement(2, bottomX, 0, bottomW, (int)profileBottom, joinTypes[2].Left, joinTypes[2].Right, "Dol");
+            AddElement(3, 0, leftY, (int)profileLeft, leftH, joinTypes[3].Left, joinTypes[3].Right, "Lewo");
         }
 
         private void GenerateTriangleElements(List<XPoint> outer, List<XPoint> inner,
@@ -340,29 +279,113 @@ namespace GEORGE.Client.Pages.Okna
             }
         }
 
-
-        private void GenerateGenericElements(List<XPoint> outer, List<XPoint> inner)
+    private void GenerateGenericElementsWithJoins(
+    List<XPoint> outer, List<XPoint> inner,
+    float profileLeft, float profileRight, float profileTop, float profileBottom,
+    string typKsztalt, string polaczenia, List<KonfSystem> model)
         {
-            // Domyślna implementacja dla innych kształtów
-            for (int i = 0; i < outer.Count; i++)
+            int vertexCount = outer.Count;
+            if (vertexCount < 3)
+                throw new Exception("Polygon must have at least 3 vertices.");
+
+            var polaczeniaArray = polaczenia.Split(';')
+                .Select(p => p.Split('-'))
+                .Select(parts => (kat: int.Parse(parts[0]), typ: parts[1].Trim()))
+                .ToArray();
+
+            if (polaczeniaArray.Length != vertexCount)
+                throw new Exception($"Expected {vertexCount} corner connections.");
+
+            for (int i = 0; i < vertexCount; i++)
             {
-                int next = (i + 1) % outer.Count;
+                int next = (i + 1) % vertexCount;
+                var leftJoin = polaczeniaArray[i].typ;
+                var rightJoin = polaczeniaArray[next].typ;
+
+                XPoint current = outer[i];
+                XPoint nextPt = outer[next];
+
+                // Oblicz wektor kierunku krawędzi
+                float dx = (float)(nextPt.X - current.X);
+                float dy = (float)(nextPt.Y - current.Y);
+                float length = (float)Math.Sqrt(dx * dx + dy * dy);
+
+                if (length == 0) continue;
+
+                // Oblicz wektory normalne
+                float nx = -dy / length;
+                float ny = dx / length;
+
+                // Określ grubość profilu w zależności od orientacji
+                float profileThickness = Math.Abs(dx) > Math.Abs(dy)
+                    ? (ny > 0 ? profileTop : profileBottom)
+                    : (nx > 0 ? profileRight : profileLeft);
+
+                // Oblicz przesunięcia dla połączeń
+                float leftOffset = GetJoinOffset(leftJoin, profileThickness);
+                float rightOffset = GetJoinOffset(rightJoin, profileThickness);
+
+                // Oblicz punkty wewnętrzne
+                var innerStart = new XPoint(
+                    current.X + nx * profileThickness,
+                    current.Y + ny * profileThickness);
+
+                var innerEnd = new XPoint(
+                    nextPt.X + nx * profileThickness,
+                    nextPt.Y + ny * profileThickness);
+
+                // Dostosuj punkty do typów połączeń
+                innerStart.X += dx * leftOffset / length;
+                innerStart.Y += dy * leftOffset / length;
+
+                innerEnd.X -= dx * rightOffset / length;
+                innerEnd.Y -= dy * rightOffset / length;
+
                 ElementyRamyRysowane.Add(new KsztaltElementu
                 {
-                    TypKsztaltu = "wielobok",
-                    Wierzcholki = new List<XPoint>
-                    {
-                        outer[i],
-                        outer[next],
-                        inner[next],
-                        inner[i]
-                    },
+                    TypKsztaltu = "trapez",
+                    Wierzcholki = new List<XPoint> { current, nextPt, innerEnd, innerStart },
                     WypelnienieZewnetrzne = "wood-pattern",
                     WypelnienieWewnetrzne = KolorSzyby,
                     Grupa = $"Bok{i + 1}"
                 });
             }
         }
+
+        private float GetJoinOffset(string joinType, float profileThickness)
+        {
+            return joinType switch
+            {
+                "T1" => 0,
+                "T2" => profileThickness * 0.5f,
+                "T3" => profileThickness,
+                "T4" => -profileThickness * 0.5f,
+                _ => 0
+            };
+        }
+
+        //private void GenerateGenericElements(List<XPoint> outer, List<XPoint> inner)
+        //{
+        //    // Domyślna implementacja dla innych kształtów
+        //    for (int i = 0; i < outer.Count; i++)
+        //    {
+        //        int next = (i + 1) % outer.Count;
+        //        ElementyRamyRysowane.Add(new KsztaltElementu
+        //        {
+        //            TypKsztaltu = "wielobok",
+        //            Wierzcholki = new List<XPoint>
+        //            {
+        //                outer[i],
+        //                outer[next],
+        //                inner[next],
+        //                inner[i]
+        //            },
+        //            WypelnienieZewnetrzne = "wood-pattern",
+        //            WypelnienieWewnetrzne = KolorSzyby,
+        //            Grupa = $"Bok{i + 1}"
+        //        });
+        //    }
+        //}
 
         private List<XPoint> CalculateOffsetPolygon(
             List<XPoint> points,
@@ -515,6 +538,37 @@ namespace GEORGE.Client.Pages.Okna
                 top: (float)points.Min(p => p.Y),
                 bottom: (float)points.Max(p => p.Y)
             );
+        }
+
+        // Other properties and methods of the Generator class...
+
+        /// <summary>
+        /// Calculates the length of an element based on its vertices.
+        /// </summary>
+        /// <param name="vertices">List of vertices defining the shape.</param>
+        /// <returns>The calculated length of the element.</returns>
+        public double DlugoscElementu(List<XPoint> vertices)
+        {
+            if (vertices == null || vertices.Count < 2)
+            {
+                throw new ArgumentException("Vertices list must contain at least two points.");
+            }
+
+            double length = 0.0;
+
+            for (int i = 0; i < vertices.Count - 1; i++)
+            {
+                var point1 = vertices[i];
+                var point2 = vertices[i + 1];
+                length += Math.Sqrt(Math.Pow(point2.X - point1.X, 2) + Math.Pow(point2.Y - point1.Y, 2));
+            }
+
+            // Optionally, close the shape by connecting the last point to the first
+            var firstPoint = vertices[0];
+            var lastPoint = vertices[vertices.Count - 1];
+            length += Math.Sqrt(Math.Pow(lastPoint.X - firstPoint.X, 2) + Math.Pow(lastPoint.Y - firstPoint.Y, 2));
+
+            return length;
         }
     }
 }

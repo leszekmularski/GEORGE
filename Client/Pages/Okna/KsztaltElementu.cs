@@ -32,6 +32,8 @@ namespace GEORGE.Client.Pages.Okna
 
         // Opcjonalna grupa logiczna (np. "rama", "szyba", "skrzydlo")
         public string? Grupa { get; set; }
+        //Informacje o długości elementy
+        public float DlogoscElementu { get; set; } = 0.0f;
     }
 
 }
