@@ -106,7 +106,18 @@ namespace GEORGE.Client.Pages.Okna
                 else
                 {
                     //GenerateGenericElements(punkty, wewnetrznyKontur);
-                    GenerateGenericElementsWithJoins(punkty, wewnetrznyKontur, profileLeft, profileRight, profileTop, profileBottom, region.TypKsztaltu, EdytowanyModel.PolaczenieNaroza, KonfiguracjeSystemu);
+                    // Wywołanie funkcji
+                    GenerateWindowFrameElements(
+                        punkty,          // List<XPoint> - zewnętrzne punkty konturu
+                        wewnetrznyKontur,// List<XPoint> - wewnętrzne punkty przeszklenia
+                        profileLeft,     // float - grubość profilu lewego
+                        profileRight,    // float - grubość profilu prawego
+                        profileTop,      // float - grubość profilu górnego
+                        profileBottom,   // float - grubość profilu dolnego
+                        region.TypKsztaltu, // string - typ kształtu (np. "prostokąt")
+                        EdytowanyModel.PolaczenieNaroza, // string - np. "T1;T2;T3;T1"
+                        KonfiguracjeSystemu              // List<KonfSystem> - konfiguracje systemowe
+                    );
                 }
             }
 
@@ -116,7 +127,7 @@ namespace GEORGE.Client.Pages.Okna
             //3 - Lewy dolny
 
         }
-        private void GenerateRectangleElements(
+    private void GenerateRectangleElements(
             List<XPoint> outer, List<XPoint> inner,
             float profileLeft, float profileRight, float profileTop, float profileBottom,
             string typKsztalt, string polaczenia, List<KonfSystem> model)
@@ -279,88 +290,207 @@ namespace GEORGE.Client.Pages.Okna
             }
         }
 
-    private void GenerateGenericElementsWithJoins(
-    List<XPoint> outer, List<XPoint> inner,
-    float profileLeft, float profileRight, float profileTop, float profileBottom,
-    string typKsztalt, string polaczenia, List<KonfSystem> model)
-        {
-            int vertexCount = outer.Count;
-            if (vertexCount < 3)
-                throw new Exception("Polygon must have at least 3 vertices.");
 
-            var polaczeniaArray = polaczenia.Split(';')
-                .Select(p => p.Split('-'))
-                .Select(parts => (kat: int.Parse(parts[0]), typ: parts[1].Trim()))
+
+        private void GenerateWindowFrameElements(
+            List<XPoint> outer,
+            List<XPoint> inner,
+            float profileLeft,
+            float profileRight,
+            float profileTop,
+            float profileBottom,
+            string typKsztalt,
+            string polaczenia,
+            List<KonfSystem> model)
+        {
+            const int EXPECTED_ELEMENTS = 4;
+
+            if (outer.Count != 4 || inner.Count != 4)
+                throw new Exception("Wymagany prostokątny kształt z 4 punktami");
+
+            var connections = polaczenia.Split(';')
+                .Select(ct => ct.Trim())
+                .Take(4)
                 .ToArray();
 
-            if (polaczeniaArray.Length != vertexCount)
-                throw new Exception($"Expected {vertexCount} corner connections.");
-
-            for (int i = 0; i < vertexCount; i++)
+            // Generuj elementy dla każdej strony
+            for (int i = 0; i < EXPECTED_ELEMENTS; i++)
             {
-                int next = (i + 1) % vertexCount;
-                var leftJoin = polaczeniaArray[i].typ;
-                var rightJoin = polaczeniaArray[next].typ;
+                int prev = (i - 1 + 4) % 4;
+                int next = (i + 1) % 4;
 
-                XPoint current = outer[i];
-                XPoint nextPt = outer[next];
+                string currentConnection = connections.Length > i ? connections[i] : "T1";
+                string prevConnection = connections.Length > prev ? connections[prev] : "T1";
+                string nextConnection = connections.Length > next ? connections[next] : "T1";
 
-                // Oblicz wektor kierunku krawędzi
-                float dx = (float)(nextPt.X - current.X);
-                float dy = (float)(nextPt.Y - current.Y);
-                float length = (float)Math.Sqrt(dx * dx + dy * dy);
-
-                if (length == 0) continue;
-
-                // Oblicz wektory normalne
-                float nx = -dy / length;
-                float ny = dx / length;
-
-                // Określ grubość profilu w zależności od orientacji
-                float profileThickness = Math.Abs(dx) > Math.Abs(dy)
-                    ? (ny > 0 ? profileTop : profileBottom)
-                    : (nx > 0 ? profileRight : profileLeft);
-
-                // Oblicz przesunięcia dla połączeń
-                float leftOffset = GetJoinOffset(leftJoin, profileThickness);
-                float rightOffset = GetJoinOffset(rightJoin, profileThickness);
-
-                // Oblicz punkty wewnętrzne
-                var innerStart = new XPoint(
-                    current.X + nx * profileThickness,
-                    current.Y + ny * profileThickness);
-
-                var innerEnd = new XPoint(
-                    nextPt.X + nx * profileThickness,
-                    nextPt.Y + ny * profileThickness);
-
-                // Dostosuj punkty do typów połączeń
-                innerStart.X += dx * leftOffset / length;
-                innerStart.Y += dy * leftOffset / length;
-
-                innerEnd.X -= dx * rightOffset / length;
-                innerEnd.Y -= dy * rightOffset / length;
+                List<XPoint> elementPoints = CalculateElementPoints(
+                    outer[i],
+                    outer[next],
+                    inner[i],
+                    inner[next],
+                    currentConnection,
+                    prevConnection,
+                    nextConnection,
+                    GetProfileThickness(i, profileLeft, profileRight, profileTop, profileBottom));
 
                 ElementyRamyRysowane.Add(new KsztaltElementu
                 {
-                    TypKsztaltu = "trapez",
-                    Wierzcholki = new List<XPoint> { current, nextPt, innerEnd, innerStart },
+                    TypKsztaltu = "wielobok",
+                    Wierzcholki = elementPoints,
                     WypelnienieZewnetrzne = "wood-pattern",
                     WypelnienieWewnetrzne = KolorSzyby,
-                    Grupa = $"Bok{i + 1}"
+                    Grupa = GetSideName(i)
                 });
             }
         }
 
-        private float GetJoinOffset(string joinType, float profileThickness)
+        private string GetSideName(int index)
         {
-            return joinType switch
+            return index switch
             {
-                "T1" => 0,
-                "T2" => profileThickness * 0.5f,
-                "T3" => profileThickness,
-                "T4" => -profileThickness * 0.5f,
-                _ => 0
+                0 => "Góra",
+                1 => "Prawo",
+                2 => "Dół",
+                3 => "Lewo",
+                _ => "Bok"
+            };
+        }
+        private List<XPoint> CalculateElementPoints(
+            XPoint outerStart,
+            XPoint outerEnd,
+            XPoint innerStart,
+            XPoint innerEnd,
+            string currentConnection,
+            string prevConnection,
+            string nextConnection,
+            float profile)
+        {
+            return currentConnection switch
+            {
+                "T1" => CalculateT1Points(outerStart, outerEnd, innerStart, innerEnd, profile, prevConnection, nextConnection),
+                "T2" => CalculateT2Points(outerStart, outerEnd, innerStart, innerEnd, profile),
+                "T3" => CalculateT3Points(outerStart, outerEnd, innerStart, innerEnd, profile, prevConnection, nextConnection),
+                _ => new List<XPoint> { outerStart, outerEnd, innerEnd, innerStart }
+            };
+        }
+
+        private List<XPoint> CalculateT1Points(
+            XPoint outerStart,
+            XPoint outerEnd,
+            XPoint innerStart,
+            XPoint innerEnd,
+            float profile,
+            string prevConnection,
+            string nextConnection)
+        {
+            // Proste połączenie prostopadłe
+            bool isHorizontal = IsHorizontal(outerStart, outerEnd);
+
+            // Korekta dla sąsiednich połączeń
+            float prevOffset = prevConnection == "T3" ? profile * 0.5f : 0;
+            float nextOffset = nextConnection == "T3" ? profile * 0.5f : 0;
+
+            if (isHorizontal)
+            {
+                return new List<XPoint>
+        {
+            new XPoint(outerStart.X + prevOffset, outerStart.Y),
+            new XPoint(outerEnd.X - nextOffset, outerEnd.Y),
+            new XPoint(innerEnd.X - nextOffset, innerEnd.Y),
+            new XPoint(innerStart.X + prevOffset, innerStart.Y)
+        };
+            }
+
+            return new List<XPoint>
+    {
+        new XPoint(outerStart.X, outerStart.Y + prevOffset),
+        new XPoint(outerEnd.X, outerEnd.Y - nextOffset),
+        new XPoint(innerEnd.X, innerEnd.Y - nextOffset),
+        new XPoint(innerStart.X, innerStart.Y + prevOffset)
+    };
+        }
+
+        private List<XPoint> CalculateT2Points(
+            XPoint outerStart,
+            XPoint outerEnd,
+            XPoint innerStart,
+            XPoint innerEnd,
+            float profile)
+        {
+            // Połączenie pod kątem 45°
+            bool isHorizontal = IsHorizontal(outerStart, outerEnd);
+            float offset = profile * MathF.Tan(MathF.PI / 4);
+
+            if (isHorizontal)
+            {
+                return new List<XPoint>
+        {
+            outerStart,
+            outerEnd,
+            new XPoint(innerEnd.X, innerEnd.Y - offset),
+            new XPoint(innerStart.X, innerStart.Y - offset)
+        };
+            }
+
+            return new List<XPoint>
+    {
+        outerStart,
+        outerEnd,
+        new XPoint(innerEnd.X - offset, innerEnd.Y),
+        new XPoint(innerStart.X - offset, innerStart.Y)
+    };
+        }
+
+        private List<XPoint> CalculateT3Points(
+            XPoint outerStart,
+            XPoint outerEnd,
+            XPoint innerStart,
+            XPoint innerEnd,
+            float profile,
+            string prevConnection,
+            string nextConnection)
+        {
+            // Połączenie z przesunięciem
+            bool isHorizontal = IsHorizontal(outerStart, outerEnd);
+            float offset = profile * 0.75f;
+
+            if (isHorizontal)
+            {
+                float leftOffset = prevConnection == "T1" ? offset : 0;
+                float rightOffset = nextConnection == "T1" ? offset : 0;
+
+                return new List<XPoint>
+        {
+            new XPoint(outerStart.X + leftOffset, outerStart.Y),
+            new XPoint(outerEnd.X - rightOffset, outerEnd.Y),
+            innerEnd,
+            innerStart
+        };
+            }
+
+            float topOffset = prevConnection == "T1" ? offset : 0;
+            float bottomOffset = nextConnection == "T1" ? offset : 0;
+
+            return new List<XPoint>
+    {
+        new XPoint(outerStart.X, outerStart.Y + topOffset),
+        new XPoint(outerEnd.X, outerEnd.Y - bottomOffset),
+        innerEnd,
+        innerStart
+    };
+        }
+
+        private bool IsHorizontal(XPoint a, XPoint b) => Math.Abs(a.Y - b.Y) < 0.001f;
+
+        private float GetProfileThickness(int sideIndex, float left, float right, float top, float bottom)
+        {
+            return sideIndex switch
+            {
+                0 => top,    // Góra
+                1 => right,  // Prawo
+                2 => bottom, // Dół
+                3 => left,    // Lewo
+                _ => 10f
             };
         }
 
