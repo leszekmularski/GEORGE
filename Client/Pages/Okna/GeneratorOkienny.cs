@@ -1,12 +1,5 @@
-﻿using DocumentFormat.OpenXml.Drawing.Spreadsheet;
-using DocumentFormat.OpenXml.Office2016.Drawing;
-using GEORGE.Client.Pages.Models;
+﻿using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.Models;
-using iText.Kernel.Pdf.Canvas.Parser.ClipperLib;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using static System.Net.WebRequestMethods;
 
 namespace GEORGE.Client.Pages.Okna
 {
@@ -42,7 +35,7 @@ namespace GEORGE.Client.Pages.Okna
         {
             if (regions == null) return;
 
-            if(KonfiguracjeSystemu == null || PowiazanyModel == null)
+            if (KonfiguracjeSystemu == null || PowiazanyModel == null)
             {
                 Console.WriteLine($"Brak KonfiguracjeSystemu !!!!");
                 return;
@@ -54,9 +47,9 @@ namespace GEORGE.Client.Pages.Okna
                 return;
             }
 
-            Console.WriteLine($"EdytowanyModel.PolaczenieNaroza: {EdytowanyModel.PolaczenieNaroza}");  
+            Console.WriteLine($"EdytowanyModel.PolaczenieNaroza: {EdytowanyModel.PolaczenieNaroza}");
 
-            Console.WriteLine($"Szerokosc: {Szerokosc}"); 
+            Console.WriteLine($"Szerokosc: {Szerokosc}");
 
             foreach (var region in regions)
             {
@@ -98,7 +91,7 @@ namespace GEORGE.Client.Pages.Okna
                 if (region.TypKsztaltu == "prostokąt" || region.TypKsztaltu == "kwadrat")
                 {
                     GenerateRectangleElements(punkty, wewnetrznyKontur, profileLeft, profileRight, profileTop, profileBottom, region.TypKsztaltu, EdytowanyModel.PolaczenieNaroza, KonfiguracjeSystemu);
-                   
+
                 }
                 else if (region.TypKsztaltu == "trójkąt")
                 {
@@ -128,10 +121,10 @@ namespace GEORGE.Client.Pages.Okna
             //3 - Lewy dolny
 
         }
-    private void GenerateRectangleElements(
-            List<XPoint> outer, List<XPoint> inner,
-            float profileLeft, float profileRight, float profileTop, float profileBottom,
-            string typKsztalt, string polaczenia, List<KonfSystem> model)
+        private void GenerateRectangleElements(
+                List<XPoint> outer, List<XPoint> inner,
+                float profileLeft, float profileRight, float profileTop, float profileBottom,
+                string typKsztalt, string polaczenia, List<KonfSystem> model)
         {
             float minX = outer.Min(p => (float)p.X);
             float maxX = outer.Max(p => (float)p.X);
@@ -396,8 +389,8 @@ namespace GEORGE.Client.Pages.Okna
 
             for (int i = 0; i < vertexCount; i++)
             {
-                int next = (i + 1) % vertexCount;
                 int prev = (i - 1 + vertexCount) % vertexCount;
+                int next = (i + 1) % vertexCount;
                 int nextNext = (next + 1) % vertexCount;
 
                 var leftJoin = polaczeniaArray[i].typ;
@@ -421,54 +414,66 @@ namespace GEORGE.Client.Pages.Okna
                     : (nx > 0 ? profileRight : profileLeft);
 
                 bool isAlmostHorizontal = Math.Abs(dy) < 1e-2;
+                bool isAlmostVertical = Math.Abs(dx) < 1e-2;
+
+                Console.WriteLine($"-------> i: {i} isAlmostHorizontal={isAlmostHorizontal} isAlmostVertical={isAlmostVertical}");  
 
                 List<XPoint> wierzcholki;
 
-                if (leftJoin == "T1" && rightJoin == "T1" && isAlmostHorizontal)
+                if (leftJoin == "T1" && rightJoin == "T1")
                 {
-                    // 🎯 Trapez dopasowany do konturu zewnętrznego
+                    if (isAlmostHorizontal)
+                    {
+                        // 🔺 Specjalne zachowanie dla T1 + T1 poziomych lub pionowych
+                        var outerVecStart = GetIntersectionWithEdge(
+                            outerStart,
+                            new XPoint(outerStart.X + nx * 1000, outerStart.Y + ny * 1000),
+                            outer[prev], outer[i]);
 
-                    // Poprawiona kolejność przecięcia
-                    var outerVecStart = GetIntersectionWithEdge(
-                        outerStart,
-                        new XPoint(outerStart.X + nx * 1000, outerStart.Y + ny * 1000),
-                        outer[i],
-                        outer[prev]);
+                        var outerVecEnd = GetIntersectionWithEdge(
+                            outerEnd,
+                            new XPoint(outerEnd.X + nx * 1000, outerEnd.Y + ny * 1000),
+                            outer[next], outer[nextNext]);
 
-                    var outerVecEnd = GetIntersectionWithEdge(
-                        outerEnd,
-                        new XPoint(outerEnd.X + nx * 1000, outerEnd.Y + ny * 1000),
-                        outer[next],
-                        outer[nextNext]);
+                        var innerVecStart = GetIntersectionWithEdge(
+                            new XPoint(outerVecStart.X + nx * profile, outerVecStart.Y + ny * profile),
+                            new XPoint(outerVecStart.X + nx * profile + tx * 1000, outerVecStart.Y + ny * profile + ty * 1000),
+                            outer[prev], outer[i]);
 
-                    // Punkt przecięcia wewnętrznego profilu (na tej samej normalnej, ale dalej)
-                    var innerVecStart = GetIntersectionWithEdge(
-                        new XPoint(outerVecStart.X + nx * profile, outerVecStart.Y + ny * profile),
-                        new XPoint(outerVecStart.X + nx * profile + tx * 1000, outerVecStart.Y + ny * profile + ty * 1000),
-                        outer[(i - 1 + vertexCount) % vertexCount],
-                        outer[i]);
+                        var innerVecEnd = GetIntersectionWithEdge(
+                            new XPoint(outerVecEnd.X + nx * profile, outerVecEnd.Y + ny * profile),
+                            new XPoint(outerVecEnd.X + nx * profile + tx * 1000, outerVecEnd.Y + ny * profile + ty * 1000),
+                            outer[next], outer[nextNext]);
 
-                    var innerVecEnd = GetIntersectionWithEdge(
-                        new XPoint(outerVecEnd.X + nx * profile, outerVecEnd.Y + ny * profile),
-                        new XPoint(outerVecEnd.X + nx * profile + tx * 1000, outerVecEnd.Y + ny * profile + ty * 1000),
-                        outer[next],
-                        outer[(next + 1) % vertexCount]);
+                        wierzcholki = new List<XPoint> {
+                        outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
+                        };
 
-                    var innerStart = innerVecStart;
-                    var innerEnd = innerVecEnd;
+                    }
+                    else
+                    {
+                        var topY = Math.Min(inner[i].Y, inner[next].Y);
+                        var bottomY = Math.Max(inner[i].Y, inner[next].Y);
 
+                        var outerTop = GetHorizontalIntersection(outerStart, outerEnd, (float)topY);
+                        var outerBottom = GetHorizontalIntersection(outerStart, outerEnd, (float)bottomY);
 
-                    wierzcholki = new List<XPoint>
-            {
-                outerVecStart,
-                outerVecEnd,
-                innerEnd,
-                innerStart
-            };
+                        var innerTop = GetHorizontalIntersection(inner[i], inner[next], (float)topY);
+                        var innerBottom = GetHorizontalIntersection(inner[i], inner[next], (float)bottomY);
+
+                        wierzcholki = new List<XPoint> {
+                            outerTop,
+                            outerBottom,
+                            innerBottom,
+                            innerTop
+                        };
+
+                    }
+
                 }
                 else
                 {
-                    // 🟦 Inne przypadki: T2, T3, mieszane
+                    // ✴️ Domyślna logika
                     float leftOffset = GetJoinOffset(leftJoin, profile);
                     float rightOffset = GetJoinOffset(rightJoin, profile);
 
@@ -488,13 +493,9 @@ namespace GEORGE.Client.Pages.Okna
                         adjOuterEnd.X + nx * profile,
                         adjOuterEnd.Y + ny * profile);
 
-                    wierzcholki = new List<XPoint>
-            {
-                adjOuterStart,
-                adjOuterEnd,
-                innerEnd,
-                innerStart
-            };
+                    wierzcholki = new List<XPoint> { adjOuterStart, adjOuterEnd, innerEnd, innerStart };
+
+
                 }
 
                 ElementyRamyRysowane.Add(new KsztaltElementu
@@ -505,27 +506,38 @@ namespace GEORGE.Client.Pages.Okna
                     WypelnienieWewnetrzne = KolorSzyby,
                     Grupa = $"Bok{i + 1}"
                 });
+
             }
         }
 
-        private XPoint GetIntersectionWithEdge(XPoint p1, XPoint p2, XPoint edgeStart, XPoint edgeEnd)
-        {
-            float dx1 = (float)(p2.X - p1.X);
-            float dy1 = (float)(p2.Y - p1.Y);
-            float dx2 = (float)(edgeEnd.X - edgeStart.X);
-            float dy2 = (float)(edgeEnd.Y - edgeStart.Y);
+private XPoint GetHorizontalIntersection(XPoint a, XPoint b, float y)
+{
+    if (Math.Abs(a.Y - b.Y) < 1e-3f)
+        return new XPoint(a.X, y); // linia pozioma – przyjmujemy X a
 
-            float det = dx1 * dy2 - dy1 * dx2;
-            if (Math.Abs(det) < 1e-6f)
+    float t = (y - (float)a.Y) / ((float)b.Y - (float)a.Y);
+    float x = (float)a.X + t * ((float)b.X - (float)a.X);
+    return new XPoint(x, y);
+}
+
+        private XPoint GetIntersectionWithEdge(XPoint a1, XPoint a2, XPoint b1, XPoint b2)
+        {
+            float dx1 = (float)(a2.X - a1.X);
+            float dy1 = (float)(a2.Y - a1.Y);
+            float dx2 = (float)(b2.X - b1.X);
+            float dy2 = (float)(b2.Y - b1.Y);
+
+            float determinant = dx1 * dy2 - dy1 * dx2;
+            if (Math.Abs(determinant) < 1e-6)
             {
-                return new XPoint((p1.X + edgeStart.X) / 2, (p1.Y + edgeStart.Y) / 2); // fallback
+                return new XPoint((a1.X + b1.X) / 2, (a1.Y + b1.Y) / 2); // fallback
             }
 
-            float t = ((float)(edgeStart.X - p1.X) * dy2 - (float)(edgeStart.Y - p1.Y) * dx2) / det;
+            float t = (float)((b1.X - a1.X) * dy2 - (b1.Y - a1.Y) * dx2) / determinant;
 
             return new XPoint(
-                p1.X + t * dx1,
-                p1.Y + t * dy1
+                a1.X + t * dx1,
+                a1.Y + t * dy1
             );
         }
 
