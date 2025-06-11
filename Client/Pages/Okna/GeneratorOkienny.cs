@@ -430,7 +430,10 @@ namespace GEORGE.Client.Pages.Okna
                 bool isAlmostHorizontal = Math.Abs(dy) < 1e-2;
                 bool isAlmostVertical = Math.Abs(dx) < 1e-2;
 
-                if(!isAlmostHorizontal && !isAlmostVertical)
+                //bool isMoreHorizontal = Math.Abs(dy) < Math.Abs(dx); // To do poprawy kiedy jest pionowy a kiedy poziomy
+                //bool isMoreVertical = Math.Abs(dx) < Math.Abs(dy);
+
+                if (!isAlmostHorizontal && !isAlmostVertical && vertexCount > 4)
                 {
                     if (leftJoin == "T1" && rightJoin == "T1")
                     {
@@ -485,6 +488,125 @@ namespace GEORGE.Client.Pages.Okna
                         };
                     }
                 }
+                else if (leftJoin == "T3" && rightJoin == "T3")
+                {
+                    Console.WriteLine($"🔷 T3/T3 element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical}");
+
+                    if (isAlmostVertical)
+                    {
+                        // 🔷 Pionowe – pełne
+                        var outerVecTop = FindFirstEdgeIntersection(outerStart, nx, ny, outer);
+                        var outerVecBottom = FindFirstEdgeIntersection(outerEnd, nx, ny, outer);
+
+                        var innerVecTop = FindFirstEdgeIntersection(
+                            new XPoint(outerVecTop.X + nx * profile, outerVecTop.Y + ny * profile),
+                            tx, ty, outer);
+
+                        var innerVecBottom = FindFirstEdgeIntersection(
+                            new XPoint(outerVecBottom.X + nx * profile, outerVecBottom.Y + ny * profile),
+                            tx, ty, outer);
+
+                        wierzcholki = new List<XPoint> {
+                            outerVecTop, outerVecBottom, innerVecBottom, innerVecTop
+                        };
+                    }
+                    else
+                    {
+                        // Przecięcia "normalne"
+                        var outerVecStartFull = FindFirstEdgeIntersection(outerStart, nx, ny, outer);
+                        var outerVecEndFull = FindFirstEdgeIntersection(outerEnd, nx, ny, outer);
+
+                        // ✂️ Skrócenie o profile pionowe
+                        var outerVecStart = new XPoint(
+                            outerVecStartFull.X + tx * profileLeft,
+                            outerVecStartFull.Y + ty * profileLeft);
+
+                        var outerVecEnd = new XPoint(
+                            outerVecEndFull.X - tx * profileRight,
+                            outerVecEndFull.Y - ty * profileRight);
+
+
+                        if (isAlmostHorizontal)
+                        {
+                            // ✨ Korekcja styku z pionami T3 z lewej i prawej strony
+                            var prev = (i - 1 + vertexCount) % vertexCount;
+                            var nextNext = (next + 1) % vertexCount;
+
+                            if (polaczeniaArray[prev].typ == "T3")
+                            {
+                                outerVecStart = FindFirstEdgeIntersection(outerVecStart, tx, ty, inner);
+                            }
+
+                            if (polaczeniaArray[nextNext % vertexCount].typ == "T3")
+                            {
+                                outerVecEnd = FindFirstEdgeIntersection(outerVecEnd, -tx, -ty, inner);
+                            }
+
+                            // Przesunięcie do wnętrza
+                            var innerVecStart = FindFirstEdgeIntersection(
+                                new XPoint(outerVecStart.X + nx * profile, outerVecStart.Y + ny * profile),
+                                tx, ty, inner);
+
+                            var innerVecEnd = FindFirstEdgeIntersection(
+                                new XPoint(outerVecEnd.X + nx * profile, outerVecEnd.Y + ny * profile),
+                                tx, ty, inner);
+
+                            wierzcholki = new List<XPoint> {
+                            outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
+                        };
+                        }
+                        else
+                        {
+                            // ✨ Korekcja styku z pionami T3 z lewej i prawej strony
+                            var prev = (i - 1 + vertexCount) % vertexCount;
+                            var nextNext = (next + 1) % vertexCount;
+
+                            if (polaczeniaArray[prev].typ == "T3")
+                            {
+                                outerVecStart = FindFirstEdgeIntersection(outerVecStart, tx, ty, outer);
+                            }
+
+                            if (polaczeniaArray[nextNext % vertexCount].typ == "T3")
+                            {
+                                outerVecEnd = FindFirstEdgeIntersection(outerVecEnd, -tx, -ty, outer);
+                            }
+
+                            // Przesunięcie do wnętrza
+                            var innerVecStart = FindFirstEdgeIntersection(
+                                new XPoint(outerVecStart.X + nx * profile, outerVecStart.Y + ny * profile),
+                                tx, ty, outer);
+
+                            var innerVecEnd = FindFirstEdgeIntersection(
+                                new XPoint(outerVecEnd.X + nx * profile, outerVecEnd.Y + ny * profile),
+                                tx, ty, outer);
+
+                            wierzcholki = new List<XPoint> {
+                            outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
+                        };
+                        }
+
+                    }
+
+                }
+                else if (leftJoin == "T2" && rightJoin == "T2")
+                {
+                    Console.WriteLine($"🔷 T2/T2 element {i + 1} - styczne ścięcia pod kątem");
+                    // Przecięcia z konturem na bazie normalnej
+                    var outerVecStart = FindFirstEdgeIntersection(outerStart, nx, ny, outer);
+                    var outerVecEnd = FindFirstEdgeIntersection(outerEnd, nx, ny, outer);
+
+                    var innerVecStart = FindFirstEdgeIntersection(
+                        new XPoint(outerVecStart.X + nx * profile, outerVecStart.Y + ny * profile),
+                        tx, ty, inner);
+
+                    var innerVecEnd = FindFirstEdgeIntersection(
+                        new XPoint(outerVecEnd.X + nx * profile, outerVecEnd.Y + ny * profile),
+                        tx, ty, inner);
+
+                    wierzcholki = new List<XPoint> {
+                            outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
+                        };
+                }
                 else
                 {
                     float leftOffset = GetJoinOffset(leftJoin, profile);
@@ -511,15 +633,18 @@ namespace GEORGE.Client.Pages.Okna
                     };
                 }
 
-                ElementyRamyRysowane.Add(new KsztaltElementu
-                {
-                    TypKsztaltu = typKsztalt,
-                    Wierzcholki = wierzcholki,
-                    WypelnienieZewnetrzne = "wood-pattern",
-                    WypelnienieWewnetrzne = KolorSzyby,
-                    Grupa = $"Bok{i + 1}"
-                });
+               // if (i > 1)
+                //{
+                    ElementyRamyRysowane.Add(new KsztaltElementu
+                    {
+                        TypKsztaltu = typKsztalt,
+                        Wierzcholki = wierzcholki,
+                        WypelnienieZewnetrzne = "wood-pattern",
+                        WypelnienieWewnetrzne = KolorSzyby,
+                        Grupa = $"Bok{i + 1}"
+                    });
 
+             //   }
             }
         }
 
