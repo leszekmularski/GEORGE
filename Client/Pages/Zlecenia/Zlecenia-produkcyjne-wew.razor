@@ -545,7 +545,8 @@ else
                 {
                     <Alert Message="@bladZapisuPliku" Type="Error" Closable />
                 }
-                <Button Type="ButtonType.Primary" Loading="isLoadingAll" Icon="@IconType.Outline.Download" @onclick="() => DownloadAllFile()">Pobierz wszystkie pliki</Button>
+                <Button Type="ButtonType.Primary" Loading="isLoadingAll" Icon="@IconType.Outline.Download" @onclick="() => DownloadAllFile(false)">Pobierz wszystkie pliki</Button>
+                <Button Type="ButtonType.Primary" Loading="isLoadingAll" Icon="@IconType.Outline.Download" @onclick="() => DownloadAllFile(true)">Pobierz wyłączniki pliki programów CNC</Button>
                 <Button class="ms-auto" @onclick="() => HideDialogFile()">Zakończ</Button>
             </div>
         </div>
@@ -1166,7 +1167,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
     }
 
     private bool isLoadingAll = false;
-    private async Task DownloadAllFile()
+    private async Task DownloadAllFile(bool onlyCNC)
     {
         if (czekajNaPobranie || pliki == null || pliki.Count() == 0 || isLoadingAll) return;
 
@@ -1174,6 +1175,10 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
 
         foreach (var item in pliki)
         {
+            if((onlyCNC && item.TypPliku.ToLower() != "/nc") || (onlyCNC && item.TypPliku.ToLower() != "/p"))
+            {
+                continue; // Pomijamy pliki, które nie są typu NC
+            }
             await DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, true);
         } 
 

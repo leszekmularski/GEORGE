@@ -6,6 +6,7 @@
 @inject Utilities.ILocalStorage LocalStorage
 @inject HttpClient Http
 @using System.Net
+@using System.Globalization
 @inject IMessageService _message
 @inject INotificationService _notice
 @inject NavigationManager Navigation
@@ -22,9 +23,23 @@
 @using GEORGE.Client.Pages.Models
 @using GEORGE.Client.Pages.Okna
 
+@implements IDisposable
+
 <script>
     (() => {
     // Inicjalizacja globalnych zmiennych
+    const _originalInvoke = DotNet.invokeMethodAsync;
+    DotNet.invokeMethodAsync = function (assemblyName, methodName, ...args) {
+        console.log(`🔍 DotNet.invokeMethodAsync intercepted: ${assemblyName}.${methodName}`, args);
+        return _originalInvoke(assemblyName, methodName, ...args)
+            .catch(err => {
+                console.warn("❌ Intercepted DotNet.invokeMethodAsync error:", err);
+                throw err;
+            });
+    };
+
+    window._dragListenersInitialized = window._dragListenersInitialized || false;
+
     window.currentDraggedModel = null;
     window.currentDraggedType = null;
     window.isDragging = false;
@@ -86,40 +101,57 @@
     //     };
 
     // Funkcja kończąca przeciąganie
-    window.stopDrag = async (event) => {
-    if (!window.isDragging) return;
 
-    window.isDragging = false;
+    if (!window._stopDragDefined) {
+        window.stopDrag = async function (event) {
+            if (!window.isDragging) return;
 
-    if (window.currentDraggedImage) {
-    document.body.removeChild(window.currentDraggedImage);
-    window.currentDraggedImage = null;
+            window.isDragging = false;
+
+            if (window.currentDraggedImage) {
+                document.body.removeChild(window.currentDraggedImage);
+                window.currentDraggedImage = null;
+            }
+
+            if (!window.blazorCanvas) {
+                console.error("❌ Brak referencji do canvasu!");
+                return;
+            }
+
+            const rect = window.blazorCanvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            console.log(`🛑 Upuszczono model: ${window.currentDraggedType} na (${x}, ${y})`);
+
+            if (window.dotNetHelper) {
+                try {
+                    await window.dotNetHelper.invokeMethodAsync('OnDragEnd', window.currentDraggedType, x, y);
+                } catch (err) {
+                    console.warn("❌ invokeMethodAsync (OnDragEnd) nie powiodło się:", err);
+                    window.dotNetHelper = null;
+                }
+            }
+
+            window.currentDraggedType = null;
+        };
+
+        document.addEventListener("mouseup", window.stopDrag);
+        window._stopDragDefined = true;
     }
 
-    if (!window.blazorCanvas) {
-    console.error("❌ Brak referencji do canvasu!");
-    return;
-    }
-
-    const rect = window.blazorCanvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-
-    console.log(`🛑 Upuszczono model: ${window.currentDraggedType} na (${x}, ${y})`);
-
-    // Wywołanie metody .NET
-    if (window.dotNetHelper) {
-    await window.dotNetHelper.invokeMethodAsync('OnDragEnd', window.currentDraggedType, x, y);
-    }
-
-    window.currentDraggedType = null;
-    };
 
     // Obsługa aktualizacji kursora
     document.addEventListener("mousemove", window.updateCursorImagePosition);
 
     // Obsługa upuszczenia obrazka
+   if (!window._dragListenersInitialized) {
     document.addEventListener("mouseup", window.stopDrag);
+    document.addEventListener("mousemove", window.updateCursorImagePosition);
+    window._dragListenersInitialized = true;
+    }
+
+
 
     window.SetCustomCursor = (base64Image) => {
     console.log("🔵 Ustawiam kursor na Base64!");
@@ -156,6 +188,7 @@
     await new Promise((resolve, reject) => {
     img.onload = () => resolve();
     img.onerror = reject;
+    console.log("🔍 dotNetHelper:", dotNetHelper);
     });
 
     const pattern = ctx.createPattern(img, 'repeat');
@@ -165,7 +198,14 @@
     ctx.fill("evenodd");
 
     ctx.canvas.dataset.pattern = "wood-pattern";
-    await dotNetHelper.invokeMethodAsync('OnTextureLoaded');
+    
+    if (dotNetHelper) {
+        try {
+            await dotNetHelper.invokeMethodAsync('OnTextureLoaded');
+        } catch (err) {
+            console.warn("❌ OnTextureLoaded invoke failed", err);
+        }
+    }
     };
 
     // Globalny reset kursora z obsługą wszystkich przeglądarek
@@ -231,6 +271,12 @@
     };
 
     })();
+
+window.clearDotNetHelper = () => {
+    console.log("🧹 Czyszczenie dotNetHelper. Stary:", window.dotNetHelper);
+    window.dotNetHelper = null;
+};
+
 
 </script>
 
@@ -724,14 +770,16 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                                         @for (int i = 0; i < ksztalt.Wierzcholki.Count; i++)
                                         {
                                             var punkt = ksztalt.Wierzcholki[i];
-                                            <div class="d-flex align-items-center mb-1" @key="ksztalt.Id + '_' + i">
-                                                <span class="me-2">[@i]</span>
+                                            var lokalnyIndex = i;  // 👈 to jest klucz
+
+                                            <div class="d-flex align-items-center mb-1" @key="punkt">
+                                                <span class="me-2">[@lokalnyIndex]</span>
                                                 <input class="form-control me-1" style="width: 100px;" type="number"
-                                                step="0.01" value="@punkt.X"
-                                                @onchange="@(e => ZmienX(ksztalt, i, e))" placeholder="X" />
+                                                       step="0.01" value="@punkt.X"
+                                                       @oninput="@(e => ZmienX(ksztalt, lokalnyIndex, e))" placeholder="X" />
                                                 <input class="form-control me-1" style="width: 100px;" type="number"
-                                                step="0.01" value="@punkt.Y"
-                                                @onchange="@(e => ZmienY(ksztalt, i, e))" placeholder="Y" />
+                                                       step="0.01" value="@punkt.Y"
+                                                       @oninput="@(e => ZmienY(ksztalt, lokalnyIndex, e))" placeholder="Y" />
                                             </div>
                                         }
                                     </div>
@@ -842,9 +890,12 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
             Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
 
-            _dotNetHelper = DotNetObjectReference.Create(this);
-
-            await JS.InvokeVoidAsync("setDotNetHelper", _dotNetHelper);
+            if (_dotNetHelper == null)
+            {
+                _dotNetHelper = DotNetObjectReference.Create(this);
+                await JS.InvokeVoidAsync("setDotNetHelper", _dotNetHelper);
+                Console.WriteLine($"🆕 DotNetObjectReference.Create(this) dla obiektu {this.GetHashCode()}");
+            }
 
             // Sprawdź, czy skrypt JS został poprawnie załadowany
             var isScriptLoaded = await JS.InvokeAsync<bool>("eval", "typeof setCanvasRef === 'function'");
@@ -862,7 +913,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
                 await RedrawCanvas();// to poprawy!!!
 
-                StateHasChanged();
+                //   StateHasChanged();
             }
             else
             {
@@ -888,17 +939,25 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
     {
         try
         {
-            if (ksztalt?.Wierzcholki == null || index < 0 || index >= ksztalt.Wierzcholki.Count)
+            Console.WriteLine($"➡️ ZmienX wywołane. index: {index} e.Value: '{e.Value}'");
+
+            if (ksztalt == null || ksztalt.Wierzcholki == null || index < 0 || index >= ksztalt.Wierzcholki.Count)
             {
-                Console.WriteLine($"⚠️ Nieprawidłowy indeks: {index} dla ksztaltu z {ksztalt?.Wierzcholki?.Count ?? 0} punktami.");
+                Console.WriteLine("❌ Nieprawidłowe dane wejściowe");
                 return;
             }
 
-            if (float.TryParse(e.Value?.ToString(), out var newX))
+            var stringValue = e.Value?.ToString()?.Replace(",", ".");
+            if (float.TryParse(stringValue, NumberStyles.Any, CultureInfo.InvariantCulture, out var newX))
             {
                 var punkt = ksztalt.Wierzcholki[index];
                 punkt.X = newX;
                 ksztalt.Wierzcholki[index] = punkt;
+                Console.WriteLine($"✅ ZmienX: indeks {index}, nowa wartość X: {newX}");
+            }
+            else
+            {
+                Console.WriteLine($"⚠️ Nie można sparsować: {stringValue}");
             }
         }
         catch (Exception ex)
@@ -907,24 +966,30 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         }
     }
 
-
     private void ZmienY(KsztaltElementu ksztalt, int index, ChangeEventArgs e)
     {
         try
         {
-            if (ksztalt?.Wierzcholki == null || index < 0 || index >= ksztalt.Wierzcholki.Count)
+            Console.WriteLine($"➡️ ZmienY wywołane. index: {index} e.Value: '{e.Value}'");
+
+            if (ksztalt == null || ksztalt.Wierzcholki == null || index < 0 || index >= ksztalt.Wierzcholki.Count)
             {
-                Console.WriteLine($"⚠️ Nieprawidłowy indeks: {index} dla ksztaltu z {ksztalt?.Wierzcholki?.Count ?? 0} punktami.");
+                Console.WriteLine("❌ Nieprawidłowe dane wejściowe");
                 return;
             }
 
-            if (float.TryParse(e.Value?.ToString(), out var newY))
+            var stringValue = e.Value?.ToString()?.Replace(",", ".");
+            if (float.TryParse(stringValue, NumberStyles.Any, CultureInfo.InvariantCulture, out var newY))
             {
                 var punkt = ksztalt.Wierzcholki[index];
                 punkt.Y = newY;
                 ksztalt.Wierzcholki[index] = punkt;
+                Console.WriteLine($"✅ ZmienY: indeks {index}, nowa wartość Y: {newY}");
             }
-
+            else
+            {
+                Console.WriteLine($"⚠️ Nie można sparsować: {stringValue}");
+            }
         }
         catch (Exception ex)
         {
@@ -932,8 +997,22 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         }
     }
 
-    private void EdytujKsztalt(string id)
+
+    private async Task EdytujKsztalt(string id)
     {
+        // Zwalniamy poprzednią instancję
+        if (_dotNetHelper != null)
+        {
+            _dotNetHelper.Dispose();
+            await JS.InvokeVoidAsync("clearDotNetHelper");
+            _dotNetHelper = null;
+        }
+
+        // Tworzymy nową i ustawiamy ją w JS
+        _dotNetHelper = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("setDotNetHelper", _dotNetHelper);
+        Console.WriteLine($"🆕 DotNetObjectReference.Create(this) dla obiektu {this.GetHashCode()}");
+
         edytowanyId = id;
         Console.WriteLine($"edytowanyId: {edytowanyId}");
     }
@@ -967,6 +1046,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
     {
         try
         {
+
             if (firstRender && CanvasRef != null)
             {
                 Console.WriteLine("🖌️ Inicjalizacja canvasu...");
@@ -1024,13 +1104,45 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         if (regiony.Count() > 0)
             await _message.Info($"📦 Wygenerowano {regiony.Count} regionów", 1);
 
+
         foreach (var region in regiony)
         {
+             region.Wierzcholki = RemoveDuplicateConsecutivePoints(region.Wierzcholki);
+
             Console.WriteLine($"🔍 Analizuję region - TypKształtu: {region.TypKsztaltu} - ilość Wierzcholkow: {region.Wierzcholki.Count()}");
+            foreach (var punkty in region.Wierzcholki)
+            {
+                Console.WriteLine($"X:{punkty.X}, Y:{punkty.Y}");
+            }
         }
 
         await _context.RestoreAsync();
     }
+
+        private List<XPoint> RemoveDuplicateConsecutivePoints(List<XPoint> points)
+        {
+            var unique = new List<XPoint>();
+            for (int i = 0; i < points.Count; i++)
+            {
+                if (i == 0 || !ArePointsEqual(points[i], points[i - 1]))
+                {
+                    unique.Add(points[i]);
+                }
+            }
+
+            // Jeśli pierwszy == ostatni — zamknięcie konturu — usuń ostatni
+            if (unique.Count > 2 && ArePointsEqual(unique.First(), unique.Last()))
+            {
+                unique.RemoveAt(unique.Count - 1);
+            }
+
+            return unique;
+        }
+        private bool ArePointsEqual(XPoint p1, XPoint p2)
+        {
+            return Math.Abs(p1.X - p2.X) < 0.1 && Math.Abs(p1.Y - p2.Y) < 0.1;
+        }
+
 
     private async Task ClearCanvas()
     {
@@ -1304,13 +1416,17 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
     {
         try
         {
+            JS.InvokeVoidAsync("clearDotNetHelper");
             _dotNetHelper?.Dispose();
+            _dotNetHelper = null;
+            Console.WriteLine($"🧹 Dispose wywołany. Obiekt: {this.GetHashCode()}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"🔥 Błąd podczas zwalniania zasobów: {ex.Message}");
+            Console.WriteLine($"🔥 Błąd Dispose: {ex.Message}");
         }
     }
+
 
     [JSInvokable]
     public async Task OnTextureLoaded()
@@ -1423,7 +1539,8 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                 Console.WriteLine($"Rysuję kształt: {ksztalt.TypKsztaltu}");
                 if (ksztalt.Wierzcholki == null || ksztalt.Wierzcholki.Count < 3)
                     continue;
-                Console.WriteLine($"ksztalt: {ksztalt.Id}");
+                Console.WriteLine($"*********** >>>>>> ksztalt: {ksztalt.Id}");
+
                 await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
             }
 
@@ -1439,23 +1556,21 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
     {
         var outerPoints = ksztalt.Wierzcholki;
 
-        Console.WriteLine($"outerPoints: {outerPoints.Count}");  
+        Console.WriteLine($"outerPoints: {outerPoints.Count}");
 
         var offsets = GetOffsetsForGroup(ksztalt.Grupa);
 
-
         await DrawSingleContour(context, outerPoints);
 
-
         // await DrawDoubleContour(context, outerPoints, innerPoints);
-        //if (!isTextureLoaded)
-       // {
+        if (_dotNetHelper != null)
+       {
             await JS.InvokeVoidAsync("loadAndDrawTexture",
                 CanvasRef.CanvasReference,
                 textureUrl,
                 _dotNetHelper
             ); 
-       // }
+       }
 
 
         await context.SetStrokeStyleAsync("#000000");

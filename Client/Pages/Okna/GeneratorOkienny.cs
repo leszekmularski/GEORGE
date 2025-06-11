@@ -379,19 +379,33 @@ namespace GEORGE.Client.Pages.Okna
             if (vertexCount < 3)
                 throw new Exception("Polygon must have at least 3 vertices.");
 
-            var polaczeniaArray = polaczenia.Split(';')
-                .Select(p => p.Split('-'))
-                .Select(parts => (kat: int.Parse(parts[0]), typ: parts[1].Trim()))
-                .ToArray();
+            outer = RemoveDuplicateConsecutivePoints(outer);
+            inner = RemoveDuplicateConsecutivePoints(inner);
 
-            if (polaczeniaArray.Length != vertexCount)
-                throw new Exception($"Expected {vertexCount} corner connections.");
+            var parsedConnections = polaczenia.Split(';')
+                .Select(p => p.Split('-'))
+                .Where(parts => parts.Length == 2)
+                .Select(parts => (kat: int.Parse(parts[0]), typ: parts[1].Trim()))
+                .ToList();
+
+            // Jeśli mniej połączeń niż narożników — powielaj ostatnie
+            while (parsedConnections.Count < vertexCount)
+            {
+                parsedConnections.Add(parsedConnections.Last());
+            }
+
+            // Jeśli więcej — przytnij
+            if (parsedConnections.Count > vertexCount)
+            {
+                parsedConnections = parsedConnections.Take(vertexCount).ToList();
+            }
+
+            var polaczeniaArray = parsedConnections.ToArray();
+
 
             for (int i = 0; i < vertexCount; i++)
             {
-                int prev = (i - 1 + vertexCount) % vertexCount;
                 int next = (i + 1) % vertexCount;
-                int nextNext = (next + 1) % vertexCount;
 
                 var leftJoin = polaczeniaArray[i].typ;
                 var rightJoin = polaczeniaArray[next].typ;
@@ -416,42 +430,31 @@ namespace GEORGE.Client.Pages.Okna
                 bool isAlmostHorizontal = Math.Abs(dy) < 1e-2;
                 bool isAlmostVertical = Math.Abs(dx) < 1e-2;
 
-                Console.WriteLine($"-------> i: {i} isAlmostHorizontal={isAlmostHorizontal} isAlmostVertical={isAlmostVertical}");  
-
                 List<XPoint> wierzcholki;
 
                 if (leftJoin == "T1" && rightJoin == "T1")
                 {
                     if (isAlmostHorizontal)
                     {
-                        // 🔺 Specjalne zachowanie dla T1 + T1 poziomych lub pionowych
-                        var outerVecStart = GetIntersectionWithEdge(
-                            outerStart,
-                            new XPoint(outerStart.X + nx * 1000, outerStart.Y + ny * 1000),
-                            outer[prev], outer[i]);
+                        // Przecięcia z konturem na bazie normalnej
+                        var outerVecStart = FindFirstEdgeIntersection(outerStart, nx, ny, outer);
+                        var outerVecEnd = FindFirstEdgeIntersection(outerEnd, nx, ny, outer);
 
-                        var outerVecEnd = GetIntersectionWithEdge(
-                            outerEnd,
-                            new XPoint(outerEnd.X + nx * 1000, outerEnd.Y + ny * 1000),
-                            outer[next], outer[nextNext]);
-
-                        var innerVecStart = GetIntersectionWithEdge(
+                        var innerVecStart = FindFirstEdgeIntersection(
                             new XPoint(outerVecStart.X + nx * profile, outerVecStart.Y + ny * profile),
-                            new XPoint(outerVecStart.X + nx * profile + tx * 1000, outerVecStart.Y + ny * profile + ty * 1000),
-                            outer[prev], outer[i]);
+                            tx, ty, outer);
 
-                        var innerVecEnd = GetIntersectionWithEdge(
+                        var innerVecEnd = FindFirstEdgeIntersection(
                             new XPoint(outerVecEnd.X + nx * profile, outerVecEnd.Y + ny * profile),
-                            new XPoint(outerVecEnd.X + nx * profile + tx * 1000, outerVecEnd.Y + ny * profile + ty * 1000),
-                            outer[next], outer[nextNext]);
+                            tx, ty, outer);
 
                         wierzcholki = new List<XPoint> {
-                        outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
-                        };
-
+                    outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
+                };
                     }
                     else
                     {
+                        // Pionowy przypadek (np. boczne elementy w trapezie)
                         var topY = Math.Min(inner[i].Y, inner[next].Y);
                         var bottomY = Math.Max(inner[i].Y, inner[next].Y);
 
@@ -462,18 +465,12 @@ namespace GEORGE.Client.Pages.Okna
                         var innerBottom = GetHorizontalIntersection(inner[i], inner[next], (float)bottomY);
 
                         wierzcholki = new List<XPoint> {
-                            outerTop,
-                            outerBottom,
-                            innerBottom,
-                            innerTop
-                        };
-
+                    outerTop, outerBottom, innerBottom, innerTop
+                };
                     }
-
                 }
                 else
                 {
-                    // ✴️ Domyślna logika
                     float leftOffset = GetJoinOffset(leftJoin, profile);
                     float rightOffset = GetJoinOffset(rightJoin, profile);
 
@@ -493,9 +490,9 @@ namespace GEORGE.Client.Pages.Okna
                         adjOuterEnd.X + nx * profile,
                         adjOuterEnd.Y + ny * profile);
 
-                    wierzcholki = new List<XPoint> { adjOuterStart, adjOuterEnd, innerEnd, innerStart };
-
-
+                    wierzcholki = new List<XPoint> {
+                adjOuterStart, adjOuterEnd, innerEnd, innerStart
+            };
                 }
 
                 ElementyRamyRysowane.Add(new KsztaltElementu
@@ -506,19 +503,136 @@ namespace GEORGE.Client.Pages.Okna
                     WypelnienieWewnetrzne = KolorSzyby,
                     Grupa = $"Bok{i + 1}"
                 });
-
             }
         }
 
-private XPoint GetHorizontalIntersection(XPoint a, XPoint b, float y)
-{
-    if (Math.Abs(a.Y - b.Y) < 1e-3f)
-        return new XPoint(a.X, y); // linia pozioma – przyjmujemy X a
+        private List<XPoint> RemoveDuplicateConsecutivePoints(List<XPoint> points)
+        {
+            var unique = new List<XPoint>();
+            for (int i = 0; i < points.Count; i++)
+            {
+                if (i == 0 || !ArePointsEqual(points[i], points[i - 1]))
+                {
+                    unique.Add(points[i]);
+                }
+            }
 
-    float t = (y - (float)a.Y) / ((float)b.Y - (float)a.Y);
-    float x = (float)a.X + t * ((float)b.X - (float)a.X);
-    return new XPoint(x, y);
-}
+            // Jeśli pierwszy == ostatni — zamknięcie konturu — usuń ostatni
+            if (unique.Count > 2 && ArePointsEqual(unique.First(), unique.Last()))
+            {
+                unique.RemoveAt(unique.Count - 1);
+            }
+
+            return unique;
+        }
+        private bool ArePointsEqual(XPoint p1, XPoint p2)
+        {
+            return Math.Abs(p1.X - p2.X) < 0.1 && Math.Abs(p1.Y - p2.Y) < 0.1;
+        }
+
+        private XPoint FindFirstEdgeIntersection(XPoint origin, float dx, float dy, List<XPoint> contour)
+        {
+            XPoint? closest = null;
+            float minDist = float.MaxValue;
+
+            for (int i = 0; i < contour.Count; i++)
+            {
+                int next = (i + 1) % contour.Count;
+
+                XPoint? inter = GetLinesIntersectionNullable(
+                    origin,
+                    new XPoint(origin.X + dx * 10000, origin.Y + dy * 10000),
+                    contour[i], contour[next]);
+
+                if (!inter.HasValue) continue;
+
+                float distSq = (float)((inter.Value.X - origin.X) * (inter.Value.X - origin.X) +
+                                       (inter.Value.Y - origin.Y) * (inter.Value.Y - origin.Y));
+                if (distSq < minDist)
+                {
+                    minDist = distSq;
+                    closest = inter;
+                }
+            }
+
+            return closest ?? origin;
+        }
+
+        private XPoint? GetLinesIntersectionNullable(XPoint a1, XPoint a2, XPoint b1, XPoint b2)
+        {
+            float dx1 = (float)(a2.X - a1.X);
+            float dy1 = (float)(a2.Y - a1.Y);
+            float dx2 = (float)(b2.X - b1.X);
+            float dy2 = (float)(b2.Y - b1.Y);
+
+            float det = dx1 * dy2 - dy1 * dx2;
+
+            if (Math.Abs(det) < 1e-6f)
+            {
+                return null; // linie są równoległe
+            }
+
+            float t = ((float)(b1.X - a1.X) * dy2 - (float)(b1.Y - a1.Y) * dx2) / det;
+
+            return new XPoint(
+                a1.X + t * dx1,
+                a1.Y + t * dy1
+            );
+        }
+
+
+        private List<(int kat, string typ)> ExtendPolaczeniaForPolygon(List<XPoint> outer, string polaczenia)
+        {
+            var basePolaczenia = polaczenia.Split(';')
+                .Select(p => p.Split('-'))
+                .Select(parts => (kat: int.Parse(parts[0]), typ: parts[1].Trim()))
+                .ToArray();
+
+            if (basePolaczenia.Length != 4)
+                throw new Exception("Expected 4 base connections for extension");
+
+            var extended = new List<(int kat, string typ)>();
+            int vertexCount = outer.Count;
+
+            // Wyznacz środek obszaru
+            float centerX = (float)((outer.Min(p => p.X) + outer.Max(p => p.X)) / 2);
+            float centerY = (float)((outer.Min(p => p.Y) + outer.Max(p => p.Y)) / 2);
+
+            for (int i = 0; i < vertexCount; i++)
+            {
+                int next = (i + 1) % vertexCount;
+
+                var p1 = outer[i];
+                var p2 = outer[next];
+
+                float dx = (float)Math.Abs(p2.X - p1.X);
+                float dy = (float)Math.Abs(p2.Y - p1.Y);
+                float midX = (float)((p1.X + p2.X) / 2);
+                float midY = (float)((p1.Y + p2.Y) / 2);
+
+                int index = 0; // domyślnie Top
+
+                if (dy < 10)
+                    index = midY < centerY ? 0 : 2; // Top / Bottom
+                else if (dx < 10)
+                    index = midX < centerX ? 3 : 1; // Left / Right
+
+                extended.Add(basePolaczenia[index]);
+            }
+
+            return extended;
+        }
+
+
+        private XPoint GetHorizontalIntersection(XPoint a, XPoint b, float y)
+        {
+            if (Math.Abs(a.Y - b.Y) < 1e-3f)
+                return new XPoint(a.X, y); // linia pozioma – przyjmujemy X a
+
+            float t = (y - (float)a.Y) / ((float)b.Y - (float)a.Y);
+            float x = (float)a.X + t * ((float)b.X - (float)a.X);
+            return new XPoint(x, y);
+        }
 
         private XPoint GetIntersectionWithEdge(XPoint a1, XPoint a2, XPoint b1, XPoint b2)
         {
@@ -556,59 +670,81 @@ private XPoint GetHorizontalIntersection(XPoint a, XPoint b, float y)
 
 
         private List<XPoint> CalculateOffsetPolygon(
-            List<XPoint> points,
-            float leftOffset,
-            float rightOffset,
-            float topOffset,
-            float bottomOffset)
+        List<XPoint> points,
+        float profileLeft,
+        float profileRight,
+        float profileTop,
+        float profileBottom)
         {
-            if (points.Count != 4)
-                throw new Exception("Funkcja obsługuje tylko czworokąty.");
+            int count = points.Count;
+            if (count < 3)
+                throw new ArgumentException("Polygon must have at least 3 points.");
 
-            // Ustal offsety dla boków: [top, right, bottom, left]
-            var offsets = new[] { topOffset, rightOffset, bottomOffset, leftOffset };
+            // Oblicz bounding box, żeby ocenić położenie boku
+            float minX = (float)points.Min(p => p.X);
+            float maxX = (float)points.Max(p => p.X);
+            float minY = (float)points.Min(p => p.Y);
+            float maxY = (float)points.Max(p => p.Y);
 
             var offsetLines = new List<(XPoint p1, XPoint p2)>();
 
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < count; i++)
             {
-                int next = (i + 1) % 4;
-
+                int next = (i + 1) % count;
                 var p1 = points[i];
                 var p2 = points[next];
 
-                // Oblicz wektor krawędzi
                 float dx = (float)(p2.X - p1.X);
                 float dy = (float)(p2.Y - p1.Y);
                 float length = MathF.Sqrt(dx * dx + dy * dy);
                 if (length < 1e-6f) continue;
 
-                // 👉 Normalna DO WEWNĄTRZ (zmienione kierunki!)
-                float nx = -dy / length;
-                float ny = dx / length;
+                float tx = dx / length;
+                float ty = dy / length;
+                float nx = -ty;
+                float ny = tx;
 
-                float offset = offsets[i];
+                // Środek boku
+                float midX = ((float)p1.X + (float)p2.X) / 2f;
+                float midY = ((float)p1.Y + (float)p2.Y) / 2f;
 
-                // Przesuń oba końce krawędzi w stronę środka
+                // Domyślnie bez przesunięcia
+                float offset = 0f;
+
+                bool isHorizontal = Math.Abs(dy) < Math.Abs(dx);
+                bool isVertical = !isHorizontal;
+
+                // Ustal offset w zależności od położenia środka boku
+                if (isHorizontal)
+                {
+                    // linia pozioma
+                    offset = midY < (minY + maxY) / 2f ? profileTop : profileBottom;
+                }
+                else
+                {
+                    // linia pionowa
+                    offset = midX < (minX + maxX) / 2f ? profileLeft : profileRight;
+                }
+
+                // Przesuń oba końce boku do środka (normalna do wnętrza)
                 var p1Offset = new XPoint(p1.X + nx * offset, p1.Y + ny * offset);
                 var p2Offset = new XPoint(p2.X + nx * offset, p2.Y + ny * offset);
 
                 offsetLines.Add((p1Offset, p2Offset));
             }
 
-            // Wyznacz przecięcia kolejnych przesuniętych boków
+            // Oblicz przecięcia sąsiednich przesuniętych boków
             var result = new List<XPoint>();
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < offsetLines.Count; i++)
             {
                 var (a1, a2) = offsetLines[i];
-                var (b1, b2) = offsetLines[(i + 3) % 4]; // poprzedni bok
+                var (b1, b2) = offsetLines[(i - 1 + offsetLines.Count) % offsetLines.Count];
 
                 var intersection = GetLinesIntersection(a1, a2, b1, b2);
 
-                // Zabezpieczenie jeśli nie ma przecięcia
                 if (float.IsNaN((float)intersection.X) || float.IsNaN((float)intersection.Y))
                 {
-                    intersection = new XPoint((a1.X + b1.X) / 2, (a1.Y + b1.Y) / 2);
+                    intersection = new XPoint((a1.X + b1.X) / 2f, (a1.Y + b1.Y) / 2f);
                 }
 
                 result.Add(intersection);
@@ -616,6 +752,7 @@ private XPoint GetHorizontalIntersection(XPoint a, XPoint b, float y)
 
             return result;
         }
+
 
         private XPoint GetLinesIntersection(XPoint a1, XPoint a2, XPoint b1, XPoint b2)
         {

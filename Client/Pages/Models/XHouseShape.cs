@@ -99,7 +99,7 @@ namespace GEORGE.Client.Pages.Models
             {
                 (new XPoint(X, baseY), new XPoint(roofPeakX, roofPeakY)), // Dach - lewa krawędź
                 (new XPoint(roofPeakX, roofPeakY), new XPoint(X + Width, baseY)), // Dach - prawa krawędź
-                (new XPoint(X, baseY), new XPoint(X + Width, baseY)), // Podstawa dachu
+                //(new XPoint(X, baseY), new XPoint(X + Width, baseY)), // Podstawa dachu
                 (new XPoint(X, baseY), new XPoint(X, bottomY)), // Lewa ściana domu
                 (new XPoint(X + Width, baseY), new XPoint(X + Width, bottomY)), // Prawa ściana domu
                 (new XPoint(X, bottomY), new XPoint(X + Width, bottomY)) // **Podstawa domu (DOLNA KRAWĘDŹ)**
@@ -125,8 +125,8 @@ namespace GEORGE.Client.Pages.Models
             // Prostokąt (ściany domu)
             List<XPoint> house = new List<XPoint>
         {
-            new XPoint(X, baseY),          // Lewy górny róg ściany
-            new XPoint(X + Width, baseY),  // Prawy górny róg ściany
+            //new XPoint(X, baseY),          // Lewy górny róg ściany
+            //new XPoint(X + Width, baseY),  // Prawy górny róg ściany
             new XPoint(X + Width, bottomY), // Prawy dolny róg ściany
             new XPoint(X, bottomY)         // Lewy dolny róg ściany
         };
@@ -146,7 +146,7 @@ namespace GEORGE.Client.Pages.Models
         {
             (new XPoint(X, baseY), new XPoint(roofPeakX, roofPeakY)), // Dach - lewa krawędź
             (new XPoint(roofPeakX, roofPeakY), new XPoint(X + Width, baseY)), // Dach - prawa krawędź
-            (new XPoint(X, baseY), new XPoint(X + Width, baseY)) // Podstawa dachu
+           // (new XPoint(X, baseY), new XPoint(X + Width, baseY)) // Podstawa dachu
         };
 
             List<(XPoint, XPoint)> baseEdges = new()
