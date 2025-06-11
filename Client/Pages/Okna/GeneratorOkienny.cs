@@ -449,7 +449,7 @@ namespace GEORGE.Client.Pages.Okna
 
                 Console.WriteLine($"▶️ DEBUG: Generating element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin}");
 
-                if (leftJoin == "T1" && rightJoin == "T1")
+                if (leftJoin == "T1" && rightJoin == "T1" || leftJoin == "T1" && rightJoin == "T4" || leftJoin == "T4" && rightJoin == "T1")
                 {
                     if (isAlmostHorizontal)
                     {
