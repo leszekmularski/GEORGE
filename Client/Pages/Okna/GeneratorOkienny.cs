@@ -430,12 +430,27 @@ namespace GEORGE.Client.Pages.Okna
                 bool isAlmostHorizontal = Math.Abs(dy) < 1e-2;
                 bool isAlmostVertical = Math.Abs(dx) < 1e-2;
 
+                if(!isAlmostHorizontal && !isAlmostVertical)
+                {
+                    if (leftJoin == "T1" && rightJoin == "T1")
+                    {
+                        isAlmostHorizontal = true;
+                    }
+                    else if (leftJoin == "T3" && rightJoin == "T3")
+                    {
+                        isAlmostVertical = true;
+                    }
+                }
+
                 List<XPoint> wierzcholki;
+
+                Console.WriteLine($"▶️ DEBUG: Generating element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin}");
 
                 if (leftJoin == "T1" && rightJoin == "T1")
                 {
                     if (isAlmostHorizontal)
                     {
+                        Console.WriteLine($"🔷 Horizontal case for element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical}");
                         // Przecięcia z konturem na bazie normalnej
                         var outerVecStart = FindFirstEdgeIntersection(outerStart, nx, ny, outer);
                         var outerVecEnd = FindFirstEdgeIntersection(outerEnd, nx, ny, outer);
@@ -449,11 +464,12 @@ namespace GEORGE.Client.Pages.Okna
                             tx, ty, outer);
 
                         wierzcholki = new List<XPoint> {
-                    outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
-                };
+                            outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
+                        };
                     }
                     else
                     {
+                        Console.WriteLine($"🔷 Vertical case for element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical}");
                         // Pionowy przypadek (np. boczne elementy w trapezie)
                         var topY = Math.Min(inner[i].Y, inner[next].Y);
                         var bottomY = Math.Max(inner[i].Y, inner[next].Y);
@@ -465,8 +481,8 @@ namespace GEORGE.Client.Pages.Okna
                         var innerBottom = GetHorizontalIntersection(inner[i], inner[next], (float)bottomY);
 
                         wierzcholki = new List<XPoint> {
-                    outerTop, outerBottom, innerBottom, innerTop
-                };
+                                outerTop, outerBottom, innerBottom, innerTop
+                        };
                     }
                 }
                 else
@@ -492,7 +508,7 @@ namespace GEORGE.Client.Pages.Okna
 
                     wierzcholki = new List<XPoint> {
                 adjOuterStart, adjOuterEnd, innerEnd, innerStart
-            };
+                    };
                 }
 
                 ElementyRamyRysowane.Add(new KsztaltElementu
@@ -503,6 +519,7 @@ namespace GEORGE.Client.Pages.Okna
                     WypelnienieWewnetrzne = KolorSzyby,
                     Grupa = $"Bok{i + 1}"
                 });
+
             }
         }
 
@@ -580,50 +597,6 @@ namespace GEORGE.Client.Pages.Okna
             );
         }
 
-
-        private List<(int kat, string typ)> ExtendPolaczeniaForPolygon(List<XPoint> outer, string polaczenia)
-        {
-            var basePolaczenia = polaczenia.Split(';')
-                .Select(p => p.Split('-'))
-                .Select(parts => (kat: int.Parse(parts[0]), typ: parts[1].Trim()))
-                .ToArray();
-
-            if (basePolaczenia.Length != 4)
-                throw new Exception("Expected 4 base connections for extension");
-
-            var extended = new List<(int kat, string typ)>();
-            int vertexCount = outer.Count;
-
-            // Wyznacz środek obszaru
-            float centerX = (float)((outer.Min(p => p.X) + outer.Max(p => p.X)) / 2);
-            float centerY = (float)((outer.Min(p => p.Y) + outer.Max(p => p.Y)) / 2);
-
-            for (int i = 0; i < vertexCount; i++)
-            {
-                int next = (i + 1) % vertexCount;
-
-                var p1 = outer[i];
-                var p2 = outer[next];
-
-                float dx = (float)Math.Abs(p2.X - p1.X);
-                float dy = (float)Math.Abs(p2.Y - p1.Y);
-                float midX = (float)((p1.X + p2.X) / 2);
-                float midY = (float)((p1.Y + p2.Y) / 2);
-
-                int index = 0; // domyślnie Top
-
-                if (dy < 10)
-                    index = midY < centerY ? 0 : 2; // Top / Bottom
-                else if (dx < 10)
-                    index = midX < centerX ? 3 : 1; // Left / Right
-
-                extended.Add(basePolaczenia[index]);
-            }
-
-            return extended;
-        }
-
-
         private XPoint GetHorizontalIntersection(XPoint a, XPoint b, float y)
         {
             if (Math.Abs(a.Y - b.Y) < 1e-3f)
@@ -633,28 +606,6 @@ namespace GEORGE.Client.Pages.Okna
             float x = (float)a.X + t * ((float)b.X - (float)a.X);
             return new XPoint(x, y);
         }
-
-        private XPoint GetIntersectionWithEdge(XPoint a1, XPoint a2, XPoint b1, XPoint b2)
-        {
-            float dx1 = (float)(a2.X - a1.X);
-            float dy1 = (float)(a2.Y - a1.Y);
-            float dx2 = (float)(b2.X - b1.X);
-            float dy2 = (float)(b2.Y - b1.Y);
-
-            float determinant = dx1 * dy2 - dy1 * dx2;
-            if (Math.Abs(determinant) < 1e-6)
-            {
-                return new XPoint((a1.X + b1.X) / 2, (a1.Y + b1.Y) / 2); // fallback
-            }
-
-            float t = (float)((b1.X - a1.X) * dy2 - (b1.Y - a1.Y) * dx2) / determinant;
-
-            return new XPoint(
-                a1.X + t * dx1,
-                a1.Y + t * dy1
-            );
-        }
-
 
         private float GetJoinOffset(string joinType, float profile)
         {
