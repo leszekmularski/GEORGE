@@ -277,6 +277,22 @@ window.clearDotNetHelper = () => {
     window.dotNetHelper = null;
 };
 
+window.getElementSize = (selector) => {
+    const el = document.querySelector(selector);
+    if (!el) return null;
+
+    const rect = el.getBoundingClientRect();
+    return {
+        width: rect.width,
+        height: rect.height
+    };
+};
+
+window.registerResizeCallback = (dotnetHelper) => {
+    window.addEventListener("resize", () => {
+        dotnetHelper.invokeMethodAsync("UpdateCanvasSizeFromResize");
+    });
+};
 
 </script>
 
@@ -584,7 +600,7 @@ window.clearDotNetHelper = () => {
             <label>Kolor:</label>
             <input type="color" class="form-control" @bind="Kolor" />
         </div>
-        <Button OnClick="() => DrawStructureAndRestrykcje(0)">Zmień wymiary</Button>
+        <Button OnClick="() => FitToCanvas()">Zmień wymiary</Button>
     </Panel>
 
     <Panel Header="Informacja o wyrobie restrykcje" Key="2" class="scrollable-panel">
@@ -724,9 +740,7 @@ window.clearDotNetHelper = () => {
         else
         {
             <!-- Canvas -->
-            <div class="canvas-container"
-            @onmousemove="UpdateZoomCenter"
-            @onclick="UpdateZoomCenter">
+            <div class="canvas-container">
                 <BECanvas @ref="CanvasRef" Width="@CanvasWidth" Height="@CanvasHeight" />
             </div>
         }
@@ -927,6 +941,41 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         }
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+
+            if (firstRender && CanvasRef != null)
+            {
+                Console.WriteLine("🖌️ Inicjalizacja canvasu...");
+
+                var isFunctionDefined = await JS.InvokeAsync<bool>("eval", "typeof setCanvasRef === 'function'");
+                if (!isFunctionDefined)
+                    throw new Exception("⚠️ Funkcja setCanvasRef nie jest zdefiniowana!");
+
+                await JS.InvokeVoidAsync("setCanvasRef", CanvasRef.CanvasReference);
+                Console.WriteLine("✅ Canvas ustawiony!");
+
+                // 👇 TU DODAJ
+                _context ??= await CanvasRef.CreateCanvas2DAsync();
+
+                await JS.InvokeVoidAsync("registerResizeCallback", DotNetObjectReference.Create(this));
+
+                // Możesz od razu wywołać rysowanie
+                if (_shapes?.Any() == true)
+                    await RedrawCanvas();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"🔥 Krytyczny błąd: {ex.Message}");
+            hasCanvasError = true;
+            StateHasChanged();
+        }
+    }
+
+
     private void WybierzModel(KonfModele model)
     {
         WybranyModel = model;
@@ -1042,38 +1091,6 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         displayTWZ = "block";
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        try
-        {
-
-            if (firstRender && CanvasRef != null)
-            {
-                Console.WriteLine("🖌️ Inicjalizacja canvasu...");
-
-                var isFunctionDefined = await JS.InvokeAsync<bool>("eval", "typeof setCanvasRef === 'function'");
-                if (!isFunctionDefined)
-                    throw new Exception("⚠️ Funkcja setCanvasRef nie jest zdefiniowana!");
-
-                await JS.InvokeVoidAsync("setCanvasRef", CanvasRef.CanvasReference);
-                Console.WriteLine("✅ Canvas ustawiony!");
-
-                // 👇 TU DODAJ
-                _context ??= await CanvasRef.CreateCanvas2DAsync();
-
-                // Możesz od razu wywołać rysowanie
-                if (_shapes?.Any() == true)
-                    await RedrawCanvas();
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"🔥 Krytyczny błąd: {ex.Message}");
-            hasCanvasError = true;
-            StateHasChanged();
-        }
-    }
-
     private async Task RedrawCanvas()
     {
         if (_context == null)
@@ -1104,12 +1121,13 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         if (regiony.Count() > 0)
             await _message.Info($"📦 Wygenerowano {regiony.Count} regionów", 1);
 
+        int i = 0;
 
         foreach (var region in regiony)
         {
-             region.Wierzcholki = RemoveDuplicateConsecutivePoints(region.Wierzcholki);
+            region.Wierzcholki = RemoveDuplicateConsecutivePoints(region.Wierzcholki);
 
-            Console.WriteLine($"🔍 Analizuję region - TypKształtu: {region.TypKsztaltu} - ilość Wierzcholkow: {region.Wierzcholki.Count()}");
+            Console.WriteLine($"🔍 Analizuję region - TypKształtu: {region.TypKsztaltu} - ilość Wierzcholkow: {region.Wierzcholki.Count()} kształt LP: {i++}");
             foreach (var punkty in region.Wierzcholki)
             {
                 Console.WriteLine($"X:{punkty.X}, Y:{punkty.Y}");
@@ -1119,29 +1137,29 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         await _context.RestoreAsync();
     }
 
-        private List<XPoint> RemoveDuplicateConsecutivePoints(List<XPoint> points)
+    private List<XPoint> RemoveDuplicateConsecutivePoints(List<XPoint> points)
+    {
+        var unique = new List<XPoint>();
+        for (int i = 0; i < points.Count; i++)
         {
-            var unique = new List<XPoint>();
-            for (int i = 0; i < points.Count; i++)
+            if (i == 0 || !ArePointsEqual(points[i], points[i - 1]))
             {
-                if (i == 0 || !ArePointsEqual(points[i], points[i - 1]))
-                {
-                    unique.Add(points[i]);
-                }
+                unique.Add(points[i]);
             }
-
-            // Jeśli pierwszy == ostatni — zamknięcie konturu — usuń ostatni
-            if (unique.Count > 2 && ArePointsEqual(unique.First(), unique.Last()))
-            {
-                unique.RemoveAt(unique.Count - 1);
-            }
-
-            return unique;
         }
-        private bool ArePointsEqual(XPoint p1, XPoint p2)
+
+        // Jeśli pierwszy == ostatni — zamknięcie konturu — usuń ostatni
+        if (unique.Count > 2 && ArePointsEqual(unique.First(), unique.Last()))
         {
-            return Math.Abs(p1.X - p2.X) < 0.1 && Math.Abs(p1.Y - p2.Y) < 0.1;
+            unique.RemoveAt(unique.Count - 1);
         }
+
+        return unique;
+    }
+    private bool ArePointsEqual(XPoint p1, XPoint p2)
+    {
+        return Math.Abs(p1.X - p2.X) < 0.1 && Math.Abs(p1.Y - p2.Y) < 0.1;
+    }
 
 
     private async Task ClearCanvas()
@@ -1166,7 +1184,15 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
     private async Task ApplyZoom(double newScale)
     {
-        // Oblicz przesunięcie względem punktu zoomu
+        if (CanvasWidth == 0 || CanvasHeight == 0)
+            return;
+
+        // 📌 Środek canvasu jako punkt odniesienia do zoomu
+        _zoomCenterX = CanvasWidth / 2.0;
+        _zoomCenterY = CanvasHeight / 2.0;
+
+        Console.WriteLine($"🔍 ZOOM: nowa skala = {newScale:F2}, aktualna skala = {_currentScale:F2}");
+
         var ratio = 1 - (newScale / _currentScale);
         _panX += (_zoomCenterX - _panX) * ratio;
         _panY += (_zoomCenterY - _panY) * ratio;
@@ -1178,15 +1204,79 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         await RenderFrame();
     }
 
-    private async Task UpdateZoomCenter(MouseEventArgs e)
+private async Task UpdateCanvasSizeFromDiv()
+{
+    var size = await JS.InvokeAsync<DomSize>("getElementSize", ".display-window");
+    if (size != null)
     {
-        // Pobierz pozycję canvasu przez JS
-        var rect = await JS.InvokeAsync<DOMRect>("getCanvasBoundingRect", CanvasRef);
+        CanvasWidth = (long)size.Width;
+        CanvasHeight = (long)size.Height;
 
-        // Oblicz współrzędne względem canvasu
-        _zoomCenterX = (e.ClientX - rect.Left - _panX) / _currentScale;
-        _zoomCenterY = (e.ClientY - rect.Top - _panY) / _currentScale;
+        Console.WriteLine($"📐 Nowy rozmiar canvasu: {CanvasWidth} x {CanvasHeight}");
+
+        await InvokeAsync(StateHasChanged); // Wymuś renderowanie z nowymi wymiarami
     }
+}
+
+private async Task FitToCanvas()
+{
+    if (_shapes == null || _shapes.Count == 0)
+        return;
+
+    await UpdateCanvasSizeFromDiv();
+
+    var bounds = _shapes.Select(s => s.GetBoundingBox()).ToList();
+
+    double minX = bounds.Min(b => b.X);
+    double minY = bounds.Min(b => b.Y);
+    double maxX = bounds.Max(b => b.X + b.Width);
+    double maxY = bounds.Max(b => b.Y + b.Height);
+
+    double contentWidth = maxX - minX;
+    double contentHeight = maxY - minY;
+
+    double canvasW = CanvasWidth;
+    double canvasH = CanvasHeight;
+
+    double margin = 20;
+    double scaleX = (canvasW - 2 * margin) / contentWidth;
+    double scaleY = (canvasH - 2 * margin) / contentHeight;
+
+    double scale = Math.Min(scaleX, scaleY);
+
+    // 📌 Jeśli chcesz dodatkowo oddalić, użyj tylko *na końcu*:
+    scale *= 0.4;  // np. 40% wielkości
+
+    _currentScale = scale;
+
+    // Centrowanie — bez wpływu skali
+    double centerX = canvasW / 2;
+    double centerY = canvasH / 2;
+
+    double contentCenterX = (minX + maxX) / 2;
+    double contentCenterY = (minY + maxY) / 2;
+
+    _panX = centerX - contentCenterX * scale;
+    _panY = centerY - contentCenterY * scale;
+
+    Console.WriteLine($"🔍 Dopasowano: scale={_currentScale:F2}, panX={_panX:F2}, panY={_panY:F2}");
+
+    isTextureLoaded = false;
+    await DrawStructureAndRestrykcje(0);
+    await DodajOknoG();
+    await RenderFrame();
+}
+
+
+    // private async Task UpdateZoomCenter(MouseEventArgs e)
+    // {
+    //     // Pobierz pozycję canvasu przez JS
+    //     var rect = await JS.InvokeAsync<DOMRect>("getCanvasBoundingRect", CanvasRef);
+
+    //     // Oblicz współrzędne względem canvasu
+    //     _zoomCenterX = (e.ClientX - rect.Left - _panX) / _currentScale;
+    //     _zoomCenterY = (e.ClientY - rect.Top - _panY) / _currentScale;
+    // }
 
     private async Task OnMouseUp(MouseEventArgs e)
     {
@@ -1212,7 +1302,6 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
             SelectedModelType = draggedInfo.Type;
             SelectedRowIdType = draggedInfo.RowId;
 
-
             Console.WriteLine($"🖱️ Kliknięto na pozycji ({e.ClientX}, {e.ClientY})");
 
             DropX = e.ClientX;
@@ -1220,11 +1309,13 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
             // Logika obsługi wybranego modelu
             Console.WriteLine($"Wybrano model typu: {SelectedModelType} SelectedRowIdType: {SelectedRowIdType}");
 
-            await DrawStructureAndRestrykcje(0);
+            //await DrawStructureAndRestrykcje(0);
 
-            await DodajOknoG();
+           // await DodajOknoG();
 
-            await RenderFrame();
+            await FitToCanvas(); // Użyj FitToCanvas zamiast RenderFrame
+
+           // await RenderFrame();
         }
 
         Console.WriteLine($"🟢 Wywołano OnMouseUp {e.ClientX} {e.ClientY} {e.CtrlKey} SelectedModelType: {SelectedModelType} SelectedRowIdType:{SelectedRowIdType}");
@@ -1719,6 +1810,12 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
     {
         public string? Type { get; set; }
         public string? RowId { get; set; }
+    }
+
+    private class DomSize
+    {
+        public double Width { get; set; }
+        public double Height { get; set; }
     }
 
 }

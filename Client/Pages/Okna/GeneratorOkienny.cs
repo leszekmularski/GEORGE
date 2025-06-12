@@ -12,7 +12,6 @@ namespace GEORGE.Client.Pages.Okna
 
         public new MVCKonfModele? PowiazanyModel;
 
-
         public Generator()
         {
             // Inicjalizacja domyślnych wartości
@@ -48,8 +47,7 @@ namespace GEORGE.Client.Pages.Okna
             }
 
             Console.WriteLine($"EdytowanyModel.PolaczenieNaroza: {EdytowanyModel.PolaczenieNaroza}");
-
-            Console.WriteLine($"Szerokosc: {Szerokosc}");
+            Console.WriteLine($"Szerokosc: {Szerokosc}, Wysokosc: {Wysokosc}");
 
             foreach (var region in regions)
             {
@@ -59,68 +57,93 @@ namespace GEORGE.Client.Pages.Okna
 
                 Console.WriteLine($"GenerujOkno: Przetwarzanie regionu typu: {region.TypKsztaltu}");
 
-                // Wyznacz bounding box
+                // 🧮 Oblicz bounding box oryginalnego regionu
                 float minX = (float)punkty.Min(p => p.X);
                 float maxX = (float)punkty.Max(p => p.X);
                 float minY = (float)punkty.Min(p => p.Y);
                 float maxY = (float)punkty.Max(p => p.Y);
 
-                Console.WriteLine($"EdytowanyModel.NazwaKonfiguracji: {EdytowanyModel.NazwaKonfiguracji}");
+                float width = maxX - minX;
+                float height = maxY - minY;
 
+                // 📏 Skaluj region do zadanych wymiarów
+                var przeskalowanePunkty = SkalujIPrzesun(punkty, minX, minY, width, height, Szerokosc, Wysokosc);
 
-                // Oblicz rzeczywiste grubości z modelu
+                Console.WriteLine($"📐 Przeskalowane punkty: {string.Join(", ", przeskalowanePunkty.Select(p => $"({p.X:F2}, {p.Y:F2})"))}");
 
+                // 📦 Oblicz profile z konfiguracji systemu
                 float profileLeft = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.PionPrawa ?? 0 -
-                                          PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0);
+                                            PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0);
                 float profileRight = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.PionPrawa ?? 0 -
-                                           PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.PionLewa ?? 0);
+                                             PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.PionLewa ?? 0);
                 float profileTop = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.PionPrawa ?? 0 -
-                                         PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.PionLewa ?? 0);
+                                           PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.PionLewa ?? 0);
                 float profileBottom = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionPrawa ?? 0 -
-                                            PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionLewa ?? 0);
+                                              PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionLewa ?? 0);
 
-                Console.WriteLine($"System ilość konfiguracji: {KonfiguracjeSystemu.Count()} Pobrane grubości profili: profileLeft: {profileLeft} profileRight: {profileRight} profileTop: {profileTop} profileBottom: {profileBottom}");
+                Console.WriteLine($"System ilość konfiguracji: {KonfiguracjeSystemu.Count()}");
+                Console.WriteLine($"profileLeft: {profileLeft} profileRight: {profileRight} profileTop: {profileTop} profileBottom: {profileBottom}");
 
-                // Oblicz wewnętrzny kontur
+                // 🔄 Wyznacz wewnętrzny kontur
                 var wewnetrznyKontur = CalculateOffsetPolygon(
-                punkty,
-                profileLeft, profileRight, profileTop, profileBottom);
+                    przeskalowanePunkty,
+                    profileLeft, profileRight, profileTop, profileBottom);
 
-
-                // Generuj elementy ramy w zależności od typu kształtu
+                // 🧱 Generowanie elementów ramy
                 if (region.TypKsztaltu == "prostokąt" || region.TypKsztaltu == "kwadrat")
                 {
-                    GenerateRectangleElements(punkty, wewnetrznyKontur, profileLeft, profileRight, profileTop, profileBottom, region.TypKsztaltu, EdytowanyModel.PolaczenieNaroza, KonfiguracjeSystemu);
-
+                    GenerateRectangleElements(
+                        przeskalowanePunkty,
+                        wewnetrznyKontur,
+                        profileLeft, profileRight, profileTop, profileBottom,
+                        region.TypKsztaltu,
+                        EdytowanyModel.PolaczenieNaroza,
+                        KonfiguracjeSystemu
+                    );
                 }
                 else if (region.TypKsztaltu == "trójkąt")
                 {
-                    GenerateTriangleElements(punkty, wewnetrznyKontur, profileLeft, profileRight, profileTop, profileBottom);
+                    GenerateTriangleElements(
+                        przeskalowanePunkty,
+                        wewnetrznyKontur,
+                        profileLeft, profileRight, profileTop, profileBottom
+                    );
                 }
                 else
                 {
-                    //GenerateGenericElements(punkty, wewnetrznyKontur);
-                    // Wywołanie funkcji
                     GenerateGenericElementsWithJoins(
-                        punkty,          // List<XPoint> - zewnętrzne punkty konturu
-                        wewnetrznyKontur,// List<XPoint> - wewnętrzne punkty przeszklenia
-                        profileLeft,     // float - grubość profilu lewego
-                        profileRight,    // float - grubość profilu prawego
-                        profileTop,      // float - grubość profilu górnego
-                        profileBottom,   // float - grubość profilu dolnego
-                        region.TypKsztaltu, // string - typ kształtu (np. "prostokąt")
-                        EdytowanyModel.PolaczenieNaroza, // string - np. "T1;T2;T3;T1"
-                        KonfiguracjeSystemu              // List<KonfSystem> - konfiguracje systemowe,
+                        przeskalowanePunkty,
+                        wewnetrznyKontur,
+                        profileLeft, profileRight, profileTop, profileBottom,
+                        region.TypKsztaltu,
+                        EdytowanyModel.PolaczenieNaroza,
+                        KonfiguracjeSystemu
                     );
                 }
             }
-
-            //0 - Lewy górny
-            //1 - Prawy górny
-            //2 - Prawy dolny
-            //3 - Lewy dolny
-
         }
+
+
+    private List<XPoint> SkalujIPrzesun(
+        List<XPoint> punkty,
+        float minX, float minY,
+        float width, float height,
+        float docelowaSzerokosc,
+        float docelowaWysokosc)
+        {
+            var result = new List<XPoint>();
+
+            foreach (var p in punkty)
+            {
+                double x = ((p.X - minX) / width) * docelowaSzerokosc;
+                double y = ((p.Y - minY) / height) * docelowaWysokosc;
+                result.Add(new XPoint(x, y));
+            }
+
+            return result;
+        }
+
+
         private void GenerateRectangleElements(
                 List<XPoint> outer, List<XPoint> inner,
                 float profileLeft, float profileRight, float profileTop, float profileBottom,
