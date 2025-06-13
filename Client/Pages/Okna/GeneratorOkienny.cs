@@ -167,11 +167,11 @@ namespace GEORGE.Client.Pages.Okna
 
             var joinTypes = new[]
             {
-        (Left: polaczeniaArray[0].typ, Right: polaczeniaArray[1].typ), // Top
-        (Left: polaczeniaArray[1].typ, Right: polaczeniaArray[2].typ), // Right
-        (Left: polaczeniaArray[2].typ, Right: polaczeniaArray[3].typ), // Bottom
-        (Left: polaczeniaArray[3].typ, Right: polaczeniaArray[0].typ), // Left
-    };
+                (Left: polaczeniaArray[0].typ, Right: polaczeniaArray[1].typ), // Top
+                (Left: polaczeniaArray[1].typ, Right: polaczeniaArray[2].typ), // Right
+                (Left: polaczeniaArray[2].typ, Right: polaczeniaArray[3].typ), // Bottom
+                (Left: polaczeniaArray[3].typ, Right: polaczeniaArray[0].typ), // Left
+            };
 
             // Obliczenia pozycji i długości
             int topX = (joinTypes[0].Left == "T3") ? (int)profileLeft : 0;
@@ -306,93 +306,6 @@ namespace GEORGE.Client.Pages.Okna
                 });
             }
         }
-
-
-        //private void GenerateGenericElementsWithJoins(
-        //List<XPoint> outer, List<XPoint> inner,
-        //float profileLeft, float profileRight, float profileTop, float profileBottom,
-        //string typKsztalt, string polaczenia, List<KonfSystem> model)
-        //{
-        //    int vertexCount = outer.Count;
-        //    if (vertexCount < 3)
-        //        throw new Exception("Polygon must have at least 3 vertices.");
-
-
-        //    Console.WriteLine("▶️ DEBUG: Start GenerateGenericElementsWithJoins");
-
-        //    Console.WriteLine("🔷 Outer:");
-        //    for (int i = 0; i < outer.Count; i++)
-        //        Console.WriteLine($"  [{i}] X: {outer[i].X:F2}, Y: {outer[i].Y:F2}");
-
-        //    Console.WriteLine("🔶 Inner:");
-        //    for (int i = 0; i < inner.Count; i++)
-        //        Console.WriteLine($"  [{i}] X: {inner[i].X:F2}, Y: {inner[i].Y:F2}");
-
-        //    var polaczeniaArray = polaczenia.Split(';')
-        //        .Select(p => p.Split('-'))
-        //        .Select(parts => (kat: int.Parse(parts[0]), typ: parts[1].Trim()))
-        //        .ToArray();
-
-        //    if (polaczeniaArray.Length != vertexCount)
-        //        throw new Exception($"Expected {vertexCount} corner connections.");
-
-        //    for (int i = 0; i < vertexCount; i++)
-        //    {
-        //        int next = (i + 1) % vertexCount;
-        //        var leftJoin = polaczeniaArray[i].typ;
-        //        var rightJoin = polaczeniaArray[next].typ;
-
-        //        XPoint current = outer[i];
-        //        XPoint nextPt = outer[next];
-
-        //        // Oblicz wektor kierunku krawędzi
-        //        float dx = (float)(nextPt.X - current.X);
-        //        float dy = (float)(nextPt.Y - current.Y);
-        //        float length = (float)Math.Sqrt(dx * dx + dy * dy);
-
-        //        if (length == 0) continue;
-
-        //        // Oblicz wektory normalne
-        //        float nx = -dy / length;
-        //        float ny = dx / length;
-
-        //        // Określ grubość profilu w zależności od orientacji
-        //        float profileThickness = Math.Abs(dx) > Math.Abs(dy)
-        //            ? (ny > 0 ? profileTop : profileBottom)
-        //            : (nx > 0 ? profileRight : profileLeft);
-
-        //        // Oblicz przesunięcia dla połączeń
-        //        float leftOffset = GetJoinOffset(leftJoin, profileThickness);
-        //        float rightOffset = GetJoinOffset(rightJoin, profileThickness);
-
-        //        // Oblicz punkty wewnętrzne
-        //        var innerStart = new XPoint(
-        //            current.X + nx * profileThickness,
-        //            current.Y + ny * profileThickness);
-
-        //        var innerEnd = new XPoint(
-        //            nextPt.X + nx * profileThickness,
-        //            nextPt.Y + ny * profileThickness);
-
-        //        // Dostosuj punkty do typów połączeń
-        //        innerStart.X += dx * leftOffset / length;
-        //        innerStart.Y += dy * leftOffset / length;
-
-        //        innerEnd.X -= dx * rightOffset / length;
-        //        innerEnd.Y -= dy * rightOffset / length;
-
-        //        ElementyRamyRysowane.Add(new KsztaltElementu
-        //        {
-        //            TypKsztaltu = "trapez",
-        //            Wierzcholki = new List<XPoint> { current, nextPt, innerEnd, innerStart },
-        //            WypelnienieZewnetrzne = "wood-pattern",
-        //            WypelnienieWewnetrzne = KolorSzyby,
-        //            Grupa = $"Bok{i + 1}"
-        //        });
-
-        //        break;
-        //    }
-        //}
         private void GenerateGenericElementsWithJoins(
             List<XPoint> outer, List<XPoint> inner,
             float profileLeft, float profileRight, float profileTop, float profileBottom,

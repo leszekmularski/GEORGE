@@ -391,8 +391,8 @@ window.registerResizeCallback = (dotnetHelper) => {
     }
 
     .canvas-container {
-    width: 100%;
-    height: 100%;
+    width: @(CanvasWidth + "px");
+    height: @(CanvasHeight + "px");
     pointer-events: none; /* Wyłącz interakcje z canvasem */
     max-width: 100%;
     max-height: 100%;
@@ -600,7 +600,7 @@ window.registerResizeCallback = (dotnetHelper) => {
             <label>Kolor:</label>
             <input type="color" class="form-control" @bind="Kolor" />
         </div>
-        <Button OnClick="() => FitToCanvas()">Zmień wymiary</Button>
+        <Button OnClick="() => ZmienWymiaryOkna()">Zmień wymiary</Button>
     </Panel>
 
     <Panel Header="Informacja o wyrobie restrykcje" Key="2" class="scrollable-panel">
@@ -866,10 +866,10 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
     private double _panX = 0;
     private double _panY = 0;
 
-    private long CanvasWidth { get; set; } = 1000;
+    private long CanvasWidth { get; set; } = 900;
     private long CanvasHeight { get; set; } = 600;
 
-    private double _zoomCenterX = 500; // Środek canvasu
+    private double _zoomCenterX = 450; // Środek canvasu
     private double _zoomCenterY = 300;
 
     private List<WyrobWymiaryOpis>? infoObiekt;
@@ -888,19 +888,64 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
     private string displayTWZ = "none";
     private string edytowanyId = "";
 
+    private string edytowanyIdshape = "";
+
     protected override async Task OnInitializedAsync()
     {
         try
         {
             await Laduj_Uprawnienia();
 
-
-            _shapes = ShapeService.Shapes; // Odbiór danych z serwisu
+            _shapes = ShapeService.Shapes;
 
             if (_shapes != null)
             {
-                _regions = GeometryUtils.GenerujRegionyZPodzialu(_shapes);
+                // Oblicz bounding box wszystkich kształtów
+                // 1. Oblicz globalny bounding box
+                double minX = double.MaxValue, minY = double.MaxValue;
+                double maxX = double.MinValue, maxY = double.MinValue;
+
+                foreach (var shape in _shapes)
+                {
+                    var bbox = shape.GetBoundingBox();
+                    minX = Math.Min(minX, bbox.X);
+                    minY = Math.Min(minY, bbox.Y);
+                    maxX = Math.Max(maxX, bbox.X + bbox.Width);
+                    maxY = Math.Max(maxY, bbox.Y + bbox.Height);
+                }
+
+                double originalWidth = maxX - minX;
+                double originalHeight = maxY - minY;
+
+                // 2. Oblicz skalę z zachowaniem proporcji tak, by dopasować do docelowych wymiarów
+                double scaleX = Szerokosc / originalWidth;
+                double scaleY = Wysokosc / originalHeight;
+                double scale = Math.Min(scaleX, scaleY);
+
+                // 3. Oblicz nowy rozmiar po skalowaniu
+                double newWidth = originalWidth * scale;
+                double newHeight = originalHeight * scale;
+
+                // 4. Wylicz offsety tak, aby wyśrodkować wynik w docelowym obszarze
+                double offsetX = (Szerokosc - newWidth) / 2.0;
+                double offsetY = (Wysokosc - newHeight) / 2.0;
+
+                // 5. Przeskaluj i przesuń kształty, najpierw "normalizując" względem minX/minY, 
+                //    potem skalując i wyśrodkowując
+                foreach (var shape in _shapes)
+                {
+                    // Najpierw przesuwamy do (0,0) względem minX, minY
+                    shape.Transform(1, -minX, -minY);
+                    // Następnie skalujemy i przesuwamy do środka
+                    shape.Transform(scale, offsetX, offsetY);
+                }
+
+                _currentScale = scale;
+
+                // Generuj regiony po transformacji
+                _regions = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)CanvasWidth, (int)CanvasHeight);
             }
+
 
             Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
 
@@ -1114,25 +1159,30 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
         Console.WriteLine("Rozpoczynam przekazywanie danych z _shapes do GenerujRegionyZPodzialu");
         // 🔽 PRZEKAZANIE DO ANALIZY REGIONÓW PO RYSOWANIU
-        var regiony = GeometryUtils.GenerujRegionyZPodzialu(_shapes);
+        var regiony = GeometryUtils.GenerujRegionyZPodzialu(_shapes, Szerokosc, Wysokosc);
 
         Console.WriteLine($"📦 Wygenerowano {regiony.Count} regionów");
-
-        if (regiony.Count() > 0)
-            await _message.Info($"📦 Wygenerowano {regiony.Count} regionów", 1);
 
         int i = 0;
 
         foreach (var region in regiony)
         {
-            region.Wierzcholki = RemoveDuplicateConsecutivePoints(region.Wierzcholki);
-
-            Console.WriteLine($"🔍 Analizuję region - TypKształtu: {region.TypKsztaltu} - ilość Wierzcholkow: {region.Wierzcholki.Count()} kształt LP: {i++}");
-            foreach (var punkty in region.Wierzcholki)
+            if (region.Wierzcholki.Count() > 2)
             {
-                Console.WriteLine($"X:{punkty.X}, Y:{punkty.Y}");
+                region.Wierzcholki = RemoveDuplicateConsecutivePoints(region.Wierzcholki);
+
+                Console.WriteLine($"🔍 Analizuję region - TypKształtu: {region.TypKsztaltu} - ilość Wierzcholkow: {region.Wierzcholki.Count()} kształt LP: {i++}");
+
+                foreach (var punkty in region.Wierzcholki)
+                {
+                    Console.WriteLine($"X:{punkty.X}, Y:{punkty.Y}");
+                }
             }
+
         }
+
+        if (regiony.Count() > 0)
+            await _message.Info($"📦 Wygenerowano {i} regionów", 1);
 
         await _context.RestoreAsync();
     }
@@ -1204,68 +1254,66 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         await RenderFrame();
     }
 
-private async Task UpdateCanvasSizeFromDiv()
-{
-    var size = await JS.InvokeAsync<DomSize>("getElementSize", ".display-window");
-    if (size != null)
+    private async Task UpdateCanvasSizeFromDiv()
     {
-        CanvasWidth = (long)size.Width;
-        CanvasHeight = (long)size.Height;
+        var size = await JS.InvokeAsync<DomSize>("getElementSize", ".display-window");
+        if (size != null)
+        {
+            CanvasWidth = (long)size.Width;
+            CanvasHeight = (long)size.Height;
 
-        Console.WriteLine($"📐 Nowy rozmiar canvasu: {CanvasWidth} x {CanvasHeight}");
+            Console.WriteLine($"📐 Nowy rozmiar canvasu: {CanvasWidth} x {CanvasHeight}");
 
-        await InvokeAsync(StateHasChanged); // Wymuś renderowanie z nowymi wymiarami
+            await InvokeAsync(StateHasChanged); // Wymuś renderowanie z nowymi wymiarami
+        }
     }
-}
 
-private async Task FitToCanvas()
-{
-    if (_shapes == null || _shapes.Count == 0)
-        return;
+    private async Task FitToCanvas(IShapeDC targetShape, string idRegion)
+    {
 
-    await UpdateCanvasSizeFromDiv();
+        var bounds = targetShape.GetBoundingBox();
 
-    var bounds = _shapes.Select(s => s.GetBoundingBox()).ToList();
+        double minX = bounds.X;
+        double minY = bounds.Y;
+        double maxX = bounds.X + bounds.Width;
+        double maxY = bounds.Y + bounds.Height;
 
-    double minX = bounds.Min(b => b.X);
-    double minY = bounds.Min(b => b.Y);
-    double maxX = bounds.Max(b => b.X + b.Width);
-    double maxY = bounds.Max(b => b.Y + b.Height);
+        double contentWidth = maxX - minX;
+        double contentHeight = maxY - minY;
 
-    double contentWidth = maxX - minX;
-    double contentHeight = maxY - minY;
+        double canvasW = CanvasWidth;
+        double canvasH = CanvasHeight;
 
-    double canvasW = CanvasWidth;
-    double canvasH = CanvasHeight;
+        double margin = 20;
+        double scaleX = (canvasW - 2 * margin) / contentWidth;
+        double scaleY = (canvasH - 2 * margin) / contentHeight;
 
-    double margin = 20;
-    double scaleX = (canvasW - 2 * margin) / contentWidth;
-    double scaleY = (canvasH - 2 * margin) / contentHeight;
+        double scale = Math.Min(scaleX, scaleY);
+        scale *= 0.4;
 
-    double scale = Math.Min(scaleX, scaleY);
+        _currentScale = scale;
 
-    // 📌 Jeśli chcesz dodatkowo oddalić, użyj tylko *na końcu*:
-    scale *= 0.4;  // np. 40% wielkości
+        double centerX = canvasW / 2;
+        double centerY = canvasH / 2;
 
-    _currentScale = scale;
+        double contentCenterX = (minX + maxX) / 2;
+        double contentCenterY = (minY + maxY) / 2;
 
-    // Centrowanie — bez wpływu skali
-    double centerX = canvasW / 2;
-    double centerY = canvasH / 2;
+        _panX = centerX - contentCenterX * scale;
+        _panY = centerY - contentCenterY * scale;
 
-    double contentCenterX = (minX + maxX) / 2;
-    double contentCenterY = (minY + maxY) / 2;
+        Console.WriteLine($"🔍 Dopasowano do shape: scale={_currentScale:F2}, panX={_panX:F2}, panY={_panY:F2}");
 
-    _panX = centerX - contentCenterX * scale;
-    _panY = centerY - contentCenterY * scale;
+        isTextureLoaded = false;
 
-    Console.WriteLine($"🔍 Dopasowano: scale={_currentScale:F2}, panX={_panX:F2}, panY={_panY:F2}");
+        await DrawStructureAndRestrykcje(0);
+        await DodajOknoG(idRegion); // teraz z idRegion
 
-    isTextureLoaded = false;
-    await DrawStructureAndRestrykcje(0);
-    await DodajOknoG();
-    await RenderFrame();
-}
+        await UpdateCanvasSizeFromDiv();
+
+        await RenderFrame();
+
+    }
 
 
     // private async Task UpdateZoomCenter(MouseEventArgs e)
@@ -1286,64 +1334,149 @@ private async Task FitToCanvas()
             return;
         }
 
-        Console.WriteLine($"🟢 Wywołano OnMouseUp {e.ClientX} {e.ClientY} {e.CtrlKey}");
-
-        if (_dotNetHelper == null) return;
-
-        // Przekaż współrzędne myszy do JavaScript
-        await JS.InvokeVoidAsync(
-            "stopDrag",
-            _dotNetHelper
-        );
-
         var draggedInfo = await GetDraggedModelInfoAsync();
         if (draggedInfo != null && !string.IsNullOrEmpty(draggedInfo.Type))
         {
             SelectedModelType = draggedInfo.Type;
             SelectedRowIdType = draggedInfo.RowId;
-
-            Console.WriteLine($"🖱️ Kliknięto na pozycji ({e.ClientX}, {e.ClientY})");
-
-            DropX = e.ClientX;
-            DropY = e.ClientY;
-            // Logika obsługi wybranego modelu
-            Console.WriteLine($"Wybrano model typu: {SelectedModelType} SelectedRowIdType: {SelectedRowIdType}");
-
-            //await DrawStructureAndRestrykcje(0);
-
-           // await DodajOknoG();
-
-            await FitToCanvas(); // Użyj FitToCanvas zamiast RenderFrame
-
-           // await RenderFrame();
         }
 
-        Console.WriteLine($"🟢 Wywołano OnMouseUp {e.ClientX} {e.ClientY} {e.CtrlKey} SelectedModelType: {SelectedModelType} SelectedRowIdType:{SelectedRowIdType}");
+        var rect = await JS.InvokeAsync<DOMRect>("getCanvasBoundingRect", CanvasRef.CanvasReference);
+        double relativeX = e.ClientX - rect.Left;
+        double relativeY = e.ClientY - rect.Top;
 
-        // if (!string.IsNullOrEmpty(selectedType))
+        DropX = relativeX;
+        DropY = relativeY;
+
+        double modelX = (DropX - _panX) / _currentScale;
+        double modelY = (DropY - _panY) / _currentScale;
+
+        var region = FindRegionAtPosition(modelX, modelY);
+        if (region != null)
+        {
+            var shape = _shapes.FirstOrDefault(s =>
+            {
+                var b = s.GetBoundingBox();
+                var cx = b.X + b.Width / 2;
+                var cy = b.Y + b.Height / 2;
+                return IsPointInPolygon(region.Wierzcholki, cx, cy);
+            });
+
+            if (shape != null)
+            {
+                await FitToCanvas(shape, region.Id);
+            }
+            else
+            {
+                await _message.Warning($"❌ Nie znaleziono kształtu w regionie {region.Id} dla pozycji ({DropX}, {DropY})", 1.5);
+            }
+        }
+        else
+        {
+            await _message.Warning($"❌ Nie znaleziono regionu dla pozycji ({DropX}, {DropY})", 1.5);
+
+        }
+
+        // Console.WriteLine($"🟢 Wywołano OnMouseUp {e.ClientX} {e.ClientY} {e.CtrlKey}");
+
+        // if (_dotNetHelper == null) return;
+
+        // // Przekaż współrzędne myszy do JavaScript
+        // await JS.InvokeVoidAsync(
+        //     "stopDrag",
+        //     _dotNetHelper
+        // );
+
+        // var draggedInfo = await GetDraggedModelInfoAsync();
+        // if (draggedInfo != null && !string.IsNullOrEmpty(draggedInfo.Type))
         // {
-        //     SelectedModelType = selectedType;
-
-        //     SelectedRowIdType = selectedIdType;
+        //     SelectedModelType = draggedInfo.Type;
+        //     SelectedRowIdType = draggedInfo.RowId;
 
         //     Console.WriteLine($"🖱️ Kliknięto na pozycji ({e.ClientX}, {e.ClientY})");
 
         //     DropX = e.ClientX;
         //     DropY = e.ClientY;
         //     // Logika obsługi wybranego modelu
-        //     Console.WriteLine($"Wybrano model typu: {selectedType}");
+        //     Console.WriteLine($"Wybrano model typu: {SelectedModelType} SelectedRowIdType: {SelectedRowIdType}");
 
-        //     await DrawStructureAndRestrykcje(0);
+        //     //await DrawStructureAndRestrykcje(0);
 
-        //     await DodajOknoG();
+        //     // await DodajOknoG();
+        //     //await FitToCanvas(); // Użyj FitToCanvas zamiast RenderFrame
 
-        //     await RenderFrame();
+        //     // await RenderFrame();
 
-        //     // StateHasChanged();
+        //     var region = FindRegionAtPosition(DropX, DropY);
+
+        //     if (region != null)
+        //     {
+        //         string idRegion = region.Id;
+
+        //         var shape = _shapes.FirstOrDefault(s =>
+        //             {
+        //                 var shapeBox = s.GetBoundingBox();
+        //                 var minX = region.Wierzcholki.Min(p => p.X);
+        //                 var maxX = region.Wierzcholki.Max(p => p.X);
+        //                 var minY = region.Wierzcholki.Min(p => p.Y);
+        //                 var maxY = region.Wierzcholki.Max(p => p.Y);
+
+        //                 return shapeBox.X >= minX && shapeBox.X + shapeBox.Width <= maxX &&
+        //                        shapeBox.Y >= minY && shapeBox.Y + shapeBox.Height <= maxY;
+        //             });
+
+
+        //         if (shape != null)
+        //         {
+        //             await FitToCanvas(shape, idRegion);
+        //         }
+        //         else
+        //         {
+        //             await _message.Warning($"❌ Nie znaleziono kształtu w regionie {idRegion} dla pozycji ({DropX}, {DropY})", 1.5);
+        //         }
+        //     }
+        //     else
+        //     {
+        //         await _message.Warning($"❌ Nie znaleziono regionu dla pozycji ({DropX}, {DropY}) region - NULL", 1.5);
+
+        //     }
+
         // }
+
+        // Console.WriteLine($"🟢 Wywołano OnMouseUp {e.ClientX} {e.ClientY} {e.CtrlKey} SelectedModelType: {SelectedModelType} SelectedRowIdType:{SelectedRowIdType}");
 
         await JS.InvokeVoidAsync("ResetCursorGlobal");
 
+    }
+
+    private ShapeRegion? FindRegionAtPosition(double x, double y)
+    {
+        Console.WriteLine($"🔍 Szukam regionu w pozycji ({x}, {y})");
+
+        if (_regions == null || !_regions.Any())
+        {
+            Console.WriteLine("❌ Brak regionów do sprawdzenia!");
+            return null;
+        }
+
+        var region = _regions.FirstOrDefault(r => IsPointInPolygon(r.Wierzcholki, x, y));
+        return region;
+    }
+
+
+    public static bool IsPointInPolygon(List<XPoint> polygon, double x, double y)
+    {
+        bool inside = false;
+        for (int i = 0, j = polygon.Count - 1; i < polygon.Count; j = i++)
+        {
+            var pi = polygon[i];
+            var pj = polygon[j];
+            if (((pi.Y > y) != (pj.Y > y)) &&
+                (x < (pj.X - pi.X) * (y - pi.Y) / (pj.Y - pi.Y + double.Epsilon) + pi.X))
+                inside = !inside;
+        }
+        Console.WriteLine($"🔍 Punkt ({x}, {y}) jest {(inside ? "wewnątrz" : "na zewnątrz")} wielokąta.");
+        return inside;
     }
 
     private async Task OnlyRestrykcje()
@@ -1471,7 +1604,7 @@ private async Task FitToCanvas()
                 // return;
             }
 
-            await RenderFrame();
+            //await RenderFrame();
 
             // Reszta kodu do rysowania...
         }
@@ -1507,7 +1640,7 @@ private async Task FitToCanvas()
     {
         try
         {
-            JS.InvokeVoidAsync("clearDotNetHelper");
+            //JS.InvokeVoidAsync("clearDotNetHelper");
             _dotNetHelper?.Dispose();
             _dotNetHelper = null;
             Console.WriteLine($"🧹 Dispose wywołany. Obiekt: {this.GetHashCode()}");
@@ -1516,6 +1649,14 @@ private async Task FitToCanvas()
         {
             Console.WriteLine($"🔥 Błąd Dispose: {ex.Message}");
         }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await JS.InvokeVoidAsync("clearDotNetHelper");
+        _dotNetHelper?.Dispose();
+        _dotNetHelper = null;
+        Console.WriteLine($"🧹 AsyncDispose wywołany. Obiekt: {this.GetHashCode()}");
     }
 
 
@@ -1534,10 +1675,57 @@ private async Task FitToCanvas()
         }
     }
 
+    private async Task ZmienWymiaryOkna()
+    {
+        if (_shapes != null)
+        {
+            // Oblicz bounding box wszystkich kształtów
+            double minX = double.MaxValue, minY = double.MaxValue;
+            double maxX = double.MinValue, maxY = double.MinValue;
+
+            foreach (var shape in _shapes)
+            {
+                var bbox = shape.GetBoundingBox();
+                minX = Math.Min(minX, bbox.X);
+                minY = Math.Min(minY, bbox.Y);
+                maxX = Math.Max(maxX, bbox.X + bbox.Width);
+                maxY = Math.Max(maxY, bbox.Y + bbox.Height);
+            }
+
+            double originalWidth = maxX - minX;
+            double originalHeight = maxY - minY;
+
+            // Oblicz skalę dopasowania do canvas
+            double scaleX = CanvasWidth / originalWidth;
+            double scaleY = CanvasHeight / originalHeight;
+            _currentScale = Math.Min(scaleX, scaleY);
+
+            // Oblicz offset do wyśrodkowania
+            double newWidth = originalWidth * _currentScale;
+            double newHeight = originalHeight * _currentScale;
+
+            double offsetX = (CanvasWidth - newWidth) / 2 - minX * _currentScale;
+            double offsetY = (CanvasHeight - newHeight) / 2 - minY * _currentScale;
+
+            // Zastosuj przeskalowanie i przesunięcie
+            foreach (var shape in _shapes)
+            {
+                shape.Transform(_currentScale, offsetX, offsetY);
+            }
+
+            // Generuj regiony po transformacji
+            _regions = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)CanvasWidth, (int)CanvasHeight);
+        }
+
+        await DodajOknoG("");
+        await RenderFrame();
+    }
+
     private List<KsztaltElementu> ksztalty = new();
 
-    private async Task DodajOknoG()
+    private async Task DodajOknoG(string idRegion)
     {
+        Console.WriteLine($"DodajOknoG wywołane z idRegion: {idRegion} SelectedRowIdType: {SelectedRowIdType}");
 
         var generator = new Generator();
         generator.GruboscDol = 82;
@@ -1553,9 +1741,9 @@ private async Task FitToCanvas()
             generator.KonfiguracjeSystemu = KonfiguracjeSystemu;
             generator.RowIdSystemu = Guid.Parse(SelectedSystemId);
 
-            if (!string.IsNullOrEmpty(SelectedRowIdType))
+            if (Guid.TryParse(SelectedRowIdType, out var rowIdModelu))
             {
-                generator.RowIdModelu = Guid.Parse(SelectedRowIdType);
+                generator.RowIdModelu = rowIdModelu;
 
                 var powiazanyModel = await Http.GetFromJsonAsync<MVCKonfModele>($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{SelectedRowIdType}");
                 if (powiazanyModel != null)
@@ -1567,6 +1755,12 @@ private async Task FitToCanvas()
         }
         else
         {
+            if(string.IsNullOrEmpty(SelectedSystemId))
+            {
+                Console.WriteLine("❌ KonfiguracjeSystemu jest puste, nie można kontynuować.");
+                return;
+            }
+
             var kofiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIN_DROWID/{SelectedSystemId}");
             generator.KonfiguracjeSystemu = kofiguracjeSystemu;
             Console.WriteLine("--------->             Ponowinie pobrano kofiguracjeSystemu..............................................");
@@ -1579,7 +1773,7 @@ private async Task FitToCanvas()
         ksztalty = generator.ElementyRamyRysowane;
 
         var sb = new System.Text.StringBuilder();
-        sb.AppendLine($"Liczba wygenerowanych kształtów: {ksztalty.Count}");
+        sb.AppendLine($"💡 ------ Liczba wygenerowanych kształtów: {ksztalty.Count}");
 
         for (int i = 0; i < ksztalty.Count; i++)
         {

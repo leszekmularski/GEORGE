@@ -294,6 +294,18 @@
     [JSInvokable]
     public void SetForceHV(bool state) => _forceHV = state;
 
+    protected override async Task OnInitializedAsync()
+    {
+        _shapes = ShapeService.Shapes; // Odbiór danych z serwisu
+
+        if(_shapes != null)
+        {
+            await RedrawCanvas();
+
+            StateHasChanged();
+        }
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -521,12 +533,12 @@
             "triangle" => new XTriangleShape(_startX, _startY, _currentX, _currentY, _scaleFactor),
             "square" => new XSquareShape(_startX, _startY, Math.Max(Math.Abs(_currentX - _startX), Math.Abs(_currentY - _startY)), _scaleFactor),
             "rectangle" => new XRectangleShape(_startX, _startY, _currentX - _startX, _currentY - _startY, _scaleFactor),
-            "trapezoid" => new XTrapezoidShape(_startX, _startY, _currentX, _currentY, 0.5, _scaleFactor, 0),
-            "trapezoidLeft" => new XTrapezoidShape(_startX, _startY, _currentX, _currentY, 0.5, _scaleFactor, 1),
-            "trapezoidRight" => new XTrapezoidShape(_startX, _startY, _currentX, _currentY, 0.5, _scaleFactor, 2),
-            "rounded_rect" => new XRoundedRectangleShape(_startX, _startY, _currentX - _startX, _currentY - _startY, 20, _scaleFactor),
-            "rounded_rect_left" => new XRoundedRectangleShapeLeft(_startX, _startY, _currentX - _startX, _currentY - _startY, 20, _scaleFactor),//left
-            "rounded_rect_right" => new XRoundedRectangleShapeRight(_startX, _startY, _currentX - _startX, _currentY - _startY, 20, _scaleFactor),//right
+            "trapezoid" => new XTrapezoidShape(_startX, _startY, _currentX, _currentY, 0.6, _scaleFactor, 0),
+            "trapezoidLeft" => new XTrapezoidShape(_startX, _startY, _currentX, _currentY, 0.6, _scaleFactor, 1),
+            "trapezoidRight" => new XTrapezoidShape(_startX, _startY, _currentX, _currentY, 0.6, _scaleFactor, 2),
+            "rounded_rect" => new XRoundedRectangleShape(_startX, _startY, _currentX - _startX, _currentY - _startY, 100, _scaleFactor),
+            "rounded_rect_left" => new XRoundedRectangleShapeLeft(_startX, _startY, _currentX - _startX, _currentY - _startY, 100, _scaleFactor),//left
+            "rounded_rect_right" => new XRoundedRectangleShapeRight(_startX, _startY, _currentX - _startX, _currentY - _startY, 100, _scaleFactor),//right
             "house" => new XHouseShape(_startX, _startY, _currentX - _startX, _currentY - _startY, (_currentY - _startY) * 0.5, (_currentY - _startY) * 0.5, _scaleFactor),
             "rounded_top_rect" => new XRoundedTopRectangleShape(_startX, _startY, _currentX - _startX, _currentY - _startY, (_currentX - _startX) / 2, _scaleFactor),
 
@@ -729,7 +741,7 @@
         await ClearCanvas();
         await _ctx.SetStrokeStyleAsync("black");
 
-        var radius = 20; // Możesz dodać parametr do kontroli
+        var radius = 100; // Możesz dodać parametr do kontroli
         var width = _currentX - _startX;
         var height = _currentY - _startY;
 
@@ -752,7 +764,7 @@
         await ClearCanvas();
         await _ctx.SetStrokeStyleAsync("black");
 
-        var radius = 20; // Możesz dodać parametr do kontroli
+        var radius = 100; // Możesz dodać parametr do kontroli
         var width = _currentX - _startX;
         var height = _currentY - _startY;
 
@@ -774,7 +786,7 @@
         await ClearCanvas();
         await _ctx.SetStrokeStyleAsync("black");
 
-        var radius = 20; // Możesz dodać parametr do kontroli
+        var radius = 100; // Możesz dodać parametr do kontroli
         var width = _currentX - _startX;
         var height = _currentY - _startY;
 
