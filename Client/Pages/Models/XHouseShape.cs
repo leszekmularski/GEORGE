@@ -169,6 +169,17 @@ namespace GEORGE.Client.Pages.Models
             HeightRight *= scale;
         }
 
+        public void Transform(double scaleX, double scaleY, double offsetX, double offsetY)
+        {
+            X = (X * scaleX) + offsetX;
+            Y = (Y * scaleY) + offsetY;
+            Width *= scaleX;
+            Height *= scaleY;
+            HeightLeft *= scaleY;
+            HeightRight *= scaleY;
+        }
+
+
     }
 
 }

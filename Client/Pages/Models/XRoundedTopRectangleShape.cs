@@ -95,6 +95,16 @@ namespace GEORGE.Client.Pages.Models
             Radius *= scale;
         }
 
+        public void Transform(double scaleX, double scaleY, double offsetX, double offsetY)
+        {
+            X = (X * scaleX) + offsetX;
+            Y = (Y * scaleY) + offsetY;
+            Width *= scaleX;
+            Height *= scaleY;
+            Radius *= (scaleX + scaleY) / 2.0;
+        }
+
+
         /// <summary>
         /// Zwraca wierzchołki prostokąta z zaokrąglonymi rogami (jako lista PointDC).
         /// </summary>

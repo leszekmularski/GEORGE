@@ -69,6 +69,13 @@ namespace GEORGE.Client.Pages.Models
             Size *= scale;
         }
 
+        public void Transform(double scaleX, double scaleY, double offsetX, double offsetY)
+        {
+            X = (X * scaleX) + offsetX;
+            Y = (Y * scaleY) + offsetY;
+            Size *= (scaleX + scaleY) / 2.0; // uśrednione skalowanie Size
+        }
+
         /// <summary>
         /// Zwraca listę wierzchołków prostokąta w kolejności (zgodnie z ruchem wskazówek zegara).
         /// </summary>

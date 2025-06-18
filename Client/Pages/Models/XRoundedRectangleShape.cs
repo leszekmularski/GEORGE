@@ -76,6 +76,17 @@ namespace GEORGE.Client.Pages.Models
             Radius *= scale;
         }
 
+        public void Transform(double scaleX, double scaleY, double offsetX, double offsetY)
+        {
+            X = (X * scaleX) + offsetX;
+            Y = (Y * scaleY) + offsetY;
+            Width *= scaleX;
+            Height *= scaleY;
+
+            // Przyjmujemy średnie skalowanie dla promienia, jeśli ma być zachowana proporcja kołowa
+            Radius *= (scaleX + scaleY) / 2.0;
+        }
+
         /// <summary>
         /// Zwraca wierzchołki prostokąta z zaokrąglonymi rogami po lewej i prawej stronie górnej krawędzi.
         /// (zawiera kluczowe punkty konturu, bez dokładnych punktów łuków)

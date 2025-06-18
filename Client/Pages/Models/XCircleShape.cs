@@ -61,6 +61,16 @@ namespace GEORGE.Client.Pages.Models
             Radius *= scale;
         }
 
+        public void Transform(double scaleX, double scaleY, double offsetX, double offsetY)
+        {
+            X = (X * scaleX) + offsetX;
+            Y = (Y * scaleY) + offsetY;
+
+            // Jeśli skalowanie jest niesymetryczne, wybierz średnią lub mniejszą wartość
+            double scaleForRadius = Math.Min(scaleX, scaleY);
+            Radius *= scaleForRadius;
+        }
+
         /// <summary>
         /// Przybliża okrąg jako wielokąt o podanej liczbie segmentów.
         /// </summary>

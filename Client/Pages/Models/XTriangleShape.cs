@@ -68,6 +68,15 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             BaseY += (Height * (factor - 1));
         }
 
+        public void Scale(double scaleX, double scaleY)
+        {
+            // Przykład skalowania pozycji i rozmiaru
+            BaseWidth *= scaleX;
+            Height *= scaleY;
+            BaseX1 *= scaleX;
+            BaseY *= scaleY;
+        }
+
         /// <summary>
         /// Przesunięcie trójkąta o offset (X, Y).
         /// </summary>
@@ -129,5 +138,12 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             Scale(scale);
             Move(offsetX, offsetY);
         }
+
+        public void Transform(double scaleX, double scaleY, double offsetX, double offsetY)
+        {
+            Scale(scaleX, scaleY);
+            Move(offsetX, offsetY);
+        }
+
     }
 }

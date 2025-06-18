@@ -300,20 +300,36 @@
 
         if(_shapes != null)
         {
-            await RedrawCanvas();
+
+            await FitToCanvas();
 
             StateHasChanged();
         }
+        else
+        {
+            Console.WriteLine("Nie udało się pobrać kształtów z serwisu ShapeService.");
+        }
     }
+
+    private bool _hasInitialized = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        if (firstRender && !_hasInitialized)
         {
+            _hasInitialized = true;
             _ctx = await _canvas.CreateCanvas2DAsync();
             _dotNetHelper = DotNetObjectReference.Create(this);
             await JSRuntime.InvokeVoidAsync("initCanvasEvents", _container, _dotNetHelper);
             await ClearCanvas();
+
+            if (_shapes != null)
+            {
+                await RedrawCanvas();     // <- teraz canvas już istnieje w DOM
+                await FitToCanvas();
+
+                StateHasChanged();
+            }
         }
     }
 
@@ -557,7 +573,11 @@
 
     private async Task RedrawCanvas()
     {
-        if (_ctx == null) return;
+        if (_ctx == null)
+        {
+            Console.WriteLine("Kontekst Canvas2D nie jest zainicjalizowany.");
+            return;
+        }
 
         await ClearCanvas();
 

@@ -9,7 +9,7 @@ namespace GEORGE.Client.Pages.Utils
     {
         public static List<ShapeRegion> GenerujRegionyZPodzialu(List<IShapeDC> shapes, int szerokosc, int wysokosc)
         {
-            Console.WriteLine($"🔍 Analizuje dane wewnątrz GenerujRegionyZPodzialu shapes: {shapes.Count}");
+            Console.WriteLine($"🔍 Analizuje dane wewnątrz GenerujRegionyZPodzialu shapes: {shapes.Count} dla szerokosc: {szerokosc} wysokosc: {wysokosc}");
 
             var regions = new List<ShapeRegion>();
 
@@ -35,32 +35,26 @@ namespace GEORGE.Client.Pages.Utils
             double originalWidth = maxX - minX;
             double originalHeight = maxY - minY;
 
-            // 2. Oblicz skalę osobno w osi X i Y i wybierz mniejszą (proporcjonalne skalowanie)
+            // 2. Oblicz skalę osobno w osi X i Y (pełne dopasowanie, bez proporcji)
             double scaleX = szerokosc / originalWidth;
             double scaleY = wysokosc / originalHeight;
-            double scale = Math.Min(scaleX, scaleY);
 
-            // 3. Oblicz rozmiary po skalowaniu
-            double newWidth = originalWidth * scale;
-            double newHeight = originalHeight * scale;
+            // 3. Offsety tak, by przesunąć kształty do (0,0)
+            double offsetX = -minX * scaleX;
+            double offsetY = -minY * scaleY;
 
-            // 4. Wyśrodkuj kształty w obszarze docelowym (w osi, gdzie zostaje wolne miejsce)
-            double offsetX = (szerokosc - newWidth) / 2.0 - minX * scale;
-            double offsetY = (wysokosc - newHeight) / 2.0 - minY * scale;
-
-            // 5. Przeskaluj i przemieść kształty, wypisując bounding box przed i po transformacji
+            // 4. Transformacja shape'ów
             foreach (var shape in shapes)
             {
                 var bboxBefore = shape.GetBoundingBox();
-                Console.WriteLine($"Przed transformacją: X={bboxBefore.X:F2}, Y={bboxBefore.Y:F2}, W={bboxBefore.Width:F2}, H={bboxBefore.Height:F2}");
+                Console.WriteLine($"Przed: X={bboxBefore.X:F2}, Y={bboxBefore.Y:F2}, W={bboxBefore.Width:F2}, H={bboxBefore.Height:F2}");
 
-                shape.Transform(scale, offsetX, offsetY);
+                shape.Transform(scaleX, scaleY, offsetX, offsetY); // <-- skalowanie osobne
 
                 var bboxAfter = shape.GetBoundingBox();
-                Console.WriteLine($"Po transformacji:    X={bboxAfter.X:F2}, Y={bboxAfter.Y:F2}, W={bboxAfter.Width:F2}, H={bboxAfter.Height:F2}");
+                Console.WriteLine($"Po transformacji shape'ów:    X={bboxAfter.X:F2}, Y={bboxAfter.Y:F2}, W={bboxAfter.Width:F2}, H={bboxAfter.Height:F2}");
                 Console.WriteLine("---");
             }
-
 
 
             foreach (var shape in shapes)

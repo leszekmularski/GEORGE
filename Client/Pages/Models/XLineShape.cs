@@ -161,6 +161,20 @@ namespace GEORGE.Client.Pages.Models
                 X2 = X1; // Zapewniamy pionową linię po transformacji
             }
         }
+
+        public void Transform(double scaleX, double scaleY, double offsetX, double offsetY)
+        {
+            X1 = (X1 * scaleX) + offsetX;
+            Y1 = (Y1 * scaleY) + offsetY;
+            X2 = (X2 * scaleX) + offsetX;
+            Y2 = (Y2 * scaleY) + offsetY;
+
+            if (RuchomySlupek)
+            {
+                X2 = X1; // Utrzymujemy linię pionową po transformacji
+            }
+        }
+
     }
 
 }

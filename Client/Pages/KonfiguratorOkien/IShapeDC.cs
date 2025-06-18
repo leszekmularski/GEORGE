@@ -8,5 +8,6 @@ public interface IShapeDC
     void Scale(double factor);
     void Move(double offsetX, double offsetY);
     void Transform(double scale, double offsetX, double offsetY);
+    void Transform(double scaleX, double scaleY, double offsetX, double offsetY);
     BoundingBox GetBoundingBox();
 }
