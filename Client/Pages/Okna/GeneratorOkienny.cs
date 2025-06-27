@@ -30,101 +30,106 @@ namespace GEORGE.Client.Pages.Okna
             PowiazanyModel = null;
         }
 
-        public void AddElements(List<ShapeRegion> regions)
+        public void AddElements(List<ShapeRegion> regions, string regionId)
         {
             if (regions == null) return;
 
             if (KonfiguracjeSystemu == null || PowiazanyModel == null)
             {
-                Console.WriteLine($"Brak KonfiguracjeSystemu !!!!");
+                Console.WriteLine($"❌ Brak KonfiguracjeSystemu lub PowiazanyModel!");
                 return;
             }
 
             if (EdytowanyModel == null)
             {
-                Console.WriteLine($"Brak EdytowanyModel !!!!");
+                Console.WriteLine($"❌ Brak EdytowanyModel!");
                 return;
             }
 
-            Console.WriteLine($"EdytowanyModel.PolaczenieNaroza: {EdytowanyModel.PolaczenieNaroza}");
-            Console.WriteLine($"Szerokosc: {Szerokosc}, Wysokosc: {Wysokosc}");
+            Console.WriteLine($"➡️ EdytowanyModel.PolaczenieNaroza: {EdytowanyModel.PolaczenieNaroza}");
+            Console.WriteLine($"📏 Szerokosc: {Szerokosc}, Wysokosc: {Wysokosc}");
 
-            foreach (var region in regions)
+            var region = regions.FirstOrDefault(r => r.Id == regionId);
+            if (region == null)
             {
-                var punkty = region.Wierzcholki;
-                if (punkty == null || punkty.Count < 3)
-                    continue;
+                Console.WriteLine($"❌ Nie znaleziono regionu o ID: {regionId}");
+                return;
+            }
 
-                Console.WriteLine($"GenerujOkno: Przetwarzanie regionu typu: {region.TypKsztaltu}");
+            var punkty = region.Wierzcholki;
+            if (punkty == null || punkty.Count < 3)
+            {
+                Console.WriteLine($"❌ Region o ID: {regionId} ma zbyt mało punktów");
+                return;
+            }
 
-                // 🧮 Oblicz bounding box oryginalnego regionu
-                float minX = (float)punkty.Min(p => p.X);
-                float maxX = (float)punkty.Max(p => p.X);
-                float minY = (float)punkty.Min(p => p.Y);
-                float maxY = (float)punkty.Max(p => p.Y);
+            Console.WriteLine($"🟩 Generuj okno dla regionu ID {regionId} typu: {region.TypKsztaltu}");
 
-                float width = maxX - minX;
-                float height = maxY - minY;
+            // 🧮 Bounding box
+            float minX = (float)punkty.Min(p => p.X);
+            float maxX = (float)punkty.Max(p => p.X);
+            float minY = (float)punkty.Min(p => p.Y);
+            float maxY = (float)punkty.Max(p => p.Y);
 
-                // 📏 Skaluj region do zadanych wymiarów
-                var przeskalowanePunkty = SkalujIPrzesun(punkty, minX, minY, width, height, Szerokosc, Wysokosc);
+            float width = maxX - minX;
+            float height = maxY - minY;
 
-                Console.WriteLine($"📐 Przeskalowane punkty: {string.Join(", ", przeskalowanePunkty.Select(p => $"({p.X:F2}, {p.Y:F2})"))}");
+            // 🔄 Skalowanie do regionu
+            var przeskalowanePunkty = SkalujIPrzesun(punkty, minX, minY, width, height, Szerokosc, Wysokosc);
 
-                // 📦 Oblicz profile z konfiguracji systemu
-                float profileLeft = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.PionPrawa ?? 0 -
-                                            PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0);
-                float profileRight = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.PionPrawa ?? 0 -
-                                             PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.PionLewa ?? 0);
-                float profileTop = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.PionPrawa ?? 0 -
-                                           PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.PionLewa ?? 0);
-                float profileBottom = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionPrawa ?? 0 -
-                                              PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionLewa ?? 0);
+            Console.WriteLine($"📐 Przeskalowane punkty: {string.Join(", ", przeskalowanePunkty.Select(p => $"({p.X:F2}, {p.Y:F2})"))}");
 
-                Console.WriteLine($"System ilość konfiguracji: {KonfiguracjeSystemu.Count()}");
-                Console.WriteLine($"profileLeft: {profileLeft} profileRight: {profileRight} profileTop: {profileTop} profileBottom: {profileBottom}");
+            // 🔧 Profile z konfiguracji
+            float profileLeft = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.PionPrawa ?? 0 -
+                                        PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0);
+            float profileRight = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.PionPrawa ?? 0 -
+                                         PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.PionLewa ?? 0);
+            float profileTop = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.PionPrawa ?? 0 -
+                                       PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.PionLewa ?? 0);
+            float profileBottom = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionPrawa ?? 0 -
+                                          PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionLewa ?? 0);
 
-                // 🔄 Wyznacz wewnętrzny kontur
-                var wewnetrznyKontur = CalculateOffsetPolygon(
+            Console.WriteLine($"📐 profileLeft: {profileLeft}, profileRight: {profileRight}, profileTop: {profileTop}, profileBottom: {profileBottom}");
+
+            // 🔲 Oblicz wewnętrzny kontur
+            var wewnetrznyKontur = CalculateOffsetPolygon(
+                przeskalowanePunkty,
+                profileLeft, profileRight, profileTop, profileBottom);
+
+            // 🧱 Wygeneruj ramę
+            if (region.TypKsztaltu == "prostokąt" || region.TypKsztaltu == "kwadrat")
+            {
+                GenerateRectangleElements(
                     przeskalowanePunkty,
-                    profileLeft, profileRight, profileTop, profileBottom);
-
-                // 🧱 Generowanie elementów ramy
-                if (region.TypKsztaltu == "prostokąt" || region.TypKsztaltu == "kwadrat")
-                {
-                    GenerateRectangleElements(
-                        przeskalowanePunkty,
-                        wewnetrznyKontur,
-                        profileLeft, profileRight, profileTop, profileBottom,
-                        region.TypKsztaltu,
-                        EdytowanyModel.PolaczenieNaroza,
-                        KonfiguracjeSystemu
-                    );
-                }
-                else if (region.TypKsztaltu == "trójkąt")
-                {
-                    GenerateTriangleElements(
-                        przeskalowanePunkty,
-                        wewnetrznyKontur,
-                        profileLeft, profileRight, profileTop, profileBottom
-                    );
-                }
-                else
-                {
-                    GenerateGenericElementsWithJoins(
-                        przeskalowanePunkty,
-                        wewnetrznyKontur,
-                        profileLeft, profileRight, profileTop, profileBottom,
-                        region.TypKsztaltu,
-                        EdytowanyModel.PolaczenieNaroza,
-                        KonfiguracjeSystemu
-                    );
-                }
+                    wewnetrznyKontur,
+                    profileLeft, profileRight, profileTop, profileBottom,
+                    region.TypKsztaltu,
+                    EdytowanyModel.PolaczenieNaroza,
+                    KonfiguracjeSystemu
+                );
+            }
+            else if (region.TypKsztaltu == "trójkąt")
+            {
+                GenerateTriangleElements(
+                    przeskalowanePunkty,
+                    wewnetrznyKontur,
+                    profileLeft, profileRight, profileTop, profileBottom
+                );
+            }
+            else
+            {
+                GenerateGenericElementsWithJoins(
+                    przeskalowanePunkty,
+                    wewnetrznyKontur,
+                    profileLeft, profileRight, profileTop, profileBottom,
+                    region.TypKsztaltu,
+                    EdytowanyModel.PolaczenieNaroza,
+                    KonfiguracjeSystemu
+                );
             }
         }
 
-
-    private List<XPoint> SkalujIPrzesun(
+        private List<XPoint> SkalujIPrzesun(
         List<XPoint> punkty,
         float minX, float minY,
         float width, float height,
