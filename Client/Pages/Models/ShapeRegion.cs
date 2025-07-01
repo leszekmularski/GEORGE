@@ -37,7 +37,7 @@ namespace GEORGE.Client.Pages.Models
             var minY = Wierzcholki.Min(p => p.Y);
             var maxX = Wierzcholki.Max(p => p.X);
             var maxY = Wierzcholki.Max(p => p.Y);
-
+           // Console.WriteLine($"GetBoundingBox --> BoundingBox: minX={minX}, minY={minY}, maxX={maxX}, maxY={maxY}");
             return new BoundingBox(minX, minY, maxX - minX, maxY - minY, TypKsztaltu);
         }
 

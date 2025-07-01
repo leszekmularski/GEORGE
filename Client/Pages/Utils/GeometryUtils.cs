@@ -19,18 +19,15 @@ namespace GEORGE.Client.Pages.Utils
                 .Where(l => l.DualRama)
                 .ToList();
 
-            // 1. Oblicz globalny bounding box
-            double minX = double.MaxValue, minY = double.MaxValue;
-            double maxX = double.MinValue, maxY = double.MinValue;
+            // 1. Oblicz globalny bounding box — tylko dla shape'ów tworzących regiony
+            var shapesDoRegionow = shapes.Where(s =>
+                s is XRectangleShape or XSquareShape or XTriangleShape or XTrapezoidShape or XCircleShape or XHouseShape or XRoundedTopRectangleShape or XRoundedRectangleShape or XRoundedRectangleShapeLeft or XRoundedRectangleShapeRight
+            ).ToList();
 
-            foreach (var shape in shapes)
-            {
-                var bbox = shape.GetBoundingBox();
-                minX = Math.Min(minX, bbox.X);
-                minY = Math.Min(minY, bbox.Y);
-                maxX = Math.Max(maxX, bbox.X + bbox.Width);
-                maxY = Math.Max(maxY, bbox.Y + bbox.Height);
-            }
+            double minX = shapesDoRegionow.Min(s => s.GetBoundingBox().X);
+            double minY = shapesDoRegionow.Min(s => s.GetBoundingBox().Y);
+            double maxX = shapesDoRegionow.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
+            double maxY = shapesDoRegionow.Max(s => s.GetBoundingBox().Y + s.GetBoundingBox().Height);
 
             double originalWidth = maxX - minX;
             double originalHeight = maxY - minY;
@@ -43,13 +40,12 @@ namespace GEORGE.Client.Pages.Utils
             double offsetX = -minX * scaleX;
             double offsetY = -minY * scaleY;
 
-            // 4. Transformacja shape'ów
             foreach (var shape in shapes)
             {
                 var bboxBefore = shape.GetBoundingBox();
-                Console.WriteLine($"Przed: X={bboxBefore.X:F2}, Y={bboxBefore.Y:F2}, W={bboxBefore.Width:F2}, H={bboxBefore.Height:F2}");
+                Console.WriteLine($"Przed transformacji shape'ów: X={bboxBefore.X:F2}, Y={bboxBefore.Y:F2}, W={bboxBefore.Width:F2}, H={bboxBefore.Height:F2}");
 
-                shape.Transform(scaleX, scaleY, offsetX, offsetY); // <-- skalowanie osobne
+                shape.Transform(scaleX, scaleY, offsetX, offsetY);
 
                 var bboxAfter = shape.GetBoundingBox();
                 Console.WriteLine($"Po transformacji shape'ów:    X={bboxAfter.X:F2}, Y={bboxAfter.Y:F2}, W={bboxAfter.Width:F2}, H={bboxAfter.Height:F2}");
@@ -148,16 +144,54 @@ namespace GEORGE.Client.Pages.Utils
 
                 if (!podzielony)
                 {
-                    regions.Add(new ShapeRegion
+                    // 🛠️ Jeśli nie ma podziału, to wymuś jeden region o pełnym rozmiarze
+                    var pelnyRegion = new List<XPoint>
                     {
-                        Wierzcholki = wierzcholki,
-                        TypKsztaltu = typKształtu
-                    });
+                        new XPoint(0, 0),
+                        new XPoint(szerokosc, 0),
+                        new XPoint(szerokosc, wysokosc),
+                        new XPoint(0, wysokosc)
+                    };
+
+                        regions.Add(new ShapeRegion
+                        {
+                            Wierzcholki = pelnyRegion,
+                            TypKsztaltu = "prostokąt" // lub typKształtu jeśli istotne
+                        });
+                    }
                 }
-            }
+
+           // NormalizeRegionSize(regions, szerokosc, wysokosc);
 
             return regions;
         }
+
+        //private static void NormalizeRegionSize(List<ShapeRegion> regions, int targetWidth, int targetHeight)
+        //{
+        //    var minX = regions.SelectMany(r => r.Wierzcholki).Min(p => p.X);
+        //    var minY = regions.SelectMany(r => r.Wierzcholki).Min(p => p.Y);
+        //    var maxX = regions.SelectMany(r => r.Wierzcholki).Max(p => p.X);
+        //    var maxY = regions.SelectMany(r => r.Wierzcholki).Max(p => p.Y);
+
+        //    var currentWidth = maxX - minX;
+        //    var currentHeight = maxY - minY;
+
+        //    var scaleX = targetWidth / currentWidth;
+        //    var scaleY = targetHeight / currentHeight;
+
+        //    foreach (var region in regions)
+        //    {
+        //        for (int i = 0; i < region.Wierzcholki.Count; i++)
+        //        {
+        //            var p = region.Wierzcholki[i];
+        //            region.Wierzcholki[i] = new XPoint(
+        //                (p.X - minX) * scaleX,
+        //                (p.Y - minY) * scaleY
+        //            );
+        //        }
+        //    }
+        //}
+
         private static List<XPoint> GenerateCircleVertices(double centerX, double centerY, double radius, int segments)
         {
             var points = new List<XPoint>();
