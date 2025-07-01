@@ -59,8 +59,8 @@ namespace GEORGE.Client.Pages.Models
             TypKsztaltu = Wierzcholki.Count switch
             {
                 3 => "trójkąt",
-                4 => "prostokąt",
-                5 => "trapez",
+                4 => "trapez",
+                5 => "domek",
                 _ => "niestandardowy"
             };
         }

@@ -25,6 +25,17 @@ namespace GEORGE.Client.Pages.Models
             _scaleFactor = scaleFactor;
         }
 
+        public List<XPoint> GetFullOutline()
+        {
+            var (roof, house) = GetVertices();
+
+            var outline = new List<XPoint>();
+            outline.AddRange(roof);   // np. 3 punkty dachu
+            outline.AddRange(house);  // np. 2 punkty podstawy
+
+            return outline;
+        }
+
         public async Task Draw(Canvas2DContext ctx)
         {
             //double roofHeight = Height * 0.5;

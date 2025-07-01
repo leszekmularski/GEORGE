@@ -777,6 +777,8 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                                     <strong>Typ:</strong> @ksztalt.TypKsztaltu &nbsp;|&nbsp;
                                     <strong>Grupa:</strong> @ksztalt.Grupa &nbsp;|&nbsp;
                                     <strong>ZIndex:</strong> @ksztalt.ZIndex
+                                    <br/>
+                                    <strong>IdRegion:</strong> @ksztalt.IdRegion
                                 </div>
                                 <button class="btn btn-sm btn-primary" @onclick="@(() => EdytujKsztalt(ksztalt.Id))">Edytuj</button>
                             </div>
@@ -829,85 +831,86 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                                         }
                                     </ul>
                                 }
-                                <hr>
-                                <p class="text-muted">Poniżej lista regionów, wymiary zewnętrzne @Szerokosc x @Wysokosc</p>
-                                @foreach (var region in _regions)
-                                {
-                                    <div class="card mb-3">
-                                        <div class="card-body">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <h5 class="card-title">Region: @region.TypKsztaltu</h5>
-                                                @if (edytowanyRegionId == region.Id)
-                                                {
-                                                    <div>
-                                                        <button class="btn btn-sm btn-success me-2" @onclick="ZapiszRegion">Zapisz</button>
-                                                        <button class="btn btn-sm btn-secondary" @onclick="() => edytowanyRegionId = null">Anuluj</button>
-                                                    </div>
-                                                }
-                                                else
-                                                {
-                                                    <button class="btn btn-sm btn-primary" @onclick="() => edytowanyRegionId = region.Id">Edytuj</button>
-                                                }
-                                            </div>
+                         </div>
+                        </div>
+                    }
 
-                                            <p><strong>ID:</strong> @region.Id</p>
-                                            <p><strong>Liczba wierzchołków:</strong> @region.Wierzcholki.Count</p>
-                                            <p><strong>Liczba linii dzielących:</strong> @region.LinieDzielace.Count</p>
-
-                                            <p><strong>Wierzchołki:</strong></p>
-                                            @if (edytowanyRegionId == region.Id)
-                                            {
-                                                @for (int i = 0; i < region.Wierzcholki.Count; i++)
-                                                {
-                                                    var punkt = region.Wierzcholki[i];
-                                                    var index = i;
-
-                                                    <div class="d-flex align-items-center mb-1" @key="punkt">
-                                                        <span class="me-2">[@index]</span>
-                                                        <input class="form-control me-1" style="width: 100px;" type="number"
-                                                               step="0.01" value="@punkt.X"
-                                                               @oninput="@(e => ZmienXRegion(region, index, e))" />
-                                                        <input class="form-control me-1" style="width: 100px;" type="number"
-                                                               step="0.01" value="@punkt.Y"
-                                                               @oninput="@(e => ZmienYRegion(region, index, e))" />
-                                                    </div>
-                                                }
-                                            }
-                                            else
-                                            {
-                                                <ul class="list-group list-group-flush">
-                                                    @foreach (var p in region.Wierzcholki)
-                                                    {
-                                                        <li class="list-group-item">
-                                                            X: @p.X, Y: @p.Y
-                                                        </li>
-                                                    }
-                                                </ul>
-                                            }
-
-
-                                            @* Linie dzielące *@
-                                            @if (region.LinieDzielace.Any())
-                                            {
-                                                <p class="mt-3"><strong>Linie dzielące:</strong></p>
-                                                <ul class="list-group list-group-flush">
-                                                    @foreach (var linia in region.LinieDzielace)
-                                                    {
-                                                        <li class="list-group-item">
-                                                            Start(X1: @linia.X1, Y1: @linia.Y1), Koniec(X2: @linia.X2, Y2: @linia.Y2)
-                                                        </li>
-                                                    }
-                                                </ul>
-                                            }
-
-                                            @* BoundingBox (opcjonalnie) *@
-                                            @{
-                                                var bbox = region.GetBoundingBox();
-                                            }
-                                            <p class="mt-3"><strong>BoundingBox:</strong> X=@bbox.X, Y=@bbox.Y, Width=@bbox.Width, Height=@bbox.Height</p>
+                    <hr>
+                    <p style="color:red; font-size:14px;">Poniżej lista regionów, wymiary zewnętrzne @Szerokosc x @Wysokosc</p>
+                    @foreach (var region in _regions)
+                    {
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title">Region: @region.TypKsztaltu</h5>
+                                    @if (edytowanyRegionId == region.Id)
+                                    {
+                                        <div>
+                                            <button class="btn btn-sm btn-success me-2" @onclick="ZapiszRegion">Zapisz</button>
+                                            <button class="btn btn-sm btn-secondary" @onclick="() => edytowanyRegionId = null">Anuluj</button>
                                         </div>
-                                    </div>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-primary" @onclick="() => edytowanyRegionId = region.Id">Edytuj</button>
+                                    }
+                                </div>
+
+                                <p><strong>ID:</strong> @region.Id</p>
+                                <p><strong>Liczba wierzchołków:</strong> @region.Wierzcholki.Count</p>
+                                <p><strong>Liczba linii dzielących:</strong> @region.LinieDzielace.Count</p>
+
+                                <p><strong>Wierzchołki:</strong></p>
+                                @if (edytowanyRegionId == region.Id)
+                                {
+                                    @for (int i = 0; i < region.Wierzcholki.Count; i++)
+                                    {
+                                        var punkt = region.Wierzcholki[i];
+                                        var index = i;
+
+                                        <div class="d-flex align-items-center mb-1" @key="punkt">
+                                            <span class="me-2">[@index]</span>
+                                            <input class="form-control me-1" style="width: 100px;" type="number"
+                                                   step="0.01" value="@punkt.X"
+                                                   @oninput="@(e => ZmienXRegion(region, index, e))" />
+                                            <input class="form-control me-1" style="width: 100px;" type="number"
+                                                   step="0.01" value="@punkt.Y"
+                                                   @oninput="@(e => ZmienYRegion(region, index, e))" />
+                                        </div>
+                                    }
                                 }
+                                else
+                                {
+                                    <ul class="list-group list-group-flush">
+                                        @foreach (var p in region.Wierzcholki)
+                                        {
+                                            <li class="list-group-item">
+                                                X: @p.X, Y: @p.Y
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+
+
+                                @* Linie dzielące *@
+                                @if (region.LinieDzielace.Any())
+                                {
+                                    <p class="mt-3"><strong>Linie dzielące:</strong></p>
+                                    <ul class="list-group list-group-flush">
+                                        @foreach (var linia in region.LinieDzielace)
+                                        {
+                                            <li class="list-group-item">
+                                                Start(X1: @linia.X1, Y1: @linia.Y1), Koniec(X2: @linia.X2, Y2: @linia.Y2)
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+
+                                @* BoundingBox (opcjonalnie) *@
+                                @{
+                                    var bbox = region.GetBoundingBox();
+                                }
+                                <p class="mt-3"><strong>BoundingBox:</strong> X=@bbox.X, Y=@bbox.Y, Width=@bbox.Width, Height=@bbox.Height</p>
                             </div>
                         </div>
                     }
@@ -916,7 +919,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                 else
                 {
                     <p class="text-muted">Brak danych do wyświetlenia 😔 nie wygenerowano okien</p>
-                    <p class="text-muted">Poniżej lista regionów, wymiary zewnętrzne @Szerokosc x @Wysokosc</p>
+                    <p style="color:red; font-size:14px;">Poniżej lista regionów, wymiary zewnętrzne @Szerokosc x @Wysokosc</p>
                     @foreach (var region in _regions)
                     {
                         <div class="card mb-3">
@@ -1119,8 +1122,9 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                 _currentScale = scale;
 
                 // Generuj regiony po transformacji
-              //  _regions = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)CanvasWidth, (int)CanvasHeight);
+                //  _regions = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)CanvasWidth, (int)CanvasHeight);
                 _regions = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)Szerokosc, (int)Wysokosc);
+
                 double minX = 0;
                 double minY = 0;
                 double maxX = Szerokosc;
@@ -1401,7 +1405,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         }
 
         Console.WriteLine("Rozpoczynam przekazywanie danych z _shapes do GenerujRegionyZPodzialu");
-     //   var regiony = GeometryUtils.GenerujRegionyZPodzialu(_shapes, Szerokosc, Wysokosc);
+        //   var regiony = GeometryUtils.GenerujRegionyZPodzialu(_shapes, Szerokosc, Wysokosc);
         // Console.WriteLine($"📦 Wygenerowano {regiony.Count} regionów");
 
         // int i = 0;
@@ -1589,7 +1593,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
         await DodajWybranyKwadratOkna(idRegion); // teraz z idRegion
 
-       // await UpdateCanvasSizeFromDiv();
+        // await UpdateCanvasSizeFromDiv();
 
         await RenderFrame();
 
@@ -2050,7 +2054,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
             var kofiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIN_DROWID/{SelectedSystemId}");
             generator.KonfiguracjeSystemu = kofiguracjeSystemu;
-            Console.WriteLine("---------> Ponowinie pobrano kofiguracjeSystemu.");
+            Console.WriteLine("---------> Ponownie pobrano kofiguracjeSystemu.");
         }
 
         generator.EdytowanyModel = WybranyModel;
@@ -2064,67 +2068,64 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         }
 
         var regionPoints = wybranyRegion.Wierzcholki;
-        if (regionPoints != null && regionPoints.Count >= 3)
-        {
-            double minX = regionPoints.Min(p => p.X);
-            double maxX = regionPoints.Max(p => p.X);
-            double minY = regionPoints.Min(p => p.Y);
-            double maxY = regionPoints.Max(p => p.Y);
-
-            generator.Szerokosc = (float)(maxX - minX);
-            generator.Wysokosc = (float)(maxY - minY);
-
-            Console.WriteLine($"📐 Region ID: {wybranyRegion.Id} -> Szerokość: {generator.Szerokosc}, Wysokość: {generator.Wysokosc}");
-        }
-        else
+        if (regionPoints == null || regionPoints.Count < 3)
         {
             Console.WriteLine("❌ Wybrany region nie zawiera wystarczającej liczby punktów!");
-            generator.Szerokosc = Szerokosc;
-            generator.Wysokosc = Wysokosc;
+            return;
         }
+
+        // 1. Bounding box regionu
+        double minX = regionPoints.Min(p => p.X);
+        double maxX = regionPoints.Max(p => p.X);
+        double minY = regionPoints.Min(p => p.Y);
+        double maxY = regionPoints.Max(p => p.Y);
+
+        generator.Szerokosc = (float)(maxX - minX);
+        generator.Wysokosc = (float)(maxY - minY);
+
+        Console.WriteLine($"📐 Region ID: {wybranyRegion.Id} -> Szerokość: {generator.Szerokosc}, Wysokość: {generator.Wysokosc}");
 
         generator.AddElements(new List<ShapeRegion> { wybranyRegion }, idRegion);
-        Console.WriteLine($"💡 Regionu o ID: {idRegion} X1:{wybranyRegion.Wierzcholki[0].X} X2:{wybranyRegion.Wierzcholki[1].X}.");
 
-        if (regionPoints != null)
-        {
-            var sbX = new System.Text.StringBuilder();
-            sbX.AppendLine($"  Punkty dla region id: {idRegion}:");
-            foreach (var punkt in regionPoints)
-            {
-                sbX.AppendLine($"💡💡  - X: {punkt.X}, Y: {punkt.Y}");
-            }
-            Console.WriteLine(sbX.ToString());
-        }
+        // 2. Oblicz bounding box wygenerowanych kształtów
+        double shapeMinX = generator.ElementyRamyRysowane.Min(e => e.Wierzcholki.Min(p => p.X));
+        double shapeMaxX = generator.ElementyRamyRysowane.Max(e => e.Wierzcholki.Max(p => p.X));
+        double shapeMinY = generator.ElementyRamyRysowane.Min(e => e.Wierzcholki.Min(p => p.Y));
+        double shapeMaxY = generator.ElementyRamyRysowane.Max(e => e.Wierzcholki.Max(p => p.Y));
 
-        if (!_ksztaltyNaRegion.ContainsKey(idRegion))
-        {
-            _ksztaltyNaRegion[idRegion] = new List<KsztaltElementu>();
-        }
+        double shapeWidth = shapeMaxX - shapeMinX;
+        double shapeHeight = shapeMaxY - shapeMinY;
+        double regionWidth = maxX - minX;
+        double regionHeight = maxY - minY;
 
-        // Dodaj wygenerowane kształty do słownika
-        _ksztaltyNaRegion[idRegion].AddRange(generator.ElementyRamyRysowane);
+        // 3. Skalowanie z zachowaniem proporcji
+        double scale = Math.Min(regionWidth / shapeWidth, regionHeight / shapeHeight);
 
-        // Aktualizuj zbiorczo `ksztalty` do wyświetlenia
-        ksztalty = _ksztaltyNaRegion.Values.SelectMany(k => k).ToList();
+        // 4. Przesunięcie tak, aby dopasować obiekt do regionu
+        double offsetX = minX - shapeMinX * scale;
+        double offsetY = minY - shapeMinY * scale;
 
-        double offsetX = regionPoints.Min(p => p.X);
-        double offsetY = regionPoints.Min(p => p.Y);
-
+        // 5. Transformacja punktów
         foreach (var ksztalt in generator.ElementyRamyRysowane)
         {
             if (ksztalt.Wierzcholki != null)
             {
                 for (int i = 0; i < ksztalt.Wierzcholki.Count; i++)
                 {
+                    var p = ksztalt.Wierzcholki[i];
                     ksztalt.Wierzcholki[i] = new XPoint(
-                        ksztalt.Wierzcholki[i].X + offsetX,
-                        ksztalt.Wierzcholki[i].Y + offsetY
+                        p.X * scale + offsetX,
+                        p.Y * scale + offsetY
                     );
                 }
             }
         }
 
+        // 6. Zapis do słownika i aktualizacja listy
+        _ksztaltyNaRegion[idRegion] = new List<KsztaltElementu>(generator.ElementyRamyRysowane);
+        ksztalty = _ksztaltyNaRegion.Values.SelectMany(k => k).ToList();
+
+        // 7. Debug info
         var sb = new System.Text.StringBuilder();
         sb.AppendLine($"💡 ------ Liczba wygenerowanych kształtów: {ksztalty.Count}");
 
@@ -2140,6 +2141,8 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
             ksztalt.DlogoscElementu = (float)generator.DlugoscElementu(ksztalt.Wierzcholki);
 
+            ksztalt.IdRegion = idRegion;
+
             if (ksztalt.Wierzcholki != null)
             {
                 sb.AppendLine("  Punkty:");
@@ -2153,6 +2156,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         Console.WriteLine(sb.ToString());
     }
 
+    
     private async Task RenderFrame(bool calculate = true)
     {
 

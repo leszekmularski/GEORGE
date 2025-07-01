@@ -178,6 +178,7 @@ namespace GEORGE.Client.Pages.Models
 
             if (Typ == 0)
             {
+                Console.WriteLine("Zwracam wierzchołki trapezu typu 0");
                 return new List<XPoint>
         {
             new XPoint(topLeft, Y),       // Lewy górny
@@ -188,6 +189,7 @@ namespace GEORGE.Client.Pages.Models
             }
             else if (Typ == 1)
             {
+                Console.WriteLine("Zwracam wierzchołki trapezu typu 1");
                 return new List<XPoint>
         {
             new XPoint(baseLeft, Y),       // Lewy górny (podstawa zaczyna się nisko)
@@ -198,6 +200,7 @@ namespace GEORGE.Client.Pages.Models
             }
             else if (Typ == 2)
             {
+                Console.WriteLine("Zwracam wierzchołki trapezu typu 2");
                 return new List<XPoint>
         {
             new XPoint(topLeft, Y),       // Lewy górny
@@ -209,6 +212,7 @@ namespace GEORGE.Client.Pages.Models
             else
             {
                 // Jeśli Typ jest nieznany - zwróć pustą listę
+                Console.WriteLine("Nieznany typ trapezu, zwracam pustą listę wierzchołków.");
                 return new List<XPoint>();
             }
         }

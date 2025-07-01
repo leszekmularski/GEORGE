@@ -89,9 +89,9 @@ namespace GEORGE.Client.Pages.Okna
             float profileBottom = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionPrawa ?? 0 -
                                           PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionLewa ?? 0);
 
-            Console.WriteLine($"📐 profileLeft: {profileLeft}, profileRight: {profileRight}, profileTop: {profileTop}, profileBottom: {profileBottom}");
+            Console.WriteLine($"📐 region.TypKsztaltu: {region.TypKsztaltu} profileLeft: {profileLeft}, profileRight: {profileRight}, profileTop: {profileTop}, profileBottom: {profileBottom}");
 
-            // 🔲 Oblicz wewnętrzny kontur
+              // 🔲 Oblicz wewnętrzny kontur
             var wewnetrznyKontur = CalculateOffsetPolygon(
                 przeskalowanePunkty,
                 profileLeft, profileRight, profileTop, profileBottom);

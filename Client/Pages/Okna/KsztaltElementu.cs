@@ -6,6 +6,8 @@ namespace GEORGE.Client.Pages.Okna
     {
         public string Id { get; set; } = Guid.NewGuid().ToString();
 
+        public string IdRegion { get; set; } = "";
+
         // Typ ksztaltu: prostokat, trojkat, romb, trapez, kolo itd.
         public string? TypKsztaltu { get; set; }
 

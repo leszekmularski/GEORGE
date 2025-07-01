@@ -9,188 +9,188 @@ namespace GEORGE.Client.Pages.Utils
     {
         public static List<ShapeRegion> GenerujRegionyZPodzialu(List<IShapeDC> shapes, int szerokosc, int wysokosc)
         {
-            Console.WriteLine($"🔍 Analizuje dane wewnątrz GenerujRegionyZPodzialu shapes: {shapes.Count} dla szerokosc: {szerokosc} wysokosc: {wysokosc}");
+            Console.WriteLine($"📦 Przed usunięciem duplikatów: {shapes.Count} obiektów.");
+            shapes = UsunDuplikatyShape(shapes);
+            Console.WriteLine($"📦 Po usunięciu duplikatów: {shapes.Count} obiektów.");
 
             var regions = new List<ShapeRegion>();
 
-            // Wydziel linie, które są typami podziałowymi
             var linieDzielace = shapes
                 .OfType<XLineShape>()
                 .Where(l => l.DualRama)
                 .ToList();
 
-            // 1. Oblicz globalny bounding box — tylko dla shape'ów tworzących regiony
             var shapesDoRegionow = shapes.Where(s =>
-                s is XRectangleShape or XSquareShape or XTriangleShape or XTrapezoidShape or XCircleShape or XHouseShape or XRoundedTopRectangleShape or XRoundedRectangleShape or XRoundedRectangleShapeLeft or XRoundedRectangleShapeRight
-            ).ToList();
+                s is XRectangleShape or XSquareShape or XTriangleShape
+                or XTrapezoidShape or XCircleShape or XHouseShape
+                or XRoundedTopRectangleShape or XRoundedRectangleShape
+                or XRoundedRectangleShapeLeft or XRoundedRectangleShapeRight)
+                .ToList();
+
+            if (!shapesDoRegionow.Any()) return regions;
 
             double minX = shapesDoRegionow.Min(s => s.GetBoundingBox().X);
             double minY = shapesDoRegionow.Min(s => s.GetBoundingBox().Y);
             double maxX = shapesDoRegionow.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
             double maxY = shapesDoRegionow.Max(s => s.GetBoundingBox().Y + s.GetBoundingBox().Height);
 
-            double originalWidth = maxX - minX;
-            double originalHeight = maxY - minY;
-
-            // 2. Oblicz skalę osobno w osi X i Y (pełne dopasowanie, bez proporcji)
-            double scaleX = szerokosc / originalWidth;
-            double scaleY = wysokosc / originalHeight;
-
-            // 3. Offsety tak, by przesunąć kształty do (0,0)
+            double scaleX = szerokosc / (maxX - minX);
+            double scaleY = wysokosc / (maxY - minY);
             double offsetX = -minX * scaleX;
             double offsetY = -minY * scaleY;
 
             foreach (var shape in shapes)
             {
-                var bboxBefore = shape.GetBoundingBox();
-                Console.WriteLine($"Przed transformacji shape'ów: X={bboxBefore.X:F2}, Y={bboxBefore.Y:F2}, W={bboxBefore.Width:F2}, H={bboxBefore.Height:F2}");
-
                 shape.Transform(scaleX, scaleY, offsetX, offsetY);
-
-                var bboxAfter = shape.GetBoundingBox();
-                Console.WriteLine($"Po transformacji shape'ów:    X={bboxAfter.X:F2}, Y={bboxAfter.Y:F2}, W={bboxAfter.Width:F2}, H={bboxAfter.Height:F2}");
-                Console.WriteLine("---");
             }
-
 
             foreach (var shape in shapes)
             {
-                List<XPoint> wierzcholki = new();
-                string typKształtu = "inny";
-
-                switch (shape)
+                List<XPoint> pts = shape switch
                 {
-                    case XSquareShape rect:
-                        wierzcholki = rect.GetCorners();
-                        typKształtu = "kwadrat";
-                        break;
+                    XLineShape lin => new() { new(lin.X1, lin.Y1), new(lin.X2, lin.Y2) },
+                    XSquareShape sq => sq.GetCorners(),
+                    XRectangleShape rect => rect.GetCorners(),
+                    XTriangleShape tri => tri.GetVertices(),
+                    XTrapezoidShape trap => trap.GetVertices(),
+                    XCircleShape circ => GenerateCircleVertices(circ.X, circ.Y, circ.Radius, 32),
+                    XHouseShape house => house.GetFullOutline(),
+                    XRoundedTopRectangleShape rtr => rtr.GetVertices(),
+                    XRoundedRectangleShape rr => rr.GetVertices(),
+                    XRoundedRectangleShapeLeft rrl => rrl.GetVertices(),
+                    XRoundedRectangleShapeRight rrr => rrr.GetVertices(),
+                    _ => null
+                };
 
-                    case XRectangleShape rect:
-                        wierzcholki = rect.GetCorners();
-                        typKształtu = "prostokąt";
-                        break;
+                if (pts == null) continue;
 
-                    case XTriangleShape triangle:
-                        wierzcholki = triangle.GetVertices();
-                        typKształtu = "trójkąt";
-                        break;
+                var typ = shape.GetType().Name.ToLower();
 
-                    case XTrapezoidShape trapezoid:
-                        wierzcholki = trapezoid.GetVertices();
-                        typKształtu = "trapez";
-                        break;
+                Console.WriteLine($"🔍GenerujRegionyZPodzialu --> Generowanie regionu z kształtu: {typ}, liczba wierzchołków: {pts.Count}");
 
-                    case XCircleShape circle:
-                        wierzcholki = GenerateCircleVertices(circle.X, circle.Y, circle.Radius, 32);
-                        typKształtu = "okrąg";
-                        break;
-
-                    case XHouseShape house:
-                        var (roof, walls) = house.GetVertices();
-                        wierzcholki.AddRange(roof.Select(p => new XPoint(p.X, p.Y)));
-                        wierzcholki.AddRange(walls.Select(p => new XPoint(p.X, p.Y)));
-                        typKształtu = "domek";
-                        break;
-
-                    case XRoundedTopRectangleShape roundedTop:
-                        wierzcholki = roundedTop.GetVertices();
-                        typKształtu = "zaokrąglony prostokąt (góra)";
-                        break;
-
-                    case XRoundedRectangleShape rounded:
-                        wierzcholki = rounded.GetVertices();
-                        typKształtu = "zaokrąglony prostokąt";
-                        break;
-
-                    case XRoundedRectangleShapeLeft roundedLeft:
-                        wierzcholki = roundedLeft.GetVertices();
-                        typKształtu = "zaokrąglony lewy prostokąt";
-                        break;
-
-                    case XRoundedRectangleShapeRight roundedRight:
-                        wierzcholki = roundedRight.GetVertices();
-                        typKształtu = "zaokrąglony prawy prostokąt";
-                        break;
-
-                    case XLineShape linia:
-                        // Traktuj wszystkie linie jako osobne regiony
-                        wierzcholki = new List<XPoint> { new(linia.X1, linia.Y1), new(linia.X2, linia.Y2) };
-                        typKształtu = linia.NazwaObj ?? "linia";
-                        regions.Add(new ShapeRegion
-                        {
-                            Wierzcholki = wierzcholki,
-                            TypKsztaltu = typKształtu
-                        });
-                        continue;
-
-                    default:
-                        Console.WriteLine("⚠️ Nieznany kształt w kolekcji shapes. Pominięto.");
-                        continue;
-                }
-
-                var bbox = CalculateBoundingBox(wierzcholki);
-                var podzielony = false;
-
-                foreach (var linia in linieDzielace)
+                var initial = new ShapeRegion
                 {
-                    if (LiniaPrzecinaProstokat(linia, bbox) && shape is XRectangleShape)
+                    Wierzcholki = pts,
+                    TypKsztaltu = typ,
+                    Id = Guid.NewGuid().ToString()
+                };
+
+                var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace);
+
+                foreach (var r in podzielone)
+                {
+                    r.RozpoznajTyp();
+
+                    if (r.TypKsztaltu == "xhouseshape" && r.Wierzcholki.Count == 4)
                     {
-                        var noweRegiony = PodzielProstokat((XRectangleShape)shape, linia);
-                        regions.AddRange(noweRegiony);
-                        podzielony = true;
-                        break;
+                        r.TypKsztaltu = "trapez";
                     }
-                }
-
-                if (!podzielony)
-                {
-                    // 🛠️ Jeśli nie ma podziału, to wymuś jeden region o pełnym rozmiarze
-                    var pelnyRegion = new List<XPoint>
+                    if (r.TypKsztaltu == "trapez" && r.Wierzcholki.Count == 3)
                     {
-                        new XPoint(0, 0),
-                        new XPoint(szerokosc, 0),
-                        new XPoint(szerokosc, wysokosc),
-                        new XPoint(0, wysokosc)
-                    };
-
-                        regions.Add(new ShapeRegion
-                        {
-                            Wierzcholki = pelnyRegion,
-                            TypKsztaltu = "prostokąt" // lub typKształtu jeśli istotne
-                        });
+                        r.TypKsztaltu = "trójkąt";
                     }
+                    r.Id = Guid.NewGuid().ToString();
                 }
 
-           // NormalizeRegionSize(regions, szerokosc, wysokosc);
+                regions.AddRange(podzielone);
+            }
 
             return regions;
         }
+        private static List<ShapeRegion> PodzielRegionRekurencyjnie(ShapeRegion region, List<XLineShape> lines)
+        {
+            var wynik = new List<ShapeRegion> { region };
 
-        //private static void NormalizeRegionSize(List<ShapeRegion> regions, int targetWidth, int targetHeight)
-        //{
-        //    var minX = regions.SelectMany(r => r.Wierzcholki).Min(p => p.X);
-        //    var minY = regions.SelectMany(r => r.Wierzcholki).Min(p => p.Y);
-        //    var maxX = regions.SelectMany(r => r.Wierzcholki).Max(p => p.X);
-        //    var maxY = regions.SelectMany(r => r.Wierzcholki).Max(p => p.Y);
+            foreach (var line in lines)
+            {
+                var next = new List<ShapeRegion>();
 
-        //    var currentWidth = maxX - minX;
-        //    var currentHeight = maxY - minY;
+                foreach (var r in wynik)
+                {
+                    var split = PodzielPolygonPoLinii(r.Wierzcholki, line);
 
-        //    var scaleX = targetWidth / currentWidth;
-        //    var scaleY = targetHeight / currentHeight;
+                    if (split.Count > 1)
+                    {
+                        foreach (var poly in split)
+                            next.Add(new ShapeRegion
+                            {
+                                Wierzcholki = poly,
+                                TypKsztaltu = r.TypKsztaltu,
+                                LinieDzielace = r.LinieDzielace.Concat(new[] { line }).ToList(),
+                                Id = Guid.NewGuid().ToString()
+                            });
+                    }
+                    else
+                        next.Add(r);
+                }
 
-        //    foreach (var region in regions)
-        //    {
-        //        for (int i = 0; i < region.Wierzcholki.Count; i++)
-        //        {
-        //            var p = region.Wierzcholki[i];
-        //            region.Wierzcholki[i] = new XPoint(
-        //                (p.X - minX) * scaleX,
-        //                (p.Y - minY) * scaleY
-        //            );
-        //        }
-        //    }
-        //}
+                wynik = next;
+            }
+
+            return wynik;
+        }
+
+        private static List<List<XPoint>> PodzielPolygonPoLinii(List<XPoint> poly, XLineShape line)
+        {
+            var left = new List<XPoint>();
+            var right = new List<XPoint>();
+
+            for (int i = 0; i < poly.Count; i++)
+            {
+                var curr = poly[i];
+                var nxt = poly[(i + 1) % poly.Count];
+
+                bool cl = PunktPoLewejStronie(curr, line);
+                bool nl = PunktPoLewejStronie(nxt, line);
+
+                if (cl) left.Add(curr); else right.Add(curr);
+
+                if (cl != nl && ObliczPrzeciecie(curr, nxt, line, out var pt))
+                {
+                    left.Add(pt);
+                    right.Add(pt);
+                }
+            }
+
+            var res = new List<List<XPoint>>();
+            if (left.Count >= 3) res.Add(left);
+            if (right.Count >= 3) res.Add(right);
+            return res;
+        }
+
+        private static bool PunktPoLewejStronie(XPoint p, XLineShape l)
+        {
+            double d = (l.X2 - l.X1) * (p.Y - l.Y1) - (l.Y2 - l.Y1) * (p.X - l.X1);
+            return d >= 0;
+        }
+
+        private static bool ObliczPrzeciecie(XPoint p1, XPoint p2, XLineShape l, out XPoint pt)
+        {
+            pt = new XPoint(); double x1 = p1.X, y1 = p1.Y, x2 = p2.X, y2 = p2.Y;
+            double x3 = l.X1, y3 = l.Y1, x4 = l.X2, y4 = l.Y2;
+            double denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+            if (Math.Abs(denom) < 1e-6) return false;
+            double px = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denom;
+            double py = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denom;
+            pt = new XPoint(px, py);
+            return true;
+        }
+
+        private static List<IShapeDC> UsunDuplikatyShape(List<IShapeDC> shapes)
+        {
+            var seen = new HashSet<string>();
+            var list = new List<IShapeDC>();
+
+            foreach (var s in shapes)
+            {
+                var b = s.GetBoundingBox();
+                var key = $"{b.X:F2}_{b.Y:F2}_{b.Width:F2}_{b.Height:F2}";
+                if (seen.Add(key)) list.Add(s);
+            }
+
+            return list;
+        }
+
 
         private static List<XPoint> GenerateCircleVertices(double centerX, double centerY, double radius, int segments)
         {
