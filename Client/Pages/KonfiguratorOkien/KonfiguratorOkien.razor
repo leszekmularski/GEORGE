@@ -200,49 +200,79 @@
     "guide-line-horizontal-OsSymetrii": "Oś słupka"
     };
 
+
     // 🔥 Aktualizacja wartości w panelu bocznym
-    function updateGuideValues() {
-    let verticalList = document.getElementById("verticalValues");
-    let horizontalList = document.getElementById("horizontalValues");
+       function updateGuideValues() {
+        let verticalList = document.getElementById("verticalValues");
+        let horizontalList = document.getElementById("horizontalValues");
 
-    verticalList.innerHTML = "";
-    horizontalList.innerHTML = "";
+        verticalList.innerHTML = "";
+        horizontalList.innerHTML = "";
 
-    let svg = document.querySelector("svg");
-    if (!svg) {
-    console.error("❌ Nie znaleziono SVG!");
-    return;
+        let svg = document.querySelector("svg");
+        if (!svg) {
+            console.error("❌ Nie znaleziono SVG!");
+            return;
+        }
+
+        let minY = Infinity;
+        let maxY = -Infinity;
+
+        const elements = svg.querySelectorAll("line, path, circle, rect, ellipse, polygon, polyline");
+
+        elements.forEach(el => {
+            // Pobierz bounding box elementu (w lokalnych współrzędnych SVG)
+            let bbox;
+            try {
+                bbox = el.getBBox();
+            } catch (e) {
+                // Niektóre elementy mogą nie mieć bbox (np. niewidoczne)
+                bbox = null;
+            }
+            if (bbox) {
+                if (bbox.y < minY) minY = bbox.y;
+                if ((bbox.y + bbox.height) > maxY) maxY = bbox.y + bbox.height;
+            }
+        });
+
+        // if (!isFinite(minY) || !isFinite(maxY)) {
+        //     console.warn("⚠️ Nie znaleziono poprawnych wartości Y! Ustawiam minY = 0, maxY = 100.");
+             minY = 0;
+             maxY = 100;
+        // }
+
+        console.log(`📐 minY = ${minY}, maxY = ${maxY}`);
+
+        // Pionowe prowadnice - bez zmian
+        Object.keys(verticalGuides).forEach(id => {
+            let line = document.getElementById(id);
+            let color = line ? line.getAttribute("stroke") : "black";
+            let displayName = guideLabels[id] || id;
+
+            let li = document.createElement("li");
+            li.innerHTML = `<span style="background-color:${color}; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>
+            ${displayName}: ${parseFloat(verticalGuides[id].toFixed(2))}px`;
+            verticalList.appendChild(li);
+        });
+
+        // Poziome prowadnice z flippedY względem minY
+        Object.keys(horizontalGuides).forEach(id => {
+            let line = document.getElementById(id);
+            let color = line ? line.getAttribute("stroke") : "black";
+            let originalY = horizontalGuides[id];
+            let flippedY = originalY - minY;  // 0 przy minY
+
+            let displayName = guideLabels[id] || id;
+
+            let li = document.createElement("li");
+            li.innerHTML = `<span style="background-color:${color}; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>
+            ${displayName}: ${parseFloat(flippedY.toFixed(2))}px`;
+            horizontalList.appendChild(li);
+        });
     }
 
-    let viewBox = svg.viewBox.baseVal;
-    let totalHeight = viewBox.height; // 🔥 Całkowita wysokość SVG
 
-    // 🔥 Pionowe prowadnice
-    Object.keys(verticalGuides).forEach(id => {
-    let line = document.getElementById(id);
-    let color = line ? line.getAttribute("stroke") : "black"; // Pobieramy kolor linii
-    let displayName = guideLabels[id] || id; // Jeśli brak tłumaczenia, użyj ID
 
-    let li = document.createElement("li");
-    li.innerHTML = `<span style="background-color:${color}; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>
-    ${displayName}: ${parseFloat(verticalGuides[id].toFixed(2))}px`;
-    verticalList.appendChild(li);
-    });
-
-    // 🔥 Poziome prowadnice (odwrócone względem dołu)
-    Object.keys(horizontalGuides).forEach(id => {
-    let line = document.getElementById(id);
-    let color = line ? line.getAttribute("stroke") : "black"; // Pobieramy kolor linii
-    let originalY = horizontalGuides[id];
-    let flippedY = totalHeight - originalY; // 🔥 Liczymy Y od dołu
-    let displayName = guideLabels[id] || id; // Jeśli brak tłumaczenia, użyj ID
-
-    let li = document.createElement("li");
-    li.innerHTML = `<span style="background-color:${color}; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>
-    ${displayName}: ${parseFloat(flippedY.toFixed(2))}px`;
-    horizontalList.appendChild(li);
-    });
-    }
 
     function stopDrag() {
     if (draggedLine) {
@@ -1022,6 +1052,29 @@
             {
                 SvgContent = konfSystem.SVG;
                 Console.WriteLine($"✅ Wczytano zapisany rysunek SVG konfSystem.RowId: {konfSystem.RowId}");
+
+                try
+                {
+                    var doc = System.Xml.Linq.XDocument.Parse(SvgContent);
+                    var svgElement = doc.Root;
+
+                    if (svgElement != null && svgElement.Name.LocalName == "svg")
+                    {
+                        string? width = svgElement.Attribute("width")?.Value;
+                        string? height = svgElement.Attribute("height")?.Value;
+                        string? viewBox = svgElement.Attribute("viewBox")?.Value;
+
+                        Console.WriteLine($"📐 SVG: width={width}, height={height}, viewBox={viewBox}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("❌ Nie znaleziono głównego elementu <svg>");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"❌ Błąd podczas parsowania SVG: {ex.Message}");
+                }
             }
             else
             {

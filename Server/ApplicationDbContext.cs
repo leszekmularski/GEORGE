@@ -34,7 +34,7 @@ namespace GEORGE.Server
         public DbSet<SystemyOkienne> SystemyOkienne => Set<SystemyOkienne>();
         public DbSet<KonfModele> KonfModele => Set<KonfModele>();
         public DbSet<KonfModeleElementy> KonfModeleElementy => Set<KonfModeleElementy>();
-
+        public DbSet<KonfPolaczenie> KonfPolaczenie => Set<KonfPolaczenie>();
 
         //***********************************************************************************************************************************************************************************************
 
