@@ -13,6 +13,8 @@ namespace GEORGE.Client.Pages.Models
         public string NazwaObj { get; set; } = "Prostoką z 1 zaokr. naroż. lewym";
 
         private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
+        public double Szerokosc { get; set; }
+        public double Wysokosc { get; set; }
 
         public XRoundedRectangleShapeLeft(double x, double y, double width, double height, double radius, double scaleFactor)
         {
@@ -22,6 +24,11 @@ namespace GEORGE.Client.Pages.Models
             Height = height;
             Radius = radius;
             _scaleFactor = scaleFactor;
+        }
+
+        public IShapeDC Clone()
+        {
+            return new XRoundedRectangleShapeLeft(X, Y, Width, Height, Radius, _scaleFactor);
         }
 
         public async Task Draw(Canvas2DContext ctx)

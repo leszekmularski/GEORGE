@@ -13,7 +13,10 @@ namespace GEORGE.Client.Pages.Models
         public string NazwaObj { get; set; } = "Trapezoid";
 
         private int Typ { get; set; }
+
         private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
+        public double Szerokosc { get; set; }
+        public double Wysokosc { get; set; }
 
         // Konstruktor przyjmujący współrzędne i współczynnik szerokości góry
         public XTrapezoidShape(double startX, double startY, double endX, double endY, double topWidthFactor, double scaleFactor, int typ)
@@ -25,6 +28,19 @@ namespace GEORGE.Client.Pages.Models
             TopWidth = Math.Min(BaseWidth, BaseWidth * topWidthFactor);  // Oblicz szerokość góry trapezu
             _scaleFactor = scaleFactor;
             Typ = typ;
+        }
+        public IShapeDC Clone()
+        {
+            // Odtworzenie współrzędnych końcowych
+            double startX = X;
+            double startY = Y;
+            double endX = X + BaseWidth;
+            double endY = Y + Height;
+
+            // Odzyskanie topWidthFactor z bieżących właściwości
+            double topWidthFactor = BaseWidth != 0 ? TopWidth / BaseWidth : 1.0;
+
+            return new XTrapezoidShape(startX, startY, endX, endY, topWidthFactor, _scaleFactor, Typ);
         }
 
         // Metoda rysująca trapez

@@ -1,4 +1,5 @@
 ﻿using Blazor.Extensions.Canvas.Canvas2D;
+using DocumentFormat.OpenXml.Drawing.Charts;
 using GEORGE.Client.Pages.KonfiguratorOkien;
 
 namespace GEORGE.Client.Pages.Models
@@ -12,6 +13,8 @@ namespace GEORGE.Client.Pages.Models
         public string NazwaObj { get; set; } = "Okrąg";
 
         private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
+        public double Szerokosc { get; set; }
+        public double Wysokosc { get; set; }
 
         public XCircleShape(double x, double y, double radius, double scaleFactor)
         {
@@ -19,6 +22,11 @@ namespace GEORGE.Client.Pages.Models
             Y = y;
             Radius = radius;
             _scaleFactor = scaleFactor;
+        }
+
+        public IShapeDC Clone()
+        {
+            return new XCircleShape(X, Y, Radius, _scaleFactor);
         }
 
         public async Task Draw(Canvas2DContext ctx)

@@ -10,8 +10,11 @@ namespace GEORGE.Client.Pages.Models
         public double Width { get; set; }
         public double Height { get; set; }
         public double Radius { get; set; }
+
         private double _scaleFactor;
         public string NazwaObj { get; set; } = "Prostokąt z zaokr. naroż.";
+        public double Szerokosc { get; set; }
+        public double Wysokosc { get; set; }
 
         public XRoundedTopRectangleShape(double x, double y, double width, double height, double radius, double scaleFactor)
         {
@@ -21,6 +24,10 @@ namespace GEORGE.Client.Pages.Models
             Height = height;
             Radius = radius;
             _scaleFactor = scaleFactor;
+        }
+        public IShapeDC Clone()
+        {
+            return new XRoundedTopRectangleShape(X, Y, Width, Height, Radius, _scaleFactor);
         }
 
         public async Task Draw(Canvas2DContext ctx)

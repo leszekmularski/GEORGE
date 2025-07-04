@@ -19,6 +19,11 @@ namespace GEORGE.Client.Pages.Models
         public string TypKsztaltu { get; set; } = "nieokreślony";
 
         /// <summary>
+        /// Dotyczy czy podział dotyczy ramy, skrzydła czy poprzeczek w skrzydle
+        /// </summary>
+        public string TypLiniiDzielacej { get; set; } = "";
+
+        /// <summary>
         /// Linie, które brały udział w podziale tego regionu (jeśli dotyczy).
         /// </summary>
         public List<XLineShape> LinieDzielace { get; set; } = new();
@@ -52,17 +57,36 @@ namespace GEORGE.Client.Pages.Models
         }
 
         /// <summary>
-        /// Automatyczne rozpoznanie typu kształtu na podstawie liczby wierzchołków.
+        /// Automatyczne rozpoznanie typu kształtu na podstawie liczby wierzchołków z uwzględnieniem typu domyślnego.
         /// </summary>
-        public void RozpoznajTyp()
+        public void RozpoznajTyp(string typDomyslny)
         {
-            TypKsztaltu = Wierzcholki.Count switch
+            // Słownik mapujący nazwy kształtów na oczekiwaną liczbę wierzchołków
+            var oczekiwaneWierzcholki = new Dictionary<string, int>
             {
-                3 => "trójkąt",
-                4 => "trapez",
-                5 => "domek",
-                _ => "niestandardowy"
+                { "Trójkąt", 3 },
+                { "Trapezoid", 4 },
+                { "Domek", 5 },
+                { "niestandardowy", -1 } // -1 oznacza dowolną liczbę wierzchołków
             };
+
+            // Sprawdź czy typ domyślny jest w słowniku i czy liczba wierzchołków pasuje
+            if (oczekiwaneWierzcholki.TryGetValue(typDomyslny, out int oczekiwana) &&
+                (oczekiwana == Wierzcholki.Count || oczekiwana == -1))
+            {
+                TypKsztaltu = typDomyslny;
+            }
+            else
+            {
+                // Automatyczne rozpoznanie gdy typ domyślny nie pasuje
+                TypKsztaltu = Wierzcholki.Count switch
+                {
+                    3 => "Trójkąt",
+                    4 => "Trapezoid",
+                    5 => "Domek",
+                    _ => "niestandardowy"
+                };
+            }
         }
 
     }

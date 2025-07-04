@@ -1,5 +1,7 @@
-﻿using GEORGE.Client.Pages.Models;
-using Blazor.Extensions.Canvas.Canvas2D;
+﻿using Blazor.Extensions.Canvas.Canvas2D;
+using DocumentFormat.OpenXml.Drawing.Charts;
+using GEORGE.Client.Pages.Models;
+using SixLabors.ImageSharp.Drawing;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -16,6 +18,8 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         public string NazwaObj { get; set; } = "Trójkąt";
 
         private double _scaleFactor = 1.0; // Skala
+        public double Szerokosc { get; set; }
+        public double Wysokosc { get; set; }
 
         public XTriangleShape(double startX, double startY, double endX, double endY, double scaleFactor)
         {
@@ -25,6 +29,12 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             Height = Math.Abs(startY - endY);
             _scaleFactor = scaleFactor;
         }
+
+        public IShapeDC Clone()
+        {
+            return new XTriangleShape(BaseX1, BaseY, BaseWidth, Height, _scaleFactor);
+        }
+
 
         /// <summary>
         /// Rysuje trójkąt na kontekście 2D.

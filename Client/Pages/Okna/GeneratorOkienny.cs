@@ -9,6 +9,7 @@ namespace GEORGE.Client.Pages.Okna
         public List<KonfSystem> KonfiguracjeSystemu { get; set; } = new(); // Dodaj tę linię
 
         public KonfModele? EdytowanyModel;
+        public int Zindesk { get; set; }
 
         public new MVCKonfModele? PowiazanyModel;
 
@@ -25,6 +26,7 @@ namespace GEORGE.Client.Pages.Okna
             KolorSzyby = "#ADD8E6";
             KonfiguracjeSystemu = new List<KonfSystem>();
             EdytowanyModel = null;
+            Zindesk = 0;
             //RowIdSystemu = Guid.NewGuid();
             //RowIdModelu = Guid.NewGuid();
             PowiazanyModel = null;
@@ -42,7 +44,7 @@ namespace GEORGE.Client.Pages.Okna
 
             if (EdytowanyModel == null)
             {
-                Console.WriteLine($"❌ Brak EdytowanyModel!");
+                Console.WriteLine($"❌ Brak EdytowanyModel jest nie ustawiony!!!");
                 return;
             }
 
@@ -240,6 +242,7 @@ namespace GEORGE.Client.Pages.Okna
                     Wierzcholki = points,
                     WypelnienieZewnetrzne = "wood-pattern",
                     WypelnienieWewnetrzne = KolorSzyby,
+                    ZIndex = Zindesk,
                     Grupa = grupa
                 });
             }
@@ -299,15 +302,16 @@ namespace GEORGE.Client.Pages.Okna
                 {
                     TypKsztaltu = isBase ? "prostokat" : "trapez",
                     Wierzcholki = new List<XPoint>
-            {
-                outer[i],
-                outer[next],
-                inner[next],
-                inner[i]
-            },
+                    {
+                        outer[i],
+                        outer[next],
+                        inner[next],
+                        inner[i]
+                    },
                     WypelnienieZewnetrzne = "wood-pattern",
                     WypelnienieWewnetrzne = KolorSzyby,
-                    Grupa = grupa
+                    Grupa = grupa,
+                    ZIndex = Zindesk,
                 });
             }
         }
@@ -627,7 +631,8 @@ namespace GEORGE.Client.Pages.Okna
                     Wierzcholki = wierzcholki,
                     WypelnienieZewnetrzne = "wood-pattern",
                     WypelnienieWewnetrzne = KolorSzyby,
-                    Grupa = $"Bok{i + 1}"
+                    Grupa = $"Bok{i + 1}",
+                    ZIndex = Zindesk,
                 });
 
             }

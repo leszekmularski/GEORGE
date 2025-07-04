@@ -16,6 +16,8 @@ namespace GEORGE.Client.Pages.Models
         public bool DualRama { get; set; } = false;
 
         private double _scaleFactor = 1.0; // Skalowanie
+        public double Szerokosc { get; set; }
+        public double Wysokosc { get; set; }
 
         public XLineShape(double x1, double y1, double x2, double y2, double scaleFactor, string nazwaObj, bool ruchomySlupek = false, bool pionPoziom = false, bool dualRama = false)
         {
@@ -45,6 +47,10 @@ namespace GEORGE.Client.Pages.Models
                     X2 = X1;
                 }
             }
+        }
+        public IShapeDC Clone()
+        {
+            return new XLineShape(X1, Y1, X2, Y2, _scaleFactor, NazwaObj, RuchomySlupek, PionPoziom, DualRama);
         }
 
         public async Task Draw(Canvas2DContext ctx)

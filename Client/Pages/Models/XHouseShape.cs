@@ -11,8 +11,11 @@ namespace GEORGE.Client.Pages.Models
         public double Height { get; set; }
         public double HeightLeft { get; set; }
         public double HeightRight { get; set; }
+
         private double _scaleFactor;
         public string NazwaObj { get; set; } = "Domek";
+        public double Szerokosc { get; set; }
+        public double Wysokosc { get; set; }
 
         public XHouseShape(double x, double y, double width, double height, double heightLeft, double heightRight, double scaleFactor)
         {
@@ -23,6 +26,11 @@ namespace GEORGE.Client.Pages.Models
             HeightLeft = heightLeft;
             HeightRight = heightRight;
             _scaleFactor = scaleFactor;
+        }
+
+        public IShapeDC Clone()
+        {
+            return new XHouseShape(X, Y, Width, Height, HeightLeft, HeightRight, _scaleFactor);
         }
 
         public List<XPoint> GetFullOutline()

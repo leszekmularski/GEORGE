@@ -289,6 +289,9 @@
 
     private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
 
+    private List<IShapeDC> _originalShapes;
+
+
     private void SetTool(string tool) => _selectedTool = tool;
 
     [JSInvokable]
@@ -300,6 +303,7 @@
 
         if(_shapes != null)
         {
+            _originalShapes = _shapes.Select(s => s.Clone()).ToList();
 
             await FitToCanvas();
 
@@ -999,98 +1003,46 @@
     {
         if (_shapes.Count == 0) return;
 
-        // Znajdź granice wszystkich kształtów
-        double minX = _shapes.Min(s => s.GetBoundingBox().X);
-        double minY = _shapes.Min(s => s.GetBoundingBox().Y);
-        double maxX = _shapes.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
-        double maxY = _shapes.Max(s => s.GetBoundingBox().Y + s.GetBoundingBox().Height);
+        if (_shapes == null || _shapes.Count == 0) _shapes = _originalShapes.Select(s => s.Clone()).ToList();
 
-        double shapesWidth = maxX - minX;
-        double shapesHeight = maxY - minY;
-
-        if (shapesWidth == 0 || shapesHeight == 0) return;
-
-        // Oblicz współczynnik skali z marginesem
-        double scaleX = _canvasX / shapesWidth;
-        double scaleY = _canvasY / shapesHeight;
-        double scaleFactor = Math.Min(scaleX, scaleY) * 0.9;
-
-        // Oblicz przesunięcie dla skalowanych kształtów
-        double scaledWidth = shapesWidth * scaleFactor;
-        double scaledHeight = shapesHeight * scaleFactor;
-        double offsetX = (_canvasX - scaledWidth) / 2 - (minX * scaleFactor);
-        double offsetY = (_canvasY - scaledHeight) / 2 - (minY * scaleFactor);
-
-        // Zastosuj skalowanie i przesunięcie do każdego kształtu
-        // Zastosuj przesunięcie do każdego kształtu
-        foreach (var shape in _shapes)
-        {
-            // Przesuń kształt przed skalowaniem!
-            // shape.Move(-minX, -minY);
-
-            // Przesuń kształt do środka canvasu
-            shape.Move(offsetX, offsetY);
-
-            // Skaluj kształt (zakładając, że metoda Scale istnieje)
-            shape.Scale(scaleFactor);
-
-            // // Przesuń kształt do środka canvasu
-            // shape.Move(offsetX, offsetY);
-        }
-
-
+        SkalujIZastosujPrzesuniecie(_shapes, _canvasX, _canvasY);
         await RedrawCanvas();
-
-        await FitToCanvasSpr();
     }
 
-    private async Task FitToCanvasSpr()
+    private void SkalujIZastosujPrzesuniecie(List<IShapeDC> shapes, double canvasWidth, double canvasHeight)
     {
-        if (_shapes.Count == 0) return;
-
-        // Znajdź granice wszystkich kształtów
-        double minX = _shapes.Min(s => s.GetBoundingBox().X);
-        double minY = _shapes.Min(s => s.GetBoundingBox().Y);
-        double maxX = _shapes.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
-        double maxY = _shapes.Max(s => s.GetBoundingBox().Y + s.GetBoundingBox().Height);
+        double minX = shapes.Min(s => s.GetBoundingBox().X);
+        double minY = shapes.Min(s => s.GetBoundingBox().Y);
+        double maxX = shapes.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
+        double maxY = shapes.Max(s => s.GetBoundingBox().Y + s.GetBoundingBox().Height);
 
         double shapesWidth = maxX - minX;
         double shapesHeight = maxY - minY;
 
         if (shapesWidth == 0 || shapesHeight == 0) return;
 
-        // Oblicz współczynnik skali z marginesem
-        double scaleX = _canvasX / shapesWidth;
-        double scaleY = _canvasY / shapesHeight;
+        double scaleX = canvasWidth / shapesWidth;
+        double scaleY = canvasHeight / shapesHeight;
         double scaleFactor = Math.Min(scaleX, scaleY) * 0.9;
 
-        // Oblicz przesunięcie dla skalowanych kształtów
         double scaledWidth = shapesWidth * scaleFactor;
         double scaledHeight = shapesHeight * scaleFactor;
-        double offsetX = (_canvasX - scaledWidth) / 2 - (minX * scaleFactor);
-        double offsetY = (_canvasY - scaledHeight) / 2 - (minY * scaleFactor);
+        double offsetX = (canvasWidth - scaledWidth) / 2 - (minX * scaleFactor);
+        double offsetY = (canvasHeight - scaledHeight) / 2 - (minY * scaleFactor);
 
-        // Zastosuj skalowanie i przesunięcie do każdego kształtu
-        foreach (var shape in _shapes)
+        foreach (var shape in shapes)
         {
-            // Przesuń kształt przed skalowaniem!
-            // shape.Move(-minX, -minY);
+            shape.Transform(scaleFactor, offsetX, offsetY);
 
-            // Przesuń kształt do środka canvasu
-            shape.Move(offsetX, offsetY);
-
-            // Skaluj kształt (zakładając, że metoda Scale istnieje)
-            shape.Scale(scaleFactor);
-
-            // // Przesuń kształt do środka canvasu
-            // shape.Move(offsetX, offsetY);
         }
 
-        await RedrawCanvas();
+        _scaleFactor = scaleFactor;
+
     }
 
     private async Task PowrotDoGenerowaniaOkna()
     {
+        await RysOkna();
         ShapeService.Shapes = _shapes; // Przekazanie danych do serwisu
         Navigation.NavigateTo("/Modele-okienne");
 

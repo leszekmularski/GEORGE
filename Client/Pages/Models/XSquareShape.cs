@@ -1,5 +1,4 @@
 ﻿using Blazor.Extensions.Canvas.Canvas2D;
-using DocumentFormat.OpenXml.Drawing.Charts;
 using GEORGE.Client.Pages.KonfiguratorOkien;
 
 namespace GEORGE.Client.Pages.Models
@@ -14,6 +13,8 @@ namespace GEORGE.Client.Pages.Models
         public string NazwaObj { get; set; } = "Kwadrat";
 
         private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
+        public double Szerokosc { get; set; }
+        public double Wysokosc { get; set; }
 
         public XSquareShape(double x, double y, double size, double scaleFactor)
         {
@@ -21,6 +22,10 @@ namespace GEORGE.Client.Pages.Models
             Y = y;
             Size = size;
             _scaleFactor = scaleFactor;
+        }
+        public IShapeDC Clone()
+        {
+            return new XSquareShape(X, Y, Size, _scaleFactor);
         }
 
         public async Task Draw(Canvas2DContext ctx)

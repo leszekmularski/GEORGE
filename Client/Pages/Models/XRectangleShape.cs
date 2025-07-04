@@ -13,6 +13,8 @@ namespace GEORGE.Client.Pages.Models
         public string NazwaObj { get; set; } = "Prostokąt";
 
         private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
+        public double Szerokosc { get; set; }
+        public double Wysokosc { get; set; }
 
         public XRectangleShape(double x, double y, double width, double height, double scaleFactor)
         {
@@ -21,6 +23,11 @@ namespace GEORGE.Client.Pages.Models
             Width = width;
             Height = height;
             _scaleFactor = scaleFactor;
+        }
+
+        public IShapeDC Clone()
+        {
+            return new XRectangleShape(X, Y, Width, Height, _scaleFactor);
         }
 
         public async Task Draw(Canvas2DContext ctx)
