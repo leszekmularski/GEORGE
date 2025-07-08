@@ -1905,7 +1905,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
             return;
         }
 
-        KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIN_DROWID/{SelectedSystemId}");
+        KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIND_ROWID_SYS/{SelectedSystemId}");
 
         ListaModeli = await Http.GetFromJsonAsync<List<KonfModele>>($"api/konfmodele/FIND_ONLY_TRUE/{SelectedSystemId}");
 
@@ -2153,7 +2153,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                 return;
             }
 
-            var kofiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIN_DROWID/{SelectedSystemId}");
+            var kofiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIND_ROWID_SYS/{SelectedSystemId}");
             generator.KonfiguracjeSystemu = kofiguracjeSystemu;
             Console.WriteLine("---------> Ponownie pobrano kofiguracjeSystemu.");
         }

@@ -21,8 +21,14 @@ public class KonfSystemController : ControllerBase
         return await _context.KonfSystem.OrderBy(e => e.Nazwa).ToListAsync();
     }
 
-    [HttpGet("FIN_DROWID/{row_id_sys}")]
-    public async Task<ActionResult<List<KonfSystem>>> GetAllByRowId(string row_id_sys)
+    [HttpGet("FIND_ROWID/{row_id}")]
+    public async Task<ActionResult<List<KonfSystem>>> GetAllByRowId(string row_id)
+    {
+        return await _context.KonfSystem.Where(x => x.RowId.ToString() == row_id).OrderBy(e => e.Nazwa).ToListAsync();
+    }
+
+    [HttpGet("FIND_ROWID_SYS/{row_id_sys}")]
+    public async Task<ActionResult<List<KonfSystem>>> GetAllByRowIdSys(string row_id_sys)
     {
         return await _context.KonfSystem.Where(x => x.RowIdSystem.ToString() == row_id_sys).OrderBy(e => e.Nazwa).ToListAsync();
     }

@@ -1,0 +1,554 @@
+﻿@page "/KonfiguratorPolaczenKwadratow"
+@using GEORGE.Shared.Models
+@using GEORGE.Shared.Class
+@inject HttpClient Http
+@using AntDesign
+@inject IMessageService _message
+@inject INotificationService _notice
+@inject Utilities.ILocalStorage LocalStorage
+@using System.Net
+@using System.Xml
+@using System.Text.Json
+@inject IJSRuntime JSRuntime
+@inject DxfService DxfService
+@inject DxfToSvgConverter Converter
+@inject NavigationManager NavigationManager
+
+<style>
+    .scaled-svg-container {
+        width: 100%;
+        height: 600px;
+        overflow: auto;
+        border: 1px solid #ddd;
+        background-color: #f8f9fa;
+        position: relative;
+    }
+
+    .scaled-svg {
+        display: block;
+        margin: auto;
+        background-color: white;
+        box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
+
+    .controls-container {
+        z-index: 100;
+        position: relative;
+        background: white;
+        padding: 10px;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 15px;
+    }
+
+    .model-list {
+        max-height: 600px;
+        overflow-y: auto;
+        border: 1px solid #eee;
+        border-radius: 4px;
+    }
+
+    .side-checkboxes {
+        display: flex;
+        gap: 15px;
+        padding: 10px;
+        background: #f5f5f5;
+        border-radius: 4px;
+        margin-bottom: 10px;
+    }
+
+    .side-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .model-table tr {
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .model-table tr:hover {
+        background-color: #f0f7ff;
+    }
+
+    .thumbnail-cell {
+        width: 70px;
+    }
+
+    .status-message {
+        padding: 8px;
+        margin-bottom: 10px;
+        border-radius: 4px;
+        background: #e9f7fe;
+        color: #1890ff;
+    }
+
+    .btn-move {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+    }
+</style>
+
+<script>
+    window.svgHelper = {
+            centerAndFit: function() {
+        const svg = document.querySelector(".scaled-svg");
+        const container = document.querySelector(".scaled-svg-container");
+        if (!svg || !container) return;
+
+        const svgContent = svg.querySelector("#zoom-group");
+        if (!svgContent) return;
+
+        // ❗️ Tymczasowo usuń skalowanie i przesunięcie do pomiaru bbox
+        const prevTransform = svgContent.getAttribute("transform") || "";
+        svgContent.setAttribute("transform", "");
+
+        const bbox = svgContent.getBBox();
+
+        // Przywróć transform
+        svgContent.setAttribute("transform", prevTransform);
+
+        const containerWidth = container.clientWidth;
+        const containerHeight = container.clientHeight;
+
+        const scale = Math.min(
+            containerWidth / (bbox.width + 50),
+            containerHeight / (bbox.height + 50)
+        ) * 0.9;
+
+        const offsetX = (containerWidth - bbox.width * scale) / 2 - bbox.x * scale;
+        const offsetY = (containerHeight - bbox.height * scale) / 2 - bbox.y * scale;
+
+        // 🔧 Ustawienie transformacji
+        svgContent.setAttribute("transform", `translate(${offsetX},${offsetY}) scale(${scale})`);
+    }
+    ,
+
+        rotateSecondModel: function () {
+            const model2 = document.querySelector("#model2");
+            if (!model2) return;
+
+            const bbox = model2.getBBox();
+            const cx = bbox.x + bbox.width / 2;
+            const cy = bbox.y + bbox.height / 2;
+
+            const current = model2.getAttribute("transform") || "";
+            const rotateMatch = current.match(/rotate\(([-\d.]+)/);
+            const translateMatch = current.match(/translate\(([^)]+)\)/);
+
+            const angle = rotateMatch ? parseFloat(rotateMatch[1]) : 0;
+            const translate = translateMatch ? translateMatch[0] : "";
+
+            const newAngle = (angle + 90) % 360;
+            model2.setAttribute("transform", `${translate} rotate(${newAngle},${cx},${cy})`);
+        }
+    };
+</script>
+
+
+<div class="container-fluid mt-3">
+    <div class="row mb-3">
+        <div class="col">
+            <div class="d-flex align-items-center gap-3">
+                <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
+                    <Button class="btn btn-outline-secondary" Icon="@IconType.Fill.Backward" 
+                            Style="width: 35px;" OnClick="GoBack" />
+                </Tooltip>
+
+                <div class="flex-grow-1">
+                    <label class="form-label">Wybierz system:</label>
+                    <select class="form-select" @onchange="@(async (args) => await OnSystemSelected(args))">
+                        <option value="" disabled selected>-- Wybierz system --</option>
+                        @foreach (var system in Systemy)
+                        {
+                            <option value="@system.RowId">@system.Nazwa_Systemu</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="model-list">
+                @if (ListaModeli != null && ListaModeli.Any())
+                {
+                    <div class="side-checkboxes">
+                        <div class="side-checkbox">
+                            <input type="checkbox" @bind="selDol" id="str_dol" />
+                            <label for="str_dol">Dół</label>
+                        </div>
+                        <div class="side-checkbox">
+                            <input type="checkbox" @bind="selGora" id="str_gora" />
+                            <label for="str_gora">Góra</label>
+                        </div>
+                        <div class="side-checkbox">
+                            <input type="checkbox" @bind="selLewa" id="str_lewa" />
+                            <label for="str_lewa">Lewa</label>
+                        </div>
+                        <div class="side-checkbox">
+                            <input type="checkbox" @bind="selPrawa" id="str_prawa" />
+                            <label for="str_prawa">Prawa</label>
+                        </div>
+                    </div>
+
+                    <table class="table model-table">
+                        <thead>
+                            <tr>
+                                <th>Nazwa</th>
+                                <th>Typ</th>
+                                <th class="thumbnail-cell">Miniaturka</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var model in ListaModeli)
+                            {
+                                <tr @onclick="() => WybierzModel(model, selDol, selGora, selLewa, selPrawa)">
+                                    <td>@model.NazwaKonfiguracji</td>
+                                    <td>@model.Typ</td>
+                                    <td>
+                                        @if (model.Rysunek?.Length > 0)
+                                        {
+                                            <img src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)" 
+                                                 width="60" height="60" />
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Brak</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <div class="alert alert-info">Brak zapisanych modeli.</div>
+                }
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="controls-container">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <Tooltip Title="Zapisz ustawienia">
+                            <Button Icon="@IconType.Fill.Save" Class="btn btn-primary me-2">
+                                Zapisz
+                            </Button>
+                        </Tooltip>
+                    </div>
+                    
+                    <div class="btn-group">
+                        <Tooltip Title="Obróć drugi model">
+                            <Button Icon="@IconType.Outline.Loading" OnClick="RotateObj" Class="btn-sm btn-move" />
+                        </Tooltip>
+                        <Tooltip Title="Przesuń w lewo (1px)">
+                            <Button Icon="@IconType.Outline.ArrowLeft" OnClick="MoveLeftObj" Class="btn-sm btn-move" />
+                        </Tooltip>
+                        <Tooltip Title="Przesuń w prawo (1px)">
+                            <Button Icon="@IconType.Outline.ArrowRight" OnClick="MoveRightObj" Class="btn-sm btn-move" />
+                        </Tooltip>
+                        <Tooltip Title="Przesuń w górę (1px)">
+                            <Button Icon="@IconType.Outline.ArrowUp" OnClick="MoveUpObj" Class="btn-sm btn-move" />
+                        </Tooltip>
+                        <Tooltip Title="Przesuń w dół (1px)">
+                            <Button Icon="@IconType.Outline.ArrowDown" OnClick="MoveDownObj" Class="btn-sm btn-move" />
+                        </Tooltip>
+                        <Tooltip Title="Dopasuj widok">
+                            <Button Icon="@IconType.Outline.Windows" OnClick="ZoomAllObj" Class="btn-sm btn-move" />
+                        </Tooltip>
+                        <label class="ms-2">Precyzja:</label>
+                        <AntDesign.InputNumber @bind-Value="precyzjaZapisuLinii" Min="0" Max="2" Style="width: 60px;" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-2 d-flex justify-content-between">
+                <h6>Podgląd połączenia</h6>
+                <div>
+                    <Button Icon="@IconType.Outline.Fire" OnClick="RefreshSvg" Class="btn-sm me-2">
+                        Odśwież
+                    </Button>
+                    <Button Icon="@IconType.Outline.Clear" OnClick="DelSvg" Class="btn-sm btn-danger">
+                        Wyczyść
+                    </Button>
+                </div>
+            </div>
+
+            @if (pierwszyModel != null || drugiModel != null)
+            {
+                <div class="status-message">
+                    @if (pierwszyModel != null && drugiModel == null)
+                    {
+                        <span>Pierwszy model wybrany: <strong>@pierwszyModel.Nazwa</strong></span>
+                    }
+                    else if (pierwszyModel != null && drugiModel != null)
+                    {
+                        <span>Połączono: <strong>@pierwszyModel.Nazwa</strong> z <strong>@drugiModel.Nazwa</strong></span>
+                    }
+                </div>
+            }
+
+            <div class="scaled-svg-container">
+                @if (!string.IsNullOrEmpty(combinedSvg))
+                {
+                    <div class="scaled-svg" @key="SvgKey">
+                        @((MarkupString)combinedSvg)
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex flex-column justify-content-center align-items-center h-100">
+                        <div class="alert alert-info mb-3">
+                            Wybierz modele ramy, skrzydła lub poprzeczki
+                        </div>
+                        @if (!string.IsNullOrEmpty(BladKonfiguracji))
+                        {
+                            <div class="alert alert-warning">
+                                @BladKonfiguracji
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Inject] private AppState AppState { get; set; } = default!;
+
+    // Dane i stan
+    private string SvgKey { get; set; } = Guid.NewGuid().ToString();
+    private List<SystemyOkienne> Systemy = new();
+    private string? SelectedSystemId;
+    private List<KonfModele>? ListaModeli;
+    private List<KonfSystem>? KonfiguracjeSystemu;
+    private int precyzjaZapisuLinii = 0;
+    private string BladKonfiguracji = string.Empty;
+
+    // Wybór stron
+    private bool selDol = false;
+    private bool selGora = false;
+    private bool selLewa = false;
+    private bool selPrawa = false;
+
+    // Modele SVG
+    private KonfSystem? pierwszyModel;
+    private KonfSystem? drugiModel;
+    private string combinedSvg = string.Empty;
+    private double offsetX = 0;
+    private double offsetY = 0;
+    private double luzLewo = 20;
+    private double luzPrawo = 20;
+    private double luzGora = 20;
+    private double luzDol = 20;
+
+    // Inicjalizacja
+    protected override async Task OnInitializedAsync()
+    {
+        await Laduj_Uprawnienia();
+        Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne") ?? new();
+    }
+
+    // Obsługa wyboru systemu
+    private async Task OnSystemSelected(ChangeEventArgs e)
+    {
+        SelectedSystemId = e.Value?.ToString();
+        if (string.IsNullOrEmpty(SelectedSystemId)) return;
+
+        ListaModeli = await Http.GetFromJsonAsync<List<KonfModele>>($"api/konfmodele/FIND_ONLY_TRUE/{SelectedSystemId}") ?? new();
+        KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIND_ROWID_SYS/{SelectedSystemId}") ?? new();
+    }
+
+    // Wybór modelu
+ private async Task WybierzModel(KonfModele model, bool stronaDol, bool stronaGora, bool stronaLewa, bool stronaPrawa)
+    {
+        BladKonfiguracji = "";
+        
+        try
+        {
+            var response = await Http.GetAsync($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{model.RowId}");
+            if (!response.IsSuccessStatusCode)
+            {
+                BladKonfiguracji = $"Błąd: {response.StatusCode}";
+                return;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<MVCKonfModele>();
+            if (result?.KonfSystem == null || result.KonfSystem.Count == 0)
+            {
+                BladKonfiguracji = "Brak danych powiązanych";
+                return;
+            }
+
+            var pasujacy = result.KonfSystem.FirstOrDefault(x =>
+                (x.WystepujeDol == stronaDol) ||
+                (x.WystepujeGora == stronaGora) ||
+                (x.WystepujeLewa == stronaLewa) ||
+                (x.WystepujePrawa == stronaPrawa));
+
+            if (pasujacy == null)
+            {
+                BladKonfiguracji = "Nie znaleziono pasującego elementu. Zmień występowanie elementu.";
+                return;
+            }
+
+            if (pierwszyModel == null)
+            {
+                pierwszyModel = pasujacy;
+                offsetX = 0;
+                offsetY = 0;
+            }
+            else if (drugiModel == null)
+            {
+                drugiModel = pasujacy;
+                if (stronaLewa) offsetX += luzLewo;
+                if (stronaPrawa) offsetX -= luzPrawo;
+                if (stronaGora) offsetY += luzGora;
+                if (stronaDol) offsetY -= luzDol;
+            }
+
+            AktualizujSvg();
+            
+            // Dodane: Automatyczne dopasowanie po załadowaniu modelu
+            await Task.Delay(100); // Krótkie opóźnienie dla pewności renderowania
+            await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
+        }
+        catch (Exception ex)
+        {
+            BladKonfiguracji = $"Błąd: {ex.Message}";
+        }
+    }
+    // Generowanie SVG
+    private void AktualizujSvg()
+    {
+        if (pierwszyModel == null && drugiModel == null)
+        {
+            combinedSvg = "";
+            return;
+        }
+
+        var svgParts = new List<string>();
+        if (pierwszyModel != null)
+        {
+            svgParts.Add($"<g id=\"model1\">{ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}</g>");
+        }
+        if (drugiModel != null)
+        {
+            svgParts.Add($"<g id=\"model2\" transform=\"translate({offsetX},{offsetY})\">{ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}</g>");
+        }
+
+        combinedSvg = $@"
+        <svg xmlns=""http://www.w3.org/2000/svg"" width=""100%"" height=""100%"" viewBox=""-100 -100 1000 1000"" preserveAspectRatio=""xMidYMid meet"">
+            <g id=""zoom-group"">
+                {string.Join("", svgParts)}
+            </g>
+        </svg>";
+
+
+        SvgKey = Guid.NewGuid().ToString();
+
+        Console.WriteLine($"offsetX: {offsetX} offsetY: {offsetY}");
+    }
+
+    // Pomocnicze metody do przetwarzania SVG
+    private string NormalizeSvg(string svg) => svg?.Trim('\uFEFF', '\u200B', '\u0000').Replace("\r", "").Replace("\n", "").Trim() ?? "";
+    
+    private string ExtractInnerSvg(string svg)
+    {
+        if (string.IsNullOrWhiteSpace(svg)) return "";
+        int start = svg.IndexOf('>') + 1;
+        int end = svg.LastIndexOf("</svg>", StringComparison.OrdinalIgnoreCase);
+        return (start > 0 && end > start) ? svg.Substring(start, end - start).Trim() : svg;
+    }
+
+    // Kontrola SVG
+    private async Task RefreshSvg()
+    {
+        AktualizujSvg();
+        await Task.Delay(100);
+        await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
+    }
+
+    private async Task DelSvg()
+    {
+        pierwszyModel = null;
+        drugiModel = null;
+        offsetX = 0;
+        offsetY = 0;
+        BladKonfiguracji = "";
+        AktualizujSvg();
+    }
+
+    // Manipulacja drugim modelem
+    private async Task PrzesunDrugiModel(string kierunek)
+    {
+        if (drugiModel == null) return;
+
+        switch (kierunek)
+        {
+            case "gora": offsetY -= 1; break;
+            case "dol": offsetY += 1; break;
+            case "lewo": offsetX -= 1; break;
+            case "prawo": offsetX += 1; break;
+        }
+
+        AktualizujSvg();
+
+        await Task.Delay(10);
+
+    }
+
+    private async Task RotateObj() => await JSRuntime.InvokeVoidAsync("svgHelper.rotateSecondModel");
+    private async Task MoveLeftObj() => await PrzesunDrugiModel("lewo"); 
+    private async Task MoveRightObj() => await PrzesunDrugiModel("prawo");
+    private async Task MoveUpObj() => await PrzesunDrugiModel("gora");
+    private async Task MoveDownObj() => await PrzesunDrugiModel("dol");
+    private async Task ZoomAllObj() => await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
+    private async Task GoBack() => await JSRuntime.InvokeVoidAsync("history.back");
+
+    // Uprawnienia
+    private bool boolOdczyt = false;
+    private bool boolZmiana = false;
+    private bool boolUsuniecia = false;
+    private bool boolAdmin = false;
+    private bool boolNowy = false;
+    private string RowIdPracownika = "";
+    private string? user;
+    private bool isNotDisabled => !boolZmiana;
+    private List<UprawnieniaPracownikaViewModel>? uprawnienia;
+
+    private async Task Laduj_Uprawnienia()
+    {
+        user = await LocalStorage.GetStringAsync("user");
+        if (string.IsNullOrEmpty(user)) return;
+
+        try
+        {
+            uprawnienia = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"/api/ZwrocSatus/{user}/KonfPolaczenie");
+            if (uprawnienia?.Count > 0)
+            {
+                var szuk = uprawnienia.FirstOrDefault(x => x.TableName == "KonfPolaczenie");
+                if (szuk != null)
+                {
+                    boolOdczyt = szuk.Odczyt;
+                    boolZmiana = szuk.Zmiana;
+                    boolUsuniecia = szuk.Usuniecie;
+                    boolAdmin = szuk.Administrator;
+                    boolNowy = szuk.Zapis;
+                    RowIdPracownika = szuk.RowId;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await _message.Error($"Błąd ładowania uprawnień: {ex.Message}");
+        }
+    }
+}

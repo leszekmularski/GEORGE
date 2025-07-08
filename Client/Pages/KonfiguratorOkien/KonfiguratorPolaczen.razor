@@ -425,7 +425,7 @@
         // Możesz dodać dalszą logikę, np. przekierowanie do szczegółów systemu
         PowiazanyModel = null;
 
-        KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIN_DROWID/{SelectedSystemId}");
+        KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIND_ROWID_SYS/{SelectedSystemId}");
 
         ListaModeli = await Http.GetFromJsonAsync<List<KonfModele>>("api/konfmodele/");
 
@@ -498,7 +498,7 @@
             return;
         }
 
-        KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIN_DROWID/{SelectedSystemId}");
+        KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIND_ROWID_SYS/{SelectedSystemId}");
 
         ListaModeli = await Http.GetFromJsonAsync<List<KonfModele>>("api/konfmodele/");
 
@@ -527,7 +527,7 @@
         EdytowanyModel = new KonfModele();
 
         if (!string.IsNullOrEmpty(SelectedSystemId))
-            KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIN_DROWID/{SelectedSystemId}");
+            KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIND_ROWID_SYS/{SelectedSystemId}");
     }
 
     private async Task Edytuj(int id, string rowId, string nazwaWybaranego)

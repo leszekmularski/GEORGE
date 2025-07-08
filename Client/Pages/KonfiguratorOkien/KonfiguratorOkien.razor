@@ -251,7 +251,7 @@
 
             let li = document.createElement("li");
             li.innerHTML = `<span style="background-color:${color}; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>
-            ${displayName}: ${parseFloat(verticalGuides[id].toFixed(2))}px`;
+            ${displayName}: ${parseFloat(verticalGuides[id].toFixed(2))}mm`;
             verticalList.appendChild(li);
         });
 
@@ -266,7 +266,7 @@
 
             let li = document.createElement("li");
             li.innerHTML = `<span style="background-color:${color}; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>
-            ${displayName}: ${parseFloat(flippedY.toFixed(2))}px`;
+            ${displayName}: ${parseFloat(flippedY.toFixed(2))}mm`;
             horizontalList.appendChild(li);
         });
     }
@@ -636,6 +636,11 @@
     <Tooltip Placement="@Placement.TopRight" Title="Otwórz konfigurator nowego systemu lub wybierz go z listy">
         <Button Icon="@IconType.Fill.Windows" Style="flex-grow: 1; height: 35px;" OnClick="GoKonfiguratorPolaczen">
             Otwórz konfigurator połączeń naroży
+        </Button>
+    </Tooltip>
+    <Tooltip Placement="@Placement.TopRight" Title="Otwórz konfigurator połączeń rama/skrzydło/słupek">
+        <Button Icon="@IconType.Fill.Windows" Style="flex-grow: 1; height: 35px;" OnClick="GoKonfiguratorPolaczenKwadratow">
+            Otwórz konfigurator połączeń rama/skrzydło/słupek
         </Button>
     </Tooltip>
     <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
@@ -1595,6 +1600,14 @@
     {
 
         NavigationManager.NavigateTo($"/KonfiguratorPolaczen");
+
+        await Task.CompletedTask;
+    }
+
+    private async Task GoKonfiguratorPolaczenKwadratow()
+    {
+
+        NavigationManager.NavigateTo($"/KonfiguratorPolaczenKwadratow");
 
         await Task.CompletedTask;
     }
