@@ -29,6 +29,9 @@
         margin: auto;
         background-color: white;
         box-shadow: 0 0 8px rgba(0,0,0,0.1);
+        width: 600px;
+        height: 600px;
+        box-sizing: border-box;
     }
 
     .controls-container {
@@ -68,9 +71,9 @@
         transition: background-color 0.2s;
     }
 
-    .model-table tr:hover {
-        background-color: #f0f7ff;
-    }
+        .model-table tr:hover {
+            background-color: #f0f7ff;
+        }
 
     .thumbnail-cell {
         width: 70px;
@@ -92,58 +95,160 @@
 </style>
 
 <script>
-    window.svgHelper = {
-            centerAndFit: function() {
+    // 🧠 Inicjalizacja namespace i stanu zoomLevel
+    window.svgHelper = window.svgHelper || {};
+    window.svgHelper.zoomLevel = window.svgHelper.zoomLevel || 1;
+
+    // 🔄 Centrowanie i dopasowanie SVG do kontenera
+    window.svgHelper.centerAndFit = function() {
         const svg = document.querySelector(".scaled-svg");
         const container = document.querySelector(".scaled-svg-container");
-        if (!svg || !container) return;
+        const svgContent = svg?.querySelector("#zoom-group");
 
-        const svgContent = svg.querySelector("#zoom-group");
-        if (!svgContent) return;
+        if (!svg || !container || !svgContent) return;
 
-        // ❗️ Tymczasowo usuń skalowanie i przesunięcie do pomiaru bbox
+        // Reset transformacji do obliczenia bounding box
         const prevTransform = svgContent.getAttribute("transform") || "";
         svgContent.setAttribute("transform", "");
 
         const bbox = svgContent.getBBox();
-
-        // Przywróć transform
         svgContent.setAttribute("transform", prevTransform);
 
-        const containerWidth = container.clientWidth;
-        const containerHeight = container.clientHeight;
+        const svgWidth = svg.clientWidth;
+        const svgHeight = svg.clientHeight;
 
         const scale = Math.min(
-            containerWidth / (bbox.width + 50),
-            containerHeight / (bbox.height + 50)
-        ) * 0.9;
+            svgWidth / (bbox.width + 50),
+            svgHeight / (bbox.height + 50)
+        ) * 0.95;
 
-        const offsetX = (containerWidth - bbox.width * scale) / 2 - bbox.x * scale;
-        const offsetY = (containerHeight - bbox.height * scale) / 2 - bbox.y * scale;
+        const offsetX = (svgWidth - bbox.width * scale) / 2 - bbox.x * scale;
+        const offsetY = (svgHeight - bbox.height * scale) / 2 - bbox.y * scale;
 
-        // 🔧 Ustawienie transformacji
-        svgContent.setAttribute("transform", `translate(${offsetX},${offsetY}) scale(${scale})`);
-    }
-    ,
+        svgContent.setAttribute("transform",
+            `translate(${offsetX}, ${offsetY}) scale(${scale})`);
+        window.svgHelper.zoomLevel = scale;
+    };
 
-        rotateSecondModel: function () {
-            const model2 = document.querySelector("#model2");
-            if (!model2) return;
+    // 🔁 Obrót tylko drugiego modelu
+    window.svgHelper.rotateSecondModel = function() {
+        const model2 = document.querySelector("#model2");
+        if (!model2) return;
 
-            const bbox = model2.getBBox();
-            const cx = bbox.x + bbox.width / 2;
-            const cy = bbox.y + bbox.height / 2;
+        const currentTransform = model2.getAttribute("transform") || "";
 
-            const current = model2.getAttribute("transform") || "";
-            const rotateMatch = current.match(/rotate\(([-\d.]+)/);
-            const translateMatch = current.match(/translate\(([^)]+)\)/);
+        // Wyodrębnij aktualne przesunięcie
+        const translateMatch = currentTransform.match(/translate\(([^)]+)\)/);
+        const translate = translateMatch ? translateMatch[0] : "translate(0, 0)";
 
-            const angle = rotateMatch ? parseFloat(rotateMatch[1]) : 0;
-            const translate = translateMatch ? translateMatch[0] : "";
+        // Wyodrębnij aktualny kąt obrotu
+        const rotateMatch = currentTransform.match(/rotate\(([-\d.]+)/);
+        const currentAngle = rotateMatch ? parseFloat(rotateMatch[1]) : 0;
+        const newAngle = (currentAngle + 90) % 360;
 
-            const newAngle = (angle + 90) % 360;
-            model2.setAttribute("transform", `${translate} rotate(${newAngle},${cx},${cy})`);
+        // Oblicz środek modelu
+        const bbox = model2.getBBox();
+        const cx = bbox.x + bbox.width / 2;
+        const cy = bbox.y + bbox.height / 2;
+
+        // Zastosuj nową transformację
+        model2.setAttribute("transform", `${translate} rotate(${newAngle}, ${cx}, ${cy})`);
+    };
+
+        // 📌 Przesuń
+    window.svgHelper.move = function(dx, dy) {
+        const model2 = document.querySelector("#model2");
+        if (!model2) return;
+
+        const currentTransform = model2.getAttribute("transform") || "";
+        const translateMatch = currentTransform.match(/translate\(([^)]+)\)/);
+
+        let x = 0, y = 0;
+        if (translateMatch) {
+            [x, y] = translateMatch[1].split(',').map(Number);
         }
+
+        // Aktualizuj pozycję
+        x += dx;
+        y += dy;
+
+        // Zachowaj istniejące transformacje (np. obrót)
+        const rotateMatch = currentTransform.match(/rotate\(([^)]+)\)/);
+        const rotate = rotateMatch ? ` rotate(${rotateMatch[1]})` : "";
+
+        model2.setAttribute("transform", `translate(${x}, ${y})${rotate}`);
+    };
+
+    // 🔍 Powiększenie z centrowaniem
+    window.svgHelper.zoomIn = function() {
+        const group = document.querySelector("#zoom-group");
+        if (!group) return;
+
+        const currentTransform = group.getAttribute("transform") || "";
+        const translateMatch = currentTransform.match(/translate\(([^)]+)\)/);
+        const scaleMatch = currentTransform.match(/scale\(([^)]+)\)/);
+
+        let [translateX, translateY] = translateMatch ?
+            translateMatch[1].split(',').map(Number) : [0, 0];
+        const currentScale = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
+
+        const newScale = currentScale * 1.1;
+        const scaleRatio = newScale / currentScale;
+
+        // Skoryguj przesunięcie, aby zachować centrowanie
+        const svg = document.querySelector(".scaled-svg");
+        if (svg) {
+            const centerX = svg.clientWidth / 2;
+            const centerY = svg.clientHeight / 2;
+            translateX = centerX - (centerX - translateX) * scaleRatio;
+            translateY = centerY - (centerY - translateY) * scaleRatio;
+        }
+
+        group.setAttribute("transform",
+            `translate(${translateX}, ${translateY}) scale(${newScale})`);
+        window.svgHelper.zoomLevel = newScale;
+    };
+
+    // 🔍 Pomniejszenie z centrowaniem
+    window.svgHelper.zoomOut = function() {
+        const group = document.querySelector("#zoom-group");
+        if (!group) return;
+
+        const currentTransform = group.getAttribute("transform") || "";
+        const translateMatch = currentTransform.match(/translate\(([^)]+)\)/);
+        const scaleMatch = currentTransform.match(/scale\(([^)]+)\)/);
+
+        let [translateX, translateY] = translateMatch ?
+            translateMatch[1].split(',').map(Number) : [0, 0];
+        const currentScale = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
+
+        const newScale = currentScale / 1.1;
+        const scaleRatio = newScale / currentScale;
+
+        // Skoryguj przesunięcie, aby zachować centrowanie
+        const svg = document.querySelector(".scaled-svg");
+        if (svg) {
+            const centerX = svg.clientWidth / 2;
+            const centerY = svg.clientHeight / 2;
+            translateX = centerX - (centerX - translateX) * scaleRatio;
+            translateY = centerY - (centerY - translateY) * scaleRatio;
+        }
+
+        group.setAttribute("transform",
+            `translate(${translateX}, ${translateY}) scale(${newScale})`);
+        window.svgHelper.zoomLevel = newScale;
+    };
+
+    // 🛠️ Zastosowanie aktualnego zoomLevel do całego SVG
+    window.svgHelper.applyZoom = function () {
+        const group = document.querySelector("#zoom-group");
+        if (!group) return;
+
+        const current = group.getAttribute("transform") || "";
+        const translateMatch = current.match(/translate\(([^)]+)\)/);
+        const translate = translateMatch ? translateMatch[0] : "translate(0, 0)";
+
+        group.setAttribute("transform", `${translate} scale(${window.svgHelper.zoomLevel})`);
     };
 </script>
 
@@ -262,8 +367,14 @@
                         <Tooltip Title="Dopasuj widok">
                             <Button Icon="@IconType.Outline.Windows" OnClick="ZoomAllObj" Class="btn-sm btn-move" />
                         </Tooltip>
-                        <label class="ms-2">Precyzja:</label>
-                        <AntDesign.InputNumber @bind-Value="precyzjaZapisuLinii" Min="0" Max="2" Style="width: 60px;" />
+                        <Tooltip Title="Powiększ">
+                            <Button Icon="@IconType.Outline.ZoomIn" OnClick="ZoomInObj" Class="btn-sm btn-move" />
+                        </Tooltip>
+                        <Tooltip Title="Pomniejsz">
+                            <Button Icon="@IconType.Outline.ZoomOut" OnClick="ZoomOutObj" Class="btn-sm btn-move" />
+                        </Tooltip>
+                        <label class="ms-2">Precyzja przesuwania:</label>
+                        <AntDesign.InputNumber @bind-Value="precyzjaPrzesuwania" Min="0" Max="20" Style="width: 60px;" />
                     </div>
                 </div>
             </div>
@@ -329,7 +440,7 @@
     private string? SelectedSystemId;
     private List<KonfModele>? ListaModeli;
     private List<KonfSystem>? KonfiguracjeSystemu;
-    private int precyzjaZapisuLinii = 0;
+    private float precyzjaPrzesuwania = 5;
     private string BladKonfiguracji = string.Empty;
 
     // Wybór stron
@@ -344,10 +455,10 @@
     private string combinedSvg = string.Empty;
     private double offsetX = 0;
     private double offsetY = 0;
-    private double luzLewo = 20;
-    private double luzPrawo = 20;
-    private double luzGora = 20;
-    private double luzDol = 20;
+    private double luzLewo = 50;  // Zwiększony luz
+    private double luzPrawo = 50;
+    private double luzGora = 50;
+    private double luzDol = 50;
 
     // Inicjalizacja
     protected override async Task OnInitializedAsync()
@@ -367,10 +478,10 @@
     }
 
     // Wybór modelu
- private async Task WybierzModel(KonfModele model, bool stronaDol, bool stronaGora, bool stronaLewa, bool stronaPrawa)
+    private async Task WybierzModel(KonfModele model, bool stronaDol, bool stronaGora, bool stronaLewa, bool stronaPrawa)
     {
         BladKonfiguracji = "";
-        
+
         try
         {
             var response = await Http.GetAsync($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{model.RowId}");
@@ -402,22 +513,23 @@
             if (pierwszyModel == null)
             {
                 pierwszyModel = pasujacy;
-                offsetX = 0;
-                offsetY = 0;
+                offsetX = 0; // Resetuj offset
+                offsetY = 0; // Resetuj offset
             }
             else if (drugiModel == null)
             {
                 drugiModel = pasujacy;
-                if (stronaLewa) offsetX += luzLewo;
-                if (stronaPrawa) offsetX -= luzPrawo;
-                if (stronaGora) offsetY += luzGora;
-                if (stronaDol) offsetY -= luzDol;
+                // Zachowaj logikę luzu, ale teraz działa względem środka
+                if (stronaLewa) offsetX -= luzLewo;
+                if (stronaPrawa) offsetX += luzPrawo;
+                if (stronaGora) offsetY -= luzGora;
+                if (stronaDol) offsetY += luzDol;
             }
 
             AktualizujSvg();
-            
-            // Dodane: Automatyczne dopasowanie po załadowaniu modelu
-            await Task.Delay(100); // Krótkie opóźnienie dla pewności renderowania
+
+            // Automatyczne dopasowanie po załadowaniu modelu
+            await Task.Delay(100);
             await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
         }
         catch (Exception ex)
@@ -425,7 +537,8 @@
             BladKonfiguracji = $"Błąd: {ex.Message}";
         }
     }
-    // Generowanie SVG
+
+    // Generowanie SVG z większym obszarem roboczym
     private void AktualizujSvg()
     {
         if (pierwszyModel == null && drugiModel == null)
@@ -435,31 +548,36 @@
         }
 
         var svgParts = new List<string>();
+        double centerX = 300; // Środek obszaru roboczego (600x600/2)
+        double centerY = 300;
+
+        // Obliczanie pozycji dla pierwszego modelu (zawsze na środku)
         if (pierwszyModel != null)
         {
-            svgParts.Add($"<g id=\"model1\">{ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}</g>");
+            svgParts.Add($@"<g id=""model1"" transform=""translate({centerX}, {centerY})"">{ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}</g>");
         }
+
+        // Obliczanie pozycji dla drugiego modelu (względem pierwszego z luzem)
         if (drugiModel != null)
         {
-            svgParts.Add($"<g id=\"model2\" transform=\"translate({offsetX},{offsetY})\">{ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}</g>");
+            double secondX = centerX + offsetX;
+            double secondY = centerY + offsetY;
+            svgParts.Add($@"<g id=""model2"" transform=""translate({secondX}, {secondY})"">{ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}</g>");
         }
 
         combinedSvg = $@"
-        <svg xmlns=""http://www.w3.org/2000/svg"" width=""100%"" height=""100%"" viewBox=""-100 -100 1000 1000"" preserveAspectRatio=""xMidYMid meet"">
+        <svg xmlns=""http://www.w3.org/2000/svg"" width=""600"" height=""600"" viewBox=""0 0 600 600"" preserveAspectRatio=""xMidYMid meet"">
             <g id=""zoom-group"">
                 {string.Join("", svgParts)}
             </g>
         </svg>";
 
-
         SvgKey = Guid.NewGuid().ToString();
-
-        Console.WriteLine($"offsetX: {offsetX} offsetY: {offsetY}");
     }
 
     // Pomocnicze metody do przetwarzania SVG
     private string NormalizeSvg(string svg) => svg?.Trim('\uFEFF', '\u200B', '\u0000').Replace("\r", "").Replace("\n", "").Trim() ?? "";
-    
+
     private string ExtractInnerSvg(string svg)
     {
         if (string.IsNullOrWhiteSpace(svg)) return "";
@@ -500,18 +618,21 @@
         }
 
         AktualizujSvg();
-
         await Task.Delay(10);
-
     }
 
     private async Task RotateObj() => await JSRuntime.InvokeVoidAsync("svgHelper.rotateSecondModel");
-    private async Task MoveLeftObj() => await PrzesunDrugiModel("lewo"); 
-    private async Task MoveRightObj() => await PrzesunDrugiModel("prawo");
-    private async Task MoveUpObj() => await PrzesunDrugiModel("gora");
-    private async Task MoveDownObj() => await PrzesunDrugiModel("dol");
+    private async Task MoveLeftObj() => await JSRuntime.InvokeVoidAsync("svgHelper.move", -precyzjaPrzesuwania, 0);
+    private async Task MoveRightObj() => await JSRuntime.InvokeVoidAsync("svgHelper.move", precyzjaPrzesuwania, 0);
+    private async Task MoveUpObj() => await JSRuntime.InvokeVoidAsync("svgHelper.move", 0, -precyzjaPrzesuwania);
+    private async Task MoveDownObj() => await JSRuntime.InvokeVoidAsync("svgHelper.move", 0, precyzjaPrzesuwania);
     private async Task ZoomAllObj() => await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
     private async Task GoBack() => await JSRuntime.InvokeVoidAsync("history.back");
+
+    private async Task ZoomInObj() => await JSRuntime.InvokeVoidAsync("svgHelper.zoomIn");
+    private async Task ZoomOutObj() => await JSRuntime.InvokeVoidAsync("svgHelper.zoomOut");
+
+
 
     // Uprawnienia
     private bool boolOdczyt = false;
