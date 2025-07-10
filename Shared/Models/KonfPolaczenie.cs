@@ -18,7 +18,7 @@ namespace GEORGE.Shared.Models
         public Guid ElementWewnetrznyId { get; set; }
         // Strona połączenia (np. lewa, prawa, góra, dół)
         public string? StronaPolaczenia { get; set; }
-        // Luz (margines) techniczny w mm
+        // Luz (margines) techniczny w mm odległość pomiędzy liniami dolnymi
         public double Luz { get; set; }
         // Opcjonalne warunki połączenia
         public int? KatOd { get; set; }

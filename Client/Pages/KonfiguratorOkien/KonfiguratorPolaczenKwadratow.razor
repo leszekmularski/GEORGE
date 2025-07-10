@@ -92,10 +92,28 @@
         height: 32px;
         padding: 0;
     }
+
+    .scaled-svg {
+        cursor: crosshair; /* Zmień kursor podczas pomiaru */
+    }
+
+    .measurement-line {
+        stroke: red;
+        stroke-width: 2;
+        stroke-dasharray: 5,5;
+    }
+
+    .measurement-text {
+        fill: red;
+        font-size: 12px;
+        font-family: Arial, sans-serif;
+        user-select: none;
+    }
 </style>
 
 <script>
     // 🧠 Inicjalizacja namespace i stanu zoomLevel
+    let activScale = 1;
     window.svgHelper = window.svgHelper || {};
     window.svgHelper.zoomLevel = window.svgHelper.zoomLevel || 1;
 
@@ -125,9 +143,13 @@
         const offsetX = (svgWidth - bbox.width * scale) / 2 - bbox.x * scale;
         const offsetY = (svgHeight - bbox.height * scale) / 2 - bbox.y * scale;
 
+        activScale = scale;
+
         svgContent.setAttribute("transform",
             `translate(${offsetX}, ${offsetY}) scale(${scale})`);
         window.svgHelper.zoomLevel = scale;
+
+        activScale = scale;
     };
 
     // 🔁 Obrót tylko drugiego modelu
@@ -155,8 +177,8 @@
         model2.setAttribute("transform", `${translate} rotate(${newAngle}, ${cx}, ${cy})`);
     };
 
-        // 📌 Przesuń
-    window.svgHelper.move = function(dx, dy) {
+    // 📌 Przesuń
+        window.svgHelper.move = function(dx, dy) {
         const model2 = document.querySelector("#model2");
         if (!model2) return;
 
@@ -168,16 +190,21 @@
             [x, y] = translateMatch[1].split(',').map(Number);
         }
 
-        // Aktualizuj pozycję
-        x += dx;
-        y += dy;
+        // Aktualizuj pozycję z uwzględnieniem skali
+        const scale = window.svgHelper.zoomLevel || 1;
+        x += dx / scale;
+        y += dy / scale;
 
-        // Zachowaj istniejące transformacje (np. obrót)
+        // Zachowaj obrót jeśli istnieje
         const rotateMatch = currentTransform.match(/rotate\(([^)]+)\)/);
         const rotate = rotateMatch ? ` rotate(${rotateMatch[1]})` : "";
 
         model2.setAttribute("transform", `translate(${x}, ${y})${rotate}`);
+
+        // Zwróć aktualną pozycję (opcjonalnie)
+        return { x: x * scale, y: y * scale };
     };
+
 
     // 🔍 Powiększenie z centrowaniem
     window.svgHelper.zoomIn = function() {
@@ -207,6 +234,8 @@
         group.setAttribute("transform",
             `translate(${translateX}, ${translateY}) scale(${newScale})`);
         window.svgHelper.zoomLevel = newScale;
+
+        activScale = newScale;
     };
 
     // 🔍 Pomniejszenie z centrowaniem
@@ -237,6 +266,8 @@
         group.setAttribute("transform",
             `translate(${translateX}, ${translateY}) scale(${newScale})`);
         window.svgHelper.zoomLevel = newScale;
+
+        activScale = newScale;
     };
 
     // 🛠️ Zastosowanie aktualnego zoomLevel do całego SVG
@@ -250,6 +281,182 @@
 
         group.setAttribute("transform", `${translate} scale(${window.svgHelper.zoomLevel})`);
     };
+
+        // 📏 Inicjalizacja pomiaru
+    window.svgHelper.initMeasurement = function() {
+        const svg = document.querySelector(".scaled-svg");
+        if (!svg) return;
+
+        let startPoint = null;
+        let measurementLine = null;
+        let measurementText = null;
+
+        // Tworzymy elementy do pomiaru
+        const createMeasurementElements = () => {
+            measurementLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            measurementLine.setAttribute("stroke", "red");
+            measurementLine.setAttribute("stroke-width", "2");
+            measurementLine.setAttribute("stroke-dasharray", "5,5");
+
+            measurementText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            measurementText.setAttribute("fill", "red");
+            measurementText.setAttribute("font-size", "22");
+
+            svg.querySelector("svg").appendChild(measurementLine);
+            svg.querySelector("svg").appendChild(measurementText);
+        };
+
+        // Usuwamy elementy pomiaru
+        const removeMeasurementElements = () => {
+            if (measurementLine && measurementLine.parentNode) {
+                measurementLine.parentNode.removeChild(measurementLine);
+            }
+            if (measurementText && measurementText.parentNode) {
+                measurementText.parentNode.removeChild(measurementText);
+            }
+        };
+
+        // Obliczamy odległość między punktami
+        const calculateDistance = (x1, y1, x2, y2) => {
+            return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+        };
+
+        // Aktualizujemy linię i tekst pomiaru
+        const updateMeasurement = (x1, y1, x2, y2) => {
+            if (!measurementLine || !measurementText) return;
+
+            const distance = calculateDistance(x1, y1, x2, y2) / activScale;
+            const midX = (x1 + x2) / 2;
+            const midY = (y1 + y2) / 2;
+
+            measurementLine.setAttribute("x1", x1);
+            measurementLine.setAttribute("y1", y1);
+            measurementLine.setAttribute("x2", x2);
+            measurementLine.setAttribute("y2", y2);
+
+            measurementText.setAttribute("x", midX);
+            measurementText.setAttribute("y", midY);
+            measurementText.textContent = distance.toFixed(2) + " mm";
+        };
+
+        // Obsługa kliknięć
+        svg.addEventListener("click", (e) => {
+            if (!startPoint) {
+                // Pierwsze kliknięcie - punkt startowy
+                startPoint = {
+                    x: e.offsetX,
+                    y: e.offsetY
+                };
+                createMeasurementElements();
+            } else {
+                // Drugie kliknięcie - punkt końcowy
+                updateMeasurement(startPoint.x, startPoint.y, e.offsetX, e.offsetY);
+                startPoint = null;
+
+                // Automatyczne usunięcie po 5 sekundach
+                setTimeout(() => {
+                    removeMeasurementElements();
+                }, 5000);
+            }
+        });
+    };
+
+    // 🔄 Wyczyść pomiary
+    window.svgHelper.clearMeasurements = function() {
+        const svg = document.querySelector(".scaled-svg");
+        if (!svg) return;
+
+        const lines = svg.querySelectorAll("line[stroke='red']");
+        const texts = svg.querySelectorAll("text[fill='red']");
+
+        lines.forEach(line => line.parentNode?.removeChild(line));
+        texts.forEach(text => text.parentNode?.removeChild(text));
+    };
+
+
+    // 📐 Ulepszona funkcja pomiaru przesunięcia prowadnic
+            // Wywołaj tę funkcję po załadowaniu SVG
+    window.svgHelper.initGuideLines = function() {
+        document.querySelectorAll('[data-name^="guide-line-"]').forEach(el => {
+            const bbox = el.getBBox();
+            if (el.getAttribute('data-name').includes('horizontal')) {
+                el.setAttribute('data-original-y', bbox.y);
+            } else {
+                el.setAttribute('data-original-x', bbox.x);
+            }
+        });
+    };
+
+            window.svgHelper.measureGuideDisplacement = function() {
+        try {
+            const svg = document.querySelector(".scaled-svg > svg");
+            if (!svg) {
+                console.error("SVG container not found");
+                return null;
+            }
+
+            // Znajdź oba modele
+            const model1 = svg.querySelector("#model1");
+            const model2 = svg.querySelector("#model2");
+
+            if (!model1 || !model2) {
+                console.error("Nie znaleziono obu modeli");
+                return null;
+            }
+
+            // Znajdź prowadnice w model1 (punkt odniesienia)
+            const findGuide = (model, name) => {
+                return model.querySelector(`[data-name="${name}"]`) ||
+                       model.querySelector(`[name="${name}"]`);
+            };
+
+            const guideHorizontalModel1 = findGuide(model1, 'guide-line-horizontalMax');
+            const guideVerticalModel1 = findGuide(model1, 'guide-line-vertical');
+            const guideHorizontalModel2 = findGuide(model2, 'guide-line-horizontalMax');
+            const guideVerticalModel2 = findGuide(model2, 'guide-line-vertical');
+
+            if (!guideHorizontalModel1 || !guideVerticalModel1 ||
+                !guideHorizontalModel2 || !guideVerticalModel2) {
+                console.warn("Nie znaleziono wszystkich prowadnic");
+                return null;
+            }
+
+            // Pobierz współrzędne prowadnic
+            const getPosition = (element) => {
+                const bbox = element.getBBox();
+                return {
+                    x: bbox.x,
+                    y: bbox.y,
+                    width: bbox.width,
+                    height: bbox.height
+                };
+            };
+
+            // Oblicz przesunięcie względem model1
+            const currentScale = window.svgHelper.zoomLevel || 1;
+            const posH1 = getPosition(guideHorizontalModel1);
+            const posV1 = getPosition(guideVerticalModel1);
+            const posH2 = getPosition(guideHorizontalModel2);
+            const posV2 = getPosition(guideVerticalModel2);
+
+            const displacementX = (posV2.x - posV1.x) / currentScale;
+            const displacementY = (posH2.y - posH1.y) / currentScale;
+
+            return {
+                success: true,
+                przesuniecieX: displacementX,
+                przesuniecieY: displacementY,
+                scale: currentScale
+            };
+        } catch (error) {
+            console.error("Measurement error:", error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    };
+  
 </script>
 
 
@@ -342,7 +549,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <Tooltip Title="Zapisz ustawienia">
-                            <Button Icon="@IconType.Fill.Save" Class="btn btn-primary me-2">
+                            <Button Icon="@IconType.Fill.Save" OnClick="SaveAllPosition" Class="btn btn-primary me-2">
                                 Zapisz
                             </Button>
                         </Tooltip>
@@ -375,6 +582,13 @@
                         </Tooltip>
                         <label class="ms-2">Precyzja przesuwania:</label>
                         <AntDesign.InputNumber @bind-Value="precyzjaPrzesuwania" Min="0" Max="20" Style="width: 60px;" />
+
+                        <Tooltip Title="Pomiar odległości">
+                            <Button Icon="@IconType.Outline.Scan" OnClick="StartMeasurement" Class="btn-sm btn-move" />
+                        </Tooltip>
+                        <Tooltip Title="Wyczyść pomiary">
+                            <Button Icon="@IconType.Outline.Close" OnClick="ClearMeasurements" Class="btn-sm btn-move" />
+                        </Tooltip>
                     </div>
                 </div>
             </div>
@@ -460,6 +674,8 @@
     private double luzGora = 50;
     private double luzDol = 50;
 
+    private double przesuniecieX;
+    private double przesuniecieY;
     // Inicjalizacja
     protected override async Task OnInitializedAsync()
     {
@@ -515,22 +731,28 @@
                 pierwszyModel = pasujacy;
                 offsetX = 0; // Resetuj offset
                 offsetY = 0; // Resetuj offset
+
+                AktualizujSvg();
             }
             else if (drugiModel == null)
             {
                 drugiModel = pasujacy;
-                // Zachowaj logikę luzu, ale teraz działa względem środka
-                if (stronaLewa) offsetX -= luzLewo;
-                if (stronaPrawa) offsetX += luzPrawo;
-                if (stronaGora) offsetY -= luzGora;
-                if (stronaDol) offsetY += luzDol;
+
+                AktualizujSvg();                          // 1. generuj combinedSvg
+                await InvokeAsync(StateHasChanged);      // 2. wymuś render Blazora
+                await Task.Delay(50);                    // 3. krótka pauza lub: await Task.Yield();
+
+                await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
+                await JSRuntime.InvokeVoidAsync("svgHelper.initGuideLines");
+
             }
 
-            AktualizujSvg();
+          //  AktualizujSvg();
 
             // Automatyczne dopasowanie po załadowaniu modelu
-            await Task.Delay(100);
-            await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
+            //await Task.Delay(100); // daj czas Blazorowi na wyrenderowanie SVG
+            //await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
+
         }
         catch (Exception ex)
         {
@@ -568,11 +790,13 @@
         combinedSvg = $@"
         <svg xmlns=""http://www.w3.org/2000/svg"" width=""600"" height=""600"" viewBox=""0 0 600 600"" preserveAspectRatio=""xMidYMid meet"">
             <g id=""zoom-group"">
-                {string.Join("", svgParts)}
+        {string.Join("", svgParts)}
             </g>
         </svg>";
 
         SvgKey = Guid.NewGuid().ToString();
+
+       // Console.WriteLine($"AktualizujSvg: wygenerowano SVG: {combinedSvg}");
     }
 
     // Pomocnicze metody do przetwarzania SVG
@@ -602,6 +826,8 @@
         offsetY = 0;
         BladKonfiguracji = "";
         AktualizujSvg();
+
+        await Task.CompletedTask;   
     }
 
     // Manipulacja drugim modelem
@@ -632,6 +858,38 @@
     private async Task ZoomInObj() => await JSRuntime.InvokeVoidAsync("svgHelper.zoomIn");
     private async Task ZoomOutObj() => await JSRuntime.InvokeVoidAsync("svgHelper.zoomOut");
 
+
+    private async Task StartMeasurement()
+    {
+        await JSRuntime.InvokeVoidAsync("svgHelper.clearMeasurements");
+        await JSRuntime.InvokeVoidAsync("svgHelper.initMeasurement");
+    }
+
+    private async Task ClearMeasurements()
+    {
+        await JSRuntime.InvokeVoidAsync("svgHelper.clearMeasurements");
+    }
+
+    private async Task SaveAllPosition()
+    {
+
+        var result = await JSRuntime.InvokeAsync<GuideDisplacementResult>("svgHelper.measureGuideDisplacement");
+
+        if (result?.success == true && result.elementsFound)
+        {
+            przesuniecieX = result.verticalDisplacement;
+            przesuniecieY = result.horizontalDisplacement;
+
+            // Zapisz do bazy
+           // await SaveToDatabase(przesuniecieX, przesuniecieY);
+           await _message.Success($"Prowadnice przesunięte o: X={przesuniecieX:F2} mm, Y={przesuniecieY:F2} mm (skala: {result.scale:F2})");
+
+        }
+        else
+        {
+            await _message.Warning(result?.error ?? "Nie można znaleźć prowadnic w rysunku SVG");
+        }
+    }
 
 
     // Uprawnienia
@@ -671,5 +929,17 @@
         {
             await _message.Error($"Błąd ładowania uprawnień: {ex.Message}");
         }
+    }
+
+    public class GuideDisplacementResult
+    {
+        public bool success { get; set; }
+        public bool elementsFound { get; set; }
+        public double horizontalDisplacement { get; set; }
+        public double verticalDisplacement { get; set; }
+        public double scale { get; set; }
+        public string? error { get; set; }
+        public string? horizontalElement { get; set; }
+        public string? verticalElement { get; set; }
     }
 }
