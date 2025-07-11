@@ -375,19 +375,49 @@
 
 
     // 📐 Ulepszona funkcja pomiaru przesunięcia prowadnic
-            // Wywołaj tę funkcję po załadowaniu SVG
-    window.svgHelper.initGuideLines = function() {
-        document.querySelectorAll('[data-name^="guide-line-"]').forEach(el => {
-            const bbox = el.getBBox();
-            if (el.getAttribute('data-name').includes('horizontal')) {
-                el.setAttribute('data-original-y', bbox.y);
-            } else {
-                el.setAttribute('data-original-x', bbox.x);
+    // Wywołaj tę funkcję po załadowaniu SVG
+    window.svgHelper.initGuideLines = function () {
+        const svgEl = document.querySelector(".scaled-svg svg");
+        if (!svgEl) {
+            console.error("[initGuideLines] Nie znaleziono <svg>");
+            return;
+        }
+
+        const models = ["#model1", "#model2"];
+        models.forEach((modelId) => {
+            const model = svgEl.querySelector(modelId);
+            if (!model) {
+                console.warn(`[initGuideLines] Nie znaleziono ${modelId}`);
+                return;
             }
+
+            const guides = model.querySelectorAll('[data-name^="guide-line-"]');
+            console.log(`[initGuideLines] ${modelId} - znaleziono prowadnic: ${guides.length}`);
+
+            guides.forEach(el => {
+                const bbox = el.getBBox();
+                const pt = svgEl.createSVGPoint();
+                pt.x = bbox.x + bbox.width / 2;
+                pt.y = bbox.y + bbox.height / 2;
+
+                const ctm = el.getCTM();
+                if (!ctm) {
+                    console.warn(`[initGuideLines] Brak CTM dla`, el);
+                    return;
+                }
+
+                const transformed = pt.matrixTransform(ctm);
+
+                if (el.getAttribute('data-name')?.includes('horizontal')) {
+                    el.setAttribute('data-original-y', transformed.y.toString());
+                } else {
+                    el.setAttribute('data-original-x', transformed.x.toString());
+                }
+            });
         });
     };
 
-            window.svgHelper.measureGuideDisplacement = function() {
+    window.svgHelper.measureGuideDisplacement = function () {
         try {
             const svg = document.querySelector(".scaled-svg > svg");
             if (!svg) {
@@ -395,7 +425,6 @@
                 return null;
             }
 
-            // Znajdź oba modele
             const model1 = svg.querySelector("#model1");
             const model2 = svg.querySelector("#model2");
 
@@ -404,7 +433,6 @@
                 return null;
             }
 
-            // Znajdź prowadnice w model1 (punkt odniesienia)
             const findGuide = (model, name) => {
                 return model.querySelector(`[data-name="${name}"]`) ||
                        model.querySelector(`[name="${name}"]`);
@@ -421,32 +449,29 @@
                 return null;
             }
 
-            // Pobierz współrzędne prowadnic
-            const getPosition = (element) => {
-                const bbox = element.getBBox();
-                return {
-                    x: bbox.x,
-                    y: bbox.y,
-                    width: bbox.width,
-                    height: bbox.height
-                };
+            const getTransformedCenter = (el) => {
+                const bbox = el.getBBox();
+                const pt = svg.createSVGPoint();
+                pt.x = bbox.x + bbox.width / 2;
+                pt.y = bbox.y + bbox.height / 2;
+                const ctm = el.getCTM();
+                return pt.matrixTransform(ctm);
             };
 
-            // Oblicz przesunięcie względem model1
-            const currentScale = window.svgHelper.zoomLevel || 1;
-            const posH1 = getPosition(guideHorizontalModel1);
-            const posV1 = getPosition(guideVerticalModel1);
-            const posH2 = getPosition(guideHorizontalModel2);
-            const posV2 = getPosition(guideVerticalModel2);
+            const centerH1 = getTransformedCenter(guideHorizontalModel1);
+            const centerV1 = getTransformedCenter(guideVerticalModel1);
+            const centerH2 = getTransformedCenter(guideHorizontalModel2);
+            const centerV2 = getTransformedCenter(guideVerticalModel2);
 
-            const displacementX = (posV2.x - posV1.x) / currentScale;
-            const displacementY = (posH2.y - posH1.y) / currentScale;
+            const displacementX = (centerV2.x - centerV1.x) / window.svgHelper.zoomLevel;
+            const displacementY = (centerH2.y - centerH1.y) / window.svgHelper.zoomLevel;
 
             return {
                 success: true,
+                elementsFound: true,
                 przesuniecieX: displacementX,
                 przesuniecieY: displacementY,
-                scale: currentScale
+                scale: window.svgHelper.zoomLevel
             };
         } catch (error) {
             console.error("Measurement error:", error);
@@ -456,7 +481,7 @@
             };
         }
     };
-  
+
 </script>
 
 
@@ -794,6 +819,14 @@
             </g>
         </svg>";
 
+        string NormalizeSvg(string combinedSvg) =>
+        combinedSvg?
+        .Replace("id=\"guide-line-horizontalMax\"", "data-name=\"guide-line-horizontalMax\"")
+        .Replace("id=\"guide-line-vertical\"", "data-name=\"guide-line-vertical\"")
+        .Trim('\uFEFF', '\u200B', '\u0000')
+        .Replace("\r", "").Replace("\n", "").Trim() ?? "";
+
+
         SvgKey = Guid.NewGuid().ToString();
 
        // Console.WriteLine($"AktualizujSvg: wygenerowano SVG: {combinedSvg}");
@@ -816,6 +849,8 @@
         AktualizujSvg();
         await Task.Delay(100);
         await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
+        await Task.Delay(100); // 💡 daj czas DOM-owi
+        await JSRuntime.InvokeVoidAsync("svgHelper.initGuideLines");
     }
 
     private async Task DelSvg()
@@ -877,8 +912,8 @@
 
         if (result?.success == true && result.elementsFound)
         {
-            przesuniecieX = result.verticalDisplacement;
-            przesuniecieY = result.horizontalDisplacement;
+            przesuniecieX = result.przesuniecieX;
+            przesuniecieY = result.przesuniecieY;
 
             // Zapisz do bazy
            // await SaveToDatabase(przesuniecieX, przesuniecieY);
@@ -935,11 +970,21 @@
     {
         public bool success { get; set; }
         public bool elementsFound { get; set; }
-        public double horizontalDisplacement { get; set; }
-        public double verticalDisplacement { get; set; }
+        public double przesuniecieX { get; set; }
+        public double przesuniecieY { get; set; }
         public double scale { get; set; }
-        public string? error { get; set; }
-        public string? horizontalElement { get; set; }
-        public string? verticalElement { get; set; }
+        public string? error { get; set; } // opcjonalnie
     }
+
+    // public class GuideDisplacementResult
+    // {
+    //     public bool success { get; set; }
+    //     public bool elementsFound { get; set; }
+    //     public double horizontalDisplacement { get; set; }
+    //     public double verticalDisplacement { get; set; }
+    //     public double scale { get; set; }
+    //     public string? error { get; set; }
+    //     public string? horizontalElement { get; set; }
+    //     public string? verticalElement { get; set; }
+    // }
 }
