@@ -701,6 +701,7 @@
 
     private double przesuniecieX;
     private double przesuniecieY;
+    private int katUstawienia = 0;
     // Inicjalizacja
     protected override async Task OnInitializedAsync()
     {
@@ -765,14 +766,15 @@
 
                 AktualizujSvg();                          // 1. generuj combinedSvg
                 await InvokeAsync(StateHasChanged);      // 2. wymuś render Blazora
-                await Task.Delay(50);                    // 3. krótka pauza lub: await Task.Yield();
 
+                await Task.Delay(100);                    // 3. krótka pauza lub: await Task.Yield();
                 await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
+                await Task.Delay(100);
                 await JSRuntime.InvokeVoidAsync("svgHelper.initGuideLines");
 
             }
 
-          //  AktualizujSvg();
+            //  AktualizujSvg();
 
             // Automatyczne dopasowanie po załadowaniu modelu
             //await Task.Delay(100); // daj czas Blazorowi na wyrenderowanie SVG
@@ -815,7 +817,7 @@
         combinedSvg = $@"
         <svg xmlns=""http://www.w3.org/2000/svg"" width=""600"" height=""600"" viewBox=""0 0 600 600"" preserveAspectRatio=""xMidYMid meet"">
             <g id=""zoom-group"">
-        {string.Join("", svgParts)}
+    {string.Join("", svgParts)}
             </g>
         </svg>";
 
@@ -829,7 +831,7 @@
 
         SvgKey = Guid.NewGuid().ToString();
 
-       // Console.WriteLine($"AktualizujSvg: wygenerowano SVG: {combinedSvg}");
+        // Console.WriteLine($"AktualizujSvg: wygenerowano SVG: {combinedSvg}");
     }
 
     // Pomocnicze metody do przetwarzania SVG
@@ -882,7 +884,6 @@
         await Task.Delay(10);
     }
 
-    private async Task RotateObj() => await JSRuntime.InvokeVoidAsync("svgHelper.rotateSecondModel");
     private async Task MoveLeftObj() => await JSRuntime.InvokeVoidAsync("svgHelper.move", -precyzjaPrzesuwania, 0);
     private async Task MoveRightObj() => await JSRuntime.InvokeVoidAsync("svgHelper.move", precyzjaPrzesuwania, 0);
     private async Task MoveUpObj() => await JSRuntime.InvokeVoidAsync("svgHelper.move", 0, -precyzjaPrzesuwania);
@@ -893,6 +894,12 @@
     private async Task ZoomInObj() => await JSRuntime.InvokeVoidAsync("svgHelper.zoomIn");
     private async Task ZoomOutObj() => await JSRuntime.InvokeVoidAsync("svgHelper.zoomOut");
 
+    private async Task RotateObj()
+    {
+        await JSRuntime.InvokeVoidAsync("svgHelper.rotateSecondModel");
+
+        katUstawienia = (katUstawienia + 90) % 360;
+    }
 
     private async Task StartMeasurement()
     {
@@ -917,7 +924,7 @@
 
             // Zapisz do bazy
            // await SaveToDatabase(przesuniecieX, przesuniecieY);
-           await _message.Success($"Prowadnice przesunięte o: X={przesuniecieX:F2} mm, Y={przesuniecieY:F2} mm (skala: {result.scale:F2})");
+            await _message.Success($"Prowadnice przesunięte o: X={przesuniecieX:F2} mm, Y={przesuniecieY:F2} mm (skala: {result.scale:F2}) Kat: {katUstawienia}");
 
         }
         else

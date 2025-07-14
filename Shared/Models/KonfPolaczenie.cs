@@ -18,12 +18,14 @@ namespace GEORGE.Shared.Models
         public Guid ElementWewnetrznyId { get; set; }
         // Strona połączenia (np. lewa, prawa, góra, dół)
         public string? StronaPolaczenia { get; set; }
-        // Luz (margines) techniczny w mm odległość pomiędzy liniami dolnymi
-        public double Luz { get; set; }
+        // wymiary techniczne w mm odległość pomiędzy liniami dolnymi
+        public double PrzesuniecieX { get; set; } = 0;
+        public double PrzesuniecieY { get; set; } = 0;
+        public int ZapisanyKat { get; set; } = 0; //Kąt zapisywany w stopniach położenia elemnty 2 względem elementu 1
         // Opcjonalne warunki połączenia
         public int? KatOd { get; set; }
         public int? KatDo { get; set; }
-        public string? DodatkowyWarunek { get; set; }
+        public string? DodatkowyWarunek { get; set; } 
         public string? Uwagi { get; set; }
 
         [NotMapped]

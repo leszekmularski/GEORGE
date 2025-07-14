@@ -1171,27 +1171,29 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
     {
         if (czekajNaPobranie || pliki == null || pliki.Count() == 0 || isLoadingAll) return;
 
+        int ilePobralem = 0;
         isLoadingAll = true;
 
         foreach (var item in pliki)
         {
-            if((onlyCNC && item.TypPliku.ToLower() != "/nc") || (onlyCNC && item.TypPliku.ToLower() != "/p"))
+            Console.WriteLine($"Pobieranie pliku: {item.NazwaPliku} ({item.TypPliku})");
+            if (onlyCNC && item.TypPliku.ToLower() != "/nc" && item.TypPliku.ToLower() != "/p")
             {
-                continue; // Pomijamy pliki, które nie są typu NC
+                continue; // Pomijamy pliki, które nie są typu NC ani /p
             }
             await DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, true);
+            ilePobralem++;
         } 
 
         czekajNaPobranie = false;
         isLoadingAll = false;
 
         _notice.Info(new()
-            {
-                Message = "Pobieranie plików zakończone.",
-                Description = $"Pobrano {pliki.Count()} plików.",
-                Placement = NotificationPlacement.BottomLeft
-            });
-
+        {
+            Message = "Pobieranie plików zakończone.",
+            Description = $"Pobrano {ilePobralem} plików.",
+            Placement = NotificationPlacement.BottomLeft
+        });
     }
 
     private async Task deleteFile(long id, string fileUrl, string roIdZlec)
