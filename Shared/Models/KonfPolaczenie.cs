@@ -27,6 +27,7 @@ namespace GEORGE.Shared.Models
         public int? KatDo { get; set; }
         public string? DodatkowyWarunek { get; set; } 
         public string? Uwagi { get; set; }
+        public byte[] RysunekPrzekroju { get; set; } = Array.Empty<byte>();
 
         [NotMapped]
         public KonfSystem? ElementWewnetrzny { get; set; }
