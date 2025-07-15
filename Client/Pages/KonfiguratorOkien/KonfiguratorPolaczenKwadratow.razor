@@ -977,10 +977,38 @@
                 ZapisanyKat = katUstawienia,
                 RysunekPrzekroju = await GenerujPngBezProwadnic()
             };
+  
+            if (polaczenie.ElementZewnetrznyId == Guid.Empty || polaczenie.ElementWewnetrznyId == Guid.Empty)
+            {
+                await _message.Warning("❗ Nie wybrano obu modeli do połączenia");
+                return;
+            }
 
             // Szukaj rekordu w bazie
-            var existing = await Http.GetFromJsonAsync<KonfPolaczenie?>(
-                $"api/konfpolaczenie/find-by-elements/{polaczenie.ElementZewnetrznyId}/{polaczenie.ElementWewnetrznyId}");
+            KonfPolaczenie? existing = null;
+            try
+            {
+                var responseS = await Http.GetAsync($"api/KonfPolaczenie/find-by-elements/{polaczenie.ElementZewnetrznyId}/{polaczenie.ElementWewnetrznyId}");
+
+                if (responseS.IsSuccessStatusCode)
+                {
+                    existing = await responseS.Content.ReadFromJsonAsync<KonfPolaczenie>();
+                }
+                else if (responseS.StatusCode != System.Net.HttpStatusCode.NotFound)
+                {
+                    // Inny błąd niż 404
+                    await _message.Error("❌ Wystąpił błąd przy sprawdzaniu istnienia połączenia.");
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                await _message.Error("❌ Błąd komunikacji z API: " + ex.Message);
+                return;
+            }
+
+
+            Console.WriteLine($"SaveAllPosition: znaleziono istniejące połączenie: {existing?.Id}");
 
             HttpResponseMessage response;
 
@@ -990,12 +1018,12 @@
                 polaczenie.RowId = existing.RowId;
                 polaczenie.Id = existing.Id;
 
-                response = await Http.PutAsJsonAsync("api/konfpolaczenie", polaczenie);
+                response = await Http.PutAsJsonAsync("api/KonfPolaczenie", polaczenie);
             }
             else
             {
                 // Nowy wpis
-                response = await Http.PostAsJsonAsync("api/konfpolaczenie", polaczenie);
+                response = await Http.PostAsJsonAsync("api/KonfPolaczenie", polaczenie);
             }
 
             if (response.IsSuccessStatusCode)
@@ -1019,8 +1047,9 @@
         string base64 = await JSRuntime.InvokeAsync<string>("svgHelper.exportCleanedSvgAsPng");
 
         if (string.IsNullOrWhiteSpace(base64))
+            Console.WriteLine("GenerujPngBezProwadnic: otrzymano pusty base64");
             return Array.Empty<byte>();
-
+        Console.WriteLine("GenerujPngBezProwadnic: otrzymano base64 z obrazkiem");
         return Convert.FromBase64String(base64.Replace("data:image/png;base64,", ""));
     }
 
@@ -1031,7 +1060,7 @@
         if (selPrawa) strony.Add("prawa");
         if (selGora) strony.Add("góra");
         if (selDol) strony.Add("dół");
-
+        Console.WriteLine($"WyliczStronePolaczenia: {string.Join(", ", strony)}");
         return string.Join(", ", strony);
     }
 
