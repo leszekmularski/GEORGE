@@ -482,6 +482,44 @@
         }
     };
 
+        window.svgHelper.exportCleanedSvgAsPng = function () {
+        return new Promise((resolve) => {
+            const svgElement = document.querySelector(".scaled-svg svg");
+            if (!svgElement) {
+                console.warn("Brak SVG do eksportu");
+                resolve("");
+                return;
+            }
+
+            const clone = svgElement.cloneNode(true);
+
+            // Usuń prowadnice
+            clone.querySelectorAll('[data-name^="guide-line-"]').forEach(el => el.remove());
+
+            // Serializacja SVG
+            const svgString = new XMLSerializer().serializeToString(clone);
+            const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+            const url = URL.createObjectURL(svgBlob);
+
+            const img = new Image();
+            img.onload = function () {
+                const canvas = document.createElement("canvas");
+                canvas.width = 600;
+                canvas.height = 600;
+                const ctx = canvas.getContext("2d");
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+                URL.revokeObjectURL(url);
+
+                const pngData = canvas.toDataURL("image/png");
+                resolve(pngData);
+            };
+            img.onerror = () => resolve("");
+            img.src = url;
+        });
+    };
+
 </script>
 
 
@@ -722,6 +760,13 @@
     // Wybór modelu
     private async Task WybierzModel(KonfModele model, bool stronaDol, bool stronaGora, bool stronaLewa, bool stronaPrawa)
     {
+
+        if(!selDol && !selGora && !selLewa && !selPrawa)
+        {
+            BladKonfiguracji = "Wybierz co najmniej jedną stronę (Dół, Góra, Lewa, Prawa).";
+            return;
+        }
+
         BladKonfiguracji = "";
 
         try
@@ -914,7 +959,6 @@
 
     private async Task SaveAllPosition()
     {
-
         var result = await JSRuntime.InvokeAsync<GuideDisplacementResult>("svgHelper.measureGuideDisplacement");
 
         if (result?.success == true && result.elementsFound)
@@ -922,15 +966,73 @@
             przesuniecieX = result.przesuniecieX;
             przesuniecieY = result.przesuniecieY;
 
-            // Zapisz do bazy
-           // await SaveToDatabase(przesuniecieX, przesuniecieY);
-            await _message.Success($"Prowadnice przesunięte o: X={przesuniecieX:F2} mm, Y={przesuniecieY:F2} mm (skala: {result.scale:F2}) Kat: {katUstawienia}");
+            // Dane do zapisu
+            var polaczenie = new KonfPolaczenie
+            {
+                ElementZewnetrznyId = pierwszyModel?.RowId ?? Guid.Empty,
+                ElementWewnetrznyId = drugiModel?.RowId ?? Guid.Empty,
+                StronaPolaczenia = WyliczStronePolaczenia(),
+                PrzesuniecieX = przesuniecieX,
+                PrzesuniecieY = przesuniecieY,
+                ZapisanyKat = katUstawienia,
+                RysunekPrzekroju = await GenerujPngBezProwadnic()
+            };
 
+            // Szukaj rekordu w bazie
+            var existing = await Http.GetFromJsonAsync<KonfPolaczenie?>(
+                $"api/konfpolaczenie/find-by-elements/{polaczenie.ElementZewnetrznyId}/{polaczenie.ElementWewnetrznyId}");
+
+            HttpResponseMessage response;
+
+            if (existing is not null)
+            {
+                // Aktualizacja
+                polaczenie.RowId = existing.RowId;
+                polaczenie.Id = existing.Id;
+
+                response = await Http.PutAsJsonAsync("api/konfpolaczenie", polaczenie);
+            }
+            else
+            {
+                // Nowy wpis
+                response = await Http.PostAsJsonAsync("api/konfpolaczenie", polaczenie);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                await _message.Success($"✅ Zapisano pozycję: X={przesuniecieX:F2} mm, Y={przesuniecieY:F2} mm (skala: {result.scale:F2}), Kąt: {katUstawienia}°");
+            }
+            else
+            {
+                await _message.Error("❌ Błąd zapisu konfiguracji połączenia");
+            }
         }
         else
         {
-            await _message.Warning(result?.error ?? "Nie można znaleźć prowadnic w rysunku SVG");
+            await _message.Warning(result?.error ?? "❗ Nie można znaleźć prowadnic w rysunku SVG");
         }
+    }
+
+    private async Task<byte[]> GenerujPngBezProwadnic()
+    {
+        // Poproś JS o wygenerowanie PNG bez prowadnic
+        string base64 = await JSRuntime.InvokeAsync<string>("svgHelper.exportCleanedSvgAsPng");
+
+        if (string.IsNullOrWhiteSpace(base64))
+            return Array.Empty<byte>();
+
+        return Convert.FromBase64String(base64.Replace("data:image/png;base64,", ""));
+    }
+
+    private string WyliczStronePolaczenia()
+    {
+        var strony = new List<string>();
+        if (selLewa) strony.Add("lewa");
+        if (selPrawa) strony.Add("prawa");
+        if (selGora) strony.Add("góra");
+        if (selDol) strony.Add("dół");
+
+        return string.Join(", ", strony);
     }
 
 
