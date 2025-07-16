@@ -18,20 +18,52 @@ namespace GEORGE.Server.Controllers
             _context = context;
         }
 
-        // ✅ GET: api/konfpolaczenie/find-by-elements/{zewId}/{wewId}
-        [HttpGet("find-by-elements/{zewId:guid}/{wewId:guid}")]
-        public async Task<ActionResult<KonfPolaczenie?>> GetByElementIds(Guid zewId, Guid wewId)
+        // ✅ GET: api/konfpolaczenie/find-by-elements/{zewId}/{wewId}/{strona}
+        [HttpGet("find-by-elements/{zewId:guid}/{wewId:guid}/{stronaPolaczenia}")]
+        public async Task<ActionResult<KonfPolaczenie?>> GetByElementIdsAndSide(Guid zewId, Guid wewId, string stronaPolaczenia)
         {
-            var record = await _context.KonfPolaczenie
-                .FirstOrDefaultAsync(p =>
-                    p.ElementZewnetrznyId == zewId &&
-                    p.ElementWewnetrznyId == wewId);
+            try
+            {
+                var record = await _context.KonfPolaczenie
+                    .FirstOrDefaultAsync(p =>
+                        p.ElementZewnetrznyId == zewId &&
+                        p.ElementWewnetrznyId == wewId &&
+                        p.StronaPolaczenia != null &&
+                        p.StronaPolaczenia.ToLower() == stronaPolaczenia.ToLower());
 
-            if (record is null)
-                return NotFound();
+                if (record is null)
+                    return NotFound();
 
-            return record;
+                return record;
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Błąd serwera: {ex.Message}");
+            }
         }
+
+
+        // ✅ GET: api/konfpolaczenie/row-id-system/{rowidSystem}
+        [HttpGet("row-id-system/{rowidSystem:guid}")]
+        public async Task<ActionResult<List<KonfPolaczenie>>> GetByRowIdSystem(Guid rowidSystem)
+        {
+            try
+            {
+                var records = await _context.KonfPolaczenie
+                    .Where(p => p.RowIdSystem == rowidSystem)
+                    .ToListAsync();
+
+                if (records == null || records.Count == 0)
+                    return NotFound("Nie znaleziono połączeń dla podanego systemu");
+
+                return Ok(records);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Błąd serwera: {ex.Message}");
+            }
+        }
+
 
         // ✅ POST: api/konfpolaczenie
         [HttpPost]

@@ -482,41 +482,108 @@
         }
     };
 
-        window.svgHelper.exportCleanedSvgAsPng = function () {
+    function sanitizeSvg(svgElement) {
+        const numericAttributes = [
+            "x", "y", "x1", "y1", "x2", "y2", "cx", "cy", "r", "rx", "ry",
+            "width", "height", "stroke-width"
+        ];
+
+        const walk = (node) => {
+            if (node.nodeType !== 1) return;
+
+            // Normalizacja atrybutów liczbowych
+            numericAttributes.forEach(attr => {
+                if (node.hasAttribute(attr)) {
+                    const val = node.getAttribute(attr);
+                    const parsed = parseFloat(val);
+                    if (!isNaN(parsed)) {
+                        node.setAttribute(attr, parsed.toString());
+                    }
+                }
+            });
+
+            // Usuń niepotrzebne atrybuty
+            ['data-name', 'data-original-x', 'data-original-y'].forEach(attr => {
+                node.removeAttribute(attr);
+            });
+
+            // Rekurencyjnie przetwarzaj dzieci
+            Array.from(node.children).forEach(walk);
+        };
+
+        walk(svgElement);
+    }
+
+      window.svgHelper.exportCleanedSvgAsPng = function() {
         return new Promise((resolve) => {
-            const svgElement = document.querySelector(".scaled-svg svg");
-            if (!svgElement) {
-                console.warn("Brak SVG do eksportu");
+            try {
+                // 1. Pobierz oryginalne SVG
+                const originalSvg = document.querySelector(".scaled-svg svg");
+                if (!originalSvg) {
+                    console.error("SVG element not found");
+                    resolve("");
+                    return;
+                }
+
+                // 2. Stwórz nowy, czysty SVG
+                const newSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                newSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+                newSvg.setAttribute("width", "600");
+                newSvg.setAttribute("height", "600");
+                newSvg.setAttribute("viewBox", "0 0 600 600");
+
+                // 3. Skopiuj zawartość z oryginalnego SVG
+                const content = originalSvg.innerHTML;
+
+                // 4. Napraw bardzo małe wartości liczbowe
+                const fixedContent = content.replace(/([xy][12]?|width|height|r[cx]?|ry?|d)="([^"]*)"/g,
+                    (match, attr, value) => {
+                        const num = parseFloat(value);
+                        return isNaN(num) ? match : `${attr}="${num.toFixed(6)}"`;
+                    }
+                );
+
+                // 5. Usuń wszystkie transformacje
+                const noTransforms = fixedContent.replace(/transform="[^"]*"/g, '');
+
+                // 6. Usuń prowadnice i elementy pomiarowe
+                const cleanedContent = noTransforms.replace(
+                    /<[^>]+\b(data-name="guide-line-[^"]+"|class="measurement-(line|text)")[^>]*>/g,
+                    ''
+                );
+
+                // 7. Wstaw oczyszczoną zawartość
+                newSvg.innerHTML = cleanedContent;
+
+                // 8. Serializacja do stringa
+                const svgString = new XMLSerializer().serializeToString(newSvg)
+                    .replace(/[\n\r\t]/g, '')
+                    .replace(/>\s+</g, '><');
+
+                // 9. Utwórz obrazek
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = 600;
+                    canvas.height = 600;
+                    const ctx = canvas.getContext("2d");
+                    ctx.fillStyle = "white";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                    resolve(canvas.toDataURL("image/png"));
+                };
+
+                img.onerror = function(e) {
+                    console.error("Image load failed:", e);
+                    console.debug("SVG content:", svgString.substring(0, 300) + "...");
+                    resolve("");
+                };
+
+                img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgString);
+            } catch (e) {
+                console.error("Unexpected error:", e);
                 resolve("");
-                return;
             }
-
-            const clone = svgElement.cloneNode(true);
-
-            // Usuń prowadnice
-            clone.querySelectorAll('[data-name^="guide-line-"]').forEach(el => el.remove());
-
-            // Serializacja SVG
-            const svgString = new XMLSerializer().serializeToString(clone);
-            const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
-            const url = URL.createObjectURL(svgBlob);
-
-            const img = new Image();
-            img.onload = function () {
-                const canvas = document.createElement("canvas");
-                canvas.width = 600;
-                canvas.height = 600;
-                const ctx = canvas.getContext("2d");
-                ctx.fillStyle = "#ffffff";
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 0, 0);
-                URL.revokeObjectURL(url);
-
-                const pngData = canvas.toDataURL("image/png");
-                resolve(pngData);
-            };
-            img.onerror = () => resolve("");
-            img.src = url;
         });
     };
 
@@ -545,167 +612,220 @@
             </div>
         </div>
     </div>
+    <Tabs>
+        <TabPane Tab="Istniejące konfiguracje" >
+            <h4>Lista zapisanych połączeń</h4>
 
-    <div class="row">
-        <div class="col-md-4">
-            <div class="model-list">
-                @if (ListaModeli != null && ListaModeli.Any())
-                {
-                    <div class="side-checkboxes">
-                        <div class="side-checkbox">
-                            <input type="checkbox" @bind="selDol" id="str_dol" />
-                            <label for="str_dol">Dół</label>
-                        </div>
-                        <div class="side-checkbox">
-                            <input type="checkbox" @bind="selGora" id="str_gora" />
-                            <label for="str_gora">Góra</label>
-                        </div>
-                        <div class="side-checkbox">
-                            <input type="checkbox" @bind="selLewa" id="str_lewa" />
-                            <label for="str_lewa">Lewa</label>
-                        </div>
-                        <div class="side-checkbox">
-                            <input type="checkbox" @bind="selPrawa" id="str_prawa" />
-                            <label for="str_prawa">Prawa</label>
-                        </div>
-                    </div>
-
-                    <table class="table model-table">
-                        <thead>
-                            <tr>
-                                <th>Nazwa</th>
-                                <th>Typ</th>
-                                <th class="thumbnail-cell">Miniaturka</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var model in ListaModeli)
-                            {
-                                <tr @onclick="() => WybierzModel(model, selDol, selGora, selLewa, selPrawa)">
-                                    <td>@model.NazwaKonfiguracji</td>
-                                    <td>@model.Typ</td>
-                                    <td>
-                                        @if (model.Rysunek?.Length > 0)
-                                        {
-                                            <img src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)" 
-                                                 width="60" height="60" />
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted">Brak</span>
-                                        }
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                }
-                else
-                {
-                    <div class="alert alert-info">Brak zapisanych modeli.</div>
-                }
-            </div>
-        </div>
-
-        <div class="col-md-8">
-            <div class="controls-container">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <Tooltip Title="Zapisz ustawienia">
-                            <Button Icon="@IconType.Fill.Save" OnClick="SaveAllPosition" Class="btn btn-primary me-2">
-                                Zapisz
-                            </Button>
-                        </Tooltip>
-                    </div>
-                    
-                    <div class="btn-group">
-                        <Tooltip Title="Obróć drugi model">
-                            <Button Icon="@IconType.Outline.Loading" OnClick="RotateObj" Class="btn-sm btn-move" />
-                        </Tooltip>
-                        <Tooltip Title="Przesuń w lewo (1px)">
-                            <Button Icon="@IconType.Outline.ArrowLeft" OnClick="MoveLeftObj" Class="btn-sm btn-move" />
-                        </Tooltip>
-                        <Tooltip Title="Przesuń w prawo (1px)">
-                            <Button Icon="@IconType.Outline.ArrowRight" OnClick="MoveRightObj" Class="btn-sm btn-move" />
-                        </Tooltip>
-                        <Tooltip Title="Przesuń w górę (1px)">
-                            <Button Icon="@IconType.Outline.ArrowUp" OnClick="MoveUpObj" Class="btn-sm btn-move" />
-                        </Tooltip>
-                        <Tooltip Title="Przesuń w dół (1px)">
-                            <Button Icon="@IconType.Outline.ArrowDown" OnClick="MoveDownObj" Class="btn-sm btn-move" />
-                        </Tooltip>
-                        <Tooltip Title="Dopasuj widok">
-                            <Button Icon="@IconType.Outline.Windows" OnClick="ZoomAllObj" Class="btn-sm btn-move" />
-                        </Tooltip>
-                        <Tooltip Title="Powiększ">
-                            <Button Icon="@IconType.Outline.ZoomIn" OnClick="ZoomInObj" Class="btn-sm btn-move" />
-                        </Tooltip>
-                        <Tooltip Title="Pomniejsz">
-                            <Button Icon="@IconType.Outline.ZoomOut" OnClick="ZoomOutObj" Class="btn-sm btn-move" />
-                        </Tooltip>
-                        <label class="ms-2">Precyzja przesuwania:</label>
-                        <AntDesign.InputNumber @bind-Value="precyzjaPrzesuwania" Min="0" Max="20" Style="width: 60px;" />
-
-                        <Tooltip Title="Pomiar odległości">
-                            <Button Icon="@IconType.Outline.Scan" OnClick="StartMeasurement" Class="btn-sm btn-move" />
-                        </Tooltip>
-                        <Tooltip Title="Wyczyść pomiary">
-                            <Button Icon="@IconType.Outline.Close" OnClick="ClearMeasurements" Class="btn-sm btn-move" />
-                        </Tooltip>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mb-2 d-flex justify-content-between">
-                <h6>Podgląd połączenia</h6>
-                <div>
-                    <Button Icon="@IconType.Outline.Fire" OnClick="RefreshSvg" Class="btn-sm me-2">
-                        Odśwież
-                    </Button>
-                    <Button Icon="@IconType.Outline.Clear" OnClick="DelSvg" Class="btn-sm btn-danger">
-                        Wyczyść
-                    </Button>
-                </div>
-            </div>
-
-            @if (pierwszyModel != null || drugiModel != null)
+            @if (listaPolaczen == null)
             {
-                <div class="status-message">
-                    @if (pierwszyModel != null && drugiModel == null)
+                <p><em>Wybierz system i poczekaj na załadowanie danych...</em></p>
+            }
+            else if (!listaPolaczen.Any())
+            {
+                <p><strong>Brak zapisanych połączeń.</strong></p>
+            }
+            else
+            {
+                <table class="table table-bordered table-striped">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Rysunek</th>
+                            <th>Uwagi</th>
+                            <th>Strona</th>
+                            <th>X [mm]</th>
+                            <th>Y [mm]</th>
+                            <th>Kąt [°]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var polaczenie in listaPolaczen)
+                        {
+                            <tr>
+                                <td>
+                                    @if (polaczenie.RysunekPrzekroju?.Length > 0)
+                                    {
+                                        <img src="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)"
+                                             style="max-width: 100px; max-height: 100px;" />
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Brak</span>
+                                    }
+                                </td>
+                                <td>@polaczenie.Uwagi</td>
+                                <td>@polaczenie.StronaPolaczenia</td>
+                                <td>@polaczenie.PrzesuniecieX:F2</td>
+                                <td>@polaczenie.PrzesuniecieY:F2</td>
+                                <td>@polaczenie.ZapisanyKat</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+         </TabPane>
+         <TabPane Tab="Konfigurator połączeń" >
+            <div class="row">
+            <div class="col-md-4">
+                <div class="model-list">
+                    @if (ListaModeli != null && ListaModeli.Any())
                     {
-                        <span>Pierwszy model wybrany: <strong>@pierwszyModel.Nazwa</strong></span>
+                        <div class="side-checkboxes">
+                            <div class="side-checkbox">
+                                <input type="checkbox" @bind="selDol" id="str_dol" />
+                                <label for="str_dol">Dół</label>
+                            </div>
+                            <div class="side-checkbox">
+                                <input type="checkbox" @bind="selGora" id="str_gora" />
+                                <label for="str_gora">Góra</label>
+                            </div>
+                            <div class="side-checkbox">
+                                <input type="checkbox" @bind="selLewa" id="str_lewa" />
+                                <label for="str_lewa">Lewa</label>
+                            </div>
+                            <div class="side-checkbox">
+                                <input type="checkbox" @bind="selPrawa" id="str_prawa" />
+                                <label for="str_prawa">Prawa</label>
+                            </div>
+                        </div>
+
+                        <table class="table model-table">
+                            <thead>
+                                <tr>
+                                    <th>Nazwa</th>
+                                    <th>Typ</th>
+                                    <th class="thumbnail-cell">Miniaturka</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var model in ListaModeli)
+                                {
+                                    <tr @onclick="() => WybierzModel(model, selDol, selGora, selLewa, selPrawa)">
+                                        <td>@model.NazwaKonfiguracji</td>
+                                        <td>@model.Typ</td>
+                                        <td>
+                                            @if (model.Rysunek?.Length > 0)
+                                            {
+                                                <img src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)" 
+                                                     width="60" height="60" />
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Brak</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
                     }
-                    else if (pierwszyModel != null && drugiModel != null)
+                    else
                     {
-                        <span>Połączono: <strong>@pierwszyModel.Nazwa</strong> z <strong>@drugiModel.Nazwa</strong></span>
+                        <div class="alert alert-info">Brak zapisanych modeli.</div>
                     }
                 </div>
-            }
+            </div>
 
-            <div class="scaled-svg-container">
-                @if (!string.IsNullOrEmpty(combinedSvg))
-                {
-                    <div class="scaled-svg" @key="SvgKey">
-                        @((MarkupString)combinedSvg)
-                    </div>
-                }
-                else
-                {
-                    <div class="d-flex flex-column justify-content-center align-items-center h-100">
-                        <div class="alert alert-info mb-3">
-                            Wybierz modele ramy, skrzydła lub poprzeczki
+            <div class="col-md-8">
+                <div class="controls-container">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <Tooltip Title="Zapisz ustawienia">
+                                <Button Icon="@IconType.Fill.Save" OnClick="SaveAllPosition" Class="btn btn-primary me-2">
+                                    Zapisz
+                                </Button>
+                            </Tooltip>
                         </div>
-                        @if (!string.IsNullOrEmpty(BladKonfiguracji))
+                    
+                        <div class="btn-group">
+                            <Tooltip Title="Obróć drugi model">
+                                <Button Icon="@IconType.Outline.Loading" OnClick="RotateObj" Class="btn-sm btn-move" />
+                            </Tooltip>
+                            <Tooltip Title="Przesuń w lewo (1px)">
+                                <Button Icon="@IconType.Outline.ArrowLeft" OnClick="MoveLeftObj" Class="btn-sm btn-move" />
+                            </Tooltip>
+                            <Tooltip Title="Przesuń w prawo (1px)">
+                                <Button Icon="@IconType.Outline.ArrowRight" OnClick="MoveRightObj" Class="btn-sm btn-move" />
+                            </Tooltip>
+                            <Tooltip Title="Przesuń w górę (1px)">
+                                <Button Icon="@IconType.Outline.ArrowUp" OnClick="MoveUpObj" Class="btn-sm btn-move" />
+                            </Tooltip>
+                            <Tooltip Title="Przesuń w dół (1px)">
+                                <Button Icon="@IconType.Outline.ArrowDown" OnClick="MoveDownObj" Class="btn-sm btn-move" />
+                            </Tooltip>
+                            <Tooltip Title="Dopasuj widok">
+                                <Button Icon="@IconType.Outline.Windows" OnClick="ZoomAllObj" Class="btn-sm btn-move" />
+                            </Tooltip>
+                            <Tooltip Title="Powiększ">
+                                <Button Icon="@IconType.Outline.ZoomIn" OnClick="ZoomInObj" Class="btn-sm btn-move" />
+                            </Tooltip>
+                            <Tooltip Title="Pomniejsz">
+                                <Button Icon="@IconType.Outline.ZoomOut" OnClick="ZoomOutObj" Class="btn-sm btn-move" />
+                            </Tooltip>
+                            <label class="ms-2">Precyzja przesuwania:</label>
+                            <AntDesign.InputNumber @bind-Value="precyzjaPrzesuwania" Min="0" Max="20" Style="width: 60px;" />
+
+                            <Tooltip Title="Pomiar odległości">
+                                <Button Icon="@IconType.Outline.Scan" OnClick="StartMeasurement" Class="btn-sm btn-move" />
+                            </Tooltip>
+                            <Tooltip Title="Wyczyść pomiary">
+                                <Button Icon="@IconType.Outline.Close" OnClick="ClearMeasurements" Class="btn-sm btn-move" />
+                            </Tooltip>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-2 d-flex justify-content-between">
+                    <h6>Podgląd połączenia</h6>
+                    <div>
+                        <Button Icon="@IconType.Outline.Fire" OnClick="RefreshSvg" Class="btn-sm me-2">
+                            Odśwież
+                        </Button>
+                        <Button Icon="@IconType.Outline.Clear" OnClick="DelSvg" Class="btn-sm btn-danger">
+                            Wyczyść
+                        </Button>
+                    </div>
+                </div>
+
+                @if (pierwszyModel != null || drugiModel != null)
+                {
+                    <div class="status-message">
+                        @if (pierwszyModel != null && drugiModel == null)
                         {
-                            <div class="alert alert-warning">
-                                @BladKonfiguracji
-                            </div>
+                            <span>Pierwszy model wybrany: <strong>@pierwszyModel.Nazwa</strong></span>
+                        }
+                        else if (pierwszyModel != null && drugiModel != null)
+                        {
+                            <span>Połączono: <strong>@pierwszyModel.Nazwa</strong> z <strong>@drugiModel.Nazwa</strong></span>
                         }
                     </div>
                 }
+
+                <div class="scaled-svg-container">
+                    @if (!string.IsNullOrEmpty(combinedSvg))
+                    {
+                        <div class="scaled-svg" @key="SvgKey">
+                            @((MarkupString)combinedSvg)
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-column justify-content-center align-items-center h-100">
+                            <div class="alert alert-info mb-3">
+                                Wybierz modele ramy, skrzydła lub poprzeczki
+                            </div>
+                            @if (!string.IsNullOrEmpty(BladKonfiguracji))
+                            {
+                                <div class="alert alert-warning">
+                                    @BladKonfiguracji
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
             </div>
         </div>
-    </div>
+        </TabPane>
+    </Tabs>
 </div>
 
 @code {
@@ -740,11 +860,15 @@
     private double przesuniecieX;
     private double przesuniecieY;
     private int katUstawienia = 0;
+
+    private List<KonfPolaczenie>? listaPolaczen;
+
     // Inicjalizacja
     protected override async Task OnInitializedAsync()
     {
         await Laduj_Uprawnienia();
         Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne") ?? new();
+
     }
 
     // Obsługa wyboru systemu
@@ -755,6 +879,33 @@
 
         ListaModeli = await Http.GetFromJsonAsync<List<KonfModele>>($"api/konfmodele/FIND_ONLY_TRUE/{SelectedSystemId}") ?? new();
         KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIND_ROWID_SYS/{SelectedSystemId}") ?? new();
+
+        try
+        {
+            var response = await Http.GetAsync($"api/KonfPolaczenie/row-id-system/{SelectedSystemId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                listaPolaczen = await response.Content.ReadFromJsonAsync<List<KonfPolaczenie>>() ?? new();
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                // 👇 Obsłuż błąd NotFound — nie ma rekordów, to nie błąd techniczny
+                listaPolaczen = new();
+                Console.WriteLine("Brak połączeń dla danego systemu.");
+            }
+            else
+            {
+                // 👇 Inne błędy — np. 500
+                Console.Error.WriteLine($"Błąd HTTP {response.StatusCode}");
+                listaPolaczen = new();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Błąd ładowania połączeń: {ex.Message}");
+            listaPolaczen = new();
+        }
     }
 
     // Wybór modelu
@@ -786,16 +937,18 @@
             }
 
             var pasujacy = result.KonfSystem.FirstOrDefault(x =>
-                (x.WystepujeDol == stronaDol) ||
-                (x.WystepujeGora == stronaGora) ||
-                (x.WystepujeLewa == stronaLewa) ||
-                (x.WystepujePrawa == stronaPrawa));
+                (stronaDol && x.WystepujeDol) ||
+                (stronaGora && x.WystepujeGora) ||
+                (stronaLewa && x.WystepujeLewa) ||
+                (stronaPrawa && x.WystepujePrawa));
 
             if (pasujacy == null)
             {
                 BladKonfiguracji = "Nie znaleziono pasującego elementu. Zmień występowanie elementu.";
                 return;
             }
+
+            Console.WriteLine($"Wybór modelu: {model.NazwaKonfiguracji}, pasujący: {pasujacy.Nazwa} WystepujeDol: {pasujacy.WystepujeDol} = {stronaDol}");
 
             if (pierwszyModel == null)
             {
@@ -819,11 +972,6 @@
 
             }
 
-            //  AktualizujSvg();
-
-            // Automatyczne dopasowanie po załadowaniu modelu
-            //await Task.Delay(100); // daj czas Blazorowi na wyrenderowanie SVG
-            //await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
 
         }
         catch (Exception ex)
@@ -961,60 +1109,65 @@
     {
         var result = await JSRuntime.InvokeAsync<GuideDisplacementResult>("svgHelper.measureGuideDisplacement");
 
-        if (result?.success == true && result.elementsFound)
+        if (result?.success != true || !result.elementsFound)
         {
-            przesuniecieX = result.przesuniecieX;
-            przesuniecieY = result.przesuniecieY;
+            await _message.Warning(result?.error ?? "❗ Nie można znaleźć prowadnic w rysunku SVG");
+            return;
+        }
 
-            // Dane do zapisu
+        przesuniecieX = result.przesuniecieX;
+        przesuniecieY = result.przesuniecieY;
+
+        if (pierwszyModel == null || drugiModel == null)
+        {
+            await _message.Warning("❗ Nie wybrano obu modeli do połączenia");
+            return;
+        }
+
+        var strony = WyliczStronyPolaczenia(); // ⬅️ lista stringów np. ["lewa", "prawa"]
+        var png = await GenerujPngBezProwadnic();
+
+        foreach (var strona in strony)
+        {
             var polaczenie = new KonfPolaczenie
             {
-                ElementZewnetrznyId = pierwszyModel?.RowId ?? Guid.Empty,
-                ElementWewnetrznyId = drugiModel?.RowId ?? Guid.Empty,
-                StronaPolaczenia = WyliczStronePolaczenia(),
+                ElementZewnetrznyId = pierwszyModel.RowId,
+                ElementWewnetrznyId = drugiModel.RowId,
+                StronaPolaczenia = strona,
                 PrzesuniecieX = przesuniecieX,
                 PrzesuniecieY = przesuniecieY,
                 ZapisanyKat = katUstawienia,
-                RysunekPrzekroju = await GenerujPngBezProwadnic()
+                RysunekPrzekroju = png,
+                RowIdSystem = Guid.Parse(SelectedSystemId), // 👈 jawna konwersja
+                Uwagi = $"Połączono: {pierwszyModel.Nazwa ?? "Model 1 ?"} z {drugiModel.Nazwa ?? "Model 2 ?"}"
             };
-  
-            if (polaczenie.ElementZewnetrznyId == Guid.Empty || polaczenie.ElementWewnetrznyId == Guid.Empty)
-            {
-                await _message.Warning("❗ Nie wybrano obu modeli do połączenia");
-                return;
-            }
 
-            // Szukaj rekordu w bazie
+            // 🔎 Sprawdź czy istnieje połączenie DLA TEJ STRONY
             KonfPolaczenie? existing = null;
             try
             {
-                var responseS = await Http.GetAsync($"api/KonfPolaczenie/find-by-elements/{polaczenie.ElementZewnetrznyId}/{polaczenie.ElementWewnetrznyId}");
+                var responseS = await Http.GetAsync(
+                    $"api/KonfPolaczenie/find-by-elements/{polaczenie.ElementZewnetrznyId}/{polaczenie.ElementWewnetrznyId}/{strona}");
 
                 if (responseS.IsSuccessStatusCode)
                 {
                     existing = await responseS.Content.ReadFromJsonAsync<KonfPolaczenie>();
                 }
-                else if (responseS.StatusCode != System.Net.HttpStatusCode.NotFound)
+                else if (responseS.StatusCode != HttpStatusCode.NotFound)
                 {
-                    // Inny błąd niż 404
-                    await _message.Error("❌ Wystąpił błąd przy sprawdzaniu istnienia połączenia.");
-                    return;
+                    await _message.Error($"❌ Błąd sprawdzania strony: {strona}");
+                    continue;
                 }
             }
             catch (Exception ex)
             {
-                await _message.Error("❌ Błąd komunikacji z API: " + ex.Message);
-                return;
+                await _message.Error($"❌ Błąd komunikacji z API dla strony {strona}: {ex.Message}");
+                continue;
             }
 
-
-            Console.WriteLine($"SaveAllPosition: znaleziono istniejące połączenie: {existing?.Id}");
-
             HttpResponseMessage response;
-
             if (existing is not null)
             {
-                // Aktualizacja
                 polaczenie.RowId = existing.RowId;
                 polaczenie.Id = existing.Id;
 
@@ -1022,47 +1175,57 @@
             }
             else
             {
-                // Nowy wpis
                 response = await Http.PostAsJsonAsync("api/KonfPolaczenie", polaczenie);
             }
 
             if (response.IsSuccessStatusCode)
             {
-                await _message.Success($"✅ Zapisano pozycję: X={przesuniecieX:F2} mm, Y={przesuniecieY:F2} mm (skala: {result.scale:F2}), Kąt: {katUstawienia}°");
+                await _message.Success($"✅ Zapisano stronę {strona}: X={przesuniecieX:F2} mm, Y={przesuniecieY:F2} mm (skala: {result.scale:F2}), Kąt: {katUstawienia}°");
             }
             else
             {
-                await _message.Error("❌ Błąd zapisu konfiguracji połączenia");
+                await _message.Error($"❌ Błąd zapisu strony {strona}");
             }
         }
-        else
-        {
-            await _message.Warning(result?.error ?? "❗ Nie można znaleźć prowadnic w rysunku SVG");
-        }
     }
+
 
     private async Task<byte[]> GenerujPngBezProwadnic()
     {
-        // Poproś JS o wygenerowanie PNG bez prowadnic
-        string base64 = await JSRuntime.InvokeAsync<string>("svgHelper.exportCleanedSvgAsPng");
+        try
+        {
+            var base64 = await JSRuntime.InvokeAsync<string>("svgHelper.exportCleanedSvgAsPng");
 
-        if (string.IsNullOrWhiteSpace(base64))
-            Console.WriteLine("GenerujPngBezProwadnic: otrzymano pusty base64");
+            if (string.IsNullOrEmpty(base64))
+            {
+                Console.WriteLine("Empty PNG data received");
+                return Array.Empty<byte>();
+            }
+
+            var pureBase64 = base64.StartsWith("data:image/png;base64,")
+                ? base64.Substring("data:image/png;base64,".Length)
+                : base64;
+
+            return Convert.FromBase64String(pureBase64);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error generating PNG: {ex.Message}");
             return Array.Empty<byte>();
-        Console.WriteLine("GenerujPngBezProwadnic: otrzymano base64 z obrazkiem");
-        return Convert.FromBase64String(base64.Replace("data:image/png;base64,", ""));
+        }
     }
 
-    private string WyliczStronePolaczenia()
+    private List<string> WyliczStronyPolaczenia()
     {
         var strony = new List<string>();
         if (selLewa) strony.Add("lewa");
         if (selPrawa) strony.Add("prawa");
         if (selGora) strony.Add("góra");
         if (selDol) strony.Add("dół");
-        Console.WriteLine($"WyliczStronePolaczenia: {string.Join(", ", strony)}");
-        return string.Join(", ", strony);
+        Console.WriteLine($"WyliczStronyPolaczenia: {string.Join(", ", strony)}");
+        return strony;
     }
+
 
 
     // Uprawnienia
