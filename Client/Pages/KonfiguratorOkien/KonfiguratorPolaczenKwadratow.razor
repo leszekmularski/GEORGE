@@ -514,87 +514,98 @@
         walk(svgElement);
     }
 
-      window.svgHelper.exportCleanedSvgAsPng = function() {
+    window.svgHelper.exportCleanedSvgAsPng = function() {
         return new Promise((resolve) => {
             try {
-                // 1. Pobierz oryginalne SVG
-                const originalSvg = document.querySelector(".scaled-svg svg");
-                if (!originalSvg) {
-                    console.error("SVG element not found");
+                console.log("Starting PNG export...");
+
+                // 1. Pobierz elementy SVG
+                const svgElement = document.querySelector(".scaled-svg");
+                const svgContent = svgElement?.querySelector("#zoom-group");
+
+                if (!svgElement || !svgContent) {
+                    console.error("SVG elements not found");
                     resolve("");
                     return;
                 }
 
-                // 2. Stwórz nowy, czysty SVG
+                // 2. Utwórz głęboką kopię SVG
+                const clone = svgElement.cloneNode(true);
+                const cloneContent = clone.querySelector("#zoom-group");
+
+                // 3. Usuń niepotrzebne elementy
+                const elementsToRemove = [
+                    '[data-name^="guide-line-"]',
+                    '[id^="guide-line-"]',
+                    '.measurement-line',
+                    '.measurement-text'
+                ].join(',');
+
+                clone.querySelectorAll(elementsToRemove).forEach(el => el.remove());
+                console.log("Removed guide elements");
+
+                // 4. Pobierz aktualną transformację
+                const currentTransform = svgContent.getAttribute("transform") || "";
+                console.log("Current transform:", currentTransform);
+
+                // 5. Przygotuj nowy SVG
                 const newSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
                 newSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-                newSvg.setAttribute("width", "300");
-                newSvg.setAttribute("height", "300");
-                newSvg.setAttribute("viewBox", "0 0 300 300");
+                newSvg.setAttribute("width", "600");
+                newSvg.setAttribute("height", "600");
+                newSvg.setAttribute("viewBox", "0 0 600 600");
 
-                // 3. Skopiuj zawartość z oryginalnego SVG
-                const content = originalSvg.innerHTML;
+                // 6. Przenieś zawartość ZACHOWUJĄC ORYGINALNĄ TRANSFORMACJĘ
+                const contentGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                contentGroup.setAttribute("transform", currentTransform);
 
-                // 4. Napraw bardzo małe wartości liczbowe
-                const fixedContent = content.replace(/([xy][12]?|width|height|r[cx]?|ry?|d)="([^"]*)"/g,
-                    (match, attr, value) => {
-                        const num = parseFloat(value);
-                        return isNaN(num) ? match : `${attr}="${num.toFixed(6)}"`;
-                    }
-                );
+                // Przenieś wszystkie dzieci zachowując ich właściwości
+                while (cloneContent.firstChild) {
+                    contentGroup.appendChild(cloneContent.firstChild);
+                }
 
-                // 5. Usuń wszystkie transformacje
-                const noTransforms = fixedContent.replace(/transform="[^"]*"/g, '');
+                newSvg.appendChild(contentGroup);
+                console.log("SVG content prepared:", newSvg);
 
-                // 6. Usuń prowadnice i elementy pomiarowe
-                const cleanedContent = noTransforms.replace(
-                    /<[^>]+\b(data-name="guide-line-[^"]+"|class="measurement-(line|text)")[^>]*>/g,
-                    ''
-                );
+                // 7. Serializacja
+                const svgString = new XMLSerializer().serializeToString(newSvg);
+                console.log("SVG string length:", svgString.length);
 
-                // 7. Wstaw oczyszczoną zawartość
-                newSvg.innerHTML = cleanedContent;
-
-                // 8. Serializacja do stringa
-                const svgString = new XMLSerializer().serializeToString(newSvg)
-                    .replace(/[\n\r\t]/g, '')
-                    .replace(/>\s+</g, '><');
-
-                // 9. Utwórz obrazek
+                // 8. Konwersja do obrazka
                 const img = new Image();
-                    img.onload = function () {
-                    const canvas = document.createElement("canvas");
-                    canvas.width = 300;
-                    canvas.height = 300;
-                    const ctx = canvas.getContext("2d");
-                    ctx.fillStyle = "white";
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                img.onload = function() {
+                    try {
+                        console.log("Image loaded, creating PNG...");
+                        const canvas = document.createElement("canvas");
+                        canvas.width = 600;
+                        canvas.height = 600;
+                        const ctx = canvas.getContext("2d");
 
-                    // Oblicz skalowanie i pozycjonowanie do wyśrodkowania
-                    const scale = Math.min(
-                        canvas.width / img.width,
-                        canvas.height / img.height
-                    );
+                        // Białe tło
+                        ctx.fillStyle = "#ffffff";
+                        ctx.fillRect(0, 0, 1200, 1200);
 
-                    const x = (canvas.width - img.width * scale) / 2;
-                    const y = (canvas.height - img.height * scale) / 2;
+                        // Renderuj SVG (1:1 bez dodatkowego skalowania)
+                        ctx.drawImage(img, 0, 0);
 
-                    ctx.setTransform(scale, 0, 0, scale, x, y);
-                    ctx.drawImage(img, 0, 0);
-
-                    const png = canvas.toDataURL("image/png");
-                    resolve(png);
+                        const pngData = canvas.toDataURL("image/png");
+                        console.log("PNG created successfully");
+                        resolve(pngData);
+                    } catch (e) {
+                        console.error("Canvas error:", e);
+                        resolve("");
+                    }
                 };
 
                 img.onerror = function(e) {
-                    console.error("Image load failed:", e);
-                    console.debug("SVG content:", svgString.substring(0, 300) + "...");
+                    console.error("Image load error:", e);
+                    console.log("Problematic SVG:", svgString.substring(0, 500));
                     resolve("");
                 };
 
                 img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgString);
             } catch (e) {
-                console.error("Unexpected error:", e);
+                console.error("Export error:", e);
                 resolve("");
             }
         });
@@ -659,9 +670,11 @@
                                 <td>
                                     @if (polaczenie.RysunekPrzekroju?.Length > 0)
                                     {
-                        @*                 <a target="_blank" href="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)">🔍 Zobacz</a> *@
-                                        <img src="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)"
-                                             style="width: 150px; height: auto; object-fit: contain; border: 1px solid #ccc;" />
+
+                                        <a target="_blank" href="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)">
+                                            <img src="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)"
+                                                 style="width: 150px; height: auto; object-fit: contain; border: 1px solid #ccc;" />
+                                        </a>
                                     }
                                     else
                                     {
@@ -1247,24 +1260,38 @@
         }
     }
 
-
     private async Task<byte[]> GenerujPngBezProwadnic()
     {
         try
         {
+            // 1. Wymuś aktualizację UI
+            StateHasChanged();
+            await Task.Delay(100); // Czekaj na renderowanie
+
+            // 2. Wygeneruj PNG
             var base64 = await JSRuntime.InvokeAsync<string>("svgHelper.exportCleanedSvgAsPng");
 
-            if (string.IsNullOrEmpty(base64))
+            if (string.IsNullOrEmpty(base64) || base64.Length < 100)
             {
-                Console.WriteLine("Empty PNG data received");
+                Console.WriteLine("Invalid PNG data received");
                 return Array.Empty<byte>();
             }
 
+            // 3. Konwersja do byte[]
             var pureBase64 = base64.StartsWith("data:image/png;base64,")
-                ? base64.Substring("data:image/png;base64,".Length)
+                ? base64["data:image/png;base64,".Length..]
                 : base64;
 
-            return Convert.FromBase64String(pureBase64);
+            var imageData = Convert.FromBase64String(pureBase64);
+
+            // 4. Walidacja rozmiaru
+            if (imageData.Length < 1000) // Minimalny oczekiwany rozmiar
+            {
+                Console.WriteLine("PNG file too small");
+                return Array.Empty<byte>();
+            }
+
+            return imageData;
         }
         catch (Exception ex)
         {
@@ -1272,7 +1299,7 @@
             return Array.Empty<byte>();
         }
     }
-
+   
     private List<string> WyliczStronyPolaczenia()
     {
         var strony = new List<string>();
