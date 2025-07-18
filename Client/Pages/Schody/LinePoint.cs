@@ -7,6 +7,8 @@
         public double X2 { get; set; }
         public double Y2 { get; set; }
 
+        public bool pominWPDF { get; set; } = false;
+
         private string _typeLine = string.Empty;
         public string typeLine
         {
@@ -63,7 +65,7 @@
 
         public LinePoint(double x1, double y1, double x2, double y2, string? typeLine = null, string? fileNCName = null,
                          string? nameMacro = null, string? idOBJ = null, string[]? zRobocze = null, double idRuchNarzWObj = 0, 
-                         bool addGcode = false, int iloscSztuk = 0, string nazwaProgramu = "", string nazwaElementu = "")
+                         bool addGcode = false, int iloscSztuk = 0, string nazwaProgramu = "", string nazwaElementu = "", bool pominWPDF = false)
         {
             X1 = x1;
             Y1 = y1;
@@ -79,6 +81,7 @@
             IloscSztuk = iloscSztuk;
             this.NazwaProgramu = nazwaProgramu ?? string.Empty;
             this.NazwaElementu = nazwaElementu ?? string.Empty;
+            this.pominWPDF = pominWPDF;
         }
     }
 }

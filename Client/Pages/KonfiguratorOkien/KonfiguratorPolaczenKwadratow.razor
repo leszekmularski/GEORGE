@@ -528,9 +528,9 @@
                 // 2. Stwórz nowy, czysty SVG
                 const newSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
                 newSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-                newSvg.setAttribute("width", "600");
-                newSvg.setAttribute("height", "600");
-                newSvg.setAttribute("viewBox", "0 0 600 600");
+                newSvg.setAttribute("width", "300");
+                newSvg.setAttribute("height", "300");
+                newSvg.setAttribute("viewBox", "0 0 300 300");
 
                 // 3. Skopiuj zawartość z oryginalnego SVG
                 const content = originalSvg.innerHTML;
@@ -562,15 +562,28 @@
 
                 // 9. Utwórz obrazek
                 const img = new Image();
-                img.onload = function() {
+                    img.onload = function () {
                     const canvas = document.createElement("canvas");
-                    canvas.width = 600;
-                    canvas.height = 600;
+                    canvas.width = 300;
+                    canvas.height = 300;
                     const ctx = canvas.getContext("2d");
                     ctx.fillStyle = "white";
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    // Oblicz skalowanie i pozycjonowanie do wyśrodkowania
+                    const scale = Math.min(
+                        canvas.width / img.width,
+                        canvas.height / img.height
+                    );
+
+                    const x = (canvas.width - img.width * scale) / 2;
+                    const y = (canvas.height - img.height * scale) / 2;
+
+                    ctx.setTransform(scale, 0, 0, scale, x, y);
                     ctx.drawImage(img, 0, 0);
-                    resolve(canvas.toDataURL("image/png"));
+
+                    const png = canvas.toDataURL("image/png");
+                    resolve(png);
                 };
 
                 img.onerror = function(e) {
@@ -614,7 +627,9 @@
     </div>
     <Tabs>
         <TabPane Tab="Istniejące konfiguracje" >
-            <h4>Lista zapisanych połączeń</h4>
+            <h4>Lista zapisanych połączeń
+                <Button Icon="@IconType.Outline.Read" OnClick="OdswiezDane"/>
+            </h4>
 
             @if (listaPolaczen == null)
             {
@@ -644,8 +659,9 @@
                                 <td>
                                     @if (polaczenie.RysunekPrzekroju?.Length > 0)
                                     {
+                        @*                 <a target="_blank" href="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)">🔍 Zobacz</a> *@
                                         <img src="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)"
-                                             style="max-width: 100px; max-height: 100px;" />
+                                             style="width: 150px; height: auto; object-fit: contain; border: 1px solid #ccc;" />
                                     }
                                     else
                                     {
@@ -875,10 +891,49 @@
     private async Task OnSystemSelected(ChangeEventArgs e)
     {
         SelectedSystemId = e.Value?.ToString();
+
         if (string.IsNullOrEmpty(SelectedSystemId)) return;
+
+        Console.WriteLine($"Row ID wybranego systemu: {SelectedSystemId}");
 
         ListaModeli = await Http.GetFromJsonAsync<List<KonfModele>>($"api/konfmodele/FIND_ONLY_TRUE/{SelectedSystemId}") ?? new();
         KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIND_ROWID_SYS/{SelectedSystemId}") ?? new();
+
+        try
+        {
+            var response = await Http.GetAsync($"api/KonfPolaczenie/row-id-system/{SelectedSystemId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                listaPolaczen = await response.Content.ReadFromJsonAsync<List<KonfPolaczenie>>() ?? new();
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                // 👇 Obsłuż błąd NotFound — nie ma rekordów, to nie błąd techniczny
+                listaPolaczen = new();
+                Console.WriteLine("Brak połączeń dla danego systemu.");
+            }
+            else
+            {
+                // 👇 Inne błędy — np. 500
+                Console.Error.WriteLine($"Błąd HTTP {response.StatusCode}");
+                listaPolaczen = new();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Błąd ładowania połączeń: {ex.Message}");
+            listaPolaczen = new();
+        }
+    }
+
+    private async Task OdswiezDane()
+    {
+        if(string.IsNullOrEmpty(SelectedSystemId))
+        {
+            Console.WriteLine("Nie wybrano systemu.");
+            return;
+        }
 
         try
         {
@@ -971,7 +1026,6 @@
                 await JSRuntime.InvokeVoidAsync("svgHelper.initGuideLines");
 
             }
-
 
         }
         catch (Exception ex)
@@ -1170,6 +1224,10 @@
             {
                 polaczenie.RowId = existing.RowId;
                 polaczenie.Id = existing.Id;
+                polaczenie.RowIdSystem = Guid.Parse(SelectedSystemId);
+                polaczenie.PrzesuniecieX = przesuniecieX;
+                polaczenie.PrzesuniecieY = przesuniecieY;
+                polaczenie.RysunekPrzekroju = png;
 
                 response = await Http.PutAsJsonAsync("api/KonfPolaczenie", polaczenie);
             }
@@ -1180,7 +1238,7 @@
 
             if (response.IsSuccessStatusCode)
             {
-                await _message.Success($"✅ Zapisano stronę {strona}: X={przesuniecieX:F2} mm, Y={przesuniecieY:F2} mm (skala: {result.scale:F2}), Kąt: {katUstawienia}°");
+                await _message.Success($"✅ Zapisano stronę {strona}: X={przesuniecieX:F2} mm, Y={przesuniecieY:F2} mm (skala: {result.scale:F2}), Kąt: {katUstawienia}°" , 0.7);
             }
             else
             {

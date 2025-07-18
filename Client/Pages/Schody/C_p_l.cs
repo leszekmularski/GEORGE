@@ -22,6 +22,9 @@ using netDxf.Tables;
 using netDxf.Units;
 using Org.BouncyCastle.Asn1.Pkcs;
 using iText.Kernel.Geom;
+using DocumentFormat.OpenXml.Drawing;
+using Paragraph = iText.Layout.Element.Paragraph;
+using Table = iText.Layout.Element.Table;
 
 namespace GEORGE.Client.Pages.Schody
 {
@@ -123,7 +126,7 @@ namespace GEORGE.Client.Pages.Schody
 
             Console.WriteLine($"Wartść X={X} DlugoscLiniiBiegu:{DlugoscLiniiBiegu} ZachodzenieStopniZaSiebie:{ZachodzenieStopniZaSiebie} stepWidth:{stepWidth}");
 
-            double gruboscStopnia = GruboscStopnia * Skala; // Zrobić zmienną jak będzie poptrzeba!!!!!!
+            double gruboscStopnia = (GruboscStopnia + 3) * Skala; // Zrobić zmienną jak będzie poptrzeba!!!!!! + 3 mm oby otwór był na szerokość 30mm zmiana z dnia 17-07-2025
 
             if (Lewe == 'l')
             {
@@ -170,7 +173,7 @@ namespace GEORGE.Client.Pages.Schody
                         await context.RectAsync(currentX - (ZachodzenieStopniZaSiebie + WydluzOstatniStopien) * Skala, currentY, stepWidth + (ZachodzenieStopniZaSiebie + WydluzOstatniStopien) * Skala, stepHeight);
                         // AddRectanglePoints(currentX - (ZachodzenieStopniZaSiebie + WydluzOstatniStopien) * Skala, currentY, stepWidth + (ZachodzenieStopniZaSiebie + WydluzOstatniStopien) * Skala, stepHeight, "dashed","S_G", "STOPIEN_W1", true);
                         AddPointsStopienObrys(currentX - (ZachodzenieStopniZaSiebie + WydluzOstatniStopien) * Skala, currentY, stepWidth + (ZachodzenieStopniZaSiebie + WydluzOstatniStopien) * Skala,
-                            stepHeight, "dashed", "S_G", "STOPIEN_W2", "FO" + i.ToString(), zRob.Split(','), i, true, "Z27.1,", 1, NazwaProgramuCNC, "Stopien gorny");
+                            stepHeight, "dashed", "S_G", "STOPIEN_W2", "FO" + i.ToString(), zRob.Split(','), i, true, "Z30.1,", 1, NazwaProgramuCNC, "Stopien gorny");
                         await context.StrokeAsync();
                         await context.SetLineDashAsync(new float[] { });
 
@@ -193,7 +196,7 @@ namespace GEORGE.Client.Pages.Schody
                         if (i == LiczbaPodniesienStopni - 3 || LiczbaPodniesienStopni == 2)//Ten warunek służy wyłączmie tylko do wygenerowaniu 1 programu.
                         {
                             AddPointsStopienObrys(currentX - ZachodzenieStopniZaSiebie * Skala, currentY, stepWidth + ZachodzenieStopniZaSiebie * Skala, stepHeight, "dashed", "S_D", "STOPIEN_W2",
-                                "FO" + i.ToString(), zRob.Split(','), i, true, "Z27.1,", (int)(LiczbaPodniesienStopni - 1), NazwaProgramuCNC, "Pozostale stopnie");
+                                "FO" + i.ToString(), zRob.Split(','), i, true, "Z30.1,", (int)(LiczbaPodniesienStopni - 1), NazwaProgramuCNC, "Pozostale stopnie");
                         }
                         else
                         {
@@ -906,15 +909,15 @@ namespace GEORGE.Client.Pages.Schody
             return Task.FromResult(Xpoints ?? new List<Point>());
         }
         private void AddRectanglePoints(double x, double y, double width, double height, string typeLine = "", string fileNCName = "", string nameMacro = "", string idOBJ = "", string[]? zRobocze = null, double idRuchNarzWObj = 0,
-            bool addGcode = false, int iloscSztuk = 0, string nazwaProgramy = "", string nazwaElementu = "")
+            bool addGcode = false, int iloscSztuk = 0, string nazwaProgramy = "", string nazwaElementu = "", bool pominWPDF = false)
         {
             if (XLinePoint == null) return;
 
-            XLinePoint.Add(new LinePoint(x, y, x + width, y, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu));
-            XLinePoint.Add(new LinePoint(x + width, y, x + width, y + height, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu));
-            XLinePoint.Add(new LinePoint(x + width, y + height, x, y + height, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu));
-            XLinePoint.Add(new LinePoint(x, y + height, x, y, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy));
-            XLinePoint.Add(new LinePoint(x, y, x + width - 20, y, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu));
+            XLinePoint.Add(new LinePoint(x, y, x + width, y, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu, pominWPDF));
+            XLinePoint.Add(new LinePoint(x + width, y, x + width, y + height, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu, pominWPDF));
+            XLinePoint.Add(new LinePoint(x + width, y + height, x, y + height, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu, pominWPDF));
+            XLinePoint.Add(new LinePoint(x, y + height, x, y, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu, pominWPDF));
+            XLinePoint.Add(new LinePoint(x, y, x + width - 20, y, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu, pominWPDF));
         }
 
         private void AddPointsStopienObrys(double x, double y, double width, double height, string typeLine = "", string fileNCName = "", string nameMacro = "", string idOBJ = "",
@@ -923,10 +926,10 @@ namespace GEORGE.Client.Pages.Schody
             if (XLinePoint == null) return;
 
             //Dodanie OBRYSU FREZOWANIA ZAKONCZEN STRONA 1
-            AddRectanglePoints(x + 17 - 5, y - 20, width - 2 * (17 - 5), 20, typeLine, fileNCName, "A" + nameMacro, "F1", ZPodFrez.Split(','), idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu);
+            AddRectanglePoints(x - 23, y - 20, width - 2 * (-23), 20, typeLine, fileNCName, "A" + nameMacro, "F1", ZPodFrez.Split(','), idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu, true);
 
             //Dodanie OBRYSU FREZOWANIA ZAKONCZEN STRONA 2
-            AddRectanglePoints(x + 17 - 5, y + height, width - 2 * (17 - 5), 20, typeLine, fileNCName, "A" + nameMacro, "F2", ZPodFrez.Split(','), idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu);
+            AddRectanglePoints(x -23, y + height, width - 2 * (-23), 20, typeLine, fileNCName, "A" + nameMacro, "F2", ZPodFrez.Split(','), idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu, true);
 
             XLinePoint.Add(new LinePoint(x, y, x + 22, y, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu)); //#1
             XLinePoint.Add(new LinePoint(x + 22, y, x + 22, y - 20, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu));//#2
@@ -941,6 +944,7 @@ namespace GEORGE.Client.Pages.Schody
             XLinePoint.Add(new LinePoint(x + 22, y + height + 20, x + 22, y + height, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu));//#11
             XLinePoint.Add(new LinePoint(x + 22, y + height, x, y + height, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu));//#12
             XLinePoint.Add(new LinePoint(x, y + height, x, y, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu));//#13
+            XLinePoint.Add(new LinePoint(x, y, x + 22, y, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu)); //#1 - powrót do #1
 
         }
 
@@ -1155,12 +1159,18 @@ namespace GEORGE.Client.Pages.Schody
                                 dxfLine.Linetype = Linetype.Continuous;
                             }
 
-                            // Dodanie linii do dokumentu DXF
+                            if (linePoint.pominWPDF)
+                            {
+                                dxfLine.IsVisible = false; // Ukrycie linii w DXF
+                            }
+
+                                // Dodanie linii do dokumentu DXF
                             dxf.Entities.Add(dxfLine);
 
                             // Zapisanie obróconej linii do nowej listy (dla GCode)
+
                             rotatedLines.Add(new LinePoint(rotatedStart.X, rotatedStart.Y, rotatedEnd.X, rotatedEnd.Y, linePoint.typeLine, linePoint.fileNCName, linePoint.nameMacro, linePoint.idOBJ,
-                                linePoint.zRobocze, linePoint.idRuchNarzWObj, linePoint.addGcode, linePoint.IloscSztuk, linePoint.NazwaProgramu, linePoint.NazwaElementu));
+                            linePoint.zRobocze, linePoint.idRuchNarzWObj, linePoint.addGcode, linePoint.IloscSztuk, linePoint.NazwaProgramu, linePoint.NazwaElementu, linePoint.pominWPDF));
 
                             // Sprawdzenie warunku dla linii z "wanga" i tworzenie odbicia lustrzanego
                             if (linePoint.nameMacro.StartsWith("wanga", StringComparison.OrdinalIgnoreCase))
@@ -1181,7 +1191,9 @@ namespace GEORGE.Client.Pages.Schody
 
                                 // Zapisanie odbitej linii do listy (dla GCode)
                                 rotatedLines.Add(new LinePoint(mirroredStart.X, mirroredStart.Y, mirroredEnd.X, mirroredEnd.Y, linePoint.typeLine, "M_" + linePoint.fileNCName, linePoint.nameMacro, linePoint.idOBJ,
-                                    linePoint.zRobocze, linePoint.idRuchNarzWObj, linePoint.addGcode, linePoint.IloscSztuk, linePoint.NazwaProgramu, linePoint.NazwaElementu + "Wanga druga strona"));
+                                linePoint.zRobocze, linePoint.idRuchNarzWObj, linePoint.addGcode, linePoint.IloscSztuk, linePoint.NazwaProgramu, 
+                                linePoint.NazwaElementu + "Wanga druga strona", linePoint.pominWPDF));
+
                             }
                         }
                     }
@@ -1287,6 +1299,13 @@ namespace GEORGE.Client.Pages.Schody
 
             Console.WriteLine($"Rozpoczynam generowania raportu PDF. [currentYPosition: {currentYPosition}]");
 
+            string xversion = "Brak danych!";
+
+            if (System.Reflection.Assembly.GetExecutingAssembly().GetName().Version != null)
+            {
+                xversion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
+            }
+
             try
             {
                 if (linePoints == null || linePoints.Count == 0)
@@ -1312,10 +1331,10 @@ namespace GEORGE.Client.Pages.Schody
 
                         Console.WriteLine("Dodanie nagłówka dokumentu.");
 
-                        document.Add(new Paragraph($"Materiały do wykonania schodów: {DateTime.Now.ToShortDateString()} Wysokość:{WysokoscCalkowita} Długość na wejściu:{DlugoscNaWejsciu} Szerokość całkowita:{SzerokoscBieguSchodow + 40 + 40} Dotyczy projektu: {NazwaINumerProjektu}")
+                        document.Add(new Paragraph($"Dotyczy projektu: {NazwaINumerProjektu} \n Wysokość: {WysokoscCalkowita} Długość na wejściu: {DlugoscNaWejsciu} Szerokość całkowita: {SzerokoscBieguSchodow + 40 + 40}")
                             .SetFont(pdfFont)
                             .SetTextAlignment(iText.Layout.Properties.TextAlignment.CENTER)
-                            .SetFontSize(12)
+                            .SetFontSize(14)
                             .SetBold());
 
                         // Grupowanie danych
@@ -1323,7 +1342,9 @@ namespace GEORGE.Client.Pages.Schody
                             .Where(lp => !string.IsNullOrEmpty(lp.fileNCName)) // Ignoruj elementy bez fileNCName
                             .GroupBy(lp => lp.fileNCName);
                         int idObj = 0;
+
                         string NazwaProgramuCNC = "";
+
                         foreach (var group in groupedLines)
                         {
                             NazwaProgramuCNC = $"{group.First().NazwaProgramu}_{group.First().fileNCName}";
@@ -1340,6 +1361,17 @@ namespace GEORGE.Client.Pages.Schody
 
                             AddGroupToDocument(document, group, group.Max(lp => lp.IloscSztuk), NazwaProgramuCNC, NazwaElementu, pdfFont, linePoints, onlyFileName, idObj++);
                         }
+
+                        for (int i = 0; i < 4; i++)
+                        {
+                            document.Add(new Paragraph("\n"));
+                        }
+
+                        document.Add(new Paragraph($"Program wygenerowano z wersji: {xversion} w dniu: {DateTime.Now.ToShortDateString()}")
+                      .SetFont(pdfFont)
+                      .SetTextAlignment(iText.Layout.Properties.TextAlignment.LEFT)
+                      .SetFontSize(10)
+                      .SetItalic());
 
                         document.Close();
                     }
@@ -1421,7 +1453,7 @@ namespace GEORGE.Client.Pages.Schody
             var pageSize = currentPage.GetPageSize();
 
             // Filtrowanie linii spełniających warunek
-            var filteredLines = linePoints.Where(line => line.fileNCName == fileCNCName).ToList();
+            var filteredLines = linePoints.Where(line => line.fileNCName == fileCNCName && !line.pominWPDF).ToList();
 
             if (!filteredLines.Any())
             {
@@ -1500,13 +1532,13 @@ namespace GEORGE.Client.Pages.Schody
             // Rysowanie linii
             foreach (var line in shiftedLines)
             {
-                double x1 = offsetX + line.X1 * scale;
-                double y1 = offsetY + line.Y1 * scale;
-                double x2 = offsetX  + line.X2 * scale;
-                double y2 = offsetY + line.Y2 * scale;
+                    double x1 = offsetX + line.X1 * scale;
+                    double y1 = offsetY + line.Y1 * scale;
+                    double x2 = offsetX + line.X2 * scale;
+                    double y2 = offsetY + line.Y2 * scale;
 
-                pdfCanvas.MoveTo((float)x1, (float)y1);
-                pdfCanvas.LineTo((float)x2, (float)y2);
+                    pdfCanvas.MoveTo((float)x1, (float)y1);
+                    pdfCanvas.LineTo((float)x2, (float)y2);
             }
 
             pdfCanvas.Stroke();
