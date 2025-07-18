@@ -1275,7 +1275,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                 // Generuj regiony po transformacji
                 //  _regions = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)CanvasWidth, (int)CanvasHeight);
                 _regionsDualRama = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)Szerokosc, (int)Wysokosc, true);
-                _regionsSkrzydlo = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)Szerokosc, (int)Wysokosc, false);
+                _regionsSkrzydlo = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)Szerokosc, (int)Wysokosc, false); // ostatni parametr nie wiem czy potrzeby do sprawdzenia (czy rama true/falsa)
 
                 double minX = 0;
                 double minY = 0;
@@ -1563,15 +1563,21 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
     private async Task ClearCanvas()
     {
-        if(_context == null)
+        if (_context == null)
         {
-            Console.WriteLine("❌ ClearCanvas --> Brak kontekstu canvas!");
+            Console.WriteLine("❌ Brak kontekstu canvas (_context is null)");
             return;
         }
-        await _context.SetFillStyleAsync("white");
-        await _context.FillRectAsync(0, 0, CanvasWidth, CanvasHeight);
 
-        //_currentScale = 1.0; // Reset skali
+        try
+        {
+            await _context.SetFillStyleAsync("white");
+            await _context.FillRectAsync(0, 0, CanvasWidth, CanvasHeight);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine("❌ ClearCanvas błąd: " + ex.Message);
+        }
     }
 
     private async Task ZoomIn()
@@ -2209,13 +2215,105 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
             if (wybranyRegionSkrzydlo != null)
             {
                 var regionPointsSkrzydlo = wybranyRegionSkrzydlo.Wierzcholki;
+
                 if (regionPointsSkrzydlo == null || regionPointsSkrzydlo.Count < 3)
                 {
                     Console.WriteLine("❌ Wybrany region nie zawiera wystarczającej liczby punktów!");
                     return;
                 }
 
-                // 1. Bounding box regionu
+                // Bounding box do określenia stron
+                minX = regionPointsSkrzydlo.Min(p => p.X);
+                maxX = regionPointsSkrzydlo.Max(p => p.X);
+                minY = regionPointsSkrzydlo.Min(p => p.Y);
+                maxY = regionPointsSkrzydlo.Max(p => p.Y);
+
+                // Przesunięcia
+                double przesuniecieLewo = 0;
+                double przesunieciePrawo = 0;
+                double przesuniecieGora = 0;
+                double przesuniecieDol = 0;
+
+                try
+                {
+                    var response = await Http.GetAsync($"api/KonfPolaczenie/row-id-model/{WybranyModel.RowId}");
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                       var listaPolaczen = await response.Content.ReadFromJsonAsync<List<KonfPolaczenie>>() ?? new();
+
+                        if (listaPolaczen.Count > 0)
+                        {
+                            Console.WriteLine($"✅ Pobranie połączeń zakończone sukcesem. Liczba połączeń: {listaPolaczen.Count}");
+                            // Przetwarzanie połączeń
+                            foreach (var polaczenie in listaPolaczen)
+                            {
+                                Console.WriteLine($"Połączenie: {polaczenie.Id}, Typ: {polaczenie.StronaPolaczenia}, Wartość: {polaczenie.PrzesuniecieX}/{polaczenie.PrzesuniecieY}");
+
+                                switch (polaczenie.StronaPolaczenia)
+                                {
+                                    case "dół":
+                                        przesuniecieDol = Math.Abs(polaczenie.PrzesuniecieY);
+                                        break;
+                                    case "góra":
+                                        przesuniecieGora = Math.Abs(polaczenie.PrzesuniecieY);
+                                        break;
+                                    case "prawa":
+                                        przesunieciePrawo = Math.Abs(polaczenie.PrzesuniecieY);
+                                        break;
+                                    case "lewa":
+                                        przesuniecieLewo = Math.Abs(polaczenie.PrzesuniecieY);
+                                        break;
+                                }
+
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("Brak połączeń dla danego modelu.");
+                        }
+                    }
+                    else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        // 👇 Obsłuż błąd NotFound — nie ma rekordów, to nie błąd techniczny
+                        Console.WriteLine("Brak połączeń dla danego systemu.");
+                    }
+                    else
+                    {
+                        // 👇 Inne błędy — np. 500
+                        Console.Error.WriteLine($"Błąd HTTP {response.StatusCode}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"Błąd ładowania połączeń: {ex.Message}");
+                }
+
+
+                for (int i = 0; i < regionPointsSkrzydlo.Count; i++)
+                {
+                    var punkt = regionPointsSkrzydlo[i];
+
+                    // Lewa krawędź
+                    if (Math.Abs(punkt.X - minX) < 0.1)
+                        punkt.X += przesuniecieLewo;
+
+                    // Prawa krawędź
+                    else if (Math.Abs(punkt.X - maxX) < 0.1)
+                        punkt.X -= przesunieciePrawo;
+
+                    // Dół
+                    if (Math.Abs(punkt.Y - maxY) < 0.1)
+                        punkt.Y -= przesuniecieDol;
+           
+                    // Góra
+                    else if (Math.Abs(punkt.Y - minY) < 0.1)
+                        punkt.Y += przesuniecieGora;
+
+                    regionPointsSkrzydlo[i] = punkt; // Nadpisanie zaktualizowanego punktu
+                }
+
+                // Ponownie oblicz bounding box po przesunięciach
                 minX = regionPointsSkrzydlo.Min(p => p.X);
                 maxX = regionPointsSkrzydlo.Max(p => p.X);
                 minY = regionPointsSkrzydlo.Min(p => p.Y);
@@ -2223,14 +2321,8 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
                 generator.Szerokosc = (float)(maxX - minX);
                 generator.Wysokosc = (float)(maxY - minY);
-                if (SelectedModelType == "Skrzydło z słupkiem ruchomym")
-                {
-                    generator.Zindesk = 1; // Ustawienie indeksowania dla skrzydła
-                }
-                else
-                {
-                    generator.Zindesk = 2; // Ustawienie indeksowania dla skrzydła
-                }
+
+                generator.Zindesk = SelectedModelType == "Skrzydło z słupkiem ruchomym" ? 1 : 2;
 
                 Console.WriteLine($"📐📐📐 Region Zindeks = {generator.Zindesk} ID: {wybranyRegionSkrzydlo.Id} -> Szerokość: {generator.Szerokosc}, Wysokość: {generator.Wysokosc}");
 
@@ -2241,6 +2333,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                 Console.WriteLine($"📐📐📐 wybranyRegionSkrzydlo == null");
             }
         }
+
 
         //--------------------------------------------------------------------------------------------------------------------------------
 

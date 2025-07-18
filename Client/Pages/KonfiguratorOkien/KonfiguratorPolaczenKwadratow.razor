@@ -463,15 +463,19 @@
             const centerH2 = getTransformedCenter(guideHorizontalModel2);
             const centerV2 = getTransformedCenter(guideVerticalModel2);
 
-            const displacementX = (centerV2.x - centerV1.x) / window.svgHelper.zoomLevel;
-            const displacementY = (centerH2.y - centerH1.y) / window.svgHelper.zoomLevel;
+            const scale = window.svgHelper.zoomLevel || 1;
+
+            const displacementX = ((centerV2.x - centerV1.x) / scale);
+            const displacementY = ((centerH2.y - centerH1.y) / scale);
+
+            const round2 = (val) => Math.round(val * 100) / 100;
 
             return {
                 success: true,
                 elementsFound: true,
-                przesuniecieX: displacementX,
-                przesuniecieY: displacementY,
-                scale: window.svgHelper.zoomLevel
+                przesuniecieX: round2(displacementX),
+                przesuniecieY: round2(displacementY),
+                scale: scale
             };
         } catch (error) {
             console.error("Measurement error:", error);
@@ -619,7 +623,7 @@
         <div class="col">
             <div class="d-flex align-items-center gap-3">
                 <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
-                    <Button class="btn btn-outline-secondary" Icon="@IconType.Fill.Backward" 
+                    <Button class="btn btn-outline-secondary" Icon="@IconType.Fill.Backward"
                             Style="width: 35px;" OnClick="GoBack" />
                 </Tooltip>
 
@@ -637,9 +641,10 @@
         </div>
     </div>
     <Tabs>
-        <TabPane Tab="Istniejące konfiguracje" >
-            <h4>Lista zapisanych połączeń
-                <Button Icon="@IconType.Outline.Read" OnClick="OdswiezDane"/>
+        <TabPane Tab="Istniejące konfiguracje">
+            <h4>
+                Lista zapisanych połączeń
+                <Button Icon="@IconType.Outline.Read" OnClick="OdswiezDane" />
             </h4>
 
             @if (listaPolaczen == null)
@@ -656,7 +661,7 @@
                     <thead class="table-light">
                         <tr>
                             <th>Rysunek</th>
-                            <th>Uwagi</th>
+                            <th>Opis</th>
                             <th>Strona</th>
                             <th>X [mm]</th>
                             <th>Y [mm]</th>
@@ -681,178 +686,178 @@
                                         <span class="text-muted">Brak</span>
                                     }
                                 </td>
-                                <td>@polaczenie.Uwagi</td>
+                                <td>@(polaczenie.OpisPolaczenia ?? "")</td>
                                 <td>@polaczenie.StronaPolaczenia</td>
-                                <td>@polaczenie.PrzesuniecieX:F2</td>
-                                <td>@polaczenie.PrzesuniecieY:F2</td>
+                                <td>@polaczenie.PrzesuniecieX</td>
+                                <td>@polaczenie.PrzesuniecieY</td>
                                 <td>@polaczenie.ZapisanyKat</td>
                             </tr>
                         }
                     </tbody>
                 </table>
             }
-         </TabPane>
-         <TabPane Tab="Konfigurator połączeń" >
+        </TabPane>
+        <TabPane Tab="Konfigurator połączeń">
             <div class="row">
-            <div class="col-md-4">
-                <div class="model-list">
-                    @if (ListaModeli != null && ListaModeli.Any())
-                    {
-                        <div class="side-checkboxes">
-                            <div class="side-checkbox">
-                                <input type="checkbox" @bind="selDol" id="str_dol" />
-                                <label for="str_dol">Dół</label>
-                            </div>
-                            <div class="side-checkbox">
-                                <input type="checkbox" @bind="selGora" id="str_gora" />
-                                <label for="str_gora">Góra</label>
-                            </div>
-                            <div class="side-checkbox">
-                                <input type="checkbox" @bind="selLewa" id="str_lewa" />
-                                <label for="str_lewa">Lewa</label>
-                            </div>
-                            <div class="side-checkbox">
-                                <input type="checkbox" @bind="selPrawa" id="str_prawa" />
-                                <label for="str_prawa">Prawa</label>
-                            </div>
-                        </div>
-
-                        <table class="table model-table">
-                            <thead>
-                                <tr>
-                                    <th>Nazwa</th>
-                                    <th>Typ</th>
-                                    <th class="thumbnail-cell">Miniaturka</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var model in ListaModeli)
-                                {
-                                    <tr @onclick="() => WybierzModel(model, selDol, selGora, selLewa, selPrawa)">
-                                        <td>@model.NazwaKonfiguracji</td>
-                                        <td>@model.Typ</td>
-                                        <td>
-                                            @if (model.Rysunek?.Length > 0)
-                                            {
-                                                <img src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)" 
-                                                     width="60" height="60" />
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted">Brak</span>
-                                            }
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    }
-                    else
-                    {
-                        <div class="alert alert-info">Brak zapisanych modeli.</div>
-                    }
-                </div>
-            </div>
-
-            <div class="col-md-8">
-                <div class="controls-container">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <Tooltip Title="Zapisz ustawienia">
-                                <Button Icon="@IconType.Fill.Save" OnClick="SaveAllPosition" Class="btn btn-primary me-2">
-                                    Zapisz
-                                </Button>
-                            </Tooltip>
-                        </div>
-                    
-                        <div class="btn-group">
-                            <Tooltip Title="Obróć drugi model">
-                                <Button Icon="@IconType.Outline.Loading" OnClick="RotateObj" Class="btn-sm btn-move" />
-                            </Tooltip>
-                            <Tooltip Title="Przesuń w lewo (1px)">
-                                <Button Icon="@IconType.Outline.ArrowLeft" OnClick="MoveLeftObj" Class="btn-sm btn-move" />
-                            </Tooltip>
-                            <Tooltip Title="Przesuń w prawo (1px)">
-                                <Button Icon="@IconType.Outline.ArrowRight" OnClick="MoveRightObj" Class="btn-sm btn-move" />
-                            </Tooltip>
-                            <Tooltip Title="Przesuń w górę (1px)">
-                                <Button Icon="@IconType.Outline.ArrowUp" OnClick="MoveUpObj" Class="btn-sm btn-move" />
-                            </Tooltip>
-                            <Tooltip Title="Przesuń w dół (1px)">
-                                <Button Icon="@IconType.Outline.ArrowDown" OnClick="MoveDownObj" Class="btn-sm btn-move" />
-                            </Tooltip>
-                            <Tooltip Title="Dopasuj widok">
-                                <Button Icon="@IconType.Outline.Windows" OnClick="ZoomAllObj" Class="btn-sm btn-move" />
-                            </Tooltip>
-                            <Tooltip Title="Powiększ">
-                                <Button Icon="@IconType.Outline.ZoomIn" OnClick="ZoomInObj" Class="btn-sm btn-move" />
-                            </Tooltip>
-                            <Tooltip Title="Pomniejsz">
-                                <Button Icon="@IconType.Outline.ZoomOut" OnClick="ZoomOutObj" Class="btn-sm btn-move" />
-                            </Tooltip>
-                            <label class="ms-2">Precyzja przesuwania:</label>
-                            <AntDesign.InputNumber @bind-Value="precyzjaPrzesuwania" Min="0" Max="20" Style="width: 60px;" />
-
-                            <Tooltip Title="Pomiar odległości">
-                                <Button Icon="@IconType.Outline.Scan" OnClick="StartMeasurement" Class="btn-sm btn-move" />
-                            </Tooltip>
-                            <Tooltip Title="Wyczyść pomiary">
-                                <Button Icon="@IconType.Outline.Close" OnClick="ClearMeasurements" Class="btn-sm btn-move" />
-                            </Tooltip>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mb-2 d-flex justify-content-between">
-                    <h6>Podgląd połączenia</h6>
-                    <div>
-                        <Button Icon="@IconType.Outline.Fire" OnClick="RefreshSvg" Class="btn-sm me-2">
-                            Odśwież
-                        </Button>
-                        <Button Icon="@IconType.Outline.Clear" OnClick="DelSvg" Class="btn-sm btn-danger">
-                            Wyczyść
-                        </Button>
-                    </div>
-                </div>
-
-                @if (pierwszyModel != null || drugiModel != null)
-                {
-                    <div class="status-message">
-                        @if (pierwszyModel != null && drugiModel == null)
+                <div class="col-md-4">
+                    <div class="model-list">
+                        @if (ListaModeli != null && ListaModeli.Any())
                         {
-                            <span>Pierwszy model wybrany: <strong>@pierwszyModel.Nazwa</strong></span>
-                        }
-                        else if (pierwszyModel != null && drugiModel != null)
-                        {
-                            <span>Połączono: <strong>@pierwszyModel.Nazwa</strong> z <strong>@drugiModel.Nazwa</strong></span>
-                        }
-                    </div>
-                }
-
-                <div class="scaled-svg-container">
-                    @if (!string.IsNullOrEmpty(combinedSvg))
-                    {
-                        <div class="scaled-svg" @key="SvgKey">
-                            @((MarkupString)combinedSvg)
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="d-flex flex-column justify-content-center align-items-center h-100">
-                            <div class="alert alert-info mb-3">
-                                Wybierz modele ramy, skrzydła lub poprzeczki
-                            </div>
-                            @if (!string.IsNullOrEmpty(BladKonfiguracji))
-                            {
-                                <div class="alert alert-warning">
-                                    @BladKonfiguracji
+                            <div class="side-checkboxes">
+                                <div class="side-checkbox">
+                                    <input type="checkbox" @bind="selDol" id="str_dol" onclick="@DelSvg" />
+                                    <label for="str_dol">Dół</label>
                                 </div>
+                                <div class="side-checkbox">
+                                    <input type="checkbox" @bind="selGora" id="str_gora" onclick="@DelSvg" />
+                                    <label for="str_gora">Góra</label>
+                                </div>
+                                <div class="side-checkbox">
+                                    <input type="checkbox" @bind="selLewa" id="str_lewa" onclick="@DelSvg" />
+                                    <label for="str_lewa">Lewa</label>
+                                </div>
+                                <div class="side-checkbox">
+                                    <input type="checkbox" @bind="selPrawa" id="str_prawa" onclick="@DelSvg" />
+                                    <label for="str_prawa">Prawa</label>
+                                </div>
+                            </div>
+
+                            <table class="table model-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nazwa</th>
+                                        <th>Typ</th>
+                                        <th class="thumbnail-cell">Miniaturka</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var model in ListaModeli)
+                                    {
+                                        <tr @onclick="() => WybierzModel(model, selDol, selGora, selLewa, selPrawa)">
+                                            <td>@model.NazwaKonfiguracji</td>
+                                            <td>@model.Typ</td>
+                                            <td>
+                                                @if (model.Rysunek?.Length > 0)
+                                                {
+                                                    <img src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
+                                                         width="60" height="60" />
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">Brak</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info">Brak zapisanych modeli.</div>
+                        }
+                    </div>
+                </div>
+
+                <div class="col-md-8">
+                    <div class="controls-container">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <Tooltip Title="Zapisz ustawienia">
+                                    <Button Icon="@IconType.Fill.Save" OnClick="SaveAllPosition" Class="btn btn-primary me-2">
+                                        Zapisz
+                                    </Button>
+                                </Tooltip>
+                            </div>
+
+                            <div class="btn-group">
+                                <Tooltip Title="Obróć drugi model">
+                                    <Button Icon="@IconType.Outline.Loading" OnClick="RotateObj" Class="btn-sm btn-move" />
+                                </Tooltip>
+                                <Tooltip Title="Przesuń w lewo (1px)">
+                                    <Button Icon="@IconType.Outline.ArrowLeft" OnClick="MoveLeftObj" Class="btn-sm btn-move" />
+                                </Tooltip>
+                                <Tooltip Title="Przesuń w prawo (1px)">
+                                    <Button Icon="@IconType.Outline.ArrowRight" OnClick="MoveRightObj" Class="btn-sm btn-move" />
+                                </Tooltip>
+                                <Tooltip Title="Przesuń w górę (1px)">
+                                    <Button Icon="@IconType.Outline.ArrowUp" OnClick="MoveUpObj" Class="btn-sm btn-move" />
+                                </Tooltip>
+                                <Tooltip Title="Przesuń w dół (1px)">
+                                    <Button Icon="@IconType.Outline.ArrowDown" OnClick="MoveDownObj" Class="btn-sm btn-move" />
+                                </Tooltip>
+                                <Tooltip Title="Dopasuj widok">
+                                    <Button Icon="@IconType.Outline.Windows" OnClick="ZoomAllObj" Class="btn-sm btn-move" />
+                                </Tooltip>
+                                <Tooltip Title="Powiększ">
+                                    <Button Icon="@IconType.Outline.ZoomIn" OnClick="ZoomInObj" Class="btn-sm btn-move" />
+                                </Tooltip>
+                                <Tooltip Title="Pomniejsz">
+                                    <Button Icon="@IconType.Outline.ZoomOut" OnClick="ZoomOutObj" Class="btn-sm btn-move" />
+                                </Tooltip>
+                                <label class="ms-2">Precyzja przesuwania:</label>
+                                <AntDesign.InputNumber @bind-Value="precyzjaPrzesuwania" Min="0" Max="50" Style="width: 60px;" />
+
+                                <Tooltip Title="Pomiar odległości">
+                                    <Button Icon="@IconType.Outline.Scan" OnClick="StartMeasurement" Class="btn-sm btn-move" />
+                                </Tooltip>
+                                <Tooltip Title="Wyczyść pomiary">
+                                    <Button Icon="@IconType.Outline.Close" OnClick="ClearMeasurements" Class="btn-sm btn-move" />
+                                </Tooltip>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-2 d-flex justify-content-between">
+                        <h6>Podgląd połączenia</h6>
+                        <div>
+                            <Button Icon="@IconType.Outline.Fire" OnClick="RefreshSvg" Class="btn-sm me-2">
+                                Odśwież
+                            </Button>
+                            <Button Icon="@IconType.Outline.Clear" OnClick="DelSvg" Class="btn-sm btn-danger">
+                                Wyczyść
+                            </Button>
+                        </div>
+                    </div>
+
+                    @if (pierwszyModel != null || drugiModel != null)
+                    {
+                        <div class="status-message">
+                            @if (pierwszyModel != null && drugiModel == null)
+                            {
+                                <span>Pierwszy model wybrany: <strong>@pierwszyModel.Nazwa</strong></span>
+                            }
+                            else if (pierwszyModel != null && drugiModel != null)
+                            {
+                                <span>Połączono: <strong>@pierwszyModel.Nazwa</strong> z <strong>@drugiModel.Nazwa</strong></span>
                             }
                         </div>
                     }
+
+                    <div class="scaled-svg-container">
+                        @if (!string.IsNullOrEmpty(combinedSvg))
+                        {
+                            <div class="scaled-svg" @key="SvgKey">
+                                @((MarkupString)combinedSvg)
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="d-flex flex-column justify-content-center align-items-center h-100">
+                                <div class="alert alert-info mb-3">
+                                    Wybierz modele ramy, skrzydła lub poprzeczki
+                                </div>
+                                @if (!string.IsNullOrEmpty(BladKonfiguracji))
+                                {
+                                    <div class="alert alert-warning">
+                                        @BladKonfiguracji
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
                 </div>
             </div>
-        </div>
         </TabPane>
     </Tabs>
 </div>
@@ -864,6 +869,7 @@
     private string SvgKey { get; set; } = Guid.NewGuid().ToString();
     private List<SystemyOkienne> Systemy = new();
     private string? SelectedSystemId;
+    private string? SelectedModelId;
     private List<KonfModele>? ListaModeli;
     private List<KonfSystem>? KonfiguracjeSystemu;
     private float precyzjaPrzesuwania = 5;
@@ -942,7 +948,7 @@
 
     private async Task OdswiezDane()
     {
-        if(string.IsNullOrEmpty(SelectedSystemId))
+        if (string.IsNullOrEmpty(SelectedSystemId))
         {
             Console.WriteLine("Nie wybrano systemu.");
             return;
@@ -980,13 +986,15 @@
     private async Task WybierzModel(KonfModele model, bool stronaDol, bool stronaGora, bool stronaLewa, bool stronaPrawa)
     {
 
-        if(!selDol && !selGora && !selLewa && !selPrawa)
+        if (!selDol && !selGora && !selLewa && !selPrawa)
         {
             BladKonfiguracji = "Wybierz co najmniej jedną stronę (Dół, Góra, Lewa, Prawa).";
             return;
         }
 
         BladKonfiguracji = "";
+
+        SelectedModelId = "";
 
         try
         {
@@ -1003,6 +1011,8 @@
                 BladKonfiguracji = "Brak danych powiązanych";
                 return;
             }
+
+            SelectedModelId = model.RowId.ToString();
 
             var pasujacy = result.KonfSystem.FirstOrDefault(x =>
                 (stronaDol && x.WystepujeDol) ||
@@ -1124,7 +1134,7 @@
         BladKonfiguracji = "";
         AktualizujSvg();
 
-        await Task.CompletedTask;   
+        await Task.CompletedTask;
     }
 
     // Manipulacja drugim modelem
@@ -1174,6 +1184,10 @@
 
     private async Task SaveAllPosition()
     {
+        await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
+
+        await Task.Delay(200); // 💡 daj czas DOM-owi
+
         var result = await JSRuntime.InvokeAsync<GuideDisplacementResult>("svgHelper.measureGuideDisplacement");
 
         if (result?.success != true || !result.elementsFound)
@@ -1182,12 +1196,12 @@
             return;
         }
 
-        przesuniecieX = result.przesuniecieX;
-        przesuniecieY = result.przesuniecieY;
+        przesuniecieX = Math.Round(result.przesuniecieX, 2);
+        przesuniecieY = Math.Round(result.przesuniecieY, 2);
 
-        if (pierwszyModel == null || drugiModel == null)
+        if (pierwszyModel == null || drugiModel == null || string.IsNullOrEmpty(SelectedModelId))
         {
-            await _message.Warning("❗ Nie wybrano obu modeli do połączenia");
+            await _message.Warning("❗ Nie wybrano obu modeli do połączenia. Błąd konfiguracji modelu :(");
             return;
         }
 
@@ -1206,11 +1220,14 @@
                 ZapisanyKat = katUstawienia,
                 RysunekPrzekroju = png,
                 RowIdSystem = Guid.Parse(SelectedSystemId), // 👈 jawna konwersja
-                Uwagi = $"Połączono: {pierwszyModel.Nazwa ?? "Model 1 ?"} z {drugiModel.Nazwa ?? "Model 2 ?"}"
+                RowIdModelu = Guid.Parse(SelectedModelId), // 👈 jawna konwersja
+                OpisPolaczenia = $"Połączono: {pierwszyModel.Nazwa ?? "Model 1 ?"} z {drugiModel.Nazwa ?? "Model 2 ?"}",
+                Uwagi = $"Ostatnia zmiana: {DateTime.Now} - [{user}]"
             };
 
             // 🔎 Sprawdź czy istnieje połączenie DLA TEJ STRONY
             KonfPolaczenie? existing = null;
+
             try
             {
                 var responseS = await Http.GetAsync(
@@ -1233,6 +1250,7 @@
             }
 
             HttpResponseMessage response;
+
             if (existing is not null)
             {
                 polaczenie.RowId = existing.RowId;
@@ -1240,7 +1258,11 @@
                 polaczenie.RowIdSystem = Guid.Parse(SelectedSystemId);
                 polaczenie.PrzesuniecieX = przesuniecieX;
                 polaczenie.PrzesuniecieY = przesuniecieY;
+                polaczenie.ZapisanyKat = katUstawienia;
                 polaczenie.RysunekPrzekroju = png;
+                polaczenie.RowIdModelu = Guid.Parse(SelectedModelId); // 👈 jawna konwersja
+                polaczenie.OpisPolaczenia = $"Połączono: {pierwszyModel.Nazwa ?? "Model 1 ?"} z {drugiModel.Nazwa ?? "Model 2 ?"}";
+                polaczenie.Uwagi = $"Ostatnia zmiana: {DateTime.Now} - [{user}]";
 
                 response = await Http.PutAsJsonAsync("api/KonfPolaczenie", polaczenie);
             }
@@ -1251,7 +1273,7 @@
 
             if (response.IsSuccessStatusCode)
             {
-                await _message.Success($"✅ Zapisano stronę {strona}: X={przesuniecieX:F2} mm, Y={przesuniecieY:F2} mm (skala: {result.scale:F2}), Kąt: {katUstawienia}°" , 0.7);
+                await _message.Success($"✅ Zapisano stronę {strona}: X={przesuniecieX:F2} mm, Y={przesuniecieY:F2} mm (skala: {result.scale:F2}), Kąt: {katUstawienia}°", 0.7);
             }
             else
             {
@@ -1299,7 +1321,7 @@
             return Array.Empty<byte>();
         }
     }
-   
+
     private List<string> WyliczStronyPolaczenia()
     {
         var strony = new List<string>();

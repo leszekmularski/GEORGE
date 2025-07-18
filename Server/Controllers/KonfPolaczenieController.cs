@@ -64,6 +64,27 @@ namespace GEORGE.Server.Controllers
             }
         }
 
+        // ✅ GET: api/konfpolaczenie/row-id-system/{rowidSystem}
+        [HttpGet("row-id-model/{rowidModel:guid}")]
+        public async Task<ActionResult<List<KonfPolaczenie>>> GetByRowIdModel(Guid rowidModel)
+        {
+            try
+            {
+                var records = await _context.KonfPolaczenie
+                    .Where(p => p.RowIdModelu == rowidModel)
+                    .ToListAsync();
+
+                if (records == null || records.Count == 0)
+                    return NotFound("Nie znaleziono połączeń dla podanego systemu");
+
+                return Ok(records);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Błąd serwera: {ex.Message}");
+            }
+        }
+
 
         // ✅ POST: api/konfpolaczenie
         [HttpPost]
