@@ -1,0 +1,81 @@
+﻿@using System.Text.Json
+
+<h3 class="mb-0">📋 Lista zapisanych pojedynczych modeli okien</h3>
+
+@if (StateContainer?.States is null || StateContainer.States.Count == 0)
+{
+    <p class="text-muted">Brak zapisanych stanów generatora.</p>
+}
+else
+{
+    <table class="table table-bordered table-striped">
+        <thead class="table-light">
+            <tr>
+                <th>#</th>
+                <th>IdRegion</th>
+                <th>ZIndeks</th>
+                <th>RowIdSystemu</th>
+                <th>RowIdModelu</th>
+                <th>WybranyModel</th>
+                <th>WybranyKształt</th>
+                <th>Ilość konfiguracji</th>
+                <th>Szczegóły</th>
+            </tr>
+        </thead>
+        <tbody>
+            @{
+                var index = 0;
+                foreach (var entry in StateContainer.States)
+                {
+                    <tr>
+                        <td>@(++index)</td>
+                        <td>@entry.Value.IdRegion</td>
+                        <td>@entry.Value.ZIndeks</td>
+                        <td>@entry.Value.RowIdSystemu</td>
+                        <td>@entry.Value.RowIdModelu</td>
+                        <td>@entry.Value.WybranyModel?.NazwaKonfiguracji</td>
+                        <td>@entry.Value.WybranyKsztalt</td>
+                        <td>@(entry.Value.KonfiguracjeSystemu?.Count ?? 0)</td>
+                        <td>
+                            <button class="btn btn-sm btn-info" @onclick="@(() => PokazSzczegoly(entry.Value))">🔍</button>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+}
+
+@if (szczegolyWidoczne && wybranyStan != null)
+{
+    <div class="card mt-3">
+        <div class="card-header">
+            <strong>Szczegóły GeneratorState:</strong>
+            <button class="btn-close float-end" @onclick="@(() => szczegolyWidoczne = false)"></button>
+        </div>
+        <div class="card-body">
+            <pre>@JsonSerializer.Serialize(wybranyStan, new JsonSerializerOptions { WriteIndented = true })</pre>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public GeneratorStateContainer? StateContainer { get; set; }
+
+    private GeneratorState? wybranyStan;
+    private bool szczegolyWidoczne = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Console.WriteLine("GeneratorStateViewer initialized.");
+        await Task.CompletedTask;
+    }
+
+    private void PokazSzczegoly(GeneratorState stan)
+    {
+        wybranyStan = stan;
+        szczegolyWidoczne = true;
+    }
+
+}

@@ -33,6 +33,8 @@ namespace GEORGE.Client.Pages.Models
         /// </summary>
         public string? Id { get; set; } = Guid.NewGuid().ToString();
 
+        public string? IdRegionuPonizej { get; set; } = "WARSTWA-ZERO";
+
         /// <summary>
         /// Zwraca prostokąt ograniczający (bounding box).
         /// </summary>
@@ -64,6 +66,7 @@ namespace GEORGE.Client.Pages.Models
             // Słownik mapujący nazwy kształtów na oczekiwaną liczbę wierzchołków
             var oczekiwaneWierzcholki = new Dictionary<string, int>
             {
+                { "Linia", 2 },
                 { "Trójkąt", 3 },
                 { "Trapezoid", 4 },
                 { "Domek", 5 },
@@ -81,6 +84,7 @@ namespace GEORGE.Client.Pages.Models
                 // Automatyczne rozpoznanie gdy typ domyślny nie pasuje
                 TypKsztaltu = Wierzcholki.Count switch
                 {
+                    2 => "Linia",
                     3 => "Trójkąt",
                     4 => "Trapezoid",
                     5 => "Domek",

@@ -1,4 +1,5 @@
 ﻿@page "/Modele-okienne"
+@using AntDesign
 @using GEORGE.Shared.Models
 @using GEORGE.Shared.Class
 @using GEORGE.Client.Pages.Utils
@@ -12,6 +13,7 @@
 @inject NavigationManager Navigation
 @inject NavigationManager NavigationManager
 @inject ShapeTransferService ShapeService
+
 @using System.IO;
 @using SixLabors.ImageSharp;
 @using SixLabors.ImageSharp.Processing;
@@ -22,6 +24,8 @@
 @using Blazor.Extensions.Canvas.Canvas2D
 @using GEORGE.Client.Pages.Models
 @using GEORGE.Client.Pages.Okna
+
+@inject GeneratorStateContainer StateContainer
 
 @implements IDisposable
 
@@ -188,7 +192,7 @@
     await new Promise((resolve, reject) => {
     img.onload = () => resolve();
     img.onerror = reject;
-    console.log("🔍 dotNetHelper:", dotNetHelper);
+    //console.log("🔍 dotNetHelper:", dotNetHelper);
     });
 
     const pattern = ctx.createPattern(img, 'repeat');
@@ -591,9 +595,9 @@ window.registerResizeCallback = (dotnetHelper) => {
     <Button Icon="@IconType.Fill.Tool" Style="flex-grow: 1; height: 35px;" OnClick="GoCAD">
         OKN-CAD
     </Button>
-    <label> </label>
+    &nbsp;&nbsp;
     <button class="btn btn-primary" @onclick="GoBack">
-        <i class="fas fa-arrow-left"></i> Wróć
+        <i class="fas fa-arrow-left"></i> Wróć do poprzednej strony
     </button>
 
 </div>
@@ -648,7 +652,7 @@ window.registerResizeCallback = (dotnetHelper) => {
                     <li class="material-item">
                         <span><strong>📏 Długość:</strong> @material.Dlugosc mm</span>
                         <span><strong>🏷️ Nazwa:</strong> @material.Nazwa</span>
-                        <span><strong>🔢 Indeks:</strong> @material.Indeks</span>
+                        <span><strong title="@material.RowIdIndeksu">🔢 Indeks:</strong> @material.Indeks</span>
                         <span><strong>📦 Ilość sztuk:</strong> @material.IloscSztuk</span>
                         <span><strong>⚠️ Restrykcje:</strong> @material.Restrykcja</span>
                     </li>
@@ -672,6 +676,7 @@ window.registerResizeCallback = (dotnetHelper) => {
         <button @onclick="ZoomIn" class="btn-zoom">➕</button>
         <button @onclick="ZoomOut" class="btn-zoom">➖</button>
         <button @onclick="PokazModal" class="btn-zoom">💎</button>
+        <button class="btn btn-zoom" @onclick="OtworzPrzeglad">🔍</button>
     </div>
     <!-- Panel boczny z modelami -->
     <div class="wing-model-container">
@@ -776,7 +781,8 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                                 <div>
                                     <strong>Typ:</strong> @ksztalt.TypKsztaltu &nbsp;|&nbsp;
                                     <strong>Grupa:</strong> @ksztalt.Grupa &nbsp;|&nbsp;
-                                    <strong>ZIndex:</strong> @ksztalt.ZIndex
+                                    <strong>ZIndex:</strong> @ksztalt.ZIndex &nbsp;|&nbsp;
+                                    <strong>RowIdElementu:</strong> @ksztalt.RowIdElementu
                                     <br/>
                                     <strong>IdRegion:</strong> @ksztalt.IdRegion
                                 </div>
@@ -826,7 +832,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                                         @foreach (var p in ksztalt.Wierzcholki)
                                         {
                                             <li class="list-group-item">
-                                                X: @p.X, Y: @p.Y
+                                                X: @(Math.Round(p.X, 3)), Y: @(Math.Round(p.Y, 3))
                                             </li>
                                         }
                                     </ul>
@@ -903,7 +909,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                                                 @foreach (var linia in region.LinieDzielace)
                                                 {
                                                     <li class="list-group-item">
-                                                        Start(X1: @linia.X1, Y1: @linia.Y1), Koniec(X2: @linia.X2, Y2: @linia.Y2)
+                                                        Start(X1: @(Math.Round(linia.X1, 3)), Y1: @(Math.Round(linia.Y1, 3)), Koniec(X2: @(Math.Round(linia.X2, 3)), Y2: @(Math.Round(linia.Y2, 3))
                                                     </li>
                                                 }
                                             </ul>
@@ -913,7 +919,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                                         @{
                                             var bbox = region.GetBoundingBox();
                                         }
-                                        <p class="mt-3"><strong>BoundingBox:</strong> X=@bbox.X, Y=@bbox.Y, Width=@bbox.Width, Height=@bbox.Height</p>
+                                        <p class="mt-3"><strong>BoundingBox:</strong> X=@(Math.Round(bbox.X, 3)), Y=@(Math.Round(bbox.Y, 3)), Width=@(Math.Round(bbox.Width, 3)), Height=@(Math.Round(bbox.Height, 3))</p>
                                     </div>
                                 </div>
                             }
@@ -984,7 +990,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                                                 @foreach (var linia in region.LinieDzielace)
                                                 {
                                                     <li class="list-group-item">
-                                                        Start(X1: @linia.X1, Y1: @linia.Y1), Koniec(X2: @linia.X2, Y2: @linia.Y2)
+                                                        Start(X1: @(Math.Round(linia.X1, 3)), Y1: @(Math.Round(linia.Y1, 3)), Koniec(X2: @(Math.Round(linia.X2, 3)), Y2: @(Math.Round(linia.Y2, 3))
                                                     </li>
                                                 }
                                             </ul>
@@ -994,7 +1000,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                                         @{
                                             var bbox = region.GetBoundingBox();
                                         }
-                                        <p class="mt-3"><strong>BoundingBox:</strong> X=@bbox.X, Y=@bbox.Y, Width=@bbox.Width, Height=@bbox.Height</p>
+                                        <p class="mt-3"><strong>BoundingBox:</strong> X=@(Math.Round(bbox.X, 3)), Y=@(Math.Round(bbox.Y, 3)), Width=@(Math.Round(bbox.Width, 3)), Height=@(Math.Round(bbox.Height, 3))</p>
                                     </div>
                                 </div>
                             }
@@ -1058,7 +1064,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                                                 @foreach (var p in region.Wierzcholki)
                                                 {
                                                     <li class="list-group-item">
-                                                        X: @p.X, Y: @p.Y
+                                                        X: @(Math.Round(p.X, 3)), Y: @(Math.Round(p.Y, 3))
                                                     </li>
                                                 }
                                             </ul>
@@ -1073,7 +1079,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                                                 @foreach (var linia in region.LinieDzielace)
                                                 {
                                                     <li class="list-group-item">
-                                                        Start(X1: @linia.X1, Y1: @linia.Y1), Koniec(X2: @linia.X2, Y2: @linia.Y2)
+                                                        Start(X1: @(Math.Round(linia.X1, 3)), Y1: @(Math.Round(linia.Y1, 3)), Koniec(X2: @(Math.Round(linia.X2, 3)), Y2: @(Math.Round(linia.Y2, 3))
                                                     </li>
                                                 }
                                             </ul>
@@ -1083,7 +1089,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                                         @{
                                             var bbox = region.GetBoundingBox();
                                         }
-                                        <p class="mt-3"><strong>BoundingBox:</strong> X=@bbox.X, Y=@bbox.Y, Width=@bbox.Width, Height=@bbox.Height</p>
+                                        <p class="mt-3"><strong>BoundingBox:</strong> X=@(Math.Round(bbox.X, 3)), Y=@(Math.Round(bbox.Y, 3)), Width=@(Math.Round(bbox.Width, 3)), Height=@(Math.Round(bbox.Height, 3))</p>
                                     </div>
                                 </div>
                             }
@@ -1154,7 +1160,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                                                 @foreach (var linia in region.LinieDzielace)
                                                 {
                                                     <li class="list-group-item">
-                                                        Start(X1: @linia.X1, Y1: @linia.Y1), Koniec(X2: @linia.X2, Y2: @linia.Y2)
+                                                        Start(X1: @(Math.Round(linia.X1, 3)), Y1: @(Math.Round(linia.Y1, 3)), Koniec(X2: @(Math.Round(linia.X2, 3)), Y2: @(Math.Round(linia.Y2, 3))
                                                     </li>
                                                 }
                                             </ul>
@@ -1164,7 +1170,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                                         @{
                                             var bbox = region.GetBoundingBox();
                                         }
-                                        <p class="mt-3"><strong>BoundingBox:</strong> X=@bbox.X, Y=@bbox.Y, Width=@bbox.Width, Height=@bbox.Height</p>
+                                        <p class="mt-3"><strong>BoundingBox:</strong> X=@(Math.Round(bbox.X, 3)), Y=@(Math.Round(bbox.Y, 3)), Width=@(Math.Round(bbox.Width, 3)), Height=@(Math.Round(bbox.Height, 3))</p>
                                     </div>
                                 </div>
                             }
@@ -1176,6 +1182,16 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         </div>
     </div>
 </div>
+
+<Modal Title="Podgląd danych wygenerowanych "
+       Visible="@_generatorState"
+       OnOk="@HandleCancel"
+       OnCancel="@HandleCancel" 
+       Maximizable="@true"
+       Centered="@true"
+       DefaultMaximized="@true">
+    <Generator_state_viewer StateContainer="StateContainer"></Generator_state_viewer>
+</Modal>
 
 
 @code {
@@ -1243,6 +1259,9 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
     private Dictionary<string, GeneratorState> _generatorStates = new();
 
+    private bool _generatorState = false;
+
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -1276,6 +1295,21 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                 //  _regions = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)CanvasWidth, (int)CanvasHeight);
                 _regionsDualRama = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)Szerokosc, (int)Wysokosc, true);
                 _regionsSkrzydlo = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)Szerokosc, (int)Wysokosc, false); // ostatni parametr nie wiem czy potrzeby do sprawdzenia (czy rama true/falsa)
+
+                foreach (var rds in _regionsSkrzydlo)
+                {
+                    var center = GeometryUtils.ObliczCentroid(rds.Wierzcholki);
+
+                    foreach (var rdr in _regionsDualRama)
+                    {
+                        if (GeometryUtils.CzyPunktWielokacie(center, rdr.Wierzcholki))
+                        {
+                            rds.IdRegionuPonizej = rdr.Id;
+                           // Console.WriteLine($"🔗 Region skrzydła {rds.Id} przypisany do regionu ramy {rdr.Id}");
+                            break; // Przypisz tylko pierwszą pasującą ramę
+                        }
+                    }
+                }
 
                 double minX = 0;
                 double minY = 0;
@@ -1380,7 +1414,6 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
             StateHasChanged();
         }
     }
-
 
     private void WybierzModel(KonfModele model)
     {
@@ -1523,6 +1556,27 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
     {
         classShowTWZ = "show";
         displayTWZ = "block";
+    }
+
+    private async Task OtworzPrzeglad()
+    {
+        StateContainer.States = _generatorStates;
+
+        if (_generatorStates.Count == 0)
+        {
+            await  _message.Warning("Brak zapisanych stanów generatora.", 1.5);
+            return;
+        }
+
+        await Task.Delay(50); // Krótkie opóźnienie dla płynności
+
+        _generatorState = true;
+
+    }
+
+    private void HandleCancel(MouseEventArgs e)
+    {
+        _generatorState = false;
     }
 
     [JSInvokable("UpdateCanvasSizeFromResize")]
@@ -1770,7 +1824,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                 {
                     if (IsPointInPolygon(region.Wierzcholki, x, y))
                     {
-                        Console.WriteLine($"✅ Trafiono w region: {region.Id} - Typ: {region.TypKsztaltu}");
+                        Console.WriteLine($"✅ _regionsDualRama Trafiono w region: {region.Id} - Typ: {region.TypKsztaltu}");
                         return region;
                     }
                 }
@@ -1788,7 +1842,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                 {
                     if (IsPointInPolygon(region.Wierzcholki, x, y))
                     {
-                        Console.WriteLine($"✅ Trafiono w region: {region.Id} - Typ: {region.TypKsztaltu}");
+                        Console.WriteLine($"✅ _regionsSkrzydlo Trafiono w region: {region.Id} - Typ: {region.TypKsztaltu}");
                         return region;
                     }
                 }
@@ -1874,6 +1928,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                             foreach (var _kon in _KonfiguracjeSystemu)
                             {
                                 WygenerowaneMaterialy opisySys = new WygenerowaneMaterialy(
+                                 _kon.RowId,
                                  _kon.PoziomDol ?? 0.0,
                                  _kon.Nazwa ?? "",
                                  _kon.Indeks ?? "",
@@ -2012,7 +2067,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         try
         {
             isTextureLoaded = true;
-            Console.WriteLine("✅ Tekstura załadowana!");
+            // Console.WriteLine("✅ Tekstura załadowana!");
             await Task.CompletedTask;
         }
         catch (Exception ex)
@@ -2116,7 +2171,6 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         await Task.CompletedTask;
     }
 
-
     private async Task DodajWybranyKwadratOkna(string idRegion)
     {
         if (SelectedModelType == null || string.IsNullOrEmpty(SelectedModelType))
@@ -2161,19 +2215,20 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
             var kofiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIND_ROWID_SYS/{SelectedSystemId}");
             generator.KonfiguracjeSystemu = kofiguracjeSystemu;
-            Console.WriteLine("---------> Ponownie pobrano kofiguracjeSystemu.");
+            // Console.WriteLine("---------> Ponownie pobrano kofiguracjeSystemu.");
         }
 
         generator.EdytowanyModel = WybranyModel;
+
         generator.TypKsztaltu = WybranyKsztalt;
 
         //--------------------------------------------------------------------------------------------------------------------------------
+
 
         double minX = 0;
         double maxX = 0;
         double minY = 0;
         double maxY = 0;
-
 
         Console.WriteLine($"📐📐📐 SelectedModelType  = {SelectedModelType} 📐📐📐");
 
@@ -2190,6 +2245,8 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                     return;
                 }
 
+                generator.IdRegionuPonizej = wybranyRegionDualRama.IdRegionuPonizej ?? idRegion;
+
                 // 1. Bounding box regionu
                 minX = regionPoints.Min(p => p.X);
                 maxX = regionPoints.Max(p => p.X);
@@ -2198,7 +2255,8 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
                 generator.Szerokosc = (float)(maxX - minX);
                 generator.Wysokosc = (float)(maxY - minY);
-                generator.Zindesk = 0; // Ustawienie indeksowania dla ramy
+                generator.Zindeks = 0; // Ustawienie indeksowania dla ramy zawsze zero
+                generator.IdRegionuPonizej = wybranyRegionDualRama.IdRegionuPonizej;
 
                 Console.WriteLine($"📐📐📐 Region Zindeks = 0 ID: {wybranyRegionDualRama.Id} -> Szerokość: {generator.Szerokosc}, Wysokość: {generator.Wysokosc}");
 
@@ -2222,6 +2280,8 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                     return;
                 }
 
+                generator.IdRegionuPonizej = wybranyRegionSkrzydlo.IdRegionuPonizej ?? idRegion + "-BLAD";
+
                 // Bounding box do określenia stron
                 minX = regionPointsSkrzydlo.Min(p => p.X);
                 maxX = regionPointsSkrzydlo.Max(p => p.X);
@@ -2240,7 +2300,70 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
                     if (response.IsSuccessStatusCode)
                     {
-                       var listaPolaczen = await response.Content.ReadFromJsonAsync<List<KonfPolaczenie>>() ?? new();
+                        // var listaPolaczen = await response.Content.ReadFromJsonAsync<List<KonfPolaczenie>>() ?? new();
+
+                        // 1. Pobierz listę połączeń (jeśli jest pusta → nowa lista)
+                        var listaPolaczen = await response.Content.ReadFromJsonAsync<List<KonfPolaczenie>>() ?? new();
+
+                        // 2. Sprawdź, czy generator ma przypisane systemy konfiguracyjne
+                        if (generator.KonfiguracjeSystemu == null || !generator.KonfiguracjeSystemu.Any())
+                        {
+                            Console.WriteLine("Brak przypisanych systemów konfiguracyjnych.");
+                            return;
+                        }
+
+                        // 3. Pobierz RowId elementu wewnętrznego (skrzydło, jeśli istnieje)
+                        Guid? rowIdElementuWewnetrznego = generator.KonfiguracjeSystemu.FirstOrDefault()?.RowId;
+
+                        // 4. Znajdź pasujące połączenia
+                        List<KonfPolaczenie> pasujacePolaczenia;
+
+                        if (generator.Zindeks == 0)
+                        {
+                            // Pobierz pierwszy system konfiguracyjny (np. rama)
+                            var system = generator.KonfiguracjeSystemu.FirstOrDefault();
+                            var powiazanyModel = generator.PowiazanyModel;
+
+                            Console.WriteLine($"powiazanyModel.KonfModeleElementy[0].RowIdElement: {powiazanyModel.KonfModeleElementy[0].RowIdElement}");
+
+                            // Filtruj połączenia, gdzie ElementZewnetrznyId pasuje do RowId systemu
+                            // oraz StronaPolaczenia jest zgodna z aktywnymi stronami (WystepujeDol/Lewa/Gora/Prawa)
+                            pasujacePolaczenia = listaPolaczen
+                                .Where(p => p.ElementZewnetrznyId == system.RowId &&
+                                    (
+                                        (p.StronaPolaczenia == "dół" && system.WystepujeDol) ||
+                                        (p.StronaPolaczenia == "lewa" && system.WystepujeLewa) ||
+                                        (p.StronaPolaczenia == "góra" && system.WystepujeGora) ||
+                                        (p.StronaPolaczenia == "prawa" && system.WystepujePrawa)
+                                    ))
+                                .ToList();
+
+                        }
+                        else
+                        {
+                            // Dla elementu wewnętrznego (np. skrzydło) - filtruj tylko po RowId
+                            var system = generator.KonfiguracjeSystemu.FirstOrDefault();
+                            var powiazanyModel = generator.PowiazanyModel;
+
+                            Console.WriteLine($"powiazanyModel.KonfModeleElementy[0].RowIdElement: {powiazanyModel.KonfModeleElementy[0].RowIdElement}");
+
+                            pasujacePolaczenia = listaPolaczen
+                                .Where(p => p.ElementWewnetrznyId == rowIdElementuWewnetrznego &&
+                                        (p.StronaPolaczenia == "dół" && system.WystepujeDol) ||
+                                        (p.StronaPolaczenia == "lewa" && system.WystepujeLewa) ||
+                                        (p.StronaPolaczenia == "góra" && system.WystepujeGora) ||
+                                        (p.StronaPolaczenia == "prawa" && system.WystepujePrawa))
+                                .ToList();
+                        }
+
+                        // 5. Wyświetl wyniki (lub przekaż dalej)
+                        Console.WriteLine($"Znaleziono {pasujacePolaczenia.Count} pasujących połączeń.");
+
+     
+                        foreach (var polaczenie in pasujacePolaczenia)
+                        {
+                            Console.WriteLine($"Połączenie ID: {polaczenie.Id}, Strona: {polaczenie.StronaPolaczenia}");
+                        }
 
                         if (listaPolaczen.Count > 0)
                         {
@@ -2322,9 +2445,9 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                 generator.Szerokosc = (float)(maxX - minX);
                 generator.Wysokosc = (float)(maxY - minY);
 
-                generator.Zindesk = SelectedModelType == "Skrzydło z słupkiem ruchomym" ? 1 : 2;
+                generator.Zindeks = SelectedModelType == "Skrzydło z słupkiem ruchomym" ? 1 : 2;
 
-                Console.WriteLine($"📐📐📐 Region Zindeks = {generator.Zindesk} ID: {wybranyRegionSkrzydlo.Id} -> Szerokość: {generator.Szerokosc}, Wysokość: {generator.Wysokosc}");
+                Console.WriteLine($"📐📐📐 Region Zindeks = {generator.Zindeks} ID: {wybranyRegionSkrzydlo.Id} -> Szerokość: {generator.Szerokosc}, Wysokość: {generator.Wysokosc} przesuniecieLewo: {przesuniecieLewo} przesunieciePrawo: {przesunieciePrawo} przesuniecieGora: {przesuniecieGora} przesuniecieDol: {przesuniecieDol}");
 
                 generator.AddElements(new List<ShapeRegion> { wybranyRegionSkrzydlo }, idRegion);
             }
@@ -2384,47 +2507,47 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         ksztalty = _ksztaltyNaRegion.Values.SelectMany(k => k).ToList();
 
        // 7. Debug info
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine($"💡 ------ Liczba wygenerowanych kształtów: {ksztalty.Count}");
+      //  var sb = new System.Text.StringBuilder();
+      //  sb.AppendLine($"💡 ------ Liczba wygenerowanych kształtów: {ksztalty.Count}");
 
-        for (int i = 0; i < ksztalty.Count; i++)
-        {
-            var ksztalt = ksztalty[i];
-            sb.AppendLine($"Kształt {i + 1}:");
-            sb.AppendLine($"- Typ: {ksztalt.TypKsztaltu}");
-            sb.AppendLine($"- Grupa: {ksztalt.Grupa}");
-            sb.AppendLine($"- Wypełnienie zewnętrzne: {ksztalt.WypelnienieZewnetrzne}");
-            sb.AppendLine($"- Wypełnienie wewnętrzne: {ksztalt.WypelnienieWewnetrzne}");
-            sb.AppendLine($"- Liczba punktów: {ksztalt.Wierzcholki?.Count ?? 0}");
+        // for (int i = 0; i < ksztalty.Count; i++)
+        // {
+        //     var ksztalt = ksztalty[i];
+        //     sb.AppendLine($"Kształt {i + 1}:");
+        //     sb.AppendLine($"- Typ: {ksztalt.TypKsztaltu}");
+        //     sb.AppendLine($"- Grupa: {ksztalt.Grupa}");
+        //     sb.AppendLine($"- Wypełnienie zewnętrzne: {ksztalt.WypelnienieZewnetrzne}");
+        //     sb.AppendLine($"- Wypełnienie wewnętrzne: {ksztalt.WypelnienieWewnetrzne}");
+        //     sb.AppendLine($"- Liczba punktów: {ksztalt.Wierzcholki?.Count ?? 0}");
+        //     sb.AppendLine($"- RowIdElementu: {ksztalt.RowIdElementu}");
 
-            ksztalt.DlogoscElementu = (float)generator.DlugoscElementu(ksztalt.Wierzcholki);
+        //     ksztalt.DlogoscElementu = (float)generator.DlugoscElementu(ksztalt.Wierzcholki);
 
-            ksztalt.IdRegion = idRegion;
+        //     ksztalt.IdRegion = idRegion;
 
-            if (ksztalt.Wierzcholki != null)
-            {
-                sb.AppendLine("  Punkty:");
-                foreach (var punkt in ksztalt.Wierzcholki)
-                {
-                    sb.AppendLine($"  - X: {punkt.X}, Y: {punkt.Y}");
-                }
-            }
-        }
+        //     if (ksztalt.Wierzcholki != null)
+        //     {
+        //         sb.AppendLine("  Punkty:");
+        //         foreach (var punkt in ksztalt.Wierzcholki)
+        //         {
+        //             sb.AppendLine($"  - X: {punkt.X}, Y: {punkt.Y}");
+        //         }
+        //     }
+        // }
 
-        Console.WriteLine(sb.ToString());
+        // Console.WriteLine(sb.ToString());
 
         var state = new GeneratorState
         {
+            IdRegion = idRegion,
+            ZIndeks = generator.Zindeks,
             KonfiguracjeSystemu = KonfiguracjeSystemu,
             RowIdSystemu = Guid.Parse(SelectedSystemId),
             RowIdModelu = Guid.TryParse(SelectedRowIdType, out var rowIdModelu) ? rowIdModelu : (Guid?)null,
             PowiazanyModel = generator.PowiazanyModel,
             WybranyModel = WybranyModel,
             WybranyKsztalt = WybranyKsztalt,
-            GruboscDol = 82,
-            GruboscGora = 82,
-            GruboscLewo = 82,
-            GruboscPrawo = 82,
+            IdRegionWarstwaNizej = generator.IdRegionuPonizej,
         };
 
         ZapiszStanGeneratora(idRegion, state);
@@ -2434,6 +2557,8 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
     private void ZapiszStanGeneratora(string idRegion, GeneratorState state)
     {
         _generatorStates[idRegion] = state;
+
+        Console.WriteLine($"✅ Zapisano stan generatora dla regionu {idRegion}. Liczba elementów: {state.KonfiguracjeSystemu?.Count ?? 0} Liczba _generatorStates: {_generatorStates?.Count ?? 0}");
     }
 
     private async Task GenerujElementyDlaRegionu(string idRegion, float szerokosc, float wysokosc)
@@ -2448,16 +2573,12 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         {
             KonfiguracjeSystemu = state.KonfiguracjeSystemu,
             RowIdSystemu = state.RowIdSystemu,
-           // RowIdModelu = state.RowIdModelu,
             PowiazanyModel = state.PowiazanyModel,
-            EdytowanyModel = state.WybranyModel,
             TypKsztaltu = state.WybranyKsztalt,
-            GruboscDol = state.GruboscDol,
-            GruboscGora = state.GruboscGora,
-            GruboscLewo = state.GruboscLewo,
-            GruboscPrawo = state.GruboscPrawo,
+            EdytowanyModel = state.WybranyModel
         };
 
+  
         var wybranyRegionDualRama = _regionsDualRama.FirstOrDefault(r => r.Id == idRegion);
         var wybranyRegionSkrzydlo = _regionsSkrzydlo.FirstOrDefault(r => r.Id == idRegion);
 
@@ -2475,7 +2596,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
             generator.Szerokosc = (float)(maxX - minX);
             generator.Wysokosc = (float)(maxY - minY);
-            generator.Zindesk = 0;
+            generator.Zindeks = 0;
 
             generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion);
         }
@@ -2491,7 +2612,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
             generator.Szerokosc = (float)(maxX - minX);
             generator.Wysokosc = (float)(maxY - minY);
-            generator.Zindesk = 1;
+            generator.Zindeks = 1;
 
             generator.AddElements(new List<ShapeRegion> { wybranyRegionSkrzydlo }, idRegion);
         }
@@ -2529,6 +2650,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                         p.Y * scale + offsetY
                     );
                 }
+
             }
         }
 
@@ -2536,6 +2658,8 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         ksztalty = _ksztaltyNaRegion.Values.SelectMany(k => k).ToList();
 
         Console.WriteLine($"✅ Wygenerowano elementy dla regionu {idRegion} po skalowaniu.");
+
+
 
         await Task.CompletedTask;
     }
@@ -2562,10 +2686,10 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
             // Rysowanie każdego kształtu
             foreach (var ksztalt in ksztalty)
             {
-                Console.WriteLine($"Rysuję kształt: {ksztalt.TypKsztaltu}");
+                //Console.WriteLine($"Rysuję kształt: {ksztalt.TypKsztaltu}");
                 if (ksztalt.Wierzcholki == null || ksztalt.Wierzcholki.Count < 3)
                     continue;
-                Console.WriteLine($"*********** >>>>>> ksztalt: {ksztalt.Id}");
+               // Console.WriteLine($"*********** >>>>>> ksztalt: {ksztalt.Id}");
 
                 await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
             }
@@ -2582,7 +2706,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
     {
         var outerPoints = ksztalt.Wierzcholki;
 
-        Console.WriteLine($"outerPoints: {outerPoints.Count}");
+       // Console.WriteLine($"outerPoints: {outerPoints.Count}");
 
         var offsets = GetOffsetsForGroup(ksztalt.Grupa);
 

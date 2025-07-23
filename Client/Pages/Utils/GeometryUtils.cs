@@ -1,7 +1,5 @@
-﻿using System;
-using GEORGE.Client.Pages.KonfiguratorOkien;
+﻿using GEORGE.Client.Pages.KonfiguratorOkien;
 using GEORGE.Client.Pages.Models;
-using static GEORGE.Client.Pages.CAD.DrawCAD;
 
 namespace GEORGE.Client.Pages.Utils
 {
@@ -15,10 +13,10 @@ namespace GEORGE.Client.Pages.Utils
 
             var regions = new List<ShapeRegion>();
 
-            var linieDzielace = shapes
-                .OfType<XLineShape>()
-                .Where(l => rama ? l.DualRama : l.RuchomySlupek)
-                .ToList();
+            //var linieDzielace = shapes
+            //    .OfType<XLineShape>()
+            //    .Where(l => rama ? l.DualRama : l.RuchomySlupek)
+            //    .ToList();
 
             var shapesDoRegionow = shapes.Where(s =>
                 s is XRectangleShape or XSquareShape or XTriangleShape
@@ -85,7 +83,7 @@ namespace GEORGE.Client.Pages.Utils
                         typLinii = "brak podziału";
                     }
                 }
-
+   
                 Console.WriteLine($"🔍GenerujRegionyZPodzialu --> Generowanie regionu z kształtu: {typ}, liczba wierzchołków: {pts.Count}");
 
                 var initial = new ShapeRegion
@@ -93,37 +91,81 @@ namespace GEORGE.Client.Pages.Utils
                     Wierzcholki = pts,
                     TypKsztaltu = typ,
                     TypLiniiDzielacej = typLinii,
-                    Id = shape is ShapeRegion sr ? sr.Id : Guid.NewGuid().ToString()
+                    //Id = shape is ShapeRegion sr ? sr.Id : Guid.NewGuid().ToString()
                     // jeśli shape nie jest ShapeRegion, nadaj nowy Id
                 };
 
-                var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace);
 
-                foreach (var r in podzielone)
+                if (rama)
                 {
-                    r.RozpoznajTyp(r.TypKsztaltu);
+                    var linieDzielace = shapes
+                    .OfType<XLineShape>()
+                    .Where(l => l.DualRama)
+                    .ToList();
 
-                    if (r.TypKsztaltu == "xhouseshape" && r.Wierzcholki.Count == 4)
+                    var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace);
+
+                    foreach (var r in podzielone)
                     {
-                        r.TypKsztaltu = "trapez";
+                        r.RozpoznajTyp(r.TypKsztaltu);
+
+                        if (r.TypKsztaltu == "xhouseshape" && r.Wierzcholki.Count == 4)
+                        {
+                            r.TypKsztaltu = "trapez";
+                        }
+
+                        if (r.TypKsztaltu == "trapez")
+                        {
+                            if (r.Wierzcholki.Count == 3)
+                            {
+                                r.TypKsztaltu = "trójkąt";
+                            }
+                            else if (r.Wierzcholki.Count == 4 && CzyProstokat(r.Wierzcholki))
+                            {
+                                r.TypKsztaltu = "prostokąt";
+                            }
+                        }
+
+                        // **UWAGA**: NIE NADPISUJEMY Id — zachowujemy oryginalne Id
                     }
 
-                    if (r.TypKsztaltu == "trapez")
+                    regions.AddRange(podzielone);
+                }
+                else
+                {
+                    var linieDzielace = shapes
+                        .OfType<XLineShape>()
+                        .ToList();
+
+                    var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace);
+
+                    foreach (var r in podzielone)
                     {
-                        if (r.Wierzcholki.Count == 3)
+                        r.RozpoznajTyp(r.TypKsztaltu);
+
+                        if (r.TypKsztaltu == "xhouseshape" && r.Wierzcholki.Count == 4)
                         {
-                            r.TypKsztaltu = "trójkąt";
+                            r.TypKsztaltu = "trapez";
                         }
-                        else if (r.Wierzcholki.Count == 4 && CzyProstokat(r.Wierzcholki))
+
+                        if (r.TypKsztaltu == "trapez")
                         {
-                            r.TypKsztaltu = "prostokąt";
+                            if (r.Wierzcholki.Count == 3)
+                            {
+                                r.TypKsztaltu = "trójkąt";
+                            }
+                            else if (r.Wierzcholki.Count == 4 && CzyProstokat(r.Wierzcholki))
+                            {
+                                r.TypKsztaltu = "prostokąt";
+                            }
                         }
+
+                        // **UWAGA**: NIE NADPISUJEMY Id — zachowujemy oryginalne Id
                     }
 
-                    // **UWAGA**: NIE NADPISUJEMY Id — zachowujemy oryginalne Id
+                    regions.AddRange(podzielone);
                 }
 
-                regions.AddRange(podzielone);
             }
 
             return regions;
@@ -133,7 +175,7 @@ namespace GEORGE.Client.Pages.Utils
         List<ShapeRegion> stareRegiony,
         int nowaSzerokosc,
         int nowaWysokosc)
-            {
+        {
             if (stareRegiony == null || !stareRegiony.Any())
                 return new List<ShapeRegion>();
 
@@ -196,10 +238,10 @@ namespace GEORGE.Client.Pages.Utils
                 Math.Abs(Dot(punkty[2], punkty[3], punkty[0])) < 1e-2 &&
                 Math.Abs(Dot(punkty[3], punkty[0], punkty[1])) < 1e-2;
 
-            bool bokiRówne = Math.Abs(DistanceSquared(punkty[0], punkty[1]) - DistanceSquared(punkty[2], punkty[3])) < 1e-2 &&
+            bool bokiRowne = Math.Abs(DistanceSquared(punkty[0], punkty[1]) - DistanceSquared(punkty[2], punkty[3])) < 1e-2 &&
                              Math.Abs(DistanceSquared(punkty[1], punkty[2]) - DistanceSquared(punkty[3], punkty[0])) < 1e-2;
 
-            return kątyProste && bokiRówne;
+            return kątyProste && bokiRowne;
         }
 
         private static List<ShapeRegion> PodzielRegionRekurencyjnie(ShapeRegion region, List<XLineShape> lines)
@@ -222,7 +264,7 @@ namespace GEORGE.Client.Pages.Utils
                                 Wierzcholki = poly,
                                 TypKsztaltu = r.TypKsztaltu,
                                 LinieDzielace = r.LinieDzielace.Concat(new[] { line }).ToList(),
-                               // Id = Guid.NewGuid().ToString()
+                                // Id = Guid.NewGuid().ToString()
                             });
                     }
                     else
@@ -295,7 +337,6 @@ namespace GEORGE.Client.Pages.Utils
 
             return list;
         }
-
 
         private static List<XPoint> GenerateCircleVertices(double centerX, double centerY, double radius, int segments)
         {
@@ -377,6 +418,34 @@ namespace GEORGE.Client.Pages.Utils
         {
             return (xk - xi) * (yj - yi) - (xj - xi) * (yk - yi);
         }
+
+        public static bool CzyPunktWielokacie(XPoint point, List<XPoint> polygon)
+        {
+            int i, j;
+            bool result = false;
+            for (i = 0, j = polygon.Count - 1; i < polygon.Count; j = i++)
+            {
+                if ((polygon[i].Y > point.Y) != (polygon[j].Y > point.Y) &&
+                    (point.X < (polygon[j].X - polygon[i].X) * (point.Y - polygon[i].Y) /
+                     (polygon[j].Y - polygon[i].Y) + polygon[i].X))
+                {
+                    result = !result;
+                }
+            }
+            return result;
+        }
+
+        public static XPoint ObliczCentroid(List<XPoint> punkty)
+        {
+            double x = 0, y = 0;
+            foreach (var p in punkty)
+            {
+                x += p.X;
+                y += p.Y;
+            }
+            return new XPoint(x / punkty.Count, y / punkty.Count);
+        }
+
 
     }
 }

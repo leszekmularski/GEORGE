@@ -6,10 +6,11 @@ namespace GEORGE.Client.Pages.Okna
     public class Generator : GenerujOkno
     {
         public new List<KsztaltElementu> ElementyRamyRysowane { get; set; } = new();
-        public List<KonfSystem> KonfiguracjeSystemu { get; set; } = new(); // Dodaj tę linię
+        public List<KonfSystem> KonfiguracjeSystemu { get; set; } = new();
 
         public KonfModele? EdytowanyModel;
-        public int Zindesk { get; set; }
+        public int Zindeks { get; set; }
+        public string IdRegionuPonizej { get; set; }
 
         public new MVCKonfModele? PowiazanyModel;
 
@@ -26,7 +27,8 @@ namespace GEORGE.Client.Pages.Okna
             KolorSzyby = "#ADD8E6";
             KonfiguracjeSystemu = new List<KonfSystem>();
             EdytowanyModel = null;
-            Zindesk = 0;
+            Zindeks = -1;
+            IdRegionuPonizej = string.Empty;
             //RowIdSystemu = Guid.NewGuid();
             //RowIdModelu = Guid.NewGuid();
             PowiazanyModel = null;
@@ -91,6 +93,13 @@ namespace GEORGE.Client.Pages.Okna
             float profileBottom = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionPrawa ?? 0 -
                                           PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionLewa ?? 0);
 
+            Guid RowIdprofileLeft = PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.RowId ?? Guid.Empty;
+            Guid RowIdprofileRight = PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.RowId ?? Guid.Empty;
+            Guid RowIdprofileTop = PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.RowId ?? Guid.Empty;
+            Guid RowIdprofileBottom = PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.RowId ?? Guid.Empty;
+
+            string NazwaObiektu = PowiazanyModel.KonfSystem.First().Nazwa ?? "";
+
             Console.WriteLine($"📐 region.TypKsztaltu: {region.TypKsztaltu} profileLeft: {profileLeft}, profileRight: {profileRight}, profileTop: {profileTop}, profileBottom: {profileBottom}");
 
               // 🔲 Oblicz wewnętrzny kontur
@@ -126,7 +135,10 @@ namespace GEORGE.Client.Pages.Okna
                     profileLeft, profileRight, profileTop, profileBottom,
                     region.TypKsztaltu,
                     EdytowanyModel.PolaczenieNaroza,
-                    KonfiguracjeSystemu
+                    KonfiguracjeSystemu,
+                    regionId,
+                    RowIdprofileLeft, RowIdprofileRight, RowIdprofileTop, RowIdprofileBottom,
+                    NazwaObiektu
                 );
             }
         }
@@ -197,7 +209,7 @@ namespace GEORGE.Client.Pages.Okna
             int leftH = (int)imageHeight - ((joinTypes[3].Left == "T1" || joinTypes[2].Left == "T4" ? (int)profileTop : 0) +
                                             (joinTypes[3].Right == "T1" ? (int)profileBottom : 0));
 
-            void AddElement(int index, int x, int y, int w, int h, string typLewy, string typPrawy, string grupa)
+            void AddElement(int index, int x, int y, int w, int h, string typLewy, string typPrawy, string grupa, Guid RowIdElementu)
             {
                 int offset = (index % 2 == 0) ? h : w;
                 bool isLeftT2 = typLewy == "T2";
@@ -242,16 +254,16 @@ namespace GEORGE.Client.Pages.Okna
                     Wierzcholki = points,
                     WypelnienieZewnetrzne = "wood-pattern",
                     WypelnienieWewnetrzne = KolorSzyby,
-                    ZIndex = Zindesk,
+                    ZIndex = Zindeks,
                     Grupa = grupa
                 });
             }
 
             // Generuj wszystkie ramy
-            AddElement(0, topX, 0, topW, (int)profileTop, joinTypes[0].Left, joinTypes[0].Right, "Gora");
-            AddElement(1, 0, rightY, (int)profileRight, rightH, joinTypes[1].Left, joinTypes[1].Right, "Prawo");
-            AddElement(2, bottomX, 0, bottomW, (int)profileBottom, joinTypes[2].Left, joinTypes[2].Right, "Dol");
-            AddElement(3, 0, leftY, (int)profileLeft, leftH, joinTypes[3].Left, joinTypes[3].Right, "Lewo");
+            AddElement(0, topX, 0, topW, (int)profileTop, joinTypes[0].Left, joinTypes[0].Right, "Gora", model.FirstOrDefault(r => r.WystepujeGora)?.RowId ?? Guid.Empty); // RowId lub wartość domyślna);
+            AddElement(1, 0, rightY, (int)profileRight, rightH, joinTypes[1].Left, joinTypes[1].Right, "Prawo", model.FirstOrDefault(r => r.WystepujePrawa)?.RowId ?? Guid.Empty);
+            AddElement(2, bottomX, 0, bottomW, (int)profileBottom, joinTypes[2].Left, joinTypes[2].Right, "Dol", model.FirstOrDefault(r => r.WystepujeDol)?.RowId ?? Guid.Empty);
+            AddElement(3, 0, leftY, (int)profileLeft, leftH, joinTypes[3].Left, joinTypes[3].Right, "Lewo", model.FirstOrDefault(r => r.WystepujeLewa)?.RowId ?? Guid.Empty);
         }
 
         private void GenerateTriangleElements(List<XPoint> outer, List<XPoint> inner,
@@ -311,14 +323,16 @@ namespace GEORGE.Client.Pages.Okna
                     WypelnienieZewnetrzne = "wood-pattern",
                     WypelnienieWewnetrzne = KolorSzyby,
                     Grupa = grupa,
-                    ZIndex = Zindesk,
+                    ZIndex = Zindeks,
                 });
             }
         }
         private void GenerateGenericElementsWithJoins(
             List<XPoint> outer, List<XPoint> inner,
             float profileLeft, float profileRight, float profileTop, float profileBottom,
-            string typKsztalt, string polaczenia, List<KonfSystem> model)
+            string typKsztalt, string polaczenia, List<KonfSystem> model, string regionId,
+            Guid rowIdprofileLeft, Guid rowIdprofileRight, Guid rowIdprofileTop, Guid rowIdprofileBottom,
+            string NazwaObiektu)
         {
             int vertexCount = outer.Count;
             if (vertexCount < 3)
@@ -346,7 +360,6 @@ namespace GEORGE.Client.Pages.Okna
             }
 
             var polaczeniaArray = parsedConnections.ToArray();
-
 
             for (int i = 0; i < vertexCount; i++)
             {
@@ -395,13 +408,13 @@ namespace GEORGE.Client.Pages.Okna
 
                 List<XPoint> wierzcholki;
 
-                Console.WriteLine($"▶️ DEBUG: Generating element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin}");
+                //Console.WriteLine($"▶️ DEBUG: Generating element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin}");
 
                 if (leftJoin == "T1" && rightJoin == "T1" || leftJoin == "T1" && rightJoin == "T4" || leftJoin == "T4" && rightJoin == "T1" || leftJoin == "T4" && rightJoin == "T4")
                 {
                     if (isAlmostHorizontal)
                     {
-                        Console.WriteLine($"🔷 Horizontal case for element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical}");
+                        //Console.WriteLine($"🔷 Horizontal case for element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical}");
                         // Przecięcia z konturem na bazie normalnej
                         var outerVecStart = FindFirstEdgeIntersection(outerStart, nx, ny, outer);
                         var outerVecEnd = FindFirstEdgeIntersection(outerEnd, nx, ny, outer);
@@ -420,11 +433,11 @@ namespace GEORGE.Client.Pages.Okna
                     }
                     else
                     {
-                        Console.WriteLine($"🔷 Vertical case for element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical}");
+                        //Console.WriteLine($"🔷 Vertical case for element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical}");
 
                         if(leftJoin == "T1" && rightJoin == "T4" && vertexCount > 4)
                         {
-                            Console.WriteLine($"🔷 Horizontal case for element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical}");
+                          //  Console.WriteLine($"🔷 Horizontal case for element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical}");
                             // Przecięcia z konturem na bazie normalnej
                             var outerVecStart = FindFirstEdgeIntersection(outerStart, nx, ny, outer);
                             var outerVecEnd = FindFirstEdgeIntersection(outerEnd, nx, ny, outer);
@@ -479,7 +492,7 @@ namespace GEORGE.Client.Pages.Okna
                 }
                 else if (leftJoin == "T3" && rightJoin == "T3")
                 {
-                    Console.WriteLine($"🔷 T3/T3 element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical}");
+                    //Console.WriteLine($"🔷 T3/T3 element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical}");
 
                     if (isAlmostVertical)
                     {
@@ -579,7 +592,7 @@ namespace GEORGE.Client.Pages.Okna
                 }
                 else if (leftJoin == "T2" && rightJoin == "T2")
                 {
-                    Console.WriteLine($"🔷 T2/T2 element {i + 1} - styczne ścięcia pod kątem");
+                   // Console.WriteLine($"🔷 T2/T2 element {i + 1} - styczne ścięcia pod kątem");
                     // Przecięcia z konturem na bazie normalnej
                     var outerVecStart = FindFirstEdgeIntersection(outerStart, nx, ny, outer);
                     var outerVecEnd = FindFirstEdgeIntersection(outerEnd, nx, ny, outer);
@@ -625,16 +638,61 @@ namespace GEORGE.Client.Pages.Okna
                     };
                 }
 
-                ElementyRamyRysowane.Add(new KsztaltElementu
-                {
-                    TypKsztaltu = typKsztalt,
-                    Wierzcholki = wierzcholki,
-                    WypelnienieZewnetrzne = "wood-pattern",
-                    WypelnienieWewnetrzne = KolorSzyby,
-                    Grupa = $"Bok{i + 1}",
-                    ZIndex = Zindesk,
-                });
-
+                switch (i)
+                    {
+                    case 0:
+                        ElementyRamyRysowane.Add(new KsztaltElementu
+                        {
+                            TypKsztaltu = typKsztalt,
+                            Wierzcholki = wierzcholki,
+                            WypelnienieZewnetrzne = "wood-pattern",
+                            WypelnienieWewnetrzne = KolorSzyby,
+                            Grupa = NazwaObiektu + $" Dół-{i + 1}",
+                            ZIndex = Zindeks,
+                            RowIdElementu = rowIdprofileBottom,
+                            IdRegion = regionId,
+                        });
+                        break;
+                    case 1:
+                        ElementyRamyRysowane.Add(new KsztaltElementu
+                        {
+                            TypKsztaltu = typKsztalt,
+                            Wierzcholki = wierzcholki,
+                            WypelnienieZewnetrzne = "wood-pattern",
+                            WypelnienieWewnetrzne = KolorSzyby,
+                            Grupa = NazwaObiektu + $" Lewa-{i + 1}",
+                            ZIndex = Zindeks,
+                            RowIdElementu = rowIdprofileLeft,
+                            IdRegion = regionId,
+                        });
+                        break;
+                    case 2:
+                        ElementyRamyRysowane.Add(new KsztaltElementu
+                        {
+                            TypKsztaltu = typKsztalt,
+                            Wierzcholki = wierzcholki,
+                            WypelnienieZewnetrzne = "wood-pattern",
+                            WypelnienieWewnetrzne = KolorSzyby,
+                            Grupa = NazwaObiektu + $" Góra-{i + 1}",
+                            ZIndex = Zindeks,
+                            RowIdElementu = rowIdprofileTop,
+                            IdRegion = regionId,
+                        });
+                        break;
+                    case 3:
+                        ElementyRamyRysowane.Add(new KsztaltElementu
+                        {
+                            TypKsztaltu = typKsztalt,
+                            Wierzcholki = wierzcholki,
+                            WypelnienieZewnetrzne = "wood-pattern",
+                            WypelnienieWewnetrzne = KolorSzyby,
+                            Grupa = NazwaObiektu + $" Prawa-{i + 1}",
+                            ZIndex = Zindeks,
+                            RowIdElementu = rowIdprofileRight,
+                            IdRegion = regionId,
+                        }); ;
+                        break;
+                }
             }
         }
 

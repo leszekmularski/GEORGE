@@ -32,14 +32,18 @@ namespace GEORGE.Shared.Models
         public double? PoziomDodatkowa6 { get; set; }
         public double? PoziomDodatkowa7 { get; set; }
         public double? PoziomOsSymetrii { get; set; }
+
         public string? Indeks { get; set; }
         public string? Nazwa { get; set; }
         public string? Typ { get; set; } // Typ- Rama, skrzydło, słupek ruchomy, słupek stały
+
         public bool CzyMozeBycFix { get; set; } = false;
+
         public bool WystepujeDol { get; set; } = false;
         public bool WystepujeLewa { get; set; } = false;
         public bool WystepujeGora { get; set; } = false;
         public bool WystepujePrawa { get; set; } = false;
+
         public int? KatWystapieniaZakresOdMin { get; set; } = 0;
         public int? KatWystapieniaZakresOdMax { get; set; } = 360;
         public int? ZakresStosDlugoscOdMin { get; set; } = 0;
@@ -85,6 +89,7 @@ namespace GEORGE.Shared.Models
         public byte[] Rysunek { get; set; } = Array.Empty<byte>();
 
         public DateTime DataZapisu { get; set; } = DateTime.Now;
+
         public string? KtoZapisal { get; set; } = "NaN";
 
         [NotMapped]

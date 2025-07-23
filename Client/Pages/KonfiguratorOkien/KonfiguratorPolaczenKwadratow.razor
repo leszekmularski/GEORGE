@@ -617,15 +617,10 @@
 
 </script>
 
-
 <div class="container-fluid mt-3">
     <div class="row mb-3">
         <div class="col">
             <div class="d-flex align-items-center gap-3">
-                <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
-                    <Button class="btn btn-outline-secondary" Icon="@IconType.Fill.Backward"
-                            Style="width: 35px;" OnClick="GoBack" />
-                </Tooltip>
 
                 <div class="flex-grow-1">
                     <label class="form-label">Wybierz system:</label>
@@ -637,6 +632,11 @@
                         }
                     </select>
                 </div>
+
+                <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
+                    <Button class="btn btn-outline-secondary" Icon="@IconType.Fill.Backward"
+                            Style="width: 35px;" OnClick="GoBack" />
+                </Tooltip>
             </div>
         </div>
     </div>
@@ -719,6 +719,10 @@
                                 <div class="side-checkbox">
                                     <input type="checkbox" @bind="selPrawa" id="str_prawa" onclick="@DelSvg" />
                                     <label for="str_prawa">Prawa</label>
+                                </div>
+                                <div class="side-checkbox">
+                                    <input type="checkbox" @bind="selSlRuchomy" id="str_prawa" onclick="@DelSvg" />
+                                    <label for="str_prawa">Słupek ruchomu</label>
                                 </div>
                             </div>
 
@@ -881,16 +885,18 @@
     private bool selLewa = false;
     private bool selPrawa = false;
 
+    private bool selSlRuchomy = false;
+
     // Modele SVG
     private KonfSystem? pierwszyModel;
     private KonfSystem? drugiModel;
     private string combinedSvg = string.Empty;
     private double offsetX = 0;
     private double offsetY = 0;
-    private double luzLewo = 50;  // Zwiększony luz
-    private double luzPrawo = 50;
-    private double luzGora = 50;
-    private double luzDol = 50;
+    private double luzLewo = 25;  // Zwiększony luz
+    private double luzPrawo = 25;
+    private double luzGora = 25;
+    private double luzDol = 25;
 
     private double przesuniecieX;
     private double przesuniecieY;
@@ -996,12 +1002,15 @@
 
         SelectedModelId = "";
 
+        Console.WriteLine("WybierzModel - START");
+
         try
         {
             var response = await Http.GetAsync($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{model.RowId}");
             if (!response.IsSuccessStatusCode)
             {
                 BladKonfiguracji = $"Błąd: {response.StatusCode}";
+                Console.WriteLine(BladKonfiguracji);
                 return;
             }
 
@@ -1009,20 +1018,61 @@
             if (result?.KonfSystem == null || result.KonfSystem.Count == 0)
             {
                 BladKonfiguracji = "Brak danych powiązanych";
+                Console.WriteLine(BladKonfiguracji);
                 return;
             }
 
             SelectedModelId = model.RowId.ToString();
 
-            var pasujacy = result.KonfSystem.FirstOrDefault(x =>
-                (stronaDol && x.WystepujeDol) ||
-                (stronaGora && x.WystepujeGora) ||
-                (stronaLewa && x.WystepujeLewa) ||
-                (stronaPrawa && x.WystepujePrawa));
+            var warunki = new List<Func<KonfSystem, bool>>();
+
+            if (stronaDol) warunki.Add(x => x.WystepujeDol);
+            if (stronaGora) warunki.Add(x => x.WystepujeGora);
+            if (stronaLewa) warunki.Add(x => x.WystepujeLewa);
+            if (stronaPrawa) warunki.Add(x => x.WystepujePrawa);
+
+            if (pierwszyModel != null)
+            {
+                if (selSlRuchomy) warunki.Add(x => x.Typ == "Słupek ruchomy");
+            }
+
+            // Filtrujemy rekordy spełniające WSZYSTKIE warunki
+            var pasujaceSystemy = result.KonfSystem.Where(x => warunki.All(w => w(x))).ToList();
+
+            // Jeśli nie ma dokładnie jednego pasującego rekordu → błąd
+            if (pasujaceSystemy.Count != 1)
+            {
+                BladKonfiguracji = pasujaceSystemy.Count == 0
+                    ? "Nie znaleziono pasującego systemu konfiguracyjnego. Zmień występowanie elementu. Np. zaznacz tylko lewy/górny/prawy!"
+                    : $"Znaleziono {pasujaceSystemy.Count} pasujących systemów. Wymagane jest dokładnie jedno dopasowanie.";
+                await _message.Info(BladKonfiguracji);
+                Console.WriteLine(BladKonfiguracji);
+                return;
+            }
+
+            // Pobieramy JEDYNY pasujący rekord
+            var pasujacy = pasujaceSystemy.First();
+
+            // Sprawdzamy, czy wszystkie pasujące rekordy mają ten sam Indeks
+            if (pasujaceSystemy.Select(x => x.Indeks).Distinct().Count() > 1)
+            {
+                BladKonfiguracji = $"Model jest zbudowany z więcej niż jednego typu elementów. Prawdopodobnie element dolny może być różny od pozostałych. Pomiń jedną ze stron i sprawdź! [Znalezione indeksy: {string.Join(", ", pasujaceSystemy.Select(x => x.Indeks).Distinct())}]";
+                await _message.Info(BladKonfiguracji);
+                Console.WriteLine(BladKonfiguracji);
+                return;
+            }
+
+            // var pasujacy = result.KonfSystem.FirstOrDefault(x =>
+            //     (stronaDol && x.WystepujeDol) ||
+            //     (stronaGora && x.WystepujeGora) ||
+            //     (stronaLewa && x.WystepujeLewa) ||
+            //     (stronaPrawa && x.WystepujePrawa));
 
             if (pasujacy == null)
             {
-                BladKonfiguracji = "Nie znaleziono pasującego elementu. Zmień występowanie elementu.";
+                BladKonfiguracji = "Nie znaleziono pasującego elementu. Zmień występowanie elementu. Np. zaznacz tylko lewy/górny/prawy!";
+                await _message.Info(BladKonfiguracji);
+                Console.WriteLine(BladKonfiguracji);
                 return;
             }
 
@@ -1050,10 +1100,13 @@
 
             }
 
+            Console.WriteLine($"Wybór modelu: KONIEC");
+
         }
         catch (Exception ex)
         {
             BladKonfiguracji = $"Błąd: {ex.Message}";
+            Console.WriteLine(BladKonfiguracji);
         }
     }
 

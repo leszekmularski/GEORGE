@@ -32,6 +32,9 @@ namespace GEORGE.Client.Pages.Okna
         // Opcjonalnie: warstwa rysowania
         public int ZIndex { get; set; } = 0;
 
+        // RoIdElemntu zapisanego w bazie danych
+        public Guid RowIdElementu { get; set; }
+
         // Opcjonalna grupa logiczna (np. "rama", "szyba", "skrzydlo")
         public string? Grupa { get; set; }
         //Informacje o długości elementy

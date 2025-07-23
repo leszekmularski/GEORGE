@@ -64,14 +64,14 @@ namespace GEORGE.Server.Controllers
             }
         }
 
-        // ✅ GET: api/konfpolaczenie/row-id-system/{rowidSystem}
-        [HttpGet("row-id-model/{rowidModel:guid}")]
-        public async Task<ActionResult<List<KonfPolaczenie>>> GetByRowIdModel(Guid rowidModel)
+        // ✅ GET: api/konfpolaczenie/row-id-model/{rowidModelSelect}
+        [HttpGet("row-id-model/{rowidModelSelect:guid}")]
+        public async Task<ActionResult<List<KonfPolaczenie>>> GetByRowIdModel(Guid rowidModelSelect)
         {
             try
             {
                 var records = await _context.KonfPolaczenie
-                    .Where(p => p.RowIdModelu == rowidModel)
+                    .Where(p => p.RowIdModelu == rowidModelSelect)
                     .ToListAsync();
 
                 if (records == null || records.Count == 0)
@@ -84,7 +84,6 @@ namespace GEORGE.Server.Controllers
                 return StatusCode(500, $"Błąd serwera: {ex.Message}");
             }
         }
-
 
         // ✅ POST: api/konfpolaczenie
         [HttpPost]

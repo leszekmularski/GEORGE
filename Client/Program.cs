@@ -44,6 +44,9 @@ builder.Services.AddScoped<ImageGenerator>();
 //Przekazywanie danych do SVG
 builder.Services.AddSingleton<ShapeTransferService>();
 
+//Przekazywanie danych do Konstrukcji Okien
+builder.Services.AddSingleton<GeneratorStateContainer>();
+
 builder.Services.AddScoped(sp =>
 {
     var httpClient = new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) };
