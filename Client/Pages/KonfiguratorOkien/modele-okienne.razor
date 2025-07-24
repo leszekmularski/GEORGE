@@ -30,561 +30,561 @@
 @implements IDisposable
 
 <script>
-    (() => {
-    // Inicjalizacja globalnych zmiennych
-    const _originalInvoke = DotNet.invokeMethodAsync;
-    DotNet.invokeMethodAsync = function (assemblyName, methodName, ...args) {
-        console.log(`🔍 DotNet.invokeMethodAsync intercepted: ${assemblyName}.${methodName}`, args);
-        return _originalInvoke(assemblyName, methodName, ...args)
-            .catch(err => {
-                console.warn("❌ Intercepted DotNet.invokeMethodAsync error:", err);
-                throw err;
-            });
-    };
-
-    window._dragListenersInitialized = window._dragListenersInitialized || false;
-
-    window.currentDraggedModel = null;
-    window.currentDraggedType = null;
-    window.isDragging = false;
-    window.blazorCanvas = null;
-
-    // Ustawienie referencji do canvasu
-    window.setCanvasRef = (canvasRef) => {
-    if (!canvasRef) {
-    console.error("❌ Blazor przekazał null do setCanvasRef!");
-    return;
-    }
-    window.blazorCanvas = canvasRef;
-    console.log("✅ Canvas ustawiony!", canvasRef);
-    };
-
-    // Ustawienie referencji do .NET
-    window.setDotNetHelper = (dotNetHelper) => {
-    window.dotNetHelper = dotNetHelper;
-    console.log("✅ DotNetHelper ustawiony!");
-    };
-
-    // Funkcja rozpoczynająca przeciąganie
-    window.startDrag = (modelType, event) => {
-    if (event.button !== 0) return; // Obsługa tylko lewego przycisku myszy
-
-    event.preventDefault();
-    window.isDragging = true;
-    window.currentDraggedType = modelType;
-
-    // Pobranie obrazka do ustawienia jako kursor
-    const img = document.getElementById(`wing-${modelType}`);
-    if (!img) {
-    console.error(`❌ Nie znaleziono obrazka dla modelu: ${modelType}`);
-    return;
-    }
-
-    // Tworzymy nowy obrazek, który będzie podążał za kursorem
-    const cursorImg = new Image();
-    cursorImg.src = img.src;
-    cursorImg.style.position = "absolute";
-    cursorImg.style.pointerEvents = "none";
-    cursorImg.style.width = "50px";
-    cursorImg.style.height = "50px";
-    cursorImg.style.opacity = "0.8";
-    cursorImg.id = "dragCursorImage";
-
-    document.body.appendChild(cursorImg);
-    window.currentDraggedImage = cursorImg;
-
-    // Aktualizacja pozycji obrazka pod kursorem
-    window.updateCursorImagePosition(event);
-    };
-
-    //     // Aktualizacja pozycji obrazka kursora
-    // window.updateCursorImagePosition = (event) => {
-    //         if (!window.isDragging || !window.currentDraggedImage) return;
-    //         window.currentDraggedImage.style.left = `${event.pageX - 25}px`;
-    //         window.currentDraggedImage.style.top = `${event.pageY - 25}px`;
-    //     };
-
-    // Funkcja kończąca przeciąganie
-
-    if (!window._stopDragDefined) {
-        window.stopDrag = async function (event) {
-            if (!window.isDragging) return;
-
-            window.isDragging = false;
-
-            if (window.currentDraggedImage) {
-                document.body.removeChild(window.currentDraggedImage);
-                window.currentDraggedImage = null;
-            }
-
-            if (!window.blazorCanvas) {
-                console.error("❌ Brak referencji do canvasu!");
-                return;
-            }
-
-            const rect = window.blazorCanvas.getBoundingClientRect();
-            const x = event.clientX - rect.left;
-            const y = event.clientY - rect.top;
-
-            console.log(`🛑 Upuszczono model: ${window.currentDraggedType} na (${x}, ${y})`);
-
-            if (window.dotNetHelper) {
-                try {
-                    await window.dotNetHelper.invokeMethodAsync('OnDragEnd', window.currentDraggedType, x, y);
-                } catch (err) {
-                    console.warn("❌ invokeMethodAsync (OnDragEnd) nie powiodło się:", err);
-                    window.dotNetHelper = null;
-                }
-            }
-
-            window.currentDraggedType = null;
+        (() => {
+        // Inicjalizacja globalnych zmiennych
+        const _originalInvoke = DotNet.invokeMethodAsync;
+        DotNet.invokeMethodAsync = function (assemblyName, methodName, ...args) {
+            console.log(`🔍 DotNet.invokeMethodAsync intercepted: ${assemblyName}.${methodName}`, args);
+            return _originalInvoke(assemblyName, methodName, ...args)
+                .catch(err => {
+                    console.warn("❌ Intercepted DotNet.invokeMethodAsync error:", err);
+                    throw err;
+                });
         };
 
+        window._dragListenersInitialized = window._dragListenersInitialized || false;
+
+        window.currentDraggedModel = null;
+        window.currentDraggedType = null;
+        window.isDragging = false;
+        window.blazorCanvas = null;
+
+        // Ustawienie referencji do canvasu
+        window.setCanvasRef = (canvasRef) => {
+        if (!canvasRef) {
+        console.error("❌ Blazor przekazał null do setCanvasRef!");
+        return;
+        }
+        window.blazorCanvas = canvasRef;
+        console.log("✅ Canvas ustawiony!", canvasRef);
+        };
+
+        // Ustawienie referencji do .NET
+        window.setDotNetHelper = (dotNetHelper) => {
+        window.dotNetHelper = dotNetHelper;
+        console.log("✅ DotNetHelper ustawiony!");
+        };
+
+        // Funkcja rozpoczynająca przeciąganie
+        window.startDrag = (modelType, event) => {
+        if (event.button !== 0) return; // Obsługa tylko lewego przycisku myszy
+
+        event.preventDefault();
+        window.isDragging = true;
+        window.currentDraggedType = modelType;
+
+        // Pobranie obrazka do ustawienia jako kursor
+        const img = document.getElementById(`wing-${modelType}`);
+        if (!img) {
+        console.error(`❌ Nie znaleziono obrazka dla modelu: ${modelType}`);
+        return;
+        }
+
+        // Tworzymy nowy obrazek, który będzie podążał za kursorem
+        const cursorImg = new Image();
+        cursorImg.src = img.src;
+        cursorImg.style.position = "absolute";
+        cursorImg.style.pointerEvents = "none";
+        cursorImg.style.width = "50px";
+        cursorImg.style.height = "50px";
+        cursorImg.style.opacity = "0.8";
+        cursorImg.id = "dragCursorImage";
+
+        document.body.appendChild(cursorImg);
+        window.currentDraggedImage = cursorImg;
+
+        // Aktualizacja pozycji obrazka pod kursorem
+        window.updateCursorImagePosition(event);
+        };
+
+        //     // Aktualizacja pozycji obrazka kursora
+        // window.updateCursorImagePosition = (event) => {
+        //         if (!window.isDragging || !window.currentDraggedImage) return;
+        //         window.currentDraggedImage.style.left = `${event.pageX - 25}px`;
+        //         window.currentDraggedImage.style.top = `${event.pageY - 25}px`;
+        //     };
+
+        // Funkcja kończąca przeciąganie
+
+        if (!window._stopDragDefined) {
+            window.stopDrag = async function (event) {
+                if (!window.isDragging) return;
+
+                window.isDragging = false;
+
+                if (window.currentDraggedImage) {
+                    document.body.removeChild(window.currentDraggedImage);
+                    window.currentDraggedImage = null;
+                }
+
+                if (!window.blazorCanvas) {
+                    console.error("❌ Brak referencji do canvasu!");
+                    return;
+                }
+
+                const rect = window.blazorCanvas.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+
+                console.log(`🛑 Upuszczono model: ${window.currentDraggedType} na (${x}, ${y})`);
+
+                if (window.dotNetHelper) {
+                    try {
+                        await window.dotNetHelper.invokeMethodAsync('OnDragEnd', window.currentDraggedType, x, y);
+                    } catch (err) {
+                        console.warn("❌ invokeMethodAsync (OnDragEnd) nie powiodło się:", err);
+                        window.dotNetHelper = null;
+                    }
+                }
+
+                window.currentDraggedType = null;
+            };
+
+            document.addEventListener("mouseup", window.stopDrag);
+            window._stopDragDefined = true;
+        }
+
+
+        // Obsługa aktualizacji kursora
+        document.addEventListener("mousemove", window.updateCursorImagePosition);
+
+        // Obsługa upuszczenia obrazka
+       if (!window._dragListenersInitialized) {
         document.addEventListener("mouseup", window.stopDrag);
-        window._stopDragDefined = true;
-    }
-
-
-    // Obsługa aktualizacji kursora
-    document.addEventListener("mousemove", window.updateCursorImagePosition);
-
-    // Obsługa upuszczenia obrazka
-   if (!window._dragListenersInitialized) {
-    document.addEventListener("mouseup", window.stopDrag);
-    document.addEventListener("mousemove", window.updateCursorImagePosition);
-    window._dragListenersInitialized = true;
-    }
-
-
-
-    window.SetCustomCursor = (base64Image) => {
-    console.log("🔵 Ustawiam kursor na Base64!");
-
-    const cursorUrl = `data:image/png;base64,${base64Image}`;
-    document.body.style.cursor = `url(${cursorUrl}) 8 8, auto`;
-
-    // console.log(`🖱 Kursor ustawiony globalnie: ${cursorUrl}`);
-    };
-
-    window.ResetCursor = () => {
-    console.log("🔄 Resetowanie kursora");
-    document.querySelector(".canvas-container").style.cursor = "default";
-    document.querySelector("canvas").style.cursor = "default";
-    };
-
-    // JavaScript
-    window.AddCanvasHoverListener = (canvasElement) => {
-    canvasElement.addEventListener('mousemove', () => {
-    // Wymusza aktualizację kursora, jeśli został już ustawiony
-    if (document.body.style.cursor.includes('url')) {
-    document.body.style.cursor = document.body.style.cursor;
-    }
-    });
-    };
-
-    // Funkcja do ładowania tekstury
-    window.loadAndDrawTexture = async (canvasElement, imageUrl, dotNetHelper) => {
-    const ctx = canvasElement.getContext('2d');
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.src = imageUrl;
-
-    await new Promise((resolve, reject) => {
-    img.onload = () => resolve();
-    img.onerror = reject;
-    //console.log("🔍 dotNetHelper:", dotNetHelper);
-    });
-
-    const pattern = ctx.createPattern(img, 'repeat');
-    ctx.fillStyle = pattern;
-
-    // ❗ Dodaj tę linię, aby wypełnić aktualną ścieżkę!
-    ctx.fill("evenodd");
-
-    ctx.canvas.dataset.pattern = "wood-pattern";
-    
-    if (dotNetHelper) {
-        try {
-            await dotNetHelper.invokeMethodAsync('OnTextureLoaded');
-        } catch (err) {
-            console.warn("❌ OnTextureLoaded invoke failed", err);
-        }
-    }
-    };
-
-    // Globalny reset kursora z obsługą wszystkich przeglądarek
-    window.ResetCursorGlobal = () => {
-    // Reset dla wszystkich możliwych elementów
-    document.documentElement.style.cursor = 'default';
-    document.body.style.cursor = 'default';
-    document.querySelector('.canvas-container').style.cursor = 'default';
-
-    // Wymuś natychmiastowe odświeżenie
-    const style = document.createElement('style');
-    style.innerHTML = '*{cursor: default !important;}';
-    document.head.appendChild(style);
-    setTimeout(() => document.head.removeChild(style), 100);
-    };
-
-    let currentModel = null;
-
-    window.SetCurrentModel = (modelType, modelRowId) => {
-    currentModel = modelType;
-    window.currentDraggedModel = {
-    type: modelType,
-    rowId: modelRowId
-    };
-
-    document.documentElement.setAttribute('data-current-model', modelType);
-    document.documentElement.setAttribute('data-model-row-id', modelRowId);
-    console.log(`📦 Ustawiono model: ${modelType}, ID: ${modelRowId}`);
-    };
-
-    window.getDraggedModelInfo = () => {
-    if (!window.currentDraggedModel) {
-    console.warn("⚠️ currentDraggedModel is not set.");
-    return null;
-    }
-
-    return {
-    type: window.currentDraggedModel.type,
-    rowId: window.currentDraggedModel.rowId
-    };
-    };
-
-
-    window.clearCurrentModel = () => {
-    currentModel = null;
-    document.documentElement.removeAttribute('data-current-model');
-    };
-
-    // Blokuj domyślne zachowanie przeglądarki
-    document.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    });
-
-    window.getCanvasBoundingRect = function (canvasElement) {
-        if (!canvasElement) {
-            console.warn("❌ Canvas element is null in JS.");
-            return null;
+        document.addEventListener("mousemove", window.updateCursorImagePosition);
+        window._dragListenersInitialized = true;
         }
 
-        const rect = canvasElement.getBoundingClientRect();
+
+
+        window.SetCustomCursor = (base64Image) => {
+        console.log("🔵 Ustawiam kursor na Base64!");
+
+        const cursorUrl = `data:image/png;base64,${base64Image}`;
+        document.body.style.cursor = `url(${cursorUrl}) 8 8, auto`;
+
+        // console.log(`🖱 Kursor ustawiony globalnie: ${cursorUrl}`);
+        };
+
+        window.ResetCursor = () => {
+        console.log("🔄 Resetowanie kursora");
+        document.querySelector(".canvas-container").style.cursor = "default";
+        document.querySelector("canvas").style.cursor = "default";
+        };
+
+        // JavaScript
+        window.AddCanvasHoverListener = (canvasElement) => {
+        canvasElement.addEventListener('mousemove', () => {
+        // Wymusza aktualizację kursora, jeśli został już ustawiony
+        if (document.body.style.cursor.includes('url')) {
+        document.body.style.cursor = document.body.style.cursor;
+        }
+        });
+        };
+
+        // Funkcja do ładowania tekstury
+        window.loadAndDrawTexture = async (canvasElement, imageUrl, dotNetHelper) => {
+        const ctx = canvasElement.getContext('2d');
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = imageUrl;
+
+        await new Promise((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = reject;
+        //console.log("🔍 dotNetHelper:", dotNetHelper);
+        });
+
+        const pattern = ctx.createPattern(img, 'repeat');
+        ctx.fillStyle = pattern;
+
+        // ❗ Dodaj tę linię, aby wypełnić aktualną ścieżkę!
+        ctx.fill("evenodd");
+
+        ctx.canvas.dataset.pattern = "wood-pattern";
+
+        if (dotNetHelper) {
+            try {
+                await dotNetHelper.invokeMethodAsync('OnTextureLoaded');
+            } catch (err) {
+                console.warn("❌ OnTextureLoaded invoke failed", err);
+            }
+        }
+        };
+
+        // Globalny reset kursora z obsługą wszystkich przeglądarek
+        window.ResetCursorGlobal = () => {
+        // Reset dla wszystkich możliwych elementów
+        document.documentElement.style.cursor = 'default';
+        document.body.style.cursor = 'default';
+        document.querySelector('.canvas-container').style.cursor = 'default';
+
+        // Wymuś natychmiastowe odświeżenie
+        const style = document.createElement('style');
+        style.innerHTML = '*{cursor: default !important;}';
+        document.head.appendChild(style);
+        setTimeout(() => document.head.removeChild(style), 100);
+        };
+
+        let currentModel = null;
+
+        window.SetCurrentModel = (modelType, modelRowId) => {
+        currentModel = modelType;
+        window.currentDraggedModel = {
+        type: modelType,
+        rowId: modelRowId
+        };
+
+        document.documentElement.setAttribute('data-current-model', modelType);
+        document.documentElement.setAttribute('data-model-row-id', modelRowId);
+        console.log(`📦 Ustawiono model: ${modelType}, ID: ${modelRowId}`);
+        };
+
+        window.getDraggedModelInfo = () => {
+        if (!window.currentDraggedModel) {
+        console.warn("⚠️ currentDraggedModel is not set.");
+        return null;
+        }
+
         return {
-            left: rect.left,
-            top: rect.top,
+        type: window.currentDraggedModel.type,
+        rowId: window.currentDraggedModel.rowId
+        };
+        };
+
+
+        window.clearCurrentModel = () => {
+        currentModel = null;
+        document.documentElement.removeAttribute('data-current-model');
+        };
+
+        // Blokuj domyślne zachowanie przeglądarki
+        document.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        });
+
+        window.getCanvasBoundingRect = function (canvasElement) {
+            if (!canvasElement) {
+                console.warn("❌ Canvas element is null in JS.");
+                return null;
+            }
+
+            const rect = canvasElement.getBoundingClientRect();
+            return {
+                left: rect.left,
+                top: rect.top,
+                width: rect.width,
+                height: rect.height
+            };
+        };
+
+        })();
+
+    window.clearDotNetHelper = () => {
+        console.log("🧹 Czyszczenie dotNetHelper. Stary:", window.dotNetHelper);
+        window.dotNetHelper = null;
+    };
+
+    window.getElementSize = (selector) => {
+        const el = document.querySelector(selector);
+        if (!el) return null;
+
+        const rect = el.getBoundingClientRect();
+        return {
             width: rect.width,
             height: rect.height
         };
     };
 
-    })();
-
-window.clearDotNetHelper = () => {
-    console.log("🧹 Czyszczenie dotNetHelper. Stary:", window.dotNetHelper);
-    window.dotNetHelper = null;
-};
-
-window.getElementSize = (selector) => {
-    const el = document.querySelector(selector);
-    if (!el) return null;
-
-    const rect = el.getBoundingClientRect();
-    return {
-        width: rect.width,
-        height: rect.height
-    };
-};
-
-window.registerResizeCallback = (dotnetHelper) => {
-    window.addEventListener("resize", () => {
-        dotnetHelper.invokeMethodAsync("UpdateCanvasSizeFromResize");
-    });
-};
-
-    window.registerResizeHandler = function (dotnetHelper) {
+    window.registerResizeCallback = (dotnetHelper) => {
         window.addEventListener("resize", () => {
             dotnetHelper.invokeMethodAsync("UpdateCanvasSizeFromResize");
         });
     };
+
+        window.registerResizeHandler = function (dotnetHelper) {
+            window.addEventListener("resize", () => {
+                dotnetHelper.invokeMethodAsync("UpdateCanvasSizeFromResize");
+            });
+        };
 
 </script>
 
 <style>
     /* Globalne ustawienia */
     html, body {
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    font-family: Arial, sans-serif;
-    background-color: #f8f9fa;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+        background-color: #f8f9fa;
     }
 
     /* Specjalna klasa dla resetu */
     .cursor-reset * {
-    cursor: default !important;
-    pointer-events: auto !important;
+        cursor: default !important;
+        pointer-events: auto !important;
     }
 
     /* Kontener główny */
     .window-model-container {
-    display: flex;
-    height: 70vh;
-    background-color: #fff;
-    padding: 10px;
-    box-sizing: border-box;
+        display: flex;
+        height: 70vh;
+        background-color: #fff;
+        padding: 10px;
+        box-sizing: border-box;
     }
 
     /* Panel boczny z modelami */
     .wing-model-container {
-    flex: 0 0 250px; /* Szerokość panelu bocznego */
-    height: 100%;
-    overflow-y: auto;
-    border-right: 2px solid #ddd;
-    padding: 10px;
-    background: #f8f9fa;
+        flex: 0 0 250px; /* Szerokość panelu bocznego */
+        height: 100%;
+        overflow-y: auto;
+        border-right: 2px solid #ddd;
+        padding: 10px;
+        background: #f8f9fa;
     }
 
-    /* Tabela modeli */
-    .wing-model-container table {
-    font-size: 13px;
-    width: 100%;
-    border-collapse: collapse;
-    }
+        /* Tabela modeli */
+        .wing-model-container table {
+            font-size: 13px;
+            width: 100%;
+            border-collapse: collapse;
+        }
 
-    .wing-model-container th, .wing-model-container td {
-    padding: 6px;
-    text-align: center;
-    }
+        .wing-model-container th, .wing-model-container td {
+            padding: 6px;
+            text-align: center;
+        }
 
-    .wing-model-container th {
-    background-color: #007bff;
-    color: white;
-    }
+        .wing-model-container th {
+            background-color: #007bff;
+            color: white;
+        }
 
-    .wing-model-container tr:hover {
-    background-color: rgba(0, 123, 255, 0.1);
-    }
+        .wing-model-container tr:hover {
+            background-color: rgba(0, 123, 255, 0.1);
+        }
 
-    /* Miniatury modeli */
-    .wing-model-container img {
-    width: 45px;
-    height: 45px;
-    object-fit: contain;
-    cursor: -webkit-grab; /* Obsługa w Safari */
-    cursor: grab;
-    transition: transform 0.2s ease-in-out;
-    }
+        /* Miniatury modeli */
+        .wing-model-container img {
+            width: 45px;
+            height: 45px;
+            object-fit: contain;
+            cursor: -webkit-grab; /* Obsługa w Safari */
+            cursor: grab;
+            transition: transform 0.2s ease-in-out;
+        }
 
-    .wing-model-container img:hover {
-    transform: scale(1.1);
-    }
+            .wing-model-container img:hover {
+                transform: scale(1.1);
+            }
 
     /* Główne okno wyświetlania */
     .display-window {
-    flex-grow: 1;
-    height: 100%;
-    min-height: 400px; /* Zapewnienie minimalnej wysokości */
-    border: 2px solid #ddd;
-    background-color: #fff;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 10px;
-    box-sizing: border-box;
-    position: relative;
-    overflow: hidden;
-    cursor: crosshair;
+        flex-grow: 1;
+        height: 100%;
+        min-height: 400px; /* Zapewnienie minimalnej wysokości */
+        border: 2px solid #ddd;
+        background-color: #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 10px;
+        box-sizing: border-box;
+        position: relative;
+        overflow: hidden;
+        cursor: crosshair;
     }
 
     .container {
-    position: relative;
-    width: 100%;
-    height: 100%;
+        position: relative;
+        width: 100%;
+        height: 100%;
     }
 
     .canvas-container {
-    width: @(CanvasWidth + "px");
-    height: @(CanvasHeight + "px");
-    pointer-events: none; /* Wyłącz interakcje z canvasem */
-    max-width: 100%;
-    max-height: 100%;
-    border: 2px solid #ddd;
-    background-color: #fff;
-    border-radius: 5px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: auto; /* Ukrywa przewijanie */
-    position: relative;
+        width: @(CanvasWidth + "px");
+        height: @(CanvasHeight + "px");
+        pointer-events: none; /* Wyłącz interakcje z canvasem */
+        max-width: 100%;
+        max-height: 100%;
+        border: 2px solid #ddd;
+        background-color: #fff;
+        border-radius: 5px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: auto; /* Ukrywa przewijanie */
+        position: relative;
     }
 
     canvas {
-    pointer-events: none; /* Kontynuuj ignorowanie zdarzeń */
-    display: block;
-    max-width: 100%;
-    max-height: 100%;
-    background-color: transparent;
+        pointer-events: none; /* Kontynuuj ignorowanie zdarzeń */
+        display: block;
+        max-width: 100%;
+        max-height: 100%;
+        background-color: transparent;
     }
 
     .interactive-layer {
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 2; /* Warstwa NAD canvasem */
-    pointer-events: auto; /* Włącz interakcje */
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 2; /* Warstwa NAD canvasem */
+        pointer-events: auto; /* Włącz interakcje */
     }
     /* Paski przewijania */
     .wing-model-container::-webkit-scrollbar {
-    width: 8px;
+        width: 8px;
     }
 
     .wing-model-container::-webkit-scrollbar-thumb {
-    background: #007bff;
-    border-radius: 5px;
+        background: #007bff;
+        border-radius: 5px;
     }
 
-    .wing-model-container::-webkit-scrollbar-thumb:hover {
-    background: #0056b3;
-    }
+        .wing-model-container::-webkit-scrollbar-thumb:hover {
+            background: #0056b3;
+        }
 
     /* 🔹 Toolbar z przyciskami */
     .toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    justify-content: center;
-    padding: 10px;
-    background: #fff;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        justify-content: center;
+        padding: 10px;
+        background: #fff;
     }
 
-    /* Styl dla przycisków */
-    .toolbar .btn {
-    flex: 1;
-    min-width: 90px;
-    font-size: 13px;
-    padding: 6px 8px;
-    transition: all 0.2s ease-in-out;
-    }
+        /* Styl dla przycisków */
+        .toolbar .btn {
+            flex: 1;
+            min-width: 90px;
+            font-size: 13px;
+            padding: 6px 8px;
+            transition: all 0.2s ease-in-out;
+        }
 
-    .toolbar .btn:hover {
-    transform: scale(1.05);
-    }
+            .toolbar .btn:hover {
+                transform: scale(1.05);
+            }
 
     .zoom-controls {
-    position: absolute;
-    top: 170px; /* Ustawienie 10px od góry */
-    right: 10px; /* Ustawienie 10px od prawej */
-    display: flex;
-    gap: 10px; /* Odstęp między przyciskami */
-    z-index: 1000; /* Upewnia się, że są na wierzchu */
+        position: absolute;
+        top: 170px; /* Ustawienie 10px od góry */
+        right: 10px; /* Ustawienie 10px od prawej */
+        display: flex;
+        gap: 10px; /* Odstęp między przyciskami */
+        z-index: 1000; /* Upewnia się, że są na wierzchu */
     }
 
     .btn-zoom {
-    width: 40px;
-    height: 40px;
-    font-size: 20px;
-    border-radius: 50%; /* Okrągłe przyciski */
-    border: none;
-    background-color: #007bff; /* Niebieski, możesz zmienić */
-    color: white;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); /* Delikatny cień */
-    transition: background-color 0.3s ease;
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+        border-radius: 50%; /* Okrągłe przyciski */
+        border: none;
+        background-color: #007bff; /* Niebieski, możesz zmienić */
+        color: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); /* Delikatny cień */
+        transition: background-color 0.3s ease;
     }
 
-    .btn-zoom:hover {
-    background-color: #0056b3; /* Ciemniejszy niebieski przy najechaniu */
-    }
+        .btn-zoom:hover {
+            background-color: #0056b3; /* Ciemniejszy niebieski przy najechaniu */
+        }
 
     /* Panel zajmuje pełną szerokość */
     .scrollable-panel {
-    width: 100%;
-    max-height: 400px; /* Możesz zmienić na więcej, np. 600px */
-    overflow-y: auto; /* Włącza przewijanie w pionie */
+        width: 100%;
+        max-height: 400px; /* Możesz zmienić na więcej, np. 600px */
+        overflow-y: auto; /* Włącza przewijanie w pionie */
     }
 
     /* Sider zajmuje całą szerokość */
     .info-panel {
-    background-color: #222;
-    color: #ffeb99;
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
-    width: 500px; /* Pełna szerokość */
-    max-width: 1000px;
+        background-color: #222;
+        color: #ffeb99;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
+        width: 500px; /* Pełna szerokość */
+        max-width: 1000px;
     }
 
     /* Lista informacji */
     .info-list {
-    list-style: none;
-    padding: 0;
-    width: 760px;
+        list-style: none;
+        padding: 0;
+        width: 760px;
     }
 
     /* Każdy element ma własne miejsce */
     .info-item {
-    background: #333;
-    padding: 12px;
-    border-radius: 6px;
-    margin-bottom: 10px;
-    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    width: 760px;
+        background: #333;
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 10px;
+        box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        width: 760px;
     }
 
-    /* Tekst jasnożółty */
-    .info-item span {
-    color: #ffeb99;
-    font-size: 1em;
-    }
+        /* Tekst jasnożółty */
+        .info-item span {
+            color: #ffeb99;
+            font-size: 1em;
+        }
 
-    .info-item strong {
-    color: #ffcc00;
-    }
+        .info-item strong {
+            color: #ffcc00;
+        }
 
     /* Obsługa braku danych */
     .no-data {
-    color: red;
-    text-align: center;
-    font-style: italic;
+        color: red;
+        text-align: center;
+        font-style: italic;
     }
 
     /* Lista materiałów */
     .materials-list {
-    list-style: none;
-    padding: 0;
-    width: 100%;
+        list-style: none;
+        padding: 0;
+        width: 100%;
     }
 
     /* Pojedynczy materiał */
     .material-item {
-    background: #333;
-    padding: 12px;
-    border-radius: 6px;
-    margin-bottom: 10px;
-    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    width: 100%;
+        background: #333;
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 10px;
+        box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        width: 100%;
     }
 
-    /* Kolor jasny dla tekstu */
-    .material-item span {
-    color: #ffeb99;
-    font-size: 1em;
-    }
+        /* Kolor jasny dla tekstu */
+        .material-item span {
+            color: #ffeb99;
+            font-size: 1em;
+        }
 
-    .material-item strong {
-    color: #ffcc00;
-    }
+        .material-item strong {
+            color: #ffcc00;
+        }
 
 </style>
 
@@ -615,6 +615,7 @@ window.registerResizeCallback = (dotnetHelper) => {
             <input type="color" class="form-control" @bind="Kolor" />
         </div>
         <Button OnClick="() => ZmienWymiaryOkna()">Zmień wymiary</Button>
+        <Button OnClick="() => ZmienNaSymetrieWymiaryOkna()">Podziału ustaw symetrycznie</Button>
     </Panel>
 
     <Panel Header="Informacja o wyrobie restrykcje" Key="2" class="scrollable-panel">
@@ -716,17 +717,17 @@ window.registerResizeCallback = (dotnetHelper) => {
                                 @if (model.Rysunek != null && model.Ikona32x32.Length > 0)
                                 {
                                     <img id="@($"wing-{model.Typ}")"
-                                    src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
-                                    @onclick='@(() => WybierzModel(model))'
-                                    @ondragstart='@(e => JS.InvokeVoidAsync("SetCurrentModel", model.Typ, model.RowId))'
-                                    @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
-                                    draggable="true"
-                                    style="cursor: grab;
-                                  width: auto;
-                                  height: auto;
-                                  max-width: 50px;
-                                  max-height: 50px;
-                                  border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
+                                         src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
+                                         @onclick='@(() => WybierzModel(model))'
+                                         @ondragstart='@(e => JS.InvokeVoidAsync("SetCurrentModel", model.Typ, model.RowId))'
+                                         @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
+                                         draggable="true"
+                                         style="cursor: grab;
+                                              width: auto;
+                                              height: auto;
+                                              max-width: 50px;
+                                              max-height: 50px;
+                                              border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
 
                                 }
                                 else
@@ -742,8 +743,8 @@ window.registerResizeCallback = (dotnetHelper) => {
     </div>
 
     <!-- Główne okno wyświetlania -->
-    <div class="display-window" @onmouseup="OnMouseUp"  @onmousemove="MouseMove"
-    style="position: relative; /* Wymagane dla warstw */
+    <div class="display-window" @onmouseup="OnMouseUp" @onmousemove="MouseMove"
+         style="position: relative; /* Wymagane dla warstw */
             overflow: visible; /* Zapobiega przycinaniu kursora */
             cursor: inherit; /* Dziedziczy kursor z JS */">
 
@@ -763,7 +764,7 @@ window.registerResizeCallback = (dotnetHelper) => {
 </div>
 
 <div class="modal fade @classShowTWZ" tabindex="-1"
-style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 80%;">
+     style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 80%;">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
@@ -783,7 +784,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                                     <strong>Grupa:</strong> @ksztalt.Grupa &nbsp;|&nbsp;
                                     <strong>ZIndex:</strong> @ksztalt.ZIndex &nbsp;|&nbsp;
                                     <strong>RowIdElementu:</strong> @ksztalt.RowIdElementu
-                                    <br/>
+                                    <br />
                                     <strong>IdRegion:</strong> @ksztalt.IdRegion
                                 </div>
                                 <button class="btn btn-sm btn-primary" @onclick="@(() => EdytujKsztalt(ksztalt.Id))">Edytuj</button>
@@ -837,7 +838,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                                         }
                                     </ul>
                                 }
-                         </div>
+                            </div>
                         </div>
                     }
 
@@ -1007,7 +1008,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
                         </TabPane>
                     </Tabs>
-  
+
                 }
                 else
                 {
@@ -1186,7 +1187,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 <Modal Title="Podgląd danych wygenerowanych "
        Visible="@_generatorState"
        OnOk="@HandleCancel"
-       OnCancel="@HandleCancel" 
+       OnCancel="@HandleCancel"
        Maximizable="@true"
        Centered="@true"
        DefaultMaximized="@true">
@@ -1269,7 +1270,6 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
             _shapes = ShapeService.Shapes;
 
-
             if (_shapes != null && _shapes.Count() > 0)
             {
 
@@ -1305,7 +1305,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                         if (GeometryUtils.CzyPunktWielokacie(center, rdr.Wierzcholki))
                         {
                             rds.IdRegionuPonizej = rdr.Id;
-                           // Console.WriteLine($"🔗 Region skrzydła {rds.Id} przypisany do regionu ramy {rdr.Id}");
+                            // Console.WriteLine($"🔗 Region skrzydła {rds.Id} przypisany do regionu ramy {rdr.Id}");
                             break; // Przypisz tylko pierwszą pasującą ramę
                         }
                     }
@@ -1564,7 +1564,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
         if (_generatorStates.Count == 0)
         {
-            await  _message.Warning("Brak zapisanych stanów generatora.", 1.5);
+            await _message.Warning("Brak zapisanych stanów generatora.", 1.5);
             return;
         }
 
@@ -1680,7 +1680,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
     }
 
-    private async Task FitToCanvas(IShapeDC targetShape, string idRegion, bool skalaAutomatyczna)
+    private async Task FitToCanvas(IShapeDC targetShape, string idRegion, bool skalaAutomatyczna, List<XPoint> Wierzcholki)
     {
 
         Console.WriteLine($"🔍 FitToCanvas --> Dopasowano do shape: scale={_currentScale:F2}, panX={_panX:F2}, panY={_panY:F2}");
@@ -1689,7 +1689,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
         await DrawStructureAndRestrykcje(0);
 
-        await DodajWybranyKwadratOkna(idRegion); // teraz z idRegion
+        await DodajWybranyKwadratOkna(idRegion, Wierzcholki); // teraz z idRegion
 
         // await UpdateCanvasSizeFromDiv();
         await RenderFrame();
@@ -1792,7 +1792,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         }
 
         // 🎯 Dopasuj widok do kształtu i regionu
-        await FitToCanvas(shape, region.Id, false);
+        await FitToCanvas(shape, region.Id, false, region.Wierzcholki);
 
         foreach (var shapeX in _shapes)
         {
@@ -1838,6 +1838,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         {
             foreach (var region in _regionsSkrzydlo)
             {
+
                 if (region.Wierzcholki.Count >= 3)
                 {
                     if (IsPointInPolygon(region.Wierzcholki, x, y))
@@ -2076,7 +2077,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         }
     }
 
-    private async Task ZmienWymiaryOkna()
+    private async Task ZmienNaSymetrieWymiaryOkna()
     {
         if (_shapes == null || !_shapes.Any())
         {
@@ -2084,65 +2085,141 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
             return;
         }
 
-        // 1. Oblicz bounding box całego modelu
-        double minX = double.MaxValue, minY = double.MaxValue;
-        double maxX = double.MinValue, maxY = double.MinValue;
 
-        foreach (var shape in _shapes)
+        // Krok 1: Zbieramy wszystkie linie z obu kolekcji
+        var wszystkieLinie = _regionsDualRama
+            .Concat(_regionsSkrzydlo)
+            .Where(r => r.TypKsztaltu.ToLower().Contains("linia"))
+            .ToList();
+
+        int liczbaLinii = wszystkieLinie.Count;
+
+        if (liczbaLinii == 0)
         {
-            var bbox = shape.GetBoundingBox();
-            minX = Math.Min(minX, bbox.X);
-            minY = Math.Min(minY, bbox.Y);
-            maxX = Math.Max(maxX, bbox.X + bbox.Width);
-            maxY = Math.Max(maxY, bbox.Y + bbox.Height);
-        }
-
-        double modelWidth = maxX - minX;
-        double modelHeight = maxY - minY;
-
-        if (modelWidth <= 0 || modelHeight <= 0)
-        {
-            Console.WriteLine("❌ Nieprawidłowe wymiary modelu.");
+            Console.WriteLine("❌ Brak regionów typu 'linia'");
             return;
         }
 
-        // 2. Oblicz skalę dopasowaną do rozmiaru canvasu
-        double canvasW = CanvasWidth;
-        double canvasH = CanvasHeight;
-        double margin = 20;
-        double scaleX = (canvasW - margin * 2) / modelWidth;
-        double scaleY = (canvasH - margin * 2) / modelHeight;
-        double newScale = Math.Min(scaleX, scaleY);
+        // Krok 2: Rozstawiamy je w równych odstępach
+        double odstępX = Szerokosc / (liczbaLinii + 0);
 
-        _currentScale = newScale * 0.8;
-
-        // 3. Wycentruj model na canvasie
-        double modelCenterX = ((minX + maxX) / 2) * _currentScale;
-        double modelCenterY = ((minY + maxY) / 2) * _currentScale;
-        _panX = (canvasW / 2) - modelCenterX;
-        _panY = (canvasH / 2) - modelCenterY;
-
-        Console.WriteLine($"🔍 Zmieniono wymiary: skalowanie={_currentScale:F2}, panX={_panX:F2}, panY={_panY:F2}");
-
-        // 4. Przeskaluj regiony (jeśli potrzebujesz dostosować ich szerokość i wysokość)
-        _regionsDualRama = GeometryUtils.SkalujRegiony(_regionsDualRama, (int)Szerokosc, (int)Wysokosc);
-        _regionsSkrzydlo = GeometryUtils.SkalujRegiony(_regionsSkrzydlo, (int)Szerokosc, (int)Wysokosc);
-
-        GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)Szerokosc, (int)Wysokosc, true);
-
-        // 5. Normalizacja wygenerowanych elementów w regionach
-        foreach (var region in _regionsDualRama)
+        for (int i = 0; i < liczbaLinii; i++)
         {
-            await NormalizeGeneratedElements(region, Szerokosc, Wysokosc);
+            var region = wszystkieLinie[i];
+            double nowaX = odstępX * (i + 1); // np. 1/4, 2/4, 3/4 dla 3 linii
+
+            for (int j = 0; j < region.Wierzcholki.Count; j++)
+            {
+                var punkt = region.Wierzcholki[j];
+                punkt.X = nowaX;
+                region.Wierzcholki[j] = punkt;
+            }
         }
 
-        foreach (var region in _regionsSkrzydlo)
+        // Odświeżenie widoku
+
+        await ZmienWymiaryOkna(false);
+    }
+
+    private async Task ZmienWymiaryOkna(bool generujRegion = true)
+    {
+        if (_shapes != null && _shapes.Count() > 0)
         {
-            await NormalizeGeneratedElements(region, Szerokosc, Wysokosc);
+
+            // double maxWysokosc = _shapes.Max(s => s.Wysokosc);
+            // double maxSzerokosc = _shapes.Max(s => s.Szerokosc);
+
+            // if (maxWysokosc > 0 && maxSzerokosc > 0)
+            // {
+            //     Wysokosc = (int)maxWysokosc;
+            //     Szerokosc = (int)maxSzerokosc;
+            // }
+            // 2. Oblicz skalę z zachowaniem proporcji tak, by dopasować do docelowych wymiarów
+            double scaleX = Szerokosc / CanvasWidth;
+            double scaleY = Wysokosc / CanvasHeight;
+            double scale = Math.Min(scaleX, scaleY) / 2;
+
+            scale = scale * 0.9;
+            _currentScale = scale;
+
+            Console.WriteLine($"🔍 ZmienWymiaryOkna --> Przeskalowano kształty: skala={scale} CanvasWidth: {CanvasWidth} CanvasHeight: {CanvasHeight}");
+
+            // Generuj regiony po transformacji
+            if (generujRegion)
+            {
+                _regionsDualRama = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)Szerokosc, (int)Wysokosc, true);
+                _regionsSkrzydlo = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)Szerokosc, (int)Wysokosc, false); // ostatni parametr nie wiem czy potrzeby do sprawdzenia (czy rama true/falsa)
+            }
+            foreach (var rds in _regionsSkrzydlo)
+            {
+                var center = GeometryUtils.ObliczCentroid(rds.Wierzcholki);
+
+                foreach (var rdr in _regionsDualRama)
+                {
+                    if (GeometryUtils.CzyPunktWielokacie(center, rdr.Wierzcholki))
+                    {
+                        rds.IdRegionuPonizej = rdr.Id;
+                        // Console.WriteLine($"🔗 Region skrzydła {rds.Id} przypisany do regionu ramy {rdr.Id}");
+                        break; // Przypisz tylko pierwszą pasującą ramę
+                    }
+                }
+            }
+
+            double minX = 0;
+            double minY = 0;
+            double maxX = Szerokosc;
+            double maxY = Wysokosc;
+
+            double contentWidth = maxX - minX;
+            double contentHeight = maxY - minY;
+
+            double canvasW = CanvasWidth;
+            double canvasH = CanvasHeight;
+
+            double margin = 20;
+            scaleX = (canvasW - 2 * margin) / contentWidth;
+            scaleY = (canvasH - 2 * margin) / contentHeight;
+
+            double centerX = canvasW / 2;
+            double centerY = canvasH / 2;
+
+            double contentCenterX = (minX + maxX) / 2;
+            double contentCenterY = (minY + maxY) / 2;
+
+            _panX = centerX - contentCenterX * scale;
+            _panY = centerY - contentCenterY * scale;
+
+            await ApplyZoom(scale);
+
         }
 
+        if (Systemy == null) Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
 
-        await ApplyZoom(_currentScale);
+        if (_dotNetHelper == null)
+        {
+            _dotNetHelper = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("setDotNetHelper", _dotNetHelper);
+            Console.WriteLine($"🆕 DotNetObjectReference.Create(this) dla obiektu {this.GetHashCode()}");
+        }
+
+        // Sprawdź, czy skrypt JS został poprawnie załadowany
+        var isScriptLoaded = await JS.InvokeAsync<bool>("eval", "typeof setCanvasRef === 'function'");
+        if (!isScriptLoaded)
+        {
+            throw new Exception("⚠️ Skrypt dragAndDrop.js nie został poprawnie załadowany!");
+        }
+
+        if (_shapes != null)
+        {
+            Console.WriteLine($"Odebrano dane _shapes: {_shapes.Count()}");
+
+            await RedrawCanvas();
+
+        }
+        else
+        {
+            Console.WriteLine($"Odebrano dane _shapes: null");
+        }
     }
 
 
@@ -2171,7 +2248,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         await Task.CompletedTask;
     }
 
-    private async Task DodajWybranyKwadratOkna(string idRegion)
+    private async Task DodajWybranyKwadratOkna(string idRegion, List<XPoint> Wierzcholki)
     {
         if (SelectedModelType == null || string.IsNullOrEmpty(SelectedModelType))
         {
@@ -2222,6 +2299,49 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
         generator.TypKsztaltu = WybranyKsztalt;
 
+        generator.Wierzcholki = Wierzcholki;
+
+        //--------------------------------------------------------------------------------------------------------------------------------
+        //--------------------------------------------------------------------------------------------------------------------------------
+        //--------------------------------------------------------------------------------------------------------------------------------
+
+
+        bool czyRegionZawieraSlupekRuchomy = _regionsSkrzydlo?.Any(x => x.TypLiniiDzielacej == "slupek ruchomy") == true;
+
+        if (czyRegionZawieraSlupekRuchomy && SelectedModelType != "Rama")
+        {
+            Console.WriteLine($"✅ Region {idRegion} zawiera słupek ruchomy. Kontynuuję generowanie elementów.");
+
+            // Sprawdź, czy istnieje "Słupek ruchomy" w jakimkolwiek PowiazanymModelu (lista)
+            bool czyZawieraSlupekRuchomyWPowiazanymModelu = _generatorStates
+                 .Any(state =>
+                     state.Value.PowiazanyModel != null &&
+                     state.Value.PowiazanyModel.KonfSystem != null &&
+                     state.Value.PowiazanyModel.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy")
+                 );
+
+            Console.WriteLine($"Czy zawiera słupek ruchomy w powiązanym modelu: {czyZawieraSlupekRuchomyWPowiazanymModelu} [{_generatorStates.Count()}]");
+
+            if (!czyZawieraSlupekRuchomyWPowiazanymModelu)
+            {
+                // Sprawdź, czy istnieje "Słupek ruchomy" w pojedynczym PowiazanymModelu (np. generator)
+                bool czySlupekRuchomyWPojedynczymModelu = generator.PowiazanyModel != null &&
+                    generator.PowiazanyModel.KonfSystem != null &&
+                    generator.PowiazanyModel.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy");
+
+                if (!czySlupekRuchomyWPojedynczymModelu)
+                {
+                    await _message.Warning(
+                        "Brak słupka ruchomego w regionie skrzydła. Dodaj słupek ruchomy do systemu.",
+                        2.0
+                    );
+                    return;
+                }
+            }
+        }
+
+        //--------------------------------------------------------------------------------------------------------------------------------
+        //--------------------------------------------------------------------------------------------------------------------------------
         //--------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -2230,15 +2350,22 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         double minY = 0;
         double maxY = 0;
 
-        Console.WriteLine($"📐📐📐 SelectedModelType  = {SelectedModelType} 📐📐📐");
+        string linieDzielace = "";
 
-        if(SelectedModelType.Trim() == "Rama")
+        List<XPoint> WierzcholkiWartosciNominalne = new();
+
+        WierzcholkiWartosciNominalne.AddRange(Wierzcholki); //Zpisz oryginalne wartości wierzchołków przed ich przesunięceim
+
+        Console.WriteLine($"📐📐📐 SelectedModelType  = {SelectedModelType} Ilość wierzchołków: {Wierzcholki.Count()} 📐📐📐");
+
+        if (SelectedModelType.Trim() == "Rama")
         {
             var wybranyRegionDualRama = _regionsDualRama.FirstOrDefault(r => r.Id == idRegion);
 
             if (wybranyRegionDualRama != null)
             {
                 var regionPoints = wybranyRegionDualRama.Wierzcholki;
+
                 if (regionPoints == null || regionPoints.Count < 3)
                 {
                     Console.WriteLine("❌ Wybrany region nie zawiera wystarczającej liczby punktów!");
@@ -2246,6 +2373,8 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                 }
 
                 generator.IdRegionuPonizej = wybranyRegionDualRama.IdRegionuPonizej ?? idRegion;
+
+                linieDzielace = wybranyRegionDualRama.TypLiniiDzielacej ?? "Brak";
 
                 // 1. Bounding box regionu
                 minX = regionPoints.Min(p => p.X);
@@ -2269,6 +2398,8 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         if (SelectedModelType.Trim() == "Skrzydło" || SelectedModelType.Trim() == "Skrzydło z słupkiem ruchomym")
         {
             var wybranyRegionSkrzydlo = _regionsSkrzydlo.FirstOrDefault(r => r.Id == idRegion);
+
+            linieDzielace = wybranyRegionSkrzydlo.TypLiniiDzielacej ?? "Brak";
 
             if (wybranyRegionSkrzydlo != null)
             {
@@ -2324,7 +2455,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                             var system = generator.KonfiguracjeSystemu.FirstOrDefault();
                             var powiazanyModel = generator.PowiazanyModel;
 
-                            Console.WriteLine($"powiazanyModel.KonfModeleElementy[0].RowIdElement: {powiazanyModel.KonfModeleElementy[0].RowIdElement}");
+                            // Console.WriteLine($"powiazanyModel.KonfModeleElementy[0].RowIdElement: {powiazanyModel.KonfModeleElementy[0].RowIdElement}");
 
                             // Filtruj połączenia, gdzie ElementZewnetrznyId pasuje do RowId systemu
                             // oraz StronaPolaczenia jest zgodna z aktywnymi stronami (WystepujeDol/Lewa/Gora/Prawa)
@@ -2343,6 +2474,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                         {
                             // Dla elementu wewnętrznego (np. skrzydło) - filtruj tylko po RowId
                             var system = generator.KonfiguracjeSystemu.FirstOrDefault();
+
                             var powiazanyModel = generator.PowiazanyModel;
 
                             Console.WriteLine($"powiazanyModel.KonfModeleElementy[0].RowIdElement: {powiazanyModel.KonfModeleElementy[0].RowIdElement}");
@@ -2359,7 +2491,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                         // 5. Wyświetl wyniki (lub przekaż dalej)
                         Console.WriteLine($"Znaleziono {pasujacePolaczenia.Count} pasujących połączeń.");
 
-     
+
                         foreach (var polaczenie in pasujacePolaczenia)
                         {
                             Console.WriteLine($"Połączenie ID: {polaczenie.Id}, Strona: {polaczenie.StronaPolaczenia}");
@@ -2412,7 +2544,6 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                     Console.Error.WriteLine($"Błąd ładowania połączeń: {ex.Message}");
                 }
 
-
                 for (int i = 0; i < regionPointsSkrzydlo.Count; i++)
                 {
                     var punkt = regionPointsSkrzydlo[i];
@@ -2428,7 +2559,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                     // Dół
                     if (Math.Abs(punkt.Y - maxY) < 0.1)
                         punkt.Y -= przesuniecieDol;
-           
+
                     // Góra
                     else if (Math.Abs(punkt.Y - minY) < 0.1)
                         punkt.Y += przesuniecieGora;
@@ -2457,12 +2588,16 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
             }
         }
 
+        if (SelectedModelType.Trim() == "Słupek stały")
+        {
+            
+        }
 
         //--------------------------------------------------------------------------------------------------------------------------------
 
         Console.WriteLine($"✅ ElementyRamyRysowane.Count: {generator.ElementyRamyRysowane.Count}");
 
-        if(generator.ElementyRamyRysowane == null || generator.ElementyRamyRysowane.Count == 0)
+        if (generator.ElementyRamyRysowane == null || generator.ElementyRamyRysowane.Count == 0)
         {
             Console.WriteLine("❌ Brak elementów do rysowania!");
             return;
@@ -2506,9 +2641,9 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         _ksztaltyNaRegion[idRegion] = new List<KsztaltElementu>(generator.ElementyRamyRysowane);
         ksztalty = _ksztaltyNaRegion.Values.SelectMany(k => k).ToList();
 
-       // 7. Debug info
-      //  var sb = new System.Text.StringBuilder();
-      //  sb.AppendLine($"💡 ------ Liczba wygenerowanych kształtów: {ksztalty.Count}");
+        // 7. Debug info
+        //  var sb = new System.Text.StringBuilder();
+        //  sb.AppendLine($"💡 ------ Liczba wygenerowanych kształtów: {ksztalty.Count}");
 
         // for (int i = 0; i < ksztalty.Count; i++)
         // {
@@ -2541,13 +2676,16 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         {
             IdRegion = idRegion,
             ZIndeks = generator.Zindeks,
-            KonfiguracjeSystemu = KonfiguracjeSystemu,
+            //KonfiguracjeSystemu = KonfiguracjeSystemu,
             RowIdSystemu = Guid.Parse(SelectedSystemId),
             RowIdModelu = Guid.TryParse(SelectedRowIdType, out var rowIdModelu) ? rowIdModelu : (Guid?)null,
             PowiazanyModel = generator.PowiazanyModel,
             WybranyModel = WybranyModel,
             WybranyKsztalt = WybranyKsztalt,
             IdRegionWarstwaNizej = generator.IdRegionuPonizej,
+            Wierzcholki = Wierzcholki,
+            WierzcholkiWartosciNominalne = WierzcholkiWartosciNominalne,
+            LinieDzielace = linieDzielace,
         };
 
         ZapiszStanGeneratora(idRegion, state);
@@ -2558,7 +2696,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
     {
         _generatorStates[idRegion] = state;
 
-        Console.WriteLine($"✅ Zapisano stan generatora dla regionu {idRegion}. Liczba elementów: {state.KonfiguracjeSystemu?.Count ?? 0} Liczba _generatorStates: {_generatorStates?.Count ?? 0}");
+        Console.WriteLine($"✅ Zapisano stan generatora dla regionu {idRegion}. Liczba _generatorStates: {_generatorStates?.Count ?? 0}");
     }
 
     private async Task GenerujElementyDlaRegionu(string idRegion, float szerokosc, float wysokosc)
@@ -2571,16 +2709,52 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
         var generator = new Generator
         {
-            KonfiguracjeSystemu = state.KonfiguracjeSystemu,
+            //KonfiguracjeSystemu = state.PowiazaneModele,
             RowIdSystemu = state.RowIdSystemu,
             PowiazanyModel = state.PowiazanyModel,
             TypKsztaltu = state.WybranyKsztalt,
-            EdytowanyModel = state.WybranyModel
+            EdytowanyModel = state.WybranyModel,
         };
 
-  
+
         var wybranyRegionDualRama = _regionsDualRama.FirstOrDefault(r => r.Id == idRegion);
         var wybranyRegionSkrzydlo = _regionsSkrzydlo.FirstOrDefault(r => r.Id == idRegion);
+
+        // Sprawdź, czy region skrzydła ma linię dzielącą z ruchomym słupkiem
+        bool czyRegionZawieraSlupekRuchomy = _regionsSkrzydlo?.Any(x => x.TypLiniiDzielacej == "slupek ruchomy") == true;
+
+        Console.WriteLine($"✅ czyRegionZawieraSlupekRuchomy: {czyRegionZawieraSlupekRuchomy}");
+
+        if (czyRegionZawieraSlupekRuchomy)
+        {
+            Console.WriteLine($"✅ Region {idRegion} zawiera słupek ruchomy. Kontynuuję generowanie elementów.");
+
+            // Sprawdź, czy istnieje "Słupek ruchomy" w jakimkolwiek PowiazanymModelu (lista)
+            bool czyZawieraSlupekRuchomyWPowiazanymModelu = StateContainer.States
+                 .Any(state =>
+                     state.Value.PowiazanyModel != null &&
+                     state.Value.PowiazanyModel.KonfSystem != null &&
+                     state.Value.PowiazanyModel.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy")
+                 );
+
+
+            if (!czyZawieraSlupekRuchomyWPowiazanymModelu)
+            {
+                // Sprawdź, czy istnieje "Słupek ruchomy" w pojedynczym PowiazanymModelu (np. generator)
+                bool czySlupekRuchomyWPojedynczymModelu = generator.PowiazanyModel != null &&
+                    generator.PowiazanyModel.KonfSystem != null &&
+                    generator.PowiazanyModel.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy");
+
+                if (!czySlupekRuchomyWPojedynczymModelu)
+                {
+                    await _message.Warning(
+                        "Brak słupka ruchomego w regionie skrzydła. Dodaj słupek ruchomy do systemu.",
+                        2.0
+                    );
+                    return;
+                }
+            }
+        }
 
         double minX = 0, maxX = 0, minY = 0, maxY = 0;
 
@@ -2664,7 +2838,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
         await Task.CompletedTask;
     }
 
-    
+
     private async Task RenderFrame(bool calculate = true)
     {
 
@@ -2677,7 +2851,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
             await _context.SetTransformAsync(1, 0, 0, 1, 0, 0);
             await _context.ClearRectAsync(0, 0, CanvasWidth, CanvasHeight);
             //await _context.TranslateAsync(_panX, _panY);
-             await _context.ScaleAsync(_currentScale, _currentScale);
+            await _context.ScaleAsync(_currentScale, _currentScale);
 
             // Przygotowanie tekstury
             var baseUrl = Navigation.BaseUri;
@@ -2689,7 +2863,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
                 //Console.WriteLine($"Rysuję kształt: {ksztalt.TypKsztaltu}");
                 if (ksztalt.Wierzcholki == null || ksztalt.Wierzcholki.Count < 3)
                     continue;
-               // Console.WriteLine($"*********** >>>>>> ksztalt: {ksztalt.Id}");
+                // Console.WriteLine($"*********** >>>>>> ksztalt: {ksztalt.Id}");
 
                 await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
             }
@@ -2706,7 +2880,7 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
     {
         var outerPoints = ksztalt.Wierzcholki;
 
-       // Console.WriteLine($"outerPoints: {outerPoints.Count}");
+        // Console.WriteLine($"outerPoints: {outerPoints.Count}");
 
         var offsets = GetOffsetsForGroup(ksztalt.Grupa);
 
@@ -2714,13 +2888,13 @@ style="display: @displayTWZ; margin: auto; top: 50%; left: 50%; transform: trans
 
         // await DrawDoubleContour(context, outerPoints, innerPoints);
         if (_dotNetHelper != null)
-       {
+        {
             await JS.InvokeVoidAsync("loadAndDrawTexture",
                 CanvasRef.CanvasReference,
                 textureUrl,
                 _dotNetHelper
-            ); 
-       }
+            );
+        }
 
 
         await context.SetStrokeStyleAsync("#000000");

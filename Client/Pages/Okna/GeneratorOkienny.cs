@@ -12,7 +12,10 @@ namespace GEORGE.Client.Pages.Okna
         public int Zindeks { get; set; }
         public string IdRegionuPonizej { get; set; }
 
-        public new MVCKonfModele? PowiazanyModel;
+        // Lista wierzcholkow (w kolejnosci zgodnej z ruchem wskazowek zegara)
+        public List<XPoint> Wierzcholki { get; set; } = new();
+
+       // public new MVCKonfModele? PowiazanyModel;
 
         public Generator()
         {
@@ -54,6 +57,7 @@ namespace GEORGE.Client.Pages.Okna
             Console.WriteLine($"📏 Szerokosc: {Szerokosc}, Wysokosc: {Wysokosc}");
 
             var region = regions.FirstOrDefault(r => r.Id == regionId);
+
             if (region == null)
             {
                 Console.WriteLine($"❌ Nie znaleziono regionu o ID: {regionId}");
@@ -66,6 +70,8 @@ namespace GEORGE.Client.Pages.Okna
                 Console.WriteLine($"❌ Region o ID: {regionId} ma zbyt mało punktów");
                 return;
             }
+
+            Wierzcholki = region.Wierzcholki;
 
             Console.WriteLine($"🟩 Generuj okno dla regionu ID {regionId} typu: {region.TypKsztaltu}");
 
@@ -107,40 +113,40 @@ namespace GEORGE.Client.Pages.Okna
                 przeskalowanePunkty,
                 profileLeft, profileRight, profileTop, profileBottom);
 
-            // 🧱 Wygeneruj ramę
-            if (region.TypKsztaltu == "prostokąt" || region.TypKsztaltu == "kwadrat")
-            {
-                GenerateRectangleElements(
-                    przeskalowanePunkty,
-                    wewnetrznyKontur,
-                    profileLeft, profileRight, profileTop, profileBottom,
-                    region.TypKsztaltu,
-                    EdytowanyModel.PolaczenieNaroza,
-                    KonfiguracjeSystemu
-                );
-            }
-            else if (region.TypKsztaltu == "trójkąt")
-            {
-                GenerateTriangleElements(
-                    przeskalowanePunkty,
-                    wewnetrznyKontur,
-                    profileLeft, profileRight, profileTop, profileBottom
-                );
-            }
-            else
-            {
-                GenerateGenericElementsWithJoins(
-                    przeskalowanePunkty,
-                    wewnetrznyKontur,
-                    profileLeft, profileRight, profileTop, profileBottom,
-                    region.TypKsztaltu,
-                    EdytowanyModel.PolaczenieNaroza,
-                    KonfiguracjeSystemu,
-                    regionId,
-                    RowIdprofileLeft, RowIdprofileRight, RowIdprofileTop, RowIdprofileBottom,
-                    NazwaObiektu
-                );
-            }
+            //// 🧱 Wygeneruj ramę
+            //if (region.TypKsztaltu == "prostokąt" || region.TypKsztaltu == "kwadrat")
+            //{
+            //    GenerateRectangleElements(
+            //        przeskalowanePunkty,
+            //        wewnetrznyKontur,
+            //        profileLeft, profileRight, profileTop, profileBottom,
+            //        region.TypKsztaltu,
+            //        EdytowanyModel.PolaczenieNaroza,
+            //        KonfiguracjeSystemu
+            //    );
+            //}
+            //else if (region.TypKsztaltu == "trójkąt")
+            //{
+            //    GenerateTriangleElements(
+            //        przeskalowanePunkty,
+            //        wewnetrznyKontur,
+            //        profileLeft, profileRight, profileTop, profileBottom
+            //    );
+            //}
+            //else
+            //{
+            GenerateGenericElementsWithJoins(
+                przeskalowanePunkty,
+                wewnetrznyKontur,
+                profileLeft, profileRight, profileTop, profileBottom,
+                region.TypKsztaltu,
+                EdytowanyModel.PolaczenieNaroza,
+                KonfiguracjeSystemu,
+                regionId,
+                RowIdprofileLeft, RowIdprofileRight, RowIdprofileTop, RowIdprofileBottom,
+                NazwaObiektu
+            );
+            //}
         }
 
         private List<XPoint> SkalujIPrzesun(

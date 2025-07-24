@@ -65,5 +65,16 @@ namespace GEORGE.Server.Controllers
             return CreatedAtAction("Get", new { logowania.Id }, logowania);
         }
 
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Logowania>> Get(int id)
+        {
+            var item = await context.Logowania.FindAsync(id);
+            if (item == null)
+            {
+                return NotFound();
+            }
+            return item;
+        }
+
     }
 }
