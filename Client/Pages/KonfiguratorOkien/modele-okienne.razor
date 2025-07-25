@@ -1552,14 +1552,18 @@
         displayTWZ = "none";
     }
 
-    public void PokazModal()
+    private async Task PokazModal()
     {
+        await JS.InvokeVoidAsync("ResetCursorGlobal");
+
         classShowTWZ = "show";
         displayTWZ = "block";
     }
 
     private async Task OtworzPrzeglad()
     {
+        await JS.InvokeVoidAsync("ResetCursorGlobal");
+
         StateContainer.States = _generatorStates;
 
         if (_generatorStates.Count == 0)
@@ -2305,8 +2309,54 @@
         //--------------------------------------------------------------------------------------------------------------------------------
         //--------------------------------------------------------------------------------------------------------------------------------
 
+        var regionReferencyjny = _regionsDualRama
+    .Concat(_regionsSkrzydlo)
+    .FirstOrDefault(r => r.Id == idRegion);
 
-        bool czyRegionZawieraSlupekRuchomy = _regionsSkrzydlo?.Any(x => x.TypLiniiDzielacej == "slupek ruchomy") == true;
+        if (regionReferencyjny == null || regionReferencyjny.Wierzcholki == null)
+        {
+            Console.WriteLine("❌ Brak regionu referencyjnego.");
+            return;
+        }
+
+        var wszystkieRegiony = _regionsDualRama.Concat(_regionsSkrzydlo);
+
+        // REGIONY zawarte całkowicie wewnątrz
+        var zawarteRegiony = wszystkieRegiony
+            .Where(r =>
+                r.Id != idRegion &&
+                r.Wierzcholki != null &&
+                r.Wierzcholki.Count >= 3 &&
+                r.Wierzcholki.All(p => CzyPunktWNWielokacie(p, regionReferencyjny.Wierzcholki))
+            )
+            .ToList();
+
+        // LINIE styczne do krawędzi
+        var styczneLinie = wszystkieRegiony
+            .Where(r =>
+                r.Id != idRegion &&
+                r.Wierzcholki != null &&
+                r.Wierzcholki.Count == 2 &&
+                r.TypKsztaltu?.ToLower().Contains("linia") == true &&
+                r.Wierzcholki.Any(p => CzyPunktLezyNaKrawedzi(p, regionReferencyjny.Wierzcholki))
+            )
+            .ToList();
+
+
+        if (zawarteRegiony.Count > 0)
+        {
+            foreach(var zawartyRegion in zawarteRegiony)
+            {
+                Console.WriteLine($"⚠️ 🟩🟩🟩🟩 Region {zawartyRegion.Id} jest zawarty w regionie {idRegion}. Nie można dodać elementów. TypKsztaltu: {zawartyRegion.TypKsztaltu}");
+            }
+        }
+        else
+        {
+            Console.WriteLine($"⚠️ 🟩🟩🟩🟩 Region - BRAK DANYCH");
+        }
+
+
+        bool czyRegionZawieraSlupekRuchomy = _regionsSkrzydlo?.Any(x => x.TypLiniiDzielacej == "Słupek ruchomy") == true;
 
         if (czyRegionZawieraSlupekRuchomy && SelectedModelType != "Rama")
         {
@@ -2332,7 +2382,7 @@
                 if (!czySlupekRuchomyWPojedynczymModelu)
                 {
                     await _message.Warning(
-                        "Brak słupka ruchomego w regionie skrzydła. Dodaj słupek ruchomy do systemu.",
+                        "Brak słupka ruchomego w regionie skrzydła. Dodaj wcześniej słupek ruchomy do konstrukcji.",
                         2.0
                     );
                     return;
@@ -2699,6 +2749,56 @@
         Console.WriteLine($"✅ Zapisano stan generatora dla regionu {idRegion}. Liczba _generatorStates: {_generatorStates?.Count ?? 0}");
     }
 
+    private bool CzyPunktWNWielokacie(XPoint punkt, List<XPoint> wielokat)
+    {
+        int j = wielokat.Count - 1;
+        bool inside = false;
+
+        for (int i = 0; i < wielokat.Count; j = i++)
+        {
+            if (((wielokat[i].Y > punkt.Y) != (wielokat[j].Y > punkt.Y)) &&
+                (punkt.X < (wielokat[j].X - wielokat[i].X) * (punkt.Y - wielokat[i].Y) / (wielokat[j].Y - wielokat[i].Y) + wielokat[i].X))
+            {
+                inside = !inside;
+            }
+        }
+
+        return inside;
+    }
+
+
+    private bool CzyPunktLezyNaKrawedzi(XPoint punkt, List<XPoint> wielokat, double tolerancja = 0.1)
+    {
+        for (int i = 0; i < wielokat.Count; i++)
+        {
+            var a = wielokat[i];
+            var b = wielokat[(i + 1) % wielokat.Count];
+
+            // Sprawdzenie, czy punkt leży na odcinku AB
+            double dx = b.X - a.X;
+            double dy = b.Y - a.Y;
+            double d = Math.Sqrt(dx * dx + dy * dy);
+
+            if (d < 1e-6) continue; // pomijamy zbyt krótkie odcinki
+
+            double t = ((punkt.X - a.X) * dx + (punkt.Y - a.Y) * dy) / (d * d);
+
+            if (t >= 0 && t <= 1)
+            {
+                double projX = a.X + t * dx;
+                double projY = a.Y + t * dy;
+                double dist = Math.Sqrt(Math.Pow(projX - punkt.X, 2) + Math.Pow(projY - punkt.Y, 2));
+
+                if (dist <= tolerancja)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+
+
     private async Task GenerujElementyDlaRegionu(string idRegion, float szerokosc, float wysokosc)
     {
         if (!_generatorStates.TryGetValue(idRegion, out var state))
@@ -2721,7 +2821,7 @@
         var wybranyRegionSkrzydlo = _regionsSkrzydlo.FirstOrDefault(r => r.Id == idRegion);
 
         // Sprawdź, czy region skrzydła ma linię dzielącą z ruchomym słupkiem
-        bool czyRegionZawieraSlupekRuchomy = _regionsSkrzydlo?.Any(x => x.TypLiniiDzielacej == "slupek ruchomy") == true;
+        bool czyRegionZawieraSlupekRuchomy = _regionsSkrzydlo?.Any(x => x.TypLiniiDzielacej == "Słupek ruchomy") == true;
 
         Console.WriteLine($"✅ czyRegionZawieraSlupekRuchomy: {czyRegionZawieraSlupekRuchomy}");
 

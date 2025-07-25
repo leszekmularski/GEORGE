@@ -70,17 +70,17 @@ namespace GEORGE.Client.Pages.Utils
 
                 if (shape is XLineShape linia && linia.RuchomySlupek)
                 {
-                    typLinii = "slupek ruchomy";
+                    typLinii = "Słupek ruchomy";
                 }
                 else
                 {
                     if (shape is XLineShape liniaD && liniaD.DualRama)
                     {
-                        typLinii = "podwojna rama";
+                        typLinii = "Podwójna rama";
                     }
                     else
                     {
-                        typLinii = "brak podziału";
+                        typLinii = "Brak podziału";
                     }
                 }
    
@@ -91,8 +91,6 @@ namespace GEORGE.Client.Pages.Utils
                     Wierzcholki = pts,
                     TypKsztaltu = typ,
                     TypLiniiDzielacej = typLinii,
-                    //Id = shape is ShapeRegion sr ? sr.Id : Guid.NewGuid().ToString()
-                    // jeśli shape nie jest ShapeRegion, nadaj nowy Id
                 };
 
 
@@ -269,9 +267,10 @@ namespace GEORGE.Client.Pages.Utils
                     }
                     else
                         next.Add(r);
-                }
 
                 wynik = next;
+                }
+
             }
 
             return wynik;
