@@ -153,7 +153,7 @@
 <div class="zoom-controls">
     <button @onclick="() => FitToCanvas()" class="btn-zoom">🔄 Dopasuj</button>
     <button @onclick="() => RysOkna()" class="btn-window">🔥 Popraw szkic OKNA</button>
-    <button @onclick="() => PowrotDoGenerowaniaOkna()" class="btn-window">📦 Wróć do budowy OKNA</button>
+    <button @onclick="() => PowrotDoGenerowaniaOkna()" class="btn-window"><strong>📦 Wróć do budowy OKNA</strong></button>
 </div>
 
 <div class="toolbar">
@@ -1042,14 +1042,14 @@
 
     private async Task PowrotDoGenerowaniaOkna()
     {
-        await RysOkna();
+        await RysOkna(true);
         ShapeService.Shapes = _shapes; // Przekazanie danych do serwisu
         Navigation.NavigateTo("/Modele-okienne");
 
         await Task.CompletedTask;
     }
 
-    private async Task RysOkna()
+    private async Task RysOkna(bool powrot = false)
     {
         Console.WriteLine($"Sprawdzanie RysOkna -->  Start");
 
@@ -1162,6 +1162,8 @@
                 }
             }
         }
+
+        if (powrot) return;
 
         _scaleFactor = 1;
 
