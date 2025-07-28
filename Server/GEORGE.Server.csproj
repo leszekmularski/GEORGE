@@ -5,8 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 	<WasmEnableSimdSupport>false</WasmEnableSimdSupport>
-	<AssemblyVersion>1.1.1.4</AssemblyVersion>
-	<FileVersion>1.1.1.4</FileVersion>
+	<AssemblyVersion>1.1.1.5</AssemblyVersion>
+	<FileVersion>1.1.1.5</FileVersion>
 	<InvariantGlobalization>false</InvariantGlobalization>
     <BlazorEnableTimeZoneSupport>true</BlazorEnableTimeZoneSupport>
     <SignAssembly>False</SignAssembly>

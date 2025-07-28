@@ -93,6 +93,33 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                            "stroke='black' stroke-width='1' fill='none' />");
             }
 
+            // 🖌️ Rysowanie łuków typ polilinia
+            foreach (var lwpoly in dxf.Entities.Polylines2D)
+            {
+                var vertexes = lwpoly.Vertexes;
+                for (int i = 0; i < vertexes.Count - 1; i++)
+                {
+                    var v1 = vertexes[i];
+                    var v2 = vertexes[i + 1];
+
+                    // Jeśli brak bulge – rysuj linię
+                    if (Math.Abs(v1.Bulge) < 0.0001)
+                    {
+                        svg.Append($"<line x1='{(v1.Position.X + offsetX).ToString(culture)}' " +
+                                   $"y1='{(v1.Position.Y + offsetY).ToString(culture)}' " +
+                                   $"x2='{(v2.Position.X + offsetX).ToString(culture)}' " +
+                                   $"y2='{(v2.Position.Y + offsetY).ToString(culture)}' " +
+                                   "stroke='black' stroke-width='1' />");
+                    }
+                    else
+                    {
+                        // Rysuj łuk jako <path>
+                        AppendSvgArcFromBulge(svg, v1.Position, v2.Position, v1.Bulge, offsetX, offsetY, culture);
+                    }
+                }
+            }
+
+
             svg.Append("</g>");
 
             // ➕ Pionowe prowadnice
@@ -115,5 +142,26 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             Console.WriteLine("✅ SVG Content OK");
             return result;
         }
+
+        private void AppendSvgArcFromBulge(StringBuilder svg, Vector2 p1, Vector2 p2, double bulge, double offsetX, double offsetY, CultureInfo culture)
+        {
+            // Oblicz środek i promień łuku z bulge
+            double dx = p2.X - p1.X;
+            double dy = p2.Y - p1.Y;
+            double chord = Math.Sqrt(dx * dx + dy * dy);
+            double sagitta = (bulge * chord) / 2;
+
+            double radius = (chord * chord / (8 * sagitta)) + (sagitta / 2);
+
+            // SVG wymaga danych: start, radius, flags, end
+            // To podejście rysuje przybliżony łuk
+            int sweepFlag = bulge > 0 ? 1 : 0;
+
+            svg.Append($"<path d='M {(p1.X + offsetX).ToString(culture)} {(p1.Y + offsetY).ToString(culture)} " +
+                       $"A {radius.ToString(culture)} {radius.ToString(culture)} 0 0 {sweepFlag} " +
+                       $"{(p2.X + offsetX).ToString(culture)} {(p2.Y + offsetY).ToString(culture)}' " +
+                       "stroke='black' stroke-width='1' fill='none' />");
+        }
+
     }
 }

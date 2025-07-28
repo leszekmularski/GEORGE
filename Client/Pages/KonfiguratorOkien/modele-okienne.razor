@@ -866,6 +866,7 @@
                                         </div>
 
                                         <p><strong>ID:</strong> @region.Id</p>
+                                        <p><strong>ID MASTER:</strong> @region.IdMaster</p>
                                         <p><strong>Liczba wierzchołków:</strong> @region.Wierzcholki.Count</p>
                                         <p><strong>Liczba linii dzielących:</strong> @region.LinieDzielace.Count</p>
                                         <p><strong>Typ podziału regionu:</strong> @region.TypLiniiDzielacej</p>
@@ -947,6 +948,7 @@
                                         </div>
 
                                         <p><strong>ID:</strong> @region.Id</p>
+                                        <p><strong>ID MASTER:</strong> @region.IdMaster</p>
                                         <p><strong>Liczba wierzchołków:</strong> @region.Wierzcholki.Count</p>
                                         <p><strong>Liczba linii dzielących:</strong> @region.LinieDzielace.Count</p>
                                         <p><strong>Typ podziału regionu:</strong> @region.TypLiniiDzielacej</p>
@@ -1036,6 +1038,7 @@
                                         </div>
 
                                         <p><strong>ID:</strong> @region.Id</p>
+                                        <p><strong>ID MASTER:</strong> @region.IdMaster</p>
                                         <p><strong>Liczba wierzchołków:</strong> @region.Wierzcholki.Count</p>
                                         <p><strong>Liczba linii dzielących:</strong> @region.LinieDzielace.Count</p>
                                         <p><strong>Typ podziału regionu:</strong> @region.TypLiniiDzielacej</p>
@@ -1117,6 +1120,7 @@
                                         </div>
 
                                         <p><strong>ID:</strong> @region.Id</p>
+                                        <p><strong>ID MASTER:</strong> @region.IdMaster</p>
                                         <p><strong>Liczba wierzchołków:</strong> @region.Wierzcholki.Count</p>
                                         <p><strong>Liczba linii dzielących:</strong> @region.LinieDzielace.Count</p>
                                         <p><strong>Typ podziału regionu:</strong> @region.TypLiniiDzielacej</p>
@@ -1684,7 +1688,7 @@
 
     }
 
-    private async Task FitToCanvas(IShapeDC targetShape, string idRegion, bool skalaAutomatyczna, List<XPoint> Wierzcholki)
+    private async Task FitToCanvas(IShapeDC targetShape, string idRegion, bool skalaAutomatyczna, List<XPoint> Wierzcholki, XPoint wartoscClickMayszy)
     {
 
         Console.WriteLine($"🔍 FitToCanvas --> Dopasowano do shape: scale={_currentScale:F2}, panX={_panX:F2}, panY={_panY:F2}");
@@ -1693,7 +1697,7 @@
 
         await DrawStructureAndRestrykcje(0);
 
-        await DodajWybranyKwadratOkna(idRegion, Wierzcholki); // teraz z idRegion
+        await DodajWybranyKwadratOkna(idRegion, Wierzcholki, wartoscClickMayszy); // teraz z idRegion
 
         // await UpdateCanvasSizeFromDiv();
         await RenderFrame();
@@ -1738,6 +1742,8 @@
         Console.WriteLine($"🖱️ DropX: {DropX}, DropY: {DropY}");
         Console.WriteLine($"🔧 PanX: {_panX}, PanY: {_panY}, Scale: {_currentScale}");
         Console.WriteLine($"📌 Pozycja w modelu: X={(DropX - _panX) / _currentScale}, Y={(DropY - _panY) / _currentScale}");
+
+        XPoint xPoint = new XPoint((DropX - _panX) / _currentScale, (DropY - _panY) / _currentScale);
 
 
         // Pobierz informacje o przeciąganym modelu
@@ -1796,7 +1802,7 @@
         }
 
         // 🎯 Dopasuj widok do kształtu i regionu
-        await FitToCanvas(shape, region.Id, false, region.Wierzcholki);
+        await FitToCanvas(shape, region.Id, false, region.Wierzcholki, xPoint);
 
         foreach (var shapeX in _shapes)
         {
@@ -2252,7 +2258,7 @@
         await Task.CompletedTask;
     }
 
-    private async Task DodajWybranyKwadratOkna(string idRegion, List<XPoint> Wierzcholki)
+    private async Task DodajWybranyKwadratOkna(string idRegion, List<XPoint> Wierzcholki, XPoint wartoscClickMayszy)
     {
         if (SelectedModelType == null || string.IsNullOrEmpty(SelectedModelType))
         {
@@ -2310,8 +2316,8 @@
         //--------------------------------------------------------------------------------------------------------------------------------
 
         var regionReferencyjny = _regionsDualRama
-    .Concat(_regionsSkrzydlo)
-    .FirstOrDefault(r => r.Id == idRegion);
+        .Concat(_regionsSkrzydlo)
+        .FirstOrDefault(r => r.Id == idRegion);
 
         if (regionReferencyjny == null || regionReferencyjny.Wierzcholki == null)
         {
@@ -2331,6 +2337,8 @@
             )
             .ToList();
 
+        Console.WriteLine($"⚠️ 🟩🟩🟩🟩 zawarteRegiony: {zawarteRegiony.Count()}");
+
         // LINIE styczne do krawędzi
         var styczneLinie = wszystkieRegiony
             .Where(r =>
@@ -2343,20 +2351,74 @@
             .ToList();
 
 
-        if (zawarteRegiony.Count > 0)
+        bool czyRegionZawieraSlupekRuchomy = false;
+
+        bool stronaLewa = false;
+        bool stronaPrawa = false;
+
+        if (styczneLinie.Count() > 0)
         {
-            foreach(var zawartyRegion in zawarteRegiony)
+            Console.WriteLine($"⚠️ 🟩🟩🟩🟩 styczneLinie: {styczneLinie.Count()}");
+
+            if (styczneLinie.Where(x=> x.TypLiniiDzielacej == "Słupek ruchomy").Any())
             {
-                Console.WriteLine($"⚠️ 🟩🟩🟩🟩 Region {zawartyRegion.Id} jest zawarty w regionie {idRegion}. Nie można dodać elementów. TypKsztaltu: {zawartyRegion.TypKsztaltu}");
+                czyRegionZawieraSlupekRuchomy = true;
+                Console.WriteLine($"✅ Region {idRegion} zawiera słupek ruchomy.");
+
+                var slupkiRuchome = styczneLinie
+                .Where(x => x.TypLiniiDzielacej == "Słupek ruchomy")
+                .ToList();
+
+                if (slupkiRuchome.Any())
+                {
+                    czyRegionZawieraSlupekRuchomy = true;
+
+                    Console.WriteLine($"✅ Region {idRegion} zawiera słupek ruchomy.");
+
+
+                    if (slupkiRuchome.Count() < 3) //Jest tylko jedna linia
+                    {
+                        // Dla pionowej linii: porównujemy środek X linii do X kliknięcia
+                        double srodekX1 = slupkiRuchome[0].Wierzcholki[0].X;
+                        double srodekX2 = slupkiRuchome[1].Wierzcholki[0].X;
+                        double srodekX = (srodekX1 + srodekX2) / 2;
+
+                        if (Math.Abs(wartoscClickMayszy.X) < Math.Abs(srodekX))
+                        {
+                            stronaLewa = true;
+                            Console.WriteLine($"🟥 Słupek po lewej stronie (klik X={wartoscClickMayszy.X} < środek X={srodekX}) [{slupkiRuchome.Count()}]");
+                        }
+                        else
+                        {
+                            stronaPrawa = true;
+                            Console.WriteLine($"🟦 Słupek po prawej stronie (klik X={wartoscClickMayszy.X} ≥ środek X={srodekX}) [{slupkiRuchome.Count()}]");
+                        }
+                    }
+                    else
+                    {
+                        stronaLewa = true;
+                        Console.WriteLine($"🟥 Słupek po lewej stronie (klik X={wartoscClickMayszy.X}) [{slupkiRuchome.Count()}]");
+                        stronaPrawa = true;
+                        Console.WriteLine($"🟦 Słupek po prawej stronie (klik X={wartoscClickMayszy.X}) [{slupkiRuchome.Count()}]");
+                    }
+
+                }
+
+
+                // Podsumowanie
+                Console.WriteLine($"🧭 Pozycje słupków względem kliknięcia:");
+                if (stronaLewa) Console.WriteLine("🔹 Lewa strona");
+                if (stronaPrawa) Console.WriteLine("🔹 Prawa strona");
+
+            }
+            else
+            {
+                Console.WriteLine($"⚠️ Region {idRegion} NIE zawiera słupka ruchomego.");
             }
         }
-        else
-        {
-            Console.WriteLine($"⚠️ 🟩🟩🟩🟩 Region - BRAK DANYCH");
-        }
 
 
-        bool czyRegionZawieraSlupekRuchomy = _regionsSkrzydlo?.Any(x => x.TypLiniiDzielacej == "Słupek ruchomy") == true;
+        //bool czyRegionZawieraSlupekRuchomy = _regionsSkrzydlo?.Any(x => x.TypLiniiDzielacej == "Słupek ruchomy") == true;
 
         if (czyRegionZawieraSlupekRuchomy && SelectedModelType != "Rama")
         {

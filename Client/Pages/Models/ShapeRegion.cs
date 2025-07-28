@@ -32,6 +32,7 @@ namespace GEORGE.Client.Pages.Models
         /// Identyfikator regionu (opcjonalny).
         /// </summary>
         public string? Id { get; set; } = Guid.NewGuid().ToString();
+        public string? IdMaster { get; set; } = "";
 
         public string? IdRegionuPonizej { get; set; } = "WARSTWA-ZERO";
 

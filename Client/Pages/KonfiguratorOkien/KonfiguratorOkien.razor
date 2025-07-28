@@ -9,6 +9,7 @@
 @using System.Net
 @using System.Xml
 @using System.Text.Json
+@using System.Text.RegularExpressions
 @inject IJSRuntime JSRuntime
 @inject DxfService DxfService
 @inject DxfToSvgConverter Converter
@@ -169,7 +170,7 @@
     newX = parseFloat(newX.toFixed(2));
     newY = parseFloat(newY.toFixed(2));
 
-    console.log(`🎯 Przesuwam ${draggedLine.id} do X=${newX}, Y=${newY}`);
+    //console.log(`🎯 Przesuwam ${draggedLine.id} do X=${newX}, Y=${newY}`);
 
     if (draggedLine.id.includes('vertical')) {
     draggedLine.setAttribute('x1', newX);
@@ -436,45 +437,56 @@
     updateTransform(0, 1);
     }
 
-    function generatePngFromSvg(svgContent) {
-    return new Promise((resolve, reject) => {
-    let parser = new DOMParser();
-    let svgDoc = parser.parseFromString(svgContent, "image/svg+xml");
+    window.generatePngFromSvg = function (svgContent) {
+        return new Promise((resolve, reject) => {
+            try {
+                const parser = new DOMParser();
+                const svgDoc = parser.parseFromString(svgContent, "image/svg+xml");
 
-    // Usuwanie elementów, których id zaczyna się od 'guide-line-'
-    let guideLines = svgDoc.querySelectorAll('[id^="guide-line-"]');
-    guideLines.forEach(line => {
-    line.remove();  // Usuwamy element
-    });
+                // 🛡 Sprawdź, czy SVG zawiera błąd parsera
+                const parseError = svgDoc.querySelector("parsererror");
+                if (parseError) {
+                    console.error("❌ Błąd parsera SVG:", parseError.textContent);
+                    reject("Błąd parsera SVG: " + parseError.textContent);
+                    return;
+                }
 
-    // Teraz przekształcamy zmodyfikowane SVG na Base64
-    let svgWithoutGuideLines = new XMLSerializer().serializeToString(svgDoc);
+                // 🧹 Usuń linie pomocnicze
+                const guideLines = svgDoc.querySelectorAll('[id^="guide-line-"]');
+                guideLines.forEach(line => line.remove());
 
-    let canvas = document.createElement("canvas");
-    let ctx = canvas.getContext("2d");
+                const cleanedSvg = new XMLSerializer().serializeToString(svgDoc);
 
-    let img = new Image();
-    let svgBlob = new Blob([svgWithoutGuideLines], { type: "image/svg+xml" });
-    let svgUrl = URL.createObjectURL(svgBlob);
-    img.src = svgUrl;
+                const canvas = document.createElement("canvas");
+                const ctx = canvas.getContext("2d");
 
-    img.onload = function() {
-    canvas.width = img.width / 1;  // Skala do miniaturki
-    canvas.height = img.height / 1;
+                const img = new Image();
+                const svgBlob = new Blob([cleanedSvg], { type: "image/svg+xml;charset=utf-8" });
+                const svgUrl = URL.createObjectURL(svgBlob);
 
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                img.onload = function () {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
 
-    // Generowanie Base64 PNG
-    let base64Image = canvas.toDataURL("image/png");
-    let base64Only = base64Image.split(',')[1]; // Usuwamy nagłówek 'data:image/png;base64,'
-    resolve(base64Only);
+                    const base64 = canvas.toDataURL("image/png").split(",")[1];
+                    URL.revokeObjectURL(svgUrl);
+                    resolve(base64);
+                };
+
+                img.onerror = function (e) {
+                    console.error("❌ Błąd ładowania SVG do <img>:", e);
+                    reject("Błąd ładowania SVG do obrazu");
+                    URL.revokeObjectURL(svgUrl);
+                };
+
+                img.src = svgUrl;
+            } catch (err) {
+                console.error("❌ Wyjątek w generatePngFromSvg:", err);
+                reject("Wyjątek: " + err.message);
+            }
+        });
     };
-
-    img.onerror = function() {
-    reject("Błąd ładowania SVG do obrazu");
-    };
-    });
-    }
 
 
     function getGuidesData() {
@@ -623,6 +635,15 @@
     console.log("🌟 Dokument załadowany, uruchamiam enableDrag()");
     enableDrag();
     });
+
+    window.saveFileFromBytes = (filename, base64Data) => {
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = 'data:application/dxf;base64,' + base64Data;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
 
 </script>
 
@@ -902,7 +923,7 @@
             <Button OnClick="RefreshSvg" Icon="@IconType.Outline.Fire" Style="margin-left: 10px;">
                 🔄 Odśwież rysunek
             </Button>
-
+            <button class="btn btn-info" @onclick="DownloadDxf">Pobierz DXF</button>
         </h6>
 
         <!-- Wrapper dla SVG i wartości linii -->
@@ -984,6 +1005,7 @@
     [Inject] private AppState AppState { get; set; } = default!;
 
     private string? SvgContent { get; set; }
+    private string? SelectIndesk { get; set; }
     private string SvgKey { get; set; } = Guid.NewGuid().ToString(); // 🔥 Zabezpieczenie przed nadpisywaniem
 
     private List<int> intProwadnicePionowe = new List<int>();
@@ -1056,6 +1078,9 @@
             if (!string.IsNullOrEmpty(konfSystem.SVG))
             {
                 SvgContent = konfSystem.SVG;
+
+                SelectIndesk = konfSystem.Indeks;
+
                 Console.WriteLine($"✅ Wczytano zapisany rysunek SVG konfSystem.RowId: {konfSystem.RowId}");
 
                 try
@@ -1114,6 +1139,29 @@
         await Http.DeleteAsync($"api/konfsystem/{id}");
         KonfiguracjeSystemu = null;
         KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>("api/konfsystem");
+    }
+
+    private async Task DownloadDxf()
+    {
+        if(string.IsNullOrEmpty(SvgContent))
+        {
+            Console.WriteLine("⚠️ Brak SVG do pobrania DXF!");
+            SelectIndesk = "plik_dxf";
+        }
+        // zakładamy, że SvgContent masz jako string
+        var response = await Http.PostAsJsonAsync($"api/DownloadDxf/{Uri.EscapeDataString(SelectIndesk)}", SvgContent);
+
+        if (response.IsSuccessStatusCode)
+        {
+            var dxfBytes = await response.Content.ReadAsByteArrayAsync();
+
+            // Wywołujemy JS, żeby zapisać plik
+            await JSRuntime.InvokeVoidAsync("saveFileFromBytes", $"{Uri.EscapeDataString(SelectIndesk)}.dxf", Convert.ToBase64String(dxfBytes));
+        }
+        else
+        {
+            Console.WriteLine("❌ Błąd pobierania DXF: " + await response.Content.ReadAsStringAsync());
+        }
     }
 
     private async Task RefreshSvg()
@@ -1275,7 +1323,12 @@
 
                     // 🔥 Pobierz width i height z istniejącego SVG (np. z konfSystem.SVG)
                     var svgDoc = new XmlDocument();
-                    svgDoc.LoadXml(konfSystem.SVG);
+
+                  //  svgDoc.LoadXml(konfSystem.SVG);
+
+                    string svgCleaned = CleanSvgXml(konfSystem.SVG);
+                    svgDoc.LoadXml(svgCleaned);
+           
                     var svgElement = svgDoc.DocumentElement;
 
                     // Parsuj szerokość i wysokość SVG
@@ -1333,7 +1386,10 @@
 
                     // 🔥 Pobierz width i height z istniejącego SVG (np. z konfSystem.SVG)
                     var svgDoc = new XmlDocument();
-                    svgDoc.LoadXml(konfSystem.SVG);
+
+                    string svgCleaned = CleanSvgXml(konfSystem.SVG);
+                    svgDoc.LoadXml(svgCleaned);
+
                     var svgElement = svgDoc.DocumentElement;
 
                     // Parsuj szerokość i wysokość SVG
@@ -1460,17 +1516,38 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Wystąpił błąd #1: {ex.Message}");
+            Console.WriteLine($"❌ Wystąpił błąd #1: {ex.Message} --> {ex.StackTrace}");
 
-            _ = _notice.Error(new()
+             _ = _notice.Error(new()
                 {
                     Message = "Bład!!",
                     Description = $"❌ Wystąpił błąd #1: {ex.Message}",
                     Placement = NotificationPlacement.Top,
-                    Duration = 2
+                    Duration = 5
                 });
         }
     }
+
+    private static string CleanSvgXml(string rawSvg)
+    {
+        if (string.IsNullOrEmpty(rawSvg))
+            return rawSvg;
+
+        string result = rawSvg;
+
+        // 1. Usuń deklaracje przestrzeni xmlns:...
+        result = Regex.Replace(result, @"xmlns(:\w+)?=""[^""]*""", "", RegexOptions.IgnoreCase);
+
+        // 2. Zamień wszystkie ":" w nazwach tagów i atrybutów na "_"
+        result = result.Replace(":", "_");
+
+        // 3. Usuń niezamknięte samodzielne tagi z błędnym prefixem (opcjonalnie)
+        // np. <a0_a0 /> -> <a0_a0></a0_a0>
+        result = Regex.Replace(result, @"<(\w+)[^>]*/>", "<$1></$1>");
+
+        return result;
+    }
+
 
     // Metoda pomocnicza do parsowania wymiarów SVG
     private double ParseSvgDimension(string value)

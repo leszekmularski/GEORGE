@@ -68,19 +68,24 @@ namespace GEORGE.Client.Pages.Utils
 
                 string typLinii = null;
 
+                string id = Guid.NewGuid().ToString(); ;
+
                 if (shape is XLineShape linia && linia.RuchomySlupek)
                 {
                     typLinii = "Słupek ruchomy";
+                   // id = "SR-" + id;
                 }
                 else
                 {
                     if (shape is XLineShape liniaD && liniaD.DualRama)
                     {
                         typLinii = "Podwójna rama";
+                        //id = "DR-" + id;
                     }
                     else
                     {
                         typLinii = "Brak podziału";
+                        //id = "BP-" + id;
                     }
                 }
    
@@ -91,6 +96,8 @@ namespace GEORGE.Client.Pages.Utils
                     Wierzcholki = pts,
                     TypKsztaltu = typ,
                     TypLiniiDzielacej = typLinii,
+                    Id = id,
+                    IdMaster = id,
                 };
 
 
@@ -101,7 +108,9 @@ namespace GEORGE.Client.Pages.Utils
                     .Where(l => l.DualRama)
                     .ToList();
 
-                    var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace);
+                   // initial.Id = "R-" + initial.Id;
+
+                    var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace, id);
 
                     foreach (var r in podzielone)
                     {
@@ -135,7 +144,9 @@ namespace GEORGE.Client.Pages.Utils
                         .OfType<XLineShape>()
                         .ToList();
 
-                    var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace);
+                    //initial.Id = "N-" + initial.Id;
+
+                    var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace, id);
 
                     foreach (var r in podzielone)
                     {
@@ -242,7 +253,7 @@ namespace GEORGE.Client.Pages.Utils
             return kątyProste && bokiRowne;
         }
 
-        private static List<ShapeRegion> PodzielRegionRekurencyjnie(ShapeRegion region, List<XLineShape> lines)
+        private static List<ShapeRegion> PodzielRegionRekurencyjnie(ShapeRegion region, List<XLineShape> lines, string idMaster)
         {
             var wynik = new List<ShapeRegion> { region };
 
@@ -262,7 +273,7 @@ namespace GEORGE.Client.Pages.Utils
                                 Wierzcholki = poly,
                                 TypKsztaltu = r.TypKsztaltu,
                                 LinieDzielace = r.LinieDzielace.Concat(new[] { line }).ToList(),
-                                // Id = Guid.NewGuid().ToString()
+                                IdMaster = idMaster,
                             });
                     }
                     else
