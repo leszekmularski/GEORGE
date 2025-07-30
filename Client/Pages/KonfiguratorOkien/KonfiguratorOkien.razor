@@ -69,6 +69,88 @@
     updateSvgZoom();
     }
 
+    function fitSvgToContent() {
+        console.log("🔍 Dopasowuję SVG do zawartości i koryguję współrzędne...");
+
+        const group = document.getElementById("rotate-group");
+        if (!group) {
+            console.error("❌ Nie znaleziono grupy 'rotate-group'");
+            return;
+        }
+
+        const svg = group.closest("svg");
+        if (!svg) {
+            console.error("❌ Nie znaleziono elementu SVG");
+            return;
+        }
+
+        // 1. Zapisz aktualną transformację
+        const originalTransform = group.getAttribute("transform") || "";
+
+        // 2. Tymczasowo usuń transformację, aby uzyskać prawdziwy bounding box
+        group.removeAttribute("transform");
+        const bbox = group.getBBox();
+
+        // 3. Przywróć transformację
+        group.setAttribute("transform", originalTransform);
+
+        // 4. Oblicz minimalne wartości współrzędnych
+        const minX = bbox.x;
+        const minY = bbox.y;
+        const margin = 10;
+
+        // 5. Oblicz potrzebną korektę pozycji
+        const correctionX = -minX + margin;
+        const correctionY = -minY + margin;
+
+        // 6. Oblicz nowe wymiary
+        const newWidth = bbox.width + 2 * margin;
+        const newHeight = bbox.height + 2 * margin;
+
+        // 7. Ustaw viewBox zaczynający się od (0,0)
+        svg.setAttribute("viewBox", `0 0 ${newWidth} ${newHeight}`);
+
+        // 8. Zastosuj korektę pozycji
+        applyAbsoluteGroupTranslation(group, correctionX, correctionY);
+
+        // 9. Zresetuj zoom
+        zoomLevel = 1;
+        svg.style.transform = "scale(1)";
+
+        console.log(`✅ Wszystkie współrzędne >= ${margin}`);
+        console.log(`✅ Nowy viewBox: 0 0 ${newWidth} ${newHeight}`);
+        console.log(`✅ Korekta: X=${correctionX}, Y=${correctionY}`);
+
+        // 10. Aktualizuj prowadnice
+        updateGuideValues();
+    }
+
+    function applyAbsoluteGroupTranslation(group, tx, ty) {
+        // Pobierz aktualny obrót
+        const currentTransform = group.getAttribute("transform") || "";
+        const rotateMatch = currentTransform.match(/rotate\(([^)]+)\)/);
+
+        // Zastosuj tylko obrót + nowe przesunięcie
+        group.setAttribute("transform",
+            rotateMatch
+                ? `rotate(${rotateMatch[1]}) translate(${tx} ${ty})`
+                : `translate(${tx} ${ty})`
+        );
+    }
+
+    function resetGroupPosition(group) {
+        const currentTransform = group.getAttribute("transform") || "";
+        const rotateMatch = currentTransform.match(/rotate\(([^)]+)\)/);
+
+        group.setAttribute("transform", rotateMatch ? `rotate(${rotateMatch[1]})` : "");
+    }
+
+    function applyGroupTranslation(group, tx, ty) {
+        const currentTransform = group.getAttribute("transform") || "";
+        group.setAttribute("transform", `${currentTransform} translate(${tx} ${ty})`);
+    }
+  
+
     function updateSvgZoom() {
     let svgContainer = document.querySelector(".scaled-svg");
     let svg = svgContainer.querySelector("svg");
@@ -273,8 +355,6 @@
     }
 
 
-
-
     function stopDrag() {
     if (draggedLine) {
     console.log(`🛑 Zatrzymano przeciąganie: ${draggedLine.id}`);
@@ -332,109 +412,147 @@
     }
 
     function rotateSvgElements() {
-    console.log("🔄 Obracam cały obiekt SVG (bez prowadnic) o 90 stopni!");
+        console.log("🔄 Obracam o 90 stopni");
 
-    let group = document.getElementById("rotate-group");
-    if (!group) {
-    console.error("❌ Nie znaleziono grupy <g id='rotate-group'>! Sprawdź, czy jest w SVG.");
-    return;
-    }
+        let group = document.getElementById("rotate-group");
+        if (!group) return;
 
-    let svg = group.closest("svg");
-    let viewBox = svg.viewBox.baseVal;
+        // Pobierz aktualną transformację
+        let currentTransform = group.getAttribute("transform") || "";
 
-    // Pobieramy oryginalne wymiary SVG
-    let originalWidth = viewBox.width;
-    let originalHeight = viewBox.height;
+        // Parsuj istniejące wartości
+        let translateMatch = currentTransform.match(/translate\((-?\d+\.?\d*)[,\s]*(-?\d+\.?\d*)\)/);
+        let rotateMatch = currentTransform.match(/rotate\(([-\d.]+)(?:[,\s]+([-\d.]+))?(?:[,\s]+([-\d.]+))?\)/);
 
-    // Pobieramy rzeczywiste granice obiektów w grupie
-    let bbox = group.getBBox();
+        // Wartości domyślne
+        let currentTx = 0;
+        let currentTy = 0;
+        let currentAngle = 0;
+        let cx = 0;
+        let cy = 0;
 
-    // Obliczamy środek obrotu
-    let cx = bbox.x + bbox.width / 2;
-    let cy = bbox.y + bbox.height / 2;
+        if (translateMatch) {
+            currentTx = parseFloat(translateMatch[1]);
+            currentTy = parseFloat(translateMatch[2]);
+        }
 
-    // Pobierz obecny kąt obrotu (jeśli istnieje)
-    let currentTransform = group.getAttribute("transform") || "";
-    let match = currentTransform.match(/rotate\(([-\d.]+)/);
-    let currentAngle = match ? parseFloat(match[1]) : 0;
+        if (rotateMatch) {
+            currentAngle = parseFloat(rotateMatch[1]);
+            if (rotateMatch[3]) {
+                cx = parseFloat(rotateMatch[2]);
+                cy = parseFloat(rotateMatch[3]);
+            }
+        }
 
-    // Nowy kąt obrotu (dodajemy do poprzedniego)
-    let newAngle = (currentAngle + 90) % 360;
+        // Nowy kąt
+        const newAngle = (currentAngle + 90) % 360;
 
-    // Ustawienie nowej transformacji na grupie `g`
-    group.setAttribute("transform", `rotate(${newAngle}, ${cx}, ${cy})`);
+        // Jeśli nie mamy środka obrotu, oblicz go
+        if (!rotateMatch) {
+            const bbox = group.getBBox();
+            cx = bbox.x + bbox.width / 2;
+            cy = bbox.y + bbox.height / 2;
+        }
 
-    console.log(`✅ Obrót zakończony: ${newAngle} stopni wokół (${cx}, ${cy})`);
+        // Zbuduj nową transformację
+        let newTransform = `rotate(${newAngle} ${cx} ${cy}) `;
+        newTransform += `translate(${currentTx} ${currentTy})`;
 
-    // 🔄 Dostosowanie `viewBox`, aby obiekt był zawsze w centrum
-    let newX = viewBox.x;
-    let newY = viewBox.y;
-    let newWidth = originalWidth;
-    let newHeight = originalHeight;
+        // Zastosuj transformację
+        group.setAttribute("transform", newTransform);
+        console.log(`🔄 Nowy kąt: ${newAngle}°, środek: (${cx}, ${cy})`);
 
-    if (newAngle === 90) {
-    newX = viewBox.x - (bbox.width - bbox.height) / 2;
-    newY = viewBox.y - (bbox.height - bbox.width) / 2;
-    newWidth = originalHeight;
-    newHeight = originalWidth;
-    } else if (newAngle === 180) {
-    newX = viewBox.x;
-    newY = viewBox.y;
-    } else if (newAngle === 270) {
-    newX = viewBox.x + (bbox.width - bbox.height) / 2;
-    newY = viewBox.y + (bbox.height - bbox.width) / 2;
-    newWidth = originalHeight;
-    newHeight = originalWidth;
-    }
-
-    svg.setAttribute("viewBox", `${newX} ${newY} ${newWidth} ${newHeight}`);
-
-    console.log(`🔍 Nowy viewBox: ${newX}, ${newY}, ${newWidth}, ${newHeight}`);
+        // Aktualizuj widok
+        updateGuideValues();
     }
 
     function updateTransform(dx, dy) {
-    let group = document.getElementById("rotate-group");
-    if (!group) {
-    console.error("❌ Nie znaleziono grupy <g id='rotate-group'>! Sprawdź, czy jest w SVG.");
-    return;
+        let group = document.getElementById("rotate-group");
+        if (!group) return;
+
+        // Pobierz aktualną transformację
+        let currentTransform = group.getAttribute("transform") || "";
+
+        // Parsuj istniejące wartości
+        let translateMatch = currentTransform.match(/translate\((-?\d+\.?\d*)[,\s]*(-?\d+\.?\d*)\)/);
+        let rotateMatch = currentTransform.match(/rotate\(([-\d.]+)(?:[,\s]+([-\d.]+))?(?:[,\s]+([-\d.]+))?\)/);
+
+        // Wartości domyślne
+        let currentTx = 0;
+        let currentTy = 0;
+        let angle = 0;
+        let cx = 0;
+        let cy = 0;
+
+        // Aktualne przesunięcie
+        if (translateMatch) {
+            currentTx = parseFloat(translateMatch[1]);
+            currentTy = parseFloat(translateMatch[2]);
+        }
+
+        // Aktualny obrót
+        if (rotateMatch) {
+            angle = parseFloat(rotateMatch[1]);
+            if (rotateMatch[3]) {
+                cx = parseFloat(rotateMatch[2]);
+                cy = parseFloat(rotateMatch[3]);
+            }
+        }
+
+        // Transformacja wektora zgodnie z kątem
+        let [transformedDx, transformedDy] = transformVector(dx, dy, angle);
+
+        // Nowe przesunięcie
+        const newTx = currentTx + transformedDx;
+        const newTy = currentTy + transformedDy;
+
+        // Zbuduj nową transformację
+        let newTransform = "";
+
+        // Dodaj obrót jeśli istnieje
+        if (angle !== 0) {
+            newTransform = `rotate(${angle} ${cx} ${cy}) `;
+        }
+
+        // Dodaj przesunięcie
+        newTransform += `translate(${newTx} ${newTy})`;
+
+        // Zastosuj nową transformację
+        group.setAttribute("transform", newTransform);
+        console.log(`✅ Nowa transformacja: ${newTransform}`);
     }
 
-    let currentTransform = group.getAttribute("transform") || "translate(0, 0)";
-    let match = currentTransform.match(/translate\((-?\d+\.?\d*),\s*(-?\d+\.?\d*)\)/);
+    function transformVector(dx, dy, angle) {
+        // Normalizuj kąt do zakresu 0-360
+        angle = angle % 360;
+        if (angle < 0) angle += 360;
 
-    let currentX = match ? parseFloat(match[1]) : 0;
-    let currentY = match ? parseFloat(match[2]) : 0;
+        // Dla wielokrotności 90 stopni
+        if (angle === 90) return [-dy, dx];
+        if (angle === 180) return [-dx, -dy];
+        if (angle === 270) return [dy, -dx];
 
-    // Nowa transformacja
-    let newTransform = `translate(${currentX + dx}, ${currentY + dy})`;
-    group.setAttribute("transform", newTransform);
-
-    console.log(`✅ Przesunięcie zakończone: X=${currentX + dx}, Y=${currentY + dy}`);
+        return [dx, dy]; // Dla 0° i innych kątów
     }
 
-    // Przesunięcie w prawo
     function shiftRightSvgElements() {
-    console.log("➡️ Przesuwam cały obiekt SVG o 1px w prawo!");
-    updateTransform(1, 0);
+        console.log("➡️ Przesuwam w prawo (wizualnie)");
+        updateTransform(1, 0);
     }
 
-    // Przesunięcie w lewo
     function shiftLeftSvgElements() {
-    console.log("⬅️ Przesuwam cały obiekt SVG o 1px w lewo!");
-    updateTransform(-1, 0);
+        console.log("⬅️ Przesuwam w lewo (wizualnie)");
+        updateTransform(-1, 0);
     }
 
-    // Przesunięcie w górę
     function shiftUpSvgElements() {
-    console.log("⬆️ Przesuwam cały obiekt SVG o 1px w górę!");
-    updateTransform(0, -1);
+        console.log("⬆️ Przesuwam w górę (wizualnie)");
+        updateTransform(0, -1);
     }
 
-    // Przesunięcie w dół
     function shiftDownSvgElements() {
-    console.log("⬇️ Przesuwam cały obiekt SVG o 1px w dół!");
-    updateTransform(0, 1);
+        console.log("⬇️ Przesuwam w dół (wizualnie)");
+        updateTransform(0, 1);
     }
 
     window.generatePngFromSvg = function (svgContent) {
@@ -645,6 +763,56 @@
     document.body.removeChild(link);
 };
 
+    // Funkcja do resetowania całkowicie pozycji (użyj w razie potrzeby)
+    function fullResetSvg() {
+        const group = document.getElementById("rotate-group");
+        if (group) {
+            group.removeAttribute("transform");
+        }
+
+        const svg = document.querySelector(".scaled-svg svg");
+        if (svg) {
+            svg.removeAttribute("viewBox");
+            svg.style.transform = "scale(1)";
+        }
+
+        zoomLevel = 1;
+        console.log("✅ Zresetowano całkowicie pozycję SVG");
+    }
+
+        function flipVerticalSvg() {
+        console.log("🪞 Stosuję odbicie lustrzane w pionie...");
+
+        const group = document.getElementById("rotate-group");
+        if (!group) return;
+
+        // Pobierz aktualny bounding box
+        const bbox = group.getBBox();
+        const centerY = bbox.y + bbox.height / 2;
+
+        // Pobierz aktualną transformację
+        let currentTransform = group.getAttribute("transform") || "";
+
+        // Sprawdź czy już istnieje odbicie
+        const hasFlip = currentTransform.includes("scale(1, -1)");
+
+        if (hasFlip) {
+            // Usuń odbicie - przywróć oryginał
+            currentTransform = currentTransform
+                .replace(/scale\(1, -1\)\s*translate\(0, [-\d.]+\)/, "")
+                .trim();
+            group.setAttribute("transform", currentTransform);
+            console.log("✅ Usunięto odbicie lustrzane");
+        } else {
+            // Dodaj nowe odbicie
+            const flipTransform = `scale(1, -1) translate(0, ${-2 * centerY})`;
+            group.setAttribute("transform", `${currentTransform} ${flipTransform}`);
+            console.log(`✅ Dodano odbicie względem osi Y=${centerY}`);
+        }
+
+        updateGuideValues();
+    }
+
 </script>
 
 <div class="d-flex align-items-center flex-wrap gap-2">
@@ -699,6 +867,9 @@
         <Button class="btn-back" Icon="@IconType.Outline.ArrowUp" Style="width:27px" OnClick="MoveUpObj" />
         <Button class="btn-back" Icon="@IconType.Outline.ZoomIn" Style="width:27px" OnClick="ZoomInObj" />
         <Button class="btn-back" Icon="@IconType.Outline.ZoomOut" Style="width:27px" OnClick="ZoomOutObj" />
+        <Button class="btn-back" Icon="@IconType.Outline.AlignCenter" Style="width:27px" OnClick="FitSvg" />
+        <Button class="btn-back" Icon="@IconType.Outline.Transaction" Style="width:27px" OnClick="FlipVertical" />
+       @*  <Button class="btn-back" Icon="@IconType.Outline.MergeCells" Style="width:27px" OnClick="FitResetSvg" /> *@
     }
 
 </Divider>
@@ -1251,6 +1422,24 @@
         StateHasChanged();
     }
 
+    private async Task FitResetSvg()
+    {
+        await JSRuntime.InvokeVoidAsync("fullResetSvg");
+        StateHasChanged();
+    }
+
+    private async Task FitSvg()
+    {
+        await JSRuntime.InvokeVoidAsync("fitSvgToContent");
+        StateHasChanged();
+    }
+
+    private async Task FlipVertical()
+    {
+        await JSRuntime.InvokeVoidAsync("flipVerticalSvg");
+        StateHasChanged();
+    }
+
     private async Task SaveLinieDXF()
     {
         if (!boolZmiana)
@@ -1271,12 +1460,15 @@
             return;
         }
 
-        if (string.IsNullOrEmpty(konfSystem.Nazwa))
+        if (string.IsNullOrEmpty(konfSystem.Nazwa) || string.IsNullOrEmpty(konfSystem.Indeks))
         {
+
+            activeKey = "1";
+
             _ = _notice.Info(new()
                 {
                     Message = "Informacja!!",
-                    Description = $"Podaj nazwę elementu!!!!",
+                    Description = $"Podaj Nazwę oraz Indeks elementu!!!!",
                     Placement = NotificationPlacement.BottomLeft,
                     Duration = 2
                 });

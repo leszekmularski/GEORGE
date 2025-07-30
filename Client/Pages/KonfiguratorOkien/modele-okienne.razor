@@ -1688,7 +1688,7 @@
 
     }
 
-    private async Task FitToCanvas(IShapeDC targetShape, string idRegion, bool skalaAutomatyczna, List<XPoint> Wierzcholki, XPoint wartoscClickMayszy)
+    private async Task FitToCanvas(IShapeDC targetShape, string idRegion, bool skalaAutomatyczna, List<XPoint> Wierzcholki)
     {
 
         Console.WriteLine($"🔍 FitToCanvas --> Dopasowano do shape: scale={_currentScale:F2}, panX={_panX:F2}, panY={_panY:F2}");
@@ -1697,13 +1697,14 @@
 
         await DrawStructureAndRestrykcje(0);
 
-        await DodajWybranyKwadratOkna(idRegion, Wierzcholki, wartoscClickMayszy); // teraz z idRegion
+        await DodajWybranyKwadratOkna(idRegion, Wierzcholki); // teraz z idRegion
 
         // await UpdateCanvasSizeFromDiv();
         await RenderFrame();
 
     }
 
+    double logicalX = 0;
     private async Task MouseMove(MouseEventArgs e)
     {
         var rect = await JS.InvokeAsync<DOMRect>("getCanvasBoundingRect", CanvasRef.CanvasReference);
@@ -1711,7 +1712,7 @@
         double relativeY = e.ClientY - rect.Top;
 
         // Przeliczenie na przestrzeń logiczną
-        double logicalX = relativeX / _currentScale;
+        logicalX = relativeX / _currentScale;
         double logicalY = relativeY / _currentScale;
 
         mousePosition = $"X: {logicalX:F2}, Y: {logicalY:F2}";
@@ -1742,9 +1743,6 @@
         Console.WriteLine($"🖱️ DropX: {DropX}, DropY: {DropY}");
         Console.WriteLine($"🔧 PanX: {_panX}, PanY: {_panY}, Scale: {_currentScale}");
         Console.WriteLine($"📌 Pozycja w modelu: X={(DropX - _panX) / _currentScale}, Y={(DropY - _panY) / _currentScale}");
-
-        XPoint xPoint = new XPoint((DropX - _panX) / _currentScale, (DropY - _panY) / _currentScale);
-
 
         // Pobierz informacje o przeciąganym modelu
         var draggedInfo = await GetDraggedModelInfoAsync();
@@ -1802,7 +1800,7 @@
         }
 
         // 🎯 Dopasuj widok do kształtu i regionu
-        await FitToCanvas(shape, region.Id, false, region.Wierzcholki, xPoint);
+        await FitToCanvas(shape, region.Id, false, region.Wierzcholki);
 
         foreach (var shapeX in _shapes)
         {
@@ -2258,7 +2256,7 @@
         await Task.CompletedTask;
     }
 
-    private async Task DodajWybranyKwadratOkna(string idRegion, List<XPoint> Wierzcholki, XPoint wartoscClickMayszy)
+    private async Task DodajWybranyKwadratOkna(string idRegion, List<XPoint> Wierzcholki)
     {
         if (SelectedModelType == null || string.IsNullOrEmpty(SelectedModelType))
         {
@@ -2375,6 +2373,7 @@
 
                     Console.WriteLine($"✅ Region {idRegion} zawiera słupek ruchomy.");
 
+                    await Task.Delay(550); // Krótkie opóźnienie dla płynności
 
                     if (slupkiRuchome.Count() < 3) //Jest tylko jedna linia
                     {
@@ -2383,23 +2382,19 @@
                         double srodekX2 = slupkiRuchome[1].Wierzcholki[0].X;
                         double srodekX = (srodekX1 + srodekX2) / 2;
 
-                        if (Math.Abs(wartoscClickMayszy.X) < Math.Abs(srodekX))
+                        if (Math.Abs(logicalX) < Math.Abs(srodekX))
                         {
-                            stronaLewa = true;
-                            Console.WriteLine($"🟥 Słupek po lewej stronie (klik X={wartoscClickMayszy.X} < środek X={srodekX}) [{slupkiRuchome.Count()}]");
+                            stronaPrawa = true;
                         }
                         else
                         {
-                            stronaPrawa = true;
-                            Console.WriteLine($"🟦 Słupek po prawej stronie (klik X={wartoscClickMayszy.X} ≥ środek X={srodekX}) [{slupkiRuchome.Count()}]");
+                            stronaLewa = true;
                         }
                     }
                     else
                     {
                         stronaLewa = true;
-                        Console.WriteLine($"🟥 Słupek po lewej stronie (klik X={wartoscClickMayszy.X}) [{slupkiRuchome.Count()}]");
                         stronaPrawa = true;
-                        Console.WriteLine($"🟦 Słupek po prawej stronie (klik X={wartoscClickMayszy.X}) [{slupkiRuchome.Count()}]");
                     }
 
                 }
@@ -2407,8 +2402,8 @@
 
                 // Podsumowanie
                 Console.WriteLine($"🧭 Pozycje słupków względem kliknięcia:");
-                if (stronaLewa) Console.WriteLine("🔹 Lewa strona");
-                if (stronaPrawa) Console.WriteLine("🔹 Prawa strona");
+                if (stronaLewa) Console.WriteLine($"🔹 Lewa strona (klik X={logicalX})");
+                if (stronaPrawa) Console.WriteLine($"🔹 Prawa strona (klik X={logicalX})");
 
             }
             else
@@ -2798,11 +2793,34 @@
             Wierzcholki = Wierzcholki,
             WierzcholkiWartosciNominalne = WierzcholkiWartosciNominalne,
             LinieDzielace = linieDzielace,
+            Katlinii = ObliczKatWLinii(Wierzcholki)
         };
 
         ZapiszStanGeneratora(idRegion, state);
 
     }
+
+    public static int ObliczKatWLinii(List<XPoint> wierzcholki)
+    {
+        if (wierzcholki == null || wierzcholki.Count != 2)
+            return 0;
+
+        var p1 = wierzcholki[0];
+        var p2 = wierzcholki[1];
+
+        double deltaX = p2.X - p1.X;
+        double deltaY = p2.Y - p1.Y;
+
+        double angleRad = Math.Atan2(deltaY, deltaX); // kąt w radianach
+        double angleDeg = angleRad * (180.0 / Math.PI); // zamiana na stopnie
+
+        // Upewnij się, że kąt jest dodatni [0, 360)
+        if (angleDeg < 0)
+            angleDeg += 360;
+
+        return (int)angleDeg;
+    }
+
 
     private void ZapiszStanGeneratora(string idRegion, GeneratorState state)
     {
@@ -3003,7 +3021,6 @@
 
     private async Task RenderFrame(bool calculate = true)
     {
-
         try
         {
             if (_context == null || ksztalty == null || !ksztalty.Any())

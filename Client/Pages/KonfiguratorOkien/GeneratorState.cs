@@ -18,6 +18,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         public KonfModele? WybranyModel { get; set; } 
         public string? WybranyKsztalt { get; set; }
         public string? LinieDzielace { get; set; }
+        public int Katlinii { get; set; } = 0;
 
 
     }
