@@ -1,5 +1,6 @@
 ﻿using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.Models;
+using GEORGE.Shared.ViewModels;
 
 namespace GEORGE.Client.Pages.KonfiguratorOkien
 {
@@ -18,9 +19,9 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         public KonfModele? WybranyModel { get; set; } 
         public string? WybranyKsztalt { get; set; }
         public string? LinieDzielace { get; set; }
-        public int Katlinii { get; set; } = 0;
-
-
+        public bool SlupekRuchomyPoLewejStronie { get; set; } = false;
+        public bool SlupekRuchomyPoPrawejStronie { get; set; } = false;
+        public List<DaneKwadratu>? ListaKwadratow { get; set; }
     }
 
 }

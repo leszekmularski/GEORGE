@@ -1,5 +1,6 @@
 ﻿using Blazor.Extensions.Canvas.Canvas2D;
 using GEORGE.Client.Pages.KonfiguratorOkien;
+using GEORGE.Shared.ViewModels;
 
 namespace GEORGE.Client.Pages.Models
 {

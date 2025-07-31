@@ -1,4 +1,6 @@
-﻿namespace GEORGE.Client.Pages.Models
+﻿using GEORGE.Shared.ViewModels;
+
+namespace GEORGE.Client.Pages.Models
 {
     public class XBoundingBox
     {

@@ -1,6 +1,7 @@
 ﻿using Blazor.Extensions.Canvas.Canvas2D;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using GEORGE.Client.Pages.KonfiguratorOkien;
+using GEORGE.Shared.ViewModels;
 
 namespace GEORGE.Client.Pages.Models
 {

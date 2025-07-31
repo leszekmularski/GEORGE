@@ -1,4 +1,5 @@
 ﻿using Blazor.Extensions.Canvas.Canvas2D;
+using GEORGE.Shared.ViewModels;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using GEORGE.Client.Pages.Models;
 using SixLabors.ImageSharp.Drawing;

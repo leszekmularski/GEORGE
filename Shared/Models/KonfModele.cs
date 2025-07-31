@@ -12,7 +12,6 @@ namespace GEORGE.Shared.Models
         public int Id { get; set; }
         public Guid RowId { get; set; } = Guid.NewGuid();
         public Guid RowIdSystem { get; set; }
-        public Guid RowIdElement { get; set; }
         public string? NazwaKonfiguracji { get; set; }
         public string? Typ { get; set; } // Typ- Rama, skrzydło, słupek ruchomy, słupek stały
         public int? KatWystapieniaZakresOdMin { get; set; } = 0;

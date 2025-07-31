@@ -2,6 +2,7 @@
 @using AntDesign
 @using GEORGE.Shared.Models
 @using GEORGE.Shared.Class
+@using GEORGE.Shared.ViewModels;
 @using GEORGE.Client.Pages.Utils
 @inject IJSRuntime JS
 @inject Utilities.ILocalStorage LocalStorage
@@ -308,6 +309,18 @@
             });
         };
 
+    // Sprawdza, czy canvas jest poprawny i w DOM
+    window.isCanvasValid = () => {
+        const isValid = !!window.blazorCanvas && document.contains(window.blazorCanvas);
+        console.log(`✅ Canvas valid: ${isValid}`);
+        return isValid;
+    };
+
+    // Czyści referencję do canvas (wywoływane z C# przy usuwaniu komponentu)
+    window.clearCanvasRef = () => {
+        console.log("🧹 Czyszczenie referencji do canvas");
+        window.blazorCanvas = null;
+    };
 </script>
 
 <style>
@@ -1625,9 +1638,10 @@
 
     private async Task ClearCanvas()
     {
-        if (_context == null)
+        // Sprawdź, czy kontekst istnieje i czy canvas jest w DOM
+        if (_context == null || !await JS.InvokeAsync<bool>("isCanvasValid"))
         {
-            Console.WriteLine("❌ Brak kontekstu canvas (_context is null)");
+            Console.WriteLine("❌ Brak kontekstu canvas (invalid or disposed)");
             return;
         }
 
@@ -2496,6 +2510,9 @@
 
                 Console.WriteLine($"📐📐📐 Region Zindeks = 0 ID: {wybranyRegionDualRama.Id} -> Szerokość: {generator.Szerokosc}, Wysokość: {generator.Wysokosc}");
 
+                stronaLewa = false; //Zeruj strony po wybraniu ramy
+                stronaPrawa = false;
+
                 generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion);
             }
         }
@@ -2783,7 +2800,6 @@
         {
             IdRegion = idRegion,
             ZIndeks = generator.Zindeks,
-            //KonfiguracjeSystemu = KonfiguracjeSystemu,
             RowIdSystemu = Guid.Parse(SelectedSystemId),
             RowIdModelu = Guid.TryParse(SelectedRowIdType, out var rowIdModelu) ? rowIdModelu : (Guid?)null,
             PowiazanyModel = generator.PowiazanyModel,
@@ -2793,32 +2809,177 @@
             Wierzcholki = Wierzcholki,
             WierzcholkiWartosciNominalne = WierzcholkiWartosciNominalne,
             LinieDzielace = linieDzielace,
-            Katlinii = ObliczKatWLinii(Wierzcholki)
+            SlupekRuchomyPoLewejStronie = stronaLewa,
+            SlupekRuchomyPoPrawejStronie = stronaPrawa,
+            ListaKwadratow = new List<DaneKwadratu>()
         };
+
+        var linie = ExtractLinesFromSquare(WierzcholkiWartosciNominalne);
+
+        foreach (var linia in linie)
+        {
+            state.ListaKwadratow.Add(new DaneKwadratu
+            {
+                Wierzcholki = linia,
+                RowIdElementu = ZnajdzKonfiguracjeDlaLinii(linia, state),
+                RowIdSasiada = ZnajdzSasiada(linia, _generatorStates.Values.ToList()),
+                KatLinii = ObliczKatLinii(linia)
+            });
+        }
+
 
         ZapiszStanGeneratora(idRegion, state);
 
+
+
+
     }
 
-    public static int ObliczKatWLinii(List<XPoint> wierzcholki)
+    public static int ObliczKatLinii(List<XPoint> linia)
     {
-        if (wierzcholki == null || wierzcholki.Count != 2)
+        if (linia == null || linia.Count != 2)
             return 0;
 
-        var p1 = wierzcholki[0];
-        var p2 = wierzcholki[1];
+        var p1 = linia[0];
+        var p2 = linia[1];
 
-        double deltaX = p2.X - p1.X;
-        double deltaY = p2.Y - p1.Y;
+        double dx = p2.X - p1.X;
+        double dy = p2.Y - p1.Y;
 
-        double angleRad = Math.Atan2(deltaY, deltaX); // kąt w radianach
-        double angleDeg = angleRad * (180.0 / Math.PI); // zamiana na stopnie
+        double angleRadians = Math.Atan2(dy, dx); // uwzględnia znak
+        double angleDegrees = angleRadians * (180.0 / Math.PI);
 
-        // Upewnij się, że kąt jest dodatni [0, 360)
-        if (angleDeg < 0)
-            angleDeg += 360;
+        if (angleDegrees < 0)
+            angleDegrees += 360; // zakres 0–360
 
-        return (int)angleDeg;
+        return (int)Math.Round(angleDegrees);
+    }
+
+
+    public static Guid ZnajdzKonfiguracjeDlaLinii(List<XPoint> linia, GeneratorState stan)
+    {
+        if (linia == null || linia.Count != 2)
+            return Guid.Empty;
+
+        var p1 = linia[0];
+        var p2 = linia[1];
+
+        bool jestPionowa = Math.Abs(p1.X - p2.X) < 0.01;
+        bool jestPozioma = Math.Abs(p1.Y - p2.Y) < 0.01;
+
+        if (stan?.PowiazanyModel?.KonfSystem == null)
+            return Guid.Empty;
+
+        foreach (var konf in stan.PowiazanyModel.KonfSystem)
+        {
+            if (jestPionowa)
+            {
+                if (p1.X < 5 && konf.WystepujeLewa == true)
+                    return konf.RowId;
+                if (p1.X > 85 && konf.WystepujePrawa == true)
+                    return konf.RowId;
+            }
+            else if (jestPozioma)
+            {
+                if (p1.Y < 5 && konf.WystepujeGora == true)
+                    return konf.RowId;
+                if (p1.Y > 75 && konf.WystepujeDol == true)
+                    return konf.RowId;
+            }
+        }
+
+        return Guid.Empty;
+    }
+
+    public static Guid ZnajdzSasiada(List<XPoint> linia, List<GeneratorState> wszystkieStany, double tolerancja = 0.01)
+    {
+        if (linia == null || linia.Count != 2)
+            return Guid.Empty;
+
+        var p1 = linia[0];
+        var p2 = linia[1];
+
+        foreach (var stan in wszystkieStany)
+        {
+            var wierzcholki = stan.WierzcholkiWartosciNominalne;
+            if (wierzcholki == null || wierzcholki.Count < 2)
+                continue;
+
+            var linieStanu = ExtractLinesFromSquare(wierzcholki);
+
+            foreach (var innaLinia in linieStanu)
+            {
+                if (innaLinia.Count != 2) continue;
+
+                var q1 = innaLinia[0];
+                var q2 = innaLinia[1];
+
+                if (CzyWspolosiowe(p1, p2, q1, q2, tolerancja) && CzyNakladajaSie(p1, p2, q1, q2, tolerancja))
+                {
+                    return stan.RowIdModelu ?? Guid.Empty;
+                }
+            }
+        }
+
+        return Guid.Empty;
+    }
+
+    private static bool CzyWspolosiowe(XPoint a1, XPoint a2, XPoint b1, XPoint b2, double tol)
+    {
+        bool aPion = Math.Abs(a1.X - a2.X) < tol;
+        bool bPion = Math.Abs(b1.X - b2.X) < tol;
+
+        if (aPion && bPion)
+            return Math.Abs(a1.X - b1.X) < tol;
+
+        bool aPoziom = Math.Abs(a1.Y - a2.Y) < tol;
+        bool bPoziom = Math.Abs(b1.Y - b2.Y) < tol;
+
+        if (aPoziom && bPoziom)
+            return Math.Abs(a1.Y - b1.Y) < tol;
+
+        return false; // różne kierunki
+    }
+
+    private static bool CzyNakladajaSie(XPoint a1, XPoint a2, XPoint b1, XPoint b2, double tol)
+    {
+        if (Math.Abs(a1.X - a2.X) < tol) // pionowe
+        {
+            var aMin = Math.Min(a1.Y, a2.Y);
+            var aMax = Math.Max(a1.Y, a2.Y);
+            var bMin = Math.Min(b1.Y, b2.Y);
+            var bMax = Math.Max(b1.Y, b2.Y);
+            return aMax >= bMin - tol && bMax >= aMin - tol;
+        }
+        else if (Math.Abs(a1.Y - a2.Y) < tol) // poziome
+        {
+            var aMin = Math.Min(a1.X, a2.X);
+            var aMax = Math.Max(a1.X, a2.X);
+            var bMin = Math.Min(b1.X, b2.X);
+            var bMax = Math.Max(b1.X, b2.X);
+            return aMax >= bMin - tol && bMax >= aMin - tol;
+        }
+
+        return false; // nieobsługiwane skośne
+    }
+
+
+    public static List<List<XPoint>> ExtractLinesFromSquare(List<XPoint> wierzcholki)
+    {
+        var linie = new List<List<XPoint>>();
+
+        if (wierzcholki == null || wierzcholki.Count < 2)
+            return linie; // brak linii
+
+        for (int i = 0; i < wierzcholki.Count; i++)
+        {
+            var start = wierzcholki[i];
+            var end = (i == wierzcholki.Count - 1) ? wierzcholki[0] : wierzcholki[i + 1]; // zamknięcie figury
+
+            linie.Add(new List<XPoint> { start, end });
+        }
+
+        return linie;
     }
 
 

@@ -1,4 +1,5 @@
 ﻿using GEORGE.Client.Pages.Models;
+using GEORGE.Shared.ViewModels;
 
 namespace GEORGE.Client.Pages.KonfiguratorOkien
 {
