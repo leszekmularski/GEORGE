@@ -6,6 +6,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 {
     public class GeneratorState
     {
+        public int Id { get; set; }
         public string? IdRegion { get; set; }
         public string? IdRegionWarstwaNizej { get; set; }
         public int ZIndeks { get; set; }

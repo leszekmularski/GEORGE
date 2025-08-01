@@ -31,5 +31,7 @@ namespace GEORGE.Client.Pages.Okna
         public Dictionary<string, string> WlasciwosciDodatkowe { get; set; } = new();
         public Guid RowIdSystemu { get; set; }
         public Guid RowIdModelu { get; set; }
+        public bool RuchomySlupekPoPrawej { get; set; } = false;
+        public bool RuchomySlupekPoLewej { get; set; } = false;
     }
 }

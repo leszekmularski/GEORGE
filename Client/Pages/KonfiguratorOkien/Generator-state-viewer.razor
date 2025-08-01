@@ -36,7 +36,7 @@ else
                         <td>@entry.Value.RowIdModelu</td>
                         <td>@entry.Value.WybranyModel?.NazwaKonfiguracji</td>
                         <td>@entry.Value.WybranyKsztalt</td>
-                        @*   <td>@(entry.Value.KonfiguracjeSystemu?.Count ?? 0)</td> *@
+                        @*   <td>@(entry.Value.KonfiguracjeSystemu?.Count ?? 0)</td> 
 
                         @if (entry.Value.Wierzcholki is not null && entry.Value.Wierzcholki.Any())
                         {
@@ -54,7 +54,7 @@ else
                         else
                         {
                             <p><em>Brak punktów.</em></p>
-                        }
+                        }*@
 
                         @if (entry.Value.WierzcholkiWartosciNominalne is not null && entry.Value.WierzcholkiWartosciNominalne.Any())
                         {

@@ -677,8 +677,9 @@
                                     {
 
                                         <a target="_blank" href="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)">
-                                            <img src="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)"
-                                                 style="width: 150px; height: auto; object-fit: contain; border: 1px solid #ccc;" />
+                                            <img title="zew:@polaczenie.ElementZewnetrznyId wew:@polaczenie.ElementWewnetrznyId" src="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)"
+                                                     style="width: 150px; height: auto; object-fit: contain; border: 1px solid #ccc;" />
+
                                         </a>
                                     }
                                     else

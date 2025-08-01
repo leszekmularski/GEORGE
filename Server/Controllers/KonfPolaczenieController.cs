@@ -42,6 +42,28 @@ namespace GEORGE.Server.Controllers
             }
         }
 
+        // ✅ GET: api/konfpolaczenie/find-by-elements/{zewId}/{wewId}}
+        [HttpGet("find-by-elements-all/{zewId:guid}/{wewId:guid}")]
+        public async Task<ActionResult<List<KonfPolaczenie>>> GetByElementIds(Guid zewId, Guid wewId)
+        {
+            try
+            {
+                var records = await _context.KonfPolaczenie
+                    .Where(p =>
+                        p.ElementZewnetrznyId == zewId &&
+                        p.ElementWewnetrznyId == wewId)
+                    .ToListAsync();
+
+                if (records == null || records.Count == 0)
+                    return NotFound();
+
+                return records;
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Błąd serwera: {ex.Message}");
+            }
+        }
 
         // ✅ GET: api/konfpolaczenie/row-id-system/{rowidSystem}
         [HttpGet("row-id-system/{rowidSystem:guid}")]
