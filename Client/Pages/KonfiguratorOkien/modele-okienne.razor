@@ -1740,9 +1740,16 @@
 
         Console.WriteLine($"🔍 FitToCanvas --> Dopasowano do shape: scale={_currentScale:F2}, panX={_panX:F2}, panY={_panY:F2}");
 
-        await DrawStructureAndRestrykcje(0);
+       // await DrawStructureAndRestrykcje(0);
 
-        if (await DodajWybranyKwadratOkna(idRegion, Wierzcholki) == false) return; // teraz z idRegion
+        //await Task.Delay(250); // Krótkie opóźnienie dla płynności
+
+        //if (await DodajWybranyKwadratOkna(idRegion, Wierzcholki) == false) return; // teraz z idRegion
+
+        if (!await DodajWybranyKwadratOkna(idRegion, Wierzcholki))
+            return;
+
+        await DrawStructureAndRestrykcje(0);
 
         isTextureLoaded = false;
 
@@ -1860,10 +1867,12 @@
             await shapeX.Draw(_context);
         }
         await _context.RestoreAsync();
+
+        WybranyModel = null;
+
         // Resetuj kursor JS
         await JS.InvokeVoidAsync("ResetCursorGlobal");
 
-        WybranyModel = null;
     }
 
     private ShapeRegion? FindRegionAtPosition(double x, double y, bool tylkoRama)
@@ -2662,6 +2671,8 @@
         _generatory[idRegion] = generator;
         ZapiszStanGeneratora(idRegion, state);
 
+        //await Task.CompletedTask;
+
         return true;
     }
 
@@ -2914,7 +2925,7 @@
         bool ruchomySlupekPoLewej,
         bool ruchomySlupekPoPrawej,
         string obecnyRegionId,
-        double tolerancja = 0.02)
+        double tolerancja = 0.05)
     {
         var pasujace = new List<SasiadInfo>();
 
@@ -2971,7 +2982,6 @@
             }
         }
 
-        // 🔽 Wybierz najlepszego kandydata: najpierw ZIndeks 0, potem 1, potem 2
         return pasujace
             .OrderBy(p => p.ZIndeks)
             .FirstOrDefault() ?? new SasiadInfo { RowIdElementu = Guid.Empty, IdRegionu = "", ZIndeks = -1 };
