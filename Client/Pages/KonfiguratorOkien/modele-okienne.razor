@@ -57,13 +57,13 @@
         return;
         }
         window.blazorCanvas = canvasRef;
-        console.log("✅ Canvas ustawiony!", canvasRef);
+       // console.log("✅ Canvas ustawiony!", canvasRef);
         };
 
         // Ustawienie referencji do .NET
         window.setDotNetHelper = (dotNetHelper) => {
         window.dotNetHelper = dotNetHelper;
-        console.log("✅ DotNetHelper ustawiony!");
+        //console.log("✅ DotNetHelper ustawiony!");
         };
 
         // Funkcja rozpoczynająca przeciąganie
@@ -737,11 +737,11 @@
                                          @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
                                          draggable="true"
                                          style="cursor: grab;
-                                              width: auto;
-                                              height: auto;
-                                              max-width: 50px;
-                                              max-height: 50px;
-                                              border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
+                                                          width: auto;
+                                                          height: auto;
+                                                          max-width: 50px;
+                                                          max-height: 50px;
+                                                          border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
 
                                 }
                                 else
@@ -1742,13 +1742,11 @@
 
         await DrawStructureAndRestrykcje(0);
 
-        if(await DodajWybranyKwadratOkna(idRegion, Wierzcholki) == false) return; // teraz z idRegion
+        if (await DodajWybranyKwadratOkna(idRegion, Wierzcholki) == false) return; // teraz z idRegion
 
         isTextureLoaded = false;
 
-        await Task.Delay(50); 
-
-        // await UpdateCanvasSizeFromDiv();
+           // await UpdateCanvasSizeFromDiv();
         await RenderFrame();
 
     }
@@ -1801,7 +1799,12 @@
             SelectedRowIdType = draggedInfo.RowId;
         }
 
+        await Task.Delay(25);
+
         var rect = await JS.InvokeAsync<DOMRect>("getCanvasBoundingRect", CanvasRef.CanvasReference);
+
+        await Task.Delay(25);
+
         double relativeX = e.ClientX - rect.Left;
         double relativeY = e.ClientY - rect.Top;
 
@@ -2015,7 +2018,7 @@
     {
         SelectedSystemId = e.Value.ToString();
 
-        Console.WriteLine($"Wybrano system o ID: {SelectedSystemId}");
+        //Console.WriteLine($"Wybrano system o ID: {SelectedSystemId}");
 
         if (string.IsNullOrEmpty(SelectedSystemId))
         {
@@ -2418,7 +2421,6 @@
                         if (Math.Abs(logicalX) < Math.Abs(srodekX))
                         {
                             stronaPrawa = true;
-
                         }
                         else
                         {
@@ -2516,7 +2518,7 @@
                 generator.RuchomySlupekPoLewej = false;
                 generator.RuchomySlupekPoPrawej = false;
 
-                generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion);
+                generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates);
             }
         }
 
@@ -2551,15 +2553,28 @@
             double regionMaxX = WierzcholkiWartosciNominalne.Max(p => p.X);
             double regionMinY = WierzcholkiWartosciNominalne.Min(p => p.Y);
             double regionMaxY = WierzcholkiWartosciNominalne.Max(p => p.Y);
+
+            var info = ZnajdzSasiada(
+                    linia,
+                    _generatorStates.Values.ToList(),
+                    katSzukaj,
+                    state.SlupekRuchomyPoLewejStronie,
+                    state.SlupekRuchomyPoPrawejStronie,
+                    idRegion,
+                    0.01 // tolerancja
+                );
+
+            var rowId = ZnajdzKonfiguracjeDlaLinii(linia, state, stronaLewa, stronaPrawa);
+
             state.ListaKwadratow.Add(new DaneKwadratu
             {
                 Wierzcholki = linia,
-                RowIdElementu = ZnajdzKonfiguracjeDlaLinii(linia, state, stronaLewa, stronaPrawa),
-                RowIdSasiada = ZnajdzSasiada(linia, _generatorStates.Values.ToList(), katSzukaj, state.SlupekRuchomyPoLewejStronie, state.SlupekRuchomyPoPrawejStronie),
+                RowIdElementu = rowId,
+                RowIdSasiada = info.RowIdElementu,
+                RowIdRegionuSasiada = info.IdRegionu,
                 KatLinii = katSzukaj,
                 Strona = StronaSzukaj(katSzukaj, linia, regionMinY, regionMaxY, regionMinX, regionMaxX),
             });
-
         }
 
         if (SelectedModelType.Trim() == "Skrzydło" || SelectedModelType.Trim() == "Skrzydło z słupkiem ruchomym")
@@ -2594,17 +2609,26 @@
                 var regionDoDodania = _regionsSkrzydlo.FirstOrDefault(r => r.Id == idRegion);
                 if (regionDoDodania != null)
                 {
-                    generator.AddElements(new List<ShapeRegion> { regionDoDodania }, idRegion);
-                    await WyliczObszarSkrzydla(
-                    WierzcholkiWartosciNominalne,
-                    state,
-                    przesLewo, przesPrawo,
-                    przesGora, przesDol,
-                    stronaLewa, stronaPrawa,
-                    generator, _regionsSkrzydlo,
-                    idRegion, minX, minY, maxX, maxY
-                );
+                    // ✅ KOPIOWANIE punktów do regionu, na którym operuje AddElements
+                    regionDoDodania.Wierzcholki = WierzcholkiWartosciNominalne
+                        .Select(p => new XPoint { X = p.X, Y = p.Y })
+                        .ToList();
 
+                    // ✅ Najpierw przesuń punkty
+                    await WyliczObszarSkrzydla(
+                        state,
+                        przesLewo, przesPrawo,
+                        przesGora, przesDol,
+                        stronaLewa, stronaPrawa,
+                        generator, regionDoDodania
+                    );
+                    // 4. Zapisz do stanu
+                    state.ZIndeks = generator.Zindeks;
+                    state.Wierzcholki = regionDoDodania.Wierzcholki;
+                    state.WierzcholkiWartosciNominalne = WierzcholkiWartosciNominalne;
+
+                    // 5. Dodaj elementy
+                    generator.AddElements(new List<ShapeRegion> { regionDoDodania }, idRegion, _generatorStates);
                 }
 
             }
@@ -2619,7 +2643,7 @@
             // Logika dla słupka stałego
         }
 
-        Console.WriteLine($"✅ ElementyRamyRysowane.Count: {generator.ElementyRamyRysowane.Count}");
+     //   Console.WriteLine($"✅ ElementyRamyRysowane.Count: {generator.ElementyRamyRysowane.Count}");
 
         if (generator.ElementyRamyRysowane == null || generator.ElementyRamyRysowane.Count == 0)
         {
@@ -2627,9 +2651,9 @@
             return false;
         }
 
-        Console.WriteLine($"📦📦📦 Generowanie elementów ListaKwadratow: {state.ListaKwadratow.Count}.");
+       // Console.WriteLine($"📦📦📦 Generowanie elementów ListaKwadratow: {state.ListaKwadratow.Count}.");
 
-        Console.WriteLine($"📦📦📦 Dodano elementy do regionu {idRegion} o typie {SelectedModelType}. przesLewo:{przesLewo}, przesPrawo:{przesPrawo}, przesGora: {przesGora}, przesDol: {przesDol} 📦📦📦");
+       // Console.WriteLine($"📦📦📦 Dodano elementy do regionu {idRegion} o typie {SelectedModelType}. przesLewo:{przesLewo}, przesPrawo:{przesPrawo}, przesGora: {przesGora}, przesDol: {przesDol} 📦📦📦");
         // Zapis do słownika i aktualizacja listy
         _ksztaltyNaRegion[idRegion] = new List<KsztaltElementu>(generator.ElementyRamyRysowane);
         ksztalty = _ksztaltyNaRegion.Values.SelectMany(k => k).ToList();
@@ -2641,43 +2665,48 @@
         return true;
     }
 
-    private async Task<List<ShapeRegion>> WyliczObszarSkrzydla(List<XPoint> WierzcholkiWartosciNominalne, GeneratorState state, double przesLewo, double przesPrawo,
-        double przesGora, double przesDol, bool stronaLewa, bool stronaPrawa, Generator generator, List<ShapeRegion> _regionsSkrzydlo, 
-        string idRegion, double minX, double minY, double maxX, double maxY)
+    private async Task<ShapeRegion> WyliczObszarSkrzydla(GeneratorState state,
+      double przesLewo, double przesPrawo, double przesGora, double przesDol,
+      bool stronaLewa, bool stronaPrawa, Generator generator,
+      ShapeRegion _regionsSkrzydlo)
     {
-        // Oblicz bounding box regionu na podstawie wartości nominalnych
-        double regionMinX = WierzcholkiWartosciNominalne.Min(p => p.X);
-        double regionMaxX = WierzcholkiWartosciNominalne.Max(p => p.X);
-        double regionMinY = WierzcholkiWartosciNominalne.Min(p => p.Y);
-        double regionMaxY = WierzcholkiWartosciNominalne.Max(p => p.Y);
 
+        if (_regionsSkrzydlo == null)
+        {
+            Console.WriteLine("❌ Nie znaleziono regionu o podanym ID.");
+            return null;
+        }
+
+        var regionPointsSkrzydlo = _regionsSkrzydlo.Wierzcholki;
+
+        if (regionPointsSkrzydlo == null || regionPointsSkrzydlo.Count < 3)
+        {
+            Console.WriteLine("❌ Region ma za mało punktów.");
+            return null;
+        }
+
+        // Oblicz bounding box z obecnych punktów
+        double minX = regionPointsSkrzydlo.Min(p => p.X);
+        double maxX = regionPointsSkrzydlo.Max(p => p.X);
+        double minY = regionPointsSkrzydlo.Min(p => p.Y);
+        double maxY = regionPointsSkrzydlo.Max(p => p.Y);
+
+
+        // Pobierz przesunięcia z boków
         foreach (var bok in state.ListaKwadratow)
         {
-            Console.WriteLine($"📦📦📦 Sprawdzam bok: RowIdElementu: {bok.RowIdElementu}, RowIdSasiada: {bok.RowIdSasiada}, KatLinii: {bok.KatLinii} ilość boków :{state.ListaKwadratow.Count()}");
 
-            if (bok.RowIdElementu == Guid.Empty)
+            Console.WriteLine($"📦📦📦 Sprawdzam bok: RowIdElementu: {bok.RowIdElementu}, RowIdSasiada: {bok.RowIdSasiada}, KatLinii: {bok.KatLinii} ilość boków: {state.ListaKwadratow.Count()} regionMinX: {minX}");
+
+            if (bok.RowIdElementu == Guid.Empty || string.IsNullOrEmpty(bok.Strona))
                 continue;
-
-            if (string.IsNullOrEmpty(bok.Strona))
-            {
-                Console.WriteLine($"⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ Nie udało się określić strony dla linii o kącie {bok.KatLinii}°");
-                continue;
-            }
-
-            Console.WriteLine($"✅ ✅ ✅  Strona: {bok.Strona} Kat: {bok.KatLinii}° RowId: {bok.RowIdElementu} RowIdSasiad: {bok.RowIdSasiada} ✅ ✅ ✅ ");
 
             var polaczenie = await PobierzPolaczenia(bok.RowIdSasiada, bok.RowIdElementu);
             if (polaczenie == null) continue;
 
             var spolaczenieStrona = polaczenie.FirstOrDefault(x => x.StronaPolaczenia == bok.Strona);
+            double przesY = spolaczenieStrona != null ? Math.Abs(spolaczenieStrona.PrzesuniecieY) : 0;
 
-            double przesY = 0;
-            if (spolaczenieStrona != null)
-            {
-                przesY = Math.Abs(spolaczenieStrona.PrzesuniecieY);
-            }
-
-            // Przypisanie przesunięcia do odpowiedniej zmiennej
             switch (bok.Strona)
             {
                 case "lewa": przesLewo = przesY; break;
@@ -2686,102 +2715,54 @@
                 case "dół": przesDol = przesY; break;
             }
 
+            // Jeśli brak sąsiada — ustaw domyślne testowe przesunięcia
             if (bok.RowIdSasiada == Guid.Empty && stronaLewa)
             {
-                przesLewo = 125; // Przesunięcie dla lewej strony tylko testowo potem pobrać wartość z linii słupka ruchomego
+                przesLewo = 0;
+                var konfiguracja1 = generator.KonfiguracjeSystemu.FirstOrDefault(s => s.RowId == bok.RowIdElementu);
+                if (konfiguracja1 != null)
+                {
+                    przesLewo = (konfiguracja1.PoziomDol ?? 0) - (konfiguracja1.PoziomOsSymetrii ?? 0);
+                    Console.WriteLine($"📦📦📦 Przesunięcie lewo: {przesLewo} dla RowIdElementu: {bok.RowIdElementu}");
+                }
             }
+
             if (bok.RowIdSasiada == Guid.Empty && stronaPrawa)
-            {
-                przesPrawo = -125; // Przesunięcie dla lewej strony tylko testowo potem pobrać wartość z linii słupka ruchomego
+                przesPrawo = 0;
+                var konfiguracja2 = generator.KonfiguracjeSystemu.FirstOrDefault(s => s.RowId == bok.RowIdElementu);
+                if (konfiguracja2 != null)
+                {
+                przesPrawo = (konfiguracja2.PoziomDol ?? 0) - (konfiguracja2.PoziomOsSymetrii ?? 0);
+                Console.WriteLine($"📦📦📦 Przesunięcie prawo: {przesPrawo} dla RowIdElementu: {bok.RowIdElementu}");
             }
         }
 
-        var wybranyRegionSkrzydloX = _regionsSkrzydlo.FirstOrDefault(r => r.Id == idRegion);
-
-        var regionPointsSkrzydlo = wybranyRegionSkrzydloX.Wierzcholki;
-
+        // Przesuń punkty konturu
         for (int i = 0; i < regionPointsSkrzydlo.Count; i++)
         {
             var punkt = regionPointsSkrzydlo[i];
 
-            // Lewa krawędź
             if (Math.Abs(punkt.X - minX) < 0.1)
                 punkt.X += przesLewo;
-
-            // Prawa krawędź
             else if (Math.Abs(punkt.X - maxX) < 0.1)
                 punkt.X -= przesPrawo;
 
-            // Dół
             if (Math.Abs(punkt.Y - maxY) < 0.1)
                 punkt.Y -= przesDol;
-
-            // Góra
             else if (Math.Abs(punkt.Y - minY) < 0.1)
                 punkt.Y += przesGora;
 
-            regionPointsSkrzydlo[i] = punkt; // Nadpisanie zaktualizowanego punktu
+            regionPointsSkrzydlo[i] = punkt;
         }
 
-        // Ponownie oblicz bounding box po przesunięciach
-        minX = regionPointsSkrzydlo.Min(p => p.X);
-        maxX = regionPointsSkrzydlo.Max(p => p.X);
-        minY = regionPointsSkrzydlo.Min(p => p.Y);
-        maxY = regionPointsSkrzydlo.Max(p => p.Y);
+        double minXSPRAWDZENIE = regionPointsSkrzydlo.Min(p => p.X);
+        Console.WriteLine($"📦📦📦 Po przesunięciu minX: {minXSPRAWDZENIE}, przesLewo: {przesLewo}, przesPrawo: {przesPrawo}, przesGora: {przesGora}, przesDol: {przesDol}");
 
-        // Oblicz bounding box wygenerowanych kształtów
-        var allPoints = generator.ElementyRamyRysowane
-         .Where(e => e.Wierzcholki != null && e.Wierzcholki.Count > 0)
-         .SelectMany(e => e.Wierzcholki)
-         .ToList();
-
-        if (!allPoints.Any())
-        {
-            Console.WriteLine("Brak wierzchołków w wygenerowanych kształtach.");
-            return null;
-        }
-
-        double shapeMinX = allPoints.Min(p => p.X);
-        double shapeMaxX = allPoints.Max(p => p.X);
-        double shapeMinY = allPoints.Min(p => p.Y);
-        double shapeMaxY = allPoints.Max(p => p.Y);
-
-
-        double shapeWidth = shapeMaxX - shapeMinX;
-        double shapeHeight = shapeMaxY - shapeMinY;
-        double regionWidth = maxX - minX;
-        double regionHeight = maxY - minY;
-
-        double shapeWidthX = shapeMaxX - shapeMinX;
-        double shapeHeightX = shapeMaxY - shapeMinY;
-        double regionWidthX = maxX - minX;
-        double regionHeightX = maxY - minY;
-
-        // 3. Skalowanie z zachowaniem proporcji
-        double scaleX = Math.Min(regionWidthX / shapeWidthX, regionHeightX / shapeHeightX);
-
-        // 4. Przesunięcie tak, aby dopasować obiekt do regionu
-        double offsetXX = minX - shapeMinX * scaleX;
-        double offsetYX = minY - shapeMinY * scaleX;
-
-        // 5. Transformacja punktów
-        foreach (var ksztalt in generator.ElementyRamyRysowane)
-        {
-            if (ksztalt.Wierzcholki != null)
-            {
-                for (int i = 0; i < ksztalt.Wierzcholki.Count; i++)
-                {
-                    var p = ksztalt.Wierzcholki[i];
-                    ksztalt.Wierzcholki[i] = new XPoint(
-                        p.X * scaleX + offsetXX,
-                        p.Y * scaleX + offsetYX
-                    );
-                }
-            }
-        }
+        _regionsSkrzydlo.Wierzcholki = regionPointsSkrzydlo;
 
         return _regionsSkrzydlo;
     }
+
 
     private void UsunOstatniKsztaltZGeneratora(string idRegion, Generator generator)
     {
@@ -2846,7 +2827,7 @@
         {
             double avgY = (linia[0].Y + linia[1].Y) / 2;
 
-            if (Math.Abs(avgY - regionMinY) < 0.1) strona = "góra" ;
+            if (Math.Abs(avgY - regionMinY) < 0.1) strona = "góra";
             else if (Math.Abs(avgY - regionMaxY) < 0.1) strona = "dół";
         }
         else if (kat == 90 || kat == 270) // Linie pionowe
@@ -2880,7 +2861,7 @@
     }
 
 
-    public static Guid ZnajdzKonfiguracjeDlaLinii(List<XPoint> linia, GeneratorState stan , bool slRuchStroLewa,  bool slRuchStroPrawa)
+    public static Guid ZnajdzKonfiguracjeDlaLinii(List<XPoint> linia, GeneratorState stan, bool slRuchStroLewa, bool slRuchStroPrawa)
     {
         if (linia == null || linia.Count != 2)
             return Guid.Empty;
@@ -2896,7 +2877,7 @@
 
         string _RSstronaLewa = "";
         string _RSstronaPrawa = "";
-        if (slRuchStroLewa) 
+        if (slRuchStroLewa)
         {
             _RSstronaLewa = "Słupek ruchomy";
         }
@@ -2926,16 +2907,16 @@
         return Guid.Empty;
     }
 
-    public Guid ZnajdzSasiada(
+    public SasiadInfo ZnajdzSasiada(
         List<XPoint> linia,
         List<GeneratorState> wszystkieStany,
         int kat,
         bool ruchomySlupekPoLewej,
         bool ruchomySlupekPoPrawej,
-        double tolerancja = 0.01)
+        string obecnyRegionId,
+        double tolerancja = 0.02)
     {
-        if (linia == null || linia.Count != 2)
-            return Guid.Empty;
+        var pasujace = new List<SasiadInfo>();
 
         var p1 = linia[0];
         var p2 = linia[1];
@@ -2947,10 +2928,8 @@
         string slPoPrawej = ruchomySlupekPoPrawej ? "Słupek ruchomy" : "";
 
         var stanyDoPrzeszukania = wszystkieStany
-            .Where(s => s.WierzcholkiWartosciNominalne != null && s.Id <= wszystkieStany.Max(x => x.Id))
+            .Where(s => s.WierzcholkiWartosciNominalne != null && s.IdRegion != obecnyRegionId)
             .OrderByDescending(s => s.Id);
-
-        Console.WriteLine($"🔍 Szukam sąsiada w {stanyDoPrzeszukania.Count()} stanach kat: {kat}° SRP: {ruchomySlupekPoPrawej} SRL:{ruchomySlupekPoLewej}");
 
         foreach (var stan in stanyDoPrzeszukania)
         {
@@ -2964,35 +2943,66 @@
                 var q1 = innaLinia[0];
                 var q2 = innaLinia[1];
 
-                if (CzyNakladajaSieDowolne(p1, p2, q1, q2, tolerancja))
+                if (!CzyNakladajaSieDowolne(p1, p2, q1, q2, tolerancja))
+                    continue;
+
+                var konfLista = stan.PowiazanyModel?.KonfSystem;
+                if (konfLista == null) continue;
+                //Odwracam strony
+                foreach (var konf in konfLista)
                 {
-                    var konfLista = stan.PowiazanyModel?.KonfSystem;
-                    if (konfLista == null) continue;
-
-                    foreach (var konf in konfLista)
+                    if (jestPionowa)
                     {
-                        if (jestPionowa)
-                        {
-                            if (p1.X < 5 && konf.WystepujeLewa && konf.Typ.Contains(slPoLewej))
-                                return konf.RowId;
+                        if (p1.X < 5 && konf.WystepujeLewa && konf.Typ.Contains(slPoPrawej))
+                            pasujace.Add(new SasiadInfo { RowIdElementu = konf.RowId, IdRegionu = stan.IdRegion, ZIndeks = stan.ZIndeks });
 
-                            if (p1.X > 85 && konf.WystepujePrawa && konf.Typ.Contains(slPoPrawej))
-                                return konf.RowId;
-                        }
-                        else if (jestPozioma)
-                        {
-                            if (p1.Y < 5 && konf.WystepujeGora)
-                                return konf.RowId;
+                        else if (p1.X > 85 && konf.WystepujePrawa && konf.Typ.Contains(slPoLewej))
+                            pasujace.Add(new SasiadInfo { RowIdElementu = konf.RowId, IdRegionu = stan.IdRegion, ZIndeks = stan.ZIndeks });
+                    }
+                    else if (jestPozioma)
+                    {
+                        if (p1.Y < 5 && konf.WystepujeGora)
+                            pasujace.Add(new SasiadInfo { RowIdElementu = konf.RowId, IdRegionu = stan.IdRegion, ZIndeks = stan.ZIndeks });
 
-                            if (p1.Y > 75 && konf.WystepujeDol)
-                                return konf.RowId;
-                        }
+                        else if (p1.Y > 75 && konf.WystepujeDol)
+                            pasujace.Add(new SasiadInfo { RowIdElementu = konf.RowId, IdRegionu = stan.IdRegion, ZIndeks = stan.ZIndeks });
                     }
                 }
             }
         }
 
-        return Guid.Empty;
+        // 🔽 Wybierz najlepszego kandydata: najpierw ZIndeks 0, potem 1, potem 2
+        return pasujace
+            .OrderBy(p => p.ZIndeks)
+            .FirstOrDefault() ?? new SasiadInfo { RowIdElementu = Guid.Empty, IdRegionu = "", ZIndeks = -1 };
+    }
+
+
+    private bool CzyPunktyRowne(XPoint p1, XPoint p2, double tolerancja)
+    {
+        return Math.Abs(p1.X - p2.X) < tolerancja && Math.Abs(p1.Y - p2.Y) < tolerancja;
+    }
+
+    private double DlugoscWspolna(XPoint a1, XPoint a2, XPoint b1, XPoint b2)
+    {
+        if (Math.Abs(a1.X - a2.X) < 0.01) // pionowa
+        {
+            var minY1 = Math.Min(a1.Y, a2.Y);
+            var maxY1 = Math.Max(a1.Y, a2.Y);
+            var minY2 = Math.Min(b1.Y, b2.Y);
+            var maxY2 = Math.Max(b1.Y, b2.Y);
+            return Math.Max(0, Math.Min(maxY1, maxY2) - Math.Max(minY1, minY2));
+        }
+        else if (Math.Abs(a1.Y - a2.Y) < 0.01) // pozioma
+        {
+            var minX1 = Math.Min(a1.X, a2.X);
+            var maxX1 = Math.Max(a1.X, a2.X);
+            var minX2 = Math.Min(b1.X, b2.X);
+            var maxX2 = Math.Max(b1.X, b2.X);
+            return Math.Max(0, Math.Min(maxX1, maxX2) - Math.Max(minX1, minX2));
+        }
+
+        return 0;
     }
 
 
@@ -3195,7 +3205,7 @@
         // Sprawdź, czy region skrzydła ma linię dzielącą z ruchomym słupkiem
         bool czyRegionZawieraSlupekRuchomy = _regionsSkrzydlo?.Any(x => x.TypLiniiDzielacej == "Słupek ruchomy") == true;
 
-        Console.WriteLine($"✅ czyRegionZawieraSlupekRuchomy: {czyRegionZawieraSlupekRuchomy}");
+     //   Console.WriteLine($"✅ czyRegionZawieraSlupekRuchomy: {czyRegionZawieraSlupekRuchomy}");
 
         if (czyRegionZawieraSlupekRuchomy)
         {
@@ -3244,7 +3254,7 @@
             generator.Wysokosc = (float)(maxY - minY);
             generator.Zindeks = 0;
 
-            generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion);
+            generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates);
         }
         else if (wybranyRegionSkrzydlo != null)
         {
@@ -3260,7 +3270,7 @@
             generator.Wysokosc = (float)(maxY - minY);
             generator.Zindeks = 1;
 
-            generator.AddElements(new List<ShapeRegion> { wybranyRegionSkrzydlo }, idRegion);
+            generator.AddElements(new List<ShapeRegion> { wybranyRegionSkrzydlo }, idRegion, _generatorStates);
         }
         else
         {
@@ -3303,10 +3313,7 @@
         _ksztaltyNaRegion[idRegion] = new List<KsztaltElementu>(generator.ElementyRamyRysowane);
         ksztalty = _ksztaltyNaRegion.Values.SelectMany(k => k).ToList();
 
-        Console.WriteLine($"✅ Wygenerowano elementy dla regionu {idRegion} po skalowaniu.");
-
-
-
+       // Console.WriteLine($"✅ Wygenerowano elementy dla regionu {idRegion} po skalowaniu.");
         await Task.CompletedTask;
     }
 
@@ -3476,7 +3483,7 @@
             if (uprawnienia.Count > 0)
             {
                 var znalezioneElementy = uprawnienia.Where(uprawnienie => uprawnienie.TableName == nazwaTabeli);
-                Console.WriteLine("Znaleziono uprawnienia dla użytkownika: " + user + " w tabeli: " + nazwaTabeli + " ilość rekordów: " + znalezioneElementy.Count());
+                //Console.WriteLine("Znaleziono uprawnienia dla użytkownika: " + user + " w tabeli: " + nazwaTabeli + " ilość rekordów: " + znalezioneElementy.Count());
                 if (znalezioneElementy.Any())
                 {
                     var szuk = znalezioneElementy.FirstOrDefault(x => x.TableName == nazwaTabeli);
@@ -3520,6 +3527,13 @@
     {
         public double Width { get; set; }
         public double Height { get; set; }
+    }
+
+    public class SasiadInfo
+    {
+        public Guid RowIdElementu { get; set; }
+        public string? IdRegionu { get; set; }
+        public int ZIndeks { get; set; }
     }
 
 }

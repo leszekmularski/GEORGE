@@ -8,9 +8,9 @@ namespace GEORGE.Client.Pages.Utils
     {
         public static List<ShapeRegion> GenerujRegionyZPodzialu(List<IShapeDC> shapes, int szerokosc, int wysokosc, bool rama)
         {
-            Console.WriteLine($"📦 Przed usunięciem duplikatów: {shapes.Count} obiektów.");
+           // Console.WriteLine($"📦 Przed usunięciem duplikatów: {shapes.Count} obiektów.");
             shapes = UsunDuplikatyShape(shapes);
-            Console.WriteLine($"📦 Po usunięciu duplikatów: {shapes.Count} obiektów.");
+            //Console.WriteLine($"📦 Po usunięciu duplikatów: {shapes.Count} obiektów.");
 
             var regions = new List<ShapeRegion>();
 
@@ -90,7 +90,7 @@ namespace GEORGE.Client.Pages.Utils
                     }
                 }
    
-                Console.WriteLine($"🔍GenerujRegionyZPodzialu --> Generowanie regionu z kształtu: {typ}, liczba wierzchołków: {pts.Count}");
+               // Console.WriteLine($"🔍GenerujRegionyZPodzialu --> Generowanie regionu z kształtu: {typ}, liczba wierzchołków: {pts.Count}");
 
                 var initial = new ShapeRegion
                 {

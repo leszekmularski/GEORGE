@@ -1,4 +1,5 @@
-﻿using GEORGE.Client.Pages.Models;
+﻿using GEORGE.Client.Pages.KonfiguratorOkien;
+using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.Models;
 using GEORGE.Shared.ViewModels;
 using System.Globalization;
@@ -41,7 +42,7 @@ namespace GEORGE.Client.Pages.Okna
             RuchomySlupekPoLewej = false;
         }
 
-        public void AddElements(List<ShapeRegion> regions, string regionId)
+        public void AddElements(List<ShapeRegion> regions, string regionId, Dictionary<string, GeneratorState> generatorStates)
         {
             if (regions == null) return;
 
@@ -89,14 +90,16 @@ namespace GEORGE.Client.Pages.Okna
             float height = maxY - minY;
 
             // 🔄 Skalowanie do regionu
-            var przeskalowanePunkty = SkalujIPrzesun(punkty, minX, minY, width, height, Szerokosc, Wysokosc);
+            // var przeskalowanePunkty = SkalujIPrzesun(punkty, minX, minY, width, height, Szerokosc, Wysokosc);
+            var przeskalowanePunkty = new List<XPoint>(punkty); // bez skalowania – prawdziwe dane
 
-            Console.WriteLine($"📐 Przeskalowane punkty: {string.Join(", ", przeskalowanePunkty.Select(p => $"({p.X:F2}, {p.Y:F2})"))}");
+           // Console.WriteLine($"📐 Przeskalowane punkty: {string.Join(", ", przeskalowanePunkty.Select(p => $"({p.X:F2}, {p.Y:F2})"))} --------> minX:{minX}");
 
             string slruchPoPrawej = "";
             string slruchPoLewej = "";
-            if(RuchomySlupekPoPrawej) slruchPoPrawej ="Słupek ruchomy";
+            if (RuchomySlupekPoPrawej) slruchPoPrawej = "Słupek ruchomy";
             if (RuchomySlupekPoLewej) slruchPoLewej = "Słupek ruchomy";
+
 
             // 🔧 Profile z konfiguracji
             float profileLeft = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ.Contains(slruchPoPrawej))?.PionPrawa ?? 0 -
@@ -107,6 +110,21 @@ namespace GEORGE.Client.Pages.Okna
                                        PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.PionLewa ?? 0);
             float profileBottom = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionPrawa ?? 0 -
                                           PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionLewa ?? 0);
+
+            if(profileLeft == 0)
+            {
+                //Spróbuj bez słupka
+                slruchPoLewej = "";
+                profileLeft = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.PionPrawa ?? 0 -
+                                        PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0);
+            }
+            if(profileRight == 0)
+            {
+                //Spróbuj bez słupka
+                slruchPoPrawej = "";
+                profileRight = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.PionPrawa ?? 0 -
+                                         PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.PionLewa ?? 0);
+            }
 
             Guid RowIdprofileLeft = PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ.Contains(slruchPoPrawej))?.RowId ?? Guid.Empty;
             Guid RowIdprofileRight = PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujePrawa && e.Typ.Contains(slruchPoLewej))?.RowId ?? Guid.Empty;
@@ -122,28 +140,6 @@ namespace GEORGE.Client.Pages.Okna
                 przeskalowanePunkty,
                 profileLeft, profileRight, profileTop, profileBottom);
 
-            //// 🧱 Wygeneruj ramę
-            //if (region.TypKsztaltu == "prostokąt" || region.TypKsztaltu == "kwadrat")
-            //{
-            //    GenerateRectangleElements(
-            //        przeskalowanePunkty,
-            //        wewnetrznyKontur,
-            //        profileLeft, profileRight, profileTop, profileBottom,
-            //        region.TypKsztaltu,
-            //        EdytowanyModel.PolaczenieNaroza,
-            //        KonfiguracjeSystemu
-            //    );
-            //}
-            //else if (region.TypKsztaltu == "trójkąt")
-            //{
-            //    GenerateTriangleElements(
-            //        przeskalowanePunkty,
-            //        wewnetrznyKontur,
-            //        profileLeft, profileRight, profileTop, profileBottom
-            //    );
-            //}
-            //else
-            //{
             GenerateGenericElementsWithJoins(
                 przeskalowanePunkty,
                 wewnetrznyKontur,
@@ -158,189 +154,6 @@ namespace GEORGE.Client.Pages.Okna
             //}
         }
 
-        private List<XPoint> SkalujIPrzesun(
-        List<XPoint> punkty,
-        float minX, float minY,
-        float width, float height,
-        float docelowaSzerokosc,
-        float docelowaWysokosc)
-        {
-            var result = new List<XPoint>();
-
-            foreach (var p in punkty)
-            {
-                double x = ((p.X - minX) / width) * docelowaSzerokosc;
-                double y = ((p.Y - minY) / height) * docelowaWysokosc;
-                result.Add(new XPoint(x, y));
-            }
-
-            return result;
-        }
-
-        //private void GenerateRectangleElements(
-        //        List<XPoint> outer, List<XPoint> inner,
-        //        float profileLeft, float profileRight, float profileTop, float profileBottom,
-        //        string typKsztalt, string polaczenia, List<KonfSystem> model)
-        //{
-        //    float minX = outer.Min(p => (float)p.X);
-        //    float maxX = outer.Max(p => (float)p.X);
-        //    float minY = outer.Min(p => (float)p.Y);
-        //    float maxY = outer.Max(p => (float)p.Y);
-
-        //    float imageWidth = maxX - minX;
-        //    float imageHeight = maxY - minY;
-
-        //    var polaczeniaArray = polaczenia.Split(';')
-        //        .Select(p => p.Split('-'))
-        //        .Select(parts => (kat: int.Parse(parts[0]), typ: parts[1].Trim()))
-        //        .ToArray();
-
-        //    if (polaczeniaArray.Length != 4)
-        //        throw new Exception("Oczekiwano 4 połączeń narożników.");
-
-        //    var joinTypes = new[]
-        //    {
-        //        (Left: polaczeniaArray[0].typ, Right: polaczeniaArray[1].typ), // Top
-        //        (Left: polaczeniaArray[1].typ, Right: polaczeniaArray[2].typ), // Right
-        //        (Left: polaczeniaArray[2].typ, Right: polaczeniaArray[3].typ), // Bottom
-        //        (Left: polaczeniaArray[3].typ, Right: polaczeniaArray[0].typ), // Left
-        //    };
-
-        //    // Obliczenia pozycji i długości
-        //    int topX = (joinTypes[0].Left == "T3") ? (int)profileLeft : 0;
-        //    int topW = (int)imageWidth - ((joinTypes[0].Left == "T3" ? (int)profileLeft : 0) +
-        //                                  (joinTypes[0].Right == "T3" ? (int)profileRight : 0));
-
-        //    int rightY = (joinTypes[1].Left == "T1") ? (int)profileTop : 0;
-        //    int rightH = (int)imageHeight - ((joinTypes[1].Left == "T1" ? (int)profileTop : 0) +
-        //                                     (joinTypes[1].Right == "T1" ? (int)profileBottom : 0));
-
-        //    int bottomX = (joinTypes[2].Left == "T3") ? (int)profileLeft : 0;
-        //    int bottomW = (int)imageWidth - ((joinTypes[2].Left == "T3" ? (int)profileLeft : 0) +
-        //                                     (joinTypes[2].Right == "T3" ? (int)profileRight : 0));
-
-        //    int leftY = (joinTypes[3].Left == "T1" || joinTypes[0].Left == "T1") ? (int)profileTop : 0;
-        //    int leftH = (int)imageHeight - ((joinTypes[3].Left == "T1" || joinTypes[2].Left == "T4" ? (int)profileTop : 0) +
-        //                                    (joinTypes[3].Right == "T1" ? (int)profileBottom : 0));
-
-        //    void AddElement(int index, int x, int y, int w, int h, string typLewy, string typPrawy, string grupa, Guid RowIdElementu)
-        //    {
-        //        int offset = (index % 2 == 0) ? h : w;
-        //        bool isLeftT2 = typLewy == "T2";
-        //        bool isRightT2 = typPrawy == "T2";
-
-        //        var points = index switch
-        //        {
-        //            0 => new List<XPoint> // Góra
-        //    {
-        //        new(minX + x, minY + y),
-        //        new(minX + x + w, minY + y),
-        //        new(minX + x + w - (isRightT2 ? offset : 0), minY + y + h),
-        //        new(minX + x + (isLeftT2 ? offset : 0), minY + y + h),
-        //    },
-        //            1 => new List<XPoint> // Prawa
-        //    {
-        //        new(maxX - profileRight, minY + y + (isLeftT2 ? offset : 0)),
-        //        new(maxX, minY + y),
-        //        new(maxX, minY + y + h),
-        //        new(maxX - profileRight, minY + y + h - (isRightT2 ? offset : 0)),
-        //    },
-        //            2 => new List<XPoint> // Dół
-        //    {
-        //        new(minX + x + (isLeftT2 ? offset : 0), maxY - h),
-        //        new(minX + x + w - (isRightT2 ? offset : 0), maxY - h),
-        //        new(minX + x + w, maxY),
-        //        new(minX + x, maxY),
-        //    },
-        //            3 => new List<XPoint> // Lewa
-        //    {
-        //        new(minX, minY + y),
-        //        new(minX + profileLeft, minY + y + (isRightT2 ? offset : 0)),
-        //        new(minX + profileLeft, minY + y + h - (isLeftT2 ? offset : 0)),
-        //        new(minX, minY + y + h),
-        //    },
-        //            _ => throw new ArgumentOutOfRangeException()
-        //        };
-
-        //        ElementyRamyRysowane.Add(new KsztaltElementu
-        //        {
-        //            TypKsztaltu = "trapez",
-        //            Wierzcholki = points,
-        //            WypelnienieZewnetrzne = "wood-pattern",
-        //            WypelnienieWewnetrzne = KolorSzyby,
-        //            ZIndex = Zindeks,
-        //            Grupa = grupa
-        //        });
-        //    }
-
-        //    // Generuj wszystkie ramy
-        //    AddElement(0, topX, 0, topW, (int)profileTop, joinTypes[0].Left, joinTypes[0].Right, "Gora", model.FirstOrDefault(r => r.WystepujeGora)?.RowId ?? Guid.Empty); // RowId lub wartość domyślna);
-        //    AddElement(1, 0, rightY, (int)profileRight, rightH, joinTypes[1].Left, joinTypes[1].Right, "Prawo", model.FirstOrDefault(r => r.WystepujePrawa)?.RowId ?? Guid.Empty);
-        //    AddElement(2, bottomX, 0, bottomW, (int)profileBottom, joinTypes[2].Left, joinTypes[2].Right, "Dol", model.FirstOrDefault(r => r.WystepujeDol)?.RowId ?? Guid.Empty);
-        //    AddElement(3, 0, leftY, (int)profileLeft, leftH, joinTypes[3].Left, joinTypes[3].Right, "Lewo", model.FirstOrDefault(r => r.WystepujeLewa)?.RowId ?? Guid.Empty);
-        //}
-
-        //private void GenerateTriangleElements(List<XPoint> outer, List<XPoint> inner,
-        //    float leftOffset, float rightOffset, float topOffset, float bottomOffset)
-        //{
-
-        //    double maxLength = 0;
-        //    int baseIndex1 = 0, baseIndex2 = 1;
-
-        //    for (int i = 0; i < 3; i++)
-        //    {
-        //        int next = (i + 1) % 3;
-        //        double length = Math.Sqrt(Math.Pow(outer[next].X - outer[i].X, 2) +
-        //                                  Math.Pow(outer[next].Y - outer[i].Y, 2));
-        //        if (length > maxLength)
-        //        {
-        //            maxLength = length;
-        //            baseIndex1 = i;
-        //            baseIndex2 = next;
-        //        }
-        //    }
-
-        //    int vertexIndex = Enumerable.Range(0, 3).First(i => i != baseIndex1 && i != baseIndex2);
-
-        //    for (int i = 0; i < 3; i++)
-        //    {
-        //        int next = (i + 1) % 3;
-
-        //        bool isBase = (i == baseIndex1 && next == baseIndex2) || (i == baseIndex2 && next == baseIndex1);
-        //        string grupa;
-
-        //        if (isBase)
-        //        {
-        //            grupa = "Podstawa";
-        //        }
-        //        else if (i == vertexIndex || next == vertexIndex)
-        //        {
-        //            // Rozróżnij boki względem X wierzchołka
-        //            var drugiPunkt = (i == vertexIndex) ? outer[next] : outer[i];
-        //            grupa = drugiPunkt.X < outer[vertexIndex].X ? "LewyBok" : "PrawyBok";
-        //        }
-        //        else
-        //        {
-        //            grupa = "NieznanyBok";
-        //        }
-
-        //        ElementyRamyRysowane.Add(new KsztaltElementu
-        //        {
-        //            TypKsztaltu = isBase ? "prostokat" : "trapez",
-        //            Wierzcholki = new List<XPoint>
-        //            {
-        //                outer[i],
-        //                outer[next],
-        //                inner[next],
-        //                inner[i]
-        //            },
-        //            WypelnienieZewnetrzne = "wood-pattern",
-        //            WypelnienieWewnetrzne = KolorSzyby,
-        //            Grupa = grupa,
-        //            ZIndex = Zindeks,
-        //        });
-        //    }
-        //}
         private void GenerateGenericElementsWithJoins(
             List<XPoint> outer, List<XPoint> inner,
             float profileLeft, float profileRight, float profileTop, float profileBottom,
@@ -652,6 +465,16 @@ namespace GEORGE.Client.Pages.Okna
                     };
                 }
 
+                double regionMinX = wierzcholki.Min(p => p.X);
+                double regionMaxX = wierzcholki.Max(p => p.X);
+                double regionMinY = wierzcholki.Min(p => p.Y);
+                double regionMaxY = wierzcholki.Max(p => p.Y);
+
+                int wartoscX = (int)Math.Round(regionMaxX - regionMinX);
+                int wartoscY = (int)Math.Round(regionMaxY - regionMinY);
+
+               // Console.WriteLine($"leftJoin: {leftJoin} rightJoin:{rightJoin} wierzcholki: {wierzcholki.Count()} isAlmostVertical:{isAlmostVertical}");
+
                 switch (i)
                     {
                     case 0:
@@ -661,9 +484,9 @@ namespace GEORGE.Client.Pages.Okna
                             Wierzcholki = wierzcholki,
                             WypelnienieZewnetrzne = "wood-pattern",
                             WypelnienieWewnetrzne = KolorSzyby,
-                            Grupa = NazwaObiektu + $" Dół-{i + 1}",
+                            Grupa = NazwaObiektu + $" Góra-{i + 1} {wartoscX}/{wartoscY}",
                             ZIndex = Zindeks,
-                            RowIdElementu = rowIdprofileBottom,
+                            RowIdElementu = rowIdprofileTop,
                             IdRegion = regionId,
                         });
                         break;
@@ -674,9 +497,9 @@ namespace GEORGE.Client.Pages.Okna
                             Wierzcholki = wierzcholki,
                             WypelnienieZewnetrzne = "wood-pattern",
                             WypelnienieWewnetrzne = KolorSzyby,
-                            Grupa = NazwaObiektu + $" Lewa-{i + 1}",
+                            Grupa = NazwaObiektu + $" Prawa-{i + 1} {wartoscX}/{wartoscY}",
                             ZIndex = Zindeks,
-                            RowIdElementu = rowIdprofileLeft,
+                            RowIdElementu = rowIdprofileRight,
                             IdRegion = regionId,
                         });
                         break;
@@ -687,9 +510,9 @@ namespace GEORGE.Client.Pages.Okna
                             Wierzcholki = wierzcholki,
                             WypelnienieZewnetrzne = "wood-pattern",
                             WypelnienieWewnetrzne = KolorSzyby,
-                            Grupa = NazwaObiektu + $" Góra-{i + 1}",
+                            Grupa = NazwaObiektu + $" Dół-{i + 1} {wartoscX}/{wartoscY}",
                             ZIndex = Zindeks,
-                            RowIdElementu = rowIdprofileTop,
+                            RowIdElementu = rowIdprofileBottom,
                             IdRegion = regionId,
                         });
                         break;
@@ -700,9 +523,9 @@ namespace GEORGE.Client.Pages.Okna
                             Wierzcholki = wierzcholki,
                             WypelnienieZewnetrzne = "wood-pattern",
                             WypelnienieWewnetrzne = KolorSzyby,
-                            Grupa = NazwaObiektu + $" Prawa-{i + 1}",
+                            Grupa = NazwaObiektu + $" Lewa-{i + 1} {wartoscX}/{wartoscY}",
                             ZIndex = Zindeks,
-                            RowIdElementu = rowIdprofileRight,
+                            RowIdElementu = rowIdprofileLeft,
                             IdRegion = regionId,
                         }); ;
                         break;
