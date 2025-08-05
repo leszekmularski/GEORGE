@@ -65,6 +65,42 @@ namespace GEORGE.Server.Controllers
             }
         }
 
+        [HttpGet("find-shifts/{zewId:guid}/{wewId:guid}/{strona}")]
+        public async Task<ActionResult<List<PrzesuniecieDto>>> GetShifts(Guid zewId, Guid wewId, string strona)
+        {
+            try
+            {
+                var records = await _context.KonfPolaczenie
+                    .Where(p => p.ElementZewnetrznyId == zewId && p.ElementWewnetrznyId == wewId && p.StronaPolaczenia.ToLower() == strona.ToLower())
+                    .Select(p => new PrzesuniecieDto
+                    {
+                        PrzesuniecieX = p.PrzesuniecieX,
+                        PrzesuniecieY = p.PrzesuniecieY
+                    })
+                    .ToListAsync();
+
+                if (records == null || records.Count == 0)
+                {
+                    // Brak wyników → zwracamy domyślną wartość 0,0
+                    records = new List<PrzesuniecieDto>
+                {
+                    new PrzesuniecieDto
+                    {
+                        PrzesuniecieX = 0,
+                        PrzesuniecieY = 0
+                    }
+                };
+                    }
+
+                return records;
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Błąd serwera: {ex.Message}");
+            }
+        }
+
+
         // ✅ GET: api/konfpolaczenie/row-id-system/{rowidSystem}
         [HttpGet("row-id-system/{rowidSystem:guid}")]
         public async Task<ActionResult<List<KonfPolaczenie>>> GetByRowIdSystem(Guid rowidSystem)
@@ -150,5 +186,12 @@ namespace GEORGE.Server.Controllers
 
             return Ok(existing);
         }
+
+        public class PrzesuniecieDto
+        {
+            public double PrzesuniecieX { get; set; }
+            public double PrzesuniecieY { get; set; }
+        }
+
     }
 }
