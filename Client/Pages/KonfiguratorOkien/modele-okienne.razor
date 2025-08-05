@@ -2906,10 +2906,18 @@
         return (int)Math.Round(angleDegrees);
     }
 
-
-    public static Guid ZnajdzKonfiguracjeDlaLinii(List<XPoint> linia, GeneratorState stan, bool slRuchStroLewa, bool slRuchStroPrawa, string obecnyRegionId)
+    public static Guid ZnajdzKonfiguracjeDlaLinii(
+        List<XPoint> linia,
+        GeneratorState stan,
+        bool slRuchStroLewa,
+        bool slRuchStroPrawa,
+        string obecnyRegionId)
     {
         if (linia == null || linia.Count != 2)
+            return Guid.Empty;
+
+        // 🔹 Pomijamy analizę, jeśli to ten sam region
+        if (stan.IdRegion == obecnyRegionId)
             return Guid.Empty;
 
         var p1 = linia[0];
@@ -2925,7 +2933,6 @@
         string slPrawa = slRuchStroPrawa ? "Słupek ruchomy" : "";
 
         Guid znaleziony = Guid.Empty;
-
 
         // 1️⃣ Najpierw próba z uwzględnieniem słupka
         foreach (var konf in stan.PowiazanyModel.KonfSystem)
@@ -2946,7 +2953,7 @@
             }
         }
 
-        // 2️⃣ Jeśli nie znaleziono — próba bez słupka
+        // 2️⃣ Próba bez słupka
         foreach (var konf in stan.PowiazanyModel.KonfSystem)
         {
             if (jestPionowa)
@@ -2958,7 +2965,7 @@
             }
         }
 
-        // 3️⃣ Jeśli dalej nic — bierzemy pierwszą pasującą stronę
+        // 3️⃣ Ostatecznie — pierwsza pasująca strona
         foreach (var konf in stan.PowiazanyModel.KonfSystem)
         {
             if (jestPionowa)
