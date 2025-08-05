@@ -2555,23 +2555,22 @@
         };
 
         var linie = ExtractLinesFromSquare(WierzcholkiWartosciNominalne);
+
         foreach (var linia in linie)
         {
+            if (linia.Count != 2) continue;
+
             var katSzukaj = ObliczKatLinii(linia);
-            double regionMinX = WierzcholkiWartosciNominalne.Min(p => p.X);
-            double regionMaxX = WierzcholkiWartosciNominalne.Max(p => p.X);
-            double regionMinY = WierzcholkiWartosciNominalne.Min(p => p.Y);
-            double regionMaxY = WierzcholkiWartosciNominalne.Max(p => p.Y);
 
             var info = ZnajdzSasiada(
-                    linia,
-                    _generatorStates.Values.ToList(),
-                    katSzukaj,
-                    state.SlupekRuchomyPoLewejStronie,
-                    state.SlupekRuchomyPoPrawejStronie,
-                    idRegion,
-                    0.02 // tolerancja
-                );
+                linia,
+                _generatorStates.Values.ToList(),
+                katSzukaj,
+                state.SlupekRuchomyPoLewejStronie,
+                state.SlupekRuchomyPoPrawejStronie,
+                state.IdRegion,
+                0.02
+            );
 
             var rowId = ZnajdzKonfiguracjeDlaLinii(linia, state, stronaLewa, stronaPrawa, idRegion);
 
@@ -2582,9 +2581,17 @@
                 RowIdSasiada = info.RowIdElementu,
                 RowIdRegionuSasiada = info.IdRegionu,
                 KatLinii = katSzukaj,
-                Strona = StronaSzukaj(katSzukaj, linia, regionMinY, regionMaxY, regionMinX, regionMaxX),
+                Strona = StronaSzukaj(
+                    katSzukaj,
+                    linia,
+                    WierzcholkiWartosciNominalne.Min(p => p.Y),
+                    WierzcholkiWartosciNominalne.Max(p => p.Y),
+                    WierzcholkiWartosciNominalne.Min(p => p.X),
+                    WierzcholkiWartosciNominalne.Max(p => p.X)
+                )
             });
         }
+
 
         if (SelectedModelType.Trim() == "Skrzydło" || SelectedModelType.Trim() == "Skrzydło z słupkiem ruchomym")
         {
@@ -2906,18 +2913,10 @@
         return (int)Math.Round(angleDegrees);
     }
 
-    public static Guid ZnajdzKonfiguracjeDlaLinii(
-        List<XPoint> linia,
-        GeneratorState stan,
-        bool slRuchStroLewa,
-        bool slRuchStroPrawa,
-        string obecnyRegionId)
+
+    public static Guid ZnajdzKonfiguracjeDlaLinii(List<XPoint> linia, GeneratorState stan, bool slRuchStroLewa, bool slRuchStroPrawa, string obecnyRegionId)
     {
         if (linia == null || linia.Count != 2)
-            return Guid.Empty;
-
-        // 🔹 Pomijamy analizę, jeśli to ten sam region
-        if (stan.IdRegion == obecnyRegionId)
             return Guid.Empty;
 
         var p1 = linia[0];
@@ -2933,6 +2932,7 @@
         string slPrawa = slRuchStroPrawa ? "Słupek ruchomy" : "";
 
         Guid znaleziony = Guid.Empty;
+
 
         // 1️⃣ Najpierw próba z uwzględnieniem słupka
         foreach (var konf in stan.PowiazanyModel.KonfSystem)
@@ -2953,7 +2953,7 @@
             }
         }
 
-        // 2️⃣ Próba bez słupka
+        // 2️⃣ Jeśli nie znaleziono — próba bez słupka
         foreach (var konf in stan.PowiazanyModel.KonfSystem)
         {
             if (jestPionowa)
@@ -2965,7 +2965,7 @@
             }
         }
 
-        // 3️⃣ Ostatecznie — pierwsza pasująca strona
+        // 3️⃣ Jeśli dalej nic — bierzemy pierwszą pasującą stronę
         foreach (var konf in stan.PowiazanyModel.KonfSystem)
         {
             if (jestPionowa)
