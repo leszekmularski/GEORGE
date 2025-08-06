@@ -21,7 +21,7 @@ namespace GEORGE.Client.Pages.Okna
         // 🧩 Typ kształtu ramy: prostokąt, koło, trójkąt, trapez, romb
         public string? TypKsztaltu { get; set; } = "prostokąt";
         // 📏 Informacja o profilach
-        public MVCKonfModele? PowiazanyModel;
+        public MVCKonfModele? MVCKonfModelu;
         // 📏 Informacja o profilach
         public List<KsztaltElementu> ElementyRamyRysowane { get; set; } = new();
         // 🪟 Informacje o szybie

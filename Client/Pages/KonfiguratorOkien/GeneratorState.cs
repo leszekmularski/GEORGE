@@ -16,7 +16,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
       //  public List<KonfSystem>? KonfiguracjeSystemu { get; set; }
         public Guid RowIdSystemu { get; set; }
         public Guid? RowIdModelu { get; set; }
-        public MVCKonfModele? PowiazanyModel { get; set; }
+        public MVCKonfModele? MVCKonfModelu { get; set; }
         public KonfModele? WybranyModel { get; set; } 
         public string? WybranyKsztalt { get; set; }
         public string? LinieDzielace { get; set; }

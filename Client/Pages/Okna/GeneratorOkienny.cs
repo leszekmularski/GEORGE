@@ -37,7 +37,7 @@ namespace GEORGE.Client.Pages.Okna
             IdRegionuPonizej = string.Empty;
             //RowIdSystemu = Guid.NewGuid();
             //RowIdModelu = Guid.NewGuid();
-            PowiazanyModel = null; // analizowany model
+            MVCKonfModelu = null; // analizowany model
             RuchomySlupekPoPrawej = false;
             RuchomySlupekPoLewej = false;
         }
@@ -46,7 +46,7 @@ namespace GEORGE.Client.Pages.Okna
         {
             if (regions == null) return;
 
-            if (KonfiguracjeSystemu == null || PowiazanyModel == null)
+            if (KonfiguracjeSystemu == null || MVCKonfModelu == null)
             {
                 Console.WriteLine($"❌ Brak KonfiguracjeSystemu lub PowiazanyModel!");
                 return;
@@ -102,36 +102,36 @@ namespace GEORGE.Client.Pages.Okna
 
 
             // 🔧 Profile z konfiguracji
-            float profileLeft = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ.Contains(slruchPoPrawej))?.PionPrawa ?? 0 -
-                                        PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ.Contains(slruchPoPrawej))?.PionLewa ?? 0);
-            float profileRight = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujePrawa && e.Typ.Contains(slruchPoLewej))?.PionPrawa ?? 0 -
-                                         PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujePrawa && e.Typ.Contains(slruchPoLewej))?.PionLewa ?? 0);
-            float profileTop = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.PionPrawa ?? 0 -
-                                       PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.PionLewa ?? 0);
-            float profileBottom = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionPrawa ?? 0 -
-                                          PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionLewa ?? 0);
+            float profileLeft = (float)(MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ.Contains(slruchPoPrawej))?.PionPrawa ?? 0 -
+                                        MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ.Contains(slruchPoPrawej))?.PionLewa ?? 0);
+            float profileRight = (float)(MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa && e.Typ.Contains(slruchPoLewej))?.PionPrawa ?? 0 -
+                                         MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa && e.Typ.Contains(slruchPoLewej))?.PionLewa ?? 0);
+            float profileTop = (float)(MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.PionPrawa ?? 0 -
+                                       MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.PionLewa ?? 0);
+            float profileBottom = (float)(MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionPrawa ?? 0 -
+                                          MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionLewa ?? 0);
 
             if(profileLeft == 0)
             {
                 //Spróbuj bez słupka
                 slruchPoLewej = "";
-                profileLeft = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.PionPrawa ?? 0 -
-                                        PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0);
+                profileLeft = (float)(MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.PionPrawa ?? 0 -
+                                        MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0);
             }
             if(profileRight == 0)
             {
                 //Spróbuj bez słupka
                 slruchPoPrawej = "";
-                profileRight = (float)(PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.PionPrawa ?? 0 -
-                                         PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.PionLewa ?? 0);
+                profileRight = (float)(MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.PionPrawa ?? 0 -
+                                         MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.PionLewa ?? 0);
             }
 
-            Guid RowIdprofileLeft = PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ.Contains(slruchPoPrawej))?.RowId ?? Guid.Empty;
-            Guid RowIdprofileRight = PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujePrawa && e.Typ.Contains(slruchPoLewej))?.RowId ?? Guid.Empty;
-            Guid RowIdprofileTop = PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.RowId ?? Guid.Empty;
-            Guid RowIdprofileBottom = PowiazanyModel.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.RowId ?? Guid.Empty;
+            Guid RowIdprofileLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ.Contains(slruchPoPrawej))?.RowId ?? Guid.Empty;
+            Guid RowIdprofileRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa && e.Typ.Contains(slruchPoLewej))?.RowId ?? Guid.Empty;
+            Guid RowIdprofileTop = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.RowId ?? Guid.Empty;
+            Guid RowIdprofileBottom = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.RowId ?? Guid.Empty;
 
-            string NazwaObiektu = PowiazanyModel.KonfSystem.First().Nazwa ?? "";
+            string NazwaObiektu = MVCKonfModelu.KonfSystem.First().Nazwa ?? "";
 
             Console.WriteLine($"📐 region.TypKsztaltu: {region.TypKsztaltu} profileLeft: {profileLeft}, profileRight: {profileRight}, profileTop: {profileTop}, profileBottom: {profileBottom}");
 
@@ -204,6 +204,10 @@ namespace GEORGE.Client.Pages.Okna
                 float dx = (float)(outerEnd.X - outerStart.X);
                 float dy = (float)(outerEnd.Y - outerStart.Y);
                 float length = MathF.Sqrt(dx * dx + dy * dy);
+
+                float angleRadians = MathF.Atan2(dy, dx); // kąt w radianach
+                float angleDegrees = angleRadians * (180f / MathF.PI); // kąt w stopniach
+
                 if (length < 0.001f) continue;
 
                 float tx = dx / length;
@@ -488,6 +492,8 @@ namespace GEORGE.Client.Pages.Okna
                             ZIndex = Zindeks,
                             RowIdElementu = rowIdprofileTop,
                             IdRegion = regionId,
+                            Kat = (int)angleDegrees,
+                            Strona = "Góra",
                         });
                         break;
                     case 1:
@@ -501,6 +507,8 @@ namespace GEORGE.Client.Pages.Okna
                             ZIndex = Zindeks,
                             RowIdElementu = rowIdprofileRight,
                             IdRegion = regionId,
+                            Kat = (int)angleDegrees,
+                            Strona = "Prawa",
                         });
                         break;
                     case 2:
@@ -514,6 +522,8 @@ namespace GEORGE.Client.Pages.Okna
                             ZIndex = Zindeks,
                             RowIdElementu = rowIdprofileBottom,
                             IdRegion = regionId,
+                            Kat = (int)angleDegrees,
+                            Strona = "Dół",
                         });
                         break;
                     case 3:
@@ -527,6 +537,8 @@ namespace GEORGE.Client.Pages.Okna
                             ZIndex = Zindeks,
                             RowIdElementu = rowIdprofileLeft,
                             IdRegion = regionId,
+                            Kat = (int)angleDegrees,
+                            Strona = "Lewa",
                         }); ;
                         break;
                 }

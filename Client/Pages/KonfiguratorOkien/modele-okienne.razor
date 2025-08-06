@@ -2326,10 +2326,10 @@
                 var powiazanyModel = await Http.GetFromJsonAsync<MVCKonfModele>($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{SelectedRowIdType}");
                 if (powiazanyModel != null)
                 {
-                    generator.PowiazanyModel = powiazanyModel;
+                    generator.MVCKonfModelu = powiazanyModel;
 
-                    if (generator.PowiazanyModel.KonfModele != null)
-                        Console.WriteLine($"! Powiązany model: {generator.PowiazanyModel.KonfModele[0].NazwaKonfiguracji} ile: {generator.PowiazanyModel.KonfModele.Count()}");
+                    if (generator.MVCKonfModelu.KonfModele != null)
+                        Console.WriteLine($"! Powiązany model: {generator.MVCKonfModelu.KonfModele[0].NazwaKonfiguracji} ile: {generator.MVCKonfModelu.KonfModele.Count()}");
                 }
                 else
                 {
@@ -2457,18 +2457,19 @@
 
             bool czyZawieraSlupekRuchomyWPowiazanymModelu = _generatorStates
                  .Any(state =>
-                     state.Value.PowiazanyModel != null &&
-                     state.Value.PowiazanyModel.KonfSystem != null &&
-                     state.Value.PowiazanyModel.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy")
+                     state.Value.MVCKonfModelu != null &&
+                     state.Value.MVCKonfModelu.KonfSystem != null &&
+                     state.Value.MVCKonfModelu.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy")
                  );
 
-            Console.WriteLine($"Czy zawiera słupek ruchomy w powiązanym modelu: {czyZawieraSlupekRuchomyWPowiazanymModelu} [{_generatorStates.Count()}]");
+            Console.WriteLine($"Czy zawiera słupek ruchomy w powiązanym modelu: {czyZawieraSlupekRuchomyWPowiazanymModelu} [{_generatorStates.Count()}] Region ze słupkiem: {czyRegionZawieraSlupekRuchomy}");
+
 
             if (!czyZawieraSlupekRuchomyWPowiazanymModelu)
             {
-                bool czySlupekRuchomyWPojedynczymModelu = generator.PowiazanyModel != null &&
-                    generator.PowiazanyModel.KonfSystem != null &&
-                    generator.PowiazanyModel.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy");
+                bool czySlupekRuchomyWPojedynczymModelu = generator.MVCKonfModelu != null &&
+                generator.MVCKonfModelu.KonfSystem != null &&
+                generator.MVCKonfModelu.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy");
 
                 if (!czySlupekRuchomyWPojedynczymModelu)
                 {
@@ -2478,6 +2479,36 @@
                     );
                     return false;
                 }
+
+            }
+
+        }
+
+        bool czyRegionaZawieraSlupekRuchomy = _generatorStates
+         .Any(state =>
+             state.Value.SlupekRuchomyPoLewejStronie || state.Value.SlupekRuchomyPoPrawejStronie);
+
+        if (!czyRegionaZawieraSlupekRuchomy && SelectedModelType != "Rama")
+        {
+            bool czyZawieraSlupekRuchomyWPowiazanymModelu = _generatorStates
+             .Any(state =>
+                 state.Value.MVCKonfModelu != null &&
+                 state.Value.MVCKonfModelu.KonfSystem != null &&
+                 state.Value.MVCKonfModelu.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy")
+             );
+
+            bool czySlupekRuchomyWPojedynczymModelu = generator.MVCKonfModelu != null &&
+            generator.MVCKonfModelu.KonfSystem != null &&
+            generator.MVCKonfModelu.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy");
+            Console.WriteLine($"TEST - Czy zawiera słupek ruchomy w powiązanym modelu: {czyZawieraSlupekRuchomyWPowiazanymModelu} [{_generatorStates.Count()}] Region ze słupkiem: {czyRegionZawieraSlupekRuchomy}");
+            
+            if (czyZawieraSlupekRuchomyWPowiazanymModelu || czySlupekRuchomyWPojedynczymModelu)
+            {
+                await _message.Warning(
+                    "Dodajesz konstrukcję z słupkiem ruchomym, Najpierw dodaj podział z osią słupka ruchomego!",
+                    2.0
+                );
+                return false;
             }
         }
 
@@ -2542,7 +2573,7 @@
             ZIndeks = generator.Zindeks,
             RowIdSystemu = Guid.Parse(SelectedSystemId),
             RowIdModelu = Guid.TryParse(SelectedRowIdType, out var rowIdModelu) ? rowIdModelu : (Guid?)null,
-            PowiazanyModel = generator.PowiazanyModel,
+            MVCKonfModelu = generator.MVCKonfModelu,
             WybranyModel = WybranyModel,
             WybranyKsztalt = WybranyKsztalt,
             IdRegionWarstwaNizej = generator.IdRegionuPonizej,
@@ -2925,7 +2956,7 @@
         bool jestPionowa = Math.Abs(p1.X - p2.X) < 0.01;
         bool jestPozioma = Math.Abs(p1.Y - p2.Y) < 0.01;
 
-        if (stan?.PowiazanyModel?.KonfSystem == null)
+        if (stan?.MVCKonfModelu?.KonfSystem == null)
             return Guid.Empty;
 
         string slLewa = slRuchStroLewa ? "Słupek ruchomy" : "";
@@ -2935,7 +2966,7 @@
 
 
         // 1️⃣ Najpierw próba z uwzględnieniem słupka
-        foreach (var konf in stan.PowiazanyModel.KonfSystem)
+        foreach (var konf in stan.MVCKonfModelu.KonfSystem)
         {
             if (jestPionowa)
             {
@@ -2954,7 +2985,7 @@
         }
 
         // 2️⃣ Jeśli nie znaleziono — próba bez słupka
-        foreach (var konf in stan.PowiazanyModel.KonfSystem)
+        foreach (var konf in stan.MVCKonfModelu.KonfSystem)
         {
             if (jestPionowa)
             {
@@ -2966,7 +2997,7 @@
         }
 
         // 3️⃣ Jeśli dalej nic — bierzemy pierwszą pasującą stronę
-        foreach (var konf in stan.PowiazanyModel.KonfSystem)
+        foreach (var konf in stan.MVCKonfModelu.KonfSystem)
         {
             if (jestPionowa)
             {
@@ -3035,7 +3066,7 @@
                 if (!CzyNakladajaSieDowolne(p1, p2, q1, q2, tolerancja))
                     continue;
 
-                var konfLista = stan.PowiazanyModel?.KonfSystem;
+                var konfLista = stan.MVCKonfModelu?.KonfSystem;
                 if (konfLista == null) continue;
 
                 foreach (var konf in konfLista)
@@ -3319,7 +3350,7 @@
         {
             //KonfiguracjeSystemu = state.PowiazaneModele,
             RowIdSystemu = state.RowIdSystemu,
-            PowiazanyModel = state.PowiazanyModel,
+            MVCKonfModelu = state.MVCKonfModelu,
             TypKsztaltu = state.WybranyKsztalt,
             EdytowanyModel = state.WybranyModel,
         };
@@ -3340,18 +3371,18 @@
             // Sprawdź, czy istnieje "Słupek ruchomy" w jakimkolwiek PowiazanymModelu (lista)
             bool czyZawieraSlupekRuchomyWPowiazanymModelu = StateContainer.States
                  .Any(state =>
-                     state.Value.PowiazanyModel != null &&
-                     state.Value.PowiazanyModel.KonfSystem != null &&
-                     state.Value.PowiazanyModel.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy")
+                     state.Value.MVCKonfModelu != null &&
+                     state.Value.MVCKonfModelu.KonfSystem != null &&
+                     state.Value.MVCKonfModelu.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy")
                  );
 
 
             if (!czyZawieraSlupekRuchomyWPowiazanymModelu)
             {
                 // Sprawdź, czy istnieje "Słupek ruchomy" w pojedynczym PowiazanymModelu (np. generator)
-                bool czySlupekRuchomyWPojedynczymModelu = generator.PowiazanyModel != null &&
-                    generator.PowiazanyModel.KonfSystem != null &&
-                    generator.PowiazanyModel.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy");
+                bool czySlupekRuchomyWPojedynczymModelu = generator.MVCKonfModelu != null &&
+                    generator.MVCKonfModelu.KonfSystem != null &&
+                    generator.MVCKonfModelu.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy");
 
                 if (!czySlupekRuchomyWPojedynczymModelu)
                 {
@@ -3470,6 +3501,7 @@
                 // Console.WriteLine($"*********** >>>>>> ksztalt: {ksztalt.Id}");
 
                 await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
+                await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"{ksztalt.RowIdElementu.ToString()}-{ksztalt.Kat.ToString()}/{ksztalt.Strona}");
             }
 
             StateHasChanged();
@@ -3549,6 +3581,41 @@
         await context.SetLineWidthAsync(2);
         await context.StrokeAsync();
     }
+
+    private async Task DrawSingleContourTextOnly(Canvas2DContext context, List<XPoint> outerPoints, string tekst)
+    {
+        if (outerPoints == null || outerPoints.Count < 2) return;
+
+        // Oblicz środek figury
+        double centerX = outerPoints.Average(p => p.X);
+        double centerY = outerPoints.Average(p => p.Y);
+
+        // Sprawdź proporcje
+        double width = outerPoints.Max(p => p.X) - outerPoints.Min(p => p.X);
+        double height = outerPoints.Max(p => p.Y) - outerPoints.Min(p => p.Y);
+        bool rotate = height > width;
+
+        // Rysowanie tekstu
+        await context.SaveAsync();
+        await context.SetFontAsync($"28px Arial");
+        await context.SetFillStyleAsync("black");
+        await context.SetTextAlignAsync(TextAlign.Center);
+        await context.SetTextBaselineAsync(TextBaseline.Middle);
+
+        if (rotate)
+        {
+            await context.TranslateAsync(centerX, centerY);
+            await context.RotateAsync((float)Math.PI / 2); // 90 stopni
+            await context.FillTextAsync(tekst, 0, 0);
+        }
+        else
+        {
+            await context.FillTextAsync(tekst, centerX, centerY);
+        }
+
+        await context.RestoreAsync();
+    }
+
 
     private async Task GoBack()
     {

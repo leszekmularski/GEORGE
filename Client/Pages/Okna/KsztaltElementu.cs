@@ -36,6 +36,10 @@ namespace GEORGE.Client.Pages.Okna
         // RoIdElemntu zapisanego w bazie danych
         public Guid RowIdElementu { get; set; }
 
+        public string? IndeksEelemntu { get; set; }
+        public int Kat { get; set; } = 0;
+        public string? Strona { get; set; }
+
         // Opcjonalna grupa logiczna (np. "rama", "szyba", "skrzydlo")
         public string? Grupa { get; set; }
         //Informacje o długości elementy
