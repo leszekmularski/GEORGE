@@ -2484,32 +2484,17 @@
 
         }
 
-        bool czyRegionaZawieraSlupekRuchomy = _generatorStates
-         .Any(state =>
-             state.Value.SlupekRuchomyPoLewejStronie || state.Value.SlupekRuchomyPoPrawejStronie);
-
-        if (!czyRegionaZawieraSlupekRuchomy && SelectedModelType != "Rama")
+        int ileRegionWSkrzydleZawieraSlupekRuchomy = _regionsSkrzydlo.Where(x => x.TypLiniiDzielacej == "Słupek ruchomy").Count();
+        int ileRegionDRZawieraSlupekRuchomy = generator.MVCKonfModelu.KonfModele.Where(x => x.Typ == "Skrzydło z słupkiem ruchomym").Count();
+        Console.WriteLine($"🟩 Ile regionów skrzydła zawiera słupek ruchomy: {ileRegionWSkrzydleZawieraSlupekRuchomy} - Ile regionów DR zawiera słupek ruchomy: {ileRegionDRZawieraSlupekRuchomy} - SelectedModelType: {SelectedModelType}");
+        if (ileRegionWSkrzydleZawieraSlupekRuchomy == 0 && ileRegionDRZawieraSlupekRuchomy > 0 && SelectedModelType != "Rama")
         {
-            bool czyZawieraSlupekRuchomyWPowiazanymModelu = _generatorStates
-             .Any(state =>
-                 state.Value.MVCKonfModelu != null &&
-                 state.Value.MVCKonfModelu.KonfSystem != null &&
-                 state.Value.MVCKonfModelu.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy")
-             );
-
-            bool czySlupekRuchomyWPojedynczymModelu = generator.MVCKonfModelu != null &&
-            generator.MVCKonfModelu.KonfSystem != null &&
-            generator.MVCKonfModelu.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy");
-            Console.WriteLine($"TEST - Czy zawiera słupek ruchomy w powiązanym modelu: {czyZawieraSlupekRuchomyWPowiazanymModelu} [{_generatorStates.Count()}] Region ze słupkiem: {czyRegionZawieraSlupekRuchomy}");
-            
-            if (czyZawieraSlupekRuchomyWPowiazanymModelu || czySlupekRuchomyWPojedynczymModelu)
-            {
                 await _message.Warning(
                     "Dodajesz konstrukcję z słupkiem ruchomym, Najpierw dodaj podział z osią słupka ruchomego!",
                     2.0
                 );
                 return false;
-            }
+
         }
 
         double minX = 0;
