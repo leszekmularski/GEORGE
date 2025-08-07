@@ -321,6 +321,10 @@
         console.log("🧹 Czyszczenie referencji do canvas");
         window.blazorCanvas = null;
     };
+
+    window.clearConsole = function () {
+        console.clear();
+    };
 </script>
 
 <style>
@@ -1530,6 +1534,8 @@
 
     private async Task ZapiszKsztalt()
     {
+                if (_context == null || ksztalty == null || !ksztalty.Any() || _shapes == null)
+            return;
         // Nie zmieniaj listy ksztalty – dane są już w niej zaktualizowane przez binding
         edytowanyId = "";
         await RenderFrame(false);
@@ -1705,6 +1711,8 @@
 
     private async Task ApplyZoom(double newScale)
     {
+        if (_context != null || _shapes != null) return;
+
         if (CanvasWidth == 0 || CanvasHeight == 0)
             return;
 
@@ -1797,6 +1805,8 @@
             await _message.Warning("Wybierz model z listy przed przeciągnięciem.", 1.0);
             return;
         }
+
+        await JS.InvokeVoidAsync("clearConsole");// W po testach usuń
 
         // Pobierz informacje o przeciąganym modelu
         var draggedInfo = await GetDraggedModelInfoAsync();
@@ -2049,6 +2059,9 @@
 
     private async Task DrawStructureAndRestrykcje(int isTextureLoadedNZ = 999)
     {
+         if (_context == null || ksztalty == null || !ksztalty.Any() || _shapes == null)
+            return;
+
         if (isTextureLoadedNZ == 0) isTextureLoaded = false;
 
         try
@@ -2477,12 +2490,18 @@
 
         }
 
-        int ileRegionWSkrzydleZawieraSlupekRuchomy = _regionsSkrzydlo.Where(x => x.TypLiniiDzielacej == "Słupek ruchomy").Count();
+        foreach(var c in wszystkieRegiony)
+        {
+            Console.WriteLine($"🟩 Region: {c.Id} Typ: {c.TypKsztaltu} TypLiniiDzielacej: {c.TypLiniiDzielacej}");
+        }
+
+        var ileRegionWSkrzydleZawieraSlupekRuchomy = wszystkieRegiony.Where(x => x.TypLiniiDzielacej == "Słupek ruchomy").Distinct(new LiniaComparer()).ToList();
+
         int ileRegionDRZawieraSlupekRuchomy = generator.MVCKonfModelu.KonfModele.Where(x => x.Typ == "Skrzydło z słupkiem ruchomym").Count();
 
-        Console.WriteLine($"🟩 Ile regionów skrzydła zawiera słupek ruchomy: {ileRegionWSkrzydleZawieraSlupekRuchomy} - Ile regionów DR zawiera słupek ruchomy: {ileRegionDRZawieraSlupekRuchomy} - SelectedModelType: {SelectedModelType}");
+        Console.WriteLine($"🟩 Ile regionów skrzydła zawiera słupek ruchomy: {ileRegionWSkrzydleZawieraSlupekRuchomy.Count()} - Ile regionów DR zawiera słupek ruchomy: {ileRegionDRZawieraSlupekRuchomy} - SelectedModelType: {SelectedModelType}");
         
-        if (ileRegionWSkrzydleZawieraSlupekRuchomy == 0 && ileRegionDRZawieraSlupekRuchomy > 0 && SelectedModelType != "Rama")
+        if (ileRegionWSkrzydleZawieraSlupekRuchomy.Count() == 0 && ileRegionDRZawieraSlupekRuchomy > 0 && SelectedModelType != "Rama")
         {
                 await _message.Warning(
                     "Dodajesz konstrukcję z słupkiem ruchomym, Najpierw dodaj podział z osią słupka ruchomego!",
@@ -3421,7 +3440,7 @@
     {
         try
         {
-            if (_context == null || ksztalty == null || !ksztalty.Any())
+            if (_context == null || ksztalty == null || !ksztalty.Any() || _shapes == null)
                 return;
 
             // Przygotowanie canvas
