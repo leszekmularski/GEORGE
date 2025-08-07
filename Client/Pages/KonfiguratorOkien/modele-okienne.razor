@@ -925,7 +925,7 @@
                                                 @foreach (var linia in region.LinieDzielace)
                                                 {
                                                     <li class="list-group-item">
-                                                        Start(X1: @(Math.Round(linia.X1, 3)), Y1: @(Math.Round(linia.Y1, 3)), Koniec(X2: @(Math.Round(linia.X2, 3)), Y2: @(Math.Round(linia.Y2, 3))
+                                                        Start X1: @(Math.Round(linia.X1, 3)), Y1: @(Math.Round(linia.Y1, 3)), Koniec X2: @(Math.Round(linia.X2, 3)), Y2: @(Math.Round(linia.Y2, 3))
                                                     </li>
                                                 }
                                             </ul>
@@ -1007,7 +1007,7 @@
                                                 @foreach (var linia in region.LinieDzielace)
                                                 {
                                                     <li class="list-group-item">
-                                                        Start(X1: @(Math.Round(linia.X1, 3)), Y1: @(Math.Round(linia.Y1, 3)), Koniec(X2: @(Math.Round(linia.X2, 3)), Y2: @(Math.Round(linia.Y2, 3))
+                                                        Start X1: @(Math.Round(linia.X1, 3)), Y1: @(Math.Round(linia.Y1, 3)), Koniec X2: @(Math.Round(linia.X2, 3)), Y2: @(Math.Round(linia.Y2, 3))
                                                     </li>
                                                 }
                                             </ul>
@@ -1097,7 +1097,7 @@
                                                 @foreach (var linia in region.LinieDzielace)
                                                 {
                                                     <li class="list-group-item">
-                                                        Start(X1: @(Math.Round(linia.X1, 3)), Y1: @(Math.Round(linia.Y1, 3)), Koniec(X2: @(Math.Round(linia.X2, 3)), Y2: @(Math.Round(linia.Y2, 3))
+                                                        Start X1: @(Math.Round(linia.X1, 3)), Y1: @(Math.Round(linia.Y1, 3)), Koniec X2: @(Math.Round(linia.X2, 3)), Y2: @(Math.Round(linia.Y2, 3))
                                                     </li>
                                                 }
                                             </ul>
@@ -1179,7 +1179,7 @@
                                                 @foreach (var linia in region.LinieDzielace)
                                                 {
                                                     <li class="list-group-item">
-                                                        Start(X1: @(Math.Round(linia.X1, 3)), Y1: @(Math.Round(linia.Y1, 3)), Koniec(X2: @(Math.Round(linia.X2, 3)), Y2: @(Math.Round(linia.Y2, 3))
+                                                        Start X1: @(Math.Round(linia.X1, 3)), Y1: @(Math.Round(linia.Y1, 3)), Koniec X2: @(Math.Round(linia.X2, 3)), Y2: @(Math.Round(linia.Y2, 3))
                                                     </li>
                                                 }
                                             </ul>
@@ -2303,7 +2303,6 @@
             }
         }
 
-
         Console.WriteLine($"📦 -> DodajWybranyKwadratOkna wywołane z idRegion: {idRegion} SelectedRowIdType: {SelectedRowIdType} - konfmodeleelementy");
 
         var generator = new Generator
@@ -2375,32 +2374,31 @@
         var wszystkieRegiony = _regionsDualRama.Concat(_regionsSkrzydlo);
         var zawarteRegiony = wszystkieRegiony
             .Where(r =>
-                r.Id != idRegion &&
                 r.Wierzcholki != null &&
                 r.Wierzcholki.Count >= 3 &&
                 r.Wierzcholki.All(p => CzyPunktWNWielokacie(p, regionReferencyjny.Wierzcholki))
             )
             .ToList();
 
-        //Console.WriteLine($"⚠️ 🟩🟩🟩🟩 zawarteRegiony: {zawarteRegiony.Count()}");
-
         var styczneLinie = wszystkieRegiony
-            .Where(r =>
-                r.Id != idRegion &&
-                r.Wierzcholki != null &&
-                r.Wierzcholki.Count == 2 &&
-                r.TypKsztaltu?.ToLower().Contains("linia") == true &&
-                r.Wierzcholki.Any(p => CzyPunktLezyNaKrawedzi(p, regionReferencyjny.Wierzcholki))
-            )
-            .ToList();
+        .Where(r =>
+            r.Wierzcholki != null &&
+            r.Wierzcholki.Count == 2 &&
+            r.TypKsztaltu?.ToLower().Contains("linia") == true &&
+            r.Wierzcholki.Any(p => CzyPunktLezyNaKrawedzi(p, regionReferencyjny.Wierzcholki))
+        )
+        .Distinct(new LiniaComparer())
+        .ToList();
+
 
         bool czyRegionZawieraSlupekRuchomy = false;
         bool stronaLewa = false;
         bool stronaPrawa = false;
 
+        Console.WriteLine($"⚠️⚠️⚠️ styczneLinie region rama: {styczneLinie.Count()} zawarteRegiony: {zawarteRegiony.Count()} 🟩 ⚠️");
+
         if (styczneLinie.Any())
         {
-            Console.WriteLine($"⚠️ 🟩 styczneLinie region rama: {styczneLinie.Count()} zawarteRegiony: {zawarteRegiony.Count()} 🟩 ⚠️");
 
             // Filtrujemy linie typu "Słupek ruchomy"
             var slupkiRuchome = styczneLinie
@@ -2410,9 +2408,9 @@
             if (slupkiRuchome.Any())
             {
                 czyRegionZawieraSlupekRuchomy = true;
-                Console.WriteLine($"✅ Region {idRegion} zawiera słupek ruchomy.");
+                Console.WriteLine($"✅ Region {idRegion} zawiera słupek ruchomy. Ilość słupków: {slupkiRuchome.Count()}");
 
-                if (slupkiRuchome.Count >= 2)
+                if (slupkiRuchome.Count() >= 2)
                 {
                     // Średnia X dwóch pierwszych punktów słupka
                     double srodekX1 = slupkiRuchome[0].Wierzcholki[0].X;
@@ -2453,25 +2451,20 @@
 
         if (czyRegionZawieraSlupekRuchomy && SelectedModelType != "Rama")
         {
-            Console.WriteLine($"✅ Region {idRegion} zawiera słupek ruchomy. Kontynuuję generowanie elementów.");
 
-            bool czyZawieraSlupekRuchomyWPowiazanymModelu = _generatorStates
+            bool czyZawieraSlupekRuchomyWPowiazanymModelu = _generatory
                  .Any(state =>
                      state.Value.MVCKonfModelu != null &&
-                     state.Value.MVCKonfModelu.KonfSystem != null &&
-                     state.Value.MVCKonfModelu.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy")
+                     state.Value.MVCKonfModelu.KonfModele != null &&
+                     state.Value.MVCKonfModelu.KonfModele.Any(ks => ks.Typ == "Skrzydło z słupkiem ruchomym")
                  );
 
-            Console.WriteLine($"Czy zawiera słupek ruchomy w powiązanym modelu: {czyZawieraSlupekRuchomyWPowiazanymModelu} [{_generatorStates.Count()}] Region ze słupkiem: {czyRegionZawieraSlupekRuchomy}");
-
+            Console.WriteLine($"✅✅✅ Region {idRegion} zawiera słupek ruchomy. Kontynuuję generowanie elementów. Model-Typ: {WybranyModel.Typ} czyZawieraSlupekRuchomyWPowiazanymModelu: {czyZawieraSlupekRuchomyWPowiazanymModelu}");
 
             if (!czyZawieraSlupekRuchomyWPowiazanymModelu)
             {
-                bool czySlupekRuchomyWPojedynczymModelu = generator.MVCKonfModelu != null &&
-                generator.MVCKonfModelu.KonfSystem != null &&
-                generator.MVCKonfModelu.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy");
-
-                if (!czySlupekRuchomyWPojedynczymModelu)
+      
+                if (WybranyModel.Typ != "Skrzydło z słupkiem ruchomym")
                 {
                     await _message.Warning(
                         "Brak słupka ruchomego w regionie skrzydła. Dodaj wcześniej słupek ruchomy do konstrukcji.",
@@ -2486,7 +2479,9 @@
 
         int ileRegionWSkrzydleZawieraSlupekRuchomy = _regionsSkrzydlo.Where(x => x.TypLiniiDzielacej == "Słupek ruchomy").Count();
         int ileRegionDRZawieraSlupekRuchomy = generator.MVCKonfModelu.KonfModele.Where(x => x.Typ == "Skrzydło z słupkiem ruchomym").Count();
+
         Console.WriteLine($"🟩 Ile regionów skrzydła zawiera słupek ruchomy: {ileRegionWSkrzydleZawieraSlupekRuchomy} - Ile regionów DR zawiera słupek ruchomy: {ileRegionDRZawieraSlupekRuchomy} - SelectedModelType: {SelectedModelType}");
+        
         if (ileRegionWSkrzydleZawieraSlupekRuchomy == 0 && ileRegionDRZawieraSlupekRuchomy > 0 && SelectedModelType != "Rama")
         {
                 await _message.Warning(
@@ -3147,44 +3142,6 @@
         return 0;
     }
 
-
-    // private string OkreslStrone(double kat)
-    // {
-    //     // Normalizuj kąt do zakresu 0-360
-    //     kat = (kat % 360 + 360) % 360;
-
-    //     // Tolerancja dla ustawień poziomych/pionowych
-    //     const double tolerancja = 5.0;
-
-    //     if (Math.Abs(kat - 0) < tolerancja || Math.Abs(kat - 180) < tolerancja || Math.Abs(kat - 360) < tolerancja)
-    //     {
-    //         return "góra"; // Linia pozioma (góra/dół)
-    //     }
-    //     else if (Math.Abs(kat - 90) < tolerancja || Math.Abs(kat - 270) < tolerancja)
-    //     {
-    //         return "lewa"; // Linia pionowa (lewa/prawa)
-    //     }
-
-    //     return "dół"; // Domyślnie
-    // }
-
-    // private static bool CzyWspolosiowe(XPoint a1, XPoint a2, XPoint b1, XPoint b2, double tol)
-    // {
-    //     bool aPion = Math.Abs(a1.X - a2.X) < tol;
-    //     bool bPion = Math.Abs(b1.X - b2.X) < tol;
-
-    //     if (aPion && bPion)
-    //         return Math.Abs(a1.X - b1.X) < tol;
-
-    //     bool aPoziom = Math.Abs(a1.Y - a2.Y) < tol;
-    //     bool bPoziom = Math.Abs(b1.Y - b2.Y) < tol;
-
-    //     if (aPoziom && bPoziom)
-    //         return Math.Abs(a1.Y - b1.Y) < tol;
-
-    //     return false; // różne kierunki
-    // }
-
     private static bool CzyNakladajaSieDowolne(XPoint a1, XPoint a2, XPoint b1, XPoint b2, double tol = 0.02)
     {
         // Wektory
@@ -3486,7 +3443,7 @@
                 // Console.WriteLine($"*********** >>>>>> ksztalt: {ksztalt.Id}");
 
                 await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
-                await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"{ksztalt.RowIdElementu.ToString()}-{ksztalt.Kat.ToString()}/{ksztalt.Strona}");
+                await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"{ksztalt.RowIdElementu.ToString()} [{ksztalt.Kat.ToString()}/{ksztalt.Strona}]");
             }
 
             StateHasChanged();
@@ -3516,7 +3473,6 @@
                 _dotNetHelper
             );
         }
-
 
         await context.SetStrokeStyleAsync("#000000");
         await context.SetLineWidthAsync(1.5f);
@@ -3582,7 +3538,7 @@
 
         // Rysowanie tekstu
         await context.SaveAsync();
-        await context.SetFontAsync($"28px Arial");
+        await context.SetFontAsync($"30px Arial");
         await context.SetFillStyleAsync("black");
         await context.SetTextAlignAsync(TextAlign.Center);
         await context.SetTextBaselineAsync(TextBaseline.Middle);

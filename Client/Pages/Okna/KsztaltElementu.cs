@@ -37,7 +37,7 @@ namespace GEORGE.Client.Pages.Okna
         public Guid RowIdElementu { get; set; }
 
         public string? IndeksEelemntu { get; set; }
-        public int Kat { get; set; } = 0;
+        public float Kat { get; set; } = 0;
         public string? Strona { get; set; }
 
         // Opcjonalna grupa logiczna (np. "rama", "szyba", "skrzydlo")

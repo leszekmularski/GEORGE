@@ -208,6 +208,10 @@ namespace GEORGE.Client.Pages.Okna
                 float angleRadians = MathF.Atan2(dy, dx); // kąt w radianach
                 float angleDegrees = angleRadians * (180f / MathF.PI); // kąt w stopniach
 
+                // Przekształć do zakresu 0–360°, jeśli potrzebujesz
+                if (angleDegrees < 0)
+                    angleDegrees += 360f;
+
                 if (length < 0.001f) continue;
 
                 float tx = dx / length;
