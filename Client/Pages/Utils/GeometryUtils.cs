@@ -99,6 +99,7 @@ namespace GEORGE.Client.Pages.Utils
                     TypLiniiDzielacej = typLinii,
                     Id = id,
                     IdMaster = id,
+                    Rama = rama
                 };
 
 
@@ -111,7 +112,7 @@ namespace GEORGE.Client.Pages.Utils
 
                    // initial.Id = "R-" + initial.Id;
 
-                    var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace, id);
+                    var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace, id, rama);
 
                     foreach (var r in podzielone)
                     {
@@ -147,7 +148,7 @@ namespace GEORGE.Client.Pages.Utils
 
                     //initial.Id = "N-" + initial.Id;
 
-                    var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace, id);
+                    var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace, id, rama);
 
                     foreach (var r in podzielone)
                     {
@@ -254,7 +255,7 @@ namespace GEORGE.Client.Pages.Utils
             return kątyProste && bokiRowne;
         }
 
-        private static List<ShapeRegion> PodzielRegionRekurencyjnie(ShapeRegion region, List<XLineShape> lines, string idMaster)
+        private static List<ShapeRegion> PodzielRegionRekurencyjnie(ShapeRegion region, List<XLineShape> lines, string idMaster, bool rama)
         {
             var wynik = new List<ShapeRegion> { region };
 
@@ -275,6 +276,7 @@ namespace GEORGE.Client.Pages.Utils
                                 TypKsztaltu = r.TypKsztaltu,
                                 LinieDzielace = r.LinieDzielace.Concat(new[] { line }).ToList(),
                                 IdMaster = idMaster,
+                                Rama = rama,
                             });
                     }
                     else

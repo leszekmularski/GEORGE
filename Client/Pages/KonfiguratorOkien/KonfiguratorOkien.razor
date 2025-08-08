@@ -1203,7 +1203,7 @@
 
         await Laduj_Uprawnienia();
 
-        Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
+        Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>($"api/systemy-okienne") ?? new List<SystemyOkienne>();
 
         KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>("api/konfsystem");
     }

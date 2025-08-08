@@ -18,8 +18,10 @@ namespace GEORGE.Client.Pages.Models
         private double _scaleFactor = 1.0; // Skalowanie
         public double Szerokosc { get; set; }
         public double Wysokosc { get; set; }
+        public bool GenerowaneZRamy { get; set; } = false; // Flaga do generowania z ramy
 
-        public XLineShape(double x1, double y1, double x2, double y2, double scaleFactor, string nazwaObj, bool ruchomySlupek = false, bool pionPoziom = false, bool dualRama = false)
+        public XLineShape(double x1, double y1, double x2, double y2, double scaleFactor, string nazwaObj, bool ruchomySlupek = false, bool pionPoziom = false, 
+            bool dualRama = false, bool generowaneZRamy = false)
         {
             X1 = x1;
             Y1 = y1;
@@ -30,6 +32,7 @@ namespace GEORGE.Client.Pages.Models
             RuchomySlupek = ruchomySlupek;
             PionPoziom = pionPoziom;
             DualRama = dualRama;
+            GenerowaneZRamy = generowaneZRamy;
             // Wymuszenie pionowej linii
             if (RuchomySlupek)
             {

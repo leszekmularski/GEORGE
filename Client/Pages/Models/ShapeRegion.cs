@@ -24,6 +24,8 @@ namespace GEORGE.Client.Pages.Models
         /// </summary>
         public string TypLiniiDzielacej { get; set; } = "";
 
+        public bool Rama { get; set; } = false;
+
         /// <summary>
         /// Linie, które brały udział w podziale tego regionu (jeśli dotyczy).
         /// </summary>

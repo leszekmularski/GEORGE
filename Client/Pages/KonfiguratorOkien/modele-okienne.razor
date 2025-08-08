@@ -269,15 +269,17 @@
                 console.warn("❌ Canvas element is null in JS.");
                 return null;
             }
-
             const rect = canvasElement.getBoundingClientRect();
             return {
-                left: rect.left,
-                top: rect.top,
-                width: rect.width,
-                height: rect.height
+                Left: rect.left,
+                Top: rect.top,
+                Right: rect.right,
+                Bottom: rect.bottom,
+                Width: rect.width,
+                Height: rect.height
             };
         };
+
 
         })();
 
@@ -690,12 +692,13 @@
 <div class="window-model-container">
     <!-- Kontener na przyciski -->
     <div class="zoom-controls">
-        <label>@mousePosition skala: @((int)(_currentScale * 100))</label>
+        <label>@mousePosition</label>
         <button @onclick="UsunOstatniObiekt" class="btn-zoom">🗑️</button>
         <button @onclick="ZoomIn" class="btn-zoom">➕</button>
         <button @onclick="ZoomOut" class="btn-zoom">➖</button>
         <button @onclick="PokazModal" class="btn-zoom">💎</button>
         <button class="btn btn-zoom" @onclick="OtworzPrzeglad">🔍</button>
+        <button @onclick="ResetScale">🔄 Reset skali</button>
     </div>
     <!-- Panel boczny z modelami -->
     <div class="wing-model-container">
@@ -883,7 +886,7 @@
                                             }
                                         </div>
 
-                                        <p><strong>ID:</strong> @region.Id</p>
+                                        <p><strong>ID:</strong> @region.Id &nbsp; Dotyczy Rama:@region.Rama </p>
                                         <p><strong>ID MASTER:</strong> @region.IdMaster</p>
                                         <p><strong>Liczba wierzchołków:</strong> @region.Wierzcholki.Count</p>
                                         <p><strong>Liczba linii dzielących:</strong> @region.LinieDzielace.Count</p>
@@ -965,7 +968,7 @@
                                             }
                                         </div>
 
-                                        <p><strong>ID:</strong> @region.Id</p>
+                                        <p><strong>ID:</strong> @region.Id &nbsp; Dotyczy Rama:@region.Rama </p>
                                         <p><strong>ID MASTER:</strong> @region.IdMaster</p>
                                         <p><strong>Liczba wierzchołków:</strong> @region.Wierzcholki.Count</p>
                                         <p><strong>Liczba linii dzielących:</strong> @region.LinieDzielace.Count</p>
@@ -1055,7 +1058,7 @@
                                             }
                                         </div>
 
-                                        <p><strong>ID:</strong> @region.Id</p>
+                                        <p><strong>ID:</strong> @region.Id &nbsp; Dotyczy Rama:@region.Rama </p>
                                         <p><strong>ID MASTER:</strong> @region.IdMaster</p>
                                         <p><strong>Liczba wierzchołków:</strong> @region.Wierzcholki.Count</p>
                                         <p><strong>Liczba linii dzielących:</strong> @region.LinieDzielace.Count</p>
@@ -1137,7 +1140,7 @@
                                             }
                                         </div>
 
-                                        <p><strong>ID:</strong> @region.Id</p>
+                                        <p><strong>ID:</strong> @region.Id &nbsp; Dotyczy Rama:@region.Rama </p>
                                         <p><strong>ID MASTER:</strong> @region.IdMaster</p>
                                         <p><strong>Liczba wierzchołków:</strong> @region.Wierzcholki.Count</p>
                                         <p><strong>Liczba linii dzielących:</strong> @region.LinieDzielace.Count</p>
@@ -1295,8 +1298,6 @@
             if (_shapes != null && _shapes.Count() > 0)
             {
 
-
-
                 double maxWysokosc = _shapes.Max(s => s.Wysokosc);
                 double maxSzerokosc = _shapes.Max(s => s.Szerokosc);
 
@@ -1310,7 +1311,7 @@
                 double scaleY = Wysokosc / CanvasHeight;
                 double scale = Math.Min(scaleX, scaleY) / 2;
 
-                scale = scale * 0.9;
+                //scale = scale * 0.9;
                 _currentScale = scale;
 
                 Console.WriteLine($"🔍 OnInitializedAsync --> Przeskalowano kształty: skala={scale} CanvasWidth: {CanvasWidth} CanvasHeight: {CanvasHeight}");
@@ -1370,10 +1371,9 @@
             if (_dotNetHelper == null)
             {
                 _dotNetHelper = DotNetObjectReference.Create(this);
-                await Task.Delay(25); // Krótkie opóźnienie dla płynności
+                await Task.Delay(5); // Krótkie opóźnienie dla płynności
                 await JS.InvokeVoidAsync("setDotNetHelper", _dotNetHelper);
-                await Task.Delay(25); // Krótkie opóźnienie dla płynności
-                //Console.WriteLine($"🆕 DotNetObjectReference.Create(this) dla obiektu {this.GetHashCode()}");
+                await Task.Delay(5); // Krótkie opóźnienie dla płynności
             }
 
             // Sprawdź, czy skrypt JS został poprawnie załadowany
@@ -1386,13 +1386,23 @@
 
             }
 
-            if (_shapes != null)
+            if (_shapes != null && _context != null)
             {
                 Console.WriteLine($"Odebrano dane _shapes: {_shapes.Count()}");
+                // Resetuj transformacje zamiast mnożyć scale
+                await _context.SetTransformAsync(1, 0, 0, 1, 0, 0); // identyczna transformacja
 
-                await RedrawCanvas();// to chyba poprawy!!!
+                await _context.SaveAsync();
+                await _context.ScaleAsync(_currentScale, _currentScale);
 
-                //   StateHasChanged();
+
+                foreach (var shape in _shapes)
+                {
+                    await shape.Draw(_context);
+                }
+
+                await _context.RestoreAsync();
+
             }
             else
             {
@@ -1427,6 +1437,12 @@
                 // 👇 TU DODAJ
                 _context ??= await CanvasRef.CreateCanvas2DAsync();
 
+                double scaleX = CanvasWidth / Szerokosc;
+                double scaleY = CanvasHeight / Wysokosc;
+
+                // Zachowanie proporcji - mniejszy wymiar wyznacza skalę
+                _currentScale = Math.Min(scaleX, scaleY);
+
                 await JS.InvokeVoidAsync("registerResizeCallback", DotNetObjectReference.Create(this));
 
                 // // Możesz od razu wywołać rysowanie
@@ -1438,7 +1454,7 @@
         {
             Console.WriteLine($"🔥 Krytyczny błąd: {ex.Message}");
             hasCanvasError = true;
-            StateHasChanged();
+            //StateHasChanged();
         }
     }
 
@@ -1534,7 +1550,7 @@
 
     private async Task ZapiszKsztalt()
     {
-                if (_context == null || ksztalty == null || !ksztalty.Any() || _shapes == null)
+        if (_context == null || ksztalty == null || !ksztalty.Any() || _shapes == null)
             return;
         // Nie zmieniaj listy ksztalty – dane są już w niej zaktualizowane przez binding
         edytowanyId = "";
@@ -1612,11 +1628,11 @@
         _generatorState = false;
     }
 
-    [JSInvokable("UpdateCanvasSizeFromResize")]
-    public async Task UpdateCanvasSizeFromResize()
-    {
-        await ApplyZoom(_currentScale);
-    }
+    // [JSInvokable("UpdateCanvasSizeFromResize")]
+    // public async Task UpdateCanvasSizeFromResize()
+    // {
+    //     await ApplyZoom(_currentScale);
+    // }
 
     private async Task RedrawCanvas()
     {
@@ -1711,20 +1727,22 @@
 
     private async Task ApplyZoom(double newScale)
     {
-        if (_context != null || _shapes != null) return;
+        if (_context == null || _shapes == null) return;
 
         if (CanvasWidth == 0 || CanvasHeight == 0)
             return;
 
-        // 📌 Środek canvasu jako punkt odniesienia do zoomu
         _zoomCenterX = CanvasWidth / 2.0;
         _zoomCenterY = CanvasHeight / 2.0;
 
         Console.WriteLine($"🔍 ZOOM: nowa skala = {newScale:F2}, aktualna skala = {_currentScale:F2}");
 
-        var ratio = 1 - (newScale / _currentScale);
-        _panX += (_zoomCenterX - _panX) * ratio;
-        _panY += (_zoomCenterY - _panY) * ratio;
+        // Oblicz stosunek zmiany skali względem poprzedniej
+        var scaleRatio = newScale / _currentScale;
+
+        // Zaktualizuj przesunięcie tak, aby zoom był względem środka canvasu (lub innego punktu jeśli trzeba)
+        _panX = _zoomCenterX - scaleRatio * (_zoomCenterX - _panX);
+        _panY = _zoomCenterY - scaleRatio * (_zoomCenterY - _panY);
 
         _currentScale = newScale;
 
@@ -1734,20 +1752,15 @@
         await DrawStructureAndRestrykcje();
         await RenderFrame();
 
-        // Rysuj wszystkie kształty w przeskalowanym kontekście
-        if (_context != null && _shapes != null)
+        foreach (var shape in _shapes)
         {
-            foreach (var shape in _shapes)
-            {
-                await shape.Draw(_context);
-            }
+            await shape.Draw(_context);
         }
 
         StateHasChanged();
-
     }
 
-    private async Task FitToCanvas(IShapeDC targetShape, string idRegion, bool skalaAutomatyczna, List<XPoint> Wierzcholki, double klikX, double klikY)
+    private async Task FitToCanvas(IShapeDC targetShape, string idRegion, bool skalaAutomatyczna, List<XPoint> Wierzcholki, double klikX, double klikY, bool rama)
     {
 
         Console.WriteLine($"🔍 FitToCanvas --> Dopasowano do shape: scale={_currentScale:F2}, panX={_panX:F2}, panY={_panY:F2}");
@@ -1758,7 +1771,7 @@
 
         //if (await DodajWybranyKwadratOkna(idRegion, Wierzcholki) == false) return; // teraz z idRegion
 
-        if (!await DodajWybranyKwadratOkna(idRegion, Wierzcholki, klikX, klikY))
+        if (!await DodajWybranyKwadratOkna(idRegion, Wierzcholki, klikX, klikY, rama))
             return;
 
         await DrawStructureAndRestrykcje(0);
@@ -1770,24 +1783,57 @@
 
     }
 
-    double logicalX = 0;
+    private async Task ResetScale()
+    {
+        await UpdateScaleAsync();
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task UpdateCanvasSizeFromResize()
+    {
+        await UpdateScaleAsync();
+        StateHasChanged();
+    }
+
+    private async Task UpdateScaleAsync()
+    {
+        if (CanvasRef == null)
+            return;
+
+        // Pobierz aktualny rozmiar elementu canvas z JS
+        var size = await JS.InvokeAsync<Size>("getElementSize", ".canvas-container");
+
+        if (size == null || size.Width == 0 || size.Height == 0)
+            return;
+
+        // Zakładam, że Szerokosc i Wysokosc to wymiary modelu w "logicznych" jednostkach
+        double scaleX = Szerokosc / size.Width;
+        double scaleY = Wysokosc / size.Height;
+
+        // Wybierz minimalną skalę i ewentualnie zmniejsz (twój oryginalny /2 jeśli potrzebne)
+        _currentScale = Math.Min(scaleX, scaleY); // lub Math.Min(scaleX, scaleY) / 2;
+
+        Console.WriteLine($"🔍 Skala ustawiona na {_currentScale:F3} (Canvas {size.Width}x{size.Height})");
+    }
+
     private async Task MouseMove(MouseEventArgs e)
     {
+        if (CanvasRef == null) return;
+
         var rect = await JS.InvokeAsync<DOMRect>("getCanvasBoundingRect", CanvasRef.CanvasReference);
+
         double relativeX = e.ClientX - rect.Left;
         double relativeY = e.ClientY - rect.Top;
 
-        // Przeliczenie na przestrzeń logiczną
-        logicalX = relativeX / _currentScale;
-        double logicalY = relativeY / _currentScale;
+        var logicalX = relativeX / _currentScale;
+        var logicalY = relativeY / _currentScale;
 
-        mousePosition = $"X: {logicalX:F2}, Y: {logicalY:F2}";
+        mousePosition = $"X: {logicalX:F2}, Y: {logicalY:F2} (skala: {_currentScale:F3})";
     }
 
     private async Task OnMouseUp(MouseEventArgs e)
     {
-        if (_context == null) return;
-
         if (CanvasRef == null)
         {
             Console.WriteLine("⚠️ Brak referencji do canvasu!");
@@ -1806,8 +1852,6 @@
             return;
         }
 
-        await JS.InvokeVoidAsync("clearConsole");// W po testach usuń
-
         // Pobierz informacje o przeciąganym modelu
         var draggedInfo = await GetDraggedModelInfoAsync();
         if (draggedInfo != null && !string.IsNullOrEmpty(draggedInfo.Type))
@@ -1816,30 +1860,27 @@
             SelectedRowIdType = draggedInfo.RowId;
         }
 
-        //await Task.Delay(25);
-
+        // Pobierz bounding rect canvasu (współrzędne na ekranie)
         var rect = await JS.InvokeAsync<DOMRect>("getCanvasBoundingRect", CanvasRef.CanvasReference);
 
-        //await Task.Delay(50);
-
+        // Oblicz pozycję kliknięcia względem canvasu
         double relativeX = e.ClientX - rect.Left;
         double relativeY = e.ClientY - rect.Top;
 
-        // Przeliczenie na przestrzeń logiczną
-        double modelX = relativeX / _currentScale;
-        double modelY = relativeY / _currentScale;
+        double scaleX = Szerokosc / CanvasWidth;
+        double scaleY = Wysokosc / CanvasHeight;
+        double scale = Math.Min(scaleX, scaleY) / 2;
 
-        Console.WriteLine($"🔧 relativeX: {relativeX}, relativeY: {relativeY}, Scale: {_currentScale}");
-        Console.WriteLine($"📌 Pozycja w modelu: modelX={modelX}, modelY={modelY}");
+        _currentScale = scale; // Ustaw aktualną skalę
 
-        // await Task.Delay(50);
+        // Przelicz na współrzędne logiczne w modelu (uwzględniając skalę)
+        double modelX = relativeX / scale;
+        double modelY = relativeY / scale;
 
-        bool tylkoRama = false;
+        Console.WriteLine($"📌 Pozycja w modelu: X={modelX:F2}, Y={modelY:F2} przy skali {_currentScale}");
 
-        if (SelectedModelType == "Rama") tylkoRama = true;
-
-        // 🔍 Znajdź region, w który kliknięto
-        var region = FindRegionAtPosition(modelX, modelY, tylkoRama);
+        // Tutaj możesz dalej wywołać funkcje do obsługi kliknięcia, np. znajdź region
+        var region = FindRegionAtPosition(modelX, modelY, tylkoRama: SelectedModelType == "Rama");
 
         if (region == null)
         {
@@ -1847,32 +1888,65 @@
             return;
         }
 
-        // 🔍 Znajdź shape wewnątrz regionu
-        var shape = _shapes.FirstOrDefault(s =>
+        if(_shapes == null || !_shapes.Any())
         {
-            var bbox = s.GetBoundingBox();
-            var testPoints = new[]
+            await _message.Warning("❌ Brak kształtów do przetworzenia!", 1.5);
+            return;
+        }
+        else
+        {
+            foreach(var shapeX in _shapes)
             {
-            new XPoint(bbox.X, bbox.Y),
-            new XPoint(bbox.X + bbox.Width, bbox.Y),
-            new XPoint(bbox.X + bbox.Width, bbox.Y + bbox.Height),
-            new XPoint(bbox.X, bbox.Y + bbox.Height),
-            new XPoint(bbox.X + bbox.Width / 2, bbox.Y + bbox.Height / 2)
-            };
+                Console.WriteLine($"🖌️ Sprawdzam kształt: {shapeX.GetType().Name}");
+            }
+        }
 
-            return testPoints.Any(p => IsPointInPolygon(region.Wierzcholki, p.X, p.Y));
-        });
+
+        // 🔍 Znajdź shape wewnątrz regionu
+        var shape = _shapes
+            .Where(s => s is not XLineShape)
+            .FirstOrDefault(s =>
+            {
+                var bbox = s.GetBoundingBox(); // bbox typu BoundingBox
+
+                var testPoints = new List<XPoint>
+                    {
+                        new XPoint(bbox.X, bbox.Y),
+                        new XPoint(bbox.X + bbox.Width, bbox.Y),
+                        new XPoint(bbox.X + bbox.Width, bbox.Y + bbox.Height),
+                        new XPoint(bbox.X, bbox.Y + bbox.Height),
+                        new XPoint(bbox.X + bbox.Width / 2, bbox.Y + bbox.Height / 2),
+
+                        // dodatkowe punkty
+                        new XPoint(bbox.X + bbox.Width / 2, bbox.Y),           // środek górnej krawędzi
+                        new XPoint(bbox.X + bbox.Width / 2, bbox.Y + bbox.Height), // środek dolnej krawędzi
+                        new XPoint(bbox.X, bbox.Y + bbox.Height / 2),          // środek lewej krawędzi
+                        new XPoint(bbox.X + bbox.Width, bbox.Y + bbox.Height / 2) // środek prawej krawędzi
+                    };
+
+                foreach (var tp in testPoints)
+                {
+                    bool inside = IsPointInPolygon(region.Wierzcholki, tp.X, tp.Y);
+                    Console.WriteLine($"Test punktu ({tp.X:F2},{tp.Y:F2}) -> {inside}");
+                    if (inside) return true;
+                }
+
+                return false;
+            });
 
         if (shape == null)
         {
-            await _message.Warning($"❌ Nie znaleziono kształtu w regionie {region.Id} dla pozycji (X: {modelX:F2}, Y: {modelY:F2})", 1.5);
+            await _message.Warning($"❌❌❌ Nie znaleziono kształtu w regionie {region.Id} dla pozycji (X: {modelX:F2}, Y: {modelY:F2})", 1.5);
             return;
         }
 
-        // 🎯 Dopasuj widok do kształtu i regionu
-        await FitToCanvas(shape, region.Id, false, region.Wierzcholki, modelX, modelY);
+        bool tylkoRama = false;
 
-        await Task.Delay(50);
+        if (SelectedModelType == "Rama") tylkoRama = true;
+        // 🎯 Dopasuj widok do kształtu i regionu
+        await FitToCanvas(shape, region.Id, false, region.Wierzcholki, modelX, modelY, tylkoRama);
+
+        await Task.Delay(5);
 
         foreach (var shapeX in _shapes)
         {
@@ -2216,7 +2290,7 @@
             double scaleY = Wysokosc / CanvasHeight;
             double scale = Math.Min(scaleX, scaleY) / 2;
 
-            scale = scale * 0.9;
+            //scale = scale * 0.9;
             _currentScale = scale;
 
             Console.WriteLine($"🔍 ZmienWymiaryOkna --> Przeskalowano kształty: skala={scale} CanvasWidth: {CanvasWidth} CanvasHeight: {CanvasHeight}");
@@ -2299,9 +2373,9 @@
         }
     }
 
-    private async Task<bool> DodajWybranyKwadratOkna(string idRegion, List<XPoint> Wierzcholki, double klikX, double klikY)
+    private async Task<bool> DodajWybranyKwadratOkna(string idRegion, List<XPoint> Wierzcholki, double klikX, double klikY, bool rama)
     {
-        if (SelectedModelType == null || string.IsNullOrEmpty(SelectedModelType))
+        if (SelectedModelType == null || string.IsNullOrEmpty(SelectedModelType) || WybranyModel == null)
         {
             Console.WriteLine("❌ SelectedModelType jest puste, nie można kontynuować.");
             return false;
@@ -2387,6 +2461,7 @@
         var wszystkieRegiony = _regionsDualRama.Concat(_regionsSkrzydlo);
         var zawarteRegiony = wszystkieRegiony
             .Where(r =>
+                r.Id != idRegion &&
                 r.Wierzcholki != null &&
                 r.Wierzcholki.Count >= 3 &&
                 r.Wierzcholki.All(p => CzyPunktWNWielokacie(p, regionReferencyjny.Wierzcholki))
@@ -2403,7 +2478,6 @@
         .Distinct(new LiniaComparer())
         .ToList();
 
-
         bool czyRegionZawieraSlupekRuchomy = false;
         bool stronaLewa = false;
         bool stronaPrawa = false;
@@ -2415,12 +2489,19 @@
 
             // Filtrujemy linie typu "Słupek ruchomy"
             var slupkiRuchome = styczneLinie
-                .Where(x => x.TypLiniiDzielacej == "Słupek ruchomy")
+                .Where(x => x.TypLiniiDzielacej == "Słupek ruchomy" && !x.Rama)
+                .Distinct(new LiniaComparer())
                 .ToList();
+
+            // foreach(var slup in slupkiRuchome)
+            // {
+            //     Console.WriteLine($"🟩 Słupek ruchomy: {slup.Id} - Typ: {slup.TypLiniiDzielacej}");
+            // }
 
             if (slupkiRuchome.Any())
             {
                 czyRegionZawieraSlupekRuchomy = true;
+
                 Console.WriteLine($"✅ Region {idRegion} zawiera słupek ruchomy. Ilość słupków: {slupkiRuchome.Count()}");
 
                 if (slupkiRuchome.Count() >= 2)
@@ -2430,7 +2511,7 @@
                     double srodekX2 = slupkiRuchome[1].Wierzcholki[0].X;
                     double srodekX = (srodekX1 + srodekX2) / 2;
 
-                    Console.WriteLine($"📏 klikX={klikX:F2}, srodekX={srodekX:F2}");
+                    Console.WriteLine($"📏📏📏📏 klikX={klikX:F2}, srodekX={srodekX:F2}");
 
                     // Określamy stronę kliknięcia względem środka słupka
                     if (klikX > srodekX)
@@ -2462,40 +2543,12 @@
         }
 
 
-        if (czyRegionZawieraSlupekRuchomy && SelectedModelType != "Rama")
-        {
+        // foreach(var c in wszystkieRegiony)
+        // {
+        //     Console.WriteLine($"foreach ----> 🟩 Region: {c.Id} Typ: {c.TypKsztaltu} TypLiniiDzielacej: {c.TypLiniiDzielacej}");
+        // }
 
-            bool czyZawieraSlupekRuchomyWPowiazanymModelu = _generatory
-                 .Any(state =>
-                     state.Value.MVCKonfModelu != null &&
-                     state.Value.MVCKonfModelu.KonfModele != null &&
-                     state.Value.MVCKonfModelu.KonfModele.Any(ks => ks.Typ == "Skrzydło z słupkiem ruchomym")
-                 );
-
-            Console.WriteLine($"✅✅✅ Region {idRegion} zawiera słupek ruchomy. Kontynuuję generowanie elementów. Model-Typ: {WybranyModel.Typ} czyZawieraSlupekRuchomyWPowiazanymModelu: {czyZawieraSlupekRuchomyWPowiazanymModelu}");
-
-            if (!czyZawieraSlupekRuchomyWPowiazanymModelu)
-            {
-      
-                if (WybranyModel.Typ != "Skrzydło z słupkiem ruchomym")
-                {
-                    await _message.Warning(
-                        "Brak słupka ruchomego w regionie skrzydła. Dodaj wcześniej słupek ruchomy do konstrukcji.",
-                        2.0
-                    );
-                    return false;
-                }
-
-            }
-
-        }
-
-        foreach(var c in wszystkieRegiony)
-        {
-            Console.WriteLine($"🟩 Region: {c.Id} Typ: {c.TypKsztaltu} TypLiniiDzielacej: {c.TypLiniiDzielacej}");
-        }
-
-        var ileRegionWSkrzydleZawieraSlupekRuchomy = wszystkieRegiony.Where(x => x.TypLiniiDzielacej == "Słupek ruchomy").Distinct(new LiniaComparer()).ToList();
+        var ileRegionWSkrzydleZawieraSlupekRuchomy = wszystkieRegiony.Where(x => x.TypLiniiDzielacej == "Słupek ruchomy" && !x.Rama).Distinct(new LiniaComparer()).ToList();
 
         int ileRegionDRZawieraSlupekRuchomy = generator.MVCKonfModelu.KonfModele.Where(x => x.Typ == "Skrzydło z słupkiem ruchomym").Count();
 
@@ -2509,6 +2562,17 @@
                 );
                 return false;
 
+        }
+        else if(ileRegionWSkrzydleZawieraSlupekRuchomy.Count() > 0 && ileRegionDRZawieraSlupekRuchomy == 0 && SelectedModelType != "Rama")
+        {
+            if (WybranyModel.Typ != "Skrzydło z słupkiem ruchomym")
+            {
+                await _message.Warning(
+                    "Brak słupka ruchomego w regionie skrzydła. Dodaj wcześniej słupek ruchomy do konstrukcji.",
+                    2.0
+                );
+                return false;
+            }
         }
 
         double minX = 0;
@@ -3317,44 +3381,44 @@
         };
 
 
-        var wybranyRegionDualRama = _regionsDualRama.FirstOrDefault(r => r.Id == idRegion);
-        var wybranyRegionSkrzydlo = _regionsSkrzydlo.FirstOrDefault(r => r.Id == idRegion);
+       var wybranyRegionDualRama = _regionsDualRama.FirstOrDefault(r => r.Id == idRegion);
+       var wybranyRegionSkrzydlo = _regionsSkrzydlo.FirstOrDefault(r => r.Id == idRegion);
 
         // Sprawdź, czy region skrzydła ma linię dzielącą z ruchomym słupkiem
-        bool czyRegionZawieraSlupekRuchomy = _regionsSkrzydlo?.Any(x => x.TypLiniiDzielacej == "Słupek ruchomy") == true;
+      //  bool czyRegionZawieraSlupekRuchomy = _regionsSkrzydlo?.Any(x => x.TypLiniiDzielacej == "Słupek ruchomy") == true;
 
      //   Console.WriteLine($"✅ czyRegionZawieraSlupekRuchomy: {czyRegionZawieraSlupekRuchomy}");
 
-        if (czyRegionZawieraSlupekRuchomy)
-        {
-            Console.WriteLine($"✅ Region {idRegion} zawiera słupek ruchomy. Kontynuuję generowanie elementów.");
+        // if (czyRegionZawieraSlupekRuchomy)
+        // {
+        //     Console.WriteLine($"✅ Region {idRegion} zawiera słupek ruchomy. Kontynuuję generowanie elementów.");
 
-            // Sprawdź, czy istnieje "Słupek ruchomy" w jakimkolwiek PowiazanymModelu (lista)
-            bool czyZawieraSlupekRuchomyWPowiazanymModelu = StateContainer.States
-                 .Any(state =>
-                     state.Value.MVCKonfModelu != null &&
-                     state.Value.MVCKonfModelu.KonfSystem != null &&
-                     state.Value.MVCKonfModelu.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy")
-                 );
+        //     // Sprawdź, czy istnieje "Słupek ruchomy" w jakimkolwiek PowiazanymModelu (lista)
+        //     bool czyZawieraSlupekRuchomyWPowiazanymModelu = StateContainer.States
+        //          .Any(state =>
+        //              state.Value.MVCKonfModelu != null &&
+        //              state.Value.MVCKonfModelu.KonfSystem != null &&
+        //              state.Value.MVCKonfModelu.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy")
+        //          );
 
 
-            if (!czyZawieraSlupekRuchomyWPowiazanymModelu)
-            {
-                // Sprawdź, czy istnieje "Słupek ruchomy" w pojedynczym PowiazanymModelu (np. generator)
-                bool czySlupekRuchomyWPojedynczymModelu = generator.MVCKonfModelu != null &&
-                    generator.MVCKonfModelu.KonfSystem != null &&
-                    generator.MVCKonfModelu.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy");
+        //     if (!czyZawieraSlupekRuchomyWPowiazanymModelu)
+        //     {
+        //         // Sprawdź, czy istnieje "Słupek ruchomy" w pojedynczym PowiazanymModelu (np. generator)
+        //         bool czySlupekRuchomyWPojedynczymModelu = generator.MVCKonfModelu != null &&
+        //             generator.MVCKonfModelu.KonfSystem != null &&
+        //             generator.MVCKonfModelu.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy");
 
-                if (!czySlupekRuchomyWPojedynczymModelu)
-                {
-                    await _message.Warning(
-                        "Brak słupka ruchomego w regionie skrzydła. Dodaj słupek ruchomy do systemu.",
-                        2.0
-                    );
-                    return;
-                }
-            }
-        }
+        //         if (!czySlupekRuchomyWPojedynczymModelu)
+        //         {
+        //             await _message.Warning(
+        //                 "Brak słupka ruchomego w regionie skrzydła. Dodaj słupek ruchomy do systemu.",
+        //                 2.0
+        //             );
+        //             return;
+        //         }
+        //     }
+        // }
 
         double minX = 0, maxX = 0, minY = 0, maxY = 0;
 
@@ -3658,9 +3722,12 @@
     {
         public double Left { get; set; }
         public double Top { get; set; }
+        public double Right { get; set; }
+        public double Bottom { get; set; }
         public double Width { get; set; }
         public double Height { get; set; }
     }
+
 
     private class PointClassification
     {
