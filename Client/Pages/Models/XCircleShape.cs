@@ -1,33 +1,101 @@
 ﻿using Blazor.Extensions.Canvas.Canvas2D;
-using DocumentFormat.OpenXml.Drawing.Charts;
 using GEORGE.Client.Pages.KonfiguratorOkien;
 using GEORGE.Shared.ViewModels;
 
 namespace GEORGE.Client.Pages.Models
 {
     // 🟢 KLASA KOŁA
+    /// <summary>
+    /// Reprezentuje kształt okręgu z pełną obsługą transformacji
+    /// </summary>
     public class XCircleShape : IShapeDC
     {
-        public double X { get; set; } // Środek okręgu
-        public double Y { get; set; }
-        public double Radius { get; set; }
+        private double _x;
+        private double _y;
+        private double _radius;
+        private double _scaleFactor = 1.0;
+        private List<XPoint> _points = new List<XPoint>();
+
+        public double X
+        {
+            get => _x;
+            set
+            {
+                _x = value;
+                UpdateCirclePoints();
+            }
+        }
+
+        public double Y
+        {
+            get => _y;
+            set
+            {
+                _y = value;
+                UpdateCirclePoints();
+            }
+        }
+
+        public double Radius
+        {
+            get => _radius;
+            set
+            {
+                _radius = value;
+                UpdateCirclePoints();
+            }
+        }
+
         public string NazwaObj { get; set; } = "Okrąg";
 
-        private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
-        public double Szerokosc { get; set; }
-        public double Wysokosc { get; set; }
-
-        public XCircleShape(double x, double y, double radius, double scaleFactor)
+        public double Szerokosc
         {
-            X = x;
-            Y = y;
-            Radius = radius;
-            _scaleFactor = scaleFactor;
+            get => Radius * 2;
+            set => Radius = value / 2;
         }
+
+        public double Wysokosc
+        {
+            get => Radius * 2;
+            set => Radius = value / 2;
+        }
+
+        public List<XPoint> Points
+        {
+            get => _points;
+            set
+            {
+                if (value != null && value.Count >= 2)
+                {
+                    _points = new List<XPoint>(value);
+                    _x = _points[0].X;
+                    _y = _points[0].Y;
+                    _radius = CalculateDistance(_points[0], _points[1]);
+                    UpdateCirclePoints();
+                }
+            }
+        }
+
+        public XCircleShape() { }
+
+        public XCircleShape(double x, double y, double radius, double scaleFactor = 1.0)
+        {
+            _x = x;
+            _y = y;
+            _radius = radius;
+            _scaleFactor = scaleFactor;
+            UpdateCirclePoints();
+        }
+
+        public List<XPoint> GetPoints() => new List<XPoint>(_points);
 
         public IShapeDC Clone()
         {
-            return new XCircleShape(X, Y, Radius, _scaleFactor);
+            return new XCircleShape(X, Y, Radius, _scaleFactor)
+            {
+                NazwaObj = this.NazwaObj,
+                Points = this._points.Select(p => new XPoint(p.X, p.Y)).ToList()
+            };
         }
 
         public async Task Draw(Canvas2DContext ctx)
@@ -44,12 +112,14 @@ namespace GEORGE.Client.Pages.Models
     {
         new EditableProperty("X", () => X, v => X = v, NazwaObj, true),
         new EditableProperty("Y", () => Y, v => Y = v, NazwaObj, true),
-        new EditableProperty("Promień", () => Radius, v => Radius = v, NazwaObj)
+        new EditableProperty("Promień", () => Radius, v => Radius = v, NazwaObj),
+        new EditableProperty("Skala", () => _scaleFactor, v => _scaleFactor = v, NazwaObj)
     };
 
         public void Scale(double factor)
         {
             Radius *= factor;
+            _scaleFactor *= factor;
         }
 
         public void Move(double offsetX, double offsetY)
@@ -60,7 +130,13 @@ namespace GEORGE.Client.Pages.Models
 
         public BoundingBox GetBoundingBox()
         {
-            return new BoundingBox(X - Radius, Y - Radius, Radius * 2, Radius * 2, "Okrąg");
+            return new BoundingBox(
+                X - Radius,
+                Y - Radius,
+                Radius * 2,
+                Radius * 2,
+                NazwaObj
+            );
         }
 
         public void Transform(double scale, double offsetX, double offsetY)
@@ -68,24 +144,39 @@ namespace GEORGE.Client.Pages.Models
             X = (X * scale) + offsetX;
             Y = (Y * scale) + offsetY;
             Radius *= scale;
+            _scaleFactor *= scale;
         }
 
         public void Transform(double scaleX, double scaleY, double offsetX, double offsetY)
         {
             X = (X * scaleX) + offsetX;
             Y = (Y * scaleY) + offsetY;
-
-            // Jeśli skalowanie jest niesymetryczne, wybierz średnią lub mniejszą wartość
-            double scaleForRadius = Math.Min(scaleX, scaleY);
-            Radius *= scaleForRadius;
+            double avgScale = (scaleX + scaleY) / 2;
+            Radius *= avgScale;
+            _scaleFactor *= avgScale;
         }
 
-        /// <summary>
-        /// Przybliża okrąg jako wielokąt o podanej liczbie segmentów.
-        /// </summary>
-        public List<XPoint> GetVertices(int segments = 32)
+        public void UpdatePoints(List<XPoint> newPoints)
+        {
+            if (newPoints != null && newPoints.Count >= 2)
+            {
+                _points = new List<XPoint>(newPoints);
+                X = _points[0].X;
+                Y = _points[0].Y;
+                Radius = CalculateDistance(_points[0], _points[1]);
+            }
+        }
+
+        private void UpdateCirclePoints()
+        {
+            _points = GenerateCirclePoints(32);
+        }
+
+        private List<XPoint> GenerateCirclePoints(int segments = 32)
         {
             var points = new List<XPoint>();
+
+            points.Add(new XPoint(X, Y));
 
             for (int i = 0; i < segments; i++)
             {
@@ -98,6 +189,12 @@ namespace GEORGE.Client.Pages.Models
 
             return points;
         }
-    }
 
+        private double CalculateDistance(XPoint p1, XPoint p2)
+        {
+            double dx = p2.X - p1.X;
+            double dy = p2.Y - p1.Y;
+            return Math.Sqrt(dx * dx + dy * dy);
+        }
+    }
 }

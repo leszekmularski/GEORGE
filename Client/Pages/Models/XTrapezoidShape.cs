@@ -18,7 +18,8 @@ namespace GEORGE.Client.Pages.Models
         private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
         public double Szerokosc { get; set; }
         public double Wysokosc { get; set; }
-
+        public List<XPoint> Points { get; set; }
+        public List<XPoint> GetPoints() => Points;
         // Konstruktor przyjmujący współrzędne i współczynnik szerokości góry
         public XTrapezoidShape(double startX, double startY, double endX, double endY, double topWidthFactor, double scaleFactor, int typ)
         {
@@ -29,6 +30,97 @@ namespace GEORGE.Client.Pages.Models
             TopWidth = Math.Min(BaseWidth, BaseWidth * topWidthFactor);  // Oblicz szerokość góry trapezu
             _scaleFactor = scaleFactor;
             Typ = typ;
+        }
+
+        public void UpdatePoints(List<XPoint> newPoints)
+        {
+            if (newPoints == null || newPoints.Count < 4)
+                return;
+
+            Points = newPoints;
+
+            // Dla każdego typu trapezu inaczej interpretujemy punkty
+            switch (Typ)
+            {
+                case 0: // Standardowy trapez (góra węższa, centrowana)
+                    UpdateStandardTrapezoid(Points);
+                    break;
+
+                case 1: // Trapez z lewą pionową ścianą
+                    UpdateLeftVerticalTrapezoid(Points);
+                    break;
+
+                case 2: // Trapez z prawą pionową ścianą
+                    UpdateRightVerticalTrapezoid(Points);
+                    break;
+
+                default:
+                    UpdateStandardTrapezoid(Points); // Domyślnie standardowy trapez
+                    break;
+            }
+
+            // Aktualizacja wymiarów
+            Szerokosc = BaseWidth;
+            Wysokosc = Height;
+        }
+
+        // Metody pomocnicze dla każdego typu trapezu
+        private void UpdateStandardTrapezoid(List<XPoint> points)
+        {
+            // Punkty powinny być w kolejności: lewy górny, prawy górny, prawy dolny, lewy dolny
+            X = points[3].X; // Lewy dolny X
+            Y = points[0].Y; // Górna krawędź Y
+
+            BaseWidth = points[2].X - points[3].X; // Szerokość podstawy
+            TopWidth = points[1].X - points[0].X;  // Szerokość góry
+            Height = points[2].Y - points[0].Y;    // Wysokość
+
+            // Sprawdzenie spójności
+            if (Math.Abs(points[0].Y - points[1].Y) > 0.1 ||
+                Math.Abs(points[2].Y - points[3].Y) > 0.1)
+            {
+                // Jeśli górna lub dolna krawędź nie jest pozioma, dostosowujemy Y
+                Y = Math.Min(points[0].Y, points[1].Y);
+                double baseY = Math.Max(points[2].Y, points[3].Y);
+                Height = baseY - Y;
+            }
+        }
+
+        private void UpdateLeftVerticalTrapezoid(List<XPoint> points)
+        {
+            // Punkty w kolejności: lewy górny, prawy górny, prawy dolny, lewy dolny
+            X = points[0].X; // Lewa pionowa ściana X
+            Y = points[0].Y; // Górna krawędź Y
+
+            BaseWidth = points[2].X - points[3].X; // Szerokość podstawy
+            TopWidth = points[1].X - points[0].X;  // Szerokość góry
+            Height = points[2].Y - points[0].Y;    // Wysokość
+
+            // Weryfikacja pionowej lewej ściany
+            if (Math.Abs(points[0].X - points[3].X) > 0.1)
+            {
+                // Jeśli lewa ściana nie jest pionowa, korygujemy
+                X = (points[0].X + points[3].X) / 2;
+            }
+        }
+
+        private void UpdateRightVerticalTrapezoid(List<XPoint> points)
+        {
+            // Punkty w kolejności: lewy górny, prawy górny, prawy dolny, lewy dolny
+            X = points[3].X; // Lewy dolny X (podstawa)
+            Y = points[0].Y; // Górna krawędź Y
+
+            BaseWidth = points[2].X - points[3].X; // Szerokość podstawy
+            TopWidth = points[1].X - points[0].X;  // Szerokość góry
+            Height = points[2].Y - points[0].Y;    // Wysokość
+
+            // Weryfikacja pionowej prawej ściany
+            if (Math.Abs(points[1].X - points[2].X) > 0.1)
+            {
+                // Jeśli prawa ściana nie jest pionowa, korygujemy
+                double rightX = (points[1].X + points[2].X) / 2;
+                BaseWidth = rightX - X;
+            }
         }
         public IShapeDC Clone()
         {

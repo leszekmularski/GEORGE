@@ -21,7 +21,8 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         private double _scaleFactor = 1.0; // Skala
         public double Szerokosc { get; set; }
         public double Wysokosc { get; set; }
-
+        public List<XPoint> Points { get; set; }
+        public List<XPoint> GetPoints() => Points;
         public XTriangleShape(double startX, double startY, double endX, double endY, double scaleFactor)
         {
             BaseX1 = Math.Min(startX, endX);
@@ -29,6 +30,46 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             BaseWidth = Math.Abs(endX - startX);
             Height = Math.Abs(startY - endY);
             _scaleFactor = scaleFactor;
+        }
+        public void UpdatePoints(List<XPoint> newPoints)
+        {
+            if (newPoints == null || newPoints.Count < 3)
+                return;
+
+            Points = newPoints;
+
+            // Zakładamy, że punkty są w kolejności: wierzchołek, prawy dolny, lewy dolny
+            XPoint apex = Points[0];       // Wierzchołek trójkąta
+            XPoint rightBase = Points[1];  // Prawy dolny punkt podstawy
+            XPoint leftBase = Points[2];   // Lewy dolny punkt podstawy
+
+            // Aktualizacja właściwości trójkąta
+            BaseX1 = leftBase.X;
+            BaseY = leftBase.Y; // Zakładamy, że oba dolne punkty mają to samo Y
+            BaseWidth = rightBase.X - leftBase.X;
+            Height = Math.Abs(apex.Y - BaseY);
+
+            // Aktualizacja wymiarów
+            Szerokosc = BaseWidth;
+            Wysokosc = Height;
+
+            // Sprawdzenie spójności punktów (czy podstawy są na tej samej wysokości)
+            if (Math.Abs(rightBase.Y - leftBase.Y) > 0.1)
+            {
+                // Jeśli punkty podstawy nie są na tej samej wysokości, dostosowujemy Y
+                BaseY = (rightBase.Y + leftBase.Y) / 2;
+            }
+
+            // Obliczenie środka podstawy dla weryfikacji
+            double baseCenterX = leftBase.X + BaseWidth / 2;
+
+            // Jeśli wierzchołek nie jest wycentrowany, możemy dostosować BaseX1
+            if (Math.Abs(apex.X - baseCenterX) > 0.1)
+            {
+                // Przesuwamy cały trójkąt, aby wycentrować wierzchołek
+                double offset = apex.X - baseCenterX;
+                BaseX1 += offset;
+            }
         }
 
         public IShapeDC Clone()
@@ -157,4 +198,5 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         }
 
     }
+
 }

@@ -16,7 +16,8 @@ namespace GEORGE.Client.Pages.Models
         public string NazwaObj { get; set; } = "Prostokąt z zaokr. naroż.";
         public double Szerokosc { get; set; }
         public double Wysokosc { get; set; }
-
+        public List<XPoint> Points { get; set; }
+        public List<XPoint> GetPoints() => Points;
         public XRoundedTopRectangleShape(double x, double y, double width, double height, double radius, double scaleFactor)
         {
             X = x;
@@ -25,6 +26,45 @@ namespace GEORGE.Client.Pages.Models
             Height = height;
             Radius = radius;
             _scaleFactor = scaleFactor;
+        }
+
+        public void UpdatePoints(List<XPoint> newPoints)
+        {
+            if (newPoints == null || newPoints.Count < 3)
+                return;
+
+            Points = newPoints;
+
+            // Punkt 0: lewy dolny
+            // Punkt 1: prawy dolny
+            // Punkt 2: punkt kontrolny łuku (najwyższy punkt)
+            X = Points[0].X;
+            double bottomY = Points[0].Y;
+            Width = Points[1].X - Points[0].X;
+
+            // Obliczamy wysokość jako różnicę między dolnym Y a punktem kontrolnym łuku
+            Height = bottomY - Points[2].Y;
+
+            // Obliczamy promień na podstawie pozycji punktu kontrolnego
+            double centerX = X + Width / 2;
+            double radius = Math.Abs(Points[2].X - centerX);
+
+            // Ograniczamy promień do maksymalnej możliwej wartości
+            double maxRadius = Math.Min(Width / 2, Height);
+            Radius = Math.Min(radius, maxRadius);
+
+            // Aktualizacja Y na podstawie najniższego punktu
+            Y = Points[2].Y - Radius;
+
+            // Aktualizacja wymiarów
+            Szerokosc = Width;
+            Wysokosc = Height;
+
+            // Jeśli mamy więcej punktów, możemy je wykorzystać do precyzyjniejszego ustawienia łuku
+            if (Points.Count > 3)
+            {
+                // Można dodać logikę dla dodatkowych punktów kontrolnych łuku
+            }
         }
         public IShapeDC Clone()
         {

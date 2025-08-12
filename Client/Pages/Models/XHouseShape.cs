@@ -12,13 +12,14 @@ namespace GEORGE.Client.Pages.Models
         public double Height { get; set; }
         public double HeightLeft { get; set; }
         public double HeightRight { get; set; }
-
         private double _scaleFactor;
         public string NazwaObj { get; set; } = "Domek";
-        public double Szerokosc { get; set; }
-        public double Wysokosc { get; set; }
+        public double Szerokosc { get => Width; set => Width = value; }
+        public double Wysokosc { get => Height; set => Height = value; }
+        public List<XPoint> Points { get; set; } = new List<XPoint>();
 
-        public XHouseShape(double x, double y, double width, double height, double heightLeft, double heightRight, double scaleFactor)
+        public XHouseShape(double x, double y, double width, double height,
+                          double heightLeft, double heightRight, double scaleFactor)
         {
             X = x;
             Y = y;
@@ -27,12 +28,48 @@ namespace GEORGE.Client.Pages.Models
             HeightLeft = heightLeft;
             HeightRight = heightRight;
             _scaleFactor = scaleFactor;
+            UpdatePoints();
         }
+
+        public void UpdatePoints(List<XPoint> newPoints = null)
+        {
+            if (newPoints != null && newPoints.Count >= 5)
+            {
+                // Aktualizuj właściwości na podstawie nowych punktów
+                X = newPoints[0].X;
+                Y = newPoints.Min(p => p.Y); // Najniższy punkt (szczyt dachu)
+
+                double minX = newPoints.Min(p => p.X);
+                double maxX = newPoints.Max(p => p.X);
+                Width = maxX - minX;
+
+                double maxY = newPoints.Max(p => p.Y);
+                Height = maxY - Y;
+
+                // Oblicz wysokości boków
+                HeightLeft = newPoints[3].Y - newPoints[0].Y;
+                HeightRight = newPoints[2].Y - newPoints[1].Y;
+            }
+
+            // Generuj punkty na podstawie aktualnych właściwości
+            var (roof, house) = GetVertices();
+            Points.Clear();
+            Points.AddRange(roof);
+            Points.AddRange(house);
+        }
+
+        public List<XPoint> GetPoints() => new List<XPoint>(Points);
 
         public IShapeDC Clone()
         {
-            return new XHouseShape(X, Y, Width, Height, HeightLeft, HeightRight, _scaleFactor);
+            return new XHouseShape(X, Y, Width, Height, HeightLeft, HeightRight, _scaleFactor)
+            {
+                NazwaObj = this.NazwaObj,
+                Points = this.Points.Select(p => new XPoint(p.X, p.Y)).ToList()
+            };
         }
+
+        // ... (pozostałe metody pozostają bez zmian - Draw, GetBoundingBox, itd.) ...
 
         public List<XPoint> GetFullOutline()
         {

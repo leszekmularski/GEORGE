@@ -16,7 +16,18 @@ namespace GEORGE.Client.Pages.Models
         private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
         public double Szerokosc { get; set; }
         public double Wysokosc { get; set; }
-
+        public List<XPoint> Points { get; set; }
+        public List<XPoint> GetPoints() => Points;
+        public void UpdatePoints(List<XPoint> newPoints)
+        {
+            Points = newPoints;
+            // Aktualizuj wymiary na podstawie punktów
+            if (Points.Count >= 2)
+            {
+                Szerokosc = Math.Abs(Points[1].X - Points[0].X);
+                Wysokosc = Math.Abs(Points[1].Y - Points[0].Y);
+            }
+        }
         public XRectangleShape(double x, double y, double width, double height, double scaleFactor)
         {
             X = x;

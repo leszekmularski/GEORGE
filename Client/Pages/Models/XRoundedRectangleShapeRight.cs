@@ -16,7 +16,8 @@ namespace GEORGE.Client.Pages.Models
         private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
         public double Szerokosc { get; set; }
         public double Wysokosc { get; set; }
-
+        public List<XPoint> Points { get; set; }
+        public List<XPoint> GetPoints() => Points;
         public XRoundedRectangleShapeRight(double x, double y, double width, double height, double radius, double scaleFactor)
         {
             X = x;
@@ -25,6 +26,94 @@ namespace GEORGE.Client.Pages.Models
             Height = height;
             Radius = radius;
             _scaleFactor = scaleFactor;
+        }
+
+        public void UpdatePoints(List<XPoint> newPoints)
+        {
+            if (newPoints == null || newPoints.Count < 2)
+                return;
+
+            Points = newPoints;
+
+            // Oblicz bounding box na podstawie wszystkich punktów
+            double minX = Points.Min(p => p.X);
+            double maxX = Points.Max(p => p.X);
+            double minY = Points.Min(p => p.Y);
+            double maxY = Points.Max(p => p.Y);
+
+            X = minX;
+            Y = minY;
+            Width = maxX - minX;
+            Height = maxY - minY;
+            Szerokosc = Width;
+            Wysokosc = Height;
+
+            // Punkt narożnika który będzie zaokrąglony (prawy górny)
+            XPoint cornerPoint = new XPoint(X + Width, Y);
+
+            // Domyślny promień (1/4 mniejszego wymiaru)
+            double maxPossibleRadius = Math.Min(Width, Height);
+            Radius = Math.Min(maxPossibleRadius / 4, 50);
+
+            // Analiza punktów kontrolnych łuku
+            if (Points.Count >= 3)
+            {
+                // Punkt 2 - główny punkt kontrolny łuku
+                XPoint controlPoint = Points[2];
+
+                // Oblicz promień na podstawie odległości od narożnika
+                double dx = controlPoint.X - cornerPoint.X;
+                double dy = controlPoint.Y - cornerPoint.Y;
+                Radius = Math.Min(Math.Sqrt(dx * dx + dy * dy), maxPossibleRadius);
+
+                // Jeśli mamy więcej punktów, możemy precyzyjniej określić kształt łuku
+                if (Points.Count >= 5)
+                {
+                    // Punkt 3 - punkt styczności łuku z górną krawędzią
+                    // Punkt 4 - punkt styczności łuku z prawą krawędzią
+
+                    // Weryfikacja czy punkty są w odpowiednich pozycjach
+                    bool validTangentPoints =
+                        Math.Abs(Points[3].Y - Y) < 0.1 &&  // Punkt na górnej krawędzi
+                        Math.Abs(Points[4].X - (X + Width)) < 0.1; // Punkt na prawej krawędzi
+
+                    if (validTangentPoints)
+                    {
+                        // Oblicz promień na podstawie punktów styczności
+                        double radiusFromTop = (X + Width) - Points[3].X;
+                        double radiusFromRight = Points[4].Y - Y;
+
+                        // Uśredniony promień z obu punktów styczności
+                        Radius = Math.Min((radiusFromTop + radiusFromRight) / 2, maxPossibleRadius);
+                    }
+                }
+
+                // Jeśli mamy pełną definicję łuku (7 punktów - krzywa Béziera)
+                if (Points.Count == 7)
+                {
+                    // Punkty 5 i 6 to punkty kontrolne krzywej Béziera
+                    // Możemy dokładniej obliczyć promień na podstawie krzywej
+                    XPoint startPoint = Points[3]; // Punkt styczny górny
+                    XPoint endPoint = Points[4];   // Punkt styczny prawy
+                    XPoint control1 = Points[5];
+                    XPoint control2 = Points[6];
+
+                    // Oblicz przybliżony promień jako średnią odległości punktów kontrolnych od narożnika
+                    double dist1 = CalculateDistance(control1, cornerPoint);
+                    double dist2 = CalculateDistance(control2, cornerPoint);
+                    Radius = Math.Min((dist1 + dist2) / 2, maxPossibleRadius);
+                }
+            }
+
+            // Minimalny promień 2px dla czytelności
+            Radius = Math.Max(Radius, 2);
+        }
+
+        private double CalculateDistance(XPoint p1, XPoint p2)
+        {
+            double dx = p2.X - p1.X;
+            double dy = p2.Y - p1.Y;
+            return Math.Sqrt(dx * dx + dy * dy);
         }
         public IShapeDC Clone()
         {

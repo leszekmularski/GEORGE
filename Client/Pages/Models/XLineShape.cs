@@ -1,5 +1,6 @@
 ﻿using Blazor.Extensions.Canvas.Canvas2D;
 using GEORGE.Client.Pages.KonfiguratorOkien;
+using GEORGE.Shared.ViewModels;
 
 namespace GEORGE.Client.Pages.Models
 {
@@ -19,6 +20,8 @@ namespace GEORGE.Client.Pages.Models
         public double Szerokosc { get; set; }
         public double Wysokosc { get; set; }
         public bool GenerowaneZRamy { get; set; } = false; // Flaga do generowania z ramy
+        public List<XPoint> Points { get; set; }
+        public List<XPoint> GetPoints() => Points;
 
         public XLineShape(double x1, double y1, double x2, double y2, double scaleFactor, string nazwaObj, bool ruchomySlupek = false, bool pionPoziom = false, 
             bool dualRama = false, bool generowaneZRamy = false)
@@ -48,6 +51,42 @@ namespace GEORGE.Client.Pages.Models
                 else
                 {
                     X2 = X1;
+                }
+            }
+        }
+        public void UpdatePoints(List<XPoint> newPoints)
+        {
+            if (newPoints == null || newPoints.Count < 2)
+                return;
+
+            Points = newPoints;
+
+            // Aktualizujemy współrzędne linii na podstawie punktów
+            X1 = Points[0].X;
+            Y1 = Points[0].Y;
+            X2 = Points[1].X;
+            Y2 = Points[1].Y;
+
+            // Obliczamy szerokość i wysokość
+            Szerokosc = Math.Abs(X2 - X1);
+            Wysokosc = Math.Abs(Y2 - Y1);
+
+            // Wymuszamy pionową linię jeśli RuchomySlupek jest aktywny
+            if (RuchomySlupek)
+            {
+                X2 = X1;
+            }
+
+            // Wymuszamy linię pionową lub poziomą jeśli PionPoziom jest aktywny
+            if (PionPoziom)
+            {
+                if (X1 != X2)
+                {
+                    Y2 = Y1; // Linia pozioma
+                }
+                else
+                {
+                    X2 = X1; // Linia pionowa
                 }
             }
         }

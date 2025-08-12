@@ -16,7 +16,8 @@ namespace GEORGE.Client.Pages.Models
         private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
         public double Szerokosc { get; set; }
         public double Wysokosc { get; set; }
-
+        public List<XPoint> Points { get; set; }
+        public List<XPoint> GetPoints() => Points;
         public XRoundedRectangleShape(double x, double y, double width, double height, double radius, double scaleFactor)
         {
             X = x;
@@ -26,6 +27,64 @@ namespace GEORGE.Client.Pages.Models
             Radius = radius;
             _scaleFactor = scaleFactor;
         }
+
+        public void UpdatePoints(List<XPoint> newPoints)
+        {
+            if (newPoints == null || newPoints.Count < 2)
+                return;
+
+            Points = newPoints;
+
+            // Aktualizacja podstawowych wymiarów prostokąta
+            X = Math.Min(Points[0].X, Points[1].X);
+            Y = Math.Min(Points[0].Y, Points[1].Y);
+            double right = Math.Max(Points[0].X, Points[1].X);
+            double bottom = Math.Max(Points[0].Y, Points[1].Y);
+
+            Width = right - X;
+            Height = bottom - Y;
+            Szerokosc = Width;
+            Wysokosc = Height;
+
+            // Obliczanie promienia na podstawie punktów
+            if (Points.Count >= 4)
+            {
+                // Punkt 2 - prawy górny (początek łuku)
+                // Punkt 3 - punkt kontrolny łuku (najbardziej wysunięty)
+                double arcStartX = Points[2].X;
+                double arcControlY = Points[3].Y;
+
+                // Oblicz promień jako różnicę między Y punktu startowego a Y punktu kontrolnego
+                double calculatedRadius = Math.Abs(arcControlY - Points[2].Y);
+
+                // Ogranicz promień do maksymalnej możliwej wartości
+                double maxPossibleRadius = Math.Min(Width, Height) / 2;
+                Radius = Math.Min(calculatedRadius, maxPossibleRadius);
+            }
+            else if (Points.Count == 3)
+            {
+                // Jeśli mamy 3 punkty, trzeci może określać promień
+                // Oblicz odległość od narożnika do punktu określającego promień
+                double cornerX = X + Width;
+                double cornerY = Y;
+                double dx = Points[2].X - cornerX;
+                double dy = Points[2].Y - cornerY;
+                double calculatedRadius = Math.Sqrt(dx * dx + dy * dy);
+
+                double maxPossibleRadius = Math.Min(Width, Height) / 2;
+                Radius = Math.Min(calculatedRadius, maxPossibleRadius);
+            }
+            else
+            {
+                // Domyślne obliczenie promienia gdy brak dodatkowych punktów
+                double maxPossibleRadius = Math.Min(Width, Height) / 2;
+                Radius = Math.Min(maxPossibleRadius / 4, 50); // 1/4 mniejszego wymiaru, max 50
+            }
+
+            // Dodatkowe zabezpieczenie przed zbyt małym promieniem
+            if (Radius < 2) Radius = 2;
+        }
+
         public IShapeDC Clone()
         {
             return new XRoundedRectangleShape(X, Y, Width, Height, Radius, _scaleFactor);
