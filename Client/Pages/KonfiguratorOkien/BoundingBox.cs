@@ -34,13 +34,24 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         public bool Contains(double pointX, double pointY) =>
             pointX >= X && pointX <= X + Width &&
             pointY >= Y && pointY <= Y + Height;
-    }
 
-    //public struct PointDC
-    //{
-    //    public double X { get; set; }
-    //    public double Y { get; set; }
-    //    public PointDC(double x, double y) { X = x; Y = y; }
-    //}
+        public static BoundingBox Union(BoundingBox b1, BoundingBox b2)
+        {
+            double minX = Math.Min(b1.X, b2.X);
+            double minY = Math.Min(b1.Y, b2.Y);
+            double maxX = Math.Max(b1.X + b1.Width, b2.X + b2.Width);
+            double maxY = Math.Max(b1.Y + b1.Height, b2.Y + b2.Height);
+
+            return new BoundingBox(
+                minX,
+                minY,
+                maxX - minX,
+                maxY - minY,
+                $"{b1.NazwaObiektu}+{b2.NazwaObiektu}"
+            );
+        }
+
+
+    }
 
 }

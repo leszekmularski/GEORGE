@@ -182,6 +182,62 @@ namespace GEORGE.Client.Pages.Utils
             return regions;
         }
 
+    public static List<ShapeRegion> SkalujSkrzydlaDoRamy(
+    List<ShapeRegion> stareSkrzydla,
+    List<ShapeRegion> rama,
+    int nowaSzerokosc,
+    int nowaWysokosc)
+        {
+            if (stareSkrzydla == null || !stareSkrzydla.Any() ||
+                rama == null || !rama.Any())
+                return new List<ShapeRegion>();
+
+            // Wyznacz bounding box ramy
+            double minXRama = rama.Min(r => r.Wierzcholki.Min(p => p.X));
+            double minYRama = rama.Min(r => r.Wierzcholki.Min(p => p.Y));
+            double maxXRama = rama.Max(r => r.Wierzcholki.Max(p => p.X));
+            double maxYRama = rama.Max(r => r.Wierzcholki.Max(p => p.Y));
+
+            double szerRamy = maxXRama - minXRama;
+            double wysRamy = maxYRama - minYRama;
+
+            // Wyznacz bounding box skrzydeł
+            double minXSkrzydla = stareSkrzydla.Min(r => r.Wierzcholki.Min(p => p.X));
+            double minYSkrzydla = stareSkrzydla.Min(r => r.Wierzcholki.Min(p => p.Y));
+            double maxXSkrzydla = stareSkrzydla.Max(r => r.Wierzcholki.Max(p => p.X));
+            double maxYSkrzydla = stareSkrzydla.Max(r => r.Wierzcholki.Max(p => p.Y));
+
+            double szerSkrzydel = maxXSkrzydla - minXSkrzydla;
+            double wysSkrzydel = maxYSkrzydla - minYSkrzydla;
+
+            // Skala względem ramy
+            double scaleX = szerRamy / szerSkrzydel;
+            double scaleY = wysRamy / wysSkrzydel;
+
+            // Skaluj każde skrzydło
+            var noweSkrzydla = new List<ShapeRegion>();
+            foreach (var skrzydlo in stareSkrzydla)
+            {
+                var noweWierzcholki = skrzydlo.Wierzcholki
+                    .Select(p => new XPoint(
+                        minXRama + (p.X - minXSkrzydla) * scaleX,
+                        minYRama + (p.Y - minYSkrzydla) * scaleY
+                    ))
+                    .ToList();
+
+                noweSkrzydla.Add(new ShapeRegion
+                {
+                    Id = skrzydlo.Id,
+                    TypKsztaltu = skrzydlo.TypKsztaltu,
+                    TypLiniiDzielacej = skrzydlo.TypLiniiDzielacej,
+                    Wierzcholki = noweWierzcholki
+                });
+            }
+
+            return noweSkrzydla;
+        }
+
+
         public static List<ShapeRegion> SkalujRegiony(
         List<ShapeRegion> stareRegiony,
         int nowaSzerokosc,
@@ -226,7 +282,156 @@ namespace GEORGE.Client.Pages.Utils
 
             return noweRegiony;
         }
+        // --- helper: głęboka kopia regionu
+        public static ShapeRegion CloneRegion(ShapeRegion src, double _currentScale = 1)
+        {
+            if (src == null) return null!;
+            return new ShapeRegion
+            {
+                Id = src.Id,
+                IdMaster = src.IdMaster,
+                IdRegionuPonizej = src.IdRegionuPonizej,
+                TypKsztaltu = src.TypKsztaltu,
+                TypLiniiDzielacej = src.TypLiniiDzielacej,
+                Rama = src.Rama,
+                LinieDzielace = src.LinieDzielace?.Select(l =>
+                    new XLineShape(
+                        l.X1,
+                        l.Y1,
+                        l.X2,
+                        l.Y2,
+                        _currentScale,     // zakładam, że masz publiczny getter na _scaleFactor
+                        l.NazwaObj,
+                        l.RuchomySlupek,
+                        l.PionPoziom,
+                        l.DualRama,
+                        l.GenerowaneZRamy
+                    )
+                ).ToList() ?? new List<XLineShape>(),
+                Wierzcholki = src.Wierzcholki?
+                    .Select(p => new XPoint { X = p.X, Y = p.Y })
+                    .ToList() ?? new List<XPoint>()
+            };
+        }
 
+        // --- skalowanie skrzydeł względem ramy przed/po
+        public static List<ShapeRegion> SkalujSkrzydlaDoRamy(
+            List<ShapeRegion> skrzydla,
+            ShapeRegion ramaBefore,
+            ShapeRegion ramaAfter)
+        {
+            if (skrzydla == null || !skrzydla.Any() || ramaBefore == null || ramaAfter == null)
+                return skrzydla ?? new List<ShapeRegion>();
+
+            // bounding box ramy przed
+            double minXOld = ramaBefore.Wierzcholki.Min(p => p.X);
+            double minYOld = ramaBefore.Wierzcholki.Min(p => p.Y);
+            double maxXOld = ramaBefore.Wierzcholki.Max(p => p.X);
+            double maxYOld = ramaBefore.Wierzcholki.Max(p => p.Y);
+            double oldWidth = maxXOld - minXOld;
+            double oldHeight = maxYOld - minYOld;
+            if (oldWidth == 0 || oldHeight == 0)
+                return skrzydla;
+
+            // bounding box ramy po
+            double minXNew = ramaAfter.Wierzcholki.Min(p => p.X);
+            double minYNew = ramaAfter.Wierzcholki.Min(p => p.Y);
+            double maxXNew = ramaAfter.Wierzcholki.Max(p => p.X);
+            double maxYNew = ramaAfter.Wierzcholki.Max(p => p.Y);
+            double newWidth = maxXNew - minXNew;
+            double newHeight = maxYNew - minYNew;
+            if (newWidth == 0 || newHeight == 0)
+                return skrzydla;
+
+            double scaleX = newWidth / oldWidth;
+            double scaleY = newHeight / oldHeight;
+
+            var wynik = new List<ShapeRegion>(skrzydla.Count);
+            foreach (var s in skrzydla)
+            {
+                var kopia = CloneRegion(s);
+
+                // dla każdego punktu: przenieś względnie do ramy przed i przeskaluj do ramy po, następnie wypośrodkuj do nowej pozycji
+                for (int i = 0; i < kopia.Wierzcholki.Count; i++)
+                {
+                    var p = kopia.Wierzcholki[i];
+                    double relX = (p.X - minXOld); // odległość od lewej krawędzi ramy przed
+                    double relY = (p.Y - minYOld); // od górnej krawędzi ramy przed
+
+                    double newX = minXNew + relX * scaleX;
+                    double newY = minYNew + relY * scaleY;
+
+                    kopia.Wierzcholki[i] = new XPoint { X = newX, Y = newY };
+                }
+
+                // skaluj też linie dzielące wewnątrz skrzydła
+                if (kopia.LinieDzielace != null)
+                {
+                    foreach (var lin in kopia.LinieDzielace)
+                    {
+                        if (lin.Points == null) continue;
+                        for (int j = 0; j < lin.Points.Count; j++)
+                        {
+                            var q = lin.Points[j];
+                            double relX = (q.X - minXOld);
+                            double relY = (q.Y - minYOld);
+                            double newX = minXNew + relX * scaleX;
+                            double newY = minYNew + relY * scaleY;
+                            lin.Points[j] = new XPoint { X = newX, Y = newY };
+                        }
+                    }
+                }
+
+                wynik.Add(kopia);
+            }
+
+            return wynik;
+        }
+
+        public static List<ShapeRegion> SkalujRegionyIndywidualnie(
+    List<ShapeRegion> stareRegiony,
+    int nowaSzerokosc,
+    int nowaWysokosc)
+        {
+            if (stareRegiony == null || !stareRegiony.Any())
+                return new List<ShapeRegion>();
+
+            var noweRegiony = new List<ShapeRegion>();
+
+            foreach (var region in stareRegiony)
+            {
+                // Bounding box dla pojedynczego regionu
+                double minX = region.Wierzcholki.Min(p => p.X);
+                double minY = region.Wierzcholki.Min(p => p.Y);
+                double maxX = region.Wierzcholki.Max(p => p.X);
+                double maxY = region.Wierzcholki.Max(p => p.Y);
+
+                double originalWidth = maxX - minX;
+                double originalHeight = maxY - minY;
+
+                if (originalWidth == 0 || originalHeight == 0)
+                    continue;
+
+                double scaleX = nowaSzerokosc / originalWidth;
+                double scaleY = nowaWysokosc / originalHeight;
+
+                var noweWierzcholki = region.Wierzcholki
+                    .Select(p => new XPoint(
+                        (p.X - minX) * scaleX,
+                        (p.Y - minY) * scaleY))
+                    .ToList();
+
+                noweRegiony.Add(new ShapeRegion
+                {
+                    Id = region.Id,
+                    TypKsztaltu = region.TypKsztaltu,
+                    TypLiniiDzielacej = region.TypLiniiDzielacej,
+                    Wierzcholki = noweWierzcholki
+                });
+            }
+
+            return noweRegiony;
+        }
 
         private static bool CzyProstokat(List<XPoint> punkty)
         {
@@ -461,4 +666,5 @@ namespace GEORGE.Client.Pages.Utils
 
 
     }
+
 }

@@ -1626,31 +1626,31 @@
         await _context.RestoreAsync();
     }
 
-   private async Task ClearCanvas()
-   {
-    if (_context == null || !await JS.InvokeAsync<bool>("isCanvasValid"))
+    private async Task ClearCanvas()
     {
-        Console.WriteLine("❌ Brak kontekstu canvas (invalid or disposed)");
-        return;
-    }
+        if (_context == null || !await JS.InvokeAsync<bool>("isCanvasValid"))
+        {
+            Console.WriteLine("❌ Brak kontekstu canvas (invalid or disposed)");
+            return;
+        }
 
-    try
-    {
-        // Reset transformacji, aby czyścić w skali 1:1
-        await _context.SetTransformAsync(1, 0, 0, 1, 0, 0);
+        try
+        {
+            // Reset transformacji, aby czyścić w skali 1:1
+            await _context.SetTransformAsync(1, 0, 0, 1, 0, 0);
 
-        // Wyczyść cały canvas
-        await _context.ClearRectAsync(0, 0, CanvasWidth, CanvasHeight);
+            // Wyczyść cały canvas
+            await _context.ClearRectAsync(0, 0, CanvasWidth, CanvasHeight);
 
-        // Opcjonalnie białe tło
-        await _context.SetFillStyleAsync("white");
-        await _context.FillRectAsync(0, 0, CanvasWidth, CanvasHeight);
+            // Opcjonalnie białe tło
+            await _context.SetFillStyleAsync("white");
+            await _context.FillRectAsync(0, 0, CanvasWidth, CanvasHeight);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine("❌ ClearCanvas błąd: " + ex.Message);
+        }
     }
-    catch (Exception ex)
-    {
-        Console.Error.WriteLine("❌ ClearCanvas błąd: " + ex.Message);
-    }
-}
 
 
     private async Task UsunOstatniObiekt()
@@ -2193,7 +2193,6 @@
         //if (zmienWymOkna) await ZmienWymiaryOkna(false);
     }
 
-
     private async Task ZmienWymiaryOkna()
     {
         if (_shapes == null || !_shapes.Any())
@@ -2202,66 +2201,158 @@
             return;
         }
 
-        double scaleX = Szerokosc / CanvasWidth;
-        double scaleY = Wysokosc / CanvasHeight;
-        double scale = Math.Min(scaleX, scaleY) / 2;
+        // 1) Znajdź ramę przed zmianą (przyjmuję, że rama jest w _regionsDualRama i ma flagę Rama=true lub typ)
+        var ramaBefore = _regionsDualRama?.FirstOrDefault(r => r.Rama)
+                         ?? _regionsDualRama?.FirstOrDefault();
 
-        _currentScale = scale * 0.9;
-
-        // 1. Oblicz bounding box całego modelu
-        double minX = double.MaxValue, minY = double.MaxValue;
-        double maxX = double.MinValue, maxY = double.MinValue;
-
-        foreach (var shape in _shapes)
+        if (ramaBefore == null)
         {
-            var bbox = shape.GetBoundingBox();
-            minX = Math.Min(minX, bbox.X);
-            minY = Math.Min(minY, bbox.Y);
-            maxX = Math.Max(maxX, bbox.X + bbox.Width);
-            maxY = Math.Max(maxY, bbox.Y + bbox.Height);
-        }
-
-        double modelWidth = maxX - minX;
-        double modelHeight = maxY - minY;
-
-        if (modelWidth <= 0 || modelHeight <= 0)
-        {
-            Console.WriteLine("❌ Nieprawidłowe wymiary modelu.");
+            Console.WriteLine("❌ Nie znaleziono regionu ramy.");
             return;
         }
 
+        // zrób kopię ramy przed (potrzebna do obliczeń skrzydeł)
+        var ramaBeforeCopy = GeometryUtils.CloneRegion(ramaBefore, _currentScale);
 
-        // 3. Wycentruj model na canvasie
-        double modelCenterX = ((minX + maxX) / 2) * _currentScale;
-        double modelCenterY = ((minY + maxY) / 2) * _currentScale;
-        _panX = (CanvasWidth / 2) - modelCenterX;
-        _panY = (CanvasHeight / 2) - modelCenterY;
-
-        Console.WriteLine($"🔍 Zmieniono wymiary: skalowanie={_currentScale:F2}, panX={_panX:F2}, panY={_panY:F2}");
-
-        // 4. Przeskaluj regiony (jeśli potrzebujesz dostosować ich szerokość i wysokość)
-        _regionsDualRama = GeometryUtils.SkalujRegiony(_regionsDualRama, (int)Szerokosc, (int)Wysokosc);
-        _regionsSkrzydlo = GeometryUtils.SkalujRegiony(_regionsSkrzydlo, (int)Szerokosc, (int)Wysokosc);
-
-        GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)Szerokosc, (int)Wysokosc, true);
-
-        // 5. Normalizacja wygenerowanych elementów w regionach
-        foreach (var region in _regionsDualRama)
+        // 2) Oblicz współczynnik skalowania ramy i utwórz 'ramaAfter' (przeskalowaną kopię)
+        double oldMinX = ramaBeforeCopy.Wierzcholki.Min(p => p.X);
+        double oldMinY = ramaBeforeCopy.Wierzcholki.Min(p => p.Y);
+        double oldMaxX = ramaBeforeCopy.Wierzcholki.Max(p => p.X);
+        double oldMaxY = ramaBeforeCopy.Wierzcholki.Max(p => p.Y);
+        double oldWidth = oldMaxX - oldMinX;
+        double oldHeight = oldMaxY - oldMinY;
+        if (oldWidth <= 0 || oldHeight <= 0)
         {
-            await NormalizeGeneratedElements(region, Szerokosc, Wysokosc);
+            Console.WriteLine("❌ Nieprawidłowa rama (zerowy wymiar).");
+            return;
         }
 
-        foreach (var region in _regionsSkrzydlo)
-        {
-            await NormalizeGeneratedElements(region, Szerokosc, Wysokosc);
-        }
-               // // Możesz od razu wywołać rysowanie
-        if (_shapes?.Any() == true)
-            await RedrawCanvas();
+        // nowy wymiar ramy w jednostkach (Szerokosc/Wysokosc) - zakładamy, że rama ma zająć te wymiary
+        double newWidth = Szerokosc;
+        double newHeight = Wysokosc;
 
+        double frameScaleX = newWidth / oldWidth;
+        double frameScaleY = newHeight / oldHeight;
+
+        // stwórz ramaAfter — przeskalowana kopia
+        var ramaAfter = GeometryUtils.CloneRegion(ramaBeforeCopy, _currentScale);
+        for (int i = 0; i < ramaAfter.Wierzcholki.Count; i++)
+        {
+            var p = ramaAfter.Wierzcholki[i];
+            double newX = oldMinX + (p.X - oldMinX) * frameScaleX;
+            double newY = oldMinY + (p.Y - oldMinY) * frameScaleY;
+            ramaAfter.Wierzcholki[i] = new XPoint { X = newX, Y = newY };
+        }
+
+        // 3) Zastąp starą ramę w kolekcji regionów (żeby później regeneracja korzystała z aktualnej ramy)
+        for (int i = 0; i < _regionsDualRama.Count; i++)
+        {
+            if (_regionsDualRama[i].Id == ramaBeforeCopy.Id)
+            {
+                _regionsDualRama[i] = ramaAfter;
+                break;
+            }
+        }
+
+        // 4) Skaluj skrzydła względem ramy przed/po
+        _regionsSkrzydlo = GeometryUtils.SkalujSkrzydlaDoRamy(_regionsSkrzydlo, ramaBeforeCopy, ramaAfter);
+
+        // 5) Dla każdego skrzydła -> zregeneruj elementy (użyj Twojej istniejącej logiki)
+        //    Jeśli masz metodę GenerujElementyDlaRegionu, użyj jej; jeśli nie, użyj generator.AddElements tak jak w DodajWybranyKwadratOkna.
+        foreach (var skrzydlo in _regionsSkrzydlo)
+        {
+            if (skrzydlo == null || string.IsNullOrEmpty(skrzydlo.Id)) continue;
+
+            // jeśli masz generator dla tego regionu -> użyj AddElements
+            if (_generatory != null && _generatory.TryGetValue(skrzydlo.Id, out var gen))
+            {
+                // upewnij się, że gen ma aktualne wymiary (przyda się w jego logice)
+                var bb = skrzydlo.GetBoundingBox();
+                gen.Szerokosc = (float)bb.Width;
+                gen.Wysokosc = (float)bb.Height;
+
+                gen.ElementyRamyRysowane?.Clear();
+                gen.AddElements(new List<ShapeRegion> { skrzydlo }, skrzydlo.Id, _generatorStates);
+
+                // aktualizuj _ksztaltyNaRegion
+                _ksztaltyNaRegion[skrzydlo.Id] = new List<KsztaltElementu>(gen.ElementyRamyRysowane ?? Enumerable.Empty<KsztaltElementu>());
+            }
+            else
+            {
+                // fallback: jeżeli masz async GenerujElementyDlaRegionu(regionId, width, height)
+                try
+                {
+                    await GenerujElementyDlaRegionu(skrzydlo.Id, (float)Szerokosc, (float)Wysokosc);
+                }
+                catch
+                {
+                    // brak implementacji - tylko log
+                    Console.WriteLine($"⚠️ Nie znaleziono generatora dla regionu {skrzydlo.Id} i GenerujElementyDlaRegionu nie powiodło się.");
+                }
+            }
+        }
+
+        // 6) (opcjonalnie) zregeneruj elementy dla ramy również jeśli masz generator powiązany z ramą
+        if (_generatory != null && _generatory.TryGetValue(ramaAfter.Id, out var genRama))
+        {
+            var bbRama = ramaAfter.GetBoundingBox();
+            genRama.Szerokosc = (float)bbRama.Width;
+            genRama.Wysokosc = (float)bbRama.Height;
+            genRama.ElementyRamyRysowane?.Clear();
+            genRama.AddElements(new List<ShapeRegion> { ramaAfter }, ramaAfter.Id, _generatorStates);
+            _ksztaltyNaRegion[ramaAfter.Id] = new List<KsztaltElementu>(genRama.ElementyRamyRysowane ?? Enumerable.Empty<KsztaltElementu>());
+        }
+
+        // 7) Zbierz ksztalty i odśwież widok
+        ksztalty = _ksztaltyNaRegion.Values.SelectMany(x => x).ToList();
+
+        // ustaw skalę canvas i pan (tak jak wcześniej)
+        double canvasScaleX = Szerokosc / CanvasWidth;
+        double canvasScaleY = Wysokosc / CanvasHeight;
+        double canvasScale = Math.Min(canvasScaleX, canvasScaleY) * 0.9;
+        _currentScale = canvasScale;
+        _panX = (CanvasWidth / 2.0) - (Szerokosc / 2.0 * _currentScale);
+        _panY = (CanvasHeight / 2.0) - (Wysokosc / 2.0 * _currentScale);
+
+        _shapes = _shapes.Select(s =>
+        {
+            var bbox = s.GetBoundingBox();
+            double scaleX = Szerokosc / bbox.Width;
+            double scaleY = Wysokosc / bbox.Height;
+            double scale = Math.Min(scaleX, scaleY);
+
+            s.Scale(scale); 
+            return s;
+        }).ToList();
+
+        // Obliczamy nowy współczynnik skalowania względem aktualnego rozmiaru
+        var bbox = _shapes
+            .Select(s => s.GetBoundingBox())
+            .Aggregate((b1, b2) => BoundingBox.Union(b1, b2));
+
+        double scaleX = Szerokosc / bbox.Width;
+        double scaleY = Wysokosc / bbox.Height;
+        double scale = Math.Min(scaleX, scaleY); // zachowanie proporcji
+
+        // Skalujemy wszystkie kształty
+        foreach (var shape in _shapes)
+        {
+            shape.Szerokosc = Szerokosc;
+            shape.Wysokosc = Wysokosc;
+
+            shape.UpdatePoints(shape.Points.Select(p => new XPoint
+            {
+                X = p.X * scale,
+                Y = p.Y * scale
+            }).ToList());
+        }
+
+
+        await RedrawCanvas();
         await ApplyZoom(_currentScale);
+        await RozstawLinie(false);
 
- 
+        Console.WriteLine($"✅ Zmieniono wymiary i dopasowano skrzydła do nowej ramy: {Szerokosc}x{Wysokosc}");
     }
 
 
