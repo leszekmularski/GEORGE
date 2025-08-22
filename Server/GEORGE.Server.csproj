@@ -5,8 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 	<WasmEnableSimdSupport>false</WasmEnableSimdSupport>
-	<AssemblyVersion>1.1.1.6</AssemblyVersion>
-	<FileVersion>1.1.1.6</FileVersion>
+	<AssemblyVersion>1.1.1.8</AssemblyVersion>
+	<FileVersion>1.1.1.8</FileVersion>
 	<InvariantGlobalization>false</InvariantGlobalization>
     <BlazorEnableTimeZoneSupport>true</BlazorEnableTimeZoneSupport>
     <SignAssembly>False</SignAssembly>
@@ -45,7 +45,6 @@
 	</ItemGroup>
   
   	<ItemGroup>
-  	  <Folder Include="wwwroot\uploads_zlecenia\" />
 	  <Folder Include="wwwroot\tekstury\" />
   	</ItemGroup>
 

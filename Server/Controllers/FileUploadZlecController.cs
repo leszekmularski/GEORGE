@@ -24,62 +24,88 @@ public class FileUploadZlecController : ControllerBase
     [HttpPost("upload/{rowIdZlecenia}/{orygFileName}/{czyWidocznyDlaWszystkich}")]
     public async Task<IActionResult> UploadFile(string rowIdZlecenia, string orygFileName, bool czyWidocznyDlaWszystkich, IFormFile file)
     {
-        if (file == null || file.Length == 0)
-            return BadRequest("Pliku nie wysłano");
-
-        // Dodaj debugowanie
-        var webRootPath = _environment.WebRootPath;
-        Console.WriteLine($"WebRootPath: {webRootPath}");
-
-        if(webRootPath == null)
+        try
         {
-            return BadRequest("Pliku nie wysłano. Brak dostępu do katalogu - WebRootPath/uploads_zlecenia");
+            if (file == null || file.Length == 0)
+                return BadRequest("❌ Pliku nie wysłano lub plik jest pusty.");
+
+            var webRootPath = _environment.WebRootPath;
+            Console.WriteLine($"WebRootPath: {webRootPath}");
+
+            if (string.IsNullOrWhiteSpace(webRootPath))
+            {
+                return BadRequest("❌ Brak dostępu do katalogu - WebRootPath/uploads_zlecenia");
+            }
+
+            var uploadsFolder = Path.Combine(webRootPath, "uploads_zlecenia");
+
+            if (!Directory.Exists(uploadsFolder))
+            {
+                Directory.CreateDirectory(uploadsFolder);
+                Console.WriteLine("📂 Utworzono katalog uploads_zlecenia");
+            }
+
+            var newFileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
+
+            var filePath = Path.Combine(uploadsFolder, newFileName);
+
+            Console.WriteLine($"📂 Pełna ścieżka zapisu: {filePath}");
+
+            // Zapisywanie pliku na dysku
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            // Dekodowanie i sanityzacja nazwy pliku
+            orygFileName = WebUtility.UrlDecode(orygFileName ?? string.Empty);
+            orygFileName = orygFileName.Replace("..", ".");
+
+            var plik = new PlikiZlecenProdukcyjnych
+            {
+                RowId = Guid.NewGuid().ToString(),
+                RowIdZleceniaProdukcyjne = rowIdZlecenia,
+                NazwaPliku = newFileName,
+                OryginalnaNazwaPliku = orygFileName,
+                TypPliku = file.ContentType + "/" + GetFileExtension(orygFileName),
+                DataZapisu = DateTime.Now,
+                KtoZapisal = User?.Identity?.Name ?? "Anonim", // fallback, gdyby użytkownik nie był zalogowany
+                WidocznyDlaWszystkich = czyWidocznyDlaWszystkich,
+                OstatniaZmiana = "Zmiana: " + DateTime.Now.ToLongDateString()
+            };
+
+            _context.PlikiZlecenProdukcyjnych.Add(plik);
+            await _context.SaveChangesAsync();
+
+            var response = new ResponseModel
+            {
+                name = newFileName,
+                status = "Success",
+                url = Path.Combine("uploads_zlecenia", newFileName),
+                thumbUrl = null
+            };
+
+            Console.WriteLine($"✅ Plik zapisany: {response.name}, URL: {response.url}");
+
+            return Ok(response);
         }
-
-        var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads_zlecenia");
-
-        if (!Directory.Exists(uploadsFolder))
+        catch (UnauthorizedAccessException ex)
         {
-            Directory.CreateDirectory(uploadsFolder);
+            Console.Error.WriteLine($"❌ Błąd dostępu do pliku: {ex}");
+            return StatusCode(StatusCodes.Status403Forbidden, "Brak uprawnień do zapisu pliku.");
         }
-
-        var filePath = Path.Combine(uploadsFolder, Guid.NewGuid().ToString() + Path.GetExtension(file.FileName));
-
-        using (var stream = new FileStream(filePath, FileMode.Create))
+        catch (IOException ex)
         {
-            await file.CopyToAsync(stream);
+            Console.Error.WriteLine($"❌ Błąd IO: {ex}");
+            return StatusCode(StatusCodes.Status500InternalServerError, "Błąd przy zapisie pliku.");
         }
-
-        orygFileName = WebUtility.UrlDecode(orygFileName);
-
-        orygFileName = orygFileName.Replace("..", "."); 
-
-        var plik = new PlikiZlecenProdukcyjnych
+        catch (Exception ex)
         {
-            RowId = Guid.NewGuid().ToString(),
-            RowIdZleceniaProdukcyjne = rowIdZlecenia,
-            NazwaPliku = Path.GetFileName(filePath),
-            OryginalnaNazwaPliku = orygFileName,
-            TypPliku = file.ContentType + "/" + GetFileExtension(orygFileName),
-            DataZapisu = DateTime.Now,
-            KtoZapisal = User.Identity.Name, // Zakładając, że masz uwierzytelnianie użytkowników
-            WidocznyDlaWszystkich = czyWidocznyDlaWszystkich,
-            OstatniaZmiana = "Zmiana: " + DateTime.Now.ToLongDateString()
-        };
-
-        _context.PlikiZlecenProdukcyjnych.Add(plik);
-        await _context.SaveChangesAsync();
-
-        var response = new ResponseModel
-        {
-            name = Path.GetFileName(filePath),
-            status = "Success",
-            url = Path.Combine("uploads_zlecenia", Path.GetFileName(filePath)),
-            thumbUrl = null // Optional: Add logic to generate thumbnail URL if needed
-        };
-
-        return Ok(response);
+            Console.Error.WriteLine($"❌ Nieoczekiwany błąd: {ex}");
+            return StatusCode(StatusCodes.Status500InternalServerError, "Wystąpił nieoczekiwany błąd podczas przesyłania pliku.");
+        }
     }
+
 
     [HttpPost("upload/{rowIdZlecenia}/{orygFileName}/{staraNazwaPliku}/{id}")]
     public async Task<IActionResult> ReplaceUploadFile(string rowIdZlecenia, string orygFileName, string staraNazwaPliku, long id, IFormFile file)
@@ -125,6 +151,8 @@ public class FileUploadZlecController : ControllerBase
         };
 
         await _context.ZmienNazwePliku(id, orygFileName);
+
+        Console.WriteLine($"Plik zapisany: {response.name}, URL: {response.url}");
 
         return Ok(response);
     }
