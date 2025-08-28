@@ -8,6 +8,9 @@ using System.Globalization;
 using AntDesign;
 using ReservationBookingSystem.Services;
 using GEORGE.Client.Pages.Administracja;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -73,6 +76,30 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddHttpClient();
 
+// Klucz do podpisu JWT (mo¿e byæ w appsettings.json)
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "GEORGEsupersecretkey1234567890!@#$%^&*()";
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "GEORGE";
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = false,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtIssuer,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+    };
+});
+
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 app.UseCors("AllowAll");
@@ -100,6 +127,7 @@ app.UseStaticFiles();
 app.UseRouting();
 
 // Obs³uga autoryzacji
+app.UseAuthentication();
 app.UseAuthorization();
 
 // Mapowanie endpointów

@@ -1710,7 +1710,14 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
 
             Console.WriteLine($"api/FileUploadZlec/upload/{zlecenie.RowId}/{tmpFileName}");
 
+            // 🔑 pobierz token z localStorage
+            var token = await LocalStorage.GetStringAsync("authToken");
+
+            // // ustaw Authorization Bearer
+            Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
             content.Add(new StreamContent(file.OpenReadStream(Int64.MaxValue)), "file", file.Name);
+
 
             var response = await Http.PostAsync($"api/FileUploadZlec/upload/{zlecenie.RowId}/{tmpFileName}/{wiocznyDlaWszystkich}", content);
             if (response.IsSuccessStatusCode)

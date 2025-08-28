@@ -6,6 +6,7 @@
 @using System.Net;
 @using GEORGE.Shared.Models
 @using System.Timers;
+@using GEORGE.Client.Pages.Models
 
 <CascadingValue Name="MainLayoutInstance" Value="this">
     <CascadingValue Name="OnlyIcon" Value="OnlyIcon">
@@ -339,6 +340,7 @@
 
         await LocalStorage.RemoveAsync("user");
         await LocalStorage.RemoveAsync("loginTime");
+        await LocalStorage.RemoveAsync("authToken");
 
         loggedIn = false;
         pass = null;
@@ -372,6 +374,23 @@
                         zaladowalem = true;
                         await LocalStorage.SaveStringAsync("user", user);
                         await LocalStorage.SaveStringAsync("loginTime", DateTime.Now.ToString());
+
+                        var response = await Http.PostAsJsonAsync("api/auth/login", new { Username = user, Password = pass });
+
+                        if (response.IsSuccessStatusCode)
+                        {
+                            var result = await response.Content.ReadFromJsonAsync<TokenResponse>();
+                            var token = result?.Token;
+
+                            if (!string.IsNullOrEmpty(token))
+                            {
+                                // zapisz token w LocalStorage
+                                await LocalStorage.SaveStringAsync("authToken", token);
+
+                                //await JS.InvokeVoidAsync("localStorage.setItem", "authToken", token);
+                                //loggedIn = true;
+                            }
+                        }
 
                         var userAgent = await jsRuntime.InvokeAsync<string>("eval", "navigator.userAgent");
                         var logowania = new Logowania

@@ -1,11 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using GEORGE.Server;
+using GEORGE.Shared.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.IO;
+using System.Net;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using static GEORGE.Client.Pages.Zlecenia.Zlecenia_produkcyjne;
-using Microsoft.EntityFrameworkCore;
-using GEORGE.Server;
-using GEORGE.Shared.Models;
-using System.Net;
 using static iText.StyledXmlParser.Jsoup.Select.Evaluator;
 
 [ApiController]
@@ -21,6 +23,7 @@ public class FileUploadZlecController : ControllerBase
         _context = context;
     }
 
+    [Authorize]
     [HttpPost("upload/{rowIdZlecenia}/{orygFileName}/{czyWidocznyDlaWszystkich}")]
     public async Task<IActionResult> UploadFile(string rowIdZlecenia, string orygFileName, bool czyWidocznyDlaWszystkich, IFormFile file)
     {
@@ -69,7 +72,11 @@ public class FileUploadZlecController : ControllerBase
                 OryginalnaNazwaPliku = orygFileName,
                 TypPliku = file.ContentType + "/" + GetFileExtension(orygFileName),
                 DataZapisu = DateTime.Now,
-                KtoZapisal = User?.Identity?.Name ?? "Anonim", // fallback, gdyby użytkownik nie był zalogowany
+                KtoZapisal =
+                User.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+                User.FindFirst(ClaimTypes.Name)?.Value ??
+                User.FindFirst("preferred_username")?.Value ??
+                "Anonim",
                 WidocznyDlaWszystkich = czyWidocznyDlaWszystkich,
                 OstatniaZmiana = "Zmiana: " + DateTime.Now.ToLongDateString()
             };

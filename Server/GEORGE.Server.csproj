@@ -5,8 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 	<WasmEnableSimdSupport>false</WasmEnableSimdSupport>
-	<AssemblyVersion>1.1.1.8</AssemblyVersion>
-	<FileVersion>1.1.1.8</FileVersion>
+	<AssemblyVersion>1.1.1.9</AssemblyVersion>
+	<FileVersion>1.1.1.9</FileVersion>
 	<InvariantGlobalization>false</InvariantGlobalization>
     <BlazorEnableTimeZoneSupport>true</BlazorEnableTimeZoneSupport>
     <SignAssembly>False</SignAssembly>
@@ -20,6 +20,8 @@
     <PackageReference Include="Blazor.Extensions.Canvas" Version="1.1.1" />
     <PackageReference Include="itext7" Version="8.0.5" />
     <PackageReference Include="lmNetDXF" Version="1.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.19" />
+	<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.7" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.7" />
@@ -46,6 +48,7 @@
   
   	<ItemGroup>
 	  <Folder Include="wwwroot\tekstury\" />
+	  <Folder Include="wwwroot\uploads_zlecenia\" />
   	</ItemGroup>
 
 
