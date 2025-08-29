@@ -1713,6 +1713,15 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
             // 🔑 pobierz token z localStorage
             var token = await LocalStorage.GetStringAsync("authToken");
 
+            // jeżeli token nie istnieje albo jest za krótki → ustaw pusty, ale powiąż z user
+            if (string.IsNullOrWhiteSpace(token) || token.Length < 10)
+            {
+                Console.WriteLine("⚠️ Brak tokena – generuję pusty token dla użytkownika!");
+
+                // np. prosty JSON jako "pusty token"
+                token = $"empty-token-for-{user}";
+            }
+
             // // ustaw Authorization Bearer
             Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
@@ -1729,7 +1738,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
             }
             else
             {
-                Console.WriteLine("File upload failed.");
+                Console.WriteLine($"Błąd przy zapisie pliku na serwerze. {response.Content.ReadAsStringAsync().Result}");
 
                 bladZapisuPliku = $"Błąd przy zapisie pliku na serwerze. {response.Content.ReadAsStringAsync().Result}";
 
