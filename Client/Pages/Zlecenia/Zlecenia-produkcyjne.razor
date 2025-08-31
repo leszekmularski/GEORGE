@@ -2,6 +2,7 @@
 @using GEORGE.Shared.Models
 @using GEORGE.Shared
 @using GEORGE.Shared.Class
+@using GEORGE.Client.Pages.Models
 @inject HttpClient Http
 @inject ModalService ModalService;
 @inject ConfirmService ComfirmService;
@@ -862,7 +863,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
             }
             else
             {
-                Console.WriteLine("File upload failed.");
+                Console.WriteLine($"Błąd przy zapisie pliku na serwerze. {response.Content.ReadAsStringAsync().Result}");
                 bladZapisuPliku = $"Błąd przy zapisie pliku na serwerze. {response.Content.ReadAsStringAsync().Result}";
 
                 _ = _notice.Error(new()
@@ -1717,9 +1718,24 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
             if (string.IsNullOrWhiteSpace(token) || token.Length < 10)
             {
                 Console.WriteLine("⚠️ Brak tokena – generuję pusty token dla użytkownika!");
+                var responseAdd = await Http.PostAsJsonAsync("api/auth/login", new { Username = user, Password = "1234" });
 
-                // np. prosty JSON jako "pusty token"
-                token = $"empty-token-for-{user}";
+                if (responseAdd.IsSuccessStatusCode)
+                {
+                    var result = await responseAdd.Content.ReadFromJsonAsync<TokenResponse>();
+                    var tokenAdd = result?.Token;
+
+                    if (!string.IsNullOrEmpty(tokenAdd))
+                    {
+                        // zapisz token w LocalStorage
+                        await LocalStorage.SaveStringAsync("authToken", tokenAdd);
+                        token = tokenAdd;
+                    }
+                }
+                else
+                {
+                    token = $"empty-token-for-{user}";
+                }
             }
 
             // // ustaw Authorization Bearer

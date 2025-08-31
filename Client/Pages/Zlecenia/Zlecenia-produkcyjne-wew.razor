@@ -14,6 +14,7 @@
 @using AntDesign
 @using System.Net;
 @using System.Text.Json;
+@using GEORGE.Client.Pages.Models
 @inject IJSRuntime JSRuntime
 @inject INotificationService _notice
 
@@ -866,7 +867,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
             }
             else
             {
-                Console.WriteLine("File upload failed.");
+                Console.WriteLine($"Błąd przy zapisie pliku na serwerze. {response.Content.ToString()}");
                 bladZapisuPliku = $"Błąd przy zapisie pliku na serwerze. {response.Content.ReadAsStringAsync().Result}";
 
                 _ = _notice.Error(new()
@@ -1581,7 +1582,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
     //********************************************************************************************************************//
     public async Task ShowDialogFile(int pgIndex)
     {
-      //  _pageIndex = pgIndex;
+        //  _pageIndex = pgIndex;
 
         displayFile = "block";
         await Task.Delay(50);
@@ -1598,7 +1599,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
 
         StateHasChanged();
 
-  
+
     }
     //********************************************************************************************************************//
 
@@ -1675,7 +1676,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
             wiocznyDlaWszystkich = true;
         }
 
-       if (e.FileCount > 10)
+        if (e.FileCount > 10)
         {
             bladZapisuPliku = $"Nie można dodać więcej niż 10 plików. Zaznaczono: {e.FileCount}";
             await OpenWithPlacement(NotificationPlacement.TopLeft, bladZapisuPliku);
@@ -1701,9 +1702,25 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
             if (string.IsNullOrWhiteSpace(token) || token.Length < 10)
             {
                 Console.WriteLine("⚠️ Brak tokena – generuję pusty token dla użytkownika!");
+                var responseAdd = await Http.PostAsJsonAsync("api/auth/login", new { Username = user, Password = "1234" });
 
+                if (responseAdd.IsSuccessStatusCode)
+                {
+                    var result = await responseAdd.Content.ReadFromJsonAsync<TokenResponse>();
+                    var tokenAdd = result?.Token;
+
+                    if (!string.IsNullOrEmpty(tokenAdd))
+                    {
+                        // zapisz token w LocalStorage
+                        await LocalStorage.SaveStringAsync("authToken", tokenAdd);
+                        token = tokenAdd;
+                    }
+                }
+                else
+                {
+                    token = $"empty-token-for-{user}";
+                }
                 // np. prosty JSON jako "pusty token"
-                token = $"empty-token-for-{user}";
             }
             
             // // ustaw Authorization Bearer
@@ -1721,7 +1738,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
             }
             else
             {
-                Console.WriteLine($"Błąd przy zapisie pliku na serwerze. {response.Content.ReadAsStringAsync().Result}");
+                Console.WriteLine($"Błąd przy zapisie pliku na serwerze. {response.StatusCode.ToString()}");
                 bladZapisuPliku = $"Błąd przy zapisie pliku na serwerze. {response.Content.ReadAsStringAsync().Result}";
 
                 _ = _notice.Error(new()
