@@ -1796,6 +1796,8 @@
             return;
         }
 
+
+
         if (WybranyModel == null)
         {
             await _message.Warning("Wybierz model z listy przed przeciągnięciem.", 1.0);
@@ -1828,6 +1830,8 @@
 
         Console.WriteLine($"🔧 relativeX: {relativeX}, relativeY: {relativeY}, Scale: {_currentScale}");
         Console.WriteLine($"📌 Pozycja w modelu: modelX={modelX}, modelY={modelY}");
+
+        mousePosition = $"Wybrałeś: X: {modelX:F0} mm, Y: {modelY:F0} mm (skala: {_currentScale:F2}) {Szerokosc}x{Wysokosc}";
 
         // await Task.Delay(50);
 
@@ -2272,7 +2276,7 @@
                 gen.Wysokosc = (float)bb.Height;
 
                 gen.ElementyRamyRysowane?.Clear();
-                gen.AddElements(new List<ShapeRegion> { skrzydlo }, skrzydlo.Id, _generatorStates);
+                gen.AddElements(new List<ShapeRegion> { skrzydlo }, skrzydlo.Id, _generatorStates, _regionsSkrzydlo);
 
                 // aktualizuj _ksztaltyNaRegion
                 _ksztaltyNaRegion[skrzydlo.Id] = new List<KsztaltElementu>(gen.ElementyRamyRysowane ?? Enumerable.Empty<KsztaltElementu>());
@@ -2299,7 +2303,7 @@
             genRama.Szerokosc = (float)bbRama.Width;
             genRama.Wysokosc = (float)bbRama.Height;
             genRama.ElementyRamyRysowane?.Clear();
-            genRama.AddElements(new List<ShapeRegion> { ramaAfter }, ramaAfter.Id, _generatorStates);
+            genRama.AddElements(new List<ShapeRegion> { ramaAfter }, ramaAfter.Id, _generatorStates, _regionsSkrzydlo);
             _ksztaltyNaRegion[ramaAfter.Id] = new List<KsztaltElementu>(genRama.ElementyRamyRysowane ?? Enumerable.Empty<KsztaltElementu>());
         }
 
@@ -2574,11 +2578,22 @@
         }
 
         int ileRegionWSkrzydleZawieraSlupekRuchomy = _regionsSkrzydlo.Where(x => x.TypLiniiDzielacej == "Słupek ruchomy").Count();
+
+        // foreach (var reg in _generatory)
+        // {
+        //     Console.WriteLine($"🟩 Region Region: {reg.Value.Region.Count()}");
+        // }    
+
+        int ileJestDodanychSlRuchWRegionach = _generatory
+            .SelectMany(x => x.Value.Region) // spłaszczamy kolekcje regionów
+            .Count(v => v.TypLiniiDzielacej == "Słupek ruchomy");
+
+
         int ileRegionDRZawieraSlupekRuchomy = generator.MVCKonfModelu.KonfModele.Where(x => x.Typ == "Skrzydło z słupkiem ruchomym").Count();
 
-        Console.WriteLine($"🟩 Ile regionów skrzydła zawiera słupek ruchomy: {ileRegionWSkrzydleZawieraSlupekRuchomy} - Ile regionów DR zawiera słupek ruchomy: {ileRegionDRZawieraSlupekRuchomy} - SelectedModelType: {SelectedModelType}");
+        Console.WriteLine($"🟩 Ile regionów skrzydła zawiera słupek ruchomy: {ileRegionWSkrzydleZawieraSlupekRuchomy} - Ile regionów DR zawiera słupek ruchomy: {ileRegionDRZawieraSlupekRuchomy} - SelectedModelType: {SelectedModelType} -> ileJestDodanychSlRuchWRegionach: {ileJestDodanychSlRuchWRegionach} Wybrany typ {WybranyModel.Typ }");
 
-        if (ileRegionWSkrzydleZawieraSlupekRuchomy == 0 && ileRegionDRZawieraSlupekRuchomy > 0 && SelectedModelType != "Rama")
+        if (ileRegionWSkrzydleZawieraSlupekRuchomy == 0 && ileRegionDRZawieraSlupekRuchomy == 0 && SelectedModelType != "Rama")
         {
             await _message.Warning(
                 "Dodajesz konstrukcję z słupkiem ruchomym, Najpierw dodaj podział z osią słupka ruchomego!",
@@ -2586,6 +2601,24 @@
             );
             return false;
 
+        }
+
+        if (ileJestDodanychSlRuchWRegionach > ileRegionDRZawieraSlupekRuchomy && SelectedModelType != "Rama" && WybranyModel.Typ == "Skrzydło z słupkiem ruchomym")
+        {
+            await _message.Warning(
+                "W regionie skrzydła jest już dodany słupek ruchomy. Nie można dodać więcej słupków ruchomych do tej konstrukcji.",
+                2.0
+            );
+            return false;
+        }
+
+        if (ileRegionWSkrzydleZawieraSlupekRuchomy == ileJestDodanychSlRuchWRegionach && SelectedModelType != "Rama" && WybranyModel.Typ != "Skrzydło z słupkiem ruchomym")
+        {
+            await _message.Warning(
+                "Dodajesz konstrukcję z słupkiem ruchomym, Najpierw dodaj podział z osią słupka ruchomego!",
+                2.0
+            );
+            return false;
         }
 
         double minX = 0;
@@ -2633,7 +2666,7 @@
                 generator.RuchomySlupekPoLewej = false;
                 generator.RuchomySlupekPoPrawej = false;
 
-                generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates);
+                generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama);
 
             }
         }
@@ -2752,7 +2785,7 @@
                     state.WierzcholkiWartosciNominalne = WierzcholkiWartosciNominalne;
 
                     // 5. Dodaj elementy
-                    generator.AddElements(new List<ShapeRegion> { regionDoDodania }, idRegion, _generatorStates);
+                    generator.AddElements(new List<ShapeRegion> { regionDoDodania }, idRegion, _generatorStates, _regionsSkrzydlo);
                 }
                 else
                 {
@@ -3449,7 +3482,7 @@
             generator.Wysokosc = (float)(maxY - minY);
             generator.Zindeks = 0;
 
-            generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates);
+            generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama);
         }
         else if (wybranyRegionSkrzydlo != null)
         {
@@ -3465,7 +3498,7 @@
             generator.Wysokosc = (float)(maxY - minY);
             generator.Zindeks = 1;
 
-            generator.AddElements(new List<ShapeRegion> { wybranyRegionSkrzydlo }, idRegion, _generatorStates);
+            generator.AddElements(new List<ShapeRegion> { wybranyRegionSkrzydlo }, idRegion, _generatorStates, _regionsSkrzydlo);
         }
         else
         {

@@ -1,4 +1,5 @@
-﻿using GEORGE.Shared.Models;
+﻿using GEORGE.Client.Pages.Models;
+using GEORGE.Shared.Models;
 
 namespace GEORGE.Client.Pages.Okna
 {

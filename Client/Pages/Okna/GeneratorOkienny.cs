@@ -17,8 +17,9 @@ namespace GEORGE.Client.Pages.Okna
 
         // Lista wierzcholkow (w kolejnosci zgodnej z ruchem wskazowek zegara)
         public List<XPoint> Wierzcholki { get; set; } = new();
+        public List<ShapeRegion> Region { get; set; } = new();
 
-       // public new MVCKonfModele? PowiazanyModel;
+        // public new MVCKonfModele? PowiazanyModel;
 
         public Generator()
         {
@@ -42,7 +43,7 @@ namespace GEORGE.Client.Pages.Okna
             RuchomySlupekPoLewej = false;
         }
 
-        public void AddElements(List<ShapeRegion> regions, string regionId, Dictionary<string, GeneratorState> generatorStates)
+        public void AddElements(List<ShapeRegion> regions, string regionId, Dictionary<string, GeneratorState> generatorStates, List<ShapeRegion> regionAdd)
         {
             if (regions == null) return;
 
@@ -60,6 +61,8 @@ namespace GEORGE.Client.Pages.Okna
 
             Console.WriteLine($"➡️ EdytowanyModel.PolaczenieNaroza: {EdytowanyModel.PolaczenieNaroza}");
             Console.WriteLine($"📏 Szerokosc: {Szerokosc}, Wysokosc: {Wysokosc}");
+
+            Region = regionAdd;
 
             var region = regions.FirstOrDefault(r => r.Id == regionId);
 
