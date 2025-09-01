@@ -103,7 +103,6 @@ namespace GEORGE.Client.Pages.Okna
             if (RuchomySlupekPoPrawej) slruchPoPrawej = "Słupek ruchomy";
             if (RuchomySlupekPoLewej) slruchPoLewej = "Słupek ruchomy";
 
-
             // 🔧 Profile z konfiguracji
             float profileLeft = (float)(MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ.Contains(slruchPoPrawej))?.PionPrawa ?? 0 -
                                         MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ.Contains(slruchPoPrawej))?.PionLewa ?? 0);
@@ -136,7 +135,7 @@ namespace GEORGE.Client.Pages.Okna
 
             string NazwaObiektu = MVCKonfModelu.KonfSystem.First().Nazwa ?? "";
 
-            Console.WriteLine($"📐 region.TypKsztaltu: {region.TypKsztaltu} profileLeft: {profileLeft}, profileRight: {profileRight}, profileTop: {profileTop}, profileBottom: {profileBottom}");
+            Console.WriteLine($"📐 region.TypKsztaltu: {region.TypKsztaltu} profileLeft: {profileLeft}, profileRight: {profileRight}, profileTop: {profileTop}, profileBottom: {profileBottom} slruchPoPrawej: {slruchPoPrawej} slruchPoLewej: {slruchPoLewej}");
 
               // 🔲 Oblicz wewnętrzny kontur
             var wewnetrznyKontur = CalculateOffsetPolygon(
