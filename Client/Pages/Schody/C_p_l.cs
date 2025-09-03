@@ -1063,6 +1063,7 @@ namespace GEORGE.Client.Pages.Schody
                 SetNegativeCoordinates(dxf);
 
                 UpdateDimensionStyleTextHeightAndFitView(dxf, "Standard", 35, "arial.ttf");
+
                 Console.WriteLine($"Ustawienie stylu DXF.");
                 // Zapis pliku DXF do strumienia i pobranie go
 
@@ -1073,6 +1074,7 @@ namespace GEORGE.Client.Pages.Schody
                     Console.WriteLine($"Rozmiar pliku DXF w bajtach: {stream.Length}");
 
                     string base64String = Convert.ToBase64String(stream.ToArray());
+
                     await _jsRuntime.InvokeVoidAsync("downloadFileDXF", $"{nazPlikSchody}_{Lewe}.dxf", base64String);
                 }
 
@@ -1424,6 +1426,13 @@ namespace GEORGE.Client.Pages.Schody
 
             double gabX = Math.Ceiling(maxX - minX); // Długość
             double gabY = Math.Ceiling(maxY - minY); // Szerokość
+
+            if(!nazwaElementu.Contains("Wanga"))
+            {
+                gabY -= 46; // Odejmuje 46 mm dla elementów innych niż Wanga ze względu na obrys frezowania
+            }
+
+            Console.WriteLine($"----->  Obliczono gabaryty dla grupy: {fileName} - Długość: {gabX}, Szerokość: {gabY}, Ilość: {countEL} maxY: {maxY} minY: {minY}");
 
             // Dodanie danych do tabeli
             table.AddCell(new Cell().Add(new Paragraph(nazwaElementu).SetFont(pdfFont)));  // Nazwa elementu
