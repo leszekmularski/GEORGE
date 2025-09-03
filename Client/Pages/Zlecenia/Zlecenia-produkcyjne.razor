@@ -863,8 +863,8 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
             }
             else
             {
-                Console.WriteLine($"Błąd przy zapisie pliku na serwerze. {response.Content.ReadAsStringAsync().Result}");
-                bladZapisuPliku = $"Błąd przy zapisie pliku na serwerze. {response.Content.ReadAsStringAsync().Result}";
+                Console.WriteLine($"Błąd przy zapisie pliku na serwerze. {response.Content.ReadAsStringAsync().Result} --> {DateTime.Now}");
+                bladZapisuPliku = $"Błąd przy zapisie pliku na serwerze. {response.Content.ReadAsStringAsync().Result} --> {DateTime.Now}";
 
                 _ = _notice.Error(new()
                     {
@@ -1712,37 +1712,57 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
             Console.WriteLine($"api/FileUploadZlec/upload/{zlecenie.RowId}/{tmpFileName}");
 
             // 🔑 pobierz token z localStorage
-            var token = await LocalStorage.GetStringAsync("authToken");
+             var token = await LocalStorage.GetStringAsync("authToken");
 
-            // jeżeli token nie istnieje albo jest za krótki → ustaw pusty, ale powiąż z user
-            if (string.IsNullOrWhiteSpace(token) || token.Length < 10)
+            // 🔎 sprawdź datę ważności
+            if (!string.IsNullOrWhiteSpace(token))
             {
-                Console.WriteLine("⚠️ Brak tokena – generuję pusty token dla użytkownika!");
-                var responseAdd = await Http.PostAsJsonAsync("api/auth/login", new { Username = user, Password = "1234" });
-
-                if (responseAdd.IsSuccessStatusCode)
+                var parts = token.Split('.');
+                if (parts.Length == 3)
                 {
-                    var result = await responseAdd.Content.ReadFromJsonAsync<TokenResponse>();
-                    var tokenAdd = result?.Token;
+                    var payload = parts[1];
+                    var jsonBytes = Convert.FromBase64String(PadBase64(payload));
+                    var json = System.Text.Json.JsonDocument.Parse(jsonBytes);
 
-                    if (!string.IsNullOrEmpty(tokenAdd))
+                    if (json.RootElement.TryGetProperty("exp", out var exp))
                     {
-                        // zapisz token w LocalStorage
-                        await LocalStorage.SaveStringAsync("authToken", tokenAdd);
-                        token = tokenAdd;
+                        var expiry = DateTimeOffset.FromUnixTimeSeconds(exp.GetInt64());
+                        if (expiry < DateTimeOffset.UtcNow)
+                        {
+                            Console.WriteLine("⚠️ Token wygasł, pobieram nowy...");
+
+                            // 👉 odśwież token (np. ponowne logowanie)
+                            var responseAdd = await Http.PostAsJsonAsync("api/auth/login", new { Username = user, Password = "1234" });
+                            if (responseAdd.IsSuccessStatusCode)
+                            {
+                                var result = await responseAdd.Content.ReadFromJsonAsync<TokenResponse>();
+                                var tokenAdd = result?.Token;
+                                if (!string.IsNullOrEmpty(tokenAdd))
+                                {
+                                    await LocalStorage.SaveStringAsync("authToken", tokenAdd);
+                                    token = tokenAdd;
+                                }
+                            }
+                            else
+                            {
+                                token = $"empty-token-for-{user}";
+                            }
+                        }
                     }
                 }
-                else
-                {
-                    token = $"empty-token-for-{user}";
-                }
             }
+            else
+            {
+                token = $"empty-token-for-{user}";
+            }
+
 
             // // ustaw Authorization Bearer
             Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-            content.Add(new StreamContent(file.OpenReadStream(Int64.MaxValue)), "file", file.Name);
+            Console.WriteLine($"Wysyłam plik: {file.Name} ({file.Size} bytes) z tokenem: {token}");
 
+            content.Add(new StreamContent(file.OpenReadStream(Int64.MaxValue)), "file", file.Name);
 
             var response = await Http.PostAsync($"api/FileUploadZlec/upload/{zlecenie.RowId}/{tmpFileName}/{wiocznyDlaWszystkich}", content);
             if (response.IsSuccessStatusCode)
@@ -1754,9 +1774,9 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
             }
             else
             {
-                Console.WriteLine($"Błąd przy zapisie pliku na serwerze. {response.Content.ReadAsStringAsync().Result}");
+                Console.WriteLine($"Błąd przy zapisie pliku na serwerze. {response.Content.ReadAsStringAsync().Result} --> {DateTime.Now}");
 
-                bladZapisuPliku = $"Błąd przy zapisie pliku na serwerze. {response.Content.ReadAsStringAsync().Result}";
+                bladZapisuPliku = $"Błąd przy zapisie pliku na serwerze. {response.Content.ReadAsStringAsync().Result} --> {DateTime.Now}";
 
                 _ = _notice.Error(new()
                     {
@@ -1769,6 +1789,16 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
         }
 
         await LoadFiles(zlecenie.RowId);
+    }
+
+    private static string PadBase64(string base64)
+    {
+        switch (base64.Length % 4)
+        {
+            case 2: return base64 + "==";
+            case 3: return base64 + "=";
+            default: return base64;
+        }
     }
 
     private async Task OpenWithPlacement(NotificationPlacement placement, string text)

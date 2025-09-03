@@ -944,7 +944,7 @@ namespace GEORGE.Client.Pages.Schody
             XLinePoint.Add(new LinePoint(x + 22, y + height + 20, x + 22, y + height, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu));//#11
             XLinePoint.Add(new LinePoint(x + 22, y + height, x, y + height, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu));//#12
             XLinePoint.Add(new LinePoint(x, y + height, x, y, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu));//#13
-            XLinePoint.Add(new LinePoint(x, y, x + 22, y, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu)); //#1 - powrót do #1
+            XLinePoint.Add(new LinePoint(x, y, x + 2, y, typeLine, fileNCName, nameMacro, idOBJ, zRobocze, idRuchNarzWObj, addGcode, iloscSztuk, nazwaProgramy, nazwaElementu)); //#1 - powrót do #1 - zmina na + 2 z + 22 do sprawdzenia 
 
         }
 
@@ -1367,7 +1367,7 @@ namespace GEORGE.Client.Pages.Schody
                             document.Add(new Paragraph("\n"));
                         }
 
-                        document.Add(new Paragraph($"Program wygenerowano z wersji: {xversion} w dniu: {DateTime.Now.ToShortDateString()}")
+                        document.Add(new Paragraph($"Dokument oraz programy wygenerowano z wersji: {xversion} w dniu: {DateTime.Now}")
                       .SetFont(pdfFont)
                       .SetTextAlignment(iText.Layout.Properties.TextAlignment.LEFT)
                       .SetFontSize(10)

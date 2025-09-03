@@ -103,22 +103,41 @@ namespace GEORGE.Client.Pages.Okna
             if (RuchomySlupekPoPrawej) slruchPoPrawej = "Słupek ruchomy";
             if (RuchomySlupekPoLewej) slruchPoLewej = "Słupek ruchomy";
 
+            foreach (var konf in MVCKonfModelu.KonfSystem)
+            {
+                Console.WriteLine($"🔧 KonfiguracjeSystemu: {konf.Typ} Nazwa: {konf.Nazwa} W sumie: {MVCKonfModelu.KonfSystem.Count()}");
+            }
+
             // 🔧 Profile z konfiguracji
-            float profileLeft = (float)(MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ.Contains(slruchPoPrawej))?.PionPrawa ?? 0 -
-                                        MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ.Contains(slruchPoPrawej))?.PionLewa ?? 0);
-            float profileRight = (float)(MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa && e.Typ.Contains(slruchPoLewej))?.PionPrawa ?? 0 -
-                                         MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa && e.Typ.Contains(slruchPoLewej))?.PionLewa ?? 0);
+            float profileLeft = (float)(MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ == slruchPoLewej)?.PionPrawa ?? 0 -
+                                        MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ == slruchPoLewej)?.PionLewa ?? 0);
+
+            float profileRight = (float)(MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa && e.Typ == slruchPoPrawej)?.PionPrawa ?? 0 -
+                                         MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa && e.Typ == slruchPoPrawej)?.PionLewa ?? 0);
+
             float profileTop = (float)(MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.PionPrawa ?? 0 -
                                        MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.PionLewa ?? 0);
+
             float profileBottom = (float)(MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionPrawa ?? 0 -
                                           MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionLewa ?? 0);
 
-            if(profileLeft == 0)
+            Guid RowIdprofileLeft = MVCKonfModelu.KonfSystem
+                .FirstOrDefault(e => e.WystepujeLewa && e.Typ == slruchPoLewej)?.RowId ?? Guid.Empty;
+
+            Guid RowIdprofileRight = MVCKonfModelu.KonfSystem
+                .FirstOrDefault(e => e.WystepujePrawa && e.Typ == slruchPoPrawej)?.RowId ?? Guid.Empty;
+
+            Guid RowIdprofileTop = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.RowId ?? Guid.Empty;
+            Guid RowIdprofileBottom = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.RowId ?? Guid.Empty;
+
+            if (profileLeft == 0)
             {
                 //Spróbuj bez słupka
                 slruchPoLewej = "";
                 profileLeft = (float)(MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.PionPrawa ?? 0 -
                                         MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0);
+
+                RowIdprofileLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.RowId ?? Guid.Empty;
             }
             if(profileRight == 0)
             {
@@ -126,16 +145,13 @@ namespace GEORGE.Client.Pages.Okna
                 slruchPoPrawej = "";
                 profileRight = (float)(MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.PionPrawa ?? 0 -
                                          MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.PionLewa ?? 0);
+
+                RowIdprofileRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.RowId ?? Guid.Empty;
             }
 
-            Guid RowIdprofileLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ.Contains(slruchPoPrawej))?.RowId ?? Guid.Empty;
-            Guid RowIdprofileRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa && e.Typ.Contains(slruchPoLewej))?.RowId ?? Guid.Empty;
-            Guid RowIdprofileTop = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.RowId ?? Guid.Empty;
-            Guid RowIdprofileBottom = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.RowId ?? Guid.Empty;
+             string NazwaObiektu = MVCKonfModelu.KonfSystem.First().Nazwa ?? "";
 
-            string NazwaObiektu = MVCKonfModelu.KonfSystem.First().Nazwa ?? "";
-
-            Console.WriteLine($"📐 region.TypKsztaltu: {region.TypKsztaltu} profileLeft: {profileLeft}, profileRight: {profileRight}, profileTop: {profileTop}, profileBottom: {profileBottom} slruchPoPrawej: {slruchPoPrawej} slruchPoLewej: {slruchPoLewej}");
+            Console.WriteLine($"📐Generator ----> region.TypKsztaltu: {region.TypKsztaltu} profileLeft: {profileLeft}, profileRight: {profileRight}, profileTop: {profileTop}, profileBottom: {profileBottom} slruchPoPrawej: {slruchPoPrawej} slruchPoLewej: {slruchPoLewej}");
 
               // 🔲 Oblicz wewnętrzny kontur
             var wewnetrznyKontur = CalculateOffsetPolygon(

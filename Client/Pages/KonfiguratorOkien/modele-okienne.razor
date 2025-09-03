@@ -737,11 +737,11 @@
                                          @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
                                          draggable="true"
                                          style="cursor: grab;
-                                                                                  width: auto;
-                                                                                  height: auto;
-                                                                                  max-width: 50px;
-                                                                                  max-height: 50px;
-                                                                                  border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
+                                                                                              width: auto;
+                                                                                              height: auto;
+                                                                                              max-width: 50px;
+                                                                                              max-height: 50px;
+                                                                                              border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
 
                                 }
                                 else
@@ -1601,7 +1601,7 @@
     [JSInvokable("UpdateCanvasSizeFromResize")]
     public async Task UpdateCanvasSizeFromResize()
     {
-        if(_context == null)
+        if (_context == null)
         {
             Console.WriteLine("❌ Brak kontekstu canvas");
             return;
@@ -2325,7 +2325,7 @@
             double scaleY = Wysokosc / bbox.Height;
             double scale = Math.Min(scaleX, scaleY);
 
-            s.Scale(scale); 
+            s.Scale(scale);
             return s;
         }).ToList();
 
@@ -2472,6 +2472,13 @@
         }
 
         var wszystkieRegiony = _regionsDualRama.Concat(_regionsSkrzydlo);
+
+        foreach (var r in wszystkieRegiony)
+        {
+            Console.WriteLine($"🔎 Region: {r.Id}, Typ: {r.TypKsztaltu}, Wierzcholki: {r.Wierzcholki?.Count} TypLiniiDzielacej: {r.TypLiniiDzielacej}");
+        }
+
+
         var zawarteRegiony = wszystkieRegiony
             .Where(r =>
                 r.Wierzcholki != null &&
@@ -2480,16 +2487,27 @@
             )
             .ToList();
 
+        // var styczneLinie = wszystkieRegiony
+        //     .Where(r =>
+        //         r.Wierzcholki != null &&
+        //         r.Wierzcholki.Count == 2 &&
+        //         r.TypKsztaltu?.ToLower().Contains("linia") == true &&
+        //         r.Wierzcholki.All(p =>
+        //             CzyPunktWNWielokacie(p, regionReferencyjny.Wierzcholki) ||
+        //             CzyPunktLezyNaKrawedzi(p, regionReferencyjny.Wierzcholki)
+        //         )
+        //     )
+        //     .Distinct(new LiniaComparer())
+        //     .ToList();
+
         var styczneLinie = wszystkieRegiony
         .Where(r =>
             r.Wierzcholki != null &&
             r.Wierzcholki.Count == 2 &&
-            r.TypKsztaltu?.ToLower().Contains("linia") == true &&
-            r.Wierzcholki.Any(p => CzyPunktLezyNaKrawedzi(p, regionReferencyjny.Wierzcholki))
+            r.TypKsztaltu?.ToLower().Contains("linia") == true
         )
         .Distinct(new LiniaComparer())
         .ToList();
-
 
         bool czyRegionZawieraSlupekRuchomy = false;
         bool stronaLewa = false;
@@ -2508,27 +2526,47 @@
             if (slupkiRuchome.Any())
             {
                 czyRegionZawieraSlupekRuchomy = true;
-                Console.WriteLine($"✅ Region {idRegion} zawiera słupek ruchomy. Ilość słupków: {slupkiRuchome.Count()}");
+                Console.WriteLine($"✅ Region {idRegion} zawiera słupek ruchomy.");
+                if (slupkiRuchome.Count == 1)
+                {
+                    // Mamy dokładnie jeden słupek → sprawdzamy, po której stronie kliknięto
+                    var sl = slupkiRuchome[0];
+                    double srodekX = (sl.Wierzcholki[0].X + sl.Wierzcholki[1].X) / 2;
 
-                if (slupkiRuchome.Count() >= 2)
+                    Console.WriteLine($"📏 klikX={klikX:F2}, srodekX={srodekX:F2} Ilość słupków: {slupkiRuchome.Count()}");
+
+                    if (klikX > srodekX)
+                    {
+
+                        stronaLewa = true;
+                        Console.WriteLine("⬅️ Słupek ruchomy po lewej stronie.");
+                    }
+                    else
+                    {
+                        stronaPrawa = true;
+                        Console.WriteLine("➡️ Słupek ruchomy po prawej stronie.");
+                    }
+                }
+                else if (slupkiRuchome.Count() >= 2)
                 {
                     // Średnia X dwóch pierwszych punktów słupka
                     double srodekX1 = slupkiRuchome[0].Wierzcholki[0].X;
                     double srodekX2 = slupkiRuchome[1].Wierzcholki[0].X;
                     double srodekX = (srodekX1 + srodekX2) / 2;
 
-                    Console.WriteLine($"📏 klikX={klikX:F2}, srodekX={srodekX:F2}");
+                    Console.WriteLine($"📏 klikX={klikX:F2}, srodekX={srodekX:F2} Ilość słupków: {slupkiRuchome.Count()}");
 
                     // Określamy stronę kliknięcia względem środka słupka
                     if (klikX > srodekX)
                     {
                         stronaLewa = true;
-                        Console.WriteLine("⬅️ Wybrano lewą stronę słupka.");
+                        Console.WriteLine("⬅️ Słupek ruchomy po lewej stronie.");
+
                     }
                     else
                     {
                         stronaPrawa = true;
-                        Console.WriteLine("➡️ Wybrano prawą stronę słupka.");
+                        Console.WriteLine("➡️ Słupek ruchomy po prawej stronie.");
                     }
                 }
                 else
@@ -2546,8 +2584,12 @@
 
             generator.RuchomySlupekPoLewej = stronaLewa;
             generator.RuchomySlupekPoPrawej = stronaPrawa;
+            Console.WriteLine($"⚠️ Ustawiłem w generatorze słupek ruchomy! generator.RuchomySlupekPoLewej :{generator.RuchomySlupekPoLewej} generator.RuchomySlupekPoPrawej :{generator.RuchomySlupekPoPrawej}");
         }
-
+        else
+        {
+            Console.WriteLine($"⚠️ Region {idRegion} NIE zawiera linii stycznych.");
+        }
 
         if (czyRegionZawieraSlupekRuchomy && SelectedModelType != "Rama")
         {
@@ -2582,7 +2624,7 @@
         // foreach (var reg in _generatory)
         // {
         //     Console.WriteLine($"🟩 Region Region: {reg.Value.Region.Count()}");
-        // }    
+        // }
 
         int ileJestDodanychSlRuchWRegionach = _generatory
             .SelectMany(x => x.Value.Region) // spłaszczamy kolekcje regionów
@@ -2591,7 +2633,7 @@
 
         int ileRegionDRZawieraSlupekRuchomy = generator.MVCKonfModelu.KonfModele.Where(x => x.Typ == "Skrzydło z słupkiem ruchomym").Count();
 
-        Console.WriteLine($"🟩 Ile regionów skrzydła zawiera słupek ruchomy: {ileRegionWSkrzydleZawieraSlupekRuchomy} - Ile regionów DR zawiera słupek ruchomy: {ileRegionDRZawieraSlupekRuchomy} - SelectedModelType: {SelectedModelType} -> ileJestDodanychSlRuchWRegionach: {ileJestDodanychSlRuchWRegionach} Wybrany typ {WybranyModel.Typ }");
+        Console.WriteLine($"🟩 Ile regionów skrzydła zawiera słupek ruchomy: {ileRegionWSkrzydleZawieraSlupekRuchomy} - Ile regionów DR zawiera słupek ruchomy: {ileRegionDRZawieraSlupekRuchomy} - SelectedModelType: {SelectedModelType} -> ileJestDodanychSlRuchWRegionach: {ileJestDodanychSlRuchWRegionach} Wybrany typ {WybranyModel.Typ}");
 
         if (ileRegionWSkrzydleZawieraSlupekRuchomy == 0 && ileRegionDRZawieraSlupekRuchomy == 0 && SelectedModelType != "Rama")
         {
@@ -2660,8 +2702,8 @@
 
                 Console.WriteLine($"📐📐📐 Region Zindeks = 0 ID: {wybranyRegionDualRama.Id} -> Szerokość: {generator.Szerokosc}, Wysokość: {generator.Wysokosc} generator.Wierzcholki.Count():{generator.Wierzcholki.Count()}");
 
-                stronaLewa = false;
-                stronaPrawa = false;
+               // stronaLewa = false;
+                //stronaPrawa = false;
 
                 generator.RuchomySlupekPoLewej = false;
                 generator.RuchomySlupekPoPrawej = false;
@@ -2783,6 +2825,9 @@
                     state.ZIndeks = generator.Zindeks;
                     state.Wierzcholki = regionDoDodania.Wierzcholki;
                     state.WierzcholkiWartosciNominalne = WierzcholkiWartosciNominalne;
+
+                    generator.RuchomySlupekPoLewej = stronaLewa;
+                    generator.RuchomySlupekPoPrawej = stronaPrawa;
 
                     // 5. Dodaj elementy
                     generator.AddElements(new List<ShapeRegion> { regionDoDodania }, idRegion, _generatorStates, _regionsSkrzydlo);
@@ -3359,6 +3404,34 @@
         Console.WriteLine($"✅ Zapisano stan generatora dla regionu {idRegion}. Liczba _generatorStates: {_generatorStates?.Count ?? 0}");
     }
 
+    private bool CzyPunktLezyNaKrawedzi(XPoint punkt, List<XPoint> wielokat)
+    {
+        const double eps = 0.001; // tolerancja błędu
+        for (int i = 0; i < wielokat.Count; i++)
+        {
+            var a = wielokat[i];
+            var b = wielokat[(i + 1) % wielokat.Count];
+
+            double cross = (punkt.Y - a.Y) * (b.X - a.X) - (punkt.X - a.X) * (b.Y - a.Y);
+            if (Math.Abs(cross) > eps) continue;
+
+            double dot = (punkt.X - a.X) * (b.X - a.X) + (punkt.Y - a.Y) * (b.Y - a.Y);
+            if (dot < 0) continue;
+
+            double squaredLen = (b.X - a.X) * (b.X - a.X) + (b.Y - a.Y) * (b.Y - a.Y);
+            if (dot > squaredLen) continue;
+
+            return true;
+        }
+        return false;
+    }
+
+
+    private double Odleglosc(XPoint a, XPoint b)
+    {
+        return Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2));
+    }
+
     private bool CzyPunktWNWielokacie(XPoint punkt, List<XPoint> wielokat)
     {
         int j = wielokat.Count - 1;
@@ -3376,37 +3449,64 @@
         return inside;
     }
 
-
-    private bool CzyPunktLezyNaKrawedzi(XPoint punkt, List<XPoint> wielokat, double tolerancja = 0.1)
+    private bool CzyLiniaPrzecinaRegion(List<XPoint> linia, List<XPoint> wielokat)
     {
+        var a = linia[0];
+        var b = linia[1];
+
+        // 1. klasyczne przecięcie
         for (int i = 0; i < wielokat.Count; i++)
         {
-            var a = wielokat[i];
-            var b = wielokat[(i + 1) % wielokat.Count];
+            var c = wielokat[i];
+            var d = wielokat[(i + 1) % wielokat.Count];
 
-            // Sprawdzenie, czy punkt leży na odcinku AB
-            double dx = b.X - a.X;
-            double dy = b.Y - a.Y;
-            double d = Math.Sqrt(dx * dx + dy * dy);
-
-            if (d < 1e-6) continue; // pomijamy zbyt krótkie odcinki
-
-            double t = ((punkt.X - a.X) * dx + (punkt.Y - a.Y) * dy) / (d * d);
-
-            if (t >= 0 && t <= 1)
-            {
-                double projX = a.X + t * dx;
-                double projY = a.Y + t * dy;
-                double dist = Math.Sqrt(Math.Pow(projX - punkt.X, 2) + Math.Pow(projY - punkt.Y, 2));
-
-                if (dist <= tolerancja)
-                    return true;
-            }
+            if (CzyPrzecinajaSie(a, b, c, d))
+                return true;
         }
+
+        // 2. jeden koniec linii wewnątrz regionu
+        if (CzyPunktWNWielokacie(a, wielokat) || CzyPunktWNWielokacie(b, wielokat))
+            return true;
+
+        // 3. jeden koniec linii na krawędzi regionu
+        if (CzyPunktLezyNaKrawedzi(a, wielokat) || CzyPunktLezyNaKrawedzi(b, wielokat))
+            return true;
 
         return false;
     }
 
+    private bool CzyPrzecinajaSie(XPoint a, XPoint b, XPoint c, XPoint d, double tolerancja = 1e-6)
+    {
+        double d1 = Kierunek(c, d, a);
+        double d2 = Kierunek(c, d, b);
+        double d3 = Kierunek(a, b, c);
+        double d4 = Kierunek(a, b, d);
+
+        // klasyczne przecięcie
+        if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
+            ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)))
+            return true;
+
+        // przypadki współliniowe: punkt leży na odcinku
+        if (Math.Abs(d1) < tolerancja && PunktNaOdcinku(a, c, d)) return true;
+        if (Math.Abs(d2) < tolerancja && PunktNaOdcinku(b, c, d)) return true;
+        if (Math.Abs(d3) < tolerancja && PunktNaOdcinku(c, a, b)) return true;
+        if (Math.Abs(d4) < tolerancja && PunktNaOdcinku(d, a, b)) return true;
+
+        return false;
+    }
+
+    private bool PunktNaOdcinku(XPoint p, XPoint a, XPoint b)
+    {
+        return p.X <= Math.Max(a.X, b.X) && p.X >= Math.Min(a.X, b.X) &&
+               p.Y <= Math.Max(a.Y, b.Y) && p.Y >= Math.Min(a.Y, b.Y);
+    }
+
+
+    private double Kierunek(XPoint a, XPoint b, XPoint c)
+    {
+        return (b.X - a.X) * (c.Y - a.Y) - (b.Y - a.Y) * (c.X - a.X);
+    }
 
 
     private async Task GenerujElementyDlaRegionu(string idRegion, float szerokosc, float wysokosc)

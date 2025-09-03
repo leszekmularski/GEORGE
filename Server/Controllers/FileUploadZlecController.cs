@@ -52,7 +52,7 @@ public class FileUploadZlecController : ControllerBase
 
             var filePath = Path.Combine(uploadsFolder, newFileName);
 
-            Console.WriteLine($"📂 Pełna ścieżka zapisu: {filePath}");
+            Console.WriteLine($"📂 Zapis: {DateTime.Now} Pełna ścieżka zapisu: {filePath}");
 
             // Zapisywanie pliku na dysku
             using (var stream = new FileStream(filePath, FileMode.Create))
