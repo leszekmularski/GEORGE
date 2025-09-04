@@ -71,11 +71,14 @@ namespace GEORGE.Client.Pages.Schody
         private char Lewe { get; set; }
         private string NazwaProgramuCNC { get; set; }
         private string NazwaINumerProjektu { get; set; } // Nazwa i numer projektu
+        private bool BoolPochytLewy { get; set; } = false;
+        private bool BoolPochytPrawy { get; set; } = false;
 
         private double GruboscStopnia = 40;//40 mm grubość stopni
         public CSchodyPL(IJSRuntime jsRuntime, double x, double y, double skala, double dlugoscOtworu, double szerokoscOtworu, double dlugoscNaWejsciu, double wysokoscDoStropu, double wysokoscCalkowita, double liczbaPodniesienStopni,
             double wydluzOstatniStopien, double zachodzenieStopniZaSiebie, double osadzenieOdGory, double osadzenieOdDolu, double szerokoscBieguSchodow, double dlugoscLiniiBiegu, double katNachylenia, double szerokoscSchodow, double wysokoscPodniesieniaStopnia,
-            double glebokoscStopnia, double przecietnaDlugoscKroku, double przestrzenSwobodnaNadGlowa, string opis, char lewe, string nazwaProgramuCNC, string nazwaINumerProjektu)
+            double glebokoscStopnia, double przecietnaDlugoscKroku, double przestrzenSwobodnaNadGlowa, string opis, char lewe, string nazwaProgramuCNC, string nazwaINumerProjektu, 
+            bool boolPochytLewy, bool boolPochytPrawy)
         {
 
             X = x;
@@ -104,6 +107,9 @@ namespace GEORGE.Client.Pages.Schody
             NazwaProgramuCNC = nazwaProgramuCNC.Replace("/", "_").Replace("\\", "_").Replace(".", "_").Replace(",", "_");
 
             NazwaINumerProjektu = nazwaINumerProjektu;
+
+            BoolPochytLewy = boolPochytLewy;
+            BoolPochytPrawy = boolPochytPrawy;
 
             _jsRuntime = jsRuntime ?? throw new ArgumentNullException(nameof(jsRuntime));
         }
@@ -1364,12 +1370,36 @@ namespace GEORGE.Client.Pages.Schody
                             AddGroupToDocument(document, group, group.Max(lp => lp.IloscSztuk), NazwaProgramuCNC, NazwaElementu, pdfFont, linePoints, onlyFileName, idObj++);
                         }
 
-                        for (int i = 0; i < 4; i++)
+                        for (int i = 0; i < 3; i++)
                         {
                             document.Add(new Paragraph("\n"));
                         }
 
-                        document.Add(new Paragraph($"Dokument oraz programy wygenerowano z wersji: {xversion} w dniu: {DateTime.Now}")
+                        Console.WriteLine($"Dodanie BoolPochytLewy: {BoolPochytLewy} BoolPochytPrawy: {BoolPochytPrawy}");
+
+                        if (BoolPochytLewy && !BoolPochytPrawy)
+                        {
+                            document.Add(new Paragraph($"Porecz schodów lewa"))
+                           .SetFont(pdfFont)
+                           .SetTextAlignment(iText.Layout.Properties.TextAlignment.LEFT)
+                           .SetFontSize(16);
+                        }
+                        if (!BoolPochytLewy && BoolPochytPrawy)
+                        {
+                            document.Add(new Paragraph($"Porecz schodów prawa"))
+                           .SetFont(pdfFont)
+                           .SetTextAlignment(iText.Layout.Properties.TextAlignment.LEFT)
+                           .SetFontSize(16);
+                        }
+                        if (BoolPochytLewy && BoolPochytPrawy)
+                        {
+                            document.Add(new Paragraph($"Porecz schodów obustronna prawa i lewa"))
+                            .SetFont(pdfFont)
+                            .SetTextAlignment(iText.Layout.Properties.TextAlignment.LEFT)
+                            .SetFontSize(16);
+                        }
+
+                       document.Add(new Paragraph($"Dokument oraz programy wygenerowano z wersji: {xversion} w dniu: {DateTime.Now}")
                       .SetFont(pdfFont)
                       .SetTextAlignment(iText.Layout.Properties.TextAlignment.LEFT)
                       .SetFontSize(10)

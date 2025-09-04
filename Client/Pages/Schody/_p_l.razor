@@ -73,7 +73,15 @@
     <h3>Obliczenia Schodów typu: @TypSchodow</h3>
 
     <Button class="btn-back" OnClick="GoBack">Wróć do poprzedniej strony</Button>
-    <Divider Orientation="DividerOrientation.Left"> Podaj nazwę programu CNC: <input style="font-weight: bold; color: forestgreen; width: 8ch;" type="text" @bind="NazwaProgramuCNC" />&nbsp;&nbsp; Projekt: &nbsp;<input placeholder="Podaj nazwę oraz numer projektu" style="font-weight: bold; color: forestgreen; width: 350px;" type="text" @bind="NazwaINumerProjektu" /></Divider>
+    <Divider Orientation="DividerOrientation.Left"> 
+            Podaj nazwę programu CNC: <input style="font-weight: bold; color: forestgreen; width: 8ch;" type="text" @bind="NazwaProgramuCNC" />&nbsp;&nbsp; Projekt: &nbsp;<input placeholder="Podaj nazwę oraz numer projektu" style="font-weight: bold; color: forestgreen; width: 350px;" type="text" @bind="NazwaINumerProjektu" />
+        <Checkbox @bind-Checked="boolPochytLewy" > 
+            @($"{(boolPochytLewy ? "Pochwytu z lewej strony" : "Brak pochwytu z lewej strony")}")
+        </Checkbox>
+        <Checkbox @bind-Checked="boolPochytPrawy" >
+            @($"{(boolPochytPrawy ? "Pochwytu z prawej strony" : "Brak pochwytu z prawej strony")}")
+        </Checkbox>
+        </Divider>
     <Collapse Animation>
         <Panel Header="Parametry wykonania schodów" Key="1">
 
@@ -275,6 +283,9 @@
     private List<Shape>? shapes;
 
     private bool boolLewe = true;
+
+    private bool boolPochytLewy = false;
+    private bool boolPochytPrawy = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -490,7 +501,7 @@
                 {
                     new CSchodyPL(JSRuntime, 50, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
                     WydluzOstatniStopien, ZachodzenieStopniZaSiebie, OsadzenieOdGory, OsadzenieOdDolu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
-                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'l', NazwaProgramuCNC, NazwaINumerProjektu)
+                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'l', NazwaProgramuCNC, NazwaINumerProjektu, boolPochytLewy, boolPochytPrawy)
                 };
             }
             else
@@ -499,7 +510,7 @@
                 {
                     new CSchodyPL(JSRuntime,  50, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
                     WydluzOstatniStopien, ZachodzenieStopniZaSiebie, OsadzenieOdGory, OsadzenieOdDolu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
-                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'p', NazwaProgramuCNC, NazwaINumerProjektu)
+                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'p', NazwaProgramuCNC, NazwaINumerProjektu, boolPochytLewy, boolPochytPrawy)
                 };
             }
 
@@ -515,7 +526,7 @@
                 {
                     new CSchodyPL(JSRuntime,  50, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
                     WydluzOstatniStopien, ZachodzenieStopniZaSiebie, OsadzenieOdGory, OsadzenieOdDolu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
-                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'l', NazwaProgramuCNC, NazwaINumerProjektu)
+                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'l', NazwaProgramuCNC, NazwaINumerProjektu, boolPochytLewy, boolPochytPrawy)
                 };
             }
             else
@@ -524,7 +535,7 @@
                 {
                     new CSchodyPL(JSRuntime,  50, 0, skalaRys, DlugoscOtworu, SzerokoscOtworu, DlugoscNaWejsciu, WysokoscDoStropu, WysokoscCalkowita, LiczbaPodniesienStopni,
                     WydluzOstatniStopien, ZachodzenieStopniZaSiebie, OsadzenieOdGory, OsadzenieOdDolu, SzerokoscBieguSchodow, DlugoscLiniiBiegu, KatNachylenia, SzerokoscSchodow, WysokoscPodniesieniaStopnia,
-                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'p', NazwaProgramuCNC, NazwaINumerProjektu)
+                    GlebokoscStopnia, PrzecietnaDlugoscKroku, PrzestrzenSwobodnaNadGlowa, TypSchodow, 'p', NazwaProgramuCNC, NazwaINumerProjektu, boolPochytLewy, boolPochytPrawy)
                 };
             }
 
