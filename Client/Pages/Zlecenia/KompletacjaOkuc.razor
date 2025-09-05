@@ -1,0 +1,858 @@
+﻿@page "/KompletacjaOkuc/{RowId?}"
+@using GEORGE.Shared.Models
+@using GEORGE.Shared.ViewModels
+@using GEORGE.Shared.Class
+@inject HttpClient Http
+@using AntDesign
+@using System.Net
+@using System.ComponentModel
+@inject IMessageService _message
+@inject Utilities.ILocalStorage LocalStorage
+@inject IJSRuntime JSRuntime
+@inject INotificationService _notice
+@using AntDesign.TableModels
+
+<style>
+    #calosc {
+        background-color: #1a1a1a;
+        border: 1px dashed red;
+        font-size: 1.2em; /* Zmniejszenie rozmiaru czcionki dla mniejszych kontenerów */
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-around;
+        padding: 1px; /* Mniejsze paddingi */
+        color: white; /* Biały tekst dla lepszej widoczności */
+        border-radius: 5px; /* Zaokrąglone rogi */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5); /* Lekki cień dla głębi */
+        height: 5vh; /* Wysokość 5% wysokości okna przeglądarki */
+        min-height: 50px; /* Minimalna wysokość dla zapewnienia miejsca na treść */
+    }
+
+    #kol1, #kol2 {
+        flex: 1 1 25%; /* Kolumny mają elastyczną szerokość i zajmują 45% */
+        margin: 5px; /* Mniejszy margines dla kolumn */
+        padding: 1px; /* Mniejszy padding */
+        border-radius: 3px; /* Zaokrąglone rogi dla kolumn */
+        text-align: center; /* Centrowanie tekstu */
+    }
+
+    #kol1 {
+        background-color: #3e8eec; /* Mocniejszy, bardziej kontrastujący niebieski */
+        color: white; /* Biały tekst dla lepszej widoczności */
+    }
+
+    #kol2 {
+        background-color: black; /* Mocniejszy zielony dla lepszego kontrastu */
+        color: white;
+    }
+
+    h2, h3 {
+        margin: 5px 0; /* Mniejsze marginesy dla nagłówków */
+        font-size: 1em; /* Zmniejszenie rozmiaru tekstu w nagłówkach */
+    }
+
+    /* Stylowanie przycisku dla lepszego wyglądu */
+    .btn-back {
+        background-color: #ff4d4d; /* Czerwony kolor przycisku */
+        color: white;
+        font-weight: bold;
+        border-radius: 2px; /* Zaokrąglone rogi */
+        border: none; /* Bez ramki */
+        transition: background-color 0.3s ease; /* Animacja przejścia koloru */
+        padding: 5px 10px; /* Zmniejszenie paddingu dla lepszej czytelności */
+        font-size: 0.9em; /* Zmniejszenie rozmiaru czcionki */
+    }
+
+        /* Efekt hover dla przycisku */
+        .btn-back:hover {
+            background-color: #e63939; /* Ciemniejszy czerwony na hover */
+            color: #ffffff;
+        }
+</style>
+
+
+@if (wzorzecSzczegoly == null && !brakDanych)
+{
+    <Spin size="large" >
+        <div id="calosc">
+            <div id="kol1">
+                <h3>Wybierz wzorzec kompletacji</h3>
+            </div>
+            <div id="kol2">
+           
+                <p style="margin-left:40%"><em>Czekaj na załadowanie danych...</em></p>
+            </div>
+
+        </div>
+    </Spin>
+}
+else if (brakDanych)
+{
+    <h3>Wybierz wzorzec kompletacji</h3>
+    <Divider>Informacja: brak zleceń</Divider>
+    <div id="calosc">
+        <div id="kol1">
+            <h2>Nie znaleziono zamówień do wybranego klienta</h2>
+        </div>
+        <div id="kol2">
+            <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony" Style="width:100%">
+                <Button class="btn-back" Icon="@IconType.Fill.Backward" Style="width:100%" OnClick="GoBack">Wróć do poprzedniej strony</Button>
+            </Tooltip>
+        </div>
+    </div>
+}
+else
+{
+    <div id="calosc">
+        <div id="kol1">
+            @if (wzorzecSzczegoly.Count() > 0)
+            {
+                <h6>@wzorzecSzczegoly[0].NazwaWzorca</h6>
+            }
+            else
+            {
+                <h3>Wybierz wzorzec kompletacji</h3>
+            }
+        </div>
+        <div id="kol2">
+            <Tooltip Placement="@Placement.TopRight" Style="width:100%" Title="Wróć do poprzedniej strony">
+                <Button class="btn-back" Style="width:100%" Icon="@IconType.Fill.Backward" OnClick="GoBack">Wróć do poprzedniej strony</Button>
+            </Tooltip>
+        </div>
+    </div>
+
+    <div id="calosc">
+        <div id="kol1">
+
+            <Select TItem="WzorceKompltacji"
+                    TItemValue="Guid?"
+                    DataSource="@wzorzecSzczegolyDistinct"
+                    @bind-Value="@_selectedValue"
+                    LabelName="@nameof(WzorceKompltacji.NazwaWzorca)"
+                    ValueName="@nameof(WzorceKompltacji.RowIdWzorca)"
+                    Placeholder="Wybierz wzorzec"
+                    OnSelectedItemChanged="OnSelectedItemChangedHandler"
+                    AllowClear
+                    EnableSearch>
+            </Select>
+
+        </div>
+        <div id="kol2">
+            <Tooltip Title="Podaj nazwę wzorca">
+                <Button Shape="ButtonShape.Circle" Icon="@IconType.Outline.Plus" OnClick="HandleAdd"> Dodaj nowy wzorzec </Button>
+            </Tooltip>
+        </div>
+    </div>
+
+    <ul>
+        <Table DataSource="wzorzecSzczegoly" TItem="WzorceKompltacji" Bordered RowExpandable="@((record) => record.Data.NazwaWzorca != "Not Expandable")" OnExpand="OnExpand">
+                <GroupTitleTemplate Context="group">
+                    <span style="min-width: 120px;">
+                        @(group.Level == 1 ? "Nazwa wzorca" : "Produkty") : @group.Key
+                    </span>
+                </GroupTitleTemplate>
+                <GroupFooterTemplate Context="group">
+                    @if (group.Level == 1)
+                    {
+                        <span style="padding: 8px; float: right; ">
+                            Suma sztuk: @group.Items.Sum(x => x.Ilosc)
+                        </span>
+                    }
+
+                <ActionColumn Title="Akcje">
+                    <CellRender Context="cellData">
+                        @{
+                            // Rzutowanie na CellData<WzorceKompltacji>
+                            var item = cellData.RowData.RowIndex;
+                            var itemExpand = cellData.RowData.TableDataItem.HasChildren;
+                        }
+
+                        <Space Size="@("middle")">
+                            <SpaceItem>
+                                <Popconfirm Title="@GetPopconfirmTitle(item, itemExpand)"
+                                            OnConfirm="() => HandleUsun(item, itemExpand)"
+                                            OkText="Tak"
+                                            CancelText="Nie">
+                                    <a style="color:red; cursor:pointer;">Usuń</a>
+                                </Popconfirm>
+                            </SpaceItem>
+
+                            <SpaceItem>
+                                <a style="color:blue; cursor:pointer;"
+                                   @onclick="() => ShowEditModal(item, itemExpand)">
+                                    Edytuj
+                                </a>
+                            </SpaceItem>
+                            <SpaceItem>
+                                <a style="color:blue; cursor:pointer;"
+                                   @onclick="() => ShowDodajModal(item, itemExpand)">
+                                    Dodaj
+                                </a>
+                            </SpaceItem>
+                        </Space>
+                    </CellRender>
+                </ActionColumn>
+
+                </GroupFooterTemplate>
+                <ColumnDefinitions>
+                <PropertyColumn Title="Nazwa Wzorca" Property="c => c.NazwaWzorca" Width="12%" Grouping />
+                    <PropertyColumn Property="c=>c.NazwaProduktu" Width="10%" />
+                    <PropertyColumn Title="Nazwa Produktu" Property="c=>c.NazwaProduktu" Width="15%" Filterable />
+                    <PropertyColumn Title="Nr Katalogowy" Property="c=>c.NumerKatalogowy" Width="15%" Filterable />
+                    <PropertyColumn Property="c=>c.Typ" Width="10%" />
+                    <PropertyColumn Title="Ilość" Property="c=>c.Ilosc" Width="10%" />
+                    <PropertyColumn Property="c=>c.Jednostka" Width="10%" />
+                    <PropertyColumn Title="Długość" Property="c=>c.Dlugosc" Width="10%" />
+
+                <ActionColumn Title="Akcje">
+                    <CellRender Context="cellData">
+                        @{
+                            // Rzutowanie na CellData<WzorceKompltacji>
+                            var item = cellData.RowData.RowIndex;
+                            var itemExpand = cellData.RowData.TableDataItem.HasChildren;
+                        }
+
+                        <Space Size="@("middle")">
+                            <SpaceItem>
+                                <Popconfirm Title="@GetPopconfirmTitle(item, itemExpand)"
+                                            OnConfirm="() => HandleUsun(item, itemExpand)"
+                                            OkText="Tak"
+                                            CancelText="Nie">
+                                    <a style="color:red; cursor:pointer;">Usuń Grupę</a>
+                                </Popconfirm>
+                            </SpaceItem>
+
+                            <SpaceItem>
+                                <a style="color:blue; cursor:pointer;"
+                                   @onclick="() => ShowEditGruppModal(item, itemExpand)">
+                                    Edytuj Grupę
+                                </a>
+                            </SpaceItem>
+                        </Space>
+                    </CellRender>
+                </ActionColumn>
+
+
+
+                </ColumnDefinitions>
+            </Table>
+
+    </ul>
+
+    <Modal Title="@(!_productEditGrup ? "Dodaj nowy wzorzec kompletacji" : "Zmień wzorzec kompletacji")"
+              Visible="@_visible"
+              OnOk="@HandleOk"
+              OnCancel="@HandleCancel"
+           Footer=@footer>
+        <p>Podaj nazwę wzorca.</p>
+        <TextArea ShowCount MaxLength=100 OnChange="onChange" @bind-Value="_selectedName" />
+        <p style="color:red">@infoDodaj</p>
+        <p style="color:yellowgreen">GUID: @_selectedValue</p>
+    </Modal>
+
+    <Modal Title="@(_productAdd ? "Dodaj nowy produkt" : "Edytuj produkt")"
+       Visible="@_visibleEdit"
+       OnOk="@HandleEditOk"
+       OnCancel="@HandleEditCancel">
+
+    <p>Podaj nazwę wzorca.</p>
+    <Input @bind-Value="_editowanyWzorzec.NazwaWzorca" />
+
+    <p>Podaj ilość.</p>
+        <Input Type="InputType.Number" @bind-Value="_editowanyWzorzec.Ilosc" />
+
+    <p>Podaj jednostkę.</p>
+    <Input @bind-Value="_editowanyWzorzec.Jednostka" />
+
+    <p style="color:red">@infoEdit</p>
+</Modal>
+
+
+}
+
+@code {
+
+    [Inject] private AppState AppState { get; set; } = default!;
+
+    [Parameter]
+    public string? RowId { get; set; } // Parametr z URL
+
+    private Table<WzorceKompltacji>? table; // Referencja do tabeli
+                                                          // private List<RowData<ElemetZamDoZlecenWithProducent>> expandedGroups = new(); // Lista rozwiniętych wierszy
+
+    private List<WzorceKompltacji>? wzorzecSzczegoly;
+
+    private List<WzorceKompltacji>? wzorzecSzczegolyDistinct;
+
+    private List<WzorceKompltacji> wzorzecSzczegolyAll = new();
+
+    private WzorceKompltacji? edytowanyWzorzec;
+
+    private Guid? _selectedValue;
+    private string? _selectedName = "";
+    private string? infoDodaj = "";
+
+    private bool brakDanych = false;
+
+    bool _visible = false;
+    bool _loading = false;
+
+    private bool _visibleEdit;
+    private WzorceKompltacji _editowanyWzorzec = new();
+    private string infoEdit = string.Empty;
+
+    private bool _isExpand = false;
+
+    private bool _productAdd = false;
+    private bool _productEditGrup = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AppState != null)
+        {
+            AppState.SomeData = "";
+        }
+
+        await Laduj_Uprawnienia();
+
+        try
+        {
+            var response = await Http.GetAsync($"api/WzorceKompltacji");
+
+            if (response.IsSuccessStatusCode) // Sprawdź, czy odpowiedź jest poprawna (status 2xx)
+            {
+                wzorzecSzczegoly = await response.Content.ReadFromJsonAsync<List<WzorceKompltacji>>();
+
+                wzorzecSzczegolyAll = wzorzecSzczegoly ?? new();
+
+                if (wzorzecSzczegoly != null)
+                    wzorzecSzczegolyDistinct = wzorzecSzczegoly
+                    .GroupBy(wz => wz.NazwaWzorca) // grupujemy po nazwie
+                    .Select(g => g.First())        // bierzemy pierwszy rekord z każdej grupy
+                    .ToList();
+
+
+                Console.WriteLine($"******* Załadowano DISTINCT wzorców: {wzorzecSzczegolyDistinct.Count()}");
+
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound) // Obsłuż błąd 404
+            {
+                Console.WriteLine("******* Błąd: Brak danych dla podanego wzorca");
+                // Możesz tu dodać logikę, np. ustawienie zmiennej dla wyświetlenia komunikatu o braku danych
+                brakDanych = true; // Przykład flagi, aby wyświetlić komunikat w UI
+            }
+            else
+            {
+                Console.WriteLine($"******* Inny błąd: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"******* Ogólny błąd: {ex.Message}");
+        }
+
+    }
+
+    private RenderFragment footer => @<div>
+        <Button OnClick="@HandleOk"
+                Type="ButtonType.Primary"
+                Loading="@_loading">
+        @(_productEditGrup ? "Zmień nazwę wzorca" : "Dodaj nowy wzorzec")
+        </Button>
+        <Button OnClick="@HandleCancel">Anuluj</Button>
+    </div>
+    ;
+
+    private void onChange(string value)
+    {
+        Console.WriteLine("onChange =>" + value);
+
+        _selectedName = value;
+        _selectedValue = Guid.NewGuid();
+    }
+
+    void OnExpand(RowData<WzorceKompltacji> args)
+    {
+        Console.WriteLine(args.Data.NazwaWzorca);
+
+        // _selectedName = args.Data.NazwaWzorca;
+        // _selectedValue = args.Data.RowIdWzorca;
+    }
+
+    private async Task HandleOk(MouseEventArgs e)
+    {
+
+        infoDodaj = "";
+
+        _selectedName = _selectedName?.Trim();
+
+        var exists = wzorzecSzczegolyAll
+       .Where(w => w.NazwaWzorca == _selectedName);
+
+        if (exists != null && exists.Count() > 0 && !_productEditGrup)
+        {
+            Console.WriteLine ("Nazwa wzorca już istnieje.");
+            infoDodaj = "Nazwa wzorca już istnieje.";
+            return;
+        }
+
+        _loading = true;
+
+        if (!_productEditGrup)
+        {
+            edytowanyWzorzec = new WzorceKompltacji
+            {
+                RowIdWzorca = _selectedValue,
+                NazwaWzorca = _selectedName,
+                NumerKatalogowy = "Nowy",
+                NazwaProduktu = "Nowy",
+                Typ = "Nowy",
+                Ilosc = 0,
+                Jednostka = "szt.",
+                Dlugosc = 0,
+            };
+
+            // wysyłka do API
+            var response = await Http.PostAsJsonAsync("api/WzorceKompltacji", edytowanyWzorzec);
+
+            if (response.IsSuccessStatusCode)
+            {
+                wzorzecSzczegoly?.Add(edytowanyWzorzec);
+
+                wzorzecSzczegolyAll = wzorzecSzczegoly ?? new();
+
+                wzorzecSzczegolyDistinct = wzorzecSzczegoly
+                .GroupBy(wz => wz.NazwaWzorca) // grupujemy po nazwie
+                .Select(g => g.First())        // bierzemy pierwszy rekord z każdej grupy
+                .ToList();
+
+                infoDodaj = "Nowy wzorzec dodany.";
+
+                await Task.Delay(900); // Krótkie opóźnienie, aby użytkownik zauważył komunikat
+
+                _visible = false;
+            }
+            else
+            {
+                // log albo komunikat użytkownikowi
+                var msg = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Błąd: {msg}");
+                infoDodaj = $"Błąd: {msg}";
+            }
+        }
+        else
+        {
+            Console.WriteLine("Zmieniam nazwę wzorca: " + _selectedName);
+
+            Console.WriteLine("Zmieniam id wzorca: " + _selectedValue.ToString());
+
+            var request = new { NowaNazwaGrupy = _selectedName };
+
+                var response = await Http.PutAsJsonAsync(
+                    $"api/WzorceKompltacji/all/{_selectedValue.ToString()}", 
+                    request
+                );
+
+            if (response.IsSuccessStatusCode)
+            {
+                await FetchUpdatedData();
+
+                wzorzecSzczegolyDistinct = wzorzecSzczegoly
+                    .GroupBy(wz => wz.NazwaWzorca)
+                    .Select(g => g.First())
+                    .ToList();
+
+                infoDodaj = "Nazwa wzorca zmieniona.";
+
+                StateHasChanged();
+
+                await Task.Delay(1500); // Krótkie opóźnienie, aby użytkownik zauważył komunikat
+
+                _visible = false;
+
+            }
+            else
+            {
+                var msg = await response.Content.ReadAsStringAsync();
+                if (string.IsNullOrWhiteSpace(msg))
+                {
+                    msg = $"Kod błędu: {(int)response.StatusCode} ({response.ReasonPhrase})";
+                }
+                infoDodaj = $"Błąd: {msg}";
+
+            }
+        }
+
+        _loading = false;
+    }
+
+    private void HandleCancel(MouseEventArgs e)
+    {
+        _visible = false;
+    }
+
+    private async Task HandleAdd(MouseEventArgs e)
+    {
+        _productEditGrup = false;
+        _selectedName = "";
+        _selectedValue = Guid.NewGuid();
+        _visible = true;
+
+        await Task.CompletedTask;
+    }
+
+    private async Task OnSelectedItemChangedHandler(WzorceKompltacji value)
+    {
+        if (value == null) // kliknięto "x" (AllowClear)
+        {
+            wzorzecSzczegoly = wzorzecSzczegolyAll.ToList();
+            Console.WriteLine("Filtr wyczyszczony – przywrócono pełną listę");
+        }
+        else
+        {
+            Console.WriteLine($"selected RowIdWzorca: {value.RowIdWzorca}");
+            wzorzecSzczegoly = wzorzecSzczegolyAll
+                .Where(wz => wz.RowIdWzorca == value.RowIdWzorca)
+                .ToList();
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ShowEditGruppModal(int IdpozNazwaProduktu, bool isExpand)
+    {
+        _productEditGrup = true;
+
+        infoDodaj = "";
+
+        var element = wzorzecSzczegoly?.FirstOrDefault(p => p.Id == ZwrocID(IdpozNazwaProduktu));
+
+        if (element == null)
+        {
+            _ = _notice.Error(new()
+            {
+                Message = $"Nie zanaleziono grupy dla pozycji: {IdpozNazwaProduktu}",
+                Description = "Uwaga!!!",
+                Placement = NotificationPlacement.BottomRight
+            });
+            return;
+        }
+
+        _ = _notice.Info(new()
+        {
+            Message = "Zmieniam nazwę całej grupy.",
+            Description = $"Uwaga!!! Id: {IdpozNazwaProduktu}",
+            Placement = NotificationPlacement.BottomLeft
+        });
+
+        _selectedValue = element.RowIdWzorca;
+        _selectedName = element.NazwaWzorca;
+
+        _visible = true;
+    }
+
+    private void ShowEditModal(int IdpozNazwaProduktu, bool isExpand)
+    {
+        if (!boolZmiana && boolAdmin)
+        {
+            _ = _notice.Info(new()
+            {
+                Message = "Nie posiadasz uprawnień do EDYCJI danych.",
+                Description = "Uwaga!!!",
+                Placement = NotificationPlacement.BottomLeft
+            });
+            return;
+        }
+
+        var element = wzorzecSzczegoly?.FirstOrDefault(p => p.Id == ZwrocID(IdpozNazwaProduktu));
+
+        if(element == null)
+        {
+            _ = _notice.Info(new()
+            {
+                Message = "Element jest pusty.",
+                Description = "Uwaga!!!",
+                Placement = NotificationPlacement.BottomLeft
+            });
+            return;
+        }
+
+        _editowanyWzorzec = new WzorceKompltacji
+    {
+        Id = element.Id,
+        RowIdWzorca = element.RowIdWzorca,
+        NazwaWzorca = element.NazwaWzorca,
+        NazwaProduktu = element.NazwaProduktu,
+        NumerKatalogowy = element.NumerKatalogowy,
+        Typ = element.Typ,
+        Ilosc = element.Ilosc,
+        Jednostka = element.Jednostka,
+        Dlugosc = element.Dlugosc
+    };
+
+        _visibleEdit = true;
+    }
+
+    private void ShowDodajModal(int IdpozNazwaProduktu, bool isExpand)
+    {
+        if (!boolZmiana && boolAdmin)
+        {
+            _ = _notice.Info(new()
+            {
+                Message = "Nie posiadasz uprawnień do EDYCJI danych.",
+                Description = "Uwaga!!!",
+                Placement = NotificationPlacement.BottomLeft
+            });
+            return;
+        }
+
+        var element = wzorzecSzczegoly?.FirstOrDefault(p => p.Id == ZwrocID(IdpozNazwaProduktu));
+
+        if (element == null)
+        {
+            _ = _notice.Info(new()
+            {
+                Message = "Element wzorca jest pusty.",
+                Description = "Uwaga!!!",
+                Placement = NotificationPlacement.BottomLeft
+            });
+            return;
+        }
+
+        _editowanyWzorzec = new WzorceKompltacji
+        {
+            RowIdWzorca = element.RowIdWzorca,
+            NazwaWzorca = element.NazwaWzorca,
+            NazwaProduktu = "",
+            NumerKatalogowy = "",
+            Typ = "",
+            Ilosc = 0,
+            Jednostka = "",
+            Dlugosc = 0
+        };
+
+        _visibleEdit = true;
+        _productAdd = true;
+    }
+
+    private async Task HandleEditOk()
+    {
+        if (string.IsNullOrWhiteSpace(_editowanyWzorzec.NazwaWzorca))
+        {
+            infoEdit = "Nazwa wzorca jest wymagana!";
+            return;
+        }
+
+        if (_productAdd)
+        {
+            var response = await Http.PostAsJsonAsync("api/WzorceKompltacji", edytowanyWzorzec);
+
+            if (response.IsSuccessStatusCode)
+            {
+                wzorzecSzczegoly?.Add(edytowanyWzorzec);
+
+                wzorzecSzczegolyAll = wzorzecSzczegoly ?? new();
+
+                wzorzecSzczegolyDistinct = wzorzecSzczegoly
+                .GroupBy(wz => wz.NazwaWzorca) // grupujemy po nazwie
+                .Select(g => g.First())        // bierzemy pierwszy rekord z każdej grupy
+                .ToList();
+
+                infoDodaj = "Nowy wzorzec dodany.";
+            }
+            else
+            {
+                // log albo komunikat użytkownikowi
+                var msg = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Błąd: {msg}");
+                infoDodaj = $"Błąd: {msg}";
+            }
+        }
+        else
+        {
+            var response = await Http.PutAsJsonAsync(
+                 $"api/WzorceKompltacji/{_editowanyWzorzec.Id}",
+                 _editowanyWzorzec);
+
+            if (response.IsSuccessStatusCode)
+            {
+                await _message.Success("Zmieniono dane wzorca", 1);
+                _visibleEdit = false;
+                await FetchUpdatedData();
+            }
+            else
+            {
+                infoEdit = "Błąd podczas zapisywania zmian.";
+            }
+        }
+
+    }
+
+    private void HandleEditCancel()
+    {
+        _visibleEdit = false;
+        infoEdit = string.Empty;
+    }
+
+
+    private string GetPopconfirmTitle(int IdpozNazwaProduktu, bool isExpand)
+    {
+        _isExpand = isExpand;
+
+        var pozNazwaProduktu = wzorzecSzczegoly?.FirstOrDefault(p => p.Id == ZwrocID(IdpozNazwaProduktu))?.NazwaProduktu ?? "Nieznany produkt";
+        return $"Czy usunąć produkt: {pozNazwaProduktu}";
+    }
+
+    private async Task HandleUsun(int IdpozNazwaProduktu, bool isExpand)
+    {
+        _isExpand = isExpand;
+
+        if (!boolZmiana && boolAdmin)
+        {
+            _ = _notice.Info(new()
+            {
+                Message = "Nie posiadasz uprawnień do USUNIĘCIA danych.",
+                Description = "Uwaga!!!",
+                Placement = NotificationPlacement.BottomLeft
+            });
+            return;
+        }
+
+        var pozIdProduktu = wzorzecSzczegoly?.FirstOrDefault(p => p.Id == ZwrocID(IdpozNazwaProduktu))?.Id;
+
+        var response = await Http.DeleteAsync($"api/WzorceKompltacji/{pozIdProduktu}");
+
+        if (response.IsSuccessStatusCode && pozIdProduktu > 0)
+        {
+            await _message.Success("Usunięto pozycję", 1);
+            await FetchUpdatedData();
+        }
+        else
+        {
+            await _message.Error("Błąd podczas usuwania danych!");
+        }
+    }
+
+    private async Task HandleZmien(int IdpozNazwaProduktu, bool isExpand)
+    {
+
+        if (!boolZmiana && boolAdmin)
+        {
+            _ = _notice.Info(new()
+            {
+                Message = "Nie posiadasz uprawnień do ZMIANY danych.",
+                Description = "Uwaga!!!",
+                Placement = NotificationPlacement.BottomLeft
+            });
+            return;
+        }
+
+        _isExpand = isExpand;
+
+        var elementyDoWzorca = wzorzecSzczegoly?.FirstOrDefault(p => p.Id == ZwrocID(IdpozNazwaProduktu));
+
+        if (elementyDoWzorca == null)
+        {
+            await _message.Error("Nie znaleziono elementu do zmiany.");
+            return;
+        }
+
+        var response = await Http.PutAsJsonAsync($"api/WzorceKompltacji/{elementyDoWzorca.Id}", elementyDoWzorca);
+
+        if (response.IsSuccessStatusCode)
+        {
+            await _message.Success("Zmieniono dane wybranego wzorca", 1);
+            await FetchUpdatedData();
+        }
+        else
+        {
+            await _message.Error("Nie udało się zmienić danych");
+        }
+    }
+
+    private long ZwrocID(int idWiersza)
+    {
+        if (wzorzecSzczegoly == null || wzorzecSzczegoly.Count == 0)
+            throw new InvalidOperationException("Lista wzorzecSzczegoly jest pusta.");
+
+        if (idWiersza < 1 || idWiersza > wzorzecSzczegoly.Count)
+            throw new ArgumentOutOfRangeException(nameof(idWiersza), "Podany numer wiersza jest poza zakresem.");
+
+        return wzorzecSzczegoly[idWiersza - 1].Id;
+    }
+
+
+    private async Task GoBack()
+    {
+        await JSRuntime.InvokeVoidAsync("history.back");
+    }
+
+    private async Task FetchUpdatedData()
+    {
+        var response = await Http.GetAsync($"api/WzorceKompltacji");
+
+        if (response.IsSuccessStatusCode) // Sprawdź, czy odpowiedź jest poprawna (status 2xx)
+        {
+            wzorzecSzczegoly = await response.Content.ReadFromJsonAsync<List<WzorceKompltacji>>();
+        }
+    }
+
+    private bool boolOdczyt = false;
+    private bool boolZmiana = false;
+    private bool boolUsuniecia = false;
+    private bool boolAdmin = false;
+    private string RowIdPracownika = "";
+    private string? user;
+    private List<UprawnieniaPracownikaViewModel>? uprawnienia;
+
+    private async Task Laduj_Uprawnienia()
+    {
+        user = await LocalStorage.GetStringAsync("user");
+
+        if (string.IsNullOrEmpty(user))
+        {
+            //NavigationManager.NavigateTo($"", true);
+            return;
+        }
+
+        string nazwaTabeli = "WzorceKompltacji";
+
+        Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");
+
+        try
+        {
+            uprawnienia = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"/api/ZwrocSatus/{user}/{nazwaTabeli}");
+        }
+        catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            Console.WriteLine("Brak danych!!!");
+            await _message.Error("Brak danych - status użytkownika - sprawdź dostęp!");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            await _message.Error(ex.Message);
+        }
+
+        if (uprawnienia != null)
+        {
+            if (uprawnienia.Count > 0)
+            {
+                var znalezioneElementy = uprawnienia.Where(uprawnienie => uprawnienie.TableName == nazwaTabeli);
+                Console.WriteLine("Znaleziono uprawnienia dla użytkownika: " + user + " w tabeli: " + nazwaTabeli + " ilość rekordów: " + znalezioneElementy.Count());
+                if (znalezioneElementy.Any())
+                {
+                    var szuk = znalezioneElementy.FirstOrDefault(x => x.TableName == nazwaTabeli);
+                    if (szuk != null)
+                    {
+                        boolOdczyt = szuk.Odczyt;
+                        boolZmiana = szuk.Zmiana;
+                        boolUsuniecia = szuk.Usuniecie;
+                        boolAdmin = szuk.Administrator;
+                        RowIdPracownika = szuk.RowId;
+                    }
+                }
+            }
+        }
+    }
+}

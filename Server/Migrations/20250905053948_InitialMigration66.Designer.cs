@@ -4,6 +4,7 @@ using GEORGE.Server;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GEORGE.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250905053948_InitialMigration66")]
+    partial class InitialMigration66
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1263,10 +1266,6 @@ namespace GEORGE.Server.Migrations
                     b.Property<string>("NazwaProduktu")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("NazwaWzorca")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("NumerKatalogowy")
                         .HasColumnType("nvarchar(max)");
 
@@ -1294,10 +1293,6 @@ namespace GEORGE.Server.Migrations
 
                     b.Property<string>("RowIdProducent")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid?>("RowIdWzorca")
-                        .IsRequired()
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal?>("Szerokosc")
                         .HasColumnType("decimal(18,2)");

@@ -189,14 +189,19 @@ else
                         </MenuItem>
                         @if (!string.IsNullOrEmpty(user))
                         {
-                            <MenuItem Key="100">
-                                <NavLink class="nav-link" href="PanelAdminUpraw">
-                                    <span class="oi oi-wrench" aria-hidden="true"></span>&nbsp;&nbsp;Opcje
-                                </NavLink>
-                            </MenuItem>
                             <MenuItem Key="101">
                                 <NavLink class="nav-link" href="KonfiguratorOkien">
                                     <span class="oi oi-task" aria-hidden="true"></span>&nbsp;Konfigurator okien
+                                </NavLink>
+                            </MenuItem>
+                            <MenuItem Key="102">
+                                <NavLink class="nav-link" href="KompletacjaOkuc">
+                                    <span class="oi oi-wrench" aria-hidden="true"></span>&nbsp;&nbsp;Pakiety okuć
+                                </NavLink>
+                            </MenuItem>
+                            <MenuItem Key="100">
+                                <NavLink class="nav-link" href="PanelAdminUpraw">
+                                    <span class="oi oi-wrench" aria-hidden="true"></span>&nbsp;&nbsp;Opcje
                                 </NavLink>
                             </MenuItem>
                         }
