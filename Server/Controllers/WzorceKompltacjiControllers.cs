@@ -35,14 +35,16 @@ namespace GEORGE.Server.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult> AddWzorceKompltacjiAsync(WzorceKompltacji pozPozWzorca)
+        public async Task<ActionResult> AddWzorceKompltacjiAsync([FromBody] WzorceKompltacji wzorzec)
         {
             try
             {
-                _context.WzorceKompltacji.Add(pozPozWzorca);
+                if (wzorzec is null)
+                    return BadRequest("Wysłany obiekt jest pusty!");
+
+                _context.WzorceKompltacji.Add(wzorzec);
                 await _context.SaveChangesAsync();
                 return Ok();
-               
             }
             catch (Exception ex)
             {
@@ -50,6 +52,7 @@ namespace GEORGE.Server.Controllers
                 return StatusCode(500, "Wystąpił błąd podczas przetwarzania żądania w WzorceKompltacji.");
             }
         }
+
 
         [HttpPut("{id:long}")]
         public async Task<ActionResult> UpdateWzorceKompltacjiAsync(long id, WzorceKompltacji pozEl)

@@ -70,7 +70,6 @@
         }
 </style>
 
-
 @if (wzorzecSzczegoly == null && !brakDanych)
 {
     <Spin size="large" >
@@ -145,7 +144,8 @@ else
     </div>
 
     <ul>
-        <Table DataSource="wzorzecSzczegoly" TItem="WzorceKompltacji" Bordered RowExpandable="@((record) => record.Data.NazwaWzorca != "Not Expandable")" OnExpand="OnExpand">
+        <Table DataSource="wzorzecSzczegoly" TItem="WzorceKompltacji" Bordered RowExpandable="@((record) => record.Data.NazwaWzorca != "Not Expandable")" 
+            OnExpand="OnExpand">
                 <GroupTitleTemplate Context="group">
                     <span style="min-width: 120px;">
                         @(group.Level == 1 ? "Nazwa wzorca" : "Produkty") : @group.Key
@@ -169,7 +169,7 @@ else
 
                         <Space Size="@("middle")">
                             <SpaceItem>
-                                <Popconfirm Title="@GetPopconfirmTitle(item, itemExpand)"
+                                <Popconfirm Title="@GetPopconfirmTitle(item, itemExpand, group.Key.ToString())"
                                             OnConfirm="() => HandleUsun(item, itemExpand)"
                                             OkText="Tak"
                                             CancelText="Nie">
@@ -196,7 +196,6 @@ else
                 </GroupFooterTemplate>
                 <ColumnDefinitions>
                 <PropertyColumn Title="Nazwa Wzorca" Property="c => c.NazwaWzorca" Width="12%" Grouping />
-                    <PropertyColumn Property="c=>c.NazwaProduktu" Width="10%" />
                     <PropertyColumn Title="Nazwa Produktu" Property="c=>c.NazwaProduktu" Width="15%" Filterable />
                     <PropertyColumn Title="Nr Katalogowy" Property="c=>c.NumerKatalogowy" Width="15%" Filterable />
                     <PropertyColumn Property="c=>c.Typ" Width="10%" />
@@ -214,7 +213,7 @@ else
 
                         <Space Size="@("middle")">
                             <SpaceItem>
-                                <Popconfirm Title="@GetPopconfirmTitle(item, itemExpand)"
+                                <Popconfirm Title="@GetPopconfirmTitle(item, itemExpand, cellData.RowData.Key + " " + cellData.RowData.IsGrouping.ToString())"
                                             OnConfirm="() => HandleUsun(item, itemExpand)"
                                             OkText="Tak"
                                             CancelText="Nie">
@@ -232,8 +231,6 @@ else
                     </CellRender>
                 </ActionColumn>
 
-
-
                 </ColumnDefinitions>
             </Table>
 
@@ -247,16 +244,19 @@ else
         <p>Podaj nazwę wzorca.</p>
         <TextArea ShowCount MaxLength=100 OnChange="onChange" @bind-Value="_selectedName" />
         <p style="color:red">@infoDodaj</p>
-        <p style="color:yellowgreen">GUID: @_selectedValue</p>
+        <p style="color:yellowgreen">GUID: @selValue</p>
     </Modal>
 
-    <Modal Title="@(_productAdd ? "Dodaj nowy produkt" : "Edytuj produkt")"
+<Modal Title="@(_productAdd ? "Dodaj nowy produkt" : "Edytuj produkt")"
        Visible="@_visibleEdit"
        OnOk="@HandleEditOk"
        OnCancel="@HandleEditCancel">
 
     <p>Podaj nazwę wzorca.</p>
-    <Input @bind-Value="_editowanyWzorzec.NazwaWzorca" />
+    <Input @bind-Value="_editowanyWzorzec.NazwaWzorca" ReadOnly />
+
+     <p>Podaj nazwę produktu.</p>
+     <Input @bind-Value="_editowanyWzorzec.NazwaProduktu" />
 
     <p>Podaj ilość.</p>
         <Input Type="InputType.Number" @bind-Value="_editowanyWzorzec.Ilosc" />
@@ -265,6 +265,7 @@ else
     <Input @bind-Value="_editowanyWzorzec.Jednostka" />
 
     <p style="color:red">@infoEdit</p>
+        <p style="color:yellowgreen">GUID: @selValue</p>
 </Modal>
 
 
@@ -290,6 +291,7 @@ else
 
     private Guid? _selectedValue;
     private string? _selectedName = "";
+    private string selValue = "";// do zmiany nazwy grupy zapamiętuje RowId
     private string? infoDodaj = "";
 
     private bool brakDanych = false;
@@ -374,7 +376,7 @@ else
     void OnExpand(RowData<WzorceKompltacji> args)
     {
         Console.WriteLine(args.Data.NazwaWzorca);
-
+        Console.WriteLine($"args.Expanded: {args.Expanded}");
         // _selectedName = args.Data.NazwaWzorca;
         // _selectedValue = args.Data.RowIdWzorca;
     }
@@ -393,6 +395,18 @@ else
         {
             Console.WriteLine ("Nazwa wzorca już istnieje.");
             infoDodaj = "Nazwa wzorca już istnieje.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_selectedName))
+        {
+            infoDodaj = "Nazwa wzorca jest wymagana.";
+            return;
+        }
+
+        if (!_selectedValue.HasValue || _selectedValue == Guid.Empty)
+        {
+            infoDodaj = "RowId wzorca jest pusty.";
             return;
         }
 
@@ -444,12 +458,12 @@ else
         {
             Console.WriteLine("Zmieniam nazwę wzorca: " + _selectedName);
 
-            Console.WriteLine("Zmieniam id wzorca: " + _selectedValue.ToString());
+            Console.WriteLine("Zmieniam id wzorca: " + selValue.ToString());
 
             var request = new { NowaNazwaGrupy = _selectedName };
 
                 var response = await Http.PutAsJsonAsync(
-                    $"api/WzorceKompltacji/all/{_selectedValue.ToString()}", 
+                $"api/WzorceKompltacji/all/{selValue.ToString()}",
                     request
                 );
 
@@ -493,6 +507,8 @@ else
 
     private async Task HandleAdd(MouseEventArgs e)
     {
+        infoDodaj = "";
+
         _productEditGrup = false;
         _selectedName = "";
         _selectedValue = Guid.NewGuid();
@@ -522,16 +538,28 @@ else
     private void ShowEditGruppModal(int IdpozNazwaProduktu, bool isExpand)
     {
         _productEditGrup = true;
-
         infoDodaj = "";
 
-        var element = wzorzecSzczegoly?.FirstOrDefault(p => p.Id == ZwrocID(IdpozNazwaProduktu));
-
-        if (element == null)
+        // próbujemy pobrać ID
+        if (!TryZwrocID(IdpozNazwaProduktu, out var id))
         {
             _ = _notice.Error(new()
             {
-                Message = $"Nie zanaleziono grupy dla pozycji: {IdpozNazwaProduktu}",
+                Message = $"Nie udało się pobrać ID dla wiersza: {IdpozNazwaProduktu}",
+                Description = "Błąd danych",
+                Placement = NotificationPlacement.BottomRight
+            });
+            return;
+        }
+
+        // pobieramy element
+        var element = wzorzecSzczegoly.FirstOrDefault(p => p.Id == id);
+
+        if (element is null)
+        {
+            _ = _notice.Error(new()
+            {
+                Message = $"Nie znaleziono grupy dla pozycji: {IdpozNazwaProduktu}",
                 Description = "Uwaga!!!",
                 Placement = NotificationPlacement.BottomRight
             });
@@ -547,9 +575,11 @@ else
 
         _selectedValue = element.RowIdWzorca;
         _selectedName = element.NazwaWzorca;
+        selValue = element.RowIdWzorca.ToString();
 
         _visible = true;
     }
+
 
     private void ShowEditModal(int IdpozNazwaProduktu, bool isExpand)
     {
@@ -560,6 +590,18 @@ else
                 Message = "Nie posiadasz uprawnień do EDYCJI danych.",
                 Description = "Uwaga!!!",
                 Placement = NotificationPlacement.BottomLeft
+            });
+            return;
+        }
+
+        // próbujemy pobrać ID
+        if (!TryZwrocID(IdpozNazwaProduktu, out var id))
+        {
+            _ = _notice.Error(new()
+            {
+                Message = $"Nie udało się pobrać ID dla wiersza: {IdpozNazwaProduktu}",
+                Description = "Błąd danych",
+                Placement = NotificationPlacement.BottomRight
             });
             return;
         }
@@ -576,6 +618,11 @@ else
             });
             return;
         }
+
+        _selectedValue = element.RowIdWzorca;
+        _selectedName = element.NazwaWzorca;
+
+        selValue = element.RowIdWzorca.ToString();
 
         _editowanyWzorzec = new WzorceKompltacji
     {
@@ -606,6 +653,18 @@ else
             return;
         }
 
+        // próbujemy pobrać ID
+        if (!TryZwrocID(IdpozNazwaProduktu, out var id))
+        {
+            _ = _notice.Error(new()
+            {
+                Message = $"Nie udało się pobrać ID dla wiersza: {IdpozNazwaProduktu}",
+                Description = "Błąd danych",
+                Placement = NotificationPlacement.BottomRight
+            });
+            return;
+        }
+
         var element = wzorzecSzczegoly?.FirstOrDefault(p => p.Id == ZwrocID(IdpozNazwaProduktu));
 
         if (element == null)
@@ -619,17 +678,24 @@ else
             return;
         }
 
-        _editowanyWzorzec = new WzorceKompltacji
+        _selectedValue = element.RowIdWzorca;
+        _selectedName = element.NazwaWzorca;
+
+        if (!_selectedValue.HasValue || _selectedValue == Guid.Empty)
         {
-            RowIdWzorca = element.RowIdWzorca,
-            NazwaWzorca = element.NazwaWzorca,
-            NazwaProduktu = "",
-            NumerKatalogowy = "",
-            Typ = "",
-            Ilosc = 0,
-            Jednostka = "",
-            Dlugosc = 0
-        };
+            _ = _notice.Error(new()
+            {
+                Message = $"Nie udało się pobrać ID dla wiersza: {IdpozNazwaProduktu}",
+                Description = "Błąd danych",
+                Placement = NotificationPlacement.BottomRight
+            });
+            return;
+        }
+
+        selValue = element.RowIdWzorca.ToString();
+
+        _editowanyWzorzec.RowIdWzorca = _selectedValue;
+        _editowanyWzorzec.NazwaWzorca = element.NazwaWzorca;
 
         _visibleEdit = true;
         _productAdd = true;
@@ -643,8 +709,18 @@ else
             return;
         }
 
+       // if (string.IsNullOrWhiteSpace(_editowanyWzorzec.RowIdWzorca))
+        if (!_editowanyWzorzec.RowIdWzorca.HasValue || _editowanyWzorzec.RowIdWzorca == Guid.Empty)
+        {
+            infoEdit = "Row Id produktu jest wymagany!";
+            return;
+        }
+      //  selValue
+
         if (_productAdd)
         {
+            Console.WriteLine("Dodaję nowy produkt do wzorca: " + _editowanyWzorzec.NazwaWzorca + " / " + _editowanyWzorzec.RowIdWzorca);
+
             var response = await Http.PostAsJsonAsync("api/WzorceKompltacji", edytowanyWzorzec);
 
             if (response.IsSuccessStatusCode)
@@ -659,6 +735,11 @@ else
                 .ToList();
 
                 infoDodaj = "Nowy wzorzec dodany.";
+
+                await Task.Delay(900); // Krótkie opóźnienie, aby użytkownik zauważył komunikat
+
+                _visibleEdit = false;
+                _productAdd = false;
             }
             else
             {
@@ -678,6 +759,7 @@ else
             {
                 await _message.Success("Zmieniono dane wzorca", 1);
                 _visibleEdit = false;
+                _productAdd = false;
                 await FetchUpdatedData();
             }
             else
@@ -695,9 +777,21 @@ else
     }
 
 
-    private string GetPopconfirmTitle(int IdpozNazwaProduktu, bool isExpand)
+    private string GetPopconfirmTitle(int IdpozNazwaProduktu, bool isExpand, string cellData)
     {
         _isExpand = isExpand;
+
+        // próbujemy pobrać ID
+        if (!TryZwrocID(IdpozNazwaProduktu, out var id))
+        {
+            _ = _notice.Error(new()
+            {
+                Message = $"Nie udało się pobrać ID dla wiersza: {IdpozNazwaProduktu}",
+                Description = $"Błąd danych [{cellData}]",
+                Placement = NotificationPlacement.BottomRight
+            });
+            return "BRAK DANYCH!!!!";
+        }
 
         var pozNazwaProduktu = wzorzecSzczegoly?.FirstOrDefault(p => p.Id == ZwrocID(IdpozNazwaProduktu))?.NazwaProduktu ?? "Nieznany produkt";
         return $"Czy usunąć produkt: {pozNazwaProduktu}";
@@ -714,6 +808,18 @@ else
                 Message = "Nie posiadasz uprawnień do USUNIĘCIA danych.",
                 Description = "Uwaga!!!",
                 Placement = NotificationPlacement.BottomLeft
+            });
+            return;
+        }
+
+        // próbujemy pobrać ID
+        if (!TryZwrocID(IdpozNazwaProduktu, out var id))
+        {
+            _ = _notice.Error(new()
+            {
+                Message = $"Nie udało się pobrać ID dla wiersza: {IdpozNazwaProduktu}",
+                Description = "Błąd danych",
+                Placement = NotificationPlacement.BottomRight
             });
             return;
         }
@@ -749,6 +855,18 @@ else
 
         _isExpand = isExpand;
 
+        // próbujemy pobrać ID
+        if (!TryZwrocID(IdpozNazwaProduktu, out var id))
+        {
+            _ = _notice.Error(new()
+            {
+                Message = $"Nie udało się pobrać ID dla wiersza: {IdpozNazwaProduktu}",
+                Description = "Błąd danych",
+                Placement = NotificationPlacement.BottomRight
+            });
+            return;
+        }
+
         var elementyDoWzorca = wzorzecSzczegoly?.FirstOrDefault(p => p.Id == ZwrocID(IdpozNazwaProduktu));
 
         if (elementyDoWzorca == null)
@@ -780,6 +898,21 @@ else
 
         return wzorzecSzczegoly[idWiersza - 1].Id;
     }
+
+    private bool TryZwrocID(int idWiersza, out long id)
+    {
+        id = 0;
+
+        if (wzorzecSzczegoly is null || wzorzecSzczegoly.Count == 0)
+            return false;
+
+        if (idWiersza < 1 || idWiersza > wzorzecSzczegoly.Count)
+            return false;
+
+        id = wzorzecSzczegoly[idWiersza - 1].Id;
+        return true;
+    }
+
 
 
     private async Task GoBack()
