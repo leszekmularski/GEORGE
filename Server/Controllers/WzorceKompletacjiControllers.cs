@@ -11,31 +11,31 @@ namespace GEORGE.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class WzorceKompltacjiController : ControllerBase
+    public class WzorceKompletacjiController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
-        private readonly ILogger<WzorceKompltacjiController> _logger;
+        private readonly ILogger<WzorceKompletacjiController> _logger;
 
-        public WzorceKompltacjiController(ApplicationDbContext context, ILogger<WzorceKompltacjiController> logger)
+        public WzorceKompletacjiController(ApplicationDbContext context, ILogger<WzorceKompletacjiController> logger)
         {
             _context = context;
             _logger = logger;
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<WzorceKompltacji>>> GetWzorceKompltacjiControllerAsync()
+        public async Task<ActionResult<List<WzorceKompletacji>>> GetWzorceKompltacjiControllerAsync()
         {
             return await _context.WzorceKompltacji.OrderBy(e => e.Id).ToListAsync();
         }
 
         [HttpGet("rowidwzorca/{rowidwzorca}")]
-        public async Task<ActionResult<List<WzorceKompltacji>>> GetWzorceKompltacjiRowIdAsync(string rowidwzorca)
+        public async Task<ActionResult<List<WzorceKompletacji>>> GetWzorceKompltacjiRowIdAsync(string rowidwzorca)
         {
             return await _context.WzorceKompltacji.Where(x=>x.RowIdWzorca.ToString() == rowidwzorca).OrderBy(e => e.NazwaProduktu).ToListAsync();
         }
 
         [HttpPost]
-        public async Task<ActionResult> AddWzorceKompltacjiAsync([FromBody] WzorceKompltacji wzorzec)
+        public async Task<ActionResult> AddWzorceKompltacjiAsync([FromBody] WzorceKompletacji wzorzec)
         {
             try
             {
@@ -55,7 +55,7 @@ namespace GEORGE.Server.Controllers
 
 
         [HttpPut("{id:long}")]
-        public async Task<ActionResult> UpdateWzorceKompltacjiAsync(long id, WzorceKompltacji pozEl)
+        public async Task<ActionResult> UpdateWzorceKompltacjiAsync(long id, WzorceKompletacji pozEl)
         {
             if (id != pozEl.Id)
             {

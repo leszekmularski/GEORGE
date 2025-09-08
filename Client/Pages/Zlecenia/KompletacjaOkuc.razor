@@ -125,12 +125,12 @@ else
     <div id="calosc">
         <div id="kol1">
 
-            <Select TItem="WzorceKompltacji"
+            <Select TItem="WzorceKompletacji"
                     TItemValue="Guid?"
                     DataSource="@wzorzecSzczegolyDistinct"
                     @bind-Value="@_selectedValue"
-                    LabelName="@nameof(WzorceKompltacji.NazwaWzorca)"
-                    ValueName="@nameof(WzorceKompltacji.RowIdWzorca)"
+                    LabelName="@nameof(WzorceKompletacji.NazwaWzorca)"
+                    ValueName="@nameof(WzorceKompletacji.RowIdWzorca)"
                     Placeholder="Wybierz wzorzec"
                     OnSelectedItemChanged="OnSelectedItemChangedHandler"
                     AllowClear
@@ -216,7 +216,7 @@ else
 
     </ul>
 
-    <Modal Title="@(!_productEditGrup ? "Dodaj nowy wzorzec kompletacji" : "Zmień wzorzec kompletacji")"
+    <Modal Title="@(_productAdd ? "Dodaj nowy wzorzec kompletacji" : "Zmień wzorzec kompletacji")"
               Visible="@_visible"
               OnOk="@HandleOk"
               OnCancel="@HandleCancel"
@@ -258,16 +258,16 @@ else
     [Parameter]
     public string? RowId { get; set; } // Parametr z URL
 
-    private Table<WzorceKompltacji>? table; // Referencja do tabeli
+    private Table<WzorceKompletacji>? table; // Referencja do tabeli
                                                           // private List<RowData<ElemetZamDoZlecenWithProducent>> expandedGroups = new(); // Lista rozwiniętych wierszy
 
-    private List<WzorceKompltacji>? wzorzecSzczegoly;
+    private List<WzorceKompletacji>? wzorzecSzczegoly;
 
-    private List<WzorceKompltacji>? wzorzecSzczegolyDistinct;
+    private List<WzorceKompletacji>? wzorzecSzczegolyDistinct;
 
-    private List<WzorceKompltacji> wzorzecSzczegolyAll = new();
+    private List<WzorceKompletacji> wzorzecSzczegolyAll = new();
 
-    private WzorceKompltacji? edytowanyWzorzec;
+    private WzorceKompletacji? edytowanyWzorzec;
 
     private Guid? _selectedValue;
     private string? _selectedName = "";
@@ -282,15 +282,14 @@ else
     bool _loading = false;
 
     private bool _visibleEdit;
-    private WzorceKompltacji _editowanyWzorzec = new();
+    private WzorceKompletacji _editowanyWzorzec = new();
     private string infoEdit = string.Empty;
 
     private bool _isExpand = false;
 
     private bool _productAdd = false;
-    private bool _productEditGrup = false;
 
-    IEnumerable<WzorceKompltacji> _selectedRows = [];
+    IEnumerable<WzorceKompletacji> _selectedRows = [];
 
     Data[] data;
 
@@ -305,11 +304,11 @@ else
 
         try
         {
-            var response = await Http.GetAsync($"api/WzorceKompltacji");
+            var response = await Http.GetAsync($"api/WzorceKompletacji");
 
             if (response.IsSuccessStatusCode) // Sprawdź, czy odpowiedź jest poprawna (status 2xx)
             {
-                wzorzecSzczegoly = await response.Content.ReadFromJsonAsync<List<WzorceKompltacji>>();
+                wzorzecSzczegoly = await response.Content.ReadFromJsonAsync<List<WzorceKompletacji>>();
 
                 wzorzecSzczegolyAll = wzorzecSzczegoly ?? new();
 
@@ -321,7 +320,7 @@ else
                         {
                             var parent = g.First();
 
-                            var newParent = new WzorceKompltacji
+                            var newParent = new WzorceKompletacji
                             {
                                 // Copy all properties from parent
                                 Id = parent.Id,
@@ -333,9 +332,15 @@ else
                                 // Now set the NestedData
                                 NestedData = g.Select(item => new NestedData
                                 {
-                                    Id = (int)item.Id, // or another unique key, note: casting long to int might cause overflow
+                                    Id = item.Id, // or another unique key, note: casting long to int might cause overflow
                                     DataZapisu = item.DataZapisu,
                                     NazwaProduktu = item.NazwaProduktu ?? string.Empty,
+                                    RowIdWzorca = item.RowIdWzorca,
+                                    NazwaWzorca = item.NazwaWzorca ?? string.Empty,
+                                    NumerKatalogowy = item.NumerKatalogowy ?? string.Empty,
+                                    Typ = item.Typ ?? string.Empty,
+                                    Jednostka = item.Jednostka ?? string.Empty,
+                                    Dlugosc = item.Dlugosc,
                                     Ilosc = item.Ilosc
                                 }).ToArray()
                             };
@@ -376,7 +381,7 @@ else
         <Button OnClick="@HandleOk"
                 Type="ButtonType.Primary"
                 Loading="@_loading">
-        @(_productEditGrup ? "Zmień nazwę wzorca" : "Dodaj nowy wzorzec")
+        @(!_productAdd ? "Zmień nazwę wzorca" : "Dodaj nowy wzorzec")
         </Button>
         <Button OnClick="@HandleCancel">Anuluj</Button>
     </div>
@@ -484,10 +489,12 @@ else
 
         selName = selName?.Trim();
 
+        Console.WriteLine($"Rozpoaczyna akcję HandleOk --> _productAdd: {_productAdd}. selValue: {selValue} selName: {selName}");
+
         var exists = wzorzecSzczegolyAll
        .Where(w => w.NazwaWzorca == selName);
 
-        if (exists != null && exists.Count() > 0 && !_productEditGrup)
+        if (exists != null && exists.Count() > 0)
         {
             Console.WriteLine ("Nazwa wzorca już istnieje.");
             infoDodaj = "Nazwa wzorca już istnieje.";
@@ -508,22 +515,22 @@ else
 
         _loading = true;
 
-        if (!_productEditGrup)
+        if (_productAdd)
         {
-            edytowanyWzorzec = new WzorceKompltacji
+            edytowanyWzorzec = new WzorceKompletacji
             {
                 RowIdWzorca = selValue,
                 NazwaWzorca = selName,
-                NumerKatalogowy = "Nowy",
-                NazwaProduktu = "Nowy",
-                Typ = "Podaj",
+                NumerKatalogowy = "Podaj numer katalogowy",
+                NazwaProduktu = "Podaj nazwę produktu",
+                Typ = "Podaj typ",
                 Ilosc = 0,
                 Jednostka = "szt.",
                 Dlugosc = 0,
             };
 
             // wysyłka do API
-            var response = await Http.PostAsJsonAsync("api/WzorceKompltacji", edytowanyWzorzec);
+            var response = await Http.PostAsJsonAsync("api/WzorceKompletacji", edytowanyWzorzec);
 
             if (response.IsSuccessStatusCode)
             {
@@ -559,7 +566,7 @@ else
             var request = new { NowaNazwaGrupy = _selectedName };
 
             var response = await Http.PutAsJsonAsync(
-            $"api/WzorceKompltacji/all/{selValue.ToString()}",
+            $"api/WzorceKompletacji/all/{selValue.ToString()}",
                 request
             );
 
@@ -605,7 +612,8 @@ else
     {
         infoDodaj = "";
 
-        _productEditGrup = false;
+        _productAdd = true;
+
         selName = "";
         selValue = Guid.NewGuid();
         _visible = true;
@@ -613,7 +621,7 @@ else
         await Task.CompletedTask;
     }
 
-    private async Task OnSelectedItemChangedHandler(WzorceKompltacji value)
+    private async Task OnSelectedItemChangedHandler(WzorceKompletacji value)
     {
         if (value == null) // kliknięto "x" (AllowClear)
         {
@@ -646,7 +654,8 @@ else
             });
             return;
         }
-        _productEditGrup = true;
+        _productAdd = false;
+
         infoDodaj = "";
 
         _ = _notice.Info(new()
@@ -682,7 +691,7 @@ else
 
         Console.WriteLine("ShowEditModal ==> RowIdWzorca =>" + data.RowIdWzorca + " NazwaWzorca: =>" + data.NazwaWzorca);
 
-        _editowanyWzorzec = new WzorceKompltacji
+        _editowanyWzorzec = new WzorceKompletacji
     {
             Id = data.Id,
             RowIdWzorca = selValue,
@@ -732,6 +741,9 @@ else
 
     private async Task HandleEditOk()
     {
+
+        Console.WriteLine($"Rozpoczynam akcję --> HandleEditOk _productAdd:{_productAdd}");
+
         if (string.IsNullOrWhiteSpace(_editowanyWzorzec.NazwaWzorca))
         {
             infoEdit = "Nazwa wzorca jest wymagana!";
@@ -750,7 +762,7 @@ else
         {
             Console.WriteLine("Dodaję nowy produkt do wzorca: " + _editowanyWzorzec.NazwaWzorca + " / " + _editowanyWzorzec.RowIdWzorca);
 
-            var response = await Http.PostAsJsonAsync("api/WzorceKompltacji", edytowanyWzorzec);
+            var response = await Http.PostAsJsonAsync("api/WzorceKompletacji", edytowanyWzorzec);
 
             if (response.IsSuccessStatusCode)
             {
@@ -765,7 +777,7 @@ else
 
                 infoDodaj = "Nowy wzorzec dodany.";
 
-                await Task.Delay(900); // Krótkie opóźnienie, aby użytkownik zauważył komunikat
+                await Task.Delay(1200); // Krótkie opóźnienie, aby użytkownik zauważył komunikat
 
                 _visibleEdit = false;
                 _productAdd = false;
@@ -781,14 +793,17 @@ else
         else
         {
             var response = await Http.PutAsJsonAsync(
-                 $"api/WzorceKompltacji/{_editowanyWzorzec.Id}",
+                 $"api/WzorceKompletacji/{_editowanyWzorzec.Id}",
                  _editowanyWzorzec);
 
             if (response.IsSuccessStatusCode)
             {
+                selName = _editowanyWzorzec.NazwaWzorca;
+                //selValue = _editowanyWzorzec.RowIdWzorca ?? Guid.Empty;
                 await _message.Success("Zmieniono dane wzorca", 1);
                 _visibleEdit = false;
                 _productAdd = false;
+
                 await FetchUpdatedData();
             }
             else
@@ -826,7 +841,7 @@ else
             return;
         }
 
-        var response = await Http.DeleteAsync($"api/WzorceKompltacji/by-rowid/{rowIdWzorca}");
+        var response = await Http.DeleteAsync($"api/WzorceKompletacji/by-rowid/{rowIdWzorca}");
 
         if (response.IsSuccessStatusCode)
         {
@@ -854,7 +869,7 @@ else
             return;
         }
 
-        var response = await Http.DeleteAsync($"api/WzorceKompltacji/{id.ToString()}");
+        var response = await Http.DeleteAsync($"api/WzorceKompletacji/{id.ToString()}");
 
         if (response.IsSuccessStatusCode)
         {
@@ -883,7 +898,7 @@ else
 
         var elementyDoWzorca = wzorzecSzczegoly?.FirstOrDefault(p => p.Id == id);
 
-        var response = await Http.PutAsJsonAsync($"api/WzorceKompltacji/{elementyDoWzorca.Id}", elementyDoWzorca);
+        var response = await Http.PutAsJsonAsync($"api/WzorceKompletacji/{elementyDoWzorca.Id}", elementyDoWzorca);
 
         if (response.IsSuccessStatusCode)
         {
@@ -904,11 +919,55 @@ else
 
     private async Task FetchUpdatedData()
     {
-        var response = await Http.GetAsync($"api/WzorceKompltacji");
+        var response = await Http.GetAsync($"api/WzorceKompletacji");
 
         if (response.IsSuccessStatusCode) // Sprawdź, czy odpowiedź jest poprawna (status 2xx)
         {
-            wzorzecSzczegoly = await response.Content.ReadFromJsonAsync<List<WzorceKompltacji>>();
+            wzorzecSzczegoly = await response.Content.ReadFromJsonAsync<List<WzorceKompletacji>>();
+
+            if (wzorzecSzczegoly != null)
+            {
+                wzorzecSzczegolyDistinct = wzorzecSzczegoly
+                    .GroupBy(wz => wz.RowIdWzorca)
+                    .Select(g =>
+                    {
+                        var parent = g.First();
+
+                        var newParent = new WzorceKompletacji
+                        {
+                            // Copy all properties from parent
+                            Id = parent.Id,
+                            RowId = parent.RowId,
+                            NazwaWzorca = parent.NazwaWzorca,
+                            RowIdWzorca = parent.RowIdWzorca,
+                            // ... copy all other properties ...
+
+                            // Now set the NestedData
+                            NestedData = g.Select(item => new NestedData
+                            {
+                                Id = item.Id, // or another unique key, note: casting long to int might cause overflow
+                                DataZapisu = item.DataZapisu,
+                                NazwaProduktu = item.NazwaProduktu ?? string.Empty,
+                                RowIdWzorca = item.RowIdWzorca,
+                                NazwaWzorca = item.NazwaWzorca ?? string.Empty,
+                                NumerKatalogowy = item.NumerKatalogowy ?? string.Empty,
+                                Typ = item.Typ ?? string.Empty,
+                                Jednostka = item.Jednostka ?? string.Empty,
+                                Dlugosc = item.Dlugosc,
+                                Ilosc = item.Ilosc
+                            }).ToArray()
+                        };
+                        return newParent;
+                    })
+                    .ToList();
+
+                data = wzorzecSzczegolyDistinct.Select(wz => new Data
+                {
+                    NazwaWzorca = wz.NazwaWzorca,
+                    RowIdWzorca = wz.RowIdWzorca.Value,
+                    NestedData = wz.NestedData
+                }).ToArray();
+            }
         }
     }
 
@@ -930,7 +989,7 @@ else
             return;
         }
 
-        string nazwaTabeli = "WzorceKompltacji";
+        string nazwaTabeli = "WzorceKompletacji";
 
         Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");
 

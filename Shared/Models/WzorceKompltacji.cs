@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GEORGE.Shared.Models
 {
-    public class WzorceKompltacji
+    public class WzorceKompletacji
     {
         public long Id { get; set; }
 
