@@ -238,14 +238,20 @@ else
      <p>Podaj nazwę produktu.</p>
      <Input @bind-Value="_editowanyWzorzec.NazwaProduktu" />
 
+    <p>Numer Katalogowy.</p>
+    <Input @bind-Value="_editowanyWzorzec.NumerKatalogowy" />
+
     <p>Podaj ilość.</p>
         <Input Type="InputType.Number" @bind-Value="_editowanyWzorzec.Ilosc" />
 
     <p>Podaj jednostkę.</p>
     <Input @bind-Value="_editowanyWzorzec.Jednostka" />
 
+        <p>Typ</p>
+        <Input @bind-Value="_editowanyWzorzec.Typ" />
+
     <p style="color:red">@infoEdit</p>
-        <p style="color:yellowgreen">GUID: @selValue</p>
+        <p style="color:yellowgreen">GUID: @_editowanyWzorzec.RowIdWzorca</p>
 </Modal>
 
 
@@ -545,7 +551,11 @@ else
 
                 infoDodaj = "Nowy wzorzec dodany.";
 
-                await Task.Delay(900); // Krótkie opóźnienie, aby użytkownik zauważył komunikat
+                StateHasChanged();
+
+                await Task.Delay(1100); // Krótkie opóźnienie, aby użytkownik zauważył komunikat
+
+                await FetchUpdatedData();
 
                 _visible = false;
             }
@@ -559,11 +569,11 @@ else
         }
         else
         {
-            Console.WriteLine("Zmieniam nazwę wzorca: " + _selectedName);
+            Console.WriteLine("Zmieniam nazwę wzorca: " + selName);
 
             Console.WriteLine("Zmieniam id wzorca: " + selValue.ToString());
 
-            var request = new { NowaNazwaGrupy = _selectedName };
+            var request = new { NowaNazwaGrupy = selName };
 
             var response = await Http.PutAsJsonAsync(
             $"api/WzorceKompletacji/all/{selValue.ToString()}",
@@ -573,11 +583,6 @@ else
             if (response.IsSuccessStatusCode)
             {
                 await FetchUpdatedData();
-
-                wzorzecSzczegolyDistinct = wzorzecSzczegoly
-                    .GroupBy(wz => wz.NazwaWzorca)
-                    .Select(g => g.First())
-                    .ToList();
 
                 infoDodaj = "Nazwa wzorca zmieniona.";
 
@@ -685,6 +690,7 @@ else
             return;
         }
 
+        _productAdd = false;
 
         selValue = data.RowIdWzorca ?? Guid.Empty;
         selName = data.NazwaWzorca ?? "BRAK DANYCH!!!!";
@@ -694,14 +700,19 @@ else
         _editowanyWzorzec = new WzorceKompletacji
     {
             Id = data.Id,
-            RowIdWzorca = selValue,
-            NazwaWzorca = selName,
+            RowIdWzorca = data.RowIdWzorca,
+            NazwaWzorca = data.NazwaWzorca,
             NazwaProduktu = data.NazwaProduktu,
             NumerKatalogowy = data.NumerKatalogowy,
             Typ = data.Typ,
             Ilosc = data.Ilosc,
             Jednostka = data.Jednostka,
-            Dlugosc = data.Dlugosc
+            Dlugosc = data.Dlugosc,
+            DataZapisu = data.DataZapisu,
+            RowId = data.RowId,
+            Kolor = data.Kolor,
+            Uwagi = data.Uwagi,
+            CenaNetto = data.CenaNetto
     };
 
         _visibleEdit = true;
@@ -735,13 +746,15 @@ else
 
         _editowanyWzorzec.NazwaWzorca = nawaWzorca;
 
+        selName = nawaWzorca;
+        selValue = rowIdWzorca ?? Guid.Empty;
+
         _visibleEdit = true;
         _productAdd = true;
     }
 
     private async Task HandleEditOk()
     {
-
         Console.WriteLine($"Rozpoczynam akcję --> HandleEditOk _productAdd:{_productAdd}");
 
         if (string.IsNullOrWhiteSpace(_editowanyWzorzec.NazwaWzorca))
@@ -750,60 +763,59 @@ else
             return;
         }
 
-        // if (string.IsNullOrWhiteSpace(_editowanyWzorzec.RowIdWzorca))
         if (!_editowanyWzorzec.RowIdWzorca.HasValue || _editowanyWzorzec.RowIdWzorca == Guid.Empty)
         {
             infoEdit = "Row Id produktu jest wymagany!";
             return;
         }
-        //  selValue
 
         if (_productAdd)
         {
             Console.WriteLine("Dodaję nowy produkt do wzorca: " + _editowanyWzorzec.NazwaWzorca + " / " + _editowanyWzorzec.RowIdWzorca);
 
-            var response = await Http.PostAsJsonAsync("api/WzorceKompletacji", edytowanyWzorzec);
+            // upewnij się, że NestedData nie jest null (jeśli serwer tego wymaga)
+           // _editowanyWzorzec.NestedData ??= Array.Empty<NestedData>();
+
+            _editowanyWzorzec.Id = 0;
+
+            // debug: pokaż co wysyłasz
+            Console.WriteLine("Wysyłany JSON: " + System.Text.Json.JsonSerializer.Serialize(_editowanyWzorzec));
+
+            // WYŚLIJ poprawny obiekt (z podłogą)
+            var response = await Http.PostAsJsonAsync("api/WzorceKompletacji", _editowanyWzorzec);
 
             if (response.IsSuccessStatusCode)
             {
-                wzorzecSzczegoly?.Add(edytowanyWzorzec);
-
-                wzorzecSzczegolyAll = wzorzecSzczegoly ?? new();
-
-                wzorzecSzczegolyDistinct = wzorzecSzczegoly
-                .GroupBy(wz => wz.NazwaWzorca) // grupujemy po nazwie
-                .Select(g => g.First())        // bierzemy pierwszy rekord z każdej grupy
-                .ToList();
+                // dodajemy wysłany obiekt do listy (używaj tej samej instancji)
+                await FetchUpdatedData();
 
                 infoDodaj = "Nowy wzorzec dodany.";
-
-                await Task.Delay(1200); // Krótkie opóźnienie, aby użytkownik zauważył komunikat
-
+                await Task.Delay(1200);
                 _visibleEdit = false;
                 _productAdd = false;
             }
             else
             {
-                // log albo komunikat użytkownikowi
                 var msg = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"Błąd: {msg}");
                 infoDodaj = $"Błąd: {msg}";
+                infoEdit = $"Błąd: {msg}";
             }
         }
         else
         {
+         //  _editowanyWzorzec.NestedData ??= Array.Empty<NestedData>();
+
             var response = await Http.PutAsJsonAsync(
-                 $"api/WzorceKompletacji/{_editowanyWzorzec.Id}",
-                 _editowanyWzorzec);
+                $"api/WzorceKompletacji/{_editowanyWzorzec.Id}",
+                _editowanyWzorzec);
 
             if (response.IsSuccessStatusCode)
             {
                 selName = _editowanyWzorzec.NazwaWzorca;
-                //selValue = _editowanyWzorzec.RowIdWzorca ?? Guid.Empty;
                 await _message.Success("Zmieniono dane wzorca", 1);
                 _visibleEdit = false;
                 _productAdd = false;
-
                 await FetchUpdatedData();
             }
             else
@@ -811,9 +823,9 @@ else
                 var msg = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"Błąd: {msg}");
                 infoDodaj = $"Błąd: {msg}";
+                infoEdit = $"Błąd: {msg}";
             }
         }
-
     }
 
     private void HandleEditCancel()
@@ -925,6 +937,8 @@ else
         {
             wzorzecSzczegoly = await response.Content.ReadFromJsonAsync<List<WzorceKompletacji>>();
 
+            wzorzecSzczegolyAll = wzorzecSzczegoly ?? new();
+
             if (wzorzecSzczegoly != null)
             {
                 wzorzecSzczegolyDistinct = wzorzecSzczegoly
@@ -989,7 +1003,7 @@ else
             return;
         }
 
-        string nazwaTabeli = "WzorceKompletacji";
+        string nazwaTabeli = "WzorceKompltacji";
 
         Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");
 

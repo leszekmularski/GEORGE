@@ -55,7 +55,7 @@ namespace GEORGE.Server.Controllers
 
 
         [HttpPut("{id:long}")]
-        public async Task<ActionResult> UpdateWzorceKompltacjiAsync(long id, WzorceKompletacji pozEl)
+        public async Task<ActionResult> UpdateWzorceKompltacjiAsync(long id, [FromBody] WzorceKompletacji pozEl)
         {
             if (id != pozEl.Id)
             {
@@ -77,11 +77,12 @@ namespace GEORGE.Server.Controllers
                 }
                 else
                 {
-                    _logger.LogError(ex, "Błąd podczas aktualizacji WzorceKompltacji .");
+                    _logger.LogError(ex, "Błąd podczas aktualizacji WzorceKompltacji.");
                     return StatusCode(500, "Wystąpił błąd podczas przetwarzania żądania.");
                 }
             }
         }
+
 
         [HttpPut("all/{rowIdALL}")]
         public async Task<ActionResult> UpdateWzorceKompltacjiAsync(string rowIdALL, [FromBody] UpdateWzorzecRequest request)

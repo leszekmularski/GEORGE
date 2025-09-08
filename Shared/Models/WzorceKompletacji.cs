@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace GEORGE.Shared.Models
 {
@@ -39,8 +40,8 @@ namespace GEORGE.Shared.Models
         public string? RowIdPliku_2 { get; set; }
 
         [NotMapped]
-        public NestedData[] NestedData { get; set; }
-
+        [JsonIgnore] // ← ukryje pole w API, żeby nie mieszało
+        public NestedData[] NestedData { get; set; } = Array.Empty<NestedData>();
 
     }
     public class NestedData
