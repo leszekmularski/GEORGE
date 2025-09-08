@@ -139,6 +139,28 @@ namespace GEORGE.Server.Controllers
             return NoContent(); // lub Ok() jeśli chcesz zwrócić jakąś informację
         }
 
+        [HttpDelete("by-rowid/{rowId}")]
+        public async Task<ActionResult> DeleteByRowIdAsync(string rowId)
+        {
+            if (!Guid.TryParse(rowId, out var guid))
+            {
+                return BadRequest($"Niepoprawny format GUID: {rowId}");
+            }
+
+            var records = _context.WzorceKompltacji
+                .Where(x => x.RowIdWzorca == guid);
+
+            if (!records.Any())
+            {
+                return NotFound($"Nie znaleziono rekordów z RowIdWzorca = {guid}");
+            }
+
+            _context.WzorceKompltacji.RemoveRange(records);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
     }
     public class UpdateWzorzecRequest
     {
