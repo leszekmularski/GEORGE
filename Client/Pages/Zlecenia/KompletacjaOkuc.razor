@@ -13,6 +13,7 @@
 @inject INotificationService _notice
 @using AntDesign.TableModels
 
+
 <style>
     #calosc {
         background-color: #1a1a1a;
@@ -299,6 +300,7 @@ else
                     <PropertyColumn Title="Kolor" Property="c => c.Kolor" />
                     <PropertyColumn Title="Ilość" Property="c => c.Ilosc" />
                     <PropertyColumn Title="Uwagi" Property="c => c.Uwagi" />
+                    <PropertyColumn Title="RowIdProducent" Property="c => c.RowIdProducent" Hidden />
                     <ActionColumn Title="Akcje">
                         <CellRender Context="cellData">
 
@@ -344,42 +346,63 @@ else
         <p style="color:yellowgreen">GUID: @selValue</p>
     </Modal>
 
-<Modal Title="@(_productAdd ? "Dodaj nowy produkt" : "Edytuj produkt")"
+    <Modal Title="@(_productAdd ? "Dodaj nowy produkt" : "Edytuj produkt")"
        Visible="@_visibleEdit"
        OnOk="@HandleEditOk"
-       OnCancel="@HandleEditCancel">
+       OnCancel="@HandleEditCancel"
+       Width="800">
 
-    <label title="@_editowanyWzorzec.RowIdWzorca"> Dotyczy: @_editowanyWzorzec.NazwaWzorca</label>
+    <label title="@_editowanyWzorzec.RowIdWzorca">Dotyczy: @_editowanyWzorzec.NazwaWzorca</label>
 
-     <p>Podaj nazwę produktu.</p>
-     <Input @bind-Value="_editowanyWzorzec.NazwaProduktu" />
+    <AntDesign.Row Gutter="16">
+        <!-- LEWA KOLUMNA -->
+        <AntDesign.Col Span="12">
 
-    <p>Numer Katalogowy.</p>
-    <Input @bind-Value="_editowanyWzorzec.NumerKatalogowy" />
+            <p>Producent:</p>
+            <Select Mode="default"
+                    DataSource="@_producenci"
+                    AllowClear="true"
+                    @bind-Value="@_editowanyWzorzec.RowIdProducent"
+                    LabelName="NazwaProducenta"
+                    ValueName="RowId"
+                    Style="width: 100%;">
+            </Select>
 
-    <p>Typ / Nr. Dostawcy</p>
-    <Input @bind-Value="_editowanyWzorzec.Typ" />
+            <p>Podaj nazwę produktu:</p>
+            <Input @bind-Value="_editowanyWzorzec.NazwaProduktu" />
 
-    <p>Podaj ilość.</p>
-        <Input Type="InputType.Number" @bind-Value="_editowanyWzorzec.Ilosc" />
+            <p>Numer Katalogowy:</p>
+            <Input @bind-Value="_editowanyWzorzec.NumerKatalogowy" />
 
-    <p>Podaj jednostkę.</p>
+            <p>Typ / Nr. Dostawcy:</p>
+            <Input @bind-Value="_editowanyWzorzec.Typ" />
 
-    <Select TItem="Item"  TItemValue="string"
-    DataSource="@_itemsJednostki"
-    @bind-Value="@_editowanyWzorzec.Jednostka"
-    ValueName="@nameof(Item.Value)"
-    LabelName="@nameof(Item.Name)"
-    DefaultActiveFirstOption
-    Style="width: 100%;">
-    </Select> 
+                </AntDesign.Col>
 
+        <!-- PRAWA KOLUMNA -->
+        <AntDesign.Col Span="12">
 
-    <p>Kolor.</p>
-    <Input @bind-Value="_editowanyWzorzec.Kolor" />
+            <p>Podaj ilość:</p>
+            <Input Type="InputType.Number" @bind-Value="_editowanyWzorzec.Ilosc" />
 
-    <p>Uwagi</p>
-    <Input @bind-Value="_editowanyWzorzec.Uwagi" />
+            <p>Podaj jednostkę:</p>
+            <Select TItem="Item" TItemValue="string"
+                    DataSource="@_itemsJednostki"
+                    @bind-Value="@_editowanyWzorzec.Jednostka"
+                    ValueName="@nameof(Item.Value)"
+                    LabelName="@nameof(Item.Name)"
+                    DefaultActiveFirstOption
+                    Style="width: 100%;">
+            </Select> 
+
+            <p>Kolor:</p>
+            <Input @bind-Value="_editowanyWzorzec.Kolor" />
+
+            <p>Uwagi:</p>
+            <Input @bind-Value="_editowanyWzorzec.Uwagi" />
+
+                </AntDesign.Col>
+            </AntDesign.Row>
 
     <p style="color:red">@infoEdit</p>
 
@@ -430,6 +453,8 @@ else
     IEnumerable<WzorceKompletacji> _selectedRows = [];
 
     Data[] data;
+
+    private List<ProducenciPodwykonawcy>? _producenci;
 
     protected override async Task OnInitializedAsync()
     {
@@ -495,7 +520,8 @@ else
                                     Ilosc = item.Ilosc,
                                     Uwagi = item.Uwagi ?? string.Empty,
                                     Kolor = item.Kolor ?? string.Empty,
-                                }).OrderBy(x => x.NazwaWzorca).ToArray()
+                                    RowIdProducent = item.RowIdProducent,
+                                }).OrderBy(x => x.NazwaProduktu).ToArray()
                             };
                             return newParent;
                         })
@@ -582,8 +608,9 @@ else
                     Uwagi = item.Uwagi ?? string.Empty,
                     Kolor = item.Kolor ?? string.Empty,
                     Typ = item.Typ ?? string.Empty,
+                    RowIdProducent = item.RowIdProducent,
                 })
-                .OrderBy(x => x.NazwaWzorca).ToArray();
+                .OrderBy(x => x.NazwaWzorca).OrderBy(x => x.NazwaProduktu).ToArray();
 
 
             if (rowData.Data.NestedData != null)
@@ -626,8 +653,9 @@ else
                     Kolor = item.Kolor ?? string.Empty,
                     Typ = item.Typ ?? string.Empty,
                     Uwagi = item.Uwagi ?? string.Empty,
+                    RowIdProducent = item.RowIdProducent,
                 })
-                .OrderBy(x => x.NazwaWzorca).ToArray();
+                .OrderBy(x => x.NazwaWzorca).OrderBy(x => x.NazwaProduktu).ToArray();
 
             Console.WriteLine($"2. Rozwinąłem wiersz dla wzorca: {selName} / {xselG}");
 
@@ -809,7 +837,7 @@ else
         }
 
         // Każdy element zamieniamy na string w formacie: { Key = Value, Key = Value }
-        var textDoSchowka = string.Join("\n", nestedData.OrderBy(c=>c.NazwaProduktu).Select(k =>
+        var textDoSchowka = string.Join("\n", nestedData.OrderBy(c => c.NazwaProduktu).OrderBy(x => x.NazwaProduktu).Select(k =>
             "{ " +
             $"RowIdProducent = {k.RowIdProducent}, " +
             $"NazwaProduktu = {k.NazwaProduktu}, " +
@@ -911,7 +939,8 @@ else
                             Ilosc = item.Ilosc,
                             Uwagi = item.Uwagi ?? string.Empty,
                             Kolor = item.Kolor ?? string.Empty,
-                        }).ToArray()
+                            RowIdProducent = item.RowIdProducent,
+                        }).OrderBy(x=>x.NazwaProduktu).ToArray()
                     };
                     return newParent;
                 })
@@ -984,7 +1013,7 @@ else
     }
 
 
-    private void ShowEditModal(NestedData data)
+    private async Task ShowEditModal(NestedData data)
     {
         if (!boolZmiana && boolAdmin)
         {
@@ -996,6 +1025,8 @@ else
             });
             return;
         }
+
+        if (_producenci == null) _producenci = await Http.GetFromJsonAsync<List<ProducenciPodwykonawcy>>($"api/ProducenciPodwykonawcy");
 
         _productAdd = false;
 
@@ -1019,13 +1050,14 @@ else
             RowId = data.RowId,
             Kolor = data.Kolor,
             Uwagi = data.Uwagi,
-            CenaNetto = data.CenaNetto
+            CenaNetto = data.CenaNetto,
+            RowIdProducent = data.RowIdProducent,
     };
 
         _visibleEdit = true;
     }
 
-    private void ShowDodajModal(Guid? rowIdWzorca, string nawaWzorca)
+    private async Task ShowDodajModal(Guid? rowIdWzorca, string nawaWzorca)
     {
         if (!boolZmiana && boolAdmin)
         {
@@ -1048,6 +1080,8 @@ else
             });
             return;
         }
+
+        if (_producenci == null) _producenci = await Http.GetFromJsonAsync<List<ProducenciPodwykonawcy>>($"api/ProducenciPodwykonawcy");
 
         _editowanyWzorzec.RowIdWzorca = rowIdWzorca;
 
@@ -1295,10 +1329,11 @@ else
                                 Ilosc = item.Ilosc,
                                 Kolor = item.Kolor ?? string.Empty,
                                 Uwagi = item.Uwagi ?? string.Empty,
-                            }).ToArray()
+                                RowIdProducent = item.RowIdProducent,
+                            }).OrderBy(x => x.NazwaProduktu).ToArray()
                         };
                         return newParent;
-                    })
+                    }).OrderBy(x => x.NazwaProduktu)
                     .ToList();
 
                 data = wzorzecSzczegolyDistinct.Select(wz => new Data
