@@ -166,8 +166,14 @@ else
                             </SpaceItem>
                             <SpaceItem>
                                 <a style="color:blue; cursor:pointer;"
-                                   @onclick="() => ShowEditGruppModal(context)">
+                                   @onclick="() => ShowEditGruppModal(context, false)">
                                     Edytuj Grupę
+                                </a>
+                            </SpaceItem>
+                            <SpaceItem>
+                                <a style="color:blue; cursor:pointer;"
+                                   @onclick="() => ShowEditGruppModal(context, true)">
+                                    Klonuj Grupę
                                 </a>
                             </SpaceItem>
                         </Space>
@@ -176,12 +182,14 @@ else
             </ColumnDefinitions>
             <ExpandTemplate Context="rowData">
                 <Table DataSource="rowData.Data.NestedData" Loading="rowData.Data.NestedData == null" HidePagination>
-                    <PropertyColumn Property="c => c.NazwaWzorca" Hidden />
+                    <PropertyColumn Title="Nazwa Wzorca" Property="c => c.NazwaWzorca" Hidden />
                     <PropertyColumn Property="c => c.RowIdWzorca" Hidden />
-                    <PropertyColumn Property="c => c.NazwaProduktu" />
-                    <PropertyColumn Property="c => c.NumerKatalogowy" />
-                    <PropertyColumn Property="c => c.Typ" />
-                    <PropertyColumn Property="c => c.Ilosc" />
+                    <PropertyColumn Title="Nazwa Produktu" Property="c => c.NazwaProduktu" />
+                    <PropertyColumn Title="Numer katalogowy" Property="c => c.NumerKatalogowy" />
+                    <PropertyColumn Title="Typ/Nr.Dostawcy" Property="c => c.Typ" />
+                    <PropertyColumn Title="Kolor" Property="c => c.Kolor" />
+                    <PropertyColumn Title="Ilość" Property="c => c.Ilosc" />
+                    <PropertyColumn Title="Uwagi" Property="c => c.Uwagi" />
                     <ActionColumn Title="Akcje">
                         <CellRender Context="cellData">
 
@@ -222,7 +230,7 @@ else
               OnCancel="@HandleCancel"
            Footer=@footer>
         <p>Podaj nazwę wzorca.</p>
-        <TextArea ShowCount MaxLength=100 OnChange="onChange" @bind-Value="selName" />
+        <TextArea ShowCount MaxLength=110 OnChange="onChange" @bind-Value="selName" />
         <p style="color:red">@infoDodaj</p>
         <p style="color:yellowgreen">GUID: @selValue</p>
     </Modal>
@@ -232,8 +240,7 @@ else
        OnOk="@HandleEditOk"
        OnCancel="@HandleEditCancel">
 
-    <p>Podaj nazwę wzorca.</p>
-    <Input @bind-Value="_editowanyWzorzec.NazwaWzorca" ReadOnly />
+    <label title="@_editowanyWzorzec.RowIdWzorca"> Dotyczy: @_editowanyWzorzec.NazwaWzorca</label>
 
      <p>Podaj nazwę produktu.</p>
      <Input @bind-Value="_editowanyWzorzec.NazwaProduktu" />
@@ -241,17 +248,32 @@ else
     <p>Numer Katalogowy.</p>
     <Input @bind-Value="_editowanyWzorzec.NumerKatalogowy" />
 
+    <p>Typ / Nr. Dostawcy</p>
+    <Input @bind-Value="_editowanyWzorzec.Typ" />
+
     <p>Podaj ilość.</p>
         <Input Type="InputType.Number" @bind-Value="_editowanyWzorzec.Ilosc" />
 
     <p>Podaj jednostkę.</p>
-    <Input @bind-Value="_editowanyWzorzec.Jednostka" />
 
-        <p>Typ</p>
-        <Input @bind-Value="_editowanyWzorzec.Typ" />
+    <Select TItem="Item"  TItemValue="string"
+    DataSource="@_itemsJednostki"
+    @bind-Value="@_editowanyWzorzec.Jednostka"
+    ValueName="@nameof(Item.Value)"
+    LabelName="@nameof(Item.Name)"
+    DefaultActiveFirstOption
+    Style="width: 100%;">
+    </Select> 
+
+
+    <p>Kolor.</p>
+    <Input @bind-Value="_editowanyWzorzec.Kolor" />
+
+    <p>Uwagi</p>
+    <Input @bind-Value="_editowanyWzorzec.Uwagi" />
 
     <p style="color:red">@infoEdit</p>
-        <p style="color:yellowgreen">GUID: @_editowanyWzorzec.RowIdWzorca</p>
+
 </Modal>
 
 
@@ -278,6 +300,7 @@ else
     private Guid? _selectedValue;
     private string? _selectedName = "";
     private Guid selValue;// do zmiany nazwy grupy zapamiętuje RowId
+    private Guid? selValueClone;// do klonowania grupy zapamiętuje RowId oryginału
     private string selName = "";// do zmiany nazwy grupy zapamiętuje Nazwę
 
     private string? infoDodaj = "";
@@ -307,6 +330,19 @@ else
         }
 
         await Laduj_Uprawnienia();
+
+        _itemsJednostki = new List<Item>
+        {
+            new Item { Value = "szt.", Name = "szt.", DisplayName = "sztuki"},
+            new Item { Value = "kpl.", Name = "kpl.", DisplayName = "komplet"},
+            new Item { Value = "mb", Name = "mb", DisplayName = "metry bierzące"},
+            new Item { Value = "mm", Name = "mm", DisplayName = "milimetry"},
+            new Item { Value = "l", Name = "l", DisplayName = "litry"},
+            new Item { Value = "kg", Name = "kg", DisplayName = "kilogramy"},
+            new Item { Value = "g", Name = "g", DisplayName = "gramy"},
+            new Item { Value = "t", Name = "t", DisplayName = "tony"},
+            new Item { Value = "m3", Name = "m3", DisplayName = "metry sześcienny"},
+        };
 
         try
         {
@@ -347,7 +383,9 @@ else
                                     Typ = item.Typ ?? string.Empty,
                                     Jednostka = item.Jednostka ?? string.Empty,
                                     Dlugosc = item.Dlugosc,
-                                    Ilosc = item.Ilosc
+                                    Ilosc = item.Ilosc,
+                                    Uwagi = item.Uwagi ?? string.Empty,
+                                    Kolor = item.Kolor ?? string.Empty,
                                 }).ToArray()
                             };
                             return newParent;
@@ -431,7 +469,10 @@ else
                     NumerKatalogowy = item.NumerKatalogowy ?? string.Empty,
                     RowIdWzorca = xselG,
                     NazwaWzorca = xselName,
-                    Ilosc = item.Ilosc
+                    Ilosc = item.Ilosc,
+                    Uwagi = item.Uwagi ?? string.Empty,
+                    Kolor = item.Kolor ?? string.Empty,
+                    Typ = item.Typ ?? string.Empty,
                 })
                 .ToArray();
 
@@ -472,7 +513,10 @@ else
                     NumerKatalogowy = item.NumerKatalogowy ?? string.Empty,
                     RowIdWzorca = xselG,
                     NazwaWzorca = selName,
-                    Ilosc = item.Ilosc
+                    Ilosc = item.Ilosc,
+                    Kolor = item.Kolor ?? string.Empty,
+                    Typ = item.Typ ?? string.Empty,
+                    Uwagi = item.Uwagi ?? string.Empty,
                 })
                 .ToArray();
 
@@ -495,7 +539,7 @@ else
 
         selName = selName?.Trim();
 
-        Console.WriteLine($"Rozpoaczyna akcję HandleOk --> _productAdd: {_productAdd}. selValue: {selValue} selName: {selName}");
+        Console.WriteLine($"Rozpoaczyna akcję HandleOk --> _productAdd: {_productAdd}. selValue: {selValue} selName: {selName} selValueClone: {selValueClone}");
 
         var exists = wzorzecSzczegolyAll
        .Where(w => w.NazwaWzorca == selName);
@@ -521,9 +565,9 @@ else
 
         _loading = true;
 
-        if (_productAdd)
+        if (_productAdd && selValueClone == Guid.Empty)
         {
-            edytowanyWzorzec = new WzorceKompletacji
+            _editowanyWzorzec = new WzorceKompletacji
             {
                 RowIdWzorca = selValue,
                 NazwaWzorca = selName,
@@ -536,11 +580,11 @@ else
             };
 
             // wysyłka do API
-            var response = await Http.PostAsJsonAsync("api/WzorceKompletacji", edytowanyWzorzec);
+            var response = await Http.PostAsJsonAsync("api/WzorceKompletacji", _editowanyWzorzec);
 
             if (response.IsSuccessStatusCode)
             {
-                wzorzecSzczegoly?.Add(edytowanyWzorzec);
+                wzorzecSzczegoly?.Add(_editowanyWzorzec);
 
                 wzorzecSzczegolyAll = wzorzecSzczegoly ?? new();
 
@@ -565,6 +609,32 @@ else
                 var msg = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"Błąd: {msg}");
                 infoDodaj = $"Błąd: {msg}";
+            }
+        }
+        else if (_productAdd && selValueClone != Guid.Empty)
+        {
+            // debug: pokaż co wysyłasz
+            Console.WriteLine("Klonuje wzorzec z danymi Wysyłany JSON: "
+                + System.Text.Json.JsonSerializer.Serialize(_editowanyWzorzec));
+
+            string nowaNazwa = Uri.EscapeDataString(selName);
+
+            var response = await Http.PostAsync(
+                $"api/WzorceKompletacji/clone/{selValueClone}/{nowaNazwa}",
+                null
+            );
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<CloneResult>();
+
+                await _message.Success($"Sklonowano grupę. Nowe RowId: {result.NewRowId}", 2);
+
+                await FetchUpdatedData();
+            }
+            else
+            {
+                await _message.Error("Błąd podczas klonowania danych!");
             }
         }
         else
@@ -621,6 +691,28 @@ else
 
         selName = "";
         selValue = Guid.NewGuid();
+
+        _editowanyWzorzec = new WzorceKompletacji
+        {
+            Id = 0,
+            RowIdWzorca = selValue,
+            NazwaWzorca = "",
+            NazwaProduktu = "Podaj nazwę",
+            NumerKatalogowy = "",
+            Typ = "",
+            Ilosc = 0,
+            Jednostka = "szt.",
+            Dlugosc = 0,
+            DataZapisu = DateTime.Now,
+            RowId = Guid.NewGuid(),
+            Kolor = "",
+            Uwagi = "",
+            CenaNetto = 0
+        };
+
+        // _editowanyWzorzec.RowIdWzorca = selValue;
+        // _editowanyWzorzec.NazwaWzorca = selName;
+
         _visible = true;
 
         await Task.CompletedTask;
@@ -641,10 +733,57 @@ else
                 .ToList();
         }
 
+        if (wzorzecSzczegoly != null)
+        {
+            wzorzecSzczegolyDistinct = wzorzecSzczegoly
+                .GroupBy(wz => wz.RowIdWzorca)
+                .Select(g =>
+                {
+                    var parent = g.First();
+
+                    var newParent = new WzorceKompletacji
+                    {
+                        // Copy all properties from parent
+                        Id = parent.Id,
+                        RowId = parent.RowId,
+                        NazwaWzorca = parent.NazwaWzorca,
+                        RowIdWzorca = parent.RowIdWzorca,
+                        // ... copy all other properties ...
+
+                        // Now set the NestedData
+                        NestedData = g.Select(item => new NestedData
+                        {
+                            Id = item.Id, // or another unique key, note: casting long to int might cause overflow
+                            DataZapisu = item.DataZapisu,
+                            NazwaProduktu = item.NazwaProduktu ?? string.Empty,
+                            RowIdWzorca = item.RowIdWzorca,
+                            NazwaWzorca = item.NazwaWzorca ?? string.Empty,
+                            NumerKatalogowy = item.NumerKatalogowy ?? string.Empty,
+                            Typ = item.Typ ?? string.Empty,
+                            Jednostka = item.Jednostka ?? string.Empty,
+                            Dlugosc = item.Dlugosc,
+                            Ilosc = item.Ilosc,
+                            Uwagi = item.Uwagi ?? string.Empty,
+                            Kolor = item.Kolor ?? string.Empty,
+                        }).ToArray()
+                    };
+                    return newParent;
+                })
+                .ToList();
+
+            data = wzorzecSzczegolyDistinct.Select(wz => new Data
+            {
+                NazwaWzorca = wz.NazwaWzorca,
+                RowIdWzorca = wz.RowIdWzorca.Value,
+                NestedData = wz.NestedData
+            }).ToArray();
+        }
+
+
         await InvokeAsync(StateHasChanged);
     }
 
-    private void ShowEditGruppModal(Data element)
+    private void ShowEditGruppModal(Data element, bool boolKlonujGrupe)
     {
 
         Console.WriteLine("ShowEditGruppModal => RowIdWzorca =>" + element.RowIdWzorca);
@@ -659,19 +798,41 @@ else
             });
             return;
         }
+
         _productAdd = false;
 
         infoDodaj = "";
 
-        _ = _notice.Info(new()
-        {
-            Message = "Zmieniam nazwę całej grupy.",
-            Description = $"Uwaga!!! RowIdWzorca: {element.RowIdWzorca}",
-            Placement = NotificationPlacement.BottomLeft
-        });
-
         selName = element.NazwaWzorca;
         selValue = element.RowIdWzorca;
+
+        selValueClone = Guid.Empty;
+
+        if (boolKlonujGrupe)
+        {
+            selName = selName + " - KOPIA";
+            selValueClone = element.RowIdWzorca;
+            selValue = Guid.NewGuid();
+            _productAdd = true;
+
+            _ = _notice.Info(new()
+            {
+                Message = "Tworzę kopię całej grupy.",
+                Description = $"Uwaga!!! RowIdWzorca: {selValue}",
+                Placement = NotificationPlacement.BottomLeft
+            });
+
+        }
+        else
+        {
+            _ = _notice.Info(new()
+            {
+                Message = "Zmieniam nazwę całej grupy.",
+                Description = $"Uwaga!!! RowIdWzorca: {element.RowIdWzorca}",
+                Placement = NotificationPlacement.BottomLeft
+            });
+
+        }
 
         _visible = true;
     }
@@ -746,7 +907,16 @@ else
 
         _editowanyWzorzec.NazwaWzorca = nawaWzorca;
 
-        selName = nawaWzorca;
+        _editowanyWzorzec.NazwaProduktu = "";
+        _editowanyWzorzec.NumerKatalogowy = ""; 
+        _editowanyWzorzec.Typ = "";
+        _editowanyWzorzec.Ilosc = 0;
+        _editowanyWzorzec.Jednostka = "szt.";
+        _editowanyWzorzec.Dlugosc = 0;
+        _editowanyWzorzec.Kolor = "";
+        _editowanyWzorzec.Uwagi = "";
+
+       // selName = nawaWzorca;
         selValue = rowIdWzorca ?? Guid.Empty;
 
         _visibleEdit = true;
@@ -755,7 +925,7 @@ else
 
     private async Task HandleEditOk()
     {
-        Console.WriteLine($"Rozpoczynam akcję --> HandleEditOk _productAdd:{_productAdd}");
+        Console.WriteLine($"Rozpoczynam akcję --> HandleEditOk _productAdd:{_productAdd} {_editowanyWzorzec.RowIdWzorca} == {selValue}");
 
         if (string.IsNullOrWhiteSpace(_editowanyWzorzec.NazwaWzorca))
         {
@@ -769,12 +939,19 @@ else
             return;
         }
 
+        if (string.IsNullOrWhiteSpace(_editowanyWzorzec.NazwaProduktu))
+        {
+            infoEdit = "Nazwa produktu jest wymagana!";
+            return;
+        }
+
         if (_productAdd)
         {
+
             Console.WriteLine("Dodaję nowy produkt do wzorca: " + _editowanyWzorzec.NazwaWzorca + " / " + _editowanyWzorzec.RowIdWzorca);
 
             // upewnij się, że NestedData nie jest null (jeśli serwer tego wymaga)
-           // _editowanyWzorzec.NestedData ??= Array.Empty<NestedData>();
+            // _editowanyWzorzec.NestedData ??= Array.Empty<NestedData>();
 
             _editowanyWzorzec.Id = 0;
 
@@ -801,6 +978,7 @@ else
                 infoDodaj = $"Błąd: {msg}";
                 infoEdit = $"Błąd: {msg}";
             }
+
         }
         else
         {
@@ -968,7 +1146,9 @@ else
                                 Typ = item.Typ ?? string.Empty,
                                 Jednostka = item.Jednostka ?? string.Empty,
                                 Dlugosc = item.Dlugosc,
-                                Ilosc = item.Ilosc
+                                Ilosc = item.Ilosc,
+                                Kolor = item.Kolor ?? string.Empty,
+                                Uwagi = item.Uwagi ?? string.Empty,
                             }).ToArray()
                         };
                         return newParent;
@@ -1052,4 +1232,18 @@ else
         public NestedData[] NestedData { get; set; }
     }
 
+    List<Item>? _itemsJednostki;
+
+    public class Item
+    {
+        public string? Value { get; set; }
+        public string? Name { get; set; }
+        public string? DisplayName { get; set; }
+    }
+
+    public class CloneResult
+    {
+        public Guid NewRowId { get; set; }
+        public int Count { get; set; }
+    }
 }

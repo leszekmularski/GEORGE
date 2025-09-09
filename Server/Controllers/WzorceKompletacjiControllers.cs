@@ -162,7 +162,57 @@ namespace GEORGE.Server.Controllers
             return NoContent();
         }
 
+        [HttpPost("clone/{rowId}/{nowaNazwa}")]
+        public async Task<ActionResult> CloneByRowIdAsync(string rowId, string nowaNazwa)
+        {
+            if (!Guid.TryParse(rowId, out var guid))
+            {
+                return BadRequest($"Niepoprawny format GUID: {rowId}");
+            }
+
+            var records = await _context.WzorceKompltacji
+                .Where(x => x.RowIdWzorca == guid)
+                .ToListAsync();
+
+            if (!records.Any())
+            {
+                return NotFound($"Nie znaleziono rekordów z RowIdWzorca = {guid}");
+            }
+
+            nowaNazwa = WebUtility.UrlDecode(nowaNazwa);
+
+            // Nowy klucz grupy
+            var newRowId = Guid.NewGuid();
+
+            // Tworzymy kopie rekordów
+            var clonedRecords = records.Select(r => new WzorceKompletacji
+            {
+                // zakładam, że masz np. Id jako klucz główny -> zostanie nadany przez bazę
+                RowIdWzorca = newRowId,
+                NazwaWzorca = nowaNazwa,
+                NazwaProduktu = r.NazwaProduktu,
+                NumerKatalogowy = r.NumerKatalogowy,
+                Typ = r.Typ,
+                Jednostka = r.Jednostka,
+                CenaNetto = r.CenaNetto,
+                Objetosc = r.Objetosc,
+                Powierzchnia = r.Powierzchnia,
+                Uwagi = r.Uwagi,
+                CzasRealizacjiZamowienia = r.CzasRealizacjiZamowienia,
+                Ilosc = r.Ilosc,
+                Kolor = r.Kolor,
+                Opis = r.Opis,
+
+            }).ToList();
+
+            _context.WzorceKompltacji.AddRange(clonedRecords);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { NewRowId = newRowId, Count = clonedRecords.Count });
+        }
+
     }
+
     public class UpdateWzorzecRequest
     {
         public string NowaNazwaGrupy { get; set; } = string.Empty;
