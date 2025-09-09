@@ -71,6 +71,110 @@
         }
 </style>
 
+<script>
+    function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () {
+    console.log('Text copied to clipboard');
+    }).catch(function (error) {
+    console.error('Error copying text: ', error);
+    });
+    } else {
+    // Fallback method
+    var textArea = document.createElement("textarea");
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+    document.execCommand('copy');
+    console.log('Text copied to clipboard');
+    } catch (err) {
+    console.error('Error copying text: ', err);
+    }
+    document.body.removeChild(textArea);
+    }
+    }
+
+    function saveAsExcel(jsonData) {
+    const data = JSON.parse(jsonData);
+    const csvRows = [];
+
+    // Extract headers
+    const headers = Object.keys(data[0]);
+    csvRows.push(headers.join(','));
+
+    // Extract rows
+    for (const row of data) {
+    const values = headers.map(header => {
+    const escaped = ('' + row[header]).replace(/"/g, '\\"');
+    return `"${escaped}"`;
+    });
+    csvRows.push(values.join(','));
+    }
+
+    // Create CSV file
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', 'zamowienia_all.csv');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    }
+
+    function saveAsExcelSel(jsonData) {
+    const data = JSON.parse(jsonData);
+    const csvRows = [];
+
+    // Zdefiniuj nagłówki - unikamy powtórzeń i zachowujemy kolejność zgodnie z C#
+    const headers = ["NazwaProduktu", "NumerKatalogowy", "Typ", "IloscSztuk", "Kolor", "Dlugosc", "Szerokosc", "Wysokosc"];
+    csvRows.push(headers.join(','));
+
+    // Przetwarzaj dane
+    for (const row of data) {
+    const values = headers.map(header => {
+    // Użyj klucza header do pobrania odpowiedniej wartości z każdego wiersza
+    const value = row[header] || "";  // Używamy pustego stringa jeśli wartość jest null lub undefined
+    // Ucieczka znaków podwójnych cudzysłowów i innych specjalnych znaków
+    const escaped = ('' + value).replace(/"/g, '""');
+    return `"${escaped}"`;  // Zwróć wartość otoczoną cudzysłowami
+    });
+    csvRows.push(values.join(','));
+    }
+
+    // Stworzenie pliku CSV
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', 'elementyZamowienia.csv');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    }
+
+
+    window.saveAsExcelExcelPozycje = (base64Excel, fileName) => {
+        const binary = atob(base64Excel);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+
+        const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        link.click();
+    };
+
+
+</script>
 
 @if (wzorzecSzczegoly == null && !brakDanych)
 {
@@ -175,6 +279,11 @@ else
                                    @onclick="() => ShowEditGruppModal(context, true)">
                                     Klonuj Grupę
                                 </a>
+                            </SpaceItem>
+                            <SpaceItem>
+                                    <Tooltip Placement="@Placement.BottomCenter" Title="Kopiuj elementy grupy. Aby później wkleić do zamówienia">
+                                                    <Button Type="reset" Icon="@IconType.Fill.Copy" @onclick="() => CopyElementyToClipboard(context.NestedData)" />
+                                    </Tooltip>
                             </SpaceItem>
                         </Space>
                     </CellRender>
@@ -681,6 +790,35 @@ else
     private void HandleCancel(MouseEventArgs e)
     {
         _visible = false;
+    }
+
+    private async Task CopyElementyToClipboard(IEnumerable<NestedData> nestedData)
+    {
+        if (nestedData == null || !nestedData.Any())
+        {
+            await _message.Warning("Brak elementów do skopiowania!");
+            return;
+        }
+
+        // Każdy element zamieniamy na string w formacie: { Key = Value, Key = Value }
+        var textDoSchowka = string.Join("\n", nestedData.Select(k =>
+            "{ " +
+            $"RowIdProducent = {k.RowIdProducent}, " +
+            $"NazwaProduktu = {k.NazwaProduktu}, " +
+            $"NumerKatalogowy = {k.NumerKatalogowy}, " +
+            $"Typ = {k.Typ}, " +
+            $"IloscSztuk = {k.Ilosc}, " +
+            $"Jednostka = {k.Jednostka}, " +
+            $"Kolor = {k.Kolor}, " +
+            $"Dlugosc = {k.Dlugosc}, " +
+            $"Szerokosc = {k.Szerokosc}, " +
+            $"Wysokosc = {k.Wysokosc}" +
+            " }"
+        ));
+
+        await JSRuntime.InvokeVoidAsync("copyToClipboard", textDoSchowka);
+
+        await _message.Success("Dane grupy skopiowano do schowka");
     }
 
     private async Task HandleAdd(MouseEventArgs e)
