@@ -740,10 +740,18 @@ else
                 await _message.Success($"Sklonowano grupę. Nowe RowId: {result.NewRowId}", 2);
 
                 await FetchUpdatedData();
+
+                infoDodaj = $"Sklonowano grupę. Nowe RowId: {result.NewRowId}";
+
+                await Task.Delay(1500); // Krótkie opóźnienie, aby użytkownik zauważył komunikat
+
+                _visible = false;
             }
             else
             {
                 await _message.Error("Błąd podczas klonowania danych!");
+
+                infoDodaj = $"Błąd podczas klonowania danych!";
             }
         }
         else
