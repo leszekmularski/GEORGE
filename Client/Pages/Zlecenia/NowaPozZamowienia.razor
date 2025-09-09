@@ -28,6 +28,7 @@ else
                 <FormItem Required Label="Wybierz producenta (dostawcę)">
                     <Select Mode="default"
                     DataSource="@_producenci"
+                    AllowClear="true"
                     @bind-Value="@context.ElemetZamDoZlecen.RowIdProducent"
                     LabelName="@nameof(Producent.NazwaProducenta)"
                     ValueName="@nameof(Producent.RowId)">
