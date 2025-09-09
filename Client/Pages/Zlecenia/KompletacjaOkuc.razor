@@ -253,7 +253,7 @@ else
 
         <Table DataSource="@data" TItem="Data" OnExpand="OnRowExpand">
             <ColumnDefinitions>
-                <PropertyColumn Property="c => c.NazwaWzorca" />
+                <PropertyColumn Title="Nazwa Wzorca" Property="c => c.NazwaWzorca" />
                 <PropertyColumn Property="c => c.RowIdWzorca" Hidden />
                 <ActionColumn Title="Akcje">
                     <CellRender Context="cellContext">
@@ -339,7 +339,7 @@ else
               OnCancel="@HandleCancel"
            Footer=@footer>
         <p>Podaj nazwę wzorca.</p>
-        <TextArea ShowCount MaxLength=110 OnChange="onChange" @bind-Value="selName" />
+        <TextArea ShowCount MaxLength=125 OnChange="onChange" @bind-Value="selName" />
         <p style="color:red">@infoDodaj</p>
         <p style="color:yellowgreen">GUID: @selValue</p>
     </Modal>
@@ -495,7 +495,7 @@ else
                                     Ilosc = item.Ilosc,
                                     Uwagi = item.Uwagi ?? string.Empty,
                                     Kolor = item.Kolor ?? string.Empty,
-                                }).ToArray()
+                                }).OrderBy(x => x.NazwaWzorca).ToArray()
                             };
                             return newParent;
                         })
@@ -506,7 +506,7 @@ else
                         NazwaWzorca = wz.NazwaWzorca,
                         RowIdWzorca = wz.RowIdWzorca.Value,
                         NestedData = wz.NestedData
-                    }).ToArray();
+                    }).OrderBy(x => x.NazwaWzorca).ToArray();
                 }
 
                 Console.WriteLine($"******* Załadowano DISTINCT wzorców: {wzorzecSzczegolyDistinct.Count()}");
@@ -583,7 +583,7 @@ else
                     Kolor = item.Kolor ?? string.Empty,
                     Typ = item.Typ ?? string.Empty,
                 })
-                .ToArray();
+                .OrderBy(x => x.NazwaWzorca).ToArray();
 
 
             if (rowData.Data.NestedData != null)
@@ -627,7 +627,7 @@ else
                     Typ = item.Typ ?? string.Empty,
                     Uwagi = item.Uwagi ?? string.Empty,
                 })
-                .ToArray();
+                .OrderBy(x => x.NazwaWzorca).ToArray();
 
             Console.WriteLine($"2. Rozwinąłem wiersz dla wzorca: {selName} / {xselG}");
 
@@ -809,7 +809,7 @@ else
         }
 
         // Każdy element zamieniamy na string w formacie: { Key = Value, Key = Value }
-        var textDoSchowka = string.Join("\n", nestedData.Select(k =>
+        var textDoSchowka = string.Join("\n", nestedData.OrderBy(c=>c.NazwaProduktu).Select(k =>
             "{ " +
             $"RowIdProducent = {k.RowIdProducent}, " +
             $"NazwaProduktu = {k.NazwaProduktu}, " +
@@ -1306,7 +1306,7 @@ else
                     NazwaWzorca = wz.NazwaWzorca,
                     RowIdWzorca = wz.RowIdWzorca.Value,
                     NestedData = wz.NestedData
-                }).ToArray();
+                }).OrderBy(x=>x.NazwaWzorca).ToArray();
             }
         }
     }
