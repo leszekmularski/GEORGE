@@ -143,7 +143,7 @@ namespace GEORGE.Client.Pages.Schody
                 await DrawShapeObrys(context, X, Y);
 
                 // Wyświetlenie informacji
-                await DrawTextAsync(context, X + 10, Y + 45, $"Informacja: {Opis} Szerokość wangi: {SzerokoscWangi}");
+                await DrawTextAsync(context, X + 10, Y + 45, $"Informacja: {Opis} Szerokość wangi: {SzerokoscWangi} [mm]");
 
                 currentX = X + (DlugoscOtworu - 2 * GlebokoscStopnia) * Skala + (DlugoscNaWejsciu - DlugoscOtworu) * Skala + stepWidth; // Początkowa pozycja X
 
