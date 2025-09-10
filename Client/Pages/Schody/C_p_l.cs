@@ -75,6 +75,8 @@ namespace GEORGE.Client.Pages.Schody
         private bool BoolPochytPrawy { get; set; } = false;
 
         private double GruboscStopnia = 40;//40 mm grubość stopni
+
+        private double SzerokoscWangi = 0; //mm Szerokość wangi tylko pod wyświetlenie w informacji
         public CSchodyPL(IJSRuntime jsRuntime, double x, double y, double skala, double dlugoscOtworu, double szerokoscOtworu, double dlugoscNaWejsciu, double wysokoscDoStropu, double wysokoscCalkowita, double liczbaPodniesienStopni,
             double wydluzOstatniStopien, double zachodzenieStopniZaSiebie, double osadzenieOdGory, double osadzenieOdDolu, double szerokoscBieguSchodow, double dlugoscLiniiBiegu, double katNachylenia, double szerokoscSchodow, double wysokoscPodniesieniaStopnia,
             double glebokoscStopnia, double przecietnaDlugoscKroku, double przestrzenSwobodnaNadGlowa, string opis, char lewe, string nazwaProgramuCNC, string nazwaINumerProjektu, 
@@ -141,7 +143,7 @@ namespace GEORGE.Client.Pages.Schody
                 await DrawShapeObrys(context, X, Y);
 
                 // Wyświetlenie informacji
-                await DrawTextAsync(context, X + 10, Y + 45, $"Informacja: {Opis}");
+                await DrawTextAsync(context, X + 10, Y + 45, $"Informacja: {Opis} Szerokość wangi: {SzerokoscWangi}");
 
                 currentX = X + (DlugoscOtworu - 2 * GlebokoscStopnia) * Skala + (DlugoscNaWejsciu - DlugoscOtworu) * Skala + stepWidth; // Początkowa pozycja X
 
@@ -613,8 +615,7 @@ namespace GEORGE.Client.Pages.Schody
             double rightUpperY = YStartStopienGorny - GruboscStopnia * Skala;
 
             double xSzukaLiniaSkosnaGora = (((WysokoscCalkowita + wysokoscZaczepuY) - (WysokoscPodniesieniaStopnia - startYlP1)) * Math.Tan((90 - KatNachylenia) * (Math.PI / 180)));
-
-
+                 
             // Rysowanie skośnej linii do prawego górnego rogu ostatniego stopnia
             await context.LineToAsync(rightBottomX - xSzukaLiniaSkosnaGora * Skala, rightUpperY); //Linia równoległa do osi schodów w odległości ~20mm od krawędzi stopnia
             AddLineWithPreviousPointAsync(rightBottomX - xSzukaLiniaSkosnaGora * Skala, rightUpperY, "", "W_L", "WANGA_OBRYS", "1", zRob.Split(','), 8, true, 1, NazwaProgramuCNC); // Dodanie skośnej linii
@@ -669,6 +670,20 @@ namespace GEORGE.Client.Pages.Schody
             await context.StrokeAsync();
 
             await DrawObrysSufitu(context, hookY1, stepWidth, wysokoscZaczepuY, dlugoscZaczepuX);
+
+            double rad = katNachylenia * Math.PI / 180.0;
+
+            // wektor osi schodów
+            double vx = Math.Cos(rad);
+            double vy = Math.Sin(rad);
+
+            // wektor od dołu do góry wangi
+            double wx = X - rightBottomX;
+            double wy = endYFinalTMP - rightBottomY;
+
+            // szerokość deski (odległość prostopadła)
+            SzerokoscWangi = Math.Abs(wx * (-vy) + wy * vx) / Skala;
+            SzerokoscWangi = Math.Ceiling(SzerokoscWangi);
 
         }
         private async Task DrawObrysSufitu(Canvas2DContext context, double hookY1, double stepWidth, double wysZaczepuY, double dlugoscZaczepuX)
