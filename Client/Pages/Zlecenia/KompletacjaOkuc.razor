@@ -294,11 +294,11 @@ else
                 <Table DataSource="rowData.Data.NestedData" Loading="rowData.Data.NestedData == null" HidePagination>
                     <PropertyColumn Title="Nazwa Wzorca" Property="c => c.NazwaWzorca" Hidden />
                     <PropertyColumn Property="c => c.RowIdWzorca" Hidden />
-                    <PropertyColumn Title="Nazwa Produktu" Property="c => c.NazwaProduktu" />
-                    <PropertyColumn Title="Numer katalogowy" Property="c => c.NumerKatalogowy" />
+                    <PropertyColumn Filterable Sortable Title="Nazwa Produktu" Property="c => c.NazwaProduktu" />
+                    <PropertyColumn Filterable Sortable Title="Numer katalogowy" Property="c => c.NumerKatalogowy" />
                     <PropertyColumn Title="Typ/Nr.Dostawcy" Property="c => c.Typ" />
                     <PropertyColumn Title="Kolor" Property="c => c.Kolor" />
-                    <PropertyColumn Title="Ilość" Property="c => c.Ilosc" />
+                    <PropertyColumn Sortable Title="Ilość" Property="c => c.Ilosc" />
                     <PropertyColumn Title="Uwagi" Property="c => c.Uwagi" />
                     <PropertyColumn Title="RowIdProducent" Property="c => c.RowIdProducent" Hidden />
                     <ActionColumn Title="Akcje">
@@ -839,9 +839,9 @@ else
         // Każdy element zamieniamy na string w formacie: { Key = Value, Key = Value }
         var textDoSchowka = string.Join("\n", nestedData.OrderBy(c => c.NazwaProduktu).OrderBy(x => x.NazwaProduktu).Select(k =>
             "{ " +
-            $"RowIdProducent = {k.RowIdProducent}, " +
-            $"NazwaProduktu = {k.NazwaProduktu}, " +
-            $"NumerKatalogowy = {k.NumerKatalogowy}, " +
+            $"RowIdProducent = {RemoveWhitespace(k.RowIdProducent)}, " +
+            $"NazwaProduktu = {RemoveWhitespace(k.NazwaProduktu)}, " +
+            $"NumerKatalogowy = {RemoveWhitespace(k.NumerKatalogowy)}, " +
             $"Typ = {k.Typ}, " +
             $"IloscSztuk = {k.Ilosc}, " +
             $"Jednostka = {k.Jednostka}, " +
@@ -855,6 +855,14 @@ else
         await JSRuntime.InvokeVoidAsync("copyToClipboard", textDoSchowka);
 
         await _message.Success("Dane grupy skopiowano do schowka");
+    }
+
+    private string RemoveWhitespace(string input)
+    {
+        if (string.IsNullOrEmpty(input)) return input;
+
+        // Usuwamy tabulatory i podwójne spacje
+        return System.Text.RegularExpressions.Regex.Replace(input, @"\s+", " ").Trim();
     }
 
     private async Task HandleAdd(MouseEventArgs e)
@@ -884,6 +892,8 @@ else
             CenaNetto = 0
         };
 
+
+        selValueClone = Guid.Empty;
         // _editowanyWzorzec.RowIdWzorca = selValue;
         // _editowanyWzorzec.NazwaWzorca = selName;
 

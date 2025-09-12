@@ -194,6 +194,17 @@
             link.click();
         };
 
+        function saveAsTxtFile(textData, fileName) {
+            const blob = new Blob([textData], { type: 'text/plain;charset=utf-8' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', fileName);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
 
     </script>
 
@@ -241,6 +252,9 @@
                 </Button>
                 <Tooltip Placement="@Placement.BottomCenter" Title="Zapisz sformatowany dokument EXCEL.">
                     <Button Type="reset" Icon="@IconType.Fill.FileExcel" OnClick="@(ZapiszExcelPozycjePoStronieKlienta)" />
+                </Tooltip>
+                <Tooltip Placement="@Placement.BottomCenter" Title="Zaznaczone zapisz do pliku txt (format VBH)">
+                    <Button Type="reset" Icon="@IconType.Fill.FileText" OnClick="@(ExportSelectedColumnsToVBH)" />
                 </Tooltip>
                 <Button OnClick="PrzelaczWidok">
                     @(pokazujTylkoNiezamowione ? "Pokaż wszystkie" : "Pokaż tylko niezamówione")
@@ -732,6 +746,52 @@
             var jsonData = JsonSerializer.Serialize(selectedData);
             await JSRuntime.InvokeVoidAsync("saveAsExcelSel", jsonData);
         }
+    }
+
+    public async Task ExportSelectedColumnsToVBH()
+    {
+        if (elementyDoZlecen == null || !elementyDoZlecen.Any())
+        {
+            await _message.Warning("Brak danych do eksportu!");
+            return;
+        }
+
+        // Tworzymy nagłówek
+        var header = $"## GEORGE - LESZEK MULARSKI ##\n" +
+                     $"Data {DateTime.Now:yyyy/MM/dd}    Godzina {DateTime.Now:HH:mm}\n\n" +
+                     $"{"Symbol",-20}{"Kolor",-15}{"Ilość",8}{"Opis",10}\n";
+
+        // Tworzymy linie dla każdej pozycji
+        var lines = elementyDoZlecen.Select(k =>
+        {
+            var symbol = RemoveWhitespace(k.ElemetZamDoZlecen.NumerKatalogowy);
+            var kolor = k.ElemetZamDoZlecen.Kolor ?? "";
+            var ilosc = k.ElemetZamDoZlecen.IloscSztuk;
+            var opis = RemoveWhitespace(k.ElemetZamDoZlecen.NazwaProduktu);
+
+            return $"{symbol,-20}{kolor,-15}{ilosc,8}\t{opis}";
+        });
+
+        var fullText = header + string.Join("\n", lines);
+
+        // Wywołanie JS do zapisania pliku TXT
+        await JSRuntime.InvokeVoidAsync("saveAsTxtFile", fullText, $"{RemoveSpecChar(string.IsNullOrEmpty(dotyczyKlienta) ? $"Zamowienie_{DateTime.Now.Year}" : dotyczyKlienta)}.txt");
+    }
+
+    private string RemoveSpecChar(string fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName))
+            return "plik";
+
+        // Niedozwolone znaki w nazwach plików Windows
+        var invalidChars = Path.GetInvalidFileNameChars();
+
+        foreach (var c in invalidChars)
+        {
+            fileName = fileName.Replace(c, '_'); // zamieniamy na _
+        }
+
+        return fileName;
     }
 
     private string RemoveWhitespace(string input)
