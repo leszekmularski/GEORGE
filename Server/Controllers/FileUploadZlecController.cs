@@ -238,4 +238,40 @@ public class FileUploadZlecController : ControllerBase
         return NoContent();
     }
 
+    [HttpDelete("delete-file/{fileName}")]
+    public async Task<IActionResult> DeleteFileAsync(string fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName))
+            return BadRequest("Nie podano nazwy pliku.");
+
+        var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads_zlecenia");
+        var filePath = Path.Combine(uploadsFolder, fileName);
+
+        if (!System.IO.File.Exists(filePath))
+        {
+            return NotFound("Plik nie istnieje.");
+        }
+
+        try
+        {
+            System.IO.File.Delete(filePath);
+
+            // dodatkowo usuń rekord z bazy, jeśli taki istnieje
+            var plik = await _context.PlikiZlecenProdukcyjnych
+                                     .FirstOrDefaultAsync(p => p.NazwaPliku == fileName);
+            if (plik != null)
+            {
+                _context.PlikiZlecenProdukcyjnych.Remove(plik);
+                await _context.SaveChangesAsync();
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Błąd podczas usuwania pliku {fileName}: {ex.Message}");
+            return StatusCode(StatusCodes.Status500InternalServerError, "Błąd podczas usuwania pliku.");
+        }
+    }
+
 }

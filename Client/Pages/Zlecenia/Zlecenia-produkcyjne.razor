@@ -1155,41 +1155,56 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
     private async Task deleteFile(long id, string fileUrl, string roIdZlec)
     {
         czekajNaUsuniecie = true;
-        // Step 1: Attempt to delete the record in the database
-        var response = await Http.DeleteAsync($"api/FileUploadZlec/{id}");
 
-        if (response.IsSuccessStatusCode)
+        try
         {
-            // If record deletion is successful, proceed to delete the file
-            var fileResponse = await Http.DeleteAsync(fileUrl);
+            // Step 1: Attempt to delete the record in the database
+            var response = await Http.DeleteAsync($"api/FileUploadZlec/{id}");
 
-            if (fileResponse.IsSuccessStatusCode)
+            if (response.IsSuccessStatusCode)
             {
-                // Remove the order from the list only after the file is successfully deleted
-                var zlecenie = zleceniaProdukcyjne.FirstOrDefault(z => z.Id == id);
-                if (zlecenie != null)
+                Console.WriteLine($"Usuwam: {fileUrl}");
+                // If record deletion is successful, proceed to delete the file
+                var fileResponse = await Http.DeleteAsync($"api/FileUploadZlec/delete-file/{fileUrl}");;
+
+                if (fileResponse.IsSuccessStatusCode)
                 {
-                    zleceniaProdukcyjne.Remove(zlecenie);
-                    await _message.Success("Zapis inf. i plik usunięto!");
+                    // Remove the order from the list only after the file is successfully deleted
+                    var zlecenie = zleceniaProdukcyjne.FirstOrDefault(z => z.Id == id);
+                    if (zlecenie != null)
+                    {
+                        zleceniaProdukcyjne.Remove(zlecenie);
+                        await _message.Success("Zapis inf. i plik usunięto!");
+                    }
                 }
+                else
+                {
+                    Console.WriteLine($"Błąd podczas usuwania pliku: {fileResponse.StatusCode} -> {fileUrl}");
+                    await _message.Error("Błąd podczas usuwania pliku.");
+                }
+
+                await LoadFiles(roIdZlec);
             }
             else
             {
-                // If file deletion fails, log the error
-                Console.WriteLine("Błąd podczas usuwania pliku.");
-                await _message.Error("Błąd podczas usuwania pliku.");
+                Console.WriteLine($"Błąd podczas usuwania rekordu w bazie: {response.StatusCode}");
+                await _message.Error("Błąd podczas usuwania zapis inf..");
             }
-
-            await LoadFiles(roIdZlec);
         }
-        else
+        catch (HttpRequestException httpEx)
         {
-            // If record deletion fails, log the error
-            Console.WriteLine("Błąd podczas usuwania zapis inf..");
-            await _message.Error("Błąd podczas usuwania zapis inf..");
+            Console.WriteLine($"Błąd HTTP w deleteFile: {httpEx.Message}");
+            await _message.Error("Błąd połączenia z serwerem podczas usuwania pliku.");
         }
-
-        czekajNaUsuniecie = false;
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Nieoczekiwany błąd w deleteFile: {ex}");
+            await _message.Error("Wystąpił nieoczekiwany błąd podczas usuwania.");
+        }
+        finally
+        {
+            czekajNaUsuniecie = false;
+        }
     }
 
     private bool isLoadingAll = false;
