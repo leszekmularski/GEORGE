@@ -750,33 +750,50 @@
 
     public async Task ExportSelectedColumnsToVBH()
     {
-        if (elementyDoZlecen == null || !elementyDoZlecen.Any())
+        if (_items == null || !_items.Any())
         {
-            await _message.Warning("Brak danych do eksportu!");
+            await _message.Warning("Nie wybrano żadnych pozycji do eksportu!");
             return;
         }
 
-        // Tworzymy nagłówek
-        var header = $"## GEORGE - LESZEK MULARSKI ##\n" +
-                     $"Data {DateTime.Now:yyyy/MM/dd}    Godzina {DateTime.Now:HH:mm}\n\n" +
-                     $"{"Symbol",-20}{"Kolor",-15}{"Ilość",8}{"Opis",10}\n";
-
-        // Tworzymy linie dla każdej pozycji
-        var lines = elementyDoZlecen.Select(k =>
+        // Projekcja tylko potrzebnych danych
+        var selectedData = _items.Select(k => new
         {
-            var symbol = RemoveWhitespace(k.ElemetZamDoZlecen.NumerKatalogowy);
-            var kolor = k.ElemetZamDoZlecen.Kolor ?? "";
-            var ilosc = k.ElemetZamDoZlecen.IloscSztuk;
-            var opis = RemoveWhitespace(k.ElemetZamDoZlecen.NazwaProduktu);
+            NumerKatalogowy = RemoveWhitespace(k.ElemetZamDoZlecen?.NumerKatalogowy ?? string.Empty),
+            Kolor = string.IsNullOrWhiteSpace(k.ElemetZamDoZlecen?.Kolor) ? "BRAK" : k.ElemetZamDoZlecen.Kolor,
+            IloscSztuk = k.ElemetZamDoZlecen?.IloscSztuk ?? 0,
+            Opis = RemoveWhitespace(k.ElemetZamDoZlecen?.NazwaProduktu ?? string.Empty),
+            Zakladka = "ZAKLADKA",
+            Jednostka = string.IsNullOrWhiteSpace(k.ElemetZamDoZlecen?.Jednostka) ? "SZT" : k.ElemetZamDoZlecen.Jednostka,
+            Cena = "----"
+        }).ToList();
 
-            return $"{symbol,-20}{kolor,-15}{ilosc,8}\t{opis}";
-        });
+        // Nagłówek VBH (dokładnie tak jak w przykładzie)
+            var header =
+            "Zamówienie VBH Polska Sp.z o.o.\n" +
+            "PPHU \"GEORGE\"\n" +
+            "7341136804\n" +
+            "PPHU \"GEORGE\" Marcinkowice 351, 33-393 Marcinkowice\n" +
+            $"Data {DateTime.Now:yyyy/MM/dd} {DateTime.Now:HH:mm}\n" +
+            "PPHU \"GEORGE\"\n" +
+            "Symbol\tKolor\tIlosc\tOpis\tZakładka\tCena_w_wal\tGrupa_rab Waluta\t" +
+            "JM OPAKOWANIE\n";
+
+        // Linie danych → oddzielane spacją
+        var lines = selectedData.Select(k =>
+            $"{k.NumerKatalogowy}\t{k.Kolor}\t{k.IloscSztuk}\t{k.Opis}\t{k.Zakladka}\t{k.Jednostka}\t{k.Cena}"
+        );
 
         var fullText = header + string.Join("\n", lines);
 
-        // Wywołanie JS do zapisania pliku TXT
-        await JSRuntime.InvokeVoidAsync("saveAsTxtFile", fullText, $"{RemoveSpecChar(string.IsNullOrEmpty(dotyczyKlienta) ? $"Zamowienie_{DateTime.Now.Year}" : dotyczyKlienta)}.txt");
+        // Nazwa pliku
+        var fileName = string.IsNullOrEmpty(dotyczyKlienta)
+            ? $"Zamowienie_{DateTime.Now:yyyyMMdd_HHmm}"
+            : RemoveSpecChar(dotyczyKlienta);
+
+        await JSRuntime.InvokeVoidAsync("saveAsTxtFile", fullText, $"{fileName}.txt");
     }
+
 
     private string RemoveSpecChar(string fileName)
     {

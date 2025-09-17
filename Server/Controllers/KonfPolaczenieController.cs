@@ -90,7 +90,8 @@ namespace GEORGE.Server.Controllers
                         PrzesuniecieY = 0
                     }
                 };
-                    }
+                    Console.WriteLine($"Brak wyników, zwracam domyślną wartość 0,0 zew: {zewId} wew: {wewId} strona: {strona}");
+                }
 
                 return records;
             }

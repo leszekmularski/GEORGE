@@ -2702,7 +2702,7 @@
 
                 Console.WriteLine($"📐📐📐 Region Zindeks = 0 ID: {wybranyRegionDualRama.Id} -> Szerokość: {generator.Szerokosc}, Wysokość: {generator.Wysokosc} generator.Wierzcholki.Count():{generator.Wierzcholki.Count()}");
 
-               // stronaLewa = false;
+                // stronaLewa = false;
                 //stronaPrawa = false;
 
                 generator.RuchomySlupekPoLewej = false;
@@ -2751,8 +2751,11 @@
                 state.SlupekRuchomyPoLewejStronie,
                 state.SlupekRuchomyPoPrawejStronie,
                 state.IdRegion,
+                WybranyModel.Typ == "Skrzydło z słupkiem ruchomym" ? true : false,
                 0.02
             );
+
+            Console.WriteLine($"🔎 DodajWybranyKwadratOkna -> Sprawdzam linię o kącie {katSzukaj}° - Znaleziony sąsiad: {(info != null ? info.RowIdElementu : "RowIdElementu - Brak")}");
 
             var rowId = ZnajdzKonfiguracjeDlaLinii(linia, state, stronaLewa, stronaPrawa, idRegion);
 
@@ -2882,7 +2885,7 @@
 
         if (_regionsSkrzydlo == null)
         {
-            Console.WriteLine("❌ Nie znaleziono regionu o podanym ID.");
+            Console.WriteLine("❌ WyliczObszarSkrzydla-> Nie znaleziono regionu o podanym ID.");
             return null;
         }
 
@@ -2890,7 +2893,7 @@
 
         if (regionPointsSkrzydlo == null || regionPointsSkrzydlo.Count < 3)
         {
-            Console.WriteLine("❌ Region ma za mało punktów.");
+            Console.WriteLine("❌ WyliczObszarSkrzydla->  Region ma za mało punktów.");
             return null;
         }
 
@@ -2905,7 +2908,7 @@
         foreach (var bok in state.ListaKwadratow)
         {
 
-            Console.WriteLine($"📦📦📦 Sprawdzam bok: RowIdElementu: {bok.RowIdElementu}, RowIdSasiada: {bok.RowIdSasiada}, KatLinii: {bok.KatLinii} ilość boków: {state.ListaKwadratow.Count()} regionMinX: {minX}");
+            Console.WriteLine($"📦📦📦 WyliczObszarSkrzydla-> Sprawdzam bok: RowIdElementu: {bok.RowIdElementu}, RowIdSasiada: {bok.RowIdSasiada}, KatLinii: {bok.KatLinii} ilość boków: {state.ListaKwadratow.Count()} regionMinX: {minX}");
 
             var polaczenieWartosci = await PobierzPolaczenia(bok.RowIdSasiada, bok.RowIdElementu, bok.Strona ?? "NaN");
 
@@ -2923,26 +2926,28 @@
                 case "góra": przesGora = przesY; break;
                 case "dół": przesDol = przesY; break;
             }
-
+            Console.WriteLine($"📦📦📦 WyliczObszarSkrzydla-> Bok: {bok.RowIdElementu}, Strona: {bok.Strona}, PrzesuniecieY z połączenia: {przesY}, przesLewo: {przesLewo}, przesPrawo: {przesPrawo}, przesGora: {przesGora}, przesDol: {przesDol}");
             // Jeśli brak sąsiada — ustaw domyślne testowe przesunięcia
             if (bok.RowIdSasiada == Guid.Empty && stronaLewa)
             {
                 przesLewo = 0;
                 var konfiguracja1 = generator.KonfiguracjeSystemu.FirstOrDefault(s => s.RowId == bok.RowIdElementu);
+                Console.WriteLine($"📦📦📦 WyliczObszarSkrzydla-> Brak sąsiada po lewej. Ustawiam przesunięcie lewo na 0 dla RowIdElementu: {bok.RowIdElementu}");
                 if (konfiguracja1 != null)
                 {
                     przesLewo = (konfiguracja1.PoziomDol ?? 0) - (konfiguracja1.PoziomOsSymetrii ?? 0);
-                    Console.WriteLine($"📦📦📦 Przesunięcie lewo: {przesLewo} dla RowIdElementu: {bok.RowIdElementu}");
+                    Console.WriteLine($"📦📦📦 WyliczObszarSkrzydla-> Przesunięcie lewo: {przesLewo} dla RowIdElementu: {bok.RowIdElementu}");
                 }
             }
 
             if (bok.RowIdSasiada == Guid.Empty && stronaPrawa)
                 przesPrawo = 0;
             var konfiguracja2 = generator.KonfiguracjeSystemu.FirstOrDefault(s => s.RowId == bok.RowIdElementu);
+            Console.WriteLine($"📦📦📦 WyliczObszarSkrzydla-> Brak sąsiada po prawej. Ustawiam przesunięcie prawa na 0 dla RowIdElementu: {bok.RowIdElementu}");
             if (konfiguracja2 != null)
             {
                 przesPrawo = (konfiguracja2.PoziomDol ?? 0) - (konfiguracja2.PoziomOsSymetrii ?? 0);
-                Console.WriteLine($"📦📦📦 Przesunięcie prawo: {przesPrawo} dla RowIdElementu: {bok.RowIdElementu}");
+                Console.WriteLine($"📦📦📦 WyliczObszarSkrzydla-> Przesunięcie prawo: {przesPrawo} dla RowIdElementu: {bok.RowIdElementu}");
             }
         }
 
@@ -2965,7 +2970,7 @@
         }
 
         double minXSPRAWDZENIE = regionPointsSkrzydlo.Min(p => p.X);
-        Console.WriteLine($"📦📦📦 Po przesunięciu minX: {minXSPRAWDZENIE}, przesLewo: {przesLewo}, przesPrawo: {przesPrawo}, przesGora: {przesGora}, przesDol: {przesDol}");
+        Console.WriteLine($"📦📦📦 WyliczObszarSkrzydla-> Po przesunięciu minX: {minXSPRAWDZENIE}, przesLewo: {przesLewo}, przesPrawo: {przesPrawo}, przesGora: {przesGora}, przesDol: {przesDol}");
 
         _regionsSkrzydlo.Wierzcholki = regionPointsSkrzydlo;
 
@@ -2977,13 +2982,13 @@
     {
         if (string.IsNullOrWhiteSpace(idRegion))
         {
-            Console.WriteLine("⚠️ IdRegion nie został podany");
+            Console.WriteLine("⚠️ UsunOstatniKsztaltZGeneratora-> IdRegion nie został podany");
             return;
         }
 
         if (generator?.ElementyRamyRysowane == null || generator.ElementyRamyRysowane.Count == 0)
         {
-            Console.WriteLine($"ℹ️ Brak kształtów do usunięcia w regionie {idRegion}");
+            Console.WriteLine($"ℹ️ UsunOstatniKsztaltZGeneratora-> Brak kształtów do usunięcia w regionie {idRegion}");
             return;
         }
 
@@ -2991,13 +2996,13 @@
         var ostatni = generator.ElementyRamyRysowane.Last();
         generator.ElementyRamyRysowane.Remove(ostatni);
 
-        Console.WriteLine($"🗑️ Usunięto ostatni kształt z regionu {idRegion}");
+        Console.WriteLine($"🗑️ UsunOstatniKsztaltZGeneratora-> Usunięto ostatni kształt z regionu {idRegion}");
 
         // Aktualizacja mapy regionów
         if (generator.ElementyRamyRysowane.Count == 0 && _ksztaltyNaRegion.ContainsKey(idRegion))
         {
             _ksztaltyNaRegion.Remove(idRegion);
-            Console.WriteLine($"📭 Usunięto wpis z _ksztaltyNaRegion dla {idRegion}");
+            Console.WriteLine($"📭 UsunOstatniKsztaltZGeneratora-> Usunięto wpis z _ksztaltyNaRegion dla {idRegion}");
         }
         else
         {
@@ -3012,7 +3017,7 @@
     {
         try
         {
-            Console.WriteLine($"📦 Pobieram przesunięcia z: {zewId} w: {wewId} strona: {strona}");
+            Console.WriteLine($"📦 PobierzPolaczenia-> Pobieram przesunięcia z: {zewId} w: {wewId} strona: {strona}");
 
             var response = await Http.GetAsync($"api/konfpolaczenie/find-shifts/{zewId}/{wewId}/{strona}");
             if (response.IsSuccessStatusCode)
@@ -3022,12 +3027,12 @@
             }
             else
             {
-                Console.WriteLine($"❌ Błąd podczas pobierania przesunięć: {response.ReasonPhrase} - strona: {strona}");
+                Console.WriteLine($"❌ PobierzPolaczenia-> Błąd podczas pobierania przesunięć: {response.ReasonPhrase} - strona: {strona}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Błąd podczas pobierania przesunięć: {ex.Message}");
+            Console.WriteLine($"❌ PobierzPolaczenia-> Błąd podczas pobierania przesunięć: {ex.Message}");
         }
 
         return new List<PrzesuniecieDto>();
@@ -3104,6 +3109,8 @@
         if (linia == null || linia.Count != 2)
             return Guid.Empty;
 
+        Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii-> Szukam konfiguracji dla linii w regionie {obecnyRegionId} slRuchStroLewa: {slRuchStroLewa} slRuchStroPrawa: {slRuchStroPrawa} stan.IdRegionWarstwaNizej: {stan.IdRegionWarstwaNizej}");
+
         var p1 = linia[0];
         var p2 = linia[1];
 
@@ -3172,7 +3179,6 @@
         return znaleziony;
     }
 
-
     public SasiadInfo ZnajdzSasiada(
     List<XPoint> linia,
     List<GeneratorState> wszystkieStany,
@@ -3180,12 +3186,24 @@
     bool ruchomySlupekPoLewej,
     bool ruchomySlupekPoPrawej,
     string obecnyRegionId,
+    bool czyModelMaSlupekRuchomy = false,
     double tolerancja = 0.03)
     {
         var pasujace = new List<SasiadInfo>();
 
         if (linia == null || linia.Count != 2)
-            return new SasiadInfo { RowIdElementu = Guid.Empty, IdRegionu = "", ZIndeks = -1 };
+            return new SasiadInfo { RowIdElementu = Guid.Empty, IdRegionu = "", ZIndeks = -1 , MaSlupekRuchomy = false};
+
+        Console.WriteLine($"🔍 ZnajdzSasiada-> Szukam sąsiada dla linii w regionie {obecnyRegionId} kat: {kat} ruchomySlupekPoLewej: {ruchomySlupekPoLewej} ruchomySlupekPoPrawej:{ruchomySlupekPoPrawej} wszystkieStany.Count: {wszystkieStany.Count()}");
+
+        if(wszystkieStany != null)
+        {
+            if(wszystkieStany.Count() > 0)
+            {
+                Console.WriteLine($"🔍 ZnajdzSasiada-> wszystkieStany[0].WybranyModel.RowId: {wszystkieStany[0].WybranyModel.RowId} wszystkieStany[0].IdRegion: {wszystkieStany[0].IdRegion} wszystkieStany[0].ZIndeks: {wszystkieStany[0].ZIndeks} wszystkieStany[0].WierzcholkiWartosciNominalne.Count: {wszystkieStany[0].WierzcholkiWartosciNominalne?.Count()}");
+            }
+
+        }
 
         var p1 = linia[0];
         var p2 = linia[1];
@@ -3193,8 +3211,11 @@
         bool jestPionowa = Math.Abs(p1.X - p2.X) < tolerancja;
         bool jestPozioma = Math.Abs(p1.Y - p2.Y) < tolerancja;
 
-        string slPoLewej = ruchomySlupekPoLewej ? "Słupek ruchomy" : "";
-        string slPoPrawej = ruchomySlupekPoPrawej ? "Słupek ruchomy" : "";
+        // string slPoLewej = ruchomySlupekPoLewej ? "Słupek ruchomy" : "";
+        // string slPoPrawej = ruchomySlupekPoPrawej ? "Słupek ruchomy" : "";
+        string slPoLewej =  "";
+        string slPoPrawej = "";
+
 
         var stanyDoPrzeszukania = wszystkieStany
             .Where(s => s.WierzcholkiWartosciNominalne != null && s.IdRegion != obecnyRegionId)
@@ -3236,7 +3257,8 @@
                             {
                                 RowIdElementu = konf.RowId,
                                 IdRegionu = stan.IdRegion,
-                                ZIndeks = stan.ZIndeks
+                                ZIndeks = stan.ZIndeks,
+                                MaSlupekRuchomy = czyModelMaSlupekRuchomy
                             });
                         }
 
@@ -3249,7 +3271,8 @@
                             {
                                 RowIdElementu = konf.RowId,
                                 IdRegionu = stan.IdRegion,
-                                ZIndeks = stan.ZIndeks
+                                ZIndeks = stan.ZIndeks,
+                                MaSlupekRuchomy = czyModelMaSlupekRuchomy
                             });
                         }
                     }
@@ -3263,7 +3286,8 @@
                             {
                                 RowIdElementu = konf.RowId,
                                 IdRegionu = stan.IdRegion,
-                                ZIndeks = stan.ZIndeks
+                                ZIndeks = stan.ZIndeks,
+                                MaSlupekRuchomy = czyModelMaSlupekRuchomy
                             });
                         }
 
@@ -3275,7 +3299,8 @@
                             {
                                 RowIdElementu = konf.RowId,
                                 IdRegionu = stan.IdRegion,
-                                ZIndeks = stan.ZIndeks
+                                ZIndeks = stan.ZIndeks,
+                                MaSlupekRuchomy = czyModelMaSlupekRuchomy
                             });
                         }
                     }
@@ -3283,9 +3308,17 @@
             }
         }
 
+        Console.WriteLine($"🔍 ZnajdzSasiada-> pasujace.Count: {pasujace.Count()} kąt: {kat} slPoPrawej: {slPoPrawej} slPoLewej: {slPoLewej} czyModelMaSlupekRuchomy: {czyModelMaSlupekRuchomy}");
+
+        // return pasujace
+        //     .OrderBy(p => p.ZIndeks)
+        //     .FirstOrDefault() ?? new SasiadInfo { RowIdElementu = Guid.Empty, IdRegionu = "", ZIndeks = -1 };
+
         return pasujace
-            .OrderBy(p => p.ZIndeks)
-            .FirstOrDefault() ?? new SasiadInfo { RowIdElementu = Guid.Empty, IdRegionu = "", ZIndeks = -1 };
+        .OrderBy(p => p.ZIndeks)
+        .FirstOrDefault(p => p.RowIdElementu != Guid.Empty)
+            ?? new SasiadInfo { RowIdElementu = Guid.Empty, IdRegionu = "", ZIndeks = -1 };
+
     }
 
 
@@ -3537,7 +3570,7 @@
 
         if (czyRegionZawieraSlupekRuchomy)
         {
-            Console.WriteLine($"✅ Region {idRegion} zawiera słupek ruchomy. Kontynuuję generowanie elementów.");
+            Console.WriteLine($"✅ GenerujElementyDlaRegionu-> Region {idRegion} zawiera słupek ruchomy. Kontynuuję generowanie elementów.");
 
             // Sprawdź, czy istnieje "Słupek ruchomy" w jakimkolwiek PowiazanymModelu (lista)
             bool czyZawieraSlupekRuchomyWPowiazanymModelu = StateContainer.States
@@ -3602,7 +3635,7 @@
         }
         else
         {
-            Console.WriteLine($"❌ Nie znaleziono regionu o ID {idRegion}");
+            Console.WriteLine($"❌ GenerujElementyDlaRegionu-> Nie znaleziono regionu o ID {idRegion}");
             return;
         }
 
@@ -3902,6 +3935,7 @@
         public Guid RowIdElementu { get; set; }
         public string? IdRegionu { get; set; }
         public int ZIndeks { get; set; }
+        public bool MaSlupekRuchomy { get; set; }
     }
 
     public class PrzesuniecieDto
