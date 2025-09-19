@@ -253,6 +253,9 @@
                 <Tooltip Placement="@Placement.BottomCenter" Title="Zapisz sformatowany dokument EXCEL.">
                     <Button Type="reset" Icon="@IconType.Fill.FileExcel" OnClick="@(ZapiszExcelPozycjePoStronieKlienta)" />
                 </Tooltip>
+                <Tooltip Placement="@Placement.BottomCenter" Title="Zapisz sformatowany dokument EXCEL format VBH.">
+                    <Button Type="reset" Icon="@IconType.Fill.FileExcel" OnClick="@(ZapiszExcelPozycjePoStronieKlientaVBH)" />
+                </Tooltip>
                 <Tooltip Placement="@Placement.BottomCenter" Title="Zaznaczone zapisz do pliku txt (format VBH)">
                     <Button Type="reset" Icon="@IconType.Fill.FileText" OnClick="@(ExportSelectedColumnsToVBH)" />
                 </Tooltip>
@@ -697,6 +700,91 @@
         await _message.Success("Plik Excel został pobrany.");
     }
 
+    private async Task ZapiszExcelPozycjePoStronieKlientaVBH()
+    {
+
+        if (_items == null || !_items.Any())
+        {
+            await _message.Warning("Brak zaznaczonych pozycji do zapisania.");
+            return;
+        }
+        //"Zapas", "Symbol", "Kolor", "Ilość", "Nazwa", "Typ", "Jednostka", "Uwagi"
+
+        var dane = _items.Select(k => new
+        {
+            NazwaProduktu = RemoveWhitespace(k.ElemetZamDoZlecen.NazwaProduktu),
+            NumerKatalogowy = RemoveWhitespace(k.ElemetZamDoZlecen.NumerKatalogowy),
+            Typ = RemoveWhitespace(k.ElemetZamDoZlecen.Typ),
+            IloscSztuk = k.ElemetZamDoZlecen.IloscSztuk,
+            Jednostka = k.ElemetZamDoZlecen.Jednostka,
+            Kolor = k.ElemetZamDoZlecen.Kolor,
+            Dlugosc = k.ElemetZamDoZlecen.Dlugosc,
+            Szerokosc = k.ElemetZamDoZlecen.Szerokosc,
+            Wysokosc = k.ElemetZamDoZlecen.Wysokosc,
+            Uwagi = k.ElemetZamDoZlecen.Uwagi,
+        }).ToList();
+
+        using var workbook = new ClosedXML.Excel.XLWorkbook();
+        var worksheet = workbook.Worksheets.Add("Elementy");
+
+        // Nagłówki
+        var headers = new[]
+        {
+            "Zapas", "Symbol", "Kolor", "Ilość", "Nazwa", "Typ", "Jednostka", "Uwagi"
+        };
+
+        for (int col = 0; col < headers.Length; col++)
+        {
+            var cell = worksheet.Cell(1, col + 1);
+            cell.Value = headers[col];
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontSize = 14;
+            cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
+            cell.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+            cell.Style.Border.InsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+            cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+        }
+
+        int row = 2;
+        foreach (var item in dane)
+        {
+            worksheet.Cell(row, 1).Value = "Zapas";
+            worksheet.Cell(row, 2).Value = item.NumerKatalogowy;
+            worksheet.Cell(row, 3).Value = item.Kolor;
+            worksheet.Cell(row, 4).Value = item.IloscSztuk;
+            worksheet.Cell(row, 5).Value = item.NazwaProduktu;
+            worksheet.Cell(row, 6).Value = item.Typ;
+            worksheet.Cell(row, 7).Value = item.Jednostka;
+            worksheet.Cell(row, 8).Value = item.Uwagi;
+
+            for (int col = 1; col <= headers.Length; col++)
+            {
+                var cell = worksheet.Cell(row, col);
+                cell.Style.Font.FontSize = 12;
+                cell.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                cell.Style.Border.InsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Left;
+                cell.Style.Alignment.Vertical = ClosedXML.Excel.XLAlignmentVerticalValues.Center;
+            }
+
+            row++;
+        }
+
+        worksheet.Columns().AdjustToContents();
+
+        await using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        stream.Position = 0;
+
+        var base64 = Convert.ToBase64String(stream.ToArray());
+
+        string nazwaKlienta = Regex.Replace(dotyczyKlienta ?? "klient", $"[{Regex.Escape(new string(Path.GetInvalidFileNameChars()))}]", "_");
+        string fileName = $"Zamowienie_{nazwaKlienta}.xlsx";
+
+        await JSRuntime.InvokeVoidAsync("saveAsExcelExcelPozycje", base64, fileName);
+        await _message.Success("Plik Excel został pobrany.");
+    }
+
     public async Task ExportSelectedColumnsItemsToExcel()
     {
         // Sprawdzenie, czy są zaznaczone elementy
@@ -756,37 +844,63 @@
             return;
         }
 
-        // Projekcja tylko potrzebnych danych
+        // Projekcja danych
         var selectedData = _items.Select(k => new
         {
-            NumerKatalogowy = RemoveWhitespace(k.ElemetZamDoZlecen?.NumerKatalogowy ?? string.Empty),
-            Kolor = string.IsNullOrWhiteSpace(k.ElemetZamDoZlecen?.Kolor) ? "BRAK" : k.ElemetZamDoZlecen.Kolor,
-            IloscSztuk = k.ElemetZamDoZlecen?.IloscSztuk ?? 0,
+            Symbol = RemoveWhitespace(k.ElemetZamDoZlecen?.NumerKatalogowy ?? string.Empty),
+            Kolor = string.IsNullOrWhiteSpace(k.ElemetZamDoZlecen?.Kolor) ? "Brak" : k.ElemetZamDoZlecen.Kolor,
+            Ilosc = k.ElemetZamDoZlecen?.IloscSztuk ?? 0,
             Opis = RemoveWhitespace(k.ElemetZamDoZlecen?.NazwaProduktu ?? string.Empty),
             Zakladka = "ZAKLADKA",
-            Jednostka = string.IsNullOrWhiteSpace(k.ElemetZamDoZlecen?.Jednostka) ? "SZT" : k.ElemetZamDoZlecen.Jednostka,
-            Cena = "----"
+            Cena = "----",
+            Grupa = "",
+            Waluta = "",
+            JM = string.IsNullOrWhiteSpace(k.ElemetZamDoZlecen?.Jednostka) ? "szt." : k.ElemetZamDoZlecen.Jednostka,
+            Opakowanie = ""
         }).ToList();
 
-        // Nagłówek VBH (dokładnie tak jak w przykładzie)
-            var header =
+        // Nagłówek VBH
+        var header =
             "Zamówienie VBH Polska Sp.z o.o.\n" +
             "PPHU \"GEORGE\"\n" +
             "7341136804\n" +
             "PPHU \"GEORGE\" Marcinkowice 351, 33-393 Marcinkowice\n" +
             $"Data {DateTime.Now:yyyy/MM/dd} {DateTime.Now:HH:mm}\n" +
             "PPHU \"GEORGE\"\n" +
-            "Symbol\tKolor\tIlosc\tOpis\tZakładka\tCena_w_wal\tGrupa_rab Waluta\t" +
-            "JM OPAKOWANIE\n";
+            string.Format(
+                "{0,-20}{1,-15}{2,-7}{3,-41}{4,-11}{5,-13}{6,-11}{7,-8}{8,-11}{9,-12}\n",
+                "Symbol", "Kolor", "Ilosc", "Opis", "Zakładka", "Cena w wal", "Grupa rab", "Waluta", "JM", "OPAKOWANIE"
+            );
 
-        // Linie danych → oddzielane spacją
+        // Funkcja pomocnicza — ucinanie / padding
+        static string PadOrTruncate(string value, int width, bool alignRight = false)
+        {
+            if (string.IsNullOrEmpty(value)) value = string.Empty;
+            if (value.Length > width)
+                return value.Substring(0, width);
+            return alignRight ? value.PadLeft(width) : value.PadRight(width);
+        }
+
+        // Linie danych — szerokości identyczne jak nagłówek
         var lines = selectedData.Select(k =>
-            $"{k.NumerKatalogowy}\t{k.Kolor}\t{k.IloscSztuk}\t{k.Opis}\t{k.Zakladka}\t{k.Jednostka}\t{k.Cena}"
+            string.Format(
+                "{0,-20}{1,-15}{2,7} {3,-41}{4,-11}{5,-13}{6,-11}{7,-8}{8,-11}{9,-12}",
+                PadOrTruncate(k.Symbol, 20),
+                PadOrTruncate(k.Kolor, 15),
+                k.Ilosc, // liczby wyrównane do prawej
+                PadOrTruncate(k.Opis, 41),
+                PadOrTruncate(k.Zakladka, 11),
+                PadOrTruncate(k.Cena, 13),
+                PadOrTruncate(k.Grupa, 11),
+                PadOrTruncate(k.Waluta, 8),
+                PadOrTruncate(k.JM, 11),
+                PadOrTruncate(k.Opakowanie, 12)
+            )
         );
 
         var fullText = header + string.Join("\n", lines);
 
-        // Nazwa pliku
+        // Nazwa pliku — usuń znaki specjalne
         var fileName = string.IsNullOrEmpty(dotyczyKlienta)
             ? $"Zamowienie_{DateTime.Now:yyyyMMdd_HHmm}"
             : RemoveSpecChar(dotyczyKlienta);

@@ -2744,18 +2744,56 @@
 
             var katSzukaj = ObliczKatLinii(linia);
 
-            var info = ZnajdzSasiada(
+            var sasiedzi = ZnajdzSasiada(
                 linia,
                 _generatorStates.Values.ToList(),
                 katSzukaj,
                 state.SlupekRuchomyPoLewejStronie,
                 state.SlupekRuchomyPoPrawejStronie,
                 state.IdRegion,
-                WybranyModel.Typ == "Skrzydło z słupkiem ruchomym" ? true : false,
+                WybranyModel.Typ == "Skrzydło z słupkiem ruchomym",
                 0.02
             );
 
-            Console.WriteLine($"🔎 DodajWybranyKwadratOkna -> Sprawdzam linię o kącie {katSzukaj}° - Znaleziony sąsiad: {(info != null ? info.RowIdElementu : "RowIdElementu - Brak")}");
+            // przykład pobrania najlepszego sąsiada
+            var najlepszySasiad = sasiedzi.FirstOrDefault();
+
+            if (najlepszySasiad != null)
+            {
+                Console.WriteLine($"✅ IdRegionu: {najlepszySasiad.IdRegionu}");
+            }
+
+            if (sasiedzi != null && sasiedzi.Any())
+            {
+                double minX1 = WierzcholkiWartosciNominalne.Min(p => p.X);
+                double maxX1 = WierzcholkiWartosciNominalne.Max(p => p.X);
+                double minY1 = WierzcholkiWartosciNominalne.Min(p => p.Y);
+                double maxY1 = WierzcholkiWartosciNominalne.Max(p => p.Y);
+
+                najlepszySasiad = sasiedzi
+                    .OrderBy(s =>
+                    {
+                        var stan = _generatorStates.Values.FirstOrDefault(gs => gs.Id == s.Id);
+                        if (stan?.WierzcholkiWartosciNominalne == null) return double.MaxValue;
+
+                        double stanMinX = stan.WierzcholkiWartosciNominalne.Min(p => p.X);
+                        double stanMaxX = stan.WierzcholkiWartosciNominalne.Max(p => p.X);
+                        double stanMinY = stan.WierzcholkiWartosciNominalne.Min(p => p.Y);
+                        double stanMaxY = stan.WierzcholkiWartosciNominalne.Max(p => p.Y);
+
+                        // różnica dopasowania
+                        return Math.Abs(minX1 - stanMinX) +
+                               Math.Abs(maxX1 - stanMaxX) +
+                               Math.Abs(minY1 - stanMinY) +
+                               Math.Abs(maxY1 - stanMaxY);
+                    })
+                    .FirstOrDefault();
+            }
+
+            Console.WriteLine(
+                $"🔎 DodajWybranyKwadratOkna -> Sprawdzam linię o kącie {katSzukaj}° - " +
+                $"Najlepszy sąsiad: {(najlepszySasiad != null ? najlepszySasiad.RowIdElementu : "Brak")}"
+            );
 
             var rowId = ZnajdzKonfiguracjeDlaLinii(linia, state, stronaLewa, stronaPrawa, idRegion);
 
@@ -2763,8 +2801,8 @@
             {
                 Wierzcholki = linia,
                 RowIdElementu = rowId,
-                RowIdSasiada = info.RowIdElementu,
-                RowIdRegionuSasiada = info.IdRegionu,
+                RowIdSasiada = najlepszySasiad?.RowIdElementu ?? Guid.Empty,
+                RowIdRegionuSasiada = najlepszySasiad?.IdRegionu ?? "",
                 KatLinii = katSzukaj,
                 Strona = StronaSzukaj(
                     katSzukaj,
@@ -2775,6 +2813,7 @@
                     WierzcholkiWartosciNominalne.Max(p => p.X)
                 )
             });
+
         }
 
 
@@ -3179,30 +3218,46 @@
         return znaleziony;
     }
 
-    public SasiadInfo ZnajdzSasiada(
-    List<XPoint> linia,
-    List<GeneratorState> wszystkieStany,
-    int kat,
-    bool ruchomySlupekPoLewej,
-    bool ruchomySlupekPoPrawej,
-    string obecnyRegionId,
-    bool czyModelMaSlupekRuchomy = false,
-    double tolerancja = 0.03)
+    public List<SasiadInfo> ZnajdzSasiada(
+        List<XPoint> linia,
+        List<GeneratorState> wszystkieStany,
+        int kat,
+        bool ruchomySlupekPoLewej,
+        bool ruchomySlupekPoPrawej,
+        string obecnyRegionId,
+        bool czyModelMaSlupekRuchomy = false,
+        double tolerancja = 0.03)
     {
         var pasujace = new List<SasiadInfo>();
 
+        // Walidacja wejścia
         if (linia == null || linia.Count != 2)
-            return new SasiadInfo { RowIdElementu = Guid.Empty, IdRegionu = "", ZIndeks = -1 , MaSlupekRuchomy = false};
-
-        Console.WriteLine($"🔍 ZnajdzSasiada-> Szukam sąsiada dla linii w regionie {obecnyRegionId} kat: {kat} ruchomySlupekPoLewej: {ruchomySlupekPoLewej} ruchomySlupekPoPrawej:{ruchomySlupekPoPrawej} wszystkieStany.Count: {wszystkieStany.Count()}");
-
-        if(wszystkieStany != null)
         {
-            if(wszystkieStany.Count() > 0)
+            return new List<SasiadInfo>
+        {
+            new SasiadInfo
             {
-                Console.WriteLine($"🔍 ZnajdzSasiada-> wszystkieStany[0].WybranyModel.RowId: {wszystkieStany[0].WybranyModel.RowId} wszystkieStany[0].IdRegion: {wszystkieStany[0].IdRegion} wszystkieStany[0].ZIndeks: {wszystkieStany[0].ZIndeks} wszystkieStany[0].WierzcholkiWartosciNominalne.Count: {wszystkieStany[0].WierzcholkiWartosciNominalne?.Count()}");
+                RowIdElementu = Guid.Empty,
+                IdRegionu = "",
+                ZIndeks = -1,
+                MaSlupekRuchomy = false,
+                Id = 0
             }
+        };
+        }
 
+        Console.WriteLine(
+            $"🔍 ZnajdzSasiada-> Szukam sąsiada dla linii w regionie {obecnyRegionId} kat: {kat} " +
+            $"ruchomySlupekPoLewej: {ruchomySlupekPoLewej} ruchomySlupekPoPrawej:{ruchomySlupekPoPrawej} " +
+            $"wszystkieStany.Count: {wszystkieStany?.Count() ?? 0}");
+
+        if (wszystkieStany != null && wszystkieStany.Count > 0)
+        {
+            Console.WriteLine(
+                $"🔍 ZnajdzSasiada-> wszystkieStany[0].WybranyModel.RowId: {wszystkieStany[0].WybranyModel.RowId} " +
+                $"wszystkieStany[0].IdRegion: {wszystkieStany[0].IdRegion} " +
+                $"wszystkieStany[0].ZIndeks: {wszystkieStany[0].ZIndeks} " +
+                $"wszystkieStany[0].WierzcholkiWartosciNominalne.Count: {wszystkieStany[0].WierzcholkiWartosciNominalne?.Count()}");
         }
 
         var p1 = linia[0];
@@ -3211,11 +3266,9 @@
         bool jestPionowa = Math.Abs(p1.X - p2.X) < tolerancja;
         bool jestPozioma = Math.Abs(p1.Y - p2.Y) < tolerancja;
 
-        // string slPoLewej = ruchomySlupekPoLewej ? "Słupek ruchomy" : "";
-        // string slPoPrawej = ruchomySlupekPoPrawej ? "Słupek ruchomy" : "";
-        string slPoLewej =  "";
+        // Słupki ruchome obecnie nieużywane
+        string slPoLewej = "";
         string slPoPrawej = "";
-
 
         var stanyDoPrzeszukania = wszystkieStany
             .Where(s => s.WierzcholkiWartosciNominalne != null && s.IdRegion != obecnyRegionId)
@@ -3238,8 +3291,17 @@
                 var q1 = innaLinia[0];
                 var q2 = innaLinia[1];
 
+                q1.X = Math.Round(q1.X, 3);
+                q1.Y = Math.Round(q1.Y, 3);
+                q2.X = Math.Round(q2.X, 3);
+                q2.Y = Math.Round(q2.Y, 3);
+
                 if (!CzyNakladajaSieDowolne(p1, p2, q1, q2, tolerancja))
                     continue;
+
+                Console.WriteLine(
+                    $"2# 🔍 ZnajdzSasiada-> Porównuję z linią ZIndeks:{stan.ZIndeks} kat: {kat} " +
+                    $"w regionie {stan.IdRegion} q1:({q1.X},{q1.Y}) q2:({q2.X},{q2.Y})");
 
                 var konfLista = stan.MVCKonfModelu?.KonfSystem;
                 if (konfLista == null) continue;
@@ -3258,7 +3320,8 @@
                                 RowIdElementu = konf.RowId,
                                 IdRegionu = stan.IdRegion,
                                 ZIndeks = stan.ZIndeks,
-                                MaSlupekRuchomy = czyModelMaSlupekRuchomy
+                                MaSlupekRuchomy = czyModelMaSlupekRuchomy,
+                                Id = stan.Id
                             });
                         }
 
@@ -3272,7 +3335,8 @@
                                 RowIdElementu = konf.RowId,
                                 IdRegionu = stan.IdRegion,
                                 ZIndeks = stan.ZIndeks,
-                                MaSlupekRuchomy = czyModelMaSlupekRuchomy
+                                MaSlupekRuchomy = czyModelMaSlupekRuchomy,
+                                Id = stan.Id
                             });
                         }
                     }
@@ -3287,7 +3351,8 @@
                                 RowIdElementu = konf.RowId,
                                 IdRegionu = stan.IdRegion,
                                 ZIndeks = stan.ZIndeks,
-                                MaSlupekRuchomy = czyModelMaSlupekRuchomy
+                                MaSlupekRuchomy = czyModelMaSlupekRuchomy,
+                                Id = stan.Id
                             });
                         }
 
@@ -3300,7 +3365,8 @@
                                 RowIdElementu = konf.RowId,
                                 IdRegionu = stan.IdRegion,
                                 ZIndeks = stan.ZIndeks,
-                                MaSlupekRuchomy = czyModelMaSlupekRuchomy
+                                MaSlupekRuchomy = czyModelMaSlupekRuchomy,
+                                Id = stan.Id
                             });
                         }
                     }
@@ -3308,19 +3374,28 @@
             }
         }
 
-        Console.WriteLine($"🔍 ZnajdzSasiada-> pasujace.Count: {pasujace.Count()} kąt: {kat} slPoPrawej: {slPoPrawej} slPoLewej: {slPoLewej} czyModelMaSlupekRuchomy: {czyModelMaSlupekRuchomy}");
+        Console.WriteLine(
+            $"🔍 ZnajdzSasiada-> pasujace.Count: {pasujace.Count()} kąt: {kat} " +
+            $"slPoPrawej: {slPoPrawej} slPoLewej: {slPoLewej} czyModelMaSlupekRuchomy: {czyModelMaSlupekRuchomy}");
 
-        // return pasujace
-        //     .OrderBy(p => p.ZIndeks)
-        //     .FirstOrDefault() ?? new SasiadInfo { RowIdElementu = Guid.Empty, IdRegionu = "", ZIndeks = -1 };
+        var wynik = pasujace
+            .OrderBy(p => p.Id)
+            .ToList();
 
-        return pasujace
-        .OrderBy(p => p.ZIndeks)
-        .FirstOrDefault(p => p.RowIdElementu != Guid.Empty)
-            ?? new SasiadInfo { RowIdElementu = Guid.Empty, IdRegionu = "", ZIndeks = -1 };
+        if (!wynik.Any())
+        {
+            wynik.Add(new SasiadInfo
+            {
+                RowIdElementu = Guid.Empty,
+                IdRegionu = "",
+                ZIndeks = -1,
+                Id = 0,
+                MaSlupekRuchomy = false
+            });
+        }
 
+        return wynik;
     }
-
 
     private bool CzyPunktyRowne(XPoint p1, XPoint p2, double tolerancja)
     {
@@ -3936,6 +4011,7 @@
         public string? IdRegionu { get; set; }
         public int ZIndeks { get; set; }
         public bool MaSlupekRuchomy { get; set; }
+        public int Id { get; set; }
     }
 
     public class PrzesuniecieDto
