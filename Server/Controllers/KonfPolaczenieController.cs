@@ -71,7 +71,11 @@ namespace GEORGE.Server.Controllers
             try
             {
                 var records = await _context.KonfPolaczenie
-                    .Where(p => p.ElementZewnetrznyId == zewId && p.ElementWewnetrznyId == wewId && p.StronaPolaczenia.ToLower() == strona.ToLower())
+                    .Where(p =>
+                        (p.ElementZewnetrznyId == zewId && p.ElementWewnetrznyId == wewId ||
+                         p.ElementZewnetrznyId == wewId && p.ElementWewnetrznyId == zewId) &&
+                        p.StronaPolaczenia.ToLower() == strona.ToLower()
+                    )
                     .Select(p => new PrzesuniecieDto
                     {
                         PrzesuniecieX = p.PrzesuniecieX,
@@ -83,13 +87,13 @@ namespace GEORGE.Server.Controllers
                 {
                     // Brak wyników → zwracamy domyślną wartość 0,0
                     records = new List<PrzesuniecieDto>
+            {
+                new PrzesuniecieDto
                 {
-                    new PrzesuniecieDto
-                    {
-                        PrzesuniecieX = 0,
-                        PrzesuniecieY = 0
-                    }
-                };
+                    PrzesuniecieX = 0,
+                    PrzesuniecieY = 0
+                }
+            };
                     Console.WriteLine($"Brak wyników, zwracam domyślną wartość 0,0 zew: {zewId} wew: {wewId} strona: {strona}");
                 }
 
@@ -100,7 +104,6 @@ namespace GEORGE.Server.Controllers
                 return StatusCode(500, $"Błąd serwera: {ex.Message}");
             }
         }
-
 
         // ✅ GET: api/konfpolaczenie/row-id-system/{rowidSystem}
         [HttpGet("row-id-system/{rowidSystem:guid}")]
