@@ -130,6 +130,11 @@ namespace GEORGE.Client.Pages.Okna
             Guid RowIdprofileTop = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.RowId ?? Guid.Empty;
             Guid RowIdprofileBottom = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.RowId ?? Guid.Empty;
 
+            string RowIndeksprofileLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ == slruchPoLewej)?.Indeks ?? "BRAK-DANYCH";
+            string RowIndeksprofileRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa && e.Typ == slruchPoPrawej)?.Indeks ?? "BRAK-DANYCH";
+            string RowIndeksprofileTop = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.Indeks ?? "BRAK-DANYCH";
+            string RowIndeksprofileBottom = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.Indeks ?? "BRAK-DANYCH";
+
             if (profileLeft == 0)
             {
                 //Spróbuj bez słupka
@@ -138,6 +143,7 @@ namespace GEORGE.Client.Pages.Okna
                                         MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0);
 
                 RowIdprofileLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.RowId ?? Guid.Empty;
+                RowIndeksprofileLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.Indeks ?? "BRAK-DANYCH";
             }
             if(profileRight == 0)
             {
@@ -147,6 +153,7 @@ namespace GEORGE.Client.Pages.Okna
                                          MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.PionLewa ?? 0);
 
                 RowIdprofileRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.RowId ?? Guid.Empty;
+                RowIndeksprofileRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.Indeks ?? "BRAK-DANYCH";
             }
 
              string NazwaObiektu = MVCKonfModelu.KonfSystem.First().Nazwa ?? "";
@@ -167,6 +174,7 @@ namespace GEORGE.Client.Pages.Okna
                 KonfiguracjeSystemu,
                 regionId,
                 RowIdprofileLeft, RowIdprofileRight, RowIdprofileTop, RowIdprofileBottom,
+                RowIndeksprofileLeft, RowIndeksprofileRight, RowIndeksprofileTop, RowIndeksprofileBottom,
                 NazwaObiektu
             );
             //}
@@ -177,6 +185,7 @@ namespace GEORGE.Client.Pages.Okna
             float profileLeft, float profileRight, float profileTop, float profileBottom,
             string typKsztalt, string polaczenia, List<KonfSystem> model, string regionId,
             Guid rowIdprofileLeft, Guid rowIdprofileRight, Guid rowIdprofileTop, Guid rowIdprofileBottom,
+            string rowIndeksprofileLeft, string rowIndeksprofileRight, string rowIndeksprofileTop, string rowIndeksprofileBottom,
             string NazwaObiektu)
         {
             int vertexCount = outer.Count;
@@ -516,6 +525,7 @@ namespace GEORGE.Client.Pages.Okna
                             IdRegion = regionId,
                             Kat = (int)angleDegrees,
                             Strona = "Góra",
+                            IndeksElementu = rowIndeksprofileTop
                         });
                         break;
                     case 1:
@@ -531,6 +541,7 @@ namespace GEORGE.Client.Pages.Okna
                             IdRegion = regionId,
                             Kat = (int)angleDegrees,
                             Strona = "Prawa",
+                            IndeksElementu = rowIndeksprofileRight
                         });
                         break;
                     case 2:
@@ -546,6 +557,7 @@ namespace GEORGE.Client.Pages.Okna
                             IdRegion = regionId,
                             Kat = (int)angleDegrees,
                             Strona = "Dół",
+                            IndeksElementu = rowIndeksprofileBottom
                         });
                         break;
                     case 3:
@@ -561,6 +573,7 @@ namespace GEORGE.Client.Pages.Okna
                             IdRegion = regionId,
                             Kat = (int)angleDegrees,
                             Strona = "Lewa",
+                            IndeksElementu = rowIndeksprofileLeft
                         }); ;
                         break;
                 }

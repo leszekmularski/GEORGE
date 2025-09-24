@@ -2838,6 +2838,10 @@
                 RowIdSasiada = najlepszySasiad?.RowIdElementu ?? Guid.Empty,
                 RowIdRegionuSasiada = najlepszySasiad?.IdRegionu ?? "",
                 KatLinii = katSzukaj,
+                OffsetBottom = 0,
+                OffsetTop = 0,
+                OffsetLeft = 0,
+                OffsetRight = 0,
                 Strona = StronaSzukaj(
                     katSzukaj,
                     linia,
@@ -3009,6 +3013,8 @@
                 {
                     double fallback = - ((konf.PoziomDol ?? 0) - (konf.PoziomOsSymetrii ?? 0));
 
+                    Console.WriteLine($"📦 WyliczObszarSkrzydla-> bok.RowIdElementu: {bok.RowIdElementu} konf.PoziomDol: {(konf.PoziomDol ?? 0)} - konf.PoziomOsSymetrii: {(konf.PoziomOsSymetrii ?? 0)} / przesLewo: {przesLewo} przesPrawo: {przesPrawo}");
+
                     switch (bok.Strona.ToLower())
                     {
                         case "lewa": if (stronaLewa) przesLewo = fallback; break;
@@ -3039,7 +3045,17 @@
         }
 
         double minXSPRAWDZENIE = regionPointsSkrzydlo.Min(p => p.X);
+
         Console.WriteLine($"📦📦📦 WyliczObszarSkrzydla-> Po przesunięciu minX: {minXSPRAWDZENIE}, przesLewo: {przesLewo}, przesPrawo: {przesPrawo}, przesGora: {przesGora}, przesDol: {przesDol}");
+
+
+        if(state != null && state.ListaKwadratow.Count() > 0)
+        {
+            state.ListaKwadratow[state.ListaKwadratow.Count() - 1].OffsetLeft = przesLewo;
+            state.ListaKwadratow[state.ListaKwadratow.Count() - 1].OffsetRight = przesPrawo;
+            state.ListaKwadratow[state.ListaKwadratow.Count() - 1].OffsetTop = przesGora;
+            state.ListaKwadratow[state.ListaKwadratow.Count() - 1].OffsetBottom = przesDol;
+        }
 
         _regionsSkrzydlo.Wierzcholki = regionPointsSkrzydlo;
 
@@ -3173,81 +3189,148 @@
         return (int)Math.Round(angleDegrees);
     }
 
+public static Guid ZnajdzKonfiguracjeDlaLinii(
+    List<XPoint> linia,
+    GeneratorState stan,
+    bool slRuchStroLewa,
+    bool slRuchStroPrawa,
+    string obecnyRegionId)
+{
+    if (linia == null || linia.Count != 2)
+        return Guid.Empty;
 
-    public static Guid ZnajdzKonfiguracjeDlaLinii(List<XPoint> linia, GeneratorState stan, bool slRuchStroLewa, bool slRuchStroPrawa, string obecnyRegionId)
+    var p1 = linia[0];
+    var p2 = linia[1];
+
+    bool jestPionowa = Math.Abs(p1.X - p2.X) < 0.01;
+    bool jestPozioma = Math.Abs(p1.Y - p2.Y) < 0.01;
+
+    double minX = stan.WierzcholkiWartosciNominalne.Min(v => v.X);
+    double maxX = stan.WierzcholkiWartosciNominalne.Max(v => v.X);
+    double minY = stan.WierzcholkiWartosciNominalne.Min(v => v.Y);
+    double maxY = stan.WierzcholkiWartosciNominalne.Max(v => v.Y);
+    double tolerancja = 1.0; // np. 1 mm
+
+
+    if (stan?.MVCKonfModelu?.KonfSystem == null)
+        return Guid.Empty;
+
+    string slLewa = slRuchStroLewa ? "Słupek ruchomy" : "";
+    string slPrawa = slRuchStroPrawa ? "Słupek ruchomy" : "";
+
+    Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii -> " +
+                      $"jestPionowa: {jestPionowa}, jestPozioma: {jestPozioma}, " +
+                      $"slLewa: {slLewa}, slPrawa: {slPrawa}");
+
+    Guid znaleziony = Guid.Empty;
+
+    // 1️⃣ Najpierw próba z uwzględnieniem słupka
+    foreach (var konf in stan.MVCKonfModelu.KonfSystem)
     {
-        if (linia == null || linia.Count != 2)
-            return Guid.Empty;
-
-      //  Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii-> Szukam konfiguracji dla linii w regionie {obecnyRegionId} slRuchStroLewa: {slRuchStroLewa} slRuchStroPrawa: {slRuchStroPrawa} stan.IdRegionWarstwaNizej: {stan.IdRegionWarstwaNizej}");
-
-        var p1 = linia[0];
-        var p2 = linia[1];
-
-        bool jestPionowa = Math.Abs(p1.X - p2.X) < 0.01;
-        bool jestPozioma = Math.Abs(p1.Y - p2.Y) < 0.01;
-
-        if (stan?.MVCKonfModelu?.KonfSystem == null)
-            return Guid.Empty;
-
-        string slLewa = slRuchStroLewa ? "Słupek ruchomy" : "";
-        string slPrawa = slRuchStroPrawa ? "Słupek ruchomy" : "";
-
-        Guid znaleziony = Guid.Empty;
-
-
-        // 1️⃣ Najpierw próba z uwzględnieniem słupka
-        foreach (var konf in stan.MVCKonfModelu.KonfSystem)
+        if (jestPionowa)
         {
-            if (jestPionowa)
+            if (Math.Abs(p1.X - minX) < tolerancja && konf.WystepujeLewa &&
+                !string.IsNullOrEmpty(slLewa) && konf.Typ.Contains(slLewa))
             {
-                if (p1.X < 5 && konf.WystepujeLewa && konf.Typ.Contains(slLewa))
-                    return konf.RowId;
-                if (p1.X > 85 && konf.WystepujePrawa && konf.Typ.Contains(slPrawa))
-                    return konf.RowId;
+                Console.WriteLine($"✅ [Słupkowy] Lewa -> {konf.RowId} Typ:{konf.Typ}");
+                return konf.RowId;
             }
-            else if (jestPozioma)
+
+            if (Math.Abs(p1.X - maxX) < tolerancja && konf.WystepujePrawa &&
+                !string.IsNullOrEmpty(slPrawa) && konf.Typ.Contains(slPrawa))
             {
-                if (p1.Y < 5 && konf.WystepujeGora)
-                    return konf.RowId;
-                if (p1.Y > 75 && konf.WystepujeDol)
-                    return konf.RowId;
+                Console.WriteLine($"✅ [Słupkowy] Prawa -> {konf.RowId} Typ:{konf.Typ}");
+                return konf.RowId;
             }
         }
-
-        // 2️⃣ Jeśli nie znaleziono — próba bez słupka
-        foreach (var konf in stan.MVCKonfModelu.KonfSystem)
+        else if (jestPozioma)
         {
-            if (jestPionowa)
+            if (p1.Y < 5 && konf.WystepujeGora)
             {
-                if (p1.X < 5 && konf.WystepujeLewa && (string.IsNullOrEmpty(slLewa) || !konf.Typ.Contains("Słupek ruchomy")))
-                    return konf.RowId;
-                if (p1.X > 85 && konf.WystepujePrawa && (string.IsNullOrEmpty(slPrawa) || !konf.Typ.Contains("Słupek ruchomy")))
-                    return konf.RowId;
+                Console.WriteLine($"✅ [Słupkowy] Góra -> {konf.RowId} Typ:{konf.Typ}");
+                return konf.RowId;
+            }
+
+            if (p1.Y > 75 && konf.WystepujeDol)
+            {
+                Console.WriteLine($"✅ [Słupkowy] Dół -> {konf.RowId} Typ:{konf.Typ}");
+                return konf.RowId;
             }
         }
-
-        // 3️⃣ Jeśli dalej nic — bierzemy pierwszą pasującą stronę
-        foreach (var konf in stan.MVCKonfModelu.KonfSystem)
-        {
-            if (jestPionowa)
-            {
-                if (p1.X < 5 && konf.WystepujeLewa)
-                    return konf.RowId;
-                if (p1.X > 85 && konf.WystepujePrawa)
-                    return konf.RowId;
-            }
-            else if (jestPozioma)
-            {
-                if (p1.Y < 5 && konf.WystepujeGora)
-                    return konf.RowId;
-                if (p1.Y > 75 && konf.WystepujeDol)
-                    return konf.RowId;
-            }
-        }
-
-        return znaleziony;
     }
+
+    // 2️⃣ Jeśli nie znaleziono — próba bez słupka
+    foreach (var konf in stan.MVCKonfModelu.KonfSystem)
+    {
+        if (jestPionowa)
+        {
+            if (p1.X < 5 && konf.WystepujeLewa &&
+                (string.IsNullOrEmpty(slLewa) || !konf.Typ.Contains("Słupek ruchomy")))
+            {
+                Console.WriteLine($"✅ [Bez słupka] Lewa -> {konf.RowId} Typ:{konf.Typ}");
+                return konf.RowId;
+            }
+
+            if (p1.X > 85 && konf.WystepujePrawa &&
+                (string.IsNullOrEmpty(slPrawa) || !konf.Typ.Contains("Słupek ruchomy")))
+            {
+                Console.WriteLine($"✅ [Bez słupka] Prawa -> {konf.RowId} Typ:{konf.Typ}");
+                return konf.RowId;
+            }
+        }
+        else if (jestPozioma)
+        {
+            if (p1.Y < 5 && konf.WystepujeGora)
+            {
+                Console.WriteLine($"✅ [Bez słupka] Góra -> {konf.RowId} Typ:{konf.Typ}");
+                return konf.RowId;
+            }
+
+            if (p1.Y > 75 && konf.WystepujeDol)
+            {
+                Console.WriteLine($"✅ [Bez słupka] Dół -> {konf.RowId} Typ:{konf.Typ}");
+                return konf.RowId;
+            }
+        }
+    }
+
+    // 3️⃣ Jeśli dalej nic — bierzemy pierwszą pasującą stronę
+    foreach (var konf in stan.MVCKonfModelu.KonfSystem)
+    {
+        if (jestPionowa)
+        {
+            if (p1.X < 5 && konf.WystepujeLewa)
+            {
+                Console.WriteLine($"✅ [Fallback] Lewa -> {konf.RowId} Typ:{konf.Typ}");
+                return konf.RowId;
+            }
+
+            if (p1.X > 85 && konf.WystepujePrawa)
+            {
+                Console.WriteLine($"✅ [Fallback] Prawa -> {konf.RowId} Typ:{konf.Typ}");
+                return konf.RowId;
+            }
+        }
+        else if (jestPozioma)
+        {
+            if (p1.Y < 5 && konf.WystepujeGora)
+            {
+                Console.WriteLine($"✅ [Fallback] Góra -> {konf.RowId} Typ:{konf.Typ}");
+                return konf.RowId;
+            }
+
+            if (p1.Y > 75 && konf.WystepujeDol)
+            {
+                Console.WriteLine($"✅ [Fallback] Dół -> {konf.RowId} Typ:{konf.Typ}");
+                return konf.RowId;
+            }
+        }
+    }
+
+    Console.WriteLine("❌ ZnajdzKonfiguracjeDlaLinii -> Nie znaleziono konfiguracji.");
+    return znaleziony;
+}
+
 
     public List<SasiadInfo> ZnajdzSasiada(
         List<XPoint> linia,
@@ -3698,7 +3781,7 @@
             RowIdSystemu = state.RowIdSystemu,
             MVCKonfModelu = state.MVCKonfModelu,
             TypKsztaltu = state.WybranyKsztalt,
-            EdytowanyModel = state.WybranyModel,
+            EdytowanyModel = state.WybranyModel
         };
 
 
@@ -3852,7 +3935,7 @@
                 // Console.WriteLine($"*********** >>>>>> ksztalt: {ksztalt.Id}");
 
                 await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
-                await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"{ksztalt.RowIdElementu.ToString()} [{ksztalt.Kat.ToString()}/{ksztalt.Strona}]");
+                await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"{ksztalt.IndeksElementu.ToString()} [{ksztalt.Kat.ToString()}/{ksztalt.Strona}]"); // Tekst z ID i kątem na profilu
             }
 
             StateHasChanged();

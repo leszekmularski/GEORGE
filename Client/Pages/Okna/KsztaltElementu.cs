@@ -35,8 +35,7 @@ namespace GEORGE.Client.Pages.Okna
 
         // RoIdElemntu zapisanego w bazie danych
         public Guid RowIdElementu { get; set; }
-
-        public string? IndeksEelemntu { get; set; }
+        public string? IndeksElementu { get; set; } = "BRAK-DANYCH";
         public float Kat { get; set; } = 0;
         public string? Strona { get; set; }
 

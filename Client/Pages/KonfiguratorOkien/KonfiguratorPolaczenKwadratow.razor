@@ -177,6 +177,108 @@
         model2.setAttribute("transform", `${translate} rotate(${newAngle}, ${cx}, ${cy})`);
     };
 
+    // ✅ Bezpieczne tworzenie #models-group (naprawia błąd 'ancestor' i znika rysunek)
+    window.svgHelper.ensureModelsGroup = function() {
+        try {
+            const zoomGroup = document.querySelector(".scaled-svg svg #zoom-group") ||
+                              document.querySelector(".scaled-svg #zoom-group");
+            if (!zoomGroup) {
+                console.warn("[ensureModelsGroup] Brak #zoom-group");
+                return null;
+            }
+
+            // 1) Zbierz kandydatów PRZED utworzeniem grupy (TYLKO elementy z id "model" + cyfra)
+            //    -> regex /^model\d+/ zabezpiecza przed 'models-group'
+            const candidates = Array.from(zoomGroup.children)
+                .filter(el => el.id && /^model\d+/.test(el.id));
+
+            // 2) Jeśli grupa już jest, zwróć ją
+            let group = zoomGroup.querySelector("#models-group");
+            if (!group) {
+                // 3) Stwórz grupę i wstaw ją (teraz, po zebraniu kandydatów)
+                group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                group.setAttribute("id", "models-group");
+                zoomGroup.insertBefore(group, zoomGroup.firstChild);
+            }
+
+            // 4) Przenieś zebrane elementy do grupy (nie będzie tu już 'models-group' w candidates)
+            candidates.forEach(m => group.appendChild(m));
+
+            console.log("[ensureModelsGroup] Przeniesiono do #models-group:", candidates.map(m => m.id));
+            return group;
+        } catch (e) {
+            console.error("[ensureModelsGroup] błąd:", e);
+            return null;
+        }
+    };
+
+    // 🔁 Bezpieczny obrót całej grupy modeli o 90°
+    window.svgHelper.rotateAllModel = function () {
+        try {
+            const group = window.svgHelper.ensureModelsGroup();
+            if (!group) {
+                console.warn("[rotateAllModel] Nie można uzyskać #models-group");
+                return;
+            }
+
+            const currentTransform = group.getAttribute("transform") || "";
+
+            // zachowaj translate (jeśli jest)
+            const translateMatch = currentTransform.match(/translate\(([^)]+)\)/);
+            const translate = translateMatch ? `translate(${translateMatch[1]})` : "";
+
+            // odczytaj aktualny kąt (jeśli jest)
+            const rotateMatch = currentTransform.match(/rotate\(([-\d.]+)/);
+            const currentAngle = rotateMatch ? parseFloat(rotateMatch[1]) : 0;
+            const newAngle = (currentAngle + 90) % 360;
+
+            // środek grupy (bbox)
+            const bbox = group.getBBox();
+            const cx = bbox.x + bbox.width / 2;
+            const cy = bbox.y + bbox.height / 2;
+
+            group.setAttribute("transform", `${translate} rotate(${newAngle}, ${cx}, ${cy})`);
+            console.log(`[rotateAllModel] Obrócono grupę do ${newAngle}° wokół (${cx.toFixed(1)}, ${cy.toFixed(1)})`);
+        } catch (e) {
+            console.error("[rotateAllModel] błąd:", e);
+        }
+    };
+
+    // 🔁 Lustrzane odbicie wszystkich modeli w poziomie względem środka SVG
+    window.svgHelper.flipAllModelsHorizontally = function () {
+        try {
+            const group = window.svgHelper.ensureModelsGroup();
+            if (!group) {
+                console.warn("[flipAllModelsHorizontally] Nie można uzyskać #models-group");
+                return;
+            }
+
+            // Pobierz rozmiar SVG
+            const svg = document.querySelector(".scaled-svg svg");
+            if (!svg) {
+                console.warn("[flipAllModelsHorizontally] Nie znaleziono <svg>");
+                return;
+            }
+
+            const viewBox = svg.viewBox.baseVal;
+            const centerY = viewBox.y + viewBox.height / 2;
+
+            // Pobierz aktualny transform
+            const currentTransform = group.getAttribute("transform") || "";
+
+            // Odbicie względem osi poziomej (środek SVG w osi Y)
+            const flipTransform = `translate(0, ${2 * centerY}) scale(1, -1)`;
+
+            // Zastosuj
+            group.setAttribute("transform", `${currentTransform} ${flipTransform}`);
+
+            console.log(`[flipAllModelsHorizontally] Odbito względem poziomej osi SVG przy y=${centerY}`);
+        } catch (e) {
+            console.error("[flipAllModelsHorizontally] błąd:", e);
+        }
+    };
+
+
     // 📌 Przesuń
         window.svgHelper.move = function(dx, dy) {
         const model2 = document.querySelector("#model2");
@@ -776,8 +878,14 @@
                             </div>
 
                             <div class="btn-group">
+                                <Tooltip Title="Lustro elementów. Odbicie w poziome">
+                                    <Button Icon="@IconType.Outline.Swap" OnClick="MirrorObjAll" Class="btn-sm btn-move" />
+                                </Tooltip>
+                                <Tooltip Title="Obróć wszystko">
+                                    <Button Icon="@IconType.Outline.Undo" OnClick="RotateObjAll" Class="btn-sm btn-move" />
+                                </Tooltip>
                                 <Tooltip Title="Obróć drugi model">
-                                    <Button Icon="@IconType.Outline.Loading" OnClick="RotateObj" Class="btn-sm btn-move" />
+                                    <Button Icon="@IconType.Outline.Redo" OnClick="RotateObj" Class="btn-sm btn-move" />
                                 </Tooltip>
                                 <Tooltip Title="Przesuń w lewo (1px)">
                                     <Button Icon="@IconType.Outline.ArrowLeft" OnClick="MoveLeftObj" Class="btn-sm btn-move" />
@@ -792,7 +900,7 @@
                                     <Button Icon="@IconType.Outline.ArrowDown" OnClick="MoveDownObj" Class="btn-sm btn-move" />
                                 </Tooltip>
                                 <Tooltip Title="Dopasuj widok">
-                                    <Button Icon="@IconType.Outline.Windows" OnClick="ZoomAllObj" Class="btn-sm btn-move" />
+                                    <Button Icon="@IconType.Outline.Drag" OnClick="ZoomAllObj" Class="btn-sm btn-move" />
                                 </Tooltip>
                                 <Tooltip Title="Powiększ">
                                     <Button Icon="@IconType.Outline.ZoomIn" OnClick="ZoomInObj" Class="btn-sm btn-move" />
@@ -1225,6 +1333,18 @@
         katUstawienia = (katUstawienia + 90) % 360;
     }
 
+    private async Task MirrorObjAll()
+    {
+        await JSRuntime.InvokeVoidAsync("svgHelper.flipAllModelsHorizontally");
+    }
+
+    private async Task RotateObjAll()
+    {
+        await JSRuntime.InvokeVoidAsync("svgHelper.rotateAllModel");
+
+        katUstawienia = (katUstawienia + 90) % 360;
+    }
+
     private async Task StartMeasurement()
     {
         await JSRuntime.InvokeVoidAsync("svgHelper.clearMeasurements");
@@ -1438,15 +1558,4 @@
         public string? error { get; set; } // opcjonalnie
     }
 
-    // public class GuideDisplacementResult
-    // {
-    //     public bool success { get; set; }
-    //     public bool elementsFound { get; set; }
-    //     public double horizontalDisplacement { get; set; }
-    //     public double verticalDisplacement { get; set; }
-    //     public double scale { get; set; }
-    //     public string? error { get; set; }
-    //     public string? horizontalElement { get; set; }
-    //     public string? verticalElement { get; set; }
-    // }
 }

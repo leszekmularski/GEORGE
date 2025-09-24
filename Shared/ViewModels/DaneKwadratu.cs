@@ -9,6 +9,10 @@ namespace GEORGE.Shared.ViewModels
         public string? RowIdRegionuSasiada { get; set; } //id elementu w bazie danych
         public int KatLinii { get; set; } //kierunek linii w stopniach
         public string? Strona { get; set; } //kierunek linii w stopniach
+        public double OffsetTop { get; set; } = 0; //odległość linii od górnej krawędzi elementu pobrana z bazy danych
+        public double OffsetBottom { get; set; } = 0;
+        public double OffsetLeft { get; set; } = 0;
+        public double OffsetRight { get; set; } = 0;
     }
 
 }
