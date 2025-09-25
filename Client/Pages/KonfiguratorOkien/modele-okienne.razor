@@ -323,7 +323,6 @@
     };
 </script>
 
-
 <style>
     /* Globalne ustawienia */
     html, body {
@@ -1614,16 +1613,22 @@
     {
         if (_context is null)
             return;
+        try
+        {
+            await ClearCanvas();
 
-        await ClearCanvas();
+            await _context.SaveAsync();
+            await _context.ScaleAsync(_currentScale, _currentScale);
 
-        await _context.SaveAsync();
-        await _context.ScaleAsync(_currentScale, _currentScale);
+            foreach (var shape in _shapes)
+                await shape.Draw(_context);
 
-        foreach (var shape in _shapes)
-            await shape.Draw(_context);
-
-        await _context.RestoreAsync();
+            await _context.RestoreAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine("❌ RedrawCanvas błąd: " + ex.Message);
+        }
     }
 
     private async Task ClearCanvas()
@@ -2003,31 +2008,21 @@
 
                     infoObiekt.Add(opisy);
 
-                    if (KonfiguracjeSystemu != null)
+                    infoBoom.Clear();// czyści listę przed dodaniem nowych elementów
+
+                    foreach (var danedoboom in ksztalty)
                     {
-                        var _KonfiguracjeSystemu = KonfiguracjeSystemu.OrderBy(x => x.Indeks);
+                        WygenerowaneMaterialy opisySys = new WygenerowaneMaterialy(
+                         danedoboom.RowIdElementu,
+                         danedoboom.DlogoscNaGotowoElementu,
+                         danedoboom.NazwaElementu ?? "",
+                         danedoboom.IndeksElementu ?? "",
+                         1,
+                         ""
+                         );
 
-                        if (_KonfiguracjeSystemu != null)
-                        {
-                            foreach (var _kon in _KonfiguracjeSystemu)
-                            {
-                                WygenerowaneMaterialy opisySys = new WygenerowaneMaterialy(
-                                 _kon.RowId,
-                                 _kon.PoziomDol ?? 0.0,
-                                 _kon.Nazwa ?? "",
-                                 _kon.Indeks ?? "",
-                                 1,
-                                 ""
-                                 );
-
-                                infoBoom.Add(opisySys);
-                            }
-
-
-                        }
-
+                        infoBoom.Add(opisySys);
                     }
-
 
                 }
 
@@ -2571,7 +2566,22 @@
 
             generator.RuchomySlupekPoLewej = stronaLewa;
             generator.RuchomySlupekPoPrawej = stronaPrawa;
-            Console.WriteLine($"⚠️ Ustawiłem w generatorze słupek ruchomy! generator.RuchomySlupekPoLewej :{generator.RuchomySlupekPoLewej} generator.RuchomySlupekPoPrawej :{generator.RuchomySlupekPoPrawej}");
+            Console.WriteLine($"⚠️ Próbuję ustawić w generatorze słupek ruchomy! generator.RuchomySlupekPoLewej :{generator.RuchomySlupekPoLewej} generator.RuchomySlupekPoPrawej :{generator.RuchomySlupekPoPrawej}");
+
+            var slupkiStale = styczneLinie
+            .Where(x => x.TypLiniiDzielacej == "Słupek stały")
+            .ToList();
+
+            foreach (var sl in styczneLinie)
+            {
+                Console.WriteLine($"🔵 Słupek linia: {sl.Id} TypLiniiDzielacej: {sl.TypLiniiDzielacej} Wierzcholki: {sl.Wierzcholki.Count()}");
+            }
+
+            if(slupkiStale.Any())
+            {
+                Console.WriteLine($"✅ Region {idRegion} zawiera słupek stały.");
+            }
+
         }
         else
         {
@@ -2617,6 +2627,7 @@
             .SelectMany(x => x.Value.Region) // spłaszczamy kolekcje regionów
             .Count(v => v.TypLiniiDzielacej == "Słupek ruchomy");
 
+        if (generator.MVCKonfModelu == null || generator.MVCKonfModelu.KonfModele == null) return false;
 
         int ileRegionDRZawieraSlupekRuchomy = generator.MVCKonfModelu.KonfModele.Where(x => x.Typ == "Skrzydło z słupkiem ruchomym").Count();
 
@@ -2854,6 +2865,10 @@
 
         }
 
+        if (SelectedModelType.ToLower().Trim() == "słupek stały")
+        {
+            Console.WriteLine($"📐📐📐 Słupek stały --- BRAK ANALIZY");
+        }
 
         if (SelectedModelType.Trim() == "Skrzydło" || SelectedModelType.Trim() == "Skrzydło z słupkiem ruchomym")
         {
@@ -2923,11 +2938,6 @@
             {
                 Console.WriteLine($"📐📐📐 wybranyRegionSkrzydlo == null");
             }
-        }
-
-        if (SelectedModelType.Trim() == "Słupek stały")
-        {
-            Console.WriteLine($"📐📐📐 Słupek stały --- BRAK ANALIZY");
         }
 
         //   Console.WriteLine($"✅ ElementyRamyRysowane.Count: {generator.ElementyRamyRysowane.Count}");
@@ -3791,7 +3801,9 @@ public static Guid ZnajdzKonfiguracjeDlaLinii(
         // Sprawdź, czy region skrzydła ma linię dzielącą z ruchomym słupkiem
         bool czyRegionZawieraSlupekRuchomy = _regionsSkrzydlo?.Any(x => x.TypLiniiDzielacej == "Słupek ruchomy") == true;
 
-        //   Console.WriteLine($"✅ czyRegionZawieraSlupekRuchomy: {czyRegionZawieraSlupekRuchomy}");
+        bool czyRegionZawieraSlupekStaly = _regionsDualRama?.Any(x => x.TypLiniiDzielacej == "Słupek stały") == true;
+
+        Console.WriteLine($"✅ czyRegionZawieraSlupekStaly: {czyRegionZawieraSlupekStaly}");
 
         if (czyRegionZawieraSlupekRuchomy)
         {

@@ -69,28 +69,19 @@ namespace GEORGE.Client.Pages.Utils
 
                 string typLinii = null;
 
-                string id = Guid.NewGuid().ToString(); ;
+                string id = Guid.NewGuid().ToString();
 
-                if (shape is XLineShape linia && linia.RuchomySlupek)
+                typLinii = shape switch
                 {
-                    typLinii = "Słupek ruchomy";
-                   // id = "SR-" + id;
-                }
-                else
-                {
-                    if (shape is XLineShape liniaD && liniaD.DualRama)
-                    {
-                        typLinii = "Podwójna rama";
-                        //id = "DR-" + id;
-                    }
-                    else
-                    {
-                        typLinii = "Brak podziału";
-                        //id = "BP-" + id;
-                    }
-                }
-   
-               // Console.WriteLine($"🔍GenerujRegionyZPodzialu --> Generowanie regionu z kształtu: {typ}, liczba wierzchołków: {pts.Count}");
+                    XLineShape { RuchomySlupek: true } => "Słupek ruchomy",
+                    XLineShape { DualRama: true } => "Podwójna rama",
+                    XLineShape { StalySlupek: true } => "Słupek stały",
+                    _ => "Brak podziału"
+                };
+
+                // Console.WriteLine($"🔍GenerujRegionyZPodzialu --> Przetwarzanie kształtu typu: {typ}, liczba wierzchołków: {pts.Count} typLinii: {typLinii}");
+
+                // Console.WriteLine($"🔍GenerujRegionyZPodzialu --> Generowanie regionu z kształtu: {typ}, liczba wierzchołków: {pts.Count}");
 
                 var initial = new ShapeRegion
                 {

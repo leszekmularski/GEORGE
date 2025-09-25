@@ -10,6 +10,7 @@
 @using System.Xml
 @using System.Text.Json
 @using System.Text.RegularExpressions
+@using System.Globalization
 @inject IJSRuntime JSRuntime
 @inject DxfService DxfService
 @inject DxfToSvgConverter Converter
@@ -211,6 +212,10 @@
     }
 
     function startDrag(event) {
+        if (!event) {
+            console.error("❌ startDrag wywołane bez eventu!");
+            return;
+        }
     event.preventDefault();
     isDraggingOKN = true;
     draggedLine = event.target;
@@ -280,7 +285,7 @@
     "guide-line-horizontal-liniaSzklenia": "Pozioma linia szkła",
     "guide-line-horizontal-okucie": "Pozioma linia OKUCIA",
     "guide-line-horizontal-dormas": "Pozioma linia DORMAS",
-    "guide-line-horizontal-OsSymetrii": "Oś słupka"
+    "guide-line-horizontal-OsSymetrii": "Oś ruchomego słupka"
     };
 
 
@@ -383,6 +388,10 @@
 
     // 🔥 Nowa funkcja: wybiera czy usunąć czy przesuwać
     function startDragOrDelete(event) {
+        if (!event) {
+            console.error("❌ startDragOrDelete wywołane bez eventu!");
+            return;
+        }
     event.preventDefault();
 
     if (deleteMode) {
@@ -555,57 +564,141 @@
         updateTransform(0, 1);
     }
 
+    // Bardziej odporna funkcja: konwertuje SVG string -> base64 PNG
     window.generatePngFromSvg = function (svgContent) {
         return new Promise((resolve, reject) => {
             try {
                 const parser = new DOMParser();
                 const svgDoc = parser.parseFromString(svgContent, "image/svg+xml");
 
-                // 🛡 Sprawdź, czy SVG zawiera błąd parsera
+                // Parser error?
                 const parseError = svgDoc.querySelector("parsererror");
                 if (parseError) {
-                    console.error("❌ Błąd parsera SVG:", parseError.textContent);
+                    console.error("generatePngFromSvg: parsererror:", parseError.textContent);
                     reject("Błąd parsera SVG: " + parseError.textContent);
                     return;
                 }
 
-                // 🧹 Usuń linie pomocnicze
-                const guideLines = svgDoc.querySelectorAll('[id^="guide-line-"]');
-                guideLines.forEach(line => line.remove());
+                const svgEl = svgDoc.documentElement;
+                if (!svgEl || svgEl.nodeName.toLowerCase() !== "svg") {
+                    console.error("generatePngFromSvg: brak elementu <svg>");
+                    reject("Brak elementu <svg> w przekazanym stringu.");
+                    return;
+                }
 
-                const cleanedSvg = new XMLSerializer().serializeToString(svgDoc);
+                // Ensure xmlns
+                if (!svgEl.getAttribute("xmlns")) {
+                    svgEl.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+                }
 
-                const canvas = document.createElement("canvas");
-                const ctx = canvas.getContext("2d");
+                // Ustal viewBox / width / height
+                let width = parseFloat(svgEl.getAttribute("width")) || NaN;
+                let height = parseFloat(svgEl.getAttribute("height")) || NaN;
+                const vb = svgEl.getAttribute("viewBox");
 
+                if (!vb) {
+                    if (!isFinite(width) || !isFinite(height)) {
+                        // brak viewBox i brak width/height -> ustaw domyślne wymiary
+                        width = 800;
+                        height = 800;
+                        svgEl.setAttribute("viewBox", `0 0 ${width} ${height}`);
+                    } else {
+                        // ustaw viewBox z width/height (usuwa jednostki, jeśli były)
+                        svgEl.setAttribute("viewBox", `0 0 ${width} ${height}`);
+                    }
+                } else {
+                    const parts = vb.trim().split(/\s+|,/).map(Number);
+                    if (parts.length >= 4 && parts.every(p => !isNaN(p))) {
+                        const vbW = parts[2], vbH = parts[3];
+                        if (!isFinite(width)) width = vbW;
+                        if (!isFinite(height)) height = vbH;
+                        svgEl.setAttribute("width", width);
+                        svgEl.setAttribute("height", height);
+                    } else {
+                        // fallback
+                        if (!isFinite(width)) width = 800;
+                        if (!isFinite(height)) height = 800;
+                        svgEl.setAttribute("width", width);
+                        svgEl.setAttribute("height", height);
+                    }
+                }
+
+                // Serializacja
+                const svgString = new XMLSerializer().serializeToString(svgDoc);
+
+                // Uwaga: obecność <image href="..."> może powodować błędy lub tzw. tainting canvas (CORS).
+                const hasImages = svgEl.querySelectorAll("image").length > 0;
+                if (hasImages) {
+                    console.warn("generatePngFromSvg: SVG zawiera <image> — może powodować błędy lub problemy CORS.");
+                }
+
+                // Utwórz blob i objectURL
+                const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+                const url = URL.createObjectURL(blob);
+
+                let triedDataUri = false;
                 const img = new Image();
-                const svgBlob = new Blob([cleanedSvg], { type: "image/svg+xml;charset=utf-8" });
-                const svgUrl = URL.createObjectURL(svgBlob);
+                img.crossOrigin = "anonymous";
 
                 img.onload = function () {
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    ctx.drawImage(img, 0, 0);
+                    try {
+                        const canvas = document.createElement("canvas");
+                        // używamy ustalonych wymiarów z atrybutów SVG
+                        canvas.width = Math.round(width);
+                        canvas.height = Math.round(height);
 
-                    const base64 = canvas.toDataURL("image/png").split(",")[1];
-                    URL.revokeObjectURL(svgUrl);
-                    resolve(base64);
+                        // const ctx = canvas.getContext("2d"); // będzie białe tło
+                        // // opcjonalne białe tło
+                        // ctx.fillStyle = "#ffffff";
+                        // ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                        // ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+                        // 🟢 bez tła – przezroczysty PNG
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                        URL.revokeObjectURL(url);
+                        const base64 = canvas.toDataURL("image/png").split(",")[1];
+                        resolve(base64);
+                    } catch (err) {
+                        URL.revokeObjectURL(url);
+                        console.error("generatePngFromSvg: błąd rysowania na canvas:", err);
+                        reject("Błąd rysowania na canvas: " + err.message);
+                    }
                 };
 
                 img.onerror = function (e) {
-                    console.error("❌ Błąd ładowania SVG do <img>:", e);
+                    console.error("generatePngFromSvg: Błąd ładowania SVG do <img>:", e);
+                    // spróbuj fallbacku: data URI (może pomóc przy niektórych konfiguracjach)
+                    if (!triedDataUri) {
+                        triedDataUri = true;
+                        try {
+                            const dataUri = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgString);
+                            img.src = dataUri;
+                            return;
+                        } catch (err) {
+                            console.error("generatePngFromSvg: fallback dataURI failed:", err);
+                        }
+                    }
+
+                    URL.revokeObjectURL(url);
+                    // dla debugowania pokaż kawałek SVG
+                    console.error("generatePngFromSvg: SVG head:", svgString.substring(0, 500));
                     reject("Błąd ładowania SVG do obrazu");
-                    URL.revokeObjectURL(svgUrl);
                 };
 
-                img.src = svgUrl;
+                // Start load using objectURL
+                img.src = url;
             } catch (err) {
-                console.error("❌ Wyjątek w generatePngFromSvg:", err);
-                reject("Wyjątek: " + err.message);
+                console.error("generatePngFromSvg: wyjątek:", err);
+                reject("Wyjątek generatePngFromSvg: " + err.message);
             }
         });
     };
-
 
     function getGuidesData() {
     console.log("📡 Pobieram dane prowadnic...");
@@ -858,7 +951,7 @@
     @if (activeKey == "2")
     {
         <Tooltip Placement="@Placement.TopRight" Title="Obróć o 90 stopni">
-            <Button class="btn-back" Icon="@IconType.Outline.Loading" Style="width:27px" OnClick="RotateObj" />
+            <Button class="btn-back" Icon="@IconType.Outline.Redo" Style="width:27px" OnClick="RotateObj" />
         </Tooltip>
 
         <Button class="btn-back" Icon="@IconType.Outline.ArrowLeft" Style="width:27px" OnClick="MoveLeftObj" />
@@ -867,8 +960,8 @@
         <Button class="btn-back" Icon="@IconType.Outline.ArrowUp" Style="width:27px" OnClick="MoveUpObj" />
         <Button class="btn-back" Icon="@IconType.Outline.ZoomIn" Style="width:27px" OnClick="ZoomInObj" />
         <Button class="btn-back" Icon="@IconType.Outline.ZoomOut" Style="width:27px" OnClick="ZoomOutObj" />
-        <Button class="btn-back" Icon="@IconType.Outline.AlignCenter" Style="width:27px" OnClick="FitSvg" />
-        <Button class="btn-back" Icon="@IconType.Outline.Transaction" Style="width:27px" OnClick="FlipVertical" />
+        <Button class="btn-back" Icon="@IconType.Outline.Drag" Style="width:27px" OnClick="FitSvg" />
+        <Button class="btn-back" Icon="@IconType.Outline.Swap" Style="width:27px" OnClick="FlipVertical" />
        @*  <Button class="btn-back" Icon="@IconType.Outline.MergeCells" Style="width:27px" OnClick="FitResetSvg" /> *@
     }
 
@@ -1051,39 +1144,37 @@
                 <div class="row">
                     <div class="col-md-4">
                         <label class="form-label">Wartość linia: pozima dolna</label>
-                        <Input type="number" class="form-control" @bind-Value="@konfSystem.PoziomDol" />
+                        <input type="number" class="form-control" @bind="@konfSystem.PoziomDol" />
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Wartość linia: pozima górna</label>
-                        <Input type="number" class="form-control" @bind-Value="@konfSystem.PoziomGora" />
+                        <input type="number" class="form-control" @bind="@konfSystem.PoziomGora" />
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Wartość linia: pionowa lewa</label>
-                        <Input type="number" class="form-control" step="0.01" @bind-Value="@konfSystem.PionLewa" />
+                        <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PionLewa" />
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Wartość linia: pionowa prawa</label>
-                        <Input type="number" class="form-control" step="0.01" @bind-Value="@konfSystem.PionPrawa" />
+                        <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PionPrawa" />
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Wartość linia: pionowa oś symetrii</label>
-                        <Input type="number" class="form-control" step="0.01" @bind-Value="@konfSystem.PionOsSymetrii" />
+                        <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PionOsSymetrii" />
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Wartość linia: pozioma oś symetrii</label>
-                        <Input type="number" class="form-control" step="0.01" @bind-Value="@konfSystem.PoziomOsSymetrii" />
+                        <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PoziomOsSymetrii" />
                     </div>
                 </div>
-
+                <br/>
+                <br/>
                 <!-- Przyciski akcji -->
-                @*                 <div class="text-end">
-                    <button class="btn btn-success" @onclick="Zapisz">
-                        <i class="fas fa-save"></i> Zapisz
+                <div class="text-end">
+                    <button class="btn btn-success" onclick="@SaveLinieDXF">
+                        <i class="fas fa-save"></i> Zapisz zmiany
                     </button>
-                    <button class="btn btn-secondary" @onclick="Anuluj">
-                        <i class="fas fa-times"></i> Anuluj
-                    </button>
-                </div> *@
+                </div>
             </div>
         </div>
 
@@ -1451,234 +1542,74 @@
         if (string.IsNullOrEmpty(SelectedSystemId))
         {
             _ = _notice.Info(new()
-                {
-                    Message = "Informacja!!",
-                    Description = $"Wybierz System!!!!",
-                    Placement = NotificationPlacement.BottomLeft,
-                    Duration = 2
-                });
+            {
+                Message = "Informacja!!",
+                Description = $"Wybierz System!!!!",
+                Placement = NotificationPlacement.BottomLeft,
+                Duration = 2
+            });
             return;
         }
 
         if (string.IsNullOrEmpty(konfSystem.Nazwa) || string.IsNullOrEmpty(konfSystem.Indeks))
         {
-
             activeKey = "1";
 
             _ = _notice.Info(new()
-                {
-                    Message = "Informacja!!",
-                    Description = $"Podaj Nazwę oraz Indeks elementu!!!!",
-                    Placement = NotificationPlacement.BottomLeft,
-                    Duration = 2
-                });
+            {
+                Message = "Informacja!!",
+                Description = $"Podaj Nazwę oraz Indeks elementu!!!!",
+                Placement = NotificationPlacement.BottomLeft,
+                Duration = 2
+            });
             return;
         }
 
         try
         {
-
-            Console.WriteLine("📡 Pobieranie danych prowadnic...");
-            var guidesData = await JSRuntime.InvokeAsync<Dictionary<string, object>>("getGuidesData");
-
-            // Debug JSON
-            Console.WriteLine($"🔍 Dane JSON: {JsonSerializer.Serialize(guidesData)}");
-
-            if (guidesData == null || !guidesData.ContainsKey("vertical") || !guidesData.ContainsKey("horizontal"))
-            {
-                Console.WriteLine("⚠️ Błąd: Brak danych prowadnic!");
-                return;
-            }
-
-            List<double> verticalGuides = new();
-            List<double> horizontalGuides = new();
-
-            // 🔥 Pobieramy SVG przez JS
+            // 🔥 Pobierz aktualne SVG z przeglądarki
             konfSystem.SVG = await JSRuntime.InvokeAsync<string>("getUpdatedSvg");
 
-            // Sprawdzamy, czy dane "vertical" są obiektem
-            if (guidesData["vertical"] is JsonElement verticalElement && verticalElement.ValueKind == JsonValueKind.Object)
+            // 🔥 Wczytaj do XmlDocument
+            var svgDoc = new XmlDocument();
+            string svgCleaned = CleanSvgXml(konfSystem.SVG);
+            svgDoc.LoadXml(svgCleaned);
+
+            var svgElement = svgDoc.DocumentElement;
+            if (svgElement == null)
             {
-                verticalGuides.Add(verticalElement.GetProperty("guide-line-vertical").GetDouble());
-                verticalGuides.Add(verticalElement.GetProperty("guide-line-verticalMax").GetDouble());
-                verticalGuides.Add(verticalElement.GetProperty("guide-line-verticalOdlSzyby").GetDouble());
-                //verticalGuides.Add(verticalElement.GetProperty("guide-line-verticalOsSymetrii").GetDouble());
-
-                // ✅ Sprawdzamy, czy klucz istnieje, zanim go dodamy!
-                if (verticalElement.TryGetProperty("guide-line-verticalOsSymetrii", out var osSymetriiElement))
-                {
-                    verticalGuides.Add(osSymetriiElement.GetDouble());
-                }
-                else
-                {
-                    Console.WriteLine("⚠️ Brak wartości dla 'guide-line-verticalOsSymetrii'! Ustawiam 0.");
-
-                    // 🔥 Pobierz width i height z istniejącego SVG (np. z konfSystem.SVG)
-                    var svgDoc = new XmlDocument();
-
-                  //  svgDoc.LoadXml(konfSystem.SVG);
-
-                    string svgCleaned = CleanSvgXml(konfSystem.SVG);
-                    svgDoc.LoadXml(svgCleaned);
-           
-                    var svgElement = svgDoc.DocumentElement;
-
-                    // Parsuj szerokość i wysokość SVG
-                    double width = ParseSvgDimension(svgElement.GetAttribute("width"));
-                    double height = ParseSvgDimension(svgElement.GetAttribute("height"));
-
-                    // Oblicz środek dla PIONOWEJ osi symetrii (width / 2)
-                    double centerX = width / 2;
-
-                    // ✅ Poprawna definicja LINII PIONOWEJ
-                    var newLine = svgDoc.CreateElement("line");
-                    newLine.SetAttribute("id", "guide-line-verticalOsSymetrii");
-                    newLine.SetAttribute("x1", centerX.ToString("G", System.Globalization.CultureInfo.InvariantCulture));
-                    newLine.SetAttribute("y1", "0");
-                    newLine.SetAttribute("x2", centerX.ToString("G", System.Globalization.CultureInfo.InvariantCulture));
-                    newLine.SetAttribute("y2", height.ToString("G", System.Globalization.CultureInfo.InvariantCulture));
-                    newLine.SetAttribute("stroke", "#ffa726");
-                    newLine.SetAttribute("stroke-width", "1");
-                    newLine.SetAttribute("stroke-dasharray", "5,5");
-
-                    svgDoc.DocumentElement.AppendChild(newLine);
-
-                    // Zaktualizuj SVG w konfSystem
-                    konfSystem.SVG = svgDoc.OuterXml;
-
-                    // Dodaj 0 do listy (lub centerY, jeśli to ma sens)
-                    verticalGuides.Add(0.0);
-                }
-            }
-            else
-            {
-                Console.WriteLine("Błąd: 'vertical' nie jest obiektem!!!!!");
+                Console.WriteLine("❌ Błąd: SVG jest puste!");
                 return;
             }
 
-            Console.WriteLine("vertical - OK");
-            // Sprawdzamy, czy dane "horizontal" są obiektem
-            if (guidesData["horizontal"] is JsonElement horizontalElement && horizontalElement.ValueKind == JsonValueKind.Object)
-            {
-                horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal").GetDouble());
-                horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontalMax").GetDouble());
-                horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal-korpus").GetDouble());
-                horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal-liniaSzklenia").GetDouble());
-                horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal-okucie").GetDouble());
-                horizontalGuides.Add(horizontalElement.GetProperty("guide-line-horizontal-dormas").GetDouble());
+            // Pobierz wymiary SVG
+            double width = ParseSvgDimension(svgElement.GetAttribute("width"));
+            double height = ParseSvgDimension(svgElement.GetAttribute("height"));
 
-                // ✅ Sprawdzamy, czy klucz istnieje, zanim go dodamy!
-                if (horizontalElement.TryGetProperty("guide-line-horizontal-OsSymetrii", out JsonElement osSymetriiElement))
-                {
-                    horizontalGuides.Add(osSymetriiElement.GetDouble());
-                }
-                else
-                {
-                    Console.WriteLine("⚠️ Brak wartości dla 'guide-line-horizontal-OsSymetrii'! Ustawiam 0.");
+            // 🔄 Zaktualizuj linie pionowe i poziome zgodnie z wartościami w konfSystem
+            UpdateGuideLines(svgDoc, width, height);
 
-                    // 🔥 Pobierz width i height z istniejącego SVG (np. z konfSystem.SVG)
-                    var svgDoc = new XmlDocument();
-
-                    string svgCleaned = CleanSvgXml(konfSystem.SVG);
-                    svgDoc.LoadXml(svgCleaned);
-
-                    var svgElement = svgDoc.DocumentElement;
-
-                    // Parsuj szerokość i wysokość SVG
-                    double width = ParseSvgDimension(svgElement.GetAttribute("width"));
-                    double height = ParseSvgDimension(svgElement.GetAttribute("height"));
-
-                    // Oblicz środek dla osi symetrii
-                    double centerY = height / 2;
-
-                    // Dodaj linię do SVG
-                    var newLine = svgDoc.CreateElement("line");
-                    newLine.SetAttribute("id", "guide-line-horizontal-OsSymetrii");
-                    newLine.SetAttribute("x1", "0");
-                    newLine.SetAttribute("y1", centerY.ToString("G", System.Globalization.CultureInfo.InvariantCulture));
-                    newLine.SetAttribute("x2", width.ToString("G", System.Globalization.CultureInfo.InvariantCulture));
-                    newLine.SetAttribute("y2", centerY.ToString("G", System.Globalization.CultureInfo.InvariantCulture));
-                    newLine.SetAttribute("stroke", "#ffa726");
-                    newLine.SetAttribute("stroke-width", "1");
-                    newLine.SetAttribute("stroke-dasharray", "5,5");
-
-                    svgDoc.DocumentElement.AppendChild(newLine);
-
-                    // Zaktualizuj SVG w konfSystem
-                    konfSystem.SVG = svgDoc.OuterXml;
-
-                    // Dodaj 0 do listy (lub centerY, jeśli to ma sens)
-                    horizontalGuides.Add(0.0);
-                }
-            }
-            else
-            {
-                Console.WriteLine("❌ Błąd: 'horizontal' nie jest obiektem!!!!!");
-                return;
-            }
-
-            Console.WriteLine($"✅ Linie pionowe: {verticalGuides.Count}, poziome: {horizontalGuides.Count}");
-
-            // Pobierz obraz PNG jako base64 z JavaScript
-            //  string base64Png = await JSRuntime.InvokeAsync<string>("getSvgPngBase64");
-
-            // 🔥 Pobieranie wartości z listy bez ryzyka błędu
-            double GetValueOrDefault(List<double> list, int index)
-            {
-                return (index >= 0 && index < list.Count) ? Math.Round(list[index], precyzjaZapisuLinii) : 0.0;
-            }
-
-            // ✅ Pionowe linie
-            konfSystem.PionLewa = GetValueOrDefault(verticalGuides, 0);
-            konfSystem.PionPrawa = GetValueOrDefault(verticalGuides, 1);
-            konfSystem.PionOdSzybaOdZew = GetValueOrDefault(verticalGuides, 2);
-            konfSystem.PionDodatkowa4 = GetValueOrDefault(verticalGuides, 3);
-            konfSystem.PionDodatkowa5 = GetValueOrDefault(verticalGuides, 4);
-            konfSystem.PionOsSymetrii = GetValueOrDefault(verticalGuides, 5);
-
-            // ✅ Poziome linie (odwrócone względem odwWym)
-            var odwWym = GetValueOrDefault(horizontalGuides, 1);
-            konfSystem.PoziomDol = odwWym - GetValueOrDefault(horizontalGuides, 0);
-            konfSystem.PoziomGora = odwWym - GetValueOrDefault(horizontalGuides, 1);
-            konfSystem.PoziomKorpus = odwWym - GetValueOrDefault(horizontalGuides, 2);
-            konfSystem.PoziomLiniaSzkla = odwWym - GetValueOrDefault(horizontalGuides, 3);
-            konfSystem.PoziomLiniaOkucia = odwWym - GetValueOrDefault(horizontalGuides, 4);
-            konfSystem.PoziomOsDormas = odwWym - GetValueOrDefault(horizontalGuides, 5);
-            konfSystem.PoziomDodatkowa6 = odwWym - GetValueOrDefault(horizontalGuides, 6);
-            konfSystem.PoziomDodatkowa7 = odwWym - GetValueOrDefault(horizontalGuides, 7);
-            konfSystem.PoziomOsSymetrii = odwWym - GetValueOrDefault(horizontalGuides, 8);
-
-            // // 🔥 Pobieramy SVG przez JS
-            // konfSystem.SVG = await JSRuntime.InvokeAsync<string>("getUpdatedSvg");
-
-            // 🔥 Zamiana przecinków na kropki
-            konfSystem.SVG = konfSystem.SVG.Replace(",", ".");
-
+            // Zaktualizuj SVG w konfSystem
+            // 1. Zapisz SVG z prowadnicami
+            konfSystem.SVG = svgDoc.OuterXml.Replace(",", ".");
             SvgContent = konfSystem.SVG;
 
-            // Console.WriteLine($"📡 Aktualny SVG przed zapisem: {konfSystem.SVG}");
+            // 2. Usuń prowadnice dla PNG
+            string svgWithoutGuides = RemoveGuideLines(konfSystem.SVG);
 
-            // Przekazujemy SVG do JavaScript w celu generowania PNG
-            string base64Image = await JSRuntime.InvokeAsync<string>("generatePngFromSvg", konfSystem.SVG);
-
-            // Console.WriteLine($"base64Png {base64Png}");
-
+            // 3. Generuj PNG tylko z obrysem modelu
+            string base64Image = await JSRuntime.InvokeAsync<string>("generatePngFromSvg", svgWithoutGuides);
             if (string.IsNullOrEmpty(base64Image))
             {
                 Console.WriteLine("❌ Błąd: Nie udało się pobrać obrazka PNG!");
                 return;
             }
 
-            // Konwersja base64 → byte[]
-            byte[] pngBytes = Convert.FromBase64String(base64Image);
-
-            //konfSystem.SVG = SvgContent;
-            konfSystem.Rysunek = pngBytes;
+            konfSystem.Rysunek = Convert.FromBase64String(base64Image);
 
             konfSystem.RowIdSystem = Guid.Parse(SelectedSystemId);
 
             HttpResponseMessage response;
-
             if (konfSystem.Id == 0)
             {
                 response = await Http.PostAsJsonAsync("api/konfsystem", konfSystem);
@@ -1695,14 +1626,11 @@
 
                 KonfiguracjeSystemu = null;
                 KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>("api/konfsystem");
-
             }
             else
             {
                 Console.WriteLine("❌ Błąd podczas zapisywania w bazie!");
                 await _message.Error("❌ Błąd podczas zapisywania w bazie!");
-
-                // 🔥 Odśwież SVG po zapisie
                 SvgKey = Guid.NewGuid().ToString();
             }
         }
@@ -1710,34 +1638,136 @@
         {
             Console.WriteLine($"❌ Wystąpił błąd #1: {ex.Message} --> {ex.StackTrace}");
 
-             _ = _notice.Error(new()
-                {
-                    Message = "Bład!!",
-                    Description = $"❌ Wystąpił błąd #1: {ex.Message}",
-                    Placement = NotificationPlacement.Top,
-                    Duration = 5
-                });
+            _ = _notice.Error(new()
+            {
+                Message = "Błąd!!",
+                Description = $"❌ Wystąpił błąd #1: {ex.Message}",
+                Placement = NotificationPlacement.Top,
+                Duration = 5
+            });
         }
+    }
+
+    private static string RemoveGuideLines(string svgXml)
+    {
+        var svgDoc = new XmlDocument();
+        svgDoc.LoadXml(svgXml);
+
+        var svgElement = svgDoc.DocumentElement;
+        if (svgElement == null)
+            return svgXml;
+
+        // usuń wszystkie <line> z id zaczynającym się na "guide-line-"
+        var guideLines = svgElement.SelectNodes("//*[starts-with(@id, 'guide-line-')]");
+        if (guideLines != null)
+        {
+            foreach (XmlNode node in guideLines)
+            {
+                node.ParentNode?.RemoveChild(node);
+            }
+        }
+
+        return svgDoc.OuterXml;
+    }
+
+
+    private void UpdateGuideLines(XmlDocument svgDoc, double width, double height)
+    {
+        var svgElement = svgDoc.DocumentElement;
+        if (svgElement == null) return;
+
+        // ============================
+        // 🔹 Pionowe linie
+        // ============================
+        UpdateOrCreateLine(svgDoc, svgElement, "guide-line-vertical", konfSystem.PionLewa, 0, konfSystem.PionLewa, height);
+        UpdateOrCreateLine(svgDoc, svgElement, "guide-line-verticalMax", konfSystem.PionPrawa, 0, konfSystem.PionPrawa, height);
+        UpdateOrCreateLine(svgDoc, svgElement, "guide-line-verticalOdlSzyby", konfSystem.PionOdSzybaOdZew, 0, konfSystem.PionOdSzybaOdZew, height);
+        UpdateOrCreateLine(svgDoc, svgElement, "guide-line-verticalDodatkowa4", konfSystem.PionDodatkowa4, 0, konfSystem.PionDodatkowa4, height);
+        UpdateOrCreateLine(svgDoc, svgElement, "guide-line-verticalDodatkowa5", konfSystem.PionDodatkowa5, 0, konfSystem.PionDodatkowa5, height);
+        UpdateOrCreateLine(svgDoc, svgElement, "guide-line-verticalOsSymetrii", konfSystem.PionOsSymetrii, 0, konfSystem.PionOsSymetrii, height);
+
+        // ============================
+        // 🔹 Poziome linie
+        // ============================
+        UpdateOrCreateLine(svgDoc, svgElement, "guide-line-horizontal", 0, konfSystem.PoziomDol, width, konfSystem.PoziomDol);
+        UpdateOrCreateLine(svgDoc, svgElement, "guide-line-horizontalMax", 0, konfSystem.PoziomGora, width, konfSystem.PoziomGora);
+        UpdateOrCreateLine(svgDoc, svgElement, "guide-line-horizontal-korpus", 0, konfSystem.PoziomKorpus, width, konfSystem.PoziomKorpus);
+        UpdateOrCreateLine(svgDoc, svgElement, "guide-line-horizontal-liniaSzklenia", 0, konfSystem.PoziomLiniaSzkla, width, konfSystem.PoziomLiniaSzkla);
+        UpdateOrCreateLine(svgDoc, svgElement, "guide-line-horizontal-okucie", 0, konfSystem.PoziomLiniaOkucia, width, konfSystem.PoziomLiniaOkucia);
+        UpdateOrCreateLine(svgDoc, svgElement, "guide-line-horizontal-dormas", 0, konfSystem.PoziomOsDormas, width, konfSystem.PoziomOsDormas);
+        UpdateOrCreateLine(svgDoc, svgElement, "guide-line-horizontal-dodatkowa6", 0, konfSystem.PoziomDodatkowa6, width, konfSystem.PoziomDodatkowa6);
+        UpdateOrCreateLine(svgDoc, svgElement, "guide-line-horizontal-dodatkowa7", 0, konfSystem.PoziomDodatkowa7, width, konfSystem.PoziomDodatkowa7);
+        UpdateOrCreateLine(svgDoc, svgElement, "guide-line-horizontal-OsSymetrii", 0, konfSystem.PoziomOsSymetrii, width, konfSystem.PoziomOsSymetrii);
+    }
+
+    /// <summary>
+    /// Przyjmuje nullable double (double?) i podstawia 0.0 gdy wartość jest null.
+    /// </summary>
+    private void UpdateOrCreateLine(XmlDocument doc, XmlElement svgElement, string id, double? x1, double? y1, double? x2, double? y2)
+    {
+        var line = svgElement.SelectSingleNode($"//*[@id='{id}']") as XmlElement;
+        if (line == null)
+        {
+            line = doc.CreateElement("line");
+            line.SetAttribute("id", id);
+            line.SetAttribute("stroke", "#ffa726");
+            line.SetAttribute("stroke-width", "1");
+            line.SetAttribute("stroke-dasharray", "5,5");
+            svgElement.AppendChild(line);
+        }
+
+        // Zamieniamy null → 0.0 (zmień na inną wartość domyślną jeśli potrzebujesz)
+        double x1v = x1 ?? 0.0;
+        double y1v = y1 ?? 0.0;
+        double x2v = x2 ?? 0.0;
+        double y2v = y2 ?? 0.0;
+
+        line.SetAttribute("x1", x1v.ToString("G", System.Globalization.CultureInfo.InvariantCulture));
+        line.SetAttribute("y1", y1v.ToString("G", System.Globalization.CultureInfo.InvariantCulture));
+        line.SetAttribute("x2", x2v.ToString("G", System.Globalization.CultureInfo.InvariantCulture));
+        line.SetAttribute("y2", y2v.ToString("G", System.Globalization.CultureInfo.InvariantCulture));
     }
 
     private static string CleanSvgXml(string rawSvg)
     {
-        if (string.IsNullOrEmpty(rawSvg))
+        if (string.IsNullOrWhiteSpace(rawSvg))
             return rawSvg;
 
         string result = rawSvg;
 
-        // 1. Usuń deklaracje przestrzeni xmlns:...
-        result = Regex.Replace(result, @"xmlns(:\w+)?=""[^""]*""", "", RegexOptions.IgnoreCase);
+        // 1. Usuń wszystkie xmlns:* poza głównym
+        result = Regex.Replace(result, @"\s+xmlns(:\w+)?=""[^""]*""", "", RegexOptions.IgnoreCase);
 
-        // 2. Zamień wszystkie ":" w nazwach tagów i atrybutów na "_"
+        // 2. Zamień ":" na "_"
         result = result.Replace(":", "_");
 
-        // 3. Usuń niezamknięte samodzielne tagi z błędnym prefixem (opcjonalnie)
-        // np. <a0_a0 /> -> <a0_a0></a0_a0>
-        result = Regex.Replace(result, @"<(\w+)[^>]*/>", "<$1></$1>");
+        // 3. Usuń style z <svg>
+        result = Regex.Replace(result, @"<svg([^>]+)style=""[^""]*""", "<svg$1", RegexOptions.IgnoreCase);
 
-        return result;
+        // 4. Usuń data-* atrybuty
+        result = Regex.Replace(result, @"\s+data-[^=""\s]+=""[^""]*""", "", RegexOptions.IgnoreCase);
+
+        // 5. Popraw literówki transform_
+        result = result.Replace("transform_", "transform")
+                       .Replace("transform-origin_", "transform-origin");
+
+        // 6. Zamień puste <line/> i <path/>
+        result = Regex.Replace(result, @"<line\s*/>", "<line x1=\"0\" y1=\"0\" x2=\"0\" y2=\"0\" />");
+        result = Regex.Replace(result, @"<path\s*/>", "<path d=\"\" />");
+
+        // 7. Skróć liczby
+        result = Regex.Replace(result, @"(\d+\.\d{3})\d+", "$1");
+
+        // 8. Usuń puste style=""
+        result = result.Replace("style=\"\"", "");
+
+        // 9. Dodaj xmlns jeśli brakuje
+        if (!result.Contains("xmlns="))
+        {
+            result = result.Replace("<svg", "<svg xmlns=\"http://www.w3.org/2000/svg\"");
+        }
+
+        return result.Trim();
     }
 
 

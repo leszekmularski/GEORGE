@@ -29,8 +29,9 @@ public class ImageGenerator
 
             using var woodTexture = Image.Load<Rgba32>(imageBytes);
             woodTexture.Mutate(x => x.Resize(imageWidth, imageHeight));
-            using var image = new Image<Rgba32>(imageWidth, imageHeight);
-            image.Mutate(x => x.Fill(Color.White));
+
+            // Zmiana: tworzenie obrazu z przezroczystym tłem zamiast białego
+            using var image = new Image<Rgba32>(imageWidth, imageHeight, Color.Transparent);
 
             double profileTop = (model.FirstOrDefault(e => e.WystepujeGora)?.PionPrawa ?? 0) - (model.FirstOrDefault(e => e.WystepujeGora)?.PionLewa ?? 0);
             double profileRight = (model.FirstOrDefault(e => e.WystepujePrawa)?.PionPrawa ?? 0) - (model.FirstOrDefault(e => e.WystepujePrawa)?.PionLewa ?? 0);
@@ -53,20 +54,11 @@ public class ImageGenerator
             (Left: polaczeniaArray[3].typ, Right: polaczeniaArray[0].typ), // Left
         };
 
-
-        //    var joinTypes = new[]
-        //    {
-        //    (Left: polaczeniaArray[3].typ, Right: polaczeniaArray[0].typ), // Top
-        //    (Left: polaczeniaArray[0].typ, Right: polaczeniaArray[1].typ), // Right
-        //    (Left: polaczeniaArray[1].typ, Right: polaczeniaArray[2].typ), // Bottom
-        //    (Left: polaczeniaArray[2].typ, Right: polaczeniaArray[3].typ), // Left
-        //};
-
             var frames = new List<(IPath path, Image<Rgba32> texture, Point position)>();
 
             void AddMiterFrame(int index, int x, int y, int width, int height, string leftType, string rightType)
             {
-                Console.WriteLine($"AddMiterFrame ---> index: {index} leftType: {leftType} rightType: {rightType} x: {x} y: {y}");  
+                Console.WriteLine($"AddMiterFrame ---> index: {index} leftType: {leftType} rightType: {rightType} x: {x} y: {y}");
                 PointF[] points;
                 int offset = (index % 2 == 0) ? height : width;
                 bool isLeftT2 = leftType == "T2";
@@ -98,11 +90,11 @@ public class ImageGenerator
                             // Zmodyfikowane punkty (odbite poziomo)
                             points = new[]
                             {
-                                new PointF(x0, y0 + offsetTop),          // góra lewa
-                                new PointF(x1, y0),                      // góra prawa
-                                new PointF(x1, y1),                      // dół prawa
-                                new PointF(x0, y1 - offsetBottom)        // dół lewa
-                            };
+                            new PointF(x0, y0 + offsetTop),          // góra lewa
+                            new PointF(x1, y0),                      // góra prawa
+                            new PointF(x1, y1),                      // dół prawa
+                            new PointF(x0, y1 - offsetBottom)        // dół lewa
+                        };
                             break;
                         }
                     case 2: // Bottom
@@ -127,8 +119,8 @@ public class ImageGenerator
                         throw new Exception($"Nieznany indeks ramki {index}");
                 }
 
-                if (height == 0) height = 1; // Zapewnienie, że wysokość nie jest zerowa - będzie inaczej błąd przy rysowaniu
-                if (width == 0) width = 1; // Zapewnienie, że wysokość nie jest zerowa - będzie inaczej błąd przy rysowaniu
+                if (height == 0) height = 1;
+                if (width == 0) width = 1;
 
                 var polygon = new Polygon(points);
                 var cropped = woodTexture.Clone(c => c.Crop(new Rectangle(0, 0, width, height)));
@@ -154,22 +146,21 @@ public class ImageGenerator
             if (joinTypes[2].Right == "T3")
                 bottomW -= (int)profileRight;
 
-
             int leftY = (joinTypes[3].Right == "T1") ? (int)profileTop : 0;
             int leftH = imageHeight - ((joinTypes[3].Left == "T1" ? (int)profileTop : 0) +
                                        (joinTypes[3].Right == "T1" ? (int)profileBottom : 0));
 
             int wydSzybe = 0;
 
-            if(joinTypes[2].Right == "T4" && joinTypes[2].Left == "T4")
+            if (joinTypes[2].Right == "T4" && joinTypes[2].Left == "T4")
             {
-                bottomW = 1;//1 żeby nie było błędu przy rysowaniu
+                bottomW = 1;
                 wydSzybe += (int)profileLeft;
             }
 
             if (joinTypes[0].Left == "T5" && joinTypes[3].Right == "T5")
             {
-                AddMiterFrame(3, (int)imageWidth / 2 - (int)profileLeft / 2, leftY, (int)profileLeft, leftH, joinTypes[3].Right, joinTypes[3].Left); // Left
+                AddMiterFrame(3, (int)imageWidth / 2 - (int)profileLeft / 2, leftY, (int)profileLeft, leftH, joinTypes[3].Right, joinTypes[3].Left);
 
                 image.Mutate(x =>
                 {
@@ -177,7 +168,7 @@ public class ImageGenerator
                     {
                         if (texture != null)
                         {
-                            x.Fill(Color.White, path);
+                            // Zmiana: usunięcie wypełnienia białym kolorem
                             x.DrawImage(texture, pos, 1f);
                         }
                         x.Draw(Pens.Solid(Color.Black, borderThickness), path);
@@ -186,10 +177,10 @@ public class ImageGenerator
             }
             else
             {
-                AddMiterFrame(0, topX, 0, topW, (int)profileTop, joinTypes[0].Left, joinTypes[0].Right); // Top - OK
-                AddMiterFrame(1, imageWidth - (int)profileRight, rightY, (int)profileRight, rightH, joinTypes[1].Right, joinTypes[1].Left); // <== ZAMIANA miejsc // Right - OK
-                AddMiterFrame(2, bottomX, imageHeight - (int)profileBottom, bottomW, (int)profileBottom, joinTypes[2].Right, joinTypes[2].Left); // Bottom (zamień typy!)
-                AddMiterFrame(3, 0, leftY, (int)profileLeft, leftH, joinTypes[3].Right, joinTypes[3].Left); // Left
+                AddMiterFrame(0, topX, 0, topW, (int)profileTop, joinTypes[0].Left, joinTypes[0].Right);
+                AddMiterFrame(1, imageWidth - (int)profileRight, rightY, (int)profileRight, rightH, joinTypes[1].Right, joinTypes[1].Left);
+                AddMiterFrame(2, bottomX, imageHeight - (int)profileBottom, bottomW, (int)profileBottom, joinTypes[2].Right, joinTypes[2].Left);
+                AddMiterFrame(3, 0, leftY, (int)profileLeft, leftH, joinTypes[3].Right, joinTypes[3].Left);
 
                 // Szyba
                 var glass = new RectangularPolygon(
@@ -206,18 +197,22 @@ public class ImageGenerator
                     {
                         if (texture != null)
                         {
-                            x.Fill(Color.White, path);
+                            // Zmiana: usunięcie wypełnienia białym kolorem
                             x.DrawImage(texture, pos, 1f);
                         }
                         x.Draw(Pens.Solid(Color.Black, borderThickness), path);
                     }
 
+                    // Jeśli chcesz, aby szkło też było przezroczyste, zmień kolor na przezroczysty
+                    // x.Fill(Color.Transparent, glass);
+                    // lub pozostaw obecny kolor jeśli chcesz zachować kolor szkła
                     x.Fill(Color.ParseHex(glassColorHex), glass);
                     x.Draw(Pens.Solid(Color.Black, borderThickness), glass);
                 });
             }
+
             using var ms = new MemoryStream();
-            image.SaveAsPng(ms);
+            image.SaveAsPng(ms); // Format PNG obsługuje przezroczystość
             return ms.ToArray();
         }
         catch (Exception ex)
@@ -226,6 +221,4 @@ public class ImageGenerator
             return null;
         }
     }
-
-
 }

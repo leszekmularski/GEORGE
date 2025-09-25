@@ -206,6 +206,21 @@ public class FileUploadZlecController : ControllerBase
         }
     }
 
+    [HttpPost("zmien-liczbe-pobran")]
+    public async Task<IActionResult> ZwiekszLicznikPobranPliku(long id)
+    {
+        var result = await _context.ZwiekszLicznikPobranPliku(id);
+        if (result)
+        {
+            return Ok("Uwagi zaktualizowane pomyślnie.");
+        }
+        else
+        {
+            return NotFound("Nie znaleziono pliku o podanym ID.");
+        }
+    }
+
+
     public string GetFileExtension(string fileName)
     {
         if (string.IsNullOrEmpty(fileName))

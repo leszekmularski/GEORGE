@@ -261,7 +261,7 @@
             </div> *@
             <Spin Spinning="czakajAzZmienie" Size="SpinSize.Large">
                 <div class="mt-3">
-                    <button type="submit" class="btn btn-primary">Zapisz</button>
+                    <button type="submit" class="btn btn-primary">Zapisz edytowany model</button>
                     <button type="button" class="btn btn-secondary ms-2" @onclick="Anuluj">Anuluj</button>
                 </div>
             </Spin>
@@ -587,26 +587,6 @@
             return;
         }
 
-        // if (PowiazanyModel.KonfSystem == null)
-        // {
-        //     Console.WriteLine("PowiazanyModel.KonfSystem ma wartość NULL");
-        //     await _message.Error("PowiazanyModel.KonfSystem ma wartość NULL");
-        //     return;
-        // }
-
-        // if (PowiazanyModel.KonfSystem.Count() == 0)
-        // {
-        //     Console.WriteLine("PowiazanyModel.KonfSystem ma wartość równą zero");
-        //     PowiazanyModel.KonfSystem = KonfiguracjeSystemu;
-        // }
-
-        // if (PowiazanyModel.KonfSystem.Count() == 0)
-        // {
-        //     Console.WriteLine("PowiazanyModel.KonfSystem ma wartość równą zero");
-        //     await _message.Error("PowiazanyModel.KonfSystem ma wartość równą zero");
-        //     return;
-        // }
-
         Console.WriteLine($"EdytowanyModel.RowId: {EdytowanyModel.RowId}");
 
         czakajAzZmienie = true;
@@ -800,11 +780,20 @@
     private byte[] ResizeImage(byte[] imageData, int width, int height)
     {
         using var inputStream = new MemoryStream(imageData);
-        using var image = SixLabors.ImageSharp.Image.Load(inputStream);
-        image.Mutate(x => x.Resize(width, height));
+        using var image = SixLabors.ImageSharp.Image.Load<Rgba32>(inputStream); // 🔹 wymuszamy RGBA
+
+        image.Mutate(x => x.Resize(new ResizeOptions
+        {
+            Size = new Size(width, height),
+            Mode = ResizeMode.Max // proporcjonalne skalowanie
+        }));
 
         using var outputStream = new MemoryStream();
-        image.SaveAsPng(outputStream);
+        image.SaveAsPng(outputStream, new SixLabors.ImageSharp.Formats.Png.PngEncoder
+        {
+            ColorType = SixLabors.ImageSharp.Formats.Png.PngColorType.RgbWithAlpha // 🔹 wymuszamy alfa
+        });
+
         return outputStream.ToArray();
     }
 

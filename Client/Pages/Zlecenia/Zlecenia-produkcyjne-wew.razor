@@ -512,12 +512,12 @@ else
                                     <div class="modal-footer d-flex">
                                         @if (item.TypPliku.ToLower() == "/nc")
                                         {
-                                            <a style="font-weight: normal; color:blueviolet" @onclick="@( () => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, true))">Pobierz plik i zamień rozszerzenie</a>
-                                            <a style="font-weight: bold; color:blue" @onclick="@( () => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, false))">Pobierz plik  &nbsp &nbsp</a>
+                                            <a style="font-weight: normal; color:blueviolet" @onclick="@(() => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, true, item.Id))">Pobierz plik i zamień rozszerzenie</a>
+                                            <a style="font-weight: bold; color:blue" @onclick="@(() => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, false, item.Id))">Pobierz plik  &nbsp &nbsp</a>
                                         }
                                         else
                                         {
-                                            <a style="font-weight: bold; color:blue" @onclick="@( () => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, false))">Pobierz plik  &nbsp &nbsp</a>
+                                            <a style="font-weight: bold; color:blue" @onclick="@(() => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, false, item.Id))">Pobierz plik  &nbsp [@item.IloscPobranPliku] &nbsp</a>
                                         }
 
                                         <Spin Spinning=@czekajNaUsuniecie>
@@ -1085,7 +1085,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
     }
 
     bool czekajNaPobranie = false;
-    private async Task DownloadFile(string fileName, string oryginalfileName, bool zamienNCnaP)
+    private async Task DownloadFile(string fileName, string oryginalfileName, bool zamienNCnaP, long id)
     {
         if (czekajNaPobranie) return;
 
@@ -1136,6 +1136,9 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
                         Console.WriteLine($"Plik został pobrany i zapisany: {oryginalfileName}");
                         await _message.Success($"Plik został pobrany i zapisany: {oryginalfileName}", 5);
                         czekajNaPobranie = false;
+
+                        await ZwiekszLicznikPobranPliku(id);
+
                     }
                     else
                     {
@@ -1182,7 +1185,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
             {
                 continue; // Pomijamy pliki, które nie są typu NC ani /p
             }
-            await DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, true);
+            await DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, true, item.Id);
             ilePobralem++;
         } 
 
@@ -1809,6 +1812,25 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
 #endif
 
         await _notice.Open(config);
+    }
+
+    private async Task ZwiekszLicznikPobranPliku(long id)
+    {
+        var response = await Http.PostAsync($"api/FileUploadZlec/zmien-liczbe-pobran?id={id}", null);
+        if (response.IsSuccessStatusCode)
+        {
+            // Logika do aktualizacji UI, jeśli potrzebne
+            var plik = pliki.FirstOrDefault(p => p.Id == id);
+            if (plik != null)
+            {
+                plik.IloscPobranPliku = plik.IloscPobranPliku + 1;
+            }
+        }
+        else
+        {
+            // Logika do obsługi błędów
+            Console.WriteLine("Błąd podczas zmiany uwagi");
+        }
     }
 
     private async Task OnSelectionChangeProdukt(AutoCompleteOption item)

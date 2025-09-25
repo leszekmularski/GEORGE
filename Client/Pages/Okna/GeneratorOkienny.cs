@@ -135,6 +135,11 @@ namespace GEORGE.Client.Pages.Okna
             string RowIndeksprofileTop = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.Indeks ?? "BRAK-DANYCH";
             string RowIndeksprofileBottom = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.Indeks ?? "BRAK-DANYCH";
 
+            string RowNazwaprofileLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ == slruchPoLewej)?.Nazwa ?? "BRAK-DANYCH";
+            string RowNazwaprofileRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa && e.Typ == slruchPoPrawej)?.Nazwa ?? "BRAK-DANYCH";
+            string RowNazwaprofileTop = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.Nazwa ?? "BRAK-DANYCH";
+            string RowNazwaprofileBottom = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.Nazwa ?? "BRAK-DANYCH";
+
             if (profileLeft == 0)
             {
                 //Spróbuj bez słupka
@@ -144,6 +149,8 @@ namespace GEORGE.Client.Pages.Okna
 
                 RowIdprofileLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.RowId ?? Guid.Empty;
                 RowIndeksprofileLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.Indeks ?? "BRAK-DANYCH";
+
+                RowNazwaprofileLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.Nazwa ?? "BRAK-DANYCH";
             }
             if(profileRight == 0)
             {
@@ -154,6 +161,7 @@ namespace GEORGE.Client.Pages.Okna
 
                 RowIdprofileRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.RowId ?? Guid.Empty;
                 RowIndeksprofileRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.Indeks ?? "BRAK-DANYCH";
+                RowNazwaprofileRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.Nazwa ?? "BRAK-DANYCH";
             }
 
              string NazwaObiektu = MVCKonfModelu.KonfSystem.First().Nazwa ?? "";
@@ -175,6 +183,7 @@ namespace GEORGE.Client.Pages.Okna
                 regionId,
                 RowIdprofileLeft, RowIdprofileRight, RowIdprofileTop, RowIdprofileBottom,
                 RowIndeksprofileLeft, RowIndeksprofileRight, RowIndeksprofileTop, RowIndeksprofileBottom,
+                RowNazwaprofileLeft, RowNazwaprofileRight, RowNazwaprofileTop, RowNazwaprofileBottom,
                 NazwaObiektu
             );
             //}
@@ -186,6 +195,7 @@ namespace GEORGE.Client.Pages.Okna
             string typKsztalt, string polaczenia, List<KonfSystem> model, string regionId,
             Guid rowIdprofileLeft, Guid rowIdprofileRight, Guid rowIdprofileTop, Guid rowIdprofileBottom,
             string rowIndeksprofileLeft, string rowIndeksprofileRight, string rowIndeksprofileTop, string rowIndeksprofileBottom,
+            string rowNazwaprofileLeft, string rowNazwaprofileRight, string rowNazwaprofileTop, string rowNazwaprofileBottom,
             string NazwaObiektu)
         {
             int vertexCount = outer.Count;
@@ -508,12 +518,13 @@ namespace GEORGE.Client.Pages.Okna
                 int wartoscX = (int)Math.Round(regionMaxX - regionMinX);
                 int wartoscY = (int)Math.Round(regionMaxY - regionMinY);
 
-               // Console.WriteLine($"leftJoin: {leftJoin} rightJoin:{rightJoin} wierzcholki: {wierzcholki.Count()} isAlmostVertical:{isAlmostVertical}");
+                // Console.WriteLine($"leftJoin: {leftJoin} rightJoin:{rightJoin} wierzcholki: {wierzcholki.Count()} isAlmostVertical:{isAlmostVertical}");
+                float bazowaDlugosc = ObliczDlugoscElementu(wierzcholki);
 
                 switch (i)
                     {
                     case 0:
-                        ElementyRamyRysowane.Add(new KsztaltElementu
+                             ElementyRamyRysowane.Add(new KsztaltElementu
                         {
                             TypKsztaltu = typKsztalt,
                             Wierzcholki = wierzcholki,
@@ -525,10 +536,14 @@ namespace GEORGE.Client.Pages.Okna
                             IdRegion = regionId,
                             Kat = (int)angleDegrees,
                             Strona = "Góra",
-                            IndeksElementu = rowIndeksprofileTop
+                            IndeksElementu = rowIndeksprofileTop,
+                            NazwaElementu = rowNazwaprofileTop,
+                            DlogoscElementu = bazowaDlugosc + (profileLeft + profileRight),
+                            DlogoscNaGotowoElementu = bazowaDlugosc
                         });
                         break;
                     case 1:
+
                         ElementyRamyRysowane.Add(new KsztaltElementu
                         {
                             TypKsztaltu = typKsztalt,
@@ -541,10 +556,14 @@ namespace GEORGE.Client.Pages.Okna
                             IdRegion = regionId,
                             Kat = (int)angleDegrees,
                             Strona = "Prawa",
-                            IndeksElementu = rowIndeksprofileRight
+                            IndeksElementu = rowIndeksprofileRight,
+                            NazwaElementu = rowNazwaprofileTop,
+                            DlogoscElementu = bazowaDlugosc + (profileLeft + profileRight),
+                            DlogoscNaGotowoElementu = bazowaDlugosc
                         });
                         break;
                     case 2:
+
                         ElementyRamyRysowane.Add(new KsztaltElementu
                         {
                             TypKsztaltu = typKsztalt,
@@ -557,10 +576,14 @@ namespace GEORGE.Client.Pages.Okna
                             IdRegion = regionId,
                             Kat = (int)angleDegrees,
                             Strona = "Dół",
-                            IndeksElementu = rowIndeksprofileBottom
+                            IndeksElementu = rowIndeksprofileBottom,
+                            NazwaElementu = rowNazwaprofileTop,
+                            DlogoscElementu = bazowaDlugosc + (profileLeft + profileRight),
+                            DlogoscNaGotowoElementu = bazowaDlugosc
                         });
                         break;
                     case 3:
+
                         ElementyRamyRysowane.Add(new KsztaltElementu
                         {
                             TypKsztaltu = typKsztalt,
@@ -573,11 +596,25 @@ namespace GEORGE.Client.Pages.Okna
                             IdRegion = regionId,
                             Kat = (int)angleDegrees,
                             Strona = "Lewa",
-                            IndeksElementu = rowIndeksprofileLeft
+                            IndeksElementu = rowIndeksprofileLeft,
+                            NazwaElementu = rowNazwaprofileTop,
+                            DlogoscElementu = bazowaDlugosc + (profileLeft + profileRight),
+                            DlogoscNaGotowoElementu = bazowaDlugosc
                         }); ;
                         break;
                 }
             }
+        }
+
+        private float ObliczDlugoscElementu(List<XPoint> wierzcholki)
+        {
+            double d1 = Math.Sqrt(Math.Pow(wierzcholki[1].X - wierzcholki[0].X, 2) +
+                                  Math.Pow(wierzcholki[1].Y - wierzcholki[0].Y, 2));
+
+            double d2 = Math.Sqrt(Math.Pow(wierzcholki[2].X - wierzcholki[3].X, 2) +
+                                  Math.Pow(wierzcholki[2].Y - wierzcholki[3].Y, 2));
+
+            return (float)Math.Round(Math.Max(d1, d2));
         }
 
         private List<XPoint> RemoveDuplicateConsecutivePoints(List<XPoint> points)
