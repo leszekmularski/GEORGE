@@ -858,7 +858,7 @@
     @if (activeKey == "2")
     {
         <Tooltip Placement="@Placement.TopRight" Title="Obróć o 90 stopni">
-            <Button class="btn-back" Icon="@IconType.Outline.Loading" Style="width:27px" OnClick="RotateObj" />
+            <Button class="btn-back" Icon="@IconType.Outline.Redo" Style="width:27px" OnClick="RotateObj" />
         </Tooltip>
 
         <Button class="btn-back" Icon="@IconType.Outline.ArrowLeft" Style="width:27px" OnClick="MoveLeftObj" />
@@ -867,8 +867,8 @@
         <Button class="btn-back" Icon="@IconType.Outline.ArrowUp" Style="width:27px" OnClick="MoveUpObj" />
         <Button class="btn-back" Icon="@IconType.Outline.ZoomIn" Style="width:27px" OnClick="ZoomInObj" />
         <Button class="btn-back" Icon="@IconType.Outline.ZoomOut" Style="width:27px" OnClick="ZoomOutObj" />
-        <Button class="btn-back" Icon="@IconType.Outline.AlignCenter" Style="width:27px" OnClick="FitSvg" />
-        <Button class="btn-back" Icon="@IconType.Outline.Transaction" Style="width:27px" OnClick="FlipVertical" />
+        <Button class="btn-back" Icon="@IconType.Outline.Drag" Style="width:27px" OnClick="FitSvg" />
+        <Button class="btn-back" Icon="@IconType.Outline.Swap" Style="width:27px" OnClick="FlipVertical" />
        @*  <Button class="btn-back" Icon="@IconType.Outline.MergeCells" Style="width:27px" OnClick="FitResetSvg" /> *@
     }
 
@@ -1085,6 +1085,9 @@
                     </button>
                 </div> *@
             </div>
+            <br/>
+                    <br/>
+            <br />
         </div>
 
     </TabPane>
