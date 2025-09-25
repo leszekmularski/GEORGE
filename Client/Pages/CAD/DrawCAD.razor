@@ -546,8 +546,8 @@
 
         IShapeDC newShape = _selectedTool switch
         {
-            "line" => new XLineShape(_startX, _startY, _currentX, _currentY, _scaleFactor,"Lina skośna"),
-            "line_hv" => new XLineShape(_startX, _startY, _currentX, _currentY, _scaleFactor, "Linia pion. poziom.",false, true),
+            "line" => new XLineShape(_startX, _startY, _currentX, _currentY, _scaleFactor, "Lina skośna", false, false, false, false, true),
+            "line_hv" => new XLineShape(_startX, _startY, _currentX, _currentY, _scaleFactor, "Linia pion. poziom.", false, true, false, false, true),
             "line_hvSLRuch" => new XLineShape(_startX, _startY, _currentX, _currentY, _scaleFactor, "Linia pion. sł. ruchomy", true),
             "line_dual_ram_hv" => new XLineShape(_startX, _startY, _currentX, _currentY, _scaleFactor, "Linia podziału ram", false, true, true),
             "circle" => new XCircleShape(_startX, _startY, CalculateRadius(), _scaleFactor),
@@ -565,6 +565,8 @@
 
             _ => throw new NotImplementedException()
         };
+
+        Console.WriteLine($"Dodano nowy kształt: {newShape.GetType().Name}");
 
         _shapes.Add(newShape);
 
@@ -1504,11 +1506,11 @@
 
         if (dx == 0)
         {
-            return new XLineShape(x1, bbox.Y, x2, bbox.Y + bbox.Height, _scaleFactor, line.NazwaObj, line.RuchomySlupek, line.PionPoziom, line.DualRama);
+            return new XLineShape(x1, bbox.Y, x2, bbox.Y + bbox.Height, _scaleFactor, line.NazwaObj, line.RuchomySlupek, line.PionPoziom, line.DualRama, line.GenerowaneZRamy, line.StalySlupek);
         }
         if (dy == 0)
         {
-            return new XLineShape(bbox.X, y1, bbox.X + bbox.Width, y2, _scaleFactor, line.NazwaObj, line.RuchomySlupek, line.PionPoziom, line.DualRama);
+            return new XLineShape(bbox.X, y1, bbox.X + bbox.Width, y2, _scaleFactor, line.NazwaObj, line.RuchomySlupek, line.PionPoziom, line.DualRama, line.GenerowaneZRamy, line.StalySlupek);
         }
 
         double leftFactor = (bbox.X - x1) / dx;
@@ -1529,6 +1531,7 @@
 
     public void RemoveLinesOutsideShapes()
     {
+
         Console.WriteLine("Start RemoveLinesOutsideShapes");
 
         if (_shapes == null || !_shapes.Any())

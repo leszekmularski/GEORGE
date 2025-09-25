@@ -188,6 +188,18 @@ namespace GEORGE.Server
             await SaveChangesAsync();
             return true;
         }
+        public async Task<bool> ZwiekszLicznikPobranPliku(long id)
+        {
+            var plik = await PlikiZlecenProdukcyjnych.FindAsync(id);
+            if (plik == null)
+            {
+                return false;
+            }
+
+            plik.IloscPobranPliku = plik.IloscPobranPliku + 1;
+            await SaveChangesAsync();
+            return true;
+        }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<RodzajeKartInstrukcyjnych>()

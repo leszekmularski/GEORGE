@@ -13,7 +13,8 @@ namespace GEORGE.Client.Pages.Models
         public double Y2 { get; set; }
         public string NazwaObj { get; set; } = "Linia";
         public bool RuchomySlupek { get; set; } = false;
-        public bool PionPoziom { get; set; } = false;
+        public bool StalySlupek { get; set; } = false;
+        public bool PionPoziom { get; set; } = false; //Podział słupek stały lub ślemię
         public bool DualRama { get; set; } = false;
 
         private double _scaleFactor = 1.0; // Skalowanie
@@ -24,7 +25,7 @@ namespace GEORGE.Client.Pages.Models
         public List<XPoint> GetPoints() => Points;
 
         public XLineShape(double x1, double y1, double x2, double y2, double scaleFactor, string nazwaObj, bool ruchomySlupek = false, bool pionPoziom = false, 
-            bool dualRama = false, bool generowaneZRamy = false)
+            bool dualRama = false, bool generowaneZRamy = false, bool stalySlupek = false)
         {
             X1 = x1;
             Y1 = y1;
@@ -36,6 +37,10 @@ namespace GEORGE.Client.Pages.Models
             PionPoziom = pionPoziom;
             DualRama = dualRama;
             GenerowaneZRamy = generowaneZRamy;
+            StalySlupek = stalySlupek;
+
+            Console.WriteLine($"Utworzono XLineShape: ({X1}, {Y1}) to ({X2}, {Y2}), RuchomySlupek: {RuchomySlupek}, PionPoziom: {PionPoziom}, DualRama: {DualRama}, StalySlupek: {StalySlupek}");
+
             // Wymuszenie pionowej linii
             if (RuchomySlupek)
             {
@@ -92,7 +97,7 @@ namespace GEORGE.Client.Pages.Models
         }
         public IShapeDC Clone()
         {
-            return new XLineShape(X1, Y1, X2, Y2, _scaleFactor, NazwaObj, RuchomySlupek, PionPoziom, DualRama);
+            return new XLineShape(X1, Y1, X2, Y2, _scaleFactor, NazwaObj, RuchomySlupek, PionPoziom, DualRama, false, StalySlupek);
         }
 
         public async Task Draw(Canvas2DContext ctx)
