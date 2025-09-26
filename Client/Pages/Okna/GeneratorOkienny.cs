@@ -43,7 +43,7 @@ namespace GEORGE.Client.Pages.Okna
             RuchomySlupekPoLewej = false;
         }
 
-        public void AddElements(List<ShapeRegion> regions, string regionId, Dictionary<string, GeneratorState> generatorStates, List<ShapeRegion> regionAdd)
+        public void AddElements(List<ShapeRegion> regions, string regionId, Dictionary<string, GeneratorState> generatorStates, List<ShapeRegion> regionAdd, bool boolSlupekStaly)
         {
             if (regions == null) return;
 
@@ -73,7 +73,7 @@ namespace GEORGE.Client.Pages.Okna
             }
 
             var punkty = region.Wierzcholki;
-            if (punkty == null || punkty.Count < 3)
+            if ((punkty == null || punkty.Count < 3) && !boolSlupekStaly)
             {
                 Console.WriteLine($"❌ Region o ID: {regionId} ma zbyt mało punktów");
                 return;
@@ -204,6 +204,8 @@ namespace GEORGE.Client.Pages.Okna
 
             outer = RemoveDuplicateConsecutivePoints(outer);
             inner = RemoveDuplicateConsecutivePoints(inner);
+
+            Console.WriteLine($"▶️ Generuje elementy z polygon with {vertexCount} vertices and joins: {polaczenia}");    
 
             var parsedConnections = polaczenia.Split(';')
                 .Select(p => p.Split('-'))
