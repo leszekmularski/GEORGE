@@ -680,6 +680,11 @@
                 cell.Style.Border.InsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
                 cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Left;
                 cell.Style.Alignment.Vertical = ClosedXML.Excel.XLAlignmentVerticalValues.Center;
+
+                // if(item.IloscSztuk > 10 && col == 4) // Przykład: jeśli ilość sztuk jest większa niż 10, koloruj na czerwono
+                // {
+                //     cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightPink;
+                // }
             }
 
             row++;
@@ -813,7 +818,6 @@
         }
     }
 
-
     public async Task ExportSelectedColumnsToExcel()
     {
         if (elementyDoZlecen != null)
@@ -848,66 +852,45 @@
         var selectedData = _items.Select(k => new
         {
             Symbol = RemoveWhitespace(k.ElemetZamDoZlecen?.NumerKatalogowy ?? string.Empty),
-            Kolor = string.IsNullOrWhiteSpace(k.ElemetZamDoZlecen?.Kolor) ? "Brak" : k.ElemetZamDoZlecen.Kolor,
+            Kolor = string.IsNullOrWhiteSpace(k.ElemetZamDoZlecen?.Kolor) ? "" : k.ElemetZamDoZlecen.Kolor,
             Ilosc = k.ElemetZamDoZlecen?.IloscSztuk ?? 0,
             Opis = RemoveWhitespace(k.ElemetZamDoZlecen?.NazwaProduktu ?? string.Empty),
-            Zakladka = "ZAKLADKA",
-            Cena = "----",
-            Grupa = "",
-            Waluta = "",
-            JM = string.IsNullOrWhiteSpace(k.ElemetZamDoZlecen?.Jednostka) ? "szt." : k.ElemetZamDoZlecen.Jednostka,
-            Opakowanie = ""
         }).ToList();
 
-        // Nagłówek VBH
+        // Nagłówek
         var header =
-            "Zamówienie VBH Polska Sp.z o.o.\n" +
-            "PPHU \"GEORGE\"\n" +
-            "7341136804\n" +
-            "PPHU \"GEORGE\" Marcinkowice 351, 33-393 Marcinkowice\n" +
-            $"Data {DateTime.Now:yyyy/MM/dd} {DateTime.Now:HH:mm}\n" +
-            "PPHU \"GEORGE\"\n" +
-            string.Format(
-                "{0,-20}{1,-15}{2,-7}{3,-41}{4,-11}{5,-13}{6,-11}{7,-8}{8,-11}{9,-12}\n",
-                "Symbol", "Kolor", "Ilosc", "Opis", "Zakładka", "Cena w wal", "Grupa rab", "Waluta", "JM", "OPAKOWANIE"
-            );
+            "## GEORGE - OKUCIE ##\n" +
+            $"Data {DateTime.Now:yyyy/MM/dd}    Godzina  {DateTime.Now:HH:mm}\n" +
+            "\n" +
+            "Symbol               \tKolor         \tIlosc\tOpis\n";
 
-        // Funkcja pomocnicza — ucinanie / padding
-        static string PadOrTruncate(string value, int width, bool alignRight = false)
+        // Funkcje pomocnicze
+        static string Pad(string value, int width)
         {
             if (string.IsNullOrEmpty(value)) value = string.Empty;
-            if (value.Length > width)
-                return value.Substring(0, width);
-            return alignRight ? value.PadLeft(width) : value.PadRight(width);
+            return value.Length > width ? value.Substring(0, width) : value.PadRight(width);
         }
 
-        // Linie danych — szerokości identyczne jak nagłówek
+        static string PadNum(int value, int width)
+        {
+            var str = value.ToString();
+            return str.PadLeft(width);
+        }
+
+        // Linie danych
         var lines = selectedData.Select(k =>
-            string.Format(
-                "{0,-20}{1,-15}{2,7} {3,-41}{4,-11}{5,-13}{6,-11}{7,-8}{8,-11}{9,-12}",
-                PadOrTruncate(k.Symbol, 20),
-                PadOrTruncate(k.Kolor, 15),
-                k.Ilosc, // liczby wyrównane do prawej
-                PadOrTruncate(k.Opis, 41),
-                PadOrTruncate(k.Zakladka, 11),
-                PadOrTruncate(k.Cena, 13),
-                PadOrTruncate(k.Grupa, 11),
-                PadOrTruncate(k.Waluta, 8),
-                PadOrTruncate(k.JM, 11),
-                PadOrTruncate(k.Opakowanie, 12)
-            )
+            $"{Pad(k.Symbol, 20)}\t{Pad(k.Kolor, 15)}\t{PadNum((int)k.Ilosc, 4)}\t{k.Opis}"
         );
 
         var fullText = header + string.Join("\n", lines);
 
-        // Nazwa pliku — usuń znaki specjalne
+        // Nazwa pliku
         var fileName = string.IsNullOrEmpty(dotyczyKlienta)
             ? $"Zamowienie_{DateTime.Now:yyyyMMdd_HHmm}"
             : RemoveSpecChar(dotyczyKlienta);
 
         await JSRuntime.InvokeVoidAsync("saveAsTxtFile", fullText, $"{fileName}.txt");
     }
-
 
     private string RemoveSpecChar(string fileName)
     {
@@ -1272,7 +1255,7 @@
                 Console.WriteLine("Dane zostały pomyślnie zapisane.");
                 elementyDoZlecen = await Http.GetFromJsonAsync<List<ElemetZamDoZlecenWithProducent>>($"api/ElementyDoZlecen/rowid/{RowIdZlecenia}");
                 if (elementyDoZlecen != null) oryginalElementyDoZlecen = elementyDoZlecen.DeepCopyList();
-                await _message.Success($"Dane zostały pomyślnie zapisane. ilość nowych wpisów: {elementyDoZlecenC.Count()}" , 1);
+                _message.Success($"Dane zostały pomyślnie zapisane. ilość nowych wpisów: {elementyDoZlecenC.Count()}" , 1);
             }
             else
             {

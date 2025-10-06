@@ -472,9 +472,9 @@ else
                     <Column Title="ID" @bind-Field="@context.Id" Hidden />
                     <Column Title="Nazwa pliku" @bind-Field="@context.NazwaPliku" OnFilter="(a, b) => a == b" Width="100px" Style="font-size:10px" />
                     <Column Title="Oryginalna nazwa pliku" Style="color:blue; font-weight:bold" @bind-Field="@context.OryginalnaNazwaPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
-                    <Column Title="Typ" @bind-Field="@context.TypPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <Column Title="Typ" @bind-Field="@context.TypPliku" Sortable OnFilter="(a, b) => a == b" Filterable Width="90" />
                     <Column Title="Data Zapisu" @bind-Field="@context.DataZapisu" Sortable OnFilter="(a, b) => a == b" Filterable />
-                    <ActionColumn Title="Uwagi / Akcja" Width="250" Fixed="right">
+                    <ActionColumn Title="Uwagi / Akcja" Width="290" Fixed="right">
                         <Template>
                             @{
                                 if (context.TypPliku.ToLower().EndsWith("pdf") && boolAdmin)
@@ -513,7 +513,7 @@ else
                                         @if (item.TypPliku.ToLower() == "/nc")
                                         {
                                             <a style="font-weight: normal; color:blueviolet" @onclick="@(() => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, true, item.Id))">Pobierz plik i zamień rozszerzenie</a>
-                                            <a style="font-weight: bold; color:blue" @onclick="@(() => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, false, item.Id))">Pobierz plik  &nbsp &nbsp</a>
+                                            <a style="font-weight: bold; color:blue" @onclick="@(() => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, false, item.Id))">Pobierz plik  &nbsp [@item.IloscPobranPliku] &nbsp</a>
                                         }
                                         else
                                         {
