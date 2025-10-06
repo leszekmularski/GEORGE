@@ -134,11 +134,11 @@ else
                     <AntDesign.Col Span="12">
                         <img src="../Images/dob_wkladek.jpg" style="width: 100%; max-width: 400px;" />
                         <div style="display: flex; gap: 8px; justify-content: left;">
-                            <Button Style="font-size:10px" OnClick="() => DefaultDim(12+20, 19+5+12)">Na zewn. 68 mm</Button>
-                            <Button Style="font-size:10px" OnClick="() => DefaultDim(34, 56)">Na zewn. 90 mm</Button>
-                            <Button Style="font-size:10px" OnClick="() => DefaultDim(34 - 5, 56)">Na zewn. 90 mm z FLEX</Button> 
-                            <Button Style="font-size:10px" OnClick="() => DefaultDim(19+5+12, 12+20)">Do wew. 68 mm</Button>
-                            <Button Style="font-size:10px" OnClick="() => DefaultDim(56, 34)">Do wew. 90 mm</Button>
+                            <Button Style="font-size:10px" OnClick="() => DefaultDim(12+20, 19+5+12, false)">Na zewn. 68 mm</Button>
+                            <Button Style="font-size:10px" OnClick="() => DefaultDim(34, 56, false)">Na zewn. 90 mm</Button>
+                            <Button Style="font-size:10px" OnClick="() => DefaultDim(34 - 5, 56, false)">Na zewn. 90 mm z FLEX</Button> 
+                            <Button Style="font-size:10px" OnClick="() => DefaultDim(19+5+12, 12+20, true)">Do wew. 68 mm</Button>
+                            <Button Style="font-size:10px" OnClick="() => DefaultDim(56, 34, true)">Do wew. 90 mm</Button>
                         </div>
                     </AntDesign.Col>
                     <AntDesign.Col Span="18">
@@ -265,6 +265,7 @@ else
     private int wkladka_wymB = 0;
     private int wkladka_szyldZew = 0;
     private bool wkladkoGalka = false;
+    private bool drzwiOtwDoWewnatrz = false;
 
     private string wyliczonoOkapikow = "";
 
@@ -576,10 +577,22 @@ else
         double zaokraglonaA = ZaokraglijWGoreDo5mm(sumaA);
         double zaokraglonaB = ZaokraglijWGoreDo5mm(sumaB);
 
+        string strona = "";
+        // Ustalanie strony otwierania drzwi
+
+        if (drzwiOtwDoWewnatrz)
+        {
+            strona = "B";
+        }
+        else
+        {
+            strona = "B";
+        }
+
         // Sprawdzamy, czy wkładko gałka jest ustawione na true
         if (wkladkoGalka)
         {
-            elementyZamowienia.ElemetZamDoZlecen.NazwaProduktu = $"Wkładka Gałka Klasa C Standard E8 A={zaokraglonaA} B={zaokraglonaB}";
+            elementyZamowienia.ElemetZamDoZlecen.NazwaProduktu = $"Wkładka Gałka Klasa C Standard E8 A={zaokraglonaA} B={zaokraglonaB} Gałka od strony: {strona}";
         }
         else
         {
@@ -668,10 +681,12 @@ else
         }
     }
 
-    private async Task DefaultDim(int wymA, int wymB)
+    private async Task DefaultDim(int wymA, int wymB, bool drzwiOtwDoWew)
     {
         wkladka_wymA = wymA;
         wkladka_wymB = wymB;
+
+        drzwiOtwDoWewnatrz = drzwiOtwDoWew;
 
         await Task.CompletedTask;
     }
