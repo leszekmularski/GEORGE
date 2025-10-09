@@ -22,6 +22,8 @@ namespace GEORGE.Shared.Models
         // wymiary techniczne w mm odległość pomiędzy liniami dolnymi
         public double PrzesuniecieX { get; set; } = 0;
         public double PrzesuniecieY { get; set; } = 0;
+        public double PrzesuniecieXStycznej { get; set; } = 0;
+        public double PrzesuniecieYStycznej { get; set; } = 0;
         public int ZapisanyKat { get; set; } = 0; //Kąt zapisywany w stopniach położenia elemnty 2 względem elementu 1
         // Opcjonalne warunki połączenia
         public int? KatOd { get; set; }
@@ -30,6 +32,7 @@ namespace GEORGE.Shared.Models
         public string? OpisPolaczenia { get; set; }
         public string? Uwagi { get; set; }
         public byte[] RysunekPrzekroju { get; set; } = Array.Empty<byte>();
+        public byte[] RysunekPrzekrojuStyczny { get; set; } = Array.Empty<byte>();
 
         [NotMapped]
         public KonfSystem? ElementWewnetrzny { get; set; }

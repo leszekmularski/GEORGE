@@ -717,6 +717,69 @@
         });
     };
 
+    window.svgHelper.resetModel2Position = function() {
+    const svg = document.querySelector(".scaled-svg > svg");
+    const model2 = svg?.querySelector("#model2");
+    if (model2) model2.setAttribute("transform", "translate(0,0)");
+    };
+
+    window.svgHelper.getModel2Displacement = function () {
+        try {
+            const svg = document.querySelector(".scaled-svg > svg");
+            if (!svg) {
+                console.error("getModel2Displacement: SVG not found");
+                return { success: false, przesuniecieX: 0, przesuniecieY: 0 };
+            }
+
+            const model1 = svg.querySelector("#model1");
+            const model2 = svg.querySelector("#model2");
+
+            if (!model1 || !model2) {
+                console.error("getModel2Displacement: one or both models not found");
+                return { success: false, przesuniecieX: 0, przesuniecieY: 0 };
+            }
+
+            const rect1 = model1.querySelector("rect") || model1.getBBox?.() ? model1 : null;
+            const rect2 = model2.querySelector("rect") || model2.getBBox?.() ? model2 : null;
+
+            if (!rect1 || !rect2) {
+                console.error("getModel2Displacement: rect elements not found");
+                return { success: false, przesuniecieX: 0, przesuniecieY: 0 };
+            }
+
+            const getTransformedCenter = (el) => {
+                const bbox = el.getBBox();
+                const pt = svg.createSVGPoint();
+                pt.x = bbox.x + bbox.width / 2;
+                pt.y = bbox.y + bbox.height / 2;
+                const ctm = el.getCTM();
+                return pt.matrixTransform(ctm);
+            };
+
+            const c1 = getTransformedCenter(model1);
+            const c2 = getTransformedCenter(model2);
+
+            const scale = window.svgHelper.zoomLevel || 1;
+
+            const dx = (c2.x - c1.x) / scale;
+            const dy = (c2.y - c1.y) / scale;
+
+            console.log(`📏 Displacement względem model1: X=${dx.toFixed(2)}, Y=${dy.toFixed(2)}`);
+
+            return {
+                success: true,
+                przesuniecieX: dx,
+                przesuniecieY: dy
+            };
+        } catch (e) {
+            console.error("getModel2Displacement error:", e);
+            return { success: false, przesuniecieX: 0, przesuniecieY: 0, error: e.message };
+        }
+    };
+
+
+
+
 </script>
 
 <div class="container-fluid mt-3">
@@ -742,10 +805,10 @@
             </div>
         </div>
     </div>
-    <Tabs>
-        <TabPane Tab="Istniejące konfiguracje">
+    <Tabs OnChange="OnTabChange">
+        <TabPane Key="0" Tab="Istniejące konfiguracje">
             <h4>
-                Lista zapisanych połączeń
+                Lista zapisanych połączeń (@(listaPolaczen?.Count() ?? 0))
                 <Button Icon="@IconType.Outline.Read" OnClick="OdswiezDane" />
             </h4>
 
@@ -768,6 +831,7 @@
                             <th>X [mm]</th>
                             <th>Y [mm]</th>
                             <th>Kąt [°]</th>
+                            <th>Akcja</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -775,12 +839,33 @@
                         {
                             <tr>
                                 <td>
-                                    @if (polaczenie.RysunekPrzekroju?.Length > 0)
+                                    @if (polaczenie.RysunekPrzekroju?.Length > 20 && polaczenie.RysunekPrzekrojuStyczny?.Length > 20)
                                     {
 
                                         <a target="_blank" href="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)">
                                             <img title="zew:@polaczenie.ElementZewnetrznyId wew:@polaczenie.ElementWewnetrznyId" src="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)"
                                                      style="width: 150px; height: auto; object-fit: contain; border: 1px solid #ccc;" />
+
+                                        </a>
+                                        <a target="_blank" href="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekrojuStyczny)">
+                                            <img title="Połączenie styczne zew:@polaczenie.ElementZewnetrznyId wew:@polaczenie.ElementWewnetrznyId" src="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekrojuStyczny)"
+                                                 style="width: 150px; height: auto; object-fit: contain; border: 1px solid #ccc;" />
+
+                                        </a>
+                                    }
+                                    else if(polaczenie.RysunekPrzekroju?.Length > 20 && polaczenie.RysunekPrzekrojuStyczny?.Length < 20)
+                                    {
+                                        <a target="_blank" href="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)">
+                                            <img title="zew:@polaczenie.ElementZewnetrznyId wew:@polaczenie.ElementWewnetrznyId" src="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)"
+                                                 style="width: 150px; height: auto; object-fit: contain; border: 1px solid #ccc;" />
+
+                                        </a>
+                                    }
+                                    else if (polaczenie.RysunekPrzekroju?.Length < 20 && polaczenie.RysunekPrzekrojuStyczny?.Length > 20)
+                                    {
+                                        <a target="_blank" href="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekrojuStyczny)">
+                                            <img title="Połączenie styczne zew:@polaczenie.ElementZewnetrznyId wew:@polaczenie.ElementWewnetrznyId" src="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekrojuStyczny)"
+                                                 style="width: 150px; height: auto; object-fit: contain; border: 1px solid #ccc;" />
 
                                         </a>
                                     }
@@ -791,16 +876,23 @@
                                 </td>
                                 <td>@(polaczenie.OpisPolaczenia ?? "")</td>
                                 <td>@polaczenie.StronaPolaczenia</td>
-                                <td>@polaczenie.PrzesuniecieX</td>
-                                <td>@polaczenie.PrzesuniecieY</td>
+                                <td>@polaczenie.PrzesuniecieX / @polaczenie.PrzesuniecieXStycznej</td>
+                                <td>@polaczenie.PrzesuniecieY / @polaczenie.PrzesuniecieYStycznej</td>
                                 <td>@polaczenie.ZapisanyKat</td>
+                                      <Popconfirm Title="Czy chcesz usunąć użytkownika?"
+                                            OnConfirm="()=> deleteRow(polaczenie.RowId.ToString())"
+                                            OkText="Tak"
+                                            CancelText="Nie">
+                                    <a style="color:red">Usuń</a>
+                                </Popconfirm>
                             </tr>
                         }
                     </tbody>
                 </table>
             }
         </TabPane>
-        <TabPane Tab="Konfigurator połączeń">
+        <TabPane Key="1" Tab="Konfigurator połączeń - przekroje">
+
             <div class="row">
                 <div class="col-md-4">
                     <div class="model-list">
@@ -824,8 +916,12 @@
                                     <label for="str_prawa">Prawa</label>
                                 </div>
                                 <div class="side-checkbox">
-                                    <input type="checkbox" @bind="selSlRuchomy" id="str_prawa" onclick="@DelSvg" />
+                                    <input type="checkbox" @bind="selSlRuchomy" id="str_sl_ruch" onclick="@DelSvg" />
                                     <label for="str_prawa">Słupek ruchomu</label>
+                                </div>
+                                <div class="side-checkbox">
+                                    <input type="checkbox" @bind="selSlStaly" id="str_sl_staly" onclick="@DelSvg" />
+                                    <label for="str_prawa">Słupek stały</label>
                                 </div>
                             </div>
 
@@ -840,7 +936,7 @@
                                 <tbody>
                                     @foreach (var model in ListaModeli)
                                     {
-                                        <tr @onclick="() => WybierzModel(model, selDol, selGora, selLewa, selPrawa)">
+                                        <tr @onclick="() => WybierzModel(model, selDol, selGora, selLewa, selPrawa, false)">
                                             <td>@model.NazwaKonfiguracji</td>
                                             <td>@model.Typ</td>
                                             <td>
@@ -924,10 +1020,10 @@
                     <div class="mb-2 d-flex justify-content-between">
                         <h6>Podgląd połączenia</h6>
                         <div>
-                            <Button Icon="@IconType.Outline.Fire" OnClick="RefreshSvg" Class="btn-sm me-2">
+                            <Button Icon="@IconType.Outline.Fire" OnClick="@(() => RefreshSvg())" Class="btn-sm me-2">
                                 Odśwież
                             </Button>
-                            <Button Icon="@IconType.Outline.Clear" OnClick="DelSvg" Class="btn-sm btn-danger">
+                            <Button Icon="@IconType.Outline.Clear" OnClick="@(() => DelSvg())" Class="btn-sm btn-danger">
                                 Wyczyść
                             </Button>
                         </div>
@@ -971,7 +1067,201 @@
                     </div>
                 </div>
             </div>
+       
         </TabPane>
+        
+        <TabPane Key="2" Tab="Konfigurator połączeń - styczne">
+
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="model-list">
+                        @if (ListaModeli != null && ListaModeli.Any())
+                        {
+                            <div class="side-checkboxes">
+                                <div class="side-checkbox">
+                                    <input type="checkbox" @bind="selDolStyczne" id="str_dol_st" onclick="@DelSvg" />
+                                    <label for="str_dol">Dół</label>
+                                </div>
+                                <div class="side-checkbox">
+                                    <input type="checkbox" @bind="selGoraStyczne" id="str_gora_st" onclick="@DelSvg" />
+                                    <label for="str_gora">Góra</label>
+                                </div>
+                                <div class="side-checkbox">
+                                    <input type="checkbox" @bind="selLewaStyczne" id="str_lewa_st" onclick="@DelSvg" />
+                                    <label for="str_lewa">Lewa</label>
+                                </div>
+                                <div class="side-checkbox">
+                                    <input type="checkbox" @bind="selPrawaStyczne" id="str_prawa_st" onclick="@DelSvg" />
+                                    <label for="str_prawa">Prawa</label>
+                                </div>
+                            </div>
+
+                            <table class="table model-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nazwa</th>
+                                        <th>Typ</th>
+                                        <th class="thumbnail-cell">Miniaturka</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var model in ListaModeli)
+                                    {
+                                        @if (pierwszyModel == null && !model.Typ.Contains("Słupek"))
+                                        {
+                                            <tr @onclick="() => WybierzModel(model, selDolStyczne, selGoraStyczne, selLewaStyczne, selPrawaStyczne, true)">
+                                                <td>@model.NazwaKonfiguracji</td>
+                                                <td>@model.Typ</td>
+                                                <td>
+                                                    @if (model.Rysunek?.Length > 0)
+                                                    {
+                                                        <img src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
+                                                             width="60" height="60" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">Brak</span>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                        else if (pierwszyModel != null && model.Typ.Contains("Słupek"))
+                                        {
+                                            <tr @onclick="() => WybierzModel(model, selDolStyczne, selGoraStyczne, selLewaStyczne, selPrawaStyczne, true)">
+                                                <td>@model.NazwaKonfiguracji</td>
+                                                <td>@model.Typ</td>
+                                                <td>
+                                                    @if (model.Rysunek?.Length > 0)
+                                                    {
+                                                        <img src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
+                                                             width="60" height="60" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">Brak</span>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info">Brak zapisanych modeli.</div>
+                        }
+                    </div>
+                </div>
+
+                <div class="col-md-8">
+                    <div class="controls-container">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <Tooltip Title="Zapisz ustawienia">
+                                    <Button Icon="@IconType.Fill.Save" OnClick="SaveAllPosition" Class="btn btn-primary me-2">
+                                        Zapisz
+                                    </Button>
+                                </Tooltip>
+                            </div>
+
+                            <div class="btn-group">
+                                <Tooltip Title="Lustro elementów. Odbicie w poziome">
+                                    <Button Icon="@IconType.Outline.Swap" OnClick="MirrorObjAll" Class="btn-sm btn-move" />
+                                </Tooltip>
+                                <Tooltip Title="Obróć wszystko">
+                                    <Button Icon="@IconType.Outline.Undo" OnClick="RotateObjAll" Class="btn-sm btn-move" />
+                                </Tooltip>
+                                <Tooltip Title="Obróć drugi model">
+                                    <Button Icon="@IconType.Outline.Redo" OnClick="RotateObj" Class="btn-sm btn-move" />
+                                </Tooltip>
+                                <Tooltip Title="Przesuń w lewo (1px)">
+                                    <Button Icon="@IconType.Outline.ArrowLeft" OnClick="MoveLeftObj" Class="btn-sm btn-move" />
+                                </Tooltip>
+                                <Tooltip Title="Przesuń w prawo (1px)">
+                                    <Button Icon="@IconType.Outline.ArrowRight" OnClick="MoveRightObj" Class="btn-sm btn-move" />
+                                </Tooltip>
+                                <Tooltip Title="Przesuń w górę (1px)">
+                                    <Button Icon="@IconType.Outline.ArrowUp" OnClick="MoveUpObj" Class="btn-sm btn-move" />
+                                </Tooltip>
+                                <Tooltip Title="Przesuń w dół (1px)">
+                                    <Button Icon="@IconType.Outline.ArrowDown" OnClick="MoveDownObj" Class="btn-sm btn-move" />
+                                </Tooltip>
+                                <Tooltip Title="Dopasuj widok">
+                                    <Button Icon="@IconType.Outline.Drag" OnClick="ZoomAllObj" Class="btn-sm btn-move" />
+                                </Tooltip>
+                                <Tooltip Title="Powiększ">
+                                    <Button Icon="@IconType.Outline.ZoomIn" OnClick="ZoomInObj" Class="btn-sm btn-move" />
+                                </Tooltip>
+                                <Tooltip Title="Pomniejsz">
+                                    <Button Icon="@IconType.Outline.ZoomOut" OnClick="ZoomOutObj" Class="btn-sm btn-move" />
+                                </Tooltip>
+                                <label class="ms-2">Precyzja przesuwania:</label>
+                                <AntDesign.InputNumber @bind-Value="precyzjaPrzesuwania" Min="0" Max="50" Style="width: 60px;" />
+
+                                <Tooltip Title="Pomiar odległości">
+                                    <Button Icon="@IconType.Outline.Scan" OnClick="StartMeasurement" Class="btn-sm btn-move" />
+                                </Tooltip>
+                                <Tooltip Title="Wyczyść pomiary">
+                                    <Button Icon="@IconType.Outline.Close" OnClick="ClearMeasurements" Class="btn-sm btn-move" />
+                                </Tooltip>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-2 d-flex justify-content-between">
+                        <h6>Podgląd połączenia</h6>
+                        <div>
+                            <Button Icon="@IconType.Outline.Fire" OnClick="@(() => RefreshSvg())" Class="btn-sm me-2">
+                                Odśwież
+                            </Button>
+                            <Button Icon="@IconType.Outline.Clear" OnClick="@(() => DelSvg())" Class="btn-sm btn-danger">
+                                Wyczyść
+                            </Button>
+                        </div>
+                    </div>
+
+                    @if (pierwszyModel != null || drugiModel != null)
+                    {
+                        <div class="status-message">
+                            @if (pierwszyModel != null && drugiModel == null)
+                            {
+                                <span>Pierwszy model wybrany: <strong>@pierwszyModel.Nazwa</strong></span>
+                            }
+                            else if (pierwszyModel != null && drugiModel != null)
+                            {
+                                <span>Połączono: <strong>@pierwszyModel.Nazwa</strong> z <strong>@drugiModel.Nazwa</strong></span>
+                            }
+                        </div>
+                    }
+
+                    <div class="scaled-svg-container">
+                        @if (!string.IsNullOrEmpty(combinedSvgStyczne))
+                        {
+                            <div class="scaled-svg" @key="SvgKeyStyczne">
+                                @((MarkupString)combinedSvgStyczne)
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="d-flex flex-column justify-content-center align-items-center h-100">
+                                <div class="alert alert-info mb-3">
+                                    Wybierz modele ramy, skrzydła lub poprzeczki
+                                </div>
+                                @if (!string.IsNullOrEmpty(BladKonfiguracji))
+                                {
+                                    <div class="alert alert-warning">
+                                        @BladKonfiguracji
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+        </TabPane>
+
     </Tabs>
 </div>
 
@@ -980,6 +1270,7 @@
 
     // Dane i stan
     private string SvgKey { get; set; } = Guid.NewGuid().ToString();
+    private string SvgKeyStyczne { get; set; } = Guid.NewGuid().ToString();
     private List<SystemyOkienne> Systemy = new();
     private string? SelectedSystemId;
     private string? SelectedModelId;
@@ -987,6 +1278,7 @@
     private List<KonfSystem>? KonfiguracjeSystemu;
     private float precyzjaPrzesuwania = 5;
     private string BladKonfiguracji = string.Empty;
+    private string BladKonfiguracjiStyczne = string.Empty;
 
     // Wybór stron
     private bool selDol = false;
@@ -994,12 +1286,20 @@
     private bool selLewa = false;
     private bool selPrawa = false;
 
+    // Wybór stron
+    private bool selDolStyczne = false;
+    private bool selGoraStyczne = false;
+    private bool selLewaStyczne = false;
+    private bool selPrawaStyczne = false;
+
     private bool selSlRuchomy = false;
+    private bool selSlStaly = false;
 
     // Modele SVG
     private KonfSystem? pierwszyModel;
     private KonfSystem? drugiModel;
     private string combinedSvg = string.Empty;
+    private string combinedSvgStyczne = string.Empty;
     private double offsetX = 0;
     private double offsetY = 0;
     private double luzLewo = 25;  // Zwiększony luz
@@ -1012,6 +1312,8 @@
     private int katUstawienia = 0;
 
     private List<KonfPolaczenie>? listaPolaczen;
+
+    private bool boolStyczny = false;
 
     // Inicjalizacja
     protected override async Task OnInitializedAsync()
@@ -1097,11 +1399,69 @@
         }
     }
 
-    // Wybór modelu
-    private async Task WybierzModel(KonfModele model, bool stronaDol, bool stronaGora, bool stronaLewa, bool stronaPrawa)
-    {
 
-        if (!selDol && !selGora && !selLewa && !selPrawa)
+    public async Task deleteRow(string rowId)
+    {
+        if (listaPolaczen == null) return;
+
+        try
+        {
+            var response = await Http.DeleteAsync($"api/KonfPolaczenie/{rowId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Usunięcie rekordu z listy po pomyślnym usunięciu z serwera
+                await OdswiezDane();
+
+                Console.WriteLine("Rekord został pomyślnie usunięty.");
+            }
+            else
+            {
+                Console.WriteLine($"Błąd podczas usuwania rekordu: {response.ReasonPhrase}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"******* Błąd {ex.Message}");
+        }
+    }
+
+    private async Task OnTabChange(string key)
+    {
+        selDol = false;
+        selGora = false;
+        selLewa = false;
+        selPrawa = false;
+        selDolStyczne = false;
+        selGoraStyczne = false;
+        selLewaStyczne = false;
+        selPrawaStyczne = false;
+
+        pierwszyModel =null;
+        drugiModel = null;
+
+        combinedSvgStyczne = string.Empty;
+        combinedSvg = string.Empty;
+
+        await JSRuntime.InvokeVoidAsync("svgHelper.resetModel2Position");
+
+        if( key == "1")
+        {
+            boolStyczny = false;
+        }
+        else if (key == "2")
+        {
+            boolStyczny = true;
+
+        }
+    }
+
+    // Wybór modelu
+    private async Task WybierzModel(KonfModele model, bool stronaDol, bool stronaGora, bool stronaLewa, bool stronaPrawa, bool boolStyczny)
+    {
+        Console.WriteLine($"WybierzModel - START - stronaDol: {stronaDol}, stronaGora: {stronaGora}, stronaLewa: {stronaLewa}, stronaPrawa: {stronaPrawa}, boolStyczny: {boolStyczny}");
+
+        if (!selDol && !selGora && !selLewa && !selPrawa && !selDolStyczne && !selGoraStyczne && !selLewaStyczne && !selPrawaStyczne)
         {
             BladKonfiguracji = "Wybierz co najmniej jedną stronę (Dół, Góra, Lewa, Prawa).";
             return;
@@ -1118,7 +1478,7 @@
             var response = await Http.GetAsync($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{model.RowId}");
             if (!response.IsSuccessStatusCode)
             {
-                BladKonfiguracji = $"Błąd: {response.StatusCode}";
+                BladKonfiguracji = $"Błąd odczytu powiązania: {response.StatusCode}";
                 Console.WriteLine(BladKonfiguracji);
                 return;
             }
@@ -1140,9 +1500,14 @@
             if (stronaLewa) warunki.Add(x => x.WystepujeLewa);
             if (stronaPrawa) warunki.Add(x => x.WystepujePrawa);
 
-            if (pierwszyModel != null)
+            if (selSlRuchomy) warunki.Add(x => x.Typ == "Słupek ruchomy");
+            if (selSlStaly) warunki.Add(x => x.Typ == "Słupek stały");
+
+            if (model.Typ.Contains("Słupek") && boolStyczny)
             {
-                if (selSlRuchomy) warunki.Add(x => x.Typ == "Słupek ruchomy");
+                warunki.Clear();
+                warunki.Add(x => x.WystepujeLewa);
+
             }
 
             // Filtrujemy rekordy spełniające WSZYSTKIE warunki
@@ -1200,6 +1565,7 @@
                 drugiModel = pasujacy;
 
                 AktualizujSvg();                          // 1. generuj combinedSvg
+
                 await InvokeAsync(StateHasChanged);      // 2. wymuś render Blazora
 
                 await Task.Delay(100);                    // 3. krótka pauza lub: await Task.Yield();
@@ -1208,6 +1574,8 @@
                 await JSRuntime.InvokeVoidAsync("svgHelper.initGuideLines");
 
             }
+
+            await InvokeAsync(StateHasChanged);
 
             Console.WriteLine($"Wybór modelu: KONIEC");
 
@@ -1222,7 +1590,8 @@
     // Generowanie SVG z większym obszarem roboczym
     private void AktualizujSvg()
     {
-        if (pierwszyModel == null && drugiModel == null)
+
+        if (pierwszyModel == null && drugiModel == null && !boolStyczny)
         {
             combinedSvg = "";
             return;
@@ -1232,39 +1601,74 @@
         double centerX = 300; // Środek obszaru roboczego (600x600/2)
         double centerY = 300;
 
-        // Obliczanie pozycji dla pierwszego modelu (zawsze na środku)
+        // 🔹 1️⃣ Pierwszy model - zawsze na środku
         if (pierwszyModel != null)
         {
-            svgParts.Add($@"<g id=""model1"" transform=""translate({centerX}, {centerY})"">{ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}</g>");
+            svgParts.Add($@"
+            <g id=""model1"" transform=""translate({centerX}, {centerY})"">
+            {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
+            </g>");
         }
 
-        // Obliczanie pozycji dla drugiego modelu (względem pierwszego z luzem)
-        if (drugiModel != null)
+        // 🔹 2️⃣ Drugi model lub prostokąt zastępczy
+        if (drugiModel != null && boolStyczny)
         {
             double secondX = centerX + offsetX;
             double secondY = centerY + offsetY;
-            svgParts.Add($@"<g id=""model2"" transform=""translate({secondX}, {secondY})"">{ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}</g>");
+
+            var pasujacyWymiar = drugiModel.PoziomGora - drugiModel.PoziomDol ?? 0;
+            double rectWidth = Math.Abs(pasujacyWymiar);
+            double rectHeight = 100; // Domyślny rozmiar prostokąta tylko do wizualizacji
+            double rectX = 0;//centerX + offsetX - rectWidth;
+            double rectY = 0;//centerY + offsetY - rectHeight;
+
+            svgParts.Add($@"
+            <g id=""model2"" transform=""translate({secondX}, {secondY})"">
+                <rect x=""{rectX}"" y=""{rectY}"" width=""{rectWidth}"" height=""{rectHeight}""
+                      fill=""#e0e0e0"" fill-opacity=""0.5"" stroke=""#000"" stroke-width=""1"" />
+            </g>");
+
+        }
+        else if (drugiModel != null && !boolStyczny)
+        {
+            double secondX = centerX + offsetX;
+            double secondY = centerY + offsetY;
+
+            svgParts.Add($@"
+            <g id=""model2"" transform=""translate({secondX}, {secondY})"">
+            {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
+            </g>");
         }
 
-        combinedSvg = $@"
-        <svg xmlns=""http://www.w3.org/2000/svg"" width=""600"" height=""600"" viewBox=""0 0 600 600"" preserveAspectRatio=""xMidYMid meet"">
+        // 🔹 3️⃣ Złożenie końcowego SVG
+        var _combinedSvg = $@"
+        <svg xmlns=""http://www.w3.org/2000/svg"" width=""600"" height=""600""
+             viewBox=""0 0 600 600"" preserveAspectRatio=""xMidYMid meet"">
             <g id=""zoom-group"">
-    {string.Join("", svgParts)}
+            {string.Join("", svgParts)}
             </g>
         </svg>";
 
-        string NormalizeSvg(string combinedSvg) =>
-        combinedSvg?
-        .Replace("id=\"guide-line-horizontalMax\"", "data-name=\"guide-line-horizontalMax\"")
-        .Replace("id=\"guide-line-vertical\"", "data-name=\"guide-line-vertical\"")
-        .Trim('\uFEFF', '\u200B', '\u0000')
-        .Replace("\r", "").Replace("\n", "").Trim() ?? "";
+        if (boolStyczny)
+        {
+            combinedSvgStyczne = _combinedSvg;
+            SvgKeyStyczne = Guid.NewGuid().ToString();
+        }
+        else
+        {
+            combinedSvg = _combinedSvg;
+            SvgKey = Guid.NewGuid().ToString();
+        }
 
+        string NormalizeSvg(string svg) =>
+            svg?
+            .Replace("id=\"guide-line-horizontalMax\"", "data-name=\"guide-line-horizontalMax\"")
+            .Replace("id=\"guide-line-vertical\"", "data-name=\"guide-line-vertical\"")
+            .Trim('\uFEFF', '\u200B', '\u0000')
+            .Replace("\r", "").Replace("\n", "").Trim() ?? "";
 
-        SvgKey = Guid.NewGuid().ToString();
-
-        // Console.WriteLine($"AktualizujSvg: wygenerowano SVG: {combinedSvg}");
     }
+
 
     // Pomocnicze metody do przetwarzania SVG
     private string NormalizeSvg(string svg) => svg?.Trim('\uFEFF', '\u200B', '\u0000').Replace("\r", "").Replace("\n", "").Trim() ?? "";
@@ -1358,20 +1762,46 @@
 
     private async Task SaveAllPosition()
     {
+
         await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
+        await Task.Delay(200);
 
-        await Task.Delay(200); // 💡 daj czas DOM-owi
+        GuideDisplacementResult result;
 
-        var result = await JSRuntime.InvokeAsync<GuideDisplacementResult>("svgHelper.measureGuideDisplacement");
-
-        if (result?.success != true || !result.elementsFound)
+        if (boolStyczny)
         {
-            await _message.Warning(result?.error ?? "❗ Nie można znaleźć prowadnic w rysunku SVG");
-            return;
+            // 🔹 Tryb STYCZNY (bez prowadnic, prostokąt)
+            var offset = await JSRuntime.InvokeAsync<GuideDisplacementResult>("svgHelper.getModel2Displacement");
+
+            if (offset == null || !offset.success)
+            {
+                await _message.Warning("❗ Nie udało się odczytać przesunięcia modelu 2 (tryb styczny)");
+                return;
+            }
+
+            result = new GuideDisplacementResult
+            {
+                success = true,
+                elementsFound = false,
+                przesuniecieX = Math.Round(offset.przesuniecieX, 2),
+                przesuniecieY = Math.Round(offset.przesuniecieY, 2),
+                scale = 1
+            };
+        }
+        else
+        {
+            // 🔹 Tryb NORMALNY (z prowadnicami)
+            result = await JSRuntime.InvokeAsync<GuideDisplacementResult>("svgHelper.measureGuideDisplacement");
+
+            if (result?.success != true || !result.elementsFound)
+            {
+                await _message.Warning(result?.error ?? "❗ Nie można znaleźć prowadnic w rysunku SVG");
+                return;
+            }
         }
 
-        przesuniecieX = Math.Round(result.przesuniecieX, 2);
-        przesuniecieY = Math.Round(result.przesuniecieY, 2);
+        double przesuniecieX = Math.Round(result.przesuniecieX, 2);
+        double przesuniecieY = Math.Round(result.przesuniecieY, 2);
 
         if (pierwszyModel == null || drugiModel == null || string.IsNullOrEmpty(SelectedModelId))
         {
@@ -1379,8 +1809,13 @@
             return;
         }
 
-        var strony = WyliczStronyPolaczenia(); // ⬅️ lista stringów np. ["lewa", "prawa"]
+        // 🔹 Rysunek aktualnej zakładki
         var png = await GenerujPngBezProwadnic();
+
+        // 🔹 Lista stron do zapisania (lewa/prawa/góra/dół)
+        var strony = WyliczStronyPolaczenia();
+
+        Console.WriteLine($"Rozpoczynam pętle foreach (var strona in strony) Strony: {strony.Count()}");
 
         foreach (var strona in strony)
         {
@@ -1389,19 +1824,15 @@
                 ElementZewnetrznyId = pierwszyModel.RowId,
                 ElementWewnetrznyId = drugiModel.RowId,
                 StronaPolaczenia = strona,
-                PrzesuniecieX = przesuniecieX,
-                PrzesuniecieY = przesuniecieY,
+                RowIdSystem = Guid.Parse(SelectedSystemId),
+                RowIdModelu = Guid.Parse(SelectedModelId),
                 ZapisanyKat = katUstawienia,
-                RysunekPrzekroju = png,
-                RowIdSystem = Guid.Parse(SelectedSystemId), // 👈 jawna konwersja
-                RowIdModelu = Guid.Parse(SelectedModelId), // 👈 jawna konwersja
                 OpisPolaczenia = $"Połączono: {pierwszyModel.Nazwa ?? "Model 1 ?"} z {drugiModel.Nazwa ?? "Model 2 ?"}",
                 Uwagi = $"Ostatnia zmiana: {DateTime.Now} - [{user}]"
             };
 
-            // 🔎 Sprawdź czy istnieje połączenie DLA TEJ STRONY
+            // 🔍 Sprawdź, czy istnieje już połączenie
             KonfPolaczenie? existing = null;
-
             try
             {
                 var responseS = await Http.GetAsync(
@@ -1423,31 +1854,63 @@
                 continue;
             }
 
-            HttpResponseMessage response;
-
-            if (existing is not null)
+            // 🔸 Uzupełnij dane zależnie od zakładki
+            if (boolStyczny)
             {
-                polaczenie.RowId = existing.RowId;
-                polaczenie.Id = existing.Id;
-                polaczenie.RowIdSystem = Guid.Parse(SelectedSystemId);
+                // --- DANE DLA ZAKŁADKI "STYCZNE" ---
+                polaczenie.PrzesuniecieXStycznej = przesuniecieX;
+                polaczenie.PrzesuniecieYStycznej = przesuniecieY + 100;//100 awatar modelu
+                polaczenie.RysunekPrzekrojuStyczny = png;
+
+                if (existing != null)
+                {
+                    // zachowaj dane przekrojów, nadpisz tylko styczne
+                    polaczenie.Id = existing.Id;
+                    polaczenie.RowId = existing.RowId;
+                    polaczenie.PrzesuniecieX = existing.PrzesuniecieX;
+                    polaczenie.PrzesuniecieY = existing.PrzesuniecieY;
+                    polaczenie.RysunekPrzekroju = existing.RysunekPrzekroju;
+                }
+            }
+            else
+            {
+                // --- DANE DLA ZAKŁADKI "PRZEKROJE" ---
                 polaczenie.PrzesuniecieX = przesuniecieX;
                 polaczenie.PrzesuniecieY = przesuniecieY;
-                polaczenie.ZapisanyKat = katUstawienia;
                 polaczenie.RysunekPrzekroju = png;
-                polaczenie.RowIdModelu = Guid.Parse(SelectedModelId); // 👈 jawna konwersja
-                polaczenie.OpisPolaczenia = $"Połączono: {pierwszyModel.Nazwa ?? "Model 1 ?"} z {drugiModel.Nazwa ?? "Model 2 ?"}";
-                polaczenie.Uwagi = $"Ostatnia zmiana: {DateTime.Now} - [{user}]";
 
+                if (existing != null)
+                {
+                    // zachowaj dane styczne, nadpisz tylko przekroje
+                    polaczenie.Id = existing.Id;
+                    polaczenie.RowId = existing.RowId;
+                    polaczenie.PrzesuniecieXStycznej = existing.PrzesuniecieXStycznej;
+                    polaczenie.PrzesuniecieYStycznej = existing.PrzesuniecieYStycznej + 100;//100 awatar modelu
+                    polaczenie.RysunekPrzekrojuStyczny = existing.RysunekPrzekrojuStyczny;
+                }
+            }
+
+            Console.WriteLine($"Zapis połączenia: boolStyczny:{boolStyczny} -> {polaczenie.ElementZewnetrznyId} + {polaczenie.ElementWewnetrznyId} Strona: {strona} X={przesuniecieX} Y={przesuniecieY} Kat={katUstawienia}");
+
+            // 🔹 Zapisz lub aktualizuj w bazie
+            HttpResponseMessage response;
+
+            if (existing != null)
+            {
                 response = await Http.PutAsJsonAsync("api/KonfPolaczenie", polaczenie);
+                Console.WriteLine($"Aktualizacja połączenia: {response.StatusCode}");
             }
             else
             {
                 response = await Http.PostAsJsonAsync("api/KonfPolaczenie", polaczenie);
+                Console.WriteLine($"Nowe połączenie: {response.StatusCode}");
             }
 
+            // 🔸 Feedback użytkownikowi
             if (response.IsSuccessStatusCode)
             {
-                await _message.Success($"✅ Zapisano stronę {strona}: X={przesuniecieX:F2} mm, Y={przesuniecieY:F2} mm (skala: {result.scale:F2}), Kąt: {katUstawienia}°", 0.7);
+                var zakladka = boolStyczny ? "styczna" : "przekrój";
+                await _message.Success($"✅ Zapisano stronę {strona} ({zakladka}): X={przesuniecieX:F2} mm, Y={przesuniecieY:F2} mm, kąt: {katUstawienia}°", 0.8);
             }
             else
             {
@@ -1499,10 +1962,10 @@
     private List<string> WyliczStronyPolaczenia()
     {
         var strony = new List<string>();
-        if (selLewa) strony.Add("lewa");
-        if (selPrawa) strony.Add("prawa");
-        if (selGora) strony.Add("góra");
-        if (selDol) strony.Add("dół");
+        if (selLewa || selLewaStyczne) strony.Add("lewa");
+        if (selPrawa || selPrawaStyczne) strony.Add("prawa");
+        if (selGora || selGoraStyczne) strony.Add("góra");
+        if (selDol || selDolStyczne) strony.Add("dół");
         Console.WriteLine($"WyliczStronyPolaczenia: {string.Join(", ", strony)}");
         return strony;
     }

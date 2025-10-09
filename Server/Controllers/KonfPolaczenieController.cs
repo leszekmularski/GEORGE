@@ -1,9 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using DocumentFormat.OpenXml.Drawing.Spreadsheet;
+using GEORGE.Shared.Models;            // <-- lub odpowiednią dla KonfPolaczenie
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
-using System.Threading.Tasks;
 using System.Collections.Generic;
-using GEORGE.Shared.Models;            // <-- lub odpowiednią dla KonfPolaczenie
+using System.Threading.Tasks;
 
 namespace GEORGE.Server.Controllers
 {
@@ -162,6 +163,22 @@ namespace GEORGE.Server.Controllers
             return Ok(newEntry);
         }
 
+        [HttpDelete("{rowId}")]
+        public async Task<ActionResult> DeleteAsync(string rowId)
+        {
+            var konfP = await _context.KonfPolaczenie.SingleOrDefaultAsync(b => b.RowId.ToString() == rowId);
+
+            if (konfP == null)
+            {
+                return NotFound();
+            }
+
+            _context.KonfPolaczenie.Remove(konfP);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
         // ✅ PUT: api/konfpolaczenie
         [HttpPut]
         public async Task<ActionResult> Update([FromBody] KonfPolaczenie updated)
@@ -178,6 +195,8 @@ namespace GEORGE.Server.Controllers
             // Aktualizuj właściwości
             existing.PrzesuniecieX = updated.PrzesuniecieX;
             existing.PrzesuniecieY = updated.PrzesuniecieY;
+            existing.PrzesuniecieXStycznej = updated.PrzesuniecieXStycznej;
+            existing.PrzesuniecieYStycznej = updated.PrzesuniecieYStycznej;
             existing.ZapisanyKat = updated.ZapisanyKat;
             existing.StronaPolaczenia = updated.StronaPolaczenia;
             existing.KatOd = updated.KatOd;
@@ -185,6 +204,7 @@ namespace GEORGE.Server.Controllers
             existing.DodatkowyWarunek = updated.DodatkowyWarunek;
             existing.Uwagi = updated.Uwagi;
             existing.RysunekPrzekroju = updated.RysunekPrzekroju;
+            existing.RysunekPrzekrojuStyczny = updated.RysunekPrzekrojuStyczny;
 
             await _context.SaveChangesAsync();
 
