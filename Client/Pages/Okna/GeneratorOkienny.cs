@@ -2,7 +2,6 @@
 using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.Models;
 using GEORGE.Shared.ViewModels;
-using System.Globalization;
 
 namespace GEORGE.Client.Pages.Okna
 {
@@ -96,7 +95,7 @@ namespace GEORGE.Client.Pages.Okna
             // var przeskalowanePunkty = SkalujIPrzesun(punkty, minX, minY, width, height, Szerokosc, Wysokosc);
             var przeskalowanePunkty = new List<XPoint>(punkty); // bez skalowania – prawdziwe dane
 
-           // Console.WriteLine($"📐 Przeskalowane punkty: {string.Join(", ", przeskalowanePunkty.Select(p => $"({p.X:F2}, {p.Y:F2})"))} --------> minX:{minX}");
+            // Console.WriteLine($"📐 Przeskalowane punkty: {string.Join(", ", przeskalowanePunkty.Select(p => $"({p.X:F2}, {p.Y:F2})"))} --------> minX:{minX}");
 
             string slruchPoPrawej = "";
             string slruchPoLewej = "";
@@ -152,7 +151,7 @@ namespace GEORGE.Client.Pages.Okna
 
                 RowNazwaprofileLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.Nazwa ?? "BRAK-DANYCH";
             }
-            if(profileRight == 0)
+            if (profileRight == 0)
             {
                 //Spróbuj bez słupka
                 slruchPoPrawej = "";
@@ -164,11 +163,11 @@ namespace GEORGE.Client.Pages.Okna
                 RowNazwaprofileRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.Nazwa ?? "BRAK-DANYCH";
             }
 
-             string NazwaObiektu = MVCKonfModelu.KonfSystem.First().Nazwa ?? "";
+            string NazwaObiektu = MVCKonfModelu.KonfSystem.First().Nazwa ?? "";
 
             Console.WriteLine($"📐Generator ----> region.TypKsztaltu: {region.TypKsztaltu} profileLeft: {profileLeft}, profileRight: {profileRight}, profileTop: {profileTop}, profileBottom: {profileBottom} slruchPoPrawej: {slruchPoPrawej} slruchPoLewej: {slruchPoLewej}");
 
-              // 🔲 Oblicz wewnętrzny kontur
+            // 🔲 Oblicz wewnętrzny kontur
             var wewnetrznyKontur = CalculateOffsetPolygon(
                 przeskalowanePunkty,
                 profileLeft, profileRight, profileTop, profileBottom);
@@ -205,7 +204,7 @@ namespace GEORGE.Client.Pages.Okna
             outer = RemoveDuplicateConsecutivePoints(outer);
             inner = RemoveDuplicateConsecutivePoints(inner);
 
-            Console.WriteLine($"▶️ Generuje elementy z polygon with {vertexCount} vertices and joins: {polaczenia}");    
+            Console.WriteLine($"▶️ Generuje elementy z polygon with {vertexCount} vertices and joins: {polaczenia}");
 
             var parsedConnections = polaczenia.Split(';')
                 .Select(p => p.Split('-'))
@@ -282,7 +281,7 @@ namespace GEORGE.Client.Pages.Okna
 
                 List<XPoint> wierzcholki;
 
-                //Console.WriteLine($"▶️ DEBUG: Generating element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin}");
+               Console.WriteLine($"▶️ DEBUG: Generating element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin}");
 
                 if (leftJoin == "T1" && rightJoin == "T1" || leftJoin == "T1" && rightJoin == "T4" || leftJoin == "T4" && rightJoin == "T1" || leftJoin == "T4" && rightJoin == "T4")
                 {
@@ -309,9 +308,9 @@ namespace GEORGE.Client.Pages.Okna
                     {
                         //Console.WriteLine($"🔷 Vertical case for element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical}");
 
-                        if(leftJoin == "T1" && rightJoin == "T4" && vertexCount > 4)
+                        if (leftJoin == "T1" && rightJoin == "T4" && vertexCount > 4)
                         {
-                          //  Console.WriteLine($"🔷 Horizontal case for element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical}");
+                            //  Console.WriteLine($"🔷 Horizontal case for element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical}");
                             // Przecięcia z konturem na bazie normalnej
                             var outerVecStart = FindFirstEdgeIntersection(outerStart, nx, ny, outer);
                             var outerVecEnd = FindFirstEdgeIntersection(outerEnd, nx, ny, outer);
@@ -330,6 +329,25 @@ namespace GEORGE.Client.Pages.Okna
                         }
                         else if (leftJoin == "T4" && rightJoin == "T4" && vertexCount > 4)
                         {
+                            var topY = Math.Min(inner[i].Y, inner[next].Y);
+                            var bottomY = Math.Max(inner[i].Y, inner[next].Y);
+
+                            // Start liczymy względem punktu przecięcia z inner[i] (czyli skrócony)
+                            var outerTop = GetHorizontalIntersection(_innerStart, _innerEnd, (float)topY);
+                            var outerBottom = GetHorizontalIntersection(_innerStart, _innerEnd, (float)bottomY);
+
+                            // Normalne punkty wewnętrzne
+                            var innerTop = GetHorizontalIntersection(outer[i], outer[next], (float)topY);
+                            var innerBottom = GetHorizontalIntersection(outer[i], outer[next], (float)bottomY);
+
+                            wierzcholki = new List<XPoint> {
+                                outerTop, outerBottom, innerBottom, innerTop
+                            };
+                        }
+                        else if (leftJoin == "T5" && rightJoin == "T5")
+                        {
+                            Console.WriteLine($"🔷 T5-T5 Horizontal case for element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical}");
+
                             var topY = Math.Min(inner[i].Y, inner[next].Y);
                             var bottomY = Math.Max(inner[i].Y, inner[next].Y);
 
@@ -466,7 +484,7 @@ namespace GEORGE.Client.Pages.Okna
                 }
                 else if (leftJoin == "T2" && rightJoin == "T2")
                 {
-                   // Console.WriteLine($"🔷 T2/T2 element {i + 1} - styczne ścięcia pod kątem");
+                    // Console.WriteLine($"🔷 T2/T2 element {i + 1} - styczne ścięcia pod kątem");
                     // Przecięcia z konturem na bazie normalnej
                     var outerVecStart = FindFirstEdgeIntersection(outerStart, nx, ny, outer);
                     var outerVecEnd = FindFirstEdgeIntersection(outerEnd, nx, ny, outer);
@@ -486,8 +504,29 @@ namespace GEORGE.Client.Pages.Okna
                             outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
                         };
                 }
+                else if (leftJoin == "T5" && rightJoin == "T5")
+                {
+                    Console.WriteLine($"🔷 T5-T5 Horizontal case for element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical}");
+
+                    var topY = Math.Min(inner[i].Y, inner[next].Y);
+                    var bottomY = Math.Max(inner[i].Y, inner[next].Y);
+
+                    // Start liczymy względem punktu przecięcia z inner[i] (czyli skrócony)
+                    var outerTop = GetHorizontalIntersection(_innerStart, _innerEnd, (float)topY);
+                    var outerBottom = GetHorizontalIntersection(_innerStart, _innerEnd, (float)bottomY);
+
+                    // Normalne punkty wewnętrzne
+                    var innerTop = GetHorizontalIntersection(outer[i], outer[next], (float)topY);
+                    var innerBottom = GetHorizontalIntersection(outer[i], outer[next], (float)bottomY);
+
+                    wierzcholki = new List<XPoint> {
+                                outerTop, outerBottom, innerBottom, innerTop
+                            };
+                }
                 else
                 {
+                    Console.WriteLine($"🔷 Default case for element {i + 1} with joins: {leftJoin}-{rightJoin}");
+
                     float leftOffset = GetJoinOffset(leftJoin, profile);
                     float rightOffset = GetJoinOffset(rightJoin, profile);
 
@@ -524,9 +563,9 @@ namespace GEORGE.Client.Pages.Okna
                 float bazowaDlugosc = ObliczDlugoscElementu(wierzcholki);
 
                 switch (i)
-                    {
+                {
                     case 0:
-                             ElementyRamyRysowane.Add(new KsztaltElementu
+                        ElementyRamyRysowane.Add(new KsztaltElementu
                         {
                             TypKsztaltu = typKsztalt,
                             Wierzcholki = wierzcholki,
