@@ -2714,7 +2714,7 @@
             RowIdModelu = Guid.TryParse(SelectedRowIdType, out var rowIdModelu) ? rowIdModelu : (Guid?)null,
             MVCKonfModelu = generator.MVCKonfModelu,
             WybranyModel = WybranyModel,
-            WybranyKsztalt = WybranyKsztalt,
+            WybranyKsztalt = WybranyModel.Typ == null  ? "BRAK-DANYCH" : WybranyModel.Typ.Contains("Słupek") ? "Linia" : WybranyKsztalt,
             IdRegionWarstwaNizej = generator.IdRegionuPonizej,
             Wierzcholki = generator.ElementyRamyRysowane.SelectMany(k => k.Wierzcholki ?? new List<XPoint>()).Distinct().ToList(),
             WierzcholkiWartosciNominalne = WierzcholkiWartosciNominalne,
@@ -2857,10 +2857,9 @@
 
         if (SelectedModelType.ToLower().Trim() == "słupek stały")
         {
-
             var slupkiStale = styczneLinie
-            .Where(x => x.TypLiniiDzielacej == "Słupek stały")
-            .ToList();
+                .Where(x => x.TypLiniiDzielacej == "Słupek stały")
+                .ToList();
 
             if (!slupkiStale.Any())
             {
@@ -2868,45 +2867,49 @@
                 return false;
             }
 
-                generator.Zindeks = 0;
+            generator.Zindeks = 0;
 
-                // najpierw wczytujesz region i dodajesz jego dane
-  
-                    state.ListaKwadratow.Add(new DaneKwadratu
-                    {
-                        Wierzcholki = slupkiStale.FirstOrDefault().Wierzcholki,
-                        RowIdElementu = Guid.Empty,
-                        RowIdSasiada = Guid.Empty,
-                        RowIdRegionuSasiada = "",
-                        KatLinii = 90,
-                        OffsetBottom = 0,
-                        OffsetTop = 0,
-                        OffsetLeft = 0,
-                        OffsetRight = 0,
-                        Strona = "Środek"
-                    });
+            state.ListaKwadratow.Add(new DaneKwadratu
+            {
+                Wierzcholki = slupkiStale.FirstOrDefault().Wierzcholki,
+                RowIdElementu = Guid.Empty,
+                RowIdSasiada = Guid.Empty,
+                RowIdRegionuSasiada = "",
+                KatLinii = 0,
+                OffsetBottom = 0,
+                OffsetTop = 0,
+                OffsetLeft = 0,
+                OffsetRight = 0,
+                Strona = "Środek"
+            });
 
-                    // ✅ KOPIOWANIE punktów do regionu, na którym operuje AddElements
-            _regionsSkrzydlo.FirstOrDefault(r => r.Id == idRegion).Wierzcholki = WierzcholkiWartosciNominalne
-                        .Select(p => new XPoint { X = p.X, Y = p.Y })
-                        .ToList();
+            // kopiowanie punktów do regionu
+            _regionsSkrzydlo.FirstOrDefault(r => r.Id == idRegion).Wierzcholki =
+                WierzcholkiWartosciNominalne
+                    .Select(p => new XPoint { X = p.X, Y = p.Y })
+                    .ToList();
 
-                    // 4. Zapisz do stanu
-                    state.ZIndeks = generator.Zindeks;
+            // zapis stanu
+            state.ZIndeks = generator.Zindeks;
             state.Wierzcholki = _regionsSkrzydlo.FirstOrDefault(r => r.Id == idRegion).Wierzcholki;
-                    state.WierzcholkiWartosciNominalne = WierzcholkiWartosciNominalne;
+            state.WierzcholkiWartosciNominalne = WierzcholkiWartosciNominalne;
 
-                    generator.RuchomySlupekPoLewej = false;
-                    generator.RuchomySlupekPoPrawej = false;
+            generator.RuchomySlupekPoLewej = false;
+            generator.RuchomySlupekPoPrawej = false;
 
-                Console.WriteLine($"❌ Rozpoczynam przekazywania AddElements ID: {idRegion}");
-                    // 5. Dodaj elementy
-            generator.AddElements(new List<ShapeRegion> { _regionsSkrzydlo.FirstOrDefault(r => r.Id == idRegion) }, idRegion, _generatorStates, _regionsDualRama, true);
+            Console.WriteLine($"❌ Rozpoczynam przekazywania AddElements ID: {idRegion}");
 
-
+            generator.AddElements(
+                new List<ShapeRegion> { _regionsSkrzydlo.FirstOrDefault(r => r.Id == idRegion) },
+                idRegion,
+                _generatorStates,
+                _regionsDualRama,
+                true
+            );
 
             Console.WriteLine($"📐📐📐 Słupek stały 📐📐📐");
         }
+
 
         if (SelectedModelType.Trim() == "Skrzydło" || SelectedModelType.Trim() == "Skrzydło z słupkiem ruchomym")
         {

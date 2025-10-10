@@ -11,6 +11,8 @@ namespace GEORGE.Client.Pages.Okna
         public List<KonfSystem> KonfiguracjeSystemu { get; set; } = new();
 
         public KonfModele? EdytowanyModel;
+
+
         public int Zindeks { get; set; }
         public string IdRegionuPonizej { get; set; }
 
@@ -508,8 +510,10 @@ namespace GEORGE.Client.Pages.Okna
                 {
                     Console.WriteLine($"🔷 T5-T5 Horizontal case for element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical}");
 
-                    var topY = Math.Min(inner[i].Y, inner[next].Y);
-                    var bottomY = Math.Max(inner[i].Y, inner[next].Y);
+                  //  konfSystem.PoziomGora
+
+                    var topY = Math.Min(inner[i].Y, inner[next].Y) + 82;
+                    var bottomY = Math.Max(inner[i].Y, inner[next].Y) - 82;
 
                     // Start liczymy względem punktu przecięcia z inner[i] (czyli skrócony)
                     var outerTop = GetHorizontalIntersection(_innerStart, _innerEnd, (float)topY);
@@ -753,7 +757,6 @@ namespace GEORGE.Client.Pages.Okna
                 _ => 0f
             };
         }
-
 
         private List<XPoint> CalculateOffsetPolygon(
         List<XPoint> points,
