@@ -2271,7 +2271,7 @@
                 gen.Wysokosc = (float)bb.Height;
 
                 gen.ElementyRamyRysowane?.Clear();
-                gen.AddElements(new List<ShapeRegion> { skrzydlo }, skrzydlo.Id, _generatorStates, _regionsSkrzydlo, false);
+                gen.AddElements(new List<ShapeRegion> { skrzydlo }, skrzydlo.Id, _generatorStates, _regionsSkrzydlo, null , false);
 
                 // aktualizuj _ksztaltyNaRegion
                 _ksztaltyNaRegion[skrzydlo.Id] = new List<KsztaltElementu>(gen.ElementyRamyRysowane ?? Enumerable.Empty<KsztaltElementu>());
@@ -2298,7 +2298,7 @@
             genRama.Szerokosc = (float)bbRama.Width;
             genRama.Wysokosc = (float)bbRama.Height;
             genRama.ElementyRamyRysowane?.Clear();
-            genRama.AddElements(new List<ShapeRegion> { ramaAfter }, ramaAfter.Id, _generatorStates, _regionsSkrzydlo, false);
+            genRama.AddElements(new List<ShapeRegion> { ramaAfter }, ramaAfter.Id, _generatorStates, _regionsSkrzydlo, null, false);
             _ksztaltyNaRegion[ramaAfter.Id] = new List<KsztaltElementu>(genRama.ElementyRamyRysowane ?? Enumerable.Empty<KsztaltElementu>());
         }
 
@@ -2612,19 +2612,30 @@
 
         int ileRegionDRZawieraSlupekRuchomy = generator.MVCKonfModelu.KonfModele.Where(x => x.Typ == "Skrzydło z słupkiem ruchomym").Count();
 
-        Console.WriteLine($"🟩 Ile regionów skrzydła zawiera słupek ruchomy: {ileRegionWSkrzydleZawieraSlupekRuchomy} - Ile regionów DR zawiera słupek ruchomy: {ileRegionDRZawieraSlupekRuchomy} - SelectedModelType: {SelectedModelType} -> ileJestDodanychSlRuchWRegionach: {ileJestDodanychSlRuchWRegionach} Wybrany typ {WybranyModel.Typ}");
-
-        if (ileRegionWSkrzydleZawieraSlupekRuchomy == 0 && ileRegionDRZawieraSlupekRuchomy == 0 && SelectedModelType != "Rama" && SelectedModelType != "Słupek stały")
+        if (WybranyModel == null)
         {
             await _message.Warning(
-                "Dodajesz konstrukcję z słupkiem ruchomym, Najpierw dodaj podział z osią słupka ruchomego!",
+                "Błąd wyboru modelu!!!!",
+                2.0
+            );
+            return false;
+        }
+
+        Console.WriteLine($"🟩 Ile regionów skrzydła zawiera słupek ruchomy: {ileRegionWSkrzydleZawieraSlupekRuchomy} - Ile regionów DR zawiera słupek ruchomy: {ileRegionDRZawieraSlupekRuchomy} - SelectedModelType: {SelectedModelType} -> ileJestDodanychSlRuchWRegionach: {ileJestDodanychSlRuchWRegionach} Wybrany typ {WybranyModel.Typ}");
+
+        if (ileRegionWSkrzydleZawieraSlupekRuchomy == 0 && ileRegionDRZawieraSlupekRuchomy == 0 && SelectedModelType != "Rama" && SelectedModelType != "Słupek stały" && SelectedModelType != "Skrzydło")
+        {
+            Console.WriteLine($"🟩 Dodajesz konstrukcję z słupkiem ruchomym, Najpierw dodaj podział z osią słupka ruchomego! SelectedModelType: {SelectedModelType}");
+
+            await _message.Warning(
+                "1# Dodajesz konstrukcję z słupkiem ruchomym, Najpierw dodaj podział z osią słupka ruchomego!",
                 2.0
             );
             return false;
 
         }
 
-        if (ileJestDodanychSlRuchWRegionach > ileRegionDRZawieraSlupekRuchomy && SelectedModelType != "Rama" && WybranyModel.Typ == "Skrzydło z słupkiem ruchomym" && SelectedModelType != "Słupek stały")
+        if (ileJestDodanychSlRuchWRegionach > ileRegionDRZawieraSlupekRuchomy && SelectedModelType != "Rama" && WybranyModel.Typ == "Skrzydło z słupkiem ruchomym" && SelectedModelType != "Słupek stały" && SelectedModelType != "Skrzydło")
         {
             await _message.Warning(
                 "W regionie skrzydła jest już dodany słupek ruchomy. Nie można dodać więcej słupków ruchomych do tej konstrukcji.",
@@ -2633,10 +2644,10 @@
             return false;
         }
 
-        if (ileRegionWSkrzydleZawieraSlupekRuchomy == ileJestDodanychSlRuchWRegionach && SelectedModelType != "Rama" && WybranyModel.Typ != "Skrzydło z słupkiem ruchomym" && SelectedModelType != "Słupek stały")
+        if (ileRegionWSkrzydleZawieraSlupekRuchomy == ileJestDodanychSlRuchWRegionach && SelectedModelType != "Rama" && WybranyModel.Typ != "Skrzydło z słupkiem ruchomym" && SelectedModelType != "Słupek stały" && SelectedModelType != "Skrzydło")
         {
             await _message.Warning(
-                "Dodajesz konstrukcję z słupkiem ruchomym, Najpierw dodaj podział z osią słupka ruchomego!",
+                "2# Dodajesz konstrukcję z słupkiem ruchomym, Najpierw dodaj podział z osią słupka ruchomego!",
                 2.0
             );
             return false;
@@ -2658,6 +2669,7 @@
         string linieDzielace = "";
         List<XPoint> WierzcholkiWartosciNominalne = new();
         WierzcholkiWartosciNominalne.AddRange(Wierzcholki);
+
         Console.WriteLine($"📐📐📐 SelectedModelType  = {SelectedModelType} Ilość wierzchołków: {Wierzcholki.Count()} 📐📐📐");
 
         if (SelectedModelType.Trim() == "Rama")
@@ -2696,7 +2708,7 @@
                 generator.RuchomySlupekPoLewej = false;
                 generator.RuchomySlupekPoPrawej = false;
 
-                generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama, false);
+                generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama, null, false);//Rama nie ma sąsiada dla tego null
 
             }
         }
@@ -2716,7 +2728,12 @@
             WybranyModel = WybranyModel,
             WybranyKsztalt = WybranyModel.Typ == null  ? "BRAK-DANYCH" : WybranyModel.Typ.Contains("Słupek") ? "Linia" : WybranyKsztalt,
             IdRegionWarstwaNizej = generator.IdRegionuPonizej,
-            Wierzcholki = generator.ElementyRamyRysowane.SelectMany(k => k.Wierzcholki ?? new List<XPoint>()).Distinct().ToList(),
+            Wierzcholki = generator.ElementyRamyRysowane
+            .Where(k => k.Wierzcholki != null)
+            //.Where(k => k.RowIdElementu != Guid.Empty && k.Wierzcholki != null)
+            .SelectMany(k => k.Wierzcholki)
+            .Distinct()
+            .ToList(),
             WierzcholkiWartosciNominalne = WierzcholkiWartosciNominalne,
             LinieDzielace = linieDzielace,
             SlupekRuchomyPoLewejStronie = stronaLewa,
@@ -2726,11 +2743,13 @@
 
         var linie = ExtractLinesFromSquare(WierzcholkiWartosciNominalne);
 
+        int katSzukaj = 0;
+
         foreach (var linia in linie)
         {
             if (linia.Count != 2) continue;
 
-            var katSzukaj = ObliczKatLinii(linia);
+            katSzukaj = ObliczKatLinii(linia);
 
             var sasiedzi = ZnajdzSasiada(
                 linia,
@@ -2867,6 +2886,8 @@
                 return false;
             }
 
+             Console.WriteLine($"✅ Region {idRegion} slupkiStale.FirstOrDefault().Wierzcholki.Count:{slupkiStale.FirstOrDefault().Wierzcholki.Count()}");
+
             generator.Zindeks = 0;
 
             state.ListaKwadratow.Add(new DaneKwadratu
@@ -2875,7 +2896,7 @@
                 RowIdElementu = Guid.Empty,
                 RowIdSasiada = Guid.Empty,
                 RowIdRegionuSasiada = "",
-                KatLinii = 0,
+                KatLinii = katSzukaj,
                 OffsetBottom = 0,
                 OffsetTop = 0,
                 OffsetLeft = 0,
@@ -2904,12 +2925,12 @@
                 idRegion,
                 _generatorStates,
                 _regionsDualRama,
+                state.ListaKwadratow,
                 true
             );
 
             Console.WriteLine($"📐📐📐 Słupek stały 📐📐📐");
         }
-
 
         if (SelectedModelType.Trim() == "Skrzydło" || SelectedModelType.Trim() == "Skrzydło z słupkiem ruchomym")
         {
@@ -2966,7 +2987,7 @@
                     generator.RuchomySlupekPoPrawej = stronaPrawa;
 
                     // 5. Dodaj elementy
-                    generator.AddElements(new List<ShapeRegion> { regionDoDodania }, idRegion, _generatorStates, _regionsSkrzydlo, false);
+                    generator.AddElements(new List<ShapeRegion> { regionDoDodania }, idRegion, _generatorStates, _regionsSkrzydlo, state.ListaKwadratow, false);
                 }
                 else
                 {
@@ -3240,147 +3261,147 @@
         return (int)Math.Round(angleDegrees);
     }
 
-public static Guid ZnajdzKonfiguracjeDlaLinii(
-    List<XPoint> linia,
-    GeneratorState stan,
-    bool slRuchStroLewa,
-    bool slRuchStroPrawa,
-    string obecnyRegionId)
-{
-    if (linia == null || linia.Count != 2)
-        return Guid.Empty;
-
-    var p1 = linia[0];
-    var p2 = linia[1];
-
-    bool jestPionowa = Math.Abs(p1.X - p2.X) < 0.01;
-    bool jestPozioma = Math.Abs(p1.Y - p2.Y) < 0.01;
-
-    double minX = stan.WierzcholkiWartosciNominalne.Min(v => v.X);
-    double maxX = stan.WierzcholkiWartosciNominalne.Max(v => v.X);
-    double minY = stan.WierzcholkiWartosciNominalne.Min(v => v.Y);
-    double maxY = stan.WierzcholkiWartosciNominalne.Max(v => v.Y);
-    double tolerancja = 1.0; // np. 1 mm
-
-
-    if (stan?.MVCKonfModelu?.KonfSystem == null)
-        return Guid.Empty;
-
-    string slLewa = slRuchStroLewa ? "Słupek ruchomy" : "";
-    string slPrawa = slRuchStroPrawa ? "Słupek ruchomy" : "";
-
-    Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii -> " +
-                      $"jestPionowa: {jestPionowa}, jestPozioma: {jestPozioma}, " +
-                      $"slLewa: {slLewa}, slPrawa: {slPrawa}");
-
-    Guid znaleziony = Guid.Empty;
-
-    // 1️⃣ Najpierw próba z uwzględnieniem słupka
-    foreach (var konf in stan.MVCKonfModelu.KonfSystem)
+    public static Guid ZnajdzKonfiguracjeDlaLinii(
+        List<XPoint> linia,
+        GeneratorState stan,
+        bool slRuchStroLewa,
+        bool slRuchStroPrawa,
+        string obecnyRegionId)
     {
-        if (jestPionowa)
-        {
-            if (Math.Abs(p1.X - minX) < tolerancja && konf.WystepujeLewa &&
-                !string.IsNullOrEmpty(slLewa) && konf.Typ.Contains(slLewa))
-            {
-                Console.WriteLine($"✅ [Słupkowy] Lewa -> {konf.RowId} Typ:{konf.Typ}");
-                return konf.RowId;
-            }
+        if (linia == null || linia.Count != 2)
+            return Guid.Empty;
 
-            if (Math.Abs(p1.X - maxX) < tolerancja && konf.WystepujePrawa &&
-                !string.IsNullOrEmpty(slPrawa) && konf.Typ.Contains(slPrawa))
+        var p1 = linia[0];
+        var p2 = linia[1];
+
+        bool jestPionowa = Math.Abs(p1.X - p2.X) < 0.01;
+        bool jestPozioma = Math.Abs(p1.Y - p2.Y) < 0.01;
+
+        double minX = stan.WierzcholkiWartosciNominalne.Min(v => v.X);
+        double maxX = stan.WierzcholkiWartosciNominalne.Max(v => v.X);
+        double minY = stan.WierzcholkiWartosciNominalne.Min(v => v.Y);
+        double maxY = stan.WierzcholkiWartosciNominalne.Max(v => v.Y);
+        double tolerancja = 1.0; // np. 1 mm
+
+
+        if (stan?.MVCKonfModelu?.KonfSystem == null)
+            return Guid.Empty;
+
+        string slLewa = slRuchStroLewa ? "Słupek ruchomy" : "";
+        string slPrawa = slRuchStroPrawa ? "Słupek ruchomy" : "";
+
+        Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii -> " +
+                          $"jestPionowa: {jestPionowa}, jestPozioma: {jestPozioma}, " +
+                          $"slLewa: {slLewa}, slPrawa: {slPrawa}");
+
+        Guid znaleziony = Guid.Empty;
+
+        // 1️⃣ Najpierw próba z uwzględnieniem słupka
+        foreach (var konf in stan.MVCKonfModelu.KonfSystem)
+        {
+            if (jestPionowa)
             {
-                Console.WriteLine($"✅ [Słupkowy] Prawa -> {konf.RowId} Typ:{konf.Typ}");
-                return konf.RowId;
+                if (Math.Abs(p1.X - minX) < tolerancja && konf.WystepujeLewa &&
+                    !string.IsNullOrEmpty(slLewa) && konf.Typ.Contains(slLewa))
+                {
+                    Console.WriteLine($"✅ [Słupkowy] Lewa -> {konf.RowId} Typ:{konf.Typ}");
+                    return konf.RowId;
+                }
+
+                if (Math.Abs(p1.X - maxX) < tolerancja && konf.WystepujePrawa &&
+                    !string.IsNullOrEmpty(slPrawa) && konf.Typ.Contains(slPrawa))
+                {
+                    Console.WriteLine($"✅ [Słupkowy] Prawa -> {konf.RowId} Typ:{konf.Typ}");
+                    return konf.RowId;
+                }
+            }
+            else if (jestPozioma)
+            {
+                if (p1.Y < 5 && konf.WystepujeGora)
+                {
+                    Console.WriteLine($"✅ [Słupkowy] Góra -> {konf.RowId} Typ:{konf.Typ}");
+                    return konf.RowId;
+                }
+
+                if (p1.Y > 75 && konf.WystepujeDol)
+                {
+                    Console.WriteLine($"✅ [Słupkowy] Dół -> {konf.RowId} Typ:{konf.Typ}");
+                    return konf.RowId;
+                }
             }
         }
-        else if (jestPozioma)
-        {
-            if (p1.Y < 5 && konf.WystepujeGora)
-            {
-                Console.WriteLine($"✅ [Słupkowy] Góra -> {konf.RowId} Typ:{konf.Typ}");
-                return konf.RowId;
-            }
 
-            if (p1.Y > 75 && konf.WystepujeDol)
+        // 2️⃣ Jeśli nie znaleziono — próba bez słupka
+        foreach (var konf in stan.MVCKonfModelu.KonfSystem)
+        {
+            if (jestPionowa)
             {
-                Console.WriteLine($"✅ [Słupkowy] Dół -> {konf.RowId} Typ:{konf.Typ}");
-                return konf.RowId;
+                if (p1.X < 5 && konf.WystepujeLewa &&
+                    (string.IsNullOrEmpty(slLewa) || !konf.Typ.Contains("Słupek ruchomy")))
+                {
+                    Console.WriteLine($"✅ [Bez słupka] Lewa -> {konf.RowId} Typ:{konf.Typ}");
+                    return konf.RowId;
+                }
+
+                if (p1.X > 85 && konf.WystepujePrawa &&
+                    (string.IsNullOrEmpty(slPrawa) || !konf.Typ.Contains("Słupek ruchomy")))
+                {
+                    Console.WriteLine($"✅ [Bez słupka] Prawa -> {konf.RowId} Typ:{konf.Typ}");
+                    return konf.RowId;
+                }
+            }
+            else if (jestPozioma)
+            {
+                if (p1.Y < 5 && konf.WystepujeGora)
+                {
+                    Console.WriteLine($"✅ [Bez słupka] Góra -> {konf.RowId} Typ:{konf.Typ}");
+                    return konf.RowId;
+                }
+
+                if (p1.Y > 75 && konf.WystepujeDol)
+                {
+                    Console.WriteLine($"✅ [Bez słupka] Dół -> {konf.RowId} Typ:{konf.Typ}");
+                    return konf.RowId;
+                }
             }
         }
+
+        // 3️⃣ Jeśli dalej nic — bierzemy pierwszą pasującą stronę
+        foreach (var konf in stan.MVCKonfModelu.KonfSystem)
+        {
+            if (jestPionowa)
+            {
+                if (p1.X < 5 && konf.WystepujeLewa)
+                {
+                    Console.WriteLine($"✅ [Fallback] Lewa -> {konf.RowId} Typ:{konf.Typ}");
+                    return konf.RowId;
+                }
+
+                if (p1.X > 85 && konf.WystepujePrawa)
+                {
+                    Console.WriteLine($"✅ [Fallback] Prawa -> {konf.RowId} Typ:{konf.Typ}");
+                    return konf.RowId;
+                }
+            }
+            else if (jestPozioma)
+            {
+                if (p1.Y < 5 && konf.WystepujeGora)
+                {
+                    Console.WriteLine($"✅ [Fallback] Góra -> {konf.RowId} Typ:{konf.Typ}");
+                    return konf.RowId;
+                }
+
+                if (p1.Y > 75 && konf.WystepujeDol)
+                {
+                    Console.WriteLine($"✅ [Fallback] Dół -> {konf.RowId} Typ:{konf.Typ}");
+                    return konf.RowId;
+                }
+            }
+        }
+
+        Console.WriteLine("❌ ZnajdzKonfiguracjeDlaLinii -> Nie znaleziono konfiguracji.");
+        return znaleziony;
     }
-
-    // 2️⃣ Jeśli nie znaleziono — próba bez słupka
-    foreach (var konf in stan.MVCKonfModelu.KonfSystem)
-    {
-        if (jestPionowa)
-        {
-            if (p1.X < 5 && konf.WystepujeLewa &&
-                (string.IsNullOrEmpty(slLewa) || !konf.Typ.Contains("Słupek ruchomy")))
-            {
-                Console.WriteLine($"✅ [Bez słupka] Lewa -> {konf.RowId} Typ:{konf.Typ}");
-                return konf.RowId;
-            }
-
-            if (p1.X > 85 && konf.WystepujePrawa &&
-                (string.IsNullOrEmpty(slPrawa) || !konf.Typ.Contains("Słupek ruchomy")))
-            {
-                Console.WriteLine($"✅ [Bez słupka] Prawa -> {konf.RowId} Typ:{konf.Typ}");
-                return konf.RowId;
-            }
-        }
-        else if (jestPozioma)
-        {
-            if (p1.Y < 5 && konf.WystepujeGora)
-            {
-                Console.WriteLine($"✅ [Bez słupka] Góra -> {konf.RowId} Typ:{konf.Typ}");
-                return konf.RowId;
-            }
-
-            if (p1.Y > 75 && konf.WystepujeDol)
-            {
-                Console.WriteLine($"✅ [Bez słupka] Dół -> {konf.RowId} Typ:{konf.Typ}");
-                return konf.RowId;
-            }
-        }
-    }
-
-    // 3️⃣ Jeśli dalej nic — bierzemy pierwszą pasującą stronę
-    foreach (var konf in stan.MVCKonfModelu.KonfSystem)
-    {
-        if (jestPionowa)
-        {
-            if (p1.X < 5 && konf.WystepujeLewa)
-            {
-                Console.WriteLine($"✅ [Fallback] Lewa -> {konf.RowId} Typ:{konf.Typ}");
-                return konf.RowId;
-            }
-
-            if (p1.X > 85 && konf.WystepujePrawa)
-            {
-                Console.WriteLine($"✅ [Fallback] Prawa -> {konf.RowId} Typ:{konf.Typ}");
-                return konf.RowId;
-            }
-        }
-        else if (jestPozioma)
-        {
-            if (p1.Y < 5 && konf.WystepujeGora)
-            {
-                Console.WriteLine($"✅ [Fallback] Góra -> {konf.RowId} Typ:{konf.Typ}");
-                return konf.RowId;
-            }
-
-            if (p1.Y > 75 && konf.WystepujeDol)
-            {
-                Console.WriteLine($"✅ [Fallback] Dół -> {konf.RowId} Typ:{konf.Typ}");
-                return konf.RowId;
-            }
-        }
-    }
-
-    Console.WriteLine("❌ ZnajdzKonfiguracjeDlaLinii -> Nie znaleziono konfiguracji.");
-    return znaleziony;
-}
 
 
     public List<SasiadInfo> ZnajdzSasiada(
@@ -3412,8 +3433,8 @@ public static Guid ZnajdzKonfiguracjeDlaLinii(
         };
         }
 
-       Console.WriteLine($"🔍 ZnajdzSasiada-> Szukam sąsiada dla linii w regionie {obecnyRegionId} kat: {kat} " +
-             $" model ma słupek ruchomy: {czyModelMaSlupekRuchomy}");
+        Console.WriteLine($"🔍 ZnajdzSasiada-> Szukam sąsiada dla linii w regionie {obecnyRegionId} kat: {kat} " +
+              $" model ma słupek ruchomy: {czyModelMaSlupekRuchomy}");
 
         // Console.WriteLine(
         //     $"🔍 ZnajdzSasiada-> Szukam sąsiada dla linii w regionie {obecnyRegionId} kat: {kat} " +
@@ -3449,7 +3470,7 @@ public static Guid ZnajdzKonfiguracjeDlaLinii(
             .Where(s => s.WierzcholkiWartosciNominalne != null && s.IdRegion != obecnyRegionId)
             .OrderByDescending(s => s.Id);
 
-       // Console.WriteLine($"🔍 ZnajdzSasiada-> stanyDoPrzeszukania: {stanyDoPrzeszukania.Count()}");
+        // Console.WriteLine($"🔍 ZnajdzSasiada-> stanyDoPrzeszukania: {stanyDoPrzeszukania.Count()}");
 
         // foreach(var s in stanyDoPrzeszukania)
         // {
@@ -3879,7 +3900,7 @@ public static Guid ZnajdzKonfiguracjeDlaLinii(
 
         double minX = 0, maxX = 0, minY = 0, maxY = 0;
 
-        if (wybranyRegionDualRama != null)
+        if (wybranyRegionDualRama != null && !czyRegionZawieraSlupekStaly)
         {
             var regionPoints = wybranyRegionDualRama.Wierzcholki;
             if (regionPoints == null || regionPoints.Count < 3) return;
@@ -3893,9 +3914,9 @@ public static Guid ZnajdzKonfiguracjeDlaLinii(
             generator.Wysokosc = (float)(maxY - minY);
             generator.Zindeks = 0;
 
-            generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama, false);
+            generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama, null, false);
         }
-        else if (wybranyRegionSkrzydlo != null)
+        else if (wybranyRegionSkrzydlo != null && !czyRegionZawieraSlupekStaly)
         {
             var regionPoints = wybranyRegionSkrzydlo.Wierzcholki;
             if (regionPoints == null || regionPoints.Count < 3) return;
@@ -3909,7 +3930,7 @@ public static Guid ZnajdzKonfiguracjeDlaLinii(
             generator.Wysokosc = (float)(maxY - minY);
             generator.Zindeks = 1;
 
-            generator.AddElements(new List<ShapeRegion> { wybranyRegionSkrzydlo }, idRegion, _generatorStates, _regionsSkrzydlo, false);
+            generator.AddElements(new List<ShapeRegion> { wybranyRegionSkrzydlo }, idRegion, _generatorStates, _regionsSkrzydlo, null, false);
         }
         else
         {
@@ -3985,6 +4006,27 @@ public static Guid ZnajdzKonfiguracjeDlaLinii(
                 //Console.WriteLine($"Rysuję kształt: {ksztalt.TypKsztaltu}");
                 if (ksztalt.Wierzcholki == null || ksztalt.Wierzcholki.Count < 3)
                     continue;
+
+                Console.WriteLine($"*********** >>>>>> IndeksElementu: {ksztalt.IndeksElementu} Grupa: {ksztalt.Grupa}");
+
+                if (ksztalt.Grupa.Contains("Słupek stały"))
+                {
+                    if (ksztalt.IndeksElementu =="BRAK-DANYCH") // To do sprawdzenia!!!!
+                        continue;
+
+                    var szerSlupka = KonfiguracjeSystemu.FirstOrDefault(x => x.RowId == ksztalt.RowIdElementu);
+
+                    if(szerSlupka != null)
+                    {
+                        ksztalt.Wierzcholki = ksztalt.Wierzcholki.Select(p => new XPoint
+                        {
+                            X = p.X - (double)Math.Abs((double)szerSlupka.PionOsSymetrii),   // przesunięcie w osi X
+                            Y = p.Y     // przesunięcie w osi Y
+                        })
+                    .ToList();
+                    }
+
+                }
                 // Console.WriteLine($"*********** >>>>>> ksztalt: {ksztalt.Id}");
 
                 await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
