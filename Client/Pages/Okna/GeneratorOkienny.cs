@@ -11,6 +11,8 @@ namespace GEORGE.Client.Pages.Okna
         public List<KonfSystem> KonfiguracjeSystemu { get; set; } = new();
 
         public KonfModele? EdytowanyModel;
+
+
         public int Zindeks { get; set; }
         public string IdRegionuPonizej { get; set; }
 
@@ -42,7 +44,7 @@ namespace GEORGE.Client.Pages.Okna
             RuchomySlupekPoLewej = false;
         }
 
-        public void AddElements(List<ShapeRegion> regions, string regionId, Dictionary<string, GeneratorState> generatorStates, List<ShapeRegion> regionAdd, bool boolSlupekStaly)
+        public void AddElements(List<ShapeRegion> regions, string regionId, Dictionary<string, GeneratorState> generatorStates, List<ShapeRegion> regionAdd, List<DaneKwadratu> daneKwadratu, bool boolSlupekStaly)
         {
             if (regions == null) return;
 
@@ -183,7 +185,8 @@ namespace GEORGE.Client.Pages.Okna
                 RowIdprofileLeft, RowIdprofileRight, RowIdprofileTop, RowIdprofileBottom,
                 RowIndeksprofileLeft, RowIndeksprofileRight, RowIndeksprofileTop, RowIndeksprofileBottom,
                 RowNazwaprofileLeft, RowNazwaprofileRight, RowNazwaprofileTop, RowNazwaprofileBottom,
-                NazwaObiektu
+                NazwaObiektu,
+                daneKwadratu
             );
             //}
         }
@@ -195,7 +198,7 @@ namespace GEORGE.Client.Pages.Okna
             Guid rowIdprofileLeft, Guid rowIdprofileRight, Guid rowIdprofileTop, Guid rowIdprofileBottom,
             string rowIndeksprofileLeft, string rowIndeksprofileRight, string rowIndeksprofileTop, string rowIndeksprofileBottom,
             string rowNazwaprofileLeft, string rowNazwaprofileRight, string rowNazwaprofileTop, string rowNazwaprofileBottom,
-            string NazwaObiektu)
+            string NazwaObiektu, List<DaneKwadratu> daneKwadratu)
         {
             int vertexCount = outer.Count;
             if (vertexCount < 3)
@@ -508,8 +511,58 @@ namespace GEORGE.Client.Pages.Okna
                 {
                     Console.WriteLine($"🔷 T5-T5 Horizontal case for element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical}");
 
-                    var topY = Math.Min(inner[i].Y, inner[next].Y);
-                    var bottomY = Math.Max(inner[i].Y, inner[next].Y);
+                    double topYShift = 0;
+                    double bottomYShift = 0;
+
+                    if(isAlmostVertical)
+                    {
+                        if (daneKwadratu != null && daneKwadratu.Count > 0)
+                        {
+                            var IdWymTop = daneKwadratu.FirstOrDefault(x=>x.KatLinii >= 0 && x.KatLinii < 90).RowIdSasiada;
+                            var IdWymBattom = daneKwadratu.FirstOrDefault(x => x.KatLinii >= 180 && x.KatLinii < 270).RowIdSasiada;
+
+                            if(IdWymTop != Guid.Empty && IdWymBattom != Guid.Empty)
+                            {
+                                var topElement = model.FirstOrDefault(x => x.RowId == IdWymTop);
+                                var bottomElement = model.FirstOrDefault(x => x.RowId == IdWymBattom);
+
+                                topYShift = Math.Abs((topElement?.PoziomGora ?? 0) - (topElement?.PoziomDol ?? 0));
+                                bottomYShift = Math.Abs((bottomElement?.PoziomGora ?? 0) - (bottomElement?.PoziomDol ?? 0));
+
+                                //Console.WriteLine($"🔷 T5-T5 model.Count:{model.Count()} Vertical case for element {i + 1} with shifts topYShift: {topYShift} bottomYShift: {bottomYShift} IdWymTop:{IdWymTop} IdWymBattom:{IdWymBattom}");
+
+                                //foreach (var mk in model)
+                                //{
+                                //    Console.WriteLine($"🔷 T5-T5 model.RowId:{mk.RowId} PoziomGora: {mk.PoziomGora} PoziomDol: {mk.PoziomDol}");
+                                //}
+                            }
+
+                        }
+                    }
+                    else
+                    {
+                        var IdWymTop = daneKwadratu.FirstOrDefault(x => x.KatLinii >= 270 && x.KatLinii < 360).RowIdSasiada;
+                        var IdWymBattom = daneKwadratu.FirstOrDefault(x => x.KatLinii >= 90 && x.KatLinii < 180).RowIdSasiada;
+
+                        if (IdWymTop != Guid.Empty && IdWymBattom != Guid.Empty)
+                        {
+                            var topElement = model.FirstOrDefault(x => x.RowId == IdWymTop);
+                            var bottomElement = model.FirstOrDefault(x => x.RowId == IdWymBattom);
+
+                            topYShift = Math.Abs((topElement?.PoziomGora ?? 0) - (topElement?.PoziomDol ?? 0));
+                            bottomYShift = Math.Abs((bottomElement?.PoziomGora ?? 0) - (bottomElement?.PoziomDol ?? 0));
+
+                            //Console.WriteLine($"🔷 T5-T5 model.Count:{model.Count()} Horlizontal case for element {i + 1} with shifts topYShift: {topYShift} bottomYShift: {bottomYShift} IdWymTop:{IdWymTop} IdWymBattom:{IdWymBattom}");
+
+                            //foreach(var mk in model)
+                            //{
+                            //    Console.WriteLine($"🔷 T5-T5 model.RowId:{mk.RowId} PoziomGora: {mk.PoziomGora} PoziomDol: {mk.PoziomDol}");
+                            //}
+                        }
+                    }
+
+                    var topY = Math.Min(inner[i].Y, inner[next].Y) + topYShift;
+                    var bottomY = Math.Max(inner[i].Y, inner[next].Y) - bottomYShift;
 
                     // Start liczymy względem punktu przecięcia z inner[i] (czyli skrócony)
                     var outerTop = GetHorizontalIntersection(_innerStart, _innerEnd, (float)topY);
@@ -565,7 +618,8 @@ namespace GEORGE.Client.Pages.Okna
                 switch (i)
                 {
                     case 0:
-                        ElementyRamyRysowane.Add(new KsztaltElementu
+                        if (rowIdprofileTop != Guid.Empty)
+                            ElementyRamyRysowane.Add(new KsztaltElementu
                         {
                             TypKsztaltu = typKsztalt,
                             Wierzcholki = wierzcholki,
@@ -584,7 +638,7 @@ namespace GEORGE.Client.Pages.Okna
                         });
                         break;
                     case 1:
-
+                        if(rowIdprofileRight != Guid.Empty)
                         ElementyRamyRysowane.Add(new KsztaltElementu
                         {
                             TypKsztaltu = typKsztalt,
@@ -604,8 +658,8 @@ namespace GEORGE.Client.Pages.Okna
                         });
                         break;
                     case 2:
-
-                        ElementyRamyRysowane.Add(new KsztaltElementu
+                        if (rowIdprofileBottom != Guid.Empty)
+                            ElementyRamyRysowane.Add(new KsztaltElementu
                         {
                             TypKsztaltu = typKsztalt,
                             Wierzcholki = wierzcholki,
@@ -624,8 +678,8 @@ namespace GEORGE.Client.Pages.Okna
                         });
                         break;
                     case 3:
-
-                        ElementyRamyRysowane.Add(new KsztaltElementu
+                        if (rowIdprofileLeft != Guid.Empty)
+                            ElementyRamyRysowane.Add(new KsztaltElementu
                         {
                             TypKsztaltu = typKsztalt,
                             Wierzcholki = wierzcholki,
@@ -753,7 +807,6 @@ namespace GEORGE.Client.Pages.Okna
                 _ => 0f
             };
         }
-
 
         private List<XPoint> CalculateOffsetPolygon(
         List<XPoint> points,

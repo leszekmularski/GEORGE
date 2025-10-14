@@ -13,6 +13,7 @@ namespace GEORGE.Shared.ViewModels
         public double OffsetBottom { get; set; } = 0;
         public double OffsetLeft { get; set; } = 0;
         public double OffsetRight { get; set; } = 0;
+
     }
 
 }
