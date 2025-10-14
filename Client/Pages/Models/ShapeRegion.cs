@@ -22,7 +22,7 @@ namespace GEORGE.Client.Pages.Models
         /// <summary>
         /// Dotyczy czy podział dotyczy ramy, skrzydła czy poprzeczek w skrzydle
         /// </summary>
-        public string TypLiniiDzielacej { get; set; } = "";
+        public string TypLiniiDzielacej { get; set; } = "BRAK";
 
         public bool Rama { get; set; } = false;
 
@@ -70,6 +70,7 @@ namespace GEORGE.Client.Pages.Models
             // Słownik mapujący nazwy kształtów na oczekiwaną liczbę wierzchołków
             var oczekiwaneWierzcholki = new Dictionary<string, int>
             {
+                { "Punkt", 1 },
                 { "Linia", 2 },
                 { "Trójkąt", 3 },
                 { "Trapezoid", 4 },
@@ -88,6 +89,7 @@ namespace GEORGE.Client.Pages.Models
                 // Automatyczne rozpoznanie gdy typ domyślny nie pasuje
                 TypKsztaltu = Wierzcholki.Count switch
                 {
+                    1 => "Punkt",
                     2 => "Linia",
                     3 => "Trójkąt",
                     4 => "Trapezoid",

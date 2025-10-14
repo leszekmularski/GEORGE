@@ -23,7 +23,7 @@ namespace GEORGE.Client.Pages.Utils
                 s is XRectangleShape or XSquareShape or XTriangleShape
                 or XTrapezoidShape or XCircleShape or XHouseShape
                 or XRoundedTopRectangleShape or XRoundedRectangleShape
-                or XRoundedRectangleShapeLeft or XRoundedRectangleShapeRight)
+                or XRoundedRectangleShapeLeft or XRoundedRectangleShapeRight or XLinePoint)
                 .ToList();
 
             if (!shapesDoRegionow.Any()) return regions;
@@ -83,6 +83,13 @@ namespace GEORGE.Client.Pages.Utils
 
                 // Console.WriteLine($"🔍GenerujRegionyZPodzialu --> Generowanie regionu z kształtu: {typ}, liczba wierzchołków: {pts.Count}");
 
+                //Console.WriteLine($"🔍 GenerujRegionyZPodzialu --> Przetwarzanie kształtu typu: {typ}, liczba wierzchołków: {pts.Count}, typLinii: {typLinii}, Id: {id}, Rama: {rama}");
+
+                //foreach(var p in pts)
+                //{
+                //    Console.WriteLine($"🔍 GenerujRegionyZPodzialu -->  Wierzchołek: ({p.X}, {p.Y})");
+                //}
+
                 var initial = new ShapeRegion
                 {
                     Wierzcholki = pts,
@@ -116,7 +123,11 @@ namespace GEORGE.Client.Pages.Utils
 
                         if (r.TypKsztaltu == "trapez")
                         {
-                            if (r.Wierzcholki.Count == 3)
+                            if (r.Wierzcholki.Count == 2)
+                            {
+                                r.TypKsztaltu = "linia";
+                            }
+                            else if (r.Wierzcholki.Count == 3)
                             {
                                 r.TypKsztaltu = "trójkąt";
                             }
@@ -152,7 +163,11 @@ namespace GEORGE.Client.Pages.Utils
 
                         if (r.TypKsztaltu == "trapez")
                         {
-                            if (r.Wierzcholki.Count == 3)
+                            if (r.Wierzcholki.Count == 2)
+                            {
+                                r.TypKsztaltu = "linia";
+                            }
+                            else if (r.Wierzcholki.Count == 3)
                             {
                                 r.TypKsztaltu = "trójkąt";
                             }
@@ -227,7 +242,6 @@ namespace GEORGE.Client.Pages.Utils
 
             return noweSkrzydla;
         }
-
 
         public static List<ShapeRegion> SkalujRegiony(
         List<ShapeRegion> stareRegiony,
@@ -473,6 +487,7 @@ namespace GEORGE.Client.Pages.Utils
                                 LinieDzielace = r.LinieDzielace.Concat(new[] { line }).ToList(),
                                 IdMaster = idMaster,
                                 Rama = rama,
+                                TypLiniiDzielacej = r.TypLiniiDzielacej
                             });
                     }
                     else

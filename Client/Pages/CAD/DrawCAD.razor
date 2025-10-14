@@ -830,7 +830,7 @@
 
     private async Task DrawPreviewLine()
     {
-        await _ctx.SetStrokeStyleAsync("blue");
+        await _ctx.SetStrokeStyleAsync("green");
         await _ctx.BeginPathAsync();
         await _ctx.MoveToAsync(_startX, _startY);
         await _ctx.LineToAsync(_currentX, _currentY);

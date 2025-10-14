@@ -736,11 +736,11 @@
                                          @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
                                          draggable="true"
                                          style="cursor: grab;
-                                                                                              width: auto;
-                                                                                              height: auto;
-                                                                                              max-width: 50px;
-                                                                                              max-height: 50px;
-                                                                                              border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
+                                                                                                          width: auto;
+                                                                                                          height: auto;
+                                                                                                          max-width: 50px;
+                                                                                                          max-height: 50px;
+                                                                                                          border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
 
                                 }
                                 else
@@ -1308,6 +1308,21 @@
                 //  _regions = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)CanvasWidth, (int)CanvasHeight);
                 _regionsDualRama = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)Szerokosc, (int)Wysokosc, true);
                 _regionsSkrzydlo = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)Szerokosc, (int)Wysokosc, false); // ostatni parametr nie wiem czy potrzeby do sprawdzenia (czy rama true/falsa)
+
+                // foreach(var rdr in _regionsDualRama)
+                // {
+                //     // foreach (var rds in rdr.Wierzcholki)
+                //     //{
+                //     Console.WriteLine($"🔷 Region ramy: Id={rdr.Id}, Typ={rdr.TypKsztaltu}, Wierzchołki={string.Join(" | ", rdr.Wierzcholki.Select(p => $"({p.X},{p.Y})"))}");
+                //     //   }
+                // }
+                // foreach (var rdr in _regionsSkrzydlo)
+                // {
+                //     // foreach (var rds in rdr.Wierzcholki)
+                //     //{
+                //     Console.WriteLine($"🔷 Region skrzydło: Id={rdr.Id}, Typ={rdr.TypKsztaltu}, Wierzchołki={string.Join(" | ", rdr.Wierzcholki.Select(p => $"({p.X},{p.Y})"))}");
+                //     //   }
+                // }
 
                 await RozstawLinie(false);
 
@@ -2157,40 +2172,76 @@
 
     public async Task RozstawLinie(bool zmienWymOkna = true)
     {
-        // Krok 1: Zbieramy wszystkie linie z obu kolekcji
+        // Krok 1: zbierz wszystkie regiony typu linia
         var wszystkieLinie = _regionsDualRama
             .Concat(_regionsSkrzydlo)
-            .Where(r => r.TypKsztaltu.ToLower().Contains("linia"))
+            .Where(r => r.TypKsztaltu?.ToLower().Contains("linia") == true && r.Wierzcholki?.Count == 2)
             .ToList();
 
         int liczbaLinii = wszystkieLinie.Count;
-
         if (liczbaLinii == 0)
         {
             Console.WriteLine("❌ Brak regionów typu 'linia'");
             return;
         }
 
-        // Krok 2: Rozstawiamy je w równych odstępach
-        double odstępX = Szerokosc / (liczbaLinii + 0);
+        // Krok 2: policz odstęp X tylko dla pionowych linii
+        double odstępX = Szerokosc / (liczbaLinii + 1);
 
         for (int i = 0; i < liczbaLinii; i++)
         {
             var region = wszystkieLinie[i];
-            double nowaX = odstępX * (i + 1); // np. 1/4, 2/4, 3/4 dla 3 linii
+            var p1 = region.Wierzcholki[0];
+            var p2 = region.Wierzcholki[1];
 
-            for (int j = 0; j < region.Wierzcholki.Count; j++)
+            bool jestPionowa = Math.Abs(p1.X - p2.X) < 0.001;
+            bool jestPozioma = Math.Abs(p1.Y - p2.Y) < 0.001;
+
+            if (jestPionowa)
             {
-                var punkt = region.Wierzcholki[j];
-                punkt.X = nowaX;
-                region.Wierzcholki[j] = punkt;
+                // Przesuwamy pionowo w prawo
+                double nowaX = odstępX * (i + 1);
+                region.Wierzcholki = new List<XPoint>
+            {
+                new XPoint { X = nowaX, Y = p1.Y },
+                new XPoint { X = nowaX, Y = p2.Y }
+            };
             }
+            else if (jestPozioma)
+            {
+                // Przesuwamy poziomo w dół
+                double odstępY = Wysokosc / (liczbaLinii + 1);
+                double nowaY = odstępY * (i + 1);
+                region.Wierzcholki = new List<XPoint>
+            {
+                new XPoint { X = p1.X, Y = nowaY },
+                new XPoint { X = p2.X, Y = nowaY }
+            };
+            }
+            else
+            {
+                // Linia skośna – przesuwamy równolegle, zachowując kąt
+                double offsetX = odstępX * (i + 1);
+                double offsetY = 0; // opcjonalnie: możesz dodać lekkie przesunięcie Y
+
+                region.Wierzcholki = new List<XPoint>
+            {
+                new XPoint { X = p1.X + offsetX, Y = p1.Y + offsetY },
+                new XPoint { X = p2.X + offsetX, Y = p2.Y + offsetY }
+            };
+            }
+
+            Console.WriteLine($"📐 Linia #{i + 1}: " +
+                $"({region.Wierzcholki[0].X:F1},{region.Wierzcholki[0].Y:F1}) → " +
+                $"({region.Wierzcholki[1].X:F1},{region.Wierzcholki[1].Y:F1})");
         }
 
         await Task.CompletedTask;
-        // Odświeżenie widoku
-        //if (zmienWymOkna) await ZmienWymiaryOkna(false);
+
+        // Odświeżenie widoku, jeśli trzeba
+        // if (zmienWymOkna) await ZmienWymiaryOkna(false);
     }
+
 
     private async Task ZmienWymiaryOkna()
     {
@@ -2271,7 +2322,7 @@
                 gen.Wysokosc = (float)bb.Height;
 
                 gen.ElementyRamyRysowane?.Clear();
-                gen.AddElements(new List<ShapeRegion> { skrzydlo }, skrzydlo.Id, _generatorStates, _regionsSkrzydlo, null , false);
+                gen.AddElements(new List<ShapeRegion> { skrzydlo }, skrzydlo.Id, _generatorStates, _regionsSkrzydlo, null, false);
 
                 // aktualizuj _ksztaltyNaRegion
                 _ksztaltyNaRegion[skrzydlo.Id] = new List<KsztaltElementu>(gen.ElementyRamyRysowane ?? Enumerable.Empty<KsztaltElementu>());
@@ -2380,8 +2431,7 @@
         await Task.CompletedTask;
     }
 
-
-    private async Task<bool> DodajWybranyKwadratOkna(string idRegion, List<XPoint> Wierzcholki, double klikX, double klikY)
+    private async Task<bool> DodajWybranyKwadratOkna(string idRegion, List<XPoint> wierzcholki, double klikX, double klikY)
     {
         if (SelectedModelType == null || string.IsNullOrEmpty(SelectedModelType))
         {
@@ -2454,7 +2504,7 @@
 
         generator.EdytowanyModel = WybranyModel;
         generator.TypKsztaltu = WybranyKsztalt;
-        generator.Wierzcholki = Wierzcholki;
+        generator.Wierzcholki = wierzcholki;
 
         var regionReferencyjny = _regionsDualRama
             .Concat(_regionsSkrzydlo)
@@ -2471,31 +2521,118 @@
         foreach (var r in wszystkieRegiony)
         {
             Console.WriteLine($"🔎 Region: {r.Id}, Typ: {r.TypKsztaltu}, Wierzcholki: {r.Wierzcholki?.Count} TypLiniiDzielacej: {r.TypLiniiDzielacej}");
+
+            foreach (var linia in r.Wierzcholki)
+            {
+                Console.WriteLine($"🔎 Styczne linie w #1 - Wierzcholki: {(int)linia.X},{(int)linia.Y}");
+            }
         }
 
-
         var zawarteRegiony = wszystkieRegiony
+           .Where(r =>
+               r.Wierzcholki != null &&
+               r.Wierzcholki.Count >= 3 &&
+               r.Wierzcholki.All(p => CzyPunktWNWielokacie(p, regionReferencyjny.Wierzcholki))
+           )
+           .ToList();
+
+        // var styczneLinie = wszystkieRegiony
+        //     .Where(r =>
+        //         r.Wierzcholki != null &&
+        //         r.Wierzcholki.Count == 2 &&
+        //         !CzyPunktyRowneSlupek(r.Wierzcholki[0], r.Wierzcholki[1]) &&
+        //         (
+        //             (r.TypKsztaltu?.ToLower().Contains("linia") ?? false) ||
+        //             (r.TypLiniiDzielacej?.ToLower().Contains("słupek") ?? false)
+        //         )
+        //     )
+        //     .Distinct(new LiniaComparer())
+        //     .ToList();
+
+        foreach (var r in wszystkieRegiony)
+        {
+            Console.WriteLine($"🧩 Region: {r.Id} | Typ: {r.TypKsztaltu} | TypLiniiDzielacej: {r.TypLiniiDzielacej} | Wierzcholki: {r.Wierzcholki?.Count ?? 0}");
+
+            if (r.Wierzcholki != null)
+            {
+                foreach (var p in r.Wierzcholki)
+                    Console.WriteLine($"   Punkt: {p.X},{p.Y}");
+            }
+        }
+
+        var wszystkieRegionyLinii = wszystkieRegiony
+    .Select(r =>
+    {
+        if (r.Wierzcholki == null || r.Wierzcholki.Count < 2)
+            return null;
+
+        List<XPoint> punktyLinii;
+
+        // Jeśli to prostokąt (4 punkty) — wyciągnij linię środkową
+        if (r.Wierzcholki.Count >= 4)
+        {
+            var minX = r.Wierzcholki.Min(p => p.X);
+            var maxX = r.Wierzcholki.Max(p => p.X);
+            var minY = r.Wierzcholki.Min(p => p.Y);
+            var maxY = r.Wierzcholki.Max(p => p.Y);
+
+            // Jeśli wysokość > szerokości → linia pionowa
+            if (Math.Abs(maxY - minY) > Math.Abs(maxX - minX))
+            {
+                var midX = (minX + maxX) / 2;
+                punktyLinii = new List<XPoint>
+                {
+                    new XPoint { X = midX, Y = minY },
+                    new XPoint { X = midX, Y = maxY }
+                };
+            }
+            else // pozioma
+            {
+                var midY = (minY + maxY) / 2;
+                punktyLinii = new List<XPoint>
+                {
+                    new XPoint { X = minX, Y = midY },
+                    new XPoint { X = maxX, Y = midY }
+                };
+            }
+        }
+        else
+        {
+            punktyLinii = r.Wierzcholki;
+        }
+
+        return new ShapeRegion
+        {
+            Id = r.Id,
+            TypKsztaltu = r.TypKsztaltu,
+            TypLiniiDzielacej = r.TypLiniiDzielacej,
+            Wierzcholki = punktyLinii
+        };
+    })
+        .Where(r => r != null)
+        .ToList();
+
+        var styczneLinie = wszystkieRegionyLinii
             .Where(r =>
                 r.Wierzcholki != null &&
-                r.Wierzcholki.Count >= 3 &&
-                r.Wierzcholki.All(p => CzyPunktWNWielokacie(p, regionReferencyjny.Wierzcholki))
+                r.Wierzcholki.Count == 2 &&
+                !CzyPunktyRowneSlupek(r.Wierzcholki[0], r.Wierzcholki[1])
             )
             .ToList();
 
-        var styczneLinie = wszystkieRegiony
-        .Where(r =>
-            r.Wierzcholki != null &&
-            r.Wierzcholki.Count == 2 &&
-            r.TypKsztaltu?.ToLower().Contains("linia") == true
-        )
-        .Distinct(new LiniaComparer())
-        .ToList();
+        Console.WriteLine($"✅ Styczne linie: {styczneLinie.Count}");
+
+        foreach (var linia in styczneLinie)
+        {
+            Console.WriteLine($"✅ Styczne linie: 🔹 Linia: {linia.Id}, {linia.Wierzcholki[0].X},{linia.Wierzcholki[0].Y} → {linia.Wierzcholki[1].X},{linia.Wierzcholki[1].Y}");
+        }
 
         bool czyRegionZawieraSlupekRuchomy = false;
         bool stronaLewa = false;
         bool stronaPrawa = false;
 
-        Console.WriteLine($"⚠️⚠️⚠️ styczneLinie region rama: {styczneLinie.Count()} zawarteRegiony: {zawarteRegiony.Count()} 🟩 ⚠️");
+        if (styczneLinie.Count() > 0)
+            Console.WriteLine($"⚠️⚠️⚠️ styczneLinie region rama/skrzydło: {styczneLinie.Count()} zawarteRegiony: {zawarteRegiony.Count()} styczneLinie:{styczneLinie[styczneLinie.Count() - 1].TypKsztaltu}  ⚠️");
 
         if (styczneLinie.Any())
         {
@@ -2668,9 +2805,9 @@
         double maxY = 0;
         string linieDzielace = "";
         List<XPoint> WierzcholkiWartosciNominalne = new();
-        WierzcholkiWartosciNominalne.AddRange(Wierzcholki);
+        WierzcholkiWartosciNominalne.AddRange(wierzcholki);
 
-        Console.WriteLine($"📐📐📐 SelectedModelType  = {SelectedModelType} Ilość wierzchołków: {Wierzcholki.Count()} 📐📐📐");
+        Console.WriteLine($"📐📐📐 SelectedModelType  = {SelectedModelType} Ilość wierzchołków: {wierzcholki.Count()} 📐📐📐");
 
         if (SelectedModelType.Trim() == "Rama")
         {
@@ -2717,6 +2854,19 @@
         double przesLewo = 0, przesPrawo = 0, przesGora = 0, przesDol = 0;
 
         // Przygotowanie stanu generatora
+        // Bezpieczne przypisanie wierzchołków (jeśli mamy linię słupka)
+        var regionZLinii = generator.ElementyRamyRysowane?
+            .FirstOrDefault(r => r.Wierzcholki != null && r.Wierzcholki.Count == 2);
+
+        var wierzcholkiDoZapisania = regionZLinii != null
+            ? regionZLinii.Wierzcholki
+                .DistinctBy(p => new { p.X, p.Y })
+                .Select(p => new XPoint { X = p.X, Y = p.Y })
+                .ToList()
+            : new List<XPoint>();
+
+        Console.WriteLine($"✅ Zapisuję {wierzcholkiDoZapisania.Count} wierzchołki: {string.Join(", ", wierzcholkiDoZapisania.Select(p => $"({p.X:F2},{p.Y:F2})"))}");
+
         var state = new GeneratorState
         {
             Id = _generatorStates.Count + 1,
@@ -2726,14 +2876,14 @@
             RowIdModelu = Guid.TryParse(SelectedRowIdType, out var rowIdModelu) ? rowIdModelu : (Guid?)null,
             MVCKonfModelu = generator.MVCKonfModelu,
             WybranyModel = WybranyModel,
-            WybranyKsztalt = WybranyModel.Typ == null  ? "BRAK-DANYCH" : WybranyModel.Typ.Contains("Słupek") ? "Linia" : WybranyKsztalt,
+            WybranyKsztalt = WybranyModel.Typ == null
+                ? "BRAK-DANYCH"
+                : WybranyModel.Typ.Contains("Słupek") ? "Linia" : WybranyKsztalt,
             IdRegionWarstwaNizej = generator.IdRegionuPonizej,
-            Wierzcholki = generator.ElementyRamyRysowane
-            .Where(k => k.Wierzcholki != null)
-            //.Where(k => k.RowIdElementu != Guid.Empty && k.Wierzcholki != null)
-            .SelectMany(k => k.Wierzcholki)
-            .Distinct()
-            .ToList(),
+
+            // ✅ poprawne przekazanie współrzędnych
+            Wierzcholki = wierzcholkiDoZapisania,
+
             WierzcholkiWartosciNominalne = WierzcholkiWartosciNominalne,
             LinieDzielace = linieDzielace,
             SlupekRuchomyPoLewejStronie = stronaLewa,
@@ -2741,15 +2891,24 @@
             ListaKwadratow = new List<DaneKwadratu>()
         };
 
-        var linie = ExtractLinesFromSquare(WierzcholkiWartosciNominalne);
 
-        int katSzukaj = 0;
+        Console.WriteLine($"✅ Zapisano wierzchołki dla słupka stałego: {string.Join(", ", wierzcholkiDoZapisania.Select(p => $"({p.X:F2},{p.Y:F2})"))}");
+
+
+        var linie = ExtractLinesFromSquare(WierzcholkiWartosciNominalne);
 
         foreach (var linia in linie)
         {
             if (linia.Count != 2) continue;
 
-            katSzukaj = ObliczKatLinii(linia);
+            var katSzukaj = ObliczKatLinii(linia);
+
+            Console.WriteLine($"🔎 DodajWybranyKwadratOkna -> Sprawdzam linię o kącie {katSzukaj}° w stanie ID: {state.Id}, IdRegion: {state.IdRegion}, WybranyTyp: {state.WybranyKsztalt}");
+
+            // foreach(var p in linia)
+            // {
+            //     Console.WriteLine($"   🔹 Punkt linii: X={p.X:F2}, Y={p.Y:F2}");
+            // }
 
             var sasiedzi = ZnajdzSasiada(
                 linia,
@@ -2762,9 +2921,14 @@
                 0.02
             );
 
-            foreach(var s in sasiedzi)
+            foreach (var s in sasiedzi)
             {
-                Console.WriteLine($"   🔹 Sasiad: WybranyTyp: {s.WybranyTyp}");
+                Console.WriteLine($"   🔹 Sasiad: WybranyTyp: {s.WybranyTyp} linia.Count():{linia.Count()}");
+            }
+
+            foreach (var s in linia)
+            {
+                Console.WriteLine($"   🔹 Sasiad: WybranyTyp: X:{s.X} Y:{s.Y}");
             }
 
             // przykład pobrania najlepszego sąsiada
@@ -2819,6 +2983,26 @@
                                Math.Abs(maxY1 - stanMaxY);
                     })
                     .FirstOrDefault();
+
+                // // 🔹 1.1 Szukamy "Słupka stałego"
+                // najlepszySasiad = sasiedzi
+                //     .Where(s => s.WybranyTyp == "Słupek stały")
+                //     .OrderBy(s =>
+                //     {
+                //         var stan = _generatorStates.Values.FirstOrDefault(gs => gs.Id == s.Id);
+                //         if (stan?.WierzcholkiWartosciNominalne == null) return double.MaxValue;
+
+                //         double stanMinX = stan.WierzcholkiWartosciNominalne.Min(p => p.X);
+                //         double stanMaxX = stan.WierzcholkiWartosciNominalne.Max(p => p.X);
+                //         double stanMinY = stan.WierzcholkiWartosciNominalne.Min(p => p.Y);
+                //         double stanMaxY = stan.WierzcholkiWartosciNominalne.Max(p => p.Y);
+
+                //         return Math.Abs(minX1 - stanMinX) +
+                //                Math.Abs(maxX1 - stanMaxX) +
+                //                Math.Abs(minY1 - stanMinY) +
+                //                Math.Abs(maxY1 - stanMaxY);
+                //     })
+                //     .FirstOrDefault();
 
                 // 🔹 2. Jeśli nie znaleziono → szukamy innych
                 if (najlepszySasiad == null)
@@ -2876,23 +3060,75 @@
 
         if (SelectedModelType.ToLower().Trim() == "słupek stały")
         {
-            var slupkiStale = styczneLinie
-                .Where(x => x.TypLiniiDzielacej == "Słupek stały")
-                .ToList();
-
-            if (!slupkiStale.Any())
+            if (!styczneLinie.Any())
             {
-                Console.WriteLine($"✅ Region {idRegion} nie zawiera słupek stały.");
+                Console.WriteLine($"✅ Region {idRegion} nie zawiera słupka stałego.");
                 return false;
             }
 
-             Console.WriteLine($"✅ Region {idRegion} slupkiStale.FirstOrDefault().Wierzcholki.Count:{slupkiStale.FirstOrDefault().Wierzcholki.Count()}");
+            Console.WriteLine($"🔹 Znaleziono {styczneLinie.Count} potencjalnych linii dla słupka stałego");
 
-            generator.Zindeks = 0;
+            foreach (var x in styczneLinie)
+            {
+                var typ = string.IsNullOrWhiteSpace(x.TypLiniiDzielacej) ? "(brak typu)" : x.TypLiniiDzielacej;
+                foreach (var p in x.Wierzcholki)
+                {
+                    Console.WriteLine($"   🔸 Punkt słupka stałego: X={p.X:F2}, Y={p.Y:F2} TypLiniiDzielacej: {typ}");
+                }
+            }
 
+            generator.Zindeks = 1;
+
+            // 🔹 Spróbuj znaleźć linię typu „Słupek stały”
+            var liniaStala = styczneLinie
+                .Where(s =>
+                    !string.IsNullOrWhiteSpace(s.TypLiniiDzielacej) &&
+                    s.TypLiniiDzielacej.ToLower().Contains("słupek") &&
+                    s.Wierzcholki != null &&
+                    s.Wierzcholki.Count == 2)
+                .FirstOrDefault(s =>
+                    Math.Abs(s.Wierzcholki[0].X - s.Wierzcholki[1].X) > 0.01 ||
+                    Math.Abs(s.Wierzcholki[0].Y - s.Wierzcholki[1].Y) > 0.01);
+
+            // 🔹 Jeśli nie znaleziono, spróbuj automatycznie dobrać pionową linię
+            if (liniaStala == null)
+            {
+                Console.WriteLine("⚠️ Nie znaleziono linii z TypLiniiDzielacej='Słupek stały'. Szukam pionowej linii jako zamiennika...");
+                liniaStala = styczneLinie
+                    .Where(s => s.Wierzcholki != null && s.Wierzcholki.Count == 2)
+                    .FirstOrDefault(s =>
+                        Math.Abs(s.Wierzcholki[0].X - s.Wierzcholki[1].X) < 0.01 &&  // pionowa
+                        Math.Abs(s.Wierzcholki[0].Y - s.Wierzcholki[1].Y) > 0.01);  // ale nie zerowa wysokość
+            }
+
+            if (liniaStala == null)
+            {
+                Console.WriteLine("❌ Nadal nie znaleziono poprawnej linii słupka (brak dwóch różnych punktów lub pionowej linii).");
+                return false;
+            }
+
+            // 🔹 Określ orientację
+            bool pionowy = Math.Abs(liniaStala.Wierzcholki[0].X - liniaStala.Wierzcholki[1].X) < 0.01;
+            bool poziomy = Math.Abs(liniaStala.Wierzcholki[0].Y - liniaStala.Wierzcholki[1].Y) < 0.01;
+
+            var orientacja = pionowy ? "Pionowa" : poziomy ? "Pozioma" : "Skośna";
+            Console.WriteLine($"📏 Rozpoznano linię: {orientacja}");
+
+            // 🔹 Skopiuj punkty
+            var pts = liniaStala.Wierzcholki
+                .DistinctBy(p => new { p.X, p.Y })
+                .Take(2)
+                .Select(p => new XPoint { X = p.X, Y = p.Y })
+                .ToList();
+
+            // 🔹 Oblicz kąt
+            var katSzukaj = ObliczKatLinii(pts);
+            Console.WriteLine($"📐 Kąt słupka stałego: {katSzukaj:F2}°");
+
+            // 🔹 Zapisz dane do stanu
             state.ListaKwadratow.Add(new DaneKwadratu
             {
-                Wierzcholki = slupkiStale.FirstOrDefault().Wierzcholki,
+                Wierzcholki = pts,
                 RowIdElementu = Guid.Empty,
                 RowIdSasiada = Guid.Empty,
                 RowIdRegionuSasiada = "",
@@ -2904,21 +3140,13 @@
                 Strona = "Środek"
             });
 
-            // kopiowanie punktów do regionu
-            _regionsSkrzydlo.FirstOrDefault(r => r.Id == idRegion).Wierzcholki =
-                WierzcholkiWartosciNominalne
-                    .Select(p => new XPoint { X = p.X, Y = p.Y })
-                    .ToList();
-
-            // zapis stanu
+            // 🔹 Aktualizacja stanu
             state.ZIndeks = generator.Zindeks;
-            state.Wierzcholki = _regionsSkrzydlo.FirstOrDefault(r => r.Id == idRegion).Wierzcholki;
             state.WierzcholkiWartosciNominalne = WierzcholkiWartosciNominalne;
-
             generator.RuchomySlupekPoLewej = false;
             generator.RuchomySlupekPoPrawej = false;
 
-            Console.WriteLine($"❌ Rozpoczynam przekazywania AddElements ID: {idRegion}");
+            Console.WriteLine($"✅ Rozpoczynam przekazywanie AddElements ID: {idRegion}");
 
             generator.AddElements(
                 new List<ShapeRegion> { _regionsSkrzydlo.FirstOrDefault(r => r.Id == idRegion) },
@@ -2929,8 +3157,9 @@
                 true
             );
 
-            Console.WriteLine($"📐📐📐 Słupek stały 📐📐📐");
+            Console.WriteLine($"📐📐📐 Słupek stały zakończony pomyślnie 📐📐📐");
         }
+
 
         if (SelectedModelType.Trim() == "Skrzydło" || SelectedModelType.Trim() == "Skrzydło z słupkiem ruchomym")
         {
@@ -3026,6 +3255,11 @@
         return true;
     }
 
+    private static bool CzyPunktyRowneSlupek(XPoint p1, XPoint p2, double epsilon = 0.001)
+    {
+        return Math.Abs(p1.X - p2.X) < epsilon && Math.Abs(p1.Y - p2.Y) < epsilon;
+    }
+
     private async Task<ShapeRegion> WyliczObszarSkrzydla(GeneratorState state,
       double przesLewo, double przesPrawo, double przesGora, double przesDol,
       bool stronaLewa, bool stronaPrawa, Generator generator,
@@ -3083,7 +3317,7 @@
 
                 if (konf != null)
                 {
-                    double fallback = - ((konf.PoziomDol ?? 0) - (konf.PoziomOsSymetrii ?? 0));
+                    double fallback = -((konf.PoziomDol ?? 0) - (konf.PoziomOsSymetrii ?? 0));
 
                     Console.WriteLine($"📦 WyliczObszarSkrzydla-> bok.RowIdElementu: {bok.RowIdElementu} konf.PoziomDol: {(konf.PoziomDol ?? 0)} - konf.PoziomOsSymetrii: {(konf.PoziomOsSymetrii ?? 0)} / przesLewo: {przesLewo} przesPrawo: {przesPrawo}");
 
@@ -3121,7 +3355,7 @@
         Console.WriteLine($"📦📦📦 WyliczObszarSkrzydla-> Po przesunięciu minX: {minXSPRAWDZENIE}, przesLewo: {przesLewo}, przesPrawo: {przesPrawo}, przesGora: {przesGora}, przesDol: {przesDol}");
 
 
-        if(state != null && state.ListaKwadratow.Count() > 0)
+        if (state != null && state.ListaKwadratow.Count() > 0)
         {
             state.ListaKwadratow[state.ListaKwadratow.Count() - 1].OffsetLeft = przesLewo;
             state.ListaKwadratow[state.ListaKwadratow.Count() - 1].OffsetRight = przesPrawo;
@@ -3973,6 +4207,7 @@
         _ksztaltyNaRegion[idRegion] = new List<KsztaltElementu>(generator.ElementyRamyRysowane);
         ksztalty = _ksztaltyNaRegion.Values.SelectMany(k => k).ToList();
 
+
         // Console.WriteLine($"✅ Wygenerowano elementy dla regionu {idRegion} po skalowaniu.");
         await Task.CompletedTask;
     }
@@ -4011,12 +4246,12 @@
 
                 if (ksztalt.Grupa.Contains("Słupek stały"))
                 {
-                    if (ksztalt.IndeksElementu =="BRAK-DANYCH") // To do sprawdzenia!!!!
+                    if (ksztalt.IndeksElementu == "BRAK-DANYCH") // To do sprawdzenia!!!!
                         continue;
 
                     var szerSlupka = KonfiguracjeSystemu.FirstOrDefault(x => x.RowId == ksztalt.RowIdElementu);
 
-                    if(szerSlupka != null)
+                    if (szerSlupka != null)
                     {
                         ksztalt.Wierzcholki = ksztalt.Wierzcholki.Select(p => new XPoint
                         {
