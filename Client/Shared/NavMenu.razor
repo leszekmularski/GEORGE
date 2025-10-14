@@ -94,11 +94,6 @@
                                 <span class="oi oi-fork" aria-hidden="true"></span>
                             </NavLink>
                         </MenuItem>
-                        <MenuItem Key="3">
-                            <NavLink class="nav-link" href="ListaPracownikow">
-                                <span class="oi oi-person" aria-hidden="true"></span>
-                            </NavLink>
-                        </MenuItem>
                         @if (!string.IsNullOrEmpty(user))
                         {
                             <MenuItem Key="100">
@@ -112,6 +107,12 @@
                                 </NavLink>
                             </MenuItem>
                         }
+                        <MenuItem Key="3">
+                            <NavLink class="nav-link" href="ListaPracownikow">
+                                <span class="oi oi-person" aria-hidden="true"></span>
+                            </NavLink>
+                        </MenuItem>
+
                     </SubMenu>
                 </Menu>
             </div>

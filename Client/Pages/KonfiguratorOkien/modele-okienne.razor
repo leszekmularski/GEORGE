@@ -2853,20 +2853,21 @@
         // Oblicz przesunięcia tylko dla skrzydeł
         double przesLewo = 0, przesPrawo = 0, przesGora = 0, przesDol = 0;
 
+        // // Przygotowanie stanu generatora
+        // // Bezpieczne przypisanie wierzchołków (jeśli mamy linię słupka)
+        // var regionZLinii = generator.ElementyRamyRysowane?
+        //     .FirstOrDefault(r => r.Wierzcholki != null && r.Wierzcholki.Count == 2);
+
+        // var wierzcholkiDoZapisania = regionZLinii != null
+        //     ? regionZLinii.Wierzcholki
+        //         .DistinctBy(p => new { p.X, p.Y })
+        //         .Select(p => new XPoint { X = p.X, Y = p.Y })
+        //         .ToList()
+        //     : new List<XPoint>();
+
+        // Console.WriteLine($"✅ Zapisuję {wierzcholkiDoZapisania.Count} wierzchołki: {string.Join(", ", wierzcholkiDoZapisania.Select(p => $"({p.X:F2},{p.Y:F2})"))}");
+
         // Przygotowanie stanu generatora
-        // Bezpieczne przypisanie wierzchołków (jeśli mamy linię słupka)
-        var regionZLinii = generator.ElementyRamyRysowane?
-            .FirstOrDefault(r => r.Wierzcholki != null && r.Wierzcholki.Count == 2);
-
-        var wierzcholkiDoZapisania = regionZLinii != null
-            ? regionZLinii.Wierzcholki
-                .DistinctBy(p => new { p.X, p.Y })
-                .Select(p => new XPoint { X = p.X, Y = p.Y })
-                .ToList()
-            : new List<XPoint>();
-
-        Console.WriteLine($"✅ Zapisuję {wierzcholkiDoZapisania.Count} wierzchołki: {string.Join(", ", wierzcholkiDoZapisania.Select(p => $"({p.X:F2},{p.Y:F2})"))}");
-
         var state = new GeneratorState
         {
             Id = _generatorStates.Count + 1,
@@ -2876,14 +2877,9 @@
             RowIdModelu = Guid.TryParse(SelectedRowIdType, out var rowIdModelu) ? rowIdModelu : (Guid?)null,
             MVCKonfModelu = generator.MVCKonfModelu,
             WybranyModel = WybranyModel,
-            WybranyKsztalt = WybranyModel.Typ == null
-                ? "BRAK-DANYCH"
-                : WybranyModel.Typ.Contains("Słupek") ? "Linia" : WybranyKsztalt,
+            WybranyKsztalt = WybranyKsztalt,
             IdRegionWarstwaNizej = generator.IdRegionuPonizej,
-
-            // ✅ poprawne przekazanie współrzędnych
-            Wierzcholki = wierzcholkiDoZapisania,
-
+            Wierzcholki = generator.ElementyRamyRysowane.SelectMany(k => k.Wierzcholki ?? new List<XPoint>()).Distinct().ToList(),
             WierzcholkiWartosciNominalne = WierzcholkiWartosciNominalne,
             LinieDzielace = linieDzielace,
             SlupekRuchomyPoLewejStronie = stronaLewa,
@@ -2891,8 +2887,7 @@
             ListaKwadratow = new List<DaneKwadratu>()
         };
 
-
-        Console.WriteLine($"✅ Zapisano wierzchołki dla słupka stałego: {string.Join(", ", wierzcholkiDoZapisania.Select(p => $"({p.X:F2},{p.Y:F2})"))}");
+        Console.WriteLine($"✅ Zapisano wierzchołki dla słupka stałego: {string.Join(", ", state.Wierzcholki.Select(p => $"({p.X:F2},{p.Y:F2})"))}");
 
 
         var linie = ExtractLinesFromSquare(WierzcholkiWartosciNominalne);
@@ -3068,14 +3063,14 @@
 
             Console.WriteLine($"🔹 Znaleziono {styczneLinie.Count} potencjalnych linii dla słupka stałego");
 
-            foreach (var x in styczneLinie)
-            {
-                var typ = string.IsNullOrWhiteSpace(x.TypLiniiDzielacej) ? "(brak typu)" : x.TypLiniiDzielacej;
-                foreach (var p in x.Wierzcholki)
-                {
-                    Console.WriteLine($"   🔸 Punkt słupka stałego: X={p.X:F2}, Y={p.Y:F2} TypLiniiDzielacej: {typ}");
-                }
-            }
+            // foreach (var x in styczneLinie)
+            // {
+            //     var typ = string.IsNullOrWhiteSpace(x.TypLiniiDzielacej) ? "(brak typu)" : x.TypLiniiDzielacej;
+            //     foreach (var p in x.Wierzcholki)
+            //     {
+            //         Console.WriteLine($"   🔸 Punkt słupka stałego: X={p.X:F2}, Y={p.Y:F2} TypLiniiDzielacej: {typ}");
+            //     }
+            // }
 
             generator.Zindeks = 1;
 
