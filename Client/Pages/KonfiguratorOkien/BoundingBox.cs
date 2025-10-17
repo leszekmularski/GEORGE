@@ -11,6 +11,12 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         public double Height { get; set; }
         public string NazwaObiektu { get; set; }
 
+        // ✅ Dodane właściwości obliczane – brakowały ich w Twojej klasie
+        public double Left => X;
+        public double Top => Y;
+        public double Right => X + Width;
+        public double Bottom => Y + Height;
+
         public BoundingBox(double x, double y, double width, double height, string nazwaObiektu)
         {
             X = x;
@@ -23,12 +29,12 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         public List<(XPoint Start, XPoint End)> GetEdges()
         {
             return new List<(XPoint, XPoint)>
-    {
-        (new XPoint(X, Y), new XPoint(X + Width, Y)),         // Górna krawędź
-        (new XPoint(X + Width, Y), new XPoint(X + Width, Y + Height)), // Prawa krawędź
-        (new XPoint(X + Width, Y + Height), new XPoint(X, Y + Height)), // Dolna krawędź
-        (new XPoint(X, Y + Height), new XPoint(X, Y))          // Lewa krawędź
-    };
+            {
+                (new XPoint(X, Y), new XPoint(X + Width, Y)),               // Górna krawędź
+                (new XPoint(X + Width, Y), new XPoint(X + Width, Y + Height)), // Prawa
+                (new XPoint(X + Width, Y + Height), new XPoint(X, Y + Height)), // Dolna
+                (new XPoint(X, Y + Height), new XPoint(X, Y))                // Lewa
+            };
         }
 
         public bool Contains(double pointX, double pointY) =>
@@ -50,8 +56,5 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 $"{b1.NazwaObiektu}+{b2.NazwaObiektu}"
             );
         }
-
-
     }
-
 }

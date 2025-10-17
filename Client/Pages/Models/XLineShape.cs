@@ -228,6 +228,29 @@ namespace GEORGE.Client.Pages.Models
             }
         }
 
+        public override bool Equals(object? obj)
+        {
+            if (obj is not XLineShape other) return false;
+
+            return Math.Abs(X1 - other.X1) < 0.001 &&
+                   Math.Abs(Y1 - other.Y1) < 0.001 &&
+                   Math.Abs(X2 - other.X2) < 0.001 &&
+                   Math.Abs(Y2 - other.Y2) < 0.001 &&
+                   NazwaObj == other.NazwaObj;
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(
+                Math.Round(X1, 3),
+                Math.Round(Y1, 3),
+                Math.Round(X2, 3),
+                Math.Round(Y2, 3),
+                NazwaObj
+            );
+        }
+
+
     }
 
 }

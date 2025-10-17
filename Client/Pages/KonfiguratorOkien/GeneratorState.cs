@@ -23,6 +23,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         public bool SlupekRuchomyPoLewejStronie { get; set; } = false;
         public bool SlupekRuchomyPoPrawejStronie { get; set; } = false;
         public List<DaneKwadratu>? ListaKwadratow { get; set; }
+        public bool ElementLiniowy { get; set; } = false;
     }
 
 }

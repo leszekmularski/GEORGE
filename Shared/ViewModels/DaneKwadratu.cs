@@ -13,7 +13,15 @@ namespace GEORGE.Shared.ViewModels
         public double OffsetBottom { get; set; } = 0;
         public double OffsetLeft { get; set; } = 0;
         public double OffsetRight { get; set; } = 0;
-
+        public bool BoolElementLinia { get; set; } = false; //czy element jest linią
+        public bool CzyLiniaPionowa()
+        {
+            return KatLinii == 90 || KatLinii == 270;
+        }
+        public bool CzyLiniaPozioma()
+        {
+            return KatLinii == 0 || KatLinii == 180;
+        }
     }
 
 }

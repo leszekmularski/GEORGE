@@ -34,5 +34,6 @@ namespace GEORGE.Client.Pages.Okna
         public Guid RowIdModelu { get; set; }
         public bool RuchomySlupekPoPrawej { get; set; } = false;
         public bool RuchomySlupekPoLewej { get; set; } = false;
+        public bool ElementLiniowy { get; set; } = false;
     }
 }

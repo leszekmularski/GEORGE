@@ -114,6 +114,11 @@ namespace GEORGE.Client.Pages.Utils
 
                     foreach (var r in podzielone)
                     {
+                        r.Wierzcholki = r.Wierzcholki
+                            .GroupBy(p => new { X = Math.Round(p.X, 2), Y = Math.Round(p.Y, 2) })
+                            .Select(g => g.First())
+                            .ToList();
+
                         r.RozpoznajTyp(r.TypKsztaltu);
 
                         if (r.TypKsztaltu == "xhouseshape" && r.Wierzcholki.Count == 4)
@@ -154,6 +159,11 @@ namespace GEORGE.Client.Pages.Utils
 
                     foreach (var r in podzielone)
                     {
+                         r.Wierzcholki = r.Wierzcholki
+                        .GroupBy(p => new { X = Math.Round(p.X, 2), Y = Math.Round(p.Y, 2) })
+                        .Select(g => g.First())
+                        .ToList();
+
                         r.RozpoznajTyp(r.TypKsztaltu);
 
                         if (r.TypKsztaltu == "xhouseshape" && r.Wierzcholki.Count == 4)
