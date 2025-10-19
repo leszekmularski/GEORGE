@@ -710,7 +710,7 @@ namespace GEORGE.Client.Pages.Okna
                                 DlogoscElementu = bazowaDlugosc + (profileLeft + profileRight),
                                 DlogoscNaGotowoElementu = bazowaDlugosc
                             });
-                        Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count}");
+                        Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - 0");
                         if (ElementLiniowy) return;
                         break;
                     case 1:
@@ -733,7 +733,7 @@ namespace GEORGE.Client.Pages.Okna
                                 DlogoscElementu = bazowaDlugosc + (profileLeft + profileRight),
                                 DlogoscNaGotowoElementu = bazowaDlugosc
                             });
-                        Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count}");
+                        Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - 1 rowIdprofileRight:{rowIdprofileRight}");
                         if (ElementLiniowy) return;
                         break;
                     case 2:
@@ -756,7 +756,7 @@ namespace GEORGE.Client.Pages.Okna
                                 DlogoscElementu = bazowaDlugosc + (profileLeft + profileRight),
                                 DlogoscNaGotowoElementu = bazowaDlugosc
                             });
-                        Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count}");
+                        Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - 2");
                         if (ElementLiniowy) return;
                         break;
                     case 3:
@@ -779,7 +779,7 @@ namespace GEORGE.Client.Pages.Okna
                                 DlogoscElementu = bazowaDlugosc + (profileLeft + profileRight),
                                 DlogoscNaGotowoElementu = bazowaDlugosc
                             });
-                        Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count}");
+                        Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - 3");
                         if (ElementLiniowy) return;
                         break;
                 }

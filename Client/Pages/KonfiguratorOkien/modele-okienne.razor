@@ -730,17 +730,17 @@
                                 @if (model.Rysunek != null && model.Ikona32x32.Length > 0)
                                 {
                                     <img id="@($"wing-{model.Typ}")"
-                                        src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
-                                        @onclick='@(() => WybierzModel(model))'
-                                        @ondragstart='@(e => JS.InvokeVoidAsync("SetCurrentModel", model.Typ, model.RowId))'
-                                        @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
-                                        draggable="true"
-                                        style="cursor: grab;
-                                        width: auto;
-                                        height: auto;
-                                        max-width: 50px;
-                                        max-height: 50px;
-                                        border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
+                                         src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
+                                         @onclick='@(() => WybierzModel(model))'
+                                         @ondragstart='@(e => JS.InvokeVoidAsync("SetCurrentModel", model.Typ, model.RowId))'
+                                         @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
+                                         draggable="true"
+                                         style="cursor: grab;
+                                                                width: auto;
+                                                                height: auto;
+                                                                max-width: 50px;
+                                                                max-height: 50px;
+                                                                border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
 
                                 }
                                 else
@@ -2596,12 +2596,12 @@
             }
 
             return new ShapeRegion
-        {
-            Id = r.Id,
-            TypKsztaltu = r.TypKsztaltu,
-            TypLiniiDzielacej = r.TypLiniiDzielacej,
-            Wierzcholki = punktyLinii
-        };
+            {
+                Id = r.Id,
+                TypKsztaltu = r.TypKsztaltu,
+                TypLiniiDzielacej = r.TypLiniiDzielacej,
+                Wierzcholki = punktyLinii
+            };
         })
         .Where(r => r != null)
         .ToList();
@@ -2695,7 +2695,7 @@
                 Console.WriteLine($"⚠️ Region {idRegion} NIE zawiera słupka ruchomego.");
             }
 
-            var slupkiStale= styczneLinie
+            var slupkiStale = styczneLinie
                 .Where(x => x.TypLiniiDzielacej == "Słupek stały")
                 .ToList();
 
@@ -3036,115 +3036,115 @@
                 OffsetLeft = 0,
                 OffsetRight = 0,
                 Strona = StronaSzukaj(
-                    katSzukaj,
-                    linia,
-                    WierzcholkiWartosciNominalne.Min(p => p.Y),
-                    WierzcholkiWartosciNominalne.Max(p => p.Y),
-                    WierzcholkiWartosciNominalne.Min(p => p.X),
-                    WierzcholkiWartosciNominalne.Max(p => p.X)
-                )
+                        katSzukaj,
+                        linia,
+                        WierzcholkiWartosciNominalne.Min(p => p.Y),
+                        WierzcholkiWartosciNominalne.Max(p => p.Y),
+                        WierzcholkiWartosciNominalne.Min(p => p.X),
+                        WierzcholkiWartosciNominalne.Max(p => p.X)
+                    )
             });
+        }
 
-            if (SelectedModelType.ToLower().Trim() == "słupek stały")
+        if (SelectedModelType.ToLower().Trim() == "słupek stały")
+        {
+
+            if (!styczneLinie.Any())
             {
-                if (!styczneLinie.Any())
-                {
-                    Console.WriteLine($"✅ Region {idRegion} nie zawiera słupka stałego.");
-                    return false;
-                }
-
-                Console.WriteLine($"🔹 Znaleziono {styczneLinie.Count} potencjalnych linii dla słupka stałego");
-
-                generator.Zindeks = 1;
-
-                // 🔹 Spróbuj znaleźć linię typu „Słupek stały”
-                var liniaStala = styczneLinie
-                    .Where(s =>
-                        !string.IsNullOrWhiteSpace(s.TypLiniiDzielacej) &&
-                        s.TypLiniiDzielacej.ToLower().Contains("słupek") &&
-                        s.Wierzcholki != null &&
-                        s.Wierzcholki.Count == 2)
-                    .FirstOrDefault(s =>
-                        Math.Abs(s.Wierzcholki[0].X - s.Wierzcholki[1].X) > 0.01 ||
-                        Math.Abs(s.Wierzcholki[0].Y - s.Wierzcholki[1].Y) > 0.01);
-
-                // 🔹 Jeśli nie znaleziono, spróbuj automatycznie dobrać pionową linię
-                if (liniaStala == null)
-                {
-                    Console.WriteLine("⚠️ Nie znaleziono linii z TypLiniiDzielacej='Słupek stały'. Szukam pionowej linii jako zamiennika...");
-                    liniaStala = styczneLinie
-                        .Where(s => s.Wierzcholki != null && s.Wierzcholki.Count == 2)
-                        .FirstOrDefault(s =>
-                            Math.Abs(s.Wierzcholki[0].X - s.Wierzcholki[1].X) < 0.01 &&  // pionowa
-                            Math.Abs(s.Wierzcholki[0].Y - s.Wierzcholki[1].Y) > 0.01);  // ale nie zerowa wysokość
-                }
-
-                if (liniaStala == null)
-                {
-                    Console.WriteLine("❌ Nadal nie znaleziono poprawnej linii słupka (brak dwóch różnych punktów lub pionowej linii).");
-                    return false;
-                }
-
-                if (!linia.SequenceEqual(liniaStala.Wierzcholki))
-                {
-                    Console.WriteLine(
-                        $"🔹 Pomijam linię, ponieważ nie jest to linia słupka stałego. " +
-                        $"{System.Text.Json.JsonSerializer.Serialize(linia, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })}"
-                    );
-                   // break;
-                }
-
-                // 🔹 Określ orientację
-                bool pionowy = Math.Abs(linia[0].X - linia[1].X) < 0.01;
-                bool poziomy = Math.Abs(linia[0].Y - linia[1].Y) < 0.01;
-
-                var orientacja = pionowy ? "Pionowa" : poziomy ? "Pozioma" : "Skośna";
-                Console.WriteLine($"📏 Rozpoznano linię: {orientacja}");
-
-                // 🔹 Oblicz kąt
-                katSzukaj = ObliczKatLinii(linia);
-                Console.WriteLine($"📐 Kąt słupka stałego: {katSzukaj:F2}°");
-
-                rowId = ZnajdzKonfiguracjeDlaLinii(linia, state, stronaLewa, stronaPrawa, idRegion, "Słupek stały");
-
-                // 🔹 Zapisz dane do stanu
-                state.ListaKwadratow.Add(new DaneKwadratu
-                {
-                    Wierzcholki = linia,
-                    RowIdElementu = rowId,
-                    RowIdSasiada = Guid.Empty,
-                    RowIdRegionuSasiada = "",
-                    KatLinii = katSzukaj,
-                    OffsetBottom = 0,
-                    OffsetTop = 0,
-                    OffsetLeft = 0,
-                    OffsetRight = 0,
-                    Strona = "Środek",
-                    BoolElementLinia = true
-                });
-
-                // 🔹 Aktualizacja stanu
-                state.ZIndeks = generator.Zindeks;
-                state.WierzcholkiWartosciNominalne = WierzcholkiWartosciNominalne;
-                generator.RuchomySlupekPoLewej = false;
-                generator.RuchomySlupekPoPrawej = false;
-                generator.ElementLiniowy = true;
-
-                Console.WriteLine($"✅ Rozpoczynam przekazywanie AddElements ID: {idRegion}");
-
-                generator.AddElements(
-                    new List<ShapeRegion> { _regionsSkrzydlo.LastOrDefault(r => r.Id == idRegion) },
-                    idRegion,
-                    _generatorStates,
-                    _regionsDualRama,
-                    state.ListaKwadratow
-                );
-
-                Console.WriteLine($"📐📐📐 Słupek stały zakończony pomyślnie 📐📐📐");
-
+                Console.WriteLine($"✅ Region {idRegion} nie zawiera słupka stałego.");
+                return false;
             }
 
+            Console.WriteLine($"🔹 Znaleziono {styczneLinie.Count} potencjalnych linii dla słupka stałego");
+
+            generator.Zindeks = 1;
+
+            // 🔹 Spróbuj znaleźć linię typu „Słupek stały”
+            var liniaStala = styczneLinie
+                .Where(s =>
+                    !string.IsNullOrWhiteSpace(s.TypLiniiDzielacej) &&
+                    s.TypLiniiDzielacej.ToLower().Contains("słupek") &&
+                    s.Wierzcholki != null &&
+                    s.Wierzcholki.Count == 2)
+                .FirstOrDefault(s =>
+                    Math.Abs(s.Wierzcholki[0].X - s.Wierzcholki[1].X) > 0.01 ||
+                    Math.Abs(s.Wierzcholki[0].Y - s.Wierzcholki[1].Y) > 0.01);
+
+            foreach (var linia in styczneLinie)
+            {
+                Console.WriteLine($"🔹 Sprawdzana linia: {linia.Id}, TypLiniiDzielacej: '{linia.TypLiniiDzielacej}', Wierzcholki: {linia.Wierzcholki[0].X},{linia.Wierzcholki[0].Y} → {linia.Wierzcholki[1].X},{linia.Wierzcholki[1].Y}");
+            }
+
+            // 🔹 Jeśli nie znaleziono, spróbuj automatycznie dobrać pionową linię
+            if (liniaStala == null)
+            {
+
+                Console.WriteLine("⚠️ Nie znaleziono linii z TypLiniiDzielacej='Słupek stały'. Szukam pionowej linii jako zamiennika...");
+                liniaStala = styczneLinie
+                    .Where(s => s.Wierzcholki != null && s.Wierzcholki.Count == 2)
+                    .FirstOrDefault(s =>
+                        Math.Abs(s.Wierzcholki[0].X - s.Wierzcholki[1].X) < 0.01 &&  // pionowa
+                        Math.Abs(s.Wierzcholki[0].Y - s.Wierzcholki[1].Y) > 0.01);  // ale nie zerowa wysokość
+            }
+
+            if (liniaStala == null)
+            {
+                Console.WriteLine("❌ Nadal nie znaleziono poprawnej linii słupka (brak dwóch różnych punktów lub pionowej linii).");
+                return false;
+            }
+
+            styczneLinie = styczneLinie.Where(e => e.TypLiniiDzielacej == "Słupek stały").ToList();//??????????????????????
+
+            // 🔹 Określ orientację
+            bool pionowy = Math.Abs(liniaStala.Wierzcholki[0].X - liniaStala.Wierzcholki[1].X) < 0.01;
+            bool poziomy = Math.Abs(liniaStala.Wierzcholki[0].Y - liniaStala.Wierzcholki[1].Y) < 0.01;
+
+            var orientacja = pionowy ? "Pionowa" : poziomy ? "Pozioma" : "Skośna";
+            Console.WriteLine($"📏 Rozpoznano linię: {orientacja}");
+
+            // 🔹 Oblicz kąt
+            var katSzukaj = ObliczKatLinii(liniaStala.Wierzcholki);
+            Console.WriteLine($"📐 Kąt słupka stałego: {katSzukaj:F2}°");
+
+            generator.RowIdModelu = generator.MVCKonfModelu.KonfSystem.FirstOrDefault().RowId;// Pobieram RowIdModelu z konfiguracji systemu
+
+            // 🔹 Zapisz dane do stanu
+            state.ListaKwadratow.Add(new DaneKwadratu
+            {
+                Wierzcholki = liniaStala.Wierzcholki,
+                RowIdElementu = generator.RowIdModelu,
+                RowIdSasiada = Guid.Empty,
+                RowIdRegionuSasiada = "",
+                KatLinii = katSzukaj,
+                OffsetBottom = 0,
+                OffsetTop = 0,
+                OffsetLeft = 0,
+                OffsetRight = 0,
+                Strona = "Środek",
+                BoolElementLinia = true
+            });
+
+            // 🔹 Aktualizacja stanu
+            state.ZIndeks = generator.Zindeks;
+            state.WierzcholkiWartosciNominalne = WierzcholkiWartosciNominalne;
+            generator.RuchomySlupekPoLewej = false;
+            generator.RuchomySlupekPoPrawej = false;
+            generator.ElementLiniowy = true;
+
+            Console.WriteLine($"✅ Rozpoczynam przekazywanie AddElements ID: {idRegion}");
+
+            generator.AddElements(
+                new List<ShapeRegion> { _regionsSkrzydlo.LastOrDefault(r => r.Id == idRegion) },
+                idRegion,
+                _generatorStates,
+                _regionsDualRama,
+                state.ListaKwadratow
+            );
+
+            Console.WriteLine($"📐📐📐 Słupek stały zakończony pomyślnie 📐📐📐");
+
         }
+
 
         if (SelectedModelType.Trim() == "Skrzydło" || SelectedModelType.Trim() == "Skrzydło z słupkiem ruchomym")
         {
@@ -3511,7 +3511,7 @@
         string slLewa = slRuchStroLewa ? typSlupka : "";
         string slPrawa = slRuchStroPrawa ? typSlupka : "";
 
-        Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii -> typ:{typSlupka}" +
+        Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii -> typ: {typSlupka}" +
                           $" jestPionowa: {jestPionowa}, jestPozioma: {jestPozioma}, " +
                           $"slLewa: {slLewa}, slPrawa: {slPrawa}");
 
@@ -3520,6 +3520,8 @@
         // 1️⃣ Najpierw próba z uwzględnieniem słupka
         foreach (var konf in stan.MVCKonfModelu.KonfSystem)
         {
+            Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii -> typ: {konf.Typ} - wartość w pętli");
+
             if (jestPionowa)
             {
                 if (Math.Abs(p1.X - minX) < tolerancja && konf.WystepujeLewa &&
