@@ -2696,7 +2696,7 @@
             }
 
             var slupkiStale = styczneLinie
-                .Where(x => x.TypLiniiDzielacej == "Słupek stały")
+                .Where(x => x.TypLiniiDzielacej == "Słupek stały" && x.Rama)
                 .ToList();
 
             if (slupkiStale.Any())
@@ -2720,12 +2720,6 @@
                     Console.WriteLine("➡️ Słupek stały po prawej stronie.");
                 }
 
-                if (slupkiRuchome.Count() >= 2)
-                {
-                    stronaLewa = true;
-                    stronaPrawa = true;
-                    Console.WriteLine("➡️ Słupek stały po prawej ilewej stronie.");
-                }
             }
             else
             {
@@ -2806,7 +2800,7 @@
         if (ileJestDodanychSlRuchWRegionach > ileRegionDRZawieraSlupekRuchomy && SelectedModelType != "Rama" && WybranyModel.Typ == "Skrzydło z słupkiem ruchomym" && SelectedModelType != "Słupek stały" && SelectedModelType != "Skrzydło")
         {
             await _message.Warning(
-                "W regionie skrzydła jest już dodany słupek ruchomy. Nie można dodać więcej słupków ruchomych do tej konstrukcji.",
+                "W regionie skrzydła jest już dodany słupek ruchomy. Nie można dodać więcej słupków ruchomychF do tej konstrukcji.",
                 2.0
             );
             return false;
@@ -3066,6 +3060,15 @@
                     s.TypLiniiDzielacej.ToLower().Contains("słupek") &&
                     s.Wierzcholki != null &&
                     s.Wierzcholki.Count == 2)
+                .GroupBy(s => new
+                {
+                    X1 = Math.Round(s.Wierzcholki[0].X, 2),
+                    Y1 = Math.Round(s.Wierzcholki[0].Y, 2),
+                    X2 = Math.Round(s.Wierzcholki[1].X, 2),
+                    Y2 = Math.Round(s.Wierzcholki[1].Y, 2),
+                    Typ = s.TypLiniiDzielacej
+                })
+                .Select(g => g.First()) // usuwa duplikaty
                 .FirstOrDefault(s =>
                     Math.Abs(s.Wierzcholki[0].X - s.Wierzcholki[1].X) > 0.01 ||
                     Math.Abs(s.Wierzcholki[0].Y - s.Wierzcholki[1].Y) > 0.01);
@@ -3076,15 +3079,26 @@
             }
 
             // 🔹 Jeśli nie znaleziono, spróbuj automatycznie dobrać pionową linię
-            if (liniaStala == null)
-            {
+           // if (liniaStala == null)
+            //{
 
-                Console.WriteLine("⚠️ Nie znaleziono linii z TypLiniiDzielacej='Słupek stały'. Szukam pionowej linii jako zamiennika...");
+            Console.WriteLine($"⚠️ Nie znaleziono linii z TypLiniiDzielacej='Słupek stały'. Szukam pionowej linii jako zamiennika... klikX: {klikX}");
+
                 liniaStala = styczneLinie
-                    .Where(s => s.Wierzcholki != null && s.Wierzcholki.Count == 2)
-                    .FirstOrDefault(s =>
-                        Math.Abs(s.Wierzcholki[0].X - s.Wierzcholki[1].X) < 0.01 &&  // pionowa
-                        Math.Abs(s.Wierzcholki[0].Y - s.Wierzcholki[1].Y) > 0.01);  // ale nie zerowa wysokość
+                .Where(s =>
+                    s.Wierzcholki != null &&
+                    s.Wierzcholki.Count == 2 &&
+                    s.TypLiniiDzielacej == "Słupek stały" &&
+                    Math.Abs(s.Wierzcholki[0].X - s.Wierzcholki[1].X) < 0.01 &&  // linia pionowa
+                    Math.Abs(s.Wierzcholki[0].Y - s.Wierzcholki[1].Y) > 0.01)    // nie pozioma
+                .OrderBy(s => Math.Abs(s.Wierzcholki[0].X - klikX))              // najbliżej kliknięcia
+                .FirstOrDefault();
+
+            //}
+
+            foreach (var linia in liniaStala.Wierzcholki)
+            {
+                Console.WriteLine($"🔹 Sprawdzana linia:  Wierzcholki: {linia.X},{linia.Y}");
             }
 
             if (liniaStala == null)
@@ -3093,14 +3107,12 @@
                 return false;
             }
 
-            styczneLinie = styczneLinie.Where(e => e.TypLiniiDzielacej == "Słupek stały").ToList();//??????????????????????
-
             // 🔹 Określ orientację
             bool pionowy = Math.Abs(liniaStala.Wierzcholki[0].X - liniaStala.Wierzcholki[1].X) < 0.01;
             bool poziomy = Math.Abs(liniaStala.Wierzcholki[0].Y - liniaStala.Wierzcholki[1].Y) < 0.01;
 
             var orientacja = pionowy ? "Pionowa" : poziomy ? "Pozioma" : "Skośna";
-            Console.WriteLine($"📏 Rozpoznano linię: {orientacja}");
+            Console.WriteLine($"📏 Rozpoznano linię: {orientacja} Ilość linii stycznych: {styczneLinie.Count()}");
 
             // 🔹 Oblicz kąt
             var katSzukaj = ObliczKatLinii(liniaStala.Wierzcholki);
@@ -3108,10 +3120,17 @@
 
             generator.RowIdModelu = generator.MVCKonfModelu.KonfSystem.FirstOrDefault().RowId;// Pobieram RowIdModelu z konfiguracji systemu
 
+            List<XPoint> liniaStalaWierzcholki = new List<XPoint>
+                {
+                    new XPoint { X = liniaStala.Wierzcholki[0].X, Y = liniaStala.Wierzcholki[0].Y },
+                    new XPoint { X = liniaStala.Wierzcholki[1].X, Y = liniaStala.Wierzcholki[1].Y }
+                };
+
+
             // 🔹 Zapisz dane do stanu
             state.ListaKwadratow.Add(new DaneKwadratu
             {
-                Wierzcholki = liniaStala.Wierzcholki,
+                Wierzcholki = liniaStalaWierzcholki,
                 RowIdElementu = generator.RowIdModelu,
                 RowIdSasiada = Guid.Empty,
                 RowIdRegionuSasiada = "",
@@ -3121,14 +3140,14 @@
                 OffsetLeft = 0,
                 OffsetRight = 0,
                 Strona = "Środek",
-                BoolElementLinia = true
+                BoolElementLinia = true,
             });
 
             // 🔹 Aktualizacja stanu
             state.ZIndeks = generator.Zindeks;
             state.WierzcholkiWartosciNominalne = WierzcholkiWartosciNominalne;
-            generator.RuchomySlupekPoLewej = false;
-            generator.RuchomySlupekPoPrawej = false;
+            generator.RuchomySlupekPoLewej = stronaLewa;
+            generator.RuchomySlupekPoPrawej = stronaPrawa;
             generator.ElementLiniowy = true;
 
             Console.WriteLine($"✅ Rozpoczynam przekazywanie AddElements ID: {idRegion}");
@@ -3522,7 +3541,7 @@
         {
             Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii -> typ: {konf.Typ} - wartość w pętli");
 
-            if (jestPionowa)
+            if (jestPionowa )
             {
                 if (Math.Abs(p1.X - minX) < tolerancja && konf.WystepujeLewa &&
                     !string.IsNullOrEmpty(slLewa) && konf.Typ.Contains(slLewa))

@@ -103,6 +103,12 @@ namespace GEORGE.Client.Pages.Okna
             if (RuchomySlupekPoPrawej) slruchPoPrawej = "Słupek ruchomy";
             if (RuchomySlupekPoLewej) slruchPoLewej = "Słupek ruchomy";
 
+            if (ElementLiniowy)
+            {
+                slruchPoPrawej = "";//brak słupka dla elementu liniowego
+                slruchPoLewej = "";
+            }
+
             foreach (var konf in MVCKonfModelu.KonfSystem)
             {
                 Console.WriteLine($"🔧 KonfiguracjeSystemu: {konf.Typ} Nazwa: {konf.Nazwa} W sumie: {MVCKonfModelu.KonfSystem.Count()}");
@@ -122,6 +128,7 @@ namespace GEORGE.Client.Pages.Okna
 
             float profileBottom = (float)(MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionPrawa ?? 0 -
                                           MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionLewa ?? 0);
+
 
             Guid RowIdprofileLeft = MVCKonfModelu.KonfSystem
                 .FirstOrDefault(e => e.WystepujeLewa && e.Typ == slruchPoLewej)?.RowId ?? Guid.Empty;
@@ -202,7 +209,7 @@ namespace GEORGE.Client.Pages.Okna
             string NazwaObiektu, List<DaneKwadratu> daneKwadratu)
         {
 
-            Console.WriteLine($"❌ Generowanie elementów dla regionu {regionId} z typem kształtu: {typKsztalt} oraz ElementLiniowy: {ElementLiniowy}");
+            Console.WriteLine($"❌ Generowanie elementów dla regionu {regionId} z typem kształtu: {typKsztalt} oraz ElementLiniowy: {ElementLiniowy} profileLeft: {profileLeft}, profileRight :{profileRight}");
 
             float angleDegreesElementLionowy = 0;
 
@@ -214,8 +221,9 @@ namespace GEORGE.Client.Pages.Okna
                     Console.WriteLine("▶️ Element: brak wystarczającej liczby punktów (min. 2 wymagane).");
                     return;
                 }
+
                 var szukDaneKwadratu = daneKwadratu
-                 .Where(x => x.Wierzcholki.Count == 2)
+                 .Where(x => x.Wierzcholki.Count == 2 && x.BoolElementLinia)
                  .DistinctBy(x => (
                      Math.Round(x.Wierzcholki[0].X, 2),
                      Math.Round(x.Wierzcholki[0].Y, 2),
@@ -223,6 +231,13 @@ namespace GEORGE.Client.Pages.Okna
                      Math.Round(x.Wierzcholki[1].Y, 2)
                  ))
                  .LastOrDefault();
+
+
+                //var szukDaneKwadratu = daneKwadratu
+                // .Where(x => x.Wierzcholki.Count == 2)
+                //   .LastOrDefault();
+
+                Console.WriteLine($"▶️ Element 1 wartość X: {szukDaneKwadratu.Wierzcholki[0].X} dotyczy: ElementLiniowy: {ElementLiniowy}");
 
                 if (szukDaneKwadratu != null)
                 {
@@ -240,6 +255,15 @@ namespace GEORGE.Client.Pages.Okna
                 XPoint _innerStart = szukDaneKwadratu.Wierzcholki[0];
                 XPoint _innerEnd = szukDaneKwadratu.Wierzcholki[1];
 
+                _innerStart.X = outerStart.X + profileLeft; //Słupek prawy lewy zawsze to samo
+                _innerEnd.X = outerEnd.X + profileRight;
+
+                //XPoint outerStart = outer[0];
+                //XPoint outerEnd = outer[1];
+
+                //XPoint _innerStart = inner[0];
+                //XPoint _innerEnd = inner[1];
+
                 float dx = (float)(outerEnd.X - outerStart.X);
                 float dy = (float)(outerEnd.Y - outerStart.Y);
                 float length = MathF.Sqrt(dx * dx + dy * dy);
@@ -247,26 +271,25 @@ namespace GEORGE.Client.Pages.Okna
                 float angleRadians = MathF.Atan2(dy, dx); // kąt w radianach
                 angleDegreesElementLionowy = angleRadians * (180f / MathF.PI); // kąt w stopniach
 
-                //Wykozystanie tych zmiennych aby wyszukać po której stronie jest słupek
-                //  RuchomySlupekPoPrawej = ??;
-                if (RuchomySlupekPoLewej) angleDegreesElementLionowy += 180;
-
                 // Przekształć do zakresu 0–360°, jeśli potrzebujesz
                 if (angleDegreesElementLionowy < 0)
                     angleDegreesElementLionowy += 360f;
+
+                outer = new List<XPoint> { outerStart, outerEnd };
+                inner = new List<XPoint> { _innerStart, _innerEnd };
 
             }
 
             // 🔹 Standardowy tryb wielokąta zamkniętego
             int vertexCount = outer.Count;
 
-            if (vertexCount < 3)
+            if (vertexCount < 3 && !ElementLiniowy)
                 throw new Exception("Wielokąt musi mieć co najmniej 3 wierzchołki.");
 
             outer = RemoveDuplicateConsecutivePoints(outer);
             inner = RemoveDuplicateConsecutivePoints(inner);
 
-            Console.WriteLine($"▶️ Generuje elementy z polygon with {vertexCount} vertices and joins: {polaczenia} angleDegreesElementLionowy: {angleDegreesElementLionowy}");
+            Console.WriteLine($"▶️ Generuje elementy z polygon with vertexCount: {vertexCount} vertices and joins: {polaczenia} angleDegreesElementLionowy: {angleDegreesElementLionowy}");
 
             var parsedConnections = polaczenia.Split(';')
                 .Select(p => p.Split('-'))
@@ -294,6 +317,8 @@ namespace GEORGE.Client.Pages.Okna
 
                 var leftJoin = polaczeniaArray[i].typ;
                 var rightJoin = polaczeniaArray[next].typ;
+
+                Console.WriteLine($"▶️ Processing element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin}");
 
                 XPoint outerStart = outer[i];
                 XPoint outerEnd = outer[next];
@@ -570,7 +595,7 @@ namespace GEORGE.Client.Pages.Okna
                 {
                     Console.WriteLine($"🔷 T5-T5 Horizontal case for element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical} daneKwadratu.Count:{daneKwadratu.Count()}");
 
-                    var szukDaneKwadratu = daneKwadratu.FirstOrDefault(x => x.Wierzcholki.Count() == 2); //Ile jest elementów z dwoma wierzchołkami
+                    var szukDaneKwadratu = daneKwadratu.FirstOrDefault(x => x.Wierzcholki.Count() == 2 && x.BoolElementLinia); //Ile jest elementów z dwoma wierzchołkami
 
                     if (szukDaneKwadratu != null)
                     {
