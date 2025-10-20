@@ -1107,7 +1107,7 @@
                                 <tbody>
                                     @foreach (var model in ListaModeli)
                                     {
-                                        @if (pierwszyModel == null && !model.Typ.Contains("Słupek"))
+                                        @if (pierwszyModel == null)
                                         {
                                             <tr @onclick="() => WybierzModel(model, selDolStyczne, selGoraStyczne, selLewaStyczne, selPrawaStyczne, true)">
                                                 <td>@model.NazwaKonfiguracji</td>

@@ -3079,22 +3079,44 @@
             }
 
             // 🔹 Jeśli nie znaleziono, spróbuj automatycznie dobrać pionową linię
-           // if (liniaStala == null)
+            // if (liniaStala == null)
             //{
 
-            Console.WriteLine($"⚠️ Nie znaleziono linii z TypLiniiDzielacej='Słupek stały'. Szukam pionowej linii jako zamiennika... klikX: {klikX}");
+ 
 
-                liniaStala = styczneLinie
-                .Where(s =>
-                    s.Wierzcholki != null &&
-                    s.Wierzcholki.Count == 2 &&
-                    s.TypLiniiDzielacej == "Słupek stały" &&
-                    Math.Abs(s.Wierzcholki[0].X - s.Wierzcholki[1].X) < 0.01 &&  // linia pionowa
-                    Math.Abs(s.Wierzcholki[0].Y - s.Wierzcholki[1].Y) > 0.01)    // nie pozioma
-                .OrderBy(s => Math.Abs(s.Wierzcholki[0].X - klikX))              // najbliżej kliknięcia
-                .FirstOrDefault();
+            liniaStala = styczneLinie
+            .Where(s =>
+                s.Wierzcholki != null &&
+                s.Wierzcholki.Count == 2 &&
+                s.TypLiniiDzielacej == "Słupek stały" &&
+                Math.Abs(s.Wierzcholki[0].X - s.Wierzcholki[1].X) < 0.01 &&  // linia pionowa
+                Math.Abs(s.Wierzcholki[0].Y - s.Wierzcholki[1].Y) > 0.01)    // nie pozioma
+            .OrderBy(s => Math.Abs(s.Wierzcholki[0].X - klikX))              // najbliżej kliknięcia
+            .FirstOrDefault();
 
             //}
+
+            if (liniaStala == null)
+            {
+                Console.WriteLine($"⚠️ Nie znaleziono linii z TypLiniiDzielacej='Słupek stały'. Szukam pionowej linii jako zamiennika... klikX: {klikX}");
+
+                liniaStala = styczneLinie
+            .Where(s =>
+                s.Wierzcholki != null &&
+                s.Wierzcholki.Count == 2 &&
+                s.TypLiniiDzielacej == "Słupek stały" &&
+                Math.Abs(s.Wierzcholki[0].X - s.Wierzcholki[1].X) > 0.01 &&  // linia pozioma
+                Math.Abs(s.Wierzcholki[0].Y - s.Wierzcholki[1].Y) < 0.01)    // nie pionowa
+            .OrderBy(s => Math.Abs(s.Wierzcholki[0].Y - klikY))              // najbliżej kliknięcia
+            .FirstOrDefault();
+            }
+
+            if (liniaStala == null)
+            {
+                 Console.WriteLine($"⚠️ Nie znaleziono linii z TypLiniiDzielacej='Słupek stały'. Szukam poziomej linii jako zamiennika... klikY: {klikY}");
+                _message.Warning("Nie znaleziono linii stycznych!!!");
+                return false;
+            }
 
             foreach (var linia in liniaStala.Wierzcholki)
             {

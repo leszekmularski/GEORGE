@@ -255,8 +255,8 @@ namespace GEORGE.Client.Pages.Okna
                 XPoint _innerStart = szukDaneKwadratu.Wierzcholki[0];
                 XPoint _innerEnd = szukDaneKwadratu.Wierzcholki[1];
 
-                _innerStart.X = outerStart.X + profileLeft; //Słupek prawy lewy zawsze to samo
-                _innerEnd.X = outerEnd.X + profileRight;
+                _innerStart.X = _innerStart.X + profileLeft; //Słupek prawy lewy zawsze to samo
+                _innerEnd.X = _innerEnd.X + profileLeft;
 
                 //XPoint outerStart = outer[0];
                 //XPoint outerEnd = outer[1];
@@ -927,11 +927,13 @@ namespace GEORGE.Client.Pages.Okna
         {
             int count = points.Count;
 
+            Console.WriteLine($"🔷 Calculating offset polygon for {count} ElementLiniowy:{ElementLiniowy} points with profiles L:{profileLeft}, R:{profileRight}, T:{profileTop}, B:{profileBottom}");
+
             if (count < 2)
                 throw new ArgumentException("Figura musi mieć co najmniej 2 punkty.");
 
             // 🟢 OBSŁUGA ELEMENTÓW LINIOWYCH (np. słupków)
-            if (ElementLiniowy && count == 2)
+            if (ElementLiniowy)
             {
                 var p1 = points[0];
                 var p2 = points[1];
@@ -939,40 +941,49 @@ namespace GEORGE.Client.Pages.Okna
                 float dx = (float)(p2.X - p1.X);
                 float dy = (float)(p2.Y - p1.Y);
                 float length = MathF.Sqrt(dx * dx + dy * dy);
-                if (length < 1e-6f) return points; // zbyt mała długość
+                if (length < 1e-6f) return points;
 
-                // wektor normalny (prostopadły do linii)
-                float nx = -dy / length;
-                float ny = dx / length;
+                // jednostkowy wektor kierunku i normalna
+                float tx = dx / length;
+                float ty = dy / length;
+                float nx = -ty;
+                float ny = tx;
 
-                // określ, czy linia jest pionowa, pozioma czy skośna
-                bool isHorizontal = Math.Abs(dy) < Math.Abs(dx);
-                bool isVertical = !isHorizontal;
+                const float EPS = 1e-5f;
+                bool isHorizontal = Math.Abs(dy) < EPS;
+                bool isVertical = Math.Abs(dx) < EPS;
 
-                // wybór offsetu (dla linii pionowej lub poziomej)
-                float offset = 0;
+                float offsetX = 0f;
+                float offsetY = 0f;
+
                 if (isHorizontal)
                 {
-                    // linia pozioma – przesunięcie w górę lub w dół
-                    offset = dy >= 0 ? profileTop : profileBottom;
+                    // Linia pozioma – uwzględnij profile lewy/prawy w osi X i góra/dół w osi Y
+                    offsetX = profileLeft - profileRight;
+                    offsetY = dy >= 0 ? profileTop : -profileBottom;
                 }
                 else if (isVertical)
                 {
-                    // linia pionowa – przesunięcie w lewo lub w prawo
-                    offset = dx >= 0 ? profileRight : profileLeft;
+                    // Linia pionowa – uwzględnij profile góra/dół w osi Y i lewy/prawy w osi X
+                    offsetY = profileTop - profileBottom;
+                    offsetX = dx >= 0 ? profileRight : -profileLeft;
                 }
                 else
                 {
-                    // linia skośna – użyj średniej z lewej/prawej
-                    offset = (profileLeft + profileRight + profileTop + profileBottom) / 4f;
+                    // Skośna — kombinacja proporcjonalna
+                    offsetX = nx >= 0 ? profileRight : -profileLeft;
+                    offsetY = ny >= 0 ? profileTop : -profileBottom;
                 }
 
-                // przesuwamy linię równolegle o offset w stronę normalnej
-                var p1Offset = new XPoint(p1.X + nx * offset, p1.Y + ny * offset);
-                var p2Offset = new XPoint(p2.X + nx * offset, p2.Y + ny * offset);
+                // przesuwamy linię o składniki X i Y niezależnie
+                var p1Offset = new XPoint(p1.X + offsetX, p1.Y + offsetY);
+                var p2Offset = new XPoint(p2.X + offsetX, p2.Y + offsetY);
+
+                Console.WriteLine($"🔷 Offset liniowy p1Offset: X={p1Offset.X}, Y={p1Offset.Y} | p2Offset: X={p2Offset.X}, Y={p2Offset.Y}");
 
                 return new List<XPoint> { p1Offset, p2Offset };
             }
+
 
             // 🟢 OBSŁUGA WIELOKĄTA (oryginalna logika)
             if (count < 3)
