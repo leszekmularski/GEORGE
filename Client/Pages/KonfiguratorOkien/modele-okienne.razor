@@ -3078,12 +3078,6 @@
                 Console.WriteLine($"🔹 Sprawdzana linia: {linia.Id}, TypLiniiDzielacej: '{linia.TypLiniiDzielacej}', Wierzcholki: {linia.Wierzcholki[0].X},{linia.Wierzcholki[0].Y} → {linia.Wierzcholki[1].X},{linia.Wierzcholki[1].Y}");
             }
 
-            // 🔹 Jeśli nie znaleziono, spróbuj automatycznie dobrać pionową linię
-            // if (liniaStala == null)
-            //{
-
- 
-
             liniaStala = styczneLinie
             .Where(s =>
                 s.Wierzcholki != null &&
@@ -3113,14 +3107,14 @@
 
             if (liniaStala == null)
             {
-                 Console.WriteLine($"⚠️ Nie znaleziono linii z TypLiniiDzielacej='Słupek stały'. Szukam poziomej linii jako zamiennika... klikY: {klikY}");
+                Console.WriteLine($"⚠️ Nie znaleziono linii z TypLiniiDzielacej='Słupek stały'. Szukam poziomej linii jako zamiennika... klikY: {klikY}");
                 _message.Warning("Nie znaleziono linii stycznych!!!");
                 return false;
             }
 
             foreach (var linia in liniaStala.Wierzcholki)
             {
-                Console.WriteLine($"🔹 Sprawdzana linia:  Wierzcholki: {linia.X},{linia.Y}");
+                Console.WriteLine($"🔹🔹🔹🔹🔹🔹 Sprawdzana linia:  Wierzcholki: {linia.X},{linia.Y} 🔹🔹🔹🔹🔹🔹");
             }
 
             if (liniaStala == null)
@@ -3138,7 +3132,7 @@
 
             // 🔹 Oblicz kąt
             var katSzukaj = ObliczKatLinii(liniaStala.Wierzcholki);
-            Console.WriteLine($"📐 Kąt słupka stałego: {katSzukaj:F2}°");
+            Console.WriteLine($"📐 Kąt słupka stałego: {katSzukaj:F2}° X0:{liniaStala.Wierzcholki[0].X} Y0:{liniaStala.Wierzcholki[0].Y} X1:{liniaStala.Wierzcholki[1].X} Y1:{liniaStala.Wierzcholki[1].Y}");
 
             generator.RowIdModelu = generator.MVCKonfModelu.KonfSystem.FirstOrDefault().RowId;// Pobieram RowIdModelu z konfiguracji systemu
 
@@ -3174,8 +3168,10 @@
 
             Console.WriteLine($"✅ Rozpoczynam przekazywanie AddElements ID: {idRegion}");
 
+         //   var regionLinia = wszystkieRegiony.
+
             generator.AddElements(
-                new List<ShapeRegion> { _regionsSkrzydlo.LastOrDefault(r => r.Id == idRegion) },
+                new List<ShapeRegion> { wszystkieRegiony.LastOrDefault(r => r.Id != idRegion) },
                 idRegion,
                 _generatorStates,
                 _regionsDualRama,

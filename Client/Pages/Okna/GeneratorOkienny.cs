@@ -66,22 +66,46 @@ namespace GEORGE.Client.Pages.Okna
 
             var region = regions.FirstOrDefault(r => r.Id == regionId);
 
-            if (region == null)
+            List<XPoint> punkty = new List<XPoint>();
+
+            if (region == null && !ElementLiniowy)
             {
-                Console.WriteLine($"❌ Nie znaleziono regionu o ID: {regionId}");
+                Console.WriteLine($"❌ Nie znaleziono regionu o ID: {regionId} w AddElements - GeneratoryOkienne");
                 return;
             }
+            else if (region != null && !ElementLiniowy)
+            {
+                punkty = region.Wierzcholki;
+            }
+            else if (ElementLiniowy)
+            {
+                region = regions.LastOrDefault(r => r.Id != null);
 
-            var punkty = region.Wierzcholki;
+                Console.WriteLine($"❌ Region o ID: {regionId} region.Wierzcholki.Count():{region.Wierzcholki.Count()}");
+
+                punkty = region.Wierzcholki;
+            }
+
+            Wierzcholki = punkty;
+
+            foreach (var x in punkty)
+            {
+                Console.WriteLine($"x.X: {x.X} / x.Y: {x.Y}");
+            }
+
             if ((punkty == null || punkty.Count < 3) && !ElementLiniowy)
             {
                 Console.WriteLine($"❌ Region o ID: {regionId} ma zbyt mało punktów");
                 return;
             }
 
-            Wierzcholki = region.Wierzcholki;
+            if ((punkty == null || punkty.Count < 2))
+            {
+                Console.WriteLine($"❌ Region o ID: {regionId} ma zbyt mało punktów! punkty.Count: {punkty.Count}");
+                return;
+            }
 
-            Console.WriteLine($"🟩 Generuj okno dla regionu ID {regionId} typu: {region.TypKsztaltu} ElementLiniowy: {ElementLiniowy}");
+            Console.WriteLine($"🟩 Generuj okno dla regionu ID {regionId} typu: {region.TypKsztaltu} ElementLiniowy: {ElementLiniowy} punkty.Count: {punkty.Count()}");
 
             // 🧮 Bounding box
             float minX = (float)punkty.Min(p => p.X);
@@ -107,6 +131,12 @@ namespace GEORGE.Client.Pages.Okna
             {
                 slruchPoPrawej = "";//brak słupka dla elementu liniowego
                 slruchPoLewej = "";
+
+                Wierzcholki = region.LinieDzielace?
+                .SelectMany(l => l.Points)
+                .ToList()
+             ?? new List<XPoint>();
+
             }
 
             foreach (var konf in MVCKonfModelu.KonfSystem)
@@ -366,7 +396,7 @@ namespace GEORGE.Client.Pages.Okna
                     }
                 }
 
-                List<XPoint> wierzcholki;
+                List<XPoint>? wierzcholki;
 
                 Console.WriteLine($"▶️ DEBUG: Generating element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin}");
 
@@ -416,25 +446,6 @@ namespace GEORGE.Client.Pages.Okna
                         }
                         else if (leftJoin == "T4" && rightJoin == "T4" && vertexCount > 4)
                         {
-                            var topY = Math.Min(inner[i].Y, inner[next].Y);
-                            var bottomY = Math.Max(inner[i].Y, inner[next].Y);
-
-                            // Start liczymy względem punktu przecięcia z inner[i] (czyli skrócony)
-                            var outerTop = GetHorizontalIntersection(_innerStart, _innerEnd, (float)topY);
-                            var outerBottom = GetHorizontalIntersection(_innerStart, _innerEnd, (float)bottomY);
-
-                            // Normalne punkty wewnętrzne
-                            var innerTop = GetHorizontalIntersection(outer[i], outer[next], (float)topY);
-                            var innerBottom = GetHorizontalIntersection(outer[i], outer[next], (float)bottomY);
-
-                            wierzcholki = new List<XPoint> {
-                                outerTop, outerBottom, innerBottom, innerTop
-                            };
-                        }
-                        else if (leftJoin == "T5" && rightJoin == "T5")
-                        {
-                            Console.WriteLine($"🔷 T5-T5 Horizontal case for element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical}");
-
                             var topY = Math.Min(inner[i].Y, inner[next].Y);
                             var bottomY = Math.Max(inner[i].Y, inner[next].Y);
 
@@ -593,84 +604,98 @@ namespace GEORGE.Client.Pages.Okna
                 }
                 else if (leftJoin == "T5" && rightJoin == "T5")
                 {
-                    Console.WriteLine($"🔷 T5-T5 Horizontal case for element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical} daneKwadratu.Count:{daneKwadratu.Count()}");
-
-                    var szukDaneKwadratu = daneKwadratu.FirstOrDefault(x => x.Wierzcholki.Count() == 2 && x.BoolElementLinia); //Ile jest elementów z dwoma wierzchołkami
-
-                    if (szukDaneKwadratu != null)
-                    {
-                        Console.WriteLine($"🔷 T5-T5 model.Count:{model.Count()} szukDaneKwadratu.Wierzcholki.Count():{szukDaneKwadratu?.Wierzcholki.Count()}");
-
-                        foreach (var dk in szukDaneKwadratu.Wierzcholki)
-                        {
-                            Console.WriteLine($"🔷 T5-T5 X:{dk.X} Y:{dk.Y}");
-                        }
-                    }
+                    Console.WriteLine($"🔷 T5-T5 case for element {i + 1}. isAlmostHorizontal:{isAlmostHorizontal}, isAlmostVertical:{isAlmostVertical}, daneKwadratu.Count:{daneKwadratu.Count}");
 
                     double topYShift = 0;
                     double bottomYShift = 0;
 
-                    if (isAlmostVertical)
-                    {
-                        if (daneKwadratu != null && daneKwadratu.Count > 0)
-                        {
-                            var IdWymTop = daneKwadratu.FirstOrDefault(x => x.KatLinii >= 0 && x.KatLinii < 90).RowIdSasiada;
-                            var IdWymBattom = daneKwadratu.FirstOrDefault(x => x.KatLinii >= 180 && x.KatLinii < 270).RowIdSasiada;
+                    XPoint outerTopT5 = new XPoint { };
+                    XPoint outerBottomT5 = new XPoint { };
+                    XPoint innerTopT5 = new XPoint { };
+                    XPoint innerBottomT5 = new XPoint { };
 
-                            if (IdWymTop != Guid.Empty && IdWymBattom != Guid.Empty)
+                    double topY = 0;
+                    double bottomY = 0;
+
+                    if (daneKwadratu != null && daneKwadratu.Count > 0)
+                    {
+                        foreach (var xx in daneKwadratu)
+                        {
+                            foreach (var yy in xx.Wierzcholki)
+                            {
+                                Console.WriteLine($"🔷 T5-T5 BoolElementLinia: {xx.BoolElementLinia} KatLinii:{xx.KatLinii} X:{yy.X} Y:{yy.X}");
+                            }
+                        }
+
+                        // Ustal kierunki (poziomy vs pionowy)
+                        if (isAlmostVertical)
+                        {
+                            var IdWymTop = daneKwadratu.FirstOrDefault(x => x.KatLinii is >= 0 and < 90)?.RowIdSasiada ?? Guid.Empty;
+                            var IdWymBottom = daneKwadratu.FirstOrDefault(x => x.KatLinii is >= 180 and < 270)?.RowIdSasiada ?? Guid.Empty;
+
+                            if (IdWymTop != Guid.Empty && IdWymBottom != Guid.Empty)
                             {
                                 var topElement = model.FirstOrDefault(x => x.RowId == IdWymTop);
-                                var bottomElement = model.FirstOrDefault(x => x.RowId == IdWymBattom);
+                                var bottomElement = model.FirstOrDefault(x => x.RowId == IdWymBottom);
 
                                 topYShift = Math.Abs((topElement?.PoziomGora ?? 0) - (topElement?.PoziomDol ?? 0));
                                 bottomYShift = Math.Abs((bottomElement?.PoziomGora ?? 0) - (bottomElement?.PoziomDol ?? 0));
 
-                                Console.WriteLine($"🔷 T5-T5 model.Count:{model.Count()} Vertical case for element {i + 1} with shifts topYShift: {topYShift} bottomYShift: {bottomYShift} IdWymTop:{IdWymTop} IdWymBattom:{IdWymBattom}");
-
-                                foreach (var mk in model)
-                                {
-                                    Console.WriteLine($"🔷 T5-T5 model.RowId:{mk.RowId} PoziomGora: {mk.PoziomGora} PoziomDol: {mk.PoziomDol}");
-                                }
+                                Console.WriteLine($"🔷 Vertical shifts → topYShift:{topYShift}, bottomYShift:{bottomYShift}");
                             }
 
-                        }
-                    }
-                    else
-                    {
-                        var IdWymTop = daneKwadratu.FirstOrDefault(x => x.KatLinii >= 270 && x.KatLinii < 360).RowIdSasiada;
-                        var IdWymBattom = daneKwadratu.FirstOrDefault(x => x.KatLinii >= 90 && x.KatLinii < 180).RowIdSasiada;
+                            topY = Math.Min(inner[i].Y, inner[next].Y) + topYShift;
+                            bottomY = Math.Max(inner[i].Y, inner[next].Y) - bottomYShift;
 
-                        if (IdWymTop != Guid.Empty && IdWymBattom != Guid.Empty)
+                            // Start liczymy względem punktu przecięcia z inner[i] (czyli skrócony)
+                            outerTopT5 = GetHorizontalIntersection(_innerStart, _innerEnd, (float)topY);
+                            outerBottomT5 = GetHorizontalIntersection(_innerStart, _innerEnd, (float)bottomY);
+
+                            // Normalne punkty wewnętrzne
+                            innerTopT5 = GetHorizontalIntersection(outer[i], outer[next], (float)topY);
+                            innerBottomT5 = GetHorizontalIntersection(outer[i], outer[next], (float)bottomY);
+                        }
+                        else if (isAlmostHorizontal)
                         {
-                            var topElement = model.FirstOrDefault(x => x.RowId == IdWymTop);
-                            var bottomElement = model.FirstOrDefault(x => x.RowId == IdWymBattom);
+                            var IdWymTop = daneKwadratu.FirstOrDefault(x => x.KatLinii is >= 270 and < 360)?.RowIdSasiada ?? Guid.Empty;
+                            var IdWymBottom = daneKwadratu.FirstOrDefault(x => x.KatLinii is >= 90 and < 180)?.RowIdSasiada ?? Guid.Empty;
 
-                            topYShift = Math.Abs((topElement?.PoziomGora ?? 0) - (topElement?.PoziomDol ?? 0));
-                            bottomYShift = Math.Abs((bottomElement?.PoziomGora ?? 0) - (bottomElement?.PoziomDol ?? 0));
-
-                            Console.WriteLine($"🔷 T5-T5 model.Count:{model.Count()} Horlizontal case for element {i + 1} with shifts topYShift: {topYShift} bottomYShift: {bottomYShift} IdWymTop:{IdWymTop} IdWymBattom:{IdWymBattom}");
-
-                            foreach (var mk in model)
+                            if (IdWymTop != Guid.Empty && IdWymBottom != Guid.Empty)
                             {
-                                Console.WriteLine($"🔷 T5-T5 model.RowId:{mk.RowId} PoziomGora: {mk.PoziomGora} PoziomDol: {mk.PoziomDol}");
+                                var topElement = model.FirstOrDefault(x => x.RowId == IdWymTop);
+                                var bottomElement = model.FirstOrDefault(x => x.RowId == IdWymBottom);
+
+                                topYShift = Math.Abs((topElement?.PoziomGora ?? 0) - (topElement?.PoziomDol ?? 0));
+                                bottomYShift = Math.Abs((bottomElement?.PoziomGora ?? 0) - (bottomElement?.PoziomDol ?? 0));
+
+                                Console.WriteLine($"🔷 Horizontal shifts → topYShift:{topYShift}, bottomYShift:{bottomYShift}");
                             }
+
+                            topY = Math.Min(inner[i].Y, inner[next].Y) + topYShift;
+                            bottomY = Math.Max(inner[i].Y, inner[next].Y) - bottomYShift;
+
+                            // Oblicz przecięcia
+                            outerTopT5 = GetOffsetPoint(_innerStart, _innerEnd, (float)topY);
+                            outerBottomT5 = GetOffsetPoint(_innerStart, _innerEnd, (float)bottomY);
+
+                            innerTopT5 = GetOffsetPoint(outer[i], outer[next], (float)topY);
+                            innerBottomT5 = GetOffsetPoint(outer[i], outer[next], (float)bottomY);
                         }
                     }
 
-                    var topY = Math.Min(inner[i].Y, inner[next].Y) + topYShift;
-                    var bottomY = Math.Max(inner[i].Y, inner[next].Y) - bottomYShift;
+                    // Bezpieczne granice
 
-                    // Start liczymy względem punktu przecięcia z inner[i] (czyli skrócony)
-                    var outerTop = GetHorizontalIntersection(_innerStart, _innerEnd, (float)topY);
-                    var outerBottom = GetHorizontalIntersection(_innerStart, _innerEnd, (float)bottomY);
 
-                    // Normalne punkty wewnętrzne
-                    var innerTop = GetHorizontalIntersection(outer[i], outer[next], (float)topY);
-                    var innerBottom = GetHorizontalIntersection(outer[i], outer[next], (float)bottomY);
+                    // Zbierz punkty w kolejności
+                    wierzcholki = new List<XPoint>
+                    {
+                        outerTopT5,
+                        outerBottomT5,
+                        innerBottomT5,
+                        innerTopT5
+                    };
 
-                    wierzcholki = new List<XPoint> {
-                                outerTop, outerBottom, innerBottom, innerTop
-                            };
+                    Console.WriteLine($"🔷 T5-T5 -> wierzcholki: {wierzcholki.Count}, topY:{topY}, bottomY:{bottomY}");
                 }
                 else
                 {
@@ -711,7 +736,7 @@ namespace GEORGE.Client.Pages.Okna
                 // Console.WriteLine($"leftJoin: {leftJoin} rightJoin:{rightJoin} wierzcholki: {wierzcholki.Count()} isAlmostVertical:{isAlmostVertical}");
                 float bazowaDlugosc = ObliczDlugoscElementu(wierzcholki);
 
-                Console.WriteLine($"▶️ Element {i + 1}/{vertexCount}: Length: {length}, angleDegreesElementLionowy:{angleDegreesElementLionowy}, Angle: {angleDegrees}°, Profile: {profile}, Wierzchołki: {wierzcholki.Count}, BazowaDlugosc: {bazowaDlugosc}, wartoscX: {wartoscX}, wartoscY: {wartoscY} ElementLiniowy:{ElementLiniowy}");
+                Console.WriteLine($"▶️ Element Start switch {i + 1}/{vertexCount}: Length: {length}, angleDegreesElementLionowy:{angleDegreesElementLionowy}, Angle: {angleDegrees}°, Profile: {profile}, Wierzchołki: {wierzcholki.Count}, BazowaDlugosc: {bazowaDlugosc}, wartoscX: {wartoscX}, wartoscY: {wartoscY} ElementLiniowy:{ElementLiniowy} wierzcholki X0: {wierzcholki[0].X} Y0: {wierzcholki[0].Y}");
 
                 switch (i)
                 {
@@ -735,7 +760,7 @@ namespace GEORGE.Client.Pages.Okna
                                 DlogoscElementu = bazowaDlugosc + (profileLeft + profileRight),
                                 DlogoscNaGotowoElementu = bazowaDlugosc
                             });
-                        Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - 0");
+                        Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - 0 rowIdprofileTop:{rowIdprofileTop} Angle: {angleDegrees}°");
                         if (ElementLiniowy) return;
                         break;
                     case 1:
@@ -758,7 +783,7 @@ namespace GEORGE.Client.Pages.Okna
                                 DlogoscElementu = bazowaDlugosc + (profileLeft + profileRight),
                                 DlogoscNaGotowoElementu = bazowaDlugosc
                             });
-                        Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - 1 rowIdprofileRight:{rowIdprofileRight}");
+                        Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - 1 rowIdprofileRight:{rowIdprofileRight} Angle: {angleDegrees}°");
                         if (ElementLiniowy) return;
                         break;
                     case 2:
@@ -781,7 +806,7 @@ namespace GEORGE.Client.Pages.Okna
                                 DlogoscElementu = bazowaDlugosc + (profileLeft + profileRight),
                                 DlogoscNaGotowoElementu = bazowaDlugosc
                             });
-                        Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - 2");
+                        Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - 2 rowIdprofileBottom:{rowIdprofileBottom} Angle: {angleDegrees}°");
                         if (ElementLiniowy) return;
                         break;
                     case 3:
@@ -804,7 +829,7 @@ namespace GEORGE.Client.Pages.Okna
                                 DlogoscElementu = bazowaDlugosc + (profileLeft + profileRight),
                                 DlogoscNaGotowoElementu = bazowaDlugosc
                             });
-                        Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - 3");
+                        Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - 3 rowIdprofileLeft:{rowIdprofileLeft} Angle: {angleDegrees}°");
                         if (ElementLiniowy) return;
                         break;
                 }
@@ -896,6 +921,25 @@ namespace GEORGE.Client.Pages.Okna
             );
         }
 
+        private XPoint GetOffsetPoint(XPoint start, XPoint end, float offset)
+        {
+            float dx = (float)(end.X - start.X);
+            float dy = (float)(end.Y - start.Y);
+            float length = MathF.Sqrt(dx * dx + dy * dy);
+            if (length < 1e-6f)
+                return start;
+
+            // wektor normalny (prostopadły)
+            float nx = -dy / length;
+            float ny = dx / length;
+
+            // przesunięcie o "offset" wzdłuż normalnej
+            return new XPoint(
+                start.X + nx * offset,
+                start.Y + ny * offset
+            );
+        }
+
         private XPoint GetHorizontalIntersection(XPoint a, XPoint b, float y)
         {
             if (Math.Abs(a.Y - b.Y) < 1e-3f)
@@ -979,7 +1023,7 @@ namespace GEORGE.Client.Pages.Okna
                 var p1Offset = new XPoint(p1.X + offsetX, p1.Y + offsetY);
                 var p2Offset = new XPoint(p2.X + offsetX, p2.Y + offsetY);
 
-                Console.WriteLine($"🔷 Offset liniowy p1Offset: X={p1Offset.X}, Y={p1Offset.Y} | p2Offset: X={p2Offset.X}, Y={p2Offset.Y}");
+                Console.WriteLine($"🔷 Offset liniowy p1Offset: X={p1Offset.X}, Y={p1Offset.Y} | p2Offset: X={p2Offset.X}, Y={p2Offset.Y} | isHorizontal={isHorizontal}");
 
                 return new List<XPoint> { p1Offset, p2Offset };
             }
