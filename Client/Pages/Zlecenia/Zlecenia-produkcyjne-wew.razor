@@ -547,7 +547,7 @@ else
                     <Alert Message="@bladZapisuPliku" Type="Error" Closable />
                 }
                 <Button Type="ButtonType.Primary" Loading="isLoadingAll" Icon="@IconType.Outline.Download" @onclick="() => DownloadAllFile(false)">Pobierz wszystkie pliki</Button>
-                <Button Type="ButtonType.Primary" Loading="isLoadingAll" Icon="@IconType.Outline.Download" @onclick="() => DownloadAllFile(true)">Pobierz wyłączniki pliki programów CNC</Button>
+                <Button Type="ButtonType.Primary" Loading="isLoadingAll" Icon="@IconType.Outline.Download" @onclick="() => DownloadAllFile(true)">Pobierz tylko pliki programów CNC</Button>
                 <Button class="ms-auto" @onclick="() => HideDialogFile()">Zakończ</Button>
             </div>
         </div>

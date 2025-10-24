@@ -2923,10 +2923,11 @@
                 WybranyModel.Typ == "Skrzydło z słupkiem ruchomym",
                 0.02
             );
+            Console.WriteLine($"   🔹 Sasiad: Funkcja ZnajdzSasiada wyszukała obiektów: {sasiedzi.Count()}");
 
             foreach (var s in sasiedzi)
             {
-                Console.WriteLine($"   🔹 Sasiad: WybranyTyp: {s.WybranyTyp} linia.Count():{linia.Count()}");
+                Console.WriteLine($"   🔹 Sasiad: WybranyTyp: {s.WybranyTyp} linia.Count():{linia.Count()} MaSlupekRuchomy: {s.MaSlupekRuchomy}");
             }
 
             foreach (var s in linia)
@@ -3038,6 +3039,7 @@
                         WierzcholkiWartosciNominalne.Max(p => p.X)
                     )
             });
+
         }
 
         if (SelectedModelType.ToLower().Trim() == "słupek stały")
@@ -3049,7 +3051,7 @@
                 return false;
             }
 
-            Console.WriteLine($"🔹 Znaleziono {styczneLinie.Count} potencjalnych linii dla słupka stałego");
+            Console.WriteLine($"🔹🔹🔹🔹🔹🔹 Znaleziono {styczneLinie.Count} potencjalnych linii dla słupka stałego");
 
             generator.Zindeks = 1;
 
@@ -3564,14 +3566,14 @@
                 if (Math.Abs(p1.X - minX) < tolerancja && konf.WystepujeLewa &&
                     !string.IsNullOrEmpty(slLewa) && konf.Typ.Contains(slLewa))
                 {
-                    Console.WriteLine($"✅ [Słupkowy] Lewa -> {konf.RowId} Typ:{konf.Typ}");
+                    Console.WriteLine($"✅ [Słupkowy] Lewa -> {konf.RowId} Typ:{konf.Typ} Nazwa:{konf.Nazwa}");
                     return konf.RowId;
                 }
 
                 if (Math.Abs(p1.X - maxX) < tolerancja && konf.WystepujePrawa &&
                     !string.IsNullOrEmpty(slPrawa) && konf.Typ.Contains(slPrawa))
                 {
-                    Console.WriteLine($"✅ [Słupkowy] Prawa -> {konf.RowId} Typ:{konf.Typ}");
+                    Console.WriteLine($"✅ [Słupkowy] Prawa -> {konf.RowId} Typ:{konf.Typ} Nazwa:{konf.Nazwa}");
                     return konf.RowId;
                 }
             }
@@ -3579,13 +3581,13 @@
             {
                 if (p1.Y < 5 && konf.WystepujeGora)
                 {
-                    Console.WriteLine($"✅ [Słupkowy] Góra -> {konf.RowId} Typ:{konf.Typ}");
+                    Console.WriteLine($"✅ [Słupkowy] Góra -> {konf.RowId} Typ:{konf.Typ} Nazwa:{konf.Nazwa}");
                     return konf.RowId;
                 }
 
                 if (p1.Y > 75 && konf.WystepujeDol)
                 {
-                    Console.WriteLine($"✅ [Słupkowy] Dół -> {konf.RowId} Typ:{konf.Typ}");
+                    Console.WriteLine($"✅ [Słupkowy] Dół -> {konf.RowId} Typ:{konf.Typ} Nazwa:{konf.Nazwa}");
                     return konf.RowId;
                 }
             }
@@ -4271,24 +4273,24 @@
 
                 Console.WriteLine($"*********** >>>>>> IndeksElementu: {ksztalt.IndeksElementu} Grupa: {ksztalt.Grupa}");
 
-                if (ksztalt.Grupa.Contains("Słupek stały"))
-                {
-                    if (ksztalt.IndeksElementu == "BRAK-DANYCH") // To do sprawdzenia!!!!
-                        continue;
+                // if (ksztalt.Grupa.Contains("Słupek stały"))
+                // {
+                //     if (ksztalt.IndeksElementu == "BRAK-DANYCH") // To do sprawdzenia!!!!
+                //         continue;
 
-                    var szerSlupka = KonfiguracjeSystemu.FirstOrDefault(x => x.RowId == ksztalt.RowIdElementu);
+                //     var szerSlupka = KonfiguracjeSystemu.FirstOrDefault(x => x.RowId == ksztalt.RowIdElementu);
 
-                    if (szerSlupka != null)
-                    {
-                        ksztalt.Wierzcholki = ksztalt.Wierzcholki.Select(p => new XPoint
-                        {
-                            X = p.X - (double)Math.Abs((double)szerSlupka.PionOsSymetrii),   // przesunięcie w osi X
-                            Y = p.Y     // przesunięcie w osi Y
-                        })
-                    .ToList();
-                    }
+                //     if (szerSlupka != null)
+                //     {
+                //         ksztalt.Wierzcholki = ksztalt.Wierzcholki.Select(p => new XPoint
+                //         {
+                //             X = p.X - (double)Math.Abs((double)szerSlupka.PionOsSymetrii),   // przesunięcie w osi X
+                //             Y = p.Y     // przesunięcie w osi Y
+                //         })
+                //     .ToList();
+                //     }
 
-                }
+                // }
                 // Console.WriteLine($"*********** >>>>>> ksztalt: {ksztalt.Id}");
 
                 await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
