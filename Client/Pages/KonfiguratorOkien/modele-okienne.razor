@@ -3990,10 +3990,12 @@
 
     private void ZapiszStanGeneratora(string idRegion, GeneratorState state)
     {
-
-        _generatorStates[idRegion] = state;
+        _generatorStates[idRegion + "/" + state.Id.ToString()] = state;
 
         Console.WriteLine($"✅ Zapisano stan generatora dla regionu {idRegion}. Liczba _generatorStates: {_generatorStates?.Count ?? 0}");
+
+        // powiadom Blazor UI, że dane się zmieniły
+        _ = InvokeAsync(StateHasChanged);
     }
 
     private bool CzyPunktLezyNaKrawedzi(XPoint punkt, List<XPoint> wielokat)
