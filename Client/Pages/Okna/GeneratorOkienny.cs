@@ -79,7 +79,7 @@ namespace GEORGE.Client.Pages.Okna
             }
             else if (ElementLiniowy)
             {
-                region = regions.LastOrDefault(r => r.Id != null);
+                region = regions.FirstOrDefault(r => r.Id != null);
 
                 Console.WriteLine($"❌ Region o ID: {regionId} region.Wierzcholki.Count():{region.Wierzcholki.Count()}");
 
@@ -342,8 +342,6 @@ namespace GEORGE.Client.Pages.Okna
                 var leftJoin = polaczeniaArray[i].typ;
                 var rightJoin = polaczeniaArray[next].typ;
 
-                Console.WriteLine($"▶️ Processing element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin}");
-
                 XPoint outerStart = outer[i];
                 XPoint outerEnd = outer[next];
 
@@ -360,6 +358,8 @@ namespace GEORGE.Client.Pages.Okna
                 // Przekształć do zakresu 0–360°, jeśli potrzebujesz
                 if (angleDegrees < 0)
                     angleDegrees += 360f;
+
+                Console.WriteLine($"▶️ Processing element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin} wyliczony kąt: {angleDegrees} dla i: {i}");
 
                 if (length < 0.001f) continue;
 
@@ -539,7 +539,7 @@ namespace GEORGE.Client.Pages.Okna
 
                             wierzcholki = new List<XPoint> {
                             outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
-                        };
+                            };
                         }
                         else
                         {
@@ -771,6 +771,15 @@ namespace GEORGE.Client.Pages.Okna
 
                 Console.WriteLine($"▶️ Element Start switch {i + 1}/{vertexCount}: Length: {length}, angleDegreesElementLionowy:{angleDegreesElementLionowy}, Angle: {angleDegrees}°, Profile: {profile}, Wierzchołki: {wierzcholki.Count}, BazowaDlugosc: {bazowaDlugosc}, wartoscX: {wartoscX}, wartoscY: {wartoscY} ElementLiniowy:{ElementLiniowy} wierzcholki X0: {wierzcholki[0].X} Y0: {wierzcholki[0].Y}");
 
+                // Określenie kierunku
+                string stronaOpis = angleDegrees switch
+                {
+                    >= 45 and < 135 => "Prawa",   // w okolicach 90°
+                    >= 135 and < 225 => "Dół",    // w okolicach 180°
+                    >= 225 and < 315 => "Lewa",   // w okolicach 270°
+                    _ => "Góra"                   // w okolicach 0° lub 360°
+                };
+
                 switch (i)
                 {
                     case 0:
@@ -782,12 +791,12 @@ namespace GEORGE.Client.Pages.Okna
                                 Wierzcholki = wierzcholki,
                                 WypelnienieZewnetrzne = "wood-pattern",
                                 WypelnienieWewnetrzne = KolorSzyby,
-                                Grupa = NazwaObiektu + $" Góra-{i + 1} {wartoscX}/{wartoscY}",
+                                Grupa = NazwaObiektu + $" {stronaOpis}-{i + 1} {wartoscX}/{wartoscY}",
                                 ZIndex = Zindeks,
                                 RowIdElementu = rowIdprofileTop,
                                 IdRegion = regionId,
                                 Kat = (int)angleDegrees,
-                                Strona = "Góra",
+                                Strona = stronaOpis,//Była Góra
                                 IndeksElementu = rowIndeksprofileTop,
                                 NazwaElementu = rowNazwaprofileTop,
                                 DlogoscElementu = bazowaDlugosc + (profileLeft + profileRight),
@@ -805,12 +814,12 @@ namespace GEORGE.Client.Pages.Okna
                                 Wierzcholki = wierzcholki,
                                 WypelnienieZewnetrzne = "wood-pattern",
                                 WypelnienieWewnetrzne = KolorSzyby,
-                                Grupa = NazwaObiektu + $" Prawa-{i + 1} {wartoscX}/{wartoscY}",
+                                Grupa = NazwaObiektu + $" {stronaOpis}-{i + 1} {wartoscX}/{wartoscY}",
                                 ZIndex = Zindeks,
                                 RowIdElementu = rowIdprofileRight,
                                 IdRegion = regionId,
                                 Kat = (int)angleDegrees,
-                                Strona = "Prawa",
+                                Strona = stronaOpis,//Była prawa
                                 IndeksElementu = rowIndeksprofileRight,
                                 NazwaElementu = rowNazwaprofileTop,
                                 DlogoscElementu = bazowaDlugosc + (profileLeft + profileRight),
@@ -828,12 +837,12 @@ namespace GEORGE.Client.Pages.Okna
                                 Wierzcholki = wierzcholki,
                                 WypelnienieZewnetrzne = "wood-pattern",
                                 WypelnienieWewnetrzne = KolorSzyby,
-                                Grupa = NazwaObiektu + $" Dół-{i + 1} {wartoscX}/{wartoscY}",
+                                Grupa = NazwaObiektu + $" {stronaOpis}-{i + 1} {wartoscX}/{wartoscY}",
                                 ZIndex = Zindeks,
                                 RowIdElementu = rowIdprofileBottom,
                                 IdRegion = regionId,
                                 Kat = (int)angleDegrees,
-                                Strona = "Dół",
+                                Strona = stronaOpis,//Był Dół
                                 IndeksElementu = rowIndeksprofileBottom,
                                 NazwaElementu = rowNazwaprofileTop,
                                 DlogoscElementu = bazowaDlugosc + (profileLeft + profileRight),
@@ -851,12 +860,12 @@ namespace GEORGE.Client.Pages.Okna
                                 Wierzcholki = wierzcholki,
                                 WypelnienieZewnetrzne = "wood-pattern",
                                 WypelnienieWewnetrzne = KolorSzyby,
-                                Grupa = NazwaObiektu + $" Lewa-{i + 1} {wartoscX}/{wartoscY}",
+                                Grupa = NazwaObiektu + $" {stronaOpis}-{i + 1} {wartoscX}/{wartoscY}",
                                 ZIndex = Zindeks,
                                 RowIdElementu = rowIdprofileLeft,
                                 IdRegion = regionId,
                                 Kat = (int)angleDegrees,
-                                Strona = "Lewa",
+                                Strona = stronaOpis, //Była Lewa
                                 IndeksElementu = rowIndeksprofileLeft,
                                 NazwaElementu = rowNazwaprofileTop,
                                 DlogoscElementu = bazowaDlugosc + (profileLeft + profileRight),

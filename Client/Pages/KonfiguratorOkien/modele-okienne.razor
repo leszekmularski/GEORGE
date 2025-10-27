@@ -2921,7 +2921,7 @@
                 state.SlupekRuchomyPoPrawejStronie,
                 state.IdRegion,
                 WybranyModel.Typ == "Skrzydło z słupkiem ruchomym",
-                0.02
+                0.2
             );
             Console.WriteLine($"   🔹 Sasiad: Funkcja ZnajdzSasiada wyszukała obiektów: {sasiedzi.Count()}");
 
@@ -3698,24 +3698,6 @@
         Console.WriteLine($"🔍 ZnajdzSasiada-> Szukam sąsiada dla linii w regionie {obecnyRegionId} kat: {kat} " +
               $" model ma słupek ruchomy: {czyModelMaSlupekRuchomy}");
 
-        // Console.WriteLine(
-        //     $"🔍 ZnajdzSasiada-> Szukam sąsiada dla linii w regionie {obecnyRegionId} kat: {kat} " +
-        //     $"ruchomySlupekPoLewej: {ruchomySlupekPoLewej} ruchomySlupekPoPrawej:{ruchomySlupekPoPrawej} " +
-        //     $"wszystkieStany.Count: {wszystkieStany?.Count() ?? 0}");
-
-        // if (wszystkieStany != null && wszystkieStany.Count > 0)
-        // {
-        //     for(int i = 0; i < Math.Min(3, wszystkieStany.Count); i++)
-        //     {
-        //         var stan = wszystkieStany[i];
-        //         Console.WriteLine(
-        //             $"🔍 ZnajdzSasiada-> wszystkieStany[{i}].WybranyModel.RowId: {stan.WybranyModel?.RowId} " +
-        //             $"wszystkieStany[{i}].IdRegion: {stan.IdRegion} " +
-        //             $"wszystkieStany[{i}].ZIndeks: {stan.ZIndeks} " +
-        //             $"wszystkieStany[{i}].WierzcholkiWartosciNominalne.Count: {stan.WierzcholkiWartosciNominalne?.Count()}");
-        //     }
-        // }
-
         var p1 = linia[0];
         var p2 = linia[1];
 
@@ -3732,16 +3714,7 @@
             .Where(s => s.WierzcholkiWartosciNominalne != null && s.IdRegion != obecnyRegionId)
             .OrderByDescending(s => s.Id);
 
-        // Console.WriteLine($"🔍 ZnajdzSasiada-> stanyDoPrzeszukania: {stanyDoPrzeszukania.Count()}");
-
-        // foreach(var s in stanyDoPrzeszukania)
-        // {
-        //     Console.WriteLine(
-        //         $"🔍 ZnajdzSasiada-> Stan do przeszukania Id: {s.Id} IdRegion: {s.IdRegion} ZIndeks: {s.ZIndeks} " +
-        //         $"WierzcholkiWartosciNominalne.Count: {s.WierzcholkiWartosciNominalne?.Count()}");
-        // }
-
-        string KTyp = "";
+        string KTyp = "PRZED-FOR";
 
         foreach (var stan in stanyDoPrzeszukania)
         {
@@ -3773,11 +3746,14 @@
                 if (!CzyNakladajaSieDowolne(p1, p2, q1, q2, tolerancja, kat))
                     continue;
 
+                KTyp = "CzyNakladajaSieDowolne";
+
                 Console.WriteLine(
                     $"🔍 ZnajdzSasiada-> Porównanie OK z linią id:{stan.Id} ZIndeks:{stan.ZIndeks} kat: {kat} " +
                     $"w regionie {stan.IdRegion} q1:({q1.X},{q1.Y}) q2:({q2.X},{q2.Y})");
 
                 var konfLista = stan.MVCKonfModelu?.KonfSystem;
+
                 if (konfLista == null) continue;
 
                 foreach (var konf in konfLista)
