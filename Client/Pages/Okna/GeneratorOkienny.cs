@@ -271,7 +271,7 @@ namespace GEORGE.Client.Pages.Okna
 
                 if (szukDaneKwadratu != null)
                 {
-                    Console.WriteLine($"▶️ Element model.Count:{model.Count()} szukDaneKwadratu.Wierzcholki.Count():{szukDaneKwadratu?.Wierzcholki.Count()} RuchomySlupekPoLewej:{RuchomySlupekPoLewej} RuchomySlupekPoPrawej:{RuchomySlupekPoPrawej}");
+                    Console.WriteLine($"▶️ Element model.Count:{model.Count()} szukDaneKwadratu.Wierzcholki.Count: {szukDaneKwadratu?.Wierzcholki.Count()} RuchomySlupekPoLewej:{RuchomySlupekPoLewej} RuchomySlupekPoPrawej:{RuchomySlupekPoPrawej}");
 
                     foreach (var dk in szukDaneKwadratu.Wierzcholki)
                     {
@@ -1049,7 +1049,7 @@ namespace GEORGE.Client.Pages.Okna
                     offsetY = 0f;
                     offsetX = dx >= 0 ? profileRight : -profileLeft;
 
-                    Console.WriteLine($"🔷 Vertical) element → offset only in Y: offsetX={offsetX}");
+                    Console.WriteLine($"🔷 Vertical element → offset only in Y: offsetX={offsetX}");
                 }
                 else
                 {
@@ -1188,5 +1188,6 @@ namespace GEORGE.Client.Pages.Okna
 
             return length;
         }
+
     }
 }
