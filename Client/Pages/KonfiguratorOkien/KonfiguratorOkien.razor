@@ -15,6 +15,7 @@
 @inject DxfService DxfService
 @inject DxfToSvgConverter Converter
 @inject NavigationManager NavigationManager
+@inject AntDesign.ModalService _modalService
 
 <style>
     .scaled-svg {
@@ -1400,10 +1401,15 @@
             await _message.Warning("Nie masz uprawnień do usunięcia danych!");
             return;
         }
+        await OpenModal("Potwierdzenie usunięcia", "Czy na pewno chcesz usunąć pozycję?");
 
-        await Http.DeleteAsync($"api/konfsystem/{id}");
-        KonfiguracjeSystemu = null;
-        KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>("api/konfsystem");
+        if (pytanieOK)
+        {
+
+            await Http.DeleteAsync($"api/konfsystem/{id}");
+            KonfiguracjeSystemu = null;
+            KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>("api/konfsystem");
+        }
     }
 
     private async Task DownloadDxf()
@@ -1974,6 +1980,54 @@
                 }
             }
         }
+    }
+
+    bool pytanieOK;
+    private async Task OpenModal(string _title, string _contentText)
+    {
+        var modalCompletionSource = new TaskCompletionSource<bool>();
+
+        RenderFragment content = @<div>@_contentText</div>;
+
+        var options = new ConfirmOptions()
+        {
+            Title = _title,
+            Width = 350,
+            Content = content,
+            OkText = "Tak",
+            CancelText = "Nie",
+            OnOk = async e =>
+            {
+                Console.WriteLine("OnOk");
+                pytanieOK = true;
+                modalCompletionSource.SetResult(true);
+                await Task.CompletedTask;
+            },
+            OnCancel = async e =>
+            {
+                Console.WriteLine("OnCancel");
+                pytanieOK = false;
+                modalCompletionSource.SetResult(false);
+                await Task.CompletedTask;
+            }
+        };
+
+        var confirmRef = await _modalService.CreateConfirmAsync(options);
+
+        confirmRef.OnOpen = () =>
+        {
+            Console.WriteLine("Open Modal");
+            return Task.CompletedTask;
+        };
+
+        confirmRef.OnClose = () =>
+        {
+            Console.WriteLine("Close Modal");
+            return Task.CompletedTask;
+        };
+
+        // Czekaj na zakończenie działania modalu
+        await modalCompletionSource.Task;
     }
 
     record Typ(string Nazwa);
