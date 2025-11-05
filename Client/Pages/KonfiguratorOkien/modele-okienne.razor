@@ -2393,6 +2393,7 @@
             genRama.Wysokosc = (float)bbRama.Height;
             genRama.ElementyRamyRysowane?.Clear();
             genRama.AddElements(new List<ShapeRegion> { ramaAfter }, ramaAfter.Id, _generatorStates, _regionsSkrzydlo, null);
+
             _ksztaltyNaRegion[ramaAfter.Id] = new List<KsztaltElementu>(genRama.ElementyRamyRysowane ?? Enumerable.Empty<KsztaltElementu>());
         }
 
@@ -2940,19 +2941,28 @@
 
         var linie = ExtractLinesFromSquare(WierzcholkiWartosciNominalne);
 
-        Console.WriteLine($"🔎 DodajWybranyKwadratOkna wierzchołki dla słupka stałego: {string.Join(", ", state.Wierzcholki.Select(p => $"({p.X:F2},{p.Y:F2})"))} ExtractLinesFromSquare -> {linie.Count()}");
+        string idGenerator = $"{idRegion}_{Guid.NewGuid()}";
+
+        // Zapisz stan generatora
+        _generatory[idGenerator] = generator;
+
+        ZapiszStanGeneratora(idGenerator, state);
+
+        List<SasiadInfo> sasiedzi = new();
+
+        Console.WriteLine($"🔎 DodajWybranyKwadratOkna wierzchołki dla słupka stałego: {string.Join(", ", state.Wierzcholki.Select(p => $"({p.X:F2},{p.Y:F2})"))} ExtractLinesFromSquare -> {linie.Count()} _generatorStates.Count: {_generatorStates.Values.ToList().Count()}");
 
         foreach (var linia in linie)
         {
-            Console.WriteLine($"🔎 DodajWybranyKwadratOkna -> Przetwarzam linię z punktami: ({linia[0].X},{linia[0].Y}) -> ({linia[1].X},{linia[1].Y})");
+            Console.WriteLine($"🔎 DodajWybranyKwadratOkna -> Przetwarzam linię z punktami: ({linia[0].X},{linia[0].Y}) -> ({linia[1].X},{linia[1].Y}) _generatorStates.Count: {_generatorStates.Values.ToList().Count()}");
 
             if (linia.Count != 2) continue;
 
             var katSzukaj = ObliczKatLinii(linia);
 
-            Console.WriteLine($"🔎 DodajWybranyKwadratOkna -> Sprawdzam linię o kącie {katSzukaj}° w stanie ID: {state.Id}, IdRegion: {state.IdRegion}, WybranyTyp: {state.WybranyKsztalt} _generatorStates.Values.ToList.Count: {_generatorStates.Values.ToList().Count()}");
+            Console.WriteLine($"🔎 DodajWybranyKwadratOkna -> Sprawdzam linię o kącie {katSzukaj}° w stanie ID: {state.Id}, IdRegion: {state.IdRegion}, WybranyTyp: {state.WybranyKsztalt}");
 
-            var sasiedzi = ZnajdzSasiada(
+            sasiedzi = ZnajdzSasiada(
                 linia,
                 _generatorStates.Values.ToList(),
                 katSzukaj,
@@ -2966,16 +2976,16 @@
 
             /// -------------------------------------------------- Wyszukiwanie sąsiadów --------------------------------------------------
 
-            Console.WriteLine($"   🔹 Sasiad: Funkcja ZnajdzSasiada wyszukała obiektów: {sasiedzi.Count()}");
+            Console.WriteLine($"   🔹 Sasiad: Funkcja ZnajdzSasiada wyszukała obiektów: {sasiedzi.Count()} kąt: {katSzukaj}°");
 
             foreach (var s in sasiedzi)
             {
-                Console.WriteLine($"   🔹 Sasiad: WybranyTyp: {s.WybranyTyp} linia.Count:{linia.Count()} MaSlupekRuchomy: {s.MaSlupekRuchomy}");
+                Console.WriteLine($"   🔹 Sasiad: WybranyTyp: {s.WybranyTyp} linia.Count:{linia.Count()} MaSlupekRuchomy: {s.MaSlupekRuchomy} RowIdElementu: {s.RowIdElementu} kąt: {katSzukaj}°");
             }
 
             foreach (var s in linia)
             {
-                Console.WriteLine($"   🔹 Sasiad: WybranyTyp: X:{s.X} Y:{s.Y}");
+                Console.WriteLine($"   🔹 Sasiad: WybranyTyp: X:{s.X} Y:{s.Y} kąt: {katSzukaj}°");
             }
 
             // przykład pobrania najlepszego sąsiada
@@ -3042,11 +3052,35 @@
                     })
                     .FirstOrDefault();
 
+                // 🔹 3. Jeśli nie znaleziono → szukamy innych
+                if (najlepszySasiad == null)
+                {
+                    Console.WriteLine("🔍 Szukam typ który zawiera --> Słupek stały");
+
+                    najlepszySasiad = sasiedzi
+                        .Where(s => s.WybranyTyp == "Słupek stały")
+                        .OrderBy(s =>
+                        {
+                            var stan = _generatorStates.Values.FirstOrDefault(gs => gs.Id == s.Id);
+                            if (stan?.WierzcholkiWartosciNominalne == null) return double.MaxValue;
+
+                            double stanMinX = stan.WierzcholkiWartosciNominalne.Min(p => p.X);
+                            double stanMaxX = stan.WierzcholkiWartosciNominalne.Max(p => p.X);
+                            double stanMinY = stan.WierzcholkiWartosciNominalne.Min(p => p.Y);
+                            double stanMaxY = stan.WierzcholkiWartosciNominalne.Max(p => p.Y);
+
+                            return Math.Abs(minX1 - stanMinX) +
+                                   Math.Abs(maxX1 - stanMaxX) +
+                                   Math.Abs(minY1 - stanMinY) +
+                                   Math.Abs(maxY1 - stanMaxY);
+                        })
+                        .FirstOrDefault();
+                }
 
                 // 🔹 3. Jeśli nie znaleziono → szukamy innych
                 if (najlepszySasiad == null)
                 {
-                    Console.WriteLine("🔍 Szukam typ który nie zawiera --> Słupek stały lub Słupek stały");
+                    Console.WriteLine("🔍 Szukam typ który nie zawiera --> Słupek stały lub Słupek ruchomy");
 
                     najlepszySasiad = sasiedzi
                         .Where(s => s.WybranyTyp != "Słupek ruchomy" && s.WybranyTyp != "Słupek stały")
@@ -3101,7 +3135,7 @@
                     )
             });
 
-            if (SelectedModelType.ToLower().Trim() == "słupek stały") break;
+            //if (SelectedModelType.ToLower().Trim() == "słupek stały") break;
 
         }
 
@@ -3209,14 +3243,32 @@
                     new XPoint { X = liniaStala.Wierzcholki[1].X, Y = liniaStala.Wierzcholki[1].Y }
                 };
 
+            // 🔹 Wyszukaj najlepszego sąsiada
+            var najlepszySasiadA = sasiedzi
+                .Where(s =>
+                    s.WybranyTyp != "Słupek ruchomy" && (s.WystepujeGora || s.WystepujeLewa))
+                .FirstOrDefault();
 
-            // 🔹 Zapisz dane do stanu
+            var najlepszySasiadB = sasiedzi
+            .Where(s =>
+                s.WybranyTyp != "Słupek ruchomy" && (s.WystepujeDol || s.WystepujePrawa))
+            .OrderByDescending(sasiedzi => sasiedzi.WystepujeDol)
+            .FirstOrDefault();
+
+            // 🔹 Zapisz dane do stanu (jeśli znaleziono sąsiada)
             state.ListaKwadratow.Add(new DaneKwadratu
             {
                 Wierzcholki = liniaStalaWierzcholki,
                 RowIdElementu = generator.RowIdModelu,
-                RowIdSasiada = Guid.Empty,
-                RowIdRegionuSasiada = "",
+                RowIdSasiada = najlepszySasiadA?.RowIdElementu ?? Guid.Empty,
+
+                // 🔸 Strona A — jeśli sąsiad występuje od góry lub lewej
+                RowIdSasiadaStronaA = najlepszySasiadA?.RowIdElementu ?? Guid.Empty,
+
+                // 🔸 Strona B — jeśli sąsiad występuje od dołu lub prawej
+                RowIdSasiadaStronaB = najlepszySasiadB?.RowIdElementu ?? Guid.Empty,
+
+                RowIdRegionuSasiada = najlepszySasiadA?.IdRegionu ?? "",
                 KatLinii = katSzukaj,
                 OffsetBottom = 0,
                 OffsetTop = 0,
@@ -3274,7 +3326,7 @@
 
                 generator.Szerokosc = (float)(maxX - minX);
                 generator.Wysokosc = (float)(maxY - minY);
-                generator.Zindeks = SelectedModelType == "Skrzydło z słupkiem ruchomym" ? 1 : 2;
+                generator.Zindeks = SelectedModelType == "Skrzydło z słupkiem ruchomym" ? 2 : 3;
 
                 //luzy wynikahjące z przesunięcia
 
@@ -3335,10 +3387,12 @@
         _ksztaltyNaRegion[idRegion] = new List<KsztaltElementu>(generator.ElementyRamyRysowane);
         ksztalty = _ksztaltyNaRegion.Values.SelectMany(k => k).ToList();
 
-        // Zapisz stan generatora
-        _generatory[idRegion] = generator;
+        // string idGenerator = $"{idRegion}_{Guid.NewGuid()}";
 
-        ZapiszStanGeneratora(idRegion, state);
+        // // Zapisz stan generatora
+        // _generatory[idGenerator] = generator;
+
+        // ZapiszStanGeneratora(idGenerator, state);
 
         //await Task.CompletedTask;
 
@@ -3743,18 +3797,19 @@
     }
 
     public List<SasiadInfo> ZnajdzSasiada(
-    List<XPoint> linia,
-    List<GeneratorState> wszystkieStany,
-    int kat,
-    bool ruchomySlupekPoLewej,
-    bool ruchomySlupekPoPrawej,
-    string obecnyRegionId,
-    bool czyModelMaSlupekRuchomy,
-    bool szukajNieRownoleglych,
-    double tolerancja)
+        List<XPoint> linia,
+        List<GeneratorState> wszystkieStany,
+        int kat,
+        bool ruchomySlupekPoLewej,
+        bool ruchomySlupekPoPrawej,
+        string obecnyRegionId,
+        bool czyModelMaSlupekRuchomy,
+        bool szukajNieRownoleglych,
+        double tolerancja)
     {
         var pasujace = new List<SasiadInfo>();
 
+        // 🔹 Walidacja wejścia
         if (linia == null || linia.Count != 2)
         {
             return new List<SasiadInfo>
@@ -3773,31 +3828,31 @@
 
         Console.WriteLine($"🔍 ZnajdzSasiada -> Szukam sąsiada dla linii o kącie {kat}° w regionie {obecnyRegionId} oraz wszystkieStany.Count: {wszystkieStany.Count()}");
 
-        if(wszystkieStany != null && wszystkieStany.Count() > 0)
-        {
-            Console.WriteLine($"🔍 ZnajdzSasiada -> Ilość Wierzcholki w 0 stanie: {wszystkieStany[0].Wierzcholki.Count()} IdRegion: {wszystkieStany[0].IdRegion}");
-        }
-   
-
         var p1 = linia[0];
         var p2 = linia[1];
 
         bool jestPionowa = Math.Abs(p1.X - p2.X) < tolerancja;
         bool jestPozioma = Math.Abs(p1.Y - p2.Y) < tolerancja;
 
+        var ileModelMaSlupkowStalych = wszystkieStany.SelectMany(s => s.ListaKwadratow.FindAll(x=>x.BoolElementLinia)).Count();
+
         var stanyDoPrzeszukania = wszystkieStany
-            .Where(s => s.WierzcholkiWartosciNominalne != null && s.IdRegion != obecnyRegionId)
-            .OrderByDescending(s => s.Id);
-
-        Console.WriteLine($"🔍 ZnajdzSasiada -> Szukam stanyDoPrzeszukania.Count: {stanyDoPrzeszukania.Count()}");
-
-        if (stanyDoPrzeszukania != null && stanyDoPrzeszukania.Count() > 0)
-        {
-            Console.WriteLine($"🔍 ZnajdzSasiada -> Ilość Wierzcholki w 0 stanie: {stanyDoPrzeszukania.FirstOrDefault().Wierzcholki.Count()} IdRegion: {stanyDoPrzeszukania.FirstOrDefault().IdRegion}");
-        }
+            .Where(s => s.WierzcholkiWartosciNominalne != null && !s.IdRegion.Contains(obecnyRegionId))// sprwdź słupki stałe
+            .OrderByDescending(s => s.Id)
+            .ToList();
 
         foreach (var stan in stanyDoPrzeszukania)
         {
+            Console.WriteLine($"🔍 ZnajdzSasiada -> Wyszuakne stanyDoPrzeszukania IdRegion: {stan.IdRegion}, Id: {stan.Id} ElementLiniowy: {stan.ElementLiniowy}");
+        } 
+
+        Console.WriteLine($"🔍 ZnajdzSasiada -> Szukam stanyDoPrzeszukania.Count: {stanyDoPrzeszukania.Count()} ileModelMaSlupkowStalych: {ileModelMaSlupkowStalych}");
+
+        foreach (var stan in stanyDoPrzeszukania)
+        {
+
+            Console.WriteLine($"🔍 ZnajdzSasiada -> Sprawdzam stan IdRegion: {stan.IdRegion}, Id: {stan.Id} ElementLiniowy: {stan.ElementLiniowy}");
+
             var wierzcholki = stan.WierzcholkiWartosciNominalne!;
             var linieStanu = ExtractLinesFromSquare(wierzcholki);
 
@@ -3817,36 +3872,31 @@
                 double katNormalny = ((katSasiada % 180) + 180) % 180;
                 double katLinia = ((kat % 180) + 180) % 180;
 
-                // 🔹 Jeśli tryb "szukajNieRownoleglych" – odrzuć równoległe
+                // 🔹 Odrzuć równoległe jeśli szukamy nie równoległych
                 if (szukajNieRownoleglych && Math.Abs(katNormalny - katLinia) < 10.0)
                     continue;
 
-                // 🔹 Sprawdź czy się stykają lub przecinją
                 bool przecinajaSie = false;
                 bool nakladaja = false;
 
                 if (szukajNieRownoleglych)
                 {
-                    Console.WriteLine($"🔍 ZnajdzSasiada -> Szukam tylko szukajNieRownoleglych == true");
-                    // Sprawdzamy przecięcie, nie nakładanie
+                    // ✅ Szukamy tylko przecięć
                     przecinajaSie = CzyPrzecinajaSie(p1, p2, q1, q2, tolerancja);
                     if (!przecinajaSie)
-                        continue; // tylko styczne/przecinające
-                    Console.WriteLine($"🔍 ZnajdzSasiada -> przecinajaSie !!!");
+                        continue;
+
+                    Console.WriteLine($"🔍 ZnajdzSasiada -> przecinajaSie z regionem {stan.IdRegion}");
                 }
                 else
                 {
-                    // Klasyczne nakładanie równoległych
+                    // ✅ Klasyczny przypadek – równoległe linie
                     nakladaja = CzyNakladajaSieDowolne(p1, p2, q1, q2, tolerancja, kat);
                     if (!nakladaja)
                         continue;
                 }
 
-                if (!przecinajaSie && !nakladaja)
-                    continue;
-
-                Console.WriteLine($"🔍 ZnajdzSasiada -> Wyszukuję konfLista jestPionowa: {jestPionowa} jestPozioma: {jestPozioma}");
-                // 🔹 Jeśli tu doszliśmy – mamy kandydata
+                // 🔹 Jeśli doszliśmy tutaj, to mamy sąsiada
                 var konfLista = stan.MVCKonfModelu?.KonfSystem;
                 if (konfLista == null) continue;
 
@@ -3854,8 +3904,9 @@
                 {
                     if (jestPionowa)
                     {
-                        if (Math.Abs(p1.X - stanMinX) < tolerancja && konf.WystepujeLewa)
+                        if (szukajNieRownoleglych)
                         {
+                            // 👇 W trybie przecinających dodajemy niezależnie od X
                             pasujace.Add(new SasiadInfo
                             {
                                 RowIdElementu = konf.RowId,
@@ -3863,27 +3914,60 @@
                                 ZIndeks = stan.ZIndeks,
                                 MaSlupekRuchomy = czyModelMaSlupekRuchomy,
                                 Id = stan.Id,
-                                WybranyTyp = konf.Typ ?? "BRAK"
+                                WybranyTyp = konf.Typ ?? "BRAK",
+                                KatSasiada = (int)katSasiada, 
+                                WystepujeGora = konf.WystepujeGora,
+                                WystepujeDol = konf.WystepujeDol,
+                                WystepujeLewa = konf.WystepujeLewa,
+                                WystepujePrawa = konf.WystepujePrawa
                             });
+                            Console.WriteLine($"✅ Dodano przecinającego sąsiada pionowego w regionie {stan.IdRegion}");
                         }
-
-                        if (Math.Abs(p1.X - stanMaxX) < tolerancja && konf.WystepujePrawa)
+                        else
                         {
-                            pasujace.Add(new SasiadInfo
+                            // 🔹 Standardowe sprawdzenie równoległych
+                            if (Math.Abs(p1.X - stanMinX) < tolerancja && konf.WystepujeLewa)
                             {
-                                RowIdElementu = konf.RowId,
-                                IdRegionu = stan.IdRegion,
-                                ZIndeks = stan.ZIndeks,
-                                MaSlupekRuchomy = czyModelMaSlupekRuchomy,
-                                Id = stan.Id,
-                                WybranyTyp = konf.Typ ?? "BRAK"
-                            });
+                                pasujace.Add(new SasiadInfo
+                                {
+                                    RowIdElementu = konf.RowId,
+                                    IdRegionu = stan.IdRegion,
+                                    ZIndeks = stan.ZIndeks,
+                                    MaSlupekRuchomy = czyModelMaSlupekRuchomy,
+                                    Id = stan.Id,
+                                    WybranyTyp = konf.Typ ?? "BRAK",
+                                    KatSasiada = (int)katSasiada,
+                                    WystepujeGora = konf.WystepujeGora,
+                                    WystepujeDol = konf.WystepujeDol,
+                                    WystepujeLewa = konf.WystepujeLewa,
+                                    WystepujePrawa = konf.WystepujePrawa
+                                });
+                            }
+
+                            if (Math.Abs(p1.X - stanMaxX) < tolerancja && konf.WystepujePrawa)
+                            {
+                                pasujace.Add(new SasiadInfo
+                                {
+                                    RowIdElementu = konf.RowId,
+                                    IdRegionu = stan.IdRegion,
+                                    ZIndeks = stan.ZIndeks,
+                                    MaSlupekRuchomy = czyModelMaSlupekRuchomy,
+                                    Id = stan.Id,
+                                    WybranyTyp = konf.Typ ?? "BRAK",
+                                    KatSasiada = (int)katSasiada,
+                                    WystepujeGora = konf.WystepujeGora,
+                                    WystepujeDol = konf.WystepujeDol,
+                                    WystepujeLewa = konf.WystepujeLewa,
+                                    WystepujePrawa = konf.WystepujePrawa
+                                });
+                            }
                         }
                     }
                     else if (jestPozioma)
                     {
-                        if (Math.Abs(p1.Y - stanMinY) < tolerancja && konf.WystepujeGora)
+                        if (szukajNieRownoleglych)
                         {
+                            // 👇 W trybie przecinających dodajemy niezależnie od Y
                             pasujace.Add(new SasiadInfo
                             {
                                 RowIdElementu = konf.RowId,
@@ -3891,27 +3975,60 @@
                                 ZIndeks = stan.ZIndeks,
                                 MaSlupekRuchomy = czyModelMaSlupekRuchomy,
                                 Id = stan.Id,
-                                WybranyTyp = konf.Typ ?? "BRAK"
+                                WybranyTyp = konf.Typ ?? "BRAK",
+                                KatSasiada = (int)katSasiada,
+                                WystepujeGora = konf.WystepujeGora,
+                                WystepujeDol = konf.WystepujeDol,
+                                WystepujeLewa = konf.WystepujeLewa,
+                                WystepujePrawa = konf.WystepujePrawa
                             });
+                            Console.WriteLine($"✅ Dodano przecinającego sąsiada poziomego w regionie {stan.IdRegion}");
                         }
-
-                        if (Math.Abs(p1.Y - stanMaxY) < tolerancja && konf.WystepujeDol)
+                        else
                         {
-                            pasujace.Add(new SasiadInfo
+                            // 🔹 Standardowe sprawdzenie równoległych
+                            if (Math.Abs(p1.Y - stanMinY) < tolerancja && konf.WystepujeGora)
                             {
-                                RowIdElementu = konf.RowId,
-                                IdRegionu = stan.IdRegion,
-                                ZIndeks = stan.ZIndeks,
-                                MaSlupekRuchomy = czyModelMaSlupekRuchomy,
-                                Id = stan.Id,
-                                WybranyTyp = konf.Typ ?? "BRAK"
-                            });
+                                pasujace.Add(new SasiadInfo
+                                {
+                                    RowIdElementu = konf.RowId,
+                                    IdRegionu = stan.IdRegion,
+                                    ZIndeks = stan.ZIndeks,
+                                    MaSlupekRuchomy = czyModelMaSlupekRuchomy,
+                                    Id = stan.Id,
+                                    WybranyTyp = konf.Typ ?? "BRAK",
+                                    KatSasiada = (int)katSasiada,
+                                    WystepujeGora = konf.WystepujeGora,
+                                    WystepujeDol = konf.WystepujeDol,
+                                    WystepujeLewa = konf.WystepujeLewa,
+                                    WystepujePrawa = konf.WystepujePrawa
+                                });
+                            }
+
+                            if (Math.Abs(p1.Y - stanMaxY) < tolerancja && konf.WystepujeDol)
+                            {
+                                pasujace.Add(new SasiadInfo
+                                {
+                                    RowIdElementu = konf.RowId,
+                                    IdRegionu = stan.IdRegion,
+                                    ZIndeks = stan.ZIndeks,
+                                    MaSlupekRuchomy = czyModelMaSlupekRuchomy,
+                                    Id = stan.Id,
+                                    WybranyTyp = konf.Typ ?? "BRAK",
+                                    KatSasiada = (int)katSasiada,
+                                    WystepujeGora = konf.WystepujeGora,
+                                    WystepujeDol = konf.WystepujeDol,
+                                    WystepujeLewa = konf.WystepujeLewa,
+                                    WystepujePrawa = konf.WystepujePrawa
+                                });
+                            }
                         }
                     }
                 }
             }
         }
 
+        // 🔹 Zwracanie wyniku
         var wynik = pasujace.OrderBy(p => p.Id).ToList();
 
         if (!wynik.Any())
@@ -3919,21 +4036,23 @@
             wynik.Add(new SasiadInfo
             {
                 RowIdElementu = Guid.Empty,
-                IdRegionu = "",
+                IdRegionu = Guid.Empty.ToString(),
                 ZIndeks = -1,
                 Id = 0,
                 MaSlupekRuchomy = false,
-                WybranyTyp = "BRAK-PASUJACEGO-SASIADA"
+                WybranyTyp = "BRAK-PASUJACEGO-SASIADA",
+                KatSasiada = kat
             });
         }
 
-        foreach(var sasiad in wynik)
+        foreach (var sasiad in wynik)
         {
-            Console.WriteLine($"🔍 ZnajdzSasiada -> Znaleziono sąsiada: IdRegionu: {sasiad.IdRegionu}, RowIdElementu: {sasiad.RowIdElementu}, ZIndeks: {sasiad.ZIndeks}, WybranyTyp: {sasiad.WybranyTyp}");
-        } 
+            Console.WriteLine($"🔍 ZnajdzSasiada -> Wynik: Znaleziono sąsiada: IdRegionu={sasiad.IdRegionu}, RowId={sasiad.RowIdElementu}, ZIndeks={sasiad.ZIndeks}, Typ={sasiad.WybranyTyp} Kąt sąsiada: {sasiad.KatSasiada} sasiad.WystepujeGora:{sasiad.WystepujeGora} sasiad.WystepujeDol: {sasiad.WystepujeDol}");
+        }
 
         return wynik;
     }
+
 
     private bool CzyPunktyRowne(XPoint p1, XPoint p2, double tolerancja)
     {
@@ -4128,9 +4247,15 @@
 
     private void ZapiszStanGeneratora(string idRegion, GeneratorState state)
     {
-        _generatorStates[idRegion + "/" + state.Id.ToString()] = state;
+        _generatorStates[$"{idRegion}"] = state;
 
-        Console.WriteLine($"✅ ZapiszStanGeneratora stan generatora dla regionu {idRegion}. Liczba _generatorStates: {_generatorStates?.Count ?? 0}");
+        Console.WriteLine($"✅ ZapiszStanGeneratora stan generatora dla regionu {idRegion}. _generatorStates.Count: {_generatorStates?.Count ?? 0}");
+
+        int i = 0;
+        foreach(var key in _generatorStates.Keys)
+        {
+            Console.WriteLine($"🔍 ZapiszStanGeneratora -> Klucz w słowniku: {key} _generatorStates.Count: {_generatorStates?.Count ?? 0} Korok: {i++}");
+        } 
 
         // powiadom Blazor UI, że dane się zmieniły
         _ = InvokeAsync(StateHasChanged);
@@ -4635,12 +4760,17 @@
 
     public class SasiadInfo
     {
-        public Guid RowIdElementu { get; set; }
+        public Guid RowIdElementu { get; set; }// RowId elementu sąsiada równoległego
         public string? IdRegionu { get; set; }
         public int ZIndeks { get; set; }
         public bool MaSlupekRuchomy { get; set; }
         public int Id { get; set; }
-        public string WybranyTyp { get; set; }
+        public string? WybranyTyp { get; set; }
+        public int KatSasiada { get; set; }
+        public bool WystepujeDol { get; set; } = false;
+        public bool WystepujeLewa { get; set; } = false;
+        public bool WystepujeGora { get; set; } = false;
+        public bool WystepujePrawa { get; set; } = false;
     }
 
     public class PrzesuniecieDto

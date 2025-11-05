@@ -611,7 +611,7 @@ namespace GEORGE.Client.Pages.Okna
                         {
                             foreach (var yy in xx.Wierzcholki)
                             {
-                                Console.WriteLine($"🔷 T5-T5 BoolElementLinia: {xx.BoolElementLinia} KatLinii:{xx.KatLinii} X:{yy.X} Y:{yy.X}");
+                                Console.WriteLine($"🔷 T5-T5 BoolElementLinia: {xx.BoolElementLinia} KatLinii:{xx.KatLinii} X:{yy.X} Y:{yy.Y} RowIdSasiada: {xx.RowIdSasiada} RowIdSasiadaStronaA: {xx.RowIdSasiadaStronaA} RowIdSasiadaStronaB: {xx.RowIdSasiadaStronaB}");
                             }
                         }
 
@@ -631,8 +631,10 @@ namespace GEORGE.Client.Pages.Okna
                             double topY = 0;
                             double bottomY = 0;
 
-                            var IdWymTop = daneKwadratu.FirstOrDefault(x => x.KatLinii is >= 0 and < 90)?.RowIdSasiada ?? Guid.Empty;
-                            var IdWymBottom = daneKwadratu.FirstOrDefault(x => x.KatLinii is >= 180 and < 270)?.RowIdSasiada ?? Guid.Empty;
+                            var IdWymTop = daneKwadratu.FirstOrDefault(s => s.BoolElementLinia)?.RowIdSasiadaStronaA ?? Guid.Empty;
+                            var IdWymBottom = daneKwadratu.FirstOrDefault(s => s.BoolElementLinia)?.RowIdSasiadaStronaB ?? Guid.Empty;
+
+                            Console.WriteLine($"🔷 Vertical shifts → IdWymTop:{IdWymTop}, IdWymBottom:{IdWymBottom}");
 
                             if (IdWymTop != Guid.Empty && IdWymBottom != Guid.Empty)
                             {
@@ -677,8 +679,8 @@ namespace GEORGE.Client.Pages.Okna
                             double leftX = 0;
                             double rightX = 0;
 
-                            var IdWymTop = daneKwadratu.FirstOrDefault(x => x.KatLinii is >= 270 and < 360)?.RowIdSasiada ?? Guid.Empty;
-                            var IdWymBottom = daneKwadratu.FirstOrDefault(x => x.KatLinii is >= 90 and < 180)?.RowIdSasiada ?? Guid.Empty;
+                            var IdWymTop = daneKwadratu.FirstOrDefault(s=> s.BoolElementLinia)?.RowIdSasiadaStronaA ?? Guid.Empty;
+                            var IdWymBottom = daneKwadratu.FirstOrDefault(s => s.BoolElementLinia)?.RowIdSasiadaStronaB ?? Guid.Empty;
 
                             if (IdWymTop != Guid.Empty && IdWymBottom != Guid.Empty)
                             {
