@@ -1006,7 +1006,8 @@ namespace GEORGE.Client.Pages.Okna
         {
             int count = points.Count;
 
-            Console.WriteLine($"🔷 Calculating offset polygon for {count} ElementLiniowy:{ElementLiniowy} points with profiles L:{profileLeft}, R:{profileRight}, T:{profileTop}, B:{profileBottom}");
+            if(count>0)
+            Console.WriteLine($"🔷 Calculating offset polygon for {count} X:{points[0].X} Y:{points[0].Y} ElementLiniowy:{ElementLiniowy} points with profiles L:{profileLeft}, R:{profileRight}, T:{profileTop}, B:{profileBottom}");
 
             if (count < 2)
                 throw new ArgumentException("Figura musi mieć co najmniej 2 punkty.");
