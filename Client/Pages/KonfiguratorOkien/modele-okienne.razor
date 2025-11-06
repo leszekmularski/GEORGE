@@ -2379,7 +2379,7 @@
                 .ToList();
 
             var slupkiStale = styczneLinie
-                .Where(x => x.TypLiniiDzielacej == "Słupek stały")
+                .Where(x => x.TypLiniiDzielacej == "Słupek stały" || x.TypLiniiDzielacej == "Podwójna rama")
                 .GroupBy(x => string.Join("|", x.Wierzcholki.Select(p => $"{p.X:F3},{p.Y:F3}")))
                 .Select(g => g.First())
                 .ToList();
