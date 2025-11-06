@@ -2368,63 +2368,114 @@
         if (styczneLinie.Count() > 0)
             Console.WriteLine($"⚠️⚠️⚠️ styczneLinie region rama/skrzydło: {styczneLinie.Count()} zawarteRegiony: {zawarteRegiony.Count()} styczneLinie:{styczneLinie[styczneLinie.Count() - 1].TypKsztaltu}  ⚠️");
 
+
         if (styczneLinie.Any())
         {
-
-            // Filtrujemy linie typu "Słupek ruchomy"
+            // 🔹 Grupowanie i usuwanie duplikatów słupków
             var slupkiRuchome = styczneLinie
                 .Where(x => x.TypLiniiDzielacej == "Słupek ruchomy")
+                .GroupBy(x => string.Join("|", x.Wierzcholki.Select(p => $"{p.X:F3},{p.Y:F3}")))
+                .Select(g => g.First())
                 .ToList();
 
-            if (slupkiRuchome.Any())
-            {
-                czyRegionZawieraSlupekRuchomy = true;
-                Console.WriteLine($"✅ Region {idRegion} zawiera słupek ruchomy.");
-                if (slupkiRuchome.Count == 1)
-                {
-                    // Mamy dokładnie jeden słupek → sprawdzamy, po której stronie kliknięto
-                    var sl = slupkiRuchome[0];
-                    double srodekX = (sl.Wierzcholki[0].X + sl.Wierzcholki[1].X) / 2;
+            var slupkiStale = styczneLinie
+                .Where(x => x.TypLiniiDzielacej == "Słupek stały")
+                .GroupBy(x => string.Join("|", x.Wierzcholki.Select(p => $"{p.X:F3},{p.Y:F3}")))
+                .Select(g => g.First())
+                .ToList();
 
-                    Console.WriteLine($"📏 klikX={klikX:F2}, srodekX={srodekX:F2} Ilość słupków: {slupkiRuchome.Count()}");
+            czyRegionZawieraSlupekRuchomy = slupkiRuchome.Any();
+
+            double tolerancjaKlik = 0.05; // aby uniknąć efektu granicznego
+
+            if (czyRegionZawieraSlupekRuchomy)
+            {
+                Console.WriteLine($"✅ Region {idRegion} zawiera słupek ruchomy w ilości: {slupkiRuchome.Count}.");
+
+                // Obliczamy środki X wszystkich słupków ruchomych
+                var srodkiRuchomych = slupkiRuchome
+                    .Select(sl => (sl.Wierzcholki[0].X + sl.Wierzcholki[1].X) / 2)
+                    .OrderBy(x => x)
+                    .ToList();
+
+                if (srodkiRuchomych.Count == 1)
+                {
+                    double srodekX = srodkiRuchomych.First();
+                    Console.WriteLine($"📏 klikX={klikX:F2}, srodekX={srodekX:F2}, 1 słupek ruchomy");
 
                     if (klikX > srodekX)
                     {
-
                         stronaLewa = true;
-                        Console.WriteLine("⬅️ Słupek ruchomy po lewej stronie.");
+                        Console.WriteLine("⬅️ Kliknięcie po prawej stronie słupka ruchomego → słupek po lewej stronie.");
                     }
                     else
                     {
                         stronaPrawa = true;
-                        Console.WriteLine("➡️ Słupek ruchomy po prawej stronie.");
+                        Console.WriteLine("➡️ Kliknięcie po lewej stronie słupka ruchomego → słupek po prawej stronie.");
                     }
                 }
-                else if (slupkiRuchome.Count() >= 2)
+                else if (srodkiRuchomych.Count >= 2)
                 {
-                    // Średnia X dwóch pierwszych punktów słupka
-                    double srodekX1 = slupkiRuchome[0].Wierzcholki[0].X;
-                    double srodekX2 = slupkiRuchome[1].Wierzcholki[0].X;
-                    double srodekX = (srodekX1 + srodekX2) / 2;
+                    // Dwa słupki ruchome – obliczamy środek między nimi
+                    double srodekX = (srodkiRuchomych.First() + srodkiRuchomych.Last()) / 2;
+                    Console.WriteLine($"📏 klikX={klikX:F2}, srodekX={srodekX:F2}, {srodkiRuchomych.Count} słupków ruchomych");
 
-                    Console.WriteLine($"📏 klikX={klikX:F2}, srodekX={srodekX:F2} Ilość słupków: {slupkiRuchome.Count()}");
+                    foreach (var sl in slupkiRuchome)
+                    {
+                        Console.WriteLine($"📐 Słupek ruchomy: {sl.Id} [{sl.Wierzcholki[0].X:F2},{sl.Wierzcholki[0].Y:F2}] → [{sl.Wierzcholki[1].X:F2},{sl.Wierzcholki[1].Y:F2}]");
+                    }
 
-                    // Określamy stronę kliknięcia względem środka słupka
+                    // Domyślnie — słupki ruchome po obu stronach
+                    stronaLewa = true;
+                    stronaPrawa = true;
+
+                    // Określamy kliknięcie względem środka
                     if (klikX > srodekX)
                     {
-                        stronaLewa = true;
-                        Console.WriteLine("⬅️ Słupek ruchomy po lewej stronie.");
-
+                        Console.WriteLine("⬅️ Kliknięcie po prawej stronie zestawu słupków → priorytet słupka ruchomego po lewej stronie.");
                     }
                     else
                     {
-                        stronaPrawa = true;
-                        Console.WriteLine("➡️ Słupek ruchomy po prawej stronie.");
+                        Console.WriteLine("➡️ Kliknięcie po lewej stronie zestawu słupków → priorytet słupka ruchomego po prawej stronie.");
+                    }
+
+                    // 🧱 Sprawdzamy, czy między słupkami ruchomymi znajduje się słupek stały
+                    if (slupkiStale.Any())
+                    {
+                        var srodkiStalych = slupkiStale
+                            .Select(sl => (sl.Wierzcholki[0].X + sl.Wierzcholki[1].X) / 2)
+                            .OrderBy(x => x)
+                            .ToList();
+
+                        double minRuchomy = srodkiRuchomych.First();
+                        double maxRuchomy = srodkiRuchomych.Last();
+
+                        foreach (var stalyX in srodkiStalych)
+                        {
+                            Console.WriteLine($"🧱 Słupek stały X={stalyX:F2}, klikX={klikX:F2}");
+
+                            // Jeśli słupek stały leży POMIĘDZY słupkami ruchomymi
+                            if (stalyX > minRuchomy && stalyX < maxRuchomy)
+                            {
+                                // Jeśli klik po lewej stronie słupka stałego → zablokuj prawą stronę
+                                if (klikX < stalyX)
+                                {
+                                    stronaPrawa = false;
+                                    Console.WriteLine("🚫 Słupek stały po prawej stronie kliknięcia → wyłączam prawą stronę.");
+                                }
+                                // Jeśli klik po prawej stronie słupka stałego → zablokuj lewą stronę
+                                else if (klikX > stalyX)
+                                {
+                                    stronaLewa = false;
+                                    Console.WriteLine("🚫 Słupek stały po lewej stronie kliknięcia → wyłączam lewą stronę.");
+                                }
+                            }
+                        }
                     }
                 }
                 else
                 {
-                    // Jeżeli jest więcej niż jeden słupek w regionie — uznajemy, że są po obu stronach
+                    // W razie większej liczby słupków — obie strony aktywne
                     stronaLewa = true;
                     stronaPrawa = true;
                     Console.WriteLine("↔️ Słupek ruchomy po obu stronach.");
@@ -2435,46 +2486,27 @@
                 Console.WriteLine($"⚠️ Region {idRegion} NIE zawiera słupka ruchomego.");
             }
 
-            var slupkiStale = styczneLinie
-                .Where(x => x.TypLiniiDzielacej == "Słupek stały" && x.Rama)
-                .ToList();
-
             if (slupkiStale.Any())
             {
-                double srodekX1 = slupkiStale[0].Wierzcholki[0].X;
-                double srodekX2 = slupkiStale[1].Wierzcholki[0].X;
-                double srodekX = (srodekX1 + srodekX2) / 2;
-
-                Console.WriteLine($"📏 klikX={klikX:F2}, srodekX={srodekX:F2} Ilość słupków stałych: {slupkiStale.Count()}");
-
-                // Określamy stronę kliknięcia względem środka słupka
-                if (klikX > srodekX)
-                {
-                    stronaLewa = true;
-                    Console.WriteLine("⬅️ Słupek stały po lewej stronie.");
-
-                }
-                else
-                {
-                    stronaPrawa = true;
-                    Console.WriteLine("➡️ Słupek stały po prawej stronie.");
-                }
-
+                Console.WriteLine($"📏 Region {idRegion} zawiera {slupkiStale.Count} słupków stałych.");
             }
             else
             {
                 Console.WriteLine($"⚠️ Region {idRegion} NIE zawiera słupka stałego.");
             }
 
-            generator.RuchomySlupekPoLewej = stronaLewa;
-            generator.RuchomySlupekPoPrawej = stronaPrawa;
-            Console.WriteLine($"⚠️ Próbuję ustawić w generatorze słupek ruchomy lub stały TA SAMA ZMIENNA! generator.RuchomySlupekPoLewej :{generator.RuchomySlupekPoLewej} generator.RuchomySlupekPoPrawej :{generator.RuchomySlupekPoPrawej}");
-
+            Console.WriteLine($"✅ Ustawiono w generatorze: Lewa={generator.RuchomySlupekPoLewej}, Prawa={generator.RuchomySlupekPoPrawej}");
         }
         else
         {
             Console.WriteLine($"⚠️ Region {idRegion} NIE zawiera linii stycznych.");
         }
+
+
+
+        generator.RuchomySlupekPoLewej = stronaLewa;
+        generator.RuchomySlupekPoPrawej = stronaPrawa;
+
 
         if (czyRegionZawieraSlupekRuchomy && SelectedModelType != "Rama" && SelectedModelType != "Słupek stały")
         {
@@ -2803,7 +2835,7 @@
                                    Math.Abs(maxX1 - stanMaxX) +
                                    Math.Abs(minY1 - stanMinY) +
                                    Math.Abs(maxY1 - stanMaxY);
-                        })
+                        }).OrderBy(s => s.Id) // To sprawdzenia czy wustycrczy sotować aby poprawnie wyszukiwać region!!!!
                         .FirstOrDefault();
                 }
             }
@@ -3587,8 +3619,6 @@
         };
         }
 
-        Console.WriteLine($"🔍 ZnajdzSasiada -> Szukam sąsiada dla linii o kącie {kat}° w regionie {obecnyRegionId} oraz wszystkieStany.Count: {wszystkieStany.Count()}");
-
         var p1 = linia[0];
         var p2 = linia[1];
 
@@ -3596,6 +3626,9 @@
         bool jestPozioma = Math.Abs(p1.Y - p2.Y) < tolerancja;
 
         var ileModelMaSlupkowStalych = wszystkieStany.SelectMany(s => s.ListaKwadratow.FindAll(x=>x.BoolElementLinia)).Count();
+
+        Console.WriteLine($"🔍 ZnajdzSasiada -> Szukam sąsiada dla linii o kącie {kat}° w regionie {obecnyRegionId} oraz wszystkieStany.Count: {wszystkieStany.Count()} ileModelMaSlupkowStalych: {ileModelMaSlupkowStalych} ruchomySlupekPoLewej: {ruchomySlupekPoLewej} ruchomySlupekPoPrawej: {ruchomySlupekPoPrawej}");
+
 
         var stanyDoPrzeszukania = wszystkieStany
             .Where(s => s.WierzcholkiWartosciNominalne != null && s.Id != id)// sprwdź słupki stałe  && !s.IdRegion.Contains(obecnyRegionId)
@@ -3796,11 +3829,12 @@
 
         List<SasiadInfo> wynik = pasujace.OrderBy(p => p.Id).ToList();
 
-        if (wynik.Count > 1 && wynik.Any(x => x.ZIndeks == 1))
+        if (wynik.Count > 1 && wynik.Any(x => x.ZIndeks == 1) && wynik.Any(x => x.KatSasiada == kat))
         {
             // 🔹 Wyszukiwanie pierwszeństwo słupek stały ZIndeks == 1
             var wybrany = wynik.First(x => x.ZIndeks == 1);
             wynik = new List<SasiadInfo> { wybrany };
+            Console.WriteLine($"🔍 ZnajdzSasiada -> Wybrano sąsiada ze ZIndeks == 1 w regionie {wybrany.IdRegionu} Kąt: {kat}");
         }
 
         if (!wynik.Any())
@@ -3822,11 +3856,11 @@
             Console.WriteLine($"🔍 ZnajdzSasiada -> Wynik: Znaleziono sąsiada: IdRegionu={sasiad.IdRegionu}, RowId={sasiad.RowIdElementu}, ZIndeks={sasiad.ZIndeks}, Typ={sasiad.WybranyTyp} Kąt sąsiada: {sasiad.KatSasiada} sasiad.WystepujeGora:{sasiad.WystepujeGora} sasiad.WystepujeDol: {sasiad.WystepujeDol}");
         }
 
+        await Task.CompletedTask;
+
         return wynik;
 
-        await Task.CompletedTask;
     }
-
 
     private bool CzyPunktyRowne(XPoint p1, XPoint p2, double tolerancja)
     {
