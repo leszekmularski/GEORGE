@@ -269,6 +269,7 @@
         <button @onclick="SelectPreviousShape">Poprzedni obiekt</button>
         <button @onclick="SelectNextShape">Następny obiekt</button>
     </div>
+
 }
 
 @code {
@@ -286,6 +287,9 @@
 
     private long _canvasX = 900;
     private long _canvasY = 600;
+
+    private long Szerokosc = 900;
+    private long Wysokosc = 600;
 
     private int _selectedShapeIndex = -1; // Przechowuje indeks aktualnie edytowanego kształtu
 
@@ -338,6 +342,7 @@
             }
         }
     }
+
 
     private RenderFragment SvgLine() => builder =>
        {

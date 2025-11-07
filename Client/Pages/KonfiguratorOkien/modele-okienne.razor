@@ -307,7 +307,7 @@
         }
 </style>
 
-<!-- Nagłówek -->
+<!-- Nagłówek Skypty są zapisane w pliku \JS\canvasHelpers.js i podpięte w index.html-->
 
 <div class="d-flex justify-content-between align-items-center mt-2 mb-2">
     <h3 class="mb-0">Modele Okienne</h3>
@@ -325,13 +325,13 @@
     <Panel Header="Wymiary, kolory itp. Okien" Key="1">
         <div class="form-group mt-3">
             <label>Szerokość:</label>
-            <input type="number" class="form-control" @bind="Szerokosc" />
+            <Input type="number" class="form-control" @bind-value="Szerokosc" />
 
             <label>Wysokość:</label>
-            <input type="number" class="form-control" @bind="Wysokosc" />
+            <Input type="number" class="form-control" @bind-value="Wysokosc" />
 
             <label>Kolor:</label>
-            <input type="color" class="form-control" @bind="Kolor" />
+            <Input type="color" class="form-control" @bind-value="Kolor" />
         </div>
         <Button OnClick="() => ZmienWymiaryOkna()">Zmień wymiary</Button>
         <Button OnClick="() => RozstawLinie()">Podziały ustaw symetrycznie</Button>
@@ -1000,95 +1000,7 @@
         try
         {
 
-            _shapes = ShapeService.Shapes;
-
-            if (_shapes != null && _shapes.Count() > 0)
-            {
-
-                double maxWysokosc = _shapes.Max(s => s.Wysokosc);
-                double maxSzerokosc = _shapes.Max(s => s.Szerokosc);
-
-                if (maxWysokosc > 0 && maxSzerokosc > 0)
-                {
-                    Wysokosc = (int)maxWysokosc;
-                    Szerokosc = (int)maxSzerokosc;
-                }
-
-                // Generuj regiony po transformacji
-                //  _regions = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)CanvasWidth, (int)CanvasHeight);
-                _regionsDualRama = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)Szerokosc, (int)Wysokosc, true);
-                _regionsSkrzydlo = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)Szerokosc, (int)Wysokosc, false); // ostatni parametr nie wiem czy potrzeby do sprawdzenia (czy rama true/falsa)
-
-                // foreach(var rdr in _regionsDualRama)
-                // {
-                //     // foreach (var rds in rdr.Wierzcholki)
-                //     //{
-                //     Console.WriteLine($"🔷 Region ramy: Id={rdr.Id}, Typ={rdr.TypKsztaltu}, Wierzchołki={string.Join(" | ", rdr.Wierzcholki.Select(p => $"({p.X},{p.Y})"))}");
-                //     //   }
-                // }
-                // foreach (var rdr in _regionsSkrzydlo)
-                // {
-                //     // foreach (var rds in rdr.Wierzcholki)
-                //     //{
-                //     Console.WriteLine($"🔷 Region skrzydło: Id={rdr.Id}, Typ={rdr.TypKsztaltu}, Wierzchołki={string.Join(" | ", rdr.Wierzcholki.Select(p => $"({p.X},{p.Y})"))}");
-                //     //   }
-                // }
-
-                //    await RozstawLinie(false); // Dodaj ten wiersz, aby wywołać metodę  RozstawLinie podczas inicjalizacji
-
-                foreach (var rds in _regionsSkrzydlo)
-                {
-                    var center = GeometryUtils.ObliczCentroid(rds.Wierzcholki);
-
-                    foreach (var rdr in _regionsDualRama)
-                    {
-                        if (GeometryUtils.CzyPunktWielokacie(center, rdr.Wierzcholki))
-                        {
-                            rds.IdRegionuPonizej = rdr.Id;
-                            // Console.WriteLine($"🔗 Region skrzydła {rds.Id} przypisany do regionu ramy {rdr.Id}");
-                            break; // Przypisz tylko pierwszą pasującą ramę
-                        }
-                    }
-                }
-
-                // 2. Oblicz skalę z zachowaniem proporcji tak, by dopasować do docelowych wymiarów
-                double scaleX = Szerokosc / CanvasWidth;
-                double scaleY = Wysokosc / CanvasHeight;
-                double scale = Math.Min(scaleX, scaleY) / 2;
-
-                scale = scale * 0.9;
-
-                double minX = 0;
-                double minY = 0;
-                double maxX = Szerokosc;
-                double maxY = Wysokosc;
-
-                double contentWidth = maxX - minX;
-                double contentHeight = maxY - minY;
-
-                double centerX = CanvasWidth / 2;
-                double centerY = CanvasHeight / 2;
-
-                double contentCenterX = (minX + maxX) / 2;
-                double contentCenterY = (minY + maxY) / 2;
-
-                _panX = centerX - contentCenterX * scale;
-                _panY = centerY - contentCenterY * scale;
-
-                Console.WriteLine($"🔍 OnInitializedAsync --> Przeskalowano kształty: skala={scale} CanvasWidth: {CanvasWidth} CanvasHeight: {CanvasHeight}");
-
-                await ApplyZoom(scale);
-
-                Console.WriteLine($"Odebrano dane _shapes: {_shapes.Count()}");
-
-                _context = null;
-                // await RedrawCanvas();
-
-            }
-            else
-            {
-                Console.WriteLine($"Odebrano dane _shapes: null");
-            }
+            await GenerujObrysPozZmianieWymiarow();
 
             Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
 
@@ -1152,6 +1064,84 @@
             hasCanvasError = true;
             StateHasChanged();
         }
+    }
+
+    private async Task GenerujObrysPozZmianieWymiarow()
+    {
+        _shapes = ShapeService.Shapes;
+
+        if (_shapes != null && _shapes.Count() > 0)
+        {
+
+            double maxWysokosc = _shapes.Max(s => s.Wysokosc);
+            double maxSzerokosc = _shapes.Max(s => s.Szerokosc);
+
+            if (maxWysokosc > 0 && maxSzerokosc > 0)
+            {
+                Wysokosc = (int)maxWysokosc;
+                Szerokosc = (int)maxSzerokosc;
+            }
+
+            // Generuj regiony po transformacji
+            //  _regions = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)CanvasWidth, (int)CanvasHeight);
+            _regionsDualRama = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)Szerokosc, (int)Wysokosc, true);
+            _regionsSkrzydlo = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)Szerokosc, (int)Wysokosc, false); // ostatni parametr nie wiem czy potrzeby do sprawdzenia (czy rama true/falsa)
+
+            foreach (var rds in _regionsSkrzydlo)
+            {
+                var center = GeometryUtils.ObliczCentroid(rds.Wierzcholki);
+
+                foreach (var rdr in _regionsDualRama)
+                {
+                    if (GeometryUtils.CzyPunktWielokacie(center, rdr.Wierzcholki))
+                    {
+                        rds.IdRegionuPonizej = rdr.Id;
+                        // Console.WriteLine($"🔗 Region skrzydła {rds.Id} przypisany do regionu ramy {rdr.Id}");
+                        break; // Przypisz tylko pierwszą pasującą ramę
+                    }
+                }
+            }
+
+            // 2. Oblicz skalę z zachowaniem proporcji tak, by dopasować do docelowych wymiarów
+            double scaleX = Szerokosc / CanvasWidth;
+            double scaleY = Wysokosc / CanvasHeight;
+            double scale = Math.Min(scaleX, scaleY) / 2;
+
+            scale = scale * 0.9;
+
+            double minX = 0;
+            double minY = 0;
+            double maxX = Szerokosc;
+            double maxY = Wysokosc;
+
+            double contentWidth = maxX - minX;
+            double contentHeight = maxY - minY;
+
+            double centerX = CanvasWidth / 2;
+            double centerY = CanvasHeight / 2;
+
+            double contentCenterX = (minX + maxX) / 2;
+            double contentCenterY = (minY + maxY) / 2;
+
+            _panX = centerX - contentCenterX * scale;
+            _panY = centerY - contentCenterY * scale;
+
+            Console.WriteLine($"🔍 OnInitializedAsync --> Przeskalowano kształty: skala={scale} CanvasWidth: {CanvasWidth} CanvasHeight: {CanvasHeight}");
+
+            await ApplyZoom(scale);
+
+            Console.WriteLine($"Odebrano dane _shapes: {_shapes.Count()}");
+
+            _context = null;
+            // await RedrawCanvas();
+
+        }
+        else
+        {
+            Console.WriteLine($"Odebrano dane _shapes: null");
+        }
+
+        await Task.Delay(50);
     }
 
     private void WybierzModel(KonfModele model)
@@ -1431,6 +1421,7 @@
 
     private async Task ApplyZoom(double newScale)
     {
+
         if (CanvasWidth == 0 || CanvasHeight == 0)
             return;
 
@@ -1445,6 +1436,12 @@
         _panY += (_zoomCenterY - _panY) * ratio;
 
         _currentScale = newScale;
+
+        if (_context == null)
+        {
+            Console.WriteLine("♻️ Odtwarzam kontekst Canvas po zmianie DOM.");
+            _context ??= await CanvasRef.CreateCanvas2DAsync();
+        }
 
         // Rysuj wszystkie kształty w przeskalowanym kontekście
         if (_context != null && _shapes != null)
@@ -1739,9 +1736,10 @@
 
                 if (_ListaModeliResrykcje != null)
                 {
-                    infoObiekt = new List<WyrobWymiaryOpis>();
+                    if (infoObiekt == null)
+                        infoObiekt = new List<WyrobWymiaryOpis>();
 
-                    string restrykcje = "Brak restrykcji :)";
+                    string restrykcje = "";
 
                     if (_ListaModeliResrykcje.KonstrMinSzer > Szerokosc)
                     {
@@ -1761,9 +1759,13 @@
                     }
 
                     // ✅ Poprawione: Utwórz nowy obiekt przed ustawieniem właściwości
-                    WyrobWymiaryOpis opisy = new WyrobWymiaryOpis(Szerokosc, Wysokosc, SelectedModelType, restrykcje);
 
-                    infoObiekt.Add(opisy);
+                    if(restrykcje != "")
+                    {
+                        WyrobWymiaryOpis opisy = new WyrobWymiaryOpis(Szerokosc, Wysokosc, SelectedModelType, restrykcje);
+
+                        infoObiekt.Add(opisy);
+                    }
 
                     infoBoom.Clear();// czyści listę przed dodaniem nowych elementów
 
@@ -1812,6 +1814,7 @@
 
     private async Task DrawStructureAndRestrykcje(int isTextureLoadedNZ = 999)
     {
+
         if (isTextureLoadedNZ == 0) isTextureLoaded = false;
 
         try
@@ -1826,24 +1829,12 @@
 
             if (!isTextureLoaded)
             {
-                // var baseUrl = Navigation.BaseUri;
-                // var imageUrl = $"{baseUrl}api/images/{woodPatternName}";
-
-                // await JS.InvokeVoidAsync("loadAndDrawTexture",
-                //     CanvasRef.CanvasReference,
-                //     imageUrl,
-                //     _dotNetHelper
-                // );
 
                 await OnlyRestrykcje();
 
-                // StateHasChanged();
-                // return;
             }
 
-            //await RenderFrame();
 
-            // Reszta kodu do rysowania...
         }
         catch (Exception ex)
         {
@@ -1890,7 +1881,11 @@
 
     public async ValueTask DisposeAsync()
     {
+        await JS.InvokeVoidAsync("cleanupEventListeners");
         await JS.InvokeVoidAsync("clearDotNetHelper");
+        await JS.InvokeVoidAsync("clearCanvasRef");
+        Console.WriteLine("✅ JavaScript cleanup completed");
+
         _dotNetHelper?.Dispose();
         _dotNetHelper = null;
         Console.WriteLine($"🧹 AsyncDispose wywołany. Obiekt: {this.GetHashCode()}");
@@ -1991,11 +1986,14 @@
 
     private async Task ZmienWymiaryOkna()
     {
+
         if (_shapes == null || !_shapes.Any())
         {
             Console.WriteLine("❌ Brak kształtów do przeskalowania!");
             return;
         }
+
+        _ksztaltyNaRegion.Clear();
 
         // 1) Znajdź ramę przed zmianą (przyjmuję, że rama jest w _regionsDualRama i ma flagę Rama=true lub typ)
         var ramaBefore = _regionsDualRama?.FirstOrDefault(r => r.Rama)
@@ -2145,38 +2143,61 @@
         }
 
 
-        await RedrawCanvas();
-        await ApplyZoom(_currentScale);
         await RozstawLinie(false);
+
+        await ApplyZoom(_currentScale);
+
+        await Task.Delay(200);
+
+        await _context.SetTransformAsync(1, 0, 0, 1, 0, 0);
+
+        // Wyczyść cały canvas
+        await _context.ClearRectAsync(0, 0, CanvasWidth, CanvasHeight);
+
+        // Opcjonalnie białe tło
+        await _context.SetFillStyleAsync("white");
+        await _context.FillRectAsync(0, 0, CanvasWidth, CanvasHeight);
+
+        await GenerujObrysPozZmianieWymiarow();
+
+        _dotNetHelper = null;
+
+        if (_dotNetHelper == null)
+        {
+            _dotNetHelper = DotNetObjectReference.Create(this);
+            await Task.Delay(25); // Krótkie opóźnienie dla płynności
+            await JS.InvokeVoidAsync("setDotNetHelper", _dotNetHelper);
+            // await Task.Delay(25); // Krótkie opóźnienie dla płynności
+            //Console.WriteLine($"🆕 DotNetObjectReference.Create(this) dla obiektu {this.GetHashCode()}");
+        }
 
         Console.WriteLine($"✅ Zmieniono wymiary i dopasowano skrzydła do nowej ramy: {Szerokosc}x{Wysokosc}");
     }
 
 
-    private async Task NormalizeGeneratedElements(ShapeRegion region, float nowaSzerokosc, float nowaWysokosc)
-    {
-        if (region == null || string.IsNullOrEmpty(region.Id))
-        {
-            Console.WriteLine("⚠️ Nieprawidłowy region.");
-            return;
-        }
+    // private async Task NormalizeGeneratedElements(ShapeRegion region, float nowaSzerokosc, float nowaWysokosc)
+    // {
+    //     if (region == null || string.IsNullOrEmpty(region.Id))
+    //     {
+    //         Console.WriteLine("⚠️ Nieprawidłowy region.");
+    //         return;
+    //     }
 
-        if (!_ksztaltyNaRegion.TryGetValue(region.Id, out var ksztaltyRegionu) || ksztaltyRegionu == null || ksztaltyRegionu.Count == 0)
-        {
-            Console.WriteLine($"⚠️ Brak wygenerowanych kształtów dla regionu {region.Id}.");
-            return;
-        }
+    //     if (!_ksztaltyNaRegion.TryGetValue(region.Id, out var ksztaltyRegionu) || ksztaltyRegionu == null || ksztaltyRegionu.Count == 0)
+    //     {
+    //         Console.WriteLine($"⚠️ Brak wygenerowanych kształtów dla regionu {region.Id}.");
+    //         return;
+    //     }
 
-        var regionPoints = region.Wierzcholki;
-        if (regionPoints == null || regionPoints.Count < 3)
-        {
-            Console.WriteLine($"⚠️ Region {region.Id} ma za mało punktów.");
-            return;
-        }
-        await GenerujElementyDlaRegionu(region.Id, nowaSzerokosc, nowaWysokosc);
+    //     var regionPoints = region.Wierzcholki;
+    //     if (regionPoints == null || regionPoints.Count < 3)
+    //     {
+    //         Console.WriteLine($"⚠️ Region {region.Id} ma za mało punktów.");
+    //         return;
+    //     }
+    //     await GenerujElementyDlaRegionu(region.Id, nowaSzerokosc, nowaWysokosc);
 
-        await Task.CompletedTask;
-    }
+    // }
 
     private async Task<bool> DodajWybranyKwadratOkna(string idRegion, List<XPoint> wierzcholki, double klikX, double klikY)
     {
@@ -3197,15 +3218,17 @@
         return Math.Abs(p1.X - p2.X) < epsilon && Math.Abs(p1.Y - p2.Y) < epsilon;
     }
 
-    private async Task<ShapeRegion> WyliczObszarSkrzydla(GeneratorState state,
-      double przesLewo, double przesPrawo, double przesGora, double przesDol,
-      bool stronaLewa, bool stronaPrawa, Generator generator,
-      ShapeRegion _regionsSkrzydlo)
-    {
 
+    private async Task<ShapeRegion> WyliczObszarSkrzydla(
+        GeneratorState state,
+        double przesLewo, double przesPrawo, double przesGora, double przesDol,
+        bool stronaLewa, bool stronaPrawa,
+        Generator generator,
+        ShapeRegion _regionsSkrzydlo)
+    {
         if (_regionsSkrzydlo == null)
         {
-            Console.WriteLine("❌ WyliczObszarSkrzydla-> Nie znaleziono regionu o podanym ID.");
+            Console.WriteLine("❌ WyliczObszarSkrzydla -> Nie znaleziono regionu o podanym ID.");
             return null;
         }
 
@@ -3213,21 +3236,19 @@
 
         if (regionPointsSkrzydlo == null || regionPointsSkrzydlo.Count < 3)
         {
-            Console.WriteLine("❌ WyliczObszarSkrzydla->  Region ma za mało punktów.");
+            Console.WriteLine("❌ WyliczObszarSkrzydla -> Region ma za mało punktów.");
             return null;
         }
 
-        // Oblicz bounding box z obecnych punktów
+        // 🔹 Oblicz bounding box
         double minX = regionPointsSkrzydlo.Min(p => p.X);
         double maxX = regionPointsSkrzydlo.Max(p => p.X);
         double minY = regionPointsSkrzydlo.Min(p => p.Y);
         double maxY = regionPointsSkrzydlo.Max(p => p.Y);
 
-
-        // Pobierz przesunięcia z boków
+        // 🔹 Pobierz przesunięcia z boków
         foreach (var bok in state.ListaKwadratow)
         {
-
             var polaczenieWartosci = await PobierzPolaczenia(bok.RowIdSasiada, bok.RowIdElementu, bok.Strona ?? "NaN");
             var spolaczenieStrona = polaczenieWartosci.FirstOrDefault();
 
@@ -3235,9 +3256,8 @@
                 ? Math.Abs(spolaczenieStrona.PrzesuniecieY)
                 : 0;
 
-            Console.WriteLine($"📦 WyliczObszarSkrzydla-> Sprawdzam bok: {bok.RowIdElementu}, Strona: {bok.Strona} przesY: {przesY}");
+            Console.WriteLine($"📦 WyliczObszarSkrzydla -> Sprawdzam bok: {bok.RowIdElementu}, Strona: {bok.Strona}, przesY: {przesY}");
 
-            // ustaw z połączenia
             switch (bok.Strona.ToLower())
             {
                 case "lewa": przesLewo = przesY; break;
@@ -3256,7 +3276,7 @@
                 {
                     double fallback = -((konf.PoziomDol ?? 0) - (konf.PoziomOsSymetrii ?? 0));
 
-                    Console.WriteLine($"📦 WyliczObszarSkrzydla-> bok.RowIdElementu: {bok.RowIdElementu} konf.PoziomDol: {(konf.PoziomDol ?? 0)} - konf.PoziomOsSymetrii: {(konf.PoziomOsSymetrii ?? 0)} / przesLewo: {przesLewo} przesPrawo: {przesPrawo}");
+                    Console.WriteLine($"📦 WyliczObszarSkrzydla -> bok.RowIdElementu: {bok.RowIdElementu}, fallback: {fallback}");
 
                     switch (bok.Strona.ToLower())
                     {
@@ -3269,40 +3289,97 @@
             }
         }
 
-        // Przesuń punkty konturu
+        // 🔧 Przesuń punkty konturu — teraz po normalnych do krawędzi (obsługuje trapezy)
+        var nowePunkty = new List<XPoint>();
+
         for (int i = 0; i < regionPointsSkrzydlo.Count; i++)
         {
-            var punkt = regionPointsSkrzydlo[i];
+            var prev = regionPointsSkrzydlo[(i - 1 + regionPointsSkrzydlo.Count) % regionPointsSkrzydlo.Count];
+            var curr = regionPointsSkrzydlo[i];
+            var next = regionPointsSkrzydlo[(i + 1) % regionPointsSkrzydlo.Count];
 
-            if (Math.Abs(punkt.X - minX) < 0.1)
-                punkt.X += przesLewo;
-            else if (Math.Abs(punkt.X - maxX) < 0.1)
-                punkt.X -= przesPrawo;
+            // Wektor poprzedniej i następnej krawędzi
+            var dir1 = new XPoint(curr.X - prev.X, curr.Y - prev.Y);
+            var dir2 = new XPoint(next.X - curr.X, next.Y - curr.Y);
 
-            if (Math.Abs(punkt.Y - maxY) < 0.1)
-                punkt.Y -= przesDol;
-            else if (Math.Abs(punkt.Y - minY) < 0.1)
-                punkt.Y += przesGora;
+            // Normalizuj
+            double len1 = Math.Sqrt(dir1.X * dir1.X + dir1.Y * dir1.Y);
+            double len2 = Math.Sqrt(dir2.X * dir2.X + dir2.Y * dir2.Y);
+            if (len1 < 0.0001 || len2 < 0.0001)
+            {
+                nowePunkty.Add(curr);
+                continue;
+            }
+            dir1.X /= len1; dir1.Y /= len1;
+            dir2.X /= len2; dir2.Y /= len2;
 
-            regionPointsSkrzydlo[i] = punkt;
+            // Wektory normalne (prostopadłe)
+            var n1 = new XPoint(-dir1.Y, dir1.X);
+            var n2 = new XPoint(-dir2.Y, dir2.X);
+
+            // Kąty normalnych
+            double kat1 = (Math.Atan2(n1.Y, n1.X) * 180.0 / Math.PI + 360) % 360;
+            double kat2 = (Math.Atan2(n2.Y, n2.X) * 180.0 / Math.PI + 360) % 360;
+
+            // Wybór przesunięcia na podstawie kierunku
+            double offset1 = (kat1 >= 315 || kat1 < 45) ? przesLewo :
+                             (kat1 >= 45 && kat1 < 135) ? przesGora  :
+                             (kat1 >= 135 && kat1 < 225) ? przesPrawo :
+                             przesDol;
+
+            double offset2 = (kat2 >= 315 || kat2 < 45) ? przesLewo :
+                             (kat2 >= 45 && kat2 < 135) ? przesGora :
+                             (kat2 >= 135 && kat2 < 225) ? przesPrawo :
+                             przesDol;
+
+            // Przesuń obie linie wzdłuż ich normalnych
+            var p1a = new XPoint(prev.X + n1.X * offset1, prev.Y + n1.Y * offset1);
+            var p1b = new XPoint(curr.X + n1.X * offset1, curr.Y + n1.Y * offset1);
+
+            var p2a = new XPoint(curr.X + n2.X * offset2, curr.Y + n2.Y * offset2);
+            var p2b = new XPoint(next.X + n2.X * offset2, next.Y + n2.Y * offset2);
+
+            // Oblicz przecięcie przesuniętych linii (czyli nowy wierzchołek)
+
+            var nowy = PrzeciecieLinii(p1a, p1b, p2a, p2b);
+            nowePunkty.Add(nowy ?? new XPoint(curr.X, curr.Y));
         }
 
+        regionPointsSkrzydlo = nowePunkty;
+
         double minXSPRAWDZENIE = regionPointsSkrzydlo.Min(p => p.X);
+        Console.WriteLine($"📦📦📦 WyliczObszarSkrzydla -> Po przesunięciu minX: {minXSPRAWDZENIE}, przesLewo: {przesLewo}, przesPrawo: {przesPrawo}, przesGora: {przesGora}, przesDol: {przesDol}");
 
-        Console.WriteLine($"📦📦📦 WyliczObszarSkrzydla-> Po przesunięciu minX: {minXSPRAWDZENIE}, przesLewo: {przesLewo}, przesPrawo: {przesPrawo}, przesGora: {przesGora}, przesDol: {przesDol}");
-
-
+        // 🔹 Zaktualizuj offsety w stanie
         if (state != null && state.ListaKwadratow.Count() > 0)
         {
-            state.ListaKwadratow[state.ListaKwadratow.Count() - 1].OffsetLeft = przesLewo;
-            state.ListaKwadratow[state.ListaKwadratow.Count() - 1].OffsetRight = przesPrawo;
-            state.ListaKwadratow[state.ListaKwadratow.Count() - 1].OffsetTop = przesGora;
-            state.ListaKwadratow[state.ListaKwadratow.Count() - 1].OffsetBottom = przesDol;
+            state.ListaKwadratow[^1].OffsetLeft = przesLewo;
+            state.ListaKwadratow[^1].OffsetRight = przesPrawo;
+            state.ListaKwadratow[^1].OffsetTop = przesGora;
+            state.ListaKwadratow[^1].OffsetBottom = przesDol;
         }
 
         _regionsSkrzydlo.Wierzcholki = regionPointsSkrzydlo;
-
         return _regionsSkrzydlo;
+    }
+
+    private XPoint? PrzeciecieLinii(XPoint p1, XPoint p2, XPoint p3, XPoint p4)
+    {
+        double A1 = p2.Y - p1.Y;
+        double B1 = p1.X - p2.X;
+        double C1 = A1 * p1.X + B1 * p1.Y;
+
+        double A2 = p4.Y - p3.Y;
+        double B2 = p3.X - p4.X;
+        double C2 = A2 * p3.X + B2 * p3.Y;
+
+        double det = A1 * B2 - A2 * B1;
+        if (Math.Abs(det) < 0.0001)
+            return null; // teraz poprawnie, bo typ jest XPoint?
+
+        double x = (B2 * C1 - B1 * C2) / det;
+        double y = (A1 * C2 - A2 * C1) / det;
+        return new XPoint(x, y);
     }
 
 
@@ -3343,6 +3420,24 @@
 
     private async Task<List<PrzesuniecieDto>> PobierzPolaczenia(Guid zewId, Guid wewId, string strona)
     {
+        if (zewId == Guid.Empty || wewId == Guid.Empty || string.IsNullOrWhiteSpace(strona))
+        {
+            if (infoObiekt == null)
+            {
+                infoObiekt = new List<WyrobWymiaryOpis>();
+            }
+
+            if(string.IsNullOrWhiteSpace(strona))
+            {
+                strona = "NaN";
+            }
+
+            WyrobWymiaryOpis opisy = new WyrobWymiaryOpis(Szerokosc, Wysokosc, SelectedModelType ?? "", $"Nie wyszukano indesku elementu dla strony: {strona}");
+            infoObiekt.Add(opisy);
+
+            return new List<PrzesuniecieDto>();
+        }
+
         try
         {
             Console.WriteLine($"📦 PobierzPolaczenia-> Pobieram przesunięcia zewnątrz: {zewId} wewnątrz: {wewId} strona: {strona}");
@@ -3401,25 +3496,51 @@
         return new List<KonfPolaczenie>();
     }
 
-    public static string StronaSzukaj(int kat, List<XPoint> linia, double regionMinY, double regionMaxY, double regionMinX, double regionMaxX)
+    public static string StronaSzukaj(double kat, List<XPoint> linia, double regionMinY, double regionMaxY, double regionMinX, double regionMaxX)
     {
+        // Normalizacja kąta
+        kat = (kat + 360) % 360;
+
+        // Przybliżenie kąta do jednej z głównych orientacji
+        int katZnormalizowany;
+        if (kat >= 315 || kat < 45)
+            katZnormalizowany = 0;
+        else if (kat >= 45 && kat < 135)
+            katZnormalizowany = 90;
+        else if (kat >= 135 && kat < 225)
+            katZnormalizowany = 180;
+        else
+            katZnormalizowany = 270;
+
         string strona = "";
-        if (kat == 0 || kat == 180) // Linie poziome
-        {
-            double avgY = (linia[0].Y + linia[1].Y) / 2;
+        double tol = 0.15; // zwiększona tolerancja
 
-            if (Math.Abs(avgY - regionMinY) < 0.1) strona = "góra";
-            else if (Math.Abs(avgY - regionMaxY) < 0.1) strona = "dół";
-        }
-        else if (kat == 90 || kat == 270) // Linie pionowe
-        {
-            double avgX = (linia[0].X + linia[1].X) / 2;
+        double x1 = linia[0].X;
+        double y1 = linia[0].Y;
+        double x2 = linia[1].X;
+        double y2 = linia[1].Y;
 
-            if (Math.Abs(avgX - regionMinX) < 0.1) strona = "lewa";
-            else if (Math.Abs(avgX - regionMaxX) < 0.1) strona = "prawa";
+        if (katZnormalizowany == 0 || katZnormalizowany == 180)
+        {
+            // Linie poziome – porównujemy po Y
+            if (Math.Abs(y1 - regionMinY) < tol || Math.Abs(y2 - regionMinY) < tol)
+                strona = "góra";
+            else if (Math.Abs(y1 - regionMaxY) < tol || Math.Abs(y2 - regionMaxY) < tol)
+                strona = "dół";
         }
+        else if (katZnormalizowany == 90 || katZnormalizowany == 270)
+        {
+            // Linie pionowe – porównujemy po X
+            if (Math.Abs(x1 - regionMinX) < tol || Math.Abs(x2 - regionMinX) < tol)
+                strona = "lewa";
+            else if (Math.Abs(x1 - regionMaxX) < tol || Math.Abs(x2 - regionMaxX) < tol)
+                strona = "prawa";
+        }
+
+        Console.WriteLine($"📐 StronaSzukaj → kat={kat:F1}° ({katZnormalizowany}°) → strona={strona} (X1={x1:F2}, X2={x2:F2}, minX={regionMinX:F2}, maxX={regionMaxX:F2})");
         return strona;
     }
+
 
     public static int ObliczKatLinii(List<XPoint> linia)
     {
@@ -3457,8 +3578,20 @@
         var p1 = linia[0];
         var p2 = linia[1];
 
-        bool jestPionowa = Math.Abs(p1.X - p2.X) < 0.01;
-        bool jestPozioma = Math.Abs(p1.Y - p2.Y) < 0.01;
+        // bool jestPionowa = Math.Abs(p1.X - p2.X) < 0.01;
+        // bool jestPozioma = Math.Abs(p1.Y - p2.Y) < 0.01;
+
+
+        // Oblicz orientację linii
+        double dx = p2.X - p1.X;
+        double dy = p2.Y - p1.Y;
+        double katLinii = Math.Atan2(dy, dx) * 180.0 / Math.PI;
+        katLinii = (katLinii + 360) % 180;
+
+        // Ustal tolerancję kierunku
+        const double katTolerancja = 15.0;
+        bool jestPionowa = Math.Abs(katLinii - 90.0) <= katTolerancja;
+        bool jestPozioma = katLinii <= katTolerancja || Math.Abs(katLinii - 180.0) <= katTolerancja;
 
         double minX = stan.WierzcholkiWartosciNominalne.Min(v => v.X);
         double maxX = stan.WierzcholkiWartosciNominalne.Max(v => v.X);
@@ -3622,8 +3755,46 @@
         var p1 = linia[0];
         var p2 = linia[1];
 
-        bool jestPionowa = Math.Abs(p1.X - p2.X) < tolerancja;
-        bool jestPozioma = Math.Abs(p1.Y - p2.Y) < tolerancja;
+        // Obliczamy różnicę współrzędnych
+        double dx = p2.X - p1.X;
+        double dy = p2.Y - p1.Y;
+
+        // Kąt linii względem osi X
+        double katLinii = Math.Atan2(dy, dx) * 180.0 / Math.PI;
+        katLinii = (katLinii + 360) % 180; // normalizacja do 0–180°
+
+        double tmpkat = (kat + 360) % 360;
+
+        int katLiniiPionPoziom;
+
+        if (tmpkat >= 0 && tmpkat < 45)
+        {
+            katLiniiPionPoziom = 0;
+        }
+        else if (tmpkat >= 45 && tmpkat < 135)
+        {
+            katLiniiPionPoziom = 90;
+        }
+        else if (tmpkat >= 135 && tmpkat < 225)
+        {
+            katLiniiPionPoziom = 180;
+        }
+        else if (tmpkat >= 225 && tmpkat < 315)
+        {
+            katLiniiPionPoziom = 270;
+        }
+        else // kat >= 315
+        {
+            katLiniiPionPoziom = 0;
+        }
+
+        Console.WriteLine($"📐 ZnajdzSasiada -> Kąt linii: {katLinii}°, Zaokrąglony do pion/poziom: {katLiniiPionPoziom}° kat: {kat}");
+
+        const double katTolerancja = 15.0; // możesz dopasować np. 10–20 stopni
+
+        bool jestPionowa = Math.Abs(katLinii - 90.0) <= katTolerancja;
+        bool jestPozioma = katLinii <= katTolerancja || Math.Abs(katLinii - 180.0) <= katTolerancja;
+
 
         var ileModelMaSlupkowStalych = wszystkieStany.SelectMany(s => s.ListaKwadratow.FindAll(x=>x.BoolElementLinia)).Count();
 
@@ -3666,8 +3837,9 @@
                 double katNormalny = ((katSasiada % 180) + 180) % 180;
                 double katLinia = ((kat % 180) + 180) % 180;
 
+                Console.WriteLine($"🔍 ZnajdzSasiada -> #1 ({katNormalny} - {katLinia}) < 44.0");
                 // 🔹 Odrzuć równoległe jeśli szukamy nie równoległych
-                if (szukajNieRownoleglych && Math.Abs(katNormalny - katLinia) < 10.0)
+                if (szukajNieRownoleglych && Math.Abs(katNormalny - katLinia) < 44.0)
                     continue;
 
                 bool przecinajaSie = false;
@@ -3680,7 +3852,7 @@
                     if (!przecinajaSie)
                         continue;
 
-                    Console.WriteLine($"🔍 ZnajdzSasiada -> przecinajaSie z regionem {stan.IdRegion}");
+                    Console.WriteLine($"🔍 ZnajdzSasiada -> #1 przecinajaSie z regionem {stan.IdRegion} katSasiada: {katSasiada} katNormalny: {katNormalny} katLinia: {katLinia}");
                 }
                 else
                 {
@@ -3689,17 +3861,23 @@
                     if (!nakladaja)
                         continue;
 
-                    Console.WriteLine($"🔍 ZnajdzSasiada -> nakładają się z regionem {stan.IdRegion}");
+                    Console.WriteLine($"🔍 ZnajdzSasiada -> #1 nakładają się z regionem {stan.IdRegion} katSasiada: {katSasiada} katNormalny: {katNormalny} katLinia: {katLinia} jestPionowa: {jestPionowa} szukajNieRownoleglych: {szukajNieRownoleglych}");
                 }
 
                 // 🔹 Jeśli doszliśmy tutaj, to mamy sąsiada
                 var konfLista = stan.MVCKonfModelu?.KonfSystem;
-                if (konfLista == null) continue;
+                if (konfLista == null)
+                {
+                    Console.WriteLine($"🔍 ZnajdzSasiada -> #1 Brak konfiguracji systemu dla stanu IdRegion: {stan.IdRegion}, Id: {stan.Id}");
+                    continue; 
+                }
 
                 foreach (var konf in konfLista)
                 {
                     if (jestPionowa)
                     {
+                        double srodekRegionuX = (stanMinX + stanMaxX) / 2;
+
                         if (szukajNieRownoleglych)
                         {
                             // 👇 W trybie przecinających dodajemy niezależnie od X
@@ -3717,12 +3895,13 @@
                                 WystepujeLewa = konf.WystepujeLewa,
                                 WystepujePrawa = konf.WystepujePrawa
                             });
+
                             Console.WriteLine($"✅ Dodano przecinającego sąsiada pionowego w regionie {stan.IdRegion}");
                         }
                         else
                         {
                             // 🔹 Standardowe sprawdzenie równoległych
-                            if (Math.Abs(p1.X - stanMinX) < tolerancja && konf.WystepujeLewa)
+                            if (katLiniiPionPoziom == 270 && konf.WystepujeLewa)
                             {
                                 pasujace.Add(new SasiadInfo
                                 {
@@ -3740,7 +3919,9 @@
                                 });
                             }
 
-                            if (Math.Abs(p1.X - stanMaxX) < tolerancja && konf.WystepujePrawa)
+                            Console.WriteLine($"🔍 ZnajdzSasiada #1 -> Sprawdzam prawą stronę p1.X: {p1.X} stanMaxX: {stanMaxX} tolerancja: {tolerancja} konf.WystepujePrawa: {konf.WystepujePrawa} katNormalny: {katNormalny} katLinia: {katLinia}");
+
+                            if (katLiniiPionPoziom == 90 && konf.WystepujePrawa)
                             {
                                 pasujace.Add(new SasiadInfo
                                 {
@@ -3783,7 +3964,7 @@
                         else
                         {
                             // 🔹 Standardowe sprawdzenie równoległych
-                            if (Math.Abs(p1.Y - stanMinY) < tolerancja && konf.WystepujeGora)
+                            if (katLiniiPionPoziom == 0 && konf.WystepujeGora)
                             {
                                 pasujace.Add(new SasiadInfo
                                 {
@@ -3801,7 +3982,7 @@
                                 });
                             }
 
-                            if (Math.Abs(p1.Y - stanMaxY) < tolerancja && konf.WystepujeDol)
+                            if (katLiniiPionPoziom == 180 && konf.WystepujeDol)
                             {
                                 pasujace.Add(new SasiadInfo
                                 {
@@ -3822,6 +4003,7 @@
                     }
                 }
             }
+
         }
 
         // 🔹 Zwracanie wyniku
@@ -3849,6 +4031,18 @@
                 WybranyTyp = "BRAK-PASUJACEGO-SASIADA",
                 KatSasiada = kat
             });
+
+            if(SelectedModelType != "Rama")//Rama nie ma sąsiadów
+            {
+                if (infoObiekt == null)
+                {
+                    infoObiekt = new List<WyrobWymiaryOpis>();
+                }
+
+                WyrobWymiaryOpis opisy = new WyrobWymiaryOpis(Szerokosc, Wysokosc, SelectedModelType ?? "", $"Nie wyszukano połączenia dla ementów w pozycji (kąt elementu): {kat}°");
+                infoObiekt.Add(opisy);
+            }
+
         }
 
         foreach (var sasiad in wynik)
@@ -3972,51 +4166,55 @@
 
     private static bool CzyNakladajaSieDowolne(XPoint a1, XPoint a2, XPoint b1, XPoint b2, double tol = 0.02, int kat = 0)
     {
-        bool jestPionowa = Math.Abs(a1.X - a2.X) < tol && Math.Abs(b1.X - b2.X) < tol;
-        bool jestPozioma = Math.Abs(a1.Y - a2.Y) < tol && Math.Abs(b1.Y - b2.Y) < tol;
+        // 🔹 Wektor kierunkowy pierwszej linii
+        double dxA = a2.X - a1.X;
+        double dyA = a2.Y - a1.Y;
+        double dlugoscA = Math.Sqrt(dxA * dxA + dyA * dyA);
 
-        if (jestPionowa)
+        // 🔹 Normalizacja
+        double ux = dxA / dlugoscA;
+        double uy = dyA / dlugoscA;
+
+        // 🔹 Wektor kierunkowy drugiej linii
+        double dxB = b2.X - b1.X;
+        double dyB = b2.Y - b1.Y;
+        double dlugoscB = Math.Sqrt(dxB * dxB + dyB * dyB);
+
+        // 🔹 Oblicz kąt między liniami (równoległość)
+        double cosTheta = (dxA * dxB + dyA * dyB) / (dlugoscA * dlugoscB);
+        double katMiedzy = Math.Acos(Math.Min(1, Math.Max(-1, cosTheta))) * 180.0 / Math.PI;
+
+        // Jeśli linie są zbyt skośne względem siebie → nie traktuj jako nakładające się
+        if (katMiedzy > 10.0 && katMiedzy < 170.0)
         {
-            // Sprawdź czy X jest blisko siebie
-            if (Math.Abs(a1.X - b1.X) > tol)
-            {
-                Console.WriteLine($"🔍 ZnajdzSasiada -> CzyNakladajaSieDowolne jestPionowa: {jestPionowa} jestPozioma: {jestPozioma} {a1.X} - {b1.X} kąt: {kat} - FALSE");
-                return false;
-            }
-
-            Console.WriteLine($"🔍 ZnajdzSasiada -> CzyNakladajaSieDowolne jestPionowa: {jestPionowa} jestPozioma: {jestPozioma} {a1.X} - {b1.X} kąt: {kat}  - TRUE");
-            // Sprawdź nakładanie w osi Y
-            double aMin = Math.Min(a1.Y, a2.Y);
-            double aMax = Math.Max(a1.Y, a2.Y);
-            double bMin = Math.Min(b1.Y, b2.Y);
-            double bMax = Math.Max(b1.Y, b2.Y);
-
-            return aMax >= bMin - tol && bMax >= aMin - tol;
-        }
-        else if (jestPozioma)
-        {
-            // Sprawdź czy Y jest blisko siebie
-            if (Math.Abs(a1.Y - b1.Y) > tol)
-            {
-                Console.WriteLine($"🔍 ZnajdzSasiada -> CzyNakladajaSieDowolne jestPionowa: {jestPionowa} jestPozioma: {jestPozioma} {a1.Y} - {b1.Y} kąt: {kat}  - FALSE");
-                return false;
-            }
-
-            Console.WriteLine($"🔍 ZnajdzSasiada -> CzyNakladajaSieDowolne jestPionowa: {jestPionowa} jestPozioma: {jestPozioma} {a1.Y} - {b1.Y} kąt: {kat} - TRUE");
-
-            // Sprawdź nakładanie w osi X
-            double aMin = Math.Min(a1.X, a2.X);
-            double aMax = Math.Max(a1.X, a2.X);
-            double bMin = Math.Min(b1.X, b2.X);
-            double bMax = Math.Max(b1.X, b2.X);
-
-            return aMax >= bMin - tol && bMax >= aMin - tol;
+            Console.WriteLine($"🚫 Linie nie są równoległe (Δkat={katMiedzy:F1}°)");
+            return false;
         }
 
-        // W innych przypadkach fallback – np. skośne
-        return false;
+        // 🔹 Rzutujemy punkty B na kierunek linii A (sprawdzamy nakładanie się)
+        double aMin = 0;
+        double aMax = dlugoscA;
+
+        // odległość między punktami wzdłuż linii A
+        double projB1 = ((b1.X - a1.X) * ux + (b1.Y - a1.Y) * uy);
+        double projB2 = ((b2.X - a1.X) * ux + (b2.Y - a1.Y) * uy);
+        double bMin = Math.Min(projB1, projB2);
+        double bMax = Math.Max(projB1, projB2);
+
+        // 🔹 Odległość prostopadła między liniami (czy leżą blisko)
+        double odleglosc = Math.Abs((b1.X - a1.X) * (-uy) + (b1.Y - a1.Y) * ux);
+        if (odleglosc > tol * 10) // większa tolerancja, bo kąty skośne
+        {
+            Console.WriteLine($"🚫 Linie równoległe, ale odległość={odleglosc:F3} > tol={tol}");
+            return false;
+        }
+
+        // 🔹 Sprawdź nakładanie projekcji
+        bool nakladaja = aMax >= bMin - tol && bMax >= aMin - tol;
+
+        Console.WriteLine($"🔍 CzyNakladajaSieDowolne -> Δkat={katMiedzy:F1}°, odległość={odleglosc:F3}, nakładają={nakladaja}");
+        return nakladaja;
     }
-
 
     private readonly struct Vector2D
     {
@@ -4166,8 +4364,14 @@
     {
         if (!_generatorStates.TryGetValue(idRegion, out var state))
         {
-            Console.WriteLine($"❌ Brak stanu generatora dla regionu {idRegion}");
+            await GenerujObrysPozZmianieWymiarow();
+
+            Console.WriteLine($"❌ Brak stanu generatora dla regionu {idRegion}, żeden model nie został dodany!");
             return;
+        }
+        else
+        {
+            await GenerujObrysPozZmianieWymiarow();
         }
 
         var generator = new Generator
