@@ -1,0 +1,102 @@
+﻿@using GEORGE.Client.Pages.Models
+
+<h3 class="mb-3">📋 Lista zapisanych właściwości okna</h3>
+
+@if (Model == null)
+{
+    <p class="text-muted">Brak zapisanych danych na temat budowy okna.</p>
+}
+else
+{
+    <EditForm Model="Model">
+        <DataAnnotationsValidator />
+
+        <div class="row">
+            <div class="col-md-6">
+
+                <div class="mb-2">
+                    <label>Szerokość</label>
+                    <AntDesign.InputNumber class="form-control" @bind-Value="Model.Szerokosc" />
+                </div>
+
+                <div class="mb-2">
+                    <label>Wysokość</label>
+                    <AntDesign.InputNumber class="form-control" @bind-Value="Model.Wysokosc" />
+                </div>
+
+                <div class="mb-2">
+                    <label>Kolor zewnętrzny</label>
+                    <InputText class="form-control" @bind-Value="Model.KolorZewnetrzny" />
+                </div>
+
+                <div class="mb-2">
+                    <label>Kolor wewnętrzny</label>
+                    <InputText class="form-control" @bind-Value="Model.KolorWewnetrzny" />
+                </div>
+
+                <div class="mb-2">
+                    <label>Kolor szyby</label>
+                    <InputText class="form-control" @bind-Value="Model.KolorSzyby" />
+                </div>
+
+                <div class="mb-2">
+                    <label>Typ szyby</label>
+                    <InputText class="form-control" @bind-Value="Model.TypSzyby" />
+                </div>
+
+                <div class="mb-2">
+                    <label>Typ klamki</label>
+                    <InputText class="form-control" @bind-Value="Model.TypKlamki" />
+                </div>
+
+                <div class="mb-2">
+                    <label>Typ uszczelek</label>
+                    <InputText class="form-control" @bind-Value="Model.TypUszczelek" />
+                </div>
+
+            </div>
+
+            <div class="col-md-6">
+
+                <div class="mb-2">
+                    <label>Typ osłon przeciwsłonecznych</label>
+                    <InputText class="form-control" @bind-Value="Model.TypOslonPrzeciwsłonecznych" />
+                </div>
+
+                <div class="mb-2">
+                    <label>Typ montażu</label>
+                    <InputText class="form-control" @bind-Value="Model.TypMontazu" />
+                </div>
+
+                <div class="mb-2">
+                    <label>Grubość pakietu</label>
+                    <AntDesign.InputNumber class="form-control" @bind-Value="Model.GruboscPakietu" />
+                </div>
+
+                <div class="mb-2">
+                    <label>Uw szyby</label>
+                    <AntDesign.InputNumber class="form-control" @bind-Value="Model.WspolczynnikPrzepuszczalnosciCieplaSzyby" />
+                </div>
+
+                <div class="mb-2">
+                    <label>Uw okna</label>
+                    <AntDesign.InputNumber class="form-control" @bind-Value="Model.WspolczynnikPrzepuszczalnosciCieplaOkna" />
+                </div>
+            </div>
+        </div>
+
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public ConstWlasciwosciOkna? Model { get; set; }
+        // parent callback
+    [Parameter]
+    public EventCallback<ConstWlasciwosciOkna> OnSave { get; set; }
+
+        public async Task ZapiszDoRodzica()
+    {
+        await OnSave.InvokeAsync(Model);
+    }
+}

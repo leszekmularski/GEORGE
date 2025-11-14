@@ -218,6 +218,7 @@ namespace GEORGE.Client.Pages.Okna
                 profileLeft, profileRight, profileTop, profileBottom,
                 region.TypKsztaltu,
                 EdytowanyModel.PolaczenieNaroza,
+                EdytowanyModel.SposobLaczeniaCzop,
                 KonfiguracjeSystemu,
                 regionId,
                 RowIdprofileLeft, RowIdprofileRight, RowIdprofileTop, RowIdprofileBottom,
@@ -232,7 +233,7 @@ namespace GEORGE.Client.Pages.Okna
         private void GenerateGenericElementsWithJoins(
             List<XPoint> outer, List<XPoint> inner,
             float profileLeft, float profileRight, float profileTop, float profileBottom,
-            string typKsztalt, string polaczenia, List<KonfSystem> model, string regionId,
+            string typKsztalt, string polaczenia, bool sposobLaczeniaCzop, List<KonfSystem> model, string regionId,
             Guid rowIdprofileLeft, Guid rowIdprofileRight, Guid rowIdprofileTop, Guid rowIdprofileBottom,
             string rowIndeksprofileLeft, string rowIndeksprofileRight, string rowIndeksprofileTop, string rowIndeksprofileBottom,
             string rowNazwaprofileLeft, string rowNazwaprofileRight, string rowNazwaprofileTop, string rowNazwaprofileBottom,
@@ -355,6 +356,9 @@ namespace GEORGE.Client.Pages.Okna
                 float angleRadians = MathF.Atan2(dy, dx); // kąt w radianach
                 float angleDegrees = angleRadians * (180f / MathF.PI); // kąt w stopniach
 
+                bool dodajA = false;
+                bool dodajB = false;
+
                 // Przekształć do zakresu 0–360°, jeśli potrzebujesz
                 if (angleDegrees < 0)
                     angleDegrees += 360f;
@@ -375,6 +379,42 @@ namespace GEORGE.Client.Pages.Okna
                 bool isAlmostHorizontal = Math.Abs(dy) < 1e-2;
                 bool isAlmostVertical = Math.Abs(dx) < 1e-2;
 
+                if (sposobLaczeniaCzop)
+                {
+  
+                    if (leftJoin == "T1" && isAlmostVertical)
+                    {
+                        dodajA = true;
+                    }
+                    if (rightJoin == "T1" && isAlmostVertical)
+                    {
+                        dodajB = true;
+                    }
+                    if (leftJoin == "T3" && isAlmostHorizontal)
+                    {
+                        dodajA = true;
+                    }
+                    if (rightJoin == "T3" && isAlmostHorizontal)
+                    {
+                        dodajB = true;
+                    }
+                    if (leftJoin == "T5")
+                    {
+                        dodajA = true;
+                    }
+                    if (rightJoin == "T5")
+                    {
+                        dodajB = true;
+                    }
+                    if (leftJoin == "T2")
+                    {
+                        dodajA = true;
+                    }
+                    if (rightJoin == "T2")
+                    {
+                        dodajB = true;
+                    }
+                }
                 //bool isMoreHorizontal = Math.Abs(dy) < Math.Abs(dx); // To do poprawy kiedy jest pionowy a kiedy poziomy
                 //bool isMoreVertical = Math.Abs(dx) < Math.Abs(dy);
 
@@ -769,7 +809,7 @@ namespace GEORGE.Client.Pages.Okna
                 int wartoscY = (int)Math.Round(regionMaxY - regionMinY);
 
                 // Console.WriteLine($"leftJoin: {leftJoin} rightJoin:{rightJoin} wierzcholki: {wierzcholki.Count()} isAlmostVertical:{isAlmostVertical}");
-                float bazowaDlugosc = ObliczDlugoscElementu(wierzcholki);
+                float bazowaDlugosc = ObliczDlugoscElementu(wierzcholki, angleDegrees);
 
                 Console.WriteLine($"▶️ Element Start switch {i + 1}/{vertexCount}: Length: {length}, angleDegreesElementLionowy:{angleDegreesElementLionowy}, Angle: {angleDegrees}°, Profile: {profile}, Wierzchołki: {wierzcholki.Count}, BazowaDlugosc: {bazowaDlugosc}, wartoscX: {wartoscX}, wartoscY: {wartoscY} ElementLiniowy:{ElementLiniowy} wierzcholki X0: {wierzcholki[0].X} Y0: {wierzcholki[0].Y}");
 
@@ -801,7 +841,7 @@ namespace GEORGE.Client.Pages.Okna
                                 Strona = stronaOpis,//Była Góra
                                 IndeksElementu = rowIndeksprofileTop,
                                 NazwaElementu = rowNazwaprofileTop,
-                                DlogoscElementu = bazowaDlugosc + (profileLeft + profileRight),
+                                DlogoscElementu = bazowaDlugosc + ((dodajA ? profileLeft : 0) + (dodajB ? profileRight :0)),
                                 DlogoscNaGotowoElementu = bazowaDlugosc
                             });
                         Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - 0 rowIdprofileTop:{rowIdprofileTop} Angle: {angleDegrees}°");
@@ -824,7 +864,7 @@ namespace GEORGE.Client.Pages.Okna
                                 Strona = stronaOpis,//Była prawa
                                 IndeksElementu = rowIndeksprofileRight,
                                 NazwaElementu = rowNazwaprofileTop,
-                                DlogoscElementu = bazowaDlugosc + (profileLeft + profileRight),
+                                DlogoscElementu = bazowaDlugosc + ((dodajA ? profileLeft : 0) + (dodajB ? profileRight : 0)),
                                 DlogoscNaGotowoElementu = bazowaDlugosc
                             });
                         Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - 1 rowIdprofileRight:{rowIdprofileRight} Angle: {angleDegrees}°");
@@ -847,7 +887,7 @@ namespace GEORGE.Client.Pages.Okna
                                 Strona = stronaOpis,//Był Dół
                                 IndeksElementu = rowIndeksprofileBottom,
                                 NazwaElementu = rowNazwaprofileTop,
-                                DlogoscElementu = bazowaDlugosc + (profileLeft + profileRight),
+                                DlogoscElementu = bazowaDlugosc + ((dodajA ? profileLeft : 0) + (dodajB ? profileRight : 0)),
                                 DlogoscNaGotowoElementu = bazowaDlugosc
                             });
                         Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - 2 rowIdprofileBottom:{rowIdprofileBottom} Angle: {angleDegrees}°");
@@ -870,7 +910,7 @@ namespace GEORGE.Client.Pages.Okna
                                 Strona = stronaOpis, //Była Lewa
                                 IndeksElementu = rowIndeksprofileLeft,
                                 NazwaElementu = rowNazwaprofileTop,
-                                DlogoscElementu = bazowaDlugosc + (profileLeft + profileRight),
+                                DlogoscElementu = bazowaDlugosc + ((dodajA ? profileLeft : 0) + (dodajB ? profileRight : 0)),
                                 DlogoscNaGotowoElementu = bazowaDlugosc
                             });
                         Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - 3 rowIdprofileLeft:{rowIdprofileLeft} Angle: {angleDegrees}°");
@@ -880,15 +920,16 @@ namespace GEORGE.Client.Pages.Okna
             }
         }
 
-        private float ObliczDlugoscElementu(List<XPoint> wierzcholki)
+        private float ObliczDlugoscElementu(List<XPoint> wierzcholki, float kat)
         {
-            double d1 = Math.Sqrt(Math.Pow(wierzcholki[1].X - wierzcholki[0].X, 2) +
-                                  Math.Pow(wierzcholki[1].Y - wierzcholki[0].Y, 2));
+            double dx = Math.Abs(wierzcholki[1].X - wierzcholki[0].X);
+            double dy = Math.Abs(wierzcholki[1].Y - wierzcholki[0].Y);
 
-            double d2 = Math.Sqrt(Math.Pow(wierzcholki[2].X - wierzcholki[3].X, 2) +
-                                  Math.Pow(wierzcholki[2].Y - wierzcholki[3].Y, 2));
+            double dlugosc = Math.Sqrt(dx * dx + dy * dy);
 
-            return (float)Math.Round(Math.Max(d1, d2));
+            Console.WriteLine($"▶️ Calculating length for element with dx: {dx}, dy: {dy}, kat: {kat}° dlugosc: {dlugosc}");
+
+            return (float)Math.Round(dlugosc, 2);
         }
 
         private List<XPoint> RemoveDuplicateConsecutivePoints(List<XPoint> points)

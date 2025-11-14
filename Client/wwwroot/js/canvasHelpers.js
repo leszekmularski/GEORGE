@@ -378,6 +378,14 @@ window.initializeEventListeners = () => {
     }
 };
 
+window.addEventListener("unhandledrejection", event => {
+    if (event.reason && event.reason.message?.includes("DotNetObjectReference")) {
+        console.warn("Ignoruję błąd po usunięciu obiektu .NET");
+        event.preventDefault();
+    }
+});
+
+
 window.cleanupEventListeners = () => {
     try {
         if (!window._listenersInitialized) return;

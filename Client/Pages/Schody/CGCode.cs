@@ -1,4 +1,5 @@
-﻿using GEORGE.Client.Pages.Drzwi;
+﻿using AntDesign;
+using GEORGE.Client.Pages.Drzwi;
 using Microsoft.Extensions.Primitives;
 using System.Globalization;
 using System.Text;
@@ -147,7 +148,17 @@ namespace GEORGE.Client.Pages.Schody
                         {
 
                             // Przejście do pierwszego punktu linii (bez cięcia)
-                            gcodeBuilder.Append($"N{NrBlokN++} " + WejscieWKontur(line, line.zRobocze[j], startDojazdDoPierwszego, strinG40G41));
+                            var nlinia = WejscieWKontur(line, line.zRobocze[j], startDojazdDoPierwszego, strinG40G41);
+                         
+                            if (nlinia != null && nlinia.ToString() != String.Empty)
+                            {
+                                //Console.WriteLine(nlinia.ToString());
+                                gcodeBuilder.AppendLine($"{nlinia}");
+                            }
+                            else
+                            {
+                                gcodeBuilder.Append($"N{NrBlokN++}");
+                            }
 
                             startG0 = false;
                             idObj = line.idOBJ;
@@ -193,7 +204,7 @@ namespace GEORGE.Client.Pages.Schody
 
             if (!boolD1OK)
             {
-                gcodeBuilder.AppendLine($"D1");
+                gcodeBuilder.AppendLine($"N{NrBlokN++} D1");
                 boolD1OK = true; //Włączono korektor D1
             }
 
