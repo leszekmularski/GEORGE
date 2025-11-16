@@ -1070,7 +1070,11 @@
 
                 // // Możesz od razu wywołać rysowanie
                 if (_shapes?.Any() == true)
+                {
+                    Console.WriteLine("🖌️ Rysowanie początkowe canvasu...");
                     await RedrawCanvas();
+                }
+
 
             }
         }
@@ -1395,7 +1399,9 @@
 
             await _context.RestoreAsync();
 
-           // await Task.Delay(50); // Krótkie opóźnienie dla płynności
+            Console.WriteLine("RedrawCanvas");
+
+            // await Task.Delay(50); // Krótkie opóźnienie dla płynności
         }
         catch (Exception ex)
         {
@@ -1516,9 +1522,9 @@
                 await shape.Draw(_context);
             }
 
-           // await Task.Delay(50); // Krótkie opóźnienie dla płynności
+            // await Task.Delay(50); // Krótkie opóźnienie dla płynności
 
-           // StateHasChanged();
+            // StateHasChanged();
         }
 
     }
@@ -1893,6 +1899,8 @@
 
                 await OnlyRestrykcje();
 
+                Console.WriteLine("DrawStructureAndRestrykcje.");
+
             }
 
 
@@ -1942,9 +1950,9 @@
 
     public async ValueTask DisposeAsync()
     {
-         await JS.InvokeVoidAsync("cleanupEventListeners");
-         await JS.InvokeVoidAsync("clearDotNetHelper");
-         await JS.InvokeVoidAsync("clearCanvasRef");
+        await JS.InvokeVoidAsync("cleanupEventListeners");
+        await JS.InvokeVoidAsync("clearDotNetHelper");
+        await JS.InvokeVoidAsync("clearCanvasRef");
         Console.WriteLine("✅ JavaScript cleanup completed");
 
         _dotNetHelper?.Dispose();
@@ -2070,10 +2078,24 @@
         // Tymczasowe przechowanie starych wymiarów
         if (_shapes != null && _shapes.Any())
         {
-            Console.WriteLine($"🔍 Stare wymiary konstrukcji: Szerokość={_shapes.Max(s => s.Szerokosc)}, Wysokość={_shapes.Max(s => s.Wysokosc)}");
-            _tmpSzerokosc = (int)_shapes.SingleOrDefault().Szerokosc;
-            _tmpWysokosc = (int)_shapes.SingleOrDefault().Wysokosc;
+           Console.WriteLine($"🔍 Stare wymiary konstrukcji: Szerokość={_shapes.Max(s => s.Szerokosc)}, Wysokość={_shapes.Max(s => s.Wysokosc)}");
         }
+        else
+        {
+            Console.WriteLine("❌ Brak kształtów do odczytania wymiarów [_shapes]!");
+            return;
+        }
+
+        _tmpSzerokosc = (int)_shapes.Max(s => s.Szerokosc);
+        _tmpWysokosc = (int)_shapes.Max(s => s.Wysokosc);
+
+        if (constWlasciwosciOkna == null)
+        {
+            Console.WriteLine("❌ constWlasciwosciOkna jest puste, nie można kontynuować.");
+            return;
+        }
+
+        Console.WriteLine($"🔍 Zmiana wymiarów na: Szerokość={_tmpSzerokosc}, Wysokość={_tmpWysokosc}");
        
         // 🔄 Aktualizujemy wymiary shape’ów bazowych
         foreach (var shape in ShapeService.Shapes)
@@ -2081,6 +2103,8 @@
             shape.Szerokosc = constWlasciwosciOkna.Szerokosc;
             shape.Wysokosc = constWlasciwosciOkna.Wysokosc;
         }
+
+        Console.WriteLine($"🔍 Nowe wymiary konstrukcji: Szerokość={_shapes.Max(s => s.Szerokosc)}, Wysokość={_shapes.Max(s => s.Wysokosc)}");
 
         // 🔄 Regeneracja regionów
         await GenerujObrysPozZmianieWymiarow();
@@ -2151,7 +2175,6 @@
                 }
             }
         }
-
 
         // 🔄 Rozstaw linie i odśwież
         //await RozstawLinie(false);
@@ -4472,13 +4495,19 @@
     {
         try
         {
-            if (_context == null || ksztalty == null || !ksztalty.Any())
+            if (_context == null)
                 return;
 
             // W rysowaniu:
             await _context.SetTransformAsync(1, 0, 0, 1, 0, 0);
             await _context.TranslateAsync(_offsetX, _offsetY);
             await _context.ScaleAsync(_currentScale, _currentScale);
+
+
+            Console.WriteLine($"RenderFrame");
+
+            if (ksztalty == null || !ksztalty.Any())
+                return;
 
             // Przygotowanie tekstury
             var baseUrl = Navigation.BaseUri;
@@ -4491,11 +4520,12 @@
                 if (ksztalt.Wierzcholki == null || ksztalt.Wierzcholki.Count < 3)
                     continue;
 
-                Console.WriteLine($"*********** >>>>>> IndeksElementu: {ksztalt.IndeksElementu} Grupa: {ksztalt.Grupa}");
+               // Console.WriteLine($"*********** >>>>>> IndeksElementu: {ksztalt.IndeksElementu} Grupa: {ksztalt.Grupa}");
 
                 await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
                 await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"{ksztalt.IndeksElementu.ToString()} [{ksztalt.Kat.ToString()}/{ksztalt.Strona}]"); // Tekst z ID i kątem na profilu
             }
+
 
            // await Task.Delay(50); // Krótkie opóźnienie dla płynności
 
