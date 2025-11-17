@@ -1,89 +1,94 @@
 ﻿@using GEORGE.Client.Pages.Models
 
-<h3 class="mb-3">📋 Lista zapisanych właściwości okna</h3>
-
 @if (Model == null)
 {
-    <p class="text-muted">Brak zapisanych danych na temat budowy okna.</p>
+    <p class="text-muted">Brak danych do edycji okna.</p>
 }
 else
 {
     <EditForm Model="Model">
         <DataAnnotationsValidator />
 
-        <div class="row">
-            <div class="col-md-6">
+        <AntDesign.Row Gutter="16">
+
+            <AntDesign.Col Span="12">
+                <h5>Wymiary</h5>
 
                 <div class="mb-2">
-                    <label>Szerokość</label>
-                    <AntDesign.InputNumber class="form-control" @bind-Value="Model.Szerokosc" />
+                    <label>Szerokość [mm]</label>
+                    <AntDesign.InputNumber @bind-Value="Model.Szerokosc" Style="width: 100%;" />
                 </div>
 
                 <div class="mb-2">
-                    <label>Wysokość</label>
-                    <AntDesign.InputNumber class="form-control" @bind-Value="Model.Wysokosc" />
+                    <label>Wysokość [mm]</label>
+                    <AntDesign.InputNumber @bind-Value="Model.Wysokosc" Style="width: 100%;" />
                 </div>
+
+                <h5 class="mt-3">Kolorystyka</h5>
 
                 <div class="mb-2">
                     <label>Kolor zewnętrzny</label>
-                    <InputText class="form-control" @bind-Value="Model.KolorZewnetrzny" />
+                    <AntDesign.Input @bind-Value="Model.KolorZewnetrzny" />
                 </div>
 
                 <div class="mb-2">
                     <label>Kolor wewnętrzny</label>
-                    <InputText class="form-control" @bind-Value="Model.KolorWewnetrzny" />
+                    <AntDesign.Input @bind-Value="Model.KolorWewnetrzny" />
                 </div>
 
                 <div class="mb-2">
                     <label>Kolor szyby</label>
-                    <InputText class="form-control" @bind-Value="Model.KolorSzyby" />
+                    <AntDesign.Input @bind-Value="Model.KolorSzyby" />
                 </div>
+            </AntDesign.Col>
+
+            <AntDesign.Col Span="12">
+                <h5>Szczegóły techniczne</h5>
 
                 <div class="mb-2">
                     <label>Typ szyby</label>
-                    <InputText class="form-control" @bind-Value="Model.TypSzyby" />
+                    <AntDesign.Input @bind-Value="Model.TypSzyby" />
                 </div>
 
                 <div class="mb-2">
                     <label>Typ klamki</label>
-                    <InputText class="form-control" @bind-Value="Model.TypKlamki" />
+                    <AntDesign.Input @bind-Value="Model.TypKlamki" />
                 </div>
 
                 <div class="mb-2">
                     <label>Typ uszczelek</label>
-                    <InputText class="form-control" @bind-Value="Model.TypUszczelek" />
+                    <AntDesign.Input @bind-Value="Model.TypUszczelek" />
                 </div>
-
-            </div>
-
-            <div class="col-md-6">
 
                 <div class="mb-2">
                     <label>Typ osłon przeciwsłonecznych</label>
-                    <InputText class="form-control" @bind-Value="Model.TypOslonPrzeciwsłonecznych" />
+                    <AntDesign.Input @bind-Value="Model.TypOslonPrzeciwsłonecznych" />
                 </div>
 
                 <div class="mb-2">
                     <label>Typ montażu</label>
-                    <InputText class="form-control" @bind-Value="Model.TypMontazu" />
+                    <AntDesign.Input @bind-Value="Model.TypMontazu" />
                 </div>
+
+                <h5 class="mt-3">Parametry cieplne</h5>
 
                 <div class="mb-2">
                     <label>Grubość pakietu</label>
-                    <AntDesign.InputNumber class="form-control" @bind-Value="Model.GruboscPakietu" />
+                    <AntDesign.InputNumber @bind-Value="Model.GruboscPakietu" Style="width: 100%;" />
                 </div>
 
                 <div class="mb-2">
                     <label>Uw szyby</label>
-                    <AntDesign.InputNumber class="form-control" @bind-Value="Model.WspolczynnikPrzepuszczalnosciCieplaSzyby" />
+                    <AntDesign.InputNumber @bind-Value="Model.WspolczynnikPrzepuszczalnosciCieplaSzyby" Style="width: 100%;" />
                 </div>
 
                 <div class="mb-2">
                     <label>Uw okna</label>
-                    <AntDesign.InputNumber class="form-control" @bind-Value="Model.WspolczynnikPrzepuszczalnosciCieplaOkna" />
+                    <AntDesign.InputNumber @bind-Value="Model.WspolczynnikPrzepuszczalnosciCieplaOkna" Style="width: 100%;" />
                 </div>
-            </div>
-        </div>
+            </AntDesign.Col>
+
+        </AntDesign.Row>
 
     </EditForm>
 }
@@ -91,11 +96,11 @@ else
 @code {
     [Parameter]
     public ConstWlasciwosciOkna? Model { get; set; }
-        // parent callback
+
     [Parameter]
     public EventCallback<ConstWlasciwosciOkna> OnSave { get; set; }
 
-        public async Task ZapiszDoRodzica()
+    public async Task ZapiszDoRodzica()
     {
         await OnSave.InvokeAsync(Model);
     }

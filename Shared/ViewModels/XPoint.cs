@@ -14,19 +14,19 @@ namespace GEORGE.Shared.ViewModels
         public double X
         {
             get => _x;
-            set => _x = Math.Round(value, 4);
+            set => _x = Math.Round(value, 3);
         }
 
         public double Y
         {
             get => _y;
-            set => _y = Math.Round(value, 4);
+            set => _y = Math.Round(value, 3);
         }
 
         public XPoint(double x, double y)
         {
-            _x = Math.Round(x, 4);
-            _y = Math.Round(y, 4);
+            _x = Math.Round(x, 3);
+            _y = Math.Round(y, 3);
         }
 
         public override bool Equals(object? obj)

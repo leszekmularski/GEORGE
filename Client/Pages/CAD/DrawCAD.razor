@@ -114,39 +114,42 @@
 
 <script>
     function initCanvasEvents(container, dotNetHelper) {
-    const canvas = container.querySelector('canvas');
+        const canvas = container.querySelector('canvas');
 
-    // Nasłuchuj zdarzenia na oknie zamiast na canvasie
-    window.addEventListener('keydown', (e) => {
-    if (e.shiftKey) dotNetHelper.invokeMethodAsync('SetForceHV', true);
-    });
-    window.addEventListener('keyup', (e) => {
-    if (!e.shiftKey) dotNetHelper.invokeMethodAsync('SetForceHV', false);
-    });
+        // SHIFT – blokada pion/poziom
+        window.addEventListener('keydown', (e) => {
+            if (e.shiftKey) dotNetHelper.invokeMethodAsync('SetForceHV', true);
+        });
+        window.addEventListener('keyup', (e) => {
+            if (!e.shiftKey) dotNetHelper.invokeMethodAsync('SetForceHV', false);
+        });
 
-    // Reszta handlerów bez zmian
-    const handler = (e) => {
-    const rect = canvas.getBoundingClientRect();
-    return {
-    x: e.clientX - rect.left,
-    y: e.clientY - rect.top
-    };
-    };
+        // Funkcja pobierania pozycji
+        const handler = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
 
-    canvas.addEventListener('mousedown', async (e) => {
-    const {x, y} = handler(e);
-    await dotNetHelper.invokeMethodAsync('HandleMouseDown', x, y);
-    });
+            return {
+                x: Number(x.toFixed(3)),
+                y: Number(y.toFixed(3))
+            };
+        };
 
-    canvas.addEventListener('mousemove', async (e) => {
-    const {x, y} = handler(e);
-    await dotNetHelper.invokeMethodAsync('HandleMouseMove', x, y);
-    });
+        canvas.addEventListener('mousedown', async (e) => {
+            const { x, y } = handler(e);
+            await dotNetHelper.invokeMethodAsync('HandleMouseDown', x, y);
+        });
 
-    canvas.addEventListener('mouseup', async (e) => {
-    const {x, y} = handler(e);
-    await dotNetHelper.invokeMethodAsync('HandleMouseUp', x, y);
-    });
+        canvas.addEventListener('mousemove', async (e) => {
+            const { x, y } = handler(e);
+            await dotNetHelper.invokeMethodAsync('HandleMouseMove', x, y);
+        });
+
+        canvas.addEventListener('mouseup', async (e) => {
+            const { x, y } = handler(e);
+            await dotNetHelper.invokeMethodAsync('HandleMouseUp', x, y);
+        });
     }
 </script>
 
@@ -295,7 +298,7 @@
 
     private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
 
-    private List<IShapeDC> _originalShapes;
+    private List<IShapeDC>? _originalShapes;
 
 
     private void SetTool(string tool) => _selectedTool = tool;
@@ -668,6 +671,7 @@
         // Reset i czyszczenie
         _shapes.Clear();
         await ClearCanvas();
+        await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
 
         var size = Math.Max(Math.Abs(_currentX - _startX), Math.Abs(_currentY - _startY));
@@ -681,6 +685,7 @@
         // Reset i czyszczenie
         _shapes.Clear();
         await ClearCanvas();
+        await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
 
         await _ctx.BeginPathAsync();
@@ -693,6 +698,7 @@
         // Reset i czyszczenie
         _shapes.Clear();
         await ClearCanvas();
+        await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
 
         // Oblicz środkowy punkt podstawy
@@ -713,6 +719,7 @@
         // Reset i czyszczenie
         _shapes.Clear();
         await ClearCanvas();
+        await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
 
         var topWidthFactor = 0.6; // Możesz dodać parametr do kontroli
@@ -733,6 +740,7 @@
         // Reset i czyszczenie
         _shapes.Clear();
         await ClearCanvas();
+        await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
 
         var topWidthFactor = 0.6; // Możesz dodać parametr do kontroli
@@ -753,6 +761,7 @@
         // Reset i czyszczenie
         _shapes.Clear();
         await ClearCanvas();
+        await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
 
         var topWidthFactor = 0.6; // Możesz dodać parametr do kontroli
@@ -772,6 +781,7 @@
         // Reset i czyszczenie
         _shapes.Clear();
         await ClearCanvas();
+        await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
 
         var radius = 100; // Możesz dodać parametr do kontroli
@@ -795,6 +805,7 @@
         // Reset i czyszczenie
         _shapes.Clear();
         await ClearCanvas();
+        await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
 
         var radius = 100; // Możesz dodać parametr do kontroli
@@ -817,6 +828,7 @@
         // Reset i czyszczenie
         _shapes.Clear();
         await ClearCanvas();
+        await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
 
         var radius = 100; // Możesz dodać parametr do kontroli
@@ -868,8 +880,9 @@
     {
         // Reset i czyszczenie
         _shapes.Clear();
-        await _ctx.SetStrokeStyleAsync("black");
         await ClearCanvas();
+        await Task.Delay(50);
+        await _ctx.SetStrokeStyleAsync("black");
 
         var radius = CalculateRadius();
         await _ctx.BeginPathAsync();
@@ -882,6 +895,8 @@
         // Reset i czyszczenie
         _shapes.Clear();
         await ClearCanvas();
+        await Task.Delay(50);
+        await _ctx.SetStrokeStyleAsync("black");
 
         // Zapewniamy poprawne współrzędne
         var x = Math.Min(_startX, _currentX);
@@ -915,6 +930,8 @@
         // Reset i czyszczenie
         _shapes.Clear();
         await ClearCanvas();
+        await Task.Delay(50);
+        await _ctx.SetStrokeStyleAsync("black");
 
         var width = _currentX - _startX;
         var height = _currentY - _startY;
@@ -972,29 +989,6 @@
 
         return edges;
     }
-
-
-    // // 🔧 KLASY EDYTOWALNYCH WŁAŚCIWOŚCI
-    // public record EditableProperty(
-    //     string Label,
-    //     Func<double> GetValue,
-    //     Action<double> SetValue,
-    //     string NazwaObiektu,
-    //     bool IsReadOnly = false,
-    //     bool slupekRuchomy = false,
-    //     bool pionPoziom = false)
-    // {
-    //     public double Value
-    //     {
-    //         get => GetValue();
-    //         set
-    //         {
-    //             if (!IsReadOnly) SetValue(value);
-    //         }
-    //     }
-
-    //     public EditableProperty SetObjectName(string newName) => this with { NazwaObiektu = newName };
-    // }
 
     private void SelectNextShape()
     {

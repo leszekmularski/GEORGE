@@ -229,7 +229,6 @@ namespace GEORGE.Client.Pages.Okna
             );
             //}
         }
-
         private void GenerateGenericElementsWithJoins(
             List<XPoint> outer, List<XPoint> inner,
             float profileLeft, float profileRight, float profileTop, float profileBottom,

@@ -19,9 +19,7 @@
                 if (!IsReadOnly) SetValue(value);
             }
         }
-
         public EditableProperty SetObjectName(string newName) => this with { NazwaObiektu = newName };
     }
-
 
 }
