@@ -36,7 +36,6 @@ namespace GEORGE.Client.Pages.Models
             Height = height;
             _scaleFactor = scaleFactor;
         }
-
         public IShapeDC Clone()
         {
             return new XRectangleShape(X, Y, Width, Height, _scaleFactor);
@@ -44,6 +43,20 @@ namespace GEORGE.Client.Pages.Models
 
         public async Task Draw(Canvas2DContext ctx)
         {
+            // 🔥 Generowanie punktów – to jest KLUCZOWE
+            Points = new List<XPoint>
+        {
+            new XPoint(X, Y),                     // lewy-górny
+            new XPoint(X + Width, Y),             // prawy-górny
+            new XPoint(X + Width, Y + Height),    // prawy-dolny
+            new XPoint(X, Y + Height)             // lewy-dolny
+        };
+
+            // 🔥 Opcjonalnie – uaktualnij Szerokosc/Wysokosc
+            Szerokosc = Width;
+            Wysokosc = Height;
+
+            // 🎨 RYSOWANIE
             await ctx.SetStrokeStyleAsync("black");
             await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
 
@@ -51,7 +64,6 @@ namespace GEORGE.Client.Pages.Models
             await ctx.RectAsync(X, Y, Width, Height);
             await ctx.StrokeAsync();
         }
-
 
         public List<EditableProperty> GetEditableProperties() => new()
         {

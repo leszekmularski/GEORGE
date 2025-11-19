@@ -29,6 +29,7 @@
 @inject GeneratorStateContainer StateContainer
 
 @implements IDisposable
+@implements IAsyncDisposable
 
 <style>
     /* Globalne ustawienia */
@@ -1006,19 +1007,22 @@
     {
         try
         {
-            constWlasciwosciOkna.Szerokosc = 1000;
-            constWlasciwosciOkna.Wysokosc = 1000;
+            if(constWlasciwosciOkna == null)
+                constWlasciwosciOkna = new ConstWlasciwosciOkna();
+
+            // constWlasciwosciOkna.Szerokosc = 1000;
+            // constWlasciwosciOkna.Wysokosc = 1000;
 
             Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
 
-            if (_dotNetHelper == null)
-            {
-                _dotNetHelper = DotNetObjectReference.Create(this);
-                //   await Task.Delay(25); // Krótkie opóźnienie dla płynności
-                await JS.InvokeVoidAsync("setDotNetHelper", _dotNetHelper);
-                // await Task.Delay(25); // Krótkie opóźnienie dla płynności
-                //Console.WriteLine($"🆕 DotNetObjectReference.Create(this) dla obiektu {this.GetHashCode()}");
-            }
+            // if (_dotNetHelper == null)
+            // {
+            //     _dotNetHelper = DotNetObjectReference.Create(this);
+            //     //   await Task.Delay(25); // Krótkie opóźnienie dla płynności
+            //     await JS.InvokeVoidAsync("setDotNetHelper", _dotNetHelper);
+            //     // await Task.Delay(25); // Krótkie opóźnienie dla płynności
+            //     //Console.WriteLine($"🆕 DotNetObjectReference.Create(this) dla obiektu {this.GetHashCode()}");
+            // }
 
             // Sprawdź, czy skrypt JS został poprawnie załadowany
             var isScriptLoaded = await JS.InvokeAsync<bool>("eval", "typeof setCanvasRef === 'function'");
@@ -1039,17 +1043,24 @@
         await Laduj_Uprawnienia();
     }
 
+    private bool _disposed = false;
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         try
         {
 
-
-            if (firstRender && CanvasRef != null)
+            if (firstRender && CanvasRef != null && !_disposed)
             {
                 Console.WriteLine("🖌️ Inicjalizacja canvasu...");
 
-                await Task.Delay(100); // Krótkie opóźnienie dla płynności
+                if (_dotNetHelper == null)
+                {
+                    _dotNetHelper = DotNetObjectReference.Create(this);
+                    //   await Task.Delay(25); // Krótkie opóźnienie dla płynności
+                    await JS.InvokeVoidAsync("setDotNetHelper", _dotNetHelper);
+                    // await Task.Delay(25); // Krótkie opóźnienie dla płynności
+                    //Console.WriteLine($"🆕 DotNetObjectReference.Create(this) dla obiektu {this.GetHashCode()}");
+                }
 
                 var isFunctionDefined = await JS.InvokeAsync<bool>("eval", "typeof setCanvasRef === 'function'");
                 if (!isFunctionDefined)
@@ -1060,20 +1071,14 @@
 
                 Console.WriteLine("✅ Canvas ustawiony!");
 
-                await GenerujObrysPozZmianieWymiarow();
+                await Task.Delay(50); // Krótkie opóźnienie dla płynności
+
+                await GenerujObrysPozZmianieWymiarow(true);
 
                 // 👇 TU DODAJ
                 _context ??= await CanvasRef.CreateCanvas2DAsync();
 
                 await JS.InvokeVoidAsync("registerResizeCallback", DotNetObjectReference.Create(this));
-
-                // // Możesz od razu wywołać rysowanie
-                if (_shapes?.Any() == true)
-                {
-                    Console.WriteLine("🖌️ Rysowanie początkowe canvasu...");
-                    await RedrawCanvas();
-                }
-
 
             }
         }
@@ -1085,24 +1090,47 @@
         }
     }
 
-    private async Task GenerujObrysPozZmianieWymiarow()
+    private async Task GenerujObrysPozZmianieWymiarow(bool onApplyZoom)
     {
+        _shapes.Clear();
+
         _shapes = ShapeService.Shapes;
+
+        if (_shapes != null && _shapes.Count > 0)
+        {
+            if (_shapes.Any(s => s == null))
+            {
+                Console.WriteLine("⚠️ GenerujObrysPozZmianieWymiarow --> Niektóre kształty w _shapes są null");
+            }
+            else
+            {
+                if (_shapes[0].GetType() == typeof(GEORGE.Client.Pages.Models.XSquareShape))
+                {
+                    Console.WriteLine("✅ GenerujObrysPozZmianieWymiarow --> Kształty są typu KsztaltElementu");
+                    constWlasciwosciOkna.Wysokosc = constWlasciwosciOkna.Szerokosc;
+                }
+            }
+        }
+
+        Console.WriteLine($"🔄 GenerujObrysPozZmianieWymiarow --> Odebrano dane _shapes: {_shapes?.Count()}");
 
         if (_shapes != null && _shapes.Count() > 0 && constWlasciwosciOkna != null)
         {
 
-            double maxWysokosc = _shapes.Max(s => s.Wysokosc);
-            double maxSzerokosc = _shapes.Max(s => s.Szerokosc);
+            Console.WriteLine($"🔄 GenerujObrysPozZmianieWymiarow --> Przetwarzanie kształtów dla wymiarów: Szerokosc={constWlasciwosciOkna.Szerokosc} - {_shapes.Max(x => x.Szerokosc)}, Wysokosc={constWlasciwosciOkna.Wysokosc} - {_shapes.Max(x => x.Wysokosc)}");
 
-            if (maxWysokosc > 0 && maxSzerokosc > 0)
-            {
-                constWlasciwosciOkna.Wysokosc = (int)maxWysokosc;
-                constWlasciwosciOkna.Szerokosc = (int)maxSzerokosc;
-            }
+            // double maxWysokosc = _shapes.Max(s => s.Wysokosc);
+            // double maxSzerokosc = _shapes.Max(s => s.Szerokosc);
+
+            // if (nowyObrys)
+            // {
+            //     constWlasciwosciOkna.Wysokosc = (int)maxWysokosc;
+            //     constWlasciwosciOkna.Szerokosc = (int)maxSzerokosc;
+            // }
 
             // Generuj regiony po transformacji
             //  _regions = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)CanvasWidth, (int)CanvasHeight);
+
             _regionsDualRama = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)constWlasciwosciOkna.Szerokosc, (int)constWlasciwosciOkna.Wysokosc, true);
             _regionsSkrzydlo = GeometryUtils.GenerujRegionyZPodzialu(_shapes, (int)constWlasciwosciOkna.Szerokosc, (int)constWlasciwosciOkna.Wysokosc, false); // ostatni parametr nie wiem czy potrzeby do sprawdzenia (czy rama true/falsa)
 
@@ -1147,7 +1175,7 @@
 
             Console.WriteLine($"🔍 OnInitializedAsync --> Przeskalowano kształty: skala={scale} CanvasWidth: {CanvasWidth} CanvasHeight: {CanvasHeight}");
 
-            await ApplyZoom(scale);
+            if (onApplyZoom) await ApplyZoom(scale);
 
             Console.WriteLine($"Odebrano dane _shapes: {_shapes.Count()}");
 
@@ -1237,7 +1265,7 @@
     private async Task EdytujKsztalt(string id)
     {
         // Zwalniamy poprzednią instancję
-        if (_dotNetHelper != null)
+        if (_dotNetHelper != null && !_disposed)
         {
             _dotNetHelper.Dispose();
             await JS.InvokeVoidAsync("clearDotNetHelper");
@@ -1289,7 +1317,6 @@
     private async Task ZapiszRegion()
     {
         edytowanyRegionId = null;
-        await RedrawCanvas();
         //StateHasChanged(); // aby odświeżyć widok
     }
 
@@ -1375,39 +1402,13 @@
     [JSInvokable("UpdateCanvasSizeFromResize")]
     public async Task UpdateCanvasSizeFromResize()
     {
-        if (_context == null)
+        if (_context == null || _disposed)
         {
             Console.WriteLine("❌ Brak kontekstu canvas");
             return;
         }
 
         await ApplyZoom(_currentScale);
-    }
-
-    private async Task RedrawCanvas()
-    {
-        if (_context is null || _shapes is null)
-            return;
-        try
-        {
-            await ClearCanvas();
-
-            await _context.SaveAsync();
-            await _context.ScaleAsync(_currentScale, _currentScale);
-
-            foreach (var shape in _shapes)
-                await shape.Draw(_context);
-
-            await _context.RestoreAsync();
-
-            Console.WriteLine("RedrawCanvas");
-
-            // await Task.Delay(50); // Krótkie opóźnienie dla płynności
-        }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine("❌ RedrawCanvas błąd: " + ex.Message);
-        }
     }
 
     private async Task ClearCanvas()
@@ -1430,7 +1431,11 @@
             await _context.SetFillStyleAsync("white");
             await _context.FillRectAsync(0, 0, CanvasWidth, CanvasHeight);
 
-            await Task.Delay(50); // Krótkie opóźnienie dla płynności
+            //await Task.Delay(50); // Krótkie opóźnienie dla płynności
+
+            await _context.RestoreAsync();
+
+            StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -1465,9 +1470,9 @@
         isTextureLoaded = false;
 
         await Task.Delay(100);
-        await RedrawCanvas();
+        // await RedrawCanvas();
         await DrawStructureAndRestrykcje();
-        await RenderFrame();
+        await ApplyZoom(_currentScale);
 
         StateHasChanged();
     }
@@ -1514,12 +1519,24 @@
         {
             isTextureLoaded = false;
 
-            await RedrawCanvas();
+            await ClearCanvas();
             await DrawStructureAndRestrykcje();
             await RenderFrame();
 
             foreach (var shape in _shapes)
             {
+                Console.WriteLine("Punkty figury:");
+
+                if (shape?.Points == null || shape.Points.Count == 0)
+                {
+                    Console.WriteLine("  (brak punktów)");
+                }
+                else
+                {
+                    foreach (var p in shape.Points)
+                        Console.WriteLine($"({p.X}, {p.Y})");
+                }
+
                 await shape.Draw(_context);
             }
 
@@ -1560,7 +1577,7 @@
         isTextureLoaded = false;
 
         // await UpdateCanvasSizeFromDiv();
-        await RenderFrame();
+        // await RenderFrame();
 
     }
 
@@ -1936,11 +1953,17 @@
 
     public void Dispose()
     {
+        if (_disposed) return;
+
+        _disposed = true;
+
         try
         {
-            //JS.InvokeVoidAsync("clearDotNetHelper");
+            // Najpierw ustaw flagę, żeby uniknąć kolejnych wywołań
+            _ = JS.InvokeVoidAsync("clearDotNetHelper").AsTask();
             _dotNetHelper?.Dispose();
-            _dotNetHelper = null;
+            // Nie ustawiaj JS na null, bo może być potrzebny do innych operacji?
+            // JS = null;
             Console.WriteLine($"🧹 Dispose wywołany. Obiekt: {this.GetHashCode()}");
         }
         catch (Exception ex)
@@ -1951,16 +1974,28 @@
 
     public async ValueTask DisposeAsync()
     {
-        await JS.InvokeVoidAsync("cleanupEventListeners");
-        await JS.InvokeVoidAsync("clearDotNetHelper");
-        await JS.InvokeVoidAsync("clearCanvasRef");
-        Console.WriteLine("✅ JavaScript cleanup completed");
+        if (_disposed) return;
+        _disposed = true;
 
-        _dotNetHelper?.Dispose();
-        _dotNetHelper = null;
-        Console.WriteLine($"🧹 AsyncDispose wywołany. Obiekt: {this.GetHashCode()}");
+        try
+        {
+            await JS.InvokeVoidAsync("cleanupEventListeners");
+            await JS.InvokeVoidAsync("clearDotNetHelper");
+            await JS.InvokeVoidAsync("clearCanvasRef");
+            Console.WriteLine("✅ JavaScript cleanup completed");
+            _dotNetHelper?.Dispose();
+            Console.WriteLine($"🧹 AsyncDispose wywołany. Obiekt: {this.GetHashCode()}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"🔥 Błąd AsyncDispose: {ex.Message}");
+        }
+        finally
+        {
+            // JS = null; // Można to zrobić, ale uważaj, bo może być używane w innych miejscach
+            _dotNetHelper = null;
+        }
     }
-
 
     [JSInvokable]
     public async Task OnTextureLoaded()
@@ -2102,136 +2137,126 @@
         {
             shape.Szerokosc = constWlasciwosciOkna.Szerokosc;
             shape.Wysokosc = constWlasciwosciOkna.Wysokosc;
-
         }
 
-        foreach(var shape in _shapes)
-        {
-            shape.Szerokosc = constWlasciwosciOkna.Szerokosc;
-            shape.Wysokosc = constWlasciwosciOkna.Wysokosc;
-        }
-
-        Console.WriteLine($"🔍 Nowe wymiary konstrukcji: Szerokość={_shapes.Max(s => s.Szerokosc)}, Wysokość={_shapes.Max(s => s.Wysokosc)}");
+        Console.WriteLine($"🔍 Nowe wymiary konstrukcji: Szerokość={ShapeService.Shapes.Max(s => s.Szerokosc)}, Wysokość={ShapeService.Shapes.Max(s => s.Wysokosc)}");
 
         // 🔄 Regeneracja regionów
-        await GenerujObrysPozZmianieWymiarow();
+        await GenerujObrysPozZmianieWymiarow(false);
 
-        // 🟦 Aktualizujemy regiony bez skalowania
-        var wszystkieRegiony = _regionsDualRama.Concat(_regionsSkrzydlo);
+        // // 🟦 Aktualizujemy regiony bez skalowania
+        // var wszystkieRegiony = _regionsDualRama.Concat(_regionsSkrzydlo);
 
-        foreach (var region in wszystkieRegiony)
-        {
-            EditElements(
-                new List<ShapeRegion> { region },
-                region.Id,
-                (float)constWlasciwosciOkna.Szerokosc,
-                (float)constWlasciwosciOkna.Wysokosc
-            );
+        // foreach (var region in wszystkieRegiony)
+        // {
+        //     EditElements(
+        //         new List<ShapeRegion> { region },
+        //         region.Id,
+        //         (float)constWlasciwosciOkna.Szerokosc,
+        //         (float)constWlasciwosciOkna.Wysokosc
+        //     );
 
-            var generator = PobierzGenerator(region.Id);
+        //     Console.WriteLine($"🔍 PobierzGenerator wyszukuje region ID {region.Id} w generatorze.");
 
-            if (generator != null)
-            {
-                ZapiszStanGeneratora(region.Id, generator);
-            }
-        }
+        //     var generator = PobierzGenerator(region.Id);
 
-        // ============================
-        // 3️⃣ OBLICZ DELTĘ ZMIANY
-        // ============================
-        double deltaWidth = constWlasciwosciOkna.Szerokosc - _tmpSzerokosc;
-        double deltaHeight = constWlasciwosciOkna.Wysokosc - _tmpWysokosc;
+        //     if (generator != null)
+        //     {
+        //         ZapiszStanGeneratora(region.Id, generator);
 
-        Console.WriteLine($"🔍 ΔW={deltaWidth}, ΔH={deltaHeight}");
+        //         Console.WriteLine($"🔍 PobierzGenerator/ZapiszStanGeneratora: zaktualizowano generator regionu {region.Id}.");
+        //     }
+        //     else
+        //     {
+        //         Console.WriteLine($"❌ Brak generatora dla regionu ID {region.Id}");
+        //     }
 
-        // ============================
-        // 4️⃣ PRZESUŃ KSZTAŁTY *PRZED* GENERACJĄ REGIONÓW
-        // ============================
-        if (ksztalty != null && ksztalty.Any())
-        {
-            foreach (var k in ksztalty)
-            {
-                Console.WriteLine($"✏️ Przetwarzanie kształtu: {k.NazwaElementu} / {k.ZIndex} / {k.Strona}");
+        // }
 
-                if (k?.Wierzcholki == null || k.Wierzcholki.Count < 2)
-                {
-                    Console.WriteLine($"⚠️ Pominięto ksztalt bez wystarczającej liczby wierzchołków: {k?.NazwaElementu}");
-                    continue;
-                }
+        // // ============================
+        // // 3️⃣ OBLICZ DELTĘ ZMIANY
+        // // ============================
+        // double deltaWidth = constWlasciwosciOkna.Szerokosc - _tmpSzerokosc;
+        // double deltaHeight = constWlasciwosciOkna.Wysokosc - _tmpWysokosc;
 
-                // =============================================
-                // 1️⃣ PRZESUNIĘCIE ELEMENTU (kotwienie do lewego-górnego rogu)
-                // =============================================
-                if (k.Strona == "Prawo")
-                {
-                    k.Wierzcholki = k.Wierzcholki
-                        .Select(p => new XPoint(p.X + deltaWidth, p.Y))
-                        .ToList();
-                }
-                else if (k.Strona == "Dół")
-                {
-                    k.Wierzcholki = k.Wierzcholki
-                        .Select(p => new XPoint(p.X, p.Y + deltaHeight))
-                        .ToList();
-                }
+        // Console.WriteLine($"🔍 ΔW={deltaWidth}, ΔH={deltaHeight}");
 
-                // =============================================
-                // 2️⃣ DOPIERO TERAZ WYDŁUŻAMY PROFIL
-                // =============================================
-                double minX = k.Wierzcholki.Min(p => p.X);
-                double maxX = k.Wierzcholki.Max(p => p.X);
-                double minY = k.Wierzcholki.Min(p => p.Y);
-                double maxY = k.Wierzcholki.Max(p => p.Y);
+        // // ============================
+        // // 4️⃣ PRZESUŃ KSZTAŁTY *PRZED* GENERACJĄ REGIONÓW
+        // // ============================
+        // if (ksztalty != null && ksztalty.Any())
+        // {
+        //     foreach (var k in ksztalty)
+        //     {
+        //         Console.WriteLine($"✏️ Przetwarzanie kształtu: {k.NazwaElementu} / {k.ZIndex} / {k.Strona}");
 
-                double width = maxX - minX;
-                double height = maxY - minY;
+        //         if (k?.Wierzcholki == null || k.Wierzcholki.Count < 2)
+        //         {
+        //             Console.WriteLine($"⚠️ Pominięto ksztalt bez wystarczającej liczby wierzchołków: {k?.NazwaElementu}");
+        //             continue;
+        //         }
 
-                // Profil poziomy → wydłużamy na prawo
-                if (width > height)
-                {
-                    k.Wierzcholki = k.Wierzcholki.Select(p => new XPoint
-                    {
-                        X = p.X + (p.X > minX + width / 2 ? deltaWidth : 0),
-                        Y = p.Y
-                    }).ToList();
+        //         // =============================================
+        //         // 1️⃣ PRZESUNIĘCIE ELEMENTU (kotwienie do lewego-górnego rogu)
+        //         // =============================================
+        //         if (k.Strona == "Prawo")
+        //         {
+        //             k.Wierzcholki = k.Wierzcholki
+        //                 .Select(p => new XPoint(p.X + deltaWidth, p.Y))
+        //                 .ToList();
+        //         }
+        //         else if (k.Strona == "Dół")
+        //         {
+        //             k.Wierzcholki = k.Wierzcholki
+        //                 .Select(p => new XPoint(p.X, p.Y + deltaHeight))
+        //                 .ToList();
+        //         }
 
-                    k.DlogoscElementu += (float)deltaWidth;
-                    k.DlogoscNaGotowoElementu += (float)deltaWidth;
-                }
-                // Profil pionowy → wydłużamy w dół
-                else
-                {
-                    k.Wierzcholki = k.Wierzcholki.Select(p => new XPoint
-                    {
-                        X = p.X,
-                        Y = p.Y + (p.Y > minY + height / 2 ? deltaHeight : 0)
-                    }).ToList();
+        //         // =============================================
+        //         // 2️⃣ DOPIERO TERAZ WYDŁUŻAMY PROFIL
+        //         // =============================================
+        //         double minX = k.Wierzcholki.Min(p => p.X);
+        //         double maxX = k.Wierzcholki.Max(p => p.X);
+        //         double minY = k.Wierzcholki.Min(p => p.Y);
+        //         double maxY = k.Wierzcholki.Max(p => p.Y);
 
-                    k.DlogoscElementu += (float)deltaHeight;
-                    k.DlogoscNaGotowoElementu += (float)deltaHeight;
-                }
+        //         double width = maxX - minX;
+        //         double height = maxY - minY;
+
+        //         // Profil poziomy → wydłużamy na prawo
+        //         if (width > height)
+        //         {
+        //             k.Wierzcholki = k.Wierzcholki.Select(p => new XPoint
+        //             {
+        //                 X = p.X + (p.X > minX + width / 2 ? deltaWidth : 0),
+        //                 Y = p.Y
+        //             }).ToList();
+
+        //             k.DlogoscElementu += (float)deltaWidth;
+        //             k.DlogoscNaGotowoElementu += (float)deltaWidth;
+        //         }
+        //         // Profil pionowy → wydłużamy w dół
+        //         else
+        //         {
+        //             k.Wierzcholki = k.Wierzcholki.Select(p => new XPoint
+        //             {
+        //                 X = p.X,
+        //                 Y = p.Y + (p.Y > minY + height / 2 ? deltaHeight : 0)
+        //             }).ToList();
+
+        //             k.DlogoscElementu += (float)deltaHeight;
+        //             k.DlogoscNaGotowoElementu += (float)deltaHeight;
+        //         }
 
 
-                Console.WriteLine($"✅ Dopasowano: {k.NazwaElementu}");
-            }
-        }
+        //         Console.WriteLine($"✅ Dopasowano: {k.NazwaElementu}");
+        //     }
+        // }
 
         //await RozstawLinie(false);
         await ApplyZoom(_currentScale);
 
         Console.WriteLine($"✅ Zmieniono wymiary konstrukcji: {constWlasciwosciOkna.Szerokosc}x{constWlasciwosciOkna.Wysokosc}");
-    }
-
-    private GeneratorState PobierzGenerator(string idRegion)
-    {
-        if (_generatorStates.ContainsKey(idRegion))
-        {
-            return _generatorStates[idRegion];
-        }
-        else
-        {
-            return null;
-        }
     }
 
     private void EditElements(
@@ -2501,7 +2526,7 @@
 
             czyRegionZawieraSlupekRuchomy = slupkiRuchome.Any();
 
-           // double tolerancjaKlik = 0.05; // aby uniknąć efektu granicznego
+            // double tolerancjaKlik = 0.05; // aby uniknąć efektu granicznego
 
             if (czyRegionZawieraSlupekRuchomy)
             {
@@ -2789,12 +2814,12 @@
 
         var linie = ExtractLinesFromSquare(WierzcholkiWartosciNominalne);
 
-        string idGenerator = $"{idRegion}_{Guid.NewGuid()}";
+       //string idGenerator = $"{idRegion}_{Guid.NewGuid()}";
 
         // Zapisz stan generatora
-        _generatory[idGenerator] = generator;
+       // _generatory[idGenerator] = generator;
 
-        ZapiszStanGeneratora(idGenerator, state);
+       //ZapiszStanGeneratora(idGenerator, state);
 
         List<SasiadInfo> sasiedzi = new();
 
@@ -3254,8 +3279,10 @@
 
         // Console.WriteLine($"📦📦📦 Dodano elementy do regionu {idRegion} o typie {SelectedModelType}. przesLewo:{przesLewo}, przesPrawo:{przesPrawo}, przesGora: {przesGora}, przesDol: {przesDol} 📦📦📦");
         // Zapis do słownika i aktualizacja listy
-        _ksztaltyNaRegion[idRegion] = new List<KsztaltElementu>(generator.ElementyRamyRysowane);
+        _ksztaltyNaRegion[idRegion + "-" + Guid.NewGuid().ToString()] = new List<KsztaltElementu>(generator.ElementyRamyRysowane);
         ksztalty = _ksztaltyNaRegion.Values.SelectMany(k => k).ToList();
+
+        Console.WriteLine($"📦📦📦 Generowanie elementów zarejetrowano ilość ksztalty: {ksztalty.Count}.");
 
         // string idGenerator = $"{idRegion}_{Guid.NewGuid()}";
 
@@ -3265,6 +3292,12 @@
         // ZapiszStanGeneratora(idGenerator, state);
 
         //await Task.CompletedTask;
+
+      //  string idGenerator = $"{idRegion}_{Guid.NewGuid()}";
+        state.IdRegion = $"{idRegion}_{DateTime.UtcNow.Ticks}";
+        ZapiszStanGeneratora(state.IdRegion, state);
+
+        await ApplyZoom(_currentScale);
 
         return true;
     }
@@ -4350,22 +4383,28 @@
         return linie;
     }
 
-
-    private void ZapiszStanGeneratora(string idRegion, GeneratorState state)
+    private void ZapiszStanGeneratora(string regionId, GeneratorState state)
     {
-        _generatorStates[$"{idRegion}"] = state;
+        // nie tworzymy nowego klucza – nadpisujemy stary
+        state.IdRegion = regionId;
 
-        Console.WriteLine($"✅ ZapiszStanGeneratora stan generatora dla regionu {idRegion}. _generatorStates.Count: {_generatorStates?.Count ?? 0}");
+        _generatorStates[regionId] = state;
 
-        int i = 0;
-        foreach(var key in _generatorStates.Keys)
-        {
-            Console.WriteLine($"🔍 ZapiszStanGeneratora -> Klucz w słowniku: {key} _generatorStates.Count: {_generatorStates?.Count ?? 0} Korok: {i++}");
-        } 
+        Console.WriteLine($"💾 Nadpisano stan generatora dla regionu: {regionId}");
+        Console.WriteLine($"📦 Liczba wpisów w _generatorStates: {_generatorStates.Count}");
 
-        // powiadom Blazor UI, że dane się zmieniły
         _ = InvokeAsync(StateHasChanged);
     }
+
+
+    private GeneratorState? PobierzGenerator(string regionId)
+    {
+        if (_generatorStates.TryGetValue(regionId, out var state))
+            return state;
+
+        return null;
+    }
+
 
     private bool CzyPunktLezyNaKrawedzi(XPoint punkt, List<XPoint> wielokat)
     {
@@ -4455,14 +4494,14 @@
     {
         if (!_generatorStates.TryGetValue(idRegion, out var state))
         {
-            await GenerujObrysPozZmianieWymiarow();
+            await GenerujObrysPozZmianieWymiarow(false);
 
             Console.WriteLine($"❌ Brak stanu generatora dla regionu {idRegion}, żeden model nie został dodany!");
             return;
         }
         else
         {
-            await GenerujObrysPozZmianieWymiarow();
+            await GenerujObrysPozZmianieWymiarow(false);
         }
 
         var generator = new Generator
@@ -4589,6 +4628,7 @@
             }
         }
 
+
         _ksztaltyNaRegion[idRegion] = new List<KsztaltElementu>(generator.ElementyRamyRysowane);
         ksztalty = _ksztaltyNaRegion.Values.SelectMany(k => k).ToList();
 
@@ -4601,7 +4641,7 @@
     {
         try
         {
-            if (_context == null)
+            if (_context == null || _disposed)
                 return;
 
             // W rysowaniu:
@@ -4609,8 +4649,7 @@
             await _context.TranslateAsync(_offsetX, _offsetY);
             await _context.ScaleAsync(_currentScale, _currentScale);
 
-
-            Console.WriteLine($"RenderFrame");
+            Console.WriteLine($"RenderFrame _currentScale: {_currentScale}");
 
             if (ksztalty == null || !ksztalty.Any())
                 return;
@@ -4626,12 +4665,13 @@
                 if (ksztalt.Wierzcholki == null || ksztalt.Wierzcholki.Count < 3)
                     continue;
 
-               // Console.WriteLine($"*********** >>>>>> IndeksElementu: {ksztalt.IndeksElementu} Grupa: {ksztalt.Grupa}");
+                Console.WriteLine($"*********** >>>>>> IndeksElementu: {ksztalt.IndeksElementu} Grupa: {ksztalt.Grupa} DlogoscElementu: {ksztalt.DlogoscElementu}");
 
                 await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
                 await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"{ksztalt.IndeksElementu.ToString()} [{ksztalt.Kat.ToString()}/{ksztalt.Strona}]"); // Tekst z ID i kątem na profilu
             }
 
+            await _context.RestoreAsync();
 
            // await Task.Delay(50); // Krótkie opóźnienie dla płynności
 
@@ -4645,29 +4685,40 @@
 
     private async Task DrawShapeWithVariableOffset(Canvas2DContext context, KsztaltElementu ksztalt, string textureUrl, bool calculate)
     {
-        var outerPoints = ksztalt.Wierzcholki;
-
-        // Console.WriteLine($"outerPoints: {outerPoints.Count}");
-
-        var offsets = GetOffsetsForGroup(ksztalt.Grupa);
-
-        await DrawSingleContour(context, outerPoints);
-
-        // await DrawDoubleContour(context, outerPoints, innerPoints);
-        if (_dotNetHelper != null)
+        try
         {
-            await JS.InvokeVoidAsync("loadAndDrawTexture",
-                CanvasRef.CanvasReference,
-                textureUrl,
-                _dotNetHelper
-            );
+            var outerPoints = ksztalt.Wierzcholki;
+            var offsets = GetOffsetsForGroup(ksztalt.Grupa);
+
+            await DrawSingleContour(context, outerPoints);
+
+            // Sprawdź, czy _dotNetHelper nie jest null i czy komponent nie został usunięty
+            if (_dotNetHelper != null && !_disposed)
+            {
+                try
+                {
+                    await JS.InvokeVoidAsync("loadAndDrawTexture",
+                        CanvasRef.CanvasReference,
+                        textureUrl,
+                        _dotNetHelper
+                    );
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"❌ Błąd podczas ładowania tekstury: {ex.Message}");
+                    // Możesz tutaj podjąć decyzję, czy chcesz kontynuować bez tekstury, czy coś innego
+                }
+            }
+
+            await context.SetStrokeStyleAsync("#000000");
+            await context.SetLineWidthAsync(1.5f);
+            await context.StrokeAsync();
         }
-
-        await context.SetStrokeStyleAsync("#000000");
-        await context.SetLineWidthAsync(1.5f);
-        await context.StrokeAsync();
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Błąd w DrawShapeWithVariableOffset: {ex.Message}");
+        }
     }
-
 
     private (float left, float right, float top, float bottom) GetOffsetsForGroup(string grupa)
     {

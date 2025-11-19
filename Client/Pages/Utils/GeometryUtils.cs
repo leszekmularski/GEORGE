@@ -6,7 +6,7 @@ namespace GEORGE.Client.Pages.Utils
 {
     public static class GeometryUtils
     {
-        public static List<ShapeRegion> GenerujRegionyZPodzialu(List<IShapeDC> shapes, int szerokosc, int wysokosc, bool rama)
+        public static List<ShapeRegion> GenerujRegionyZPodzialu(List<IShapeDC> shapes, int _szerokosc, int _wysokosc, bool rama)
         {
            // Console.WriteLine($"📦 Przed usunięciem duplikatów: {shapes.Count} obiektów.");
             shapes = UsunDuplikatyShape(shapes);
@@ -14,10 +14,7 @@ namespace GEORGE.Client.Pages.Utils
 
             var regions = new List<ShapeRegion>();
 
-            //var linieDzielace = shapes
-            //    .OfType<XLineShape>()
-            //    .Where(l => rama ? l.DualRama : l.RuchomySlupek)
-            //    .ToList();
+            Console.WriteLine($"🔲 Generowanie regionów z podziału dla {shapes.Count} kształtów. {_szerokosc}x{_wysokosc}");
 
             var shapesDoRegionow = shapes.Where(s =>
                 s is XRectangleShape or XSquareShape or XTriangleShape
@@ -33,16 +30,16 @@ namespace GEORGE.Client.Pages.Utils
             double maxX = shapesDoRegionow.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
             double maxY = shapesDoRegionow.Max(s => s.GetBoundingBox().Y + s.GetBoundingBox().Height);
 
-            double scaleX = (double)szerokosc / (maxX - minX);
-            double scaleY = (double)wysokosc / (maxY - minY);
+            double scaleX = (double)_szerokosc / (maxX - minX);
+            double scaleY = (double)_wysokosc / (maxY - minY);
             double offsetX = -minX * scaleX;
             double offsetY = -minY * scaleY;
 
             foreach (var shape in shapes)
             {
                 shape.Transform(scaleX, scaleY, offsetX, offsetY);
-                shape.Szerokosc = szerokosc;
-                shape.Wysokosc = wysokosc;
+                shape.Szerokosc = _szerokosc;
+                shape.Wysokosc = _wysokosc;
             }
 
             foreach (var shape in shapes)
@@ -78,17 +75,6 @@ namespace GEORGE.Client.Pages.Utils
                     XLineShape { StalySlupek: true } => "Słupek stały",
                     _ => "Brak podziału"
                 };
-
-                // Console.WriteLine($"🔍GenerujRegionyZPodzialu --> Przetwarzanie kształtu typu: {typ}, liczba wierzchołków: {pts.Count} typLinii: {typLinii}");
-
-                // Console.WriteLine($"🔍GenerujRegionyZPodzialu --> Generowanie regionu z kształtu: {typ}, liczba wierzchołków: {pts.Count}");
-
-                //Console.WriteLine($"🔍 GenerujRegionyZPodzialu --> Przetwarzanie kształtu typu: {typ}, liczba wierzchołków: {pts.Count}, typLinii: {typLinii}, Id: {id}, Rama: {rama}");
-
-                //foreach(var p in pts)
-                //{
-                //    Console.WriteLine($"🔍 GenerujRegionyZPodzialu -->  Wierzchołek: ({p.X}, {p.Y})");
-                //}
 
                 var initial = new ShapeRegion
                 {

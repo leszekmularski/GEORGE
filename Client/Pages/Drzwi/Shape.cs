@@ -24,6 +24,9 @@ namespace GEORGE.Client.Pages.Drzwi
             Y = y;
             Width = width;
             Height = height;
+
+            Xpoints = new List<Point>();
+            XLinePoint = new List<LinePoint>();
         }
 
         public override async Task DrawAsync(Canvas2DContext context)
@@ -57,6 +60,9 @@ namespace GEORGE.Client.Pages.Drzwi
             CenterX = centerX;
             CenterY = centerY;
             Radius = radius;
+
+            Xpoints = new List<Point>();
+            XLinePoint = new List<LinePoint>();
         }
 
         public override async Task DrawAsync(Canvas2DContext context)
@@ -84,13 +90,15 @@ namespace GEORGE.Client.Pages.Drzwi
         public double StartY { get; set; }
         public double EndX { get; set; }
         public double EndY { get; set; }
-
         public LineShape(double startX, double startY, double endX, double endY)
         {
             StartX = startX;
             StartY = startY;
             EndX = endX;
             EndY = endY;
+
+            Xpoints = new List<Point>();
+            XLinePoint = new List<LinePoint>();
         }
 
         public override async Task DrawAsync(Canvas2DContext context)
@@ -126,6 +134,9 @@ namespace GEORGE.Client.Pages.Drzwi
             CenterY = centerY;
             RadiusX = radiusX;
             RadiusY = radiusY;
+
+            Xpoints = new List<Point>();
+            XLinePoint = new List<LinePoint>();
         }
 
         public override async Task DrawAsync(Canvas2DContext context)
@@ -168,6 +179,9 @@ namespace GEORGE.Client.Pages.Drzwi
             Y2 = y2;
             X3 = x3;
             Y3 = y3;
+
+            Xpoints = new List<Point>();
+            XLinePoint = new List<LinePoint>();
         }
 
         public override async Task DrawAsync(Canvas2DContext context)
@@ -207,6 +221,9 @@ namespace GEORGE.Client.Pages.Drzwi
             Width = width;
             Height = height;
             Thickness = thickness;
+
+            Xpoints = new List<Point>();
+            XLinePoint = new List<LinePoint>();
         }
 
         public override async Task DrawAsync(Canvas2DContext context)
@@ -251,6 +268,9 @@ namespace GEORGE.Client.Pages.Drzwi
             Width = width;
             Height = height;
             Thickness = thickness;
+
+            Xpoints = new List<Point>();
+            XLinePoint = new List<LinePoint>();
         }
 
         public override async Task DrawAsync(Canvas2DContext context)
@@ -298,6 +318,9 @@ namespace GEORGE.Client.Pages.Drzwi
             Width = width;
             Height = height;
             Thickness = thickness;
+
+            Xpoints = new List<Point>();
+            XLinePoint = new List<LinePoint>();
         }
 
         public override async Task DrawAsync(Canvas2DContext context)
@@ -358,6 +381,9 @@ namespace GEORGE.Client.Pages.Drzwi
             WysProgu = wysprogu;
             Skala = skala;
             Lacz_Osc = lacz_osc;
+
+            Xpoints = new List<Point>();
+            XLinePoint = new List<LinePoint>();
         }
 
         public override async Task DrawAsync(Canvas2DContext context)
@@ -533,6 +559,9 @@ namespace GEORGE.Client.Pages.Drzwi
             Width = width;
             Height = height;
             Thickness = thickness;
+
+            Xpoints = new List<Point>();
+            XLinePoint = new List<LinePoint>();
         }
 
         public override async Task DrawAsync(Canvas2DContext context)

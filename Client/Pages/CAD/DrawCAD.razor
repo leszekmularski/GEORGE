@@ -8,6 +8,7 @@
 
 @using Blazor.Extensions.Canvas.Canvas2D
 @implements IDisposable
+@implements IAsyncDisposable
 
 <style>
     .toolbar {
@@ -306,6 +307,8 @@
     [JSInvokable]
     public void SetForceHV(bool state) => _forceHV = state;
 
+    private DotNetObjectReference<DrawCAD>? _dotNetRef;
+
     protected override async Task OnInitializedAsync()
     {
         _shapes = ShapeService.Shapes; // Odbiór danych z serwisu
@@ -344,6 +347,18 @@
                 StateHasChanged();
             }
         }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            _dotNetRef?.Dispose();
+            await JSRuntime.InvokeVoidAsync("clearDotNetHelper");
+            await JSRuntime.InvokeVoidAsync("cleanupEventListeners");
+            await JSRuntime.InvokeVoidAsync("clearCanvasRef");
+        }
+        catch { }
     }
 
 

@@ -45,8 +45,8 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             MVCKonfModelu = new MVCKonfModele();
             WybranyModel = new KonfModele();
             ListaKwadratow = new List<DaneKwadratu>();
-            Szerokosc = 0;
-            Wysokosc = 0;
+            Szerokosc = 1250;
+            Wysokosc = 1000;
             KolorZewnetrzny = DomyslnyKolorZewnetrzny;
             KolorWewnetrzny = DomyslnyKolorWewnetrzny;
             KolorSzyby = DomyslnyKolorSzyby;
