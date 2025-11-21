@@ -1,86 +1,97 @@
 ﻿using Blazor.Extensions.Canvas.Canvas2D;
 using GEORGE.Shared.ViewModels;
-using DocumentFormat.OpenXml.Drawing.Charts;
-using GEORGE.Client.Pages.Models;
-using SixLabors.ImageSharp.Drawing;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace GEORGE.Client.Pages.KonfiguratorOkien
 {
     public class XTriangleShape : IShapeDC
     {
-        // 📍 Współrzędne bazowe (trójkąt równoramienny, o podstawie poziomej)
-        public double BaseX1 { get; set; } // Lewy dolny X podstawy
-        public double BaseY { get; set; }  // Y podstawy (stała wartość dla dolnych punktów)
+        // Pozycje bazowe trójkąta
+        public double BaseX1 { get; set; }
+        public double BaseY { get; set; }
         public double BaseWidth { get; set; }
         public double Height { get; set; }
         public string NazwaObj { get; set; } = "Trójkąt";
 
-        private double _scaleFactor = 1.0; // Skala
+        private double _scaleFactor = 1.0;
+
         public double Szerokosc { get; set; }
         public double Wysokosc { get; set; }
+
         public List<XPoint> Points { get; set; }
+        public string ID { get; set; } = Guid.NewGuid().ToString();
         public List<XPoint> GetPoints() => Points;
+
+        // ---------------------------------------------------------
+        // 🔥 Konstruktor z automatycznym generowaniem punktów
+        // ---------------------------------------------------------
         public XTriangleShape(double startX, double startY, double endX, double endY, double scaleFactor)
         {
             BaseX1 = Math.Min(startX, endX);
             BaseY = Math.Max(startY, endY);
             BaseWidth = Math.Abs(endX - startX);
             Height = Math.Abs(startY - endY);
+
             _scaleFactor = scaleFactor;
+
+            Points = GeneratePoints();
         }
+
+        // ---------------------------------------------------------
+        // 🔥 Funkcja generująca 3 punkty na podstawie parametrów
+        // ---------------------------------------------------------
+        private List<XPoint> GeneratePoints()
+        {
+            var apexX = BaseX1 + BaseWidth / 2;
+            var apexY = BaseY - Height;
+            var baseX2 = BaseX1 + BaseWidth;
+
+            return new List<XPoint>
+            {
+                new XPoint(apexX, apexY),      // górny wierzchołek
+                new XPoint(baseX2, BaseY),     // prawy dolny
+                new XPoint(BaseX1, BaseY)      // lewy dolny
+            };
+        }
+
+        // ---------------------------------------------------------
+        // 🔥 Aktualizacja punktów z przeciągania / edycji
+        // ---------------------------------------------------------
         public void UpdatePoints(List<XPoint> newPoints)
         {
-            if (newPoints == null || newPoints.Count < 3)
+            if (newPoints == null || newPoints.Count != 3)
                 return;
 
             Points = newPoints;
 
-            // Zakładamy, że punkty są w kolejności: wierzchołek, prawy dolny, lewy dolny
-            XPoint apex = Points[0];       // Wierzchołek trójkąta
-            XPoint rightBase = Points[1];  // Prawy dolny punkt podstawy
-            XPoint leftBase = Points[2];   // Lewy dolny punkt podstawy
+            XPoint apex = Points[0];
+            XPoint rightBase = Points[1];
+            XPoint leftBase = Points[2];
 
-            // Aktualizacja właściwości trójkąta
             BaseX1 = leftBase.X;
-            BaseY = leftBase.Y; // Zakładamy, że oba dolne punkty mają to samo Y
+            BaseY = leftBase.Y;
+
             BaseWidth = rightBase.X - leftBase.X;
             Height = Math.Abs(apex.Y - BaseY);
+
+            // Spójność podstawy
+            if (Math.Abs(rightBase.Y - leftBase.Y) > 0.1)
+                BaseY = (rightBase.Y + leftBase.Y) / 2;
 
             // Aktualizacja wymiarów
             Szerokosc = BaseWidth;
             Wysokosc = Height;
 
-            // Sprawdzenie spójności punktów (czy podstawy są na tej samej wysokości)
-            if (Math.Abs(rightBase.Y - leftBase.Y) > 0.1)
-            {
-                // Jeśli punkty podstawy nie są na tej samej wysokości, dostosowujemy Y
-                BaseY = (rightBase.Y + leftBase.Y) / 2;
-            }
-
-            // Obliczenie środka podstawy dla weryfikacji
-            double baseCenterX = leftBase.X + BaseWidth / 2;
-
-            // Jeśli wierzchołek nie jest wycentrowany, możemy dostosować BaseX1
-            if (Math.Abs(apex.X - baseCenterX) > 0.1)
-            {
-                // Przesuwamy cały trójkąt, aby wycentrować wierzchołek
-                double offset = apex.X - baseCenterX;
-                BaseX1 += offset;
-            }
+            // ✔️ Rekonstrukcja poprawnych punktów
+            Points = GeneratePoints();
         }
 
+        // ---------------------------------------------------------
         public IShapeDC Clone()
         {
-            return new XTriangleShape(BaseX1, BaseY, BaseWidth, Height, _scaleFactor);
+            return new XTriangleShape(BaseX1, BaseY - Height, BaseX1 + BaseWidth, BaseY, _scaleFactor);
         }
 
-
-        /// <summary>
-        /// Rysuje trójkąt na kontekście 2D.
-        /// </summary>
+        // ---------------------------------------------------------
         public async Task Draw(Canvas2DContext ctx)
         {
             var apexX = BaseX1 + BaseWidth / 2;
@@ -98,93 +109,74 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             await ctx.StrokeAsync();
         }
 
-        /// <summary>
-        /// Zwraca listę edytowalnych właściwości trójkąta.
-        /// </summary>
+        // ---------------------------------------------------------
         public List<EditableProperty> GetEditableProperties() => new()
         {
-            new EditableProperty("Lewa podstawa X", () => BaseX1, v => BaseX1 = v, NazwaObj),
-            new EditableProperty("Pozycja Y podstawy", () => BaseY, v => BaseY = v, NazwaObj),
-            new EditableProperty("Szerokość podstawy", () => BaseWidth, v => BaseWidth = v, NazwaObj),
-            new EditableProperty("Wysokość", () => Height, v => Height = v, NazwaObj)
+            new("Lewa podstawa X", () => BaseX1, v => { BaseX1 = v; Points = GeneratePoints(); }, NazwaObj),
+            new("Pozycja Y podstawy", () => BaseY, v => { BaseY = v; Points = GeneratePoints(); }, NazwaObj),
+            new("Szerokość podstawy", () => BaseWidth, v => { BaseWidth = v; Points = GeneratePoints(); }, NazwaObj),
+            new("Wysokość", () => Height, v => { Height = v; Points = GeneratePoints(); }, NazwaObj)
         };
 
-        /// <summary>
-        /// Skalowanie trójkąta względem środka.
-        /// </summary>
+        // ---------------------------------------------------------
         public void Scale(double factor)
         {
             BaseWidth *= factor;
             Height *= factor;
+
             BaseX1 -= (BaseWidth * (factor - 1)) / 2;
             BaseY += (Height * (factor - 1));
+
+            Points = GeneratePoints();
         }
 
         public void Scale(double scaleX, double scaleY)
         {
-            // Przykład skalowania pozycji i rozmiaru
             BaseWidth *= scaleX;
             Height *= scaleY;
+
             BaseX1 *= scaleX;
             BaseY *= scaleY;
+
+            Points = GeneratePoints();
         }
 
-        /// <summary>
-        /// Przesunięcie trójkąta o offset (X, Y).
-        /// </summary>
+        // ---------------------------------------------------------
         public void Move(double offsetX, double offsetY)
         {
             BaseX1 += offsetX;
             BaseY += offsetY;
+
+            Points = GeneratePoints();
         }
 
-        /// <summary>
-        /// Zwraca BoundingBox obejmujący cały trójkąt.
-        /// </summary>
+        // ---------------------------------------------------------
         public BoundingBox GetBoundingBox()
         {
             double minX = BaseX1;
-            double minY = BaseY - Height; // Wierzchołek trójkąta
+            double minY = BaseY - Height;
             double maxX = BaseX1 + BaseWidth;
             double maxY = BaseY;
 
             return new BoundingBox(minX, minY, maxX - minX, maxY - minY, NazwaObj);
         }
 
-        /// <summary>
-        /// Zwraca 3 wierzchołki trójkąta (kolejność: góra, prawy dolny, lewy dolny).
-        /// </summary>
-        public List<XPoint> GetVertices()
-        {
-            var apexX = BaseX1 + BaseWidth / 2;
-            var apexY = BaseY - Height;
-            var baseX2 = BaseX1 + BaseWidth;
+        // ---------------------------------------------------------
+        public List<XPoint> GetVertices() => GeneratePoints();
 
-            return new List<XPoint>
-            {
-                new XPoint(apexX, apexY),        // Wierzchołek górny
-                new XPoint(baseX2, BaseY),        // Prawy dolny róg
-                new XPoint(BaseX1, BaseY)         // Lewy dolny róg
-            };
-        }
-
-        /// <summary>
-        /// Zwraca listę krawędzi trójkąta jako pary punktów (Start, End).
-        /// </summary>
+        // ---------------------------------------------------------
         public List<(XPoint Start, XPoint End)> GetEdges()
         {
-            var vertices = GetVertices();
+            var v = GeneratePoints();
             return new List<(XPoint, XPoint)>
             {
-                (vertices[0], vertices[1]),
-                (vertices[1], vertices[2]),
-                (vertices[2], vertices[0])
+                (v[0], v[1]),
+                (v[1], v[2]),
+                (v[2], v[0])
             };
         }
 
-        /// <summary>
-        /// Transformacja trójkąta (skala + przesunięcie).
-        /// </summary>
+        // ---------------------------------------------------------
         public void Transform(double scale, double offsetX, double offsetY)
         {
             Scale(scale);
@@ -196,7 +188,5 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             Scale(scaleX, scaleY);
             Move(offsetX, offsetY);
         }
-
     }
-
 }

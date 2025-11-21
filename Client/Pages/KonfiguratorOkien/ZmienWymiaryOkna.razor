@@ -21,7 +21,7 @@ else
 
                 <div class="mb-2">
                     <label>Wysokość [mm]</label>
-                    <AntDesign.InputNumber @bind-Value="Model.Wysokosc" Style="width: 100%;" />
+                    <AntDesign.InputNumber @bind-Value="Model.Wysokosc" Style="width: 100%;" Disabled="BlokujWysokosc" />
                 </div>
 
                 <h5 class="mt-3">Kolorystyka</h5>
@@ -94,14 +94,23 @@ else
 }
 
 @code {
+
     [Parameter]
     public ConstWlasciwosciOkna? Model { get; set; }
+
+    [Parameter]
+    public bool BlokujWysokosc { get; set; }
 
     [Parameter]
     public EventCallback<ConstWlasciwosciOkna> OnSave { get; set; }
 
     public async Task ZapiszDoRodzica()
     {
+        if (BlokujWysokosc)
+        {
+            Model!.Wysokosc = Model!.Szerokosc;
+        }
+
         await OnSave.InvokeAsync(Model);
     }
 }

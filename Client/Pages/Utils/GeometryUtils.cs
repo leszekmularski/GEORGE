@@ -66,7 +66,7 @@ namespace GEORGE.Client.Pages.Utils
 
                 string typLinii = null;
 
-                string id = Guid.NewGuid().ToString();
+                string id = shape.ID;
 
                 typLinii = shape switch
                 {
@@ -127,6 +127,8 @@ namespace GEORGE.Client.Pages.Utils
                                 r.TypKsztaltu = "prostokąt";
                             }
                         }
+
+                        r.Id = id;
 
                         // **UWAGA**: NIE NADPISUJEMY Id — zachowujemy oryginalne Id
                     }
@@ -352,6 +354,8 @@ namespace GEORGE.Client.Pages.Utils
             {
                 var kopia = CloneRegion(s);
 
+                //kopia.Id = s.Id; // zachowaj oryginalne Id do sprawdzenia
+
                 // dla każdego punktu: przenieś względnie do ramy przed i przeskaluj do ramy po, następnie wypośrodkuj do nowej pozycji
                 for (int i = 0; i < kopia.Wierzcholki.Count; i++)
                 {
@@ -389,7 +393,7 @@ namespace GEORGE.Client.Pages.Utils
             return wynik;
         }
 
-        public static List<ShapeRegion> SkalujRegionyIndywidualnie(
+    public static List<ShapeRegion> SkalujRegionyIndywidualnie(
     List<ShapeRegion> stareRegiony,
     int nowaSzerokosc,
     int nowaWysokosc)
@@ -425,6 +429,8 @@ namespace GEORGE.Client.Pages.Utils
                 noweRegiony.Add(new ShapeRegion
                 {
                     Id = region.Id,
+                    IdMaster = region.IdMaster,
+                    IdRegionuPonizej = region.IdRegionuPonizej,
                     TypKsztaltu = region.TypKsztaltu,
                     TypLiniiDzielacej = region.TypLiniiDzielacej,
                     Wierzcholki = noweWierzcholki
@@ -465,6 +471,8 @@ namespace GEORGE.Client.Pages.Utils
         {
             var wynik = new List<ShapeRegion> { region };
 
+            int i = 0;
+
             foreach (var line in lines)
             {
                 var next = new List<ShapeRegion>();
@@ -483,6 +491,7 @@ namespace GEORGE.Client.Pages.Utils
                                 LinieDzielace = r.LinieDzielace.Concat(new[] { line }).ToList(),
                                 IdMaster = idMaster,
                                 Rama = rama,
+                                Id = r.Id + "-PODZIAL-" + i++,
                                 TypLiniiDzielacej = r.TypLiniiDzielacej
                             });
                     }

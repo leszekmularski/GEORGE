@@ -24,6 +24,32 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         public bool SlupekRuchomyPoPrawejStronie { get; set; } = false;
         public List<DaneKwadratu>? ListaKwadratow { get; set; }
         public bool ElementLiniowy { get; set; } = false;
+
+        public GeneratorState Clone()
+        {
+            return new GeneratorState
+            {
+                Id = this.Id,
+                IdRegion = this.IdRegion,
+                IdRegionWarstwaNizej = this.IdRegionWarstwaNizej,
+                ZIndeks = this.ZIndeks,
+                Wierzcholki = this.Wierzcholki?.Select(p => new XPoint(p.X, p.Y)).ToList(),
+                WierzcholkiWartosciNominalne = this.WierzcholkiWartosciNominalne?.Select(p => new XPoint(p.X, p.Y)).ToList(),
+                RowIdSystemu = this.RowIdSystemu,
+                RowIdModelu = this.RowIdModelu,
+                MVCKonfModelu = this.MVCKonfModelu, // jeśli ref typ → ewentualnie deep copy
+                WybranyModel = this.WybranyModel,   // jw.
+                WybranyKsztalt = this.WybranyKsztalt,
+                LinieDzielace = this.LinieDzielace,
+                SlupekRuchomyPoLewejStronie = this.SlupekRuchomyPoLewejStronie,
+                SlupekRuchomyPoPrawejStronie = this.SlupekRuchomyPoPrawejStronie,
+                ListaKwadratow = this.ListaKwadratow != null
+                    ? this.ListaKwadratow.Select(q => q.Clone()).ToList()
+                    : null,
+                ElementLiniowy = this.ElementLiniowy
+            };
+        }
+
     }
 
 }

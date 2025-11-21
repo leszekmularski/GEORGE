@@ -19,6 +19,7 @@ namespace GEORGE.Client.Pages.Models
         public double Szerokosc { get; set; }
         public double Wysokosc { get; set; }
         public List<XPoint> Points { get; set; }
+        public string ID { get; set; } = Guid.NewGuid().ToString();
         public List<XPoint> GetPoints() => Points;
         // Konstruktor przyjmujący współrzędne i współczynnik szerokości góry
         public XTrapezoidShape(double startX, double startY, double endX, double endY, double topWidthFactor, double scaleFactor, int typ)
@@ -30,6 +31,8 @@ namespace GEORGE.Client.Pages.Models
             TopWidth = Math.Min(BaseWidth, BaseWidth * topWidthFactor);  // Oblicz szerokość góry trapezu
             _scaleFactor = scaleFactor;
             Typ = typ;
+
+            Points = GeneratePoints();
         }
 
         public void UpdatePoints(List<XPoint> newPoints)
@@ -344,6 +347,45 @@ namespace GEORGE.Client.Pages.Models
             TopWidth *= scaleX;
             Height *= scaleY;
         }
+
+        private List<XPoint> GeneratePoints()
+        {
+            var baseLeft = X;
+            var baseRight = X + BaseWidth;
+            var topLeft = X + (BaseWidth - TopWidth) / 2;
+            var topRight = topLeft + TopWidth;
+            var verticalY = Y + Height;
+
+            return Typ switch
+            {
+                0 => new List<XPoint>     // standard
+        {
+            new XPoint(topLeft, Y),
+            new XPoint(topRight, Y),
+            new XPoint(baseRight, verticalY),
+            new XPoint(baseLeft, verticalY)
+        },
+
+                1 => new List<XPoint>     // lewa pionowa
+        {
+            new XPoint(baseLeft, Y),
+            new XPoint(topRight, Y),
+            new XPoint(baseRight, verticalY),
+            new XPoint(baseLeft, verticalY)
+        },
+
+                2 => new List<XPoint>     // prawa pionowa
+        {
+            new XPoint(topLeft, Y),
+            new XPoint(baseRight, Y),
+            new XPoint(baseRight, verticalY),
+            new XPoint(baseLeft, verticalY)
+        },
+
+                _ => new List<XPoint>()
+            };
+        }
+
 
     }
 

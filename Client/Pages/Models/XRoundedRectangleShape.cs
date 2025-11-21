@@ -11,13 +11,18 @@ namespace GEORGE.Client.Pages.Models
         public double Width { get; set; }
         public double Height { get; set; }
         public double Radius { get; set; }
-        public string NazwaObj { get; set; } = "Prostoką z zaokr. naroż.";
+        public string NazwaObj { get; set; } = "Prostokąt z zaokrąglonymi górnymi naroż.";
 
-        private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
+        private double _scaleFactor = 1.0;
+
         public double Szerokosc { get; set; }
         public double Wysokosc { get; set; }
+
         public List<XPoint> Points { get; set; }
+        public string ID { get; set; } = Guid.NewGuid().ToString();
+
         public List<XPoint> GetPoints() => Points;
+
         public XRoundedRectangleShape(double x, double y, double width, double height, double radius, double scaleFactor)
         {
             X = x;
@@ -26,6 +31,27 @@ namespace GEORGE.Client.Pages.Models
             Height = height;
             Radius = radius;
             _scaleFactor = scaleFactor;
+
+            Points = GeneratePoints();
+            Szerokosc = Width;
+            Wysokosc = Height;
+        }
+
+        // ---------------------------------------------------------
+        // 🔥 TYLKO górne naroża są zaokrąglone
+        // ---------------------------------------------------------
+        private List<XPoint> GeneratePoints()
+        {
+            return new List<XPoint>
+            {
+                new(X + Radius, Y),                    // start łuku lewego górnego
+                new(X + Width - Radius, Y),            // przed prawym łukiem
+                new(X + Width, Y),                     // prawy górny – punkt łuku
+                new(X + Width, Y + Height),            // prawy dolny
+                new(X, Y + Height),                    // lewy dolny
+                new(X, Y),                             // lewy górny (punkt łuku)
+                new(X + Radius, Y)                     // domknięcie
+            };
         }
 
         public void UpdatePoints(List<XPoint> newPoints)
@@ -35,54 +61,23 @@ namespace GEORGE.Client.Pages.Models
 
             Points = newPoints;
 
-            // Aktualizacja podstawowych wymiarów prostokąta
-            X = Math.Min(Points[0].X, Points[1].X);
-            Y = Math.Min(Points[0].Y, Points[1].Y);
-            double right = Math.Max(Points[0].X, Points[1].X);
-            double bottom = Math.Max(Points[0].Y, Points[1].Y);
+            double minX = newPoints.Min(p => p.X);
+            double minY = newPoints.Min(p => p.Y);
+            double maxX = newPoints.Max(p => p.X);
+            double maxY = newPoints.Max(p => p.Y);
 
-            Width = right - X;
-            Height = bottom - Y;
+            X = minX;
+            Y = minY;
+            Width = maxX - minX;
+            Height = maxY - minY;
+
             Szerokosc = Width;
             Wysokosc = Height;
 
-            // Obliczanie promienia na podstawie punktów
-            if (Points.Count >= 4)
-            {
-                // Punkt 2 - prawy górny (początek łuku)
-                // Punkt 3 - punkt kontrolny łuku (najbardziej wysunięty)
-                double arcStartX = Points[2].X;
-                double arcControlY = Points[3].Y;
+            double maxRadius = Math.Min(Width, Height) / 2;
+            Radius = Math.Min(Radius, maxRadius);
 
-                // Oblicz promień jako różnicę między Y punktu startowego a Y punktu kontrolnego
-                double calculatedRadius = Math.Abs(arcControlY - Points[2].Y);
-
-                // Ogranicz promień do maksymalnej możliwej wartości
-                double maxPossibleRadius = Math.Min(Width, Height) / 2;
-                Radius = Math.Min(calculatedRadius, maxPossibleRadius);
-            }
-            else if (Points.Count == 3)
-            {
-                // Jeśli mamy 3 punkty, trzeci może określać promień
-                // Oblicz odległość od narożnika do punktu określającego promień
-                double cornerX = X + Width;
-                double cornerY = Y;
-                double dx = Points[2].X - cornerX;
-                double dy = Points[2].Y - cornerY;
-                double calculatedRadius = Math.Sqrt(dx * dx + dy * dy);
-
-                double maxPossibleRadius = Math.Min(Width, Height) / 2;
-                Radius = Math.Min(calculatedRadius, maxPossibleRadius);
-            }
-            else
-            {
-                // Domyślne obliczenie promienia gdy brak dodatkowych punktów
-                double maxPossibleRadius = Math.Min(Width, Height) / 2;
-                Radius = Math.Min(maxPossibleRadius / 4, 50); // 1/4 mniejszego wymiaru, max 50
-            }
-
-            // Dodatkowe zabezpieczenie przed zbyt małym promieniem
-            if (Radius < 2) Radius = 2;
+            Points = GeneratePoints();
         }
 
         public IShapeDC Clone()
@@ -96,24 +91,44 @@ namespace GEORGE.Client.Pages.Models
             await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
 
             await ctx.BeginPathAsync();
+
+            // Start od lewego górnego łuku
             await ctx.MoveToAsync(X + Radius, Y);
+
+            // GÓRNA PROSTA
             await ctx.LineToAsync(X + Width - Radius, Y);
+
+            // ⤵️ Prawy górny zaokrąglony
             await ctx.ArcToAsync(X + Width, Y, X + Width, Y + Radius, Radius);
+
+            // PRAWA PROSTA (bez zaokrąglenia na dole)
             await ctx.LineToAsync(X + Width, Y + Height);
+
+            // DOLNA PROSTA
             await ctx.LineToAsync(X, Y + Height);
+
+            // LEWA PROSTA (bez zaokrąglenia na dole)
             await ctx.LineToAsync(X, Y + Radius);
+
+            // ⤴️ Lewy górny zaokrąglony
             await ctx.ArcToAsync(X, Y, X + Radius, Y, Radius);
+
             await ctx.ClosePathAsync();
             await ctx.StrokeAsync();
         }
 
         public List<EditableProperty> GetEditableProperties() => new()
         {
-            new("X", () => X, v => X = v, NazwaObj, true),
-            new("Y", () => Y, v => Y = v, NazwaObj, true),
-            new("Szerokość", () => Width, v => Width = v, NazwaObj),
-            new("Wysokość", () => Height, v => Height = v, NazwaObj),
-            new("Promień", () => Radius, v => Radius = v, NazwaObj)
+            new("X", () => X, v => { X = v; Points = GeneratePoints(); }, NazwaObj, true),
+            new("Y", () => Y, v => { Y = v; Points = GeneratePoints(); }, NazwaObj, true),
+            new("Szerokość", () => Width, v => { Width = v; Points = GeneratePoints(); }, NazwaObj),
+            new("Wysokość", () => Height, v => { Height = v; Points = GeneratePoints(); }, NazwaObj),
+            new("Promień górnych rogów", () => Radius, v =>
+            {
+                double maxR = Math.Min(Width, Height) / 2;
+                Radius = Math.Min(v, maxR);
+                Points = GeneratePoints();
+            }, NazwaObj)
         };
 
         public void Scale(double factor)
@@ -121,64 +136,64 @@ namespace GEORGE.Client.Pages.Models
             Width *= factor;
             Height *= factor;
             Radius *= factor;
+
+            Szerokosc = Width;
+            Wysokosc = Height;
+
+            Points = GeneratePoints();
         }
+
         public void Move(double offsetX, double offsetY)
         {
             X += offsetX;
             Y += offsetY;
+            Points = GeneratePoints();
         }
 
         public BoundingBox GetBoundingBox()
         {
-            return new BoundingBox(X, Y, Width, Height, "Prostokąt");
+            return new BoundingBox(X, Y, Width, Height, NazwaObj);
         }
 
         public void Transform(double scale, double offsetX, double offsetY)
         {
-            X = (X * scale) + offsetX;
-            Y = (Y * scale) + offsetY;
+            X = X * scale + offsetX;
+            Y = Y * scale + offsetY;
+
             Width *= scale;
             Height *= scale;
             Radius *= scale;
+
+            Points = GeneratePoints();
         }
 
         public void Transform(double scaleX, double scaleY, double offsetX, double offsetY)
         {
-            X = (X * scaleX) + offsetX;
-            Y = (Y * scaleY) + offsetY;
+            X = X * scaleX + offsetX;
+            Y = Y * scaleY + offsetY;
+
             Width *= scaleX;
             Height *= scaleY;
 
-            // Przyjmujemy średnie skalowanie dla promienia, jeśli ma być zachowana proporcja kołowa
             Radius *= (scaleX + scaleY) / 2.0;
+
+            Points = GeneratePoints();
         }
 
-        /// <summary>
-        /// Zwraca wierzchołki prostokąta z zaokrąglonymi rogami po lewej i prawej stronie górnej krawędzi.
-        /// (zawiera kluczowe punkty konturu, bez dokładnych punktów łuków)
-        /// </summary>
-        public List<XPoint> GetVertices()
+        public List<XPoint> GetVertices() => GeneratePoints();
+
+        public List<(XPoint Start, XPoint End)> GetEdges()
         {
-            var vertices = new List<XPoint>();
-
-            // Punkt po lewej stronie łuku (start)
-            vertices.Add(new XPoint(X + Radius, Y));                   // Start po lewej stronie łuku
-
-            vertices.Add(new XPoint(X + Width - Radius, Y));           // Przed prawym łukiem
-            vertices.Add(new XPoint(X + Width, Y));                    // Prawy górny narożnik
-            vertices.Add(new XPoint(X + Width, Y + Radius));           // Po łuku
-
-            vertices.Add(new XPoint(X + Width, Y + Height));           // Prawy dolny
-            vertices.Add(new XPoint(X, Y + Height));                   // Lewy dolny
-
-            vertices.Add(new XPoint(X, Y + Radius));                   // Przed lewym łukiem
-            vertices.Add(new XPoint(X, Y));                            // Lewy górny narożnik
-            vertices.Add(new XPoint(X + Radius, Y));                   // Po łuku (domknięcie)
-
-            return vertices;
+            var v = GeneratePoints();
+            return new List<(XPoint, XPoint)>
+            {
+                (v[0], v[1]),
+                (v[1], v[2]),
+                (v[2], v[3]),
+                (v[3], v[4]),
+                (v[4], v[5]),
+                (v[5], v[0])
+            };
         }
-
-
     }
-
 }

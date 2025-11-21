@@ -17,6 +17,7 @@ namespace GEORGE.Client.Pages.Models
         public double Szerokosc { get => Width; set => Width = value; }
         public double Wysokosc { get => Height; set => Height = value; }
         public List<XPoint> Points { get; set; } = new List<XPoint>();
+        public string ID { get; set; } = Guid.NewGuid().ToString();
 
         public XHouseShape(double x, double y, double width, double height,
                           double heightLeft, double heightRight, double scaleFactor)

@@ -76,6 +76,8 @@ namespace GEORGE.Client.Pages.Models
             }
         }
 
+        public string ID { get; set; } = Guid.NewGuid().ToString();
+
         public XCircleShape() { }
 
         public XCircleShape(double x, double y, double radius, double scaleFactor = 1.0)

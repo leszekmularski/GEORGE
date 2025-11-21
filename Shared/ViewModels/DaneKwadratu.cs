@@ -24,6 +24,32 @@ namespace GEORGE.Shared.ViewModels
         {
             return KatLinii == 0 || KatLinii == 180;
         }
+        public DaneKwadratu Clone()
+        {
+            return new DaneKwadratu
+            {
+                Wierzcholki = this.Wierzcholki != null
+                    ? this.Wierzcholki.Select(p => new XPoint(p.X, p.Y)).ToList()
+                    : null,
+
+                RowIdElementu = this.RowIdElementu,
+                RowIdSasiada = this.RowIdSasiada,
+                RowIdSasiadaStronaA = this.RowIdSasiadaStronaA,
+                RowIdSasiadaStronaB = this.RowIdSasiadaStronaB,
+                RowIdRegionuSasiada = this.RowIdRegionuSasiada,
+
+                KatLinii = this.KatLinii,
+                Strona = this.Strona,
+
+                OffsetTop = this.OffsetTop,
+                OffsetBottom = this.OffsetBottom,
+                OffsetLeft = this.OffsetLeft,
+                OffsetRight = this.OffsetRight,
+
+                BoolElementLinia = this.BoolElementLinia
+            };
+        }
+
     }
 
 }

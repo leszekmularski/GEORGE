@@ -17,6 +17,7 @@ namespace GEORGE.Client.Pages.Models
         public double Szerokosc { get; set; }
         public double Wysokosc { get; set; }
         public List<XPoint> Points { get; set; }
+        public string ID { get; set; } = Guid.NewGuid().ToString();
         public List<XPoint> GetPoints() => Points;
         public XRoundedRectangleShapeLeft(double x, double y, double width, double height, double radius, double scaleFactor)
         {
@@ -26,6 +27,8 @@ namespace GEORGE.Client.Pages.Models
             Height = height;
             Radius = radius;
             _scaleFactor = scaleFactor;
+
+            Points = GetVertices();
         }
 
         public void UpdatePoints(List<XPoint> newPoints)
@@ -243,6 +246,20 @@ namespace GEORGE.Client.Pages.Models
             vertices.Add(new XPoint(X + Radius, Y));           // domknięcie do punktu początkowego
 
             return vertices;
+        }
+
+        public List<(XPoint Start, XPoint End)> GetEdges()
+        {
+            var v = GetVertices();
+            var edges = new List<(XPoint, XPoint)>();
+
+            for (int i = 0; i < v.Count - 1; i++)
+                edges.Add((v[i], v[i + 1]));
+
+            // domknięcie konturu
+            edges.Add((v[^1], v[0]));
+
+            return edges;
         }
 
 

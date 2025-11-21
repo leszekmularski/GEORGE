@@ -272,6 +272,11 @@
 
         <button @onclick="SelectPreviousShape">Poprzedni obiekt</button>
         <button @onclick="SelectNextShape">Następny obiekt</button>
+        @if (_shapes != null && _shapes.Count() > 0)
+        {
+            <br/>
+            <label>@Szerokosc x @Wysokosc</label>
+        }
     </div>
 
 }
@@ -311,15 +316,20 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _shapes = ShapeService.Shapes; // Odbiór danych z serwisu
+        _shapes = ShapeService.Shapes.Select(s => s.Clone()).ToList(); // Odbiór danych z serwisu
 
         if (_shapes != null)
         {
             _originalShapes = _shapes.Select(s => s.Clone()).ToList();
 
-            await FitToCanvas();
+            Szerokosc = ShapeService._szerokosc;
+            Wysokosc = ShapeService._wysokosc;
 
-            StateHasChanged();
+            // await FitToCanvas();
+
+            //StateHasChanged();
+
+            await Task.CompletedTask;
         }
         else
         {
@@ -361,6 +371,17 @@
         catch { }
     }
 
+    private async Task PowrotDoGenerowaniaOkna()
+    {
+        await RysOkna(true);
+        ShapeService.Shapes = _shapes; // Przekazanie danych do serwisu
+
+        //ShapeService.Shapes = new List<IShapeDC>(_shapes);
+
+        Navigation.NavigateTo("/Modele-okienne");
+
+        await Task.CompletedTask;
+    }
 
     private RenderFragment SvgLine() => builder =>
        {
@@ -1019,16 +1040,24 @@
 
     private async Task FitToCanvas()
     {
-        if (_shapes.Count == 0) return;
+        if (_shapes == null  || _shapes.Count == 0) return;
 
-        if (_shapes == null || _shapes.Count == 0) _shapes = _originalShapes.Select(s => s.Clone()).ToList();
+        if (_originalShapes != null) _shapes = _originalShapes.Select(s => s.Clone()).ToList();
 
         SkalujIZastosujPrzesuniecie(_shapes, _canvasX, _canvasY);
+
         await RedrawCanvas();
     }
 
     private void SkalujIZastosujPrzesuniecie(List<IShapeDC> shapes, double canvasWidth, double canvasHeight)
     {
+
+        if (shapes == null || shapes.Count() == 0)
+        {
+            _scaleFactor = 1.0;
+            return;
+        }
+
         double minX = shapes.Min(s => s.GetBoundingBox().X);
         double minY = shapes.Min(s => s.GetBoundingBox().Y);
         double maxX = shapes.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
@@ -1056,15 +1085,6 @@
 
         _scaleFactor = scaleFactor;
 
-    }
-
-    private async Task PowrotDoGenerowaniaOkna()
-    {
-        await RysOkna(true);
-        ShapeService.Shapes = _shapes; // Przekazanie danych do serwisu
-        Navigation.NavigateTo("/Modele-okienne");
-
-        await Task.CompletedTask;
     }
 
     private async Task RysOkna(bool powrot = false)

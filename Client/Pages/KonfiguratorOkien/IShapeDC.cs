@@ -5,6 +5,7 @@ using GEORGE.Shared.ViewModels;
 public interface IShapeDC
 {
     // Dodane właściwości
+    string ID { get; set; }
     double Szerokosc { get; set; }
     double Wysokosc { get; set; }
     public List<XPoint> Points { get; set; }

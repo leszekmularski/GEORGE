@@ -17,6 +17,7 @@ namespace GEORGE.Client.Pages.Models
         public double Szerokosc { get; set; }
         public double Wysokosc { get; set; }
         public List<XPoint> Points { get; set; }
+        public string ID { get; set; } = Guid.NewGuid().ToString();
         public List<XPoint> GetPoints() => Points;
         public void UpdatePoints(List<XPoint> newPoints)
         {

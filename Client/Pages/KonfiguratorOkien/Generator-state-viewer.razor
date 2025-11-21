@@ -37,25 +37,6 @@ else
                         <td>@entry.Value.RowIdModelu</td>
                         <td>@entry.Value.WybranyModel?.NazwaKonfiguracji</td>
                         <td>@entry.Value.WybranyKsztalt</td>
-                        @*   <td>@(entry.Value.KonfiguracjeSystemu?.Count ?? 0)</td> 
-
-                        @if (entry.Value.Wierzcholki is not null && entry.Value.Wierzcholki.Any())
-                        {
-                            <div>
-                                <p><strong>Ilość punktów:</strong> @entry.Value.Wierzcholki.Count()</p>
-                                <ul>
-                                    @for (int i = 0; i < entry.Value.Wierzcholki.Count; i++)
-                                    {
-                                        var point = entry.Value.Wierzcholki[i];
-                                        <li><strong>Punkt @i:</strong> X: @Math.Round(point.X, 2), Y: @Math.Round(point.Y, 2)</li>
-                                    }
-                                </ul>
-                            </div>
-                        }
-                        else
-                        {
-                            <p><em>Brak punktów.</em></p>
-                        }*@
 
                         @if (entry.Value.WierzcholkiWartosciNominalne is not null && entry.Value.WierzcholkiWartosciNominalne.Any())
                         {
@@ -65,7 +46,7 @@ else
                                     @for (int i = 0; i < entry.Value.WierzcholkiWartosciNominalne.Count; i++)
                                     {
                                         var point = entry.Value.WierzcholkiWartosciNominalne[i];
-                                        <li><strong>Punkt @i:</strong> X: @Math.Round(point.X, 2), Y: @Math.Round(point.Y, 2)</li>
+                                        <li><strong>P @i:</strong> X: @Math.Round(point.X, 2), Y: @Math.Round(point.Y, 2)</li>
                                     }
                                 </ul>
                             </div>

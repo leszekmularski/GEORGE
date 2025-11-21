@@ -1,95 +1,153 @@
 ﻿using Blazor.Extensions.Canvas.Canvas2D;
 using GEORGE.Client.Pages.KonfiguratorOkien;
 using GEORGE.Shared.ViewModels;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace GEORGE.Client.Pages.Models
 {
     public class XRoundedTopRectangleShape : IShapeDC
     {
-        public double X { get; set; }
-        public double Y { get; set; }
+        public string ID { get; set; } = Guid.NewGuid().ToString();
+
+        // podstawowe pola geometryczne
+        public double X { get; set; }      // lewy górny róg konteneru (pozycja Y to góra)
+        public double Y { get; set; }      // górna krawędź obiektu (uwaga: Y oznacza górę)
         public double Width { get; set; }
         public double Height { get; set; }
         public double Radius { get; set; }
 
-        private double _scaleFactor;
-        public string NazwaObj { get; set; } = "Prostokąt z zaokr. naroż.";
-        public double Szerokosc { get; set; }
-        public double Wysokosc { get; set; }
-        public List<XPoint> Points { get; set; }
+        // zgodność z interfejsem
+        public double Szerokosc { get => Width; set => Width = value; }
+        public double Wysokosc { get => Height; set => Height = value; }
+
+        // punkty kontrolne (zawsze utrzymywane w spójności z polami)
+        public List<XPoint> Points { get; set; } = new();
         public List<XPoint> GetPoints() => Points;
-        public XRoundedTopRectangleShape(double x, double y, double width, double height, double radius, double scaleFactor)
+
+        private readonly double _scaleFactor;
+        public string NazwaObj { get; set; } = "Prostokąt z zaokr. u góry";
+
+        public XRoundedTopRectangleShape(double x, double y, double width, double height, double radius, double scaleFactor = 1.0)
         {
             X = x;
             Y = y;
-            Width = width;
-            Height = height;
-            Radius = radius;
+            Width = Math.Max(1, width);
+            Height = Math.Max(1, height);
+            Radius = Math.Max(0, radius);
             _scaleFactor = scaleFactor;
+
+            ClampRadius();
+            RegeneratePointsFromGeometry();
         }
 
+        // ----- Synchronizacja ------------------------------------------------
+        // Wywołaj po każdej zmianie Width/Height/X/Y/Radius aby zaktualizować Points
+        private void RegeneratePointsFromGeometry()
+        {
+            ClampRadius();
+
+            // Points: 0 = lewy dolny, 1 = prawy dolny, 2 = punkt środkowy łuku (górny)
+            // Uwaga: Y jest górną krawędzią, więc lewy dolny to (X, Y + Height)
+            Points = new List<XPoint>
+            {
+                new XPoint(X, Y + Height),              // 0 — lewy dolny
+                new XPoint(X + Width, Y + Height),      // 1 — prawy dolny
+                new XPoint(X + Width / 2.0, Y + Radius) // 2 — punkt pod łukiem (środek łuku Y + Radius)
+            };
+        }
+
+        // Wywołaj po zmianie Points — zaktualizuje pola geometryczne
         public void UpdatePoints(List<XPoint> newPoints)
         {
             if (newPoints == null || newPoints.Count < 3)
                 return;
 
-            Points = newPoints;
+            // Przyjmujemy semantykę: [0]=lewy dolny, [1]=prawy dolny, [2]=punkt środkowy łuku
+            Points = newPoints.ToList();
 
-            // Punkt 0: lewy dolny
-            // Punkt 1: prawy dolny
-            // Punkt 2: punkt kontrolny łuku (najwyższy punkt)
-            X = Points[0].X;
-            double bottomY = Points[0].Y;
-            Width = Points[1].X - Points[0].X;
+            // aktualizuj bounding box i wysokość/pozycję górną
+            var minX = Points.Min(p => p.X);
+            var maxX = Points.Max(p => p.X);
+            var minY = Points.Min(p => p.Y);
+            var maxY = Points.Max(p => p.Y);
 
-            // Obliczamy wysokość jako różnicę między dolnym Y a punktem kontrolnym łuku
-            Height = bottomY - Points[2].Y;
+            // Dolna krawędź przyjmujemy jako maxY (bo Y rośnie w dół)
+            X = minX;
+            Width = Math.Abs(maxX - minX);
 
-            // Obliczamy promień na podstawie pozycji punktu kontrolnego
-            double centerX = X + Width / 2;
-            double radius = Math.Abs(Points[2].X - centerX);
+            // punkt 2 powinien leżeć nad dolną krawędzią (środek łuku)
+            var arcPoint = Points[2];
+            // Height = dolnyY - (arcPoint.Y - Radius)  => ale nie znamy Radius; wyznaczmy Radius na podstawie odległości do środka prostokąta
+            double bottomY = maxY;
+            // oblicz kandydacki Radius jako odległość między arcPoint.Y a (arcCenterY) - uproszczenie:
+            // centerX = X + Width/2
+            double centerX = X + Width / 2.0;
 
-            // Ograniczamy promień do maksymalnej możliwej wartości
-            double maxRadius = Math.Min(Width / 2, Height);
-            Radius = Math.Min(radius, maxRadius);
+            // jeżeli arcPoint.X nie jest idealnie na środku, weź centerX
+            double assumedRadius = Math.Abs((arcPoint.X - centerX));
+            // oblicz Height jako dolnyY - (arcPoint.Y - assumedRadius)
+            // ale bezpieczniej: ustaw Height = bottomY - (arcPoint.Y - assumedRadius)
+            double computedHeight = bottomY - (arcPoint.Y - assumedRadius);
 
-            // Aktualizacja Y na podstawie najniższego punktu
-            Y = Points[2].Y - Radius;
+            // zabezpieczenia
+            if (computedHeight <= 0) computedHeight = Math.Max(1, Height);
 
-            // Aktualizacja wymiarów
-            Szerokosc = Width;
-            Wysokosc = Height;
+            Height = computedHeight;
 
-            // Jeśli mamy więcej punktów, możemy je wykorzystać do precyzyjniejszego ustawienia łuku
-            if (Points.Count > 3)
-            {
-                // Można dodać logikę dla dodatkowych punktów kontrolnych łuku
-            }
+            // oblicz Radius bardziej bezpośrednio: distance horizontally from center or distance vertically to arcPoint
+            double verticalDist = bottomY - arcPoint.Y;
+            Radius = Math.Min(Math.Min(Width / 2.0, verticalDist), Math.Max(2.0, assumedRadius));
+
+            // ustaw Y tak, aby arc center był w Y + Radius
+            // arcPoint.Y powinien być centerY - Radius  => centerY = arcPoint.Y + Radius
+            Y = (arcPoint.Y + Radius) - Radius; // = arcPoint.Y (ale chcemy Y = centerY - Radius) -> simplified:
+            Y = arcPoint.Y - Radius;
+
+            ClampRadius();
+            RegeneratePointsFromGeometry();
         }
-        public IShapeDC Clone()
+
+        private void ClampRadius()
         {
-            return new XRoundedTopRectangleShape(X, Y, Width, Height, Radius, _scaleFactor);
+            // Radius nie może być większy niż połowa szerokości ani większy niż wysokość
+            if (Width <= 0) Width = 1;
+            if (Height <= 0) Height = 1;
+
+            Radius = Math.Max(0, Radius);
+            Radius = Math.Min(Radius, Width / 2.0);
+            Radius = Math.Min(Radius, Height);
         }
 
+        // ----- Rysowanie ------------------------------------------------------
         public async Task Draw(Canvas2DContext ctx)
         {
-            double arcCenterX = X + Width / 2;
-            double arcCenterY = Y + Radius; // Środek łuku znajduje się na wysokości promienia
+            ClampRadius();
+            RegeneratePointsFromGeometry(); // upewnij się, że Points są spójne
+
+            double arcCenterX = X + Width / 2.0;
+            double arcCenterY = Y + Radius;
 
             await ctx.SetStrokeStyleAsync("black");
             await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
 
             await ctx.BeginPathAsync();
 
-            // Dolna część prostokąta
+            // dolna krawędź
             await ctx.MoveToAsync(X, Y + Height);
             await ctx.LineToAsync(X + Width, Y + Height);
+
+            // prawa ściana do punktu przy łuku
             await ctx.LineToAsync(X + Width, arcCenterY);
 
-            // Górny łuk
+            // łuk — górna część (from right to left across top)
+            // canvas: 0 = +x axis (to the right), PI = -x axis (to the left)
+            // chcemy łuk od kąta 0 do PI (przechodząc „górą”).
             await ctx.ArcAsync(arcCenterX, arcCenterY, Radius, 0, Math.PI, true);
 
-            // Dokończenie prostokąta – BEZ GÓRNEJ LINII!
+            // lewa ściana od punktu przy łuku do dolnej krawędzi
             await ctx.LineToAsync(X, arcCenterY);
             await ctx.LineToAsync(X, Y + Height);
 
@@ -97,82 +155,92 @@ namespace GEORGE.Client.Pages.Models
             await ctx.StrokeAsync();
         }
 
+        // ----- geometria ułatwiająca edycję / kolizje -------------------------
         public BoundingBox GetBoundingBox()
         {
-            return new BoundingBox(X, Y, Width, Height, "Prostokąt z zaokr. narożami");
+            return new BoundingBox(X, Y, Width, Height, NazwaObj);
         }
 
-        public List<EditableProperty> GetEditableProperties() => new()
-    {
-        new EditableProperty("X", () => X, v => X = v, NazwaObj, true),
-        new EditableProperty("Y", () => Y, v => Y = v, NazwaObj, true),
-        new EditableProperty("Szerokość", () => Width, v => Width = v, NazwaObj),
-        new EditableProperty("Wysokość", () => Height, v => Height = v, NazwaObj),
-        new EditableProperty("Promień łuku", () => Radius, v => Radius = v, NazwaObj)
-    };
+        public List<XPoint> GetVertices()
+        {
+            // Zwróć kluczowe punkty (bez gładzenia łuku) — konsystentnie z RegeneratePointsFromGeometry
+            double arcCenterY = Y + Radius;
+            return new List<XPoint>
+            {
+                new XPoint(X, Y + Height),           // 0 lewy dolny
+                new XPoint(X + Width, Y + Height),   // 1 prawy dolny
+                new XPoint(X + Width, arcCenterY),   // 2 prawy przy łuku
+                new XPoint(X, arcCenterY)            // 3 lewy przy łuku
+            };
+        }
 
+        public List<(XPoint Start, XPoint End)> GetEdges()
+        {
+            var v = GetVertices();
+            var edges = new List<(XPoint, XPoint)>();
+            for (int i = 0; i < v.Count - 1; i++)
+            {
+                edges.Add((v[i], v[i + 1]));
+            }
+            edges.Add((v[^1], v[0])); // zamknięcie
+            return edges;
+        }
+
+        // ----- transformacje -------------------------------------------------
         public void Scale(double factor)
         {
+            if (factor == 0) return;
+            X *= factor;
+            Y *= factor;
             Width *= factor;
             Height *= factor;
             Radius *= factor;
+            RegeneratePointsFromGeometry();
         }
 
         public void Move(double offsetX, double offsetY)
         {
             X += offsetX;
             Y += offsetY;
-        }
-
-        public List<(XPoint Start, XPoint End)> GetEdges()
-        {
-            return new List<(XPoint, XPoint)>
+            for (int i = 0; i < Points.Count; i++)
             {
-                (new XPoint(X, Y + Height), new XPoint(X + Width, Y + Height)), // Dolna krawędź
-                (new XPoint(X, Y + Radius), new XPoint(X, Y + Height)), // Lewa ściana
-                (new XPoint(X + Width, Y + Radius), new XPoint(X + Width, Y + Height)) // Prawa ściana
-            };
+                Points[i] = new XPoint(Points[i].X + offsetX, Points[i].Y + offsetY);
+            }
         }
 
         public void Transform(double scale, double offsetX, double offsetY)
         {
-            X = (X * scale) + offsetX;
-            Y = (Y * scale) + offsetY;
-            Width *= scale;
-            Height *= scale;
-            Radius *= scale;
+            Transform(scale, scale, offsetX, offsetY);
         }
 
         public void Transform(double scaleX, double scaleY, double offsetX, double offsetY)
         {
-            X = (X * scaleX) + offsetX;
-            Y = (Y * scaleY) + offsetY;
+            X = X * scaleX + offsetX;
+            Y = Y * scaleY + offsetY;
             Width *= scaleX;
             Height *= scaleY;
             Radius *= (scaleX + scaleY) / 2.0;
+            RegeneratePointsFromGeometry();
         }
 
-
-        /// <summary>
-        /// Zwraca wierzchołki prostokąta z zaokrąglonymi rogami (jako lista PointDC).
-        /// </summary>
-        public List<XPoint> GetVertices()
+        // ----- pozostałe ----------------------------------------------------
+        public IShapeDC Clone()
         {
-            var vertices = new List<XPoint>();
-
-            double arcCenterX = X + Width / 2;
-            double arcCenterY = Y + Radius;
-
-            // Punkty narożników (dolna część prostokąta)
-            vertices.Add(new XPoint(X, Y + Height));           // Lewy dolny
-            vertices.Add(new XPoint(X + Width, Y + Height));    // Prawy dolny
-            vertices.Add(new XPoint(X + Width, arcCenterY));    // Prawy przy łuku
-            vertices.Add(new XPoint(X, arcCenterY));            // Lewy przy łuku
-
-            return vertices;
+            var clone = new XRoundedTopRectangleShape(X, Y, Width, Height, Radius, _scaleFactor)
+            {
+                Points = Points?.Select(p => new XPoint(p.X, p.Y)).ToList() ?? new List<XPoint>(),
+            };
+            clone.ID = Guid.NewGuid().ToString();
+            return clone;
         }
 
-
+        public List<EditableProperty> GetEditableProperties() => new()
+        {
+            new EditableProperty("X", () => X, v => { X = v; RegeneratePointsFromGeometry(); }, NazwaObj, true),
+            new EditableProperty("Y", () => Y, v => { Y = v; RegeneratePointsFromGeometry(); }, NazwaObj, true),
+            new EditableProperty("Szerokość", () => Width, v => { Width = v; ClampRadius(); RegeneratePointsFromGeometry(); }, NazwaObj),
+            new EditableProperty("Wysokość", () => Height, v => { Height = v; ClampRadius(); RegeneratePointsFromGeometry(); }, NazwaObj),
+            new EditableProperty("Promień łuku", () => Radius, v => { Radius = v; ClampRadius(); RegeneratePointsFromGeometry(); }, NazwaObj),
+        };
     }
-
 }

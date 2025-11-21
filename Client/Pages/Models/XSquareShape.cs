@@ -4,8 +4,6 @@ using GEORGE.Shared.ViewModels;
 
 namespace GEORGE.Client.Pages.Models
 {
-
-    // ⬛ Klasa kwadratu (Square)
     public class XSquareShape : IShapeDC
     {
         public double X { get; set; }
@@ -13,19 +11,49 @@ namespace GEORGE.Client.Pages.Models
         public double Size { get; set; }
         public string NazwaObj { get; set; } = "Kwadrat";
 
-        private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
+        private double _scaleFactor = 1.0;
+
         public double Szerokosc { get; set; }
         public double Wysokosc { get; set; }
+
         public List<XPoint> Points { get; set; }
+        public string ID { get; set; } = Guid.NewGuid().ToString();
+
         public List<XPoint> GetPoints() => Points;
+
+        // ---------------------------------------------------------
+        // 🔥 Konstruktor — generujemy punkty automatycznie
+        // ---------------------------------------------------------
         public XSquareShape(double x, double y, double size, double scaleFactor)
         {
             X = x;
             Y = y;
             Size = size;
             _scaleFactor = scaleFactor;
+
+            Points = GeneratePoints();
+
+            Szerokosc = Size;
+            Wysokosc = Size;
         }
 
+        // ---------------------------------------------------------
+        // 🔥 Generowanie poprawnych narożników kwadratu
+        // ---------------------------------------------------------
+        private List<XPoint> GeneratePoints()
+        {
+            return new List<XPoint>
+            {
+                new XPoint(X, Y),                 // lewy górny
+                new XPoint(X + Size, Y),          // prawy górny
+                new XPoint(X + Size, Y + Size),   // prawy dolny
+                new XPoint(X, Y + Size)           // lewy dolny
+            };
+        }
+
+        // ---------------------------------------------------------
+        // 🔥 Update gdy przeciągnę punkt narożny
+        // ---------------------------------------------------------
         public void UpdatePoints(List<XPoint> newPoints)
         {
             if (newPoints == null || newPoints.Count < 2)
@@ -33,38 +61,33 @@ namespace GEORGE.Client.Pages.Models
 
             Points = newPoints;
 
-            // Zakładamy, że pierwszy punkt to lewy górny róg, a drugi to prawy dolny
-            double minX = Math.Min(Points[0].X, Points[1].X);
-            double minY = Math.Min(Points[0].Y, Points[1].Y);
-            double maxX = Math.Max(Points[0].X, Points[1].X);
-            double maxY = Math.Max(Points[0].Y, Points[1].Y);
+            // Ustal lewy górny i prawy dolny
+            double minX = newPoints.Min(p => p.X);
+            double minY = newPoints.Min(p => p.Y);
+            double maxX = newPoints.Max(p => p.X);
+            double maxY = newPoints.Max(p => p.Y);
 
-            // Obliczamy rozmiar jako średnią z szerokości i wysokości, aby zachować proporcje kwadratu
-            double width = maxX - minX;
-            double height = maxY - minY;
-            double newSize = (width + height) / 2;
-
-            // Aktualizujemy właściwości
             X = minX;
             Y = minY;
-            Size = newSize;
 
-            // Jeśli mamy więcej punktów, możemy je wykorzystać do dodatkowych obliczeń
-            if (Points.Count > 2)
-            {
-                // Można dodać logikę dla dodatkowych punktów kontrolnych
-                // np. do obracania kwadratu lub zmiany proporcji
-            }
+            // Kwadrat musi być równy → rozmiar to średnia
+            double width = maxX - minX;
+            double height = maxY - minY;
+            Size = (width + height) / 2.0;
 
-            // Aktualizacja wymiarów
             Szerokosc = Size;
             Wysokosc = Size;
+
+            Points = GeneratePoints();
         }
+
+        // ---------------------------------------------------------
         public IShapeDC Clone()
         {
             return new XSquareShape(X, Y, Size, _scaleFactor);
         }
 
+        // ---------------------------------------------------------
         public async Task Draw(Canvas2DContext ctx)
         {
             await ctx.SetStrokeStyleAsync("black");
@@ -75,63 +98,87 @@ namespace GEORGE.Client.Pages.Models
             await ctx.StrokeAsync();
         }
 
+        // ---------------------------------------------------------
         public List<EditableProperty> GetEditableProperties() => new()
-    {
-        new EditableProperty("X", () => X, v => X = v, NazwaObj, true),
-        new EditableProperty("Y", () => Y, v => Y = v, NazwaObj, true),
-        new EditableProperty("Rozmiar", () => Size, v => Size = v, NazwaObj)
-    };
+        {
+            new("X", () => X, v => { X = v; Points = GeneratePoints(); }, NazwaObj, true),
+            new("Y", () => Y, v => { Y = v; Points = GeneratePoints(); }, NazwaObj, true),
+            new("Rozmiar", () => Size, v => { Size = v; Szerokosc = v; Wysokosc = v; Points = GeneratePoints(); }, NazwaObj)
+        };
 
+        // ---------------------------------------------------------
         public void Scale(double factor)
         {
             Size *= factor;
+
+            Szerokosc = Size;
+            Wysokosc = Size;
+
+            Points = GeneratePoints();
         }
 
         public void Move(double offsetX, double offsetY)
         {
             X += offsetX;
             Y += offsetY;
+
+            Points = GeneratePoints();
         }
 
+        // ---------------------------------------------------------
         public BoundingBox GetBoundingBox()
         {
-            return new BoundingBox(X, Y, Size, Size, "Kształt inny");
+            return new BoundingBox(X, Y, Size, Size, NazwaObj);
         }
 
+        // ---------------------------------------------------------
         public XRectangleShape ToRectangleShape()
         {
             return new XRectangleShape(X, Y, Size, Size, _scaleFactor);
         }
 
+        // ---------------------------------------------------------
         public void Transform(double scale, double offsetX, double offsetY)
         {
-            // Poprawiona implementacja
-            X = (X * scale) + offsetX;
-            Y = (Y * scale) + offsetY;
+            X = X * scale + offsetX;
+            Y = Y * scale + offsetY;
             Size *= scale;
+
+            Szerokosc = Size;
+            Wysokosc = Size;
+
+            Points = GeneratePoints();
         }
 
         public void Transform(double scaleX, double scaleY, double offsetX, double offsetY)
         {
-            X = (X * scaleX) + offsetX;
-            Y = (Y * scaleY) + offsetY;
-            Size *= (scaleX + scaleY) / 2.0; // uśrednione skalowanie Size
+            X = X * scaleX + offsetX;
+            Y = Y * scaleY + offsetY;
+
+            // Kwadrat wymaga jednolitego skalowania
+            Size *= (scaleX + scaleY) / 2.0;
+
+            Szerokosc = Size;
+            Wysokosc = Size;
+
+            Points = GeneratePoints();
         }
 
-        /// <summary>
-        /// Zwraca listę wierzchołków prostokąta w kolejności (zgodnie z ruchem wskazówek zegara).
-        /// </summary>
-        public List<XPoint> GetCorners()
-        {
-            return new List<XPoint>
-        {
-            new(X, Y),
-            new(X + Size, Y),
-            new(X + Size, Y + Size),
-            new(X, Y + Size)
-        };
-        }
+        // ---------------------------------------------------------
+        public List<XPoint> GetCorners() => GeneratePoints();
+        public List<XPoint> GetVertices() => GeneratePoints();
 
+        // ---------------------------------------------------------
+        public List<(XPoint Start, XPoint End)> GetEdges()
+        {
+            var v = GeneratePoints();
+            return new List<(XPoint, XPoint)>
+            {
+                (v[0], v[1]),
+                (v[1], v[2]),
+                (v[2], v[3]),
+                (v[3], v[0])
+            };
+        }
     }
-
 }
