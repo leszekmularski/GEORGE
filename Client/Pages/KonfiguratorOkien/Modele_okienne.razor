@@ -1484,7 +1484,6 @@
 
         if (_generatorStates.TryGetValue(ostatni, out var state))
         {
-            // UsunOstatniKsztaltZGeneratora(state.IdRegion, generator);
 
             _generatorStates.Remove(ostatni);
 
@@ -2214,7 +2213,7 @@
                                             .ToList();
     }
 
- 
+
     private List<DaneKwadratu> WyliczKwadratyPoZmianie(ShapeRegion region)
     {
         // Spróbuj znaleźć istniejący stan dla tego regionu
@@ -2325,11 +2324,27 @@
 
             var wybranyRegionX = _regionsDualRama.FirstOrDefault(r => r.Id == genState.IdRegion);
 
-           // generator.AddElements(new List<ShapeRegion> { wybranyRegionX }, regionIndex, daneKwadratow, null);
+            // generator.AddElements(new List<ShapeRegion> { wybranyRegionX }, regionIndex, daneKwadratow, null);
+
+            string cleanIdRegion = CleanId(genState.IdRegion);
+
+            if (!string.IsNullOrWhiteSpace(cleanIdRegion))
+            {
+                if (_generatorStates.TryGetValue(cleanIdRegion, out var state))
+                {
+
+                    _generatorStates.Remove(cleanIdRegion);
+
+                    _ksztaltyNaRegion.Remove(cleanIdRegion);
+                    ksztalty = _ksztaltyNaRegion.Values.SelectMany(x => x).ToList();
+                }
+
+                await Task.Delay(50); // krótka pauza
+            }
 
             generator.AddElements(
                     new List<ShapeRegion> { wybranyRegionX },
-                    genState.IdRegion,
+                    cleanIdRegion,
                     _generatorStates,
                     _regionsDualRama,
                     daneKwadratow
@@ -3624,42 +3639,6 @@
         double x = (B2 * C1 - B1 * C2) / det;
         double y = (A1 * C2 - A2 * C1) / det;
         return new XPoint(x, y);
-    }
-
-
-    private void UsunOstatniKsztaltZGeneratora(string idRegion, Generator generator)
-    {
-        if (string.IsNullOrWhiteSpace(idRegion))
-        {
-            Console.WriteLine("⚠️ UsunOstatniKsztaltZGeneratora-> IdRegion nie został podany");
-            return;
-        }
-
-        if (generator?.ElementyRamyRysowane == null || generator.ElementyRamyRysowane.Count == 0)
-        {
-            Console.WriteLine($"ℹ️ UsunOstatniKsztaltZGeneratora-> Brak kształtów do usunięcia w regionie {idRegion}");
-            return;
-        }
-
-        // Usuń ostatni kształt
-        var ostatni = generator.ElementyRamyRysowane.Last();
-        generator.ElementyRamyRysowane.Remove(ostatni);
-
-        Console.WriteLine($"🗑️ UsunOstatniKsztaltZGeneratora-> Usunięto ostatni kształt z regionu {idRegion}");
-
-        // Aktualizacja mapy regionów
-        if (generator.ElementyRamyRysowane.Count == 0 && _ksztaltyNaRegion.ContainsKey(idRegion))
-        {
-            _ksztaltyNaRegion.Remove(idRegion);
-            Console.WriteLine($"📭 UsunOstatniKsztaltZGeneratora-> Usunięto wpis z _ksztaltyNaRegion dla {idRegion}");
-        }
-        else
-        {
-            _ksztaltyNaRegion[idRegion] = new List<KsztaltElementu>(generator.ElementyRamyRysowane);
-        }
-
-        // Odświeżenie listy globalnej
-        ksztalty = _ksztaltyNaRegion.Values.SelectMany(x => x).ToList();
     }
 
     private async Task<List<PrzesuniecieDto>> PobierzPolaczenia(Guid zewId, Guid wewId, string strona)
