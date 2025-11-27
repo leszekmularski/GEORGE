@@ -1,5 +1,6 @@
-﻿using GEORGE.Client.Pages.Models;
+﻿using GEORGE.Client.Pages.KonfiguratorOkien;
 using GEORGE.Shared.ViewModels;
+
 
 namespace GEORGE.Client.Pages.Okna
 {
@@ -40,8 +41,10 @@ namespace GEORGE.Client.Pages.Okna
         public float Kat { get; set; } = 0;
         public string? Strona { get; set; }
 
-        // Opcjonalna grupa logiczna (np. "rama", "szyba", "skrzydlo")
+        // Opcjonalna grupa logiczna (np. "Opis modelu podany przez użytkownika")
         public string? Grupa { get; set; }
+        // Opcjonalna grupa logiczna (np. "rama", "szyba", "skrzydlo")
+        public string? Typ { get; set; }
         //Informacje o długości elementy
         public float DlogoscElementu { get; set; } = 0.0f;
         // Informacje długość cięcia
@@ -51,6 +54,50 @@ namespace GEORGE.Client.Pages.Okna
         // Informacje o kąt cięcia strona A elementu
         public float KatStronaB { get; set; } = 0.0f;
         // Informacje o kąt cięcia strona B elementu
+
+        public float OffsetLewa { get; set; } = 0.0f;
+        // Informacje o offset lewa elementu
+        public float OffsetPrawa { get; set; } = 0.0f;
+        // Informacje o offset prawa elementu
+        public float OffsetGora { get; set; } = 0.0f;
+        // Informacje o offset Gora elementu
+        public float OffsetDol { get; set; } = 0.0f;
+        // Informacje o offset Dol elementu
+
+        public BoundingBox? OstatniRegion { get; set; }
+
+        public KsztaltElementu Clone()
+        {
+            return new KsztaltElementu
+            {
+                Id = this.Id, 
+                IdRegion = this.IdRegion,
+                TypKsztaltu = this.TypKsztaltu,
+                Wierzcholki = this.Wierzcholki.Select(p => new XPoint(p.X, p.Y)).ToList(),
+                WypelnienieWewnetrzne = this.WypelnienieWewnetrzne,
+                WypelnienieZewnetrzne = this.WypelnienieZewnetrzne,
+                GruboscObramowania = this.GruboscObramowania,
+                CzyZawieraOtwor = this.CzyZawieraOtwor,
+                Widoczny = this.Widoczny,
+                ZIndex = this.ZIndex,
+                RowIdElementu = this.RowIdElementu,
+                IndeksElementu = this.IndeksElementu,
+                NazwaElementu = this.NazwaElementu,
+                Kat = this.Kat,
+                Strona = this.Strona,
+                Grupa = this.Grupa,
+                Typ = this.Typ,
+                DlogoscElementu = this.DlogoscElementu,
+                DlogoscNaGotowoElementu = this.DlogoscNaGotowoElementu,
+                KatStronaA = this.KatStronaA,
+                KatStronaB = this.KatStronaB,
+                OffsetLewa = this.OffsetLewa,
+                OffsetPrawa = this.OffsetPrawa,
+                OffsetGora = this.OffsetGora,
+                OffsetDol = this.OffsetDol
+            };
+        }
+
     }
 
 }

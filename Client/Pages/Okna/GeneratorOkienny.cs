@@ -204,6 +204,7 @@ namespace GEORGE.Client.Pages.Okna
             }
 
             string NazwaObiektu = MVCKonfModelu.KonfSystem.First().Nazwa ?? "";
+            string TypObiektu = MVCKonfModelu.KonfSystem.First().Typ ?? "";
 
             Console.WriteLine($"📐Generator ----> region.TypKsztaltu: {region.TypKsztaltu} profileLeft: {profileLeft}, profileRight: {profileRight}, profileTop: {profileTop}, profileBottom: {profileBottom} slruchPoPrawej: {slruchPoPrawej} slruchPoLewej: {slruchPoLewej}");
 
@@ -225,18 +226,19 @@ namespace GEORGE.Client.Pages.Okna
                 RowIndeksprofileLeft, RowIndeksprofileRight, RowIndeksprofileTop, RowIndeksprofileBottom,
                 RowNazwaprofileLeft, RowNazwaprofileRight, RowNazwaprofileTop, RowNazwaprofileBottom,
                 NazwaObiektu,
+                TypObiektu,
                 daneKwadratu
             );
             //}
         }
-        private void GenerateGenericElementsWithJoins(
+        public void GenerateGenericElementsWithJoins(
             List<XPoint> outer, List<XPoint> inner,
             float profileLeft, float profileRight, float profileTop, float profileBottom,
             string typKsztalt, string polaczenia, bool sposobLaczeniaCzop, List<KonfSystem> model, string regionId,
             Guid rowIdprofileLeft, Guid rowIdprofileRight, Guid rowIdprofileTop, Guid rowIdprofileBottom,
             string rowIndeksprofileLeft, string rowIndeksprofileRight, string rowIndeksprofileTop, string rowIndeksprofileBottom,
             string rowNazwaprofileLeft, string rowNazwaprofileRight, string rowNazwaprofileTop, string rowNazwaprofileBottom,
-            string NazwaObiektu, List<DaneKwadratu> daneKwadratu)
+            string NazwaObiektu, string TypObiektu, List<DaneKwadratu> daneKwadratu)
         {
 
             Console.WriteLine($"❌ Generowanie elementów dla regionu {regionId} z typem kształtu: {typKsztalt} oraz ElementLiniowy: {ElementLiniowy} profileLeft: {profileLeft}, profileRight :{profileRight}");
@@ -833,10 +835,15 @@ namespace GEORGE.Client.Pages.Okna
                                 WypelnienieZewnetrzne = "wood-pattern",
                                 WypelnienieWewnetrzne = KolorSzyby,
                                 Grupa = NazwaObiektu + $" {stronaOpis}-{i + 1} {wartoscX}/{wartoscY}",
+                                Typ = TypObiektu,
                                 ZIndex = Zindeks,
                                 RowIdElementu = rowIdprofileTop,
                                 IdRegion = regionId,
                                 Kat = (int)angleDegrees,
+                                OffsetLewa = stronaOpis == "Lewa" ? profileLeft : 0,
+                                OffsetPrawa = stronaOpis == "Prawa" ? profileRight : 0,
+                                OffsetDol = stronaOpis == "Dól" ? profileBottom : 0,
+                                OffsetGora = stronaOpis == "Góra" ? profileTop : 0,
                                 Strona = stronaOpis,//Była Góra
                                 IndeksElementu = rowIndeksprofileTop,
                                 NazwaElementu = rowNazwaprofileTop,
@@ -856,10 +863,15 @@ namespace GEORGE.Client.Pages.Okna
                                 WypelnienieZewnetrzne = "wood-pattern",
                                 WypelnienieWewnetrzne = KolorSzyby,
                                 Grupa = NazwaObiektu + $" {stronaOpis}-{i + 1} {wartoscX}/{wartoscY}",
+                                Typ = TypObiektu,
                                 ZIndex = Zindeks,
                                 RowIdElementu = rowIdprofileRight,
                                 IdRegion = regionId,
                                 Kat = (int)angleDegrees,
+                                OffsetLewa = stronaOpis == "Lewa" ? profileLeft : 0,
+                                OffsetPrawa = stronaOpis == "Prawa" ? profileRight : 0,
+                                OffsetDol = stronaOpis == "Dól" ? profileBottom : 0,
+                                OffsetGora = stronaOpis == "Góra" ? profileTop : 0,
                                 Strona = stronaOpis,//Była prawa
                                 IndeksElementu = rowIndeksprofileRight,
                                 NazwaElementu = rowNazwaprofileTop,
@@ -879,10 +891,15 @@ namespace GEORGE.Client.Pages.Okna
                                 WypelnienieZewnetrzne = "wood-pattern",
                                 WypelnienieWewnetrzne = KolorSzyby,
                                 Grupa = NazwaObiektu + $" {stronaOpis}-{i + 1} {wartoscX}/{wartoscY}",
+                                Typ = TypObiektu,
                                 ZIndex = Zindeks,
                                 RowIdElementu = rowIdprofileBottom,
                                 IdRegion = regionId,
                                 Kat = (int)angleDegrees,
+                                OffsetLewa = stronaOpis == "Lewa" ? profileLeft : 0,
+                                OffsetPrawa = stronaOpis == "Prawa" ? profileRight : 0,
+                                OffsetDol = stronaOpis == "Dól" ? profileBottom : 0,
+                                OffsetGora = stronaOpis == "Góra" ? profileTop : 0,
                                 Strona = stronaOpis,//Był Dół
                                 IndeksElementu = rowIndeksprofileBottom,
                                 NazwaElementu = rowNazwaprofileTop,
@@ -902,10 +919,15 @@ namespace GEORGE.Client.Pages.Okna
                                 WypelnienieZewnetrzne = "wood-pattern",
                                 WypelnienieWewnetrzne = KolorSzyby,
                                 Grupa = NazwaObiektu + $" {stronaOpis}-{i + 1} {wartoscX}/{wartoscY}",
+                                Typ = TypObiektu,
                                 ZIndex = Zindeks,
                                 RowIdElementu = rowIdprofileLeft,
                                 IdRegion = regionId,
                                 Kat = (int)angleDegrees,
+                                OffsetLewa = stronaOpis == "Lewa" ? profileLeft : 0,
+                                OffsetPrawa = stronaOpis == "Prawa" ? profileRight : 0,
+                                OffsetDol = stronaOpis == "Dól" ? profileBottom : 0,
+                                OffsetGora = stronaOpis == "Góra" ? profileTop : 0,
                                 Strona = stronaOpis, //Była Lewa
                                 IndeksElementu = rowIndeksprofileLeft,
                                 NazwaElementu = rowNazwaprofileTop,
@@ -1037,7 +1059,7 @@ namespace GEORGE.Client.Pages.Okna
             };
         }
 
-        private List<XPoint> CalculateOffsetPolygon(
+        public List<XPoint> CalculateOffsetPolygon(
             List<XPoint> points,
             float profileLeft,
             float profileRight,

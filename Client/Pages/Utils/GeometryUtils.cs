@@ -44,7 +44,7 @@ namespace GEORGE.Client.Pages.Utils
 
             foreach (var shape in shapes)
             {
-                List<XPoint> pts = shape switch
+                List<XPoint>? pts = shape switch
                 {
                     XLineShape lin => new() { new(lin.X1, lin.Y1), new(lin.X2, lin.Y2) },
                     XSquareShape sq => sq.GetCorners(),
@@ -98,6 +98,8 @@ namespace GEORGE.Client.Pages.Utils
 
                     var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace, id, rama);
 
+                    int idCounter = 0;
+
                     foreach (var r in podzielone)
                     {
                         r.Wierzcholki = r.Wierzcholki
@@ -128,7 +130,7 @@ namespace GEORGE.Client.Pages.Utils
                             }
                         }
 
-                        r.Id = id;
+                        r.Id = id + "|" + idCounter++;
 
                         // **UWAGA**: NIE NADPISUJEMY Id — zachowujemy oryginalne Id
                     }
@@ -143,7 +145,8 @@ namespace GEORGE.Client.Pages.Utils
 
                     //initial.Id = "N-" + initial.Id;
 
-                    var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace, id, rama);
+                    //var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace, id, rama);
+                    var podzielone = PodzielRegionRekurencyjnieDeterministycznie(initial, linieDzielace, id, rama);
 
                     foreach (var r in podzielone)
                     {
@@ -491,7 +494,7 @@ namespace GEORGE.Client.Pages.Utils
                                 LinieDzielace = r.LinieDzielace.Concat(new[] { line }).ToList(),
                                 IdMaster = idMaster,
                                 Rama = rama,
-                                Id = r.Id + "-PODZIAL-" + i++,
+                                Id =  r.Id + "_" + line.ID + "_" + Guid.NewGuid().ToString(),
                                 TypLiniiDzielacej = r.TypLiniiDzielacej
                             });
                     }
@@ -501,6 +504,59 @@ namespace GEORGE.Client.Pages.Utils
                 wynik = next;
                 }
 
+            }
+
+            return wynik;
+        }
+
+    private static List<ShapeRegion> PodzielRegionRekurencyjnieDeterministycznie(
+    ShapeRegion region,
+    List<XLineShape> lines,
+    string rootId,
+    bool rama)
+        {
+            var wynik = new List<ShapeRegion> { region };
+
+            int indexLinii = 0;
+
+            foreach (var line in lines)
+            {
+                var next = new List<ShapeRegion>();
+
+                foreach (var r in wynik)
+                {
+                    var split = PodzielPolygonPoLinii(r.Wierzcholki, line);
+
+                    if (split.Count > 1)
+                    {
+                        int indexChild = 0;
+
+                        foreach (var poly in split)
+                        {
+                            string newId = $"{rootId}|L{indexLinii}|C{indexChild}";
+
+                            next.Add(new ShapeRegion
+                            {
+                                Wierzcholki = poly,
+                                TypKsztaltu = r.TypKsztaltu,
+                                LinieDzielace = r.LinieDzielace.Concat(new[] { line }).ToList(),
+                                IdMaster = rootId,
+                                Rama = rama,
+                                Id = newId,
+                                TypLiniiDzielacej = r.TypLiniiDzielacej
+                            });
+
+                            indexChild++;
+                        }
+                    }
+                    else
+                    {
+                        next.Add(r);
+                    }
+                }
+
+                wynik = next;
+                indexLinii++;
             }
 
             return wynik;

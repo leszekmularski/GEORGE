@@ -16,6 +16,13 @@ namespace GEORGE.Shared.ViewModels
         public double OffsetLeft { get; set; } = 0;
         public double OffsetRight { get; set; } = 0;
         public bool BoolElementLinia { get; set; } = false; //czy element jest linią
+
+        // Dodaj te właściwości jeśli są potrzebne:
+        public string? TypKsztaltu { get; set; }
+        public string? WypelnienieWewnetrzne { get; set; }
+        public string? WypelnienieZewnetrzne { get; set; }
+        public float GruboscObramowania { get; set; } = 2.0f;
+        public int ZIndex { get; set; } = 0;
         public bool CzyLiniaPionowa()
         {
             return KatLinii == 90 || KatLinii == 270;

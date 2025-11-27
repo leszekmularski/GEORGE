@@ -34,7 +34,7 @@ namespace GEORGE.Client.Pages.Models
         /// <summary>
         /// Identyfikator regionu (opcjonalny).
         /// </summary>
-        public string? Id { get; set; } = Guid.NewGuid().ToString();
+        public string? Id { get; set; }
         public string? IdMaster { get; set; } = "";
 
         public string? IdRegionuPonizej { get; set; } = "WARSTWA-ZERO";
@@ -51,6 +51,8 @@ namespace GEORGE.Client.Pages.Models
            // Console.WriteLine($"GetBoundingBox --> BoundingBox: minX={minX}, minY={minY}, maxX={maxX}, maxY={maxY}");
             return new BoundingBox(minX, minY, maxX - minX, maxY - minY, TypKsztaltu);
         }
+
+        public BoundingBox? BoundingBox { get; set; }
 
         /// <summary>
         /// Sprawdza, czy punkt znajduje się wewnątrz regionu (prosty test bounding box).

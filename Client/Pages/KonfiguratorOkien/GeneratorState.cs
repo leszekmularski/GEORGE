@@ -1,4 +1,5 @@
 ﻿using GEORGE.Client.Pages.Models;
+using GEORGE.Client.Pages.Okna;
 using GEORGE.Shared.Models;
 using GEORGE.Shared.ViewModels;
 
@@ -10,20 +11,31 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         public string? IdRegion { get; set; }
         public string? IdRegionWarstwaNizej { get; set; }
         public int ZIndeks { get; set; }
-        // Lista wierzcholkow (w kolejnosci zgodnej z ruchem wskazowek zegara)
+
         public List<XPoint>? Wierzcholki { get; set; }
         public List<XPoint>? WierzcholkiWartosciNominalne { get; set; }
-      //  public List<KonfSystem>? KonfiguracjeSystemu { get; set; }
+
         public Guid RowIdSystemu { get; set; }
         public Guid? RowIdModelu { get; set; }
         public MVCKonfModele? MVCKonfModelu { get; set; }
-        public KonfModele? WybranyModel { get; set; } 
+        public KonfModele? WybranyModel { get; set; }
         public string? WybranyKsztalt { get; set; }
         public string? LinieDzielace { get; set; }
-        public bool SlupekRuchomyPoLewejStronie { get; set; } = false;
-        public bool SlupekRuchomyPoPrawejStronie { get; set; } = false;
+
+        public bool SlupekRuchomyPoLewejStronie { get; set; }
+        public bool SlupekRuchomyPoPrawejStronie { get; set; }
+
         public List<DaneKwadratu>? ListaKwadratow { get; set; }
-        public bool ElementLiniowy { get; set; } = false;
+        public bool ElementLiniowy { get; set; }
+
+        public XPoint StaryRegionOrigin { get; set; } = new XPoint(0, 0);
+
+        /// <summary>
+        /// Elementy ramy wygenerowane do rysowania
+        /// </summary>
+        public List<KsztaltElementu> ElementyRamyRysowane { get; set; } = new();
+
+        public Generator? Generator { get; set; }
 
         public GeneratorState Clone()
         {
@@ -33,23 +45,38 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 IdRegion = this.IdRegion,
                 IdRegionWarstwaNizej = this.IdRegionWarstwaNizej,
                 ZIndeks = this.ZIndeks,
-                Wierzcholki = this.Wierzcholki?.Select(p => new XPoint(p.X, p.Y)).ToList(),
-                WierzcholkiWartosciNominalne = this.WierzcholkiWartosciNominalne?.Select(p => new XPoint(p.X, p.Y)).ToList(),
+
+                Wierzcholki = this.Wierzcholki?
+                    .Select(p => new XPoint(p.X, p.Y))
+                    .ToList(),
+
+                WierzcholkiWartosciNominalne = this.WierzcholkiWartosciNominalne?
+                    .Select(p => new XPoint(p.X, p.Y))
+                    .ToList(),
+
                 RowIdSystemu = this.RowIdSystemu,
                 RowIdModelu = this.RowIdModelu,
-                MVCKonfModelu = this.MVCKonfModelu, // jeśli ref typ → ewentualnie deep copy
-                WybranyModel = this.WybranyModel,   // jw.
+                MVCKonfModelu = this.MVCKonfModelu,
+                WybranyModel = this.WybranyModel,
                 WybranyKsztalt = this.WybranyKsztalt,
                 LinieDzielace = this.LinieDzielace,
+
                 SlupekRuchomyPoLewejStronie = this.SlupekRuchomyPoLewejStronie,
                 SlupekRuchomyPoPrawejStronie = this.SlupekRuchomyPoPrawejStronie,
-                ListaKwadratow = this.ListaKwadratow != null
-                    ? this.ListaKwadratow.Select(q => q.Clone()).ToList()
-                    : null,
-                ElementLiniowy = this.ElementLiniowy
+
+                ListaKwadratow = this.ListaKwadratow?
+                    .Select(q => q.Clone())
+                    .ToList(),
+
+                ElementLiniowy = this.ElementLiniowy,
+
+                StaryRegionOrigin = new XPoint(this.StaryRegionOrigin.X, this.StaryRegionOrigin.Y),
+
+                // ⬇⬇⬇ poprawne głębokie kopiowanie listy kształtów
+                ElementyRamyRysowane = this.ElementyRamyRysowane?
+                    .Select(e => e.Clone())   // zakładam, że masz Clone()
+                    .ToList() ?? new List<KsztaltElementu>()
             };
         }
-
     }
-
 }
