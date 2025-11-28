@@ -18,7 +18,7 @@ else
                 <th>RowIdSystemu</th>
                 <th>RowIdModelu</th>
                 <th>WybranyModel</th>
-                <th>WybranyKształt</th>
+                <th>WybranyKształt / Czy rama</th>
              @*    <th>Ilość konfiguracji (wszystkie)</th> *@
                 <th>Punkty regionu</th>
                 <th>Szczegóły</th>
@@ -36,7 +36,7 @@ else
                         <td>@entry.Value.RowIdSystemu</td>
                         <td>@entry.Value.RowIdModelu</td>
                         <td>@entry.Value.WybranyModel?.NazwaKonfiguracji</td>
-                        <td>@entry.Value.WybranyKsztalt</td>
+                        <td>@entry.Value.WybranyKsztalt / @entry.Value.CzyElementJestRama</td>
 
                         @if (entry.Value.WierzcholkiWartosciNominalne is not null && entry.Value.WierzcholkiWartosciNominalne.Any())
                         {

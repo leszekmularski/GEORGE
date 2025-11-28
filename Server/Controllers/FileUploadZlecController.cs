@@ -157,6 +157,9 @@ public class FileUploadZlecController : ControllerBase
             thumbUrl = null // Optional: Add logic to generate thumbnail URL if needed
         };
 
+        orygFileName = WebUtility.UrlDecode(orygFileName ?? string.Empty);
+        orygFileName = orygFileName.Replace("..", ".");
+
         await _context.ZmienNazwePliku(id, orygFileName);
 
         Console.WriteLine($"Plik zapisany: {response.name}, URL: {response.url}");

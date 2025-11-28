@@ -28,6 +28,8 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         public List<DaneKwadratu>? ListaKwadratow { get; set; }
         public bool ElementLiniowy { get; set; }
 
+        public bool CzyElementJestRama { get; set; } = false;
+
         public XPoint StaryRegionOrigin { get; set; } = new XPoint(0, 0);
 
         /// <summary>
@@ -60,6 +62,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 WybranyModel = this.WybranyModel,
                 WybranyKsztalt = this.WybranyKsztalt,
                 LinieDzielace = this.LinieDzielace,
+                CzyElementJestRama = this.CzyElementJestRama,
 
                 SlupekRuchomyPoLewejStronie = this.SlupekRuchomyPoLewejStronie,
                 SlupekRuchomyPoPrawejStronie = this.SlupekRuchomyPoPrawejStronie,

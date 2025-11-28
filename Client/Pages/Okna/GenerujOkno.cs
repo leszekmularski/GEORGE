@@ -35,5 +35,6 @@ namespace GEORGE.Client.Pages.Okna
         public bool RuchomySlupekPoPrawej { get; set; } = false;
         public bool RuchomySlupekPoLewej { get; set; } = false;
         public bool ElementLiniowy { get; set; } = false;
+        public bool CzyElementJestRama { get; set; } = false;
     }
 }
