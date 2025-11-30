@@ -1756,18 +1756,113 @@
 
     private List<XPoint> ObliczWierzcholkiSlupkaStalego(List<XPoint> wierzcholki)
     {
-        if (wierzcholki == null || wierzcholki.Count < 4)
+        static XPoint Norm(XPoint p) => new XPoint(Math.Abs(p.X) < 1e-12 ? 0.0 : p.X, Math.Abs(p.Y) < 1e-12 ? 0.0 : p.Y);
+        static string F(double v) => v.ToString("G17");
+        static string P(XPoint p) => $"({F(p.X)}, {F(p.Y)})";
+
+        double tolParallelRel = 1e-6;
+        double tolDistance = 0.001;
+        double maxParallelOffset = 650;
+        double tolZeroLen = 1e-12;
+
+        if (wierzcholki == null || wierzcholki.Count < 2)
         {
-            Console.WriteLine("❌ Brak wystarczającej liczby punktów do wyszukania linii.");
+            Console.WriteLine("🔹 SLUPEK: ❌ Brak wystarczającej liczby punktów wejściowych.");
             return new List<XPoint>();
         }
 
-        // 🔸 Linia bazowa, dla której szukamy dopasowania
-        var p1 = wierzcholki[0];
-        var p2 = wierzcholki[3];
+        var liniaBazowa = (wierzcholki.Count >= 4)
+            ? new List<XPoint> { Norm(wierzcholki[0]), Norm(wierzcholki[3]) }
+            : new List<XPoint> { Norm(wierzcholki[0]), Norm(wierzcholki[1]) };
 
-        // poprawny sposób utworzenia listy z dwoma punktami
-        return new List<XPoint> { p1, p2 };
+        Console.WriteLine($"🔹 SLUPEK: ➡️ Linia bazowa: {P(liniaBazowa[0])} -> {P(liniaBazowa[1])}");
+
+        var wszystkieRegiony = _regionsDualRama.Concat(_regionsSkrzydlo)
+            .Where(r => r.Wierzcholki != null && r.Wierzcholki.Count == 2)
+            .ToList();
+
+        Console.WriteLine($"🔹 SLUPEK: ➡️ Liczba regionów 2-punktowych: {wszystkieRegiony.Count}");
+
+        double Ax = liniaBazowa[1].X - liniaBazowa[0].X;
+        double Ay = liniaBazowa[1].Y - liniaBazowa[0].Y;
+        double lenA = Math.Sqrt(Ax * Ax + Ay * Ay);
+
+        if (lenA < tolZeroLen)
+        {
+            Console.WriteLine("🔹 SLUPEK: ❌ Linia bazowa ma długość 0.");
+            return new List<XPoint>();
+        }
+
+        var dopasowaneRegiony = new List<XPoint>();
+
+        foreach (var reg in wszystkieRegiony)
+        {
+            var pkt = reg.Wierzcholki.ToList();
+            pkt[0] = Norm(pkt[0]);
+            pkt[1] = Norm(pkt[1]);
+
+            Console.WriteLine($"\n🔹 SLUPEK: --- Region Typ='{reg.TypLiniiDzielacej}' Punkty: {P(pkt[0])} -> {P(pkt[1])}");
+
+            if (reg.TypLiniiDzielacej != "Słupek stały")
+            {
+                Console.WriteLine("🔹 SLUPEK:    ↳ Pomijam (Typ != 'Słupek stały').");
+                continue;
+            }
+
+            double Bx = pkt[1].X - pkt[0].X;
+            double By = pkt[1].Y - pkt[0].Y;
+            double lenB = Math.Sqrt(Bx * Bx + By * By);
+            if (lenB < tolZeroLen)
+            {
+                Console.WriteLine("🔹 SLUPEK:    ❌ Degeneracja: długość wektora B=0.");
+                continue;
+            }
+
+            // równoległość
+            double cross = Ax * By - Ay * Bx;
+            double relCross = Math.Abs(cross) / (lenA * lenB);
+            bool parallel = relCross <= tolParallelRel;
+            Console.WriteLine($"🔹 SLUPEK:    cross={F(cross)}, relCross={F(relCross)}, równoległość={parallel}");
+            if (!parallel)
+            {
+                Console.WriteLine("🔹 SLUPEK:    ❌ Odrzucono: brak równoległości.");
+                continue;
+            }
+
+            // odległość prostopadła od linii bazowej do pierwszego punktu regionu
+            double dx = pkt[0].X - liniaBazowa[0].X;
+            double dy = pkt[0].Y - liniaBazowa[0].Y;
+            double perp = Math.Abs(Ax * dy - Ay * dx) / lenA;
+
+            // dopuszczalne przesunięcie równoległe
+            if (perp > maxParallelOffset)
+            {
+                Console.WriteLine($"🔹 SLUPEK:    ❌ Odrzucono: offset {F(perp)} przekracza maxParallelOffset={F(maxParallelOffset)}");
+                continue;
+            }
+
+            // projekcja punktów regionu na linię bazową
+            double proj1 = (dx * Ax + dy * Ay) / (lenA * lenA);
+            double dx2 = pkt[1].X - liniaBazowa[0].X;
+            double dy2 = pkt[1].Y - liniaBazowa[0].Y;
+            double proj2 = (dx2 * Ax + dy2 * Ay) / (lenA * lenA);
+            bool inRange = !(proj1 < -0.2 && proj2 < -0.2) && !(proj1 > 1.2 && proj2 > 1.2);
+
+            if (!inRange)
+            {
+                Console.WriteLine("🔹 SLUPEK:    ❌ Odrzucono: projekcje punktów regionu poza dopuszczalnym zakresem.");
+                continue;
+            }
+
+            // jeśli wszystkie testy przeszły
+            Console.WriteLine($"🔹 SLUPEK:    ✅ Akceptuję region (perp={F(perp)}, proj1={F(proj1)}, proj2={F(proj2)})");
+            dopasowaneRegiony.AddRange(pkt);
+        }
+
+        if (!dopasowaneRegiony.Any())
+            Console.WriteLine("🔹 SLUPEK: ℹ️ Nie znaleziono współosiowych linii typu 'Słupek stały'.");
+
+        return dopasowaneRegiony;
     }
 
     private async Task OnMouseMove(MouseEventArgs e)
@@ -2261,9 +2356,7 @@
             // ❗ TERAZ zapisujesz stan — ale BEZ elementów ramy
             // AddOrUpdateGeneratorState(cleanId, genState.Value, generator);
 
-            Console.WriteLine($"   ✔ zapisano nowe wierzchołki i siatkę dla {cleanId} region -> {region.Wierzcholki.Max(x => x.X)} x {region.Wierzcholki.Max(x => x.Y)}");
-
-            Console.WriteLine($"🔍 Przetwarzam generator dla regionu: {cleanId} generator.CzyElementJestRama: {generator.CzyElementJestRama}");
+            Console.WriteLine($"➡➡➡  ✔ zapisano nowe wierzchołki i siatkę dla {cleanId} region -> {region.Wierzcholki.Max(x => x.X)} x {region.Wierzcholki.Max(x => x.Y)}");
 
             if (region == null)
             {
@@ -2271,13 +2364,78 @@
                 continue;
             }
 
-            Console.WriteLine($"➡ Regeneruję region {cleanId} typ regionu czy rama: {generator.CzyElementJestRama} -> {generator.Wierzcholki.Max(x => x.X)} x {generator.Wierzcholki.Max(x => x.Y)}");
+            Console.WriteLine($"🔍 Przetwarzam generator dla regionu: {cleanId} generator.CzyElementJestRama: {generator.CzyElementJestRama}");
+
+            if(generator.Wierzcholki != null && generator.Wierzcholki.Count() > 0)
+                Console.WriteLine($"➡➡➡ Regeneruję region {cleanId} typ regionu czy rama: {generator.CzyElementJestRama} -> {generator.Wierzcholki.Max(x => x.X)} x {generator.Wierzcholki.Max(x => x.Y)}");
 
             // -----------------------------------------------------
             // D) Pobierz dane kwadratów (zapisane w generator state)
             // -----------------------------------------------------
             var daneKwadratow = genState.Value.ListaKwadratow ?? new List<DaneKwadratu>();
 
+            if (SelectedModelType.Trim() == "Skrzydło" || SelectedModelType.Trim() == "Skrzydło z słupkiem ruchomym")
+            {
+                var wybranyRegionSkrzydlo = _regionsSkrzydlo.FirstOrDefault(r => r.Id == region.Id);
+               var linieDzielace = wybranyRegionSkrzydlo?.TypLiniiDzielacej ?? "Brak";
+
+                if (wybranyRegionSkrzydlo != null)
+                {
+                    var regionPointsSkrzydlo = wybranyRegionSkrzydlo.Wierzcholki;
+
+                    if (regionPointsSkrzydlo == null || regionPointsSkrzydlo.Count < 3)
+                    {
+                        Console.WriteLine("❌ Wybrany region nie zawiera wystarczającej liczby punktów!");
+
+                    }
+
+                    generator.IdRegionuPonizej = wybranyRegionSkrzydlo.IdRegionuPonizej ?? region.Id + "-BLAD";
+
+                    var minX = regionPointsSkrzydlo.Min(p => p.X);
+                    var maxX = regionPointsSkrzydlo.Max(p => p.X);
+                    var minY = regionPointsSkrzydlo.Min(p => p.Y);
+                    var maxY = regionPointsSkrzydlo.Max(p => p.Y);
+
+                    generator.Szerokosc = (float)(maxX - minX);
+                    generator.Wysokosc = (float)(maxY - minY);
+                    generator.Zindeks = SelectedModelType == "Skrzydło z słupkiem ruchomym" ? 2 : 3;
+                    generator.CzyElementJestRama = false;
+
+                    //luzy wynikahjące z przesunięcia
+
+                    // najpierw wczytujesz region i dodajesz jego dane
+                    var regionDoDodania = _regionsSkrzydlo.FirstOrDefault(r => r.Id == region.Id);
+
+                    if (regionDoDodania != null)
+                    {
+                        // ✅ KOPIOWANIE punktów do regionu, na którym operuje AddElements
+                        regionDoDodania.Wierzcholki = region.Wierzcholki
+                            .Select(p => new XPoint { X = p.X, Y = p.Y })
+                            .ToList();
+
+                        double przesLewo = 0, przesPrawo = 0, przesGora = 0, przesDol = 0;
+
+                        // ✅ Najpierw przesuń punkty
+                        await WyliczObszarSkrzydla(
+                            _generatorStates[cleanId],
+                            przesLewo, przesPrawo,
+                            przesGora, przesDol,
+                            generator.RuchomySlupekPoLewej, generator.RuchomySlupekPoPrawej,
+                            generator, regionDoDodania
+                        );
+                    }
+                    else
+                    {
+                        Console.WriteLine($"❌ Nie znaleziono regionu skrzydła o ID: {region.Id}");
+
+                    }
+
+                }
+                else
+                {
+                    Console.WriteLine($"📐📐📐 wybranyRegionSkrzydlo == null");
+                }
+            }
             // -----------------------------------------------------
             // E) Wywołaj AddElements ponownie dla tego regionu
             // -----------------------------------------------------
@@ -3397,54 +3555,131 @@
 
         if (slupekStaly)
         {
+            Console.WriteLine("[SŁUPEK] =====================================================");
+            Console.WriteLine("[SŁUPEK] START PRZETWARZANIA SŁUPKA");
 
-            bool CzyWspolosiowe(List<XPoint> a, List<XPoint> b)
+            // =============================================
+            // 1) Przygotowanie wierzchołków słupka (muszą być 2)
+            // =============================================
+            Console.WriteLine($"[SŁUPEK] Otrzymane wierzcholki: {wierzcholki.Count}");
+            foreach (var p in wierzcholki)
+                Console.WriteLine($"[SŁUPEK]   wejściowy: ({p.X}, {p.Y})");
+
+            // Usuń duplikaty i zostaw maks 2
+            wierzcholki = wierzcholki
+                .DistinctBy(p => (Math.Round(p.X, 3), Math.Round(p.Y, 3)))
+                .Take(2)
+                .ToList();
+
+            Console.WriteLine($"[SŁUPEK] Po korekcji / duplikatach → {wierzcholki.Count}");
+            foreach (var p in wierzcholki)
+                Console.WriteLine($"[SŁUPEK]   S: ({p.X}, {p.Y})");
+
+            if (wierzcholki.Count != 2)
             {
-                if (a == null || b == null) return false;
-                if (a.Count != 2 || b.Count != 2) return false;
+                Console.WriteLine("[SŁUPEK] ❌ BŁĄD: słupek nie posiada 2 punktów – przerywam.");
+                state.IdRegion = $"{idRegion}|ERR";
+                Console.WriteLine("[SŁUPEK] KONIEC (BŁĄD)");
+            }
 
-                var A1 = a[0];
-                var A2 = a[1];
-                var B1 = b[0];
-                var B2 = b[1];
+            // =============================================
+            // 2) Funkcja porównująca linie
+            // =============================================
+            bool CzyWspolosioweXY_direction(List<XPoint> a, List<XPoint> b)
+            {
+                var A1 = a[0]; var A2 = a[1];
+                var B1 = b[0]; var B2 = b[1];
 
-                double tolerance = 0.001;
-
-                // wektory
                 double Ax = A2.X - A1.X;
                 double Ay = A2.Y - A1.Y;
-
                 double Bx = B2.X - B1.X;
                 double By = B2.Y - B1.Y;
 
-                // 1) równoległość (Cross product)
+                double lenA = Math.Sqrt(Ax * Ax + Ay * Ay);
+                double lenB = Math.Sqrt(Bx * Bx + By * By);
+
+                if (lenA < 1e-9 || lenB < 1e-9)
+                    return false;
+
                 double cross = Ax * By - Ay * Bx;
-                if (Math.Abs(cross) > tolerance) return false;
+                double relCross = Math.Abs(cross) / (lenA * lenB);
 
-                // 2) współliniowość (czy B1 leży na prostej A)
-                double cross2 = (B1.X - A1.X) * Ay - (B1.Y - A1.Y) * Ax;
-                if (Math.Abs(cross2) > tolerance) return false;
-
-                return true;
+                return relCross <= 1e-6; // równoległe
             }
 
-            // DEBUG: Wyświetl nominalne wierzchołki
-            Console.WriteLine($"🎯 state.Wierzcholki:");
-            foreach (var nominal in generator.Wierzcholki)
+            // =============================================
+            // 3) Test regionów 2-punktowych
+            // =============================================
+            Console.WriteLine("[SŁUPEK] Regiony wejściowe (szukam takich z 2 pkt):");
+
+            var testRegion = wszystkieRegiony.Where(x => x.Wierzcholki.Count == 2);
+
+            foreach (var r in testRegion)
+                foreach (var p in r.Wierzcholki)
+                    Console.WriteLine($"[SŁUPEK] R: ({p.X}, {p.Y})  ID={r.Id}");
+
+            // =============================================
+            // 4) Wyszukanie regionów współosiowych
+            // =============================================
+            Console.WriteLine("[SŁUPEK] SPRAWDZAM WSPÓŁOSIOWOŚĆ ZE WSZYSTKIMI");
+
+            // Tolerancja przesunięcia linii (w mm)
+            double tol = 20.0;
+
+            // =============================================
+            // → Wyszukujemy regiony typu "Słupek stały"
+            //   które są równoległe AND leżą w tej samej osi
+            // =============================================
+            var xeRegiony = _regionsDualRama.Concat(_regionsSkrzydlo)
+                .Where(r =>
+                {
+                    Console.WriteLine($"[SŁUPEK] → TESTUJĘ REGION {r.Id}");
+
+                    if (r.TypLiniiDzielacej != "Słupek stały")
+                        return false;
+
+                    // 1) Test równoległości (tylko kierunek!)
+                    if (!CzyWspolosioweXY_direction(r.Wierzcholki, wierzcholki))
+                    {
+                        Console.WriteLine("[SŁUPEK]   ✖ kierunek różny (nie równoległe)");
+                        return false;
+                    }
+
+                    // 2) Test odległości — DISTANCE POINT TO SEGMENT
+                    double d1 = DistancePointToSegment(wierzcholki[0], r.Wierzcholki[0], r.Wierzcholki[1]);
+                    double d2 = DistancePointToSegment(wierzcholki[1], r.Wierzcholki[0], r.Wierzcholki[1]);
+
+                    Console.WriteLine($"[SŁUPEK]   → d1={d1}, d2={d2}");
+
+                    bool ok = d1 <= tol && d2 <= tol;
+
+                    Console.WriteLine(ok
+                        ? "[SŁUPEK]   ✔ odległość OK – współosiowe"
+                        : "[SŁUPEK]   ✖ odległość zbyt duża – NIE współosiowe");
+
+                    return ok;
+                })
+                .ToList();
+
+
+            Console.WriteLine($"[SŁUPEK] 📋 Znaleziono {xeRegiony.Count} regionów współosiowych");
+
+            // =============================================
+            // 5) Ustaw ID regionu
+            // =============================================
+            if (xeRegiony.Count == 0)
             {
-                Console.WriteLine($"   ({nominal.X}, {nominal.Y})");
+                state.IdRegion = $"{idRegion}|S{_generatorStates.Count()}";
+                Console.WriteLine($"[SŁUPEK] Brak dopasowania → nowy ID = {state.IdRegion}");
+            }
+            else
+            {
+                state.IdRegion = xeRegiony.First().Id;
+                Console.WriteLine($"[SŁUPEK] Dopasowanie: używam ID = {state.IdRegion}");
             }
 
-            var xeRegiony = wszystkieRegiony
-            .Where(r => r.TypLiniiDzielacej == "Słupek stały"
-                        && CzyWspolosiowe(r.Wierzcholki, generator.Wierzcholki))
-            .ToList();
-
-            Console.WriteLine($"📋 Znaleziono {xeRegiony.Count} regionów współosiowych");
-
-            state.IdRegion = (xeRegiony.Count == 0
-                ? $"{idRegion}|S{_generatorStates.Count()}"
-                : xeRegiony.First().Id);
+            Console.WriteLine("[SŁUPEK] KONIEC PRZETWARZANIA");
+            Console.WriteLine("[SŁUPEK] =====================================================");
         }
         else
         {
@@ -3456,25 +3691,6 @@
 
         Console.WriteLine($"📦📦📦 Generowanie elementów zarejetrowano ilość ksztalty: {ksztalty.Count}.");
 
-        // string idGenerator = $"{idRegion}_{Guid.NewGuid()}";
-
-        // // Zapisz stan generatora
-        // _generatory[idGenerator] = generator;
-
-        // ZapiszStanGeneratora(idGenerator, state);
-
-        //await Task.CompletedTask;
-
-        //state.IdRegion = $"{idRegion}_{DateTime.UtcNow.Ticks}";
-
-        // if (slupekStaly)
-        // {
-        //     state.IdRegion = $"{idRegion.Substring(0, 73) + "-" + Guid.NewGuid().ToString()}";
-        //     ZapiszStanGeneratora(state.IdRegion, state);
-        // }
-        // else
-        // {
-        //     state.IdRegion = $"{idRegion}";
         string cleanId = CleanId(state.IdRegion);
 
         AddOrUpdateGeneratorState(cleanId, state, generator);
@@ -3483,6 +3699,28 @@
         await ApplyZoom(_currentScale);
 
         return true;
+    }
+
+    public double DistancePointToSegment(XPoint p, XPoint a, XPoint b)
+    {
+        double A = p.X - a.X;
+        double B = p.Y - a.Y;
+        double C = b.X - a.X;
+        double D = b.Y - a.Y;
+
+        double dot = A * C + B * D;
+        double lenSq = C * C + D * D;
+
+        double t = lenSq == 0 ? 0 : dot / lenSq;
+        t = Math.Max(0, Math.Min(1, t));
+
+        double projX = a.X + t * C;
+        double projY = a.Y + t * D;
+
+        double dx = p.X - projX;
+        double dy = p.Y - projY;
+
+        return Math.Sqrt(dx * dx + dy * dy);
     }
 
     private static double OdlegloscPunktuOdOdcinka(double px, double py, double x1, double y1, double x2, double y2)

@@ -1,42 +1,53 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace GEORGE.Shared.ViewModels
 {
     public struct XPoint
     {
-        private double _x;
-        private double _y;
-
-        public double X
-        {
-            get => _x;
-            set => _x = Math.Round(value, 3);
-        }
-
-        public double Y
-        {
-            get => _y;
-            set => _y = Math.Round(value, 3);
-        }
+        // Wartości surowe, bez zaokrąglania
+        public double X { get; set; }
+        public double Y { get; set; }
 
         public XPoint(double x, double y)
         {
-            _x = Math.Round(x, 3);
-            _y = Math.Round(y, 3);
+            X = x;
+            Y = y;
+        }
+
+        // Porównanie z tolerancją – idealne do geometrii
+        private const double Tolerance = 0.001;
+
+        public bool EqualsWithTolerance(XPoint other)
+        {
+            return Math.Abs(X - other.X) <= Tolerance &&
+                   Math.Abs(Y - other.Y) <= Tolerance;
         }
 
         public override bool Equals(object? obj)
         {
-            if (obj is not XPoint other) return false;
-            return Math.Abs(X - other.X) < 0.001 && Math.Abs(Y - other.Y) < 0.001;
+            if (obj is not XPoint other)
+                return false;
+
+            return EqualsWithTolerance(other);
         }
 
-        public override int GetHashCode() =>
-            HashCode.Combine(X, Y);
-    }
+        public override int GetHashCode()
+        {
+            // hash zgrubny, wystarczający do structa
+            // bo i tak Equals używa tolerancji
+            unchecked
+            {
+                int hash = 17;
+                hash = hash * 23 + X.GetHashCode();
+                hash = hash * 23 + Y.GetHashCode();
+                return hash;
+            }
+        }
 
+        public override string ToString()
+        {
+            // czytelne debugowanie: max 3 miejsca tylko do wyświetlania
+            return $"({X:0.###}, {Y:0.###})";
+        }
+    }
 }

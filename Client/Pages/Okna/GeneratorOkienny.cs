@@ -241,7 +241,7 @@ namespace GEORGE.Client.Pages.Okna
             string NazwaObiektu, string TypObiektu, List<DaneKwadratu> daneKwadratu)
         {
 
-            Console.WriteLine($"❌ Generowanie elementów dla regionu {regionId} z typem kształtu: {typKsztalt} oraz ElementLiniowy: {ElementLiniowy} profileLeft: {profileLeft}, profileRight :{profileRight}");
+            Console.WriteLine($"▶️ Generowanie elementów dla regionu {regionId} z typem kształtu: {typKsztalt} oraz ElementLiniowy: {ElementLiniowy} profileLeft: {profileLeft}, profileRight :{profileRight}");
 
             float angleDegreesElementLionowy = 0;
 
@@ -822,7 +822,7 @@ namespace GEORGE.Client.Pages.Okna
                     >= 225 and < 315 => "Lewa",   // w okolicach 270°
                     _ => "Góra"                   // w okolicach 0° lub 360°
                 };
-
+                //szukDaneKwadratu
                 switch (i)
                 {
                     case 0:
