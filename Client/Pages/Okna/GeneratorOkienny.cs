@@ -675,7 +675,7 @@ namespace GEORGE.Client.Pages.Okna
                             var IdWymTop = daneKwadratu.FirstOrDefault(s => s.BoolElementLinia)?.RowIdSasiadaStronaA ?? Guid.Empty;
                             var IdWymBottom = daneKwadratu.FirstOrDefault(s => s.BoolElementLinia)?.RowIdSasiadaStronaB ?? Guid.Empty;
 
-                            Console.WriteLine($"🔷 Vertical shifts → IdWymTop:{IdWymTop}, IdWymBottom:{IdWymBottom}");
+                            Console.WriteLine($"🔷 T5-T5 Vertical shifts → IdWymTop:{IdWymTop}, IdWymBottom:{IdWymBottom}");
 
                             if (IdWymTop != Guid.Empty && IdWymBottom != Guid.Empty)
                             {
@@ -685,7 +685,7 @@ namespace GEORGE.Client.Pages.Okna
                                 topYShift = Math.Abs((topElement?.PoziomGora ?? 0) - (topElement?.PoziomDol ?? 0));
                                 bottomYShift = Math.Abs((bottomElement?.PoziomGora ?? 0) - (bottomElement?.PoziomDol ?? 0));
 
-                                Console.WriteLine($"🔷 Vertical shifts → topYShift:{topYShift}, bottomYShift:{bottomYShift}");
+                                Console.WriteLine($"🔷 T5-T5 Vertical shifts → topYShift:{topYShift}, bottomYShift:{bottomYShift}");
                             }
 
                             topY = Math.Min(inner[i].Y, inner[next].Y) + topYShift;
@@ -701,16 +701,16 @@ namespace GEORGE.Client.Pages.Okna
 
                             foreach (var x in inner)
                             {
-                                Console.WriteLine($"🔷 Vertical shifts → inner.X: {x.X} inner.Y: {x.Y}");
+                                Console.WriteLine($"🔷 T5-T5 Vertical shifts → inner.X: {x.X} inner.Y: {x.Y}");
                             }
 
                             foreach (var x in outer)
                             {
-                                Console.WriteLine($"🔷 Vertical shifts → outer.X: {x.X} outer.Y: {x.Y}");
+                                Console.WriteLine($"🔷 T5-T5 Vertical shifts → outer.X: {x.X} outer.Y: {x.Y}");
                             }
 
-                            Console.WriteLine($"🔷 Vertical shifts → innerTopT5.X: {innerTopT5.X} innerTopT5.Y: {innerTopT5.Y} innerBottomT5.X: {innerBottomT5.X} innerBottomT5.Y: {innerBottomT5.Y}");
-                            Console.WriteLine($"🔷 Vertical shifts → outerTopT5.X: {outerTopT5.X} outerTopT5.Y: {outerTopT5.Y} outerBottomT5.X: {outerBottomT5.X} outerBottomT5.Y: {outerBottomT5.Y}");
+                            Console.WriteLine($"🔷 T5-T5 Vertical shifts → innerTopT5.X: {innerTopT5.X} innerTopT5.Y: {innerTopT5.Y} innerBottomT5.X: {innerBottomT5.X} innerBottomT5.Y: {innerBottomT5.Y}");
+                            Console.WriteLine($"🔷 T5-T5 Vertical shifts → outerTopT5.X: {outerTopT5.X} outerTopT5.Y: {outerTopT5.Y} outerBottomT5.X: {outerBottomT5.X} outerBottomT5.Y: {outerBottomT5.Y}");
                         }
                         else if (isAlmostHorizontal)
                         {
@@ -731,7 +731,7 @@ namespace GEORGE.Client.Pages.Okna
                                 leftXShift = Math.Abs((topElement?.PoziomGora ?? 0) - (topElement?.PoziomDol ?? 0)); // linie są generowane domyślnie!!!!
                                 rightXShift = Math.Abs((bottomElement?.PoziomGora ?? 0) - (bottomElement?.PoziomDol ?? 0));
 
-                                Console.WriteLine($"🔷 Horizontal shifts → leftXShift:{leftXShift}, rightXShift:{rightXShift}");
+                                Console.WriteLine($"🔷 T5-T5 Horizontal shifts → leftXShift:{leftXShift}, rightXShift:{rightXShift}");
                             }
 
                             leftX = Math.Min(inner[i].X, inner[next].X) + leftXShift;
@@ -746,16 +746,16 @@ namespace GEORGE.Client.Pages.Okna
 
                             foreach (var x in inner)
                             {
-                                Console.WriteLine($"🔷 Horizontal shifts → inner.X: {x.X} inner.Y: {x.Y}");
+                                Console.WriteLine($"🔷 T5-T5 Horizontal shifts → inner.X: {x.X} inner.Y: {x.Y}");
                             }
 
                             foreach (var x in outer)
                             {
-                                Console.WriteLine($"🔷 Horizontal shifts → outer.X: {x.X} outer.Y: {x.Y}");
+                                Console.WriteLine($"🔷 T5-T5 Horizontal shifts → outer.X: {x.X} outer.Y: {x.Y}");
                             }
 
-                            Console.WriteLine($"🔷 Horizontal shifts → innerTopT5.X: {innerTopT5.X} innerTopT5.Y: {innerTopT5.Y} innerBottomT5.X: {innerBottomT5.X} innerBottomT5.Y: {innerBottomT5.Y}");
-                            Console.WriteLine($"🔷 Horizontal shifts → outerTopT5.X: {outerTopT5.X} outerTopT5.Y: {outerTopT5.Y} outerBottomT5.X: {outerBottomT5.X} outerBottomT5.Y: {outerBottomT5.Y}");
+                            Console.WriteLine($"🔷 T5-T5 Horizontal shifts → innerTopT5.X: {innerTopT5.X} innerTopT5.Y: {innerTopT5.Y} innerBottomT5.X: {innerBottomT5.X} innerBottomT5.Y: {innerBottomT5.Y}");
+                            Console.WriteLine($"🔷 T5-T5 Horizontal shifts → outerTopT5.X: {outerTopT5.X} outerTopT5.Y: {outerTopT5.Y} outerBottomT5.X: {outerBottomT5.X} outerBottomT5.Y: {outerBottomT5.Y}");
                         }
                     }
 

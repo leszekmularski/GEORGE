@@ -661,14 +661,17 @@
                                                 var punkt = region.Wierzcholki[i];
                                                 var index = i;
 
-                                                <div class="d-flex align-items-center mb-1" @key="punkt">
+                                                <div class="d-flex align-items-center mb-1" @key="i">
                                                     <span class="me-2">[@index]</span>
-                                                    <input class="form-control me-1" style="width: 100px;" type="number"
-                                                           step="0.01" value="@(Math.Round(punkt.X, 3))"
-                                                           @oninput="@(e => ZmienXRegion(region, index, e))" />
-                                                    <input class="form-control me-1" style="width: 100px;" type="number"
-                                                           step="0.01" value="@(Math.Round(punkt.Y, 3))"
-                                                           @oninput="@(e => ZmienYRegion(region, index, e))" />
+                                                    <AntDesign.InputNumber Value="region.Wierzcholki[i].X"
+                                                                           OnChange="@((double x) => ZmienXRegion(region, index, x))"
+                                                                           Precision="2"
+                                                                           Style="width:150px" />
+
+                                                    <AntDesign.InputNumber Value="region.Wierzcholki[i].Y"
+                                                                           OnChange="@((double y) => ZmienYRegion(region, index, y))"
+                                                                           Precision="2"
+                                                                           Style="width:150px" />
                                                 </div>
                                             }
                                         }
@@ -742,14 +745,17 @@
                                                 var punkt = region.Wierzcholki[i];
                                                 var index = i;
 
-                                                <div class="d-flex align-items-center mb-1" @key="punkt">
+                                                <div class="d-flex align-items-center mb-1" @key="i">
                                                     <span class="me-2">[@index]</span>
-                                                    <input class="form-control me-1" style="width: 100px;" type="number"
-                                                           step="0.01" value="@punkt.X"
-                                                           @oninput="@(e => ZmienXRegion(region, index, e))" />
-                                                    <input class="form-control me-1" style="width: 100px;" type="number"
-                                                           step="0.01" value="@punkt.Y"
-                                                           @oninput="@(e => ZmienYRegion(region, index, e))" />
+                                                    <AntDesign.InputNumber Value="region.Wierzcholki[i].X"
+                                                                           OnChange="@((double x) => ZmienXRegion(region, index, x))"
+                                                                           Precision="2"
+                                                                           Style="width:150px" />
+
+                                                    <AntDesign.InputNumber Value="region.Wierzcholki[i].Y"
+                                                                           OnChange="@((double y) => ZmienYRegion(region, index, y))"
+                                                                           Precision="2"
+                                                                           Style="width:150px" />
                                                 </div>
                                             }
                                         }
@@ -832,14 +838,17 @@
                                                 var punkt = region.Wierzcholki[i];
                                                 var index = i;
 
-                                                <div class="d-flex align-items-center mb-1" @key="punkt">
+                                                <div class="d-flex align-items-center mb-1" @key="i">
                                                     <span class="me-2">[@index]</span>
-                                                    <input class="form-control me-1" style="width: 100px;" type="number"
-                                                           step="0.01" value="@punkt.X"
-                                                           @oninput="@(e => ZmienXRegion(region, index, e))" />
-                                                    <input class="form-control me-1" style="width: 100px;" type="number"
-                                                           step="0.01" value="@punkt.Y"
-                                                           @oninput="@(e => ZmienYRegion(region, index, e))" />
+                                                    <AntDesign.InputNumber Value="region.Wierzcholki[i].X"
+                                                                           OnChange="@((double x) => ZmienXRegion(region, index, x))"
+                                                                           Precision="2"
+                                                                           Style="width:150px" />
+
+                                                    <AntDesign.InputNumber Value="region.Wierzcholki[i].Y"
+                                                                           OnChange="@((double y) => ZmienYRegion(region, index, y))"
+                                                                           Precision="2"
+                                                                           Style="width:150px" />
                                                 </div>
                                             }
                                         }
@@ -874,7 +883,7 @@
                                         @{
                                             var bbox = region.GetBoundingBox();
                                         }
-                                        <p class="mt-3"><strong>BoundingBox:</strong> X=@(Math.Round(bbox.X, 3)), Y=@(Math.Round(bbox.Y, 3)), Width=@(Math.Round(bbox.Width, 3)), Height=@(Math.Round(bbox.Height, 3))</p>
+                                        <p class="mt-3" style="color:red;"><strong>BoundingBox:</strong> X=@(Math.Round(bbox.X, 3)), Y=@(Math.Round(bbox.Y, 3)), Width=@(Math.Round(bbox.Width, 3)), Height=@(Math.Round(bbox.Height, 3))</p>
                                     </div>
                                 </div>
                             }
@@ -914,14 +923,17 @@
                                                 var punkt = region.Wierzcholki[i];
                                                 var index = i;
 
-                                                <div class="d-flex align-items-center mb-1" @key="punkt">
+                                                <div class="d-flex align-items-center mb-1" @key="i">
                                                     <span class="me-2">[@index]</span>
-                                                    <input class="form-control me-1" style="width: 100px;" type="number"
-                                                           step="0.01" value="@punkt.X"
-                                                           @oninput="@(e => ZmienXRegion(region, index, e))" />
-                                                    <input class="form-control me-1" style="width: 100px;" type="number"
-                                                           step="0.01" value="@punkt.Y"
-                                                           @oninput="@(e => ZmienYRegion(region, index, e))" />
+                                                    <AntDesign.InputNumber Value="region.Wierzcholki[i].X"
+                                                                           OnChange="@((double x) => ZmienXRegion(region, index, x))"
+                                                                           Precision="2"
+                                                                           Style="width:150px" />
+
+                                                    <AntDesign.InputNumber Value="region.Wierzcholki[i].Y"
+                                                                           OnChange="@((double y) => ZmienYRegion(region, index, y))"
+                                                                           Precision="2"
+                                                                           Style="width:150px" />
                                                 </div>
                                             }
                                         }
@@ -962,6 +974,64 @@
                             }
 
                         </TabPane>
+                        <TabPane Tab="Region szkic">
+                            @foreach (var shape in ShapeService.Shapes)
+                            {
+                                <div class="card mb-3">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h5 class="card-title">ID: @shape.ID</h5>
+                                            @if (edytowanyRegionId == shape.ID)
+                                            {
+                                                <div>
+                                                    <button class="btn btn-sm btn-success me-2" @onclick="ZapiszShape">Zapisz</button>
+                                                    <button class="btn btn-sm btn-secondary" @onclick="() => edytowanyRegionId = null">Anuluj</button>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-sm btn-primary" @onclick="() => edytowanyRegionId = shape.ID">Edytuj</button>
+                                            }
+                                        </div>
+
+                                        <p><strong>Wierzchołki:</strong></p>
+                                        @if (edytowanyRegionId == shape.ID)
+                                        {
+                                            @for (int i = 0; i < shape.Points.Count; i++)
+                                            {
+                                                var punkt = shape.Points[i];
+                                                var index = i;
+
+                                                <div class="d-flex align-items-center mb-1" @key="i">
+                                                    <span class="me-2">[@index]</span>
+                                                    <AntDesign.InputNumber Value="shape.Points[i].X / _currentScale"
+                                                                           OnChange="@((double x) => ZmienXShape(shape, index, x * _currentScale))"
+                                                                           Precision="2"
+                                                                           Style="width:150px" />
+
+                                                    <AntDesign.InputNumber Value="shape.Points[i].Y / _currentScale"
+                                                                           OnChange="@((double y) => ZmienYShape(shape, index, y * _currentScale))"
+                                                                           Precision="2"
+                                                                           Style="width:150px" />
+                                                </div>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <ul class="list-group list-group-flush">
+                                                @foreach (var p in shape.Points)
+                                                {
+                                                    <li class="list-group-item">
+                                                        X: @(p.X / _currentScale), Y: @(p.Y / _currentScale)
+                                                    </li>
+                                                }
+                                            </ul>
+                                        }
+
+                                    </div>
+                                </div>
+                            }
+                           </TabPane>
                     </Tabs>
                 }
             </div>
@@ -1398,30 +1468,123 @@
         edytowanyId = "";
     }
 
-    private void ZmienXRegion(ShapeRegion region, int index, ChangeEventArgs e)
+    private void ZmienXShape(IShapeDC shape, int index, double value)
     {
-        if (double.TryParse(e.Value?.ToString(), out var x))
-        {
-            var punkt = region.Wierzcholki[index];
-            punkt.X = x;// / _currentScale;
-            region.Wierzcholki[index] = punkt; // ✅ Zapisz zmodyfikowany punkt z powrotem
-        }
+        if (shape?.Points == null)
+            return;
+
+        if (index < 0 || index >= shape.Points .Count)
+            return;
+
+        var p = shape.Points[index];
+        p.X = (float)value;
+        shape.Points[index] = p;
+
     }
 
-    private void ZmienYRegion(ShapeRegion region, int index, ChangeEventArgs e)
+    private void ZmienYShape(IShapeDC shape, int index, double value)
     {
-        if (double.TryParse(e.Value?.ToString(), out var y))
+        if (shape?.Points == null)
+            return;
+
+        if (index < 0 || index >= shape.Points.Count)
+            return;
+
+        var p = shape.Points[index];
+        p.Y = (float)value;
+        shape.Points[index] = p;
+
+    }
+
+    private void ZmienXRegion(ShapeRegion region, int index, double value)
+    {
+        if (region?.Wierzcholki == null)
+            return;
+
+        if (index < 0 || index >= region.Wierzcholki.Count)
+            return;
+
+        var p = region.Wierzcholki[index];
+        p.X = (float)value;
+        region.Wierzcholki[index] = p;
+
+        _regionsDualRama[0] = region;
+
+        foreach (var shape in ShapeService.Shapes)
         {
-            var punkt = region.Wierzcholki[index];
-            punkt.Y = y;
-            region.Wierzcholki[index] = punkt; // ✅ Zapisz zmodyfikowany punkt z powrotem
+            if (shape != null)
+            {
+                shape.Points = region.Wierzcholki;
+            }
         }
+
+        string cleanId = CleanId(region.Id);
+        if (_generatorStates.TryGetValue(cleanId, out var state))
+        {
+            state.Wierzcholki = region.Wierzcholki;
+            state.WierzcholkiWartosciNominalne = region.Wierzcholki;
+        }
+
+    }
+
+    private void ZmienYRegion(ShapeRegion region, int index, double value)
+    {
+        if (region?.Wierzcholki == null)
+            return;
+
+        if (index < 0 || index >= region.Wierzcholki.Count)
+            return;
+
+        var p = region.Wierzcholki[index];
+        p.Y = (float)value;
+        region.Wierzcholki[index] = p;
+        
+        _regionsDualRama[0] = region;
+
+        foreach (var shape in ShapeService.Shapes)
+        {
+            if (shape != null)
+            {
+                shape.Points = region.Wierzcholki;
+            }
+        }
+
+        string cleanId = CleanId(region.Id);
+        if (_generatorStates.TryGetValue(cleanId, out var state))
+        {
+            state.Wierzcholki = region.Wierzcholki;
+            state.WierzcholkiWartosciNominalne = region.Wierzcholki;
+        }
+
     }
 
     private async Task ZapiszRegion()
     {
         edytowanyRegionId = null;
-        //StateHasChanged(); // aby odświeżyć widok
+
+        await ZmienWymiaryOkna(true);
+
+        await Task.Delay(50);
+
+        StateHasChanged(); // aby odświeżyć widok
+    }
+
+    private async Task ZapiszShape()
+    {
+        edytowanyRegionId = null;
+
+        await Task.Delay(50);
+
+        await ClearCanvas();
+        await DrawStructureAndRestrykcje();
+        await RenderFrame();
+
+        foreach (var shape in ShapeService.Shapes)
+            await shape.Draw(_context);
+
+        StateHasChanged();
+
+        StateHasChanged(); // aby odświeżyć widok
     }
 
 
@@ -1733,14 +1896,17 @@
 
         if(WybranyModel.Typ == "Słupek stały")
         {
-            var WierzcholkiST = ObliczWierzcholkiSlupkaStalego(Wierzcholki);
+            var match = ObliczWierzcholkiSlupkaStalego(Wierzcholki, klikX, klikY);
 
-            if (!await DodajWybranyKwadratOkna(idRegion, WierzcholkiST, klikX, klikY, true))
+            var WierzcholkiST = match.Wierzcholki;
+            var RegionIds = match.RegionIds;
+
+            if (!await DodajWybranyKwadratOkna(idRegion, WierzcholkiST, klikX, klikY, true, RegionIds))
                 return;
         }
         else
         {
-            if (!await DodajWybranyKwadratOkna(idRegion, Wierzcholki, klikX, klikY, false))
+            if (!await DodajWybranyKwadratOkna(idRegion, Wierzcholki, klikX, klikY, false, null))
                 return;
         }
 
@@ -1754,115 +1920,93 @@
 
     }
 
-    private List<XPoint> ObliczWierzcholkiSlupkaStalego(List<XPoint> wierzcholki)
+    private SlupekMatchResult ObliczWierzcholkiSlupkaStalego(
+        List<XPoint> wierzcholki,
+        double klikX,
+        double klikY)
     {
-        static XPoint Norm(XPoint p) => new XPoint(Math.Abs(p.X) < 1e-12 ? 0.0 : p.X, Math.Abs(p.Y) < 1e-12 ? 0.0 : p.Y);
-        static string F(double v) => v.ToString("G17");
-        static string P(XPoint p) => $"({F(p.X)}, {F(p.Y)})";
+        var best = new SlupekMatchResult();
+        double bestDist = double.MaxValue;
+
+        static XPoint Norm(XPoint p) => new XPoint(
+            Math.Abs(p.X) < 1e-12 ? 0.0 : p.X,
+            Math.Abs(p.Y) < 1e-12 ? 0.0 : p.Y
+        );
 
         double tolParallelRel = 1e-6;
-        double tolDistance = 0.001;
         double maxParallelOffset = 650;
         double tolZeroLen = 1e-12;
 
         if (wierzcholki == null || wierzcholki.Count < 2)
-        {
-            Console.WriteLine("🔹 SLUPEK: ❌ Brak wystarczającej liczby punktów wejściowych.");
-            return new List<XPoint>();
-        }
+            return best;
 
+        // baza do porównań
         var liniaBazowa = (wierzcholki.Count >= 4)
             ? new List<XPoint> { Norm(wierzcholki[0]), Norm(wierzcholki[3]) }
             : new List<XPoint> { Norm(wierzcholki[0]), Norm(wierzcholki[1]) };
 
-        Console.WriteLine($"🔹 SLUPEK: ➡️ Linia bazowa: {P(liniaBazowa[0])} -> {P(liniaBazowa[1])}");
-
-        var wszystkieRegiony = _regionsDualRama.Concat(_regionsSkrzydlo)
+        var wszystkieRegiony = _regionsDualRama
+            .Concat(_regionsSkrzydlo)
             .Where(r => r.Wierzcholki != null && r.Wierzcholki.Count == 2)
             .ToList();
-
-        Console.WriteLine($"🔹 SLUPEK: ➡️ Liczba regionów 2-punktowych: {wszystkieRegiony.Count}");
 
         double Ax = liniaBazowa[1].X - liniaBazowa[0].X;
         double Ay = liniaBazowa[1].Y - liniaBazowa[0].Y;
         double lenA = Math.Sqrt(Ax * Ax + Ay * Ay);
 
         if (lenA < tolZeroLen)
-        {
-            Console.WriteLine("🔹 SLUPEK: ❌ Linia bazowa ma długość 0.");
-            return new List<XPoint>();
-        }
-
-        var dopasowaneRegiony = new List<XPoint>();
+            return best;
 
         foreach (var reg in wszystkieRegiony)
         {
+            if (reg.TypLiniiDzielacej != "Słupek stały")
+                continue;
+
             var pkt = reg.Wierzcholki.ToList();
             pkt[0] = Norm(pkt[0]);
             pkt[1] = Norm(pkt[1]);
-
-            Console.WriteLine($"\n🔹 SLUPEK: --- Region Typ='{reg.TypLiniiDzielacej}' Punkty: {P(pkt[0])} -> {P(pkt[1])}");
-
-            if (reg.TypLiniiDzielacej != "Słupek stały")
-            {
-                Console.WriteLine("🔹 SLUPEK:    ↳ Pomijam (Typ != 'Słupek stały').");
-                continue;
-            }
 
             double Bx = pkt[1].X - pkt[0].X;
             double By = pkt[1].Y - pkt[0].Y;
             double lenB = Math.Sqrt(Bx * Bx + By * By);
             if (lenB < tolZeroLen)
-            {
-                Console.WriteLine("🔹 SLUPEK:    ❌ Degeneracja: długość wektora B=0.");
                 continue;
-            }
 
-            // równoległość
             double cross = Ax * By - Ay * Bx;
             double relCross = Math.Abs(cross) / (lenA * lenB);
-            bool parallel = relCross <= tolParallelRel;
-            Console.WriteLine($"🔹 SLUPEK:    cross={F(cross)}, relCross={F(relCross)}, równoległość={parallel}");
-            if (!parallel)
-            {
-                Console.WriteLine("🔹 SLUPEK:    ❌ Odrzucono: brak równoległości.");
-                continue;
-            }
 
-            // odległość prostopadła od linii bazowej do pierwszego punktu regionu
+            if (relCross > tolParallelRel)
+                continue;
+
             double dx = pkt[0].X - liniaBazowa[0].X;
             double dy = pkt[0].Y - liniaBazowa[0].Y;
             double perp = Math.Abs(Ax * dy - Ay * dx) / lenA;
 
-            // dopuszczalne przesunięcie równoległe
             if (perp > maxParallelOffset)
-            {
-                Console.WriteLine($"🔹 SLUPEK:    ❌ Odrzucono: offset {F(perp)} przekracza maxParallelOffset={F(maxParallelOffset)}");
                 continue;
-            }
 
-            // projekcja punktów regionu na linię bazową
             double proj1 = (dx * Ax + dy * Ay) / (lenA * lenA);
             double dx2 = pkt[1].X - liniaBazowa[0].X;
             double dy2 = pkt[1].Y - liniaBazowa[0].Y;
             double proj2 = (dx2 * Ax + dy2 * Ay) / (lenA * lenA);
+
             bool inRange = !(proj1 < -0.2 && proj2 < -0.2) && !(proj1 > 1.2 && proj2 > 1.2);
-
             if (!inRange)
-            {
-                Console.WriteLine("🔹 SLUPEK:    ❌ Odrzucono: projekcje punktów regionu poza dopuszczalnym zakresem.");
                 continue;
-            }
 
-            // jeśli wszystkie testy przeszły
-            Console.WriteLine($"🔹 SLUPEK:    ✅ Akceptuję region (perp={F(perp)}, proj1={F(proj1)}, proj2={F(proj2)})");
-            dopasowaneRegiony.AddRange(pkt);
+            // 🔥 Wyliczamy odległość kliknięcie → linia
+            double dist = DistancePointToSegment(new XPoint(klikX, klikY), pkt[0], pkt[1]);
+
+            if (dist < bestDist)
+            {
+                bestDist = dist;
+                best = new SlupekMatchResult();
+                best.Wierzcholki.AddRange(pkt);
+                best.RegionIds.Add(reg.Id);
+            }
         }
 
-        if (!dopasowaneRegiony.Any())
-            Console.WriteLine("🔹 SLUPEK: ℹ️ Nie znaleziono współosiowych linii typu 'Słupek stały'.");
-
-        return dopasowaneRegiony;
+        return best;
     }
 
     private async Task OnMouseMove(MouseEventArgs e)
@@ -2281,7 +2425,7 @@
         }
     }
 
-    private async Task ZmienWymiaryOkna()
+    private async Task ZmienWymiaryOkna(bool tylkoPunkty = false)
     {
         if (ShapeService.Shapes == null || !ShapeService.Shapes.Any())
         {
@@ -2305,6 +2449,7 @@
         }
 
         // 2 — generacja regionów po zmianie wymiarów
+        if (!tylkoPunkty)
         await GenerujObrysPozZmianieWymiarow(false, false);
 
         var wszystkieRegiony = _regionsDualRama.Concat(_regionsSkrzydlo).ToList();
@@ -2377,7 +2522,7 @@
             if (SelectedModelType.Trim() == "Skrzydło" || SelectedModelType.Trim() == "Skrzydło z słupkiem ruchomym")
             {
                 var wybranyRegionSkrzydlo = _regionsSkrzydlo.FirstOrDefault(r => r.Id == region.Id);
-               var linieDzielace = wybranyRegionSkrzydlo?.TypLiniiDzielacej ?? "Brak";
+                var linieDzielace = wybranyRegionSkrzydlo?.TypLiniiDzielacej ?? "Brak";
 
                 if (wybranyRegionSkrzydlo != null)
                 {
@@ -2573,7 +2718,7 @@
         return true;
     }
 
-    private async Task<bool> DodajWybranyKwadratOkna(string idRegion, List<XPoint> wierzcholki, double klikX, double klikY, bool slupekStaly)
+    private async Task<bool> DodajWybranyKwadratOkna(string idRegion, List<XPoint> wierzcholki, double klikX, double klikY, bool slupekStaly, List<string> idSlupka)
     {
         if (SelectedModelType == null || string.IsNullOrEmpty(SelectedModelType))
         {
@@ -3115,13 +3260,13 @@
 
             foreach (var s in sasiedzi)
             {
-                Console.WriteLine($"   🔹 Sasiad: WybranyTyp: {s.WybranyTyp} linia.Count:{linia.Count()} MaSlupekRuchomy: {s.MaSlupekRuchomy} RowIdElementu: {s.RowIdElementu} kąt: {katSzukaj}°");
+                Console.WriteLine($"   🔹 Sasiad: Wyszukani sąsiedzi WybranyTyp: {s.WybranyTyp} linia.Count:{linia.Count()} MaSlupekRuchomy: {s.MaSlupekRuchomy} RowIdElementu: {s.RowIdElementu} kąt: {katSzukaj}°");
             }
 
-            foreach (var s in linia)
-            {
-                Console.WriteLine($"   🔹 Sasiad: WybranyTyp: X:{s.X} Y:{s.Y} kąt: {katSzukaj}°");
-            }
+            // foreach (var s in linia)
+            // {
+            //     Console.WriteLine($"   🔹 Sasiad: WybranyTyp: X:{s.X} Y:{s.Y} kąt: {katSzukaj}°");
+            // }
 
             // przykład pobrania najlepszego sąsiada
             var najlepszySasiad = sasiedzi.FirstOrDefault();
@@ -3241,7 +3386,7 @@
             if (najlepszySasiad != null) wybranyTypSasiada = najlepszySasiad.WybranyTyp;
 
             Console.WriteLine(
-                $"🔎 DodajWybranyKwadratOkna -> Sprawdzam linię o kącie {katSzukaj}° - " +
+                $"✅ DodajWybranyKwadratOkna -> Sprawdzam linię o kącie {katSzukaj}° - " +
                 $"Najlepszy sąsiad: {(najlepszySasiad != null ? najlepszySasiad.RowIdElementu : "NIE-ZNALEZIONO-ROWID")} Typ: {wybranyTypSasiada}"
             );
 
@@ -3373,6 +3518,7 @@
 
             // 🔹 Oblicz kąt
             var katSzukaj = ObliczKatLinii(liniaStala.Wierzcholki);
+
             Console.WriteLine($"📐 Kąt słupka stałego: {katSzukaj:F2}° X0:{liniaStala.Wierzcholki[0].X} Y0:{liniaStala.Wierzcholki[0].Y} X1:{liniaStala.Wierzcholki[1].X} Y1:{liniaStala.Wierzcholki[1].Y}");
 
             generator.RowIdModelu = generator.MVCKonfModelu.KonfSystem.FirstOrDefault().RowId;// Pobieram RowIdModelu z konfiguracji systemu
@@ -3555,135 +3701,22 @@
 
         if (slupekStaly)
         {
-            Console.WriteLine("[SŁUPEK] =====================================================");
-            Console.WriteLine("[SŁUPEK] START PRZETWARZANIA SŁUPKA");
+            string best = WybierzNajblizszySlupek(wierzcholki, idSlupka, klikX, klikY);
 
-            // =============================================
-            // 1) Przygotowanie wierzchołków słupka (muszą być 2)
-            // =============================================
-            Console.WriteLine($"[SŁUPEK] Otrzymane wierzcholki: {wierzcholki.Count}");
-            foreach (var p in wierzcholki)
-                Console.WriteLine($"[SŁUPEK]   wejściowy: ({p.X}, {p.Y})");
-
-            // Usuń duplikaty i zostaw maks 2
-            wierzcholki = wierzcholki
-                .DistinctBy(p => (Math.Round(p.X, 3), Math.Round(p.Y, 3)))
-                .Take(2)
-                .ToList();
-
-            Console.WriteLine($"[SŁUPEK] Po korekcji / duplikatach → {wierzcholki.Count}");
-            foreach (var p in wierzcholki)
-                Console.WriteLine($"[SŁUPEK]   S: ({p.X}, {p.Y})");
-
-            if (wierzcholki.Count != 2)
+            if(best != null)
             {
-                Console.WriteLine("[SŁUPEK] ❌ BŁĄD: słupek nie posiada 2 punktów – przerywam.");
-                state.IdRegion = $"{idRegion}|ERR";
-                Console.WriteLine("[SŁUPEK] KONIEC (BŁĄD)");
-            }
-
-            // =============================================
-            // 2) Funkcja porównująca linie
-            // =============================================
-            bool CzyWspolosioweXY_direction(List<XPoint> a, List<XPoint> b)
-            {
-                var A1 = a[0]; var A2 = a[1];
-                var B1 = b[0]; var B2 = b[1];
-
-                double Ax = A2.X - A1.X;
-                double Ay = A2.Y - A1.Y;
-                double Bx = B2.X - B1.X;
-                double By = B2.Y - B1.Y;
-
-                double lenA = Math.Sqrt(Ax * Ax + Ay * Ay);
-                double lenB = Math.Sqrt(Bx * Bx + By * By);
-
-                if (lenA < 1e-9 || lenB < 1e-9)
-                    return false;
-
-                double cross = Ax * By - Ay * Bx;
-                double relCross = Math.Abs(cross) / (lenA * lenB);
-
-                return relCross <= 1e-6; // równoległe
-            }
-
-            // =============================================
-            // 3) Test regionów 2-punktowych
-            // =============================================
-            Console.WriteLine("[SŁUPEK] Regiony wejściowe (szukam takich z 2 pkt):");
-
-            var testRegion = wszystkieRegiony.Where(x => x.Wierzcholki.Count == 2);
-
-            foreach (var r in testRegion)
-                foreach (var p in r.Wierzcholki)
-                    Console.WriteLine($"[SŁUPEK] R: ({p.X}, {p.Y})  ID={r.Id}");
-
-            // =============================================
-            // 4) Wyszukanie regionów współosiowych
-            // =============================================
-            Console.WriteLine("[SŁUPEK] SPRAWDZAM WSPÓŁOSIOWOŚĆ ZE WSZYSTKIMI");
-
-            // Tolerancja przesunięcia linii (w mm)
-            double tol = 20.0;
-
-            // =============================================
-            // → Wyszukujemy regiony typu "Słupek stały"
-            //   które są równoległe AND leżą w tej samej osi
-            // =============================================
-            var xeRegiony = _regionsDualRama.Concat(_regionsSkrzydlo)
-                .Where(r =>
-                {
-                    Console.WriteLine($"[SŁUPEK] → TESTUJĘ REGION {r.Id}");
-
-                    if (r.TypLiniiDzielacej != "Słupek stały")
-                        return false;
-
-                    // 1) Test równoległości (tylko kierunek!)
-                    if (!CzyWspolosioweXY_direction(r.Wierzcholki, wierzcholki))
-                    {
-                        Console.WriteLine("[SŁUPEK]   ✖ kierunek różny (nie równoległe)");
-                        return false;
-                    }
-
-                    // 2) Test odległości — DISTANCE POINT TO SEGMENT
-                    double d1 = DistancePointToSegment(wierzcholki[0], r.Wierzcholki[0], r.Wierzcholki[1]);
-                    double d2 = DistancePointToSegment(wierzcholki[1], r.Wierzcholki[0], r.Wierzcholki[1]);
-
-                    Console.WriteLine($"[SŁUPEK]   → d1={d1}, d2={d2}");
-
-                    bool ok = d1 <= tol && d2 <= tol;
-
-                    Console.WriteLine(ok
-                        ? "[SŁUPEK]   ✔ odległość OK – współosiowe"
-                        : "[SŁUPEK]   ✖ odległość zbyt duża – NIE współosiowe");
-
-                    return ok;
-                })
-                .ToList();
-
-
-            Console.WriteLine($"[SŁUPEK] 📋 Znaleziono {xeRegiony.Count} regionów współosiowych");
-
-            // =============================================
-            // 5) Ustaw ID regionu
-            // =============================================
-            if (xeRegiony.Count == 0)
-            {
-                state.IdRegion = $"{idRegion}|S{_generatorStates.Count()}";
-                Console.WriteLine($"[SŁUPEK] Brak dopasowania → nowy ID = {state.IdRegion}");
+                Console.WriteLine($"📌 Dopasowano słupek stały do ID: {best}");
             }
             else
             {
-                state.IdRegion = xeRegiony.First().Id;
-                Console.WriteLine($"[SŁUPEK] Dopasowanie: używam ID = {state.IdRegion}");
+                Console.WriteLine($"⚠️ Nie dopasowano słupka stałego, generuję nowy ID.");
             }
 
-            Console.WriteLine("[SŁUPEK] KONIEC PRZETWARZANIA");
-            Console.WriteLine("[SŁUPEK] =====================================================");
+            state.IdRegion = best ?? $"{idRegion}-SL-" + Guid.NewGuid().ToString();
         }
         else
         {
-            state.IdRegion = $"{idRegion}";
+            state.IdRegion = idRegion;
         }
 
         _ksztaltyNaRegion[state.IdRegion] = new List<KsztaltElementu>(generator.ElementyRamyRysowane);
@@ -3700,26 +3733,71 @@
 
         return true;
     }
-
-    public double DistancePointToSegment(XPoint p, XPoint a, XPoint b)
+    
+    private string WybierzNajblizszySlupek(
+        List<XPoint> wierzcholki,
+        List<string> idSlupka,
+        double klikX,
+        double klikY)
     {
-        double A = p.X - a.X;
-        double B = p.Y - a.Y;
-        double C = b.X - a.X;
-        double D = b.Y - a.Y;
+        if (wierzcholki == null || wierzcholki.Count < 2)
+            return null;
 
-        double dot = A * C + B * D;
-        double lenSq = C * C + D * D;
+        if (idSlupka == null || idSlupka.Count == 0)
+            return null;
 
-        double t = lenSq == 0 ? 0 : dot / lenSq;
-        t = Math.Max(0, Math.Min(1, t));
+        var pKlik = new XPoint(klikX, klikY);
 
-        double projX = a.X + t * C;
-        double projY = a.Y + t * D;
+        double minDist = double.MaxValue;
+        string bestId = null;
+
+        int index = 0;
+
+        // Zakładamy, że każda para punktów (0,1), (2,3), ... odpowiada jednemu idSlupka[index]
+        for (int i = 0; i + 1 < wierzcholki.Count; i += 2)
+        {
+            if (index >= idSlupka.Count) break;
+
+            var a = wierzcholki[i];
+            var b = wierzcholki[i + 1];
+
+            double dist = DistancePointToSegment(pKlik, a, b);
+
+            if (dist < minDist)
+            {
+                minDist = dist;
+                bestId = idSlupka[index];
+            }
+
+            index++;
+        }
+
+        return bestId;
+    }
+
+    // Pomocnicza: odległość punktu od odcinka (przyjmuje XPoint)
+    private double DistancePointToSegment(XPoint p, XPoint a, XPoint b)
+    {
+        // wektory a->b i a->p
+        double vx = b.X - a.X;
+        double vy = b.Y - a.Y;
+        double wx = p.X - a.X;
+        double wy = p.Y - a.Y;
+
+        double c1 = vx * wx + vy * wy;
+        if (c1 <= 0)
+            return Math.Sqrt((p.X - a.X) * (p.X - a.X) + (p.Y - a.Y) * (p.Y - a.Y));
+
+        double c2 = vx * vx + vy * vy;
+        if (c2 <= c1)
+            return Math.Sqrt((p.X - b.X) * (p.X - b.X) + (p.Y - b.Y) * (p.Y - b.Y));
+
+        double t = c1 / c2;
+        double projX = a.X + t * vx;
+        double projY = a.Y + t * vy;
 
         double dx = p.X - projX;
         double dy = p.Y - projY;
-
         return Math.Sqrt(dx * dx + dy * dy);
     }
 
@@ -4050,7 +4128,6 @@
         return strona;
     }
 
-
     public static int ObliczKatLinii(List<XPoint> linia)
     {
         if (linia == null || linia.Count != 2)
@@ -4059,8 +4136,8 @@
         var p1 = linia[0];
         var p2 = linia[1];
 
-        double dx = p2.X - p1.X;
-        double dy = p2.Y - p1.Y;
+        double dx = Math.Round(p2.X, 2) - Math.Round(p1.X, 2);
+        double dy = Math.Round(p2.Y, 2) - Math.Round(p1.Y, 2);
 
         double angleRadians = Math.Atan2(dy, dx); // uwzględnia znak
         double angleDegrees = angleRadians * (180.0 / Math.PI);
@@ -4297,7 +4374,7 @@
             katLiniiPionPoziom = 0;
         }
 
-        Console.WriteLine($"📐 ZnajdzSasiada -> Kąt linii: {katLinii}°, Zaokrąglony do pion/poziom: {katLiniiPionPoziom}° kat: {kat}");
+        Console.WriteLine($"📐 ZnajdzSasiada -> Kąt linii: {katLinii}°, Zaokrąglony do pion/poziom katLiniiPionPoziom: {katLiniiPionPoziom}° kat: {kat}");
 
         const double katTolerancja = 15.0; // możesz dopasować np. 10–20 stopni
 
@@ -4405,7 +4482,7 @@
                                 WystepujePrawa = konf.WystepujePrawa
                             });
 
-                            Console.WriteLine($"✅ Dodano przecinającego sąsiada pionowego w regionie {stan.IdRegion}");
+                            Console.WriteLine($"✅ ZnajdzSasiada Dodano przecinającego sąsiada w regionie {stan.IdRegion} kąt: {(int)katSasiada} jestPionowa: {jestPionowa} jestPozioma: {jestPozioma} szukajNieRownoleglych: {szukajNieRownoleglych}");
                         }
                         else
                         {
@@ -4426,6 +4503,8 @@
                                     WystepujeLewa = konf.WystepujeLewa,
                                     WystepujePrawa = konf.WystepujePrawa
                                 });
+
+                                Console.WriteLine($"✅ ZnajdzSasiada Dodano przecinającego sąsiada w regionie {stan.IdRegion} kąt: {(int)katSasiada} jestPionowa: {jestPionowa} jestPozioma: {jestPozioma} szukajNieRownoleglych: {szukajNieRownoleglych}");
                             }
 
                             Console.WriteLine($"🔍 ZnajdzSasiada #1 -> Sprawdzam prawą stronę p1.X: {p1.X} stanMaxX: {stanMaxX} tolerancja: {tolerancja} konf.WystepujePrawa: {konf.WystepujePrawa} katNormalny: {katNormalny} katLinia: {katLinia}");
@@ -4446,6 +4525,8 @@
                                     WystepujeLewa = konf.WystepujeLewa,
                                     WystepujePrawa = konf.WystepujePrawa
                                 });
+
+                                Console.WriteLine($"✅ ZnajdzSasiada Dodano przecinającego sąsiada w regionie {stan.IdRegion} kąt: {(int)katSasiada} jestPionowa: {jestPionowa} jestPozioma: {jestPozioma} szukajNieRownoleglych: {szukajNieRownoleglych}");
                             }
                         }
                     }
@@ -4468,7 +4549,8 @@
                                 WystepujeLewa = konf.WystepujeLewa,
                                 WystepujePrawa = konf.WystepujePrawa
                             });
-                            Console.WriteLine($"✅ Dodano przecinającego sąsiada poziomego w regionie {stan.IdRegion}");
+
+                            Console.WriteLine($"✅ ZnajdzSasiada Dodano przecinającego sąsiada w regionie {stan.IdRegion} kąt: {(int)katSasiada} jestPionowa: {jestPionowa} jestPozioma: {jestPozioma} szukajNieRownoleglych: {szukajNieRownoleglych}");
                         }
                         else
                         {
@@ -4489,6 +4571,8 @@
                                     WystepujeLewa = konf.WystepujeLewa,
                                     WystepujePrawa = konf.WystepujePrawa
                                 });
+
+                                Console.WriteLine($"✅ ZnajdzSasiada Dodano przecinającego sąsiada w regionie {stan.IdRegion} kąt: {(int)katSasiada} jestPionowa: {jestPionowa} jestPozioma: {jestPozioma} szukajNieRownoleglych: {szukajNieRownoleglych}");
                             }
 
                             if (katLiniiPionPoziom == 180 && konf.WystepujeDol)
@@ -4507,6 +4591,8 @@
                                     WystepujeLewa = konf.WystepujeLewa,
                                     WystepujePrawa = konf.WystepujePrawa
                                 });
+
+                                Console.WriteLine($"✅ ZnajdzSasiada Dodano przecinającego sąsiada w regionie {stan.IdRegion} kąt: {(int)katSasiada} jestPionowa: {jestPionowa} jestPozioma: {jestPozioma} szukajNieRownoleglych: {szukajNieRownoleglych}");
                             }
                         }
                     }
@@ -4535,7 +4621,7 @@
                 RowIdElementu = Guid.Empty,
                 IdRegionu = Guid.Empty.ToString(),
                 ZIndeks = -1,
-                Id = 0,
+                Id = -1,
                 MaSlupekRuchomy = false,
                 WybranyTyp = "BRAK-PASUJACEGO-SASIADA",
                 KatSasiada = kat
@@ -4556,7 +4642,7 @@
 
         foreach (var sasiad in wynik)
         {
-            Console.WriteLine($"🔍 ZnajdzSasiada -> Wynik: Znaleziono sąsiada: IdRegionu={sasiad.IdRegionu}, RowId={sasiad.RowIdElementu}, ZIndeks={sasiad.ZIndeks}, Typ={sasiad.WybranyTyp} Kąt sąsiada: {sasiad.KatSasiada} sasiad.WystepujeGora:{sasiad.WystepujeGora} sasiad.WystepujeDol: {sasiad.WystepujeDol}");
+            Console.WriteLine($"🔍 ZnajdzSasiada -> Wyszukano sąsiadów IdRegionu={sasiad.IdRegionu}, RowId={sasiad.RowIdElementu}, ZIndeks={sasiad.ZIndeks}, Typ={sasiad.WybranyTyp} Kąt sąsiada: {sasiad.KatSasiada} sasiad.WystepujeGora:{sasiad.WystepujeGora} sasiad.WystepujeDol: {sasiad.WystepujeDol}");
         }
 
         await Task.CompletedTask;
@@ -4849,8 +4935,6 @@
     {
         return _generatorStates;
     }
-
-
 
     private bool CzyPunktLezyNaKrawedzi(XPoint punkt, List<XPoint> wielokat)
     {
@@ -5403,6 +5487,12 @@
     {
         public double PrzesuniecieX { get; set; }
         public double PrzesuniecieY { get; set; }
+    }
+
+    public class SlupekMatchResult
+    {
+        public List<XPoint> Wierzcholki { get; set; } = new();
+        public List<string> RegionIds { get; set; } = new();
     }
 
 }
