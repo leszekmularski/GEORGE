@@ -44,11 +44,17 @@ namespace GEORGE.Client.Pages.Models
         /// </summary>
         public BoundingBox GetBoundingBox()
         {
+            if (Wierzcholki == null || Wierzcholki.Count == 0)
+            {
+                // Zwracamy neutralny bounding box, zamiast crashować
+                return new BoundingBox(0, 0, 0, 0, TypKsztaltu);
+            }
+
             var minX = Wierzcholki.Min(p => p.X);
             var minY = Wierzcholki.Min(p => p.Y);
             var maxX = Wierzcholki.Max(p => p.X);
             var maxY = Wierzcholki.Max(p => p.Y);
-           // Console.WriteLine($"GetBoundingBox --> BoundingBox: minX={minX}, minY={minY}, maxX={maxX}, maxY={maxY}");
+
             return new BoundingBox(minX, minY, maxX - minX, maxY - minY, TypKsztaltu);
         }
 

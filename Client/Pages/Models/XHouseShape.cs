@@ -12,15 +12,17 @@ namespace GEORGE.Client.Pages.Models
         public double Height { get; set; }
         public double HeightLeft { get; set; }
         public double HeightRight { get; set; }
+
         private double _scaleFactor;
         public string NazwaObj { get; set; } = "Domek";
         public double Szerokosc { get => Width; set => Width = value; }
         public double Wysokosc { get => Height; set => Height = value; }
         public List<XPoint> Points { get; set; } = new List<XPoint>();
+        public List<XPoint> NominalPoints { get; set; } = new();
         public string ID { get; set; } = Guid.NewGuid().ToString();
 
         public XHouseShape(double x, double y, double width, double height,
-                          double heightLeft, double heightRight, double scaleFactor)
+                  double heightLeft, double heightRight, double scaleFactor)
         {
             X = x;
             Y = y;
@@ -29,16 +31,56 @@ namespace GEORGE.Client.Pages.Models
             HeightLeft = heightLeft;
             HeightRight = heightRight;
             _scaleFactor = scaleFactor;
+
+            // Wygeneruj punkty nominalne
             UpdatePoints();
+            GenerateNominalPoints();
+        }
+
+        // Generuje punkty nominalne dla domku (5 punktów)
+        private void GenerateNominalPoints()
+        {
+            double baseYL = Y + Height - Math.Max(HeightLeft, 0);
+            double baseYR = Y + Height - Math.Max(HeightRight, 0);
+            double roofPeakX = X + Width / 2;
+            double roofPeakY = Y;
+            double bottomY = Y + Height;
+
+            NominalPoints = new List<XPoint>
+            {
+                new XPoint(X, baseYL),         // Lewy dolny róg dachu (punkt 0)
+                new XPoint(roofPeakX, roofPeakY), // Szczyt dachu (punkt 1)
+                new XPoint(X + Width, baseYR),  // Prawy dolny róg dachu (punkt 2)
+                new XPoint(X + Width, bottomY), // Prawy dolny róg ściany (punkt 3)
+                new XPoint(X, bottomY)         // Lewy dolny róg ściany (punkt 4)
+            };
+
+            Console.WriteLine($"Generated NominalPoints: {NominalPoints.Count} points");
+            for (int i = 0; i < NominalPoints.Count; i++)
+            {
+                Console.WriteLine($"  Point {i}: X={NominalPoints[i].X}, Y={NominalPoints[i].Y}");
+            }
+        }
+
+        // Generuje punkty przeskalowane dla canvas
+        private void GenerateScaledPoints()
+        {
+            // Funkcja pomocnicza do zaokrąglania
+            double Round(double value) => Math.Round(value, 3, MidpointRounding.AwayFromZero);
+
+            Points = NominalPoints
+                .Select(p => new XPoint(Round(p.X * _scaleFactor), Round(p.Y * _scaleFactor)))
+                .ToList();
+
         }
 
         public void UpdatePoints(List<XPoint> newPoints = null)
         {
             if (newPoints != null && newPoints.Count >= 5)
             {
-                // Aktualizuj właściwości na podstawie nowych punktów
+                // Aktualizuj właściwości na podstawie nowych punktów (nominalnych)
                 X = newPoints[0].X;
-                Y = newPoints.Min(p => p.Y); // Najniższy punkt (szczyt dachu)
+                Y = newPoints.Min(p => p.Y);
 
                 double minX = newPoints.Min(p => p.X);
                 double maxX = newPoints.Max(p => p.X);
@@ -48,88 +90,87 @@ namespace GEORGE.Client.Pages.Models
                 Height = maxY - Y;
 
                 // Oblicz wysokości boków
-                HeightLeft = newPoints[3].Y - newPoints[0].Y;
-                HeightRight = newPoints[2].Y - newPoints[1].Y;
+                HeightLeft = newPoints[4].Y - newPoints[0].Y; // Lewa ściana: punkt 4 - punkt 0
+                HeightRight = newPoints[3].Y - newPoints[2].Y; // Prawa ściana: punkt 3 - punkt 2
             }
 
-            // Generuj punkty na podstawie aktualnych właściwości
-            var (roof, house) = GetVertices();
-            Points.Clear();
-            Points.AddRange(roof);
-            Points.AddRange(house);
+            // Po aktualizacji właściwości, generuj punkty
+            GenerateNominalPoints();
+            GenerateScaledPoints();
         }
-
-        public List<XPoint> GetPoints() => new List<XPoint>(Points);
 
         public IShapeDC Clone()
         {
-            return new XHouseShape(X, Y, Width, Height, HeightLeft, HeightRight, _scaleFactor)
+            var clone = new XHouseShape(X, Y, Width, Height, HeightLeft, HeightRight, _scaleFactor)
             {
                 NazwaObj = this.NazwaObj,
-                Points = this.Points.Select(p => new XPoint(p.X, p.Y)).ToList()
+                // Kopiuj punkty, a nie referencje
+                Points = this.Points.Select(p => new XPoint(p.X, p.Y)).ToList(),
+                NominalPoints = this.NominalPoints.Select(p => new XPoint(p.X, p.Y)).ToList()
             };
+            return clone;
         }
-
-        // ... (pozostałe metody pozostają bez zmian - Draw, GetBoundingBox, itd.) ...
 
         public List<XPoint> GetFullOutline()
         {
-            var (roof, house) = GetVertices();
-
-            var outline = new List<XPoint>();
-            outline.AddRange(roof);   // np. 3 punkty dachu
-            outline.AddRange(house);  // np. 2 punkty podstawy
-
-            return outline;
+            return GetNominalPoints();
         }
 
         public async Task Draw(Canvas2DContext ctx)
         {
-            //double roofHeight = Height * 0.5;
-            double baseYL = Y + Height - Math.Max(HeightLeft, 0);
-            double baseYR = Y + Height - Math.Max(HeightRight, 0);
-
-            double roofPeakX = X + Width / 2;
-            double roofPeakY = Y;
+            if (Points == null || Points.Count < 5) return;
 
             await ctx.SetStrokeStyleAsync("black");
             await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
 
             await ctx.BeginPathAsync();
 
-            // Dach (trójkąt)
-            await ctx.MoveToAsync(X, baseYL);  // Lewy róg dachu
-            await ctx.LineToAsync(roofPeakX, roofPeakY);  // Szczyt dachu
-            await ctx.LineToAsync(X + Width, baseYR);  // Prawy róg dachu
+            // Rysuj dach
+            await ctx.MoveToAsync(Points[0].X, Points[0].Y);  // Lewy dolny róg dachu
+            await ctx.LineToAsync(Points[1].X, Points[1].Y);  // Szczyt dachu
+            await ctx.LineToAsync(Points[2].X, Points[2].Y);  // Prawy dolny róg dachu
 
-            // Podstawa (prostokąt)
-            await ctx.LineToAsync(X + Width, Y + Height);  // Prawy dolny róg
-            await ctx.LineToAsync(X, Y + Height);  // Lewy dolny róg
-            await ctx.LineToAsync(X, baseYL);  // Powrót do początku
+            // Rysuj ściany
+            await ctx.LineToAsync(Points[3].X, Points[3].Y);  // Prawy dolny róg ściany
+            await ctx.LineToAsync(Points[4].X, Points[4].Y);  // Lewy dolny róg ściany
+            await ctx.LineToAsync(Points[0].X, Points[0].Y);  // Zamknij kształt
 
             await ctx.ClosePathAsync();
             await ctx.StrokeAsync();
-
-            Console.WriteLine($"BaseYL: {baseYL}, BaseYR: {baseYR}, RoofPeakY: {roofPeakY}");
-            Console.WriteLine($"Drawing at: X={X}, Y={Y}, Width={Width}, Height={Height}");
-
-
         }
 
         public BoundingBox GetBoundingBox()
         {
-            return new BoundingBox(X, Y, Width, Height, "Domek");
+            return new BoundingBox(X, Y, Width, Height, NazwaObj);
         }
 
         public List<EditableProperty> GetEditableProperties() => new()
-    {
-        new EditableProperty("X", () => X, v => X = v, NazwaObj, true),
-        new EditableProperty("Y", () => Y, v => Y = v, NazwaObj, true),
-        new EditableProperty("Szerokość", () => Width, v => Width = v, NazwaObj),
-        new EditableProperty("Wysokość", () => Height, v => Height = v, NazwaObj),
-        new EditableProperty("Wysokość bok lewy", () => HeightLeft, v => HeightLeft = v, NazwaObj),
-        new EditableProperty("Wysokość bok prawy", () => HeightRight, v => HeightRight = v, NazwaObj)
-    };
+        {
+            new EditableProperty("X", () => X, v => {
+                X = v;
+                UpdatePoints();
+            }, NazwaObj, true),
+            new EditableProperty("Y", () => Y, v => {
+                Y = v;
+                UpdatePoints();
+            }, NazwaObj, true),
+            new EditableProperty("Szerokość", () => Width, v => {
+                Width = v;
+                UpdatePoints();
+            }, NazwaObj),
+            new EditableProperty("Wysokość", () => Height, v => {
+                Height = v;
+                UpdatePoints();
+            }, NazwaObj),
+            new EditableProperty("Wysokość bok lewy", () => HeightLeft, v => {
+                HeightLeft = v;
+                UpdatePoints();
+            }, NazwaObj),
+            new EditableProperty("Wysokość bok prawy", () => HeightRight, v => {
+                HeightRight = v;
+                UpdatePoints();
+            }, NazwaObj)
+        };
 
         public void Scale(double factor)
         {
@@ -137,59 +178,72 @@ namespace GEORGE.Client.Pages.Models
             Height *= factor;
             HeightRight *= factor;
             HeightLeft *= factor;
+            UpdatePoints();
         }
 
         public void Move(double offsetX, double offsetY)
         {
             X += offsetX;
             Y += offsetY;
+            UpdatePoints();
         }
 
         public List<(XPoint Start, XPoint End)> GetEdges()
         {
-            double roofHeight = Height * 0.5;
-            double baseY = Y + roofHeight;
-            double roofPeakX = X + Width / 2;
-            double roofPeakY = Y;
-            double bottomY = Y + Height; // Dolna krawędź domu
+            if (NominalPoints.Count < 5)
+                return new List<(XPoint, XPoint)>();
 
             return new List<(XPoint, XPoint)>
             {
-                (new XPoint(X, baseY), new XPoint(roofPeakX, roofPeakY)), // Dach - lewa krawędź
-                (new XPoint(roofPeakX, roofPeakY), new XPoint(X + Width, baseY)), // Dach - prawa krawędź
-                //(new XPoint(X, baseY), new XPoint(X + Width, baseY)), // Podstawa dachu
-                (new XPoint(X, baseY), new XPoint(X, bottomY)), // Lewa ściana domu
-                (new XPoint(X + Width, baseY), new XPoint(X + Width, bottomY)), // Prawa ściana domu
-                (new XPoint(X, bottomY), new XPoint(X + Width, bottomY)) // **Podstawa domu (DOLNA KRAWĘDŹ)**
+                (NominalPoints[0], NominalPoints[1]), // Lewa krawędź dachu
+                (NominalPoints[1], NominalPoints[2]), // Prawa krawędź dachu
+                (NominalPoints[0], NominalPoints[4]), // Lewa ściana
+                (NominalPoints[2], NominalPoints[3]), // Prawa ściana
+                (NominalPoints[3], NominalPoints[4])  // Podstawa
             };
         }
 
         public (List<XPoint> Roof, List<XPoint> House) GetVertices()
         {
-            // double roofHeight = Height * 0.5;
-            double baseY = Y + HeightLeft;
-            double roofPeakX = X + Width / 2;
-            double roofPeakY = Y;
-            double bottomY = Y + Height; // Dolna krawędź domu
+            if (NominalPoints.Count < 5)
+                return (new List<XPoint>(), new List<XPoint>());
 
-            // Trójkąt dachu
-            List<XPoint> roof = new List<XPoint>
-        {
-            new XPoint(X, baseY),         // Lewy dolny róg dachu
-            new XPoint(roofPeakX, roofPeakY), // Szczyt dachu
-            new XPoint(X + Width, baseY)  // Prawy dolny róg dachu
-        };
+            var roof = new List<XPoint>
+            {
+                NominalPoints[0],
+                NominalPoints[1],
+                NominalPoints[2]
+            };
 
-            // Prostokąt (ściany domu)
-            List<XPoint> house = new List<XPoint>
-        {
-            //new XPoint(X, baseY),          // Lewy górny róg ściany
-            //new XPoint(X + Width, baseY),  // Prawy górny róg ściany
-            new XPoint(X + Width, bottomY), // Prawy dolny róg ściany
-            new XPoint(X, bottomY)         // Lewy dolny róg ściany
-        };
+            var house = new List<XPoint>
+            {
+                NominalPoints[3],
+                NominalPoints[4]
+            };
 
             return (roof, house);
+        }
+
+        public void Transform(double scale, double offsetX, double offsetY)
+        {
+            X = (X * scale) + offsetX;
+            Y = (Y * scale) + offsetY;
+            Width *= scale;
+            Height *= scale;
+            HeightLeft *= scale;
+            HeightRight *= scale;
+            UpdatePoints();
+        }
+
+        public void Transform(double scaleX, double scaleY, double offsetX, double offsetY)
+        {
+            X = (X * scaleX) + offsetX;
+            Y = (Y * scaleY) + offsetY;
+            Width *= scaleX;
+            Height *= scaleY;
+            HeightLeft *= scaleY;
+            HeightRight *= scaleY;
+            UpdatePoints();
         }
 
         public (List<(XPoint Start, XPoint End)> RoofEdges, List<(XPoint Start, XPoint End)> BaseEdges) GetEdgesDel()
@@ -217,27 +271,8 @@ namespace GEORGE.Client.Pages.Models
             return (roofEdges, baseEdges);
         }
 
-        public void Transform(double scale, double offsetX, double offsetY)
-        {
-            X = (X * scale) + offsetX;
-            Y = (Y * scale) + offsetY;
-            Width *= scale;
-            Height *= scale;
-            HeightLeft *= scale;
-            HeightRight *= scale;
-        }
+        public List<XPoint> GetPoints() => Points.Select(p => new XPoint(p.X, p.Y)).ToList();
 
-        public void Transform(double scaleX, double scaleY, double offsetX, double offsetY)
-        {
-            X = (X * scaleX) + offsetX;
-            Y = (Y * scaleY) + offsetY;
-            Width *= scaleX;
-            Height *= scaleY;
-            HeightLeft *= scaleY;
-            HeightRight *= scaleY;
-        }
-
-
+        public List<XPoint> GetNominalPoints() => NominalPoints.Select(p => new XPoint(p.X, p.Y)).ToList();
     }
-
 }

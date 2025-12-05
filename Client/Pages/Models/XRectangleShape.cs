@@ -4,31 +4,32 @@ using GEORGE.Shared.ViewModels;
 
 namespace GEORGE.Client.Pages.Models
 {
-    // 🟥 Klasa prostokąta (Rectangle)
     public class XRectangleShape : IShapeDC
     {
+        public string ID { get; set; } = Guid.NewGuid().ToString();
+
+        public string NazwaObj { get; set; } = "Prostokąt";
+
         public double X { get; set; }
         public double Y { get; set; }
         public double Width { get; set; }
         public double Height { get; set; }
-        public string NazwaObj { get; set; } = "Prostokąt";
 
-        private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
+        private double _scaleFactor = 1.0;
+
         public double Szerokosc { get; set; }
         public double Wysokosc { get; set; }
-        public List<XPoint> Points { get; set; }
-        public string ID { get; set; } = Guid.NewGuid().ToString();
+
+        public List<XPoint> Points { get; set; } = new();
+        public List<XPoint> NominalPoints { get; set; } = new();
+
         public List<XPoint> GetPoints() => Points;
-        public void UpdatePoints(List<XPoint> newPoints)
-        {
-            Points = newPoints;
-            // Aktualizuj wymiary na podstawie punktów
-            if (Points.Count >= 2)
-            {
-                Szerokosc = Math.Abs(Points[1].X - Points[0].X);
-                Wysokosc = Math.Abs(Points[1].Y - Points[0].Y);
-            }
-        }
+        public List<XPoint> GetNominalPoints() =>
+            NominalPoints.Select(p => new XPoint(p.X, p.Y)).ToList();
+
+        // ---------------------------------------------------------
+        // Konstruktor
+        // ---------------------------------------------------------
         public XRectangleShape(double x, double y, double width, double height, double scaleFactor)
         {
             X = x;
@@ -36,28 +37,78 @@ namespace GEORGE.Client.Pages.Models
             Width = width;
             Height = height;
             _scaleFactor = scaleFactor;
+
+            Points = GeneratePoints();
+            NominalPoints = Points.Select(p => new XPoint(p.X, p.Y)).ToList();
+
+            Szerokosc = Width;
+            Wysokosc = Height;
         }
+
+        // ---------------------------------------------------------
+        // Generowanie punktów narożników
+        // ---------------------------------------------------------
+        private List<XPoint> GeneratePoints()
+        {
+            return new List<XPoint>
+            {
+                new XPoint(X, Y),                     // lewy górny
+                new XPoint(X + Width, Y),             // prawy górny
+                new XPoint(X + Width, Y + Height),    // prawy dolny
+                new XPoint(X, Y + Height)             // lewy dolny
+            };
+        }
+
+        // ---------------------------------------------------------
+        // Aktualizacja punktów od użytkownika
+        // ---------------------------------------------------------
+        public void UpdatePoints(List<XPoint> newPoints)
+        {
+            if (newPoints == null || newPoints.Count == 0)
+                return;
+
+            Points = newPoints;
+
+            double minX = newPoints.Min(p => p.X);
+            double minY = newPoints.Min(p => p.Y);
+            double maxX = newPoints.Max(p => p.X);
+            double maxY = newPoints.Max(p => p.Y);
+
+            X = minX;
+            Y = minY;
+            Width = maxX - minX;
+            Height = maxY - minY;
+
+            Szerokosc = Width;
+            Wysokosc = Height;
+
+            Points = GeneratePoints();
+        }
+
+        // ---------------------------------------------------------
+        // Clone
+        // ---------------------------------------------------------
         public IShapeDC Clone()
+        {
+            var c = new XRectangleShape(X, Y, Width, Height, _scaleFactor);
+            c.Points = Points.Select(p => new XPoint(p.X, p.Y)).ToList();
+            c.NominalPoints = NominalPoints.Select(p => new XPoint(p.X, p.Y)).ToList();
+            return c;
+        }
+
+        public XRectangleShape ToRectangleShape()
         {
             return new XRectangleShape(X, Y, Width, Height, _scaleFactor);
         }
 
+
+        // ---------------------------------------------------------
+        // Rysowanie
+        // ---------------------------------------------------------
         public async Task Draw(Canvas2DContext ctx)
         {
-            // 🔥 Generowanie punktów – to jest KLUCZOWE
-            Points = new List<XPoint>
-        {
-            new XPoint(X, Y),                     // lewy-górny
-            new XPoint(X + Width, Y),             // prawy-górny
-            new XPoint(X + Width, Y + Height),    // prawy-dolny
-            new XPoint(X, Y + Height)             // lewy-dolny
-        };
+            Points = GeneratePoints();
 
-            // 🔥 Opcjonalnie – uaktualnij Szerokosc/Wysokosc
-            Szerokosc = Width;
-            Wysokosc = Height;
-
-            // 🎨 RYSOWANIE
             await ctx.SetStrokeStyleAsync("black");
             await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
 
@@ -66,80 +117,80 @@ namespace GEORGE.Client.Pages.Models
             await ctx.StrokeAsync();
         }
 
+        // ---------------------------------------------------------
+        // Edytowalne właściwości
+        // ---------------------------------------------------------
         public List<EditableProperty> GetEditableProperties() => new()
         {
-            new EditableProperty("X", () => GetBoundingBox().X, _ => { }, NazwaObj, true),
-            new EditableProperty("Y", () => GetBoundingBox().Y, _ => { }, NazwaObj, true),
-            new EditableProperty("Szerokość", () => Width, v => Width = v, NazwaObj),
-            new EditableProperty("Wysokość", () => Height, v => Height = v, NazwaObj)
+            new("X", () => X, v => { X = v; Points = GeneratePoints(); }, NazwaObj, true),
+            new("Y", () => Y, v => { Y = v; Points = GeneratePoints(); }, NazwaObj, true),
+            new("Szerokość", () => Width, v => { Width = v; Points = GeneratePoints(); }, NazwaObj),
+            new("Wysokość", () => Height, v => { Height = v; Points = GeneratePoints(); }, NazwaObj)
         };
 
-
+        // ---------------------------------------------------------
+        // Transformacje
+        // ---------------------------------------------------------
         public void Scale(double factor)
         {
             Width *= factor;
             Height *= factor;
+
+            Szerokosc = Width;
+            Wysokosc = Height;
+
+            Points = GeneratePoints();
         }
 
         public void Move(double offsetX, double offsetY)
         {
             X += offsetX;
             Y += offsetY;
-        }
 
-        public BoundingBox GetBoundingBox()
-        {
-            return new BoundingBox(X, Y, Width, Height, "Prostokąt");
-        }
-
-        public XRectangleShape ToRectangleShape()
-        {
-            return new XRectangleShape(X, Y, Width, Height, _scaleFactor);
-        }
-
-        public List<(XPoint Start, XPoint End)> GetEdges()
-        {
-            List<(XPoint, XPoint)> edges = new()
-            {
-                (new XPoint(X, Y), new XPoint(X + Width, Y)), // Górna krawędź
-                (new XPoint(X + Width, Y), new XPoint(X + Width, Y + Height)), // Prawa krawędź
-                (new XPoint(X + Width, Y + Height), new XPoint(X, Y + Height)), // Dolna krawędź
-                (new XPoint(X, Y + Height), new XPoint(X, Y)) // Lewa krawędź
-            };
-
-            return edges;
+            Points = GeneratePoints();
         }
 
         public void Transform(double scale, double offsetX, double offsetY)
         {
-            X = (X * scale) + offsetX;
-            Y = (Y * scale) + offsetY;
+            X = X * scale + offsetX;
+            Y = Y * scale + offsetY;
             Width *= scale;
             Height *= scale;
+
+            Points = GeneratePoints();
         }
 
         public void Transform(double scaleX, double scaleY, double offsetX, double offsetY)
         {
-            X = (X * scaleX) + offsetX;
-            Y = (Y * scaleY) + offsetY;
+            X = X * scaleX + offsetX;
+            Y = Y * scaleY + offsetY;
             Width *= scaleX;
             Height *= scaleY;
+
+            Points = GeneratePoints();
         }
 
-        /// <summary>
-        /// Zwraca listę wierzchołków prostokąta w kolejności (zgodnie z ruchem wskazówek zegara).
-        /// </summary>
-        public List<XPoint> GetCorners()
-        {
-            return new List<XPoint>
-        {
-            new(X, Y),
-            new(X + Width, Y),
-            new(X + Width, Y + Height),
-            new(X, Y + Height)
-        };
-        }
+        // ---------------------------------------------------------
+        // Bounding box
+        // ---------------------------------------------------------
+        public BoundingBox GetBoundingBox()
+            => new BoundingBox(X, Y, Width, Height, NazwaObj);
 
+        // ---------------------------------------------------------
+        // Wierzchołki & krawędzie
+        // ---------------------------------------------------------
+        public List<XPoint> GetCorners() => GeneratePoints();
+
+        public List<(XPoint Start, XPoint End)> GetEdges()
+        {
+            var v = GeneratePoints();
+            return new()
+            {
+                (v[0], v[1]),
+                (v[1], v[2]),
+                (v[2], v[3]),
+                (v[3], v[0])
+            };
+        }
     }
-
 }

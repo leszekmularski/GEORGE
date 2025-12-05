@@ -975,63 +975,43 @@
 
                         </TabPane>
                         <TabPane Tab="Region szkic">
-                            @foreach (var shape in ShapeService.Shapes)
+                            @if (ShapeService.Shapes.Count > 0)
                             {
-                                <div class="card mb-3">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <h5 class="card-title">ID: @shape.ID</h5>
-                                            @if (edytowanyRegionId == shape.ID)
-                                            {
-                                                <div>
-                                                    <button class="btn btn-sm btn-success me-2" @onclick="ZapiszShape">Zapisz</button>
-                                                    <button class="btn btn-sm btn-secondary" @onclick="() => edytowanyRegionId = null">Anuluj</button>
-                                                </div>
-                                            }
-                                            else
-                                            {
-                                                <button class="btn btn-sm btn-primary" @onclick="() => edytowanyRegionId = shape.ID">Edytuj</button>
-                                            }
-                                        </div>
+                                <div class="property-panel">
+                                    <h3>Właściwości kształtu</h3>
 
-                                        <p><strong>Wierzchołki:</strong></p>
-                                        @if (edytowanyRegionId == shape.ID)
+                                    @if (_selectedShapeIndex >= 0)
+                                    {
+                                        @foreach (var prop in ShapeService.Shapes[_selectedShapeIndex].GetEditableProperties())
                                         {
-                                            @for (int i = 0; i < shape.Points.Count; i++)
-                                            {
-                                                var punkt = shape.Points[i];
-                                                var index = i;
-
-                                                <div class="d-flex align-items-center mb-1" @key="i">
-                                                    <span class="me-2">[@index]</span>
-                                                    <AntDesign.InputNumber Value="shape.Points[i].X / _currentScale"
-                                                                           OnChange="@((double x) => ZmienXShape(shape, index, x * _currentScale))"
-                                                                           Precision="2"
-                                                                           Style="width:150px" />
-
-                                                    <AntDesign.InputNumber Value="shape.Points[i].Y / _currentScale"
-                                                                           OnChange="@((double y) => ZmienYShape(shape, index, y * _currentScale))"
-                                                                           Precision="2"
-                                                                           Style="width:150px" />
-                                                </div>
-                                            }
-                                        }
-                                        else
-                                        {
-                                            <ul class="list-group list-group-flush">
-                                                @foreach (var p in shape.Points)
+                                            <div class="property-row">
+                                                <span class="property-label">[@prop.NazwaObiektu] - @prop.Label</span>
+                                                @if (!prop.IsReadOnly)
                                                 {
-                                                    <li class="list-group-item">
-                                                        X: @(p.X / _currentScale), Y: @(p.Y / _currentScale)
-                                                    </li>
+                                                    <input class="property-input" type="number"
+                                                           @bind="prop.Value"
+                                                           @bind:event="onchange"
+                                                           @bind:after="async () => await ApplyChange()" />
                                                 }
-                                            </ul>
+                                                else
+                                                {
+                                                    <span class="property-value">@prop.Value</span>
+                                                }
+                                            </div>
                                         }
+                                    }
 
-                                    </div>
+                                    <button @onclick="SelectPreviousShape">Poprzedni obiekt</button>
+                                    <button @onclick="SelectNextShape">Następny obiekt</button>
+
                                 </div>
+
                             }
-                           </TabPane>
+                            else
+                            {
+                                <p class="text-muted">Brak kształtów do wyświetlenia.</p>
+                            }
+                        </TabPane>
                     </Tabs>
                 }
             </div>
@@ -1142,6 +1122,8 @@
     private bool _constWlasciwosciOkna = false;
     private bool _constWlasciwosciOknaBlokujWys = false;
 
+    private int _selectedShapeIndex = 0; // Przechowuje indeks aktualnie edytowanego kształtu
+
     private ElementReference modalRef;
 
     protected override async Task OnInitializedAsync()
@@ -1151,19 +1133,7 @@
             if(constWlasciwosciOkna == null)
                 constWlasciwosciOkna = new ConstWlasciwosciOkna();
 
-            // constWlasciwosciOkna.Szerokosc = 1000;
-            // constWlasciwosciOkna.Wysokosc = 1000;
-
             Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
-
-            // if (_dotNetHelper == null)
-            // {
-            //     _dotNetHelper = DotNetObjectReference.Create(this);
-            //     //   await Task.Delay(25); // Krótkie opóźnienie dla płynności
-            //     await JS.InvokeVoidAsync("setDotNetHelper", _dotNetHelper);
-            //     // await Task.Delay(25); // Krótkie opóźnienie dla płynności
-            //     //Console.WriteLine($"🆕 DotNetObjectReference.Create(this) dla obiektu {this.GetHashCode()}");
-            // }
 
             // Sprawdź, czy skrypt JS został poprawnie załadowany
             var isScriptLoaded = await JS.InvokeAsync<bool>("eval", "typeof setCanvasRef === 'function'");
@@ -1202,8 +1172,7 @@
                     _dotNetHelper = DotNetObjectReference.Create(this);
                     //   await Task.Delay(25); // Krótkie opóźnienie dla płynności
                     await JS.InvokeVoidAsync("setDotNetHelper", _dotNetHelper);
-                    // await Task.Delay(25); // Krótkie opóźnienie dla płynności
-                    //Console.WriteLine($"🆕 DotNetObjectReference.Create(this) dla obiektu {this.GetHashCode()}");
+
                 }
 
                 var isFunctionDefined = await JS.InvokeAsync<bool>("eval", "typeof setCanvasRef === 'function'");
@@ -1217,7 +1186,7 @@
 
                 await Task.Delay(50); // Krótkie opóźnienie dla płynności
 
-                await GenerujObrysPozZmianieWymiarow(true, true);
+                await GenerujObrysPozZmianieWymiarow(true, true, true, true);
 
                 // 👇 TU DODAJ
                 _context ??= await CanvasRef.CreateCanvas2DAsync();
@@ -1234,7 +1203,7 @@
         }
     }
 
-    private async Task GenerujObrysPozZmianieWymiarow(bool onApplyZoom, bool regenrujCanvas)
+    private async Task GenerujObrysPozZmianieWymiarow(bool onApplyZoom, bool regenrujCanvas, bool generujRegionyZPodzialu, bool powrotStalCad)
     {
         Console.WriteLine($"GenerujObrysPozZmianieWymiarow [ShapeService.Shapes] - {ShapeService.Shapes.Count()}");
 
@@ -1246,6 +1215,19 @@
             {
                 shape.Szerokosc = constWlasciwosciOkna.Szerokosc;
                 shape.Wysokosc = constWlasciwosciOkna.Wysokosc;
+
+                if (shape.GetType() == typeof(GEORGE.Client.Pages.Models.XHouseShape) && powrotStalCad)
+                {
+                    if (shape is XHouseShape houseShape)
+                    {
+                        houseShape.Height = constWlasciwosciOkna.Wysokosc;
+                        houseShape.Width = constWlasciwosciOkna.Szerokosc;
+                        houseShape.HeightLeft = constWlasciwosciOkna.Wysokosc / 2;
+                        houseShape.HeightRight = constWlasciwosciOkna.Wysokosc / 2;
+   
+                    }
+
+                }
             }
         } 
 
@@ -1282,8 +1264,11 @@
 
             Console.WriteLine($"🔄 GenerujObrysPozZmianieWymiarow --> Przetwarzanie kształtów dla wymiarów: Szerokosc={constWlasciwosciOkna.Szerokosc} - {ShapeService.Shapes.Max(x => x.Szerokosc)}, Wysokosc={constWlasciwosciOkna.Wysokosc} - {ShapeService.Shapes.Max(x => x.Wysokosc)}");
 
-            _regionsDualRama = GeometryUtils.GenerujRegionyZPodzialu(ShapeService.Shapes, (int)constWlasciwosciOkna.Szerokosc, (int)constWlasciwosciOkna.Wysokosc, true);
-            _regionsSkrzydlo = GeometryUtils.GenerujRegionyZPodzialu(ShapeService.Shapes, (int)constWlasciwosciOkna.Szerokosc, (int)constWlasciwosciOkna.Wysokosc, false); // ostatni parametr nie wiem czy potrzeby do sprawdzenia (czy rama true/falsa)
+            if (generujRegionyZPodzialu)
+            {
+                _regionsDualRama = GeometryUtils.GenerujRegionyZPodzialu(ShapeService.Shapes, (int)constWlasciwosciOkna.Szerokosc, (int)constWlasciwosciOkna.Wysokosc, true);
+                _regionsSkrzydlo = GeometryUtils.GenerujRegionyZPodzialu(ShapeService.Shapes, (int)constWlasciwosciOkna.Szerokosc, (int)constWlasciwosciOkna.Wysokosc, false); // ostatni parametr nie wiem czy potrzeby do sprawdzenia (czy rama true/falsa)
+            }
 
             foreach (var rds in _regionsSkrzydlo)
             {
@@ -1339,6 +1324,18 @@
             Console.WriteLine($"GenerujObrysPozZmianieWymiarow - Odebrano dane _shapes: null");
         }
 
+    }
+
+    private void SelectNextShape()
+    {
+        if (ShapeService.Shapes.Count == 0) return;
+        _selectedShapeIndex = (_selectedShapeIndex + 1) % ShapeService.Shapes.Count;
+    }
+
+    private void SelectPreviousShape()
+    {
+        if (ShapeService.Shapes.Count == 0) return;
+        _selectedShapeIndex = (_selectedShapeIndex - 1 + ShapeService.Shapes.Count) % ShapeService.Shapes.Count;
     }
 
     private void WybierzModel(KonfModele model)
@@ -1508,8 +1505,6 @@
         p.X = (float)value;
         region.Wierzcholki[index] = p;
 
-        _regionsDualRama[0] = region;
-
         foreach (var shape in ShapeService.Shapes)
         {
             if (shape != null)
@@ -1524,6 +1519,9 @@
             state.Wierzcholki = region.Wierzcholki;
             state.WierzcholkiWartosciNominalne = region.Wierzcholki;
         }
+
+        _regionsDualRama[0] = region;
+        ShapeService.Shapes[0].Points = region.Wierzcholki;
 
     }
 
@@ -1538,8 +1536,6 @@
         var p = region.Wierzcholki[index];
         p.Y = (float)value;
         region.Wierzcholki[index] = p;
-        
-        _regionsDualRama[0] = region;
 
         foreach (var shape in ShapeService.Shapes)
         {
@@ -1556,13 +1552,16 @@
             state.WierzcholkiWartosciNominalne = region.Wierzcholki;
         }
 
+        _regionsDualRama[0] = region;
+        ShapeService.Shapes[0].Points = region.Wierzcholki;
+
     }
 
     private async Task ZapiszRegion()
     {
         edytowanyRegionId = null;
 
-        await ZmienWymiaryOkna(true);
+        await ApplyZoom(_currentScale);
 
         await Task.Delay(50);
 
@@ -1573,18 +1572,23 @@
     {
         edytowanyRegionId = null;
 
+        foreach(var xx in ShapeService.Shapes)
+        {
+            Console.WriteLine($"ZapiszShape --> Shape ID: {xx.ID}, Points Count: {xx.Points.Count}");
+            foreach(var yyy in xx.Points)
+            {
+                Console.WriteLine($"ZapiszShape --> Point X: {yyy.X}, Y: {yyy.Y}");
+            }
+
+        }
+
+        await GenerujObrysPozZmianieWymiarow(true, true, false, false);
+
+        await ApplyZoom(_currentScale);
+
         await Task.Delay(50);
 
-        await ClearCanvas();
-        await DrawStructureAndRestrykcje();
-        await RenderFrame();
-
-        foreach (var shape in ShapeService.Shapes)
-            await shape.Draw(_context);
-
-        StateHasChanged();
-
-        StateHasChanged(); // aby odświeżyć widok
+        StateHasChanged(); // aby odświeżyć widok)
     }
 
 
@@ -1602,8 +1606,11 @@
         {
             if (!ShapeService.Shapes.Any(s => s == null))
             {
-                if (ShapeService.Shapes[0].GetType() == typeof(GEORGE.Client.Pages.Models.XSquareShape))
+                if (ShapeService.Shapes[0].GetType() == typeof(GEORGE.Client.Pages.Models.XSquareShape) || ShapeService.Shapes[0].GetType() == typeof(GEORGE.Client.Pages.Models.XCircleShape))
                 {
+                    if(constWlasciwosciOkna != null)
+                    constWlasciwosciOkna.Wysokosc = constWlasciwosciOkna.Szerokosc;
+
                     _constWlasciwosciOknaBlokujWys = true;
                 }
             }
@@ -1813,6 +1820,18 @@
         StateHasChanged();
     }
 
+    private async Task ApplyChange()
+    {
+
+        _regionsDualRama[_selectedShapeIndex].Wierzcholki =
+        ShapeService.Shapes[_selectedShapeIndex].GetNominalPoints();
+
+        _regionsSkrzydlo[_selectedShapeIndex].Wierzcholki =
+            ShapeService.Shapes[_selectedShapeIndex].GetNominalPoints();
+
+
+       await GenerujObrysPozZmianieWymiarow(true, true, false, false);
+    }
 
     private async Task ZoomIn()
     {
@@ -1861,17 +1880,17 @@
 
             foreach (var shape in ShapeService.Shapes)
             {
-                Console.WriteLine("Punkty figury:");
+               // Console.WriteLine("Punkty figury:");
 
                 if (shape?.Points == null || shape.Points.Count == 0)
                 {
-                    Console.WriteLine("  (brak punktów)");
+                    Console.WriteLine("Punkty figury: (brak punktów)");
                 }
-                else
-                {
-                    foreach (var p in shape.Points)
-                        Console.WriteLine($"({p.X}, {p.Y})");
-                }
+                // else
+                // {
+                //     foreach (var p in shape.Points)
+                //         Console.WriteLine($"({p.X}, {p.Y})");
+                // }
 
                 await shape.Draw(_context);
             }
@@ -2122,14 +2141,14 @@
 
         await FitToCanvas(shape, region.Id, false, region.Wierzcholki, modelX, modelY) ;
 
-        await Task.Delay(50);
+        //await Task.Delay(50);
 
-        foreach (var shapeX in ShapeService.Shapes)
-        {
-            // Console.WriteLine($"🖌️ Rysuję {shapeX.GetType().Name}");
-            await shapeX.Draw(_context);
-        }
-        await _context.RestoreAsync();
+        // foreach (var shapeX in ShapeService.Shapes)
+        // {
+        //     // Console.WriteLine($"🖌️ Rysuję {shapeX.GetType().Name}");
+        //     await shapeX.Draw(_context);
+        // }
+        // await _context.RestoreAsync();
 
         WybranyModel = null;
 
@@ -2425,7 +2444,7 @@
         }
     }
 
-    private async Task ZmienWymiaryOkna(bool tylkoPunkty = false)
+    private async Task ZmienWymiaryOkna(bool regenerujShapeService = true)
     {
         if (ShapeService.Shapes == null || !ShapeService.Shapes.Any())
         {
@@ -2448,9 +2467,7 @@
             shape.Wysokosc = newHeight;
         }
 
-        // 2 — generacja regionów po zmianie wymiarów
-        if (!tylkoPunkty)
-        await GenerujObrysPozZmianieWymiarow(false, false);
+        await GenerujObrysPozZmianieWymiarow(false, false, regenerujShapeService, false);
 
         var wszystkieRegiony = _regionsDualRama.Concat(_regionsSkrzydlo).ToList();
         Console.WriteLine($"Regionów dual={_regionsDualRama.Count}, skrzydło={_regionsSkrzydlo.Count}");
@@ -2609,8 +2626,6 @@
 
             _ksztaltyNaRegion[cleanId] = new List<KsztaltElementu>(generator.ElementyRamyRysowane);
             ksztalty = _ksztaltyNaRegion.Values.SelectMany(k => k).ToList();
-
-            await Task.Delay(50); // Krótkie opóźnienie dla płynności
 
             AddOrUpdateGeneratorState(cleanId, genState.Value, generator);
 
@@ -2823,16 +2838,16 @@
            )
            .ToList();
 
-        foreach (var r in wszystkieRegiony)
-        {
-            Console.WriteLine($"🧩 Region: {r.Id} | Typ: {r.TypKsztaltu} | TypLiniiDzielacej: {r.TypLiniiDzielacej} | Wierzcholki: {r.Wierzcholki?.Count ?? 0}");
+        // foreach (var r in wszystkieRegiony)
+        // {
+        //     Console.WriteLine($"🧩 Region: {r.Id} | Typ: {r.TypKsztaltu} | TypLiniiDzielacej: {r.TypLiniiDzielacej} | Wierzcholki: {r.Wierzcholki?.Count ?? 0}");
 
-            if (r.Wierzcholki != null)
-            {
-                foreach (var p in r.Wierzcholki)
-                    Console.WriteLine($"   Punkt: {p.X};{p.Y}");
-            }
-        }
+        //     if (r.Wierzcholki != null)
+        //     {
+        //         foreach (var p in r.Wierzcholki)
+        //             Console.WriteLine($"   Punkt: {p.X};{p.Y}");
+        //     }
+        // }
 
         var wszystkieRegionyLinii = wszystkieRegiony
         .Select(r =>
@@ -5024,14 +5039,14 @@
     {
         if (!_generatorStates.TryGetValue(idRegion, out var state))
         {
-            await GenerujObrysPozZmianieWymiarow(false, true);
+            await GenerujObrysPozZmianieWymiarow(false, true, true, false);
 
             Console.WriteLine($"❌ Brak stanu generatora dla regionu {idRegion}, żeden model nie został dodany!");
             return;
         }
         else
         {
-            await GenerujObrysPozZmianieWymiarow(false, true);
+            await GenerujObrysPozZmianieWymiarow(false, true, true, false);
         }
 
         var generator = new Generator

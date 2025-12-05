@@ -15,6 +15,10 @@ namespace GEORGE.Client.Pages.Models
         private double _radius;
         private double _scaleFactor = 1.0;
         private List<XPoint> _points = new List<XPoint>();
+        public List<XPoint> NominalPoints { get; set; } = new();
+        public List<XPoint> GetPoints() => new List<XPoint>(_points);
+        public List<XPoint> GetNominalPoints() =>
+           NominalPoints.Select(p => p.Clone()).ToList();
 
         public double X
         {
@@ -72,6 +76,8 @@ namespace GEORGE.Client.Pages.Models
                     _y = _points[0].Y;
                     _radius = CalculateDistance(_points[0], _points[1]);
                     UpdateCirclePoints();
+
+                    NominalPoints = _points.Select(p => p.Clone()).ToList();
                 }
             }
         }
@@ -89,14 +95,13 @@ namespace GEORGE.Client.Pages.Models
             UpdateCirclePoints();
         }
 
-        public List<XPoint> GetPoints() => new List<XPoint>(_points);
-
         public IShapeDC Clone()
         {
             return new XCircleShape(X, Y, Radius, _scaleFactor)
             {
                 NazwaObj = this.NazwaObj,
-                Points = this._points.Select(p => new XPoint(p.X, p.Y)).ToList()
+                Points = this._points.Select(p => new XPoint(p.X, p.Y)).ToList(),
+                NominalPoints = this.NominalPoints.Select(p => p.Clone()).ToList()
             };
         }
 
@@ -115,7 +120,7 @@ namespace GEORGE.Client.Pages.Models
         new EditableProperty("X", () => X, v => X = v, NazwaObj, true),
         new EditableProperty("Y", () => Y, v => Y = v, NazwaObj, true),
         new EditableProperty("Promień", () => Radius, v => Radius = v, NazwaObj),
-        new EditableProperty("Skala", () => _scaleFactor, v => _scaleFactor = v, NazwaObj)
+        new EditableProperty("Skala", () => _scaleFactor, v => _scaleFactor = v, NazwaObj, true)
     };
 
         public void Scale(double factor)

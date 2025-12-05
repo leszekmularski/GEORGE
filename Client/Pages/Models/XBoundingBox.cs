@@ -10,8 +10,6 @@ namespace GEORGE.Client.Pages.Models
         public double Height { get; set; }
         public string? NazwaObiektu { get; set; } = "Prostokąt";
 
-        public XBoundingBox() { }
-
         public XBoundingBox(double x, double y, double width, double height, string? nazwaObiektu = null)
         {
             X = x;

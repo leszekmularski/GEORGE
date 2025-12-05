@@ -25,13 +25,13 @@ namespace GEORGE.Client.Pages.Models
         public bool GenerowaneZRamy { get; set; } = false;
 
         public List<XPoint> Points { get; set; } = new();
+        public List<XPoint> NominalPoints { get; set; } = new();
         public List<XPoint> GetPoints() => Points;
+        public List<XPoint> GetNominalPoints() =>
+            NominalPoints.Select(p => new XPoint(p.X, p.Y)).ToList();
 
         public string ID { get; set; } = Guid.NewGuid().ToString();
 
-        // ---------------------------------------------------------
-        //  KONSTRUKTOR — GENERUJE PUNKTY
-        // ---------------------------------------------------------
         public XLineShape(
             double x1, double y1, double x2, double y2, double scaleFactor,
             string nazwaObj, bool ruchomySlupek = false, bool pionPoziom = false,
@@ -55,84 +55,60 @@ namespace GEORGE.Client.Pages.Models
             GeneratePoints();
         }
 
-        // ---------------------------------------------------------
-        //  GENEROWANIE PUNKTÓW
-        // ---------------------------------------------------------
         private void GeneratePoints()
         {
-            Points = new List<XPoint>
+            Points = new()
             {
                 new XPoint(X1, Y1),
                 new XPoint(X2, Y2)
             };
+
+            NominalPoints = Points.Select(p => new XPoint(p.X, p.Y)).ToList();
         }
 
-        // ---------------------------------------------------------
-        //  WYMUSZANIE TYPOWYCH LINII
-        // ---------------------------------------------------------
         private void EnforceLineType()
         {
             if (RuchomySlupek)
-            {
                 X2 = X1;
-            }
 
             if (PionPoziom)
             {
                 if (Math.Abs(X1 - X2) > 0.01)
-                {
-                    Y2 = Y1;  // pozioma
-                }
+                    Y2 = Y1;     // pozioma
                 else
-                {
-                    X2 = X1;  // pionowa
-                }
+                    X2 = X1;     // pionowa
             }
         }
 
-        // ---------------------------------------------------------
-        //  AKTUALIZACJA WYMIARÓW
-        // ---------------------------------------------------------
         private void UpdateSize()
         {
             Szerokosc = Math.Abs(X2 - X1);
             Wysokosc = Math.Abs(Y2 - Y1);
         }
 
-        // ---------------------------------------------------------
-        //  AKTUALIZACJA PUNKTÓW Z ZEWNĄTRZ
-        // ---------------------------------------------------------
         public void UpdatePoints(List<XPoint> newPoints)
         {
             if (newPoints == null || newPoints.Count < 2)
                 return;
 
-            Points = newPoints;
-
-            X1 = Points[0].X;
-            Y1 = Points[0].Y;
-            X2 = Points[1].X;
-            Y2 = Points[1].Y;
+            X1 = newPoints[0].X;
+            Y1 = newPoints[0].Y;
+            X2 = newPoints[1].X;
+            Y2 = newPoints[1].Y;
 
             EnforceLineType();
             UpdateSize();
+            GeneratePoints();
         }
 
-        // ---------------------------------------------------------
-        //  KLON
-        // ---------------------------------------------------------
         public IShapeDC Clone()
         {
             return new XLineShape(X1, Y1, X2, Y2, _scaleFactor, NazwaObj,
                 RuchomySlupek, PionPoziom, DualRama, GenerowaneZRamy, StalySlupek);
         }
 
-        // ---------------------------------------------------------
-        //  RYSOWANIE
-        // ---------------------------------------------------------
         public async Task Draw(Canvas2DContext ctx)
         {
-            // zawsze generujemy punkty przed rysowaniem
             GeneratePoints();
             UpdateSize();
 
@@ -144,16 +120,12 @@ namespace GEORGE.Client.Pages.Models
                 await ctx.SetStrokeStyleAsync("green");
 
             await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
-
             await ctx.BeginPathAsync();
             await ctx.MoveToAsync(X1, Y1);
             await ctx.LineToAsync(X2, Y2);
             await ctx.StrokeAsync();
         }
 
-        // ---------------------------------------------------------
-        //  PRZESUWANIE
-        // ---------------------------------------------------------
         public void Move(double offsetX, double offsetY)
         {
             X1 += offsetX;
@@ -161,14 +133,10 @@ namespace GEORGE.Client.Pages.Models
             X2 += offsetX;
             Y2 += offsetY;
 
-            EnforceLineType();
             GeneratePoints();
             UpdateSize();
         }
 
-        // ---------------------------------------------------------
-        //  SKALOWANIE WOKÓŁ ŚRODKA
-        // ---------------------------------------------------------
         public void Scale(double factor)
         {
             double cx = (X1 + X2) / 2;
@@ -179,41 +147,34 @@ namespace GEORGE.Client.Pages.Models
             X2 = cx + (X2 - cx) * factor;
             Y2 = cy + (Y2 - cy) * factor;
 
-            EnforceLineType();
             GeneratePoints();
             UpdateSize();
         }
 
-        // ---------------------------------------------------------
-        //  TRANSFORMACJA
-        // ---------------------------------------------------------
+        // ✔️ WYMAGANA przez interfejs metoda — brakowało jej!
         public void Transform(double scale, double offsetX, double offsetY)
         {
-            X1 = (X1 * scale) + offsetX;
-            Y1 = (Y1 * scale) + offsetY;
-            X2 = (X2 * scale) + offsetX;
-            Y2 = (Y2 * scale) + offsetY;
+            X1 = X1 * scale + offsetX;
+            Y1 = Y1 * scale + offsetY;
+            X2 = X2 * scale + offsetX;
+            Y2 = Y2 * scale + offsetY;
 
-            EnforceLineType();
             GeneratePoints();
             UpdateSize();
         }
 
+        // Druga metoda Transform (zgodnie z interfejsem)
         public void Transform(double scaleX, double scaleY, double offsetX, double offsetY)
         {
-            X1 = (X1 * scaleX) + offsetX;
-            Y1 = (Y1 * scaleY) + offsetY;
-            X2 = (X2 * scaleX) + offsetX;
-            Y2 = (Y2 * scaleY) + offsetY;
+            X1 = X1 * scaleX + offsetX;
+            Y1 = Y1 * scaleY + offsetY;
+            X2 = X2 * scaleX + offsetX;
+            Y2 = Y2 * scaleY + offsetY;
 
-            EnforceLineType();
             GeneratePoints();
             UpdateSize();
         }
 
-        // ---------------------------------------------------------
-        //  BOUNDING BOX
-        // ---------------------------------------------------------
         public BoundingBox GetBoundingBox()
         {
             return new BoundingBox(
@@ -227,38 +188,13 @@ namespace GEORGE.Client.Pages.Models
 
         public List<EditableProperty> GetEditableProperties()
         {
-            bool readOnly = RuchomySlupek;
-            bool lockHorizontal = false;
-            bool lockVertical = false;
-
-            if (PionPoziom)
+            return new()
             {
-                if (Math.Abs(X1 - X2) > 0.001)
-                {
-                    // linia pozioma → blokujemy Y
-                    lockVertical = true;
-                }
-                else
-                {
-                    // linia pionowa → blokujemy X
-                    lockHorizontal = true;
-                }
-            }
-
-            var props = new List<EditableProperty>
-            {
-                new EditableProperty("X1", () => X1, v => X1 = v, NazwaObj, lockHorizontal),
-                new EditableProperty("Y1", () => Y1, v => Y1 = v, NazwaObj, lockVertical),
-                new EditableProperty("Y2", () => Y2, v => Y2 = v, NazwaObj, lockVertical)
+                new EditableProperty("X1", () => X1, v => X1 = v, NazwaObj),
+                new EditableProperty("Y1", () => Y1, v => Y1 = v, NazwaObj),
+                new EditableProperty("X2", () => X2, v => X2 = v, NazwaObj),
+                new EditableProperty("Y2", () => Y2, v => Y2 = v, NazwaObj)
             };
-
-            if (!RuchomySlupek)
-            {
-                props.Add(new EditableProperty("X2", () => X2, v => X2 = v, NazwaObj, lockHorizontal));
-            }
-
-            return props;
         }
-
     }
 }

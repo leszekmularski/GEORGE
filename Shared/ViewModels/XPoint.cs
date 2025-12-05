@@ -4,7 +4,6 @@ namespace GEORGE.Shared.ViewModels
 {
     public struct XPoint
     {
-        // Wartości surowe, bez zaokrąglania
         public double X { get; set; }
         public double Y { get; set; }
 
@@ -14,7 +13,6 @@ namespace GEORGE.Shared.ViewModels
             Y = y;
         }
 
-        // Porównanie z tolerancją – idealne do geometrii
         private const double Tolerance = 0.001;
 
         public bool EqualsWithTolerance(XPoint other)
@@ -33,8 +31,6 @@ namespace GEORGE.Shared.ViewModels
 
         public override int GetHashCode()
         {
-            // hash zgrubny, wystarczający do structa
-            // bo i tak Equals używa tolerancji
             unchecked
             {
                 int hash = 17;
@@ -46,8 +42,15 @@ namespace GEORGE.Shared.ViewModels
 
         public override string ToString()
         {
-            // czytelne debugowanie: max 3 miejsca tylko do wyświetlania
             return $"({X:0.###}, {Y:0.###})";
+        }
+
+        // ---------------------------------------------------------
+        // 🔥 Dodane — Clone() dla zgodności z interfejsami
+        // ---------------------------------------------------------
+        public XPoint Clone()
+        {
+            return new XPoint(X, Y);
         }
     }
 }

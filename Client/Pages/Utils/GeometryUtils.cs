@@ -51,7 +51,7 @@ namespace GEORGE.Client.Pages.Utils
                     XRectangleShape rect => rect.GetCorners(),
                     XTriangleShape tri => tri.GetVertices(),
                     XTrapezoidShape trap => trap.GetVertices(),
-                    XCircleShape circ => GenerateCircleVertices(circ.X, circ.Y, circ.Radius, 32),
+                    XCircleShape circ => GenerateCircleVertices(circ.X, circ.Y, circ.Radius, 8),
                     XHouseShape house => house.GetFullOutline(),
                     XRoundedTopRectangleShape rtr => rtr.GetVertices(),
                     XRoundedRectangleShape rr => rr.GetVertices(),

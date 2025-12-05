@@ -2,6 +2,7 @@
 using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.Models;
 using GEORGE.Shared.ViewModels;
+using System.Threading.Tasks;
 
 namespace GEORGE.Client.Pages.Okna
 {
@@ -43,7 +44,7 @@ namespace GEORGE.Client.Pages.Okna
             ElementLiniowy = false;
         }
 
-        public void AddElements(List<ShapeRegion> regions, string regionId, Dictionary<string, GeneratorState> generatorStates, List<ShapeRegion> regionAdd, List<DaneKwadratu> daneKwadratu)
+        public async Task AddElements(List<ShapeRegion> regions, string regionId, Dictionary<string, GeneratorState> generatorStates, List<ShapeRegion> regionAdd, List<DaneKwadratu> daneKwadratu)
         {
             if (regions == null) return;
 
@@ -439,8 +440,8 @@ namespace GEORGE.Client.Pages.Okna
                 {
                     if (isAlmostHorizontal)
                     {
-                        //Console.WriteLine($"🔷 Horizontal case for element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical}");
                         // Przecięcia z konturem na bazie normalnej
+
                         var outerVecStart = FindFirstEdgeIntersection(outerStart, nx, ny, outer);
                         var outerVecEnd = FindFirstEdgeIntersection(outerEnd, nx, ny, outer);
 
@@ -501,6 +502,7 @@ namespace GEORGE.Client.Pages.Okna
                             // Pionowy przypadek (np. boczne elementy w trapezie)
                             var topY = Math.Min(inner[i].Y, inner[next].Y);
                             var bottomY = Math.Max(inner[i].Y, inner[next].Y);
+                            //             if(angleDegrees )
 
                             var outerTop = GetHorizontalIntersection(outerStart, outerEnd, (float)topY, 0);
                             var outerBottom = GetHorizontalIntersection(outerStart, outerEnd, (float)bottomY, 0);
@@ -812,8 +814,6 @@ namespace GEORGE.Client.Pages.Okna
                 // Console.WriteLine($"leftJoin: {leftJoin} rightJoin:{rightJoin} wierzcholki: {wierzcholki.Count()} isAlmostVertical:{isAlmostVertical}");
                 float bazowaDlugosc = ObliczDlugoscElementu(wierzcholki, angleDegrees);
 
-                Console.WriteLine($"▶️ Element Start switch {i + 1}/{vertexCount}: Length: {length}, angleDegreesElementLionowy:{angleDegreesElementLionowy}, Angle: {angleDegrees}°, Profile: {profile}, Wierzchołki: {wierzcholki.Count}, BazowaDlugosc: {bazowaDlugosc}, wartoscX: {wartoscX}, wartoscY: {wartoscY} ElementLiniowy:{ElementLiniowy} wierzcholki X0: {wierzcholki[0].X} Y0: {wierzcholki[0].Y}");
-
                 // Określenie kierunku
                 string stronaOpis = angleDegrees switch
                 {
@@ -822,10 +822,13 @@ namespace GEORGE.Client.Pages.Okna
                     >= 225 and < 315 => "Lewa",   // w okolicach 270°
                     _ => "Góra"                   // w okolicach 0° lub 360°
                 };
-                //szukDaneKwadratu
+
+                Console.WriteLine($"▶️ Element Start switch {i + 1}/{vertexCount}: Length: {length}, stronaOpis :{stronaOpis}, angleDegreesElementLionowy:{angleDegreesElementLionowy}, Angle: {angleDegrees}°, Profile: {profile}, Wierzchołki: {wierzcholki.Count}, BazowaDlugosc: {bazowaDlugosc}, wartoscX: {wartoscX}, wartoscY: {wartoscY} ElementLiniowy:{ElementLiniowy} wierzcholki X0: {wierzcholki[0].X} Y0: {wierzcholki[0].Y}");
+
                 switch (i)
                 {
                     case 0:
+                        Console.WriteLine($"▶️ Element case 0 for {i + 1}/{vertexCount} - stronaOpis: {stronaOpis}");
                         if (angleDegreesElementLionowy != angleDegrees && ElementLiniowy) break;
                         if (rowIdprofileTop != Guid.Empty)
                             ElementyRamyRysowane.Add(new KsztaltElementu
@@ -854,6 +857,7 @@ namespace GEORGE.Client.Pages.Okna
                         if (ElementLiniowy) return;
                         break;
                     case 1:
+                        Console.WriteLine($"▶️ Element case 1 for {i + 1}/{vertexCount} - stronaOpis: {stronaOpis}");
                         if (angleDegreesElementLionowy != angleDegrees && ElementLiniowy) break;
                         if (rowIdprofileRight != Guid.Empty)
                             ElementyRamyRysowane.Add(new KsztaltElementu
@@ -882,6 +886,7 @@ namespace GEORGE.Client.Pages.Okna
                         if (ElementLiniowy) return;
                         break;
                     case 2:
+                        Console.WriteLine($"▶️ Element case 2 for {i + 1}/{vertexCount} - stronaOpis: {stronaOpis}");
                         if (angleDegreesElementLionowy != angleDegrees && ElementLiniowy) break;
                         if (rowIdprofileBottom != Guid.Empty)
                             ElementyRamyRysowane.Add(new KsztaltElementu
@@ -910,6 +915,7 @@ namespace GEORGE.Client.Pages.Okna
                         if (ElementLiniowy) return;
                         break;
                     case 3:
+                        Console.WriteLine($"▶️ Element case 3 for {i + 1}/{vertexCount} - stronaOpis: {stronaOpis}");
                         if (angleDegreesElementLionowy != angleDegrees && ElementLiniowy) break;
                         if (rowIdprofileLeft != Guid.Empty)
                             ElementyRamyRysowane.Add(new KsztaltElementu
@@ -935,6 +941,35 @@ namespace GEORGE.Client.Pages.Okna
                                 DlogoscNaGotowoElementu = bazowaDlugosc
                             });
                         Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - 3 rowIdprofileLeft:{rowIdprofileLeft} Angle: {angleDegrees}°");
+                        if (ElementLiniowy) return;
+                        break;
+                    case >3:
+                        Console.WriteLine($"▶️ Element case >3 for {i + 1}/{vertexCount} - stronaOpis: {stronaOpis}");
+                        if (angleDegreesElementLionowy != angleDegrees && ElementLiniowy) break;
+                        if (rowIdprofileLeft != Guid.Empty)
+                            ElementyRamyRysowane.Add(new KsztaltElementu
+                            {
+                                TypKsztaltu = typKsztalt,
+                                Wierzcholki = wierzcholki,
+                                WypelnienieZewnetrzne = "wood-pattern",
+                                WypelnienieWewnetrzne = KolorSzyby,
+                                Grupa = NazwaObiektu + $" {stronaOpis}-{i + 1} {wartoscX}/{wartoscY}",
+                                Typ = TypObiektu,
+                                ZIndex = Zindeks,
+                                RowIdElementu = rowIdprofileLeft,
+                                IdRegion = regionId,
+                                Kat = (int)angleDegrees,
+                                OffsetLewa = stronaOpis == "Lewa" ? profileLeft : 0,
+                                OffsetPrawa = stronaOpis == "Prawa" ? profileRight : 0,
+                                OffsetDol = stronaOpis == "Dól" ? profileBottom : 0,
+                                OffsetGora = stronaOpis == "Góra" ? profileTop : 0,
+                                Strona = stronaOpis, //Była Lewa
+                                IndeksElementu = rowIndeksprofileLeft,
+                                NazwaElementu = rowNazwaprofileTop,
+                                DlogoscElementu = bazowaDlugosc + ((dodajA ? profileLeft : 0) + (dodajB ? profileRight : 0)),
+                                DlogoscNaGotowoElementu = bazowaDlugosc
+                            });
+                        Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - >3 rowIdprofileLeft:{rowIdprofileLeft} Angle: {angleDegrees}°");
                         if (ElementLiniowy) return;
                         break;
                 }
@@ -981,6 +1016,8 @@ namespace GEORGE.Client.Pages.Okna
         {
             XPoint? closest = null;
             float minDist = float.MaxValue;
+
+           // Console.WriteLine($"🔷 Finding first edge intersection from origin X:{origin.X} Y:{origin.Y} with direction dx:{dx}, dy:{dy}");
 
             for (int i = 0; i < contour.Count; i++)
             {
@@ -1106,7 +1143,7 @@ namespace GEORGE.Client.Pages.Okna
                     offsetX = 0f;  // 🔹 brak przesunięcia w osi X
                     offsetY = dy >= 0 ? profileTop : -profileBottom;
 
-                    Console.WriteLine($"🔷 Horizontal element → offset only in Y: offsetY={offsetY}");
+                    Console.WriteLine($"🔷 Calculating 🔷 Horizontal element → offset only in Y: offsetY={offsetY}");
                 }
                 else if (isVertical)
                 {
@@ -1114,7 +1151,7 @@ namespace GEORGE.Client.Pages.Okna
                     offsetY = 0f;
                     offsetX = dx >= 0 ? profileRight : -profileLeft;
 
-                    Console.WriteLine($"🔷 Vertical element → offset only in Y: offsetX={offsetX}");
+                    Console.WriteLine($"🔷 Calculating 🔷 Vertical element → offset only in Y: offsetX={offsetX}");
                 }
                 else
                 {
@@ -1127,7 +1164,7 @@ namespace GEORGE.Client.Pages.Okna
                 var p1Offset = new XPoint(p1.X + offsetX, p1.Y + offsetY);
                 var p2Offset = new XPoint(p2.X + offsetX, p2.Y + offsetY);
 
-                Console.WriteLine($"🔷 Offset liniowy p1Offset: X={p1Offset.X}, Y={p1Offset.Y} | p2Offset: X={p2Offset.X}, Y={p2Offset.Y} | isHorizontal={isHorizontal}");
+                Console.WriteLine($"🔷 Calculating 🔷 Offset liniowy p1Offset: X={p1Offset.X}, Y={p1Offset.Y} | p2Offset: X={p2Offset.X}, Y={p2Offset.Y} | isHorizontal={isHorizontal}");
 
                 return new List<XPoint> { p1Offset, p2Offset };
             }
@@ -1197,6 +1234,11 @@ namespace GEORGE.Client.Pages.Okna
                 result.Add(intersection);
             }
 
+            foreach(var pt in result)
+            {
+                Console.WriteLine($"🔷 Calculated offset polygon point: X={pt.X}, Y={pt.Y}");
+            }
+
             return result;
         }
 
@@ -1222,8 +1264,6 @@ namespace GEORGE.Client.Pages.Okna
             );
         }
 
-
-        // Other properties and methods of the Generator class...
 
         /// <summary>
         /// Calculates the length of an element based on its vertices.

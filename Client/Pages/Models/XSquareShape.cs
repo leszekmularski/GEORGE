@@ -12,18 +12,22 @@ namespace GEORGE.Client.Pages.Models
         public string NazwaObj { get; set; } = "Kwadrat";
 
         private double _scaleFactor = 1.0;
-
         public double Szerokosc { get; set; }
         public double Wysokosc { get; set; }
 
-        public List<XPoint> Points { get; set; }
+        public List<XPoint> Points { get; set; } = new();
+        public List<XPoint> NominalPoints { get; set; } = new();
         public string ID { get; set; } = Guid.NewGuid().ToString();
 
         public List<XPoint> GetPoints() => Points;
 
-        // ---------------------------------------------------------
-        // 🔥 Konstruktor — generujemy punkty automatycznie
-        // ---------------------------------------------------------
+        // ✅ Nominal points must return deep copy
+        public List<XPoint> GetNominalPoints() =>
+            NominalPoints.Select(p => new XPoint(p.X, p.Y)).ToList();
+
+        // --------------------------------------------------------------------
+        // 🔥 Konstruktor — generujemy punkty i od razu ustawiamy nominalne
+        // --------------------------------------------------------------------
         public XSquareShape(double x, double y, double size, double scaleFactor)
         {
             X = x;
@@ -33,35 +37,37 @@ namespace GEORGE.Client.Pages.Models
 
             Points = GeneratePoints();
 
+            // 🔥 NOMINALNE punkty = kopia pierwotnych
+            NominalPoints = Points
+                .Select(p => new XPoint(p.X, p.Y))
+                .ToList();
+
             Szerokosc = Size;
             Wysokosc = Size;
         }
 
-        // ---------------------------------------------------------
-        // 🔥 Generowanie poprawnych narożników kwadratu
-        // ---------------------------------------------------------
+        // --------------------------------------------------------------------
         private List<XPoint> GeneratePoints()
         {
             return new List<XPoint>
             {
-                new XPoint(X, Y),                 // lewy górny
-                new XPoint(X + Size, Y),          // prawy górny
-                new XPoint(X + Size, Y + Size),   // prawy dolny
-                new XPoint(X, Y + Size)           // lewy dolny
+                new XPoint(X, Y),
+                new XPoint(X + Size, Y),
+                new XPoint(X + Size, Y + Size),
+                new XPoint(X, Y + Size)
             };
         }
 
-        // ---------------------------------------------------------
-        // 🔥 Update gdy przeciągnę punkt narożny
-        // ---------------------------------------------------------
+        // --------------------------------------------------------------------
+        // 🔥 Update punktów i aktualizacja nominalnych
+        // --------------------------------------------------------------------
         public void UpdatePoints(List<XPoint> newPoints)
         {
-            if (newPoints == null || newPoints.Count < 2)
+            if (newPoints == null || newPoints.Count < 4)
                 return;
 
             Points = newPoints;
 
-            // Ustal lewy górny i prawy dolny
             double minX = newPoints.Min(p => p.X);
             double minY = newPoints.Min(p => p.Y);
             double maxX = newPoints.Max(p => p.X);
@@ -70,24 +76,37 @@ namespace GEORGE.Client.Pages.Models
             X = minX;
             Y = minY;
 
-            // Kwadrat musi być równy → rozmiar to średnia
             double width = maxX - minX;
             double height = maxY - minY;
+
             Size = (width + height) / 2.0;
 
             Szerokosc = Size;
             Wysokosc = Size;
 
             Points = GeneratePoints();
+
+            // 🔥 Aktualizacja nominalnych punktów = kopia bez skalowania
+            NominalPoints = Points
+                .Select(p => new XPoint(p.X, p.Y))
+                .ToList();
         }
 
-        // ---------------------------------------------------------
+        // --------------------------------------------------------------------
+        // 🔥 Clone musi klonować także NominalPoints
+        // --------------------------------------------------------------------
         public IShapeDC Clone()
         {
-            return new XSquareShape(X, Y, Size, _scaleFactor);
+            var clone = new XSquareShape(X, Y, Size, _scaleFactor);
+
+            clone.NominalPoints = this.NominalPoints
+                .Select(p => new XPoint(p.X, p.Y))
+                .ToList();
+
+            return clone;
         }
 
-        // ---------------------------------------------------------
+        // --------------------------------------------------------------------
         public async Task Draw(Canvas2DContext ctx)
         {
             await ctx.SetStrokeStyleAsync("black");
@@ -98,7 +117,7 @@ namespace GEORGE.Client.Pages.Models
             await ctx.StrokeAsync();
         }
 
-        // ---------------------------------------------------------
+        // --------------------------------------------------------------------
         public List<EditableProperty> GetEditableProperties() => new()
         {
             new("X", () => X, v => { X = v; Points = GeneratePoints(); }, NazwaObj, true),
@@ -106,46 +125,43 @@ namespace GEORGE.Client.Pages.Models
             new("Rozmiar", () => Size, v => { Size = v; Szerokosc = v; Wysokosc = v; Points = GeneratePoints(); }, NazwaObj)
         };
 
-        // ---------------------------------------------------------
+        // --------------------------------------------------------------------
         public void Scale(double factor)
         {
             Size *= factor;
-
             Szerokosc = Size;
             Wysokosc = Size;
 
             Points = GeneratePoints();
+
+            // 🔥 skalowanie nominalnych punktów NIE powinno następować
         }
 
         public void Move(double offsetX, double offsetY)
         {
             X += offsetX;
             Y += offsetY;
-
             Points = GeneratePoints();
         }
 
-        // ---------------------------------------------------------
+        // --------------------------------------------------------------------
         public BoundingBox GetBoundingBox()
         {
             return new BoundingBox(X, Y, Size, Size, NazwaObj);
         }
 
-        // ---------------------------------------------------------
+        // --------------------------------------------------------------------
         public XRectangleShape ToRectangleShape()
         {
             return new XRectangleShape(X, Y, Size, Size, _scaleFactor);
         }
 
-        // ---------------------------------------------------------
+        // --------------------------------------------------------------------
         public void Transform(double scale, double offsetX, double offsetY)
         {
             X = X * scale + offsetX;
             Y = Y * scale + offsetY;
             Size *= scale;
-
-            Szerokosc = Size;
-            Wysokosc = Size;
 
             Points = GeneratePoints();
         }
@@ -155,20 +171,16 @@ namespace GEORGE.Client.Pages.Models
             X = X * scaleX + offsetX;
             Y = Y * scaleY + offsetY;
 
-            // Kwadrat wymaga jednolitego skalowania
             Size *= (scaleX + scaleY) / 2.0;
-
-            Szerokosc = Size;
-            Wysokosc = Size;
 
             Points = GeneratePoints();
         }
 
-        // ---------------------------------------------------------
+        // --------------------------------------------------------------------
         public List<XPoint> GetCorners() => GeneratePoints();
         public List<XPoint> GetVertices() => GeneratePoints();
 
-        // ---------------------------------------------------------
+        // --------------------------------------------------------------------
         public List<(XPoint Start, XPoint End)> GetEdges()
         {
             var v = GeneratePoints();

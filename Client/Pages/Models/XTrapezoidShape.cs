@@ -12,15 +12,16 @@ namespace GEORGE.Client.Pages.Models
         public double X { get; set; }
         public double Y { get; set; }
         public string NazwaObj { get; set; } = "Trapezoid";
-
         private int Typ { get; set; }
 
         private double _scaleFactor = 1.0; // Początkowa skala = 1.0 (bez skalowania)
         public double Szerokosc { get; set; }
         public double Wysokosc { get; set; }
         public List<XPoint> Points { get; set; }
+        public List<XPoint> NominalPoints { get; set; } = new();
         public string ID { get; set; } = Guid.NewGuid().ToString();
         public List<XPoint> GetPoints() => Points;
+        public List<XPoint> GetNominalPoints() => NominalPoints;
         // Konstruktor przyjmujący współrzędne i współczynnik szerokości góry
         public XTrapezoidShape(double startX, double startY, double endX, double endY, double topWidthFactor, double scaleFactor, int typ)
         {
@@ -33,6 +34,8 @@ namespace GEORGE.Client.Pages.Models
             Typ = typ;
 
             Points = GeneratePoints();
+
+            NominalPoints = Points.Select(p => new XPoint(p.X, p.Y)).ToList();
         }
 
         public void UpdatePoints(List<XPoint> newPoints)
@@ -42,30 +45,20 @@ namespace GEORGE.Client.Pages.Models
 
             Points = newPoints;
 
-            // Dla każdego typu trapezu inaczej interpretujemy punkty
+            // KOPIA do nominal
+            NominalPoints = newPoints.Select(p => new XPoint(p.X, p.Y)).ToList();
+
             switch (Typ)
             {
-                case 0: // Standardowy trapez (góra węższa, centrowana)
-                    UpdateStandardTrapezoid(Points);
-                    break;
-
-                case 1: // Trapez z lewą pionową ścianą
-                    UpdateLeftVerticalTrapezoid(Points);
-                    break;
-
-                case 2: // Trapez z prawą pionową ścianą
-                    UpdateRightVerticalTrapezoid(Points);
-                    break;
-
-                default:
-                    UpdateStandardTrapezoid(Points); // Domyślnie standardowy trapez
-                    break;
+                case 0: UpdateStandardTrapezoid(Points); break;
+                case 1: UpdateLeftVerticalTrapezoid(Points); break;
+                case 2: UpdateRightVerticalTrapezoid(Points); break;
             }
 
-            // Aktualizacja wymiarów
             Szerokosc = BaseWidth;
             Wysokosc = Height;
         }
+
 
         // Metody pomocnicze dla każdego typu trapezu
         private void UpdateStandardTrapezoid(List<XPoint> points)
@@ -127,16 +120,14 @@ namespace GEORGE.Client.Pages.Models
         }
         public IShapeDC Clone()
         {
-            // Odtworzenie współrzędnych końcowych
-            double startX = X;
-            double startY = Y;
-            double endX = X + BaseWidth;
-            double endY = Y + Height;
+            var clone = new XTrapezoidShape(X, Y, X + BaseWidth, Y + Height,
+                BaseWidth != 0 ? TopWidth / BaseWidth : 1.0,
+                _scaleFactor, Typ);
 
-            // Odzyskanie topWidthFactor z bieżących właściwości
-            double topWidthFactor = BaseWidth != 0 ? TopWidth / BaseWidth : 1.0;
+            // KLONOWANIE NOMINALNYCH PUNKTÓW
+            clone.NominalPoints = NominalPoints.Select(p => new XPoint(p.X, p.Y)).ToList();
 
-            return new XTrapezoidShape(startX, startY, endX, endY, topWidthFactor, _scaleFactor, Typ);
+            return clone;
         }
 
         // Metoda rysująca trapez
