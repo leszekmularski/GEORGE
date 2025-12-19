@@ -56,6 +56,7 @@ namespace GEORGE.Client.Pages.Models
             };
 
             Console.WriteLine($"Generated NominalPoints: {NominalPoints.Count} points");
+
             for (int i = 0; i < NominalPoints.Count; i++)
             {
                 Console.WriteLine($"  Point {i}: X={NominalPoints[i].X}, Y={NominalPoints[i].Y}");

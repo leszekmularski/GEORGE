@@ -6,8 +6,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 	<Version>1.2.4</Version>
-	<AssemblyVersion>1.2.4.0</AssemblyVersion>
-	<FileVersion>1.2.4.0</FileVersion>
+	<AssemblyVersion>1.2.4.3</AssemblyVersion>
+	<FileVersion>1.2.4.3</FileVersion>
 	<InformationalVersion>1.2.4</InformationalVersion>
 	<InvariantGlobalization>false</InvariantGlobalization>
 	<BlazorEnableTimeZoneSupport>true</BlazorEnableTimeZoneSupport>

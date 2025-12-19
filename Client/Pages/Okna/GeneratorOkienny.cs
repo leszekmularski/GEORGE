@@ -60,8 +60,8 @@ namespace GEORGE.Client.Pages.Okna
                 return;
             }
 
-            Console.WriteLine($"➡️ EdytowanyModel.PolaczenieNaroza: {EdytowanyModel.PolaczenieNaroza}");
-            Console.WriteLine($"📏 Szerokosc: {Szerokosc}, Wysokosc: {Wysokosc}");
+            Console.WriteLine($"➡️ AddElements EdytowanyModel.PolaczenieNaroza: {EdytowanyModel.PolaczenieNaroza} daneKwadratu.Count: {(daneKwadratu == null ? "NULL" : daneKwadratu.Count())}");
+            Console.WriteLine($"📏 AddElements Szerokosc: {Szerokosc}, Wysokosc: {Wysokosc}");
 
             Region = regionAdd;
 

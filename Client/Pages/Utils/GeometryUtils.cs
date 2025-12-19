@@ -1,294 +1,307 @@
 ﻿using GEORGE.Client.Pages.KonfiguratorOkien;
 using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.ViewModels;
+using System.Linq;
 
 namespace GEORGE.Client.Pages.Utils
 {
     public static class GeometryUtils
     {
         public static List<ShapeRegion> GenerujRegionyZPodzialu(List<IShapeDC> shapes, int _szerokosc, int _wysokosc, bool rama)
-        {
-           // Console.WriteLine($"📦 Przed usunięciem duplikatów: {shapes.Count} obiektów.");
-            shapes = UsunDuplikatyShape(shapes);
-            //Console.WriteLine($"📦 Po usunięciu duplikatów: {shapes.Count} obiektów.");
-
-            var regions = new List<ShapeRegion>();
-
-            Console.WriteLine($"🔲 Generowanie regionów z podziału dla {shapes.Count} kształtów. {_szerokosc}x{_wysokosc}");
-
-            var shapesDoRegionow = shapes.Where(s =>
-                s is XRectangleShape or XSquareShape or XTriangleShape
-                or XTrapezoidShape or XCircleShape or XHouseShape
-                or XRoundedTopRectangleShape or XRoundedRectangleShape
-                or XRoundedRectangleShapeLeft or XRoundedRectangleShapeRight or XLinePoint)
-                .ToList();
-
-            if (!shapesDoRegionow.Any()) return regions;
-
-            double minX = shapesDoRegionow.Min(s => s.GetBoundingBox().X);
-            double minY = shapesDoRegionow.Min(s => s.GetBoundingBox().Y);
-            double maxX = shapesDoRegionow.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
-            double maxY = shapesDoRegionow.Max(s => s.GetBoundingBox().Y + s.GetBoundingBox().Height);
-
-            double scaleX = (double)_szerokosc / (maxX - minX);
-            double scaleY = (double)_wysokosc / (maxY - minY);
-            double offsetX = -minX * scaleX;
-            double offsetY = -minY * scaleY;
-
-            foreach (var shape in shapes)
             {
-                shape.Transform(scaleX, scaleY, offsetX, offsetY);
-                shape.Szerokosc = _szerokosc;
-                shape.Wysokosc = _wysokosc;
-            }
+               // Console.WriteLine($"📦 Przed usunięciem duplikatów: {shapes.Count} obiektów.");
+                shapes = UsunDuplikatyShape(shapes);
+                //Console.WriteLine($"📦 Po usunięciu duplikatów: {shapes.Count} obiektów.");
 
-            foreach (var shape in shapes)
-            {
-                List<XPoint>? pts = shape switch
-                {
-                    XLineShape lin => new() { new(lin.X1, lin.Y1), new(lin.X2, lin.Y2) },
-                    XSquareShape sq => sq.GetCorners(),
-                    XRectangleShape rect => rect.GetCorners(),
-                    XTriangleShape tri => tri.GetVertices(),
-                    XTrapezoidShape trap => trap.GetVertices(),
-                    XCircleShape circ => GenerateCircleVertices(circ.X, circ.Y, circ.Radius, 8),
-                    XHouseShape house => house.GetFullOutline(),
-                    XRoundedTopRectangleShape rtr => rtr.GetVertices(),
-                    XRoundedRectangleShape rr => rr.GetVertices(),
-                    XRoundedRectangleShapeLeft rrl => rrl.GetVertices(),
-                    XRoundedRectangleShapeRight rrr => rrr.GetVertices(),
-                    _ => null
-                };
+                var regions = new List<ShapeRegion>();
 
-                if (pts == null) continue;
+                Console.WriteLine($"🔲 Generowanie regionów z podziału dla {shapes.Count} kształtów. {_szerokosc}x{_wysokosc} typ rama: {rama}");
 
-                var typ = shape.GetType().Name.ToLower();
-
-                string typLinii = null;
-
-                string id = shape.ID;
-
-                typLinii = shape switch
-                {
-                    XLineShape { RuchomySlupek: true } => "Słupek ruchomy",
-                    XLineShape { DualRama: true } => "Podwójna rama",
-                    XLineShape { StalySlupek: true } => "Słupek stały",
-                    _ => "Brak podziału"
-                };
-
-                var initial = new ShapeRegion
-                {
-                    Wierzcholki = pts,
-                    TypKsztaltu = typ,
-                    TypLiniiDzielacej = typLinii,
-                    Id = id,
-                    IdMaster = id,
-                    Rama = rama
-                };
-
-
-                if (rama)
-                {
-                    var linieDzielace = shapes
-                    .OfType<XLineShape>()
-                    .Where(l => l.DualRama)
+                var shapesDoRegionow = shapes.Where(s =>
+                    s is XRectangleShape or XSquareShape or XTriangleShape
+                    or XTrapezoidShape or XCircleShape or XHouseShape
+                    or XRoundedTopRectangleShape or XRoundedRectangleShape
+                    or XRoundedRectangleShapeLeft or XRoundedRectangleShapeRight or XLinePoint)
                     .ToList();
 
-                   // initial.Id = "R-" + initial.Id;
+                if (!shapesDoRegionow.Any()) return regions;
 
-                    var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace, id, rama);
+                double minX = shapesDoRegionow.Min(s => s.GetBoundingBox().X);
+                double minY = shapesDoRegionow.Min(s => s.GetBoundingBox().Y);
+                double maxX = shapesDoRegionow.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
+                double maxY = shapesDoRegionow.Max(s => s.GetBoundingBox().Y + s.GetBoundingBox().Height);
 
-                    int idCounter = 0;
+                double scaleX = (double)_szerokosc / (maxX - minX);
+                double scaleY = (double)_wysokosc / (maxY - minY);
+                double offsetX = -minX * scaleX;
+                double offsetY = -minY * scaleY;
+
+                foreach (var shape in shapes)
+                {
+                    shape.Transform(scaleX, scaleY, offsetX, offsetY);
+                    shape.Szerokosc = _szerokosc;
+                    shape.Wysokosc = _wysokosc;
+                }
+
+                foreach (var shape in shapes)
+                {
+                    List<XPoint>? pts = shape switch
+                    {
+                        XLineShape lin => new() { new(lin.X1, lin.Y1), new(lin.X2, lin.Y2) },
+                        XSquareShape sq => sq.GetCorners(),
+                        XRectangleShape rect => rect.GetCorners(),
+                        XTriangleShape tri => tri.GetVertices(),
+                        XTrapezoidShape trap => trap.GetVertices(),
+                        XCircleShape circ => GenerateCircleVertices(circ.X, circ.Y, circ.Radius, 8),
+                        XHouseShape house => house.GetFullOutline(),
+                        XRoundedTopRectangleShape rtr => rtr.GetVertices(),
+                        XRoundedRectangleShape rr => rr.GetVertices(),
+                        XRoundedRectangleShapeLeft rrl => rrl.GetVertices(),
+                        XRoundedRectangleShapeRight rrr => rrr.GetVertices(),
+                        _ => null
+                    };
+
+                    if (pts == null) continue;
+
+                    var typ = shape.GetType().Name.ToLower();
+
+                    string typLinii = null;
+
+                    string id = shape.ID;
+
+                    typLinii = shape switch
+                    {
+                        XLineShape { RuchomySlupek: true } => "Słupek ruchomy",
+                        XLineShape { DualRama: true } => "Podwójna rama",
+                        XLineShape { StalySlupek: true } => "Słupek stały",
+                        _ => "Brak podziału"
+                    };
+
+                    var initial = new ShapeRegion
+                    {
+                        Wierzcholki = pts.Select(p => new XPoint((float)Math.Round(p.X, 3), (float)Math.Round(p.Y, 3))).ToList(),
+                        TypKsztaltu = typ,
+                        TypLiniiDzielacej = typLinii,
+                        Id = id,
+                        IdMaster = id,
+                        Rama = rama
+                    };
+
+                    if (rama)
+                    {
+                        var linieDzielace = shapes
+                        .OfType<XLineShape>()
+                        .Where(l => l.DualRama)
+                        .ToList();
+
+                       // initial.Id = "R-" + initial.Id;
+
+                        var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace, id, rama);
+
+                        Console.WriteLine($"🔲 Generowanie regionów PodzielRegionRekurencyjnie podzielone.Count: {podzielone.Count}");
+
+                        int idCounter = 0;
+
+                        foreach (var r in podzielone)
+                        {
+                            r.Wierzcholki = r.Wierzcholki
+                                .GroupBy(p => new { X = Math.Round(p.X, 2), Y = Math.Round(p.Y, 2) })
+                                .Select(g => g.First())
+                                .ToList();
+
+                            r.RozpoznajTyp(r.TypKsztaltu);
+
+                            Console.WriteLine($"🔹 Region po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - RAMA");
+
+                            foreach(var p in r.Wierzcholki)
+                            {
+                                Console.WriteLine($"🔹 Region {r.TypKsztaltu} -> Wierzchołek: ({p.X}, {p.Y})");
+                            }
+
+                            if (r.TypKsztaltu == "xhouseshape" && r.Wierzcholki.Count == 4)
+                            {
+                                r.TypKsztaltu = "trapez";
+                            }
+
+                            if (r.TypKsztaltu == "trapez")
+                            {
+                                if (r.Wierzcholki.Count == 2)
+                                {
+                                    r.TypKsztaltu = "linia";
+                                }
+                                else if (r.Wierzcholki.Count == 3)
+                                {
+                                    r.TypKsztaltu = "trójkąt";
+                                }
+                                else if (r.Wierzcholki.Count == 4 && CzyProstokat(r.Wierzcholki))
+                                {
+                                    r.TypKsztaltu = "prostokąt";
+                                }
+                            }
+
+                            r.Id = id + "|" + idCounter++;
+
+                            // **UWAGA**: NIE NADPISUJEMY Id — zachowujemy oryginalne Id
+                        }
+
+                        regions.AddRange(podzielone);
+                    }
+                    else
+                    {
+                        var linieDzielace = shapes
+                            .OfType<XLineShape>()
+                            .ToList();
+
+                        //initial.Id = "N-" + initial.Id;
+
+                        //var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace, id, rama);
+                        var podzielone = PodzielRegionRekurencyjnieDeterministycznie(initial, linieDzielace, id, rama);
+
+                    Console.WriteLine($"🔲 Generowanie regionów PodzielRegionRekurencyjnieDeterministycznie podzielone.Count: {podzielone.Count}");
 
                     foreach (var r in podzielone)
-                    {
-                        r.Wierzcholki = r.Wierzcholki
+                        {
+                             r.Wierzcholki = r.Wierzcholki
                             .GroupBy(p => new { X = Math.Round(p.X, 2), Y = Math.Round(p.Y, 2) })
                             .Select(g => g.First())
                             .ToList();
 
-                        r.RozpoznajTyp(r.TypKsztaltu);
+                            r.RozpoznajTyp(r.TypKsztaltu);
 
-                        if (r.TypKsztaltu == "xhouseshape" && r.Wierzcholki.Count == 4)
-                        {
-                            r.TypKsztaltu = "trapez";
+                            Console.WriteLine($"🔹 Region po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - SKRZYDŁO");
+
+                            if (r.TypKsztaltu == "xhouseshape" && r.Wierzcholki.Count == 4)
+                            {
+                                r.TypKsztaltu = "trapez";
+                            }
+
+                            if (r.TypKsztaltu == "trapez")
+                            {
+                                if (r.Wierzcholki.Count == 2)
+                                {
+                                    r.TypKsztaltu = "linia";
+                                }
+                                else if (r.Wierzcholki.Count == 3)
+                                {
+                                    r.TypKsztaltu = "trójkąt";
+                                }
+                                else if (r.Wierzcholki.Count == 4 && CzyProstokat(r.Wierzcholki))
+                                {
+                                    r.TypKsztaltu = "prostokąt";
+                                }
+                            }
+
+                            // **UWAGA**: NIE NADPISUJEMY Id — zachowujemy oryginalne Id
                         }
 
-                        if (r.TypKsztaltu == "trapez")
-                        {
-                            if (r.Wierzcholki.Count == 2)
-                            {
-                                r.TypKsztaltu = "linia";
-                            }
-                            else if (r.Wierzcholki.Count == 3)
-                            {
-                                r.TypKsztaltu = "trójkąt";
-                            }
-                            else if (r.Wierzcholki.Count == 4 && CzyProstokat(r.Wierzcholki))
-                            {
-                                r.TypKsztaltu = "prostokąt";
-                            }
-                        }
-
-                        r.Id = id + "|" + idCounter++;
-
-                        // **UWAGA**: NIE NADPISUJEMY Id — zachowujemy oryginalne Id
+                        regions.AddRange(podzielone);
                     }
 
-                    regions.AddRange(podzielone);
                 }
-                else
-                {
-                    var linieDzielace = shapes
-                        .OfType<XLineShape>()
-                        .ToList();
-
-                    //initial.Id = "N-" + initial.Id;
-
-                    //var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace, id, rama);
-                    var podzielone = PodzielRegionRekurencyjnieDeterministycznie(initial, linieDzielace, id, rama);
-
-                    foreach (var r in podzielone)
-                    {
-                         r.Wierzcholki = r.Wierzcholki
-                        .GroupBy(p => new { X = Math.Round(p.X, 2), Y = Math.Round(p.Y, 2) })
-                        .Select(g => g.First())
-                        .ToList();
-
-                        r.RozpoznajTyp(r.TypKsztaltu);
-
-                        if (r.TypKsztaltu == "xhouseshape" && r.Wierzcholki.Count == 4)
-                        {
-                            r.TypKsztaltu = "trapez";
-                        }
-
-                        if (r.TypKsztaltu == "trapez")
-                        {
-                            if (r.Wierzcholki.Count == 2)
-                            {
-                                r.TypKsztaltu = "linia";
-                            }
-                            else if (r.Wierzcholki.Count == 3)
-                            {
-                                r.TypKsztaltu = "trójkąt";
-                            }
-                            else if (r.Wierzcholki.Count == 4 && CzyProstokat(r.Wierzcholki))
-                            {
-                                r.TypKsztaltu = "prostokąt";
-                            }
-                        }
-
-                        // **UWAGA**: NIE NADPISUJEMY Id — zachowujemy oryginalne Id
-                    }
-
-                    regions.AddRange(podzielone);
-                }
-
-            }
 
             return regions;
-        }
-
-    public static List<ShapeRegion> SkalujSkrzydlaDoRamy(
-    List<ShapeRegion> stareSkrzydla,
-    List<ShapeRegion> rama,
-    int nowaSzerokosc,
-    int nowaWysokosc)
-        {
-            if (stareSkrzydla == null || !stareSkrzydla.Any() ||
-                rama == null || !rama.Any())
-                return new List<ShapeRegion>();
-
-            // Wyznacz bounding box ramy
-            double minXRama = rama.Min(r => r.Wierzcholki.Min(p => p.X));
-            double minYRama = rama.Min(r => r.Wierzcholki.Min(p => p.Y));
-            double maxXRama = rama.Max(r => r.Wierzcholki.Max(p => p.X));
-            double maxYRama = rama.Max(r => r.Wierzcholki.Max(p => p.Y));
-
-            double szerRamy = maxXRama - minXRama;
-            double wysRamy = maxYRama - minYRama;
-
-            // Wyznacz bounding box skrzydeł
-            double minXSkrzydla = stareSkrzydla.Min(r => r.Wierzcholki.Min(p => p.X));
-            double minYSkrzydla = stareSkrzydla.Min(r => r.Wierzcholki.Min(p => p.Y));
-            double maxXSkrzydla = stareSkrzydla.Max(r => r.Wierzcholki.Max(p => p.X));
-            double maxYSkrzydla = stareSkrzydla.Max(r => r.Wierzcholki.Max(p => p.Y));
-
-            double szerSkrzydel = maxXSkrzydla - minXSkrzydla;
-            double wysSkrzydel = maxYSkrzydla - minYSkrzydla;
-
-            // Skala względem ramy
-            double scaleX = szerRamy / szerSkrzydel;
-            double scaleY = wysRamy / wysSkrzydel;
-
-            // Skaluj każde skrzydło
-            var noweSkrzydla = new List<ShapeRegion>();
-            foreach (var skrzydlo in stareSkrzydla)
-            {
-                var noweWierzcholki = skrzydlo.Wierzcholki
-                    .Select(p => new XPoint(
-                        minXRama + (p.X - minXSkrzydla) * scaleX,
-                        minYRama + (p.Y - minYSkrzydla) * scaleY
-                    ))
-                    .ToList();
-
-                noweSkrzydla.Add(new ShapeRegion
-                {
-                    Id = skrzydlo.Id,
-                    TypKsztaltu = skrzydlo.TypKsztaltu,
-                    TypLiniiDzielacej = skrzydlo.TypLiniiDzielacej,
-                    Wierzcholki = noweWierzcholki
-                });
             }
 
-            return noweSkrzydla;
-        }
+        public static List<ShapeRegion> SkalujSkrzydlaDoRamy(
+        List<ShapeRegion> stareSkrzydla,
+        List<ShapeRegion> rama,
+        int nowaSzerokosc,
+        int nowaWysokosc)
+            {
+                if (stareSkrzydla == null || !stareSkrzydla.Any() ||
+                    rama == null || !rama.Any())
+                    return new List<ShapeRegion>();
+
+                // Wyznacz bounding box ramy
+                double minXRama = rama.Min(r => r.Wierzcholki.Min(p => p.X));
+                double minYRama = rama.Min(r => r.Wierzcholki.Min(p => p.Y));
+                double maxXRama = rama.Max(r => r.Wierzcholki.Max(p => p.X));
+                double maxYRama = rama.Max(r => r.Wierzcholki.Max(p => p.Y));
+
+                double szerRamy = maxXRama - minXRama;
+                double wysRamy = maxYRama - minYRama;
+
+                // Wyznacz bounding box skrzydeł
+                double minXSkrzydla = stareSkrzydla.Min(r => r.Wierzcholki.Min(p => p.X));
+                double minYSkrzydla = stareSkrzydla.Min(r => r.Wierzcholki.Min(p => p.Y));
+                double maxXSkrzydla = stareSkrzydla.Max(r => r.Wierzcholki.Max(p => p.X));
+                double maxYSkrzydla = stareSkrzydla.Max(r => r.Wierzcholki.Max(p => p.Y));
+
+                double szerSkrzydel = maxXSkrzydla - minXSkrzydla;
+                double wysSkrzydel = maxYSkrzydla - minYSkrzydla;
+
+                // Skala względem ramy
+                double scaleX = szerRamy / szerSkrzydel;
+                double scaleY = wysRamy / wysSkrzydel;
+
+                // Skaluj każde skrzydło
+                var noweSkrzydla = new List<ShapeRegion>();
+                foreach (var skrzydlo in stareSkrzydla)
+                {
+                    var noweWierzcholki = skrzydlo.Wierzcholki
+                        .Select(p => new XPoint(
+                            minXRama + (p.X - minXSkrzydla) * scaleX,
+                            minYRama + (p.Y - minYSkrzydla) * scaleY
+                        ))
+                        .ToList();
+
+                    noweSkrzydla.Add(new ShapeRegion
+                    {
+                        Id = skrzydlo.Id,
+                        TypKsztaltu = skrzydlo.TypKsztaltu,
+                        TypLiniiDzielacej = skrzydlo.TypLiniiDzielacej,
+                        Wierzcholki = noweWierzcholki
+                    });
+                }
+
+                return noweSkrzydla;
+            }
 
         public static List<ShapeRegion> SkalujRegiony(
         List<ShapeRegion> stareRegiony,
         int nowaSzerokosc,
         int nowaWysokosc)
         {
-            if (stareRegiony == null || !stareRegiony.Any())
-                return new List<ShapeRegion>();
+                if (stareRegiony == null || !stareRegiony.Any())
+                    return new List<ShapeRegion>();
 
-            // Oblicz bounding box dla całego zbioru regionów
-            double minX = stareRegiony.Min(r => r.Wierzcholki.Min(p => p.X));
-            double minY = stareRegiony.Min(r => r.Wierzcholki.Min(p => p.Y));
-            double maxX = stareRegiony.Max(r => r.Wierzcholki.Max(p => p.X));
-            double maxY = stareRegiony.Max(r => r.Wierzcholki.Max(p => p.Y));
+                // Oblicz bounding box dla całego zbioru regionów
+                double minX = stareRegiony.Min(r => r.Wierzcholki.Min(p => p.X));
+                double minY = stareRegiony.Min(r => r.Wierzcholki.Min(p => p.Y));
+                double maxX = stareRegiony.Max(r => r.Wierzcholki.Max(p => p.X));
+                double maxY = stareRegiony.Max(r => r.Wierzcholki.Max(p => p.Y));
 
-            double originalWidth = maxX - minX;
-            double originalHeight = maxY - minY;
+                double originalWidth = maxX - minX;
+                double originalHeight = maxY - minY;
 
-            double scaleX = nowaSzerokosc / originalWidth;
-            double scaleY = nowaWysokosc / originalHeight;
+                double scaleX = nowaSzerokosc / originalWidth;
+                double scaleY = nowaWysokosc / originalHeight;
 
-            // Skaluj każdy region
-            var noweRegiony = new List<ShapeRegion>();
+                // Skaluj każdy region
+                var noweRegiony = new List<ShapeRegion>();
 
-            foreach (var region in stareRegiony)
-            {
-                var noweWierzcholki = region.Wierzcholki
-                    .Select(p => new XPoint(
-                        (p.X - minX) * scaleX,
-                        (p.Y - minY) * scaleY))
-                    .ToList();
-
-                var nowyRegion = new ShapeRegion
+                foreach (var region in stareRegiony)
                 {
-                    Id = region.Id,                    // zachowaj Id
-                    TypKsztaltu = region.TypKsztaltu,  // zachowaj typ
-                    TypLiniiDzielacej = region.TypLiniiDzielacej,
-                    Wierzcholki = noweWierzcholki
-                };
+                    var noweWierzcholki = region.Wierzcholki
+                        .Select(p => new XPoint(
+                            (p.X - minX) * scaleX,
+                            (p.Y - minY) * scaleY))
+                        .ToList();
 
-                noweRegiony.Add(nowyRegion);
+                    var nowyRegion = new ShapeRegion
+                    {
+                        Id = region.Id,                    // zachowaj Id
+                        TypKsztaltu = region.TypKsztaltu,  // zachowaj typ
+                        TypLiniiDzielacej = region.TypLiniiDzielacej,
+                        Wierzcholki = noweWierzcholki
+                    };
+
+                    noweRegiony.Add(nowyRegion);
+                }
+
+                return noweRegiony;
             }
-
-            return noweRegiony;
-        }
-        // --- helper: głęboka kopia regionu
+            // --- helper: głęboka kopia regionu
         public static ShapeRegion CloneRegion(ShapeRegion src, double _currentScale = 1)
         {
             if (src == null) return null!;
@@ -306,7 +319,7 @@ namespace GEORGE.Client.Pages.Utils
                         l.Y1,
                         l.X2,
                         l.Y2,
-                        _currentScale,     // zakładam, że masz publiczny getter na _scaleFactor
+                        _currentScale,
                         l.NazwaObj,
                         l.RuchomySlupek,
                         l.PionPoziom,
@@ -396,52 +409,52 @@ namespace GEORGE.Client.Pages.Utils
             return wynik;
         }
 
-    public static List<ShapeRegion> SkalujRegionyIndywidualnie(
-    List<ShapeRegion> stareRegiony,
-    int nowaSzerokosc,
-    int nowaWysokosc)
-        {
-            if (stareRegiony == null || !stareRegiony.Any())
-                return new List<ShapeRegion>();
-
-            var noweRegiony = new List<ShapeRegion>();
-
-            foreach (var region in stareRegiony)
+        public static List<ShapeRegion> SkalujRegionyIndywidualnie(
+        List<ShapeRegion> stareRegiony,
+        int nowaSzerokosc,
+        int nowaWysokosc)
             {
-                // Bounding box dla pojedynczego regionu
-                double minX = region.Wierzcholki.Min(p => p.X);
-                double minY = region.Wierzcholki.Min(p => p.Y);
-                double maxX = region.Wierzcholki.Max(p => p.X);
-                double maxY = region.Wierzcholki.Max(p => p.Y);
+                if (stareRegiony == null || !stareRegiony.Any())
+                    return new List<ShapeRegion>();
 
-                double originalWidth = maxX - minX;
-                double originalHeight = maxY - minY;
+                var noweRegiony = new List<ShapeRegion>();
 
-                if (originalWidth == 0 || originalHeight == 0)
-                    continue;
-
-                double scaleX = nowaSzerokosc / originalWidth;
-                double scaleY = nowaWysokosc / originalHeight;
-
-                var noweWierzcholki = region.Wierzcholki
-                    .Select(p => new XPoint(
-                        (p.X - minX) * scaleX,
-                        (p.Y - minY) * scaleY))
-                    .ToList();
-
-                noweRegiony.Add(new ShapeRegion
+                foreach (var region in stareRegiony)
                 {
-                    Id = region.Id,
-                    IdMaster = region.IdMaster,
-                    IdRegionuPonizej = region.IdRegionuPonizej,
-                    TypKsztaltu = region.TypKsztaltu,
-                    TypLiniiDzielacej = region.TypLiniiDzielacej,
-                    Wierzcholki = noweWierzcholki
-                });
-            }
+                    // Bounding box dla pojedynczego regionu
+                    double minX = region.Wierzcholki.Min(p => p.X);
+                    double minY = region.Wierzcholki.Min(p => p.Y);
+                    double maxX = region.Wierzcholki.Max(p => p.X);
+                    double maxY = region.Wierzcholki.Max(p => p.Y);
 
-            return noweRegiony;
-        }
+                    double originalWidth = maxX - minX;
+                    double originalHeight = maxY - minY;
+
+                    if (originalWidth == 0 || originalHeight == 0)
+                        continue;
+
+                    double scaleX = nowaSzerokosc / originalWidth;
+                    double scaleY = nowaWysokosc / originalHeight;
+
+                    var noweWierzcholki = region.Wierzcholki
+                        .Select(p => new XPoint(
+                            (p.X - minX) * scaleX,
+                            (p.Y - minY) * scaleY))
+                        .ToList();
+
+                    noweRegiony.Add(new ShapeRegion
+                    {
+                        Id = region.Id,
+                        IdMaster = region.IdMaster,
+                        IdRegionuPonizej = region.IdRegionuPonizej,
+                        TypKsztaltu = region.TypKsztaltu,
+                        TypLiniiDzielacej = region.TypLiniiDzielacej,
+                        Wierzcholki = noweWierzcholki
+                    });
+                }
+
+                return noweRegiony;
+            }
 
         private static bool CzyProstokat(List<XPoint> punkty)
         {
@@ -465,7 +478,7 @@ namespace GEORGE.Client.Pages.Utils
                 Math.Abs(Dot(punkty[3], punkty[0], punkty[1])) < 1e-2;
 
             bool bokiRowne = Math.Abs(DistanceSquared(punkty[0], punkty[1]) - DistanceSquared(punkty[2], punkty[3])) < 1e-2 &&
-                             Math.Abs(DistanceSquared(punkty[1], punkty[2]) - DistanceSquared(punkty[3], punkty[0])) < 1e-2;
+                                Math.Abs(DistanceSquared(punkty[1], punkty[2]) - DistanceSquared(punkty[3], punkty[0])) < 1e-2;
 
             return kątyProste && bokiRowne;
         }
@@ -473,8 +486,6 @@ namespace GEORGE.Client.Pages.Utils
         private static List<ShapeRegion> PodzielRegionRekurencyjnie(ShapeRegion region, List<XLineShape> lines, string idMaster, bool rama)
         {
             var wynik = new List<ShapeRegion> { region };
-
-            int i = 0;
 
             foreach (var line in lines)
             {
@@ -509,11 +520,11 @@ namespace GEORGE.Client.Pages.Utils
             return wynik;
         }
 
-    private static List<ShapeRegion> PodzielRegionRekurencyjnieDeterministycznie(
-    ShapeRegion region,
-    List<XLineShape> lines,
-    string rootId,
-    bool rama)
+        private static List<ShapeRegion> PodzielRegionRekurencyjnieDeterministycznie(
+        ShapeRegion region,
+        List<XLineShape> lines,
+        string rootId,
+        bool rama)
         {
             var wynik = new List<ShapeRegion> { region };
 
@@ -638,72 +649,6 @@ namespace GEORGE.Client.Pages.Utils
 
             return points;
         }
-
-        /// <summary>
-        /// Sprawdza, czy linia przecina dany prostokąt (bounding box).
-        /// </summary>
-        public static bool LiniaPrzecinaProstokat(XLineShape linia, XBoundingBox prostokat)
-        {
-            var edges = prostokat.GetEdges(); // lista krawędzi jako (Start, End)
-
-            foreach (var edge in edges)
-            {
-                if (LinesIntersect(
-                    linia.X1, linia.Y1, linia.X2, linia.Y2,
-                    edge.Start.X, edge.Start.Y, edge.End.X, edge.End.Y))
-                {
-                    return true; // przynajmniej jedna krawędź przecięta
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Sprawdza, czy dwa odcinki się przecinają, uwzględniając przypadki specjalne.
-        /// </summary>
-        private static bool LinesIntersect(double x1, double y1, double x2, double y2,
-                                           double x3, double y3, double x4, double y4)
-        {
-            double d1 = Direction(x3, y3, x4, y4, x1, y1);
-            double d2 = Direction(x3, y3, x4, y4, x2, y2);
-            double d3 = Direction(x1, y1, x2, y2, x3, y3);
-            double d4 = Direction(x1, y1, x2, y2, x4, y4);
-
-            // Standardowe przecięcie
-            if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
-                ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)))
-            {
-                return true;
-            }
-
-            // Specjalne przypadki - współliniowość
-            if (d1 == 0 && OnSegment(x3, y3, x4, y4, x1, y1)) return true;
-            if (d2 == 0 && OnSegment(x3, y3, x4, y4, x2, y2)) return true;
-            if (d3 == 0 && OnSegment(x1, y1, x2, y2, x3, y3)) return true;
-            if (d4 == 0 && OnSegment(x1, y1, x2, y2, x4, y4)) return true;
-
-            return false;
-        }
-
-        /// <summary>
-        /// Sprawdza, czy punkt (px, py) leży na odcinku (x1, y1) -> (x2, y2).
-        /// </summary>
-        private static bool OnSegment(double x1, double y1, double x2, double y2, double px, double py)
-        {
-            return px >= Math.Min(x1, x2) && px <= Math.Max(x1, x2) &&
-                   py >= Math.Min(y1, y2) && py <= Math.Max(y1, y2);
-        }
-
-
-        /// <summary>
-        /// Pomocnicza funkcja do określenia kierunku skrętu (orientacji).
-        /// </summary>
-        private static double Direction(double xi, double yi, double xj, double yj, double xk, double yk)
-        {
-            return (xk - xi) * (yj - yi) - (xj - xi) * (yk - yi);
-        }
-
         public static bool CzyPunktWielokacie(XPoint point, List<XPoint> polygon)
         {
             int i, j;
@@ -712,7 +657,7 @@ namespace GEORGE.Client.Pages.Utils
             {
                 if ((polygon[i].Y > point.Y) != (polygon[j].Y > point.Y) &&
                     (point.X < (polygon[j].X - polygon[i].X) * (point.Y - polygon[i].Y) /
-                     (polygon[j].Y - polygon[i].Y) + polygon[i].X))
+                        (polygon[j].Y - polygon[i].Y) + polygon[i].X))
                 {
                     result = !result;
                 }
@@ -733,5 +678,4 @@ namespace GEORGE.Client.Pages.Utils
 
 
     }
-
 }

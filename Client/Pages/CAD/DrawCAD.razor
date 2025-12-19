@@ -590,24 +590,44 @@
         if (!_isDrawing) return;
         _isDrawing = false;
 
+        // Wyznacz prawidłowe wymiary i pozycję lewego-górnego rogu
+        double left = Math.Min(_startX, _currentX);
+        double top = Math.Min(_startY, _currentY);
+        double width = Math.Abs(_currentX - _startX);
+        double height = Math.Abs(_currentY - _startY);
+
+        double xR = Math.Min(_startX, _currentX);
+        double yR = Math.Min(_startY, _currentY);
+        double widthR = Math.Abs(_currentX - _startX);
+        double heightR = Math.Abs(_currentY - _startY);
+
+        // Ustaw minimalne rozmiary
+        width = Math.Max(width, 50);
+        height = Math.Max(height, 50);
+
+        // Promień = połowa szerokości (jak w preview)
+        double radius = width / 2;
+        // ArcHeight = promień (półokrąg)
+        double arcHeight = radius;
+
         IShapeDC newShape = _selectedTool switch
         {
             "line" => new XLineShape(_startX, _startY, _currentX, _currentY, _scaleFactor, "Lina skośna", false, false, false, false, true),
             "line_hv" => new XLineShape(_startX, _startY, _currentX, _currentY, _scaleFactor, "Linia pion. poziom.", false, true, false, false, true),
             "line_hvSLRuch" => new XLineShape(_startX, _startY, _currentX, _currentY, _scaleFactor, "Linia pion. sł. ruchomy", true),
             "line_dual_ram_hv" => new XLineShape(_startX, _startY, _currentX, _currentY, _scaleFactor, "Linia podziału ram", false, true, true),
-            "circle" => new XCircleShape(_startX, _startY, CalculateRadius(), _scaleFactor),
-            "triangle" => new XTriangleShape(_startX, _startY, _currentX, _currentY, _scaleFactor),
-            "square" => new XSquareShape(_startX, _startY, Math.Max(Math.Abs(_currentX - _startX), Math.Abs(_currentY - _startY)), _scaleFactor),
-            "rectangle" => new XRectangleShape(_startX, _startY, _currentX - _startX, _currentY - _startY, _scaleFactor),
-            "trapezoid" => new XTrapezoidShape(_startX, _startY, _currentX, _currentY, 0.6, _scaleFactor, 0),
-            "trapezoidLeft" => new XTrapezoidShape(_startX, _startY, _currentX, _currentY, 0.6, _scaleFactor, 1),
-            "trapezoidRight" => new XTrapezoidShape(_startX, _startY, _currentX, _currentY, 0.6, _scaleFactor, 2),
-            "rounded_rect" => new XRoundedRectangleShape(_startX, _startY, _currentX - _startX, _currentY - _startY, 100, _scaleFactor),
-            "rounded_rect_left" => new XRoundedRectangleShapeLeft(_startX, _startY, _currentX - _startX, _currentY - _startY, 100, _scaleFactor),//left
-            "rounded_rect_right" => new XRoundedRectangleShapeRight(_startX, _startY, _currentX - _startX, _currentY - _startY, 100, _scaleFactor),//right
-            "house" => new XHouseShape(_startX, _startY, _currentX - _startX, _currentY - _startY, (_currentY - _startY) * 0.5, (_currentY - _startY) * 0.5, _scaleFactor),
-            "rounded_top_rect" => new XRoundedTopRectangleShape(_startX, _startY, _currentX - _startX, _currentY - _startY, (_currentX - _startX) / 2, _scaleFactor),
+            "circle" => new XCircleShape(left + width / 2, top + height / 2, CalculateRadius(), _scaleFactor),
+            "triangle" => new XTriangleShape(left, top, left + width, top + height, _scaleFactor),
+            "square" => new XSquareShape(left, top, Math.Max(width, height), _scaleFactor),
+            "rectangle" => new XRectangleShape(left, top, width, height, _scaleFactor),
+            "trapezoid" => new XTrapezoidShape(left, top, left + width, top + height, 0.6, _scaleFactor, 0),
+            "trapezoidLeft" => new XTrapezoidShape(left, top, left + width, top + height, 0.6, _scaleFactor, 1),
+            "trapezoidRight" => new XTrapezoidShape(left, top, left + width, top + height, 0.6, _scaleFactor, 2),
+            "rounded_rect" => new XRoundedRectangleShape(left, top, width, height, 100, _scaleFactor),
+            "rounded_rect_left" => new XRoundedRectangleShapeLeft(left, top, width, height, 100, _scaleFactor),
+            "rounded_rect_right" => new XRoundedRectangleShapeRight(left, top, width, height, 100, _scaleFactor),
+            "house" => new XHouseShape(left, top, width, height, height * 0.5, height * 0.5, _scaleFactor),
+            "rounded_top_rect" => new XRoundedTopRectangleShape(xR, yR, widthR, heightR, radius, arcHeight, _scaleFactor),
 
             _ => throw new NotImplementedException()
         };
@@ -618,6 +638,7 @@
 
         await RedrawCanvas();
     }
+
 
     private double CalculateRadius()
     {
@@ -1178,7 +1199,7 @@
                 _shapes.Remove(line);
                 _shapes.Add(centeredLine);
 
-                Console.WriteLine($"⚙️  Jedna linia pionowa — wyśrodkowano na X={sceneCenterX:F2}");
+                Console.WriteLine($"⚙️ DrawCAD Jedna linia pionowa — wyśrodkowano na X={sceneCenterX:F2}");
             }
         }
         else

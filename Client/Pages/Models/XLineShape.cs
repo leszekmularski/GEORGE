@@ -33,9 +33,9 @@ namespace GEORGE.Client.Pages.Models
         public string ID { get; set; } = Guid.NewGuid().ToString();
 
         public XLineShape(
-            double x1, double y1, double x2, double y2, double scaleFactor,
-            string nazwaObj, bool ruchomySlupek = false, bool pionPoziom = false,
-            bool dualRama = false, bool generowaneZRamy = false, bool stalySlupek = false)
+        double x1, double y1, double x2, double y2, double scaleFactor,
+        string nazwaObj, bool ruchomySlupek = false, bool pionPoziom = false,
+        bool dualRama = false, bool generowaneZRamy = false, bool stalySlupek = false)
         {
             X1 = x1;
             Y1 = y1;
@@ -55,18 +55,56 @@ namespace GEORGE.Client.Pages.Models
             GeneratePoints();
         }
 
-        private void GeneratePoints()
+        //private void GeneratePoints()
+        //{
+        //    Points = new()
+        //    {
+        //        new XPoint(X1, Y1),
+        //        new XPoint(X2, Y2)
+        //    };
+
+        //    NominalPoints = Points.Select(p => new XPoint(p.X, p.Y)).ToList();
+        //}
+
+
+
+
+
+
+        private void UpdatePointsAfterTransform()
         {
-            Points = new()
-            {
-                new XPoint(X1, Y1),
-                new XPoint(X2, Y2)
-            };
+            Points = new List<XPoint>
+        {
+            new XPoint(X1, Y1),
+            new XPoint(X2, Y2)
+        };
+
+            NominalPoints = new List<XPoint>
+        {
+            new XPoint(X1, Y1),
+            new XPoint(X2, Y2)
+        };
+        }
+
+        public void GeneratePoints()
+        {
+            // Wywołaj EnforceLineType TYLKO gdy generujemy punkty od nowa
+            EnforceLineType();
+
+            Points = new List<XPoint>
+        {
+            new XPoint(X1, Y1),
+            new XPoint(X2, Y2)
+        };
 
             NominalPoints = Points.Select(p => new XPoint(p.X, p.Y)).ToList();
         }
 
-        private void EnforceLineType()
+
+
+
+
+        public void EnforceLineType()
         {
             if (RuchomySlupek)
                 X2 = X1;
@@ -160,6 +198,7 @@ namespace GEORGE.Client.Pages.Models
             Y2 = Y2 * scale + offsetY;
 
             GeneratePoints();
+            UpdatePointsAfterTransform();
             UpdateSize();
         }
 
@@ -172,6 +211,7 @@ namespace GEORGE.Client.Pages.Models
             Y2 = Y2 * scaleY + offsetY;
 
             GeneratePoints();
+            UpdatePointsAfterTransform();
             UpdateSize();
         }
 

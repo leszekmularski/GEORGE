@@ -232,6 +232,9 @@
             <Tooltip Placement="@Placement.BottomCenter" Title="Wylicz ilość farby do malowania">
                 <Button Icon="@IconType.Fill.Compass" Type="reset" OnClick="@(WyliczIloscFarby)" />
             </Tooltip>
+            <Tooltip Placement="@Placement.BottomCenter" Title="Sprawdź ilość sztang">
+                <Button Icon="@IconType.Fill.Calculator" Type="reset" OnClick="@(WyliczIloscSztang)" />
+            </Tooltip>
             <Tooltip Placement="@Placement.BottomCenter" Style="width: 50px;" Title="Ilość widocznych rekordów">
                 <AntDesign.InputNumber TValue="int"
                 @bind-Value="_pageSize"
@@ -824,6 +827,34 @@
         }
 
         czekajNaWysWiad = false;
+    }
+
+    public async Task WyliczIloscSztang()
+    {
+        if (kantowkaDoZlecen != null)
+        {
+            int sumailoscSztuk = kantowkaDoZlecen.Sum(x => x.IloscSztuk);
+
+            var wykazPozycjiDoZlecenia = await Http.GetFromJsonAsync<List<PozDoZlecen>>($"api/PozWZleceniu/GetDaneDoZlecenia/{RowIdZlecenia}");
+
+            if (wykazPozycjiDoZlecenia != null && wykazPozycjiDoZlecenia.Count == 0)
+            {
+                _ = _notice.Info(new()
+                {
+                    Message = "Brak danych.",
+                    Description = $"Nie wyliczę ilości sztuk. Brak danych.",
+                    Placement = NotificationPlacement.BottomLeft
+                });
+                return;
+            }
+
+            int sumailoscSztukRama = wykazPozycjiDoZlecenia.Sum(x => x.IloscOkien) * 4;
+            int sumailoscSztukSkrzydlo = wykazPozycjiDoZlecenia.Sum(x => x.Iloscskrzydel) * 4;
+
+            // Wyświetl wynik
+            await ShowConfirmIcon(ConfirmIcon.Info, $"Suma sztuk sztang do produkcji wyliczona z listy cięć: {sumailoscSztuk} na podstawie ilości skrzydeł i ram: {sumailoscSztukRama + sumailoscSztukSkrzydlo}");
+        
+        }
     }
 
     public async Task WyliczIloscFarby()
