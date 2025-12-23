@@ -785,7 +785,7 @@
                 },
                 ProducenciPodwykonawcy = new ProducenciPodwykonawcy
                 {
-                    // Przypisz odpowiednie wartości dla właściwości ProducenciPodwykonawcy
+                // Przypisz odpowiednie wartości dla właściwości ProducenciPodwykonawcy
                     NazwaProducenta = "" // Przykładowa wartość
                 },
                 DodatkowaInformacja = "Dane z dnia" + DateTime.Now
@@ -1041,19 +1041,31 @@
         var file = e.File;
         if (file != null)
         {
-            var path = Path.GetTempFileName();
-            await using (var stream = file.OpenReadStream())
-            await using (var fileStream = new FileStream(path, FileMode.Create))
+            try
             {
-                await stream.CopyToAsync(fileStream);
+                var path = Path.GetTempFileName();
+                await using (var stream = file.OpenReadStream())
+                await using (var fileStream = new FileStream(path, FileMode.Create))
+                {
+                    await stream.CopyToAsync(fileStream);
+                }
+
+                pdfContent = PdfReaderService.ReadPdfTable(path);
+
+                zestawienie = PdfDataParserSz.ParsePdfDataSzyby(pdfContent);
+
+                StateHasChanged();
+
             }
-
-            pdfContent = PdfReaderService.ReadPdfTable(path);
-
-            zestawienie = PdfDataParserSz.ParsePdfDataSzyby(pdfContent);
-
-            StateHasChanged();
-
+            catch (Exception ex)
+            {
+                _ = _notice.Error(new()
+                    {
+                        Message = ex.Message,
+                        Description = ex.StackTrace,
+                        Placement = NotificationPlacement.BottomLeft
+                    });
+            }
         }
     }
 
