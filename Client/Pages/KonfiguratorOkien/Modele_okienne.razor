@@ -611,10 +611,11 @@
                                     <p><strong>Wierzchołki:</strong></p>
 
                                     <ul class="list-group list-group-flush">
-                                        @foreach (var p in ksztalt.Wierzcholki)
+                                        @for (int i = 0; i < ksztalt.Wierzcholki.Count; i++)
                                         {
+                                            var index = i + 1;
                                             <li class="list-group-item">
-                                                X: @(Math.Round(p.X, 3)), Y: @(Math.Round(p.Y, 3))
+                                                [@index] X: @(Math.Round(ksztalt.Wierzcholki[i].X, 3)), Y: @(Math.Round(ksztalt.Wierzcholki[i].Y, 3))
                                             </li>
                                         }
                                     </ul>
@@ -678,10 +679,12 @@
                                         else
                                         {
                                             <ul class="list-group list-group-flush">
-                                                @foreach (var p in region.Wierzcholki)
+                                                @for (int i = 0; i < region.Wierzcholki.Count; i++)
                                                 {
+                                                    var index = i + 1;
+
                                                     <li class="list-group-item">
-                                                        X: @(Math.Round(p.X, 3)), Y: @(Math.Round(p.Y, 3))
+                                                        [@index] X: @(Math.Round(region.Wierzcholki[i].X, 3)), Y: @(Math.Round(region.Wierzcholki[i].Y, 3))
                                                     </li>
                                                 }
                                             </ul>
@@ -857,10 +860,12 @@
                                         else
                                         {
                                             <ul class="list-group list-group-flush">
-                                                @foreach (var p in region.Wierzcholki)
+                                                @for (int i = 0; i < region.Wierzcholki.Count; i++)
                                                 {
+                                                    var index = i + 1;
+
                                                     <li class="list-group-item">
-                                                        X: @(Math.Round(p.X, 3)), Y: @(Math.Round(p.Y, 3))
+                                                        [@index] X: @(Math.Round(region.Wierzcholki[i].X, 3)), Y: @(Math.Round(region.Wierzcholki[i].Y, 3))
                                                     </li>
                                                 }
                                             </ul>
@@ -943,10 +948,12 @@
                                         else
                                         {
                                             <ul class="list-group list-group-flush">
-                                                @foreach (var p in region.Wierzcholki)
+                                                @for (int i = 0; i < region.Wierzcholki.Count; i++)
                                                 {
+                                                    var index = i + 1;
+
                                                     <li class="list-group-item">
-                                                        X: @p.X, Y: @p.Y
+                                                        [@index] X: @(Math.Round(region.Wierzcholki[i].X, 3)), Y: @(Math.Round(region.Wierzcholki[i].Y, 3))
                                                     </li>
                                                 }
                                             </ul>
@@ -1137,10 +1144,13 @@
 
         try
         {
-            if(constWlasciwosciOkna == null)
-                constWlasciwosciOkna = new ConstWlasciwosciOkna();
+            // if(constWlasciwosciOkna == null)
+            // {
+            //    constWlasciwosciOkna = new ConstWlasciwosciOkna();
+            // }
 
             Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
+
 
             // Sprawdź, czy skrypt JS został poprawnie załadowany
             var isScriptLoaded = await JS.InvokeAsync<bool>("eval", "typeof setCanvasRef === 'function'");
@@ -1214,15 +1224,15 @@
     {
         Console.WriteLine($"GenerujObrysPozZmianieWymiarow [ShapeService.Shapes] - {ShapeService.Shapes.Count()}");
 
+        if (constWlasciwosciOkna == null)
+            constWlasciwosciOkna = new ConstWlasciwosciOkna();
+
         double scaleX = constWlasciwosciOkna.Szerokosc / CanvasWidth;
         double scaleY = constWlasciwosciOkna.Wysokosc / CanvasHeight;
         double scale = Math.Min(scaleX, scaleY) / 2;
 
         scale = scale * 0.9;
         _currentScale = scale;
-
-        if (constWlasciwosciOkna == null)
-            constWlasciwosciOkna = new ConstWlasciwosciOkna();
 
         // ZAPAMIĘTAJ POPRZEDNIE WYMIARY
         double poprzedniaSzerokosc = constWlasciwosciOkna.Szerokosc;
@@ -1233,6 +1243,9 @@
         {
             constWlasciwosciOkna.Szerokosc = ShapeService._szerokosc;
             constWlasciwosciOkna.Wysokosc = ShapeService._wysokosc;
+
+            await PokazWlasciwosciOkna();
+
         }
 
         // OBLICZ SKALĘ ZMIANY
@@ -3712,7 +3725,7 @@
             sasiedzi = await ZnajdzSasiada(
                 linia,
                 _generatorStates.Values.ToList(),
-                katSzukaj,
+                (int)katSzukaj,
                 state.SlupekRuchomyPoLewejStronie,
                 state.SlupekRuchomyPoPrawejStronie,
                 state.IdRegion,
@@ -3868,7 +3881,7 @@
                 RowIdElementu = rowId,
                 RowIdSasiada = najlepszySasiad?.RowIdElementu ?? Guid.Empty,
                 RowIdRegionuSasiada = najlepszySasiad?.IdRegionu ?? "",
-                KatLinii = katSzukaj,
+                KatLinii = (int)katSzukaj,
                 OffsetBottom = 0,
                 OffsetTop = 0,
                 OffsetLeft = 0,
@@ -4024,7 +4037,7 @@
                 RowIdSasiadaStronaB = najlepszySasiadB?.RowIdElementu ?? Guid.Empty,
 
                 RowIdRegionuSasiada = najlepszySasiadA?.IdRegionu ?? "",
-                KatLinii = katSzukaj,
+                KatLinii = (int)katSzukaj,
                 OffsetBottom = 0,
                 OffsetTop = 0,
                 OffsetLeft = 0,
@@ -4312,6 +4325,11 @@
         return Math.Sqrt(dx * dx + dy * dy);
     }
 
+    // Przeciążenie dla XPoint
+    private static double OdlegloscPunktuOdOdcinka(XPoint p, XPoint a, XPoint b)
+    {
+        return OdlegloscPunktuOdOdcinka(p.X, p.Y, a.X, a.Y, b.X, b.Y);
+    }
 
     private static bool CzyPunktyRowneSlupek(XPoint p1, XPoint p2, double epsilon = 0.001)
     {
@@ -4605,26 +4623,24 @@
         return strona;
     }
 
-    public static int ObliczKatLinii(List<XPoint> linia)
+    private static double ObliczKatLinii(List<XPoint> linia)
     {
-        if (linia == null || linia.Count != 2)
+        if (linia == null || linia.Count < 2)
             return 0;
 
         var p1 = linia[0];
         var p2 = linia[1];
 
-        double dx = Math.Round(p2.X, 2) - Math.Round(p1.X, 2);
-        double dy = Math.Round(p2.Y, 2) - Math.Round(p1.Y, 2);
+        double dx = p2.X - p1.X;
+        double dy = p2.Y - p1.Y;
 
-        double angleRadians = Math.Atan2(dy, dx); // uwzględnia znak
-        double angleDegrees = angleRadians * (180.0 / Math.PI);
+        if (Math.Abs(dx) < 0.001 && Math.Abs(dy) < 0.001)
+            return 0;
 
-        if (angleDegrees < 0)
-            angleDegrees += 360; // zakres 0–360
+        double kat = Math.Atan2(dy, dx) * 180.0 / Math.PI;
+        kat = (kat + 360) % 360; // Normalizacja do 0-360
 
-        Console.WriteLine($"📐 ObliczKatLinii -> Kąt linii między punktami ({p1.X},{p1.Y}) i ({p2.X},{p2.Y}) wynosi {angleDegrees}°");
-
-        return (int)Math.Round(angleDegrees);
+        return kat;
     }
 
     public static Guid ZnajdzKonfiguracjeDlaLinii(
@@ -4796,7 +4812,6 @@
         bool szukajNieRownoleglych,
         double tolerancja)
     {
-
         Console.WriteLine($"🔍 ZnajdzSasiada start funkcji");
 
         var pasujace = new List<SasiadInfo>();
@@ -4805,7 +4820,6 @@
         if (linia == null || linia.Count != 2)
         {
             Console.WriteLine($"🔍 ZnajdzSasiada zmienna linia ma punktów: {(linia == null ? "linia ma wartość null" : linia.Count)}");
-
             return new List<SasiadInfo>
         {
             new SasiadInfo
@@ -4823,200 +4837,135 @@
         var p1 = linia[0];
         var p2 = linia[1];
 
-        // Obliczamy różnicę współrzędnych
+        // Obliczamy rzeczywisty kąt linii
         double dx = p2.X - p1.X;
         double dy = p2.Y - p1.Y;
-
-        // Kąt linii względem osi X
         double katLinii = Math.Atan2(dy, dx) * 180.0 / Math.PI;
-        katLinii = (katLinii + 360) % 180; // normalizacja do 0–180°
+        katLinii = (katLinii + 360) % 360; // normalizacja do 0–360°
 
-        double tmpkat = (kat + 360) % 360;
+        Console.WriteLine($"📐 ZnajdzSasiada -> Rzeczywisty kąt linii: {katLinii:F1}°, Parametr kat: {kat}°");
 
-        int katLiniiPionPoziom;
+        // 🔹 Określ typ linii z większą tolerancją
+        const double katTolerancja = 30.0; // Zwiększona tolerancja dla kątów skośnych
 
-        if (tmpkat >= 0 && tmpkat < 45)
+        bool jestPionowa = Math.Abs(katLinii - 90) <= katTolerancja || Math.Abs(katLinii - 270) <= katTolerancja;
+        bool jestPozioma = Math.Abs(katLinii) <= katTolerancja || Math.Abs(katLinii - 180) <= katTolerancja;
+        bool jestSkosna = !jestPionowa && !jestPozioma;
+
+        Console.WriteLine($"📐 ZnajdzSasiada -> Typ linii: Pionowa={jestPionowa}, Pozioma={jestPozioma}, Skośna={jestSkosna}");
+
+        // 🔹 Określ kierunek dla linii skośnych
+        string kierunekSkosny = "";
+        if (jestSkosna)
         {
-            katLiniiPionPoziom = 0;
-        }
-        else if (tmpkat >= 45 && tmpkat < 135)
-        {
-            katLiniiPionPoziom = 90;
-        }
-        else if (tmpkat >= 135 && tmpkat < 225)
-        {
-            katLiniiPionPoziom = 180;
-        }
-        else if (tmpkat >= 225 && tmpkat < 315)
-        {
-            katLiniiPionPoziom = 270;
-        }
-        else // kat >= 315
-        {
-            katLiniiPionPoziom = 0;
+            if (katLinii > 0 && katLinii < 90) kierunekSkosny = "LEWO_GORA_PRAWO_DOL";
+            else if (katLinii > 90 && katLinii < 180) kierunekSkosny = "LEWO_DOL_PRAWO_GORA";
+            else if (katLinii > 180 && katLinii < 270) kierunekSkosny = "PRAWO_DOL_LEWO_GORA";
+            else kierunekSkosny = "PRAWO_GORA_LEWO_DOL";
+
+            Console.WriteLine($"📐 ZnajdzSasiada -> Kierunek skośny: {kierunekSkosny}");
         }
 
-        Console.WriteLine($"📐 ZnajdzSasiada -> Kąt linii: {katLinii}°, Zaokrąglony do pion/poziom katLiniiPionPoziom: {katLiniiPionPoziom}° kat: {kat}");
+        var ileModelMaSlupkowStalych = wszystkieStany.SelectMany(s => s.ListaKwadratow.FindAll(x => x.BoolElementLinia)).Count();
 
-        const double katTolerancja = 15.0; // możesz dopasować np. 10–20 stopni
-
-        bool jestPionowa = Math.Abs(katLinii - 90.0) <= katTolerancja;
-        bool jestPozioma = katLinii <= katTolerancja || Math.Abs(katLinii - 180.0) <= katTolerancja;
-
-
-        var ileModelMaSlupkowStalych = wszystkieStany.SelectMany(s => s.ListaKwadratow.FindAll(x=>x.BoolElementLinia)).Count();
-
-        Console.WriteLine($"🔍 ZnajdzSasiada -> Szukam sąsiada dla linii o kącie {kat}° w regionie {obecnyRegionId} oraz wszystkieStany.Count: {wszystkieStany.Count()} ileModelMaSlupkowStalych: {ileModelMaSlupkowStalych} ruchomySlupekPoLewej: {ruchomySlupekPoLewej} ruchomySlupekPoPrawej: {ruchomySlupekPoPrawej}");
-
+        Console.WriteLine($"🔍 ZnajdzSasiada -> Szukam sąsiada dla linii o kącie {kat}° w regionie {obecnyRegionId}");
 
         var stanyDoPrzeszukania = wszystkieStany
-            .Where(s => s.WierzcholkiWartosciNominalne != null && s.Id != id)// sprwdź słupki stałe  && !s.IdRegion.Contains(obecnyRegionId)
+            .Where(s => s.WierzcholkiWartosciNominalne != null && s.Id != id)
             .OrderByDescending(s => s.Id)
             .ToList();
 
         foreach (var stan in stanyDoPrzeszukania)
         {
-            Console.WriteLine($"🔍 ZnajdzSasiada -> Wyszuakne stanyDoPrzeszukania pozycja kąt: {kat} IdRegion: {stan.IdRegion}, Id: {stan.Id} ElementLiniowy: {stan.ElementLiniowy} WybranyModel.NazwaKonfiguracji: {stan.WybranyModel.NazwaKonfiguracji}");
-        } 
-
-        Console.WriteLine($"🔍 ZnajdzSasiada -> Szukam stanyDoPrzeszukania.Count: {stanyDoPrzeszukania.Count()} ileModelMaSlupkowStalych: {ileModelMaSlupkowStalych}");
-
-        foreach (var stan in stanyDoPrzeszukania)
-        {
-
-            Console.WriteLine($"🔍 ZnajdzSasiada -> Sprawdzam stan IdRegion: {stan.IdRegion}, Id: {stan.Id} ElementLiniowy: {stan.ElementLiniowy}");
+            Console.WriteLine($"🔍 ZnajdzSasiada -> Sprawdzam stan IdRegion: {stan.IdRegion}, Id: {stan.Id}");
 
             var wierzcholki = stan.WierzcholkiWartosciNominalne!;
             var linieStanu = ExtractLinesFromSquare(wierzcholki);
 
-            double stanMinX = wierzcholki.Min(p => p.X);
-            double stanMaxX = wierzcholki.Max(p => p.X);
-            double stanMinY = wierzcholki.Min(p => p.Y);
-            double stanMaxY = wierzcholki.Max(p => p.Y);
-
             foreach (var innaLinia in linieStanu)
             {
                 if (innaLinia.Count != 2) continue;
+
                 var q1 = innaLinia[0];
                 var q2 = innaLinia[1];
 
                 // 🔹 Obliczamy kąt sąsiada
-                double katSasiada = Math.Atan2(q2.Y - q1.Y, q2.X - q1.X) * 180.0 / Math.PI;
-                double katNormalny = ((katSasiada % 180) + 180) % 180;
-                double katLinia = ((kat % 180) + 180) % 180;
+                double dx2 = q2.X - q1.X;
+                double dy2 = q2.Y - q1.Y;
+                double katSasiada = Math.Atan2(dy2, dx2) * 180.0 / Math.PI;
+                katSasiada = (katSasiada + 360) % 360;
 
-                Console.WriteLine($"🔍 ZnajdzSasiada -> #1 ({katNormalny} - {katLinia}) < 44.0");
-                // 🔹 Odrzuć równoległe jeśli szukamy nie równoległych
-                if (szukajNieRownoleglych && Math.Abs(katNormalny - katLinia) < 44.0)
-                    continue;
+                // 🔹 Normalizujemy kąty do zakresu 0-180 dla porównania (linie mają 2 kierunki)
+                double katLiniiNorm = katLinii % 180;
+                double katSasiadaNorm = katSasiada % 180;
 
-                bool przecinajaSie = false;
-                bool nakladaja = false;
+                Console.WriteLine($"🔍 Porównanie: Linia={katLiniiNorm:F1}°, Sąsiad={katSasiadaNorm:F1}°");
+
+                // 🔹 Sprawdź czy linie są równoległe (lub przeciwnie skierowane)
+                bool saRownolegle = Math.Abs(katLiniiNorm - katSasiadaNorm) < 15.0 ||
+                                   Math.Abs(katLiniiNorm - katSasiadaNorm - 180) < 15.0 ||
+                                   Math.Abs(katLiniiNorm - katSasiadaNorm + 180) < 15.0;
+
+                bool przecinajaSie = CzyPrzecinajaSie(p1, p2, q1, q2, tolerancja);
+                bool nakladaja = CzyNakladajaSieDowolne(p1, p2, q1, q2, tolerancja, kat);
+
+                Console.WriteLine($"🔍 Warunki: Równoległe={saRownolegle}, Przecinają={przecinajaSie}, Nakładają={nakladaja}");
+
+                // 🔹 Logika wyboru sąsiada
+                bool czyDodac = false;
 
                 if (szukajNieRownoleglych)
                 {
-                    // ✅ Szukamy tylko przecięć
-                    przecinajaSie = CzyPrzecinajaSie(p1, p2, q1, q2, tolerancja);
-                    if (!przecinajaSie)
-                        continue;
-
-                    Console.WriteLine($"🔍 ZnajdzSasiada -> #1 przecinajaSie z regionem {stan.IdRegion} katSasiada: {katSasiada} katNormalny: {katNormalny} katLinia: {katLinia}");
+                    // Szukamy przecinających się (np. dla słupka stałego)
+                    czyDodac = przecinajaSie && !saRownolegle;
                 }
                 else
                 {
-                    // ✅ Klasyczny przypadek – równoległe linie
-                    nakladaja = CzyNakladajaSieDowolne(p1, p2, q1, q2, tolerancja, kat);
-                    if (!nakladaja)
-                        continue;
+                    // Szukamy równoległych (standardowo)
+                    czyDodac = saRownolegle && nakladaja;
 
-                    Console.WriteLine($"🔍 ZnajdzSasiada -> #1 nakładają się z regionem {stan.IdRegion} katSasiada: {katSasiada} katNormalny: {katNormalny} katLinia: {katLinia} jestPionowa: {jestPionowa} szukajNieRownoleglych: {szukajNieRownoleglych}");
+                    // Dla linii skośnych rozszerzamy kryteria
+                    if (jestSkosna && !saRownolegle && przecinajaSie)
+                    {
+                        czyDodac = true;
+                    }
                 }
 
-                // 🔹 Jeśli doszliśmy tutaj, to mamy sąsiada
+                if (!czyDodac) continue;
+
+                // 🔹 Znaleziono sąsiada - dodaj do listy
                 var konfLista = stan.MVCKonfModelu?.KonfSystem;
-                if (konfLista == null)
-                {
-                    Console.WriteLine($"🔍 ZnajdzSasiada -> #1 Brak konfiguracji systemu dla stanu IdRegion: {stan.IdRegion}, Id: {stan.Id}");
-                    continue; 
-                }
+                if (konfLista == null) continue;
 
                 foreach (var konf in konfLista)
                 {
-                    if (jestPionowa)
+                    // 🔹 Dla linii skośnych wybieramy wszystkie pasujące konfiguracje
+                    if (jestSkosna)
                     {
-                        double srodekRegionuX = (stanMinX + stanMaxX) / 2;
-
-                        if (szukajNieRownoleglych)
+                        pasujace.Add(new SasiadInfo
                         {
-                            // 👇 W trybie przecinających dodajemy niezależnie od X
-                            pasujace.Add(new SasiadInfo
-                            {
-                                RowIdElementu = konf.RowId,
-                                IdRegionu = stan.IdRegion,
-                                ZIndeks = stan.ZIndeks,
-                                MaSlupekRuchomy = czyModelMaSlupekRuchomy,
-                                Id = stan.Id,
-                                WybranyTyp = konf.Typ ?? "BRAK",
-                                KatSasiada = (int)katSasiada, 
-                                WystepujeGora = konf.WystepujeGora,
-                                WystepujeDol = konf.WystepujeDol,
-                                WystepujeLewa = konf.WystepujeLewa,
-                                WystepujePrawa = konf.WystepujePrawa
-                            });
+                            RowIdElementu = konf.RowId,
+                            IdRegionu = stan.IdRegion,
+                            ZIndeks = stan.ZIndeks,
+                            MaSlupekRuchomy = czyModelMaSlupekRuchomy,
+                            Id = stan.Id,
+                            WybranyTyp = konf.Typ ?? "BRAK",
+                            KatSasiada = (int)katSasiada,
+                            WystepujeGora = konf.WystepujeGora,
+                            WystepujeDol = konf.WystepujeDol,
+                            WystepujeLewa = konf.WystepujeLewa,
+                            WystepujePrawa = konf.WystepujePrawa,
+                            JestSkosna = true,
+                            KierunekSkosny = kierunekSkosny
+                        });
 
-                            Console.WriteLine($"✅ ZnajdzSasiada Dodano przecinającego sąsiada w regionie {stan.IdRegion} kąt: {(int)katSasiada} jestPionowa: {jestPionowa} jestPozioma: {jestPozioma} szukajNieRownoleglych: {szukajNieRownoleglych}");
-                        }
-                        else
-                        {
-                            // 🔹 Standardowe sprawdzenie równoległych
-                            if (katLiniiPionPoziom == 270 && konf.WystepujeLewa)
-                            {
-                                pasujace.Add(new SasiadInfo
-                                {
-                                    RowIdElementu = konf.RowId,
-                                    IdRegionu = stan.IdRegion,
-                                    ZIndeks = stan.ZIndeks,
-                                    MaSlupekRuchomy = czyModelMaSlupekRuchomy,
-                                    Id = stan.Id,
-                                    WybranyTyp = konf.Typ ?? "BRAK",
-                                    KatSasiada = (int)katSasiada,
-                                    WystepujeGora = konf.WystepujeGora,
-                                    WystepujeDol = konf.WystepujeDol,
-                                    WystepujeLewa = konf.WystepujeLewa,
-                                    WystepujePrawa = konf.WystepujePrawa
-                                });
-
-                                Console.WriteLine($"✅ ZnajdzSasiada Dodano przecinającego sąsiada w regionie {stan.IdRegion} kąt: {(int)katSasiada} jestPionowa: {jestPionowa} jestPozioma: {jestPozioma} szukajNieRownoleglych: {szukajNieRownoleglych}");
-                            }
-
-                            Console.WriteLine($"🔍 ZnajdzSasiada #1 -> Sprawdzam prawą stronę p1.X: {p1.X} stanMaxX: {stanMaxX} tolerancja: {tolerancja} konf.WystepujePrawa: {konf.WystepujePrawa} katNormalny: {katNormalny} katLinia: {katLinia}");
-
-                            if (katLiniiPionPoziom == 90 && konf.WystepujePrawa)
-                            {
-                                pasujace.Add(new SasiadInfo
-                                {
-                                    RowIdElementu = konf.RowId,
-                                    IdRegionu = stan.IdRegion,
-                                    ZIndeks = stan.ZIndeks,
-                                    MaSlupekRuchomy = czyModelMaSlupekRuchomy,
-                                    Id = stan.Id,
-                                    WybranyTyp = konf.Typ ?? "BRAK",
-                                    KatSasiada = (int)katSasiada,
-                                    WystepujeGora = konf.WystepujeGora,
-                                    WystepujeDol = konf.WystepujeDol,
-                                    WystepujeLewa = konf.WystepujeLewa,
-                                    WystepujePrawa = konf.WystepujePrawa
-                                });
-
-                                Console.WriteLine($"✅ ZnajdzSasiada Dodano przecinającego sąsiada w regionie {stan.IdRegion} kąt: {(int)katSasiada} jestPionowa: {jestPionowa} jestPozioma: {jestPozioma} szukajNieRownoleglych: {szukajNieRownoleglych}");
-                            }
-                        }
+                        Console.WriteLine($"✅ ZnajdzSasiada -> Dodano skośnego sąsiada: {stan.IdRegion}, Kąt: {katSasiada:F1}°, Typ: {konf.Typ}");
                     }
-                    else if (jestPozioma)
+                    else if (jestPionowa)
                     {
-                        if (szukajNieRownoleglych)
+                        // 🔹 Dla linii pionowych sprawdź strony
+                        if (Math.Abs(katLinii - 90) <= katTolerancja && konf.WystepujeLewa)
                         {
-                            // 👇 W trybie przecinających dodajemy niezależnie od Y
                             pasujace.Add(new SasiadInfo
                             {
                                 RowIdElementu = konf.RowId,
@@ -5031,71 +4980,79 @@
                                 WystepujeLewa = konf.WystepujeLewa,
                                 WystepujePrawa = konf.WystepujePrawa
                             });
-
-                            Console.WriteLine($"✅ ZnajdzSasiada Dodano przecinającego sąsiada w regionie {stan.IdRegion} kąt: {(int)katSasiada} jestPionowa: {jestPionowa} jestPozioma: {jestPozioma} szukajNieRownoleglych: {szukajNieRownoleglych}");
                         }
-                        else
+                        else if (Math.Abs(katLinii - 270) <= katTolerancja && konf.WystepujePrawa)
                         {
-                            // 🔹 Standardowe sprawdzenie równoległych
-                            if (katLiniiPionPoziom == 0 && konf.WystepujeGora)
+                            pasujace.Add(new SasiadInfo
                             {
-                                pasujace.Add(new SasiadInfo
-                                {
-                                    RowIdElementu = konf.RowId,
-                                    IdRegionu = stan.IdRegion,
-                                    ZIndeks = stan.ZIndeks,
-                                    MaSlupekRuchomy = czyModelMaSlupekRuchomy,
-                                    Id = stan.Id,
-                                    WybranyTyp = konf.Typ ?? "BRAK",
-                                    KatSasiada = (int)katSasiada,
-                                    WystepujeGora = konf.WystepujeGora,
-                                    WystepujeDol = konf.WystepujeDol,
-                                    WystepujeLewa = konf.WystepujeLewa,
-                                    WystepujePrawa = konf.WystepujePrawa
-                                });
-
-                                Console.WriteLine($"✅ ZnajdzSasiada Dodano przecinającego sąsiada w regionie {stan.IdRegion} kąt: {(int)katSasiada} jestPionowa: {jestPionowa} jestPozioma: {jestPozioma} szukajNieRownoleglych: {szukajNieRownoleglych}");
-                            }
-
-                            if (katLiniiPionPoziom == 180 && konf.WystepujeDol)
+                                RowIdElementu = konf.RowId,
+                                IdRegionu = stan.IdRegion,
+                                ZIndeks = stan.ZIndeks,
+                                MaSlupekRuchomy = czyModelMaSlupekRuchomy,
+                                Id = stan.Id,
+                                WybranyTyp = konf.Typ ?? "BRAK",
+                                KatSasiada = (int)katSasiada,
+                                WystepujeGora = konf.WystepujeGora,
+                                WystepujeDol = konf.WystepujeDol,
+                                WystepujeLewa = konf.WystepujeLewa,
+                                WystepujePrawa = konf.WystepujePrawa
+                            });
+                        }
+                    }
+                    else if (jestPozioma)
+                    {
+                        // 🔹 Dla linii poziomych sprawdź górę/dół
+                        if ((Math.Abs(katLinii) <= katTolerancja || Math.Abs(katLinii - 360) <= katTolerancja) && konf.WystepujeGora)
+                        {
+                            pasujace.Add(new SasiadInfo
                             {
-                                pasujace.Add(new SasiadInfo
-                                {
-                                    RowIdElementu = konf.RowId,
-                                    IdRegionu = stan.IdRegion,
-                                    ZIndeks = stan.ZIndeks,
-                                    MaSlupekRuchomy = czyModelMaSlupekRuchomy,
-                                    Id = stan.Id,
-                                    WybranyTyp = konf.Typ ?? "BRAK",
-                                    KatSasiada = (int)katSasiada,
-                                    WystepujeGora = konf.WystepujeGora,
-                                    WystepujeDol = konf.WystepujeDol,
-                                    WystepujeLewa = konf.WystepujeLewa,
-                                    WystepujePrawa = konf.WystepujePrawa
-                                });
-
-                                Console.WriteLine($"✅ ZnajdzSasiada Dodano przecinającego sąsiada w regionie {stan.IdRegion} kąt: {(int)katSasiada} jestPionowa: {jestPionowa} jestPozioma: {jestPozioma} szukajNieRownoleglych: {szukajNieRownoleglych}");
-                            }
+                                RowIdElementu = konf.RowId,
+                                IdRegionu = stan.IdRegion,
+                                ZIndeks = stan.ZIndeks,
+                                MaSlupekRuchomy = czyModelMaSlupekRuchomy,
+                                Id = stan.Id,
+                                WybranyTyp = konf.Typ ?? "BRAK",
+                                KatSasiada = (int)katSasiada,
+                                WystepujeGora = konf.WystepujeGora,
+                                WystepujeDol = konf.WystepujeDol,
+                                WystepujeLewa = konf.WystepujeLewa,
+                                WystepujePrawa = konf.WystepujePrawa
+                            });
+                        }
+                        else if (Math.Abs(katLinii - 180) <= katTolerancja && konf.WystepujeDol)
+                        {
+                            pasujace.Add(new SasiadInfo
+                            {
+                                RowIdElementu = konf.RowId,
+                                IdRegionu = stan.IdRegion,
+                                ZIndeks = stan.ZIndeks,
+                                MaSlupekRuchomy = czyModelMaSlupekRuchomy,
+                                Id = stan.Id,
+                                WybranyTyp = konf.Typ ?? "BRAK",
+                                KatSasiada = (int)katSasiada,
+                                WystepujeGora = konf.WystepujeGora,
+                                WystepujeDol = konf.WystepujeDol,
+                                WystepujeLewa = konf.WystepujeLewa,
+                                WystepujePrawa = konf.WystepujePrawa
+                            });
                         }
                     }
                 }
             }
-
         }
 
-        // 🔹 Zwracanie wyniku
-
-
+        // 🔹 Filtracja wyników
         List<SasiadInfo> wynik = pasujace.OrderBy(p => p.Id).ToList();
 
-        if (wynik.Count > 1 && wynik.Any(x => x.ZIndeks == 1) && wynik.Any(x => x.KatSasiada == kat))
+        // 🔹 Priorytet dla słupków stałych
+        if (wynik.Count > 1 && wynik.Any(x => x.ZIndeks == 1))
         {
-            // 🔹 Wyszukiwanie pierwszeństwo słupek stały ZIndeks == 1
             var wybrany = wynik.First(x => x.ZIndeks == 1);
             wynik = new List<SasiadInfo> { wybrany };
-            Console.WriteLine($"🔍 ZnajdzSasiada -> Wybrano sąsiada ze ZIndeks == 1 w regionie {wybrany.IdRegionu} Kąt: {kat}");
+            Console.WriteLine($"🔍 ZnajdzSasiada -> Wybrano sąsiada ze ZIndeks == 1");
         }
 
+        // 🔹 Brak wyników - zwróć pustego sąsiada
         if (!wynik.Any())
         {
             wynik.Add(new SasiadInfo
@@ -5106,31 +5063,28 @@
                 Id = -1,
                 MaSlupekRuchomy = false,
                 WybranyTyp = "BRAK-PASUJACEGO-SASIADA",
-                KatSasiada = kat
+                KatSasiada = kat,
+                JestSkosna = jestSkosna,
+                KierunekSkosny = kierunekSkosny
             });
 
-            if(SelectedModelType != "Rama")//Rama nie ma sąsiadów
+            if (SelectedModelType != "Rama")
             {
-                if (infoObiekt == null)
-                {
-                    infoObiekt = new List<WyrobWymiaryOpis>();
-                }
+                if (infoObiekt == null) infoObiekt = new List<WyrobWymiaryOpis>();
 
-                WyrobWymiaryOpis opisy = new WyrobWymiaryOpis(constWlasciwosciOkna.Szerokosc, constWlasciwosciOkna.Wysokosc, SelectedModelType ?? "", $"Nie wyszukano połączenia dla ementów w pozycji (kąt elementu): {kat}°");
-                infoObiekt.Add(opisy);
+                string typLinii = jestSkosna ? "skośna" : (jestPionowa ? "pionowa" : "pozioma");
+                infoObiekt.Add(new WyrobWymiaryOpis(
+                    constWlasciwosciOkna.Szerokosc,
+                    constWlasciwosciOkna.Wysokosc,
+                    SelectedModelType ?? "",
+                    $"Nie wyszukano połączenia dla elementu {typLinii} w pozycji (kąt): {kat}°"));
             }
-
         }
 
-        foreach (var sasiad in wynik)
-        {
-            Console.WriteLine($"🔍 ZnajdzSasiada -> Wyszukano sąsiadów IdRegionu={sasiad.IdRegionu}, RowId={sasiad.RowIdElementu}, ZIndeks={sasiad.ZIndeks}, Typ={sasiad.WybranyTyp} Kąt sąsiada: {sasiad.KatSasiada} sasiad.WystepujeGora:{sasiad.WystepujeGora} sasiad.WystepujeDol: {sasiad.WystepujeDol}");
-        }
+        Console.WriteLine($"🔍 ZnajdzSasiada -> Znaleziono {wynik.Count} sąsiadów");
 
         await Task.CompletedTask;
-
         return wynik;
-
     }
 
     private bool CzyPunktyRowne(XPoint p1, XPoint p2, double tolerancja)
@@ -5161,7 +5115,7 @@
     }
 
     // 🔹 Sprawdza, czy dwie linie się przecinają
-    private bool CzyPrzecinajaSie(XPoint p1, XPoint p2, XPoint q1, XPoint q2, double tolerancja)
+    private static bool CzyPrzecinajaSie(XPoint p1, XPoint p2, XPoint q1, XPoint q2, double tolerancja)
     {
         double d1 = ObliczKierunek(q1, q2, p1);
         double d2 = ObliczKierunek(q1, q2, p2);
@@ -5175,65 +5129,29 @@
         if (krzyzujaSie)
             return true;
 
-        // 🔹 Dodatkowo: traktujemy jako "przecinają się" jeśli styka się końcami lub jest w tolerancji
+        // 🔹 Dodatkowo: traktujemy jako "przecinają się" jeśli styka się końcami
         if (Math.Abs(d1) < tolerancja && PunktNaOdcinku(p1, q1, q2, tolerancja)) return true;
         if (Math.Abs(d2) < tolerancja && PunktNaOdcinku(p2, q1, q2, tolerancja)) return true;
         if (Math.Abs(d3) < tolerancja && PunktNaOdcinku(q1, p1, p2, tolerancja)) return true;
         if (Math.Abs(d4) < tolerancja && PunktNaOdcinku(q2, p1, p2, tolerancja)) return true;
 
-        // 🔹 Nowość: jeśli którykolwiek koniec jest "blisko" drugiego odcinka, też uznajemy za styczność
-        if (OdlegloscPunktuOdOdcinka(p1, q1, q2) < tolerancja) return true;
-        if (OdlegloscPunktuOdOdcinka(p2, q1, q2) < tolerancja) return true;
-        if (OdlegloscPunktuOdOdcinka(q1, p1, p2) < tolerancja) return true;
-        if (OdlegloscPunktuOdOdcinka(q2, p1, p2) < tolerancja) return true;
+        // 🔹 Jeśli którykolwiek koniec jest "blisko" drugiego odcinka
+        if (OdlegloscPunktuOdOdcinka(p1.X, p1.Y, q1.X, q1.Y, q2.X, q2.Y) < tolerancja) return true;
+        if (OdlegloscPunktuOdOdcinka(p2.X, p2.Y, q1.X, q1.Y, q2.X, q2.Y) < tolerancja) return true;
+        if (OdlegloscPunktuOdOdcinka(q1.X, q1.Y, p1.X, p1.Y, p2.X, p2.Y) < tolerancja) return true;
+        if (OdlegloscPunktuOdOdcinka(q2.X, q2.Y, p1.X, p1.Y, p2.X, p2.Y) < tolerancja) return true;
 
         return false;
     }
-
-    // 🔹 Pomocnicza funkcja do obliczania odległości punktu od odcinka
-    private double OdlegloscPunktuOdOdcinka(XPoint p, XPoint a, XPoint b)
-    {
-        double A = p.X - a.X;
-        double B = p.Y - a.Y;
-        double C = b.X - a.X;
-        double D = b.Y - a.Y;
-
-        double dot = A * C + B * D;
-        double len_sq = C * C + D * D;
-        double param = (len_sq != 0) ? dot / len_sq : -1;
-
-        double xx, yy;
-
-        if (param < 0)
-        {
-            xx = a.X;
-            yy = a.Y;
-        }
-        else if (param > 1)
-        {
-            xx = b.X;
-            yy = b.Y;
-        }
-        else
-        {
-            xx = a.X + param * C;
-            yy = a.Y + param * D;
-        }
-
-        double dx = p.X - xx;
-        double dy = p.Y - yy;
-        return Math.Sqrt(dx * dx + dy * dy);
-    }
-
-
     // 🔹 Pomocnicza funkcja obliczająca kierunek (iloczyn wektorowy)
-    private double ObliczKierunek(XPoint a, XPoint b, XPoint c)
+
+    private static double ObliczKierunek(XPoint a, XPoint b, XPoint c)
     {
         return (b.X - a.X) * (c.Y - a.Y) - (b.Y - a.Y) * (c.X - a.X);
     }
 
     // 🔹 Sprawdza, czy punkt leży na odcinku
-    private bool PunktNaOdcinku(XPoint p, XPoint a, XPoint b, double tolerancja)
+    private static bool PunktNaOdcinku(XPoint p, XPoint a, XPoint b, double tolerancja)
     {
         return p.X <= Math.Max(a.X, b.X) + tolerancja &&
                p.X >= Math.Min(a.X, b.X) - tolerancja &&
@@ -5243,54 +5161,145 @@
 
     private static bool CzyNakladajaSieDowolne(XPoint a1, XPoint a2, XPoint b1, XPoint b2, double tol = 0.02, int kat = 0)
     {
-        // 🔹 Wektor kierunkowy pierwszej linii
+        // 🔹 Oblicz długości linii
         double dxA = a2.X - a1.X;
         double dyA = a2.Y - a1.Y;
         double dlugoscA = Math.Sqrt(dxA * dxA + dyA * dyA);
 
-        // 🔹 Normalizacja
-        double ux = dxA / dlugoscA;
-        double uy = dyA / dlugoscA;
-
-        // 🔹 Wektor kierunkowy drugiej linii
         double dxB = b2.X - b1.X;
         double dyB = b2.Y - b1.Y;
         double dlugoscB = Math.Sqrt(dxB * dxB + dyB * dyB);
 
-        // 🔹 Oblicz kąt między liniami (równoległość)
-        double cosTheta = (dxA * dxB + dyA * dyB) / (dlugoscA * dlugoscB);
-        double katMiedzy = Math.Acos(Math.Min(1, Math.Max(-1, cosTheta))) * 180.0 / Math.PI;
+        if (dlugoscA < 0.001 || dlugoscB < 0.001)
+            return false; // linia zerowej długości
 
-        // Jeśli linie są zbyt skośne względem siebie → nie traktuj jako nakładające się
-        if (katMiedzy > 10.0 && katMiedzy < 170.0)
+        // 🔹 Oblicz kąt między liniami
+        double cosTheta = (dxA * dxB + dyA * dyB) / (dlugoscA * dlugoscB);
+
+        // Zabezpieczenie przed błędami numerycznymi
+        cosTheta = Math.Max(-1.0, Math.Min(1.0, cosTheta));
+
+        double katMiedzy = Math.Acos(cosTheta) * 180.0 / Math.PI;
+
+        Console.WriteLine($"🔍 CzyNakladajaSieDowolne -> Kąt linii A: {ObliczKatLinii(new List<XPoint> { a1, a2 }):F1}°, " +
+                         $"Kąt linii B: {ObliczKatLinii(new List<XPoint> { b1, b2 }):F1}°, Δkat={katMiedzy:F1}°");
+
+        // 🔹 DOPASOWANE WARUNKI DLA RÓŻNYCH TYPÓW LINII:
+
+        // 1. LINIE PROSTE (0°, 90°, 180°, 270°) - standardowa tolerancja
+        double katA = ObliczKatLinii(new List<XPoint> { a1, a2 });
+        double katB = ObliczKatLinii(new List<XPoint> { b1, b2 });
+
+        bool jestAProsta = Math.Abs(katA % 90) < 5.0; // Blisko 0, 90, 180, 270
+        bool jestBProsta = Math.Abs(katB % 90) < 5.0;
+
+        if (jestAProsta && jestBProsta)
         {
-            Console.WriteLine($"🚫 Linie nie są równoległe (Δkat={katMiedzy:F1}°)");
-            return false;
+            // Dla linii prostych - tradycyjne sprawdzanie
+            if (katMiedzy > 15.0 && katMiedzy < 165.0)
+            {
+                Console.WriteLine($"🚫 Linie proste nie są równoległe (Δkat={katMiedzy:F1}°)");
+                return false;
+            }
+
+            // Reszta logiki dla linii prostych...
+        }
+        else
+        {
+            // 2. LINIE SKOŚNE - większa tolerancja kąta
+            double tolerancjaKatSko = 45.0; // Dla skośnych akceptujemy większy rozrzut
+
+            // Normalizujemy kąty do zakresu 0-180
+            double katANorm = katA % 180;
+            double katBNorm = katB % 180;
+            double roznica = Math.Abs(katANorm - katBNorm);
+            if (roznica > 90) roznica = 180 - roznica;
+
+            Console.WriteLine($"🔍 Linia skośna A={katANorm:F1}°, B={katBNorm:F1}°, różnica={roznica:F1}°");
+
+            if (roznica > tolerancjaKatSko)
+            {
+                Console.WriteLine($"🚫 Linie skośne zbyt różne (Δ={roznica:F1}° > {tolerancjaKatSko}°)");
+                return false;
+            }
+
+            // Dla linii skośnych stosujemy inne kryteria nakładania
+            return CzyNakladajaSieSkośne(a1, a2, b1, b2, tol);
         }
 
-        // 🔹 Rzutujemy punkty B na kierunek linii A (sprawdzamy nakładanie się)
+        // 🔹 Wektor kierunkowy linii A
+        double ux = dxA / dlugoscA;
+        double uy = dyA / dlugoscA;
+
+        // 🔹 Rzutujemy punkty B na kierunek linii A
         double aMin = 0;
         double aMax = dlugoscA;
 
-        // odległość między punktami wzdłuż linii A
         double projB1 = ((b1.X - a1.X) * ux + (b1.Y - a1.Y) * uy);
         double projB2 = ((b2.X - a1.X) * ux + (b2.Y - a1.Y) * uy);
         double bMin = Math.Min(projB1, projB2);
         double bMax = Math.Max(projB1, projB2);
 
-        // 🔹 Odległość prostopadła między liniami (czy leżą blisko)
+        // 🔹 Odległość prostopadła między liniami
         double odleglosc = Math.Abs((b1.X - a1.X) * (-uy) + (b1.Y - a1.Y) * ux);
-        if (odleglosc > tol * 10) // większa tolerancja, bo kąty skośne
+
+        // Tolerancja zależna od typu linii
+        double maxOdleglosc = jestAProsta ? tol * 10 : tol * 50; // Większa dla skośnych
+
+        if (odleglosc > maxOdleglosc)
         {
-            Console.WriteLine($"🚫 Linie równoległe, ale odległość={odleglosc:F3} > tol={tol}");
+            Console.WriteLine($"🚫 Odległość={odleglosc:F3} > max={maxOdleglosc:F3}");
             return false;
         }
 
         // 🔹 Sprawdź nakładanie projekcji
         bool nakladaja = aMax >= bMin - tol && bMax >= aMin - tol;
 
-        Console.WriteLine($"🔍 CzyNakladajaSieDowolne -> Δkat={katMiedzy:F1}°, odległość={odleglosc:F3}, nakładają={nakladaja}");
+        // 🔹 Dodatkowe sprawdzenie dla skośnych - czy linie faktycznie się "dotykają"
+        if (!jestAProsta && !nakladaja)
+        {
+            // Sprawdź czy końce linii są blisko siebie
+            double odl1 = OdlegloscPunktuOdOdcinka(a1, b1, b2);
+            double odl2 = OdlegloscPunktuOdOdcinka(a2, b1, b2);
+            double odl3 = OdlegloscPunktuOdOdcinka(b1, a1, a2);
+            double odl4 = OdlegloscPunktuOdOdcinka(b2, a1, a2);
+
+            double minOdl = Math.Min(Math.Min(odl1, odl2), Math.Min(odl3, odl4));
+
+            if (minOdl < tol * 20)
+            {
+                Console.WriteLine($"✅ Linie skośne stykają się w odległości {minOdl:F3}");
+                nakladaja = true;
+            }
+        }
+
+        Console.WriteLine($"🔍 CzyNakladajaSieDowolne -> odległość={odleglosc:F3}, nakładają={nakladaja}");
         return nakladaja;
+    }
+
+    private static bool CzyNakladajaSieSkośne(XPoint a1, XPoint a2, XPoint b1, XPoint b2, double tol)
+    {
+        // 1. Sprawdź czy linie się przecinają
+        if (CzyPrzecinajaSie(a1, a2, b1, b2, tol * 10))
+        {
+            Console.WriteLine($"✅ Linie skośne się przecinają");
+            return true;
+        }
+    
+        // 2. Sprawdź czy końce są blisko siebie
+        double[] odleglosci = new double[]
+        {
+            OdlegloscPunktuOdOdcinka(a1, b1, b2),
+            OdlegloscPunktuOdOdcinka(a2, b1, b2),
+            OdlegloscPunktuOdOdcinka(b1, a1, a2),
+            OdlegloscPunktuOdOdcinka(b2, a1, a2)
+        };
+    
+        double minOdl = odleglosci.Min();
+        Console.WriteLine($"🔍 Linie skośne - min odległość końca: {minOdl:F3}");
+    
+        // Dla linii skośnych większa tolerancja
+        return minOdl < tol * 50;
     }
 
     private readonly struct Vector2D
@@ -5965,6 +5974,9 @@
         public bool WystepujeLewa { get; set; } = false;
         public bool WystepujeGora { get; set; } = false;
         public bool WystepujePrawa { get; set; } = false;
+
+        public bool JestSkosna { get; set; }
+        public string KierunekSkosny { get; set; } = "";
     }
 
     public class PrzesuniecieDto

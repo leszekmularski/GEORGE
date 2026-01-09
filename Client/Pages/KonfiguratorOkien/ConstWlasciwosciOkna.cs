@@ -12,7 +12,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         public MVCKonfModele? MVCKonfModelu { get; set; }
         public KonfModele? WybranyModel { get; set; } 
         public List<DaneKwadratu>? ListaKwadratow { get; set; }
-        public int Szerokosc { get; set; } = 1000;
+        public int Szerokosc { get; set; } = 1250;
         public int Wysokosc { get; set; } = 1000;
         public string KolorZewnetrzny { get; set; }
         public string KolorWewnetrzny { get; set; }

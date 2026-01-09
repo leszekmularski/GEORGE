@@ -57,8 +57,10 @@ namespace GEORGE.Client.Pages.Models
         private void CalculatePointsFromProperties()
         {
             Points = GenerateCompleteOutline();
+            NormalizeToPositiveQuadrant(); 
             NominalPoints = Points.Select(p => p.Clone()).ToList();
         }
+
 
         // ===========================
         // Oblicz środek łuku i kąty start/end
@@ -117,7 +119,7 @@ namespace GEORGE.Client.Pages.Models
                 double t = i / (double)segments;
                 double angle = startAngle + t * (endAngle - startAngle);
                 double x = arcCenterX + Radius * Math.Cos(angle);
-                double y = arcCenterY + Radius * Math.Sin(angle);
+                double y = arcCenterY - Radius * Math.Sin(angle); // odbicie osi Y
                 outline.Add(new XPoint(x, y));
             }
 
@@ -126,8 +128,32 @@ namespace GEORGE.Client.Pages.Models
             // Zamknięcie
             outline.Add(new XPoint(leftX, bottomY));
 
+            outline.Reverse();
+
             return outline;
         }
+
+        private void NormalizeToPositiveQuadrant()
+        {
+            if (Points == null || Points.Count == 0) return;
+
+            double minX = Points.Min(p => p.X);
+            double minY = Points.Min(p => p.Y);
+
+            double offsetX = minX < 0 ? -minX : 0;
+            double offsetY = minY < 0 ? -minY : 0;
+
+            // Przesuwamy wszystkie punkty
+            Points = Points.Select(p => new XPoint(p.X + offsetX, p.Y + offsetY)).ToList();
+
+            // Aktualizujemy też pozycję kształtu
+            X += offsetX;
+            Y += offsetY;
+
+            // Nominalne też odbijamy, żeby były spójne
+            NominalPoints = Points.Select(p => p.Clone()).ToList();
+        }
+
 
         // ===========================
         // Rysowanie Canvas
@@ -224,8 +250,8 @@ namespace GEORGE.Client.Pages.Models
 
             Width = Math.Max(10, Width);
             Height = Math.Max(10, Height);
-            Radius = Math.Max(5, Radius);
-            ArcHeight = Math.Max(5, ArcHeight);
+            Radius = Math.Max(5, Width / 2);
+            ArcHeight = Math.Max(5, Radius);
             ArcHeight = Math.Min(ArcHeight, Height);
 
             CalculatePointsFromProperties();

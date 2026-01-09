@@ -2,7 +2,6 @@
 using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.Models;
 using GEORGE.Shared.ViewModels;
-using System.Threading.Tasks;
 
 namespace GEORGE.Client.Pages.Okna
 {
@@ -383,7 +382,7 @@ namespace GEORGE.Client.Pages.Okna
 
                 if (sposobLaczeniaCzop)
                 {
-  
+
                     if (leftJoin == "T1" && isAlmostVertical)
                     {
                         dodajA = true;
@@ -492,6 +491,64 @@ namespace GEORGE.Client.Pages.Okna
                             // Normalne punkty wewnętrzne
                             var innerTop = GetHorizontalIntersection(outer[i], outer[next], (float)topY, 0);
                             var innerBottom = GetHorizontalIntersection(outer[i], outer[next], (float)bottomY, 0);
+
+                            wierzcholki = new List<XPoint> {
+                                outerTop, outerBottom, innerBottom, innerTop
+                            };
+                        }
+                        if (leftJoin == "T1" && rightJoin == "T1" && vertexCount > 4)
+                        {
+                            // Pionowy przypadek (np. boczne elementy w trapezie)
+                            var topY = Math.Min(inner[i].Y, inner[next].Y);
+                            var bottomY = Math.Max(inner[i].Y, inner[next].Y);
+
+                           // var topY2 = Math.Min(outer[i].Y, outer[next].Y);
+
+                            var y1Min = Math.Min(inner[i].Y, inner[next].Y);
+                            var y2Min = Math.Min(outer[i].Y, outer[next].Y);
+
+                            var x1Min = Math.Min(inner[i].X, inner[next].X);
+                            var x2Min = Math.Min(outer[i].X, outer[next].X);
+
+                            // Obliczanie wartości sinusa (stosunku)
+                            // 1. Obliczanie różnic między punktami (przyprostokątne)
+                            double roznicaY = Math.Abs(y1Min - y2Min); // W Twoim przypadku: 43,256...
+                            double roznicaX = Math.Abs(x1Min - x2Min); // W Twoim przypadku: 90.0
+
+                            // 2. Obliczanie kąta w radianach za pomocą Math.Atan2 (najbezpieczniejsza metoda)
+                            // Atan2 przyjmuje najpierw Y, potem X
+                            double katWRadianach = Math.Atan2(roznicaY, roznicaX);
+
+                            // 2. Podwajamy kąt bezpośrednio na radianach (to będzie nasze 51,34 stopnia)
+                            double podwojonyKatRadiany = katWRadianach * 2;
+
+                            // 3. Konwersja na stopnie
+                           // double katWStopniach = katWRadianach * (180.0 / Math.PI) * 2;
+
+                            // 4. Opcjonalnie: Obliczanie przeciwprostokątnej i kąta z sinusa (dla testu)
+                          //  double przeciwprostokatna = Math.Sqrt(roznicaX * roznicaX + roznicaY * roznicaY);
+                          //  double wartoscSinusa = roznicaY / przeciwprostokatna;
+                           // double katZAsinStopnie = Math.Asin(wartoscSinusa) * (180.0 / Math.PI);
+
+                            // Logowanie wyników
+                            //Console.WriteLine($"🔷 T1/T1 ELEMENT {i + 1}");
+                            //Console.WriteLine($"🔷 T1/T1   Różnica Y: {roznicaY} | Różnica X: {roznicaX}");
+                           // Console.WriteLine($"🔷 T1/T1   Obliczony kąt: {katWStopniach:F3}°"); // Wyświetli 25,67°
+                           // Console.WriteLine($"🔷 T1/T1   Weryfikacja z ASIN: {katZAsinStopnie:F3}°");
+
+                            double correctedLenght = roznicaX / Math.Tan(podwojonyKatRadiany);
+
+                            // 4. (Opcjonalnie) Kat w stopniach tylko do wyświetlania
+                         //   double katWStopniachDisplay = podwojonyKatRadiany * (180.0 / Math.PI);
+
+                           // Console.WriteLine($"🔷 T1/T1   Obliczony kąt: {katWStopniachDisplay:F3}° podwojonyKatRadiany: {podwojonyKatRadiany}");
+                           // Console.WriteLine($"🔷 T1/T1 correctedLenght: {correctedLenght:F3}");
+
+                            var outerTop = GetHorizontalIntersection(outerStart, outerEnd, (float)topY + (float)correctedLenght, 0);
+                            var outerBottom = GetHorizontalIntersection(outerStart, outerEnd, (float)bottomY, 0);
+
+                            var innerTop = GetHorizontalIntersection(inner[i], inner[next], (float)topY, 0);
+                            var innerBottom = GetHorizontalIntersection(inner[i], inner[next], (float)bottomY, 0);
 
                             wierzcholki = new List<XPoint> {
                                 outerTop, outerBottom, innerBottom, innerTop
@@ -722,7 +779,7 @@ namespace GEORGE.Client.Pages.Okna
                             double leftX = 0;
                             double rightX = 0;
 
-                            var IdWymTop = daneKwadratu.FirstOrDefault(s=> s.BoolElementLinia)?.RowIdSasiadaStronaA ?? Guid.Empty;
+                            var IdWymTop = daneKwadratu.FirstOrDefault(s => s.BoolElementLinia)?.RowIdSasiadaStronaA ?? Guid.Empty;
                             var IdWymBottom = daneKwadratu.FirstOrDefault(s => s.BoolElementLinia)?.RowIdSasiadaStronaB ?? Guid.Empty;
 
                             if (IdWymTop != Guid.Empty && IdWymBottom != Guid.Empty)
@@ -850,7 +907,7 @@ namespace GEORGE.Client.Pages.Okna
                                 Strona = stronaOpis,//Była Góra
                                 IndeksElementu = rowIndeksprofileTop,
                                 NazwaElementu = rowNazwaprofileTop,
-                                DlogoscElementu = bazowaDlugosc + ((dodajA ? profileLeft : 0) + (dodajB ? profileRight :0)),
+                                DlogoscElementu = bazowaDlugosc + ((dodajA ? profileLeft : 0) + (dodajB ? profileRight : 0)),
                                 DlogoscNaGotowoElementu = bazowaDlugosc
                             });
                         Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - 0 rowIdprofileTop:{rowIdprofileTop} Angle: {angleDegrees}°");
@@ -943,7 +1000,7 @@ namespace GEORGE.Client.Pages.Okna
                         Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - 3 rowIdprofileLeft:{rowIdprofileLeft} Angle: {angleDegrees}°");
                         if (ElementLiniowy) return;
                         break;
-                    case >3:
+                    case > 3:
                         Console.WriteLine($"▶️ Element case >3 for {i + 1}/{vertexCount} - stronaOpis: {stronaOpis}");
                         if (angleDegreesElementLionowy != angleDegrees && ElementLiniowy) break;
                         if (rowIdprofileLeft != Guid.Empty)
@@ -1017,7 +1074,7 @@ namespace GEORGE.Client.Pages.Okna
             XPoint? closest = null;
             float minDist = float.MaxValue;
 
-           // Console.WriteLine($"🔷 Finding first edge intersection from origin X:{origin.X} Y:{origin.Y} with direction dx:{dx}, dy:{dy}");
+            // Console.WriteLine($"🔷 Finding first edge intersection from origin X:{origin.X} Y:{origin.Y} with direction dx:{dx}, dy:{dy}");
 
             for (int i = 0; i < contour.Count; i++)
             {
@@ -1105,8 +1162,8 @@ namespace GEORGE.Client.Pages.Okna
         {
             int count = points.Count;
 
-            if(count>0)
-            Console.WriteLine($"🔷 Calculating offset polygon for {count} X:{points[0].X} Y:{points[0].Y} ElementLiniowy:{ElementLiniowy} points with profiles L:{profileLeft}, R:{profileRight}, T:{profileTop}, B:{profileBottom}");
+            if (count > 0)
+                Console.WriteLine($"🔷 Calculating offset polygon for {count} X:{points[0].X} Y:{points[0].Y} ElementLiniowy:{ElementLiniowy} points with profiles L:{profileLeft}, R:{profileRight}, T:{profileTop}, B:{profileBottom}");
 
             if (count < 2)
                 throw new ArgumentException("Figura musi mieć co najmniej 2 punkty.");
@@ -1234,7 +1291,7 @@ namespace GEORGE.Client.Pages.Okna
                 result.Add(intersection);
             }
 
-            foreach(var pt in result)
+            foreach (var pt in result)
             {
                 Console.WriteLine($"🔷 Calculated offset polygon point: X={pt.X}, Y={pt.Y}");
             }
