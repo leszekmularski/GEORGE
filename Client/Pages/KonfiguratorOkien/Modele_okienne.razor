@@ -4651,33 +4651,52 @@
         string obecnyRegionId,
         string typSlupka)
     {
-        if (linia == null || linia.Count != 2)
+        if (linia == null || linia.Count != 2 || stan?.WierzcholkiWartosciNominalne == null)
             return Guid.Empty;
 
         var p1 = linia[0];
         var p2 = linia[1];
 
-        // bool jestPionowa = Math.Abs(p1.X - p2.X) < 0.01;
-        // bool jestPozioma = Math.Abs(p1.Y - p2.Y) < 0.01;
-
-
-        // Oblicz orientację linii
+        // 🔹 Oblicz rzeczywisty kąt linii (0-360°)
         double dx = p2.X - p1.X;
         double dy = p2.Y - p1.Y;
         double katLinii = Math.Atan2(dy, dx) * 180.0 / Math.PI;
-        katLinii = (katLinii + 360) % 180;
+        katLinii = (katLinii + 360) % 360; // Normalizacja do 0-360
 
-        // Ustal tolerancję kierunku
-        const double katTolerancja = 15.0;
-        bool jestPionowa = Math.Abs(katLinii - 90.0) <= katTolerancja;
-        bool jestPozioma = katLinii <= katTolerancja || Math.Abs(katLinii - 180.0) <= katTolerancja;
+        Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii -> Kąt linii: {katLinii:F1}°");
+
+        // 🔹 Określ typ linii z większą tolerancją
+        const double katTolerancja = 30.0; // Zwiększona tolerancja
+
+        bool jestPionowa = Math.Abs(katLinii - 90) <= katTolerancja ||
+                          Math.Abs(katLinii - 270) <= katTolerancja;
+        bool jestPozioma = Math.Abs(katLinii) <= katTolerancja ||
+                          Math.Abs(katLinii - 180) <= katTolerancja ||
+                          Math.Abs(katLinii - 360) <= katTolerancja;
+        bool jestSkosna = !jestPionowa && !jestPozioma;
+
+        // 🔹 Określ kierunek (ważne dla skośnych)
+        string kierunek = "";
+        if (jestSkosna)
+        {
+            if (katLinii > 0 && katLinii < 90) kierunek = "LEWO_GORA_PRAWO_DOL";
+            else if (katLinii > 90 && katLinii < 180) kierunek = "LEWO_DOL_PRAWO_GORA";
+            else if (katLinii > 180 && katLinii < 270) kierunek = "PRAWO_DOL_LEWO_GORA";
+            else kierunek = "PRAWO_GORA_LEWO_DOL";
+        }
 
         double minX = stan.WierzcholkiWartosciNominalne.Min(v => v.X);
         double maxX = stan.WierzcholkiWartosciNominalne.Max(v => v.X);
         double minY = stan.WierzcholkiWartosciNominalne.Min(v => v.Y);
         double maxY = stan.WierzcholkiWartosciNominalne.Max(v => v.Y);
-        double tolerancja = 1.0; // np. 1 mm
 
+        // 🔹 Oblicz środki dynamicznie
+        double srodekX = (minX + maxX) / 2;
+        double srodekY = (minY + maxY) / 2;
+
+        // 🔹 Tolerancja procentowa (np. 5% wymiarów)
+        double tolerancjaX = (maxX - minX) * 0.05;
+        double tolerancjaY = (maxY - minY) * 0.05;
 
         if (stan?.MVCKonfModelu?.KonfSystem == null)
             return Guid.Empty;
@@ -4685,63 +4704,103 @@
         string slLewa = slRuchStroLewa ? typSlupka : "";
         string slPrawa = slRuchStroPrawa ? typSlupka : "";
 
-        Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii -> typ: {typSlupka}" +
-                          $" jestPionowa: {jestPionowa}, jestPozioma: {jestPozioma}, " +
-                          $"slLewa: {slLewa}, slPrawa: {slPrawa}");
+        Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii -> Typ: {typSlupka}, " +
+                          $"Pionowa: {jestPionowa}, Pozioma: {jestPozioma}, Skośna: {jestSkosna}, " +
+                          $"Kierunek: {kierunek}, Środek X: {srodekX:F1}, Y: {srodekY:F1}");
+
+        // 🔹 DLA LINII SKOŚNYCH - specjalna logika
+        if (jestSkosna)
+        {
+            Console.WriteLine($"🔍 Linia skośna -> potrzeba specjalnej logiki dla kąta {katLinii:F1}°");
+
+            // Dla linii skośnych można zastosować różne strategie:
+            // 1. Szukaj konfiguracji dla obu kierunków
+            // 2. Wybierz na podstawie orientacji
+            // 3. Użyj specjalnych konfiguracji dla skośnych
+
+            // Przykład: jeśli linia idzie z lewego górnego do prawego dolnego
+            if (kierunek == "LEWO_GORA_PRAWO_DOL")
+            {
+                // Może być traktowana jako "lewa" lub "górna" w zależności od kontekstu
+                foreach (var konf in stan.MVCKonfModelu.KonfSystem)
+                {
+                    if (konf.WystepujeLewa || konf.WystepujeGora)
+                    {
+                        Console.WriteLine($"✅ [Skośna] {kierunek} -> {konf.RowId} Typ:{konf.Typ}");
+                        return konf.RowId;
+                    }
+                }
+            }
+            // Dodaj inne przypadki dla różnych kierunków...
+        }
 
         Guid znaleziony = Guid.Empty;
+
+        // 🔹 DLA LINII PIONOWYCH/POZIOMYCH - oryginalna logika z poprawkami
 
         // 1️⃣ Najpierw próba z uwzględnieniem słupka
         foreach (var konf in stan.MVCKonfModelu.KonfSystem)
         {
-            Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii -> typ: {konf.Typ} - wartość w pętli");
-
-            if (jestPionowa )
+            if (jestPionowa)
             {
-                if (Math.Abs(p1.X - minX) < tolerancja && konf.WystepujeLewa &&
-                    !string.IsNullOrEmpty(slLewa) && konf.Typ.Contains(slLewa))
+                // 🔹 Sprawdź czy linia jest blisko lewej krawędzi
+                if (Math.Abs(p1.X - minX) < tolerancjaX && konf.WystepujeLewa)
                 {
-                    Console.WriteLine($"✅ [Słupkowy] Lewa -> {konf.RowId} Typ:{konf.Typ} Nazwa:{konf.Nazwa}");
-                    return konf.RowId;
+                    bool czyPasujeDoSlupka = string.IsNullOrEmpty(slLewa) ||
+                                            konf.Typ.Contains(slLewa) ||
+                                            (!string.IsNullOrEmpty(typSlupka) && konf.Typ.Contains(typSlupka));
+
+                    if (czyPasujeDoSlupka)
+                    {
+                        Console.WriteLine($"✅ [Słupkowy] Lewa -> {konf.RowId} Typ:{konf.Typ}");
+                        return konf.RowId;
+                    }
                 }
 
-                if (Math.Abs(p1.X - maxX) < tolerancja && konf.WystepujePrawa &&
-                    !string.IsNullOrEmpty(slPrawa) && konf.Typ.Contains(slPrawa))
+                // 🔹 Sprawdź czy linia jest blisko prawej krawędzi
+                if (Math.Abs(p1.X - maxX) < tolerancjaX && konf.WystepujePrawa)
                 {
-                    Console.WriteLine($"✅ [Słupkowy] Prawa -> {konf.RowId} Typ:{konf.Typ} Nazwa:{konf.Nazwa}");
-                    return konf.RowId;
+                    bool czyPasujeDoSlupka = string.IsNullOrEmpty(slPrawa) ||
+                                            konf.Typ.Contains(slPrawa) ||
+                                            (!string.IsNullOrEmpty(typSlupka) && konf.Typ.Contains(typSlupka));
+
+                    if (czyPasujeDoSlupka)
+                    {
+                        Console.WriteLine($"✅ [Słupkowy] Prawa -> {konf.RowId} Typ:{konf.Typ}");
+                        return konf.RowId;
+                    }
                 }
             }
             else if (jestPozioma)
             {
-                if (p1.Y < 5 && konf.WystepujeGora)
+                // 🔹 Sprawdź czy linia jest blisko górnej krawędzi
+                if (Math.Abs(p1.Y - minY) < tolerancjaY && konf.WystepujeGora)
                 {
-                    Console.WriteLine($"✅ [Słupkowy] Góra -> {konf.RowId} Typ:{konf.Typ} Nazwa:{konf.Nazwa}");
+                    Console.WriteLine($"✅ [Słupkowy] Góra -> {konf.RowId} Typ:{konf.Typ}");
                     return konf.RowId;
                 }
 
-                if (p1.Y > 75 && konf.WystepujeDol)
+                // 🔹 Sprawdź czy linia jest blisko dolnej krawędzi
+                if (Math.Abs(p1.Y - maxY) < tolerancjaY && konf.WystepujeDol)
                 {
-                    Console.WriteLine($"✅ [Słupkowy] Dół -> {konf.RowId} Typ:{konf.Typ} Nazwa:{konf.Nazwa}");
+                    Console.WriteLine($"✅ [Słupkowy] Dół -> {konf.RowId} Typ:{konf.Typ}");
                     return konf.RowId;
                 }
             }
         }
 
-        // 2️⃣ Jeśli nie znaleziono — próba bez słupka
+        // 2️⃣ Jeśli nie znaleziono — szukaj bez słupka
         foreach (var konf in stan.MVCKonfModelu.KonfSystem)
         {
             if (jestPionowa)
             {
-                if (p1.X < 5 && konf.WystepujeLewa &&
-                    (string.IsNullOrEmpty(slLewa) || !konf.Typ.Contains(typSlupka)))
+                if (Math.Abs(p1.X - minX) < tolerancjaX && konf.WystepujeLewa)
                 {
                     Console.WriteLine($"✅ [Bez słupka] Lewa -> {konf.RowId} Typ:{konf.Typ}");
                     return konf.RowId;
                 }
 
-                if (p1.X > 85 && konf.WystepujePrawa &&
-                    (string.IsNullOrEmpty(slPrawa) || !konf.Typ.Contains(typSlupka)))
+                if (Math.Abs(p1.X - maxX) < tolerancjaX && konf.WystepujePrawa)
                 {
                     Console.WriteLine($"✅ [Bez słupka] Prawa -> {konf.RowId} Typ:{konf.Typ}");
                     return konf.RowId;
@@ -4749,13 +4808,13 @@
             }
             else if (jestPozioma)
             {
-                if (p1.Y < 5 && konf.WystepujeGora)
+                if (Math.Abs(p1.Y - minY) < tolerancjaY && konf.WystepujeGora)
                 {
                     Console.WriteLine($"✅ [Bez słupka] Góra -> {konf.RowId} Typ:{konf.Typ}");
                     return konf.RowId;
                 }
 
-                if (p1.Y > 75 && konf.WystepujeDol)
+                if (Math.Abs(p1.Y - maxY) < tolerancjaY && konf.WystepujeDol)
                 {
                     Console.WriteLine($"✅ [Bez słupka] Dół -> {konf.RowId} Typ:{konf.Typ}");
                     return konf.RowId;
@@ -4763,41 +4822,31 @@
             }
         }
 
-        // 3️⃣ Jeśli dalej nic — bierzemy pierwszą pasującą stronę
+        // 3️⃣ Fallback - pierwsza pasująca konfiguracja
         foreach (var konf in stan.MVCKonfModelu.KonfSystem)
         {
-            if (jestPionowa)
+            if (jestPionowa && (konf.WystepujeLewa || konf.WystepujePrawa))
             {
-                if (p1.X < 5 && konf.WystepujeLewa)
-                {
-                    Console.WriteLine($"✅ [Fallback] Lewa -> {konf.RowId} Typ:{konf.Typ}");
-                    return konf.RowId;
-                }
-
-                if (p1.X > 85 && konf.WystepujePrawa)
-                {
-                    Console.WriteLine($"✅ [Fallback] Prawa -> {konf.RowId} Typ:{konf.Typ}");
-                    return konf.RowId;
-                }
+                Console.WriteLine($"✅ [Fallback] -> {konf.RowId} Typ:{konf.Typ}");
+                return konf.RowId;
             }
-            else if (jestPozioma)
-            {
-                if (p1.Y < 5 && konf.WystepujeGora)
-                {
-                    Console.WriteLine($"✅ [Fallback] Góra -> {konf.RowId} Typ:{konf.Typ}");
-                    return konf.RowId;
-                }
 
-                if (p1.Y > 75 && konf.WystepujeDol)
-                {
-                    Console.WriteLine($"✅ [Fallback] Dół -> {konf.RowId} Typ:{konf.Typ}");
-                    return konf.RowId;
-                }
+            if (jestPozioma && (konf.WystepujeGora || konf.WystepujeDol))
+            {
+                Console.WriteLine($"✅ [Fallback] -> {konf.RowId} Typ:{konf.Typ}");
+                return konf.RowId;
+            }
+
+            if (jestSkosna)
+            {
+                // Dla skośnych akceptujemy dowolną konfigurację
+                Console.WriteLine($"✅ [Fallback skośna] -> {konf.RowId} Typ:{konf.Typ}");
+                return konf.RowId;
             }
         }
 
         Console.WriteLine("❌ ZnajdzKonfiguracjeDlaLinii -> Nie znaleziono konfiguracji.");
-        return znaleziony;
+        return Guid.Empty;
     }
 
     public async Task<List<SasiadInfo>> ZnajdzSasiada(

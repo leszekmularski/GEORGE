@@ -512,8 +512,8 @@ namespace GEORGE.Client.Pages.Okna
 
                             // Obliczanie wartości sinusa (stosunku)
                             // 1. Obliczanie różnic między punktami (przyprostokątne)
-                            double roznicaY = Math.Abs(y1Min - y2Min); // W Twoim przypadku: 43,256...
-                            double roznicaX = Math.Abs(x1Min - x2Min); // W Twoim przypadku: 90.0
+                            double roznicaY = Math.Abs(y1Min - y2Min); 
+                            double roznicaX = Math.Abs(x1Min - x2Min); 
 
                             // 2. Obliczanie kąta w radianach za pomocą Math.Atan2 (najbezpieczniejsza metoda)
                             // Atan2 przyjmuje najpierw Y, potem X
@@ -522,29 +522,51 @@ namespace GEORGE.Client.Pages.Okna
                             // 2. Podwajamy kąt bezpośrednio na radianach (to będzie nasze 51,34 stopnia)
                             double podwojonyKatRadiany = katWRadianach * 2;
 
-                            // 3. Konwersja na stopnie
-                           // double katWStopniach = katWRadianach * (180.0 / Math.PI) * 2;
-
-                            // 4. Opcjonalnie: Obliczanie przeciwprostokątnej i kąta z sinusa (dla testu)
-                          //  double przeciwprostokatna = Math.Sqrt(roznicaX * roznicaX + roznicaY * roznicaY);
-                          //  double wartoscSinusa = roznicaY / przeciwprostokatna;
-                           // double katZAsinStopnie = Math.Asin(wartoscSinusa) * (180.0 / Math.PI);
-
-                            // Logowanie wyników
-                            //Console.WriteLine($"🔷 T1/T1 ELEMENT {i + 1}");
-                            //Console.WriteLine($"🔷 T1/T1   Różnica Y: {roznicaY} | Różnica X: {roznicaX}");
-                           // Console.WriteLine($"🔷 T1/T1   Obliczony kąt: {katWStopniach:F3}°"); // Wyświetli 25,67°
-                           // Console.WriteLine($"🔷 T1/T1   Weryfikacja z ASIN: {katZAsinStopnie:F3}°");
 
                             double correctedLenght = roznicaX / Math.Tan(podwojonyKatRadiany);
 
-                            // 4. (Opcjonalnie) Kat w stopniach tylko do wyświetlania
-                         //   double katWStopniachDisplay = podwojonyKatRadiany * (180.0 / Math.PI);
-
-                           // Console.WriteLine($"🔷 T1/T1   Obliczony kąt: {katWStopniachDisplay:F3}° podwojonyKatRadiany: {podwojonyKatRadiany}");
-                           // Console.WriteLine($"🔷 T1/T1 correctedLenght: {correctedLenght:F3}");
 
                             var outerTop = GetHorizontalIntersection(outerStart, outerEnd, (float)topY + (float)correctedLenght, 0);
+                            var outerBottom = GetHorizontalIntersection(outerStart, outerEnd, (float)bottomY, 0);
+
+                            var innerTop = GetHorizontalIntersection(inner[i], inner[next], (float)topY, 0);
+                            var innerBottom = GetHorizontalIntersection(inner[i], inner[next], (float)bottomY, 0);
+
+                            wierzcholki = new List<XPoint> {
+                                outerTop, outerBottom, innerBottom, innerTop
+                            };
+                        }
+                        else if (leftJoin == "T1" && rightJoin == "T1" && vertexCount  == 3)
+                        {
+                            // Pionowy przypadek (np. boczne elementy w trapezie)
+                            var topY = Math.Min(inner[i].Y, inner[next].Y);
+                            var bottomY = Math.Max(inner[i].Y, inner[next].Y);
+
+                            // var topY2 = Math.Min(outer[i].Y, outer[next].Y);
+
+                            var y1Min = Math.Min(inner[i].Y, inner[next].Y);
+                            var y2Min = Math.Min(outer[i].Y, outer[next].Y);
+
+                            var x1Min = Math.Min(inner[i].X, inner[next].X);
+                            var x2Min = Math.Min(outer[i].X, outer[next].X);
+
+                            // Obliczanie wartości sinusa (stosunku)
+                            // 1. Obliczanie różnic między punktami (przyprostokątne)
+                            double roznicaY = Math.Abs(y1Min - y2Min);
+                            double roznicaX = Math.Abs(x1Min - x2Min);
+
+                            // 2. Obliczanie kąta w radianach za pomocą Math.Atan2 (najbezpieczniejsza metoda)
+                            // Atan2 przyjmuje najpierw Y, potem X
+                            double katWRadianach = Math.Atan2(roznicaY, roznicaX);
+
+                            // 2. Podwajamy kąt bezpośrednio na radianach (to będzie nasze 51,34 stopnia)
+                            double podwojonyKatRadiany = katWRadianach * 2;
+
+
+                            double correctedLenght = roznicaX / Math.Tan(podwojonyKatRadiany);
+
+
+                            var outerTop = GetHorizontalIntersection(outerStart, outerEnd, (float)y2Min, 0);
                             var outerBottom = GetHorizontalIntersection(outerStart, outerEnd, (float)bottomY, 0);
 
                             var innerTop = GetHorizontalIntersection(inner[i], inner[next], (float)topY, 0);
