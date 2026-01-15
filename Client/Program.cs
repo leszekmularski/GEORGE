@@ -39,6 +39,8 @@ builder.Services.AddScoped<ImageGenerator>();
 builder.Services.AddSingleton<ShapeTransferService>();
 builder.Services.AddSingleton<GeneratorStateContainer>();
 
+builder.Services.AddHighlightJS();
+
 // Globalizacja
 AppContext.SetSwitch("System.Globalization.Invariant", true);
 

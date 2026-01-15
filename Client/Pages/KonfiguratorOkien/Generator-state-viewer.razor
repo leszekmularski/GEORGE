@@ -1,101 +1,1486 @@
-﻿@using System.Text.Json
+﻿@page "/generator-states"
+@using System.Text.Json
 @using GEORGE.Client.Pages.Models
+@using System.Text.Encodings.Web
+@using System.Text.Json.Serialization
+@using GEORGE.Shared.ViewModels
+@inject IJSRuntime JSRuntime
+@using Blazor.HighlightJS
 
-<h3 class="mb-0">📋 Lista zapisanych pojedynczych modeli okien</h3>
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 
-@if (StateContainer?.States is null || StateContainer.States.Count == 0)
-{
-    <p class="text-muted">Brak zapisanych stanów generatora.</p>
-}
-else
-{
-    <table class="table table-bordered table-striped">
-        <thead class="table-light">
-            <tr>
-                <th>#</th>
-                <th>IdRegion</th>
-                <th>ZIndeks</th>
-                <th>RowIdSystemu</th>
-                <th>RowIdModelu</th>
-                <th>WybranyModel</th>
-                <th>WybranyKształt / Czy rama</th>
-             @*    <th>Ilość konfiguracji (wszystkie)</th> *@
-                <th>Punkty regionu</th>
-                <th>Szczegóły</th>
-            </tr>
-        </thead>
-        <tbody>
-            @{
-                var index = 0;
-                foreach (var entry in StateContainer.States)
-                {
-                    <tr>
-                        <td>@(++index)</td>
-                        <td>@entry.Value.IdRegion</td>
-                        <td>@entry.Value.ZIndeks</td>
-                        <td>@entry.Value.RowIdSystemu</td>
-                        <td>@entry.Value.RowIdModelu</td>
-                        <td>@entry.Value.WybranyModel?.NazwaKonfiguracji</td>
-                        <td>@entry.Value.WybranyKsztalt / @entry.Value.CzyElementJestRama</td>
+<!-- HighlightJS z dobrym theme -->
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark-dimmed.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/json.min.js"></script>
 
-                        @if (entry.Value.WierzcholkiWartosciNominalne is not null && entry.Value.WierzcholkiWartosciNominalne.Any())
-                        {
-                            <div>
-                                <p><strong>Wartości nominalne:</strong></p>
-                                <ul>
-                                    @for (int i = 0; i < entry.Value.WierzcholkiWartosciNominalne.Count; i++)
-                                    {
-                                        var point = entry.Value.WierzcholkiWartosciNominalne[i];
-                                        <li><strong>P @i:</strong> X: @Math.Round(point.X, 2), Y: @Math.Round(point.Y, 2)</li>
-                                    }
-                                </ul>
+<PageTitle>Stany Generatora Okien - GEORGE</PageTitle>
+
+<div class="container-fluid py-3">
+    <!-- Nagłówek -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">
+                <i class="bi bi-window me-2"></i> Stany Generatora Okien
+            </h1>
+            <p class="text-muted mb-0">Przeglądaj i analizuj zapisane stany generatora pojedynczych modeli okien</p>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary" @onclick="EksportujWszystkie" title="Eksportuj wszystkie">
+                <i class="bi bi-download me-1"></i> Eksportuj
+            </button>
+            <button class="btn btn-outline-secondary" @onclick="Odswiez" title="Odśwież">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Statystyki -->
+    @if (StateContainer?.States != null && StateContainer.States.Count > 0)
+    {
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="bi bi-collection fs-1"></i>
                             </div>
+                            <div>
+                                <h5 class="card-title mb-0">@StateContainer.States.Count</h5>
+                                <p class="card-text mb-0">Wszystkich stanów</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="bi bi-square fs-1"></i>
+                            </div>
+                            <div>
+                                <h5 class="card-title mb-0">@GetLiczbaRam()</h5>
+                                <p class="card-text mb-0">Stanów ram</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="bi bi-border-width fs-1"></i>
+                            </div>
+                            <div>
+                                <h5 class="card-title mb-0">@GetLiczbaSkrzydel()</h5>
+                                <p class="card-text mb-0">Stanów skrzydeł</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-dark">
+                    <div class="card-body py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="bi bi-geo-alt fs-1"></i>
+                            </div>
+                            <div>
+                                <h5 class="card-title mb-0">@GetLiczbaWszystkichPunktow()</h5>
+                                <p class="card-text mb-0">Wszystkich punktów</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Filtry i wyszukiwanie -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" placeholder="Szukaj po nazwie..." 
+                               @bind="filtrTekst" @bind:event="oninput" />
+                        @if (!string.IsNullOrEmpty(filtrTekst))
+                        {
+                            <button class="btn btn-outline-secondary" type="button" @onclick="() => filtrTekst = string.Empty">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" @bind="filtrTyp">
+                        <option value="">Wszystkie typy</option>
+                        <option value="Rama">Ramy</option>
+                        <option value="Skrzydlo">Skrzydła</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" @bind="filtrKształt">
+                        <option value="">Wszystkie kształty</option>
+                        <option value="prostokat">Prostokąt</option>
+                        <option value="trapez">Trapez</option>
+                        <option value="trojkat">Trójkąt</option>
+                        <option value="okrag">Okrąg</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Główna tabela -->
+    @if (StateContainer?.States is null || StateContainer.States.Count == 0)
+    {
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-inbox fs-1 text-muted mb-3"></i>
+                <h4 class="text-muted">Brak zapisanych stanów generatora</h4>
+                <p class="text-muted">Dodaj nowe stany, aby je tutaj zobaczyć.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        var filtrowaneStany = GetFiltrowaneStany();
+
+        @if (filtrowaneStany.Count == 0)
+        {
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-search fs-1 text-muted mb-3"></i>
+                    <h4 class="text-muted">Brak wyników spełniających kryteria</h4>
+                    <p class="text-muted">Spróbuj zmienić filtry wyszukiwania.</p>
+                    <button class="btn btn-primary" @onclick="WyczyśćFiltry">
+                        <i class="bi bi-x-circle me-1"></i> Wyczyść filtry
+                    </button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">
+                            <i class="bi bi-table me-2"></i> Lista stanów
+                            <span class="badge bg-primary ms-2">@filtrowaneStany.Count / @StateContainer.States.Count</span>
+                        </h5>
+                    </div>
+                    <div class="text-muted small">
+                        @if (filtrowaneStany.Count != StateContainer.States.Count)
+                        {
+                            <span>Filtrowanie aktywne</span>
+                        }
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="50px" class="text-center">#</th>
+                                    <th width="100px">ID</th>
+                                    <th>Region</th>
+                                    <th>Typ</th>
+                                    <th>Model</th>
+                                    <th>Kształt</th>
+                                    <th>Wymiary</th>
+                                    <th>Punkty</th>
+                                    <th width="140px" class="text-center">Akcje</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{
+                                    var index = 0;
+                                    foreach (var entry in filtrowaneStany)
+                                    {
+                                        <tr class="@(entry.Value.Id == wybranyStan?.Id ? "table-active" : "")">
+                                            <td class="text-center fw-bold">@(++index)</td>
+                                            <td>
+                                                <code class="small">@entry.Value.Id</code>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <small class="text-muted d-block">Region:</small>
+                                                    <span class="small">@entry.Value.IdRegion?.ToString()</span>
+                                                </div>
+                                                <div>
+                                                    <small class="text-muted">Z: @entry.Value.ZIndeks</small>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge @(entry.Value.CzyElementJestRama ? "bg-warning text-dark" : "bg-info")">
+                                                    @(entry.Value.CzyElementJestRama ? "Rama" : "Skrzydło")
+                                                </span>
+                                            </td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(entry.Value.WybranyModel?.NazwaKonfiguracji))
+                                                {
+                                                    <div class="fw-semibold" title="@entry.Value.WybranyModel.NazwaKonfiguracji">
+                                                        @GetSkroconaNazwa(entry.Value.WybranyModel.NazwaKonfiguracji, 30)
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted fst-italic">brak nazwy</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary">
+                                                    @entry.Value.WybranyKsztalt
+                                                </span>
+                                            </td>
+                                            <td>
+                                                @if (entry.Value.WierzcholkiWartosciNominalne != null && entry.Value.WierzcholkiWartosciNominalne.Count >= 2)
+                                                {
+                                                    var minX = entry.Value.WierzcholkiWartosciNominalne.Min(p => p.X);
+                                                    var maxX = entry.Value.WierzcholkiWartosciNominalne.Max(p => p.X);
+                                                    var minY = entry.Value.WierzcholkiWartosciNominalne.Min(p => p.Y);
+                                                    var maxY = entry.Value.WierzcholkiWartosciNominalne.Max(p => p.Y);
+                                                    
+                                                    <div class="small">
+                                                        <div>W: @Math.Round(maxX - minX, 1)</div>
+                                                        <div>H: @Math.Round(maxY - minY, 1)</div>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (entry.Value.WierzcholkiWartosciNominalne != null)
+                                                {
+                                                    <button class="btn btn-sm btn-outline-info" 
+                                                            @onclick="@(() => PokazPunkty(entry.Value.WierzcholkiWartosciNominalne, $"Punkty - Stan #{index}"))"
+                                                            title="Pokaż punkty">
+                                                        <i class="bi bi-geo-alt"></i> @entry.Value.WierzcholkiWartosciNominalne.Count
+                                                    </button>
+                                                }
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <button class="btn btn-outline-primary" 
+                                                            @onclick="@(() => PokazSzczegoly(entry.Value))"
+                                                            title="Pokaż szczegóły">
+                                                        <i class="bi bi-eye"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-secondary" 
+                                                            @onclick="@(() => KopiujDoSchowka(entry.Value))"
+                                                            title="Kopiuj JSON">
+                                                        <i class="bi bi-clipboard"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-danger" 
+                                                            @onclick="@(() => UsunStan(entry.Value))"
+                                                            title="Usuń stan">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                @if (filtrowaneStany.Count > 5)
+                {
+                    <div class="card-footer bg-light">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted small">
+                                Wyświetlono @filtrowaneStany.Count stanów
+                            </div>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="ScrollDoGory">
+                                <i class="bi bi-arrow-up"></i> Do góry
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+
+    <!-- Modal z punktami -->
+    @if (punktyWidoczne && wybranePunkty != null)
+    {
+        <div class="modal-backdrop fade show" style="opacity: 0.5;" @onclick="ZamknijPunkty"></div>
+        <div class="modal fade show d-block" tabindex="-1" @onclick="ZamknijPunkty">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content" @onclick:stopPropagation>
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">
+                            <i class="bi bi-geo-alt me-2"></i> @tytulPunktow
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" @onclick="ZamknijPunkty"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th width="80px">Punkt</th>
+                                        <th>X</th>
+                                        <th>Y</th>
+                                        <th>Typ</th>
+                                        <th>Odległość od poprzedniego</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (int i = 0; i < wybranePunkty.Count; i++)
+                                    {
+                                        var point = wybranePunkty[i];
+                                        double? distance = null;
+
+                                        if (i > 0)
+                                        {
+                                            var prevPoint = wybranePunkty[i - 1];
+                                            distance = Math.Sqrt(
+                                            Math.Pow(point.X - prevPoint.X, 2) +
+                                            Math.Pow(point.Y - prevPoint.Y, 2));
+                                        }
+
+                                        <tr>
+                                            <td><span class="badge bg-primary">P @i</span></td>
+                                            <td><code>@Math.Round(point.X, 2)</code></td>
+                                            <td><code>@Math.Round(point.Y, 2)</code></td>
+                                            <td>
+                                                @if (i < 4)
+                                                {
+                                                    <span class="badge bg-info">Nominalny</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">Dodatkowy</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (distance.HasValue)
+                                                {
+                                                    <span class="badge bg-success">@Math.Round(distance.Value, 2)</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="ZamknijPunkty">
+                            <i class="bi bi-x-lg me-1"></i> Zamknij
+                        </button>
+                        <button type="button" class="btn btn-primary" @onclick="KopiujPunktyDoSchowka">
+                            <i class="bi bi-clipboard me-1"></i> Kopiuj punkty
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    
+    <!-- Modal potwierdzenia usunięcia -->
+    @if (pokazModalUsuwania && stanDoUsuniecia != null)
+    {
+        <div class="modal-backdrop fade show" style="opacity: 0.5;"></div>
+        <div class="modal fade show d-block" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">
+                            <i class="bi bi-exclamation-triangle me-2"></i> Potwierdź usunięcie
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" @onclick="AnulujUsuwanie"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Czy na pewno chcesz usunąć stan generatora?</p>
+                        <div class="alert alert-warning">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>ID:</strong> @stanDoUsuniecia.Id<br>
+                            <strong>Region:</strong> @stanDoUsuniecia.IdRegion<br>
+                            <strong>Typ:</strong> @(stanDoUsuniecia.CzyElementJestRama ? "Rama" : "Skrzydło")
+                        </div>
+                        <p class="text-muted">Tej operacji nie można cofnąć.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="AnulujUsuwanie">
+                            <i class="bi bi-x-lg me-1"></i> Anuluj
+                        </button>
+                        <button type="button" class="btn btn-danger" @onclick="PotwierdzUsuniecie">
+                            <i class="bi bi-trash me-1"></i> Usuń
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Panel szczegółów -->
+    @if (szczegolyWidoczne && wybranyStan != null)
+    {
+        <div class="json-panel card shadow-lg border-2 mt-4" style="border-color: #0d6efd;" id="szczegoly-panel">
+            <div class="card-header text-white d-flex justify-content-between align-items-center py-2" 
+                 style="background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-code-slash me-2 fs-5"></i>
+                    <div>
+                        <strong class="fs-6">Szczegóły Stanu Generatora</strong>
+                        <div class="small opacity-90">
+                            <span class="badge bg-light text-dark me-2">ID: @wybranyStan.Id</span>
+                            <span class="badge @(wybranyStan.CzyElementJestRama ? "bg-warning text-dark" : "bg-info") me-2">
+                                @(wybranyStan.CzyElementJestRama ? "Rama" : "Skrzydło")
+                            </span>
+                            <span class="badge bg-light text-dark">@wybranyStan.WybranyKsztalt</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-light" @onclick="ToggleWidokSzczegolowy" 
+                            title="@(pokazWidokSzczegolowy ? "Pokaż JSON" : "Pokaż widok szczegółowy")">
+                        <i class="bi @(pokazWidokSzczegolowy ? "bi-code-slash" : "bi-layout-split")"></i>
+                    </button>
+                    <button class="btn btn-sm btn-light" @onclick="ToggleMotyw" title="Zmień motyw">
+                        <i class="bi @(ciemnyMotyw ? "bi-sun" : "bi-moon-stars")"></i>
+                    </button>
+                    <button class="btn btn-sm btn-light" @onclick="KopiujObecnyJson" title="Kopiuj JSON">
+                        <i class="bi bi-clipboard"></i>
+                    </button>
+                    <button class="btn btn-sm btn-light" @onclick="ToggleRozwinJson" title="@(rozwinJson ? "Zwiń" : "Rozwiń")">
+                        <i class="bi @(rozwinJson ? "bi-arrows-angle-contract" : "bi-arrows-angle-expand")"></i>
+                    </button>
+                    <button class="btn btn-sm btn-light" @onclick="@(() => szczegolyWidoczne = false)" title="Zamknij">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+            
+            @if (pokazWidokSzczegolowy)
+            {
+                <!-- WIDOK SZCZEGÓŁOWY -->
+                <div class="card-body p-0">
+                    <div class="json-toolbar px-3 py-2 d-flex justify-content-between align-items-center"
+                         style="background-color: @(ciemnyMotyw ? "#2d2d2d" : "#f8f9fa"); 
+                                border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="@(ciemnyMotyw ? "text-light" : "text-dark") fw-semibold">
+                                <i class="bi bi-layout-split me-1"></i> Widok szczegółowy
+                            </span>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-sm @(aktywnaZakladka == 0 ? "btn-primary" : "btn-outline-primary")" 
+                                    @onclick="() => aktywnaZakladka = 0">
+                                <i class="bi bi-grid-3x3-gap me-1"></i> Kwadraty
+                            </button>
+                            <button class="btn btn-sm @(aktywnaZakladka == 1 ? "btn-primary" : "btn-outline-primary")" 
+                                    @onclick="() => aktywnaZakladka = 1">
+                                <i class="bi bi-geo-alt me-1"></i> Punkty
+                            </button>
+                            <button class="btn btn-sm @(aktywnaZakladka == 2 ? "btn-primary" : "btn-outline-primary")" 
+                                    @onclick="() => aktywnaZakladka = 2">
+                                <i class="bi bi-puzzle me-1"></i> Elementy
+                            </button>
+                            <button class="btn btn-sm @(aktywnaZakladka == 3 ? "btn-primary" : "btn-outline-primary")" 
+                                    @onclick="() => aktywnaZakladka = 3">
+                                <i class="bi bi-info-circle me-1"></i> Podsumowanie
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="json-content @(rozwinJson ? "expanded" : "")"
+                         style="max-height: @(rozwinJson ? "80vh" : "500px");
+                                background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;
+                                padding: 20px;">
+                        
+                        @if (aktywnaZakladka == 0 && wybranyStan?.ListaKwadratow != null)
+                        {
+                            <!-- WIDOK KWADRATÓW -->
+                            <div class="geometry-view">
+                                <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-4">
+                                    <i class="bi bi-grid-3x3-gap me-2"></i>
+                                    Lista Kwadratów (@wybranyStan.ListaKwadratow.Count)
+                                </h5>
+                                
+                                <div class="row">
+                                    @foreach (var kwadrat in wybranyStan.ListaKwadratow)
+                                    {
+                                        <div class="col-md-6 mb-3">
+                                            <div class="card h-100 @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
+                                                <div class="card-header d-flex justify-content-between align-items-center 
+                                                            @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
+                                                    <div>
+                                                        <span class="badge @GetStronaBadgeClass(kwadrat.Strona)">
+                                                            @GetStronaIcon(kwadrat.Strona) @kwadrat.Strona?.ToUpper()
+                                                        </span>
+                                                        <span class="ms-2 badge bg-info">Kąt: @kwadrat.KatLinii°</span>
+                                                    </div>
+                                                    <div>
+                                                        <small class="text-muted">@kwadrat.RowIdElementu.ToString()</small>
+                                                    </div>
+                                                </div>
+                                                <div class="card-body">
+                                                    <h6 class="@(ciemnyMotyw ? "text-light" : "text-dark") small">
+                                                        <i class="bi bi-geo-alt me-1"></i> Wierzchołki:
+                                                    </h6>
+                                                    @if (kwadrat.Wierzcholki != null && kwadrat.Wierzcholki.Any())
+                                                    {
+                                                        <div class="table-responsive">
+                                                            <table class="table table-sm @(ciemnyMotyw ? "table-dark" : "") mb-3">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th>Pt</th>
+                                                                        <th>X</th>
+                                                                        <th>Y</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    @for (int i = 0; i < kwadrat.Wierzcholki.Count; i++)
+                                                                    {
+                                                                        var punkt = kwadrat.Wierzcholki[i];
+                                                                        <tr>
+                                                                            <td><span class="badge bg-primary">@i</span></td>
+                                                                            <td><code>@Math.Round(punkt.X, 1)</code></td>
+                                                                            <td><code>@Math.Round(punkt.Y, 1)</code></td>
+                                                                        </tr>
+                                                                    }
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    }
+                                                    
+                                                    <div class="properties-grid small">
+                                                        <div class="property">
+                                                            <span class="property-label">Offset:</span>
+                                                            <span class="property-value">
+                                                                T:@kwadrat.OffsetTop B:@kwadrat.OffsetBottom 
+                                                                L:@kwadrat.OffsetLeft R:@kwadrat.OffsetRight
+                                                            </span>
+                                                        </div>
+                                                        <div class="property">
+                                                            <span class="property-label">Obramowanie:</span>
+                                                            <span class="property-value">
+                                                                <span class="badge bg-warning text-dark">
+                                                                    @kwadrat.GruboscObramowania px
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                        <div class="property">
+                                                            <span class="property-label">Z-Index:</span>
+                                                            <span class="property-value">@kwadrat.ZIndex</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        else if (aktywnaZakladka == 1)
+                        {
+                            <!-- WIDOK PUNKTÓW -->
+                            <div class="vertices-view">
+                                <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-4">
+                                    <i class="bi bi-pin-map me-2"></i>
+                                    Wszystkie Punkty
+                                </h5>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border") h-100">
+                                            <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light") d-flex justify-content-between">
+                                                <div>
+                                                    <i class="bi bi-geo me-2"></i> Podstawowe
+                                                </div>
+                                                <span class="badge bg-primary">@wybranyStan?.Wierzcholki?.Count</span>
+                                            </div>
+                                            <div class="card-body">
+                                                @RenderVerticesTable(wybranyStan?.Wierzcholki, "Podstawowe")
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border") h-100">
+                                            <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light") d-flex justify-content-between">
+                                                <div>
+                                                    <i class="bi bi-geo-alt me-2"></i> Nominalne
+                                                </div>
+                                                <span class="badge bg-primary">@wybranyStan?.WierzcholkiWartosciNominalne?.Count</span>
+                                            </div>
+                                            <div class="card-body">
+                                                @RenderVerticesTable(wybranyStan?.WierzcholkiWartosciNominalne, "Nominalne")
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else if (aktywnaZakladka == 2 && wybranyStan?.MVCKonfModelu?.KonfSystem != null)
+                        {
+                            <!-- WIDOK ELEMENTÓW -->
+                            <div class="elements-view">
+                                <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-4">
+                                    <i class="bi bi-puzzle me-2"></i>
+                                    Elementy Systemu (@wybranyStan.MVCKonfModelu.KonfSystem.Count)
+                                </h5>
+                                
+                                <div class="row">
+                                    @foreach (var element in wybranyStan.MVCKonfModelu.KonfSystem)
+                                    {
+                                        <div class="col-md-6 mb-3">
+                                            <div class="card h-100 @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
+                                                <div class="card-header d-flex justify-content-between align-items-center
+                                                            @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
+                                                    <div>
+                                                        <span class="badge @(element.Typ == "Rama" ? "bg-warning text-dark" : "bg-info")">
+                                                            @element.Typ
+                                                        </span>
+                                                        <span class="ms-2 fw-semibold small">@element.Nazwa</span>
+                                                    </div>
+                                                    <div>
+                                                        <small class="text-muted">@element.IndeksElementu</small>
+                                                    </div>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="properties-grid small">
+                                                        <div class="property">
+                                                            <span class="property-label">Występowanie:</span>
+                                                            <span class="property-value">
+                                                                @if (element.WystepujeDol) { <span class="badge bg-success me-1 mb-1">Dół</span> }
+                                                                @if (element.WystepujeLewa) { <span class="badge bg-success me-1 mb-1">Lewa</span> }
+                                                                @if (element.WystepujeGora) { <span class="badge bg-success me-1 mb-1">Góra</span> }
+                                                                @if (element.WystepujePrawa) { <span class="badge bg-success me-1 mb-1">Prawa</span> }
+                                                            </span>
+                                                        </div>
+                                                        <div class="property">
+                                                            <span class="property-label">Wymiary pionowe:</span>
+                                                            <span class="property-value">
+                                                                Lewa: @element.PionLewa, Prawa: @element.PionPrawa
+                                                            </span>
+                                                        </div>
+                                                        <div class="property">
+                                                            <span class="property-label">Wymiary poziome:</span>
+                                                            <span class="property-value">
+                                                                Dół: @element.PoziomDol, Góra: @element.PoziomGora
+                                                            </span>
+                                                        </div>
+                                                        <div class="property">
+                                                            <span class="property-label">ID:</span>
+                                                            <span class="property-value small">
+                                                                @element.RowId.ToString()
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        else if (aktywnaZakladka == 3)
+                        {
+                            <!-- WIDOK PODSUMOWANIA -->
+                            <div class="summary-view">
+                                <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-4">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    Podsumowanie Stanu
+                                </h5>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border") mb-3">
+                                            <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
+                                                <i class="bi bi-card-checklist me-2"></i> Informacje podstawowe
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="properties-grid">
+                                                    <div class="property">
+                                                        <span class="property-label">ID:</span>
+                                                        <span class="property-value fw-bold">@wybranyStan.Id</span>
+                                                    </div>
+                                                    <div class="property">
+                                                        <span class="property-label">Region:</span>
+                                                        <span class="property-value">@wybranyStan.IdRegion</span>
+                                                    </div>
+                                                    <div class="property">
+                                                        <span class="property-label">Z-Index:</span>
+                                                        <span class="property-value">@wybranyStan.ZIndeks</span>
+                                                    </div>
+                                                    <div class="property">
+                                                        <span class="property-label">Typ:</span>
+                                                        <span class="property-value">
+                                                            <span class="badge @(wybranyStan.CzyElementJestRama ? "bg-warning text-dark" : "bg-info")">
+                                                                @(wybranyStan.CzyElementJestRama ? "Rama" : "Skrzydło")
+                                                            </span>
+                                                        </span>
+                                                    </div>
+                                                    <div class="property">
+                                                        <span class="property-label">Kształt:</span>
+                                                        <span class="property-value">
+                                                            <span class="badge bg-secondary">@wybranyStan.WybranyKsztalt</span>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border") mb-3">
+                                            <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
+                                                <i class="bi bi-box-seam me-2"></i> Model
+                                            </div>
+                                            <div class="card-body">
+                                                @if (wybranyStan.WybranyModel != null)
+                                                {
+                                                    <h6 class="@(ciemnyMotyw ? "text-light" : "text-dark")">
+                                                        @wybranyStan.WybranyModel.NazwaKonfiguracji
+                                                    </h6>
+                                                    <div class="properties-grid small">
+                                                        <div class="property">
+                                                            <span class="property-label">Typ:</span>
+                                                            <span class="property-value">@wybranyStan.WybranyModel.Typ</span>
+                                                        </div>
+                                                        <div class="property">
+                                                            <span class="property-label">Min. szerokość:</span>
+                                                            <span class="property-value">@wybranyStan.WybranyModel.KonstrMinSzer</span>
+                                                        </div>
+                                                        <div class="property">
+                                                            <span class="property-label">Max. szerokość:</span>
+                                                            <span class="property-value">@wybranyStan.WybranyModel.KonstrMaxSzer</span>
+                                                        </div>
+                                                        <div class="property">
+                                                            <span class="property-label">ID systemu:</span>
+                                                            <span class="property-value small">@wybranyStan.RowIdSystemu.ToString()</span>
+                                                        </div>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <p class="text-muted mb-0">Brak wybranego modelu</p>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
+                                            <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light") d-flex justify-content-between">
+                                                <div>
+                                                    <i class="bi bi-calculator me-2"></i> Statystyki
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row text-center">
+                                                    <div class="col-md-3">
+                                                        <div class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-2">
+                                                            <div class="h4">@wybranyStan?.Wierzcholki?.Count</div>
+                                                            <div class="small">Punktów podstawowych</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <div class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-2">
+                                                            <div class="h4">@wybranyStan?.WierzcholkiWartosciNominalne?.Count</div>
+                                                            <div class="small">Punktów nominalnych</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <div class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-2">
+                                                            <div class="h4">@wybranyStan?.ListaKwadratow?.Count</div>
+                                                            <div class="small">Kwadratów</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <div class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-2">
+                                                            <div class="h4">@wybranyStan?.MVCKonfModelu?.KonfSystem?.Count</div>
+                                                            <div class="small">Elementów systemu</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <!-- WIDOK JSON -->
+                <div class="card-body p-0">
+                    <div class="json-toolbar px-3 py-2 d-flex justify-content-between align-items-center"
+                         style="background-color: @(ciemnyMotyw ? "#2d2d2d" : "#f8f9fa"); 
+                                border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" @bind="zawijajTekst" />
+                                <label class="form-check-label @(ciemnyMotyw ? "text-light" : "text-dark")">Zawijaj tekst</label>
+                            </div>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" @bind="dekodujZnaki" />
+                                <label class="form-check-label @(ciemnyMotyw ? "text-light" : "text-dark")">Polskie znaki</label>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="badge @(ciemnyMotyw ? "bg-secondary" : "bg-light text-dark")">
+                                @GetFormattedJson()?.Length znaków
+                            </span>
+                        </div>
+                    </div>
+                    <div class="json-content @(rozwinJson ? "expanded" : "") @(zawijajTekst ? "wrap-text" : "")"
+                         style="max-height: @(rozwinJson ? "80vh" : "500px");
+                                background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;">
+                        @if (uzyjHighlightJS)
+                        {
+                            <HighlightCode Language="json" Code="@GetFormattedJson()" />
                         }
                         else
                         {
-                            <p><em>Brak wartości nominalnych.</em></p>
+                            <pre style="margin: 0; padding: 20px; color: @(ciemnyMotyw ? "#f8f8f2" : "#24292e"); 
+                                       font-family: 'Consolas', 'Monaco', 'Courier New', monospace; 
+                                       font-size: 13px; line-height: 1.5; overflow-x: auto;">@GetFormattedJson()</pre>
                         }
-
-                        <td>
-                            <button class="btn btn-sm btn-info" @onclick="@(() => PokazSzczegoly(entry.Value))">🔍</button>
-                        </td>
-                    </tr>
-                }
+                    </div>
+                </div>
             }
-        </tbody>
-    </table>
-}
+            
+            @if (pokazKomunikatKopiowania)
+            {
+                <div class="card-footer bg-success text-white py-2 d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="bi bi-check-circle me-2"></i> <strong>Skopiowano do schowka!</strong>
+                    </div>
+                    <button class="btn btn-sm btn-light" @onclick="() => pokazKomunikatKopiowania = false">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            }
+        </div>
+    }
+</div>
 
-@if (szczegolyWidoczne && wybranyStan != null)
-{
-    <div class="card mt-3">
-        <div class="card-header">
-            <strong>Szczegóły GeneratorState:</strong>
-            <button class="btn-close float-end" @onclick="@(() => szczegolyWidoczne = false)"></button>
-        </div>
-        <div class="card-body">
-            <pre>@JsonSerializer.Serialize(wybranyStan, new JsonSerializerOptions { WriteIndented = true })</pre>
-        </div>
-    </div>
-}
+<style>
+    /* STYLE GŁÓWNE */
+    .json-panel {
+        position: sticky;
+        bottom: 20px;
+        z-index: 1050;
+        box-shadow: 0 0 25px rgba(0,0,0,0.3);
+        animation: slideUp 0.3s ease-out;
+    }
+
+    .json-content {
+        overflow: auto;
+        transition: max-height 0.3s ease;
+    }
+
+    .json-content.expanded {
+        max-height: 80vh !important;
+    }
+
+    .json-content.wrap-text pre,
+    .json-content.wrap-text .hljs {
+        white-space: pre-wrap !important;
+        word-break: break-word !important;
+    }
+
+    /* WIDOK SZCZEGÓŁOWY */
+    .geometry-view .property,
+    .elements-view .property,
+    .summary-view .property {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        padding-bottom: 8px;
+        border-bottom: 1px dashed rgba(255,255,255,0.1);
+    }
+
+    .light-theme .geometry-view .property,
+    .light-theme .elements-view .property,
+    .light-theme .summary-view .property {
+        border-bottom: 1px dashed rgba(0,0,0,0.1);
+    }
+
+    .property-label {
+        font-weight: 600;
+        color: #6c757d;
+    }
+
+    .dark-theme .property-label {
+        color: #adb5bd;
+    }
+
+    .property-value {
+        font-family: 'Consolas', monospace;
+    }
+
+    /* BADGES STRON */
+    .badge-strona-gora { background-color: #28a745 !important; }
+    .badge-strona-dol { background-color: #dc3545 !important; }
+    .badge-strona-lewa { background-color: #17a2b8 !important; }
+    .badge-strona-prawa { background-color: #ffc107 !important; color: #212529 !important; }
+
+    /* ANIMACJE */
+    @@keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* SCROLLBAR DOSTOSOWANY DO MOTYWU */
+    .json-content::-webkit-scrollbar {
+        width: 12px;
+        height: 12px;
+    }
+
+    .dark-theme .json-content::-webkit-scrollbar-track {
+        background: #2d2d2d;
+    }
+
+    .dark-theme .json-content::-webkit-scrollbar-thumb {
+        background: #555;
+        border-radius: 6px;
+        border: 3px solid #2d2d2d;
+    }
+
+    .dark-theme .json-content::-webkit-scrollbar-thumb:hover {
+        background: #777;
+    }
+
+    .light-theme .json-content::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    .light-theme .json-content::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 6px;
+        border: 3px solid #f1f1f1;
+    }
+
+    .light-theme .json-content::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+
+    /* MODAL OVERLAY */
+    .modal-backdrop {
+        z-index: 1040;
+    }
+
+    .modal {
+        z-index: 1050;
+    }
+
+    /* HOVER EFFECTS */
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05) !important;
+        cursor: pointer;
+    }
+
+    /* KARTY W WIDOKU SZCZEGÓŁOWYM */
+    .card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .dark-theme .card:hover {
+        box-shadow: 0 4px 8px rgba(255,255,255,0.1);
+    }
+
+    /* RESPONSYWNE TABELE */
+    .table-responsive {
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    /* PRZYCISKI */
+    .btn-group .btn {
+        transition: all 0.2s ease;
+    }
+
+    .btn-group .btn:hover {
+        transform: translateY(-1px);
+    }
+
+    /* HIGHLIGHTJS STYLES */
+    .hljs {
+        background: transparent !important;
+        padding: 20px !important;
+    }
+
+    .dark-theme .hljs { color: #f8f8f2 !important; }
+    .dark-theme .hljs-attr { color: #ff79c6 !important; font-weight: 600; }
+    .dark-theme .hljs-string { color: #f1fa8c !important; }
+    .dark-theme .hljs-number { color: #bd93f9 !important; font-weight: 600; }
+    .dark-theme .hljs-literal { color: #8be9fd !important; }
+    .dark-theme .hljs-keyword { color: #ff5555 !important; }
+    .dark-theme .hljs-punctuation { color: #f8f8f2 !important; opacity: 0.8; }
+
+    .light-theme .hljs { color: #24292e !important; }
+    .light-theme .hljs-attr { color: #d73a49 !important; font-weight: 600; }
+    .light-theme .hljs-string { color: #032f62 !important; }
+    .light-theme .hljs-number { color: #005cc5 !important; font-weight: 600; }
+    .light-theme .hljs-literal { color: #6f42c1 !important; }
+    .light-theme .hljs-keyword { color: #e36209 !important; }
+    .light-theme .hljs-punctuation { color: #24292e !important; opacity: 0.7; }
+</style>
 
 @code {
     [Parameter]
     public GeneratorStateContainer? StateContainer { get; set; }
 
     private GeneratorState? wybranyStan;
+    private List<XPoint>? wybranePunkty;
+    private GeneratorState? stanDoUsuniecia;
+    private string? tytulPunktow;
+    
+    // Flagi stanu
     private bool szczegolyWidoczne = false;
+    private bool punktyWidoczne = false;
+    private bool pokazModalUsuwania = false;
+    private bool pokazKomunikatKopiowania = false;
+    private bool pokazWidokSzczegolowy = false;
+    
+    // Ustawienia wyświetlania
+    private bool rozwinJson = false;
+    private bool zawijajTekst = false;
+    private bool dekodujZnaki = true;
+    private bool ciemnyMotyw = true;
+    private bool uzyjHighlightJS = true;
+    private int aktywnaZakladka = 0;
+    
+    // Filtry
+    private string filtrTekst = string.Empty;
+    private string filtrTyp = string.Empty;
+    private string filtrKształt = string.Empty;
 
-    protected override async Task OnInitializedAsync()
+    private readonly JsonSerializerOptions jsonOptions = new()
     {
-        Console.WriteLine("GeneratorStateViewer initialized.");
-        await Task.CompletedTask;
+        WriteIndented = true,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        ReferenceHandler = ReferenceHandler.IgnoreCycles,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new JsonStringEnumConverter() }
+    };
+
+    // ========== METODY POMOCNICZE ==========
+    
+    private string GetSkroconaNazwa(string? nazwa, int maxLength)
+    {
+        if (string.IsNullOrEmpty(nazwa)) return string.Empty;
+        return nazwa.Length <= maxLength ? nazwa : nazwa.Substring(0, maxLength - 3) + "...";
     }
 
+    private int GetLiczbaRam()
+    {
+        return StateContainer?.States?.Count(s => s.Value.CzyElementJestRama) ?? 0;
+    }
+
+    private int GetLiczbaSkrzydel()
+    {
+        return StateContainer?.States?.Count(s => !s.Value.CzyElementJestRama) ?? 0;
+    }
+
+    private int GetLiczbaWszystkichPunktow()
+    {
+        if (StateContainer?.States == null) return 0;
+        
+        return StateContainer.States.Sum(s => 
+            (s.Value.Wierzcholki?.Count ?? 0) + 
+            (s.Value.WierzcholkiWartosciNominalne?.Count ?? 0)
+        );
+    }
+
+    private Dictionary<string, GeneratorState> GetFiltrowaneStany()
+    {
+        if (StateContainer?.States == null) return new();
+
+        var query = StateContainer.States.AsEnumerable();
+
+        if (!string.IsNullOrEmpty(filtrTekst))
+        {
+            query = query.Where(s =>
+                s.Value.WybranyModel?.NazwaKonfiguracji?.Contains(filtrTekst, StringComparison.OrdinalIgnoreCase) == true ||
+                s.Value.IdRegion?.Contains(filtrTekst, StringComparison.OrdinalIgnoreCase) == true ||
+                s.Value.WybranyKsztalt?.Contains(filtrTekst, StringComparison.OrdinalIgnoreCase) == true
+            );
+        }
+
+        if (!string.IsNullOrEmpty(filtrTyp))
+        {
+            var isRama = filtrTyp == "Rama";
+            query = query.Where(s => s.Value.CzyElementJestRama == isRama);
+        }
+
+        if (!string.IsNullOrEmpty(filtrKształt))
+        {
+            query = query.Where(s => s.Value.WybranyKsztalt == filtrKształt);
+        }
+
+        return query.ToDictionary(k => k.Key, v => v.Value);
+    }
+
+    private string GetStronaBadgeClass(string? strona)
+    {
+        if (string.IsNullOrEmpty(strona)) return "bg-secondary";
+        
+        return strona.ToLower() switch
+        {
+            "góra" or "gora" => "↑",
+            "dół" or "dol" => "↓",
+            "lewa" => "←",
+            "prawa" => "→",
+            _ => "?"
+        };
+    }
+
+    private string GetStronaIcon(string? strona)
+    {
+        if (string.IsNullOrEmpty(strona)) return "bi-question-circle";
+        
+        return strona?.ToLower() switch
+        {
+            "góra" or "gora" => "↑",
+            "dół" or "dol" => "↓",
+            "lewa" => "←",
+            "prawa" => "→",
+            _ => "?"
+        };
+    }
+
+    private RenderFragment RenderVerticesTable(List<XPoint>? vertices, string typ)
+    {
+        if (vertices == null || !vertices.Any())
+        {
+            return @<div class="text-center text-muted py-3">
+                <i class="bi bi-inbox"></i><br>
+                Brak danych
+            </div>;
+        }
+
+        return @<div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+            <table class="table table-sm @(ciemnyMotyw ? "table-dark" : "") mb-0">
+                <thead class="sticky-top" style="@(ciemnyMotyw ? "background-color: #2d2d2d;" : "background-color: #f8f9fa;")">
+                    <tr>
+                        <th width="60px">#</th>
+                        <th>X</th>
+                        <th>Y</th>
+                        <th>Odległość</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        for (int i = 0; i < vertices.Count; i++)
+                        {
+                            var point = vertices[i];
+                            bool hasPrevious = i > 0;
+                            double distance = 0;
+
+                            if (hasPrevious)
+                            {
+                                var prevPoint = vertices[i - 1];
+                                distance = Math.Sqrt(
+                                Math.Pow(point.X - prevPoint.X, 2) +
+                                Math.Pow(point.Y - prevPoint.Y, 2));
+                            }
+
+                            <tr>
+                                <td><span class="badge bg-primary">@i</span></td>
+                                <td><code>@Math.Round(point.X, 2)</code></td>
+                                <td><code>@Math.Round(point.Y, 2)</code></td>
+                                <td>
+                                    @if (hasPrevious)
+                                    {
+                                        <span class="badge bg-info">@Math.Round(distance, 2)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>;
+    }
+
+    // ========== METODY AKCJI ==========
+    
     private void PokazSzczegoly(GeneratorState stan)
     {
         wybranyStan = stan;
         szczegolyWidoczne = true;
+        pokazWidokSzczegolowy = false;
+        aktywnaZakladka = 0;
+        
+        StateHasChanged();
+        
+        Task.Delay(100).ContinueWith(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await ScrollDoElementu("szczegoly-panel");
+                if (uzyjHighlightJS && !pokazWidokSzczegolowy)
+                {
+                    await PrzeladujHighlight();
+                }
+            });
+        });
     }
 
+    private void PokazPunkty(List<XPoint> punkty, string tytul)
+    {
+        wybranePunkty = punkty;
+        tytulPunktow = tytul;
+        punktyWidoczne = true;
+    }
+
+    private async Task KopiujPunktyDoSchowka()
+    {
+        if (wybranePunkty == null) return;
+        
+        var punktyText = string.Join("\n", wybranePunkty.Select((p, i) => 
+            $"P{i}: X={Math.Round(p.X, 2)}, Y={Math.Round(p.Y, 2)}"));
+        
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", punktyText);
+        
+        pokazKomunikatKopiowania = true;
+        StateHasChanged();
+        
+        await Task.Delay(2000);
+        pokazKomunikatKopiowania = false;
+        StateHasChanged();
+    }
+
+    private async Task KopiujDoSchowka(GeneratorState stan)
+    {
+        var json = JsonSerializer.Serialize(stan, jsonOptions);
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", json);
+        
+        pokazKomunikatKopiowania = true;
+        StateHasChanged();
+        
+        await Task.Delay(2000);
+        pokazKomunikatKopiowania = false;
+        StateHasChanged();
+    }
+
+    private async Task KopiujObecnyJson()
+    {
+        if (wybranyStan != null)
+        {
+            await KopiujDoSchowka(wybranyStan);
+        }
+    }
+
+    private void UsunStan(GeneratorState stan)
+    {
+        stanDoUsuniecia = stan;
+        pokazModalUsuwania = true;
+    }
+
+    private void PotwierdzUsuniecie()
+    {
+        if (stanDoUsuniecia != null && StateContainer?.States != null)
+        {
+            // Tutaj powinna być logika usuwania stanu
+            // StateContainer.States.Remove(...);
+            
+            if (stanDoUsuniecia.Id == wybranyStan?.Id)
+            {
+                szczegolyWidoczne = false;
+                wybranyStan = null;
+            }
+            
+            pokazModalUsuwania = false;
+            stanDoUsuniecia = null;
+            StateHasChanged();
+        }
+    }
+
+    private void AnulujUsuwanie()
+    {
+        pokazModalUsuwania = false;
+        stanDoUsuniecia = null;
+    }
+
+    private void ZamknijPunkty()
+    {
+        punktyWidoczne = false;
+        wybranePunkty = null;
+    }
+
+    private void ToggleWidokSzczegolowy()
+    {
+        pokazWidokSzczegolowy = !pokazWidokSzczegolowy;
+        if (pokazWidokSzczegolowy)
+        {
+            aktywnaZakladka = 0;
+        }
+        else if (uzyjHighlightJS)
+        {
+            Task.Delay(100).ContinueWith(async _ =>
+            {
+                await InvokeAsync(async () =>
+                {
+                    await PrzeladujHighlight();
+                });
+            });
+        }
+    }
+
+    private void ToggleMotyw()
+    {
+        ciemnyMotyw = !ciemnyMotyw;
+    }
+
+    private void ToggleRozwinJson()
+    {
+        rozwinJson = !rozwinJson;
+    }
+
+    private async Task PrzeladujHighlight()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("eval",
+                @"if (window.hljs) {
+                    document.querySelectorAll('pre code').forEach((el) => {
+                        hljs.highlightElement(el);
+                    });
+                }");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Błąd highlight: {ex.Message}");
+            uzyjHighlightJS = false;
+        }
+    }
+
+    private string GetFormattedJson()
+    {
+        if (wybranyStan == null) return "{}";
+        
+        try
+        {
+            var json = JsonSerializer.Serialize(wybranyStan, jsonOptions);
+            
+            if (dekodujZnaki)
+            {
+                json = System.Text.RegularExpressions.Regex.Unescape(json);
+            }
+            
+            return json;
+        }
+        catch (Exception ex)
+        {
+            return $"{{\"error\": \"Błąd serializacji: {ex.Message}\"}}";
+        }
+    }
+
+    private void WyczyśćFiltry()
+    {
+        filtrTekst = string.Empty;
+        filtrTyp = string.Empty;
+        filtrKształt = string.Empty;
+    }
+
+    private async Task EksportujWszystkie()
+    {
+        if (StateContainer?.States == null) return;
+        
+        var wszystkieDane = new
+        {
+            LiczbaStanow = StateContainer.States.Count,
+            StanowRamy = GetLiczbaRam(),
+            StanowSkrzydel = GetLiczbaSkrzydel(),
+            Stany = StateContainer.States.Select(s => s.Value)
+        };
+        
+        var json = JsonSerializer.Serialize(wszystkieDane, jsonOptions);
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", json);
+        
+        pokazKomunikatKopiowania = true;
+        StateHasChanged();
+        
+        await Task.Delay(2000);
+        pokazKomunikatKopiowania = false;
+        StateHasChanged();
+    }
+
+    private void Odswiez()
+    {
+        // Tutaj powinna być logika odświeżania danych
+        // np. ponowne załadowanie z API
+        StateHasChanged();
+    }
+
+    private async Task ScrollDoGory()
+    {
+        await JSRuntime.InvokeVoidAsync("window.scrollTo", new { top = 0, behavior = "smooth" });
+    }
+
+    private async Task ScrollDoElementu(string elementId)
+    {
+        await JSRuntime.InvokeVoidAsync("eval", 
+            $@"const element = document.getElementById('{elementId}');
+               if (element) {{
+                   element.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+               }}");
+    }
+
+    // ========== LIFECYCLE ==========
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var isAvailable = await JSRuntime.InvokeAsync<bool>("eval", "!!window.hljs");
+                uzyjHighlightJS = isAvailable;
+            }
+            catch
+            {
+                uzyjHighlightJS = false;
+            }
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Console.WriteLine("GeneratorStateViewer initialized.");
+    }
 }

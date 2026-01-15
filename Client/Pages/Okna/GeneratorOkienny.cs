@@ -169,10 +169,10 @@ namespace GEORGE.Client.Pages.Okna
             Guid RowIdprofileTop = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.RowId ?? Guid.Empty;
             Guid RowIdprofileBottom = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.RowId ?? Guid.Empty;
 
-            string RowIndeksprofileLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ == slruchPoLewej)?.Indeks ?? "BRAK-DANYCH";
-            string RowIndeksprofileRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa && e.Typ == slruchPoPrawej)?.Indeks ?? "BRAK-DANYCH";
-            string RowIndeksprofileTop = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.Indeks ?? "BRAK-DANYCH";
-            string RowIndeksprofileBottom = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.Indeks ?? "BRAK-DANYCH";
+            string RowIndeksprofileLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ == slruchPoLewej)?.IndeksElementu ?? "BRAK-DANYCH";
+            string RowIndeksprofileRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa && e.Typ == slruchPoPrawej)?.IndeksElementu ?? "BRAK-DANYCH";
+            string RowIndeksprofileTop = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.IndeksElementu ?? "BRAK-DANYCH";
+            string RowIndeksprofileBottom = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.IndeksElementu ?? "BRAK-DANYCH";
 
             string RowNazwaprofileLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ == slruchPoLewej)?.Nazwa ?? "BRAK-DANYCH";
             string RowNazwaprofileRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa && e.Typ == slruchPoPrawej)?.Nazwa ?? "BRAK-DANYCH";
@@ -187,7 +187,7 @@ namespace GEORGE.Client.Pages.Okna
                                         MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0);
 
                 RowIdprofileLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.RowId ?? Guid.Empty;
-                RowIndeksprofileLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.Indeks ?? "BRAK-DANYCH";
+                RowIndeksprofileLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.IndeksElementu ?? "BRAK-DANYCH";
 
                 RowNazwaprofileLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.Nazwa ?? "BRAK-DANYCH";
             }
@@ -199,7 +199,7 @@ namespace GEORGE.Client.Pages.Okna
                                          MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.PionLewa ?? 0);
 
                 RowIdprofileRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.RowId ?? Guid.Empty;
-                RowIndeksprofileRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.Indeks ?? "BRAK-DANYCH";
+                RowIndeksprofileRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.IndeksElementu ?? "BRAK-DANYCH";
                 RowNazwaprofileRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.Nazwa ?? "BRAK-DANYCH";
             }
 
@@ -229,6 +229,8 @@ namespace GEORGE.Client.Pages.Okna
                 TypObiektu,
                 daneKwadratu
             );
+
+            await Task.CompletedTask;
             //}
         }
         public void GenerateGenericElementsWithJoins(
@@ -269,7 +271,7 @@ namespace GEORGE.Client.Pages.Okna
                 // .Where(x => x.Wierzcholki.Count == 2)
                 //   .LastOrDefault();
 
-                Console.WriteLine($"▶️ Element 1 wartość X: {szukDaneKwadratu.Wierzcholki[0].X} dotyczy: ElementLiniowy: {ElementLiniowy}");
+                Console.WriteLine($"▶️ Element 1 wartość X: {szukDaneKwadratu.Wierzcholki[0].X} dotyczy: ElementLiniowy: {ElementLiniowy} rowIdprofileLeft: {rowIdprofileLeft} rowIdprofileRight: {rowIdprofileRight} rowIdprofileTop: {rowIdprofileTop} rowIdprofileBottom: {rowIdprofileBottom}");
 
                 if (szukDaneKwadratu != null)
                 {
@@ -542,7 +544,6 @@ namespace GEORGE.Client.Pages.Okna
                             var nextNext = (next + 1) % vertexCount;
 
                             // Pionowy przypadek (np. boczne elementy w trapezie)
-                            // Pionowy przypadek (np. boczne elementy w trapezie)
                             var topY = Math.Min(inner[i].Y, inner[next].Y);
                             var bottomY = Math.Max(inner[i].Y, inner[next].Y);
 
@@ -562,10 +563,6 @@ namespace GEORGE.Client.Pages.Okna
                             // 2. Obliczanie kąta w radianach za pomocą Math.Atan2 (najbezpieczniejsza metoda)
                             // Atan2 przyjmuje najpierw Y, potem X
                             double katWRadianach = Math.Atan2(roznicaY, roznicaX);
-
-
-                            // double correctedLenght = roznicaX / Math.Tan(katWRadianach);
-
 
                             Console.WriteLine($"🔷 Trapez T1/T1 vertexCount==3 katWRadianach: {katWRadianach}  roznicaY: {roznicaY}");
 
@@ -608,15 +605,6 @@ namespace GEORGE.Client.Pages.Okna
                             outerVecStart, outerBottom, innerBottom, innerVecStart
                             };
 
-                            //var outerTop = GetHorizontalIntersection(outerStart, outerEnd, (katWRadianach < 0.3 ? (float)y1Min : (float)y1Min), 0);
-                            //var outerBottom = GetHorizontalIntersection(outerStart, outerEnd, (float)bottomY, 0);
-
-                            //var innerTop = GetHorizontalIntersection(inner[i], inner[next], (float)topY, 0);
-                            //var innerBottom = GetHorizontalIntersection(inner[i], inner[next], (float)bottomY, 0);
-
-                            //wierzcholki = new List<XPoint> {
-                            //    outerTop, outerBottom, innerBottom, innerTop
-                            //};
                         }
                         else
                         {
@@ -674,7 +662,6 @@ namespace GEORGE.Client.Pages.Okna
                         var outerVecEnd = new XPoint(
                             outerVecEndFull.X - tx * profileRight,
                             outerVecEndFull.Y - ty * profileRight);
-
 
                         if (isAlmostHorizontal)
                         {
@@ -946,154 +933,66 @@ namespace GEORGE.Client.Pages.Okna
 
                 Console.WriteLine($"▶️ Element Start switch {i + 1}/{vertexCount}: Length: {length}, stronaOpis :{stronaOpis}, angleDegreesElementLionowy:{angleDegreesElementLionowy}, Angle: {angleDegrees}°, Profile: {profile}, Wierzchołki: {wierzcholki.Count}, BazowaDlugosc: {bazowaDlugosc}, wartoscX: {wartoscX}, wartoscY: {wartoscY} ElementLiniowy:{ElementLiniowy} wierzcholki X0: {wierzcholki[0].X} Y0: {wierzcholki[0].Y}");
 
-                switch (i)
+                Guid rowIdProfil;
+                string nazwaElemntu;
+                string indeksElementu;
+
+                switch (stronaOpis)
                 {
-                    case 0:
-                        Console.WriteLine($"▶️ Element case 0 for {i + 1}/{vertexCount} - stronaOpis: {stronaOpis}");
-                        if (angleDegreesElementLionowy != angleDegrees && ElementLiniowy) break;
-                        if (rowIdprofileTop != Guid.Empty)
-                            ElementyRamyRysowane.Add(new KsztaltElementu
-                            {
-                                TypKsztaltu = typKsztalt,
-                                Wierzcholki = wierzcholki,
-                                WypelnienieZewnetrzne = "wood-pattern",
-                                WypelnienieWewnetrzne = KolorSzyby,
-                                Grupa = NazwaObiektu + $" {stronaOpis}-{i + 1} {wartoscX}/{wartoscY}",
-                                Typ = TypObiektu,
-                                ZIndex = Zindeks,
-                                RowIdElementu = rowIdprofileTop,
-                                IdRegion = regionId,
-                                Kat = (int)angleDegrees,
-                                OffsetLewa = stronaOpis == "Lewa" ? profileLeft : 0,
-                                OffsetPrawa = stronaOpis == "Prawa" ? profileRight : 0,
-                                OffsetDol = stronaOpis == "Dól" ? profileBottom : 0,
-                                OffsetGora = stronaOpis == "Góra" ? profileTop : 0,
-                                Strona = stronaOpis,//Była Góra
-                                IndeksElementu = rowIndeksprofileTop,
-                                NazwaElementu = rowNazwaprofileTop,
-                                DlogoscElementu = bazowaDlugosc + ((dodajA ? profileLeft : 0) + (dodajB ? profileRight : 0)),
-                                DlogoscNaGotowoElementu = bazowaDlugosc
-                            });
-                        Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - 0 rowIdprofileTop:{rowIdprofileTop} Angle: {angleDegrees}°");
-                        if (ElementLiniowy) return;
+                    case "Lewa":
+                        rowIdProfil = rowIdprofileLeft;
+                        nazwaElemntu = rowNazwaprofileLeft;
+                        indeksElementu = rowIndeksprofileLeft;
                         break;
-                    case 1:
-                        Console.WriteLine($"▶️ Element case 1 for {i + 1}/{vertexCount} - stronaOpis: {stronaOpis}");
-                        if (angleDegreesElementLionowy != angleDegrees && ElementLiniowy) break;
-                        if (rowIdprofileRight != Guid.Empty)
-                            ElementyRamyRysowane.Add(new KsztaltElementu
-                            {
-                                TypKsztaltu = typKsztalt,
-                                Wierzcholki = wierzcholki,
-                                WypelnienieZewnetrzne = "wood-pattern",
-                                WypelnienieWewnetrzne = KolorSzyby,
-                                Grupa = NazwaObiektu + $" {stronaOpis}-{i + 1} {wartoscX}/{wartoscY}",
-                                Typ = TypObiektu,
-                                ZIndex = Zindeks,
-                                RowIdElementu = rowIdprofileRight,
-                                IdRegion = regionId,
-                                Kat = (int)angleDegrees,
-                                OffsetLewa = stronaOpis == "Lewa" ? profileLeft : 0,
-                                OffsetPrawa = stronaOpis == "Prawa" ? profileRight : 0,
-                                OffsetDol = stronaOpis == "Dól" ? profileBottom : 0,
-                                OffsetGora = stronaOpis == "Góra" ? profileTop : 0,
-                                Strona = stronaOpis,//Była prawa
-                                IndeksElementu = rowIndeksprofileRight,
-                                NazwaElementu = rowNazwaprofileTop,
-                                DlogoscElementu = bazowaDlugosc + ((dodajA ? profileLeft : 0) + (dodajB ? profileRight : 0)),
-                                DlogoscNaGotowoElementu = bazowaDlugosc
-                            });
-                        Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - 1 rowIdprofileRight:{rowIdprofileRight} Angle: {angleDegrees}°");
-                        if (ElementLiniowy) return;
+                    case "Prawa":
+                        rowIdProfil = rowIdprofileRight;
+                        nazwaElemntu = rowNazwaprofileRight;
+                        indeksElementu = rowIndeksprofileRight;
                         break;
-                    case 2:
-                        Console.WriteLine($"▶️ Element case 2 for {i + 1}/{vertexCount} - stronaOpis: {stronaOpis}");
-                        if (angleDegreesElementLionowy != angleDegrees && ElementLiniowy) break;
-                        if (rowIdprofileBottom != Guid.Empty)
-                            ElementyRamyRysowane.Add(new KsztaltElementu
-                            {
-                                TypKsztaltu = typKsztalt,
-                                Wierzcholki = wierzcholki,
-                                WypelnienieZewnetrzne = "wood-pattern",
-                                WypelnienieWewnetrzne = KolorSzyby,
-                                Grupa = NazwaObiektu + $" {stronaOpis}-{i + 1} {wartoscX}/{wartoscY}",
-                                Typ = TypObiektu,
-                                ZIndex = Zindeks,
-                                RowIdElementu = rowIdprofileBottom,
-                                IdRegion = regionId,
-                                Kat = (int)angleDegrees,
-                                OffsetLewa = stronaOpis == "Lewa" ? profileLeft : 0,
-                                OffsetPrawa = stronaOpis == "Prawa" ? profileRight : 0,
-                                OffsetDol = stronaOpis == "Dól" ? profileBottom : 0,
-                                OffsetGora = stronaOpis == "Góra" ? profileTop : 0,
-                                Strona = stronaOpis,//Był Dół
-                                IndeksElementu = rowIndeksprofileBottom,
-                                NazwaElementu = rowNazwaprofileTop,
-                                DlogoscElementu = bazowaDlugosc + ((dodajA ? profileLeft : 0) + (dodajB ? profileRight : 0)),
-                                DlogoscNaGotowoElementu = bazowaDlugosc
-                            });
-                        Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - 2 rowIdprofileBottom:{rowIdprofileBottom} Angle: {angleDegrees}°");
-                        if (ElementLiniowy) return;
+                    case "Góra":
+                        rowIdProfil = rowIdprofileTop;
+                        nazwaElemntu = rowNazwaprofileTop;
+                        indeksElementu = rowIndeksprofileTop;
                         break;
-                    case 3:
-                        Console.WriteLine($"▶️ Element case 3 for {i + 1}/{vertexCount} - stronaOpis: {stronaOpis}");
-                        if (angleDegreesElementLionowy != angleDegrees && ElementLiniowy) break;
-                        if (rowIdprofileLeft != Guid.Empty)
-                            ElementyRamyRysowane.Add(new KsztaltElementu
-                            {
-                                TypKsztaltu = typKsztalt,
-                                Wierzcholki = wierzcholki,
-                                WypelnienieZewnetrzne = "wood-pattern",
-                                WypelnienieWewnetrzne = KolorSzyby,
-                                Grupa = NazwaObiektu + $" {stronaOpis}-{i + 1} {wartoscX}/{wartoscY}",
-                                Typ = TypObiektu,
-                                ZIndex = Zindeks,
-                                RowIdElementu = rowIdprofileLeft,
-                                IdRegion = regionId,
-                                Kat = (int)angleDegrees,
-                                OffsetLewa = stronaOpis == "Lewa" ? profileLeft : 0,
-                                OffsetPrawa = stronaOpis == "Prawa" ? profileRight : 0,
-                                OffsetDol = stronaOpis == "Dól" ? profileBottom : 0,
-                                OffsetGora = stronaOpis == "Góra" ? profileTop : 0,
-                                Strona = stronaOpis, //Była Lewa
-                                IndeksElementu = rowIndeksprofileLeft,
-                                NazwaElementu = rowNazwaprofileTop,
-                                DlogoscElementu = bazowaDlugosc + ((dodajA ? profileLeft : 0) + (dodajB ? profileRight : 0)),
-                                DlogoscNaGotowoElementu = bazowaDlugosc
-                            });
-                        Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - 3 rowIdprofileLeft:{rowIdprofileLeft} Angle: {angleDegrees}°");
-                        if (ElementLiniowy) return;
+                    case "Dół":
+                        rowIdProfil = rowIdprofileBottom;
+                        nazwaElemntu = rowNazwaprofileBottom;
+                        indeksElementu = rowIndeksprofileBottom;
                         break;
-                    case > 3:
-                        Console.WriteLine($"▶️ Element case >3 for {i + 1}/{vertexCount} - stronaOpis: {stronaOpis}");
-                        if (angleDegreesElementLionowy != angleDegrees && ElementLiniowy) break;
-                        if (rowIdprofileLeft != Guid.Empty)
-                            ElementyRamyRysowane.Add(new KsztaltElementu
-                            {
-                                TypKsztaltu = typKsztalt,
-                                Wierzcholki = wierzcholki,
-                                WypelnienieZewnetrzne = "wood-pattern",
-                                WypelnienieWewnetrzne = KolorSzyby,
-                                Grupa = NazwaObiektu + $" {stronaOpis}-{i + 1} {wartoscX}/{wartoscY}",
-                                Typ = TypObiektu,
-                                ZIndex = Zindeks,
-                                RowIdElementu = rowIdprofileLeft,
-                                IdRegion = regionId,
-                                Kat = (int)angleDegrees,
-                                OffsetLewa = stronaOpis == "Lewa" ? profileLeft : 0,
-                                OffsetPrawa = stronaOpis == "Prawa" ? profileRight : 0,
-                                OffsetDol = stronaOpis == "Dól" ? profileBottom : 0,
-                                OffsetGora = stronaOpis == "Góra" ? profileTop : 0,
-                                Strona = stronaOpis, //Była Lewa
-                                IndeksElementu = rowIndeksprofileLeft,
-                                NazwaElementu = rowNazwaprofileTop,
-                                DlogoscElementu = bazowaDlugosc + ((dodajA ? profileLeft : 0) + (dodajB ? profileRight : 0)),
-                                DlogoscNaGotowoElementu = bazowaDlugosc
-                            });
-                        Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - >3 rowIdprofileLeft:{rowIdprofileLeft} Angle: {angleDegrees}°");
-                        if (ElementLiniowy) return;
+                    default:
+                        rowIdProfil = rowIdprofileLeft;
+                        nazwaElemntu = rowNazwaprofileLeft;
+                        indeksElementu = rowIndeksprofileLeft;
                         break;
                 }
+
+                if (angleDegreesElementLionowy != angleDegrees && ElementLiniowy) break;
+                if (rowIdprofileLeft != Guid.Empty)
+                    ElementyRamyRysowane.Add(new KsztaltElementu
+                    {
+                        TypKsztaltu = typKsztalt,
+                        Wierzcholki = wierzcholki,
+                        WypelnienieZewnetrzne = "wood-pattern",
+                        WypelnienieWewnetrzne = KolorSzyby,
+                        Grupa = NazwaObiektu + $" {stronaOpis}-{i + 1} {wartoscX}/{wartoscY}",
+                        Typ = TypObiektu,
+                        ZIndex = Zindeks,
+                        RowIdElementu = rowIdProfil,
+                        IdRegion = regionId,
+                        Kat = (int)angleDegrees,
+                        OffsetLewa = stronaOpis == "Lewa" ? profileLeft : 0,
+                        OffsetPrawa = stronaOpis == "Prawa" ? profileRight : 0,
+                        OffsetDol = stronaOpis == "Dól" ? profileBottom : 0,
+                        OffsetGora = stronaOpis == "Góra" ? profileTop : 0,
+                        Strona = stronaOpis, //Była Lewa
+                        IndeksElementu = indeksElementu,
+                        NazwaElementu = nazwaElemntu,
+                        DlogoscElementu = bazowaDlugosc + ((dodajA ? profileLeft : 0) + (dodajB ? profileRight : 0)),
+                        DlogoscNaGotowoElementu = bazowaDlugosc
+                    });
+                Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - >3 rowIdProfil:{rowIdProfil} Angle: {angleDegrees}°");
+                if (ElementLiniowy) return;
+
             }
         }
 

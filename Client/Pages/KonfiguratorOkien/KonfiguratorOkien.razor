@@ -999,7 +999,7 @@
                         {
                             <tr>
                                 <td>@konf.Nazwa</td>
-                                <td>@konf.Indeks</td>
+                                <td>@konf.IndeksElementu</td>
                                 <td>@konf.Uwagi</td>
                                 <td>
                                     @if (konf.Rysunek != null && konf.Rysunek.Length > 0)
@@ -1052,7 +1052,7 @@
                     <!-- Indeks -->
                     <div class="col-md-6">
                         <label class="form-label">Indeks</label>
-                        <Input class="form-control" @bind-Value="@konfSystem.Indeks" />
+                        <Input class="form-control" @bind-Value="@konfSystem.IndeksElementu" />
                     </div>
                 </div>
 
@@ -1346,7 +1346,7 @@
             {
                 SvgContent = konfSystem.SVG;
 
-                SelectIndesk = konfSystem.Indeks;
+                SelectIndesk = konfSystem.IndeksElementu;
 
                 Console.WriteLine($"✅ Wczytano zapisany rysunek SVG konfSystem.RowId: {konfSystem.RowId}");
 
@@ -1561,7 +1561,7 @@
             return;
         }
 
-        if (string.IsNullOrEmpty(konfSystem.Nazwa) || string.IsNullOrEmpty(konfSystem.Indeks))
+        if (string.IsNullOrEmpty(konfSystem.Nazwa) || string.IsNullOrEmpty(konfSystem.IndeksElementu))
         {
             activeKey = "1";
 

@@ -1528,9 +1528,9 @@
             var pasujacy = pasujaceSystemy.First();
 
             // Sprawdzamy, czy wszystkie pasujące rekordy mają ten sam Indeks
-            if (pasujaceSystemy.Select(x => x.Indeks).Distinct().Count() > 1)
+            if (pasujaceSystemy.Select(x => x.IndeksElementu).Distinct().Count() > 1)
             {
-                BladKonfiguracji = $"Model jest zbudowany z więcej niż jednego typu elementów. Prawdopodobnie element dolny może być różny od pozostałych. Pomiń jedną ze stron i sprawdź! [Znalezione indeksy: {string.Join(", ", pasujaceSystemy.Select(x => x.Indeks).Distinct())}]";
+                BladKonfiguracji = $"Model jest zbudowany z więcej niż jednego typu elementów. Prawdopodobnie element dolny może być różny od pozostałych. Pomiń jedną ze stron i sprawdź! [Znalezione indeksy: {string.Join(", ", pasujaceSystemy.Select(x => x.IndeksElementu).Distinct())}]";
                 await _message.Info(BladKonfiguracji);
                 Console.WriteLine(BladKonfiguracji);
                 return;
