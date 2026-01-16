@@ -247,6 +247,8 @@ namespace GEORGE.Client.Pages.Okna
 
             float angleDegreesElementLionowy = 0;
 
+            float katGornegoElemntu = GetTopEdgeAngleFromFirstSegment(outer);
+
             // 🔹 Nowy tryb – jeśli to tylko element liniowy (np. słupek)
             if (ElementLiniowy)
             {
@@ -435,9 +437,9 @@ namespace GEORGE.Client.Pages.Okna
 
                 List<XPoint>? wierzcholki;
 
-                Console.WriteLine($"▶️ DEBUG: Generating element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin}");
+                Console.WriteLine($"▶️ DEBUG: Generating element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin} katGornegoElemntu: {katGornegoElemntu}");
 
-                if (leftJoin == "T1" && rightJoin == "T1" || leftJoin == "T1" && rightJoin == "T4" || leftJoin == "T4" && rightJoin == "T1" || leftJoin == "T4" && rightJoin == "T4")
+                if (leftJoin == "T1" && rightJoin == "T4" || leftJoin == "T4" && rightJoin == "T1" || leftJoin == "T4" && rightJoin == "T4")
                 {
                     if (isAlmostHorizontal)
                     {
@@ -498,114 +500,6 @@ namespace GEORGE.Client.Pages.Okna
                                 outerTop, outerBottom, innerBottom, innerTop
                             };
                         }
-                        if (leftJoin == "T1" && rightJoin == "T1" && vertexCount > 4)
-                        {
-                            // Pionowy przypadek (np. boczne elementy w trapezie)
-                            var topY = Math.Min(inner[i].Y, inner[next].Y);
-                            var bottomY = Math.Max(inner[i].Y, inner[next].Y);
-
-                            // var topY2 = Math.Min(outer[i].Y, outer[next].Y);
-
-                            var y1Min = Math.Min(inner[i].Y, inner[next].Y);
-                            var y2Min = Math.Min(outer[i].Y, outer[next].Y);
-
-                            var x1Min = Math.Min(inner[i].X, inner[next].X);
-                            var x2Min = Math.Min(outer[i].X, outer[next].X);
-
-                            // Obliczanie wartości sinusa (stosunku)
-                            // 1. Obliczanie różnic między punktami (przyprostokątne)
-                            double roznicaY = Math.Abs(y1Min - y2Min);
-                            double roznicaX = Math.Abs(x1Min - x2Min);
-
-                            // 2. Obliczanie kąta w radianach za pomocą Math.Atan2 (najbezpieczniejsza metoda)
-                            // Atan2 przyjmuje najpierw Y, potem X
-                            double katWRadianach = Math.Atan2(roznicaY, roznicaX);
-
-                            // 2. Podwajamy kąt bezpośrednio na radianach (to będzie nasze 51,34 stopnia)
-                            double podwojonyKatRadiany = katWRadianach * 2;
-
-
-                            double correctedLenght = roznicaX / Math.Tan(podwojonyKatRadiany);
-
-
-                            var outerTop = GetHorizontalIntersection(outerStart, outerEnd, (float)topY + (float)correctedLenght, 0);
-                            var outerBottom = GetHorizontalIntersection(outerStart, outerEnd, (float)bottomY, 0);
-
-                            var innerTop = GetHorizontalIntersection(inner[i], inner[next], (float)topY, 0);
-                            var innerBottom = GetHorizontalIntersection(inner[i], inner[next], (float)bottomY, 0);
-
-                            wierzcholki = new List<XPoint> {
-                                outerTop, outerBottom, innerBottom, innerTop
-                            };
-                        }
-                        else if (leftJoin == "T1" && rightJoin == "T1" && vertexCount == 3)
-                        {
-                            var prev = (i - 1 + vertexCount) % vertexCount;
-                            var nextNext = (next + 1) % vertexCount;
-
-                            // Pionowy przypadek (np. boczne elementy w trapezie)
-                            var topY = Math.Min(inner[i].Y, inner[next].Y);
-                            var bottomY = Math.Max(inner[i].Y, inner[next].Y);
-
-                            // var topY2 = Math.Min(outer[i].Y, outer[next].Y);
-
-                            var y1Min = Math.Min(inner[i].Y, inner[next].Y);
-                            var y2Min = Math.Min(outer[i].Y, outer[next].Y);
-
-                            var x1Min = Math.Min(inner[i].X, inner[next].X);
-                            var x2Min = Math.Min(outer[i].X, outer[next].X);
-
-                            // Obliczanie wartości sinusa (stosunku)
-                            // 1. Obliczanie różnic między punktami (przyprostokątne)
-                            double roznicaY = Math.Abs(y1Min - y2Min);
-                            double roznicaX = Math.Abs(x1Min - x2Min);
-
-                            // 2. Obliczanie kąta w radianach za pomocą Math.Atan2 (najbezpieczniejsza metoda)
-                            // Atan2 przyjmuje najpierw Y, potem X
-                            double katWRadianach = Math.Atan2(roznicaY, roznicaX);
-
-                            Console.WriteLine($"🔷 Trapez T1/T1 vertexCount==3 katWRadianach: {katWRadianach}  roznicaY: {roznicaY}");
-
-                            // ✨ Korekcja styku z pionami T3 z lewej i prawej strony
-
-                            var outerVecStartFull = FindFirstEdgeIntersection(outerStart, nx, ny, outer);
-                            var outerVecEndFull = FindFirstEdgeIntersection(outerEnd, nx, ny, outer);
-
-                            // ✂️ Skrócenie o profile pionowe
-                            var outerVecStart = new XPoint(
-                                outerVecStartFull.X + tx * profileLeft,
-                                outerVecStartFull.Y + ty * profileLeft);
-
-                            var outerVecEnd = new XPoint(
-                                outerVecEndFull.X - tx * profileRight,
-                                outerVecEndFull.Y - ty * profileRight);
-
-                            var outerBottom = GetHorizontalIntersection(outerStart, outerEnd, (float)bottomY, 0);
-                            var innerBottom = GetHorizontalIntersection(inner[i], inner[next], (float)bottomY, 0);
-
-                            // Przesunięcie do wnętrza
-                            var innerVecStart = FindFirstEdgeIntersection(
-                                new XPoint(outerVecStart.X + nx * profile, outerVecStart.Y + ny * profile),
-                                tx, ty, inner);
-
-                            var innerVecEnd = FindFirstEdgeIntersection(
-                                new XPoint(outerVecEnd.X + nx * profile, outerVecEnd.Y + ny * profile),
-                                tx, ty, inner);
-
-                            if (katWRadianach < 1)
-                            {
-                                outerVecStart = outer[next];
-
-                                innerVecStart = FindFirstEdgeIntersection(
-                                new XPoint(innerVecEnd.X + nx, innerVecEnd.Y + ny),
-                                tx, ty, outer);
-                            }
-
-                            wierzcholki = new List<XPoint> {
-                            outerVecStart, outerBottom, innerBottom, innerVecStart
-                            };
-
-                        }
                         else
                         {
                             // Pionowy przypadek (np. boczne elementy w trapezie)
@@ -624,7 +518,196 @@ namespace GEORGE.Client.Pages.Okna
                             };
                         }
 
+
                     }
+                }
+                else if (leftJoin == "T1" && rightJoin == "T1")
+                {
+                    Console.WriteLine($"🔷 T1/T1 element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical} vertexCount: {vertexCount}");
+
+                    if(vertexCount == 3)
+                    {
+                       // var prev = (i - 1 + vertexCount) % vertexCount;
+                        var nextNext = (next + 1) % vertexCount;
+
+                        // Pionowy przypadek (np. boczne elementy w trapezie)
+                        var topY = Math.Min(inner[i].Y, inner[next].Y);
+                        var bottomY = Math.Max(inner[i].Y, inner[next].Y);
+
+                        // var topY2 = Math.Min(outer[i].Y, outer[next].Y);
+
+                        var y1Min = Math.Min(inner[i].Y, inner[next].Y);
+                        var y2Min = Math.Min(outer[i].Y, outer[next].Y);
+
+                        var x1Min = Math.Min(inner[i].X, inner[next].X);
+                        var x2Min = Math.Min(outer[i].X, outer[next].X);
+
+                        // Obliczanie wartości sinusa (stosunku)
+                        // 1. Obliczanie różnic między punktami (przyprostokątne)
+                        double roznicaY = Math.Abs(y1Min - y2Min);
+                        double roznicaX = Math.Abs(x1Min - x2Min);
+
+                        // 2. Obliczanie kąta w radianach za pomocą Math.Atan2 (najbezpieczniejsza metoda)
+                        // Atan2 przyjmuje najpierw Y, potem X
+                        double katWRadianach = Math.Atan2(roznicaY, roznicaX);
+
+                        Console.WriteLine($"🔷 Trapez T1/T1 vertexCount==3 katWRadianach: {katWRadianach}  roznicaY: {roznicaY}");
+
+                        // ✨ Korekcja styku z pionami T3 z lewej i prawej strony
+
+                        var outerVecStartFull = FindFirstEdgeIntersection(outerStart, nx, ny, outer);
+                        var outerVecEndFull = FindFirstEdgeIntersection(outerEnd, nx, ny, outer);
+
+                        // ✂️ Skrócenie o profile pionowe
+                        var outerVecStart = new XPoint(
+                            outerVecStartFull.X + tx * profileLeft,
+                            outerVecStartFull.Y + ty * profileLeft);
+
+                        var outerVecEnd = new XPoint(
+                            outerVecEndFull.X - tx * profileRight,
+                            outerVecEndFull.Y - ty * profileRight);
+
+                        var outerBottom = GetHorizontalIntersection(outerStart, outerEnd, (float)bottomY, 0);
+                        var innerBottom = GetHorizontalIntersection(inner[i], inner[next], (float)bottomY, 0);
+
+                        // Przesunięcie do wnętrza
+                        var innerVecStart = FindFirstEdgeIntersection(
+                            new XPoint(outerVecStart.X + nx * profile, outerVecStart.Y + ny * profile),
+                            tx, ty, inner);
+
+                        var innerVecEnd = FindFirstEdgeIntersection(
+                            new XPoint(outerVecEnd.X + nx * profile, outerVecEnd.Y + ny * profile),
+                            tx, ty, inner);
+
+                        if (katWRadianach < 1)
+                        {
+                            outerVecStart = outer[next];
+
+                            innerVecStart = FindFirstEdgeIntersection(
+                                new XPoint(innerVecEnd.X + nx, innerVecEnd.Y + ny),
+                                tx, ty, outer);
+                        }
+
+                        if (angleDegrees == 180 || angleDegrees == 0)
+                        {
+                            outerBottom.Y = outerBottom.Y + profile;
+                            // kierunek dolnego elementu (od outerBottom w stronę innerBottom)
+                            var dirX = tx;
+                            var dirY = ty;
+
+                            // punkt wewnętrzny = outerBottom przesunięty:
+                            // 1️⃣ do wnętrza (grubość profilu)
+                            // 2️⃣ wzdłuż osi dolnego profilu
+                            innerBottom = new XPoint(
+                                outerBottom.X + nx * profile + dirX * profile,
+                                outerBottom.Y + ny * profile + dirY * profile
+                            );
+
+                        }
+
+                        wierzcholki = new List<XPoint> {
+                            outerVecStart, outerBottom, innerBottom, innerVecStart
+                            };
+                    }
+                    else
+                    {
+                        if (isAlmostHorizontal)
+                        {
+                            // 🔷 Pionowe – pełne
+                            var outerVecTop = FindFirstEdgeIntersection(outerStart, nx, ny, outer);
+                            var outerVecBottom = FindFirstEdgeIntersection(outerEnd, nx, ny, outer);
+
+                            var innerVecTop = FindFirstEdgeIntersection(
+                                new XPoint(outerVecTop.X + nx * profile, outerVecTop.Y + ny * profile),
+                                tx, ty, outer);
+
+                            var innerVecBottom = FindFirstEdgeIntersection(
+                                new XPoint(outerVecBottom.X + nx * profile, outerVecBottom.Y + ny * profile),
+                                tx, ty, outer);
+
+                            wierzcholki = new List<XPoint> {
+                            outerVecTop, outerVecBottom, innerVecBottom, innerVecTop
+                        };
+                        }
+                        else
+                        {
+                            // Przecięcia "normalne"
+                            var outerVecStartFull = FindFirstEdgeIntersection(outerStart, nx, ny, outer);
+                            var outerVecEndFull = FindFirstEdgeIntersection(outerEnd, nx, ny, outer);
+
+                            // ✂️ Skrócenie o profile pionowe
+                            var outerVecStart = new XPoint(
+                                outerVecStartFull.X + tx * profileLeft,
+                                outerVecStartFull.Y + ty * profileLeft);
+
+                            var outerVecEnd = new XPoint(
+                                outerVecEndFull.X - tx * profileRight,
+                                outerVecEndFull.Y - ty * profileRight);
+
+                            if (isAlmostVertical)
+                            {
+                                // ✨ Korekcja styku z pionami T3 z lewej i prawej strony
+                                var prev = (i - 1 + vertexCount) % vertexCount;
+                                var nextNext = (next + 1) % vertexCount;
+
+                                if (polaczeniaArray[prev].typ == "T1")
+                                {
+                                    outerVecStart = FindFirstEdgeIntersection(outerVecStart, tx, ty, inner);
+                                }
+
+                                if (polaczeniaArray[nextNext % vertexCount].typ == "T1")
+                                {
+                                    outerVecEnd = FindFirstEdgeIntersection(outerVecEnd, -tx, -ty, inner);
+                                }
+
+                                // Przesunięcie do wnętrza
+                                var innerVecStart = FindFirstEdgeIntersection(
+                                    new XPoint(outerVecStart.X + nx * profile, outerVecStart.Y + ny * profile),
+                                    tx, ty, inner);
+
+                                var innerVecEnd = FindFirstEdgeIntersection(
+                                    new XPoint(outerVecEnd.X + nx * profile, outerVecEnd.Y + ny * profile),
+                                    tx, ty, inner);
+
+                                wierzcholki = new List<XPoint> {
+                            outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
+                            };
+                            }
+                            else
+                            {
+                                // ✨ Korekcja styku z pionami T3 z lewej i prawej strony
+                                var prev = (i - 1 + vertexCount) % vertexCount;
+                                var nextNext = (next + 1) % vertexCount;
+
+                                if (polaczeniaArray[prev].typ == "T1")
+                                {
+                                    outerVecStart = FindFirstEdgeIntersection(outerVecStart, tx, ty, outer);
+                                }
+
+                                if (polaczeniaArray[nextNext % vertexCount].typ == "T1")
+                                {
+                                    outerVecEnd = FindFirstEdgeIntersection(outerVecEnd, -tx, -ty, outer);
+                                }
+
+                                // Przesunięcie do wnętrza
+                                var innerVecStart = FindFirstEdgeIntersection(
+                                    new XPoint(outerVecStart.X + nx * profile, outerVecStart.Y + ny * profile),
+                                    tx, ty, outer);
+
+                                var innerVecEnd = FindFirstEdgeIntersection(
+                                    new XPoint(outerVecEnd.X + nx * profile, outerVecEnd.Y + ny * profile),
+                                    tx, ty, outer);
+
+                                wierzcholki = new List<XPoint> {
+                            outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
+                        };
+                            }
+
+                        }
+
+                    }
+
+
                 }
                 else if (leftJoin == "T3" && rightJoin == "T3")
                 {
@@ -994,6 +1077,8 @@ namespace GEORGE.Client.Pages.Okna
                 if (ElementLiniowy) return;
 
             }
+        
+        
         }
 
         private float ObliczDlugoscElementu(List<XPoint> wierzcholki, float kat)
@@ -1007,6 +1092,28 @@ namespace GEORGE.Client.Pages.Okna
 
             return (float)Math.Round(dlugosc, 2);
         }
+
+        /// <summary>
+        /// Zwraca kąt górnej krawędzi w stopniach (0 = poziomo, 90 = pionowo)
+        /// </summary>
+        public static float GetTopEdgeAngleFromFirstSegment(List<XPoint> outer)
+        {
+            if (outer == null || outer.Count < 2)
+                throw new ArgumentException("Lista punktów musi mieć co najmniej 2 elementy.");
+
+            var p1 = outer[0]; // lewy
+            var p2 = outer[1]; // prawy
+
+            double dx = p2.X - p1.X;
+            double dy = p2.Y - p1.Y;
+
+            double angle = Math.Atan2(dy, dx) * 180.0 / Math.PI;
+
+            if (angle < 0) angle += 360;
+
+            return (float)angle;
+        }
+
 
         private List<XPoint> RemoveDuplicateConsecutivePoints(List<XPoint> points)
         {
@@ -1082,6 +1189,13 @@ namespace GEORGE.Client.Pages.Okna
                 a1.X + t * dx1,
                 a1.Y + t * dy1
             );
+        }
+
+        private double Distance(XPoint p1, XPoint p2)
+        {
+            double dx = p1.X - p2.X;
+            double dy = p1.Y - p2.Y;
+            return Math.Sqrt(dx * dx + dy * dy);
         }
 
         private XPoint GetHorizontalIntersection(XPoint a, XPoint b, float y, float pionOsSymetrii)
