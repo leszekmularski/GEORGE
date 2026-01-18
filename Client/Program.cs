@@ -6,10 +6,15 @@ using System.Globalization;
 using GEORGE.Client.Pages.PDF;
 using GEORGE.Client.Pages.KonfiguratorOkien;
 
+var culture = new CultureInfo("pl-PL");
+CultureInfo.DefaultThreadCurrentCulture = culture;
+CultureInfo.DefaultThreadCurrentUICulture = culture;
+
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
+
 
 // ✅ Jeden HttpClient – bez AddApiAuthorization
 builder.Services.AddScoped(sp => new HttpClient

@@ -310,7 +310,7 @@
 </style>
 
 <script>
-    
+
     window.modalDragState = {
         posX: 0,
         posY: 0,
@@ -492,11 +492,11 @@
                                          @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
                                          draggable="true"
                                          style="cursor: grab;
-                                         width: auto;
-                                         height: auto;
-                                         max-width: 50px;
-                                         max-height: 50px;
-                                         border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
+                                                     width: auto;
+                                                     height: auto;
+                                                     max-width: 50px;
+                                                     max-height: 50px;
+                                                     border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
 
                                 }
                                 else
@@ -557,7 +557,7 @@
                                 <div>
                                     <strong>Typ:</strong> @ksztalt.TypKsztaltu &nbsp;|&nbsp;
                                     <strong>Grupa:</strong> @ksztalt.Grupa &nbsp;|&nbsp;
-                                    <strong>ZIndex:</strong> @ksztalt.ZIndex &nbsp;|&nbsp;<br/>
+                                    <strong>ZIndex:</strong> @ksztalt.ZIndex &nbsp;|&nbsp;<br />
                                     <strong>RowIdElementu [Indeks]:</strong> @ksztalt.RowIdElementu &nbsp; [@ksztalt.IndeksElementu] <br />
                                     <strong>Kąt:</strong> @ksztalt.Kat [@ksztalt.Strona]
                                     <strong>Offesty:</strong> L:@ksztalt.OffsetLewa G:@ksztalt.OffsetGora P:@ksztalt.OffsetPrawa D:@ksztalt.OffsetDol
@@ -586,12 +586,22 @@
 
                                             <div class="d-flex align-items-center mb-1" @key="punkt">
                                                 <span class="me-2">[@lokalnyIndex]</span>
-                                                <input class="form-control me-1" style="width: 100px;" type="number"
-                                                       step="0.01" value="@(Math.Round(punkt.X, 3))"
-                                                       @oninput="@(e => ZmienX(ksztalt, lokalnyIndex, e))" placeholder="X" />
-                                                <input class="form-control me-1" style="width: 100px;" type="number"
-                                                       step="0.01" value="@(Math.Round(punkt.Y, 3))"
-                                                       @oninput="@(e => ZmienY(ksztalt, lokalnyIndex, e))" placeholder="Y" />
+                                                <AntDesign.InputNumber TValue="double"
+                                                                       Value="punkt.X"
+                                                                       ValueChanged="@(x => ZmienX(ksztalt, lokalnyIndex, x))"
+                                                                       Step="0.01"
+                                                                       Precision="3"
+                                                                       Style="width:100px"
+                                                                       Placeholder="X" />
+
+                                                <AntDesign.InputNumber TValue="double"
+                                                                       Value="punkt.Y"
+                                                                       ValueChanged="@(y => ZmienY(ksztalt, lokalnyIndex, y))"
+                                                                       Step="0.01"
+                                                                       Precision="3"
+                                                                       Style="width:100px"
+                                                                       Placeholder="Y" />
+
                                             </div>
                                         }
                                     </div>
@@ -665,13 +675,18 @@
                                                     <span class="me-2">[@index]</span>
                                                     X:
                                                     <AntDesign.InputNumber Value="region.Wierzcholki[i].X"
-                                                                           OnChange="@((double x) => ZmienXRegion(region, index, x))"
-                                                                           Precision="2"
+                                                                           ValueChanged="@(x => SetX(region, i, x))"
+                                                                           Step="0.001"
+                                                                           Precision="3"
+                                                                           TValue="double"
                                                                            Style="width:150px" />
+
                                                     Y:
                                                     <AntDesign.InputNumber Value="region.Wierzcholki[i].Y"
-                                                                           OnChange="@((double y) => ZmienYRegion(region, index, y))"
-                                                                           Precision="2"
+                                                                           ValueChanged="@(y => SetY(region, i, y))"
+                                                                           Step="0.001"
+                                                                           Precision="3"
+                                                                           TValue="double"
                                                                            Style="width:150px" />
                                                 </div>
                                             }
@@ -752,13 +767,18 @@
                                                     <span class="me-2">[@index]</span>
                                                     X:
                                                     <AntDesign.InputNumber Value="region.Wierzcholki[i].X"
-                                                                           OnChange="@((double x) => ZmienXRegion(region, index, x))"
-                                                                           Precision="2"
+                                                                           ValueChanged="@(x => SetX(region, i, x))"
+                                                                           Step="0.001"
+                                                                           Precision="3"
+                                                                           TValue="double"
                                                                            Style="width:150px" />
+
                                                     Y:
                                                     <AntDesign.InputNumber Value="region.Wierzcholki[i].Y"
-                                                                           OnChange="@((double y) => ZmienYRegion(region, index, y))"
-                                                                           Precision="2"
+                                                                           ValueChanged="@(y => SetY(region, i, y))"
+                                                                           Step="0.001"
+                                                                           Precision="3"
+                                                                           TValue="double"
                                                                            Style="width:150px" />
                                                 </div>
                                             }
@@ -846,13 +866,18 @@
                                                     <span class="me-2">[@index]</span>
                                                     X:
                                                     <AntDesign.InputNumber Value="region.Wierzcholki[i].X"
-                                                                           OnChange="@((double x) => ZmienXRegion(region, index, x))"
-                                                                           Precision="2"
+                                                                           ValueChanged="@(x => SetX(region, i, x))"
+                                                                           Step="0.001"
+                                                                           Precision="3"
+                                                                           TValue="double"
                                                                            Style="width:150px" />
+
                                                     Y:
                                                     <AntDesign.InputNumber Value="region.Wierzcholki[i].Y"
-                                                                           OnChange="@((double y) => ZmienYRegion(region, index, y))"
-                                                                           Precision="2"
+                                                                           ValueChanged="@(y => SetY(region, i, y))"
+                                                                           Step="0.001"
+                                                                           Precision="3"
+                                                                           TValue="double"
                                                                            Style="width:150px" />
                                                 </div>
                                             }
@@ -934,13 +959,18 @@
                                                     <span class="me-2">[@index]</span>
                                                     X:
                                                     <AntDesign.InputNumber Value="region.Wierzcholki[i].X"
-                                                                           OnChange="@((double x) => ZmienXRegion(region, index, x))"
-                                                                           Precision="2"
+                                                                           ValueChanged="@(x => SetX(region, i, x))"
+                                                                           Step="0.001"
+                                                                           Precision="3"
+                                                                           TValue="double"
                                                                            Style="width:150px" />
+
                                                     Y:
                                                     <AntDesign.InputNumber Value="region.Wierzcholki[i].Y"
-                                                                           OnChange="@((double y) => ZmienYRegion(region, index, y))"
-                                                                           Precision="2"
+                                                                           ValueChanged="@(y => SetY(region, i, y))"
+                                                                           Step="0.001"
+                                                                           Precision="3"
+                                                                           TValue="double"
                                                                            Style="width:150px" />
                                                 </div>
                                             }
@@ -1037,7 +1067,7 @@
        Maximizable="@true"
        Centered="@true"
        DefaultMaximized="@true">
-    <Generator_state_viewer StateContainer="StateContainer" ></Generator_state_viewer>
+    <Generator_state_viewer StateContainer="StateContainer"></Generator_state_viewer>
 </Modal>
 
 <Modal Title="Podgląd danych wygenerowanych"
@@ -1285,6 +1315,7 @@
                     }
                 }
             }
+;
         }
 
         // TERAZ PRZETWÓRZ LINIE W SPOSÓB PODOBNY DO RysOkna
@@ -1313,55 +1344,104 @@
             double sceneMaxX = zamknieteKsztalty.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
             double sceneCenterX = (sceneMinX + sceneMaxX) / 2.0;
 
+            bool czyTrojkat = ShapeService.Shapes.Any(s => s.GetType() == typeof(XTriangleShape));
+
             if (liniePionowe.Count > 1)
             {
                 double minX = sceneMinX;
                 double maxX = sceneMaxX;
                 double spacing = (maxX - minX) / (liniePionowe.Count + 1); // +1 aby linie były wewnątrz
 
-                Console.WriteLine($"➡️  Linie pionowe: {liniePionowe.Count}, minX={minX:F2}, maxX={maxX:F2}, spacing={spacing:F2}");
+                Console.WriteLine($"➡️  Linie pionowe: {liniePionowe.Count}, minX={minX:F2}, maxX={maxX:F2}, spacing={spacing:F2} czyTrojkat: {czyTrojkat}");
 
                 int i = 1;
-                foreach (var line in liniePionowe)
+
+                if (!czyTrojkat)
                 {
-                    double x = minX + i * spacing;
-                    i++;
+                    foreach (var line in liniePionowe)
+                    {
+                        double x = minX + i * spacing;
+                        i++;
 
-                    // Przeskaluj współrzędne Y linii
-                    double y1 = line.Y1 * skalaY;
-                    double y2 = line.Y2 * skalaY;
+                        // Przeskaluj współrzędne Y linii
+                        // double y1 = zamknieteKsztalty.Min(s => s.GetBoundingBox().Y);
+                        // double y2 = zamknieteKsztalty.Max(s => s.GetBoundingBox().Y + s.GetBoundingBox().Height);
+                        double y1 = line.Y1 * skalaY;
+                        double y2 = line.Y2 * skalaY;
 
-                    var nowaLinia = new XLineShape(
-                        x, y1, x, y2,
-                        _currentScale, line.NazwaObj,
-                        line.RuchomySlupek, line.PionPoziom,
-                        line.DualRama, line.GenerowaneZRamy, line.StalySlupek);
 
-                    nowaLinia.ID = line.ID; // Zachowaj oryginalne ID
-                    noweLinie.Add(nowaLinia);
+                        var nowaLinia = new XLineShape(
+                            x, y1, x, y2,
+                            _currentScale, line.NazwaObj,
+                            line.RuchomySlupek, line.PionPoziom,
+                            line.DualRama, line.GenerowaneZRamy, line.StalySlupek);
 
-                    Console.WriteLine($"   🔹 Linia pionowa {line.ID} przesunięta na X={x:F2}, Y1={y1:F2}, Y2={y2:F2}");
+                        nowaLinia.ID = line.ID; // Zachowaj oryginalne ID
+                        noweLinie.Add(nowaLinia);
+
+                        Console.WriteLine($"   🔹 Linia pionowa {line.ID} przesunięta na X={x:F2}, Y1={y1:F2}, Y2={y2:F2}");
+                    }
+
                 }
+                else
+                {
+                    foreach (var line in liniePionowe)
+                    {
+                        double x = minX + i * spacing;
+                        i++;
+
+                        foreach (var shape in zamknieteKsztalty)
+                        {
+                            if (shape is XTriangleShape triangle)
+                            {
+                                if (!TryGetVerticalSpanInTriangle(x, triangle, out double yMin, out double yMax))
+                                    continue;
+
+                                var nowaLinia = new XLineShape(
+                                    x, yMin,
+                                    x, yMax,
+                                    _currentScale, line.NazwaObj,
+                                    line.RuchomySlupek, line.PionPoziom,
+                                    line.DualRama, line.GenerowaneZRamy, line.StalySlupek);
+
+                                nowaLinia.ID = line.ID;
+                                noweLinie.Add(nowaLinia);
+
+                                Console.WriteLine(
+                                    $"🔹 Linia pionowa {line.ID} w trójkącie: X={x:F2}, Y={yMin:F2}→{yMax:F2}");
+                            }
+                        }
+                    }
+
+                }
+
             }
             else if (liniePionowe.Count == 1)
             {
-                // jedna linia → środek sceny
                 var line = liniePionowe.First();
 
-                // Przeskaluj współrzędne Y linii
-                double y1 = line.Y1 * skalaY;
-                double y2 = line.Y2 * skalaY;
+                double yMin = zamknieteKsztalty.Min(s => s.GetBoundingBox().Y);
+                double yMax = zamknieteKsztalty.Max(s => s.GetBoundingBox().Y + s.GetBoundingBox().Height);
 
                 var centeredLine = new XLineShape(
-                    sceneCenterX, y1, sceneCenterX, y2,
+                    sceneCenterX, yMin,
+                    sceneCenterX, yMax,
                     _currentScale, line.NazwaObj,
                     line.RuchomySlupek, line.PionPoziom,
-                    line.DualRama, line.GenerowaneZRamy, line.StalySlupek);
+                    line.DualRama, line.GenerowaneZRamy, line.StalySlupek
+                );
+
+                // 🔥 TU JEST KLUCZ 🔥
+                foreach (var shape in zamknieteKsztalty)
+                {
+                    if (shape is XTriangleShape triangle)
+                    {
+                        ShortenVerticalLineToTriangle(centeredLine, triangle);
+                    }
+                }
 
                 centeredLine.ID = line.ID;
                 noweLinie.Add(centeredLine);
-
-                Console.WriteLine($"⚙️  Jedna linia pionowa — wyśrodkowano na X={sceneCenterX:F2}");
             }
         }
 
@@ -1444,6 +1524,14 @@
                 line.RuchomySlupek, line.PionPoziom,
                 line.DualRama, line.GenerowaneZRamy, line.StalySlupek);
 
+            foreach (var shape in zamknieteKsztalty)
+            {
+                if (shape is XTriangleShape triangle)
+                {
+                    ShortenVerticalLineToTriangle(line, triangle);
+                }
+            }
+
             nowaLinia.ID = line.ID;
             noweLinie.Add(nowaLinia);
 
@@ -1458,10 +1546,10 @@
 
         if (ShapeService != null && constWlasciwosciOkna != null && ShapeService._szerokosc > 0 && !_constWlasciwosciOkna)
         {
-            constWlasciwosciOkna.Szerokosc = ShapeService._szerokosc;   
+            constWlasciwosciOkna.Szerokosc = ShapeService._szerokosc;
             constWlasciwosciOkna.Wysokosc = ShapeService._wysokosc;
 
-            if(regenrujCanvas) await FitToScreen(true);
+            if (regenrujCanvas) await FitToScreen(true);
         }
 
         if (ShapeService.Shapes != null && ShapeService.Shapes.Count > 0)
@@ -1549,6 +1637,93 @@
 
     }
 
+    private bool TryGetVerticalSpanInTriangle(
+    double x,
+    XTriangleShape t,
+    out double yMin,
+    out double yMax)
+    {
+        yMin = yMax = 0;
+
+        var bb = t.GetBoundingBox();
+
+        double apexX = bb.X + bb.Width / 2.0;
+        double apexY = bb.Y;
+
+        double baseLeftX = bb.X;
+        double baseRightX = bb.X + bb.Width;
+        double baseY = bb.Y + bb.Height;
+
+        if (x < baseLeftX || x > baseRightX)
+            return false;
+
+        double slope = bb.Height / (bb.Width / 2.0);
+
+        double yTop;
+        if (x <= apexX)
+            yTop = apexY + slope * (apexX - x);
+        else
+            yTop = apexY + slope * (x - apexX);
+
+        yMin = yTop;
+        yMax = baseY;
+
+        return yMin < yMax;
+    }
+
+
+    public static void ShortenVerticalLineToTriangle(
+    XLineShape line,
+    XTriangleShape triangle,
+    double epsilon = 0.0001)
+    {
+        // Bezpiecznik – tylko linia pionowa
+        if (Math.Abs(line.X1 - line.X2) > epsilon)
+            return;
+
+        double x = line.X1;
+
+        var vertices = triangle.GetVertices();
+
+        var intersections = new List<double>();
+
+        // Iterujemy po bokach trójkąta
+        for (int i = 0; i < vertices.Count; i++)
+        {
+            var p1 = vertices[i];
+            var p2 = vertices[(i + 1) % vertices.Count];
+
+            // Pomijamy krawędzie pionowe – nie dadzą przecięcia w Y
+            if (Math.Abs(p1.X - p2.X) < epsilon)
+                continue;
+
+            // Sprawdź czy pionowa linia przecina zakres X krawędzi
+            if (x < Math.Min(p1.X, p2.X) - epsilon ||
+                x > Math.Max(p1.X, p2.X) + epsilon)
+                continue;
+
+            // Równanie parametryczne krawędzi
+            double t = (x - p1.X) / (p2.X - p1.X);
+
+            if (t < -epsilon || t > 1 + epsilon)
+                continue;
+
+            double y = p1.Y + t * (p2.Y - p1.Y);
+
+            intersections.Add(y);
+        }
+
+        // Trójkąt musi dać dokładnie 2 przecięcia
+        if (intersections.Count < 2)
+            return;
+
+        intersections.Sort();
+
+        line.Y1 = intersections.First();
+        line.Y2 = intersections.Last();
+    }
+
+
     private void SelectNextShape()
     {
         if (ShapeService.Shapes.Count == 0) return;
@@ -1569,68 +1744,22 @@
         JS.InvokeVoidAsync("SetCurrentModel", model.Typ, model.RowId);
     }
 
-    private void ZmienX(KsztaltElementu ksztalt, int index, ChangeEventArgs e)
+    void ZmienX(KsztaltElementu ksztalt, int index, double newX)
     {
-        try
-        {
-            Console.WriteLine($"➡️ ZmienX wywołane. index: {index} e.Value: '{e.Value}'");
-
-            if (ksztalt == null || ksztalt.Wierzcholki == null || index < 0 || index >= ksztalt.Wierzcholki.Count)
-            {
-                Console.WriteLine("❌ Nieprawidłowe dane wejściowe");
-                return;
-            }
-
-            var stringValue = e.Value?.ToString()?.Replace(",", ".");
-            if (float.TryParse(stringValue, NumberStyles.Any, CultureInfo.InvariantCulture, out var newX))
-            {
-                var punkt = ksztalt.Wierzcholki[index];
-                punkt.X = newX;
-                ksztalt.Wierzcholki[index] = punkt;
-                Console.WriteLine($"✅ ZmienX: indeks {index}, nowa wartość X: {newX}");
-            }
-            else
-            {
-                Console.WriteLine($"⚠️ Nie można sparsować: {stringValue}");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"🔥 Błąd podczas ZmienX: {ex.Message}");
-        }
+        var punkt = ksztalt.Wierzcholki[index];
+        punkt.X = newX;
+        ksztalt.Wierzcholki[index] = punkt;
+        Console.WriteLine($"✅ ZmienX: indeks {index}, nowa wartość X: {newX}");
     }
 
-    private void ZmienY(KsztaltElementu ksztalt, int index, ChangeEventArgs e)
+
+    void ZmienY(KsztaltElementu ksztalt, int index, double newY)
     {
-        try
-        {
-            Console.WriteLine($"➡️ ZmienY wywołane. index: {index} e.Value: '{e.Value}'");
-
-            if (ksztalt == null || ksztalt.Wierzcholki == null || index < 0 || index >= ksztalt.Wierzcholki.Count)
-            {
-                Console.WriteLine("❌ Nieprawidłowe dane wejściowe");
-                return;
-            }
-
-            var stringValue = e.Value?.ToString()?.Replace(",", ".");
-            if (float.TryParse(stringValue, NumberStyles.Any, CultureInfo.InvariantCulture, out var newY))
-            {
-                var punkt = ksztalt.Wierzcholki[index];
-                punkt.Y = newY;
-                ksztalt.Wierzcholki[index] = punkt;
-                Console.WriteLine($"✅ ZmienY: indeks {index}, nowa wartość Y: {newY}");
-            }
-            else
-            {
-                Console.WriteLine($"⚠️ Nie można sparsować: {stringValue}");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"🔥 Błąd podczas ZmienY: {ex.Message}");
-        }
+        var punkt = ksztalt.Wierzcholki[index];
+        punkt.Y = newY;
+        ksztalt.Wierzcholki[index] = punkt;
+        Console.WriteLine($"✅ ZmienX: indeks {index}, nowa wartość X: {newY}");
     }
-
 
     private async Task EdytujKsztalt(string id)
     {
@@ -1693,7 +1822,7 @@
         if (shape?.Points == null)
             return;
 
-        if (index < 0 || index >= shape.Points .Count)
+        if (index < 0 || index >= shape.Points.Count)
             return;
 
         var p = shape.Points[index];
@@ -1716,68 +1845,18 @@
 
     }
 
-    private void ZmienXRegion(ShapeRegion region, int index, double value)
+    void SetX(ShapeRegion region, int index, double x)
     {
-        if (region?.Wierzcholki == null)
-            return;
-
-        if (index < 0 || index >= region.Wierzcholki.Count)
-            return;
-
-        var p = region.Wierzcholki[index];
-        p.X = (float)value;
-        region.Wierzcholki[index] = p;
-
-        foreach (var shape in ShapeService.Shapes)
-        {
-            if (shape != null)
-            {
-                shape.Points = region.Wierzcholki;
-            }
-        }
-
-        string cleanId = CleanId(region.Id);
-        if (_generatorStates.TryGetValue(cleanId, out var state))
-        {
-            state.Wierzcholki = region.Wierzcholki;
-            state.WierzcholkiWartosciNominalne = region.Wierzcholki;
-        }
-
-        _regionsDualRama[0] = region;
-        ShapeService.Shapes[0].Points = region.Wierzcholki;
-
+        var p = region.Wierzcholki[index]; // kopia
+        p.X = x;
+        region.Wierzcholki[index] = p;     // nadpisanie
     }
 
-    private void ZmienYRegion(ShapeRegion region, int index, double value)
+    void SetY(ShapeRegion region, int index, double y)
     {
-        if (region?.Wierzcholki == null)
-            return;
-
-        if (index < 0 || index >= region.Wierzcholki.Count)
-            return;
-
-        var p = region.Wierzcholki[index];
-        p.Y = (float)value;
-        region.Wierzcholki[index] = p;
-
-        foreach (var shape in ShapeService.Shapes)
-        {
-            if (shape != null)
-            {
-                shape.Points = region.Wierzcholki;
-            }
-        }
-
-        string cleanId = CleanId(region.Id);
-        if (_generatorStates.TryGetValue(cleanId, out var state))
-        {
-            state.Wierzcholki = region.Wierzcholki;
-            state.WierzcholkiWartosciNominalne = region.Wierzcholki;
-        }
-
-        _regionsDualRama[0] = region;
-        ShapeService.Shapes[0].Points = region.Wierzcholki;
-
+        var p = region.Wierzcholki[index]; // kopia
+        p.Y = y;
+        region.Wierzcholki[index] = p;     // nadpisanie
     }
 
     private async Task ZapiszRegion()
@@ -1795,10 +1874,10 @@
     {
         edytowanyRegionId = null;
 
-        foreach(var xx in ShapeService.Shapes)
+        foreach (var xx in ShapeService.Shapes)
         {
             Console.WriteLine($"ZapiszShape --> Shape ID: {xx.ID}, Points Count: {xx.Points.Count}");
-            foreach(var yyy in xx.Points)
+            foreach (var yyy in xx.Points)
             {
                 Console.WriteLine($"ZapiszShape --> Point X: {yyy.X}, Y: {yyy.Y}");
             }
@@ -1831,7 +1910,7 @@
             {
                 if (ShapeService.Shapes[0].GetType() == typeof(GEORGE.Client.Pages.Models.XSquareShape) || ShapeService.Shapes[0].GetType() == typeof(GEORGE.Client.Pages.Models.XCircleShape))
                 {
-                    if(constWlasciwosciOkna != null)
+                    if (constWlasciwosciOkna != null)
                         constWlasciwosciOkna.Wysokosc = constWlasciwosciOkna.Szerokosc;
 
                     _constWlasciwosciOknaBlokujWys = true;
@@ -1897,7 +1976,7 @@
     private async Task HandleZapis()
     {
         // Wywołanie zapisu w komponencie ZmienWymiaryOkna
-        if(zmienWymiaryOknaRef == null) return;
+        if (zmienWymiaryOknaRef == null) return;
 
         await zmienWymiaryOknaRef.ZapiszDoRodzica();
 
@@ -2136,7 +2215,7 @@
 
         //if (await DodajWybranyKwadratOkna(idRegion, Wierzcholki) == false) return; // teraz z idRegion
 
-        if(WybranyModel.Typ == "Słupek stały")
+        if (WybranyModel.Typ == "Słupek stały")
         {
             var match = ObliczWierzcholkiSlupkaStalego(Wierzcholki, klikX, klikY);
 
@@ -2360,7 +2439,7 @@
         modelX = Math.Clamp(modelX, 0, constWlasciwosciOkna.Szerokosc);
         modelY = Math.Clamp(modelY, 0, constWlasciwosciOkna.Wysokosc);
 
-        mousePosition = $"X: {modelX:F0} mm, Y: {modelY:F0} mm (skala: {_currentScale:F2})";
+        mousePosition = $"X: {modelX:F0} mm, Y: {modelY:F0} mm ";// (skala: {_currentScale:F2})";
     }
 
 
@@ -2455,7 +2534,7 @@
 
         // 🎯 Dopasuj widok do kształtu i regionu
 
-        await FitToCanvas(shape, region.Id, false, region.Wierzcholki, modelX, modelY) ;
+        await FitToCanvas(shape, region.Id, false, region.Wierzcholki, modelX, modelY);
 
         //await Task.Delay(50);
 
@@ -2741,7 +2820,7 @@
 
                     // ✅ Poprawione: Utwórz nowy obiekt przed ustawieniem właściwości
 
-                    if(restrykcje != "")
+                    if (restrykcje != "")
                     {
                         WyrobWymiaryOpis opisy = new WyrobWymiaryOpis(constWlasciwosciOkna.Szerokosc, constWlasciwosciOkna.Wysokosc, SelectedModelType, restrykcje);
 
@@ -2947,7 +3026,7 @@
 
             var region = wszystkieRegiony.FirstOrDefault(r => r.Id == cleanId);
 
-            if(region == null)
+            if (region == null)
             {
                 Console.WriteLine($"⚠ Brak regionu dla stanu generatora: {cleanId}");
                 continue;
@@ -2992,7 +3071,7 @@
 
             Console.WriteLine($"🔍 Przetwarzam generator dla regionu: {cleanId} generator.CzyElementJestRama: {generator.CzyElementJestRama}");
 
-            if(generator.Wierzcholki != null && generator.Wierzcholki.Count() > 0)
+            if (generator.Wierzcholki != null && generator.Wierzcholki.Count() > 0)
                 Console.WriteLine($"➡➡➡ Regeneruję region {cleanId} typ regionu czy rama: {generator.CzyElementJestRama} -> {generator.Wierzcholki.Max(x => x.X)} x {generator.Wierzcholki.Max(x => x.Y)}");
 
             // -----------------------------------------------------
@@ -4270,7 +4349,7 @@
         {
             string best = WybierzNajblizszySlupek(wierzcholki, idSlupka, klikX, klikY);
 
-            if(best != null)
+            if (best != null)
             {
                 Console.WriteLine($"📌 Dopasowano słupek stały do ID: {best}");
             }
@@ -4526,7 +4605,7 @@
 
             // Wybór przesunięcia na podstawie kierunku
             double offset1 = (kat1 >= 315 || kat1 < 45) ? przesLewo :
-                             (kat1 >= 45 && kat1 < 135) ? przesGora  :
+                             (kat1 >= 45 && kat1 < 135) ? przesGora :
                              (kat1 >= 135 && kat1 < 225) ? przesPrawo :
                              przesDol;
 
@@ -4594,7 +4673,7 @@
                 infoObiekt = new List<WyrobWymiaryOpis>();
             }
 
-            if(string.IsNullOrWhiteSpace(strona))
+            if (string.IsNullOrWhiteSpace(strona))
             {
                 strona = "NaN";
             }
@@ -4615,7 +4694,7 @@
             {
                 var lista = await response.Content.ReadFromJsonAsync<List<PrzesuniecieDto>>();
 
-                if(lista != null && lista.Count() > 0)
+                if (lista != null && lista.Count() > 0)
                 {
                     foreach (var item in lista)
                     {
@@ -4751,7 +4830,7 @@
         Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii -> Kąt linii: {katLinii:F1}°");
 
         // 🔹 Określ typ linii z większą tolerancją
-        const double katTolerancja = 30.0; 
+        const double katTolerancja = 30.0;
 
         bool jestPionowa = Math.Abs(katLinii - 90) <= katTolerancja ||
                           Math.Abs(katLinii - 270) <= katTolerancja;
@@ -5458,7 +5537,7 @@
             Console.WriteLine($"✅ Linie skośne się przecinają");
             return true;
         }
-    
+
         // 2. Sprawdź czy końce są blisko siebie
         double[] odleglosci = new double[]
         {
@@ -5467,10 +5546,10 @@
             OdlegloscPunktuOdOdcinka(b1, a1, a2),
             OdlegloscPunktuOdOdcinka(b2, a1, a2)
         };
-    
+
         double minOdl = odleglosci.Min();
         Console.WriteLine($"🔍 Linie skośne - min odległość końca: {minOdl:F3}");
-    
+
         // Dla linii skośnych większa tolerancja
         return minOdl < tol * 50;
     }
@@ -5515,7 +5594,7 @@
             linie.Add(new List<XPoint> { start, end });
         }
 
-        Console.WriteLine($"ExtractLinesFromSquare -- > {(linie == null ? "null" :linie.Count)}");
+        Console.WriteLine($"ExtractLinesFromSquare -- > {(linie == null ? "null" : linie.Count)}");
 
         return linie;
     }
@@ -5550,13 +5629,13 @@
         // Nadpisanie lub dodanie
         _generatorStates[regionId] = state;
 
-        if(generator.Wierzcholki == null || generator.Wierzcholki.Count() == 0)
+        if (generator.Wierzcholki == null || generator.Wierzcholki.Count() == 0)
         {
             Console.WriteLine($"AddOrUpdateGeneratorState 💾 Zapisano/Nadpisano stan generatora dla regionId = '{regionId}'  -> BRAK WIERZCHOŁKÓW");
         }
         else
         {
-           Console.WriteLine($"AddOrUpdateGeneratorState 💾 Zapisano/Nadpisano stan generatora dla regionId = '{regionId}'  -> {generator.Wierzcholki.Max(x => x.X)} x {generator.Wierzcholki.Max(x => x.Y)}");
+            Console.WriteLine($"AddOrUpdateGeneratorState 💾 Zapisano/Nadpisano stan generatora dla regionId = '{regionId}'  -> {generator.Wierzcholki.Max(x => x.X)} x {generator.Wierzcholki.Max(x => x.Y)}");
         }
 
         Console.WriteLine($"AddOrUpdateGeneratorState 📦 Liczba stanów generatora = {_generatorStates.Count}");
@@ -5768,7 +5847,7 @@
             generator.Wysokosc = (float)(maxY - minY);
             generator.Zindeks = 0;
 
-          await generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama, null);
+            await generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama, null);
         }
         else if (wybranyRegionSkrzydlo != null && !czyRegionZawieraSlupekStaly)
         {
@@ -5859,7 +5938,7 @@
                 if (ksztalt.Wierzcholki == null || ksztalt.Wierzcholki.Count < 3)
                     continue;
 
-              //  Console.WriteLine($"*********** >>>>>> IndeksElementu: {ksztalt.IndeksElementu} Grupa: {ksztalt.Grupa} DlogoscElementu: {ksztalt.DlogoscElementu}");
+                //  Console.WriteLine($"*********** >>>>>> IndeksElementu: {ksztalt.IndeksElementu} Grupa: {ksztalt.Grupa} DlogoscElementu: {ksztalt.DlogoscElementu}");
 
                 await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
                 await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"{ksztalt.IndeksElementu.ToString()} [{ksztalt.Kat.ToString()}/{ksztalt.Strona}]"); // Tekst z ID i kątem na profilu
@@ -6004,7 +6083,7 @@
 
         await JS.InvokeVoidAsync("ResetCursorGlobal");
 
-       // Console.WriteLine("JS done");
+        // Console.WriteLine("JS done");
 
         if (ShapeService != null)
         {
