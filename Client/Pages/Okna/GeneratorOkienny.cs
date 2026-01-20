@@ -420,8 +420,16 @@ namespace GEORGE.Client.Pages.Okna
                         dodajB = true;
                     }
                 }
-                //bool isMoreHorizontal = Math.Abs(dy) < Math.Abs(dx); // To do poprawy kiedy jest pionowy a kiedy poziomy
-                //bool isMoreVertical = Math.Abs(dx) < Math.Abs(dy);
+
+                //foreach (var test in inner)
+                //{
+                //    Console.WriteLine($"🔷 T1/T1 🔷 inner point X: {test.X} Y: {test.Y}");
+                //}
+
+                //foreach (var test in outer)
+                //{
+                //    Console.WriteLine($"🔷 T1/T1 🔷 outer point X: {test.X} Y: {test.Y}");
+                //}
 
                 if (!isAlmostHorizontal && !isAlmostVertical && vertexCount > 4)
                 {
@@ -527,7 +535,7 @@ namespace GEORGE.Client.Pages.Okna
 
                     if (vertexCount == 3 && angleDegrees == 0)
                     {
-                        Console.WriteLine($"🔷 T1/T1 element {i + 1} vertexCount == 3 && angleDegrees == 0");
+                        Console.WriteLine($"🔷 T1/T1 element {i + 1} vertexCount == 3 && angleDegrees == 0 START");
 
                         var prev = (i - 1 + vertexCount) % vertexCount;
                         var nextNext = (next + 1) % vertexCount;
@@ -721,17 +729,17 @@ namespace GEORGE.Client.Pages.Okna
                                     outerVecTop = GetHorizontalIntersection(outerSkosStart, outerSkosEnd, bottomY, 0);
 
 
-                                    Console.WriteLine($"🔷 T1/T1 🔷 🔷 innerVecTop (bottom-left): X={innerVecTop.X}, Y={innerVecTop.Y}");
+                                    //Console.WriteLine($"🔷 T1/T1 🔷 🔷 innerVecTop (bottom-left): X={innerVecTop.X}, Y={innerVecTop.Y}");
 
-                                    foreach (var test in inner)
-                                    {
-                                        Console.WriteLine($"🔷 T1/T1 🔷 inner point X: {test.X} Y: {test.Y}");
-                                    }
+                                    //foreach (var test in inner)
+                                    //{
+                                    //    Console.WriteLine($"🔷 T1/T1 🔷 inner point X: {test.X} Y: {test.Y}");
+                                    //}
 
-                                    foreach (var test in outer)
-                                    {
-                                        Console.WriteLine($"🔷 T1/T1 🔷 outer point X: {test.X} Y: {test.Y}");
-                                    }
+                                    //foreach (var test in outer)
+                                    //{
+                                    //    Console.WriteLine($"🔷 T1/T1 🔷 outer point X: {test.X} Y: {test.Y}");
+                                    //}
                                 }
 
                                 if (vertexCount == 3 && angleDegrees < 90)
@@ -763,20 +771,11 @@ namespace GEORGE.Client.Pages.Okna
 
                                     outerVecBottom = outerSkosStart;
 
-                                    // 🔴 KLUCZOWA LINIA – zamiast "169"
-                                    float innerVerticalX = (float)inner.Min(p => p.X);
-
-                                    XPoint innerVerticalTop = GetVerticalIntersection(
-                                        outerSkosStart,
-                                        outerSkosEnd,
-                                        innerVerticalX,
-                                        0
-                                    );
-                                    Console.WriteLine($"🔷 T1/T1 🔷 🔷 innerVerticalTop: X={innerVerticalTop.X}, Y={innerVerticalTop.Y} length:{length}");
-                                    innerVecBottom = new XPoint(
-                                        (float)outer.Min(p => p.X),
-                                        innerVerticalTop.Y - profile / nx + profile * ny
-                                    );
+                                    innerVecBottom.Y = (float)inner.Min(p => p.Y) * ny;
+                                    innerVecBottom.X = (float)outer.Min(p => p.X);
+            
+                                    Console.WriteLine($"🔷 T1/T1 🔷 🔷 nx: {nx}, ny: {ny} length:{length} inner.Min(p => p.Y): {inner.Min(p => p.Y)}");
+          
 
 
                                 }
