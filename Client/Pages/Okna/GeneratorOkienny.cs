@@ -771,13 +771,17 @@ namespace GEORGE.Client.Pages.Okna
 
                                     outerVecBottom = outerSkosStart;
 
-                                    innerVecBottom.Y = (float)inner.Min(p => p.Y) * ny;
+                                    double angleRad = (90 - angleDegrees) * Math.PI / 180.0;
+
+                                    // pionowa składowa przesunięcia po skosie
+                                    float deltaY = (float)(profile / Math.Tan(angleRad));
+
+                                    innerVecBottom.Y = (float)inner.Min(p => p.Y) - deltaY;
                                     innerVecBottom.X = (float)outer.Min(p => p.X);
-            
+
+
                                     Console.WriteLine($"🔷 T1/T1 🔷 🔷 nx: {nx}, ny: {ny} length:{length} inner.Min(p => p.Y): {inner.Min(p => p.Y)}");
-          
-
-
+     
                                 }
 
                                 wierzcholki = new List<XPoint> {
