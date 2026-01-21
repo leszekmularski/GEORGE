@@ -3751,7 +3751,7 @@
             }
         }
 
-        // Oblicz przesunięcia tylko dla skrzydeł
+        // Oblicz przesunięcia tylko dla skrzydeł zmienne
         double przesLewo = 0, przesPrawo = 0, przesGora = 0, przesDol = 0;
 
         // Przygotowanie stanu generatora
@@ -3804,7 +3804,7 @@
             sasiedzi = await ZnajdzSasiada(
                 linia,
                 _generatorStates.Values.ToList(),
-                (int)katSzukaj,
+                (float)katSzukaj,
                 state.SlupekRuchomyPoLewejStronie,
                 state.SlupekRuchomyPoPrawejStronie,
                 state.IdRegion,
@@ -4046,7 +4046,7 @@
                 RowIdElementu = rowId,
                 RowIdSasiada = najlepszySasiad?.RowIdElementu ?? Guid.Empty,
                 RowIdRegionuSasiada = najlepszySasiad?.IdRegionu ?? "",
-                KatLinii = (int)katSzukaj,
+                KatLinii = (float)katSzukaj,
                 OffsetBottom = 0,
                 OffsetTop = 0,
                 OffsetLeft = 0,
@@ -4202,7 +4202,7 @@
                 RowIdSasiadaStronaB = najlepszySasiadB?.RowIdElementu ?? Guid.Empty,
 
                 RowIdRegionuSasiada = najlepszySasiadA?.IdRegionu ?? "",
-                KatLinii = (int)katSzukaj,
+                KatLinii = (float)katSzukaj,
                 OffsetBottom = 0,
                 OffsetTop = 0,
                 OffsetLeft = 0,
@@ -4538,7 +4538,7 @@
                 ? Math.Abs(spolaczenieStrona.PrzesuniecieY)
                 : 0;
 
-            Console.WriteLine($"📦 WyliczObszarSkrzydla -> Sprawdzam bok: {bok.RowIdElementu}, Strona: {bok.Strona}, przesY: {przesY}");
+            Console.WriteLine($"📦 WyliczObszarSkrzydla -> Sprawdzam bok: {bok.RowIdElementu}, Strona: {bok.Strona}, przesY: {przesY} przesLewo: {przesLewo} przesPrawo: {przesPrawo} przesGora: {przesGora} przesDol: {przesDol}");
 
             switch (bok.Strona.ToLower())
             {
@@ -4742,48 +4742,66 @@
         return new List<KonfPolaczenie>();
     }
 
-    public static string StronaSzukaj(double kat, List<XPoint> linia, double regionMinY, double regionMaxY, double regionMinX, double regionMaxX)
+    public static string StronaSzukaj(
+     double kat,
+     List<XPoint> linia,
+     double regionMinY,
+     double regionMaxY,
+     double regionMinX,
+     double regionMaxX)
     {
-        // Normalizacja kąta
-        kat = (kat + 360) % 360;
+        if (linia == null || linia.Count < 2)
+            return "";
 
-        // Przybliżenie kąta do jednej z głównych orientacji
-        int katZnormalizowany;
-        if (kat >= 315 || kat < 45)
-            katZnormalizowany = 0;
-        else if (kat >= 45 && kat < 135)
-            katZnormalizowany = 90;
-        else if (kat >= 135 && kat < 225)
-            katZnormalizowany = 180;
-        else
-            katZnormalizowany = 270;
+        // Normalizacja kąta 0–360
+        kat = (kat % 360 + 360) % 360;
 
-        string strona = "";
-        double tol = 0.15; // zwiększona tolerancja
+        // 1️⃣ Określenie strony z samego kąta (jak w Twoim switch)
+        string stronaKat = kat switch
+        {
+            >= 45 and < 135 => "prawa",
+            >= 135 and < 225 => "dół",
+            >= 225 and < 315 => "lewa",
+            _ => "góra"
+        };
+
+        double tol = 0.15;
 
         double x1 = linia[0].X;
         double y1 = linia[0].Y;
         double x2 = linia[1].X;
         double y2 = linia[1].Y;
 
-        if (katZnormalizowany == 0 || katZnormalizowany == 180)
+        string strona = "";
+
+        // 2️⃣ Weryfikacja położenia względem regionu
+        switch (stronaKat)
         {
-            // Linie poziome – porównujemy po Y
-            if (Math.Abs(y1 - regionMinY) < tol || Math.Abs(y2 - regionMinY) < tol)
-                strona = "góra";
-            else if (Math.Abs(y1 - regionMaxY) < tol || Math.Abs(y2 - regionMaxY) < tol)
-                strona = "dół";
-        }
-        else if (katZnormalizowany == 90 || katZnormalizowany == 270)
-        {
-            // Linie pionowe – porównujemy po X
-            if (Math.Abs(x1 - regionMinX) < tol || Math.Abs(x2 - regionMinX) < tol)
-                strona = "lewa";
-            else if (Math.Abs(x1 - regionMaxX) < tol || Math.Abs(x2 - regionMaxX) < tol)
-                strona = "prawa";
+            case "góra":
+                if (Math.Abs(y1 - regionMinY) < tol || Math.Abs(y2 - regionMinY) < tol)
+                    strona = "góra";
+                break;
+
+            case "dół":
+                if (Math.Abs(y1 - regionMaxY) < tol || Math.Abs(y2 - regionMaxY) < tol)
+                    strona = "dół";
+                break;
+
+            case "lewa":
+                if (Math.Abs(x1 - regionMinX) < tol || Math.Abs(x2 - regionMinX) < tol)
+                    strona = "lewa";
+                break;
+
+            case "prawa":
+                if (Math.Abs(x1 - regionMaxX) < tol || Math.Abs(x2 - regionMaxX) < tol)
+                    strona = "prawa";
+                break;
         }
 
-        Console.WriteLine($"📐 StronaSzukaj → kat={kat:F1}° ({katZnormalizowany}°) → strona={strona} (X1={x1:F2}, X2={x2:F2}, minX={regionMinX:F2}, maxX={regionMaxX:F2})");
+        Console.WriteLine(
+            $"📐 StronaSzukaj → kat={kat:F1}° → wg kąta={stronaKat} → wynik={strona} " +
+            $"(X1={x1:F2}, X2={x2:F2}, Y1={y1:F2}, Y2={y2:F2})");
+
         return strona;
     }
 
@@ -5050,7 +5068,7 @@
     public async Task<List<SasiadInfo>> ZnajdzSasiada(
         List<XPoint> linia,
         List<GeneratorState> wszystkieStany,
-        int kat,
+        float kat,
         bool ruchomySlupekPoLewej,
         bool ruchomySlupekPoPrawej,
         string obecnyRegionId,
@@ -5411,7 +5429,7 @@
                p.Y >= Math.Min(a.Y, b.Y) - tolerancja;
     }
 
-    private static bool CzyNakladajaSieDowolne(XPoint a1, XPoint a2, XPoint b1, XPoint b2, double tol = 0.02, int kat = 0)
+    private static bool CzyNakladajaSieDowolne(XPoint a1, XPoint a2, XPoint b1, XPoint b2, double tol = 0.02, float kat = 0)
     {
         // 🔹 Oblicz długości linii
         double dxA = a2.X - a1.X;
@@ -5941,7 +5959,7 @@
                 //  Console.WriteLine($"*********** >>>>>> IndeksElementu: {ksztalt.IndeksElementu} Grupa: {ksztalt.Grupa} DlogoscElementu: {ksztalt.DlogoscElementu}");
 
                 await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
-                await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"{ksztalt.IndeksElementu.ToString()} [{ksztalt.Kat.ToString()}/{ksztalt.Strona}]"); // Tekst z ID i kątem na profilu
+                await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"{ksztalt.IndeksElementu.ToString()} [{ksztalt.Kat.ToString()}/{ksztalt.Strona}]", (ksztalt.Kat == 180 ? 0 : ksztalt.Kat)); // Tekst z ID i kątem na profilu
             }
 
             await _context.RestoreAsync();
@@ -6036,39 +6054,41 @@
         await context.StrokeAsync();
     }
 
-    private async Task DrawSingleContourTextOnly(Canvas2DContext context, List<XPoint> outerPoints, string tekst)
+    private async Task DrawSingleContourTextOnly(
+    Canvas2DContext context,
+    List<XPoint> outerPoints,
+    string tekst,
+    float kat // w stopniach
+    )
     {
         if (outerPoints == null || outerPoints.Count < 2) return;
 
-        // Oblicz środek figury
+        // Środek figury
         double centerX = outerPoints.Average(p => p.X);
         double centerY = outerPoints.Average(p => p.Y);
 
-        // Sprawdź proporcje
-        double width = outerPoints.Max(p => p.X) - outerPoints.Min(p => p.X);
-        double height = outerPoints.Max(p => p.Y) - outerPoints.Min(p => p.Y);
-        bool rotate = height > width;
+        // Stopnie -> radiany
+        double angleRad = kat * Math.PI / 180.0;
 
         // Rysowanie tekstu
         await context.SaveAsync();
-        await context.SetFontAsync($"30px Arial");
+        await context.SetFontAsync("30px Arial");
         await context.SetFillStyleAsync("black");
         await context.SetTextAlignAsync(TextAlign.Center);
         await context.SetTextBaselineAsync(TextBaseline.Middle);
 
-        if (rotate)
-        {
-            await context.TranslateAsync(centerX, centerY);
-            await context.RotateAsync((float)Math.PI / 2); // 90 stopni
-            await context.FillTextAsync(tekst, 0, 0);
-        }
-        else
-        {
-            await context.FillTextAsync(tekst, centerX, centerY);
-        }
+        // Przenieś układ współrzędnych do środka
+        await context.TranslateAsync(centerX, centerY);
+
+        // Obróć o zadany kąt
+        await context.RotateAsync((float)angleRad);
+
+        // Rysuj w (0,0) — bo środek już jest przestawiony
+        await context.FillTextAsync(tekst, 0, 0);
 
         await context.RestoreAsync();
     }
+
 
 
     private async Task GoBack()
@@ -6219,7 +6239,7 @@
         public bool MaSlupekRuchomy { get; set; }
         public int Id { get; set; }
         public string? WybranyTyp { get; set; }
-        public int KatSasiada { get; set; }
+        public float KatSasiada { get; set; }
         public bool WystepujeDol { get; set; } = false;
         public bool WystepujeLewa { get; set; } = false;
         public bool WystepujeGora { get; set; } = false;

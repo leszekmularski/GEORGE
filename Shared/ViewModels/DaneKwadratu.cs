@@ -9,7 +9,7 @@ namespace GEORGE.Shared.ViewModels
         public Guid RowIdSasiadaStronaA { get; set; } = Guid.Empty; //id elementu w bazie danych sąsiad strona A przecinający (góra/lewa)
         public Guid RowIdSasiadaStronaB { get; set; } = Guid.Empty; //id elementu w bazie danych sąsiad strona B przecinający (dół/prawa)
         public string? RowIdRegionuSasiada { get; set; } //id elementu w bazie danych
-        public int KatLinii { get; set; } //kierunek linii w stopniach
+        public float KatLinii { get; set; } //kierunek linii w stopniach
         public string? Strona { get; set; } //kierunek linii w stopniach
         public double OffsetTop { get; set; } = 0; //odległość linii od górnej krawędzi elementu pobrana z bazy danych
         public double OffsetBottom { get; set; } = 0;

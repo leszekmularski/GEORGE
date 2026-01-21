@@ -23,7 +23,7 @@ namespace GEORGE.Client.Pages.Okna
         public Generator()
         {
             // Inicjalizacja domyślnych wartości
-            Szerokosc = 1000;
+            Szerokosc = 1250;
             Wysokosc = 1000;
             KolorZewnetrzny = "#FFFFFF";
             KolorWewnetrzny = "#FFFFFF";
@@ -341,6 +341,16 @@ namespace GEORGE.Client.Pages.Okna
 
             var polaczeniaArray = parsedConnections.ToArray();
 
+            foreach (var test in inner)
+            {
+                Console.WriteLine($"🔷🔷 inner point X: {test.X} Y: {test.Y}");
+            }
+
+            foreach (var test in outer)
+            {
+                Console.WriteLine($"🔷🔷 outer point X: {test.X} Y: {test.Y}");
+            }
+
             for (int i = 0; i < vertexCount; i++)
             {
                 int next = (i + 1) % vertexCount;
@@ -420,16 +430,6 @@ namespace GEORGE.Client.Pages.Okna
                         dodajB = true;
                     }
                 }
-
-                //foreach (var test in inner)
-                //{
-                //    Console.WriteLine($"🔷 T1/T1 🔷 inner point X: {test.X} Y: {test.Y}");
-                //}
-
-                //foreach (var test in outer)
-                //{
-                //    Console.WriteLine($"🔷 T1/T1 🔷 outer point X: {test.X} Y: {test.Y}");
-                //}
 
                 if (!isAlmostHorizontal && !isAlmostVertical && vertexCount > 4)
                 {
@@ -728,21 +728,9 @@ namespace GEORGE.Client.Pages.Okna
                                     XPoint outerSkosEnd = outer[2]; // dolny punkt outer
                                     outerVecTop = GetHorizontalIntersection(outerSkosStart, outerSkosEnd, bottomY, 0);
 
-
-                                    //Console.WriteLine($"🔷 T1/T1 🔷 🔷 innerVecTop (bottom-left): X={innerVecTop.X}, Y={innerVecTop.Y}");
-
-                                    //foreach (var test in inner)
-                                    //{
-                                    //    Console.WriteLine($"🔷 T1/T1 🔷 inner point X: {test.X} Y: {test.Y}");
-                                    //}
-
-                                    //foreach (var test in outer)
-                                    //{
-                                    //    Console.WriteLine($"🔷 T1/T1 🔷 outer point X: {test.X} Y: {test.Y}");
-                                    //}
                                 }
 
-                                if (vertexCount == 3 && angleDegrees < 90)
+                                if (vertexCount == 3 && angleDegrees < 90 && inner[0].X == inner[2].X)
                                 {
                                     var prev = (i - 1 + vertexCount) % vertexCount;
 
@@ -797,7 +785,7 @@ namespace GEORGE.Client.Pages.Okna
                 }
                 else if (leftJoin == "T3" && rightJoin == "T3")
                 {
-                    //Console.WriteLine($"🔷 T3/T3 element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical}");
+                    Console.WriteLine($"🔷 T3/T3 element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical} angleDegrees: {angleDegrees}");
 
                     if (isAlmostVertical)
                     {
@@ -864,6 +852,7 @@ namespace GEORGE.Client.Pages.Okna
                         else
                         {
                             // ✨ Korekcja styku z pionami T3 z lewej i prawej strony
+
                             var prev = (i - 1 + vertexCount) % vertexCount;
                             var nextNext = (next + 1) % vertexCount;
 
@@ -886,9 +875,22 @@ namespace GEORGE.Client.Pages.Okna
                                 new XPoint(outerVecEnd.X + nx * profile, outerVecEnd.Y + ny * profile),
                                 tx, ty, outer);
 
+                            //if (vertexCount == 3)
+                            //{
+                            //    innerVecStart = FindFirstEdgeIntersection(
+                            //    new XPoint(outerVecStart.X + nx * profile, outerVecStart.Y + ny * profile),
+                            //    tx, ty, inner);
+
+                            //    innerVecEnd = FindFirstEdgeIntersection(
+                            //        new XPoint(outerVecEnd.X + nx * profile, outerVecEnd.Y + ny * profile),
+                            //        tx, ty, inner);
+                            //}
+
                             wierzcholki = new List<XPoint> {
                             outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
-                        };
+                            };
+
+                            Console.WriteLine($"🔷 T3/T3 element {i + 1} ✨ Korekcja styku z pionami T3 z lewej i prawej strony angleDegrees: {angleDegrees} innerVecStart.X: {innerVecStart.X}, innerVecStart.Y: {innerVecStart.Y} outerVecEnd.X: {outerVecEnd.X}, outerVecEnd.Y: {outerVecEnd.Y}");
                         }
 
                     }
@@ -1136,6 +1138,7 @@ namespace GEORGE.Client.Pages.Okna
                 }
 
                 if (angleDegreesElementLionowy != angleDegrees && ElementLiniowy) break;
+
                 if (rowIdprofileLeft != Guid.Empty)
                     ElementyRamyRysowane.Add(new KsztaltElementu
                     {
@@ -1148,7 +1151,7 @@ namespace GEORGE.Client.Pages.Okna
                         ZIndex = Zindeks,
                         RowIdElementu = rowIdProfil,
                         IdRegion = regionId,
-                        Kat = (int)angleDegrees,
+                        Kat = (float)angleDegrees,
                         OffsetLewa = stronaOpis == "Lewa" ? profileLeft : 0,
                         OffsetPrawa = stronaOpis == "Prawa" ? profileRight : 0,
                         OffsetDol = stronaOpis == "Dól" ? profileBottom : 0,
