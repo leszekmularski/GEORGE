@@ -769,7 +769,7 @@ namespace GEORGE.Client.Pages.Okna
 
 
                                     Console.WriteLine($"🔷 T1/T1 🔷 🔷 nx: {nx}, ny: {ny} length:{length} inner.Min(p => p.Y): {inner.Min(p => p.Y)}");
-     
+
                                 }
 
                                 wierzcholki = new List<XPoint> {
@@ -875,16 +875,59 @@ namespace GEORGE.Client.Pages.Okna
                                 new XPoint(outerVecEnd.X + nx * profile, outerVecEnd.Y + ny * profile),
                                 tx, ty, outer);
 
-                            //if (vertexCount == 3)
-                            //{
-                            //    innerVecStart = FindFirstEdgeIntersection(
-                            //    new XPoint(outerVecStart.X + nx * profile, outerVecStart.Y + ny * profile),
-                            //    tx, ty, inner);
+                            if (vertexCount == 3 && angleDegrees < 90)
+                            {
+                                // 1️⃣ Punkt bazowy na outer (lewy górny np.)
+                                outerVecStart = outer[0];
 
-                            //    innerVecEnd = FindFirstEdgeIntersection(
-                            //        new XPoint(outerVecEnd.X + nx * profile, outerVecEnd.Y + ny * profile),
-                            //        tx, ty, inner);
-                            //}
+                                // 2️⃣ Wektor kierunku krawędzi trapezu (równoległy do outer)
+                                float dirX = tx; // kierunek poziomy/trapezu
+                                float dirY = ty; // kierunek pionowy/trapezu
+
+                                // 3️⃣ Punkt startowy do przecięcia: bierzemy punkt z inner
+                                XPoint innerRef = inner[i];
+
+                                // 4️⃣ Tworzymy początkowy punkt do rzutowania wzdłuż kierunku trapezu
+                                XPoint basePoint = new XPoint(innerRef.X, innerRef.Y);
+
+                                // 5️⃣ Szukamy przecięcia z outer wzdłuż kierunku trapezu
+                                innerVecStart = FindFirstEdgeIntersection(
+                                    basePoint,
+                                    dirX,
+                                    dirY,
+                                    outer
+                                );
+
+                                float bottomY = (float)innerVecEnd.Y;
+
+                                outerVecEnd = GetHorizontalIntersection(
+                                        innerVecEnd,
+                                        outerVecEnd,
+                                        bottomY,
+                                        0
+                                    );
+
+                                outerVecEnd.X = (float)outer.Max(p => p.X);
+
+                                Console.WriteLine($"🔷 innerVecStart (przeciwny bok): X={innerVecStart.X}, Y={innerVecStart.Y}");
+                            }
+
+                            if (vertexCount == 3 && angleDegrees > 90)
+                            {
+                                float bottomY = (float)outer.Max(p => p.Y);
+
+                                outerVecStart = GetHorizontalIntersection(
+                                    innerVecEnd,
+                                    outerVecEnd,
+                                    bottomY,
+                                    0
+                                );
+
+                                outerVecStart.X = (float)outer.Min(p => p.X);
+
+
+                            }
+
 
                             wierzcholki = new List<XPoint> {
                             outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
