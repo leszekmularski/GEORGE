@@ -435,7 +435,6 @@
 
 </Collapse>
 
-
 <!-- Kontener na modele i canvas -->
 <div class="window-model-container">
     <!-- Kontener na przyciski -->
@@ -1181,8 +1180,8 @@
 
             Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
 
-
             // Sprawdź, czy skrypt JS został poprawnie załadowany
+
             var isScriptLoaded = await JS.InvokeAsync<bool>("eval", "typeof setCanvasRef === 'function'");
             if (!isScriptLoaded)
             {
@@ -1231,6 +1230,9 @@
 
                 Console.WriteLine("✅ Canvas ustawiony!");
 
+                await ClearCanvas();
+                isTextureLoaded = false;
+
                 await Task.Delay(50); // Krótkie opóźnienie dla płynności
 
                 await GenerujObrysPozZmianieWymiarow(true, true, true, true);
@@ -1268,6 +1270,7 @@
         double poprzedniaSzerokosc = constWlasciwosciOkna.Szerokosc;
         double poprzedniaWysokosc = constWlasciwosciOkna.Wysokosc;
 
+
         // POBIERZ NOWE WYMIARY
         if (ShapeService != null && ShapeService._szerokosc > 0 && !_constWlasciwosciOkna)
         {
@@ -1275,6 +1278,8 @@
             constWlasciwosciOkna.Wysokosc = ShapeService._wysokosc;
 
             await PokazWlasciwosciOkna();
+
+            await Task.Delay(50); // Krótkie opóźnienie dla płynności
 
         }
 
@@ -6107,28 +6112,11 @@
 
         if (ShapeService != null)
         {
-            Console.WriteLine("ShapeService OK");
-
-            // ShapeService.Shapes = _shapes.Select(s =>
-            // {
-            //     Console.WriteLine($"Clone shape: {s.GetType().Name}");
-            //     return s.Clone();
-            // }).ToList();
-
-            Console.WriteLine("Clone DONE");
-
-            if (constWlasciwosciOkna != null)
-            {
-                Console.WriteLine("Właściwości OK");
-
-                ShapeService._szerokosc = constWlasciwosciOkna.Szerokosc;
-                ShapeService._wysokosc = constWlasciwosciOkna.Wysokosc;
-
-                Console.WriteLine("Wymiary zapisane");
-            }
+            ShapeService._szerokosc = constWlasciwosciOkna.Szerokosc;
+            ShapeService._wysokosc = constWlasciwosciOkna.Wysokosc;
         }
 
-        Console.WriteLine("Próba nawigacji → /DrawCAD");
+        Console.WriteLine("GoCAD Próba nawigacji → /DrawCAD");
 
         //_shapes.Clear();
 

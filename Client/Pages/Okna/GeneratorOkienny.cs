@@ -711,7 +711,7 @@ namespace GEORGE.Client.Pages.Okna
 
                                 if (vertexCount == 3 && angleDegrees > 90)
                                 {
-                                    Console.WriteLine($"🔷 T1/T1 🔷 vertexCount == 3 && angleDegrees > 90 for element {i + 1} with joins: {leftJoin}-{rightJoin}");
+                                    Console.WriteLine($"🔷 T1/T1 🔷 vertexCount == 3 && angleDegrees > 90 for element {i + 1} with joins: {leftJoin}-{rightJoin} angleDegrees: {angleDegrees}");
 
                                     float bottomY = (float)inner.Max(p => p.Y);
 
@@ -727,9 +727,18 @@ namespace GEORGE.Client.Pages.Okna
                                     XPoint outerSkosStart = outer[0]; // górny punkt outer
                                     XPoint outerSkosEnd = outer[2]; // dolny punkt outer
                                     outerVecTop = GetHorizontalIntersection(outerSkosStart, outerSkosEnd, bottomY, 0);
+                                    //FindFirstEdgeIntersectionByAngle
+
+                                    if (Math.Round(inner[0].X, 0) != Math.Round(inner[1].X, 0))
+                                    {
+                                        Console.WriteLine($"🔷 T1/T1 🔷 vertexCount == 3 && angleDegrees > 90 for element {i + 1} inner[0 i 1].X: {inner[0].X}-{inner[1].X} angleDegrees: {angleDegrees}");
+                                        innerVecBottom = inner[0];
+                                        outerVecBottom = FindFirstEdgeIntersectionByAngle(innerVecBottom, 360 - angleDegrees, outer);
+                                    }
 
                                 }
 
+                                //if (vertexCount == 3 && angleDegrees < 90 && inner[0].X == inner[2].X)
                                 if (vertexCount == 3 && angleDegrees < 90 && inner[0].X == inner[2].X)
                                 {
                                     var prev = (i - 1 + vertexCount) % vertexCount;
@@ -766,7 +775,6 @@ namespace GEORGE.Client.Pages.Okna
 
                                     innerVecBottom.Y = (float)inner.Min(p => p.Y) - deltaY;
                                     innerVecBottom.X = (float)outer.Min(p => p.X);
-
 
                                     Console.WriteLine($"🔷 T1/T1 🔷 🔷 nx: {nx}, ny: {ny} length:{length} inner.Min(p => p.Y): {inner.Min(p => p.Y)}");
 
@@ -925,9 +933,12 @@ namespace GEORGE.Client.Pages.Okna
 
                                 outerVecStart.X = (float)outer.Min(p => p.X);
 
+                                innerVecEnd = FindFirstEdgeIntersection(
+                                new XPoint(outerVecEnd.X + nx * profile, outerVecEnd.Y + ny * profile),
+                                tx, ty, inner);
 
+                                outerVecEnd = FindFirstEdgeIntersectionByAngle(innerVecEnd, 360 - angleDegrees, outer);
                             }
-
 
                             wierzcholki = new List<XPoint> {
                             outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
@@ -1270,6 +1281,54 @@ namespace GEORGE.Client.Pages.Okna
         {
             return Math.Abs(p1.X - p2.X) < 0.1 && Math.Abs(p1.Y - p2.Y) < 0.1;
         }
+
+        private XPoint FindFirstEdgeIntersectionByAngle(
+            XPoint origin,
+            float angleDegrees,          // ⬅️ kąt w STOPNIACH
+            List<XPoint> contour
+        )
+        {
+            // 1️⃣ Konwersja stopni → radiany
+            double angleRad = angleDegrees * Math.PI / 180.0;
+
+            // 2️⃣ Wektor kierunku z kąta
+            float dx = (float)Math.Cos(angleRad);
+            float dy = (float)Math.Sin(angleRad);
+
+            XPoint? closest = null;
+            float minDistSq = float.MaxValue;
+
+            for (int i = 0; i < contour.Count; i++)
+            {
+                int next = (i + 1) % contour.Count;
+
+                XPoint? inter = GetLinesIntersectionNullable(
+                    origin,
+                    new XPoint(
+                        origin.X + dx * 10000f,
+                        origin.Y + dy * 10000f
+                    ),
+                    contour[i],
+                    contour[next]
+                );
+
+                if (!inter.HasValue)
+                    continue;
+
+                float distSq =
+                    (float)((inter.Value.X - origin.X) * (inter.Value.X - origin.X) +
+                            (inter.Value.Y - origin.Y) * (inter.Value.Y - origin.Y));
+
+                if (distSq < minDistSq)
+                {
+                    minDistSq = distSq;
+                    closest = inter;
+                }
+            }
+
+            return closest ?? origin;
+        }
+
 
         private XPoint FindFirstEdgeIntersection(XPoint origin, float dx, float dy, List<XPoint> contour)
         {

@@ -1,4 +1,5 @@
 ﻿using Blazor.Extensions.Canvas.Canvas2D;
+using DocumentFormat.OpenXml.Drawing.Charts;
 using GEORGE.Shared.ViewModels;
 using System.Linq;
 
@@ -26,6 +27,8 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         // ◆ Points = punkty przeskalowane, służą do rysowania (canvas)
         public List<XPoint> Points { get; set; } = new();
 
+        private TriangleOrientation _orientation = TriangleOrientation.Normal;
+
         public string ID { get; set; } = Guid.NewGuid().ToString();
 
         // ---------------------------------------------------------
@@ -33,20 +36,18 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         // startX,startY,endX,endY traktujemy jako nominalne współrzędne
         // scaleFactor to początkowa skala canvas (np. 1.0)
         // ---------------------------------------------------------
-        public XTriangleShape(double startX, double startY, double endX, double endY, double scaleFactor = 1.0)
+        public XTriangleShape(double startX, double startY, double endX, double endY, double scaleFactor = 1.0, TriangleOrientation orientation = TriangleOrientation.Normal)
         {
             BaseX1 = Math.Min(startX, endX);
             BaseY = Math.Max(startY, endY);
             BaseWidth = Math.Abs(endX - startX);
             Height = Math.Abs(startY - endY);
-
             _scaleFactor = scaleFactor;
+            _orientation = orientation;
 
-            // ustaw nominalne punkty i przeskalowane
             NominalPoints = GeneratePoints();
             ApplyScaleToPoints();
 
-            // ustaw wymiary nominalne
             Szerokosc = BaseWidth;
             Wysokosc = Height;
         }
@@ -57,17 +58,53 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         // ---------------------------------------------------------
         private List<XPoint> GeneratePoints()
         {
-            var apexX = BaseX1 + BaseWidth / 2.0;
-            var apexY = BaseY - Height;
-            var baseX2 = BaseX1 + BaseWidth;
+            double apexX, apexY, leftX, rightX, baseY;
 
-            return new List<XPoint>
+            baseY = BaseY;
+
+            switch (_orientation)
             {
-                new XPoint(apexX, apexY),      // górny wierzchołek
-                new XPoint(baseX2, BaseY),     // prawy dolny
-                new XPoint(BaseX1, BaseY)      // lewy dolny
+                case TriangleOrientation.Normal:
+                    apexX = BaseX1 + BaseWidth / 2.0;
+                    apexY = BaseY - Height;
+                    leftX = BaseX1;
+                    rightX = BaseX1 + BaseWidth;
+                    return new List<XPoint>
+            {
+                new XPoint(apexX, apexY), // apex
+                new XPoint(rightX, baseY), // prawy dolny
+                new XPoint(leftX, baseY)   // lewy dolny
             };
+
+                case TriangleOrientation.Left:
+                    apexX = BaseX1;
+                    apexY = BaseY - Height;
+                    leftX = BaseX1;
+                    rightX = BaseX1 + BaseWidth;
+                    return new List<XPoint>
+            {
+                new XPoint(apexX, apexY), // apex lewy
+                new XPoint(leftX, baseY), // dolny lewy
+                new XPoint(rightX, baseY) // dolny prawy
+            };
+
+                case TriangleOrientation.Right:
+                    apexX = BaseX1 + BaseWidth;
+                    apexY = BaseY - Height;
+                    leftX = BaseX1;
+                    rightX = BaseX1 + BaseWidth;
+                    return new List<XPoint>
+            {
+                new XPoint(apexX, apexY), // apex prawy
+                new XPoint(rightX, baseY), // dolny prawy
+                new XPoint(leftX, baseY)   // dolny lewy
+            };
+
+                default:
+                    return new List<XPoint>();
+            }
         }
+
 
         // ---------------------------------------------------------
         // Zastosuj aktualną skalę canvas do nominalPoints -> Points
@@ -244,5 +281,13 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         public List<XPoint> GetPoints() => Points.Select(p => p.Clone()).ToList();
 
         public List<XPoint> GetNominalPoints() => NominalPoints.Select(p => p.Clone()).ToList();
+
+        public enum TriangleOrientation
+        {
+            Normal,   // standardowy: apex górny, podstawa u dołu
+            Left,     // trójkąt skierowany w lewo
+            Right     // trójkąt skierowany w prawo
+        }
+
     }
 }

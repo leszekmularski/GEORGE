@@ -7,6 +7,7 @@
 @using GEORGE.Shared.ViewModels
 
 @using Blazor.Extensions.Canvas.Canvas2D
+@using static GEORGE.Client.Pages.KonfiguratorOkien.XTriangleShape
 @implements IDisposable
 @implements IAsyncDisposable
 
@@ -188,6 +189,16 @@
         @SvgTriangle()
     </button>
 
+    <button class="tool-button @(_selectedTool == "triangleLeft" ? "active" : "")" title="Kształ ramy - trójkąt prostokątny"
+            @onclick='() => SetTool("triangleLeft")'>
+        @SvgRightTriangleHypotenuseLeft()
+    </button>
+
+    <button class="tool-button @(_selectedTool == "triangleRight" ? "active" : "")" title="Kształ ramy - trójkąt prostokątny"
+            @onclick='() => SetTool("triangleRight")'>
+        @SvgRightTriangleHypotenuseRight()
+    </button>
+
     <button class="tool-button @(_selectedTool == "circle" ? "active" : "")" title="Kształ ramy - kołowy"
             @onclick='() => SetTool("circle")'>
         @SvgCircle()
@@ -203,14 +214,14 @@
         @SvgRectangle()
     </button>
 
-    <button class="tool-button @(_selectedTool == "trapezoidLeft" ? "active" : "")" title="Kształ ramy - trapezoid"
-            @onclick='() => SetTool("trapezoidLeft")'>
-        @SvgTrapezoidLeft()
-    </button>
-
     <button class="tool-button @(_selectedTool == "trapezoidRight" ? "active" : "")" title="Kształ ramy - trapezoid"
             @onclick='() => SetTool("trapezoidRight")'>
         @SvgTrapezoidRight()
+    </button>
+
+    <button class="tool-button @(_selectedTool == "trapezoidLeft" ? "active" : "")" title="Kształ ramy - trapezoid"
+            @onclick='() => SetTool("trapezoidLeft")'>
+        @SvgTrapezoidLeft()
     </button>
 
     <button class="tool-button @(_selectedTool == "trapezoid" ? "active" : "")" title="Kształ ramy - trapez"
@@ -299,6 +310,7 @@
 
     private long Szerokosc = 900;
     private long Wysokosc = 600;
+    List<XPoint>? pointsMaster;
 
     private int _selectedShapeIndex = -1; // Przechowuje indeks aktualnie edytowanego kształtu
 
@@ -321,6 +333,28 @@
         if (_shapes != null)
         {
             _originalShapes = _shapes.Select(s => s.Clone()).ToList();
+
+            if (_originalShapes != null && _originalShapes.Count > 0)
+            pointsMaster = _originalShapes.FirstOrDefault().GetNominalPoints();
+
+            _selectedTool = _shapes.Select(s =>
+                {
+                    return s.GetType().Name switch
+                    {
+                        "XLineShape" => "line",
+                        "XCircleShape" => "circle",
+                        "XTriangleShape" => DetermineTriangleType((XTriangleShape)s),
+                        "XSquareShape" => "square",
+                        "XRectangleShape" => "rectangle",
+                        "XTrapezoidShape" => "trapezoid",
+                        "XRoundedRectangleShape" => "rounded_rect",
+                        "XRoundedRectangleShapeLeft" => "rounded_rect_left",
+                        "XRoundedRectangleShapeRight" => "rounded_rect_right",
+                        "XHouseShape" => "house",
+                        "XRoundedTopRectangleShape" => "rounded_top_rect",
+                        _ => "line"
+                    };
+                }).FirstOrDefault();
 
             Szerokosc = ShapeService._szerokosc;
             Wysokosc = ShapeService._wysokosc;
@@ -358,6 +392,82 @@
             }
         }
     }
+
+    private bool IsRightTriangle(List<XPoint> points, out int rightAngleVertexIndex)
+    {
+        rightAngleVertexIndex = -1;
+
+        if (pointsMaster == null || pointsMaster.Count != 3) return false;
+
+        const double tolerance = 1e-3;
+
+        Console.WriteLine("Triangle Sprawdzanie trójkąta prostokątnego...");
+        foreach (var p in pointsMaster)
+            Console.WriteLine($"Triangle Punkt: ({p.X}, {p.Y})");
+
+        // Sprawdzenie pionowej krawędzi
+        bool hasVerticalEdge = false;
+        for (int i = 0; i < 3; i++)
+        {
+            var p1 = pointsMaster[i];
+            var p2 = pointsMaster[(i + 1) % 3];
+            if (Math.Abs(p1.X - p2.X) < tolerance)
+            {
+                hasVerticalEdge = true;
+                break;
+            }
+        }
+
+        if (!hasVerticalEdge) return false;
+
+        // Szukamy kąta prostego
+        for (int i = 0; i < 3; i++)
+        {
+            var p0 = pointsMaster[i];
+            var p1 = pointsMaster[(i + 1) % 3];
+            var p2 = pointsMaster[(i + 2) % 3];
+
+            var v1x = p1.X - p0.X;
+            var v1y = p1.Y - p0.Y;
+            var v2x = p2.X - p0.X;
+            var v2y = p2.Y - p0.Y;
+
+            double dot = v1x * v2x + v1y * v2y;
+            if (Math.Abs(dot) < tolerance)
+            {
+                rightAngleVertexIndex = i;
+                return true;
+            }
+        }
+
+        return false; // jeśli nie znaleziono kąta prostego
+    }
+
+
+    private string DetermineTriangleType(XTriangleShape triangle)
+    {
+        var points = triangle.GetPoints();
+
+        if (!IsRightTriangle(points, out int rightVertex) || rightVertex < 0)
+        {
+            Console.WriteLine("Triangle Nie wykryto trójkąta prostokątnego.");
+            return "triangle";
+        }
+
+        var rightP = points[rightVertex];
+        Console.WriteLine($"Triangle Wykryto trójkąt prostokątny z wierzchołkiem prostym na indeksie {rightVertex}");
+
+        var minX = points.Min(p => p.X);
+        var maxX = points.Max(p => p.X);
+
+        if (Math.Abs(rightP.X - minX) < 1e-2)
+            return "triangleLeft";
+        else if (Math.Abs(rightP.X - maxX) < 1e-2)
+            return "triangleRight";
+        else
+            return "triangle";
+    }
+
 
     public async ValueTask DisposeAsync()
     {
@@ -429,6 +539,29 @@
         </svg>");
     };
 
+    private RenderFragment SvgRightTriangleHypotenuseLeft() => builder =>
+    {
+
+        builder.AddMarkupContent(0, @"
+    <svg class='tool-icon' viewBox='0 0 24 24'>
+        <polygon points='6,4 20,20 6,20'
+                 stroke='black'
+                 stroke-width='2'
+                 fill='none'/>
+    </svg>");
+    };
+
+    private RenderFragment SvgRightTriangleHypotenuseRight() => builder =>
+    {
+        builder.AddMarkupContent(0, @"
+        <svg class='tool-icon' viewBox='0 0 24 24'>
+            <polygon points='18,4 18,20 4,20'
+                     stroke='black'
+                     stroke-width='2'
+                     fill='none'/>
+        </svg>");
+    };
+
     private RenderFragment SvgCircle() => builder =>
     {
         builder.AddMarkupContent(0, @"
@@ -461,19 +594,19 @@
         </svg>");
     };
 
-    private RenderFragment SvgTrapezoidLeft() => builder =>
-    {
+    private RenderFragment SvgTrapezoidRight() => builder =>
+    {  
         builder.AddMarkupContent(0, @"
         <svg class='tool-icon' viewBox='0 0 24 24'>
-            <polygon points='4,8 18,8 20,16 4,16' stroke='black' stroke-width='2' fill='none'/>
+            <polygon points='6,8 20,8 20,16 4,16' stroke='black' stroke-width='2' fill='none'/>
         </svg>");
     };
 
-    private RenderFragment SvgTrapezoidRight() => builder =>
+    private RenderFragment SvgTrapezoidLeft() => builder =>
      {
          builder.AddMarkupContent(0, @"
         <svg class='tool-icon' viewBox='0 0 24 24'>
-            <polygon points='6,8 20,8 20,16 4,16' stroke='black' stroke-width='2' fill='none'/>
+            <polygon points='4,8 18,8 20,16 4,16' stroke='black' stroke-width='2' fill='none'/>
         </svg>");
      };
 
@@ -618,6 +751,8 @@
             "line_dual_ram_hv" => new XLineShape(_startX, _startY, _currentX, _currentY, _scaleFactor, "Linia podziału ram", false, true, true),
             "circle" => new XCircleShape(left + width / 2, top + height / 2, CalculateRadius(), _scaleFactor),
             "triangle" => new XTriangleShape(left, top, left + width, top + height, _scaleFactor),
+            "triangleLeft" => new XTriangleShape(left, top, left + width, top + height, _scaleFactor, TriangleOrientation.Left),
+            "triangleRight" => new XTriangleShape(left, top, left + width, top + height, _scaleFactor, TriangleOrientation.Right),
             "square" => new XSquareShape(left, top, Math.Max(width, height), _scaleFactor),
             "rectangle" => new XRectangleShape(left, top, width, height, _scaleFactor),
             "trapezoid" => new XTrapezoidShape(left, top, left + width, top + height, 0.6, _scaleFactor, 0),
@@ -704,6 +839,12 @@
                 case "triangle":
                     await DrawPreviewTriangle();
                     break;
+                case "triangleLeft":
+                    await DrawPreviewLeftTriangle();
+                    break;
+                case "triangleRight":
+                    await DrawPreviewRightTriangle();
+                    break;
                 case "rounded_rect":
                     await DrawPreviewRoundedRect();
                     break;
@@ -751,26 +892,82 @@
         await _ctx.StrokeAsync();
     }
 
+    // ----------------------------------------
+    // Trójkąt "zwykły" (apex u góry, podstawa na dole)
+    // ----------------------------------------
     private async Task DrawPreviewTriangle()
     {
-        // Reset i czyszczenie
         _shapes.Clear();
         await ClearCanvas();
         await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
 
-        // Oblicz środkowy punkt podstawy
-        var baseCenterX = (_startX + _currentX) / 2;
+        double baseLeftX = _startX;
+        double baseRightX = _currentX;
+        double baseY = _currentY;
+        double apexX = (baseLeftX + baseRightX) / 2;
+        double apexY = _startY;
 
         await _ctx.BeginPathAsync();
-        await _ctx.MoveToAsync(baseCenterX, _startY);       // Górny wierzchołek
-        await _ctx.LineToAsync(_currentX, _currentY);      // Prawy dolny wierzchołek
-        await _ctx.LineToAsync(_startX, _currentY);        // Lewy dolny wierzchołek
-        await _ctx.ClosePathAsync();                       // Automatycznie łączy z pierwszym punktem
-
+        await _ctx.MoveToAsync(apexX, apexY);      // górny wierzchołek
+        await _ctx.LineToAsync(baseRightX, baseY); // prawy dolny
+        await _ctx.LineToAsync(baseLeftX, baseY);  // lewy dolny
+        await _ctx.ClosePathAsync();
         await _ctx.StrokeAsync();
-
     }
+
+    // ----------------------------------------
+    // Trójkąt z wierzchołkiem u góry po lewej
+    // ----------------------------------------
+    private async Task DrawPreviewLeftTriangle()
+    {
+        _shapes.Clear();
+        await ClearCanvas();
+        await Task.Delay(50);
+        await _ctx.SetStrokeStyleAsync("black");
+
+        double apexX = _startX;        // wierzchołek górny po lewej
+        double apexY = _startY;
+
+        double baseRightX = _currentX; // prawy dolny
+        double baseY = _currentY;
+
+        double baseLeftX = _startX;    // lewy dolny (przesunięcie w dół)
+
+        await _ctx.BeginPathAsync();
+        await _ctx.MoveToAsync(apexX, apexY);      // wierzchołek
+        await _ctx.LineToAsync(baseRightX, baseY); // prawy dolny
+        await _ctx.LineToAsync(baseLeftX, baseY);  // lewy dolny
+        await _ctx.ClosePathAsync();
+        await _ctx.StrokeAsync();
+    }
+
+    // ----------------------------------------
+    // Trójkąt z wierzchołkiem u góry po prawej
+    // ----------------------------------------
+    private async Task DrawPreviewRightTriangle()
+    {
+        _shapes.Clear();
+        await ClearCanvas();
+        await Task.Delay(50);
+        await _ctx.SetStrokeStyleAsync("black");
+
+        double apexX = _currentX;      // wierzchołek górny po prawej
+        double apexY = _startY;
+
+        double baseRightX = _currentX; // prawy dolny
+        double baseY = _currentY;
+
+        double baseLeftX = _startX;    // lewy dolny
+
+        await _ctx.BeginPathAsync();
+        await _ctx.MoveToAsync(apexX, apexY);      // wierzchołek
+        await _ctx.LineToAsync(baseRightX, baseY); // prawy dolny
+        await _ctx.LineToAsync(baseLeftX, baseY);  // lewy dolny
+        await _ctx.ClosePathAsync();
+        await _ctx.StrokeAsync();
+    }
+
 
     private async Task DrawPreviewTrapezoid()
     {
