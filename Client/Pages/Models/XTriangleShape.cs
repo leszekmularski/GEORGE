@@ -83,9 +83,9 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                     rightX = BaseX1 + BaseWidth;
                     return new List<XPoint>
             {
-                new XPoint(apexX, apexY), // apex lewy
+                new XPoint(rightX, baseY), // dolny prawy
                 new XPoint(leftX, baseY), // dolny lewy
-                new XPoint(rightX, baseY) // dolny prawy
+                new XPoint(apexX, apexY), // apex lewy
             };
 
                 case TriangleOrientation.Right:
@@ -157,8 +157,21 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         // ---------------------------------------------------------
         public IShapeDC Clone()
         {
-            var clone = new XTriangleShape(BaseX1, BaseY - Height, BaseX1 + BaseWidth, BaseY, _scaleFactor);
-            // Ensure same ID? new ID is ok
+            var clone = new XTriangleShape(
+                BaseX1,
+                BaseY - Height,
+                BaseX1 + BaseWidth,
+                BaseY,
+                _scaleFactor,
+                _orientation   // ← KLUCZ
+            );
+
+            clone.ID = this.ID;
+
+            // Zachowujemy też dokładne punkty nominalne (gdyby były modyfikowane ręcznie)
+            clone.NominalPoints = this.NominalPoints.Select(p => p.Clone()).ToList();
+            clone.ApplyScaleToPoints();
+
             return clone;
         }
 

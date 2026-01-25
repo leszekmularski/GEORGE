@@ -285,7 +285,7 @@
         <button @onclick="SelectNextShape">Następny obiekt</button>
         @if (_shapes != null && _shapes.Count() > 0)
         {
-            <br/>
+            <br />
             <label>@Szerokosc x @Wysokosc</label>
         }
     </div>
@@ -310,7 +310,6 @@
 
     private long Szerokosc = 900;
     private long Wysokosc = 600;
-    List<XPoint>? pointsMaster;
 
     private int _selectedShapeIndex = -1; // Przechowuje indeks aktualnie edytowanego kształtu
 
@@ -333,28 +332,6 @@
         if (_shapes != null)
         {
             _originalShapes = _shapes.Select(s => s.Clone()).ToList();
-
-            if (_originalShapes != null && _originalShapes.Count > 0)
-            pointsMaster = _originalShapes.FirstOrDefault().GetNominalPoints();
-
-            _selectedTool = _shapes.Select(s =>
-                {
-                    return s.GetType().Name switch
-                    {
-                        "XLineShape" => "line",
-                        "XCircleShape" => "circle",
-                        "XTriangleShape" => DetermineTriangleType((XTriangleShape)s),
-                        "XSquareShape" => "square",
-                        "XRectangleShape" => "rectangle",
-                        "XTrapezoidShape" => "trapezoid",
-                        "XRoundedRectangleShape" => "rounded_rect",
-                        "XRoundedRectangleShapeLeft" => "rounded_rect_left",
-                        "XRoundedRectangleShapeRight" => "rounded_rect_right",
-                        "XHouseShape" => "house",
-                        "XRoundedTopRectangleShape" => "rounded_top_rect",
-                        _ => "line"
-                    };
-                }).FirstOrDefault();
 
             Szerokosc = ShapeService._szerokosc;
             Wysokosc = ShapeService._wysokosc;
@@ -385,89 +362,13 @@
 
             if (_shapes != null)
             {
-                await RedrawCanvas();     // <- teraz canvas już istnieje w DOM
+              //  await RedrawCanvas();     // <- teraz canvas już istnieje w DOM
                 await FitToCanvas();
 
                 StateHasChanged();
             }
         }
     }
-
-    private bool IsRightTriangle(List<XPoint> points, out int rightAngleVertexIndex)
-    {
-        rightAngleVertexIndex = -1;
-
-        if (pointsMaster == null || pointsMaster.Count != 3) return false;
-
-        const double tolerance = 1e-3;
-
-        Console.WriteLine("Triangle Sprawdzanie trójkąta prostokątnego...");
-        foreach (var p in pointsMaster)
-            Console.WriteLine($"Triangle Punkt: ({p.X}, {p.Y})");
-
-        // Sprawdzenie pionowej krawędzi
-        bool hasVerticalEdge = false;
-        for (int i = 0; i < 3; i++)
-        {
-            var p1 = pointsMaster[i];
-            var p2 = pointsMaster[(i + 1) % 3];
-            if (Math.Abs(p1.X - p2.X) < tolerance)
-            {
-                hasVerticalEdge = true;
-                break;
-            }
-        }
-
-        if (!hasVerticalEdge) return false;
-
-        // Szukamy kąta prostego
-        for (int i = 0; i < 3; i++)
-        {
-            var p0 = pointsMaster[i];
-            var p1 = pointsMaster[(i + 1) % 3];
-            var p2 = pointsMaster[(i + 2) % 3];
-
-            var v1x = p1.X - p0.X;
-            var v1y = p1.Y - p0.Y;
-            var v2x = p2.X - p0.X;
-            var v2y = p2.Y - p0.Y;
-
-            double dot = v1x * v2x + v1y * v2y;
-            if (Math.Abs(dot) < tolerance)
-            {
-                rightAngleVertexIndex = i;
-                return true;
-            }
-        }
-
-        return false; // jeśli nie znaleziono kąta prostego
-    }
-
-
-    private string DetermineTriangleType(XTriangleShape triangle)
-    {
-        var points = triangle.GetPoints();
-
-        if (!IsRightTriangle(points, out int rightVertex) || rightVertex < 0)
-        {
-            Console.WriteLine("Triangle Nie wykryto trójkąta prostokątnego.");
-            return "triangle";
-        }
-
-        var rightP = points[rightVertex];
-        Console.WriteLine($"Triangle Wykryto trójkąt prostokątny z wierzchołkiem prostym na indeksie {rightVertex}");
-
-        var minX = points.Min(p => p.X);
-        var maxX = points.Max(p => p.X);
-
-        if (Math.Abs(rightP.X - minX) < 1e-2)
-            return "triangleLeft";
-        else if (Math.Abs(rightP.X - maxX) < 1e-2)
-            return "triangleRight";
-        else
-            return "triangle";
-    }
-
 
     public async ValueTask DisposeAsync()
     {
@@ -483,6 +384,7 @@
 
     private async Task PowrotDoGenerowaniaOkna()
     {
+
         await RysOkna(true);
 
         ShapeService.Shapes = _shapes; // Przekazanie danych do serwisu
@@ -595,7 +497,7 @@
     };
 
     private RenderFragment SvgTrapezoidRight() => builder =>
-    {  
+    {
         builder.AddMarkupContent(0, @"
         <svg class='tool-icon' viewBox='0 0 24 24'>
             <polygon points='6,8 20,8 20,16 4,16' stroke='black' stroke-width='2' fill='none'/>
@@ -1259,7 +1161,7 @@
 
     private async Task FitToCanvas()
     {
-        if (_shapes == null  || _shapes.Count == 0) return;
+        if (_shapes == null || _shapes.Count == 0) return;
 
         if (_originalShapes != null) _shapes = _originalShapes.Select(s => s.Clone()).ToList();
 

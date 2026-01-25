@@ -1083,7 +1083,6 @@
 
 </Modal>
 
-
 @code {
 
     // Klasa WingModel definiująca dane dla skrzydła
@@ -1230,7 +1229,7 @@
 
                 Console.WriteLine("✅ Canvas ustawiony!");
 
-                await ClearCanvas();
+              //  await ClearCanvas();
                 isTextureLoaded = false;
 
                 await Task.Delay(50); // Krótkie opóźnienie dla płynności
@@ -1256,15 +1255,32 @@
     {
         Console.WriteLine($"GenerujObrysPozZmianieWymiarow [ShapeService.Shapes] - {ShapeService.Shapes.Count()}");
 
+        if (ShapeService == null || !ShapeService.Shapes.Any())
+            return;
+
+        // 1️⃣ Przeliczamy TYLKO bounding box z danych nominalnych
+        var bbox = ShapeService.GetGlobalBoundingBox();
+
+        double scaleX = CanvasWidth / bbox.Width;
+        double scaleY = CanvasHeight / bbox.Height;
+
+        double scale = Math.Min(scaleX, scaleY) * 0.9;
+
+        // 2️⃣ Ustawiamy TYLKO parametry widoku
+        _currentScale = scale;
+
+        _panX = (CanvasWidth - bbox.Width * scale) / 2 - bbox.MinX * scale;
+        _panY = (CanvasHeight - bbox.Height * scale) / 2 - bbox.MinY * scale;
+
         if (constWlasciwosciOkna == null)
             constWlasciwosciOkna = new ConstWlasciwosciOkna();
 
-        double scaleX = constWlasciwosciOkna.Szerokosc / CanvasWidth;
-        double scaleY = constWlasciwosciOkna.Wysokosc / CanvasHeight;
-        double scale = Math.Min(scaleX, scaleY) / 2;
+        // double scaleX = constWlasciwosciOkna.Szerokosc / CanvasWidth;
+        // double scaleY = constWlasciwosciOkna.Wysokosc / CanvasHeight;
+        // double scale = Math.Min(scaleX, scaleY) / 2;
 
-        scale = scale * 0.9;
-        _currentScale = scale;
+        // scale = scale * 0.9;
+        // _currentScale = scale;
 
         // ZAPAMIĘTAJ POPRZEDNIE WYMIARY
         double poprzedniaSzerokosc = constWlasciwosciOkna.Szerokosc;
