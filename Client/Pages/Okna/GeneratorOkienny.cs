@@ -889,15 +889,9 @@ namespace GEORGE.Client.Pages.Okna
                             var prev = (i - 1 + vertexCount) % vertexCount;
                             var nextNext = (next + 1) % vertexCount;
 
-                            if (polaczeniaArray[prev].typ == "T3")
-                            {
-                                outerVecStart = FindFirstEdgeIntersection(outerVecStart, tx, ty, inner);
-                            }
+                            outerVecStart = FindFirstEdgeIntersection(outerVecStart, tx, ty, inner);
 
-                            if (polaczeniaArray[nextNext % vertexCount].typ == "T3")
-                            {
-                                outerVecEnd = FindFirstEdgeIntersection(outerVecEnd, -tx, -ty, inner);
-                            }
+                            outerVecEnd = FindFirstEdgeIntersection(outerVecEnd, -tx, -ty, inner);
 
                             // Przesunięcie do wnętrza
                             var innerVecStart = FindFirstEdgeIntersection(
