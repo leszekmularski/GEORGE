@@ -378,7 +378,7 @@
     </Button>
     &nbsp;&nbsp;
     <button class="btn btn-primary" @onclick="GoBack">
-        <i class="fas fa-arrow-left"></i> Wróć do poprzednej strony
+        <i class="fas fa-arrow-left"></i> Wróć do poprzedniej strony
     </button>
 
 </div>
@@ -440,12 +440,12 @@
     <!-- Kontener na przyciski -->
     <div class="zoom-controls">
         <label>@mousePosition skala: @((int)(_currentScale * 100))</label>
-        <button @onclick="PokazWlasciwosciOkna" class="btn-zoom">📖</button>
-        <button @onclick="UsunOstatniObiekt" class="btn-zoom">🗑️</button>
+        <button @onclick="PokazWlasciwosciOkna" class="btn-zoom" title="Wymiary okien zmień">📖</button>
+        <button @onclick="UsunOstatniObiekt" class="btn-zoom" title="Usuń ostatni obiekt">🗑️</button>
         <button @onclick="ZoomIn" class="btn-zoom">➕</button>
         <button @onclick="ZoomOut" class="btn-zoom">➖</button>
         <button @onclick="PokazModal" class="btn-zoom">💎</button>
-        <button class="btn btn-zoom" @onclick="OtworzPrzeglad">🔍</button>
+        <button class="btn btn-zoom" @onclick="OtworzPrzeglad" title="Właściwości">🔍</button>
     </div>
     <!-- Panel boczny z modelami -->
     <div class="wing-model-container">

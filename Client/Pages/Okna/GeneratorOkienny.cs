@@ -755,7 +755,7 @@ namespace GEORGE.Client.Pages.Okna
                                     .FirstOrDefault();
 
 
-                                if (vertexCount == 3 && angleDegrees > 90)
+                                if (vertexCount == 3 && angleDegrees > 90 && Math.Round(minOuter.X, 0) == Math.Round(leftOuter.X, 0))
                                 {
                                     Console.WriteLine($"🔷 T1/T1 🔷 vertexCount == 3 && angleDegrees > 90 for element {i + 1} with joins: {leftJoin}-{rightJoin} angleDegrees: {angleDegrees}");
 
@@ -828,6 +828,11 @@ namespace GEORGE.Client.Pages.Okna
 
                                     Console.WriteLine($"🔷 T1/T1 🔷 🔷 nx: {nx}, ny: {ny} length:{length} inner.Min(p => p.Y): {inner.Min(p => p.Y)}");
 
+                                }
+                                else if (vertexCount == 3 && angleDegrees < 90 && Math.Round(minInner.X, 0) != Math.Round(leftInner.X, 0))
+                                {
+                                    innerVecTop   = minInner;
+                                    outerVecTop = FindFirstEdgeIntersectionByAngle(innerVecTop, 360 - angleDegrees, outer);
                                 }
 
                                 wierzcholki = new List<XPoint> {
@@ -979,44 +984,19 @@ namespace GEORGE.Client.Pages.Okna
                                 new XPoint(outerVecEnd.X + nx * profile, outerVecEnd.Y + ny * profile),
                                 tx, ty, outer);
 
-                            if (vertexCount == 3 && angleDegrees < 90)
+                            if (vertexCount == 3 && angleDegrees < 90 && Math.Round(minOuter.X, 0) == Math.Round(leftOuter.X, 0))
                             {
                                 // 1️⃣ Punkt bazowy na outer (lewy górny np.)
-                                outerVecStart = outer.FirstOrDefault(p => p.Y == outer.Min(pt => pt.Y));
+                                outerVecEnd = minInner;
 
-                                // 2️⃣ Wektor kierunku krawędzi trapezu (równoległy do outer)
-                                float dirX = tx; // kierunek poziomy/trapezu
-                                float dirY = ty; // kierunek pionowy/trapezu
+                                outerVecStart = FindFirstEdgeIntersectionByAngle(outerVecEnd, 270, outer);
 
-                                // 3️⃣ Punkt startowy do przecięcia: bierzemy punkt z inner
-                                XPoint innerRef = inner[i];
+                                innerVecStart = rightOuter;
 
-                                // 4️⃣ Tworzymy początkowy punkt do rzutowania wzdłuż kierunku trapezu
-                                XPoint basePoint = new XPoint(innerRef.X, innerRef.Y);
-
-                                // 5️⃣ Szukamy przecięcia z outer wzdłuż kierunku trapezu
-                                innerVecStart = FindFirstEdgeIntersection(
-                                    basePoint,
-                                    dirX,
-                                    dirY,
-                                    outer
-                                );
-
-                                float bottomY = (float)innerVecEnd.Y;
-
-                                outerVecEnd = GetHorizontalIntersection(
-                                        innerVecEnd,
-                                        outerVecEnd,
-                                        bottomY,
-                                        0
-                                    );
-
-                                outerVecEnd.X = (float)outer.Max(p => p.X);
-                              
-                                Console.WriteLine($"🔷 innerVecStart (przeciwny bok): X={innerVecStart.X}, Y={innerVecStart.Y}");
+                                Console.WriteLine($"🔷 innerVecStart (przeciwny bok): X={minOuter.X}, Y={leftOuter.X}");
                             }
 
-                            if (vertexCount == 3 && angleDegrees > 90)
+                            if (vertexCount == 3 && angleDegrees > 90 && Math.Round(minOuter.X, 0) == Math.Round(rightOuter.X, 0))
                             {
                                 float bottomY = (float)outer.Max(p => p.Y);
                                 //TU SKONCZYĆ
@@ -1033,7 +1013,21 @@ namespace GEORGE.Client.Pages.Okna
 
                                 outerVecEnd = FindFirstEdgeIntersectionByAngle(innerVecEnd, 270, outer);
                             }
-                      
+                            else if (vertexCount == 3 && angleDegrees > 90 && Math.Round(minOuter.X, 0) != Math.Round(rightOuter.X, 0))
+                            {
+                                outerVecStart = leftOuter;
+
+                                innerVecEnd = minInner;
+
+                                outerVecEnd = FindFirstEdgeIntersectionByAngle(innerVecEnd, 180 - angleDegrees, outer);
+                            }
+                            else if (vertexCount == 3 && angleDegrees < 90 && Math.Round(minOuter.X, 0) != Math.Round(leftOuter.X, 0))
+                            {
+                                outerVecStart = minOuter;
+
+                                outerVecEnd = rightOuter;
+                            }
+
                             wierzcholki = new List<XPoint> {
                             outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
                             };
