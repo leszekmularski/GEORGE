@@ -626,7 +626,7 @@ namespace GEORGE.Client.Pages.Okna
                     {
                         if (isAlmostHorizontal)
                         {
-                            Console.WriteLine($"🔷 T1/T1 element {i + 1} --> else vertexCount == 3 && angleDegrees == 0 isAlmostHorizontal = {isAlmostHorizontal}");
+                            Console.WriteLine($"🔷 T1/T1 element {i + 1} --> else vertexCount == {vertexCount} && angleDegrees == {angleDegrees} isAlmostHorizontal = {isAlmostHorizontal}");
                             //var prev = (i - 1 + vertexCount) % vertexCount;
                             // 🔷 Pionowe – pełne
                             var outerVecTop = FindFirstEdgeIntersection(outerStart, nx, ny, outer);
@@ -640,7 +640,63 @@ namespace GEORGE.Client.Pages.Okna
                                 new XPoint(outerVecBottom.X + nx * profile, outerVecBottom.Y + ny * profile),
                                 tx, ty, outer);
 
-                            //  innerVecTop = GetHorizontalIntersection(outer[prev], outer[i], (float)outerEnd.Y + ny * profile + ty * profile, 0);
+                            const double eps = 0.1;
+
+                            // ================= OUTER =================
+                            double minYOuter = outer.Min(p => p.Y);
+                            double maxYOuter = outer.Max(p => p.Y);
+                            double minXOuter = outer.Min(p => p.X);
+                            double maxXOuter = outer.Max(p => p.X);
+
+                            var minOuter = outer
+                                .Where(p => Math.Abs(p.Y - minYOuter) < eps)
+                                .OrderBy(p => p.X)
+                                .FirstOrDefault();
+
+                            var leftOuter = outer
+                                .Where(p => Math.Abs(p.Y - maxYOuter) < eps)
+                                .OrderBy(p => p.X)
+                                .FirstOrDefault();
+
+                            var rightOuter = outer
+                                .Where(p => Math.Abs(p.Y - maxYOuter) < eps)
+                                .OrderByDescending(p => p.X)
+                                .FirstOrDefault();
+
+
+                            // ================= INNER =================
+                            double minYInner = inner.Min(p => p.Y);
+                            double maxYInner = inner.Max(p => p.Y);
+                            double minXInner = inner.Min(p => p.X);
+                            double maxXInner = inner.Max(p => p.X);
+
+                            var minInner = inner
+                                .Where(p => Math.Abs(p.Y - minYInner) < eps)
+                                .OrderBy(p => p.X)
+                                .FirstOrDefault();
+
+                            var leftInner = inner
+                                .Where(p => Math.Abs(p.Y - maxYInner) < eps)
+                                .OrderBy(p => p.X)
+                                .FirstOrDefault();
+
+                            var rightInner = inner
+                                .Where(p => Math.Abs(p.Y - maxYInner) < eps)
+                                .OrderByDescending(p => p.X)
+                                .FirstOrDefault();
+
+                            if (vertexCount > 4 && angleDegrees < 90)
+                            {
+                                //TO DO POPRAWY
+                                Console.WriteLine($"🔷 T1/T1 🔷 vertexCount > {vertexCount} && angleDegrees < {angleDegrees} for element {i + 1} with joins: {leftJoin}-{rightJoin} angleDegrees: {angleDegrees}");
+
+                                // 2️⃣ Dolny punkt inner (prawy dół)
+                                innerVecTop = minInner;
+          
+                                // 4️⃣ Dolny punkt outer (przecięcie poziome)
+                                outerVecTop = FindFirstEdgeIntersectionByAngle(innerVecTop, 360 - angleDegrees, outer);
+
+                            }
 
                             wierzcholki = new List<XPoint> {
                             outerVecTop, outerVecBottom, innerVecBottom, innerVecTop
@@ -648,7 +704,7 @@ namespace GEORGE.Client.Pages.Okna
                         }
                         else
                         {
-                            Console.WriteLine($"🔷 T1/T1 element {i + 1} --> else vertexCount == 3 && angleDegrees == 0 isAlmostHorizontal = {isAlmostHorizontal}");
+                            Console.WriteLine($"🔷 T1/T1 element {i + 1} --> else vertexCount == {vertexCount} && angleDegrees == {angleDegrees} isAlmostHorizontal = {isAlmostHorizontal}");
                             // Przecięcia "normalne"
                             var outerVecStartFull = FindFirstEdgeIntersection(outerStart, nx, ny, outer);
                             var outerVecEndFull = FindFirstEdgeIntersection(outerEnd, nx, ny, outer);
@@ -665,18 +721,58 @@ namespace GEORGE.Client.Pages.Okna
                             if (isAlmostVertical)
                             {
                                 Console.WriteLine($"🔷 T1/T1 element {i + 1}  ✨ isAlmostVertical={isAlmostVertical}");
+
+                                const double eps = 0.1;
+
+                                // ================= OUTER =================
+                                double minYOuter = outer.Min(p => p.Y);
+                                double maxYOuter = outer.Max(p => p.Y);
+                                double minXOuter = outer.Min(p => p.X);
+                                double maxXOuter = outer.Max(p => p.X);
+
+                                var minOuter = outer
+                                    .Where(p => Math.Abs(p.Y - minYOuter) < eps)
+                                    .OrderBy(p => p.X)
+                                    .FirstOrDefault();
+
+                                var leftOuter = outer
+                                    .Where(p => Math.Abs(p.Y - maxYOuter) < eps)
+                                    .OrderBy(p => p.X)
+                                    .FirstOrDefault();
+
+                                var rightOuter = outer
+                                    .Where(p => Math.Abs(p.Y - maxYOuter) < eps)
+                                    .OrderByDescending(p => p.X)
+                                    .FirstOrDefault();
+
+
+                                // ================= INNER =================
+                                double minYInner = inner.Min(p => p.Y);
+                                double maxYInner = inner.Max(p => p.Y);
+                                double minXInner = inner.Min(p => p.X);
+                                double maxXInner = inner.Max(p => p.X);
+
+                                var minInner = inner
+                                    .Where(p => Math.Abs(p.Y - minYInner) < eps)
+                                    .OrderBy(p => p.X)
+                                    .FirstOrDefault();
+
+                                var leftInner = inner
+                                    .Where(p => Math.Abs(p.Y - maxYInner) < eps)
+                                    .OrderBy(p => p.X)
+                                    .FirstOrDefault();
+
+                                var rightInner = inner
+                                    .Where(p => Math.Abs(p.Y - maxYInner) < eps)
+                                    .OrderByDescending(p => p.X)
+                                    .FirstOrDefault();
+
                                 var prev = (i - 1 + vertexCount) % vertexCount;
                                 var nextNext = (next + 1) % vertexCount;
 
-                                if (polaczeniaArray[prev].typ == "T1")
-                                {
-                                    outerVecStart = FindFirstEdgeIntersection(outerVecStart, tx, ty, inner);
-                                }
+                                outerVecStart = FindFirstEdgeIntersection(outerVecStart, tx, ty, inner);
 
-                                if (polaczeniaArray[nextNext % vertexCount].typ == "T1")
-                                {
-                                    outerVecEnd = FindFirstEdgeIntersection(outerVecEnd, -tx, -ty, inner);
-                                }
+                                outerVecEnd = FindFirstEdgeIntersection(outerVecEnd, -tx, -ty, inner);
 
                                 // Przesunięcie do wnętrza
                                 var innerVecStart = FindFirstEdgeIntersection(
@@ -686,6 +782,44 @@ namespace GEORGE.Client.Pages.Okna
                                 var innerVecEnd = FindFirstEdgeIntersection(
                                     new XPoint(outerVecEnd.X + nx * profile, outerVecEnd.Y + ny * profile),
                                     tx, ty, inner);
+
+                                if (vertexCount > 3 && angleDegrees < 90)
+                                {
+                                    Console.WriteLine($"🔷 T1/T1 🔷 isAlmostVertical: {isAlmostVertical} vertexCount > {vertexCount} && angleDegrees < {angleDegrees} for element {i + 1} with joins: {leftJoin}-{rightJoin} angleDegrees: {angleDegrees}");
+
+                                    // 1️⃣ Dolny Y z inner
+                                    float bottomY = (float)inner.Max(p => p.Y);
+
+                                    // 2️⃣ Dolny punkt inner (prawy dół)
+                                    innerVecStart = FindAxisIntersection(
+                                        value: bottomY,
+                                        direction: AxisDirection.Horizontal,
+                                        contour: inner,
+                                        pick: AxisPick.Max
+                                    );
+
+                                    // 3️⃣ Skos outer
+                                    XPoint outerSkosStart = outer.First(p => p.Y == outer.Min(o => o.Y));
+                                    XPoint outerSkosEnd = outer.First(p => p.Y == outer.Max(o => o.Y) && p.X > innerVecStart.X);
+
+                                    // 4️⃣ Dolny punkt outer (przecięcie poziome)
+                                    outerVecStart = GetHorizontalIntersection(
+                                        outerSkosStart,
+                                        outerSkosEnd,
+                                        bottomY,
+                                        0
+                                    );
+
+                                    outerVecEnd = outerSkosStart;
+
+                                    double angleRad = (90 - angleDegrees) * Math.PI / 180.0;
+
+                                    // pionowa składowa przesunięcia po skosie
+                                    float deltaY = (float)(profile / Math.Tan(angleRad));
+
+                                    innerVecEnd.Y = (float)inner.Min(p => p.Y) - deltaY;
+                                    innerVecEnd.X = (float)outer.Min(p => p.X);
+                                }
 
                                 wierzcholki = new List<XPoint> {
                                 outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
@@ -709,7 +843,7 @@ namespace GEORGE.Client.Pages.Okna
                                     new XPoint(outerVecBottom.X + nx * profile, outerVecBottom.Y + ny * profile),
                                     tx, ty, outer);
 
-                                const double eps = 0.001;
+                                const double eps = 0.1;
 
                                 // ================= OUTER =================
                                 double minYOuter = outer.Min(p => p.Y);
@@ -768,7 +902,7 @@ namespace GEORGE.Client.Pages.Okna
                                         contour: inner,
                                         pick: AxisPick.Min
                                     );
-                                
+
                                     // punkt dolny zewnętrzny outer na linii skośnej
                                     //XPoint outerSkosStart = outer[0]; // górny punkt outer
                                     //XPoint outerSkosEnd = outer[2]; // dolny punkt outer
@@ -783,13 +917,11 @@ namespace GEORGE.Client.Pages.Okna
                                         //innerVecBottom = minInner;
                                         //outerVecBottom = FindFirstEdgeIntersectionByAngle(innerVecBottom, 360 - angleDegrees, outer);
                                         outerVecTop = FindFirstEdgeIntersectionByAngle(leftInner, 180, outer);
-                                   
+
                                     }
 
                                 }
-
-                                //if (vertexCount == 3 && angleDegrees < 90 && inner[0].X == inner[2].X)
-                                if (vertexCount == 3 && angleDegrees < 90 && Math.Round(minInner.X, 0) == Math.Round(leftInner.X, 0))
+                                else if(vertexCount == 3 && angleDegrees < 90 && Math.Round(minInner.X, 0) == Math.Round(leftInner.X, 0))
                                 {
                                     var prev = (i - 1 + vertexCount) % vertexCount;
 
@@ -831,8 +963,47 @@ namespace GEORGE.Client.Pages.Okna
                                 }
                                 else if (vertexCount == 3 && angleDegrees < 90 && Math.Round(minInner.X, 0) != Math.Round(leftInner.X, 0))
                                 {
-                                    innerVecTop   = minInner;
+                                    innerVecTop = minInner;
                                     outerVecTop = FindFirstEdgeIntersectionByAngle(innerVecTop, 360 - angleDegrees, outer);
+                                }
+                                else if (vertexCount > 4 && angleDegrees < 90)
+                                {
+                                    Console.WriteLine($"🔷 T1/T1 🔷 vertexCount > {vertexCount} && angleDegrees < {angleDegrees} for element {i + 1} with joins: {leftJoin}-{rightJoin} angleDegrees: {angleDegrees}");
+                                    
+                                    var prev = (i - 1 + vertexCount) % vertexCount;
+
+                                    // 1️⃣ Dolny Y z inner
+                                    float bottomY = (float)inner.Max(p => p.Y);
+
+                                    // 2️⃣ Dolny punkt inner (prawy dół)
+                                    innerVecTop = FindAxisIntersection(
+                                        value: bottomY,
+                                        direction: AxisDirection.Horizontal,
+                                        contour: inner,
+                                        pick: AxisPick.Max
+                                    );
+
+                                    // 3️⃣ Skos outer
+                                    XPoint outerSkosStart = outer.First(p => p.Y == outer.Min(o => o.Y));
+                                    XPoint outerSkosEnd = outer.First(p => p.Y == outer.Max(o => o.Y) && p.X > innerVecTop.X);
+
+                                    // 4️⃣ Dolny punkt outer (przecięcie poziome)
+                                    outerVecTop = GetHorizontalIntersection(
+                                        outerSkosStart,
+                                        outerSkosEnd,
+                                        bottomY,
+                                        0
+                                    );
+
+                                    outerVecBottom = outerSkosStart;
+
+                                    double angleRad = (90 - angleDegrees) * Math.PI / 180.0;
+
+                                    // pionowa składowa przesunięcia po skosie
+                                    float deltaY = (float)(profile / Math.Tan(angleRad));
+
+                                    innerVecBottom.Y = (float)inner.Min(p => p.Y) - deltaY;
+                                    innerVecBottom.X = (float)outer.Min(p => p.X);
                                 }
 
                                 wierzcholki = new List<XPoint> {
@@ -913,61 +1084,168 @@ namespace GEORGE.Client.Pages.Okna
                             var prev = (i - 1 + vertexCount) % vertexCount;
                             var nextNext = (next + 1) % vertexCount;
 
-                            const double eps = 0.001;
+                            const double eps = 1.0; // ZWIĘKSZ EPSILON! 0.001 jest za mały dla Twoich danych
 
                             // ================= OUTER =================
                             double minYOuter = outer.Min(p => p.Y);
                             double maxYOuter = outer.Max(p => p.Y);
-                            double minXOuter = outer.Min(p => p.X);
-                            double maxXOuter = outer.Max(p => p.X);
 
-                            var minOuter = outer
-                                .Where(p => Math.Abs(p.Y - minYOuter) < eps)
-                                .OrderBy(p => p.X)
-                                .FirstOrDefault();
+                            XPoint minOuter = new XPoint();
+                            XPoint leftOuter = new XPoint();
+                            XPoint rightOuter = new XPoint();
+                            XPoint rightTopOuter = new XPoint();
 
-                            var leftOuter = outer
-                                .Where(p => Math.Abs(p.Y - maxYOuter) < eps)
-                                .OrderBy(p => p.X)
-                                .FirstOrDefault();
+                            // Dla OUTER: punkty mają Y: 338,11 (góra) i 943,67 (dół)
 
-                            var rightOuter = outer
-                                .Where(p => Math.Abs(p.Y - maxYOuter) < eps)
-                                .OrderByDescending(p => p.X)
-                                .FirstOrDefault();
+                            // Punkty GÓRNE outer (najmniejsze Y z tolerancją)
+                            var topPointsOuter = outer.Where(p => p.Y <= minYOuter + eps).ToList();
+                            //Console.WriteLine($"🔷 topPointsOuter znaleziono {topPointsOuter.Count} punktów:");
+                            //foreach (var p in topPointsOuter)
+                            //{
+                            //    Console.WriteLine($"   ({p.X:F2}, {p.Y:F2})");
+                            //}
 
+                            if (topPointsOuter.Count >= 2)
+                            {
+                                minOuter = topPointsOuter.OrderBy(p => p.X).First();
+                                rightTopOuter = topPointsOuter.OrderByDescending(p => p.X).First();
+                            }
+                            else if (topPointsOuter.Count == 1)
+                            {
+                                minOuter = topPointsOuter.First();
+                                // Szukaj drugiego punktu górnego - niekoniecznie z DOKŁADNIE tym samym Y
+                                var otherTopOuter = outer.Where(p => p.Y <= minYOuter + eps * 5) // Szersza tolerancja
+                                                       .Where(p => Math.Abs(p.X - minOuter.X) > eps) // Inny X
+                                                       .OrderByDescending(p => p.X)
+                                                       .FirstOrDefault();
+
+                                if (otherTopOuter.X == 0 && otherTopOuter.Y == 0)
+                                {
+                                    // Jeśli nie znaleziono, weź punkt z drugim najmniejszym Y
+                                    otherTopOuter = outer.OrderBy(p => p.Y)
+                                                       .Skip(1)
+                                                       .FirstOrDefault();
+                                }
+                                rightTopOuter = otherTopOuter;
+                            }
+
+                            // Punkty DOLNE outer (największe Y)
+                            var bottomPointsOuter = outer.Where(p => p.Y >= maxYOuter - eps).ToList();
+                            //Console.WriteLine($"🔷 bottomPointsOuter znaleziono {bottomPointsOuter.Count} punktów:");
+
+                            if (bottomPointsOuter.Count >= 2)
+                            {
+                                leftOuter = bottomPointsOuter.OrderBy(p => p.X).First();
+                                rightOuter = bottomPointsOuter.OrderByDescending(p => p.X).First();
+                            }
+                            else if (bottomPointsOuter.Count == 1)
+                            {
+                                leftOuter = bottomPointsOuter.First();
+                                // Szukaj drugiego dolnego punktu
+                                var otherBottomOuter = outer.Where(p => p.Y >= maxYOuter - eps * 5)
+                                                          .Where(p => Math.Abs(p.X - leftOuter.X) > eps)
+                                                          .OrderByDescending(p => p.X)
+                                                          .FirstOrDefault();
+
+                                rightOuter = (otherBottomOuter.X == 0 && otherBottomOuter.Y == 0)
+                                    ? outer.OrderByDescending(p => p.Y).Skip(1).FirstOrDefault()
+                                    : otherBottomOuter;
+                            }
+
+                            //Console.WriteLine($"🔷 OUTER narożniki trapezoidu:");
+                            //Console.WriteLine($"   minOuter (lewy górny): ({minOuter.X:F2}, {minOuter.Y:F2})");
+                            //Console.WriteLine($"   rightTopOuter (prawy górny): ({rightTopOuter.X:F2}, {rightTopOuter.Y:F2})");
+                            //Console.WriteLine($"   leftOuter (lewy dolny): ({leftOuter.X:F2}, {leftOuter.Y:F2})");
+                            //Console.WriteLine($"   rightOuter (prawy dolny): ({rightOuter.X:F2}, {rightOuter.Y:F2})");
 
                             // ================= INNER =================
                             double minYInner = inner.Min(p => p.Y);
                             double maxYInner = inner.Max(p => p.Y);
-                            double minXInner = inner.Min(p => p.X);
-                            double maxXInner = inner.Max(p => p.X);
 
-                            var minInner = inner
-                                .Where(p => Math.Abs(p.Y - minYInner) < eps)
-                                .OrderBy(p => p.X)
-                                .FirstOrDefault();
+                            XPoint minInner = new XPoint();
+                            XPoint minRightInner = new XPoint();
+                            XPoint leftInner = new XPoint();
+                            XPoint rightInner = new XPoint();
 
-                            var leftInner = inner
-                                .Where(p => Math.Abs(p.Y - maxYInner) < eps)
-                                .OrderBy(p => p.X)
-                                .FirstOrDefault();
+                           // Console.WriteLine($"🔷 inner Y zakres: min={minYInner:F2}, max={maxYInner:F2}");
 
-                            var rightInner = inner
-                                .Where(p => Math.Abs(p.Y - maxYInner) < eps)
-                                .OrderByDescending(p => p.X)
-                                .FirstOrDefault();
+                            // Punkty GÓRNE inner - PROBLEM: tylko JEDEN punkt ma Y=525,36
+                            // Drugi "górny" punkt ma Y=562,64 (różnica 37,28)
 
+                            // ZWIĘKSZ TOLERANCJĘ dla inner!
+                            float innerTopTolerance = 50.0f; // Dopuszczamy różnicę 50 jednostek
 
-                            if (polaczeniaArray[prev].typ == "T3")
+                            var topPointsInner = inner.Where(p => p.Y <= minYInner + innerTopTolerance).ToList();
+                            //Console.WriteLine($"🔷 topPointsInner (tolerancja={innerTopTolerance}) znaleziono {topPointsInner.Count} punktów:");
+                            //foreach (var p in topPointsInner)
+                            //{
+                            //    Console.WriteLine($"   ({p.X:F2}, {p.Y:F2})");
+                            //}
+
+                            if (topPointsInner.Count >= 2)
                             {
-                                outerVecStart = FindFirstEdgeIntersection(outerVecStart, tx, ty, outer);
+                                // Posortuj po X dla górnych punktów
+                                topPointsInner = topPointsInner.OrderBy(p => p.X).ToList();
+                                minInner = topPointsInner.First();
+                                minRightInner = topPointsInner.Last();
+                            }
+                            else if (topPointsInner.Count == 1)
+                            {
+                                minInner = topPointsInner.First();
+
+                                // Drugi punkt górny: albo z podobnym Y, albo drugi najmniejszy Y
+                                var potentialTopPoints = inner.Where(p => p.Y <= minYInner + innerTopTolerance * 2)
+                                                            .Where(p => Math.Abs(p.X - minInner.X) > 1.0)
+                                                            .OrderBy(p => p.Y)
+                                                            .ThenByDescending(p => p.X)
+                                                            .ToList();
+
+                                if (potentialTopPoints.Any())
+                                {
+                                    minRightInner = potentialTopPoints.First();
+                                }
+                                else
+                                {
+                                    // Jako ostatnią deskę ratunku: weź punkt z drugim najmniejszym Y
+                                    minRightInner = inner.OrderBy(p => p.Y)
+                                                       .Skip(1)
+                                                       .FirstOrDefault();
+                                }
                             }
 
-                            if (polaczeniaArray[nextNext % vertexCount].typ == "T3")
+                            // Punkty DOLNE inner
+                            var bottomPointsInner = inner.Where(p => p.Y >= maxYInner - eps).ToList();
+                           // Console.WriteLine($"🔷 bottomPointsInner znaleziono {bottomPointsInner.Count} punktów:");
+
+                            if (bottomPointsInner.Count >= 2)
                             {
-                                outerVecEnd = FindFirstEdgeIntersection(outerVecEnd, -tx, -ty, outer);
+                                var sortedBottom = bottomPointsInner.OrderBy(p => p.X).ToList();
+                                leftInner = sortedBottom.First();
+                                rightInner = sortedBottom.Last();
                             }
+                            else if (bottomPointsInner.Count == 1)
+                            {
+                                leftInner = bottomPointsInner.First();
+
+                                var otherBottomInner = inner.Where(p => p.Y >= maxYInner - eps * 5)
+                                                          .Where(p => Math.Abs(p.X - leftInner.X) > eps)
+                                                          .OrderByDescending(p => p.X)
+                                                          .FirstOrDefault();
+
+                                rightInner = (otherBottomInner.X == 0 && otherBottomInner.Y == 0)
+                                    ? inner.OrderByDescending(p => p.Y).Skip(1).FirstOrDefault()
+                                    : otherBottomInner;
+                            }
+
+                            //Console.WriteLine($"🔷 INNER narożniki trapezoidu:");
+                            //Console.WriteLine($"   minInner (lewy górny): ({minInner.X:F2}, {minInner.Y:F2})");
+                            //Console.WriteLine($"   minRightInner (prawy górny): ({minRightInner.X:F2}, {minRightInner.Y:F2})");
+                            //Console.WriteLine($"   leftInner (lewy dolny): ({leftInner.X:F2}, {leftInner.Y:F2})");
+                            //Console.WriteLine($"   rightInner (prawy dolny): ({rightInner.X:F2}, {rightInner.Y:F2})");
+
+                            outerVecStart = FindFirstEdgeIntersection(outerVecStart, tx, ty, outer);
+
+                            outerVecEnd = FindFirstEdgeIntersection(outerVecEnd, -tx, -ty, outer);
 
                             // Przesunięcie do wnętrza
                             var innerVecStart = FindFirstEdgeIntersection(
@@ -1021,6 +1299,28 @@ namespace GEORGE.Client.Pages.Okna
 
                                 outerVecEnd = rightOuter;
                             }
+                            else if (vertexCount > 3 && angleDegrees > 90)
+                            {
+
+                                innerVecStart = minInner;
+                                outerVecStart = FindFirstEdgeIntersectionByAngle(innerVecStart, 270, outer);
+                                innerVecEnd = minRightInner;
+                                outerVecEnd = FindFirstEdgeIntersectionByAngle(innerVecEnd, 270, outer);
+
+                                //Console.WriteLine($"🔷 vertexCount: {vertexCount} angleDegrees: {angleDegrees} outerVecStart.X/Y: {outerVecStart.X}/{outerVecStart.Y}, " +
+                                //    $"outerVecEnd.X/Y: {outerVecEnd.X}/{outerVecEnd.Y}, innerVecEnd.X/Y: {innerVecEnd.X}/{innerVecEnd.Y}, innerVecStart.X/Y: {innerVecStart.X}/{innerVecStart.Y}");
+                            }
+                            else if (vertexCount > 3 && angleDegrees < 90)
+                            {
+
+                                innerVecStart = minInner;
+                                outerVecStart = FindFirstEdgeIntersectionByAngle(innerVecStart, 270, outer);
+                                innerVecEnd = minRightInner;
+                                outerVecEnd = FindFirstEdgeIntersectionByAngle(innerVecEnd, 270, outer);
+
+                                //Console.WriteLine($"🔷 vertexCount: {vertexCount} angleDegrees: {angleDegrees} outerVecStart.X/Y: {outerVecStart.X}/{outerVecStart.Y}, " +
+                                //    $"outerVecEnd.X/Y: {outerVecEnd.X}/{outerVecEnd.Y}, innerVecEnd.X/Y: {innerVecEnd.X}/{innerVecEnd.Y}, innerVecStart.X/Y: {innerVecStart.X}/{innerVecStart.Y}");
+                            }
 
                             wierzcholki = new List<XPoint> {
                             outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
@@ -1059,6 +1359,7 @@ namespace GEORGE.Client.Pages.Okna
                     Console.WriteLine($"🔷 T5-T5 case for element {i + 1}. isAlmostHorizontal:{isAlmostHorizontal}, isAlmostVertical:{isAlmostVertical}, daneKwadratu.Count:{daneKwadratu.Count}");
 
                     XPoint outerTopT5 = new XPoint { };
+                    XPoint outerTopST5 = new XPoint { };
                     XPoint outerBottomT5 = new XPoint { };
                     XPoint innerTopT5 = new XPoint { };
                     XPoint innerBottomT5 = new XPoint { };
@@ -1116,18 +1417,18 @@ namespace GEORGE.Client.Pages.Okna
                             innerTopT5 = GetHorizontalIntersection(outer[i], outer[next], (float)topY, PionOsSymetrii);
                             innerBottomT5 = GetHorizontalIntersection(outer[i], outer[next], (float)bottomY, PionOsSymetrii);
 
-                            foreach (var x in inner)
-                            {
-                                Console.WriteLine($"🔷 T5-T5 Vertical shifts → inner.X: {x.X} inner.Y: {x.Y}");
-                            }
+                            //foreach (var x in inner)
+                            //{
+                            //    Console.WriteLine($"🔷 T5-T5 Vertical shifts → inner.X: {x.X} inner.Y: {x.Y}");
+                            //}
 
-                            foreach (var x in outer)
-                            {
-                                Console.WriteLine($"🔷 T5-T5 Vertical shifts → outer.X: {x.X} outer.Y: {x.Y}");
-                            }
+                            //foreach (var x in outer)
+                            //{
+                            //    Console.WriteLine($"🔷 T5-T5 Vertical shifts → outer.X: {x.X} outer.Y: {x.Y}");
+                            //}
 
-                            Console.WriteLine($"🔷 T5-T5 Vertical shifts → innerTopT5.X: {innerTopT5.X} innerTopT5.Y: {innerTopT5.Y} innerBottomT5.X: {innerBottomT5.X} innerBottomT5.Y: {innerBottomT5.Y}");
-                            Console.WriteLine($"🔷 T5-T5 Vertical shifts → outerTopT5.X: {outerTopT5.X} outerTopT5.Y: {outerTopT5.Y} outerBottomT5.X: {outerBottomT5.X} outerBottomT5.Y: {outerBottomT5.Y}");
+                            //Console.WriteLine($"🔷 T5-T5 Vertical shifts → innerTopT5.X: {innerTopT5.X} innerTopT5.Y: {innerTopT5.Y} innerBottomT5.X: {innerBottomT5.X} innerBottomT5.Y: {innerBottomT5.Y}");
+                            //Console.WriteLine($"🔷 T5-T5 Vertical shifts → outerTopT5.X: {outerTopT5.X} outerTopT5.Y: {outerTopT5.Y} outerBottomT5.X: {outerBottomT5.X} outerBottomT5.Y: {outerBottomT5.Y}");
                         }
                         else if (isAlmostHorizontal)
                         {
@@ -1161,31 +1462,34 @@ namespace GEORGE.Client.Pages.Okna
                             innerTopT5 = GetVerticalIntersection(outer[i], outer[next], (float)leftX, PionOsSymetrii);
                             innerBottomT5 = GetVerticalIntersection(outer[i], outer[next], (float)rightX, PionOsSymetrii);
 
-                            foreach (var x in inner)
-                            {
-                                Console.WriteLine($"🔷 T5-T5 Horizontal shifts → inner.X: {x.X} inner.Y: {x.Y}");
-                            }
+                            //foreach (var x in inner)
+                            //{
+                            //    Console.WriteLine($"🔷 T5-T5 Horizontal shifts → inner.X: {x.X} inner.Y: {x.Y}");
+                            //}
 
-                            foreach (var x in outer)
-                            {
-                                Console.WriteLine($"🔷 T5-T5 Horizontal shifts → outer.X: {x.X} outer.Y: {x.Y}");
-                            }
+                            //foreach (var x in outer)
+                            //{
+                            //    Console.WriteLine($"🔷 T5-T5 Horizontal shifts → outer.X: {x.X} outer.Y: {x.Y}");
+                            //}
 
-                            Console.WriteLine($"🔷 T5-T5 Horizontal shifts → innerTopT5.X: {innerTopT5.X} innerTopT5.Y: {innerTopT5.Y} innerBottomT5.X: {innerBottomT5.X} innerBottomT5.Y: {innerBottomT5.Y}");
-                            Console.WriteLine($"🔷 T5-T5 Horizontal shifts → outerTopT5.X: {outerTopT5.X} outerTopT5.Y: {outerTopT5.Y} outerBottomT5.X: {outerBottomT5.X} outerBottomT5.Y: {outerBottomT5.Y}");
+                            //Console.WriteLine($"🔷 T5-T5 Horizontal shifts → innerTopT5.X: {innerTopT5.X} innerTopT5.Y: {innerTopT5.Y} innerBottomT5.X: {innerBottomT5.X} innerBottomT5.Y: {innerBottomT5.Y}");
+                            //Console.WriteLine($"🔷 T5-T5 Horizontal shifts → outerTopT5.X: {outerTopT5.X} outerTopT5.Y: {outerTopT5.Y} outerBottomT5.X: {outerBottomT5.X} outerBottomT5.Y: {outerBottomT5.Y}");
                         }
                     }
 
                     // Bezpieczne granice
 
-
+                    outerTopST5 = outerTopT5;
+                    outerTopST5.Y = outerTopST5.Y + 50;
+                    outerTopST5.X = outerTopST5.X - 45;
                     // Zbierz punkty w kolejności
                     wierzcholki = new List<XPoint>
                     {
                         outerTopT5,
                         outerBottomT5,
                         innerBottomT5,
-                        innerTopT5
+                        innerTopT5,
+                        outerTopST5
                     };
 
                     Console.WriteLine($"🔷 T5-T5 -> wierzcholki: {wierzcholki.Count} new List<XPoint>");
