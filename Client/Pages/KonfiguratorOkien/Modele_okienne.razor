@@ -1085,7 +1085,7 @@
 
 @code {
 
-    // Klasa WingModel definiująca dane dla skrzydła
+        // Klasa WingModel definiująca dane dla skrzydła
     private List<KonfSystem>? KonfiguracjeSystemu;
 
     private List<SystemyOkienne>? Systemy;
@@ -1229,7 +1229,7 @@
 
                 Console.WriteLine("✅ Canvas ustawiony!");
 
-              //  await ClearCanvas();
+                //  await ClearCanvas();
                 isTextureLoaded = false;
 
                 await Task.Delay(50); // Krótkie opóźnienie dla płynności
@@ -2243,12 +2243,12 @@
             var WierzcholkiST = match.Wierzcholki;
             var RegionIds = match.RegionIds;
 
-            if (!await DodajWybranyKwadratOkna(idRegion, WierzcholkiST, klikX, klikY, true, RegionIds))
+            if (!await DodajWybranyKwadratOkna(idRegion, WierzcholkiST, klikX, klikY, true, RegionIds, Wierzcholki))
                 return;
         }
         else
         {
-            if (!await DodajWybranyKwadratOkna(idRegion, Wierzcholki, klikX, klikY, false, null))
+            if (!await DodajWybranyKwadratOkna(idRegion, Wierzcholki, klikX, klikY, false, null, null))
                 return;
         }
 
@@ -3297,7 +3297,7 @@
         return true;
     }
 
-    private async Task<bool> DodajWybranyKwadratOkna(string idRegion, List<XPoint> wierzcholki, double klikX, double klikY, bool slupekStaly, List<string> idSlupka)
+    private async Task<bool> DodajWybranyKwadratOkna(string idRegion, List<XPoint> wierzcholki, double klikX, double klikY, bool slupekStaly, List<string> idSlupka, List<XPoint> wierzcholkiMaster)
     {
         if (SelectedModelType == null || string.IsNullOrEmpty(SelectedModelType))
         {
@@ -4160,19 +4160,19 @@
 
             if (liniaStala == null)
             {
-                Console.WriteLine($"⚠️ Nie znaleziono linii z TypLiniiDzielacej='Słupek stały'. Szukam poziomej linii jako zamiennika... klikY: {klikY}");
+                //Console.WriteLine($"⚠️ Nie znaleziono linii z TypLiniiDzielacej='Słupek stały'. Szukam poziomej linii jako zamiennika... klikY: {klikY}");
                 _message.Warning("Nie znaleziono linii stycznych!!!");
                 return false;
             }
 
-            foreach (var linia in liniaStala.Wierzcholki)
-            {
-                Console.WriteLine($"🔹🔹🔹🔹🔹🔹 Sprawdzana linia:  Wierzcholki: {linia.X},{linia.Y} 🔹🔹🔹🔹🔹🔹");
-            }
+            // foreach (var linia in liniaStala.Wierzcholki)
+            // {
+            //     Console.WriteLine($"🔹🔹🔹🔹🔹🔹 Sprawdzana linia:  Wierzcholki: {linia.X},{linia.Y} 🔹🔹🔹🔹🔹🔹");
+            // }
 
             if (liniaStala == null)
             {
-                Console.WriteLine("❌ Nadal nie znaleziono poprawnej linii słupka (brak dwóch różnych punktów lub pionowej linii).");
+                //Console.WriteLine("❌ Nadal nie znaleziono poprawnej linii słupka (brak dwóch różnych punktów lub pionowej linii).");
                 return false;
             }
 
@@ -4181,12 +4181,12 @@
             bool poziomy = Math.Abs(liniaStala.Wierzcholki[0].Y - liniaStala.Wierzcholki[1].Y) < 0.01;
 
             var orientacja = pionowy ? "Pionowa" : poziomy ? "Pozioma" : "Skośna";
-            Console.WriteLine($"📏 Rozpoznano linię: {orientacja} Ilość linii stycznych: {styczneLinie.Count()}");
+            // Console.WriteLine($"📏 Rozpoznano linię: {orientacja} Ilość linii stycznych: {styczneLinie.Count()}");
 
             // 🔹 Oblicz kąt
             var katSzukaj = ObliczKatLinii(liniaStala.Wierzcholki);
 
-            Console.WriteLine($"📐 Kąt słupka stałego: {katSzukaj:F2}° X0:{liniaStala.Wierzcholki[0].X} Y0:{liniaStala.Wierzcholki[0].Y} X1:{liniaStala.Wierzcholki[1].X} Y1:{liniaStala.Wierzcholki[1].Y}");
+            // Console.WriteLine($"📐 Kąt słupka stałego: {katSzukaj:F2}° X0:{liniaStala.Wierzcholki[0].X} Y0:{liniaStala.Wierzcholki[0].Y} X1:{liniaStala.Wierzcholki[1].X} Y1:{liniaStala.Wierzcholki[1].Y}");
 
             generator.RowIdModelu = generator.MVCKonfModelu.KonfSystem.FirstOrDefault().RowId;// Pobieram RowIdModelu z konfiguracji systemu
             generator.CzyElementJestRama = false;
@@ -4244,13 +4244,13 @@
             generator.RuchomySlupekPoPrawej = stronaPrawa;
             generator.ElementLiniowy = true;
 
-            Console.WriteLine($"✅ Rozpoczynam przekazywanie AddElements ID: {idRegion} sasiedzi.Count: {sasiedzi.Count()} najlepszy sąsiad stroanA: {najlepszySasiadA?.RowIdElementu ?? Guid.Empty} stroanB: {najlepszySasiadB?.RowIdElementu ?? Guid.Empty}");
+            //Console.WriteLine($"✅ Rozpoczynam przekazywanie AddElements ID: {idRegion} sasiedzi.Count: {sasiedzi.Count()} najlepszy sąsiad stroanA: {najlepszySasiadA?.RowIdElementu ?? Guid.Empty} stroanB: {najlepszySasiadB?.RowIdElementu ?? Guid.Empty}");
 
-            //   var regionLinia = wszystkieRegiony.
-            foreach (var r in wszystkieRegiony)
-            {
-                Console.WriteLine($"🔹🔹🔹🔹🔹🔹 Sprawdzany region dla słupka stałego: ID: {r.Id} Wierzcholki.Count: {r.Wierzcholki.Count} X:{r.Wierzcholki[0].X} Y:{r.Wierzcholki[0].Y} TypLiniiDzielacej: {r.TypLiniiDzielacej}🔹🔹🔹🔹🔹🔹");
-            }
+            // //   var regionLinia = wszystkieRegiony.
+            // foreach (var r in wszystkieRegiony)
+            // {
+            //     Console.WriteLine($"🔹🔹🔹🔹🔹🔹 Sprawdzany region dla słupka stałego: ID: {r.Id} Wierzcholki.Count: {r.Wierzcholki.Count} X:{r.Wierzcholki[0].X} Y:{r.Wierzcholki[0].Y} TypLiniiDzielacej: {r.TypLiniiDzielacej}🔹🔹🔹🔹🔹🔹");
+            // }
 
             double tolerancjaKlikniecia = 55.0; // odległość w jednostkach np. pikselac
 
@@ -4268,16 +4268,18 @@
 
             if (regionKlikniety != null)
             {
+
                 await generator.AddElements(
-                     new List<ShapeRegion> { regionKlikniety },
-                     idRegion,
-                     _generatorStates,
-                     _regionsDualRama,
-                     state.ListaKwadratow
-                 );
+                    new List<ShapeRegion> { regionKlikniety },
+                    idRegion,
+                    _generatorStates,
+                    _regionsDualRama,
+                    state.ListaKwadratow,
+                    wszystkieRegiony.FirstOrDefault(r => r.IdMaster.Contains(idRegion.Substring(0, 35))).Wierzcholki  
+                );
             }
 
-            Console.WriteLine($"📐📐📐 Słupek stały zakończony pomyślnie 📐📐📐");
+            Console.WriteLine($"📐📐📐 Słupek stały zakończony pomyślnie --> wierzcholkiMaster.Count: {wierzcholkiMaster.Count()} idRegion: {idRegion} 📐📐📐");
 
         }
 

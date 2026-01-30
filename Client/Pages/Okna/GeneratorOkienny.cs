@@ -43,7 +43,8 @@ namespace GEORGE.Client.Pages.Okna
             ElementLiniowy = false;
         }
 
-        public async Task AddElements(List<ShapeRegion> regions, string regionId, Dictionary<string, GeneratorState> generatorStates, List<ShapeRegion> regionAdd, List<DaneKwadratu> daneKwadratu)
+        public async Task AddElements(List<ShapeRegion> regions, string regionId, Dictionary<string, GeneratorState> generatorStates, List<ShapeRegion> regionAdd,
+            List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster = null)
         {
             if (regions == null) return;
 
@@ -60,6 +61,23 @@ namespace GEORGE.Client.Pages.Okna
             }
 
             Console.WriteLine($"➡️ AddElements EdytowanyModel.PolaczenieNaroza: {EdytowanyModel.PolaczenieNaroza} daneKwadratu.Count: {(daneKwadratu == null ? "NULL" : daneKwadratu.Count())}");
+
+            if (punktyRegionuMaster != null)
+            {
+                Console.WriteLine($"➡️ AddElements punktyRegionuMaster.Count: {punktyRegionuMaster.Count()}");
+            }
+
+            //if(daneKwadratu != null)
+            //{
+            //    foreach (var dk in daneKwadratu)
+            //    {
+            //        foreach (var w in dk.Wierzcholki)
+            //        {
+            //            Console.WriteLine($"➡️ AddElements daneKwadratu Wierzcholek X: {w.X} Y: {w.Y}");
+            //        }
+            //    }
+            //}
+
             Console.WriteLine($"📏 AddElements Szerokosc: {Szerokosc}, Wysokosc: {Wysokosc}");
 
             Region = regionAdd;
@@ -139,12 +157,12 @@ namespace GEORGE.Client.Pages.Okna
 
             }
 
-            foreach (var konf in MVCKonfModelu.KonfSystem)
-            {
-                Console.WriteLine($"🔧 KonfiguracjeSystemu: {konf.Typ} Nazwa: {konf.Nazwa} W sumie: {MVCKonfModelu.KonfSystem.Count()}");
-            }
+            //foreach (var konf in MVCKonfModelu.KonfSystem)
+            //{
+            //    Console.WriteLine($"🔧 KonfiguracjeSystemu: {konf.Typ} Nazwa: {konf.Nazwa} W sumie: {MVCKonfModelu.KonfSystem.Count()}");
+            //}
 
-            Console.WriteLine($"slruchPoPrawej = {slruchPoPrawej} slruchPoLewej = {slruchPoLewej}");
+            //Console.WriteLine($"slruchPoPrawej = {slruchPoPrawej} slruchPoLewej = {slruchPoLewej}");
 
             // 🔧 Profile z konfiguracji
             float profileLeft = (float)(MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ == slruchPoLewej)?.PionPrawa ?? 0 -
@@ -227,8 +245,10 @@ namespace GEORGE.Client.Pages.Okna
                 RowNazwaprofileLeft, RowNazwaprofileRight, RowNazwaprofileTop, RowNazwaprofileBottom,
                 NazwaObiektu,
                 TypObiektu,
-                daneKwadratu
+                daneKwadratu,
+                punktyRegionuMaster
             );
+
 
             await Task.CompletedTask;
             //}
@@ -240,7 +260,7 @@ namespace GEORGE.Client.Pages.Okna
             Guid rowIdprofileLeft, Guid rowIdprofileRight, Guid rowIdprofileTop, Guid rowIdprofileBottom,
             string rowIndeksprofileLeft, string rowIndeksprofileRight, string rowIndeksprofileTop, string rowIndeksprofileBottom,
             string rowNazwaprofileLeft, string rowNazwaprofileRight, string rowNazwaprofileTop, string rowNazwaprofileBottom,
-            string NazwaObiektu, string TypObiektu, List<DaneKwadratu> daneKwadratu)
+            string NazwaObiektu, string TypObiektu, List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster)
         {
 
             Console.WriteLine($"▶️ Generowanie elementów dla regionu {regionId} z typem kształtu: {typKsztalt} oraz ElementLiniowy: {ElementLiniowy} profileLeft: {profileLeft}, profileRight :{profileRight}");
@@ -269,21 +289,21 @@ namespace GEORGE.Client.Pages.Okna
                  .LastOrDefault();
 
 
-                //var szukDaneKwadratu = daneKwadratu
-                // .Where(x => x.Wierzcholki.Count == 2)
-                //   .LastOrDefault();
+                ////var szukDaneKwadratu = daneKwadratu
+                //// .Where(x => x.Wierzcholki.Count == 2)
+                ////   .LastOrDefault();
 
-                Console.WriteLine($"▶️ Element 1 wartość X: {szukDaneKwadratu.Wierzcholki[0].X} dotyczy: ElementLiniowy: {ElementLiniowy} rowIdprofileLeft: {rowIdprofileLeft} rowIdprofileRight: {rowIdprofileRight} rowIdprofileTop: {rowIdprofileTop} rowIdprofileBottom: {rowIdprofileBottom}");
+                //Console.WriteLine($"▶️ Element 1 wartość X: {szukDaneKwadratu.Wierzcholki[0].X} dotyczy: ElementLiniowy: {ElementLiniowy} rowIdprofileLeft: {rowIdprofileLeft} rowIdprofileRight: {rowIdprofileRight} rowIdprofileTop: {rowIdprofileTop} rowIdprofileBottom: {rowIdprofileBottom}");
 
-                if (szukDaneKwadratu != null)
-                {
-                    Console.WriteLine($"▶️ Element model.Count:{model.Count()} szukDaneKwadratu.Wierzcholki.Count: {szukDaneKwadratu?.Wierzcholki.Count()} RuchomySlupekPoLewej:{RuchomySlupekPoLewej} RuchomySlupekPoPrawej:{RuchomySlupekPoPrawej}");
+                //if (szukDaneKwadratu != null)
+                //{
+                //    Console.WriteLine($"▶️ Element model.Count:{model.Count()} szukDaneKwadratu.Wierzcholki.Count: {szukDaneKwadratu?.Wierzcholki.Count()} RuchomySlupekPoLewej:{RuchomySlupekPoLewej} RuchomySlupekPoPrawej:{RuchomySlupekPoPrawej}");
 
-                    foreach (var dk in szukDaneKwadratu.Wierzcholki)
-                    {
-                        Console.WriteLine($"▶️ ElementX:{dk.X} Y:{dk.Y}");
-                    }
-                }
+                //    foreach (var dk in szukDaneKwadratu.Wierzcholki)
+                //    {
+                //        Console.WriteLine($"▶️ ElementX:{dk.X} Y:{dk.Y}");
+                //    }
+                //}
 
                 XPoint outerStart = szukDaneKwadratu.Wierzcholki[0];
                 XPoint outerEnd = szukDaneKwadratu.Wierzcholki[1];
@@ -378,7 +398,7 @@ namespace GEORGE.Client.Pages.Okna
                 if (angleDegrees < 0)
                     angleDegrees += 360f;
 
-                Console.WriteLine($"▶️ Processing element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin} wyliczony kąt: {angleDegrees} dla i: {i}");
+                // Console.WriteLine($"▶️ Processing element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin} wyliczony kąt: {angleDegrees} dla i: {i}");
 
                 if (length < 0.001f) continue;
 
@@ -692,7 +712,7 @@ namespace GEORGE.Client.Pages.Okna
 
                                 // 2️⃣ Dolny punkt inner (prawy dół)
                                 innerVecTop = minInner;
-          
+
                                 // 4️⃣ Dolny punkt outer (przecięcie poziome)
                                 outerVecTop = FindFirstEdgeIntersectionByAngle(innerVecTop, 360 - angleDegrees, outer);
 
@@ -921,7 +941,7 @@ namespace GEORGE.Client.Pages.Okna
                                     }
 
                                 }
-                                else if(vertexCount == 3 && angleDegrees < 90 && Math.Round(minInner.X, 0) == Math.Round(leftInner.X, 0))
+                                else if (vertexCount == 3 && angleDegrees < 90 && Math.Round(minInner.X, 0) == Math.Round(leftInner.X, 0))
                                 {
                                     var prev = (i - 1 + vertexCount) % vertexCount;
 
@@ -969,7 +989,7 @@ namespace GEORGE.Client.Pages.Okna
                                 else if (vertexCount > 4 && angleDegrees < 90)
                                 {
                                     Console.WriteLine($"🔷 T1/T1 🔷 vertexCount > {vertexCount} && angleDegrees < {angleDegrees} for element {i + 1} with joins: {leftJoin}-{rightJoin} angleDegrees: {angleDegrees}");
-                                    
+
                                     var prev = (i - 1 + vertexCount) % vertexCount;
 
                                     // 1️⃣ Dolny Y z inner
@@ -1167,7 +1187,7 @@ namespace GEORGE.Client.Pages.Okna
                             XPoint leftInner = new XPoint();
                             XPoint rightInner = new XPoint();
 
-                           // Console.WriteLine($"🔷 inner Y zakres: min={minYInner:F2}, max={maxYInner:F2}");
+                            // Console.WriteLine($"🔷 inner Y zakres: min={minYInner:F2}, max={maxYInner:F2}");
 
                             // Punkty GÓRNE inner - PROBLEM: tylko JEDEN punkt ma Y=525,36
                             // Drugi "górny" punkt ma Y=562,64 (różnica 37,28)
@@ -1215,7 +1235,7 @@ namespace GEORGE.Client.Pages.Okna
 
                             // Punkty DOLNE inner
                             var bottomPointsInner = inner.Where(p => p.Y >= maxYInner - eps).ToList();
-                           // Console.WriteLine($"🔷 bottomPointsInner znaleziono {bottomPointsInner.Count} punktów:");
+                            // Console.WriteLine($"🔷 bottomPointsInner znaleziono {bottomPointsInner.Count} punktów:");
 
                             if (bottomPointsInner.Count >= 2)
                             {
@@ -1358,29 +1378,43 @@ namespace GEORGE.Client.Pages.Okna
                 {
                     Console.WriteLine($"🔷 T5-T5 case for element {i + 1}. isAlmostHorizontal:{isAlmostHorizontal}, isAlmostVertical:{isAlmostVertical}, daneKwadratu.Count:{daneKwadratu.Count}");
 
-                    XPoint outerTopT5 = new XPoint { };
-                    XPoint outerTopST5 = new XPoint { };
-                    XPoint outerBottomT5 = new XPoint { };
-                    XPoint innerTopT5 = new XPoint { };
-                    XPoint innerBottomT5 = new XPoint { };
+                    //XPoint TopLT5 = new XPoint { };
+                    //XPoint TopST5 = new XPoint { };
+                    //XPoint TopRT5 = new XPoint { };
+
+                    //XPoint BottomLT5 = new XPoint { };
+                    //XPoint BottomRT5 = new XPoint { };
+
+
+                    XPoint TopLT5 = new XPoint { };
+                    XPoint TopST5 = new XPoint { };
+                    XPoint TopRT5 = new XPoint { };
+
+                    XPoint BottomLT5 = new XPoint { };
+                    XPoint BottomSTT5 = new XPoint { };
+                    XPoint BottomRT5 = new XPoint { };
+
+                    double? SzerokoscSlupka = 0;
 
                     if (daneKwadratu != null && daneKwadratu.Count > 0)
                     {
-                        foreach (var xx in daneKwadratu)
-                        {
-                            foreach (var yy in xx.Wierzcholki)
-                            {
-                                Console.WriteLine($"🔷 T5-T5 BoolElementLinia: {xx.BoolElementLinia} KatLinii:{xx.KatLinii} X:{yy.X} Y:{yy.Y} RowIdSasiada: {xx.RowIdSasiada} RowIdSasiadaStronaA: {xx.RowIdSasiadaStronaA} RowIdSasiadaStronaB: {xx.RowIdSasiadaStronaB}");
-                            }
-                        }
+                        //foreach (var xx in daneKwadratu)
+                        //{
+                        //    foreach (var yy in xx.Wierzcholki)
+                        //    {
+                        //        Console.WriteLine($"🔷 T5-T5 BoolElementLinia: {xx.BoolElementLinia} KatLinii:{xx.KatLinii} X:{yy.X} Y:{yy.Y} RowIdSasiada: {xx.RowIdSasiada} RowIdSasiadaStronaA: {xx.RowIdSasiadaStronaA} RowIdSasiadaStronaB: {xx.RowIdSasiadaStronaB}");
+                        //    }
+                        //}
 
                         var szerSlupka = KonfiguracjeSystemu.FirstOrDefault(x => x.RowId == rowIdprofileLeft); // w słupku stałym rowIdprofileLeft to samo jest we wszystkich pozycjach!!!!
 
                         float PionOsSymetrii = 0;
 
                         if (szerSlupka != null)
+                        {
                             PionOsSymetrii = (float)Math.Abs((float)szerSlupka.PionOsSymetrii);
-
+                            SzerokoscSlupka = szerSlupka.PionPrawa - szerSlupka.PionLewa;
+                        }
                         // Ustal kierunki (poziomy vs pionowy)
                         if (isAlmostVertical)
                         {
@@ -1410,12 +1444,12 @@ namespace GEORGE.Client.Pages.Okna
                             bottomY = Math.Max(inner[i].Y, inner[next].Y) - bottomYShift;
 
                             // Start liczymy względem punktu przecięcia z inner[i] (czyli skrócony)
-                            outerTopT5 = GetHorizontalIntersection(_innerStart, _innerEnd, (float)topY, PionOsSymetrii);
-                            outerBottomT5 = GetHorizontalIntersection(_innerStart, _innerEnd, (float)bottomY, PionOsSymetrii);
+                            TopLT5 = GetHorizontalIntersection(_innerStart, _innerEnd, (float)topY, PionOsSymetrii);
+                            BottomRT5 = GetHorizontalIntersection(_innerStart, _innerEnd, (float)bottomY, PionOsSymetrii);
 
                             // Normalne punkty wewnętrzne
-                            innerTopT5 = GetHorizontalIntersection(outer[i], outer[next], (float)topY, PionOsSymetrii);
-                            innerBottomT5 = GetHorizontalIntersection(outer[i], outer[next], (float)bottomY, PionOsSymetrii);
+                            TopRT5 = GetHorizontalIntersection(outer[i], outer[next], (float)topY, PionOsSymetrii);
+                            BottomLT5 = GetHorizontalIntersection(outer[i], outer[next], (float)bottomY, PionOsSymetrii);
 
                             //foreach (var x in inner)
                             //{
@@ -1427,8 +1461,8 @@ namespace GEORGE.Client.Pages.Okna
                             //    Console.WriteLine($"🔷 T5-T5 Vertical shifts → outer.X: {x.X} outer.Y: {x.Y}");
                             //}
 
-                            //Console.WriteLine($"🔷 T5-T5 Vertical shifts → innerTopT5.X: {innerTopT5.X} innerTopT5.Y: {innerTopT5.Y} innerBottomT5.X: {innerBottomT5.X} innerBottomT5.Y: {innerBottomT5.Y}");
-                            //Console.WriteLine($"🔷 T5-T5 Vertical shifts → outerTopT5.X: {outerTopT5.X} outerTopT5.Y: {outerTopT5.Y} outerBottomT5.X: {outerBottomT5.X} outerBottomT5.Y: {outerBottomT5.Y}");
+                            //Console.WriteLine($"🔷 T5-T5 Vertical shifts → TopRT5.X: {TopRT5.X} TopRT5.Y: {TopRT5.Y} BottomLT5.X: {BottomLT5.X} BottomLT5.Y: {BottomLT5.Y}");
+                            //Console.WriteLine($"🔷 T5-T5 Vertical shifts → TopLT5.X: {TopLT5.X} TopLT5.Y: {TopLT5.Y} BottomRT5.X: {BottomRT5.X} BottomRT5.Y: {BottomRT5.Y}");
                         }
                         else if (isAlmostHorizontal)
                         {
@@ -1456,11 +1490,11 @@ namespace GEORGE.Client.Pages.Okna
                             rightX = Math.Max(inner[i].X, inner[next].X) - rightXShift;
 
                             // Oblicz przecięcia
-                            outerTopT5 = GetVerticalIntersection(_innerStart, _innerEnd, (float)leftX, PionOsSymetrii);
-                            outerBottomT5 = GetVerticalIntersection(_innerStart, _innerEnd, (float)rightX, PionOsSymetrii);
+                            TopLT5 = GetVerticalIntersection(_innerStart, _innerEnd, (float)leftX, PionOsSymetrii);
+                            BottomRT5 = GetVerticalIntersection(_innerStart, _innerEnd, (float)rightX, PionOsSymetrii);
 
-                            innerTopT5 = GetVerticalIntersection(outer[i], outer[next], (float)leftX, PionOsSymetrii);
-                            innerBottomT5 = GetVerticalIntersection(outer[i], outer[next], (float)rightX, PionOsSymetrii);
+                            TopRT5 = GetVerticalIntersection(outer[i], outer[next], (float)leftX, PionOsSymetrii);
+                            BottomLT5 = GetVerticalIntersection(outer[i], outer[next], (float)rightX, PionOsSymetrii);
 
                             //foreach (var x in inner)
                             //{
@@ -1472,25 +1506,77 @@ namespace GEORGE.Client.Pages.Okna
                             //    Console.WriteLine($"🔷 T5-T5 Horizontal shifts → outer.X: {x.X} outer.Y: {x.Y}");
                             //}
 
-                            //Console.WriteLine($"🔷 T5-T5 Horizontal shifts → innerTopT5.X: {innerTopT5.X} innerTopT5.Y: {innerTopT5.Y} innerBottomT5.X: {innerBottomT5.X} innerBottomT5.Y: {innerBottomT5.Y}");
-                            //Console.WriteLine($"🔷 T5-T5 Horizontal shifts → outerTopT5.X: {outerTopT5.X} outerTopT5.Y: {outerTopT5.Y} outerBottomT5.X: {outerBottomT5.X} outerBottomT5.Y: {outerBottomT5.Y}");
+                            //Console.WriteLine($"🔷 T5-T5 Horizontal shifts → TopRT5.X: {TopRT5.X} TopRT5.Y: {TopRT5.Y} BottomLT5.X: {BottomLT5.X} BottomLT5.Y: {BottomLT5.Y}");
+                            //Console.WriteLine($"🔷 T5-T5 Horizontal shifts → TopLT5.X: {TopLT5.X} TopLT5.Y: {TopLT5.Y} BottomRT5.X: {BottomRT5.X} BottomRT5.Y: {BottomRT5.Y}");
                         }
                     }
 
                     // Bezpieczne granice
+                    //                    double half = (SzerokoscSlupka ?? 0) / 2.0;
 
-                    outerTopST5 = outerTopT5;
-                    outerTopST5.Y = outerTopST5.Y + 50;
-                    outerTopST5.X = outerTopST5.X - 45;
+                    var offsepunktyRegionuMaster = OffsetPolygonInside(punktyRegionuMaster, profile);
+
+                    XPoint leftTopIntersection = FindFirstEdgeIntersectionByVector(TopLT5, TopLT5, BottomRT5, offsepunktyRegionuMaster, forward: false);
+                    XPoint rightTopIntersection = FindFirstEdgeIntersectionByVector(TopRT5, TopLT5, BottomRT5, offsepunktyRegionuMaster, forward: false);
+
+                    XPoint leftBottomIntersection = FindFirstEdgeIntersectionByVector(BottomLT5, TopLT5, BottomRT5, offsepunktyRegionuMaster, forward: true);
+                    XPoint righBottomtIntersection = FindFirstEdgeIntersectionByVector(BottomRT5, TopLT5, BottomRT5, offsepunktyRegionuMaster, forward: true);
+
+                    Console.WriteLine($"🔷 T5-T5 TopLT5.X/Y: {TopLT5.X}/{TopLT5.Y}");
+                    Console.WriteLine($"🔷 T5-T5 BottomRT5.X/Y: {BottomRT5.X}/{BottomRT5.Y}");
+
+
+                    foreach (var x in punktyRegionuMaster)
+                    {
+                        Console.WriteLine($"🔷 T5-T5 punktyRegionuMaster.X: {x.X} punktyRegionuMaster.Y: {x.Y}");
+                    }
+
+                    TopST5 = TopLT5;
+
+                    var TopMin = punktyRegionuMaster.Min(p => p.Y);
+                    var TopMax = punktyRegionuMaster.Max(p => p.Y);
+
+                    Console.WriteLine($"🔷 T5-T5 Punkty regionu Master → TopMin:{TopMin}, TopMax:{TopMax}");
+
+                    TopST5.X = TopLT5.X - ((TopLT5.X - TopRT5.X) / 2);
+
+                    BottomSTT5 = BottomLT5;
+                    BottomSTT5.X = BottomLT5.X - ((BottomLT5.X - BottomRT5.X) / 2);
+
+                    // Przesunięcie górnej krawędzi
+                    var moveTopL = TopMin - leftTopIntersection.Y;
+                    var moveTopR = TopMin - rightTopIntersection.Y;
+
+                    // Przesunięcie dolnej krawędzi
+                    var moveBottomL = TopMax - leftBottomIntersection.Y;
+                    var moveBottomR = TopMax - righBottomtIntersection.Y;
+
+                    Console.WriteLine($"🔷 T5-T5 Moves -> moveTopL:{moveTopL}, moveTopR:{moveTopR}, moveBottomL:{moveBottomL}, moveBottomR:{moveBottomR}");
+
+
+                    //// Zastosuj przesunięcie
+                    //TopLT5.Y -= moveTopL;
+                    //TopRT5.Y -= moveTopR;
+                    //BottomLT5.Y -= moveBottomL;
+                    //BottomRT5.Y -= moveBottomR;
+
+                    TopLT5 = leftTopIntersection;
+                    TopRT5 = rightTopIntersection;
+                    BottomLT5 = leftBottomIntersection;
+                    BottomRT5 = righBottomtIntersection;
+
+
                     // Zbierz punkty w kolejności
                     wierzcholki = new List<XPoint>
-                    {
-                        outerTopT5,
-                        outerBottomT5,
-                        innerBottomT5,
-                        innerTopT5,
-                        outerTopST5
-                    };
+                     {
+                        TopLT5,
+                        TopST5,
+                        TopRT5,
+                        BottomLT5,
+                        BottomSTT5,
+                        BottomRT5,
+
+                     };
 
                     Console.WriteLine($"🔷 T5-T5 -> wierzcholki: {wierzcholki.Count} new List<XPoint>");
                 }
@@ -1643,7 +1729,6 @@ namespace GEORGE.Client.Pages.Okna
             return (float)angle;
         }
 
-
         private List<XPoint> RemoveDuplicateConsecutivePoints(List<XPoint> points)
         {
             var unique = new List<XPoint>();
@@ -1666,6 +1751,144 @@ namespace GEORGE.Client.Pages.Okna
         private bool ArePointsEqual(XPoint p1, XPoint p2)
         {
             return Math.Abs(p1.X - p2.X) < 0.1 && Math.Abs(p1.Y - p2.Y) < 0.1;
+        }
+
+        /// <summary>
+        /// Znajduje pierwsze przecięcie linii (wyznaczonej przez wektor direction) z wielokątem contour,
+        /// startując od point basePoint.
+        /// </summary>
+        private XPoint FindFirstEdgeIntersectionByVector(
+            XPoint basePoint,
+            XPoint dirStart,
+            XPoint dirEnd,
+            List<XPoint> polygon,
+            bool forward = true,
+            double tolerance = 0.0001)
+        {
+            // Wektor kierunku linii słupka
+            double dx = dirEnd.X - dirStart.X;
+            double dy = dirEnd.Y - dirStart.Y;
+            double len = Math.Sqrt(dx * dx + dy * dy);
+            if (len < 1e-8) len = 1; // zabezpieczenie przed zerowym wektorem
+            dx /= len;
+            dy /= len;
+
+            if (!forward)
+            {
+                dx = -dx;
+                dy = -dy;
+            }
+
+            // Kąt w stopniach (0° = w prawo, 90° = w górę)
+            double angleDeg = Math.Atan2(dy, dx) * 180.0 / Math.PI;
+            Console.WriteLine($"🔷 FindFirstEdgeIntersectionByVector → basePoint: ({basePoint.X}, {basePoint.Y}), angle: {angleDeg:0.00}°, forward: {forward}");
+
+            XPoint? closest = null;
+            double minDistSq = double.MaxValue;
+
+            for (int i = 0; i < polygon.Count; i++)
+            {
+                int next = (i + 1) % polygon.Count;
+
+                var inter = GetLinesIntersectionNullable(
+                    basePoint,
+                    new XPoint(basePoint.X + dx * 10000.0, basePoint.Y + dy * 10000.0),
+                    polygon[i],
+                    polygon[next]
+                );
+
+                if (!inter.HasValue) continue;
+
+                var p = inter.Value;
+
+                // 🔥 KLUCZOWE — punkt w kierunku promienia
+                double dot = (p.X - basePoint.X) * dx + (p.Y - basePoint.Y) * dy;
+                if (dot <= tolerance) continue; // za plecami lub za mały margines
+
+                double distSq = (p.X - basePoint.X) * (p.X - basePoint.X) + (p.Y - basePoint.Y) * (p.Y - basePoint.Y);
+                if (distSq < minDistSq)
+                {
+                    minDistSq = distSq;
+                    closest = p;
+                }
+            }
+
+            if (!closest.HasValue)
+                throw new InvalidOperationException("No valid intersections");
+
+            return closest.Value;
+        }
+
+        // Tworzy offset zamkniętego konturu do środka o zadaną wartość
+        public static List<XPoint> OffsetPolygonInside(List<XPoint> polygon, double offset)
+        {
+            if (polygon == null || polygon.Count < 3)
+                throw new ArgumentException("Polygon must have at least 3 points.");
+
+            // Sprawdzenie kierunku konturu (CW/CCW)
+            bool isClockwise = IsPolygonClockwise(polygon);
+
+            int n = polygon.Count;
+            var offsetPolygon = new List<XPoint>(n);
+
+            for (int i = 0; i < n; i++)
+            {
+                // Poprzedni i następny punkt
+                XPoint p0 = polygon[(i - 1 + n) % n];
+                XPoint p1 = polygon[i];
+                XPoint p2 = polygon[(i + 1) % n];
+
+                // Wektory krawędzi
+                XPoint v1 = new XPoint(p1.X - p0.X, p1.Y - p0.Y);
+                XPoint v2 = new XPoint(p2.X - p1.X, p2.Y - p1.Y);
+
+                // Normalne do krawędzi (prostopadłe, jednostkowe)
+                XPoint n1 = Normalize(new XPoint(-v1.Y, v1.X));
+                XPoint n2 = Normalize(new XPoint(-v2.Y, v2.X));
+
+                // Jeśli kontur CW, normalne odwracamy
+                if (isClockwise)
+                {
+                    n1 = new XPoint(-n1.X, -n1.Y);
+                    n2 = new XPoint(-n2.X, -n2.Y);
+                }
+
+                // Średnia normalnych dla punktu
+                XPoint nAvg = new XPoint((n1.X + n2.X) / 2, (n1.Y + n2.Y) / 2);
+                nAvg = Normalize(nAvg);
+
+                // Przesunięcie punktu w kierunku normalnej
+                XPoint pOffset = new XPoint(
+                    p1.X + nAvg.X * offset,
+                    p1.Y + nAvg.Y * offset
+                );
+
+                offsetPolygon.Add(pOffset);
+            }
+
+            return offsetPolygon;
+        }
+
+        // Funkcja pomocnicza: jednostkowy wektor
+        private static XPoint Normalize(XPoint v)
+        {
+            double len = Math.Sqrt(v.X * v.X + v.Y * v.Y);
+            if (len < 1e-9) return new XPoint(0, 0);
+            return new XPoint(v.X / len, v.Y / len);
+        }
+
+        // Funkcja pomocnicza: sprawdza czy kontur jest CW
+        private static bool IsPolygonClockwise(List<XPoint> poly)
+        {
+            double sum = 0;
+            int n = poly.Count;
+            for (int i = 0; i < n; i++)
+            {
+                XPoint p1 = poly[i];
+                XPoint p2 = poly[(i + 1) % n];
+                sum += (p2.X - p1.X) * (p2.Y + p1.Y);
+            }
+            return sum > 0;
         }
 
         private XPoint FindFirstEdgeIntersectionByAngle(
@@ -1864,7 +2087,6 @@ namespace GEORGE.Client.Pages.Okna
             float y = (float)a.Y + t * ((float)b.Y - (float)a.Y);
             return new XPoint(x, y - pionOsSymetrii);
         }
-
         private float GetJoinOffset(string joinType, float profile)
         {
             return joinType switch
@@ -1878,11 +2100,11 @@ namespace GEORGE.Client.Pages.Okna
         }
 
         public List<XPoint> CalculateOffsetPolygon(
-            List<XPoint> points,
-            float profileLeft,
-            float profileRight,
-            float profileTop,
-            float profileBottom)
+        List<XPoint> points,
+        float profileLeft,
+        float profileRight,
+        float profileTop,
+        float profileBottom)
         {
             int count = points.Count;
 
