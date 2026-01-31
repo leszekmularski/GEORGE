@@ -4077,14 +4077,7 @@
                 WypelnienieZewnetrzne = generator.KolorZewnetrzny,
                 GruboscObramowania = 2.0f,
                 ZIndex = generator.Zindeks,
-                Strona = StronaSzukaj(
-                        katSzukaj,
-                        linia,
-                        WierzcholkiWartosciNominalne.Min(p => p.Y),
-                        WierzcholkiWartosciNominalne.Max(p => p.Y),
-                        WierzcholkiWartosciNominalne.Min(p => p.X),
-                        WierzcholkiWartosciNominalne.Max(p => p.X)
-                    )
+                Strona = generator.StronaElementu
             });
 
             //if (SelectedModelType.ToLower().Trim() == "słupek stały") break;
@@ -4765,68 +4758,68 @@
         return new List<KonfPolaczenie>();
     }
 
-    public static string StronaSzukaj(
-     double kat,
-     List<XPoint> linia,
-     double regionMinY,
-     double regionMaxY,
-     double regionMinX,
-     double regionMaxX)
-    {
-        if (linia == null || linia.Count < 2)
-            return "";
+    // public static string StronaSzukaj(
+    //  double kat,
+    //  List<XPoint> linia,
+    //  double regionMinY,
+    //  double regionMaxY,
+    //  double regionMinX,
+    //  double regionMaxX)
+    // {
+    //     if (linia == null || linia.Count < 2)
+    //         return "";
 
-        // Normalizacja kąta 0–360
-        kat = (kat % 360 + 360) % 360;
+    //     // Normalizacja kąta 0–360
+    //     kat = (kat % 360 + 360) % 360;
 
-        // 1️⃣ Określenie strony z samego kąta (jak w Twoim switch)
-        string stronaKat = kat switch
-        {
-            >= 45 and < 135 => "prawa",
-            >= 135 and < 225 => "dół",
-            >= 225 and < 315 => "lewa",
-            _ => "góra"
-        };
+    //     // 1️⃣ Określenie strony z samego kąta (jak w Twoim switch)
+    //     string stronaKat = kat switch
+    //     {
+    //         >= 45 and < 135 => "prawa",
+    //         >= 135 and < 225 => "dół",
+    //         >= 225 and < 315 => "lewa",
+    //         _ => "góra"
+    //     };
 
-        double tol = 0.15;
+    //     double tol = 0.15;
 
-        double x1 = linia[0].X;
-        double y1 = linia[0].Y;
-        double x2 = linia[1].X;
-        double y2 = linia[1].Y;
+    //     double x1 = linia[0].X;
+    //     double y1 = linia[0].Y;
+    //     double x2 = linia[1].X;
+    //     double y2 = linia[1].Y;
 
-        string strona = "";
+    //     string strona = "";
 
-        // 2️⃣ Weryfikacja położenia względem regionu
-        switch (stronaKat)
-        {
-            case "góra":
-                if (Math.Abs(y1 - regionMinY) < tol || Math.Abs(y2 - regionMinY) < tol)
-                    strona = "góra";
-                break;
+    //     // 2️⃣ Weryfikacja położenia względem regionu
+    //     switch (stronaKat)
+    //     {
+    //         case "góra":
+    //             if (Math.Abs(y1 - regionMinY) < tol || Math.Abs(y2 - regionMinY) < tol)
+    //                 strona = "góra";
+    //             break;
 
-            case "dół":
-                if (Math.Abs(y1 - regionMaxY) < tol || Math.Abs(y2 - regionMaxY) < tol)
-                    strona = "dół";
-                break;
+    //         case "dół":
+    //             if (Math.Abs(y1 - regionMaxY) < tol || Math.Abs(y2 - regionMaxY) < tol)
+    //                 strona = "dół";
+    //             break;
 
-            case "lewa":
-                if (Math.Abs(x1 - regionMinX) < tol || Math.Abs(x2 - regionMinX) < tol)
-                    strona = "lewa";
-                break;
+    //         case "lewa":
+    //             if (Math.Abs(x1 - regionMinX) < tol || Math.Abs(x2 - regionMinX) < tol)
+    //                 strona = "lewa";
+    //             break;
 
-            case "prawa":
-                if (Math.Abs(x1 - regionMaxX) < tol || Math.Abs(x2 - regionMaxX) < tol)
-                    strona = "prawa";
-                break;
-        }
+    //         case "prawa":
+    //             if (Math.Abs(x1 - regionMaxX) < tol || Math.Abs(x2 - regionMaxX) < tol)
+    //                 strona = "prawa";
+    //             break;
+    //     }
 
-        Console.WriteLine(
-            $"📐 StronaSzukaj → kat={kat:F1}° → wg kąta={stronaKat} → wynik={strona} " +
-            $"(X1={x1:F2}, X2={x2:F2}, Y1={y1:F2}, Y2={y2:F2})");
+    //     Console.WriteLine(
+    //         $"📐 StronaSzukaj → kat={kat:F1}° → wg kąta={stronaKat} → wynik={strona} " +
+    //         $"(X1={x1:F2}, X2={x2:F2}, Y1={y1:F2}, Y2={y2:F2})");
 
-        return strona;
-    }
+    //     return strona;
+    // }
 
     private static double ObliczKatLinii(List<XPoint> linia)
     {
