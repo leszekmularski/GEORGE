@@ -22,16 +22,22 @@
         public BoundingBox GetGlobalBoundingBox()
         {
             var shapesWithPoints = Shapes
-                .Where(s => s.Points != null && s.Points.Count > 0)
+                .Where(s => s.Points is { Count: > 0 })
                 .ToList();
 
             if (!shapesWithPoints.Any())
-                return new BoundingBox { MinX = 0, MinY = 0, MaxX = 1, MaxY = 1 };
+                return new BoundingBox
+                {
+                    MinX = 0,
+                    MinY = 0,
+                    MaxX = 1,
+                    MaxY = 1
+                };
 
-            double minX = shapesWithPoints.Min(s => s.Points.Min(p => p.X));
-            double minY = shapesWithPoints.Min(s => s.Points.Min(p => p.Y));
-            double maxX = shapesWithPoints.Max(s => s.Points.Max(p => p.X));
-            double maxY = shapesWithPoints.Max(s => s.Points.Max(p => p.Y));
+            var minX = shapesWithPoints.Min(s => s.Points.Min(p => p.X));
+            var minY = shapesWithPoints.Min(s => s.Points.Min(p => p.Y));
+            var maxX = shapesWithPoints.Max(s => s.Points.Max(p => p.X));
+            var maxY = shapesWithPoints.Max(s => s.Points.Max(p => p.Y));
 
             return new BoundingBox
             {
@@ -42,16 +48,30 @@
             };
         }
 
-        public class BoundingBox
+        public readonly struct BoundingBox
         {
-            public double MinX { get; set; }
-            public double MinY { get; set; }
-            public double MaxX { get; set; }
-            public double MaxY { get; set; }
+            public double MinX { get; init; }
+            public double MinY { get; init; }
+            public double MaxX { get; init; }
+            public double MaxY { get; init; }
 
             public double Width => MaxX - MinX;
             public double Height => MaxY - MinY;
+
+            public double CenterX => (MinX + MaxX) * 0.5;
+            public double CenterY => (MinY + MaxY) * 0.5;
         }
+
+        //public class BoundingBox
+        //{
+        //    public double MinX { get; set; }
+        //    public double MinY { get; set; }
+        //    public double MaxX { get; set; }
+        //    public double MaxY { get; set; }
+
+        //    public double Width => MaxX - MinX;
+        //    public double Height => MaxY - MinY;
+        //}
 
     }
 

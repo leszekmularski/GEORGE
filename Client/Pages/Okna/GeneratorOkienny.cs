@@ -44,7 +44,7 @@ namespace GEORGE.Client.Pages.Okna
             ElementLiniowy = false;
         }
 
-        public async Task AddElements(List<ShapeRegion> regions, string regionId, Dictionary<string, GeneratorState> generatorStates, List<ShapeRegion> regionAdd,
+        public void AddElements(List<ShapeRegion> regions, string regionId, Dictionary<string, GeneratorState> generatorStates, List<ShapeRegion> regionAdd,
             List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster = null)
         {
             if (regions == null) return;
@@ -250,8 +250,6 @@ namespace GEORGE.Client.Pages.Okna
                 punktyRegionuMaster
             );
 
-
-            await Task.CompletedTask;
             //}
         }
         public void GenerateGenericElementsWithJoins(
@@ -852,7 +850,7 @@ namespace GEORGE.Client.Pages.Okna
                             else
                             {
                                 // ✨ Korekcja styku z pionami T1 z lewej i prawej strony
-                                Console.WriteLine($"🔷 T1/T1 element {i + 1}  ✨ Korekcja styku z pionami T1 z lewej i prawej strony angleDegrees: {angleDegrees}");
+                                Console.WriteLine($"🔷 T1/T1 element {i + 1}  ✨ Korekcja styku z pionami T1 z lewej i prawej strony angleDegrees: {angleDegrees} StronaElementu: {StronaElementu}");
                                 //var prev = (i - 1 + vertexCount) % vertexCount;
                                 // 🔷 Pionowe – pełne
 
@@ -918,135 +916,165 @@ namespace GEORGE.Client.Pages.Okna
                                     .OrderByDescending(p => p.X)
                                     .FirstOrDefault();
 
+                                var key = (
+                                    vertexCount,
+                                    angleGt90: angleDegrees > 90,
+                                    angleLt90: angleDegrees < 90,
+                                    sameOuterX: Math.Round(minOuter.X, 0) == Math.Round(leftOuter.X, 0),
+                                    sameInnerX: Math.Round(minInner.X, 0) == Math.Round(leftInner.X, 0),
+                                    StronaElementu
+                                );
 
-                                if (vertexCount > 3 && StronaElementu == "Lewa")
+                                Console.WriteLine(
+                                                    $"[T1/T1 KEY] " +
+                                                    $"vertexCount={key.vertexCount}, " +
+                                                    $"angleGt90={key.angleGt90}, " +
+                                                    $"angleLt90={key.angleLt90}, " +
+                                                    $"sameOuterX={key.sameOuterX}, " +
+                                                    $"sameInnerX={key.sameInnerX}, " +
+                                                    $"StronaElementu='{key.StronaElementu}'"
+                                                );
+
+
+                                switch (key)
                                 {
-                                    // Pionowy przypadek (np. boczne elementy w trapezie)
-                                    var topY = Math.Min(inner[i].Y, inner[next].Y);
-                                    var bottomT1Y = Math.Max(inner[i].Y, inner[next].Y);
-                                    //             if(angleDegrees )
+                                    // =========================================================
+                                    // vertexCount > 3 && StronaElementu == "Lewa"
+                                    //// =========================================================
+                                    case (3, true, false, false, false, _):
+                                        {
+                                            Console.WriteLine("[T1/T1 KEY] - 0");
+                                            float bottomY = (float)inner.Max(p => p.Y);
 
-                                    outerVecTop = GetHorizontalIntersection(outerStart, outerEnd, (float)topY, 0);
-                                    outerVecBottom = GetHorizontalIntersection(outerStart, outerEnd, (float)bottomT1Y, 0);
+                                            innerVecTop = FindAxisIntersection(
+                                                value: bottomY,
+                                                direction: AxisDirection.Horizontal,
+                                                contour: inner,
+                                                pick: AxisPick.Min
+                                            );
 
-                                    innerVecTop = GetHorizontalIntersection(inner[i], inner[next], (float)topY, 0);
-                                    innerVecBottom = GetHorizontalIntersection(inner[i], inner[next], (float)bottomT1Y, 0);
-                                }
-                                else if (vertexCount == 3 && angleDegrees > 90 && Math.Round(minOuter.X, 0) == Math.Round(leftOuter.X, 0))
-                                {
-                                    Console.WriteLine($"🔷 T1/T1 🔷 vertexCount == 3 && angleDegrees > 90 for element {i + 1} with joins: {leftJoin}-{rightJoin} angleDegrees: {angleDegrees}");
+                                            outerVecTop = GetHorizontalIntersection(minOuter, leftOuter, bottomY, 0);
 
-                                    float bottomY = (float)inner.Max(p => p.Y);
+                                            if (Math.Round(rightInner.X, 0) != Math.Round(leftInner.X, 0))
+                                            {
+                                                outerVecTop = FindFirstEdgeIntersectionByAngle(leftInner, 180, outer);
+                                            }
+                                            break;
+                                        }
 
-                                    // punkt dolny lewy inner
-                                    innerVecTop = FindAxisIntersection(
-                                        value: bottomY,
-                                        direction: AxisDirection.Horizontal,
-                                        contour: inner,
-                                        pick: AxisPick.Min
-                                    );
+                                    // =========================================================
+                                    // vertexCount == 3 && angleDegrees > 90 && minOuter.X == leftOuter.X
+                                    // =========================================================
+                                    case (3, true, _, true, _, _):
+                                        {
+                                            Console.WriteLine("[T1/T1 KEY] - 1");
+                                            float bottomY = (float)inner.Max(p => p.Y);
 
-                                    // punkt dolny zewnętrzny outer na linii skośnej
-                                    //XPoint outerSkosStart = outer[0]; // górny punkt outer
-                                    //XPoint outerSkosEnd = outer[2]; // dolny punkt outer
-                                    outerVecTop = GetHorizontalIntersection(minOuter, leftOuter, bottomY, 0);
-                                    //FindFirstEdgeIntersectionByAngle
+                                            innerVecTop = FindAxisIntersection(
+                                                value: bottomY,
+                                                direction: AxisDirection.Horizontal,
+                                                contour: inner,
+                                                pick: AxisPick.Min
+                                            );
 
-                                    //if (Math.Round(outer.FirstOrDefault(p => p.Y == outer.Min(pt => pt.Y) && p.X == outer.Min(pt => pt.X)).X, 0) 
-                                    //    != Math.Round(outer.FirstOrDefault(p => p.Y == outer.Min(pt => pt.Y) && p.X == outer.Max(pt => pt.X)).X, 0))
-                                    if (Math.Round(rightInner.X, 0) != Math.Round(leftInner.X, 0))
-                                    {
-                                        Console.WriteLine($"🔷 T1/T1 🔷 vertexCount == 3 TEST && angleDegrees > 90 for element {i + 1} leftInner.X/Y: {leftInner.X}-{leftInner.Y} angleDegrees: {angleDegrees}");
-                                        //innerVecBottom = minInner;
-                                        //outerVecBottom = FindFirstEdgeIntersectionByAngle(innerVecBottom, 360 - angleDegrees, outer);
-                                        outerVecTop = FindFirstEdgeIntersectionByAngle(leftInner, 180, outer);
+                                            outerVecTop = GetHorizontalIntersection(minOuter, leftOuter, bottomY, 0);
 
-                                    }
+                                            if (Math.Round(rightInner.X, 0) != Math.Round(leftInner.X, 0))
+                                            {
+                                                outerVecTop = FindFirstEdgeIntersectionByAngle(leftInner, 180, outer);
+                                            }
+                                            break;
+                                        }
 
-                                }
-                                else if (vertexCount == 3 && angleDegrees < 90 && Math.Round(minInner.X, 0) == Math.Round(leftInner.X, 0))
-                                {
-                                    var prev = (i - 1 + vertexCount) % vertexCount;
+                                    // =========================================================
+                                    // vertexCount == 3 && angleDegrees < 90 && minInner.X == leftInner.X
+                                    // =========================================================
+                                    case (3, _, true, _, true, _):
+                                        {
+                                            Console.WriteLine("[T1/T1 KEY] - 2");
+                                            float bottomY = (float)inner.Max(p => p.Y);
 
-                                    // 1️⃣ Dolny Y z inner
-                                    float bottomY = (float)inner.Max(p => p.Y);
+                                            innerVecTop = FindAxisIntersection(
+                                                value: bottomY,
+                                                direction: AxisDirection.Horizontal,
+                                                contour: inner,
+                                                pick: AxisPick.Max
+                                            );
 
-                                    // 2️⃣ Dolny punkt inner (prawy dół)
-                                    innerVecTop = FindAxisIntersection(
-                                        value: bottomY,
-                                        direction: AxisDirection.Horizontal,
-                                        contour: inner,
-                                        pick: AxisPick.Max
-                                    );
+                                            XPoint outerSkosStart = outer.First(p => p.Y == outer.Min(o => o.Y));
+                                            XPoint outerSkosEnd = outer.First(
+                                                p => p.Y == outer.Max(o => o.Y) && p.X > innerVecTop.X
+                                            );
 
-                                    // 3️⃣ Skos outer
-                                    XPoint outerSkosStart = outer.First(p => p.Y == outer.Min(o => o.Y));
-                                    XPoint outerSkosEnd = outer.First(p => p.Y == outer.Max(o => o.Y) && p.X > innerVecTop.X);
+                                            outerVecTop = GetHorizontalIntersection(
+                                                outerSkosStart,
+                                                outerSkosEnd,
+                                                bottomY,
+                                                0
+                                            );
 
-                                    // 4️⃣ Dolny punkt outer (przecięcie poziome)
-                                    outerVecTop = GetHorizontalIntersection(
-                                        outerSkosStart,
-                                        outerSkosEnd,
-                                        bottomY,
-                                        0
-                                    );
+                                            outerVecBottom = outerSkosStart;
 
-                                    outerVecBottom = outerSkosStart;
+                                            double angleRad = (90 - angleDegrees) * Math.PI / 180.0;
+                                            float deltaY = (float)(profile / Math.Tan(angleRad));
 
-                                    double angleRad = (90 - angleDegrees) * Math.PI / 180.0;
+                                            innerVecBottom.Y = (float)inner.Min(p => p.Y) - deltaY;
+                                            innerVecBottom.X = (float)outer.Min(p => p.X);
+                                            break;
+                                        }
 
-                                    // pionowa składowa przesunięcia po skosie
-                                    float deltaY = (float)(profile / Math.Tan(angleRad));
+                                    // =========================================================
+                                    // vertexCount == 3 && angleDegrees < 90 && minInner.X != leftInner.X
+                                    // =========================================================
+                                    case (3, _, true, _, false, _):
+                                        {
+                                            Console.WriteLine("[T1/T1 KEY] - 3");
+                                            innerVecTop = minInner;
+                                            outerVecTop = FindFirstEdgeIntersectionByAngle(
+                                                innerVecTop,
+                                                360 - angleDegrees,
+                                                outer
+                                            );
+                                            break;
+                                        }
 
-                                    innerVecBottom.Y = (float)inner.Min(p => p.Y) - deltaY;
-                                    innerVecBottom.X = (float)outer.Min(p => p.X);
+                                    // =========================================================
+                                    // vertexCount > 4 && angleDegrees < 90
+                                    // =========================================================
+                                    case ( > 4, _, true, _, _, _):
+                                        {
+                                            Console.WriteLine("[T1/T1 KEY] - 4");
 
-                                    Console.WriteLine($"🔷 T1/T1 🔷 🔷 nx: {nx}, ny: {ny} length:{length} inner.Min(p => p.Y): {inner.Min(p => p.Y)}");
+                                            float bottomY = (float)inner.Max(p => p.Y);
 
-                                }
-                                else if (vertexCount == 3 && angleDegrees < 90 && Math.Round(minInner.X, 0) != Math.Round(leftInner.X, 0))
-                                {
-                                    innerVecTop = minInner;
-                                    outerVecTop = FindFirstEdgeIntersectionByAngle(innerVecTop, 360 - angleDegrees, outer);
-                                }
-                                else if (vertexCount > 4 && angleDegrees < 90)
-                                {
-                                    Console.WriteLine($"🔷 T1/T1 🔷 vertexCount > {vertexCount} && angleDegrees < {angleDegrees} for element {i + 1} with joins: {leftJoin}-{rightJoin} angleDegrees: {angleDegrees}");
+                                            innerVecTop = FindAxisIntersection(
+                                                value: bottomY,
+                                                direction: AxisDirection.Horizontal,
+                                                contour: inner,
+                                                pick: AxisPick.Max
+                                            );
 
-                                    var prev = (i - 1 + vertexCount) % vertexCount;
+                                            XPoint outerSkosStart = outer.First(p => p.Y == outer.Min(o => o.Y));
+                                            XPoint outerSkosEnd = outer.First(
+                                                p => p.Y == outer.Max(o => o.Y) && p.X > innerVecTop.X
+                                            );
 
-                                    // 1️⃣ Dolny Y z inner
-                                    float bottomY = (float)inner.Max(p => p.Y);
+                                            outerVecTop = GetHorizontalIntersection(
+                                                outerSkosStart,
+                                                outerSkosEnd,
+                                                bottomY,
+                                                0
+                                            );
 
-                                    // 2️⃣ Dolny punkt inner (prawy dół)
-                                    innerVecTop = FindAxisIntersection(
-                                        value: bottomY,
-                                        direction: AxisDirection.Horizontal,
-                                        contour: inner,
-                                        pick: AxisPick.Max
-                                    );
+                                            outerVecBottom = outerSkosStart;
 
-                                    // 3️⃣ Skos outer
-                                    XPoint outerSkosStart = outer.First(p => p.Y == outer.Min(o => o.Y));
-                                    XPoint outerSkosEnd = outer.First(p => p.Y == outer.Max(o => o.Y) && p.X > innerVecTop.X);
+                                            double angleRad = (90 - angleDegrees) * Math.PI / 180.0;
+                                            float deltaY = (float)(profile / Math.Tan(angleRad));
 
-                                    // 4️⃣ Dolny punkt outer (przecięcie poziome)
-                                    outerVecTop = GetHorizontalIntersection(
-                                        outerSkosStart,
-                                        outerSkosEnd,
-                                        bottomY,
-                                        0
-                                    );
-
-                                    outerVecBottom = outerSkosStart;
-
-                                    double angleRad = (90 - angleDegrees) * Math.PI / 180.0;
-
-                                    // pionowa składowa przesunięcia po skosie
-                                    float deltaY = (float)(profile / Math.Tan(angleRad));
-
-                                    innerVecBottom.Y = (float)inner.Min(p => p.Y) - deltaY;
-                                    innerVecBottom.X = (float)outer.Min(p => p.X);
+                                            innerVecBottom.Y = (float)inner.Min(p => p.Y) - deltaY;
+                                            innerVecBottom.X = (float)outer.Min(p => p.X);
+                                            break;
+                                        }
                                 }
 
                                 wierzcholki = new List<XPoint> {
@@ -1725,11 +1753,12 @@ namespace GEORGE.Client.Pages.Okna
                         DlogoscElementu = bazowaDlugosc + ((dodajA ? profileLeft : 0) + (dodajB ? profileRight : 0)),
                         DlogoscNaGotowoElementu = bazowaDlugosc
                     });
+
                 Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - >3 rowIdProfil:{rowIdProfil} Angle: {angleDegrees}°");
+                
                 if (ElementLiniowy) return;
 
             }
-
 
         }
 
@@ -2334,7 +2363,8 @@ namespace GEORGE.Client.Pages.Okna
             return length;
         }
 
-        private string OkreslStroneNaPodstawieKata(float angleDegrees, int i, List<XPoint> outer)
+
+        public string OkreslStroneNaPodstawieKata(float angleDegrees, int i, List<XPoint> outer)
         {
             // Standardowy przypadek
             string strona = angleDegrees switch

@@ -524,9 +524,11 @@
         else
         {
             <!-- Canvas -->
-            <div class="canvas-container" style="padding:0px;background-color: transparent;border: 0px;">
-                <BECanvas @ref="CanvasRef" Width="@CanvasWidth" Height="@CanvasHeight" />
-            </div>
+            <Spin Size="SpinSize.Small" Tip="Czekaj aż system zmieni dane..." Spinning="czekajNaZmiene">
+                <div class="canvas-container" style="padding:0px;background-color: transparent;border: 0px;">
+                    <BECanvas @ref="CanvasRef" Width="@CanvasWidth" Height="@CanvasHeight" />
+                </div>
+            </Spin>
         }
     </div>
 
@@ -1069,7 +1071,7 @@
     <Generator_state_viewer StateContainer="StateContainer"></Generator_state_viewer>
 </Modal>
 
-<Modal Title="Podgląd danych wygenerowanych"
+<Modal Title="Właściwości okna"
        Visible="@_constWlasciwosciOkna"
        OnOk="@HandleZapis"
        OnCancel="@HandleWOCancel"
@@ -1085,7 +1087,7 @@
 
 @code {
 
-        // Klasa WingModel definiująca dane dla skrzydła
+    // Klasa WingModel definiująca dane dla skrzydła
     private List<KonfSystem>? KonfiguracjeSystemu;
 
     private List<SystemyOkienne>? Systemy;
@@ -1109,7 +1111,7 @@
     private ElementReference canvasElement;
 
     private double _currentScale = 1.0;
-    private const double ScaleFactor = 1.1;
+    //private const double ScaleFactor = 1.1;
     private double _panX = 0;
     private double _panY = 0;
 
@@ -1164,6 +1166,8 @@
     private int _selectedShapeIndex = 0; // Przechowuje indeks aktualnie edytowanego kształtu
 
     private ElementReference modalRef;
+
+    private bool czekajNaZmiene = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -1229,17 +1233,49 @@
 
                 Console.WriteLine("✅ Canvas ustawiony!");
 
+
+
                 //  await ClearCanvas();
                 isTextureLoaded = false;
-
-                await Task.Delay(50); // Krótkie opóźnienie dla płynności
-
-                await GenerujObrysPozZmianieWymiarow(true, true, true, true);
 
                 // 👇 TU DODAJ
                 _context ??= await CanvasRef.CreateCanvas2DAsync();
 
                 await JS.InvokeVoidAsync("registerResizeCallback", DotNetObjectReference.Create(this));
+
+
+                if (ShapeService != null && ShapeService.Shapes.Any())
+                {
+
+                    
+                await Task.Delay(50); // Krótkie opóźnienie dla płynności
+
+               // czekajNaZmiene = true;
+
+                await GenerujObrysPozZmianieWymiarow(true, true, true, true);
+                //await FitToScreen();
+
+              
+
+                    double minX = ShapeService.Shapes.Min(s => s.GetBoundingBox().X);
+                    double minY = ShapeService.Shapes.Min(s => s.GetBoundingBox().Y);
+                    double maxX = ShapeService.Shapes.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
+                    double maxY = ShapeService.Shapes.Max(s => s.GetBoundingBox().Y + s.GetBoundingBox().Height);
+
+                    double shapesWidth = maxX - minX;
+                    double shapesHeight = maxY - minY;
+
+                    double scaleX = CanvasWidth / shapesWidth;
+                    double scaleY = CanvasHeight / shapesHeight;
+                    double scale = Math.Min(scaleX, scaleY) * 0.80;   // 90%, żeby mieć margines
+
+                    _currentScale = scale;
+                    czekajNaZmiene = true;
+                   await ZapiszRegion();
+
+                    czekajNaZmiene = false;
+                }
+
 
             }
         }
@@ -1293,9 +1329,10 @@
             constWlasciwosciOkna.Szerokosc = ShapeService._szerokosc;
             constWlasciwosciOkna.Wysokosc = ShapeService._wysokosc;
 
-            await PokazWlasciwosciOkna();
+           // await FitToScreen(true);
+           // await PokazWlasciwosciOkna();
 
-            await Task.Delay(50); // Krótkie opóźnienie dla płynności
+           // await Task.Delay(50); // Krótkie opóźnienie dla płynności
 
         }
 
@@ -2235,7 +2272,7 @@
         //await Task.Delay(250); // Krótkie opóźnienie dla płynności
 
         //if (await DodajWybranyKwadratOkna(idRegion, Wierzcholki) == false) return; // teraz z idRegion
-
+         czekajNaZmiene = true;
         if (WybranyModel.Typ == "Słupek stały")
         {
             var match = ObliczWierzcholkiSlupkaStalego(Wierzcholki, klikX, klikY);
@@ -2256,6 +2293,8 @@
         await DrawStructureAndRestrykcje(0);
 
         isTextureLoaded = false;
+
+         czekajNaZmiene = false;
 
         // await UpdateCanvasSizeFromDiv();
         // await RenderFrame();
@@ -3032,6 +3071,8 @@
         }
 
         await GenerujObrysPozZmianieWymiarow(false, false, regenerujShapeService, false);
+        
+        await Task.Delay(50); // Krótkie opóźnienie dla płynności
 
         var wszystkieRegiony = _regionsDualRama.Concat(_regionsSkrzydlo).ToList();
         Console.WriteLine($"Regionów dual={_regionsDualRama.Count}, skrzydło={_regionsSkrzydlo.Count}");
@@ -3149,10 +3190,13 @@
                             generator.RuchomySlupekPoLewej, generator.RuchomySlupekPoPrawej,
                             generator, regionDoDodania
                         );
+
+                        await Task.Delay(50); // Krótkie opóźnienie dla płynności
                     }
                     else
                     {
                         Console.WriteLine($"❌ Nie znaleziono regionu skrzydła o ID: {region.Id}");
+                        await _message.Error($"Nie znaleziono regionu skrzydła o ID: {region.Id}");
 
                     }
 
@@ -3167,7 +3211,7 @@
             // -----------------------------------------------------
             if (generator.CzyElementJestRama)
             {
-                await generator.AddElements(
+                generator.AddElements(
                     new List<ShapeRegion> { region },
                     cleanId,
                     _generatorStates,
@@ -3178,7 +3222,7 @@
             }
             else
             {
-                await generator.AddElements(
+                generator.AddElements(
                     new List<ShapeRegion> { region },
                     cleanId,
                     _generatorStates,
@@ -3767,7 +3811,7 @@
                 generator.RuchomySlupekPoLewej = false;
                 generator.RuchomySlupekPoPrawej = false;
 
-                await generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama, null);//Rama nie ma sąsiada dla tego null
+                generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama, null);//Rama nie ma sąsiada dla tego null
 
             }
         }
@@ -3862,6 +3906,8 @@
 
             string wybranyTypSasiada = "BRAK-DANYCH";
 
+            string stronaZFunkcji = "NIEOKREŚLONA";
+
             if (sasiedzi != null && sasiedzi.Any())
             {
                 double minX1 = WierzcholkiWartosciNominalne.Min(p => p.X);
@@ -3894,36 +3940,18 @@
                 }
 
                 // 🔹 Określ oczekiwany kierunek na podstawie kąta
-                bool oczekujeGora = false;
-                bool oczekujeDol = false;
-                bool oczekujeLewa = false;
-                bool oczekujePrawa = false;
+                // W miejscu gdzie masz oryginalny fragment:
+                bool oczekujeGora, oczekujeDol, oczekujeLewa, oczekujePrawa;
 
-                // Normalizuj kąt do zakresu 0-360
-                int kat = (int)katSzukaj % 360;
-                if (kat < 0) kat += 360;
-
-                // Określ kierunek z tolerancją 45 stopni
-                if ((kat >= 315 && kat <= 360) || (kat >= 0 && kat <= 45))
-                {
-                    oczekujeGora = true;
-                    Console.WriteLine($"📐 Oczekiwany kierunek: GÓRA (kąt: {kat}°)");
-                }
-                else if (kat >= 45 && kat <= 135)
-                {
-                    oczekujePrawa = true;
-                    Console.WriteLine($"📐 Oczekiwany kierunek: PRAWA (kąt: {kat}°)");
-                }
-                else if (kat >= 135 && kat <= 225)
-                {
-                    oczekujeDol = true;
-                    Console.WriteLine($"📐 Oczekiwany kierunek: DÓŁ (kąt: {kat}°)");
-                }
-                else if (kat >= 225 && kat <= 315)
-                {
-                    oczekujeLewa = true;
-                    Console.WriteLine($"📐 Oczekiwany kierunek: LEWA (kąt: {kat}°)");
-                }
+                stronaZFunkcji = OkreslStroneNaPodstawieKataZWierzcholkami(
+                    katSzukaj: (float)katSzukaj, 
+                    WierzcholkiWartosciNominalne: WierzcholkiWartosciNominalne,  // Twoje punkty
+                    out oczekujeGora,
+                    out oczekujeDol,
+                    out oczekujeLewa,
+                    out oczekujePrawa);
+                
+                Console.WriteLine($"📐 Określono stronę: {stronaZFunkcji} (kąt: {katSzukaj}°)");
 
                 // 🔹 Funkcja pomocnicza do obliczania dopasowania
                 double ObliczDopasowanie(SasiadInfo s)
@@ -4039,6 +4067,7 @@
             if (najlepszySasiad != null)
             {
                 wybranyTypSasiada = najlepszySasiad.WybranyTyp;
+
                 Console.WriteLine($"✅ WYBRANO: {najlepszySasiad.WybranyTyp}, " +
                                  $"Region: {najlepszySasiad.IdRegionu}, " +
                                  $"Kąt: {najlepszySasiad.KatSasiada}°, " +
@@ -4077,7 +4106,7 @@
                 WypelnienieZewnetrzne = generator.KolorZewnetrzny,
                 GruboscObramowania = 2.0f,
                 ZIndex = generator.Zindeks,
-                Strona = generator.StronaElementu
+                Strona = stronaZFunkcji,
             });
 
             //if (SelectedModelType.ToLower().Trim() == "słupek stały") break;
@@ -4262,7 +4291,7 @@
             if (regionKlikniety != null)
             {
 
-                await generator.AddElements(
+                generator.AddElements(
                     new List<ShapeRegion> { regionKlikniety },
                     idRegion,
                     _generatorStates,
@@ -4324,6 +4353,9 @@
                         stronaLewa, stronaPrawa,
                         generator, regionDoDodania
                     );
+
+                    await Task.Delay(50); // krótkie opóźnienie dla stabilności
+
                     // 4. Zapisz do stanu
                     state.ZIndeks = generator.Zindeks;
                     state.Wierzcholki = regionDoDodania.Wierzcholki;
@@ -4333,7 +4365,8 @@
                     generator.RuchomySlupekPoPrawej = stronaPrawa;
 
                     // 5. Dodaj elementy
-                    await generator.AddElements(new List<ShapeRegion> { regionDoDodania }, idRegion, _generatorStates, _regionsSkrzydlo, state.ListaKwadratow);
+                    generator.AddElements(new List<ShapeRegion> { regionDoDodania }, idRegion, _generatorStates, _regionsSkrzydlo, state.ListaKwadratow);
+
                 }
                 else
                 {
@@ -4393,6 +4426,88 @@
         await ApplyZoom(_currentScale);
 
         return true;
+    }
+
+    /// <summary>
+    /// Określa stronę elementu na podstawie kąta i wierzchołków (z korektą dla elementów w górnej części).
+    /// </summary>
+    /// <param name="katSzukaj">Kąt elementu w stopniach</param>
+    /// <param name="WierzcholkiWartosciNominalne">Lista wierzchołków elementu (opcjonalna, dla korekty)</param>
+    /// <param name="oczekujeGora">[out] Czy oczekiwana jest strona górna</param>
+    /// <param name="oczekujeDol">[out] Czy oczekiwana jest strona dolna</param>
+    /// <param name="oczekujeLewa">[out] Czy oczekiwana jest strona lewa</param>
+    /// <param name="oczekujePrawa">[out] Czy oczekiwana jest strona prawa</param>
+    /// <returns>Nazwa strony ("Góra", "Dół", "Lewa", "Prawa")</returns>
+    public string OkreslStroneNaPodstawieKataZWierzcholkami(
+        float katSzukaj,
+        List<XPoint> WierzcholkiWartosciNominalne,
+        out bool oczekujeGora,
+        out bool oczekujeDol,
+        out bool oczekujeLewa,
+        out bool oczekujePrawa)
+    {
+        // Inicjalizacja zmiennych wyjściowych
+        oczekujeGora = false;
+        oczekujeDol = false;
+        oczekujeLewa = false;
+        oczekujePrawa = false;
+
+        // Normalizuj kąt do zakresu 0-360
+        float kat = katSzukaj % 360;
+        if (kat < 0) kat += 360;
+
+        // Logika identyczna z OkreslStroneNaPodstawieKata
+        string strona = kat switch
+        {
+            >= 45 and < 135 => "Prawa",
+            >= 135 and < 225 => "Dół",
+            >= 225 and < 315 => "Lewa",
+            _ => "Góra"
+        };
+
+        // KOREKTA: Jeśli mamy punkty w WierzcholkiWartosciNominalne, możemy spróbować określić pozycję
+        if (WierzcholkiWartosciNominalne != null && WierzcholkiWartosciNominalne.Count >= 2)
+        {
+            // Jeśli mamy tylko 2 punkty (linia), uśrednij ich pozycje
+            double centerY;
+            if (WierzcholkiWartosciNominalne.Count == 2)
+            {
+                centerY = (WierzcholkiWartosciNominalne[0].Y + WierzcholkiWartosciNominalne[1].Y) / 2;
+            }
+            else
+            {
+                // Dla wielokąta oblicz środek geometryczny
+                centerY = WierzcholkiWartosciNominalne.Average(p => p.Y);
+            }
+
+            double minYSK = WierzcholkiWartosciNominalne.Min(p => p.Y);
+            double maxYSK = WierzcholkiWartosciNominalne.Max(p => p.Y);
+
+            // Jeśli środek jest w górnej 1/3 kształtu
+            if (centerY < minYSK + (maxYSK - minYSK) * 0.33)
+            {
+                // Sprawdź czy kąt jest zbliżony do poziomego
+                bool isNearHorizontal = (Math.Abs(kat) < 30) ||
+                                       (Math.Abs(kat - 360) < 30) ||
+                                       (Math.Abs(kat - 180) < 30);
+
+                if (isNearHorizontal)
+                {
+                    strona = "Góra";
+                    Console.WriteLine($"📐 KOREKTA: Zmieniono na GÓRA (element w górnej części, kąt: {kat}°)");
+                }
+            }
+        }
+
+        // Ustaw flagi boolowskie na podstawie określonej strony
+        oczekujeGora = (strona == "Góra");
+        oczekujeDol = (strona == "Dół");
+        oczekujeLewa = (strona == "Lewa");
+        oczekujePrawa = (strona == "Prawa");
+
+        Console.WriteLine($"📐 Określono stronę: {strona} (kąt: {kat}°)");
+
+        return strona;
     }
 
     private string WybierzNajblizszySlupek(
@@ -4758,69 +4873,6 @@
         return new List<KonfPolaczenie>();
     }
 
-    // public static string StronaSzukaj(
-    //  double kat,
-    //  List<XPoint> linia,
-    //  double regionMinY,
-    //  double regionMaxY,
-    //  double regionMinX,
-    //  double regionMaxX)
-    // {
-    //     if (linia == null || linia.Count < 2)
-    //         return "";
-
-    //     // Normalizacja kąta 0–360
-    //     kat = (kat % 360 + 360) % 360;
-
-    //     // 1️⃣ Określenie strony z samego kąta (jak w Twoim switch)
-    //     string stronaKat = kat switch
-    //     {
-    //         >= 45 and < 135 => "prawa",
-    //         >= 135 and < 225 => "dół",
-    //         >= 225 and < 315 => "lewa",
-    //         _ => "góra"
-    //     };
-
-    //     double tol = 0.15;
-
-    //     double x1 = linia[0].X;
-    //     double y1 = linia[0].Y;
-    //     double x2 = linia[1].X;
-    //     double y2 = linia[1].Y;
-
-    //     string strona = "";
-
-    //     // 2️⃣ Weryfikacja położenia względem regionu
-    //     switch (stronaKat)
-    //     {
-    //         case "góra":
-    //             if (Math.Abs(y1 - regionMinY) < tol || Math.Abs(y2 - regionMinY) < tol)
-    //                 strona = "góra";
-    //             break;
-
-    //         case "dół":
-    //             if (Math.Abs(y1 - regionMaxY) < tol || Math.Abs(y2 - regionMaxY) < tol)
-    //                 strona = "dół";
-    //             break;
-
-    //         case "lewa":
-    //             if (Math.Abs(x1 - regionMinX) < tol || Math.Abs(x2 - regionMinX) < tol)
-    //                 strona = "lewa";
-    //             break;
-
-    //         case "prawa":
-    //             if (Math.Abs(x1 - regionMaxX) < tol || Math.Abs(x2 - regionMaxX) < tol)
-    //                 strona = "prawa";
-    //             break;
-    //     }
-
-    //     Console.WriteLine(
-    //         $"📐 StronaSzukaj → kat={kat:F1}° → wg kąta={stronaKat} → wynik={strona} " +
-    //         $"(X1={x1:F2}, X2={x2:F2}, Y1={y1:F2}, Y2={y2:F2})");
-
-    //     return strona;
-    // }
-
     private static double ObliczKatLinii(List<XPoint> linia)
     {
         if (linia == null || linia.Count < 2)
@@ -4864,7 +4916,7 @@
         Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii -> Kąt linii: {katLinii:F1}°");
 
         // 🔹 Określ typ linii z większą tolerancją
-        const double katTolerancja = 30.0;
+        const double katTolerancja = 12.0;
 
         bool jestPionowa = Math.Abs(katLinii - 90) <= katTolerancja ||
                           Math.Abs(katLinii - 270) <= katTolerancja;
@@ -5127,7 +5179,7 @@
         Console.WriteLine($"📐 ZnajdzSasiada -> Rzeczywisty kąt linii: {katLinii:F1}°, Parametr kat: {kat}°");
 
         // 🔹 Określ typ linii z większą tolerancją
-        const double katTolerancja = 15.0; // Zwiększona tolerancja dla kątów skośnych
+        const double katTolerancja = 12.0; // Zwiększona tolerancja dla kątów skośnych
 
         bool jestPionowa = Math.Abs(katLinii - 90) <= katTolerancja || Math.Abs(katLinii - 270) <= katTolerancja;
         bool jestPozioma = Math.Abs(katLinii) <= katTolerancja || Math.Abs(katLinii - 180) <= katTolerancja;
@@ -5881,7 +5933,7 @@
             generator.Wysokosc = (float)(maxY - minY);
             generator.Zindeks = 0;
 
-            await generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama, null);
+            generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama, null);
         }
         else if (wybranyRegionSkrzydlo != null && !czyRegionZawieraSlupekStaly)
         {
@@ -5897,7 +5949,7 @@
             generator.Wysokosc = (float)(maxY - minY);
             generator.Zindeks = 1;
 
-            await generator.AddElements(new List<ShapeRegion> { wybranyRegionSkrzydlo }, idRegion, _generatorStates, _regionsSkrzydlo, null);
+            generator.AddElements(new List<ShapeRegion> { wybranyRegionSkrzydlo }, idRegion, _generatorStates, _regionsSkrzydlo, null);
         }
         else
         {
@@ -6198,6 +6250,8 @@
             }
         }
     }
+
+    //---------------------------------------------------------------------------------------------------------------------------------------
 
     public class DOMRect
     {
