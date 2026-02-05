@@ -45,21 +45,21 @@ namespace GEORGE.Client.Pages.Okna
             ElementLiniowy = false;
         }
 
-        public async Task AddElements(List<ShapeRegion> regions, string regionId, Dictionary<string, GeneratorState> generatorStates, List<ShapeRegion> regionAdd,
+        public async Task<bool> AddElements(List<ShapeRegion> regions, string regionId, Dictionary<string, GeneratorState> generatorStates, List<ShapeRegion> regionAdd,
             List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster = null)
         {
-            if (regions == null) return;
+            if (regions == null) return false;
 
             if (KonfiguracjeSystemu == null || MVCKonfModelu == null)
             {
                 Console.WriteLine($"❌ Brak KonfiguracjeSystemu lub PowiazanyModel!");
-                return;
+                return false;
             }
 
             if (EdytowanyModel == null)
             {
                 Console.WriteLine($"❌ Brak EdytowanyModel jest nie ustawiony!!!");
-                return;
+                return false;
             }
 
             Console.WriteLine($"➡️ AddElements EdytowanyModel.PolaczenieNaroza: {EdytowanyModel.PolaczenieNaroza} daneKwadratu.Count: {(daneKwadratu == null ? "NULL" : daneKwadratu.Count())}");
@@ -91,7 +91,7 @@ namespace GEORGE.Client.Pages.Okna
             if (region == null && !ElementLiniowy)
             {
                 Console.WriteLine($"❌ Nie znaleziono regionu o ID: {regionId} w AddElements - GeneratoryOkienne");
-                return;
+                return false;
             }
             else if (region != null && !ElementLiniowy)
             {
@@ -116,13 +116,13 @@ namespace GEORGE.Client.Pages.Okna
             if ((punkty == null || punkty.Count < 3) && !ElementLiniowy)
             {
                 Console.WriteLine($"❌ Region o ID: {regionId} ma zbyt mało punktów");
-                return;
+                return false;
             }
 
             if ((punkty == null || punkty.Count < 2))
             {
                 Console.WriteLine($"❌ Region o ID: {regionId} ma zbyt mało punktów! punkty.Count: {punkty.Count}");
-                return;
+                return false;
             }
 
             Console.WriteLine($"🟩 Generuj okno dla regionu ID {regionId} typu: {region.TypKsztaltu} ElementLiniowy: {ElementLiniowy} punkty.Count: {punkty.Count()}");
@@ -233,7 +233,7 @@ namespace GEORGE.Client.Pages.Okna
                 przeskalowanePunkty,
                 profileLeft, profileRight, profileTop, profileBottom);
 
-         await  GenerateGenericElementsWithJoins(
+       var ok =  await GenerateGenericElementsWithJoins(
                 przeskalowanePunkty,
                 wewnetrznyKontur,
                 profileLeft, profileRight, profileTop, profileBottom,
@@ -251,9 +251,20 @@ namespace GEORGE.Client.Pages.Okna
                 punktyRegionuMaster
             );
 
+            if(ok)
+            {
+                Console.WriteLine($"✅ Generowanie elementów zakończone sukcesem dla regionu {regionId}");
+                return true;
+            }
+            else
+            {
+                Console.WriteLine($"❌ Generowanie elementów zakończone niepowodzeniem dla regionu {regionId}");
+                return false;
+            }
+
             //}
         }
-        public async Task GenerateGenericElementsWithJoins(
+        public  async Task<bool> GenerateGenericElementsWithJoins(
             List<XPoint> outer, List<XPoint> inner,
             float profileLeft, float profileRight, float profileTop, float profileBottom,
             string typKsztalt, string polaczenia, bool sposobLaczeniaCzop, List<KonfSystem> model, string regionId,
@@ -275,7 +286,7 @@ namespace GEORGE.Client.Pages.Okna
                 if (outer == null || outer.Count < 2)
                 {
                     Console.WriteLine("▶️ Element: brak wystarczającej liczby punktów (min. 2 wymagane).");
-                    return;
+                    return false;
                 }
 
                 var szukDaneKwadratu = daneKwadratu
@@ -1568,6 +1579,8 @@ namespace GEORGE.Client.Pages.Okna
                     // Bezpieczne granice
                     //                    double half = (SzerokoscSlupka ?? 0) / 2.0;
 
+            
+
                     var punkYModelu = punktyRegionuMaster.Max(p => p.Y) / 2;
 
                     TopST5.Y = punkYModelu;
@@ -1759,10 +1772,11 @@ namespace GEORGE.Client.Pages.Okna
    
                 await Task.CompletedTask;
 
-                if (ElementLiniowy) return;
+                if (ElementLiniowy) return true;
 
             }
 
+            return true;
         }
 
         private float ObliczDlugoscElementu(List<XPoint> wierzcholki, float kat)
