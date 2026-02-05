@@ -55,12 +55,12 @@ namespace GEORGE.Client.Pages.Models
                 new XPoint(X, bottomY)         // Lewy dolny róg ściany (punkt 4)
             };
 
-            Console.WriteLine($"Generated NominalPoints: {NominalPoints.Count} points");
+            //Console.WriteLine($"Generated NominalPoints: {NominalPoints.Count} points");
 
-            for (int i = 0; i < NominalPoints.Count; i++)
-            {
-                Console.WriteLine($"  Point {i}: X={NominalPoints[i].X}, Y={NominalPoints[i].Y}");
-            }
+            //for (int i = 0; i < NominalPoints.Count; i++)
+            //{
+            //    Console.WriteLine($"  Point {i}: X={NominalPoints[i].X}, Y={NominalPoints[i].Y}");
+            //}
         }
 
         // Generuje punkty przeskalowane dla canvas

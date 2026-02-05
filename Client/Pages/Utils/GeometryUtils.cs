@@ -6,7 +6,7 @@ namespace GEORGE.Client.Pages.Utils
 {
     public static class GeometryUtils
     {
-        public static List<ShapeRegion> GenerujRegionyZPodzialu(List<IShapeDC> shapes, int _szerokosc, int _wysokosc, bool rama)
+        public static async Task<List<ShapeRegion>> GenerujRegionyZPodzialu(List<IShapeDC> shapes, int _szerokosc, int _wysokosc, bool rama)
         {
             // Console.WriteLine($"📦 Przed usunięciem duplikatów: {shapes.Count} obiektów.");
             shapes = UsunDuplikatyShape(shapes);
@@ -76,6 +76,8 @@ namespace GEORGE.Client.Pages.Utils
                     _ => "Brak podziału"
                 };
 
+                Console.WriteLine($"🔲 Generowanie regionów z podziału dla {shapes.Count} kształtów. {_szerokosc}x{_wysokosc} typLinii: {typLinii}");
+
                 var initial = new ShapeRegion
                 {
                     Wierzcholki = pts.Select(p => new XPoint((float)Math.Round(p.X, 3), (float)Math.Round(p.Y, 3))).ToList(),
@@ -97,7 +99,7 @@ namespace GEORGE.Client.Pages.Utils
 
                     var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace, id, rama);
 
-                    Console.WriteLine($"🔲 Generowanie regionów PodzielRegionRekurencyjnie podzielone.Count: {podzielone.Count}");
+                    Console.WriteLine($"🔲 Generowanie regionów PodzielRegionRekurencyjnie podzielone.Count: {podzielone.Count} id:{id}");
 
                     int idCounter = 0;
 
@@ -110,12 +112,7 @@ namespace GEORGE.Client.Pages.Utils
 
                         r.RozpoznajTyp(r.TypKsztaltu);
 
-                        Console.WriteLine($"🔹 Region po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - RAMA");
-
-                        foreach (var p in r.Wierzcholki)
-                        {
-                            Console.WriteLine($"🔹 Region {r.TypKsztaltu} -> Wierzchołek: ({p.X}, {p.Y})");
-                        }
+                        Console.WriteLine($"🔹 Region id: {r.Id} po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - RAMA");
 
                         if (r.TypKsztaltu == "xhouseshape" && r.Wierzcholki.Count == 4)
                         {
@@ -138,7 +135,7 @@ namespace GEORGE.Client.Pages.Utils
                             }
                         }
 
-                        r.Id = id + "|" + idCounter++;
+                            r.Id = id + "|" + idCounter++;
 
                         // **UWAGA**: NIE NADPISUJEMY Id — zachowujemy oryginalne Id
                     }
@@ -151,8 +148,8 @@ namespace GEORGE.Client.Pages.Utils
                         .OfType<XLineShape>()
                         .ToList();
 
-                    //initial.Id = "N-" + initial.Id;
-
+                    //initial.Id = initial.Id;
+                    Console.WriteLine($"🔲 Generowanie regionów bez ramy dla shape id: {initial.Id} id: {id}");
                     //var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace, id, rama);
                     var podzielone = PodzielRegionRekurencyjnieDeterministycznie(initial, linieDzielace, id, rama);
 
@@ -197,6 +194,8 @@ namespace GEORGE.Client.Pages.Utils
                 }
 
             }
+
+            await Task.Delay(1);
 
             return regions;
         }

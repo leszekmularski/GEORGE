@@ -2,6 +2,7 @@
 using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.Models;
 using GEORGE.Shared.ViewModels;
+using System.Threading.Tasks;
 
 namespace GEORGE.Client.Pages.Okna
 {
@@ -44,7 +45,7 @@ namespace GEORGE.Client.Pages.Okna
             ElementLiniowy = false;
         }
 
-        public void AddElements(List<ShapeRegion> regions, string regionId, Dictionary<string, GeneratorState> generatorStates, List<ShapeRegion> regionAdd,
+        public async Task AddElements(List<ShapeRegion> regions, string regionId, Dictionary<string, GeneratorState> generatorStates, List<ShapeRegion> regionAdd,
             List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster = null)
         {
             if (regions == null) return;
@@ -232,7 +233,7 @@ namespace GEORGE.Client.Pages.Okna
                 przeskalowanePunkty,
                 profileLeft, profileRight, profileTop, profileBottom);
 
-            GenerateGenericElementsWithJoins(
+         await  GenerateGenericElementsWithJoins(
                 przeskalowanePunkty,
                 wewnetrznyKontur,
                 profileLeft, profileRight, profileTop, profileBottom,
@@ -252,7 +253,7 @@ namespace GEORGE.Client.Pages.Okna
 
             //}
         }
-        public void GenerateGenericElementsWithJoins(
+        public async Task GenerateGenericElementsWithJoins(
             List<XPoint> outer, List<XPoint> inner,
             float profileLeft, float profileRight, float profileTop, float profileBottom,
             string typKsztalt, string polaczenia, bool sposobLaczeniaCzop, List<KonfSystem> model, string regionId,
@@ -400,7 +401,7 @@ namespace GEORGE.Client.Pages.Okna
                 // OKREŚLENIE STRONY PRZED generowaniem wierzchołków
                 StronaElementu = OkreslStroneNaPodstawieKata(angleDegrees, i, outer);
 
-               Console.WriteLine($"▶️ Processing element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin} wyliczony kąt: {angleDegrees} dla i: {i} StronaElementu: {StronaElementu}");
+               Console.WriteLine($"▶️ Processing element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin} wyliczony kąt: {angleDegrees} dla i: {i} StronaElementu: {StronaElementu} length: {length}");
 
                 if (length < 0.001f) continue;
 
@@ -1755,7 +1756,9 @@ namespace GEORGE.Client.Pages.Okna
                     });
 
                 Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - >3 rowIdProfil:{rowIdProfil} Angle: {angleDegrees}°");
-                
+   
+                await Task.CompletedTask;
+
                 if (ElementLiniowy) return;
 
             }
