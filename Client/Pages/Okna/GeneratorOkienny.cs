@@ -2,7 +2,6 @@
 using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.Models;
 using GEORGE.Shared.ViewModels;
-using System.Threading.Tasks;
 
 namespace GEORGE.Client.Pages.Okna
 {
@@ -233,25 +232,25 @@ namespace GEORGE.Client.Pages.Okna
                 przeskalowanePunkty,
                 profileLeft, profileRight, profileTop, profileBottom);
 
-       var ok =  await GenerateGenericElementsWithJoins(
-                przeskalowanePunkty,
-                wewnetrznyKontur,
-                profileLeft, profileRight, profileTop, profileBottom,
-                region.TypKsztaltu,
-                EdytowanyModel.PolaczenieNaroza,
-                EdytowanyModel.SposobLaczeniaCzop,
-                KonfiguracjeSystemu,
-                regionId,
-                RowIdprofileLeft, RowIdprofileRight, RowIdprofileTop, RowIdprofileBottom,
-                RowIndeksprofileLeft, RowIndeksprofileRight, RowIndeksprofileTop, RowIndeksprofileBottom,
-                RowNazwaprofileLeft, RowNazwaprofileRight, RowNazwaprofileTop, RowNazwaprofileBottom,
-                NazwaObiektu,
-                TypObiektu,
-                daneKwadratu,
-                punktyRegionuMaster
-            );
+            var ok = await GenerateGenericElementsWithJoins(
+                     przeskalowanePunkty,
+                     wewnetrznyKontur,
+                     profileLeft, profileRight, profileTop, profileBottom,
+                     region.TypKsztaltu,
+                     EdytowanyModel.PolaczenieNaroza,
+                     EdytowanyModel.SposobLaczeniaCzop,
+                     KonfiguracjeSystemu,
+                     regionId,
+                     RowIdprofileLeft, RowIdprofileRight, RowIdprofileTop, RowIdprofileBottom,
+                     RowIndeksprofileLeft, RowIndeksprofileRight, RowIndeksprofileTop, RowIndeksprofileBottom,
+                     RowNazwaprofileLeft, RowNazwaprofileRight, RowNazwaprofileTop, RowNazwaprofileBottom,
+                     NazwaObiektu,
+                     TypObiektu,
+                     daneKwadratu,
+                     punktyRegionuMaster
+                 );
 
-            if(ok)
+            if (ok)
             {
                 Console.WriteLine($"✅ Generowanie elementów zakończone sukcesem dla regionu {regionId}");
                 return true;
@@ -264,7 +263,7 @@ namespace GEORGE.Client.Pages.Okna
 
             //}
         }
-        public  async Task<bool> GenerateGenericElementsWithJoins(
+        public async Task<bool> GenerateGenericElementsWithJoins(
             List<XPoint> outer, List<XPoint> inner,
             float profileLeft, float profileRight, float profileTop, float profileBottom,
             string typKsztalt, string polaczenia, bool sposobLaczeniaCzop, List<KonfSystem> model, string regionId,
@@ -412,7 +411,7 @@ namespace GEORGE.Client.Pages.Okna
                 // OKREŚLENIE STRONY PRZED generowaniem wierzchołków
                 StronaElementu = OkreslStroneNaPodstawieKata(angleDegrees, i, outer);
 
-               Console.WriteLine($"▶️ Processing element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin} wyliczony kąt: {angleDegrees} dla i: {i} StronaElementu: {StronaElementu} length: {length}");
+                Console.WriteLine($"▶️ Processing element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin} wyliczony kąt: {angleDegrees} dla i: {i} StronaElementu: {StronaElementu} length: {length}");
 
                 if (length < 0.001f) continue;
 
@@ -569,7 +568,7 @@ namespace GEORGE.Client.Pages.Okna
 
                     if (vertexCount == 3 && angleDegrees == 0)
                     {
-                       // Console.WriteLine($"🔷 T1/T1 element {i + 1} vertexCount == 3 && angleDegrees == 0 START");
+                        // Console.WriteLine($"🔷 T1/T1 element {i + 1} vertexCount == 3 && angleDegrees == 0 START");
 
                         var prev = (i - 1 + vertexCount) % vertexCount;
                         var nextNext = (next + 1) % vertexCount;
@@ -1579,7 +1578,7 @@ namespace GEORGE.Client.Pages.Okna
                     // Bezpieczne granice
                     //                    double half = (SzerokoscSlupka ?? 0) / 2.0;
 
-            
+
 
                     var punkYModelu = punktyRegionuMaster.Max(p => p.Y) / 2;
 
@@ -1597,8 +1596,8 @@ namespace GEORGE.Client.Pages.Okna
                     //    Console.WriteLine($"🔷 T5-T5 offset_punktyRegionuMaster.X: {x.X} punktyRegionuMaster.Y: {x.Y}");
                     //}
 
-                    var tmpTopLT5 = new XPoint(TopLT5.X, punkYModelu + 1);
-                    var tmpTopRT5 = new XPoint(TopRT5.X, punkYModelu + 1);
+                    var tmpTopLT5 = new XPoint(TopLT5.X, punkYModelu + 0.001);
+                    var tmpTopRT5 = new XPoint(TopRT5.X, punkYModelu + 0.001);
 
                     XPoint leftTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopLT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: false);
                     XPoint midTopIntersection = FindFirstEdgeIntersectionByVector(TopST5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: false);
@@ -1611,12 +1610,23 @@ namespace GEORGE.Client.Pages.Okna
                     //    Console.WriteLine($"🔷 T5-T5 offset_punktyRegionuMaster.X: {x.X} punktyRegionuMaster.Y: {x.Y}");
                     //}
 
-                    var tmpBottomLT5 = new XPoint(BottomLT5.X, punkYModelu - 1);
-                    var tmpBottomRT5 = new XPoint(BottomRT5.X, punkYModelu - 1);
+                    var tmpBottomLT5 = new XPoint(BottomLT5.X, punkYModelu - 0.001);
+                    var tmpBottomRT5 = new XPoint(BottomRT5.X, punkYModelu - 0.001);
 
                     XPoint leftBottomIntersection = FindFirstEdgeIntersectionByVector(tmpBottomLT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: true);
                     XPoint midBottomIntersection = FindFirstEdgeIntersectionByVector(BottomSTT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: true);
                     XPoint righBottomtIntersection = FindFirstEdgeIntersectionByVector(tmpBottomRT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: true);
+
+                    if (leftTopIntersection.X == -1)
+                    {
+                        leftTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopLT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: true);
+                        leftBottomIntersection = FindFirstEdgeIntersectionByVector(tmpBottomLT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: false);
+                    }
+                    if (midTopIntersection.X == -1)
+                    {
+                        midTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopRT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: true);
+                        righBottomtIntersection = FindFirstEdgeIntersectionByVector(tmpBottomRT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: false);
+                    }
 
                     Console.WriteLine($"🔷 T5-T5 TopLT5.X/Y: {TopLT5.X}/{TopLT5.Y}");
                     Console.WriteLine($"🔷 T5-T5 BottomRT5.X/Y: {BottomRT5.X}/{BottomRT5.Y}");
@@ -1769,7 +1779,7 @@ namespace GEORGE.Client.Pages.Okna
                     });
 
                 Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - >3 rowIdProfil:{rowIdProfil} Angle: {angleDegrees}°");
-   
+
                 await Task.CompletedTask;
 
                 if (ElementLiniowy) return true;
@@ -1846,13 +1856,12 @@ namespace GEORGE.Client.Pages.Okna
             XPoint dirEnd,
             List<XPoint> polygon,
             bool forward = true,
-            double tolerance = 0.0001)
+            double tolerance = 0.01)
         {
-            // Wektor kierunku linii słupka
             double dx = dirEnd.X - dirStart.X;
             double dy = dirEnd.Y - dirStart.Y;
             double len = Math.Sqrt(dx * dx + dy * dy);
-            if (len < 1e-8) len = 1; // zabezpieczenie przed zerowym wektorem
+            if (len < 1e-8) len = 1;
             dx /= len;
             dy /= len;
 
@@ -1861,10 +1870,6 @@ namespace GEORGE.Client.Pages.Okna
                 dx = -dx;
                 dy = -dy;
             }
-
-            // Kąt w stopniach (0° = w prawo, 90° = w górę)
-            double angleDeg = Math.Atan2(dy, dx) * 180.0 / Math.PI;
-            Console.WriteLine($"🔷 FindFirstEdgeIntersectionByVector → basePoint: ({basePoint.X}, {basePoint.Y}), angle: {angleDeg:0.00}°, forward: {forward}");
 
             XPoint? closest = null;
             double minDistSq = double.MaxValue;
@@ -1880,24 +1885,47 @@ namespace GEORGE.Client.Pages.Okna
                     polygon[next]
                 );
 
-                if (!inter.HasValue) continue;
+                // 🔹 jeśli segmenty się nie przecinają, sprawdź punkty końcowe krawędzi
+                if (!inter.HasValue)
+                {
+                    foreach (var pt in new[] { polygon[i], polygon[next] })
+                    {
+                        // czy punkt leży na promieniu w granicy tolerancji
+                        double dot = (pt.X - basePoint.X) * dx + (pt.Y - basePoint.Y) * dy;
+                        if (dot >= -tolerance)
+                        {
+                            double distSq = (pt.X - basePoint.X) * (pt.X - basePoint.X) +
+                                            (pt.Y - basePoint.Y) * (pt.Y - basePoint.Y);
+                            if (distSq < minDistSq)
+                            {
+                                minDistSq = distSq;
+                                closest = pt;
+                            }
+                        }
+                    }
+                    continue;
+                }
 
                 var p = inter.Value;
+                double dotInter = (p.X - basePoint.X) * dx + (p.Y - basePoint.Y) * dy;
+                if (dotInter < -tolerance) continue;
 
-                // 🔥 KLUCZOWE — punkt w kierunku promienia
-                double dot = (p.X - basePoint.X) * dx + (p.Y - basePoint.Y) * dy;
-                if (dot <= tolerance) continue; // za plecami lub za mały margines
-
-                double distSq = (p.X - basePoint.X) * (p.X - basePoint.X) + (p.Y - basePoint.Y) * (p.Y - basePoint.Y);
-                if (distSq < minDistSq)
+                double distSqInter = (p.X - basePoint.X) * (p.X - basePoint.X) + (p.Y - basePoint.Y) * (p.Y - basePoint.Y);
+                if (distSqInter < minDistSq)
                 {
-                    minDistSq = distSq;
+                    minDistSq = distSqInter;
                     closest = p;
                 }
             }
 
             if (!closest.HasValue)
-                throw new InvalidOperationException("No valid intersections");
+            {
+                XPoint polygontmp = new XPoint(); // tworzysz nowy obiekt
+                polygontmp.X = -1;// basePoint.X;
+                polygontmp.Y = -1;// polygon.Max(p => p.Y);
+
+                return polygontmp;
+            }
 
             return closest.Value;
         }

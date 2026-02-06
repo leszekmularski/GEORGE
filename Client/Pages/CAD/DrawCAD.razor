@@ -1229,6 +1229,8 @@
         // 🔹 4️⃣ Przytnij linie do wszystkich zamkniętych kształtów
         LineUtils.ShortenLinesInsideShapes(_shapes, _scaleFactor);
 
+        LineUtils.ShiftAllShapesToPositiveQuadrant(_shapes);
+
         if (powrot) return;
 
      //   _scaleFactor = 1;

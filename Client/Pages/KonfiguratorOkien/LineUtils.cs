@@ -613,6 +613,28 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             return (dx * dx + dy * dy) <= (circle.Radius * circle.Radius);
         }
 
+        // 🔹 Normalizacja wszystkich kształtów i linii do dodatniej ćwiartki
+        public static void ShiftAllShapesToPositiveQuadrant(List<IShapeDC> shapes)
+        {
+            if (shapes == null || !shapes.Any()) return;
+
+            // Znajdź minimalne X i Y wśród wszystkich punktów
+            double minX = shapes.Min(s => s.Points.Min(p => p.X));
+            double minY = shapes.Min(s => s.Points.Min(p => p.Y));
+
+            // Oblicz przesunięcie potrzebne, żeby wszystko było >= 0
+            double shiftX = minX < 0 ? -minX : 0;
+            double shiftY = minY < 0 ? -minY : 0;
+
+            // Przesuń wszystkie kształty
+            foreach (var shape in shapes)
+            {
+                shape.Move(shiftX, shiftY);
+            }
+
+            Console.WriteLine($"✅ Wszystkie kształty przesunięto o X: {shiftX}, Y: {shiftY}");
+        }
+
         #endregion
     }
 }

@@ -573,11 +573,11 @@
                                          @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
                                          draggable="true"
                                          style="cursor: grab;
-                                                                                         width: auto;
-                                                                                         height: auto;
-                                                                                         max-width: 50px;
-                                                                                         max-height: 50px;
-                                                                                         border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
+                                                                                                                 width: auto;
+                                                                                                                 height: auto;
+                                                                                                                 max-width: 50px;
+                                                                                                                 max-height: 50px;
+                                                                                                                 border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
 
                                 }
                                 else
@@ -607,7 +607,7 @@
         else
         {
             <!-- Canvas -->
-            <div class="canvas-container" style="padding:0px;background-color: transparent;border: 0px;">
+            <div class="canvas-container" style="padding:0px;background-color: transparent;border: 0px; will-change: transform; transform: translateZ(0)">
                 <BECanvas @ref="CanvasRef" Width="@CanvasWidth" Height="@CanvasHeight" />
             </div>
 
@@ -1354,7 +1354,10 @@
                 // Teraz rysujemy tylko jeśli dane są gotowe
                 if (ShapeService != null && ShapeService.Shapes.Any())
                 {
+
                     await GenerujObrysPozZmianieWymiarow(true); // obrys i regiony
+                    //
+                    await ZmienWymiaryOkna(); // dopasowanie do okna i wygenerowanie obrysu
 
                     await FitShapesToDisplayWindow();           // dopasowanie do canvas
                     // await RenderShapesIfReady(); // <--- dodaj to
@@ -1446,12 +1449,12 @@
             Console.WriteLine("⚠️ HandleResize - START 🔄 Zmiana rozmiaru na: {width}x{height}");
 
             CanvasWidth = (long)width * 5;
-            CanvasHeight = (long)height* 5;
+            CanvasHeight = (long)height * 5;
 
             if (ShapeService != null && ShapeService.Shapes.Any())
             {
                 await ApplyZoom();
-                await Task.Delay(50); // Małe opóźnienie dla stabilności
+                await Task.Delay(20); // Małe opóźnienie dla stabilności
                 //await FitShapesToDisplayWindow();
             }
             // // else
@@ -1483,7 +1486,6 @@
             // 6. Przesuń kształty (zapisz offset dla późniejszych obliczeń)
             _offsetX = 0; //ShapeService.Shapes.Min(s => s.GetBoundingBox().X);
             _offsetY = 0;//ShapeService.Shapes.Min(s => s.GetBoundingBox().Y);
-
 
             Console.WriteLine($"🎯 Offset: X={_offsetX:F0}, Y={_offsetY:F0}");
 
@@ -1533,23 +1535,21 @@
 
         try
         {
-            Console.WriteLine("🔄 Generowanie obrysu po zmianie wymiarów...");
 
-            // 🔹 1️⃣ Usuń linie całkowicie poza kształtami
-            // LineUtils.RemoveLinesOutsideShapes(ShapeService.Shapes);
-
-            // TYLKO generuj obrys, NIE przerysowuj canvasu!
-
-            // 1. Wydłuż linie do granic
+            // 🔹 1️⃣ Wydłuż linie do granic kształtów
             LineUtils.ExtendLinesToShapes(ShapeService.Shapes, 1);
 
-            // // 2. Rozmieść linie
+            // 🔹 2️⃣ Rozmieść linie
             LineUtils.DistributeLines(ShapeService.Shapes);
 
-            // 3. Przytnij linie
+            // 🔹 3️⃣ Przytnij linie
             LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
 
-            // 4. Generuj regiony jeśli trzeba
+            // 🔹 4️⃣ Ponownie wydłuż linie do granic i przytnij (jeśli potrzebne)
+            LineUtils.ExtendLinesToShapes(ShapeService.Shapes, 1);
+            LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
+
+            // 🔹 5️⃣ Generowanie regionów jeśli trzeba
             if (generujRegionyZPodzialu && constWlasciwosciOkna != null)
             {
                 _regionsDualRama = await GeometryUtils.GenerujRegionyZPodzialu(
@@ -1566,13 +1566,15 @@
                     false
                 );
 
+            // 🔹 5️⃣ **Dopiero teraz przesuwamy wszystko do dodatniej ćwiartki**
+           // LineUtils.ShiftAllShapesToPositiveQuadrant(ShapeService.Shapes);
+
                 Console.WriteLine($"🗺️ Wygenerowano regiony: {_regionsDualRama.Count} rama, {_regionsSkrzydlo.Count} skrzydło");
             }
 
-            //await Task.Delay(50); // Małe opóźnienie dla stabilności
-            await Task.CompletedTask; // Nie wywołujemy RenderFrame ani StateHasChanged tutaj!
-
             Console.WriteLine("✅ Generowanie obrysu zakończone");
+
+            await Task.CompletedTask;
         }
         catch (Exception ex)
         {
@@ -1942,6 +1944,7 @@
                 await DrawStructureAndRestrykcje();
             }
 
+            await _context.BeginBatchAsync();
             // 2. Narysuj wszystkie kształty
             foreach (var shape in ShapeService.Shapes)
             {
@@ -1950,9 +1953,11 @@
                     await shape.Draw(_context);
                 }
             }
-
+            await _context.EndBatchAsync();
             // 3. Renderuj ramkę (jeśli potrzebna)
             await RenderFrame();
+
+
 
             // Console.WriteLine($"🎨 Narysowano {ShapeService.Shapes.Count} kształtów");
         }
@@ -1962,30 +1967,30 @@
         }
     }
 
-    private async Task ApplyTransformations()
-    {
-        if (_context == null)
-            return;
+    // private async Task ApplyTransformations()
+    // {
+    //     if (_context == null)
+    //         return;
 
-        try
-        {
-            // Zamiast ResetTransformAsync, używamy SetTransformAsync z wartościami domyślnymi
-            // Reset transformacji: matrix(1, 0, 0, 1, 0, 0)
-            await _context.SetTransformAsync(1, 0, 0, 1, 0, 0);
+    //     try
+    //     {
+    //         // Zamiast ResetTransformAsync, używamy SetTransformAsync z wartościami domyślnymi
+    //         // Reset transformacji: matrix(1, 0, 0, 1, 0, 0)
+    //         await _context.SetTransformAsync(1, 0, 0, 1, 0, 0);
 
-            // Przesuń do środka
-            await _context.TranslateAsync(0, 0);
+    //         // Przesuń do środka
+    //         await _context.TranslateAsync(0, 0);
 
-            // Zastosuj skalowanie
-            // await _context.ScaleAsync(_currentScale, _currentScale);
+    //         // Zastosuj skalowanie
+    //         // await _context.ScaleAsync(_currentScale, _currentScale);
 
-            // Console.WriteLine($"🔄 Transformacje: Pan({_panX:F1},{_panY:F1}), Scale({_currentScale:F2})");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"⚠️ Błąd transformacji: {ex.Message}");
-        }
-    }
+    //         // Console.WriteLine($"🔄 Transformacje: Pan({_panX:F1},{_panY:F1}), Scale({_currentScale:F2})");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine($"⚠️ Błąd transformacji: {ex.Message}");
+    //     }
+    // }
 
     private async Task ClearCanvas()
     {
@@ -2048,69 +2053,9 @@
 
         await ApplyZoom();
 
-        // StateHasChanged();
     }
 
-    // private async Task FitToScreen(bool tylkoSkala = false)
-    // {
-    //     if (_context == null || ShapeService.Shapes == null || ShapeService.Shapes.Count == 0)
-    //         return;
 
-    //     // // 🔹 1. Oblicz bounding box WSZYSTKICH figur
-    //     // double minX = ShapeService.Shapes.Min(s => s.GetBoundingBox().X);
-    //     // double minY = ShapeService.Shapes.Min(s => s.GetBoundingBox().Y);
-    //     // double maxX = ShapeService.Shapes.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
-    //     // double maxY = ShapeService.Shapes.Max(s => s.GetBoundingBox().Y + s.GetBoundingBox().Height);
-
-    //     // double shapesWidth = maxX - minX;
-    //     // double shapesHeight = maxY - minY;
-
-    //     // if (shapesWidth <= 0 || shapesHeight <= 0)
-    //     //     return;
-
-    //         // 1. Oblicz bounding box kształtów
-    //         double minX = ShapeService.Shapes.Min(s => s.GetBoundingBox().X);
-    //         double minY = ShapeService.Shapes.Min(s => s.GetBoundingBox().Y);
-    //         double maxX = ShapeService.Shapes.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
-    //         double maxY = ShapeService.Shapes.Max(s => s.GetBoundingBox().Y + s.GetBoundingBox().Height);
-
-    //         double shapesWidth = maxX - minX;
-    //         double shapesHeight = maxY - minY;
-
-    //         Console.WriteLine($"📐 Kształty: szerokość={shapesWidth:F0}, wysokość={shapesHeight:F0}");
-    //         Console.WriteLine($"📐 Bounding box: X[{minX:F0}-{maxX:F0}], Y[{minY:F0}-{maxY:F0}]");
-
-    //         // 2. Oblicz skalę z marginesem 5% (zmniejszono z 10% dla lepszego dopasowania)
-    //         double scaleX = CanvasWidth / shapesWidth;
-    //         double scaleY = CanvasHeight / shapesHeight;
-    //         double scale = Math.Min(scaleX, scaleY);// * 0.95; // 5% marginesu
-
-    //         // 3. ZAWSZE zaczynamy od (0,0) - lewy górny róg
-    //         _panX = 0; // Mały margines 10px od lewej
-    //         _panY = 0; // Mały margines 10px od góry
-
-    //     if (tylkoSkala) return;
-
-    //     // 🔹 5. Zastosuj transformację do kontekstu CANVAS
-    //     await _context.SetTransformAsync(
-    //         _currentScale,
-    //         0,
-    //         0,
-    //         _currentScale,
-    //         _panX,
-    //         _panY
-    //     );
-
-    //     // 🔹 6. Przerysuj wszystko
-    //     await ClearCanvas();
-    //     await DrawStructureAndRestrykcje();
-    //     await RenderFrame();
-
-    //     foreach (var shape in ShapeService.Shapes)
-    //         await shape.Draw(_context);
-
-    //     StateHasChanged();
-    // }
 
     private async Task ApplyChange()
     {
@@ -2199,9 +2144,6 @@
 
             await ClearCanvas();
 
-            // 3. Zastosuj nowe transformacje
-            await ApplyTransformations();
-
             await _context.ScaleAsync(_aktywnaSkala, _aktywnaSkala);
 
             // 4. Narysuj wszystkie elementy
@@ -2255,112 +2197,33 @@
 
     }
 
-
     private SlupekMatchResult ObliczWierzcholkiSlupkaStalego(
-    List<XPoint> wierzcholki,
-    double klikX,
-    double klikY)
+        List<XPoint> wierzcholki,
+        double klikX,
+        double klikY)
     {
         var best = new SlupekMatchResult();
         double bestDist = double.MaxValue;
 
-        // Dodaj tolerancję do zaokrąglania
-        static XPoint Norm(XPoint p, int decimals = 3) => new XPoint(
-            Math.Round(p.X, decimals),
-            Math.Round(p.Y, decimals)
-        );
-
-        double tolParallelRel = 1e-6;
-        double maxParallelOffset = 650;
-        double tolZeroLen = 1e-12;
-
         if (wierzcholki == null || wierzcholki.Count < 2)
             return best;
 
-        // baza do porównań
-        var liniaBazowa = (wierzcholki.Count >= 4)
-            ? new List<XPoint> { Norm(wierzcholki[0]), Norm(wierzcholki[3]) }
-            : new List<XPoint> { Norm(wierzcholki[0]), Norm(wierzcholki[1]) };
+        // Znormalizowane punkty kliknięcia
+        var klik = new XPoint(Math.Round(klikX, 3), Math.Round(klikY, 3));
 
         var wszystkieRegiony = _regionsDualRama
             .Concat(_regionsSkrzydlo)
-            .Where(r => r.Wierzcholki != null && r.Wierzcholki.Count == 2)
+            .Where(r => r.Wierzcholki != null && r.Wierzcholki.Count == 2 && r.TypLiniiDzielacej == "Słupek stały")
             .ToList();
 
-        // LOG: Sprawdź jakie regiony mamy
         Console.WriteLine($"🔍 ObliczWierzcholkiSlupkaStalego - liczba regionów: {wszystkieRegiony.Count}");
-        foreach (var reg in wszystkieRegiony)
-        {
-            Console.WriteLine($"🔍 Region ID: {reg.Id}, Typ: {reg.TypLiniiDzielacej}, Punkty: {reg.Wierzcholki[0].X},{reg.Wierzcholki[0].Y} -> {reg.Wierzcholki[1].X},{reg.Wierzcholki[1].Y}");
-        }
-
-        double Ax = liniaBazowa[1].X - liniaBazowa[0].X;
-        double Ay = liniaBazowa[1].Y - liniaBazowa[0].Y;
-        double lenA = Math.Sqrt(Ax * Ax + Ay * Ay);
-
-        if (lenA < tolZeroLen)
-            return best;
 
         foreach (var reg in wszystkieRegiony)
         {
-            Console.WriteLine($"🔍 Sprawdzam region: {reg.Id}, Typ: {reg.TypLiniiDzielacej}");
+            var pkt = reg.Wierzcholki.Select(p => new XPoint(Math.Round(p.X, 3), Math.Round(p.Y, 3))).ToList();
+            double dist = DistancePointToSegment(klik, pkt[0], pkt[1]);
 
-            if (reg.TypLiniiDzielacej != "Słupek stały")
-            {
-                Console.WriteLine($"🔍 Pomijam - nie jest słupkiem stałym");
-                continue;
-            }
-
-            var pkt = reg.Wierzcholki.ToList();
-            pkt[0] = Norm(pkt[0]);
-            pkt[1] = Norm(pkt[1]);
-
-            Console.WriteLine($"🔍 Sprawdzam punkty: {pkt[0].X},{pkt[0].Y} -> {pkt[1].X},{pkt[1].Y}");
-
-            double Bx = pkt[1].X - pkt[0].X;
-            double By = pkt[1].Y - pkt[0].Y;
-            double lenB = Math.Sqrt(Bx * Bx + By * By);
-            if (lenB < tolZeroLen)
-            {
-                Console.WriteLine($"🔍 Pomijam - zerowa długość");
-                continue;
-            }
-
-            double cross = Ax * By - Ay * Bx;
-            double relCross = Math.Abs(cross) / (lenA * lenB);
-
-            if (relCross > tolParallelRel)
-            {
-                Console.WriteLine($"🔍 Pomijam - nie równoległe: relCross={relCross}");
-                continue;
-            }
-
-            double dx = pkt[0].X - liniaBazowa[0].X;
-            double dy = pkt[0].Y - liniaBazowa[0].Y;
-            double perp = Math.Abs(Ax * dy - Ay * dx) / lenA;
-
-            if (perp > maxParallelOffset)
-            {
-                Console.WriteLine($"🔍 Pomijam - za daleko: perp={perp}");
-                continue;
-            }
-
-            double proj1 = (dx * Ax + dy * Ay) / (lenA * lenA);
-            double dx2 = pkt[1].X - liniaBazowa[0].X;
-            double dy2 = pkt[1].Y - liniaBazowa[0].Y;
-            double proj2 = (dx2 * Ax + dy2 * Ay) / (lenA * lenA);
-
-            bool inRange = !(proj1 < -0.2 && proj2 < -0.2) && !(proj1 > 1.2 && proj2 > 1.2);
-            if (!inRange)
-            {
-                Console.WriteLine($"🔍 Pomijam - poza zakresem: proj1={proj1}, proj2={proj2}");
-                continue;
-            }
-
-            // 🔥 Wyliczamy odległość kliknięcie → linia
-            double dist = DistancePointToSegment(new XPoint(klikX, klikY), pkt[0], pkt[1]);
-
-            Console.WriteLine($"🔍 Znaleziono kandydata: dist={dist}, bestDist={bestDist}");
+            Console.WriteLine($"🔍 Region {reg.Id} - odległość od kliknięcia: {dist}");
 
             if (dist < bestDist)
             {
@@ -2369,18 +2232,18 @@
                 best.Wierzcholki.AddRange(pkt);
                 best.RegionIds.Add(reg.Id);
 
-                Console.WriteLine($"🔍 Nowy najlepszy: Region ID: {reg.Id}, dist={dist}");
+                Console.WriteLine($"🔍 Nowy najlepszy: Region ID {reg.Id}, dist={dist}");
             }
         }
 
-        Console.WriteLine($"🔍 Wynik końcowy: znaleziono {best.Wierzcholki.Count} punktów, {best.RegionIds.Count} regionów");
-
-        // DODATKOWO: Jeśli znaleźliśmy linię (2 punkty), utwórz z niej prostokąt (4 punkty)
+        // Jeśli znaleziono linię, stwórz prostokąt 4 punktowy
         if (best.Wierzcholki.Count == 2)
         {
-            Console.WriteLine($"🔍 Znaleziono linię słupka - tworzę prostokąt");
-            best.Wierzcholki = UtworzProstokatWokolLinii(best.Wierzcholki, 82.0); // 82 to grubość z generatora
+            Console.WriteLine("🔍 Znaleziono linię słupka - tworzę prostokąt");
+            best.Wierzcholki = UtworzProstokatWokolLinii(best.Wierzcholki, 82.0); // 82 = grubość słupka
         }
+
+        Console.WriteLine($"🔍 Wynik końcowy: znaleziono {best.Wierzcholki.Count} punktów, {best.RegionIds.Count} regionów");
 
         return best;
     }
@@ -2506,11 +2369,9 @@
 
         mousePosition = $"Wybrałeś: X: {modelX:F0} mm, Y: {modelY:F0} mm (skala: {_aktywnaSkala:F2}) {constWlasciwosciOkna.Szerokosc}x{constWlasciwosciOkna.Wysokosc}";
 
-        // await Task.Delay(50);
-
         bool tylkoRama = false;
 
-        if (SelectedModelType == "Rama") tylkoRama = true;
+        if (SelectedModelType == "Rama" || SelectedModelType == "Słupek stały") tylkoRama = true;
 
         // 🔍 Znajdź region, w który kliknięto
         var region = FindRegionAtPosition(modelX, modelY, tylkoRama);
@@ -2545,19 +2406,8 @@
             return;
         }
 
-        // 🎯 Dopasuj widok do kształtu i regionu
-
 
         await FitToCanvas(shape, region.Id, false, region.Wierzcholki, modelX, modelY);
-
-        //await Task.Delay(50);
-
-        // foreach (var shapeX in ShapeService.Shapes)
-        // {
-        //     // Console.WriteLine($"🖌️ Rysuję {shapeX.GetType().Name}");
-        //     await shapeX.Draw(_context);
-        // }
-        // await _context.RestoreAsync();
 
         WybranyModel = null;
 
@@ -2634,6 +2484,7 @@
         }
 
         Console.WriteLine($"❌ Nie znaleziono kształtu dla regionu {region.Id}");
+
         return null;
     }
 
@@ -2641,7 +2492,8 @@
     {
         Console.WriteLine($"\n🔍 FindRegionAtPosition START: punkt ({x:F2}, {y:F2}), tylkoRama={tylkoRama}");
 
-        if (_regionsDualRama == null || !_regionsDualRama.Any() || _regionsSkrzydlo == null || !_regionsSkrzydlo.Any())
+        if (_regionsDualRama == null || !_regionsDualRama.Any() ||
+            _regionsSkrzydlo == null || !_regionsSkrzydlo.Any())
         {
             Console.WriteLine("❌ Brak regionów do sprawdzenia!");
             return null;
@@ -2652,41 +2504,112 @@
 
         foreach (var region in regionsToCheck)
         {
-            if (region.Wierzcholki == null || region.Wierzcholki.Count < 3)
+            if (region.Wierzcholki == null || region.Wierzcholki.Count < 2)
             {
-                Console.WriteLine($"   ⚠️ Region {region.Id} pominięty - nieprawidłowe wierzchołki");
+                Console.WriteLine($"   ⚠️ Region {region.Id} pominięty - brak wierzchołków");
                 continue;
             }
 
-            // DEBUG: Wypisz bounding box regionu
+            // 🔴 REGION = LINIA (Słupek stały)
+            if (SelectedModelType == "Słupek stały" &&
+                region.Wierzcholki.Count == 2)
+            {
+                var p1 = region.Wierzcholki[0];
+                var p2 = region.Wierzcholki[1];
+
+                Console.WriteLine($"   🔴 Test region-linia {region.Id}");
+
+                if (IsPointNearLine(
+                    x, y,
+                    p1.X, p1.Y,
+                    p2.X, p2.Y,
+                    tolerance: 6 / _aktywnaSkala))
+                {
+                    Console.WriteLine($"✅ Znaleziono region-linię: {region.Id}");
+                    return region;
+                }
+
+                continue;
+            }
+
+            // 🟢 REGION = WIELOKĄT
+            if (region.Wierzcholki.Count < 3)
+            {
+                Console.WriteLine($"   ⚠️ Region {region.Id} pominięty - mniej niż 3 wierzchołki");
+                continue;
+            }
+
+            // Bounding box (optymalizacja + debug)
             double minX = region.Wierzcholki.Min(p => p.X);
             double maxX = region.Wierzcholki.Max(p => p.X);
             double minY = region.Wierzcholki.Min(p => p.Y);
             double maxY = region.Wierzcholki.Max(p => p.Y);
 
-            Console.WriteLine($"   Region {region.Id} bounding box: X[{minX:F2} to {maxX:F2}], Y[{minY:F2} to {maxY:F2}]");
+            Console.WriteLine($"   Region {region.Id} bounding box: X[{minX:F2}–{maxX:F2}], Y[{minY:F2}–{maxY:F2}]");
             Console.WriteLine($"   Punkt: X={x:F2}, Y={y:F2}");
 
             bool inBoundingBox = (x >= minX && x <= maxX && y >= minY && y <= maxY);
             Console.WriteLine($"   Punkt w bounding box? {inBoundingBox}");
 
-            if (inBoundingBox)
-            {
-                Console.WriteLine($"   ✓ Przechodzę do dokładnego testu...");
-                if (IsPointInPolygon(region.Wierzcholki, x, y))
-                {
-                    Console.WriteLine($"✅ Znaleziono region: {region.Id}");
-                    return region;
-                }
-            }
-            else
+            if (!inBoundingBox)
             {
                 Console.WriteLine($"   ✗ Pomijam - punkt poza bounding box");
+                continue;
+            }
+
+            Console.WriteLine($"   ✓ Przechodzę do dokładnego testu...");
+
+            // 1️⃣ Test: punkt w wielokącie
+            if (IsPointInPolygon(region.Wierzcholki, x, y))
+            {
+                Console.WriteLine($"✅ Znaleziono region (wnętrze): {region.Id}");
+                return region;
+            }
+
+            // 2️⃣ Test: punkt blisko krawędzi (KLUCZOWE dla trójkątów)
+            for (int i = 0; i < region.Wierzcholki.Count; i++)
+            {
+                var a = region.Wierzcholki[i];
+                var b = region.Wierzcholki[(i + 1) % region.Wierzcholki.Count];
+
+                if (IsPointNearLine(
+                    x, y,
+                    a.X, a.Y,
+                    b.X, b.Y,
+                    tolerance: 4 / _aktywnaSkala))
+                {
+                    Console.WriteLine($"✅ Znaleziono region (krawędź): {region.Id}");
+                    return region;
+                }
             }
         }
 
         Console.WriteLine("❌ Nie znaleziono regionu zawierającego punkt");
         return null;
+    }
+
+    private bool IsPointNearLine(
+    double px, double py,
+    double x1, double y1,
+    double x2, double y2,
+    double tolerance)
+    {
+        var dx = x2 - x1;
+        var dy = y2 - y1;
+
+        if (dx == 0 && dy == 0)
+            return Math.Sqrt((px - x1) * (px - x1) + (py - y1) * (py - y1)) <= tolerance;
+
+        var t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy);
+        t = Math.Clamp(t, 0, 1);
+
+        var cx = x1 + t * dx;
+        var cy = y1 + t * dy;
+
+        var dxp = px - cx;
+        var dyp = py - cy;
+
+        return (dxp * dxp + dyp * dyp) <= tolerance * tolerance;
     }
 
     // Pomocnicza funkcja do obliczania odległości punktu od odcinka
@@ -3010,9 +2933,31 @@
             // 3. Generuj obrys (BEZ automatycznego przerysowywania!)
             await GenerujObrysPozZmianieWymiarow(true);
 
-            await Task.Delay(1); // Krótkie opóźnienie dla stabilności
+            // double oldWidth = ShapeService.Shapes.Max(s => s.Szerokosc);
+            // double oldHeight = ShapeService.Shapes.Max(s => s.Wysokosc);
 
-            await GenerujObrysPozZmianieWymiarow(false);
+            // double newWidth = constWlasciwosciOkna.Szerokosc;
+            // double newHeight = constWlasciwosciOkna.Wysokosc;
+
+            Console.WriteLine($"📏 Zmiana wymiarów: {oldWidth}x{oldHeight} → {newWidth}x{newHeight}");
+
+            // 2. Aktualizacja wymiarów kształtów
+            foreach (var shape in ShapeService.Shapes)
+            {
+                if (shape != null)
+                {
+                    shape.Szerokosc = newWidth;
+                    shape.Wysokosc = newHeight;
+                }
+            }
+
+            LineUtils.ShiftAllShapesToPositiveQuadrant(ShapeService.Shapes);
+
+          //  LineUtils.ShiftAllShapesToPositiveQuadrant(ShapeService.Shapes);
+
+            // await Task.Delay(1); // Krótkie opóźnienie dla stabilności
+
+            // await GenerujObrysPozZmianieWymiarow(false);
 
             // 4. Przygotuj listę regionów
             var wszystkieRegiony = _regionsDualRama.Concat(_regionsSkrzydlo).ToList();
@@ -3034,12 +2979,12 @@
             {
                 string cleanId = genState.Value.IdRegion;
 
-                Console.WriteLine($"🔄 Przetwarzam region: {cleanId} SelectedModelType?.Trim(): {SelectedModelType?.Trim()}");
+                Console.WriteLine($"🔄 Przetwarzam region cleanId:{cleanId} SelectedModelType?.Trim(): {SelectedModelType?.Trim()}");
 
                 var region = wszystkieRegiony.FirstOrDefault(r => r.Id == cleanId);
                 if (region == null)
                 {
-                    Console.WriteLine($"⚠ Brak regionu dla: {cleanId}");
+                    Console.WriteLine($"⚠ Brak regionu dla cleanId:{cleanId}");
                     continue;
                 }
 
@@ -3052,13 +2997,13 @@
                     genState.Value.WierzcholkiWartosciNominalne = nowe;
                     genState.Value.StaryRegionOrigin = region.Wierzcholki.First();
 
-                    Console.WriteLine($"📐 Nowe wierzchołki dla: {cleanId} TypKsztaltu: {region.TypKsztaltu} --> {region.Wierzcholki.Max(x => x.X)}x{region.Wierzcholki.Max(x => x.Y)}");
+                    Console.WriteLine($"📐 Nowe wierzchołki dla cleanId: {cleanId} TypKsztaltu: {region.TypKsztaltu} --> {region.Wierzcholki.Max(x => x.X)}x{region.Wierzcholki.Max(x => x.Y)}");
                 }
 
                 var generator = genState.Value.Generator;
                 if (generator == null)
                 {
-                    Console.WriteLine($"⚠ Brak generatora dla: {cleanId}");
+                    Console.WriteLine($"⚠ Brak generatora dla cleanId: {cleanId}");
                     continue;
                 }
 
@@ -3140,44 +3085,26 @@
                           wszystkieRegiony.FirstOrDefault(f => f.Rama).Wierzcholki
                       );
 
-                    if(!ok)
+                    if (!ok)
                     {
                         _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Sprawdź wymiary i kształt regionu.");
                     }
                 }
                 else
                 {
-                    if (SelectedModelType?.Trim() == "Słupek stały")
-                    {
-                        var ok = await generator.AddElements(
-                                new List<ShapeRegion> { region },
-                                cleanId,
-                                _generatorStates,
-                                _regionsSkrzydlo,
-                                daneKwadratow,
-                                 wszystkieRegiony.FirstOrDefault(f => f.Rama && f.Id == cleanId).Wierzcholki
-                            );
 
-                        if (!ok)
-                        {
-                            _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Sprawdź wymiary i kształt regionu.");
-                        }
-                    }
-                    else
-                    {
-                        var ok = await generator.AddElements(
-                            new List<ShapeRegion> { region },
-                            cleanId,
-                            _generatorStates,
-                            _regionsSkrzydlo,
-                            daneKwadratow,
-                             wszystkieRegiony.FirstOrDefault(f => f.Rama).Wierzcholki
-                        );
+                    var ok = await generator.AddElements(
+                        new List<ShapeRegion> { region },
+                        cleanId,
+                        _generatorStates,
+                        _regionsSkrzydlo,
+                        daneKwadratow,
+                            wszystkieRegiony.FirstOrDefault(f => f.Rama).Wierzcholki
+                    );
 
-                        if (!ok)
-                        {
-                            _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Sprawdź wymiary i kształt regionu.");
-                        }
+                    if (!ok)
+                    {
+                        _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Sprawdź wymiary i kształt regionu.");
                     }
 
                 }
@@ -3217,7 +3144,7 @@
             await _message.Error($"Błąd zmiany wymiarów: {ex.Message}");
         }
         _czekajNaZmianeRozmiaru = false;
-          await ApplyZoom();
+        await ApplyZoom();
     }
 
     private List<DaneKwadratu> WyliczKwadratyPoZmianie(ShapeRegion region)
@@ -3739,7 +3666,7 @@
                 generator.RuchomySlupekPoLewej = false;
                 generator.RuchomySlupekPoPrawej = false;
 
-               var ok = await generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama, null);//Rama nie ma sąsiada dla tego null
+                var ok = await generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama, null);//Rama nie ma sąsiada dla tego null
                 if (!ok)
                 {
                     _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Sprawdź wymiary i kształt regionu.");
@@ -4222,14 +4149,14 @@
             if (regionKlikniety != null)
             {
 
-              var ok = await generator.AddElements(
-                    new List<ShapeRegion> { regionKlikniety },
-                    idRegion,
-                    _generatorStates,
-                    _regionsDualRama,
-                    state.ListaKwadratow,
-                    wszystkieRegiony.FirstOrDefault(r => r.IdMaster.Contains(idRegion.Substring(0, 35))).Wierzcholki
-                );
+                var ok = await generator.AddElements(
+                      new List<ShapeRegion> { regionKlikniety },
+                      idRegion,
+                      _generatorStates,
+                      _regionsDualRama,
+                      state.ListaKwadratow,
+                      wszystkieRegiony.FirstOrDefault(r => r.IdMaster.Contains(idRegion.Substring(0, 35))).Wierzcholki
+                  );
 
                 if (!ok)
                 {
@@ -4291,7 +4218,7 @@
                         generator, regionDoDodania
                     );
 
-                    await Task.Delay(50); // krótkie opóźnienie dla stabilności
+                    await Task.Delay(1); // krótkie opóźnienie dla stabilności
 
                     // 4. Zapisz do stanu
                     state.ZIndeks = generator.Zindeks;
@@ -4302,7 +4229,7 @@
                     generator.RuchomySlupekPoPrawej = stronaPrawa;
 
                     // 5. Dodaj elementy
-                  var ok =  await generator.AddElements(new List<ShapeRegion> { regionDoDodania }, idRegion, _generatorStates, _regionsSkrzydlo, state.ListaKwadratow);
+                    var ok = await generator.AddElements(new List<ShapeRegion> { regionDoDodania }, idRegion, _generatorStates, _regionsSkrzydlo, state.ListaKwadratow);
 
                     if (!ok)
                     {
@@ -4342,11 +4269,12 @@
 
             if (best != null)
             {
-                Console.WriteLine($"📌 Dopasowano słupek stały do ID: {best}");
+                Console.WriteLine($"📌 -SL- Dopasowano słupek stały do ID: {best}");
             }
             else
             {
-                Console.WriteLine($"⚠️ Nie dopasowano słupka stałego, generuję nowy ID.");
+                Console.WriteLine($"⚠️ -SL- Nie dopasowano słupka stałego, generuję nowy ID.");
+                _message.Warning("Nie dopasowano słupka stałego, generuję nowy ID.");
             }
 
             state.IdRegion = best ?? $"{idRegion}-SL-" + Guid.NewGuid().ToString();
@@ -4362,7 +4290,7 @@
         Console.WriteLine($"📦📦📦 Generowanie elementów zarejetrowano ilość ksztalty: {ksztalty.Count}.");
 
         string cleanId = CleanId(state.IdRegion);
-  
+
         await Task.Delay(500); // krótkie opóźnienie dla stabilności
 
         AddOrUpdateGeneratorState(cleanId, state, generator);
@@ -4582,7 +4510,7 @@
         Generator generator,
         ShapeRegion regionSlupka)
     {
-           Console.WriteLine($"📐 WyliczObszarSlupkaStalego -> Przesunięcia: Lewo: {przesLewo}, Prawo: {przesPrawo}, Góra: {przesGora}, Dół: {przesDol}");
+        Console.WriteLine($"📐 WyliczObszarSlupkaStalego -> Przesunięcia: Lewo: {przesLewo}, Prawo: {przesPrawo}, Góra: {przesGora}, Dół: {przesDol}");
 
         if (regionSlupka == null || regionSlupka.Wierzcholki == null || regionSlupka.Wierzcholki.Count < 2)
             return null;
@@ -5884,6 +5812,7 @@
         else
         {
             await GenerujObrysPozZmianieWymiarow(true);
+
         }
 
         var generator = new Generator
@@ -5954,7 +5883,7 @@
             generator.Wysokosc = (float)(maxY - minY);
             generator.Zindeks = 0;
 
-          var ok =  await generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama, null);
+            var ok = await generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama, null);
 
             if (!ok)
             {
@@ -5975,7 +5904,7 @@
             generator.Wysokosc = (float)(maxY - minY);
             generator.Zindeks = 1;
 
-           var ok = await generator.AddElements(new List<ShapeRegion> { wybranyRegionSkrzydlo }, idRegion, _generatorStates, _regionsSkrzydlo, null);
+            var ok = await generator.AddElements(new List<ShapeRegion> { wybranyRegionSkrzydlo }, idRegion, _generatorStates, _regionsSkrzydlo, null);
 
             if (!ok)
             {
@@ -6034,12 +5963,15 @@
             if (_context == null || _disposed || _czekajNaZmianeRozmiaru)
                 return;
 
+            // ZAPISZ stan na początku
+            await _context.SaveAsync();
+
             // W rysowaniu:
             await _context.SetTransformAsync(1, 0, 0, 1, 0, 0);
             await _context.TranslateAsync(_offsetX, _offsetY);
             await _context.ScaleAsync(_aktywnaSkala, _aktywnaSkala);
 
-           // Console.WriteLine($"RenderFrame _currentScale: {_aktywnaSkala}");
+            // Console.WriteLine($"RenderFrame _currentScale: {_aktywnaSkala}");
 
             if (ksztalty == null || !ksztalty.Any())
                 return;
@@ -6111,6 +6043,7 @@
             Console.WriteLine($"❌ Błąd w DrawShapeWithVariableOffset: {ex.Message}");
         }
     }
+
 
     private (float left, float right, float top, float bottom) GetOffsetsForGroup(string grupa)
     {
