@@ -33,14 +33,48 @@ namespace GEORGE.Client.Pages.Models
         public string ID { get; set; } = Guid.NewGuid().ToString();
 
         public XLineShape(
-        double x1, double y1, double x2, double y2, double scaleFactor,
-        string nazwaObj, bool ruchomySlupek = false, bool pionPoziom = false,
-        bool dualRama = false, bool generowaneZRamy = false, bool stalySlupek = false)
+    double x1, double y1, double x2, double y2, double scaleFactor,
+    string nazwaObj, bool ruchomySlupek = false, bool pionPoziom = false,
+    bool dualRama = false, bool generowaneZRamy = false, bool stalySlupek = false)
         {
-            X1 = x1;
-            Y1 = y1;
-            X2 = x2;
-            Y2 = y2;
+            // Normalizacja punktów: zawsze X1 ≤ X2, a dla równych X - Y1 ≤ Y2
+            if (Math.Abs(x1 - x2) > 0.001)
+            {
+                // Różne X - sortujemy po X
+                if (x1 > x2)
+                {
+                    // Zamiana X
+                    X1 = x2;
+                    Y1 = y2;
+                    X2 = x1;
+                    Y2 = y1;
+                }
+                else
+                {
+                    X1 = x1;
+                    Y1 = y1;
+                    X2 = x2;
+                    Y2 = y2;
+                }
+            }
+            else
+            {
+                // Prawie równe X (linia pionowa) - sortujemy po Y
+                if (y1 > y2)
+                {
+                    X1 = x2;
+                    Y1 = y2;
+                    X2 = x1;
+                    Y2 = y1;
+                }
+                else
+                {
+                    X1 = x1;
+                    Y1 = y1;
+                    X2 = x2;
+                    Y2 = y2;
+                }
+            }
 
             _scaleFactor = scaleFactor;
             NazwaObj = nazwaObj;
@@ -50,26 +84,54 @@ namespace GEORGE.Client.Pages.Models
             GenerowaneZRamy = generowaneZRamy;
             StalySlupek = stalySlupek;
 
-            EnforceLineType();
+            // Teraz EnforceLineType musi brać pod uwagę, że punkty są już posortowane
+            EnforceLineTypePreservingOrder();
             UpdateSize();
             GeneratePoints();
         }
 
-        //private void GeneratePoints()
-        //{
-        //    Points = new()
-        //    {
-        //        new XPoint(X1, Y1),
-        //        new XPoint(X2, Y2)
-        //    };
+        private void EnforceLineTypePreservingOrder()
+        {
+            if (RuchomySlupek)
+            {
+                // Zachowaj X1 jako referencyjny, X2 = X1
+                X2 = X1;
+            }
 
-        //    NominalPoints = Points.Select(p => new XPoint(p.X, p.Y)).ToList();
-        //}
+            if (PionPoziom)
+            {
+                if (Math.Abs(X1 - X2) > 0.001)
+                {
+                    // Linia pozioma - ustaw Y2 = Y1 (zachowaj Y1)
+                    Y2 = Y1;
+                }
+                else
+                {
+                    // Linia pionowa - ustaw X2 = X1 (zachowaj X1)
+                    X2 = X1;
+                }
+            }
 
-
-
-
-
+            // Po modyfikacjach, upewnij się że nadal X1 ≤ X2
+            if (X1 > X2)
+            {
+                SwapPoints();
+            }
+            else if (Math.Abs(X1 - X2) < 0.001 && Y1 > Y2)
+            {
+                // Prawie pionowa linia - upewnij się że Y1 ≤ Y2
+                SwapPoints();
+            }
+        }
+        private void SwapPoints()
+        {
+            double tempX = X1;
+            double tempY = Y1;
+            X1 = X2;
+            Y1 = Y2;
+            X2 = tempX;
+            Y2 = tempY;
+        }
 
         private void UpdatePointsAfterTransform()
         {
@@ -99,10 +161,6 @@ namespace GEORGE.Client.Pages.Models
 
             NominalPoints = Points.Select(p => new XPoint(p.X, p.Y)).ToList();
         }
-
-
-
-
 
         public void EnforceLineType()
         {

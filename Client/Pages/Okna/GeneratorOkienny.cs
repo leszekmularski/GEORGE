@@ -1617,17 +1617,25 @@ namespace GEORGE.Client.Pages.Okna
                     XPoint midBottomIntersection = FindFirstEdgeIntersectionByVector(BottomSTT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: true);
                     XPoint righBottomtIntersection = FindFirstEdgeIntersectionByVector(tmpBottomRT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: true);
 
-                    if (leftTopIntersection.X == -1)
+                    if (leftTopIntersection.X == -1 || rightTopIntersection.X == -1 || righBottomtIntersection.X == -1 || midBottomIntersection.X == -1)
                     {
-                        leftTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopLT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: true);
-                        leftBottomIntersection = FindFirstEdgeIntersectionByVector(tmpBottomLT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: false);
+                        var tmpX = new XPoint(TopLT5.X, punkYModelu);
+                        tmpX.Y = offset_punktyRegionuMaster.Max(p => p.Y) - 2;
+                        tmpX.X = tmpTopLT5.X;
+                        leftTopIntersection = FindEdgeIntersectionByLineForTriangle(tmpX, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: false);
+                        tmpX.X = TopST5.X;
+                        midTopIntersection = FindEdgeIntersectionByLineForTriangle(tmpX, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: false);
+                        tmpX.X = tmpTopRT5.X;
+                        rightTopIntersection = FindEdgeIntersectionByLineForTriangle(tmpX, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: false);
+                        
+                        tmpX.X = tmpBottomLT5.X;
+                        leftBottomIntersection = FindEdgeIntersectionByLineForTriangle(tmpX, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: true);
+                        tmpX.X = BottomSTT5.X;
+                        midBottomIntersection = FindEdgeIntersectionByLineForTriangle(tmpX, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: true);
+                        tmpX.X = tmpBottomRT5.X;
+                        righBottomtIntersection = FindEdgeIntersectionByLineForTriangle(tmpX, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: true);
                     }
-                    if (midTopIntersection.X == -1)
-                    {
-                        midTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopRT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: true);
-                        righBottomtIntersection = FindFirstEdgeIntersectionByVector(tmpBottomRT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: false);
-                    }
-
+   
                     Console.WriteLine($"🔷 T5-T5 TopLT5.X/Y: {TopLT5.X}/{TopLT5.Y}");
                     Console.WriteLine($"🔷 T5-T5 BottomRT5.X/Y: {BottomRT5.X}/{BottomRT5.Y}");
 
@@ -1844,6 +1852,111 @@ namespace GEORGE.Client.Pages.Okna
         private bool ArePointsEqual(XPoint p1, XPoint p2)
         {
             return Math.Abs(p1.X - p2.X) < 0.1 && Math.Abs(p1.Y - p2.Y) < 0.1;
+        }
+        private XPoint FindEdgeIntersectionByLineForTriangle(
+            XPoint basePoint,
+            XPoint dirStart,
+            XPoint dirEnd,
+            List<XPoint> triangle,
+            bool forward = true,
+            double eps = 1e-6)
+        {
+            if (triangle == null || triangle.Count != 3)
+                throw new ArgumentException("Triangle must have exactly 3 points");
+
+            // kierunek
+            double dx = dirEnd.X - dirStart.X;
+            double dy = dirEnd.Y - dirStart.Y;
+            double len = Math.Sqrt(dx * dx + dy * dy);
+            if (len < eps) len = 1;
+
+            dx /= len;
+            dy /= len;
+
+            if (!forward)
+            {
+                dx = -dx;
+                dy = -dy;
+            }
+
+            List<(double t, XPoint p)> hits = new();
+
+            for (int i = 0; i < 3; i++)
+            {
+                XPoint a = triangle[i];
+                XPoint b = triangle[(i + 1) % 3];
+
+                if (TryIntersectLineWithSegment(
+                        basePoint, dx, dy,
+                        a, b,
+                        out double t,
+                        out XPoint hit,
+                        eps))
+                {
+                    hits.Add((t, hit));
+                }
+            }
+
+            if (hits.Count == 0)
+                return new XPoint(-1, -1);
+
+            // sortujemy po parametrze linii
+            hits.Sort((x, y) => x.t.CompareTo(y.t));
+
+            // punkt "przed" i "za" basePoint
+            if (forward)
+            {
+                // najmniejsze t > 0
+                foreach (var h in hits)
+                    if (h.t > eps)
+                        return h.p;
+            }
+            else
+            {
+                // największe t < 0
+                for (int i = hits.Count - 1; i >= 0; i--)
+                    if (hits[i].t < -eps)
+                        return hits[i].p;
+            }
+
+            // fallback: najbliższy
+            return hits[0].p;
+        }
+
+        private bool TryIntersectLineWithSegment(
+    XPoint p, double dx, double dy,   // linia: p + t·d
+    XPoint a, XPoint b,               // odcinek AB
+    out double t,
+    out XPoint hit,
+    double eps)
+        {
+            hit = default;
+            t = 0;
+
+            double sx = b.X - a.X;
+            double sy = b.Y - a.Y;
+
+            double denom = dx * sy - dy * sx;
+
+            // równoległe
+            if (Math.Abs(denom) < eps)
+                return false;
+
+            double qpx = a.X - p.X;
+            double qpy = a.Y - p.Y;
+
+            t = (qpx * sy - qpy * sx) / denom;
+            double u = (qpx * dy - qpy * dx) / denom;
+
+            if (u < -eps || u > 1 + eps)
+                return false;
+
+            hit = new XPoint(
+                p.X + t * dx,
+                p.Y + t * dy
+            );
+
+            return true;
         }
 
         /// <summary>
