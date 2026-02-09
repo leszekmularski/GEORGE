@@ -45,7 +45,7 @@ namespace GEORGE.Client.Pages.Okna
         }
 
         public async Task<bool> AddElements(List<ShapeRegion> regions, string regionId, Dictionary<string, GeneratorState> generatorStates, List<ShapeRegion> regionAdd,
-            List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster = null)
+            List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster, XPoint mouseClik)
         {
             if (regions == null) return false;
 
@@ -247,7 +247,8 @@ namespace GEORGE.Client.Pages.Okna
                      NazwaObiektu,
                      TypObiektu,
                      daneKwadratu,
-                     punktyRegionuMaster
+                     punktyRegionuMaster,
+                     mouseClik
                  );
 
             if (ok)
@@ -270,7 +271,7 @@ namespace GEORGE.Client.Pages.Okna
             Guid rowIdprofileLeft, Guid rowIdprofileRight, Guid rowIdprofileTop, Guid rowIdprofileBottom,
             string rowIndeksprofileLeft, string rowIndeksprofileRight, string rowIndeksprofileTop, string rowIndeksprofileBottom,
             string rowNazwaprofileLeft, string rowNazwaprofileRight, string rowNazwaprofileTop, string rowNazwaprofileBottom,
-            string NazwaObiektu, string TypObiektu, List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster)
+            string NazwaObiektu, string TypObiektu, List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster, XPoint mouseClik)
         {
 
             Console.WriteLine($"▶️ Generowanie elementów dla regionu {regionId} z typem kształtu: {typKsztalt} oraz ElementLiniowy: {ElementLiniowy} profileLeft: {profileLeft}, profileRight :{profileRight}");
@@ -409,7 +410,8 @@ namespace GEORGE.Client.Pages.Okna
                     angleDegrees += 360f;
 
                 // OKREŚLENIE STRONY PRZED generowaniem wierzchołków
-                StronaElementu = OkreslStroneNaPodstawieKata(angleDegrees, i, outer);
+                //StronaElementu = OkreslStroneNaPodstawieKata(angleDegrees, i, outer);
+                StronaElementu = StronaOknaHelper.OkreslStrone(angleDegrees, i, outer);
 
                 Console.WriteLine($"▶️ Processing element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin} wyliczony kąt: {angleDegrees} dla i: {i} StronaElementu: {StronaElementu} length: {length}");
 
@@ -1596,11 +1598,13 @@ namespace GEORGE.Client.Pages.Okna
                     //    Console.WriteLine($"🔷 T5-T5 offset_punktyRegionuMaster.X: {x.X} punktyRegionuMaster.Y: {x.Y}");
                     //}
 
-                    var tmpTopLT5 = new XPoint(TopLT5.X, punkYModelu + 0.001);
-                    var tmpTopRT5 = new XPoint(TopRT5.X, punkYModelu + 0.001);
+                    var tmpTopLT5 = new XPoint(TopLT5.X, mouseClik.Y);
+                    var tmpTopST5 = new XPoint(TopST5.X, mouseClik.Y);
+                    var tmpTopRT5 = new XPoint(TopRT5.X, mouseClik.Y);
+
 
                     XPoint leftTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopLT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: false);
-                    XPoint midTopIntersection = FindFirstEdgeIntersectionByVector(TopST5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: false);
+                    XPoint midTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopST5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: false);
                     XPoint rightTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopRT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: false);
 
                     offset_punktyRegionuMaster = OffsetPolygonInside(punktyRegionuMaster, bottomYShift);
@@ -1610,32 +1614,38 @@ namespace GEORGE.Client.Pages.Okna
                     //    Console.WriteLine($"🔷 T5-T5 offset_punktyRegionuMaster.X: {x.X} punktyRegionuMaster.Y: {x.Y}");
                     //}
 
-                    var tmpBottomLT5 = new XPoint(BottomLT5.X, punkYModelu - 0.001);
-                    var tmpBottomRT5 = new XPoint(BottomRT5.X, punkYModelu - 0.001);
+                    var tmpBottomLT5 = new XPoint(BottomLT5.X, mouseClik.Y);
+                    var tmpBottomSTT5 = new XPoint(BottomSTT5.X, mouseClik.Y);
+                    var tmpBottomRT5 = new XPoint(BottomRT5.X, mouseClik.Y);
 
                     XPoint leftBottomIntersection = FindFirstEdgeIntersectionByVector(tmpBottomLT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: true);
-                    XPoint midBottomIntersection = FindFirstEdgeIntersectionByVector(BottomSTT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: true);
+                    XPoint midBottomIntersection = FindFirstEdgeIntersectionByVector(tmpBottomSTT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: true);
                     XPoint righBottomtIntersection = FindFirstEdgeIntersectionByVector(tmpBottomRT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: true);
 
-                    if (leftTopIntersection.X == -1 || rightTopIntersection.X == -1 || righBottomtIntersection.X == -1 || midBottomIntersection.X == -1)
+                    if (leftTopIntersection.X == -1 || rightTopIntersection.X == -1 || righBottomtIntersection.X == -1 || midBottomIntersection.X == -1 ||
+                        leftBottomIntersection.X == -1 || righBottomtIntersection.X == -1)
                     {
-                        var tmpX = new XPoint(TopLT5.X, punkYModelu);
-                        tmpX.Y = offset_punktyRegionuMaster.Max(p => p.Y) - 2;
-                        tmpX.X = tmpTopLT5.X;
-                        leftTopIntersection = FindEdgeIntersectionByLineForTriangle(tmpX, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: false);
-                        tmpX.X = TopST5.X;
-                        midTopIntersection = FindEdgeIntersectionByLineForTriangle(tmpX, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: false);
-                        tmpX.X = tmpTopRT5.X;
-                        rightTopIntersection = FindEdgeIntersectionByLineForTriangle(tmpX, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: false);
-                        
-                        tmpX.X = tmpBottomLT5.X;
-                        leftBottomIntersection = FindEdgeIntersectionByLineForTriangle(tmpX, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: true);
-                        tmpX.X = BottomSTT5.X;
-                        midBottomIntersection = FindEdgeIntersectionByLineForTriangle(tmpX, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: true);
-                        tmpX.X = tmpBottomRT5.X;
-                        righBottomtIntersection = FindEdgeIntersectionByLineForTriangle(tmpX, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: true);
+
+                        if (!isAlmostVertical)
+                        {
+                            tmpTopLT5 = new XPoint(mouseClik.X, TopLT5.Y);
+                            tmpTopST5 = new XPoint(mouseClik.X, TopST5.Y);
+                            tmpTopRT5 = new XPoint(mouseClik.X, TopRT5.Y);
+
+                            tmpBottomLT5 = new XPoint(mouseClik.X, BottomLT5.Y);
+                            tmpBottomSTT5 = new XPoint(mouseClik.X, BottomSTT5.Y);
+                            tmpBottomRT5 = new XPoint(mouseClik.X, BottomRT5.Y);
+                        }
+         
+                        leftTopIntersection = FindEdgeIntersectionByLineForTriangle(tmpTopLT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: false);
+                        midTopIntersection = FindEdgeIntersectionByLineForTriangle(tmpTopST5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: false);
+                        rightTopIntersection = FindEdgeIntersectionByLineForTriangle(tmpTopRT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: false);
+
+                        leftBottomIntersection = FindEdgeIntersectionByLineForTriangle(tmpBottomLT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: true);
+                        midBottomIntersection = FindEdgeIntersectionByLineForTriangle(tmpBottomSTT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: true);
+                        righBottomtIntersection = FindEdgeIntersectionByLineForTriangle(tmpBottomRT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: true);
                     }
-   
+
                     Console.WriteLine($"🔷 T5-T5 TopLT5.X/Y: {TopLT5.X}/{TopLT5.Y}");
                     Console.WriteLine($"🔷 T5-T5 BottomRT5.X/Y: {BottomRT5.X}/{BottomRT5.Y}");
 
@@ -2521,44 +2531,6 @@ namespace GEORGE.Client.Pages.Okna
             return length;
         }
 
-
-        public string OkreslStroneNaPodstawieKata(float angleDegrees, int i, List<XPoint> outer)
-        {
-            // Standardowy przypadek
-            string strona = angleDegrees switch
-            {
-                >= 45 and < 135 => "Prawa",
-                >= 135 and < 225 => "Dół",
-                >= 225 and < 315 => "Lewa",
-                _ => "Góra"
-            };
-
-            // KOREKTA: Jeśli element jest w górnej części i ma kąt bliski 0/360, 
-            // to traktuj go jako "Góra" nawet jeśli logika mówi inaczej
-            if (outer != null && outer.Count >= 2)
-            {
-                int next = (i + 1) % outer.Count;
-                double edgeCenterY = (outer[i].Y + outer[next].Y) / 2;
-                double minY = outer.Min(p => p.Y);
-                double maxY = outer.Max(p => p.Y);
-
-                // Jeśli środek krawędzi jest w górnej 1/3 okna
-                if (edgeCenterY < minY + (maxY - minY) * 0.33)
-                {
-                    // Sprawdź czy kąt jest zbliżony do poziomego
-                    bool isNearHorizontal = (Math.Abs(angleDegrees) < 30) ||
-                                           (Math.Abs(angleDegrees - 360) < 30) ||
-                                           (Math.Abs(angleDegrees - 180) < 30);
-
-                    if (isNearHorizontal)
-                    {
-                        return "Góra";
-                    }
-                }
-            }
-
-            return strona;
-        }
         public enum AxisDirection
         {
             Horizontal,

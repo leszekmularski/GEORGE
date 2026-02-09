@@ -1297,6 +1297,8 @@
 
     private bool _czekajNaZaladowanie = false;
 
+    private XPoint _lastMouseClick= new();
+
     protected override async Task OnInitializedAsync()
     {
 
@@ -2373,6 +2375,8 @@
         modelX = Math.Clamp(modelX, 0, constWlasciwosciOkna.Szerokosc);
         modelY = Math.Clamp(modelY, 0, constWlasciwosciOkna.Wysokosc);
 
+        _lastMouseClick.X = modelX;
+        _lastMouseClick.Y = modelY;
 
         Console.WriteLine($"🔧 relativeX: {relativeX}, relativeY: {relativeY}, Scale: {_aktywnaSkala}");
         Console.WriteLine($"📌 Pozycja w modelu: modelX={modelX}, modelY={modelY}");
@@ -3095,7 +3099,8 @@
                           _generatorStates,
                           _regionsDualRama,
                           daneKwadratow,
-                          wszystkieRegiony.FirstOrDefault(f => f.Rama).Wierzcholki
+                          wszystkieRegiony.FirstOrDefault(f => f.Rama).Wierzcholki,
+                          _lastMouseClick
                       );
 
                     if (!ok)
@@ -3112,7 +3117,8 @@
                         _generatorStates,
                         _regionsSkrzydlo,
                         daneKwadratow,
-                            wszystkieRegiony.FirstOrDefault(f => f.Rama).Wierzcholki
+                        wszystkieRegiony.FirstOrDefault(f => f.Rama).Wierzcholki,
+                        _lastMouseClick
                     );
 
                     if (!ok)
@@ -3683,7 +3689,7 @@
                 generator.RuchomySlupekPoLewej = false;
                 generator.RuchomySlupekPoPrawej = false;
 
-                var ok = await generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama, null);//Rama nie ma sąsiada dla tego null
+                var ok = await generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama, null, null ,_lastMouseClick);//Rama nie ma sąsiada dla tego null
                 if (!ok)
                 {
                     _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Sprawdź wymiary i kształt regionu.");
@@ -4172,7 +4178,8 @@
                       _generatorStates,
                       _regionsDualRama,
                       state.ListaKwadratow,
-                      wszystkieRegiony.FirstOrDefault(r => r.IdMaster.Contains(idRegion.Substring(0, 35))).Wierzcholki
+                      wszystkieRegiony.FirstOrDefault(r => r.IdMaster.Contains(idRegion.Substring(0, 35))).Wierzcholki,
+                      _lastMouseClick
                   );
 
                 if (!ok)
@@ -4246,7 +4253,7 @@
                     generator.RuchomySlupekPoPrawej = stronaPrawa;
 
                     // 5. Dodaj elementy
-                    var ok = await generator.AddElements(new List<ShapeRegion> { regionDoDodania }, idRegion, _generatorStates, _regionsSkrzydlo, state.ListaKwadratow);
+                    var ok = await generator.AddElements(new List<ShapeRegion> { regionDoDodania }, idRegion, _generatorStates, _regionsSkrzydlo, state.ListaKwadratow, null, _lastMouseClick);
 
                     if (!ok)
                     {
@@ -4345,14 +4352,16 @@
         float kat = katSzukaj % 360;
         if (kat < 0) kat += 360;
 
-        // Logika identyczna z OkreslStroneNaPodstawieKata
-        string strona = kat switch
-        {
-            >= 45 and < 135 => "Prawa",
-            >= 135 and < 225 => "Dół",
-            >= 225 and < 315 => "Lewa",
-            _ => "Góra"
-        };
+        // // Logika identyczna z OkreslStroneNaPodstawieKata
+        // string strona = kat switch
+        // {
+        //     >= 45 and < 135 => "Prawa",
+        //     >= 135 and < 225 => "Dół",
+        //     >= 225 and < 315 => "Lewa",
+        //     _ => "Góra"
+        // };
+
+        string strona = StronaOknaHelper.OkreslStrone(kat, WierzcholkiWartosciNominalne);
 
         // KOREKTA: Jeśli mamy punkty w WierzcholkiWartosciNominalne, możemy spróbować określić pozycję
         if (WierzcholkiWartosciNominalne != null && WierzcholkiWartosciNominalne.Count >= 2)
@@ -5077,14 +5086,14 @@
         bool jestSkosna = !jestPionowa && !jestPozioma;
 
         // 🔹 Określ kierunek (ważne dla skośnych)
-        string kierunek = "";
-        if (jestSkosna)
-        {
-            if (katLinii > 0 && katLinii < 90) kierunek = "GORA_PRAWO";
-            else if (katLinii > 90 && katLinii < 180) kierunek = "PRAWO_DOL";
-            else if (katLinii > 180 && katLinii < 270) kierunek = "DOL_LEWO";
-            else kierunek = "LEWO_GORA";
-        }
+        string kierunek = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(katLinii);
+        // if (jestSkosna)
+        // {
+        //     if (katLinii > 0 && katLinii < 90) kierunek = "GORA_PRAWO";
+        //     else if (katLinii > 90 && katLinii < 180) kierunek = "PRAWO_DOL";
+        //     else if (katLinii > 180 && katLinii < 270) kierunek = "DOL_LEWO";
+        //     else kierunek = "LEWO_GORA";
+        // }
 
         double minX = stan.WierzcholkiWartosciNominalne.Min(v => v.X);
         double maxX = stan.WierzcholkiWartosciNominalne.Max(v => v.X);
@@ -5112,61 +5121,29 @@
         // 🔹 DLA LINII SKOŚNYCH - specjalna logika
         if (jestSkosna)
         {
-            Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii 🔍 Linia skośna -> potrzeba specjalnej logiki dla kąta {katLinii:F1}°");
+            string strona = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(katLinii);
 
-            if (kierunek == "GORA_PRAWO")
+            Console.WriteLine(
+                $"🔍 ZnajdzKonfiguracjeDlaLinii 🔍 Linia skośna {katLinii:F1}° -> strona: {strona}");
+
+            foreach (var konf in stan.MVCKonfModelu.KonfSystem)
             {
-                // Może być traktowana jako "lewa" lub "górna" w zależności od kontekstu
-                foreach (var konf in stan.MVCKonfModelu.KonfSystem)
+                bool pasuje = strona switch
                 {
-                    if (konf.WystepujePrawa || konf.WystepujeGora)
-                    {
-                        Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Skośna] {kierunek} -> {konf.RowId} Typ:{konf.Typ}");
-                        return konf.RowId;
-                    }
+                    "Góra" => konf.WystepujeGora,
+                    "Dół" => konf.WystepujeDol,
+                    "Lewa" => konf.WystepujeLewa,
+                    "Prawa" => konf.WystepujePrawa,
+                    _ => false
+                };
+
+                if (pasuje)
+                {
+                    Console.WriteLine(
+                        $"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Skośna] {strona} -> {konf.RowId} Typ:{konf.Typ}");
+                    return konf.RowId;
                 }
             }
-
-            if (kierunek == "LEWO_GORA")
-            {
-                // Może być traktowana jako "lewa" lub "górna" w zależności od kontekstu
-                foreach (var konf in stan.MVCKonfModelu.KonfSystem)
-                {
-                    if (konf.WystepujeLewa || konf.WystepujeGora)
-                    {
-                        Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Skośna] {kierunek} -> {konf.RowId} Typ:{konf.Typ}");
-                        return konf.RowId;
-                    }
-                }
-            }
-
-            if (kierunek == "DOL_LEWO")
-            {
-                // Może być traktowana jako "lewa" lub "górna" w zależności od kontekstu
-                foreach (var konf in stan.MVCKonfModelu.KonfSystem)
-                {
-                    if (konf.WystepujeLewa)
-                    {
-                        Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Skośna] {kierunek} -> {konf.RowId} Typ:{konf.Typ}");
-                        return konf.RowId;
-                    }
-                }
-            }
-
-            if (kierunek == "PRAWO_DOL")
-            {
-                // Może być traktowana jako "lewa" lub "górna" w zależności od kontekstu
-                foreach (var konf in stan.MVCKonfModelu.KonfSystem)
-                {
-                    if (konf.WystepujePrawa)
-                    {
-                        Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Skośna] {kierunek} -> {konf.RowId} Typ:{konf.Typ}");
-                        return konf.RowId;
-                    }
-                }
-            }
-
-
         }
 
         Guid znaleziony = Guid.Empty;
@@ -5345,15 +5322,13 @@
         string kierunekSkosny = "";
         if (jestSkosna)
         {
-            // if (katLinii > 0 && katLinii < 90) kierunekSkosny = "LEWO_GORA_PRAWO_DOL";
-            // else if (katLinii > 90 && katLinii < 180) kierunekSkosny = "LEWO_DOL_PRAWO_GORA";
-            // else if (katLinii > 180 && katLinii < 270) kierunekSkosny = "PRAWO_DOL_LEWO_GORA";
-            // else kierunekSkosny = "PRAWO_GORA_LEWO_DOL";
 
-            if (katLinii > 0 && katLinii < 90) kierunekSkosny = "GORA_PRAWO";
-            else if (katLinii > 90 && katLinii < 180) kierunekSkosny = "PRAWO_DOL";
-            else if (katLinii > 180 && katLinii < 270) kierunekSkosny = "DOL_LEWO";
-            else kierunekSkosny = "LEWO_GORA";
+            // if (katLinii > 0 && katLinii < 90) kierunekSkosny = "GORA_PRAWO";
+            // else if (katLinii > 90 && katLinii < 180) kierunekSkosny = "PRAWO_DOL";
+            // else if (katLinii > 180 && katLinii < 270) kierunekSkosny = "DOL_LEWO";
+            // else kierunekSkosny = "LEWO_GORA";
+
+            kierunekSkosny = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(katLinii);
 
             Console.WriteLine($"📐 ZnajdzSasiada -> Kierunek skośny: {kierunekSkosny}");
         }
@@ -5447,7 +5422,7 @@
                             MaSlupekRuchomy = czyModelMaSlupekRuchomy,
                             Id = stan.Id,
                             WybranyTyp = konf.Typ ?? "BRAK",
-                            KatSasiada = (int)katSasiada,
+                            KatSasiada = (float)katSasiada,
                             WystepujeGora = konf.WystepujeGora,
                             WystepujeDol = konf.WystepujeDol,
                             WystepujeLewa = konf.WystepujeLewa,
@@ -5471,7 +5446,7 @@
                                 MaSlupekRuchomy = czyModelMaSlupekRuchomy,
                                 Id = stan.Id,
                                 WybranyTyp = konf.Typ ?? "BRAK",
-                                KatSasiada = (int)katSasiada,
+                                KatSasiada = (float)katSasiada,
                                 WystepujeGora = konf.WystepujeGora,
                                 WystepujeDol = konf.WystepujeDol,
                                 WystepujeLewa = konf.WystepujeLewa,
@@ -5488,7 +5463,7 @@
                                 MaSlupekRuchomy = czyModelMaSlupekRuchomy,
                                 Id = stan.Id,
                                 WybranyTyp = konf.Typ ?? "BRAK",
-                                KatSasiada = (int)katSasiada,
+                                KatSasiada = (float)katSasiada,
                                 WystepujeGora = konf.WystepujeGora,
                                 WystepujeDol = konf.WystepujeDol,
                                 WystepujeLewa = konf.WystepujeLewa,
@@ -5509,7 +5484,7 @@
                                 MaSlupekRuchomy = czyModelMaSlupekRuchomy,
                                 Id = stan.Id,
                                 WybranyTyp = konf.Typ ?? "BRAK",
-                                KatSasiada = (int)katSasiada,
+                                KatSasiada = (float)katSasiada,
                                 WystepujeGora = konf.WystepujeGora,
                                 WystepujeDol = konf.WystepujeDol,
                                 WystepujeLewa = konf.WystepujeLewa,
@@ -5526,7 +5501,7 @@
                                 MaSlupekRuchomy = czyModelMaSlupekRuchomy,
                                 Id = stan.Id,
                                 WybranyTyp = konf.Typ ?? "BRAK",
-                                KatSasiada = (int)katSasiada,
+                                KatSasiada = (float)katSasiada,
                                 WystepujeGora = konf.WystepujeGora,
                                 WystepujeDol = konf.WystepujeDol,
                                 WystepujeLewa = konf.WystepujeLewa,
@@ -5539,15 +5514,39 @@
         }
 
         // 🔹 Filtracja wyników
-        List<SasiadInfo> wynik = pasujace.OrderBy(p => p.Id).ToList();
+        List<SasiadInfo> wynik = pasujace.Where(x => (int)x.KatSasiada == (int)kat).OrderBy(p => p.Id).ToList();
+
+        // foreach(var sasiad in wynik)
+        // {
+        //     Console.WriteLine($"🔍 ZnajdzSasiada -> 1# Pasujący sąsiad: IdRegion={sasiad.IdRegionu}, ZIndeks={sasiad.ZIndeks}, Kąt={sasiad.KatSasiada:F1}°, Typ={sasiad.WybranyTyp}");
+        // } 
 
         // 🔹 Priorytet dla słupków stałych
         if (wynik.Count > 1 && wynik.Any(x => x.ZIndeks == 1))
         {
             var wybrany = wynik.First(x => x.ZIndeks == 1);
             wynik = new List<SasiadInfo> { wybrany };
-            Console.WriteLine($"🔍 ZnajdzSasiada -> Wybrano sąsiada ze ZIndeks == 1");
+            Console.WriteLine($"🔍 ZnajdzSasiada -> 1# Wybrano sąsiada ze ZIndeks == {wybrany.ZIndeks}");
         }
+        else
+        {
+
+            wynik = pasujace.OrderBy(p => p.Id).ToList();
+
+            // foreach (var sasiad in wynik)
+            // {
+            //     Console.WriteLine($"🔍 ZnajdzSasiada -> 2# Pasujący sąsiad: IdRegion={sasiad.IdRegionu}, ZIndeks={sasiad.ZIndeks}, Kąt={sasiad.KatSasiada:F1}°, Typ={sasiad.WybranyTyp}");
+            // }
+
+            // 🔹 Priorytet dla słupków stałych
+            if (wynik.Count > 1 && wynik.Any(x => x.ZIndeks == 1))
+            {
+                var wybrany = wynik.First(x => x.ZIndeks == 1);
+                wynik = new List<SasiadInfo> { wybrany };
+                Console.WriteLine($"🔍 ZnajdzSasiada -> 2# Wybrano sąsiada ze ZIndeks == {wybrany.ZIndeks}");
+            }
+        }
+
 
         // 🔹 Brak wyników - zwróć pustego sąsiada
         if (!wynik.Any())
@@ -5659,7 +5658,7 @@
 
     private static bool CzyNakladajaSieDowolne(XPoint a1, XPoint a2, XPoint b1, XPoint b2, double tol = 0.02, float kat = 0)
     {
-        // 🔹 Oblicz długości linii
+        // 🔹 Oblicz wektory i długości linii
         double dxA = a2.X - a1.X;
         double dyA = a2.Y - a1.Y;
         double dlugoscA = Math.Sqrt(dxA * dxA + dyA * dyA);
@@ -5673,63 +5672,32 @@
 
         // 🔹 Oblicz kąt między liniami
         double cosTheta = (dxA * dxB + dyA * dyB) / (dlugoscA * dlugoscB);
-
-        // Zabezpieczenie przed błędami numerycznymi
         cosTheta = Math.Max(-1.0, Math.Min(1.0, cosTheta));
-
         double katMiedzy = Math.Acos(cosTheta) * 180.0 / Math.PI;
 
-        Console.WriteLine($"🔍 CzyNakladajaSieDowolne -> Kąt linii A: {ObliczKatLinii(new List<XPoint> { a1, a2 }):F1}°, " +
-                         $"Kąt linii B: {ObliczKatLinii(new List<XPoint> { b1, b2 }):F1}°, Δkat={katMiedzy:F1}°");
-
-        // 🔹 DOPASOWANE WARUNKI DLA RÓŻNYCH TYPÓW LINII:
-
-        // 1. LINIE PROSTE (0°, 90°, 180°, 270°) - standardowa tolerancja
         double katA = ObliczKatLinii(new List<XPoint> { a1, a2 });
         double katB = ObliczKatLinii(new List<XPoint> { b1, b2 });
 
-        bool jestAProsta = Math.Abs(katA % 90) < 5.0; // Blisko 0, 90, 180, 270
+        Console.WriteLine($"🔍 CzyNakladajaSieDowolne -> Kąt linii A: {katA:F1}°, B: {katB:F1}°, Δkat={katMiedzy:F1}°");
+
+        // 🔹 Sprawdzenie prostych linii (0°, 90°, 180°, 270°)
+        bool jestAProsta = Math.Abs(katA % 90) < 5.0;
         bool jestBProsta = Math.Abs(katB % 90) < 5.0;
 
         if (jestAProsta && jestBProsta)
         {
-            // Dla linii prostych - tradycyjne sprawdzanie
             if (katMiedzy > 15.0 && katMiedzy < 165.0)
             {
                 Console.WriteLine($"🚫 Linie proste nie są równoległe (Δkat={katMiedzy:F1}°)");
                 return false;
             }
-
-            // Reszta logiki dla linii prostych...
-        }
-        else
-        {
-            // 2. LINIE SKOŚNE - większa tolerancja kąta
-            double tolerancjaKatSko = 45.0; // Dla skośnych akceptujemy większy rozrzut
-
-            // Normalizujemy kąty do zakresu 0-180
-            double katANorm = katA % 180;
-            double katBNorm = katB % 180;
-            double roznica = Math.Abs(katANorm - katBNorm);
-            if (roznica > 90) roznica = 180 - roznica;
-
-            Console.WriteLine($"🔍 Linia skośna A={katANorm:F1}°, B={katBNorm:F1}°, różnica={roznica:F1}°");
-
-            if (roznica > tolerancjaKatSko)
-            {
-                Console.WriteLine($"🚫 Linie skośne zbyt różne (Δ={roznica:F1}° > {tolerancjaKatSko}°)");
-                return false;
-            }
-
-            // Dla linii skośnych stosujemy inne kryteria nakładania
-            return CzyNakladajaSieSkośne(a1, a2, b1, b2, tol);
         }
 
         // 🔹 Wektor kierunkowy linii A
         double ux = dxA / dlugoscA;
         double uy = dyA / dlugoscA;
 
-        // 🔹 Rzutujemy punkty B na kierunek linii A
+        // 🔹 Projekcja punktów B na kierunek linii A
         double aMin = 0;
         double aMax = dlugoscA;
 
@@ -5741,39 +5709,58 @@
         // 🔹 Odległość prostopadła między liniami
         double odleglosc = Math.Abs((b1.X - a1.X) * (-uy) + (b1.Y - a1.Y) * ux);
 
-        // Tolerancja zależna od typu linii
-        double maxOdleglosc = jestAProsta ? tol * 10 : tol * 50; // Większa dla skośnych
+        // 🔹 Minimalna nakładka 30% krótszej linii
+        double overlapStart = Math.Max(aMin, bMin);
+        double overlapEnd = Math.Min(aMax, bMax);
+        double overlapLength = Math.Max(0, overlapEnd - overlapStart);
+        double minOverlap = 0.3 * Math.Min(dlugoscA, dlugoscB);
 
+        bool nakladaja = overlapLength >= minOverlap;
+
+        // 🔹 Dodatkowe sprawdzenie dla linii skośnych
+        if (!jestAProsta || !jestBProsta)
+        {
+            double tolerancjaKatSko = 45.0;
+            double katANorm = katA % 180;
+            double katBNorm = katB % 180;
+            double roznica = Math.Abs(katANorm - katBNorm);
+            if (roznica > 90) roznica = 180 - roznica;
+
+            if (roznica > tolerancjaKatSko)
+            {
+                Console.WriteLine($"🚫 Linie skośne zbyt różne (Δ={roznica:F1}° > {tolerancjaKatSko}°)");
+                return false;
+            }
+
+            // jeśli nie nakładają się minimalnie, sprawdź odległość końców
+            if (!nakladaja)
+            {
+                double odl1 = OdlegloscPunktuOdOdcinka(a1, b1, b2);
+                double odl2 = OdlegloscPunktuOdOdcinka(a2, b1, b2);
+                double odl3 = OdlegloscPunktuOdOdcinka(b1, a1, a2);
+                double odl4 = OdlegloscPunktuOdOdcinka(b2, a1, a2);
+                double minOdl = Math.Min(Math.Min(odl1, odl2), Math.Min(odl3, odl4));
+
+                if (minOdl < tol * 20)
+                {
+                    Console.WriteLine($"✅ Linie skośne stykają się w odległości {minOdl:F3}");
+                    nakladaja = true;
+                }
+            }
+        }
+
+        // 🔹 Ostateczne sprawdzenie odległości prostopadłej
+        double maxOdleglosc = jestAProsta ? tol * 10 : tol * 50;
         if (odleglosc > maxOdleglosc)
         {
             Console.WriteLine($"🚫 Odległość={odleglosc:F3} > max={maxOdleglosc:F3}");
             return false;
         }
 
-        // 🔹 Sprawdź nakładanie projekcji
-        bool nakladaja = aMax >= bMin - tol && bMax >= aMin - tol;
-
-        // 🔹 Dodatkowe sprawdzenie dla skośnych - czy linie faktycznie się "dotykają"
-        if (!jestAProsta && !nakladaja)
-        {
-            // Sprawdź czy końce linii są blisko siebie
-            double odl1 = OdlegloscPunktuOdOdcinka(a1, b1, b2);
-            double odl2 = OdlegloscPunktuOdOdcinka(a2, b1, b2);
-            double odl3 = OdlegloscPunktuOdOdcinka(b1, a1, a2);
-            double odl4 = OdlegloscPunktuOdOdcinka(b2, a1, a2);
-
-            double minOdl = Math.Min(Math.Min(odl1, odl2), Math.Min(odl3, odl4));
-
-            if (minOdl < tol * 20)
-            {
-                Console.WriteLine($"✅ Linie skośne stykają się w odległości {minOdl:F3}");
-                nakladaja = true;
-            }
-        }
-
-        Console.WriteLine($"🔍 CzyNakladajaSieDowolne -> odległość={odleglosc:F3}, nakładają={nakladaja}");
+        Console.WriteLine($"🔍 CzyNakladajaSieDowolne -> odległość={odleglosc:F3}, nakładają={nakladaja}, overlapLength={overlapLength:F3}, minRequired={minOverlap:F3}");
         return nakladaja;
     }
+
 
     private double ObliczOdlegloscMiedzyRownoleglymi(
     XPoint p1, XPoint p2,
@@ -6121,7 +6108,7 @@
             generator.Wysokosc = (float)(maxY - minY);
             generator.Zindeks = 0;
 
-            var ok = await generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama, null);
+            var ok = await generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama, null, null, _lastMouseClick);
 
             if (!ok)
             {
@@ -6142,7 +6129,7 @@
             generator.Wysokosc = (float)(maxY - minY);
             generator.Zindeks = 1;
 
-            var ok = await generator.AddElements(new List<ShapeRegion> { wybranyRegionSkrzydlo }, idRegion, _generatorStates, _regionsSkrzydlo, null);
+            var ok = await generator.AddElements(new List<ShapeRegion> { wybranyRegionSkrzydlo }, idRegion, _generatorStates, _regionsSkrzydlo, null, null, _lastMouseClick);
 
             if (!ok)
             {
@@ -6282,10 +6269,8 @@
         }
     }
 
-
     private (float left, float right, float top, float bottom) GetOffsetsForGroup(string grupa)
     {
-        // Domyślne wartości (można dostosować)
         float grLewo = 82;
         float grPrawo = 82;
         float grGora = 82;
@@ -6294,10 +6279,18 @@
         return grupa switch
         {
             "Lewo" => (grLewo, 0, 0, 0),
+            "Lewa" => (grLewo, 0, 0, 0),
+
             "Prawo" => (0, grPrawo, 0, 0),
+            "Prawa" => (0, grPrawo, 0, 0),
+
             "Gora" => (0, 0, grGora, 0),
+            "Góra" => (0, 0, grGora, 0),
+
             "Dol" => (0, 0, 0, grDol),
-            _ => (grLewo, grPrawo, grGora, grDol) // Domyślne dla innych przypadków
+            "Dół" => (0, 0, 0, grDol),
+
+            _ => (grLewo, grPrawo, grGora, grDol)
         };
     }
 
