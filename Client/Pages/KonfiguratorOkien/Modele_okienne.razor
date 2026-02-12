@@ -1354,12 +1354,13 @@
                     await JS.InvokeVoidAsync("setDotNetHelper", _dotNetHelper);
                 }
 
-                // Obserwacja resize
-                await StartResizeObserver();
-
                 // Teraz rysujemy tylko jeśli dane są gotowe
                 if (ShapeService != null && ShapeService.Shapes.Any())
                 {
+
+                    // Obserwacja resize
+                    await StartResizeObserver();
+
 
                     await GenerujObrysPozZmianieWymiarow(true); // obrys i regiony
                     //
@@ -1442,10 +1443,12 @@
         }
     }
 
+    private bool czejaNaZoom = false;
     [JSInvokable]
     public async Task HandleResize(double width, double height)
     {
-
+        if(czejaNaZoom) return;
+        czejaNaZoom = true;
 
         try
         {
@@ -1474,6 +1477,8 @@
         {
             Console.WriteLine($"⚠️ Błąd obsługi zmiany rozmiaru: {ex.Message}");
         }
+
+        czejaNaZoom = false;
     }
 
     private async Task FitShapesToDisplayWindow()
@@ -3744,6 +3749,7 @@
             if (linia.Count != 2) continue;
 
             var katSzukaj = ObliczKatLinii(linia);
+            var stronaSzukaj = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(katSzukaj);
 
             // Console.WriteLine($"🔎 DodajWybranyKwadratOkna -> Sprawdzam linię o kącie {katSzukaj}° w stanie ID: {state.Id}, IdRegion: {state.IdRegion}, WybranyTyp: {state.WybranyKsztalt}");
 
@@ -3751,6 +3757,7 @@
                 linia,
                 _generatorStates.Values.ToList(),
                 (float)katSzukaj,
+                stronaSzukaj,
                 state.SlupekRuchomyPoLewejStronie,
                 state.SlupekRuchomyPoPrawejStronie,
                 state.IdRegion,
@@ -3779,7 +3786,15 @@
             bool powinnoWystepowacDol = katSzukaj >= 135 && katSzukaj <= 225;
 
             var najlepszySasiad = sasiedzi.FirstOrDefault(x =>
-                x.WystepujeDol == powinnoWystepowacDol);
+                x.WystepujeDol == powinnoWystepowacDol); // zabezpieczenie, że najpierw wybieramy sąsiada o odpowiednim kierunku
+
+            // bool CzyPrawieRownolegle(double kat1, double kat2, double tolerancja = 5.0)
+            // {
+            //     var roznica = Math.Abs((kat1 - kat2 + 360) % 360);
+            //     return roznica < tolerancja || Math.Abs(roznica - 180) < tolerancja;
+            // }
+
+           // najlepszySasiad = sasiedzi.FirstOrDefault(x => x.Strona == stronaSzukaj);
 
             if (najlepszySasiad == null) najlepszySasiad = sasiedzi.FirstOrDefault();
 
@@ -4600,7 +4615,7 @@
             state.ListaKwadratow[^1].OffsetBottom = przesDol;
         }
 
-        await Task.Delay(5);
+        await Task.CompletedTask; // placeholder dla ewentualnych operacji asynchronicznych
         return regionSlupka;
     }
 
@@ -4645,7 +4660,7 @@
         // 🔹 Pobierz przesunięcia z boków
         foreach (var bok in state.ListaKwadratow)
         {
-            Console.WriteLine($"\n📦 Sprawdzam bok: Element={bok.RowIdElementu}, Sąsiad={bok.RowIdSasiada}, Strona='{bok.Strona}'");
+            Console.WriteLine($"📦 Sprawdzam bok: Element={bok.RowIdElementu}, Sąsiad={bok.RowIdSasiada}, Strona='{bok.Strona}'");
 
             var polaczenieWartosci = await PobierzPolaczenia(bok.RowIdSasiada, bok.RowIdElementu, bok.Strona ?? "NaN");
             var spolaczenieStrona = polaczenieWartosci.FirstOrDefault();
@@ -4751,11 +4766,11 @@
         }
 
         // 🔹 Podsumowanie ustawionych przesunięć
-        Console.WriteLine($"\n📊 PODSUMOWANIE PRZESUNIĘĆ:");
-        Console.WriteLine($"   Lewa:  {przesLewo} (ustawiono: {ustawionoLewa})");
-        Console.WriteLine($"   Prawa: {przesPrawo} (ustawiono: {ustawionoPrawa})");
-        Console.WriteLine($"   Góra:  {przesGora} (ustawiono: {ustawionoGora})");
-        Console.WriteLine($"   Dół:   {przesDol} (ustawiono: {ustawionoDol})");
+        Console.WriteLine($"📊 PODSUMOWANIE PRZESUNIĘĆ:");
+        Console.WriteLine($"📊 PODSUMOWANIE PRZESUNIĘĆ Lewa:  {przesLewo} (ustawiono: {ustawionoLewa})");
+        Console.WriteLine($"📊 PODSUMOWANIE PRZESUNIĘĆ  Prawa: {przesPrawo} (ustawiono: {ustawionoPrawa})");
+        Console.WriteLine($"📊 PODSUMOWANIE PRZESUNIĘĆ Góra:  {przesGora} (ustawiono: {ustawionoGora})");
+        Console.WriteLine($"📊 PODSUMOWANIE PRZESUNIĘĆ  Dół:   {przesDol} (ustawiono: {ustawionoDol})");
 
         // 🔹 Sprawdź które strony nie zostały ustawione
         var nieustawioneStrony = new List<string>();
@@ -5264,10 +5279,11 @@
         return Guid.Empty;
     }
 
-    public async Task<List<SasiadInfo>> ZnajdzSasiada(
+      public async Task<List<SasiadInfo>> ZnajdzSasiada(
         List<XPoint> linia,
         List<GeneratorState> wszystkieStany,
         float kat,
+        string strona,
         bool ruchomySlupekPoLewej,
         bool ruchomySlupekPoPrawej,
         string obecnyRegionId,
@@ -5409,6 +5425,9 @@
                 var konfLista = stan.MVCKonfModelu?.KonfSystem;
                 if (konfLista == null) continue;
 
+                // Proste filtrowanie
+                //konfLista = konfLista.WyfiltrujPoStronie(strona);
+            
                 foreach (var konf in konfLista)
                 {
                     // 🔹 Dla linii skośnych wybieramy wszystkie pasujące konfiguracje
@@ -5423,6 +5442,8 @@
                             Id = stan.Id,
                             WybranyTyp = konf.Typ ?? "BRAK",
                             KatSasiada = (float)katSasiada,
+                            KatLinii = (float)katLinii,
+                            Strona = kierunekSkosny,
                             WystepujeGora = konf.WystepujeGora,
                             WystepujeDol = konf.WystepujeDol,
                             WystepujeLewa = konf.WystepujeLewa,
@@ -5447,6 +5468,8 @@
                                 Id = stan.Id,
                                 WybranyTyp = konf.Typ ?? "BRAK",
                                 KatSasiada = (float)katSasiada,
+                                KatLinii = (float)katLinii,
+                                Strona = strona,
                                 WystepujeGora = konf.WystepujeGora,
                                 WystepujeDol = konf.WystepujeDol,
                                 WystepujeLewa = konf.WystepujeLewa,
@@ -5464,6 +5487,8 @@
                                 Id = stan.Id,
                                 WybranyTyp = konf.Typ ?? "BRAK",
                                 KatSasiada = (float)katSasiada,
+                                KatLinii = (float)katLinii,
+                                Strona = strona,
                                 WystepujeGora = konf.WystepujeGora,
                                 WystepujeDol = konf.WystepujeDol,
                                 WystepujeLewa = konf.WystepujeLewa,
@@ -5485,6 +5510,8 @@
                                 Id = stan.Id,
                                 WybranyTyp = konf.Typ ?? "BRAK",
                                 KatSasiada = (float)katSasiada,
+                                KatLinii = (float)katLinii,
+                                Strona = strona,
                                 WystepujeGora = konf.WystepujeGora,
                                 WystepujeDol = konf.WystepujeDol,
                                 WystepujeLewa = konf.WystepujeLewa,
@@ -5502,6 +5529,8 @@
                                 Id = stan.Id,
                                 WybranyTyp = konf.Typ ?? "BRAK",
                                 KatSasiada = (float)katSasiada,
+                                KatLinii = (float)katLinii,
+                                Strona = strona,
                                 WystepujeGora = konf.WystepujeGora,
                                 WystepujeDol = konf.WystepujeDol,
                                 WystepujeLewa = konf.WystepujeLewa,
@@ -5560,6 +5589,8 @@
                 MaSlupekRuchomy = false,
                 WybranyTyp = "BRAK-PASUJACEGO-SASIADA",
                 KatSasiada = kat,
+                KatLinii = (float)katLinii,
+                Strona = strona,
                 JestSkosna = jestSkosna,
                 KierunekSkosny = kierunekSkosny
             });
@@ -5577,11 +5608,48 @@
             }
         }
 
+        // if (!SelectedModelType.ToLower().Contains("słup"))
+        // {
+        //     // 1. Najpierw definicja funkcji
+        //     bool CzyPrawieRownolegle(double kat1, double kat2, double tolerancja = 5.0)
+        //     {
+        //         var roznica = Math.Abs((kat1 - kat2 + 360) % 360);
+        //         return roznica < tolerancja || Math.Abs(roznica - 180) < tolerancja;
+        //     }
+        //     // Najpierw filtruj, potem grupuj
+        //     // ✅ NAJLEPSZE ROZWIĄZANIE
+        //     wynik = wynik
+        //         .GroupBy(x => new
+        //         {
+        //             x.RowIdElementu,
+        //             x.IdRegionu,
+        //             x.ZIndeks,
+        //             x.Id,
+        //             x.KatSasiada,
+        //             x.WybranyTyp
+        //         })
+        //         .Select(g => g.First())
+        //         .Where(x => CzyPrawieRownolegle(x.KatSasiada, x.KatLinii))  // ✅ UŻYJ x.KatLinii!
+        //         .ToList();
+        // }
+
         Console.WriteLine($"🔍 ZnajdzSasiada -> Znaleziono {wynik.Count} sąsiadów");
 
         await Task.CompletedTask;
 
         return wynik;
+    }
+
+    public static List<KonfSystem> WyfiltrujPoStronie(this List<KonfSystem> konfLista, string strona)
+    {
+        return konfLista?.Where(k => strona switch
+        {
+            "Lewa" => k.WystepujeLewa,
+            "Prawa" => k.WystepujePrawa,
+            "Góra" => k.WystepujeGora,
+            "Dół" => k.WystepujeDol,
+            _ => true
+        }).ToList() ?? new List<KonfSystem>();
     }
 
     private bool CzyPunktyRowne(XPoint p1, XPoint p2, double tolerancja)
@@ -6490,6 +6558,7 @@
         public int Id { get; set; }
         public string? WybranyTyp { get; set; }
         public float KatSasiada { get; set; }
+        public float KatLinii { get; set; }
         public bool WystepujeDol { get; set; } = false;
         public bool WystepujeLewa { get; set; } = false;
         public bool WystepujeGora { get; set; } = false;
@@ -6497,6 +6566,7 @@
 
         public bool JestSkosna { get; set; }
         public string KierunekSkosny { get; set; } = "";
+        public string Strona { get; set; } = "";
     }
 
     public class PrzesuniecieDto
