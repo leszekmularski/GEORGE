@@ -500,7 +500,10 @@
                 @foreach (var material in infoBoom)
                 {
                     <li class="material-item">
-                        <span><strong>📏 Długość:</strong> @material.Dlugosc mm</span>
+                        <span><strong>📏 Długość:</strong> @(Math.Round(material.Dlugosc, 3)) mm</span>
+                        <span><strong>📐 Kąt w modelu:</strong> @(Math.Round(material.KatWModelu, 3))°</span>
+                        <span><strong>­📐 Kąt w modelu strona A:</strong> @(Math.Round(material.KatStroanA, 3))°</span>
+                        <span><strong>📐 Kąt w modelu strona B:</strong> @(Math.Round(material.KatStroanB, 3))°</span>
                         <span><strong>🏷️ Nazwa:</strong> @material.Nazwa</span>
                         <span><strong title="@material.RowIdIndeksu">🔢 Indeks:</strong> @material.IndeksElementu</span>
                         <span><strong>📦 Ilość sztuk:</strong> @material.IloscSztuk</span>
@@ -567,17 +570,17 @@
                                 @if (model.Rysunek != null && model.Ikona32x32.Length > 0)
                                 {
                                     <img id="@($"wing-{model.Typ}")"
-                                         src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
-                                         @onclick='@(() => WybierzModel(model))'
-                                         @ondragstart='@(e => JS.InvokeVoidAsync("SetCurrentModel", model.Typ, model.RowId))'
-                                         @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
-                                         draggable="true"
-                                         style="cursor: grab;
-                                                                                                                 width: auto;
-                                                                                                                 height: auto;
-                                                                                                                 max-width: 50px;
-                                                                                                                 max-height: 50px;
-                                                                                                                 border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
+                                        src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
+                                        @onclick='@(() => WybierzModel(model))'
+                                        @ondragstart='@(e => JS.InvokeVoidAsync("SetCurrentModel", model.Typ, model.RowId))'
+                                        @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
+                                        draggable="true"
+                                        style="cursor: grab;
+                                        width: auto;
+                                        height: auto;
+                                        max-width: 50px;
+                                        max-height: 50px;
+                                        border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
 
                                 }
                                 else
@@ -934,6 +937,8 @@
 
                                     <button @onclick="SelectPreviousShape">Poprzedni obiekt</button>
                                     <button @onclick="SelectNextShape">Następny obiekt</button>
+
+                                    <button @onclick="() => ZmienWymiaryOknaPozmianiePunktow()">Zmień wymiary okna</button>
 
                                 </div>
 
@@ -1360,7 +1365,6 @@
 
                     // Obserwacja resize
                     await StartResizeObserver();
-
 
                     await GenerujObrysPozZmianieWymiarow(true); // obrys i regiony
                     //
@@ -1879,6 +1883,31 @@
         _generatorState = false;
     }
 
+    private async Task ZmienWymiaryOknaPozmianiePunktow()
+    {
+
+        ZamknijModal();
+
+        // Obliczanie szerokości i wysokości dla każdego regionu i wybór największych wartości
+        if (_regionsDualRama != null && _regionsDualRama.Any())
+        {
+            // Szerokość = max X - min X dla każdego regionu, potem max z tych szerokości
+            constWlasciwosciOkna.Szerokosc = (int)_regionsDualRama
+                .Select(r => r.Wierzcholki.Max(p => p.X) - r.Wierzcholki.Min(p => p.X))
+                .Max();
+
+            // Wysokość = max Y - min Y dla każdego regionu, potem max z tych wysokości
+            constWlasciwosciOkna.Wysokosc = (int)_regionsDualRama
+                .Select(r => r.Wierzcholki.Max(p => p.Y) - r.Wierzcholki.Min(p => p.Y))
+                .Max();
+
+            _lastMouseClick.X = -1;
+            _lastMouseClick.Y = -1;
+        }
+
+        await PokazWlasciwosciOkna();
+    }
+
     private async Task PokazWlasciwosciOkna()
     {
         await JS.InvokeVoidAsync("ResetCursorGlobal");
@@ -1985,31 +2014,6 @@
         }
     }
 
-    // private async Task ApplyTransformations()
-    // {
-    //     if (_context == null)
-    //         return;
-
-    //     try
-    //     {
-    //         // Zamiast ResetTransformAsync, używamy SetTransformAsync z wartościami domyślnymi
-    //         // Reset transformacji: matrix(1, 0, 0, 1, 0, 0)
-    //         await _context.SetTransformAsync(1, 0, 0, 1, 0, 0);
-
-    //         // Przesuń do środka
-    //         await _context.TranslateAsync(0, 0);
-
-    //         // Zastosuj skalowanie
-    //         // await _context.ScaleAsync(_currentScale, _currentScale);
-
-    //         // Console.WriteLine($"🔄 Transformacje: Pan({_panX:F1},{_panY:F1}), Scale({_currentScale:F2})");
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         Console.WriteLine($"⚠️ Błąd transformacji: {ex.Message}");
-    //     }
-    // }
-
     private async Task ClearCanvas()
     {
         try
@@ -2072,8 +2076,6 @@
         await ApplyZoom();
 
     }
-
-
 
     private async Task ApplyChange()
     {
@@ -2792,11 +2794,14 @@
                     {
                         WygenerowaneMaterialy opisySys = new WygenerowaneMaterialy(
                          danedoboom.RowIdElementu,
-                         danedoboom.DlogoscNaGotowoElementu,
+                         danedoboom.DlogoscElementu,
                          danedoboom.NazwaElementu ?? "",
                          danedoboom.IndeksElementu ?? "",
                          1,
-                         ""
+                         "",
+                         danedoboom.Kat,
+                         danedoboom.KatStronaA,
+                         danedoboom.KatStronaB
                          );
 
                         infoBoom.Add(opisySys);
@@ -2940,7 +2945,6 @@
             double newHeight = constWlasciwosciOkna.Wysokosc;
 
             Console.WriteLine($"📏 Zmiana wymiarów: {oldWidth}x{oldHeight} → {newWidth}x{newHeight}");
-
 
             // 2. Aktualizacja wymiarów kształtów
             foreach (var shape in ShapeService.Shapes)

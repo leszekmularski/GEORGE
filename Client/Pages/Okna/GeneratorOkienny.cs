@@ -385,6 +385,7 @@ namespace GEORGE.Client.Pages.Okna
             for (int i = 0; i < vertexCount; i++)
             {
                 int next = (i + 1) % vertexCount;
+                int prev = (i - 1 + vertexCount) % vertexCount;
 
                 var leftJoin = polaczeniaArray[i].typ;
                 var rightJoin = polaczeniaArray[next].typ;
@@ -426,8 +427,78 @@ namespace GEORGE.Client.Pages.Okna
                     ? (ny > 0 ? profileTop : profileBottom)
                     : (nx > 0 ? profileRight : profileLeft);
 
+                float profileA = Math.Abs(dx) > Math.Abs(dy) ? profileTop : profileRight;
+
+                float profileB = Math.Abs(dx) > Math.Abs(dy) ? profileBottom : profileLeft;
+
                 bool isAlmostHorizontal = Math.Abs(dy) < 1e-2;
                 bool isAlmostVertical = Math.Abs(dx) < 1e-2;
+
+                //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+                // Obliczanie kątów między liniami
+                float angleDegreesStronaA = 0; // Kąt między bieżącą linią a poprzednią
+                float angleDegreesStronaB = 0; // Kąt między bieżącą linią a następną
+
+                // Wektor bieżącej linii (od i do next)
+                double currentDx = outerEnd.X - outerStart.X;
+                double currentDy = outerEnd.Y - outerStart.Y;
+
+                // Wektor poprzedniej linii (od prev do i)
+                XPoint outerPrev = outer[prev];
+                double prevDx = outerStart.X - outerPrev.X;
+                double prevDy = outerStart.Y - outerPrev.Y;
+
+                // Wektor następnej linii (od next do next+1)
+                int next2 = (next + 1) % vertexCount;
+                XPoint outerNext2 = outer[next2];
+                double nextDx = outerNext2.X - outerEnd.X;
+                double nextDy = outerNext2.Y - outerEnd.Y;
+
+                // Oblicz kąt między bieżącą a poprzednią (StronaA)
+                double dotProductPrev = (currentDx * prevDx + currentDy * prevDy);
+                double magCurrent = Math.Sqrt(currentDx * currentDx + currentDy * currentDy);
+                double magPrev = Math.Sqrt(prevDx * prevDx + prevDy * prevDy);
+
+                if (magCurrent > 0 && magPrev > 0)
+                {
+                    double cosAnglePrev = dotProductPrev / (magCurrent * magPrev);
+                    cosAnglePrev = Math.Max(-1.0, Math.Min(1.0, cosAnglePrev)); // Zabezpieczenie przed błędami zaokrągleń
+                    double angleRadPrev = Math.Acos(cosAnglePrev);
+                    angleDegreesStronaA = (float)(angleRadPrev * 180.0 / Math.PI);
+                }
+
+                // Oblicz kąt między bieżącą a następną (StronaB)
+                double dotProductNext = (currentDx * nextDx + currentDy * nextDy);
+                double magNext = Math.Sqrt(nextDx * nextDx + nextDy * nextDy);
+
+                if (magCurrent > 0 && magNext > 0)
+                {
+                    double cosAngleNext = dotProductNext / (magCurrent * magNext);
+                    cosAngleNext = Math.Max(-1.0, Math.Min(1.0, cosAngleNext)); // Zabezpieczenie
+                    double angleRadNext = Math.Acos(cosAngleNext);
+                    angleDegreesStronaB = (float)(angleRadNext * 180.0 / Math.PI);
+                }
+
+                // Opcjonalnie: określenie strony kąta (wewnętrzny/zewnętrzny)
+                // Możesz użyć iloczynu wektorowego do określenia orientacji
+                double crossProductPrev = (currentDx * prevDy - currentDy * prevDx);
+                if (crossProductPrev < 0)
+                {
+                    angleDegreesStronaA = 360 - angleDegreesStronaA; // Kąt po drugiej stronie
+                }
+
+                double crossProductNext = (currentDx * nextDy - currentDy * nextDx);
+                if (crossProductNext < 0)
+                {
+                    angleDegreesStronaB = 360 - angleDegreesStronaB;
+                }
+
+                // Teraz możesz użyć angleDegreesStronaA i angleDegreesStronaB
+                Console.WriteLine($"Wierzchołek {i}: Kąt z poprzednim = {angleDegreesStronaA:F1}°, Kąt z następnym = {angleDegreesStronaB:F1}°");
+
+                //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 
                 if (sposobLaczeniaCzop)
                 {
@@ -572,7 +643,6 @@ namespace GEORGE.Client.Pages.Okna
                     {
                         // Console.WriteLine($"🔷 T1/T1 element {i + 1} vertexCount == 3 && angleDegrees == 0 START");
 
-                        var prev = (i - 1 + vertexCount) % vertexCount;
                         var nextNext = (next + 1) % vertexCount;
 
                         // Pionowy przypadek (np. boczne elementy w trapezie)
@@ -802,7 +872,7 @@ namespace GEORGE.Client.Pages.Okna
                                     .OrderByDescending(p => p.X)
                                     .FirstOrDefault();
 
-                                var prev = (i - 1 + vertexCount) % vertexCount;
+                               // var prev = (i - 1 + vertexCount) % vertexCount;
                                 var nextNext = (next + 1) % vertexCount;
 
                                 outerVecStart = FindFirstEdgeIntersection(outerVecStart, tx, ty, inner);
@@ -1141,7 +1211,7 @@ namespace GEORGE.Client.Pages.Okna
                         if (isAlmostHorizontal)
                         {
                             // ✨ Korekcja styku z pionami T3 z lewej i prawej strony
-                            var prev = (i - 1 + vertexCount) % vertexCount;
+                            //var prev = (i - 1 + vertexCount) % vertexCount;
                             var nextNext = (next + 1) % vertexCount;
 
                             outerVecStart = FindFirstEdgeIntersection(outerVecStart, tx, ty, inner);
@@ -1165,7 +1235,7 @@ namespace GEORGE.Client.Pages.Okna
                         {
                             // ✨ Korekcja styku z pionami T3 z lewej i prawej strony
 
-                            var prev = (i - 1 + vertexCount) % vertexCount;
+                           // var prev = (i - 1 + vertexCount) % vertexCount;
                             var nextNext = (next + 1) % vertexCount;
 
                             const double eps = 1.0; // ZWIĘKSZ EPSILON! 0.001 jest za mały dla Twoich danych
@@ -1236,11 +1306,6 @@ namespace GEORGE.Client.Pages.Okna
                                     : otherBottomOuter;
                             }
 
-                            //Console.WriteLine($"🔷 OUTER narożniki trapezoidu:");
-                            //Console.WriteLine($"   minOuter (lewy górny): ({minOuter.X:F2}, {minOuter.Y:F2})");
-                            //Console.WriteLine($"   rightTopOuter (prawy górny): ({rightTopOuter.X:F2}, {rightTopOuter.Y:F2})");
-                            //Console.WriteLine($"   leftOuter (lewy dolny): ({leftOuter.X:F2}, {leftOuter.Y:F2})");
-                            //Console.WriteLine($"   rightOuter (prawy dolny): ({rightOuter.X:F2}, {rightOuter.Y:F2})");
 
                             // ================= INNER =================
                             double minYInner = inner.Min(p => p.Y);
@@ -1251,21 +1316,11 @@ namespace GEORGE.Client.Pages.Okna
                             XPoint leftInner = new XPoint();
                             XPoint rightInner = new XPoint();
 
-                            // Console.WriteLine($"🔷 inner Y zakres: min={minYInner:F2}, max={maxYInner:F2}");
-
-                            // Punkty GÓRNE inner - PROBLEM: tylko JEDEN punkt ma Y=525,36
-                            // Drugi "górny" punkt ma Y=562,64 (różnica 37,28)
-
                             // ZWIĘKSZ TOLERANCJĘ dla inner!
                             float innerTopTolerance = 50.0f; // Dopuszczamy różnicę 50 jednostek
 
                             var topPointsInner = inner.Where(p => p.Y <= minYInner + innerTopTolerance).ToList();
-                            //Console.WriteLine($"🔷 topPointsInner (tolerancja={innerTopTolerance}) znaleziono {topPointsInner.Count} punktów:");
-                            //foreach (var p in topPointsInner)
-                            //{
-                            //    Console.WriteLine($"   ({p.X:F2}, {p.Y:F2})");
-                            //}
-
+             
                             if (topPointsInner.Count >= 2)
                             {
                                 // Posortuj po X dla górnych punktów
@@ -1320,12 +1375,6 @@ namespace GEORGE.Client.Pages.Okna
                                     ? inner.OrderByDescending(p => p.Y).Skip(1).FirstOrDefault()
                                     : otherBottomInner;
                             }
-
-                            //Console.WriteLine($"🔷 INNER narożniki trapezoidu:");
-                            //Console.WriteLine($"   minInner (lewy górny): ({minInner.X:F2}, {minInner.Y:F2})");
-                            //Console.WriteLine($"   minRightInner (prawy górny): ({minRightInner.X:F2}, {minRightInner.Y:F2})");
-                            //Console.WriteLine($"   leftInner (lewy dolny): ({leftInner.X:F2}, {leftInner.Y:F2})");
-                            //Console.WriteLine($"   rightInner (prawy dolny): ({rightInner.X:F2}, {rightInner.Y:F2})");
 
                             outerVecStart = FindFirstEdgeIntersection(outerVecStart, tx, ty, outer);
 
@@ -1519,18 +1568,6 @@ namespace GEORGE.Client.Pages.Okna
                             TopRT5 = GetHorizontalIntersection(outer[i], outer[next], (float)topY, PionOsSymetrii);
                             BottomLT5 = GetHorizontalIntersection(outer[i], outer[next], (float)bottomY, PionOsSymetrii);
 
-                            //foreach (var x in inner)
-                            //{
-                            //    Console.WriteLine($"🔷 T5-T5 Vertical shifts → inner.X: {x.X} inner.Y: {x.Y}");
-                            //}
-
-                            //foreach (var x in outer)
-                            //{
-                            //    Console.WriteLine($"🔷 T5-T5 Vertical shifts → outer.X: {x.X} outer.Y: {x.Y}");
-                            //}
-
-                            //Console.WriteLine($"🔷 T5-T5 Vertical shifts → TopRT5.X: {TopRT5.X} TopRT5.Y: {TopRT5.Y} BottomLT5.X: {BottomLT5.X} BottomLT5.Y: {BottomLT5.Y}");
-                            //Console.WriteLine($"🔷 T5-T5 Vertical shifts → TopLT5.X: {TopLT5.X} TopLT5.Y: {TopLT5.Y} BottomRT5.X: {BottomRT5.X} BottomRT5.Y: {BottomRT5.Y}");
                         }
                         else if (isAlmostHorizontal)
                         {
@@ -1562,18 +1599,6 @@ namespace GEORGE.Client.Pages.Okna
                             TopRT5 = GetVerticalIntersection(outer[i], outer[next], (float)leftX, PionOsSymetrii);
                             BottomLT5 = GetVerticalIntersection(outer[i], outer[next], (float)rightX, PionOsSymetrii);
 
-                            //foreach (var x in inner)
-                            //{
-                            //    Console.WriteLine($"🔷 T5-T5 Horizontal shifts → inner.X: {x.X} inner.Y: {x.Y}");
-                            //}
-
-                            //foreach (var x in outer)
-                            //{
-                            //    Console.WriteLine($"🔷 T5-T5 Horizontal shifts → outer.X: {x.X} outer.Y: {x.Y}");
-                            //}
-
-                            //Console.WriteLine($"🔷 T5-T5 Horizontal shifts → TopRT5.X: {TopRT5.X} TopRT5.Y: {TopRT5.Y} BottomLT5.X: {BottomLT5.X} BottomLT5.Y: {BottomLT5.Y}");
-                            //Console.WriteLine($"🔷 T5-T5 Horizontal shifts → TopLT5.X: {TopLT5.X} TopLT5.Y: {TopLT5.Y} BottomRT5.X: {BottomRT5.X} BottomRT5.Y: {BottomRT5.Y}");
                         }
                     }
 
@@ -1581,6 +1606,14 @@ namespace GEORGE.Client.Pages.Okna
                     //                    double half = (SzerokoscSlupka ?? 0) / 2.0;
 
 
+                    if(mouseClik.X == -1 || mouseClik.Y == -1)
+                    {
+                        mouseClik = new XPoint
+                        {
+                            X = (TopLT5.X + TopRT5.X + BottomLT5.X + BottomRT5.X) / 4,
+                            Y = (TopLT5.Y + TopRT5.Y + BottomLT5.Y + BottomRT5.Y) / 4
+                        };
+                    }
 
                     var punkYModelu = punktyRegionuMaster.Max(p => p.Y) / 2;
 
@@ -1593,11 +1626,6 @@ namespace GEORGE.Client.Pages.Okna
 
                     var offset_punktyRegionuMaster = OffsetPolygonInside(punktyRegionuMaster, topYShift);
 
-                    //foreach (var x in offset_punktyRegionuMaster)
-                    //{
-                    //    Console.WriteLine($"🔷 T5-T5 offset_punktyRegionuMaster.X: {x.X} punktyRegionuMaster.Y: {x.Y}");
-                    //}
-
                     var tmpTopLT5 = new XPoint(TopLT5.X, mouseClik.Y);
                     var tmpTopST5 = new XPoint(TopST5.X, mouseClik.Y);
                     var tmpTopRT5 = new XPoint(TopRT5.X, mouseClik.Y);
@@ -1608,11 +1636,6 @@ namespace GEORGE.Client.Pages.Okna
                     XPoint rightTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopRT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: false);
 
                     offset_punktyRegionuMaster = OffsetPolygonInside(punktyRegionuMaster, bottomYShift);
-
-                    //foreach (var x in offset_punktyRegionuMaster)
-                    //{
-                    //    Console.WriteLine($"🔷 T5-T5 offset_punktyRegionuMaster.X: {x.X} punktyRegionuMaster.Y: {x.Y}");
-                    //}
 
                     var tmpBottomLT5 = new XPoint(BottomLT5.X, mouseClik.Y);
                     var tmpBottomSTT5 = new XPoint(BottomSTT5.X, mouseClik.Y);
@@ -1785,6 +1808,8 @@ namespace GEORGE.Client.Pages.Okna
                         RowIdElementu = rowIdProfil,
                         IdRegion = regionId,
                         Kat = (float)angleDegrees,
+                        KatStronaA = (float)angleDegreesStronaA,
+                        KatStronaB = (float)angleDegreesStronaB,
                         OffsetLewa = StronaElementu == "Lewa" ? profileLeft : 0,
                         OffsetPrawa = StronaElementu == "Prawa" ? profileRight : 0,
                         OffsetDol = StronaElementu == "Dól" ? profileBottom : 0,
@@ -1792,8 +1817,8 @@ namespace GEORGE.Client.Pages.Okna
                         Strona = StronaElementu,
                         IndeksElementu = indeksElementu,
                         NazwaElementu = nazwaElemntu,
-                        DlogoscElementu = bazowaDlugosc + ((dodajA ? profileLeft : 0) + (dodajB ? profileRight : 0)),
-                        DlogoscNaGotowoElementu = bazowaDlugosc
+                        DlogoscElementu = bazowaDlugosc + ((dodajA ? profileA : 0) + (dodajB ? profileB : 0)),
+                        DlogoscWidocznaElementu = bazowaDlugosc
                     });
 
                 Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - >3 rowIdProfil:{rowIdProfil} Angle: {angleDegrees}°");

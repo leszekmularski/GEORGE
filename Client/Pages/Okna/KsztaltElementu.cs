@@ -48,8 +48,8 @@ namespace GEORGE.Client.Pages.Okna
         //Informacje o długości elementy
         public float DlogoscElementu { get; set; } = 0.0f;
         // Informacje długość cięcia
-        public float DlogoscNaGotowoElementu { get; set; } = 0.0f;
-        // Informacje o długości na gotowo elementu
+        public float DlogoscWidocznaElementu { get; set; } = 0.0f;
+        // Informacje o długości widocznej w modelu elementu
         public float KatStronaA { get; set; } = 0.0f;
         // Informacje o kąt cięcia strona A elementu
         public float KatStronaB { get; set; } = 0.0f;
@@ -88,7 +88,7 @@ namespace GEORGE.Client.Pages.Okna
                 Grupa = this.Grupa,
                 Typ = this.Typ,
                 DlogoscElementu = this.DlogoscElementu,
-                DlogoscNaGotowoElementu = this.DlogoscNaGotowoElementu,
+                DlogoscWidocznaElementu = this.DlogoscWidocznaElementu,
                 KatStronaA = this.KatStronaA,
                 KatStronaB = this.KatStronaB,
                 OffsetLewa = this.OffsetLewa,
