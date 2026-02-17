@@ -44,7 +44,6 @@ namespace GEORGE.Client.Pages.Okna
             RuchomySlupekPoLewej = false;
             ElementLiniowy = false;
         }
-
         public async Task<bool> AddElements(List<ShapeRegion> regions, string regionId, Dictionary<string, GeneratorState> generatorStates, List<ShapeRegion> regionAdd,
             List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster, XPoint mouseClik)
         {
@@ -1559,8 +1558,7 @@ namespace GEORGE.Client.Pages.Okna
                             SzerokoscSlupka = szerSlupka.PionPrawa - szerSlupka.PionLewa;
                         }
 
-                        
-
+        
                         Console.WriteLine($"🔷 T5-T5 PionOsSymetrii:{PionOsSymetrii}, SzerokoscSlupka:{SzerokoscSlupka}");
 
                         // Ustal kierunki (poziomy vs pionowy)
