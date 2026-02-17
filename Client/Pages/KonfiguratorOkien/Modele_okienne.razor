@@ -504,6 +504,9 @@
                         <span><strong>📐 Kąt w modelu:</strong> @(Math.Round(material.KatWModelu, 3))°</span>
                         <span><strong>­📐 Kąt w modelu strona A:</strong> @(Math.Round(material.KatStroanA, 3))°</span>
                         <span><strong>📐 Kąt w modelu strona B:</strong> @(Math.Round(material.KatStroanB, 3))°</span>
+                        <span><strong>­📏 Długość czopo strona A:</strong> @(Math.Round(material.DlugoscCzopaA, 3)) mm</span>
+                        <span><strong>­📏 Długość czopo strona B:</strong> @(Math.Round(material.DlugoscCzopaB, 3)) mm</span>
+                        <span><strong>­👉 Identyfikator strony w modelu:</strong> @material.IdentyfikatorStrony</span>
                         <span><strong>🏷️ Nazwa:</strong> @material.Nazwa</span>
                         <span><strong title="@material.RowIdIndeksu">🔢 Indeks:</strong> @material.IndeksElementu</span>
                         <span><strong>📦 Ilość sztuk:</strong> @material.IloscSztuk</span>
@@ -2801,7 +2804,10 @@
                          "",
                          danedoboom.Kat,
                          danedoboom.KatStronaA,
-                         danedoboom.KatStronaB
+                         danedoboom.KatStronaB,
+                         danedoboom.DlugoscCzopaA,
+                         danedoboom.DlugoscCzopaB,
+                         danedoboom.Strona ?? "Brak danych"
                          );
 
                         infoBoom.Add(opisySys);

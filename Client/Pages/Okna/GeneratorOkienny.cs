@@ -2,6 +2,7 @@
 using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.Models;
 using GEORGE.Shared.ViewModels;
+using System.IO.IsolatedStorage;
 
 namespace GEORGE.Client.Pages.Okna
 {
@@ -165,62 +166,76 @@ namespace GEORGE.Client.Pages.Okna
 
             //Console.WriteLine($"slruchPoPrawej = {slruchPoPrawej} slruchPoLewej = {slruchPoLewej}");
 
+
+            var konfLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa &&
+                        (string.IsNullOrEmpty(slruchPoLewej) || e.Typ == slruchPoLewej));
+
+
+            var konfRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa &&
+                        (string.IsNullOrEmpty(slruchPoPrawej) || e.Typ == slruchPoPrawej));
+
+            var konfTop = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeGora);
+
+            var konfBottom = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeDol);
+
             // 🔧 Profile z konfiguracji
-            float profileLeft = (float)(MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ == slruchPoLewej)?.PionPrawa ?? 0 -
-                                        MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ == slruchPoLewej)?.PionLewa ?? 0);
+            //float profileLeft = (float)((konfLeft?.PionPrawa ?? 0) - (konfLeft?.PionLewa ?? 0));
+            //float profileRight = (float)((konfRight?.PionPrawa ?? 0) - (konfRight?.PionLewa ?? 0));
+            //float profileTop = (float)((konfTop?.PionPrawa ?? 0) - (konfTop?.PionLewa ?? 0));
+            //float profileBottom = (float)((konfBottom?.PionPrawa ?? 0) - (konfBottom?.PionLewa ?? 0));
 
-            float profileRight = (float)(MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa && e.Typ == slruchPoPrawej)?.PionPrawa ?? 0 -
-                                         MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa && e.Typ == slruchPoPrawej)?.PionLewa ?? 0);
+            float profileLeft = ObliczRoznicePoziomow(konfLeft);
+            float profileRight = ObliczRoznicePoziomow(konfRight);
+            float profileTop = ObliczRoznicePoziomow(konfTop);
+            float profileBottom = ObliczRoznicePoziomow(konfBottom);
 
-            float profileTop = (float)(MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.PionPrawa ?? 0 -
-                                       MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.PionLewa ?? 0);
+            //Console.WriteLine($"🔧 Profile z konfiguracji przed korektą: profileLeft: {profileLeft} profileRight: {profileRight} profileTop: {profileTop} profileBottom: {profileBottom}");
 
-            float profileBottom = (float)(MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionPrawa ?? 0 -
-                                          MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.PionLewa ?? 0);
+            Guid RowIdprofileLeft = konfLeft?.RowId ?? Guid.Empty;
+            Guid RowIdprofileRight = konfRight?.RowId ?? Guid.Empty;
+            Guid RowIdprofileTop = konfTop?.RowId ?? Guid.Empty;
+            Guid RowIdprofileBottom = konfBottom?.RowId ?? Guid.Empty;
 
+            string RowIndeksprofileLeft = konfLeft?.IndeksElementu ?? "BRAK-DANYCH";
+            string RowIndeksprofileRight = konfRight?.IndeksElementu ?? "BRAK-DANYCH";
+            string RowIndeksprofileTop = konfTop?.IndeksElementu ?? "BRAK-DANYCH";
+            string RowIndeksprofileBottom = konfBottom?.IndeksElementu ?? "BRAK-DANYCH";
 
-            Guid RowIdprofileLeft = MVCKonfModelu.KonfSystem
-                .FirstOrDefault(e => e.WystepujeLewa && e.Typ == slruchPoLewej)?.RowId ?? Guid.Empty;
-
-            Guid RowIdprofileRight = MVCKonfModelu.KonfSystem
-                .FirstOrDefault(e => e.WystepujePrawa && e.Typ == slruchPoPrawej)?.RowId ?? Guid.Empty;
-
-            Guid RowIdprofileTop = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.RowId ?? Guid.Empty;
-            Guid RowIdprofileBottom = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.RowId ?? Guid.Empty;
-
-            string RowIndeksprofileLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ == slruchPoLewej)?.IndeksElementu ?? "BRAK-DANYCH";
-            string RowIndeksprofileRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa && e.Typ == slruchPoPrawej)?.IndeksElementu ?? "BRAK-DANYCH";
-            string RowIndeksprofileTop = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.IndeksElementu ?? "BRAK-DANYCH";
-            string RowIndeksprofileBottom = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.IndeksElementu ?? "BRAK-DANYCH";
-
-            string RowNazwaprofileLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa && e.Typ == slruchPoLewej)?.Nazwa ?? "BRAK-DANYCH";
-            string RowNazwaprofileRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa && e.Typ == slruchPoPrawej)?.Nazwa ?? "BRAK-DANYCH";
-            string RowNazwaprofileTop = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeGora)?.Nazwa ?? "BRAK-DANYCH";
-            string RowNazwaprofileBottom = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeDol)?.Nazwa ?? "BRAK-DANYCH";
+            string RowNazwaprofileLeft = konfLeft?.Nazwa ?? "BRAK-DANYCH";
+            string RowNazwaprofileRight = konfRight?.Nazwa ?? "BRAK-DANYCH";
+            string RowNazwaprofileTop = konfTop?.Nazwa ?? "BRAK-DANYCH";
+            string RowNazwaprofileBottom = konfBottom?.Nazwa ?? "BRAK-DANYCH";
 
             if (profileLeft == 0)
             {
-                //Spróbuj bez słupka
                 slruchPoLewej = "";
-                profileLeft = (float)(MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.PionPrawa ?? 0 -
-                                        MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0);
 
-                RowIdprofileLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.RowId ?? Guid.Empty;
-                RowIndeksprofileLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.IndeksElementu ?? "BRAK-DANYCH";
+                konfLeft = MVCKonfModelu.KonfSystem
+                    .FirstOrDefault(e => e.WystepujeLewa);
 
-                RowNazwaprofileLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa)?.Nazwa ?? "BRAK-DANYCH";
+                profileLeft = (float)((konfLeft?.PionPrawa ?? 0) - (konfLeft?.PionLewa ?? 0));
+
+                RowIdprofileLeft = konfLeft?.RowId ?? Guid.Empty;
+                RowIndeksprofileLeft = konfLeft?.IndeksElementu ?? "BRAK-DANYCH";
+                RowNazwaprofileLeft = konfLeft?.Nazwa ?? "BRAK-DANYCH";
+
             }
+
             if (profileRight == 0)
             {
-                //Spróbuj bez słupka
                 slruchPoPrawej = "";
-                profileRight = (float)(MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.PionPrawa ?? 0 -
-                                         MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.PionLewa ?? 0);
 
-                RowIdprofileRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.RowId ?? Guid.Empty;
-                RowIndeksprofileRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.IndeksElementu ?? "BRAK-DANYCH";
-                RowNazwaprofileRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa)?.Nazwa ?? "BRAK-DANYCH";
+                konfRight = MVCKonfModelu.KonfSystem
+                    .FirstOrDefault(e => e.WystepujePrawa);
+
+                profileRight = (float)((konfRight?.PionPrawa ?? 0) - (konfRight?.PionLewa ?? 0));
+
+                RowIdprofileRight = konfRight?.RowId ?? Guid.Empty;
+                RowIndeksprofileRight = konfRight?.IndeksElementu ?? "BRAK-DANYCH";
+                RowNazwaprofileRight = konfRight?.Nazwa ?? "BRAK-DANYCH";
+
             }
+
 
             string NazwaObiektu = MVCKonfModelu.KonfSystem.First().Nazwa ?? "";
             string TypObiektu = MVCKonfModelu.KonfSystem.First().Typ ?? "";
@@ -264,6 +279,24 @@ namespace GEORGE.Client.Pages.Okna
 
             //}
         }
+        private float ObliczRoznicePoziomow(KonfSystem? konf)
+        {
+            if (konf == null)
+                return 0;
+
+            float gora = (float)konf.PoziomGora;
+            float dol = (float)konf.PoziomDol;
+
+            // Jeśli jedno z pól jest 0, traktuj drugie jako wartość symetryczną
+            if (gora == 0 && dol != 0)
+                return Math.Abs(dol);
+
+            if (dol == 0 && gora != 0)
+                return Math.Abs(gora);
+
+            return Math.Abs(gora - dol);
+        }
+
         public async Task<bool> GenerateGenericElementsWithJoins(
             List<XPoint> outer, List<XPoint> inner,
             float profileLeft, float profileRight, float profileTop, float profileBottom,
@@ -1491,14 +1524,6 @@ namespace GEORGE.Client.Pages.Okna
                 {
                     Console.WriteLine($"🔷 T5-T5 case for element {i + 1}. isAlmostHorizontal:{isAlmostHorizontal}, isAlmostVertical:{isAlmostVertical}, daneKwadratu.Count:{daneKwadratu.Count}");
 
-                    //XPoint TopLT5 = new XPoint { };
-                    //XPoint TopST5 = new XPoint { };
-                    //XPoint TopRT5 = new XPoint { };
-
-                    //XPoint BottomLT5 = new XPoint { };
-                    //XPoint BottomRT5 = new XPoint { };
-
-
                     XPoint TopLT5 = new XPoint { };
                     XPoint TopST5 = new XPoint { };
                     XPoint TopRT5 = new XPoint { };
@@ -1514,6 +1539,7 @@ namespace GEORGE.Client.Pages.Okna
 
                     double leftXShift = 0;
                     double rightXShift = 0;
+                    float PionOsSymetrii = 0;
 
                     if (daneKwadratu != null && daneKwadratu.Count > 0)
                     {
@@ -1527,13 +1553,15 @@ namespace GEORGE.Client.Pages.Okna
 
                         var szerSlupka = KonfiguracjeSystemu.FirstOrDefault(x => x.RowId == rowIdprofileLeft); // w słupku stałym rowIdprofileLeft to samo jest we wszystkich pozycjach!!!!
 
-                        float PionOsSymetrii = 0;
-
                         if (szerSlupka != null)
                         {
                             PionOsSymetrii = (float)Math.Abs((float)szerSlupka.PionOsSymetrii);
                             SzerokoscSlupka = szerSlupka.PionPrawa - szerSlupka.PionLewa;
                         }
+
+                        
+
+                        Console.WriteLine($"🔷 T5-T5 PionOsSymetrii:{PionOsSymetrii}, SzerokoscSlupka:{SzerokoscSlupka}");
 
                         // Ustal kierunki (poziomy vs pionowy)
                         if (isAlmostVertical)
@@ -1551,9 +1579,11 @@ namespace GEORGE.Client.Pages.Okna
                                 var topElement = model.FirstOrDefault(x => x.RowId == IdWymTop);
                                 var bottomElement = model.FirstOrDefault(x => x.RowId == IdWymBottom);
 
-                                topYShift = Math.Abs((topElement?.PoziomGora ?? 0) - (topElement?.PoziomDol ?? 0));
-                                bottomYShift = Math.Abs((bottomElement?.PoziomGora ?? 0) - (bottomElement?.PoziomDol ?? 0));
+                                topYShift = ObliczRoznicePoziomow(topElement);//Math.Abs((topElement?.PoziomGora ?? 0) - (topElement?.PoziomDol ?? 0));
+                                bottomYShift = ObliczRoznicePoziomow(bottomElement);//Math.Abs((bottomElement?.PoziomGora ?? 0) - (bottomElement?.PoziomDol ?? 0));
 
+                                //PionOsSymetrii = (float)(PionOsSymetrii - ((SzerokoscSlupka - topYShift)));
+                                PionOsSymetrii -= 8;
                                 Console.WriteLine($"🔷 T5-T5 Vertical shifts → topYShift:{topYShift}, bottomYShift:{bottomYShift}");
                             }
 
@@ -1583,8 +1613,11 @@ namespace GEORGE.Client.Pages.Okna
                                 var topElement = model.FirstOrDefault(x => x.RowId == IdWymTop);
                                 var bottomElement = model.FirstOrDefault(x => x.RowId == IdWymBottom);
 
-                                leftXShift = Math.Abs((topElement?.PoziomGora ?? 0) - (topElement?.PoziomDol ?? 0)); // linie są generowane domyślnie!!!!
-                                rightXShift = Math.Abs((bottomElement?.PoziomGora ?? 0) - (bottomElement?.PoziomDol ?? 0));
+                                leftXShift = ObliczRoznicePoziomow(topElement);//Math.Abs((topElement?.PoziomGora ?? 0) - (topElement?.PoziomDol ?? 0)); // linie są generowane domyślnie!!!!
+                                rightXShift = ObliczRoznicePoziomow(bottomElement);//Math.Abs((bottomElement?.PoziomGora ?? 0) - (bottomElement?.PoziomDol ?? 0));
+
+                                //PionOsSymetrii = (float)(PionOsSymetrii - ((SzerokoscSlupka - topYShift)));
+                                PionOsSymetrii -= 8; 
 
                                 Console.WriteLine($"🔷 T5-T5 Horizontal shifts → leftXShift:{leftXShift}, rightXShift:{rightXShift}");
                             }
@@ -1605,7 +1638,6 @@ namespace GEORGE.Client.Pages.Okna
                     // Bezpieczne granice
                     //                    double half = (SzerokoscSlupka ?? 0) / 2.0;
 
-
                     if(mouseClik.X == -1 || mouseClik.Y == -1)
                     {
                         mouseClik = new XPoint
@@ -1618,10 +1650,11 @@ namespace GEORGE.Client.Pages.Okna
                     var punkYModelu = punktyRegionuMaster.Max(p => p.Y) / 2;
 
                     TopST5.Y = punkYModelu;
-                    TopST5.X = TopLT5.X - ((TopLT5.X - TopRT5.X) / 2);
+                    //TopST5.X = TopLT5.X - ((TopLT5.X - TopRT5.X) / 2);
+                    TopST5.X = TopLT5.X - PionOsSymetrii;
                     Console.WriteLine($"🔷 T5-T5 TopST5.X/Y: {TopST5.X}/{TopST5.Y}");
                     BottomSTT5.Y = punkYModelu;
-                    BottomSTT5.X = BottomLT5.X - ((BottomLT5.X - BottomRT5.X) / 2);
+                    BottomSTT5.X = BottomLT5.X + PionOsSymetrii;
                     Console.WriteLine($"🔷 T5-T5 BottomSTT5.X/Y: {BottomSTT5.X}/{BottomSTT5.Y}");
 
                     var offset_punktyRegionuMaster = OffsetPolygonInside(punktyRegionuMaster, topYShift);
@@ -1818,7 +1851,9 @@ namespace GEORGE.Client.Pages.Okna
                         IndeksElementu = indeksElementu,
                         NazwaElementu = nazwaElemntu,
                         DlogoscElementu = bazowaDlugosc + ((dodajA ? profileA : 0) + (dodajB ? profileB : 0)),
-                        DlogoscWidocznaElementu = bazowaDlugosc
+                        DlogoscWidocznaElementu = bazowaDlugosc,
+                        DlugoscCzopaA = dodajA ? profileA : -1,
+                        DlugoscCzopaB = dodajB ? profileB : -1,
                     });
 
                 Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - >3 rowIdProfil:{rowIdProfil} Angle: {angleDegrees}°");

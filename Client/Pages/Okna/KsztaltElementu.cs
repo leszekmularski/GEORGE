@@ -54,7 +54,8 @@ namespace GEORGE.Client.Pages.Okna
         // Informacje o kąt cięcia strona A elementu
         public float KatStronaB { get; set; } = 0.0f;
         // Informacje o kąt cięcia strona B elementu
-
+        public float DlugoscCzopaA { get; set; }
+        public float DlugoscCzopaB { get; set; }
         public float OffsetLewa { get; set; } = 0.0f;
         // Informacje o offset lewa elementu
         public float OffsetPrawa { get; set; } = 0.0f;
@@ -94,7 +95,9 @@ namespace GEORGE.Client.Pages.Okna
                 OffsetLewa = this.OffsetLewa,
                 OffsetPrawa = this.OffsetPrawa,
                 OffsetGora = this.OffsetGora,
-                OffsetDol = this.OffsetDol
+                OffsetDol = this.OffsetDol,
+                DlugoscCzopaA = this.DlugoscCzopaA,
+                DlugoscCzopaB = this.DlugoscCzopaB
             };
         }
 

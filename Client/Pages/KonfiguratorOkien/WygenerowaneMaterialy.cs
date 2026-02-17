@@ -7,13 +7,16 @@
         public float KatWModelu { get; set; }
         public float KatStroanA { get; set; }
         public float KatStroanB { get; set; }
+        public float DlugoscCzopaA { get; set; }
+        public float DlugoscCzopaB { get; set; }
+        public string IdentyfikatorStrony { get; set; }
         public string Nazwa { get; set; }
         public string IndeksElementu { get; set; }
         public float IloscSztuk { get; set; }
         public string Restrykcja { get; set; }
 
         public WygenerowaneMaterialy(Guid rowIdIndeksu, double dlugosc, string nazwa, string indeksElementu, float iloscSztuk, string restrykcja, 
-            float katWModelu, float katStroanA, float katStroanB)
+            float katWModelu, float katStroanA, float katStroanB, float dlugoscCzopaA, float dlugoscCzopaB, string identyfikatorStrony)
         {
             RowIdIndeksu = rowIdIndeksu;
             Dlugosc = dlugosc;
@@ -24,6 +27,9 @@
             KatWModelu = katWModelu;
             KatStroanA = katStroanA;
             KatStroanB = katStroanB;
+            DlugoscCzopaA = dlugoscCzopaA;
+            DlugoscCzopaB = dlugoscCzopaB;
+            IdentyfikatorStrony = identyfikatorStrony;
         }
     }
 }
