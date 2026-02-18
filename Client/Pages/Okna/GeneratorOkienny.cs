@@ -2,7 +2,6 @@
 using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.Models;
 using GEORGE.Shared.ViewModels;
-using System.IO.IsolatedStorage;
 
 namespace GEORGE.Client.Pages.Okna
 {
@@ -904,7 +903,7 @@ namespace GEORGE.Client.Pages.Okna
                                     .OrderByDescending(p => p.X)
                                     .FirstOrDefault();
 
-                               // var prev = (i - 1 + vertexCount) % vertexCount;
+                                // var prev = (i - 1 + vertexCount) % vertexCount;
                                 var nextNext = (next + 1) % vertexCount;
 
                                 outerVecStart = FindFirstEdgeIntersection(outerVecStart, tx, ty, inner);
@@ -1267,7 +1266,7 @@ namespace GEORGE.Client.Pages.Okna
                         {
                             // ✨ Korekcja styku z pionami T3 z lewej i prawej strony
 
-                           // var prev = (i - 1 + vertexCount) % vertexCount;
+                            // var prev = (i - 1 + vertexCount) % vertexCount;
                             var nextNext = (next + 1) % vertexCount;
 
                             const double eps = 1.0; // ZWIĘKSZ EPSILON! 0.001 jest za mały dla Twoich danych
@@ -1352,7 +1351,7 @@ namespace GEORGE.Client.Pages.Okna
                             float innerTopTolerance = 50.0f; // Dopuszczamy różnicę 50 jednostek
 
                             var topPointsInner = inner.Where(p => p.Y <= minYInner + innerTopTolerance).ToList();
-             
+
                             if (topPointsInner.Count >= 2)
                             {
                                 // Posortuj po X dla górnych punktów
@@ -1558,7 +1557,7 @@ namespace GEORGE.Client.Pages.Okna
                             SzerokoscSlupka = szerSlupka.PionPrawa - szerSlupka.PionLewa;
                         }
 
-        
+
                         Console.WriteLine($"🔷 T5-T5 PionOsSymetrii:{PionOsSymetrii}, SzerokoscSlupka:{SzerokoscSlupka}");
 
                         // Ustal kierunki (poziomy vs pionowy)
@@ -1574,14 +1573,35 @@ namespace GEORGE.Client.Pages.Okna
 
                             if (IdWymTop != Guid.Empty && IdWymBottom != Guid.Empty)
                             {
+
                                 var topElement = model.FirstOrDefault(x => x.RowId == IdWymTop);
                                 var bottomElement = model.FirstOrDefault(x => x.RowId == IdWymBottom);
 
-                                topYShift = ObliczRoznicePoziomow(topElement);//Math.Abs((topElement?.PoziomGora ?? 0) - (topElement?.PoziomDol ?? 0));
-                                bottomYShift = ObliczRoznicePoziomow(bottomElement);//Math.Abs((bottomElement?.PoziomGora ?? 0) - (bottomElement?.PoziomDol ?? 0));
+                                var konfPolaczenia = daneKwadratu.FirstOrDefault(s => s.Przesuniecia != null)?.Przesuniecia;
+
+                                if (konfPolaczenia != null && konfPolaczenia.Count > 0)
+                                {
+                                    //foreach(var p in konfPolaczenia)
+                                    //{
+                                    //    Console.WriteLine($"🔷 T5-T5 shifts → KonfPolaczenia Strona:{p.Strona}, PrzesuniecieY:{p.PrzesuniecieY}");
+                                    //}
+
+                                    topYShift = Math.Abs(konfPolaczenia.FirstOrDefault(p => p.Strona.ToLower()  == "góra" || p.Strona.ToLower() == "gora")?.PrzesuniecieY ?? 1);
+                                    bottomYShift = Math.Abs(konfPolaczenia.FirstOrDefault(p => p.Strona.ToLower() == "dół" || p.Strona.ToLower() == "dol")?.PrzesuniecieY ?? 1);
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"🔷 T5-T5 Nie znaleziono konfiguracji przesunięcia dla przypadku poziomego. Domyślnie ustawiono 0 przesunięć.");
+                                }
+
+                                // topYShift = ObliczRoznicePoziomow(topElement);//Math.Abs((topElement?.PoziomGora ?? 0) - (topElement?.PoziomDol ?? 0));
+                                //  bottomYShift = ObliczRoznicePoziomow(bottomElement);//Math.Abs((bottomElement?.PoziomGora ?? 0) - (bottomElement?.PoziomDol ?? 0));
+
+                                // topYShift = 155;
+                                // bottomYShift = 155;
 
                                 //PionOsSymetrii = (float)(PionOsSymetrii - ((SzerokoscSlupka - topYShift)));
-                                PionOsSymetrii -= 8;
+                                // PionOsSymetrii -= 8;
                                 Console.WriteLine($"🔷 T5-T5 Vertical shifts → topYShift:{topYShift}, bottomYShift:{bottomYShift}");
                             }
 
@@ -1611,13 +1631,29 @@ namespace GEORGE.Client.Pages.Okna
                                 var topElement = model.FirstOrDefault(x => x.RowId == IdWymTop);
                                 var bottomElement = model.FirstOrDefault(x => x.RowId == IdWymBottom);
 
-                                leftXShift = ObliczRoznicePoziomow(topElement);//Math.Abs((topElement?.PoziomGora ?? 0) - (topElement?.PoziomDol ?? 0)); // linie są generowane domyślnie!!!!
-                                rightXShift = ObliczRoznicePoziomow(bottomElement);//Math.Abs((bottomElement?.PoziomGora ?? 0) - (bottomElement?.PoziomDol ?? 0));
+                                //leftXShift = ObliczRoznicePoziomow(topElement);//Math.Abs((topElement?.PoziomGora ?? 0) - (topElement?.PoziomDol ?? 0)); // linie są generowane domyślnie!!!!
+                                // rightXShift = ObliczRoznicePoziomow(bottomElement);//Math.Abs((bottomElement?.PoziomGora ?? 0) - (bottomElement?.PoziomDol ?? 0));
+                                var konfPolaczenia = daneKwadratu.FirstOrDefault(s => s.Przesuniecia != null)?.Przesuniecia;
 
-                                //PionOsSymetrii = (float)(PionOsSymetrii - ((SzerokoscSlupka - topYShift)));
-                                PionOsSymetrii -= 8; 
+                                if (konfPolaczenia != null && konfPolaczenia.Count > 0)
+                                {
+                                    topYShift = Math.Abs(konfPolaczenia.FirstOrDefault(p => p.Strona.ToLower() == "lewa")?.PrzesuniecieY ?? 1);
+                                    bottomYShift = Math.Abs(konfPolaczenia.FirstOrDefault(p => p.Strona.ToLower() == "prawa")?.PrzesuniecieY ?? 1);
 
-                                Console.WriteLine($"🔷 T5-T5 Horizontal shifts → leftXShift:{leftXShift}, rightXShift:{rightXShift}");
+                                    //foreach (var p in konfPolaczenia)
+                                    //{
+                                    //    Console.WriteLine($"🔷 T5-T5 shifts → KonfPolaczenia Strona:{p.Strona}, PrzesuniecieY:{p.PrzesuniecieY}");
+                                    //}
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"🔷 T5-T5 Nie znaleziono konfiguracji przesunięcia dla przypadku poziomego. Domyślnie ustawiono 0 przesunięć.");
+                                }
+
+                                    //PionOsSymetrii = (float)(PionOsSymetrii - ((SzerokoscSlupka - topYShift)));
+                                    //PionOsSymetrii -= 8; 
+
+                                    Console.WriteLine($"🔷 T5-T5 Horizontal shifts → leftXShift:{leftXShift}, rightXShift:{rightXShift}");
                             }
 
                             leftX = Math.Min(inner[i].X, inner[next].X) + leftXShift;
@@ -1636,7 +1672,7 @@ namespace GEORGE.Client.Pages.Okna
                     // Bezpieczne granice
                     //                    double half = (SzerokoscSlupka ?? 0) / 2.0;
 
-                    if(mouseClik.X == -1 || mouseClik.Y == -1)
+                    if (mouseClik.X == -1 || mouseClik.Y == -1)
                     {
                         mouseClik = new XPoint
                         {
@@ -1690,7 +1726,7 @@ namespace GEORGE.Client.Pages.Okna
                             tmpBottomSTT5 = new XPoint(mouseClik.X, BottomSTT5.Y);
                             tmpBottomRT5 = new XPoint(mouseClik.X, BottomRT5.Y);
                         }
-         
+
                         leftTopIntersection = FindEdgeIntersectionByLineForTriangle(tmpTopLT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: false);
                         midTopIntersection = FindEdgeIntersectionByLineForTriangle(tmpTopST5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: false);
                         rightTopIntersection = FindEdgeIntersectionByLineForTriangle(tmpTopRT5, TopLT5, BottomRT5, offset_punktyRegionuMaster, forward: false);

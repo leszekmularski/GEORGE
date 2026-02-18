@@ -4018,7 +4018,7 @@
                         Console.WriteLine($"✅✅✅✅ ⚠️ Klik znajduje się w regionie o ID: {id}");
                     }
                     Console.WriteLine($"✅✅✅✅ ⚠️ Biorę pierwszego z listy (żaden nie spełnia warunków)");
-     
+
                     najlepszySasiad = sasiedzi.First();
                 }
             }
@@ -4192,6 +4192,7 @@
             var najlepszySasiadA = sasiedzi
                 .Where(s =>
                     s.WybranyTyp != "Słupek ruchomy" && (s.WystepujeGora || s.WystepujeLewa))
+                    .OrderByDescending(sasiedzi => sasiedzi.WystepujeGora)
                 .FirstOrDefault();
 
             var najlepszySasiadB = sasiedzi
@@ -4199,6 +4200,18 @@
                 s.WybranyTyp != "Słupek ruchomy" && (s.WystepujeDol || s.WystepujePrawa))
             .OrderByDescending(sasiedzi => sasiedzi.WystepujeDol)
             .FirstOrDefault();
+
+            var polaczenieWartosci = await PobierzPolaczenia(najlepszySasiadA?.RowIdElementu ?? Guid.Empty, najlepszySasiadB?.RowIdElementu ?? Guid.Empty, "ALL");
+
+            if (polaczenieWartosci != null)
+            {
+                Console.WriteLine($"✅ Znaleziono polaczenieWartosci: {polaczenieWartosci.Count()}");
+            }
+            else
+            {
+                Console.WriteLine("⚠️ Nie znaleziono informacji o połączeniach elementów słupków w konfiguratorze!!!");
+                await _message.Warning("⚠️ Nie znaleziono informacji o połączeniach elementów słupków w konfiguratorze!!!", 1.5);
+            }
 
             // 🔹 Zapisz dane do stanu (jeśli znaleziono sąsiada)
             state.ListaKwadratow.Add(new DaneKwadratu
@@ -4226,6 +4239,7 @@
                 WypelnienieZewnetrzne = generator.KolorZewnetrzny,
                 GruboscObramowania = 2.0f,
                 ZIndex = generator.Zindeks,
+                Przesuniecia = polaczenieWartosci,
             });
 
             // 🔹 Aktualizacja stanu
@@ -5498,7 +5512,7 @@
                 }
 
                 if (!czyDodac) continue;
-                
+
                 Console.WriteLine($"🔍 Warunki: Równoległe={saRownolegle}, Przecinają={przecinajaSie}, Nakładają={nakladaja} kąt: {katLinii} kąt sąsiada: {katSasiada} czyDodac: {czyDodac}");
 
                 // 🔹 Znaleziono sąsiada - dodaj do listy
@@ -5628,15 +5642,24 @@
         }
 
         // 🔹 Filtracja wyników
-        List<SasiadInfo> wynik = pasujace.Where(x => (int)x.KatSasiada == (int)kat).OrderBy(p => p.Id).ToList();
+        List<SasiadInfo> wynik;
+
+        if (szukajNieRownoleglych) //dla elementów typu słupek stały , szukamy tylko sąsiadów o innym kącie
+        {
+            wynik = pasujace.OrderBy(p => p.Id).ToList();
+        }
+        else
+        {
+            wynik = pasujace.Where(x => (int)x.KatSasiada == (int)kat).OrderBy(p => p.Id).ToList();
+        }
 
         // foreach(var sasiad in wynik)
         // {
-        //     Console.WriteLine($"🔍 ZnajdzSasiada -> 1# Pasujący sąsiad: IdRegion={sasiad.IdRegionu}, ZIndeks={sasiad.ZIndeks}, Kąt={sasiad.KatSasiada:F1}°, Typ={sasiad.WybranyTyp}");
+        //     Console.WriteLine($"🔍 ZnajdzSasiada -> 1# Pasujący sąsiad: IdRegion={sasiad.IdRegionu}, ZIndeks={sasiad.ZIndeks}, Kąt={sasiad.KatSasiada:F1}°, Typ={sasiad.WybranyTyp} szukajNieRownoleglych: {szukajNieRownoleglych}");
         // } 
 
         // 🔹 Priorytet dla słupków stałych
-        if (wynik.Count > 1 && wynik.Any(x => x.ZIndeks == 1))
+        if (szukajNieRownoleglych && wynik.Count > 0)
         {
             // Pobierz wszystkich sąsiadów ze ZIndeks == 1
             //var sasiedziZIndeks1 = wynik.Where(x => x.ZIndeks == 1).ToList();
@@ -5645,9 +5668,20 @@
             {
                 // Jeśli tylko jeden, wybierz go
                 var sasiedziZIndeks1 = wynik.Where(x => x.ZIndeks == 1).ToList();
-                var wybrany = sasiedziZIndeks1.First();
-                wynik = new List<SasiadInfo> { wybrany };
-                Console.WriteLine($"🔍 ZnajdzSasiada -> 🔹 Priorytet dla słupków stałych Wybrano sąsiada ze ZIndeks == {wybrany.ZIndeks}");
+
+                if(sasiedziZIndeks1.Count == 0)
+                {
+                    sasiedziZIndeks1 = wynik.Where(x => x.ZIndeks == 0).ToList();
+                }
+                if(sasiedziZIndeks1.Count == 0)
+                {
+                    sasiedziZIndeks1 = wynik.OrderBy(x => Math.Abs(x.KatSasiada - katLinii)).ToList();
+                }
+
+                var wybrany2 = sasiedziZIndeks1.First();
+                wynik = new List<SasiadInfo> { wybrany2 };
+
+                Console.WriteLine($"🔍 ZnajdzSasiada -> 🔹 Priorytet dla słupków stałych Wybrano sąsiada ze ZIndeks == {wybrany2.ZIndeks}");
             }
             else
             {
@@ -5674,7 +5708,14 @@
             if (wynik.Count > 1 && wynik.Any(x => x.ZIndeks == 1 && (katLinii == kat || katLinii == kat - 180)))
             {
                 var wybrany = wynik.First(x => x.ZIndeks == 1);
+
+                if(wybrany == null)
+                {
+                    wybrany = wynik.First();
+                }
+
                 wynik = new List<SasiadInfo> { wybrany };
+
                 Console.WriteLine($"🔍 ZnajdzSasiada -> Ustawiono prirytet słupek stały Wybrano sąsiada ze ZIndeks == {wybrany.ZIndeks}");
             }
         }
@@ -6665,12 +6706,6 @@
         public bool JestSkosna { get; set; }
         public string KierunekSkosny { get; set; } = "";
         public string Strona { get; set; } = "";
-    }
-
-    public class PrzesuniecieDto
-    {
-        public double PrzesuniecieX { get; set; }
-        public double PrzesuniecieY { get; set; }
     }
 
     public class SlupekMatchResult

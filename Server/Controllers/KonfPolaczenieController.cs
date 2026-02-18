@@ -1,5 +1,6 @@
 ﻿using DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using GEORGE.Shared.Models;            // <-- lub odpowiednią dla KonfPolaczenie
+using GEORGE.Shared.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -25,17 +26,34 @@ namespace GEORGE.Server.Controllers
         {
             try
             {
-                var record = await _context.KonfPolaczenie
+                if (stronaPolaczenia == "ALL")
+                {
+                    var record = await _context.KonfPolaczenie
+                    .FirstOrDefaultAsync(p =>
+                        p.ElementZewnetrznyId == zewId &&
+                        p.ElementWewnetrznyId == wewId &&
+                        p.StronaPolaczenia != null);
+
+                    if (record is null)
+                        return NotFound();
+
+                    return record;
+                }
+                else
+                {
+                    var record = await _context.KonfPolaczenie
                     .FirstOrDefaultAsync(p =>
                         p.ElementZewnetrznyId == zewId &&
                         p.ElementWewnetrznyId == wewId &&
                         p.StronaPolaczenia != null &&
                         p.StronaPolaczenia.ToLower() == stronaPolaczenia.ToLower());
 
-                if (record is null)
-                    return NotFound();
+                    if (record is null)
+                        return NotFound();
 
-                return record;
+                    return record;
+                }
+
             }
             catch (Exception ex)
             {
@@ -71,16 +89,23 @@ namespace GEORGE.Server.Controllers
         {
             try
             {
-                var records = await _context.KonfPolaczenie
-                    .Where(p =>
-                        (p.ElementZewnetrznyId == zewId && p.ElementWewnetrznyId == wewId ||
-                         p.ElementZewnetrznyId == wewId && p.ElementWewnetrznyId == zewId) &&
-                        p.StronaPolaczenia.ToLower() == strona.ToLower()
-                    )
+                var query = _context.KonfPolaczenie
+                .Where(p =>
+                    p.ElementZewnetrznyId == zewId && p.ElementWewnetrznyId == wewId ||
+                    p.ElementZewnetrznyId == wewId && p.ElementWewnetrznyId == zewId);
+
+                    // Dodajemy warunek na stronę tylko jeśli strona NIE jest "ALL"
+                    if (!string.Equals(strona, "ALL", StringComparison.OrdinalIgnoreCase))
+                    {
+                        query = query.Where(p => p.StronaPolaczenia.ToLower() == strona.ToLower());
+                    }
+
+                var records = await query
                     .Select(p => new PrzesuniecieDto
                     {
                         PrzesuniecieX = p.PrzesuniecieX,
-                        PrzesuniecieY = p.PrzesuniecieY
+                        PrzesuniecieY = p.PrzesuniecieY,
+                        Strona = p.StronaPolaczenia ?? "BRAK DANYCH W BAZIE" // Jeśli StronaPolaczenia jest null, ustawiamy "NaN"
                     })
                     .ToListAsync();
 
@@ -88,13 +113,14 @@ namespace GEORGE.Server.Controllers
                 {
                     // Brak wyników → zwracamy domyślną wartość 0,0
                     records = new List<PrzesuniecieDto>
-            {
-                new PrzesuniecieDto
                 {
-                    PrzesuniecieX = 0,
-                    PrzesuniecieY = 0
-                }
-            };
+                    new PrzesuniecieDto
+                    {
+                        PrzesuniecieX = 0,
+                        PrzesuniecieY = 0,
+                        Strona = "NaN"
+                    }
+                };
                     Console.WriteLine($"Brak wyników, zwracam domyślną wartość 0,0 zew: {zewId} wew: {wewId} strona: {strona}");
                 }
 
@@ -209,12 +235,6 @@ namespace GEORGE.Server.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(existing);
-        }
-
-        public class PrzesuniecieDto
-        {
-            public double PrzesuniecieX { get; set; }
-            public double PrzesuniecieY { get; set; }
         }
 
     }
