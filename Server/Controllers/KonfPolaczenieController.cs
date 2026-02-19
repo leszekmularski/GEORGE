@@ -103,8 +103,10 @@ namespace GEORGE.Server.Controllers
                 var records = await query
                     .Select(p => new PrzesuniecieDto
                     {
-                        PrzesuniecieX = p.PrzesuniecieX,
-                        PrzesuniecieY = p.PrzesuniecieY,
+                        PrzesuniecieX = p.PrzesuniecieX == 0 ? 1 : p.PrzesuniecieX,
+                        PrzesuniecieY = p.PrzesuniecieY == 0 ? 1 : p.PrzesuniecieY,
+                        PrzesuniecieXStycznej = p.PrzesuniecieXStycznej == 0 ? 1 : p.PrzesuniecieXStycznej,
+                        PrzesuniecieYStycznej = p.PrzesuniecieYStycznej == 0 ? 1 : p.PrzesuniecieYStycznej,
                         Strona = p.StronaPolaczenia ?? "BRAK DANYCH W BAZIE" // Jeśli StronaPolaczenia jest null, ustawiamy "NaN"
                     })
                     .ToListAsync();
@@ -116,8 +118,10 @@ namespace GEORGE.Server.Controllers
                 {
                     new PrzesuniecieDto
                     {
-                        PrzesuniecieX = 0,
-                        PrzesuniecieY = 0,
+                        PrzesuniecieX = 1,
+                        PrzesuniecieY = 1,
+                        PrzesuniecieXStycznej = 1,
+                        PrzesuniecieYStycznej = 1,
                         Strona = "NaN"
                     }
                 };

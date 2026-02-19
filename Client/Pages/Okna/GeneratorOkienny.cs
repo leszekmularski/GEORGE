@@ -1586,8 +1586,8 @@ namespace GEORGE.Client.Pages.Okna
                                     //    Console.WriteLine($"🔷 T5-T5 shifts → KonfPolaczenia Strona:{p.Strona}, PrzesuniecieY:{p.PrzesuniecieY}");
                                     //}
 
-                                    topYShift = Math.Abs(konfPolaczenia.FirstOrDefault(p => p.Strona.ToLower()  == "góra" || p.Strona.ToLower() == "gora")?.PrzesuniecieY ?? 1);
-                                    bottomYShift = Math.Abs(konfPolaczenia.FirstOrDefault(p => p.Strona.ToLower() == "dół" || p.Strona.ToLower() == "dol")?.PrzesuniecieY ?? 1);
+                                    topYShift = Math.Abs(konfPolaczenia.FirstOrDefault(p => p.Strona.ToLower()  == "góra" || p.Strona.ToLower() == "gora")?.PrzesuniecieYStycznej ?? 1);
+                                    bottomYShift = Math.Abs(konfPolaczenia.FirstOrDefault(p => p.Strona.ToLower() == "dół" || p.Strona.ToLower() == "dol")?.PrzesuniecieYStycznej ?? 1);
                                 }
                                 else
                                 {
@@ -1637,8 +1637,8 @@ namespace GEORGE.Client.Pages.Okna
 
                                 if (konfPolaczenia != null && konfPolaczenia.Count > 0)
                                 {
-                                    topYShift = Math.Abs(konfPolaczenia.FirstOrDefault(p => p.Strona.ToLower() == "lewa")?.PrzesuniecieY ?? 1);
-                                    bottomYShift = Math.Abs(konfPolaczenia.FirstOrDefault(p => p.Strona.ToLower() == "prawa")?.PrzesuniecieY ?? 1);
+                                    topYShift = Math.Abs(konfPolaczenia.FirstOrDefault(p => p.Strona.ToLower() == "lewa")?.PrzesuniecieYStycznej ?? 1);
+                                    bottomYShift = Math.Abs(konfPolaczenia.FirstOrDefault(p => p.Strona.ToLower() == "prawa")?.PrzesuniecieYStycznej ?? 1);
 
                                     //foreach (var p in konfPolaczenia)
                                     //{
