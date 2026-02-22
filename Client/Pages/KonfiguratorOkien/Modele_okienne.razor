@@ -573,17 +573,17 @@
                                 @if (model.Rysunek != null && model.Ikona32x32.Length > 0)
                                 {
                                     <img id="@($"wing-{model.Typ}")"
-                                        src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
-                                        @onclick='@(() => WybierzModel(model))'
-                                        @ondragstart='@(e => JS.InvokeVoidAsync("SetCurrentModel", model.Typ, model.RowId))'
-                                        @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
-                                        draggable="true"
-                                        style="cursor: grab;
-                                        width: auto;
-                                        height: auto;
-                                        max-width: 50px;
-                                        max-height: 50px;
-                                        border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
+                                         src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
+                                         @onclick='@(() => WybierzModel(model))'
+                                         @ondragstart='@(e => JS.InvokeVoidAsync("SetCurrentModel", model.Typ, model.RowId))'
+                                         @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
+                                         draggable="true"
+                                         style="cursor: grab;
+                                                    width: auto;
+                                                    height: auto;
+                                                    max-width: 50px;
+                                                    max-height: 50px;
+                                                    border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
 
                                 }
                                 else
@@ -615,9 +615,9 @@
             <!-- Canvas -->
             <Spin Spinning="_czekajNaZaladowanie" Delay="25"
                   Style="@($"width:250px; height:250px")">
-                    <div class="canvas-container" style="padding:0px;background-color: transparent;border: 0px; will-change: transform; transform: translateZ(0)">
-                        <BECanvas @ref="CanvasRef" Width="@CanvasWidth" Height="@CanvasHeight" />
-                    </div> 
+                <div class="canvas-container" style="padding:0px;background-color: transparent;border: 0px; will-change: transform; transform: translateZ(0)">
+                    <BECanvas @ref="CanvasRef" Width="@CanvasWidth" Height="@CanvasHeight" />
+                </div>
             </Spin>
         }
     </div>
@@ -1305,7 +1305,7 @@
 
     private bool _czekajNaZaladowanie = false;
 
-    private XPoint _lastMouseClick= new();
+    private XPoint _lastMouseClick = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -1454,7 +1454,7 @@
     [JSInvokable]
     public async Task HandleResize(double width, double height)
     {
-        if(czejaNaZoom) return;
+        if (czejaNaZoom) return;
         czejaNaZoom = true;
 
         try
@@ -3704,7 +3704,7 @@
                 generator.RuchomySlupekPoLewej = false;
                 generator.RuchomySlupekPoPrawej = false;
 
-                var ok = await generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama, null, null ,_lastMouseClick);//Rama nie ma sąsiada dla tego null
+                var ok = await generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama, null, null, _lastMouseClick);//Rama nie ma sąsiada dla tego null
                 if (!ok)
                 {
                     _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Sprawdź wymiary i kształt regionu.");
@@ -3766,7 +3766,7 @@
             sasiedzi = await ZnajdzSasiada(
                 linia,
                 _generatorStates.Values.ToList(),
-                (float)katSzukaj,
+                katSzukaj,
                 stronaSzukaj,
                 state.SlupekRuchomyPoLewejStronie,
                 state.SlupekRuchomyPoPrawejStronie,
@@ -4219,12 +4219,12 @@
             DaneKwadratu najlepszySasiadA = state.ListaKwadratow.Find(k => k.Strona.ToLower() == "góra" || k.Strona.ToLower() == "gora");
             DaneKwadratu najlepszySasiadB = state.ListaKwadratow.Find(k => k.Strona.ToLower() == "dół" | k.Strona.ToLower() == "dol");
 
-            if(najlepszySasiadA == null)
+            if (najlepszySasiadA == null)
             {
                 najlepszySasiadA = state.ListaKwadratow.Find(k => k.Strona.ToLower() == "lewa");
             }
 
-            if(najlepszySasiadB == null)
+            if (najlepszySasiadB == null)
             {
                 najlepszySasiadB = state.ListaKwadratow.Find(k => k.Strona.ToLower() == "prawa");
             }
@@ -5492,7 +5492,7 @@
     public async Task<List<SasiadInfo>> ZnajdzSasiada(
       List<XPoint> linia,
       List<GeneratorState> wszystkieStany,
-      float kat,
+      double kat,
       string strona,
       bool ruchomySlupekPoLewej,
       bool ruchomySlupekPoPrawej,
@@ -5593,7 +5593,19 @@
                 double roznicaKatow = RoznicaKatow180(katLinii, katSasiada);
                 bool saRownolegle = roznicaKatow <= 89.9;
 
-                bool przecinajaSie = CzyPrzecinajaSie(p1, p2, q1, q2, tolerancja);
+                bool przecinajaSie = false;// CzyPrzecinajaSie(p1, p2, q1, q2, tolerancja);
+
+                //if(kat < 45 || kat > 135) // dla linii bardziej poziomych, sprawdzamy przecięcie
+               // {
+                  if(!przecinajaSie)  przecinajaSie = CzyLiniaPrzecinaOdcinek(p1, p2, q1, q2, tolerancja, out var pkt);
+                //}
+                //else // dla linii bardziej pionowych, możemy być bardziej tolerancyjni
+                //{
+                   // przecinajaSie = CzyPrzecinajaSie(p1, p2, q1, q2, tolerancja);
+               // }
+                // przecinajaSie = CzyLiniaPrzecinaOdcinek(p1, p2, q1, q2, out var punktPrzeciecia);
+
+                // przecinajaSie = CzyPrzecinajaSie(p1, p2, q1, q2, tolerancja);
 
                 // if (!SelectedModelType.ToLower().Contains("słup"))
                 // {
@@ -5846,8 +5858,8 @@
         for (int i = 0; i < wynik.Count; i++)
         {
             var sasiad = wynik[i];
-            Console.WriteLine($"🔍 ZnajdzSasiada -> Pasujący sąsiad zwracam wyniki #{i + 1}/{wynik.Count()}: IdRegion={sasiad.IdRegionu}, " + 
-            $"sasiad.RowIdElementu={sasiad.RowIdElementu}, ZIndeks={sasiad.ZIndeks}, KatLinii={sasiad.KatLinii:F1}°, KatSasiada={sasiad.KatSasiada:F1}°, " + 
+            Console.WriteLine($"🔍 ZnajdzSasiada -> Pasujący sąsiad zwracam wyniki #{i + 1}/{wynik.Count()}: IdRegion={sasiad.IdRegionu}, " +
+            $"sasiad.RowIdElementu={sasiad.RowIdElementu}, ZIndeks={sasiad.ZIndeks}, KatLinii={sasiad.KatLinii:F1}°, KatSasiada={sasiad.KatSasiada:F1}°, " +
             $"Typ={sasiad.WybranyTyp} WystepujeDol: {sasiad.WystepujeDol} WystepujeGora: {sasiad.WystepujeGora} WystepujeLewa: {sasiad.WystepujeLewa} WystepujePrawa: {sasiad.WystepujePrawa}");
         }
 
@@ -5910,7 +5922,7 @@
     // }
 
     //--------------------------------------------------------------------------------------------------------------------------
-    
+
     // private bool CzyPunktyRowne(XPoint p1, XPoint p2, double tolerancja)
     // {
     //     return Math.Abs(p1.X - p2.X) < tolerancja && Math.Abs(p1.Y - p2.Y) < tolerancja;
@@ -5937,6 +5949,80 @@
 
     //     return 0;
     // }
+
+    public static double OdlegloscPunktuOdProstej(XPoint p, XPoint a, XPoint b)
+    {
+        double dx = b.X - a.X;
+        double dy = b.Y - a.Y;
+
+        double len = Math.Sqrt(dx * dx + dy * dy);
+        if (len < 1e-12) return 0;
+
+        return Math.Abs(dy * p.X - dx * p.Y + b.X * a.Y - b.Y * a.X) / len;
+    }
+
+    public static bool CzyLiniaPrzecinaOdcinek(
+        XPoint l1, XPoint l2,   // linia nieskończona (Twoja linia testowa)
+        XPoint s1, XPoint s2,   // odcinek modelu
+        double tolerancja,      // np. 0.05
+        out XPoint punkt)
+    {
+        punkt = new XPoint();
+
+        const double EPS = 1e-12;
+
+        // równanie prostej L
+        double A1 = l2.Y - l1.Y;
+        double B1 = l1.X - l2.X;
+        double C1 = A1 * l1.X + B1 * l1.Y;
+
+        // równanie prostej S
+        double A2 = s2.Y - s1.Y;
+        double B2 = s1.X - s2.X;
+        double C2 = A2 * s1.X + B2 * s1.Y;
+
+        double det = A1 * B2 - A2 * B1;
+
+        // 🔹 PRZYPADEK 1 — linie prawie równoległe → sprawdzamy odległość
+        if (Math.Abs(det) < EPS)
+        {
+            // odległość punktu od prostej
+            double dist1 = OdlegloscPunktuOdProstej(s1, l1, l2);
+            double dist2 = OdlegloscPunktuOdProstej(s2, l1, l2);
+
+            if (Math.Min(dist1, dist2) <= tolerancja)
+            {
+                punkt = dist1 < dist2 ? s1 : s2;
+                return true; // styczność / współliniowość
+            }
+
+            return false;
+        }
+
+        // 🔹 PRZYPADEK 2 — klasyczne przecięcie prostych
+        double x = (B2 * C1 - B1 * C2) / det;
+        double y = (A1 * C2 - A2 * C1) / det;
+
+        punkt = new XPoint(x, y);
+
+        // 🔹 zamiast "czy w bboxie" robimy dystans do odcinka
+        double dist = OdlegloscPunktuOdOdcinka(punkt, s1, s2);
+
+        if (dist <= tolerancja)
+            return true; // trafienie lub styczność
+
+        // 🔹 dodatkowo: czy któryś koniec odcinka leży blisko linii
+        double d1 = OdlegloscPunktuOdProstej(s1, l1, l2);
+        double d2 = OdlegloscPunktuOdProstej(s2, l1, l2);
+
+        if (Math.Min(d1, d2) <= tolerancja)
+        {
+            punkt = d1 < d2 ? s1 : s2;
+            return true;
+        }
+
+        return false;
+    }
 
     // 🔹 Sprawdza, czy dwie linie się przecinają
     private static bool CzyPrzecinajaSie(XPoint p1, XPoint p2, XPoint q1, XPoint q2, double tolerancja)
@@ -5983,7 +6069,7 @@
                p.Y >= Math.Min(a.Y, b.Y) - tolerancja;
     }
 
-    private static bool CzyNakladajaSieDowolne(XPoint a1, XPoint a2, XPoint b1, XPoint b2, double tol = 0.02, float kat = 0)
+    private static bool CzyNakladajaSieDowolne(XPoint a1, XPoint a2, XPoint b1, XPoint b2, double tol = 0.02, double kat = 0)
     {
         // 🔹 Oblicz wektory i długości linii
         double dxA = a2.X - a1.X;
@@ -6139,7 +6225,7 @@
     //     // Dla linii skośnych większa tolerancja
     //     return minOdl < tol * 50;
     // }
-    
+
     //--------------------------------------------------------------------------------------------------------------------------
 
     private readonly struct Vector2D
@@ -6816,8 +6902,8 @@
         public bool MaSlupekRuchomy { get; set; }
         public int Id { get; set; }
         public string? WybranyTyp { get; set; }
-        public float KatSasiada { get; set; }
-        public float KatLinii { get; set; }
+        public double KatSasiada { get; set; }
+        public double KatLinii { get; set; }
         public bool WystepujeDol { get; set; } = false;
         public bool WystepujeLewa { get; set; } = false;
         public bool WystepujeGora { get; set; } = false;
