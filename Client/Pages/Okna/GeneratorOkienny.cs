@@ -2,6 +2,7 @@
 using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.Models;
 using GEORGE.Shared.ViewModels;
+using Microsoft.JSInterop;
 
 namespace GEORGE.Client.Pages.Okna
 {
@@ -19,10 +20,11 @@ namespace GEORGE.Client.Pages.Okna
         public List<ShapeRegion> Region { get; set; } = new();
         public string StronaElementu { get; set; } = "";
 
-        // public new MVCKonfModele? PowiazanyModel;
+        private readonly IJSRuntime _jsRuntime;
 
-        public Generator()
+        public Generator(IJSRuntime jsRuntime)
         {
+            _jsRuntime = jsRuntime;
             // Inicjalizacja domyślnych wartości
             Szerokosc = 1250;
             Wysokosc = 1000;
@@ -47,6 +49,12 @@ namespace GEORGE.Client.Pages.Okna
             List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster, XPoint mouseClik)
         {
             if (regions == null) return false;
+
+            if (_jsRuntime != null)
+            {
+                await _jsRuntime.InvokeVoidAsync("console.clear");
+                await _jsRuntime.InvokeVoidAsync("console.log", "\n\n");
+            }
 
             if (KonfiguracjeSystemu == null || MVCKonfModelu == null)
             {
@@ -182,12 +190,12 @@ namespace GEORGE.Client.Pages.Okna
             //float profileTop = (float)((konfTop?.PionPrawa ?? 0) - (konfTop?.PionLewa ?? 0));
             //float profileBottom = (float)((konfBottom?.PionPrawa ?? 0) - (konfBottom?.PionLewa ?? 0));
 
-            float profileLeft = ObliczRoznicePoziomow(konfLeft);
-            float profileRight = ObliczRoznicePoziomow(konfRight);
-            float profileTop = ObliczRoznicePoziomow(konfTop);
-            float profileBottom = ObliczRoznicePoziomow(konfBottom);
+            float profileLeft = ObliczRoznicePoziomow(konfLeft, ElementLiniowy);
+            float profileRight = ObliczRoznicePoziomow(konfRight, ElementLiniowy);
+            float profileTop = ObliczRoznicePoziomow(konfTop, ElementLiniowy);
+            float profileBottom = ObliczRoznicePoziomow(konfBottom, ElementLiniowy);
 
-            //Console.WriteLine($"🔧 Profile z konfiguracji przed korektą: profileLeft: {profileLeft} profileRight: {profileRight} profileTop: {profileTop} profileBottom: {profileBottom}");
+            Console.WriteLine($"🔧 Profile z konfiguracji przed korektą: profileLeft: {profileLeft} profileRight: {profileRight} profileTop: {profileTop} profileBottom: {profileBottom}");
 
             Guid RowIdprofileLeft = konfLeft?.RowId ?? Guid.Empty;
             Guid RowIdprofileRight = konfRight?.RowId ?? Guid.Empty;
@@ -277,22 +285,30 @@ namespace GEORGE.Client.Pages.Okna
 
             //}
         }
-        private float ObliczRoznicePoziomow(KonfSystem? konf)
+        private float ObliczRoznicePoziomow(KonfSystem? konf, bool slupekStaly)
         {
             if (konf == null)
                 return 0;
+            if (!slupekStaly)
+            {
+                float gora = (float)konf.PoziomGora;
+                float dol = (float)konf.PoziomDol;
 
-            float gora = (float)konf.PoziomGora;
-            float dol = (float)konf.PoziomDol;
+                // Jeśli jedno z pól jest 0, traktuj drugie jako wartość symetryczną
+                if (gora == 0 && dol != 0)
+                    return Math.Abs(dol);
 
-            // Jeśli jedno z pól jest 0, traktuj drugie jako wartość symetryczną
-            if (gora == 0 && dol != 0)
-                return Math.Abs(dol);
+                if (dol == 0 && gora != 0)
+                    return Math.Abs(gora);
 
-            if (dol == 0 && gora != 0)
-                return Math.Abs(gora);
+                return Math.Abs(gora - dol);
+            }
+            else
+            {
+                //Słupki stałe mają zawsze pełną wartość profilu, niezależnie od poziomów pozostałe dane z tabeli KonfPolaczenia
+                return 0;
+            }
 
-            return Math.Abs(gora - dol);
         }
 
         public async Task<bool> GenerateGenericElementsWithJoins(
@@ -331,21 +347,21 @@ namespace GEORGE.Client.Pages.Okna
                  .LastOrDefault();
 
 
-                ////var szukDaneKwadratu = daneKwadratu
-                //// .Where(x => x.Wierzcholki.Count == 2)
-                ////   .LastOrDefault();
+                //var szukDaneKwadratu = daneKwadratu
+                // .Where(x => x.Wierzcholki.Count == 2)
+                //   .LastOrDefault();
 
-                //Console.WriteLine($"▶️ Element 1 wartość X: {szukDaneKwadratu.Wierzcholki[0].X} dotyczy: ElementLiniowy: {ElementLiniowy} rowIdprofileLeft: {rowIdprofileLeft} rowIdprofileRight: {rowIdprofileRight} rowIdprofileTop: {rowIdprofileTop} rowIdprofileBottom: {rowIdprofileBottom}");
+                Console.WriteLine($"▶️ Element X wartość X: {szukDaneKwadratu.Wierzcholki[0].X} dotyczy: ElementLiniowy: {ElementLiniowy} rowIdprofileLeft: {rowIdprofileLeft} rowIdprofileRight: {rowIdprofileRight} rowIdprofileTop: {rowIdprofileTop} rowIdprofileBottom: {rowIdprofileBottom}");
 
-                //if (szukDaneKwadratu != null)
-                //{
-                //    Console.WriteLine($"▶️ Element model.Count:{model.Count()} szukDaneKwadratu.Wierzcholki.Count: {szukDaneKwadratu?.Wierzcholki.Count()} RuchomySlupekPoLewej:{RuchomySlupekPoLewej} RuchomySlupekPoPrawej:{RuchomySlupekPoPrawej}");
+                if (szukDaneKwadratu != null)
+                {
+                    Console.WriteLine($"▶️ Element model.Count:{model.Count()} szukDaneKwadratu.Wierzcholki.Count: {szukDaneKwadratu?.Wierzcholki.Count()} RuchomySlupekPoLewej:{RuchomySlupekPoLewej} RuchomySlupekPoPrawej:{RuchomySlupekPoPrawej}");
 
-                //    foreach (var dk in szukDaneKwadratu.Wierzcholki)
-                //    {
-                //        Console.WriteLine($"▶️ ElementX:{dk.X} Y:{dk.Y}");
-                //    }
-                //}
+                    foreach (var dk in szukDaneKwadratu.Wierzcholki)
+                    {
+                        Console.WriteLine($"▶️ ElementX:{dk.X} Y:{dk.Y}");
+                    }
+                }
 
                 XPoint outerStart = szukDaneKwadratu.Wierzcholki[0];
                 XPoint outerEnd = szukDaneKwadratu.Wierzcholki[1];
@@ -1557,6 +1573,17 @@ namespace GEORGE.Client.Pages.Okna
                             SzerokoscSlupka = szerSlupka.PionPrawa - szerSlupka.PionLewa;
                         }
 
+                        // Bezpieczne granice
+                        //                    double half = (SzerokoscSlupka ?? 0) / 2.0;
+
+                        if (mouseClik.X == -1 || mouseClik.Y == -1)
+                        {
+                            mouseClik = new XPoint
+                            {
+                                X = (TopLT5.X + TopRT5.X + BottomLT5.X + BottomRT5.X) / 4,
+                                Y = (TopLT5.Y + TopRT5.Y + BottomLT5.Y + BottomRT5.Y) / 4
+                            };
+                        }
 
                         Console.WriteLine($"🔷 T5-T5 PionOsSymetrii:{PionOsSymetrii}, SzerokoscSlupka:{SzerokoscSlupka}");
 
@@ -1586,7 +1613,7 @@ namespace GEORGE.Client.Pages.Okna
                                     //    Console.WriteLine($"🔷 T5-T5 shifts → KonfPolaczenia Strona:{p.Strona}, PrzesuniecieY:{p.PrzesuniecieY}");
                                     //}
 
-                                    topYShift = Math.Abs(konfPolaczenia.FirstOrDefault(p => p.Strona.ToLower()  == "góra" || p.Strona.ToLower() == "gora")?.PrzesuniecieYStycznej ?? 1);
+                                    topYShift = Math.Abs(konfPolaczenia.FirstOrDefault(p => p.Strona.ToLower() == "góra" || p.Strona.ToLower() == "gora")?.PrzesuniecieYStycznej ?? 1);
                                     bottomYShift = Math.Abs(konfPolaczenia.FirstOrDefault(p => p.Strona.ToLower() == "dół" || p.Strona.ToLower() == "dol")?.PrzesuniecieYStycznej ?? 1);
                                 }
                                 else
@@ -1609,7 +1636,7 @@ namespace GEORGE.Client.Pages.Okna
                             bottomY = Math.Max(inner[i].Y, inner[next].Y) - bottomYShift;
 
                             // Start liczymy względem punktu przecięcia z inner[i] (czyli skrócony)
-                            TopLT5 = GetHorizontalIntersection(_innerStart, _innerEnd, (float)topY, PionOsSymetrii);
+                            TopLT5 = GetHorizontalIntersection(_innerStart, _innerEnd, (float)topY, PionOsSymetrii);//FindFirstEdgeIntersectionByAngle(TopST5, angleDegrees, inner);//
                             BottomRT5 = GetHorizontalIntersection(_innerStart, _innerEnd, (float)bottomY, PionOsSymetrii);
 
                             // Normalne punkty wewnętrzne
@@ -1650,10 +1677,10 @@ namespace GEORGE.Client.Pages.Okna
                                     Console.WriteLine($"🔷 T5-T5 Nie znaleziono konfiguracji przesunięcia dla przypadku poziomego. Domyślnie ustawiono 0 przesunięć.");
                                 }
 
-                                    //PionOsSymetrii = (float)(PionOsSymetrii - ((SzerokoscSlupka - topYShift)));
-                                    //PionOsSymetrii -= 8; 
+                                //PionOsSymetrii = (float)(PionOsSymetrii - ((SzerokoscSlupka - topYShift)));
+                                //PionOsSymetrii -= 8; 
 
-                                    Console.WriteLine($"🔷 T5-T5 Horizontal shifts → leftXShift:{leftXShift}, rightXShift:{rightXShift}");
+                                Console.WriteLine($"🔷 T5-T5 Horizontal shifts → leftXShift:{leftXShift}, rightXShift:{rightXShift}");
                             }
 
                             leftX = Math.Min(inner[i].X, inner[next].X) + leftXShift;
@@ -1669,17 +1696,6 @@ namespace GEORGE.Client.Pages.Okna
                         }
                     }
 
-                    // Bezpieczne granice
-                    //                    double half = (SzerokoscSlupka ?? 0) / 2.0;
-
-                    if (mouseClik.X == -1 || mouseClik.Y == -1)
-                    {
-                        mouseClik = new XPoint
-                        {
-                            X = (TopLT5.X + TopRT5.X + BottomLT5.X + BottomRT5.X) / 4,
-                            Y = (TopLT5.Y + TopRT5.Y + BottomLT5.Y + BottomRT5.Y) / 4
-                        };
-                    }
 
                     var punkYModelu = punktyRegionuMaster.Max(p => p.Y) / 2;
 
@@ -1957,16 +1973,17 @@ namespace GEORGE.Client.Pages.Okna
         {
             return Math.Abs(p1.X - p2.X) < 0.1 && Math.Abs(p1.Y - p2.Y) < 0.1;
         }
+
         private XPoint FindEdgeIntersectionByLineForTriangle(
-            XPoint basePoint,
-            XPoint dirStart,
-            XPoint dirEnd,
-            List<XPoint> triangle,
-            bool forward = true,
-            double eps = 1e-6)
+        XPoint basePoint,
+        XPoint dirStart,
+        XPoint dirEnd,
+        List<XPoint> points,      // zmieniona nazwa z triangle na points
+        bool forward = true,
+        double eps = 1e-6)
         {
-            if (triangle == null || triangle.Count != 3)
-                throw new ArgumentException("Triangle must have exactly 3 points");
+            if (points == null || points.Count < 2)
+                throw new ArgumentException("Points list must contain at least 2 points");
 
             // kierunek
             double dx = dirEnd.X - dirStart.X;
@@ -1985,20 +2002,59 @@ namespace GEORGE.Client.Pages.Okna
 
             List<(double t, XPoint p)> hits = new();
 
-            for (int i = 0; i < 3; i++)
+            // Dla trójkąta (3 punkty) - zamykamy pętlę
+            if (points.Count == 3)
             {
-                XPoint a = triangle[i];
-                XPoint b = triangle[(i + 1) % 3];
-
-                if (TryIntersectLineWithSegment(
-                        basePoint, dx, dy,
-                        a, b,
-                        out double t,
-                        out XPoint hit,
-                        eps))
+                for (int i = 0; i < 3; i++)
                 {
-                    hits.Add((t, hit));
+                    XPoint a = points[i];
+                    XPoint b = points[(i + 1) % 3];
+
+                    if (TryIntersectLineWithSegment(
+                            basePoint, dx, dy,
+                            a, b,
+                            out double t,
+                            out XPoint hit,
+                            eps))
+                    {
+                        hits.Add((t, hit));
+                    }
                 }
+            }
+            else // Dla linii (2 punkty) lub dowolnej listy punktów - łączymy po kolei
+            {
+                for (int i = 0; i < points.Count - 1; i++)
+                {
+                    XPoint a = points[i];
+                    XPoint b = points[i + 1];
+
+                    if (TryIntersectLineWithSegment(
+                            basePoint, dx, dy,
+                            a, b,
+                            out double t,
+                            out XPoint hit,
+                            eps))
+                    {
+                        hits.Add((t, hit));
+                    }
+                }
+
+                // Opcjonalnie: jeśli chcesz zamknąć pętlę (dla wielokątów)
+                // if (points.Count > 2)
+                // {
+                //     XPoint a = points[points.Count - 1];
+                //     XPoint b = points[0];
+                //     
+                //     if (TryIntersectLineWithSegment(
+                //             basePoint, dx, dy,
+                //             a, b,
+                //             out double t,
+                //             out XPoint hit,
+                //             eps))
+                //     {
+                //         hits.Add((t, hit));
+                //     }
+                // }
             }
 
             if (hits.Count == 0)
