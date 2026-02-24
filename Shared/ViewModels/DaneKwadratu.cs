@@ -44,7 +44,16 @@ namespace GEORGE.Shared.ViewModels
                 Wierzcholki = this.Wierzcholki != null
                     ? this.Wierzcholki.Select(p => new XPoint(p.X, p.Y)).ToList()
                     : null,
-
+                Przesuniecia = this.Przesuniecia != null
+                    ? this.Przesuniecia.Select(p => new PrzesuniecieDto
+                    {
+                        PrzesuniecieX = p.PrzesuniecieX,
+                        PrzesuniecieY = p.PrzesuniecieY,
+                        PrzesuniecieXStycznej = p.PrzesuniecieXStycznej,
+                        PrzesuniecieYStycznej = p.PrzesuniecieYStycznej,
+                        Strona = p.Strona
+                    }).ToList()
+                    : null,
                 RowIdElementu = this.RowIdElementu,
                 RowIdSasiada = this.RowIdSasiada,
                 RowIdSasiadaStronaA = this.RowIdSasiadaStronaA,

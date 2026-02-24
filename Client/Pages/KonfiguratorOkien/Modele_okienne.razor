@@ -720,6 +720,7 @@
                                             </li>
                                         }
                                     </ul>
+
                                 }
                             </div>
                         </div>
@@ -1408,8 +1409,6 @@
                 {
                     CanvasWidth = newWidth;
                     CanvasHeight = newHeight;
-
-
 
                     // Console.WriteLine($"📐 Rozmiar .display-window: {CanvasWidth}x{CanvasHeight}");
 
@@ -3013,7 +3012,7 @@
             {
                 string cleanId = genState.Value.IdRegion;
 
-                Console.WriteLine($"🔄 Przetwarzam region cleanId:{cleanId} SelectedModelType?.Trim(): {SelectedModelType?.Trim()}");
+                Console.WriteLine($"🔄 Przetwarzam region cleanId:{cleanId} genState.Value.WybranyModel.Typ?.Trim(): {genState.Value.WybranyModel.Typ?.Trim()}");
 
                 var region = wszystkieRegiony.FirstOrDefault(r => r.Id == cleanId);
                 if (region == null)
@@ -3048,8 +3047,8 @@
                 genState.Value.ListaKwadratow = await WyliczKwadratyPoZmianieAsync(region);
                 _generatorStates[cleanId].ListaKwadratow = genState.Value.ListaKwadratow;
 
-                // Obsługa specjalna dla skrzydeł
-                if (SelectedModelType?.Trim() == "Skrzydło" || SelectedModelType?.Trim() == "Skrzydło z słupkiem ruchomym")
+                     // Obsługa specjalna dla skrzydeł
+                if (genState.Value.WybranyModel.Typ?.Trim() == "Skrzydło" || genState.Value.WybranyModel.Typ?.Trim() == "Skrzydło z słupkiem ruchomym")
                 {
                     var wybranyRegionSkrzydlo = _regionsSkrzydlo.FirstOrDefault(r => r.Id == region.Id);
                     if (wybranyRegionSkrzydlo != null)
@@ -3081,7 +3080,7 @@
                     }
                 }
 
-                if (SelectedModelType?.Trim() == "Słupek stały")
+                if (genState.Value.WybranyModel.Typ?.Trim() == "Słupek stały")
                 {
                     var wybranyRegionSlupek = _regionsDualRama.Concat(_regionsSkrzydlo)
                         .FirstOrDefault(r => r.Id == region.Id);
@@ -3090,8 +3089,26 @@
 
                     if (wybranyRegionSlupek != null)
                     {
-                        double przesLewo = 0, przesPrawo = 0;
-                        double przesGora = 0, przesDol = 0;
+                        // Pobierz przesunięcia z konfiguracji
+                        var konfPolaczenia = genState.Value.ListaKwadratow.FirstOrDefault(s => s.Przesuniecia != null)?.Przesuniecia;
+
+                        double przesLewo = 0, przesPrawo = 0, przesGora = 0, przesDol = 0;
+
+                        if (konfPolaczenia != null && konfPolaczenia.Count > 0)
+                        {
+                            // Dla słupka pionowego - przesunięcia poziome (lewo/prawo) wpływają na pozycję X
+                            // a przesunięcia pionowe (góra/dół) wpływają na długość
+                            przesGora = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
+                                p.Strona.ToLower() == "góra" || p.Strona.ToLower() == "gora")?.PrzesuniecieYStycznej ?? 0);
+                            przesDol = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
+                                p.Strona.ToLower() == "dół" || p.Strona.ToLower() == "dol")?.PrzesuniecieYStycznej ?? 0);
+                            przesLewo = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
+                                p.Strona.ToLower() == "lewa")?.PrzesuniecieYStycznej ?? 0);
+                            przesPrawo = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
+                                p.Strona.ToLower() == "prawa")?.PrzesuniecieYStycznej ?? 0);
+
+                            // Opcjonalnie: profileLeft = (float)przesLewo; // jeśli potrzebujesz gdzieś indziej
+                        }
 
                         await WyliczObszarSlupkaStalego(
                             _generatorStates[cleanId],
@@ -3104,7 +3121,6 @@
                         );
                     }
                 }
-
                 // Dodaj elementy do generatora
                 var daneKwadratow = genState.Value.ListaKwadratow ?? new List<DaneKwadratu>();
 
@@ -4322,10 +4338,10 @@
 
             //Console.WriteLine($"✅ Rozpoczynam przekazywanie AddElements ID: {idRegion} sasiedzi.Count: {sasiedzi.Count()} najlepszy sąsiad stroanA: {najlepszySasiadA?.RowIdElementu ?? Guid.Empty} stroanB: {najlepszySasiadB?.RowIdElementu ?? Guid.Empty}");
 
-            // //   var regionLinia = wszystkieRegiony.
-            // foreach (var r in wszystkieRegiony)
+            //   var regionLinia = wszystkieRegiony.
+            // foreach (var r in polaczenieWartosciA.Concat(polaczenieWartosciB).ToList())
             // {
-            //     Console.WriteLine($"🔹🔹🔹🔹🔹🔹 Sprawdzany region dla słupka stałego: ID: {r.Id} Wierzcholki.Count: {r.Wierzcholki.Count} X:{r.Wierzcholki[0].X} Y:{r.Wierzcholki[0].Y} TypLiniiDzielacej: {r.TypLiniiDzielacej}🔹🔹🔹🔹🔹🔹");
+            //     Console.WriteLine($"🔹🔹🔹🔹🔹🔹Strona: {r.Strona} PrzesuniecieX: {r.PrzesuniecieX} PrzesuniecieY: {r.PrzesuniecieY} PrzesuniecieXStycznej: {r.PrzesuniecieXStycznej} PrzesuniecieYStycznej: {r.PrzesuniecieYStycznej}🔹🔹🔹🔹🔹🔹");
             // }
 
             double tolerancjaKlikniecia = 55.0; // odległość w jednostkach np. pikselac
