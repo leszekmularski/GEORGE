@@ -67,6 +67,12 @@ namespace GEORGE.Shared.ViewModels
                 OffsetBottom = this.OffsetBottom,
                 OffsetLeft = this.OffsetLeft,
                 OffsetRight = this.OffsetRight,
+                ZIndex = this.ZIndex,
+                WypelnienieZewnetrzne = this.WypelnienieZewnetrzne,
+                WypelnienieWewnetrzne = this.WypelnienieWewnetrzne, 
+                wyborSasiadOK = this.wyborSasiadOK,
+                GruboscObramowania = this.GruboscObramowania,
+                TypKsztaltu = this.TypKsztaltu,
 
                 BoolElementLinia = this.BoolElementLinia
             };

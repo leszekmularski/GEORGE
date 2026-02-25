@@ -507,6 +507,7 @@
                         <span><strong>­📏 Długość czopo strona A:</strong> @(Math.Round(material.DlugoscCzopaA, 3)) mm</span>
                         <span><strong>­📏 Długość czopo strona B:</strong> @(Math.Round(material.DlugoscCzopaB, 3)) mm</span>
                         <span><strong>­👉 Identyfikator strony w modelu:</strong> @material.IdentyfikatorStrony</span>
+                        <span><strong>­👉 Identyfikator połączeń strona A i B:</strong> @material.RodzajpolaczenAiB</span>
                         <span><strong>🏷️ Nazwa:</strong> @material.Nazwa</span>
                         <span><strong title="@material.RowIdIndeksu">🔢 Indeks:</strong> @material.IndeksElementu</span>
                         <span><strong>📦 Ilość sztuk:</strong> @material.IloscSztuk</span>
@@ -1768,6 +1769,8 @@
         await FitShapesToDisplayWindow();
 
         Console.WriteLine($"Usunołem dla id: {id}");
+
+        await OnlyRestrykcje();
     }
 
     private async Task ZapiszKsztalt()
@@ -1960,6 +1963,8 @@
         await ZmienWymiaryOkna();
 
         _czekajNaZaladowanie = false;
+
+        await OnlyRestrykcje();
 
         // await FitShapesToDisplayWindow();
 
@@ -2808,7 +2813,8 @@
                          danedoboom.KatStronaB,
                          danedoboom.DlugoscCzopaA,
                          danedoboom.DlugoscCzopaB,
-                         danedoboom.Strona ?? "Brak danych"
+                         danedoboom.Strona ?? "Brak danych",
+                         danedoboom.RodzajpolaczenAiB ?? ""
                          );
 
                         infoBoom.Add(opisySys);
@@ -4147,7 +4153,7 @@
                 WypelnienieZewnetrzne = generator.KolorZewnetrzny,
                 GruboscObramowania = 2.0f,
                 ZIndex = generator.Zindeks,
-                Strona = stronaZFunkcji,
+                Strona = stronaZFunkcji
             });
 
             //if (SelectedModelType.ToLower().Trim() == "słupek stały") break;
@@ -4326,7 +4332,7 @@
                 WypelnienieZewnetrzne = generator.KolorZewnetrzny,
                 GruboscObramowania = 2.0f,
                 ZIndex = generator.Zindeks,
-                Przesuniecia = polaczenieWartosciA.Concat(polaczenieWartosciB).ToList(),
+                Przesuniecia = polaczenieWartosciA.Concat(polaczenieWartosciB).ToList()
             });
 
             // 🔹 Aktualizacja stanu
@@ -5944,80 +5950,6 @@
         return (kat + 360.0) % 360.0;
     }
 
-    // private static double RoznicaKatow360(double a, double b)
-    // {
-    //     double diff = Math.Abs(a - b) % 360.0;
-    //     return diff > 180.0 ? 360.0 - diff : diff;
-    // }
-
-    // private static double RoznicaKatow180(double a, double b)
-    // {
-    //     double diff = Math.Abs(a - b) % 180.0;
-    //     return diff > 90.0 ? 180.0 - diff : diff;
-    // }
-
-    // private static bool CzyRownolegle(double a, double b, double tolerancja = 8.0)
-    // {
-    //     return RoznicaKatow180(a, b) <= tolerancja;
-    // }
-
-    // private static bool CzyProstopadle(double a, double b, double tolerancja = 8.0)
-    // {
-    //     return Math.Abs(RoznicaKatow180(a, b) - 90.0) <= tolerancja;
-    // }
-
-    // private static bool CzyMajaWspolnyPunkt(XPoint p1, XPoint p2, XPoint q1, XPoint q2, double tol)
-    // {
-    //     return
-    //         OdlegloscZS(p1, q1) <= tol ||
-    //         OdlegloscZS(p1, q2) <= tol ||
-    //         OdlegloscZS(p2, q1) <= tol ||
-    //         OdlegloscZS(p2, q2) <= tol;
-    // }
-
-    // private static double OdlegloscZS(XPoint a, XPoint b)
-    // {
-    //     return Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2));
-    // }
-
-    // private static double ObliczKat(XPoint p1, XPoint p2)
-    // {
-    //     double dx = p2.X - p1.X;
-    //     double dy = p2.Y - p1.Y;
-
-    //     double kat = Math.Atan2(dy, dx) * 180.0 / Math.PI;
-    //     return Normalizuj360(kat);
-    // }
-
-    //--------------------------------------------------------------------------------------------------------------------------
-
-    // private bool CzyPunktyRowne(XPoint p1, XPoint p2, double tolerancja)
-    // {
-    //     return Math.Abs(p1.X - p2.X) < tolerancja && Math.Abs(p1.Y - p2.Y) < tolerancja;
-    // }
-
-    // private double DlugoscWspolna(XPoint a1, XPoint a2, XPoint b1, XPoint b2)
-    // {
-    //     if (Math.Abs(a1.X - a2.X) < 0.01) // pionowa
-    //     {
-    //         var minY1 = Math.Min(a1.Y, a2.Y);
-    //         var maxY1 = Math.Max(a1.Y, a2.Y);
-    //         var minY2 = Math.Min(b1.Y, b2.Y);
-    //         var maxY2 = Math.Max(b1.Y, b2.Y);
-    //         return Math.Max(0, Math.Min(maxY1, maxY2) - Math.Max(minY1, minY2));
-    //     }
-    //     else if (Math.Abs(a1.Y - a2.Y) < 0.01) // pozioma
-    //     {
-    //         var minX1 = Math.Min(a1.X, a2.X);
-    //         var maxX1 = Math.Max(a1.X, a2.X);
-    //         var minX2 = Math.Min(b1.X, b2.X);
-    //         var maxX2 = Math.Max(b1.X, b2.X);
-    //         return Math.Max(0, Math.Min(maxX1, maxX2) - Math.Max(minX1, minX2));
-    //     }
-
-    //     return 0;
-    // }
-
     public static double OdlegloscPunktuOdProstej(XPoint p, XPoint a, XPoint b)
     {
         double dx = b.X - a.X;
@@ -6268,33 +6200,6 @@
 
         return odleglosc;
     }
-
-    // private static bool CzyNakladajaSieSkośne(XPoint a1, XPoint a2, XPoint b1, XPoint b2, double tol)
-    // {
-    //     // 1. Sprawdź czy linie się przecinają
-    //     if (CzyPrzecinajaSie(a1, a2, b1, b2, tol * 10))
-    //     {
-    //         Console.WriteLine($"✅ Linie skośne się przecinają");
-    //         return true;
-    //     }
-
-    //     // 2. Sprawdź czy końce są blisko siebie
-    //     double[] odleglosci = new double[]
-    //     {
-    //         OdlegloscPunktuOdOdcinka(a1, b1, b2),
-    //         OdlegloscPunktuOdOdcinka(a2, b1, b2),
-    //         OdlegloscPunktuOdOdcinka(b1, a1, a2),
-    //         OdlegloscPunktuOdOdcinka(b2, a1, a2)
-    //     };
-
-    //     double minOdl = odleglosci.Min();
-    //     Console.WriteLine($"🔍 Linie skośne - min odległość końca: {minOdl:F3}");
-
-    //     // Dla linii skośnych większa tolerancja
-    //     return minOdl < tol * 50;
-    // }
-
-    //--------------------------------------------------------------------------------------------------------------------------
 
     private readonly struct Vector2D
     {
@@ -6696,7 +6601,7 @@
                 //  Console.WriteLine($"*********** >>>>>> IndeksElementu: {ksztalt.IndeksElementu} Grupa: {ksztalt.Grupa} DlogoscElementu: {ksztalt.DlogoscElementu}");
 
                 await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
-                await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"{ksztalt.IndeksElementu.ToString()} [{ksztalt.Kat.ToString()}/{ksztalt.Strona}]", (ksztalt.Kat == 180 ? 0 : ksztalt.Kat)); // Tekst z ID i kątem na profilu
+                await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"{ksztalt.IndeksElementu.ToString()} [{ksztalt.Kat.ToString()}/{ksztalt.Strona}-{ksztalt.RodzajpolaczenAiB}]", (ksztalt.Kat == 180 ? 0 : ksztalt.Kat)); // Tekst z ID i kątem na profilu
             }
 
             await _context.RestoreAsync();
@@ -6818,7 +6723,7 @@
 
         // Rysowanie tekstu
         await context.SaveAsync();
-        await context.SetFontAsync("30px Arial");
+        await context.SetFontAsync("bold 28px Arial");
         await context.SetFillStyleAsync("black");
         await context.SetTextAlignAsync(TextAlign.Center);
         await context.SetTextBaselineAsync(TextBaseline.Middle);

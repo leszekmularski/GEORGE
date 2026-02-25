@@ -64,6 +64,7 @@ namespace GEORGE.Client.Pages.Okna
         // Informacje o offset Gora elementu
         public float OffsetDol { get; set; } = 0.0f;
         // Informacje o offset Dol elementu
+        public string? RodzajpolaczenAiB { get; set; }
 
         public BoundingBox? OstatniRegion { get; set; }
 

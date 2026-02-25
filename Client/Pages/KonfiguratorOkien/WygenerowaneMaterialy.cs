@@ -14,9 +14,10 @@
         public string IndeksElementu { get; set; }
         public float IloscSztuk { get; set; }
         public string Restrykcja { get; set; }
+        public string RodzajpolaczenAiB { get; set; }
 
         public WygenerowaneMaterialy(Guid rowIdIndeksu, double dlugosc, string nazwa, string indeksElementu, float iloscSztuk, string restrykcja, 
-            float katWModelu, float katStroanA, float katStroanB, float dlugoscCzopaA, float dlugoscCzopaB, string identyfikatorStrony)
+            float katWModelu, float katStroanA, float katStroanB, float dlugoscCzopaA, float dlugoscCzopaB, string identyfikatorStrony, string rodzajpolaczenAiB)
         {
             RowIdIndeksu = rowIdIndeksu;
             Dlugosc = dlugosc;
@@ -30,6 +31,7 @@
             DlugoscCzopaA = dlugoscCzopaA;
             DlugoscCzopaB = dlugoscCzopaB;
             IdentyfikatorStrony = identyfikatorStrony;
+            RodzajpolaczenAiB = rodzajpolaczenAiB;
         }
     }
 }
