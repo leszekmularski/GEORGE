@@ -443,6 +443,11 @@ namespace GEORGE.Client.Pages.Okna
 
             var polaczeniaArray = parsedConnections.ToArray();
 
+            for (int i = 0; i < polaczeniaArray.Count(); i++)
+            {
+                Console.WriteLine($"🔷🔷 polaczeniaArray {i}: Join Kat: {polaczeniaArray[i].kat} Typ: {polaczeniaArray[i].typ}");
+            }
+
             foreach (var test in inner)
             {
                 Console.WriteLine($"🔷🔷 inner point X: {test.X} Y: {test.Y}");
@@ -453,14 +458,29 @@ namespace GEORGE.Client.Pages.Okna
                 Console.WriteLine($"🔷🔷 outer point X: {test.X} Y: {test.Y}");
             }
 
+            // =============================
+            // 1️⃣ Stwórz tablicę połączeń dla wszystkich boków
+            // =============================
+
+            var sideToJoin = new Dictionary<string, string>();
+            foreach (var pair in polaczenia.Split(';'))
+            {
+                var parts = pair.Split('-');
+                int kat = int.Parse(parts[0]);
+                string typ = parts[1];
+
+                string strona = StronaOknaHelper.OkreslStrone(kat); // 0→Góra, 90→Prawa itd.
+                sideToJoin[strona] = typ;
+            }
+            // =============================
+            // 2️⃣ Główna pętla – leftJoin / rightJoin
+            // =============================
             for (int i = 0; i < vertexCount; i++)
             {
                 int next = (i + 1) % vertexCount;
                 int prev = (i - 1 + vertexCount) % vertexCount;
 
-                var leftJoin = polaczeniaArray[i].typ;
-                var rightJoin = polaczeniaArray[next].typ;
-
+ 
                 XPoint outerStart = outer[i];
                 XPoint outerEnd = outer[next];
 
@@ -469,24 +489,39 @@ namespace GEORGE.Client.Pages.Okna
 
                 float dx = (float)(outerEnd.X - outerStart.X);
                 float dy = (float)(outerEnd.Y - outerStart.Y);
-                float length = MathF.Sqrt(dx * dx + dy * dy);
 
                 float angleRadians = MathF.Atan2(dy, dx); // kąt w radianach
                 float angleDegrees = angleRadians * (180f / MathF.PI); // kąt w stopniach
-
-                bool dodajA = false;
-                bool dodajB = false;
 
                 // Przekształć do zakresu 0–360°, jeśli potrzebujesz
                 if (angleDegrees < 0)
                     angleDegrees += 360f;
 
                 // OKREŚLENIE STRONY PRZED generowaniem wierzchołków
-                //StronaElementu = OkreslStroneNaPodstawieKata(angleDegrees, i, outer);
                 StronaElementu = StronaOknaHelper.OkreslStrone(angleDegrees, i, outer);
 
-                Console.WriteLine($"▶️ Processing element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin} wyliczony kąt: {angleDegrees} dla i: {i} StronaElementu: {StronaElementu} length: {length}");
+                // aktualny bok
+     
+                string side = StronaOknaHelper.OkreslStrone(angleDegrees, i, outer);
+                string leftJoin = sideToJoin[side];
 
+                // następny bok
+                float dxNext = (float)(outer[(next + 1) % vertexCount].X - outer[next].X);
+                float dyNext = (float)(outer[(next + 1) % vertexCount].Y - outer[next].Y);
+                float angleNext = MathF.Atan2(dyNext, dxNext) * 180f / MathF.PI;
+                if (angleNext < 0) angleNext += 360f;
+
+                string nextSide = StronaOknaHelper.OkreslStrone(angleNext, next, outer);
+                string rightJoin = sideToJoin[nextSide];
+
+
+                float length = MathF.Sqrt(dx * dx + dy * dy);
+
+                bool dodajA = false;
+                bool dodajB = false;
+
+                Console.WriteLine($"▶️ Processing element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin} wyliczony kąt: {angleDegrees} dla i: {i} StronaElementu: {StronaElementu} length: {length} polaczenia: {polaczenia}");
+       
                 if (length < 0.001f) continue;
 
                 float tx = dx / length;
@@ -714,7 +749,7 @@ namespace GEORGE.Client.Pages.Okna
                     {
                         // Console.WriteLine($"🔷 T1/T1 element {i + 1} vertexCount == 3 && angleDegrees == 0 START");
 
-                        var nextNext = (next + 1) % vertexCount;
+                        // var nextNext = (next + 1) % vertexCount;
 
                         // Pionowy przypadek (np. boczne elementy w trapezie)
                         var topY = Math.Min(inner[i].Y, inner[next].Y);
@@ -944,7 +979,7 @@ namespace GEORGE.Client.Pages.Okna
                                     .FirstOrDefault();
 
                                 // var prev = (i - 1 + vertexCount) % vertexCount;
-                                var nextNext = (next + 1) % vertexCount;
+                                //var nextNext = (next + 1) % vertexCount;
 
                                 outerVecStart = FindFirstEdgeIntersection(outerVecStart, tx, ty, inner);
 
@@ -1280,7 +1315,7 @@ namespace GEORGE.Client.Pages.Okna
                         {
                             // ✨ Korekcja styku z pionami T3 z lewej i prawej strony
                             //var prev = (i - 1 + vertexCount) % vertexCount;
-                            var nextNext = (next + 1) % vertexCount;
+                            // var nextNext = (next + 1) % vertexCount;
 
                             outerVecStart = FindFirstEdgeIntersection(outerVecStart, tx, ty, inner);
 
@@ -1304,7 +1339,7 @@ namespace GEORGE.Client.Pages.Okna
                             // ✨ Korekcja styku z pionami T3 z lewej i prawej strony
 
                             // var prev = (i - 1 + vertexCount) % vertexCount;
-                            var nextNext = (next + 1) % vertexCount;
+                            //var nextNext = (next + 1) % vertexCount;
 
                             const double eps = 1.0; // ZWIĘKSZ EPSILON! 0.001 jest za mały dla Twoich danych
 
@@ -1697,7 +1732,7 @@ namespace GEORGE.Client.Pages.Okna
                         // Przypadek specjalny dla trójkąta - element poziomy
                         Console.WriteLine($"🔷 T2/T1 - przypadek trójkąta, element poziomy");
 
-                        var nextNext = (next + 1) % vertexCount;
+                        //var nextNext = (next + 1) % vertexCount;
 
                         // Znajdź punkty skrajne
                         float topY = (float)Math.Min(inner[i].Y, inner[next].Y);
@@ -1744,7 +1779,7 @@ namespace GEORGE.Client.Pages.Okna
                         var outerVecRightFull = FindFirstEdgeIntersection(outerEnd, nx, ny, outer);
                         var outerVecRight = new XPoint(
                             outerVecRightFull.X,
-                            outerVecRightFull.Y - ty * profileT1);
+                            outerVecRightFull.Y);
 
                         // Punkty wewnętrzne
                         var innerVecLeft = FindFirstEdgeIntersection(
@@ -1755,6 +1790,8 @@ namespace GEORGE.Client.Pages.Okna
                             new XPoint(outerVecRight.X + nx * profile, outerVecRight.Y + ny * profile),
                             tx, ty, outer);
 
+                        //innerVecRight -- dolny punkt wewnętrzny dla T1 - może być niżej, bo czop jest krótszy niż ścięcie
+                        //outerVecRight -- dolny punkt zewnętrzny dla T1 - może być wyżej, bo czop jest krótszy niż ścięcie
                         wierzcholki = new List<XPoint> {
                             outerVecLeft, outerVecRight, innerVecRight, innerVecLeft
                         };
@@ -1824,8 +1861,8 @@ namespace GEORGE.Client.Pages.Okna
                             tx, ty, inner);
 
                         wierzcholki = new List<XPoint> {
-            outerVecStart, outerBottom, innerBottom, innerVecStart
-        };
+                            outerVecStart, outerBottom, innerBottom, innerVecStart
+                        };
                     }
                     else if (isHorizontal)
                     {
@@ -1848,18 +1885,18 @@ namespace GEORGE.Client.Pages.Okna
                             tx, ty, inner);
 
                         wierzcholki = new List<XPoint> {
-            outerVecLeft, outerVecRight, innerVecRight, innerVecLeft
-        };
+                            outerVecLeft, outerVecRight, innerVecRight, innerVecLeft
+                        };
                     }
                     else // isVertical
                     {
                         // Element pionowy - T1 u góry (czop), T2 na dole (ścięcie)
-                        Console.WriteLine($"🔷 T1/T2 - element pionowy, T1 góra, T2 dół");
+                        Console.WriteLine($"🔷 T1/T2 - element pionowy, T1 góra, T2 dół ty * profileT2 {ty} * {profileT2} ny:{ny} angleRadians: {angleRadians} angleDegrees: {angleDegrees}");
 
-                        var outerVecTopFull = FindFirstEdgeIntersection(outerStart, nx, ny, outer);
+                        var outerVecTopFull = FindFirstEdgeIntersection(outerStart, tx, ty, outer);
                         var outerVecTop = new XPoint(
                             outerVecTopFull.X + tx * profileT1,
-                            outerVecTopFull.Y + ty * profileT1);
+                            outerVecTopFull.Y + angleRadians * profileT2);
 
                         var outerVecBottom = FindFirstEdgeIntersection(outerEnd, nx, ny, outer);
 
@@ -1872,8 +1909,8 @@ namespace GEORGE.Client.Pages.Okna
                             tx, ty, inner);
 
                         wierzcholki = new List<XPoint> {
-            outerVecTop, outerVecBottom, innerVecBottom, innerVecTop
-        };
+                            outerVecTop, outerVecBottom, innerVecBottom, innerVecTop
+                        };
                     }
                 }
                 else if (leftJoin == "T3" && rightJoin == "T2")
@@ -1896,7 +1933,7 @@ namespace GEORGE.Client.Pages.Okna
                         // Przypadek specjalny dla trójkąta - element poziomy
                         Console.WriteLine($"🔷 T3/T2 - przypadek trójkąta, element poziomy");
 
-                        var nextNext = (next + 1) % vertexCount;
+                        //var nextNext = (next + 1) % vertexCount;
 
                         // Znajdź punkty skrajne
                         float bottomY = (float)Math.Max(inner[i].Y, inner[next].Y);
@@ -2190,7 +2227,7 @@ namespace GEORGE.Client.Pages.Okna
                         // Przypadek specjalny dla trójkąta - element poziomy
                         Console.WriteLine($"🔷 T4/T3 - przypadek trójkąta, element poziomy");
 
-                        var nextNext = (next + 1) % vertexCount;
+                        //var nextNext = (next + 1) % vertexCount;
 
                         // Znajdź punkty skrajne
                         float bottomY = (float)Math.Max(inner[i].Y, inner[next].Y);
@@ -2978,12 +3015,12 @@ namespace GEORGE.Client.Pages.Okna
 
                 float dx = (float)(p2.X - p1.X);
                 float dy = (float)(p2.Y - p1.Y);
-                float length = MathF.Sqrt(dx * dx + dy * dy);
+                double length = Math.Sqrt(dx * dx + dy * dy);
                 if (length < 1e-6f) return points;
 
                 // jednostkowy wektor kierunku i normalna
-                float tx = dx / length;
-                float ty = dy / length;
+                float tx = (float)(dx / length);
+                float ty = (float)(dy / length);
                 float nx = -ty;
                 float ny = tx;
 

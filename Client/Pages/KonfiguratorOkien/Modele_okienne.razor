@@ -6601,7 +6601,7 @@
                 //  Console.WriteLine($"*********** >>>>>> IndeksElementu: {ksztalt.IndeksElementu} Grupa: {ksztalt.Grupa} DlogoscElementu: {ksztalt.DlogoscElementu}");
 
                 await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
-                await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"{ksztalt.IndeksElementu.ToString()} [{ksztalt.Kat.ToString()}/{ksztalt.Strona}-{ksztalt.RodzajpolaczenAiB}]", (ksztalt.Kat == 180 ? 0 : ksztalt.Kat)); // Tekst z ID i kątem na profilu
+                await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"{ksztalt.IndeksElementu.ToString()} [{Math.Round(ksztalt.Kat, 1).ToString()}/{ksztalt.Strona}-{ksztalt.RodzajpolaczenAiB}]", (ksztalt.Kat == 180 ? 0 : ksztalt.Kat)); // Tekst z ID i kątem na profilu
             }
 
             await _context.RestoreAsync();
