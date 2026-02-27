@@ -205,7 +205,7 @@
                     <div class="col-md-6 d-flex flex-column align-items-center justify-content-center">
                         <label class="form-label">Połączenie Naroży 1:</label>
                         <div class="preview" @onclick="() => ChangeImage(1)">
-                            <img src="@SelectedImage1.ImageUrl" alt="@SelectedImage1.Name" class="img-fluid img-thumbnail shadow" />
+                            <img src="@SelectedImage1.ImageUrl" alt="@SelectedImage1.Name" class="img-fluid img-thumbnail shadow" title="Kąt: 0° lewy górny"/>
                             <p class="text-center">Wybrałeś: @SelectedImage1.Name</p>
                         </div>
                     </div>
@@ -214,27 +214,26 @@
                     <div class="col-md-6 d-flex flex-column align-items-center justify-content-center">
                         <label class="form-label">Połączenie Naroży 2:</label>
                         <div class="preview" @onclick="() => ChangeImage(2)">
-                            <img src="@SelectedImage2.ImageUrl" alt="@SelectedImage2.Name" class="img-fluid img-thumbnail shadow" />
+                            <img src="@SelectedImage2.ImageUrl" alt="@SelectedImage2.Name" class="img-fluid img-thumbnail shadow" title="Kąt: 90° górny prawy" />
                             <p class="text-center">Wybrałeś: @SelectedImage2.Name</p>
                         </div>
                     </div>
                 </div>
 
                 <div class="row w-100 flex-grow-1">
-                    <!-- Połączenie Naroży 3 -->
+                    <!-- Połączenie Naroży 4 -->
                     <div class="col-md-6 d-flex flex-column align-items-center justify-content-center">
                         <label class="form-label">Połączenie Naroży 4:</label>
                         <div class="preview" @onclick="() => ChangeImage(4)">
-                            <img src="@SelectedImage4.ImageUrl" alt="@SelectedImage4.Name" class="img-fluid img-thumbnail shadow" />
+                            <img src="@SelectedImage4.ImageUrl" alt="@SelectedImage4.Name" class="img-fluid img-thumbnail shadow" title="Kąt: 270° dolny lewy" />
                             <p class="text-center">Wybrałeś: @SelectedImage4.Name</p>
                         </div>
                     </div>
-
-                    <!-- Połączenie Naroży 4 -->
+                    <!-- Połączenie Naroży 3 -->
                     <div class="col-md-6 d-flex flex-column align-items-center justify-content-center">
                         <label class="form-label">Połączenie Naroży 3:</label>
                         <div class="preview" @onclick="() => ChangeImage(3)">
-                            <img src="@SelectedImage3.ImageUrl" alt="@SelectedImage3.Name" class="img-fluid img-thumbnail shadow" />
+                            <img src="@SelectedImage3.ImageUrl" alt="@SelectedImage3.Name" class="img-fluid img-thumbnail shadow" title="Kąt: 180° prawy dolny" />
                             <p class="text-center">Wybrałeś: @SelectedImage3.Name</p>
                         </div>
                     </div>
@@ -546,7 +545,7 @@
     private async Task OnChangeCzyWybrany(bool checkedValue, KonfSystem konf)
     {
         Console.WriteLine($"Dla konfiguracji {konf.Nazwa}: checked = {checkedValue} konf.RowIdSystem: {konf.RowIdSystem}");
-
+        await Task.CompletedTask;
         // if(PowiazanyModelPierwszyZapis == null)
         // {
         //     PowiazanyModelPierwszyZapis = await Http.GetFromJsonAsync<MVCKonfModele>($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{konf.RowIdSystem}");
@@ -918,10 +917,10 @@
     private List<ImageOption> ImageOptions1 = new()
     {
         new ImageOption { Name = "Nie wybrano", Value = "0-T0", ImageUrl = "images/GL_0_NULL.png" },
-        new ImageOption { Name = "Typ 1", Value = "180-T1", ImageUrl = "images/GL_180_T1.png" },
-        new ImageOption { Name = "Typ 2", Value = "180-T2", ImageUrl = "images/GL_180_T2.png" },
-        new ImageOption { Name = "Typ 3", Value = "180-T3", ImageUrl = "images/GL_180_T3.png" },
-        new ImageOption { Name = "Typ 5", Value = "180-T5", ImageUrl = "images/SL_180_T5.png" }
+        new ImageOption { Name = "Typ 1", Value = "0-T1", ImageUrl = "images/GL_180_T1.png" },
+        new ImageOption { Name = "Typ 2", Value = "0-T2", ImageUrl = "images/GL_180_T2.png" },
+        new ImageOption { Name = "Typ 3", Value = "0-T3", ImageUrl = "images/GL_180_T3.png" },
+        new ImageOption { Name = "Typ 5", Value = "0-T5", ImageUrl = "images/SL_180_T5.png" }
     };
 
     private List<ImageOption> ImageOptions2 = new()
@@ -936,11 +935,11 @@
     private List<ImageOption> ImageOptions3 = new()
     {
         new ImageOption { Name = "Nie wybrano", Value = "0-T0", ImageUrl = "images/GL_0_NULL.png" },
-        new ImageOption { Name = "Typ 1", Value = "0-T1", ImageUrl = "images/GL_0_T1.png" },
-        new ImageOption { Name = "Typ 2", Value = "0-T2", ImageUrl = "images/GL_0_T2.png" },
-        new ImageOption { Name = "Typ 3", Value = "0-T3", ImageUrl = "images/GL_0_T3.png" },
-        new ImageOption { Name = "Typ 4", Value = "0-T4", ImageUrl = "images/GL_0_T4.png" },
-        new ImageOption { Name = "Typ 5", Value = "0-T5", ImageUrl = "images/SL_0_T5.png" },
+        new ImageOption { Name = "Typ 1", Value = "180-T1", ImageUrl = "images/GL_0_T1.png" },
+        new ImageOption { Name = "Typ 2", Value = "180-T2", ImageUrl = "images/GL_0_T2.png" },
+        new ImageOption { Name = "Typ 3", Value = "180-T3", ImageUrl = "images/GL_0_T3.png" },
+        new ImageOption { Name = "Typ 4", Value = "180-T4", ImageUrl = "images/GL_0_T4.png" },
+        new ImageOption { Name = "Typ 5", Value = "180-T5", ImageUrl = "images/SL_0_T5.png" },
     };
 
     private List<ImageOption> ImageOptions4 = new()

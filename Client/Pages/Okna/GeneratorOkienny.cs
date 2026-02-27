@@ -462,66 +462,149 @@ namespace GEORGE.Client.Pages.Okna
             // 1️⃣ Stwórz tablicę połączeń dla wszystkich boków
             // =============================
 
-            var sideToJoin = new Dictionary<string, string>();
+            // Najpierw parsujemy dane wzorca (kwadrat)
+            var wzorzecPolaczen = new Dictionary<string, string>(); // klucz: strona, wartość: typ
+  
+            // Najpierw parsujemy dane wzorca (kwadrat)
+ 
             foreach (var pair in polaczenia.Split(';'))
             {
                 var parts = pair.Split('-');
                 int kat = int.Parse(parts[0]);
                 string typ = parts[1];
 
-                string strona = StronaOknaHelper.OkreslStrone(kat); // 0→Góra, 90→Prawa itd.
-                sideToJoin[strona] = typ;
+                string strona = StronaOknaHelper.OkreslStrone(kat);
+                wzorzecPolaczen[strona] = typ;
+
+                Console.WriteLine($"📐 Wzorzec: kąt {kat}° → strona {strona} → typ {typ}");
             }
+
             // =============================
-            // 2️⃣ Główna pętla – leftJoin / rightJoin
+            // 1️⃣ Zliczamy elementy według stron
+            // =============================
+            var elementyWedlugStron = new Dictionary<string, List<int>>(); // strona -> lista indeksów
+
+            for (int i = 0; i < vertexCount; i++)
+            {
+                int next = (i + 1) % vertexCount;
+
+                float dx = (float)(outer[next].X - outer[i].X);
+                float dy = (float)(outer[next].Y - outer[i].Y);
+                float angleRadians = MathF.Atan2(dy, dx);
+                float angleDegrees = angleRadians * (180f / MathF.PI);
+                if (angleDegrees < 0) angleDegrees += 360f;
+
+                string strona = StronaOknaHelper.OkreslStrone(angleDegrees, i, outer);
+
+                if (!elementyWedlugStron.ContainsKey(strona))
+                    elementyWedlugStron[strona] = new List<int>();
+
+                elementyWedlugStron[strona].Add(i);
+            }
+
+            // Debug: pokażmy zliczone elementy
+            foreach (var kv in elementyWedlugStron)
+            {
+                Console.WriteLine($"📊 Strona {kv.Key}: {kv.Value.Count} elementów - indeksy: [{string.Join(", ", kv.Value)}]");
+            }
+
+            // =============================
+            // 2️⃣ Tworzymy mapowanie typów dla narożników
+            // =============================
+            var typyNaroznikow = new Dictionary<string, string>(); // klucz: "stronaA-stronaB", wartość: typ
+
+            // Dla każdej pary stron, określamy typ połączenia
+            foreach (var stronaA in elementyWedlugStron.Keys)
+            {
+                foreach (var stronaB in elementyWedlugStron.Keys)
+                {
+                    string klucz = $"{stronaA}-{stronaB}";
+
+                    if (stronaA == stronaB)
+                    {
+                        // Połączenie tej samej strony z samą sobą
+                        // Używamy typu z pierwszego elementu tej strony
+                        string typ = wzorzecPolaczen.ContainsKey(stronaA) ? wzorzecPolaczen[stronaA] : "T3";
+                        typyNaroznikow[klucz] = typ;
+                        Console.WriteLine($"🔗 Połączenie {klucz} (ta sama strona) → typ {typ}");
+                    }
+                    else
+                    {
+                        // 🔑 POPRAWKA: Dla różnych stron, typ pochodzi z PIERWSZEJ strony w kolejności (zgodnie z ruchem wskazówek zegara)
+                        // Ale musimy ustalić, która strona jest "pierwsza" w danym narożniku
+
+                        // W Twoim przypadku, dla narożnika Lewa-Góra, typ powinien być z Góry (T1), a nie z Lewej (T4)
+                        // To sugeruje, że typ pochodzi z DRUGIEJ strony w nazwie narożnika?
+
+                        // Spróbujmy: typ pochodzi z DRUGIEJ strony (stronaB)
+                        string typ = wzorzecPolaczen.ContainsKey(stronaB) ? wzorzecPolaczen[stronaB] : "T3";
+                        typyNaroznikow[klucz] = typ;
+                        Console.WriteLine($"🔗 Połączenie {klucz} (różne strony) → typ {typ} (ze strony {stronaB})");
+                    }
+                }
+            }
+
+            // =============================
+            // 3️⃣ Główna pętla – leftJoin / rightJoin
             // =============================
             for (int i = 0; i < vertexCount; i++)
             {
                 int next = (i + 1) % vertexCount;
                 int prev = (i - 1 + vertexCount) % vertexCount;
 
- 
+                // Oblicz kąt bieżącego boku
+                float dx = (float)(outer[next].X - outer[i].X);
+                float dy = (float)(outer[next].Y - outer[i].Y);
+                float angleRadians = MathF.Atan2(dy, dx);
+                float angleDegrees = angleRadians * (180f / MathF.PI);
+                if (angleDegrees < 0) angleDegrees += 360f;
+
+                // OKREŚLENIE STRONY BIEŻĄCEGO ELEMENTU
+                string currentSide = StronaOknaHelper.OkreslStrone(angleDegrees, i, outer);
+
+                // OKREŚLENIE STRONY POPRZEDNIEJ
+                float dxPrev = (float)(outer[i].X - outer[prev].X);
+                float dyPrev = (float)(outer[i].Y - outer[prev].Y);
+                float anglePrev = MathF.Atan2(dyPrev, dxPrev) * 180f / MathF.PI;
+                if (anglePrev < 0) anglePrev += 360f;
+                string prevSide = StronaOknaHelper.OkreslStrone(anglePrev, prev, outer);
+
+                // OKREŚLENIE STRONY NASTĘPNEJ
+                float dxNext = (float)(outer[(next + 1) % vertexCount].X - outer[next].X);
+                float dyNext = (float)(outer[(next + 1) % vertexCount].Y - outer[next].Y);
+                float angleNext = MathF.Atan2(dyNext, dxNext) * 180f / MathF.PI;
+                if (angleNext < 0) angleNext += 360f;
+                string nextSide = StronaOknaHelper.OkreslStrone(angleNext, next, outer);
+
+                // 🔑 Pobieramy typy połączeń z mapy narożników
+                string leftJoin = typyNaroznikow[$"{prevSide}-{currentSide}"];  // lewy narożnik: poprzednia-bieżąca
+                string rightJoin = typyNaroznikow[$"{currentSide}-{nextSide}"]; // prawy narożnik: bieżąca-następna
+
+                // Mapujemy strony na typy ze wzorca (tylko dla debugowania)
+                string typBiezacej = wzorzecPolaczen.ContainsKey(currentSide) ? wzorzecPolaczen[currentSide] : "T3";
+                string typPoprzedniej = wzorzecPolaczen.ContainsKey(prevSide) ? wzorzecPolaczen[prevSide] : "T3";
+                string typNastepnej = wzorzecPolaczen.ContainsKey(nextSide) ? wzorzecPolaczen[nextSide] : "T3";
+
+                Console.WriteLine($"▶️🔷🔷▶️ Processing element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin} " +
+                                 $"wyliczony kąt: {angleDegrees:F2}° dla i: {i} StronaElementu: {currentSide} " +
+                                 $"(prev: {prevSide} [{typPoprzedniej}], next: {nextSide} [{typNastepnej}])");
+
+                Console.WriteLine($"   📍 Narożniki: lewy ({prevSide}-{currentSide}) = {leftJoin}, " +
+                                 $"prawy ({currentSide}-{nextSide}) = {rightJoin}");
+
+                bool dodajA = false;
+                bool dodajB = false;
                 XPoint outerStart = outer[i];
                 XPoint outerEnd = outer[next];
 
                 XPoint _innerStart = inner[i];
                 XPoint _innerEnd = inner[next];
-
-                float dx = (float)(outerEnd.X - outerStart.X);
-                float dy = (float)(outerEnd.Y - outerStart.Y);
-
-                float angleRadians = MathF.Atan2(dy, dx); // kąt w radianach
-                float angleDegrees = angleRadians * (180f / MathF.PI); // kąt w stopniach
-
-                // Przekształć do zakresu 0–360°, jeśli potrzebujesz
-                if (angleDegrees < 0)
-                    angleDegrees += 360f;
-
-                // OKREŚLENIE STRONY PRZED generowaniem wierzchołków
-                StronaElementu = StronaOknaHelper.OkreslStrone(angleDegrees, i, outer);
-
-                // aktualny bok
-     
-                string side = StronaOknaHelper.OkreslStrone(angleDegrees, i, outer);
-                string leftJoin = sideToJoin[side];
-
-                // następny bok
-                float dxNext = (float)(outer[(next + 1) % vertexCount].X - outer[next].X);
-                float dyNext = (float)(outer[(next + 1) % vertexCount].Y - outer[next].Y);
-                float angleNext = MathF.Atan2(dyNext, dxNext) * 180f / MathF.PI;
-                if (angleNext < 0) angleNext += 360f;
-
-                string nextSide = StronaOknaHelper.OkreslStrone(angleNext, next, outer);
-                string rightJoin = sideToJoin[nextSide];
-
-
                 float length = MathF.Sqrt(dx * dx + dy * dy);
 
-                bool dodajA = false;
-                bool dodajB = false;
+                StronaElementu = StronaOknaHelper.OkreslStrone(angleDegrees, i, outer);
 
-                Console.WriteLine($"▶️ Processing element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin} wyliczony kąt: {angleDegrees} dla i: {i} StronaElementu: {StronaElementu} length: {length} polaczenia: {polaczenia}");
-       
+                //  Console.WriteLine($"▶️ Processing element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin} wyliczony kąt: {angleDegrees} dla i: {i} StronaElementu: {StronaElementu} length: {length} polaczenia: {polaczenia}");
+
                 if (length < 0.001f) continue;
 
                 float tx = dx / length;
@@ -1891,12 +1974,26 @@ namespace GEORGE.Client.Pages.Okna
                     else // isVertical
                     {
                         // Element pionowy - T1 u góry (czop), T2 na dole (ścięcie)
-                        Console.WriteLine($"🔷 T1/T2 - element pionowy, T1 góra, T2 dół ty * profileT2 {ty} * {profileT2} ny:{ny} angleRadians: {angleRadians} angleDegrees: {angleDegrees}");
+
+                        float dxT1T2 = (float)(outer[i].X - outer[prev].X);
+                        float dyT1T2 = (float)(outer[i].Y - outer[prev].Y);
+                        float lengthT1T2 = MathF.Sqrt(dxT1T2 * dxT1T2 + dyT1T2 * dyT1T2);
+
+                        float txT1T2 = dxT1T2 / lengthT1T2;
+                        float tyT1T2 = dyT1T2 / lengthT1T2;
+                        float nxT1T2 = -tyT1T2;
+                        float nyT1T2 = txT1T2;
+
+                        float angleRadiansT1T2 = MathF.Atan2(dyT1T2, dxT1T2); // kąt w radianach
+                        float angleDegreesT1T2 = angleRadiansT1T2 * (180f / MathF.PI); // kąt w stopniach
+
+                        Console.WriteLine($"🔷 T1/T2 - element pionowy, T1 góra, T2 dół tyT1T2:{tyT1T2} txT1T2:{txT1T2} nyT1T2:{nyT1T2} nxT1T2:{nxT1T2}  angleRadians: {angleRadians} angleDegrees: {angleDegrees} angleDegreesT1T2: {angleDegreesT1T2}");
 
                         var outerVecTopFull = FindFirstEdgeIntersection(outerStart, tx, ty, outer);
-                        var outerVecTop = new XPoint(
-                            outerVecTopFull.X + tx * profileT1,
-                            outerVecTopFull.Y + angleRadians * profileT2);
+                        var outerVecTop = FindFirstEdgeIntersectionByAngle(inner[i], angleDegreesT1T2, outer);
+                        //var outerVecTop = new XPoint(
+                        //    outerVecTopFull.X + tx * profileT1,
+                        //    outerVecTopFull.Y + nyT1T2 * profileT2);
 
                         var outerVecBottom = FindFirstEdgeIntersection(outerEnd, nx, ny, outer);
 
@@ -2066,8 +2163,8 @@ namespace GEORGE.Client.Pages.Okna
                                 tx, ty, inner);
 
                             wierzcholki = new List<XPoint> {
-                outerVecTop, outerVecBottom, innerVecBottom, innerVecTop
-            };
+                                outerVecTop, outerVecBottom, innerVecBottom, innerVecTop
+                            };
                         }
                     }
                 }
@@ -2199,8 +2296,8 @@ namespace GEORGE.Client.Pages.Okna
                                 tx, ty, inner);
 
                             wierzcholki = new List<XPoint> {
-                outerVecTop, outerVecBottom, innerVecBottom, innerVecTop
-            };
+                                outerVecTop, outerVecBottom, innerVecBottom, innerVecTop
+                            };
                         }
                     }
                 }
@@ -2620,7 +2717,7 @@ namespace GEORGE.Client.Pages.Okna
                         RodzajpolaczenAiB = $"{leftJoin}/{rightJoin}",
                     });
 
-                Console.WriteLine($"▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - >3 rowIdProfil:{rowIdProfil} Angle: {angleDegrees}°");
+                Console.WriteLine($"▶️▶️▶️▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - >3 rowIdProfil:{rowIdProfil} Angle: {angleDegrees}° leftJoin:{leftJoin} rightJoin:{rightJoin}");
 
                 await Task.CompletedTask;
 
@@ -3177,6 +3274,9 @@ namespace GEORGE.Client.Pages.Okna
             double dy = p2.Y - p1.Y;
             return Math.Sqrt(dx * dx + dy * dy);
         }
+
+        // Funkcja pomocnicza do określenia typu połączenia w narożniku
+
         public enum AxisDirection
         {
             Horizontal,
@@ -3188,6 +3288,13 @@ namespace GEORGE.Client.Pages.Okna
             Nearest, // zachowanie jak dotychczas
             Min,     // zewnętrzne / lewe / dolne
             Max      // wewnętrzne / prawe / górne
+        }
+
+        // Struktura przechowująca informacje o połączeniach dla każdego boku
+        public class PolaczenieBoku
+        {
+            public string? TypPolaczenia { get; set; }  // T1, T2, T3, T4, T5
+            public int Kat { get; set; }                // Kąt pod którym występuje to połączenie
         }
 
     }
