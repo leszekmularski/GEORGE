@@ -277,5 +277,19 @@ namespace GEORGE.Client.Pages.Models
             new EditableProperty("Promień łuku", () => Radius, v => { Radius = Math.Max(5, Math.Min(v, Width / 2)); CalculatePointsFromProperties(); }, NazwaObj),
             new EditableProperty("Wysokość łuku", () => ArcHeight, v => { ArcHeight = Math.Clamp(v, 5, Height); CalculatePointsFromProperties(); }, NazwaObj),
         };
+
+        private XPoint CalculateCentroid(List<XPoint> pts)
+        {
+            double cx = 0;
+            double cy = 0;
+
+            foreach (var p in pts)
+            {
+                cx += p.X;
+                cy += p.Y;
+            }
+
+            return new XPoint(cx / pts.Count, cy / pts.Count);
+        }
     }
 }

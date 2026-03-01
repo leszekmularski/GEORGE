@@ -275,5 +275,19 @@ namespace GEORGE.Client.Pages.Models
         public List<XPoint> GetPoints() => Points.Select(p => new XPoint(p.X, p.Y)).ToList();
 
         public List<XPoint> GetNominalPoints() => NominalPoints.Select(p => new XPoint(p.X, p.Y)).ToList();
+
+        private XPoint CalculateCentroid(List<XPoint> pts)
+        {
+            double cx = 0;
+            double cy = 0;
+
+            foreach (var p in pts)
+            {
+                cx += p.X;
+                cy += p.Y;
+            }
+
+            return new XPoint(cx / pts.Count, cy / pts.Count);
+        }
     }
 }

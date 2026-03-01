@@ -17,6 +17,8 @@ namespace GEORGE.Client.Pages.Okna
 
         // Lista wierzcholkow (w kolejnosci zgodnej z ruchem wskazowek zegara)
         public List<XPoint> Wierzcholki { get; set; } = new();
+
+        public List<XPoint> wewnetrznyKontur; // przechowuje obliczony wewnętrzny kontur po offsetowaniu
         public List<ShapeRegion> Region { get; set; } = new();
         public string StronaElementu { get; set; } = "";
 
@@ -44,6 +46,7 @@ namespace GEORGE.Client.Pages.Okna
             RuchomySlupekPoPrawej = false;
             RuchomySlupekPoLewej = false;
             ElementLiniowy = false;
+            wewnetrznyKontur = new List<XPoint>();
         }
         public async Task<bool> AddElements(List<ShapeRegion> regions, string regionId, Dictionary<string, GeneratorState> generatorStates, List<ShapeRegion> regionAdd,
             List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster, XPoint mouseClik, bool kasujKonsole = true)
@@ -74,17 +77,6 @@ namespace GEORGE.Client.Pages.Okna
             {
                 Console.WriteLine($"➡️ AddElements punktyRegionuMaster.Count: {punktyRegionuMaster.Count()}");
             }
-
-            //if(daneKwadratu != null)
-            //{
-            //    foreach (var dk in daneKwadratu)
-            //    {
-            //        foreach (var w in dk.Wierzcholki)
-            //        {
-            //            Console.WriteLine($"➡️ AddElements daneKwadratu Wierzcholek X: {w.X} Y: {w.Y}");
-            //        }
-            //    }
-            //}
 
             Console.WriteLine($"📏 AddElements Szerokosc: {Szerokosc}, Wysokosc: {Wysokosc}");
 
@@ -248,8 +240,7 @@ namespace GEORGE.Client.Pages.Okna
             Console.WriteLine($"📐Generator ----> region.TypKsztaltu: {region.TypKsztaltu} profileLeft: {profileLeft}, profileRight: {profileRight}, profileTop: {profileTop}, profileBottom: {profileBottom} slruchPoPrawej: {slruchPoPrawej} slruchPoLewej: {slruchPoLewej}");
 
             // 🔲 Oblicz wewnętrzny kontur
-            List<XPoint> wewnetrznyKontur;
-
+   
             if (ElementLiniowy)
             {
                 var konfPolaczenia = daneKwadratu.FirstOrDefault(s => s.Przesuniecia != null)?.Przesuniecia;
@@ -464,9 +455,9 @@ namespace GEORGE.Client.Pages.Okna
 
             // Najpierw parsujemy dane wzorca (kwadrat)
             var wzorzecPolaczen = new Dictionary<string, string>(); // klucz: strona, wartość: typ
-  
+
             // Najpierw parsujemy dane wzorca (kwadrat)
- 
+
             foreach (var pair in polaczenia.Split(';'))
             {
                 var parts = pair.Split('-');
@@ -547,6 +538,9 @@ namespace GEORGE.Client.Pages.Okna
             // =============================
             // 3️⃣ Główna pętla – leftJoin / rightJoin
             // =============================
+            float firstangleDegrees = -1;
+            float anglePrevDegrees = -1;
+   
             for (int i = 0; i < vertexCount; i++)
             {
                 int next = (i + 1) % vertexCount;
@@ -558,6 +552,8 @@ namespace GEORGE.Client.Pages.Okna
                 float angleRadians = MathF.Atan2(dy, dx);
                 float angleDegrees = angleRadians * (180f / MathF.PI);
                 if (angleDegrees < 0) angleDegrees += 360f;
+
+                if (firstangleDegrees == -1) firstangleDegrees = angleDegrees;
 
                 // OKREŚLENIE STRONY BIEŻĄCEGO ELEMENTU
                 string currentSide = StronaOknaHelper.OkreslStrone(angleDegrees, i, outer);
@@ -688,7 +684,6 @@ namespace GEORGE.Client.Pages.Okna
 
                 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-
                 if (sposobLaczeniaCzop)
                 {
 
@@ -744,33 +739,12 @@ namespace GEORGE.Client.Pages.Okna
 
                 if (leftJoin == "T1" && rightJoin == "T4" || leftJoin == "T4" && rightJoin == "T1" || leftJoin == "T4" && rightJoin == "T4")
                 {
-                    if (isAlmostHorizontal)
+                    if (leftJoin == "T4" && rightJoin == "T1" || leftJoin == "T4" && rightJoin == "T4")
                     {
-                        // Przecięcia z konturem na bazie normalnej
-
-                        var outerVecStart = FindFirstEdgeIntersection(outerStart, nx, ny, outer);
-                        var outerVecEnd = FindFirstEdgeIntersection(outerEnd, nx, ny, outer);
-
-                        var innerVecStart = FindFirstEdgeIntersection(
-                            new XPoint(outerVecStart.X + nx * profile, outerVecStart.Y + ny * profile),
-                            tx, ty, outer);
-
-                        var innerVecEnd = FindFirstEdgeIntersection(
-                            new XPoint(outerVecEnd.X + nx * profile, outerVecEnd.Y + ny * profile),
-                            tx, ty, outer);
-
-                        wierzcholki = new List<XPoint> {
-                            outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
-                        };
-                    }
-                    else
-                    {
-                        //Console.WriteLine($"🔷 Vertical case for element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical}");
-
-                        if (leftJoin == "T1" && rightJoin == "T4" && vertexCount > 4)
+                        if (isAlmostHorizontal)
                         {
-                            //  Console.WriteLine($"🔷 Horizontal case for element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical}");
                             // Przecięcia z konturem na bazie normalnej
+
                             var outerVecStart = FindFirstEdgeIntersection(outerStart, nx, ny, outer);
                             var outerVecEnd = FindFirstEdgeIntersection(outerEnd, nx, ny, outer);
 
@@ -784,45 +758,118 @@ namespace GEORGE.Client.Pages.Okna
 
                             wierzcholki = new List<XPoint> {
                             outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
-                            };
-                        }
-                        else if (leftJoin == "T4" && rightJoin == "T4" && vertexCount > 4)
-                        {
-                            var topY = Math.Min(inner[i].Y, inner[next].Y);
-                            var bottomY = Math.Max(inner[i].Y, inner[next].Y);
-
-                            // Start liczymy względem punktu przecięcia z inner[i] (czyli skrócony)
-                            var outerTop = GetHorizontalIntersection(_innerStart, _innerEnd, (float)topY);
-                            var outerBottom = GetHorizontalIntersection(_innerStart, _innerEnd, (float)bottomY);
-
-                            // Normalne punkty wewnętrzne
-                            var innerTop = GetHorizontalIntersection(outer[i], outer[next], (float)topY);
-                            var innerBottom = GetHorizontalIntersection(outer[i], outer[next], (float)bottomY);
-
-                            wierzcholki = new List<XPoint> {
-                                outerTop, outerBottom, innerBottom, innerTop
-                            };
+                        };
                         }
                         else
                         {
+                            //Console.WriteLine($"🔷 Vertical case for element {i + 1} isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical}");
+
+                            if (leftJoin == "T4" && rightJoin == "T4" && vertexCount > 4)
+                            {
+                                var topY = Math.Min(inner[i].Y, inner[next].Y);
+                                var bottomY = Math.Max(inner[i].Y, inner[next].Y);
+
+                                // Start liczymy względem punktu przecięcia z inner[i] (czyli skrócony)
+                                var outerTop = GetHorizontalIntersection(_innerStart, _innerEnd, (float)topY);
+                                var outerBottom = GetHorizontalIntersection(_innerStart, _innerEnd, (float)bottomY);
+
+                                // Normalne punkty wewnętrzne
+                                var innerTop = GetHorizontalIntersection(outer[i], outer[next], (float)topY);
+                                var innerBottom = GetHorizontalIntersection(outer[i], outer[next], (float)bottomY);
+
+                                wierzcholki = new List<XPoint> {
+                                outerTop, outerBottom, innerBottom, innerTop
+                            };
+                            }
+                            else
+                            {
+                                // Pionowy przypadek (np. boczne elementy w trapezie)
+                                var topY = Math.Min(inner[i].Y, inner[next].Y);
+                                var bottomY = Math.Max(inner[i].Y, inner[next].Y);
+                                //             if(angleDegrees )
+
+                                //var outerTop = GetHorizontalIntersection(outerStart, outerEnd, (float)topY);
+                                var outerBottom = GetHorizontalIntersection(outerStart, outerEnd, (float)bottomY);
+
+                                var innerTop = GetHorizontalIntersection(inner[i], inner[next], (float)topY);
+                                var innerBottom = GetHorizontalIntersection(inner[i], inner[next], (float)bottomY);
+
+                                XPoint outerTop; // = FindFirstEdgeIntersectionByAngle(innerTop, firstangleDegrees - 180, outer);
+                                if (i == vertexCount - 1)
+                                {
+                                    outerTop = FindFirstEdgeIntersectionByAngle(innerTop, firstangleDegrees - 180, outer);
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"🔷 Szukanie przecięcia dla elementu {i + 1} z anglePrevDegrees: {anglePrevDegrees}");
+                                    outerTop = FindFirstEdgeIntersectionByAngle(innerTop, anglePrevDegrees, outer);
+                                }
+
+                                wierzcholki = new List<XPoint> {
+                                outerTop, outerBottom, innerBottom, innerTop
+                                };
+                            }
+                        }
+                    }
+                    else//--> tylko ten warunek if (leftJoin == "T1" && rightJoin == "T4")
+                    {
+                        if (isAlmostHorizontal)
+                        {
+                            // Przecięcia z konturem na bazie normalnej
+
+                            var outerVecStart = FindFirstEdgeIntersection(outerStart, nx, ny, outer);
+                            var outerVecEnd = FindFirstEdgeIntersection(outerEnd, nx, ny, outer);
+
+                            var innerVecStart = FindFirstEdgeIntersection(
+                                new XPoint(outerVecStart.X + nx * profile, outerVecStart.Y + ny * profile),
+                                tx, ty, outer);
+
+                            var innerVecEnd = FindFirstEdgeIntersection(
+                                new XPoint(outerVecEnd.X + nx * profile, outerVecEnd.Y + ny * profile),
+                                tx, ty, outer);
+
+                            wierzcholki = new List<XPoint> {
+                            outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
+                        };
+                        }
+                        else
+                        {
+ 
                             // Pionowy przypadek (np. boczne elementy w trapezie)
                             var topY = Math.Min(inner[i].Y, inner[next].Y);
                             var bottomY = Math.Max(inner[i].Y, inner[next].Y);
                             //             if(angleDegrees )
 
-                            var outerTop = GetHorizontalIntersection(outerStart, outerEnd, (float)topY);
+                            //var outerTop = GetHorizontalIntersection(outerStart, outerEnd, (float)topY);
                             var outerBottom = GetHorizontalIntersection(outerStart, outerEnd, (float)bottomY);
 
                             var innerTop = GetHorizontalIntersection(inner[i], inner[next], (float)topY);
                             var innerBottom = GetHorizontalIntersection(inner[i], inner[next], (float)bottomY);
 
+                            XPoint outerTop; // = FindFirstEdgeIntersectionByAngle(innerTop, firstangleDegrees - 180, outer);
+                            if (i == vertexCount - 1)
+                            {
+                                outerTop = FindFirstEdgeIntersectionByAngle(innerTop, firstangleDegrees - 180, outer);
+                            }
+                            else
+                            {
+                                Console.WriteLine($"🔷 Szukanie przecięcia dla elementu {i + 1} z anglePrevDegrees: {anglePrevDegrees}");
+                                outerTop = FindFirstEdgeIntersectionByAngle(innerTop, anglePrevDegrees, outer);
+                            }
+
+                            if(vertexCount < 4)
+                            {
+                                innerTop = FindFirstEdgeIntersectionByAngle(innerTop, angleDegrees - 180, outer);
+                                outerTop = FindFirstEdgeIntersectionByAngle(outerTop, angleDegrees - 180, outer);
+                            }
+                           
                             wierzcholki = new List<XPoint> {
-                                outerTop, outerBottom, innerBottom, innerTop
+                            outerTop, outerBottom, innerBottom, innerTop
                             };
+ 
                         }
-
-
                     }
+
                 }
                 else if (leftJoin == "T1" && rightJoin == "T1")
                 {
@@ -2088,6 +2135,7 @@ namespace GEORGE.Client.Pages.Okna
                                 new XPoint(outerVecRight.X + nx * profileT2, outerVecRight.Y + ny * profileT2),
                                 tx, ty, inner);
 
+
                             wierzcholki = new List<XPoint> {
                                 outerVecLeft, outerVecRight, innerVecRight, innerVecLeft
                             };
@@ -2168,6 +2216,30 @@ namespace GEORGE.Client.Pages.Okna
                         }
                     }
                 }
+                else if (leftJoin == "T3" && rightJoin == "T1")
+                {
+                    // Pionowy przypadek (np. boczne elementy w trapezie)
+                    var topY = Math.Min(inner[i].Y, inner[next].Y);
+                    var bottomY = Math.Max(inner[i].Y, inner[next].Y);
+                    //             if(angleDegrees )
+
+                    //var outerTop = GetHorizontalIntersection(outerStart, outerEnd, (float)topY);
+                    var outerBottom = outer[i];// GetHorizontalIntersection(outerStart, outerEnd, (float)bottomY);
+
+                    XPoint innerTop;// = inner[next];// GetHorizontalIntersection(inner[i], inner[next], (float)topY);
+                    var innerBottom = GetHorizontalIntersection(inner[i], inner[next], (float)bottomY);
+       
+                    XPoint outerTop = outer[next]; // = FindFirstEdgeIntersectionByAngle(innerTop, firstangleDegrees - 180, outer);
+
+                    innerTop = FindFirstEdgeIntersectionByAngle(inner[next], angleDegrees, outer);
+
+                    innerBottom = FindFirstEdgeIntersectionByAngle(innerBottom, angleDegrees - 180, outer);
+
+                    wierzcholki = new List<XPoint> {
+                    outerTop, outerBottom, innerBottom, innerTop
+                    };
+
+                }
                 else if (leftJoin == "T2" && rightJoin == "T3")
                 {
                     Console.WriteLine($"🔷 T2/T3 element {i + 1} - kombinacja ścięcia (T2) z pełnym profilem (T3)");
@@ -2232,6 +2304,15 @@ namespace GEORGE.Client.Pages.Okna
                                 new XPoint(outerVecRight.X + nx * profileT3, outerVecRight.Y + ny * profileT3),
                                 tx, ty, inner);
 
+                            // Oblicz kąt bieżącego boku
+                            int nextnext = (i + 2) % vertexCount;
+                            float dxN = (float)(outer[nextnext].X - outer[next].X);
+                            float dyN = (float)(outer[nextnext].Y - outer[next].Y);
+                            float angleRadiansNext = MathF.Atan2(dyN, dxN);
+                            float angleDegreesNext = angleRadiansNext * (180f / MathF.PI);
+
+                            outerVecRight = FindFirstEdgeIntersectionByAngle(innerVecRight, angleDegreesNext - 180, outer);
+            
                             wierzcholki = new List<XPoint> {
                                 outerVecLeft, outerVecRight, innerVecRight, innerVecLeft
                             };
@@ -2650,6 +2731,7 @@ namespace GEORGE.Client.Pages.Okna
 
                 // Console.WriteLine($"leftJoin: {leftJoin} rightJoin:{rightJoin} wierzcholki: {wierzcholki.Count()} isAlmostVertical:{isAlmostVertical}");
                 float bazowaDlugosc = DlugoscElementu(wierzcholki);
+                anglePrevDegrees = angleDegrees;
 
                 Console.WriteLine($"▶️ Element Start switch {i + 1}/{vertexCount}: Length: {length}, StronaElementu :{StronaElementu}, angleDegreesElementLionowy:{angleDegreesElementLionowy}, Angle: {angleDegrees}°, Profile: {profile}, Wierzchołki: {wierzcholki.Count}, BazowaDlugosc: {bazowaDlugosc}, wartoscX: {wartoscX}, wartoscY: {wartoscY} ElementLiniowy:{ElementLiniowy} wierzcholki X0: {wierzcholki[0].X} Y0: {wierzcholki[0].Y}");
 
@@ -2719,11 +2801,11 @@ namespace GEORGE.Client.Pages.Okna
 
                 Console.WriteLine($"▶️▶️▶️▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - >3 rowIdProfil:{rowIdProfil} Angle: {angleDegrees}° leftJoin:{leftJoin} rightJoin:{rightJoin}");
 
-                await Task.CompletedTask;
-
                 if (ElementLiniowy) return true;
 
             }
+
+            await Task.CompletedTask;
 
             return true;
         }
@@ -3161,7 +3243,6 @@ namespace GEORGE.Client.Pages.Okna
 
                 return new List<XPoint> { p1Offset, p2Offset };
             }
-
 
             // 🟢 OBSŁUGA WIELOKĄTA (oryginalna logika)
             if (count < 3)

@@ -294,5 +294,18 @@ namespace GEORGE.Client.Pages.Models
                 new EditableProperty("Y2", () => Y2, v => Y2 = v, NazwaObj)
             };
         }
+        private XPoint CalculateCentroid(List<XPoint> pts)
+        {
+            double cx = 0;
+            double cy = 0;
+
+            foreach (var p in pts)
+            {
+                cx += p.X;
+                cy += p.Y;
+            }
+
+            return new XPoint(cx / pts.Count, cy / pts.Count);
+        }
     }
 }

@@ -209,5 +209,19 @@ namespace GEORGE.Client.Pages.Models
         // --------------------------------------------------------------------
         public BoundingBox GetBoundingBox()
             => new BoundingBox(X, Y, Width, Height, NazwaObj);
+
+        private XPoint CalculateCentroid(List<XPoint> pts)
+        {
+            double cx = 0;
+            double cy = 0;
+
+            foreach (var p in pts)
+            {
+                cx += p.X;
+                cy += p.Y;
+            }
+
+            return new XPoint(cx / pts.Count, cy / pts.Count);
+        }
     }
 }

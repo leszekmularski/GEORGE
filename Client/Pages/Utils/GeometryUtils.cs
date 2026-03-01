@@ -199,7 +199,6 @@ namespace GEORGE.Client.Pages.Utils
 
             return regions;
         }
-
         public static List<ShapeRegion> SkalujSkrzydlaDoRamy(
         List<ShapeRegion> stareSkrzydla,
         List<ShapeRegion> rama,
@@ -674,6 +673,19 @@ namespace GEORGE.Client.Pages.Utils
             return new XPoint(x / punkty.Count, y / punkty.Count);
         }
 
+        public static XPoint CalculateCentroid(List<XPoint> pts)
+        {
+            double cx = 0;
+            double cy = 0;
+
+            foreach (var p in pts)
+            {
+                cx += p.X;
+                cy += p.Y;
+            }
+
+            return new XPoint(cx / pts.Count, cy / pts.Count);
+        }
 
     }
 }

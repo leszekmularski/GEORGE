@@ -12,9 +12,10 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         public string? IdRegionWarstwaNizej { get; set; }
         public int ZIndeks { get; set; }
 
+        //----------------------------------------------------------------------------------------
         public List<XPoint>? Wierzcholki { get; set; }
         public List<XPoint>? WierzcholkiWartosciNominalne { get; set; }
-
+        //----------------------------------------------------------------------------------------
         public Guid RowIdSystemu { get; set; }
         public Guid? RowIdModelu { get; set; }
         public MVCKonfModele? MVCKonfModelu { get; set; }
@@ -63,6 +64,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 WybranyKsztalt = this.WybranyKsztalt,
                 LinieDzielace = this.LinieDzielace,
                 CzyElementJestRama = this.CzyElementJestRama,
+                Generator = this.Generator, // Uwaga: to jest płytka kopia, jeśli Generator ma referencje do innych obiektów, mogą one być współdzielone
 
                 SlupekRuchomyPoLewejStronie = this.SlupekRuchomyPoLewejStronie,
                 SlupekRuchomyPoPrawejStronie = this.SlupekRuchomyPoPrawejStronie,

@@ -467,7 +467,7 @@
 
 <Collapse Animation>
 
-    <Panel Header="Informacja o wyrobie restrykcje" Key="2" class="scrollable-panel">
+    <Panel Header="Informacje o wyrobie restrykcje, ustawienia wyświetlania" Key="2" class="scrollable-panel">
         <Sider class="info-panel">
             <h4 style="color:aquamarine;">🛠️ Informacja o wyrobie:</h4>
 
@@ -490,7 +490,11 @@
             {
                 <p class="no-data">❌ Brak danych o wyrobie.</p>
             }
+
         </Sider>
+
+        <InputCheckbox @bind-Value="pokaKonturWewnetrzny" /> <label>Pokaż kontur wewnętrzny (wyłącz wypełninie)</label>
+
     </Panel>
     <Panel Header="Materiały" Key="3" class="scrollable-panel">
         @if (infoBoom != null && infoBoom.Any())
@@ -580,11 +584,11 @@
                                          @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
                                          draggable="true"
                                          style="cursor: grab;
-                                                    width: auto;
-                                                    height: auto;
-                                                    max-width: 50px;
-                                                    max-height: 50px;
-                                                    border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
+                                                                width: auto;
+                                                                height: auto;
+                                                                max-width: 50px;
+                                                                max-height: 50px;
+                                                                border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
 
                                 }
                                 else
@@ -651,7 +655,7 @@
                                     <strong>Grupa:</strong> @ksztalt.Grupa &nbsp;|&nbsp;
                                     <strong>ZIndex:</strong> @ksztalt.ZIndex &nbsp;|&nbsp;<br />
                                     <strong>RowIdElementu [Indeks]:</strong> @ksztalt.RowIdElementu &nbsp; [@ksztalt.IndeksElementu] <br />
-                                    <strong>Kąt:</strong> @ksztalt.Kat [@ksztalt.Strona]
+                                    <strong>Kąt:</strong> @ksztalt.Kat <label style="color:red;"> <b>[@ksztalt.Strona]</b></label>
                                     <strong>Offesty:</strong> L:@ksztalt.OffsetLewa G:@ksztalt.OffsetGora P:@ksztalt.OffsetPrawa D:@ksztalt.OffsetDol
                                     <br />
                                     <strong>IdRegion:</strong> @ksztalt.IdRegion
@@ -1308,6 +1312,8 @@
     private bool _czekajNaZaladowanie = false;
 
     private XPoint _lastMouseClick = new();
+
+    private bool pokaKonturWewnetrzny = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -3053,7 +3059,7 @@
                 genState.Value.ListaKwadratow = await WyliczKwadratyPoZmianieAsync(region);
                 _generatorStates[cleanId].ListaKwadratow = genState.Value.ListaKwadratow;
 
-                     // Obsługa specjalna dla skrzydeł
+                // Obsługa specjalna dla skrzydeł
                 if (genState.Value.WybranyModel.Typ?.Trim() == "Skrzydło" || genState.Value.WybranyModel.Typ?.Trim() == "Skrzydło z słupkiem ruchomym")
                 {
                     var wybranyRegionSkrzydlo = _regionsSkrzydlo.FirstOrDefault(r => r.Id == region.Id);
@@ -3256,7 +3262,7 @@
         return wynik;
     }
 
-    private async Task<bool> DodajWybranyKwadratOkna(string idRegion, List<XPoint> wierzcholki, double klikX, double klikY, bool slupekStaly, 
+    private async Task<bool> DodajWybranyKwadratOkna(string idRegion, List<XPoint> wierzcholki, double klikX, double klikY, bool slupekStaly,
         List<string> idSlupka, List<XPoint> wierzcholkiMaster, double katSlupkaStalego)
     {
         if (SelectedModelType == null || string.IsNullOrEmpty(SelectedModelType))
@@ -3423,7 +3429,7 @@
                 TypLiniiDzielacej = r.TypLiniiDzielacej,
                 Wierzcholki = punktyLinii
             };
-            })
+        })
             .Where(r => r != null)
             .ToList();
 
@@ -5690,7 +5696,7 @@
                                           $"różnica={roznicaKierunkow:F2}°");
                     }
                     // Szukamy przecinających się (np. dla słupka stałego)
-                   // czyDodac = przecinajaSie;// && !saRownolegle;
+                    // czyDodac = przecinajaSie;// && !saRownolegle;
                 }
                 else
                 {
@@ -6627,11 +6633,15 @@
 
             await DrawSingleContour(context, outerPoints);
 
+            if (pokaKonturWewnetrzny)
+            await DrawSingleInnerContour(context);
+
             // Sprawdź, czy _dotNetHelper nie jest null i czy komponent nie został usunięty
             if (_dotNetHelper != null && !_disposed)
             {
                 try
                 {
+                    if (!pokaKonturWewnetrzny)
                     await JS.InvokeVoidAsync("loadAndDrawTexture",
                         CanvasRef.CanvasReference,
                         textureUrl,
@@ -6705,6 +6715,36 @@
         await context.StrokeAsync();
     }
 
+    private async Task DrawSingleInnerContour(Canvas2DContext context)
+    {
+        // Rysuj pojedynczy kontur wewnętrzny
+        await context.BeginPathAsync();
+
+        foreach (var gs in _generatorStates)
+        {
+            if(gs.Value.Generator == null) continue;
+
+            var innerPoints = gs.Value.Generator.wewnetrznyKontur;
+            // Rozpocznij od pierwszego punktu
+            await context.MoveToAsync(innerPoints[0].X, innerPoints[0].Y);
+
+            // Rysuj linie do kolejnych punktów
+            for (int i = 1; i < innerPoints.Count; i++)
+            {
+                await context.LineToAsync(innerPoints[i].X, innerPoints[i].Y);
+            }
+            // Zamknij kształt
+            await context.ClosePathAsync();
+        }
+
+        // Opcjonalne stylowanie
+        await context.SetStrokeStyleAsync("Red");
+        await context.SetLineWidthAsync(8f);
+        await context.StrokeAsync();
+
+
+    }
+
     private async Task DrawSingleContourTextOnly(
     Canvas2DContext context,
     List<XPoint> outerPoints,
@@ -6740,8 +6780,6 @@
         await context.RestoreAsync();
     }
 
-
-
     private async Task GoBack()
     {
         await JS.InvokeVoidAsync("ResetCursorGlobal");
@@ -6770,7 +6808,6 @@
 
         Console.WriteLine("GoCAD END");
     }
-
 
     private bool boolOdczyt = false;
     private bool boolZmiana = false;
