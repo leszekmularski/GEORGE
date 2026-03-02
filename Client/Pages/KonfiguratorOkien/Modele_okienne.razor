@@ -1373,7 +1373,10 @@
                 // Teraz rysujemy tylko jeśli dane są gotowe
                 if (ShapeService != null && ShapeService.Shapes.Any())
                 {
+                    pokaKonturWewnetrzny = ShapeService._rysujTylkoKontur;
 
+                    constWlasciwosciOkna.Szerokosc = ShapeService._szerokosc;
+                    constWlasciwosciOkna.Wysokosc = ShapeService._wysokosc;
                     // Obserwacja resize
                     await StartResizeObserver();
 
@@ -6798,6 +6801,9 @@
         {
             ShapeService._szerokosc = constWlasciwosciOkna.Szerokosc;
             ShapeService._wysokosc = constWlasciwosciOkna.Wysokosc;
+            ShapeService._rysujTylkoKontur =  pokaKonturWewnetrzny;
+            ShapeService.UpdateShapes(ShapeService.Shapes, constWlasciwosciOkna.Szerokosc, constWlasciwosciOkna.Wysokosc);
+            Console.WriteLine("GoCAD Ustawiono zmienne w ShapeService");
         }
 
         Console.WriteLine("GoCAD Próba nawigacji → /DrawCAD");

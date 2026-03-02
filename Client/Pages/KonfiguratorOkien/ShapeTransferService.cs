@@ -6,6 +6,13 @@
 
         public int _szerokosc { get; set; } = 0;
         public int _wysokosc { get; set; } = 0;
+        public bool _rysujTylkoKontur { get; set; } = false;
+        public void UpdateShapes(List<IShapeDC> shapes, int szerokosc, int wysokosc)
+        {
+            Shapes = shapes;
+            _szerokosc = szerokosc;
+            _wysokosc = wysokosc;
+        }
 
         public string GetShapesAsJson()
         {
