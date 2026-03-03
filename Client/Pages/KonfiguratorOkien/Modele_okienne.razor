@@ -493,7 +493,7 @@
 
         </Sider>
 
-        <InputCheckbox @bind-Value="pokaKonturWewnetrzny" /> <label>Pokaż kontur wewnętrzny (wyłącz wypełninie)</label>
+        <InputCheckbox @bind-Value="pokaKonturWewnetrzny" @onclick="() => ZmienWymiaryOkna()" /> <label>Pokaż kontur wewnętrzny (wyłącz wypełnienie)</label>
 
     </Panel>
     <Panel Header="Materiały" Key="3" class="scrollable-panel">
@@ -6600,6 +6600,7 @@
             var baseUrl = Navigation.BaseUri;
             var imageUrl = $"{baseUrl}api/images/{woodPatternName}";
 
+
             // Rysowanie każdego kształtu
             foreach (var ksztalt in ksztalty)
             {
@@ -6610,7 +6611,7 @@
                 //  Console.WriteLine($"*********** >>>>>> IndeksElementu: {ksztalt.IndeksElementu} Grupa: {ksztalt.Grupa} DlogoscElementu: {ksztalt.DlogoscElementu}");
 
                 await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
-                await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"{ksztalt.IndeksElementu.ToString()} [{Math.Round(ksztalt.Kat, 1).ToString()}/{ksztalt.Strona}-{ksztalt.RodzajpolaczenAiB}]", (ksztalt.Kat == 180 ? 0 : ksztalt.Kat)); // Tekst z ID i kątem na profilu
+                await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"[{ksztalt.NrPozWModelu}]-{ksztalt.IndeksElementu.ToString()} [{Math.Round(ksztalt.Kat, 1).ToString()}°/{ksztalt.Strona}-{ksztalt.RodzajpolaczenAiB}]", (ksztalt.Kat == 180 ? 0 : ksztalt.Kat)); // Tekst z ID i kątem na profilu
             }
 
             await _context.RestoreAsync();

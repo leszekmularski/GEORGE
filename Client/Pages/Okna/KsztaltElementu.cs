@@ -7,7 +7,7 @@ namespace GEORGE.Client.Pages.Okna
     public class KsztaltElementu
     {
         public string Id { get; set; } = Guid.NewGuid().ToString();
-
+        public int NrPozWModelu { get; set; }  = 0;
         public string IdRegion { get; set; } = "";
 
         // Typ ksztaltu: prostokat, trojkat, romb, trapez, kolo itd.
@@ -98,7 +98,8 @@ namespace GEORGE.Client.Pages.Okna
                 OffsetGora = this.OffsetGora,
                 OffsetDol = this.OffsetDol,
                 DlugoscCzopaA = this.DlugoscCzopaA,
-                DlugoscCzopaB = this.DlugoscCzopaB
+                DlugoscCzopaB = this.DlugoscCzopaB,
+                NrPozWModelu = this.NrPozWModelu,
             };
         }
 
