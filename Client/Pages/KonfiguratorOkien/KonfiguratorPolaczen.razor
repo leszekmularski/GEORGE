@@ -586,6 +586,10 @@
             return;
         }
 
+        var zaznaczoneKonfiguracje = KonfiguracjeSystemu
+            .Where(k => k.CzyWybrany)
+            .ToList(); // 🔥 materializacja
+
         Console.WriteLine($"EdytowanyModel.RowId: {EdytowanyModel.RowId}");
 
         czakajAzZmienie = true;
@@ -596,80 +600,6 @@
                                        $"{SelectedImage4?.Value ?? "0-T0"}";
 
         EdytowanyModel.RowIdSystem = Guid.Parse(SelectedSystemId);
-
-        try
-        {
-            Console.WriteLine($"EdytowanyModel.PolaczenieNaroza: {EdytowanyModel.PolaczenieNaroza}");
-
-            var baseUrlX = Navigation.BaseUri;
-            var imageUrl = $"{baseUrlX}api/images/sosna.jpg";
-
-            if (PowiazanyModel != null || KonfiguracjeSystemu != null)
-            {
-                 Console.WriteLine($"Rozpoczynam generowania imageGenerator.GenerateImageAsync");
-
-                var imageGenerator = new ImageGenerator(Http);
-
-                // Sprawdź wszystkie możliwe null-e
-                if (imageGenerator == null) 
-                    throw new ArgumentNullException(nameof(imageGenerator));
-        
-                if (EdytowanyModel == null) 
-                    throw new ArgumentNullException(nameof(EdytowanyModel));
-        
-                if (PowiazanyModel == null && KonfiguracjeSystemu == null)
-                    throw new InvalidOperationException("Brak danych konfiguracyjnych");
-
-                var konfSystem = PowiazanyModel?.KonfSystem ?? KonfiguracjeSystemu;
-        
-                if (konfSystem == null)
-                    throw new InvalidOperationException("Konfiguracja systemu jest null");
-
-                // Wywołaj metodę
-                byte[] imageBytes = await imageGenerator.GenerateImageAsync(
-                    konfSystem,
-                    EdytowanyModel.PolaczenieNaroza,
-                    500, 
-                    500, 
-                    imageUrl, 
-                    "#ADD8E6"
-                );
-                // byte[] imageBytes = await imageGenerator.GenerateImageAsync(PowiazanyModel.KonfSystem ?? KonfiguracjeSystemu, EdytowanyModel.PolaczenieNaroza, 500, 500, imageUrl, "#ADD8E6");
-                //byte[] imageBytes = await imageGenerator.GenerateImageAsync(imageUrl);
-
-                if (imageBytes != null)
-                {
-                    //var imageData = $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}";
-                    EdytowanyModel.Rysunek = imageBytes;
-
-                    EdytowanyModel.Ikona16x16 = ResizeImage(imageBytes, 16, 16);
-
-                    EdytowanyModel.Ikona32x32 = ResizeImage(imageBytes, 32, 32);
-                }
-                else
-                {
-                    _ = _notice.Info(new()
-                        {
-                            Message = "Informacja!!",
-                            Description = $"Nie wygenerowano obrazka sprawdź konfigurację! kliknij --> Pokaż wszystkie",
-                            Placement = NotificationPlacement.TopRight,
-                            Duration = 5
-                        });
-                }
-            }
-
-        }
-        catch (Exception ex)
-        {
-            _ = _notice.Info(new()
-                {
-                    Message = "Informacja!!",
-                    Description = $"Nie wygenerowano obrazka sprawdź konfigurację!!!!",
-                    Placement = NotificationPlacement.TopRight,
-                    Duration = 5
-                });
-            Console.WriteLine($"Błąd: {ex.Message} / {ex.StackTrace}");
-        }
 
 
         if (EdytowanyModel.Id == 0)
@@ -710,11 +640,6 @@
         else
         {
 
-            // if(!string.IsNullOrEmpty(EdytowanyModel.RowId.ToString()))
-            // {
-            //     PowiazanyModel = await Http.GetFromJsonAsync<MVCKonfModele>($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{EdytowanyModel.RowId.ToString()}");
-            // }
-
             if (PowiazanyModel == null)
             {
                 _ = _notice.Info(new()
@@ -729,7 +654,7 @@
         }
 
 
-        foreach (var konf in KonfiguracjeSystemu.Where(k => k.CzyWybrany))
+        foreach (var konf in zaznaczoneKonfiguracje)
         {
             // Sprawdzamy, czy już istnieje w bazie
             if (!existingLinks.Any(x => x.RowIdElement == konf.RowId))
@@ -741,16 +666,11 @@
                         RowIdElement = konf.RowId,
                         RowIdKonfModele = EdytowanyModel.RowId,
                         NazwaKonfiguracji = EdytowanyModel.NazwaKonfiguracji,
-                        KtoZapisal = "Użytkownik"
+                        KtoZapisal = user + " - " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
                     });
             }
-        }
 
-        // Wysyłamy nowo dodane powiązania do API
-        if (nowePowiazania.Count > 0)
-        {
-            await Http.PostAsJsonAsync($"api/konfmodeleelementy/powiazania", nowePowiazania);
-
+            Console.WriteLine($"EdytowanyModel dodano nowy powiązanie dla - {konf.Nazwa}");
         }
 
         // Usuwamy powiązania, które użytkownik odznaczył
@@ -762,18 +682,106 @@
         if (usunPowiazania?.Count > 0)
         {
             await Http.PostAsJsonAsync($"api/konfmodeleelementy/powiazania/usun", usunPowiazania);
+            Console.WriteLine($"EdytowanyModel - Usunięto powiązania o ID: {string.Join(", ", usunPowiazania)}");
         }
+
+        // Wysyłamy nowo dodane powiązania do API
+        if (nowePowiazania.Count > 0)
+        {
+            await Http.PostAsJsonAsync($"api/konfmodeleelementy/powiazania", nowePowiazania);
+            Console.WriteLine($"EdytowanyModel -  Dodano nowe powiązania ilość wybranych: {nowePowiazania.Count}");
+
+        }
+
+
+        try
+        {
+            Console.WriteLine($"EdytowanyModel.PolaczenieNaroza: {EdytowanyModel.PolaczenieNaroza}");
+
+            var baseUrlX = Navigation.BaseUri;
+            var imageUrl = $"{baseUrlX}api/images/sosna.jpg";
+
+            if (PowiazanyModel != null || KonfiguracjeSystemu != null)
+            {
+                Console.WriteLine($"Rozpoczynam generowania imageGenerator.GenerateImageAsync");
+
+                var imageGenerator = new ImageGenerator(Http);
+
+                // Sprawdź wszystkie możliwe null-e
+                if (imageGenerator == null)
+                    throw new ArgumentNullException(nameof(imageGenerator));
+
+                if (EdytowanyModel == null)
+                    throw new ArgumentNullException(nameof(EdytowanyModel));
+
+                if (PowiazanyModel == null && KonfiguracjeSystemu == null)
+                    throw new InvalidOperationException("Brak danych konfiguracyjnych");
+
+                var konfSystem = PowiazanyModel?.KonfSystem ?? KonfiguracjeSystemu;
+
+                if (konfSystem == null)
+                    throw new InvalidOperationException("Konfiguracja systemu jest null");
+
+                // Wywołaj metodę
+                byte[] imageBytes = await imageGenerator.GenerateImageAsync(
+                    konfSystem,
+                    EdytowanyModel.PolaczenieNaroza,
+                    500,
+                    500,
+                    imageUrl,
+                    "#ADD8E6"
+                );
+                // byte[] imageBytes = await imageGenerator.GenerateImageAsync(PowiazanyModel.KonfSystem ?? KonfiguracjeSystemu, EdytowanyModel.PolaczenieNaroza, 500, 500, imageUrl, "#ADD8E6");
+                //byte[] imageBytes = await imageGenerator.GenerateImageAsync(imageUrl);
+
+                if (imageBytes != null)
+                {
+                    //var imageData = $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}";
+                    EdytowanyModel.Rysunek = imageBytes;
+
+                    EdytowanyModel.Ikona16x16 = ResizeImage(imageBytes, 16, 16);
+
+                    EdytowanyModel.Ikona32x32 = ResizeImage(imageBytes, 32, 32);
+                }
+                else
+                {
+                    _ = _notice.Info(new()
+                    {
+                        Message = "Informacja!!",
+                        Description = $"Nie wygenerowano obrazka sprawdź konfigurację! kliknij --> Pokaż wszystkie",
+                        Placement = NotificationPlacement.TopRight,
+                        Duration = 5
+                    });
+                }
+            }
+
+        }
+        catch (Exception ex)
+        {
+            _ = _notice.Info(new()
+            {
+                Message = "Informacja!!",
+                Description = $"Nie wygenerowano obrazka sprawdź konfigurację!!!!",
+                Placement = NotificationPlacement.TopRight,
+                Duration = 5
+            });
+            Console.WriteLine($"Błąd: {ex.Message} / {ex.StackTrace}");
+        }
+
 
         // Odświeżenie listy modeli
         ListaModeli = await Http.GetFromJsonAsync<List<KonfModele>>(apiUrl);
 
         czakajAzZmienie = false;
 
-        await _message.Info("Dane w modelu zaktualizowano!" , 1);  
+        await _message.Info("Dane w modelu zaktualizowano!" , 1);
 
-        EdytowanyModel = null;
+       await Edytuj(EdytowanyModel.Id, EdytowanyModel.RowId.ToString(), EdytowanyModel.NazwaKonfiguracji);
+
+       // EdytowanyModel = null;
 
         PowiazanyModelPierwszyZapis = null;
+
     }
 
     private byte[] ResizeImage(byte[] imageData, int width, int height)
