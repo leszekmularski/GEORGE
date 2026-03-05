@@ -148,10 +148,3 @@ public static class StronaOknaHelper
     }
 
 }
-
-//namespace GEORGE.Client.Pages.Okna
-//{
-//    public class StronaOknaHelper
-//    {
-//    }
-//}

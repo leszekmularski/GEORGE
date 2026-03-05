@@ -3,6 +3,7 @@ using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.Models;
 using GEORGE.Shared.ViewModels;
 using Microsoft.JSInterop;
+using static iText.Kernel.Colors.Gradients.GradientColorStop;
 
 namespace GEORGE.Client.Pages.Okna
 {
@@ -19,6 +20,9 @@ namespace GEORGE.Client.Pages.Okna
         public List<XPoint> Wierzcholki { get; set; } = new();
 
         public List<XPoint> wewnetrznyKontur; // przechowuje obliczony wewnętrzny kontur po offsetowaniu
+
+        public List<XPoint> liniaSzkleniaKontur;// przechowuje obliczony kontur linii szklenia (jeśli dotyczy)
+
         public List<ShapeRegion> Region { get; set; } = new();
         public string StronaElementu { get; set; } = "";
 
@@ -47,6 +51,7 @@ namespace GEORGE.Client.Pages.Okna
             RuchomySlupekPoLewej = false;
             ElementLiniowy = false;
             wewnetrznyKontur = new List<XPoint>();
+            liniaSzkleniaKontur = new List<XPoint>();
         }
         public async Task<bool> AddElements(List<ShapeRegion> regions, string regionId, Dictionary<string, GeneratorState> generatorStates, List<ShapeRegion> regionAdd,
             List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster, XPoint mouseClik, bool kasujKonsole = true)
@@ -138,6 +143,29 @@ namespace GEORGE.Client.Pages.Okna
             // var przeskalowanePunkty = SkalujIPrzesun(punkty, minX, minY, width, height, Szerokosc, Wysokosc);
             var przeskalowanePunkty = new List<XPoint>(punkty); // bez skalowania – prawdziwe dane
 
+            // znajdź indeks punktu o najmniejszym X i Y
+            int startIndex = 0;
+            double minValue = double.MaxValue;
+
+            for (int i = 0; i < przeskalowanePunkty.Count; i++)
+            {
+                double value = przeskalowanePunkty[i].X + przeskalowanePunkty[i].Y;
+
+                if (value < minValue)
+                {
+                    minValue = value;
+                    startIndex = i;
+                }
+            }
+
+            // rotacja listy
+            var posortowane = przeskalowanePunkty
+                .Skip(startIndex)
+                .Concat(przeskalowanePunkty.Take(startIndex))
+                .ToList();
+
+            przeskalowanePunkty = posortowane;
+
             // Console.WriteLine($"📐 Przeskalowane punkty: {string.Join(", ", przeskalowanePunkty.Select(p => $"({p.X:F2}, {p.Y:F2})"))} --------> minX:{minX}");
 
             string slruchPoPrawej = "";
@@ -186,6 +214,16 @@ namespace GEORGE.Client.Pages.Okna
             float profileRight = ObliczRoznicePoziomow(konfRight, ElementLiniowy);
             float profileTop = ObliczRoznicePoziomow(konfTop, ElementLiniowy);
             float profileBottom = ObliczRoznicePoziomow(konfBottom, ElementLiniowy);
+
+            float offsetLeft = ObliczRoznicePoziomowSzyba(konfLeft, ElementLiniowy);
+            float offsetRight = ObliczRoznicePoziomowSzyba(konfRight, ElementLiniowy);
+            float offsetTop = ObliczRoznicePoziomowSzyba(konfTop, ElementLiniowy);
+            float offsetBottom = ObliczRoznicePoziomowSzyba(konfBottom, ElementLiniowy);
+
+            if(offsetLeft > 0) offsetLeft = profileLeft - offsetLeft;
+            if(offsetRight > 0) offsetRight = profileRight - offsetRight;
+            if(offsetTop > 0) offsetTop = profileTop - offsetTop;
+            if(offsetBottom > 0) offsetBottom = profileBottom - offsetBottom;
 
             Console.WriteLine($"🔧 Profile z konfiguracji przed korektą: profileLeft: {profileLeft} profileRight: {profileRight} profileTop: {profileTop} profileBottom: {profileBottom}");
 
@@ -292,6 +330,11 @@ namespace GEORGE.Client.Pages.Okna
                 przeskalowanePunkty,
                 profileLeft, profileRight, profileTop, profileBottom,
                 false);
+
+                liniaSzkleniaKontur = CalculateOffsetPolygon(
+                    przeskalowanePunkty,
+                    offsetLeft, offsetRight, offsetTop, offsetBottom,
+                    false);
             }
 
             var ok = await GenerateGenericElementsWithJoins(
@@ -1141,7 +1184,7 @@ namespace GEORGE.Client.Pages.Okna
                     List<XPoint> getEndT2 = GetEndT2(inner[next], outer[next]);
 
                     wierzcholki = new List<XPoint> {
-                            getStartT3[1], getEndT3[1], getEndT2[0], getStartT3[0]
+                            getStartT3[1], getEndT2[1], getEndT2[0], getStartT3[0]
                     };
                 }
                 else if (leftJoin == "T2" && rightJoin == "T3")
@@ -1596,6 +1639,32 @@ namespace GEORGE.Client.Pages.Okna
 
         }
 
+        private float ObliczRoznicePoziomowSzyba(KonfSystem? konf, bool slupekStaly)
+        {
+            if (konf == null || !konf.CzyMozeBycFix)
+                return -1;
+            if (!slupekStaly)
+            {
+                float gora = (float)konf.PoziomLiniaSzkla;
+                float dol = (float)konf.PoziomDol;
+
+                // Jeśli jedno z pól jest 0, traktuj drugie jako wartość symetryczną
+                if (gora == 0 && dol != 0)
+                    return Math.Abs(dol);
+
+                if (dol == 0 && gora != 0)
+                    return Math.Abs(gora);
+
+                return Math.Abs(gora - dol);
+            }
+            else
+            {
+                //Słupki stałe mają zawsze pełną wartość profilu, niezależnie od poziomów pozostałe dane z tabeli KonfPolaczenia
+                return 0;
+            }
+
+        }
+
         /// <summary>
         /// Zwraca kąt górnej krawędzi w stopniach (0 = poziomo, 90 = pionowo)
         /// </summary>
@@ -1941,7 +2010,7 @@ namespace GEORGE.Client.Pages.Okna
             int count = points.Count;
 
             if (count > 0)
-                Console.WriteLine($"🔷 Calculating offset polygon for {count} X:{points[0].X} Y:{points[0].Y} elementLiniowy:{elementLiniowy} points with profiles L:{profileLeft}, R:{profileRight}, T:{profileTop}, B:{profileBottom}");
+                Console.WriteLine($"🔷CalculateOffsetPolygon Calculating offset polygon for {count} X:{points[0].X} Y:{points[0].Y} elementLiniowy:{elementLiniowy} points with profiles L:{profileLeft}, R:{profileRight}, T:{profileTop}, B:{profileBottom}");
 
             if (count < 2)
                 throw new ArgumentException("Figura musi mieć co najmniej 2 punkty.");
@@ -1995,7 +2064,7 @@ namespace GEORGE.Client.Pages.Okna
                         break;
                 }
 
-                Console.WriteLine($"🔷 Element liniowy: strona {side}, offsetX={offsetX}, offsetY={offsetY}");
+                Console.WriteLine($"🔷CalculateOffsetPolygon Element liniowy: strona {side}, offsetX={offsetX}, offsetY={offsetY}");
 
                 var p1Offset = new XPoint(p1.X + offsetX, p1.Y + offsetY);
                 var p2Offset = new XPoint(p2.X + offsetX, p2.Y + offsetY);
@@ -2038,7 +2107,7 @@ namespace GEORGE.Client.Pages.Okna
                 float nx = ty;
                 float ny = -tx;
 
-                Console.WriteLine($"🔷 Bok {i}: kierunek ({tx:F2}, {ty:F2}), normalna zewnętrzna ({nx:F2}, {ny:F2})");
+                Console.WriteLine($"🔷CalculateOffsetPolygon Bok {i}: kierunek ({tx:F2}, {ty:F2}), normalna zewnętrzna ({nx:F2}, {ny:F2})");
 
                 // Określenie znaku offsetu
                 float offsetValue = 0f;
@@ -2074,7 +2143,7 @@ namespace GEORGE.Client.Pages.Okna
                 var p1Offset = new XPoint(p1.X + nx * offset, p1.Y + ny * offset);
                 var p2Offset = new XPoint(p2.X + nx * offset, p2.Y + ny * offset);
 
-                Console.WriteLine($"🔷 Bok {i}: strona {side}, offsetValue={offsetValue}, usePositiveNormal={usePositiveNormal}, offset={offset}");
+                Console.WriteLine($"🔷CalculateOffsetPolygon Bok {i}: strona {side}, offsetValue={offsetValue}, usePositiveNormal={usePositiveNormal}, offset={offset}");
 
 
                 offsetLines.Add((p1Offset, p2Offset, side, offset));
@@ -2104,7 +2173,7 @@ namespace GEORGE.Client.Pages.Okna
 
             foreach (var pt in result)
             {
-                Console.WriteLine($"🔷 Calculated offset polygon point: X={pt.X}, Y={pt.Y}");
+                Console.WriteLine($"🔷CalculateOffsetPolygon Calculated offset polygon point: X={pt.X}, Y={pt.Y}");
             }
 
             return result;

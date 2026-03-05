@@ -69,17 +69,6 @@
             public double CenterY => (MinY + MaxY) * 0.5;
         }
 
-        //public class BoundingBox
-        //{
-        //    public double MinX { get; set; }
-        //    public double MinY { get; set; }
-        //    public double MaxX { get; set; }
-        //    public double MaxY { get; set; }
-
-        //    public double Width => MaxX - MinX;
-        //    public double Height => MaxY - MinY;
-        //}
-
     }
 
 }

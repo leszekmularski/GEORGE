@@ -80,7 +80,7 @@ namespace GEORGE.Client.Pages.Utils
 
                 var initial = new ShapeRegion
                 {
-                    Wierzcholki = pts.Select(p => new XPoint((float)Math.Round(p.X, 3), (float)Math.Round(p.Y, 3))).ToList(),
+                    Wierzcholki = pts.Select(p => new XPoint((float)Math.Round(p.X, 4), (float)Math.Round(p.Y, 4))).ToList(),
                     TypKsztaltu = typ,
                     TypLiniiDzielacej = typLinii,
                     Id = id,

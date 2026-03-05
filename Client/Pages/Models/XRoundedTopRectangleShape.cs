@@ -112,8 +112,10 @@ namespace GEORGE.Client.Pages.Models
             // Prawy górny (początek łuku)
             outline.Add(new XPoint(rightX, arcStartY));
 
-            // Łuk (8 punktów dla spójności)
-            int segments = 8;
+            // Łuk (6 punktów dla spójności)
+            int segments = 3;
+            if (Radius > 1000) segments = 5;
+
             for (int i = 0; i <= segments; i++)
             {
                 double t = i / (double)segments;
@@ -129,6 +131,12 @@ namespace GEORGE.Client.Pages.Models
             outline.Add(new XPoint(leftX, bottomY));
 
             outline.Reverse();
+
+            for (int i = 0; i < outline.Count; i++)
+            {
+                var p = outline[i];
+                outline[i] = new XPoint(Math.Round(p.X, 4), Math.Round(p.Y, 4));
+            }
 
             return outline;
         }

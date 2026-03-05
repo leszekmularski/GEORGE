@@ -106,19 +106,74 @@ namespace GEORGE.Client.Pages.Models
             return c;
         }
 
-        public List<XPoint> GetVertices()
+        public List<XPoint> GetVertices() => GenerateOutlineDoubleArc();
+
+        private List<XPoint> GenerateOutlineDoubleArc()
         {
-            double arcCenterY = Y + Radius;
+            var outline = new List<XPoint>();
 
-            return new List<XPoint>
+            double leftX = X;
+            double rightX = X + Width;
+            double topY = Y;
+            double bottomY = Y + Height;
+
+            double r = Math.Min(Radius, Math.Min(Width, Height) / 2);
+
+            int segments = 2;
+
+            // start
+            outline.Add(new XPoint(leftX + r, topY));
+
+            // górna linia
+            outline.Add(new XPoint(rightX - r, topY));
+
+            // prawy łuk
+            double cx = rightX - r;
+            double cy = topY + r;
+
+            for (int i = 0; i <= segments; i++)
             {
-                new XPoint(X, Y + Height),
-                new XPoint(X + Width, Y + Height),
-                new XPoint(X + Width, arcCenterY),
-                new XPoint(X, arcCenterY)
-            };
-        }
+                double t = i / (double)segments;
+                double angle = -Math.PI / 2 + t * (Math.PI / 2);
 
+                double x = cx + r * Math.Cos(angle);
+                double y = cy + r * Math.Sin(angle);
+
+                outline.Add(new XPoint(x, y));
+            }
+
+            // prawa linia
+            outline.Add(new XPoint(rightX, bottomY));
+
+            // dolna linia
+            outline.Add(new XPoint(leftX, bottomY));
+
+            // lewy łuk
+            cx = leftX + r;
+            cy = topY + r;
+
+            for (int i = 0; i <= segments; i++)
+            {
+                double t = i / (double)segments;
+                double angle = Math.PI + t * (Math.PI / 2);
+
+                double x = cx + r * Math.Cos(angle);
+                double y = cy + r * Math.Sin(angle);
+
+                outline.Add(new XPoint(x, y));
+            }
+
+           // outline.Reverse();
+
+            for (int i = 0; i < outline.Count; i++)
+            {
+                var p = outline[i];
+                outline[i] = new XPoint(Math.Round(p.X, 4), Math.Round(p.Y, 4));
+            }
+
+            return outline;
+        }
+       
         // --------------------------------------------------------------------
         // RYSOWANIE
         // --------------------------------------------------------------------
@@ -154,7 +209,7 @@ namespace GEORGE.Client.Pages.Models
             new("Y", () => Y, v => { Y = v; Points = GeneratePoints(); }, NazwaObj, true),
             new("Szerokość", () => Width, v => { Width = v; Points = GeneratePoints(); }, NazwaObj),
             new("Wysokość", () => Height, v => { Height = v; Points = GeneratePoints(); }, NazwaObj),
-            new("Promień górnych rogów", () => Radius, v =>
+            new("Promień górnych naroży", () => Radius, v =>
             {
                 double maxR = Math.Min(Width, Height) / 2;
                 Radius = Math.Min(v, maxR);

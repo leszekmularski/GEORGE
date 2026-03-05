@@ -6638,7 +6638,7 @@
             await DrawSingleContour(context, outerPoints);
 
             if (pokaKonturWewnetrzny)
-            await DrawSingleInnerContour(context);
+                await DrawSingleInnerContour(context);
 
             // Sprawdź, czy _dotNetHelper nie jest null i czy komponent nie został usunięty
             if (_dotNetHelper != null && !_disposed)
@@ -6646,11 +6646,11 @@
                 try
                 {
                     if (!pokaKonturWewnetrzny)
-                    await JS.InvokeVoidAsync("loadAndDrawTexture",
-                        CanvasRef.CanvasReference,
-                        textureUrl,
-                        _dotNetHelper
-                    );
+                        await JS.InvokeVoidAsync("loadAndDrawTexture",
+                            CanvasRef.CanvasReference,
+                            textureUrl,
+                            _dotNetHelper
+                        );
                 }
                 catch (Exception ex)
                 {
@@ -6719,8 +6719,39 @@
         await context.StrokeAsync();
     }
 
+    private async Task DrawSingleGlassContour(Canvas2DContext context)
+    {
+        await context.BeginPathAsync();
+
+        foreach (var gs in _generatorStates)
+        {
+            if (gs.Value.Generator == null) continue;
+            if (gs.Value.Generator.liniaSzkleniaKontur == null) continue;
+
+            var innerPoints = gs.Value.Generator.liniaSzkleniaKontur;
+
+            // 🔴 Jeśli którykolwiek punkt ma -1 → pomiń rysowanie
+            if (innerPoints.Any(p => p.X == -1 || p.Y == -1))
+                continue;
+
+            await context.MoveToAsync(innerPoints[0].X, innerPoints[0].Y);
+
+            for (int i = 1; i < innerPoints.Count; i++)
+            {
+                await context.LineToAsync(innerPoints[i].X, innerPoints[i].Y);
+            }
+
+            await context.ClosePathAsync();
+        }
+
+        await context.SetStrokeStyleAsync("Yellow");
+        await context.SetLineWidthAsync(2.5f);
+        await context.StrokeAsync();
+    }
+
     private async Task DrawSingleInnerContour(Canvas2DContext context)
     {
+
         // Rysuj pojedynczy kontur wewnętrzny
         await context.BeginPathAsync();
 
@@ -6743,9 +6774,41 @@
 
         // Opcjonalne stylowanie
         await context.SetStrokeStyleAsync("Red");
-        await context.SetLineWidthAsync(8f);
+        await context.SetLineWidthAsync(4f);
         await context.StrokeAsync();
 
+        await DrawSingleOuterContour(context);
+
+        await DrawSingleGlassContour(context);
+
+    }
+
+    private async Task DrawSingleOuterContour(Canvas2DContext context)
+    {
+        // Rysuj pojedynczy kontur wewnętrzny
+        await context.BeginPathAsync();
+
+        foreach (var gs in _generatorStates)
+        {
+            if (gs.Value.Generator == null) continue;
+
+            var outerPoints = gs.Value.Generator.Wierzcholki;
+            // Rozpocznij od pierwszego punktu
+            await context.MoveToAsync(outerPoints[0].X, outerPoints[0].Y);
+
+            // Rysuj linie do kolejnych punktów
+            for (int i = 1; i < outerPoints.Count; i++)
+            {
+                await context.LineToAsync(outerPoints[i].X, outerPoints[i].Y);
+            }
+            // Zamknij kształt
+            await context.ClosePathAsync();
+        }
+
+        // Opcjonalne stylowanie
+        await context.SetStrokeStyleAsync("Blue");
+        await context.SetLineWidthAsync(2f);
+        await context.StrokeAsync();
 
     }
 

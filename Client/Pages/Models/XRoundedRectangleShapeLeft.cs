@@ -142,7 +142,7 @@ namespace GEORGE.Client.Pages.Models
             new("Y", () => Y, v => { Y = v; RegeneratePoints(); }, NazwaObj, true),
             new("Szerokość", () => Width, v => { Width = v; ClampRadius(); RegeneratePoints(); }, NazwaObj),
             new("Wysokość", () => Height, v => { Height = v; ClampRadius(); RegeneratePoints(); }, NazwaObj),
-            new("Promień", () => Radius, v => { Radius = v; ClampRadius(); RegeneratePoints(); }, NazwaObj),
+            new("Promień naroża", () => Radius, v => { Radius = v; ClampRadius(); RegeneratePoints(); }, NazwaObj),
         };
 
         // =====================================================================
@@ -204,9 +204,48 @@ namespace GEORGE.Client.Pages.Models
         // =====================================================================
         // Wierzchołki i krawędzie
         // =====================================================================
-        public List<XPoint> GetVertices()
+        public List<XPoint> GetVertices() => GenerateOutlineLeftArc();
+        private List<XPoint> GenerateOutlineLeftArc()
         {
-            return new List<XPoint>(Points.Select(p => p.Clone()));
+            var outline = new List<XPoint>();
+
+            double leftX = X;
+            double rightX = X + Width;
+            double topY = Y;
+            double bottomY = Y + Height;
+
+            double r = Math.Min(Radius, Math.Min(Width, Height) / 2);
+            int segments = 2;
+
+            outline.Add(new XPoint(leftX + r, topY));
+            outline.Add(new XPoint(rightX, topY));
+            outline.Add(new XPoint(rightX, bottomY));
+            outline.Add(new XPoint(leftX, bottomY));
+            outline.Add(new XPoint(leftX, topY + r));
+
+            double cx = leftX + r;
+            double cy = topY + r;
+
+            for (int i = 0; i <= segments; i++)
+            {
+                double t = i / (double)segments;
+                double angle = Math.PI + t * (Math.PI / 2);
+
+                double x = cx + r * Math.Cos(angle);
+                double y = cy + r * Math.Sin(angle);
+
+                outline.Add(new XPoint(x, y));
+            }
+
+            //outline.Reverse();
+
+            for (int i = 0; i < outline.Count; i++)
+            {
+                var p = outline[i];
+                outline[i] = new XPoint(Math.Round(p.X, 4), Math.Round(p.Y, 4));
+            }
+
+            return outline;
         }
 
         public List<(XPoint Start, XPoint End)> GetEdges()
