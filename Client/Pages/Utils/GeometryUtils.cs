@@ -78,9 +78,53 @@ namespace GEORGE.Client.Pages.Utils
 
                 Console.WriteLine($"🔲 Generowanie regionów z podziału dla {shapes.Count} kształtów. {_szerokosc}x{_wysokosc} typLinii: {typLinii}");
 
+                if (pts == null) continue;
+
                 var initial = new ShapeRegion
                 {
                     Wierzcholki = pts.Select(p => new XPoint((float)Math.Round(p.X, 4), (float)Math.Round(p.Y, 4))).ToList(),
+
+                    Kontur = pts.Select((p, i) =>
+                    {
+                        var next = pts[(i + 1) % pts.Count];
+
+                        if (shape is XCircleShape circ)
+                        {
+                            return new ContourSegment(p, next, new XPoint(circ.X, circ.Y), circ.Radius, false);
+                        }
+                        else if (shape is XRoundedTopRectangleShape rtrShape)
+                        {
+                            // Górny łuk prostokąta
+                            var (arcCenterX, arcCenterY, _, _) = rtrShape.CalculateArcGeometry();
+                            return new ContourSegment(p, next, new XPoint(arcCenterX, arcCenterY), rtrShape.Radius, false);
+                        }
+                        else if (shape is XRoundedRectangleShape rrShape)
+                        {
+                            // Cztery rogi prostokąta z promieniem
+                            double centerX = (p.X + next.X) / 2;
+                            double centerY = (p.Y + next.Y) / 2;
+                            return new ContourSegment(p, next, new XPoint(centerX, centerY), rrShape.Radius, false);
+                        }
+                        else if (shape is XRoundedRectangleShapeLeft rrlShape)
+                        {
+                            // Lewy łuk – środek w połowie między punktami start/end
+                            double centerX = (p.X + next.X) / 2;
+                            double centerY = (p.Y + next.Y) / 2;
+                            return new ContourSegment(p, next, new XPoint(centerX, centerY), rrlShape.Radius, false);
+                        }
+                        else if (shape is XRoundedRectangleShapeRight rrrShape)
+                        {
+                            // Prawy łuk – środek w połowie między punktami start/end
+                            double centerX = (p.X + next.X) / 2;
+                            double centerY = (p.Y + next.Y) / 2;
+                            return new ContourSegment(p, next, new XPoint(centerX, centerY), rrrShape.Radius, false);
+                        }
+                        else
+                        {
+                            return new ContourSegment(p, next);
+                        }
+                    }).ToList(),
+
                     TypKsztaltu = typ,
                     TypLiniiDzielacej = typLinii,
                     Id = id,
@@ -109,6 +153,16 @@ namespace GEORGE.Client.Pages.Utils
                             .GroupBy(p => new { X = Math.Round(p.X, 2), Y = Math.Round(p.Y, 2) })
                             .Select(g => g.First())
                             .ToList();
+                        r.Kontur = r.Kontur
+                            .GroupBy(s => new
+                            {
+                                StartX = Math.Round(s.Start.X, 2),
+                                StartY = Math.Round(s.Start.Y, 2),
+                                EndX = Math.Round(s.End.X, 2),
+                                EndY = Math.Round(s.End.Y, 2)
+                            })
+                            .Select(g => g.First())
+                            .ToList();
 
                         r.RozpoznajTyp(r.TypKsztaltu);
 
@@ -135,7 +189,7 @@ namespace GEORGE.Client.Pages.Utils
                             }
                         }
 
-                            r.Id = id + "|" + idCounter++;
+                        r.Id = id + "|" + idCounter++;
 
                         // **UWAGA**: NIE NADPISUJEMY Id — zachowujemy oryginalne Id
                     }
@@ -161,6 +215,17 @@ namespace GEORGE.Client.Pages.Utils
                        .GroupBy(p => new { X = Math.Round(p.X, 2), Y = Math.Round(p.Y, 2) })
                        .Select(g => g.First())
                        .ToList();
+
+                        r.Kontur = r.Kontur
+                            .GroupBy(s => new
+                            {
+                                StartX = Math.Round(s.Start.X, 2),
+                                StartY = Math.Round(s.Start.Y, 2),
+                                EndX = Math.Round(s.End.X, 2),
+                                EndY = Math.Round(s.End.Y, 2)
+                            })
+                            .Select(g => g.First())
+                            .ToList();
 
                         r.RozpoznajTyp(r.TypKsztaltu);
 
@@ -242,12 +307,45 @@ namespace GEORGE.Client.Pages.Utils
                     ))
                     .ToList();
 
+                var nowyKontur = skrzydlo.Kontur
+                    .Select(s =>
+                    {
+                        var start = new XPoint(
+                            minXRama + (s.Start.X - minXSkrzydla) * scaleX,
+                            minYRama + (s.Start.Y - minYSkrzydla) * scaleY
+                        );
+                        var end = new XPoint(
+                            minXRama + (s.End.X - minXSkrzydla) * scaleX,
+                            minYRama + (s.End.Y - minYSkrzydla) * scaleY
+                        );
+
+                        if (s.Type == SegmentType.Line)
+                        {
+                            return new ContourSegment(start, end);
+                        }
+                        else // łuk
+                        {
+                            XPoint center = new();
+                            if (s.Center != null)
+                            {
+                                center = new XPoint(
+                                    minXRama + (s.Center.Value.X - minXSkrzydla) * scaleX,
+                                    minYRama + (s.Center.Value.Y - minYSkrzydla) * scaleY
+                                );
+                            }
+
+                            return new ContourSegment(start, end, center, s.Radius, s.CounterClockwise);
+                        }
+                    })
+                    .ToList();
+
                 noweSkrzydla.Add(new ShapeRegion
                 {
                     Id = skrzydlo.Id,
                     TypKsztaltu = skrzydlo.TypKsztaltu,
                     TypLiniiDzielacej = skrzydlo.TypLiniiDzielacej,
-                    Wierzcholki = noweWierzcholki
+                    Wierzcholki = noweWierzcholki,
+                    Kontur = nowyKontur
                 });
             }
 
@@ -285,12 +383,45 @@ namespace GEORGE.Client.Pages.Utils
                         (p.Y - minY) * scaleY))
                     .ToList();
 
+                var nowyKontur = region.Kontur
+                    .Select(s =>
+                    {
+                        var start = new XPoint(
+                            (s.Start.X - minX) * scaleX,
+                            (s.Start.Y - minY) * scaleY
+                        );
+                        var end = new XPoint(
+                            (s.End.X - minX) * scaleX,
+                            (s.End.Y - minY) * scaleY
+                        );
+
+                        if (s.Type == SegmentType.Line)
+                        {
+                            return new ContourSegment(start, end);
+                        }
+                        else // łuk
+                        {
+                            XPoint center = new();
+                            if (s.Center != null)
+                            {
+                                center = new XPoint(
+                                    (s.Center.Value.X - minX) * scaleX,
+                                    (s.Center.Value.Y - minY) * scaleY
+                                );
+                            }
+
+                            return new ContourSegment(start, end, center, s.Radius, s.CounterClockwise);
+                        }
+                    })
+                    .ToList();
+
                 var nowyRegion = new ShapeRegion
                 {
                     Id = region.Id,                    // zachowaj Id
                     TypKsztaltu = region.TypKsztaltu,  // zachowaj typ
                     TypLiniiDzielacej = region.TypLiniiDzielacej,
-                    Wierzcholki = noweWierzcholki
+                    Wierzcholki = noweWierzcholki,
+                    Kontur = nowyKontur
                 };
 
                 noweRegiony.Add(nowyRegion);
@@ -326,7 +457,19 @@ namespace GEORGE.Client.Pages.Utils
                 ).ToList() ?? new List<XLineShape>(),
                 Wierzcholki = src.Wierzcholki?
                     .Select(p => new XPoint { X = p.X, Y = p.Y })
-                    .ToList() ?? new List<XPoint>()
+                    .ToList() ?? new List<XPoint>(),
+                Kontur = src.Kontur?.Select(s =>
+                {
+                    if (s.Type == SegmentType.Line)
+                        return new ContourSegment(new XPoint { X = s.Start.X, Y = s.Start.Y },
+                                                  new XPoint { X = s.End.X, Y = s.End.Y });
+                    else
+                        return new ContourSegment(new XPoint { X = s.Start.X, Y = s.Start.Y },
+                                                  new XPoint { X = s.End.X, Y = s.End.Y },
+                                                  s.Center != null ? new XPoint { X = s.Center.Value.X, Y = s.Center.Value.Y } : null,
+                                                  s.Radius,
+                                                  s.CounterClockwise);
+                }).ToList() ?? new List<ContourSegment>()
             };
         }
 
@@ -380,6 +523,21 @@ namespace GEORGE.Client.Pages.Utils
                     double newY = minYNew + relY * scaleY;
 
                     kopia.Wierzcholki[i] = new XPoint { X = newX, Y = newY };
+                    kopia.Kontur[i] = new ContourSegment(
+                        new XPoint { X = newX, Y = newY },
+                        new XPoint
+                        {
+                            X = minXNew + (kopia.Kontur[i].End.X - minXOld) * scaleX,
+                            Y = minYNew + (kopia.Kontur[i].End.Y - minYOld) * scaleY
+                        },
+                        kopia.Kontur[i].Center != null ? new XPoint
+                        {
+                            X = minXNew + (kopia.Kontur[i].Center.Value.X - minXOld) * scaleX,
+                            Y = minYNew + (kopia.Kontur[i].Center.Value.Y - minYOld) * scaleY
+                        } : null,
+                        kopia.Kontur[i].Radius * ((scaleX + scaleY) / 2), // średnia skala dla promienia łuku
+                        kopia.Kontur[i].CounterClockwise
+                    );
                 }
 
                 // skaluj też linie dzielące wewnątrz skrzydła
@@ -439,6 +597,38 @@ namespace GEORGE.Client.Pages.Utils
                         (p.Y - minY) * scaleY))
                     .ToList();
 
+                var nowyKontur = region.Kontur
+                .Select(s =>
+                {
+                    var start = new XPoint(
+                        (s.Start.X - minX) * scaleX,
+                        (s.Start.Y - minY) * scaleY
+                    );
+                    var end = new XPoint(
+                        (s.End.X - minX) * scaleX,
+                        (s.End.Y - minY) * scaleY
+                    );
+
+                    if (s.Type == SegmentType.Line)
+                    {
+                        return new ContourSegment(start, end);
+                    }
+                    else // łuk
+                    {
+                        XPoint center = new();
+                        if (s.Center != null)
+                        {
+                            center = new XPoint(
+                                (s.Center.Value.X - minX) * scaleX,
+                                (s.Center.Value.Y - minY) * scaleY
+                            );
+                        }
+
+                        return new ContourSegment(start, end, center, s.Radius, s.CounterClockwise);
+                    }
+                })
+                .ToList();
+
                 noweRegiony.Add(new ShapeRegion
                 {
                     Id = region.Id,
@@ -446,7 +636,8 @@ namespace GEORGE.Client.Pages.Utils
                     IdRegionuPonizej = region.IdRegionuPonizej,
                     TypKsztaltu = region.TypKsztaltu,
                     TypLiniiDzielacej = region.TypLiniiDzielacej,
-                    Wierzcholki = noweWierzcholki
+                    Wierzcholki = noweWierzcholki,
+                    Kontur = nowyKontur,
                 });
             }
 
@@ -480,24 +671,42 @@ namespace GEORGE.Client.Pages.Utils
             return kątyProste && bokiRowne;
         }
 
-        private static List<ShapeRegion> PodzielRegionRekurencyjnie(ShapeRegion region, List<XLineShape> lines, string idMaster, bool rama)
+        private static List<ShapeRegion> PodzielRegionRekurencyjnie(
+         ShapeRegion region,
+         List<XLineShape> lines,
+         string idMaster,
+         bool rama)
         {
+            // Początkowa lista wyników zawiera oryginalny region
             var wynik = new List<ShapeRegion> { region };
 
+            // Iterujemy po wszystkich liniach dzielących
             foreach (var line in lines)
             {
                 var next = new List<ShapeRegion>();
 
                 foreach (var r in wynik)
                 {
-                    var split = PodzielPolygonPoLinii(r.Wierzcholki, line);
+                    // 1️⃣ Podział wierzchołków
+                    var splitLinie = PodzielPolygonPoLinii(r.Wierzcholki, line);
 
-                    if (split.Count > 1)
+                    // 2️⃣ Podział konturu
+                    var splitFullKontur = PodzielKonturPoLinii(r.Kontur, line);
+
+                    // Jeśli podział faktycznie wystąpił
+                    if (splitLinie.Count > 1 && splitFullKontur.Count > 0)
                     {
-                        foreach (var poly in split)
+                        for (int i = 0; i < splitLinie.Count; i++)
+                        {
+                            var poly = splitLinie[i];
+
+                            // Dopasowanie konturu do poligonu
+                            var kontur = i < splitFullKontur.Count ? splitFullKontur[i] : splitFullKontur.Last();
+
                             next.Add(new ShapeRegion
                             {
                                 Wierzcholki = poly,
+                                Kontur = kontur,
                                 TypKsztaltu = r.TypKsztaltu,
                                 LinieDzielace = r.LinieDzielace.Concat(new[] { line }).ToList(),
                                 IdMaster = idMaster,
@@ -505,13 +714,17 @@ namespace GEORGE.Client.Pages.Utils
                                 Id = r.Id + "_" + line.ID + "_" + Guid.NewGuid().ToString(),
                                 TypLiniiDzielacej = r.TypLiniiDzielacej
                             });
+                        }
                     }
                     else
+                    {
+                        // Jeśli podział nie wystąpił, zostawiamy region bez zmian
                         next.Add(r);
-
-                    wynik = next;
+                    }
                 }
 
+                // Aktualizujemy listę wyników po podziale przez tę linię
+                wynik = next;
             }
 
             return wynik;
@@ -523,6 +736,7 @@ namespace GEORGE.Client.Pages.Utils
         string rootId,
         bool rama)
         {
+            // Początkowa lista wyników zawiera oryginalny region
             var wynik = new List<ShapeRegion> { region };
 
             int indexLinii = 0;
@@ -533,19 +747,29 @@ namespace GEORGE.Client.Pages.Utils
 
                 foreach (var r in wynik)
                 {
-                    var split = PodzielPolygonPoLinii(r.Wierzcholki, line);
+                    // 1️⃣ Podział wierzchołków
+                    var splitLinie = PodzielPolygonPoLinii(r.Wierzcholki, line);
 
-                    if (split.Count > 1)
+                    // 2️⃣ Podział konturu
+                    var splitFullKontur = PodzielKonturPoLinii(r.Kontur, line);
+
+                    if (splitLinie.Count > 1 && splitFullKontur.Count > 0)
                     {
                         int indexChild = 0;
 
-                        foreach (var poly in split)
+                        for (int i = 0; i < splitLinie.Count; i++)
                         {
+                            var poly = splitLinie[i];
+
+                            // Dopasowanie konturu do poligonu
+                            var kontur = i < splitFullKontur.Count ? splitFullKontur[i] : splitFullKontur.Last();
+
                             string newId = $"{rootId}|L{indexLinii}|C{indexChild}";
 
                             next.Add(new ShapeRegion
                             {
                                 Wierzcholki = poly,
+                                Kontur = kontur,
                                 TypKsztaltu = r.TypKsztaltu,
                                 LinieDzielace = r.LinieDzielace.Concat(new[] { line }).ToList(),
                                 IdMaster = rootId,
@@ -559,15 +783,65 @@ namespace GEORGE.Client.Pages.Utils
                     }
                     else
                     {
+                        // Jeśli podział nie wystąpił, pozostawiamy region bez zmian
                         next.Add(r);
                     }
                 }
 
+                // Aktualizacja listy wyników po podziale tą linią
                 wynik = next;
                 indexLinii++;
             }
 
             return wynik;
+        }
+
+        public static List<List<ContourSegment>> PodzielKonturPoLinii(List<ContourSegment> contour, XLineShape line)
+        {
+            var left = new List<ContourSegment>();
+            var right = new List<ContourSegment>();
+
+            foreach (var seg in contour)
+            {
+                bool startLeft = PunktPoLewejStronie(seg.Start, line);
+                bool endLeft = PunktPoLewejStronie(seg.End, line);
+
+                if (startLeft && endLeft)
+                {
+                    left.Add(seg);
+                }
+                else if (!startLeft && !endLeft)
+                {
+                    right.Add(seg);
+                }
+                else
+                {
+                    // Segment przecina linię – dzielimy na dwa
+                    if (ObliczPrzeciecie(seg.Start, seg.End, line, out var intersection))
+                    {
+                        if (startLeft)
+                        {
+                            left.Add(new ContourSegment(seg.Start, intersection));
+                            right.Add(new ContourSegment(intersection, seg.End));
+                        }
+                        else
+                        {
+                            right.Add(new ContourSegment(seg.Start, intersection));
+                            left.Add(new ContourSegment(intersection, seg.End));
+                        }
+                    }
+                    else
+                    {
+                        // Brak przecięcia, traktujemy jako cały segment na odpowiedniej stronie
+                        if (startLeft) left.Add(seg); else right.Add(seg);
+                    }
+                }
+            }
+
+            var res = new List<List<ContourSegment>>();
+            if (left.Count > 0) res.Add(left);
+            if (right.Count > 0) res.Add(right);
+            return res;
         }
 
         private static List<List<XPoint>> PodzielPolygonPoLinii(List<XPoint> poly, XLineShape line)

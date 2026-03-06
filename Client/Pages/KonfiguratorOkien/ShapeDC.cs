@@ -19,6 +19,8 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
         public List<EditableProperty> GetEditableProperties() => new();
 
+        public List<ContourSegment> ContourSegments => GetContourSegments();
+
         // ---------------------------------------------------------
         // Skalowanie – zawsze oparte na punktach nominalnych!
         // ---------------------------------------------------------
@@ -88,5 +90,24 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             Points = newPoints.Select(p => p.Clone()).ToList();
             NominalPoints = newPoints.Select(p => p.Clone()).ToList();
         }
+
+        // 🔹 Implementacja metody dla ShapeDC
+        public List<ContourSegment> GetContourSegments()
+        {
+            var segments = new List<ContourSegment>();
+
+            if (NominalPoints == null || NominalPoints.Count < 2)
+                return segments;
+
+            for (int i = 0; i < NominalPoints.Count; i++)
+            {
+                var start = NominalPoints[i].Clone();
+                var end = NominalPoints[(i + 1) % NominalPoints.Count].Clone(); // zamyka kontur
+                segments.Add(new ContourSegment(start, end));
+            }
+
+            return segments;
+        }
+
     }
 }

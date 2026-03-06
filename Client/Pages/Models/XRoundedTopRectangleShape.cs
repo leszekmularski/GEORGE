@@ -27,6 +27,8 @@ namespace GEORGE.Client.Pages.Models
         private readonly double _scaleFactor;
         public string NazwaObj { get; set; } = "Prostokąt z wypukłym łukiem u góry";
 
+        public List<ContourSegment> ContourSegments => GetContourSegments();
+
         public XRoundedTopRectangleShape(double x, double y, double width, double height,
                                          double radius = 0, double arcHeight = 0, double scaleFactor = 1.0)
         {
@@ -65,7 +67,7 @@ namespace GEORGE.Client.Pages.Models
         // ===========================
         // Oblicz środek łuku i kąty start/end
         // ===========================
-        private (double arcCenterX, double arcCenterY, double startAngle, double endAngle) CalculateArcGeometry()
+        public (double arcCenterX, double arcCenterY, double startAngle, double endAngle) CalculateArcGeometry()
         {
             double arcStartY = Y + ArcHeight;
             double arcCenterX = X + Width / 2.0;
@@ -285,6 +287,24 @@ namespace GEORGE.Client.Pages.Models
             new EditableProperty("Promień łuku", () => Radius, v => { Radius = Math.Max(5, Math.Min(v, Width / 2)); CalculatePointsFromProperties(); }, NazwaObj),
             new EditableProperty("Wysokość łuku", () => ArcHeight, v => { ArcHeight = Math.Clamp(v, 5, Height); CalculatePointsFromProperties(); }, NazwaObj),
         };
+
+        // 🔹 Generowanie segmentów konturu na podstawie NominalPoints
+        public List<ContourSegment> GetContourSegments()
+        {
+            var segments = new List<ContourSegment>();
+
+            if (NominalPoints == null || NominalPoints.Count < 2)
+                return segments;
+
+            for (int i = 0; i < NominalPoints.Count; i++)
+            {
+                var start = NominalPoints[i].Clone();
+                var end = NominalPoints[(i + 1) % NominalPoints.Count].Clone(); // zamknięcie konturu
+                segments.Add(new ContourSegment(start, end));
+            }
+
+            return segments;
+        }
 
         private XPoint CalculateCentroid(List<XPoint> pts)
         {

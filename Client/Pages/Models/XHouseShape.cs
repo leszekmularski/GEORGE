@@ -21,6 +21,8 @@ namespace GEORGE.Client.Pages.Models
         public List<XPoint> NominalPoints { get; set; } = new();
         public string ID { get; set; } = Guid.NewGuid().ToString();
 
+        public List<ContourSegment> ContourSegments => GetContourSegments();
+
         public XHouseShape(double x, double y, double width, double height,
                   double heightLeft, double heightRight, double scaleFactor)
         {
@@ -55,12 +57,6 @@ namespace GEORGE.Client.Pages.Models
                 new XPoint(X, bottomY)         // Lewy dolny róg ściany (punkt 4)
             };
 
-            //Console.WriteLine($"Generated NominalPoints: {NominalPoints.Count} points");
-
-            //for (int i = 0; i < NominalPoints.Count; i++)
-            //{
-            //    Console.WriteLine($"  Point {i}: X={NominalPoints[i].X}, Y={NominalPoints[i].Y}");
-            //}
         }
 
         // Generuje punkty przeskalowane dla canvas
@@ -270,6 +266,27 @@ namespace GEORGE.Client.Pages.Models
         };
 
             return (roofEdges, baseEdges);
+        }
+
+        public List<ContourSegment> GetContourSegments()
+        {
+            var segments = new List<ContourSegment>();
+
+            if (NominalPoints == null || NominalPoints.Count < 2)
+                return segments;
+
+            for (int i = 0; i < NominalPoints.Count; i++)
+            {
+                var start = NominalPoints[i];
+                var end = NominalPoints[(i + 1) % NominalPoints.Count];
+
+                segments.Add(new ContourSegment(
+                    start.Clone(),
+                    end.Clone()
+                ));
+            }
+
+            return segments;
         }
 
         public List<XPoint> GetPoints() => Points.Select(p => new XPoint(p.X, p.Y)).ToList();

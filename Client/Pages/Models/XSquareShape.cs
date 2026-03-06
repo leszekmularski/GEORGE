@@ -25,6 +25,8 @@ namespace GEORGE.Client.Pages.Models
         public List<XPoint> GetNominalPoints() =>
             NominalPoints.Select(p => new XPoint(p.X, p.Y)).ToList();
 
+        public List<ContourSegment> ContourSegments => GetContourSegments();
+
         // --------------------------------------------------------------------
         // 🔥 Konstruktor — generujemy punkty i od razu ustawiamy nominalne
         // --------------------------------------------------------------------
@@ -192,6 +194,25 @@ namespace GEORGE.Client.Pages.Models
                 (v[3], v[0])
             };
         }
+
+        // 🔹 Generowanie segmentów konturu na podstawie NominalPoints
+        public List<ContourSegment> GetContourSegments()
+        {
+            var segments = new List<ContourSegment>();
+
+            if (NominalPoints == null || NominalPoints.Count < 2)
+                return segments;
+
+            for (int i = 0; i < NominalPoints.Count; i++)
+            {
+                var start = NominalPoints[i].Clone();
+                var end = NominalPoints[(i + 1) % NominalPoints.Count].Clone(); // zamknięcie konturu
+                segments.Add(new ContourSegment(start, end));
+            }
+
+            return segments;
+        }
+
         private XPoint CalculateCentroid(List<XPoint> pts)
         {
             double cx = 0;

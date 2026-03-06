@@ -22,6 +22,8 @@ namespace GEORGE.Client.Pages.Models
         public string ID { get; set; } = Guid.NewGuid().ToString();
         public List<XPoint> GetPoints() => Points;
         public List<XPoint> GetNominalPoints() => NominalPoints;
+
+        public List<ContourSegment> ContourSegments => GetContourSegments();
         // Konstruktor przyjmujący współrzędne i współczynnik szerokości góry
         public XTrapezoidShape(double startX, double startY, double endX, double endY, double topWidthFactor, double scaleFactor, int typ)
         {
@@ -319,8 +321,6 @@ namespace GEORGE.Client.Pages.Models
                 return new List<XPoint>();
             }
         }
-
-
         public void Transform(double scale, double offsetX, double offsetY)
         {
             X = (X * scale) + offsetX;
@@ -375,6 +375,24 @@ namespace GEORGE.Client.Pages.Models
 
                 _ => new List<XPoint>()
             };
+        }
+
+        // 🔹 Generowanie segmentów konturu na podstawie NominalPoints
+        public List<ContourSegment> GetContourSegments()
+        {
+            var segments = new List<ContourSegment>();
+
+            if (NominalPoints == null || NominalPoints.Count < 2)
+                return segments;
+
+            for (int i = 0; i < NominalPoints.Count; i++)
+            {
+                var start = NominalPoints[i].Clone();
+                var end = NominalPoints[(i + 1) % NominalPoints.Count].Clone(); // zamknięcie konturu
+                segments.Add(new ContourSegment(start, end));
+            }
+
+            return segments;
         }
 
         private XPoint CalculateCentroid(List<XPoint> pts)

@@ -492,8 +492,9 @@
             }
 
         </Sider>
-
+        <hr/>
         <InputCheckbox @bind-Value="pokaKonturWewnetrzny" @onclick="() => ZmienWymiaryOkna()" /> <label>Pokaż kontur wewnętrzny (wyłącz wypełnienie)</label>
+        <InputCheckbox @bind-Value="oknaMogaBycLukowe" @onclick="() => ZmienWymiaryOkna()" /> <label>Okno może być wykonane z elementów łukowych</label>
 
     </Panel>
     <Panel Header="Materiały" Key="3" class="scrollable-panel">
@@ -584,11 +585,11 @@
                                          @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
                                          draggable="true"
                                          style="cursor: grab;
-                                                                width: auto;
-                                                                height: auto;
-                                                                max-width: 50px;
-                                                                max-height: 50px;
-                                                                border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
+                                                width: auto;
+                                                height: auto;
+                                                max-width: 50px;
+                                                max-height: 50px;
+                                                border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
 
                                 }
                                 else
@@ -1315,6 +1316,8 @@
 
     private bool pokaKonturWewnetrzny = false;
 
+    private bool oknaMogaBycLukowe = false;
+
     protected override async Task OnInitializedAsync()
     {
 
@@ -1374,6 +1377,7 @@
                 if (ShapeService != null && ShapeService.Shapes.Any())
                 {
                     pokaKonturWewnetrzny = ShapeService._rysujTylkoKontur;
+                    oknaMogaBycLukowe = ShapeService._oknaMogaBycLukowe;
 
                     constWlasciwosciOkna.Szerokosc = ShapeService._szerokosc;
                     constWlasciwosciOkna.Wysokosc = ShapeService._wysokosc;
@@ -1645,7 +1649,6 @@
 
         return yMin < yMax;
     }
-
 
     public static void ShortenVerticalLineToTriangle(
     XLineShape line,
@@ -2019,8 +2022,6 @@
             await _context.EndBatchAsync();
             // 3. Renderuj ramkę (jeśli potrzebna)
             await RenderFrame();
-
-
 
             // Console.WriteLine($"🎨 Narysowano {ShapeService.Shapes.Count} kształtów");
         }
@@ -3018,10 +3019,10 @@
             // 6. Przetwarzaj stany generatorów
             var obrGen = _generatorStates.OrderBy(x => x.Value.ZIndeks).ToList();
 
-            foreach (var genState in obrGen)
-            {
-                Console.WriteLine($"🔄 Przetwarzam region: {genState.Value.IdRegion}");
-            }
+            // foreach (var genState in obrGen)
+            // {
+            //     Console.WriteLine($"🔄 Przetwarzam region: {genState.Value.IdRegion}");
+            // }
 
             foreach (var genState in obrGen)
             {
@@ -6605,6 +6606,7 @@
             foreach (var ksztalt in ksztalty)
             {
                 //Console.WriteLine($"Rysuję kształt: {ksztalt.TypKsztaltu}");
+
                 if (ksztalt.Wierzcholki == null || ksztalt.Wierzcholki.Count < 3)
                     continue;
 
@@ -6632,13 +6634,26 @@
     {
         try
         {
-            var outerPoints = ksztalt.Wierzcholki;
+
             var offsets = GetOffsetsForGroup(ksztalt.Grupa);
 
-            await DrawSingleContour(context, outerPoints);
+            // await DrawSingleContour(context, outerPoints);
 
-            if (pokaKonturWewnetrzny)
+            if (oknaMogaBycLukowe && ksztalt.Kontur != null)
+            {
+                await DrawContourSegments(context, ksztalt.Kontur);
+            }
+            else
+            {
+                var outerPoints = ksztalt.Wierzcholki;
+                await DrawSingleContour(context, outerPoints);
+            }
+
+            if (pokaKonturWewnetrzny && !oknaMogaBycLukowe)
                 await DrawSingleInnerContour(context);
+
+            if (pokaKonturWewnetrzny && oknaMogaBycLukowe)
+                await DrawSingleInnerContourKontur(context);
 
             // Sprawdź, czy _dotNetHelper nie jest null i czy komponent nie został usunięty
             if (_dotNetHelper != null && !_disposed)
@@ -6694,6 +6709,46 @@
         };
     }
 
+    private async Task DrawContourSegments(Canvas2DContext context, List<ContourSegment> kontur)
+    {
+        if (kontur == null || kontur.Count == 0)
+            return;
+
+        await context.BeginPathAsync();
+
+        // start w pierwszym punkcie
+        var first = kontur[0].Start;
+        await context.MoveToAsync((float)first.X, (float)first.Y);
+
+        foreach (var seg in kontur)
+        {
+            if (seg == null) continue; //Brak danych
+
+            if (seg.Type == SegmentType.Line)
+            {
+                await context.LineToAsync((float)seg.End.X, (float)seg.End.Y);
+            }
+            else if (seg.Type == SegmentType.Arc && seg.Center != null)
+            {
+                var c = seg.Center.Value;
+
+                double startAngle = Math.Atan2(seg.Start.Y - c.Y, seg.Start.X - c.X);
+                double endAngle = Math.Atan2(seg.End.Y - c.Y, seg.End.X - c.X);
+
+                await context.ArcAsync(
+                    (float)c.X,
+                    (float)c.Y,
+                    (float)seg.Radius,
+                    (float)startAngle,
+                    (float)endAngle,
+                    !seg.CounterClockwise
+                );
+            }
+        }
+
+        await context.ClosePathAsync();
+    }
+
     private async Task DrawSingleContour(Canvas2DContext context, List<XPoint> outerPoints)
     {
         if (outerPoints == null || outerPoints.Count < 2) return;
@@ -6745,7 +6800,7 @@
         }
 
         await context.SetStrokeStyleAsync("Yellow");
-        await context.SetLineWidthAsync(2.5f);
+        await context.SetLineWidthAsync(3.5f);
         await context.StrokeAsync();
     }
 
@@ -6812,6 +6867,83 @@
 
     }
 
+    private async Task DrawContourSegmentsKontur(Canvas2DContext context, List<ContourSegment> segments, string strokeColor, float lineWidth)
+    {
+        if (segments == null || segments.Count == 0) return;
+
+        await context.BeginPathAsync();
+
+        foreach (var seg in segments)
+        {
+            if (seg.Type == SegmentType.Line)
+            {
+                await context.MoveToAsync(seg.Start.X, seg.Start.Y);
+                await context.LineToAsync(seg.End.X, seg.End.Y);
+            }
+            else if (seg.Type == SegmentType.Arc && seg.Center != null)
+            {
+                // Rysowanie łuku
+                double startAngle = Math.Atan2(seg.Start.Y - seg.Center.Value.Y, seg.Start.X - seg.Center.Value.X);
+                double endAngle = Math.Atan2(seg.End.Y - seg.Center.Value.Y, seg.End.X - seg.Center.Value.X);
+
+                if (!seg.CounterClockwise && endAngle < startAngle) endAngle += 2 * Math.PI;
+                if (seg.CounterClockwise && startAngle < endAngle) startAngle += 2 * Math.PI;
+
+                await context.ArcAsync(
+                    seg.Center.Value.X,
+                    seg.Center.Value.Y,
+                    seg.Radius,
+                    startAngle,
+                    endAngle,
+                    seg.CounterClockwise
+                );
+            }
+        }
+
+        await context.SetStrokeStyleAsync(strokeColor);
+        await context.SetLineWidthAsync(lineWidth);
+        await context.StrokeAsync();
+    }
+
+    // Rysowanie konturu szklenia
+    private async Task DrawSingleGlassContourKontur(Canvas2DContext context)
+    {
+        foreach (var gs in _generatorStates)
+        {
+            if (gs.Value.Generator?.liniaSzkleniaFullKontur != null)
+            {
+                await DrawContourSegmentsKontur(context, gs.Value.Generator.liniaSzkleniaFullKontur, "Yellow", 3.5f);
+            }
+        }
+    }
+
+    // Rysowanie konturu wewnętrznego
+    private async Task DrawSingleInnerContourKontur(Canvas2DContext context)
+    {
+        foreach (var gs in _generatorStates)
+        {
+            if (gs.Value.Generator?.wewnetrznyFullKontur != null)
+            {
+                await DrawContourSegmentsKontur(context, gs.Value.Generator.wewnetrznyFullKontur, "Red", 4f);
+            }
+        }
+
+        await DrawSingleGlassContourKontur(context);
+        await DrawSingleOuterContourKontur(context);
+    }
+
+    // Rysowanie konturu zewnętrznego
+    private async Task DrawSingleOuterContourKontur(Canvas2DContext context)
+    {
+        foreach (var gs in _generatorStates)
+        {
+            if (gs.Value.Generator?.Kontur != null)
+            {
+                await DrawContourSegmentsKontur(context, gs.Value.Generator.Kontur, "Blue", 2f);
+            }
+        }
+    }
+
     private async Task DrawSingleContourTextOnly(
     Canvas2DContext context,
     List<XPoint> outerPoints,
@@ -6866,6 +6998,7 @@
             ShapeService._szerokosc = constWlasciwosciOkna.Szerokosc;
             ShapeService._wysokosc = constWlasciwosciOkna.Wysokosc;
             ShapeService._rysujTylkoKontur =  pokaKonturWewnetrzny;
+            ShapeService._oknaMogaBycLukowe = oknaMogaBycLukowe;
             ShapeService.UpdateShapes(ShapeService.Shapes, constWlasciwosciOkna.Szerokosc, constWlasciwosciOkna.Wysokosc);
             Console.WriteLine("GoCAD Ustawiono zmienne w ShapeService");
         }

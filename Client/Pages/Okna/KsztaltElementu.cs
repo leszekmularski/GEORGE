@@ -1,5 +1,6 @@
 ﻿using GEORGE.Client.Pages.KonfiguratorOkien;
 using GEORGE.Shared.ViewModels;
+using System.Linq;
 
 
 namespace GEORGE.Client.Pages.Okna
@@ -15,6 +16,7 @@ namespace GEORGE.Client.Pages.Okna
 
         // Lista wierzcholkow (w kolejnosci zgodnej z ruchem wskazowek zegara)
         public List<XPoint> Wierzcholki { get; set; } = new();
+        public List<ContourSegment> Kontur { get; set; } = new();
 
         // Styl wypelnienia wewnetrznego (np. kolor lub nazwa tekstury)
         public string WypelnienieWewnetrzne { get; set; } = "#FFFFFF";
@@ -76,6 +78,20 @@ namespace GEORGE.Client.Pages.Okna
                 IdRegion = this.IdRegion,
                 TypKsztaltu = this.TypKsztaltu,
                 Wierzcholki = this.Wierzcholki.Select(p => new XPoint(p.X, p.Y)).ToList(),
+                Kontur = this.Kontur.Select(s =>
+                    s.Center.HasValue
+                    ? new ContourSegment(
+                        s.Start.Clone(),
+                        s.End.Clone(),
+                        s.Center.Value.Clone(),
+                        s.Radius,
+                        s.CounterClockwise
+                      )
+                    : new ContourSegment(
+                        s.Start.Clone(),
+                        s.End.Clone()
+                      )
+                ).ToList(),
                 WypelnienieWewnetrzne = this.WypelnienieWewnetrzne,
                 WypelnienieZewnetrzne = this.WypelnienieZewnetrzne,
                 GruboscObramowania = this.GruboscObramowania,

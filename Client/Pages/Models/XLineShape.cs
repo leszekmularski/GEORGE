@@ -32,10 +32,12 @@ namespace GEORGE.Client.Pages.Models
 
         public string ID { get; set; } = Guid.NewGuid().ToString();
 
+        public List<ContourSegment> ContourSegments => GetContourSegments();
+
         public XLineShape(
-    double x1, double y1, double x2, double y2, double scaleFactor,
-    string nazwaObj, bool ruchomySlupek = false, bool pionPoziom = false,
-    bool dualRama = false, bool generowaneZRamy = false, bool stalySlupek = false)
+        double x1, double y1, double x2, double y2, double scaleFactor,
+        string nazwaObj, bool ruchomySlupek = false, bool pionPoziom = false,
+        bool dualRama = false, bool generowaneZRamy = false, bool stalySlupek = false)
         {
             // Normalizacja punktów: zawsze X1 ≤ X2, a dla równych X - Y1 ≤ Y2
             if (Math.Abs(x1 - x2) > 0.001)
@@ -294,6 +296,22 @@ namespace GEORGE.Client.Pages.Models
                 new EditableProperty("Y2", () => Y2, v => Y2 = v, NazwaObj)
             };
         }
+
+        public List<ContourSegment> GetContourSegments()
+        {
+            var segments = new List<ContourSegment>();
+
+            if (NominalPoints == null || NominalPoints.Count < 2)
+                return segments;
+
+            segments.Add(new ContourSegment(
+                NominalPoints[0].Clone(),
+                NominalPoints[1].Clone()
+            ));
+
+            return segments;
+        }
+
         private XPoint CalculateCentroid(List<XPoint> pts)
         {
             double cx = 0;

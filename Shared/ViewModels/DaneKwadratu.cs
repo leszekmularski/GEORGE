@@ -4,6 +4,7 @@ namespace GEORGE.Shared.ViewModels
     public class DaneKwadratu
     {
         public List<XPoint>? Wierzcholki { get; set; } //punkty wierzchołków pojedynczej linii
+        public List<ContourSegment>? Kontur { get; set; } //punkty wierzchołków pojedynczej linii
         public List<PrzesuniecieDto>? Przesuniecia { get; set; } //lista przesunięć z tabeli KonfPolaczenie
         public Guid RowIdElementu { get; set; } //id elementu w bazie danych
         public Guid RowIdSasiada { get; set; } //id elementu w bazie danych sąsiad równoległy

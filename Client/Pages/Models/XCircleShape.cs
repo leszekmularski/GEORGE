@@ -20,6 +20,8 @@ namespace GEORGE.Client.Pages.Models
         public List<XPoint> GetNominalPoints() =>
            NominalPoints.Select(p => p.Clone()).ToList();
 
+        public List<ContourSegment> ContourSegments => GetContourSegments();
+
         public double X
         {
             get => _x;
@@ -115,6 +117,42 @@ namespace GEORGE.Client.Pages.Models
             await ctx.StrokeAsync();
         }
 
+        private async Task Draw(Canvas2DContext ctx, List<ContourSegment> segments)
+        {
+            if (segments.Count == 0) return;
+
+            await ctx.BeginPathAsync();
+            await ctx.MoveToAsync(segments[0].Start.X, segments[0].Start.Y);
+
+            foreach (var s in segments)
+            {
+                if (s.Type == SegmentType.Line)
+                {
+                    await ctx.LineToAsync(s.End.X, s.End.Y);
+                }
+                else if (s.Type == SegmentType.Arc)
+                {
+                    double startAngle =
+                        Math.Atan2(s.Start.Y - s.Center.Value.Y, s.Start.X - s.Center.Value.X);
+
+                    double endAngle =
+                        Math.Atan2(s.End.Y - s.Center.Value.Y, s.End.X - s.Center.Value.X);
+
+                    await ctx.ArcAsync(
+                        s.Center.Value.X,
+                        s.Center.Value.Y,
+                        s.Radius,
+                        startAngle,
+                        endAngle,
+                        !s.CounterClockwise
+                    );
+                }
+            }
+
+            await ctx.ClosePathAsync();
+            await ctx.StrokeAsync();
+        }
+
         public List<EditableProperty> GetEditableProperties() => new()
     {
         new EditableProperty("X", () => X, v => X = v, NazwaObj, true),
@@ -203,6 +241,29 @@ namespace GEORGE.Client.Pages.Models
             double dy = p2.Y - p1.Y;
             return Math.Sqrt(dx * dx + dy * dy);
         }
+        public List<ContourSegment> GetContourSegments()
+        {
+            if (NominalPoints == null || NominalPoints.Count == 0)
+                return new List<ContourSegment>();
+
+            var center = NominalPoints.First();
+            double radius = Szerokosc / 2;
+
+            return new List<ContourSegment>
+            {
+                new ContourSegment(
+                    new XPoint(center.X + radius, center.Y),
+                    new XPoint(center.X + radius, center.Y),
+                    center.Clone(),
+                    radius,
+                    counterClockwise: false
+                )
+                {
+                    Type = SegmentType.Arc
+                }
+            };
+        }
+
         private XPoint CalculateCentroid(List<XPoint> pts)
         {
             double cx = 0;

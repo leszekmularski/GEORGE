@@ -30,6 +30,8 @@ namespace GEORGE.Client.Pages.Models
         public List<XPoint> GetNominalPoints() =>
             NominalPoints.Select(p => new XPoint(p.X, p.Y)).ToList();
 
+        public List<ContourSegment> ContourSegments => GetContourSegments();
+
         public XRoundedRectangleShape(
             double x, double y, double width, double height, double radius, double scaleFactor)
         {
@@ -264,6 +266,24 @@ namespace GEORGE.Client.Pages.Models
         // --------------------------------------------------------------------
         public BoundingBox GetBoundingBox()
             => new BoundingBox(X, Y, Width, Height, NazwaObj);
+
+        public List<ContourSegment> GetContourSegments()
+        {
+            var segments = new List<ContourSegment>();
+
+            if (NominalPoints == null || NominalPoints.Count < 4)
+                return segments;
+
+            // Tworzymy segmenty między wszystkimi punktami konturu
+            for (int i = 0; i < NominalPoints.Count; i++)
+            {
+                var start = NominalPoints[i].Clone();
+                var end = NominalPoints[(i + 1) % NominalPoints.Count].Clone(); // zamknięcie konturu
+                segments.Add(new ContourSegment(start, end));
+            }
+
+            return segments;
+        }
 
         private XPoint CalculateCentroid(List<XPoint> pts)
         {

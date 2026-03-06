@@ -3,7 +3,6 @@ using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.Models;
 using GEORGE.Shared.ViewModels;
 using Microsoft.JSInterop;
-using static iText.Kernel.Colors.Gradients.GradientColorStop;
 
 namespace GEORGE.Client.Pages.Okna
 {
@@ -16,12 +15,19 @@ namespace GEORGE.Client.Pages.Okna
         public int Zindeks { get; set; }
         public string IdRegionuPonizej { get; set; }
 
-        // Lista wierzcholkow (w kolejnosci zgodnej z ruchem wskazowek zegara)
+        // Lista wierzcholkow tylko linie (w kolejnosci zgodnej z ruchem wskazowek zegara)
         public List<XPoint> Wierzcholki { get; set; } = new();
+
+        // Lista wierzcholkow linie i łuki (w kolejnosci zgodnej z ruchem wskazowek zegara)
 
         public List<XPoint> wewnetrznyKontur; // przechowuje obliczony wewnętrzny kontur po offsetowaniu
 
         public List<XPoint> liniaSzkleniaKontur;// przechowuje obliczony kontur linii szklenia (jeśli dotyczy)
+        public List<ContourSegment> Kontur { get; set; } = new();
+
+        public List<ContourSegment> wewnetrznyFullKontur; // przechowuje obliczony wewnętrzny kontur po offsetowaniu
+
+        public List<ContourSegment> liniaSzkleniaFullKontur;// przechowuje obliczony kontur linii szklenia (jeśli dotyczy)
 
         public List<ShapeRegion> Region { get; set; } = new();
         public string StronaElementu { get; set; } = "";
@@ -90,6 +96,7 @@ namespace GEORGE.Client.Pages.Okna
             var region = regions.FirstOrDefault(r => r.Id == regionId);
 
             List<XPoint> punkty = new List<XPoint>();
+            List<ContourSegment> punktyFull = new List<ContourSegment>();
 
             if (region == null && !ElementLiniowy)
             {
@@ -99,6 +106,7 @@ namespace GEORGE.Client.Pages.Okna
             else if (region != null && !ElementLiniowy)
             {
                 punkty = region.Wierzcholki;
+                punktyFull = region.Kontur;
             }
             else if (ElementLiniowy)
             {
@@ -107,13 +115,20 @@ namespace GEORGE.Client.Pages.Okna
                 Console.WriteLine($"❌ Region o ID: {regionId} region.Wierzcholki.Count():{region.Wierzcholki.Count()}");
 
                 punkty = region.Wierzcholki;
+                punktyFull = region.Kontur;
             }
 
             Wierzcholki = punkty;
+            Kontur = punktyFull;
 
             foreach (var x in punkty)
             {
-                Console.WriteLine($"x.X: {x.X} / x.Y: {x.Y}");
+                Console.WriteLine($"punkty --> x.X: {x.X} / x.Y: {x.Y}");
+            }
+
+            foreach (var c in punktyFull)
+            {
+                Console.WriteLine($"punktyFull --> c.Start.X: {c.Start.X} / c.Start.Y: {c.Start.Y} / c.End.X: {c.End.X} / c.End.Y: {c.End.Y} / c.Type: {c.Type}");
             }
 
             if ((punkty == null || punkty.Count < 3) && !ElementLiniowy)
@@ -142,6 +157,63 @@ namespace GEORGE.Client.Pages.Okna
             // 🔄 Skalowanie do regionu
             // var przeskalowanePunkty = SkalujIPrzesun(punkty, minX, minY, width, height, Szerokosc, Wysokosc);
             var przeskalowanePunkty = new List<XPoint>(punkty); // bez skalowania – prawdziwe dane
+                                                                // Zakładam, że punktyFull to List<ContourSegment>
+            var przeskalowaneFullPunkty = new List<ContourSegment>();
+
+            // 1️⃣ Usuń segmenty, które mają Start = End
+            var bezDuplikatow = punktyFull
+                .Where(s => !(s.Start.X == s.End.X && s.Start.Y == s.End.Y))
+                .ToList();
+
+            // 2️⃣ Posortuj segmenty tak, aby End jednego był Startem następnego
+            if (bezDuplikatow.Any())
+            {
+                var segment = bezDuplikatow[0];
+                przeskalowaneFullPunkty.Add(segment);
+                bezDuplikatow.RemoveAt(0);
+
+                while (bezDuplikatow.Any())
+                {
+                    bool found = false;
+                    for (int i = 0; i < bezDuplikatow.Count; i++)
+                    {
+                        var s = bezDuplikatow[i];
+                        var last = przeskalowaneFullPunkty.Last();
+
+                        if (PointsAreClose(last.End, s.Start))
+                        {
+                            przeskalowaneFullPunkty.Add(s);
+                            bezDuplikatow.RemoveAt(i);
+                            found = true;
+                            break;
+                        }
+                        else if (PointsAreClose(last.End, s.End))
+                        {
+                            // odwróć segment, jeśli End pasuje do końca
+                            var reversed = new ContourSegment(s.End, s.Start, s.Center, s.Radius, s.CounterClockwise);
+                            przeskalowaneFullPunkty.Add(reversed);
+                            bezDuplikatow.RemoveAt(i);
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (!found)
+                    {
+                        // brak segmentu pasującego – dodaj kolejny taki, jaki jest
+                        przeskalowaneFullPunkty.Add(bezDuplikatow[0]);
+                        bezDuplikatow.RemoveAt(0);
+                    }
+                }
+            }
+
+            // 🔹 Funkcja pomocnicza do porównania punktów z tolerancją
+            bool PointsAreClose(XPoint a, XPoint b, double tolerance = 0.001)
+            {
+                return Math.Abs(a.X - b.X) < tolerance && Math.Abs(a.Y - b.Y) < tolerance;
+            }
+
+            //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
             // znajdź indeks punktu o najmniejszym X i Y
             int startIndex = 0;
@@ -166,6 +238,7 @@ namespace GEORGE.Client.Pages.Okna
 
             przeskalowanePunkty = posortowane;
 
+
             // Console.WriteLine($"📐 Przeskalowane punkty: {string.Join(", ", przeskalowanePunkty.Select(p => $"({p.X:F2}, {p.Y:F2})"))} --------> minX:{minX}");
 
             string slruchPoPrawej = "";
@@ -180,8 +253,11 @@ namespace GEORGE.Client.Pages.Okna
 
                 Wierzcholki = region.LinieDzielace?
                 .SelectMany(l => l.Points)
-                .ToList()
-             ?? new List<XPoint>();
+                .ToList() ?? new List<XPoint>();
+
+                Kontur = region.LinieDzielace?
+                    .SelectMany(l => l.ContourSegments)
+                    .ToList() ?? new List<ContourSegment>();
 
             }
 
@@ -220,10 +296,10 @@ namespace GEORGE.Client.Pages.Okna
             float offsetTop = ObliczRoznicePoziomowSzyba(konfTop, ElementLiniowy);
             float offsetBottom = ObliczRoznicePoziomowSzyba(konfBottom, ElementLiniowy);
 
-            if(offsetLeft > 0) offsetLeft = profileLeft - offsetLeft;
-            if(offsetRight > 0) offsetRight = profileRight - offsetRight;
-            if(offsetTop > 0) offsetTop = profileTop - offsetTop;
-            if(offsetBottom > 0) offsetBottom = profileBottom - offsetBottom;
+            if (offsetLeft > 0) offsetLeft = profileLeft - offsetLeft;
+            if (offsetRight > 0) offsetRight = profileRight - offsetRight;
+            if (offsetTop > 0) offsetTop = profileTop - offsetTop;
+            if (offsetBottom > 0) offsetBottom = profileBottom - offsetBottom;
 
             Console.WriteLine($"🔧 Profile z konfiguracji przed korektą: profileLeft: {profileLeft} profileRight: {profileRight} profileTop: {profileTop} profileBottom: {profileBottom}");
 
@@ -317,6 +393,8 @@ namespace GEORGE.Client.Pages.Okna
 
                 wewnetrznyKontur = przeskalowanePunkty;
 
+                wewnetrznyFullKontur = przeskalowaneFullPunkty;
+
                 punktyRegionuMaster = CalculateOffsetPolygon(punktyRegionuMaster, profileLeft, profileRight, profileTop, profileBottom, false);
 
                 //foreach (var test in punktyRegionuMaster)
@@ -331,6 +409,10 @@ namespace GEORGE.Client.Pages.Okna
                 profileLeft, profileRight, profileTop, profileBottom,
                 false);
 
+                wewnetrznyFullKontur = CalculateOffsetPolygonKontur(przeskalowaneFullPunkty,
+                profileLeft, profileRight, profileTop, profileBottom,
+                false);
+
                 liniaSzkleniaKontur = CalculateOffsetPolygon(
                     przeskalowanePunkty,
                     offsetLeft, offsetRight, offsetTop, offsetBottom,
@@ -338,6 +420,8 @@ namespace GEORGE.Client.Pages.Okna
             }
 
             var ok = await GenerateGenericElementsWithJoins(
+                     przeskalowaneFullPunkty,
+                     wewnetrznyFullKontur,
                      przeskalowanePunkty,
                      wewnetrznyKontur,
                      profileLeft, profileRight, profileTop, profileBottom,
@@ -370,7 +454,7 @@ namespace GEORGE.Client.Pages.Okna
             //}
         }
         public async Task<bool> GenerateGenericElementsWithJoins(
-            List<XPoint> outer, List<XPoint> inner,
+            List<ContourSegment> outerKontur, List<ContourSegment> innerKontur, List<XPoint> outer, List<XPoint> inner,
             float profileLeft, float profileRight, float profileTop, float profileBottom,
             string typKsztalt, string polaczenia, bool sposobLaczeniaCzop, List<KonfSystem> model, string regionId,
             Guid rowIdprofileLeft, Guid rowIdprofileRight, Guid rowIdprofileTop, Guid rowIdprofileBottom,
@@ -378,6 +462,15 @@ namespace GEORGE.Client.Pages.Okna
             string rowNazwaprofileLeft, string rowNazwaprofileRight, string rowNazwaprofileTop, string rowNazwaprofileBottom,
             string NazwaObiektu, string TypObiektu, List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster, XPoint mouseClik)
         {
+
+            foreach (var test in outerKontur)
+            {
+                Console.WriteLine($"🔷🔷🔷🔷🔷🔷🔷🔷 outerKontur 1 Wierzcholek X: {test.Start.X} Y: {test.Start.Y} / {outerKontur.Count}");
+            }
+            foreach (var test in innerKontur)
+            {
+                Console.WriteLine($"🔶🔶🔶🔶🔶🔶🔶🔶 innerKontur 1 Wierzcholek X: {test.Start.X} Y: {test.Start.Y} / {innerKontur.Count}");
+            }
 
             Console.WriteLine($"▶️ Generowanie elementów dla regionu {regionId} z typem kształtu: {typKsztalt} oraz ElementLiniowy: {ElementLiniowy} profileLeft: {profileLeft}, profileRight :{profileRight}");
 
@@ -448,6 +541,7 @@ namespace GEORGE.Client.Pages.Okna
 
             // 🔹 Standardowy tryb wielokąta zamkniętego
             int vertexCount = outer.Count;
+            int vertexCountKontur = outerKontur.Count;
 
             if (vertexCount < 3 && !ElementLiniowy)
                 throw new Exception("Wielokąt musi mieć co najmniej 3 wierzchołki.");
@@ -585,10 +679,17 @@ namespace GEORGE.Client.Pages.Okna
 
             string stonaOstanioDodanegoElementu = ""; // Typ połączenia na końcu prawej strony (dla ostatnio dodanego elementu)
 
+            //foreach (var test in innerKontur)
+            //{
+            //    Console.WriteLine($"🔷🔷 innerKontur point Start.X: {test.Start.X} Start.Y: {test.Start.Y} End.X: {test.End.X} End.Y: {test.End.Y}");
+            //}
+
             for (int i = 0; i < vertexCount; i++)
             {
                 int next = (i + 1) % vertexCount;
                 int prev = (i - 1 + vertexCount) % vertexCount;
+
+                int nextKontur = (i + 1) % vertexCountKontur;
 
                 // Oblicz kąt bieżącego boku
                 float dx = (float)(outer[next].X - outer[i].X);
@@ -778,6 +879,7 @@ namespace GEORGE.Client.Pages.Okna
                 }
 
                 List<XPoint>? wierzcholki;
+                List<ContourSegment>? wierzcholkiKonturu;
 
                 Console.WriteLine($"🔷 element --> {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin} angleDegrees: {angleDegrees} katGornegoElemntu: {katGornegoElemntu} StronaElementu: {StronaElementu}");
 
@@ -936,7 +1038,7 @@ namespace GEORGE.Client.Pages.Okna
                     }
 
                 }
-                else if(leftJoin == "T4" && rightJoin == "T4")
+                else if (leftJoin == "T4" && rightJoin == "T4")
                 {
                     List<XPoint> getStartT4 = GetStartT4(inner[i]);
                     List<XPoint> getEndT4 = GetEndT4(inner[next]);
@@ -981,6 +1083,7 @@ namespace GEORGE.Client.Pages.Okna
                     wierzcholki = new List<XPoint> {
                             getStartT3[1], getEndT3[1], getEndT3[0], getStartT3[0]
                         };
+
                 }
                 else if (leftJoin == "T2" && rightJoin == "T2")
                 {
@@ -991,7 +1094,6 @@ namespace GEORGE.Client.Pages.Okna
                     wierzcholki = new List<XPoint> {
                             getStartT2[1], getEndT2[1], getEndT2[0], getStartT2[0]
                         };
-
 
                 }
                 else if (leftJoin == "T5" && rightJoin == "T5")
@@ -1342,12 +1444,39 @@ namespace GEORGE.Client.Pages.Okna
 
                 if (angleDegreesElementLionowy != angleDegrees && ElementLiniowy) break;
 
+                //To do do usunięcia po obsłużeniu wszystkich kombinacji w GetStartT1 i GetEndT1
+                if (i <= innerKontur.Count)
+                {
+                    List<ContourSegment> startSegments = GetStartT2(innerKontur[i], outerKontur[i]);
+                    List<ContourSegment> endSegments = GetEndT2(innerKontur[nextKontur], outerKontur[nextKontur]);
+
+                    if (startSegments.Count >= 2 && endSegments.Count >= 2)
+                    {
+                        wierzcholkiKonturu = new List<ContourSegment>
+                            {
+                                startSegments[1],
+                                endSegments[1],
+                                endSegments[0],
+                                startSegments[0]
+                            };
+                    }
+                    else
+                    {
+                        wierzcholkiKonturu = new List<ContourSegment>();
+                    }
+                }
+                else
+                {
+                    wierzcholkiKonturu = new List<ContourSegment>();
+                }
+
                 if (rowIdprofileLeft != Guid.Empty)
                     ElementyRamyRysowane.Add(new KsztaltElementu
                     {
                         NrPozWModelu = i + 1,
                         TypKsztaltu = typKsztalt,
                         Wierzcholki = wierzcholki,
+                        Kontur = wierzcholkiKonturu,
                         WypelnienieZewnetrzne = "wood-pattern",
                         WypelnienieWewnetrzne = KolorSzyby,
                         Grupa = NazwaObiektu + $" {StronaElementu}-{i + 1} {wartoscX}/{wartoscY}",
@@ -1613,6 +1742,95 @@ namespace GEORGE.Client.Pages.Okna
             return intersections;
         }
 
+        private List<ContourSegment> GetStartT2(ContourSegment inner, ContourSegment outer)
+        {
+            var segments = new List<ContourSegment>();
+
+            // Kopiowanie segmentu inner
+            if (inner.Type == SegmentType.Line)
+            {
+                segments.Add(new ContourSegment(
+                    new XPoint(inner.Start.X, inner.Start.Y),
+                    new XPoint(inner.End.X, inner.End.Y)
+                ));
+            }
+            else if (inner.Type == SegmentType.Arc && inner.Center != null)
+            {
+                segments.Add(new ContourSegment(
+                    new XPoint(inner.Start.X, inner.Start.Y),
+                    new XPoint(inner.End.X, inner.End.Y),
+                    new XPoint(inner.Center.Value.X, inner.Center.Value.Y),
+                    inner.Radius,
+                    inner.CounterClockwise
+                ));
+            }
+
+            // Kopiowanie segmentu outer
+            if (outer.Type == SegmentType.Line)
+            {
+                segments.Add(new ContourSegment(
+                    new XPoint(outer.Start.X, outer.Start.Y),
+                    new XPoint(outer.End.X, outer.End.Y)
+                ));
+            }
+            else if (outer.Type == SegmentType.Arc && outer.Center != null)
+            {
+                segments.Add(new ContourSegment(
+                    new XPoint(outer.Start.X, outer.Start.Y),
+                    new XPoint(outer.End.X, outer.End.Y),
+                    new XPoint(outer.Center.Value.X, outer.Center.Value.Y),
+                    outer.Radius,
+                    outer.CounterClockwise
+                ));
+            }
+
+            return segments;
+        }
+
+        private List<ContourSegment> GetEndT2(ContourSegment inner, ContourSegment outer)
+        {
+            var segments = new List<ContourSegment>();
+
+            // Kopiowanie segmentu inner
+            if (inner.Type == SegmentType.Line)
+            {
+                segments.Add(new ContourSegment(
+                    new XPoint(inner.Start.X, inner.Start.Y),
+                    new XPoint(inner.End.X, inner.End.Y)
+                ));
+            }
+            else if (inner.Type == SegmentType.Arc && inner.Center != null)
+            {
+                segments.Add(new ContourSegment(
+                    new XPoint(inner.Start.X, inner.Start.Y),
+                    new XPoint(inner.End.X, inner.End.Y),
+                    new XPoint(inner.Center.Value.X, inner.Center.Value.Y),
+                    inner.Radius,
+                    inner.CounterClockwise
+                ));
+            }
+
+            // Kopiowanie segmentu outer
+            if (outer.Type == SegmentType.Line)
+            {
+                segments.Add(new ContourSegment(
+                    new XPoint(outer.Start.X, outer.Start.Y),
+                    new XPoint(outer.End.X, outer.End.Y)
+                ));
+            }
+            else if (outer.Type == SegmentType.Arc && outer.Center != null)
+            {
+                segments.Add(new ContourSegment(
+                    new XPoint(outer.Start.X, outer.Start.Y),
+                    new XPoint(outer.End.X, outer.End.Y),
+                    new XPoint(outer.Center.Value.X, outer.Center.Value.Y),
+                    outer.Radius,
+                    outer.CounterClockwise
+                ));
+            }
+
+            return segments;
+        }
         private float ObliczRoznicePoziomow(KonfSystem? konf, bool slupekStaly)
         {
             if (konf == null)
@@ -2178,6 +2396,159 @@ namespace GEORGE.Client.Pages.Okna
 
             return result;
         }
+
+        public List<ContourSegment> CalculateOffsetPolygonKontur(
+        List<ContourSegment> segments,
+        float profileLeft,
+        float profileRight,
+        float profileTop,
+        float profileBottom,
+        bool elementLiniowy)
+        {
+            int count = segments.Count;
+            if (count < 2)
+                throw new ArgumentException("Figura musi mieć co najmniej 2 segmenty.");
+
+            Console.WriteLine("🔷 CalculateOffsetPolygonKontur - wejściowe segmenty:");
+            for (int i = 0; i < segments.Count; i++)
+            {
+                var s = segments[i];
+                Console.WriteLine($"CalculateOffsetPolygonKontur Segment {i}: Start=({s.Start.X},{s.Start.Y}) End=({s.End.X},{s.End.Y})" 
+                                 + (s.Center != null ? $" Center=({s.Center.Value.X},{s.Center.Value.Y}) Radius={s.Radius} CCW={s.CounterClockwise}" : ""));
+            }
+
+            var result = new List<ContourSegment>();
+
+            // ======================
+            // Obsługa elementu liniowego
+            // ======================
+            if (elementLiniowy)
+            {
+                var s = segments[0];
+
+                float dx = (float)(s.End.X - s.Start.X);
+                float dy = (float)(s.End.Y - s.Start.Y);
+                double length = Math.Sqrt(dx * dx + dy * dy);
+                if (length < 1e-6) length = 1e-6;
+
+                float tx = dx / (float)length;
+                float ty = dy / (float)length;
+
+                float nx = -ty;
+                float ny = tx;
+
+                float angleDegrees = MathF.Atan2(dy, dx) * (180f / MathF.PI);
+                if (angleDegrees < 0) angleDegrees += 360f;
+
+                string side = StronaOknaHelper.OkreslStrone(angleDegrees, 0, segments.Select(s => s.Start).ToList());
+
+                float offsetValue = side switch
+                {
+                    "Góra" => profileTop,
+                    "Dół" => profileBottom,
+                    "Lewa" => profileLeft,
+                    "Prawa" => profileRight,
+                    _ => 0
+                };
+
+                float offset = -offsetValue;
+
+                var p1Offset = new XPoint(s.Start.X + nx * offset, s.Start.Y + ny * offset);
+                var p2Offset = new XPoint(s.End.X + nx * offset, s.End.Y + ny * offset);
+
+                result.Add(new ContourSegment(p1Offset, p2Offset));
+                return result;
+            }
+
+            if (count < 3)
+                throw new ArgumentException("Wielokąt musi mieć co najmniej 3 segmenty.");
+
+            var offsetVertices = new List<XPoint>();
+            var offsetData = new List<(float nx, float ny, float offset)>();
+
+            for (int i = 0; i < count; i++)
+            {
+                var s = segments[i];
+                var p1 = s.Start;
+                var p2 = s.End;
+
+                float dx = (float)(p2.X - p1.X);
+                float dy = (float)(p2.Y - p1.Y);
+                float length = MathF.Sqrt(dx * dx + dy * dy);
+                if (length < 1e-6f) length = 1e-6f;
+
+                float tx = dx / length;
+                float ty = dy / length;
+
+                float nx = ty;
+                float ny = -tx;
+
+                float angleDegrees = MathF.Atan2(dy, dx) * (180f / MathF.PI);
+                if (angleDegrees < 0) angleDegrees += 360f;
+
+                string side = StronaOknaHelper.OkreslStrone(angleDegrees, i, segments.Select(seg => seg.Start).ToList());
+
+                float offsetValue = side switch
+                {
+                    "Góra" => profileTop,
+                    "Dół" => profileBottom,
+                    "Lewa" => profileLeft,
+                    "Prawa" => profileRight,
+                    _ => 0f
+                };
+
+                float offset = -offsetValue;
+
+                offsetVertices.Add(new XPoint(p1.X + nx * offset, p1.Y + ny * offset));
+                offsetData.Add((nx, ny, offset));
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                int next = (i + 1) % count;
+
+                var currentOriginal = segments[i];
+                var startOffset = offsetVertices[i];
+                var endOffset = offsetVertices[next];
+                var (nx, ny, offset) = offsetData[i];
+
+                if (currentOriginal.Type == SegmentType.Line)
+                {
+                    result.Add(new ContourSegment(startOffset, endOffset));
+                }
+                else if (currentOriginal.Type == SegmentType.Arc && currentOriginal.Center != null)
+                {
+                    var centerOffset = new XPoint(
+                        currentOriginal.Center.Value.X + nx * offset,
+                        currentOriginal.Center.Value.Y + ny * offset
+                    );
+
+                    float newRadius = (float)currentOriginal.Radius + offset;
+
+                    result.Add(new ContourSegment(
+                        startOffset,
+                        endOffset,
+                        centerOffset,
+                        newRadius,
+                        currentOriginal.CounterClockwise
+                    ));
+                }
+            }
+
+            // ======================
+            // Wypisanie konturu po offsetowaniu
+            // ======================
+            Console.WriteLine("🔷 CalculateOffsetPolygonKontur - offsetowane segmenty:");
+            for (int i = 0; i < result.Count; i++)
+            {
+                var s = result[i];
+                Console.WriteLine($"CalculateOffsetPolygonKontur Segment {i}: Start=({s.Start.X},{s.Start.Y}) End=({s.End.X},{s.End.Y})" +
+                    (s.Center != null ? $" Center=({s.Center.Value.X},{s.Center.Value.Y}) Radius={s.Radius} CCW={s.CounterClockwise}" : ""));
+            }
+
+            return result;
+        }
+
         private XPoint GetLinesIntersection(XPoint a1, XPoint a2, XPoint b1, XPoint b2)
         {
             float dx1 = (float)(a2.X - a1.X);
@@ -2199,7 +2570,6 @@ namespace GEORGE.Client.Pages.Okna
                 a1.Y + t * dy1
             );
         }
-
 
         /// <summary>
         /// Calculates the length of an element based on its vertices.

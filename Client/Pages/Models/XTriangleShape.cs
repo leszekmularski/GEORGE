@@ -1,7 +1,5 @@
 ﻿using Blazor.Extensions.Canvas.Canvas2D;
-using DocumentFormat.OpenXml.Drawing.Charts;
 using GEORGE.Shared.ViewModels;
-using System.Linq;
 
 namespace GEORGE.Client.Pages.KonfiguratorOkien
 {
@@ -30,6 +28,8 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         private TriangleOrientation _orientation = TriangleOrientation.Normal;
 
         public string ID { get; set; } = Guid.NewGuid().ToString();
+
+        public List<ContourSegment> ContourSegments => GetContourSegments();
 
         // ---------------------------------------------------------
         // Konstruktor
@@ -300,6 +300,26 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             Normal,   // standardowy: apex górny, podstawa u dołu
             Left,     // trójkąt skierowany w lewo
             Right     // trójkąt skierowany w prawo
+        }
+
+        public List<ContourSegment> GetContourSegments()
+        {
+            var segments = new List<ContourSegment>();
+
+            var pts = NominalPoints;
+
+            if (pts == null || pts.Count < 3)
+                return segments;
+
+            for (int i = 0; i < pts.Count; i++)
+            {
+                var start = pts[i];
+                var end = pts[(i + 1) % pts.Count];
+
+                segments.Add(new ContourSegment(start.Clone(), end.Clone()));
+            }
+
+            return segments;
         }
 
         private XPoint CalculateCentroid(List<XPoint> pts)
