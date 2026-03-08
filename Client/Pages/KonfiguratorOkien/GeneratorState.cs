@@ -15,6 +15,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         //----------------------------------------------------------------------------------------
         public List<XPoint>? Wierzcholki { get; set; }
         public List<XPoint>? WierzcholkiWartosciNominalne { get; set; }
+        public List<ContourSegment>? Kontur { get; set; }
         //----------------------------------------------------------------------------------------
         public Guid RowIdSystemu { get; set; }
         public Guid? RowIdModelu { get; set; }
@@ -57,6 +58,31 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                     .Select(p => new XPoint(p.X, p.Y))
                     .ToList(),
 
+                Kontur = this.Kontur?
+                    .Select(c =>
+                    {
+                        if (c.Type == SegmentType.Arc)
+                        {
+                            // Użyj konstruktora dla łuku
+                            return new ContourSegment(
+                                new XPoint(c.Start.X, c.Start.Y),
+                                new XPoint(c.End.X, c.End.Y),
+                                c.Center.HasValue ? new XPoint(c.Center.Value.X, c.Center.Value.Y) : (XPoint?)null,
+                                c.Radius,
+                                c.CounterClockwise
+                            );
+                        }
+                        else
+                        {
+                            // Użyj konstruktora dla linii
+                            return new ContourSegment(
+                                new XPoint(c.Start.X, c.Start.Y),
+                                new XPoint(c.End.X, c.End.Y)
+                            );
+                        }
+                    })
+                    .ToList(),
+
                 RowIdSystemu = this.RowIdSystemu,
                 RowIdModelu = this.RowIdModelu,
                 MVCKonfModelu = this.MVCKonfModelu,
@@ -64,7 +90,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 WybranyKsztalt = this.WybranyKsztalt,
                 LinieDzielace = this.LinieDzielace,
                 CzyElementJestRama = this.CzyElementJestRama,
-                Generator = this.Generator, // Uwaga: to jest płytka kopia, jeśli Generator ma referencje do innych obiektów, mogą one być współdzielone
+                Generator = this.Generator,
 
                 SlupekRuchomyPoLewejStronie = this.SlupekRuchomyPoLewejStronie,
                 SlupekRuchomyPoPrawejStronie = this.SlupekRuchomyPoPrawejStronie,
@@ -77,9 +103,8 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
                 StaryRegionOrigin = new XPoint(this.StaryRegionOrigin.X, this.StaryRegionOrigin.Y),
 
-                // ⬇⬇⬇ poprawne głębokie kopiowanie listy kształtów
                 ElementyRamyRysowane = this.ElementyRamyRysowane?
-                    .Select(e => e.Clone())   // zakładam, że masz Clone()
+                    .Select(e => e.Clone())
                     .ToList() ?? new List<KsztaltElementu>()
             };
         }

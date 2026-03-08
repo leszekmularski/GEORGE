@@ -717,7 +717,9 @@
                                     <p><strong>Kąt: @ksztalt.Kat</strong></p>
                                     <p><strong>Wierzchołki:</strong></p>
 
-                                    <ul class="list-group list-group-flush">
+                                    @if (!oknaMogaBycLukowe)
+                                    {
+                                        <ul class="list-group list-group-flush">
                                         @for (int i = 0; i < ksztalt.Wierzcholki.Count; i++)
                                         {
                                             var index = i + 1;
@@ -725,7 +727,29 @@
                                                 [@index] X: @(Math.Round(ksztalt.Wierzcholki[i].X, 3)), Y: @(Math.Round(ksztalt.Wierzcholki[i].Y, 3))
                                             </li>
                                         }
-                                    </ul>
+                                        </ul>
+                                    }
+                                    else
+                                    {
+                                        <ul class="list-group list-group-flush">
+                                            @for (int i = 0; i < ksztalt.Kontur.Count(); i++)
+                                            {
+                                                var segment = ksztalt.Kontur[i];
+                                                var indexK = i + 1;
+                                                <li class="list-group-item">
+                                                    [@indexK] @segment.Type.ToString()
+                                                    Start X: @Math.Round(segment.Start.X, 3),
+                                                    Start Y: @Math.Round(segment.Start.Y, 3),
+                                                    End X: @Math.Round(segment.End.X, 3),
+                                                    End Y: @Math.Round(segment.End.Y, 3)
+                                                    @if (segment.Type == SegmentType.Arc)
+                                                    {
+                                                        <span>, R: @Math.Round(segment.Radius, 3)</span>
+                                                    }
+                                                </li>
+                                            }
+                                        </ul>
+                                    }
 
                                 }
                             </div>
@@ -6594,27 +6618,60 @@
 
             // Console.WriteLine($"RenderFrame _currentScale: {_aktywnaSkala}");
 
-            if (ksztalty == null || !ksztalty.Any())
-                return;
-
-            // Przygotowanie tekstury
-            var baseUrl = Navigation.BaseUri;
-            var imageUrl = $"{baseUrl}api/images/{woodPatternName}";
-
-
-            // Rysowanie każdego kształtu
-            foreach (var ksztalt in ksztalty)
+            if (oknaMogaBycLukowe)
             {
-                //Console.WriteLine($"Rysuję kształt: {ksztalt.TypKsztaltu}");
+                 ksztalty = ksztalty.Where(k => k.Kontur.Count() > 0).ToList();
 
-                if (ksztalt.Wierzcholki == null || ksztalt.Wierzcholki.Count < 3)
-                    continue;
+                if (ksztalty == null || !ksztalty.Any())
+                    return;
 
-                //  Console.WriteLine($"*********** >>>>>> IndeksElementu: {ksztalt.IndeksElementu} Grupa: {ksztalt.Grupa} DlogoscElementu: {ksztalt.DlogoscElementu}");
+                // Przygotowanie tekstury
+                var baseUrl = Navigation.BaseUri;
+                var imageUrl = $"{baseUrl}api/images/{woodPatternName}";
 
-                await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
-                await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"[{ksztalt.NrPozWModelu}]-{ksztalt.IndeksElementu.ToString()} [{Math.Round(ksztalt.Kat, 1).ToString()}°/{ksztalt.Strona}-{ksztalt.RodzajpolaczenAiB}]", (ksztalt.Kat == 180 ? 0 : ksztalt.Kat)); // Tekst z ID i kątem na profilu
+
+                // Rysowanie każdego kształtu
+                foreach (var ksztalt in ksztalty)
+                {
+                    //Console.WriteLine($"Rysuję kształt: {ksztalt.TypKsztaltu}");
+
+                    if (ksztalt.Kontur == null || ksztalt.Kontur.Count < 3)
+                        continue;
+
+                    //  Console.WriteLine($"*********** >>>>>> IndeksElementu: {ksztalt.IndeksElementu} Grupa: {ksztalt.Grupa} DlogoscElementu: {ksztalt.DlogoscElementu}");
+
+                    await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
+                    await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"[{ksztalt.NrPozWModelu}]-{ksztalt.IndeksElementu.ToString()} [{Math.Round(ksztalt.Kat, 1).ToString()}°/{ksztalt.Strona}-{ksztalt.RodzajpolaczenAiB}]", (ksztalt.Kat == 180 ? 0 : ksztalt.Kat)); // Tekst z ID i kątem na profilu
+                }
+
             }
+            else
+            {
+                ksztalty = ksztalty.Where(k => k.Wierzcholki.Count() > 0).ToList();
+
+                if (ksztalty == null || !ksztalty.Any())
+                    return;
+
+                // Przygotowanie tekstury
+                var baseUrl = Navigation.BaseUri;
+                var imageUrl = $"{baseUrl}api/images/{woodPatternName}";
+
+
+                // Rysowanie każdego kształtu
+                foreach (var ksztalt in ksztalty)
+                {
+                    //Console.WriteLine($"Rysuję kształt: {ksztalt.TypKsztaltu}");
+
+                    if (ksztalt.Wierzcholki == null || ksztalt.Wierzcholki.Count < 3)
+                        continue;
+
+                    //  Console.WriteLine($"*********** >>>>>> IndeksElementu: {ksztalt.IndeksElementu} Grupa: {ksztalt.Grupa} DlogoscElementu: {ksztalt.DlogoscElementu}");
+
+                    await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
+                    await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"[{ksztalt.NrPozWModelu}]-{ksztalt.IndeksElementu.ToString()} [{Math.Round(ksztalt.Kat, 1).ToString()}°/{ksztalt.Strona}-{ksztalt.RodzajpolaczenAiB}]", (ksztalt.Kat == 180 ? 0 : ksztalt.Kat)); // Tekst z ID i kątem na profilu
+                }
+            }
+
 
             await _context.RestoreAsync();
 

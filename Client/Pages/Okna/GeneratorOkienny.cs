@@ -419,9 +419,7 @@ namespace GEORGE.Client.Pages.Okna
                     false);
             }
 
-            var ok = await GenerateGenericElementsWithJoins(
-                     przeskalowaneFullPunkty,
-                     wewnetrznyFullKontur,
+            var okLine = await GenerateGenericElementsWithJoins(
                      przeskalowanePunkty,
                      wewnetrznyKontur,
                      profileLeft, profileRight, profileTop, profileBottom,
@@ -440,7 +438,26 @@ namespace GEORGE.Client.Pages.Okna
                      mouseClik
                  );
 
-            if (ok)
+                var okArc = await GenerateGenericElementsKonturWithJoins(
+                     przeskalowaneFullPunkty,
+                     wewnetrznyFullKontur,
+                     profileLeft, profileRight, profileTop, profileBottom,
+                     region.TypKsztaltu,
+                     EdytowanyModel.PolaczenieNaroza,
+                     EdytowanyModel.SposobLaczeniaCzop,
+                     KonfiguracjeSystemu,
+                     regionId,
+                     RowIdprofileLeft, RowIdprofileRight, RowIdprofileTop, RowIdprofileBottom,
+                     RowIndeksprofileLeft, RowIndeksprofileRight, RowIndeksprofileTop, RowIndeksprofileBottom,
+                     RowNazwaprofileLeft, RowNazwaprofileRight, RowNazwaprofileTop, RowNazwaprofileBottom,
+                     NazwaObiektu,
+                     TypObiektu,
+                     daneKwadratu,
+                     punktyRegionuMaster,
+                     mouseClik
+                 );
+
+            if (okLine || okArc)
             {
                 Console.WriteLine($"✅ Generowanie elementów zakończone sukcesem dla regionu {regionId}");
                 return true;
@@ -453,8 +470,9 @@ namespace GEORGE.Client.Pages.Okna
 
             //}
         }
+
         public async Task<bool> GenerateGenericElementsWithJoins(
-            List<ContourSegment> outerKontur, List<ContourSegment> innerKontur, List<XPoint> outer, List<XPoint> inner,
+            List<XPoint> outer, List<XPoint> inner,
             float profileLeft, float profileRight, float profileTop, float profileBottom,
             string typKsztalt, string polaczenia, bool sposobLaczeniaCzop, List<KonfSystem> model, string regionId,
             Guid rowIdprofileLeft, Guid rowIdprofileRight, Guid rowIdprofileTop, Guid rowIdprofileBottom,
@@ -462,15 +480,6 @@ namespace GEORGE.Client.Pages.Okna
             string rowNazwaprofileLeft, string rowNazwaprofileRight, string rowNazwaprofileTop, string rowNazwaprofileBottom,
             string NazwaObiektu, string TypObiektu, List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster, XPoint mouseClik)
         {
-
-            foreach (var test in outerKontur)
-            {
-                Console.WriteLine($"🔷🔷🔷🔷🔷🔷🔷🔷 outerKontur 1 Wierzcholek X: {test.Start.X} Y: {test.Start.Y} / {outerKontur.Count}");
-            }
-            foreach (var test in innerKontur)
-            {
-                Console.WriteLine($"🔶🔶🔶🔶🔶🔶🔶🔶 innerKontur 1 Wierzcholek X: {test.Start.X} Y: {test.Start.Y} / {innerKontur.Count}");
-            }
 
             Console.WriteLine($"▶️ Generowanie elementów dla regionu {regionId} z typem kształtu: {typKsztalt} oraz ElementLiniowy: {ElementLiniowy} profileLeft: {profileLeft}, profileRight :{profileRight}");
 
@@ -541,7 +550,6 @@ namespace GEORGE.Client.Pages.Okna
 
             // 🔹 Standardowy tryb wielokąta zamkniętego
             int vertexCount = outer.Count;
-            int vertexCountKontur = outerKontur.Count;
 
             if (vertexCount < 3 && !ElementLiniowy)
                 throw new Exception("Wielokąt musi mieć co najmniej 3 wierzchołki.");
@@ -688,8 +696,6 @@ namespace GEORGE.Client.Pages.Okna
             {
                 int next = (i + 1) % vertexCount;
                 int prev = (i - 1 + vertexCount) % vertexCount;
-
-                int nextKontur = (i + 1) % vertexCountKontur;
 
                 // Oblicz kąt bieżącego boku
                 float dx = (float)(outer[next].X - outer[i].X);
@@ -879,7 +885,6 @@ namespace GEORGE.Client.Pages.Okna
                 }
 
                 List<XPoint>? wierzcholki;
-                List<ContourSegment>? wierzcholkiKonturu;
 
                 Console.WriteLine($"🔷 element --> {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin} angleDegrees: {angleDegrees} katGornegoElemntu: {katGornegoElemntu} StronaElementu: {StronaElementu}");
 
@@ -1444,39 +1449,13 @@ namespace GEORGE.Client.Pages.Okna
 
                 if (angleDegreesElementLionowy != angleDegrees && ElementLiniowy) break;
 
-                //To do do usunięcia po obsłużeniu wszystkich kombinacji w GetStartT1 i GetEndT1
-                if (i <= innerKontur.Count)
-                {
-                    List<ContourSegment> startSegments = GetStartT2(innerKontur[i], outerKontur[i]);
-                    List<ContourSegment> endSegments = GetEndT2(innerKontur[nextKontur], outerKontur[nextKontur]);
-
-                    if (startSegments.Count >= 2 && endSegments.Count >= 2)
-                    {
-                        wierzcholkiKonturu = new List<ContourSegment>
-                            {
-                                startSegments[1],
-                                endSegments[1],
-                                endSegments[0],
-                                startSegments[0]
-                            };
-                    }
-                    else
-                    {
-                        wierzcholkiKonturu = new List<ContourSegment>();
-                    }
-                }
-                else
-                {
-                    wierzcholkiKonturu = new List<ContourSegment>();
-                }
-
-                if (rowIdprofileLeft != Guid.Empty)
+                  if (rowIdprofileLeft != Guid.Empty)
                     ElementyRamyRysowane.Add(new KsztaltElementu
                     {
                         NrPozWModelu = i + 1,
                         TypKsztaltu = typKsztalt,
                         Wierzcholki = wierzcholki,
-                        Kontur = wierzcholkiKonturu,
+                        Kontur = new List<ContourSegment>(),
                         WypelnienieZewnetrzne = "wood-pattern",
                         WypelnienieWewnetrzne = KolorSzyby,
                         Grupa = NazwaObiektu + $" {StronaElementu}-{i + 1} {wartoscX}/{wartoscY}",
@@ -1514,6 +1493,589 @@ namespace GEORGE.Client.Pages.Okna
             return true;
         }
 
+        public async Task<bool> GenerateGenericElementsKonturWithJoins(
+            List<ContourSegment> outerKontur, List<ContourSegment> innerKontur,
+            float profileLeft, float profileRight, float profileTop, float profileBottom,
+            string typKsztalt, string polaczenia, bool sposobLaczeniaCzop, List<KonfSystem> model, string regionId,
+            Guid rowIdprofileLeft, Guid rowIdprofileRight, Guid rowIdprofileTop, Guid rowIdprofileBottom,
+            string rowIndeksprofileLeft, string rowIndeksprofileRight, string rowIndeksprofileTop, string rowIndeksprofileBottom,
+            string rowNazwaprofileLeft, string rowNazwaprofileRight, string rowNazwaprofileTop, string rowNazwaprofileBottom,
+            string NazwaObiektu, string TypObiektu, List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster, XPoint mouseClik)
+        {
+            // Debugowanie konturów
+            foreach (var test in outerKontur)
+            {
+                Console.WriteLine($"🔷🔷🔷🔷🔷🔷🔷🔷 outerKontur {outerKontur.IndexOf(test)} - Typ: {test.Type}, Start: ({test.Start.X:F2}, {test.Start.Y:F2}), End: ({test.End.X:F2}, {test.End.Y:F2})");
+                if (test.Type == SegmentType.Arc)
+                {
+                    Console.WriteLine($"      Łuk - Center: ({test.Center?.X:F2}, {test.Center?.Y:F2}), Radius: {test.Radius:F2}, CounterClockwise: {test.CounterClockwise}");
+                }
+            }
+
+            foreach (var test in innerKontur)
+            {
+                Console.WriteLine($"🔶🔶🔶🔶🔶🔶🔶🔶 innerKontur {innerKontur.IndexOf(test)} - Typ: {test.Type}, Start: ({test.Start.X:F2}, {test.Start.Y:F2}), End: ({test.End.X:F2}, {test.End.Y:F2})");
+                if (test.Type == SegmentType.Arc)
+                {
+                    Console.WriteLine($"      Łuk - Center: ({test.Center?.X:F2}, {test.Center?.Y:F2}), Radius: {test.Radius:F2}, CounterClockwise: {test.CounterClockwise}");
+                }
+            }
+
+            Console.WriteLine($"▶️ Generowanie elementów dla regionu {regionId} z typem kształtu: {typKsztalt}");
+
+            // Pobierz punkty startowe z konturów (potrzebne do logiki która operuje na punktach)
+            List<XPoint> outerPoints = GetStartPointsFromContour(outerKontur);
+            List<XPoint> innerPoints = GetStartPointsFromContour(innerKontur);
+
+            float angleDegreesElementLionowy = 0;
+            float katGornegoElemntu = GetTopEdgeAngleFromFirstSegment(outerPoints);
+
+            // 🔹 Nowy tryb – jeśli to tylko element liniowy (np. słupek)
+            if (ElementLiniowy)
+            {
+                if (outerPoints == null || outerPoints.Count < 2)
+                {
+                    Console.WriteLine("▶️ Element: brak wystarczającej liczby punktów (min. 2 wymagane).");
+                    return false;
+                }
+
+                var szukDaneKwadratu = daneKwadratu
+                    .Where(x => x.Wierzcholki.Count == 2 && x.BoolElementLinia)
+                    .DistinctBy(x => (
+                        Math.Round(x.Wierzcholki[0].X, 2),
+                        Math.Round(x.Wierzcholki[0].Y, 2),
+                        Math.Round(x.Wierzcholki[1].X, 2),
+                        Math.Round(x.Wierzcholki[1].Y, 2)
+                    ))
+                    .LastOrDefault();
+
+                if (szukDaneKwadratu != null)
+                {
+                    XPoint outerStart = szukDaneKwadratu.Wierzcholki[0];
+                    XPoint outerEnd = szukDaneKwadratu.Wierzcholki[1];
+
+                    float dx = (float)(outerEnd.X - outerStart.X);
+                    float dy = (float)(outerEnd.Y - outerStart.Y);
+                    float angleRadians = MathF.Atan2(dy, dx);
+                    angleDegreesElementLionowy = angleRadians * (180f / MathF.PI);
+
+                    if (angleDegreesElementLionowy < 0)
+                        angleDegreesElementLionowy += 360f;
+                }
+            }
+
+            // 🔹 Standardowy tryb wielokąta zamkniętego
+            int vertexCount = outerPoints.Count;
+            int vertexCountKontur = outerKontur.Count;
+
+            if (vertexCount < 3 && !ElementLiniowy)
+                throw new Exception("Wielokąt musi mieć co najmniej 3 wierzchołki.");
+
+            outerPoints = RemoveDuplicateConsecutivePoints(outerPoints);
+            innerPoints = RemoveDuplicateConsecutivePoints(innerPoints);
+
+            Console.WriteLine($"▶️ Generuje elementy z polygon with vertexCount: {vertexCount} vertices and joins: {polaczenia} angleDegreesElementLionowy: {angleDegreesElementLionowy}");
+
+            var parsedConnections = polaczenia.Split(';')
+                .Select(p => p.Split('-'))
+                .Where(parts => parts.Length == 2)
+                .Select(parts => (kat: int.Parse(parts[0]), typ: parts[1].Trim()))
+                .ToList();
+
+            while (parsedConnections.Count < vertexCount)
+            {
+                parsedConnections.Add(parsedConnections.Last());
+            }
+
+            if (parsedConnections.Count > vertexCount)
+            {
+                parsedConnections = parsedConnections.Take(vertexCount).ToList();
+            }
+
+            var polaczeniaArray = parsedConnections.ToArray();
+
+            for (int i = 0; i < polaczeniaArray.Count(); i++)
+            {
+                Console.WriteLine($"🔷🔷 polaczeniaArray {i}: Join Kat: {polaczeniaArray[i].kat} Typ: {polaczeniaArray[i].typ}");
+            }
+
+            foreach (var test in innerPoints)
+            {
+                Console.WriteLine($"🔷🔷 inner point X: {test.X} Y: {test.Y}");
+            }
+
+            foreach (var test in outerPoints)
+            {
+                Console.WriteLine($"🔷🔷 outer point X: {test.X} Y: {test.Y}");
+            }
+
+            // Przygotowanie danych dla narożników
+            var wzorzecPolaczen = new Dictionary<string, string>();
+
+            foreach (var pair in polaczenia.Split(';'))
+            {
+                var parts = pair.Split('-');
+                int kat = int.Parse(parts[0]);
+                string typ = parts[1];
+
+                string strona = StronaOknaHelper.OkreslStrone(kat);
+                wzorzecPolaczen[strona] = typ;
+
+                Console.WriteLine($"📐 Wzorzec: kąt {kat}° → strona {strona} → typ {typ}");
+            }
+
+            var elementyWedlugStron = new Dictionary<string, List<int>>();
+
+            for (int i = 0; i < vertexCount; i++)
+            {
+                int next = (i + 1) % vertexCount;
+
+                float dx = (float)(outerPoints[next].X - outerPoints[i].X);
+                float dy = (float)(outerPoints[next].Y - outerPoints[i].Y);
+                float angleRadians = MathF.Atan2(dy, dx);
+                float angleDegrees = angleRadians * (180f / MathF.PI);
+                if (angleDegrees < 0) angleDegrees += 360f;
+
+                string strona = StronaOknaHelper.OkreslStrone(angleDegrees, i, outerPoints);
+
+                if (!elementyWedlugStron.ContainsKey(strona))
+                    elementyWedlugStron[strona] = new List<int>();
+
+                elementyWedlugStron[strona].Add(i);
+            }
+
+            foreach (var kv in elementyWedlugStron)
+            {
+                Console.WriteLine($"📊 Strona {kv.Key}: {kv.Value.Count} elementów - indeksy: [{string.Join(", ", kv.Value)}]");
+            }
+
+            var typyNaroznikow = new Dictionary<string, string>();
+
+            foreach (var stronaA in elementyWedlugStron.Keys)
+            {
+                foreach (var stronaB in elementyWedlugStron.Keys)
+                {
+                    string klucz = $"{stronaA}-{stronaB}";
+
+                    if (stronaA == stronaB)
+                    {
+                        string typ = wzorzecPolaczen.ContainsKey(stronaA) ? wzorzecPolaczen[stronaA] : "T3";
+                        typyNaroznikow[klucz] = typ;
+                        Console.WriteLine($"🔗 Połączenie {klucz} (ta sama strona) → typ {typ}");
+                    }
+                    else
+                    {
+                        string typ = wzorzecPolaczen.ContainsKey(stronaB) ? wzorzecPolaczen[stronaB] : "T3";
+                        typyNaroznikow[klucz] = typ;
+                        Console.WriteLine($"🔗 Połączenie {klucz} (różne strony) → typ {typ} (ze strony {stronaB})");
+                    }
+                }
+            }
+
+            float firstangleDegrees = -1;
+            string stonaOstanioDodanegoElementu = "";
+
+            for (int i = 0; i < vertexCount; i++)
+            {
+                int next = (i + 1) % vertexCount;
+                int prev = (i - 1 + vertexCount) % vertexCount;
+                int nextKontur = (i + 1) % vertexCountKontur;
+
+                // Pobierz segmenty z konturów (zachowując informacje o łukach)
+                ContourSegment outerSegment = outerKontur[i];
+                ContourSegment innerSegment = innerKontur[i];
+
+                // Użyj punktów z segmentów
+                XPoint outerStart = outerSegment.Start;
+                XPoint outerEnd = outerSegment.End;
+                XPoint innerStart = innerSegment.Start;
+                XPoint innerEnd = innerSegment.End;
+
+                float dx = (float)(outerEnd.X - outerStart.X);
+                float dy = (float)(outerEnd.Y - outerStart.Y);
+                float angleRadians = MathF.Atan2(dy, dx);
+                float angleDegrees = angleRadians * (180f / MathF.PI);
+                if (angleDegrees < 0) angleDegrees += 360f;
+
+                if (firstangleDegrees == -1) firstangleDegrees = angleDegrees;
+
+                string currentSide = StronaOknaHelper.OkreslStrone(angleDegrees, i, outerPoints);
+
+                // Oblicz kąty poprzedniego i następnego segmentu używając punktów
+                float dxPrev = (float)(outerStart.X - outerPoints[prev].X);
+                float dyPrev = (float)(outerStart.Y - outerPoints[prev].Y);
+                float anglePrev = MathF.Atan2(dyPrev, dxPrev) * 180f / MathF.PI;
+                if (anglePrev < 0) anglePrev += 360f;
+                string prevSide = StronaOknaHelper.OkreslStrone(anglePrev, prev, outerPoints);
+
+                float dxNext = (float)(outerPoints[(next + 1) % vertexCount].X - outerEnd.X);
+                float dyNext = (float)(outerPoints[(next + 1) % vertexCount].Y - outerEnd.Y);
+                float angleNext = MathF.Atan2(dyNext, dxNext) * 180f / MathF.PI;
+                if (angleNext < 0) angleNext += 360f;
+                string nextSide = StronaOknaHelper.OkreslStrone(angleNext, next, outerPoints);
+
+                string leftJoin = typyNaroznikow[$"{prevSide}-{currentSide}"];
+                string rightJoin = typyNaroznikow[$"{currentSide}-{nextSide}"];
+
+                string typBiezacej = wzorzecPolaczen.ContainsKey(currentSide) ? wzorzecPolaczen[currentSide] : "T3";
+                string typPoprzedniej = wzorzecPolaczen.ContainsKey(prevSide) ? wzorzecPolaczen[prevSide] : "T3";
+                string typNastepnej = wzorzecPolaczen.ContainsKey(nextSide) ? wzorzecPolaczen[nextSide] : "T3";
+
+                Console.WriteLine($"▶️🔷🔷▶️ Processing element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin} " +
+                                 $"wyliczony kąt: {angleDegrees:F2}° dla i: {i} StronaElementu: {currentSide} " +
+                                 $"(prev: {prevSide} [{typPoprzedniej}], next: {nextSide} [{typNastepnej}])");
+
+                bool dodajA = false;
+                bool dodajB = false;
+
+                float length = MathF.Sqrt(dx * dx + dy * dy);
+                string StronaElementu = StronaOknaHelper.OkreslStrone(angleDegrees, i, outerPoints);
+
+                if (length < 0.001f) continue;
+
+                float tx = dx / length;
+                float ty = dy / length;
+                float nx = -ty;
+                float ny = tx;
+
+                float profile = Math.Abs(dx) > Math.Abs(dy)
+                    ? (ny > 0 ? profileTop : profileBottom)
+                    : (nx > 0 ? profileRight : profileLeft);
+
+                float profileA = Math.Abs(dx) > Math.Abs(dy) ? profileTop : profileRight;
+                float profileB = Math.Abs(dx) > Math.Abs(dy) ? profileBottom : profileLeft;
+
+                bool isAlmostHorizontal = Math.Abs(dy) < 1e-2;
+                bool isAlmostVertical = Math.Abs(dx) < 1e-2;
+
+                // Obliczanie kątów między liniami
+                float angleDegreesStronaA = 0;
+                float angleDegreesStronaB = 0;
+
+                double currentDx = outerEnd.X - outerStart.X;
+                double currentDy = outerEnd.Y - outerStart.Y;
+
+                XPoint outerPrev = outerPoints[prev];
+                double prevDx = outerStart.X - outerPrev.X;
+                double prevDy = outerStart.Y - outerPrev.Y;
+
+                int next2 = (next + 1) % vertexCount;
+                XPoint outerNext2 = outerPoints[next2];
+                double nextDx = outerNext2.X - outerEnd.X;
+                double nextDy = outerNext2.Y - outerEnd.Y;
+
+                double dotProductPrev = (currentDx * prevDx + currentDy * prevDy);
+                double magCurrent = Math.Sqrt(currentDx * currentDx + currentDy * currentDy);
+                double magPrev = Math.Sqrt(prevDx * prevDx + prevDy * prevDy);
+
+                if (magCurrent > 0 && magPrev > 0)
+                {
+                    double cosAnglePrev = dotProductPrev / (magCurrent * magPrev);
+                    cosAnglePrev = Math.Max(-1.0, Math.Min(1.0, cosAnglePrev));
+                    double angleRadPrev = Math.Acos(cosAnglePrev);
+                    angleDegreesStronaA = (float)(angleRadPrev * 180.0 / Math.PI);
+                }
+
+                double dotProductNext = (currentDx * nextDx + currentDy * nextDy);
+                double magNext = Math.Sqrt(nextDx * nextDx + nextDy * nextDy);
+
+                if (magCurrent > 0 && magNext > 0)
+                {
+                    double cosAngleNext = dotProductNext / (magCurrent * magNext);
+                    cosAngleNext = Math.Max(-1.0, Math.Min(1.0, cosAngleNext));
+                    double angleRadNext = Math.Acos(cosAngleNext);
+                    angleDegreesStronaB = (float)(angleRadNext * 180.0 / Math.PI);
+                }
+
+                double crossProductPrev = (currentDx * prevDy - currentDy * prevDx);
+                if (crossProductPrev < 0)
+                {
+                    angleDegreesStronaA = 360 - angleDegreesStronaA;
+                }
+
+                double crossProductNext = (currentDx * nextDy - currentDy * nextDx);
+                if (crossProductNext < 0)
+                {
+                    angleDegreesStronaB = 360 - angleDegreesStronaB;
+                }
+
+                Console.WriteLine($"Wierzchołek {i}: Kąt z poprzednim = {angleDegreesStronaA:F1}°, Kąt z następnym = {angleDegreesStronaB:F1}°");
+
+                if (sposobLaczeniaCzop)
+                {
+                    if (leftJoin == "T1" && isAlmostVertical) dodajA = true;
+                    if (rightJoin == "T1" && isAlmostVertical) dodajB = true;
+                    if (leftJoin == "T3" && isAlmostHorizontal) dodajA = true;
+                    if (rightJoin == "T3" && isAlmostHorizontal) dodajB = true;
+                    if (leftJoin == "T5") dodajA = true;
+                    if (rightJoin == "T5") dodajB = true;
+                    if (leftJoin == "T2") dodajA = true;
+                    if (rightJoin == "T2") dodajB = true;
+                }
+
+                if (!isAlmostHorizontal && !isAlmostVertical && vertexCount > 4)
+                {
+                    if (leftJoin == "T1" && rightJoin == "T1")
+                    {
+                        isAlmostHorizontal = true;
+                    }
+                    else if (leftJoin == "T3" && rightJoin == "T3")
+                    {
+                        isAlmostVertical = true;
+                    }
+                }
+
+                List<ContourSegment> wierzcholkiKonturu;
+
+                Console.WriteLine($"🔷 element --> {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin} angleDegrees: {angleDegrees} katGornegoElemntu: {katGornegoElemntu} StronaElementu: {StronaElementu}");
+
+                // Generowanie segmentów konturu - bez listy wierzchołków
+                wierzcholkiKonturu = GenerateContourSegmentsFromOriginal(
+                    outerSegment,
+                    innerSegment,
+                    leftJoin,
+                    rightJoin,
+                    profile);
+
+                // Oblicz długość na podstawie wygenerowanych segmentów konturu
+                float bazowaDlugosc = ObliczDlugoscKonturu(wierzcholkiKonturu);
+                // Oblicz wymiary tylko jeśli kontur nie jest pusty
+                double regionMinX, regionMaxX, regionMinY, regionMaxY;
+                int wartoscX = 0;
+                int wartoscY = 0;
+
+                if (wierzcholkiKonturu != null && wierzcholkiKonturu.Any())
+                {
+                    regionMinX = wierzcholkiKonturu.Min(s => Math.Min(s.Start.X, s.End.X));
+                    regionMaxX = wierzcholkiKonturu.Max(s => Math.Max(s.Start.X, s.End.X));
+                    regionMinY = wierzcholkiKonturu.Min(s => Math.Min(s.Start.Y, s.End.Y));
+                    regionMaxY = wierzcholkiKonturu.Max(s => Math.Max(s.Start.Y, s.End.Y));
+
+                    wartoscX = (int)Math.Round(regionMaxX - regionMinX);
+                    wartoscY = (int)Math.Round(regionMaxY - regionMinY);
+                }
+                else
+                {
+                    Console.WriteLine($"⚠️ Ostrzeżenie: wierzcholkiKonturu dla elementu {i + 1} jest puste!");
+                    // Ustaw domyślne wartości lub kontynuuj bez wymiarów
+                    wartoscX = 0;
+                    wartoscY = 0;
+                }
+
+
+                Console.WriteLine($"▶️ Element Start switch {i + 1}/{vertexCount}: Length: {length}, StronaElementu :{StronaElementu}, angleDegreesElementLionowy:{angleDegreesElementLionowy}, Angle: {angleDegrees}°, Profile: {profile}, Segmenty konturu: {wierzcholkiKonturu.Count}, BazowaDlugosc: {bazowaDlugosc:F2}, wartoscX: {wartoscX}, wartoscY: {wartoscY} ElementLiniowy:{ElementLiniowy}");
+
+                Guid rowIdProfil;
+                string nazwaElemntu;
+                string indeksElementu;
+
+                switch (StronaElementu)
+                {
+                    case "Lewa":
+                        rowIdProfil = rowIdprofileLeft;
+                        nazwaElemntu = rowNazwaprofileLeft;
+                        indeksElementu = rowIndeksprofileLeft;
+                        break;
+                    case "Prawa":
+                        rowIdProfil = rowIdprofileRight;
+                        nazwaElemntu = rowNazwaprofileRight;
+                        indeksElementu = rowIndeksprofileRight;
+                        break;
+                    case "Góra":
+                        rowIdProfil = rowIdprofileTop;
+                        nazwaElemntu = rowNazwaprofileTop;
+                        indeksElementu = rowIndeksprofileTop;
+                        break;
+                    case "Dół":
+                        rowIdProfil = rowIdprofileBottom;
+                        nazwaElemntu = rowNazwaprofileBottom;
+                        indeksElementu = rowIndeksprofileBottom;
+                        break;
+                    default:
+                        rowIdProfil = rowIdprofileLeft;
+                        nazwaElemntu = rowNazwaprofileLeft;
+                        indeksElementu = rowIndeksprofileLeft;
+                        break;
+                }
+
+                if (angleDegreesElementLionowy != angleDegrees && ElementLiniowy) break;
+
+                if (rowIdprofileLeft != Guid.Empty)
+                    ElementyRamyRysowane.Add(new KsztaltElementu
+                    {
+                        NrPozWModelu = i + 1,
+                        TypKsztaltu = typKsztalt,
+                        Wierzcholki = new List<XPoint>(), // Pusta lista - nie używamy
+                        Kontur = wierzcholkiKonturu, // Zawiera prawdziwe segmenty (linie/łuki)
+                        WypelnienieZewnetrzne = "wood-pattern",
+                        WypelnienieWewnetrzne = KolorSzyby,
+                        Grupa = NazwaObiektu + $" {StronaElementu}-{i + 1} {wartoscX}/{wartoscY}",
+                        Typ = TypObiektu,
+                        ZIndex = Zindeks,
+                        RowIdElementu = rowIdProfil,
+                        IdRegion = regionId,
+                        Kat = (float)angleDegrees,
+                        KatStronaA = (float)angleDegreesStronaA,
+                        KatStronaB = (float)angleDegreesStronaB,
+                        OffsetLewa = StronaElementu == "Lewa" ? profileLeft : 0,
+                        OffsetPrawa = StronaElementu == "Prawa" ? profileRight : 0,
+                        OffsetDol = StronaElementu == "Dól" ? profileBottom : 0,
+                        OffsetGora = StronaElementu == "Góra" ? profileTop : 0,
+                        Strona = StronaElementu,
+                        IndeksElementu = indeksElementu,
+                        NazwaElementu = nazwaElemntu,
+                        DlogoscElementu = bazowaDlugosc + ((dodajA ? profileA : 0) + (dodajB ? profileB : 0)),
+                        DlogoscWidocznaElementu = bazowaDlugosc,
+                        DlugoscCzopaA = dodajA ? profileA : -1,
+                        DlugoscCzopaB = dodajB ? profileB : -1,
+                        RodzajpolaczenAiB = $"{leftJoin}/{rightJoin}",
+                    });
+
+                stonaOstanioDodanegoElementu = StronaElementu;
+
+                Console.WriteLine($"▶️▶️▶️▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - >3 rowIdProfil:{rowIdProfil} Angle: {angleDegrees}° leftJoin:{leftJoin} rightJoin:{rightJoin}");
+
+                if (ElementLiniowy) return true;
+            }
+
+            await Task.CompletedTask;
+            return true;
+        }
+
+        // Nowa funkcja do obliczania długości konturu (uwzględnia łuki)
+        public float ObliczDlugoscKonturu(List<ContourSegment> kontur)
+        {
+            if (kontur == null || kontur.Count == 0)
+                return 0;
+
+            double sumaDlugosci = 0;
+
+            foreach (var segment in kontur)
+            {
+                if (segment.Type == SegmentType.Arc)
+                {
+                    // Dla łuku - oblicz długość łuku
+                    sumaDlugosci += DlugoscLukuKontur(segment);
+                }
+                else
+                {
+                    // Dla linii - odległość między punktami
+                    sumaDlugosci += OdlegloscKontur(segment.Start, segment.End);
+                }
+            }
+
+            return (float)sumaDlugosci;
+        }
+
+        // Funkcja do obliczania długości łuku
+        private double DlugoscLukuKontur(ContourSegment arc)
+        {
+            if (arc.Type != SegmentType.Arc || !arc.Center.HasValue)
+                return 0;
+
+            // Oblicz kąt środkowy łuku
+            double startAngle = Math.Atan2(arc.Start.Y - arc.Center.Value.Y, arc.Start.X - arc.Center.Value.X);
+            double endAngle = Math.Atan2(arc.End.Y - arc.Center.Value.Y, arc.End.X - arc.Center.Value.X);
+
+            // Normalizacja kątów
+            if (arc.CounterClockwise)
+            {
+                if (endAngle < startAngle)
+                    endAngle += 2 * Math.PI;
+            }
+            else
+            {
+                if (endAngle > startAngle)
+                    endAngle -= 2 * Math.PI;
+            }
+
+            double angleDelta = Math.Abs(endAngle - startAngle);
+
+            // Długość łuku = promień * kąt (w radianach)
+            return arc.Radius * angleDelta;
+        }
+
+        private double OdlegloscKontur(XPoint p1, XPoint p2)
+        {
+            double dx = p2.X - p1.X;
+            double dy = p2.Y - p1.Y;
+            return Math.Sqrt(dx * dx + dy * dy);
+        }
+        private List<XPoint> GetStartPointsFromContour(List<ContourSegment> kontur)
+        {
+            var points = new List<XPoint>();
+            foreach (var segment in kontur)
+            {
+                points.Add(segment.Start);
+            }
+            // Dodaj ostatni punkt End jeśli kontur jest zamknięty i różni się od pierwszego
+            if (kontur.Count > 0)
+            {
+                var lastPoint = kontur.Last().End;
+                if (points.Count == 0 || !ArePointsEqual(points[0], lastPoint))
+                {
+                    points.Add(lastPoint);
+                }
+            }
+            return points;
+        }
+
+        private List<ContourSegment> GenerateContourSegmentsFromOriginal(
+           ContourSegment originalOuterSegment,
+           ContourSegment originalInnerSegment,
+           string leftJoin,
+           string rightJoin,
+           float profile)
+        {
+            var segments = new List<ContourSegment>();
+
+            // Sprawdź czy oryginalny segment był łukiem
+            if (originalOuterSegment.Type == SegmentType.Arc)
+            {
+                // Kopiujemy łuk
+                var arcSegment = new ContourSegment(
+                    new XPoint(originalOuterSegment.Start.X, originalOuterSegment.Start.Y),
+                    new XPoint(originalOuterSegment.End.X, originalOuterSegment.End.Y),
+                    originalOuterSegment.Center.HasValue
+                        ? new XPoint(originalOuterSegment.Center.Value.X, originalOuterSegment.Center.Value.Y)
+                        : (XPoint?)null,
+                    originalOuterSegment.Radius,
+                    originalOuterSegment.CounterClockwise);
+
+                segments.Add(arcSegment);
+            }
+            else
+            {
+                // Dla linii - generujemy zamknięty kontur (prostokąt) na podstawie oryginalnego segmentu
+                float dx = (float)(originalOuterSegment.End.X - originalOuterSegment.Start.X);
+                float dy = (float)(originalOuterSegment.End.Y - originalOuterSegment.Start.Y);
+                float length = MathF.Sqrt(dx * dx + dy * dy);
+
+                if (length > 0.001f)
+                {
+                    float tx = dx / length;
+                    float ty = dy / length;
+                    float nx = -ty;
+                    float ny = tx;
+
+                    // Punkty prostokąta
+                    XPoint p1 = originalOuterSegment.Start;
+                    XPoint p2 = originalOuterSegment.End;
+                    XPoint p3 = new XPoint(p2.X + nx * profile, p2.Y + ny * profile);
+                    XPoint p4 = new XPoint(p1.X + nx * profile, p1.Y + ny * profile);
+
+                    // Cztery krawędzie prostokąta
+                    segments.Add(new ContourSegment(p1, p2)); // górna/dolna w zależności od orientacji
+                    segments.Add(new ContourSegment(p2, p3)); // prawa
+                    segments.Add(new ContourSegment(p3, p4)); // dolna/górna
+                    segments.Add(new ContourSegment(p4, p1)); // lewa
+
+                    Console.WriteLine($"   Generowany kontur dla linii - punkty: ({p1.X:F1},{p1.Y:F1})->({p2.X:F1},{p2.Y:F1})->({p3.X:F1},{p3.Y:F1})->({p4.X:F1},{p4.Y:F1})");
+                }
+            }
+
+            return segments;
+        }
         private List<XPoint> GetStartT1(XPoint _innerP, XPoint _outerP, List<XPoint> _outer, float angleDegrees,
             float prevangleDegrees, float nextangleDegrees, string stronaWModelu,
             string stonaOstanioDodanegoElementu, int nk)
