@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Text.RegularExpressions;
+﻿using System.Globalization;
 
 namespace GEORGE.Client.Pages.PDF
 {
@@ -31,8 +27,6 @@ namespace GEORGE.Client.Pages.PDF
         {
             pdfText = pdfText.ToUpper();
 
-            //Console.WriteLine(pdfText);
-
             var zestawienie = new Zestawienie();
             var lines = pdfText.ToUpper().Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
             var tempLine = new List<string>();
@@ -57,22 +51,18 @@ namespace GEORGE.Client.Pages.PDF
             bool capturing = false;
             foreach (var line in lines)
             {
-
                 if (line.ToUpper().Contains("KANTÓWKA"))
                 {
                     capturing = true;
                     tempLine.Clear();
-
                     strUwagi = line;
-
                 }
 
                 if (capturing)
                 {
                     var items = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                     tempLine.AddRange(items);
-                    // Console.WriteLine(line);
-                    // Check if the accumulated line has the required number of elements
+
                     if (tempLine.Count >= 7)
                     {
                         var matchedLine = string.Join(" ", tempLine);
@@ -87,12 +77,36 @@ namespace GEORGE.Client.Pages.PDF
 
             foreach (var kantowka in kantowkaList)
             {
-                var items = kantowka.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-                if (items.Length >= 7)
+                try
                 {
-                    try
+                    var items = kantowka.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+                    if (items.Length >= 7)
                     {
+                        // Bezpieczne pobieranie uwag - obsługa przypadku gdy nie ma znaku "-"
+                        string uwagi = "";
+                        try
+                        {
+                            int indexOfDash = strUwagi.IndexOf("-");
+                            if (indexOfDash >= 0)
+                            {
+                                uwagi = strUwagi.Substring(0, indexOfDash).TrimEnd();
+                            }
+                            else
+                            {
+                                // Jeśli nie znaleziono znaku "-", użyj całego tekstu
+                                uwagi = strUwagi.TrimEnd();
+                                Console.WriteLine($"Uwaga: Brak znaku '-' w tekście: {strUwagi}");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Błąd podczas przetwarzania uwag: {ex.Message}");
+                            uwagi = strUwagi; // W razie błędu użyj całego tekstu
+                        }
+
+                        uwagi = BezpiecznySubstring(strUwagi, "-");
+
                         var cutListItem = new CutListItem
                         {
                             Lp = items[0].ToString(),
@@ -102,7 +116,7 @@ namespace GEORGE.Client.Pages.PDF
                             Wymiar = items[4],
                             Kat = (items.Length > 6 ? items[6] : ""),
                             WymiarNaZamowienie = DlugoscHandlowa(items[4]),
-                            Uwagi = strUwagi.Substring(0, strUwagi.IndexOf("-")).TrimEnd()//ZwrocOpis(kantowka)//strUwagi,
+                            Uwagi = uwagi
                         };
 
                         if (int.TryParse(items[3], out _))
@@ -111,58 +125,52 @@ namespace GEORGE.Client.Pages.PDF
                         }
                         else
                         {
-                            if((items[3].ToUpper() == "HG" || items[3].ToUpper() == "HB") && int.TryParse(items[4], out _))
+                            if ((items[3].ToUpper() == "HG" || items[3].ToUpper() == "HB") && int.TryParse(items[4], out _))
                             {
                                 cutListItem.Ilosc = items[4];
                                 cutListItem.Wymiar = items[5];
                                 cutListItem.Kat = (items.Length > 6 ? items[6] : "");
                                 cutListItem.WymiarNaZamowienie = DlugoscHandlowa(items[5]);
-                                cutListItem.Uwagi = strUwagi.Substring(0, strUwagi.IndexOf("-")).TrimEnd();
-                                //DLA ZESTAWIEN MATERIAŁOWYCH HS ZMIANA W POZYCJI ILOŚCI SZTUK
+                                cutListItem.Uwagi = uwagi;
+
                                 zestawienie.ListaCieci.Add(cutListItem);
                             }
                             else
                             {
-                                Console.WriteLine($"Nie doddano wiersza: {kantowka.ToString()}, items.Length:{items.Length.ToString()} ilość sztuk: {items[3]}");
+                                Console.WriteLine($"Nie dodano wiersza: {kantowka}, items.Length: {items.Length}, ilość sztuk: {items[3]}");
                             }
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        throw new FormatException($"Błąd w parsowaniu linii: {ex.Message}");
-                    }
+                }
+                catch (Exception ex)
+                {
+                    // Logujemy błąd ale kontynuujemy przetwarzanie kolejnych linii
+                    Console.WriteLine($"Błąd w parsowaniu linii '{kantowka}': {ex.Message}");
+                    // Nie rzucamy wyjątku - tylko logujemy i kontynuujemy
                 }
             }
 
             return zestawienie;
         }
+        private string BezpiecznySubstring(string tekst, string separator)
+        {
+            if (string.IsNullOrEmpty(tekst))
+                return "";
 
-        //private string ZwrocOpis(string linia)
-        //{
-        //    if (linia.Contains("KANTÓWKA"))
-        //    {
-
-        //        return linia;
-
-        //    }
-        //    else
-        //    {
-        //        var tempLine = new List<string>();
-        //        var items = linia.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-        //        tempLine.AddRange(items);
-        //        // Console.WriteLine(line);
-        //        // Check if the accumulated line has the required number of elements
-        //        if (tempLine.Count >= 7)
-        //        {
-        //            var matchedLine = string.Join(" ", tempLine);
-        //            return matchedLine;
-        //        }
-        //        else
-        //        {
-        //            return "Brak danych....";
-        //        }
-        //    }
-        //}
+            int index = tekst.IndexOf(separator);
+            if (index >= 0)
+            {
+                try
+                {
+                    return tekst.Substring(0, index).TrimEnd();
+                }
+                catch
+                {
+                    return tekst.TrimEnd();
+                }
+            }
+            return tekst.TrimEnd();
+        }
         public string DlugoscHandlowa(string dlugoscWyliczona)
         {
             if (!int.TryParse(dlugoscWyliczona, out int dlugoscX))

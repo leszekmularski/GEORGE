@@ -88,41 +88,141 @@ namespace GEORGE.Client.Pages.Utils
                     {
                         var next = pts[(i + 1) % pts.Count];
 
+                        // =========================
+                        // OKRĄG → 2 łuki
+                        // =========================
                         if (shape is XCircleShape circ)
                         {
-                            return new ContourSegment(p, next, new XPoint(circ.X, circ.Y), circ.Radius, false);
+                            // środek okręgu
+                            var center = new XPoint(circ.X, circ.Y);
+
+                            // dzielimy okrąg na pół: góra / dół
+                            bool isTopArc = p.Y <= circ.Y && next.Y <= circ.Y;
+
+                            return new ContourSegment(
+                                p,
+                                next,
+                                center,
+                                circ.Radius,
+                                false
+                            );
                         }
-                        else if (shape is XRoundedTopRectangleShape rtrShape)
+
+                        // =========================
+                        // PROSTOKĄT Z ŁUKIEM NA GÓRZE
+                        // =========================
+                        else if (shape is XRoundedTopRectangleShape rtr)
                         {
-                            // Górny łuk prostokąta
-                            var (arcCenterX, arcCenterY, _, _) = rtrShape.CalculateArcGeometry();
-                            return new ContourSegment(p, next, new XPoint(arcCenterX, arcCenterY), rtrShape.Radius, false);
+                            double arcStartY = rtr.Y + rtr.ArcHeight;
+
+                            if (p.Y <= arcStartY && next.Y <= arcStartY)
+                            {
+                                var (arcCenterX, arcCenterY, _, _) = rtr.CalculateArcGeometry();
+
+                                return new ContourSegment(
+                                    p,
+                                    next,
+                                    new XPoint(arcCenterX, arcCenterY),
+                                    rtr.Radius,
+                                    false
+                                );
+                            }
+
+                            return new ContourSegment(p, next);
                         }
-                        else if (shape is XRoundedRectangleShape rrShape)
+
+                        // =========================
+                        // PROSTOKĄT ZAOKRĄGLONY
+                        // =========================
+                        else if (shape is XRoundedRectangleShape rr)
                         {
-                            // Cztery rogi prostokąta z promieniem
-                            double centerX = (p.X + next.X) / 2;
-                            double centerY = (p.Y + next.Y) / 2;
-                            return new ContourSegment(p, next, new XPoint(centerX, centerY), rrShape.Radius, false);
+                            double r = rr.Radius;
+
+                            bool isCorner =
+                                Math.Abs(p.X - next.X) < r ||
+                                Math.Abs(p.Y - next.Y) < r;
+
+                            if (isCorner)
+                            {
+                                double centerX = (p.X + next.X) / 2;
+                                double centerY = (p.Y + next.Y) / 2;
+
+                                return new ContourSegment(
+                                    p,
+                                    next,
+                                    new XPoint(centerX, centerY),
+                                    r,
+                                    false
+                                );
+                            }
+
+                            return new ContourSegment(p, next);
                         }
-                        else if (shape is XRoundedRectangleShapeLeft rrlShape)
+
+                        // =========================
+                        // ZAOKRĄGLONY LEWY BOK
+                        // =========================
+                        else if (shape is XRoundedRectangleShapeLeft rrl)
                         {
-                            // Lewy łuk – środek w połowie między punktami start/end
-                            double centerX = (p.X + next.X) / 2;
-                            double centerY = (p.Y + next.Y) / 2;
-                            return new ContourSegment(p, next, new XPoint(centerX, centerY), rrlShape.Radius, false);
+                            double r = rrl.Radius;
+
+                            bool isLeftArc =
+                                p.X <= rrl.X + r &&
+                                next.X <= rrl.X + r;
+
+                            if (isLeftArc)
+                            {
+                                double centerX = rrl.X + r;
+                                double centerY = (p.Y + next.Y) / 2;
+
+                                return new ContourSegment(
+                                    p,
+                                    next,
+                                    new XPoint(centerX, centerY),
+                                    r,
+                                    false
+                                );
+                            }
+
+                            return new ContourSegment(p, next);
                         }
-                        else if (shape is XRoundedRectangleShapeRight rrrShape)
+
+                        // =========================
+                        // ZAOKRĄGLONY PRAWY BOK
+                        // =========================
+                        else if (shape is XRoundedRectangleShapeRight rrr)
                         {
-                            // Prawy łuk – środek w połowie między punktami start/end
-                            double centerX = (p.X + next.X) / 2;
-                            double centerY = (p.Y + next.Y) / 2;
-                            return new ContourSegment(p, next, new XPoint(centerX, centerY), rrrShape.Radius, false);
+                            double r = rrr.Radius;
+
+                            bool isRightArc =
+                                p.X >= rrr.X + rrr.Width - r &&
+                                next.X >= rrr.X + rrr.Width - r;
+
+                            if (isRightArc)
+                            {
+                                double centerX = rrr.X + rrr.Width - r;
+                                double centerY = (p.Y + next.Y) / 2;
+
+                                return new ContourSegment(
+                                    p,
+                                    next,
+                                    new XPoint(centerX, centerY),
+                                    r,
+                                    false
+                                );
+                            }
+
+                            return new ContourSegment(p, next);
                         }
+
+                        // =========================
+                        // DOMYŚLNA LINIA
+                        // =========================
                         else
                         {
                             return new ContourSegment(p, next);
                         }
+
                     }).ToList(),
 
                     TypKsztaltu = typ,

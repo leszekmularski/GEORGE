@@ -160,12 +160,12 @@ namespace GEORGE.Client.Pages.Okna
                                                                 // Zakładam, że punktyFull to List<ContourSegment>
             var przeskalowaneFullPunkty = new List<ContourSegment>();
 
-            // 1️⃣ Usuń segmenty, które mają Start = End
+            // 1️⃣ Usuń segmenty zerowej długości
             var bezDuplikatow = punktyFull
-                .Where(s => !(s.Start.X == s.End.X && s.Start.Y == s.End.Y))
+                .Where(s => !PointsAreClose(s.Start, s.End))
                 .ToList();
 
-            // 2️⃣ Posortuj segmenty tak, aby End jednego był Startem następnego
+            // 2️⃣ Sortowanie konturu
             if (bezDuplikatow.Any())
             {
                 var segment = bezDuplikatow[0];
@@ -175,11 +175,13 @@ namespace GEORGE.Client.Pages.Okna
                 while (bezDuplikatow.Any())
                 {
                     bool found = false;
+                    var last = przeskalowaneFullPunkty.Last();
+
                     for (int i = 0; i < bezDuplikatow.Count; i++)
                     {
                         var s = bezDuplikatow[i];
-                        var last = przeskalowaneFullPunkty.Last();
 
+                        // normalne połączenie
                         if (PointsAreClose(last.End, s.Start))
                         {
                             przeskalowaneFullPunkty.Add(s);
@@ -187,10 +189,18 @@ namespace GEORGE.Client.Pages.Okna
                             found = true;
                             break;
                         }
-                        else if (PointsAreClose(last.End, s.End))
+
+                        // trzeba odwrócić segment
+                        if (PointsAreClose(last.End, s.End))
                         {
-                            // odwróć segment, jeśli End pasuje do końca
-                            var reversed = new ContourSegment(s.End, s.Start, s.Center, s.Radius, s.CounterClockwise);
+                            var reversed = new ContourSegment(
+                                s.End,
+                                s.Start,
+                                s.Center,
+                                s.Radius,
+                                !s.CounterClockwise
+                            );
+
                             przeskalowaneFullPunkty.Add(reversed);
                             bezDuplikatow.RemoveAt(i);
                             found = true;
@@ -198,19 +208,21 @@ namespace GEORGE.Client.Pages.Okna
                         }
                     }
 
+                    // jeśli nic nie pasuje — zaczynamy nowy fragment
                     if (!found)
                     {
-                        // brak segmentu pasującego – dodaj kolejny taki, jaki jest
-                        przeskalowaneFullPunkty.Add(bezDuplikatow[0]);
+                        var next = bezDuplikatow[0];
+                        przeskalowaneFullPunkty.Add(next);
                         bezDuplikatow.RemoveAt(0);
                     }
                 }
             }
 
-            // 🔹 Funkcja pomocnicza do porównania punktów z tolerancją
+            // funkcja porównująca punkty
             bool PointsAreClose(XPoint a, XPoint b, double tolerance = 0.001)
             {
-                return Math.Abs(a.X - b.X) < tolerance && Math.Abs(a.Y - b.Y) < tolerance;
+                return Math.Abs(a.X - b.X) < tolerance &&
+                       Math.Abs(a.Y - b.Y) < tolerance;
             }
 
             //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -438,24 +450,24 @@ namespace GEORGE.Client.Pages.Okna
                      mouseClik
                  );
 
-                var okArc = await GenerateGenericElementsKonturWithJoins(
-                     przeskalowaneFullPunkty,
-                     wewnetrznyFullKontur,
-                     profileLeft, profileRight, profileTop, profileBottom,
-                     region.TypKsztaltu,
-                     EdytowanyModel.PolaczenieNaroza,
-                     EdytowanyModel.SposobLaczeniaCzop,
-                     KonfiguracjeSystemu,
-                     regionId,
-                     RowIdprofileLeft, RowIdprofileRight, RowIdprofileTop, RowIdprofileBottom,
-                     RowIndeksprofileLeft, RowIndeksprofileRight, RowIndeksprofileTop, RowIndeksprofileBottom,
-                     RowNazwaprofileLeft, RowNazwaprofileRight, RowNazwaprofileTop, RowNazwaprofileBottom,
-                     NazwaObiektu,
-                     TypObiektu,
-                     daneKwadratu,
-                     punktyRegionuMaster,
-                     mouseClik
-                 );
+            var okArc = await GenerateGenericElementsKonturWithJoins(
+                 przeskalowaneFullPunkty,
+                 wewnetrznyFullKontur,
+                 profileLeft, profileRight, profileTop, profileBottom,
+                 region.TypKsztaltu,
+                 EdytowanyModel.PolaczenieNaroza,
+                 EdytowanyModel.SposobLaczeniaCzop,
+                 KonfiguracjeSystemu,
+                 regionId,
+                 RowIdprofileLeft, RowIdprofileRight, RowIdprofileTop, RowIdprofileBottom,
+                 RowIndeksprofileLeft, RowIndeksprofileRight, RowIndeksprofileTop, RowIndeksprofileBottom,
+                 RowNazwaprofileLeft, RowNazwaprofileRight, RowNazwaprofileTop, RowNazwaprofileBottom,
+                 NazwaObiektu,
+                 TypObiektu,
+                 daneKwadratu,
+                 punktyRegionuMaster,
+                 mouseClik
+             );
 
             if (okLine || okArc)
             {
@@ -1449,7 +1461,7 @@ namespace GEORGE.Client.Pages.Okna
 
                 if (angleDegreesElementLionowy != angleDegrees && ElementLiniowy) break;
 
-                  if (rowIdprofileLeft != Guid.Empty)
+                if (rowIdprofileLeft != Guid.Empty)
                     ElementyRamyRysowane.Add(new KsztaltElementu
                     {
                         NrPozWModelu = i + 1,
@@ -2959,97 +2971,37 @@ namespace GEORGE.Client.Pages.Okna
             return result;
         }
 
-        public List<ContourSegment> CalculateOffsetPolygonKontur(
-        List<ContourSegment> segments,
-        float profileLeft,
-        float profileRight,
-        float profileTop,
-        float profileBottom,
-        bool elementLiniowy)
-        {
-            int count = segments.Count;
-            if (count < 2)
-                throw new ArgumentException("Figura musi mieć co najmniej 2 segmenty.");
+        //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-            Console.WriteLine("🔷 CalculateOffsetPolygonKontur - wejściowe segmenty:");
+        public List<ContourSegment> CalculateOffsetPolygonKontur(
+            List<ContourSegment> segments,
+            float profileLeft,
+            float profileRight,
+            float profileTop,
+            float profileBottom,
+            bool elementLiniowy)
+        {
+            if (segments == null || segments.Count == 0)
+                return new List<ContourSegment>();
+
+            var offsetSegments = new List<ContourSegment>();
+
             for (int i = 0; i < segments.Count; i++)
             {
-                var s = segments[i];
-                Console.WriteLine($"CalculateOffsetPolygonKontur Segment {i}: Start=({s.Start.X},{s.Start.Y}) End=({s.End.X},{s.End.Y})" 
-                                 + (s.Center != null ? $" Center=({s.Center.Value.X},{s.Center.Value.Y}) Radius={s.Radius} CCW={s.CounterClockwise}" : ""));
-            }
+                var seg = segments[i];
 
-            var result = new List<ContourSegment>();
+                float dx = (float)seg.End.X - (float)seg.Start.X;
+                float dy = (float)seg.End.Y - (float)seg.Start.Y;
 
-            // ======================
-            // Obsługa elementu liniowego
-            // ======================
-            if (elementLiniowy)
-            {
-                var s = segments[0];
+                // Kąt segmentu w stopniach
+                float angleDegrees = MathF.Atan2(dy, dx) * 180f / MathF.PI;
 
-                float dx = (float)(s.End.X - s.Start.X);
-                float dy = (float)(s.End.Y - s.Start.Y);
-                double length = Math.Sqrt(dx * dx + dy * dy);
-                if (length < 1e-6) length = 1e-6;
+                // Strona konturu
+                string side = StronaOknaHelper.OkreslStrone(angleDegrees, i, segments.Select(s => s.Start).ToList());
 
-                float tx = dx / (float)length;
-                float ty = dy / (float)length;
-
-                float nx = -ty;
-                float ny = tx;
-
-                float angleDegrees = MathF.Atan2(dy, dx) * (180f / MathF.PI);
-                if (angleDegrees < 0) angleDegrees += 360f;
-
-                string side = StronaOknaHelper.OkreslStrone(angleDegrees, 0, segments.Select(s => s.Start).ToList());
-
-                float offsetValue = side switch
-                {
-                    "Góra" => profileTop,
-                    "Dół" => profileBottom,
-                    "Lewa" => profileLeft,
-                    "Prawa" => profileRight,
-                    _ => 0
-                };
-
-                float offset = -offsetValue;
-
-                var p1Offset = new XPoint(s.Start.X + nx * offset, s.Start.Y + ny * offset);
-                var p2Offset = new XPoint(s.End.X + nx * offset, s.End.Y + ny * offset);
-
-                result.Add(new ContourSegment(p1Offset, p2Offset));
-                return result;
-            }
-
-            if (count < 3)
-                throw new ArgumentException("Wielokąt musi mieć co najmniej 3 segmenty.");
-
-            var offsetVertices = new List<XPoint>();
-            var offsetData = new List<(float nx, float ny, float offset)>();
-
-            for (int i = 0; i < count; i++)
-            {
-                var s = segments[i];
-                var p1 = s.Start;
-                var p2 = s.End;
-
-                float dx = (float)(p2.X - p1.X);
-                float dy = (float)(p2.Y - p1.Y);
-                float length = MathF.Sqrt(dx * dx + dy * dy);
-                if (length < 1e-6f) length = 1e-6f;
-
-                float tx = dx / length;
-                float ty = dy / length;
-
-                float nx = ty;
-                float ny = -tx;
-
-                float angleDegrees = MathF.Atan2(dy, dx) * (180f / MathF.PI);
-                if (angleDegrees < 0) angleDegrees += 360f;
-
-                string side = StronaOknaHelper.OkreslStrone(angleDegrees, i, segments.Select(seg => seg.Start).ToList());
-
+                // Wartość offsetu dla strony
                 float offsetValue = side switch
                 {
                     "Góra" => profileTop,
@@ -3059,57 +3011,69 @@ namespace GEORGE.Client.Pages.Okna
                     _ => 0f
                 };
 
-                float offset = -offsetValue;
+                ContourSegment newSeg = null;
 
-                offsetVertices.Add(new XPoint(p1.X + nx * offset, p1.Y + ny * offset));
-                offsetData.Add((nx, ny, offset));
-            }
-
-            for (int i = 0; i < count; i++)
-            {
-                int next = (i + 1) % count;
-
-                var currentOriginal = segments[i];
-                var startOffset = offsetVertices[i];
-                var endOffset = offsetVertices[next];
-                var (nx, ny, offset) = offsetData[i];
-
-                if (currentOriginal.Type == SegmentType.Line)
+                if (seg.Type == SegmentType.Line)
                 {
-                    result.Add(new ContourSegment(startOffset, endOffset));
+                    float nx = 0, ny = 0;
+
+                    // Jeśli linia jest prawie pionowa
+                    if (MathF.Abs(dx) < 0.001f)
+                    {
+                        nx = offsetValue;  // przesunięcie w X
+                        ny = 0;
+                    }
+                    // Jeśli linia jest prawie pozioma
+                    else if (MathF.Abs(dy) < 0.001f)
+                    {
+                        nx = 0;
+                        ny = offsetValue;  // przesunięcie w Y
+                    }
+                    else
+                    {
+                        // wektor normalny dla skośnej linii
+                        float length = MathF.Sqrt(dx * dx + dy * dy);
+                        nx = -dy / length * offsetValue;
+                        ny = dx / length * offsetValue;
+                    }
+
+                    var startOffset = new XPoint(seg.Start.X + nx, seg.Start.Y + ny);
+                    var endOffset = new XPoint(seg.End.X + nx, seg.End.Y + ny);
+
+                    newSeg = new ContourSegment(startOffset, endOffset, null, 0, false);
                 }
-                else if (currentOriginal.Type == SegmentType.Arc && currentOriginal.Center != null)
+                else if (seg.Type == SegmentType.Arc && seg.Center != null)
                 {
-                    var centerOffset = new XPoint(
-                        currentOriginal.Center.Value.X + nx * offset,
-                        currentOriginal.Center.Value.Y + ny * offset
-                    );
+                    var center = seg.Center.Value;
+                    float newRadius = (float)seg.Radius - offsetValue;
 
-                    float newRadius = (float)currentOriginal.Radius + offset;
+                    float sx = (float)seg.Start.X - (float)center.X;
+                    float sy = (float)seg.Start.Y - (float)center.Y;
+                    float lenS = MathF.Sqrt(sx * sx + sy * sy);
+                    sx = sx / lenS * newRadius;
+                    sy = sy / lenS * newRadius;
+                    var startOffset = new XPoint(center.X + sx, center.Y + sy);
 
-                    result.Add(new ContourSegment(
-                        startOffset,
-                        endOffset,
-                        centerOffset,
-                        newRadius,
-                        currentOriginal.CounterClockwise
-                    ));
+                    float ex = (float)seg.End.X - (float)center.X;
+                    float ey = (float)seg.End.Y - (float)center.Y;
+                    float lenE = MathF.Sqrt(ex * ex + ey * ey);
+                    ex = ex / lenE * newRadius;
+                    ey = ey / lenE * newRadius;
+                    var endOffset = new XPoint(center.X + ex, center.Y + ey);
+
+                    newSeg = new ContourSegment(startOffset, endOffset, center, newRadius, seg.CounterClockwise);
                 }
+
+                if (newSeg != null)
+                    offsetSegments.Add(newSeg);
             }
 
-            // ======================
-            // Wypisanie konturu po offsetowaniu
-            // ======================
-            Console.WriteLine("🔷 CalculateOffsetPolygonKontur - offsetowane segmenty:");
-            for (int i = 0; i < result.Count; i++)
-            {
-                var s = result[i];
-                Console.WriteLine($"CalculateOffsetPolygonKontur Segment {i}: Start=({s.Start.X},{s.Start.Y}) End=({s.End.X},{s.End.Y})" +
-                    (s.Center != null ? $" Center=({s.Center.Value.X},{s.Center.Value.Y}) Radius={s.Radius} CCW={s.CounterClockwise}" : ""));
-            }
-
-            return result;
+            return offsetSegments;
         }
+
+        //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
         private XPoint GetLinesIntersection(XPoint a1, XPoint a2, XPoint b1, XPoint b2)
         {

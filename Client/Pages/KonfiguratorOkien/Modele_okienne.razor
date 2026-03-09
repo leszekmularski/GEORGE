@@ -6930,22 +6930,30 @@
 
         await context.BeginPathAsync();
 
-        foreach (var seg in segments)
+        // Startujemy od pierwszego punktu konturu
+        var firstSeg = segments[0];
+        await context.MoveToAsync(firstSeg.Start.X, firstSeg.Start.Y);
+
+        for (int i = 0; i < segments.Count; i++)
         {
+            var seg = segments[i];
+
             if (seg.Type == SegmentType.Line)
             {
-                await context.MoveToAsync(seg.Start.X, seg.Start.Y);
+                // Prosta linia
                 await context.LineToAsync(seg.End.X, seg.End.Y);
             }
             else if (seg.Type == SegmentType.Arc && seg.Center != null)
             {
-                // Rysowanie łuku
+                // Wyznaczenie start i end angle względem środka łuku
                 double startAngle = Math.Atan2(seg.Start.Y - seg.Center.Value.Y, seg.Start.X - seg.Center.Value.X);
                 double endAngle = Math.Atan2(seg.End.Y - seg.Center.Value.Y, seg.End.X - seg.Center.Value.X);
 
+                // Dopasowanie kąta dla CounterClockwise
                 if (!seg.CounterClockwise && endAngle < startAngle) endAngle += 2 * Math.PI;
                 if (seg.CounterClockwise && startAngle < endAngle) startAngle += 2 * Math.PI;
 
+                // Rysowanie łuku od aktualnego punktu
                 await context.ArcAsync(
                     seg.Center.Value.X,
                     seg.Center.Value.Y,
@@ -6957,11 +6965,13 @@
             }
         }
 
+        // Zamknięcie konturu
+        await context.LineToAsync(firstSeg.Start.X, firstSeg.Start.Y);
+
         await context.SetStrokeStyleAsync(strokeColor);
         await context.SetLineWidthAsync(lineWidth);
         await context.StrokeAsync();
     }
-
     // Rysowanie konturu szklenia
     private async Task DrawSingleGlassContourKontur(Canvas2DContext context)
     {
