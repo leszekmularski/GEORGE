@@ -1,6 +1,7 @@
 ﻿using GEORGE.Client.Pages.KonfiguratorOkien;
 using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.ViewModels;
+using static Aspose.ThreeD.Entities.CompositeCurve;
 
 namespace GEORGE.Client.Pages.Utils
 {
@@ -80,6 +81,8 @@ namespace GEORGE.Client.Pages.Utils
 
                 if (pts == null) continue;
 
+                string ramaInfo = rama ? "kontur ramowy" : "kontur skrzydłowy";
+
                 var initial = new ShapeRegion
                 {
                     Wierzcholki = pts.Select(p => new XPoint((float)Math.Round(p.X, 4), (float)Math.Round(p.Y, 4))).ToList(),
@@ -99,13 +102,18 @@ namespace GEORGE.Client.Pages.Utils
                             // dzielimy okrąg na pół: góra / dół
                             bool isTopArc = p.Y <= circ.Y && next.Y <= circ.Y;
 
-                            return new ContourSegment(
+                            var segment = new ContourSegment(
                                 p,
                                 next,
                                 center,
                                 circ.Radius,
                                 false
                             );
+
+                            // Dodanie informacji o segmencie
+                            segment.Informacja = ramaInfo;
+
+                            return segment;
                         }
 
                         // =========================
@@ -119,13 +127,18 @@ namespace GEORGE.Client.Pages.Utils
                             {
                                 var (arcCenterX, arcCenterY, _, _) = rtr.CalculateArcGeometry();
 
-                                return new ContourSegment(
+                                var segment = new ContourSegment(
                                     p,
                                     next,
                                     new XPoint(arcCenterX, arcCenterY),
                                     rtr.Radius,
                                     false
                                 );
+
+                                // Dodanie informacji o segmencie
+                                segment.Informacja = ramaInfo;
+
+                                return segment;
                             }
 
                             return new ContourSegment(p, next);
@@ -138,22 +151,34 @@ namespace GEORGE.Client.Pages.Utils
                         {
                             double r = rr.Radius;
 
-                            bool isCorner =
-                                Math.Abs(p.X - next.X) < r ||
-                                Math.Abs(p.Y - next.Y) < r;
-
-                            if (isCorner)
+                            var centers = new List<XPoint>
                             {
-                                double centerX = (p.X + next.X) / 2;
-                                double centerY = (p.Y + next.Y) / 2;
+                                new XPoint(rr.X + r, rr.Y + r),                         // TL
+                                new XPoint(rr.X + rr.Width - r, rr.Y + r),              // TR
+                                new XPoint(rr.X + rr.Width - r, rr.Y + rr.Height - r),  // BR
+                                new XPoint(rr.X + r, rr.Y + rr.Height - r)              // BL
+                            };
 
-                                return new ContourSegment(
-                                    p,
-                                    next,
-                                    new XPoint(centerX, centerY),
-                                    r,
-                                    false
-                                );
+                            foreach (var c in centers)
+                            {
+                                double d1 = Distance(p, c);
+                                double d2 = Distance(next, c);
+
+                                if (Math.Abs(d1 - r) < 0.5 && Math.Abs(d2 - r) < 0.5)
+                                {
+                                    var segment = new ContourSegment(
+                                        p,
+                                        next,
+                                        c,
+                                        r,
+                                        false
+                                    );
+
+                                    // Dodanie informacji o segmencie
+                                    segment.Informacja = ramaInfo;
+
+                                    return segment;
+                                }
                             }
 
                             return new ContourSegment(p, next);
@@ -166,27 +191,34 @@ namespace GEORGE.Client.Pages.Utils
                         {
                             double r = rrl.Radius;
 
+                            double centerX = rrl.X + r;
+                            double centerY = rrl.Y + rrl.Height / 2;
+
+                            double d1 = Distance(p, new XPoint(centerX, centerY));
+                            double d2 = Distance(next, new XPoint(centerX, centerY));
+
                             bool isLeftArc =
-                                p.X <= rrl.X + r &&
-                                next.X <= rrl.X + r;
+                                Math.Abs(d1 - r) < 0.5 &&
+                                Math.Abs(d2 - r) < 0.5;
 
                             if (isLeftArc)
                             {
-                                double centerX = rrl.X + r;
-                                double centerY = (p.Y + next.Y) / 2;
-
-                                return new ContourSegment(
+                                var segment = new ContourSegment(
                                     p,
                                     next,
                                     new XPoint(centerX, centerY),
                                     r,
                                     false
                                 );
+
+                                // Dodanie informacji o segmencie
+                                segment.Informacja = ramaInfo;
+
+                                return segment;
                             }
 
                             return new ContourSegment(p, next);
                         }
-
                         // =========================
                         // ZAOKRĄGLONY PRAWY BOK
                         // =========================
@@ -194,22 +226,30 @@ namespace GEORGE.Client.Pages.Utils
                         {
                             double r = rrr.Radius;
 
+                            double centerX = rrr.X + rrr.Width - r;
+                            double centerY = rrr.Y + rrr.Height / 2;
+
+                            double d1 = Distance(p, new XPoint(centerX, centerY));
+                            double d2 = Distance(next, new XPoint(centerX, centerY));
+
                             bool isRightArc =
-                                p.X >= rrr.X + rrr.Width - r &&
-                                next.X >= rrr.X + rrr.Width - r;
+                                Math.Abs(d1 - r) < 0.5 &&
+                                Math.Abs(d2 - r) < 0.5;
 
                             if (isRightArc)
                             {
-                                double centerX = rrr.X + rrr.Width - r;
-                                double centerY = (p.Y + next.Y) / 2;
-
-                                return new ContourSegment(
+                                var segment = new ContourSegment(
                                     p,
                                     next,
                                     new XPoint(centerX, centerY),
                                     r,
                                     false
                                 );
+
+                                // Dodanie informacji o segmencie
+                                segment.Informacja = ramaInfo;
+
+                                return segment;
                             }
 
                             return new ContourSegment(p, next);
@@ -220,7 +260,11 @@ namespace GEORGE.Client.Pages.Utils
                         // =========================
                         else
                         {
-                            return new ContourSegment(p, next);
+                            var segment = new ContourSegment(p, next);
+                            // Dodanie informacji o segmencie
+                            segment.Informacja = ramaInfo;
+
+                            return segment;
                         }
 
                     }).ToList(),
@@ -229,7 +273,7 @@ namespace GEORGE.Client.Pages.Utils
                     TypLiniiDzielacej = typLinii,
                     Id = id,
                     IdMaster = id,
-                    Rama = rama
+                    Rama = rama,
                 };
 
                 if (rama)
@@ -249,11 +293,14 @@ namespace GEORGE.Client.Pages.Utils
 
                     foreach (var r in podzielone)
                     {
+                        // Usuwanie duplikatów wierzchołków
                         r.Wierzcholki = r.Wierzcholki
                             .GroupBy(p => new { X = Math.Round(p.X, 2), Y = Math.Round(p.Y, 2) })
                             .Select(g => g.First())
                             .ToList();
-                        r.Kontur = r.Kontur
+
+                        // Przetwarzanie konturu - usuwanie duplikatów i dodawanie informacji
+                        var unikalneSegmenty = r.Kontur
                             .GroupBy(s => new
                             {
                                 StartX = Math.Round(s.Start.X, 2),
@@ -261,10 +308,54 @@ namespace GEORGE.Client.Pages.Utils
                                 EndX = Math.Round(s.End.X, 2),
                                 EndY = Math.Round(s.End.Y, 2)
                             })
-                            .Select(g => g.First())
+                            .Select(g => g.ToList())  // Najpierw grupa jako lista
                             .ToList();
 
-                        r.RozpoznajTyp(r.TypKsztaltu);
+                        var nowyKontur = new List<ContourSegment>();
+
+                        foreach (var grupa in unikalneSegmenty)
+                        {
+                            // Bierzemy pierwszy segment z grupy jako wzór
+                            var pierwszySegment = grupa.First();
+
+                            // Tworzymy nowy segment na podstawie pierwszego
+                            ContourSegment nowySegment;
+
+                            if (pierwszySegment.Type == SegmentType.Arc)
+                            {
+                                nowySegment = new ContourSegment(
+                                    pierwszySegment.Start,
+                                    pierwszySegment.End,
+                                    pierwszySegment.Center,
+                                    pierwszySegment.Radius,
+                                    pierwszySegment.CounterClockwise
+                                );
+                            }
+                            else
+                            {
+                                nowySegment = new ContourSegment(
+                                    pierwszySegment.Start,
+                                    pierwszySegment.End
+                                );
+                            }
+
+                            // Dodajemy informację o duplikatach
+                            if (grupa.Count > 1)
+                            {
+                                nowySegment.Informacja = ramaInfo;
+                            }
+                            else
+                            {
+                                // Zachowujemy oryginalną informację lub dodajemy domyślną
+                                nowySegment.Informacja = ramaInfo;
+                            }
+
+                            nowyKontur.Add(nowySegment);
+                        }
+
+                        r.Kontur = nowyKontur;
+     
+                    r.RozpoznajTyp(r.TypKsztaltu);
 
                         Console.WriteLine($"🔹 Region id: {r.Id} po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - RAMA");
 
@@ -364,6 +455,13 @@ namespace GEORGE.Client.Pages.Utils
 
             return regions;
         }
+        static double Distance(XPoint a, XPoint b)
+        {
+            double dx = a.X - b.X;
+            double dy = a.Y - b.Y;
+            return Math.Sqrt(dx * dx + dy * dy);
+        }
+
         public static List<ShapeRegion> SkalujSkrzydlaDoRamy(
         List<ShapeRegion> stareSkrzydla,
         List<ShapeRegion> rama,

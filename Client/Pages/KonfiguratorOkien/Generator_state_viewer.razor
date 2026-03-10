@@ -499,6 +499,10 @@
                                     @onclick="() => aktywnaZakladka = 3">
                                 <i class="bi bi-info-circle me-1"></i> Podsumowanie
                             </button>
+                            <button class="btn btn-sm @(aktywnaZakladka == 4 ? "btn-primary" : "btn-outline-primary")"
+                                    @onclick="() => aktywnaZakladka = 4">
+                                <i class="bi bi-info-circle me-1"></i> Kontury
+                            </button>
                         </div>
                     </div>
                     
@@ -852,6 +856,103 @@
                                 </div>
                             </div>
                         }
+                        else if (aktywnaZakladka == 4 && wybranyStan?.Kontur != null)
+                        {
+                            <!-- WIDOK ELEMENTÓW KONTURU -->
+                            <div class="elements-view">
+                                <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-4">
+                                    <i class="bi bi-puzzle me-2"></i>
+                                    Segmenty konturu (@wybranyStan.Kontur.Count)
+                                </h5>
+
+                                <div class="row">
+                                    @for (int i = 0; i < wybranyStan.Kontur.Count; i++)
+                                    {
+                                        var segment = wybranyStan.Kontur[i];
+                                        <div class="col-md-6 mb-3">
+                                            <div class="card h-100 @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
+                                                <div class="card-header d-flex justify-content-between align-items-center
+                                                                    @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
+                                                    <div>
+                                                        <span class="badge @(segment.Type == SegmentType.Arc ? "bg-warning text-dark" : "bg-info")">
+                                                            @(segment.Type == SegmentType.Arc ? "Łuk" : "Linia")
+                                                        </span>
+                                                        <span class="ms-2 fw-semibold small">Segment #@(i + 1) Dotyczy: @segment.Informacja </span>
+                                                    </div>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="properties-grid small">
+                                                        <!-- Punkt początkowy -->
+                                                        <div class="property">
+                                                            <span class="property-label">Punkt początkowy:</span>
+                                                            <span class="property-value">
+                                                                X: @segment.Start.X.ToString("F2"), Y: @segment.Start.Y.ToString("F2")
+                                                            </span>
+                                                        </div>
+
+                                                        <!-- Punkt końcowy -->
+                                                        <div class="property">
+                                                            <span class="property-label">Punkt końcowy:</span>
+                                                            <span class="property-value">
+                                                                X: @segment.End.X.ToString("F2"), Y: @segment.End.Y.ToString("F2")
+                                                            </span>
+                                                        </div>
+
+                                                        @if (segment.Type == SegmentType.Arc)
+                                                        {
+                                                            <!-- Dane specyficzne dla łuku -->
+                                                            if (segment.Center != null)
+                                                            {
+                                                                <div class="property">
+                                                                    <span class="property-label">Środek łuku:</span>
+                                                                    <span class="property-value">
+                                                                        X: @segment.Center.Value.X.ToString("F2"), Y: @segment.Center.Value.Y.ToString("F2")
+                                                                    </span>
+                                                                </div>
+                                                            }
+
+                                                            <div class="property">
+                                                                <span class="property-label">Promień:</span>
+                                                                <span class="property-value">
+                                                                    @segment.Radius.ToString("F2")
+                                                                </span>
+                                                            </div>
+
+                                                            <div class="property">
+                                                                <span class="property-label">Kierunek:</span>
+                                                                <span class="property-value">
+                                                                    <span class="badge @(segment.CounterClockwise ? "bg-primary" : "bg-secondary")">
+                                                                        @(segment.CounterClockwise ? "Przeciwnie do ruchu wskazówek zegara" : "Zgodnie z ruchem wskazówek zegara")
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <!-- Informacja o długości linii -->
+                                                            <div class="property">
+                                                                <span class="property-label">Długość:</span>
+                                                                <span class="property-value">
+                                                                    @CalculateLineLength(segment).ToString("F2")
+                                                                </span>
+                                                            </div>
+                                                        }
+
+                                                        <!-- Dodatkowe informacje o typie -->
+                                                        <div class="property">
+                                                            <span class="property-label">Typ segmentu:</span>
+                                                            <span class="property-value">
+                                                                @(segment.Type == SegmentType.Arc ? "Łuk" : "Odcinek prosty")
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
                     </div>
                 </div>
             }
@@ -1129,6 +1230,17 @@
     {
         if (string.IsNullOrEmpty(nazwa)) return string.Empty;
         return nazwa.Length <= maxLength ? nazwa : nazwa.Substring(0, maxLength - 3) + "...";
+    }
+
+    private double CalculateLineLength(ContourSegment segment)
+    {
+        if (segment.Type == SegmentType.Line)
+        {
+            double dx = segment.End.X - segment.Start.X;
+            double dy = segment.End.Y - segment.Start.Y;
+            return Math.Sqrt(dx * dx + dy * dy);
+        }
+        return 0;
     }
 
     private int GetLiczbaRam()

@@ -492,7 +492,7 @@
             }
 
         </Sider>
-        <hr/>
+        <hr />
         <InputCheckbox @bind-Value="pokaKonturWewnetrzny" @onclick="() => ZmienWymiaryOkna()" /> <label>Pokaż kontur wewnętrzny (wyłącz wypełnienie)</label>
         <InputCheckbox @bind-Value="oknaMogaBycLukowe" @onclick="() => ZmienWymiaryOkna()" /> <label>Okno może być wykonane z elementów łukowych</label>
 
@@ -585,11 +585,11 @@
                                          @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
                                          draggable="true"
                                          style="cursor: grab;
-                                                width: auto;
-                                                height: auto;
-                                                max-width: 50px;
-                                                max-height: 50px;
-                                                border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
+                                                            width: auto;
+                                                            height: auto;
+                                                            max-width: 50px;
+                                                            max-height: 50px;
+                                                            border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
 
                                 }
                                 else
@@ -720,13 +720,13 @@
                                     @if (!oknaMogaBycLukowe)
                                     {
                                         <ul class="list-group list-group-flush">
-                                        @for (int i = 0; i < ksztalt.Wierzcholki.Count; i++)
-                                        {
-                                            var index = i + 1;
-                                            <li class="list-group-item">
-                                                [@index] X: @(Math.Round(ksztalt.Wierzcholki[i].X, 3)), Y: @(Math.Round(ksztalt.Wierzcholki[i].Y, 3))
-                                            </li>
-                                        }
+                                            @for (int i = 0; i < ksztalt.Wierzcholki.Count; i++)
+                                            {
+                                                var index = i + 1;
+                                                <li class="list-group-item">
+                                                    [@index] X: @(Math.Round(ksztalt.Wierzcholki[i].X, 3)), Y: @(Math.Round(ksztalt.Wierzcholki[i].Y, 3))
+                                                </li>
+                                            }
                                         </ul>
                                     }
                                     else
@@ -1616,6 +1616,14 @@
                     (int)constWlasciwosciOkna.Wysokosc,
                     false
                 );
+
+                foreach (var test in _regionsDualRama)
+                {
+                    foreach (var test2 in test.Kontur)
+                    {
+                        Console.WriteLine($"🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️ Region {test.Id} - Kontur Start: X={test2.Start.X}, Y={test2.Start.Y}, End: X={test2.End.X}, Y={test2.End.Y} - Typ {test2.Type.ToString()}");
+                    }
+                }
 
                 // 🔹 5️⃣ **Dopiero teraz przesuwamy wszystko do dodatniej ćwiartki**
                 // 🔹 1️⃣ Wydłuż linie do granic kształtów
@@ -3783,6 +3791,7 @@
             RowIdSystemu = Guid.Parse(SelectedSystemId),
             RowIdModelu = Guid.TryParse(SelectedRowIdType, out var rowIdModelu) ? rowIdModelu : (Guid?)null,
             MVCKonfModelu = generator.MVCKonfModelu,
+            Kontur = generator.Kontur,
             WybranyModel = WybranyModel,
             WybranyKsztalt = WybranyKsztalt,
             IdRegionWarstwaNizej = generator.IdRegionuPonizej,
@@ -6620,7 +6629,7 @@
 
             if (oknaMogaBycLukowe)
             {
-                 ksztalty = ksztalty.Where(k => k.Kontur.Count() > 0).ToList();
+                ksztalty = ksztalty.Where(k => k.Kontur.Count() > 0).ToList();
 
                 if (ksztalty == null || !ksztalty.Any())
                     return;
@@ -6804,6 +6813,10 @@
         }
 
         await context.ClosePathAsync();
+
+        await context.SetStrokeStyleAsync("orange");
+        await context.SetLineWidthAsync(12f);
+        await context.StrokeAsync();
     }
 
     private async Task DrawSingleContour(Canvas2DContext context, List<XPoint> outerPoints)
@@ -6869,7 +6882,7 @@
 
         foreach (var gs in _generatorStates)
         {
-            if(gs.Value.Generator == null) continue;
+            if (gs.Value.Generator == null) continue;
 
             var innerPoints = gs.Value.Generator.wewnetrznyKontur;
             // Rozpocznij od pierwszego punktu
@@ -7064,7 +7077,7 @@
         {
             ShapeService._szerokosc = constWlasciwosciOkna.Szerokosc;
             ShapeService._wysokosc = constWlasciwosciOkna.Wysokosc;
-            ShapeService._rysujTylkoKontur =  pokaKonturWewnetrzny;
+            ShapeService._rysujTylkoKontur = pokaKonturWewnetrzny;
             ShapeService._oknaMogaBycLukowe = oknaMogaBycLukowe;
             ShapeService.UpdateShapes(ShapeService.Shapes, constWlasciwosciOkna.Szerokosc, constWlasciwosciOkna.Wysokosc);
             Console.WriteLine("GoCAD Ustawiono zmienne w ShapeService");
