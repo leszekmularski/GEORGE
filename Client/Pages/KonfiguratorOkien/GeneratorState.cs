@@ -64,21 +64,30 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                         if (c.Type == SegmentType.Arc)
                         {
                             // Użyj konstruktora dla łuku
-                            return new ContourSegment(
+                            var segement = new ContourSegment(
                                 new XPoint(c.Start.X, c.Start.Y),
                                 new XPoint(c.End.X, c.End.Y),
                                 c.Center.HasValue ? new XPoint(c.Center.Value.X, c.Center.Value.Y) : (XPoint?)null,
                                 c.Radius,
                                 c.CounterClockwise
                             );
+
+                            segement.Informacja = c.Informacja; // Skopiuj dodatkową informację
+
+                            return segement;
+
                         }
                         else
                         {
                             // Użyj konstruktora dla linii
-                            return new ContourSegment(
+                            var segement = new ContourSegment(
                                 new XPoint(c.Start.X, c.Start.Y),
                                 new XPoint(c.End.X, c.End.Y)
                             );
+
+                            segement.Informacja = c.Informacja; // Skopiuj dodatkową informację
+
+                            return segement;
                         }
                     })
                     .ToList(),
@@ -108,5 +117,6 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                     .ToList() ?? new List<KsztaltElementu>()
             };
         }
+    
     }
 }

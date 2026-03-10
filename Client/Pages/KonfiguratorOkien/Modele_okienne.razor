@@ -6707,7 +6707,24 @@
 
             if (oknaMogaBycLukowe && ksztalt.Kontur != null)
             {
-                await DrawContourSegments(context, ksztalt.Kontur);
+                // Debugowanie konturu przed rysowaniem
+                Console.WriteLine($"\n🔷 Rysowanie konturu - {ksztalt.Kontur.Count} segmentów:");
+                for (int i = 0; i < ksztalt.Kontur.Count; i++)
+                {
+                    var seg = ksztalt.Kontur[i];
+                    string typ = seg.Type == SegmentType.Arc ? "ŁUK" : "LINIA";
+                    Console.WriteLine($"  [{i}] {typ}: ({seg.Start.X},{seg.Start.Y}) → ({seg.End.X},{seg.End.Y})");
+
+                    if (seg.Type == SegmentType.Arc && seg.Center.HasValue)
+                    {
+                        Console.WriteLine($"       środek=({seg.Center.Value.X},{seg.Center.Value.Y:F1}) R={seg.Radius} kierunek={(seg.CounterClockwise ? "↺" : "↻")}");
+                    }
+                }
+
+                // Rysuj kontur
+                await DrawOuterContourSegments(context, ksztalt.Kontur);
+                //await DrawOuterContourSegments(context, ksztalt.Kontur);
+
             }
             else
             {
@@ -6775,48 +6792,88 @@
         };
     }
 
-    private async Task DrawContourSegments(Canvas2DContext context, List<ContourSegment> kontur)
+    private async Task DrawOuterContourSegments(Canvas2DContext context, List<ContourSegment> kontur)
     {
         if (kontur == null || kontur.Count == 0)
             return;
 
         await context.BeginPathAsync();
 
-        // start w pierwszym punkcie
-        var first = kontur[0].Start;
-        await context.MoveToAsync((float)first.X, (float)first.Y);
+        // Rysuj pierwszy segment
+        var firstSeg = kontur[0];
+        await context.MoveToAsync((float)firstSeg.Start.X, (float)firstSeg.Start.Y);
 
-        foreach (var seg in kontur)
+        if (firstSeg.Type == SegmentType.Line)
         {
-            if (seg == null) continue; //Brak danych
+            await context.LineToAsync((float)firstSeg.End.X, (float)firstSeg.End.Y);
+        }
+        else if (firstSeg.Type == SegmentType.Arc && firstSeg.Center != null)
+        {
+            await RysujLuk(context, firstSeg);
+        }
 
+        // Rysuj pozostałe segmenty
+        for (int i = 1; i < kontur.Count; i++)
+        {
+            var seg = kontur[i];
+            var poprzedni = kontur[i - 1];
+
+            // Sprawdź czy koniec poprzedniego łączy się z początkiem obecnego
+            double odleglosc = Math.Sqrt(
+                Math.Pow(poprzedni.End.X - seg.Start.X, 2) +
+                Math.Pow(poprzedni.End.Y - seg.Start.Y, 2)
+            );
+
+            // Jeśli nie łączą się, przenieś pisak
+            if (odleglosc > 0.1)
+            {
+                await context.MoveToAsync((float)seg.Start.X, (float)seg.Start.Y);
+            }
+
+            // Rysuj segment
             if (seg.Type == SegmentType.Line)
             {
                 await context.LineToAsync((float)seg.End.X, (float)seg.End.Y);
             }
             else if (seg.Type == SegmentType.Arc && seg.Center != null)
             {
-                var c = seg.Center.Value;
-
-                double startAngle = Math.Atan2(seg.Start.Y - c.Y, seg.Start.X - c.X);
-                double endAngle = Math.Atan2(seg.End.Y - c.Y, seg.End.X - c.X);
-
-                await context.ArcAsync(
-                    (float)c.X,
-                    (float)c.Y,
-                    (float)seg.Radius,
-                    (float)startAngle,
-                    (float)endAngle,
-                    !seg.CounterClockwise
-                );
+                await RysujLuk(context, seg);
             }
         }
 
-        await context.ClosePathAsync();
+        // Opcjonalnie: zamknij ścieżkę jeśli to jeden kontur
+        // await context.ClosePathAsync();
 
         await context.SetStrokeStyleAsync("orange");
         await context.SetLineWidthAsync(12f);
         await context.StrokeAsync();
+    }
+
+    private async Task RysujLuk(Canvas2DContext context, ContourSegment seg)
+    {
+        var c = seg.Center.Value;
+
+        double startAngle = Math.Atan2(seg.Start.Y - c.Y, seg.Start.X - c.X);
+        double endAngle = Math.Atan2(seg.End.Y - c.Y, seg.End.X - c.X);
+
+        // Dostosuj kąty do wymagań Canvas
+        if (!seg.CounterClockwise)
+        {
+            while (endAngle < startAngle) endAngle += 2 * Math.PI;
+        }
+        else
+        {
+            while (startAngle < endAngle) startAngle += 2 * Math.PI;
+        }
+
+        await context.ArcAsync(
+            (float)c.X,
+            (float)c.Y,
+            (float)seg.Radius,
+            (float)startAngle,
+            (float)endAngle,
+            !seg.CounterClockwise
+        );
     }
 
     private async Task DrawSingleContour(Canvas2DContext context, List<XPoint> outerPoints)
@@ -6990,9 +7047,9 @@
     {
         foreach (var gs in _generatorStates)
         {
-            if (gs.Value.Generator?.liniaSzkleniaFullKontur != null)
+            if (gs.Value.Generator?.liniaSzkleniaKonturZLukami != null)
             {
-                await DrawContourSegmentsKontur(context, gs.Value.Generator.liniaSzkleniaFullKontur, "Yellow", 3.5f);
+                await DrawContourSegmentsKontur(context, gs.Value.Generator.liniaSzkleniaKonturZLukami, "Yellow", 3.5f);
             }
         }
     }
@@ -7002,9 +7059,9 @@
     {
         foreach (var gs in _generatorStates)
         {
-            if (gs.Value.Generator?.wewnetrznyFullKontur != null)
+            if (gs.Value.Generator?.wewnetrznyKonturZLukami != null)
             {
-                await DrawContourSegmentsKontur(context, gs.Value.Generator.wewnetrznyFullKontur, "Red", 4f);
+                await DrawContourSegmentsKontur(context, gs.Value.Generator.wewnetrznyKonturZLukami, "Red", 4f);
             }
         }
 

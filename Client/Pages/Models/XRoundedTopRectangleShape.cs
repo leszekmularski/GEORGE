@@ -67,30 +67,16 @@ namespace GEORGE.Client.Pages.Models
         // ===========================
         // Oblicz środek łuku i kąty start/end
         // ===========================
-        public (double arcCenterX, double arcCenterY, double startAngle, double endAngle) CalculateArcGeometry()
+        public (double centerX, double centerY, double startAngle, double endAngle) CalculateArcGeometry()
         {
-            double arcStartY = Y + ArcHeight;
-            double arcCenterX = X + Width / 2.0;
-            double halfWidth = Width / 2;
+            double centerX = X + Width / 2;
+            double centerY = Y + ArcHeight; // Środek łuku na wysokości ArcHeight
 
-            double arcCenterY;
-            if (Radius >= halfWidth)
-                arcCenterY = arcStartY + Math.Sqrt(Radius * Radius - halfWidth * halfWidth);
-            else
-                arcCenterY = arcStartY + Radius;
+            // Kąty dla łuku górnego (od prawej do lewej)
+            double startAngle = 0; // Prawa strona (0°)
+            double endAngle = Math.PI; // Lewa strona (180°)
 
-            double dxRight = (X + Width) - arcCenterX;
-            double dyRight = arcStartY - arcCenterY;
-            double startAngle = Math.Atan2(dyRight, dxRight);
-
-            double dxLeft = X - arcCenterX;
-            double dyLeft = arcStartY - arcCenterY;
-            double endAngle = Math.Atan2(dyLeft, dxLeft);
-
-            if (startAngle > endAngle)
-                endAngle += 2 * Math.PI;
-
-            return (arcCenterX, arcCenterY, startAngle, endAngle);
+            return (centerX, centerY, startAngle, endAngle);
         }
 
         // ===========================

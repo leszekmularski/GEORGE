@@ -25,9 +25,9 @@ namespace GEORGE.Client.Pages.Okna
         public List<XPoint> liniaSzkleniaKontur;// przechowuje obliczony kontur linii szklenia (jeśli dotyczy)
         public List<ContourSegment> Kontur { get; set; } = new();
 
-        public List<ContourSegment> wewnetrznyFullKontur; // przechowuje obliczony wewnętrzny kontur po offsetowaniu
+        public List<ContourSegment> wewnetrznyKonturZLukami; // przechowuje obliczony wewnętrzny kontur po offsetowaniu
 
-        public List<ContourSegment> liniaSzkleniaFullKontur;// przechowuje obliczony kontur linii szklenia (jeśli dotyczy)
+        public List<ContourSegment> liniaSzkleniaKonturZLukami;// przechowuje obliczony kontur linii szklenia (jeśli dotyczy)
 
         public List<ShapeRegion> Region { get; set; } = new();
         public string StronaElementu { get; set; } = "";
@@ -96,7 +96,7 @@ namespace GEORGE.Client.Pages.Okna
             var region = regions.FirstOrDefault(r => r.Id == regionId);
 
             List<XPoint> punkty = new List<XPoint>();
-            List<ContourSegment> punktyFull = new List<ContourSegment>();
+            List<ContourSegment> punktyZLukami = new List<ContourSegment>();
 
             if (region == null && !ElementLiniowy)
             {
@@ -106,7 +106,7 @@ namespace GEORGE.Client.Pages.Okna
             else if (region != null && !ElementLiniowy)
             {
                 punkty = region.Wierzcholki;
-                punktyFull = region.Kontur;
+                punktyZLukami = region.Kontur;
             }
             else if (ElementLiniowy)
             {
@@ -115,18 +115,18 @@ namespace GEORGE.Client.Pages.Okna
                 Console.WriteLine($"❌ Region o ID: {regionId} region.Wierzcholki.Count():{region.Wierzcholki.Count()}");
 
                 punkty = region.Wierzcholki;
-                punktyFull = region.Kontur;
+                punktyZLukami = region.Kontur;
             }
 
             Wierzcholki = punkty;
-            Kontur = punktyFull;
+            Kontur = punktyZLukami;
 
             foreach (var x in punkty)
             {
                 Console.WriteLine($"punkty --> x.X: {x.X} / x.Y: {x.Y}");
             }
 
-            foreach (var c in punktyFull)
+            foreach (var c in punktyZLukami)
             {
                 Console.WriteLine($"punktyFull --> c.Start.X: {c.Start.X} / c.Start.Y: {c.Start.Y} / c.End.X: {c.End.X} / c.End.Y: {c.End.Y} / c.Type: {c.Type}");
             }
@@ -158,10 +158,10 @@ namespace GEORGE.Client.Pages.Okna
             // var przeskalowanePunkty = SkalujIPrzesun(punkty, minX, minY, width, height, Szerokosc, Wysokosc);
             var przeskalowanePunkty = new List<XPoint>(punkty); // bez skalowania – prawdziwe dane
                                                                 // Zakładam, że punktyFull to List<ContourSegment>
-            var przeskalowaneFullPunkty = new List<ContourSegment>();
+            var przeskalowanePunktyZLukami = new List<ContourSegment>();
 
             // 1️⃣ Usuń segmenty zerowej długości
-            var bezDuplikatow = punktyFull
+            var bezDuplikatow = punktyZLukami
                 .Where(s => !PointsAreClose(s.Start, s.End))
                 .ToList();
 
@@ -169,13 +169,13 @@ namespace GEORGE.Client.Pages.Okna
             if (bezDuplikatow.Any())
             {
                 var segment = bezDuplikatow[0];
-                przeskalowaneFullPunkty.Add(segment);
+                przeskalowanePunktyZLukami.Add(segment);
                 bezDuplikatow.RemoveAt(0);
 
                 while (bezDuplikatow.Any())
                 {
                     bool found = false;
-                    var last = przeskalowaneFullPunkty.Last();
+                    var last = przeskalowanePunktyZLukami.Last();
 
                     for (int i = 0; i < bezDuplikatow.Count; i++)
                     {
@@ -184,7 +184,7 @@ namespace GEORGE.Client.Pages.Okna
                         // normalne połączenie
                         if (PointsAreClose(last.End, s.Start))
                         {
-                            przeskalowaneFullPunkty.Add(s);
+                            przeskalowanePunktyZLukami.Add(s);
                             bezDuplikatow.RemoveAt(i);
                             found = true;
                             break;
@@ -201,7 +201,7 @@ namespace GEORGE.Client.Pages.Okna
                                 !s.CounterClockwise
                             );
 
-                            przeskalowaneFullPunkty.Add(reversed);
+                            przeskalowanePunktyZLukami.Add(reversed);
                             bezDuplikatow.RemoveAt(i);
                             found = true;
                             break;
@@ -212,7 +212,7 @@ namespace GEORGE.Client.Pages.Okna
                     if (!found)
                     {
                         var next = bezDuplikatow[0];
-                        przeskalowaneFullPunkty.Add(next);
+                        przeskalowanePunktyZLukami.Add(next);
                         bezDuplikatow.RemoveAt(0);
                     }
                 }
@@ -405,7 +405,7 @@ namespace GEORGE.Client.Pages.Okna
 
                 wewnetrznyKontur = przeskalowanePunkty;
 
-                wewnetrznyFullKontur = przeskalowaneFullPunkty;
+                wewnetrznyKonturZLukami = przeskalowanePunktyZLukami;
 
                 punktyRegionuMaster = CalculateOffsetPolygon(punktyRegionuMaster, profileLeft, profileRight, profileTop, profileBottom, false);
 
@@ -421,7 +421,7 @@ namespace GEORGE.Client.Pages.Okna
                 profileLeft, profileRight, profileTop, profileBottom,
                 false);
 
-                wewnetrznyFullKontur = CalculateOffsetPolygonKontur(przeskalowaneFullPunkty,
+                wewnetrznyKonturZLukami = CalculateOffsetPolygonKontur(przeskalowanePunktyZLukami,
                 profileLeft, profileRight, profileTop, profileBottom,
                 false);
 
@@ -451,8 +451,8 @@ namespace GEORGE.Client.Pages.Okna
                  );
 
             var okArc = await GenerateGenericElementsKonturWithJoins(
-                 przeskalowaneFullPunkty,
-                 wewnetrznyFullKontur,
+                 przeskalowanePunktyZLukami,
+                 wewnetrznyKonturZLukami,
                  profileLeft, profileRight, profileTop, profileBottom,
                  region.TypKsztaltu,
                  EdytowanyModel.PolaczenieNaroza,
@@ -1695,7 +1695,29 @@ namespace GEORGE.Client.Pages.Okna
 
                 // Pobierz segmenty z konturów (zachowując informacje o łukach)
                 ContourSegment outerSegment = outerKontur[i];
-                ContourSegment innerSegment = innerKontur[i];
+
+                ContourSegment innerSegment;
+                if (i < innerKontur.Count)
+                {
+                    innerSegment = innerKontur[i];
+                }
+                else
+                {
+                    // Logika awaryjna - utwórz segment bazujący na outerSegment
+                    Console.WriteLine($"ℹ️ Tworzę zastępczy innerSegment dla indeksu {i}");
+                    innerSegment = new ContourSegment(
+                        new XPoint(outerSegment.Start.X, outerSegment.Start.Y),
+                        new XPoint(outerSegment.End.X, outerSegment.End.Y),
+                        outerSegment.Center.HasValue
+                            ? new XPoint(outerSegment.Center.Value.X, outerSegment.Center.Value.Y)
+                            : (XPoint?)null,
+                        outerSegment.Radius,
+                        outerSegment.CounterClockwise
+                    );
+
+                    // Skopiuj informację jeśli istnieje
+                    innerSegment.Informacja = outerSegment.Informacja;
+                }
 
                 // Użyj punktów z segmentów
                 XPoint outerStart = outerSegment.Start;

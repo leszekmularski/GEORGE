@@ -81,6 +81,8 @@ namespace GEORGE.Client.Pages.Utils
 
                 if (pts == null) continue;
 
+                //------------------------------
+
                 string ramaInfo = rama ? "kontur ramowy" : "kontur skrzydłowy";
 
                 var initial = new ShapeRegion
@@ -99,20 +101,22 @@ namespace GEORGE.Client.Pages.Utils
                             // środek okręgu
                             var center = new XPoint(circ.X, circ.Y);
 
-                            // dzielimy okrąg na pół: góra / dół
-                            bool isTopArc = p.Y <= circ.Y && next.Y <= circ.Y;
+                            // Oblicz kąty dla segmentu
+                            double startAngle = Math.Atan2(p.Y - center.Y, p.X - center.X);
+                            double endAngle = Math.Atan2(next.Y - center.Y, next.X - center.X);
+
+                            // Określ kierunek (zgodnie z ruchem wskazówek zegara)
+                            bool counterClockwise = false;
 
                             var segment = new ContourSegment(
                                 p,
                                 next,
                                 center,
                                 circ.Radius,
-                                false
+                                counterClockwise
                             );
 
-                            // Dodanie informacji o segmencie
                             segment.Informacja = ramaInfo;
-
                             return segment;
                         }
 
@@ -122,26 +126,41 @@ namespace GEORGE.Client.Pages.Utils
                         else if (shape is XRoundedTopRectangleShape rtr)
                         {
                             double arcStartY = rtr.Y + rtr.ArcHeight;
+                            var (arcCenterX, arcCenterY, startAngle, endAngle) = rtr.CalculateArcGeometry();
+                            var arcCenter = new XPoint(arcCenterX, arcCenterY);
 
-                            if (p.Y <= arcStartY && next.Y <= arcStartY)
+                            // Sprawdź czy punkt jest na łuku (odległość od środka ≈ promień)
+                            double d1 = Distance(p, arcCenter);
+                            double d2 = Distance(next, arcCenter);
+
+                            bool isArcSegment = Math.Abs(d1 - rtr.Radius) < 0.5 && Math.Abs(d2 - rtr.Radius) < 0.5;
+
+                            if (isArcSegment)
                             {
-                                var (arcCenterX, arcCenterY, _, _) = rtr.CalculateArcGeometry();
+                                // Określ kierunek łuku - dla górnego łuku od prawej do lewej
+                                // to jest przeciwnie do ruchu wskazówek zegara
+                                bool counterClockwise = true; // Dla górnego łuku
 
-                                var segment = new ContourSegment(
-                                    p,
-                                    next,
-                                    new XPoint(arcCenterX, arcCenterY),
-                                    rtr.Radius,
-                                    false
-                                );
+                                // Sprawdź czy to łuk (oba punkty mają Y mniejsze lub równe arcStartY)
+                                if (p.Y <= arcStartY && next.Y <= arcStartY)
+                                {
+                                    var segment = new ContourSegment(
+                                        p,
+                                        next,
+                                        arcCenter,
+                                        rtr.Radius,
+                                        counterClockwise
+                                    );
 
-                                // Dodanie informacji o segmencie
-                                segment.Informacja = ramaInfo;
-
-                                return segment;
+                                    segment.Informacja = ramaInfo;
+                                    return segment;
+                                }
                             }
 
-                            return new ContourSegment(p, next);
+                            // Dla linii pionowych i poziomych
+                            var lineSegment = new ContourSegment(p, next);
+                            lineSegment.Informacja = ramaInfo;
+                            return lineSegment;
                         }
 
                         // =========================
@@ -151,37 +170,40 @@ namespace GEORGE.Client.Pages.Utils
                         {
                             double r = rr.Radius;
 
-                            var centers = new List<XPoint>
-                            {
-                                new XPoint(rr.X + r, rr.Y + r),                         // TL
-                                new XPoint(rr.X + rr.Width - r, rr.Y + r),              // TR
-                                new XPoint(rr.X + rr.Width - r, rr.Y + rr.Height - r),  // BR
-                                new XPoint(rr.X + r, rr.Y + rr.Height - r)              // BL
-                            };
+                            var centers = new List<(XPoint Center, string Corner)>
+                    {
+                        (new XPoint(rr.X + r, rr.Y + r), "TL"),                         // Top-Left
+                        (new XPoint(rr.X + rr.Width - r, rr.Y + r), "TR"),              // Top-Right
+                        (new XPoint(rr.X + rr.Width - r, rr.Y + rr.Height - r), "BR"),  // Bottom-Right
+                        (new XPoint(rr.X + r, rr.Y + rr.Height - r), "BL")              // Bottom-Left
+                    };
 
-                            foreach (var c in centers)
+                            foreach (var (center, corner) in centers)
                             {
-                                double d1 = Distance(p, c);
-                                double d2 = Distance(next, c);
+                                double d1 = Distance(p, center);
+                                double d2 = Distance(next, center);
 
                                 if (Math.Abs(d1 - r) < 0.5 && Math.Abs(d2 - r) < 0.5)
                                 {
+                                    // Określ kierunek łuku na podstawie narożnika
+                                    bool counterClockwise = corner == "TL" || corner == "BR";
+
                                     var segment = new ContourSegment(
                                         p,
                                         next,
-                                        c,
+                                        center,
                                         r,
-                                        false
+                                        counterClockwise
                                     );
 
-                                    // Dodanie informacji o segmencie
                                     segment.Informacja = ramaInfo;
-
                                     return segment;
                                 }
                             }
 
-                            return new ContourSegment(p, next);
+                            var lineSeg = new ContourSegment(p, next);
+                            lineSeg.Informacja = ramaInfo;
+                            return lineSeg;
                         }
 
                         // =========================
@@ -197,28 +219,30 @@ namespace GEORGE.Client.Pages.Utils
                             double d1 = Distance(p, new XPoint(centerX, centerY));
                             double d2 = Distance(next, new XPoint(centerX, centerY));
 
-                            bool isLeftArc =
-                                Math.Abs(d1 - r) < 0.5 &&
-                                Math.Abs(d2 - r) < 0.5;
+                            bool isLeftArc = Math.Abs(d1 - r) < 0.5 && Math.Abs(d2 - r) < 0.5;
 
                             if (isLeftArc)
                             {
+                                // Dla lewego boku - kierunek zależy od tego, czy idziemy w górę czy w dół
+                                bool counterClockwise = p.Y < next.Y;
+
                                 var segment = new ContourSegment(
                                     p,
                                     next,
                                     new XPoint(centerX, centerY),
                                     r,
-                                    false
+                                    counterClockwise
                                 );
 
-                                // Dodanie informacji o segmencie
                                 segment.Informacja = ramaInfo;
-
                                 return segment;
                             }
 
-                            return new ContourSegment(p, next);
+                            var lineSegLeft = new ContourSegment(p, next);
+                            lineSegLeft.Informacja = ramaInfo;
+                            return lineSegLeft;
                         }
+
                         // =========================
                         // ZAOKRĄGLONY PRAWY BOK
                         // =========================
@@ -232,27 +256,28 @@ namespace GEORGE.Client.Pages.Utils
                             double d1 = Distance(p, new XPoint(centerX, centerY));
                             double d2 = Distance(next, new XPoint(centerX, centerY));
 
-                            bool isRightArc =
-                                Math.Abs(d1 - r) < 0.5 &&
-                                Math.Abs(d2 - r) < 0.5;
+                            bool isRightArc = Math.Abs(d1 - r) < 0.5 && Math.Abs(d2 - r) < 0.5;
 
                             if (isRightArc)
                             {
+                                // Dla prawego boku - kierunek przeciwny niż dla lewego
+                                bool counterClockwise = p.Y > next.Y;
+
                                 var segment = new ContourSegment(
                                     p,
                                     next,
                                     new XPoint(centerX, centerY),
                                     r,
-                                    false
+                                    counterClockwise
                                 );
 
-                                // Dodanie informacji o segmencie
                                 segment.Informacja = ramaInfo;
-
                                 return segment;
                             }
 
-                            return new ContourSegment(p, next);
+                            var lineSegRight = new ContourSegment(p, next);
+                            lineSegRight.Informacja = ramaInfo;
+                            return lineSegRight;
                         }
 
                         // =========================
@@ -261,9 +286,7 @@ namespace GEORGE.Client.Pages.Utils
                         else
                         {
                             var segment = new ContourSegment(p, next);
-                            // Dodanie informacji o segmencie
                             segment.Informacja = ramaInfo;
-
                             return segment;
                         }
 
@@ -279,11 +302,9 @@ namespace GEORGE.Client.Pages.Utils
                 if (rama)
                 {
                     var linieDzielace = shapes
-                    .OfType<XLineShape>()
-                    .Where(l => l.DualRama)
-                    .ToList();
-
-                    // initial.Id = "R-" + initial.Id;
+                        .OfType<XLineShape>()
+                        .Where(l => l.DualRama)
+                        .ToList();
 
                     var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace, id, rama);
 
@@ -299,6 +320,11 @@ namespace GEORGE.Client.Pages.Utils
                             .Select(g => g.First())
                             .ToList();
 
+                        // USUŃ SEGMENTY O ZEROWEJ DŁUGOŚCI Z KONTURU
+                        r.Kontur = r.Kontur
+                            .Where(s => !CzySegmentZerowejDlugosci(s))
+                            .ToList();
+
                         // Przetwarzanie konturu - usuwanie duplikatów i dodawanie informacji
                         var unikalneSegmenty = r.Kontur
                             .GroupBy(s => new
@@ -306,56 +332,51 @@ namespace GEORGE.Client.Pages.Utils
                                 StartX = Math.Round(s.Start.X, 2),
                                 StartY = Math.Round(s.Start.Y, 2),
                                 EndX = Math.Round(s.End.X, 2),
-                                EndY = Math.Round(s.End.Y, 2)
+                                EndY = Math.Round(s.End.Y, 2),
+                                CenterX = s.Center.HasValue ? Math.Round(s.Center.Value.X, 2) : 0,
+                                CenterY = s.Center.HasValue ? Math.Round(s.Center.Value.Y, 2) : 0,
+                                Radius = Math.Round(s.Radius, 2),
+                                CounterClockwise = s.CounterClockwise
                             })
-                            .Select(g => g.ToList())  // Najpierw grupa jako lista
+                            .Select(g => g.First())  // Bierzemy pierwszy segment z grupy
                             .ToList();
 
                         var nowyKontur = new List<ContourSegment>();
 
-                        foreach (var grupa in unikalneSegmenty)
+                        foreach (var segment in unikalneSegmenty)
                         {
-                            // Bierzemy pierwszy segment z grupy jako wzór
-                            var pierwszySegment = grupa.First();
-
-                            // Tworzymy nowy segment na podstawie pierwszego
                             ContourSegment nowySegment;
 
-                            if (pierwszySegment.Type == SegmentType.Arc)
+                            if (segment.Type == SegmentType.Arc)
                             {
                                 nowySegment = new ContourSegment(
-                                    pierwszySegment.Start,
-                                    pierwszySegment.End,
-                                    pierwszySegment.Center,
-                                    pierwszySegment.Radius,
-                                    pierwszySegment.CounterClockwise
+                                    segment.Start,
+                                    segment.End,
+                                    segment.Center,
+                                    segment.Radius,
+                                    segment.CounterClockwise
                                 );
                             }
                             else
                             {
                                 nowySegment = new ContourSegment(
-                                    pierwszySegment.Start,
-                                    pierwszySegment.End
+                                    segment.Start,
+                                    segment.End
                                 );
                             }
 
-                            // Dodajemy informację o duplikatach
-                            if (grupa.Count > 1)
-                            {
-                                nowySegment.Informacja = ramaInfo;
-                            }
-                            else
-                            {
-                                // Zachowujemy oryginalną informację lub dodajemy domyślną
-                                nowySegment.Informacja = ramaInfo;
-                            }
-
+                            nowySegment.Informacja = ramaInfo;
                             nowyKontur.Add(nowySegment);
                         }
 
                         r.Kontur = nowyKontur;
-     
-                    r.RozpoznajTyp(r.TypKsztaltu);
+
+                        // USUŃ SEGMENTY O ZEROWEJ DŁUGOŚCI PONOWNIE (po ewentualnych przekształceniach)
+                        r.Kontur = r.Kontur
+                            .Where(s => !CzySegmentZerowejDlugosci(s))
+                            .ToList();
+
+                        r.RozpoznajTyp(r.TypKsztaltu);
 
                         Console.WriteLine($"🔹 Region id: {r.Id} po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - RAMA");
 
@@ -381,8 +402,6 @@ namespace GEORGE.Client.Pages.Utils
                         }
 
                         r.Id = id + "|" + idCounter++;
-
-                        // **UWAGA**: NIE NADPISUJEMY Id — zachowujemy oryginalne Id
                     }
 
                     regions.AddRange(podzielone);
@@ -393,9 +412,7 @@ namespace GEORGE.Client.Pages.Utils
                         .OfType<XLineShape>()
                         .ToList();
 
-                    //initial.Id = initial.Id;
                     Console.WriteLine($"🔲 Generowanie regionów bez ramy dla shape id: {initial.Id} id: {id}");
-                    //var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace, id, rama);
                     var podzielone = PodzielRegionRekurencyjnieDeterministycznie(initial, linieDzielace, id, rama);
 
                     Console.WriteLine($"🔲 Generowanie regionów PodzielRegionRekurencyjnieDeterministycznie podzielone.Count: {podzielone.Count}");
@@ -403,9 +420,14 @@ namespace GEORGE.Client.Pages.Utils
                     foreach (var r in podzielone)
                     {
                         r.Wierzcholki = r.Wierzcholki
-                       .GroupBy(p => new { X = Math.Round(p.X, 2), Y = Math.Round(p.Y, 2) })
-                       .Select(g => g.First())
-                       .ToList();
+                            .GroupBy(p => new { X = Math.Round(p.X, 2), Y = Math.Round(p.Y, 2) })
+                            .Select(g => g.First())
+                            .ToList();
+
+                        // USUŃ SEGMENTY O ZEROWEJ DŁUGOŚCI Z KONTURU
+                        r.Kontur = r.Kontur
+                            .Where(s => !CzySegmentZerowejDlugosci(s))
+                            .ToList();
 
                         r.Kontur = r.Kontur
                             .GroupBy(s => new
@@ -413,9 +435,33 @@ namespace GEORGE.Client.Pages.Utils
                                 StartX = Math.Round(s.Start.X, 2),
                                 StartY = Math.Round(s.Start.Y, 2),
                                 EndX = Math.Round(s.End.X, 2),
-                                EndY = Math.Round(s.End.Y, 2)
+                                EndY = Math.Round(s.End.Y, 2),
+                                CenterX = s.Center.HasValue ? Math.Round(s.Center.Value.X, 2) : 0,
+                                CenterY = s.Center.HasValue ? Math.Round(s.Center.Value.Y, 2) : 0,
+                                Radius = Math.Round(s.Radius, 2),
+                                CounterClockwise = s.CounterClockwise
                             })
-                            .Select(g => g.First())
+                            .Select(g => {
+                                var originalSegment = g.First();
+
+                                var segment = new ContourSegment(
+                                    new XPoint(originalSegment.Start.X, originalSegment.Start.Y),
+                                    new XPoint(originalSegment.End.X, originalSegment.End.Y),
+                                    originalSegment.Center.HasValue
+                                        ? new XPoint(originalSegment.Center.Value.X, originalSegment.Center.Value.Y)
+                                        : (XPoint?)null,
+                                    originalSegment.Radius,
+                                    originalSegment.CounterClockwise
+                                );
+
+                                segment.Informacja = originalSegment.Informacja;
+                                return segment;
+                            })
+                            .ToList();
+
+                        // USUŃ SEGMENTY O ZEROWEJ DŁUGOŚCI PONOWNIE
+                        r.Kontur = r.Kontur
+                            .Where(s => !CzySegmentZerowejDlugosci(s))
                             .ToList();
 
                         r.RozpoznajTyp(r.TypKsztaltu);
@@ -442,18 +488,40 @@ namespace GEORGE.Client.Pages.Utils
                                 r.TypKsztaltu = "prostokąt";
                             }
                         }
-
-                        // **UWAGA**: NIE NADPISUJEMY Id — zachowujemy oryginalne Id
                     }
 
                     regions.AddRange(podzielone);
                 }
-
             }
 
             await Task.Delay(1);
-
             return regions;
+        }
+
+        // Dodaj tę funkcję pomocniczą na końcu klasy
+        private static bool CzySegmentZerowejDlugosci(ContourSegment segment)
+        {
+            if (segment.Type == SegmentType.Line)
+            {
+                double dx = segment.End.X - segment.Start.X;
+                double dy = segment.End.Y - segment.Start.Y;
+                return Math.Sqrt(dx * dx + dy * dy) < 0.01;
+            }
+            else // Arc
+            {
+                if (!segment.Center.HasValue) return true;
+
+                double startAngle = Math.Atan2(segment.Start.Y - segment.Center.Value.Y,
+                                              segment.Start.X - segment.Center.Value.X);
+                double endAngle = Math.Atan2(segment.End.Y - segment.Center.Value.Y,
+                                            segment.End.X - segment.Center.Value.X);
+
+                double angleDiff = Math.Abs(endAngle - startAngle);
+                if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
+
+                double arcLength = segment.Radius * angleDiff;
+                return arcLength < 0.01;
+            }
         }
         static double Distance(XPoint a, XPoint b)
         {
@@ -519,7 +587,9 @@ namespace GEORGE.Client.Pages.Utils
 
                         if (s.Type == SegmentType.Line)
                         {
-                            return new ContourSegment(start, end);
+                            var segment = new ContourSegment(start, end);
+                            segment.Informacja = s.Informacja; // zachowaj informację o duplikacie
+                            return segment;
                         }
                         else // łuk
                         {
@@ -532,7 +602,9 @@ namespace GEORGE.Client.Pages.Utils
                                 );
                             }
 
-                            return new ContourSegment(start, end, center, s.Radius, s.CounterClockwise);
+                            var segment = new ContourSegment(start, end, center, s.Radius, s.CounterClockwise);
+                            segment.Informacja = s.Informacja; // zachowaj informację o duplikacie
+                            return segment;
                         }
                     })
                     .ToList();
@@ -595,7 +667,9 @@ namespace GEORGE.Client.Pages.Utils
 
                         if (s.Type == SegmentType.Line)
                         {
-                            return new ContourSegment(start, end);
+                            var segent = new ContourSegment(start, end);
+                            segent.Informacja = s.Informacja; // zachowaj informację o duplikacie
+                            return segent;
                         }
                         else // łuk
                         {
@@ -608,7 +682,9 @@ namespace GEORGE.Client.Pages.Utils
                                 );
                             }
 
-                            return new ContourSegment(start, end, center, s.Radius, s.CounterClockwise);
+                            var segent = new ContourSegment(start, end, center, s.Radius, s.CounterClockwise);
+                            segent.Informacja = s.Informacja; // zachowaj informację o duplikacie
+                            return segent;
                         }
                     })
                     .ToList();

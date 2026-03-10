@@ -78,20 +78,31 @@ namespace GEORGE.Client.Pages.Okna
                 IdRegion = this.IdRegion,
                 TypKsztaltu = this.TypKsztaltu,
                 Wierzcholki = this.Wierzcholki.Select(p => new XPoint(p.X, p.Y)).ToList(),
-                Kontur = this.Kontur.Select(s =>
-                    s.Center.HasValue
-                    ? new ContourSegment(
-                        s.Start.Clone(),
-                        s.End.Clone(),
-                        s.Center.Value.Clone(),
-                        s.Radius,
-                        s.CounterClockwise
-                      )
-                    : new ContourSegment(
-                        s.Start.Clone(),
-                        s.End.Clone()
-                      )
-                ).ToList(),
+
+                Kontur = this.Kontur.Select(s => {
+                    ContourSegment nowy;
+                    if (s.Center.HasValue)
+                    {
+                        nowy = new ContourSegment(
+                            s.Start.Clone(),
+                            s.End.Clone(),
+                            s.Center.Value.Clone(),
+                            s.Radius,
+                            s.CounterClockwise
+                        );
+                    }
+                    else
+                    {
+                        nowy = new ContourSegment(
+                            s.Start.Clone(),
+                            s.End.Clone()
+                        );
+                    }
+
+                    nowy.Informacja = s.Informacja;
+
+                    return nowy;
+                }).ToList(),
                 WypelnienieWewnetrzne = this.WypelnienieWewnetrzne,
                 WypelnienieZewnetrzne = this.WypelnienieZewnetrzne,
                 GruboscObramowania = this.GruboscObramowania,
