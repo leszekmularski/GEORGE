@@ -294,7 +294,7 @@
                 {
                     <div>
                         <Divider></Divider>
-                        <Button Type="@ButtonType.Primary" Style="width:99%" Disabled="@isNotDisabled" OnClick="SaveAll">Zapisz wyszystkie zapisane z poniższej tabeli</Button>
+                        <Button Type="@ButtonType.Primary" Style="width:99%" Disabled="@isNotDisabled" OnClick="SaveAll">Zapisz wyszystkie szyby wyszukane z poniższej tabeli</Button>
                     </div>
 
                     <div style="overflow: auto; width: 100%; height: 200px">
@@ -1054,6 +1054,26 @@
 
                 zestawienie = PdfDataParserSz.ParsePdfDataSzyby(pdfContent);
 
+                if (zestawienie != null)
+                {
+                    _notice.Success(new()
+                    {
+                        Message = $"Dane zostały zaimportowane z PDF. Ilość pozycji: {zestawienie.ListaSzyb.Count()}",
+                        Description = "Uwaga!!!",
+                        Placement = NotificationPlacement.BottomLeft
+                    });
+                }
+                else
+                {
+                    await _notice.Warning(new()
+                    {
+                        Message = "Nie udało się zaimportować danych z PDF",
+                        Description = "Uwaga!!!",
+                        Placement = NotificationPlacement.BottomLeft
+                    });
+                }
+
+
                 StateHasChanged();
 
             }
@@ -1095,36 +1115,47 @@
 
     private async Task SaveAll()
     {
+        _message.Info("Trwa zapisywanie danych...");
+
         szybyall = new List<SzybyDoZlecen>();
 
-        if (zestawienie == null) return;
+        if (zestawienie == null) 
+        {
+         await _notice.Error(new()
+                {
+                    Message = "Brak danych do zapisania",
+                    Description = "Uwaga!!!",
+                    Placement = NotificationPlacement.BottomLeft
+            });
+            return;
+         }
 
-        @foreach (var item in zestawienie.ListaSzyb)
+        foreach (var item in zestawienie.ListaSzyb)
         {
             float numSzerokosc;
+            float numWysokosc;
+            int numIlosc;
 
-            if (float.TryParse(item.Szerokosc, out numSzerokosc))
+            var szyby = new SzybyDoZlecen
             {
-                var szyby = new SzybyDoZlecen
-                    {
-                        RowIdZlecenia = RowIdZlecenia,
-                        Szerokosc = string.IsNullOrEmpty(item.Szerokosc) ? 0 : numSzerokosc,
-                        Wysokosc = string.IsNullOrEmpty(item.Wysokosc) ? 0 : float.Parse(item.Wysokosc),
-                        RodzajSzyby = item.RodzajSzyby,
-                        RodzajRamki = item.RodzajRamki,
-                        Uwagi = $"Dane zaimortowano w {DateTime.Now} dniu z PDF - oraz nadano datę zamówienia",
-                        IloscSztuk = string.IsNullOrEmpty(item.Ilosc) ? 0 : int.Parse(item.Ilosc),
-                        DataZamowienia = isCheckedZamAll ? DateTime.Now : DateTime.MinValue,
-                        DataRealizacji = isCheckedZamAll ? DateTime.Now.AddDays(14) : DateTime.MinValue,
-                        DataZapisu = DateTime.Now,
-                        KtoZapisal = user,
-                        CzyZamowiono = isCheckedZamAll,
-                    };
+                RowIdZlecenia = RowIdZlecenia,
+                Szerokosc = float.TryParse(item.Szerokosc, out numSzerokosc) ? numSzerokosc : 0,
+                Wysokosc = float.TryParse(item.Wysokosc, out numWysokosc) ? numWysokosc : 0,
+                RodzajSzyby = item.RodzajSzyby ?? "BRAK DANYCH",
+                RodzajRamki = item.RodzajRamki ?? "BRAK DANYCH",
+                Uwagi = $"Dane zaimortowano w {DateTime.Now} dniu z PDF - oraz nadano datę zamówienia",
+                IloscSztuk = int.TryParse(item.Ilosc, out numIlosc) ? numIlosc : 0,
+                DataZamowienia = isCheckedZamAll ? DateTime.Now : DateTime.MinValue,
+                DataRealizacji = isCheckedZamAll ? DateTime.Now.AddDays(14) : DateTime.MinValue,
+                DataZapisu = DateTime.Now,
+                KtoZapisal = user ?? "SYSTEM",
+                CzyZamowiono = isCheckedZamAll,
+            };
 
-                szybyall.Add(szyby);
-            }
-
+            szybyall.Add(szyby);
         }
+
+        Console.WriteLine($"Przygotowano do zapisu {szybyall.Count} pozycji.");
 
         try
         {
@@ -1144,12 +1175,24 @@
             {
                 // Obsłuż błąd
                 Console.WriteLine("Wystąpił błąd podczas zapisywania danych.");
+                await _notice.Error(new()
+                    {
+                        Message = "Błąd podczas zapisywania danych",
+                        Description = $"Status Code: {response.StatusCode}, Reason: {response.ReasonPhrase}",
+                        Placement = NotificationPlacement.BottomLeft
+                });
             }
         }
         catch (Exception ex)
         {
             // Obsłuż wyjątek
             Console.WriteLine($"Wystąpił błąd: {ex.Message}");
+            await _notice.Error(new()
+                {
+                    Message = "Wystąpił błąd podczas zapisywania danych",
+                    Description = ex.Message,
+                    Placement = NotificationPlacement.BottomLeft
+            });
         }
     }
 

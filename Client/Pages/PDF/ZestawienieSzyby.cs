@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DocumentFormat.OpenXml.Drawing.Charts;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
@@ -58,7 +59,7 @@ namespace GEORGE.Client.Pages.PDF
                             Ilosc = items[2], //items[3],
                             RodzajSzyby = string.Join(" ", items.Skip(3).Take(items.Length - 4)), // Łączenie elementów rodzaju szyby
                             Powierzchnia = items.Length >= 8 ? items[items.Length - 1] : "0", // Powierzchnia, jeśli dostępna
-                            RodzajRamki = line, // Ramka, jeśli dostępna
+                            RodzajRamki = line.ToUpper().Replace("BIA��A", "BIAŁA"), // Wszystko po powierzchni (ramka), // Ramka, jeśli dostępna
                             Uwagi = items.Length >= 9 ? items.Last() : "" // Uwagi, jeśli dostępne
                         };
 
