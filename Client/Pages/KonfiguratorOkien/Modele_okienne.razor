@@ -3073,10 +3073,12 @@
                 if (region.Wierzcholki != null && region.Wierzcholki.Any())
                 {
                     var nowe = region.Wierzcholki.Select(p => new XPoint(p.X, p.Y)).ToList();
+                    var nowyKontur = region.Kontur.Select(p => new ContourSegment(p.Start, p.End)).ToList();
 
                     genState.Value.Wierzcholki = nowe;
                     genState.Value.WierzcholkiWartosciNominalne = nowe;
                     genState.Value.StaryRegionOrigin = region.Wierzcholki.First();
+                    genState.Value.Kontur = nowyKontur;
 
                     Console.WriteLine($"📐 Nowe wierzchołki dla cleanId: {cleanId} TypKsztaltu: {region.TypKsztaltu} --> {region.Wierzcholki.Max(x => x.X)}x{region.Wierzcholki.Max(x => x.Y)}");
                 }
@@ -3791,7 +3793,7 @@
             RowIdSystemu = Guid.Parse(SelectedSystemId),
             RowIdModelu = Guid.TryParse(SelectedRowIdType, out var rowIdModelu) ? rowIdModelu : (Guid?)null,
             MVCKonfModelu = generator.MVCKonfModelu,
-            Kontur = generator.Kontur,
+            Kontur = generator.zewnetrznyKonturZLukami,
             WybranyModel = WybranyModel,
             WybranyKsztalt = WybranyKsztalt,
             IdRegionWarstwaNizej = generator.IdRegionuPonizej,
@@ -7074,9 +7076,9 @@
     {
         foreach (var gs in _generatorStates)
         {
-            if (gs.Value.Generator?.Kontur != null)
+            if (gs.Value.Generator?.zewnetrznyKonturZLukami != null)
             {
-                await DrawContourSegmentsKontur(context, gs.Value.Generator.Kontur, "Blue", 2f);
+                await DrawContourSegmentsKontur(context, gs.Value.Generator.zewnetrznyKonturZLukami, "Blue", 2f);
             }
         }
     }

@@ -23,7 +23,7 @@ namespace GEORGE.Client.Pages.Okna
         public List<XPoint> wewnetrznyKontur; // przechowuje obliczony wewnętrzny kontur po offsetowaniu
 
         public List<XPoint> liniaSzkleniaKontur;// przechowuje obliczony kontur linii szklenia (jeśli dotyczy)
-        public List<ContourSegment> Kontur { get; set; } = new();
+        public List<ContourSegment> zewnetrznyKonturZLukami { get; set; } = new();
 
         public List<ContourSegment> wewnetrznyKonturZLukami; // przechowuje obliczony wewnętrzny kontur po offsetowaniu
 
@@ -119,7 +119,7 @@ namespace GEORGE.Client.Pages.Okna
             }
 
             Wierzcholki = punkty;
-            Kontur = punktyZLukami;
+            zewnetrznyKonturZLukami = punktyZLukami;
 
             foreach (var x in punkty)
             {
@@ -267,7 +267,7 @@ namespace GEORGE.Client.Pages.Okna
                 .SelectMany(l => l.Points)
                 .ToList() ?? new List<XPoint>();
 
-                Kontur = region.LinieDzielace?
+                zewnetrznyKonturZLukami = region.LinieDzielace?
                     .SelectMany(l => l.ContourSegments)
                     .ToList() ?? new List<ContourSegment>();
 
