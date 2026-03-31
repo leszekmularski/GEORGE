@@ -493,8 +493,10 @@
 
         </Sider>
         <hr />
-        <InputCheckbox @bind-Value="pokaKonturWewnetrzny" @onclick="() => ZmienWymiaryOkna()" /> <label>Pokaż kontur wewnętrzny (wyłącz wypełnienie)</label>
+        <InputCheckbox @bind-Value="pokaKonturWewnetrzny" @onclick="() => ZmienWymiaryOkna()" /> <label>Pokaż kontury zewnętrzny i wewnętrzny (wyłącz wypełnienie tylko okna nie łukowe)</label>
         <InputCheckbox @bind-Value="oknaMogaBycLukowe" @onclick="() => ZmienWymiaryOkna()" /> <label>Okno może być wykonane z elementów łukowych</label>
+
+        <InputCheckbox @bind-Value="boolNieGenerujPojedynczych" @onclick="() => ZmienWymiaryOkna()" /> <label>Wyłącz generowanie pojedynczych elementów</label>
 
     </Panel>
     <Panel Header="Materiały" Key="3" class="scrollable-panel">
@@ -1341,6 +1343,8 @@
     private bool pokaKonturWewnetrzny = false;
 
     private bool oknaMogaBycLukowe = false;
+
+    private bool  boolNieGenerujPojedynczych = false; //Nie rysuj elementów okna!!
 
     protected override async Task OnInitializedAsync()
     {
@@ -2461,6 +2465,7 @@
         {
             // Debug: wypisz wszystkie kształty
             Console.WriteLine($"📋 Lista kształtów ({ShapeService.Shapes.Count}):");
+
             foreach (var s in ShapeService.Shapes)
             {
                 if (s is XLineShape line)
@@ -3375,7 +3380,7 @@
 
         generator.EdytowanyModel = WybranyModel;
         generator.TypKsztaltu = WybranyKsztalt;
-        generator.Wierzcholki = wierzcholki;
+        generator.Wierzcholki = wierzcholki;//Wierzcholki regionu opisanego liniami stycznymi
 
         var regionReferencyjny = _regionsDualRama
             .Concat(_regionsSkrzydlo)
@@ -6725,6 +6730,9 @@
 
                 // Rysuj kontur
                 await DrawOuterContourSegments(context, ksztalt.Kontur);
+                await DrawSingleInnerContourKontur(context);
+
+
                 //await DrawOuterContourSegments(context, ksztalt.Kontur);
 
             }
@@ -6737,15 +6745,12 @@
             if (pokaKonturWewnetrzny && !oknaMogaBycLukowe)
                 await DrawSingleInnerContour(context);
 
-            if (pokaKonturWewnetrzny && oknaMogaBycLukowe)
-                await DrawSingleInnerContourKontur(context);
-
             // Sprawdź, czy _dotNetHelper nie jest null i czy komponent nie został usunięty
             if (_dotNetHelper != null && !_disposed)
             {
                 try
                 {
-                    if (!pokaKonturWewnetrzny)
+                    if (!pokaKonturWewnetrzny && !boolNieGenerujPojedynczych)
                         await JS.InvokeVoidAsync("loadAndDrawTexture",
                             CanvasRef.CanvasReference,
                             textureUrl,
@@ -6796,8 +6801,10 @@
 
     private async Task DrawOuterContourSegments(Canvas2DContext context, List<ContourSegment> kontur)
     {
-        if (kontur == null || kontur.Count == 0)
+        if (kontur == null || kontur.Count == 0 || boolNieGenerujPojedynczych)
             return;
+
+        //Funkcja do rysowania pojedynczych elementów
 
         await context.BeginPathAsync();
 
@@ -6847,7 +6854,7 @@
         // await context.ClosePathAsync();
 
         await context.SetStrokeStyleAsync("orange");
-        await context.SetLineWidthAsync(12f);
+        await context.SetLineWidthAsync(3f);
         await context.StrokeAsync();
     }
 
@@ -6880,7 +6887,7 @@
 
     private async Task DrawSingleContour(Canvas2DContext context, List<XPoint> outerPoints)
     {
-        if (outerPoints == null || outerPoints.Count < 2) return;
+        if (outerPoints == null || outerPoints.Count < 2 || boolNieGenerujPojedynczych) return;
 
         // Rysuj pojedynczy kontur zewnętrzny
         await context.BeginPathAsync();
@@ -7000,50 +7007,72 @@
     {
         if (segments == null || segments.Count == 0) return;
 
+        Console.WriteLine("\n🎨 Rysowanie konturu (jeden ciągły kształt)");
+
         await context.BeginPathAsync();
 
-        // Startujemy od pierwszego punktu konturu
         var firstSeg = segments[0];
         await context.MoveToAsync(firstSeg.Start.X, firstSeg.Start.Y);
+        Console.WriteLine($"MoveTo: ({firstSeg.Start.X:F2}, {firstSeg.Start.Y:F2})");
 
         for (int i = 0; i < segments.Count; i++)
         {
             var seg = segments[i];
 
+            Console.WriteLine($"Segment {i}: {seg.Type}, Start({seg.Start.X:F2},{seg.Start.Y:F2}) -> End({seg.End.X:F2},{seg.End.Y:F2})");
+
             if (seg.Type == SegmentType.Line)
             {
-                // Prosta linia
                 await context.LineToAsync(seg.End.X, seg.End.Y);
             }
             else if (seg.Type == SegmentType.Arc && seg.Center != null)
             {
-                // Wyznaczenie start i end angle względem środka łuku
                 double startAngle = Math.Atan2(seg.Start.Y - seg.Center.Value.Y, seg.Start.X - seg.Center.Value.X);
                 double endAngle = Math.Atan2(seg.End.Y - seg.Center.Value.Y, seg.End.X - seg.Center.Value.X);
 
-                // Dopasowanie kąta dla CounterClockwise
-                if (!seg.CounterClockwise && endAngle < startAngle) endAngle += 2 * Math.PI;
-                if (seg.CounterClockwise && startAngle < endAngle) startAngle += 2 * Math.PI;
+                Console.WriteLine($"  Arc: Center({seg.Center.Value.X:F2},{seg.Center.Value.Y:F2}), R={seg.Radius:F2}, CCW={seg.CounterClockwise}");
+                Console.WriteLine($"  Raw angles: start={startAngle:F4} rad ({startAngle * 180 / Math.PI:F1}°), end={endAngle:F4} rad ({endAngle * 180 / Math.PI:F1}°)");
 
-                // Rysowanie łuku od aktualnego punktu
+                // 🔥 PROSTSZE ROZWIĄZANIE: Zawsze rysujemy jako CW
+                // Obliczamy różnicę kątów
+                double deltaAngle = endAngle - startAngle;
+
+                if (seg.CounterClockwise)
+                {
+                    // Dla CCW, delta powinna być dodatnia
+                    if (deltaAngle < 0) deltaAngle += 2 * Math.PI;
+                }
+                else
+                {
+                    // Dla CW, delta powinna być ujemna
+                    if (deltaAngle > 0) deltaAngle -= 2 * Math.PI;
+                }
+
+                // Używamy tylko CW (flaga = false) i odpowiednio dobranego kąta końcowego
+                double finalEndAngle = startAngle + deltaAngle;
+
+                Console.WriteLine($"  Final: start={startAngle:F4}, end={finalEndAngle:F4}, delta={deltaAngle:F4}");
+                Console.WriteLine($"  Using CW flag (false)");
+
                 await context.ArcAsync(
                     seg.Center.Value.X,
                     seg.Center.Value.Y,
                     seg.Radius,
                     startAngle,
-                    endAngle,
-                    seg.CounterClockwise
+                    finalEndAngle,
+                    false  // ZAWSZE CW
                 );
             }
         }
 
-        // Zamknięcie konturu
-        await context.LineToAsync(firstSeg.Start.X, firstSeg.Start.Y);
-
+        await context.ClosePathAsync();
         await context.SetStrokeStyleAsync(strokeColor);
         await context.SetLineWidthAsync(lineWidth);
         await context.StrokeAsync();
+
+        Console.WriteLine("✅ Kontur narysowany\n");
     }
+
     // Rysowanie konturu szklenia
     private async Task DrawSingleGlassContourKontur(Canvas2DContext context)
     {
@@ -7067,8 +7096,8 @@
             }
         }
 
-        await DrawSingleGlassContourKontur(context);
-        await DrawSingleOuterContourKontur(context);
+    //    await DrawSingleGlassContourKontur(context);
+      //  await DrawSingleOuterContourKontur(context);
     }
 
     // Rysowanie konturu zewnętrznego

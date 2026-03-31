@@ -1529,7 +1529,11 @@ namespace GEORGE.Client.Pages.Okna
                 Console.WriteLine($"🔶🔶🔶🔶🔶🔶🔶🔶 innerKontur {innerKontur.IndexOf(test)} - Typ: {test.Type}, Start: ({test.Start.X:F2}, {test.Start.Y:F2}), End: ({test.End.X:F2}, {test.End.Y:F2})");
                 if (test.Type == SegmentType.Arc)
                 {
-                    Console.WriteLine($"      Łuk - Center: ({test.Center?.X:F2}, {test.Center?.Y:F2}), Radius: {test.Radius:F2}, CounterClockwise: {test.CounterClockwise}");
+                    Console.WriteLine($"🔶🔶🔶🔶🔶🔶🔶🔶 innerKontur {innerKontur.IndexOf(test)}  Łuk - Center: ({test.Center?.X:F2}, {test.Center?.Y:F2}), Radius: {test.Radius:F2}, CounterClockwise: {test.CounterClockwise}");
+                }
+                else
+                {
+                    Console.WriteLine($"🔶🔶🔶🔶🔶🔶🔶🔶 innerKontur {innerKontur.IndexOf(test)} Linia - Start: ({test.Start.X:F2}, {test.Start.Y:F2}), End: ({test.End.X:F2}, {test.End.Y:F2})");
                 }
             }
 
@@ -2075,6 +2079,8 @@ namespace GEORGE.Client.Pages.Okna
                         : (XPoint?)null,
                     originalOuterSegment.Radius,
                     originalOuterSegment.CounterClockwise);
+
+                Console.WriteLine($"   Generowany kontur dla łuków --> originalOuterSegment.Start.X: {originalOuterSegment.Start.X}, originalOuterSegment.Start.Y: {originalOuterSegment.Start.Y}, originalOuterSegment.End.X: {originalOuterSegment.End.X}, originalOuterSegment.End.Y: {originalOuterSegment.End.Y}, originalOuterSegment.Center.Value.X: {originalOuterSegment.Center.Value.X}, originalOuterSegment.Center.Value.Y: {originalOuterSegment.Center.Value.Y}, originalOuterSegment.Radius: {originalOuterSegment.Radius} originalOuterSegment.CounterClockwise:{originalOuterSegment.CounterClockwise})");
 
                 segments.Add(arcSegment);
             }
@@ -2997,101 +3003,269 @@ namespace GEORGE.Client.Pages.Okna
         //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
         //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+
         public List<ContourSegment> CalculateOffsetPolygonKontur(
-            List<ContourSegment> segments,
-            float profileLeft,
-            float profileRight,
-            float profileTop,
-            float profileBottom,
-            bool elementLiniowy)
+    List<ContourSegment> segments,
+    float profileLeft,
+    float profileRight,
+    float profileTop,
+    float profileBottom,
+    bool elementLiniowy)
         {
             if (segments == null || segments.Count == 0)
                 return new List<ContourSegment>();
 
-            var offsetSegments = new List<ContourSegment>();
+            // =====================
+            // 0. OKREŚL ORIENTACJĘ KONTURU
+            // =====================
+            bool isClockwise = IsContourClockwise(segments);
+            Console.WriteLine($"🔄 Orientacja konturu: {(isClockwise ? "Zgodna z ruchem wskazówek (CW)" : "Przeciwna do ruchu wskazówek (CCW)")}");
 
-            for (int i = 0; i < segments.Count; i++)
+            // Dla konturów CCW, offset powinien być w przeciwnym kierunku
+            float directionMultiplier = isClockwise ? 1 : -1;
+
+            var tempSegments = new List<ContourSegment>();
+
+            // =====================
+            // 1. OFFSET BEZ ŁĄCZENIA
+            // =====================
+            foreach (var seg in segments)
             {
-                var seg = segments[i];
+                float dx = (float)(seg.End.X - seg.Start.X);
+                float dy = (float)(seg.End.Y - seg.Start.Y);
+                float length = MathF.Sqrt(dx * dx + dy * dy);
 
-                float dx = (float)seg.End.X - (float)seg.Start.X;
-                float dy = (float)seg.End.Y - (float)seg.Start.Y;
+                if (length < 0.001f) continue; // pomiń zdegenerowane segmenty
 
-                // Kąt segmentu w stopniach
-                float angleDegrees = MathF.Atan2(dy, dx) * 180f / MathF.PI;
+                float angle = MathF.Atan2(dy, dx) * 180f / MathF.PI;
+                string side = StronaOknaHelper.OkreslStrone(angle, 0, null);
 
-                // Strona konturu
-                string side = StronaOknaHelper.OkreslStrone(angleDegrees, i, segments.Select(s => s.Start).ToList());
-
-                // Wartość offsetu dla strony
-                float offsetValue = side switch
+                float offset = side switch
                 {
                     "Góra" => profileTop,
                     "Dół" => profileBottom,
                     "Lewa" => profileLeft,
                     "Prawa" => profileRight,
-                    _ => 0f
+                    _ => 0
                 };
 
-                ContourSegment newSeg = null;
+                // 🔥 ZASTOSUJ KIERUNEK OFFSETU
+                float finalOffset = offset * directionMultiplier;
 
                 if (seg.Type == SegmentType.Line)
                 {
-                    float nx = 0, ny = 0;
+                    // Oblicz wektor normalny (prostopadły do linii)
+                    // Normalizacja: (nx, ny) to wektor jednostkowy prostopadły
+                    float nx = -dy / length;  // normalna w lewo od kierunku
+                    float ny = dx / length;
 
-                    // Jeśli linia jest prawie pionowa
-                    if (MathF.Abs(dx) < 0.001f)
+                    // Dla konturów CW, normalna wskazuje do wewnątrz
+                    // Dla CCW, musimy odwrócić kierunek normalnej
+                    if (!isClockwise)
                     {
-                        nx = offsetValue;  // przesunięcie w X
-                        ny = 0;
-                    }
-                    // Jeśli linia jest prawie pozioma
-                    else if (MathF.Abs(dy) < 0.001f)
-                    {
-                        nx = 0;
-                        ny = offsetValue;  // przesunięcie w Y
-                    }
-                    else
-                    {
-                        // wektor normalny dla skośnej linii
-                        float length = MathF.Sqrt(dx * dx + dy * dy);
-                        nx = -dy / length * offsetValue;
-                        ny = dx / length * offsetValue;
+                        nx = -nx;
+                        ny = -ny;
                     }
 
-                    var startOffset = new XPoint(seg.Start.X + nx, seg.Start.Y + ny);
-                    var endOffset = new XPoint(seg.End.X + nx, seg.End.Y + ny);
+                    var start = new XPoint(seg.Start.X + nx * finalOffset, seg.Start.Y + ny * finalOffset);
+                    var end = new XPoint(seg.End.X + nx * finalOffset, seg.End.Y + ny * finalOffset);
 
-                    newSeg = new ContourSegment(startOffset, endOffset, null, 0, false);
+                    tempSegments.Add(new ContourSegment(start, end));
                 }
                 else if (seg.Type == SegmentType.Arc && seg.Center != null)
                 {
                     var center = seg.Center.Value;
-                    float newRadius = (float)seg.Radius - offsetValue;
 
-                    float sx = (float)seg.Start.X - (float)center.X;
-                    float sy = (float)seg.Start.Y - (float)center.Y;
-                    float lenS = MathF.Sqrt(sx * sx + sy * sy);
-                    sx = sx / lenS * newRadius;
-                    sy = sy / lenS * newRadius;
-                    var startOffset = new XPoint(center.X + sx, center.Y + sy);
+                    // Dla łuku: promień zmniejszamy lub zwiększamy w zależności od orientacji
+                    float newRadius;
 
-                    float ex = (float)seg.End.X - (float)center.X;
-                    float ey = (float)seg.End.Y - (float)center.Y;
-                    float lenE = MathF.Sqrt(ex * ex + ey * ey);
-                    ex = ex / lenE * newRadius;
-                    ey = ey / lenE * newRadius;
-                    var endOffset = new XPoint(center.X + ex, center.Y + ey);
+                    if (isClockwise)
+                    {
+                        // Dla CW: offset do wewnątrz = zmniejsz promień
+                        newRadius = (float)seg.Radius - finalOffset;
+                    }
+                    else
+                    {
+                        // Dla CCW: offset do wewnątrz = zwiększ promień (bo normalna jest odwrócona)
+                        newRadius = (float)seg.Radius + finalOffset;
+                    }
 
-                    newSeg = new ContourSegment(startOffset, endOffset, center, newRadius, seg.CounterClockwise);
+                    // Sprawdź czy promień nie stał się ujemny
+                    if (newRadius < 0.1f)
+                    {
+                        Console.WriteLine($"⚠️ Ostrzeżenie: Promień stał się ujemny ({newRadius:F2}), ustawiam na 0.1");
+                        newRadius = 0.1f;
+                    }
+
+                    // Zachowujemy te same kąty, ale na nowym promieniu
+                    double startAngle = Math.Atan2(seg.Start.Y - center.Y, seg.Start.X - center.X);
+                    double endAngle = Math.Atan2(seg.End.Y - center.Y, seg.End.X - center.X);
+
+                    // Oblicz nowe punkty na okręgu o nowym promieniu
+                    var newStart = new XPoint(
+                        center.X + newRadius * Math.Cos(startAngle),
+                        center.Y + newRadius * Math.Sin(startAngle)
+                    );
+
+                    var newEnd = new XPoint(
+                        center.X + newRadius * Math.Cos(endAngle),
+                        center.Y + newRadius * Math.Sin(endAngle)
+                    );
+
+                    // Zachowaj oryginalny kierunek łuku
+                    tempSegments.Add(new ContourSegment(
+                        newStart,
+                        newEnd,
+                        center,
+                        newRadius,
+                        seg.CounterClockwise
+                    ));
                 }
-
-                if (newSeg != null)
-                    offsetSegments.Add(newSeg);
             }
 
-            return offsetSegments;
+            // =====================
+            // 2. ŁĄCZENIE SEGMENTÓW LINIOWYCH
+            // =====================
+            var result = new List<ContourSegment>();
+
+            for (int i = 0; i < tempSegments.Count; i++)
+            {
+                var current = tempSegments[i];
+                var next = tempSegments[(i + 1) % tempSegments.Count];
+
+                // Sprawdź czy segmenty są ciągłe (z tolerancją)
+                bool isContinuous = Math.Abs(current.End.X - next.Start.X) < 0.01 &&
+                                   Math.Abs(current.End.Y - next.Start.Y) < 0.01;
+
+                if (!isContinuous)
+                {
+                    Console.WriteLine($"⚠️ Brak ciągłości między segmentem {i} a {i + 1}");
+                    Console.WriteLine($"   Koniec: ({current.End.X:F2}, {current.End.Y:F2})");
+                    Console.WriteLine($"   Początek: ({next.Start.X:F2}, {next.Start.Y:F2})");
+                }
+
+                if (current.Type == SegmentType.Line && next.Type == SegmentType.Line)
+                {
+                    var intersection = IntersectLines(current, next);
+
+                    // Sprawdź czy przecięcie jest w granicach segmentów
+                    if (IsPointOnLineSegment(intersection, current.Start, current.End) &&
+                        IsPointOnLineSegment(intersection, next.Start, next.End))
+                    {
+                        result.Add(new ContourSegment(current.Start, intersection));
+                        next.Start = intersection;
+                        Console.WriteLine($"✂️ Przycięto linie do przecięcia: ({intersection.X:F2}, {intersection.Y:F2})");
+                    }
+                    else
+                    {
+                        // Jeśli brak przecięcia, dodaj oryginalny segment
+                        result.Add(current);
+                        Console.WriteLine($"⚠️ Brak przecięcia linii, zachowano oryginał");
+                    }
+                }
+                else
+                {
+                    result.Add(current);
+                }
+            }
+
+            // =====================
+            // 3. WERYFIKACJA KOŃCOWA
+            // =====================
+            Console.WriteLine($"✅ Wygenerowano {result.Count} segmentów offsetowych");
+
+            // Sprawdź czy kontur jest zamknięty
+            if (result.Count > 0)
+            {
+                var first = result[0].Start;
+                var last = result[result.Count - 1].End;
+                bool isClosed = Math.Abs(first.X - last.X) < 0.1 && Math.Abs(first.Y - last.Y) < 0.1;
+                Console.WriteLine($"Kontur zamknięty: {(isClosed ? "✅ TAK" : "❌ NIE")}");
+
+                if (!isClosed)
+                {
+                    Console.WriteLine($"   Pierwszy punkt: ({first.X:F2}, {first.Y:F2})");
+                    Console.WriteLine($"   Ostatni punkt: ({last.X:F2}, {last.Y:F2})");
+                }
+            }
+
+            return result;
         }
+
+        // =====================
+        // FUNKCJE POMOCNICZE
+        // =====================
+
+        /// <summary>
+        /// Określa czy kontur jest zgodny z ruchem wskazówek zegara (CW)
+        /// </summary>
+        private bool IsContourClockwise(List<ContourSegment> segments)
+        {
+            if (segments == null || segments.Count < 3) return true;
+
+            double sum = 0;
+
+            foreach (var seg in segments)
+            {
+                sum += (seg.End.X - seg.Start.X) * (seg.End.Y + seg.Start.Y);
+            }
+
+            // Dodatni wynik = CW, ujemny = CCW
+            bool isClockwise = sum > 0;
+
+            return isClockwise;
+        }
+
+        /// <summary>
+        /// Sprawdza czy punkt leży na odcinku
+        /// </summary>
+        private bool IsPointOnLineSegment(XPoint point, XPoint start, XPoint end, double tolerance = 0.01)
+        {
+            // Sprawdź czy punkt jest w bounding box
+            if (point.X < Math.Min(start.X, end.X) - tolerance || point.X > Math.Max(start.X, end.X) + tolerance)
+                return false;
+            if (point.Y < Math.Min(start.Y, end.Y) - tolerance || point.Y > Math.Max(start.Y, end.Y) + tolerance)
+                return false;
+
+            // Sprawdź czy punkt leży na linii (iloczyn wektorowy = 0)
+            double crossProduct = (point.X - start.X) * (end.Y - start.Y) - (point.Y - start.Y) * (end.X - start.X);
+
+            return Math.Abs(crossProduct) < tolerance;
+        }
+
+        /// <summary>
+        /// Oblicza przecięcie dwóch linii
+        /// </summary>
+        public XPoint IntersectLines(ContourSegment a, ContourSegment b)
+        {
+            double x1 = a.Start.X;
+            double y1 = a.Start.Y;
+            double x2 = a.End.X;
+            double y2 = a.End.Y;
+
+            double x3 = b.Start.X;
+            double y3 = b.Start.Y;
+            double x4 = b.End.X;
+            double y4 = b.End.Y;
+
+            double denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+
+            // równoległe linie → brak przecięcia
+            if (Math.Abs(denom) < 0.0001)
+            {
+                // fallback: zwróć środek między końcami
+                return new XPoint((x2 + x3) / 2, (y2 + y3) / 2);
+            }
+
+            double px = ((x1 * y2 - y1 * x2) * (x3 - x4) -
+                         (x1 - x2) * (x3 * y4 - y3 * x4)) / denom;
+
+            double py = ((x1 * y2 - y1 * x2) * (y3 - y4) -
+                         (y1 - y2) * (x3 * y4 - y3 * x4)) / denom;
+
+            return new XPoint(px, py);
+        }
+
 
         //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
         //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
