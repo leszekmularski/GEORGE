@@ -15,8 +15,8 @@ namespace GEORGE.Client.Pages.Okna
         public string? TypKsztaltu { get; set; }
 
         // Lista wierzcholkow (w kolejnosci zgodnej z ruchem wskazowek zegara)
-        public List<XPoint> Wierzcholki { get; set; } = new();
-        public List<ContourSegment> Kontur { get; set; } = new();
+        public List<XPoint> Wierzcholki { get; set; } = new();//Kształt pojedynczego rysowanego elementu tylko linie
+        public List<ContourSegment> WierzcholkiZLukami { get; set; } = new();//Kształt pojedynczego rysowanego elementu linie oraz łuki
 
         // Styl wypelnienia wewnetrznego (np. kolor lub nazwa tekstury)
         public string WypelnienieWewnetrzne { get; set; } = "#FFFFFF";
@@ -79,7 +79,7 @@ namespace GEORGE.Client.Pages.Okna
                 TypKsztaltu = this.TypKsztaltu,
                 Wierzcholki = this.Wierzcholki.Select(p => new XPoint(p.X, p.Y)).ToList(),
 
-                Kontur = this.Kontur.Select(s => {
+                WierzcholkiZLukami = this.WierzcholkiZLukami.Select(s => {
                     ContourSegment nowy;
                     if (s.Center.HasValue)
                     {

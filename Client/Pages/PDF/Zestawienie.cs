@@ -185,7 +185,7 @@ namespace GEORGE.Client.Pages.PDF
             int roznica = zaokraglonaDlugosc - dlugoscX;
 
             // Dostosowanie w przypadku małej różnicy
-            if (roznica < 80)
+            if (roznica < 20)
             {
                 zaokraglonaDlugosc += dlugoscKrok;
             }
