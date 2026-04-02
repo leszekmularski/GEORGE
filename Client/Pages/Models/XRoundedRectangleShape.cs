@@ -271,16 +271,56 @@ namespace GEORGE.Client.Pages.Models
         {
             var segments = new List<ContourSegment>();
 
-            if (NominalPoints == null || NominalPoints.Count < 4)
-                return segments;
+            double leftX = X;
+            double rightX = X + Width;
+            double topY = Y;
+            double bottomY = Y + Height;
 
-            // Tworzymy segmenty między wszystkimi punktami konturu
-            for (int i = 0; i < NominalPoints.Count; i++)
-            {
-                var start = NominalPoints[i].Clone();
-                var end = NominalPoints[(i + 1) % NominalPoints.Count].Clone(); // zamknięcie konturu
-                segments.Add(new ContourSegment(start, end));
-            }
+            double r = Math.Min(Radius, Math.Min(Width, Height) / 2);
+
+            // Punkty kluczowe
+            var topLeftStart = new XPoint(leftX + r, topY);
+            var topRightStart = new XPoint(rightX - r, topY);
+
+            var rightArcEnd = new XPoint(rightX, topY + r);
+            var leftArcEnd = new XPoint(leftX, topY + r);
+
+            var bottomRight = new XPoint(rightX, bottomY);
+            var bottomLeft = new XPoint(leftX, bottomY);
+
+            // Środki łuków
+            var rightCenter = new XPoint(rightX - r, topY + r);
+            var leftCenter = new XPoint(leftX + r, topY + r);
+
+            // 1. górna linia
+            segments.Add(new ContourSegment(topLeftStart, topRightStart));
+
+            // 2. prawy łuk
+            segments.Add(new ContourSegment(
+                topRightStart,
+                rightArcEnd,
+                rightCenter,
+                r,
+                false // ArcTo -> clockwise
+            ));
+
+            // 3. prawa linia
+            segments.Add(new ContourSegment(rightArcEnd, bottomRight));
+
+            // 4. dół
+            segments.Add(new ContourSegment(bottomRight, bottomLeft));
+
+            // 5. lewa linia
+            segments.Add(new ContourSegment(bottomLeft, leftArcEnd));
+
+            // 6. lewy łuk
+            segments.Add(new ContourSegment(
+                leftArcEnd,
+                topLeftStart,
+                leftCenter,
+                r,
+                false
+            ));
 
             return segments;
         }

@@ -9,6 +9,9 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         public int IdZmiany { get; set; }
         public List<XPoint>? Wierzcholki { get; set; }
         public List<XPoint>? WierzcholkiWartosciNominalne { get; set; }
+        public List<XPoint>? WierzcholkiInner { get; set; }
+        public List<ContourSegment> Kontur { get; set; }
+        public List<ContourSegment> KonturInner { get; set; }
         public MVCKonfModele? MVCKonfModelu { get; set; }
         public KonfModele? WybranyModel { get; set; } 
         public List<DaneKwadratu>? ListaKwadratow { get; set; }
@@ -42,6 +45,9 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             IdZmiany = 0;
             Wierzcholki = new List<XPoint>();
             WierzcholkiWartosciNominalne = new List<XPoint>();
+            WierzcholkiInner = new List<XPoint>();
+            Kontur = new List<ContourSegment>();
+            KonturInner = new List<ContourSegment>();
             MVCKonfModelu = new MVCKonfModele();
             WybranyModel = new KonfModele();
             ListaKwadratow = new List<DaneKwadratu>();

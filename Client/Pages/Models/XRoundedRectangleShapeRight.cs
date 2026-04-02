@@ -273,16 +273,44 @@ namespace GEORGE.Client.Pages.Models
         {
             var segments = new List<ContourSegment>();
 
-            if (NominalPoints == null || NominalPoints.Count < 2)
-                return segments;
+            double leftX = X;
+            double rightX = X + Width;
+            double topY = Y;
+            double bottomY = Y + Height;
 
-            // Tworzymy segmenty między wszystkimi punktami konturu
-            for (int i = 0; i < NominalPoints.Count; i++)
-            {
-                var start = NominalPoints[i].Clone();
-                var end = NominalPoints[(i + 1) % NominalPoints.Count].Clone(); // zamknięcie konturu
-                segments.Add(new ContourSegment(start, end));
-            }
+            double r = Math.Min(Radius, Math.Min(Width, Height) / 2);
+
+            // Punkty charakterystyczne
+            var topLeft = new XPoint(leftX, topY);
+            var topBeforeArc = new XPoint(rightX - r, topY);
+
+            var arcStart = new XPoint(rightX, topY + r); // wejście w łuk
+            var bottomRight = new XPoint(rightX, bottomY);
+            var bottomLeft = new XPoint(leftX, bottomY);
+
+            // Środek łuku
+            var center = new XPoint(rightX - r, topY + r);
+
+            // 1. lewa krawędź (góra → dół)
+            segments.Add(new ContourSegment(topLeft, bottomLeft));
+
+            // 2. dół
+            segments.Add(new ContourSegment(bottomLeft, bottomRight));
+
+            // 3. prawa (do łuku)
+            segments.Add(new ContourSegment(bottomRight, arcStart));
+
+            // 4. łuk (prawy górny)
+            segments.Add(new ContourSegment(
+                arcStart,
+                topBeforeArc,
+                center,
+                r,
+                false // ArcTo = clockwise
+            ));
+
+            // 5. góra
+            segments.Add(new ContourSegment(topBeforeArc, topLeft));
 
             return segments;
         }

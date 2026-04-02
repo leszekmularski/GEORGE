@@ -5,6 +5,7 @@
 @using GEORGE.Shared.ViewModels
 @inject IJSRuntime JSRuntime
 @using Blazor.HighlightJS
+@using System.Text
 
 <!-- Bootstrap Icons -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
@@ -14,6 +15,16 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark-dimmed.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/json.min.js"></script>
+
+<script>
+    function initializeTabs() {
+        // Inicjalizacja wszystkich zakładek Bootstrap
+        var triggerTabList = [].slice.call(document.querySelectorAll('button[data-bs-toggle="tab"]'))
+        triggerTabList.forEach(function (triggerEl) {
+            new bootstrap.Tab(triggerEl);
+        });
+    }
+</script>
 
 <PageTitle>Stany Generatora Okien - GEORGE</PageTitle>
 
@@ -263,8 +274,8 @@
                                             <td>
                                                 @if (entry.Value.WierzcholkiWartosciNominalne != null)
                                                 {
-                                                    <button class="btn btn-sm btn-outline-info" 
-                                                            @onclick="@(() => PokazPunkty(entry.Value.WierzcholkiWartosciNominalne, $"Punkty - Stan #{index}"))"
+                                                    <button class="btn btn-sm btn-outline-info"
+                                                            @onclick="@(() => PokazPunkty(entry.Value.WierzcholkiWartosciNominalne, entry.Value.WierzcholkiInner, entry.Value.Kontur,entry.Value.KonturInner, $"Punkty - Stan #{index}"))"
                                                             title="Pokaż punkty">
                                                         <i class="bi bi-geo-alt"></i> @entry.Value.WierzcholkiWartosciNominalne.Count
                                                     </button>
@@ -313,12 +324,13 @@
         }
     }
 
+    
     <!-- Modal z punktami -->
     @if (punktyWidoczne && wybranePunkty != null)
     {
         <div class="modal-backdrop fade show" style="opacity: 0.5;" @onclick="ZamknijPunkty"></div>
         <div class="modal fade show d-block" tabindex="-1" @onclick="ZamknijPunkty">
-            <div class="modal-dialog modal-lg">
+            <div class="modal-dialog modal-xl">
                 <div class="modal-content" @onclick:stopPropagation>
                     <div class="modal-header bg-primary text-white">
                         <h5 class="modal-title">
@@ -327,59 +339,544 @@
                         <button type="button" class="btn-close btn-close-white" @onclick="ZamknijPunkty"></button>
                     </div>
                     <div class="modal-body">
-                        <div class="table-responsive">
-                            <table class="table table-sm table-striped">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th width="80px">Punkt</th>
-                                        <th>X</th>
-                                        <th>Y</th>
-                                        <th>Typ</th>
-                                        <th>Odległość od poprzedniego</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @for (int i = 0; i < wybranePunkty.Count; i++)
-                                    {
-                                        var point = wybranePunkty[i];
-                                        double? distance = null;
+                        <!-- Zakładki dla konturów zewnętrznych i wewnętrznych -->
+                        <ul class="nav nav-tabs mb-3" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" @onclick='() => AktywnaZakladka = "outer"' type="button">
+                                    <i class="bi bi-box-arrow-in-right me-1"></i> Kontur zewnętrzny
+                                </button>
+                            </li>
+                            @if (WierzcholkiInner != null && WierzcholkiInner.Count > 0)
+                            {
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" @onclick='() => AktywnaZakladka = "inner"' type="button">
+                                        <i class="bi bi-box-arrow-in-left me-1"></i> Kontur wewnętrzny
+                                    </button>
+                                </li>
+                            }
+                        </ul>
 
-                                        if (i > 0)
+                        <div class="tab-content">
+                            <!-- Zakładka zewnętrzna -->
+                            <div class="tab-pane @(AktywnaZakladka == "outer" ? "show active" : "")" role="tabpanel">
+                                <div class="table-responsive">
+                                    <!-- Tabela dla zwykłych punktów zewnętrznych -->
+                                    @if (wybranePunkty != null && wybranePunkty.Count > 0)
+                                    {
+                                        <h6 class="mt-2 mb-2">
+                                            <i class="bi bi-pin-map me-1"></i> Punkty narożne (wierzchołki)
+                                        </h6>
+                                        <table class="table table-sm table-striped">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th width="80px">Punkt</th>
+                                                    <th>X</th>
+                                                    <th>Y</th>
+                                                    <th>Typ</th>
+                                                    <th>Odległość od poprzedniego</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @for (int i = 0; i < wybranePunkty.Count; i++)
+                                                {
+                                                    var point = wybranePunkty[i];
+                                                    double? distance = null;
+
+                                                    if (i > 0)
+                                                    {
+                                                        var prevPoint = wybranePunkty[i - 1];
+                                                        distance = Math.Sqrt(
+                                                        Math.Pow(point.X - prevPoint.X, 2) +
+                                                        Math.Pow(point.Y - prevPoint.Y, 2));
+                                                    }
+
+                                                    <tr>
+                                                        <td><span class="badge bg-primary">P @i</span></td>
+                                                        <td><code>@Math.Round(point.X, 2)</code></td>
+                                                        <td><code>@Math.Round(point.Y, 2)</code></td>
+                                                        <td>
+                                                            @if (i < 4)
+                                                            {
+                                                                <span class="badge bg-info">Nominalny</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="badge bg-secondary">Dodatkowy</span>
+                                                            }
+                                                        </td>
+                                                        <td>
+                                                            @if (distance.HasValue)
+                                                            {
+                                                                <span class="badge bg-success">@Math.Round(distance.Value, 2)</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="text-muted">-</span>
+                                                            }
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    }
+
+                                    <!-- Tabela dla segmentów zewnętrznych (z łukami) -->
+                                    @if (wybranePunktyZLukami != null && wybranePunktyZLukami.Count > 0)
+                                    {
+                                        <h6 class="mt-3 mb-2">
+                                            <i class="bi bi-diagram-3 me-1"></i> Segmenty konturu (linie i łuki)
+                                        </h6>
+                                        <table class="table table-sm table-striped">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th width="80px">#</th>
+                                                    <th>X</th>
+                                                    <th>Y</th>
+                                                    <th>Typ</th>
+                                                    <th>Środek (X,Y)</th>
+                                                    <th>Promień</th>
+                                                    <th>Kierunek</th>
+                                                    <th>Długość</th>
+                                                    <th>Odległość od poprzedniego</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @if (wybranePunktyZLukami != null && wybranePunktyZLukami.Count > 0)
+                                                {
+                                                    // Wyświetlanie segmentów z łukami
+                                                    for (int i = 0; i < wybranePunktyZLukami.Count; i++)
+                                                    {
+                                                        var seg = wybranePunktyZLukami[i];
+                                                        double? distance = null;
+                                                        double? arcLength = null;
+
+                                                        // Oblicz długość bieżącego segmentu
+                                                        if (seg.Type == SegmentType.Arc && seg.Center != null)
+                                                        {
+                                                            // Dla łuku - długość łuku
+                                                            arcLength = CalculateArcLength(seg);
+                                                        }
+                                                        else
+                                                        {
+                                                            // Dla linii - długość linii
+                                                            arcLength = Math.Sqrt(
+                                                            Math.Pow(seg.End.X - seg.Start.X, 2) +
+                                                            Math.Pow(seg.End.Y - seg.Start.Y, 2));
+                                                        }
+
+                                                        // Oblicz odległość między segmentami
+                                                        if (i > 0)
+                                                        {
+                                                            var prevSeg = wybranePunktyZLukami[i - 1];
+
+                                                            // Sprawdź czy segmenty są ciągłe (koniec poprzedniego do początku obecnego)
+                                                            bool isContinuous = Math.Abs(prevSeg.End.X - seg.Start.X) < 0.01 &&
+                                                            Math.Abs(prevSeg.End.Y - seg.Start.Y) < 0.01;
+
+                                                            if (isContinuous)
+                                                            {
+                                                                distance = 0; // Ciągłe segmenty
+                                                            }
+                                                            else
+                                                            {
+                                                                // Oblicz przerwę między segmentami
+                                                                distance = Math.Sqrt(
+                                                                Math.Pow(seg.Start.X - prevSeg.End.X, 2) +
+                                                                Math.Pow(seg.Start.Y - prevSeg.End.Y, 2));
+                                                            }
+                                                        }
+
+                                                        <tr>
+                                                            <td>
+                                                                @if (seg.Type == SegmentType.Arc)
+                                                                {
+                                                                    <span class="badge bg-warning">Łuk @i</span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="badge bg-primary">Linia @i</span>
+                                                                }
+                                                            </td>
+                                                            <td><code>@Math.Round(seg.Start.X, 2)</code> → <strong>@Math.Round(seg.End.X, 2)</strong></td>
+                                                            <td><code>@Math.Round(seg.Start.Y, 2)</code> → <strong>@Math.Round(seg.End.Y, 2)</strong></td>
+                                                            <td>
+                                                                @if (seg.Type == SegmentType.Arc)
+                                                                {
+                                                                    <span class="badge bg-info">Łuk</span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="badge bg-secondary">Linia</span>
+                                                                }
+                                                            </td>
+                                                            <td>
+                                                                @if (seg.Center != null)
+                                                                {
+                                                                    <code>(@Math.Round(seg.Center.Value.X, 2), @Math.Round(seg.Center.Value.Y, 2))</code>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted">-</span>
+                                                                }
+                                                            </td>
+                                                            <td>
+                                                                @if (seg.Radius > 0)
+                                                                {
+                                                                    <span class="badge bg-success">@Math.Round(seg.Radius, 2)</span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted">-</span>
+                                                                }
+                                                            </td>
+                                                            <td>
+                                                                @if (seg.Type == SegmentType.Arc)
+                                                                {
+                                                                    if (seg.CounterClockwise)
+                                                                    {
+                                                                        <span class="badge bg-danger">Przeciwnie do zegara (CCW)</span>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="badge bg-primary">Zgodnie z zegarem (CW)</span>
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted">-</span>
+                                                                }
+                                                            </td>
+                                                            <td>
+                                                                @if (arcLength.HasValue)
+                                                                {
+                                                                    if (seg.Type == SegmentType.Arc)
+                                                                    {
+                                                                        <span class="badge bg-info">Łuk: @Math.Round(arcLength.Value, 2)</span>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="badge bg-success">@Math.Round(arcLength.Value, 2)</span>
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted">-</span>
+                                                                }
+                                                            </td>
+                                                            <td>
+                                                                @if (distance.HasValue)
+                                                                {
+                                                                    if (distance.Value > 0.01)
+                                                                    {
+                                                                        <span class="badge bg-warning">Przerwa: @Math.Round(distance.Value, 2) ⚠️</span>
+                                                                    }
+                                                                    else if (distance.Value == 0)
+                                                                    {
+                                                                        <span class="badge bg-success">Ciągły</span>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="badge bg-success">@Math.Round(distance.Value, 2)</span>
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted">-</span>
+                                                                }
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <tr>
+                                                        <td colspan="9" class="text-center text-muted">
+                                                            Brak segmentów do wyświetlenia
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    }
+
+                                    @if (wybranePunktyZLukami != null && wybranePunktyZLukami.Count > 0)
+                                    {
+                                        <div class="alert alert-info mt-2">
+                                            <strong>📊 Podsumowanie (zewnętrzne):</strong>
+                                            @{
+                                                int arcCount = wybranePunktyZLukami.Count(s => s.Type == SegmentType.Arc);
+                                                int lineCount = wybranePunktyZLukami.Count(s => s.Type == SegmentType.Line);
+                                                int cwCount = wybranePunktyZLukami.Count(s => s.Type == SegmentType.Arc && !s.CounterClockwise);
+                                                int ccwCount = wybranePunktyZLukami.Count(s => s.Type == SegmentType.Arc && s.CounterClockwise);
+                                            }
+                                            <strong>@wybranePunktyZLukami.Count</strong> segmentów
+                                            (linie: <strong>@lineCount</strong>, łuki: <strong>@arcCount</strong>)
+                                            @if (arcCount > 0)
+                                            {
+                                                <text>| Kierunek: CW: <strong>@cwCount</strong>, CCW: <strong>@ccwCount</strong></text>
+                                            }
+                                        </div>
+                                    }
+                                    else if (wybranePunkty != null && wybranePunkty.Count > 0)
+                                    {
+                                        <div class="alert alert-info mt-2">
+                                            <strong>📊 Podsumowanie (zewnętrzne):</strong>
+                                            <strong>@wybranePunkty.Count</strong> punktów
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Zakładka wewnętrzna -->
+                            @if (WierzcholkiInner != null && WierzcholkiInner.Count > 0)
+                            {
+                                <div class="tab-pane @(AktywnaZakladka == "inner" ? "show active" : "")" role="tabpanel">
+                                    <div class="table-responsive">
+                                        <!-- Tabela dla punktów wewnętrznych -->
+                                        @if (WierzcholkiInner != null && WierzcholkiInner.Count > 0)
                                         {
-                                            var prevPoint = wybranePunkty[i - 1];
-                                            distance = Math.Sqrt(
-                                            Math.Pow(point.X - prevPoint.X, 2) +
-                                            Math.Pow(point.Y - prevPoint.Y, 2));
+                                            <h6 class="mt-2 mb-2">
+                                                <i class="bi bi-pin-map me-1"></i> Wierzchołki wewnętrzne
+                                            </h6>
+                                            <table class="table table-sm table-striped">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th width="80px">Punkt</th>
+                                                        <th>X</th>
+                                                        <th>Y</th>
+                                                        <th>Odległość od poprzedniego</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @for (int i = 0; i < WierzcholkiInner.Count; i++)
+                                                    {
+                                                        var point = WierzcholkiInner[i];
+                                                        double? distance = null;
+
+                                                        if (i > 0)
+                                                        {
+                                                            var prevPoint = WierzcholkiInner[i - 1];
+                                                            distance = Math.Sqrt(
+                                                            Math.Pow(point.X - prevPoint.X, 2) +
+                                                            Math.Pow(point.Y - prevPoint.Y, 2));
+                                                        }
+
+                                                        <tr>
+                                                            <td><span class="badge bg-success">W @i</span></td>
+                                                            <td><code>@Math.Round(point.X, 2)</code></td>
+                                                            <td><code>@Math.Round(point.Y, 2)</code></td>
+                                                            <td>
+                                                                @if (distance.HasValue)
+                                                                {
+                                                                    <span class="badge bg-success">@Math.Round(distance.Value, 2)</span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted">-</span>
+                                                                }
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
                                         }
 
-                                        <tr>
-                                            <td><span class="badge bg-primary">P @i</span></td>
-                                            <td><code>@Math.Round(point.X, 2)</code></td>
-                                            <td><code>@Math.Round(point.Y, 2)</code></td>
-                                            <td>
-                                                @if (i < 4)
-                                                {
-                                                    <span class="badge bg-info">Nominalny</span>
+                                        <!-- Tabela dla segmentów wewnętrznych (z łukami) -->
+                                        @if (KonturInner != null && KonturInner.Count > 0)
+                                        {
+                                            <h6 class="mt-3 mb-2">
+                                                <i class="bi bi-diagram-3 me-1"></i> Segmenty konturu wewnętrznego (linie i łuki)
+                                            </h6>
+                                            <table class="table table-sm table-striped">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th width="80px">#</th>
+                                                        <th>X</th>
+                                                        <th>Y</th>
+                                                        <th>Typ</th>
+                                                        <th>Środek (X,Y)</th>
+                                                        <th>Promień</th>
+                                                        <th>Kierunek</th>
+                                                        <th>Długość</th>
+                                                        <th>Odległość od poprzedniego</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @for (int i = 0; i < KonturInner.Count; i++)
+                                                    {
+                                                        var seg = KonturInner[i];
+                                                        double? distance = null;
+                                                        double? arcLength = null;
+
+                                                        // Oblicz długość bieżącego segmentu
+                                                        if (seg.Type == SegmentType.Arc && seg.Center != null)
+                                                        {
+                                                            arcLength = CalculateArcLength(seg);
+                                                        }
+                                                        else
+                                                        {
+                                                            arcLength = Math.Sqrt(
+                                                            Math.Pow(seg.End.X - seg.Start.X, 2) +
+                                                            Math.Pow(seg.End.Y - seg.Start.Y, 2));
+                                                        }
+
+                                                        // Oblicz odległość między segmentami
+                                                        if (i > 0)
+                                                        {
+                                                            var prevSeg = KonturInner[i - 1];
+                                                            bool isContinuous = Math.Abs(prevSeg.End.X - seg.Start.X) < 0.01 &&
+                                                            Math.Abs(prevSeg.End.Y - seg.Start.Y) < 0.01;
+
+                                                            if (isContinuous)
+                                                            {
+                                                                distance = 0;
+                                                            }
+                                                            else
+                                                            {
+                                                                distance = Math.Sqrt(
+                                                                Math.Pow(seg.Start.X - prevSeg.End.X, 2) +
+                                                                Math.Pow(seg.Start.Y - prevSeg.End.Y, 2));
+                                                            }
+                                                        }
+
+                                                        <tr>
+                                                            <td>
+                                                                @if (seg.Type == SegmentType.Arc)
+                                                                {
+                                                                    <span class="badge bg-warning">Łuk @i</span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="badge bg-success">Linia @i</span>
+                                                                }
+                                                            </td>
+                                                            <td><code>@Math.Round(seg.Start.X, 2)</code> → <strong>@Math.Round(seg.End.X, 2)</strong></td>
+                                                            <td><code>@Math.Round(seg.Start.Y, 2)</code> → <strong>@Math.Round(seg.End.Y, 2)</strong></td>
+                                                            <td>
+                                                                @if (seg.Type == SegmentType.Arc)
+                                                                {
+                                                                    <span class="badge bg-info">Łuk</span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="badge bg-secondary">Linia</span>
+                                                                }
+                                                            </td>
+                                                            <td>
+                                                                @if (seg.Center != null)
+                                                                {
+                                                                    <code>(@Math.Round(seg.Center.Value.X, 2), @Math.Round(seg.Center.Value.Y, 2))</code>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted">-</span>
+                                                                }
+                                                            </td>
+                                                            <td>
+                                                                @if (seg.Radius > 0)
+                                                                {
+                                                                    <span class="badge bg-success">@Math.Round(seg.Radius, 2)</span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted">-</span>
+                                                                }
+                                                            </td>
+                                                            <td>
+                                                                @if (seg.Type == SegmentType.Arc)
+                                                                {
+                                                                    if (seg.CounterClockwise)
+                                                                    {
+                                                                        <span class="badge bg-danger">Przeciwnie do zegara (CCW)</span>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="badge bg-primary">Zgodnie z zegarem (CW)</span>
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted">-</span>
+                                                                }
+                                                            </td>
+                                                            <td>
+                                                                @if (arcLength.HasValue)
+                                                                {
+                                                                    if (seg.Type == SegmentType.Arc)
+                                                                    {
+                                                                        <span class="badge bg-info">Łuk: @Math.Round(arcLength.Value, 2)</span>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="badge bg-success">@Math.Round(arcLength.Value, 2)</span>
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted">-</span>
+                                                                }
+                                                            </td>
+                                                            <td>
+                                                                @if (distance.HasValue)
+                                                                {
+                                                                    if (distance.Value > 0.01)
+                                                                    {
+                                                                        <span class="badge bg-warning">Przerwa: @Math.Round(distance.Value, 2) ⚠️</span>
+                                                                    }
+                                                                    else if (distance.Value == 0)
+                                                                    {
+                                                                        <span class="badge bg-success">Ciągły</span>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="badge bg-success">@Math.Round(distance.Value, 2)</span>
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted">-</span>
+                                                                }
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        }
+
+                                        @if (KonturInner != null && KonturInner.Count > 0)
+                                        {
+                                            <div class="alert alert-success mt-2">
+                                                <strong>📊 Podsumowanie (wewnętrzne):</strong>
+                                                @{
+                                                    int arcCountInner = KonturInner.Count(s => s.Type == SegmentType.Arc);
+                                                    int lineCountInner = KonturInner.Count(s => s.Type == SegmentType.Line);
+                                                    int cwCountInner = KonturInner.Count(s => s.Type == SegmentType.Arc && !s.CounterClockwise);
+                                                    int ccwCountInner = KonturInner.Count(s => s.Type == SegmentType.Arc && s.CounterClockwise);
                                                 }
-                                                else
+                                                <strong>@KonturInner.Count</strong> segmentów
+                                                (linie: <strong>@lineCountInner</strong>, łuki: <strong>@arcCountInner</strong>)
+                                                @if (arcCountInner > 0)
                                                 {
-                                                    <span class="badge bg-secondary">Dodatkowy</span>
+                                                    <text>| Kierunek: CW: <strong>@cwCountInner</strong>, CCW: <strong>@ccwCountInner</strong></text>
                                                 }
-                                            </td>
-                                            <td>
-                                                @if (distance.HasValue)
-                                                {
-                                                    <span class="badge bg-success">@Math.Round(distance.Value, 2)</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="text-muted">-</span>
-                                                }
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
+                                            </div>
+                                        }
+                                        else if (WierzcholkiInner != null && WierzcholkiInner.Count > 0)
+                                        {
+                                            <div class="alert alert-success mt-2">
+                                                <strong>📊 Podsumowanie (wewnętrzne):</strong>
+                                                <strong>@WierzcholkiInner.Count</strong> punktów
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-success mt-2">
+                                    <strong>📊 Brak danych o konturze</strong>
+                                </div>
+                            }
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -387,14 +884,16 @@
                             <i class="bi bi-x-lg me-1"></i> Zamknij
                         </button>
                         <button type="button" class="btn btn-primary" @onclick="KopiujPunktyDoSchowka">
-                            <i class="bi bi-clipboard me-1"></i> Kopiuj punkty
+                            <i class="bi bi-clipboard me-1"></i> Kopiuj punkty tabela
+                        </button>
+                        <button type="button" class="btn btn-primary" @onclick="KopiujPunktyDoSchowkaProsty">
+                            <i class="bi bi-clipboard me-1"></i> Kopiuj punkty tylko dane
                         </button>
                     </div>
                 </div>
             </div>
         </div>
     }
-    
     <!-- Modal potwierdzenia usunięcia -->
     @if (pokazModalUsuwania && stanDoUsuniecia != null)
     {
@@ -1200,6 +1699,11 @@
 
     private GeneratorState? wybranyStan;
     private List<XPoint>? wybranePunkty;
+    private List<ContourSegment>? wybranePunktyZLukami;
+
+    private List<XPoint>? WierzcholkiInner;
+    private List<ContourSegment>? KonturInner;
+
     private GeneratorState? stanDoUsuniecia;
     private string? tytulPunktow;
     
@@ -1222,6 +1726,8 @@
     private string filtrTekst = string.Empty;
     private string filtrTyp = string.Empty;
     private string filtrKształt = string.Empty;
+
+    private string AktywnaZakladka = "outer";
 
     private readonly JsonSerializerOptions jsonOptions = new()
     {
@@ -1384,25 +1890,27 @@
                     }
                 </tbody>
             </table>
-        </div>;
+        </div>
+    ;
     }
 
     // ========== METODY AKCJI ==========
-    
+
     private void PokazSzczegoly(GeneratorState stan)
     {
         wybranyStan = stan;
         szczegolyWidoczne = true;
         pokazWidokSzczegolowy = false;
         aktywnaZakladka = 0;
-        
+
         StateHasChanged();
-        
+
         Task.Delay(100).ContinueWith(async _ =>
         {
             await InvokeAsync(async () =>
             {
                 await ScrollDoElementu("szczegoly-panel");
+
                 if (uzyjHighlightJS && !pokazWidokSzczegolowy)
                 {
                     await PrzeladujHighlight();
@@ -1411,25 +1919,293 @@
         });
     }
 
-    private void PokazPunkty(List<XPoint> punkty, string tytul)
+    private void PokazPunkty(List<XPoint> punkty, List<XPoint> punktyInner, List<ContourSegment> punktyZLukami, List<ContourSegment> punktyZLukamiInner, string tytul)
     {
         wybranePunkty = punkty;
+        WierzcholkiInner = punktyInner;
+        wybranePunktyZLukami = punktyZLukami;
+        KonturInner = punktyZLukamiInner;
         tytulPunktow = tytul;
         punktyWidoczne = true;
+
+        // Dodaj informację do debugu
+        if (punktyZLukami != null && punktyZLukami.Count > 0)
+        {
+            int arcCount = punktyZLukami.Count(s => s.Type == SegmentType.Arc);
+            int lineCount = punktyZLukami.Count(s => s.Type == SegmentType.Line);
+            Console.WriteLine($"📊 Pokazuję {punktyZLukami.Count} segmentów (linie: {lineCount}, łuki: {arcCount})");
+        }
+        else if (punkty != null && punkty.Count > 0)
+        {
+            Console.WriteLine($"📊 Pokazuję {punkty.Count} punktów");
+        }
     }
 
     private async Task KopiujPunktyDoSchowka()
     {
-        if (wybranePunkty == null) return;
-        
-        var punktyText = string.Join("\n", wybranePunkty.Select((p, i) => 
-            $"P{i}: X={Math.Round(p.X, 2)}, Y={Math.Round(p.Y, 2)}"));
-        
-        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", punktyText);
-        
+        var sb = new StringBuilder();
+
+        sb.AppendLine("========== DANE KONTURU ==========");
+        sb.AppendLine($"Data: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+        sb.AppendLine();
+
+        // =====================
+        // 1. PUNKTY ZEWNĘTRZNE (wierzchołki)
+        // =====================
+        if (wybranePunkty != null && wybranePunkty.Count > 0)
+        {
+            sb.AppendLine("📌 PUNKTY ZEWNĘTRZNE (wierzchołki):");
+            sb.AppendLine("┌─────┬────────────┬────────────┬────────────┐");
+            sb.AppendLine("│  #  │     X      │     Y      │ Odległość  │");
+            sb.AppendLine("├─────┼────────────┼────────────┼────────────┤");
+
+            for (int i = 0; i < wybranePunkty.Count; i++)
+            {
+                var p = wybranePunkty[i];
+                double? distance = null;
+
+                if (i > 0)
+                {
+                    var prev = wybranePunkty[i - 1];
+                    distance = Math.Sqrt(Math.Pow(p.X - prev.X, 2) + Math.Pow(p.Y - prev.Y, 2));
+                }
+
+                string distStr = distance.HasValue ? $"{distance.Value,8:F2}" : "    -     ";
+                sb.AppendLine($"│ {i,3} │ {p.X,10:F2} │ {p.Y,10:F2} │ {distStr} │");
+            }
+            sb.AppendLine("└─────┴────────────┴────────────┴────────────┘");
+            sb.AppendLine();
+        }
+
+        // =====================
+        // 2. SEGMENTY ZEWNĘTRZNE (z łukami)
+        // =====================
+        if (wybranePunktyZLukami != null && wybranePunktyZLukami.Count > 0)
+        {
+            sb.AppendLine("🔷 SEGMENTY ZEWNĘTRZNE (linie i łuki):");
+            sb.AppendLine("┌─────┬──────────┬────────────────┬────────────────┬──────────────────────┬──────────┬──────────┬──────────────────┐");
+            sb.AppendLine("│  #  │   Typ    │    Start X,Y    │     End X,Y     │       Środek        │ Promień  │ Kierunek │    Długość       │");
+            sb.AppendLine("├─────┼──────────┼────────────────┼────────────────┼──────────────────────┼──────────┼──────────┼──────────────────┤");
+
+            for (int i = 0; i < wybranePunktyZLukami.Count; i++)
+            {
+                var seg = wybranePunktyZLukami[i];
+                string typ = seg.Type == SegmentType.Arc ? "Łuk" : "Linia";
+                string startStr = $"({seg.Start.X,7:F2},{seg.Start.Y,7:F2})";
+                string endStr = $"({seg.End.X,7:F2},{seg.End.Y,7:F2})";
+
+                string centerStr = "-";
+                string radiusStr = "-";
+                string kierunekStr = "-";
+                string dlugoscStr = "-";
+
+                if (seg.Type == SegmentType.Arc && seg.Center != null)
+                {
+                    centerStr = $"({seg.Center.Value.X,7:F2},{seg.Center.Value.Y,7:F2})";
+                    radiusStr = $"{seg.Radius,8:F2}";
+                    kierunekStr = seg.CounterClockwise ? "CCW" : "CW";
+                    dlugoscStr = $"{CalculateArcLength(seg),8:F2}";
+                }
+                else if (seg.Type == SegmentType.Line)
+                {
+                    double lineLength = Math.Sqrt(
+                        Math.Pow(seg.End.X - seg.Start.X, 2) +
+                        Math.Pow(seg.End.Y - seg.Start.Y, 2)
+                    );
+                    dlugoscStr = $"{lineLength,8:F2}";
+                }
+
+                sb.AppendLine($"│ {i,3} │ {typ,8} │ {startStr} │ {endStr} │ {centerStr,20} │ {radiusStr,8} │ {kierunekStr,8} │ {dlugoscStr} │");
+            }
+            sb.AppendLine("└─────┴──────────┴────────────────┴────────────────┴──────────────────────┴──────────┴──────────┴──────────────────┘");
+            sb.AppendLine();
+
+            // Podsumowanie zewnętrzne
+            int arcCountOuter = wybranePunktyZLukami.Count(s => s.Type == SegmentType.Arc);
+            int lineCountOuter = wybranePunktyZLukami.Count(s => s.Type == SegmentType.Line);
+            sb.AppendLine($"📊 Podsumowanie zewnętrzne: {wybranePunktyZLukami.Count} segmentów (linie: {lineCountOuter}, łuki: {arcCountOuter})");
+            sb.AppendLine();
+        }
+
+        // =====================
+        // 3. PUNKTY WEWNĘTRZNE
+        // =====================
+        if (WierzcholkiInner != null && WierzcholkiInner.Count > 0)
+        {
+            sb.AppendLine("📍 PUNKTY WEWNĘTRZNE (wierzchołki):");
+            sb.AppendLine("┌─────┬────────────┬────────────┬────────────┐");
+            sb.AppendLine("│  #  │     X      │     Y      │ Odległość  │");
+            sb.AppendLine("├─────┼────────────┼────────────┼────────────┤");
+
+            for (int i = 0; i < WierzcholkiInner.Count; i++)
+            {
+                var p = WierzcholkiInner[i];
+                double? distance = null;
+
+                if (i > 0)
+                {
+                    var prev = WierzcholkiInner[i - 1];
+                    distance = Math.Sqrt(Math.Pow(p.X - prev.X, 2) + Math.Pow(p.Y - prev.Y, 2));
+                }
+
+                string distStr = distance.HasValue ? $"{distance.Value,8:F2}" : "    -     ";
+                sb.AppendLine($"│ {i,3} │ {p.X,10:F2} │ {p.Y,10:F2} │ {distStr} │");
+            }
+            sb.AppendLine("└─────┴────────────┴────────────┴────────────┘");
+            sb.AppendLine();
+        }
+
+        // =====================
+        // 4. SEGMENTY WEWNĘTRZNE (z łukami)
+        // =====================
+        if (KonturInner != null && KonturInner.Count > 0)
+        {
+            sb.AppendLine("🔶 SEGMENTY WEWNĘTRZNE (linie i łuki):");
+            sb.AppendLine("┌─────┬──────────┬────────────────┬────────────────┬──────────────────────┬──────────┬──────────┬──────────────────┐");
+            sb.AppendLine("│  #  │   Typ    │    Start X,Y    │     End X,Y     │       Środek        │ Promień  │ Kierunek │    Długość       │");
+            sb.AppendLine("├─────┼──────────┼────────────────┼────────────────┼──────────────────────┼──────────┼──────────┼──────────────────┤");
+
+            for (int i = 0; i < KonturInner.Count; i++)
+            {
+                var seg = KonturInner[i];
+                string typ = seg.Type == SegmentType.Arc ? "Łuk" : "Linia";
+                string startStr = $"({seg.Start.X,7:F2},{seg.Start.Y,7:F2})";
+                string endStr = $"({seg.End.X,7:F2},{seg.End.Y,7:F2})";
+
+                string centerStr = "-";
+                string radiusStr = "-";
+                string kierunekStr = "-";
+                string dlugoscStr = "-";
+
+                if (seg.Type == SegmentType.Arc && seg.Center != null)
+                {
+                    centerStr = $"({seg.Center.Value.X,7:F2},{seg.Center.Value.Y,7:F2})";
+                    radiusStr = $"{seg.Radius,8:F2}";
+                    kierunekStr = seg.CounterClockwise ? "CCW" : "CW";
+                    dlugoscStr = $"{CalculateArcLength(seg),8:F2}";
+                }
+                else if (seg.Type == SegmentType.Line)
+                {
+                    double lineLength = Math.Sqrt(
+                        Math.Pow(seg.End.X - seg.Start.X, 2) +
+                        Math.Pow(seg.End.Y - seg.Start.Y, 2)
+                    );
+                    dlugoscStr = $"{lineLength,8:F2}";
+                }
+
+                sb.AppendLine($"│ {i,3} │ {typ,8} │ {startStr} │ {endStr} │ {centerStr,20} │ {radiusStr,8} │ {kierunekStr,8} │ {dlugoscStr} │");
+            }
+            sb.AppendLine("└─────┴──────────┴────────────────┴────────────────┴──────────────────────┴──────────┴──────────┴──────────────────┘");
+            sb.AppendLine();
+
+            // Podsumowanie wewnętrzne
+            int arcCountInner = KonturInner.Count(s => s.Type == SegmentType.Arc);
+            int lineCountInner = KonturInner.Count(s => s.Type == SegmentType.Line);
+            sb.AppendLine($"📊 Podsumowanie wewnętrzne: {KonturInner.Count} segmentów (linie: {lineCountInner}, łuki: {arcCountInner})");
+            sb.AppendLine();
+        }
+
+        // =====================
+        // 5. PODSUMOWANIE OGÓLNE
+        // =====================
+        sb.AppendLine("========== PODSUMOWANIE OGÓLNE ==========");
+
+        int totalPoints = (wybranePunkty?.Count ?? 0) + (WierzcholkiInner?.Count ?? 0);
+        int totalSegments = (wybranePunktyZLukami?.Count ?? 0) + (KonturInner?.Count ?? 0);
+        int totalArcs = (wybranePunktyZLukami?.Count(s => s.Type == SegmentType.Arc) ?? 0) +
+                        (KonturInner?.Count(s => s.Type == SegmentType.Arc) ?? 0);
+        int totalLines = (wybranePunktyZLukami?.Count(s => s.Type == SegmentType.Line) ?? 0) +
+                         (KonturInner?.Count(s => s.Type == SegmentType.Line) ?? 0);
+
+        sb.AppendLine($"Łączna liczba punktów: {totalPoints}");
+        sb.AppendLine($"Łączna liczba segmentów: {totalSegments} (linie: {totalLines}, łuki: {totalArcs})");
+        sb.AppendLine("==========================================");
+
+        // Kopiuj do schowka
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", sb.ToString());
+
+        // Pokaż komunikat
         pokazKomunikatKopiowania = true;
         StateHasChanged();
-        
+
+        await Task.Delay(2000);
+        pokazKomunikatKopiowania = false;
+        StateHasChanged();
+    }
+
+    private async Task KopiujPunktyDoSchowkaProsty()
+    {
+        var sb = new StringBuilder();
+
+        sb.AppendLine("========== DANE KONTURU ==========");
+        sb.AppendLine();
+
+        // Punkty zewnętrzne
+        if (wybranePunkty != null && wybranePunkty.Count > 0)
+        {
+            sb.AppendLine("PUNKTY ZEWNĘTRZNE:");
+            for (int i = 0; i < wybranePunkty.Count; i++)
+            {
+                var p = wybranePunkty[i];
+                sb.AppendLine($"  P{i}: X={Math.Round(p.X, 2)}, Y={Math.Round(p.Y, 2)}");
+            }
+            sb.AppendLine();
+        }
+
+        // Segmenty zewnętrzne
+        if (wybranePunktyZLukami != null && wybranePunktyZLukami.Count > 0)
+        {
+            sb.AppendLine("SEGMENTY ZEWNĘTRZNE:");
+            for (int i = 0; i < wybranePunktyZLukami.Count; i++)
+            {
+                var seg = wybranePunktyZLukami[i];
+                if (seg.Type == SegmentType.Line)
+                {
+                    sb.AppendLine($"  L{i}: Start({Math.Round(seg.Start.X, 2)},{Math.Round(seg.Start.Y, 2)}) -> End({Math.Round(seg.End.X, 2)},{Math.Round(seg.End.Y, 2)})");
+                }
+                else if (seg.Type == SegmentType.Arc && seg.Center != null)
+                {
+                    sb.AppendLine($"  A{i}: Start({Math.Round(seg.Start.X, 2)},{Math.Round(seg.Start.Y, 2)}) -> End({Math.Round(seg.End.X, 2)},{Math.Round(seg.End.Y, 2)}) | Center({Math.Round(seg.Center.Value.X, 2)},{Math.Round(seg.Center.Value.Y, 2)}) | R={Math.Round(seg.Radius, 2)} | {(seg.CounterClockwise ? "CCW" : "CW")}");
+                }
+            }
+            sb.AppendLine();
+        }
+
+        // Punkty wewnętrzne
+        if (WierzcholkiInner != null && WierzcholkiInner.Count > 0)
+        {
+            sb.AppendLine("PUNKTY WEWNĘTRZNE:");
+            for (int i = 0; i < WierzcholkiInner.Count; i++)
+            {
+                var p = WierzcholkiInner[i];
+                sb.AppendLine($"  I{i}: X={Math.Round(p.X, 2)}, Y={Math.Round(p.Y, 2)}");
+            }
+            sb.AppendLine();
+        }
+
+        // Segmenty wewnętrzne
+        if (KonturInner != null && KonturInner.Count > 0)
+        {
+            sb.AppendLine("SEGMENTY WEWNĘTRZNE:");
+            for (int i = 0; i < KonturInner.Count; i++)
+            {
+                var seg = KonturInner[i];
+                if (seg.Type == SegmentType.Line)
+                {
+                    sb.AppendLine($"  IL{i}: Start({Math.Round(seg.Start.X, 2)},{Math.Round(seg.Start.Y, 2)}) -> End({Math.Round(seg.End.X, 2)},{Math.Round(seg.End.Y, 2)})");
+                }
+                else if (seg.Type == SegmentType.Arc && seg.Center != null)
+                {
+                    sb.AppendLine($"  IA{i}: Start({Math.Round(seg.Start.X, 2)},{Math.Round(seg.Start.Y, 2)}) -> End({Math.Round(seg.End.X, 2)},{Math.Round(seg.End.Y, 2)}) | Center({Math.Round(seg.Center.Value.X, 2)},{Math.Round(seg.Center.Value.Y, 2)}) | R={Math.Round(seg.Radius, 2)} | {(seg.CounterClockwise ? "CCW" : "CW")}");
+                }
+            }
+            sb.AppendLine();
+        }
+
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", sb.ToString());
+
+        pokazKomunikatKopiowania = true;
+        StateHasChanged();
         await Task.Delay(2000);
         pokazKomunikatKopiowania = false;
         StateHasChanged();
@@ -1731,8 +2507,11 @@
         {
             try
             {
+                await JSRuntime.InvokeVoidAsync("initializeTabs");
+
                 var isAvailable = await JSRuntime.InvokeAsync<bool>("eval", "!!window.hljs");
                 uzyjHighlightJS = isAvailable;
+
             }
             catch
             {

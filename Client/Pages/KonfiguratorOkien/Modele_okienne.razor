@@ -643,11 +643,22 @@
             <div class="modal-header">
                 <h5 class="modal-title">Punkty elementów okien</h5>
                 <button type="button" class="btn-close" aria-label="Close" @onclick="ZamknijModal"></button>
+            
             </div>
 
+
             <div class="modal-body" style="max-height: 70vh; overflow-y: auto; font-size: 0.85rem; font-family: Consolas, monospace;">
+
                 @if (ksztalty is not null && ksztalty.Any())
                 {
+                    <button class="btn btn-sm btn-info mb-3" @onclick="@(() => KopiujDaneKsztaltu(ksztalty))">
+                        <i class="bi bi-clipboard-data me-1"></i> Kopiuj wszystkie dane
+                    </button>
+
+                    <button class="btn btn-sm btn-secondary mb-3 ms-2" @onclick="@(() => KopiujDaneKsztaltuProsty(ksztalty))">
+                        <i class="bi bi-clipboard me-1"></i> Kopiuj (prosty format)
+                    </button>
+                    <hr/>
                     @foreach (var ksztalt in ksztalty)
                     {
                         <div class="card my-2 shadow-sm"
@@ -1874,6 +1885,293 @@
         var p = region.Wierzcholki[index]; // kopia
         p.Y = y;
         region.Wierzcholki[index] = p;     // nadpisanie
+    }
+
+    private async Task KopiujDaneKsztaltu(List<KsztaltElementu> ksztalty)
+    {
+        var sb = new System.Text.StringBuilder();
+
+        sb.AppendLine("========== DANE WSZYSTKICH KSZTAŁTÓW ==========");
+        sb.AppendLine($"Data: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+        sb.AppendLine($"Liczba kształtów: {ksztalty.Count}");
+        sb.AppendLine();
+
+        for (int idx = 0; idx < ksztalty.Count; idx++)
+        {
+            var ksztalt = ksztalty[idx];
+
+            sb.AppendLine($"╔════════════════════════════════════════════════════════════════╗");
+            sb.AppendLine($"║                        KSZTAŁT NR {idx + 1}                              ║");
+            sb.AppendLine($"╚════════════════════════════════════════════════════════════════╝");
+            sb.AppendLine();
+
+            // =====================
+            // 1. PODSTAWOWE INFORMACJE
+            // =====================
+            sb.AppendLine("📋 PODSTAWOWE INFORMACJE:");
+            sb.AppendLine($"  Typ kształtu: {ksztalt.TypKsztaltu}");
+            sb.AppendLine($"  Grupa: {ksztalt.Grupa}");
+            sb.AppendLine($"  ZIndex: {ksztalt.ZIndex}");
+            sb.AppendLine($"  RowIdElementu: {ksztalt.RowIdElementu}");
+            sb.AppendLine($"  Indeks elementu: {ksztalt.IndeksElementu}");
+            sb.AppendLine($"  Kąt: {ksztalt.Kat}°");
+            sb.AppendLine($"  Strona: {ksztalt.Strona}");
+            sb.AppendLine($"  Nr pozycji w modelu: {ksztalt.NrPozWModelu}");
+            sb.AppendLine($"  IdRegion: {ksztalt.IdRegion}");
+            sb.AppendLine();
+
+            // =====================
+            // 2. OFFSETY
+            // =====================
+            sb.AppendLine("📏 OFFSETY:");
+            sb.AppendLine($"  Lewa: {ksztalt.OffsetLewa}");
+            sb.AppendLine($"  Góra: {ksztalt.OffsetGora}");
+            sb.AppendLine($"  Prawa: {ksztalt.OffsetPrawa}");
+            sb.AppendLine($"  Dół: {ksztalt.OffsetDol}");
+            sb.AppendLine();
+
+            // =====================
+            // 3. WYGLĄD
+            // =====================
+            sb.AppendLine("🎨 WYGLĄD:");
+            sb.AppendLine($"  Wypełnienie wewnętrzne: {ksztalt.WypelnienieWewnetrzne}");
+            sb.AppendLine($"  Wypełnienie zewnętrzne: {ksztalt.WypelnienieZewnetrzne}");
+            sb.AppendLine($"  Grubość obramowania: {ksztalt.GruboscObramowania} px");
+            sb.AppendLine($"  Widoczny: {(ksztalt.Widoczny ? "Tak" : "Nie")}");
+            sb.AppendLine($"  Zawiera otwór: {(ksztalt.CzyZawieraOtwor ? "Tak" : "Nie")}");
+            sb.AppendLine($"  Długość elementu: {ksztalt.DlogoscElementu}");
+            sb.AppendLine();
+
+            // =====================
+            // 4. WIERZCHOŁKI (punkty)
+            // =====================
+            if (ksztalt.Wierzcholki != null && ksztalt.Wierzcholki.Count > 0)
+            {
+                sb.AppendLine("📍 WIERZCHOŁKI (punkty):");
+                sb.AppendLine("┌─────┬────────────┬────────────┬────────────┐");
+                sb.AppendLine("│  #  │     X      │     Y      │ Odległość  │");
+                sb.AppendLine("├─────┼────────────┼────────────┼────────────┤");
+
+                for (int i = 0; i < ksztalt.Wierzcholki.Count; i++)
+                {
+                    var p = ksztalt.Wierzcholki[i];
+                    double? distance = null;
+
+                    if (i > 0)
+                    {
+                        var prev = ksztalt.Wierzcholki[i - 1];
+                        distance = Math.Sqrt(Math.Pow(p.X - prev.X, 2) + Math.Pow(p.Y - prev.Y, 2));
+                    }
+
+                    string distStr = distance.HasValue ? $"{distance.Value,8:F3}" : "    -     ";
+                    sb.AppendLine($"│ {i,3} │ {p.X,10:F3} │ {p.Y,10:F3} │ {distStr} │");
+                }
+                sb.AppendLine("└─────┴────────────┴────────────┴────────────┘");
+                sb.AppendLine();
+
+                // Współrzędne w formacie JSON
+                sb.AppendLine("📐 Współrzędne (format JSON):");
+                var pointsJson = string.Join(", ", ksztalt.Wierzcholki.Select(p => $"[{Math.Round(p.X, 3)}, {Math.Round(p.Y, 3)}]"));
+                sb.AppendLine($"  [{pointsJson}]");
+                sb.AppendLine();
+            }
+
+            // =====================
+            // 5. SEGMENTY Z ŁUKAMI (jeśli istnieją)
+            // =====================
+            if (ksztalt.WierzcholkiZLukami != null && ksztalt.WierzcholkiZLukami.Count > 0)
+            {
+                sb.AppendLine("🔷 SEGMENTY (linie i łuki):");
+                sb.AppendLine("┌─────┬──────────┬────────────────┬────────────────┬──────────────────────┬──────────┬──────────┬──────────────────┐");
+                sb.AppendLine("│  #  │   Typ    │    Start X,Y    │     End X,Y     │       Środek        │ Promień  │ Kierunek │    Długość       │");
+                sb.AppendLine("├─────┼──────────┼────────────────┼────────────────┼──────────────────────┼──────────┼──────────┼──────────────────┤");
+
+                for (int i = 0; i < ksztalt.WierzcholkiZLukami.Count; i++)
+                {
+                    var seg = ksztalt.WierzcholkiZLukami[i];
+                    string typ = seg.Type == SegmentType.Arc ? "Łuk" : "Linia";
+                    string startStr = $"({seg.Start.X,7:F3},{seg.Start.Y,7:F3})";
+                    string endStr = $"({seg.End.X,7:F3},{seg.End.Y,7:F3})";
+
+                    string centerStr = "-";
+                    string radiusStr = "-";
+                    string kierunekStr = "-";
+                    string dlugoscStr = "-";
+
+                    if (seg.Type == SegmentType.Arc && seg.Center != null)
+                    {
+                        centerStr = $"({seg.Center.Value.X,7:F3},{seg.Center.Value.Y,7:F3})";
+                        radiusStr = $"{seg.Radius,8:F3}";
+                        kierunekStr = seg.CounterClockwise ? "CCW" : "CW";
+                        dlugoscStr = $"{CalculateArcLength(seg),8:F3}";
+                    }
+                    else if (seg.Type == SegmentType.Line)
+                    {
+                        double lineLength = Math.Sqrt(
+                            Math.Pow(seg.End.X - seg.Start.X, 2) +
+                            Math.Pow(seg.End.Y - seg.Start.Y, 2)
+                        );
+                        dlugoscStr = $"{lineLength,8:F3}";
+                    }
+
+                    sb.AppendLine($"│ {i,3} │ {typ,8} │ {startStr} │ {endStr} │ {centerStr,20} │ {radiusStr,8} │ {kierunekStr,8} │ {dlugoscStr} │");
+                }
+                sb.AppendLine("└─────┴──────────┴────────────────┴────────────────┴──────────────────────┴──────────┴──────────┴──────────────────┘");
+                sb.AppendLine();
+
+                // Podsumowanie segmentów
+                int arcCount = ksztalt.WierzcholkiZLukami.Count(s => s.Type == SegmentType.Arc);
+                int lineCount = ksztalt.WierzcholkiZLukami.Count(s => s.Type == SegmentType.Line);
+                sb.AppendLine($"📊 Podsumowanie segmentów: {ksztalt.WierzcholkiZLukami.Count} segmentów (linie: {lineCount}, łuki: {arcCount})");
+                sb.AppendLine();
+            }
+
+            // =====================
+            // 6. INFORMACJE DODATKOWE
+            // =====================
+            sb.AppendLine("📌 INFORMACJE DODATKOWE:");
+
+            // Oblicz obwód całkowity
+            double totalPerimeter = 0;
+            if (ksztalt.WierzcholkiZLukami != null && ksztalt.WierzcholkiZLukami.Count > 0)
+            {
+                foreach (var seg in ksztalt.WierzcholkiZLukami)
+                {
+                    if (seg.Type == SegmentType.Arc && seg.Center != null)
+                    {
+                        totalPerimeter += CalculateArcLength(seg);
+                    }
+                    else
+                    {
+                        totalPerimeter += Math.Sqrt(
+                            Math.Pow(seg.End.X - seg.Start.X, 2) +
+                            Math.Pow(seg.End.Y - seg.Start.Y, 2)
+                        );
+                    }
+                }
+                sb.AppendLine($"  Obwód całkowity: {Math.Round(totalPerimeter, 3)}");
+            }
+            else if (ksztalt.Wierzcholki != null && ksztalt.Wierzcholki.Count > 0)
+            {
+                for (int i = 0; i < ksztalt.Wierzcholki.Count; i++)
+                {
+                    var current = ksztalt.Wierzcholki[i];
+                    var next = ksztalt.Wierzcholki[(i + 1) % ksztalt.Wierzcholki.Count];
+                    totalPerimeter += Math.Sqrt(
+                        Math.Pow(next.X - current.X, 2) +
+                        Math.Pow(next.Y - current.Y, 2)
+                    );
+                }
+                sb.AppendLine($"  Obwód całkowity: {Math.Round(totalPerimeter, 3)}");
+            }
+
+            sb.AppendLine();
+            sb.AppendLine();
+        }
+
+        sb.AppendLine("========== KONIEC DANYCH ==========");
+
+        // Kopiuj do schowka
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", sb.ToString());
+
+        await _message.Info("Skopiowano dane wszystkich kształtów do schowka!", 2);
+    }
+
+    // Prostsza wersja dla listy kształtów
+    private async Task KopiujDaneKsztaltuProsty(List<KsztaltElementu> ksztalty)
+    {
+        var sb = new System.Text.StringBuilder();
+
+        sb.AppendLine("========== DANE WSZYSTKICH KSZTAŁTÓW ==========");
+        sb.AppendLine($"Data: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+        sb.AppendLine($"Liczba kształtów: {ksztalty.Count}");
+        sb.AppendLine();
+
+        for (int idx = 0; idx < ksztalty.Count; idx++)
+        {
+            var ksztalt = ksztalty[idx];
+
+            sb.AppendLine($"--- KSZTAŁT NR {idx + 1} ---");
+            sb.AppendLine();
+
+            // Podstawowe informacje
+            sb.AppendLine($"Typ: {ksztalt.TypKsztaltu}");
+            sb.AppendLine($"Grupa: {ksztalt.Grupa}");
+            sb.AppendLine($"ZIndex: {ksztalt.ZIndex}");
+            sb.AppendLine($"RowIdElementu: {ksztalt.RowIdElementu}");
+            sb.AppendLine($"Indeks elementu: {ksztalt.IndeksElementu}");
+            sb.AppendLine($"Kąt: {ksztalt.Kat}°");
+            sb.AppendLine($"Strona: {ksztalt.Strona}");
+            sb.AppendLine($"Nr pozycji w modelu: {ksztalt.NrPozWModelu}");
+            sb.AppendLine($"IdRegion: {ksztalt.IdRegion}");
+            sb.AppendLine();
+
+            // Offesty
+            sb.AppendLine($"Offesty: L={ksztalt.OffsetLewa}, G={ksztalt.OffsetGora}, P={ksztalt.OffsetPrawa}, D={ksztalt.OffsetDol}");
+            sb.AppendLine();
+
+            // Wierzchołki
+            if (ksztalt.Wierzcholki != null && ksztalt.Wierzcholki.Count > 0)
+            {
+                sb.AppendLine("Wierzchołki (X, Y):");
+                for (int i = 0; i < ksztalt.Wierzcholki.Count; i++)
+                {
+                    var p = ksztalt.Wierzcholki[i];
+                    sb.AppendLine($"  [{i}] X={Math.Round(p.X, 3)}, Y={Math.Round(p.Y, 3)}");
+                }
+                sb.AppendLine();
+            }
+
+            // Segmenty z łukami
+            if (ksztalt.WierzcholkiZLukami != null && ksztalt.WierzcholkiZLukami.Count > 0)
+            {
+                sb.AppendLine("Segmenty (linie i łuki):");
+                for (int i = 0; i < ksztalt.WierzcholkiZLukami.Count; i++)
+                {
+                    var seg = ksztalt.WierzcholkiZLukami[i];
+                    if (seg.Type == SegmentType.Line)
+                    {
+                        sb.AppendLine($"  [{i}] Linia: Start({Math.Round(seg.Start.X, 3)},{Math.Round(seg.Start.Y, 3)}) -> End({Math.Round(seg.End.X, 3)},{Math.Round(seg.End.Y, 3)})");
+                    }
+                    else if (seg.Type == SegmentType.Arc && seg.Center != null)
+                    {
+                        sb.AppendLine($"  [{i}] Łuk: Start({Math.Round(seg.Start.X, 3)},{Math.Round(seg.Start.Y, 3)}) -> End({Math.Round(seg.End.X, 3)},{Math.Round(seg.End.Y, 3)}) | Środek({Math.Round(seg.Center.Value.X, 3)},{Math.Round(seg.Center.Value.Y, 3)}) | R={Math.Round(seg.Radius, 3)} | {(seg.CounterClockwise ? "CCW" : "CW")}");
+                    }
+                }
+                sb.AppendLine();
+            }
+
+            sb.AppendLine();
+        }
+
+        sb.AppendLine("==========================================");
+
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", sb.ToString());
+
+        await _message.Info("Skopiowano dane wszystkich kształtów do schowka!", 2);
+    }
+
+    private double CalculateArcLength(ContourSegment segment)
+    {
+        if (segment.Type != SegmentType.Arc || !segment.Center.HasValue)
+            return 0;
+
+        double startAngle = Math.Atan2(segment.Start.Y - segment.Center.Value.Y,
+                                       segment.Start.X - segment.Center.Value.X);
+        double endAngle = Math.Atan2(segment.End.Y - segment.Center.Value.Y,
+                                     segment.End.X - segment.Center.Value.X);
+
+        double angleDiff = Math.Abs(endAngle - startAngle);
+        if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
+
+        return segment.Radius * angleDiff;
+    }
+
+    // Funkcja do kopiowania pojedynczego kształtu (dla kompatybilności)
+    private async Task KopiujPojedynczyKsztalt(KsztaltElementu ksztalt)
+    {
+        var lista = new List<KsztaltElementu> { ksztalt };
+        await KopiujDaneKsztaltu(lista);
     }
 
     private async Task ZapiszRegion()
@@ -3799,11 +4097,13 @@
             RowIdModelu = Guid.TryParse(SelectedRowIdType, out var rowIdModelu) ? rowIdModelu : (Guid?)null,
             MVCKonfModelu = generator.MVCKonfModelu,
             Kontur = generator.zewnetrznyKonturZLukami,
+            KonturInner = generator.wewnetrznyKonturZLukami,
             WybranyModel = WybranyModel,
             WybranyKsztalt = WybranyKsztalt,
             IdRegionWarstwaNizej = generator.IdRegionuPonizej,
             Wierzcholki = generator.ElementyRamyRysowane.SelectMany(k => k.Wierzcholki ?? new List<XPoint>()).Distinct().ToList(),
             WierzcholkiWartosciNominalne = WierzcholkiWartosciNominalne,
+            WierzcholkiInner = generator.wewnetrznyKontur,
             LinieDzielace = linieDzielace,
             SlupekRuchomyPoLewejStronie = stronaLewa,
             SlupekRuchomyPoPrawejStronie = stronaPrawa,
@@ -4493,7 +4793,8 @@
                     state.ZIndeks = generator.Zindeks;
                     state.Wierzcholki = regionDoDodania.Wierzcholki;
                     state.WierzcholkiWartosciNominalne = WierzcholkiWartosciNominalne;
-
+                    state.LinieDzielace = linieDzielace;
+                    state.Kontur = regionDoDodania.Kontur;
                     generator.RuchomySlupekPoLewej = stronaLewa;
                     generator.RuchomySlupekPoPrawej = stronaPrawa;
 
@@ -4561,6 +4862,9 @@
         string cleanId = CleanId(state.IdRegion);
 
         await Task.Delay(10); // krótkie opóźnienie dla stabilności
+
+        state.KonturInner = generator.wewnetrznyKonturZLukami;
+        state.WierzcholkiInner = generator.wewnetrznyKontur;
 
         AddOrUpdateGeneratorState(cleanId, state, generator);
 

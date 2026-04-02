@@ -279,15 +279,37 @@ namespace GEORGE.Client.Pages.Models
         {
             var segments = new List<ContourSegment>();
 
-            if (NominalPoints == null || NominalPoints.Count < 2)
-                return segments;
+            double leftX = X;
+            double rightX = X + Width;
+            double bottomY = Y + Height;
+            double arcStartY = Y + ArcHeight;
 
-            for (int i = 0; i < NominalPoints.Count; i++)
-            {
-                var start = NominalPoints[i].Clone();
-                var end = NominalPoints[(i + 1) % NominalPoints.Count].Clone(); // zamknięcie konturu
-                segments.Add(new ContourSegment(start, end));
-            }
+            var arc = CalculateArcGeometry();
+            double cx = arc.centerX;
+            double cy = arc.centerY;
+
+            var bottomLeft = new XPoint(leftX, bottomY);
+            var bottomRight = new XPoint(rightX, bottomY);
+            var topRight = new XPoint(rightX, arcStartY);
+            var topLeft = new XPoint(leftX, arcStartY);
+
+            // dół
+            segments.Add(new ContourSegment(bottomLeft, bottomRight));
+
+            // prawa
+            segments.Add(new ContourSegment(bottomRight, topRight));
+
+            // łuk
+            segments.Add(new ContourSegment(
+                topRight,
+                topLeft,
+                new XPoint(cx, cy),
+                Radius,
+                true
+            ));
+
+            // lewa
+            segments.Add(new ContourSegment(topLeft, bottomLeft));
 
             return segments;
         }

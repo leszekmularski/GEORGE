@@ -267,20 +267,46 @@ namespace GEORGE.Client.Pages.Models
         {
             var segments = new List<ContourSegment>();
 
-            if (NominalPoints == null || NominalPoints.Count < 2)
-                return segments;
+            double leftX = X;
+            double rightX = X + Width;
+            double topY = Y;
+            double bottomY = Y + Height;
 
-            // Tworzymy segmenty między wszystkimi punktami konturu
-            for (int i = 0; i < NominalPoints.Count; i++)
-            {
-                var start = NominalPoints[i].Clone();
-                var end = NominalPoints[(i + 1) % NominalPoints.Count].Clone(); // zamknięcie konturu
-                segments.Add(new ContourSegment(start, end));
-            }
+            double r = Math.Min(Radius, Math.Min(Width, Height) / 2);
+
+            // Punkty charakterystyczne
+            var topStart = new XPoint(leftX + r, topY);   // start góry (po łuku)
+            var topRight = new XPoint(rightX, topY);
+            var bottomRight = new XPoint(rightX, bottomY);
+            var bottomLeft = new XPoint(leftX, bottomY);
+            var leftArcStart = new XPoint(leftX, topY + r); // początek łuku (z lewej)
+
+            // Środek łuku
+            var center = new XPoint(leftX + r, topY + r);
+
+            // 1. góra
+            segments.Add(new ContourSegment(topStart, topRight));
+
+            // 2. prawa
+            segments.Add(new ContourSegment(topRight, bottomRight));
+
+            // 3. dół
+            segments.Add(new ContourSegment(bottomRight, bottomLeft));
+
+            // 4. lewa (do łuku)
+            segments.Add(new ContourSegment(bottomLeft, leftArcStart));
+
+            // 5. łuk (lewy górny)
+            segments.Add(new ContourSegment(
+                leftArcStart,
+                topStart,
+                center,
+                r,
+                false // ArcTo = clockwise
+            ));
 
             return segments;
         }
-
         private XPoint CalculateCentroid(List<XPoint> pts)
         {
             double cx = 0;

@@ -243,19 +243,20 @@ namespace GEORGE.Client.Pages.Models
         }
         public List<ContourSegment> GetContourSegments()
         {
-            if (NominalPoints == null || NominalPoints.Count == 0)
+            if (NominalPoints == null || NominalPoints.Count < 2)
                 return new List<ContourSegment>();
 
             var center = NominalPoints.First();
-            double radius = Szerokosc / 2;
+            double radius = Radius;
 
+            // Tworzymy segment łuku obejmujący cały okrąg
             return new List<ContourSegment>
             {
                 new ContourSegment(
-                    new XPoint(center.X + radius, center.Y),
-                    new XPoint(center.X + radius, center.Y),
-                    center.Clone(),
-                    radius,
+                    start: new XPoint(center.X + radius, center.Y),
+                    end: new XPoint(center.X + radius, center.Y), // koniec = start dla pełnego łuku
+                    center: center.Clone(),
+                    radius: radius,
                     counterClockwise: false
                 )
                 {

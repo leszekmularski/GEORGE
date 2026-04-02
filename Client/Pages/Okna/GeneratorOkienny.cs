@@ -411,6 +411,9 @@ namespace GEORGE.Client.Pages.Okna
 
                 wewnetrznyKonturZLukami = przeskalowanePunktyZLukami;
 
+                // Napraw punkty startowe jeśli potrzebne
+                wewnetrznyKonturZLukami = FixStartPoints(wewnetrznyKonturZLukami);
+
                 punktyRegionuMaster = CalculateOffsetPolygon(punktyRegionuMaster, profileLeft, profileRight, profileTop, profileBottom, false);
 
                 //foreach (var test in punktyRegionuMaster)
@@ -428,6 +431,9 @@ namespace GEORGE.Client.Pages.Okna
                 wewnetrznyKonturZLukami = CalculateOffsetPolygonKontur(przeskalowanePunktyZLukami,
                 profileLeft, profileRight, profileTop, profileBottom,
                 false); // dla modeli z łukami i liniami
+
+                // Napraw punkty startowe jeśli potrzebne
+                wewnetrznyKonturZLukami = FixStartPoints(wewnetrznyKonturZLukami);
 
                 liniaSzkleniaKontur = CalculateOffsetPolygon(
                     przeskalowanePunkty,
@@ -912,12 +918,6 @@ namespace GEORGE.Client.Pages.Okna
                             outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
                             };
 
-                            wierzcholkiZLukami = CreateFullContour(
-                                                wierzcholki,           // punkty
-                                                outerContourSegment,   // segmenty z łukami (dla zewnętrznej części)
-                                                innerContourSegment    // segmenty z łukami (dla wewnętrznej części)
-                                            );
-
                         }
                         else
                         {
@@ -940,11 +940,6 @@ namespace GEORGE.Client.Pages.Okna
                                 outerTop, outerBottom, innerBottom, innerTop
                                 };
 
-                                wierzcholkiZLukami = CreateFullContour(
-                                                    wierzcholki,           // punkty
-                                                    outerContourSegment,   // segmenty z łukami (dla zewnętrznej części)
-                                                    innerContourSegment    // segmenty z łukami (dla wewnętrznej części)
-                                                );
                             }
                             else
                             {
@@ -985,11 +980,6 @@ namespace GEORGE.Client.Pages.Okna
                                 outerTop, outerBottom, innerBottom, innerTop
                                 };
 
-                                wierzcholkiZLukami = CreateFullContour(
-                                                    wierzcholki,           // punkty
-                                                    outerContourSegment,   // segmenty z łukami (dla zewnętrznej części)
-                                                    innerContourSegment    // segmenty z łukami (dla wewnętrznej części)
-                                                );
                             }
                         }
                     }
@@ -1014,11 +1004,6 @@ namespace GEORGE.Client.Pages.Okna
                             outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
                             };
 
-                            wierzcholkiZLukami = CreateFullContour(
-                                                wierzcholki,           // punkty
-                                                outerContourSegment,   // segmenty z łukami (dla zewnętrznej części)
-                                                innerContourSegment    // segmenty z łukami (dla wewnętrznej części)
-                                            );
                         }
                         else
                         {
@@ -1065,12 +1050,6 @@ namespace GEORGE.Client.Pages.Okna
                             outerTop, outerBottom, innerBottom, innerTop
                             };
 
-                            wierzcholkiZLukami = CreateFullContour(
-                                wierzcholki,           // punkty
-                                outerContourSegment,   // segmenty z łukami (dla zewnętrznej części)
-                                innerContourSegment    // segmenty z łukami (dla wewnętrznej części)
-                            );
-
                         }
                     }
 
@@ -1084,11 +1063,6 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT4[1], getEndT4[1], getEndT4[0], getStartT4[0]
                         };
 
-                    wierzcholkiZLukami = CreateFullContour(
-                        wierzcholki,           // punkty
-                        outerContourSegment,   // segmenty z łukami (dla zewnętrznej części)
-                        innerContourSegment    // segmenty z łukami (dla wewnętrznej części)
-                    );
                 }
                 else if (leftJoin == "T1" && rightJoin == "T1")
                 {
@@ -1107,12 +1081,6 @@ namespace GEORGE.Client.Pages.Okna
                     wierzcholki = new List<XPoint> {
                             getStartT1[1], getEndT1[1], getEndT1[0], getStartT1[0]
                         };
-
-                    wierzcholkiZLukami = CreateFullContour(
-                        wierzcholki,           // punkty
-                        outerContourSegment,   // segmenty z łukami (dla zewnętrznej części)
-                        innerContourSegment    // segmenty z łukami (dla wewnętrznej części)
-                    );
 
                 }
                 else if (leftJoin == "T3" && rightJoin == "T3")
@@ -1133,12 +1101,6 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT3[1], getEndT3[1], getEndT3[0], getStartT3[0]
                         };
 
-                    wierzcholkiZLukami = CreateFullContour(
-                        wierzcholki,           // punkty
-                        outerContourSegment,   // segmenty z łukami (dla zewnętrznej części)
-                        innerContourSegment    // segmenty z łukami (dla wewnętrznej części)
-                    );
-
                 }
                 else if (leftJoin == "T2" && rightJoin == "T2")
                 {
@@ -1149,12 +1111,6 @@ namespace GEORGE.Client.Pages.Okna
                     wierzcholki = new List<XPoint> {
                             getStartT2[1], getEndT2[1], getEndT2[0], getStartT2[0]
                         };
-
-                    wierzcholkiZLukami = CreateFullContour(
-                        wierzcholki,           // punkty
-                        outerContourSegment,   // segmenty z łukami (dla zewnętrznej części)
-                        innerContourSegment    // segmenty z łukami (dla wewnętrznej części)
-                    );
 
                 }
                 else if (leftJoin == "T5" && rightJoin == "T5")
@@ -1281,12 +1237,6 @@ namespace GEORGE.Client.Pages.Okna
 
                      };
 
-                    wierzcholkiZLukami = CreateFullContour(
-                        wierzcholki,           // punkty
-                        outerContourSegment,   // segmenty z łukami (dla zewnętrznej części)
-                        innerContourSegment    // segmenty z łukami (dla wewnętrznej części)
-                    );
-
                     Console.WriteLine($"🔷 T5-T5 -> wierzcholki: {wierzcholki.Count} new List<XPoint>");
                 }
                 else if (leftJoin == "T2" && rightJoin == "T1")
@@ -1311,12 +1261,6 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT2[1], getEndT2[1], getEndT1[0], getStartT2[0]
                         };
 
-                    wierzcholkiZLukami = CreateFullContour(
-                        wierzcholki,           // punkty
-                        outerContourSegment,   // segmenty z łukami (dla zewnętrznej części)
-                        innerContourSegment    // segmenty z łukami (dla wewnętrznej części)
-                    );
-
                 }
                 else if (leftJoin == "T1" && rightJoin == "T2")
                 {
@@ -1340,11 +1284,6 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT1[1], getEndT2[1], getEndT2[0], getStartT2[0]
                         };
 
-                    wierzcholkiZLukami = CreateFullContour(
-                        wierzcholki,           // punkty
-                        outerContourSegment,   // segmenty z łukami (dla zewnętrznej części)
-                        innerContourSegment    // segmenty z łukami (dla wewnętrznej części)
-                    );
                 }
                 else if (leftJoin == "T3" && rightJoin == "T2")
                 {
@@ -1368,11 +1307,6 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT3[1], getEndT2[1], getEndT2[0], getStartT3[0]
                     };
 
-                    wierzcholkiZLukami = CreateFullContour(
-                        wierzcholki,           // punkty
-                        outerContourSegment,   // segmenty z łukami (dla zewnętrznej części)
-                        innerContourSegment    // segmenty z łukami (dla wewnętrznej części)
-                    );
                 }
                 else if (leftJoin == "T2" && rightJoin == "T3")
                 {
@@ -1396,11 +1330,6 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT2[1], getEndT3[1], getEndT3[0], getStartT2[0]
                     };
 
-                    wierzcholkiZLukami = CreateFullContour(
-                        wierzcholki,           // punkty
-                        outerContourSegment,   // segmenty z łukami (dla zewnętrznej części)
-                        innerContourSegment    // segmenty z łukami (dla wewnętrznej części)
-                    );
                 }
                 else if (leftJoin == "T3" && rightJoin == "T1")
                 {
@@ -1426,12 +1355,6 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT3[1], getEndT1[1], getEndT1[0], getStartT3[0]
                         };
 
-                    wierzcholkiZLukami = CreateFullContour(
-                        wierzcholki,           // punkty
-                        outerContourSegment,   // segmenty z łukami (dla zewnętrznej części)
-                        innerContourSegment    // segmenty z łukami (dla wewnętrznej części)
-                    );
-
                 }
                 else if (leftJoin == "T4" && rightJoin == "T3")
                 {
@@ -1455,12 +1378,6 @@ namespace GEORGE.Client.Pages.Okna
                     wierzcholki = new List<XPoint> {
                             _getStartT4, getEndT3[1], getEndT3[0], getStartT4[0]
                         };
-
-                    wierzcholkiZLukami = CreateFullContour(
-                        wierzcholki,           // punkty
-                        outerContourSegment,   // segmenty z łukami (dla zewnętrznej części)
-                        innerContourSegment    // segmenty z łukami (dla wewnętrznej części)
-                    );
 
                 }
                 else if (leftJoin == "T3" && rightJoin == "T4")
@@ -1487,11 +1404,6 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT3[1], _getStartT4, getEndT4[0], getStartT3[0]
                         };
 
-                    wierzcholkiZLukami = CreateFullContour(
-                        wierzcholki,           // punkty
-                        outerContourSegment,   // segmenty z łukami (dla zewnętrznej części)
-                        innerContourSegment    // segmenty z łukami (dla wewnętrznej części)
-                    );
                 }
                 else
                 {
@@ -1504,12 +1416,14 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT2[1], getEndT2[1], getEndT2[0], getStartT2[0]
                         };
 
-                    wierzcholkiZLukami = CreateFullContour(
-                                            wierzcholki,           // punkty
-                                            outerContourSegment,   // segmenty z łukami (dla zewnętrznej części)
-                                            innerContourSegment    // segmenty z łukami (dla wewnętrznej części)
-                                        );
                 }
+
+                wierzcholkiZLukami = CreateFullContourFromGlobalContour(
+                                        outer,           // punkty
+                                        outerContourSegment,   // segmenty z łukami (dla zewnętrznej części)
+                                        inner,
+                                        innerContourSegment    // segmenty z łukami (dla wewnętrznej części)
+                                    );
 
                 double regionMinX = wierzcholki.Min(p => p.X);
                 double regionMaxX = wierzcholki.Max(p => p.X);
@@ -1603,93 +1517,61 @@ namespace GEORGE.Client.Pages.Okna
             return true;
         }
 
-
-        /// <summary>
-        /// Tworzy wszystkie kontury (zewnętrzne i wewnętrzne) - NIE ŁĄCZY ICH!
-        /// </summary>
-        /// <summary>
-        /// Tworzy kontur z punktów narożnych, uzupełniając o łuki jeśli istnieją
-        /// </summary>
-        private List<ContourSegment> CreateFullContour(
-            List<XPoint> cornerPoints,
+        public static List<ContourSegment> CreateFullContourFromGlobalContour(
+            List<XPoint> outerPoints,
             List<ContourSegment> outerSegments,
+            List<XPoint> innerPoints,
             List<ContourSegment> innerSegments)
         {
             var result = new List<ContourSegment>();
 
-            if (cornerPoints == null || cornerPoints.Count < 2)
-                return result;
-
-            Console.WriteLine($"\n🔧 Tworzenie konturu z {cornerPoints.Count} punktów narożnych");
-
-            // Dla każdej pary kolejnych punktów narożnych
-            for (int i = 0; i < cornerPoints.Count; i++)
+            // Dodajemy segmenty zewnętrzne
+            if (outerSegments != null)
             {
-                var start = cornerPoints[i];
-                var end = cornerPoints[(i + 1) % cornerPoints.Count];
-
-                // Szukaj pasującego łuku
-                var matchingArc = FindMatchingArc(start, end, outerSegments, innerSegments);
-
-                if (matchingArc != null)
+                foreach (var seg in outerSegments)
                 {
-                    // Znaleziono łuk - użyj go
-                    result.Add(matchingArc);
-                    Console.WriteLine($"  ✅ Łuk: ({start.X:F2},{start.Y:F2}) -> ({end.X:F2},{end.Y:F2}) [R={matchingArc.Radius:F2}]");
-                }
-                else
-                {
-                    // Brak łuku - utwórz linię
-                    result.Add(new ContourSegment(start, end));
-                    Console.WriteLine($"  ✅ Linia: ({start.X:F2},{start.Y:F2}) -> ({end.X:F2},{end.Y:F2})");
+                    // kopiujemy segment, zachowując typ, promień i kierunek jeśli to łuk
+                    if (seg.Type == SegmentType.Arc)
+                    {
+                        result.Add(new ContourSegment(seg.Start, seg.End, seg.Center, seg.Radius, seg.CounterClockwise));
+                    }
+                    else
+                    {
+                        result.Add(new ContourSegment(seg.Start, seg.End));
+                    }
                 }
             }
 
-            Console.WriteLine($"📊 Utworzono {result.Count} segmentów (linie: {result.Count(s => s.Type == SegmentType.Line)}, łuki: {result.Count(s => s.Type == SegmentType.Arc)})");
+            // Dodajemy segmenty wewnętrzne
+            if (innerSegments != null)
+            {
+                foreach (var seg in innerSegments)
+                {
+                    if (seg.Type == SegmentType.Arc)
+                    {
+                        result.Add(new ContourSegment(seg.Start, seg.End, seg.Center, seg.Radius, seg.CounterClockwise));
+                    }
+                    else
+                    {
+                        result.Add(new ContourSegment(seg.Start, seg.End));
+                    }
+                }
+            }
+
+            // Opcjonalnie: usuwamy duplikaty (segmenty o tych samych punktach i typie)
+            result = result
+                .GroupBy(s => new
+                {
+                    StartX = s.Start.X,
+                    StartY = s.Start.Y,
+                    EndX = s.End.X,
+                    EndY = s.End.Y,
+                    SegmentType = s.Type
+                })
+                .Select(g => g.First())
+                .ToList();
 
             return result;
-        }
-
-        /// <summary>
-        /// Znajduje pasujący łuk dla pary punktów start-end
-        /// </summary>
-        private ContourSegment FindMatchingArc(
-            XPoint start,
-            XPoint end,
-            List<ContourSegment> outerSegments,
-            List<ContourSegment> innerSegments)
-        {
-            // Połącz wszystkie segmenty do przeszukania
-            var allSegments = new List<ContourSegment>();
-            if (outerSegments != null) allSegments.AddRange(outerSegments);
-            if (innerSegments != null) allSegments.AddRange(innerSegments);
-
-            // Szukaj łuku pasującego do punktów start i end
-            foreach (var seg in allSegments)
-            {
-                if (seg.Type != SegmentType.Arc || seg.Center == null)
-                    continue;
-
-                // Sprawdź czy start i end pasują (kolejność może być odwrócona)
-                bool matchesForward = PointsEqual(seg.Start, start) && PointsEqual(seg.End, end);
-                bool matchesReverse = PointsEqual(seg.Start, end) && PointsEqual(seg.End, start);
-
-                if (matchesForward || matchesReverse)
-                {
-                    // Zwróć łuk z zachowaniem oryginalnego kierunku
-                    return seg;
-                }
-            }
-
-            return null; // Nie znaleziono pasującego łuku
-        }
-
-        /// <summary>
-        /// Porównuje dwa punkty z tolerancją
-        /// </summary>
-        private bool PointsEqual(XPoint p1, XPoint p2, double tolerance = 0.01)
-        {
-            return Math.Abs(p1.X - p2.X) < tolerance && Math.Abs(p1.Y - p2.Y) < tolerance;
         }
 
         // Nowa funkcja do obliczania długości konturu (uwzględnia łuki)
@@ -1751,86 +1633,86 @@ namespace GEORGE.Client.Pages.Okna
             double dy = p2.Y - p1.Y;
             return Math.Sqrt(dx * dx + dy * dy);
         }
-        private List<XPoint> GetStartPointsFromContour(List<ContourSegment> kontur)
-        {
-            var points = new List<XPoint>();
-            foreach (var segment in kontur)
-            {
-                points.Add(segment.Start);
-            }
-            // Dodaj ostatni punkt End jeśli kontur jest zamknięty i różni się od pierwszego
-            if (kontur.Count > 0)
-            {
-                var lastPoint = kontur.Last().End;
-                if (points.Count == 0 || !ArePointsEqual(points[0], lastPoint))
-                {
-                    points.Add(lastPoint);
-                }
-            }
-            return points;
-        }
+        //private List<XPoint> GetStartPointsFromContour(List<ContourSegment> kontur)
+        //{
+        //    var points = new List<XPoint>();
+        //    foreach (var segment in kontur)
+        //    {
+        //        points.Add(segment.Start);
+        //    }
+        //    // Dodaj ostatni punkt End jeśli kontur jest zamknięty i różni się od pierwszego
+        //    if (kontur.Count > 0)
+        //    {
+        //        var lastPoint = kontur.Last().End;
+        //        if (points.Count == 0 || !ArePointsEqual(points[0], lastPoint))
+        //        {
+        //            points.Add(lastPoint);
+        //        }
+        //    }
+        //    return points;
+        //}
 
-        private List<ContourSegment> GenerateContourSegmentsFromOriginal(
-           ContourSegment originalOuterSegment,
-           ContourSegment originalInnerSegment,
-           string leftJoin,
-           string rightJoin,
-           float profile)
-        {
-            var segments = new List<ContourSegment>();
+        //private List<ContourSegment> GenerateContourSegmentsFromOriginal(
+        //   ContourSegment originalOuterSegment,
+        //   ContourSegment originalInnerSegment,
+        //   string leftJoin,
+        //   string rightJoin,
+        //   float profile)
+        //{
+        //    var segments = new List<ContourSegment>();
 
-            // Sprawdź czy oryginalny segment był łukiem
-            if (originalOuterSegment.Type == SegmentType.Arc)
-            {
-                // Kopiujemy łuk
-                var arcSegment = new ContourSegment(
-                    new XPoint(originalOuterSegment.Start.X, originalOuterSegment.Start.Y),
-                    new XPoint(originalOuterSegment.End.X, originalOuterSegment.End.Y),
-                    originalOuterSegment.Center.HasValue
-                        ? new XPoint(originalOuterSegment.Center.Value.X, originalOuterSegment.Center.Value.Y)
-                        : (XPoint?)null,
-                    originalOuterSegment.Radius,
-                    originalOuterSegment.CounterClockwise);
+        //    // Sprawdź czy oryginalny segment był łukiem
+        //    if (originalOuterSegment.Type == SegmentType.Arc)
+        //    {
+        //        // Kopiujemy łuk
+        //        var arcSegment = new ContourSegment(
+        //            new XPoint(originalOuterSegment.Start.X, originalOuterSegment.Start.Y),
+        //            new XPoint(originalOuterSegment.End.X, originalOuterSegment.End.Y),
+        //            originalOuterSegment.Center.HasValue
+        //                ? new XPoint(originalOuterSegment.Center.Value.X, originalOuterSegment.Center.Value.Y)
+        //                : (XPoint?)null,
+        //            originalOuterSegment.Radius,
+        //            originalOuterSegment.CounterClockwise);
 
-                Console.WriteLine($"   Generowany kontur dla łuków --> originalOuterSegment.Start.X: {originalOuterSegment.Start.X}, originalOuterSegment.Start.Y: {originalOuterSegment.Start.Y}, originalOuterSegment.End.X: {originalOuterSegment.End.X}, originalOuterSegment.End.Y: {originalOuterSegment.End.Y}, originalOuterSegment.Center.Value.X: {originalOuterSegment.Center.Value.X}, originalOuterSegment.Center.Value.Y: {originalOuterSegment.Center.Value.Y}, originalOuterSegment.Radius: {originalOuterSegment.Radius} originalOuterSegment.CounterClockwise:{originalOuterSegment.CounterClockwise})");
+        //        Console.WriteLine($"   Generowany kontur dla łuków --> originalOuterSegment.Start.X: {originalOuterSegment.Start.X}, originalOuterSegment.Start.Y: {originalOuterSegment.Start.Y}, originalOuterSegment.End.X: {originalOuterSegment.End.X}, originalOuterSegment.End.Y: {originalOuterSegment.End.Y}, originalOuterSegment.Center.Value.X: {originalOuterSegment.Center.Value.X}, originalOuterSegment.Center.Value.Y: {originalOuterSegment.Center.Value.Y}, originalOuterSegment.Radius: {originalOuterSegment.Radius} originalOuterSegment.CounterClockwise:{originalOuterSegment.CounterClockwise})");
 
-                segments.Add(arcSegment);
-            }
-            else
-            {
-                // Dla linii - generujemy zamknięty kontur (prostokąt) na podstawie oryginalnego segmentu
-                float dx = (float)(originalOuterSegment.End.X - originalOuterSegment.Start.X);
-                float dy = (float)(originalOuterSegment.End.Y - originalOuterSegment.Start.Y);
-                float length = MathF.Sqrt(dx * dx + dy * dy);
+        //        segments.Add(arcSegment);
+        //    }
+        //    else
+        //    {
+        //        // Dla linii - generujemy zamknięty kontur (prostokąt) na podstawie oryginalnego segmentu
+        //        float dx = (float)(originalOuterSegment.End.X - originalOuterSegment.Start.X);
+        //        float dy = (float)(originalOuterSegment.End.Y - originalOuterSegment.Start.Y);
+        //        float length = MathF.Sqrt(dx * dx + dy * dy);
 
-                if (length > 0.001f)
-                {
-                    float tx = dx / length;
-                    float ty = dy / length;
-                    float nx = -ty;
-                    float ny = tx;
+        //        if (length > 0.001f)
+        //        {
+        //            float tx = dx / length;
+        //            float ty = dy / length;
+        //            float nx = -ty;
+        //            float ny = tx;
 
-                    // Punkty prostokąta
-                    XPoint p1 = originalOuterSegment.Start;
-                    XPoint p2 = originalOuterSegment.End;
-                    XPoint p3 = new XPoint(p2.X + nx * profile, p2.Y + ny * profile);
-                    XPoint p4 = new XPoint(p1.X + nx * profile, p1.Y + ny * profile);
+        //            // Punkty prostokąta
+        //            XPoint p1 = originalOuterSegment.Start;
+        //            XPoint p2 = originalOuterSegment.End;
+        //            XPoint p3 = new XPoint(p2.X + nx * profile, p2.Y + ny * profile);
+        //            XPoint p4 = new XPoint(p1.X + nx * profile, p1.Y + ny * profile);
 
-                    // Cztery krawędzie prostokąta
-                    segments.Add(new ContourSegment(p1, p2)); // górna/dolna w zależności od orientacji
-                    segments.Add(new ContourSegment(p2, p3)); // prawa
-                    segments.Add(new ContourSegment(p3, p4)); // dolna/górna
-                    segments.Add(new ContourSegment(p4, p1)); // lewa
+        //            // Cztery krawędzie prostokąta
+        //            segments.Add(new ContourSegment(p1, p2)); // górna/dolna w zależności od orientacji
+        //            segments.Add(new ContourSegment(p2, p3)); // prawa
+        //            segments.Add(new ContourSegment(p3, p4)); // dolna/górna
+        //            segments.Add(new ContourSegment(p4, p1)); // lewa
 
-                    Console.WriteLine($"   Generowany kontur dla linii - punkty: ({p1.X:F1},{p1.Y:F1})->({p2.X:F1},{p2.Y:F1})->({p3.X:F1},{p3.Y:F1})->({p4.X:F1},{p4.Y:F1})");
-                }
-            }
+        //            Console.WriteLine($"   Generowany kontur dla linii - punkty: ({p1.X:F1},{p1.Y:F1})->({p2.X:F1},{p2.Y:F1})->({p3.X:F1},{p3.Y:F1})->({p4.X:F1},{p4.Y:F1})");
+        //        }
+        //    }
 
-            return segments;
-        }
+        //    return segments;
+        //}
         private List<XPoint> GetStartT1(XPoint _innerP, XPoint _outerP, List<XPoint> _outer, float angleDegrees,
-            float prevangleDegrees, float nextangleDegrees, string stronaWModelu,
-            string stonaOstanioDodanegoElementu, int nk)
+        float prevangleDegrees, float nextangleDegrees, string stronaWModelu,
+        string stonaOstanioDodanegoElementu, int nk)
         {
             List<XPoint> intersections = new List<XPoint>();
 
@@ -2055,96 +1937,95 @@ namespace GEORGE.Client.Pages.Okna
 
             return intersections;
         }
+        //private List<ContourSegment> GetStartT2(ContourSegment inner, ContourSegment outer)
+        //{
+        //    var segments = new List<ContourSegment>();
 
-        private List<ContourSegment> GetStartT2(ContourSegment inner, ContourSegment outer)
-        {
-            var segments = new List<ContourSegment>();
+        //    // Kopiowanie segmentu inner
+        //    if (inner.Type == SegmentType.Line)
+        //    {
+        //        segments.Add(new ContourSegment(
+        //            new XPoint(inner.Start.X, inner.Start.Y),
+        //            new XPoint(inner.End.X, inner.End.Y)
+        //        ));
+        //    }
+        //    else if (inner.Type == SegmentType.Arc && inner.Center != null)
+        //    {
+        //        segments.Add(new ContourSegment(
+        //            new XPoint(inner.Start.X, inner.Start.Y),
+        //            new XPoint(inner.End.X, inner.End.Y),
+        //            new XPoint(inner.Center.Value.X, inner.Center.Value.Y),
+        //            inner.Radius,
+        //            inner.CounterClockwise
+        //        ));
+        //    }
 
-            // Kopiowanie segmentu inner
-            if (inner.Type == SegmentType.Line)
-            {
-                segments.Add(new ContourSegment(
-                    new XPoint(inner.Start.X, inner.Start.Y),
-                    new XPoint(inner.End.X, inner.End.Y)
-                ));
-            }
-            else if (inner.Type == SegmentType.Arc && inner.Center != null)
-            {
-                segments.Add(new ContourSegment(
-                    new XPoint(inner.Start.X, inner.Start.Y),
-                    new XPoint(inner.End.X, inner.End.Y),
-                    new XPoint(inner.Center.Value.X, inner.Center.Value.Y),
-                    inner.Radius,
-                    inner.CounterClockwise
-                ));
-            }
+        //    // Kopiowanie segmentu outer
+        //    if (outer.Type == SegmentType.Line)
+        //    {
+        //        segments.Add(new ContourSegment(
+        //            new XPoint(outer.Start.X, outer.Start.Y),
+        //            new XPoint(outer.End.X, outer.End.Y)
+        //        ));
+        //    }
+        //    else if (outer.Type == SegmentType.Arc && outer.Center != null)
+        //    {
+        //        segments.Add(new ContourSegment(
+        //            new XPoint(outer.Start.X, outer.Start.Y),
+        //            new XPoint(outer.End.X, outer.End.Y),
+        //            new XPoint(outer.Center.Value.X, outer.Center.Value.Y),
+        //            outer.Radius,
+        //            outer.CounterClockwise
+        //        ));
+        //    }
 
-            // Kopiowanie segmentu outer
-            if (outer.Type == SegmentType.Line)
-            {
-                segments.Add(new ContourSegment(
-                    new XPoint(outer.Start.X, outer.Start.Y),
-                    new XPoint(outer.End.X, outer.End.Y)
-                ));
-            }
-            else if (outer.Type == SegmentType.Arc && outer.Center != null)
-            {
-                segments.Add(new ContourSegment(
-                    new XPoint(outer.Start.X, outer.Start.Y),
-                    new XPoint(outer.End.X, outer.End.Y),
-                    new XPoint(outer.Center.Value.X, outer.Center.Value.Y),
-                    outer.Radius,
-                    outer.CounterClockwise
-                ));
-            }
+        //    return segments;
+        //}
+        //private List<ContourSegment> GetEndT2(ContourSegment inner, ContourSegment outer)
+        //{
+        //    var segments = new List<ContourSegment>();
 
-            return segments;
-        }
+        //    // Kopiowanie segmentu inner
+        //    if (inner.Type == SegmentType.Line)
+        //    {
+        //        segments.Add(new ContourSegment(
+        //            new XPoint(inner.Start.X, inner.Start.Y),
+        //            new XPoint(inner.End.X, inner.End.Y)
+        //        ));
+        //    }
+        //    else if (inner.Type == SegmentType.Arc && inner.Center != null)
+        //    {
+        //        segments.Add(new ContourSegment(
+        //            new XPoint(inner.Start.X, inner.Start.Y),
+        //            new XPoint(inner.End.X, inner.End.Y),
+        //            new XPoint(inner.Center.Value.X, inner.Center.Value.Y),
+        //            inner.Radius,
+        //            inner.CounterClockwise
+        //        ));
+        //    }
 
-        private List<ContourSegment> GetEndT2(ContourSegment inner, ContourSegment outer)
-        {
-            var segments = new List<ContourSegment>();
+        //    // Kopiowanie segmentu outer
+        //    if (outer.Type == SegmentType.Line)
+        //    {
+        //        segments.Add(new ContourSegment(
+        //            new XPoint(outer.Start.X, outer.Start.Y),
+        //            new XPoint(outer.End.X, outer.End.Y)
+        //        ));
+        //    }
+        //    else if (outer.Type == SegmentType.Arc && outer.Center != null)
+        //    {
+        //        segments.Add(new ContourSegment(
+        //            new XPoint(outer.Start.X, outer.Start.Y),
+        //            new XPoint(outer.End.X, outer.End.Y),
+        //            new XPoint(outer.Center.Value.X, outer.Center.Value.Y),
+        //            outer.Radius,
+        //            outer.CounterClockwise
+        //        ));
+        //    }
 
-            // Kopiowanie segmentu inner
-            if (inner.Type == SegmentType.Line)
-            {
-                segments.Add(new ContourSegment(
-                    new XPoint(inner.Start.X, inner.Start.Y),
-                    new XPoint(inner.End.X, inner.End.Y)
-                ));
-            }
-            else if (inner.Type == SegmentType.Arc && inner.Center != null)
-            {
-                segments.Add(new ContourSegment(
-                    new XPoint(inner.Start.X, inner.Start.Y),
-                    new XPoint(inner.End.X, inner.End.Y),
-                    new XPoint(inner.Center.Value.X, inner.Center.Value.Y),
-                    inner.Radius,
-                    inner.CounterClockwise
-                ));
-            }
+        //    return segments;
+        //}
 
-            // Kopiowanie segmentu outer
-            if (outer.Type == SegmentType.Line)
-            {
-                segments.Add(new ContourSegment(
-                    new XPoint(outer.Start.X, outer.Start.Y),
-                    new XPoint(outer.End.X, outer.End.Y)
-                ));
-            }
-            else if (outer.Type == SegmentType.Arc && outer.Center != null)
-            {
-                segments.Add(new ContourSegment(
-                    new XPoint(outer.Start.X, outer.Start.Y),
-                    new XPoint(outer.End.X, outer.End.Y),
-                    new XPoint(outer.Center.Value.X, outer.Center.Value.Y),
-                    outer.Radius,
-                    outer.CounterClockwise
-                ));
-            }
-
-            return segments;
-        }
         private float ObliczRoznicePoziomow(KonfSystem? konf, bool slupekStaly)
         {
             if (konf == null)
@@ -2907,6 +2788,20 @@ namespace GEORGE.Client.Pages.Okna
         // =====================
         // FUNKCJE POMOCNICZE
         // =====================
+
+        private List<ContourSegment> FixStartPoints(List<ContourSegment> segments)
+        {
+            if (segments == null || segments.Count == 0)
+                return segments;
+
+            // Pobierz punkt końcowy ostatniego segmentu
+            var lastEndPoint = segments[segments.Count - 1].End;
+
+            segments[0].Start = lastEndPoint;
+
+            return segments;
+        }
+
 
         /// <summary>
         /// Określa czy kontur jest zgodny z ruchem wskazówek zegara (CW)
