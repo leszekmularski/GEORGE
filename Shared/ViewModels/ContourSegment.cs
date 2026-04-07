@@ -31,5 +31,24 @@ namespace GEORGE.Shared.ViewModels
             CounterClockwise = counterClockwise;
             Type = SegmentType.Arc;
         }
+
+        // METODA KLONUJĄCA
+        public ContourSegment Clone()
+        {
+            if (this.Type == SegmentType.Arc)
+            {
+                return new ContourSegment(this.Start, this.End, this.Center, this.Radius, this.CounterClockwise)
+                {
+                    Informacja = this.Informacja
+                };
+            }
+            else
+            {
+                return new ContourSegment(this.Start, this.End)
+                {
+                    Informacja = this.Informacja
+                };
+            }
+        }
     }
 }

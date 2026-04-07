@@ -45,12 +45,17 @@ namespace GEORGE.Shared.ViewModels
             return $"({X:0.###}, {Y:0.###})";
         }
 
-        // ---------------------------------------------------------
-        // 🔥 Dodane — Clone() dla zgodności z interfejsami
-        // ---------------------------------------------------------
         public XPoint Clone()
         {
             return new XPoint(X, Y);
+        }
+
+
+        public double DistanceTo(XPoint other)
+        {
+            double dx = this.X - other.X;
+            double dy = this.Y - other.Y;
+            return Math.Sqrt(dx * dx + dy * dy);
         }
     }
 }

@@ -3358,7 +3358,7 @@
             // {
             //     Console.WriteLine($"🔄 Przetwarzam region: {genState.Value.IdRegion}");
             // }
-
+        
             foreach (var genState in obrGen)
             {
                 string cleanId = genState.Value.IdRegion;
@@ -3373,17 +3373,23 @@
                 }
 
                 // Aktualizuj wierzchołki w stanie generatora
+                if (region.Kontur != null && region.Kontur.Any())
+                {
+                    var nowyKontur = region.Kontur.Select(p => p.Clone()).ToList();
+                    genState.Value.Kontur = nowyKontur;
+
+                    Console.WriteLine($"📐 Nowe wierzchołki linii i łuków dla cleanId: {cleanId} TypKsztaltu: {region.TypKsztaltu} --> {region.Wierzcholki.Max(x => x.X)}x{region.Wierzcholki.Max(x => x.Y)}");
+                }
+
                 if (region.Wierzcholki != null && region.Wierzcholki.Any())
                 {
                     var nowe = region.Wierzcholki.Select(p => new XPoint(p.X, p.Y)).ToList();
-                    var nowyKontur = region.Kontur.Select(p => new ContourSegment(p.Start, p.End)).ToList();
 
                     genState.Value.Wierzcholki = nowe;
                     genState.Value.WierzcholkiWartosciNominalne = nowe;
                     genState.Value.StaryRegionOrigin = region.Wierzcholki.First();
-                    genState.Value.Kontur = nowyKontur;
 
-                    Console.WriteLine($"📐 Nowe wierzchołki dla cleanId: {cleanId} TypKsztaltu: {region.TypKsztaltu} --> {region.Wierzcholki.Max(x => x.X)}x{region.Wierzcholki.Max(x => x.Y)}");
+                    Console.WriteLine($"📐 Nowe wierzchołki linii dla cleanId: {cleanId} TypKsztaltu: {region.TypKsztaltu} --> {region.Wierzcholki.Max(x => x.X)}x{region.Wierzcholki.Max(x => x.Y)}");
                 }
 
                 var generator = genState.Value.Generator;

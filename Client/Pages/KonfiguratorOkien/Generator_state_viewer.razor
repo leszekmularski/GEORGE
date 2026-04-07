@@ -602,7 +602,7 @@
                                     @if (wybranePunktyZLukami != null && wybranePunktyZLukami.Count > 0)
                                     {
                                         <div class="alert alert-info mt-2">
-                                            <strong>📊 Podsumowanie (zewnętrzne):</strong>
+                                            <strong>📊 Podsumowanie (zewnętrzne): </strong>
                                             @{
                                                 int arcCount = wybranePunktyZLukami.Count(s => s.Type == SegmentType.Arc);
                                                 int lineCount = wybranePunktyZLukami.Count(s => s.Type == SegmentType.Line);
@@ -620,7 +620,7 @@
                                     else if (wybranePunkty != null && wybranePunkty.Count > 0)
                                     {
                                         <div class="alert alert-info mt-2">
-                                            <strong>📊 Podsumowanie (zewnętrzne):</strong>
+                                            <strong>📊 Podsumowanie (zewnętrzne): </strong>
                                             <strong>@wybranePunkty.Count</strong> punktów
                                         </div>
                                     }
@@ -846,7 +846,7 @@
                                         @if (KonturInner != null && KonturInner.Count > 0)
                                         {
                                             <div class="alert alert-success mt-2">
-                                                <strong>📊 Podsumowanie (wewnętrzne):</strong>
+                                                <strong>📊 Podsumowanie (wewnętrzne): </strong>
                                                 @{
                                                     int arcCountInner = KonturInner.Count(s => s.Type == SegmentType.Arc);
                                                     int lineCountInner = KonturInner.Count(s => s.Type == SegmentType.Line);
@@ -864,7 +864,7 @@
                                         else if (WierzcholkiInner != null && WierzcholkiInner.Count > 0)
                                         {
                                             <div class="alert alert-success mt-2">
-                                                <strong>📊 Podsumowanie (wewnętrzne):</strong>
+                                                <strong>📊 Podsumowanie (wewnętrzne): </strong>
                                                 <strong>@WierzcholkiInner.Count</strong> punktów
                                             </div>
                                         }
