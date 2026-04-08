@@ -1,7 +1,6 @@
 ﻿using GEORGE.Client.Pages.KonfiguratorOkien;
 using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.ViewModels;
-using static Aspose.ThreeD.Entities.CompositeCurve;
 
 namespace GEORGE.Client.Pages.Utils
 {
@@ -441,7 +440,8 @@ namespace GEORGE.Client.Pages.Utils
                                 Radius = Math.Round(s.Radius, 2),
                                 CounterClockwise = s.CounterClockwise
                             })
-                            .Select(g => {
+                            .Select(g =>
+                            {
                                 var originalSegment = g.First();
 
                                 var segment = new ContourSegment(
