@@ -1539,6 +1539,7 @@ namespace GEORGE.Client.Pages.Okna
             return true;
         }
 
+
         public List<ContourSegment> Build4SegmentContour(
         List<XPoint> wierzcholki,
         List<ContourSegment> outerContour,
@@ -1547,346 +1548,187 @@ namespace GEORGE.Client.Pages.Okna
             if (wierzcholki == null || wierzcholki.Count != 4)
                 throw new ArgumentException("Lista wierzchołków musi zawierać dokładnie 4 punkty.");
 
-            // Znajdujemy segmenty konturu odpowiadające podanym punktom
-            Console.WriteLine($"🔷 Budowanie konturu 4-segmentowego dla wierzchołków: {wierzcholki[0].X}/{wierzcholki[0].Y}, {wierzcholki[1].X}/{wierzcholki[1].Y}, {wierzcholki[2].X}/{wierzcholki[2].Y}, {wierzcholki[3].X}/{wierzcholki[3].Y}");
-            ContourSegment outerSegment = this.FindClosestSegment(wierzcholki[0], wierzcholki[1], outerContour);
-            ContourSegment innerSegment = this.FindClosestSegment(wierzcholki[2], wierzcholki[3], innerContour);
+            // Sprawdź czy kontury są współśrodkowe
+            XPoint? commonCenter = GetCommonCenter(outerContour, innerContour);
+            bool isConcentric = commonCenter.HasValue;
 
-            // Linie łączące punkty zewnętrzne z wewnętrznymi
-            ContourSegment line1 = new ContourSegment(wierzcholki[1], wierzcholki[2]);
-            ContourSegment line2 = new ContourSegment(wierzcholki[3], wierzcholki[0]);
+            // Znajdujemy najbliższe segmenty zewnętrzne i wewnętrzne
+            ContourSegment outerSegment = FindClosestSegment(wierzcholki[0], wierzcholki[1], outerContour);
+            ContourSegment innerSegment = null;
 
-            if (outerSegment.Type == SegmentType.Line)
+            if (outerSegment.Type == SegmentType.Arc && outerSegment.Center != null)
             {
-                innerSegment = new ContourSegment(wierzcholki[2], wierzcholki[3]);
+                XPoint center = outerSegment.Center.Value;
+
+                // Punkty na zewnętrznym łuku (z wierzchołków)
+                XPoint outerStart = wierzcholki[0];
+                XPoint outerEnd = wierzcholki[1];
+
+                // Oblicz kąty dla punktów zewnętrznych
+                double angle1 = Math.Atan2(outerStart.Y - center.Y, outerStart.X - center.X);
+                double angle2 = Math.Atan2(outerEnd.Y - center.Y, outerEnd.X - center.X);
+
+                // Znajdź wewnętrzny łuk
+                var innerArc = innerContour.FirstOrDefault(s => s.Type == SegmentType.Arc && s.Center != null);
+                if (innerArc == null)
+                    throw new InvalidOperationException("Nie znaleziono łuku w innerContour.");
+
+                double innerRadius = innerArc.Radius;
+                XPoint innerCenter = innerArc.Center.Value;
+
+                // Oblicz punkty na wewnętrznym okręgu (promieniście)
+                XPoint innerStart = new XPoint(
+                    innerCenter.X + innerRadius * Math.Cos(angle1),
+                    innerCenter.Y + innerRadius * Math.Sin(angle1)
+                );
+
+                XPoint innerEnd = new XPoint(
+                    innerCenter.X + innerRadius * Math.Cos(angle2),
+                    innerCenter.Y + innerRadius * Math.Sin(angle2)
+                );
+
+                // 🔥 WAŻNE: Zewnętrzny łuk = CW (zgodny z ruchem wskazówek)
+                // 🔥 Wewnętrzny łuk = CCW (przeciwny do ruchu wskazówek)
+                outerSegment = new ContourSegment(outerStart, outerEnd, center, outerSegment.Radius, false); // CW
+                innerSegment = new ContourSegment(innerEnd, innerStart, innerCenter, innerRadius, true); // CCW (odwrócona kolejność!)
+            }
+            else
+            {
+                // Dla linii prostych
                 outerSegment = new ContourSegment(wierzcholki[0], wierzcholki[1]);
+                innerSegment = new ContourSegment(wierzcholki[2], wierzcholki[3]);
             }
 
-            innerSegment = new ContourSegment(wierzcholki[2], wierzcholki[3]);
+            // 🔥 Linie łączące – zawsze w kierunku od zewnętrznego do wewnętrznego
+            ContourSegment line1 = new ContourSegment(outerSegment.End, innerSegment.Start)
+            {
+                Informacja = "Łącznik prawy (do środka)"
+            };
 
-            // Zwracamy kompletny kontur 4-segmentowy w poprawnej kolejności
+            ContourSegment line2 = new ContourSegment(innerSegment.End, outerSegment.Start)
+            {
+                Informacja = "Łącznik lewy (na zewnątrz)"
+            };
+
             return new List<ContourSegment>
             {
-                outerSegment, // zewnętrzny segment (może być łuk lub linia)
-                line1,        // linia łącząca zewnętrzny punkt 0 z wewnętrznym punkt 1
-                innerSegment, // wewnętrzny segment (może być łuk lub linia)
-                line2         // linia łącząca wewnętrzny punkt 2 z zewnętrznym punkt 3
+                outerSegment,  // Łuk CW (zewnętrzny)
+                line1,         // Linia do wewnątrz
+                innerSegment,  // Łuk CCW (wewnętrzny)
+                line2          // Linia na zewnątrz
             };
+        }
+
+        /// <summary>
+        /// Sprawdza czy kontury są współśrodkowe (mają ten sam środek)
+        /// </summary>
+        private XPoint? GetCommonCenter(List<ContourSegment> outerContour, List<ContourSegment> innerContour)
+        {
+            XPoint? outerCenter = null;
+            XPoint? innerCenter = null;
+
+            // Znajdź środek zewnętrznego łuku
+            foreach (var seg in outerContour)
+            {
+                if (seg.Type == SegmentType.Arc && seg.Center != null)
+                {
+                    outerCenter = seg.Center.Value;
+                    break;
+                }
+            }
+
+            // Znajdź środek wewnętrznego łuku
+            foreach (var seg in innerContour)
+            {
+                if (seg.Type == SegmentType.Arc && seg.Center != null)
+                {
+                    innerCenter = seg.Center.Value;
+                    break;
+                }
+            }
+
+            // Sprawdź czy środki istnieją i są takie same (z tolerancją)
+            if (outerCenter.HasValue && innerCenter.HasValue)
+            {
+                double dx = outerCenter.Value.X - innerCenter.Value.X;
+                double dy = outerCenter.Value.Y - innerCenter.Value.Y;
+                double distance = Math.Sqrt(dx * dx + dy * dy);
+
+                if (distance < 0.1) // Tolerancja 0.1 jednostki
+                {
+                    return outerCenter.Value;
+                }
+            }
+
+            return null;
         }
 
         public ContourSegment FindClosestSegment(XPoint p1, XPoint p2, List<ContourSegment> contourSegments)
         {
             if (contourSegments == null || contourSegments.Count == 0)
-                return null;
+                throw new InvalidOperationException("ContourSegments pusta.");
 
             ContourSegment closest = null;
             double minDistance = double.MaxValue;
 
             foreach (var seg in contourSegments)
             {
-                // odległość sumy punktów końcowych od podanych punktów
-                double d1 = (seg.Start.X - p1.X) * (seg.Start.X - p1.X) + (seg.Start.Y - p1.Y) * (seg.Start.Y - p1.Y);
-                double d2 = (seg.End.X - p2.X) * (seg.End.X - p2.X) + (seg.End.Y - p2.Y) * (seg.End.Y - p2.Y);
-                double totalDistance = d1 + d2;
-
-                if (totalDistance < minDistance)
+                // Dla łuków: sprawdź odległość punktów do łuku
+                if (seg.Type == SegmentType.Arc && seg.Center != null)
                 {
-                    minDistance = totalDistance;
-                    closest = seg;
+                    double dist1 = DistanceToArc(p1, seg);
+                    double dist2 = DistanceToArc(p2, seg);
+                    double totalDistance = dist1 + dist2;
+
+                    if (totalDistance < minDistance)
+                    {
+                        minDistance = totalDistance;
+                        closest = seg;
+                    }
+                }
+                else
+                {
+                    // Dla linii: sprawdź odległość do punktów końcowych
+                    double d1 = DistanceSquared(seg.Start, p1);
+                    double d2 = DistanceSquared(seg.End, p2);
+                    double totalDistance = d1 + d2;
+
+                    // Sprawdź również odwrotną kolejność
+                    double d1r = DistanceSquared(seg.Start, p2);
+                    double d2r = DistanceSquared(seg.End, p1);
+                    double totalDistanceR = d1r + d2r;
+
+                    totalDistance = Math.Min(totalDistance, totalDistanceR);
+
+                    if (totalDistance < minDistance)
+                    {
+                        minDistance = totalDistance;
+                        closest = seg;
+                    }
                 }
             }
 
-            return closest;
+            return closest ?? contourSegments[0];
         }
 
-        // Pomocnicza funkcja: odległość punktu od segmentu (linia lub łuk)
-        private static double DistancePointToSegment(XPoint p, ContourSegment seg)
+        private double DistanceToArc(XPoint point, ContourSegment arc)
         {
-            if (seg.Type == SegmentType.Arc && seg.Center != null)
-            {
-                // odległość od łuku = różnica długości wektora do środka i promienia
-                double dx = p.X - seg.Center.Value.X;
-                double dy = p.Y - seg.Center.Value.Y;
-                double distanceToCenter = Math.Sqrt(dx * dx + dy * dy);
-                return Math.Abs(distanceToCenter - seg.Radius);
-            }
-            else
-            {
-                // odległość od linii prostej
-                double x0 = p.X, y0 = p.Y;
-                double x1 = seg.Start.X, y1 = seg.Start.Y;
-                double x2 = seg.End.X, y2 = seg.End.Y;
+            if (arc.Center == null) return double.MaxValue;
 
-                double num = Math.Abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1);
-                double den = Math.Sqrt((y2 - y1) * (y2 - y1) + (x2 - x1) * (x2 - x1));
-                return den < 0.0001 ? Math.Sqrt((x0 - x1) * (x0 - x1) + (y0 - y1) * (y0 - y1)) : num / den;
-            }
+            double dx = point.X - arc.Center.Value.X;
+            double dy = point.Y - arc.Center.Value.Y;
+            double distanceToCenter = Math.Sqrt(dx * dx + dy * dy);
+
+            return Math.Abs(distanceToCenter - arc.Radius);
         }
 
-        //public static List<ContourSegment> GenerateWindowContourDynamic(
-        //List<XPoint> vertices,
-        //List<ContourSegment> outerSegments,
-        //List<ContourSegment> innerSegments)
-        //{
-        //    if (vertices.Count != 4)
-        //        throw new ArgumentException("Okno musi mieć dokładnie 4 wierzchołki.");
+        private double DistanceSquared(XPoint a, XPoint b)
+        {
+            double dx = a.X - b.X;
+            double dy = a.Y - b.Y;
+            return dx * dx + dy * dy;
+        }
 
-        //    var result = new List<ContourSegment>();
-
-        //    for (int i = 0; i < 4; i++)
-        //    {
-        //        var start = vertices[i];
-        //        var end = vertices[(i + 1) % 4];
-
-        //        // Szukamy łuków
-        //        var outerArc = FindArcForEdge(start, end, outerSegments);
-        //        var innerArc = FindArcForEdge(start, end, innerSegments);
-
-        //        if (outerArc != null && innerArc != null)
-        //        {
-        //            // 4-boczny element: 2 łuki + 2 linie
-        //            var outerStart = ClosestPointOnArc(start, outerArc);
-        //            var outerEnd = ClosestPointOnArc(end, outerArc);
-        //            var innerStart = ClosestPointOnArc(start, innerArc);
-        //            var innerEnd = ClosestPointOnArc(end, innerArc);
-
-        //            // Łuk górny (outer)
-        //            result.Add(CreateArcSegment(outerStart, outerEnd, outerArc));
-
-        //            // Linia łącząca końce łuków
-        //            result.Add(new ContourSegment(outerEnd, innerEnd));
-
-        //            // Łuk dolny (inner)
-        //            result.Add(CreateArcSegment(innerEnd, innerStart, innerArc));
-
-        //            // Linia łącząca początek łuków
-        //            result.Add(new ContourSegment(innerStart, outerStart));
-
-        //            continue;
-        //        }
-
-        //        // jeśli tylko jeden łuk istnieje
-        //        if (outerArc != null || innerArc != null)
-        //        {
-        //            var arc = outerArc ?? innerArc;
-        //            var startOnArc = ClosestPointOnArc(start, arc);
-        //            var endOnArc = ClosestPointOnArc(end, arc);
-        //            result.Add(CreateArcSegment(startOnArc, endOnArc, arc));
-        //            continue;
-        //        }
-
-        //        // sprawdzamy linie
-        //        var line = FindLineForEdge(start, end, outerSegments)
-        //                ?? FindLineForEdge(start, end, innerSegments);
-
-        //        if (line != null)
-        //        {
-        //            result.Add(line);
-        //            continue;
-        //        }
-
-        //        // fallback
-        //        result.Add(new ContourSegment(start, end));
-        //    }
-
-        //    return result;
-        //}
-
-        //// Funkcja dopasowująca punkt do łuku
-        //private static XPoint ClosestPointOnArc(XPoint p, ContourSegment arc)
-        //{
-        //    if (arc.Center == null) return p;
-
-        //    double dx = p.X - arc.Center.Value.X;
-        //    double dy = p.Y - arc.Center.Value.Y;
-        //    double len = Math.Sqrt(dx * dx + dy * dy);
-        //    if (len < 0.0001) len = arc.Radius;
-        //    double scale = arc.Radius / len;
-
-        //    return new XPoint(
-        //        arc.Center.Value.X + dx * scale,
-        //        arc.Center.Value.Y + dy * scale
-        //    );
-        //}
-
-        //private static ContourSegment FindArcForEdge(
-        //XPoint start,
-        //XPoint end,
-        //List<ContourSegment> segments)
-        //{
-        //    foreach (var seg in segments)
-        //    {
-        //        if (seg.Type != SegmentType.Arc || seg.Center == null)
-        //            continue;
-
-        //        if (!IsPointOnCircle(start, seg) || !IsPointOnCircle(end, seg))
-        //            continue;
-
-        //        // 🔥 NOWE: sprawdź czy punkt jest na tym łuku (a nie tylko na okręgu)
-        //        if (!IsPointOnArcSegment(start, seg) || !IsPointOnArcSegment(end, seg))
-        //            continue;
-
-        //        return CreateArcSegment(start, end, seg);
-        //    }
-
-        //    return null;
-        //}
-
-        //private static bool IsPointOnArcSegment(XPoint p, ContourSegment arc)
-        //{
-        //    var c = arc.Center.Value;
-
-        //    double angleP = Math.Atan2(p.Y - c.Y, p.X - c.X);
-        //    double angleStart = Math.Atan2(arc.Start.Y - c.Y, arc.Start.X - c.X);
-        //    double angleEnd = Math.Atan2(arc.End.Y - c.Y, arc.End.X - c.X);
-
-        //    return IsAngleBetween(angleP, angleStart, angleEnd, arc.CounterClockwise);
-        //}
-
-        //private static bool IsAngleBetween(double angle, double start, double end, bool ccw)
-        //{
-        //    if (ccw)
-        //    {
-        //        if (end < start) end += 2 * Math.PI;
-        //        if (angle < start) angle += 2 * Math.PI;
-        //        return angle >= start && angle <= end;
-        //    }
-        //    else
-        //    {
-        //        if (start < end) start += 2 * Math.PI;
-        //        if (angle < end) angle += 2 * Math.PI;
-        //        return angle >= end && angle <= start;
-        //    }
-        //}
-
-        //private static ContourSegment CreateArcSegment(
-        //XPoint start,
-        //XPoint end,
-        //ContourSegment baseArc)
-        //{
-        //    var center = baseArc.Center.Value;
-
-        //    double a1 = Math.Atan2(start.Y - center.Y, start.X - center.X);
-        //    double a2 = Math.Atan2(end.Y - center.Y, end.X - center.X);
-
-        //    bool ccw = baseArc.CounterClockwise;
-
-        //    // normalizacja kierunku
-        //    if (ccw)
-        //    {
-        //        if (a2 < a1) a2 += 2 * Math.PI;
-        //    }
-        //    else
-        //    {
-        //        if (a1 < a2) a1 += 2 * Math.PI;
-        //    }
-
-        //    return new ContourSegment(start, end, center, baseArc.Radius, ccw);
-        //}
-
-        //private static ContourSegment FindLineForEdge(
-        //XPoint start,
-        //XPoint end,
-        //List<ContourSegment> segments)
-        //{
-        //    foreach (var seg in segments)
-        //    {
-        //        if (seg.Type != SegmentType.Line)
-        //            continue;
-
-        //        // sprawdzamy czy oba punkty leżą na tej linii
-        //        if (IsPointOnLine(start, seg) && IsPointOnLine(end, seg))
-        //        {
-        //            return new ContourSegment(start, end);
-        //        }
-        //    }
-
-        //    return null;
-        //}
-
-        //private static bool IsPointOnCircle(XPoint p, ContourSegment arc, double tol = 2.0)
-        //{
-        //    double dist = Distance(p, arc.Center.Value);
-        //    return Math.Abs(dist - arc.Radius) < tol;
-        //}
-
-        //private static bool IsPointOnLine(XPoint p, ContourSegment seg, double tol = 2.0)
-        //{
-        //    if (seg.Type == SegmentType.Line)
-        //    {
-        //        double d1 = Distance(seg.Start, p);
-        //        double d2 = Distance(p, seg.End);
-        //        double d = Distance(seg.Start, seg.End);
-
-        //        return Math.Abs(d - (d1 + d2)) < tol;
-        //    }
-
-        //    if (seg.Type == SegmentType.Arc && seg.Center != null)
-        //    {
-        //        double dist = Distance(p, seg.Center.Value);
-        //        return Math.Abs(dist - seg.Radius) < tol;
-        //    }
-
-        //    return false;
-        //}
-
-        //private static double Distance(XPoint a, XPoint b)
-        //{
-        //    double dx = a.X - b.X;
-        //    double dy = a.Y - b.Y;
-        //    return Math.Sqrt(dx * dx + dy * dy);
-        //}
-
-        //private static double DistanceToContour(XPoint p, List<ContourSegment> segments)
-        //{
-        //    double min = double.MaxValue;
-
-        //    foreach (var seg in segments)
-        //    {
-        //        double d;
-
-        //        if (seg.Type == SegmentType.Line)
-        //            d = DistancePointToLine(p, seg);
-        //        else
-        //            d = Math.Abs(Distance(p, seg.Center.Value) - seg.Radius);
-
-        //        if (d < min)
-        //            min = d;
-        //    }
-
-        //    return min;
-        //}
-
-        //private static double DistancePointToLine(XPoint p, ContourSegment seg)
-        //{
-        //    // Wektor od start do end
-        //    double dx = seg.End.X - seg.Start.X;
-        //    double dy = seg.End.Y - seg.Start.Y;
-
-        //    // Jeśli linia jest punktem
-        //    if (dx == 0 && dy == 0)
-        //        return Distance(p, seg.Start);
-
-        //    // Parametr projekcji punktu na prostą
-        //    double t = ((p.X - seg.Start.X) * dx + (p.Y - seg.Start.Y) * dy) / (dx * dx + dy * dy);
-
-        //    // Ograniczamy do odcinka
-        //    t = Math.Max(0, Math.Min(1, t));
-
-        //    // Punkt projekcji
-        //    double projX = seg.Start.X + t * dx;
-        //    double projY = seg.Start.Y + t * dy;
-
-        //    // Odległość od punktu do projekcji
-        //    double distX = p.X - projX;
-        //    double distY = p.Y - projY;
-
-        //    return Math.Sqrt(distX * distX + distY * distY);
-        //}
-
-
-
-        // Nowa funkcja do obliczania długości konturu (uwzględnia łuki)
         public float ObliczDlugoscKonturu(List<ContourSegment> kontur)
         {
             if (kontur == null || kontur.Count == 0)

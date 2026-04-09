@@ -757,7 +757,7 @@
                                                     End Y: @Math.Round(segment.End.Y, 3)
                                                     @if (segment.Type == SegmentType.Arc)
                                                     {
-                                                        <span>, R: @Math.Round(segment.Radius, 3)</span>
+                                                        <span>, R: @Math.Round(segment.Radius, 3) @(segment.CounterClockwise ? "CCW" : "CW")</span>
                                                     }
                                                 </li>
                                             }
@@ -1990,8 +1990,8 @@
                 {
                     var seg = ksztalt.WierzcholkiZLukami[i];
                     string typ = seg.Type == SegmentType.Arc ? "Łuk" : "Linia";
-                    string startStr = $"({seg.Start.X,7:F3},{seg.Start.Y,7:F3})";
-                    string endStr = $"({seg.End.X,7:F3},{seg.End.Y,7:F3})";
+                    string startStr = $"({seg.Start.X,7:F3};{seg.Start.Y,7:F3})";
+                    string endStr = $"({seg.End.X,7:F3};{seg.End.Y,7:F3})";
 
                     string centerStr = "-";
                     string radiusStr = "-";
@@ -2117,7 +2117,7 @@
                 for (int i = 0; i < ksztalt.Wierzcholki.Count; i++)
                 {
                     var p = ksztalt.Wierzcholki[i];
-                    sb.AppendLine($"  [{i}] X={Math.Round(p.X, 3)}, Y={Math.Round(p.Y, 3)}");
+                    sb.AppendLine($"  [{i}] X={Math.Round(p.X, 3)}; Y={Math.Round(p.Y, 3)}");
                 }
                 sb.AppendLine();
             }
@@ -2131,11 +2131,11 @@
                     var seg = ksztalt.WierzcholkiZLukami[i];
                     if (seg.Type == SegmentType.Line)
                     {
-                        sb.AppendLine($"  [{i}] Linia: Start({Math.Round(seg.Start.X, 3)},{Math.Round(seg.Start.Y, 3)}) -> End({Math.Round(seg.End.X, 3)},{Math.Round(seg.End.Y, 3)})");
+                        sb.AppendLine($"  [{i}] Linia: Start({Math.Round(seg.Start.X, 3)};{Math.Round(seg.Start.Y, 3)}) -> End({Math.Round(seg.End.X, 3)};{Math.Round(seg.End.Y, 3)})");
                     }
                     else if (seg.Type == SegmentType.Arc && seg.Center != null)
                     {
-                        sb.AppendLine($"  [{i}] Łuk: Start({Math.Round(seg.Start.X, 3)},{Math.Round(seg.Start.Y, 3)}) -> End({Math.Round(seg.End.X, 3)},{Math.Round(seg.End.Y, 3)}) | Środek({Math.Round(seg.Center.Value.X, 3)},{Math.Round(seg.Center.Value.Y, 3)}) | R={Math.Round(seg.Radius, 3)} | {(seg.CounterClockwise ? "CCW" : "CW")}");
+                        sb.AppendLine($"  [{i}] Łuk: Start({Math.Round(seg.Start.X, 3)};{Math.Round(seg.Start.Y, 3)}) -> End({Math.Round(seg.End.X, 3)};{Math.Round(seg.End.Y, 3)}) | Środek({Math.Round(seg.Center.Value.X, 3)};{Math.Round(seg.Center.Value.Y, 3)}) | R={Math.Round(seg.Radius, 3)} | {(seg.CounterClockwise ? "CCW" : "CW")}");
                     }
                 }
                 sb.AppendLine();
@@ -7196,36 +7196,31 @@
     {
         if (seg.Center == null) return;
 
-        // Oblicz kąty
+        // Oblicz kąty w radianach
         double startAngle = Math.Atan2(seg.Start.Y - seg.Center.Value.Y, seg.Start.X - seg.Center.Value.X);
         double endAngle = Math.Atan2(seg.End.Y - seg.Center.Value.Y, seg.End.X - seg.Center.Value.X);
 
-        Console.WriteLine($"  Rysowanie łuku: Center({seg.Center.Value.X:F2},{seg.Center.Value.Y:F2}), R={seg.Radius:F2}, CCW={seg.CounterClockwise}");
-        Console.WriteLine($"    Kąty: start={startAngle:F4} rad ({startAngle * 180 / Math.PI:F1}°), end={endAngle:F4} rad ({endAngle * 180 / Math.PI:F1}°)");
-
-        // Normalizacja kątów dla poprawnego rysowania
+        // Normalizacja kątów w zależności od kierunku
         if (seg.CounterClockwise)
         {
-            // Dla CCW: endAngle musi być większe od startAngle
             while (endAngle <= startAngle)
-            {
                 endAngle += 2 * Math.PI;
-                Console.WriteLine($"    Korekta CCW: endAngle += 2π -> {endAngle:F4}");
-            }
         }
         else
         {
-            // Dla CW: endAngle musi być mniejsze od startAngle
             while (endAngle >= startAngle)
-            {
                 endAngle -= 2 * Math.PI;
-                Console.WriteLine($"    Korekta CW: endAngle -= 2π -> {endAngle:F4}");
-            }
         }
 
-        Console.WriteLine($"    Końcowe kąty: start={startAngle:F4}, end={endAngle:F4}, delta={(endAngle - startAngle):F4} rad ({(endAngle - startAngle) * 180 / Math.PI:F1}°)");
+        // Poprawienie startu łuku, aby uniknąć przerwy od poprzedniego segmentu
+        await context.LineToAsync(seg.Start.X, seg.Start.Y);
 
-        // Rysuj łuk
+        // Debug
+        Console.WriteLine($"  Rysowanie łuku: Center({seg.Center.Value.X:F2},{seg.Center.Value.Y:F2}), R={seg.Radius:F2}, CCW={seg.CounterClockwise}");
+        Console.WriteLine($"    Kąty: start={startAngle:F4} rad ({startAngle * 180 / Math.PI:F1}°), end={endAngle:F4} rad ({endAngle * 180 / Math.PI:F1}°)");
+        Console.WriteLine($"    Delta kątów: {(endAngle - startAngle) * 180 / Math.PI:F1}°");
+
+        // Rysowanie łuku
         await context.ArcAsync(
             seg.Center.Value.X,
             seg.Center.Value.Y,
