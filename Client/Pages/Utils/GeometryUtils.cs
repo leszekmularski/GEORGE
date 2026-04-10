@@ -170,12 +170,12 @@ namespace GEORGE.Client.Pages.Utils
                             double r = rr.Radius;
 
                             var centers = new List<(XPoint Center, string Corner)>
-                    {
-                        (new XPoint(rr.X + r, rr.Y + r), "TL"),                         // Top-Left
-                        (new XPoint(rr.X + rr.Width - r, rr.Y + r), "TR"),              // Top-Right
-                        (new XPoint(rr.X + rr.Width - r, rr.Y + rr.Height - r), "BR"),  // Bottom-Right
-                        (new XPoint(rr.X + r, rr.Y + rr.Height - r), "BL")              // Bottom-Left
-                    };
+                            {
+                                (new XPoint(rr.X + r, rr.Y + r), "TL"),                         // Top-Left
+                                (new XPoint(rr.X + rr.Width - r, rr.Y + r), "TR"),              // Top-Right
+                                (new XPoint(rr.X + rr.Width - r, rr.Y + rr.Height - r), "BR"),  // Bottom-Right
+                                (new XPoint(rr.X + r, rr.Y + rr.Height - r), "BL")              // Bottom-Left
+                            };
 
                             foreach (var (center, corner) in centers)
                             {
@@ -213,12 +213,16 @@ namespace GEORGE.Client.Pages.Utils
                             double r = rrl.Radius;
 
                             double centerX = rrl.X + r;
-                            double centerY = rrl.Y + rrl.Height / 2;
+                            //double centerY = rrl.Y + rrl.Height / 2;
+                            double centerY = rrl.Y + r;
 
                             double d1 = Distance(p, new XPoint(centerX, centerY));
                             double d2 = Distance(next, new XPoint(centerX, centerY));
 
-                            bool isLeftArc = Math.Abs(d1 - r) < 0.5 && Math.Abs(d2 - r) < 0.5;
+                            bool isLeftArc = Math.Abs(d1 - r) < 2.0 && Math.Abs(d2 - r) < 2.0;
+
+                            //Console.WriteLine($"isLeftArc: {isLeftArc}");
+                            //Console.WriteLine($"isLeftArc rrl.X: {rrl.X}, rrl.Y: {rrl.Y}, width: {rrl.Width}, height: {rrl.Height}, r: {rrl.Radius}");
 
                             if (isLeftArc)
                             {
@@ -250,12 +254,13 @@ namespace GEORGE.Client.Pages.Utils
                             double r = rrr.Radius;
 
                             double centerX = rrr.X + rrr.Width - r;
-                            double centerY = rrr.Y + rrr.Height / 2;
+                            //double centerY = rrr.Y + rrr.Height / 2;
+                            double centerY = rrr.Y + r;
 
                             double d1 = Distance(p, new XPoint(centerX, centerY));
                             double d2 = Distance(next, new XPoint(centerX, centerY));
 
-                            bool isRightArc = Math.Abs(d1 - r) < 0.5 && Math.Abs(d2 - r) < 0.5;
+                            bool isRightArc = Math.Abs(d1 - r) < 2.0 && Math.Abs(d2 - r) < 2.0;
 
                             if (isRightArc)
                             {

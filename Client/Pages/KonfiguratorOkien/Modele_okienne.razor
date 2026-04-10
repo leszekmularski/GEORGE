@@ -3358,7 +3358,7 @@
             // {
             //     Console.WriteLine($"🔄 Przetwarzam region: {genState.Value.IdRegion}");
             // }
-        
+
             foreach (var genState in obrGen)
             {
                 string cleanId = genState.Value.IdRegion;
@@ -7047,7 +7047,7 @@
 
                 // Rysuj kontur
                 await DrawSingleContour(context, ksztalt.WierzcholkiZLukami); //Pojedyncze elementy
-                await DrawSingleInnerContourKontur(context);
+               // await DrawSingleInnerContourKontur(context);
 
 
                 //await DrawOuterContourSegments(context, ksztalt.Kontur);
@@ -7059,8 +7059,17 @@
                 await DrawSingleContour(context, outerPoints);
             }
 
-            if (pokaKonturWewnetrzny && !oknaMogaBycLukowe)
-                await DrawSingleInnerContour(context);
+            // if (pokaKonturWewnetrzny && !oknaMogaBycLukowe)
+            //     await DrawSingleInnerContour(context);
+
+            if (pokaKonturWewnetrzny)
+            {
+                if(oknaMogaBycLukowe)
+                    await DrawSingleInnerContourKontur(context);
+                 else
+                     await DrawSingleInnerContour(context);
+            }
+           // await DrawSingleInnerContour(context);
 
             // Sprawdź, czy _dotNetHelper nie jest null i czy komponent nie został usunięty
             if (_dotNetHelper != null && !_disposed)
@@ -7152,8 +7161,8 @@
         int liczbaLukow = segments.Count(x => x.Type == SegmentType.Arc);
         int liczbaLinii = segments.Count(x => x.Type == SegmentType.Line);
 
-        string color = "orange";
-        float lineWidth = 3f;
+        // string color = "orange";
+        // float lineWidth = 3f;
 
         Console.WriteLine($"DrawContourFromSegments -> Rysowanie {segments.Count} segmentów (Łuki: {liczbaLukow}, Linie: {liczbaLinii})");
 
@@ -7183,9 +7192,9 @@
         // Zamknij kontur
         await context.ClosePathAsync();
 
-        // Stylowanie
-        await context.SetStrokeStyleAsync(color);
-        await context.SetLineWidthAsync(lineWidth);
+        // Opcjonalne stylowanie
+        await context.SetStrokeStyleAsync("black");
+        await context.SetLineWidthAsync(2f);
         await context.StrokeAsync();
 
         Console.WriteLine("✅ Kontur narysowany pomyślnie");
@@ -7418,7 +7427,7 @@
         }
 
         //    await DrawSingleGlassContourKontur(context);
-        //  await DrawSingleOuterContourKontur(context);
+        await DrawSingleOuterContourKontur(context);
     }
 
     // Rysowanie konturu zewnętrznego
@@ -7428,9 +7437,13 @@
         {
             if (gs.Value.Generator?.zewnetrznyKonturZLukami != null)
             {
-                await DrawContourSegmentsKontur(context, gs.Value.Generator.zewnetrznyKonturZLukami, "Blue", 2f);
+                await DrawContourSegmentsKontur(context, gs.Value.Generator.zewnetrznyKonturZLukami, "Blue", 4f);
             }
         }
+
+        // await context.SetStrokeStyleAsync("Blue");
+        // await context.SetLineWidthAsync(4f);
+        // await context.StrokeAsync();
     }
 
     private async Task DrawSingleContourTextOnly(

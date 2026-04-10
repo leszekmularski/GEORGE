@@ -1569,9 +1569,10 @@ namespace GEORGE.Client.Pages.Okna
                 double angle2 = Math.Atan2(outerEnd.Y - center.Y, outerEnd.X - center.X);
 
                 // Znajdź wewnętrzny łuk
-                var innerArc = innerContour.FirstOrDefault(s => s.Type == SegmentType.Arc && s.Center != null);
+                var innerArc = FindMatchingArc(outerSegment, innerContour);
+
                 if (innerArc == null)
-                    throw new InvalidOperationException("Nie znaleziono łuku w innerContour.");
+                    throw new InvalidOperationException("Nie znaleziono pasującego łuku inner.");
 
                 double innerRadius = innerArc.Radius;
                 XPoint innerCenter = innerArc.Center.Value;
@@ -1753,6 +1754,32 @@ namespace GEORGE.Client.Pages.Okna
             return (float)sumaDlugosci;
         }
 
+        private ContourSegment FindMatchingArc(ContourSegment outerArc, List<ContourSegment> innerContour)
+        {
+            if (outerArc.Center == null)
+                return null;
+
+            ContourSegment best = null;
+            double minDiff = double.MaxValue;
+
+            foreach (var seg in innerContour)
+            {
+                if (seg.Type != SegmentType.Arc || seg.Center == null)
+                    continue;
+
+                double dx = seg.Center.Value.X - outerArc.Center.Value.X;
+                double dy = seg.Center.Value.Y - outerArc.Center.Value.Y;
+                double dist = dx * dx + dy * dy;
+
+                if (dist < minDiff)
+                {
+                    minDiff = dist;
+                    best = seg;
+                }
+            }
+
+            return best;
+        }
         // Funkcja do obliczania długości łuku
         private double DlugoscLukuKontur(ContourSegment arc)
         {
