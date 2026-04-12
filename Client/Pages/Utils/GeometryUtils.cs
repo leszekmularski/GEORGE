@@ -132,7 +132,9 @@ namespace GEORGE.Client.Pages.Utils
                             double d1 = Distance(p, arcCenter);
                             double d2 = Distance(next, arcCenter);
 
-                            bool isArcSegment = Math.Abs(d1 - rtr.Radius) < 0.5 && Math.Abs(d2 - rtr.Radius) < 0.5;
+                           // bool isArcSegment = Math.Abs(d1 - rtr.Radius) < 0.5 && Math.Abs(d2 - rtr.Radius) < 0.5;
+
+                            bool isArcSegment = Math.Abs(d1 - rtr.Radius) < 2.0 && Math.Abs(d2 - rtr.Radius) < 2.0;
 
                             if (isArcSegment)
                             {

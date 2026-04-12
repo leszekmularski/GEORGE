@@ -1,5 +1,4 @@
-﻿using GEORGE.Client.Pages.Models;
-using GEORGE.Client.Pages.Okna;
+﻿using GEORGE.Client.Pages.Okna;
 using GEORGE.Shared.Models;
 using GEORGE.Shared.ViewModels;
 
@@ -157,6 +156,6 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                     .ToList() ?? new List<KsztaltElementu>()
             };
         }
-    
+
     }
 }
