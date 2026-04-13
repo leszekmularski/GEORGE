@@ -24,7 +24,7 @@ namespace GEORGE.Client.Pages.Utils
                 .ToList();
 
             if (!shapesDoRegionow.Any()) return regions;
-
+            
             double minX = shapesDoRegionow.Min(s => s.GetBoundingBox().X);
             double minY = shapesDoRegionow.Min(s => s.GetBoundingBox().Y);
             double maxX = shapesDoRegionow.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
@@ -132,7 +132,8 @@ namespace GEORGE.Client.Pages.Utils
                             double d1 = Distance(p, arcCenter);
                             double d2 = Distance(next, arcCenter);
 
-                            bool isArcSegment = Math.Abs(d1 - rtr.Radius) < 0.5 && Math.Abs(d2 - rtr.Radius) < 0.5;
+                           // bool isArcSegment = Math.Abs(d1 - rtr.Radius) < 0.5 && Math.Abs(d2 - rtr.Radius) < 0.5;
+                            bool isArcSegment = Math.Abs(d1 - rtr.Radius) < 2.0 && Math.Abs(d2 - rtr.Radius) < 2.0;
 
                             if (isArcSegment)
                             {
@@ -843,86 +844,6 @@ namespace GEORGE.Client.Pages.Utils
             return wynik;
         }
 
-        //public static List<ShapeRegion> SkalujRegionyIndywidualnie(
-        //List<ShapeRegion> stareRegiony,
-        //int nowaSzerokosc,
-        //int nowaWysokosc)
-        //{
-        //    if (stareRegiony == null || !stareRegiony.Any())
-        //        return new List<ShapeRegion>();
-
-        //    var noweRegiony = new List<ShapeRegion>();
-
-        //    foreach (var region in stareRegiony)
-        //    {
-        //        // Bounding box dla pojedynczego regionu
-        //        double minX = region.Wierzcholki.Min(p => p.X);
-        //        double minY = region.Wierzcholki.Min(p => p.Y);
-        //        double maxX = region.Wierzcholki.Max(p => p.X);
-        //        double maxY = region.Wierzcholki.Max(p => p.Y);
-
-        //        double originalWidth = maxX - minX;
-        //        double originalHeight = maxY - minY;
-
-        //        if (originalWidth == 0 || originalHeight == 0)
-        //            continue;
-
-        //        double scaleX = nowaSzerokosc / originalWidth;
-        //        double scaleY = nowaWysokosc / originalHeight;
-
-        //        var noweWierzcholki = region.Wierzcholki
-        //            .Select(p => new XPoint(
-        //                (p.X - minX) * scaleX,
-        //                (p.Y - minY) * scaleY))
-        //            .ToList();
-
-        //        var nowyKontur = region.Kontur
-        //        .Select(s =>
-        //        {
-        //            var start = new XPoint(
-        //                (s.Start.X - minX) * scaleX,
-        //                (s.Start.Y - minY) * scaleY
-        //            );
-        //            var end = new XPoint(
-        //                (s.End.X - minX) * scaleX,
-        //                (s.End.Y - minY) * scaleY
-        //            );
-
-        //            if (s.Type == SegmentType.Line)
-        //            {
-        //                return new ContourSegment(start, end);
-        //            }
-        //            else // łuk
-        //            {
-        //                XPoint center = new();
-        //                if (s.Center != null)
-        //                {
-        //                    center = new XPoint(
-        //                        (s.Center.Value.X - minX) * scaleX,
-        //                        (s.Center.Value.Y - minY) * scaleY
-        //                    );
-        //                }
-
-        //                return new ContourSegment(start, end, center, s.Radius, s.CounterClockwise);
-        //            }
-        //        })
-        //        .ToList();
-
-        //        noweRegiony.Add(new ShapeRegion
-        //        {
-        //            Id = region.Id,
-        //            IdMaster = region.IdMaster,
-        //            IdRegionuPonizej = region.IdRegionuPonizej,
-        //            TypKsztaltu = region.TypKsztaltu,
-        //            TypLiniiDzielacej = region.TypLiniiDzielacej,
-        //            Wierzcholki = noweWierzcholki,
-        //            Kontur = nowyKontur,
-        //        });
-        //    }
-
-        //    return noweRegiony;
-        //}
-
         private static bool CzyProstokat(List<XPoint> punkty)
         {
             if (punkty.Count != 4) return false;
@@ -1186,6 +1107,7 @@ namespace GEORGE.Client.Pages.Utils
 
         public static List<XPoint> GenerateCircleVertices(double centerX, double centerY, double radius, int segments)
         {
+
             var points = new List<XPoint>();
 
             for (int i = 0; i < segments; i++)

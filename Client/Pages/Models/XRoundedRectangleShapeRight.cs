@@ -24,6 +24,8 @@ namespace GEORGE.Client.Pages.Models
 
         public string NazwaObj { get; set; } = "Prostokąt zaokrąglony prawy górny";
 
+        public int IloscElementowLuki => 1; // liczba punktów generowanych na łuku dla spójności
+
         private readonly double _scaleFactor;
 
         public List<XPoint> Points { get; set; } = new();
@@ -223,7 +225,7 @@ namespace GEORGE.Client.Pages.Models
             double bottomY = Y + Height;
 
             double r = Math.Min(Radius, Math.Min(Width, Height) / 2);
-            int segments = 2;
+            int segments = IloscElementowLuki;
 
             outline.Add(new XPoint(leftX, topY));
             outline.Add(new XPoint(rightX - r, topY));

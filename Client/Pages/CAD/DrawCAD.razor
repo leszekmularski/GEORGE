@@ -660,9 +660,9 @@
             "trapezoid" => new XTrapezoidShape(left, top, left + width, top + height, 0.6, _scaleFactor, 0),
             "trapezoidLeft" => new XTrapezoidShape(left, top, left + width, top + height, 0.6, _scaleFactor, 1),
             "trapezoidRight" => new XTrapezoidShape(left, top, left + width, top + height, 0.6, _scaleFactor, 2),
-            "rounded_rect" => new XRoundedRectangleShape(left, top, width, height, 100, _scaleFactor),
-            "rounded_rect_left" => new XRoundedRectangleShapeLeft(left, top, width, height, 100, _scaleFactor),
-            "rounded_rect_right" => new XRoundedRectangleShapeRight(left, top, width, height, 100, _scaleFactor),
+            "rounded_rect" => new XRoundedRectangleShape(left, top, width, height, height / 2, _scaleFactor),
+            "rounded_rect_left" => new XRoundedRectangleShapeLeft(left, top, width, height, height/2, _scaleFactor),
+            "rounded_rect_right" => new XRoundedRectangleShapeRight(left, top, width, height, height/2, _scaleFactor),
             "house" => new XHouseShape(left, top, width, height, height * 0.5, height * 0.5, _scaleFactor),
             "rounded_top_rect" => new XRoundedTopRectangleShape(xR, yR, widthR, heightR, radius, arcHeight, _scaleFactor),
 
@@ -941,9 +941,9 @@
         await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
 
-        var radius = 100; // Możesz dodać parametr do kontroli
         var width = _currentX - _startX;
         var height = _currentY - _startY;
+        var radius = height / 2; // Możesz dodać parametr do kontroli
 
         await _ctx.BeginPathAsync();
         await _ctx.MoveToAsync(_startX + radius, _startY);
@@ -965,9 +965,9 @@
         await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
 
-        var radius = 100; // Możesz dodać parametr do kontroli
         var width = _currentX - _startX;
         var height = _currentY - _startY;
+        var radius = height / 2; // Możesz dodać parametr do kontroli
 
         await _ctx.BeginPathAsync();
         await _ctx.MoveToAsync(_startX + radius, _startY);
@@ -988,9 +988,10 @@
         await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
 
-        var radius = 100; // Możesz dodać parametr do kontroli
+
         var width = _currentX - _startX;
         var height = _currentY - _startY;
+        var radius = height / 2; // Możesz dodać parametr do kontroli
 
         await _ctx.BeginPathAsync();
         await _ctx.MoveToAsync(_startX + radius, _startY);

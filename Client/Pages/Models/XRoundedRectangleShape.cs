@@ -14,6 +14,7 @@ namespace GEORGE.Client.Pages.Models
         public double Height { get; set; }
         public double Radius { get; set; }
         public string NazwaObj { get; set; } = "Prostokąt z zaokrąglonymi górnymi naroż.";
+        public int IloscElementowLuki => 1; // liczba punktów generowanych na łuku dla spójności
 
         private double _scaleFactor = 1.0;
 
@@ -121,7 +122,7 @@ namespace GEORGE.Client.Pages.Models
 
             double r = Math.Min(Radius, Math.Min(Width, Height) / 2);
 
-            int segments = 2;
+            int segments = IloscElementowLuki;
 
             // start
             outline.Add(new XPoint(leftX + r, topY));

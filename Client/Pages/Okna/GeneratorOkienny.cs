@@ -1,4 +1,5 @@
-﻿using GEORGE.Client.Pages.KonfiguratorOkien;
+﻿using DocumentFormat.OpenXml.Drawing.Charts;
+using GEORGE.Client.Pages.KonfiguratorOkien;
 using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.Models;
 using GEORGE.Shared.ViewModels;
@@ -1556,6 +1557,9 @@ namespace GEORGE.Client.Pages.Okna
             ContourSegment outerSegment = FindClosestSegment(wierzcholki[0], wierzcholki[1], outerContour);
             ContourSegment innerSegment = null;
 
+            Console.WriteLine($"Segment: Start(wierzcholki[0]: {wierzcholki[0]}, wierzcholki[1]: {wierzcholki[1]})");
+            Console.WriteLine($"Segment: Start({outerSegment.Start.X}, {outerSegment.Start.Y}) End({outerSegment.End.X}, {outerSegment.End.Y}) Type: {outerSegment.Type} Center: {(outerSegment.Center.HasValue ? $"({outerSegment.Center.Value.X}, {outerSegment.Center.Value.Y})" : "null")} Radius: {outerSegment.Radius}");
+
             if (outerSegment.Type == SegmentType.Arc && outerSegment.Center != null)
             {
                 XPoint center = outerSegment.Center.Value;
@@ -1664,71 +1668,134 @@ namespace GEORGE.Client.Pages.Okna
             return null;
         }
 
+
+
+        public enum ArcDirection
+        {
+            CW,   // Clockwise (zgodnie z ruchem wskazówek zegara)
+            CCW   // Counter-Clockwise (przeciwnie)
+        }
+
         public ContourSegment FindClosestSegment(XPoint p1, XPoint p2, List<ContourSegment> contourSegments)
         {
             if (contourSegments == null || contourSegments.Count == 0)
                 throw new InvalidOperationException("ContourSegments pusta.");
 
             ContourSegment closest = null;
-            double minDistance = double.MaxValue;
+            double minTotalDistance = double.MaxValue;
 
             foreach (var seg in contourSegments)
             {
-                // Dla łuków: sprawdź odległość punktów do łuku
-                if (seg.Type == SegmentType.Arc && seg.Center != null)
-                {
-                    double dist1 = DistanceToArc(p1, seg);
-                    double dist2 = DistanceToArc(p2, seg);
-                    double totalDistance = dist1 + dist2;
+                double distToP1, distToP2;
 
-                    if (totalDistance < minDistance)
-                    {
-                        minDistance = totalDistance;
-                        closest = seg;
-                    }
+                if (seg.Type == SegmentType.Line)
+                {
+                    distToP1 = DistanceToLine(p1, seg.Start, seg.End);
+                    distToP2 = DistanceToLine(p2, seg.Start, seg.End);
                 }
-                else
+                else // Arc
                 {
-                    // Dla linii: sprawdź odległość do punktów końcowych
-                    double d1 = DistanceSquared(seg.Start, p1);
-                    double d2 = DistanceSquared(seg.End, p2);
-                    double totalDistance = d1 + d2;
+                    distToP1 = DistanceToArc(p1, seg);
+                    distToP2 = DistanceToArc(p2, seg);
+                }
 
-                    // Sprawdź również odwrotną kolejność
-                    double d1r = DistanceSquared(seg.Start, p2);
-                    double d2r = DistanceSquared(seg.End, p1);
-                    double totalDistanceR = d1r + d2r;
+                double totalDistance = distToP1 + distToP2;
 
-                    totalDistance = Math.Min(totalDistance, totalDistanceR);
+                Console.WriteLine($"Segment {seg.Type}: odległość do p1={distToP1:F2}, do p2={distToP2:F2}, suma={totalDistance:F2}");
 
-                    if (totalDistance < minDistance)
-                    {
-                        minDistance = totalDistance;
-                        closest = seg;
-                    }
+                if (totalDistance < minTotalDistance)
+                {
+                    minTotalDistance = totalDistance;
+                    closest = seg;
                 }
             }
 
             return closest ?? contourSegments[0];
         }
 
+        // Odległość między dwoma punktami
+        private double Distance(XPoint a, XPoint b)
+        {
+            double dx = a.X - b.X;
+            double dy = a.Y - b.Y;
+            return Math.Sqrt(dx * dx + dy * dy);
+        }
+
+        // Odległość punktu od linii (odcinek)
+        private double DistanceToLine(XPoint point, XPoint lineStart, XPoint lineEnd)
+        {
+            double dx = lineEnd.X - lineStart.X;
+            double dy = lineEnd.Y - lineStart.Y;
+
+            double lineLength = Math.Sqrt(dx * dx + dy * dy);
+            if (lineLength == 0) return Distance(point, lineStart);
+
+            double t = ((point.X - lineStart.X) * dx + (point.Y - lineStart.Y) * dy) / (lineLength * lineLength);
+            t = Math.Max(0, Math.Min(1, t));
+
+            double closestX = lineStart.X + t * dx;
+            double closestY = lineStart.Y + t * dy;
+
+            double distX = point.X - closestX;
+            double distY = point.Y - closestY;
+            return Math.Sqrt(distX * distX + distY * distY);
+        }
+
+        // Sprawdzenie czy punkt leży na łuku
+        private bool IsPointOnArc(XPoint point, ContourSegment arc, double tolerance = 1.0)
+        {
+            if (arc.Center == null) return false;
+
+            double distToCenter = Distance(point, arc.Center.Value);
+            if (Math.Abs(distToCenter - arc.Radius) > tolerance)
+                return false;
+
+            double angle = Math.Atan2(point.Y - arc.Center.Value.Y,
+                                       point.X - arc.Center.Value.X);
+
+            double startAngle = Math.Atan2(arc.Start.Y - arc.Center.Value.Y,
+                                            arc.Start.X - arc.Center.Value.X);
+            double endAngle = Math.Atan2(arc.End.Y - arc.Center.Value.Y,
+                                          arc.End.X - arc.Center.Value.X);
+
+            if (startAngle < 0) startAngle += 2 * Math.PI;
+            if (endAngle < 0) endAngle += 2 * Math.PI;
+            if (angle < 0) angle += 2 * Math.PI;
+
+            if (!arc.CounterClockwise)
+            {
+                if (startAngle > endAngle)
+                    return angle >= startAngle || angle <= endAngle;
+                else
+                    return angle >= startAngle && angle <= endAngle;
+            }
+            else
+            {
+                if (endAngle > startAngle)
+                    return angle >= endAngle || angle <= startAngle;
+                else
+                    return angle >= endAngle && angle <= startAngle;
+            }
+        }
+
+        // Odległość punktu od łuku
         private double DistanceToArc(XPoint point, ContourSegment arc)
         {
             if (arc.Center == null) return double.MaxValue;
 
-            double dx = point.X - arc.Center.Value.X;
-            double dy = point.Y - arc.Center.Value.Y;
-            double distanceToCenter = Math.Sqrt(dx * dx + dy * dy);
+            double distToCenter = Distance(point, arc.Center.Value);
+            double distToCircle = Math.Abs(distToCenter - arc.Radius);
 
-            return Math.Abs(distanceToCenter - arc.Radius);
+            if (!IsPointOnArc(point, arc))
+            {
+                double distToStart = Distance(point, arc.Start);
+                double distToEnd = Distance(point, arc.End);
+                return Math.Min(distToStart, distToEnd);
+            }
+
+            return distToCircle;
         }
 
-        private double DistanceSquared(XPoint a, XPoint b)
-        {
-            double dx = a.X - b.X;
-            double dy = a.Y - b.Y;
-            return dx * dx + dy * dy;
-        }
 
         public float ObliczDlugoscKonturu(List<ContourSegment> kontur)
         {
