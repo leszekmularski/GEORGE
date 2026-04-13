@@ -22,6 +22,8 @@ namespace GEORGE.Client.Pages.Models
 
         public List<ContourSegment> ContourSegments => GetContourSegments();
 
+        public int IloscElementowLuki => 8; // liczba punktów generowanych na łuku dla spójności
+
         public double X
         {
             get => _x;
@@ -214,7 +216,7 @@ namespace GEORGE.Client.Pages.Models
 
         private void UpdateCirclePoints()
         {
-            _points = GenerateCirclePoints(32);
+            _points = GenerateCirclePoints(IloscElementowLuki);
         }
 
         private List<XPoint> GenerateCirclePoints(int segments = 32)

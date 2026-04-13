@@ -7,7 +7,6 @@ namespace GEORGE.Client.Pages.Models
     public class XRoundedTopRectangleShape : IShapeDC
     {
         public string ID { get; set; } = Guid.NewGuid().ToString();
-
         public double X { get; set; }
         public double Y { get; set; }
         public double Width { get; set; }
@@ -26,6 +25,7 @@ namespace GEORGE.Client.Pages.Models
 
         private readonly double _scaleFactor;
         public string NazwaObj { get; set; } = "Prostokąt z wypukłym łukiem u góry";
+        public int IloscElementowLuki => 3; // liczba punktów generowanych na łuku dla spójności
 
         public List<ContourSegment> ContourSegments => GetContourSegments();
 
@@ -58,7 +58,7 @@ namespace GEORGE.Client.Pages.Models
         // ===========================
         private void CalculatePointsFromProperties()
         {
-            Points = GenerateCompleteOutline();
+            Points = GenerateCompleteOutline(IloscElementowLuki);
             NormalizeToPositiveQuadrant(); 
             NominalPoints = Points.Select(p => p.Clone()).ToList();
         }
@@ -82,7 +82,7 @@ namespace GEORGE.Client.Pages.Models
         // ===========================
         // Generowanie punktów wzdłuż łuku i boków
         // ===========================
-        private List<XPoint> GenerateCompleteOutline()
+        private List<XPoint> GenerateCompleteOutline(int segments)
         {
             var outline = new List<XPoint>();
 
@@ -101,7 +101,8 @@ namespace GEORGE.Client.Pages.Models
             outline.Add(new XPoint(rightX, arcStartY));
 
             // Łuk (6 punktów dla spójności)
-            int segments = 3;
+            if(segments <= 0) segments = 3;
+
             if (Radius > 1000) segments = 5;
 
             for (int i = 0; i <= segments; i++)
@@ -182,7 +183,7 @@ namespace GEORGE.Client.Pages.Models
         // ===========================
         public BoundingBox GetBoundingBox() => new BoundingBox(X, Y, Width, Height, NazwaObj);
 
-        public List<XPoint> GetVertices() => GenerateCompleteOutline();
+        public List<XPoint> GetVertices() => GenerateCompleteOutline(IloscElementowLuki);
 
         public List<(XPoint Start, XPoint End)> GetEdges()
         {
