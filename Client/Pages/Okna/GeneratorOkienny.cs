@@ -1,5 +1,4 @@
-﻿using DocumentFormat.OpenXml.Drawing.Charts;
-using GEORGE.Client.Pages.KonfiguratorOkien;
+﻿using GEORGE.Client.Pages.KonfiguratorOkien;
 using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.Models;
 using GEORGE.Shared.ViewModels;
@@ -166,60 +165,9 @@ namespace GEORGE.Client.Pages.Okna
                 .Where(s => !PointsAreClose(s.Start, s.End))
                 .ToList();
 
-            Console.WriteLine($"🔹 Segmenty po usunięciu duplikatów: {bezDuplikatow.Count} z {punktyZLukami.Count}");
+            przeskalowanePunktyZLukami = BuildClosedContour(bezDuplikatow);
 
-            // 2️⃣ Sortowanie konturu
-            if (bezDuplikatow.Any())
-            {
-                var segment = bezDuplikatow[0];
-                przeskalowanePunktyZLukami.Add(segment);
-                bezDuplikatow.RemoveAt(0);
-
-                while (bezDuplikatow.Any())
-                {
-                    bool found = false;
-                    var last = przeskalowanePunktyZLukami.Last();
-
-                    for (int i = 0; i < bezDuplikatow.Count; i++)
-                    {
-                        var s = bezDuplikatow[i];
-
-                        // normalne połączenie
-                        if (PointsAreClose(last.End, s.Start))
-                        {
-                            przeskalowanePunktyZLukami.Add(s);
-                            bezDuplikatow.RemoveAt(i);
-                            found = true;
-                            break;
-                        }
-
-                        // trzeba odwrócić segment
-                        if (PointsAreClose(last.End, s.End))
-                        {
-                            var reversed = new ContourSegment(
-                                s.End,
-                                s.Start,
-                                s.Center,
-                                s.Radius,
-                                !s.CounterClockwise
-                            );
-
-                            przeskalowanePunktyZLukami.Add(reversed);
-                            bezDuplikatow.RemoveAt(i);
-                            found = true;
-                            break;
-                        }
-                    }
-
-                    // jeśli nic nie pasuje — zaczynamy nowy fragment
-                    if (!found)
-                    {
-                        var next = bezDuplikatow[0];
-                        przeskalowanePunktyZLukami.Add(next);
-                        bezDuplikatow.RemoveAt(0);
-                    }
-                }
-            }
+            //Console.WriteLine($"🔹 Segmenty po usunięciu duplikatów: {bezDuplikatow.Count} z {punktyZLukami.Count}");
 
             // funkcja porównująca punkty
             bool PointsAreClose(XPoint a, XPoint b, double tolerance = 0.001)
@@ -498,8 +446,146 @@ namespace GEORGE.Client.Pages.Okna
                 return false;
             }
 
-            //}
         }
+
+        public static List<ContourSegment> BuildClosedContour(List<ContourSegment> input, double tolerance = 0.5)
+        {
+            if (input == null || input.Count == 0)
+                return new List<ContourSegment>();
+
+            var unused = new List<ContourSegment>(input);
+            var result = new List<ContourSegment>();
+
+            // 1️⃣ start od pierwszego segmentu
+            var current = unused[0];
+            unused.RemoveAt(0);
+            result.Add(current);
+
+            while (unused.Count > 0)
+            {
+                bool found = false;
+                var last = result.Last();
+
+                for (int i = 0; i < unused.Count; i++)
+                {
+                    var candidate = unused[i];
+
+                    // ✔️ normalne połączenie
+                    if (PointsAreClose(last.End, candidate.Start, tolerance))
+                    {
+                        result.Add(candidate);
+                        unused.RemoveAt(i);
+                        found = true;
+                        break;
+                    }
+
+                    // ✔️ odwrócony segment
+                    if (PointsAreClose(last.End, candidate.End, tolerance))
+                    {
+                        result.Add(Reverse(candidate));
+                        unused.RemoveAt(i);
+                        found = true;
+                        break;
+                    }
+                }
+
+                // ❗ NIE resetujemy losowo jak wcześniej
+                if (!found)
+                {
+                    Console.WriteLine("⚠️ Przerwanie konturu - próba znalezienia najbliższego segmentu");
+
+                    var closest = FindClosestSegmentToPoint(last.End, unused, tolerance);
+
+                    if (closest != null)
+                    {
+                        result.Add(closest);
+                        unused.Remove(closest);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+
+            // 2️⃣ AUTO-CLOSING (KLUCZOWE)
+            if (result.Count > 1)
+            {
+                var first = result.First();
+                var last = result.Last();
+
+                if (!PointsAreClose(last.End, first.Start, tolerance))
+                {
+                    Console.WriteLine("🔁 Domykam kontur automatycznie");
+
+                    result.Add(new ContourSegment(
+                        last.End,
+                        first.Start
+                    ));
+                }
+            }
+
+            return result;
+        }
+
+        private static ContourSegment Reverse(ContourSegment s)
+        {
+            if (s.Type == SegmentType.Arc)
+            {
+                return new ContourSegment(
+                    s.End,
+                    s.Start,
+                    s.Center,
+                    s.Radius,
+                    !s.CounterClockwise
+                );
+            }
+
+            return new ContourSegment(s.End, s.Start);
+        }
+
+        private static bool PointsAreClose(XPoint a, XPoint b, double tolerance)
+        {
+            return Math.Abs(a.X - b.X) < tolerance &&
+                   Math.Abs(a.Y - b.Y) < tolerance;
+        }
+
+        private static ContourSegment FindClosestSegmentToPoint(
+    XPoint point,
+    List<ContourSegment> segments,
+    double tolerance)
+        {
+            ContourSegment best = null;
+            double bestDist = double.MaxValue;
+
+            foreach (var s in segments)
+            {
+                double d1 = Distance(point, s.Start);
+                double d2 = Distance(point, s.End);
+
+                double d = Math.Min(d1, d2);
+
+                if (d < bestDist)
+                {
+                    bestDist = d;
+                    best = s;
+                }
+            }
+
+            if (best != null && bestDist < tolerance * 10)
+            {
+                // orientacja
+                if (Distance(point, best.End) < Distance(point, best.Start))
+                {
+                    return Reverse(best);
+                }
+
+                return best;
+            }
+
+            return null;
+        }
+
 
         public async Task<bool> GenerateGenericElementsWithJoins(
             List<XPoint> outer, List<XPoint> inner,
@@ -916,6 +1002,7 @@ namespace GEORGE.Client.Pages.Okna
                 }
 
                 List<XPoint>? wierzcholki;
+                List<XPoint>? wierzcholkiStycznePodLuki;
                 List<ContourSegment>? wierzcholkiZLukami;
 
                 Console.WriteLine($"🔷 element --> {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin} angleDegrees: {angleDegrees} katGornegoElemntu: {katGornegoElemntu} StronaElementu: {StronaElementu}");
@@ -943,6 +1030,18 @@ namespace GEORGE.Client.Pages.Okna
                             outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
                             };
 
+                            if(outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line)
+                            {
+                                wierzcholkiStycznePodLuki = wierzcholki;
+                            }
+                            else
+                            {
+                                wierzcholkiStycznePodLuki = new List<XPoint> {
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                };
+
+                            }
+
                         }
                         else
                         {
@@ -964,6 +1063,18 @@ namespace GEORGE.Client.Pages.Okna
                                 wierzcholki = new List<XPoint> {
                                 outerTop, outerBottom, innerBottom, innerTop
                                 };
+
+                                if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line)
+                                {
+                                    wierzcholkiStycznePodLuki = wierzcholki;
+                                }
+                                else
+                                {
+                                    wierzcholkiStycznePodLuki = new List<XPoint> {
+                                    outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                    };
+
+                                }
 
                             }
                             else
@@ -1005,6 +1116,18 @@ namespace GEORGE.Client.Pages.Okna
                                 outerTop, outerBottom, innerBottom, innerTop
                                 };
 
+                                if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line)
+                                {
+                                    wierzcholkiStycznePodLuki = wierzcholki;
+                                }
+                                else
+                                {
+                                    wierzcholkiStycznePodLuki = new List<XPoint> {
+                                    outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                    };
+
+                                }
+
                             }
                         }
                     }
@@ -1028,6 +1151,18 @@ namespace GEORGE.Client.Pages.Okna
                             wierzcholki = new List<XPoint> {
                             outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
                             };
+
+                            if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line)
+                            {
+                                wierzcholkiStycznePodLuki = wierzcholki;
+                            }
+                            else
+                            {
+                                wierzcholkiStycznePodLuki = new List<XPoint> {
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                };
+
+                            }
 
                         }
                         else
@@ -1075,6 +1210,18 @@ namespace GEORGE.Client.Pages.Okna
                             outerTop, outerBottom, innerBottom, innerTop
                             };
 
+                            if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line)
+                            {
+                                wierzcholkiStycznePodLuki = wierzcholki;
+                            }
+                            else
+                            {
+                                wierzcholkiStycznePodLuki = new List<XPoint> {
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                };
+
+                            }
+
                         }
                     }
 
@@ -1087,6 +1234,18 @@ namespace GEORGE.Client.Pages.Okna
                     wierzcholki = new List<XPoint> {
                             getStartT4[1], getEndT4[1], getEndT4[0], getStartT4[0]
                         };
+
+                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line)
+                    {
+                        wierzcholkiStycznePodLuki = wierzcholki;
+                    }
+                    else
+                    {
+                        wierzcholkiStycznePodLuki = new List<XPoint> {
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                };
+
+                    }
 
                 }
                 else if (leftJoin == "T1" && rightJoin == "T1")
@@ -1107,6 +1266,18 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT1[1], getEndT1[1], getEndT1[0], getStartT1[0]
                         };
 
+                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line)
+                    {
+                        wierzcholkiStycznePodLuki = wierzcholki;
+                    }
+                    else
+                    {
+                        wierzcholkiStycznePodLuki = new List<XPoint> {
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                };
+
+                    }
+
                 }
                 else if (leftJoin == "T3" && rightJoin == "T3")
                 {
@@ -1126,6 +1297,18 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT3[1], getEndT3[1], getEndT3[0], getStartT3[0]
                         };
 
+                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line)
+                    {
+                        wierzcholkiStycznePodLuki = wierzcholki;
+                    }
+                    else
+                    {
+                        wierzcholkiStycznePodLuki = new List<XPoint> {
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                };
+
+                    }
+
                 }
                 else if (leftJoin == "T2" && rightJoin == "T2")
                 {
@@ -1136,6 +1319,18 @@ namespace GEORGE.Client.Pages.Okna
                     wierzcholki = new List<XPoint> {
                             getStartT2[1], getEndT2[1], getEndT2[0], getStartT2[0]
                         };
+
+                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line)
+                    {
+                        wierzcholkiStycznePodLuki = wierzcholki;
+                    }
+                    else
+                    {
+                        wierzcholkiStycznePodLuki = new List<XPoint> {
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                };
+
+                    }
 
                 }
                 else if (leftJoin == "T5" && rightJoin == "T5")
@@ -1262,6 +1457,18 @@ namespace GEORGE.Client.Pages.Okna
 
                      };
 
+                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line)
+                    {
+                        wierzcholkiStycznePodLuki = wierzcholki;
+                    }
+                    else
+                    {
+                        wierzcholkiStycznePodLuki = new List<XPoint> {
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                };
+
+                    }
+
                     Console.WriteLine($"🔷 T5-T5 -> wierzcholki: {wierzcholki.Count} new List<XPoint>");
                 }
                 else if (leftJoin == "T2" && rightJoin == "T1")
@@ -1286,6 +1493,18 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT2[1], getEndT2[1], getEndT1[0], getStartT2[0]
                         };
 
+                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line)
+                    {
+                        wierzcholkiStycznePodLuki = wierzcholki;
+                    }
+                    else
+                    {
+                        wierzcholkiStycznePodLuki = new List<XPoint> {
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                };
+
+                    }
+
                 }
                 else if (leftJoin == "T1" && rightJoin == "T2")
                 {
@@ -1308,6 +1527,18 @@ namespace GEORGE.Client.Pages.Okna
                     wierzcholki = new List<XPoint> {
                             getStartT1[1], getEndT2[1], getEndT2[0], getStartT2[0]
                         };
+
+                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line)
+                    {
+                        wierzcholkiStycznePodLuki = wierzcholki;
+                    }
+                    else
+                    {
+                        wierzcholkiStycznePodLuki = new List<XPoint> {
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                };
+
+                    }
 
                 }
                 else if (leftJoin == "T3" && rightJoin == "T2")
@@ -1332,6 +1563,18 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT3[1], getEndT2[1], getEndT2[0], getStartT3[0]
                     };
 
+                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line)
+                    {
+                        wierzcholkiStycznePodLuki = wierzcholki;
+                    }
+                    else
+                    {
+                        wierzcholkiStycznePodLuki = new List<XPoint> {
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                };
+
+                    }
+
                 }
                 else if (leftJoin == "T2" && rightJoin == "T3")
                 {
@@ -1354,6 +1597,18 @@ namespace GEORGE.Client.Pages.Okna
                     wierzcholki = new List<XPoint> {
                             getStartT2[1], getEndT3[1], getEndT3[0], getStartT2[0]
                     };
+
+                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line)
+                    {
+                        wierzcholkiStycznePodLuki = wierzcholki;
+                    }
+                    else
+                    {
+                        wierzcholkiStycznePodLuki = new List<XPoint> {
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                };
+
+                    }
 
                 }
                 else if (leftJoin == "T3" && rightJoin == "T1")
@@ -1380,6 +1635,18 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT3[1], getEndT1[1], getEndT1[0], getStartT3[0]
                         };
 
+                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line)
+                    {
+                        wierzcholkiStycznePodLuki = wierzcholki;
+                    }
+                    else
+                    {
+                        wierzcholkiStycznePodLuki = new List<XPoint> {
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                };
+
+                    }
+
                 }
                 else if (leftJoin == "T4" && rightJoin == "T3")
                 {
@@ -1403,6 +1670,18 @@ namespace GEORGE.Client.Pages.Okna
                     wierzcholki = new List<XPoint> {
                             _getStartT4, getEndT3[1], getEndT3[0], getStartT4[0]
                         };
+
+                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line)
+                    {
+                        wierzcholkiStycznePodLuki = wierzcholki;
+                    }
+                    else
+                    {
+                        wierzcholkiStycznePodLuki = new List<XPoint> {
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                };
+
+                    }
 
                 }
                 else if (leftJoin == "T3" && rightJoin == "T4")
@@ -1429,6 +1708,18 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT3[1], _getStartT4, getEndT4[0], getStartT3[0]
                         };
 
+                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line)
+                    {
+                        wierzcholkiStycznePodLuki = wierzcholki;
+                    }
+                    else
+                    {
+                        wierzcholkiStycznePodLuki = new List<XPoint> {
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                };
+
+                    }
+
                 }
                 else
                 {
@@ -1441,11 +1732,22 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT2[1], getEndT2[1], getEndT2[0], getStartT2[0]
                         };
 
+                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line)
+                    {
+                        wierzcholkiStycznePodLuki = wierzcholki;
+                    }
+                    else
+                    {
+                        wierzcholkiStycznePodLuki = new List<XPoint> {
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                };
+
+                    }
+
                 }
 
                 // Budujemy pełny kontur 4-segmentowy
                 wierzcholkiZLukami = Build4SegmentContour(wierzcholki, outerContourSegment, innerContourSegment);
-
 
 
                 double regionMinX = wierzcholki.Min(p => p.X);
@@ -1540,11 +1842,10 @@ namespace GEORGE.Client.Pages.Okna
             return true;
         }
 
-
         public List<ContourSegment> Build4SegmentContour(
-        List<XPoint> wierzcholki,
-        List<ContourSegment> outerContour,
-        List<ContourSegment> innerContour)
+ List<XPoint> wierzcholki,
+ List<ContourSegment> outerContour,
+ List<ContourSegment> innerContour)
         {
             if (wierzcholki == null || wierzcholki.Count != 4)
                 throw new ArgumentException("Lista wierzchołków musi zawierać dokładnie 4 punkty.");
@@ -1668,18 +1969,17 @@ namespace GEORGE.Client.Pages.Okna
             return null;
         }
 
-
-
-        public enum ArcDirection
-        {
-            CW,   // Clockwise (zgodnie z ruchem wskazówek zegara)
-            CCW   // Counter-Clockwise (przeciwnie)
-        }
-
         public ContourSegment FindClosestSegment(XPoint p1, XPoint p2, List<ContourSegment> contourSegments)
         {
             if (contourSegments == null || contourSegments.Count == 0)
-                throw new InvalidOperationException("ContourSegments pusta.");
+            {
+                Console.WriteLine("FindClosestSegment --> ContourSegments jest null lub pusty. Zwarcam tulko linie p1 --> p2");
+
+                return new ContourSegment(
+                        p1,
+                        p2
+                    );
+            }
 
             ContourSegment closest = null;
             double minTotalDistance = double.MaxValue;
@@ -1714,7 +2014,7 @@ namespace GEORGE.Client.Pages.Okna
         }
 
         // Odległość między dwoma punktami
-        private double Distance(XPoint a, XPoint b)
+        private static double Distance(XPoint a, XPoint b)
         {
             double dx = a.X - b.X;
             double dy = a.Y - b.Y;

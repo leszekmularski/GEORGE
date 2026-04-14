@@ -25,7 +25,16 @@ namespace GEORGE.Client.Pages.Models
 
         private readonly double _scaleFactor;
         public string NazwaObj { get; set; } = "Prostokąt z wypukłym łukiem u góry";
-        public int IloscElementowLuki => 3; // liczba punktów generowanych na łuku dla spójności
+        public int _iloscElementowLuki = 3; // liczba punktów generowanych na łuku dla spójności
+        public int IloscElementowLuki
+        {
+            get => _iloscElementowLuki;
+            set
+            {
+                _iloscElementowLuki = Math.Max(2, value); // min 2
+                GenerateCompleteOutline(_iloscElementowLuki); // 🔥 KLUCZOWE
+            }
+        }
 
         public List<ContourSegment> ContourSegments => GetContourSegments();
 
@@ -100,10 +109,10 @@ namespace GEORGE.Client.Pages.Models
             // Prawy górny (początek łuku)
             outline.Add(new XPoint(rightX, arcStartY));
 
-            // Łuk (6 punktów dla spójności)
+            //// Łuk (6 punktów dla spójności)
             if(segments <= 0) segments = 3;
 
-            if (Radius > 1000) segments = 5;
+            //if (Radius > 1000) segments = 5;
 
             for (int i = 0; i <= segments; i++)
             {
@@ -165,7 +174,7 @@ namespace GEORGE.Client.Pages.Models
             var (arcCenterX, arcCenterY, startAngle, endAngle) = CalculateArcGeometry();
 
             await ctx.SetStrokeStyleAsync("black");
-            await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
+            await ctx.SetLineWidthAsync(3);
             await ctx.BeginPathAsync();
 
             await ctx.MoveToAsync(leftX, bottomY);
@@ -267,12 +276,13 @@ namespace GEORGE.Client.Pages.Models
 
         public List<EditableProperty> GetEditableProperties() => new()
         {
-            new EditableProperty("Pozycja X", () => X, v => { X = v; CalculatePointsFromProperties(); }, NazwaObj, true),
-            new EditableProperty("Pozycja Y", () => Y, v => { Y = v; CalculatePointsFromProperties(); }, NazwaObj, true),
-            new EditableProperty("Szerokość", () => Width, v => { Width = Math.Max(10, v); CalculatePointsFromProperties(); }, NazwaObj),
-            new EditableProperty("Wysokość", () => Height, v => { Height = Math.Max(10, v); CalculatePointsFromProperties(); }, NazwaObj),
-            new EditableProperty("Promień łuku", () => Radius, v => { Radius = Math.Max(5, Math.Min(v, Width / 2)); CalculatePointsFromProperties(); }, NazwaObj),
-            new EditableProperty("Wysokość łuku", () => ArcHeight, v => { ArcHeight = Math.Clamp(v, 5, Height); CalculatePointsFromProperties(); }, NazwaObj),
+            new EditableProperty("Pozycja X: ", () => X, v => { X = v; CalculatePointsFromProperties(); }, NazwaObj, true),
+            new EditableProperty("Pozycja Y: ", () => Y, v => { Y = v; CalculatePointsFromProperties(); }, NazwaObj, true),
+            new EditableProperty("Szerokość: ", () => Width, v => { Width = Math.Max(10, v); CalculatePointsFromProperties(); }, NazwaObj),
+            new EditableProperty("Wysokość: ", () => Height, v => { Height = Math.Max(10, v); CalculatePointsFromProperties(); }, NazwaObj),
+            new EditableProperty("Promień łuku: ", () => Radius, v => { Radius = Math.Max(5, Math.Min(v, Width / 2)); CalculatePointsFromProperties(); }, NazwaObj),
+            new EditableProperty("Wysokość łuku: ", () => ArcHeight, v => { ArcHeight = Math.Clamp(v, 5, Height); CalculatePointsFromProperties(); }, NazwaObj),
+            new EditableProperty("Podział na elementy: ", () => IloscElementowLuki, v => IloscElementowLuki = (int)v, NazwaObj),
         };
 
         // 🔹 Generowanie segmentów konturu na podstawie NominalPoints

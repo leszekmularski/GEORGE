@@ -217,7 +217,7 @@ namespace GEORGE.Client.Pages.Models
             else
                 await ctx.SetStrokeStyleAsync("green");
 
-            await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
+            await ctx.SetLineWidthAsync(4);
             await ctx.BeginPathAsync();
             await ctx.MoveToAsync(X1, Y1);
             await ctx.LineToAsync(X2, Y2);

@@ -14,7 +14,16 @@ namespace GEORGE.Client.Pages.Models
         public double Height { get; set; }
         public double Radius { get; set; }
         public string NazwaObj { get; set; } = "Prostokąt z zaokrąglonymi górnymi naroż.";
-        public int IloscElementowLuki => 1; // liczba punktów generowanych na łuku dla spójności
+        public int _iloscElementowLuki = 1; // liczba punktów generowanych na łuku dla spójności
+        public int IloscElementowLuki
+        {
+            get => _iloscElementowLuki;
+            set
+            {
+                _iloscElementowLuki = Math.Max(1, value); // min 1
+                GeneratePoints(); // 🔥 KLUCZOWE
+            }
+        }
 
         private double _scaleFactor = 1.0;
 
@@ -183,7 +192,7 @@ namespace GEORGE.Client.Pages.Models
         public async Task Draw(Canvas2DContext ctx)
         {
             await ctx.SetStrokeStyleAsync("black");
-            await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
+            await ctx.SetLineWidthAsync(3);
 
             double r = Math.Min(Radius, Math.Min(Width, Height) / 2);
 
@@ -217,7 +226,8 @@ namespace GEORGE.Client.Pages.Models
                 double maxR = Math.Min(Width, Height) / 2;
                 Radius = Math.Min(v, maxR);
                 Points = GeneratePoints();
-            }, NazwaObj)
+            }, NazwaObj),
+            new("Podział na elementy: ", () => IloscElementowLuki, v => IloscElementowLuki = (int)v, NazwaObj),
         };
 
         // --------------------------------------------------------------------

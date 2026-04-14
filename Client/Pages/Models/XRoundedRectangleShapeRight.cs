@@ -24,7 +24,17 @@ namespace GEORGE.Client.Pages.Models
 
         public string NazwaObj { get; set; } = "Prostokąt zaokrąglony prawy górny";
 
-        public int IloscElementowLuki => 1; // liczba punktów generowanych na łuku dla spójności
+
+        public int _iloscElementowLuki = 1; // liczba punktów generowanych na łuku dla spójności
+        public int IloscElementowLuki
+        {
+            get => _iloscElementowLuki;
+            set
+            {
+                _iloscElementowLuki = Math.Max(1, value); // min 1
+                RegeneratePoints(); // 🔥 KLUCZOWE
+            }
+        }
 
         private readonly double _scaleFactor;
 
@@ -115,7 +125,7 @@ namespace GEORGE.Client.Pages.Models
             RegeneratePoints();
 
             await ctx.SetStrokeStyleAsync("black");
-            await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
+            await ctx.SetLineWidthAsync(3);
 
             await ctx.BeginPathAsync();
 
@@ -144,11 +154,12 @@ namespace GEORGE.Client.Pages.Models
         // =====================================================================
         public List<EditableProperty> GetEditableProperties() => new()
         {
-            new EditableProperty("X", () => X, v => { X = v; RegeneratePoints(); }, NazwaObj, true),
-            new EditableProperty("Y", () => Y, v => { Y = v; RegeneratePoints(); }, NazwaObj, true),
-            new EditableProperty("Szerokość", () => Width, v => { Width = v; ClampRadius(); RegeneratePoints(); }, NazwaObj),
-            new EditableProperty("Wysokość", () => Height, v => { Height = v; ClampRadius(); RegeneratePoints(); }, NazwaObj),
-            new EditableProperty("Promień naroża", () => Radius, v => { Radius = v; ClampRadius(); RegeneratePoints(); }, NazwaObj),
+            new EditableProperty("X: ", () => X, v => { X = v; RegeneratePoints(); }, NazwaObj, true),
+            new EditableProperty("Y: ", () => Y, v => { Y = v; RegeneratePoints(); }, NazwaObj, true),
+            new EditableProperty("Szerokość: ", () => Width, v => { Width = v; ClampRadius(); RegeneratePoints(); }, NazwaObj),
+            new EditableProperty("Wysokość: ", () => Height, v => { Height = v; ClampRadius(); RegeneratePoints(); }, NazwaObj),
+            new EditableProperty("Promień naroża: ", () => Radius, v => { Radius = v; ClampRadius(); RegeneratePoints(); }, NazwaObj),
+            new EditableProperty("Podział na elementy: ", () => IloscElementowLuki, v => IloscElementowLuki = (int)v, NazwaObj),
         };
 
         // =====================================================================

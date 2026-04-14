@@ -22,7 +22,16 @@ namespace GEORGE.Client.Pages.Models
 
         public List<ContourSegment> ContourSegments => GetContourSegments();
 
-        public int IloscElementowLuki => 8; // liczba punktów generowanych na łuku dla spójności
+        public int _iloscElementowLuki = 8; // liczba punktów generowanych na łuku dla spójności
+        public int IloscElementowLuki
+        {
+            get => _iloscElementowLuki;
+            set
+            {
+                _iloscElementowLuki = Math.Max(3, value); // min 3
+                UpdateCirclePoints(); // 🔥 KLUCZOWE
+            }
+        }
 
         public double X
         {
@@ -112,7 +121,7 @@ namespace GEORGE.Client.Pages.Models
         public async Task Draw(Canvas2DContext ctx)
         {
             await ctx.SetStrokeStyleAsync("black");
-            await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
+            await ctx.SetLineWidthAsync(3);
 
             await ctx.BeginPathAsync();
             await ctx.ArcAsync(X, Y, Radius, 0, 2 * Math.PI);
@@ -157,10 +166,11 @@ namespace GEORGE.Client.Pages.Models
 
         public List<EditableProperty> GetEditableProperties() => new()
     {
-        new EditableProperty("X", () => X, v => X = v, NazwaObj, true),
-        new EditableProperty("Y", () => Y, v => Y = v, NazwaObj, true),
-        new EditableProperty("Promień", () => Radius, v => Radius = v, NazwaObj),
-        new EditableProperty("Skala", () => _scaleFactor, v => _scaleFactor = v, NazwaObj, true)
+        new EditableProperty("X: ", () => X, v => X = v, NazwaObj, true),
+        new EditableProperty("Y: ", () => Y, v => Y = v, NazwaObj, true),
+        new EditableProperty("Promień: ", () => Radius, v => Radius = v, NazwaObj),
+        new EditableProperty("Podział na elementy: ", () => IloscElementowLuki, v => IloscElementowLuki = (int)v, NazwaObj),
+        new EditableProperty("Skala: ", () => _scaleFactor, v => _scaleFactor = v, NazwaObj, true)        
     };
 
         public void Scale(double factor)
@@ -222,8 +232,6 @@ namespace GEORGE.Client.Pages.Models
         private List<XPoint> GenerateCirclePoints(int segments = 32)
         {
             var points = new List<XPoint>();
-
-            points.Add(new XPoint(X, Y));
 
             for (int i = 0; i < segments; i++)
             {

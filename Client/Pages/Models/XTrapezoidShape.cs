@@ -136,7 +136,7 @@ namespace GEORGE.Client.Pages.Models
         public async Task Draw(Canvas2DContext ctx)
         {
             await ctx.SetStrokeStyleAsync("black");
-            await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
+            await ctx.SetLineWidthAsync(3);
 
             if (Typ == 0)
             {
@@ -201,11 +201,11 @@ namespace GEORGE.Client.Pages.Models
         // Właściwości edytowalne
         public List<EditableProperty> GetEditableProperties() => new()
     {
-        new("Pozycja X", () => X, v => X = v, NazwaObj, true),
-        new("Pozycja Y", () => Y, v => Y = v, NazwaObj, true),
-        new("Szerokość podstawy", () => BaseWidth, v => BaseWidth = v, NazwaObj),
-        new("Szerokość góry", () => TopWidth, v => TopWidth = Math.Clamp(v, 10, BaseWidth - 10), NazwaObj),
-        new("Wysokość", () => Height, v => Height = v, NazwaObj)
+        new("Pozycja X: ", () => X, v => X = v, NazwaObj, true),
+        new("Pozycja Y: ", () => Y, v => Y = v, NazwaObj, true),
+        new("Szerokość podstawy: ", () => BaseWidth, v => BaseWidth = v, NazwaObj),
+        new("Szerokość góry: ", () => TopWidth, v => TopWidth = Math.Clamp(v, 10, BaseWidth - 10), NazwaObj),
+        new("Wysokość: ", () => Height, v => Height = v, NazwaObj)
     };
 
         public void Scale(double factor)

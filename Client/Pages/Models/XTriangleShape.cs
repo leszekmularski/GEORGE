@@ -186,7 +186,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             var left = Points[2];
 
             await ctx.SetStrokeStyleAsync("black");
-            await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
+            await ctx.SetLineWidthAsync(3);
 
             await ctx.BeginPathAsync();
             await ctx.MoveToAsync(apex.X, apex.Y);
@@ -202,10 +202,10 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         // ---------------------------------------------------------
         public List<EditableProperty> GetEditableProperties() => new()
         {
-            new EditableProperty("Lewa podstawa X", () => BaseX1, v => { BaseX1 = v; NominalPoints = GeneratePoints(); ApplyScaleToPoints(); Szerokosc = BaseWidth; Wysokosc = Height; }, NazwaObj),
-            new EditableProperty("Pozycja Y podstawy", () => BaseY, v => { BaseY = v; NominalPoints = GeneratePoints(); ApplyScaleToPoints(); Szerokosc = BaseWidth; Wysokosc = Height; }, NazwaObj),
-            new EditableProperty("Szerokość podstawy", () => BaseWidth, v => { BaseWidth = v; NominalPoints = GeneratePoints(); ApplyScaleToPoints(); Szerokosc = BaseWidth; Wysokosc = Height; }, NazwaObj),
-            new EditableProperty("Wysokość", () => Height, v => { Height = v; NominalPoints = GeneratePoints(); ApplyScaleToPoints(); Szerokosc = BaseWidth; Wysokosc = Height; }, NazwaObj)
+            new EditableProperty("Lewa podstawa X: ", () => BaseX1, v => { BaseX1 = v; NominalPoints = GeneratePoints(); ApplyScaleToPoints(); Szerokosc = BaseWidth; Wysokosc = Height; }, NazwaObj),
+            new EditableProperty("Pozycja Y podstawy: ", () => BaseY, v => { BaseY = v; NominalPoints = GeneratePoints(); ApplyScaleToPoints(); Szerokosc = BaseWidth; Wysokosc = Height; }, NazwaObj),
+            new EditableProperty("Szerokość podstawy: ", () => BaseWidth, v => { BaseWidth = v; NominalPoints = GeneratePoints(); ApplyScaleToPoints(); Szerokosc = BaseWidth; Wysokosc = Height; }, NazwaObj),
+            new EditableProperty("Wysokość: ", () => Height, v => { Height = v; NominalPoints = GeneratePoints(); ApplyScaleToPoints(); Szerokosc = BaseWidth; Wysokosc = Height; }, NazwaObj)
         };
 
         // ---------------------------------------------------------

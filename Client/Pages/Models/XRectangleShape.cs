@@ -112,7 +112,7 @@ namespace GEORGE.Client.Pages.Models
             Points = GeneratePoints();
 
             await ctx.SetStrokeStyleAsync("black");
-            await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
+            await ctx.SetLineWidthAsync(3);
 
             await ctx.BeginPathAsync();
             await ctx.RectAsync(X, Y, Width, Height);
@@ -124,10 +124,10 @@ namespace GEORGE.Client.Pages.Models
         // ---------------------------------------------------------
         public List<EditableProperty> GetEditableProperties() => new()
         {
-            new("X", () => X, v => { X = v; Points = GeneratePoints(); }, NazwaObj, true),
-            new("Y", () => Y, v => { Y = v; Points = GeneratePoints(); }, NazwaObj, true),
-            new("Szerokość", () => Width, v => { Width = v; Points = GeneratePoints(); }, NazwaObj),
-            new("Wysokość", () => Height, v => { Height = v; Points = GeneratePoints(); }, NazwaObj)
+            new("X: ", () => X, v => { X = v; Points = GeneratePoints(); }, NazwaObj, true),
+            new("Y: ", () => Y, v => { Y = v; Points = GeneratePoints(); }, NazwaObj, true),
+            new("Szerokość: ", () => Width, v => { Width = v; Points = GeneratePoints(); }, NazwaObj),
+            new("Wysokość: ", () => Height, v => { Height = v; Points = GeneratePoints(); }, NazwaObj)
         };
 
         // ---------------------------------------------------------
