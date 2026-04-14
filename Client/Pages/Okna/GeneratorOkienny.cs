@@ -1037,7 +1037,7 @@ namespace GEORGE.Client.Pages.Okna
                             else
                             {
                                 wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
                                 };
 
                             }
@@ -1071,7 +1071,7 @@ namespace GEORGE.Client.Pages.Okna
                                 else
                                 {
                                     wierzcholkiStycznePodLuki = new List<XPoint> {
-                                    outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                    outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
                                     };
 
                                 }
@@ -1123,7 +1123,7 @@ namespace GEORGE.Client.Pages.Okna
                                 else
                                 {
                                     wierzcholkiStycznePodLuki = new List<XPoint> {
-                                    outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                    outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
                                     };
 
                                 }
@@ -1159,7 +1159,7 @@ namespace GEORGE.Client.Pages.Okna
                             else
                             {
                                 wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
                                 };
 
                             }
@@ -1217,7 +1217,7 @@ namespace GEORGE.Client.Pages.Okna
                             else
                             {
                                 wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
                                 };
 
                             }
@@ -1242,7 +1242,7 @@ namespace GEORGE.Client.Pages.Okna
                     else
                     {
                         wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
                                 };
 
                     }
@@ -1273,7 +1273,7 @@ namespace GEORGE.Client.Pages.Okna
                     else
                     {
                         wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
                                 };
 
                     }
@@ -1304,7 +1304,7 @@ namespace GEORGE.Client.Pages.Okna
                     else
                     {
                         wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
                                 };
 
                     }
@@ -1327,7 +1327,7 @@ namespace GEORGE.Client.Pages.Okna
                     else
                     {
                         wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
                                 };
 
                     }
@@ -1464,7 +1464,7 @@ namespace GEORGE.Client.Pages.Okna
                     else
                     {
                         wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
                                 };
 
                     }
@@ -1500,7 +1500,7 @@ namespace GEORGE.Client.Pages.Okna
                     else
                     {
                         wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
                                 };
 
                     }
@@ -1535,7 +1535,7 @@ namespace GEORGE.Client.Pages.Okna
                     else
                     {
                         wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
                                 };
 
                     }
@@ -1570,7 +1570,7 @@ namespace GEORGE.Client.Pages.Okna
                     else
                     {
                         wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
                                 };
 
                     }
@@ -1605,7 +1605,7 @@ namespace GEORGE.Client.Pages.Okna
                     else
                     {
                         wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
                                 };
 
                     }
@@ -1642,7 +1642,7 @@ namespace GEORGE.Client.Pages.Okna
                     else
                     {
                         wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
                                 };
 
                     }
@@ -1678,7 +1678,7 @@ namespace GEORGE.Client.Pages.Okna
                     else
                     {
                         wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
                                 };
 
                     }
@@ -1715,7 +1715,7 @@ namespace GEORGE.Client.Pages.Okna
                     else
                     {
                         wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
                                 };
 
                     }
@@ -1739,7 +1739,7 @@ namespace GEORGE.Client.Pages.Okna
                     else
                     {
                         wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[3], wierzcholki[4]
+                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
                                 };
 
                     }
