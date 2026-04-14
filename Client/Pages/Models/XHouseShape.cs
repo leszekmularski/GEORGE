@@ -118,7 +118,7 @@ namespace GEORGE.Client.Pages.Models
             if (Points == null || Points.Count < 5) return;
 
             await ctx.SetStrokeStyleAsync("black");
-            await ctx.SetLineWidthAsync((float)(2 * _scaleFactor));
+            await ctx.SetLineWidthAsync(3);
 
             await ctx.BeginPathAsync();
 
@@ -143,27 +143,27 @@ namespace GEORGE.Client.Pages.Models
 
         public List<EditableProperty> GetEditableProperties() => new()
         {
-            new EditableProperty("X", () => X, v => {
+            new EditableProperty("X: ", () => X, v => {
                 X = v;
                 UpdatePoints();
             }, NazwaObj, true),
-            new EditableProperty("Y", () => Y, v => {
+            new EditableProperty("Y: ", () => Y, v => {
                 Y = v;
                 UpdatePoints();
             }, NazwaObj, true),
-            new EditableProperty("Szerokość", () => Width, v => {
+            new EditableProperty("Szerokość: ", () => Width, v => {
                 Width = v;
                 UpdatePoints();
             }, NazwaObj),
-            new EditableProperty("Wysokość", () => Height, v => {
+            new EditableProperty("Wysokość: ", () => Height, v => {
                 Height = v;
                 UpdatePoints();
             }, NazwaObj),
-            new EditableProperty("Wysokość bok lewy", () => HeightLeft, v => {
+            new EditableProperty("Wysokość bok lewy: ", () => HeightLeft, v => {
                 HeightLeft = v;
                 UpdatePoints();
             }, NazwaObj),
-            new EditableProperty("Wysokość bok prawy", () => HeightRight, v => {
+            new EditableProperty("Wysokość bok prawy: ", () => HeightRight, v => {
                 HeightRight = v;
                 UpdatePoints();
             }, NazwaObj)

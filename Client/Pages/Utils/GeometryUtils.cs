@@ -51,7 +51,7 @@ namespace GEORGE.Client.Pages.Utils
                     XRectangleShape rect => rect.GetCorners(),
                     XTriangleShape tri => tri.GetVertices(),
                     XTrapezoidShape trap => trap.GetVertices(),
-                    XCircleShape circ => GenerateCircleVertices(circ.X, circ.Y, circ.Radius, 8),// liczna 8 - podział koła na 8 segmentów
+                    XCircleShape circ => GenerateCircleVertices(circ.X, circ.Y, circ.Radius, circ.IloscElementowLuki),
                     XHouseShape house => house.GetFullOutline(),
                     XRoundedTopRectangleShape rtr => rtr.GetVertices(),
                     XRoundedRectangleShape rr => rr.GetVertices(),
@@ -163,7 +163,6 @@ namespace GEORGE.Client.Pages.Utils
                             lineSegment.Informacja = ramaInfo;
                             return lineSegment;
                         }
-
                         // =========================
                         // PROSTOKĄT ZAOKRĄGLONY
                         // =========================
@@ -247,7 +246,6 @@ namespace GEORGE.Client.Pages.Utils
                             lineSegLeft.Informacja = ramaInfo;
                             return lineSegLeft;
                         }
-
                         // =========================
                         // ZAOKRĄGLONY PRAWY BOK
                         // =========================
@@ -1186,7 +1184,11 @@ namespace GEORGE.Client.Pages.Utils
             return list;
         }
 
-        public static List<XPoint> GenerateCircleVertices(double centerX, double centerY, double radius, int segments)
+        public static List<XPoint> GenerateCircleVertices(
+        double centerX,
+        double centerY,
+        double radius,
+        int segments)
         {
             var points = new List<XPoint>();
 

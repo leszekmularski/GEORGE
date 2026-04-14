@@ -985,7 +985,7 @@
                                     <button @onclick="SelectPreviousShape">Poprzedni obiekt</button>
                                     <button @onclick="SelectNextShape">Następny obiekt</button>
 
-                                    <button @onclick="() => ZmienWymiaryOknaPozmianiePunktow()">Zmień wymiary okna</button>
+                                  @*   <button @onclick="() => ZmienWymiaryOknaPozmianiePunktow()">Zmień wymiary okna</button> *@
 
                                 </div>
 
@@ -1429,6 +1429,7 @@
 
                     await FitShapesToDisplayWindow();           // dopasowanie do canvas
                     // await RenderShapesIfReady(); // <--- dodaj to
+
                 }
 
                 _isInitialized = true;
@@ -1441,6 +1442,7 @@
                 hasCanvasError = true;
                 StateHasChanged();
             }
+
         }
     }
 
@@ -2239,18 +2241,23 @@
 
         ZamknijModal();
 
+        if(constWlasciwosciOkna == null) constWlasciwosciOkna = new ConstWlasciwosciOkna();
+
         // Obliczanie szerokości i wysokości dla każdego regionu i wybór największych wartości
         if (_regionsDualRama != null && _regionsDualRama.Any())
         {
             // Szerokość = max X - min X dla każdego regionu, potem max z tych szerokości
             constWlasciwosciOkna.Szerokosc = (int)_regionsDualRama
-                .Select(r => r.Wierzcholki.Max(p => p.X) - r.Wierzcholki.Min(p => p.X))
-                .Max();
-
+            .Where(r => r.Wierzcholki != null && r.Wierzcholki.Any())
+            .Select(r => r.Wierzcholki.Max(p => p.X) - r.Wierzcholki.Min(p => p.X))
+            .DefaultIfEmpty(ShapeService._szerokosc)
+            .Max();
             // Wysokość = max Y - min Y dla każdego regionu, potem max z tych wysokości
             constWlasciwosciOkna.Wysokosc = (int)_regionsDualRama
-                .Select(r => r.Wierzcholki.Max(p => p.Y) - r.Wierzcholki.Min(p => p.Y))
-                .Max();
+            .Where(r => r.Wierzcholki != null && r.Wierzcholki.Any())
+            .Select(r => r.Wierzcholki.Max(p => p.Y) - r.Wierzcholki.Min(p => p.Y))
+            .DefaultIfEmpty(ShapeService._wysokosc)
+            .Max();
 
             _lastMouseClick.X = -1;
             _lastMouseClick.Y = -1;
@@ -2438,6 +2445,12 @@
             ShapeService.Shapes[_selectedShapeIndex].GetNominalPoints();
 
         await GenerujObrysPozZmianieWymiarow(false);
+
+         await ZmienWymiaryOkna(true);
+         await FitShapesToDisplayWindow();
+         await OnlyRestrykcje();
+         //await Task.Delay(10);
+         //await ApplyZoom();
     }
 
     private async Task ZoomIn()
@@ -3307,6 +3320,12 @@
             // 2. Aktualizacja wymiarów kształtów
             foreach (var shape in ShapeService.Shapes)
             {
+                if(shape != null && shape.GetType() == typeof(XCircleShape))
+                {
+                    newHeight = constWlasciwosciOkna.Szerokosc;
+                    constWlasciwosciOkna.Wysokosc = constWlasciwosciOkna.Szerokosc;
+                }
+
                 if (shape != null)
                 {
                     shape.Szerokosc = newWidth;
