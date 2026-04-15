@@ -1297,7 +1297,7 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT3[1], getEndT3[1], getEndT3[0], getStartT3[0]
                         };
 
-                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line && outerContourSegment[prev].Type == SegmentType.Line)
+                    if (outerContourSegment[i > outerContourSegment.Count -1 ? 0 : i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line && outerContourSegment[prev].Type == SegmentType.Line)
                     {
                         wierzcholkiStycznePodLuki = wierzcholki;
                     }
