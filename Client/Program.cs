@@ -1,10 +1,11 @@
-﻿using GEORGE.Client;
+﻿using AntDesign;
+using GEORGE.Client;
+using GEORGE.Client.Pages.KonfiguratorOkien;
+using GEORGE.Client.Pages.Okna;
+using GEORGE.Client.Pages.PDF;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using AntDesign;
 using System.Globalization;
-using GEORGE.Client.Pages.PDF;
-using GEORGE.Client.Pages.KonfiguratorOkien;
 
 var culture = new CultureInfo("pl-PL");
 CultureInfo.DefaultThreadCurrentCulture = culture;
@@ -37,6 +38,8 @@ builder.Services.AddScoped<PdfDataParser>();
 builder.Services.AddScoped<PdfDataParserSzyby>();
 builder.Services.AddScoped<PdfDataParserRys>();
 builder.Services.AddScoped<PdfDataParserElementy>();
+
+builder.Services.AddScoped<Generator>();
 
 builder.Services.AddSingleton<DxfService>();
 builder.Services.AddSingleton<DxfToSvgConverter>();

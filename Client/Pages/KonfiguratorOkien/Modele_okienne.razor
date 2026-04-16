@@ -29,6 +29,8 @@
 
 @inject GeneratorStateContainer StateContainer
 
+@inject Generator _generator
+
 @implements IDisposable
 @implements IAsyncDisposable
 
@@ -5466,6 +5468,8 @@
 
         _regionsSkrzydlo.Wierzcholki = regionPointsSkrzydlo;
 
+        _regionsSkrzydlo.Kontur = BuildContourFromPoints(_regionsSkrzydlo.Kontur, (float)przesLewo, (float)przesPrawo, (float)przesGora, (float)przesDol);// aktualizacja konturu, jeśli jest osobno przechowywany
+
         // 🔹 Ulepszone komunikaty ostrzegawcze
         if (przesLewo == 0 && ustawionoLewa)
         {
@@ -5515,6 +5519,29 @@
 
         Console.WriteLine($"✅ WyliczObszarSkrzydla KONIEC\n");
         return _regionsSkrzydlo;
+    }
+
+    private List<ContourSegment> BuildContourFromPoints(
+    List<ContourSegment> contur,
+    float left,
+    float right,
+    float top,
+    float bottom)
+    {
+        if (contur == null || contur.Count == 0)
+            return new List<ContourSegment>();
+
+        // 🔥 KLUCZ: NIE budujesz już segmentów z punktów
+        // tylko bierzesz gotowy kontur (linia + łuki)
+
+        return _generator.CalculateOffsetPolygonKontur(
+            contur,
+            left,
+            right,
+            top,
+            bottom,
+            elementLiniowy: false
+        );
     }
 
     private XPoint? PrzeciecieLinii(XPoint p1, XPoint p2, XPoint p3, XPoint p4)

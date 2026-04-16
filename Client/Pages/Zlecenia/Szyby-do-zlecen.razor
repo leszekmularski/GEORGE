@@ -948,7 +948,7 @@
         if (szybyDoZlecen == null || szybyDoZlecen.Count == 0) return;
 
         var kantowkiText = string.Join("\n", szybyDoZlecen.Select(k =>
-            $"RowIdZlecenia: {k.RowIdZlecenia}, Szrokość: {k.Szerokosc}, Wysokość: {k.Wysokosc}, Rozaj Szyby: {k.RodzajSzyby}, Rodzaj Ramki: {k.RodzajRamki}, Ilość: {k.IloscSztuk}, Uwagi: {k.Uwagi}, DataZamowienia: {k.DataZamowienia}, DataRealizacji: {k.DataRealizacji}, DataZapisu: {k.DataZapisu}, KtoZapisal: {k.KtoZapisal}, OstatniaZmiana: {k.OstatniaZmiana}"
+            $"RowIdZlecenia: {k.RowIdZlecenia}, Szerokość: {k.Szerokosc}, Wysokość: {k.Wysokosc}, Rodzaj Szyby: {k.RodzajSzyby}, Rodzaj Ramki: {k.RodzajRamki}, Ilość: {k.IloscSztuk}, Uwagi: {k.Uwagi}, DataZamowienia: {k.DataZamowienia}, DataRealizacji: {k.DataRealizacji}, DataZapisu: {k.DataZapisu}, KtoZapisal: {k.KtoZapisal}, OstatniaZmiana: {k.OstatniaZmiana}"
         ));
 
         await JSRuntime.InvokeVoidAsync("copyToClipboard", kantowkiText);

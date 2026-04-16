@@ -414,6 +414,18 @@ namespace GEORGE.Client.Pages.Okna
                     false);
             }
 
+            if(wewnetrznyKonturZLukami == null)
+            {
+                Console.WriteLine($"❌ Generowanie elementów zakończone niepowodzeniem dla regionu {regionId} wewnetrznyKonturZLukami == null");
+                return false;
+            }
+
+            if (liniaSzkleniaKontur == null)
+            {
+                Console.WriteLine($"❌ Generowanie elementów zakończone niepowodzeniem dla regionu {regionId} liniaSzkleniaKontur == null");
+                return false;
+            }
+
             var okLine = await GenerateGenericElementsWithJoins(
                      przeskalowanePunkty,
                      wewnetrznyKontur,
@@ -1030,17 +1042,13 @@ namespace GEORGE.Client.Pages.Okna
                             outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
                             };
 
-                            if(outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line)
-                            {
-                                wierzcholkiStycznePodLuki = wierzcholki;
-                            }
-                            else
-                            {
-                                wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
-                                };
-
-                            }
+                            wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
+                                         i,
+                                         next,
+                                         prev,
+                                         wierzcholki,
+                                         outerContourSegment,
+                                         innerContourSegment);
 
                         }
                         else
@@ -1064,17 +1072,13 @@ namespace GEORGE.Client.Pages.Okna
                                 outerTop, outerBottom, innerBottom, innerTop
                                 };
 
-                                if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line && outerContourSegment[prev].Type == SegmentType.Line)
-                                {
-                                    wierzcholkiStycznePodLuki = wierzcholki;
-                                }
-                                else
-                                {
-                                    wierzcholkiStycznePodLuki = new List<XPoint> {
-                                    outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
-                                    };
-
-                                }
+                                wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
+                                         i,
+                                         next,
+                                         prev,
+                                         wierzcholki,
+                                         outerContourSegment,
+                                         innerContourSegment);
 
                             }
                             else
@@ -1116,17 +1120,13 @@ namespace GEORGE.Client.Pages.Okna
                                 outerTop, outerBottom, innerBottom, innerTop
                                 };
 
-                                if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line && outerContourSegment[prev].Type == SegmentType.Line)
-                                {
-                                    wierzcholkiStycznePodLuki = wierzcholki;
-                                }
-                                else
-                                {
-                                    wierzcholkiStycznePodLuki = new List<XPoint> {
-                                    outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
-                                    };
-
-                                }
+                                wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
+                                         i,
+                                         next,
+                                         prev,
+                                         wierzcholki,
+                                         outerContourSegment,
+                                         innerContourSegment);
 
                             }
                         }
@@ -1152,17 +1152,13 @@ namespace GEORGE.Client.Pages.Okna
                             outerVecStart, outerVecEnd, innerVecEnd, innerVecStart
                             };
 
-                            if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line && outerContourSegment[prev].Type == SegmentType.Line)
-                            {
-                                wierzcholkiStycznePodLuki = wierzcholki;
-                            }
-                            else
-                            {
-                                wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
-                                };
-
-                            }
+                            wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
+                                         i,
+                                         next,
+                                         prev,
+                                         wierzcholki,
+                                         outerContourSegment,
+                                         innerContourSegment);
 
                         }
                         else
@@ -1210,17 +1206,13 @@ namespace GEORGE.Client.Pages.Okna
                             outerTop, outerBottom, innerBottom, innerTop
                             };
 
-                            if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line && outerContourSegment[prev].Type == SegmentType.Line)
-                            {
-                                wierzcholkiStycznePodLuki = wierzcholki;
-                            }
-                            else
-                            {
-                                wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
-                                };
-
-                            }
+                            wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
+                                         i,
+                                         next,
+                                         prev,
+                                         wierzcholki,
+                                         outerContourSegment,
+                                         innerContourSegment);
 
                         }
                     }
@@ -1235,17 +1227,13 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT4[1], getEndT4[1], getEndT4[0], getStartT4[0]
                         };
 
-                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line && outerContourSegment[prev].Type == SegmentType.Line)
-                    {
-                        wierzcholkiStycznePodLuki = wierzcholki;
-                    }
-                    else
-                    {
-                        wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
-                                };
-
-                    }
+                    wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
+                                         i,
+                                         next,
+                                         prev,
+                                         wierzcholki,
+                                         outerContourSegment,
+                                         innerContourSegment);
 
                 }
                 else if (leftJoin == "T1" && rightJoin == "T1")
@@ -1266,17 +1254,13 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT1[1], getEndT1[1], getEndT1[0], getStartT1[0]
                         };
 
-                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line && outerContourSegment[prev].Type == SegmentType.Line)
-                    {
-                        wierzcholkiStycznePodLuki = wierzcholki;
-                    }
-                    else
-                    {
-                        wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], inner[i]
-                                };
-
-                    }
+                    wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
+                                         i,
+                                         next,
+                                         prev,
+                                         wierzcholki,
+                                         outerContourSegment,
+                                         innerContourSegment);
 
                 }
                 else if (leftJoin == "T3" && rightJoin == "T3")
@@ -1297,17 +1281,13 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT3[1], getEndT3[1], getEndT3[0], getStartT3[0]
                         };
 
-                    if (outerContourSegment[i > outerContourSegment.Count -1 ? 0 : i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line && outerContourSegment[prev].Type == SegmentType.Line)
-                    {
-                        wierzcholkiStycznePodLuki = wierzcholki;
-                    }
-                    else
-                    {
-                        wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
-                                };
-
-                    }
+                    wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
+                                                i,
+                                                next,
+                                                prev,
+                                                wierzcholki,
+                                                outerContourSegment,
+                                                innerContourSegment);
 
                 }
                 else if (leftJoin == "T2" && rightJoin == "T2")
@@ -1320,17 +1300,13 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT2[1], getEndT2[1], getEndT2[0], getStartT2[0]
                         };
 
-                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line && outerContourSegment[prev].Type == SegmentType.Line)
-                    {
-                        wierzcholkiStycznePodLuki = wierzcholki;
-                    }
-                    else
-                    {
-                        wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
-                                };
-
-                    }
+                    wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
+                                         i,
+                                         next,
+                                         prev,
+                                         wierzcholki,
+                                         outerContourSegment,
+                                         innerContourSegment);
 
                 }
                 else if (leftJoin == "T5" && rightJoin == "T5")
@@ -1438,13 +1414,13 @@ namespace GEORGE.Client.Pages.Okna
                     var BottomSTT5 = midBottomIntersection;    // Środkowy dolny
                     var BottomRT5 = rightBottomIntersection;   // Prawy dolny
 
-                    Console.WriteLine($"🔷 🔷🔷 T5-T5 TopXT5.X/Y: {TopXT5.X}/{TopXT5.Y}");
-                    Console.WriteLine($"🔷 🔷🔷 T5-T5 BottomXT5.X/Y: {BottomXT5.X}/{BottomXT5.Y}");
-                    Console.WriteLine($"🔷 🔷🔷 T5-T5 tmpTopST5.X/Y: {tmpTopST5.X}/{tmpTopST5.Y}");
-                    Console.WriteLine($"🔷 🔷🔷 T5-T5 tmpTopLT5.X/Y: {tmpTopLT5.X}/{tmpTopLT5.Y}");
-                    Console.WriteLine($"🔷 🔷🔷 T5-T5 tmpTopRT5.X/Y: {tmpTopRT5.X}/{tmpTopRT5.Y}");
-                    Console.WriteLine($"🔷 🔷🔷 T5-T5 midTopIntersection.X/Y: {midTopIntersection.X}/{midTopIntersection.Y}");
-                    Console.WriteLine($"🔷 🔷🔷 T5-T5 midBottomIntersection.X/Y: {midBottomIntersection.X}/{midBottomIntersection.Y}");
+                    //Console.WriteLine($"🔷 🔷🔷 T5-T5 TopXT5.X/Y: {TopXT5.X}/{TopXT5.Y}");
+                    //Console.WriteLine($"🔷 🔷🔷 T5-T5 BottomXT5.X/Y: {BottomXT5.X}/{BottomXT5.Y}");
+                    //Console.WriteLine($"🔷 🔷🔷 T5-T5 tmpTopST5.X/Y: {tmpTopST5.X}/{tmpTopST5.Y}");
+                    //Console.WriteLine($"🔷 🔷🔷 T5-T5 tmpTopLT5.X/Y: {tmpTopLT5.X}/{tmpTopLT5.Y}");
+                    //Console.WriteLine($"🔷 🔷🔷 T5-T5 tmpTopRT5.X/Y: {tmpTopRT5.X}/{tmpTopRT5.Y}");
+                    //Console.WriteLine($"🔷 🔷🔷 T5-T5 midTopIntersection.X/Y: {midTopIntersection.X}/{midTopIntersection.Y}");
+                    //Console.WriteLine($"🔷 🔷🔷 T5-T5 midBottomIntersection.X/Y: {midBottomIntersection.X}/{midBottomIntersection.Y}");
                     // Zbierz punkty w kolejności
                     wierzcholki = new List<XPoint>
                      {
@@ -1457,17 +1433,13 @@ namespace GEORGE.Client.Pages.Okna
 
                      };
 
-                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line && outerContourSegment[prev].Type == SegmentType.Line)
-                    {
-                        wierzcholkiStycznePodLuki = wierzcholki;
-                    }
-                    else
-                    {
-                        wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
-                                };
-
-                    }
+                    wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
+                                         i,
+                                         next,
+                                         prev,
+                                         wierzcholki,
+                                         outerContourSegment,
+                                         innerContourSegment);
 
                     Console.WriteLine($"🔷 T5-T5 -> wierzcholki: {wierzcholki.Count} new List<XPoint>");
                 }
@@ -1493,17 +1465,13 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT2[1], getEndT2[1], getEndT1[0], getStartT2[0]
                         };
 
-                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line && outerContourSegment[prev].Type == SegmentType.Line)
-                    {
-                        wierzcholkiStycznePodLuki = wierzcholki;
-                    }
-                    else
-                    {
-                        wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
-                                };
-
-                    }
+                    wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
+                                         i,
+                                         next,
+                                         prev,
+                                         wierzcholki,
+                                         outerContourSegment,
+                                         innerContourSegment);
 
                 }
                 else if (leftJoin == "T1" && rightJoin == "T2")
@@ -1528,17 +1496,13 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT1[1], getEndT2[1], getEndT2[0], getStartT2[0]
                         };
 
-                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line && outerContourSegment[prev].Type == SegmentType.Line)
-                    {
-                        wierzcholkiStycznePodLuki = wierzcholki;
-                    }
-                    else
-                    {
-                        wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
-                                };
-
-                    }
+                    wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
+                                         i,
+                                         next,
+                                         prev,
+                                         wierzcholki,
+                                         outerContourSegment,
+                                         innerContourSegment);
 
                 }
                 else if (leftJoin == "T3" && rightJoin == "T2")
@@ -1563,17 +1527,13 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT3[1], getEndT2[1], getEndT2[0], getStartT3[0]
                     };
 
-                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line && outerContourSegment[prev].Type == SegmentType.Line)
-                    {
-                        wierzcholkiStycznePodLuki = wierzcholki;
-                    }
-                    else
-                    {
-                        wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
-                                };
-
-                    }
+                    wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
+                                         i,
+                                         next,
+                                         prev,
+                                         wierzcholki,
+                                         outerContourSegment,
+                                         innerContourSegment);
 
                 }
                 else if (leftJoin == "T2" && rightJoin == "T3")
@@ -1598,17 +1558,13 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT2[1], getEndT3[1], getEndT3[0], getStartT2[0]
                     };
 
-                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line && outerContourSegment[prev].Type == SegmentType.Line)
-                    {
-                        wierzcholkiStycznePodLuki = wierzcholki;
-                    }
-                    else
-                    {
-                        wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
-                                };
-
-                    }
+                    wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
+                                         i,
+                                         next,
+                                         prev,
+                                         wierzcholki,
+                                         outerContourSegment,
+                                         innerContourSegment);
 
                 }
                 else if (leftJoin == "T3" && rightJoin == "T1")
@@ -1635,17 +1591,13 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT3[1], getEndT1[1], getEndT1[0], getStartT3[0]
                         };
 
-                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line && outerContourSegment[prev].Type == SegmentType.Line)
-                    {
-                        wierzcholkiStycznePodLuki = wierzcholki;
-                    }
-                    else
-                    {
-                        wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
-                                };
-
-                    }
+                    wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
+                                         i,
+                                         next,
+                                         prev,
+                                         wierzcholki,
+                                         outerContourSegment,
+                                         innerContourSegment);
 
                 }
                 else if (leftJoin == "T4" && rightJoin == "T3")
@@ -1671,17 +1623,13 @@ namespace GEORGE.Client.Pages.Okna
                             _getStartT4, getEndT3[1], getEndT3[0], getStartT4[0]
                         };
 
-                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line && outerContourSegment[prev].Type == SegmentType.Line)
-                    {
-                        wierzcholkiStycznePodLuki = wierzcholki;
-                    }
-                    else
-                    {
-                        wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
-                                };
-
-                    }
+                    wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
+                                         i,
+                                         next,
+                                         prev,
+                                         wierzcholki,
+                                         outerContourSegment,
+                                         innerContourSegment);
 
                 }
                 else if (leftJoin == "T3" && rightJoin == "T4")
@@ -1708,17 +1656,13 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT3[1], _getStartT4, getEndT4[0], getStartT3[0]
                         };
 
-                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line && outerContourSegment[prev].Type == SegmentType.Line)
-                    {
-                        wierzcholkiStycznePodLuki = wierzcholki;
-                    }
-                    else
-                    {
-                        wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
-                                };
-
-                    }
+                    wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
+                                         i,
+                                         next,
+                                         prev,
+                                         wierzcholki,
+                                         outerContourSegment,
+                                         innerContourSegment);
 
                 }
                 else
@@ -1732,19 +1676,16 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT2[1], getEndT2[1], getEndT2[0], getStartT2[0]
                         };
 
-                    if (outerContourSegment[i].Type == SegmentType.Line && outerContourSegment[next].Type == SegmentType.Line && outerContourSegment[prev].Type == SegmentType.Line)
-                    {
-                        wierzcholkiStycznePodLuki = wierzcholki;
-                    }
-                    else
-                    {
-                        wierzcholkiStycznePodLuki = new List<XPoint> {
-                                outerContourSegment[i].Start, outerContourSegment[i].End, wierzcholki[2], wierzcholki[3]
-                                };
-
-                    }
+                    wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
+                                         i,
+                                         next,
+                                         prev,
+                                         wierzcholki,
+                                         outerContourSegment,
+                                         innerContourSegment);
 
                 }
+                   
 
                 // Budujemy pełny kontur 4-segmentowy
                 wierzcholkiZLukami = Build4SegmentContour(wierzcholkiStycznePodLuki, outerContourSegment, innerContourSegment);
@@ -1850,6 +1791,7 @@ namespace GEORGE.Client.Pages.Okna
             if (wierzcholki == null || wierzcholki.Count != 4)
                 throw new ArgumentException("Lista wierzchołków musi zawierać dokładnie 4 punkty.");
 
+
             // Sprawdź czy kontury są współśrodkowe
             XPoint? commonCenter = GetCommonCenter(outerContour, innerContour);
             bool isConcentric = commonCenter.HasValue;
@@ -1925,6 +1867,49 @@ namespace GEORGE.Client.Pages.Okna
             };
         }
 
+        private List<XPoint> GetWierzcholkiStycznePodLuki(
+        int i,
+        int next,
+        int prev,
+        List<XPoint> wierzcholki,
+        List<ContourSegment> outerContourSegment,
+        List<ContourSegment> innerContourSegment)
+        {
+            // 🔒 zabezpieczenie zakresu
+            bool outOfRange =
+                i >= outerContourSegment.Count ||
+                i >= innerContourSegment.Count ||
+                next >= outerContourSegment.Count ||
+                prev >= outerContourSegment.Count;
+
+            if (outOfRange)
+            {
+                Console.WriteLine($"❌ Index out of range: i={i}, outerSeg={outerContourSegment.Count}, innerSeg={innerContourSegment.Count}");
+                return wierzcholki;
+            }
+
+            var seg = outerContourSegment[i];
+            var segNext = outerContourSegment[next];
+            var segPrev = outerContourSegment[prev];
+
+            // 🔍 sprawdzamy czy wszystko linie
+            bool allLines =
+                seg.Type == SegmentType.Line &&
+                segNext.Type == SegmentType.Line &&
+                segPrev.Type == SegmentType.Line;
+
+            if (allLines)
+                return wierzcholki;
+
+            // 🔥 przypadek łuku / styczności
+            return new List<XPoint>
+            {
+                seg.Start,
+                seg.End,
+                wierzcholki[2],
+                wierzcholki[3]
+            };
+        }
         /// <summary>
         /// Sprawdza czy kontury są współśrodkowe (mają ten sam środek)
         /// </summary>
@@ -3068,17 +3053,16 @@ namespace GEORGE.Client.Pages.Okna
         //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
         //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
         public List<ContourSegment> CalculateOffsetPolygonKontur(
-            List<ContourSegment> segments,
-            float profileLeft,
-            float profileRight,
-            float profileTop,
-            float profileBottom,
-            bool elementLiniowy)
+        List<ContourSegment> segments,
+        float profileLeft,
+        float profileRight,
+        float profileTop,
+        float profileBottom,
+        bool elementLiniowy)
         {
             if (segments == null || segments.Count == 0)
                 return new List<ContourSegment>();
 
-            // Krok 1: Przesunięcie każdego segmentu
             var offsetSegments = new List<ContourSegment>();
             var sideInfo = new List<string>();
 
@@ -3090,7 +3074,8 @@ namespace GEORGE.Client.Pages.Okna
                 float dy = (float)(seg.End.Y - seg.Start.Y);
                 float length = MathF.Sqrt(dx * dx + dy * dy);
 
-                if (length < 1e-6f) continue;
+                if (length < 1e-6f)
+                    continue;
 
                 float angleDegrees = MathF.Atan2(dy, dx) * 180f / MathF.PI;
                 if (angleDegrees < 0) angleDegrees += 360f;
@@ -3107,51 +3092,84 @@ namespace GEORGE.Client.Pages.Okna
                     _ => 0
                 };
 
+                // =========================
+                // LINIE
+                // =========================
                 if (seg.Type == SegmentType.Line)
                 {
                     float tx = dx / length;
                     float ty = dy / length;
+
                     float nx = ty;
                     float ny = -tx;
 
-                    // Offset do środka
                     float offset = -offsetValue;
 
-                    var newStart = new XPoint(seg.Start.X + nx * offset, seg.Start.Y + ny * offset);
-                    var newEnd = new XPoint(seg.End.X + nx * offset, seg.End.Y + ny * offset);
+                    var newStart = new XPoint(
+                        seg.Start.X + nx * offset,
+                        seg.Start.Y + ny * offset);
 
-                    offsetSegments.Add(new ContourSegment(newStart, newEnd) { Informacja = side });
+                    var newEnd = new XPoint(
+                        seg.End.X + nx * offset,
+                        seg.End.Y + ny * offset);
+
+                    offsetSegments.Add(new ContourSegment(newStart, newEnd)
+                    {
+                        Informacja = side
+                    });
                 }
+
+                // =========================
+                // ŁUKI (POPRAWKA)
+                // =========================
                 else if (seg.Type == SegmentType.Arc && seg.Center != null)
                 {
                     var center = seg.Center.Value;
 
-                    // Najpierw określ orientację konturu
                     bool isClockwise = IsContourClockwise(segments);
 
-                    float radiusChange = side switch
-                    {
-                        "Góra" => isClockwise ? -offsetValue : offsetValue,
-                        "Dół" => isClockwise ? -offsetValue : offsetValue,
-                        "Lewa" => isClockwise ? -offsetValue : offsetValue,
-                        "Prawa" => isClockwise ? -offsetValue : offsetValue,
-                        _ => 0
-                    };
+                    // 🔥 KLUCZOWA ZMIANA:
+                    // łuki zawsze używają profileTop
+                    float offset = profileTop;
+
+                    float radiusChange = isClockwise ? -offset : offset;
 
                     float newRadius = (float)seg.Radius + radiusChange;
-                    if (newRadius < 0.1f) newRadius = 0.1f;
 
-                    double startAngle = Math.Atan2(seg.Start.Y - center.Y, seg.Start.X - center.X);
-                    double endAngle = Math.Atan2(seg.End.Y - center.Y, seg.End.X - center.X);
+                    if (newRadius < 0.1f)
+                        newRadius = 0.1f;
 
-                    var newStart = new XPoint(center.X + newRadius * Math.Cos(startAngle), center.Y + newRadius * Math.Sin(startAngle));
-                    var newEnd = new XPoint(center.X + newRadius * Math.Cos(endAngle), center.Y + newRadius * Math.Sin(endAngle));
+                    double startAngle = Math.Atan2(
+                        seg.Start.Y - center.Y,
+                        seg.Start.X - center.X);
 
-                    offsetSegments.Add(new ContourSegment(newStart, newEnd, center, newRadius, seg.CounterClockwise) { Informacja = side });
+                    double endAngle = Math.Atan2(
+                        seg.End.Y - center.Y,
+                        seg.End.X - center.X);
+
+                    var newStart = new XPoint(
+                        center.X + newRadius * Math.Cos(startAngle),
+                        center.Y + newRadius * Math.Sin(startAngle));
+
+                    var newEnd = new XPoint(
+                        center.X + newRadius * Math.Cos(endAngle),
+                        center.Y + newRadius * Math.Sin(endAngle));
+
+                    offsetSegments.Add(new ContourSegment(
+                        newStart,
+                        newEnd,
+                        center,
+                        newRadius,
+                        seg.CounterClockwise)
+                    {
+                        Informacja = "ARC_TOP_OFFSET"
+                    });
                 }
             }
 
-            // Krok 2: Znajdź przecięcia sąsiednich segmentów
+            // =========================
+            // KROK 2 - PRZECIĘCIA
+            // =========================
             var result = new List<ContourSegment>();
 
             for (int i = 0; i < offsetSegments.Count; i++)
@@ -3159,19 +3177,27 @@ namespace GEORGE.Client.Pages.Okna
                 var current = offsetSegments[i];
                 var previous = offsetSegments[(i - 1 + offsetSegments.Count) % offsetSegments.Count];
 
-                XPoint intersection;
-
-                if (current.Type == SegmentType.Line && previous.Type == SegmentType.Line)
+                if (current.Type == SegmentType.Line &&
+                    previous.Type == SegmentType.Line)
                 {
-                    intersection = GetLinesIntersectionK(previous.Start, previous.End, current.Start, current.End);
+                    var intersection = GetLinesIntersectionK(
+                        previous.Start,
+                        previous.End,
+                        current.Start,
+                        current.End);
 
-                    if (!float.IsNaN((float)intersection.X) && !float.IsNaN((float)intersection.Y))
+                    if (!float.IsNaN((float)intersection.X) &&
+                        !float.IsNaN((float)intersection.Y))
                     {
                         if (result.Count > 0)
                         {
                             result[result.Count - 1].End = intersection;
                         }
-                        result.Add(new ContourSegment(intersection, current.End) { Informacja = current.Informacja });
+
+                        result.Add(new ContourSegment(intersection, current.End)
+                        {
+                            Informacja = current.Informacja
+                        });
                     }
                     else
                     {
@@ -3184,10 +3210,13 @@ namespace GEORGE.Client.Pages.Okna
                 }
             }
 
-            // Krok 3: Zamknięcie konturu
-            if (result.Count > 0 && !PointsEqualK(result[0].Start, result[result.Count - 1].End))
+            // =========================
+            // KROK 3 - ZAMKNIĘCIE
+            // =========================
+            if (result.Count > 0 &&
+                !PointsEqualK(result[0].Start, result[^1].End))
             {
-                result[result.Count - 1].End = result[0].Start;
+                result[^1].End = result[0].Start;
             }
 
             return result;
