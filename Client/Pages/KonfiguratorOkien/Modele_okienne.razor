@@ -5533,9 +5533,21 @@
 
         // 🔥 KLUCZ: NIE budujesz już segmentów z punktów
         // tylko bierzesz gotowy kontur (linia + łuki)
+        var bezDuplikatow = contur
+        .Where(s => !PointsAreClose(s.Start, s.End))
+        .ToList();
+
+        // funkcja porównująca punkty
+        bool PointsAreClose(XPoint a, XPoint b, double tolerance = 0.001)
+        {
+            return Math.Abs(a.X - b.X) < tolerance &&
+                    Math.Abs(a.Y - b.Y) < tolerance;
+        }
+
+        var bez_contur = _generator.BuildClosedContour(bezDuplikatow);
 
         return _generator.CalculateOffsetPolygonKontur(
-            contur,
+            bez_contur,
             left,
             right,
             top,

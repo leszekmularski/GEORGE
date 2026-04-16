@@ -460,7 +460,7 @@ namespace GEORGE.Client.Pages.Okna
 
         }
 
-        public static List<ContourSegment> BuildClosedContour(List<ContourSegment> input, double tolerance = 0.5)
+        public List<ContourSegment> BuildClosedContour(List<ContourSegment> input, double tolerance = 0.5)
         {
             if (input == null || input.Count == 0)
                 return new List<ContourSegment>();
