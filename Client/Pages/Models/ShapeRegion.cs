@@ -44,6 +44,53 @@ namespace GEORGE.Client.Pages.Models
         public string? IdRegionuPonizej { get; set; } = "WARSTWA-ZERO";
 
         /// <summary>
+        /// Tworzy głęboką kopię obiektu ShapeRegion
+        /// </summary>
+        public ShapeRegion Clone()
+        {
+            return new ShapeRegion
+            {
+                // Kopiuj listę wierzchołków (głęboka kopia)
+                Wierzcholki = this.Wierzcholki?.Select(p => new XPoint(p.X, p.Y)).ToList() ?? new List<XPoint>(),
+
+                // Kopiuj kontur (głęboka kopia segmentów)
+                Kontur = this.Kontur?.Select(seg =>
+                {
+                    if (seg.Type == SegmentType.Arc && seg.Center.HasValue)
+                    {
+                        return new ContourSegment(
+                            new XPoint(seg.Start.X, seg.Start.Y),
+                            new XPoint(seg.End.X, seg.End.Y),
+                            new XPoint(seg.Center.Value.X, seg.Center.Value.Y),
+                            seg.Radius,
+                            seg.CounterClockwise
+                        );
+                    }
+                    else
+                    {
+                        return new ContourSegment(
+                            new XPoint(seg.Start.X, seg.Start.Y),
+                            new XPoint(seg.End.X, seg.End.Y)
+                        );
+                    }
+                }).ToList() ?? new List<ContourSegment>(),
+
+                // Kopiuj proste właściwości
+                TypKsztaltu = this.TypKsztaltu,
+                TypLiniiDzielacej = this.TypLiniiDzielacej,
+                Rama = this.Rama,
+
+                // Kopiuj listę linii dzielących (jeśli potrzebujesz głębokiej kopii)
+                LinieDzielace = this.LinieDzielace?.ToList() ?? new List<XLineShape>(),
+
+                // Kopiuj identyfikatory
+                Id = this.Id,
+                IdMaster = this.IdMaster,
+                IdRegionuPonizej = this.IdRegionuPonizej
+            };
+        }
+
+        /// <summary>
         /// Zwraca prostokąt ograniczający (bounding box).
         /// </summary>
         public BoundingBox GetBoundingBox()

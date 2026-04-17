@@ -60,7 +60,7 @@ namespace GEORGE.Client.Pages.Okna
             liniaSzkleniaKontur = new List<XPoint>();
         }
         public async Task<bool> AddElements(List<ShapeRegion> regions, string regionId, Dictionary<string, GeneratorState> generatorStates, List<ShapeRegion> regionAdd,
-            List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster, XPoint mouseClik, bool kasujKonsole = true)
+            List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster, XPoint mouseClik, bool kasujKonsole = false)
         {
             if (regions == null) return false;
 
@@ -414,7 +414,7 @@ namespace GEORGE.Client.Pages.Okna
                     false);
             }
 
-            if(wewnetrznyKonturZLukami == null)
+            if (wewnetrznyKonturZLukami == null)
             {
                 Console.WriteLine($"❌ Generowanie elementów zakończone niepowodzeniem dla regionu {regionId} wewnetrznyKonturZLukami == null");
                 return false;
@@ -460,7 +460,7 @@ namespace GEORGE.Client.Pages.Okna
 
         }
 
-        public List<ContourSegment> BuildClosedContour(List<ContourSegment> input, double tolerance = 0.5)
+        public List<ContourSegment> BuildClosedContour(List<ContourSegment> input, double tolerance = 0.01)
         {
             if (input == null || input.Count == 0)
                 return new List<ContourSegment>();
@@ -468,21 +468,21 @@ namespace GEORGE.Client.Pages.Okna
             var unused = new List<ContourSegment>(input);
             var result = new List<ContourSegment>();
 
-            // 1️⃣ start od pierwszego segmentu
+            // 1️⃣ start od pierwszego sensownego segmentu
             var current = unused[0];
             unused.RemoveAt(0);
             result.Add(current);
 
             while (unused.Count > 0)
             {
-                bool found = false;
                 var last = result.Last();
+                bool found = false;
 
                 for (int i = 0; i < unused.Count; i++)
                 {
                     var candidate = unused[i];
 
-                    // ✔️ normalne połączenie
+                    // 🔹 CASE 1: normalne połączenie
                     if (PointsAreClose(last.End, candidate.Start, tolerance))
                     {
                         result.Add(candidate);
@@ -491,7 +491,7 @@ namespace GEORGE.Client.Pages.Okna
                         break;
                     }
 
-                    // ✔️ odwrócony segment
+                    // 🔹 CASE 2: odwrócony segment (Line lub Arc)
                     if (PointsAreClose(last.End, candidate.End, tolerance))
                     {
                         result.Add(Reverse(candidate));
@@ -501,45 +501,26 @@ namespace GEORGE.Client.Pages.Okna
                     }
                 }
 
-                // ❗ NIE resetujemy losowo jak wcześniej
+                // ❌ jeśli nie znaleziono → STOP (nie zgadujemy)
                 if (!found)
                 {
-                    Console.WriteLine("⚠️ Przerwanie konturu - próba znalezienia najbliższego segmentu");
-
-                    var closest = FindClosestSegmentToPoint(last.End, unused, tolerance);
-
-                    if (closest != null)
-                    {
-                        result.Add(closest);
-                        unused.Remove(closest);
-                    }
-                    else
-                    {
-                        break;
-                    }
+                    Console.WriteLine("❌ BuildClosedContour: przerwanie - brak ciągłości segmentów");
+                    break;
                 }
             }
 
-            // 2️⃣ AUTO-CLOSING (KLUCZOWE)
-            if (result.Count > 1)
+            // 2️⃣ WALIDACJA ZAMKNIĘCIA (bez sztucznego domykania)
+            var firstSeg = result.First();
+            var lastSeg = result.Last();
+
+            if (!PointsAreClose(lastSeg.End, firstSeg.Start, tolerance))
             {
-                var first = result.First();
-                var last = result.Last();
-
-                if (!PointsAreClose(last.End, first.Start, tolerance))
-                {
-                    Console.WriteLine("🔁 Domykam kontur automatycznie");
-
-                    result.Add(new ContourSegment(
-                        last.End,
-                        first.Start
-                    ));
-                }
+                Console.WriteLine("⚠️ Kontur NIE jest domknięty geometrycznie!");
+                Console.WriteLine($"   gap = {Distance(lastSeg.End, firstSeg.Start)}");
             }
 
             return result;
         }
-
         private static ContourSegment Reverse(ContourSegment s)
         {
             if (s.Type == SegmentType.Arc)
@@ -558,44 +539,8 @@ namespace GEORGE.Client.Pages.Okna
 
         private static bool PointsAreClose(XPoint a, XPoint b, double tolerance)
         {
-            return Math.Abs(a.X - b.X) < tolerance &&
-                   Math.Abs(a.Y - b.Y) < tolerance;
-        }
-
-        private static ContourSegment FindClosestSegmentToPoint(
-    XPoint point,
-    List<ContourSegment> segments,
-    double tolerance)
-        {
-            ContourSegment best = null;
-            double bestDist = double.MaxValue;
-
-            foreach (var s in segments)
-            {
-                double d1 = Distance(point, s.Start);
-                double d2 = Distance(point, s.End);
-
-                double d = Math.Min(d1, d2);
-
-                if (d < bestDist)
-                {
-                    bestDist = d;
-                    best = s;
-                }
-            }
-
-            if (best != null && bestDist < tolerance * 10)
-            {
-                // orientacja
-                if (Distance(point, best.End) < Distance(point, best.Start))
-                {
-                    return Reverse(best);
-                }
-
-                return best;
-            }
-
-            return null;
+            return Math.Abs(a.X - b.X) <= tolerance &&
+                   Math.Abs(a.Y - b.Y) <= tolerance;
         }
 
 
@@ -1685,7 +1630,7 @@ namespace GEORGE.Client.Pages.Okna
                                          innerContourSegment);
 
                 }
-                   
+
 
                 // Budujemy pełny kontur 4-segmentowy
                 wierzcholkiZLukami = Build4SegmentContour(wierzcholkiStycznePodLuki, outerContourSegment, innerContourSegment);

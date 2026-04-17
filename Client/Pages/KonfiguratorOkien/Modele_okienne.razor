@@ -1629,18 +1629,35 @@
                     true
                 );
 
-                _regionsSkrzydlo = await GeometryUtils.GenerujRegionyZPodzialu(
-                    ShapeService.Shapes,
-                    (int)constWlasciwosciOkna.Szerokosc,
-                    (int)constWlasciwosciOkna.Wysokosc,
-                    false
-                );
+                // _regionsSkrzydlo = await GeometryUtils.GenerujRegionyZPodzialu(
+                //     ShapeService.Shapes,
+                //     (int)constWlasciwosciOkna.Szerokosc,
+                //     (int)constWlasciwosciOkna.Wysokosc,
+                //     false
+                // );
+
+                // Kopiuj i zmień ID
+            _regionsSkrzydlo = _regionsDualRama.Select(r => 
+            {
+                var kopia = r.Clone(); 
+                kopia.Id = Guid.NewGuid().ToString();
+                kopia.Rama = false; // Zmień flagę na skrzydło
+                return kopia;
+            }).ToList();
 
                 foreach (var test in _regionsDualRama)
                 {
                     foreach (var test2 in test.Kontur)
                     {
-                        Console.WriteLine($"🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️ Region {test.Id} - Kontur Start: X={test2.Start.X}, Y={test2.Start.Y}, End: X={test2.End.X}, Y={test2.End.Y} - Typ {test2.Type.ToString()}");
+                        Console.WriteLine($"🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️ Region RAMA {test.Id} - Kontur Start: X={test2.Start.X}, Y={test2.Start.Y}, End: X={test2.End.X}, Y={test2.End.Y} - Typ {test2.Type.ToString()}");
+                    }
+                }
+
+                foreach (var test in _regionsSkrzydlo)
+                {
+                    foreach (var test2 in test.Kontur)
+                    {
+                        Console.WriteLine($"🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️ Region SKRZYDŁO {test.Id} - Kontur Start: X={test2.Start.X}, Y={test2.Start.Y}, End: X={test2.End.X}, Y={test2.End.Y} - Typ {test2.Type.ToString()}");
                     }
                 }
 
@@ -2445,6 +2462,12 @@
 
         _regionsSkrzydlo[_selectedShapeIndex].Wierzcholki =
             ShapeService.Shapes[_selectedShapeIndex].GetNominalPoints();
+
+        _regionsDualRama[_selectedShapeIndex].Kontur =
+            ShapeService.Shapes[_selectedShapeIndex].GetContourSegments();
+
+        _regionsSkrzydlo[_selectedShapeIndex].Kontur =
+            ShapeService.Shapes[_selectedShapeIndex].GetContourSegments();
 
         await GenerujObrysPozZmianieWymiarow(false);
 
@@ -5544,10 +5567,12 @@
                     Math.Abs(a.Y - b.Y) < tolerance;
         }
 
-        var bez_contur = _generator.BuildClosedContour(bezDuplikatow);
+        // var bez_contur = _generator.BuildClosedContour(bezDuplikatow);
+
+        Console.WriteLine($"📐 BuildContourFromPoints -> Oryginalny kontur miał {contur.Count} left:{left} right:{right} top:{top} bottom:{bottom}.");
 
         return _generator.CalculateOffsetPolygonKontur(
-            bez_contur,
+            bezDuplikatow,
             left,
             right,
             top,
@@ -7480,7 +7505,7 @@
         {
             if (gs.Value.Generator?.wewnetrznyKonturZLukami != null)
             {
-                await DrawContourSegmentsKontur(context, gs.Value.Generator.wewnetrznyKonturZLukami, "Red", 4f);
+                await DrawContourSegmentsKontur(context, gs.Value.Generator.wewnetrznyKonturZLukami, "Pink", 4f);
             }
         }
 

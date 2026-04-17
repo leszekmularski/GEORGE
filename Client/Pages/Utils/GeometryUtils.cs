@@ -535,180 +535,180 @@ namespace GEORGE.Client.Pages.Utils
             return Math.Sqrt(dx * dx + dy * dy);
         }
 
-        public static List<ShapeRegion> SkalujSkrzydlaDoRamy(
-        List<ShapeRegion> stareSkrzydla,
-        List<ShapeRegion> rama,
-        int nowaSzerokosc,
-        int nowaWysokosc)
-        {
-            if (stareSkrzydla == null || !stareSkrzydla.Any() ||
-                rama == null || !rama.Any())
-                return new List<ShapeRegion>();
+        //public static List<ShapeRegion> SkalujSkrzydlaDoRamy(
+        //List<ShapeRegion> stareSkrzydla,
+        //List<ShapeRegion> rama,
+        //int nowaSzerokosc,
+        //int nowaWysokosc)
+        //{
+        //    if (stareSkrzydla == null || !stareSkrzydla.Any() ||
+        //        rama == null || !rama.Any())
+        //        return new List<ShapeRegion>();
 
-            // Wyznacz bounding box ramy
-            double minXRama = rama.Min(r => r.Wierzcholki.Min(p => p.X));
-            double minYRama = rama.Min(r => r.Wierzcholki.Min(p => p.Y));
-            double maxXRama = rama.Max(r => r.Wierzcholki.Max(p => p.X));
-            double maxYRama = rama.Max(r => r.Wierzcholki.Max(p => p.Y));
+        //    // Wyznacz bounding box ramy
+        //    double minXRama = rama.Min(r => r.Wierzcholki.Min(p => p.X));
+        //    double minYRama = rama.Min(r => r.Wierzcholki.Min(p => p.Y));
+        //    double maxXRama = rama.Max(r => r.Wierzcholki.Max(p => p.X));
+        //    double maxYRama = rama.Max(r => r.Wierzcholki.Max(p => p.Y));
 
-            double szerRamy = maxXRama - minXRama;
-            double wysRamy = maxYRama - minYRama;
+        //    double szerRamy = maxXRama - minXRama;
+        //    double wysRamy = maxYRama - minYRama;
 
-            // Wyznacz bounding box skrzydeł
-            double minXSkrzydla = stareSkrzydla.Min(r => r.Wierzcholki.Min(p => p.X));
-            double minYSkrzydla = stareSkrzydla.Min(r => r.Wierzcholki.Min(p => p.Y));
-            double maxXSkrzydla = stareSkrzydla.Max(r => r.Wierzcholki.Max(p => p.X));
-            double maxYSkrzydla = stareSkrzydla.Max(r => r.Wierzcholki.Max(p => p.Y));
+        //    // Wyznacz bounding box skrzydeł
+        //    double minXSkrzydla = stareSkrzydla.Min(r => r.Wierzcholki.Min(p => p.X));
+        //    double minYSkrzydla = stareSkrzydla.Min(r => r.Wierzcholki.Min(p => p.Y));
+        //    double maxXSkrzydla = stareSkrzydla.Max(r => r.Wierzcholki.Max(p => p.X));
+        //    double maxYSkrzydla = stareSkrzydla.Max(r => r.Wierzcholki.Max(p => p.Y));
 
-            double szerSkrzydel = maxXSkrzydla - minXSkrzydla;
-            double wysSkrzydel = maxYSkrzydla - minYSkrzydla;
+        //    double szerSkrzydel = maxXSkrzydla - minXSkrzydla;
+        //    double wysSkrzydel = maxYSkrzydla - minYSkrzydla;
 
-            // Skala względem ramy
-            double scaleX = szerRamy / szerSkrzydel;
-            double scaleY = wysRamy / wysSkrzydel;
+        //    // Skala względem ramy
+        //    double scaleX = szerRamy / szerSkrzydel;
+        //    double scaleY = wysRamy / wysSkrzydel;
 
-            // Skaluj każde skrzydło
-            var noweSkrzydla = new List<ShapeRegion>();
-            foreach (var skrzydlo in stareSkrzydla)
-            {
-                var noweWierzcholki = skrzydlo.Wierzcholki
-                    .Select(p => new XPoint(
-                        minXRama + (p.X - minXSkrzydla) * scaleX,
-                        minYRama + (p.Y - minYSkrzydla) * scaleY
-                    ))
-                    .ToList();
+        //    // Skaluj każde skrzydło
+        //    var noweSkrzydla = new List<ShapeRegion>();
+        //    foreach (var skrzydlo in stareSkrzydla)
+        //    {
+        //        var noweWierzcholki = skrzydlo.Wierzcholki
+        //            .Select(p => new XPoint(
+        //                minXRama + (p.X - minXSkrzydla) * scaleX,
+        //                minYRama + (p.Y - minYSkrzydla) * scaleY
+        //            ))
+        //            .ToList();
 
-                var nowyKontur = skrzydlo.Kontur
-                    .Select(s =>
-                    {
-                        var start = new XPoint(
-                            minXRama + (s.Start.X - minXSkrzydla) * scaleX,
-                            minYRama + (s.Start.Y - minYSkrzydla) * scaleY
-                        );
-                        var end = new XPoint(
-                            minXRama + (s.End.X - minXSkrzydla) * scaleX,
-                            minYRama + (s.End.Y - minYSkrzydla) * scaleY
-                        );
+        //        var nowyKontur = skrzydlo.Kontur
+        //            .Select(s =>
+        //            {
+        //                var start = new XPoint(
+        //                    minXRama + (s.Start.X - minXSkrzydla) * scaleX,
+        //                    minYRama + (s.Start.Y - minYSkrzydla) * scaleY
+        //                );
+        //                var end = new XPoint(
+        //                    minXRama + (s.End.X - minXSkrzydla) * scaleX,
+        //                    minYRama + (s.End.Y - minYSkrzydla) * scaleY
+        //                );
 
-                        if (s.Type == SegmentType.Line)
-                        {
-                            var segment = new ContourSegment(start, end);
-                            segment.Informacja = s.Informacja; // zachowaj informację o duplikacie
-                            return segment;
-                        }
-                        else // łuk
-                        {
-                            XPoint center = new();
-                            if (s.Center != null)
-                            {
-                                center = new XPoint(
-                                    minXRama + (s.Center.Value.X - minXSkrzydla) * scaleX,
-                                    minYRama + (s.Center.Value.Y - minYSkrzydla) * scaleY
-                                );
-                            }
+        //                if (s.Type == SegmentType.Line)
+        //                {
+        //                    var segment = new ContourSegment(start, end);
+        //                    segment.Informacja = s.Informacja; // zachowaj informację o duplikacie
+        //                    return segment;
+        //                }
+        //                else // łuk
+        //                {
+        //                    XPoint center = new();
+        //                    if (s.Center != null)
+        //                    {
+        //                        center = new XPoint(
+        //                            minXRama + (s.Center.Value.X - minXSkrzydla) * scaleX,
+        //                            minYRama + (s.Center.Value.Y - minYSkrzydla) * scaleY
+        //                        );
+        //                    }
 
-                            var segment = new ContourSegment(start, end, center, s.Radius, s.CounterClockwise);
-                            segment.Informacja = s.Informacja; // zachowaj informację o duplikacie
-                            return segment;
-                        }
-                    })
-                    .ToList();
+        //                    var segment = new ContourSegment(start, end, center, s.Radius, s.CounterClockwise);
+        //                    segment.Informacja = s.Informacja; // zachowaj informację o duplikacie
+        //                    return segment;
+        //                }
+        //            })
+        //            .ToList();
 
-                noweSkrzydla.Add(new ShapeRegion
-                {
-                    Id = skrzydlo.Id,
-                    TypKsztaltu = skrzydlo.TypKsztaltu,
-                    TypLiniiDzielacej = skrzydlo.TypLiniiDzielacej,
-                    Wierzcholki = noweWierzcholki,
-                    Kontur = nowyKontur
-                });
-            }
+        //        noweSkrzydla.Add(new ShapeRegion
+        //        {
+        //            Id = skrzydlo.Id,
+        //            TypKsztaltu = skrzydlo.TypKsztaltu,
+        //            TypLiniiDzielacej = skrzydlo.TypLiniiDzielacej,
+        //            Wierzcholki = noweWierzcholki,
+        //            Kontur = nowyKontur
+        //        });
+        //    }
 
-            return noweSkrzydla;
-        }
+        //    return noweSkrzydla;
+        //}
 
-        public static List<ShapeRegion> SkalujRegiony(
-        List<ShapeRegion> stareRegiony,
-        int nowaSzerokosc,
-        int nowaWysokosc)
-        {
-            if (stareRegiony == null || !stareRegiony.Any())
-                return new List<ShapeRegion>();
+        //public static List<ShapeRegion> SkalujRegiony(
+        //List<ShapeRegion> stareRegiony,
+        //int nowaSzerokosc,
+        //int nowaWysokosc)
+        //{
+        //    if (stareRegiony == null || !stareRegiony.Any())
+        //        return new List<ShapeRegion>();
 
-            // Oblicz bounding box dla całego zbioru regionów
-            double minX = stareRegiony.Min(r => r.Wierzcholki.Min(p => p.X));
-            double minY = stareRegiony.Min(r => r.Wierzcholki.Min(p => p.Y));
-            double maxX = stareRegiony.Max(r => r.Wierzcholki.Max(p => p.X));
-            double maxY = stareRegiony.Max(r => r.Wierzcholki.Max(p => p.Y));
+        //    // Oblicz bounding box dla całego zbioru regionów
+        //    double minX = stareRegiony.Min(r => r.Wierzcholki.Min(p => p.X));
+        //    double minY = stareRegiony.Min(r => r.Wierzcholki.Min(p => p.Y));
+        //    double maxX = stareRegiony.Max(r => r.Wierzcholki.Max(p => p.X));
+        //    double maxY = stareRegiony.Max(r => r.Wierzcholki.Max(p => p.Y));
 
-            double originalWidth = maxX - minX;
-            double originalHeight = maxY - minY;
+        //    double originalWidth = maxX - minX;
+        //    double originalHeight = maxY - minY;
 
-            double scaleX = nowaSzerokosc / originalWidth;
-            double scaleY = nowaWysokosc / originalHeight;
+        //    double scaleX = nowaSzerokosc / originalWidth;
+        //    double scaleY = nowaWysokosc / originalHeight;
 
-            // Skaluj każdy region
-            var noweRegiony = new List<ShapeRegion>();
+        //    // Skaluj każdy region
+        //    var noweRegiony = new List<ShapeRegion>();
 
-            foreach (var region in stareRegiony)
-            {
-                var noweWierzcholki = region.Wierzcholki
-                    .Select(p => new XPoint(
-                        (p.X - minX) * scaleX,
-                        (p.Y - minY) * scaleY))
-                    .ToList();
+        //    foreach (var region in stareRegiony)
+        //    {
+        //        var noweWierzcholki = region.Wierzcholki
+        //            .Select(p => new XPoint(
+        //                (p.X - minX) * scaleX,
+        //                (p.Y - minY) * scaleY))
+        //            .ToList();
 
-                var nowyKontur = region.Kontur
-                    .Select(s =>
-                    {
-                        var start = new XPoint(
-                            (s.Start.X - minX) * scaleX,
-                            (s.Start.Y - minY) * scaleY
-                        );
-                        var end = new XPoint(
-                            (s.End.X - minX) * scaleX,
-                            (s.End.Y - minY) * scaleY
-                        );
+        //        var nowyKontur = region.Kontur
+        //            .Select(s =>
+        //            {
+        //                var start = new XPoint(
+        //                    (s.Start.X - minX) * scaleX,
+        //                    (s.Start.Y - minY) * scaleY
+        //                );
+        //                var end = new XPoint(
+        //                    (s.End.X - minX) * scaleX,
+        //                    (s.End.Y - minY) * scaleY
+        //                );
 
-                        if (s.Type == SegmentType.Line)
-                        {
-                            var segent = new ContourSegment(start, end);
-                            segent.Informacja = s.Informacja; // zachowaj informację o duplikacie
-                            return segent;
-                        }
-                        else // łuk
-                        {
-                            XPoint center = new();
-                            if (s.Center != null)
-                            {
-                                center = new XPoint(
-                                    (s.Center.Value.X - minX) * scaleX,
-                                    (s.Center.Value.Y - minY) * scaleY
-                                );
-                            }
+        //                if (s.Type == SegmentType.Line)
+        //                {
+        //                    var segent = new ContourSegment(start, end);
+        //                    segent.Informacja = s.Informacja; // zachowaj informację o duplikacie
+        //                    return segent;
+        //                }
+        //                else // łuk
+        //                {
+        //                    XPoint center = new();
+        //                    if (s.Center != null)
+        //                    {
+        //                        center = new XPoint(
+        //                            (s.Center.Value.X - minX) * scaleX,
+        //                            (s.Center.Value.Y - minY) * scaleY
+        //                        );
+        //                    }
 
-                            var segent = new ContourSegment(start, end, center, s.Radius, s.CounterClockwise);
-                            segent.Informacja = s.Informacja; // zachowaj informację o duplikacie
-                            return segent;
-                        }
-                    })
-                    .ToList();
+        //                    var segent = new ContourSegment(start, end, center, s.Radius, s.CounterClockwise);
+        //                    segent.Informacja = s.Informacja; // zachowaj informację o duplikacie
+        //                    return segent;
+        //                }
+        //            })
+        //            .ToList();
 
-                var nowyRegion = new ShapeRegion
-                {
-                    Id = region.Id,                    // zachowaj Id
-                    TypKsztaltu = region.TypKsztaltu,  // zachowaj typ
-                    TypLiniiDzielacej = region.TypLiniiDzielacej,
-                    Wierzcholki = noweWierzcholki,
-                    Kontur = nowyKontur
-                };
+        //        var nowyRegion = new ShapeRegion
+        //        {
+        //            Id = region.Id,                    // zachowaj Id
+        //            TypKsztaltu = region.TypKsztaltu,  // zachowaj typ
+        //            TypLiniiDzielacej = region.TypLiniiDzielacej,
+        //            Wierzcholki = noweWierzcholki,
+        //            Kontur = nowyKontur
+        //        };
 
-                noweRegiony.Add(nowyRegion);
-            }
+        //        noweRegiony.Add(nowyRegion);
+        //    }
 
-            return noweRegiony;
-        }
-        // --- helper: głęboka kopia regionu
+        //    return noweRegiony;
+        //}
+        //// --- helper: głęboka kopia regionu
         public static ShapeRegion CloneRegion(ShapeRegion src, double _currentScale = 1)
         {
             if (src == null) return null!;
@@ -753,95 +753,95 @@ namespace GEORGE.Client.Pages.Utils
         }
 
         // --- skalowanie skrzydeł względem ramy przed/po
-        public static List<ShapeRegion> SkalujSkrzydlaDoRamy(
-            List<ShapeRegion> skrzydla,
-            ShapeRegion ramaBefore,
-            ShapeRegion ramaAfter)
-        {
-            if (skrzydla == null || !skrzydla.Any() || ramaBefore == null || ramaAfter == null)
-                return skrzydla ?? new List<ShapeRegion>();
+        //public static List<ShapeRegion> SkalujSkrzydlaDoRamy(
+        //    List<ShapeRegion> skrzydla,
+        //    ShapeRegion ramaBefore,
+        //    ShapeRegion ramaAfter)
+        //{
+        //    if (skrzydla == null || !skrzydla.Any() || ramaBefore == null || ramaAfter == null)
+        //        return skrzydla ?? new List<ShapeRegion>();
 
-            // bounding box ramy przed
-            double minXOld = ramaBefore.Wierzcholki.Min(p => p.X);
-            double minYOld = ramaBefore.Wierzcholki.Min(p => p.Y);
-            double maxXOld = ramaBefore.Wierzcholki.Max(p => p.X);
-            double maxYOld = ramaBefore.Wierzcholki.Max(p => p.Y);
-            double oldWidth = maxXOld - minXOld;
-            double oldHeight = maxYOld - minYOld;
-            if (oldWidth == 0 || oldHeight == 0)
-                return skrzydla;
+        //    // bounding box ramy przed
+        //    double minXOld = ramaBefore.Wierzcholki.Min(p => p.X);
+        //    double minYOld = ramaBefore.Wierzcholki.Min(p => p.Y);
+        //    double maxXOld = ramaBefore.Wierzcholki.Max(p => p.X);
+        //    double maxYOld = ramaBefore.Wierzcholki.Max(p => p.Y);
+        //    double oldWidth = maxXOld - minXOld;
+        //    double oldHeight = maxYOld - minYOld;
+        //    if (oldWidth == 0 || oldHeight == 0)
+        //        return skrzydla;
 
-            // bounding box ramy po
-            double minXNew = ramaAfter.Wierzcholki.Min(p => p.X);
-            double minYNew = ramaAfter.Wierzcholki.Min(p => p.Y);
-            double maxXNew = ramaAfter.Wierzcholki.Max(p => p.X);
-            double maxYNew = ramaAfter.Wierzcholki.Max(p => p.Y);
-            double newWidth = maxXNew - minXNew;
-            double newHeight = maxYNew - minYNew;
-            if (newWidth == 0 || newHeight == 0)
-                return skrzydla;
+        //    // bounding box ramy po
+        //    double minXNew = ramaAfter.Wierzcholki.Min(p => p.X);
+        //    double minYNew = ramaAfter.Wierzcholki.Min(p => p.Y);
+        //    double maxXNew = ramaAfter.Wierzcholki.Max(p => p.X);
+        //    double maxYNew = ramaAfter.Wierzcholki.Max(p => p.Y);
+        //    double newWidth = maxXNew - minXNew;
+        //    double newHeight = maxYNew - minYNew;
+        //    if (newWidth == 0 || newHeight == 0)
+        //        return skrzydla;
 
-            double scaleX = newWidth / oldWidth;
-            double scaleY = newHeight / oldHeight;
+        //    double scaleX = newWidth / oldWidth;
+        //    double scaleY = newHeight / oldHeight;
 
-            var wynik = new List<ShapeRegion>(skrzydla.Count);
-            foreach (var s in skrzydla)
-            {
-                var kopia = CloneRegion(s);
+        //    var wynik = new List<ShapeRegion>(skrzydla.Count);
+        //    foreach (var s in skrzydla)
+        //    {
+        //        var kopia = CloneRegion(s);
 
-                //kopia.Id = s.Id; // zachowaj oryginalne Id do sprawdzenia
+        //        //kopia.Id = s.Id; // zachowaj oryginalne Id do sprawdzenia
 
-                // dla każdego punktu: przenieś względnie do ramy przed i przeskaluj do ramy po, następnie wypośrodkuj do nowej pozycji
-                for (int i = 0; i < kopia.Wierzcholki.Count; i++)
-                {
-                    var p = kopia.Wierzcholki[i];
-                    double relX = (p.X - minXOld); // odległość od lewej krawędzi ramy przed
-                    double relY = (p.Y - minYOld); // od górnej krawędzi ramy przed
+        //        // dla każdego punktu: przenieś względnie do ramy przed i przeskaluj do ramy po, następnie wypośrodkuj do nowej pozycji
+        //        for (int i = 0; i < kopia.Wierzcholki.Count; i++)
+        //        {
+        //            var p = kopia.Wierzcholki[i];
+        //            double relX = (p.X - minXOld); // odległość od lewej krawędzi ramy przed
+        //            double relY = (p.Y - minYOld); // od górnej krawędzi ramy przed
 
-                    double newX = minXNew + relX * scaleX;
-                    double newY = minYNew + relY * scaleY;
+        //            double newX = minXNew + relX * scaleX;
+        //            double newY = minYNew + relY * scaleY;
 
-                    kopia.Wierzcholki[i] = new XPoint { X = newX, Y = newY };
-                    kopia.Kontur[i] = new ContourSegment(
-                        new XPoint { X = newX, Y = newY },
-                        new XPoint
-                        {
-                            X = minXNew + (kopia.Kontur[i].End.X - minXOld) * scaleX,
-                            Y = minYNew + (kopia.Kontur[i].End.Y - minYOld) * scaleY
-                        },
-                        kopia.Kontur[i].Center != null ? new XPoint
-                        {
-                            X = minXNew + (kopia.Kontur[i].Center.Value.X - minXOld) * scaleX,
-                            Y = minYNew + (kopia.Kontur[i].Center.Value.Y - minYOld) * scaleY
-                        } : null,
-                        kopia.Kontur[i].Radius * ((scaleX + scaleY) / 2), // średnia skala dla promienia łuku
-                        kopia.Kontur[i].CounterClockwise
-                    );
-                }
+        //            kopia.Wierzcholki[i] = new XPoint { X = newX, Y = newY };
+        //            kopia.Kontur[i] = new ContourSegment(
+        //                new XPoint { X = newX, Y = newY },
+        //                new XPoint
+        //                {
+        //                    X = minXNew + (kopia.Kontur[i].End.X - minXOld) * scaleX,
+        //                    Y = minYNew + (kopia.Kontur[i].End.Y - minYOld) * scaleY
+        //                },
+        //                kopia.Kontur[i].Center != null ? new XPoint
+        //                {
+        //                    X = minXNew + (kopia.Kontur[i].Center.Value.X - minXOld) * scaleX,
+        //                    Y = minYNew + (kopia.Kontur[i].Center.Value.Y - minYOld) * scaleY
+        //                } : null,
+        //                kopia.Kontur[i].Radius * ((scaleX + scaleY) / 2), // średnia skala dla promienia łuku
+        //                kopia.Kontur[i].CounterClockwise
+        //            );
+        //        }
 
-                // skaluj też linie dzielące wewnątrz skrzydła
-                if (kopia.LinieDzielace != null)
-                {
-                    foreach (var lin in kopia.LinieDzielace)
-                    {
-                        if (lin.Points == null) continue;
-                        for (int j = 0; j < lin.Points.Count; j++)
-                        {
-                            var q = lin.Points[j];
-                            double relX = (q.X - minXOld);
-                            double relY = (q.Y - minYOld);
-                            double newX = minXNew + relX * scaleX;
-                            double newY = minYNew + relY * scaleY;
-                            lin.Points[j] = new XPoint { X = newX, Y = newY };
-                        }
-                    }
-                }
+        //        // skaluj też linie dzielące wewnątrz skrzydła
+        //        if (kopia.LinieDzielace != null)
+        //        {
+        //            foreach (var lin in kopia.LinieDzielace)
+        //            {
+        //                if (lin.Points == null) continue;
+        //                for (int j = 0; j < lin.Points.Count; j++)
+        //                {
+        //                    var q = lin.Points[j];
+        //                    double relX = (q.X - minXOld);
+        //                    double relY = (q.Y - minYOld);
+        //                    double newX = minXNew + relX * scaleX;
+        //                    double newY = minYNew + relY * scaleY;
+        //                    lin.Points[j] = new XPoint { X = newX, Y = newY };
+        //                }
+        //            }
+        //        }
 
-                wynik.Add(kopia);
-            }
+        //        wynik.Add(kopia);
+        //    }
 
-            return wynik;
-        }
+        //    return wynik;
+        //}
 
         //public static List<ShapeRegion> SkalujRegionyIndywidualnie(
         //List<ShapeRegion> stareRegiony,
