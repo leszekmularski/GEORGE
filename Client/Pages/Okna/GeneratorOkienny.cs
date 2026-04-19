@@ -165,7 +165,7 @@ namespace GEORGE.Client.Pages.Okna
                 .Where(s => !PointsAreClose(s.Start, s.End))
                 .ToList();
 
-            przeskalowanePunktyZLukami = BuildClosedContour(bezDuplikatow);
+            przeskalowanePunktyZLukami = bezDuplikatow;// BuildClosedContour(bezDuplikatow);
 
             //Console.WriteLine($"🔹 Segmenty po usunięciu duplikatów: {bezDuplikatow.Count} z {punktyZLukami.Count}");
 
@@ -542,8 +542,6 @@ namespace GEORGE.Client.Pages.Okna
             return Math.Abs(a.X - b.X) <= tolerance &&
                    Math.Abs(a.Y - b.Y) <= tolerance;
         }
-
-
         public async Task<bool> GenerateGenericElementsWithJoins(
             List<XPoint> outer, List<XPoint> inner,
             List<ContourSegment> outerContourSegment, List<ContourSegment> innerContourSegment,
@@ -689,6 +687,8 @@ namespace GEORGE.Client.Pages.Okna
                 Console.WriteLine($"📐 Wzorzec: kąt {kat}° → strona {strona} → typ {typ}");
             }
 
+            Console.WriteLine($"🔷🔷 Wzorzec połączeń dla stron: outer: {outer.Count} vertexCount:{vertexCount}");
+         
             // =============================
             // 1️⃣ Zliczamy elementy według stron
             // =============================
@@ -1734,8 +1734,31 @@ namespace GEORGE.Client.Pages.Okna
         List<ContourSegment> innerContour)
         {
             if (wierzcholki == null || wierzcholki.Count != 4)
-                throw new ArgumentException("Lista wierzchołków musi zawierać dokładnie 4 punkty.");
+            {
+                Console.WriteLine("Lista wierzchołków musi zawierać dokładnie 4 punkty.");
 
+                // Jeśli mamy jakieś punkty, utwórz z nich zamknięty kontur
+                if (wierzcholki != null && wierzcholki.Count > 0)
+                {
+                    var segments = new List<ContourSegment>();
+
+                    // Utwórz segmenty łączące kolejne punkty
+                    for (int i = 0; i < wierzcholki.Count; i++)
+                    {
+                        int nextIndex = (i + 1) % wierzcholki.Count;
+                        var segment = new ContourSegment(wierzcholki[i], wierzcholki[nextIndex])
+                        {
+                            Informacja = $"Segment {i} (automatyczny)"
+                        };
+                        segments.Add(segment);
+                    }
+
+                    return segments;
+                }
+
+                // Jeśli brak punktów, zwróć pustą listę
+                return new List<ContourSegment>();
+            }
 
             // Sprawdź czy kontury są współśrodkowe
             XPoint? commonCenter = GetCommonCenter(outerContour, innerContour);

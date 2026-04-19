@@ -6,6 +6,7 @@ namespace GEORGE.Client.Pages.Utils
 {
     public static class GeometryUtils
     {
+
         public static async Task<List<ShapeRegion>> GenerujRegionyZPodzialu(List<IShapeDC> shapes, int _szerokosc, int _wysokosc, bool rama)
         {
             // Console.WriteLine($"📦 Przed usunięciem duplikatów: {shapes.Count} obiektów.");
@@ -132,8 +133,6 @@ namespace GEORGE.Client.Pages.Utils
                             double d1 = Distance(p, arcCenter);
                             double d2 = Distance(next, arcCenter);
 
-                           // bool isArcSegment = Math.Abs(d1 - rtr.Radius) < 0.5 && Math.Abs(d2 - rtr.Radius) < 0.5;
-
                             bool isArcSegment = Math.Abs(d1 - rtr.Radius) < 2.0 && Math.Abs(d2 - rtr.Radius) < 2.0;
 
                             if (isArcSegment)
@@ -171,12 +170,12 @@ namespace GEORGE.Client.Pages.Utils
                             double r = rr.Radius;
 
                             var centers = new List<(XPoint Center, string Corner)>
-                            {
-                                (new XPoint(rr.X + r, rr.Y + r), "TL"),                         // Top-Left
-                                (new XPoint(rr.X + rr.Width - r, rr.Y + r), "TR"),              // Top-Right
-                                (new XPoint(rr.X + rr.Width - r, rr.Y + rr.Height - r), "BR"),  // Bottom-Right
-                                (new XPoint(rr.X + r, rr.Y + rr.Height - r), "BL")              // Bottom-Left
-                            };
+                    {
+                        (new XPoint(rr.X + r, rr.Y + r), "TL"),                         // Top-Left
+                        (new XPoint(rr.X + rr.Width - r, rr.Y + r), "TR"),              // Top-Right
+                        (new XPoint(rr.X + rr.Width - r, rr.Y + rr.Height - r), "BR"),  // Bottom-Right
+                        (new XPoint(rr.X + r, rr.Y + rr.Height - r), "BL")              // Bottom-Left
+                    };
 
                             foreach (var (center, corner) in centers)
                             {
@@ -214,16 +213,12 @@ namespace GEORGE.Client.Pages.Utils
                             double r = rrl.Radius;
 
                             double centerX = rrl.X + r;
-                            //double centerY = rrl.Y + rrl.Height / 2;
                             double centerY = rrl.Y + r;
 
                             double d1 = Distance(p, new XPoint(centerX, centerY));
                             double d2 = Distance(next, new XPoint(centerX, centerY));
 
                             bool isLeftArc = Math.Abs(d1 - r) < 2.0 && Math.Abs(d2 - r) < 2.0;
-
-                            //Console.WriteLine($"isLeftArc: {isLeftArc}");
-                            //Console.WriteLine($"isLeftArc rrl.X: {rrl.X}, rrl.Y: {rrl.Y}, width: {rrl.Width}, height: {rrl.Height}, r: {rrl.Radius}");
 
                             if (isLeftArc)
                             {
@@ -254,7 +249,6 @@ namespace GEORGE.Client.Pages.Utils
                             double r = rrr.Radius;
 
                             double centerX = rrr.X + rrr.Width - r;
-                            //double centerY = rrr.Y + rrr.Height / 2;
                             double centerY = rrr.Y + r;
 
                             double d1 = Distance(p, new XPoint(centerX, centerY));
@@ -333,16 +327,17 @@ namespace GEORGE.Client.Pages.Utils
                         var unikalneSegmenty = r.Kontur
                             .GroupBy(s => new
                             {
+                                Type = s.Type,
                                 StartX = Math.Round(s.Start.X, 2),
                                 StartY = Math.Round(s.Start.Y, 2),
                                 EndX = Math.Round(s.End.X, 2),
                                 EndY = Math.Round(s.End.Y, 2),
-                                CenterX = s.Center.HasValue ? Math.Round(s.Center.Value.X, 2) : 0,
-                                CenterY = s.Center.HasValue ? Math.Round(s.Center.Value.Y, 2) : 0,
-                                Radius = Math.Round(s.Radius, 2),
-                                CounterClockwise = s.CounterClockwise
+                                CenterX = s.Type == SegmentType.Arc && s.Center.HasValue ? Math.Round(s.Center.Value.X, 2) : double.NaN,
+                                CenterY = s.Type == SegmentType.Arc && s.Center.HasValue ? Math.Round(s.Center.Value.Y, 2) : double.NaN,
+                                Radius = s.Type == SegmentType.Arc ? Math.Round(s.Radius, 2) : double.NaN,
+                                CounterClockwise = s.Type == SegmentType.Arc ? s.CounterClockwise : false
                             })
-                            .Select(g => g.First())  // Bierzemy pierwszy segment z grupy
+                            .Select(g => g.First())
                             .ToList();
 
                         var nowyKontur = new List<ContourSegment>();
@@ -412,85 +407,197 @@ namespace GEORGE.Client.Pages.Utils
                 }
                 else
                 {
+                    // SKRZYDŁO - bez ramy
                     var linieDzielace = shapes
                         .OfType<XLineShape>()
+                        .Where(l => l.DualRama || l.StalySlupek || l.RuchomySlupek)
                         .ToList();
 
                     Console.WriteLine($"🔲 Generowanie regionów bez ramy dla shape id: {initial.Id} id: {id}");
-                    var podzielone = PodzielRegionRekurencyjnieDeterministycznie(initial, linieDzielace, id, rama);
 
-                    Console.WriteLine($"🔲 Generowanie regionów PodzielRegionRekurencyjnieDeterministycznie podzielone.Count: {podzielone.Count}");
+                    List<ShapeRegion> podzielone;
 
-                    foreach (var r in podzielone)
+                    // Sprawdź czy są jakieś linie dzielące
+                    if (!linieDzielace.Any())
                     {
-                        r.Wierzcholki = r.Wierzcholki
-                            .GroupBy(p => new { X = Math.Round(p.X, 2), Y = Math.Round(p.Y, 2) })
-                            .Select(g => g.First())
-                            .ToList();
+                        // BRAK LINII DZIELĄCYCH - zachowaj oryginalny kształt
+                        Console.WriteLine($"⚠️ Brak linii dzielących - zachowuję oryginalny kontur");
+                        podzielone = new List<ShapeRegion> { initial };
 
-                        // USUŃ SEGMENTY O ZEROWEJ DŁUGOŚCI Z KONTURU
-                        r.Kontur = r.Kontur
-                            .Where(s => !CzySegmentZerowejDlugosci(s))
-                            .ToList();
-
-                        r.Kontur = r.Kontur
-                            .GroupBy(s => new
-                            {
-                                StartX = Math.Round(s.Start.X, 2),
-                                StartY = Math.Round(s.Start.Y, 2),
-                                EndX = Math.Round(s.End.X, 2),
-                                EndY = Math.Round(s.End.Y, 2),
-                                CenterX = s.Center.HasValue ? Math.Round(s.Center.Value.X, 2) : 0,
-                                CenterY = s.Center.HasValue ? Math.Round(s.Center.Value.Y, 2) : 0,
-                                Radius = Math.Round(s.Radius, 2),
-                                CounterClockwise = s.CounterClockwise
-                            })
-                            .Select(g =>
-                            {
-                                var originalSegment = g.First();
-
-                                var segment = new ContourSegment(
-                                    new XPoint(originalSegment.Start.X, originalSegment.Start.Y),
-                                    new XPoint(originalSegment.End.X, originalSegment.End.Y),
-                                    originalSegment.Center.HasValue
-                                        ? new XPoint(originalSegment.Center.Value.X, originalSegment.Center.Value.Y)
-                                        : (XPoint?)null,
-                                    originalSegment.Radius,
-                                    originalSegment.CounterClockwise
-                                );
-
-                                segment.Informacja = originalSegment.Informacja;
-                                return segment;
-                            })
-                            .ToList();
-
-                        // USUŃ SEGMENTY O ZEROWEJ DŁUGOŚCI PONOWNIE
-                        r.Kontur = r.Kontur
-                            .Where(s => !CzySegmentZerowejDlugosci(s))
-                            .ToList();
-
-                        r.RozpoznajTyp(r.TypKsztaltu);
-
-                        Console.WriteLine($"🔹 Region po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - SKRZYDŁO");
-
-                        if (r.TypKsztaltu == "xhouseshape" && r.Wierzcholki.Count == 4)
+                        // Przetwarzanie dla przypadku bez linii dzielących (TAK SAMO JAK DLA RAMY)
+                        foreach (var r in podzielone)
                         {
-                            r.TypKsztaltu = "trapez";
+                            // Usuwanie duplikatów wierzchołków
+                            r.Wierzcholki = r.Wierzcholki
+                                .GroupBy(p => new { X = Math.Round(p.X, 2), Y = Math.Round(p.Y, 2) })
+                                .Select(g => g.First())
+                                .ToList();
+
+                            // USUŃ SEGMENTY O ZEROWEJ DŁUGOŚCI Z KONTURU
+                            r.Kontur = r.Kontur
+                                .Where(s => !CzySegmentZerowejDlugosci(s))
+                                .ToList();
+
+                            // Przetwarzanie konturu - usuwanie duplikatów
+                            var unikalneSegmenty = r.Kontur
+                                .GroupBy(s => new
+                                {
+                                    Type = s.Type,
+                                    StartX = Math.Round(s.Start.X, 2),
+                                    StartY = Math.Round(s.Start.Y, 2),
+                                    EndX = Math.Round(s.End.X, 2),
+                                    EndY = Math.Round(s.End.Y, 2),
+                                    CenterX = s.Type == SegmentType.Arc && s.Center.HasValue ? Math.Round(s.Center.Value.X, 2) : double.NaN,
+                                    CenterY = s.Type == SegmentType.Arc && s.Center.HasValue ? Math.Round(s.Center.Value.Y, 2) : double.NaN,
+                                    Radius = s.Type == SegmentType.Arc ? Math.Round(s.Radius, 2) : double.NaN,
+                                    CounterClockwise = s.Type == SegmentType.Arc ? s.CounterClockwise : false
+                                })
+                                .Select(g => g.First())
+                                .ToList();
+
+                            var nowyKontur = new List<ContourSegment>();
+
+                            foreach (var segment in unikalneSegmenty)
+                            {
+                                ContourSegment nowySegment;
+
+                                if (segment.Type == SegmentType.Arc)
+                                {
+                                    nowySegment = new ContourSegment(
+                                        segment.Start,
+                                        segment.End,
+                                        segment.Center,
+                                        segment.Radius,
+                                        segment.CounterClockwise
+                                    );
+                                }
+                                else
+                                {
+                                    nowySegment = new ContourSegment(
+                                        segment.Start,
+                                        segment.End
+                                    );
+                                }
+
+                                nowySegment.Informacja = "kontur skrzydłowy";
+                                nowyKontur.Add(nowySegment);
+                            }
+
+                            r.Kontur = nowyKontur;
+
+                            // USUŃ SEGMENTY O ZEROWEJ DŁUGOŚCI PONOWNIE
+                            r.Kontur = r.Kontur
+                                .Where(s => !CzySegmentZerowejDlugosci(s))
+                                .ToList();
+
+                            r.RozpoznajTyp(r.TypKsztaltu);
+
+                            Console.WriteLine($"🔹 Region po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - SKRZYDŁO (bez podziału)");
+
+                            if (r.TypKsztaltu == "xhouseshape" && r.Wierzcholki.Count == 4)
+                            {
+                                r.TypKsztaltu = "trapez";
+                            }
+
+                            if (r.TypKsztaltu == "trapez")
+                            {
+                                if (r.Wierzcholki.Count == 2)
+                                {
+                                    r.TypKsztaltu = "linia";
+                                }
+                                else if (r.Wierzcholki.Count == 3)
+                                {
+                                    r.TypKsztaltu = "trójkąt";
+                                }
+                                else if (r.Wierzcholki.Count == 4 && CzyProstokat(r.Wierzcholki))
+                                {
+                                    r.TypKsztaltu = "prostokąt";
+                                }
+                            }
                         }
+                    }
+                    else
+                    {
+                        // SĄ LINIE DZIELĄCE - wykonaj podział
+                        Console.WriteLine($"✅ Znaleziono {linieDzielace.Count} linii dzielących - wykonuję podział");
+                        podzielone = PodzielRegionRekurencyjnieDeterministycznie(initial, linieDzielace, id, rama);
 
-                        if (r.TypKsztaltu == "trapez")
+                        Console.WriteLine($"🔲 Generowanie regionów PodzielRegionRekurencyjnieDeterministycznie podzielone.Count: {podzielone.Count}");
+
+                        foreach (var r in podzielone)
                         {
-                            if (r.Wierzcholki.Count == 2)
+                            // Usuwanie duplikatów wierzchołków
+                            r.Wierzcholki = r.Wierzcholki
+                                .GroupBy(p => new { X = Math.Round(p.X, 2), Y = Math.Round(p.Y, 2) })
+                                .Select(g => g.First())
+                                .ToList();
+
+                            // USUŃ SEGMENTY O ZEROWEJ DŁUGOŚCI Z KONTURU
+                            r.Kontur = r.Kontur
+                                .Where(s => !CzySegmentZerowejDlugosci(s))
+                                .ToList();
+
+                            // Przetwarzanie konturu - usuwanie duplikatów
+                            r.Kontur = r.Kontur
+                                .GroupBy(s => new
+                                {
+                                    Type = s.Type,
+                                    StartX = Math.Round(s.Start.X, 2),
+                                    StartY = Math.Round(s.Start.Y, 2),
+                                    EndX = Math.Round(s.End.X, 2),
+                                    EndY = Math.Round(s.End.Y, 2),
+                                    CenterX = s.Type == SegmentType.Arc && s.Center.HasValue ? Math.Round(s.Center.Value.X, 2) : double.NaN,
+                                    CenterY = s.Type == SegmentType.Arc && s.Center.HasValue ? Math.Round(s.Center.Value.Y, 2) : double.NaN,
+                                    Radius = s.Type == SegmentType.Arc ? Math.Round(s.Radius, 2) : double.NaN,
+                                    CounterClockwise = s.Type == SegmentType.Arc ? s.CounterClockwise : false
+                                })
+                                .Select(g =>
+                                {
+                                    var originalSegment = g.First();
+
+                                    var segment = new ContourSegment(
+                                        new XPoint(originalSegment.Start.X, originalSegment.Start.Y),
+                                        new XPoint(originalSegment.End.X, originalSegment.End.Y),
+                                        originalSegment.Center.HasValue
+                                            ? new XPoint(originalSegment.Center.Value.X, originalSegment.Center.Value.Y)
+                                            : (XPoint?)null,
+                                        originalSegment.Radius,
+                                        originalSegment.CounterClockwise
+                                    );
+
+                                    segment.Informacja = "kontur skrzydłowy";
+                                    return segment;
+                                })
+                                .ToList();
+
+                            // USUŃ SEGMENTY O ZEROWEJ DŁUGOŚCI PONOWNIE
+                            r.Kontur = r.Kontur
+                                .Where(s => !CzySegmentZerowejDlugosci(s))
+                                .ToList();
+
+                            r.RozpoznajTyp(r.TypKsztaltu);
+
+                            Console.WriteLine($"🔹 Region po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - SKRZYDŁO (z podziałem)");
+
+                            if (r.TypKsztaltu == "xhouseshape" && r.Wierzcholki.Count == 4)
                             {
-                                r.TypKsztaltu = "linia";
+                                r.TypKsztaltu = "trapez";
                             }
-                            else if (r.Wierzcholki.Count == 3)
+
+                            if (r.TypKsztaltu == "trapez")
                             {
-                                r.TypKsztaltu = "trójkąt";
-                            }
-                            else if (r.Wierzcholki.Count == 4 && CzyProstokat(r.Wierzcholki))
-                            {
-                                r.TypKsztaltu = "prostokąt";
+                                if (r.Wierzcholki.Count == 2)
+                                {
+                                    r.TypKsztaltu = "linia";
+                                }
+                                else if (r.Wierzcholki.Count == 3)
+                                {
+                                    r.TypKsztaltu = "trójkąt";
+                                }
+                                else if (r.Wierzcholki.Count == 4 && CzyProstokat(r.Wierzcholki))
+                                {
+                                    r.TypKsztaltu = "prostokąt";
+                                }
                             }
                         }
                     }
@@ -506,27 +613,33 @@ namespace GEORGE.Client.Pages.Utils
         // Dodaj tę funkcję pomocniczą na końcu klasy
         private static bool CzySegmentZerowejDlugosci(ContourSegment segment)
         {
+            const double tolerance = 0.01;
+
             if (segment.Type == SegmentType.Line)
             {
-                double dx = segment.End.X - segment.Start.X;
-                double dy = segment.End.Y - segment.Start.Y;
-                return Math.Sqrt(dx * dx + dy * dy) < 0.01;
+                return Distance(segment.Start, segment.End) < tolerance;
             }
-            else // Arc
-            {
-                if (!segment.Center.HasValue) return true;
 
-                double startAngle = Math.Atan2(segment.Start.Y - segment.Center.Value.Y,
-                                              segment.Start.X - segment.Center.Value.X);
-                double endAngle = Math.Atan2(segment.End.Y - segment.Center.Value.Y,
-                                            segment.End.X - segment.Center.Value.X);
+            // ARC
+            if (!segment.Center.HasValue)
+                return true;
 
-                double angleDiff = Math.Abs(endAngle - startAngle);
-                if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
+            // ten sam punkt start i end = łuk zerowy
+            if (Distance(segment.Start, segment.End) < tolerance)
+                return true;
 
-                double arcLength = segment.Radius * angleDiff;
-                return arcLength < 0.01;
-            }
+            // promień zerowy
+            if (segment.Radius < tolerance)
+                return true;
+
+            // dodatkowo sprawdzamy czy oba punkty naprawdę leżą na łuku
+            double d1 = Distance(segment.Start, segment.Center.Value);
+            double d2 = Distance(segment.End, segment.Center.Value);
+
+            if (Math.Abs(d1 - segment.Radius) > 1.0) return true;
+            if (Math.Abs(d2 - segment.Radius) > 1.0) return true;
+
+            return false;
         }
         public static double Distance(XPoint a, XPoint b)
         {
