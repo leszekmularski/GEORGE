@@ -1396,7 +1396,7 @@
     private bool oknaMogaBycLukowe = false;
 
     private bool boolNieGenerujPojedynczych = false; //Nie rysuj elementów okna!!
-    private bool boolNieCzyscKonsole = false;
+    private bool boolNieCzyscKonsole = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -2226,7 +2226,7 @@
         {
             var region = regiony[idx];
 
-            sb.AppendLine($"--- REGION NR {idx + 1} - {region.Id}---");
+            sb.AppendLine($"--- REGION NR {idx + 1} - {region.Id} - {region.TypKsztaltu} ---");
             sb.AppendLine();
 
             // Wierzchołki proste (jeśli istnieją)

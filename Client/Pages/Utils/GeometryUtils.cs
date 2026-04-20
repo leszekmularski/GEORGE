@@ -119,45 +119,77 @@ namespace GEORGE.Client.Pages.Utils
                             segment.Informacja = ramaInfo;
                             return segment;
                         }
-
                         // =========================
                         // PROSTOKĄT Z ŁUKIEM NA GÓRZE
                         // =========================
                         else if (shape is XRoundedTopRectangleShape rtr)
                         {
-                            double arcStartY = rtr.Y + rtr.ArcHeight;
                             var (arcCenterX, arcCenterY, startAngle, endAngle) = rtr.CalculateArcGeometry();
                             var arcCenter = new XPoint(arcCenterX, arcCenterY);
 
-                            // Sprawdź czy punkt jest na łuku (odległość od środka ≈ promień)
-                            double d1 = Distance(p, arcCenter);
-                            double d2 = Distance(next, arcCenter);
+                            double radius = rtr.Radius;
 
-                            bool isArcSegment = Math.Abs(d1 - rtr.Radius) < 2.0 && Math.Abs(d2 - rtr.Radius) < 2.0;
+                            // -------------------------
+                            // helpery
+                            // -------------------------
+                            double Angle(XPoint p)
+                                => Math.Atan2(-(p.Y - arcCenter.Y), p.X - arcCenter.X);
 
-                            if (isArcSegment)
+                            double Normalize(double a)
                             {
-                                // Określ kierunek łuku - dla górnego łuku od prawej do lewej
-                                // to jest przeciwnie do ruchu wskazówek zegara
-                                bool counterClockwise = true; // Dla górnego łuku
-
-                                // Sprawdź czy to łuk (oba punkty mają Y mniejsze lub równe arcStartY)
-                                if (p.Y <= arcStartY && next.Y <= arcStartY)
-                                {
-                                    var segment = new ContourSegment(
-                                        p,
-                                        next,
-                                        arcCenter,
-                                        rtr.Radius,
-                                        counterClockwise
-                                    );
-
-                                    segment.Informacja = ramaInfo;
-                                    return segment;
-                                }
+                                if (a < 0) a += 2 * Math.PI;
+                                return a;
                             }
 
-                            // Dla linii pionowych i poziomych
+                            bool InArcRange(double a)
+                            {
+                                double s = Normalize(startAngle);
+                                double e = Normalize(endAngle);
+                                a = Normalize(a);
+
+                                return s > e ? (a >= s || a <= e) : (a >= s && a <= e);
+                            }
+
+                            // -------------------------
+                            // geometria punktów
+                            // -------------------------
+                            double a1 = Normalize(Angle(p));
+                            double a2 = Normalize(Angle(next));
+
+                            bool onCircle =
+                                Math.Abs(Distance(p, arcCenter) - radius) < 5.0 &&
+                                Math.Abs(Distance(next, arcCenter) - radius) < 5.0;
+
+                            bool onArc =
+                                InArcRange(a1) &&
+                                InArcRange(a2);
+
+                            bool validArcSegment = onCircle && onArc;
+
+                            Console.WriteLine(
+                                $"🔍 ({p.X},{p.Y}) -> ({next.X},{next.Y}) | arc={validArcSegment}"
+                            );
+
+                            // -------------------------
+                            // ARC
+                            // -------------------------
+                            if (validArcSegment)
+                            {
+                                var segment = new ContourSegment(
+                                    p,
+                                    next,
+                                    arcCenter,
+                                    radius,
+                                    true
+                                );
+
+                                segment.Informacja = ramaInfo;
+                                return segment;
+                            }
+
+                            // -------------------------
+                            // LINIA
+                            // -------------------------
                             var lineSegment = new ContourSegment(p, next);
                             lineSegment.Informacja = ramaInfo;
                             return lineSegment;
@@ -170,12 +202,12 @@ namespace GEORGE.Client.Pages.Utils
                             double r = rr.Radius;
 
                             var centers = new List<(XPoint Center, string Corner)>
-                    {
-                        (new XPoint(rr.X + r, rr.Y + r), "TL"),                         // Top-Left
-                        (new XPoint(rr.X + rr.Width - r, rr.Y + r), "TR"),              // Top-Right
-                        (new XPoint(rr.X + rr.Width - r, rr.Y + rr.Height - r), "BR"),  // Bottom-Right
-                        (new XPoint(rr.X + r, rr.Y + rr.Height - r), "BL")              // Bottom-Left
-                    };
+                            {
+                                (new XPoint(rr.X + r, rr.Y + r), "TL"),                         // Top-Left
+                                (new XPoint(rr.X + rr.Width - r, rr.Y + r), "TR"),              // Top-Right
+                                (new XPoint(rr.X + rr.Width - r, rr.Y + rr.Height - r), "BR"),  // Bottom-Right
+                                (new XPoint(rr.X + r, rr.Y + rr.Height - r), "BL")              // Bottom-Left
+                            };
 
                             foreach (var (center, corner) in centers)
                             {
@@ -318,6 +350,16 @@ namespace GEORGE.Client.Pages.Utils
                             .Select(g => g.First())
                             .ToList();
 
+                        //Console.WriteLine("==== KONTUR PRZED GROUPBY ====");
+
+                        //int i = 0;
+                        //foreach (var s in r.Kontur)
+                        //{
+                        //    Console.WriteLine(
+                        //        $"S{i++}: ({Math.Round(s.Start.X, 2)},{Math.Round(s.Start.Y, 2)}) -> ({Math.Round(s.End.X, 2)},{Math.Round(s.End.Y, 2)})"
+                        //    );
+                        //}
+
                         // USUŃ SEGMENTY O ZEROWEJ DŁUGOŚCI Z KONTURU
                         r.Kontur = r.Kontur
                             .Where(s => !CzySegmentZerowejDlugosci(s))
@@ -325,20 +367,40 @@ namespace GEORGE.Client.Pages.Utils
 
                         // Przetwarzanie konturu - usuwanie duplikatów i dodawanie informacji
                         var unikalneSegmenty = r.Kontur
-                            .GroupBy(s => new
+                            .GroupBy(s =>
                             {
-                                Type = s.Type,
-                                StartX = Math.Round(s.Start.X, 2),
-                                StartY = Math.Round(s.Start.Y, 2),
-                                EndX = Math.Round(s.End.X, 2),
-                                EndY = Math.Round(s.End.Y, 2),
-                                CenterX = s.Type == SegmentType.Arc && s.Center.HasValue ? Math.Round(s.Center.Value.X, 2) : double.NaN,
-                                CenterY = s.Type == SegmentType.Arc && s.Center.HasValue ? Math.Round(s.Center.Value.Y, 2) : double.NaN,
-                                Radius = s.Type == SegmentType.Arc ? Math.Round(s.Radius, 2) : double.NaN,
-                                CounterClockwise = s.Type == SegmentType.Arc ? s.CounterClockwise : false
+                                double sx = Math.Round(s.Start.X, 2);
+                                double sy = Math.Round(s.Start.Y, 2);
+                                double ex = Math.Round(s.End.X, 2);
+                                double ey = Math.Round(s.End.Y, 2);
+
+                                bool swap = (sx > ex) || (sx == ex && sy > ey);
+
+                                return new
+                                {
+                                    Type = s.Type,
+                                    StartX = swap ? ex : sx,
+                                    StartY = swap ? ey : sy,
+                                    EndX = swap ? sx : ex,
+                                    EndY = swap ? sy : ey,
+                                    CenterX = s.Type == SegmentType.Arc && s.Center.HasValue ? Math.Round(s.Center.Value.X, 2) : double.NaN,
+                                    CenterY = s.Type == SegmentType.Arc && s.Center.HasValue ? Math.Round(s.Center.Value.Y, 2) : double.NaN,
+                                    Radius = s.Type == SegmentType.Arc ? Math.Round(s.Radius, 2) : double.NaN,
+                                    CounterClockwise = s.Type == SegmentType.Arc ? s.CounterClockwise : false
+                                };
                             })
                             .Select(g => g.First())
                             .ToList();
+
+                        //Console.WriteLine("==== KONTUR PO GROUPBY ====");
+
+                        //i = 0;
+                        //foreach (var s in unikalneSegmenty)
+                        //{
+                        //    Console.WriteLine(
+                        //        $"S{i++}: ({Math.Round(s.Start.X, 2)},{Math.Round(s.Start.Y, 2)}) -> ({Math.Round(s.End.X, 2)},{Math.Round(s.End.Y, 2)})"
+                        //    );
+                        //}
 
                         var nowyKontur = new List<ContourSegment>();
 
@@ -609,7 +671,82 @@ namespace GEORGE.Client.Pages.Utils
             await Task.Delay(1);
             return regions;
         }
+        private static List<ContourSegment> ScalArcSegmenty(List<ContourSegment> segments)
+        {
+            var result = new List<ContourSegment>();
 
+            var arcs = segments
+                .Where(s => s.Type == SegmentType.Arc && s.Center != null)
+                .ToList();
+
+            var lines = segments
+                .Where(s => s.Type == SegmentType.Line)
+                .ToList();
+
+            result.AddRange(lines);
+
+            var grouped = arcs.GroupBy(a => new
+            {
+                a.Center!.Value.X,
+                a.Center!.Value.Y,
+                Radius = Math.Round(a.Radius, 3),
+                a.CounterClockwise
+            });
+
+            foreach (var group in grouped)
+            {
+                var center = new XPoint(group.Key.X, group.Key.Y);
+
+                var ordered = group
+                    .OrderBy(a => GetAngle(center, a.Start))
+                    .ToList();
+
+                var merged = new List<ContourSegment>();
+                var current = ordered[0];
+
+                for (int i = 1; i < ordered.Count; i++)
+                {
+                    var next = ordered[i];
+
+                    if (AreContinuous(current, next, center))
+                    {
+                        // łączymy
+                        current = new ContourSegment(
+                            current.Start,
+                            next.End,
+                            center,
+                            current.Radius,
+                            current.CounterClockwise
+                        );
+                    }
+                    else
+                    {
+                        merged.Add(current);
+                        current = next;
+                    }
+                }
+
+                merged.Add(current);
+                result.AddRange(merged);
+            }
+
+            return result;
+        }
+
+        private static double GetAngle(XPoint center, XPoint p)
+        {
+            return Math.Atan2(p.Y - center.Y, p.X - center.X);
+        }
+
+        private static bool AreContinuous(ContourSegment a, ContourSegment b, XPoint center)
+        {
+            var aEndAngle = GetAngle(center, a.End);
+            var bStartAngle = GetAngle(center, b.Start);
+
+            const double eps = 0.0001;
+
+            return Math.Abs(aEndAngle - bStartAngle) < eps;
+        }
         // Dodaj tę funkcję pomocniczą na końcu klasy
         private static bool CzySegmentZerowejDlugosci(ContourSegment segment)
         {
@@ -648,180 +785,6 @@ namespace GEORGE.Client.Pages.Utils
             return Math.Sqrt(dx * dx + dy * dy);
         }
 
-        //public static List<ShapeRegion> SkalujSkrzydlaDoRamy(
-        //List<ShapeRegion> stareSkrzydla,
-        //List<ShapeRegion> rama,
-        //int nowaSzerokosc,
-        //int nowaWysokosc)
-        //{
-        //    if (stareSkrzydla == null || !stareSkrzydla.Any() ||
-        //        rama == null || !rama.Any())
-        //        return new List<ShapeRegion>();
-
-        //    // Wyznacz bounding box ramy
-        //    double minXRama = rama.Min(r => r.Wierzcholki.Min(p => p.X));
-        //    double minYRama = rama.Min(r => r.Wierzcholki.Min(p => p.Y));
-        //    double maxXRama = rama.Max(r => r.Wierzcholki.Max(p => p.X));
-        //    double maxYRama = rama.Max(r => r.Wierzcholki.Max(p => p.Y));
-
-        //    double szerRamy = maxXRama - minXRama;
-        //    double wysRamy = maxYRama - minYRama;
-
-        //    // Wyznacz bounding box skrzydeł
-        //    double minXSkrzydla = stareSkrzydla.Min(r => r.Wierzcholki.Min(p => p.X));
-        //    double minYSkrzydla = stareSkrzydla.Min(r => r.Wierzcholki.Min(p => p.Y));
-        //    double maxXSkrzydla = stareSkrzydla.Max(r => r.Wierzcholki.Max(p => p.X));
-        //    double maxYSkrzydla = stareSkrzydla.Max(r => r.Wierzcholki.Max(p => p.Y));
-
-        //    double szerSkrzydel = maxXSkrzydla - minXSkrzydla;
-        //    double wysSkrzydel = maxYSkrzydla - minYSkrzydla;
-
-        //    // Skala względem ramy
-        //    double scaleX = szerRamy / szerSkrzydel;
-        //    double scaleY = wysRamy / wysSkrzydel;
-
-        //    // Skaluj każde skrzydło
-        //    var noweSkrzydla = new List<ShapeRegion>();
-        //    foreach (var skrzydlo in stareSkrzydla)
-        //    {
-        //        var noweWierzcholki = skrzydlo.Wierzcholki
-        //            .Select(p => new XPoint(
-        //                minXRama + (p.X - minXSkrzydla) * scaleX,
-        //                minYRama + (p.Y - minYSkrzydla) * scaleY
-        //            ))
-        //            .ToList();
-
-        //        var nowyKontur = skrzydlo.Kontur
-        //            .Select(s =>
-        //            {
-        //                var start = new XPoint(
-        //                    minXRama + (s.Start.X - minXSkrzydla) * scaleX,
-        //                    minYRama + (s.Start.Y - minYSkrzydla) * scaleY
-        //                );
-        //                var end = new XPoint(
-        //                    minXRama + (s.End.X - minXSkrzydla) * scaleX,
-        //                    minYRama + (s.End.Y - minYSkrzydla) * scaleY
-        //                );
-
-        //                if (s.Type == SegmentType.Line)
-        //                {
-        //                    var segment = new ContourSegment(start, end);
-        //                    segment.Informacja = s.Informacja; // zachowaj informację o duplikacie
-        //                    return segment;
-        //                }
-        //                else // łuk
-        //                {
-        //                    XPoint center = new();
-        //                    if (s.Center != null)
-        //                    {
-        //                        center = new XPoint(
-        //                            minXRama + (s.Center.Value.X - minXSkrzydla) * scaleX,
-        //                            minYRama + (s.Center.Value.Y - minYSkrzydla) * scaleY
-        //                        );
-        //                    }
-
-        //                    var segment = new ContourSegment(start, end, center, s.Radius, s.CounterClockwise);
-        //                    segment.Informacja = s.Informacja; // zachowaj informację o duplikacie
-        //                    return segment;
-        //                }
-        //            })
-        //            .ToList();
-
-        //        noweSkrzydla.Add(new ShapeRegion
-        //        {
-        //            Id = skrzydlo.Id,
-        //            TypKsztaltu = skrzydlo.TypKsztaltu,
-        //            TypLiniiDzielacej = skrzydlo.TypLiniiDzielacej,
-        //            Wierzcholki = noweWierzcholki,
-        //            Kontur = nowyKontur
-        //        });
-        //    }
-
-        //    return noweSkrzydla;
-        //}
-
-        //public static List<ShapeRegion> SkalujRegiony(
-        //List<ShapeRegion> stareRegiony,
-        //int nowaSzerokosc,
-        //int nowaWysokosc)
-        //{
-        //    if (stareRegiony == null || !stareRegiony.Any())
-        //        return new List<ShapeRegion>();
-
-        //    // Oblicz bounding box dla całego zbioru regionów
-        //    double minX = stareRegiony.Min(r => r.Wierzcholki.Min(p => p.X));
-        //    double minY = stareRegiony.Min(r => r.Wierzcholki.Min(p => p.Y));
-        //    double maxX = stareRegiony.Max(r => r.Wierzcholki.Max(p => p.X));
-        //    double maxY = stareRegiony.Max(r => r.Wierzcholki.Max(p => p.Y));
-
-        //    double originalWidth = maxX - minX;
-        //    double originalHeight = maxY - minY;
-
-        //    double scaleX = nowaSzerokosc / originalWidth;
-        //    double scaleY = nowaWysokosc / originalHeight;
-
-        //    // Skaluj każdy region
-        //    var noweRegiony = new List<ShapeRegion>();
-
-        //    foreach (var region in stareRegiony)
-        //    {
-        //        var noweWierzcholki = region.Wierzcholki
-        //            .Select(p => new XPoint(
-        //                (p.X - minX) * scaleX,
-        //                (p.Y - minY) * scaleY))
-        //            .ToList();
-
-        //        var nowyKontur = region.Kontur
-        //            .Select(s =>
-        //            {
-        //                var start = new XPoint(
-        //                    (s.Start.X - minX) * scaleX,
-        //                    (s.Start.Y - minY) * scaleY
-        //                );
-        //                var end = new XPoint(
-        //                    (s.End.X - minX) * scaleX,
-        //                    (s.End.Y - minY) * scaleY
-        //                );
-
-        //                if (s.Type == SegmentType.Line)
-        //                {
-        //                    var segent = new ContourSegment(start, end);
-        //                    segent.Informacja = s.Informacja; // zachowaj informację o duplikacie
-        //                    return segent;
-        //                }
-        //                else // łuk
-        //                {
-        //                    XPoint center = new();
-        //                    if (s.Center != null)
-        //                    {
-        //                        center = new XPoint(
-        //                            (s.Center.Value.X - minX) * scaleX,
-        //                            (s.Center.Value.Y - minY) * scaleY
-        //                        );
-        //                    }
-
-        //                    var segent = new ContourSegment(start, end, center, s.Radius, s.CounterClockwise);
-        //                    segent.Informacja = s.Informacja; // zachowaj informację o duplikacie
-        //                    return segent;
-        //                }
-        //            })
-        //            .ToList();
-
-        //        var nowyRegion = new ShapeRegion
-        //        {
-        //            Id = region.Id,                    // zachowaj Id
-        //            TypKsztaltu = region.TypKsztaltu,  // zachowaj typ
-        //            TypLiniiDzielacej = region.TypLiniiDzielacej,
-        //            Wierzcholki = noweWierzcholki,
-        //            Kontur = nowyKontur
-        //        };
-
-        //        noweRegiony.Add(nowyRegion);
-        //    }
-
-        //    return noweRegiony;
-        //}
-        //// --- helper: głęboka kopia regionu
         public static ShapeRegion CloneRegion(ShapeRegion src, double _currentScale = 1)
         {
             if (src == null) return null!;
@@ -865,177 +828,6 @@ namespace GEORGE.Client.Pages.Utils
             };
         }
 
-        // --- skalowanie skrzydeł względem ramy przed/po
-        //public static List<ShapeRegion> SkalujSkrzydlaDoRamy(
-        //    List<ShapeRegion> skrzydla,
-        //    ShapeRegion ramaBefore,
-        //    ShapeRegion ramaAfter)
-        //{
-        //    if (skrzydla == null || !skrzydla.Any() || ramaBefore == null || ramaAfter == null)
-        //        return skrzydla ?? new List<ShapeRegion>();
-
-        //    // bounding box ramy przed
-        //    double minXOld = ramaBefore.Wierzcholki.Min(p => p.X);
-        //    double minYOld = ramaBefore.Wierzcholki.Min(p => p.Y);
-        //    double maxXOld = ramaBefore.Wierzcholki.Max(p => p.X);
-        //    double maxYOld = ramaBefore.Wierzcholki.Max(p => p.Y);
-        //    double oldWidth = maxXOld - minXOld;
-        //    double oldHeight = maxYOld - minYOld;
-        //    if (oldWidth == 0 || oldHeight == 0)
-        //        return skrzydla;
-
-        //    // bounding box ramy po
-        //    double minXNew = ramaAfter.Wierzcholki.Min(p => p.X);
-        //    double minYNew = ramaAfter.Wierzcholki.Min(p => p.Y);
-        //    double maxXNew = ramaAfter.Wierzcholki.Max(p => p.X);
-        //    double maxYNew = ramaAfter.Wierzcholki.Max(p => p.Y);
-        //    double newWidth = maxXNew - minXNew;
-        //    double newHeight = maxYNew - minYNew;
-        //    if (newWidth == 0 || newHeight == 0)
-        //        return skrzydla;
-
-        //    double scaleX = newWidth / oldWidth;
-        //    double scaleY = newHeight / oldHeight;
-
-        //    var wynik = new List<ShapeRegion>(skrzydla.Count);
-        //    foreach (var s in skrzydla)
-        //    {
-        //        var kopia = CloneRegion(s);
-
-        //        //kopia.Id = s.Id; // zachowaj oryginalne Id do sprawdzenia
-
-        //        // dla każdego punktu: przenieś względnie do ramy przed i przeskaluj do ramy po, następnie wypośrodkuj do nowej pozycji
-        //        for (int i = 0; i < kopia.Wierzcholki.Count; i++)
-        //        {
-        //            var p = kopia.Wierzcholki[i];
-        //            double relX = (p.X - minXOld); // odległość od lewej krawędzi ramy przed
-        //            double relY = (p.Y - minYOld); // od górnej krawędzi ramy przed
-
-        //            double newX = minXNew + relX * scaleX;
-        //            double newY = minYNew + relY * scaleY;
-
-        //            kopia.Wierzcholki[i] = new XPoint { X = newX, Y = newY };
-        //            kopia.Kontur[i] = new ContourSegment(
-        //                new XPoint { X = newX, Y = newY },
-        //                new XPoint
-        //                {
-        //                    X = minXNew + (kopia.Kontur[i].End.X - minXOld) * scaleX,
-        //                    Y = minYNew + (kopia.Kontur[i].End.Y - minYOld) * scaleY
-        //                },
-        //                kopia.Kontur[i].Center != null ? new XPoint
-        //                {
-        //                    X = minXNew + (kopia.Kontur[i].Center.Value.X - minXOld) * scaleX,
-        //                    Y = minYNew + (kopia.Kontur[i].Center.Value.Y - minYOld) * scaleY
-        //                } : null,
-        //                kopia.Kontur[i].Radius * ((scaleX + scaleY) / 2), // średnia skala dla promienia łuku
-        //                kopia.Kontur[i].CounterClockwise
-        //            );
-        //        }
-
-        //        // skaluj też linie dzielące wewnątrz skrzydła
-        //        if (kopia.LinieDzielace != null)
-        //        {
-        //            foreach (var lin in kopia.LinieDzielace)
-        //            {
-        //                if (lin.Points == null) continue;
-        //                for (int j = 0; j < lin.Points.Count; j++)
-        //                {
-        //                    var q = lin.Points[j];
-        //                    double relX = (q.X - minXOld);
-        //                    double relY = (q.Y - minYOld);
-        //                    double newX = minXNew + relX * scaleX;
-        //                    double newY = minYNew + relY * scaleY;
-        //                    lin.Points[j] = new XPoint { X = newX, Y = newY };
-        //                }
-        //            }
-        //        }
-
-        //        wynik.Add(kopia);
-        //    }
-
-        //    return wynik;
-        //}
-
-        //public static List<ShapeRegion> SkalujRegionyIndywidualnie(
-        //List<ShapeRegion> stareRegiony,
-        //int nowaSzerokosc,
-        //int nowaWysokosc)
-        //{
-        //    if (stareRegiony == null || !stareRegiony.Any())
-        //        return new List<ShapeRegion>();
-
-        //    var noweRegiony = new List<ShapeRegion>();
-
-        //    foreach (var region in stareRegiony)
-        //    {
-        //        // Bounding box dla pojedynczego regionu
-        //        double minX = region.Wierzcholki.Min(p => p.X);
-        //        double minY = region.Wierzcholki.Min(p => p.Y);
-        //        double maxX = region.Wierzcholki.Max(p => p.X);
-        //        double maxY = region.Wierzcholki.Max(p => p.Y);
-
-        //        double originalWidth = maxX - minX;
-        //        double originalHeight = maxY - minY;
-
-        //        if (originalWidth == 0 || originalHeight == 0)
-        //            continue;
-
-        //        double scaleX = nowaSzerokosc / originalWidth;
-        //        double scaleY = nowaWysokosc / originalHeight;
-
-        //        var noweWierzcholki = region.Wierzcholki
-        //            .Select(p => new XPoint(
-        //                (p.X - minX) * scaleX,
-        //                (p.Y - minY) * scaleY))
-        //            .ToList();
-
-        //        var nowyKontur = region.Kontur
-        //        .Select(s =>
-        //        {
-        //            var start = new XPoint(
-        //                (s.Start.X - minX) * scaleX,
-        //                (s.Start.Y - minY) * scaleY
-        //            );
-        //            var end = new XPoint(
-        //                (s.End.X - minX) * scaleX,
-        //                (s.End.Y - minY) * scaleY
-        //            );
-
-        //            if (s.Type == SegmentType.Line)
-        //            {
-        //                return new ContourSegment(start, end);
-        //            }
-        //            else // łuk
-        //            {
-        //                XPoint center = new();
-        //                if (s.Center != null)
-        //                {
-        //                    center = new XPoint(
-        //                        (s.Center.Value.X - minX) * scaleX,
-        //                        (s.Center.Value.Y - minY) * scaleY
-        //                    );
-        //                }
-
-        //                return new ContourSegment(start, end, center, s.Radius, s.CounterClockwise);
-        //            }
-        //        })
-        //        .ToList();
-
-        //        noweRegiony.Add(new ShapeRegion
-        //        {
-        //            Id = region.Id,
-        //            IdMaster = region.IdMaster,
-        //            IdRegionuPonizej = region.IdRegionuPonizej,
-        //            TypKsztaltu = region.TypKsztaltu,
-        //            TypLiniiDzielacej = region.TypLiniiDzielacej,
-        //            Wierzcholki = noweWierzcholki,
-        //            Kontur = nowyKontur,
-        //        });
-        //    }
-
-        //    return noweRegiony;
-        //}
-
         private static bool CzyProstokat(List<XPoint> punkty)
         {
             if (punkty.Count != 4) return false;
@@ -1064,62 +856,91 @@ namespace GEORGE.Client.Pages.Utils
         }
 
         private static List<ShapeRegion> PodzielRegionRekurencyjnie(
-         ShapeRegion region,
-         List<XLineShape> lines,
-         string idMaster,
-         bool rama)
+    ShapeRegion region,
+    List<XLineShape> lines,
+    string idMaster,
+    bool rama)
         {
-            // Początkowa lista wyników zawiera oryginalny region
             var wynik = new List<ShapeRegion> { region };
 
-            // Iterujemy po wszystkich liniach dzielących
+            int lineIndex = 0;
+
             foreach (var line in lines)
             {
                 var next = new List<ShapeRegion>();
 
                 foreach (var r in wynik)
                 {
-                    // 1️⃣ Podział wierzchołków
-                    var splitLinie = PodzielPolygonPoLinii(r.Wierzcholki, line);
+                    // 1️⃣ podział geometrii (polygon)
+                    var splitPolygons = PodzielPolygonPoLinii(r.Wierzcholki, line);
 
-                    // 2️⃣ Podział konturu
-                    var splitFullKontur = PodzielKonturPoLinii(r.Kontur, line);
+                    // 2️⃣ podział konturu (linia + łuk)
+                    var splitKontury = PodzielKonturPoLinii(r.Kontur, line);
 
-                    // Jeśli podział faktycznie wystąpił
-                    if (splitLinie.Count > 1 && splitFullKontur.Count > 0)
+                    // 🔥 jeśli nie ma realnego podziału → zostaw region
+                    if (splitPolygons.Count <= 1 || splitKontury.Count == 0)
                     {
-                        for (int i = 0; i < splitLinie.Count; i++)
-                        {
-                            var poly = splitLinie[i];
-
-                            // Dopasowanie konturu do poligonu
-                            var kontur = i < splitFullKontur.Count ? splitFullKontur[i] : splitFullKontur.Last();
-
-                            next.Add(new ShapeRegion
-                            {
-                                Wierzcholki = poly,
-                                Kontur = kontur,
-                                TypKsztaltu = r.TypKsztaltu,
-                                LinieDzielace = r.LinieDzielace.Concat(new[] { line }).ToList(),
-                                IdMaster = idMaster,
-                                Rama = rama,
-                                Id = r.Id + "_" + line.ID + "_" + Guid.NewGuid().ToString(),
-                                TypLiniiDzielacej = r.TypLiniiDzielacej
-                            });
-                        }
-                    }
-                    else
-                    {
-                        // Jeśli podział nie wystąpił, zostawiamy region bez zmian
                         next.Add(r);
+                        continue;
+                    }
+
+                    // 🔥 tworzymy regiony 1:1 (bez zgadywania dopasowania)
+                    for (int i = 0; i < splitPolygons.Count; i++)
+                    {
+                        var poly = splitPolygons[i];
+
+                        // ⬇️ bez heurystyk — tylko bezpieczne indeksowanie
+                        var kontur = (i < splitKontury.Count)
+                            ? splitKontury[i]
+                            : splitKontury.Last();
+
+                        next.Add(new ShapeRegion
+                        {
+                            Wierzcholki = poly,
+                            Kontur = kontur,
+
+                            TypKsztaltu = r.TypKsztaltu,
+                            LinieDzielace = r.LinieDzielace.Concat(new[] { line }).ToList(),
+
+                            IdMaster = idMaster,
+                            Rama = rama,
+
+                            Id = $"{r.Id}|L{lineIndex}|{i}|{Guid.NewGuid()}",
+                            TypLiniiDzielacej = r.TypLiniiDzielacej
+                        });
                     }
                 }
 
-                // Aktualizujemy listę wyników po podziale przez tę linię
                 wynik = next;
+                lineIndex++;
             }
 
             return wynik;
+        }
+
+        private static bool IsSamePoint(XPoint p1, XPoint p2)
+        {
+            const double eps = 0.5;
+            return Math.Abs(p1.X - p2.X) < eps &&
+                   Math.Abs(p1.Y - p2.Y) < eps;
+        }
+
+        private static bool CzyKonturPasujeDoPolygonu(List<ContourSegment> kontur, List<XPoint> poly)
+        {
+            var polyPoints = poly
+                .Select(p => (X: Math.Round(p.X, 2), Y: Math.Round(p.Y, 2)))
+                .ToHashSet();
+
+            foreach (var seg in kontur)
+            {
+                var start = (Math.Round(seg.Start.X, 2), Math.Round(seg.Start.Y, 2));
+                var end = (Math.Round(seg.End.X, 2), Math.Round(seg.End.Y, 2));
+
+                if (!polyPoints.Contains(start) || !polyPoints.Contains(end))
+                    return false;
+            }
+
+            return true;
         }
 
         private static List<ShapeRegion> PodzielRegionRekurencyjnieDeterministycznie(
@@ -1154,14 +975,20 @@ namespace GEORGE.Client.Pages.Utils
                             var poly = splitLinie[i];
 
                             // Dopasowanie konturu do poligonu
-                            var kontur = i < splitFullKontur.Count ? splitFullKontur[i] : splitFullKontur.Last();
+                            // var kontur = i < splitFullKontur.Count ? splitFullKontur[i] : splitFullKontur.Last();
+                            var rawKontur = i < splitFullKontur.Count
+                             ? splitFullKontur[i]
+                             : splitFullKontur.Last();
+
+                            // 🔥 KLUCZOWA POPRAWKA
+                            var kontur = ScalArcSegmenty(rawKontur);
 
                             string newId = $"{rootId}|L{indexLinii}|C{indexChild}";
 
                             next.Add(new ShapeRegion
                             {
                                 Wierzcholki = poly,
-                                Kontur = kontur,
+                                Kontur = kontur,//BuildContourFromPolygon(poly, r.Kontur),
                                 TypKsztaltu = r.TypKsztaltu,
                                 LinieDzielace = r.LinieDzielace.Concat(new[] { line }).ToList(),
                                 IdMaster = rootId,
@@ -1188,54 +1015,158 @@ namespace GEORGE.Client.Pages.Utils
             return wynik;
         }
 
-        public static List<List<ContourSegment>> PodzielKonturPoLinii(List<ContourSegment> contour, XLineShape line)
+        public static List<List<ContourSegment>> PodzielKonturPoLinii(
+        List<ContourSegment> contour,
+        XLineShape line)
         {
             var left = new List<ContourSegment>();
             var right = new List<ContourSegment>();
 
             foreach (var seg in contour)
             {
-                bool startLeft = PunktPoLewejStronie(seg.Start, line);
-                bool endLeft = PunktPoLewejStronie(seg.End, line);
+                var startLeft = PunktPoLewejStronie(seg.Start, line);
+                var endLeft = PunktPoLewejStronie(seg.End, line);
 
+                bool isStartOnLine = IsOnLine(seg.Start, line);
+                bool isEndOnLine = IsOnLine(seg.End, line);
+
+                if (isStartOnLine || isEndOnLine)
+                {
+                    startLeft = true;
+                    endLeft = false;
+                }
+
+                // =========================
+                // 1. całe po jednej stronie
+                // =========================
                 if (startLeft && endLeft)
                 {
                     left.Add(seg);
+                    continue;
                 }
-                else if (!startLeft && !endLeft)
+
+                if (!startLeft && !endLeft)
                 {
                     right.Add(seg);
+                    continue;
                 }
-                else
+
+                // =========================
+                // 2. przecina linię
+                // =========================
+                if (ObliczPrzeciecie(seg.Start, seg.End, line, out var intersection))
                 {
-                    // Segment przecina linię – dzielimy na dwa
-                    if (ObliczPrzeciecie(seg.Start, seg.End, line, out var intersection))
+                    if (seg.Type == SegmentType.Arc && seg.Center != null)
                     {
-                        if (startLeft)
-                        {
-                            left.Add(new ContourSegment(seg.Start, intersection));
-                            right.Add(new ContourSegment(intersection, seg.End));
-                        }
-                        else
-                        {
-                            right.Add(new ContourSegment(seg.Start, intersection));
-                            left.Add(new ContourSegment(intersection, seg.End));
-                        }
+                        // 🔥 KLUCZOWA POPRAWKA:
+                        // NIE kopiujemy tego samego łuku!
+                        // tylko dzielimy go logicznie
+
+                        var leftArc = new ContourSegment(
+                            seg.Start,
+                            intersection,
+                            seg.Center,
+                            seg.Radius,
+                            seg.CounterClockwise
+                        )
+                        { Type = SegmentType.Arc };
+
+                        var rightArc = new ContourSegment(
+                            intersection,
+                            seg.End,
+                            seg.Center,
+                            seg.Radius,
+                            seg.CounterClockwise
+                        )
+                        { Type = SegmentType.Arc };
+
+                        left.Add(leftArc);
+                        right.Add(rightArc);
                     }
                     else
                     {
-                        // Brak przecięcia, traktujemy jako cały segment na odpowiedniej stronie
-                        if (startLeft) left.Add(seg); else right.Add(seg);
+                        left.Add(new ContourSegment(seg.Start, intersection));
+                        right.Add(new ContourSegment(intersection, seg.End));
                     }
+                }
+                else
+                {
+                    left.Add(seg);
+                    right.Add(seg);
                 }
             }
 
-            var res = new List<List<ContourSegment>>();
-            if (left.Count > 0) res.Add(left);
-            if (right.Count > 0) res.Add(right);
-            return res;
+            left = CleanupSegments(left);
+            right = CleanupSegments(right);
+
+            var result = new List<List<ContourSegment>>();
+
+            if (left.Count > 0)
+                result.Add(ConnectSegments(left));
+
+            if (right.Count > 0)
+                result.Add(ConnectSegments(right));
+
+            return result;
         }
 
+
+        private static bool IsOnLine(XPoint p, XLineShape line)
+        {
+            const double eps = 0.5;
+
+            double cross =
+                (line.X2 - line.X1) * (p.Y - line.Y1) -
+                (line.Y2 - line.Y1) * (p.X - line.X1);
+
+            return Math.Abs(cross) < eps;
+        }
+        private static List<ContourSegment> CleanupSegments(List<ContourSegment> input)
+        {
+            return input
+                .Where(s => Distance(s.Start, s.End) > 0.01)
+                .ToList();
+        }
+
+        private static List<ContourSegment> ConnectSegments(List<ContourSegment> segments)
+        {
+            var result = new List<ContourSegment>();
+
+            var used = new HashSet<int>();
+
+            for (int i = 0; i < segments.Count; i++)
+            {
+                if (used.Contains(i)) continue;
+
+                var current = segments[i];
+                used.Add(i);
+
+                bool extended = true;
+
+                while (extended)
+                {
+                    extended = false;
+
+                    for (int j = 0; j < segments.Count; j++)
+                    {
+                        if (used.Contains(j)) continue;
+
+                        var s = segments[j];
+
+                        if (Distance(current.End, s.Start) < 0.5)
+                        {
+                            current = new ContourSegment(current.Start, s.End);
+                            used.Add(j);
+                            extended = true;
+                        }
+                    }
+                }
+
+                result.Add(current);
+            }
+
+            return result;
+        }
         private static List<List<XPoint>> PodzielPolygonPoLinii(List<XPoint> poly, XLineShape line)
         {
             var left = new List<XPoint>();
