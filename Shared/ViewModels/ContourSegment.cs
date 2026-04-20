@@ -50,5 +50,6 @@ namespace GEORGE.Shared.ViewModels
                 };
             }
         }
+    
     }
 }

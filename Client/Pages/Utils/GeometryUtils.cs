@@ -671,6 +671,142 @@ namespace GEORGE.Client.Pages.Utils
             await Task.Delay(1);
             return regions;
         }
+
+        private static List<ShapeRegion> PodzielRegionRekurencyjnie(
+        ShapeRegion region,
+        List<XLineShape> lines,
+        string idMaster,
+        bool rama)
+        {
+            var wynik = new List<ShapeRegion> { region };
+
+            int lineIndex = 0;
+
+            foreach (var line in lines)
+            {
+                var next = new List<ShapeRegion>();
+
+                foreach (var r in wynik)
+                {
+                    // 1️⃣ podział geometrii (polygon)
+                    var splitPolygons = PodzielPolygonPoLinii(r.Wierzcholki, line);
+
+                    // 2️⃣ podział konturu (linia + łuk)
+                    var splitKontury = PodzielKonturPoLinii(r.Kontur, line);
+
+                    // 🔥 jeśli nie ma realnego podziału → zostaw region
+                    if (splitPolygons.Count <= 1 || splitKontury.Count == 0)
+                    {
+                        next.Add(r);
+                        continue;
+                    }
+
+                    // 🔥 tworzymy regiony 1:1 (bez zgadywania dopasowania)
+                    for (int i = 0; i < splitPolygons.Count; i++)
+                    {
+                        var poly = splitPolygons[i];
+
+                        // ⬇️ bez heurystyk — tylko bezpieczne indeksowanie
+                        var kontur = (i < splitKontury.Count)
+                            ? splitKontury[i]
+                            : splitKontury.Last();
+
+                        next.Add(new ShapeRegion
+                        {
+                            Wierzcholki = poly,
+                            Kontur = kontur,
+
+                            TypKsztaltu = r.TypKsztaltu,
+                            LinieDzielace = r.LinieDzielace.Concat(new[] { line }).ToList(),
+
+                            IdMaster = idMaster,
+                            Rama = rama,
+
+                            Id = $"{r.Id}|L{lineIndex}|{i}|{Guid.NewGuid()}",
+                            TypLiniiDzielacej = r.TypLiniiDzielacej
+                        });
+                    }
+                }
+
+                wynik = next;
+                lineIndex++;
+            }
+
+            return wynik;
+        }
+
+        private static List<ShapeRegion> PodzielRegionRekurencyjnieDeterministycznie(
+        ShapeRegion region,
+        List<XLineShape> lines,
+        string rootId,
+        bool rama)
+        {
+            // Początkowa lista wyników zawiera oryginalny region
+            var wynik = new List<ShapeRegion> { region };
+
+            int indexLinii = 0;
+
+            foreach (var line in lines)
+            {
+                var next = new List<ShapeRegion>();
+
+                foreach (var r in wynik)
+                {
+                    // 1️⃣ Podział wierzchołków
+                    var splitLinie = PodzielPolygonPoLinii(r.Wierzcholki, line);
+
+                    // 2️⃣ Podział konturu
+                    var splitFullKontur = PodzielKonturPoLinii(r.Kontur, line);
+
+                    if (splitLinie.Count > 1 && splitFullKontur.Count > 0)
+                    {
+                        int indexChild = 0;
+
+                        for (int i = 0; i < splitLinie.Count; i++)
+                        {
+                            var poly = splitLinie[i];
+
+                            // Dopasowanie konturu do poligonu
+                            // var kontur = i < splitFullKontur.Count ? splitFullKontur[i] : splitFullKontur.Last();
+                            var rawKontur = i < splitFullKontur.Count
+                             ? splitFullKontur[i]
+                             : splitFullKontur.Last();
+
+                            // 🔥 KLUCZOWA POPRAWKA
+                            var kontur = ScalArcSegmenty(rawKontur);
+
+                            string newId = $"{rootId}|L{indexLinii}|C{indexChild}";
+
+                            next.Add(new ShapeRegion
+                            {
+                                Wierzcholki = poly,
+                                Kontur = kontur,//BuildContourFromPolygon(poly, r.Kontur),
+                                TypKsztaltu = r.TypKsztaltu,
+                                LinieDzielace = r.LinieDzielace.Concat(new[] { line }).ToList(),
+                                IdMaster = rootId,
+                                Rama = rama,
+                                Id = newId,
+                                TypLiniiDzielacej = r.TypLiniiDzielacej
+                            });
+
+                            indexChild++;
+                        }
+                    }
+                    else
+                    {
+                        // Jeśli podział nie wystąpił, pozostawiamy region bez zmian
+                        next.Add(r);
+                    }
+                }
+
+                // Aktualizacja listy wyników po podziale tą linią
+                wynik = next;
+                indexLinii++;
+            }
+
+            return wynik;
+        }
+
         private static List<ContourSegment> ScalArcSegmenty(List<ContourSegment> segments)
         {
             var result = new List<ContourSegment>();
@@ -785,49 +921,6 @@ namespace GEORGE.Client.Pages.Utils
             return Math.Sqrt(dx * dx + dy * dy);
         }
 
-        public static ShapeRegion CloneRegion(ShapeRegion src, double _currentScale = 1)
-        {
-            if (src == null) return null!;
-            return new ShapeRegion
-            {
-                Id = src.Id,
-                IdMaster = src.IdMaster,
-                IdRegionuPonizej = src.IdRegionuPonizej,
-                TypKsztaltu = src.TypKsztaltu,
-                TypLiniiDzielacej = src.TypLiniiDzielacej,
-                Rama = src.Rama,
-                LinieDzielace = src.LinieDzielace?.Select(l =>
-                    new XLineShape(
-                        l.X1,
-                        l.Y1,
-                        l.X2,
-                        l.Y2,
-                        _currentScale,
-                        l.NazwaObj,
-                        l.RuchomySlupek,
-                        l.PionPoziom,
-                        l.DualRama,
-                        l.GenerowaneZRamy
-                    )
-                ).ToList() ?? new List<XLineShape>(),
-                Wierzcholki = src.Wierzcholki?
-                    .Select(p => new XPoint { X = p.X, Y = p.Y })
-                    .ToList() ?? new List<XPoint>(),
-                Kontur = src.Kontur?.Select(s =>
-                {
-                    if (s.Type == SegmentType.Line)
-                        return new ContourSegment(new XPoint { X = s.Start.X, Y = s.Start.Y },
-                                                  new XPoint { X = s.End.X, Y = s.End.Y });
-                    else
-                        return new ContourSegment(new XPoint { X = s.Start.X, Y = s.Start.Y },
-                                                  new XPoint { X = s.End.X, Y = s.End.Y },
-                                                  s.Center != null ? new XPoint { X = s.Center.Value.X, Y = s.Center.Value.Y } : null,
-                                                  s.Radius,
-                                                  s.CounterClockwise);
-                }).ToList() ?? new List<ContourSegment>()
-            };
-        }
-
         private static bool CzyProstokat(List<XPoint> punkty)
         {
             if (punkty.Count != 4) return false;
@@ -855,165 +948,11 @@ namespace GEORGE.Client.Pages.Utils
             return kątyProste && bokiRowne;
         }
 
-        private static List<ShapeRegion> PodzielRegionRekurencyjnie(
-    ShapeRegion region,
-    List<XLineShape> lines,
-    string idMaster,
-    bool rama)
-        {
-            var wynik = new List<ShapeRegion> { region };
 
-            int lineIndex = 0;
 
-            foreach (var line in lines)
-            {
-                var next = new List<ShapeRegion>();
 
-                foreach (var r in wynik)
-                {
-                    // 1️⃣ podział geometrii (polygon)
-                    var splitPolygons = PodzielPolygonPoLinii(r.Wierzcholki, line);
 
-                    // 2️⃣ podział konturu (linia + łuk)
-                    var splitKontury = PodzielKonturPoLinii(r.Kontur, line);
 
-                    // 🔥 jeśli nie ma realnego podziału → zostaw region
-                    if (splitPolygons.Count <= 1 || splitKontury.Count == 0)
-                    {
-                        next.Add(r);
-                        continue;
-                    }
-
-                    // 🔥 tworzymy regiony 1:1 (bez zgadywania dopasowania)
-                    for (int i = 0; i < splitPolygons.Count; i++)
-                    {
-                        var poly = splitPolygons[i];
-
-                        // ⬇️ bez heurystyk — tylko bezpieczne indeksowanie
-                        var kontur = (i < splitKontury.Count)
-                            ? splitKontury[i]
-                            : splitKontury.Last();
-
-                        next.Add(new ShapeRegion
-                        {
-                            Wierzcholki = poly,
-                            Kontur = kontur,
-
-                            TypKsztaltu = r.TypKsztaltu,
-                            LinieDzielace = r.LinieDzielace.Concat(new[] { line }).ToList(),
-
-                            IdMaster = idMaster,
-                            Rama = rama,
-
-                            Id = $"{r.Id}|L{lineIndex}|{i}|{Guid.NewGuid()}",
-                            TypLiniiDzielacej = r.TypLiniiDzielacej
-                        });
-                    }
-                }
-
-                wynik = next;
-                lineIndex++;
-            }
-
-            return wynik;
-        }
-
-        private static bool IsSamePoint(XPoint p1, XPoint p2)
-        {
-            const double eps = 0.5;
-            return Math.Abs(p1.X - p2.X) < eps &&
-                   Math.Abs(p1.Y - p2.Y) < eps;
-        }
-
-        private static bool CzyKonturPasujeDoPolygonu(List<ContourSegment> kontur, List<XPoint> poly)
-        {
-            var polyPoints = poly
-                .Select(p => (X: Math.Round(p.X, 2), Y: Math.Round(p.Y, 2)))
-                .ToHashSet();
-
-            foreach (var seg in kontur)
-            {
-                var start = (Math.Round(seg.Start.X, 2), Math.Round(seg.Start.Y, 2));
-                var end = (Math.Round(seg.End.X, 2), Math.Round(seg.End.Y, 2));
-
-                if (!polyPoints.Contains(start) || !polyPoints.Contains(end))
-                    return false;
-            }
-
-            return true;
-        }
-
-        private static List<ShapeRegion> PodzielRegionRekurencyjnieDeterministycznie(
-        ShapeRegion region,
-        List<XLineShape> lines,
-        string rootId,
-        bool rama)
-        {
-            // Początkowa lista wyników zawiera oryginalny region
-            var wynik = new List<ShapeRegion> { region };
-
-            int indexLinii = 0;
-
-            foreach (var line in lines)
-            {
-                var next = new List<ShapeRegion>();
-
-                foreach (var r in wynik)
-                {
-                    // 1️⃣ Podział wierzchołków
-                    var splitLinie = PodzielPolygonPoLinii(r.Wierzcholki, line);
-
-                    // 2️⃣ Podział konturu
-                    var splitFullKontur = PodzielKonturPoLinii(r.Kontur, line);
-
-                    if (splitLinie.Count > 1 && splitFullKontur.Count > 0)
-                    {
-                        int indexChild = 0;
-
-                        for (int i = 0; i < splitLinie.Count; i++)
-                        {
-                            var poly = splitLinie[i];
-
-                            // Dopasowanie konturu do poligonu
-                            // var kontur = i < splitFullKontur.Count ? splitFullKontur[i] : splitFullKontur.Last();
-                            var rawKontur = i < splitFullKontur.Count
-                             ? splitFullKontur[i]
-                             : splitFullKontur.Last();
-
-                            // 🔥 KLUCZOWA POPRAWKA
-                            var kontur = ScalArcSegmenty(rawKontur);
-
-                            string newId = $"{rootId}|L{indexLinii}|C{indexChild}";
-
-                            next.Add(new ShapeRegion
-                            {
-                                Wierzcholki = poly,
-                                Kontur = kontur,//BuildContourFromPolygon(poly, r.Kontur),
-                                TypKsztaltu = r.TypKsztaltu,
-                                LinieDzielace = r.LinieDzielace.Concat(new[] { line }).ToList(),
-                                IdMaster = rootId,
-                                Rama = rama,
-                                Id = newId,
-                                TypLiniiDzielacej = r.TypLiniiDzielacej
-                            });
-
-                            indexChild++;
-                        }
-                    }
-                    else
-                    {
-                        // Jeśli podział nie wystąpił, pozostawiamy region bez zmian
-                        next.Add(r);
-                    }
-                }
-
-                // Aktualizacja listy wyników po podziale tą linią
-                wynik = next;
-                indexLinii++;
-            }
-
-            return wynik;
-        }
 
         public static List<List<ContourSegment>> PodzielKonturPoLinii(
         List<ContourSegment> contour,
@@ -1024,78 +963,95 @@ namespace GEORGE.Client.Pages.Utils
 
             foreach (var seg in contour)
             {
-                var startLeft = PunktPoLewejStronie(seg.Start, line);
-                var endLeft = PunktPoLewejStronie(seg.End, line);
+                // Sprawdź przecięcia segmentu z linią
+                var intersections = FindIntersectionsWithLine(seg, line);
 
-                bool isStartOnLine = IsOnLine(seg.Start, line);
-                bool isEndOnLine = IsOnLine(seg.End, line);
-
-                if (isStartOnLine || isEndOnLine)
+                if (intersections.Count == 0)
                 {
-                    startLeft = true;
-                    endLeft = false;
+                    // Brak przecięć - cały segment po jednej stronie
+                    bool startLeft = PunktPoLewejStronie(seg.Start, line);
+                    if (startLeft)
+                        left.Add(seg);
+                    else
+                        right.Add(seg);
                 }
-
-                // =========================
-                // 1. całe po jednej stronie
-                // =========================
-                if (startLeft && endLeft)
+                else if (intersections.Count == 1)
                 {
-                    left.Add(seg);
-                    continue;
-                }
+                    // Jedno przecięcie - segment jest przecięty na dwie części
+                    var pt = intersections[0];
 
-                if (!startLeft && !endLeft)
-                {
-                    right.Add(seg);
-                    continue;
-                }
-
-                // =========================
-                // 2. przecina linię
-                // =========================
-                if (ObliczPrzeciecie(seg.Start, seg.End, line, out var intersection))
-                {
                     if (seg.Type == SegmentType.Arc && seg.Center != null)
                     {
-                        // 🔥 KLUCZOWA POPRAWKA:
-                        // NIE kopiujemy tego samego łuku!
-                        // tylko dzielimy go logicznie
+                        // 🔥 Dzielenie łuku na dwa półłuki
+                        var (arc1, arc2) = SplitArcAtPoint(seg, pt);
 
-                        var leftArc = new ContourSegment(
-                            seg.Start,
-                            intersection,
-                            seg.Center,
-                            seg.Radius,
-                            seg.CounterClockwise
-                        )
-                        { Type = SegmentType.Arc };
+                        // Określ, która część jest po lewej stronie linii
+                        bool arc1Left = PunktPoLewejStronie(GetArcMidPoint(arc1), line);
 
-                        var rightArc = new ContourSegment(
-                            intersection,
-                            seg.End,
-                            seg.Center,
-                            seg.Radius,
-                            seg.CounterClockwise
-                        )
-                        { Type = SegmentType.Arc };
-
-                        left.Add(leftArc);
-                        right.Add(rightArc);
+                        if (arc1Left)
+                        {
+                            left.Add(arc1);
+                            right.Add(arc2);
+                        }
+                        else
+                        {
+                            right.Add(arc1);
+                            left.Add(arc2);
+                        }
                     }
                     else
                     {
-                        left.Add(new ContourSegment(seg.Start, intersection));
-                        right.Add(new ContourSegment(intersection, seg.End));
+                        // Linia prosta
+                        bool startLeft = PunktPoLewejStronie(seg.Start, line);
+
+                        var seg1 = new ContourSegment(seg.Start, pt);
+                        var seg2 = new ContourSegment(pt, seg.End);
+
+                        if (startLeft)
+                        {
+                            left.Add(seg1);
+                            right.Add(seg2);
+                        }
+                        else
+                        {
+                            right.Add(seg1);
+                            left.Add(seg2);
+                        }
                     }
                 }
-                else
+                else if (intersections.Count == 2)
                 {
-                    left.Add(seg);
-                    right.Add(seg);
+                    // 🔥 Dwa przecięcia - linia przechodzi przez łuk w dwóch miejscach
+                    // (np. gdy łuk jest "większy" niż półokręgu)
+
+                    var pt1 = intersections[0];
+                    var pt2 = intersections[1];
+
+                    // Sortuj punkty przecięcia wzdłuż łuku
+                    var sorted = SortPointsAlongArc(pt1, pt2, seg);
+                    pt1 = sorted[0];
+                    pt2 = sorted[1];
+
+                    if (seg.Type == SegmentType.Arc && seg.Center != null)
+                    {
+                        // Dzielimy łuk na TRZY części
+                        var arc1 = CreateArcSegment(seg.Start, pt1, seg);
+                        var arc2 = CreateArcSegment(pt1, pt2, seg);
+                        var arc3 = CreateArcSegment(pt2, seg.End, seg);
+
+                        // Określ, które części są po lewej stronie
+                        bool arc1Left = PunktPoLewejStronie(arc1.MidPoint(), line);
+                        bool arc2Left = PunktPoLewejStronie(arc2.MidPoint(), line);
+                        bool arc3Left = PunktPoLewejStronie(arc3.MidPoint(), line);
+
+                        if (arc1Left) left.Add(arc1); else right.Add(arc1);
+                        if (arc2Left) left.Add(arc2); else right.Add(arc2);
+                        if (arc3Left) left.Add(arc3); else right.Add(arc3);
+                    }
                 }
             }
 
+            // Usuń segmenty o zerowej długości i połącz ciągłe
             left = CleanupSegments(left);
             right = CleanupSegments(right);
 
@@ -1110,17 +1066,296 @@ namespace GEORGE.Client.Pages.Utils
             return result;
         }
 
-
-        private static bool IsOnLine(XPoint p, XLineShape line)
+        private static XPoint GetArcMidPoint(ContourSegment seg)
         {
-            const double eps = 0.5;
+            if (seg.Type == SegmentType.Line)
+            {
+                return new XPoint(
+                    (seg.Start.X + seg.End.X) / 2,
+                    (seg.Start.Y + seg.End.Y) / 2
+                );
+            }
+            else if (seg.Type == SegmentType.Arc && seg.Center != null)
+            {
+                var center = seg.Center.Value;
+                double startAngle = Math.Atan2(seg.Start.Y - center.Y, seg.Start.X - center.X);
+                double endAngle = Math.Atan2(seg.End.Y - center.Y, seg.End.X - center.X);
 
-            double cross =
-                (line.X2 - line.X1) * (p.Y - line.Y1) -
-                (line.Y2 - line.Y1) * (p.X - line.X1);
+                double midAngle;
+                if (seg.CounterClockwise)
+                {
+                    if (endAngle < startAngle) endAngle += 2 * Math.PI;
+                    midAngle = (startAngle + endAngle) / 2;
+                }
+                else
+                {
+                    if (startAngle < endAngle) startAngle += 2 * Math.PI;
+                    midAngle = (startAngle + endAngle) / 2;
+                }
 
-            return Math.Abs(cross) < eps;
+                return new XPoint(
+                    center.X + seg.Radius * Math.Cos(midAngle),
+                    center.Y + seg.Radius * Math.Sin(midAngle)
+                );
+            }
+
+            return new XPoint(
+                (seg.Start.X + seg.End.X) / 2,
+                (seg.Start.Y + seg.End.Y) / 2
+            );
         }
+
+        /// <summary>
+        /// Metoda rozszerzająca dla ContourSegment - zwraca punkt środkowy segmentu
+        /// </summary>
+        public static XPoint MidPoint(this ContourSegment seg)
+        {
+            if (seg.Type == SegmentType.Line)
+            {
+                return new XPoint(
+                    (seg.Start.X + seg.End.X) / 2,
+                    (seg.Start.Y + seg.End.Y) / 2
+                );
+            }
+            else if (seg.Type == SegmentType.Arc && seg.Center != null)
+            {
+                var center = seg.Center.Value;
+
+                double startAngle = Math.Atan2(seg.Start.Y - center.Y, seg.Start.X - center.X);
+                double endAngle = Math.Atan2(seg.End.Y - center.Y, seg.End.X - center.X);
+
+                double midAngle;
+
+                if (seg.CounterClockwise)
+                {
+                    // Dla CCW: kąt rośnie
+                    if (endAngle < startAngle)
+                        endAngle += 2 * Math.PI;
+                    midAngle = (startAngle + endAngle) / 2;
+                }
+                else
+                {
+                    // Dla CW: kąt maleje
+                    if (startAngle < endAngle)
+                        startAngle += 2 * Math.PI;
+                    midAngle = (startAngle + endAngle) / 2;
+                }
+
+                // Normalizuj do [-π, π] lub [0, 2π]
+                midAngle = Math.Atan2(Math.Sin(midAngle), Math.Cos(midAngle));
+
+                return new XPoint(
+                    center.X + seg.Radius * Math.Cos(midAngle),
+                    center.Y + seg.Radius * Math.Sin(midAngle)
+                );
+            }
+
+            // Fallback - środek geometryczny
+            return new XPoint(
+                (seg.Start.X + seg.End.X) / 2,
+                (seg.Start.Y + seg.End.Y) / 2
+            );
+        }
+
+        /// <summary>
+        /// Znajduje wszystkie przecięcia segmentu (linii lub łuku) z linią
+        /// </summary>
+        private static List<XPoint> FindIntersectionsWithLine(ContourSegment seg, XLineShape line)
+        {
+            var intersections = new List<XPoint>();
+
+            if (seg.Type == SegmentType.Line)
+            {
+                if (ObliczPrzeciecie(seg.Start, seg.End, line, out var pt))
+                {
+                    // Sprawdź, czy punkt przecięcia leży na segmencie
+                    if (IsPointOnSegment(pt, seg.Start, seg.End))
+                        intersections.Add(pt);
+                }
+            }
+            else if (seg.Type == SegmentType.Arc && seg.Center != null)
+            {
+                // Przecięcie linii z okręgiem
+                var circleIntersections = LineCircleIntersections(
+                    new XPoint(line.X1, line.Y1),
+                    new XPoint(line.X2, line.Y2),
+                    seg.Center.Value,
+                    seg.Radius
+                );
+
+                foreach (var pt in circleIntersections)
+                {
+                    // Sprawdź, czy punkt leży na łuku (w zakresie kątowym)
+                    if (IsPointOnArc(pt, seg))
+                        intersections.Add(pt);
+                }
+            }
+
+            return intersections;
+        }
+
+        /// <summary>
+        /// Dzieli łuk na dwa w punkcie przecięcia
+        /// </summary>
+        private static (ContourSegment, ContourSegment) SplitArcAtPoint(ContourSegment arc, XPoint splitPoint)
+        {
+            return (
+                CreateArcSegment(arc.Start, splitPoint, arc),
+                CreateArcSegment(splitPoint, arc.End, arc)
+            );
+        }
+
+        /// <summary>
+        /// Tworzy nowy segment łuku między dwoma punktami
+        /// </summary>
+        private static ContourSegment CreateArcSegment(XPoint start, XPoint end, ContourSegment originalArc)
+        {
+            return new ContourSegment(
+                start,
+                end,
+                originalArc.Center,
+                originalArc.Radius,
+                originalArc.CounterClockwise
+            );
+        }
+
+        /// <summary>
+        /// Oblicza przecięcia linii z okręgiem
+        /// </summary>
+        private static List<XPoint> LineCircleIntersections(XPoint p1, XPoint p2, XPoint center, double radius)
+        {
+            var result = new List<XPoint>();
+
+            double dx = p2.X - p1.X;
+            double dy = p2.Y - p1.Y;
+
+            double fx = p1.X - center.X;
+            double fy = p1.Y - center.Y;
+
+            double a = dx * dx + dy * dy;
+            double b = 2 * (fx * dx + fy * dy);
+            double c = (fx * fx + fy * fy) - radius * radius;
+
+            double discriminant = b * b - 4 * a * c;
+
+            if (discriminant < 0)
+                return result; // Brak przecięć
+
+            discriminant = Math.Sqrt(discriminant);
+
+            double t1 = (-b - discriminant) / (2 * a);
+            double t2 = (-b + discriminant) / (2 * a);
+
+            if (t1 >= 0 && t1 <= 1)
+            {
+                result.Add(new XPoint(p1.X + t1 * dx, p1.Y + t1 * dy));
+            }
+
+            if (t2 >= 0 && t2 <= 1 && Math.Abs(t1 - t2) > 0.001)
+            {
+                result.Add(new XPoint(p1.X + t2 * dx, p1.Y + t2 * dy));
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Sprawdza, czy punkt leży na segmencie linii
+        /// </summary>
+        private static bool IsPointOnSegment(XPoint pt, XPoint segStart, XPoint segEnd)
+        {
+            const double tolerance = 0.01;
+
+            double minX = Math.Min(segStart.X, segEnd.X) - tolerance;
+            double maxX = Math.Max(segStart.X, segEnd.X) + tolerance;
+            double minY = Math.Min(segStart.Y, segEnd.Y) - tolerance;
+            double maxY = Math.Max(segStart.Y, segEnd.Y) + tolerance;
+
+            return pt.X >= minX && pt.X <= maxX && pt.Y >= minY && pt.Y <= maxY;
+        }
+
+        /// <summary>
+        /// Sprawdza, czy punkt leży na łuku (w zakresie kątowym)
+        /// </summary>
+        private static bool IsPointOnArc(XPoint pt, ContourSegment arc)
+        {
+            if (arc.Center == null) return false;
+
+            var center = arc.Center.Value;
+
+            double angle = Math.Atan2(pt.Y - center.Y, pt.X - center.X);
+            double startAngle = Math.Atan2(arc.Start.Y - center.Y, arc.Start.X - center.X);
+            double endAngle = Math.Atan2(arc.End.Y - center.Y, arc.End.X - center.X);
+
+            angle = NormalizeAngle(angle);
+            startAngle = NormalizeAngle(startAngle);
+            endAngle = NormalizeAngle(endAngle);
+
+            return IsAngleInArcRange(angle, startAngle, endAngle, arc.CounterClockwise);
+        }
+
+        /// <summary>
+        /// Sortuje dwa punkty wzdłuż łuku
+        /// </summary>
+        private static List<XPoint> SortPointsAlongArc(XPoint pt1, XPoint pt2, ContourSegment arc)
+        {
+            if (arc.Center == null) return new List<XPoint> { pt1, pt2 };
+
+            var center = arc.Center.Value;
+
+            double angle1 = Math.Atan2(pt1.Y - center.Y, pt1.X - center.X);
+            double angle2 = Math.Atan2(pt2.Y - center.Y, pt2.X - center.X);
+
+            double startAngle = Math.Atan2(arc.Start.Y - center.Y, arc.Start.X - center.X);
+
+            // Normalizuj kąty względem startu łuku
+            angle1 = NormalizeAngleRelative(angle1, startAngle);
+            angle2 = NormalizeAngleRelative(angle2, startAngle);
+
+            return angle1 < angle2
+                ? new List<XPoint> { pt1, pt2 }
+                : new List<XPoint> { pt2, pt1 };
+        }
+
+        private static double NormalizeAngle(double angle)
+        {
+            while (angle < 0) angle += 2 * Math.PI;
+            while (angle >= 2 * Math.PI) angle -= 2 * Math.PI;
+            return angle;
+        }
+
+        private static double NormalizeAngleRelative(double angle, double reference)
+        {
+            angle = NormalizeAngle(angle);
+            reference = NormalizeAngle(reference);
+
+            double diff = angle - reference;
+            if (diff < 0) diff += 2 * Math.PI;
+
+            return diff;
+        }
+
+        private static bool IsAngleInArcRange(double angle, double startAngle, double endAngle, bool isCCW)
+        {
+            const double tolerance = 0.001;
+
+            if (isCCW)
+            {
+                if (startAngle <= endAngle)
+                    return angle >= startAngle - tolerance && angle <= endAngle + tolerance;
+                else
+                    return angle >= startAngle - tolerance || angle <= endAngle + tolerance;
+            }
+            else
+            {
+                if (startAngle >= endAngle)
+                    return angle <= startAngle + tolerance && angle >= endAngle - tolerance;
+                else
+                    return angle <= startAngle + tolerance || angle >= endAngle - tolerance;
+            }
+        }
+
+  
         private static List<ContourSegment> CleanupSegments(List<ContourSegment> input)
         {
             return input
