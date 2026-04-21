@@ -12,9 +12,27 @@
 
 <p>Dziś mamy dzień: @DateTime.Now.DayOfYear roku @DateTime.Now.Year, tydzień @GetWeekNumber(DateTime.Now)</p>
 
-<div>
-    <img class="marginauto" src="/Images/george_st.jpg" asp-append-version="true" style="height: 68vh;" alt="centered image" />
-</div>
+@if(DateTime.Now.DayOfWeek == DayOfWeek.Monday)
+{
+    <p style="color: red; font-weight: bold;">Dziś jest poniedziałek, czas na planowanie produkcji!</p>
+    <div>
+        <img class="marginauto" src="/Images/george_st.jpg" asp-append-version="true" style="height: 68vh;" alt="centered image" />
+    </div>
+}
+else if(DateTime.Now.DayOfWeek == DayOfWeek.Friday)
+{
+    <p style="color: green; font-weight: bold;">Dziś jest piątek, świetny dzień na podsumowanie tygodnia!</p>
+    <div>
+        <img class="marginauto" src="/Images/george_nt.jpg" asp-append-version="true" style="height: 68vh;" alt="centered image" />
+    </div>
+}
+else
+{
+    <p style="color: blue; font-weight: bold;">Dziś jest kolejny dzień produkcyjny!</p>
+    <div>
+        <img class="marginauto" src="/Images/george_ct.jpg" asp-append-version="true" style="height: 68vh;" alt="centered image" />
+    </div>
+}
 
 <Tooltip Placement="@Placement.Top" Title="Kliknij w poniższy napis aby go skopiować">
     <h6 @onclick="CopyToClipboard" style="cursor: pointer; color: darkblue;">
