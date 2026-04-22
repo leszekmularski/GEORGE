@@ -1,7 +1,6 @@
 ﻿using GEORGE.Client.Pages.KonfiguratorOkien;
 using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.ViewModels;
-using static Aspose.ThreeD.Entities.CompositeCurve;
 
 namespace GEORGE.Client.Pages.Utils
 {

@@ -1219,6 +1219,7 @@ namespace GEORGE.Client.Pages.Okna
                     {
                         _anglePrev = firstangleDegrees;
                     }
+
                     getEndT3 = GetEndT3(inner[next], outer[next], outer, angleDegrees, _anglePrev, angleNext,
                         StronaElementu, stonaOstanioDodanegoElementu, vertexCount < 6 ? -1 : i);
 
