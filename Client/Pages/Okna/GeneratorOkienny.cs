@@ -3023,19 +3023,23 @@ namespace GEORGE.Client.Pages.Okna
         //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
         //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
         //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
         public List<ContourSegment> CalculateOffsetPolygonKontur(
-        List<ContourSegment> segments,
-        float profileLeft,
-        float profileRight,
-        float profileTop,
-        float profileBottom,
-        bool elementLiniowy)
+    List<ContourSegment> segments,
+    float profileLeft,
+    float profileRight,
+    float profileTop,
+    float profileBottom,
+    bool elementLiniowy)
         {
             if (segments == null || segments.Count == 0)
                 return new List<ContourSegment>();
 
             var offsetSegments = new List<ContourSegment>();
             var sideInfo = new List<string>();
+
+            // 🔥 NOWE: wykrycie pełnego okręgu
+            bool isFullCircle = segments.All(s => s.Type == SegmentType.Arc);
 
             for (int i = 0; i < segments.Count; i++)
             {
@@ -3091,7 +3095,7 @@ namespace GEORGE.Client.Pages.Okna
                 }
 
                 // =========================
-                // ŁUKI (POPRAWKA)
+                // ŁUKI
                 // =========================
                 else if (seg.Type == SegmentType.Arc && seg.Center != null)
                 {
@@ -3099,9 +3103,10 @@ namespace GEORGE.Client.Pages.Okna
 
                     bool isClockwise = IsContourClockwise(segments);
 
-                    // 🔥 KLUCZOWA ZMIANA:
-                    // łuki zawsze używają profileTop
-                    float offset = profileTop;
+                    // 🔥 KLUCZOWA POPRAWKA:
+                    float offset = isFullCircle
+                        ? profileTop
+                        : offsetValue;
 
                     float radiusChange = isClockwise ? -offset : offset;
 
@@ -3133,7 +3138,7 @@ namespace GEORGE.Client.Pages.Okna
                         newRadius,
                         seg.CounterClockwise)
                     {
-                        Informacja = "ARC_TOP_OFFSET"
+                        Informacja = isFullCircle ? "ARC_FULL_CIRCLE" : side
                     });
                 }
             }

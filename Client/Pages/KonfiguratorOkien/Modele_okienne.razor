@@ -884,31 +884,6 @@
                                                     </li>
                                                 }
                                             </ul>
-                                            <hr />
-                                            <p><strong>Kontur:</strong></p>
-                                            <ul class="list-group list-group-flush">
-                                                @for (int i = 0; i < region.Kontur.Count; i++)
-                                                {
-                                                    var index = i + 1;
-
-                                                    <li class="list-group-item">
-                                                        @if (region.Kontur[i].Type == SegmentType.Arc)
-                                                        {
-                                                            <span class="badge bg-warning">Łuk @index</span>
-                                                            <span class="badge bg-success">
-                                                                X/Y: @(Math.Round(region.Kontur[i].Start.X, 3)) / @(Math.Round(region.Kontur[i].Start.Y, 3)), @(Math.Round(region.Kontur[i].End.X, 3)) / @(Math.Round(region.Kontur[i].End.Y, 3)) R: @Math.Round(region.Kontur[i].Radius, 3) @(region.Kontur[i].CounterClockwise ? "CCW" : "CW")
-                                                            </span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="badge bg-primary">Linia @index</span>
-                                                            <span class="badge bg-success">
-                                                                X/Y: @(Math.Round(region.Kontur[i].Start.X, 3)) / @(Math.Round(region.Kontur[i].Start.Y, 3)), @(Math.Round(region.Kontur[i].End.X, 3)) / @(Math.Round(region.Kontur[i].End.Y, 3))
-                                                            </span>
-                                                        }
-                                                    </li>
-                                                }
-                                            </ul>
                                         }
 
                                         @* BoundingBox (opcjonalnie) *@
@@ -1026,31 +1001,6 @@
                                                 {
                                                     <li class="list-group-item">
                                                         Start X1: @(Math.Round(linia.X1, 3)), Y1: @(Math.Round(linia.Y1, 3)), Koniec X2: @(Math.Round(linia.X2, 3)), Y2: @(Math.Round(linia.Y2, 3))
-                                                    </li>
-                                                }
-                                            </ul>
-                                            <hr />
-                                            <p><strong>Kontur:</strong></p>
-                                            <ul class="list-group list-group-flush">
-                                                @for (int i = 0; i < region.Kontur.Count; i++)
-                                                {
-                                                    var index = i + 1;
-
-                                                    <li class="list-group-item">
-                                                        @if (region.Kontur[i].Type == SegmentType.Arc)
-                                                        {
-                                                            <span class="badge bg-warning">Łuk @index</span>
-                                                            <span class="badge bg-success">
-                                                                X/Y: @(Math.Round(region.Kontur[i].Start.X, 3)) / @(Math.Round(region.Kontur[i].Start.Y, 3)), @(Math.Round(region.Kontur[i].End.X, 3)) / @(Math.Round(region.Kontur[i].End.Y, 3)) R: @Math.Round(region.Kontur[i].Radius, 3) @(region.Kontur[i].CounterClockwise ? "CCW" : "CW")
-                                                            </span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="badge bg-primary">Linia @index</span>
-                                                            <span class="badge bg-success">
-                                                                X/Y: @(Math.Round(region.Kontur[i].Start.X, 3)) / @(Math.Round(region.Kontur[i].Start.Y, 3)), @(Math.Round(region.Kontur[i].End.X, 3)) / @(Math.Round(region.Kontur[i].End.Y, 3))
-                                                            </span>
-                                                        }
                                                     </li>
                                                 }
                                             </ul>
@@ -1224,31 +1174,6 @@
                                                     </li>
                                                 }
                                             </ul>
-                                            <hr />
-                                            <p><strong>Kontur - linie dzielące:</strong></p>
-                                            <ul class="list-group list-group-flush">
-                                                @for (int i = 0; i < region.Kontur.Count; i++)
-                                                {
-                                                    var index = i + 1;
-
-                                                    <li class="list-group-item">
-                                                        @if (region.Kontur[i].Type == SegmentType.Arc)
-                                                        {
-                                                            <span class="badge bg-warning">Łuk @index</span>
-                                                            <span class="badge bg-success">
-                                                                X/Y: @(Math.Round(region.Kontur[i].Start.X, 3)) / @(Math.Round(region.Kontur[i].Start.Y, 3)), @(Math.Round(region.Kontur[i].End.X, 3)) / @(Math.Round(region.Kontur[i].End.Y, 3)) R: @Math.Round(region.Kontur[i].Radius, 3) @(region.Kontur[i].CounterClockwise ? "CCW" : "CW")
-                                                            </span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="badge bg-primary">Linia @index</span>
-                                                            <span class="badge bg-success">
-                                                                X/Y: @(Math.Round(region.Kontur[i].Start.X, 3)) / @(Math.Round(region.Kontur[i].Start.Y, 3)), @(Math.Round(region.Kontur[i].End.X, 3)) / @(Math.Round(region.Kontur[i].End.Y, 3))
-                                                            </span>
-                                                        }
-                                                    </li>
-                                                }
-                                            </ul>
                                         }
 
                                         @* BoundingBox (opcjonalnie) *@
@@ -1368,31 +1293,6 @@
                                                 {
                                                     <li class="list-group-item">
                                                         Start X1: @(Math.Round(linia.X1, 3)), Y1: @(Math.Round(linia.Y1, 3)), Koniec X2: @(Math.Round(linia.X2, 3)), Y2: @(Math.Round(linia.Y2, 3))
-                                                    </li>
-                                                }
-                                            </ul>
-                                            <hr />
-                                            <p><strong>Kontur - linie podział:</strong></p>
-                                            <ul class="list-group list-group-flush">
-                                                @for (int i = 0; i < region.Kontur.Count; i++)
-                                                {
-                                                    var index = i + 1;
-
-                                                    <li class="list-group-item">
-                                                        @if (region.Kontur[i].Type == SegmentType.Arc)
-                                                        {
-                                                            <span class="badge bg-warning">Łuk @index</span>
-                                                            <span class="badge bg-success">
-                                                                X/Y: @(Math.Round(region.Kontur[i].Start.X, 3)) / @(Math.Round(region.Kontur[i].Start.Y, 3)), @(Math.Round(region.Kontur[i].End.X, 3)) / @(Math.Round(region.Kontur[i].End.Y, 3)) R: @Math.Round(region.Kontur[i].Radius, 3) @(region.Kontur[i].CounterClockwise ? "CCW" : "CW")
-                                                            </span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="badge bg-primary">Linia @index</span>
-                                                            <span class="badge bg-success">
-                                                                X/Y: @(Math.Round(region.Kontur[i].Start.X, 3)) / @(Math.Round(region.Kontur[i].Start.Y, 3)), @(Math.Round(region.Kontur[i].End.X, 3)) / @(Math.Round(region.Kontur[i].End.Y, 3))
-                                                            </span>
-                                                        }
                                                     </li>
                                                 }
                                             </ul>
@@ -1855,13 +1755,13 @@
                 );
 
                 // Kopiuj i zmień ID
-            // _regionsSkrzydlo = _regionsDualRama.Select(r => 
-            // {
-            //     var kopia = r.Clone(); 
-            //     kopia.Id = Guid.NewGuid().ToString();
-            //     kopia.Rama = false; // Zmień flagę na skrzydło
-            //     return kopia;
-            // }).ToList();
+                // _regionsSkrzydlo = _regionsDualRama.Select(r => 
+                // {
+                //     var kopia = r.Clone(); 
+                //     kopia.Id = Guid.NewGuid().ToString();
+                //     kopia.Rama = false; // Zmień flagę na skrzydło
+                //     return kopia;
+                // }).ToList();
 
                 foreach (var test in _regionsDualRama)
                 {
@@ -2760,11 +2660,11 @@
 
         await GenerujObrysPozZmianieWymiarow(false);
 
-         await ZmienWymiaryOkna(true);
-         await FitShapesToDisplayWindow();
-         await OnlyRestrykcje();
-         //await Task.Delay(10);
-         //await ApplyZoom();
+        await ZmienWymiaryOkna(true);
+        await FitShapesToDisplayWindow();
+        await OnlyRestrykcje();
+        //await Task.Delay(10);
+        //await ApplyZoom();
     }
 
     private async Task ZoomIn()
@@ -5856,7 +5756,7 @@
                     Math.Abs(a.Y - b.Y) < tolerance;
         }
 
-       // var bez_contur = _generator.BuildClosedContour(bezDuplikatow);
+        // var bez_contur = _generator.BuildClosedContour(bezDuplikatow);
 
         Console.WriteLine($"📐 BuildContourFromPoints -> Oryginalny kontur miał {contur.Count} left:{left} right:{right} top:{top} bottom:{bottom}.");
 

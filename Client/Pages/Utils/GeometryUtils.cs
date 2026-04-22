@@ -1,6 +1,7 @@
 ﻿using GEORGE.Client.Pages.KonfiguratorOkien;
 using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.ViewModels;
+using static Aspose.ThreeD.Entities.CompositeCurve;
 
 namespace GEORGE.Client.Pages.Utils
 {
@@ -319,39 +320,58 @@ namespace GEORGE.Client.Pages.Utils
                             .ToList();
 
                         // USUŃ SEGMENTY O ZEROWEJ DŁUGOŚCI Z KONTURU
+                        // 1️⃣ usuń śmieci (zerowe segmenty)
                         r.Kontur = r.Kontur
                             .Where(s => !CzySegmentZerowejDlugosci(s))
                             .ToList();
 
-                        // Przetwarzanie konturu - usuwanie duplikatów i dodawanie informacji
+                        // 2️⃣ grupowanie (BEZ NaN + normalizacja kierunku)
                         var unikalneSegmenty = r.Kontur
-                            .GroupBy(s => new
+                            .GroupBy(s =>
                             {
-                                Type = s.Type,
-                                StartX = Math.Round(s.Start.X, 2),
-                                StartY = Math.Round(s.Start.Y, 2),
-                                EndX = Math.Round(s.End.X, 2),
-                                EndY = Math.Round(s.End.Y, 2),
-                                CenterX = s.Type == SegmentType.Arc && s.Center.HasValue ? Math.Round(s.Center.Value.X, 2) : double.NaN,
-                                CenterY = s.Type == SegmentType.Arc && s.Center.HasValue ? Math.Round(s.Center.Value.Y, 2) : double.NaN,
-                                Radius = s.Type == SegmentType.Arc ? Math.Round(s.Radius, 2) : double.NaN,
-                                CounterClockwise = s.Type == SegmentType.Arc ? s.CounterClockwise : false
+                                var startX = Math.Round(s.Start.X, 2);
+                                var startY = Math.Round(s.Start.Y, 2);
+                                var endX = Math.Round(s.End.X, 2);
+                                var endY = Math.Round(s.End.Y, 2);
+
+                                // 🔥 NORMALIZACJA KIERUNKU (A→B == B→A)
+                                if (startX > endX || (startX == endX && startY > endY))
+                                {
+                                    (startX, endX) = (endX, startX);
+                                    (startY, endY) = (endY, startY);
+                                }
+
+                                return new
+                                {
+                                    Type = s.Type,
+                                    StartX = startX,
+                                    StartY = startY,
+                                    EndX = endX,
+                                    EndY = endY,
+
+                                    // 🔥 zamiast NaN → 0
+                                    CenterX = s.Type == SegmentType.Arc && s.Center.HasValue ? Math.Round(s.Center.Value.X, 2) : 0,
+                                    CenterY = s.Type == SegmentType.Arc && s.Center.HasValue ? Math.Round(s.Center.Value.Y, 2) : 0,
+                                    Radius = s.Type == SegmentType.Arc ? Math.Round(s.Radius, 2) : 0,
+                                    CounterClockwise = s.Type == SegmentType.Arc && s.CounterClockwise
+                                };
                             })
                             .Select(g => g.First())
                             .ToList();
 
+                        // 3️⃣ odbudowa segmentów
                         var nowyKontur = new List<ContourSegment>();
 
                         foreach (var segment in unikalneSegmenty)
                         {
                             ContourSegment nowySegment;
 
-                            if (segment.Type == SegmentType.Arc)
+                            if (segment.Type == SegmentType.Arc && segment.Center.HasValue)
                             {
                                 nowySegment = new ContourSegment(
-                                    segment.Start,
-                                    segment.End,
-                                    segment.Center,
+                                    new XPoint(segment.Start.X, segment.Start.Y),
+                                    new XPoint(segment.End.X, segment.End.Y),
+                                    new XPoint(segment.Center.Value.X, segment.Center.Value.Y),
                                     segment.Radius,
                                     segment.CounterClockwise
                                 );
@@ -359,16 +379,14 @@ namespace GEORGE.Client.Pages.Utils
                             else
                             {
                                 nowySegment = new ContourSegment(
-                                    segment.Start,
-                                    segment.End
+                                    new XPoint(segment.Start.X, segment.Start.Y),
+                                    new XPoint(segment.End.X, segment.End.Y)
                                 );
                             }
 
                             nowySegment.Informacja = ramaInfo;
                             nowyKontur.Add(nowySegment);
                         }
-
-                        r.Kontur = nowyKontur;
 
                         // USUŃ SEGMENTY O ZEROWEJ DŁUGOŚCI PONOWNIE (po ewentualnych przekształceniach)
                         r.Kontur = r.Kontur
@@ -533,42 +551,76 @@ namespace GEORGE.Client.Pages.Utils
                                 .ToList();
 
                             // USUŃ SEGMENTY O ZEROWEJ DŁUGOŚCI Z KONTURU
+                            // 1️⃣ usuń śmieci (zerowe segmenty)
                             r.Kontur = r.Kontur
                                 .Where(s => !CzySegmentZerowejDlugosci(s))
                                 .ToList();
 
-                            // Przetwarzanie konturu - usuwanie duplikatów
-                            r.Kontur = r.Kontur
-                                .GroupBy(s => new
+                            // 2️⃣ grupowanie (BEZ NaN + normalizacja kierunku)
+                            var unikalneSegmenty = r.Kontur
+                                .GroupBy(s =>
                                 {
-                                    Type = s.Type,
-                                    StartX = Math.Round(s.Start.X, 2),
-                                    StartY = Math.Round(s.Start.Y, 2),
-                                    EndX = Math.Round(s.End.X, 2),
-                                    EndY = Math.Round(s.End.Y, 2),
-                                    CenterX = s.Type == SegmentType.Arc && s.Center.HasValue ? Math.Round(s.Center.Value.X, 2) : double.NaN,
-                                    CenterY = s.Type == SegmentType.Arc && s.Center.HasValue ? Math.Round(s.Center.Value.Y, 2) : double.NaN,
-                                    Radius = s.Type == SegmentType.Arc ? Math.Round(s.Radius, 2) : double.NaN,
-                                    CounterClockwise = s.Type == SegmentType.Arc ? s.CounterClockwise : false
-                                })
-                                .Select(g =>
-                                {
-                                    var originalSegment = g.First();
+                                    var startX = Math.Round(s.Start.X, 2);
+                                    var startY = Math.Round(s.Start.Y, 2);
+                                    var endX = Math.Round(s.End.X, 2);
+                                    var endY = Math.Round(s.End.Y, 2);
 
-                                    var segment = new ContourSegment(
-                                        new XPoint(originalSegment.Start.X, originalSegment.Start.Y),
-                                        new XPoint(originalSegment.End.X, originalSegment.End.Y),
-                                        originalSegment.Center.HasValue
-                                            ? new XPoint(originalSegment.Center.Value.X, originalSegment.Center.Value.Y)
-                                            : (XPoint?)null,
-                                        originalSegment.Radius,
-                                        originalSegment.CounterClockwise
-                                    );
+                                    // 🔥 NORMALIZACJA KIERUNKU (A→B == B→A)
+                                    if (startX > endX || (startX == endX && startY > endY))
+                                    {
+                                        (startX, endX) = (endX, startX);
+                                        (startY, endY) = (endY, startY);
+                                    }
 
-                                    segment.Informacja = "kontur skrzydłowy";
-                                    return segment;
+                                    return new
+                                    {
+                                        Type = s.Type,
+                                        StartX = startX,
+                                        StartY = startY,
+                                        EndX = endX,
+                                        EndY = endY,
+
+                                        // 🔥 zamiast NaN → 0
+                                        CenterX = s.Type == SegmentType.Arc && s.Center.HasValue ? Math.Round(s.Center.Value.X, 2) : 0,
+                                        CenterY = s.Type == SegmentType.Arc && s.Center.HasValue ? Math.Round(s.Center.Value.Y, 2) : 0,
+                                        Radius = s.Type == SegmentType.Arc ? Math.Round(s.Radius, 2) : 0,
+                                        CounterClockwise = s.Type == SegmentType.Arc && s.CounterClockwise
+                                    };
                                 })
+                                .Select(g => g.First())
                                 .ToList();
+
+                            // 3️⃣ odbudowa segmentów
+                            var nowyKontur = new List<ContourSegment>();
+
+                            foreach (var segment in unikalneSegmenty)
+                            {
+                                ContourSegment nowySegment;
+
+                                if (segment.Type == SegmentType.Arc && segment.Center.HasValue)
+                                {
+                                    nowySegment = new ContourSegment(
+                                        new XPoint(segment.Start.X, segment.Start.Y),
+                                        new XPoint(segment.End.X, segment.End.Y),
+                                        new XPoint(segment.Center.Value.X, segment.Center.Value.Y),
+                                        segment.Radius,
+                                        segment.CounterClockwise
+                                    );
+                                }
+                                else
+                                {
+                                    nowySegment = new ContourSegment(
+                                        new XPoint(segment.Start.X, segment.Start.Y),
+                                        new XPoint(segment.End.X, segment.End.Y)
+                                    );
+                                }
+
+                                nowySegment.Informacja = ramaInfo;
+                                nowyKontur.Add(nowySegment);
+                            }
+
+                            // 4️⃣ przypisanie
+                            r.Kontur = nowyKontur;
 
                             // USUŃ SEGMENTY O ZEROWEJ DŁUGOŚCI PONOWNIE
                             r.Kontur = r.Kontur
