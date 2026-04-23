@@ -12,6 +12,7 @@ namespace GEORGE.Shared.ViewModels
             X = x;
             Y = y;
         }
+        public bool IsEmpty => Math.Abs(X) < 1e-9 && Math.Abs(Y) < 1e-9;
 
         private const double Tolerance = 0.001;
 
