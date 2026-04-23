@@ -775,10 +775,8 @@ namespace GEORGE.Client.Pages.Utils
          string idMaster,
          bool rama)
         {
-            // Początkowa lista wyników zawiera oryginalny region
             var wynik = new List<ShapeRegion> { region };
 
-            // Iterujemy po wszystkich liniach dzielących
             foreach (var line in lines)
             {
                 var next = new List<ShapeRegion>();
@@ -791,8 +789,8 @@ namespace GEORGE.Client.Pages.Utils
                     // 2️⃣ Podział konturu
                     var splitFullKontur = PodzielKonturPoLinii(r.Kontur, line);
 
-                    // Jeśli podział faktycznie wystąpił
-                    if (splitLinie.Count > 1 && splitFullKontur.Count > 0)
+                    // ✅ Walidacja: liczba podziałów musi się zgadzać
+                    if (splitLinie.Count > 1 && splitFullKontur.Count == splitLinie.Count)
                     {
                         for (int i = 0; i < splitLinie.Count; i++)
                         {
