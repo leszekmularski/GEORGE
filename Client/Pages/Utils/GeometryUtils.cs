@@ -361,7 +361,7 @@ namespace GEORGE.Client.Pages.Utils
                                     CounterClockwise = s.Type == SegmentType.Arc && s.CounterClockwise
                                 };
                             })
-                            .Select(g => 
+                            .Select(g =>
                             {
                                 var seg = g.First();
                                 // Jeśli segment był odwrócony w kluczu, zwróć go w znormalizowanej formie
@@ -626,7 +626,7 @@ namespace GEORGE.Client.Pages.Utils
                                         CounterClockwise = s.Type == SegmentType.Arc && s.CounterClockwise
                                     };
                                 })
-                                .Select(g => 
+                                .Select(g =>
                                 {
                                     var seg = g.First();
                                     // Jeśli segment był odwrócony w kluczu, zwróć go w znormalizowanej formie
@@ -2164,7 +2164,7 @@ namespace GEORGE.Client.Pages.Utils
                 }
 
                 string key = $"{seg.Type}|{startX}|{startY}|{endX}|{endY}";
-                
+
                 if (seg.Type == SegmentType.Arc && seg.Center.HasValue)
                 {
                     key += $"|{Math.Round(seg.Center.Value.X, 2)}|{Math.Round(seg.Center.Value.Y, 2)}|{Math.Round(seg.Radius, 2)}";
