@@ -324,6 +324,9 @@ namespace GEORGE.Client.Pages.Utils
                             .Where(s => !CzySegmentZerowejDlugosci(s))
                             .ToList();
 
+                        // 2️⃣ Usuwanie duplikatów (oba kierunki linii)
+                        r.Kontur = RemoveDuplicateSegments(r.Kontur);
+
                         // 2️⃣ grupowanie (BEZ NaN + normalizacja kierunku)
                         var unikalneSegmenty = r.Kontur
                             .GroupBy(s =>
@@ -334,10 +337,13 @@ namespace GEORGE.Client.Pages.Utils
                                 var endY = Math.Round(s.End.Y, 2);
 
                                 // 🔥 NORMALIZACJA KIERUNKU (A→B == B→A)
+                                // Oba kierunki mają ten sam klucz
+                                bool reversed = false;
                                 if (startX > endX || (startX == endX && startY > endY))
                                 {
                                     (startX, endX) = (endX, startX);
                                     (startY, endY) = (endY, startY);
+                                    reversed = true;
                                 }
 
                                 return new
@@ -355,7 +361,35 @@ namespace GEORGE.Client.Pages.Utils
                                     CounterClockwise = s.Type == SegmentType.Arc && s.CounterClockwise
                                 };
                             })
-                            .Select(g => g.First())
+                            .Select(g => 
+                            {
+                                var seg = g.First();
+                                // Jeśli segment był odwrócony w kluczu, zwróć go w znormalizowanej formie
+                                if (seg.Start.X > seg.End.X || (seg.Start.X == seg.End.X && seg.Start.Y > seg.End.Y))
+                                {
+                                    if (seg.Type == SegmentType.Arc && seg.Center.HasValue)
+                                    {
+                                        return new ContourSegment(
+                                            seg.End,
+                                            seg.Start,
+                                            seg.Center,
+                                            seg.Radius,
+                                            !seg.CounterClockwise
+                                        )
+                                        {
+                                            Informacja = seg.Informacja
+                                        };
+                                    }
+                                    else
+                                    {
+                                        return new ContourSegment(seg.End, seg.Start)
+                                        {
+                                            Informacja = seg.Informacja
+                                        };
+                                    }
+                                }
+                                return seg;
+                            })
                             .ToList();
 
                         // 3️⃣ odbudowa segmentów
@@ -391,6 +425,9 @@ namespace GEORGE.Client.Pages.Utils
                         r.Kontur = r.Kontur
                             .Where(s => !CzySegmentZerowejDlugosci(s))
                             .ToList();
+
+                        // 2️⃣ Usuwanie duplikatów (oba kierunki linii)
+                        r.Kontur = RemoveDuplicateSegments(r.Kontur);
 
                         r.RozpoznajTyp(r.TypKsztaltu);
 
@@ -565,10 +602,13 @@ namespace GEORGE.Client.Pages.Utils
                                     var endY = Math.Round(s.End.Y, 2);
 
                                     // 🔥 NORMALIZACJA KIERUNKU (A→B == B→A)
+                                    // Oba kierunki mają ten sam klucz
+                                    bool reversed = false;
                                     if (startX > endX || (startX == endX && startY > endY))
                                     {
                                         (startX, endX) = (endX, startX);
                                         (startY, endY) = (endY, startY);
+                                        reversed = true;
                                     }
 
                                     return new
@@ -586,7 +626,35 @@ namespace GEORGE.Client.Pages.Utils
                                         CounterClockwise = s.Type == SegmentType.Arc && s.CounterClockwise
                                     };
                                 })
-                                .Select(g => g.First())
+                                .Select(g => 
+                                {
+                                    var seg = g.First();
+                                    // Jeśli segment był odwrócony w kluczu, zwróć go w znormalizowanej formie
+                                    if (seg.Start.X > seg.End.X || (seg.Start.X == seg.End.X && seg.Start.Y > seg.End.Y))
+                                    {
+                                        if (seg.Type == SegmentType.Arc && seg.Center.HasValue)
+                                        {
+                                            return new ContourSegment(
+                                                seg.End,
+                                                seg.Start,
+                                                seg.Center,
+                                                seg.Radius,
+                                                !seg.CounterClockwise
+                                            )
+                                            {
+                                                Informacja = seg.Informacja
+                                            };
+                                        }
+                                        else
+                                        {
+                                            return new ContourSegment(seg.End, seg.Start)
+                                            {
+                                                Informacja = seg.Informacja
+                                            };
+                                        }
+                                    }
+                                    return seg;
+                                })
                                 .ToList();
 
                             // 3️⃣ odbudowa segmentów
@@ -892,17 +960,96 @@ namespace GEORGE.Client.Pages.Utils
             return wynik;
         }
 
+
         public static List<List<ContourSegment>> PodzielKonturPoLinii(List<ContourSegment> contour, XLineShape line)
         {
+            if (contour == null || contour.Count == 0) return new List<List<ContourSegment>> { contour ?? new List<ContourSegment>() };
+
             var left = new List<ContourSegment>();
             var right = new List<ContourSegment>();
 
             // Zbierz wszystkie punkty przecięcia
             var allIntersectionPoints = new List<XPoint>();
 
+            // --- Obsługa "kompozytowego" koła złożonego z kilku łuków ---
+            bool isCompositeCircle = contour.All(s => s.Type == SegmentType.Arc && s.Center.HasValue);
+
+            if (isCompositeCircle)
+            {
+                var firstCenter = contour[0].Center!.Value;
+                double radius = contour[0].Radius;
+
+                bool sameCenterAndRadius = contour.All(s =>
+                    Distance(s.Center!.Value, firstCenter) < 0.5 &&
+                    Math.Abs(s.Radius - radius) < 0.5);
+
+                bool closedLoop = Distance(contour[0].Start, contour.Last().End) < 0.5;
+
+                if (sameCenterAndRadius && closedLoop)
+                {
+                    var circleIntersections = LineCircleIntersections(
+                        new XPoint(line.X1, line.Y1),
+                        new XPoint(line.X2, line.Y2),
+                        firstCenter,
+                        radius);
+
+                    if (circleIntersections.Count == 2)
+                    {
+                        var pt1 = circleIntersections[0];
+                        var pt2 = circleIntersections[1];
+
+                        // Użyj kierunku pierwszego segmentu
+                        var direction = contour[0].CounterClockwise;
+
+                        var arc1 = new ContourSegment(pt1, pt2, firstCenter.Clone(), radius, direction)
+                        {
+                            Informacja = "linia podziału",
+                            Type = SegmentType.Arc
+                        };
+                        var arc2 = new ContourSegment(pt2, pt1, firstCenter.Clone(), radius, direction)
+                        {
+                            Informacja = "linia podziału",
+                            Type = SegmentType.Arc
+                        };
+
+                        var mid1 = GetArcMidPoint(arc1);
+                        if (PunktPoLewejStronie(mid1, line))
+                        {
+                            left.Add(arc1);
+                            right.Add(arc2);
+                        }
+                        else
+                        {
+                            right.Add(arc1);
+                            left.Add(arc2);
+                        }
+
+                        // Normalizuj i dopnij (wykorzystaj helpery)
+                        left = RemoveZeroLengthSegments(left);
+                        left = ConnectSegmentsIntoClosedPath(left, line, "linia podziału");
+                        left = NormalizeAndCloseContour(left, line, "linia podziału");
+                        left = MakeSegmentsContiguous(left);
+
+                        right = RemoveZeroLengthSegments(right);
+                        right = ConnectSegmentsIntoClosedPath(right, line, "linia podziału");
+                        right = NormalizeAndCloseContour(right, line, "linia podziału");
+                        right = MakeSegmentsContiguous(right);
+
+                        var resultQuick = new List<List<ContourSegment>>();
+                        if (left.Count >= 3) resultQuick.Add(left);
+                        if (right.Count >= 3) resultQuick.Add(right);
+
+                        if (resultQuick.Count == 2)
+                            return resultQuick;
+                        // Jeśli nie, kontynuuj per-segmentową logikę
+                    }
+                }
+            }
+            // --- KONIEC obsługi kompozytowego koła ---
+
+            // Per-segment processing
             foreach (var seg in contour)
             {
-                // Sprawdź przecięcia segmentu z linią
                 var intersections = FindIntersectionsWithLine(seg, line);
 
                 foreach (var pt in intersections)
@@ -913,16 +1060,11 @@ namespace GEORGE.Client.Pages.Utils
 
                 if (intersections.Count == 0)
                 {
-                    // Brak przecięć - cały segment po jednej stronie
                     bool startLeft = PunktPoLewejStronie(seg.Start, line);
-                    if (startLeft)
-                        left.Add(CloneSegment(seg));
-                    else
-                        right.Add(CloneSegment(seg));
+                    if (startLeft) left.Add(CloneSegment(seg)); else right.Add(CloneSegment(seg));
                 }
                 else if (intersections.Count == 1)
                 {
-                    // Jedno przecięcie
                     var pt = intersections[0];
 
                     if (seg.Type == SegmentType.Arc && seg.Center != null)
@@ -944,13 +1086,10 @@ namespace GEORGE.Client.Pages.Utils
                     }
                     else
                     {
-                        // Linia prosta
                         bool startLeft = PunktPoLewejStronie(seg.Start, line);
 
-                        var seg1 = new ContourSegment(seg.Start, pt);
-                        seg1.Informacja = seg.Informacja;
-                        var seg2 = new ContourSegment(pt, seg.End);
-                        seg2.Informacja = seg.Informacja;
+                        var seg1 = new ContourSegment(seg.Start, pt) { Informacja = seg.Informacja };
+                        var seg2 = new ContourSegment(pt, seg.End) { Informacja = seg.Informacja };
 
                         if (startLeft)
                         {
@@ -966,7 +1105,6 @@ namespace GEORGE.Client.Pages.Utils
                 }
                 else if (intersections.Count == 2)
                 {
-                    // Dwa przecięcia - segment przechodzi przez linię
                     var pt1 = intersections[0];
                     var pt2 = intersections[1];
 
@@ -976,63 +1114,116 @@ namespace GEORGE.Client.Pages.Utils
 
                     if (seg.Type == SegmentType.Arc && seg.Center != null)
                     {
-                        var arc1 = CreateArcSegment(seg.Start, pt1, seg);
-                        var arc2 = CreateArcSegment(pt1, pt2, seg);
-                        var arc3 = CreateArcSegment(pt2, seg.End, seg);
+                        bool isFullCircle = Distance(seg.Start, seg.End) < 0.1;
 
-                        bool arc1Left = PunktPoLewejStronie(GetArcMidPoint(arc1), line);
-                        bool arc2Left = PunktPoLewejStronie(GetArcMidPoint(arc2), line);
-                        bool arc3Left = PunktPoLewejStronie(GetArcMidPoint(arc3), line);
+                        if (isFullCircle)
+                        {
+                            var arc1 = new ContourSegment(pt1, pt2, seg.Center, seg.Radius, seg.CounterClockwise)
+                            {
+                                Informacja = seg.Informacja,
+                                Type = SegmentType.Arc
+                            };
+                            var arc2 = new ContourSegment(pt2, pt1, seg.Center, seg.Radius, seg.CounterClockwise)
+                            {
+                                Informacja = seg.Informacja,
+                                Type = SegmentType.Arc
+                            };
 
-                        if (arc1Left) left.Add(arc1); else right.Add(arc1);
-                        if (arc2Left) left.Add(arc2); else right.Add(arc2);
-                        if (arc3Left) left.Add(arc3); else right.Add(arc3);
+                            var midPoint1 = GetArcMidPoint(arc1);
+                            bool arc1Left = PunktPoLewejStronie(midPoint1, line);
+
+                            if (arc1Left)
+                            {
+                                left.Add(arc1);
+                                right.Add(arc2);
+                            }
+                            else
+                            {
+                                right.Add(arc1);
+                                left.Add(arc2);
+                            }
+                        }
+                        else
+                        {
+                            var arc1 = CreateArcSegment(seg.Start, pt1, seg);
+                            var arc2 = CreateArcSegment(pt1, pt2, seg);
+                            var arc3 = CreateArcSegment(pt2, seg.End, seg);
+
+                            bool arc1Left = PunktPoLewejStronie(GetArcMidPoint(arc1), line);
+                            bool arc2Left = PunktPoLewejStronie(GetArcMidPoint(arc2), line);
+                            bool arc3Left = PunktPoLewejStronie(GetArcMidPoint(arc3), line);
+
+                            if (arc1Left) left.Add(arc1); else right.Add(arc1);
+                            if (arc2Left) left.Add(arc2); else right.Add(arc2);
+                            if (arc3Left) left.Add(arc3); else right.Add(arc3);
+                        }
+                    }
+                    else
+                    {
+                        // Jeżeli zwykły segment liniowy ma dwa przecięcia, podziel na trzy części
+                        bool startLeft = PunktPoLewejStronie(seg.Start, line);
+                        var sA = new ContourSegment(seg.Start, pt1) { Informacja = seg.Informacja };
+                        var sB = new ContourSegment(pt1, pt2) { Informacja = seg.Informacja };
+                        var sC = new ContourSegment(pt2, seg.End) { Informacja = seg.Informacja };
+
+                        if (startLeft)
+                        {
+                            left.Add(sA); right.Add(sB); left.Add(sC);
+                        }
+                        else
+                        {
+                            right.Add(sA); left.Add(sB); right.Add(sC);
+                        }
                     }
                 }
             }
 
-            // DODAJ LINIĘ PODZIAŁU DO OBU STRON!
-            if (allIntersectionPoints.Count >= 2)
-            {
-                // Sortuj punkty przecięcia wzdłuż linii
-                var sortedPoints = allIntersectionPoints
-                    .OrderBy(p => Distance(p, new XPoint(line.X1, line.Y1)))
-                    .ToList();
-
-                // Weź pierwsze dwa punkty przecięcia (powinny być dokładnie 2)
-                var pt1 = sortedPoints[0];
-                var pt2 = sortedPoints[1];
-
-                // Dodaj linię podziału do lewej strony
-                var dividingLineLeft = new ContourSegment(pt1, pt2);
-                dividingLineLeft.Informacja = "linia podziału";
-                left.Add(dividingLineLeft);
-
-                // Dodaj linię podziału do prawej strony (odwróconą)
-                var dividingLineRight = new ContourSegment(pt2, pt1);
-                dividingLineRight.Informacja = "linia podziału";
-                right.Add(dividingLineRight);
-            }
-
             var result = new List<List<ContourSegment>>();
+
+            // Helper to finalize side lists: connect, normalize, make contiguous, and append dividing line if needed
+            List<ContourSegment> FinalizeSide(List<ContourSegment> side)
+            {
+                if (side == null || side.Count == 0) return new List<ContourSegment>();
+
+                side = RemoveZeroLengthSegments(side);
+                side = ConnectSegmentsIntoClosedPath(side, line, "linia podziału");
+                side = NormalizeAndCloseContour(side, line, "linia podziału");
+                side = MakeSegmentsContiguous(side);
+
+                // Dodaj linię podziału dopiero po połączeniu segmentów
+                if (side.Count >= 3 && allIntersectionPoints.Count >= 2)
+                {
+                    var sortedPoints = allIntersectionPoints
+                        .OrderBy(p => Distance(p, new XPoint(line.X1, line.Y1)))
+                        .ToList();
+
+                    var pt1 = sortedPoints[0];
+                    var pt2 = sortedPoints[1];
+
+                    var dividing = new ContourSegment(pt1, pt2) { Informacja = "linia podziału" };
+                    // unikaj duplikatu jeśli już istnieje bardzo podobny segment
+                    if (!side.Any(s => Distance(s.Start, dividing.Start) < 0.01 && Distance(s.End, dividing.End) < 0.01))
+                        side.Add(dividing);
+                }
+
+                // Usuń krótkie segmenty po wszystkich modyfikacjach
+                side = RemoveZeroLengthSegments(side);
+                return side;
+            }
 
             if (left.Count > 0)
             {
-                left = RemoveZeroLengthSegments(left);
-                left = ConnectSegmentsIntoClosedPath(left, line, "linia podziału");
-                if (left.Count >= 3)
-                    result.Add(left);
+                left = FinalizeSide(left);
+                if (left.Count >= 3) result.Add(left);
             }
 
             if (right.Count > 0)
             {
-                right = RemoveZeroLengthSegments(right);
-                right = ConnectSegmentsIntoClosedPath(right, line, "linia podziału");
-                if (right.Count >= 3)
-                    result.Add(right);
+                right = FinalizeSide(right);
+                if (right.Count >= 3) result.Add(right);
             }
 
-            // Jeśli nie udało się podzielić, zwróć oryginał
+            // Jeśli nie podzielono poprawnie — zwróć oryginał konturu
             if (result.Count != 2)
             {
                 return new List<List<ContourSegment>> { contour };
@@ -1440,6 +1631,283 @@ namespace GEORGE.Client.Pages.Utils
             return result;
         }
 
+        private static List<ContourSegment> MakeSegmentsContiguous(List<ContourSegment> segments, double tol = 0.5)
+        {
+            if (segments == null || segments.Count == 0) return segments;
+
+            // Klonujemy wejście, żeby nie modyfikować oryginału
+            var originals = segments.Select(CloneSegment).ToList();
+            int n = originals.Count;
+
+            // Spróbuj z każdym segmentem jako startem (greedy)
+            for (int startIdx = 0; startIdx < n; startIdx++)
+            {
+                var remaining = originals.Select(CloneSegment).ToList();
+                var result = new List<ContourSegment>();
+                var current = remaining[startIdx];
+                remaining.RemoveAt(startIdx);
+                result.Add(current);
+
+                while (remaining.Count > 0)
+                {
+                    int found = remaining.FindIndex(s => Distance(current.End, s.Start) < tol);
+                    if (found == -1)
+                    {
+                        // spróbuj dopasować przez odwrócenie kandydata
+                        found = remaining.FindIndex(s => Distance(current.End, s.End) < tol);
+                        if (found != -1)
+                        {
+                            remaining[found] = ReverseSegment(remaining[found]);
+                        }
+                    }
+
+                    if (found == -1)
+                        break;
+
+                    current = remaining[found];
+                    remaining.RemoveAt(found);
+                    result.Add(current);
+                }
+
+                if (result.Count == n)
+                {
+                    // Wyrównaj drobne różnice do identycznych punktów (dokładne łączenie)
+                    for (int i = 1; i < result.Count; i++)
+                    {
+                        var prev = result[i - 1];
+                        var seg = result[i];
+                        if (Distance(prev.End, seg.Start) > 1e-6)
+                        {
+                            // utwórz nowy segment z wyrównanym Start
+                            if (seg.Type == SegmentType.Arc && seg.Center != null)
+                            {
+                                var newSeg = new ContourSegment(
+                                    new XPoint(prev.End.X, prev.End.Y),
+                                    new XPoint(seg.End.X, seg.End.Y),
+                                    seg.Center,
+                                    seg.Radius,
+                                    seg.CounterClockwise)
+                                { Informacja = seg.Informacja, Type = SegmentType.Arc };
+                                result[i] = newSeg;
+                            }
+                            else
+                            {
+                                var newSeg = new ContourSegment(
+                                    new XPoint(prev.End.X, prev.End.Y),
+                                    new XPoint(seg.End.X, seg.End.Y))
+                                { Informacja = seg.Informacja };
+                                result[i] = newSeg;
+                            }
+                        }
+                    }
+
+                    // Dopasuj ostatni -> pierwszy
+                    var last = result.Last();
+                    var first = result.First();
+                    if (Distance(last.End, first.Start) > 1e-6)
+                    {
+                        // ustaw pierwszy.Start na last.End
+                        var f = first;
+                        if (f.Type == SegmentType.Arc && f.Center != null)
+                        {
+                            result[0] = new ContourSegment(
+                                new XPoint(last.End.X, last.End.Y),
+                                new XPoint(f.End.X, f.End.Y),
+                                f.Center,
+                                f.Radius,
+                                f.CounterClockwise)
+                            { Informacja = f.Informacja, Type = SegmentType.Arc };
+                        }
+                        else
+                        {
+                            result[0] = new ContourSegment(
+                                new XPoint(last.End.X, last.End.Y),
+                                new XPoint(f.End.X, f.End.Y))
+                            { Informacja = f.Informacja };
+                        }
+                    }
+
+                    return result;
+                }
+            }
+
+            // Fallback: spróbuj lokalnie odwrócić segmenty tam gdzie lepiej pasują (naprawy miejscowe)
+            var fallback = originals.Select(CloneSegment).ToList();
+            for (int i = 1; i < fallback.Count; i++)
+            {
+                var prev = fallback[i - 1];
+                var seg = fallback[i];
+                if (Distance(prev.End, seg.Start) > tol && Distance(prev.End, seg.End) < Distance(prev.End, seg.Start))
+                {
+                    fallback[i] = ReverseSegment(seg);
+                }
+            }
+
+            // Po próbach lokalnych wyrównaj drobne różnice
+            for (int i = 1; i < fallback.Count; i++)
+            {
+                var prev = fallback[i - 1];
+                var seg = fallback[i];
+                if (Distance(prev.End, seg.Start) > 1e-6)
+                {
+                    // wyrównanie punktów
+                    if (seg.Type == SegmentType.Arc && seg.Center != null)
+                    {
+                        fallback[i] = new ContourSegment(
+                            new XPoint(prev.End.X, prev.End.Y),
+                            new XPoint(seg.End.X, seg.End.Y),
+                            seg.Center,
+                            seg.Radius,
+                            seg.CounterClockwise)
+                        { Informacja = seg.Informacja, Type = SegmentType.Arc };
+                    }
+                    else
+                    {
+                        fallback[i] = new ContourSegment(
+                            new XPoint(prev.End.X, prev.End.Y),
+                            new XPoint(seg.End.X, seg.End.Y))
+                        { Informacja = seg.Informacja };
+                    }
+                }
+            }
+
+            return fallback;
+        }
+
+        private static List<ContourSegment> NormalizeAndCloseContour(List<ContourSegment> segments, XLineShape dividingLine, string informacja)
+        {
+            if (segments == null || segments.Count == 0) return segments;
+            const double tol = 0.5;
+
+            // 1) Dopnij kontur, jeżeli nie jest zamknięty
+            if (Distance(segments.Last().End, segments.First().Start) > tol)
+            {
+                // spróbuj znaleźć dwa punkty na linii podziału (jeżeli istnieją)
+                var boundaryPoints = new List<XPoint>();
+                foreach (var s in segments)
+                {
+                    if (PunktNaLinii(s.Start, dividingLine) && !boundaryPoints.Any(p => Distance(p, s.Start) < tol))
+                        boundaryPoints.Add(new XPoint(s.Start.X, s.Start.Y));
+                    if (PunktNaLinii(s.End, dividingLine) && !boundaryPoints.Any(p => Distance(p, s.End) < tol))
+                        boundaryPoints.Add(new XPoint(s.End.X, s.End.Y));
+                }
+
+                if (boundaryPoints.Count >= 2)
+                {
+                    // dodajemy linię podziału łączącą znalezione punkty (w kierunku zamknięcia dodamy dalej)
+                    var p1 = boundaryPoints[0];
+                    var p2 = boundaryPoints[1];
+                    segments.Add(new ContourSegment(p2, p1) { Informacja = informacja });
+                }
+                else
+                {
+                    // dopięcie bezpośrednie
+                    segments.Add(new ContourSegment(segments.Last().End, segments.First().Start) { Informacja = informacja });
+                }
+
+            }
+
+            // Pomocnik: próbkowanie punktów z segmentu (dla obliczenia pola)
+            List<XPoint> SampleSegmentPoints(ContourSegment seg, int samples = 12)
+            {
+                var pts = new List<XPoint>();
+                if (seg.Type == SegmentType.Line)
+                {
+                    pts.Add(seg.Start.Clone());
+                    pts.Add(new XPoint((seg.Start.X + seg.End.X) / 2.0, (seg.Start.Y + seg.End.Y) / 2.0));
+                    // nie dodajemy end żeby uniknąć duplikatów przy łączeniu segmentów
+                }
+                else if (seg.Type == SegmentType.Arc && seg.Center != null)
+                {
+                    var c = seg.Center.Value;
+                    double r = seg.Radius;
+                    double a0 = Math.Atan2(seg.Start.Y - c.Y, seg.Start.X - c.X);
+                    double a1 = Math.Atan2(seg.End.Y - c.Y, seg.End.X - c.X);
+
+                    // ustal rzeczywistą różnicę kąta zgodnie z kierunkiem
+                    if (seg.CounterClockwise)
+                    {
+                        if (a1 < a0) a1 += 2 * Math.PI;
+                    }
+                    else
+                    {
+                        if (a0 < a1) a0 += 2 * Math.PI;
+                    }
+
+                    double step = (a1 - a0) / Math.Max(1, samples);
+                    for (int i = 0; i < samples; i++)
+                    {
+                        double ang = a0 + step * i;
+                        pts.Add(new XPoint(c.X + r * Math.Cos(ang), c.Y + r * Math.Sin(ang)));
+                    }
+                    // nie dodajemy końcowego punktu żeby nie powielać startu następnego segmentu
+                }
+                return pts;
+            }
+
+            // 2) Zbierz próbki z całego konturu i oblicz pole (orientację)
+            var sampled = new List<XPoint>();
+            foreach (var s in segments)
+            {
+                var spts = SampleSegmentPoints(s, 16);
+                sampled.AddRange(spts);
+            }
+
+            // Jeśli za mało próbek — fallback na midpoints
+            if (sampled.Count < 3)
+            {
+                sampled.Clear();
+                foreach (var s in segments)
+                {
+                    sampled.Add(s.Type == SegmentType.Line ? new XPoint((s.Start.X + s.End.X) / 2.0, (s.Start.Y + s.End.Y) / 2.0) : GetArcMidPoint(s));
+                }
+            }
+
+            // oblicz pole (signed area)
+            double area = 0.0;
+            for (int i = 0; i < sampled.Count; i++)
+            {
+                var a = sampled[i];
+                var b = sampled[(i + 1) % sampled.Count];
+                area += (a.X * b.Y - b.X * a.Y);
+            }
+            bool desiredCCW = area > 0.0; // true = CCW
+
+            // 3) Wymuś zgodność kierunku łuków z orientacją konturu
+            for (int i = 0; i < segments.Count; i++)
+            {
+                var s = segments[i];
+                if (s.Type == SegmentType.Arc && s.Center != null)
+                {
+                    if (s.CounterClockwise != desiredCCW)
+                    {
+                        // ReverseSegment zwraca sklonowany segment z odwróconym kierunkiem
+                        var rev = ReverseSegment(s);
+                        rev.Informacja = s.Informacja;
+                        rev.Type = s.Type;
+                        segments[i] = rev;
+                    }
+                }
+            }
+
+            // 4) Po ewentualnym odwróceniu sprawdź ponownie czy kontur jest zamknięty (małe przesunięcia)
+            if (Distance(segments.Last().End, segments.First().Start) > tol)
+            {
+                // dodajemy linię zamykającą
+                segments.Add(new ContourSegment(segments.Last().End, segments.First().Start) { Informacja = informacja });
+            }
+
+            // usuń krótkie segmenty
+            segments = RemoveZeroLengthSegments(segments);
+
+            // upewnij się, że typy i Informacja są zachowane
+            foreach (var s in segments)
+                if (s.Type == 0 && s.Center != null)
+                    s.Type = SegmentType.Arc;
+
+            return segments;
+        }
+
         private static bool PunktNaLinii(XPoint pt, XLineShape line)
         {
             const double tolerance = 1.0;
@@ -1483,6 +1951,7 @@ namespace GEORGE.Client.Pages.Utils
         {
             var left = new List<XPoint>();
             var right = new List<XPoint>();
+
 
             // Dodajemy punkty w kolejności zgodnej z oryginalnym wielokątem
             for (int i = 0; i < poly.Count; i++)
@@ -1580,9 +2049,36 @@ namespace GEORGE.Client.Pages.Utils
 
             foreach (var s in shapes)
             {
-                var b = s.GetBoundingBox();
-                var key = $"{b.X:F2}_{b.Y:F2}_{b.Width:F2}_{b.Height:F2}";
-                if (seen.Add(key)) list.Add(s);
+                string key;
+
+                // Dla linii - normalizuj kierunek (A→B == B→A)
+                if (s is XLineShape line)
+                {
+                    double x1 = Math.Round(line.X1, 2);
+                    double y1 = Math.Round(line.Y1, 2);
+                    double x2 = Math.Round(line.X2, 2);
+                    double y2 = Math.Round(line.Y2, 2);
+
+                    // Normalizacja: zawsze mniejsza współrzędna na początek
+                    if (x1 > x2 || (x1 == x2 && y1 > y2))
+                    {
+                        (x1, x2) = (x2, x1);
+                        (y1, y2) = (y2, y1);
+                    }
+
+                    key = $"LINE_{x1}_{y1}_{x2}_{y2}";
+                }
+                else
+                {
+                    // Dla innych kształtów - bounding box
+                    var b = s.GetBoundingBox();
+                    key = $"SHAPE_{b.X:F2}_{b.Y:F2}_{b.Width:F2}_{b.Height:F2}";
+                }
+
+                if (seen.Add(key))
+                {
+                    list.Add(s);
+                }
             }
 
             return list;
@@ -1648,5 +2144,39 @@ namespace GEORGE.Client.Pages.Utils
             return new XPoint(cx / pts.Count, cy / pts.Count);
         }
 
+        private static List<ContourSegment> RemoveDuplicateSegments(List<ContourSegment> segments)
+        {
+            var seen = new HashSet<string>();
+            var result = new List<ContourSegment>();
+
+            foreach (var seg in segments)
+            {
+                var startX = Math.Round(seg.Start.X, 2);
+                var startY = Math.Round(seg.Start.Y, 2);
+                var endX = Math.Round(seg.End.X, 2);
+                var endY = Math.Round(seg.End.Y, 2);
+
+                // Normalizacja kierunku
+                if (startX > endX || (startX == endX && startY > endY))
+                {
+                    (startX, endX) = (endX, startX);
+                    (startY, endY) = (endY, startY);
+                }
+
+                string key = $"{seg.Type}|{startX}|{startY}|{endX}|{endY}";
+                
+                if (seg.Type == SegmentType.Arc && seg.Center.HasValue)
+                {
+                    key += $"|{Math.Round(seg.Center.Value.X, 2)}|{Math.Round(seg.Center.Value.Y, 2)}|{Math.Round(seg.Radius, 2)}";
+                }
+
+                if (seen.Add(key))
+                {
+                    result.Add(seg);
+                }
+            }
+
+            return result;
+        }
     }
 }
