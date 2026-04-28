@@ -3026,7 +3026,6 @@ namespace GEORGE.Client.Pages.Okna
         //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
-
         public List<ContourSegment> CalculateOffsetPolygonKontur(
     List<ContourSegment> segments,
     float profileLeft,
@@ -3038,14 +3037,10 @@ namespace GEORGE.Client.Pages.Okna
             if (segments == null || segments.Count == 0)
                 return new List<ContourSegment>();
 
-            // centroid używany do określenia kierunku "do wewnątrz"
-            var centroid = new XPoint(
-                segments.Average(s => (s.Start.X + s.End.X) / 2.0),
-                segments.Average(s => (s.Start.Y + s.End.Y) / 2.0)
-            );
+            const double EPS = 1e-6;
 
             var offsetSegments = new List<ContourSegment>();
-            // wykrycie pełnego okręgu (wszystkie segmenty jako łuki)
+
             bool isFullCircle = segments.All(s => s.Type == SegmentType.Arc);
 
             for (int i = 0; i < segments.Count; i++)
@@ -3055,7 +3050,7 @@ namespace GEORGE.Client.Pages.Okna
                 double dx = seg.End.X - seg.Start.X;
                 double dy = seg.End.Y - seg.Start.Y;
                 double length = Math.Sqrt(dx * dx + dy * dy);
-                if (length < 1e-6) continue;
+                if (length < EPS) continue;
 
                 float angleDegrees = (float)(Math.Atan2(dy, dx) * 180.0 / Math.PI);
                 if (angleDegrees < 0) angleDegrees += 360f;
@@ -3071,54 +3066,63 @@ namespace GEORGE.Client.Pages.Okna
                     _ => 0
                 };
 
+                // =========================
+                // LINIA
+                // =========================
                 if (seg.Type == SegmentType.Line)
                 {
-                    // wektor kierunku i normalna
                     double tx = dx / length;
                     double ty = dy / length;
-                    // przyjmujemy normalę (ty, -tx) jako jedną z opcji
+
+                    // normalna
                     double nx = ty;
                     double ny = -tx;
 
-                    // dwie możliwe przesunięcia - wybieramy tę bliżej centroidu (czyli do wnętrza)
-                    var p1a = new XPoint(seg.Start.X + nx * offsetValue, seg.Start.Y + ny * offsetValue);
-                    var p2a = new XPoint(seg.End.X + nx * offsetValue, seg.End.Y + ny * offsetValue);
-                    var p1b = new XPoint(seg.Start.X - nx * offsetValue, seg.Start.Y - ny * offsetValue);
-                    var p2b = new XPoint(seg.End.X - nx * offsetValue, seg.End.Y - ny * offsetValue);
+                    // centroid pomocniczy tylko dla linii (działa OK)
+                    var midpoint = new XPoint(
+                        (seg.Start.X + seg.End.X) / 2.0,
+                        (seg.Start.Y + seg.End.Y) / 2.0
+                    );
 
-                    double da = DistanceSquared(GetSegmentMidpoint(p1a, p2a), centroid);
-                    double db = DistanceSquared(GetSegmentMidpoint(p1b, p2b), centroid);
+                    // lekko przesunięty punkt do testu
+                    var testA = new XPoint(midpoint.X + nx * offsetValue, midpoint.Y + ny * offsetValue);
+                    var testB = new XPoint(midpoint.X - nx * offsetValue, midpoint.Y - ny * offsetValue);
 
-                    if (da <= db)
+                    // wybór kierunku — bliżej środka bounding box
+                    var bboxCenter = new XPoint(
+                        segments.Average(s => (s.Start.X + s.End.X) / 2.0),
+                        segments.Average(s => (s.Start.Y + s.End.Y) / 2.0)
+                    );
+
+                    double da = DistanceSquared(testA, bboxCenter);
+                    double db = DistanceSquared(testB, bboxCenter);
+
+                    double sign = da < db ? 1 : -1;
+
+                    var p1 = new XPoint(seg.Start.X + nx * offsetValue * sign, seg.Start.Y + ny * offsetValue * sign);
+                    var p2 = new XPoint(seg.End.X + nx * offsetValue * sign, seg.End.Y + ny * offsetValue * sign);
+
+                    offsetSegments.Add(new ContourSegment(p1, p2)
                     {
-                        offsetSegments.Add(new ContourSegment(p1a, p2a) { Informacja = side });
-                    }
-                    else
-                    {
-                        offsetSegments.Add(new ContourSegment(p1b, p2b) { Informacja = side });
-                    }
+                        Informacja = side
+                    });
                 }
+
+                // =========================
+                // ŁUK
+                // =========================
                 else if (seg.Type == SegmentType.Arc && seg.Center != null)
                 {
                     var center = seg.Center.Value;
 
-                    // offset dla łuku: wybieramy zmniejszenie promienia, gdy centroid leży WEWNĄTRZ łuku (wewnątrz okręgu)
-                    double distCenterToCentroid = Math.Sqrt((center.X - centroid.X) * (center.X - centroid.X) + (center.Y - centroid.Y) * (center.Y - centroid.Y));
                     float offsetUsed = offsetValue;
 
-                    float newRadius;
-                    if (distCenterToCentroid < seg.Radius)
-                    {
-                        // centroid jest wewnątrz koła -> aby pójść "do wnętrza" zmniejszamy promień
-                        newRadius = (float)(seg.Radius - offsetUsed);
-                    }
-                    else
-                    {
-                        // centroid poza kołem -> zwiększamy promień aby przesunąć w kierunku centroidu
-                        newRadius = (float)(seg.Radius + offsetUsed);
-                    }
+                    // 🔥 KLUCZOWA POPRAWKA:
+                    // zawsze do środka konturu → zmniejszamy promień
+                    float newRadius = (float)(seg.Radius - offsetUsed);
 
-                    if (newRadius < 0.1f) newRadius = 0.1f;
+                    if (newRadius < 0.1f)
+                        newRadius = 0.1f;
 
                     double startAngle = Math.Atan2(seg.Start.Y - center.Y, seg.Start.X - center.X);
                     double endAngle = Math.Atan2(seg.End.Y - center.Y, seg.End.X - center.X);
@@ -3140,83 +3144,97 @@ namespace GEORGE.Client.Pages.Okna
                 }
             }
 
-            // Krok 2: przecięcia (obsługa line-line, line-arc, arc-arc)
+            // =========================
+            // PRZECIĘCIA
+            // =========================
             var result = new List<ContourSegment>();
+
             for (int i = 0; i < offsetSegments.Count; i++)
             {
                 var current = offsetSegments[i];
                 var previous = offsetSegments[(i - 1 + offsetSegments.Count) % offsetSegments.Count];
 
-                // line-line (jak wcześniej)
+                // LINE - LINE
                 if (current.Type == SegmentType.Line && previous.Type == SegmentType.Line)
                 {
                     var intersection = GetLinesIntersectionK(previous.Start, previous.End, current.Start, current.End);
-                    if (!double.IsNaN(intersection.X) && !double.IsNaN(intersection.Y))
+
+                    if (!double.IsNaN(intersection.X))
                     {
                         if (result.Count > 0)
+                            result[^1].End = intersection;
+
+                        result.Add(new ContourSegment(intersection, current.End)
                         {
-                            result[result.Count - 1].End = intersection;
-                        }
-                        result.Add(new ContourSegment(intersection, current.End) { Informacja = current.Informacja });
+                            Informacja = current.Informacja
+                        });
                     }
                     else
                     {
                         result.Add(current);
                     }
                 }
-                // line - arc (previous line, current arc) -> znajdź przecięcie linii z okręgiem current.Center,current.Radius
+
+                // LINE - ARC
                 else if (previous.Type == SegmentType.Line && current.Type == SegmentType.Arc && current.Center != null)
                 {
                     var pts = GetLineCircleIntersections(previous.Start, previous.End, current.Center.Value, current.Radius);
                     var chosen = ChooseClosestTo(pts, current.Start);
+
                     if (chosen != null)
                     {
-                        if (result.Count > 0) result[result.Count - 1].End = chosen.Value;
-                        // przecięcie wyznacza Start łuku
+                        if (result.Count > 0)
+                            result[^1].End = chosen.Value;
+
                         result.Add(new ContourSegment(chosen.Value, current.End, current.Center, current.Radius, current.CounterClockwise)
-                        { Informacja = current.Informacja });
+                        {
+                            Informacja = current.Informacja
+                        });
                     }
                     else
                     {
                         result.Add(current);
                     }
                 }
-                // arc - line (previous arc, current line)
+
+                // ARC - LINE
                 else if (previous.Type == SegmentType.Arc && previous.Center != null && current.Type == SegmentType.Line)
                 {
                     var pts = GetLineCircleIntersections(current.Start, current.End, previous.Center.Value, previous.Radius);
                     var chosen = ChooseClosestTo(pts, current.Start);
+
                     if (chosen != null)
                     {
-                        // poprzedni łuk zakończy się w punkcie przecięcia
                         if (result.Count > 0)
-                        {
-                            result[result.Count - 1].End = chosen.Value;
-                        }
-                        else
-                        {
-                            // jeśli jeszcze nic w result, dodajemy poprzedni łuk z poprawionym End
-                            result.Add(new ContourSegment(previous.Start, chosen.Value, previous.Center, previous.Radius, previous.CounterClockwise)
-                            { Informacja = previous.Informacja });
-                        }
+                            result[^1].End = chosen.Value;
 
-                        result.Add(new ContourSegment(chosen.Value, current.End) { Informacja = current.Informacja });
+                        result.Add(new ContourSegment(chosen.Value, current.End)
+                        {
+                            Informacja = current.Informacja
+                        });
                     }
                     else
                     {
                         result.Add(current);
                     }
                 }
-                // arc - arc
-                else if (previous.Type == SegmentType.Arc && previous.Center != null && current.Type == SegmentType.Arc && current.Center != null)
+
+                // ARC - ARC
+                else if (previous.Type == SegmentType.Arc && current.Type == SegmentType.Arc &&
+                         previous.Center != null && current.Center != null)
                 {
                     var pts = GetCircleCircleIntersections(previous.Center.Value, previous.Radius, current.Center.Value, current.Radius);
                     var chosen = ChooseClosestTo(pts, current.Start);
+
                     if (chosen != null)
                     {
-                        if (result.Count > 0) result[result.Count - 1].End = chosen.Value;
+                        if (result.Count > 0)
+                            result[^1].End = chosen.Value;
+
                         result.Add(new ContourSegment(chosen.Value, current.End, current.Center, current.Radius, current.CounterClockwise)
-                        { Informacja = current.Informacja });
+                        {
+                            Informacja = current.Informacja
+                        });
                     }
                     else
                     {
@@ -3225,12 +3243,13 @@ namespace GEORGE.Client.Pages.Okna
                 }
                 else
                 {
-                    // domyślnie do wyników
                     result.Add(current);
                 }
             }
 
-            // Krok 3 - zamknięcie
+            // =========================
+            // ZAMKNIĘCIE
+            // =========================
             if (result.Count > 0 && !PointsEqualK(result[0].Start, result[^1].End))
             {
                 result[^1].End = result[0].Start;

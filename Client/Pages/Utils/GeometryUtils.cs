@@ -106,7 +106,7 @@ namespace GEORGE.Client.Pages.Utils
                             double endAngle = Math.Atan2(next.Y - center.Y, next.X - center.X);
 
                             // Określ kierunek (zgodnie z ruchem wskazówek zegara)
-                            bool counterClockwise = false;
+                            bool counterClockwise = true;
 
                             var segment = new ContourSegment(
                                 p,
@@ -962,26 +962,33 @@ namespace GEORGE.Client.Pages.Utils
 
 
         public static List<List<ContourSegment>> PodzielKonturPoLinii(
-       List<ContourSegment> contour,
-       XLineShape line)
+        List<ContourSegment> contour,
+        XLineShape line)
         {
             const double EPS = 1e-6;
             var result = new List<List<ContourSegment>>();
 
-            // 🔴 KROK 1: znajdź wszystkie przecięcia
-            var intersections = new List<(XPoint point, int segmentIndex)>();
+            // Krok 1: Znajdź wszystkie unikalne punkty przecięcia
+            var uniqueIntersectionPoints = new List<XPoint>();
+            var segmentIntersectionMap = new Dictionary<int, List<int>>(); // segmentIndex -> indices in uniqueIntersectionPoints
 
             for (int i = 0; i < contour.Count; i++)
             {
                 var segment = contour[i];
+                segmentIntersectionMap[i] = new List<int>();
 
                 if (segment.Type == SegmentType.Line)
                 {
                     var pts = IntersectLineLine(segment, line);
                     foreach (var p in pts)
                     {
-                        if (!intersections.Any(x => Distance(x.point, p) < EPS))
-                            intersections.Add((p, i));
+                        int idx = uniqueIntersectionPoints.FindIndex(x => Distance(x, p) < EPS);
+                        if (idx == -1)
+                        {
+                            idx = uniqueIntersectionPoints.Count;
+                            uniqueIntersectionPoints.Add(p);
+                        }
+                        segmentIntersectionMap[i].Add(idx);
                     }
                 }
                 else if (segment.Type == SegmentType.Arc)
@@ -992,114 +999,212 @@ namespace GEORGE.Client.Pages.Utils
 
                     foreach (var p in pts)
                     {
-                        if (!intersections.Any(x => Distance(x.point, p) < EPS))
-                            intersections.Add((p, i));
+                        int idx = uniqueIntersectionPoints.FindIndex(x => Distance(x, p) < EPS);
+                        if (idx == -1)
+                        {
+                            idx = uniqueIntersectionPoints.Count;
+                            uniqueIntersectionPoints.Add(p);
+                        }
+                        segmentIntersectionMap[i].Add(idx);
                     }
                 }
             }
 
-            // ❌ brak przecięć
-            if (intersections.Count < 2)
+            Console.WriteLine($"Znaleziono {uniqueIntersectionPoints.Count} unikalnych punktów przecięcia");
+
+            if (uniqueIntersectionPoints.Count < 2)
                 return new List<List<ContourSegment>> { contour };
 
-            // 🔥 KLUCZOWA POPRAWKA:
-            // sortowanie po linii + wybór skrajnych punktów
-            var ordered = intersections
-                .OrderBy(x => ProjectAlongLine(x.point, line))
+            // Weź dwa punkty przecięcia (pierwszy i ostatni na linii)
+            var orderedPoints = uniqueIntersectionPoints
+                .OrderBy(p => ProjectAlongLine(p, line))
                 .ToList();
 
-            var p1 = ordered.First().point;
-            var p2 = ordered.Last().point;
+            var p1 = orderedPoints.First();
+            var p2 = orderedPoints.Last();
 
-            // 🔴 KROK 2: podziel segmenty
-            var split = new List<(ContourSegment seg, bool isLeft)>();
+            Console.WriteLine($"P1: ({p1.X:F2},{p1.Y:F2}), P2: ({p2.X:F2},{p2.Y:F2})");
 
-            ValidateAndFixContour(contour); // DODAJ TO - naprawa konturu przed podziałem
+            // Krok 2: Przypisz każdy segment do lewej lub prawej strony
+            var leftSegments = new List<ContourSegment>();
+            var rightSegments = new List<ContourSegment>();
 
             for (int i = 0; i < contour.Count; i++)
             {
                 var segment = contour[i];
+                var intersectionIndices = segmentIntersectionMap[i];
 
-                var ptsOnSegment = intersections
-                    .Where(x => x.segmentIndex == i)
-                    .Select(x => x.point)
-                    .OrderBy(p => Distance(segment.Start, p))
-                    .ToList();
-
-                if (ptsOnSegment.Count == 0)
+                if (intersectionIndices.Count == 0)
                 {
-                    var mid = MidPoint(segment);
-                    bool isLeft = IsPointOnLeftSide(line, mid);
-                    split.Add((segment, isLeft));
-                    continue;
-                }
+                    // Segment bez przecięcia - sprawdź jego środek
+                    var midPoint = new XPoint(
+                        (segment.Start.X + segment.End.X) / 2,
+                        (segment.Start.Y + segment.End.Y) / 2);
 
-                // podział segmentu
-                var pts = new List<XPoint> { segment.Start };
-                pts.AddRange(ptsOnSegment);
-                pts.Add(segment.End);
+                    bool isLeft = IsPointOnLeftSide(line, midPoint);
 
-                for (int j = 0; j < pts.Count - 1; j++)
-                {
-                    if (Distance(pts[j], pts[j + 1]) < EPS)
-                        continue;
-
-                    ContourSegment newSeg;
-
-                    if (segment.Type == SegmentType.Arc)
-                        newSeg = CreateArc(pts[j], pts[j + 1], segment);
+                    if (isLeft)
+                        leftSegments.Add(segment);
                     else
-                        newSeg = new ContourSegment(pts[j], pts[j + 1])
-                        {
-                            Informacja = segment.Informacja
-                        };
+                        rightSegments.Add(segment);
+                }
+                else
+                {
+                    // Segment z przecięciem - podziel go
+                    var splitPoints = intersectionIndices
+                        .Select(idx => uniqueIntersectionPoints[idx])
+                        .OrderBy(p => Distance(segment.Start, p))
+                        .ToList();
 
-                    var mid = new XPoint(
-                        (pts[j].X + pts[j + 1].X) / 2,
-                        (pts[j].Y + pts[j + 1].Y) / 2);
+                    var allPoints = new List<XPoint> { segment.Start };
+                    allPoints.AddRange(splitPoints);
+                    allPoints.Add(segment.End);
 
-                    bool isLeft = IsPointOnLeftSide(line, mid);
-                    split.Add((newSeg, isLeft));
+                    for (int j = 0; j < allPoints.Count - 1; j++)
+                    {
+                        if (Distance(allPoints[j], allPoints[j + 1]) < EPS)
+                            continue;
+
+                        ContourSegment newSeg;
+                        if (segment.Type == SegmentType.Arc)
+                            newSeg = CreateArc(allPoints[j], allPoints[j + 1], segment);
+                        else
+                            newSeg = new ContourSegment(allPoints[j], allPoints[j + 1])
+                            {
+                                Informacja = segment.Informacja
+                            };
+
+                        // Określ przynależność na podstawie punktu środkowego
+                        var midPoint = new XPoint(
+                            (allPoints[j].X + allPoints[j + 1].X) / 2,
+                            (allPoints[j].Y + allPoints[j + 1].Y) / 2);
+
+                        bool isLeft = IsPointOnLeftSide(line, midPoint);
+
+                        if (isLeft)
+                            leftSegments.Add(newSeg);
+                        else
+                            rightSegments.Add(newSeg);
+                    }
                 }
             }
 
-            // 🔴 KROK 3: podział na strony
-            var left = split.Where(x => x.isLeft).Select(x => x.seg).ToList();
-            var right = split.Where(x => !x.isLeft).Select(x => x.seg).ToList();
+            Console.WriteLine($"Lewa strona: {leftSegments.Count} segmentów");
+            Console.WriteLine($"Prawa strona: {rightSegments.Count} segmentów");
 
-            // 🔴 KROK 4: dodaj TYLKO FRAGMENT linii (p1-p2)
-            if (left.Count > 0 && right.Count > 0)
+            // Krok 3: Dodaj linię podziału
+            if (leftSegments.Count > 0 && rightSegments.Count > 0)
             {
-                left.Add(new ContourSegment(p2, p1)
+                leftSegments.Add(new ContourSegment(p2, p1)
                 {
                     Informacja = "linia podziału"
                 });
 
-                right.Add(new ContourSegment(p1, p2)
+                rightSegments.Add(new ContourSegment(p1, p2)
                 {
                     Informacja = "linia podziału"
                 });
             }
 
+            leftSegments = MergeAdjacentArcsSimple(leftSegments);
+            rightSegments = MergeAdjacentArcsSimple(rightSegments);
 
+            // Krok 4: Uporządkuj kontury
+            if (leftSegments.Count > 0)
+                result.Add(OrderSegmentsForClosedContour(leftSegments));
 
-            // 🔴 KROK 5: uporządkuj kontury I SCAL ŁUKI
-            if (left.Count > 0)
-            {
-                var ordered_left = OrderSegmentsForClosedContour(left);
-                ordered_left = MergeAdjacentArcs(ordered_left);  // DODAJ TO
-                result.Add(ordered_left);
-            }
-
-            if (right.Count > 0)
-            {
-                var ordered_right = OrderSegmentsForClosedContour(right);
-                ordered_right = MergeAdjacentArcs(ordered_right);  // DODAJ TO
-                result.Add(ordered_right);
-            }
+            if (rightSegments.Count > 0)
+                result.Add(OrderSegmentsForClosedContour(rightSegments));
 
             return result;
         }
+
+
+        // Prosta funkcja scalania - tylko dla identycznych kierunków
+        private static List<ContourSegment> MergeAdjacentArcsSimple(List<ContourSegment> segments)
+        {
+            if (segments.Count <= 1)
+                return segments;
+
+            var merged = new List<ContourSegment>();
+            int i = 0;
+
+            while (i < segments.Count)
+            {
+                var current = segments[i];
+
+                if (current.Type == SegmentType.Arc && current.Center.HasValue)
+                {
+                    var center = current.Center.Value;
+                    var radius = current.Radius;
+                    var direction = current.CounterClockwise;
+
+                    var startAngle = Math.Atan2(current.Start.Y - center.Y, current.Start.X - center.X);
+                    var endAngle = Math.Atan2(current.End.Y - center.Y, current.End.X - center.X);
+
+                    int j = i + 1;
+                    while (j < segments.Count)
+                    {
+                        var next = segments[j];
+
+                        if (next.Type == SegmentType.Arc &&
+                            next.Center.HasValue &&
+                            Distance(next.Center.Value, center) < 1.0 &&
+                            Math.Abs(next.Radius - radius) < 1.0 &&
+                            next.CounterClockwise == direction &&
+                            Distance(current.End, next.Start) < 1.0)
+                        {
+                            // Scal
+                            var newEndAngle = Math.Atan2(next.End.Y - center.Y, next.End.X - center.X);
+
+                            // Sprawdź, czy kąt nie przekracza 180 stopni
+                            double totalAngle;
+                            if (direction) // CCW
+                            {
+                                totalAngle = newEndAngle - startAngle;
+                                if (totalAngle < 0) totalAngle += 2 * Math.PI;
+                            }
+                            else // CW
+                            {
+                                totalAngle = startAngle - newEndAngle;
+                                if (totalAngle < 0) totalAngle += 2 * Math.PI;
+                            }
+
+                            if (totalAngle > Math.PI * 1.5) // Więcej niż 270 stopni
+                                break; // Nie scalaj
+
+                            current = new ContourSegment(
+                                current.Start,
+                                next.End,
+                                center,
+                                radius,
+                                direction)
+                            {
+                                Informacja = current.Informacja
+                            };
+
+                            j++;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+
+                    merged.Add(current);
+                    i = j;
+                }
+                else
+                {
+                    merged.Add(current);
+                    i++;
+                }
+            }
+
+            return merged;
+        }
+
+
         static double ProjectAlongLine(XPoint p, XLineShape line)
         {
             double dx = line.X2 - line.X1;
@@ -1107,177 +1212,6 @@ namespace GEORGE.Client.Pages.Utils
 
             return (p.X - line.X1) * dx + (p.Y - line.Y1) * dy;
         }
-
-        public static (List<ContourSegment> FixedContour, List<string> Issues) ValidateAndFixContour(List<ContourSegment> contour)
-        {
-            var issues = new List<string>();
-            var fixedContour = new List<ContourSegment>();
-            const double RADIUS_TOL = 2.0;      // tolerancja dopasowania do promienia
-            const double POINT_ON_ARC_TOL = 1.0; // tolerancja odległości punktu od okręgu
-
-            for (int i = 0; i < contour.Count; i++)
-            {
-                var seg = contour[i];
-
-                if (seg.Type == SegmentType.Arc)
-                {
-                    if (!seg.Center.HasValue)
-                    {
-                        issues.Add($"Segment[{i}]: ARC bez środka - zamieniam na linię Start({seg.Start.X};{seg.Start.Y}) End({seg.End.X};{seg.End.Y}).");
-                        fixedContour.Add(new ContourSegment(seg.Start, seg.End) { Informacja = seg.Informacja });
-                        continue;
-                    }
-
-                    var center = seg.Center.Value;
-                    double dStart = Distance(seg.Start, center);
-                    double dEnd = Distance(seg.End, center);
-
-                    if (seg.Radius <= 0)
-                    {
-                        issues.Add($"Segment[{i}]: ARC z nieprawidłowym promieniem ({seg.Radius}) - zamieniam na linię.");
-                        fixedContour.Add(new ContourSegment(seg.Start, seg.End) { Informacja = seg.Informacja });
-                        continue;
-                    }
-
-                    // czy końce leżą na okręgu (w tolerancji)?
-                    bool startOnCircle = Math.Abs(dStart - seg.Radius) <= RADIUS_TOL;
-                    bool endOnCircle = Math.Abs(dEnd - seg.Radius) <= RADIUS_TOL;
-
-                    if (!startOnCircle || !endOnCircle)
-                    {
-                        issues.Add($"Segment[{i}]: ARC którego punkt(y) nie leżą na okręgu (dStart={dStart:F2}, dEnd={dEnd:F2}, R={seg.Radius:F2}) - zamieniam na linię.");
-                        fixedContour.Add(new ContourSegment(seg.Start, seg.End) { Informacja = seg.Informacja });
-                        continue;
-                    }
-
-                    // czy długość łuku jest sensowna (start ≠ end)?
-                    if (Distance(seg.Start, seg.End) < 1e-3)
-                    {
-                        issues.Add($"Segment[{i}]: ARC o niemal zerowej długości - zamieniam na linię.");
-                        fixedContour.Add(new ContourSegment(seg.Start, seg.End) { Informacja = seg.Informacja });
-                        continue;
-                    }
-
-                    // Dodatkowa kontrola: czy punkty leżą w obrębie zadanego łuku (kątowo)
-                    if (!IsPointOnArc(seg.Start, seg) || !IsPointOnArc(seg.End, seg))
-                    {
-                        // Jeżeli punkty są na okręgu, ale poza zakresem kątowym -> raport i zachowanie oryginalnego łuku
-                        issues.Add($"Segment[{i}]: Punkty znajdują się na okręgu ale nie mieszczą się w zakresie oryginalnego łuku. StartOnArc={IsPointOnArc(seg.Start, seg)}, EndOnArc={IsPointOnArc(seg.End, seg)}. Pozostawiam ARC (do dalszej analizy).");
-                        fixedContour.Add(seg);
-                        continue;
-                    }
-
-                    // wszystko OK - dodajemy oryginalny łuk
-                    fixedContour.Add(seg);
-                }
-                else
-                {
-                    // segment liniowy - prosta kontrola długości
-                    if (Distance(seg.Start, seg.End) < 1e-6)
-                    {
-                        issues.Add($"Segment[{i}]: Linia o zerowej długości Start({seg.Start.X};{seg.Start.Y}) - usunięto.");
-                        // pomijamy dodanie
-                    }
-                    else
-                    {
-                        fixedContour.Add(seg);
-                    }
-                }
-            }
-
-            return (fixedContour, issues);
-        }
-
-
-        // Nowa funkcja pomocnicza
-        private static bool IsPointOnLine(XPoint point, XLineShape line, double epsilon = 1e-4)
-        {
-            // Sprawdź czy punkt leży na prostej
-            double crossProduct = (point.Y - line.Y1) * (line.X2 - line.X1) -
-                                 (point.X - line.X1) * (line.Y2 - line.Y1);
-
-            if (Math.Abs(crossProduct) > epsilon)
-                return false;
-
-            // Sprawdź czy punkt jest w granicach odcinka
-            double dotProduct = (point.X - line.X1) * (line.X2 - line.X1) +
-                               (point.Y - line.Y1) * (line.Y2 - line.Y1);
-
-            if (dotProduct < -epsilon)
-                return false;
-
-            double squaredLength = Math.Pow(line.X2 - line.X1, 2) + Math.Pow(line.Y2 - line.Y1, 2);
-
-            if (dotProduct > squaredLength + epsilon)
-                return false;
-
-            return true;
-        }
-
-
-
-
-
-        // Dodaj tę nową funkcję pomocniczą
-        private static double GetParameterOnArc(XPoint point, ContourSegment arc)
-        {
-            if (arc.Center == null) return 0;
-
-            var center = arc.Center.Value;
-            double startAngle = Math.Atan2(arc.Start.Y - center.Y, arc.Start.X - center.X);
-            double pointAngle = Math.Atan2(point.Y - center.Y, point.X - center.X);
-            double endAngle = Math.Atan2(arc.End.Y - center.Y, arc.End.X - center.X);
-
-            startAngle = NormalizeAngle(startAngle);
-            pointAngle = NormalizeAngle(pointAngle);
-            endAngle = NormalizeAngle(endAngle);
-
-            double totalAngle;
-            double angleToPoint;
-
-            if (arc.CounterClockwise)
-            {
-                if (endAngle < startAngle) endAngle += 2 * Math.PI;
-                if (pointAngle < startAngle) pointAngle += 2 * Math.PI;
-                totalAngle = endAngle - startAngle;
-                angleToPoint = pointAngle - startAngle;
-            }
-            else
-            {
-                if (startAngle < endAngle) startAngle += 2 * Math.PI;
-                if (pointAngle < endAngle) pointAngle += 2 * Math.PI;
-                totalAngle = startAngle - endAngle;
-                angleToPoint = startAngle - pointAngle;
-            }
-
-            return totalAngle > 0 ? angleToPoint / totalAngle : 0;
-        }
-
-        // Dodaj tę funkcję pomocniczą
-        private static ContourSegment CreateSegmentFromPoints(XPoint start, XPoint end, ContourSegment original)
-        {
-            if (Distance(start, end) < 1e-6)
-                return null;
-
-            if (original.Type == SegmentType.Arc && original.Center.HasValue)
-            {
-                return new ContourSegment(start, end, original.Center, original.Radius, original.CounterClockwise)
-                {
-                    Informacja = original.Informacja
-                };
-            }
-            else
-            {
-                return new ContourSegment(start, end)
-                {
-                    Informacja = original.Informacja
-                };
-            }
-        }
-
-
-
-
 
 
         // Nowa funkcja pomocnicza do porządkowania segmentów w zamknięty kontur
@@ -1403,7 +1337,6 @@ namespace GEORGE.Client.Pages.Utils
             if (Math.Abs(distStart - original.Radius) > radiusTolerance ||
                 Math.Abs(distEnd - original.Radius) > radiusTolerance)
             {
-                // Jeden z punktów nie leży na łuku → traktuj jako linię
                 return new ContourSegment(start, end)
                 {
                     Informacja = original.Informacja
@@ -1414,56 +1347,12 @@ namespace GEORGE.Client.Pages.Utils
             if (Distance(start, original.Start) < 1e-3 && Distance(end, original.End) < 1e-3)
                 return original;
 
-            // Ustal parametry punktów względem oryginalnego łuku (0..1)
-            double pStart = GetParameterOnArc(start, original);
-            double pEnd = GetParameterOnArc(end, original);
-
-            // Jeżeli punkt nie mieści się w oryginalnym łuku, zachowaj oryginalny kierunek
-            if (pStart < 0 || pStart > 1 || pEnd < 0 || pEnd > 1)
-            {
-                return new ContourSegment(start, end, center, original.Radius, original.CounterClockwise)
-                {
-                    Informacja = original.Informacja
-                };
-            }
-
-            // Jeśli parametry niemal identyczne → zerowy łuk -> traktuj jako linię
-            if (Math.Abs(pStart - pEnd) < 1e-6)
-            {
-                return new ContourSegment(start, end)
-                {
-                    Informacja = original.Informacja
-                };
-            }
-
-            // Zwróć fragment łuku zachowując kierunek oryginału (to poprawnie obsłuży zarówno krótsze jak i większe łuki)
+            // ZAWSZE zachowuj oryginalny kierunek łuku
+            // Nie próbuj zgadywać kierunku - użyj oryginalnego
             return new ContourSegment(start, end, center, original.Radius, original.CounterClockwise)
             {
                 Informacja = original.Informacja
             };
-        }
-
-        // Nowa funkcja pomocnicza
-        private static bool IsAngleBetween(double angle, double startAngle, double endAngle, bool counterClockwise)
-        {
-            angle = NormalizeAngle(angle);
-            startAngle = NormalizeAngle(startAngle);
-            endAngle = NormalizeAngle(endAngle);
-
-            if (counterClockwise)
-            {
-                if (startAngle <= endAngle)
-                    return angle >= startAngle - 0.01 && angle <= endAngle + 0.01;
-                else
-                    return angle >= startAngle - 0.01 || angle <= endAngle + 0.01;
-            }
-            else
-            {
-                if (startAngle >= endAngle)
-                    return angle <= startAngle + 0.01 && angle >= endAngle - 0.01;
-                else
-                    return angle <= startAngle + 0.01 || angle >= endAngle - 0.01;
-            }
         }
 
 
@@ -1500,20 +1389,6 @@ namespace GEORGE.Client.Pages.Utils
             return result;
         }
 
-        static void CloseContour(List<ContourSegment> segments)
-        {
-            if (segments.Count == 0)
-                return;
-
-            var first = segments.First();
-            var last = segments.Last();
-
-            if (Distance(first.Start, last.End) > 1e-6)
-            {
-                segments.Add(new ContourSegment(last.End, first.Start));
-            }
-        }
-
         static List<XPoint> IntersectLineLine(ContourSegment seg, XLineShape line)
         {
             var result = new List<XPoint>();
@@ -1544,14 +1419,6 @@ namespace GEORGE.Client.Pages.Utils
             return result;
         }
 
-        static XPoint MidPoint(ContourSegment seg)
-        {
-            return new XPoint(
-                (seg.Start.X + seg.End.X) / 2.0,
-                (seg.Start.Y + seg.End.Y) / 2.0
-            );
-        }
-
         static bool IsPointOnLeftSide(XLineShape line, XPoint p)
         {
             double value =
@@ -1571,142 +1438,6 @@ namespace GEORGE.Client.Pages.Utils
             return p.X >= minX && p.X <= maxX &&
                    p.Y >= minY && p.Y <= maxY;
         }
-
-
-        private static List<ContourSegment> MergeAdjacentArcs(List<ContourSegment> segments)
-        {
-            if (segments.Count <= 1)
-                return segments;
-
-            var merged = new List<ContourSegment>();
-            int i = 0;
-
-            while (i < segments.Count)
-            {
-                var current = segments[i];
-
-                // Szukaj następnych łuków do scalenia
-                if (current.Type == SegmentType.Arc && current.Center.HasValue)
-                {
-                    var center = current.Center.Value;
-                    var radius = current.Radius;
-                    var direction = current.CounterClockwise;
-
-                    // Zbierz wszystkie kolejne łuki, które można scalić
-                    var arcsToMerge = new List<ContourSegment> { current };
-                    int j = i + 1;
-
-                    while (j < segments.Count)
-                    {
-                        var next = segments[j];
-                        var lastArc = arcsToMerge[arcsToMerge.Count - 1];
-
-                        if (next.Type == SegmentType.Arc &&
-                            next.Center.HasValue &&
-                            Distance(next.Center.Value, center) < 1.0 &&
-                            Math.Abs(next.Radius - radius) < 1.0 &&
-                            next.CounterClockwise == direction)
-                        {
-                            // Sprawdź, czy next zaczyna się tam, gdzie kończy się lastArc (lub można odwrócić)
-                            bool startsAtEnd = Distance(lastArc.End, next.Start) < 1.0;
-                            bool endsAtEnd = Distance(lastArc.End, next.End) < 1.0;
-
-                            if (!startsAtEnd && !endsAtEnd)
-                                break;
-
-                            ContourSegment candidate = next;
-
-                            if (endsAtEnd)
-                            {
-                                // odwróć next żeby pasował do końca
-                                candidate = new ContourSegment(next.End, next.Start, next.Center, next.Radius, !next.CounterClockwise)
-                                {
-                                    Informacja = next.Informacja
-                                };
-                            }
-
-                            // DODATKOWA KONTROLA KĄTOWA: nie łącz jeśli pomiędzy łukami istnieje duża przerwa kątowa
-                            double angleLastEnd = Math.Atan2(lastArc.End.Y - center.Y, lastArc.End.X - center.X);
-                            double angleNextStart = Math.Atan2(candidate.Start.Y - center.Y, candidate.Start.X - center.X);
-
-                            angleLastEnd = NormalizeAngle(angleLastEnd);
-                            angleNextStart = NormalizeAngle(angleNextStart);
-
-                            double angleDiff;
-                            if (direction)
-                            {
-                                // CCW: angleNextStart should be >= angleLastEnd (lub z przesunięciem o 2π)
-                                angleDiff = angleNextStart - angleLastEnd;
-                                if (angleDiff < 0) angleDiff += 2 * Math.PI;
-                            }
-                            else
-                            {
-                                // CW: odwrotnie
-                                angleDiff = angleLastEnd - angleNextStart;
-                                if (angleDiff < 0) angleDiff += 2 * Math.PI;
-                            }
-
-                            const double ANGLE_TOL = 0.45; // ~25 stopni tolerancji
-                            if (angleDiff > ANGLE_TOL)
-                            {
-                                // zbyt duża luka kątowa → przerwij scalanie
-                                break;
-                            }
-
-                            arcsToMerge.Add(candidate);
-                            j++;
-                            continue;
-                        }
-                        break;
-                    }
-
-                    // Scal zebrane łuki w jeden, ALE NIE SCALAJ jeśli tworzą pełny okrąg
-                    if (arcsToMerge.Count > 1)
-                    {
-                        var firstArc = arcsToMerge[0];
-                        var lastArc = arcsToMerge[arcsToMerge.Count - 1];
-
-                        // Sprawdź, czy scalony łuk NIE jest pełnym okręgiem
-                        if (Distance(firstArc.Start, lastArc.End) > 1.0)
-                        {
-                            var mergedArc = new ContourSegment(
-                                firstArc.Start,
-                                lastArc.End,
-                                center,
-                                radius,
-                                direction)
-                            {
-                                Informacja = firstArc.Informacja
-                            };
-
-                            merged.Add(mergedArc);
-                        }
-                        else
-                        {
-                            // Pełny okrąg - nie scalaj, dodaj oryginalne segmenty
-                            foreach (var arc in arcsToMerge)
-                            {
-                                merged.Add(arc);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        merged.Add(current);
-                    }
-
-                    i = j;
-                }
-                else
-                {
-                    merged.Add(current);
-                    i++;
-                }
-            }
-
-            return merged;
-        }
-
 
         private static double NormalizeAngle(double angle)
         {
