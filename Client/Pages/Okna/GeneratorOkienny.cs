@@ -2201,7 +2201,7 @@ namespace GEORGE.Client.Pages.Okna
             if (nk < 0)
             {
                 warunek =
-                 (stronaWModelu == "Góra" && ElementyRamyRysowane.Count == 0) || stronaWModelu == "Dół"
+                 (stronaWModelu == "Góra" && ElementyRamyRysowane.Count == 0) ||(stronaWModelu == "Góra" && _outer.Count() == 4) || stronaWModelu == "Dół"
                  || (stronaWModelu == "Lewa" && (ElementyRamyRysowane.Count > 0 && _outer.Count() < 4) && ElementyRamyRysowane[0].Strona == "Prawa")
                  || (stronaWModelu == "Góra" && ElementyRamyRysowane.Count > 0 && (ElementyRamyRysowane[0].Strona != "Dół" || _outer.Count() == 3));
             }

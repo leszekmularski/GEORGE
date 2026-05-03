@@ -776,9 +776,14 @@
                     <p style="color:red; font-size:14px;">Poniżej lista regionów, wymiary zewnętrzne @constWlasciwosciOkna.Szerokosc x @constWlasciwosciOkna.Wysokosc</p>
                     <Tabs>
                         <TabPane Tab="Ramy połączone">
-                            <button class="btn btn-sm btn-secondary mb-3 ms-2" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsDualRama))">
-                                <i class="bi bi-clipboard me-1"></i> Kopiuj dane regionu (prosty format)
-                            </button>
+                            <div >
+                                <button class="btn btn-sm btn-secondary mb-3 ms-2" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsDualRama, false))">
+                                    <i class="bi bi-clipboard me-1"></i> Kopiuj dane regionu (prosty format)
+                                </button>
+                                <button class="btn btn-sm btn-secondary mb-3 ms-2" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsDualRama, true))">
+                                    <i class="bi bi-clipboard me-1"></i> Kopiuj dane regionu tylko kształty (prosty format)
+                                </button>
+                            </div>
                             <hr />
                             @foreach (var region in _regionsDualRama)
                             {
@@ -897,9 +902,14 @@
 
                         </TabPane>
                         <TabPane Tab="Podział skrzydeł">
-                            <button class="btn btn-sm btn-secondary mb-3 ms-2" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsSkrzydlo))">
-                                <i class="bi bi-clipboard me-1"></i> Kopiuj dane regionu (prosty format)
-                            </button>
+                            <div >
+                                <button class="btn btn-sm btn-secondary mb-3 ms-2" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsDualRama, false))">
+                                    <i class="bi bi-clipboard me-1"></i> Kopiuj dane regionu (prosty format)
+                                </button>
+                                <button class="btn btn-sm btn-secondary mb-3 ms-2" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsDualRama, true))">
+                                    <i class="bi bi-clipboard me-1"></i> Kopiuj dane regionu tylko kształty (prosty format)
+                                </button>
+                            </div>
                             <hr />
                             @foreach (var region in _regionsSkrzydlo)
                             {
@@ -1065,9 +1075,14 @@
                     <p style="color:red; font-size:14px;">Poniżej lista regionów, wymiary zewnętrzne @constWlasciwosciOkna.Szerokosc x @constWlasciwosciOkna.Wysokosc</p>
                     <Tabs>
                         <TabPane Tab="Ramy połączone">
-                            <button class="btn btn-sm btn-secondary mb-3 ms-2" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsDualRama))">
-                                <i class="bi bi-clipboard me-1"></i> Kopiuj dane regionu (prosty format)
-                            </button>
+                            <div >
+                                <button class="btn btn-sm btn-secondary mb-3 ms-2" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsDualRama, false))">
+                                    <i class="bi bi-clipboard me-1"></i> Kopiuj dane regionu (prosty format)
+                                </button>
+                                <button class="btn btn-sm btn-secondary mb-3 ms-2" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsDualRama, true))">
+                                    <i class="bi bi-clipboard me-1"></i> Kopiuj dane regionu tylko kształty (prosty format)
+                                </button>
+                            </div>
                             <hr />
                             @foreach (var region in _regionsDualRama)
                             {
@@ -1187,9 +1202,14 @@
 
                         </TabPane>
                         <TabPane Tab="Podział skrzydeł">
-                            <button class="btn btn-sm btn-secondary mb-3 ms-2" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsSkrzydlo))">
-                                <i class="bi bi-clipboard me-1"></i> Kopiuj dane regionu (prosty format)
-                            </button>
+                            <div>
+                                <button class="btn btn-sm btn-secondary mb-3 ms-2" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsDualRama, false))">
+                                    <i class="bi bi-clipboard me-1"></i> Kopiuj dane regionu (prosty format)
+                                </button>
+                                <button class="btn btn-sm btn-secondary mb-3 ms-2" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsDualRama, true))">
+                                    <i class="bi bi-clipboard me-1"></i> Kopiuj dane regionu tylko kształty (prosty format)
+                                </button>
+                            </div>
                             <hr />
                             @foreach (var region in _regionsSkrzydlo)
                             {
@@ -2290,7 +2310,7 @@
         await _message.Info("Skopiowano dane wszystkich kształtów do schowka!", 2);
     }
 
-    private async Task KopiujDaneRegionowRamyLubSkrzydla(List<ShapeRegion> regiony)
+    private async Task KopiujDaneRegionowRamyLubSkrzydla(List<ShapeRegion> regiony, bool tylkoKsztalty)
     {
         var sb = new System.Text.StringBuilder();
 
@@ -2309,7 +2329,7 @@
             sb.AppendLine();
 
             // Wierzchołki proste (jeśli istnieją)
-            if (region.Wierzcholki != null && region.Wierzcholki.Count > 0)
+            if (region.Wierzcholki != null && region.Wierzcholki.Count > 0 && !tylkoKsztalty)
             {
                 sb.AppendLine("Wierzchołki (X, Y):");
                 for (int i = 0; i < region.Wierzcholki.Count; i++)
@@ -2350,7 +2370,7 @@
             }
 
             // Podsumowanie regionu
-            sb.AppendLine($"Podsumowanie regionu: {region.Wierzcholki?.Count ?? 0} wierzchołków prostych, {region.Kontur?.Count ?? 0} segmentów konturu");
+            if(!tylkoKsztalty) sb.AppendLine($"Podsumowanie regionu: {region.Wierzcholki?.Count ?? 0} wierzchołków prostych, {region.Kontur?.Count ?? 0} segmentów konturu");
             sb.AppendLine();
         }
 
