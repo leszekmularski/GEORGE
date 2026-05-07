@@ -1729,6 +1729,7 @@ namespace GEORGE.Client.Pages.Okna
             return true;
         }
 
+
         public List<ContourSegment> Build4SegmentContour(
         List<XPoint> wierzcholki,
         List<ContourSegment> outerContour,
@@ -1736,104 +1737,127 @@ namespace GEORGE.Client.Pages.Okna
         {
             if (wierzcholki == null || wierzcholki.Count != 4)
             {
-                Console.WriteLine("Lista wierzchołków musi zawierać dokładnie 4 punkty.");
-
-                // Jeśli mamy jakieś punkty, utwórz z nich zamknięty kontur
-                if (wierzcholki != null && wierzcholki.Count > 0)
+                Console.WriteLine("❌ Build4SegmentContour: lista wierzchołków musi zawierać dokładnie 4 punkty");
+                // Fallback - zwróć zwykłe linie
+                var fallback = new List<ContourSegment>();
+                for (int i = 0; i < wierzcholki.Count; i++)
                 {
-                    var segments = new List<ContourSegment>();
-
-                    // Utwórz segmenty łączące kolejne punkty
-                    for (int i = 0; i < wierzcholki.Count; i++)
+                    int next = (i + 1) % wierzcholki.Count;
+                    fallback.Add(new ContourSegment(wierzcholki[i], wierzcholki[next])
                     {
-                        int nextIndex = (i + 1) % wierzcholki.Count;
-                        var segment = new ContourSegment(wierzcholki[i], wierzcholki[nextIndex])
-                        {
-                            Informacja = $"Segment {i} (automatyczny)"
-                        };
-                        segments.Add(segment);
-                    }
+                        Informacja = $"Fallback segment {i}"
+                    });
+                }
+                return fallback;
+            }
 
-                    return segments;
+            // Sprawdź czy któryś z wierzchołków leży na łuku
+            bool hasArc = false;
+            XPoint? arcCenter = null;
+            double arcRadius = 0;
+            bool arcCW = false;
+
+            // Sprawdź czy para wierzchołków (0-1) leży na łuku z outerContour
+            foreach (var seg in outerContour)
+            {
+                if (seg.Type == SegmentType.Arc && seg.Center != null)
+                {
+                    double distToStart = Distance(seg.Start, wierzcholki[0]);
+                    double distToEnd = Distance(seg.End, wierzcholki[1]);
+
+                    // Jeśli punkty pasują do segmentu łuku (z tolerancją)
+                    if (distToStart < 1.0 && distToEnd < 1.0)
+                    {
+                        hasArc = true;
+                        arcCenter = seg.Center.Value;
+                        arcRadius = seg.Radius;
+                        arcCW = seg.CounterClockwise;
+                        Console.WriteLine($"🔷 Znaleziono łuk zewnętrzny: Center({arcCenter.Value.X},{arcCenter.Value.Y}) R={arcRadius}");
+                        break;
+                    }
+                }
+            }
+
+            if (hasArc && arcCenter != null)
+            {
+                // Mamy łuk na zewnętrznej krawędzi
+                // Oblicz kąty dla punktów zewnętrznych
+                double angle1 = Math.Atan2(wierzcholki[0].Y - arcCenter.Value.Y,
+                                            wierzcholki[0].X - arcCenter.Value.X);
+                double angle2 = Math.Atan2(wierzcholki[1].Y - arcCenter.Value.Y,
+                                            wierzcholki[1].X - arcCenter.Value.X);
+
+                // Znajdź odpowiadający łuk wewnętrzny (przesunięty do środka)
+                ContourSegment innerArc = null;
+                foreach (var seg in innerContour)
+                {
+                    if (seg.Type == SegmentType.Arc && seg.Center != null)
+                    {
+                        double dx = seg.Center.Value.X - arcCenter.Value.X;
+                        double dy = seg.Center.Value.Y - arcCenter.Value.Y;
+                        double dist = Math.Sqrt(dx * dx + dy * dy);
+
+                        // Jeśli środek jest blisko (współśrodkowy)
+                        if (dist < 1.0)
+                        {
+                            innerArc = seg;
+                            Console.WriteLine($"🔷 Znaleziono łuk wewnętrzny: Center({seg.Center.Value.X},{seg.Center.Value.Y}) R={seg.Radius}");
+                            break;
+                        }
+                    }
                 }
 
-                // Jeśli brak punktów, zwróć pustą listę
-                return new List<ContourSegment>();
+                if (innerArc != null && innerArc.Center != null)
+                {
+                    double innerRadius = innerArc.Radius;
+                    XPoint innerCenter = innerArc.Center.Value;
+
+                    // Oblicz punkty wewnętrzne na tych samych kątach
+                    XPoint innerStart = new XPoint(
+                        innerCenter.X + innerRadius * Math.Cos(angle1),
+                        innerCenter.Y + innerRadius * Math.Sin(angle1));
+                    XPoint innerEnd = new XPoint(
+                        innerCenter.X + innerRadius * Math.Cos(angle2),
+                        innerCenter.Y + innerRadius * Math.Sin(angle2));
+
+                    Console.WriteLine($"🔷 innerStart({innerStart.X:F2},{innerStart.Y:F2}) innerEnd({innerEnd.X:F2},{innerEnd.Y:F2})");
+
+                    // Zewnętrzny łuk - zachowaj oryginalną orientację (CW dla zewnętrznego)
+                    var outerArcSeg = new ContourSegment(wierzcholki[0], wierzcholki[1],
+                        arcCenter.Value, arcRadius, arcCW);
+
+                    // Wewnętrzny łuk - przeciwna orientacja
+                    var innerArcSeg = new ContourSegment(innerEnd, innerStart,
+                        innerCenter, innerRadius, !arcCW);
+
+                    // Łączniki - proste linie
+                    var connector1 = new ContourSegment(wierzcholki[1], innerEnd)
+                    {
+                        Informacja = "Łącznik prawy"
+                    };
+                    var connector2 = new ContourSegment(innerStart, wierzcholki[0])
+                    {
+                        Informacja = "Łącznik lewy"
+                    };
+
+                    return new List<ContourSegment>
+            {
+                outerArcSeg,
+                connector1,
+                innerArcSeg,
+                connector2
+            };
+                }
             }
 
-            // Sprawdź czy kontury są współśrodkowe
-            XPoint? commonCenter = GetCommonCenter(outerContour, innerContour);
-            bool isConcentric = commonCenter.HasValue;
+            // Brak łuku - zwykłe linie (trapez lub prostokąt)
+            var segments = new List<ContourSegment>();
+            segments.Add(new ContourSegment(wierzcholki[0], wierzcholki[1]) { Informacja = "Góra" });
+            segments.Add(new ContourSegment(wierzcholki[1], wierzcholki[2]) { Informacja = "Prawa" });
+            segments.Add(new ContourSegment(wierzcholki[2], wierzcholki[3]) { Informacja = "Dół" });
+            segments.Add(new ContourSegment(wierzcholki[3], wierzcholki[0]) { Informacja = "Lewa" });
 
-            // Znajdujemy najbliższe segmenty zewnętrzne i wewnętrzne
-            ContourSegment outerSegment = FindClosestSegment(wierzcholki[0], wierzcholki[1], outerContour);
-            ContourSegment innerSegment = null;
-
-            Console.WriteLine($"Segment: Start(wierzcholki[0]: {wierzcholki[0]}, wierzcholki[1]: {wierzcholki[1]})");
-            Console.WriteLine($"Segment: Start({outerSegment.Start.X}, {outerSegment.Start.Y}) End({outerSegment.End.X}, {outerSegment.End.Y}) Type: {outerSegment.Type} Center: {(outerSegment.Center.HasValue ? $"({outerSegment.Center.Value.X}, {outerSegment.Center.Value.Y})" : "null")} Radius: {outerSegment.Radius}");
-
-            if (outerSegment.Type == SegmentType.Arc && outerSegment.Center != null)
-            {
-                XPoint center = outerSegment.Center.Value;
-
-                // Punkty na zewnętrznym łuku (z wierzchołków)
-                XPoint outerStart = wierzcholki[0];
-                XPoint outerEnd = wierzcholki[1];
-
-                // Oblicz kąty dla punktów zewnętrznych
-                double angle1 = Math.Atan2(outerStart.Y - center.Y, outerStart.X - center.X);
-                double angle2 = Math.Atan2(outerEnd.Y - center.Y, outerEnd.X - center.X);
-
-                // Znajdź wewnętrzny łuk
-                var innerArc = FindMatchingArc(outerSegment, innerContour);
-
-                if (innerArc == null)
-                    throw new InvalidOperationException("Nie znaleziono pasującego łuku inner.");
-
-                double innerRadius = innerArc.Radius;
-                XPoint innerCenter = innerArc.Center.Value;
-
-                // Oblicz punkty na wewnętrznym okręgu (promieniście)
-                XPoint innerStart = new XPoint(
-                    innerCenter.X + innerRadius * Math.Cos(angle1),
-                    innerCenter.Y + innerRadius * Math.Sin(angle1)
-                );
-
-                XPoint innerEnd = new XPoint(
-                    innerCenter.X + innerRadius * Math.Cos(angle2),
-                    innerCenter.Y + innerRadius * Math.Sin(angle2)
-                );
-
-                // 🔥 WAŻNE: Zewnętrzny łuk = CW (zgodny z ruchem wskazówek)
-                // 🔥 Wewnętrzny łuk = CCW (przeciwny do ruchu wskazówek)
-                outerSegment = new ContourSegment(outerStart, outerEnd, center, outerSegment.Radius, false); // CW
-                innerSegment = new ContourSegment(innerEnd, innerStart, innerCenter, innerRadius, true); // CCW (odwrócona kolejność!)
-            }
-            else
-            {
-                // Dla linii prostych
-                outerSegment = new ContourSegment(wierzcholki[0], wierzcholki[1]);
-                innerSegment = new ContourSegment(wierzcholki[2], wierzcholki[3]);
-            }
-
-            // 🔥 Linie łączące – zawsze w kierunku od zewnętrznego do wewnętrznego
-            ContourSegment line1 = new ContourSegment(outerSegment.End, innerSegment.Start)
-            {
-                Informacja = "Łącznik prawy (do środka)"
-            };
-
-            ContourSegment line2 = new ContourSegment(innerSegment.End, outerSegment.Start)
-            {
-                Informacja = "Łącznik lewy (na zewnątrz)"
-            };
-
-            return new List<ContourSegment>
-            {
-                outerSegment,  // Łuk CW (zewnętrzny)
-                line1,         // Linia do wewnątrz
-                innerSegment,  // Łuk CCW (wewnętrzny)
-                line2          // Linia na zewnątrz
-            };
+            return segments;
         }
 
         private List<XPoint> GetWierzcholkiStycznePodLuki(

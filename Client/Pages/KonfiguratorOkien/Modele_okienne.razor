@@ -658,8 +658,11 @@
                         <i class="bi bi-clipboard-data me-1"></i> Kopiuj wszystkie dane
                     </button>
 
-                    <button class="btn btn-sm btn-secondary mb-3 ms-2" @onclick="@(() => KopiujDaneKsztaltuProsty(ksztalty))">
+                    <button class="btn btn-sm btn-secondary mb-3 ms-2" @onclick="@(() => KopiujDaneKsztaltuProsty(ksztalty, false))">
                         <i class="bi bi-clipboard me-1"></i> Kopiuj (prosty format)
+                    </button>
+                    <button class="btn btn-sm btn-secondary mb-3 ms-2" @onclick="@(() => KopiujDaneKsztaltuProsty(ksztalty, true))">
+                        <i class="bi bi-clipboard me-1"></i> Kopiuj tylko kształty (prosty format)
                     </button>
                     <hr/>
                     @foreach (var ksztalt in ksztalty)
@@ -2237,7 +2240,7 @@
     }
 
     // Prostsza wersja dla listy kształtów
-    private async Task KopiujDaneKsztaltuProsty(List<KsztaltElementu> ksztalty)
+    private async Task KopiujDaneKsztaltuProsty(List<KsztaltElementu> ksztalty, bool tylkoKsztalty)
     {
         var sb = new System.Text.StringBuilder();
 
@@ -2270,7 +2273,7 @@
             sb.AppendLine();
 
             // Wierzchołki
-            if (ksztalt.Wierzcholki != null && ksztalt.Wierzcholki.Count > 0)
+            if (ksztalt.Wierzcholki != null && ksztalt.Wierzcholki.Count > 0 && !tylkoKsztalty)
             {
                 sb.AppendLine("Wierzchołki (X, Y):");
                 for (int i = 0; i < ksztalt.Wierzcholki.Count; i++)
