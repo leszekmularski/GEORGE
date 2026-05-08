@@ -170,12 +170,12 @@ namespace GEORGE.Client.Pages.Utils
                             double r = rr.Radius;
 
                             var centers = new List<(XPoint Center, string Corner)>
-                    {
-                        (new XPoint(rr.X + r, rr.Y + r), "TL"),                         // Top-Left
-                        (new XPoint(rr.X + rr.Width - r, rr.Y + r), "TR"),              // Top-Right
-                        (new XPoint(rr.X + rr.Width - r, rr.Y + rr.Height - r), "BR"),  // Bottom-Right
-                        (new XPoint(rr.X + r, rr.Y + rr.Height - r), "BL")              // Bottom-Left
-                    };
+                            {
+                                (new XPoint(rr.X + r, rr.Y + r), "TL"),                         // Top-Left
+                                (new XPoint(rr.X + rr.Width - r, rr.Y + r), "TR"),              // Top-Right
+                                (new XPoint(rr.X + rr.Width - r, rr.Y + rr.Height - r), "BR"),  // Bottom-Right
+                                (new XPoint(rr.X + r, rr.Y + rr.Height - r), "BL")              // Bottom-Left
+                            };
 
                             foreach (var (center, corner) in centers)
                             {
@@ -185,16 +185,18 @@ namespace GEORGE.Client.Pages.Utils
                                 if (Math.Abs(d1 - r) < 0.5 && Math.Abs(d2 - r) < 0.5)
                                 {
                                     // Określ kierunek łuku na podstawie narożnika
-                                    bool counterClockwise = corner == "TL" || corner == "BR";
+                                    bool counterClockwise;
 
-                                    var segment = new ContourSegment(
-                                        p,
-                                        next,
-                                        center,
-                                        r,
-                                        counterClockwise
-                                    );
+                                    switch (corner)
+                                    {
+                                        case "TL": counterClockwise = true; break;   // Top-Left: CCW
+                                        case "TR": counterClockwise = false; break;  // Top-Right: CW
+                                        case "BR": counterClockwise = false; break;   // Bottom-Right: CCW (ZMIANA: było false)
+                                        case "BL": counterClockwise = true; break;  // Bottom-Left: CW (ZMIANA: było true)
+                                        default: counterClockwise = false; break;
+                                    }
 
+                                    var segment = new ContourSegment(p, next, center, r, counterClockwise);
                                     segment.Informacja = ramaInfo;
                                     return segment;
                                 }
@@ -204,7 +206,6 @@ namespace GEORGE.Client.Pages.Utils
                             lineSeg.Informacja = ramaInfo;
                             return lineSeg;
                         }
-
                         // =========================
                         // ZAOKRĄGLONY LEWY BOK
                         // =========================
@@ -259,7 +260,9 @@ namespace GEORGE.Client.Pages.Utils
                             if (isRightArc)
                             {
                                 // Dla prawego boku - kierunek przeciwny niż dla lewego
-                                bool counterClockwise = p.Y > next.Y;
+                                // bool counterClockwise = p.Y > next.Y;
+
+                                bool counterClockwise = true; // ZMIANA: zawsze true
 
                                 var segment = new ContourSegment(
                                     p,
@@ -960,17 +963,16 @@ namespace GEORGE.Client.Pages.Utils
             return wynik;
         }
 
-
         public static List<List<ContourSegment>> PodzielKonturPoLinii(
-        List<ContourSegment> contour,
-        XLineShape line)
+            List<ContourSegment> contour,
+            XLineShape line)
         {
             const double EPS = 1e-6;
             var result = new List<List<ContourSegment>>();
 
             // Krok 1: Znajdź wszystkie unikalne punkty przecięcia
             var uniqueIntersectionPoints = new List<XPoint>();
-            var segmentIntersectionMap = new Dictionary<int, List<int>>(); // segmentIndex -> indices in uniqueIntersectionPoints
+            var segmentIntersectionMap = new Dictionary<int, List<int>>();
 
             for (int i = 0; i < contour.Count; i++)
             {
@@ -1010,10 +1012,10 @@ namespace GEORGE.Client.Pages.Utils
                 }
             }
 
-            Console.WriteLine($"Znaleziono {uniqueIntersectionPoints.Count} unikalnych punktów przecięcia");
+            Console.WriteLine($"PodzielKonturPoLinii Znaleziono {uniqueIntersectionPoints.Count} unikalnych punktów przecięcia");
 
             if (uniqueIntersectionPoints.Count < 2)
-                return new List<List<ContourSegment>> { contour };
+                return new List<List<ContourSegment>> { new List<ContourSegment>(contour) };
 
             // Weź dwa punkty przecięcia (pierwszy i ostatni na linii)
             var orderedPoints = uniqueIntersectionPoints
@@ -1023,7 +1025,7 @@ namespace GEORGE.Client.Pages.Utils
             var p1 = orderedPoints.First();
             var p2 = orderedPoints.Last();
 
-            Console.WriteLine($"P1: ({p1.X:F2},{p1.Y:F2}), P2: ({p2.X:F2},{p2.Y:F2})");
+            Console.WriteLine($"PodzielKonturPoLinii P1: ({p1.X:F2},{p1.Y:F2}), P2: ({p2.X:F2},{p2.Y:F2})");
 
             // Krok 2: Przypisz każdy segment do lewej lub prawej strony
             var leftSegments = new List<ContourSegment>();
@@ -1089,8 +1091,8 @@ namespace GEORGE.Client.Pages.Utils
                 }
             }
 
-            Console.WriteLine($"Lewa strona: {leftSegments.Count} segmentów");
-            Console.WriteLine($"Prawa strona: {rightSegments.Count} segmentów");
+            Console.WriteLine($"PodzielKonturPoLinii Lewa strona: {leftSegments.Count} segmentów");
+            Console.WriteLine($"PodzielKonturPoLinii Prawa strona: {rightSegments.Count} segmentów");
 
             // Krok 3: Dodaj linię podziału
             if (leftSegments.Count > 0 && rightSegments.Count > 0)
@@ -1106,8 +1108,9 @@ namespace GEORGE.Client.Pages.Utils
                 });
             }
 
-            leftSegments = MergeAdjacentArcsSimple(leftSegments);
-            rightSegments = MergeAdjacentArcsSimple(rightSegments);
+            // NIE SCALAJ ŁUKÓW - zostaw oryginalny podział
+            // leftSegments = MergeAdjacentArcsSimple(leftSegments);  // ZAKOMENTUJ
+            // rightSegments = MergeAdjacentArcsSimple(rightSegments); // ZAKOMENTUJ
 
             // Krok 4: Uporządkuj kontury
             if (leftSegments.Count > 0)

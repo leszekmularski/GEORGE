@@ -1632,7 +1632,7 @@ namespace GEORGE.Client.Pages.Okna
 
                 }
 
-
+     
                 // Budujemy pełny kontur 4-segmentowy
                 wierzcholkiZLukami = Build4SegmentContour(wierzcholkiStycznePodLuki, outerContourSegment, innerContourSegment);
 
@@ -1729,7 +1729,6 @@ namespace GEORGE.Client.Pages.Okna
             return true;
         }
 
-
         public List<ContourSegment> Build4SegmentContour(
         List<XPoint> wierzcholki,
         List<ContourSegment> outerContour,
@@ -1824,29 +1823,48 @@ namespace GEORGE.Client.Pages.Okna
 
                     // Zewnętrzny łuk - zachowaj oryginalną orientację (CW dla zewnętrznego)
                     var outerArcSeg = new ContourSegment(wierzcholki[0], wierzcholki[1],
-                        arcCenter.Value, arcRadius, arcCW);
+                        arcCenter.Value, arcRadius, !arcCW);
 
                     // Wewnętrzny łuk - przeciwna orientacja
                     var innerArcSeg = new ContourSegment(innerEnd, innerStart,
-                        innerCenter, innerRadius, !arcCW);
+                        innerCenter, innerRadius, arcCW);
 
                     // Łączniki - proste linie
-                    var connector1 = new ContourSegment(wierzcholki[1], innerEnd)
-                    {
-                        Informacja = "Łącznik prawy"
-                    };
-                    var connector2 = new ContourSegment(innerStart, wierzcholki[0])
-                    {
-                        Informacja = "Łącznik lewy"
-                    };
+                    bool isClosedContour =
+                    Distance(wierzcholki[0], wierzcholki[3]) < 1.0 ||
+                    outerContour.Count >= 4 && outerContour.All(x => x.Type != SegmentType.Arc);
 
-                    return new List<ContourSegment>
-            {
-                outerArcSeg,
-                connector1,
-                innerArcSeg,
-                connector2
-            };
+                    // 👉 jeśli kontur zamknięty - NIE DODAJEMY łączników
+                    if (!isClosedContour)
+                    {
+                        var connector1 = new ContourSegment(wierzcholki[1], innerEnd)
+                        {
+                            Informacja = "Łącznik prawy"
+                        };
+
+                        var connector2 = new ContourSegment(innerStart, wierzcholki[0])
+                        {
+                            Informacja = "Łącznik lewy"
+                        };
+
+                        return new List<ContourSegment>
+                        {
+                            outerArcSeg,
+                            connector1,
+                            innerArcSeg,
+                            connector2
+                        };
+                    }
+                    else
+                    {
+                        // ✔ pełny zamknięty kontur
+                        return new List<ContourSegment>
+                        {
+                            outerArcSeg,
+                            innerArcSeg
+                        };
+                    }
+
                 }
             }
 
@@ -1861,48 +1879,46 @@ namespace GEORGE.Client.Pages.Okna
         }
 
         private List<XPoint> GetWierzcholkiStycznePodLuki(
-        int i,
-        int next,
-        int prev,
-        List<XPoint> wierzcholki,
-        List<ContourSegment> outerContourSegment,
-        List<ContourSegment> innerContourSegment)
+         int i,
+         int next,
+         int prev,
+         List<XPoint> wierzcholki,
+         List<ContourSegment> outerContourSegment,
+         List<ContourSegment> innerContourSegment)
         {
-            // 🔒 zabezpieczenie zakresu
-            bool outOfRange =
-                i >= outerContourSegment.Count ||
-                i >= innerContourSegment.Count ||
-                next >= outerContourSegment.Count ||
-                prev >= outerContourSegment.Count;
-
-            if (outOfRange)
-            {
-                Console.WriteLine($"❌ Index out of range: i={i}, outerSeg={outerContourSegment.Count}, innerSeg={innerContourSegment.Count}");
+            if (i < 0 || i >= outerContourSegment.Count)
                 return wierzcholki;
-            }
 
             var seg = outerContourSegment[i];
-            var segNext = outerContourSegment[next];
-            var segPrev = outerContourSegment[prev];
 
-            // 🔍 sprawdzamy czy wszystko linie
-            bool allLines =
-                seg.Type == SegmentType.Line &&
-                segNext.Type == SegmentType.Line &&
-                segPrev.Type == SegmentType.Line;
-
-            if (allLines)
+            // 🔵 JEŚLI LINIA → NIC NIE ZMIENIAMY
+            if (seg.Type == SegmentType.Line)
                 return wierzcholki;
 
-            // 🔥 przypadek łuku / styczności
-            return new List<XPoint>
+            // 🔴 JEŚLI ŁUK → BIERZEMY JEGO REALNE PUNKTY
+            if (seg.Type == SegmentType.Arc && seg.Center != null)
             {
-                seg.Start,
-                seg.End,
-                wierzcholki[2],
-                wierzcholki[3]
+                var innerSeg = innerContourSegment
+                    .FirstOrDefault(x =>
+                        x.Type == SegmentType.Arc &&
+                        x.Center != null &&
+                        Distance(x.Center.Value, seg.Center.Value) < 1.0);
+
+                if (innerSeg == null)
+                    return wierzcholki;
+
+                return new List<XPoint>
+            {
+                seg.Start,        // outer start
+                seg.End,          // outer end
+                innerSeg.End,     // inner end
+                innerSeg.Start    // inner start
             };
+            }
+
+            return wierzcholki;
         }
+
         /// <summary>
         /// Sprawdza czy kontury są współśrodkowe (mają ten sam środek)
         /// </summary>
@@ -2225,7 +2241,7 @@ namespace GEORGE.Client.Pages.Okna
             if (nk < 0)
             {
                 warunek =
-                 (stronaWModelu == "Góra" && ElementyRamyRysowane.Count == 0) ||(stronaWModelu == "Góra" && _outer.Count() == 4) || stronaWModelu == "Dół"
+                 (stronaWModelu == "Góra" && ElementyRamyRysowane.Count == 0) || (stronaWModelu == "Góra" && _outer.Count() == 4) || stronaWModelu == "Dół"
                  || (stronaWModelu == "Lewa" && (ElementyRamyRysowane.Count > 0 && _outer.Count() < 4) && ElementyRamyRysowane[0].Strona == "Prawa")
                  || (stronaWModelu == "Góra" && ElementyRamyRysowane.Count > 0 && (ElementyRamyRysowane[0].Strona != "Dół" || _outer.Count() == 3));
             }
