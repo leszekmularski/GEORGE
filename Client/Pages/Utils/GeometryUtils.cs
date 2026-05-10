@@ -169,35 +169,45 @@ namespace GEORGE.Client.Pages.Utils
                         {
                             double r = rr.Radius;
 
-                            var centers = new List<(XPoint Center, string Corner)>
-                            {
-                                (new XPoint(rr.X + r, rr.Y + r), "TL"),                         // Top-Left
-                                (new XPoint(rr.X + rr.Width - r, rr.Y + r), "TR"),              // Top-Right
-                                (new XPoint(rr.X + rr.Width - r, rr.Y + rr.Height - r), "BR"),  // Bottom-Right
-                                (new XPoint(rr.X + r, rr.Y + rr.Height - r), "BL")              // Bottom-Left
-                            };
+                            var centers = new List<(XPoint Center, string Corner, bool CCW)>
+    {
+        (new XPoint(rr.X + r, rr.Y + r), "TL", true),
+        (new XPoint(rr.X + rr.Width - r, rr.Y + r), "TR", false),
+        (new XPoint(rr.X + rr.Width - r, rr.Y + rr.Height - r), "BR", false),
+        (new XPoint(rr.X + r, rr.Y + rr.Height - r), "BL", true)
+    };
 
-                            foreach (var (center, corner) in centers)
-                            {
-                                double d1 = Distance(p, center);
-                                double d2 = Distance(next, center);
+                            double tolerance = Math.Max(5.0, r * 0.12);
 
-                                if (Math.Abs(d1 - r) < 0.5 && Math.Abs(d2 - r) < 0.5)
+                            foreach (var (center, corner, ccw) in centers)
+                            {
+                                double dx1 = p.X - center.X;
+                                double dy1 = p.Y - center.Y;
+                                double dx2 = next.X - center.X;
+                                double dy2 = next.Y - center.Y;
+
+                                double r1 = Math.Sqrt(dx1 * dx1 + dy1 * dy1);
+                                double r2 = Math.Sqrt(dx2 * dx2 + dy2 * dy2);
+
+                                bool arc =
+                                    Math.Abs(r1 - r) <= tolerance &&
+                                    Math.Abs(r2 - r) <= tolerance;
+
+                                if (arc)
                                 {
-                                    // Określ kierunek łuku na podstawie narożnika
-                                    bool counterClockwise;
+                                    var segment = new ContourSegment(
+                                        p,
+                                        next,
+                                        center,
+                                        r,
+                                        ccw
+                                    );
 
-                                    switch (corner)
-                                    {
-                                        case "TL": counterClockwise = true; break;   // Top-Left: CCW
-                                        case "TR": counterClockwise = false; break;  // Top-Right: CW
-                                        case "BR": counterClockwise = false; break;   // Bottom-Right: CCW (ZMIANA: było false)
-                                        case "BL": counterClockwise = true; break;  // Bottom-Left: CW (ZMIANA: było true)
-                                        default: counterClockwise = false; break;
-                                    }
-
-                                    var segment = new ContourSegment(p, next, center, r, counterClockwise);
                                     segment.Informacja = ramaInfo;
+
+                                    Console.WriteLine(
+                                        $"🔷 ARC {corner} r1={r1:F2} r2={r2:F2} r={r:F2}");
+
                                     return segment;
                                 }
                             }
@@ -206,6 +216,7 @@ namespace GEORGE.Client.Pages.Utils
                             lineSeg.Informacja = ramaInfo;
                             return lineSeg;
                         }
+                        
                         // =========================
                         // ZAOKRĄGLONY LEWY BOK
                         // =========================

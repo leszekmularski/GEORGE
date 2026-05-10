@@ -330,7 +330,7 @@ namespace GEORGE.Client.Pages.Models
                 topLeftStart,
                 leftCenter,
                 r,
-                false
+                true
             ));
 
             return segments;

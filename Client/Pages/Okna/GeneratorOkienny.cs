@@ -460,88 +460,6 @@ namespace GEORGE.Client.Pages.Okna
 
         }
 
-        public List<ContourSegment> BuildClosedContour(List<ContourSegment> input, double tolerance = 0.01)
-        {
-            if (input == null || input.Count == 0)
-                return new List<ContourSegment>();
-
-            var unused = new List<ContourSegment>(input);
-            var result = new List<ContourSegment>();
-
-            // 1️⃣ start od pierwszego sensownego segmentu
-            var current = unused[0];
-            unused.RemoveAt(0);
-            result.Add(current);
-
-            while (unused.Count > 0)
-            {
-                var last = result.Last();
-                bool found = false;
-
-                for (int i = 0; i < unused.Count; i++)
-                {
-                    var candidate = unused[i];
-
-                    // 🔹 CASE 1: normalne połączenie
-                    if (PointsAreClose(last.End, candidate.Start, tolerance))
-                    {
-                        result.Add(candidate);
-                        unused.RemoveAt(i);
-                        found = true;
-                        break;
-                    }
-
-                    // 🔹 CASE 2: odwrócony segment (Line lub Arc)
-                    if (PointsAreClose(last.End, candidate.End, tolerance))
-                    {
-                        result.Add(Reverse(candidate));
-                        unused.RemoveAt(i);
-                        found = true;
-                        break;
-                    }
-                }
-
-                // ❌ jeśli nie znaleziono → STOP (nie zgadujemy)
-                if (!found)
-                {
-                    Console.WriteLine("❌ BuildClosedContour: przerwanie - brak ciągłości segmentów");
-                    break;
-                }
-            }
-
-            // 2️⃣ WALIDACJA ZAMKNIĘCIA (bez sztucznego domykania)
-            var firstSeg = result.First();
-            var lastSeg = result.Last();
-
-            if (!PointsAreClose(lastSeg.End, firstSeg.Start, tolerance))
-            {
-                Console.WriteLine("⚠️ Kontur NIE jest domknięty geometrycznie!");
-                Console.WriteLine($"   gap = {Distance(lastSeg.End, firstSeg.Start)}");
-            }
-
-            return result;
-        }
-        private static ContourSegment Reverse(ContourSegment s)
-        {
-            if (s.Type == SegmentType.Arc)
-            {
-                return new ContourSegment(
-                    s.End,
-                    s.Start,
-                    s.Center,
-                    s.Radius,
-                    !s.CounterClockwise
-                );
-            }
-
-            return new ContourSegment(s.End, s.Start);
-        }
-
-        private static bool PointsAreClose(XPoint a, XPoint b, double tolerance)
-        {
-            return Math.Abs(a.X - b.X) <= tolerance &&
-                   Math.Abs(a.Y - b.Y) <= tolerance;
-        }
         public async Task<bool> GenerateGenericElementsWithJoins(
             List<XPoint> outer, List<XPoint> inner,
             List<ContourSegment> outerContourSegment, List<ContourSegment> innerContourSegment,
@@ -1632,10 +1550,9 @@ namespace GEORGE.Client.Pages.Okna
 
                 }
 
-     
-                // Budujemy pełny kontur 4-segmentowy
-                wierzcholkiZLukami = Build4SegmentContour(wierzcholkiStycznePodLuki, outerContourSegment, innerContourSegment);
 
+                // Budujemy pełny kontur 4-segmentowy
+                wierzcholkiZLukami = Build4SegmentContour(wierzcholkiStycznePodLuki, outerContourSegment, innerContourSegment, i + 1);
 
                 double regionMinX = wierzcholki.Min(p => p.X);
                 double regionMaxX = wierzcholki.Max(p => p.X);
@@ -1732,7 +1649,8 @@ namespace GEORGE.Client.Pages.Okna
         public List<ContourSegment> Build4SegmentContour(
         List<XPoint> wierzcholki,
         List<ContourSegment> outerContour,
-        List<ContourSegment> innerContour)
+        List<ContourSegment> innerContour,
+        int nri)
         {
             if (wierzcholki == null || wierzcholki.Count != 4)
             {
@@ -1771,7 +1689,7 @@ namespace GEORGE.Client.Pages.Okna
                         arcCenter = seg.Center.Value;
                         arcRadius = seg.Radius;
                         arcCW = seg.CounterClockwise;
-                        Console.WriteLine($"🔷 Znaleziono łuk zewnętrzny: Center({arcCenter.Value.X},{arcCenter.Value.Y}) R={arcRadius}");
+                        Console.WriteLine($"Build4SegmentContour: 🔷 Znaleziono łuk zewnętrzny: Center({arcCenter.Value.X},{arcCenter.Value.Y}) R={arcRadius} CCW:{arcCW} numer w konturze: {nri}");
                         break;
                     }
                 }
@@ -1799,8 +1717,9 @@ namespace GEORGE.Client.Pages.Okna
                         // Jeśli środek jest blisko (współśrodkowy)
                         if (dist < 1.0)
                         {
+                            //seg.CounterClockwise = false; // Wewnętrzny łuk ma przeciwną orientację
                             innerArc = seg;
-                            Console.WriteLine($"🔷 Znaleziono łuk wewnętrzny: Center({seg.Center.Value.X},{seg.Center.Value.Y}) R={seg.Radius}");
+                            Console.WriteLine($"Build4SegmentContour: 🔷 Znaleziono łuk wewnętrzny: Center({seg.Center.Value.X},{seg.Center.Value.Y}) R={seg.Radius}  seg.CounterClockwise:{seg.CounterClockwise}");
                             break;
                         }
                     }
@@ -1819,15 +1738,13 @@ namespace GEORGE.Client.Pages.Okna
                         innerCenter.X + innerRadius * Math.Cos(angle2),
                         innerCenter.Y + innerRadius * Math.Sin(angle2));
 
-                    Console.WriteLine($"🔷 innerStart({innerStart.X:F2},{innerStart.Y:F2}) innerEnd({innerEnd.X:F2},{innerEnd.Y:F2})");
+                    Console.WriteLine($"Build4SegmentContour: 🔷 innerStart({innerStart.X:F2},{innerStart.Y:F2}) innerEnd({innerEnd.X:F2},{innerEnd.Y:F2})");
 
-                    // Zewnętrzny łuk - zachowaj oryginalną orientację (CW dla zewnętrznego)
                     var outerArcSeg = new ContourSegment(wierzcholki[0], wierzcholki[1],
-                        arcCenter.Value, arcRadius, !arcCW);
+                        arcCenter.Value, arcRadius, false);  // ← zawsze CCW
 
-                    // Wewnętrzny łuk - przeciwna orientacja
                     var innerArcSeg = new ContourSegment(innerEnd, innerStart,
-                        innerCenter, innerRadius, arcCW);
+                        innerCenter, innerRadius, true);   // ← zawsze CW
 
                     // Łączniki - proste linie
                     bool isClosedContour =
@@ -1919,94 +1836,6 @@ namespace GEORGE.Client.Pages.Okna
             return wierzcholki;
         }
 
-        /// <summary>
-        /// Sprawdza czy kontury są współśrodkowe (mają ten sam środek)
-        /// </summary>
-        private XPoint? GetCommonCenter(List<ContourSegment> outerContour, List<ContourSegment> innerContour)
-        {
-            XPoint? outerCenter = null;
-            XPoint? innerCenter = null;
-
-            // Znajdź środek zewnętrznego łuku
-            foreach (var seg in outerContour)
-            {
-                if (seg.Type == SegmentType.Arc && seg.Center != null)
-                {
-                    outerCenter = seg.Center.Value;
-                    break;
-                }
-            }
-
-            // Znajdź środek wewnętrznego łuku
-            foreach (var seg in innerContour)
-            {
-                if (seg.Type == SegmentType.Arc && seg.Center != null)
-                {
-                    innerCenter = seg.Center.Value;
-                    break;
-                }
-            }
-
-            // Sprawdź czy środki istnieją i są takie same (z tolerancją)
-            if (outerCenter.HasValue && innerCenter.HasValue)
-            {
-                double dx = outerCenter.Value.X - innerCenter.Value.X;
-                double dy = outerCenter.Value.Y - innerCenter.Value.Y;
-                double distance = Math.Sqrt(dx * dx + dy * dy);
-
-                if (distance < 0.1) // Tolerancja 0.1 jednostki
-                {
-                    return outerCenter.Value;
-                }
-            }
-
-            return null;
-        }
-
-        public ContourSegment FindClosestSegment(XPoint p1, XPoint p2, List<ContourSegment> contourSegments)
-        {
-            if (contourSegments == null || contourSegments.Count == 0)
-            {
-                Console.WriteLine("FindClosestSegment --> ContourSegments jest null lub pusty. Zwarcam tulko linie p1 --> p2");
-
-                return new ContourSegment(
-                        p1,
-                        p2
-                    );
-            }
-
-            ContourSegment closest = null;
-            double minTotalDistance = double.MaxValue;
-
-            foreach (var seg in contourSegments)
-            {
-                double distToP1, distToP2;
-
-                if (seg.Type == SegmentType.Line)
-                {
-                    distToP1 = DistanceToLine(p1, seg.Start, seg.End);
-                    distToP2 = DistanceToLine(p2, seg.Start, seg.End);
-                }
-                else // Arc
-                {
-                    distToP1 = DistanceToArc(p1, seg);
-                    distToP2 = DistanceToArc(p2, seg);
-                }
-
-                double totalDistance = distToP1 + distToP2;
-
-                Console.WriteLine($"Segment {seg.Type}: odległość do p1={distToP1:F2}, do p2={distToP2:F2}, suma={totalDistance:F2}");
-
-                if (totalDistance < minTotalDistance)
-                {
-                    minTotalDistance = totalDistance;
-                    closest = seg;
-                }
-            }
-
-            return closest ?? contourSegments[0];
-        }
-
         // Odległość między dwoma punktami
         private static double Distance(XPoint a, XPoint b)
         {
@@ -2014,82 +1843,6 @@ namespace GEORGE.Client.Pages.Okna
             double dy = a.Y - b.Y;
             return Math.Sqrt(dx * dx + dy * dy);
         }
-
-        // Odległość punktu od linii (odcinek)
-        private double DistanceToLine(XPoint point, XPoint lineStart, XPoint lineEnd)
-        {
-            double dx = lineEnd.X - lineStart.X;
-            double dy = lineEnd.Y - lineStart.Y;
-
-            double lineLength = Math.Sqrt(dx * dx + dy * dy);
-            if (lineLength == 0) return Distance(point, lineStart);
-
-            double t = ((point.X - lineStart.X) * dx + (point.Y - lineStart.Y) * dy) / (lineLength * lineLength);
-            t = Math.Max(0, Math.Min(1, t));
-
-            double closestX = lineStart.X + t * dx;
-            double closestY = lineStart.Y + t * dy;
-
-            double distX = point.X - closestX;
-            double distY = point.Y - closestY;
-            return Math.Sqrt(distX * distX + distY * distY);
-        }
-
-        // Sprawdzenie czy punkt leży na łuku
-        private bool IsPointOnArc(XPoint point, ContourSegment arc, double tolerance = 1.0)
-        {
-            if (arc.Center == null) return false;
-
-            double distToCenter = Distance(point, arc.Center.Value);
-            if (Math.Abs(distToCenter - arc.Radius) > tolerance)
-                return false;
-
-            double angle = Math.Atan2(point.Y - arc.Center.Value.Y,
-                                       point.X - arc.Center.Value.X);
-
-            double startAngle = Math.Atan2(arc.Start.Y - arc.Center.Value.Y,
-                                            arc.Start.X - arc.Center.Value.X);
-            double endAngle = Math.Atan2(arc.End.Y - arc.Center.Value.Y,
-                                          arc.End.X - arc.Center.Value.X);
-
-            if (startAngle < 0) startAngle += 2 * Math.PI;
-            if (endAngle < 0) endAngle += 2 * Math.PI;
-            if (angle < 0) angle += 2 * Math.PI;
-
-            if (!arc.CounterClockwise)
-            {
-                if (startAngle > endAngle)
-                    return angle >= startAngle || angle <= endAngle;
-                else
-                    return angle >= startAngle && angle <= endAngle;
-            }
-            else
-            {
-                if (endAngle > startAngle)
-                    return angle >= endAngle || angle <= startAngle;
-                else
-                    return angle >= endAngle && angle <= startAngle;
-            }
-        }
-
-        // Odległość punktu od łuku
-        private double DistanceToArc(XPoint point, ContourSegment arc)
-        {
-            if (arc.Center == null) return double.MaxValue;
-
-            double distToCenter = Distance(point, arc.Center.Value);
-            double distToCircle = Math.Abs(distToCenter - arc.Radius);
-
-            if (!IsPointOnArc(point, arc))
-            {
-                double distToStart = Distance(point, arc.Start);
-                double distToEnd = Distance(point, arc.End);
-                return Math.Min(distToStart, distToEnd);
-            }
-
-            return distToCircle;
-        }
-
 
         public float ObliczDlugoscKonturu(List<ContourSegment> kontur)
         {
@@ -2114,34 +1867,6 @@ namespace GEORGE.Client.Pages.Okna
 
             return (float)sumaDlugosci;
         }
-
-        private ContourSegment FindMatchingArc(ContourSegment outerArc, List<ContourSegment> innerContour)
-        {
-            if (outerArc.Center == null)
-                return null;
-
-            ContourSegment best = null;
-            double minDiff = double.MaxValue;
-
-            foreach (var seg in innerContour)
-            {
-                if (seg.Type != SegmentType.Arc || seg.Center == null)
-                    continue;
-
-                double dx = seg.Center.Value.X - outerArc.Center.Value.X;
-                double dy = seg.Center.Value.Y - outerArc.Center.Value.Y;
-                double dist = dx * dx + dy * dy;
-
-                if (dist < minDiff)
-                {
-                    minDiff = dist;
-                    best = seg;
-                }
-            }
-
-            return best;
-        }
-        // Funkcja do obliczania długości łuku
         private double DlugoscLukuKontur(ContourSegment arc)
         {
             if (arc.Type != SegmentType.Arc || !arc.Center.HasValue)
@@ -2406,95 +2131,6 @@ namespace GEORGE.Client.Pages.Okna
 
             return intersections;
         }
-        //private List<ContourSegment> GetStartT2(ContourSegment inner, ContourSegment outer)
-        //{
-        //    var segments = new List<ContourSegment>();
-
-        //    // Kopiowanie segmentu inner
-        //    if (inner.Type == SegmentType.Line)
-        //    {
-        //        segments.Add(new ContourSegment(
-        //            new XPoint(inner.Start.X, inner.Start.Y),
-        //            new XPoint(inner.End.X, inner.End.Y)
-        //        ));
-        //    }
-        //    else if (inner.Type == SegmentType.Arc && inner.Center != null)
-        //    {
-        //        segments.Add(new ContourSegment(
-        //            new XPoint(inner.Start.X, inner.Start.Y),
-        //            new XPoint(inner.End.X, inner.End.Y),
-        //            new XPoint(inner.Center.Value.X, inner.Center.Value.Y),
-        //            inner.Radius,
-        //            inner.CounterClockwise
-        //        ));
-        //    }
-
-        //    // Kopiowanie segmentu outer
-        //    if (outer.Type == SegmentType.Line)
-        //    {
-        //        segments.Add(new ContourSegment(
-        //            new XPoint(outer.Start.X, outer.Start.Y),
-        //            new XPoint(outer.End.X, outer.End.Y)
-        //        ));
-        //    }
-        //    else if (outer.Type == SegmentType.Arc && outer.Center != null)
-        //    {
-        //        segments.Add(new ContourSegment(
-        //            new XPoint(outer.Start.X, outer.Start.Y),
-        //            new XPoint(outer.End.X, outer.End.Y),
-        //            new XPoint(outer.Center.Value.X, outer.Center.Value.Y),
-        //            outer.Radius,
-        //            outer.CounterClockwise
-        //        ));
-        //    }
-
-        //    return segments;
-        //}
-        //private List<ContourSegment> GetEndT2(ContourSegment inner, ContourSegment outer)
-        //{
-        //    var segments = new List<ContourSegment>();
-
-        //    // Kopiowanie segmentu inner
-        //    if (inner.Type == SegmentType.Line)
-        //    {
-        //        segments.Add(new ContourSegment(
-        //            new XPoint(inner.Start.X, inner.Start.Y),
-        //            new XPoint(inner.End.X, inner.End.Y)
-        //        ));
-        //    }
-        //    else if (inner.Type == SegmentType.Arc && inner.Center != null)
-        //    {
-        //        segments.Add(new ContourSegment(
-        //            new XPoint(inner.Start.X, inner.Start.Y),
-        //            new XPoint(inner.End.X, inner.End.Y),
-        //            new XPoint(inner.Center.Value.X, inner.Center.Value.Y),
-        //            inner.Radius,
-        //            inner.CounterClockwise
-        //        ));
-        //    }
-
-        //    // Kopiowanie segmentu outer
-        //    if (outer.Type == SegmentType.Line)
-        //    {
-        //        segments.Add(new ContourSegment(
-        //            new XPoint(outer.Start.X, outer.Start.Y),
-        //            new XPoint(outer.End.X, outer.End.Y)
-        //        ));
-        //    }
-        //    else if (outer.Type == SegmentType.Arc && outer.Center != null)
-        //    {
-        //        segments.Add(new ContourSegment(
-        //            new XPoint(outer.Start.X, outer.Start.Y),
-        //            new XPoint(outer.End.X, outer.End.Y),
-        //            new XPoint(outer.Center.Value.X, outer.Center.Value.Y),
-        //            outer.Radius,
-        //            outer.CounterClockwise
-        //        ));
-        //    }
-
-        //    return segments;
-        //}
-
         private float ObliczRoznicePoziomow(KonfSystem? konf, bool slupekStaly)
         {
             if (konf == null)
@@ -2795,82 +2431,6 @@ namespace GEORGE.Client.Pages.Okna
             );
         }
 
-        // Znajdź pierwsze przecięcie osi z konturem
-        public XPoint FindAxisIntersection(
-           float value,
-           AxisDirection direction,
-           List<XPoint> contour,
-           AxisPick pick = AxisPick.Nearest,
-           float epsilon = 0.001f
-       )
-        {
-            List<XPoint> hits = new();
-
-            for (int i = 0; i < contour.Count; i++)
-            {
-                int next = (i + 1) % contour.Count;
-
-                var a = contour[i];
-                var b = contour[next];
-
-                // 🔒 FILTR: interesują nas tylko krawędzie osiowe
-                if (direction == AxisDirection.Horizontal)
-                {
-                    // tylko krawędzie POZIOME
-                    if (Math.Abs(a.Y - b.Y) > epsilon)
-                        continue;
-
-                    if (Math.Abs(a.Y - value) > epsilon)
-                        continue;
-
-                    hits.Add(new XPoint(
-                        Math.Min(a.X, b.X),
-                        value
-                    ));
-                    hits.Add(new XPoint(
-                        Math.Max(a.X, b.X),
-                        value
-                    ));
-                }
-                else
-                {
-                    // tylko krawędzie PIONOWE
-                    if (Math.Abs(a.X - b.X) > epsilon)
-                        continue;
-
-                    if (Math.Abs(a.X - value) > epsilon)
-                        continue;
-
-                    hits.Add(new XPoint(
-                        value,
-                        Math.Min(a.Y, b.Y)
-                    ));
-                    hits.Add(new XPoint(
-                        value,
-                        Math.Max(a.Y, b.Y)
-                    ));
-                }
-            }
-
-            if (hits.Count == 0)
-                return direction == AxisDirection.Horizontal
-                    ? new XPoint(contour[0].X, value)
-                    : new XPoint(value, contour[0].Y);
-
-            return pick switch
-            {
-                AxisPick.Min => direction == AxisDirection.Horizontal
-                    ? hits.OrderBy(p => p.X).First()
-                    : hits.OrderBy(p => p.Y).First(),
-
-                AxisPick.Max => direction == AxisDirection.Horizontal
-                    ? hits.OrderByDescending(p => p.X).First()
-                    : hits.OrderByDescending(p => p.Y).First(),
-
-                _ => hits.First()
-            };
-        }
-
         private XPoint GetHorizontalIntersection(XPoint a, XPoint b, float y)
         {
             if (Math.Abs(a.Y - b.Y) < 1e-3f)
@@ -3067,12 +2627,12 @@ namespace GEORGE.Client.Pages.Okna
 
 
         public List<ContourSegment> CalculateOffsetPolygonKontur(
-    List<ContourSegment> segments,
-    float profileLeft,
-    float profileRight,
-    float profileTop,
-    float profileBottom,
-    bool elementLiniowy)
+        List<ContourSegment> segments,
+        float profileLeft,
+        float profileRight,
+        float profileTop,
+        float profileBottom,
+        bool elementLiniowy)
         {
             if (segments == null || segments.Count == 0)
                 return new List<ContourSegment>();
@@ -3298,12 +2858,6 @@ namespace GEORGE.Client.Pages.Okna
             return result;
         }
 
-        // Pomocnicze metody używane powyżej
-
-        private static XPoint GetSegmentMidpoint(XPoint a, XPoint b)
-        {
-            return new XPoint((a.X + b.X) / 2.0, (a.Y + b.Y) / 2.0);
-        }
 
         private static double DistanceSquared(XPoint a, XPoint b)
         {
@@ -3447,21 +3001,6 @@ namespace GEORGE.Client.Pages.Okna
             double dx = p2.X - p1.X;
             double dy = p2.Y - p1.Y;
             return Math.Sqrt(dx * dx + dy * dy);
-        }
-
-        // Funkcja pomocnicza do określenia typu połączenia w narożniku
-
-        public enum AxisDirection
-        {
-            Horizontal,
-            Vertical
-        }
-
-        public enum AxisPick
-        {
-            Nearest, // zachowanie jak dotychczas
-            Min,     // zewnętrzne / lewe / dolne
-            Max      // wewnętrzne / prawe / górne
         }
 
     }
