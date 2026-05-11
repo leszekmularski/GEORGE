@@ -1876,29 +1876,40 @@ namespace GEORGE.Client.Pages.Okna
             }
 
             // Sprawdź czy któryś z wierzchołków leży na łuku
+            // W miejscu gdzie szukasz łuku zewnętrznego, dodaj sprawdzenie czy oba punkty są na łuku
             bool hasArc = false;
             XPoint? arcCenter = null;
             double arcRadius = 0;
             bool arcCW = false;
 
-            // Sprawdź czy para wierzchołków (0-1) leży na łuku z outerContour
+            // Sprawdź wszystkie pary segmentów, nie tylko (0-1)
             foreach (var seg in outerContour)
             {
                 if (seg.Type == SegmentType.Arc && seg.Center != null)
                 {
-                    double distToStart = Distance(seg.Start, wierzcholki[0]);
-                    double distToEnd = Distance(seg.End, wierzcholki[1]);
-
-                    // Jeśli punkty pasują do segmentu łuku (z tolerancją)
-                    if (distToStart < 1.0 && distToEnd < 1.0)
+                    // Sprawdź czy któreś dwa kolejne wierzchołki leżą na tym łuku
+                    for (int i = 0; i < wierzcholki.Count; i++)
                     {
-                        hasArc = true;
-                        arcCenter = seg.Center.Value;
-                        arcRadius = seg.Radius;
-                        arcCW = seg.CounterClockwise;
-                        Console.WriteLine($"Build4SegmentContour: 🔷 Znaleziono łuk zewnętrzny: Center({arcCenter.Value.X},{arcCenter.Value.Y}) R={arcRadius} CCW:{arcCW} numer w konturze: {nri}");
-                        break;
+                        int next = (i + 1) % wierzcholki.Count;
+                        double distToStart = Distance(seg.Start, wierzcholki[i]);
+                        double distToEnd = Distance(seg.End, wierzcholki[next]);
+
+                        // Sprawdź też odwrotną kolejność
+                        bool match = (distToStart < 1.0 && distToEnd < 1.0) ||
+                                    (Distance(seg.Start, wierzcholki[next]) < 1.0 &&
+                                     Distance(seg.End, wierzcholki[i]) < 1.0);
+
+                        if (match)
+                        {
+                            hasArc = true;
+                            arcCenter = seg.Center.Value;
+                            arcRadius = seg.Radius;
+                            arcCW = seg.CounterClockwise;
+                            Console.WriteLine($"✅ Znaleziono łuk dla par ({i},{next})");
+                            break;
+                        }
                     }
+                    if (hasArc) break;
                 }
             }
 
