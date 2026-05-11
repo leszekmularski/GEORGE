@@ -906,12 +906,23 @@ namespace GEORGE.Client.Pages.Okna
                             };
 
                             wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
-                                         i,
-                                         next,
-                                         prev,
-                                         wierzcholki,
-                                         outerContourSegment,
-                                         innerContourSegment);
+                                i,
+                                next,
+                                prev,
+                                wierzcholki,  // zawsze przekazuj oryginalne wierzcholki
+                                outerContourSegment,
+                                innerContourSegment,
+                                leftJoin,     // przekaż typy połączeń do funkcji
+                                rightJoin,
+                                outer,        // przekaż outer do ew. przeliczeń T3
+                                angleDegrees,
+                                anglePrev,
+                                angleNext,
+                                StronaElementu,
+                                stonaOstanioDodanegoElementu,
+                                vertexCount,
+                                firstangleDegrees
+                            );
 
                         }
                         else
@@ -936,12 +947,23 @@ namespace GEORGE.Client.Pages.Okna
                                 };
 
                                 wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
-                                         i,
-                                         next,
-                                         prev,
-                                         wierzcholki,
-                                         outerContourSegment,
-                                         innerContourSegment);
+                                    i,
+                                    next,
+                                    prev,
+                                    wierzcholki,  // zawsze przekazuj oryginalne wierzcholki
+                                    outerContourSegment,
+                                    innerContourSegment,
+                                    leftJoin,     // przekaż typy połączeń do funkcji
+                                    rightJoin,
+                                    outer,        // przekaż outer do ew. przeliczeń T3
+                                    angleDegrees,
+                                    anglePrev,
+                                    angleNext,
+                                    StronaElementu,
+                                    stonaOstanioDodanegoElementu,
+                                    vertexCount,
+                                    firstangleDegrees
+                                );
 
                             }
                             else
@@ -984,12 +1006,23 @@ namespace GEORGE.Client.Pages.Okna
                                 };
 
                                 wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
-                                         i,
-                                         next,
-                                         prev,
-                                         wierzcholki,
-                                         outerContourSegment,
-                                         innerContourSegment);
+                                    i,
+                                    next,
+                                    prev,
+                                    wierzcholki,  // zawsze przekazuj oryginalne wierzcholki
+                                    outerContourSegment,
+                                    innerContourSegment,
+                                    leftJoin,     // przekaż typy połączeń do funkcji
+                                    rightJoin,
+                                    outer,        // przekaż outer do ew. przeliczeń T3
+                                    angleDegrees,
+                                    anglePrev,
+                                    angleNext,
+                                    StronaElementu,
+                                    stonaOstanioDodanegoElementu,
+                                    vertexCount,
+                                    firstangleDegrees
+                                );
 
                             }
                         }
@@ -1016,12 +1049,23 @@ namespace GEORGE.Client.Pages.Okna
                             };
 
                             wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
-                                         i,
-                                         next,
-                                         prev,
-                                         wierzcholki,
-                                         outerContourSegment,
-                                         innerContourSegment);
+                                i,
+                                next,
+                                prev,
+                                wierzcholki,  // zawsze przekazuj oryginalne wierzcholki
+                                outerContourSegment,
+                                innerContourSegment,
+                                leftJoin,     // przekaż typy połączeń do funkcji
+                                rightJoin,
+                                outer,        // przekaż outer do ew. przeliczeń T3
+                                angleDegrees,
+                                anglePrev,
+                                angleNext,
+                                StronaElementu,
+                                stonaOstanioDodanegoElementu,
+                                vertexCount,
+                                firstangleDegrees
+                            );
 
                         }
                         else
@@ -1070,12 +1114,23 @@ namespace GEORGE.Client.Pages.Okna
                             };
 
                             wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
-                                         i,
-                                         next,
-                                         prev,
-                                         wierzcholki,
-                                         outerContourSegment,
-                                         innerContourSegment);
+                                i,
+                                next,
+                                prev,
+                                wierzcholki,  // zawsze przekazuj oryginalne wierzcholki
+                                outerContourSegment,
+                                innerContourSegment,
+                                leftJoin,     // przekaż typy połączeń do funkcji
+                                rightJoin,
+                                outer,        // przekaż outer do ew. przeliczeń T3
+                                angleDegrees,
+                                anglePrev,
+                                angleNext,
+                                StronaElementu,
+                                stonaOstanioDodanegoElementu,
+                                vertexCount,
+                                firstangleDegrees
+                            );
 
                         }
                     }
@@ -1091,12 +1146,23 @@ namespace GEORGE.Client.Pages.Okna
                         };
 
                     wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
-                                         i,
-                                         next,
-                                         prev,
-                                         wierzcholki,
-                                         outerContourSegment,
-                                         innerContourSegment);
+                        i,
+                        next,
+                        prev,
+                        wierzcholki,  // zawsze przekazuj oryginalne wierzcholki
+                        outerContourSegment,
+                        innerContourSegment,
+                        leftJoin,     // przekaż typy połączeń do funkcji
+                        rightJoin,
+                        outer,        // przekaż outer do ew. przeliczeń T3
+                        angleDegrees,
+                        anglePrev,
+                        angleNext,
+                        StronaElementu,
+                        stonaOstanioDodanegoElementu,
+                        vertexCount,
+                        firstangleDegrees
+                    );
 
                 }
                 else if (leftJoin == "T1" && rightJoin == "T1")
@@ -1118,12 +1184,23 @@ namespace GEORGE.Client.Pages.Okna
                         };
 
                     wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
-                                         i,
-                                         next,
-                                         prev,
-                                         wierzcholki,
-                                         outerContourSegment,
-                                         innerContourSegment);
+                        i,
+                        next,
+                        prev,
+                        wierzcholki,  // zawsze przekazuj oryginalne wierzcholki
+                        outerContourSegment,
+                        innerContourSegment,
+                        leftJoin,     // przekaż typy połączeń do funkcji
+                        rightJoin,
+                        outer,        // przekaż outer do ew. przeliczeń T3
+                        angleDegrees,
+                        anglePrev,
+                        angleNext,
+                        StronaElementu,
+                        stonaOstanioDodanegoElementu,
+                        vertexCount,
+                        firstangleDegrees
+                    );
 
                 }
                 else if (leftJoin == "T3" && rightJoin == "T3")
@@ -1146,12 +1223,23 @@ namespace GEORGE.Client.Pages.Okna
                         };
 
                     wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
-                                                i,
-                                                next,
-                                                prev,
-                                                wierzcholki,
-                                                outerContourSegment,
-                                                innerContourSegment);
+                        i,
+                        next,
+                        prev,
+                        wierzcholki,  // zawsze przekazuj oryginalne wierzcholki
+                        outerContourSegment,
+                        innerContourSegment,
+                        leftJoin,     // przekaż typy połączeń do funkcji
+                        rightJoin,
+                        outer,        // przekaż outer do ew. przeliczeń T3
+                        angleDegrees,
+                        anglePrev,
+                        angleNext,
+                        StronaElementu,
+                        stonaOstanioDodanegoElementu,
+                        vertexCount,
+                        firstangleDegrees
+                    );
 
                 }
                 else if (leftJoin == "T2" && rightJoin == "T2")
@@ -1165,12 +1253,23 @@ namespace GEORGE.Client.Pages.Okna
                         };
 
                     wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
-                                         i,
-                                         next,
-                                         prev,
-                                         wierzcholki,
-                                         outerContourSegment,
-                                         innerContourSegment);
+                        i,
+                        next,
+                        prev,
+                        wierzcholki,  // zawsze przekazuj oryginalne wierzcholki
+                        outerContourSegment,
+                        innerContourSegment,
+                        leftJoin,     // przekaż typy połączeń do funkcji
+                        rightJoin,
+                        outer,        // przekaż outer do ew. przeliczeń T3
+                        angleDegrees,
+                        anglePrev,
+                        angleNext,
+                        StronaElementu,
+                        stonaOstanioDodanegoElementu,
+                        vertexCount,
+                        firstangleDegrees
+                    );
 
                 }
                 else if (leftJoin == "T5" && rightJoin == "T5")
@@ -1297,13 +1396,25 @@ namespace GEORGE.Client.Pages.Okna
 
                      };
 
+
                     wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
-                                         i,
-                                         next,
-                                         prev,
-                                         wierzcholki,
-                                         outerContourSegment,
-                                         innerContourSegment);
+                        i,
+                        next,
+                        prev,
+                        wierzcholki,  // zawsze przekazuj oryginalne wierzcholki
+                        outerContourSegment,
+                        innerContourSegment,
+                        leftJoin,     // przekaż typy połączeń do funkcji
+                        rightJoin,
+                        outer,        // przekaż outer do ew. przeliczeń T3
+                        angleDegrees,
+                        anglePrev,
+                        angleNext,
+                        StronaElementu,
+                        stonaOstanioDodanegoElementu,
+                        vertexCount,
+                        firstangleDegrees
+                    );
 
                     Console.WriteLine($"🔷 T5-T5 -> wierzcholki: {wierzcholki.Count} new List<XPoint>");
                 }
@@ -1329,13 +1440,25 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT2[1], getEndT2[1], getEndT1[0], getStartT2[0]
                         };
 
+
                     wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
-                                         i,
-                                         next,
-                                         prev,
-                                         wierzcholki,
-                                         outerContourSegment,
-                                         innerContourSegment);
+                        i,
+                        next,
+                        prev,
+                        wierzcholki,  // zawsze przekazuj oryginalne wierzcholki
+                        outerContourSegment,
+                        innerContourSegment,
+                        leftJoin,     // przekaż typy połączeń do funkcji
+                        rightJoin,
+                        outer,        // przekaż outer do ew. przeliczeń T3
+                        angleDegrees,
+                        anglePrev,
+                        angleNext,
+                        StronaElementu,
+                        stonaOstanioDodanegoElementu,
+                        vertexCount,
+                        firstangleDegrees
+                    );
 
                 }
                 else if (leftJoin == "T1" && rightJoin == "T2")
@@ -1360,13 +1483,25 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT1[1], getEndT2[1], getEndT2[0], getStartT2[0]
                         };
 
+
                     wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
-                                         i,
-                                         next,
-                                         prev,
-                                         wierzcholki,
-                                         outerContourSegment,
-                                         innerContourSegment);
+                        i,
+                        next,
+                        prev,
+                        wierzcholki,  // zawsze przekazuj oryginalne wierzcholki
+                        outerContourSegment,
+                        innerContourSegment,
+                        leftJoin,     // przekaż typy połączeń do funkcji
+                        rightJoin,
+                        outer,        // przekaż outer do ew. przeliczeń T3
+                        angleDegrees,
+                        anglePrev,
+                        angleNext,
+                        StronaElementu,
+                        stonaOstanioDodanegoElementu,
+                        vertexCount,
+                        firstangleDegrees
+                    );
 
                 }
                 else if (leftJoin == "T3" && rightJoin == "T2")
@@ -1391,13 +1526,25 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT3[1], getEndT2[1], getEndT2[0], getStartT3[0]
                     };
 
+
                     wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
-                                         i,
-                                         next,
-                                         prev,
-                                         wierzcholki,
-                                         outerContourSegment,
-                                         innerContourSegment);
+                        i,
+                        next,
+                        prev,
+                        wierzcholki,  // zawsze przekazuj oryginalne wierzcholki
+                        outerContourSegment,
+                        innerContourSegment,
+                        leftJoin,     // przekaż typy połączeń do funkcji
+                        rightJoin,
+                        outer,        // przekaż outer do ew. przeliczeń T3
+                        angleDegrees,
+                        anglePrev,
+                        angleNext,
+                        StronaElementu,
+                        stonaOstanioDodanegoElementu,
+                        vertexCount,
+                        firstangleDegrees
+                    );
 
                 }
                 else if (leftJoin == "T2" && rightJoin == "T3")
@@ -1422,13 +1569,25 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT2[1], getEndT3[1], getEndT3[0], getStartT2[0]
                     };
 
+
                     wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
-                                         i,
-                                         next,
-                                         prev,
-                                         wierzcholki,
-                                         outerContourSegment,
-                                         innerContourSegment);
+                        i,
+                        next,
+                        prev,
+                        wierzcholki,  // zawsze przekazuj oryginalne wierzcholki
+                        outerContourSegment,
+                        innerContourSegment,
+                        leftJoin,     // przekaż typy połączeń do funkcji
+                        rightJoin,
+                        outer,        // przekaż outer do ew. przeliczeń T3
+                        angleDegrees,
+                        anglePrev,
+                        angleNext,
+                        StronaElementu,
+                        stonaOstanioDodanegoElementu,
+                        vertexCount,
+                        firstangleDegrees
+                    );
 
                 }
                 else if (leftJoin == "T3" && rightJoin == "T1")
@@ -1455,13 +1614,25 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT3[1], getEndT1[1], getEndT1[0], getStartT3[0]
                         };
 
+
                     wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
-                                         i,
-                                         next,
-                                         prev,
-                                         wierzcholki,
-                                         outerContourSegment,
-                                         innerContourSegment);
+                        i,
+                        next,
+                        prev,
+                        wierzcholki,  // zawsze przekazuj oryginalne wierzcholki
+                        outerContourSegment,
+                        innerContourSegment,
+                        leftJoin,     // przekaż typy połączeń do funkcji
+                        rightJoin,
+                        outer,        // przekaż outer do ew. przeliczeń T3
+                        angleDegrees,
+                        anglePrev,
+                        angleNext,
+                        StronaElementu,
+                        stonaOstanioDodanegoElementu,
+                        vertexCount,
+                        firstangleDegrees
+                    );
 
                 }
                 else if (leftJoin == "T4" && rightJoin == "T3")
@@ -1487,13 +1658,25 @@ namespace GEORGE.Client.Pages.Okna
                             _getStartT4, getEndT3[1], getEndT3[0], getStartT4[0]
                         };
 
+
                     wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
-                                         i,
-                                         next,
-                                         prev,
-                                         wierzcholki,
-                                         outerContourSegment,
-                                         innerContourSegment);
+                        i,
+                        next,
+                        prev,
+                        wierzcholki,  // zawsze przekazuj oryginalne wierzcholki
+                        outerContourSegment,
+                        innerContourSegment,
+                        leftJoin,     // przekaż typy połączeń do funkcji
+                        rightJoin,
+                        outer,        // przekaż outer do ew. przeliczeń T3
+                        angleDegrees,
+                        anglePrev,
+                        angleNext,
+                        StronaElementu,
+                        stonaOstanioDodanegoElementu,
+                        vertexCount,
+                        firstangleDegrees
+                    );
 
                 }
                 else if (leftJoin == "T3" && rightJoin == "T4")
@@ -1520,13 +1703,25 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT3[1], _getStartT4, getEndT4[0], getStartT3[0]
                         };
 
+
                     wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
-                                         i,
-                                         next,
-                                         prev,
-                                         wierzcholki,
-                                         outerContourSegment,
-                                         innerContourSegment);
+                        i,
+                        next,
+                        prev,
+                        wierzcholki,  // zawsze przekazuj oryginalne wierzcholki
+                        outerContourSegment,
+                        innerContourSegment,
+                        leftJoin,     // przekaż typy połączeń do funkcji
+                        rightJoin,
+                        outer,        // przekaż outer do ew. przeliczeń T3
+                        angleDegrees,
+                        anglePrev,
+                        angleNext,
+                        StronaElementu,
+                        stonaOstanioDodanegoElementu,
+                        vertexCount,
+                        firstangleDegrees
+                    );
 
                 }
                 else
@@ -1540,13 +1735,25 @@ namespace GEORGE.Client.Pages.Okna
                             getStartT2[1], getEndT2[1], getEndT2[0], getStartT2[0]
                         };
 
+
                     wierzcholkiStycznePodLuki = GetWierzcholkiStycznePodLuki(
-                                         i,
-                                         next,
-                                         prev,
-                                         wierzcholki,
-                                         outerContourSegment,
-                                         innerContourSegment);
+                        i,
+                        next,
+                        prev,
+                        wierzcholki,  // zawsze przekazuj oryginalne wierzcholki
+                        outerContourSegment,
+                        innerContourSegment,
+                        leftJoin,     // przekaż typy połączeń do funkcji
+                        rightJoin,
+                        outer,        // przekaż outer do ew. przeliczeń T3
+                        angleDegrees,
+                        anglePrev,
+                        angleNext,
+                        StronaElementu,
+                        stonaOstanioDodanegoElementu,
+                        vertexCount,
+                        firstangleDegrees
+                    );
 
                 }
 
@@ -1795,46 +2002,140 @@ namespace GEORGE.Client.Pages.Okna
             return segments;
         }
 
+
         private List<XPoint> GetWierzcholkiStycznePodLuki(
-         int i,
-         int next,
-         int prev,
-         List<XPoint> wierzcholki,
-         List<ContourSegment> outerContourSegment,
-         List<ContourSegment> innerContourSegment)
+       int i,
+       int next,
+       int prev,
+       List<XPoint> wierzcholki,
+       List<ContourSegment> outerContourSegment,
+       List<ContourSegment> innerContourSegment,
+       string leftJoin = null,
+       string rightJoin = null,
+       List<XPoint> outer = null,
+       float angleDegrees = 0,
+       float anglePrev = 0,
+       float angleNext = 0,
+       string stronaElementu = null,
+       string stonaOstanioDodanegoElementu = null,
+       int vertexCount = 0,
+       float firstangleDegrees = 0)
         {
             if (i < 0 || i >= outerContourSegment.Count)
                 return wierzcholki;
 
-            var seg = outerContourSegment[i];
+            var currentSeg = outerContourSegment[i];
+            var prevSeg = outerContourSegment[prev];
+            var nextSeg = outerContourSegment[next];
 
-            // 🔵 JEŚLI LINIA → NIC NIE ZMIENIAMY
-            if (seg.Type == SegmentType.Line)
+            bool currentIsArc = currentSeg.Type == SegmentType.Arc;
+            bool prevIsArc = prevSeg.Type == SegmentType.Arc;
+            bool nextIsArc = nextSeg.Type == SegmentType.Arc;
+
+            // Jeśli brak łuków - zwróć oryginalne wierzchołki bez zmian
+            if (!currentIsArc && !prevIsArc && !nextIsArc)
+            {
                 return wierzcholki;
+            }
 
-            // 🔴 JEŚLI ŁUK → BIERZEMY JEGO REALNE PUNKTY
-            if (seg.Type == SegmentType.Arc && seg.Center != null)
+            Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki[{i}]: łuki - current:{currentIsArc}, prev:{prevIsArc}, next:{nextIsArc}");
+
+            // 🔥 PRZYPADEK 1: Aktualny segment jest łukiem - użyj oryginalnej logiki
+            if (currentIsArc && currentSeg.Center != null)
             {
                 var innerSeg = innerContourSegment
                     .FirstOrDefault(x =>
                         x.Type == SegmentType.Arc &&
                         x.Center != null &&
-                        Distance(x.Center.Value, seg.Center.Value) < 1.0);
+                        Distance(x.Center.Value, currentSeg.Center.Value) < 1.0);
 
-                if (innerSeg == null)
-                    return wierzcholki;
-
-                return new List<XPoint>
-            {
-                seg.Start,        // outer start
-                seg.End,          // outer end
-                innerSeg.End,     // inner end
-                innerSeg.Start    // inner start
-            };
+                if (innerSeg != null)
+                {
+                    Console.WriteLine($"🔷 [{i}] ŁUK: używam punktów z konturu (oryginalna logika)");
+                    return new List<XPoint>
+                    {
+                        currentSeg.Start,        // outer start
+                        currentSeg.End,          // outer end
+                        innerSeg.End,            // inner end
+                        innerSeg.Start           // inner start
+                    };
+                }
             }
 
-            return wierzcholki;
+            // 🔥 PRZYPADEK 2: Linia styka się z łukiem - użyj punktów z konturu sąsiada
+            var result = new List<XPoint>
+            {
+                new XPoint(wierzcholki[0].X, wierzcholki[0].Y),
+                new XPoint(wierzcholki[1].X, wierzcholki[1].Y),
+                new XPoint(wierzcholki[2].X, wierzcholki[2].Y),
+                new XPoint(wierzcholki[3].X, wierzcholki[3].Y)
+            };
+
+            // Lewe połączenie z łukiem
+            if (prevIsArc)
+            {
+                var prevOuter = outerContourSegment[prev];
+                var prevInner = innerContourSegment[prev];
+
+                // Sprawdź który koniec łuku jest bliżej naszego punktu
+                double distToStart = Distance(prevOuter.Start, result[0]);
+                double distToEnd = Distance(prevOuter.End, result[0]);
+
+                if (distToEnd < distToStart)
+                {
+                    // Koniec łuku łączy się z nami
+                    result[0] = new XPoint(prevOuter.End.X, prevOuter.End.Y);
+                    if (prevInner.Type == SegmentType.Arc)
+                    {
+                        // Dla łuku wewnętrznego, koniec odpowiada naszemu inner start
+                        result[3] = new XPoint(prevInner.End.X, prevInner.End.Y);
+                    }
+                }
+                else
+                {
+                    // Początek łuku łączy się z nami
+                    result[0] = new XPoint(prevOuter.Start.X, prevOuter.Start.Y);
+                    if (prevInner.Type == SegmentType.Arc)
+                    {
+                        result[3] = new XPoint(prevInner.Start.X, prevInner.Start.Y);
+                    }
+                }
+                Console.WriteLine($"🔷 [{i}] Lewy bok z łuku: outer=[{result[0].X:F2},{result[0].Y:F2}] inner=[{result[3].X:F2},{result[3].Y:F2}]");
+            }
+
+            // Prawe połączenie z łukiem
+            if (nextIsArc)
+            {
+                var nextOuter = outerContourSegment[next];
+                var nextInner = innerContourSegment[next];
+
+                double distToStart = Distance(nextOuter.Start, result[1]);
+                double distToEnd = Distance(nextOuter.End, result[1]);
+
+                if (distToStart < distToEnd)
+                {
+                    // Początek łuku łączy się z nami
+                    result[1] = new XPoint(nextOuter.Start.X, nextOuter.Start.Y);
+                    if (nextInner.Type == SegmentType.Arc)
+                    {
+                        result[2] = new XPoint(nextInner.Start.X, nextInner.Start.Y);
+                    }
+                }
+                else
+                {
+                    // Koniec łuku łączy się z nami
+                    result[1] = new XPoint(nextOuter.End.X, nextOuter.End.Y);
+                    if (nextInner.Type == SegmentType.Arc)
+                    {
+                        result[2] = new XPoint(nextInner.End.X, nextInner.End.Y);
+                    }
+                }
+                Console.WriteLine($"🔷 [{i}] Prawy bok z łuku: outer=[{result[1].X:F2},{result[1].Y:F2}] inner=[{result[2].X:F2},{result[2].Y:F2}]");
+            }
+
+            return result;
         }
+
 
         // Odległość między dwoma punktami
         private static double Distance(XPoint a, XPoint b)

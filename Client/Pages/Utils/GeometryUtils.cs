@@ -167,56 +167,54 @@ namespace GEORGE.Client.Pages.Utils
                         // =========================
                         else if (shape is XRoundedRectangleShape rr)
                         {
-                            double r = rr.Radius;
+                            // Pobierz gotowe segmenty z obiektu (już przetransformowane!)
+                            var segments = rr.GetContourSegments();
 
-                            var centers = new List<(XPoint Center, string Corner, bool CCW)>
-    {
-        (new XPoint(rr.X + r, rr.Y + r), "TL", true),
-        (new XPoint(rr.X + rr.Width - r, rr.Y + r), "TR", false),
-        (new XPoint(rr.X + rr.Width - r, rr.Y + rr.Height - r), "BR", false),
-        (new XPoint(rr.X + r, rr.Y + rr.Height - r), "BL", true)
-    };
-
-                            double tolerance = Math.Max(5.0, r * 0.12);
-
-                            foreach (var (center, corner, ccw) in centers)
+                            if (segments != null && segments.Count > 0)
                             {
-                                double dx1 = p.X - center.X;
-                                double dy1 = p.Y - center.Y;
-                                double dx2 = next.X - center.X;
-                                double dy2 = next.Y - center.Y;
+                                // Szukamy segmentu, którego punkty start/end pasują do p i next
+                                const double tolerance = 1.0;
 
-                                double r1 = Math.Sqrt(dx1 * dx1 + dy1 * dy1);
-                                double r2 = Math.Sqrt(dx2 * dx2 + dy2 * dy2);
-
-                                bool arc =
-                                    Math.Abs(r1 - r) <= tolerance &&
-                                    Math.Abs(r2 - r) <= tolerance;
-
-                                if (arc)
+                                foreach (var seg in segments)
                                 {
-                                    var segment = new ContourSegment(
-                                        p,
-                                        next,
-                                        center,
-                                        r,
-                                        ccw
-                                    );
+                                    // Sprawdź czy segment pasuje (w obu kierunkach)
+                                    bool matches =
+                                        (Distance(seg.Start, p) < tolerance && Distance(seg.End, next) < tolerance) ||
+                                        (Distance(seg.Start, next) < tolerance && Distance(seg.End, p) < tolerance);
 
-                                    segment.Informacja = ramaInfo;
+                                    if (matches)
+                                    {
+                                        // Jeśli znaleziono, utwórz nowy segment z zachowaniem parametrów
+                                        ContourSegment result;
 
-                                    Console.WriteLine(
-                                        $"🔷 ARC {corner} r1={r1:F2} r2={r2:F2} r={r:F2}");
+                                        if (seg.Type == SegmentType.Arc && seg.Center.HasValue)
+                                        {
+                                            // Dla łuku - zachowaj oryginalne parametry
+                                            result = new ContourSegment(
+                                                p,
+                                                next,
+                                                seg.Center.Value,
+                                                seg.Radius,
+                                                seg.CounterClockwise
+                                            );
+                                        }
+                                        else
+                                        {
+                                            // Dla linii prostej
+                                            result = new ContourSegment(p, next);
+                                        }
 
-                                    return segment;
+                                        result.Informacja = ramaInfo;
+                                        return result;
+                                    }
                                 }
                             }
 
+                            // Fallback - jeśli nie znaleziono pasującego segmentu, użyj linii prostej
                             var lineSeg = new ContourSegment(p, next);
                             lineSeg.Informacja = ramaInfo;
                             return lineSeg;
                         }
-                        
                         // =========================
                         // ZAOKRĄGLONY LEWY BOK
                         // =========================
@@ -443,6 +441,9 @@ namespace GEORGE.Client.Pages.Utils
                         // 2️⃣ Usuwanie duplikatów (oba kierunki linii)
                         r.Kontur = RemoveDuplicateSegments(r.Kontur);
 
+                        // 4️⃣ Sortowanie
+                        r.Kontur = OrderSegmentsForClosedContour(r.Kontur);
+
                         r.RozpoznajTyp(r.TypKsztaltu);
 
                         Console.WriteLine($"🔹 Region id: {r.Id} po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - RAMA");
@@ -552,6 +553,9 @@ namespace GEORGE.Client.Pages.Utils
                             }
 
                             r.Kontur = nowyKontur;
+
+                            // 4️⃣ Sortowanie
+                            r.Kontur = OrderSegmentsForClosedContour(r.Kontur);
 
                             // USUŃ SEGMENTY O ZEROWEJ DŁUGOŚCI PONOWNIE
                             r.Kontur = r.Kontur
@@ -707,6 +711,9 @@ namespace GEORGE.Client.Pages.Utils
                             r.Kontur = r.Kontur
                                 .Where(s => !CzySegmentZerowejDlugosci(s))
                                 .ToList();
+
+                            // 5️⃣ Sortowanie
+                            r.Kontur = OrderSegmentsForClosedContour(r.Kontur);
 
                             r.RozpoznajTyp(r.TypKsztaltu);
 
@@ -1081,6 +1088,7 @@ namespace GEORGE.Client.Pages.Utils
                         ContourSegment newSeg;
                         if (segment.Type == SegmentType.Arc)
                             newSeg = CreateArc(allPoints[j], allPoints[j + 1], segment);
+
                         else
                             newSeg = new ContourSegment(allPoints[j], allPoints[j + 1])
                             {
@@ -1134,91 +1142,6 @@ namespace GEORGE.Client.Pages.Utils
         }
 
 
-        // Prosta funkcja scalania - tylko dla identycznych kierunków
-        private static List<ContourSegment> MergeAdjacentArcsSimple(List<ContourSegment> segments)
-        {
-            if (segments.Count <= 1)
-                return segments;
-
-            var merged = new List<ContourSegment>();
-            int i = 0;
-
-            while (i < segments.Count)
-            {
-                var current = segments[i];
-
-                if (current.Type == SegmentType.Arc && current.Center.HasValue)
-                {
-                    var center = current.Center.Value;
-                    var radius = current.Radius;
-                    var direction = current.CounterClockwise;
-
-                    var startAngle = Math.Atan2(current.Start.Y - center.Y, current.Start.X - center.X);
-                    var endAngle = Math.Atan2(current.End.Y - center.Y, current.End.X - center.X);
-
-                    int j = i + 1;
-                    while (j < segments.Count)
-                    {
-                        var next = segments[j];
-
-                        if (next.Type == SegmentType.Arc &&
-                            next.Center.HasValue &&
-                            Distance(next.Center.Value, center) < 1.0 &&
-                            Math.Abs(next.Radius - radius) < 1.0 &&
-                            next.CounterClockwise == direction &&
-                            Distance(current.End, next.Start) < 1.0)
-                        {
-                            // Scal
-                            var newEndAngle = Math.Atan2(next.End.Y - center.Y, next.End.X - center.X);
-
-                            // Sprawdź, czy kąt nie przekracza 180 stopni
-                            double totalAngle;
-                            if (direction) // CCW
-                            {
-                                totalAngle = newEndAngle - startAngle;
-                                if (totalAngle < 0) totalAngle += 2 * Math.PI;
-                            }
-                            else // CW
-                            {
-                                totalAngle = startAngle - newEndAngle;
-                                if (totalAngle < 0) totalAngle += 2 * Math.PI;
-                            }
-
-                            if (totalAngle > Math.PI * 1.5) // Więcej niż 270 stopni
-                                break; // Nie scalaj
-
-                            current = new ContourSegment(
-                                current.Start,
-                                next.End,
-                                center,
-                                radius,
-                                direction)
-                            {
-                                Informacja = current.Informacja
-                            };
-
-                            j++;
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-
-                    merged.Add(current);
-                    i = j;
-                }
-                else
-                {
-                    merged.Add(current);
-                    i++;
-                }
-            }
-
-            return merged;
-        }
-
-
         static double ProjectAlongLine(XPoint p, XLineShape line)
         {
             double dx = line.X2 - line.X1;
@@ -1226,7 +1149,6 @@ namespace GEORGE.Client.Pages.Utils
 
             return (p.X - line.X1) * dx + (p.Y - line.Y1) * dy;
         }
-
 
         // Nowa funkcja pomocnicza do porządkowania segmentów w zamknięty kontur
         private static List<ContourSegment> OrderSegmentsForClosedContour(List<ContourSegment> segments)
@@ -1273,6 +1195,12 @@ namespace GEORGE.Client.Pages.Utils
                 }
 
                 remaining.Remove(nextSegment);
+
+                if(nextSegment.Type == SegmentType.Arc)
+                {
+                    nextSegment.CounterClockwise = false; // ZAWSZE ustaw kierunek na CW, aby uniknąć problemów z porządkowaniem
+                }
+
                 ordered.Add(nextSegment);
                 currentEnd = nextSegment.End;
             }
