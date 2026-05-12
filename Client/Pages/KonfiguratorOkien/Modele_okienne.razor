@@ -590,11 +590,11 @@
                                          @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
                                          draggable="true"
                                          style="cursor: grab;
-                                                width: auto;
-                                                height: auto;
-                                                max-width: 50px;
-                                                max-height: 50px;
-                                                border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
+                                                                        width: auto;
+                                                                        height: auto;
+                                                                        max-width: 50px;
+                                                                        max-height: 50px;
+                                                                        border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
 
                                 }
                                 else
@@ -646,7 +646,7 @@
             <div class="modal-header">
                 <h5 class="modal-title">Punkty elementów okien</h5>
                 <button type="button" class="btn-close" aria-label="Close" @onclick="ZamknijModal"></button>
-            
+
             </div>
 
 
@@ -664,7 +664,7 @@
                     <button class="btn btn-sm btn-secondary mb-3 ms-2" @onclick="@(() => KopiujDaneKsztaltuProsty(ksztalty, true))">
                         <i class="bi bi-clipboard me-1"></i> Kopiuj tylko kształty (prosty format)
                     </button>
-                    <hr/>
+                    <hr />
                     @foreach (var ksztalt in ksztalty)
                     {
                         <div class="card my-2 shadow-sm"
@@ -779,7 +779,7 @@
                     <p style="color:red; font-size:14px;">Poniżej lista regionów, wymiary zewnętrzne @constWlasciwosciOkna.Szerokosc x @constWlasciwosciOkna.Wysokosc</p>
                     <Tabs>
                         <TabPane Tab="Ramy połączone">
-                            <div >
+                            <div>
                                 <button class="btn btn-sm btn-secondary mb-3 ms-2" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsDualRama, false))">
                                     <i class="bi bi-clipboard me-1"></i> Kopiuj dane regionu (prosty format)
                                 </button>
@@ -905,7 +905,7 @@
 
                         </TabPane>
                         <TabPane Tab="Podział skrzydeł">
-                            <div >
+                            <div>
                                 <button class="btn btn-sm btn-secondary mb-3 ms-2" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsDualRama, false))">
                                     <i class="bi bi-clipboard me-1"></i> Kopiuj dane regionu (prosty format)
                                 </button>
@@ -1059,7 +1059,7 @@
                                     <button @onclick="SelectPreviousShape">Poprzedni obiekt</button>
                                     <button @onclick="SelectNextShape">Następny obiekt</button>
 
-                                  @*   <button @onclick="() => ZmienWymiaryOknaPozmianiePunktow()">Zmień wymiary okna</button> *@
+                                    @*   <button @onclick="() => ZmienWymiaryOknaPozmianiePunktow()">Zmień wymiary okna</button> *@
 
                                 </div>
 
@@ -1078,7 +1078,7 @@
                     <p style="color:red; font-size:14px;">Poniżej lista regionów, wymiary zewnętrzne @constWlasciwosciOkna.Szerokosc x @constWlasciwosciOkna.Wysokosc</p>
                     <Tabs>
                         <TabPane Tab="Ramy połączone">
-                            <div >
+                            <div>
                                 <button class="btn btn-sm btn-secondary mb-3 ms-2" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsDualRama, false))">
                                     <i class="bi bi-clipboard me-1"></i> Kopiuj dane regionu (prosty format)
                                 </button>
@@ -1495,7 +1495,7 @@
 
     private bool pokaKonturWewnetrzny = false;
 
-    private bool oknaMogaBycLukowe = false;
+    private bool oknaMogaBycLukowe = true;
 
     private bool boolNieGenerujPojedynczych = false; //Nie rysuj elementów okna!!
     private bool boolNieCzyscKonsole = true;
@@ -1778,9 +1778,9 @@
                 );
 
                 // Kopiuj i zmień ID
-                // _regionsSkrzydlo = _regionsDualRama.Select(r => 
+                // _regionsSkrzydlo = _regionsDualRama.Select(r =>
                 // {
-                //     var kopia = r.Clone(); 
+                //     var kopia = r.Clone();
                 //     kopia.Id = Guid.NewGuid().ToString();
                 //     kopia.Rama = false; // Zmień flagę na skrzydło
                 //     return kopia;
@@ -2145,7 +2145,7 @@
             {
                 sb.AppendLine("🔷 SEGMENTY (linie i łuki):");
                 sb.AppendLine("┌─────┬──────────┬────────────────┬────────────────┬──────────────────────┬──────────┬──────────┬──────────────────┐");
-                sb.AppendLine("│  #  │   Typ    │    Start X,Y    │     End X,Y     │       Środek        │ Promień  │ Kierunek │    Długość       │");
+                sb.AppendLine("│  #  │   Typ    │    Start X,Y   │     End X,Y    │       Środek         │ Promień  │ Kierunek │    Długość       │");
                 sb.AppendLine("├─────┼──────────┼────────────────┼────────────────┼──────────────────────┼──────────┼──────────┼──────────────────┤");
 
                 for (int i = 0; i < ksztalt.WierzcholkiZLukami.Count; i++)
@@ -2178,7 +2178,7 @@
 
                     sb.AppendLine($"│ {i,3} │ {typ,8} │ {startStr} │ {endStr} │ {centerStr,20} │ {radiusStr,8} │ {kierunekStr,8} │ {dlugoscStr} │");
                 }
-                sb.AppendLine("└─────┴──────────┴────────────────┴────────────────┴──────────────────────┴──────────┴──────────┴──────────────────┘");
+                sb.AppendLine("└─────┴──────────┴───────────────┴───────────────┴───────────────────────┴──────────┴──────────┴──────────────────┘");
                 sb.AppendLine();
 
                 // Podsumowanie segmentów
@@ -2373,7 +2373,7 @@
             }
 
             // Podsumowanie regionu
-            if(!tylkoKsztalty) sb.AppendLine($"Podsumowanie regionu: {region.Wierzcholki?.Count ?? 0} wierzchołków prostych, {region.Kontur?.Count ?? 0} segmentów konturu");
+            if (!tylkoKsztalty) sb.AppendLine($"Podsumowanie regionu: {region.Wierzcholki?.Count ?? 0} wierzchołków prostych, {region.Kontur?.Count ?? 0} segmentów konturu");
             sb.AppendLine();
         }
 
@@ -2472,7 +2472,7 @@
 
         ZamknijModal();
 
-        if(constWlasciwosciOkna == null) constWlasciwosciOkna = new ConstWlasciwosciOkna();
+        if (constWlasciwosciOkna == null) constWlasciwosciOkna = new ConstWlasciwosciOkna();
 
         // Obliczanie szerokości i wysokości dla każdego regionu i wybór największych wartości
         if (_regionsDualRama != null && _regionsDualRama.Any())
@@ -3557,7 +3557,7 @@
             // 2. Aktualizacja wymiarów kształtów
             foreach (var shape in ShapeService.Shapes)
             {
-                if(shape != null && shape.GetType() == typeof(XCircleShape))
+                if (shape != null && shape.GetType() == typeof(XCircleShape))
                 {
                     newHeight = constWlasciwosciOkna.Szerokosc;
                     constWlasciwosciOkna.Wysokosc = constWlasciwosciOkna.Szerokosc;
@@ -4504,7 +4504,7 @@
 
                 stronaZFunkcji = OkreslStroneNaPodstawieKataZWierzcholkami(
                     katSzukaj: (float)katSzukaj,
-                    WierzcholkiWartosciNominalne: WierzcholkiWartosciNominalne, 
+                    WierzcholkiWartosciNominalne: WierzcholkiWartosciNominalne,
                     out oczekujeGora,
                     out oczekujeDol,
                     out oczekujeLewa,
@@ -7342,7 +7342,7 @@
 
                 // Rysuj kontur
                 await DrawSingleContour(context, ksztalt.WierzcholkiZLukami); //Pojedyncze elementy
-               // await DrawSingleInnerContourKontur(context);
+                                                                              // await DrawSingleInnerContourKontur(context);
 
 
                 //await DrawOuterContourSegments(context, ksztalt.Kontur);
@@ -7359,12 +7359,12 @@
 
             if (pokaKonturWewnetrzny)
             {
-                if(oknaMogaBycLukowe)
+                if (oknaMogaBycLukowe)
                     await DrawSingleInnerContourKontur(context);
-                 else
-                     await DrawSingleInnerContour(context);
+                else
+                    await DrawSingleInnerContour(context);
             }
-           // await DrawSingleInnerContour(context);
+            // await DrawSingleInnerContour(context);
 
             // Sprawdź, czy _dotNetHelper nie jest null i czy komponent nie został usunięty
             if (_dotNetHelper != null && !_disposed)
@@ -7459,19 +7459,19 @@
         // string color = "orange";
         // float lineWidth = 3f;
 
-       // Console.WriteLine($"DrawContourFromSegments -> Rysowanie {segments.Count} segmentów (Łuki: {liczbaLukow}, Linie: {liczbaLinii})");
+        // Console.WriteLine($"DrawContourFromSegments -> Rysowanie {segments.Count} segmentów (Łuki: {liczbaLukow}, Linie: {liczbaLinii})");
 
         await context.BeginPathAsync();
 
         // Rozpocznij od pierwszego punktu
         await context.MoveToAsync(segments[0].Start.X, segments[0].Start.Y);
-       // Console.WriteLine($"MoveTo: ({segments[0].Start.X:F2}, {segments[0].Start.Y:F2})");
+        // Console.WriteLine($"MoveTo: ({segments[0].Start.X:F2}, {segments[0].Start.Y:F2})");
 
         // Rysuj wszystkie segmenty
         for (int i = 0; i < segments.Count; i++)
         {
             var seg = segments[i];
-          //  Console.WriteLine($"Segment {i}: {seg.Type}, {seg.Informacja}");
+            //  Console.WriteLine($"Segment {i}: {seg.Type}, {seg.Informacja}");
 
             if (seg.Type == SegmentType.Line)
             {
@@ -7492,7 +7492,7 @@
         await context.SetLineWidthAsync(2f);
         await context.StrokeAsync();
 
-       // Console.WriteLine("✅ Kontur narysowany pomyślnie");
+        // Console.WriteLine("✅ Kontur narysowany pomyślnie");
     }
 
     // Funkcja pomocnicza do rysowania łuku
@@ -7520,9 +7520,9 @@
         await context.LineToAsync(seg.Start.X, seg.Start.Y);
 
         // Debug
-       // Console.WriteLine($"  Rysowanie łuku: Center({seg.Center.Value.X:F2},{seg.Center.Value.Y:F2}), R={seg.Radius:F2}, CCW={seg.CounterClockwise}");
-       // Console.WriteLine($"    Kąty: start={startAngle:F4} rad ({startAngle * 180 / Math.PI:F1}°), end={endAngle:F4} rad ({endAngle * 180 / Math.PI:F1}°)");
-       // Console.WriteLine($"    Delta kątów: {(endAngle - startAngle) * 180 / Math.PI:F1}°");
+        // Console.WriteLine($"  Rysowanie łuku: Center({seg.Center.Value.X:F2},{seg.Center.Value.Y:F2}), R={seg.Radius:F2}, CCW={seg.CounterClockwise}");
+        // Console.WriteLine($"    Kąty: start={startAngle:F4} rad ({startAngle * 180 / Math.PI:F1}°), end={endAngle:F4} rad ({endAngle * 180 / Math.PI:F1}°)");
+        // Console.WriteLine($"    Delta kątów: {(endAngle - startAngle) * 180 / Math.PI:F1}°");
 
         // Rysowanie łuku
         await context.ArcAsync(
@@ -7638,13 +7638,13 @@
 
         var firstSeg = segments[0];
         await context.MoveToAsync(firstSeg.Start.X, firstSeg.Start.Y);
-       // Console.WriteLine($"MoveTo: ({firstSeg.Start.X:F2}, {firstSeg.Start.Y:F2})");
+        // Console.WriteLine($"MoveTo: ({firstSeg.Start.X:F2}, {firstSeg.Start.Y:F2})");
 
         for (int i = 0; i < segments.Count; i++)
         {
             var seg = segments[i];
 
-           // Console.WriteLine($"Segment {i}: {seg.Type}, Start({seg.Start.X:F2},{seg.Start.Y:F2}) -> End({seg.End.X:F2},{seg.End.Y:F2})");
+            // Console.WriteLine($"Segment {i}: {seg.Type}, Start({seg.Start.X:F2},{seg.Start.Y:F2}) -> End({seg.End.X:F2},{seg.End.Y:F2})");
 
             if (seg.Type == SegmentType.Line)
             {
@@ -7655,8 +7655,8 @@
                 double startAngle = Math.Atan2(seg.Start.Y - seg.Center.Value.Y, seg.Start.X - seg.Center.Value.X);
                 double endAngle = Math.Atan2(seg.End.Y - seg.Center.Value.Y, seg.End.X - seg.Center.Value.X);
 
-              //  Console.WriteLine($"  Arc: Center({seg.Center.Value.X:F2},{seg.Center.Value.Y:F2}), R={seg.Radius:F2}, CCW={seg.CounterClockwise}");
-              //  Console.WriteLine($"  Raw angles: start={startAngle:F4} rad ({startAngle * 180 / Math.PI:F1}°), end={endAngle:F4} rad ({endAngle * 180 / Math.PI:F1}°)");
+                //  Console.WriteLine($"  Arc: Center({seg.Center.Value.X:F2},{seg.Center.Value.Y:F2}), R={seg.Radius:F2}, CCW={seg.CounterClockwise}");
+                //  Console.WriteLine($"  Raw angles: start={startAngle:F4} rad ({startAngle * 180 / Math.PI:F1}°), end={endAngle:F4} rad ({endAngle * 180 / Math.PI:F1}°)");
 
                 // 🔥 PROSTSZE ROZWIĄZANIE: Zawsze rysujemy jako CW
                 // Obliczamy różnicę kątów
@@ -7676,8 +7676,8 @@
                 // Używamy tylko CW (flaga = false) i odpowiednio dobranego kąta końcowego
                 double finalEndAngle = startAngle + deltaAngle;
 
-               // Console.WriteLine($"  Final: start={startAngle:F4}, end={finalEndAngle:F4}, delta={deltaAngle:F4}");
-               // Console.WriteLine($"  Using CW flag (false)");
+                // Console.WriteLine($"  Final: start={startAngle:F4}, end={finalEndAngle:F4}, delta={deltaAngle:F4}");
+                // Console.WriteLine($"  Using CW flag (false)");
 
                 await context.ArcAsync(
                     seg.Center.Value.X,

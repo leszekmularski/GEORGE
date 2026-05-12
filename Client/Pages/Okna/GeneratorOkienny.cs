@@ -2953,6 +2953,8 @@ namespace GEORGE.Client.Pages.Okna
 
             var offsetSegments = new List<ContourSegment>();
 
+            var arcRadiusCache = new Dictionary<string, float>();
+
             bool isFullCircle = segments.All(s => s.Type == SegmentType.Arc);
 
             for (int i = 0; i < segments.Count; i++)
@@ -3031,7 +3033,22 @@ namespace GEORGE.Client.Pages.Okna
 
                     // 🔥 KLUCZOWA POPRAWKA:
                     // zawsze do środka konturu → zmniejszamy promień
-                    float newRadius = (float)(seg.Radius - offsetUsed);
+       
+                    //float newRadius = (float)(seg.Radius - offsetUsed);
+
+                    string arcKey =
+                    $"{Math.Round(center.X, 3)}_" +
+                    $"{Math.Round(center.Y, 3)}_" +
+                    $"{Math.Round(seg.Radius, 3)}";
+
+                    // pierwszy łuk ustala radius dla całej grupy
+                    if (!arcRadiusCache.ContainsKey(arcKey))
+                    {
+                        arcRadiusCache[arcKey] =
+                            (float)(seg.Radius - offsetUsed);
+                    }
+
+                    float newRadius = arcRadiusCache[arcKey];
 
                     if (newRadius < 0.1f)
                         newRadius = 0.1f;
@@ -3048,6 +3065,9 @@ namespace GEORGE.Client.Pages.Okna
                         center.X + newRadius * Math.Cos(endAngle),
                         center.Y + newRadius * Math.Sin(endAngle)
                     );
+
+                    newStart = SnapPoint(newStart);
+                    newEnd = SnapPoint(newEnd);
 
                     offsetSegments.Add(new ContourSegment(newStart, newEnd, center, newRadius, seg.CounterClockwise)
                     {
@@ -3169,7 +3189,14 @@ namespace GEORGE.Client.Pages.Okna
 
             return result;
         }
-
+        
+        private static XPoint SnapPoint(XPoint p, double precision = 0.001)
+        {
+            return new XPoint(
+                Math.Round(p.X / precision) * precision,
+                Math.Round(p.Y / precision) * precision
+            );
+        }
 
         private static double DistanceSquared(XPoint a, XPoint b)
         {

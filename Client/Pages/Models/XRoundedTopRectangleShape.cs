@@ -1,4 +1,5 @@
 ﻿using Blazor.Extensions.Canvas.Canvas2D;
+using DocumentFormat.OpenXml.Drawing.Charts;
 using GEORGE.Client.Pages.KonfiguratorOkien;
 using GEORGE.Shared.ViewModels;
 
@@ -68,7 +69,7 @@ namespace GEORGE.Client.Pages.Models
         private void CalculatePointsFromProperties()
         {
             Points = GenerateCompleteOutline(IloscElementowLuki);
-            NormalizeToPositiveQuadrant(); 
+            NormalizeToPositiveQuadrant();
             NominalPoints = Points.Select(p => p.Clone()).ToList();
         }
 
@@ -95,48 +96,126 @@ namespace GEORGE.Client.Pages.Models
         {
             var outline = new List<XPoint>();
 
-            double leftX = X;
-            double rightX = X + Width;
-            double bottomY = Y + Height;
-            double arcStartY = Y + ArcHeight;
+            var mode = GetArcMode();
 
-            var (arcCenterX, arcCenterY, startAngle, endAngle) = CalculateArcGeometry();
-
-            // Lewy dolny
-            outline.Add(new XPoint(leftX, bottomY));
-            // Prawy dolny
-            outline.Add(new XPoint(rightX, bottomY));
-            // Prawy górny (początek łuku)
-            outline.Add(new XPoint(rightX, arcStartY));
-
-            //// Łuk (6 punktów dla spójności)
-            if(segments <= 0) segments = 3;
-
-            //if (Radius > 1000) segments = 5;
-
-            for (int i = 0; i <= segments; i++)
+            if (mode == ArcMode.Normal)
             {
-                double t = i / (double)segments;
-                double angle = startAngle + t * (endAngle - startAngle);
-                double x = arcCenterX + Radius * Math.Cos(angle);
-                double y = arcCenterY - Radius * Math.Sin(angle); // odbicie osi Y
-                outline.Add(new XPoint(x, y));
+
+                double leftX = X;
+                double rightX = X + Width;
+                double bottomY = Y + Height;
+                double arcStartY = Y + ArcHeight;
+
+                var (arcCenterX, arcCenterY, startAngle, endAngle) = CalculateArcGeometry();
+
+                // Lewy dolny
+                outline.Add(new XPoint(leftX, bottomY));
+                // Prawy dolny
+                outline.Add(new XPoint(rightX, bottomY));
+                // Prawy górny (początek łuku)
+                outline.Add(new XPoint(rightX, arcStartY));
+
+                //// Łuk (6 punktów dla spójności)
+                if (segments <= 0) segments = 3;
+
+                //if (Radius > 1000) segments = 5;
+
+                for (int i = 0; i <= segments; i++)
+                {
+                    double t = i / (double)segments;
+                    double angle = startAngle + t * (endAngle - startAngle);
+                    double x = arcCenterX + Radius * Math.Cos(angle);
+                    double y = arcCenterY - Radius * Math.Sin(angle); // odbicie osi Y
+                    outline.Add(new XPoint(x, y));
+                }
+
+                // Lewy górny
+                outline.Add(new XPoint(leftX, arcStartY));
+                // Zamknięcie
+                outline.Add(new XPoint(leftX, bottomY));
+
+                outline.Reverse();
+
+                for (int i = 0; i < outline.Count; i++)
+                {
+                    var p = outline[i];
+                    outline[i] = new XPoint(Math.Round(p.X, 4), Math.Round(p.Y, 4));
+                }
+
+                return outline;
+            }
+            else if (mode == ArcMode.FlattenedTop)
+            {
+                var (cx, cy, startAngle, endAngle) = CalculateArcGeometry();
+
+                double leftX = X;
+                double rightX = X + Width;
+                double bottomY = Y + Height;
+
+                int seg = Math.Max(4, segments * 2);
+                double mid1 = startAngle + (endAngle - startAngle) * 0.33;
+                double mid2 = startAngle + (endAngle - startAngle) * 0.66;
+
+                // 🔥 1. ŁUK 1 (lewy)
+                for (int i = 0; i <= seg; i++)
+                {
+                    double t = i / (double)seg;
+                    double a = startAngle + t * (mid1 - startAngle);
+
+                    outline.Add(new XPoint(
+                        cx + Radius * Math.Cos(a),
+                        cy - Radius * Math.Sin(a)
+                    ));
+                }
+
+                // 🔥 2. ŁUK 2 (środek)
+                for (int i = 0; i <= seg; i++)
+                {
+                    double t = i / (double)seg;
+                    double a = mid1 + t * (mid2 - mid1);
+
+                    outline.Add(new XPoint(
+                        cx + Radius * Math.Cos(a),
+                        cy - Radius * Math.Sin(a)
+                    ));
+                }
+
+                // 🔥 3. ŁUK 3 (prawy)
+                for (int i = 0; i <= seg; i++)
+                {
+                    double t = i / (double)seg;
+                    double a = mid2 + t * (endAngle - mid2);
+
+                    outline.Add(new XPoint(
+                        cx + Radius * Math.Cos(a),
+                        cy - Radius * Math.Sin(a)
+                    ));
+                }
+
+                // 🔥 4. JEDYNA LINIA DOMYKAJĄCA (DÓŁ)
+                var first = outline[0];
+                var last = outline[^1];
+
+                outline.Add(new XPoint(rightX, bottomY));
+                outline.Add(new XPoint(leftX, bottomY));
+                outline.Add(first);
+
+                // ❗ NIE dodajemy już "prostokątnego zamknięcia"
+
+                for (int i = 0; i < outline.Count; i++)
+                {
+                    var p = outline[i];
+                    outline[i] = new XPoint(
+                        Math.Round(p.X, 4),
+                        Math.Round(p.Y, 4)
+                    );
+                }
+
+                return outline;
             }
 
-            // Lewy górny
-            outline.Add(new XPoint(leftX, arcStartY));
-            // Zamknięcie
-            outline.Add(new XPoint(leftX, bottomY));
+            return outline; // teoretycznie nigdy nie powinno tu dojść
 
-            outline.Reverse();
-
-            for (int i = 0; i < outline.Count; i++)
-            {
-                var p = outline[i];
-                outline[i] = new XPoint(Math.Round(p.X, 4), Math.Round(p.Y, 4));
-            }
-
-            return outline;
         }
 
         private void NormalizeToPositiveQuadrant()
@@ -337,6 +416,20 @@ namespace GEORGE.Client.Pages.Models
             }
 
             return new XPoint(cx / pts.Count, cy / pts.Count);
+        }
+
+        private ArcMode GetArcMode()
+        {
+            double ratio = Width / Height;
+
+            // próg możesz później stroić pod swoje dane CAD
+            return ratio > 1.8 ? ArcMode.FlattenedTop : ArcMode.Normal;
+        }
+
+        private enum ArcMode
+        {
+            Normal,
+            FlattenedTop
         }
     }
 }

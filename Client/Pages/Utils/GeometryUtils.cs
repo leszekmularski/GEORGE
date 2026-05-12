@@ -163,58 +163,121 @@ namespace GEORGE.Client.Pages.Utils
                             return lineSegment;
                         }
                         // =========================
-                        // PROSTOKĄT ZAOKRĄGLONY
+                        // PROSTOKĄT ZAOKRĄGLONY (FINAL STABILNY)
                         // =========================
                         else if (shape is XRoundedRectangleShape rr)
                         {
-                            // Pobierz gotowe segmenty z obiektu (już przetransformowane!)
                             var segments = rr.GetContourSegments();
 
-                            if (segments != null && segments.Count > 0)
-                            {
-                                // Szukamy segmentu, którego punkty start/end pasują do p i next
-                                const double tolerance = 1.0;
+                            if (segments == null || segments.Count == 0)
+                                goto FallbackLine;
 
-                                foreach (var seg in segments)
+                            const double tolerance = 0.4;
+
+                            // =========================
+                            // 1. DEDUPLIKACJA GEOMETRYCZNA
+                            // =========================
+                            segments = segments
+                                .GroupBy(s => new
                                 {
-                                    // Sprawdź czy segment pasuje (w obu kierunkach)
-                                    bool matches =
-                                        (Distance(seg.Start, p) < tolerance && Distance(seg.End, next) < tolerance) ||
-                                        (Distance(seg.Start, next) < tolerance && Distance(seg.End, p) < tolerance);
+                                    Ax = Math.Round(s.Start.X, 4),
+                                    Ay = Math.Round(s.Start.Y, 4),
+                                    Bx = Math.Round(s.End.X, 4),
+                                    By = Math.Round(s.End.Y, 4),
+                                    s.Type
+                                })
+                                .Select(g => g.First())
+                                .ToList();
 
-                                    if (matches)
+                            // =========================
+                            // 2. GLOBALNY TRACKING (KLUCZ FIX NA DUPLIKATY)
+                            // =========================
+                            var used = new HashSet<string>();
+
+                            foreach (var seg in segments)
+                            {
+                                string key = $"{seg.Type}-" +
+                                             $"{Math.Round(seg.Start.X, 3)}:{Math.Round(seg.Start.Y, 3)}-" +
+                                             $"{Math.Round(seg.End.X, 3)}:{Math.Round(seg.End.Y, 3)}";
+
+                                if (!used.Add(key))
+                                    continue;
+
+                                bool direct =
+                                    Distance(seg.Start, p) < tolerance &&
+                                    Distance(seg.End, next) < tolerance;
+
+                                bool reverse =
+                                    Distance(seg.Start, next) < tolerance &&
+                                    Distance(seg.End, p) < tolerance;
+
+                                if (!direct && !reverse)
+                                    continue;
+
+                                bool reversed = reverse;
+
+                                Console.WriteLine(
+                                    $"🔍 XRoundedRectangleShape match: " +
+                                    $"Start({seg.Start.X},{seg.Start.Y}) End({seg.End.X},{seg.End.Y}) Reversed={reversed}");
+
+                                ContourSegment result;
+
+                                // =========================
+                                // ŁUK (POPRAWIONA LOGIKA – KLUCZ FIX)
+                                // =========================
+                                if (seg.Type == SegmentType.Arc && seg.Center.HasValue)
+                                {
+                                    var a = reversed ? next : p;
+                                    var b = reversed ? p : next;
+
+                                    var center = seg.Center.Value;
+
+                                    // 🔥 wyznacz rzeczywisty kierunek łuku
+                                    double a1 = Math.Atan2(a.Y - center.Y, a.X - center.X);
+                                    double a2 = Math.Atan2(b.Y - center.Y, b.X - center.X);
+
+                                    double sweep = a2 - a1;
+
+                                    bool clockwise = sweep < 0;
+
+                                    result = new ContourSegment(a, b)
                                     {
-                                        // Jeśli znaleziono, utwórz nowy segment z zachowaniem parametrów
-                                        ContourSegment result;
+                                        Type = SegmentType.Arc,
+                                        Center = center,
+                                        Radius = seg.Radius,
 
-                                        if (seg.Type == SegmentType.Arc && seg.Center.HasValue)
-                                        {
-                                            // Dla łuku - zachowaj oryginalne parametry
-                                            result = new ContourSegment(
-                                                p,
-                                                next,
-                                                seg.Center.Value,
-                                                seg.Radius,
-                                                seg.CounterClockwise
-                                            );
-                                        }
-                                        else
-                                        {
-                                            // Dla linii prostej
-                                            result = new ContourSegment(p, next);
-                                        }
+                                        // 🔥 KLUCZOWA POPRAWKA:
+                                        // NIE ufamy staremu flagowaniu, tylko rekalkulacja
+                                        CounterClockwise = !clockwise,
 
-                                        result.Informacja = ramaInfo;
-                                        return result;
-                                    }
+                                        IsArcFragment = true,
+                                        Informacja = ramaInfo
+                                    };
                                 }
+                                else
+                                {
+                                    // =========================
+                                    // LINIA
+                                    // =========================
+                                    result = reversed
+                                        ? new ContourSegment(next, p)
+                                        : new ContourSegment(p, next);
+                                }
+
+                                result.Informacja = ramaInfo;
+                                return result;
                             }
 
-                            // Fallback - jeśli nie znaleziono pasującego segmentu, użyj linii prostej
-                            var lineSeg = new ContourSegment(p, next);
-                            lineSeg.Informacja = ramaInfo;
+                        FallbackLine:
+
+                            var lineSeg = new ContourSegment(p, next)
+                            {
+                                Informacja = ramaInfo
+                            };
+
                             return lineSeg;
                         }
+
                         // =========================
                         // ZAOKRĄGLONY LEWY BOK
                         // =========================
@@ -1196,7 +1259,7 @@ namespace GEORGE.Client.Pages.Utils
 
                 remaining.Remove(nextSegment);
 
-                if(nextSegment.Type == SegmentType.Arc)
+                if (nextSegment.Type == SegmentType.Arc)
                 {
                     nextSegment.CounterClockwise = false; // ZAWSZE ustaw kierunek na CW, aby uniknąć problemów z porządkowaniem
                 }

@@ -175,7 +175,7 @@ namespace GEORGE.Client.Pages.Models
                 outline.Add(new XPoint(x, y));
             }
 
-           // outline.Reverse();
+            // outline.Reverse();
 
             for (int i = 0; i < outline.Count; i++)
             {
@@ -185,7 +185,7 @@ namespace GEORGE.Client.Pages.Models
 
             return outline;
         }
-       
+
         // --------------------------------------------------------------------
         // RYSOWANIE
         // --------------------------------------------------------------------
@@ -280,6 +280,10 @@ namespace GEORGE.Client.Pages.Models
 
         public List<ContourSegment> GetContourSegments()
         {
+            return GenerateContourSegments();
+        }
+        private List<ContourSegment> GenerateContourSegments()
+        {
             var segments = new List<ContourSegment>();
 
             double leftX = X;
@@ -289,49 +293,88 @@ namespace GEORGE.Client.Pages.Models
 
             double r = Math.Min(Radius, Math.Min(Width, Height) / 2);
 
-            // Punkty kluczowe
-            var topLeftStart = new XPoint(leftX + r, topY);
-            var topRightStart = new XPoint(rightX - r, topY);
+            int arcSegments = Math.Max(1, IloscElementowLuki);
 
-            var rightArcEnd = new XPoint(rightX, topY + r);
-            var leftArcEnd = new XPoint(leftX, topY + r);
+            // ===== GÓRNA LINIA =====
+
+            var topLeft = new XPoint(leftX + r, topY);
+            var topRight = new XPoint(rightX - r, topY);
+
+            segments.Add(new ContourSegment(topLeft, topRight));
+
+            // ===== PRAWY ŁUK =====
+
+            var rightCenter = new XPoint(rightX - r, topY + r);
+
+            XPoint prev = topRight;
+
+            for (int i = 1; i <= arcSegments; i++)
+            {
+                double t = i / (double)arcSegments;
+
+                double angle =
+                    -Math.PI / 2 +
+                    t * (Math.PI / 2);
+
+                var next = new XPoint(
+                    rightCenter.X + r * Math.Cos(angle),
+                    rightCenter.Y + r * Math.Sin(angle));
+
+                segments.Add(new ContourSegment(
+                    prev,
+                    next,
+                    rightCenter,
+                    r,
+                    false));
+
+                prev = next;
+            }
+
+            // ===== PRAWA ŚCIANA =====
 
             var bottomRight = new XPoint(rightX, bottomY);
+
+            segments.Add(new ContourSegment(prev, bottomRight));
+
+            // ===== DÓŁ =====
+
             var bottomLeft = new XPoint(leftX, bottomY);
 
-            // Środki łuków
-            var rightCenter = new XPoint(rightX - r, topY + r);
-            var leftCenter = new XPoint(leftX + r, topY + r);
-
-            // 1. górna linia
-            segments.Add(new ContourSegment(topLeftStart, topRightStart));
-
-            // 2. prawy łuk
-            segments.Add(new ContourSegment(
-                topRightStart,
-                rightArcEnd,
-                rightCenter,
-                r,
-                false // ArcTo -> clockwise
-            ));
-
-            // 3. prawa linia
-            segments.Add(new ContourSegment(rightArcEnd, bottomRight));
-
-            // 4. dół
             segments.Add(new ContourSegment(bottomRight, bottomLeft));
 
-            // 5. lewa linia
-            segments.Add(new ContourSegment(bottomLeft, leftArcEnd));
+            // ===== LEWA ŚCIANA =====
 
-            // 6. lewy łuk
-            segments.Add(new ContourSegment(
-                leftArcEnd,
-                topLeftStart,
-                leftCenter,
-                r,
-                true
-            ));
+            var leftArcStart = new XPoint(leftX, topY + r);
+
+            segments.Add(new ContourSegment(bottomLeft, leftArcStart));
+
+            // ===== LEWY ŁUK =====
+
+            var leftCenter = new XPoint(leftX + r, topY + r);
+
+            prev = leftArcStart;
+
+            for (int i = 1; i <= arcSegments; i++)
+            {
+                double t = i / (double)arcSegments;
+
+                double angle =
+                    Math.PI +
+                    t * (Math.PI / 2);
+
+                var next = new XPoint(
+                    leftCenter.X + r * Math.Cos(angle),
+                    leftCenter.Y + r * Math.Sin(angle));
+
+                segments.Add(new ContourSegment(
+                    prev,
+                    next,
+                    leftCenter,
+                    r,
+                    true));
+
+                prev = next;
+            }
 
             return segments;
         }

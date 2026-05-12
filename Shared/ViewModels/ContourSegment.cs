@@ -15,6 +15,7 @@ namespace GEORGE.Shared.ViewModels
         public double Radius { get; set; }
         public bool CounterClockwise { get; set; } = false;
         public string Informacja { get; set; } = "Brak informacji";
+        public bool IsArcFragment { get; set; } = false;
 
         public ContourSegment(XPoint start, XPoint end)
         {
