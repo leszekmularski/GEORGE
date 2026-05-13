@@ -1437,6 +1437,12 @@
                                                                     </span>
                                                                 </span>
                                                             </div>
+                                                            <div class="property">
+                                                                <span class="property-label">Informacja:</span>
+                                                                <span class="property-value">
+                                                                        @(segment.Informacja)
+                                                                </span>
+                                                            </div>
                                                         }
                                                         else
                                                         {
@@ -1445,6 +1451,12 @@
                                                                 <span class="property-label">Długość:</span>
                                                                 <span class="property-value">
                                                                     @CalculateLineLength(segment).ToString("F2")
+                                                                </span>
+                                                            </div>
+                                                            <div class="property">
+                                                                <span class="property-label">Informacja:</span>
+                                                                <span class="property-value">
+                                                                       @(segment.Informacja)
                                                                 </span>
                                                             </div>
                                                         }

@@ -116,7 +116,7 @@ namespace GEORGE.Client.Pages.Utils
                                 counterClockwise
                             );
 
-                            segment.Informacja = ramaInfo;
+                            segment.Informacja = ramaInfo + " " + shape.GetType().Name;
                             return segment;
                         }
 
@@ -129,11 +129,17 @@ namespace GEORGE.Client.Pages.Utils
                             var (arcCenterX, arcCenterY, startAngle, endAngle) = rtr.CalculateArcGeometry();
                             var arcCenter = new XPoint(arcCenterX, arcCenterY);
 
+                            // Sprawdź czy punkty są poziome (w przybliżeniu ten sam Y)
+                            bool isHorizontalLine = Math.Abs(p.Y - next.Y) < 0.001 && Math.Abs(p.X - next.X) > shape.Szerokosc - 50;
+
                             // Sprawdź czy punkt jest na łuku (odległość od środka ≈ promień)
                             double d1 = Distance(p, arcCenter);
                             double d2 = Distance(next, arcCenter);
 
-                            bool isArcSegment = Math.Abs(d1 - rtr.Radius) < 2.0 && Math.Abs(d2 - rtr.Radius) < 2.0;
+                            // Jeśli to linia pozioma -> na pewno nie łuk
+                            bool isArcSegment = !isHorizontalLine &&
+                                                Math.Abs(d1 - rtr.Radius) < 2.0 &&
+                                                Math.Abs(d2 - rtr.Radius) < 2.0;
 
                             if (isArcSegment)
                             {
@@ -152,16 +158,17 @@ namespace GEORGE.Client.Pages.Utils
                                         counterClockwise
                                     );
 
-                                    segment.Informacja = ramaInfo;
+                                    segment.Informacja = ramaInfo + " " + shape.GetType().Name;
                                     return segment;
                                 }
                             }
 
                             // Dla linii pionowych i poziomych
                             var lineSegment = new ContourSegment(p, next);
-                            lineSegment.Informacja = ramaInfo;
+                            lineSegment.Informacja = ramaInfo + " " + shape.GetType().Name;
                             return lineSegment;
                         }
+
                         // =========================
                         // PROSTOKĄT ZAOKRĄGLONY (FINAL STABILNY)
                         // =========================
@@ -251,7 +258,7 @@ namespace GEORGE.Client.Pages.Utils
                                         CounterClockwise = !clockwise,
 
                                         IsArcFragment = true,
-                                        Informacja = ramaInfo
+                                        Informacja = ramaInfo + " " + shape.GetType().Name,
                                     };
                                 }
                                 else
@@ -264,7 +271,7 @@ namespace GEORGE.Client.Pages.Utils
                                         : new ContourSegment(p, next);
                                 }
 
-                                result.Informacja = ramaInfo;
+                                result.Informacja = ramaInfo + " " + shape.GetType().Name;
                                 return result;
                             }
 
@@ -272,7 +279,7 @@ namespace GEORGE.Client.Pages.Utils
 
                             var lineSeg = new ContourSegment(p, next)
                             {
-                                Informacja = ramaInfo
+                                Informacja = ramaInfo + " " + shape.GetType().Name
                             };
 
                             return lineSeg;
@@ -306,12 +313,12 @@ namespace GEORGE.Client.Pages.Utils
                                     counterClockwise
                                 );
 
-                                segment.Informacja = ramaInfo;
+                                segment.Informacja = ramaInfo + " " + shape.GetType().Name;
                                 return segment;
                             }
 
                             var lineSegLeft = new ContourSegment(p, next);
-                            lineSegLeft.Informacja = ramaInfo;
+                            lineSegLeft.Informacja = ramaInfo + " " + shape.GetType().Name;
                             return lineSegLeft;
                         }
                         // =========================
@@ -344,12 +351,12 @@ namespace GEORGE.Client.Pages.Utils
                                     counterClockwise
                                 );
 
-                                segment.Informacja = ramaInfo;
+                                segment.Informacja = ramaInfo + " " + shape.GetType().Name;
                                 return segment;
                             }
 
                             var lineSegRight = new ContourSegment(p, next);
-                            lineSegRight.Informacja = ramaInfo;
+                            lineSegRight.Informacja = ramaInfo + " " + shape.GetType().Name;
                             return lineSegRight;
                         }
 
@@ -359,7 +366,7 @@ namespace GEORGE.Client.Pages.Utils
                         else
                         {
                             var segment = new ContourSegment(p, next);
-                            segment.Informacja = ramaInfo;
+                            segment.Informacja = ramaInfo + " " + shape.GetType().Name;
                             return segment;
                         }
 

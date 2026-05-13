@@ -327,6 +327,8 @@ namespace GEORGE.Client.Pages.Models
                 // lewa
                 segments.Add(new ContourSegment(topLeft, bottomLeft));
 
+           // Console.WriteLine($"[DEBUG] Generated {segments.Count} contour segments for {NazwaObj} (mode: {mode})");
+
             return segments;
         }
 
