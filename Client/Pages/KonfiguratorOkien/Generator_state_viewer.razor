@@ -2176,11 +2176,11 @@
                 var seg = wybranePunktyZLukami[i];
                 if (seg.Type == SegmentType.Line)
                 {
-                    sb.AppendLine($"  L{i}: Start({Math.Round(seg.Start.X, 2)},{Math.Round(seg.Start.Y, 2)}) -> End({Math.Round(seg.End.X, 2)},{Math.Round(seg.End.Y, 2)})");
+                    sb.AppendLine($"  L{i}: Start({Math.Round(seg.Start.X, 2)};{Math.Round(seg.Start.Y, 2)}) -> End({Math.Round(seg.End.X, 2)};{Math.Round(seg.End.Y, 2)})");
                 }
                 else if (seg.Type == SegmentType.Arc && seg.Center != null)
                 {
-                    sb.AppendLine($"  A{i}: Start({Math.Round(seg.Start.X, 2)},{Math.Round(seg.Start.Y, 2)}) -> End({Math.Round(seg.End.X, 2)},{Math.Round(seg.End.Y, 2)}) | Center({Math.Round(seg.Center.Value.X, 2)},{Math.Round(seg.Center.Value.Y, 2)}) | R={Math.Round(seg.Radius, 2)} | {(seg.CounterClockwise ? "CCW" : "CW")}");
+                    sb.AppendLine($"  A{i}: Start({Math.Round(seg.Start.X, 2)};{Math.Round(seg.Start.Y, 2)}) -> End({Math.Round(seg.End.X, 2)};{Math.Round(seg.End.Y, 2)}) | Center({Math.Round(seg.Center.Value.X, 2)};{Math.Round(seg.Center.Value.Y, 2)}) | R={Math.Round(seg.Radius, 2)} | {(seg.CounterClockwise ? "CCW" : "CW")}");
                 }
             }
             sb.AppendLine();
@@ -2207,11 +2207,11 @@
                 var seg = KonturInner[i];
                 if (seg.Type == SegmentType.Line)
                 {
-                    sb.AppendLine($"  IL{i}: Start({Math.Round(seg.Start.X, 2)},{Math.Round(seg.Start.Y, 2)}) -> End({Math.Round(seg.End.X, 2)},{Math.Round(seg.End.Y, 2)})");
+                    sb.AppendLine($"  IL{i}: Start({Math.Round(seg.Start.X, 2)};{Math.Round(seg.Start.Y, 2)}) -> End({Math.Round(seg.End.X, 2)};{Math.Round(seg.End.Y, 2)})");
                 }
                 else if (seg.Type == SegmentType.Arc && seg.Center != null)
                 {
-                    sb.AppendLine($"  IA{i}: Start({Math.Round(seg.Start.X, 2)},{Math.Round(seg.Start.Y, 2)}) -> End({Math.Round(seg.End.X, 2)},{Math.Round(seg.End.Y, 2)}) | Center({Math.Round(seg.Center.Value.X, 2)},{Math.Round(seg.Center.Value.Y, 2)}) | R={Math.Round(seg.Radius, 2)} | {(seg.CounterClockwise ? "CCW" : "CW")}");
+                    sb.AppendLine($"  IA{i}: Start({Math.Round(seg.Start.X, 2)};{Math.Round(seg.Start.Y, 2)}) -> End({Math.Round(seg.End.X, 2)};{Math.Round(seg.End.Y, 2)}) | Center({Math.Round(seg.Center.Value.X, 2)};{Math.Round(seg.Center.Value.Y, 2)}) | R={Math.Round(seg.Radius, 2)} | {(seg.CounterClockwise ? "CCW" : "CW")}");
                 }
             }
             sb.AppendLine();

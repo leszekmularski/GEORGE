@@ -116,7 +116,7 @@ namespace GEORGE.Client.Pages.Utils
                                 counterClockwise
                             );
 
-                            segment.Informacja = ramaInfo + " " + shape.GetType().Name;
+                            segment.Informacja = ramaInfo;
                             return segment;
                         }
 
@@ -125,6 +125,12 @@ namespace GEORGE.Client.Pages.Utils
                         // =========================
                         else if (shape is XRoundedTopRectangleShape rtr)
                         {
+                            var orderedSegments = OrderSegmentsForClosedContour(rtr.ContourSegments);
+
+                            // Wyczyść istniejącą listę i dodaj uporządkowane segmenty
+                            rtr.ContourSegments.Clear();
+                            rtr.ContourSegments.AddRange(orderedSegments);
+
                             double arcStartY = rtr.Y + rtr.ArcHeight;
                             var (arcCenterX, arcCenterY, startAngle, endAngle) = rtr.CalculateArcGeometry();
                             var arcCenter = new XPoint(arcCenterX, arcCenterY);
@@ -168,7 +174,6 @@ namespace GEORGE.Client.Pages.Utils
                             lineSegment.Informacja = ramaInfo + " " + shape.GetType().Name;
                             return lineSegment;
                         }
-
                         // =========================
                         // PROSTOKĄT ZAOKRĄGLONY (FINAL STABILNY)
                         // =========================
@@ -258,7 +263,7 @@ namespace GEORGE.Client.Pages.Utils
                                         CounterClockwise = !clockwise,
 
                                         IsArcFragment = true,
-                                        Informacja = ramaInfo + " " + shape.GetType().Name,
+                                        Informacja = ramaInfo
                                     };
                                 }
                                 else
@@ -271,7 +276,7 @@ namespace GEORGE.Client.Pages.Utils
                                         : new ContourSegment(p, next);
                                 }
 
-                                result.Informacja = ramaInfo + " " + shape.GetType().Name;
+                                result.Informacja = ramaInfo;
                                 return result;
                             }
 
@@ -279,7 +284,7 @@ namespace GEORGE.Client.Pages.Utils
 
                             var lineSeg = new ContourSegment(p, next)
                             {
-                                Informacja = ramaInfo + " " + shape.GetType().Name
+                                Informacja = ramaInfo
                             };
 
                             return lineSeg;
@@ -313,12 +318,12 @@ namespace GEORGE.Client.Pages.Utils
                                     counterClockwise
                                 );
 
-                                segment.Informacja = ramaInfo + " " + shape.GetType().Name;
+                                segment.Informacja = ramaInfo;
                                 return segment;
                             }
 
                             var lineSegLeft = new ContourSegment(p, next);
-                            lineSegLeft.Informacja = ramaInfo + " " + shape.GetType().Name;
+                            lineSegLeft.Informacja = ramaInfo;
                             return lineSegLeft;
                         }
                         // =========================
@@ -351,12 +356,12 @@ namespace GEORGE.Client.Pages.Utils
                                     counterClockwise
                                 );
 
-                                segment.Informacja = ramaInfo + " " + shape.GetType().Name;
+                                segment.Informacja = ramaInfo;
                                 return segment;
                             }
 
                             var lineSegRight = new ContourSegment(p, next);
-                            lineSegRight.Informacja = ramaInfo + " " + shape.GetType().Name;
+                            lineSegRight.Informacja = ramaInfo;
                             return lineSegRight;
                         }
 
@@ -366,7 +371,7 @@ namespace GEORGE.Client.Pages.Utils
                         else
                         {
                             var segment = new ContourSegment(p, next);
-                            segment.Informacja = ramaInfo + " " + shape.GetType().Name;
+                            segment.Informacja = ramaInfo;
                             return segment;
                         }
 
@@ -1250,6 +1255,11 @@ namespace GEORGE.Client.Pages.Utils
                     nextSegment = remaining.FirstOrDefault(s =>
                         Distance(s.End, currentEnd) < 0.5);
 
+                    if (nextSegment.Type == SegmentType.Arc)
+                    {
+                        nextSegment.CounterClockwise = true; // ZAWSZE ustaw kierunek na CW, aby uniknąć problemów z porządkowaniem
+                    }
+
                     if (nextSegment != null)
                     {
                         // Odwróć segment
@@ -1266,10 +1276,10 @@ namespace GEORGE.Client.Pages.Utils
 
                 remaining.Remove(nextSegment);
 
-                if (nextSegment.Type == SegmentType.Arc)
-                {
-                    nextSegment.CounterClockwise = false; // ZAWSZE ustaw kierunek na CW, aby uniknąć problemów z porządkowaniem
-                }
+                //if (nextSegment.Type == SegmentType.Arc)
+                //{
+                //    nextSegment.CounterClockwise = false; // ZAWSZE ustaw kierunek na CW, aby uniknąć problemów z porządkowaniem
+                //}
 
                 ordered.Add(nextSegment);
                 currentEnd = nextSegment.End;
@@ -1287,7 +1297,7 @@ namespace GEORGE.Client.Pages.Utils
                     segment.Start,
                     segment.Center,
                     segment.Radius,
-                    !segment.CounterClockwise)
+                    segment.CounterClockwise)
                 {
                     Informacja = segment.Informacja
                 };
