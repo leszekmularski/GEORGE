@@ -1241,8 +1241,8 @@ namespace GEORGE.Client.Pages.Utils
             {
                 // Znajdź segment, który zaczyna się w miejscu końca poprzedniego
                 var nextSegment = remaining
-                .OrderBy(s => Distance(s.Start, currentEnd))
-                .FirstOrDefault(s => Distance(s.Start, currentEnd) < 0.5);
+                    .OrderBy(s => Distance(s.Start, currentEnd))
+                    .FirstOrDefault(s => Distance(s.Start, currentEnd) < 0.5);
 
                 if (nextSegment == null)
                 {
@@ -1265,38 +1265,70 @@ namespace GEORGE.Client.Pages.Utils
                 }
 
                 remaining.Remove(nextSegment);
-
-                if (nextSegment.Type == SegmentType.Arc)
-                {
-                    nextSegment.CounterClockwise = false; // ZAWSZE ustaw kierunek na CW, aby uniknąć problemów z porządkowaniem
-                }
-
                 ordered.Add(nextSegment);
                 currentEnd = nextSegment.End;
+            }
+
+            // 🔑 SPRAWDŹ CZY KONTUR JEST CCW (POLECENIE: ZAWSZE CCW)
+            if (ordered.Count > 2)
+            {
+                // Oblicz pole konturu (dodatnie = CCW, ujemne = CW)
+                double pole = 0;
+                for (int i = 0; i < ordered.Count; i++)
+                {
+                    var current = ordered[i];
+                    var next = ordered[(i + 1) % ordered.Count];
+                    pole += (current.Start.X * next.Start.Y) - (next.Start.X * current.Start.Y);
+                }
+                pole /= 2.0;
+
+                // Jeśli kontur jest CW (pole ujemne), odwróć go do CCW
+                if (pole < 0)
+                {
+                    // Odwróć kolejność segmentów
+                    ordered.Reverse();
+
+                    // Odwróć każdy segment (zamień Start↔End)
+                    for (int i = 0; i < ordered.Count; i++)
+                    {
+                        ordered[i] = ReverseSegment(ordered[i]);
+                    }
+                }
+            }
+
+            // 🔑 TERAZ USTAW ŁUKI NA CCW (TRUE)
+            for (int i = 0; i < ordered.Count; i++)
+            {
+                if (ordered[i].Type == SegmentType.Arc)
+                {
+                    ordered[i].CounterClockwise = true; // ✅ CCW - przeciwnie do zegara
+                }
             }
 
             return ordered;
         }
 
-        private static ContourSegment ReverseSegment(ContourSegment segment)
+        // Pomocnicza funkcja do odwracania segmentu
+        private static ContourSegment ReverseSegment(ContourSegment seg)
         {
-            if (segment.Type == SegmentType.Arc)
+            if (seg.Type == SegmentType.Arc && seg.Center.HasValue)
             {
                 return new ContourSegment(
-                    segment.End,
-                    segment.Start,
-                    segment.Center,
-                    segment.Radius,
-                    !segment.CounterClockwise)
+                    seg.End,
+                    seg.Start,
+                    seg.Center,
+                    seg.Radius,
+                    !seg.CounterClockwise  // Odwróć kierunek
+                )
                 {
-                    Informacja = segment.Informacja
+                    Informacja = seg.Informacja
                 };
             }
             else
             {
-                return new ContourSegment(segment.End, segment.Start)
+                return new ContourSegment(seg.End, seg.Start)
                 {
-                    Informacja = segment.Informacja
+                    Informacja = seg.Informacja
                 };
             }
         }
