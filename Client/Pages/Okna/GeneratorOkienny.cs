@@ -3,6 +3,7 @@ using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.Models;
 using GEORGE.Shared.ViewModels;
 using Microsoft.JSInterop;
+using System.Data;
 
 namespace GEORGE.Client.Pages.Okna
 {
@@ -383,10 +384,10 @@ namespace GEORGE.Client.Pages.Okna
                 for (int i = 0; i < przeskalowanePunktyZLukami.Count; i++)
                 {
                     var seg = przeskalowanePunktyZLukami[i];
-                    Console.WriteLine($"  Seg.{i}: {seg.Type} Start({seg.Start.X:F2},{seg.Start.Y:F2}) End({seg.End.X:F2},{seg.End.Y:F2})");
+                    Console.WriteLine($"  Seg.{i}: {seg.Type} Start({seg.Start.X:F2};{seg.Start.Y:F2}) End({seg.End.X:F2};{seg.End.Y:F2})");
                     if (seg.Type == SegmentType.Arc && seg.Center != null)
                     {
-                        Console.WriteLine($"         Center({seg.Center.Value.X:F2},{seg.Center.Value.Y:F2}) R={seg.Radius:F2} CCW={seg.CounterClockwise}");
+                        Console.WriteLine($"         Center({seg.Center.Value.X:F2};{seg.Center.Value.Y:F2}) R={seg.Radius:F2} CCW={seg.CounterClockwise}");
                     }
                 }
 
@@ -398,10 +399,10 @@ namespace GEORGE.Client.Pages.Okna
                 for (int i = 0; i < wewnetrznyKonturZLukami.Count; i++)
                 {
                     var seg = wewnetrznyKonturZLukami[i];
-                    Console.WriteLine($"  [{i}] {seg.Type}: ({seg.Start.X:F2},{seg.Start.Y:F2}) -> ({seg.End.X:F2},{seg.End.Y:F2})");
+                    Console.WriteLine($"  [{i}] {seg.Type}: ({seg.Start.X:F2};{seg.Start.Y:F2}) -> ({seg.End.X:F2};{seg.End.Y:F2})");
                     if (seg.Type == SegmentType.Arc)
                     {
-                        Console.WriteLine($"       Center: ({seg.Center.Value.X:F2},{seg.Center.Value.Y:F2}) R={seg.Radius:F2}");
+                        Console.WriteLine($"       Center: ({seg.Center.Value.X:F2};{seg.Center.Value.Y:F2}) R={seg.Radius:F2}");
                     }
                 }
 
@@ -2950,13 +2951,19 @@ namespace GEORGE.Client.Pages.Okna
                 return new List<ContourSegment>();
 
             const double EPS = 1e-6;
+            const double TOLERANCJA = 0.01;
 
             var offsetSegments = new List<ContourSegment>();
-
             var arcRadiusCache = new Dictionary<string, float>();
 
             bool isFullCircle = segments.All(s => s.Type == SegmentType.Arc);
 
+            var bboxCenter = new XPoint(
+                segments.Average(s => (s.Start.X + s.End.X) / 2.0),
+                segments.Average(s => (s.Start.Y + s.End.Y) / 2.0)
+            );
+
+            // OFFSET SEGMENTÓW
             for (int i = 0; i < segments.Count; i++)
             {
                 var seg = segments[i];
@@ -2980,78 +2987,49 @@ namespace GEORGE.Client.Pages.Okna
                     _ => 0
                 };
 
-                // =========================
-                // LINIA
-                // =========================
                 if (seg.Type == SegmentType.Line)
                 {
                     double tx = dx / length;
                     double ty = dy / length;
-
-                    // normalna
                     double nx = ty;
                     double ny = -tx;
 
-                    // centroid pomocniczy tylko dla linii (działa OK)
                     var midpoint = new XPoint(
                         (seg.Start.X + seg.End.X) / 2.0,
                         (seg.Start.Y + seg.End.Y) / 2.0
                     );
 
-                    // lekko przesunięty punkt do testu
                     var testA = new XPoint(midpoint.X + nx * offsetValue, midpoint.Y + ny * offsetValue);
                     var testB = new XPoint(midpoint.X - nx * offsetValue, midpoint.Y - ny * offsetValue);
 
-                    // wybór kierunku — bliżej środka bounding box
-                    var bboxCenter = new XPoint(
-                        segments.Average(s => (s.Start.X + s.End.X) / 2.0),
-                        segments.Average(s => (s.Start.Y + s.End.Y) / 2.0)
-                    );
-
                     double da = DistanceSquared(testA, bboxCenter);
                     double db = DistanceSquared(testB, bboxCenter);
-
                     double sign = da < db ? 1 : -1;
 
                     var p1 = new XPoint(seg.Start.X + nx * offsetValue * sign, seg.Start.Y + ny * offsetValue * sign);
                     var p2 = new XPoint(seg.End.X + nx * offsetValue * sign, seg.End.Y + ny * offsetValue * sign);
 
+                    p1 = SnapPoint(p1);
+                    p2 = SnapPoint(p2);
+
                     offsetSegments.Add(new ContourSegment(p1, p2)
                     {
-                        Informacja = side
+                        Informacja = seg.Informacja ?? side
                     });
                 }
-
-                // =========================
-                // ŁUK
-                // =========================
                 else if (seg.Type == SegmentType.Arc && seg.Center != null)
                 {
                     var center = seg.Center.Value;
 
-                    float offsetUsed = offsetValue;
+                    string arcKey = $"{Math.Round(center.X, 3)}_{Math.Round(center.Y, 3)}_{Math.Round(seg.Radius, 3)}";
 
-                    // 🔥 KLUCZOWA POPRAWKA:
-                    // zawsze do środka konturu → zmniejszamy promień
-       
-                    //float newRadius = (float)(seg.Radius - offsetUsed);
-
-                    string arcKey =
-                    $"{Math.Round(center.X, 3)}_" +
-                    $"{Math.Round(center.Y, 3)}_" +
-                    $"{Math.Round(seg.Radius, 3)}";
-
-                    // pierwszy łuk ustala radius dla całej grupy
                     if (!arcRadiusCache.ContainsKey(arcKey))
                     {
-                        arcRadiusCache[arcKey] =
-                            (float)(seg.Radius - offsetUsed);
+                        arcRadiusCache[arcKey] = (float)(seg.Radius - offsetValue);
                     }
 
                     float newRadius = arcRadiusCache[arcKey];
-
-                    if (newRadius < 0.1f)
-                        newRadius = 0.1f;
+                    if (newRadius < 0.1f) newRadius = 0.1f;
 
                     double startAngle = Math.Atan2(seg.Start.Y - center.Y, seg.Start.X - center.X);
                     double endAngle = Math.Atan2(seg.End.Y - center.Y, seg.End.X - center.X);
@@ -3069,16 +3047,15 @@ namespace GEORGE.Client.Pages.Okna
                     newStart = SnapPoint(newStart);
                     newEnd = SnapPoint(newEnd);
 
-                    offsetSegments.Add(new ContourSegment(newStart, newEnd, center, newRadius, seg.CounterClockwise)
+                    // 🔑 ZAWSZE USTAW CCW = TRUE
+                    offsetSegments.Add(new ContourSegment(newStart, newEnd, center, newRadius, true)
                     {
-                        Informacja = isFullCircle ? "ARC_FULL_CIRCLE" : side
+                        Informacja = seg.Informacja ?? (isFullCircle ? "ARC_FULL_CIRCLE" : side)
                     });
                 }
             }
 
-            // =========================
             // PRZECIĘCIA
-            // =========================
             var result = new List<ContourSegment>();
 
             for (int i = 0; i < offsetSegments.Count; i++)
@@ -3086,110 +3063,354 @@ namespace GEORGE.Client.Pages.Okna
                 var current = offsetSegments[i];
                 var previous = offsetSegments[(i - 1 + offsetSegments.Count) % offsetSegments.Count];
 
-                // LINE - LINE
+                XPoint? intersection = null;
+
                 if (current.Type == SegmentType.Line && previous.Type == SegmentType.Line)
                 {
-                    var intersection = GetLinesIntersectionK(previous.Start, previous.End, current.Start, current.End);
-
-                    if (!double.IsNaN(intersection.X))
-                    {
-                        if (result.Count > 0)
-                            result[^1].End = intersection;
-
-                        result.Add(new ContourSegment(intersection, current.End)
-                        {
-                            Informacja = current.Informacja
-                        });
-                    }
-                    else
-                    {
-                        result.Add(current);
-                    }
+                    intersection = GetLinesIntersectionK(previous.Start, previous.End, current.Start, current.End);
                 }
-
-                // LINE - ARC
                 else if (previous.Type == SegmentType.Line && current.Type == SegmentType.Arc && current.Center != null)
                 {
                     var pts = GetLineCircleIntersections(previous.Start, previous.End, current.Center.Value, current.Radius);
-                    var chosen = ChooseClosestTo(pts, current.Start);
-
-                    if (chosen != null)
-                    {
-                        if (result.Count > 0)
-                            result[^1].End = chosen.Value;
-
-                        result.Add(new ContourSegment(chosen.Value, current.End, current.Center, current.Radius, current.CounterClockwise)
-                        {
-                            Informacja = current.Informacja
-                        });
-                    }
-                    else
-                    {
-                        result.Add(current);
-                    }
+                    intersection = ChooseClosestTo(pts, current.Start);
                 }
-
-                // ARC - LINE
                 else if (previous.Type == SegmentType.Arc && previous.Center != null && current.Type == SegmentType.Line)
                 {
                     var pts = GetLineCircleIntersections(current.Start, current.End, previous.Center.Value, previous.Radius);
-                    var chosen = ChooseClosestTo(pts, current.Start);
-
-                    if (chosen != null)
-                    {
-                        if (result.Count > 0)
-                            result[^1].End = chosen.Value;
-
-                        result.Add(new ContourSegment(chosen.Value, current.End)
-                        {
-                            Informacja = current.Informacja
-                        });
-                    }
-                    else
-                    {
-                        result.Add(current);
-                    }
+                    intersection = ChooseClosestTo(pts, current.Start);
                 }
-
-                // ARC - ARC
                 else if (previous.Type == SegmentType.Arc && current.Type == SegmentType.Arc &&
                          previous.Center != null && current.Center != null)
                 {
                     var pts = GetCircleCircleIntersections(previous.Center.Value, previous.Radius, current.Center.Value, current.Radius);
-                    var chosen = ChooseClosestTo(pts, current.Start);
+                    intersection = ChooseClosestTo(pts, current.Start);
+                }
 
-                    if (chosen != null)
+                if (intersection != null && !double.IsNaN(intersection.Value.X))
+                {
+                    if (result.Count > 0)
                     {
-                        if (result.Count > 0)
-                            result[^1].End = chosen.Value;
+                        result[^1].End = intersection.Value;
+                    }
 
-                        result.Add(new ContourSegment(chosen.Value, current.End, current.Center, current.Radius, current.CounterClockwise)
+                    if (current.Type == SegmentType.Arc && current.Center != null)
+                    {
+                        // 🔑 ZAWSZE CCW = TRUE
+                        result.Add(new ContourSegment(intersection.Value, current.End, current.Center, current.Radius, true)
                         {
                             Informacja = current.Informacja
                         });
                     }
                     else
                     {
-                        result.Add(current);
+                        result.Add(new ContourSegment(intersection.Value, current.End)
+                        {
+                            Informacja = current.Informacja
+                        });
                     }
                 }
                 else
                 {
+                    if (result.Count > 0)
+                    {
+                        var srodek = new XPoint(
+                            (result[^1].End.X + current.Start.X) / 2.0,
+                            (result[^1].End.Y + current.Start.Y) / 2.0
+                        );
+                        result[^1].End = srodek;
+                        current.Start = srodek;
+                    }
                     result.Add(current);
                 }
             }
 
-            // =========================
-            // ZAMKNIĘCIE
-            // =========================
-            if (result.Count > 0 && !PointsEqualK(result[0].Start, result[^1].End))
+            // 🔑 SPRAWDŹ CZY CAŁY KONTUR JEST CCW
+            if (result.Count > 0)
             {
-                result[^1].End = result[0].Start;
+                // Oblicz pole konturu (dodatnie = CCW, ujemne = CW)
+                double pole = 0;
+                for (int i = 0; i < result.Count; i++)
+                {
+                    var current = result[i];
+                    var next = result[(i + 1) % result.Count];
+
+                    // Użyj punktów Start każdego segmentu
+                    pole += (current.Start.X * next.Start.Y) - (next.Start.X * current.Start.Y);
+                }
+                pole /= 2.0;
+
+                // Jeśli kontur jest CW (pole ujemne), odwróć wszystkie segmenty
+                if (pole < 0)
+                {
+                    // Odwróć kolejność segmentów
+                    result.Reverse();
+
+                    // Dla każdego segmentu zamień Start z End
+                    for (int i = 0; i < result.Count; i++)
+                    {
+                        var temp = result[i].Start;
+                        result[i].Start = result[i].End;
+                        result[i].End = temp;
+
+                        // Dla łuków - zachowaj CCW = true (już jest ustawione)
+                    }
+                }
+            }
+
+            // ZAMKNIĘCIE
+            if (result.Count > 0)
+            {
+                var firstStart = result[0].Start;
+                var lastEnd = result[^1].End;
+
+                double odleglosc = Math.Sqrt(Math.Pow(lastEnd.X - firstStart.X, 2) +
+                                             Math.Pow(lastEnd.Y - firstStart.Y, 2));
+
+                if (odleglosc > TOLERANCJA)
+                {
+                    result[^1].End = result[0].Start;
+                }
             }
 
             return result;
         }
-        
+
+        public List<ContourSegment> CalculateOffsetPolygonKonturSkrzydlo(
+        List<ContourSegment> segments,
+        float profileLeft,
+        float profileRight,
+        float profileTop,
+        float profileBottom,
+        bool elementLiniowy)
+        {
+            if (segments == null || segments.Count == 0)
+                return new List<ContourSegment>();
+
+            const double EPS = 1e-6;
+            const double TOLERANCJA = 0.01;
+
+            var offsetSegments = new List<ContourSegment>();
+            var arcRadiusCache = new Dictionary<string, float>();
+
+            bool isFullCircle = segments.All(s => s.Type == SegmentType.Arc);
+
+            var bboxCenter = new XPoint(
+                segments.Average(s => (s.Start.X + s.End.X) / 2.0),
+                segments.Average(s => (s.Start.Y + s.End.Y) / 2.0)
+            );
+
+            // OFFSET SEGMENTÓW
+            for (int i = 0; i < segments.Count; i++)
+            {
+                var seg = segments[i];
+
+                double dx = seg.End.X - seg.Start.X;
+                double dy = seg.End.Y - seg.Start.Y;
+                double length = Math.Sqrt(dx * dx + dy * dy);
+                if (length < EPS) continue;
+
+                float angleDegrees = (float)(Math.Atan2(dy, dx) * 180.0 / Math.PI);
+                if (angleDegrees < 0) angleDegrees += 360f;
+
+                string side = StronaOknaHelper.OkreslStrone(angleDegrees, i, null);
+
+                float offsetValue = side switch
+                {
+                    "Góra" => profileTop,
+                    "Dół" => profileBottom,
+                    "Lewa" => profileLeft,
+                    "Prawa" => profileRight,
+                    _ => 0
+                };
+
+                if (seg.Type == SegmentType.Line)
+                {
+                    double tx = dx / length;
+                    double ty = dy / length;
+                    double nx = ty;
+                    double ny = -tx;
+
+                    var midpoint = new XPoint(
+                        (seg.Start.X + seg.End.X) / 2.0,
+                        (seg.Start.Y + seg.End.Y) / 2.0
+                    );
+
+                    var testA = new XPoint(midpoint.X + nx * offsetValue, midpoint.Y + ny * offsetValue);
+                    var testB = new XPoint(midpoint.X - nx * offsetValue, midpoint.Y - ny * offsetValue);
+
+                    double da = DistanceSquared(testA, bboxCenter);
+                    double db = DistanceSquared(testB, bboxCenter);
+                    double sign = da < db ? 1 : -1;
+
+                    var p1 = new XPoint(seg.Start.X + nx * offsetValue * sign, seg.Start.Y + ny * offsetValue * sign);
+                    var p2 = new XPoint(seg.End.X + nx * offsetValue * sign, seg.End.Y + ny * offsetValue * sign);
+
+                    p1 = SnapPoint(p1);
+                    p2 = SnapPoint(p2);
+
+                    offsetSegments.Add(new ContourSegment(p1, p2)
+                    {
+                        Informacja = seg.Informacja ?? side
+                    });
+                }
+                else if (seg.Type == SegmentType.Arc && seg.Center != null)
+                {
+                    var center = seg.Center.Value;
+
+                    string arcKey = $"{Math.Round(center.X, 3)}_{Math.Round(center.Y, 3)}_{Math.Round(seg.Radius, 3)}";
+
+                    if (!arcRadiusCache.ContainsKey(arcKey))
+                    {
+                        arcRadiusCache[arcKey] = (float)(seg.Radius - offsetValue);
+                    }
+
+                    float newRadius = arcRadiusCache[arcKey];
+                    if (newRadius < 0.1f) newRadius = 0.1f;
+
+                    double startAngle = Math.Atan2(seg.Start.Y - center.Y, seg.Start.X - center.X);
+                    double endAngle = Math.Atan2(seg.End.Y - center.Y, seg.End.X - center.X);
+
+                    var newStart = new XPoint(
+                        center.X + newRadius * Math.Cos(startAngle),
+                        center.Y + newRadius * Math.Sin(startAngle)
+                    );
+
+                    var newEnd = new XPoint(
+                        center.X + newRadius * Math.Cos(endAngle),
+                        center.Y + newRadius * Math.Sin(endAngle)
+                    );
+
+                    newStart = SnapPoint(newStart);
+                    newEnd = SnapPoint(newEnd);
+
+                    // 🔑 ZAWSZE USTAW CCW = TRUE
+                    offsetSegments.Add(new ContourSegment(newStart, newEnd, center, newRadius, true)
+                    {
+                        Informacja = seg.Informacja ?? (isFullCircle ? "ARC_FULL_CIRCLE" : side)
+                    });
+                }
+            }
+
+            // PRZECIĘCIA
+            var result = new List<ContourSegment>();
+
+            for (int i = 0; i < offsetSegments.Count; i++)
+            {
+                var current = offsetSegments[i];
+                var previous = offsetSegments[(i - 1 + offsetSegments.Count) % offsetSegments.Count];
+
+                XPoint? intersection = null;
+
+                if (current.Type == SegmentType.Line && previous.Type == SegmentType.Line)
+                {
+                    intersection = GetLinesIntersectionK(previous.Start, previous.End, current.Start, current.End);
+                }
+                else if (previous.Type == SegmentType.Line && current.Type == SegmentType.Arc && current.Center != null)
+                {
+                    var pts = GetLineCircleIntersections(previous.Start, previous.End, current.Center.Value, current.Radius);
+                    intersection = ChooseClosestTo(pts, current.Start);
+                }
+                else if (previous.Type == SegmentType.Arc && previous.Center != null && current.Type == SegmentType.Line)
+                {
+                    var pts = GetLineCircleIntersections(current.Start, current.End, previous.Center.Value, previous.Radius);
+                    intersection = ChooseClosestTo(pts, current.Start);
+                }
+                else if (previous.Type == SegmentType.Arc && current.Type == SegmentType.Arc &&
+                         previous.Center != null && current.Center != null)
+                {
+                    var pts = GetCircleCircleIntersections(previous.Center.Value, previous.Radius, current.Center.Value, current.Radius);
+                    intersection = ChooseClosestTo(pts, current.Start);
+                }
+
+                if (intersection != null && !double.IsNaN(intersection.Value.X))
+                {
+                    if (result.Count > 0)
+                    {
+                        result[^1].End = intersection.Value;
+                    }
+
+                    if (current.Type == SegmentType.Arc && current.Center != null)
+                    {
+                        // 🔑 ZAWSZE CCW = TRUE
+                        result.Add(new ContourSegment(intersection.Value, current.End, current.Center, current.Radius, true)
+                        {
+                            Informacja = current.Informacja
+                        });
+                    }
+                    else
+                    {
+                        result.Add(new ContourSegment(intersection.Value, current.End)
+                        {
+                            Informacja = current.Informacja
+                        });
+                    }
+                }
+                else
+                {
+                    if (result.Count > 0)
+                    {
+                        var srodek = new XPoint(
+                            (result[^1].End.X + current.Start.X) / 2.0,
+                            (result[^1].End.Y + current.Start.Y) / 2.0
+                        );
+                        result[^1].End = srodek;
+                        current.Start = srodek;
+                    }
+                    result.Add(current);
+                }
+            }
+
+            // 🔑 SPRAWDŹ CZY CAŁY KONTUR JEST CCW
+            if (result.Count > 0)
+            {
+                // Oblicz pole konturu (dodatnie = CCW, ujemne = CW)
+                double pole = 0;
+                for (int i = 0; i < result.Count; i++)
+                {
+                    var current = result[i];
+                    var next = result[(i + 1) % result.Count];
+
+                    // Użyj punktów Start każdego segmentu
+                    pole += (current.Start.X * next.Start.Y) - (next.Start.X * current.Start.Y);
+                }
+                pole /= 2.0;
+
+                // Jeśli kontur jest CW (pole ujemne), odwróć wszystkie segmenty
+                if (pole < 0)
+                {
+                    // Odwróć kolejność segmentów
+                    result.Reverse();
+
+                    // Dla każdego segmentu zamień Start z End
+                    for (int i = 0; i < result.Count; i++)
+                    {
+                        var temp = result[i].Start;
+                        result[i].Start = result[i].End;
+                        result[i].End = temp;
+
+                        // Dla łuków - zachowaj CCW = true (już jest ustawione)
+                    }
+                }
+            }
+
+            // ZAMKNIĘCIE
+            if (result.Count > 0)
+            {
+                var firstStart = result[0].Start;
+                var lastEnd = result[^1].End;
+
+                double odleglosc = Math.Sqrt(Math.Pow(lastEnd.X - firstStart.X, 2) +
+                                             Math.Pow(lastEnd.Y - firstStart.Y, 2));
+
+                if (odleglosc > TOLERANCJA)
+                {
+                    result[^1].End = result[0].Start;
+                }
+            }
+
+            return result;
+        }
+
         private static XPoint SnapPoint(XPoint p, double precision = 0.001)
         {
             return new XPoint(
