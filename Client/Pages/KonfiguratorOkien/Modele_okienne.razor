@@ -1786,21 +1786,21 @@
                 //     return kopia;
                 // }).ToList();
 
-                foreach (var test in _regionsDualRama)
-                {
-                    foreach (var test2 in test.Kontur)
-                    {
-                        Console.WriteLine($"🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️ Region RAMA {test.Id} - Kontur Start: X={test2.Start.X}, Y={test2.Start.Y}, End: X={test2.End.X}, Y={test2.End.Y} - Typ {test2.Type.ToString()}");
-                    }
-                }
+                // foreach (var test in _regionsDualRama)
+                // {
+                //     foreach (var test2 in test.Kontur)
+                //     {
+                //         Console.WriteLine($"🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️ Region RAMA {test.Id} - Kontur Start: X={test2.Start.X}, Y={test2.Start.Y}, End: X={test2.End.X}, Y={test2.End.Y} - Typ {test2.Type.ToString()}");
+                //     }
+                // }
 
-                foreach (var test in _regionsSkrzydlo)
-                {
-                    foreach (var test2 in test.Kontur)
-                    {
-                        Console.WriteLine($"🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️ Region SKRZYDŁO {test.Id} - Kontur Start: X={test2.Start.X}, Y={test2.Start.Y}, End: X={test2.End.X}, Y={test2.End.Y} - Typ {test2.Type.ToString()}");
-                    }
-                }
+                // foreach (var test in _regionsSkrzydlo)
+                // {
+                //     foreach (var test2 in test.Kontur)
+                //     {
+                //         Console.WriteLine($"🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️ Region SKRZYDŁO {test.Id} - Kontur Start: X={test2.Start.X}, Y={test2.Start.Y}, End: X={test2.End.X}, Y={test2.End.Y} - Typ {test2.Type.ToString()}");
+                //     }
+                // }
 
                 // 🔹 5️⃣ **Dopiero teraz przesuwamy wszystko do dodatniej ćwiartki**
                 // 🔹 1️⃣ Wydłuż linie do granic kształtów
@@ -4962,19 +4962,22 @@
             //     Console.WriteLine($"🔹🔹🔹🔹🔹🔹Strona: {r.Strona} PrzesuniecieX: {r.PrzesuniecieX} PrzesuniecieY: {r.PrzesuniecieY} PrzesuniecieXStycznej: {r.PrzesuniecieXStycznej} PrzesuniecieYStycznej: {r.PrzesuniecieYStycznej}🔹🔹🔹🔹🔹🔹");
             // }
 
-            double tolerancjaKlikniecia = 55.0; // odległość w jednostkach np. pikslach
+
+            double tolerancjaKlikniecia = 55.0;
 
             var regionKlikniety = wszystkieRegiony
-             .Select(r => new
-             {
-                 Region = r,
-                 Odleglosc = OdlegloscPunktuOdOdcinka(
-                     klikX, klikY,
-                     r.Wierzcholki[0].X, r.Wierzcholki[0].Y,
-                     r.Wierzcholki[1].X, r.Wierzcholki[1].Y)
-             })
-             .OrderBy(x => x.Odleglosc)
-             .FirstOrDefault(x => x.Odleglosc < tolerancjaKlikniecia)?.Region;
+                .Where(r => r.Wierzcholki != null && r.Wierzcholki.Count >= 2)
+                .Select(r => new
+                {
+                    Region = r,
+                    Odleglosc = OdlegloscPunktuOdOdcinka(
+                        klikX, klikY,
+                        r.Wierzcholki[0].X, r.Wierzcholki[0].Y,
+                        r.Wierzcholki[1].X, r.Wierzcholki[1].Y)
+                })
+                .OrderBy(x => x.Odleglosc)
+                .FirstOrDefault(x => x.Odleglosc < tolerancjaKlikniecia)
+                ?.Region;
 
             if (regionKlikniety != null)
             {
@@ -7561,7 +7564,7 @@
         }
 
         await context.SetStrokeStyleAsync("Yellow");
-        await context.SetLineWidthAsync(3.5f);
+        await context.SetLineWidthAsync(11.5f);
         await context.StrokeAsync();
     }
 
@@ -7705,7 +7708,7 @@
         {
             if (gs.Value.Generator?.liniaSzkleniaKonturZLukami != null)
             {
-                await DrawContourSegmentsKontur(context, gs.Value.Generator.liniaSzkleniaKonturZLukami, "Yellow", 3.5f);
+                await DrawContourSegmentsKontur(context, gs.Value.Generator.liniaSzkleniaKonturZLukami, "Yellow", 11.5f);
             }
         }
     }
@@ -7721,7 +7724,7 @@
             }
         }
 
-        //    await DrawSingleGlassContourKontur(context);
+        await DrawSingleGlassContourKontur(context);
         await DrawSingleOuterContourKontur(context);
     }
 

@@ -30,6 +30,11 @@ namespace GEORGE.Client.Pages.Okna
 
         public List<ContourSegment> liniaSzkleniaKonturZLukami;// przechowuje obliczony kontur linii szklenia (jeśli dotyczy)
 
+        public double OffestTop { get; set; } = 0;
+        public double OffestBottom { get; set; } = 0;
+        public double OffestLeft { get; set; } = 0;
+        public double OffestRight { get; set; } = 0;
+
         public List<ShapeRegion> Region { get; set; } = new();
         public string StronaElementu { get; set; } = "";
 
@@ -95,6 +100,12 @@ namespace GEORGE.Client.Pages.Okna
             Region = regionAdd;
 
             var region = regions.FirstOrDefault(r => r.Id == regionId);
+
+
+            //if (region != null && daneKwadratu != null && !region.Rama)
+            //{
+            //   region.Wierzcholki = SortPointsToCCW(region.Wierzcholki);
+            //}
 
             List<XPoint> punkty = new List<XPoint>();
             List<ContourSegment> punktyZLukami = new List<ContourSegment>();
@@ -236,11 +247,11 @@ namespace GEORGE.Client.Pages.Okna
 
 
             var konfLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa &&
-                        (string.IsNullOrEmpty(slruchPoLewej) || e.Typ == slruchPoLewej));
+                        (string.IsNullOrEmpty(slruchPoPrawej) || e.Typ == slruchPoPrawej));
 
 
             var konfRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa &&
-                        (string.IsNullOrEmpty(slruchPoPrawej) || e.Typ == slruchPoPrawej));
+                        (string.IsNullOrEmpty(slruchPoLewej) || e.Typ == slruchPoLewej));
 
             var konfTop = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeGora);
 
@@ -347,6 +358,11 @@ namespace GEORGE.Client.Pages.Okna
                     profileBottom = 0;
                 }
 
+                OffestBottom = profileBottom;
+                OffestTop = profileTop;
+                OffestLeft = profileLeft;
+                OffestRight = profileRight;
+
                 //foreach(var test in punktyRegionuMaster)
                 //{
                 //    Console.WriteLine($"🔷🔷🔷🔷🔷🔷🔷🔷 punktyRegionuMaster 1 Wierzcholek X: {test.X} Y: {test.Y} / {punktyRegionuMaster.Count}");
@@ -391,26 +407,36 @@ namespace GEORGE.Client.Pages.Okna
                     }
                 }
 
+                OffestBottom = profileBottom;
+                OffestTop = profileTop; 
+                OffestLeft = profileLeft;   
+                OffestRight = profileRight;
+
                 wewnetrznyKonturZLukami = CalculateOffsetPolygonKontur(przeskalowanePunktyZLukami,
                 profileLeft, profileRight, profileTop, profileBottom,
                 false); // dla modeli z łukami i liniami
 
-                Console.WriteLine($"=== ORYGINALNE SEGMENTY WEWNĘTRZNE ===");
-                for (int i = 0; i < wewnetrznyKonturZLukami.Count; i++)
-                {
-                    var seg = wewnetrznyKonturZLukami[i];
-                    Console.WriteLine($"  [{i}] {seg.Type}: ({seg.Start.X:F2};{seg.Start.Y:F2}) -> ({seg.End.X:F2};{seg.End.Y:F2})");
-                    if (seg.Type == SegmentType.Arc)
-                    {
-                        Console.WriteLine($"       Center: ({seg.Center.Value.X:F2};{seg.Center.Value.Y:F2}) R={seg.Radius:F2}");
-                    }
-                }
+                //Console.WriteLine($"===!=== ORYGINALNE SEGMENTY WEWNĘTRZNE ===");
+                //for (int i = 0; i < wewnetrznyKonturZLukami.Count; i++)
+                //{
+                //    var seg = wewnetrznyKonturZLukami[i];
+                //    Console.WriteLine($"===!===  [{i}] {seg.Type}: ({seg.Start.X:F2};{seg.Start.Y:F2}) -> ({seg.End.X:F2};{seg.End.Y:F2})");
+                //    if (seg.Type == SegmentType.Arc)
+                //    {
+                //        Console.WriteLine($"===!===       Center: ({seg.Center.Value.X:F2};{seg.Center.Value.Y:F2}) R={seg.Radius:F2}");
+                //    }
+                //}
 
                 // Napraw punkty startowe jeśli potrzebne
                 // wewnetrznyKonturZLukami = FixStartPoints(wewnetrznyKonturZLukami);
 
                 liniaSzkleniaKontur = CalculateOffsetPolygon(
                     przeskalowanePunkty,
+                    offsetLeft, offsetRight, offsetTop, offsetBottom,
+                    false);
+
+                //Console.WriteLine($"offsetLeft, offsetRight, offsetTop, offsetBottom, {offsetLeft}, {offsetRight}, {offsetTop}, {offsetBottom}");
+                liniaSzkleniaKonturZLukami = CalculateOffsetPolygonKontur(przeskalowanePunktyZLukami,
                     offsetLeft, offsetRight, offsetTop, offsetBottom,
                     false);
             }
@@ -474,6 +500,8 @@ namespace GEORGE.Client.Pages.Okna
 
             Console.WriteLine($"▶️ Generowanie elementów dla regionu {regionId} z typem kształtu: {typKsztalt} oraz ElementLiniowy: {ElementLiniowy} profileLeft: {profileLeft}, profileRight :{profileRight}");
 
+            // Użyj oryginalnych segmentów (nieposortowanych) - one i tak będą dopasowane przez Build4SegmentContour
+            // outerContourSegment i innerContourSegment pozostają BEZ ZMIAN
             float angleDegreesElementLionowy = 0;
 
             float katGornegoElemntu = GetTopEdgeAngleFromFirstSegment(outer);
@@ -2033,7 +2061,7 @@ namespace GEORGE.Client.Pages.Okna
        int vertexCount = 0,
        float firstangleDegrees = 0)
         {
-            if (i < 0 || i >= outerContourSegment.Count)
+            if (i < 0 || i >= outerContourSegment.Count() || outerContourSegment.Count() < 2)
                 return wierzcholki;
 
             var currentSeg = outerContourSegment[i];
@@ -3562,6 +3590,105 @@ namespace GEORGE.Client.Pages.Okna
             double dy = p2.Y - p1.Y;
             return Math.Sqrt(dx * dx + dy * dy);
         }
+
+        /// <summary>
+        /// Sprawdza czy lista punktów jest zgodna z kierunkiem CCW (Counter-Clockwise)
+        /// </summary>
+        private bool IsCounterClockwise(List<XPoint> points)
+        {
+            if (points.Count < 3) return true;
+
+            double sum = 0;
+            for (int i = 0; i < points.Count; i++)
+            {
+                var p1 = points[i];
+                var p2 = points[(i + 1) % points.Count];
+                sum += (p2.X - p1.X) * (p2.Y + p1.Y);
+            }
+            return sum < 0; // Dla CCW suma jest ujemna w układzie współrzędnych ekranowych (Y w dół)
+        }
+
+
+        /// <summary>
+        /// Znajduje przesunięcie między oryginalną a posortowaną listą punktów
+        /// </summary>
+        private int FindShiftIndex(List<XPoint> original, List<XPoint> sorted)
+        {
+            if (original.Count == 0 || sorted.Count == 0) return 0;
+
+            // Znajdź indeks pierwszego punktu z sorted w original
+            for (int i = 0; i < original.Count; i++)
+            {
+                if (PointsEqual(original[i], sorted[0], 0.01))
+                {
+                    return i;
+                }
+            }
+            return 0;
+        }
+
+        /// <summary>
+        /// Sortuje listę punktów do CCW (dla układu współrzędnych gdzie Y rośnie w dół)
+        /// </summary>
+        private List<XPoint> SortPointsToCCW(List<XPoint> points)
+        {
+            if (points.Count < 3) return points;
+
+            // Oblicz środek ciężkości
+            double centerX = points.Average(p => p.X);
+            double centerY = points.Average(p => p.Y);
+
+            // Sortuj według kąta względem środka
+            var sorted = points.OrderBy(p =>
+            {
+                double angle = Math.Atan2(p.Y - centerY, p.X - centerX);
+                return angle;
+            }).ToList();
+
+            // Sprawdź orientację - jeśli jest CW, odwróć
+            if (!IsCounterClockwise(sorted))
+            {
+                sorted.Reverse();
+            }
+
+            // Znajdź optymalny punkt startowy (najbardziej lewy-górny)
+            int startIndex = FindOptimalStartIndex(sorted);
+            if (startIndex > 0)
+            {
+                sorted = sorted.Skip(startIndex).Concat(sorted.Take(startIndex)).ToList();
+            }
+
+            return sorted;
+        }
+
+        /// <summary>
+        /// Znajduje optymalny punkt startowy (najbardziej lewy-górny)
+        /// </summary>
+        private int FindOptimalStartIndex(List<XPoint> points)
+        {
+            if (points.Count == 0) return 0;
+
+            double minX = points.Min(p => p.X);
+            var leftmostPoints = points.Where(p => Math.Abs(p.X - minX) < 0.001).ToList();
+
+            if (leftmostPoints.Count > 0)
+            {
+                double minY = leftmostPoints.Min(p => p.Y);
+                var topLeftPoint = leftmostPoints.First(p => Math.Abs(p.Y - minY) < 0.001);
+                return points.IndexOf(topLeftPoint);
+            }
+
+            return 0;
+        }
+
+        /// <summary>
+        /// Porównuje dwa punkty z tolerancją
+        /// </summary>
+        private bool PointsEqual(XPoint a, XPoint b, double tolerance = 0.01)
+        {
+            return Math.Abs(a.X - b.X) < tolerance && Math.Abs(a.Y - b.Y) < tolerance;
+        }
+
 
     }
 }

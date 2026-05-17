@@ -157,7 +157,6 @@ namespace GEORGE.Client.Pages.Utils
                                         rtr.Radius,
                                         counterClockwise
                                     );
-
                                     segment.Informacja = ramaInfo + " " + shape.GetType().Name;
                                     return segment;
                                 }
@@ -275,7 +274,7 @@ namespace GEORGE.Client.Pages.Utils
                                 return result;
                             }
 
-                        FallbackLine:
+                            FallbackLine:
 
                             var lineSeg = new ContourSegment(p, next)
                             {
@@ -511,8 +510,19 @@ namespace GEORGE.Client.Pages.Utils
                         // 2️⃣ Usuwanie duplikatów (oba kierunki linii)
                         r.Kontur = RemoveDuplicateSegments(r.Kontur);
 
-                        // 4️⃣ Sortowanie
-                        r.Kontur = OrderSegmentsForClosedContour(r.Kontur);
+                        // Po sortowaniu segmentów
+                        var posortowaneSegmenty = OrderSegmentsForClosedContour(r.Kontur);
+                        r.Kontur = posortowaneSegmenty;
+
+                        // ⭐ KLUCZOWE: Zsynchronizuj punkty z segmentami
+                        var newPoints = new List<XPoint>();
+                        foreach (var seg in r.Kontur)
+                        {
+                            newPoints.Add(seg.Start);
+                        }
+
+                        if (r.Wierzcholki.Count() > 2)
+                            r.Wierzcholki = newPoints;
 
                         r.RozpoznajTyp(r.TypKsztaltu);
 
@@ -540,6 +550,7 @@ namespace GEORGE.Client.Pages.Utils
                         }
 
                         r.Id = id + "|" + idCounter++;
+
                     }
 
                     regions.AddRange(podzielone);
@@ -555,6 +566,7 @@ namespace GEORGE.Client.Pages.Utils
                     Console.WriteLine($"🔲 Generowanie regionów bez ramy dla shape id: {initial.Id} id: {id}");
 
                     List<ShapeRegion> podzielone;
+                    List<XPoint> napraw;
 
                     // Sprawdź czy są jakieś linie dzielące
                     if (!linieDzielace.Any())
@@ -566,6 +578,7 @@ namespace GEORGE.Client.Pages.Utils
                         // Przetwarzanie dla przypadku bez linii dzielących (TAK SAMO JAK DLA RAMY)
                         foreach (var r in podzielone)
                         {
+                            napraw = r.Wierzcholki;
                             // Usuwanie duplikatów wierzchołków
                             r.Wierzcholki = r.Wierzcholki
                                 .GroupBy(p => new { X = Math.Round(p.X, 2), Y = Math.Round(p.Y, 2) })
@@ -576,6 +589,9 @@ namespace GEORGE.Client.Pages.Utils
                             r.Kontur = r.Kontur
                                 .Where(s => !CzySegmentZerowejDlugosci(s))
                                 .ToList();
+
+                            // ⭐⭐⭐ DODAJ SORTOWANIE CCW ⭐⭐⭐
+                            //   SortContourToCCWByReorder(r);
 
                             // Przetwarzanie konturu - usuwanie duplikatów
                             var unikalneSegmenty = r.Kontur
@@ -624,15 +640,36 @@ namespace GEORGE.Client.Pages.Utils
 
                             r.Kontur = nowyKontur;
 
-                            // 4️⃣ Sortowanie
-                            r.Kontur = OrderSegmentsForClosedContour(r.Kontur);
+                            // 4️⃣ Sortowanie (jeśli jeszcze potrzebne)
+                            // r.Kontur = OrderSegmentsForClosedContour(r.Kontur);
 
                             // USUŃ SEGMENTY O ZEROWEJ DŁUGOŚCI PONOWNIE
                             r.Kontur = r.Kontur
                                 .Where(s => !CzySegmentZerowejDlugosci(s))
                                 .ToList();
 
-                            r.RozpoznajTyp(r.TypKsztaltu);
+                            // 2️⃣ Usuwanie duplikatów (oba kierunki linii)
+                            r.Kontur = RemoveDuplicateSegments(r.Kontur);
+
+                            // Po sortowaniu segmentów
+                            var posortowaneSegmenty = OrderSegmentsForClosedContour(r.Kontur);
+                            r.Kontur = posortowaneSegmenty;
+
+                            // ⭐ KLUCZOWE: Zsynchronizuj punkty z segmentami
+                            var newPoints = new List<XPoint>();
+                            foreach (var seg in r.Kontur)
+                            {
+                                newPoints.Add(seg.Start);
+                            }
+  
+                            if(r.Wierzcholki.Count() > 2)
+                                r.Wierzcholki = newPoints;
+
+                            // Teraz powinno być:
+                            if (string.IsNullOrEmpty(r.GetType().Name))
+                            {
+                                r.RozpoznajTyp(r.TypKsztaltu);
+                            }
 
                             Console.WriteLine($"🔹 Region po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - SKRZYDŁO (bez podziału)");
 
@@ -656,7 +693,29 @@ namespace GEORGE.Client.Pages.Utils
                                     r.TypKsztaltu = "prostokąt";
                                 }
                             }
+
+                            FixAndSynchronizeContour(r);
+
+                            // Po sortowaniu i synchronizacji
+                            // SortAndSynchronizeContour(r);
+
+                            await Task.Delay(20);
+
+                            //// Wyłącz szczegółowe logowanie (tylko problemy)
+                            //_enableDetailedLogging = false;
+
+                            //// Sprawdź kontur - zobaczymy tylko PROBLEMY
+                            //bool isValid = ValidateContourConsistency(r, r.TypKsztaltu);
+
+                            //// LUB cicha walidacja (bez logów)
+                            //bool isValidSilent = IsContourValid(r);
+
+                            //// Dla debugowania - włącz szczegółowe logi
+                            //_enableDetailedLogging = true;
+                            //ValidateContourConsistency(r, r.TypKsztaltu);
+
                         }
+
                     }
                     else
                     {
@@ -668,6 +727,7 @@ namespace GEORGE.Client.Pages.Utils
 
                         foreach (var r in podzielone)
                         {
+                            napraw = r.Wierzcholki;
                             // Usuwanie duplikatów wierzchołków
                             r.Wierzcholki = r.Wierzcholki
                                 .GroupBy(p => new { X = Math.Round(p.X, 2), Y = Math.Round(p.Y, 2) })
@@ -782,8 +842,24 @@ namespace GEORGE.Client.Pages.Utils
                                 .Where(s => !CzySegmentZerowejDlugosci(s))
                                 .ToList();
 
-                            // 5️⃣ Sortowanie
-                            r.Kontur = OrderSegmentsForClosedContour(r.Kontur);
+                            // 2️⃣ Usuwanie duplikatów (oba kierunki linii)
+                            r.Kontur = RemoveDuplicateSegments(r.Kontur);
+
+                            r.Wierzcholki = SynchronizePointsWithSegments(r.Kontur);
+
+                            // Po sortowaniu segmentów
+                            var posortowaneSegmenty = OrderSegmentsForClosedContour(r.Kontur);
+                            r.Kontur = posortowaneSegmenty;
+
+                            // ⭐ KLUCZOWE: Zsynchronizuj punkty z segmentami
+                            var newPoints = new List<XPoint>();
+                            foreach (var seg in r.Kontur)
+                            {
+                                newPoints.Add(seg.Start);
+                            }
+
+                            if (r.Wierzcholki.Count() > 2)
+                                r.Wierzcholki = newPoints;
 
                             r.RozpoznajTyp(r.TypKsztaltu);
 
@@ -809,7 +885,34 @@ namespace GEORGE.Client.Pages.Utils
                                     r.TypKsztaltu = "prostokąt";
                                 }
                             }
+
+                           // SortAndSynchronizeContour(r);
+
+                            await Task.Delay(20);
+
+                            //// Po sortowaniu i synchronizacji
+                            //SortAndSynchronizeContour(r);
+
+                            //// Wyłącz szczegółowe logowanie (tylko problemy)
+                            //_enableDetailedLogging = false;
+
+                            //// Sprawdź kontur - zobaczymy tylko PROBLEMY
+                            //bool isValid = ValidateContourConsistency(r, r.TypKsztaltu);
+
+                            //// LUB cicha walidacja (bez logów)
+                            //bool isValidSilent = IsContourValid(r);
+
+                            //// Dla debugowania - włącz szczegółowe logi
+                            //_enableDetailedLogging = true;
+                            //ValidateContourConsistency(r, r.TypKsztaltu);
+
+
+                            FixAndSynchronizeContour(r);
+
+                            if(r.Wierzcholki.Count() < 2) r.Wierzcholki = napraw;
+
                         }
+
                     }
 
                     regions.AddRange(podzielone);
@@ -819,6 +922,9 @@ namespace GEORGE.Client.Pages.Utils
             await Task.Delay(1);
             return regions;
         }
+
+
+
 
         // Dodaj tę funkcję pomocniczą na końcu klasy
         private static bool CzySegmentZerowejDlugosci(ContourSegment segment)
@@ -1221,6 +1327,61 @@ namespace GEORGE.Client.Pages.Utils
         }
 
         // Nowa funkcja pomocnicza do porządkowania segmentów w zamknięty kontur
+
+        /// <summary>
+        /// Synchronizuje i naprawia kontur (punkty i segmenty)
+        /// </summary>
+        private static void FixAndSynchronizeContour(ShapeRegion region)
+        {
+        
+            if (region == null || region.Kontur == null || region.Kontur.Count == 0)
+                return;
+
+            // 1. Najpierw napraw połączenia między segmentami
+            for (int i = 0; i < region.Kontur.Count; i++)
+            {
+                var current = region.Kontur[i];
+                var next = region.Kontur[(i + 1) % region.Kontur.Count];
+
+                if (Distance(current.End, next.Start) > 0.01)
+                {
+                    // Popraw koniec bieżącego segmentu
+                    if (current.Type == SegmentType.Arc && current.Center != null)
+                    {
+                        var corrected = new ContourSegment(
+                            current.Start,
+                            next.Start,
+                            current.Center.Value,
+                            current.Radius,
+                            current.CounterClockwise
+                        );
+                        region.Kontur[i] = corrected;
+                    }
+                    else
+                    {
+                        var corrected = new ContourSegment(current.Start, next.Start);
+                        region.Kontur[i] = corrected;
+                    }
+                }
+            }
+
+            // 2. Zbuduj PUNKTY z początków segmentów (to jest kluczowe!)
+            var newPoints = new List<XPoint>();
+            foreach (var seg in region.Kontur)
+            {
+                newPoints.Add(seg.Start);
+            }
+
+            region.Wierzcholki = newPoints;
+
+            // 3. Sprawdź czy liczba punktów zgadza się z liczbą segmentów
+            if (region.Wierzcholki.Count != region.Kontur.Count)
+            {
+                Console.WriteLine($"⚠️ Naprawiono: punkty({region.Wierzcholki.Count}) == segmenty({region.Kontur.Count})");
+            }
+        }
+
+
         private static List<ContourSegment> OrderSegmentsForClosedContour(List<ContourSegment> segments)
         {
             if (segments.Count <= 1)
@@ -1269,69 +1430,204 @@ namespace GEORGE.Client.Pages.Utils
                 currentEnd = nextSegment.End;
             }
 
-            // 🔑 SPRAWDŹ CZY KONTUR JEST CCW (POLECENIE: ZAWSZE CCW)
-            if (ordered.Count > 2)
-            {
-                // Oblicz pole konturu (dodatnie = CCW, ujemne = CW)
-                double pole = 0;
-                for (int i = 0; i < ordered.Count; i++)
-                {
-                    var current = ordered[i];
-                    var next = ordered[(i + 1) % ordered.Count];
-                    pole += (current.Start.X * next.Start.Y) - (next.Start.X * current.Start.Y);
-                }
-                pole /= 2.0;
-
-                // Jeśli kontur jest CW (pole ujemne), odwróć go do CCW
-                if (pole < 0)
-                {
-                    // Odwróć kolejność segmentów
-                    ordered.Reverse();
-
-                    // Odwróć każdy segment (zamień Start↔End)
-                    for (int i = 0; i < ordered.Count; i++)
-                    {
-                        ordered[i] = ReverseSegment(ordered[i]);
-                    }
-                }
-            }
-
-            // 🔑 TERAZ USTAW ŁUKI NA CCW (TRUE)
-            for (int i = 0; i < ordered.Count; i++)
-            {
-                if (ordered[i].Type == SegmentType.Arc)
-                {
-                    ordered[i].CounterClockwise = true; // ✅ CCW - przeciwnie do zegara
-                }
-            }
+            // ⭐⭐⭐ NORMALIZACJA DO CCW - ZACHOWUJĄC LICZBĘ SEGMENTÓW ⭐⭐⭐
+            ordered = NormalizeContourToCCW(ordered);
 
             return ordered;
         }
 
-        // Pomocnicza funkcja do odwracania segmentu
-        private static ContourSegment ReverseSegment(ContourSegment seg)
+        /// <summary>
+        /// Normalizuje kontur do CCW - ZACHOWUJE liczbę segmentów
+        /// </summary>
+        private static List<ContourSegment> NormalizeContourToCCW(List<ContourSegment> segments)
         {
-            if (seg.Type == SegmentType.Arc && seg.Center.HasValue)
+            if (segments == null || segments.Count < 2)
+                return segments;
+
+            // 1. Sprawdź orientację konturu
+            bool isCCW = IsContourCounterClockwise(segments);
+
+            // 2. Jeśli nie jest CCW, odwróć cały kontur (ZACHOWUJĄC LICZBĘ SEGMENTÓW)
+            if (!isCCW)
+            {
+                segments.Reverse();  // Odwróć kolejność
+                for (int i = 0; i < segments.Count; i++)
+                {
+                    segments[i] = ReverseSegment(segments[i]);  // Odwróć każdy segment
+                }
+            }
+
+            // 3. Znajdź optymalny punkt startowy
+            int startIndex = FindOptimalStartIndexFromSegments(segments);
+
+            // 4. Przesuń segmenty (ZACHOWUJĄC LICZBĘ SEGMENTÓW)
+            if (startIndex > 0)
+            {
+                var reordered = new List<ContourSegment>();
+                reordered.AddRange(segments.Skip(startIndex));
+                reordered.AddRange(segments.Take(startIndex));
+                segments = reordered;
+            }
+
+            // 5. Ustaw wszystkie łuki na CCW
+            for (int i = 0; i < segments.Count; i++)
+            {
+                if (segments[i].Type == SegmentType.Arc)
+                {
+                    segments[i].CounterClockwise = true;
+                }
+            }
+
+            // ⭐⭐⭐ 6. SYCHRONIZACJA: Napraw połączenia między segmentami
+            for (int i = 0; i < segments.Count; i++)
+            {
+                var current = segments[i];
+                var next = segments[(i + 1) % segments.Count];
+
+                // Jeśli koniec bieżącego nie pasuje do początku następnego
+                if (Distance(current.End, next.Start) > 0.01)
+                {
+                    // Popraw koniec bieżącego segmentu
+                    if (current.Type == SegmentType.Arc && current.Center != null)
+                    {
+                        // Dla łuku - utwórz nowy łuk z poprawionym końcem
+                        var correctedArc = new ContourSegment(
+                            current.Start,
+                            next.Start,  // Użyj początku następnego segmentu
+                            current.Center.Value,
+                            current.Radius,
+                            current.CounterClockwise
+                        );
+                        segments[i] = correctedArc;
+                    }
+                    else
+                    {
+                        // Dla linii - utwórz nową linię z poprawionym końcem
+                        var correctedLine = new ContourSegment(current.Start, next.Start);
+                        segments[i] = correctedLine;
+                    }
+                }
+            }
+
+            return segments;
+        }
+
+        /// <summary>
+        /// Sprawdza czy kontur jest CCW (na podstawie punktów startowych segmentów)
+        /// </summary>
+        private static bool IsContourCounterClockwise(List<ContourSegment> segments)
+        {
+            if (segments == null || segments.Count < 3)
+                return true;
+
+            // Zbuduj listę punktów z początków segmentów
+            var points = new List<XPoint>();
+            foreach (var seg in segments)
+            {
+                points.Add(seg.Start);
+            }
+
+            // Oblicz pole (dodatnie = CCW, ujemne = CW)
+            double sum = 0;
+            for (int i = 0; i < points.Count; i++)
+            {
+                var p1 = points[i];
+                var p2 = points[(i + 1) % points.Count];
+                sum += (p2.X - p1.X) * (p2.Y + p1.Y);
+            }
+
+            return sum < 0;
+        }
+
+        /// <summary>
+        /// Znajduje optymalny punkt startowy w segmencie (najbardziej lewy-górny)
+        /// </summary>
+        private static int FindOptimalStartIndexFromSegments(List<ContourSegment> segments)
+        {
+            if (segments == null || segments.Count == 0)
+                return 0;
+
+            // Zbierz wszystkie punkty startowe
+            var points = new List<XPoint>();
+            foreach (var seg in segments)
+            {
+                points.Add(seg.Start);
+            }
+
+            // Znajdź najmniejszy X (najbardziej lewy)
+            double minX = points.Min(p => p.X);
+            var leftmostPoints = points.Select((p, i) => new { Point = p, Index = i })
+                .Where(x => Math.Abs(x.Point.X - minX) < 0.001)
+                .ToList();
+
+            // Spośród nich wybierz najmniejszy Y (najwyższy)
+            if (leftmostPoints.Count > 0)
+            {
+                double minY = leftmostPoints.Min(x => x.Point.Y);
+                var topLeft = leftmostPoints.First(x => Math.Abs(x.Point.Y - minY) < 0.001);
+                return topLeft.Index;
+            }
+
+            return 0;
+        }
+
+        /// <summary>
+        /// Odwraca segment (zamienia Start z End)
+        /// </summary>
+        private static ContourSegment ReverseSegment(ContourSegment segment)
+        {
+            if (segment.Type == SegmentType.Arc && segment.Center != null)
             {
                 return new ContourSegment(
-                    seg.End,
-                    seg.Start,
-                    seg.Center,
-                    seg.Radius,
-                    !seg.CounterClockwise  // Odwróć kierunek
+                    segment.End,
+                    segment.Start,
+                    segment.Center.Value,
+                    segment.Radius,
+                    !segment.CounterClockwise
                 )
                 {
-                    Informacja = seg.Informacja
+                    Informacja = segment.Informacja
                 };
             }
             else
             {
-                return new ContourSegment(seg.End, seg.Start)
+                return new ContourSegment(segment.End, segment.Start)
                 {
-                    Informacja = seg.Informacja
+                    Informacja = segment.Informacja
                 };
             }
         }
+
+        /// <summary>
+        /// Synchronizuje listę punktów z segmentami (zachowując równą liczbę)
+        /// </summary>
+        private static List<XPoint> SynchronizePointsWithSegments(List<ContourSegment> segments)
+        {
+            if (segments == null || segments.Count == 0)
+                return new List<XPoint>();
+
+            // Punkty to początki segmentów
+            var points = new List<XPoint>();
+            foreach (var seg in segments)
+            {
+                points.Add(seg.Start);
+            }
+
+            // Sprawdź czy kontur jest zamknięty
+            var lastSeg = segments.Last();
+            var firstSeg = segments.First();
+
+            if (Distance(lastSeg.End, firstSeg.Start) > 0.01)
+            {
+                // Kontur nie jest zamknięty - dodaj brakujący punkt
+                points.Add(lastSeg.End);
+            }
+
+            return points;
+        }
+
+
+
 
 
         static bool IsPointOnArc(XPoint p, ContourSegment arc)
