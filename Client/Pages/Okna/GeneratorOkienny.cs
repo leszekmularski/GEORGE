@@ -246,11 +246,11 @@ namespace GEORGE.Client.Pages.Okna
 
 
             var konfLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa &&
-                        (string.IsNullOrEmpty(slruchPoLewej) || e.Typ == slruchPoLewej));
+                        (string.IsNullOrEmpty(slruchPoLewej) || e.Typ == slruchPoLewej) || (string.IsNullOrEmpty(slruchPoPrawej) || e.Typ == slruchPoPrawej));
 
 
             var konfRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa &&
-                        (string.IsNullOrEmpty(slruchPoPrawej) || e.Typ == slruchPoPrawej));
+                        (string.IsNullOrEmpty(slruchPoPrawej) || e.Typ == slruchPoPrawej) || (string.IsNullOrEmpty(slruchPoLewej) || e.Typ == slruchPoLewej));
 
             var konfTop = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeGora);
 
@@ -267,17 +267,18 @@ namespace GEORGE.Client.Pages.Okna
             float profileTop = ObliczRoznicePoziomow(konfTop, ElementLiniowy);
             float profileBottom = ObliczRoznicePoziomow(konfBottom, ElementLiniowy);
 
-            float offsetLeft = ObliczRoznicePoziomowSzyba(konfLeft, ElementLiniowy);
-            float offsetRight = ObliczRoznicePoziomowSzyba(konfRight, ElementLiniowy);
-            float offsetTop = ObliczRoznicePoziomowSzyba(konfTop, ElementLiniowy);
-            float offsetBottom = ObliczRoznicePoziomowSzyba(konfBottom, ElementLiniowy);
+            float offsetGlassLeft = ObliczRoznicePoziomowSzyba(konfLeft, ElementLiniowy);
+            float offsetGlassRight = ObliczRoznicePoziomowSzyba(konfRight, ElementLiniowy);
+            float offsetGlassTop = ObliczRoznicePoziomowSzyba(konfTop, ElementLiniowy);
+            float offsetGlassBottom = ObliczRoznicePoziomowSzyba(konfBottom, ElementLiniowy);
 
-            if (offsetLeft > 0) offsetLeft = profileLeft - offsetLeft;
-            if (offsetRight > 0) offsetRight = profileRight - offsetRight;
-            if (offsetTop > 0) offsetTop = profileTop - offsetTop;
-            if (offsetBottom > 0) offsetBottom = profileBottom - offsetBottom;
+            if (offsetGlassLeft > 0) offsetGlassLeft = profileLeft - offsetGlassLeft;
+            if (offsetGlassRight > 0) offsetGlassRight = profileRight - offsetGlassRight;
+            if (offsetGlassTop > 0) offsetGlassTop = profileTop - offsetGlassTop;
+            if (offsetGlassBottom > 0) offsetGlassBottom = profileBottom - offsetGlassBottom;
 
             Console.WriteLine($"🔧 Profile z konfiguracji przed korektą: profileLeft: {profileLeft} profileRight: {profileRight} profileTop: {profileTop} profileBottom: {profileBottom}");
+            Console.WriteLine($"🔧 Profile z konfiguracji przed korektą: offsetGlassLeft: {offsetGlassLeft} offsetGlassRight: {offsetGlassRight} offsetGlassTop: {offsetGlassTop} offsetGlassBottom: {offsetGlassBottom}");
 
             Guid RowIdprofileLeft = konfLeft?.RowId ?? Guid.Empty;
             Guid RowIdprofileRight = konfRight?.RowId ?? Guid.Empty;
@@ -421,12 +422,12 @@ namespace GEORGE.Client.Pages.Okna
 
                 liniaSzkleniaKontur = CalculateOffsetPolygon(
                     przeskalowanePunkty,
-                    offsetLeft, offsetRight, offsetTop, offsetBottom,
+                    offsetGlassLeft, offsetGlassRight, offsetGlassTop, offsetGlassBottom,
                     false);
 
                 //Console.WriteLine($"offsetLeft, offsetRight, offsetTop, offsetBottom, {offsetLeft}, {offsetRight}, {offsetTop}, {offsetBottom}");
                 liniaSzkleniaKonturZLukami = CalculateOffsetPolygonKontur(przeskalowanePunktyZLukami,
-                    offsetLeft, offsetRight, offsetTop, offsetBottom,
+                    offsetGlassLeft, offsetGlassRight, offsetGlassTop, offsetGlassBottom,
                     false);
             }
 
@@ -2491,6 +2492,7 @@ namespace GEORGE.Client.Pages.Okna
         {
             if (konf == null || !konf.CzyMozeBycFix)
                 return -1;
+
             if (!slupekStaly)
             {
                 float gora = (float)konf.PoziomLiniaSzkla;
@@ -2508,6 +2510,8 @@ namespace GEORGE.Client.Pages.Okna
             else
             {
                 //Słupki stałe mają zawsze pełną wartość profilu, niezależnie od poziomów pozostałe dane z tabeli KonfPolaczenia
+                Console.BackgroundColor = ConsoleColor.Green;
+                Console.WriteLine("Słupki stałe mają zawsze pełną wartość profilu, niezależnie od poziomów pozostałe dane z tabeli KonfPolaczenia");
                 return 0;
             }
 
