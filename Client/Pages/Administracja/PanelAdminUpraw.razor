@@ -226,6 +226,10 @@ else
         <br/>
         @if (boolAdmin)
         {
+            @txtValueInfKoserwacja
+            <Button Type="@ButtonType.Primary" OnClick="WywolajCheckDb" style="background-color: #F7D9D9; color: red;">Wywołaj akcję CheckDb najlepiej po skończonej pracy</Button>
+            <br/>
+            <br/>
             @statusMessage
             <Button OnClick="UpdateApplication">Sprawdź i pobierz aktualizację oprogramowania</Button>
         }
@@ -276,6 +280,7 @@ else
     private bool czakajNaImport = false;
 
     private string statusMessage = "";
+    private string txtValueInfKoserwacja = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -314,6 +319,21 @@ else
             infWybor = ex.Message;
         }
 
+    }
+
+    private async Task WywolajCheckDb()
+    {
+        txtValueInfKoserwacja = "Czekaj (może to potrwać kilka minut)...";
+
+        try
+        {
+            var response = await Http.PostAsync("api/Baza/CheckDb", null);
+            txtValueInfKoserwacja = await response.Content.ReadAsStringAsync();
+        }
+        catch (Exception ex)
+        {
+            txtValueInfKoserwacja = $"Błąd: {ex.Message}";
+        }
     }
 
     private async Task UpdateApplication()

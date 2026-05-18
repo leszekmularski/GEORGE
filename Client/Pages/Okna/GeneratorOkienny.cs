@@ -30,10 +30,9 @@ namespace GEORGE.Client.Pages.Okna
 
         public List<ContourSegment> liniaSzkleniaKonturZLukami;// przechowuje obliczony kontur linii szklenia (jeśli dotyczy)
 
-        public double OffestTop { get; set; } = 0;
-        public double OffestBottom { get; set; } = 0;
-        public double OffestLeft { get; set; } = 0;
-        public double OffestRight { get; set; } = 0;
+        public List<XPoint> liniaOkuciaKontur;// przechowuje obliczony kontur linii szklenia (jeśli dotyczy)
+
+        public List<ContourSegment> liniaOkuciaKonturZLukami;// przechowuje obliczony kontur linii szklenia (jeśli dotyczy)
 
         public List<ShapeRegion> Region { get; set; } = new();
         public string StronaElementu { get; set; } = "";
@@ -247,11 +246,11 @@ namespace GEORGE.Client.Pages.Okna
 
 
             var konfLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa &&
-                        (string.IsNullOrEmpty(slruchPoPrawej) || e.Typ == slruchPoPrawej));
+                        (string.IsNullOrEmpty(slruchPoLewej) || e.Typ == slruchPoLewej));
 
 
             var konfRight = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujePrawa &&
-                        (string.IsNullOrEmpty(slruchPoLewej) || e.Typ == slruchPoLewej));
+                        (string.IsNullOrEmpty(slruchPoPrawej) || e.Typ == slruchPoPrawej));
 
             var konfTop = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeGora);
 
@@ -347,21 +346,16 @@ namespace GEORGE.Client.Pages.Okna
                     profileTop = (float)szukPionA;
                     profileBottom = (float)szukPionB;
 
-                    Console.WriteLine($"🔷 T5-T5 Znaleziono konfigurację przesunięcia dla przypadku poziomego. profileLeft: {profileLeft} profileRight: {profileRight} profileTop: {profileTop} profileBottom: {profileBottom}");
+                    Console.WriteLine($"🔷 ElementLiniowy Znaleziono konfigurację przesunięcia dla przypadku poziomego. profileLeft: {profileLeft} profileRight: {profileRight} profileTop: {profileTop} profileBottom: {profileBottom}");
                 }
                 else
                 {
-                    Console.WriteLine($"🔷 T5-T5 Nie znaleziono konfiguracji przesunięcia dla przypadku poziomego. Domyślnie ustawiono 0 przesunięć.");
+                    Console.WriteLine($"🔷 ElementLiniowy Nie znaleziono konfiguracji przesunięcia dla przypadku poziomego. Domyślnie ustawiono 0 przesunięć.");
                     profileLeft = 0;
                     profileRight = 0;
                     profileTop = 0;
                     profileBottom = 0;
                 }
-
-                OffestBottom = profileBottom;
-                OffestTop = profileTop;
-                OffestLeft = profileLeft;
-                OffestRight = profileRight;
 
                 //foreach(var test in punktyRegionuMaster)
                 //{
@@ -394,23 +388,18 @@ namespace GEORGE.Client.Pages.Okna
                 profileLeft, profileRight, profileTop, profileBottom,
                 false);
 
-                // Przed wywołaniem funkcji, dodaj diagnostykę:
-                Console.WriteLine($"=== DANE WEJŚCIOWE KONTURU WEWNĘTRZNEGO ===");
-                Console.WriteLine($"Liczba segmentów: {przeskalowanePunktyZLukami.Count}");
-                for (int i = 0; i < przeskalowanePunktyZLukami.Count; i++)
-                {
-                    var seg = przeskalowanePunktyZLukami[i];
-                    Console.WriteLine($"  Seg.{i}: {seg.Type} Start({seg.Start.X:F2};{seg.Start.Y:F2}) End({seg.End.X:F2};{seg.End.Y:F2})");
-                    if (seg.Type == SegmentType.Arc && seg.Center != null)
-                    {
-                        Console.WriteLine($"         Center({seg.Center.Value.X:F2};{seg.Center.Value.Y:F2}) R={seg.Radius:F2} CCW={seg.CounterClockwise}");
-                    }
-                }
-
-                OffestBottom = profileBottom;
-                OffestTop = profileTop; 
-                OffestLeft = profileLeft;   
-                OffestRight = profileRight;
+                //// Przed wywołaniem funkcji, dodaj diagnostykę:
+                //Console.WriteLine($"===!===  DANE WEJŚCIOWE KONTURU WEWNĘTRZNEGO ===");
+                //Console.WriteLine($"===!=== Liczba segmentów: {przeskalowanePunktyZLukami.Count}");
+                //for (int i = 0; i < przeskalowanePunktyZLukami.Count; i++)
+                //{
+                //    var seg = przeskalowanePunktyZLukami[i];
+                //    Console.WriteLine($" ===!===  Seg.{i}: {seg.Type} Start({seg.Start.X:F2};{seg.Start.Y:F2}) End({seg.End.X:F2};{seg.End.Y:F2})");
+                //    if (seg.Type == SegmentType.Arc && seg.Center != null)
+                //    {
+                //        Console.WriteLine($"         Center({seg.Center.Value.X:F2};{seg.Center.Value.Y:F2}) R={seg.Radius:F2} CCW={seg.CounterClockwise}");
+                //    }
+                //}
 
                 wewnetrznyKonturZLukami = CalculateOffsetPolygonKontur(przeskalowanePunktyZLukami,
                 profileLeft, profileRight, profileTop, profileBottom,
@@ -2981,6 +2970,85 @@ namespace GEORGE.Client.Pages.Okna
             const double EPS = 1e-6;
             const double TOLERANCJA = 0.01;
 
+            // 🟢 OBSŁUGA ELEMENTÓW LINIOWYCH (np. słupków)
+            if (elementLiniowy && segments.Count == 2)
+            {
+                var seg1 = segments[0];
+                var seg2 = segments[1];
+
+                // Zakładamy, że element liniowy składa się z dwóch segmentów liniowych
+                if (seg1.Type == SegmentType.Line && seg2.Type == SegmentType.Line)
+                {
+                    // Weź punkty początkowe obu segmentów (lub początek pierwszego i koniec drugiego)
+                    var p1 = seg1.Start;
+                    var p2 = seg2.End; // lub seg1.End i seg2.Start, zależnie od struktury
+
+                    double dx = p2.X - p1.X;
+                    double dy = p2.Y - p1.Y;
+                    double length = Math.Sqrt(dx * dx + dy * dy);
+
+                    if (length > EPS)
+                    {
+                        // Określenie kąta i strony
+                        double angleRadians = Math.Atan2(dy, dx);
+                        double angleDegrees = angleRadians * (180.0 / Math.PI);
+                        if (angleDegrees < 0) angleDegrees += 360.0;
+
+                        string side = StronaOknaHelper.OkreslStrone((float)angleDegrees, 0, null);
+
+                        double offsetX = 0;
+                        double offsetY = 0;
+
+                        // Przesunięcie DO WNĘTRZA - analogicznie jak w CalculateOffsetPolygon
+                        switch (side)
+                        {
+                            case "Góra":
+                                // Góra przesuwa się w dół (ujemny Y)
+                                offsetY = -profileTop;
+                                break;
+                            case "Dół":
+                                // Dół przesuwa się w górę (dodatni Y)
+                                offsetY = profileBottom;
+                                break;
+                            case "Lewa":
+                                // Lewa przesuwa się w prawo (dodatni X)
+                                offsetX = profileLeft;
+                                break;
+                            case "Prawa":
+                                // Prawa przesuwa się w lewo (ujemny X)
+                                offsetX = -profileRight;
+                                break;
+                        }
+
+                        // Tworzymy przesunięte segmenty
+                        var newSeg1Start = new XPoint(seg1.Start.X + offsetX, seg1.Start.Y + offsetY);
+                        var newSeg1End = new XPoint(seg1.End.X + offsetX, seg1.End.Y + offsetY);
+                        var newSeg2Start = new XPoint(seg2.Start.X + offsetX, seg2.Start.Y + offsetY);
+                        var newSeg2End = new XPoint(seg2.End.X + offsetX, seg2.End.Y + offsetY);
+
+                        var resultX = new List<ContourSegment>
+                {
+                    new ContourSegment(newSeg1Start, newSeg1End)
+                    {
+                        Informacja = seg1.Informacja ?? side
+                    },
+                    new ContourSegment(newSeg2Start, newSeg2End)
+                    {
+                        Informacja = seg2.Informacja ?? side
+                    }
+                };
+
+                        return resultX;
+                    }
+                }
+                else
+                {
+                    // Jeśli segmenty nie są liniowe, zwróć oryginał
+                    Console.WriteLine("⚠️ Element liniowy z niestandardowymi segmentami - zwracam oryginał");
+                    return segments;
+                }
+            }
+
             var offsetSegments = new List<ContourSegment>();
             var arcRadiusCache = new Dictionary<string, float>();
 
@@ -3204,18 +3272,93 @@ namespace GEORGE.Client.Pages.Okna
         }
 
         public List<ContourSegment> CalculateOffsetPolygonKonturSkrzydlo(
-        List<ContourSegment> segments,
-        float profileLeft,
-        float profileRight,
-        float profileTop,
-        float profileBottom,
-        bool elementLiniowy)
+           List<ContourSegment> segments,
+           float profileLeft,
+           float profileRight,
+           float profileTop,
+           float profileBottom,
+           bool elementLiniowy)
         {
             if (segments == null || segments.Count == 0)
                 return new List<ContourSegment>();
 
+            Console.WriteLine($"🔷CalculateOffsetPolygonKonturSkrzydlo Calculating offset for {segments.Count} segments elementLiniowy:{elementLiniowy} with profiles L:{profileLeft}, R:{profileRight}, T:{profileTop}, B:{profileBottom}");
+
             const double EPS = 1e-6;
             const double TOLERANCJA = 0.01;
+
+            // 🟢 OBSŁUGA ELEMENTÓW LINIOWYCH (np. słupków)
+            if (elementLiniowy && segments.Count == 2)
+            {
+                var seg1 = segments[0];
+                var seg2 = segments[1];
+
+                if (seg1.Type == SegmentType.Line && seg2.Type == SegmentType.Line)
+                {
+                    var p1 = seg1.Start;
+                    var p2 = seg2.End;
+
+                    double dx = p2.X - p1.X;
+                    double dy = p2.Y - p1.Y;
+                    double length = Math.Sqrt(dx * dx + dy * dy);
+
+                    if (length > EPS)
+                    {
+                        double angleRadians = Math.Atan2(dy, dx);
+                        double angleDegrees = angleRadians * (180.0 / Math.PI);
+                        if (angleDegrees < 0) angleDegrees += 360.0;
+
+                        string side = StronaOknaHelper.OkreslStrone((float)angleDegrees, 0, null);
+
+                        double offsetX = 0;
+                        double offsetY = 0;
+
+                        // Przesunięcie z uwzględnieniem znaku profilu
+                        // Ujemny profil = offset na zewnątrz (odwrotny kierunek)
+                        switch (side)
+                        {
+                            case "Góra":
+                                offsetY = -profileTop; // Ujemny profileTop da dodatni offsetY (w górę)
+                                break;
+                            case "Dół":
+                                offsetY = profileBottom; // Ujemny profileBottom da ujemny offsetY (w dół)
+                                break;
+                            case "Lewa":
+                                offsetX = profileLeft; // Ujemny profileLeft da ujemny offsetX (w lewo)
+                                break;
+                            case "Prawa":
+                                offsetX = -profileRight; // Ujemny profileRight da dodatni offsetX (w prawo)
+                                break;
+                        }
+
+                        Console.WriteLine($"🔷CalculateOffsetPolygonKonturSkrzydlo Element liniowy: strona {side}, offsetX={offsetX}, offsetY={offsetY}");
+
+                        var newSeg1Start = new XPoint(seg1.Start.X + offsetX, seg1.Start.Y + offsetY);
+                        var newSeg1End = new XPoint(seg1.End.X + offsetX, seg1.End.Y + offsetY);
+                        var newSeg2Start = new XPoint(seg2.Start.X + offsetX, seg2.Start.Y + offsetY);
+                        var newSeg2End = new XPoint(seg2.End.X + offsetX, seg2.End.Y + offsetY);
+
+                        var resultX = new List<ContourSegment>
+                {
+                    new ContourSegment(newSeg1Start, newSeg1End)
+                    {
+                        Informacja = seg1.Informacja ?? side
+                    },
+                    new ContourSegment(newSeg2Start, newSeg2End)
+                    {
+                        Informacja = seg2.Informacja ?? side
+                    }
+                };
+
+                        return resultX;
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("⚠️ CalculateOffsetPolygonKonturSkrzydlo: Element liniowy z niestandardowymi segmentami - zwracam oryginał");
+                    return segments;
+                }
+            }
 
             var offsetSegments = new List<ContourSegment>();
             var arcRadiusCache = new Dictionary<string, float>();
@@ -3263,12 +3406,27 @@ namespace GEORGE.Client.Pages.Okna
                         (seg.Start.Y + seg.End.Y) / 2.0
                     );
 
+                    // Testowe punkty dla określenia kierunku
                     var testA = new XPoint(midpoint.X + nx * offsetValue, midpoint.Y + ny * offsetValue);
                     var testB = new XPoint(midpoint.X - nx * offsetValue, midpoint.Y - ny * offsetValue);
 
                     double da = DistanceSquared(testA, bboxCenter);
                     double db = DistanceSquared(testB, bboxCenter);
-                    double sign = da < db ? 1 : -1;
+
+                    // 🔑 KLUCZOWA ZMIANA: Określenie znaku na podstawie wartości offsetu
+                    // Dla dodatniego offsetu: idziemy do środka (bliżej centrum)
+                    // Dla ujemnego offsetu: idziemy na zewnątrz (dalej od centrum)
+                    double sign;
+                    if (offsetValue >= 0)
+                    {
+                        // Dodatni offset - do środka
+                        sign = da < db ? 1 : -1;
+                    }
+                    else
+                    {
+                        // Ujemny offset - na zewnątrz
+                        sign = da < db ? -1 : 1;
+                    }
 
                     var p1 = new XPoint(seg.Start.X + nx * offsetValue * sign, seg.Start.Y + ny * offsetValue * sign);
                     var p2 = new XPoint(seg.End.X + nx * offsetValue * sign, seg.End.Y + ny * offsetValue * sign);
@@ -3280,6 +3438,8 @@ namespace GEORGE.Client.Pages.Okna
                     {
                         Informacja = seg.Informacja ?? side
                     });
+
+                    Console.WriteLine($"🔷 Segment {i} ({side}): offsetValue={offsetValue}, sign={sign}, da={da:F2}, db={db:F2}");
                 }
                 else if (seg.Type == SegmentType.Arc && seg.Center != null)
                 {
@@ -3289,6 +3449,7 @@ namespace GEORGE.Client.Pages.Okna
 
                     if (!arcRadiusCache.ContainsKey(arcKey))
                     {
+                        // 🔑 Dla łuków: dodatni offset zmniejsza promień (do środka), ujemny zwiększa (na zewnątrz)
                         arcRadiusCache[arcKey] = (float)(seg.Radius - offsetValue);
                     }
 
@@ -3311,11 +3472,12 @@ namespace GEORGE.Client.Pages.Okna
                     newStart = SnapPoint(newStart);
                     newEnd = SnapPoint(newEnd);
 
-                    // 🔑 ZAWSZE USTAW CCW = TRUE
                     offsetSegments.Add(new ContourSegment(newStart, newEnd, center, newRadius, true)
                     {
                         Informacja = seg.Informacja ?? (isFullCircle ? "ARC_FULL_CIRCLE" : side)
                     });
+
+                    Console.WriteLine($"🔷 Łuk {i} ({side}): offsetValue={offsetValue}, oldRadius={seg.Radius:F2}, newRadius={newRadius:F2}");
                 }
             }
 
@@ -3359,7 +3521,6 @@ namespace GEORGE.Client.Pages.Okna
 
                     if (current.Type == SegmentType.Arc && current.Center != null)
                     {
-                        // 🔑 ZAWSZE CCW = TRUE
                         result.Add(new ContourSegment(intersection.Value, current.End, current.Center, current.Radius, true)
                         {
                             Informacja = current.Informacja
@@ -3391,32 +3552,23 @@ namespace GEORGE.Client.Pages.Okna
             // 🔑 SPRAWDŹ CZY CAŁY KONTUR JEST CCW
             if (result.Count > 0)
             {
-                // Oblicz pole konturu (dodatnie = CCW, ujemne = CW)
                 double pole = 0;
                 for (int i = 0; i < result.Count; i++)
                 {
                     var current = result[i];
                     var next = result[(i + 1) % result.Count];
-
-                    // Użyj punktów Start każdego segmentu
                     pole += (current.Start.X * next.Start.Y) - (next.Start.X * current.Start.Y);
                 }
                 pole /= 2.0;
 
-                // Jeśli kontur jest CW (pole ujemne), odwróć wszystkie segmenty
                 if (pole < 0)
                 {
-                    // Odwróć kolejność segmentów
                     result.Reverse();
-
-                    // Dla każdego segmentu zamień Start z End
                     for (int i = 0; i < result.Count; i++)
                     {
                         var temp = result[i].Start;
                         result[i].Start = result[i].End;
                         result[i].End = temp;
-
-                        // Dla łuków - zachowaj CCW = true (już jest ustawione)
                     }
                 }
             }

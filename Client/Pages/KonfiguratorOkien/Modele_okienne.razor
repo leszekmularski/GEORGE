@@ -3546,6 +3546,8 @@
         {
             Console.WriteLine("🔄 Rozpoczynam zmianę wymiarów okna...");
 
+            if(infoObiekt != null) infoObiekt.Clear();
+
             double oldWidth = ShapeService.Shapes.Max(s => s.Szerokosc);
             double oldHeight = ShapeService.Shapes.Max(s => s.Wysokosc);
 
@@ -7325,7 +7327,7 @@
 
             // await DrawSingleContour(context, outerPoints);
 
-            Console.WriteLine($"\n🔷 Rysowanie kształtu: {ksztalt.TypKsztaltu} Grupa: {ksztalt.Grupa} IndeksElementu: {ksztalt.IndeksElementu} NrPozWModelu: {ksztalt.NrPozWModelu} DlogoscElementu: {ksztalt.DlogoscElementu} Kat: {ksztalt.Kat} Strona: {ksztalt.Strona} RodzajPolaczen: {ksztalt.RodzajpolaczenAiB}");
+            //Console.WriteLine($"\n🔷 Rysowanie kształtu: {ksztalt.TypKsztaltu} Grupa: {ksztalt.Grupa} IndeksElementu: {ksztalt.IndeksElementu} NrPozWModelu: {ksztalt.NrPozWModelu} DlogoscElementu: {ksztalt.DlogoscElementu} Kat: {ksztalt.Kat} Strona: {ksztalt.Strona} RodzajPolaczen: {ksztalt.RodzajpolaczenAiB}");
 
             if (oknaMogaBycLukowe && ksztalt.WierzcholkiZLukami != null)
             {

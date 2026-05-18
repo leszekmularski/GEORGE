@@ -25,13 +25,13 @@ namespace GEORGE.Client.Pages.Models
 
         private readonly double _scaleFactor;
         public string NazwaObj { get; set; } = "Prostokąt z wypukłym łukiem u góry";
-        public int _iloscElementowLuki = 3; // liczba punktów generowanych na łuku dla spójności
+        public int _iloscElementowLuki = 4; // liczba punktów generowanych na łuku dla spójności
         public int IloscElementowLuki
         {
             get => _iloscElementowLuki;
             set
             {
-                _iloscElementowLuki = Math.Max(2, value); // min 2
+                _iloscElementowLuki = Math.Max(4, value); // min 2
                 GenerateCompleteOutline(_iloscElementowLuki); // 🔥 KLUCZOWE
             }
         }
