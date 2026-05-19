@@ -2491,7 +2491,7 @@ namespace GEORGE.Client.Pages.Okna
         private float ObliczRoznicePoziomowSzyba(KonfSystem? konf, bool slupekStaly)
         {
             if (konf == null || !konf.CzyMozeBycFix)
-                return -1;
+                return 0;
 
             if (!slupekStaly)
             {

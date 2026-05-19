@@ -7551,8 +7551,8 @@
 
             var innerPoints = gs.Value.Generator.liniaSzkleniaKontur;
 
-            // 🔴 Jeśli którykolwiek punkt ma -1 → pomiń rysowanie
-            if (innerPoints.Any(p => p.X == -1 || p.Y == -1))
+            // 🔴 Jeśli którykolwiek punkt ma 1 → pomiń rysowanie musi być większy niż 1, bo 0 i 1 to wartości domyślne, które oznaczają brak konturu szklenia
+            if (innerPoints.Any(p => p.X <= 1 || p.Y <= 1))
                 continue;
 
             await context.MoveToAsync(innerPoints[0].X, innerPoints[0].Y);

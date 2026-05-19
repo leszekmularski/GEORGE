@@ -39,7 +39,7 @@ namespace GEORGE.Client.Pages.Models
         public List<ContourSegment> ContourSegments => GetContourSegments();
 
         public XRoundedTopRectangleShape(double x, double y, double width, double height,
-                                         double radius = 0, double arcHeight = 0, double scaleFactor = 1.0)
+                                  double radius = 0, double arcHeight = 0, double scaleFactor = 1.0)
         {
             X = x;
             Y = y;
@@ -47,17 +47,22 @@ namespace GEORGE.Client.Pages.Models
             Height = Math.Max(1, height);
             _scaleFactor = scaleFactor;
 
+            // 🔥 POPRAWIONE: ArcHeight nie może przekraczać Height
             if (arcHeight <= 0)
                 ArcHeight = Math.Min(Height / 2, Width / 2);
             else
                 ArcHeight = Math.Min(arcHeight, Height);
 
-            ArcHeight = Math.Max(0, ArcHeight);
+            ArcHeight = Math.Max(5, ArcHeight);
 
+            // 🔥 POPRAWIONE: Radius musi być >= ArcHeight, ale <= Width/2
             if (radius <= 0)
-                Radius = ArcHeight;
+                Radius = Math.Max(ArcHeight, Width / 2); // Minimum takie, żeby zmieścić szerokość
             else
-                Radius = Math.Min(radius, Width / 2);
+                Radius = Math.Max(radius, ArcHeight); // Radius nie może być mniejszy niż ArcHeight
+
+            Radius = Math.Min(Radius, Width); // Maksymalne ograniczenie
+            Radius = Math.Max(5, Radius);
 
             CalculatePointsFromProperties();
         }
@@ -110,7 +115,7 @@ namespace GEORGE.Client.Pages.Models
             outline.Add(new XPoint(rightX, arcStartY));
 
             //// Łuk (6 punktów dla spójności)
-            if (segments <= 0) segments = 3;
+            if (segments <= 0) segments = 2;
 
             //if (Radius > 1000) segments = 5;
 
@@ -255,10 +260,10 @@ namespace GEORGE.Client.Pages.Models
             Width *= scale; Height *= scale;
             Radius *= scale; ArcHeight *= scale;
 
-            Width = Math.Max(10, Width);
-            Height = Math.Max(10, Height);
-            Radius = Math.Max(5, Width / 2);
-            ArcHeight = Math.Max(5, Radius);
+            Width = Math.Max(200, Width);
+            Height = Math.Max(100, Height);
+            Radius = Math.Max(50, Width / 2);
+            ArcHeight = Math.Max(50, Radius);
             ArcHeight = Math.Min(ArcHeight, Height);
 
             CalculatePointsFromProperties();
@@ -279,11 +284,15 @@ namespace GEORGE.Client.Pages.Models
         {
             new EditableProperty("Pozycja X: ", () => X, v => { X = v; CalculatePointsFromProperties(); }, NazwaObj, true),
             new EditableProperty("Pozycja Y: ", () => Y, v => { Y = v; CalculatePointsFromProperties(); }, NazwaObj, true),
-            new EditableProperty("Szerokość: ", () => Width, v => { Width = Math.Max(10, v); CalculatePointsFromProperties(); }, NazwaObj),
-            new EditableProperty("Wysokość: ", () => Height, v => { Height = Math.Max(10, v); CalculatePointsFromProperties(); }, NazwaObj),
-            new EditableProperty("Promień łuku: ", () => Radius, v => { Radius = Math.Max(5, Math.Min(v, Width / 2)); CalculatePointsFromProperties(); }, NazwaObj),
-            new EditableProperty("Wysokość łuku: ", () => ArcHeight, v => { ArcHeight = Math.Clamp(v, 5, Height); CalculatePointsFromProperties(); }, NazwaObj),
-            new EditableProperty("Podział na elementy: ", () => IloscElementowLuki, v => IloscElementowLuki = (int)v, NazwaObj),
+            new EditableProperty("Szerokość: ", () => Width, v => { Width = Math.Max(200, v); CalculatePointsFromProperties(); }, NazwaObj),
+            new EditableProperty("Wysokość: ", () => Height, v => { Height = Math.Max(100, v); CalculatePointsFromProperties(); }, NazwaObj),
+            new EditableProperty("Promień łuku: ", () => Radius, v => { Radius = Math.Max(50, Math.Min(v, Width / 2)); CalculatePointsFromProperties(); }, NazwaObj),
+            new EditableProperty("Wysokość łuku: ", () => ArcHeight, v => { ArcHeight = Math.Clamp(v, 50, Height); CalculatePointsFromProperties(); }, NazwaObj),
+            // 🔥 POPRAWIONE: Tylko wielokrotności liczby 2
+            new EditableProperty("Podział na elementy: ", () => IloscElementowLuki, v => { 
+                int newValue = (int)Math.Round(v / 2.0) * 2; // Zaokrąglij do najbliższej wielokrotności 2
+                IloscElementowLuki = Math.Max(2, newValue); // Minimum 2
+            }, NazwaObj),
         };
 
         // 🔹 Generowanie segmentów konturu na podstawie NominalPoints
