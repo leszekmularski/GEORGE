@@ -308,8 +308,8 @@
     private long _canvasX = 900;
     private long _canvasY = 600;
 
-    private long Szerokosc = 900;
-    private long Wysokosc = 600;
+    private long Szerokosc = 1250;
+    private long Wysokosc = 1000;
 
     private int _selectedShapeIndex = -1; // Przechowuje indeks aktualnie edytowanego kształtu
 
@@ -638,7 +638,7 @@
 
         // Ustaw minimalne rozmiary
         width = Math.Max(width, 50);
-        height = Math.Max(height, 50);
+        height = Math.Max(height, 60);
 
         // Promień = połowa szerokości (jak w preview)
         double radius = width / 2;
@@ -1093,6 +1093,7 @@
 
         var width = _currentX - _startX;
         var height = _currentY - _startY;
+
         var arcRadius = width / 2; // Łuk rozciąga się na całą szerokość
 
         await _ctx.BeginPathAsync();

@@ -1,7 +1,6 @@
 ﻿using Blazor.Extensions.Canvas.Canvas2D;
 using GEORGE.Client.Pages.KonfiguratorOkien;
 using GEORGE.Shared.ViewModels;
-using iText.Layout.Properties;
 
 namespace GEORGE.Client.Pages.Models
 {
@@ -40,7 +39,7 @@ namespace GEORGE.Client.Pages.Models
         public List<ContourSegment> ContourSegments => GetContourSegments();
 
         public XRoundedTopRectangleShape(double x, double y, double width, double height,
-            double radius = 0, double arcHeight = 0, double scaleFactor = 1.0)
+                                  double radius = 0, double arcHeight = 0, double scaleFactor = 1.0)
         {
             X = x;
             Y = y;
@@ -48,42 +47,26 @@ namespace GEORGE.Client.Pages.Models
             Height = Math.Max(1, height);
             _scaleFactor = scaleFactor;
 
-            // ============================================
-            // SUROWE PARAMETRY (bez nadinterpretacji)
-            // ============================================
+            // 🔥 POPRAWIONE: ArcHeight nie może przekraczać Height
+            if (arcHeight <= 0)
+                ArcHeight = Math.Min(Height / 2, Width / 2);
+            else
+                ArcHeight = Math.Min(arcHeight, Height);
 
-            Radius = Math.Max(1, radius);
-            ArcHeight = Math.Max(1, arcHeight);
+            ArcHeight = Math.Max(5, ArcHeight);
 
-            // ============================================
-            // JEDYNA WALIDACJA BOUNDING BOX
-            // ============================================
+            // 🔥 POPRAWIONE: Radius musi być >= ArcHeight, ale <= Width/2
+            if (radius <= 0)
+                Radius = Math.Max(ArcHeight, Width / 2); // Minimum takie, żeby zmieścić szerokość
+            else
+                Radius = Math.Max(radius, ArcHeight); // Radius nie może być mniejszy niż ArcHeight
 
-            ClampGeometry();
+            Radius = Math.Min(Radius, Width); // Maksymalne ograniczenie
+            Radius = Math.Max(5, Radius);
 
             CalculatePointsFromProperties();
         }
 
-        private void ClampGeometry()
-        {
-            ArcHeight = Math.Clamp(ArcHeight, 1, Height);
-
-            // NIE liczymy Radius tutaj
-            // Radius pochodzi z geometrii 3 punktów
-        }
-        private static double RadiusFromChordAndHeight(double chordLength, double arcHeight)
-        {
-            if (arcHeight > chordLength) return chordLength / 2;
-            // Zabezpieczenie przed dzieleniem przez zero
-            if (Math.Abs(arcHeight) < 0.0000001)
-                return double.PositiveInfinity; // lub throw new ArgumentException
-
-            // R = (c² + 4h²) / (8h)
-            double radius = (chordLength * chordLength + 4 * arcHeight * arcHeight)
-                            / (8 * arcHeight);
-
-            return Math.Abs(radius); // promień zawsze dodatni
-        }
         // ===========================
         // Oblicz punkty zgodne z Canvas
         // ===========================
@@ -98,119 +81,132 @@ namespace GEORGE.Client.Pages.Models
         // ===========================
         // Oblicz środek łuku i kąty start/end
         // ===========================
-        public (double cx, double cy, double startAngle, double endAngle) CalculateArcGeometry()
+
+        public (double centerX, double centerY, double startAngle, double endAngle) CalculateArcGeometryD()
         {
-            double cx = X + Width / 2.0;
-            double cy = Y + ArcHeight;
+            double centerX = X + Width / 2;
+            double centerY = Y + ArcHeight; // Środek łuku na wysokości ArcHeight
 
-            double startAngle = 0;
-            double endAngle = Math.PI;
+            // Kąty dla łuku górnego (od prawej do lewej)
+            double startAngle = 0; // Prawa strona (0°)
+            double endAngle = Math.PI; // Lewa strona (180°)
 
-            Console.WriteLine(
-                $"Calculating arc geometry for: X={X}, Y={Y}, Width={Szerokosc}, Height={Wysokosc}, ArcHeight={ArcHeight}, " +
-                $"Promień przed: {Radius} skala {_scaleFactor}"
-            );
+            return (centerX, centerY, startAngle, endAngle);
+        }
 
-            // ======================================
-            // POPRAWIONE PUNKTY (spójny układ!)
-            // ======================================
+        public (double centerX, double centerY, double startAngle, double endAngle) CalculateArcGeometry()
+        {
+            double leftX = X;
+            double rightX = X + Width;
+            double topY = Y;                     // najwyższy punkt kształtu
+            double arcBaseY = Y + ArcHeight;     // wysokość, na której łuk styka się z bokami
 
-            Radius = RadiusFromChordAndHeight(Szerokosc, Wysokosc);
+           // Przypadek standardowy: łuk półokrągły gdy ArcHeight >= Height
+            if (arcBaseY < Y + Height)
+            {
+                return CalculateArcGeometryD(); // Prosty przypadek, gdy łuk jest "wypukły" i nie przekracza wysokości
+            }
 
-            Console.WriteLine(
-                $"Calculating arc geometry for: X={X}, Y={Y}, Width={Szerokosc}, Height={Wysokosc}, ArcHeight={ArcHeight}, " +
-                $"Promień po: {Radius}"
-            );
+            // Trzy punkty definiujące łuk:
+            double p1x = leftX;              // lewy punkt
+            double p1y = arcBaseY;
+            double p2x = X + Width / 2.0;   // górny wierzchołek
+            double p2y = topY;
+            double p3x = rightX;             // prawy punkt
+            double p3y = arcBaseY;
 
+            // Obliczanie środka i promienia okręgu przechodzącego przez trzy punkty
+            var (cx, cy, r) = CircleFromThreePoints(p1x, p1y, p2x, p2y, p3x, p3y);
+
+            // Kąty do punktów w radianach
+            double angleToRight = Math.Atan2(p3y - cy, p3x - cx);  // kąt do prawego punktu
+            double angleToLeft = Math.Atan2(p1y - cy, p1x - cx);   // kąt do lewego punktu
+
+            // Chcemy rysować łuk od prawej do lewej (zgodnie z ruchem wskazówek zegara w canvas)
+            // W canvas kąty rosną zgodnie z ruchem wskazówek zegara (bo Y w dół)
+            // Dla ctx.ArcAsync(x, y, r, startAngle, endAngle, true) - true oznacza przeciwnie do zegara
+            // Ale w canvas "przeciwnie do zegara" = matematycznie zgodnie z zegarem
+
+            // Dla łuku górnego (wypukłego do góry):
+            // angleToRight będzie w okolicy -π/2 (lub 3π/2), angleToLeft w okolicy -π/2 też
+            // Chcemy iść od prawej do lewej, czyli od większego kąta do mniejszego
+
+            double startAngle = angleToRight;
+            double endAngle = angleToLeft;
+
+            // Upewniamy się, że startAngle > endAngle (idziemy od prawej do lewej)
+            if (startAngle < endAngle)
+                startAngle += 2 * Math.PI;
+
+            Radius = r;
             return (cx, cy, startAngle, endAngle);
         }
+
+        private (double cx, double cy, double radius) CircleFromThreePoints(double x1, double y1, double x2, double y2, double x3, double y3)
+        {
+            // Wyznacznik dla równania okręgu
+            double d = 2 * (x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2));
+            if (Math.Abs(d) < 1e-9)
+                throw new InvalidOperationException("Punkty są współliniowe – nie można utworzyć łuku.");
+
+            double ux = ((x1 * x1 + y1 * y1) * (y2 - y3) + (x2 * x2 + y2 * y2) * (y3 - y1) + (x3 * x3 + y3 * y3) * (y1 - y2)) / d;
+            double uy = ((x1 * x1 + y1 * y1) * (x3 - x2) + (x2 * x2 + y2 * y2) * (x1 - x3) + (x3 * x3 + y3 * y3) * (x2 - x1)) / d;
+
+            double radius = Math.Sqrt(Math.Pow(x1 - ux, 2) + Math.Pow(y1 - uy, 2));
+            return (ux, uy, radius);
+        }
+       
 
         // ===========================
         // Generowanie punktów wzdłuż łuku i boków
         // ===========================
         private List<XPoint> GenerateCompleteOutline(int segments)
         {
-
             var outline = new List<XPoint>();
-
-            var mode = GetArcMode();
 
             double leftX = X;
             double rightX = X + Width;
             double bottomY = Y + Height;
             double arcStartY = Y + ArcHeight;
 
-            var (cx, cy, startAngle, endAngle) =
-                CalculateArcGeometry();
+            var (arcCenterX, arcCenterY, startAngle, endAngle) = CalculateArcGeometry();
 
-            segments = Math.Max(2, segments);
+            // Lewy dolny
+            outline.Add(new XPoint(leftX, bottomY));
+            // Prawy dolny
+            outline.Add(new XPoint(rightX, bottomY));
+            // Prawy górny (początek łuku)
+            outline.Add(new XPoint(rightX, arcStartY));
 
-            // ============================================
-            // NORMAL
-            // ============================================
-            if (mode == ArcMode.Normal)
+            //// Łuk (6 punktów dla spójności)
+            if (segments <= 0) segments = 2;
+
+            //if (Radius > 1000) segments = 5;
+
+            for (int i = 0; i <= segments; i++)
             {
-                outline.Add(new XPoint(leftX, bottomY));
-                outline.Add(new XPoint(rightX, bottomY));
-                outline.Add(new XPoint(rightX, arcStartY));
-
-                for (int i = 0; i <= segments; i++)
-                {
-                    double t = i / (double)segments;
-
-                    double angle =
-                        startAngle + t * (endAngle - startAngle);
-
-                    double x =
-                        cx + Radius * Math.Cos(angle);
-
-                    double y =
-                        cy - Radius * Math.Sin(angle);
-
-                    outline.Add(new XPoint(x, y));
-                }
-
-                outline.Add(new XPoint(leftX, arcStartY));
-                outline.Add(new XPoint(leftX, bottomY));
+                double t = i / (double)segments;
+                double angle = startAngle + t * (endAngle - startAngle);
+                double x = arcCenterX + Radius * Math.Cos(angle);
+                double y = arcCenterY - Radius * Math.Sin(angle); // odbicie osi Y
+                outline.Add(new XPoint(x, y));
             }
 
-            // ============================================
-            // FLATTENED TOP (soczewka)
-            // ============================================
-            else
-            {
-                for (int i = 0; i <= segments; i++)
-                {
-                    double t = i / (double)segments;
-
-                    double angle =
-                        startAngle + t * (endAngle - startAngle);
-
-                    double x =
-                        cx + Radius * Math.Cos(angle);
-
-                    double y =
-                        cy - Radius * Math.Sin(angle);
-
-                    outline.Add(new XPoint(x, y));
-                }
-
-                // zamknięcie soczewki
-                outline.Add(outline[0]);
-            }
+            // Lewy górny
+            outline.Add(new XPoint(leftX, arcStartY));
+            // Zamknięcie
+            outline.Add(new XPoint(leftX, bottomY));
 
             outline.Reverse();
 
             for (int i = 0; i < outline.Count; i++)
             {
                 var p = outline[i];
-
-                outline[i] = new XPoint(
-                    Math.Round(p.X, 4),
-                    Math.Round(p.Y, 4));
+                outline[i] = new XPoint(Math.Round(p.X, 4), Math.Round(p.Y, 4));
             }
 
             return outline;
+
         }
 
         private void NormalizeToPositiveQuadrant()
@@ -364,54 +360,47 @@ namespace GEORGE.Client.Pages.Models
         };
 
         // 🔹 Generowanie segmentów konturu na podstawie NominalPoints
-
         public List<ContourSegment> GetContourSegments()
         {
             var segments = new List<ContourSegment>();
 
+            var mode = GetArcMode();
+
             double leftX = X;
             double rightX = X + Width;
             double bottomY = Y + Height;
+            double arcStartY = Y + ArcHeight;
 
             var arc = CalculateArcGeometry();
-            double cx = arc.cx;
-            double cy = arc.cy;
+            double cx = arc.centerX;
+            double cy = arc.centerY;
 
-            int n = Math.Max(4, _iloscElementowLuki);
+            var bottomLeft = new XPoint(leftX, bottomY);
+            var bottomRight = new XPoint(rightX, bottomY);
+            var topRight = new XPoint(rightX, arcStartY);
+            var topLeft = new XPoint(leftX, arcStartY);
 
-            // ======================================
-            // 1. DOLNA LINIA (jedyna linia)
-            // ======================================
+            // dół
+            segments.Add(new ContourSegment(bottomLeft, bottomRight));
+
+            if (mode == ArcMode.Normal)
+                // prawa
+                segments.Add(new ContourSegment(bottomRight, topRight));
+
+            // łuk
             segments.Add(new ContourSegment(
-                new XPoint(leftX, bottomY),
-                new XPoint(rightX, bottomY)
+                topRight,
+                topLeft,
+                new XPoint(cx, cy),
+                Radius,
+                true
             ));
 
-            // ======================================
-            // 2. ŁUK (POPRAWNA GEOMETRIA)
-            // ======================================
-            double start = 0;
-            double end = Math.PI;
+            if (mode == ArcMode.Normal)
+                // lewa
+                segments.Add(new ContourSegment(topLeft, bottomLeft));
 
-            XPoint prev = default;
-
-            for (int i = 0; i <= n; i++)
-            {
-                double t = i / (double)n;
-                double angle = start + t * (end - start);
-
-                var p = new XPoint(
-                    cx + Radius * Math.Cos(angle),
-                    cy - Radius * Math.Sin(angle)
-                );
-
-                if (!prev.IsEmpty)
-                {
-                    segments.Add(new ContourSegment(prev, p, new XPoint(cx, cy), Radius, true));
-                }
-
-                prev = p;
-            }
+            // Console.WriteLine($"[DEBUG] Generated {segments.Count} contour segments for {NazwaObj} (mode: {mode})");
 
             return segments;
         }
