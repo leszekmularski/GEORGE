@@ -1290,8 +1290,11 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
                         }
 
                         Console.WriteLine($"Plik został pobrany i zapisany: {oryginalfileName}");
-                        await _message.Success($"Plik został pobrany i zapisany: {oryginalfileName}", 5);
+
                         czekajNaPobranie = false;
+
+                        _message.Success($"Plik został pobrany i zapisany: {oryginalfileName}", 5);
+   
 
                         await ZwiekszLicznikPobranPliku(id);
                     }
