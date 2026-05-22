@@ -590,11 +590,11 @@
                                          @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
                                          draggable="true"
                                          style="cursor: grab;
-                                                                        width: auto;
-                                                                        height: auto;
-                                                                        max-width: 50px;
-                                                                        max-height: 50px;
-                                                                        border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
+                                        width: auto;
+                                        height: auto;
+                                        max-width: 50px;
+                                        max-height: 50px;
+                                        border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
 
                                 }
                                 else
@@ -1563,6 +1563,7 @@
 
                     constWlasciwosciOkna.Szerokosc = ShapeService._szerokosc;
                     constWlasciwosciOkna.Wysokosc = ShapeService._wysokosc;
+                    constWlasciwosciOkna.WysokoscLuku = ShapeService._wysokoscLuku;
                     // Obserwacja resize
                     await StartResizeObserver();
 
@@ -1767,14 +1768,16 @@
                     ShapeService.Shapes,
                     (int)constWlasciwosciOkna.Szerokosc,
                     (int)constWlasciwosciOkna.Wysokosc,
-                    true
+                    true,
+                    (int)constWlasciwosciOkna.WysokoscLuku
                 );
 
                 _regionsSkrzydlo = await GeometryUtils.GenerujRegionyZPodzialu(
                     ShapeService.Shapes,
                     (int)constWlasciwosciOkna.Szerokosc,
                     (int)constWlasciwosciOkna.Wysokosc,
-                    false
+                    false,
+                    (int)constWlasciwosciOkna.WysokoscLuku
                 );
 
                 // Kopiuj i zmień ID
@@ -7801,7 +7804,7 @@
             ShapeService._wysokosc = constWlasciwosciOkna.Wysokosc;
             ShapeService._rysujTylkoKontur = pokaKonturWewnetrzny;
             ShapeService._oknaMogaBycLukowe = oknaMogaBycLukowe;
-            ShapeService.UpdateShapes(ShapeService.Shapes, constWlasciwosciOkna.Szerokosc, constWlasciwosciOkna.Wysokosc);
+            ShapeService.UpdateShapes(ShapeService.Shapes, constWlasciwosciOkna.Szerokosc, constWlasciwosciOkna.Wysokosc, constWlasciwosciOkna.WysokoscLuku);
             Console.WriteLine("GoCAD Ustawiono zmienne w ShapeService");
         }
 

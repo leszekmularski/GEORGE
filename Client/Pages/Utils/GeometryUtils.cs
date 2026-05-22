@@ -7,7 +7,7 @@ namespace GEORGE.Client.Pages.Utils
     public static class GeometryUtils
     {
 
-        public static async Task<List<ShapeRegion>> GenerujRegionyZPodzialu(List<IShapeDC> shapes, int _szerokosc, int _wysokosc, bool rama)
+        public static async Task<List<ShapeRegion>> GenerujRegionyZPodzialu(List<IShapeDC> shapes, int _szerokosc, int _wysokosc, bool rama, double arcHeight = -1)
         {
             // Console.WriteLine($"📦 Przed usunięciem duplikatów: {shapes.Count} obiektów.");
             shapes = UsunDuplikatyShape(shapes);
@@ -126,7 +126,7 @@ namespace GEORGE.Client.Pages.Utils
                         else if (shape is XRoundedTopRectangleShape rtr)
                         {
                             double arcStartY = rtr.Y + rtr.ArcHeight;
-                            var (arcCenterX, arcCenterY, startAngle, endAngle) = rtr.CalculateArcGeometry();
+                            var (arcCenterX, arcCenterY, startAngle, endAngle) = rtr.CalculateArcGeometry(arcHeight);
                             var arcCenter = new XPoint(arcCenterX, arcCenterY);
 
                             // Sprawdź czy punkty są poziome (w przybliżeniu ten sam Y)

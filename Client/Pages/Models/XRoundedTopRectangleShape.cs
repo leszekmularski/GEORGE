@@ -39,7 +39,7 @@ namespace GEORGE.Client.Pages.Models
         public List<ContourSegment> ContourSegments => GetContourSegments();
 
         public XRoundedTopRectangleShape(double x, double y, double width, double height,
-                                  double radius = 0, double arcHeight = 0, double scaleFactor = 1.0)
+                          double radius = 0, double arcHeight = 0, double scaleFactor = 1.0)
         {
             X = x;
             Y = y;
@@ -47,22 +47,18 @@ namespace GEORGE.Client.Pages.Models
             Height = Math.Max(1, height);
             _scaleFactor = scaleFactor;
 
-            // 🔥 POPRAWIONE: ArcHeight nie może przekraczać Height
+            // Ustaw ArcHeight
             if (arcHeight <= 0)
-                ArcHeight = Math.Min(Height / 2, Width / 2);
+                ArcHeight = Height / 4;  // Domyślnie 1/4 wysokości
             else
-                ArcHeight = Math.Min(arcHeight, Height);
+                ArcHeight = Math.Clamp(arcHeight, 5, Height - 10);  // Min 5, max Height-10
 
-            ArcHeight = Math.Max(5, ArcHeight);
+            // ZAWSZE obliczaj promień z geometrii (ignoruj parametr radius)
+            // R = (w² + 4h²) / (8h)
+            Radius = (Width * Width + 4 * ArcHeight * ArcHeight) / (8 * ArcHeight);
 
-            // 🔥 POPRAWIONE: Radius musi być >= ArcHeight, ale <= Width/2
-            if (radius <= 0)
-                Radius = Math.Max(ArcHeight, Width / 2); // Minimum takie, żeby zmieścić szerokość
-            else
-                Radius = Math.Max(radius, ArcHeight); // Radius nie może być mniejszy niż ArcHeight
-
-            Radius = Math.Min(Radius, Width); // Maksymalne ograniczenie
-            Radius = Math.Max(5, Radius);
+            // Upewnij się, że promień jest wystarczający
+            Radius = Math.Max(Radius, Width / 2);
 
             CalculatePointsFromProperties();
         }
@@ -91,71 +87,115 @@ namespace GEORGE.Client.Pages.Models
             double startAngle = 0; // Prawa strona (0°)
             double endAngle = Math.PI; // Lewa strona (180°)
 
+            //// Przypadek standardowy: łuk półokrągły gdy ArcHeight >= Height
+            //if (arcBaseY < Y + Height)
+            //{
+            //    return CalculateArcGeometryD(); // Prosty przypadek, gdy łuk jest "wypukły" i nie przekracza wysokości
+            //}
+
+
             return (centerX, centerY, startAngle, endAngle);
         }
 
-        public (double centerX, double centerY, double startAngle, double endAngle) CalculateArcGeometry()
+
+        public (double centerX, double centerY, double startAngle, double endAngle) CalculateArcGeometry(double arcHeight = -1)
         {
             double leftX = X;
             double rightX = X + Width;
-            double topY = Y;                     // najwyższy punkt kształtu
-            double arcBaseY = Y + ArcHeight;     // wysokość, na której łuk styka się z bokami
-
-           // Przypadek standardowy: łuk półokrągły gdy ArcHeight >= Height
+            double topY = Y;
+            ArcHeight = arcHeight > 0 ? arcHeight : ArcHeight;
+            double arcBaseY = Y + ArcHeight;
+            
+            // Przypadek standardowy: łuk półokrągły gdy ArcHeight >= Height
             if (arcBaseY < Y + Height)
             {
                 return CalculateArcGeometryD(); // Prosty przypadek, gdy łuk jest "wypukły" i nie przekracza wysokości
             }
 
-            // Trzy punkty definiujące łuk:
-            double p1x = leftX;              // lewy punkt
-            double p1y = arcBaseY;
-            double p2x = X + Width / 2.0;   // górny wierzchołek
-            double p2y = topY;
-            double p3x = rightX;             // prawy punkt
-            double p3y = arcBaseY;
-
-            // Obliczanie środka i promienia okręgu przechodzącego przez trzy punkty
-            var (cx, cy, r) = CircleFromThreePoints(p1x, p1y, p2x, p2y, p3x, p3y);
-
-            // Kąty do punktów w radianach
-            double angleToRight = Math.Atan2(p3y - cy, p3x - cx);  // kąt do prawego punktu
-            double angleToLeft = Math.Atan2(p1y - cy, p1x - cx);   // kąt do lewego punktu
-
-            // Chcemy rysować łuk od prawej do lewej (zgodnie z ruchem wskazówek zegara w canvas)
-            // W canvas kąty rosną zgodnie z ruchem wskazówek zegara (bo Y w dół)
-            // Dla ctx.ArcAsync(x, y, r, startAngle, endAngle, true) - true oznacza przeciwnie do zegara
-            // Ale w canvas "przeciwnie do zegara" = matematycznie zgodnie z zegarem
-
-            // Dla łuku górnego (wypukłego do góry):
-            // angleToRight będzie w okolicy -π/2 (lub 3π/2), angleToLeft w okolicy -π/2 też
-            // Chcemy iść od prawej do lewej, czyli od większego kąta do mniejszego
-
-            double startAngle = angleToRight;
-            double endAngle = angleToLeft;
-
-            // Upewniamy się, że startAngle > endAngle (idziemy od prawej do lewej)
-            if (startAngle < endAngle)
-                startAngle += 2 * Math.PI;
+            var (cx, cy, r) = CircleFromThreePoints(
+                leftX, arcBaseY,
+                X + Width / 2.0, topY,
+                rightX, arcBaseY
+            );
 
             Radius = r;
+
+            // Kąty do punktów
+            double angleRight = Math.Atan2(arcBaseY - cy, rightX - cx);
+            double angleLeft = Math.Atan2(arcBaseY - cy, leftX - cx);
+            double angleTop = Math.Atan2(topY - cy, (X + Width / 2.0) - cx);
+
+            // Normalizacja
+            if (angleRight < 0) angleRight += 2 * Math.PI;
+            if (angleLeft < 0) angleLeft += 2 * Math.PI;
+            if (angleTop < 0) angleTop += 2 * Math.PI;
+
+            // Sprawdzamy, czy środek jest nad czy pod łukiem
+            bool centerBelow = cy > topY;
+
+            double startAngle, endAngle;
+
+            if (centerBelow)
+            {
+                // Środek poniżej - rysujemy górną część okręgu
+                startAngle = angleRight;
+                endAngle = angleLeft;
+
+                // Kąt górny powinien być pomiędzy
+                if (Math.Abs(startAngle - endAngle) > Math.PI)
+                {
+                    if (startAngle < endAngle)
+                        startAngle += 2 * Math.PI;
+                    else
+                        endAngle += 2 * Math.PI;
+                }
+            }
+            else
+            {
+                // Środek powyżej - rysujemy dolną część okręgu
+                startAngle = angleLeft;
+                endAngle = angleRight;
+
+                if (startAngle > endAngle)
+                    endAngle += 2 * Math.PI;
+            }
+
             return (cx, cy, startAngle, endAngle);
         }
 
-        private (double cx, double cy, double radius) CircleFromThreePoints(double x1, double y1, double x2, double y2, double x3, double y3)
+        private double CalculateRadiusFromArcGeometry(double width, double arcHeight)
         {
-            // Wyznacznik dla równania okręgu
-            double d = 2 * (x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2));
-            if (Math.Abs(d) < 1e-9)
-                throw new InvalidOperationException("Punkty są współliniowe – nie można utworzyć łuku.");
+            // Dla symetrycznego łuku gdzie punkty to:
+            // (0, h), (w/2, 0), (w, h)
+            // gdzie h = arcHeight
 
-            double ux = ((x1 * x1 + y1 * y1) * (y2 - y3) + (x2 * x2 + y2 * y2) * (y3 - y1) + (x3 * x3 + y3 * y3) * (y1 - y2)) / d;
-            double uy = ((x1 * x1 + y1 * y1) * (x3 - x2) + (x2 * x2 + y2 * y2) * (x1 - x3) + (x3 * x3 + y3 * y3) * (x2 - x1)) / d;
+            double w = width;
+            double h = arcHeight;
 
-            double radius = Math.Sqrt(Math.Pow(x1 - ux, 2) + Math.Pow(y1 - uy, 2));
-            return (ux, uy, radius);
+            // Promień = (w² + 4h²) / (8h)
+            return (w * w + 4 * h * h) / (8 * h);
         }
-       
+
+        private (double cx, double cy, double radius) CircleFromThreePoints(
+            double x1, double y1,
+            double x2, double y2,
+            double x3, double y3)
+        {
+            // Zakładamy symetryczny układ: x2 = (x1+x3)/2
+            double width = x3 - x1;
+            double arcHeight = y1 - y2;  // y1 == y3
+
+            double radius = CalculateRadiusFromArcGeometry(width, arcHeight);
+
+            // Środek jest na środku szerokości
+            double cx = (x1 + x3) / 2;
+
+            // Środek jest poniżej punktów bazowych o (radius - arcHeight)
+            double cy = y1 + (radius - arcHeight);  // Poniżej, bo Y rośnie w dół
+
+            return (cx, cy, radius);
+        }
+
 
         // ===========================
         // Generowanie punktów wzdłuż łuku i boków
@@ -188,8 +228,16 @@ namespace GEORGE.Client.Pages.Models
                 double t = i / (double)segments;
                 double angle = startAngle + t * (endAngle - startAngle);
                 double x = arcCenterX + Radius * Math.Cos(angle);
-                double y = arcCenterY - Radius * Math.Sin(angle); // odbicie osi Y
-                outline.Add(new XPoint(x, y));
+                if(Width / 2 <= Height)
+                {
+                    double y = arcCenterY - Radius * Math.Sin(angle); // odbicie osi Y
+                    outline.Add(new XPoint(x, y));
+                }
+                else
+                {
+                    double y = arcCenterY + Radius * Math.Sin(angle); // odbicie osi Y
+                    outline.Add(new XPoint(x, y));
+                }             
             }
 
             // Lewy górny
@@ -350,8 +398,8 @@ namespace GEORGE.Client.Pages.Models
             new EditableProperty("Pozycja Y: ", () => Y, v => { Y = v; CalculatePointsFromProperties(); }, NazwaObj, true),
             new EditableProperty("Szerokość: ", () => Width, v => { Width = Math.Max(200, v); CalculatePointsFromProperties(); }, NazwaObj),
             new EditableProperty("Wysokość: ", () => Height, v => { Height = Math.Max(100, v); CalculatePointsFromProperties(); }, NazwaObj),
-            new EditableProperty("Promień łuku: ", () => Radius, v => { Radius = Math.Max(50, Math.Min(v, Width / 2)); CalculatePointsFromProperties(); }, NazwaObj),
-            new EditableProperty("Wysokość łuku: ", () => ArcHeight, v => { ArcHeight = Math.Clamp(v, 50, Height); CalculatePointsFromProperties(); }, NazwaObj),
+            new EditableProperty("Promień łuku: ", () => Radius, v => { Radius = Math.Max(50, Math.Min(v, Width / 2)); CalculatePointsFromProperties(); }, NazwaObj, true),
+            new EditableProperty("Wysokość łuku: ", () => ArcHeight, v => { ArcHeight = Math.Clamp(v, 0, Height); CalculatePointsFromProperties(); }, NazwaObj),
             // 🔥 POPRAWIONE: Tylko wielokrotności liczby 2
             new EditableProperty("Podział na elementy: ", () => IloscElementowLuki, v => {
                 int newValue = (int)Math.Round(v / 2.0) * 2; // Zaokrąglij do najbliższej wielokrotności 2

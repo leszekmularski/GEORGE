@@ -6,13 +6,15 @@
 
         public int _szerokosc { get; set; } = 0;
         public int _wysokosc { get; set; } = 0;
+        public int _wysokoscLuku { get; set; } = -1;
         public bool _rysujTylkoKontur { get; set; } = false;
         public bool _oknaMogaBycLukowe { get; set; } = false;
-        public void UpdateShapes(List<IShapeDC> shapes, int szerokosc, int wysokosc)
+        public void UpdateShapes(List<IShapeDC> shapes, int szerokosc, int wysokosc, int wysLuku)
         {
             Shapes = shapes;
             _szerokosc = szerokosc;
             _wysokosc = wysokosc;
+            _wysokoscLuku = wysLuku;
         }
 
         public string GetShapesAsJson()

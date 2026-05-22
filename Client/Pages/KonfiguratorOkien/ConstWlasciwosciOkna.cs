@@ -17,6 +17,8 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         public List<DaneKwadratu>? ListaKwadratow { get; set; }
         public int Szerokosc { get; set; } = 1250;
         public int Wysokosc { get; set; } = 1000;
+        public int WysokoscLuku { get; set; } = -1;
+
         public string KolorZewnetrzny { get; set; }
         public string KolorWewnetrzny { get; set; }
         public string KolorSzyby { get; set; }
@@ -39,7 +41,6 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         public const string DomyslnyTypOslonPrzeciwsłonecznych = "Brak";
         public const string DomyslnyTypMontazu = "Standard";
 
-
         public ConstWlasciwosciOkna()
         {
             IdZmiany = 0;
@@ -53,6 +54,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             ListaKwadratow = new List<DaneKwadratu>();
             Szerokosc = 1250;
             Wysokosc = 1000;
+            WysokoscLuku = -1;
             KolorZewnetrzny = DomyslnyKolorZewnetrzny;
             KolorWewnetrzny = DomyslnyKolorWewnetrzny;
             KolorSzyby = DomyslnyKolorSzyby;
