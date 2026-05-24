@@ -11,80 +11,121 @@ else
 
         <AntDesign.Row Gutter="16">
 
-            <AntDesign.Col Span="12">
+            <AntDesign.Col Xs="24" Sm="12">
                 <h5>Wymiary</h5>
 
-                <div class="mb-2">
+@*                 <div class="mb-2">
                     <label>Szerokość [mm]</label>
-                    <AntDesign.InputNumber @bind-Value="Model.Szerokosc" Style="width: 100%;" />
+                    <AntDesign.InputNumber @bind-Value="Model.Szerokosc" 
+                      Style="width: 100%;"
+                      @bind-Value:after="async () => await ZapiszDoRodzica()" />
                 </div>
 
                 <div class="mb-2">
                     <label>Wysokość [mm]</label>
-                    <AntDesign.InputNumber @bind-Value="Model.Wysokosc" Style="width: 100%;" Disabled="BlokujWysokosc" />
-                </div>
+                    <AntDesign.InputNumber @bind-Value="Model.Wysokosc" 
+                      Style="width: 100%;"
+                      @bind-Value:after="async () => await ZapiszDoRodzica()" />
+                </div> *@
+
+                @if (Model.EditableProperties != null && Model.EditableProperties.Count > 0)
+                {
+                    for (int i = 0; i < Model.EditableProperties.Count; i++)
+                    {
+                        var index = i;
+                        var prop = Model.EditableProperties[index];
+
+                        <div class="mb-2">
+
+                                @if (!prop.IsReadOnly)
+                                {
+                                      <label>@prop.Label</label>
+                                    <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
+                                                          ValueChanged="@(async (double value) => {
+                                                              Model.UpdateEditableProperty(index, value);
+                                                              await ZapiszDoRodzica();
+                                                          })"
+                                                          Style="width: 100%;" />
+                                }
+                                else if(!prop.systemowa && !prop.IsReadOnly)
+                                {
+                                      <label>@prop.Label</label>
+                                    <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
+                                                          Style="width: 100%;"
+                                                          Disabled="true" />
+                                }
+
+                        </div>
+                    }
+                }
 
                 <h5 class="mt-3">Kolorystyka</h5>
 
                 <div class="mb-2">
                     <label>Kolor zewnętrzny</label>
-                    <AntDesign.Input @bind-Value="Model.KolorZewnetrzny" />
+                    <AntDesign.Input @bind-Value="Model.KolorZewnetrzny" Style="width: 100%;" />
                 </div>
 
                 <div class="mb-2">
                     <label>Kolor wewnętrzny</label>
-                    <AntDesign.Input @bind-Value="Model.KolorWewnetrzny" />
+                    <AntDesign.Input @bind-Value="Model.KolorWewnetrzny" Style="width: 100%;" />
                 </div>
 
                 <div class="mb-2">
                     <label>Kolor szyby</label>
-                    <AntDesign.Input @bind-Value="Model.KolorSzyby" />
+                    <AntDesign.Input @bind-Value="Model.KolorSzyby" Style="width: 100%;" />
                 </div>
             </AntDesign.Col>
 
-            <AntDesign.Col Span="12">
+            <AntDesign.Col Xs="24" Sm="12">
                 <h5>Szczegóły techniczne</h5>
 
                 <div class="mb-2">
                     <label>Typ szyby</label>
-                    <AntDesign.Input @bind-Value="Model.TypSzyby" />
+                    <AntDesign.Input @bind-Value="Model.TypSzyby" Style="width: 100%;" />
                 </div>
 
                 <div class="mb-2">
                     <label>Typ klamki</label>
-                    <AntDesign.Input @bind-Value="Model.TypKlamki" />
+                    <AntDesign.Input @bind-Value="Model.TypKlamki" Style="width: 100%;" />
                 </div>
 
                 <div class="mb-2">
                     <label>Typ uszczelek</label>
-                    <AntDesign.Input @bind-Value="Model.TypUszczelek" />
+                    <AntDesign.Input @bind-Value="Model.TypUszczelek" Style="width: 100%;" />
                 </div>
 
                 <div class="mb-2">
                     <label>Typ osłon przeciwsłonecznych</label>
-                    <AntDesign.Input @bind-Value="Model.TypOslonPrzeciwsłonecznych" />
+                    <AntDesign.Input @bind-Value="Model.TypOslonPrzeciwsłonecznych" Style="width: 100%;" />
                 </div>
 
                 <div class="mb-2">
                     <label>Typ montażu</label>
-                    <AntDesign.Input @bind-Value="Model.TypMontazu" />
+                    <AntDesign.Input @bind-Value="Model.TypMontazu" Style="width: 100%;" />
                 </div>
 
                 <h5 class="mt-3">Parametry cieplne</h5>
 
                 <div class="mb-2">
                     <label>Grubość pakietu</label>
-                    <AntDesign.InputNumber @bind-Value="Model.GruboscPakietu" Style="width: 100%;" />
+                    <AntDesign.InputNumber @bind-Value="Model.GruboscPakietu" 
+                                          Style="width: 100%;"
+                                          OnChange="async (float value) => await ZapiszDoRodzica()" />
                 </div>
 
                 <div class="mb-2">
                     <label>Uw szyby</label>
-                    <AntDesign.InputNumber @bind-Value="Model.WspolczynnikPrzepuszczalnosciCieplaSzyby" Style="width: 100%;" />
+                    <AntDesign.InputNumber @bind-Value="Model.WspolczynnikPrzepuszczalnosciCieplaSzyby" 
+                                          Style="width: 100%;"
+                                          OnChange="async (float value) => await ZapiszDoRodzica()" />
                 </div>
 
                 <div class="mb-2">
                     <label>Uw okna</label>
-                    <AntDesign.InputNumber @bind-Value="Model.WspolczynnikPrzepuszczalnosciCieplaOkna" Style="width: 100%;" />
+                    <AntDesign.InputNumber @bind-Value="Model.WspolczynnikPrzepuszczalnosciCieplaOkna" 
+                                          Style="width: 100%;"
+                                          OnChange="async (float value) => await ZapiszDoRodzica()" />
                 </div>
             </AntDesign.Col>
 

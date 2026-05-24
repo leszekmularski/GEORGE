@@ -201,8 +201,8 @@ namespace GEORGE.Client.Pages.Models
         // Właściwości edytowalne
         public List<EditableProperty> GetEditableProperties() => new()
     {
-        new("Pozycja X: ", () => X, v => X = v, NazwaObj, true),
-        new("Pozycja Y: ", () => Y, v => Y = v, NazwaObj, true),
+        new("Pozycja X: ", () => X, v => X = v, NazwaObj, true, true),
+        new("Pozycja Y: ", () => Y, v => Y = v, NazwaObj, true, true),
         new("Szerokość podstawy: ", () => BaseWidth, v => BaseWidth = v, NazwaObj),
         new("Szerokość góry: ", () => TopWidth, v => TopWidth = Math.Clamp(v, 10, BaseWidth - 10), NazwaObj),
         new("Wysokość: ", () => Height, v => Height = v, NazwaObj)

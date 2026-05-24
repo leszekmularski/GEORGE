@@ -87,30 +87,25 @@ namespace GEORGE.Client.Pages.Models
             double startAngle = 0; // Prawa strona (0°)
             double endAngle = Math.PI; // Lewa strona (180°)
 
-            //// Przypadek standardowy: łuk półokrągły gdy ArcHeight >= Height
-            //if (arcBaseY < Y + Height)
-            //{
-            //    return CalculateArcGeometryD(); // Prosty przypadek, gdy łuk jest "wypukły" i nie przekracza wysokości
-            //}
-
-
             return (centerX, centerY, startAngle, endAngle);
         }
 
-
-        public (double centerX, double centerY, double startAngle, double endAngle) CalculateArcGeometry(double arcHeight = -1)
+        public (double centerX, double centerY, double startAngle, double endAngle) CalculateArcGeometry()
         {
             double leftX = X;
             double rightX = X + Width;
             double topY = Y;
-            ArcHeight = arcHeight > 0 ? arcHeight : ArcHeight;
+
             double arcBaseY = Y + ArcHeight;
-            
+
             // Przypadek standardowy: łuk półokrągły gdy ArcHeight >= Height
             if (arcBaseY < Y + Height)
             {
                 return CalculateArcGeometryD(); // Prosty przypadek, gdy łuk jest "wypukły" i nie przekracza wysokości
             }
+
+            if (ArcHeight * 2 < Width && Height > Width)
+                return CalculateArcGeometryByArcHeight();
 
             var (cx, cy, r) = CircleFromThreePoints(
                 leftX, arcBaseY,
@@ -161,6 +156,126 @@ namespace GEORGE.Client.Pages.Models
             }
 
             return (cx, cy, startAngle, endAngle);
+        }
+
+
+        public (double centerX, double centerY, double startAngle, double endAngle) CalculateArcGeometryByArcHeight()
+        {
+            // =========================================================
+            // OBSŁUGA WYŁĄCZNIE PRZYPADKU:
+            //
+            // ArcHeight * 2 < Width
+            // Height > Width
+            // =========================================================
+
+            double chordWidth = Width;
+            double sagitta = ArcHeight;
+
+            // =========================================================
+            // POZIOM STYKU ŁUKU Z BOKAMI
+            // =========================================================
+
+            double arcBaseY = Y + ArcHeight;
+
+            // =========================================================
+            // PROMIEŃ ŁUKU
+            // =========================================================
+
+            Radius =
+                (chordWidth * chordWidth + 4 * sagitta * sagitta)
+                / (8 * sagitta);
+
+            // =========================================================
+            // ŚRODEK OKRĘGU
+            // =========================================================
+
+            double centerX = X + Width / 2.0;
+
+            double centerY =
+                arcBaseY + (Radius - sagitta);
+
+            // =========================================================
+            // KĄTY
+            // =========================================================
+
+            double leftX = X;
+            double rightX = X + Width;
+
+            double startAngle =
+                Math.Atan2(
+                    arcBaseY - centerY,
+                    rightX - centerX
+                );
+
+            double endAngle =
+                Math.Atan2(
+                    arcBaseY - centerY,
+                    leftX - centerX
+                );
+
+            // =========================================================
+            // NORMALIZACJA
+            // =========================================================
+
+            if (startAngle < 0)
+                startAngle += 2 * Math.PI;
+
+            if (endAngle < 0)
+                endAngle += 2 * Math.PI;
+
+            if (startAngle > endAngle)
+                endAngle += 2 * Math.PI;
+
+            // =========================================================
+            // DEBUG
+            // =========================================================
+
+            Console.WriteLine("========== ARC DEBUG ==========");
+            Console.WriteLine($"X = {X}");
+            Console.WriteLine($"Y = {Y}");
+            Console.WriteLine($"Width = {Width}");
+            Console.WriteLine($"Height = {Height}");
+            Console.WriteLine($"ArcHeight = {ArcHeight}");
+
+            Console.WriteLine("--------------------------------");
+
+            Console.WriteLine($"ChordWidth = {chordWidth}");
+            Console.WriteLine($"Sagitta = {sagitta}");
+
+            Console.WriteLine("--------------------------------");
+
+            Console.WriteLine($"ArcBaseY = {arcBaseY}");
+
+            Console.WriteLine("--------------------------------");
+
+            Console.WriteLine($"Radius = {Radius}");
+
+            Console.WriteLine("--------------------------------");
+
+            Console.WriteLine($"CenterX = {centerX}");
+            Console.WriteLine($"CenterY = {centerY}");
+
+            Console.WriteLine("--------------------------------");
+
+            Console.WriteLine($"StartAngle(rad) = {startAngle}");
+            Console.WriteLine($"EndAngle(rad) = {endAngle}");
+
+            Console.WriteLine($"StartAngle(deg) = {startAngle * 180 / Math.PI}");
+            Console.WriteLine($"EndAngle(deg) = {endAngle * 180 / Math.PI}");
+
+            Console.WriteLine("--------------------------------");
+
+            Console.WriteLine($"LeftPoint = ({leftX}, {arcBaseY})");
+            Console.WriteLine($"RightPoint = ({rightX}, {arcBaseY})");
+
+            Console.WriteLine("================================");
+
+            return (
+                centerX,
+                centerY,
+                startAngle,
+                endAngle
+            );
         }
 
         private double CalculateRadiusFromArcGeometry(double width, double arcHeight)
@@ -228,7 +343,7 @@ namespace GEORGE.Client.Pages.Models
                 double t = i / (double)segments;
                 double angle = startAngle + t * (endAngle - startAngle);
                 double x = arcCenterX + Radius * Math.Cos(angle);
-                if(Width / 2 <= Height)
+                if (Width / 2 <= Height)
                 {
                     double y = arcCenterY - Radius * Math.Sin(angle); // odbicie osi Y
                     outline.Add(new XPoint(x, y));
@@ -237,7 +352,7 @@ namespace GEORGE.Client.Pages.Models
                 {
                     double y = arcCenterY + Radius * Math.Sin(angle); // odbicie osi Y
                     outline.Add(new XPoint(x, y));
-                }             
+                }
             }
 
             // Lewy górny
@@ -375,7 +490,7 @@ namespace GEORGE.Client.Pages.Models
             Width = Math.Max(200, Width);
             Height = Math.Max(100, Height);
             Radius = Math.Max(50, Width / 2);
-            ArcHeight = Math.Max(50, Radius);
+            ArcHeight = Math.Max(50, Width / 2);
             ArcHeight = Math.Min(ArcHeight, Height);
 
             CalculatePointsFromProperties();
@@ -394,8 +509,8 @@ namespace GEORGE.Client.Pages.Models
 
         public List<EditableProperty> GetEditableProperties() => new()
         {
-            new EditableProperty("Pozycja X: ", () => X, v => { X = v; CalculatePointsFromProperties(); }, NazwaObj, true),
-            new EditableProperty("Pozycja Y: ", () => Y, v => { Y = v; CalculatePointsFromProperties(); }, NazwaObj, true),
+            new EditableProperty("Pozycja X: ", () => X, v => { X = v; CalculatePointsFromProperties(); }, NazwaObj, true, true),
+            new EditableProperty("Pozycja Y: ", () => Y, v => { Y = v; CalculatePointsFromProperties(); }, NazwaObj, true, true),
             new EditableProperty("Szerokość: ", () => Width, v => { Width = Math.Max(200, v); CalculatePointsFromProperties(); }, NazwaObj),
             new EditableProperty("Wysokość: ", () => Height, v => { Height = Math.Max(100, v); CalculatePointsFromProperties(); }, NazwaObj),
             new EditableProperty("Promień łuku: ", () => Radius, v => { Radius = Math.Max(50, Math.Min(v, Width / 2)); CalculatePointsFromProperties(); }, NazwaObj, true),

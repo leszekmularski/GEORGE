@@ -217,8 +217,8 @@ namespace GEORGE.Client.Pages.Models
         // --------------------------------------------------------------------
         public List<EditableProperty> GetEditableProperties() => new()
         {
-            new("X", () => X, v => { X = v; Points = GeneratePoints(); }, NazwaObj, true),
-            new("Y", () => Y, v => { Y = v; Points = GeneratePoints(); }, NazwaObj, true),
+            new("X", () => X, v => { X = v; Points = GeneratePoints(); }, NazwaObj, true, true),
+            new("Y", () => Y, v => { Y = v; Points = GeneratePoints(); }, NazwaObj, true, true),
             new("Szerokość", () => Width, v => { Width = v; Points = GeneratePoints(); }, NazwaObj),
             new("Wysokość", () => Height, v => { Height = v; Points = GeneratePoints(); }, NazwaObj),
             new("Promień górnych naroży", () => Radius, v =>

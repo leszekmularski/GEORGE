@@ -9,7 +9,8 @@
         string NazwaObiektu,
         bool IsReadOnly = false,
         bool slupekRuchomy = false,
-        bool pionPoziom = false)
+        bool pionPoziom = false,
+        bool systemowa = false)
     {
         public double Value
         {

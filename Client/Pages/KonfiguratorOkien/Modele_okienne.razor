@@ -458,7 +458,7 @@
 <div class="d-flex justify-content-between align-items-center mt-2 mb-2">
     <h3 class="mb-0">Modele Okienne &nbsp;</h3>
     <Button Icon="@IconType.Fill.Tool" Style="flex-grow: 1; height: 35px;" OnClick="GoCAD">
-        OKN-CAD
+        OKNO-CAD
     </Button>
     &nbsp;&nbsp;
     <button class="btn btn-primary" @onclick="GoBack">
@@ -590,11 +590,11 @@
                                          @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
                                          draggable="true"
                                          style="cursor: grab;
-                                        width: auto;
-                                        height: auto;
-                                        max-width: 50px;
-                                        max-height: 50px;
-                                        border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
+                                                    width: auto;
+                                                    height: auto;
+                                                    max-width: 50px;
+                                                    max-height: 50px;
+                                                    border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
 
                                 }
                                 else
@@ -1558,12 +1558,14 @@
                 // Teraz rysujemy tylko jeśli dane są gotowe
                 if (ShapeService != null && ShapeService.Shapes.Any())
                 {
-                    pokaKonturWewnetrzny = ShapeService._rysujTylkoKontur;
-                    oknaMogaBycLukowe = ShapeService._oknaMogaBycLukowe;
+                    pokaKonturWewnetrzny = ShapeService.RysujTylkoKontur;
+                    oknaMogaBycLukowe = ShapeService.OknaMogaBycLukowe;
 
-                    constWlasciwosciOkna.Szerokosc = ShapeService._szerokosc;
-                    constWlasciwosciOkna.Wysokosc = ShapeService._wysokosc;
-                    constWlasciwosciOkna.WysokoscLuku = ShapeService._wysokoscLuku;
+                    constWlasciwosciOkna.Szerokosc = ShapeService.Szerokosc;
+                    constWlasciwosciOkna.Wysokosc = ShapeService.Wysokosc;
+
+                    constWlasciwosciOkna.EditableProperties = ShapeService.EditableProperties;
+
                     // Obserwacja resize
                     await StartResizeObserver();
 
@@ -1766,18 +1768,16 @@
             {
                 _regionsDualRama = await GeometryUtils.GenerujRegionyZPodzialu(
                     ShapeService.Shapes,
-                    (int)constWlasciwosciOkna.Szerokosc,
-                    (int)constWlasciwosciOkna.Wysokosc,
-                    true,
-                    (int)constWlasciwosciOkna.WysokoscLuku
+                    constWlasciwosciOkna.Szerokosc,
+                    constWlasciwosciOkna.Wysokosc,
+                    true
                 );
 
                 _regionsSkrzydlo = await GeometryUtils.GenerujRegionyZPodzialu(
                     ShapeService.Shapes,
-                    (int)constWlasciwosciOkna.Szerokosc,
-                    (int)constWlasciwosciOkna.Wysokosc,
-                    false,
-                    (int)constWlasciwosciOkna.WysokoscLuku
+                    constWlasciwosciOkna.Szerokosc,
+                    constWlasciwosciOkna.Wysokosc,
+                    false
                 );
 
                 // Kopiuj i zmień ID
@@ -2484,13 +2484,13 @@
             constWlasciwosciOkna.Szerokosc = (int)_regionsDualRama
             .Where(r => r.Wierzcholki != null && r.Wierzcholki.Any())
             .Select(r => r.Wierzcholki.Max(p => p.X) - r.Wierzcholki.Min(p => p.X))
-            .DefaultIfEmpty(ShapeService._szerokosc)
+            .DefaultIfEmpty(ShapeService.Szerokosc)
             .Max();
             // Wysokość = max Y - min Y dla każdego regionu, potem max z tych wysokości
             constWlasciwosciOkna.Wysokosc = (int)_regionsDualRama
             .Where(r => r.Wierzcholki != null && r.Wierzcholki.Any())
             .Select(r => r.Wierzcholki.Max(p => p.Y) - r.Wierzcholki.Min(p => p.Y))
-            .DefaultIfEmpty(ShapeService._wysokosc)
+            .DefaultIfEmpty(ShapeService.Wysokosc)
             .Max();
 
             _lastMouseClick.X = -1;
@@ -2524,6 +2524,18 @@
         }
 
         //await Task.Delay(50); // Krótkie opóźnienie dla płynności
+
+        // Aktualizuj EditableProperties przed pokazaniem
+        if (ShapeService != null)
+        {
+            ShapeService.UpdateEditableProperties();
+
+            // Kopiuj EditableProperties do constWlasciwosciOkna
+            if (constWlasciwosciOkna != null)
+            {
+                constWlasciwosciOkna.EditableProperties = ShapeService.EditableProperties;
+            }
+        }
 
         _constWlasciwosciOkna = true;
     }
@@ -3549,7 +3561,7 @@
         {
             Console.WriteLine("🔄 Rozpoczynam zmianę wymiarów okna...");
 
-            if(infoObiekt != null) infoObiekt.Clear();
+            if (infoObiekt != null) infoObiekt.Clear();
 
             double oldWidth = ShapeService.Shapes.Max(s => s.Szerokosc);
             double oldHeight = ShapeService.Shapes.Max(s => s.Wysokosc);
@@ -7800,11 +7812,11 @@
 
         if (ShapeService != null)
         {
-            ShapeService._szerokosc = constWlasciwosciOkna.Szerokosc;
-            ShapeService._wysokosc = constWlasciwosciOkna.Wysokosc;
-            ShapeService._rysujTylkoKontur = pokaKonturWewnetrzny;
-            ShapeService._oknaMogaBycLukowe = oknaMogaBycLukowe;
-            ShapeService.UpdateShapes(ShapeService.Shapes, constWlasciwosciOkna.Szerokosc, constWlasciwosciOkna.Wysokosc, constWlasciwosciOkna.WysokoscLuku);
+            ShapeService.Szerokosc = constWlasciwosciOkna.Szerokosc;
+            ShapeService.Wysokosc = constWlasciwosciOkna.Wysokosc;
+            ShapeService.RysujTylkoKontur = pokaKonturWewnetrzny;
+            ShapeService.OknaMogaBycLukowe = oknaMogaBycLukowe;
+            ShapeService.UpdateShapes(ShapeService.Shapes, constWlasciwosciOkna.Szerokosc, constWlasciwosciOkna.Wysokosc);
             Console.WriteLine("GoCAD Ustawiono zmienne w ShapeService");
         }
 

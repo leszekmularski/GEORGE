@@ -286,7 +286,7 @@
         @if (_shapes != null && _shapes.Count() > 0)
         {
             <br />
-            <label>@Szerokosc x @Wysokosc</label>
+            <label>@_shapes.FirstOrDefault().Szerokosc x @_shapes.FirstOrDefault().Wysokosc</label>
         }
     </div>
 
@@ -308,8 +308,8 @@
     private long _canvasX = 900;
     private long _canvasY = 600;
 
-    private long Szerokosc = 1250;
-    private long Wysokosc = 1000;
+    // private double Szerokosc = 1250;
+    // private double Wysokosc = 1000;
 
     private int _selectedShapeIndex = -1; // Przechowuje indeks aktualnie edytowanego kształtu
 
@@ -327,14 +327,20 @@
 
     protected override async Task OnInitializedAsync()
     {
+        if (ShapeService == null)
+        {
+            Console.WriteLine("ShapeService jest null. Upewnij się, że jest poprawnie zainstalowany i wstrzyknięty.");
+            return;
+        }
+
         _shapes = ShapeService.Shapes.Select(s => s.Clone()).ToList(); // Odbiór danych z serwisu
 
         if (_shapes != null)
         {
             _originalShapes = _shapes.Select(s => s.Clone()).ToList();
 
-            Szerokosc = ShapeService._szerokosc;
-            Wysokosc = ShapeService._wysokosc;
+            // Szerokosc = ShapeService.Szerokosc;
+            // Wysokosc = ShapeService.Wysokosc;
 
             // await FitToCanvas();
 

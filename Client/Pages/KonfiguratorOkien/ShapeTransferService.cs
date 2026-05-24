@@ -4,31 +4,80 @@
     {
         public List<IShapeDC> Shapes { get; set; } = new();
 
-        public int _szerokosc { get; set; } = 0;
-        public int _wysokosc { get; set; } = 0;
-        public int _wysokoscLuku { get; set; } = -1;
-        public bool _rysujTylkoKontur { get; set; } = false;
-        public bool _oknaMogaBycLukowe { get; set; } = false;
-        public void UpdateShapes(List<IShapeDC> shapes, int szerokosc, int wysokosc, int wysLuku)
+        // Wszystkie publiczne właściwości
+        public double Szerokosc { get; set; } = 0;
+        public double Wysokosc { get; set; } = 0;
+        public bool RysujTylkoKontur { get; set; } = false;
+        public bool OknaMogaBycLukowe { get; set; } = false;
+        public List<EditableProperty> EditableProperties { get; set; } = new();
+
+        public void UpdateShapes(List<IShapeDC> shapes, double szerokosc, double wysokosc)
         {
             Shapes = shapes;
-            _szerokosc = szerokosc;
-            _wysokosc = wysokosc;
-            _wysokoscLuku = wysLuku;
+            Szerokosc = szerokosc;
+            Wysokosc = wysokosc;
+            UpdateEditableProperties();
+        }
+
+        public void UpdateEditableProperties()
+        {
+
+            EditableProperties.Clear();
+
+            if (Shapes != null && Shapes.Any())
+            {
+                // Sprawdź czy jakikolwiek kształt ma właściwość "Szerokość"
+                bool maSzerokosc = Shapes.Any(x =>
+                    x.GetEditableProperties()?.Any(y => y.Label.Contains("Szerokość", StringComparison.OrdinalIgnoreCase)) == true);
+
+                if (!maSzerokosc)
+                {
+                    EditableProperties.Add(new EditableProperty(
+                        "Szerokość: ",
+                        () => Szerokosc,
+                        v => { Szerokosc = (int)v; },
+                        "Wymiar okna"
+                    ));
+                }
+
+                // Sprawdź czy jakikolwiek kształt ma właściwość "Wysokość"
+                bool maWysokosc = Shapes.Any(x =>
+                x.GetEditableProperties()?.Any(y => y.Label.Contains("Wysokość", StringComparison.OrdinalIgnoreCase)) == true);
+
+                if (!maWysokosc)
+                {
+                    EditableProperties.Add(new EditableProperty(
+                        "Wysokość: ",
+                        () => Wysokosc,
+                        v => { Wysokosc = (int)v; },
+                        "Wymiar okna"
+                    ));
+                }
+
+                // Dodaj właściwości z kształtów
+                foreach (var shape in Shapes)
+                {
+                    var shapeProperties = shape.GetEditableProperties();
+                    if (shapeProperties != null && shapeProperties.Any())
+                    {
+                        EditableProperties.AddRange(shapeProperties);
+                    }
+                }
+            }
         }
 
         public string GetShapesAsJson()
         {
             var shapeData = new
             {
-                Szerokosc = _szerokosc,
-                Wysokosc = _wysokosc,
+                Szerokosc = Szerokosc,
+                Wysokosc = Wysokosc,
+                RysujTylkoKontur = RysujTylkoKontur,
+                OknaMogaBycLukowe = OknaMogaBycLukowe,
                 Shapes = Shapes
             };
             return System.Text.Json.JsonSerializer.Serialize(shapeData);
         }
-
-        // 🔽 NOWE — bounding box wszystkich figur
         public BoundingBox GetGlobalBoundingBox()
         {
             var shapesWithPoints = Shapes
@@ -73,5 +122,4 @@
         }
 
     }
-
 }
