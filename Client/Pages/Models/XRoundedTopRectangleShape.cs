@@ -68,6 +68,7 @@ namespace GEORGE.Client.Pages.Models
         // ===========================
         private void CalculatePointsFromProperties()
         {
+
             Points = GenerateCompleteOutline(IloscElementowLuki);
             NormalizeToPositiveQuadrant();
             NominalPoints = Points.Select(p => p.Clone()).ToList();
@@ -92,6 +93,7 @@ namespace GEORGE.Client.Pages.Models
 
         public (double centerX, double centerY, double startAngle, double endAngle) CalculateArcGeometry()
         {
+
             double leftX = X;
             double rightX = X + Width;
             double topY = Y;
@@ -546,7 +548,7 @@ namespace GEORGE.Client.Pages.Models
             // dół
             segments.Add(new ContourSegment(bottomLeft, bottomRight));
 
-            if (mode == ArcMode.Normal)
+            if (mode == ArcMode.PelnyLuk)
                 // prawa
                 segments.Add(new ContourSegment(bottomRight, topRight));
 
@@ -559,7 +561,7 @@ namespace GEORGE.Client.Pages.Models
                 true
             ));
 
-            if (mode == ArcMode.Normal)
+            if (mode == ArcMode.PelnyLuk)
                 // lewa
                 segments.Add(new ContourSegment(topLeft, bottomLeft));
 
@@ -586,14 +588,19 @@ namespace GEORGE.Client.Pages.Models
         {
             double ratio = Width / Height;
 
-            // próg możesz później stroić pod swoje dane CAD
-            return ratio > 1.8 ? ArcMode.FlattenedTop : ArcMode.Normal;
+            if (Height > Width) return ArcMode.PelnyLuk;
+
+            if (Height < Width / 2) return ArcMode.TylkoLuk;
+
+            return ArcMode.NiepelnyLuk;
+
         }
 
         private enum ArcMode
         {
-            Normal,
-            FlattenedTop
+            PelnyLuk,
+            TylkoLuk,
+            NiepelnyLuk
         }
     }
 }
