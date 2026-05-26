@@ -26,6 +26,15 @@
 
             if (Shapes != null && Shapes.Any())
             {
+                bool ukrySzerokoscIWysokosc = false;
+                var s = Shapes.FirstOrDefault()?.GetEditableProperties().FirstOrDefault(x => x.Label.Contains("Promień Okna:", StringComparison.OrdinalIgnoreCase) 
+                || x.Label.Contains("Wymiar okna kwadratowego", StringComparison.OrdinalIgnoreCase));
+
+                if (s != null)
+                {
+                    ukrySzerokoscIWysokosc = true;
+                }
+
                 // Sprawdź czy jakikolwiek kształt ma właściwość "Szerokość"
                 bool maSzerokosc = Shapes.Any(x =>
                     x.GetEditableProperties()?.Any(y => y.Label.Contains("Szerokość", StringComparison.OrdinalIgnoreCase)) == true);
@@ -36,7 +45,7 @@
                         "Szerokość: ",
                         () => Szerokosc,
                         v => { Szerokosc = (int)v; },
-                        "Wymiar okna"
+                        "Wymiar okna", false, false, false, ukrySzerokoscIWysokosc
                     ));
                 }
 
@@ -50,7 +59,7 @@
                         "Wysokość: ",
                         () => Wysokosc,
                         v => { Wysokosc = (int)v; },
-                        "Wymiar okna"
+                        "Wymiar okna", false, false, false, ukrySzerokoscIWysokosc
                     ));
                 }
 

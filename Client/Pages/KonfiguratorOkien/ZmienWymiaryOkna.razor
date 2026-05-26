@@ -37,9 +37,11 @@ else
 
                         <div class="mb-2">
 
+                            @if (!prop.systemowa)
+                            {
                                 @if (!prop.IsReadOnly)
                                 {
-                                      <label>@prop.Label</label>
+                                    <label>@prop.Label</label>
                                     <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
                                                           ValueChanged="@(async (double value) => {
                                                               Model.UpdateEditableProperty(index, value);
@@ -47,13 +49,14 @@ else
                                                           })"
                                                           Style="width: 100%;" />
                                 }
-                                else if(!prop.systemowa && !prop.IsReadOnly)
+                                else if(prop.IsReadOnly)
                                 {
-                                      <label>@prop.Label</label>
+                                    <label>@prop.Label</label>
                                     <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
                                                           Style="width: 100%;"
                                                           Disabled="true" />
                                 }
+                            }
 
                         </div>
                     }
@@ -138,20 +141,12 @@ else
 
     [Parameter]
     public ConstWlasciwosciOkna? Model { get; set; }
-
-    [Parameter]
-    public bool BlokujWysokosc { get; set; }
-
+       
     [Parameter]
     public EventCallback<ConstWlasciwosciOkna> OnSave { get; set; }
 
     public async Task ZapiszDoRodzica()
     {
-        if (BlokujWysokosc)
-        {
-            Model!.Wysokosc = Model!.Szerokosc;
-        }
-
         await OnSave.InvokeAsync(Model);
     }
 }

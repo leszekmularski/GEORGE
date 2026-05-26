@@ -123,6 +123,17 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 {
                     Wysokosc = value;
                 }
+                if (prop.Label.ToLower().StartsWith("promień okna"))
+                {
+                    Wysokosc = value * 2;
+                    Szerokosc = value * 2;
+                }
+                if (prop.Label.ToLower().StartsWith("wymiar okna kwadratowego"))
+                {
+                    Wysokosc = value;
+                    Szerokosc = value;
+                }
+
             }
 
         }

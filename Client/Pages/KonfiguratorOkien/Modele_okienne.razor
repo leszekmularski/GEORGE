@@ -1395,8 +1395,8 @@
        Centered="true"
        Maximizable="true">
 
-    <ZmienWymiaryOkna Model="constWlasciwosciOkna" BlokujWysokosc="_constWlasciwosciOknaBlokujWys"
-                      OnSave="PrzyjmijZmiany">
+    <ZmienWymiaryOkna Model="constWlasciwosciOkna" 
+        OnSave="PrzyjmijZmiany">
     </ZmienWymiaryOkna>
 
 </Modal>
@@ -1477,8 +1477,7 @@
 
     private bool _generatorState = false;
     private bool _constWlasciwosciOkna = false;
-    private bool _constWlasciwosciOknaBlokujWys = false;
-
+  
     private int _selectedShapeIndex = 0; // Przechowuje indeks aktualnie edytowanego kształtu
 
     private ElementReference modalRef;
@@ -2507,21 +2506,21 @@
         classShowWO = "show";
         displayWO = "block";
 
-        _constWlasciwosciOknaBlokujWys = false;
+        // _constWlasciwosciOknaBlokujWys = false;
 
-        if (ShapeService.Shapes != null && ShapeService.Shapes.Count > 0)
-        {
-            if (!ShapeService.Shapes.Any(s => s == null))
-            {
-                if (ShapeService.Shapes[0].GetType() == typeof(GEORGE.Client.Pages.Models.XSquareShape) || ShapeService.Shapes[0].GetType() == typeof(GEORGE.Client.Pages.Models.XCircleShape))
-                {
-                    if (constWlasciwosciOkna != null)
-                        constWlasciwosciOkna.Wysokosc = constWlasciwosciOkna.Szerokosc;
+        // if (ShapeService.Shapes != null && ShapeService.Shapes.Count > 0)
+        // {
+        //     if (!ShapeService.Shapes.Any(s => s == null))
+        //     {
+        //         if (ShapeService.Shapes[0].GetType() == typeof(GEORGE.Client.Pages.Models.XSquareShape) || ShapeService.Shapes[0].GetType() == typeof(GEORGE.Client.Pages.Models.XCircleShape))
+        //         {
+        //             if (constWlasciwosciOkna != null)
+        //                 constWlasciwosciOkna.Wysokosc = constWlasciwosciOkna.Szerokosc;
 
-                    _constWlasciwosciOknaBlokujWys = true;
-                }
-            }
-        }
+        //             _constWlasciwosciOknaBlokujWys = true;
+        //         }
+        //     }
+        // }
 
         //await Task.Delay(50); // Krótkie opóźnienie dla płynności
 

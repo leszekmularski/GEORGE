@@ -166,11 +166,11 @@ namespace GEORGE.Client.Pages.Models
 
         public List<EditableProperty> GetEditableProperties() => new()
     {
-        new EditableProperty("X: ", () => X, v => X = v, NazwaObj, true, true),
-        new EditableProperty("Y: ", () => Y, v => Y = v, NazwaObj, true, true),
-        new EditableProperty("Promień: ", () => Radius, v => Radius = v, NazwaObj),
+        new EditableProperty("X: ", () => X, v => X = v, NazwaObj, true, true, false, true),
+        new EditableProperty("Y: ", () => Y, v => Y = v, NazwaObj, true, true,false, true),
+        new EditableProperty("Promień Okna: ", () => Radius, v => Radius = v, NazwaObj),
         new EditableProperty("Podział na elementy: ", () => IloscElementowLuki, v => IloscElementowLuki = (int)v, NazwaObj),
-        new EditableProperty("Skala: ", () => _scaleFactor, v => _scaleFactor = v, NazwaObj, true, true)        
+        new EditableProperty("Skala: ", () => _scaleFactor, v => _scaleFactor = v, NazwaObj, true, false, false, true)        
     };
 
         public void Scale(double factor)
