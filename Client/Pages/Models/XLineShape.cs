@@ -24,6 +24,8 @@ namespace GEORGE.Client.Pages.Models
 
         public bool GenerowaneZRamy { get; set; } = false;
 
+        public string? KsztaltModelu { get; set; } = "XLineShape";
+
         public List<XPoint> Points { get; set; } = new();
         public List<XPoint> NominalPoints { get; set; } = new();
         public List<XPoint> GetPoints() => Points;

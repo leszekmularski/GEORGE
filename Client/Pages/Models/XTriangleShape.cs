@@ -31,6 +31,8 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
         public List<ContourSegment> ContourSegments => GetContourSegments();
 
+        public string? KsztaltModelu { get; set; } = "XTriangleShape";
+
         // ---------------------------------------------------------
         // Konstruktor
         // startX,startY,endX,endY traktujemy jako nominalne współrzędne

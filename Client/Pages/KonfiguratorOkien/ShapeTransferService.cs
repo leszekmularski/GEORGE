@@ -72,6 +72,7 @@
                         EditableProperties.AddRange(shapeProperties);
                     }
                 }
+
             }
         }
 
@@ -83,7 +84,9 @@
                 Wysokosc = Wysokosc,
                 RysujTylkoKontur = RysujTylkoKontur,
                 OknaMogaBycLukowe = OknaMogaBycLukowe,
-                Shapes = Shapes
+                Shapes = Shapes,
+                EditableProperties = EditableProperties,
+
             };
             return System.Text.Json.JsonSerializer.Serialize(shapeData);
         }

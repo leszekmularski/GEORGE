@@ -9,6 +9,8 @@ public interface IShapeDC
     double Szerokosc { get; set; }
     double Wysokosc { get; set; }
 
+    string KsztaltModelu { get; set; }
+
     List<XPoint> Points { get; set; }
     List<XPoint> NominalPoints { get; set; }
 

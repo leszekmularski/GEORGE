@@ -4,7 +4,7 @@ using GEORGE.Shared.ViewModels;
 
 namespace GEORGE.Client.Pages.Models
 {
-    public class XRoundedTopRectangleShape : IShapeDC
+    public class XRoundedTopRectangleShapeFixed : IShapeDC
     {
         public string ID { get; set; } = Guid.NewGuid().ToString();
 
@@ -49,7 +49,25 @@ namespace GEORGE.Client.Pages.Models
         public double ArcHeight
         {
             get => _arcHeight;
-            set => _arcHeight = value;
+            set
+            {
+                // ZABEZPIECZENIE: ArcHeight musi być > Width/2
+                double minArcHeight = (Width / 2.0) + 1;
+                double maxArcHeight = Height - 10;
+
+                double newValue = value;
+                if (newValue <= Width / 2.0)
+                    newValue = minArcHeight;
+
+                _arcHeight = Math.Clamp(newValue, minArcHeight, maxArcHeight);
+
+                // Jeśli nadal nie spełnia warunku, wymuś prawidłową wartość
+                if (_arcHeight <= Width / 2.0)
+                    _arcHeight = Width / 2.0 + 1;
+
+                MarkGeometryDirty();
+                CalculatePointsFromProperties();
+            }
         }
 
         public double Szerokosc { get => Width; set => Width = value; }
@@ -62,9 +80,9 @@ namespace GEORGE.Client.Pages.Models
         public List<XPoint> GetNominalPoints() => NominalPoints.Select(p => p.Clone()).ToList();
 
         private readonly double _scaleFactor;
-        public string NazwaObj { get; set; } = "Prostokąt z wypukłym łukiem u góry";
+        public string NazwaObj { get; set; } = "Prostokąt z wypukłym łukiem u góry (Fixed)";
 
-        public string? KsztaltModelu { get; set; } = "XRoundedTopRectangleShape";
+        public string? KsztaltModelu { get; set; } = "XRoundedTopRectangleShapeFixed";
 
         public int IloscElementowLuki
         {
@@ -86,14 +104,12 @@ namespace GEORGE.Client.Pages.Models
         private double _lastWidth, _lastHeight, _lastArcHeight, _lastX, _lastY;
         private bool _geometryDirty = true;
 
-        // W XRoundedTopRectangleShape.cs dodaj konstruktor domyślny
-
-        public XRoundedTopRectangleShape(double x, double y, double width, double height,
+        public XRoundedTopRectangleShapeFixed(double x, double y, double width, double height,
                           double radius = 0, double arcHeight = 0, double scaleFactor = 1.0)
         {
-            //  _isInitializing = true;
+            _isInitializing = true;
 
-            Console.WriteLine($"[DEBUG] Konstruktor START {NazwaObj}: Height={height}, ArcHeight={arcHeight}");
+            Console.WriteLine($"[DEBUG] Konstruktor START {NazwaObj}: Width={width}, Height={height}, ArcHeight={arcHeight}");
 
             _x = x;
             _y = y;
@@ -101,24 +117,28 @@ namespace GEORGE.Client.Pages.Models
             _height = Math.Max(100, height);
             _scaleFactor = scaleFactor;
 
-            // Ustaw ArcHeight
+            // Ustaw ArcHeight - ZAWSZE większe od Width/2
+            double minArcHeight = (Width / 2.0) + 1;
+            double maxArcHeight = Height - 10;
+
             if (arcHeight <= 0)
-                _arcHeight = Height / 4;  // Domyślnie 1/4 wysokości
+                _arcHeight = Math.Max(Height / 3, minArcHeight); // Domyślnie 1/3 wysokości, ale nie mniej niż minArcHeight
             else
-                _arcHeight = Math.Clamp(arcHeight, 5, Height - 10);  // Min 5, max Height-10
+                _arcHeight = Math.Clamp(arcHeight, minArcHeight, maxArcHeight);
 
-            // ZAWSZE obliczaj promień z geometrii (ignoruj parametr radius)
-            // R = (w² + 4h²) / (8h)
+            // Ostateczne zabezpieczenie
+            if (_arcHeight <= Width / 2.0)
+                _arcHeight = Width / 2.0 + 1;
+
+            // Oblicz promień z geometrii
             _radius = (Width * Width + 4 * ArcHeight * ArcHeight) / (8 * ArcHeight);
-
-            // Upewnij się, że promień jest wystarczający
             _radius = Math.Max(_radius, Width / 2);
 
             CalculatePointsFromProperties();
 
-            //_isInitializing = false;
+            _isInitializing = false;
 
-            Console.WriteLine($"[DEBUG] Konstruktor END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
+            Console.WriteLine($"[DEBUG] Konstruktor END {NazwaObj}: Width={Width}, Height={Height}, ArcHeight={ArcHeight}, MinRequired={minArcHeight}");
         }
 
         // ===========================
@@ -133,7 +153,6 @@ namespace GEORGE.Client.Pages.Models
             NormalizeToPositiveQuadrant();
             NominalPoints = Points.Select(p => p.Clone()).ToList();
 
-            // Oznacz geometrię jako brudną po zmianie właściwości
             MarkGeometryDirty();
 
             Console.WriteLine($"[DEBUG] CalculatePointsFromProperties END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
@@ -144,13 +163,11 @@ namespace GEORGE.Client.Pages.Models
         // ===========================
         public (double centerX, double centerY, double startAngle, double endAngle) CalculateArcGeometry()
         {
-            // Jeśli inicjalizacja, zwróć domyślną wartość
             if (_isInitializing)
             {
                 return (X + Width / 2, Y + ArcHeight, 0, Math.PI);
             }
 
-            // Sprawdź cache
             if (!_geometryDirty &&
                 _lastWidth == Width &&
                 _lastHeight == Height &&
@@ -169,69 +186,37 @@ namespace GEORGE.Client.Pages.Models
             double topY = Y;
             double arcBaseY = Y + ArcHeight;
 
-            (double centerX, double centerY, double startAngle, double endAngle) result;
+            // Zawsze używaj metody z trzema punktami dla łuku wypukłego
+            var (cx, cy, r) = CircleFromThreePoints(
+                leftX, arcBaseY,
+                X + Width / 2.0, topY,
+                rightX, arcBaseY
+            );
 
-            // Przypadek standardowy: łuk półokrągły gdy ArcHeight >= Height
-            if (arcBaseY < Y + Height)
-            {
-                result = CalculateArcGeometryD();
-            }
-            else if (ArcHeight * 2 < Width && Height > Width)
-            {
-                result = CalculateArcGeometryByArcHeight();
-            }
-            else
-            {
-                var (cx, cy, r) = CircleFromThreePoints(
-                    leftX, arcBaseY,
-                    X + Width / 2.0, topY,
-                    rightX, arcBaseY
-                );
+            _radius = r;
 
-                _radius = r;
+            // Kąty do punktów
+            double angleRight = Math.Atan2(arcBaseY - cy, rightX - cx);
+            double angleLeft = Math.Atan2(arcBaseY - cy, leftX - cx);
 
-                // Kąty do punktów
-                double angleRight = Math.Atan2(arcBaseY - cy, rightX - cx);
-                double angleLeft = Math.Atan2(arcBaseY - cy, leftX - cx);
-                double angleTop = Math.Atan2(topY - cy, (X + Width / 2.0) - cx);
+            // Normalizacja
+            if (angleRight < 0) angleRight += 2 * Math.PI;
+            if (angleLeft < 0) angleLeft += 2 * Math.PI;
 
-                // Normalizacja
-                if (angleRight < 0) angleRight += 2 * Math.PI;
-                if (angleLeft < 0) angleLeft += 2 * Math.PI;
-                if (angleTop < 0) angleTop += 2 * Math.PI;
+            double startAngle, endAngle;
 
-                // Sprawdzamy, czy środek jest nad czy pod łukiem
-                bool centerBelow = cy > topY;
+            // Dla łuku wypukłego (idziemy od prawej do lewej)
+            startAngle = angleRight;
+            endAngle = angleLeft;
 
-                double startAngle, endAngle;
+            if (startAngle > endAngle)
+                endAngle += 2 * Math.PI;
 
-                if (centerBelow)
-                {
-                    startAngle = angleRight;
-                    endAngle = angleLeft;
-                    if (Math.Abs(startAngle - endAngle) > Math.PI)
-                    {
-                        if (startAngle < endAngle)
-                            startAngle += 2 * Math.PI;
-                        else
-                            endAngle += 2 * Math.PI;
-                    }
-                }
-                else
-                {
-                    startAngle = angleLeft;
-                    endAngle = angleRight;
-                    if (startAngle > endAngle)
-                        endAngle += 2 * Math.PI;
-                }
+            var result = (cx, cy, startAngle, endAngle);
 
-                result = (cx, cy, startAngle, endAngle);
-            }
-
-            Console.WriteLine($"[DEBUG] CalculateArcGeometry {NazwaObj}: Height={Height}, ArcHeight={ArcHeight} Radius: {Radius}");
+            Console.WriteLine($"[DEBUG] CalculateArcGeometry {NazwaObj}: Height={Height}, ArcHeight={ArcHeight} Radius={Radius}");
             Console.WriteLine($"[DEBUG] CalculateArcGeometry END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
 
-            // Zapisz w cache
             _cachedArcGeometry = result;
             _lastWidth = Width;
             _lastHeight = Height;
@@ -243,54 +228,9 @@ namespace GEORGE.Client.Pages.Models
             return result;
         }
 
-        // Oznacz geometrię jako wymagającą przeliczenia
         private void MarkGeometryDirty()
         {
             _geometryDirty = true;
-        }
-
-        public (double centerX, double centerY, double startAngle, double endAngle) CalculateArcGeometryD()
-        {
-            double centerX = X + Width / 2;
-            double centerY = Y + ArcHeight;
-            double startAngle = 0;
-            double endAngle = Math.PI;
-            return (centerX, centerY, startAngle, endAngle);
-        }
-
-        public (double centerX, double centerY, double startAngle, double endAngle) CalculateArcGeometryByArcHeight()
-        {
-            Console.WriteLine($"[DEBUG] CalculateArcGeometryByArcHeight START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
-
-            double chordWidth = Width;
-            double sagitta = ArcHeight;
-            double arcBaseY = Y + ArcHeight;
-
-            _radius = (chordWidth * chordWidth + 4 * sagitta * sagitta) / (8 * sagitta);
-
-            double centerX = X + Width / 2.0;
-            double centerY = arcBaseY + (Radius - sagitta);
-
-            double leftX = X;
-            double rightX = X + Width;
-
-            double startAngle = Math.Atan2(arcBaseY - centerY, rightX - centerX);
-            double endAngle = Math.Atan2(arcBaseY - centerY, leftX - centerX);
-
-            if (startAngle < 0) startAngle += 2 * Math.PI;
-            if (endAngle < 0) endAngle += 2 * Math.PI;
-            if (startAngle > endAngle) endAngle += 2 * Math.PI;
-
-            Console.WriteLine($"[DEBUG] CalculateArcGeometryByArcHeight END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
-
-            return (centerX, centerY, startAngle, endAngle);
-        }
-
-        private double CalculateRadiusFromArcGeometry(double width, double arcHeight)
-        {
-            double w = width;
-            double h = arcHeight;
-            return (w * w + 4 * h * h) / (8 * h);
         }
 
         private (double cx, double cy, double radius) CircleFromThreePoints(
@@ -308,6 +248,13 @@ namespace GEORGE.Client.Pages.Models
 
             Console.WriteLine($"[DEBUG] CircleFromThreePoints END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
             return (cx, cy, radius);
+        }
+
+        private double CalculateRadiusFromArcGeometry(double width, double arcHeight)
+        {
+            double w = width;
+            double h = arcHeight;
+            return (w * w + 4 * h * h) / (8 * h);
         }
 
         // ===========================
@@ -332,22 +279,14 @@ namespace GEORGE.Client.Pages.Models
 
             if (segments <= 0) segments = 2;
 
+            // Generuj łuk od prawej do lewej
             for (int i = 0; i <= segments; i++)
             {
                 double t = i / (double)segments;
                 double angle = startAngle + t * (endAngle - startAngle);
                 double x = arcCenterX + Radius * Math.Cos(angle);
-
-                if (Width / 2 <= Height)
-                {
-                    double y = arcCenterY - Radius * Math.Sin(angle);
-                    outline.Add(new XPoint(x, y));
-                }
-                else
-                {
-                    double y = arcCenterY + Radius * Math.Sin(angle);
-                    outline.Add(new XPoint(x, y));
-                }
+                double y = arcCenterY - Radius * Math.Sin(angle); // Zawsze odejmujemy dla łuku wypukłego
+                outline.Add(new XPoint(x, y));
             }
 
             outline.Add(new XPoint(leftX, arcStartY));
@@ -441,7 +380,15 @@ namespace GEORGE.Client.Pages.Models
             Width = Points.Max(p => p.X) - X;
             Height = Points.Max(p => p.Y) - Y;
 
-            ArcHeight = Points[Points.Count / 2].Y - Y;
+            double newArcHeight = Points[Points.Count / 2].Y - Y;
+
+            // Zabezpieczenie: ArcHeight musi być > Width/2
+            double minArcHeight = (Width / 2.0) + 1;
+            if (newArcHeight <= Width / 2.0)
+                newArcHeight = minArcHeight;
+
+            ArcHeight = Math.Clamp(newArcHeight, minArcHeight, Height - 10);
+
             Radius = Math.Sqrt(Math.Pow(Points[Points.Count / 2].X - (X + Width / 2), 2) +
                                Math.Pow(Points[Points.Count / 2].Y - (Y + ArcHeight), 2));
 
@@ -457,16 +404,31 @@ namespace GEORGE.Client.Pages.Models
         public void Scale(double factor)
         {
             if (factor == 0) return;
-            X *= factor; Y *= factor;
-            Width *= factor; Height *= factor;
-            Radius *= factor; ArcHeight *= factor;
+
+            double newWidth = Width * factor;
+            double newHeight = Height * factor;
+            double newArcHeight = ArcHeight * factor;
+
+            // Zabezpieczenie po skalowaniu
+            double minArcHeight = (newWidth / 2.0) + 1;
+            if (newArcHeight <= newWidth / 2.0)
+                newArcHeight = minArcHeight;
+
+            X *= factor;
+            Y *= factor;
+            Width = newWidth;
+            Height = newHeight;
+            ArcHeight = newArcHeight;
+            Radius = (Width * Width + 4 * ArcHeight * ArcHeight) / (8 * ArcHeight);
+
             MarkGeometryDirty();
             CalculatePointsFromProperties();
         }
 
         public void Move(double offsetX, double offsetY)
         {
-            X += offsetX; Y += offsetY;
+            X += offsetX;
+            Y += offsetY;
             Points = Points.Select(p => new XPoint(p.X + offsetX, p.Y + offsetY)).ToList();
             NominalPoints = Points.Select(p => p.Clone()).ToList();
             MarkGeometryDirty();
@@ -479,28 +441,39 @@ namespace GEORGE.Client.Pages.Models
             Console.WriteLine($"[DEBUG] Transform START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
 
             double scale = (scaleX + scaleY) / 2.0;
+
+            double newWidth = Width * scale;
+            double newHeight = Height * scale;
+            double newArcHeight = ArcHeight * scale;
+
+            // ZABEZPIECZENIE: ArcHeight musi być > Width/2
+            double minArcHeight = (newWidth / 2.0) + 1;
+            if (newArcHeight <= newWidth / 2.0)
+                newArcHeight = minArcHeight;
+
+            // Ogranicz do wysokości
+            if (newArcHeight > newHeight - 10)
+                newArcHeight = newHeight - 10;
+
             X = X * scale + offsetX;
             Y = Y * scale + offsetY;
-            Width *= scale;
-            Height *= scale;
-            Radius *= scale;
-            ArcHeight *= scale;
+            Width = Math.Max(100, newWidth);
+            Height = Math.Max(100, newHeight);
+            ArcHeight = newArcHeight;
 
-            Width = Math.Max(200, Width);
-            Height = Math.Max(100, Height);
-            Radius = Math.Max(50, Width / 2);
-            ArcHeight = Math.Max(50, Width / 2);
-            ArcHeight = Math.Min(ArcHeight, Height);
+            // Przelicz promień
+            Radius = (Width * Width + 4 * ArcHeight * ArcHeight) / (8 * ArcHeight);
+            Radius = Math.Max(Radius, Width / 2);
 
             MarkGeometryDirty();
             CalculatePointsFromProperties();
 
-            Console.WriteLine($"[DEBUG] Transform END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
+            Console.WriteLine($"[DEBUG] Transform END {NazwaObj}: Width={Width}, Height={Height}, ArcHeight={ArcHeight}");
         }
 
         public IShapeDC Clone()
         {
-            return new XRoundedTopRectangleShape(X, Y, Width, Height, Radius, ArcHeight, _scaleFactor)
+            return new XRoundedTopRectangleShapeFixed(X, Y, Width, Height, Radius, ArcHeight, _scaleFactor)
             {
                 ID = Guid.NewGuid().ToString(),
                 Points = Points.Select(p => p.Clone()).ToList(),
@@ -508,6 +481,9 @@ namespace GEORGE.Client.Pages.Models
                 NazwaObj = NazwaObj,
                 Radius = Radius,
                 ArcHeight = ArcHeight,
+                KsztaltModelu = KsztaltModelu,
+                Szerokosc = Width,
+                Wysokosc = Height,
             };
         }
 
@@ -515,10 +491,10 @@ namespace GEORGE.Client.Pages.Models
         {
             new EditableProperty("Pozycja X: ", () => X, v => { X = v; MarkGeometryDirty(); CalculatePointsFromProperties(); }, NazwaObj, true, false, false, true),
             new EditableProperty("Pozycja Y: ", () => Y, v => { Y = v; MarkGeometryDirty(); CalculatePointsFromProperties(); }, NazwaObj, true, false, false, true),
-            new EditableProperty("Szerokość: ", () => Width, v => { Width = Math.Max(200, v); MarkGeometryDirty(); CalculatePointsFromProperties(); }, NazwaObj),
+            new EditableProperty("Szerokość: ", () => Width, v => { Width = Math.Max(100, v); MarkGeometryDirty(); CalculatePointsFromProperties(); }, NazwaObj),
             new EditableProperty("Wysokość: ", () => Height, v => { Height = Math.Max(100, v); MarkGeometryDirty(); CalculatePointsFromProperties(); }, NazwaObj),
             new EditableProperty("Promień łuku: ", () => Radius, v => { Radius = v; MarkGeometryDirty(); CalculatePointsFromProperties(); }, NazwaObj, true),
-            new EditableProperty("Wysokość łuku: ", () => ArcHeight, v => { ArcHeight = v; MarkGeometryDirty(); CalculatePointsFromProperties(); }, NazwaObj, true),
+            new EditableProperty("Wysokość łuku: ", () => ArcHeight, v => { ArcHeight = v; MarkGeometryDirty(); CalculatePointsFromProperties(); }, NazwaObj),
             new EditableProperty("Podział na elementy: ", () => IloscElementowLuki, v => {
                 int newValue = (int)Math.Round(v / 2.0) * 2;
                 IloscElementowLuki = Math.Max(2, newValue);
@@ -535,7 +511,6 @@ namespace GEORGE.Client.Pages.Models
             Console.WriteLine($"[DEBUG] GetContourSegments START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
 
             var segments = new List<ContourSegment>();
-            var mode = GetArcMode();
 
             double leftX = X;
             double rightX = X + Width;
@@ -552,54 +527,13 @@ namespace GEORGE.Client.Pages.Models
             var topLeft = new XPoint(leftX, arcStartY);
 
             segments.Add(new ContourSegment(bottomLeft, bottomRight));
-
-            if (mode == ArcMode.PelnyLuk)
-                segments.Add(new ContourSegment(bottomRight, topRight));
-
-            segments.Add(new ContourSegment(
-                topRight,
-                topLeft,
-                new XPoint(cx, cy),
-                Radius,
-                true
-            ));
-
-            if (mode == ArcMode.PelnyLuk)
-                segments.Add(new ContourSegment(topLeft, bottomLeft));
+            segments.Add(new ContourSegment(bottomRight, topRight));
+            segments.Add(new ContourSegment(topRight, topLeft, new XPoint(cx, cy), Radius, true));
+            segments.Add(new ContourSegment(topLeft, bottomLeft));
 
             Console.WriteLine($"[DEBUG] GetContourSegments END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
 
             return segments;
-        }
-
-        private XPoint CalculateCentroid(List<XPoint> pts)
-        {
-            double cx = 0;
-            double cy = 0;
-
-            foreach (var p in pts)
-            {
-                cx += p.X;
-                cy += p.Y;
-            }
-
-            return new XPoint(cx / pts.Count, cy / pts.Count);
-        }
-
-        private ArcMode GetArcMode()
-        {
-            double ratio = Width / Height;
-
-            if (Height > Width) return ArcMode.PelnyLuk;
-            if (Height < Width / 2) return ArcMode.TylkoLuk;
-            return ArcMode.NiepelnyLuk;
-        }
-
-        private enum ArcMode
-        {
-            PelnyLuk,
-            TylkoLuk,
-            NiepelnyLuk
         }
     }
 }

@@ -15,6 +15,8 @@ namespace GEORGE.Client.Pages.Models
         public double Radius { get; set; }
         public string NazwaObj { get; set; } = "Prostokąt z zaokrąglonymi górnymi naroż.";
         public int _iloscElementowLuki = 1; // liczba punktów generowanych na łuku dla spójności
+
+        public string? KsztaltModelu { get; set; } = "XRoundedRectangleShape";
         public int IloscElementowLuki
         {
             get => _iloscElementowLuki;

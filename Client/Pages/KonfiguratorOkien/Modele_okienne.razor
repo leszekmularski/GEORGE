@@ -1339,6 +1339,8 @@
 
                                     @if (_selectedShapeIndex >= 0)
                                     {
+                                        <span class="property-value">Typ klasy: @ShapeService.Shapes[_selectedShapeIndex].KsztaltModelu</span>
+
                                         @foreach (var prop in ShapeService.Shapes[_selectedShapeIndex].GetEditableProperties())
                                         {
                                             <div class="property-row">
@@ -1477,7 +1479,7 @@
 
     private bool _generatorState = false;
     private bool _constWlasciwosciOkna = false;
-  
+
     private int _selectedShapeIndex = 0; // Przechowuje indeks aktualnie edytowanego kształtu
 
     private ElementReference modalRef;
@@ -2480,13 +2482,13 @@
         if (_regionsDualRama != null && _regionsDualRama.Any())
         {
             // Szerokość = max X - min X dla każdego regionu, potem max z tych szerokości
-            constWlasciwosciOkna.Szerokosc = (int)_regionsDualRama
+            constWlasciwosciOkna.Szerokosc = (float)_regionsDualRama
             .Where(r => r.Wierzcholki != null && r.Wierzcholki.Any())
             .Select(r => r.Wierzcholki.Max(p => p.X) - r.Wierzcholki.Min(p => p.X))
             .DefaultIfEmpty(ShapeService.Szerokosc)
             .Max();
             // Wysokość = max Y - min Y dla każdego regionu, potem max z tych wysokości
-            constWlasciwosciOkna.Wysokosc = (int)_regionsDualRama
+            constWlasciwosciOkna.Wysokosc = (float)_regionsDualRama
             .Where(r => r.Wierzcholki != null && r.Wierzcholki.Any())
             .Select(r => r.Wierzcholki.Max(p => p.Y) - r.Wierzcholki.Min(p => p.Y))
             .DefaultIfEmpty(ShapeService.Wysokosc)
@@ -2525,9 +2527,10 @@
         //await Task.Delay(50); // Krótkie opóźnienie dla płynności
 
         // Aktualizuj EditableProperties przed pokazaniem
-        if (ShapeService != null)
+        if (ShapeService != null && constWlasciwosciOkna != null)
         {
-            ShapeService.UpdateEditableProperties();
+            ShapeService.UpdateShapes(ShapeService.Shapes, constWlasciwosciOkna.Szerokosc, constWlasciwosciOkna.Wysokosc);
+           // ShapeService.UpdateEditableProperties();
 
             // Kopiuj EditableProperties do constWlasciwosciOkna
             if (constWlasciwosciOkna != null)
@@ -3568,7 +3571,10 @@
             double newWidth = constWlasciwosciOkna.Szerokosc;
             double newHeight = constWlasciwosciOkna.Wysokosc;
 
-            Console.WriteLine($"📏 Zmiana wymiarów: {oldWidth}x{oldHeight} → {newWidth}x{newHeight}");
+            _generator.Szerokosc = (float)newWidth;
+            _generator.Wysokosc = (float)newHeight;
+
+            Console.WriteLine($"📏 Zmiana wymiarów #1: {oldWidth}x{oldHeight} → {newWidth}x{newHeight} oraz zmiana w generatorze.");
 
             // 2. Aktualizacja wymiarów kształtów
             foreach (var shape in ShapeService.Shapes)
@@ -3595,7 +3601,7 @@
             // double newWidth = constWlasciwosciOkna.Szerokosc;
             // double newHeight = constWlasciwosciOkna.Wysokosc;
 
-            Console.WriteLine($"📏 Zmiana wymiarów: {oldWidth}x{oldHeight} → {newWidth}x{newHeight}");
+            Console.WriteLine($"📏 Zmiana wymiarów #2: {oldWidth}x{oldHeight} → {newWidth}x{newHeight}");
 
             // 2. Aktualizacja wymiarów kształtów
             foreach (var shape in ShapeService.Shapes)

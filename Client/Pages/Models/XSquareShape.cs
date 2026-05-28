@@ -25,6 +25,8 @@ namespace GEORGE.Client.Pages.Models
         public List<XPoint> GetNominalPoints() =>
             NominalPoints.Select(p => new XPoint(p.X, p.Y)).ToList();
 
+        public string? KsztaltModelu { get; set; } = "XSquareShape";
+
         public List<ContourSegment> ContourSegments => GetContourSegments();
 
         // --------------------------------------------------------------------

@@ -21,6 +21,8 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
         public List<ContourSegment> ContourSegments => GetContourSegments();
 
+        public string? KsztaltModelu { get; set; }
+
         // ---------------------------------------------------------
         // Skalowanie – zawsze oparte na punktach nominalnych!
         // ---------------------------------------------------------
@@ -78,7 +80,8 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 Szerokosc = this.Szerokosc,
                 Wysokosc = this.Wysokosc,
                 Points = this.Points.Select(p => p.Clone()).ToList(),
-                NominalPoints = this.NominalPoints.Select(p => p.Clone()).ToList()
+                NominalPoints = this.NominalPoints.Select(p => p.Clone()).ToList(),
+                KsztaltModelu = this.KsztaltModelu, 
             };
         }
 

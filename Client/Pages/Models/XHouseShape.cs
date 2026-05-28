@@ -21,6 +21,7 @@ namespace GEORGE.Client.Pages.Models
         public List<XPoint> NominalPoints { get; set; } = new();
         public string ID { get; set; } = Guid.NewGuid().ToString();
 
+        public string? KsztaltModelu { get; set; } = "XHouseShape";
         public List<ContourSegment> ContourSegments => GetContourSegments();
 
         public XHouseShape(double x, double y, double width, double height,

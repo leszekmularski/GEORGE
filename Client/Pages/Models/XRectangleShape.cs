@@ -23,6 +23,8 @@ namespace GEORGE.Client.Pages.Models
         public List<XPoint> Points { get; set; } = new();
         public List<XPoint> NominalPoints { get; set; } = new();
 
+        public string? KsztaltModelu { get; set; } = "XRectangleShape";
+
         public List<XPoint> GetPoints() => Points;
         public List<XPoint> GetNominalPoints() =>
             NominalPoints.Select(p => new XPoint(p.X, p.Y)).ToList();

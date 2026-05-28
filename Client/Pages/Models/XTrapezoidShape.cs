@@ -24,6 +24,8 @@ namespace GEORGE.Client.Pages.Models
         public List<XPoint> GetNominalPoints() => NominalPoints;
 
         public List<ContourSegment> ContourSegments => GetContourSegments();
+
+        public string? KsztaltModelu { get; set; } = "XTrapezoidShape";
         // Konstruktor przyjmujący współrzędne i współczynnik szerokości góry
         public XTrapezoidShape(double startX, double startY, double endX, double endY, double topWidthFactor, double scaleFactor, int typ)
         {

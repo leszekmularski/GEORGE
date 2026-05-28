@@ -249,6 +249,10 @@
             @onclick='() => SetTool("rounded_top_rect")'>
         @SvgRoundedTopRect()
     </button>
+    <button class="tool-button @(_selectedTool == "rounded_top_rect_fixed" ? "active" : "")" title="Kształ ramy - prostokąt z niepełnym łukiem u góry"
+            @onclick='() => SetTool("rounded_top_rect_fixed")'>
+        @SvgRoundedTopRectFixed()
+    </button>
 </div>
 
 <div class="canvas-container" @ref="_container">
@@ -587,6 +591,16 @@
         </svg>");
     };
 
+    private RenderFragment SvgRoundedTopRectFixed() => builder =>
+    {
+        builder.AddMarkupContent(0, @"
+        <svg class='tool-icon' viewBox='0 0 24 24'>
+            <path d='M 5 18 L 19 18 L 19 11 Q 19 3, 12 3 Q 5 3, 5 11 Z'
+                  stroke='black' stroke-width='1.5' fill='none' stroke-linecap='round'/>
+        </svg>");
+    };
+        
+
     [JSInvokable]
     public async Task HandleMouseDown(double x, double y)
     {
@@ -671,6 +685,7 @@
             "rounded_rect_right" => new XRoundedRectangleShapeRight(left, top, width, height, height/2, _scaleFactor),
             "house" => new XHouseShape(left, top, width, height, height * 0.5, height * 0.5, _scaleFactor),
             "rounded_top_rect" => new XRoundedTopRectangleShape(xR, yR, widthR, heightR, radius, arcHeight, _scaleFactor),
+            "rounded_top_rect_fixed" => new XRoundedTopRectangleShapeFixed(xR, yR, widthR, heightR, radius, arcHeight, _scaleFactor),
 
             _ => throw new NotImplementedException()
         };
@@ -767,6 +782,9 @@
                     break;
                 case "rounded_top_rect":
                     await DrawPreviewRoundedTopRect();
+                    break;
+                case "rounded_top_rect_fixed":
+                    await DrawPreviewRoundedTopRectFixed();
                     break;
 
             }
@@ -1088,6 +1106,124 @@
         await _ctx.ClosePathAsync();
         await _ctx.StrokeAsync();
     }
+
+    
+    private async Task DrawPreviewRoundedTopRectFixed()
+    {
+        // Reset i czyszczenie
+        _shapes.Clear();
+        await ClearCanvas();
+        await Task.Delay(50);
+        await _ctx.SetStrokeStyleAsync("black");
+        await _ctx.SetLineWidthAsync(3);
+
+        var width = Math.Abs(_currentX - _startX);
+        var height = Math.Abs(_currentY - _startY);
+
+        // Zapobieganie zbyt małym wymiarom
+        if (width < 10 || height < 10) return;
+
+        // Określenie kierunku rysowania
+        var startX = Math.Min(_startX, _currentX);
+        var startY = Math.Min(_startY, _currentY);
+
+        // Wysokość łuku - może być regulowana (np. 60% wysokości lub stała wartość)
+        // Możesz to zmienić na dowolną wartość lub pobierać z UI
+        double arcHeight = Math.Min(height * 0.6, width / 2 + 10); // Zapewnia, że arcHeight > width/2
+
+        // ZABEZPIECZENIE: arcHeight musi być > width/2 dla łuku wypukłego
+        double minArcHeight = (width / 2.0) + 1;
+        if (arcHeight <= width / 2.0)
+            arcHeight = minArcHeight;
+
+        // Ograniczenie: arcHeight nie może przekroczyć wysokości
+        if (arcHeight > height - 5)
+            arcHeight = height - 5;
+
+        // Punkt początkowy łuku (na wysokości arcHeight od góry)
+        double arcStartY = startY + arcHeight;
+
+        // Oblicz promień łuku z trzech punktów:
+        // P1: (startX, arcStartY)
+        // P2: (startX + width/2, startY)
+        // P3: (startX + width, arcStartY)
+        double radius = CalculateRadiusFromThreePoints(width, arcHeight);
+        double centerX = startX + width / 2.0;
+        double centerY = arcStartY + (radius - arcHeight);
+
+        // Oblicz kąty start i end dla łuku
+        double leftX = startX;
+        double rightX = startX + width;
+        double angleRight = Math.Atan2(arcStartY - centerY, rightX - centerX);
+        double angleLeft = Math.Atan2(arcStartY - centerY, leftX - centerX);
+
+        // Normalizacja kątów
+        if (angleRight < 0) angleRight += 2 * Math.PI;
+        if (angleLeft < 0) angleLeft += 2 * Math.PI;
+
+        double startAngle = angleRight;
+        double endAngle = angleLeft;
+
+        // Jeśli kąt start > end, zwiększ end o 2PI
+        if (startAngle > endAngle)
+            endAngle += 2 * Math.PI;
+
+        await _ctx.BeginPathAsync();
+
+        // Rysowanie dolnej części prostokąta (od lewego dolnego rogu)
+        await _ctx.MoveToAsync(startX, startY + height);
+
+        // Dolna krawędź
+        await _ctx.LineToAsync(startX + width, startY + height);
+
+        // Prawa pionowa krawędź do punktu startu łuku
+        await _ctx.LineToAsync(startX + width, arcStartY);
+
+        // Rysowanie górnego łuku (od prawej do lewej)
+        await _ctx.ArcAsync(centerX, centerY, radius, startAngle, endAngle, false);
+
+        // Lewa pionowa krawędź z powrotem do dolnego lewego rogu
+        await _ctx.LineToAsync(startX, startY + height);
+
+        await _ctx.StrokeAsync();
+
+        // Opcjonalnie: narysuj punkty kontrolne dla debugowania
+        #if DEBUG
+            await _ctx.SetStrokeStyleAsync("red");
+            await _ctx.SetLineWidthAsync(1);
+
+            // Punkt środkowy łuku (na szczycie)
+            await _ctx.BeginPathAsync();
+            await _ctx.ArcAsync(startX + width / 2, startY, 3, 0, 2 * Math.PI);
+            await _ctx.StrokeAsync();
+
+            // Punkty bazowe łuku
+            await _ctx.BeginPathAsync();
+            await _ctx.ArcAsync(startX, arcStartY, 3, 0, 2 * Math.PI);
+            await _ctx.StrokeAsync();
+
+            await _ctx.BeginPathAsync();
+            await _ctx.ArcAsync(startX + width, arcStartY, 3, 0, 2 * Math.PI);
+            await _ctx.StrokeAsync();
+
+            // Środek okręgu
+            await _ctx.SetStrokeStyleAsync("blue");
+            await _ctx.BeginPathAsync();
+            await _ctx.ArcAsync(centerX, centerY, 3, 0, 2 * Math.PI);
+            await _ctx.StrokeAsync();
+        #endif
+    }
+
+    // Pomocnicza metoda do obliczania promienia z trzech punktów
+    private double CalculateRadiusFromThreePoints(double width, double arcHeight)
+    {
+        // Dla punktów: (0, arcHeight), (width/2, 0), (width, arcHeight)
+        // Promień okręgu przechodzącego przez te punkty
+        double w = width;
+        double h = arcHeight;
+        return (w * w + 4 * h * h) / (8 * h);
+    }
+
 
     private async Task DrawPreviewRoundedTopRect()
     {

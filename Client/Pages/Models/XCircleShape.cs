@@ -20,6 +20,8 @@ namespace GEORGE.Client.Pages.Models
         public List<XPoint> GetNominalPoints() =>
            NominalPoints.Select(p => p.Clone()).ToList();
 
+        public string? KsztaltModelu { get; set; } = "XCircleShape";
+
         public List<ContourSegment> ContourSegments => GetContourSegments();
 
         public int _iloscElementowLuki = 8; // liczba punktów generowanych na łuku dla spójności
@@ -165,13 +167,13 @@ namespace GEORGE.Client.Pages.Models
         }
 
         public List<EditableProperty> GetEditableProperties() => new()
-    {
-        new EditableProperty("X: ", () => X, v => X = v, NazwaObj, true, true, false, true),
-        new EditableProperty("Y: ", () => Y, v => Y = v, NazwaObj, true, true,false, true),
-        new EditableProperty("Promień Okna: ", () => Radius, v => Radius = v, NazwaObj),
-        new EditableProperty("Podział na elementy: ", () => IloscElementowLuki, v => IloscElementowLuki = (int)v, NazwaObj),
-        new EditableProperty("Skala: ", () => _scaleFactor, v => _scaleFactor = v, NazwaObj, true, false, false, true)        
-    };
+        {
+            new EditableProperty("X: ", () => X, v => X = v, NazwaObj, true, true, false, true),
+            new EditableProperty("Y: ", () => Y, v => Y = v, NazwaObj, true, true,false, true),
+            new EditableProperty("Promień Okna: ", () => Radius, v => Radius = v, NazwaObj),
+            new EditableProperty("Podział na elementy: ", () => IloscElementowLuki, v => IloscElementowLuki = (int)v, NazwaObj),
+            new EditableProperty("Skala: ", () => _scaleFactor, v => _scaleFactor = v, NazwaObj, true, false, false, true)        
+        };
 
         public void Scale(double factor)
         {
