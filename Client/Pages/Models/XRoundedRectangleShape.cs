@@ -80,6 +80,16 @@ namespace GEORGE.Client.Pages.Models
             };
         }
 
+        public List<(XPoint Start, XPoint End)> GetEdges()
+        {
+            var v = GetVertices();
+            var edges = new List<(XPoint, XPoint)>();
+            for (int i = 0; i < v.Count - 1; i++)
+                edges.Add((v[i], v[i + 1]));
+            edges.Add((v[^1], v[0]));
+            return edges;
+        }
+
         // --------------------------------------------------------------------
         // UPDATE POINTS (np. po edycji użytkownika)
         // --------------------------------------------------------------------

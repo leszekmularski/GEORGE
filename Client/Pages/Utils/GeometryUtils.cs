@@ -20,7 +20,7 @@ namespace GEORGE.Client.Pages.Utils
             var shapesDoRegionow = shapes.Where(s =>
                 s is XRectangleShape or XSquareShape or XTriangleShape
                 or XTrapezoidShape or XCircleShape or XHouseShape
-                or XRoundedTopRectangleShape or XRoundedRectangleShape
+                or XRoundedTopRectangleShape or XRoundedTopRectangleShapeFixed or XRoundedRectangleShape
                 or XRoundedRectangleShapeLeft or XRoundedRectangleShapeRight or XLinePoint)
                 .ToList();
 
@@ -55,6 +55,7 @@ namespace GEORGE.Client.Pages.Utils
                     XCircleShape circ => GenerateCircleVertices(circ.X, circ.Y, circ.Radius, circ.IloscElementowLuki),
                     XHouseShape house => house.GetFullOutline(),
                     XRoundedTopRectangleShape rtr => rtr.GetVertices(),
+                    XRoundedTopRectangleShapeFixed rtrf => rtrf.GetVertices(),
                     XRoundedRectangleShape rr => rr.GetVertices(),
                     XRoundedRectangleShapeLeft rrl => rrl.GetVertices(),
                     XRoundedRectangleShapeRight rrr => rrr.GetVertices(),
@@ -167,6 +168,65 @@ namespace GEORGE.Client.Pages.Utils
                             lineSegment.Informacja = ramaInfo + " " + shape.GetType().Name;
                             return lineSegment;
                         }
+
+                        // =========================
+                        // PROSTOKĄT Z NIEPEŁNYMŁUKIEM NA GÓRZE
+                        // =========================
+                        // =========================
+                        // PROSTOKĄT Z NIEPEŁNYM ŁUKIEM NA GÓRZE
+                        // =========================
+                        else if (shape is XRoundedTopRectangleShapeFixed rtrf)
+                        {
+                            // Dla XRoundedTopRectangleShapeFixed używamy prostej linii zamiast łuku
+                            // Ponieważ kształt używa QuadraticCurveTo, a nie Arc
+                            var lineSegment = new ContourSegment(p, next);
+                            lineSegment.Informacja = ramaInfo + " " + shape.GetType().Name;
+                            return lineSegment;
+                        }
+                        //else if (shape is XRoundedTopRectangleShapeFixed rtrf)
+                        //{
+                        //    double arcStartY = rtrf.Y + rtrf.ArcHeight;
+                        //    var (arcCenterX, arcCenterY, startAngle, endAngle) = rtrf.CalculateArcGeometry();
+                        //    var arcCenter = new XPoint(arcCenterX, arcCenterY);
+
+                        //    // Sprawdź czy punkty są poziome (w przybliżeniu ten sam Y)
+                        //    bool isHorizontalLine = Math.Abs(p.Y - next.Y) < 0.001 && Math.Abs(p.X - next.X) > shape.Szerokosc - 50;
+
+                        //    // Sprawdź czy punkt jest na łuku (odległość od środka ≈ promień)
+                        //    double d1 = Distance(p, arcCenter);
+                        //    double d2 = Distance(next, arcCenter);
+
+                        //    // Jeśli to linia pozioma -> na pewno nie łuk
+                        //    bool isArcSegment = !isHorizontalLine &&
+                        //                        Math.Abs(d1 - rtrf.Radius) < 2.0 &&
+                        //                        Math.Abs(d2 - rtrf.Radius) < 2.0;
+
+                        //    if (isArcSegment)
+                        //    {
+                        //        // Określ kierunek łuku - dla górnego łuku od prawej do lewej
+                        //        // to jest przeciwnie do ruchu wskazówek zegara
+                        //        bool counterClockwise = true; // Dla górnego łuku
+
+                        //        // Sprawdź czy to łuk (oba punkty mają Y mniejsze lub równe arcStartY)
+                        //        if (p.Y <= arcStartY && next.Y <= arcStartY)
+                        //        {
+                        //            var segment = new ContourSegment(
+                        //                p,
+                        //                next,
+                        //                arcCenter,
+                        //                rtrf.Radius,
+                        //                counterClockwise
+                        //            );
+                        //            segment.Informacja = ramaInfo + " " + shape.GetType().Name;
+                        //            return segment;
+                        //        }
+                        //    }
+
+                        //    // Dla linii pionowych i poziomych
+                        //    var lineSegment = new ContourSegment(p, next);
+                        //    lineSegment.Informacja = ramaInfo + " " + shape.GetType().Name;
+                        //    return lineSegment;
+                        //}
 
                         // =========================
                         // PROSTOKĄT ZAOKRĄGLONY (FINAL STABILNY)
