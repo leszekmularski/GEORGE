@@ -612,7 +612,9 @@
     <!-- Główne okno wyświetlania -->
 
     <div class="display-window" @onmouseup="OnMouseUp" @onmousemove="OnMouseMove"
-         style="position: relative; /* Wymagane dla warstw */
+             @onwheel="HandleWheel"
+             @onwheel:preventDefault="false"
+            style="position: relative; /* Wymagane dla warstw */
                 overflow: visible; /* Zapobiega przycinaniu kursora */
                 cursor: inherit; /* Dziedziczy kursor z JS */">
 
@@ -1559,6 +1561,7 @@
                 // Teraz rysujemy tylko jeśli dane są gotowe
                 if (ShapeService != null && ShapeService.Shapes.Any())
                 {
+
                     pokaKonturWewnetrzny = ShapeService.RysujTylkoKontur;
                     oknaMogaBycLukowe = ShapeService.OknaMogaBycLukowe;
 
@@ -2936,6 +2939,34 @@
         Console.WriteLine($"🔍 Utworzono prostokąt z {prostokat.Count} punktami");
         return prostokat;
     }
+
+    private async Task HandleWheel(WheelEventArgs e)
+    {
+         _offsetY -= e.DeltaY / 10;
+        _offsetY = Math.Clamp(_offsetY, -500, 500);
+
+        if (_context == null)
+            return;
+
+        await _context.SetFillStyleAsync("white");
+        await _context.FillRectAsync(-10, -10, CanvasWidth + 20, CanvasHeight + 20);
+        await _context.ClearRectAsync(0, 0, CanvasWidth, CanvasHeight);
+
+        await Task.Delay(45); // Krótkie opóźnienie dla płynności
+
+        await _context.SetFillStyleAsync("white");
+        await _context.FillRectAsync(-10, -10, CanvasWidth + 20, CanvasHeight + 20);
+        await _context.ClearRectAsync(0, 0, CanvasWidth, CanvasHeight);
+
+        await Task.Delay(45); // Krótkie opóźnienie dla płynności
+
+        // 4. Narysuj wszystkie elementy
+        await DrawAllCanvasElements();
+
+        StateHasChanged();
+    }
+
+
 
     private async Task OnMouseMove(MouseEventArgs e)
     {

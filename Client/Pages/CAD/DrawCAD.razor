@@ -1108,10 +1108,8 @@
         await _ctx.StrokeAsync();
     }
 
-    
-    private async Task DrawPreviewRoundedTopRectFixed(double arcHeightRatio = 0.3)
+    private async Task DrawPreviewRoundedTopRectFixed(double customArcHeightRatio = 0.33)
     {
-        // Reset i czyszczenie
         _shapes.Clear();
         await ClearCanvas();
         await Task.Delay(50);
@@ -1123,35 +1121,32 @@
 
         if (width < 10 || height < 10) return;
 
-        // Ustal prostokąt
-        var rectX = Math.Min(_startX, _currentX);
-        var rectY = Math.Min(_startY, _currentY);
-        var rectWidth = width;
-        var rectHeight = height;
+        var startX = Math.Min(_startX, _currentX);
+        var startY = Math.Min(_startY, _currentY);
+        double rectWidth = Math.Max(50, width);
+        double rectHeight = Math.Max(50, height);
 
-        // Wysokość łuku (im większa, tym bardziej wypukły)
-        // arcHeightRatio: 0.2 = mały łuk, 0.5 = duży łuk
-        double arcHeight = rectHeight * Math.Clamp(arcHeightRatio, 0.1, 0.8);
+        // Wysokość łuku - można regulować (domyślnie 1/3 wysokości)
+        double arcHeight = Math.Min(rectHeight * customArcHeightRatio, rectWidth / 2);
 
-        // Punkt kontrolny dla łuku (wypukły do góry)
-        double controlX = rectX + rectWidth / 2;
-        double controlY = rectY - arcHeight; // Ujemna wartość (w górę)
+        // Jeśli łuk ma być wypukły, arcHeight musi być dodatnie
+        if (arcHeight < 0) arcHeight = 0;
+
+        // Punkt kontrolny
+        double controlX = startX + rectWidth / 2;
+        double controlY = startY - arcHeight;
 
         await _ctx.BeginPathAsync();
 
-        // Rysuj dokładnie jak w SVG
-        await _ctx.MoveToAsync(rectX, rectY);                               // M 4 10
-        await _ctx.QuadraticCurveToAsync(controlX, controlY, rectX + rectWidth, rectY); // Q 12 2, 20 10
-        await _ctx.LineToAsync(rectX + rectWidth, rectY + rectHeight);      // V 20
-        await _ctx.LineToAsync(rectX, rectY + rectHeight);                  // H 4
-                                                                            // Z - zamknięcie (automatyczna linia do punktu startowego)
-
+        await _ctx.MoveToAsync(startX, startY + rectHeight);
+        await _ctx.LineToAsync(startX + rectWidth, startY + rectHeight);
+        await _ctx.LineToAsync(startX + rectWidth, startY);
+        await _ctx.QuadraticCurveToAsync(controlX, controlY, startX, startY);
         await _ctx.ClosePathAsync();
+
         await _ctx.StrokeAsync();
 
-        // Opcjonalnie: wypełnienie
-        // await _ctx.SetFillStyleAsync("lightblue");
-        // await _ctx.FillAsync();
+        Console.WriteLine($"[PREVIEW] Quadratic curve: control=({controlX:F1}, {controlY:F1})");
     }
 
     private async Task DrawPreviewRoundedTopRect()

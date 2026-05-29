@@ -1,6 +1,7 @@
 ﻿using Blazor.Extensions.Canvas.Canvas2D;
 using GEORGE.Client.Pages.KonfiguratorOkien;
 using GEORGE.Shared.ViewModels;
+using netDxf.Header;
 
 namespace GEORGE.Client.Pages.Models
 {
@@ -100,7 +101,7 @@ namespace GEORGE.Client.Pages.Models
         public XRoundedTopRectangleShapeFixed(double x, double y, double width, double height,
                           double radius = 0, double arcHeight = 0, double scaleFactor = 1.0)
         {
-            _isInitializing = true;
+            // _isInitializing = true;
 
             _x = x;
             _y = y;
@@ -119,7 +120,7 @@ namespace GEORGE.Client.Pages.Models
             _radius = _width / 2;
 
             CalculatePointsFromProperties();
-            _isInitializing = false;
+            // _isInitializing = false;
         }
 
         private void ValidateArcHeight()
@@ -219,21 +220,46 @@ namespace GEORGE.Client.Pages.Models
             double bottomY = Y + Height;
             double topY = Y;
 
-            // Punkt kontrolny dla łuku kwadratowego
+            // Wysokość łuku - zgodna z konstruktorem
+            double arcHeight = Math.Min(Height / 3, Width / 2);
+
+            // Punkt kontrolny
             double controlX = leftX + Width / 2;
-            double controlY = topY - ArcHeight;
+            double controlY = topY - arcHeight;
 
             await ctx.SetStrokeStyleAsync("black");
             await ctx.SetLineWidthAsync(3);
             await ctx.BeginPathAsync();
 
-            // Rysuj podobnie jak w preview
-            await ctx.MoveToAsync(leftX, bottomY);                          // Lewy dolny
-            await ctx.LineToAsync(rightX, bottomY);                         // Prawy dolny
-            await ctx.LineToAsync(rightX, topY);                            // Prawy górny
-            await ctx.QuadraticCurveToAsync(controlX, controlY, leftX, topY); // Łuk do lewego górnego
-            await ctx.LineToAsync(leftX, bottomY);                          // Powrót do lewego dolnego
+            // Rysowanie konturu
+            await ctx.MoveToAsync(leftX, bottomY);
+            await ctx.LineToAsync(rightX, bottomY);
+            await ctx.LineToAsync(rightX, topY);
 
+            // Jeśli potrzebujesz dokładnego łuku z wieloma segmentami (jak w GenerateCompleteOutline)
+            if (IloscElementowLuki > 4)
+            {
+                // Generuj łuk punkt po punkcie dla większej dokładności
+                int segments = IloscElementowLuki;
+                for (int i = 0; i <= segments; i++)
+                {
+                    double t = i / (double)segments;
+                    double x = Math.Pow(1 - t, 2) * rightX + 2 * (1 - t) * t * controlX + Math.Pow(t, 2) * leftX;
+                    double y = Math.Pow(1 - t, 2) * topY + 2 * (1 - t) * t * controlY + Math.Pow(t, 2) * topY;
+
+                    if (i == 0)
+                        await ctx.LineToAsync(x, y);
+                    else
+                        await ctx.LineToAsync(x, y);
+                }
+            }
+            else
+            {
+                // Użyj wbudowanej QuadraticCurveTo dla prostszych przypadków
+                await ctx.QuadraticCurveToAsync(controlX, controlY, leftX, topY);
+            }
+
+            await ctx.ClosePathAsync();
             await ctx.StrokeAsync();
         }
 
@@ -283,6 +309,7 @@ namespace GEORGE.Client.Pages.Models
             Y *= factor;
             Width *= factor;
             Height *= factor;
+            Radius *= factor;
             ArcHeight *= factor;
 
             MarkGeometryDirty();
@@ -334,6 +361,7 @@ namespace GEORGE.Client.Pages.Models
             new EditableProperty("Szerokość: ", () => Width, v => { Width = Math.Max(50, v); CalculatePointsFromProperties(); }, NazwaObj),
             new EditableProperty("Wysokość: ", () => Height, v => { Height = Math.Max(50, v); CalculatePointsFromProperties(); }, NazwaObj),
             new EditableProperty("Wysokość łuku: ", () => ArcHeight, v => { ArcHeight = v; CalculatePointsFromProperties(); }, NazwaObj),
+            new EditableProperty("Promień łuku: ", () => Radius, v => { Radius = v; }, NazwaObj, true),
             new EditableProperty("Podział na elementy: ", () => IloscElementowLuki, v => {
                 int newValue = (int)Math.Round(v / 2.0) * 2;
                 IloscElementowLuki = Math.Max(4, newValue);
@@ -344,22 +372,39 @@ namespace GEORGE.Client.Pages.Models
         {
             if (_isInitializing) return new List<ContourSegment>();
 
+            Console.WriteLine($"[DEBUG] GetContourSegments START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
+
             var segments = new List<ContourSegment>();
 
             double leftX = X;
             double rightX = X + Width;
             double bottomY = Y + Height;
-            double topY = Y;
+            double arcStartY = Y + ArcHeight;
+
+            var arc = CalculateArcGeometry();
+            double cx = arc.centerX;
+            double cy = arc.centerY;
 
             var bottomLeft = new XPoint(leftX, bottomY);
             var bottomRight = new XPoint(rightX, bottomY);
-            var topRight = new XPoint(rightX, topY);
-            var topLeft = new XPoint(leftX, topY);
+            var topRight = new XPoint(rightX, arcStartY);
+            var topLeft = new XPoint(leftX, arcStartY);
 
             segments.Add(new ContourSegment(bottomLeft, bottomRight));
+
             segments.Add(new ContourSegment(bottomRight, topRight));
-            segments.Add(new ContourSegment(topRight, topLeft)); // Łuk będzie traktowany jako linia prosta dla uproszczenia
+
+            segments.Add(new ContourSegment(
+                topRight,
+                topLeft,
+                new XPoint(cx, cy),
+                Radius,
+                true
+            ));
+
             segments.Add(new ContourSegment(topLeft, bottomLeft));
+
+            Console.WriteLine($"[DEBUG] GetContourSegments END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
 
             return segments;
         }
