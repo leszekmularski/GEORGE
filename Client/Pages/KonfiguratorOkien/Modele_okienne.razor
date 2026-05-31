@@ -590,11 +590,11 @@
                                          @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
                                          draggable="true"
                                          style="cursor: grab;
-                                                    width: auto;
-                                                    height: auto;
-                                                    max-width: 50px;
-                                                    max-height: 50px;
-                                                    border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
+                                                                width: auto;
+                                                                height: auto;
+                                                                max-width: 50px;
+                                                                max-height: 50px;
+                                                                border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
 
                                 }
                                 else
@@ -612,9 +612,9 @@
     <!-- Główne okno wyświetlania -->
 
     <div class="display-window" @onmouseup="OnMouseUp" @onmousemove="OnMouseMove"
-             @onwheel="HandleWheel"
-             @onwheel:preventDefault="false"
-            style="position: relative; /* Wymagane dla warstw */
+         @onwheel="HandleWheel"
+         @onwheel:preventDefault="false"
+         style="position: relative; /* Wymagane dla warstw */
                 overflow: visible; /* Zapobiega przycinaniu kursora */
                 cursor: inherit; /* Dziedziczy kursor z JS */">
 
@@ -1399,8 +1399,8 @@
        Centered="true"
        Maximizable="true">
 
-    <ZmienWymiaryOkna Model="constWlasciwosciOkna" 
-        OnSave="PrzyjmijZmiany">
+    <ZmienWymiaryOkna Model="constWlasciwosciOkna"
+                      OnSave="PrzyjmijZmiany">
     </ZmienWymiaryOkna>
 
 </Modal>
@@ -2533,7 +2533,7 @@
         if (ShapeService != null && constWlasciwosciOkna != null)
         {
             ShapeService.UpdateShapes(ShapeService.Shapes, constWlasciwosciOkna.Szerokosc, constWlasciwosciOkna.Wysokosc);
-           // ShapeService.UpdateEditableProperties();
+            // ShapeService.UpdateEditableProperties();
 
             // Kopiuj EditableProperties do constWlasciwosciOkna
             if (constWlasciwosciOkna != null)
@@ -2704,7 +2704,7 @@
         await GenerujObrysPozZmianieWymiarow(false);
 
         await ZmienWymiaryOkna(true);
-        await FitShapesToDisplayWindow();
+       // await FitShapesToDisplayWindow();
         await OnlyRestrykcje();
         //await Task.Delay(10);
         //await ApplyZoom();
@@ -2790,7 +2790,7 @@
             // 4. Narysuj wszystkie elementy
             await DrawAllCanvasElements();
 
-            StateHasChanged();
+            //StateHasChanged();
 
         }
         catch (Exception ex)
@@ -2940,33 +2940,57 @@
         return prostokat;
     }
 
-    private async Task HandleWheel(WheelEventArgs e)
-    {
-         _offsetY -= e.DeltaY / 10;
-        _offsetY = Math.Clamp(_offsetY, -500, 500);
+    private bool _isRedrawing;
 
+    private async Task HandleWheel(WheelEventArgs e)
+{
+    if (_isRedrawing || _context == null)
+        return;
+
+    try
+    {
+        _isRedrawing = true;
+
+        if (e.ShiftKey)
+        {
+            if (e.DeltaY < 0)
+              await ZoomIn();
+            else
+               await ZoomOut();
+
+            return;
+        }
+        else
+        {
+            _offsetY -= e.DeltaY / 10;
+            _offsetY = Math.Clamp(_offsetY, -500, 500);
+        }
+
+        await Redraw();
+    }
+    finally
+    {
+        _isRedrawing = false;
+    }
+}
+
+    private async Task Redraw()
+    {
         if (_context == null)
             return;
 
-        await _context.SetFillStyleAsync("white");
-        await _context.FillRectAsync(-10, -10, CanvasWidth + 20, CanvasHeight + 20);
+        // reset układu współrzędnych
+        await _context.SetTransformAsync(1, 0, 0, 1, 0, 0);
+
+        // wyczyszczenie całego canvasa
         await _context.ClearRectAsync(0, 0, CanvasWidth, CanvasHeight);
 
-        await Task.Delay(45); // Krótkie opóźnienie dla płynności
+        // ustawienie transformacji do rysowania
+        await _context.TranslateAsync(_offsetX, _offsetY);
+        await _context.ScaleAsync(_aktywnaSkala, _aktywnaSkala);
 
-        await _context.SetFillStyleAsync("white");
-        await _context.FillRectAsync(-10, -10, CanvasWidth + 20, CanvasHeight + 20);
-        await _context.ClearRectAsync(0, 0, CanvasWidth, CanvasHeight);
-
-        await Task.Delay(45); // Krótkie opóźnienie dla płynności
-
-        // 4. Narysuj wszystkie elementy
         await DrawAllCanvasElements();
-
-        StateHasChanged();
     }
-
-
 
     private async Task OnMouseMove(MouseEventArgs e)
     {

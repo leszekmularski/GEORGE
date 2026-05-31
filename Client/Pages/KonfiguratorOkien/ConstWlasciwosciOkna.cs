@@ -1,5 +1,4 @@
-﻿using GEORGE.Client.Pages.Models;
-using GEORGE.Shared.Models;
+﻿using GEORGE.Shared.Models;
 using GEORGE.Shared.ViewModels;
 
 namespace GEORGE.Client.Pages.KonfiguratorOkien
@@ -75,7 +74,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         public double GetPropertyValue(int index)
         {
             if (EditableProperties == null || index < 0 || index >= EditableProperties.Count)
-                return 0;   
+                return 0;
 
             return EditableProperties[index].Value;
         }
@@ -115,7 +114,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             {
                 prop.Value = value; // Wywołuje setter -> SetValue(value)
 
-                if(prop.Label.ToLower().StartsWith("szerokość"))
+                if (prop.Label.ToLower().StartsWith("szerokość"))
                 {
                     Szerokosc = value;
                 }
