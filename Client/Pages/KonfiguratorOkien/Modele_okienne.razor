@@ -2582,11 +2582,72 @@
 
     }
     // Odbiór zmienionych danych z dziecka
-    private void PrzyjmijZmiany(ConstWlasciwosciOkna zmieniony)
+    private async Task PrzyjmijZmiany(ConstWlasciwosciOkna zmieniony)
     {
-        constWlasciwosciOkna = zmieniony;
-        //  Console.WriteLine("Zmieniono wymiary!");
-        // StateHasChanged();
+        if (constWlasciwosciOkna != null && zmieniony != null)
+        {
+            constWlasciwosciOkna.EditableProperties = zmieniony.EditableProperties;
+
+            // Oznacz wszystkie kształty jako "brudne" do przeliczenia
+            foreach (var shape in ShapeService.Shapes)
+            {
+                // Jeśli shape ma metodę do odświeżania, wywołaj ją
+                if (shape is IRefreshable refreshable)
+                {
+                    refreshable.Refresh();
+                }
+            }
+
+            // Przesuń wszystkie kształty do dodatniej ćwiartki
+            PrzesunKsztaltyDoDodatniejCwiartki(ShapeService.Shapes);
+
+            // Wymuś całkowite przerysowanie
+            await ClearCanvas();
+
+            await RenderFrame();
+            StateHasChanged();
+
+            Console.WriteLine($"Zmieniono właściwości: {zmieniony.EditableProperties?.Count ?? 0} właściwości");
+        }
+    }
+
+    private void PrzesunKsztaltyDoDodatniejCwiartki(List<IShapeDC> shapes)
+    {
+        if (shapes == null || shapes.Count == 0) return;
+
+        // Znajdź minimalne współrzędne
+        double minX = shapes.Min(s => s.GetBoundingBox().X);
+        double minY = shapes.Min(s => s.GetBoundingBox().Y);
+
+        // Oblicz offset, aby przesunąć minimalne wartości do 0
+        // (z małym marginesem, jeśli chcesz)
+        double offsetX = -minX;  // Przesuwa minX dokładnie do 0
+        double offsetY = -minY;  // Przesuwa minY dokładnie do 0
+
+        // Opcjonalnie: dodaj mały margines (odkomentuj jeśli potrzebujesz)
+        // offsetX += 10;
+        // offsetY += 10;
+
+        // Przesuń tylko jeśli trzeba
+        if (Math.Abs(offsetX) > 0.001 || Math.Abs(offsetY) > 0.001)
+        {
+            foreach (var shape in shapes)
+            {
+                shape.Move(offsetX, offsetY);
+            }
+
+            // Sprawdź czy przesunięcie zadziałało
+            double newMinX = shapes.Min(s => s.GetBoundingBox().X);
+            double newMinY = shapes.Min(s => s.GetBoundingBox().Y);
+            Console.WriteLine($"[PrzesunKsztaltyDoDodatniejCwiartki] Przesunięto o ({offsetX:F2}, {offsetY:F2})");
+            Console.WriteLine($"[PrzesunKsztaltyDoDodatniejCwiartki] Nowe minimum: ({newMinX:F2}, {newMinY:F2})");
+        }
+    }
+
+    // Dodaj prosty interfejs
+    public interface IRefreshable
+    {
+        void Refresh();
     }
 
     private async Task DrawAllCanvasElements()
@@ -3669,6 +3730,8 @@
             }
 
             LineUtils.ShiftAllShapesToPositiveQuadrant(ShapeService.Shapes);
+
+            PrzesunKsztaltyDoDodatniejCwiartki(ShapeService.Shapes);
 
             //  LineUtils.ShiftAllShapesToPositiveQuadrant(ShapeService.Shapes);
 

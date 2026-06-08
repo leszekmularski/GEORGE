@@ -31,13 +31,44 @@ namespace GEORGE.Client.Pages.Models
         public double Width
         {
             get => _width;
-            set => _width = Math.Max(100, value);
+            set
+            {
+                if (Math.Abs(_width - value) > 0.001)
+                {
+                    _width = Math.Max(100, value);
+                    // Aktualizuj arcHeight jeśli przekracza nowe ograniczenia
+                    _arcHeight = Math.Min(_arcHeight, _height / 2);
+                    _radius = CalculateRadiusFromArcGeometry(_width, _arcHeight);
+                    MarkGeometryDirty();
+                    if (!_isUpdating)
+                    {
+                        _isUpdating = true;
+                        CalculatePointsFromProperties();
+                        _isUpdating = false;
+                    }
+                }
+            }
         }
 
         public double Height
         {
             get => _height;
-            set => _height = Math.Max(100, value);
+            set
+            {
+                if (Math.Abs(_height - value) > 0.001)
+                {
+                    _height = Math.Max(100, value);
+                    _arcHeight = Math.Min(_arcHeight, _height / 2);
+                    // Radius nie zależy od Height
+                    MarkGeometryDirty();
+                    if (!_isUpdating)
+                    {
+                        _isUpdating = true;
+                        CalculatePointsFromProperties();
+                        _isUpdating = false;
+                    }
+                }
+            }
         }
 
         public double Radius
@@ -49,7 +80,22 @@ namespace GEORGE.Client.Pages.Models
         public double ArcHeight
         {
             get => _arcHeight;
-            set => _arcHeight = value;
+            set
+            {
+                double newValue = Math.Clamp(value, 5, _height / 2);
+                if (Math.Abs(_arcHeight - newValue) > 0.001)
+                {
+                    _arcHeight = newValue;
+                    _radius = CalculateRadiusFromArcGeometry(_width, _arcHeight); // Użyj Width, nie _width
+                    MarkGeometryDirty();
+                    if (!_isUpdating)
+                    {
+                        _isUpdating = true;
+                        CalculatePointsFromProperties();
+                        _isUpdating = false;
+                    }
+                }
+            }
         }
 
         public double Szerokosc { get => Width; set => Width = value; }
@@ -78,6 +124,7 @@ namespace GEORGE.Client.Pages.Models
         public List<ContourSegment> ContourSegments => GetContourSegments();
 
         private bool _isInitializing = false;
+        private bool _isUpdating = false;
 
         // Cache dla CalculateArcGeometry
         private (double centerX, double centerY, double startAngle, double endAngle)? _cachedArcGeometry;
@@ -100,33 +147,36 @@ namespace GEORGE.Client.Pages.Models
             //    //_arcHeight = Math.Min(_height / 3, _width / 2);
             //    _arcHeight = Math.Min(_height * 0.33, _width / 2);
             //else
-                //_arcHeight = Math.Clamp(arcHeight, 5, _height / 2);
+            //_arcHeight = Math.Clamp(arcHeight, 5, _height / 2);
             _arcHeight = Math.Min(_height * 0.33, _width / 2);
 
             // Oblicz promień z geometrii łuku: R = (w² + 4h²) / (8h)
             _radius = CalculateRadiusFromArcGeometry(_width, _arcHeight);
             //_radius = Math.Max(_radius, _width / 2);
 
-           // _isInitializing = false;
+            // _isInitializing = false;
             CalculatePointsFromProperties();
         }
 
+        // Poprawione CalculatePointsFromProperties
         private void CalculatePointsFromProperties(double radius = -1, bool blokujArcHeight = false)
         {
             if (_isInitializing) return;
 
-            Points = GenerateCompleteOutline(IloscElementowLuki, radius);
+            // Użyj podanego promienia lub obliczonego
+            double useRadius = radius > 0 ? radius : _radius;
+
+            Points = GenerateCompleteOutline(IloscElementowLuki, useRadius);
 
             NormalizeToPositiveQuadrant();
             NominalPoints = Points.Select(p => p.Clone()).ToList();
             MarkGeometryDirty();
-
         }
 
         /// <summary>
         /// Oblicza promień łuku kołowego: R = (w² + 4h²) / (8h)
         /// </summary>
-        private double CalculateRadiusFromArcGeometry(double chordWidth, double arcHeight)
+        public static double CalculateRadiusFromArcGeometry(double chordWidth, double arcHeight)
         {
             if (arcHeight <= 0) return chordWidth / 2;
             return (chordWidth * chordWidth + 4 * arcHeight * arcHeight) / (8 * arcHeight);
@@ -191,6 +241,27 @@ namespace GEORGE.Client.Pages.Models
             _geometryDirty = false;
 
             return result;
+        }
+
+        public static (double centerX, double centerY, double startAngle, double endAngle) CalculateSimple(
+        double width, double arcHeight, double x, double y)
+        {
+            double radius = CalculateRadiusFromArcGeometry(width, arcHeight);
+            double centerX = x + width / 2.0;
+            double centerY = y + radius;
+            double arcBaseY = y + arcHeight;
+
+            double leftX = x;
+            double rightX = x + width;
+
+            double startAngle = Math.Atan2(arcBaseY - centerY, rightX - centerX);
+            double endAngle = Math.Atan2(arcBaseY - centerY, leftX - centerX);
+
+            if (startAngle < 0) startAngle += 2 * Math.PI;
+            if (endAngle < 0) endAngle += 2 * Math.PI;
+            if (startAngle > endAngle) endAngle += 2 * Math.PI;
+
+            return (centerX, centerY, startAngle, endAngle);
         }
 
         private void MarkGeometryDirty()
@@ -393,7 +464,7 @@ namespace GEORGE.Client.Pages.Models
             NominalPoints = Points.Select(p => p.Clone()).ToList();
 
             MarkGeometryDirty();
-           // CalculatePointsFromProperties();
+            // CalculatePointsFromProperties();
         }
 
         public void Transform(double scale, double offsetX, double offsetY) => Transform(scale, scale, offsetX, offsetY);
@@ -425,20 +496,50 @@ namespace GEORGE.Client.Pages.Models
             };
         }
 
+        // Poprawione GetEditableProperties
         public List<EditableProperty> GetEditableProperties() => new()
-        {
-            new EditableProperty("Pozycja X: ", () => X, v => { X = v; MarkGeometryDirty(); MoveToOrigin(); }, NazwaObj, true, false, false, false),
-            new EditableProperty("Pozycja Y: ", () => Y, v => { Y = v; MarkGeometryDirty(); MoveToOrigin(); }, NazwaObj, true, false, false, false),
-            new EditableProperty("Szerokość: ", () => Width, v => { Width = Math.Max(100, v); MarkGeometryDirty(); CalculatePointsFromProperties(Radius = CalculateRadiusFromArcGeometry(_width, _arcHeight)); MoveToOrigin();}, NazwaObj),
-            new EditableProperty("Wysokość: ", () => Height, v => { Height = Math.Max(100, v); MarkGeometryDirty(); CalculatePointsFromProperties(_radius); MoveToOrigin();}, NazwaObj),
-            new EditableProperty("Promień łuku: ", () => Radius, v => { MarkGeometryDirty(); Radius = CalculateRadiusFromArcGeometry(_width, _arcHeight); MoveToOrigin();}, NazwaObj, true),
-            new EditableProperty("Wysokość łuku: ", () => ArcHeight, v => { MarkGeometryDirty(); ArcHeight = Math.Clamp(v, 5, Height);  Radius = CalculateRadiusFromArcGeometry(_width, _arcHeight); MoveToOrigin();}, NazwaObj),
-            new EditableProperty("Podział na elementy: ", () => IloscElementowLuki, v => {
-                int newValue = (int)Math.Round(v / 2.0) * 2;
-                IloscElementowLuki = Math.Max(4, newValue);
-                MarkGeometryDirty();
-            }, NazwaObj),
-        };
+    {
+        new EditableProperty("Pozycja X: ", () => X, v => {
+            X = v;
+            MarkGeometryDirty();
+            if (!_isUpdating) {
+                _isUpdating = true;
+                CalculatePointsFromProperties();
+                _isUpdating = false;
+            }
+        }, NazwaObj, true, false, false, false),
+
+        new EditableProperty("Pozycja Y: ", () => Y, v => {
+            Y = v;
+            MarkGeometryDirty();
+            if (!_isUpdating) {
+                _isUpdating = true;
+                CalculatePointsFromProperties();
+                _isUpdating = false;
+            }
+        }, NazwaObj, true, false, false, false),
+
+        new EditableProperty("Szerokość: ", () => Width, v => {
+            Width = Math.Max(100, v); // To już aktualizuje radius i arcHeight w setterze
+        }, NazwaObj),
+
+        new EditableProperty("Wysokość: ", () => Height, v => {
+            Height = Math.Max(100, v); // To już aktualizuje w setterze
+        }, NazwaObj),
+
+        new EditableProperty("Promień łuku: ", () => Radius, v => { 
+            // Promień jest obliczany automatycznie, więc tylko do odczytu
+        }, NazwaObj, true),
+
+        new EditableProperty("Wysokość łuku: ", () => ArcHeight, v => {
+            ArcHeight = Math.Clamp(v, 5, Height); // Setter sam przeliczy radius
+        }, NazwaObj),
+
+        new EditableProperty("Podział na elementy: ", () => IloscElementowLuki, v => {
+            int newValue = (int)Math.Round(v / 2.0) * 2;
+            IloscElementowLuki = Math.Max(4, newValue);
+        }, NazwaObj),
+    };
 
         public List<ContourSegment> GetContourSegments()
         {

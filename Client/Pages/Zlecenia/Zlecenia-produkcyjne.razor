@@ -1,4 +1,5 @@
 ﻿@page "/zlecenia-produkcyjne/{RowIdZlecenia?}"
+@using AntDesign.TableModels
 @using GEORGE.Shared.Models
 @using GEORGE.Shared
 @using GEORGE.Shared.Class
@@ -126,7 +127,7 @@
     Zlecenia Produkcyjne
     @if (zleceniaProdukcyjne != null)
     {
-        @($" [Ilość zarejestrowanych: {zleceniaProdukcyjne.Count()}]")
+        @($" [Ilość zarejestrowanych: {zleceniaProdukcyjne.Count()}] [Ilość przefiltrowanych: {iloscPrzefiltrowanych}]")
     }
 </Divider>
 
@@ -140,7 +141,7 @@ else
     <div class="highlighted-background" style="left:@(OnlyIcon ? "95px" : "260px"); width:calc(100% - @(OnlyIcon ? "95px" : "260px"))">
         <Table TItem="ZleceniaProdukcyjne" DataSource="@zleceniaProdukcyjne"
         RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "zlecenieNaN" )"
-        ScrollX="1990" PageSize="@iloscRekordow" Size="TableSize.Small">
+               ScrollX="1990" PageSize="@iloscRekordow" Size="TableSize.Small" OnChange="OnTableChange">
             <ActionColumn Title="Materiały" Width="155">
                 <a @onclick="() => DodajKantowke(context)" class="custom-link">Kantówka</a>
                 <a @onclick="() => DodajSzybe(context)" class="custom-linkszy">Szyby</a>
@@ -1349,6 +1350,17 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
             await ShowDialogFile(strona);
         }
 
+    }
+
+    private Table<ZleceniaProdukcyjne>? tableRef;
+    private int iloscPrzefiltrowanych;
+
+    private void OnTableChange(QueryModel<ZleceniaProdukcyjne> queryModel)
+    {
+        // Pobranie całkowitej liczby rekordów po filtrowaniu
+        iloscPrzefiltrowanych = queryModel.FilterModel.Count();
+
+        //Console.WriteLine($"Liczba przefiltrowanych rekordów: {iloscPrzefiltrowanych}");
     }
 
     bool blokuDwuKlik = false;

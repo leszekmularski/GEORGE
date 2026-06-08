@@ -1,10 +1,5 @@
-﻿using DocumentFormat.OpenXml.Drawing;
-using DocumentFormat.OpenXml.Presentation;
-using GEORGE.Client.Pages.Models;
+﻿using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.ViewModels;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace GEORGE.Client.Pages.KonfiguratorOkien
 {
@@ -156,14 +151,14 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                             ShortenLineInsideEdges(line, rounded.GetEdges(),
                                 new XPoint(rounded.X + rounded.Width / 2, rounded.Y + rounded.Radius), rounded.Radius);
                             break;
-                            case XRoundedTopRectangleShapeFixed roundedf:
+                        case XRoundedTopRectangleShapeFixed roundedf:
                             ShortenLineInsideEdges(line, roundedf.GetEdges(),
                                 new XPoint(roundedf.X + roundedf.Width / 2, roundedf.Y + roundedf.Radius), roundedf.Radius);
                             break;
                         case XRoundedRectangleShape roundedRect:
-                                ShortenLineInsideEdges(line, roundedRect.GetEdges(),
-                                new XPoint(roundedRect.X + roundedRect.Width / 2, roundedRect.Y + roundedRect.Radius), roundedRect.Radius);
-                                break;
+                            ShortenLineInsideEdges(line, roundedRect.GetEdges(),
+                            new XPoint(roundedRect.X + roundedRect.Width / 2, roundedRect.Y + roundedRect.Radius), roundedRect.Radius);
+                            break;
                         case XTrapezoidShape trap:
                             ShortenLineInsideShape(line, trap.GetBoundingBox());
                             ShortenLineToShape(line, trap.GetEdges());

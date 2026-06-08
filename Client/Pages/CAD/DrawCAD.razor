@@ -157,7 +157,7 @@
 
 <!-- Kontener na przyciski -->
 <div class="zoom-controls">
-    <button @onclick="() => FitToCanvas()" class="btn-zoom">🔄 Dopasuj</button>
+@*     <button @onclick="() => FitToCanvas()" class="btn-zoom">🔄 Dopasuj</button> *@
     <button @onclick="() => RysOkna()" class="btn-window">🔥 Popraw szkic OKNA</button>
     @*     <button @onclick="() => RysSymerycznychPoprzOkna()" class="btn-window">🔥 Symetryczne połączenia skrzydeł</button> *@
     <button @onclick="() => PowrotDoGenerowaniaOkna()" class="btn-window"><strong>📦 Wróć do budowy OKNA</strong></button>
@@ -264,36 +264,65 @@
     <div class="property-panel">
         <h3>Właściwości kształtu</h3>
 
-        @if (_selectedShapeIndex >= 0)
+        @if (_selectedShapeIndex >= 0 && _selectedShapeIndex < _shapes.Count)
         {
-            @foreach (var prop in _shapes[_selectedShapeIndex].GetEditableProperties())
+            var currentShape = _shapes[_selectedShapeIndex];
+            var properties = currentShape.GetEditableProperties();
+            var groupedProperties = properties.GroupBy(p => p.NazwaObiektu);
+
+            <!-- Informacje o zaznaczonym obiekcie -->
+            <div class="shape-info">
+                <strong>Obiekt: @currentShape.ID</strong>
+                <span>Wymiary: @currentShape.Szerokosc.ToString("F1") x @currentShape.Wysokosc.ToString("F1")</span>
+            </div>
+
+            @foreach (var group in groupedProperties)
             {
-                <div class="property-row">
-                    <span class="property-label">[@prop.NazwaObiektu] - @prop.Label</span>
-                    @if (!prop.IsReadOnly)
-                    {
-                        <input class="property-input" type="number"
-                               @bind="prop.Value"
-                               @bind:event="onchange"
-                               @bind:after="async () => await RedrawCanvas()" />
-                    }
-                    else
-                    {
-                        <span class="property-value">@prop.Value</span>
-                    }
+                <div class="property-group">
+                    <h4 class="group-header">@group.Key</h4>
+                    <div class="property-table">
+                        @foreach (var prop in group)
+                        {
+                            var currentValue = prop.Value; // Zmienna lokalna dla każdej właściwości
+                                                           <div class="property-row">
+                                                               <span class="property-label">@prop.Label</span>
+                                @if (!prop.IsReadOnly)
+                                {
+                                    <input class="property-input" type="number"
+                                           step="0.1"
+                                           @bind-value="@currentValue"
+                                           @bind-value:event="oninput"
+                                           @bind-value:after="() => UpdatePropertyAfterBind(prop, currentValue)" />
+                                }
+                                else
+                                {
+                                    <span class="property-value">@prop.Value.ToString("F1")</span>
+                                }
+                                @if (prop.systemowa)
+                                {
+                                    <span class="system-badge"> -SYSTEMOWA</span>
+                                }
+                            </div>
+                        }
+                    </div>
                 </div>
             }
         }
-
-        <button @onclick="SelectPreviousShape">Poprzedni obiekt</button>
-        <button @onclick="SelectNextShape">Następny obiekt</button>
-        @if (_shapes != null && _shapes.Count() > 0)
+        else
         {
-            <br />
-            <label>@_shapes.FirstOrDefault().Szerokosc x @_shapes.FirstOrDefault().Wysokosc</label>
+            <p>Nie wybrano obiektu</p>
         }
-    </div>
 
+        <div class="navigation-buttons">
+            <button @onclick="SelectPreviousShape" disabled="@(_selectedShapeIndex <= 0)">
+                ◀ Poprzedni
+            </button>
+            <span class="shape-counter">@(_selectedShapeIndex + 1) / @_shapes.Count</span>
+            <button @onclick="SelectNextShape" disabled="@(_selectedShapeIndex >= _shapes.Count - 1)">
+                Następny ▶
+            </button>
+        </div>
+    </div>
 }
 
 @code {
@@ -372,7 +401,7 @@
 
             if (_shapes != null)
             {
-              //  await RedrawCanvas();     // <- teraz canvas już istnieje w DOM
+                //  await RedrawCanvas();     // <- teraz canvas już istnieje w DOM
                 await FitToCanvas();
 
                 StateHasChanged();
@@ -600,7 +629,7 @@
             <path d='M4 10 Q12 2, 20 10 V20 H4 Z' stroke='black' stroke-width='2' fill='none'/>
         </svg>");
     };
-        
+
 
     [JSInvokable]
     public async Task HandleMouseDown(double x, double y)
@@ -712,10 +741,33 @@
             return;
         }
 
+        await _ctx.SetTransformAsync(1, 0, 0, 1, 0, 0); // Reset transformacji
+
         await ClearCanvas();
 
         await _ctx.SaveAsync();
         await _ctx.ScaleAsync(_scaleFactor, _scaleFactor); // Skalowanie dla całego rysunku
+
+        double minX = double.MaxValue;
+        double minY = double.MaxValue;
+
+        foreach (var shape in _shapes)
+        {
+            var boundingBox = shape.GetBoundingBox();
+            if (boundingBox.Left < minX) minX = boundingBox.Left;
+            if (boundingBox.Top < minY) minY = boundingBox.Top;
+        }
+
+        double offsetX = minX < 0 ? -minX : 0;
+        double offsetY = minY < 0 ? -minY : 0;
+
+        if (offsetX > 0 || offsetY > 0)
+        {
+            foreach (var shape in _shapes)
+            {
+                shape.Move(offsetX, offsetY);
+            }
+        }
 
         foreach (var shape in _shapes)
         {
@@ -796,6 +848,7 @@
     {
         // Reset i czyszczenie
         _shapes.Clear();
+        if (_originalShapes !=null) _originalShapes.Clear();
         await ClearCanvas();
         await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
@@ -810,6 +863,7 @@
     {
         // Reset i czyszczenie
         _shapes.Clear();
+        if (_originalShapes != null) _originalShapes.Clear();
         await ClearCanvas();
         await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
@@ -825,6 +879,7 @@
     private async Task DrawPreviewTriangle()
     {
         _shapes.Clear();
+        if (_originalShapes != null) _originalShapes.Clear();
         await ClearCanvas();
         await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
@@ -849,6 +904,7 @@
     private async Task DrawPreviewLeftTriangle()
     {
         _shapes.Clear();
+        if (_originalShapes != null) _originalShapes.Clear();
         await ClearCanvas();
         await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
@@ -875,6 +931,7 @@
     private async Task DrawPreviewRightTriangle()
     {
         _shapes.Clear();
+        if (_originalShapes != null) _originalShapes.Clear();
         await ClearCanvas();
         await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
@@ -900,6 +957,7 @@
     {
         // Reset i czyszczenie
         _shapes.Clear();
+        if (_originalShapes != null) _originalShapes.Clear();
         await ClearCanvas();
         await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
@@ -921,6 +979,7 @@
     {
         // Reset i czyszczenie
         _shapes.Clear();
+        if (_originalShapes != null) _originalShapes.Clear();
         await ClearCanvas();
         await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
@@ -942,6 +1001,7 @@
     {
         // Reset i czyszczenie
         _shapes.Clear();
+        if (_originalShapes != null) _originalShapes.Clear();
         await ClearCanvas();
         await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
@@ -962,6 +1022,7 @@
     {
         // Reset i czyszczenie
         _shapes.Clear();
+        if (_originalShapes != null) _originalShapes.Clear();
         await ClearCanvas();
         await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
@@ -986,6 +1047,7 @@
     {
         // Reset i czyszczenie
         _shapes.Clear();
+        if (_originalShapes != null) _originalShapes.Clear();
         await ClearCanvas();
         await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
@@ -1009,6 +1071,7 @@
     {
         // Reset i czyszczenie
         _shapes.Clear();
+        if (_originalShapes != null) _originalShapes.Clear();
         await ClearCanvas();
         await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
@@ -1063,6 +1126,7 @@
     {
         // Reset i czyszczenie
         _shapes.Clear();
+        if (_originalShapes != null) _originalShapes.Clear();
         await ClearCanvas();
         await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
@@ -1077,6 +1141,7 @@
     {
         // Reset i czyszczenie
         _shapes.Clear();
+        if (_originalShapes != null) _originalShapes.Clear();
         await ClearCanvas();
         await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
@@ -1111,11 +1176,12 @@
     private async Task DrawPreviewRoundedTopRectFixed(double customArcHeightRatio = 0.33)
     {
         _shapes.Clear();
+        if (_originalShapes != null) _originalShapes.Clear();
         await ClearCanvas();
         await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
         await _ctx.SetLineWidthAsync(3);
-
+   
         var width = Math.Abs(_currentX - _startX);
         var height = Math.Abs(_currentY - _startY);
 
@@ -1127,21 +1193,25 @@
         double rectHeight = Math.Max(50, height);
 
         // Wysokość łuku - można regulować (domyślnie 1/3 wysokości)
-        double arcHeight = Math.Min(rectHeight * customArcHeightRatio, rectWidth / 2);
+        double arcHeight = Math.Min(height * 0.33, width / 2);
 
         // Jeśli łuk ma być wypukły, arcHeight musi być dodatnie
-        if (arcHeight < 0) arcHeight = 0;
+        if (arcHeight < 0) arcHeight = 10;
 
         // Punkt kontrolny
         double controlX = startX + rectWidth / 2;
         double controlY = startY - arcHeight;
 
+        var (arcCenterX, arcCenterY, startAngle, endAngle) = XRoundedTopRectangleShapeFixed.CalculateSimple(rectWidth, arcHeight, startX, startY);
+        var _radius = XRoundedTopRectangleShapeFixed.CalculateRadiusFromArcGeometry(rectWidth, arcHeight);
+
         await _ctx.BeginPathAsync();
 
         await _ctx.MoveToAsync(startX, startY + rectHeight);
         await _ctx.LineToAsync(startX + rectWidth, startY + rectHeight);
-        await _ctx.LineToAsync(startX + rectWidth, startY);
-        await _ctx.QuadraticCurveToAsync(controlX, controlY, startX, startY);
+        //await _ctx.LineToAsync(startX + rectWidth, startY);
+      //  await _ctx.QuadraticCurveToAsync(controlX, controlY, startX, startY);
+        await _ctx.ArcAsync(arcCenterX, arcCenterY, _radius, startAngle, endAngle, true);
         await _ctx.ClosePathAsync();
 
         await _ctx.StrokeAsync();
@@ -1153,6 +1223,7 @@
     {
         // Reset i czyszczenie
         _shapes.Clear();
+        if (_originalShapes != null) _originalShapes.Clear();
         await ClearCanvas();
         await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
@@ -1229,24 +1300,62 @@
 
     private async Task FitToCanvas()
     {
-        if (_shapes == null || _shapes.Count == 0) return;
+        if (_originalShapes == null || _originalShapes.Count == 0) return;
 
-        if (_originalShapes != null) _shapes = _originalShapes.Select(s => s.Clone()).ToList();
+        if (ShapeService.Shapes == null || ShapeService.Shapes.Count() == 0) ShapeService.Shapes = _originalShapes.Select(s => s.Clone()).ToList(); // Zapis danych do serwisu, aby można było przywrócić oryginalne kształty
 
+        _shapes.Clear();
+
+        _shapes = _originalShapes.Select(s => s.Clone()).ToList();
+
+        // Najpierw przesuń wszystkie kształty do dodatniej ćwiartki
+        PrzesunDoDodatniejCwiartki(_shapes);
+        // Potem skaluj i wyśrodkuj
         SkalujIZastosujPrzesuniecie(_shapes, _canvasX, _canvasY);
+
+        //PrzesunDoDodatniejCwiartki(_shapes);
 
         await RedrawCanvas();
     }
 
+    private void PrzesunDoDodatniejCwiartki(List<IShapeDC> shapes)
+    {
+        if (shapes == null || shapes.Count == 0) return;
+
+        // Znajdź minimalne współrzędne
+        double minX = double.MaxValue;
+        double minY = double.MaxValue;
+
+        foreach (var shape in shapes)
+        {
+            var bbox = shape.GetBoundingBox();
+            if (bbox.X < minX) minX = bbox.X;
+            if (bbox.Y < minY) minY = bbox.Y;
+        }
+
+        // Oblicz offset potrzebny do przesunięcia do dodatniej ćwiartki
+        double offsetX = minX < 0 ? -minX + 10 : 10; // Dodajemy mały margines 10px
+        double offsetY = minY < 0 ? -minY + 10 : 10;
+
+        // Przesuń wszystkie kształty
+        if (offsetX != 0 || offsetY != 0)
+        {
+            foreach (var shape in shapes)
+            {
+                shape.Move(offsetX, offsetY);
+            }
+        }
+    }
+
     private void SkalujIZastosujPrzesuniecie(List<IShapeDC> shapes, double canvasWidth, double canvasHeight)
     {
-
-        if (shapes == null || shapes.Count() == 0)
+        if (shapes == null || shapes.Count == 0)
         {
             _scaleFactor = 1.0;
             return;
         }
 
+        // Pobierz wymiary wszystkich kształtów (już po przesunięciu do dodatniej ćwiartki)
         double minX = shapes.Min(s => s.GetBoundingBox().X);
         double minY = shapes.Min(s => s.GetBoundingBox().Y);
         double maxX = shapes.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
@@ -1255,26 +1364,30 @@
         double shapesWidth = maxX - minX;
         double shapesHeight = maxY - minY;
 
-        if (shapesWidth == 0 || shapesHeight == 0) return;
+        if (shapesWidth <= 0 || shapesHeight <= 0) return;
 
-        double scaleX = canvasWidth / shapesWidth;
-        double scaleY = canvasHeight / shapesHeight;
-        double scaleFactor = Math.Min(scaleX, scaleY) * 0.9;
+        // Oblicz skalę z marginesem 10% z każdej strony (80% wykorzystania canvas)
+        double scaleX = (canvasWidth * 0.8) / shapesWidth;
+        double scaleY = (canvasHeight * 0.8) / shapesHeight;
+        double scaleFactor = Math.Min(scaleX, scaleY);
 
+        // Oblicz nowe wymiary po skalowaniu
         double scaledWidth = shapesWidth * scaleFactor;
         double scaledHeight = shapesHeight * scaleFactor;
+
+        // Wyśrodkuj kształty na canvas
         double offsetX = (canvasWidth - scaledWidth) / 2 - (minX * scaleFactor);
         double offsetY = (canvasHeight - scaledHeight) / 2 - (minY * scaleFactor);
 
+        // Zastosuj transformację do każdego kształtu
         foreach (var shape in shapes)
         {
             shape.Transform(scaleFactor, offsetX, offsetY);
-
         }
 
         _scaleFactor = scaleFactor;
-
     }
+
 
     private async Task RysOkna(bool powrot = false)
     {
@@ -1308,5 +1421,11 @@
         Console.WriteLine("RysOkna --> Koniec");
     }
 
+    private async Task UpdatePropertyAfterBind(EditableProperty prop, double newValue)
+    {
+        prop.Value = newValue;
+        await RedrawCanvas();
+        StateHasChanged();
+    }
    
 }
