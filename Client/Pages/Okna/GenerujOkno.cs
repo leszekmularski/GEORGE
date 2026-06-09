@@ -7,8 +7,8 @@ namespace GEORGE.Client.Pages.Okna
     {
         public string IdOkna { get; set; } = Guid.NewGuid().ToString();
         // 📐 Wymiary okna
-        public float Szerokosc { get; set; }
-        public float Wysokosc { get; set; }
+        public double Szerokosc { get; set; }
+        public double Wysokosc { get; set; }
         // ⚙️ Grubości poszczególnych ram
         public float GruboscLewo { get; set; }
         public float GruboscPrawo { get; set; }

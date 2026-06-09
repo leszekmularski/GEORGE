@@ -121,7 +121,7 @@
                 <div class="col-md-4">
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control" placeholder="Szukaj po nazwie..." 
+                        <input type="text" class="form-control" placeholder="Szukaj po nazwie..."
                                @bind="filtrTekst" @bind:event="oninput" />
                         @if (!string.IsNullOrEmpty(filtrTekst))
                         {
@@ -260,7 +260,7 @@
                                                     var maxX = entry.Value.WierzcholkiWartosciNominalne.Max(p => p.X);
                                                     var minY = entry.Value.WierzcholkiWartosciNominalne.Min(p => p.Y);
                                                     var maxY = entry.Value.WierzcholkiWartosciNominalne.Max(p => p.Y);
-                                                    
+
                                                     <div class="small">
                                                         <div>W: @Math.Round(maxX - minX, 1)</div>
                                                         <div>H: @Math.Round(maxY - minY, 1)</div>
@@ -275,7 +275,7 @@
                                                 @if (entry.Value.WierzcholkiWartosciNominalne != null)
                                                 {
                                                     <button class="btn btn-sm btn-outline-info"
-                                                            @onclick="@(() => PokazPunkty(entry.Value.WierzcholkiWartosciNominalne, entry.Value.WierzcholkiInner, entry.Value.Kontur,entry.Value.KonturInner, $"Punkty - Stan #{index}"))"
+                                                            @onclick="@(() => PokazPunkty(entry.Value.WierzcholkiWartosciNominalne, entry.Value.WierzcholkiInner, entry.Value.Kontur, entry.Value.KonturInner, $"Punkty - Stan #{index}"))"
                                                             title="Pokaż punkty">
                                                         <i class="bi bi-geo-alt"></i> @entry.Value.WierzcholkiWartosciNominalne.Count
                                                     </button>
@@ -283,17 +283,17 @@
                                             </td>
                                             <td class="text-center">
                                                 <div class="btn-group btn-group-sm" role="group">
-                                                    <button class="btn btn-outline-primary" 
+                                                    <button class="btn btn-outline-primary"
                                                             @onclick="@(() => PokazSzczegoly(entry.Value))"
                                                             title="Pokaż szczegóły">
                                                         <i class="bi bi-eye"></i>
                                                     </button>
-                                                    <button class="btn btn-outline-secondary" 
+                                                    <button class="btn btn-outline-secondary"
                                                             @onclick="@(() => KopiujDoSchowka(entry.Value))"
                                                             title="Kopiuj JSON">
                                                         <i class="bi bi-clipboard"></i>
                                                     </button>
-                                                    <button class="btn btn-outline-danger" 
+                                                    <button class="btn btn-outline-danger"
                                                             @onclick="@(() => UsunStan(entry.Value))"
                                                             title="Usuń stan">
                                                         <i class="bi bi-trash"></i>
@@ -324,7 +324,7 @@
         }
     }
 
-    
+
     <!-- Modal z punktami -->
     @if (punktyWidoczne && wybranePunkty != null)
     {
@@ -937,7 +937,7 @@
     @if (szczegolyWidoczne && wybranyStan != null)
     {
         <div class="json-panel card shadow-lg border-2 mt-4" style="border-color: #0d6efd;" id="szczegoly-panel">
-            <div class="card-header text-white d-flex justify-content-between align-items-center py-2" 
+            <div class="card-header text-white d-flex justify-content-between align-items-center py-2"
                  style="background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);">
                 <div class="d-flex align-items-center">
                     <i class="bi bi-code-slash me-2 fs-5"></i>
@@ -953,7 +953,7 @@
                     </div>
                 </div>
                 <div class="btn-group">
-                    <button class="btn btn-sm btn-light" @onclick="ToggleWidokSzczegolowy" 
+                    <button class="btn btn-sm btn-light" @onclick="ToggleWidokSzczegolowy"
                             title="@(pokazWidokSzczegolowy ? "Pokaż JSON" : "Pokaż widok szczegółowy")">
                         <i class="bi @(pokazWidokSzczegolowy ? "bi-code-slash" : "bi-layout-split")"></i>
                     </button>
@@ -971,25 +971,25 @@
                     </button>
                 </div>
             </div>
-            
+
             @if (pokazWidokSzczegolowy)
             {
                 <!-- WIDOK SZCZEGÓŁOWY -->
                 <div class="card-body p-0">
                     <div class="json-toolbar px-3 py-2 d-flex justify-content-between align-items-center"
-                         style="background-color: @(ciemnyMotyw ? "#2d2d2d" : "#f8f9fa"); 
-                                border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
+                         style="background-color: @(ciemnyMotyw ? "#2d2d2d" : "#f8f9fa");
+                                        border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
                         <div class="d-flex align-items-center gap-3">
                             <span class="@(ciemnyMotyw ? "text-light" : "text-dark") fw-semibold">
                                 <i class="bi bi-layout-split me-1"></i> Widok szczegółowy
                             </span>
                         </div>
                         <div class="btn-group">
-                            <button class="btn btn-sm @(aktywnaZakladka == 0 ? "btn-primary" : "btn-outline-primary")" 
+                            <button class="btn btn-sm @(aktywnaZakladka == 0 ? "btn-primary" : "btn-outline-primary")"
                                     @onclick="() => aktywnaZakladka = 0">
                                 <i class="bi bi-grid-3x3-gap me-1"></i> Kwadraty
                             </button>
-                            <button class="btn btn-sm @(aktywnaZakladka == 1 ? "btn-primary" : "btn-outline-primary")" 
+                            <button class="btn btn-sm @(aktywnaZakladka == 1 ? "btn-primary" : "btn-outline-primary")"
                                     @onclick="() => aktywnaZakladka = 1">
                                 <i class="bi bi-geo-alt me-1"></i> Punkty
                             </button>
@@ -997,22 +997,22 @@
                                     @onclick="() => aktywnaZakladka = 4">
                                 <i class="bi bi-info-circle me-1"></i> Kontury
                             </button>
-                            <button class="btn btn-sm @(aktywnaZakladka == 2 ? "btn-primary" : "btn-outline-primary")" 
+                            <button class="btn btn-sm @(aktywnaZakladka == 2 ? "btn-primary" : "btn-outline-primary")"
                                     @onclick="() => aktywnaZakladka = 2">
                                 <i class="bi bi-puzzle me-1"></i> Elementy
                             </button>
-                            <button class="btn btn-sm @(aktywnaZakladka == 3 ? "btn-primary" : "btn-outline-primary")" 
+                            <button class="btn btn-sm @(aktywnaZakladka == 3 ? "btn-primary" : "btn-outline-primary")"
                                     @onclick="() => aktywnaZakladka = 3">
                                 <i class="bi bi-info-circle me-1"></i> Podsumowanie
                             </button>
                         </div>
                     </div>
-                    
+
                     <div class="json-content @(rozwinJson ? "expanded" : "")"
                          style="max-height: @(rozwinJson ? "80vh" : "500px");
-                                background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;
-                                padding: 20px;">
-                        
+                                        background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;
+                                        padding: 20px;">
+
                         @if (aktywnaZakladka == 0 && wybranyStan?.ListaKwadratow != null)
                         {
                             <!-- WIDOK KWADRATÓW -->
@@ -1021,20 +1021,20 @@
                                     <i class="bi bi-grid-3x3-gap me-2"></i>
                                     Lista Kwadratów (@wybranyStan.ListaKwadratow.Count)
                                 </h5>
-                                
+
                                 <div class="row">
                                     @foreach (var kwadrat in wybranyStan.ListaKwadratow)
                                     {
                                         <div class="col-md-6 mb-3">
                                             <div class="card h-100 @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
-                                                <div class="card-header d-flex justify-content-between align-items-center 
-                                                            @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
+                                                <div class="card-header d-flex justify-content-between align-items-center
+                                                                            @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
                                                     <div>
                                                         <span class="badge @GetStronaBadgeClass(kwadrat.Strona)">
                                                             @GetStronaIcon(kwadrat.Strona) @kwadrat.Strona?.ToUpper()
                                                         </span>
                                                         <span class="ms-2 badge bg-info">Kąt: @kwadrat.KatLinii°</span>
-                                                     </div>
+                                                    </div>
                                                     <div>
                                                         <small class="text-muted">@kwadrat.RowIdElementu.ToString()</small>
                                                     </div>
@@ -1068,12 +1068,12 @@
                                                             </table>
                                                         </div>
                                                     }
-                                                    
+
                                                     <div class="properties-grid small">
                                                         <div class="property">
                                                             <span class="property-label">Offset:</span>
                                                             <span class="property-value">
-                                                                T:@kwadrat.OffsetTop B:@kwadrat.OffsetBottom 
+                                                                T:@kwadrat.OffsetTop B:@kwadrat.OffsetBottom
                                                                 L:@kwadrat.OffsetLeft R:@kwadrat.OffsetRight
                                                             </span>
                                                         </div>
@@ -1090,7 +1090,7 @@
                                                             <span class="property-value">@kwadrat.ZIndex</span>
                                                         </div>
 
-                                                         <div class="property">
+                                                        <div class="property">
                                                             <span class="property-label">Kąt:</span>
                                                             <span class="property-value">@kwadrat.KatLinii</span>
                                                         </div>
@@ -1106,7 +1106,7 @@
                                                             <span class="property-label">RowId Sąsida:</span>
                                                             <span class="property-value">@kwadrat.RowIdSasiada</span>
                                                         </div>
-                                                         <div class="property">
+                                                        <div class="property">
                                                             <span class="property-label">RowId Sąsiada strona A:</span>
                                                             <span class="property-value">@kwadrat.RowIdSasiadaStronaA</span>
                                                         </div>
@@ -1130,7 +1130,7 @@
                                     <i class="bi bi-pin-map me-2"></i>
                                     Wszystkie Punkty
                                 </h5>
-                                
+
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border") h-100">
@@ -1169,14 +1169,14 @@
                                     <i class="bi bi-puzzle me-2"></i>
                                     Elementy Systemu (@wybranyStan.MVCKonfModelu.KonfSystem.Count)
                                 </h5>
-                                
+
                                 <div class="row">
                                     @foreach (var element in wybranyStan.MVCKonfModelu.KonfSystem)
                                     {
                                         <div class="col-md-6 mb-3">
                                             <div class="card h-100 @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
                                                 <div class="card-header d-flex justify-content-between align-items-center
-                                                            @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
+                                                                            @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
                                                     <div>
                                                         <span class="badge @(element.Typ == "Rama" ? "bg-warning text-dark" : "bg-info")">
                                                             @element.Typ
@@ -1192,10 +1192,22 @@
                                                         <div class="property">
                                                             <span class="property-label">Występowanie:</span>
                                                             <span class="property-value">
-                                                                @if (element.WystepujeDol) { <span class="badge bg-success me-1 mb-1">Dół</span> }
-                                                                @if (element.WystepujeLewa) { <span class="badge bg-success me-1 mb-1">Lewa</span> }
-                                                                @if (element.WystepujeGora) { <span class="badge bg-success me-1 mb-1">Góra</span> }
-                                                                @if (element.WystepujePrawa) { <span class="badge bg-success me-1 mb-1">Prawa</span> }
+                                                                @if (element.WystepujeDol)
+                                                                {
+                                                                    <span class="badge bg-success me-1 mb-1">Dół</span>
+                                                                }
+                                                                @if (element.WystepujeLewa)
+                                                                {
+                                                                    <span class="badge bg-success me-1 mb-1">Lewa</span>
+                                                                }
+                                                                @if (element.WystepujeGora)
+                                                                {
+                                                                    <span class="badge bg-success me-1 mb-1">Góra</span>
+                                                                }
+                                                                @if (element.WystepujePrawa)
+                                                                {
+                                                                    <span class="badge bg-success me-1 mb-1">Prawa</span>
+                                                                }
                                                             </span>
                                                         </div>
                                                         <div class="property">
@@ -1238,7 +1250,7 @@
                                     <i class="bi bi-info-circle me-2"></i>
                                     Podsumowanie Stanu
                                 </h5>
-                                
+
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border") mb-3">
@@ -1277,7 +1289,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     <div class="col-md-6">
                                         <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border") mb-3">
                                             <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
@@ -1316,7 +1328,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div class="row">
                                     <div class="col-md-12">
                                         <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
@@ -1383,7 +1395,7 @@
                                         <div class="col-md-6 mb-3">
                                             <div class="card h-100 @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
                                                 <div class="card-header d-flex justify-content-between align-items-center
-                                                                    @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
+                                                                                    @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
                                                     <div>
                                                         <span class="badge @(segment.Type == SegmentType.Arc ? "bg-warning text-dark" : "bg-info")">
                                                             @(segment.Type == SegmentType.Arc ? "Łuk" : "Linia")
@@ -1440,7 +1452,7 @@
                                                             <div class="property">
                                                                 <span class="property-label">Informacja:</span>
                                                                 <span class="property-value">
-                                                                        @(segment.Informacja)
+                                                                    @(segment.Informacja)
                                                                 </span>
                                                             </div>
                                                         }
@@ -1456,7 +1468,7 @@
                                                             <div class="property">
                                                                 <span class="property-label">Informacja:</span>
                                                                 <span class="property-value">
-                                                                       @(segment.Informacja)
+                                                                    @(segment.Informacja)
                                                                 </span>
                                                             </div>
                                                         }
@@ -1484,8 +1496,8 @@
                 <!-- WIDOK JSON -->
                 <div class="card-body p-0">
                     <div class="json-toolbar px-3 py-2 d-flex justify-content-between align-items-center"
-                         style="background-color: @(ciemnyMotyw ? "#2d2d2d" : "#f8f9fa"); 
-                                border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
+                         style="background-color: @(ciemnyMotyw ? "#2d2d2d" : "#f8f9fa");
+                                        border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
                         <div class="d-flex align-items-center gap-3">
                             <div class="form-check form-switch mb-0">
                                 <input class="form-check-input" type="checkbox" @bind="zawijajTekst" />
@@ -1504,21 +1516,22 @@
                     </div>
                     <div class="json-content @(rozwinJson ? "expanded" : "") @(zawijajTekst ? "wrap-text" : "")"
                          style="max-height: @(rozwinJson ? "80vh" : "500px");
-                                background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;">
+                                        background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;">
                         @if (uzyjHighlightJS)
                         {
                             <HighlightCode Language="json" Code="@GetFormattedJson()" />
                         }
                         else
                         {
-                            <pre style="margin: 0; padding: 20px; color: @(ciemnyMotyw ? "#f8f8f2" : "#24292e"); 
-                                       font-family: 'Consolas', 'Monaco', 'Courier New', monospace; 
-                                       font-size: 13px; line-height: 1.5; overflow-x: auto;">@GetFormattedJson()</pre>
+                            <pre style="margin: 0; padding: 20px; color: @(ciemnyMotyw ? "#f8f8f2" : "#24292e");
+                                                   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+                                                   font-size: 13px; line-height: 1.5; overflow-x: auto;">@GetFormattedJson()</pre>
                         }
+
                     </div>
                 </div>
             }
-            
+
             @if (pokazKomunikatKopiowania)
             {
                 <div class="card-footer bg-success text-white py-2 d-flex justify-content-between align-items-center">
@@ -1530,6 +1543,7 @@
                     </button>
                 </div>
             }
+
         </div>
     }
 </div>
@@ -1549,15 +1563,15 @@
         transition: max-height 0.3s ease;
     }
 
-    .json-content.expanded {
-        max-height: 80vh !important;
-    }
+        .json-content.expanded {
+            max-height: 80vh !important;
+        }
 
-    .json-content.wrap-text pre,
-    .json-content.wrap-text .hljs {
-        white-space: pre-wrap !important;
-        word-break: break-word !important;
-    }
+        .json-content.wrap-text pre,
+        .json-content.wrap-text .hljs {
+            white-space: pre-wrap !important;
+            word-break: break-word !important;
+        }
 
     /* WIDOK SZCZEGÓŁOWY */
     .geometry-view .property,
@@ -1590,17 +1604,31 @@
     }
 
     /* BADGES STRON */
-    .badge-strona-gora { background-color: #28a745 !important; }
-    .badge-strona-dol { background-color: #dc3545 !important; }
-    .badge-strona-lewa { background-color: #17a2b8 !important; }
-    .badge-strona-prawa { background-color: #ffc107 !important; color: #212529 !important; }
+    .badge-strona-gora {
+        background-color: #28a745 !important;
+    }
+
+    .badge-strona-dol {
+        background-color: #dc3545 !important;
+    }
+
+    .badge-strona-lewa {
+        background-color: #17a2b8 !important;
+    }
+
+    .badge-strona-prawa {
+        background-color: #ffc107 !important;
+        color: #212529 !important;
+    }
 
     /* ANIMACJE */
+
     @@keyframes slideUp {
         from {
             opacity: 0;
             transform: translateY(20px);
         }
+
         to {
             opacity: 1;
             transform: translateY(0);
@@ -1623,9 +1651,9 @@
         border: 3px solid #2d2d2d;
     }
 
-    .dark-theme .json-content::-webkit-scrollbar-thumb:hover {
-        background: #777;
-    }
+        .dark-theme .json-content::-webkit-scrollbar-thumb:hover {
+            background: #777;
+        }
 
     .light-theme .json-content::-webkit-scrollbar-track {
         background: #f1f1f1;
@@ -1637,9 +1665,9 @@
         border: 3px solid #f1f1f1;
     }
 
-    .light-theme .json-content::-webkit-scrollbar-thumb:hover {
-        background: #a8a8a8;
-    }
+        .light-theme .json-content::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
 
     /* MODAL OVERLAY */
     .modal-backdrop {
@@ -1661,10 +1689,10 @@
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
-    .card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
 
     .dark-theme .card:hover {
         box-shadow: 0 4px 8px rgba(255,255,255,0.1);
@@ -1681,9 +1709,9 @@
         transition: all 0.2s ease;
     }
 
-    .btn-group .btn:hover {
-        transform: translateY(-1px);
-    }
+        .btn-group .btn:hover {
+            transform: translateY(-1px);
+        }
 
     /* HIGHLIGHTJS STYLES */
     .hljs {
@@ -1691,21 +1719,67 @@
         padding: 20px !important;
     }
 
-    .dark-theme .hljs { color: #f8f8f2 !important; }
-    .dark-theme .hljs-attr { color: #ff79c6 !important; font-weight: 600; }
-    .dark-theme .hljs-string { color: #f1fa8c !important; }
-    .dark-theme .hljs-number { color: #bd93f9 !important; font-weight: 600; }
-    .dark-theme .hljs-literal { color: #8be9fd !important; }
-    .dark-theme .hljs-keyword { color: #ff5555 !important; }
-    .dark-theme .hljs-punctuation { color: #f8f8f2 !important; opacity: 0.8; }
+    .dark-theme .hljs {
+        color: #f8f8f2 !important;
+    }
 
-    .light-theme .hljs { color: #24292e !important; }
-    .light-theme .hljs-attr { color: #d73a49 !important; font-weight: 600; }
-    .light-theme .hljs-string { color: #032f62 !important; }
-    .light-theme .hljs-number { color: #005cc5 !important; font-weight: 600; }
-    .light-theme .hljs-literal { color: #6f42c1 !important; }
-    .light-theme .hljs-keyword { color: #e36209 !important; }
-    .light-theme .hljs-punctuation { color: #24292e !important; opacity: 0.7; }
+    .dark-theme .hljs-attr {
+        color: #ff79c6 !important;
+        font-weight: 600;
+    }
+
+    .dark-theme .hljs-string {
+        color: #f1fa8c !important;
+    }
+
+    .dark-theme .hljs-number {
+        color: #bd93f9 !important;
+        font-weight: 600;
+    }
+
+    .dark-theme .hljs-literal {
+        color: #8be9fd !important;
+    }
+
+    .dark-theme .hljs-keyword {
+        color: #ff5555 !important;
+    }
+
+    .dark-theme .hljs-punctuation {
+        color: #f8f8f2 !important;
+        opacity: 0.8;
+    }
+
+    .light-theme .hljs {
+        color: #24292e !important;
+    }
+
+    .light-theme .hljs-attr {
+        color: #d73a49 !important;
+        font-weight: 600;
+    }
+
+    .light-theme .hljs-string {
+        color: #032f62 !important;
+    }
+
+    .light-theme .hljs-number {
+        color: #005cc5 !important;
+        font-weight: 600;
+    }
+
+    .light-theme .hljs-literal {
+        color: #6f42c1 !important;
+    }
+
+    .light-theme .hljs-keyword {
+        color: #e36209 !important;
+    }
+
+    .light-theme .hljs-punctuation {
+        color: #24292e !important;
+        opacity: 0.7;
+    }
 </style>
 
 @code {
@@ -1721,14 +1795,14 @@
 
     private GeneratorState? stanDoUsuniecia;
     private string? tytulPunktow;
-    
+
     // Flagi stanu
     private bool szczegolyWidoczne = false;
     private bool punktyWidoczne = false;
     private bool pokazModalUsuwania = false;
     private bool pokazKomunikatKopiowania = false;
     private bool pokazWidokSzczegolowy = false;
-    
+
     // Ustawienia wyświetlania
     private bool rozwinJson = false;
     private bool zawijajTekst = false;
@@ -1736,7 +1810,7 @@
     private bool ciemnyMotyw = true;
     private bool uzyjHighlightJS = true;
     private int aktywnaZakladka = 0;
-    
+
     // Filtry
     private string filtrTekst = string.Empty;
     private string filtrTyp = string.Empty;
@@ -1757,7 +1831,7 @@
     };
 
     // ========== METODY POMOCNICZE ==========
-    
+
     private string GetSkroconaNazwa(string? nazwa, int maxLength)
     {
         if (string.IsNullOrEmpty(nazwa)) return string.Empty;
@@ -1788,9 +1862,9 @@
     private int GetLiczbaWszystkichPunktow()
     {
         if (StateContainer?.States == null) return 0;
-        
-        return StateContainer.States.Sum(s => 
-            (s.Value.Wierzcholki?.Count ?? 0) + 
+
+        return StateContainer.States.Sum(s =>
+            (s.Value.Wierzcholki?.Count ?? 0) +
             (s.Value.WierzcholkiWartosciNominalne?.Count ?? 0)
         );
     }
@@ -1827,7 +1901,7 @@
     private string GetStronaBadgeClass(string? strona)
     {
         if (string.IsNullOrEmpty(strona)) return "bg-secondary";
-        
+
         return strona.ToLower() switch
         {
             "góra" or "gora" => "↑",
@@ -1841,7 +1915,7 @@
     private string GetStronaIcon(string? strona)
     {
         if (string.IsNullOrEmpty(strona)) return "bi-question-circle";
-        
+
         return strona?.ToLower() switch
         {
             "góra" or "gora" => "↑",
@@ -2232,15 +2306,15 @@
     {
         var json = JsonSerializer.Serialize(stan, jsonOptions);
         await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", json);
-        
+
         pokazKomunikatKopiowania = true;
         StateHasChanged();
-        
+
         await Task.Delay(2000);
         pokazKomunikatKopiowania = false;
         StateHasChanged();
     }
-   
+
     private async Task CopySegmentDataToClipboard()
     {
         if (wybranyStan?.Kontur == null || !wybranyStan.Kontur.Any())
@@ -2341,13 +2415,13 @@
 
         return segment.Radius * angleDiff;
     }
-    
+
     // Metoda pomocnicza do wyświetlania notyfikacji (jeśli nie masz własnej)
     private async Task ShowNotification(string message, string type = "info")
     {
         // Możesz zastąpić swoją implementacją notyfikacji
         Console.WriteLine($"[{type.ToUpper()}] {message}");
-        
+
         // Przykład z użyciem JavaScript (jeśli masz skonfigurowane)
         await JSRuntime.InvokeVoidAsync("console.log", $"[{type}] {message}");
     }
@@ -2372,13 +2446,13 @@
         {
             // Tutaj powinna być logika usuwania stanu
             // StateContainer.States.Remove(...);
-            
+
             if (stanDoUsuniecia.Id == wybranyStan?.Id)
             {
                 szczegolyWidoczne = false;
                 wybranyStan = null;
             }
-            
+
             pokazModalUsuwania = false;
             stanDoUsuniecia = null;
             StateHasChanged();
@@ -2447,16 +2521,16 @@
     private string GetFormattedJson()
     {
         if (wybranyStan == null) return "{}";
-        
+
         try
         {
             var json = JsonSerializer.Serialize(wybranyStan, jsonOptions);
-            
+
             if (dekodujZnaki)
             {
                 json = System.Text.RegularExpressions.Regex.Unescape(json);
             }
-            
+
             return json;
         }
         catch (Exception ex)
@@ -2475,7 +2549,7 @@
     private async Task EksportujWszystkie()
     {
         if (StateContainer?.States == null) return;
-        
+
         var wszystkieDane = new
         {
             LiczbaStanow = StateContainer.States.Count,
@@ -2483,13 +2557,13 @@
             StanowSkrzydel = GetLiczbaSkrzydel(),
             Stany = StateContainer.States.Select(s => s.Value)
         };
-        
+
         var json = JsonSerializer.Serialize(wszystkieDane, jsonOptions);
         await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", json);
-        
+
         pokazKomunikatKopiowania = true;
         StateHasChanged();
-        
+
         await Task.Delay(2000);
         pokazKomunikatKopiowania = false;
         StateHasChanged();
@@ -2509,7 +2583,7 @@
 
     private async Task ScrollDoElementu(string elementId)
     {
-        await JSRuntime.InvokeVoidAsync("eval", 
+        await JSRuntime.InvokeVoidAsync("eval",
             $@"const element = document.getElementById('{elementId}');
                if (element) {{
                    element.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
@@ -2517,7 +2591,7 @@
     }
 
     // ========== LIFECYCLE ==========
-    
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)

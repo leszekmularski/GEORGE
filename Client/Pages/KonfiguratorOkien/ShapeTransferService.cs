@@ -27,8 +27,8 @@
             if (Shapes != null && Shapes.Any())
             {
                 bool ukrySzerokoscIWysokosc = false;
-                var s = Shapes.FirstOrDefault()?.GetEditableProperties().FirstOrDefault(x => x.Label.Contains("Promień Okna:", StringComparison.OrdinalIgnoreCase) 
-                || x.Label.Contains("Wymiar okna kwadratowego", StringComparison.OrdinalIgnoreCase));
+                var s = Shapes.FirstOrDefault()?.GetEditableProperties().FirstOrDefault(x => x.Label.Contains("Promień Okna:", StringComparison.OrdinalIgnoreCase)  
+                || x.Label.Contains("Wymiar okna kwadratowego", StringComparison.OrdinalIgnoreCase) && x.gabarytOkna);
 
                 if (s != null)
                 {
@@ -37,7 +37,7 @@
 
                 // Sprawdź czy jakikolwiek kształt ma właściwość "Szerokość"
                 bool maSzerokosc = Shapes.Any(x =>
-                    x.GetEditableProperties()?.Any(y => y.Label.Contains("Szerokość", StringComparison.OrdinalIgnoreCase)) == true);
+                    x.GetEditableProperties()?.Any(y => y.Label.Contains("Szerokość", StringComparison.OrdinalIgnoreCase) && y.gabarytOkna) == true);
 
                 if (!maSzerokosc)
                 {
@@ -45,13 +45,13 @@
                         "Szerokość: ",
                         () => Szerokosc,
                         v => { Szerokosc = (int)v; },
-                        "Wymiar okna", false, false, false, ukrySzerokoscIWysokosc
+                        "Wymiar okna", false, false, false, ukrySzerokoscIWysokosc, true
                     ));
                 }
 
                 // Sprawdź czy jakikolwiek kształt ma właściwość "Wysokość"
                 bool maWysokosc = Shapes.Any(x =>
-                x.GetEditableProperties()?.Any(y => y.Label.Contains("Wysokość", StringComparison.OrdinalIgnoreCase)) == true);
+                x.GetEditableProperties()?.Any(y => y.Label.Contains("Wysokość", StringComparison.OrdinalIgnoreCase) && y.gabarytOkna) == true);
 
                 if (!maWysokosc)
                 {
@@ -59,7 +59,7 @@
                         "Wysokość: ",
                         () => Wysokosc,
                         v => { Wysokosc = (int)v; },
-                        "Wymiar okna", false, false, false, ukrySzerokoscIWysokosc
+                        "Wymiar okna", false, false, false, ukrySzerokoscIWysokosc, true
                     ));
                 }
 

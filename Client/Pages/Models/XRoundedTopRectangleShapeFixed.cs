@@ -476,8 +476,8 @@ namespace GEORGE.Client.Pages.Models
             Y = Y * scale + offsetY;
             Width = Math.Max(100, Width * scale);
             Height = Math.Max(100, Height * scale);
-            Radius *= scale;
-            ArcHeight = Math.Min(ArcHeight * scale, Height / 2);
+            Radius = CalculateRadiusFromArcGeometry(_width, _arcHeight);
+            ArcHeight = _arcHeight;
 
             MarkGeometryDirty();
             CalculatePointsFromProperties();

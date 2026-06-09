@@ -33,9 +33,7 @@ namespace GEORGE.Client.Pages.Okna
         public List<XPoint> liniaOkuciaKontur;// przechowuje obliczony kontur linii szklenia (jeśli dotyczy)
 
         public List<ContourSegment> liniaOkuciaKonturZLukami;// przechowuje obliczony kontur linii szklenia (jeśli dotyczy)
-
-        public List<ConstWlasciwosciOkna> constWlasciwosciOkna; // przechowuje stałe punkty do wyświetlania właściwości okna (np. w panelu bocznym)
-
+        public ConstWlasciwosciOkna constWlasciwosciOkna { get; set; } = new(); // przechowuje stałe punkty do wyświetlania właściwości okna (np. w panelu bocznym)
         public List<ShapeRegion> Region { get; set; } = new();
         public string StronaElementu { get; set; } = "";
 

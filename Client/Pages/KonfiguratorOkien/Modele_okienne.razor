@@ -2765,7 +2765,7 @@
         await GenerujObrysPozZmianieWymiarow(false);
 
         await ZmienWymiaryOkna(true);
-       // await FitShapesToDisplayWindow();
+        // await FitShapesToDisplayWindow();
         await OnlyRestrykcje();
         //await Task.Delay(10);
         //await ApplyZoom();
@@ -3004,36 +3004,36 @@
     private bool _isRedrawing;
 
     private async Task HandleWheel(WheelEventArgs e)
-{
-    if (_isRedrawing || _context == null)
-        return;
-
-    try
     {
-        _isRedrawing = true;
-
-        if (e.ShiftKey)
-        {
-            if (e.DeltaY < 0)
-              await ZoomIn();
-            else
-               await ZoomOut();
-
+        if (_isRedrawing || _context == null)
             return;
-        }
-        else
-        {
-            _offsetY -= e.DeltaY / 10;
-            _offsetY = Math.Clamp(_offsetY, -500, 500);
-        }
 
-        await Redraw();
+        try
+        {
+            _isRedrawing = true;
+
+            if (e.ShiftKey)
+            {
+                if (e.DeltaY < 0)
+                    await ZoomIn();
+                else
+                    await ZoomOut();
+
+                return;
+            }
+            else
+            {
+                _offsetY -= e.DeltaY / 10;
+                _offsetY = Math.Clamp(_offsetY, -500, 500);
+            }
+
+            await Redraw();
+        }
+        finally
+        {
+            _isRedrawing = false;
+        }
     }
-    finally
-    {
-        _isRedrawing = false;
-    }
-}
 
     private async Task Redraw()
     {
@@ -3687,8 +3687,8 @@
             double newWidth = constWlasciwosciOkna.Szerokosc;
             double newHeight = constWlasciwosciOkna.Wysokosc;
 
-            _generator.Szerokosc = (float)newWidth;
-            _generator.Wysokosc = (float)newHeight;
+            _generator.Szerokosc = newWidth;
+            _generator.Wysokosc = newHeight;
 
             Console.WriteLine($"📏 Zmiana wymiarów #1: {oldWidth}x{oldHeight} → {newWidth}x{newHeight} oraz zmiana w generatorze.");
 
@@ -3798,6 +3798,7 @@
                 // Wyczyść stare elementy
                 generator.ElementyRamyRysowane.Clear();
 
+                generator.constWlasciwosciOkna = constWlasciwosciOkna;
                 // Wylicz nowe kwadraty
                 genState.Value.ListaKwadratow = await WyliczKwadratyPoZmianieAsync(region);
                 _generatorStates[cleanId].ListaKwadratow = genState.Value.ListaKwadratow;
@@ -4032,6 +4033,8 @@
             GruboscLewo = 82,
             GruboscPrawo = 82
         };
+
+        generator.constWlasciwosciOkna = constWlasciwosciOkna;
 
         if (KonfiguracjeSystemu != null)
         {
