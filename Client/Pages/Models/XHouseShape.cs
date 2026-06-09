@@ -155,11 +155,11 @@ namespace GEORGE.Client.Pages.Models
             new EditableProperty("Szerokość: ", () => Width, v => {
                 Width = v;
                 UpdatePoints();
-            }, NazwaObj),
+            }, NazwaObj, false, false, false, false, true),
             new EditableProperty("Wysokość: ", () => Height, v => {
                 Height = v;
                 UpdatePoints();
-            }, NazwaObj),
+            }, NazwaObj, false, false, false, false, true),
             new EditableProperty("Wysokość bok lewy: ", () => HeightLeft, v => {
                 HeightLeft = v;
                 UpdatePoints();

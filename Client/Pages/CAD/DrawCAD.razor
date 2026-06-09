@@ -157,7 +157,7 @@
 
 <!-- Kontener na przyciski -->
 <div class="zoom-controls">
-@*     <button @onclick="() => FitToCanvas()" class="btn-zoom">🔄 Dopasuj</button> *@
+    <button @onclick="() => FitToCanvas(true)" class="btn-zoom">🔄 Dopasuj</button>
     <button @onclick="() => RysOkna()" class="btn-window">🔥 Popraw szkic OKNA</button>
     @*     <button @onclick="() => RysSymerycznychPoprzOkna()" class="btn-window">🔥 Symetryczne połączenia skrzydeł</button> *@
     <button @onclick="() => PowrotDoGenerowaniaOkna()" class="btn-window"><strong>📦 Wróć do budowy OKNA</strong></button>
@@ -281,18 +281,18 @@
                 <div class="property-group">
                     <h4 class="group-header">@group.Key</h4>
                     <div class="property-table">
+
                         @foreach (var prop in group)
                         {
-                            var currentValue = prop.Value; // Zmienna lokalna dla każdej właściwości
-                                                           <div class="property-row">
-                                                               <span class="property-label">@prop.Label</span>
+                            <div class="property-row">
+                                <span class="property-label">@prop.Label</span>
                                 @if (!prop.IsReadOnly)
                                 {
-                                    <input class="property-input" type="number"
+                                    <input class="property-input"
+                                           type="number"
                                            step="0.1"
-                                           @bind-value="@currentValue"
-                                           @bind-value:event="oninput"
-                                           @bind-value:after="() => UpdatePropertyAfterBind(prop, currentValue)" />
+                                           value="@FormatValue(prop.Value)"
+                                           @onchange="async (ChangeEventArgs e) => await HandlePropertyChange(prop, e)" />
                                 }
                                 else
                                 {
@@ -304,6 +304,7 @@
                                 }
                             </div>
                         }
+
                     </div>
                 </div>
             }
@@ -366,11 +367,11 @@
             return;
         }
 
-        _shapes = ShapeService.Shapes.Select(s => s.Clone()).ToList(); // Odbiór danych z serwisu
+        _originalShapes = ShapeService.Shapes.Select(s => s.Clone()).ToList(); // Odbiór danych z serwisu
 
-        if (_shapes != null)
+        if (_originalShapes != null)
         {
-            _originalShapes = _shapes.Select(s => s.Clone()).ToList();
+            // _originalShapes = _shapes.Select(s => s.Clone()).ToList();
 
             // Szerokosc = ShapeService.Szerokosc;
             // Wysokosc = ShapeService.Wysokosc;
@@ -402,6 +403,7 @@
             if (_shapes != null)
             {
                 //  await RedrawCanvas();     // <- teraz canvas już istnieje w DOM
+
                 await FitToCanvas();
 
                 StateHasChanged();
@@ -425,6 +427,8 @@
     {
 
         await RysOkna(true);
+
+        ShapeService.Shapes.Clear(); // Czyszczenie pojedynczego kształtu, jeśli był ustawiony
 
         ShapeService.Shapes = _shapes; // Przekazanie danych do serwisu
 
@@ -1173,7 +1177,7 @@
         await _ctx.StrokeAsync();
     }
 
-    private async Task DrawPreviewRoundedTopRectFixed(double customArcHeightRatio = 0.33)
+    private async Task DrawPreviewRoundedTopRectFixed()
     {
         _shapes.Clear();
         if (_originalShapes != null) _originalShapes.Clear();
@@ -1181,7 +1185,7 @@
         await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
         await _ctx.SetLineWidthAsync(3);
-   
+
         var width = Math.Abs(_currentX - _startX);
         var height = Math.Abs(_currentY - _startY);
 
@@ -1193,7 +1197,7 @@
         double rectHeight = Math.Max(50, height);
 
         // Wysokość łuku - można regulować (domyślnie 1/3 wysokości)
-        double arcHeight = Math.Min(height * 0.33, width / 2);
+        double arcHeight = Math.Round(Math.Min(height * 0.33, width / 2), 0);
 
         // Jeśli łuk ma być wypukły, arcHeight musi być dodatnie
         if (arcHeight < 0) arcHeight = 10;
@@ -1210,13 +1214,13 @@
         await _ctx.MoveToAsync(startX, startY + rectHeight);
         await _ctx.LineToAsync(startX + rectWidth, startY + rectHeight);
         //await _ctx.LineToAsync(startX + rectWidth, startY);
-      //  await _ctx.QuadraticCurveToAsync(controlX, controlY, startX, startY);
+        //  await _ctx.QuadraticCurveToAsync(controlX, controlY, startX, startY);
         await _ctx.ArcAsync(arcCenterX, arcCenterY, _radius, startAngle, endAngle, true);
         await _ctx.ClosePathAsync();
 
         await _ctx.StrokeAsync();
 
-       // Console.WriteLine($"[PREVIEW] Quadratic curve: control=({controlX:F1}, {controlY:F1})");
+        // Console.WriteLine($"[PREVIEW] Quadratic curve: control=({controlX:F1}, {controlY:F1})");
     }
 
     private async Task DrawPreviewRoundedTopRect()
@@ -1298,7 +1302,7 @@
         _selectedShapeIndex = (_selectedShapeIndex - 1 + _shapes.Count) % _shapes.Count;
     }
 
-    private async Task FitToCanvas()
+    private async Task FitToCanvas(bool przesynXY = false)
     {
         if (_originalShapes == null || _originalShapes.Count == 0) return;
 
@@ -1306,10 +1310,18 @@
 
         _shapes.Clear();
 
+        PrzesunDoDodatniejCwiartki(_originalShapes);
+
+        if (przesynXY)
+        {
+            UstawPozycjeXiYnaZero(_originalShapes);
+        }
+
+
         _shapes = _originalShapes.Select(s => s.Clone()).ToList();
 
         // Najpierw przesuń wszystkie kształty do dodatniej ćwiartki
-        PrzesunDoDodatniejCwiartki(_shapes);
+        //  PrzesunDoDodatniejCwiartki(_shapes);
         // Potem skaluj i wyśrodkuj
         SkalujIZastosujPrzesuniecie(_shapes, _canvasX, _canvasY);
 
@@ -1333,17 +1345,51 @@
             if (bbox.Y < minY) minY = bbox.Y;
         }
 
-        // Oblicz offset potrzebny do przesunięcia do dodatniej ćwiartki
-        double offsetX = minX < 0 ? -minX + 10 : 10; // Dodajemy mały margines 10px
-        double offsetY = minY < 0 ? -minY + 10 : 10;
+        // Oblicz offset, aby przesunąć minX i minY dokładnie do 0
+        double offsetX = -minX;  // Przesuwa minX do 0
+        double offsetY = -minY;  // Przesuwa minY do 0
+
+        // Dodaj mały margines tylko jeśli wszystkie punkty są już dodatnie
+        if (minX >= 0 && minY >= 0)
+        {
+            offsetX = 0;
+            offsetY = 0;
+            // Console.WriteLine("[PrzesunDoDodatniejCwiartki] Kształty już są w dodatniej ćwiartce, nie przesuwam");
+            return;
+        }
+
+        // Console.WriteLine($"[PrzesunDoDodatniejCwiartki] Min przed: X={minX:F2}, Y={minY:F2}");
+        //  Console.WriteLine($"[PrzesunDoDodatniejCwiartki] Offset: X={offsetX:F2}, Y={offsetY:F2}");
 
         // Przesuń wszystkie kształty
-        if (offsetX != 0 || offsetY != 0)
+        foreach (var shape in shapes)
         {
-            foreach (var shape in shapes)
-            {
-                shape.Move(offsetX, offsetY);
-            }
+            shape.Move(offsetX, offsetY);
+
+            // Opcjonalnie: sprawdź po przesunięciu
+            var bboxAfter = shape.GetBoundingBox();
+            //   Console.WriteLine($"[PrzesunDoDodatniejCwiartki] Shape {shape.ID}: nowy BBox({bboxAfter.X:F2}, {bboxAfter.Y:F2})");
+        }
+
+        // Weryfikacja końcowa
+        double newMinX = shapes.Min(s => s.GetBoundingBox().X);
+        double newMinY = shapes.Min(s => s.GetBoundingBox().Y);
+        Console.WriteLine($"[PrzesunDoDodatniejCwiartki] Min po: X={newMinX:F2}, Y={newMinY:F2}");
+    }
+
+    private void UstawPozycjeXiYnaZero(List<IShapeDC> shapes)
+    {
+        if (shapes == null || shapes.Count == 0) return;
+
+        foreach (var shape in shapes)
+        {
+            // Metoda 1: Przez Move (przesuwa o wektor)
+            var bbox = shape.GetBoundingBox();
+            double offsetX = -bbox.X;
+            double offsetY = -bbox.Y;
+            shape.Move(offsetX, offsetY);
+
+            Console.WriteLine($"[UstawPozycjeXiYnaZero] Shape {shape.ID}: przesunięto o ({offsetX:F2}, {offsetY:F2})");
         }
     }
 
@@ -1398,6 +1444,8 @@
 
         if (_selectedShapeIndex < 0 || _selectedShapeIndex >= _shapes.Count) return;
 
+        PrzesunDoDodatniejCwiartki(_shapes);
+
         // 🔹 1️⃣ Usuń linie całkowicie poza kształtami
         LineUtils.RemoveLinesOutsideShapes(_shapes);
 
@@ -1414,18 +1462,45 @@
 
         if (powrot) return;
 
-     //   _scaleFactor = 1;
+        //   _scaleFactor = 1;
 
         await RedrawCanvas();
 
         Console.WriteLine("RysOkna --> Koniec");
     }
 
-    private async Task UpdatePropertyAfterBind(EditableProperty prop, double newValue)
+    private async Task HandlePropertyChange(EditableProperty prop, ChangeEventArgs e)
     {
-        prop.Value = newValue;
-        await RedrawCanvas();
-        StateHasChanged();
+        if (double.TryParse(e.Value?.ToString(),
+            System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out double newValue))
+        {
+            // Zastosuj ograniczenia
+            if ((prop.Label.Contains("Szerokość") && prop.gabarytOkna) || (prop.Label.Contains("Wysokość") && prop.gabarytOkna))
+            {
+                newValue = Math.Max(20, newValue);
+            }
+            // else if (prop.Label.Contains("Wysokość łuku"))
+            // {
+            //     newValue = Math.Clamp(newValue, 5, _shapes[_selectedShapeIndex].Wysokosc / 2);
+            // }
+
+            prop.Value = newValue;
+            StateHasChanged();
+            await RedrawCanvas();
+        }
+        else
+        {
+            // Jeśli wartość jest nieprawidłowa, przywróć poprzednią
+            StateHasChanged();
+        }
+    }
+
+    private string FormatValue(double value)
+    {
+        // Wyświetla z przecinkiem dla polskiego użytkownika
+        return value.ToString().Replace(",",".");
     }
    
 }

@@ -515,8 +515,8 @@ namespace GEORGE.Client.Pages.Models
         {
             new EditableProperty("Pozycja X: ", () => X, v => { X = v; MarkGeometryDirty(); CalculatePointsFromProperties(); }, NazwaObj, true, false, false, true),
             new EditableProperty("Pozycja Y: ", () => Y, v => { Y = v; MarkGeometryDirty(); CalculatePointsFromProperties(); }, NazwaObj, true, false, false, true),
-            new EditableProperty("Szerokość: ", () => Width, v => { Width = Math.Max(200, v); MarkGeometryDirty(); CalculatePointsFromProperties(); }, NazwaObj),
-            new EditableProperty("Wysokość: ", () => Height, v => { Height = Math.Max(100, v); MarkGeometryDirty(); CalculatePointsFromProperties(); }, NazwaObj),
+            new EditableProperty("Szerokość: ", () => Width, v => { Width = Math.Max(200, v); MarkGeometryDirty(); CalculatePointsFromProperties(); }, NazwaObj, false, false, false, false, true),
+            new EditableProperty("Wysokość: ", () => Height, v => { Height = Math.Max(100, v); MarkGeometryDirty(); CalculatePointsFromProperties(); }, NazwaObj, false, false, false, false, true),
             new EditableProperty("Promień łuku: ", () => Radius, v => { Radius = v; MarkGeometryDirty(); CalculatePointsFromProperties(); }, NazwaObj, true),
             new EditableProperty("Wysokość łuku: ", () => ArcHeight, v => { ArcHeight = v; MarkGeometryDirty(); CalculatePointsFromProperties(); }, NazwaObj, true),
             new EditableProperty("Podział na elementy: ", () => IloscElementowLuki, v => {

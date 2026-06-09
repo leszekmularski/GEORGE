@@ -110,24 +110,27 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             if (EditableProperties == null || index < 0 || index >= EditableProperties.Count)
                 return;
 
+
             var prop = EditableProperties[index];
             {
                 prop.Value = value; // Wywołuje setter -> SetValue(value)
 
-                if (prop.Label.ToLower().StartsWith("szerokość"))
+                Console.WriteLine($"UpdateEditableProperty --> index: {index} prop.Label: {prop.Label} value: {value}");
+
+                if (prop.Label.ToLower().StartsWith("szerokość") && prop.gabarytOkna)
                 {
                     Szerokosc = value;
                 }
-                if (prop.Label.ToLower().StartsWith("wysokość"))
+                else if (prop.Label.ToLower().StartsWith("wysokość") && prop.gabarytOkna)
                 {
                     Wysokosc = value;
                 }
-                if (prop.Label.ToLower().StartsWith("promień okna"))
+                else if (prop.Label.ToLower().StartsWith("promień okna") && prop.gabarytOkna)
                 {
                     Wysokosc = value * 2;
                     Szerokosc = value * 2;
                 }
-                if (prop.Label.ToLower().StartsWith("wymiar okna kwadratowego"))
+                else if (prop.Label.ToLower().StartsWith("wymiar okna kwadratowego") && prop.gabarytOkna)
                 {
                     Wysokosc = value;
                     Szerokosc = value;

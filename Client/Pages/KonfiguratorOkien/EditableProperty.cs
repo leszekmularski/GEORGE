@@ -10,7 +10,8 @@
         bool IsReadOnly = false,
         bool slupekRuchomy = false,
         bool pionPoziom = false,
-        bool systemowa = false)
+        bool systemowa = false,
+        bool gabarytOkna = false)
     {
         public double Value
         {

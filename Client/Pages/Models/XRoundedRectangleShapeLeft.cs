@@ -155,8 +155,8 @@ namespace GEORGE.Client.Pages.Models
         {
             new("X: ", () => X, v => { X = v; RegeneratePoints(); }, NazwaObj, true, true),
             new("Y: ", () => Y, v => { Y = v; RegeneratePoints(); }, NazwaObj, true, true),
-            new("Szerokość: ", () => Width, v => { Width = v; ClampRadius(); RegeneratePoints(); }, NazwaObj),
-            new("Wysokość: ", () => Height, v => { Height = v; ClampRadius(); RegeneratePoints(); }, NazwaObj),
+            new("Szerokość: ", () => Width, v => { Width = v; ClampRadius(); RegeneratePoints(); }, NazwaObj, false, false, false, false, true),
+            new("Wysokość: ", () => Height, v => { Height = v; ClampRadius(); RegeneratePoints(); }, NazwaObj, false, false, false, false, true),
             new("Promień naroża: ", () => Radius, v => { Radius = v; ClampRadius(); RegeneratePoints(); }, NazwaObj),
             new EditableProperty("Podział na elementy: ", () => IloscElementowLuki, v => IloscElementowLuki = (int)v, NazwaObj),
         };

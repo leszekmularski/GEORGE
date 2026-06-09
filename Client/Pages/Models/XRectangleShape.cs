@@ -128,8 +128,8 @@ namespace GEORGE.Client.Pages.Models
         {
             new("X: ", () => X, v => { X = v; Points = GeneratePoints(); }, NazwaObj, true, true, false, true),
             new("Y: ", () => Y, v => { Y = v; Points = GeneratePoints(); }, NazwaObj, true, true, false, true),
-            new("Szerokość: ", () => Width, v => { Width = v; Points = GeneratePoints(); }, NazwaObj),
-            new("Wysokość: ", () => Height, v => { Height = v; Points = GeneratePoints(); }, NazwaObj)
+            new("Szerokość: ", () => Width, v => { Width = v; Points = GeneratePoints(); }, NazwaObj, false, false, false, false, true),
+            new("Wysokość: ", () => Height, v => { Height = v; Points = GeneratePoints(); }, NazwaObj, false, false, false, false, true)
         };
 
         // ---------------------------------------------------------

@@ -1139,7 +1139,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
                         czekajNaPobranie = false;
 
                         _message.Success($"Plik został pobrany i zapisany: {oryginalfileName}", 5);
-                     
+
 
                         await ZwiekszLicznikPobranPliku(id);
 
@@ -1264,11 +1264,105 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
 
     private void OnTableChange(QueryModel<ZleceniaProdukcyjneWew> queryModel)
     {
-        // Pobranie całkowitej liczby rekordów po filtrowaniu
-        iloscPrzefiltrowanych = queryModel.FilterModel.Count();
+        if (zleceniaProdukcyjneWew == null)
+        {
+            iloscPrzefiltrowanych = 0;
+            return;
+        }
 
-        //Console.WriteLine($"Liczba przefiltrowanych rekordów: {iloscPrzefiltrowanych}");
+        var filteredData = zleceniaProdukcyjneWew.AsEnumerable();
+
+        if (queryModel.FilterModel != null && queryModel.FilterModel.Any())
+        {
+            foreach (var filter in queryModel.FilterModel)
+            {
+                var fieldName = filter.GetType().GetProperty("FieldName")?.GetValue(filter)?.ToString();
+
+                if (fieldName != null && filter.Filters != null)
+                {
+                    // Pobierz zaznaczone filtry
+                    var selectedFilters = filter.Filters
+                        .Where(f => f.Selected)
+                        .ToList();
+
+                    if (selectedFilters.Any())
+                    {
+                        var filterOperator = selectedFilters.First().FilterCompareOperator;
+                        var selectedValues = selectedFilters
+                            .Select(f => f.Value?.ToString())
+                            .Where(v => !string.IsNullOrEmpty(v))
+                            .ToList();
+
+                        if (selectedValues.Any())
+                        {
+                            Console.WriteLine($"Filtr: {fieldName} {filterOperator} [{string.Join(", ", selectedValues)}]");
+
+                            var property = typeof(ZleceniaProdukcyjneWew).GetProperty(fieldName);
+                            if (property != null)
+                            {
+                                filteredData = filteredData.Where(x =>
+                                {
+                                    var value = property.GetValue(x);
+                                    return ApplyFilter(value, selectedValues, filterOperator);
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        iloscPrzefiltrowanych = filteredData.Count();
+        Console.WriteLine($"Ostateczna liczba rekordów: {iloscPrzefiltrowanych}");
     }
+
+    private bool ApplyFilter(object value, List<string> filterValues, TableFilterCompareOperator filterOperator)
+    {
+        if (value == null) return false;
+
+        var stringValue = value.ToString();
+
+        return filterOperator switch
+        {
+            TableFilterCompareOperator.Equals => filterValues.Contains(stringValue),
+            TableFilterCompareOperator.Contains => filterValues.Any(sv =>
+                stringValue.Contains(sv, StringComparison.OrdinalIgnoreCase)),
+            TableFilterCompareOperator.StartsWith => filterValues.Any(sv =>
+                stringValue.StartsWith(sv, StringComparison.OrdinalIgnoreCase)),
+            TableFilterCompareOperator.EndsWith => filterValues.Any(sv =>
+                stringValue.EndsWith(sv, StringComparison.OrdinalIgnoreCase)),
+            TableFilterCompareOperator.NotEquals => !filterValues.Contains(stringValue),
+            TableFilterCompareOperator.GreaterThan => CompareValues(value, filterValues.First(), (a, b) => a > b),
+            TableFilterCompareOperator.LessThan => CompareValues(value, filterValues.First(), (a, b) => a < b),
+            TableFilterCompareOperator.GreaterThanOrEquals => CompareValues(value, filterValues.First(), (a, b) => a >= b),
+            TableFilterCompareOperator.LessThanOrEquals => CompareValues(value, filterValues.First(), (a, b) => a <= b),
+            _ => filterValues.Contains(stringValue)
+        };
+    }
+
+    // Metoda pomocnicza do porównywania wartości różnych typów
+    private bool CompareValues(object value1, object value2, Func<int, int, bool> intComparer)
+    {
+        // Porównanie liczbowe
+        if (decimal.TryParse(value1?.ToString(), out decimal num1) &&
+            decimal.TryParse(value2?.ToString(), out decimal num2))
+        {
+            return intComparer(num1.CompareTo(num2) * 1, 0);
+        }
+
+        // Porównanie dat
+        if (DateTime.TryParse(value1?.ToString(), out DateTime date1) &&
+            DateTime.TryParse(value2?.ToString(), out DateTime date2))
+        {
+            return intComparer(DateTime.Compare(date1, date2), 0);
+        }
+
+        // Porównanie string
+        var str1 = value1?.ToString() ?? "";
+        var str2 = value2?.ToString() ?? "";
+        return intComparer(string.Compare(str1, str2, StringComparison.OrdinalIgnoreCase), 0);
+    }
+
 
     private async Task FileEdit(ZleceniaProdukcyjneWew row, int strona)
     {

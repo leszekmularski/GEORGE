@@ -231,8 +231,8 @@ namespace GEORGE.Client.Pages.Models
         {
             new("X", () => X, v => { X = v; Points = GeneratePoints(); }, NazwaObj, true, true),
             new("Y", () => Y, v => { Y = v; Points = GeneratePoints(); }, NazwaObj, true, true),
-            new("Szerokość", () => Width, v => { Width = v; Points = GeneratePoints(); }, NazwaObj),
-            new("Wysokość", () => Height, v => { Height = v; Points = GeneratePoints(); }, NazwaObj),
+            new("Szerokość", () => Width, v => { Width = v; Points = GeneratePoints(); }, NazwaObj, false, false, false, false, true),
+            new("Wysokość", () => Height, v => { Height = v; Points = GeneratePoints(); }, NazwaObj, false, false, false, false, true),
             new("Promień górnych naroży", () => Radius, v =>
             {
                 double maxR = Math.Min(Width, Height) / 2;
