@@ -8,13 +8,12 @@
 @using System.Text
 
 <!-- Bootstrap Icons -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-
+<link href="../css/bootstrap-icons.css" rel="stylesheet" />
+<link href="../css/github-dark-dimmed.min.css" rel="stylesheet" />
 <!-- HighlightJS z dobrym theme -->
-<link rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark-dimmed.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/json.min.js"></script>
+
+<script src="../js/highlight.min.js"></script>
+<script src="../js/json.min.js"></script>
 
 <script>
     function initializeTabs() {
@@ -24,26 +23,6 @@
             new bootstrap.Tab(triggerEl);
         });
     }
-
-    // Ręczna rejestracja JSON
-    hljs.registerLanguage('json', function(hljs) {
-        // Minimalna definicja języka JSON
-        return {
-            contains: [
-                {
-                    className: 'attr',
-                    begin: /"(\\.|[^\\"])*"(?=\s*:)/,
-                    relevance: 1.01
-                },
-                {
-                    match: /("(?:[^"\\]|\\.)*")\s*:/,
-                    relevance: 0
-                }
-            ]
-        };
-    });
-
-    hljs.highlightAll();
 </script>
 
 <PageTitle>Stany Generatora Okien - GEORGE</PageTitle>
