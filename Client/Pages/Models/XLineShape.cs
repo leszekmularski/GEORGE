@@ -292,10 +292,10 @@ namespace GEORGE.Client.Pages.Models
         {
             return new()
             {
-                new EditableProperty("X1", () => X1, v => X1 = v, NazwaObj),
-                new EditableProperty("Y1", () => Y1, v => Y1 = v, NazwaObj),
-                new EditableProperty("X2", () => X2, v => X2 = v, NazwaObj),
-                new EditableProperty("Y2", () => Y2, v => Y2 = v, NazwaObj)
+                new EditableProperty(RuchomySlupek ? "Podział linii w osi X1" : "X1", () => X1, v => { X1 = v; if (RuchomySlupek) X2 = X1; }, NazwaObj),
+                new EditableProperty(RuchomySlupek ? "Podział linii w osi Y1" : "Y1", () => Y1, v => Y1 = v, NazwaObj, RuchomySlupek),
+                new EditableProperty(RuchomySlupek ? "Podział linii w osi X2" : "X2", () => X2, v => X2 = v, NazwaObj, RuchomySlupek),
+                new EditableProperty(RuchomySlupek ? "Podział linii w osi Y2" : "Y2", () => Y2, v => Y2 = v, NazwaObj, RuchomySlupek)
             };
         }
 

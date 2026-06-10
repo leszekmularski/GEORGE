@@ -1203,7 +1203,7 @@
         double arcHeight = Math.Round(Math.Min(height * 0.33, width / 2), 0);
 
         // Jeśli łuk ma być wypukły, arcHeight musi być dodatnie
-        if (arcHeight < 0) arcHeight = 10;
+        if (arcHeight < 0) arcHeight = 25;
 
         // Punkt kontrolny
         double controlX = startX + rectWidth / 2;
@@ -1456,7 +1456,7 @@
         LineUtils.ExtendLinesToShapes(_shapes, _scaleFactor);
 
         // 🔹 3️⃣ Rozmieść linie pionowe i poziome
-        LineUtils.DistributeLines(_shapes);
+        LineUtils.DistributeLines(_shapes, false);
 
         // 🔹 4️⃣ Przytnij linie do wszystkich zamkniętych kształtów
         LineUtils.ShortenLinesInsideShapes(_shapes, _scaleFactor);

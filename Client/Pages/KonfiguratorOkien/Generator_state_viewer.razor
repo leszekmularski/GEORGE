@@ -24,6 +24,26 @@
             new bootstrap.Tab(triggerEl);
         });
     }
+
+    // Ręczna rejestracja JSON
+    hljs.registerLanguage('json', function(hljs) {
+        // Minimalna definicja języka JSON
+        return {
+            contains: [
+                {
+                    className: 'attr',
+                    begin: /"(\\.|[^\\"])*"(?=\s*:)/,
+                    relevance: 1.01
+                },
+                {
+                    match: /("(?:[^"\\]|\\.)*")\s*:/,
+                    relevance: 0
+                }
+            ]
+        };
+    });
+
+    hljs.highlightAll();
 </script>
 
 <PageTitle>Stany Generatora Okien - GEORGE</PageTitle>

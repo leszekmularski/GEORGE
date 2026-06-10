@@ -64,7 +64,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
 
         // 🔹 Rozmieszczenie pionowych i poziomych linii
-        public static void DistributeLines(List<IShapeDC> shapes)
+        public static void DistributeLines(List<IShapeDC> shapes, bool recznaZmiana)
         {
             var closedShapes = shapes.Where(s => s is not XLineShape).ToList();
             var lines = shapes.OfType<XLineShape>().ToList();
@@ -73,7 +73,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             var horizontalLines = lines.Where(l => Math.Abs(l.Y1 - l.Y2) < Tolerance).OrderBy(l => l.Y1).ToList();
 
             // Pionowe
-            if (verticalLines.Any())
+            if (verticalLines.Any() && !recznaZmiana)
             {
                 double minX = closedShapes.Min(s => s.GetBoundingBox().Left);
                 double maxX = closedShapes.Max(s => s.GetBoundingBox().Right);
@@ -97,7 +97,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             }
 
             // Poziome
-            if (horizontalLines.Any())
+            if (horizontalLines.Any() && !recznaZmiana)
             {
                 double minY = closedShapes.Min(s => s.GetBoundingBox().Top);
                 double maxY = closedShapes.Max(s => s.GetBoundingBox().Bottom);

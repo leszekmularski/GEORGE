@@ -13,6 +13,8 @@ namespace GEORGE.Client.Pages.Utils
             shapes = UsunDuplikatyShape(shapes);
             //Console.WriteLine($"📦 Po usunięciu duplikatów: {shapes.Count} obiektów.");
 
+            await Task.Delay(10); // Pozwól na aktualizację UI przed ciężką pracą 
+
             var regions = new List<ShapeRegion>();
 
             Console.WriteLine($"🔲 Generowanie regionów z podziału dla {shapes.Count} kształtów. {_szerokosc}x{_wysokosc} typ rama: {rama}");
@@ -25,7 +27,7 @@ namespace GEORGE.Client.Pages.Utils
                 .ToList();
 
             if (!shapesDoRegionow.Any()) return regions;
-       
+
             double minX = shapesDoRegionow.Min(s => s.GetBoundingBox().X);
             double minY = shapesDoRegionow.Min(s => s.GetBoundingBox().Y);
             double maxX = shapesDoRegionow.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
@@ -185,23 +187,35 @@ namespace GEORGE.Client.Pages.Utils
                         //}
                         else if (shape is XRoundedTopRectangleShapeFixed rtrf)
                         {
-                     
-
                             double arcStartY = rtrf.Y + rtrf.ArcHeight;
                             var (arcCenterX, arcCenterY, startAngle, endAngle) = rtrf.CalculateArcGeometry();
                             var arcCenter = new XPoint(arcCenterX, arcCenterY);
 
+                            var rrx = rtrf.IloscElementowLuki; // Oczekiwana ilość elementów łukowych
+
                             // Sprawdź czy punkty są poziome (w przybliżeniu ten sam Y)
                             bool isHorizontalLine = Math.Abs(p.Y - next.Y) < 0.001 && Math.Abs(p.X - next.X) > shape.Szerokosc - 50;
 
-                            // Sprawdź czy punkt jest na łuku (odległość od środka ≈ promień)
-                            double d1 = Distance(p, arcCenter);
-                            double d2 = Distance(next, arcCenter);
+                            // Sprawdź czy punkty są pionowe (w przybliżeniu ten sam X)
+                            bool isVerticalLine = Math.Abs(p.X - next.X) < 0.001 && Math.Abs(p.Y - next.Y) > 10;
 
-                            // Jeśli to linia pozioma -> na pewno nie łuk
-                            bool isArcSegment = !isHorizontalLine &&
-                                                Math.Abs(d1 - rtrf.Radius) < 2.0 &&
-                                                Math.Abs(d2 - rtrf.Radius) < 2.0;
+                            // Nowa metoda wykrywania łuku - sprawdź czy punkty są w obszarze łuku
+                            // Punkty łuku mają Y mniejsze lub równe arcStartY (są powyżej linii bazowej łuku)
+                            bool isInArcRegion = p.Y <= arcStartY + 0.001 &&
+                                                 next.Y <= arcStartY + 0.001 &&
+                                                 p.Y >= rtrf.Y - 0.001 &&  // Nie powyżej górnej krawędzi
+                                                 next.Y >= rtrf.Y - 0.001;
+
+                            // Segment jest łukiem jeśli jest w obszarze łuku i nie jest linią poziomą ani pionową
+                            bool isArcSegment = !isHorizontalLine && !isVerticalLine && isInArcRegion;
+
+                            //Console.WriteLine($"🔍 XRoundedTopRectangleShapeFixed segment: " +
+                            //                  $"P({p.X},{p.Y}) Next({next.X},{next.Y}) " +
+                            //                  $"arcStartY={arcStartY:F2} " +
+                            //                  $"isArcSegment={isArcSegment} " +
+                            //                  $"isHorizontal={isHorizontalLine} " +
+                            //                  $"isVertical={isVerticalLine} " +
+                            //                  $"Expected arc segments: {rrx}");
 
                             if (isArcSegment)
                             {
@@ -209,19 +223,15 @@ namespace GEORGE.Client.Pages.Utils
                                 // to jest przeciwnie do ruchu wskazówek zegara
                                 bool counterClockwise = true; // Dla górnego łuku
 
-                                // Sprawdź czy to łuk (oba punkty mają Y mniejsze lub równe arcStartY)
-                                if (p.Y <= arcStartY && next.Y <= arcStartY)
-                                {
-                                    var segment = new ContourSegment(
-                                        p,
-                                        next,
-                                        arcCenter,
-                                        rtrf.Radius,
-                                        counterClockwise
-                                    );
-                                    segment.Informacja = ramaInfo + " " + shape.GetType().Name;
-                                    return segment;
-                                }
+                                var segment = new ContourSegment(
+                                    p,
+                                    next,
+                                    arcCenter,
+                                    rtrf.Radius,
+                                    counterClockwise
+                                );
+                                segment.Informacja = ramaInfo + " " + shape.GetType().Name;
+                                return segment;
                             }
 
                             // Dla linii pionowych i poziomych
@@ -229,7 +239,6 @@ namespace GEORGE.Client.Pages.Utils
                             lineSegment.Informacja = ramaInfo + " " + shape.GetType().Name;
                             return lineSegment;
                         }
-
                         // =========================
                         // PROSTOKĄT ZAOKRĄGLONY (FINAL STABILNY)
                         // =========================
@@ -336,7 +345,7 @@ namespace GEORGE.Client.Pages.Utils
                                 return result;
                             }
 
-                            FallbackLine:
+                        FallbackLine:
 
                             var lineSeg = new ContourSegment(p, next)
                             {
@@ -564,7 +573,7 @@ namespace GEORGE.Client.Pages.Utils
                             nowySegment.Informacja = ramaInfo;
                             nowyKontur.Add(nowySegment);
                         }
-    
+
                         // USUŃ SEGMENTY O ZEROWEJ DŁUGOŚCI PONOWNIE (po ewentualnych przekształceniach)
                         r.Kontur = r.Kontur
                             .Where(s => !CzySegmentZerowejDlugosci(s))
@@ -724,8 +733,8 @@ namespace GEORGE.Client.Pages.Utils
                             {
                                 newPoints.Add(seg.Start);
                             }
-  
-                            if(r.Wierzcholki.Count() > 2)
+
+                            if (r.Wierzcholki.Count() > 2)
                                 r.Wierzcholki = newPoints;
 
                             // Teraz powinno być:
@@ -949,7 +958,7 @@ namespace GEORGE.Client.Pages.Utils
                                 }
                             }
 
-                           // SortAndSynchronizeContour(r);
+                            // SortAndSynchronizeContour(r);
 
                             await Task.Delay(5);
 
@@ -972,7 +981,7 @@ namespace GEORGE.Client.Pages.Utils
 
                             FixAndSynchronizeContour(r);
 
-                            if(r.Wierzcholki.Count() < 2) r.Wierzcholki = napraw;
+                            if (r.Wierzcholki.Count() < 2) r.Wierzcholki = napraw;
 
                         }
 
@@ -1396,7 +1405,7 @@ namespace GEORGE.Client.Pages.Utils
         /// </summary>
         private static void FixAndSynchronizeContour(ShapeRegion region)
         {
-        
+
             if (region == null || region.Kontur == null || region.Kontur.Count == 0)
                 return;
 

@@ -93,7 +93,7 @@ namespace GEORGE.Client.Pages.Models
         {
             //  _isInitializing = true;
 
-            Console.WriteLine($"[DEBUG] Konstruktor START {NazwaObj}: Height={height}, ArcHeight={arcHeight}");
+           // Console.WriteLine($"[DEBUG] Konstruktor START {NazwaObj}: Height={height}, ArcHeight={arcHeight}");
 
             _x = x;
             _y = y;
@@ -118,7 +118,7 @@ namespace GEORGE.Client.Pages.Models
 
             //_isInitializing = false;
 
-            Console.WriteLine($"[DEBUG] Konstruktor END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
+          //  Console.WriteLine($"[DEBUG] Konstruktor END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
         }
 
         // ===========================
@@ -128,7 +128,7 @@ namespace GEORGE.Client.Pages.Models
         {
             if (_isInitializing) return;
 
-            Console.WriteLine($"[DEBUG] CalculatePointsFromProperties START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
+           // Console.WriteLine($"[DEBUG] CalculatePointsFromProperties START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
             Points = GenerateCompleteOutline(IloscElementowLuki);
             NormalizeToPositiveQuadrant();
             NominalPoints = Points.Select(p => p.Clone()).ToList();
@@ -136,7 +136,7 @@ namespace GEORGE.Client.Pages.Models
             // Oznacz geometrię jako brudną po zmianie właściwości
             MarkGeometryDirty();
 
-            Console.WriteLine($"[DEBUG] CalculatePointsFromProperties END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
+          //  Console.WriteLine($"[DEBUG] CalculatePointsFromProperties END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
         }
 
         // ===========================
@@ -162,7 +162,7 @@ namespace GEORGE.Client.Pages.Models
                 return _cachedArcGeometry.Value;
             }
 
-            Console.WriteLine($"[DEBUG] CalculateArcGeometry START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
+          //  Console.WriteLine($"[DEBUG] CalculateArcGeometry START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
 
             double leftX = X;
             double rightX = X + Width;
@@ -228,8 +228,8 @@ namespace GEORGE.Client.Pages.Models
                 result = (cx, cy, startAngle, endAngle);
             }
 
-            Console.WriteLine($"[DEBUG] CalculateArcGeometry {NazwaObj}: Height={Height}, ArcHeight={ArcHeight} Radius: {Radius}");
-            Console.WriteLine($"[DEBUG] CalculateArcGeometry END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
+            //Console.WriteLine($"[DEBUG] CalculateArcGeometry {NazwaObj}: Height={Height}, ArcHeight={ArcHeight} Radius: {Radius}");
+            //Console.WriteLine($"[DEBUG] CalculateArcGeometry END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
 
             // Zapisz w cache
             _cachedArcGeometry = result;
@@ -260,7 +260,7 @@ namespace GEORGE.Client.Pages.Models
 
         public (double centerX, double centerY, double startAngle, double endAngle) CalculateArcGeometryByArcHeight()
         {
-            Console.WriteLine($"[DEBUG] CalculateArcGeometryByArcHeight START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
+           // Console.WriteLine($"[DEBUG] CalculateArcGeometryByArcHeight START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
 
             double chordWidth = Width;
             double sagitta = ArcHeight;
@@ -281,7 +281,7 @@ namespace GEORGE.Client.Pages.Models
             if (endAngle < 0) endAngle += 2 * Math.PI;
             if (startAngle > endAngle) endAngle += 2 * Math.PI;
 
-            Console.WriteLine($"[DEBUG] CalculateArcGeometryByArcHeight END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
+            //Console.WriteLine($"[DEBUG] CalculateArcGeometryByArcHeight END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
 
             return (centerX, centerY, startAngle, endAngle);
         }
@@ -298,7 +298,7 @@ namespace GEORGE.Client.Pages.Models
             double x2, double y2,
             double x3, double y3)
         {
-            Console.WriteLine($"[DEBUG] CircleFromThreePoints START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
+           // Console.WriteLine($"[DEBUG] CircleFromThreePoints START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
 
             double width = x3 - x1;
             double arcHeight = y1 - y2;
@@ -306,7 +306,7 @@ namespace GEORGE.Client.Pages.Models
             double cx = (x1 + x3) / 2;
             double cy = y1 + (radius - arcHeight);
 
-            Console.WriteLine($"[DEBUG] CircleFromThreePoints END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
+           // Console.WriteLine($"[DEBUG] CircleFromThreePoints END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
             return (cx, cy, radius);
         }
 
@@ -315,7 +315,7 @@ namespace GEORGE.Client.Pages.Models
         // ===========================
         private List<XPoint> GenerateCompleteOutline(int segments)
         {
-            Console.WriteLine($"[DEBUG] GenerateCompleteOutline START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
+           // Console.WriteLine($"[DEBUG] GenerateCompleteOutline START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
 
             var outline = new List<XPoint>();
 
@@ -360,7 +360,7 @@ namespace GEORGE.Client.Pages.Models
                 outline[i] = new XPoint(Math.Round(p.X, 4), Math.Round(p.Y, 4));
             }
 
-            Console.WriteLine($"[DEBUG] GenerateCompleteOutline END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
+          //  Console.WriteLine($"[DEBUG] GenerateCompleteOutline END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
 
             return outline;
         }

@@ -1573,7 +1573,7 @@
                     // Obserwacja resize
                     await StartResizeObserver();
 
-                    await GenerujObrysPozZmianieWymiarow(true); // obrys i regiony
+                    await GenerujObrysPozZmianieWymiarow(true, false); // obrys i regiony
                     //
                     await ZmienWymiaryOkna(); // dopasowanie do okna i wygenerowanie obrysu
 
@@ -1747,7 +1747,7 @@
 
     //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-    private async Task GenerujObrysPozZmianieWymiarow(bool generujRegionyZPodzialu)
+    private async Task GenerujObrysPozZmianieWymiarow(bool generujRegionyZPodzialu, bool recznaZmiana)
     {
         if (ShapeService == null || !ShapeService.Shapes.Any())
         {
@@ -1762,7 +1762,7 @@
             LineUtils.ExtendLinesToShapes(ShapeService.Shapes, 1);
 
             // 🔹 2️⃣ Rozmieść linie
-            LineUtils.DistributeLines(ShapeService.Shapes);
+            LineUtils.DistributeLines(ShapeService.Shapes, recznaZmiana);
 
             // 🔹 3️⃣ Przytnij linie
             LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
@@ -1770,14 +1770,14 @@
             // 🔹 5️⃣ Generowanie regionów jeśli trzeba
             if (generujRegionyZPodzialu && constWlasciwosciOkna != null)
             {
-                _regionsDualRama = await GeometryUtils.GenerujRegionyZPodzialu(
+               _regionsDualRama = await GeometryUtils.GenerujRegionyZPodzialu(
                     ShapeService.Shapes,
                     constWlasciwosciOkna.Szerokosc,
                     constWlasciwosciOkna.Wysokosc,
                     true
                 );
 
-                _regionsSkrzydlo = await GeometryUtils.GenerujRegionyZPodzialu(
+               _regionsSkrzydlo = await GeometryUtils.GenerujRegionyZPodzialu(
                     ShapeService.Shapes,
                     constWlasciwosciOkna.Szerokosc,
                     constWlasciwosciOkna.Wysokosc,
@@ -1814,7 +1814,7 @@
                 LineUtils.ExtendLinesToShapes(ShapeService.Shapes, 1);
 
                 // 🔹 2️⃣ Rozmieść linie
-                LineUtils.DistributeLines(ShapeService.Shapes);
+                LineUtils.DistributeLines(ShapeService.Shapes, recznaZmiana);
 
                 // 🔹 3️⃣ Przytnij linie
                 LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
@@ -2762,7 +2762,7 @@
         _regionsSkrzydlo[_selectedShapeIndex].Kontur =
             ShapeService.Shapes[_selectedShapeIndex].GetContourSegments();
 
-        await GenerujObrysPozZmianieWymiarow(false);
+        await GenerujObrysPozZmianieWymiarow(false, false);
 
         await ZmienWymiaryOkna(true);
         // await FitShapesToDisplayWindow();
@@ -3709,7 +3709,7 @@
             }
 
             // 3. Generuj obrys (BEZ automatycznego przerysowywania!)
-            await GenerujObrysPozZmianieWymiarow(true);
+            await GenerujObrysPozZmianieWymiarow(true, true);
 
             // double oldWidth = ShapeService.Shapes.Max(s => s.Szerokosc);
             // double oldHeight = ShapeService.Shapes.Max(s => s.Wysokosc);
@@ -7223,7 +7223,7 @@
         }
         else
         {
-            await GenerujObrysPozZmianieWymiarow(true);
+            await GenerujObrysPozZmianieWymiarow(true, false);
 
         }
 
