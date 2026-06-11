@@ -2785,8 +2785,8 @@ namespace GEORGE.Client.Pages.Okna
         {
             int count = points.Count;
 
-            if (count > 0)
-                Console.WriteLine($"🔷CalculateOffsetPolygon Calculating offset polygon for {count} X:{points[0].X} Y:{points[0].Y} elementLiniowy:{elementLiniowy} points with profiles L:{profileLeft}, R:{profileRight}, T:{profileTop}, B:{profileBottom}");
+            //if (count > 0)
+            //    Console.WriteLine($"🔷CalculateOffsetPolygon Calculating offset polygon for {count} X:{points[0].X} Y:{points[0].Y} elementLiniowy:{elementLiniowy} points with profiles L:{profileLeft}, R:{profileRight}, T:{profileTop}, B:{profileBottom}");
 
             if (count < 2)
                 throw new ArgumentException("Figura musi mieć co najmniej 2 punkty.");
@@ -2840,7 +2840,7 @@ namespace GEORGE.Client.Pages.Okna
                         break;
                 }
 
-                Console.WriteLine($"🔷CalculateOffsetPolygon Element liniowy: strona {side}, offsetX={offsetX}, offsetY={offsetY}");
+               // Console.WriteLine($"🔷CalculateOffsetPolygon Element liniowy: strona {side}, offsetX={offsetX}, offsetY={offsetY}");
 
                 var p1Offset = new XPoint(p1.X + offsetX, p1.Y + offsetY);
                 var p2Offset = new XPoint(p2.X + offsetX, p2.Y + offsetY);
@@ -2883,7 +2883,7 @@ namespace GEORGE.Client.Pages.Okna
                 float nx = ty;
                 float ny = -tx;
 
-                Console.WriteLine($"🔷CalculateOffsetPolygon Bok {i}: kierunek ({tx:F2}, {ty:F2}), normalna zewnętrzna ({nx:F2}, {ny:F2})");
+               // Console.WriteLine($"🔷CalculateOffsetPolygon Bok {i}: kierunek ({tx:F2}, {ty:F2}), normalna zewnętrzna ({nx:F2}, {ny:F2})");
 
                 // Określenie znaku offsetu
                 float offsetValue = 0f;
@@ -2919,7 +2919,7 @@ namespace GEORGE.Client.Pages.Okna
                 var p1Offset = new XPoint(p1.X + nx * offset, p1.Y + ny * offset);
                 var p2Offset = new XPoint(p2.X + nx * offset, p2.Y + ny * offset);
 
-                Console.WriteLine($"🔷CalculateOffsetPolygon Bok {i}: strona {side}, offsetValue={offsetValue}, usePositiveNormal={usePositiveNormal}, offset={offset}");
+               // Console.WriteLine($"🔷CalculateOffsetPolygon Bok {i}: strona {side}, offsetValue={offsetValue}, usePositiveNormal={usePositiveNormal}, offset={offset}");
 
 
                 offsetLines.Add((p1Offset, p2Offset, side, offset));
@@ -2947,10 +2947,10 @@ namespace GEORGE.Client.Pages.Okna
             // Jeśli powstały wielokąt ma większe pole niż oryginał, znaczy że offset poszedł na zewnątrz
             // Można dodać logikę odwracania znaków jeśli to konieczne
 
-            foreach (var pt in result)
-            {
-                Console.WriteLine($"🔷CalculateOffsetPolygon Calculated offset polygon point: X={pt.X}, Y={pt.Y}");
-            }
+            //foreach (var pt in result)
+            //{
+            //    Console.WriteLine($"🔷CalculateOffsetPolygon Calculated offset polygon point: X={pt.X}, Y={pt.Y}");
+            //}
 
             return result;
         }
@@ -3286,7 +3286,7 @@ namespace GEORGE.Client.Pages.Okna
             if (segments == null || segments.Count == 0)
                 return new List<ContourSegment>();
 
-            Console.WriteLine($"🔷CalculateOffsetPolygonKonturSkrzydlo Calculating offset for {segments.Count} segments elementLiniowy:{elementLiniowy} with profiles L:{profileLeft}, R:{profileRight}, T:{profileTop}, B:{profileBottom}");
+            //Console.WriteLine($"🔷CalculateOffsetPolygonKonturSkrzydlo Calculating offset for {segments.Count} segments elementLiniowy:{elementLiniowy} with profiles L:{profileLeft}, R:{profileRight}, T:{profileTop}, B:{profileBottom}");
 
             const double EPS = 1e-6;
             const double TOLERANCJA = 0.01;
@@ -3335,7 +3335,7 @@ namespace GEORGE.Client.Pages.Okna
                                 break;
                         }
 
-                        Console.WriteLine($"🔷CalculateOffsetPolygonKonturSkrzydlo Element liniowy: strona {side}, offsetX={offsetX}, offsetY={offsetY}");
+                        //Console.WriteLine($"🔷CalculateOffsetPolygonKonturSkrzydlo Element liniowy: strona {side}, offsetX={offsetX}, offsetY={offsetY}");
 
                         var newSeg1Start = new XPoint(seg1.Start.X + offsetX, seg1.Start.Y + offsetY);
                         var newSeg1End = new XPoint(seg1.End.X + offsetX, seg1.End.Y + offsetY);

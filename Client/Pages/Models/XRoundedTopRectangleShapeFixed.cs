@@ -13,7 +13,7 @@ namespace GEORGE.Client.Pages.Models
         private double _width;
         private double _height;
         private double _radius;
-        private double _arcHeight;
+        private double _arcHeight = 125;
         private int _iloscElementowLuki = 4;
 
         public double X
