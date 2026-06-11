@@ -77,13 +77,13 @@ namespace GEORGE.Client.Pages.Okna
 
             if (KonfiguracjeSystemu == null || MVCKonfModelu == null)
             {
-                Console.WriteLine($"❌ Brak KonfiguracjeSystemu lub PowiazanyModel!");
+                Console.WriteLine($"❌ AddElements Brak KonfiguracjeSystemu lub PowiazanyModel!");
                 return false;
             }
 
             if (EdytowanyModel == null)
             {
-                Console.WriteLine($"❌ Brak EdytowanyModel jest nie ustawiony!!!");
+                Console.WriteLine($"❌ AddElements Brak EdytowanyModel jest nie ustawiony!!!");
                 return false;
             }
 
@@ -111,7 +111,7 @@ namespace GEORGE.Client.Pages.Okna
 
             if (region == null && !ElementLiniowy)
             {
-                Console.WriteLine($"❌ Nie znaleziono regionu o ID: {regionId} w AddElements - GeneratoryOkienne");
+                Console.WriteLine($"❌ AddElements Nie znaleziono regionu o ID: {regionId} w AddElements - GeneratoryOkienne");
                 return false;
             }
             else if (region != null && !ElementLiniowy)
@@ -123,7 +123,7 @@ namespace GEORGE.Client.Pages.Okna
             {
                 region = regions.FirstOrDefault(r => r.Id != null);
 
-                Console.WriteLine($"❌ Region o ID: {regionId} region.Wierzcholki.Count():{region.Wierzcholki.Count()}");
+                Console.WriteLine($"❌ AddElements Region o ID: {regionId} region.Wierzcholki.Count():{region.Wierzcholki.Count()}");
 
                 punkty = region.Wierzcholki;
                 punktyZLukami = region.Kontur;
@@ -132,29 +132,29 @@ namespace GEORGE.Client.Pages.Okna
             Wierzcholki = punkty;
             zewnetrznyKonturZLukami = punktyZLukami;
 
-            foreach (var x in punkty)
-            {
-                Console.WriteLine($"punkty --> x.X: {x.X} / x.Y: {x.Y}");
-            }
+            //foreach (var x in punkty)
+            //{
+            //    Console.WriteLine($"punkty --> x.X: {x.X} / x.Y: {x.Y}");
+            //}
 
-            foreach (var c in punktyZLukami)
-            {
-                Console.WriteLine($"punktyFull --> c.Start.X: {c.Start.X} / c.Start.Y: {c.Start.Y} / c.End.X: {c.End.X} / c.End.Y: {c.End.Y} / c.Type: {c.Type}");
-            }
+            //foreach (var c in punktyZLukami)
+            //{
+            //    Console.WriteLine($"punktyFull --> c.Start.X: {c.Start.X} / c.Start.Y: {c.Start.Y} / c.End.X: {c.End.X} / c.End.Y: {c.End.Y} / c.Type: {c.Type}");
+            //}
 
             if ((punkty == null || punkty.Count < 3) && !ElementLiniowy)
             {
-                Console.WriteLine($"❌ Region o ID: {regionId} ma zbyt mało punktów");
+                Console.WriteLine($"❌ AddElements Region o ID: {regionId} ma zbyt mało punktów");
                 return false;
             }
 
             if ((punkty == null || punkty.Count < 2))
             {
-                Console.WriteLine($"❌ Region o ID: {regionId} ma zbyt mało punktów! punkty.Count: {punkty.Count}");
+                Console.WriteLine($"❌ AddElements Region o ID: {regionId} ma zbyt mało punktów! punkty.Count: {punkty.Count}");
                 return false;
             }
 
-            Console.WriteLine($"🟩 Generuj okno dla regionu ID {regionId} typu: {region.TypKsztaltu} ElementLiniowy: {ElementLiniowy} punkty.Count: {punkty.Count()}");
+            Console.WriteLine($"🟩 AddElements Generuj okno dla regionu ID {regionId} typu: {region.TypKsztaltu} ElementLiniowy: {ElementLiniowy} punkty.Count: {punkty.Count()}");
 
             // 🧮 Bounding box
             float minX = (float)punkty.Min(p => p.X);

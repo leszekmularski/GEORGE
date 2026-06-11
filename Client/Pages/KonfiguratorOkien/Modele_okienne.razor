@@ -1770,19 +1770,19 @@
             // 🔹 5️⃣ Generowanie regionów jeśli trzeba
             if (generujRegionyZPodzialu && constWlasciwosciOkna != null)
             {
-               _regionsDualRama = await GeometryUtils.GenerujRegionyZPodzialu(
-                    ShapeService.Shapes,
-                    constWlasciwosciOkna.Szerokosc,
-                    constWlasciwosciOkna.Wysokosc,
-                    true
-                );
+                _regionsDualRama = await GeometryUtils.GenerujRegionyZPodzialu(
+                     ShapeService.Shapes,
+                     constWlasciwosciOkna.Szerokosc,
+                     constWlasciwosciOkna.Wysokosc,
+                     true
+                 );
 
-               _regionsSkrzydlo = await GeometryUtils.GenerujRegionyZPodzialu(
-                    ShapeService.Shapes,
-                    constWlasciwosciOkna.Szerokosc,
-                    constWlasciwosciOkna.Wysokosc,
-                    false
-                );
+                _regionsSkrzydlo = await GeometryUtils.GenerujRegionyZPodzialu(
+                     ShapeService.Shapes,
+                     constWlasciwosciOkna.Szerokosc,
+                     constWlasciwosciOkna.Wysokosc,
+                     false
+                 );
 
                 // Kopiuj i zmień ID
                 // _regionsSkrzydlo = _regionsDualRama.Select(r =>
@@ -3028,7 +3028,7 @@
 
                 await Redraw();
             }
-            
+
         }
         finally
         {
@@ -3826,13 +3826,21 @@
                         if (wybranyRegionSkrzydlo.Wierzcholki != null)
                         {
                             double przesLewo = 0, przesPrawo = 0, przesGora = 0, przesDol = 0;
-                            await WyliczObszarSkrzydla(
+
+                            var test = await WyliczObszarSkrzydla(
                                 _generatorStates[cleanId],
                                 przesLewo, przesPrawo,
                                 przesGora, przesDol,
                                 generator.RuchomySlupekPoLewej, generator.RuchomySlupekPoPrawej,
                                 generator, wybranyRegionSkrzydlo
                             );
+
+                            if(test == null)
+                            {
+                                Console.WriteLine($"⚠️ Nie można wyliczyć obszaru skrzydła dla regionu {cleanId}");
+                                await _message.Error($"Nie można wyliczyć obszaru skrzydła dla regionu {cleanId}. Sprawdź wymiary i kształt regionu.");
+                            }
+
                         }
                     }
                 }
@@ -4559,7 +4567,7 @@
                 WybranyModel.Typ == "Skrzydło z słupkiem ruchomym",
                 WybranyModel.Typ == "Słupek stały",
                 katSlupkaStalego,
-                0.05f
+                0.1f
             );
 
             /// -------------------------------------------------- Wyszukiwanie sąsiadów --------------------------------------------------
@@ -4760,10 +4768,19 @@
 
                 if (sasiedzi == null) return false;
 
-                najlepszySasiad = sasiedzi
-                   .Where(s => s.WybranyTyp == "Słupek ruchomy" && KierunekPasuje(s) && !SelectedModelType.Trim().Contains(s.WybranyTyp))
-                   .OrderBy(ObliczDopasowanie)
-                   .FirstOrDefault();
+                if (sasiedzi.Count == 1)
+                {
+                    najlepszySasiad = sasiedzi.FirstOrDefault();
+                    //await _message.Info($"🔎 DodajWybranyKwadratOkna -> Funkcja 🔍 ZnajdzSasiada najlepszySasiad.RowIdElementu:{najlepszySasiad.RowIdElementu} wyszukała obiektów: {sasiedzi.Count()} dla linii o kącie {katSzukaj}°");
+                }
+                else
+                {
+                    najlepszySasiad = sasiedzi
+                  .Where(s => s.WybranyTyp == "Słupek ruchomy" && KierunekPasuje(s) && !SelectedModelType.Trim().Contains(s.WybranyTyp))
+                  .OrderBy(ObliczDopasowanie)
+                  .FirstOrDefault();
+
+                }
 
                 // 🔹 2. Jeśli nie znaleziono -> "Słupek ruchomy" BEZ KIERUNKU
                 if (najlepszySasiad == null)
@@ -4837,7 +4854,7 @@
                 }
 
                 // 🔹 7. Jeśli nadal nic -> PIERWSZY Z LISTY
-                if (najlepszySasiad == null && sasiedzi.Any())
+                if (najlepszySasiad == null)
                 {
                     List<string> idX = CzyPunktWRegionie(klikX, klikY);
                     foreach (var id in idX)
@@ -4851,12 +4868,14 @@
                     .OrderBy(e => e.RowIdElementu)
                     .FirstOrDefault() ?? sasiedzi.First();
                 }
-            }
 
+            }
 
             if (najlepszySasiad != null)
             {
                 wybranyTypSasiada = najlepszySasiad.WybranyTyp;
+
+                // await _message.Info($"🔎 DodajWybranyKwadratOkna -> Funkcja 🔍 ZnajdzSasiada RowIdElementu: {najlepszySasiad.RowIdElementu} wyszukała obiektów: {sasiedzi.Count()} dla linii o kącie {katSzukaj}°", 10);
 
                 Console.WriteLine($"✅✅✅✅ WYBRANO: {najlepszySasiad.WybranyTyp}, " +
                                  $"Region: {najlepszySasiad.IdRegionu}, " +
@@ -4867,6 +4886,7 @@
             }
             else
             {
+                // await _message.Info($"🔎 DodajWybranyKwadratOkna -> Funkcja 🔍 ZnajdzSasiada NIE WYBRANO ŻADNEGO SĄSIADA! wyszukała obiektów: {sasiedzi.Count()} dla linii o kącie {katSzukaj}°", 10);
                 Console.WriteLine("⚠️ NIE WYBRANO ŻADNEGO SĄSIADA!");
             }
 
@@ -5565,7 +5585,8 @@
             state.ListaKwadratow[^1].OffsetBottom = przesDol;
         }
 
-        await Task.CompletedTask; // placeholder dla ewentualnych operacji asynchronicznych
+        await Task.Delay(10); // placeholder dla ewentualnych operacji asynchronicznych
+
         return regionSlupka;
     }
 
@@ -6129,7 +6150,7 @@
         double katLinii = Math.Atan2(dy, dx) * 180.0 / Math.PI;
         katLinii = (katLinii + 360) % 360; // Normalizacja do 0-360
 
-        Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii -> Kąt linii: {katLinii:F1}°");
+       // Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii -> Kąt linii: {katLinii:F1}°");
 
         // 🔹 Określ typ linii z większą tolerancją
         const double katTolerancja = 12.0;
@@ -6170,9 +6191,9 @@
         string slLewa = slRuchStroLewa ? typSlupka : "";
         string slPrawa = slRuchStroPrawa ? typSlupka : "";
 
-        Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii -> Typ: {typSlupka}, " +
-                          $"Pionowa: {jestPionowa}, Pozioma: {jestPozioma}, Skośna: {jestSkosna}, " +
-                          $"Kierunek: {kierunek}, Środek X: {srodekX:F1}, Y: {srodekY:F1}");
+        // Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii -> Typ: {typSlupka}, " +
+        //                   $"Pionowa: {jestPionowa}, Pozioma: {jestPozioma}, Skośna: {jestSkosna}, " +
+        //                   $"Kierunek: {kierunek}, Środek X: {srodekX:F1}, Y: {srodekY:F1}");
 
         // 🔹 DLA LINII SKOŚNYCH - specjalna logika
         if (jestSkosna)
@@ -6731,17 +6752,17 @@
         }
 
 
-        for (int i = 0; i < wynik.Count; i++)
-        {
-            var sasiad = wynik[i];
-            Console.WriteLine($"🔍 ZnajdzSasiada -> Pasujący sąsiad zwracam wyniki #{i + 1}/{wynik.Count()}: IdRegion={sasiad.IdRegionu}, " +
-            $"sasiad.RowIdElementu={sasiad.RowIdElementu}, ZIndeks={sasiad.ZIndeks}, KatLinii={sasiad.KatLinii:F1}°, KatSasiada={sasiad.KatSasiada:F1}°, " +
-            $"Typ={sasiad.WybranyTyp} WystepujeDol: {sasiad.WystepujeDol} WystepujeGora: {sasiad.WystepujeGora} WystepujeLewa: {sasiad.WystepujeLewa} WystepujePrawa: {sasiad.WystepujePrawa}");
-        }
+        // for (int i = 0; i < wynik.Count; i++)
+        // {
+        //     var sasiad = wynik[i];
+        //     Console.WriteLine($"🔍 ZnajdzSasiada -> Pasujący sąsiad zwracam wyniki #{i + 1}/{wynik.Count()}: IdRegion={sasiad.IdRegionu}, " +
+        //     $"sasiad.RowIdElementu={sasiad.RowIdElementu}, ZIndeks={sasiad.ZIndeks}, KatLinii={sasiad.KatLinii:F1}°, KatSasiada={sasiad.KatSasiada:F1}°, " +
+        //     $"Typ={sasiad.WybranyTyp} WystepujeDol: {sasiad.WystepujeDol} WystepujeGora: {sasiad.WystepujeGora} WystepujeLewa: {sasiad.WystepujeLewa} WystepujePrawa: {sasiad.WystepujePrawa}");
+        // }
 
-        Console.WriteLine($"🔍 ZnajdzSasiada -> Znaleziono {wynik.Count} sąsiadów");
+        // Console.WriteLine($"🔍 ZnajdzSasiada -> Znaleziono {wynik.Count} sąsiadów");
 
-        await Task.CompletedTask;
+        await Task.Delay(1); // symulacja asynchroniczności
 
         return wynik;
     }
