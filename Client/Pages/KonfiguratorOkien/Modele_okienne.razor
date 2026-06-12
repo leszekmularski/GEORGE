@@ -3766,6 +3766,7 @@
                 if (region == null)
                 {
                     Console.WriteLine($"⚠ Brak regionu dla cleanId:{cleanId}");
+                    await _message.Error($"❌ Nie znaleziono regionu dla {cleanId}. Sprawdź konfigurację regionów.");
                     continue;
                 }
 
@@ -3842,6 +3843,14 @@
                             }
 
                         }
+                        else
+                        {
+                            await _message.Error($"❌ Region skrzydła {cleanId} nie ma wierzchołków. Nie można wyliczyć obszaru.");
+                        }
+                    }
+                    else
+                    {
+                        await _message.Error($"❌ Nie znaleziono regionu skrzydła dla {cleanId}. Sprawdź wymiary i kształt regionu.");
                     }
                 }
 
@@ -4768,19 +4777,10 @@
 
                 if (sasiedzi == null) return false;
 
-                if (sasiedzi.Count == 1)
-                {
-                    najlepszySasiad = sasiedzi.FirstOrDefault();
-                    //await _message.Info($"🔎 DodajWybranyKwadratOkna -> Funkcja 🔍 ZnajdzSasiada najlepszySasiad.RowIdElementu:{najlepszySasiad.RowIdElementu} wyszukała obiektów: {sasiedzi.Count()} dla linii o kącie {katSzukaj}°");
-                }
-                else
-                {
-                    najlepszySasiad = sasiedzi
-                  .Where(s => s.WybranyTyp == "Słupek ruchomy" && KierunekPasuje(s) && !SelectedModelType.Trim().Contains(s.WybranyTyp))
-                  .OrderBy(ObliczDopasowanie)
-                  .FirstOrDefault();
-
-                }
+                najlepszySasiad = sasiedzi
+                .Where(s => s.WybranyTyp == "Słupek ruchomy" && KierunekPasuje(s) && !SelectedModelType.Trim().Contains(s.WybranyTyp))
+                .OrderBy(ObliczDopasowanie)
+                .FirstOrDefault();
 
                 // 🔹 2. Jeśli nie znaleziono -> "Słupek ruchomy" BEZ KIERUNKU
                 if (najlepszySasiad == null)
@@ -5208,15 +5208,18 @@
                         .ToList();
 
                     // ✅ Najpierw przesuń punkty
-                    await WyliczObszarSkrzydla(
-                        state,
-                        przesLewo, przesPrawo,
-                        przesGora, przesDol,
-                        stronaLewa, stronaPrawa,
-                        generator, regionDoDodania
-                    );
+                    var test =   await WyliczObszarSkrzydla(
+                           state,
+                           przesLewo, przesPrawo,
+                           przesGora, przesDol,
+                           stronaLewa, stronaPrawa,
+                           generator, regionDoDodania
+                       );
 
-                    await Task.Delay(1); // krótkie opóźnienie dla stabilności
+                    if(test == null)
+                    {
+                        await _message.Error($"❌ WyliczObszarSkrzydla zakończony niepowodzeniem dla regionu {idRegion}. Sprawdź wymiary i kształt regionu.");
+                    }
 
                     // 4. Zapisz do stanu
                     state.ZIndeks = generator.Zindeks;
@@ -5612,9 +5615,9 @@
         }
 
         Console.WriteLine($"🔍 WyliczObszarSkrzydla START:");
-        Console.WriteLine($"   Początkowe przesunięcia: L={przesLewo}, P={przesPrawo}, G={przesGora}, D={przesDol}");
-        Console.WriteLine($"   Strona lewa: {stronaLewa}, Strona prawa: {stronaPrawa}");
-        Console.WriteLine($"   Liczba boków w state.ListaKwadratow: {state.ListaKwadratow.Count()}");
+        Console.WriteLine($"WyliczObszarSkrzydla   Początkowe przesunięcia: L={przesLewo}, P={przesPrawo}, G={przesGora}, D={przesDol}");
+        Console.WriteLine($"WyliczObszarSkrzydla   Strona lewa: {stronaLewa}, Strona prawa: {stronaPrawa}");
+        Console.WriteLine($"WyliczObszarSkrzydla   Liczba boków w state.ListaKwadratow: {state.ListaKwadratow.Count()}");
 
         // 🔹 Oblicz bounding box
         double minX = regionPointsSkrzydlo.Min(p => p.X);
@@ -5628,61 +5631,100 @@
         bool ustawionoGora = false;
         bool ustawionoDol = false;
 
+        List<PrzesuniecieDto> polaczenieWartosciAllSystem = new List<PrzesuniecieDto>();
+
+        var polaczenieFindWartosciAllSystem = await Http.GetAsync($"api/konfpolaczenie/find-by-elements-all-system/{state.RowIdSystemu}");
+
+        if (polaczenieFindWartosciAllSystem.IsSuccessStatusCode)
+        {
+            var result = await polaczenieFindWartosciAllSystem.Content.ReadFromJsonAsync<List<PrzesuniecieDto>>();
+            if (result != null)
+            {
+                polaczenieWartosciAllSystem = result;
+            }
+            else
+            {
+                Console.WriteLine("⚠️ Deserializacja zwróciła null dla polaczenieWartosciAllSystem");
+            }
+        }
+        else
+        {
+            Console.WriteLine($"❌ Błąd pobierania danych: {polaczenieFindWartosciAllSystem.StatusCode}");
+            // Opcjonalnie: rzuć wyjątek lub obsłuż błąd
+        }
+
+        await Task.Delay(200); // krótkie opóźnienie dla stabilności krótszy czas jest problem z pobieraniem danych z systemu, dłuższy czas powoduje lagi w interfejsie przy dużej ilości danych o połączeniach
+
         // 🔹 Pobierz przesunięcia z boków
         foreach (var bok in state.ListaKwadratow)
         {
-            Console.WriteLine($"📦 Sprawdzam bok: Element={bok.RowIdElementu}, Sąsiad={bok.RowIdSasiada}, Strona='{bok.Strona}'");
+            bok.Strona = StronaOknaHelper.OkreslStrone(bok.KatLinii); //Popraw stronę elementu!
 
-            var polaczenieWartosci = await PobierzPolaczenia(bok.RowIdSasiada, bok.RowIdElementu, bok.Strona ?? "NaN");
+            Console.WriteLine($"WyliczObszarSkrzydla 📦 Sprawdzam bok: Element={bok.RowIdElementu}, Sąsiad={bok.RowIdSasiada}, Strona='{bok.Strona}' KatLinii: {bok.KatLinii}");
+
+            List<PrzesuniecieDto> polaczenieWartosci;
+
+            if(polaczenieWartosciAllSystem == null || polaczenieWartosciAllSystem.Count == 0)
+            {
+                polaczenieWartosci = await PobierzPolaczenia(bok.RowIdSasiada, bok.RowIdElementu, bok.Strona ?? "NaN");
+                Console.WriteLine($"✅ WyliczObszarSkrzydla Dane o połączeniach w systemie: {polaczenieWartosciAllSystem.Count} rekordów - wolne działanie strona po stronie");
+            }
+            else
+            {
+                Console.WriteLine($"✅ WyliczObszarSkrzydla Dane o połączeniach w systemie: {polaczenieWartosciAllSystem.Count} rekordów - wszytkie z systemu");
+                polaczenieWartosci = polaczenieWartosciAllSystem.Where(x => string.Equals(x.Strona, bok.Strona, StringComparison.OrdinalIgnoreCase) 
+                && x.ElementZewnetrznyId == bok.RowIdSasiada && x.ElementWewnetrznyId == bok.RowIdElementu).ToList();
+            }
+
             var spolaczenieStrona = polaczenieWartosci.FirstOrDefault();
 
             double przesY = 0;
             if (spolaczenieStrona != null)
             {
                 przesY = Math.Abs(spolaczenieStrona.PrzesuniecieY);
-                Console.WriteLine($"   Znaleziono połączenie: PrzesuniecieY={spolaczenieStrona.PrzesuniecieY}, |Y|={przesY}");
+                Console.WriteLine($"WyliczObszarSkrzydla   Znaleziono połączenie: PrzesuniecieY={spolaczenieStrona.PrzesuniecieY}, |Y|={przesY}, Strona='{spolaczenieStrona.Strona}'");
             }
             else
             {
-                Console.WriteLine($"   Nie znaleziono połączenia dla strony '{bok.Strona}'");
+                Console.WriteLine($"WyliczObszarSkrzydla   Nie znaleziono połączenia dla strony '{bok.Strona}'");
             }
 
             string stronaNormalized = bok.Strona?.ToLower().Trim() ?? "";
-            Console.WriteLine($"   Znormalizowana strona: '{stronaNormalized}'");
+            Console.WriteLine($"WyliczObszarSkrzydla   Znormalizowana strona: '{stronaNormalized}'");
 
             switch (stronaNormalized)
             {
                 case "lewa":
                     przesLewo = przesY;
                     ustawionoLewa = true;
-                    Console.WriteLine($"   ✅ Ustawiono przesLewo = {przesY}");
+                    Console.WriteLine($"WyliczObszarSkrzydla   ✅ Ustawiono przesLewo = {przesY}");
                     break;
                 case "prawa":
                     przesPrawo = przesY;
                     ustawionoPrawa = true;
-                    Console.WriteLine($"   ✅ Ustawiono przesPrawo = {przesY}");
+                    Console.WriteLine($"WyliczObszarSkrzydla   ✅ Ustawiono przesPrawo = {przesY}");
                     break;
                 case "góra":
                 case "gora":
                     przesGora = przesY;
                     ustawionoGora = true;
-                    Console.WriteLine($"   ✅ Ustawiono przesGora = {przesY}");
+                    Console.WriteLine($"WyliczObszarSkrzydla   ✅ Ustawiono przesGora = {przesY}");
                     break;
                 case "dół":
                 case "dol":
                     przesDol = przesY;
                     ustawionoDol = true;
-                    Console.WriteLine($"   ✅ Ustawiono przesDol = {przesY}");
+                    Console.WriteLine($"WyliczObszarSkrzydla   ✅ Ustawiono przesDol = {przesY}");
                     break;
                 default:
-                    Console.WriteLine($"   ⚠️ Nieznana strona: '{bok.Strona}'");
+                    Console.WriteLine($"WyliczObszarSkrzydla   ⚠️ Nieznana strona: '{bok.Strona}'");
                     break;
             }
 
             // fallback tylko gdy brak sąsiada
             if (bok.RowIdSasiada == Guid.Empty)
             {
-                Console.WriteLine($"   ⚠️ Brak sąsiada (RowIdSasiada = Guid.Empty)");
+                Console.WriteLine($"WyliczObszarSkrzydla   ⚠️ Brak sąsiada (RowIdSasiada = Guid.Empty)");
 
                 var konf = generator.KonfiguracjeSystemu
                     .FirstOrDefault(s => s.RowId == bok.RowIdElementu);
@@ -5690,8 +5732,8 @@
                 if (konf != null)
                 {
                     double fallback = -((konf.PoziomDol ?? 0) - (konf.PoziomOsSymetrii ?? 0));
-                    Console.WriteLine($"   Konfiguracja znaleziona: PoziomDol={konf.PoziomDol}, PoziomOsSymetrii={konf.PoziomOsSymetrii}");
-                    Console.WriteLine($"   Fallback value: {fallback}");
+                    Console.WriteLine($"WyliczObszarSkrzydla   Konfiguracja znaleziona: PoziomDol={konf.PoziomDol}, PoziomOsSymetrii={konf.PoziomOsSymetrii}");
+                    Console.WriteLine($"WyliczObszarSkrzydla   Fallback value: {fallback}");
 
                     switch (stronaNormalized)
                     {
@@ -5700,7 +5742,7 @@
                             {
                                 przesLewo = fallback;
                                 ustawionoLewa = true;
-                                Console.WriteLine($"   🔄 Ustawiono fallback dla lewej: {fallback}");
+                                Console.WriteLine($"WyliczObszarSkrzydla   🔄 Ustawiono fallback dla lewej: {fallback}");
                             }
                             break;
                         case "prawa":
@@ -5708,41 +5750,40 @@
                             {
                                 przesPrawo = fallback;
                                 ustawionoPrawa = true;
-                                Console.WriteLine($"   🔄 Ustawiono fallback dla prawej: {fallback}");
+                                Console.WriteLine($"WyliczObszarSkrzydla   🔄 Ustawiono fallback dla prawej: {fallback}");
                             }
                             break;
                         case "góra":
                         case "gora":
                             przesGora = fallback;
                             ustawionoGora = true;
-                            Console.WriteLine($"   🔄 Ustawiono fallback dla góry: {fallback}");
+                            Console.WriteLine($"WyliczObszarSkrzydla   🔄 Ustawiono fallback dla góry: {fallback}");
                             break;
                         case "dół":
                         case "dol":
                             przesDol = fallback;
                             ustawionoDol = true;
-                            Console.WriteLine($"   🔄 Ustawiono fallback dla dołu: {fallback}");
+                            Console.WriteLine($"WyliczObszarSkrzydla   🔄 Ustawiono fallback dla dołu: {fallback}");
                             break;
                     }
                 }
                 else
                 {
-                    Console.WriteLine($"   ❌ Nie znaleziono konfiguracji dla RowIdElementu={bok.RowIdElementu}");
+                    Console.WriteLine($"WyliczObszarSkrzydla   ❌ Nie znaleziono konfiguracji dla RowIdElementu={bok.RowIdElementu}");
                 }
             }
             else
             {
-                Console.WriteLine($"   ✅ Sąsiad istnieje: {bok.RowIdSasiada}");
+                Console.WriteLine($"WyliczObszarSkrzydla   ✅ Sąsiad istnieje: {bok.RowIdSasiada}");
             }
         }
 
         // 🔹 Podsumowanie ustawionych przesunięć
-        Console.WriteLine($"📊 PODSUMOWANIE PRZESUNIĘĆ:");
-        Console.WriteLine($"📊 PODSUMOWANIE PRZESUNIĘĆ Lewa:  {przesLewo} (ustawiono: {ustawionoLewa})");
-        Console.WriteLine($"📊 PODSUMOWANIE PRZESUNIĘĆ  Prawa: {przesPrawo} (ustawiono: {ustawionoPrawa})");
-        Console.WriteLine($"📊 PODSUMOWANIE PRZESUNIĘĆ Góra:  {przesGora} (ustawiono: {ustawionoGora})");
-        Console.WriteLine($"📊 PODSUMOWANIE PRZESUNIĘĆ  Dół:   {przesDol} (ustawiono: {ustawionoDol})");
-
+        Console.WriteLine($"WyliczObszarSkrzydla   📊 PODSUMOWANIE PRZESUNIĘĆ:");
+        Console.WriteLine($"WyliczObszarSkrzydla   📊 PODSUMOWANIE PRZESUNIĘĆ Lewa:  {przesLewo} (ustawiono: {ustawionoLewa})");
+        Console.WriteLine($"WyliczObszarSkrzydla   📊 PODSUMOWANIE PRZESUNIĘĆ  Prawa: {przesPrawo} (ustawiono: {ustawionoPrawa})");
+        Console.WriteLine($"WyliczObszarSkrzydla   📊 PODSUMOWANIE PRZESUNIĘĆ Góra:  {przesGora} (ustawiono: {ustawionoGora})");
+        Console.WriteLine($"WyliczObszarSkrzydla   📊 PODSUMOWANIE PRZESUNIĘĆ  Dół:   {przesDol} (ustawiono: {ustawionoDol})");
         // 🔹 Sprawdź które strony nie zostały ustawione
         var nieustawioneStrony = new List<string>();
         if (!ustawionoLewa) nieustawioneStrony.Add("lewa");
@@ -5752,17 +5793,17 @@
 
         if (nieustawioneStrony.Any())
         {
-            Console.WriteLine($"⚠️  Nie ustawiono przesunięć dla stron: {string.Join(", ", nieustawioneStrony)}");
+            Console.WriteLine($"WyliczObszarSkrzydla ⚠️  Nie ustawiono przesunięć dla stron: {string.Join(", ", nieustawioneStrony)}");
         }
 
         // 🔹 Sprawdź jakie strony są dostępne w danych
-        Console.WriteLine($"\n🔍 ANALIZA DOSTĘPNYCH STRON W state.ListaKwadratow:");
+        Console.WriteLine($"\n WyliczObszarSkrzydla 🔍 ANALIZA DOSTĘPNYCH STRON W state.ListaKwadratow:");
         var wszystkieStrony = state.ListaKwadratow
             .Select(b => b.Strona?.ToLower().Trim() ?? "")
             .Distinct()
             .ToList();
 
-        Console.WriteLine($"   Dostępne strony: {string.Join(", ", wszystkieStrony)}");
+        Console.WriteLine($"WyliczObszarSkrzydla   Dostępne strony: {string.Join(", ", wszystkieStrony)}");
 
         // 🔹 Sprawdź czy są wszystkie wymagane strony
         var wymaganeStrony = new List<string> { "lewa", "prawa", "góra", "dół" };
@@ -5772,7 +5813,7 @@
 
         if (brakujaceStrony.Any())
         {
-            Console.WriteLine($"❌ Brakuje konfiguracji dla stron: {string.Join(", ", brakujaceStrony)}");
+            Console.WriteLine($"WyliczObszarSkrzydla ❌ Brakuje konfiguracji dla stron: {string.Join(", ", brakujaceStrony)}");
 
             // Sprawdź czy może są w innej formie
             foreach (var strona in brakujaceStrony)
@@ -5787,7 +5828,7 @@
 
                 if (alternatywy.Any())
                 {
-                    Console.WriteLine($"   Możliwe alternatywy dla '{strona}': {string.Join(", ", alternatywy)}");
+                    Console.WriteLine($"WyliczObszarSkrzydla   Możliwe alternatywy dla '{strona}': {string.Join(", ", alternatywy)}");
                 }
             }
         }
@@ -5851,8 +5892,8 @@
         regionPointsSkrzydlo = nowePunkty;
 
         double minXSPRAWDZENIE = regionPointsSkrzydlo.Min(p => p.X);
-        Console.WriteLine($"\n📦📦📦 Po przesunięciu minX: {minXSPRAWDZENIE}");
-        Console.WriteLine($"   Finalne przesunięcia: L={przesLewo}, P={przesPrawo}, G={przesGora}, D={przesDol}");
+        Console.WriteLine($"\n WyliczObszarSkrzydla 📦📦📦 Po przesunięciu minX: {minXSPRAWDZENIE}");
+        Console.WriteLine($"WyliczObszarSkrzydla   Finalne przesunięcia: L={przesLewo}, P={przesPrawo}, G={przesGora}, D={przesDol}");
 
         // 🔹 Zaktualizuj offsety w stanie
         if (state != null && state.ListaKwadratow.Count() > 0)
@@ -5862,11 +5903,11 @@
             state.ListaKwadratow[^1].OffsetTop = przesGora;
             state.ListaKwadratow[^1].OffsetBottom = przesDol;
 
-            Console.WriteLine($"💾 Zapisano offsety w state:");
-            Console.WriteLine($"   OffsetLeft: {state.ListaKwadratow[^1].OffsetLeft}");
-            Console.WriteLine($"   OffsetRight: {state.ListaKwadratow[^1].OffsetRight}");
-            Console.WriteLine($"   OffsetTop: {state.ListaKwadratow[^1].OffsetTop}");
-            Console.WriteLine($"   OffsetBottom: {state.ListaKwadratow[^1].OffsetBottom}");
+            Console.WriteLine($"WyliczObszarSkrzydla 💾 Zapisano offsety w state:");
+            Console.WriteLine($"WyliczObszarSkrzydla   OffsetLeft: {state.ListaKwadratow[^1].OffsetLeft}");
+            Console.WriteLine($"WyliczObszarSkrzydla   OffsetRight: {state.ListaKwadratow[^1].OffsetRight}");
+            Console.WriteLine($"WyliczObszarSkrzydla   OffsetTop: {state.ListaKwadratow[^1].OffsetTop}");
+            Console.WriteLine($"WyliczObszarSkrzydla   OffsetBottom: {state.ListaKwadratow[^1].OffsetBottom}");
         }
 
         _regionsSkrzydlo.Wierzcholki = regionPointsSkrzydlo;
@@ -5877,45 +5918,45 @@
         if (przesLewo == 0 && ustawionoLewa)
         {
             _message.Warning($"Nie wykryto przesunięcia z lewej strony skrzydła. Upewnij się, że sąsiad po lewej stronie jest poprawnie skonfigurowany.");
-            Console.WriteLine($"⚠️  Ostrzeżenie: przesLewo = 0 (ale strona była ustawiona)");
+            Console.WriteLine($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: przesLewo = 0 (ale strona była ustawiona)");
         }
         else if (!ustawionoLewa)
         {
             _message.Warning($"Brak konfiguracji dla lewej strony skrzydła.");
-            Console.WriteLine($"⚠️  Ostrzeżenie: brak ustawienia lewej strony");
+            Console.WriteLine($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: brak ustawienia lewej strony");
         }
 
         if (przesPrawo == 0 && ustawionoPrawa)
         {
             _message.Warning($"Nie wykryto przesunięcia z prawej strony skrzydła. Upewnij się, że sąsiad po prawej stronie jest poprawnie skonfigurowany.");
-            Console.WriteLine($"⚠️  Ostrzeżenie: przesPrawo = 0 (ale strona była ustawiona)");
+            Console.WriteLine($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: przesPrawo = 0 (ale strona była ustawiona)");
         }
         else if (!ustawionoPrawa)
         {
             _message.Warning($"Brak konfiguracji dla prawej strony skrzydła.");
-            Console.WriteLine($"⚠️  Ostrzeżenie: brak ustawienia prawej strony");
+            Console.WriteLine($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: brak ustawienia prawej strony");
         }
 
         if (przesGora == 0 && ustawionoGora)
         {
             _message.Warning($"Nie wykryto przesunięcia z góry skrzydła. Upewnij się, że sąsiad po stronie górnej jest poprawnie skonfigurowany.");
-            Console.WriteLine($"⚠️  Ostrzeżenie: przesGora = 0 (ale strona była ustawiona)");
+            Console.WriteLine($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: przesGora = 0 (ale strona była ustawiona)");
         }
         else if (!ustawionoGora)
         {
             _message.Warning($"Brak konfiguracji dla górnej strony skrzydła.");
-            Console.WriteLine($"⚠️  Ostrzeżenie: brak ustawienia górnej strony");
+            Console.WriteLine($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: brak ustawienia górnej strony");
         }
 
         if (przesDol == 0 && ustawionoDol)
         {
             _message.Warning($"Nie wykryto przesunięcia z dołu skrzydła. Upewnij się, że sąsiad po stronie dolnej jest poprawnie skonfigurowany.");
-            Console.WriteLine($"⚠️  Ostrzeżenie: przesDol = 0 (ale strona była ustawiona)");
+            Console.WriteLine($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: przesDol = 0 (ale strona była ustawiona)");
         }
         else if (!ustawionoDol)
         {
             _message.Warning($"Brak konfiguracji dla dolnej strony skrzydła.");
-            Console.WriteLine($"⚠️  Ostrzeżenie: brak ustawienia dolnej strony");
+            Console.WriteLine($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: brak ustawienia dolnej strony");
         }
 
         await Task.Delay(5); // krótkie opóźnienie dla stabilności
@@ -6010,13 +6051,13 @@
             {
                 var lista = await response.Content.ReadFromJsonAsync<List<PrzesuniecieDto>>();
 
-                if (lista != null && lista.Count() > 0)
-                {
-                    foreach (var item in lista)
-                    {
-                        Console.WriteLine($"📦 PobierzPolaczenia-> : PrzesuniecieX: {item.PrzesuniecieX}, PrzesuniecieY: {item.PrzesuniecieY}");
-                    }
-                }
+                // if (lista != null && lista.Count() > 0)
+                // {
+                //     foreach (var item in lista)
+                //     {
+                //         Console.WriteLine($"📦 PobierzPolaczenia-> : PrzesuniecieX: {item.PrzesuniecieX}, PrzesuniecieY: {item.PrzesuniecieY}");
+                //     }
+                // }
 
                 return lista ?? new List<PrzesuniecieDto>();
             }

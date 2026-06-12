@@ -84,6 +84,55 @@ namespace GEORGE.Server.Controllers
             }
         }
 
+        [HttpGet("find-by-elements-all-system/{sysId:guid}")]
+        public async Task<ActionResult<List<PrzesuniecieDto>>> GetByElementAllElementSystem(Guid sysId)
+        {
+            try
+            {
+                var query = _context.KonfPolaczenie
+                .Where(p =>
+                    p.RowIdSystem == sysId);
+
+                 var records = await query
+                    .Select(p => new PrzesuniecieDto
+                    {
+                        PrzesuniecieX = p.PrzesuniecieX == 0 ? 1 : p.PrzesuniecieX,
+                        PrzesuniecieY = p.PrzesuniecieY == 0 ? 1 : p.PrzesuniecieY,
+                        PrzesuniecieXStycznej = p.PrzesuniecieXStycznej == 0 ? 1 : p.PrzesuniecieXStycznej,
+                        PrzesuniecieYStycznej = p.PrzesuniecieYStycznej == 0 ? 1 : p.PrzesuniecieYStycznej,
+                        ElementWewnetrznyId = p.ElementWewnetrznyId,
+                        ElementZewnetrznyId = p.ElementZewnetrznyId,
+                        Strona = p.StronaPolaczenia ?? "BRAK DANYCH W BAZIE" // Jeśli StronaPolaczenia jest null, ustawiamy "NaN"
+                    })
+                    .ToListAsync();
+
+                if (records == null || records.Count == 0)
+                {
+                    // Brak wyników → zwracamy domyślną wartość 0,0
+                    records = new List<PrzesuniecieDto>
+                {
+                    new PrzesuniecieDto
+                    {
+                        PrzesuniecieX = 1,
+                        PrzesuniecieY = 1,
+                        PrzesuniecieXStycznej = 1,
+                        PrzesuniecieYStycznej = 1,
+                        ElementWewnetrznyId = Guid.Empty,
+                        ElementZewnetrznyId = Guid.Empty,
+                        Strona = "NaN"
+                    }
+                };
+                    Console.WriteLine($"Brak wyników, zwracam domyślną wartość 0,0 sysId: {sysId}");
+                }
+
+                return records;
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Błąd serwera: {ex.Message}");
+            }
+        }
+
         [HttpGet("find-shifts/{zewId:guid}/{wewId:guid}/{strona}")]
         public async Task<ActionResult<List<PrzesuniecieDto>>> GetShifts(Guid zewId, Guid wewId, string strona)
         {
@@ -107,6 +156,8 @@ namespace GEORGE.Server.Controllers
                         PrzesuniecieY = p.PrzesuniecieY == 0 ? 1 : p.PrzesuniecieY,
                         PrzesuniecieXStycznej = p.PrzesuniecieXStycznej == 0 ? 1 : p.PrzesuniecieXStycznej,
                         PrzesuniecieYStycznej = p.PrzesuniecieYStycznej == 0 ? 1 : p.PrzesuniecieYStycznej,
+                        ElementWewnetrznyId = p.ElementWewnetrznyId,
+                        ElementZewnetrznyId = p.ElementZewnetrznyId,
                         Strona = p.StronaPolaczenia ?? "BRAK DANYCH W BAZIE" // Jeśli StronaPolaczenia jest null, ustawiamy "NaN"
                     })
                     .ToListAsync();

@@ -588,20 +588,20 @@ namespace GEORGE.Client.Pages.Okna
 
             var polaczeniaArray = parsedConnections.ToArray();
 
-            for (int i = 0; i < polaczeniaArray.Count(); i++)
-            {
-                Console.WriteLine($"🔷🔷 polaczeniaArray {i}: Join Kat: {polaczeniaArray[i].kat} Typ: {polaczeniaArray[i].typ}");
-            }
+            //for (int i = 0; i < polaczeniaArray.Count(); i++)
+            //{
+            //    Console.WriteLine($"🔷🔷 polaczeniaArray {i}: Join Kat: {polaczeniaArray[i].kat} Typ: {polaczeniaArray[i].typ}");
+            //}
 
-            foreach (var test in inner)
-            {
-                Console.WriteLine($"🔷🔷 inner point X: {test.X} Y: {test.Y}");
-            }
+            //foreach (var test in inner)
+            //{
+            //    Console.WriteLine($"🔷🔷 inner point X: {test.X} Y: {test.Y}");
+            //}
 
-            foreach (var test in outer)
-            {
-                Console.WriteLine($"🔷🔷 outer point X: {test.X} Y: {test.Y}");
-            }
+            //foreach (var test in outer)
+            //{
+            //    Console.WriteLine($"🔷🔷 outer point X: {test.X} Y: {test.Y}");
+            //}
 
             // =============================
             // 1️⃣ Stwórz tablicę połączeń dla wszystkich boków
@@ -621,7 +621,7 @@ namespace GEORGE.Client.Pages.Okna
                 string strona = StronaOknaHelper.OkreslStrone(kat);
                 wzorzecPolaczen[strona] = typ;
 
-                Console.WriteLine($"📐 Wzorzec: kąt {kat}° → strona {strona} → typ {typ}");
+             //   Console.WriteLine($"📐 Wzorzec: kąt {kat}° → strona {strona} → typ {typ}");
             }
 
             Console.WriteLine($"🔷🔷 Wzorzec połączeń dla stron: outer: {outer.Count} vertexCount:{vertexCount}");
@@ -649,11 +649,11 @@ namespace GEORGE.Client.Pages.Okna
                 elementyWedlugStron[strona].Add(i);
             }
 
-            // Debug: pokażmy zliczone elementy
-            foreach (var kv in elementyWedlugStron)
-            {
-                Console.WriteLine($"📊 Strona {kv.Key}: {kv.Value.Count} elementów - indeksy: [{string.Join(", ", kv.Value)}]");
-            }
+            //// Debug: pokażmy zliczone elementy
+            //foreach (var kv in elementyWedlugStron)
+            //{
+            //    Console.WriteLine($"📊 Strona {kv.Key}: {kv.Value.Count} elementów - indeksy: [{string.Join(", ", kv.Value)}]");
+            //}
 
             // =============================
             // 2️⃣ Tworzymy mapowanie typów dla narożników
@@ -673,7 +673,7 @@ namespace GEORGE.Client.Pages.Okna
                         // Używamy typu z pierwszego elementu tej strony
                         string typ = wzorzecPolaczen.ContainsKey(stronaA) ? wzorzecPolaczen[stronaA] : "T3";
                         typyNaroznikow[klucz] = typ;
-                        Console.WriteLine($"🔗 Połączenie {klucz} (ta sama strona) → typ {typ}");
+                       // Console.WriteLine($"🔗 Połączenie {klucz} (ta sama strona) → typ {typ}");
                     }
                     else
                     {
@@ -686,7 +686,7 @@ namespace GEORGE.Client.Pages.Okna
                         // Spróbujmy: typ pochodzi z DRUGIEJ strony (stronaB)
                         string typ = wzorzecPolaczen.ContainsKey(stronaB) ? wzorzecPolaczen[stronaB] : "T3";
                         typyNaroznikow[klucz] = typ;
-                        Console.WriteLine($"🔗 Połączenie {klucz} (różne strony) → typ {typ} (ze strony {stronaB})");
+                      //  Console.WriteLine($"🔗 Połączenie {klucz} (różne strony) → typ {typ} (ze strony {stronaB})");
                     }
                 }
             }
@@ -843,6 +843,12 @@ namespace GEORGE.Client.Pages.Okna
 
                 // Teraz możesz użyć angleDegreesStronaA i angleDegreesStronaB
                 Console.WriteLine($"Wierzchołek {i}: Kąt z poprzednim = {angleDegreesStronaA:F1}°, Kąt z następnym = {angleDegreesStronaB:F1}°");
+
+                if (angleDegreesStronaB < 20)
+                {
+                    // Jeśli kąt z następnym jest bardzo mały, traktujemy to jako prawie prostą linię → potencjalnie T1
+                    rightJoin = "T2"; // połączone równym kątem
+                }
 
                 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -1187,8 +1193,11 @@ namespace GEORGE.Client.Pages.Okna
                 else if (leftJoin == "T1" && rightJoin == "T1")
                 {
                     Console.WriteLine($"🔷 T1/T1 element {i + 1} START isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical} vertexCount: {vertexCount} angleDegrees: {angleDegrees} firstangleDegrees: {firstangleDegrees}");
+                    
                     List<XPoint> getStartT1 = GetStartT1(inner[i], outer[i], outer, angleDegrees, anglePrev, angleNext,
-                        StronaElementu, stonaOstanioDodanegoElementu, vertexCount < 6 ? -1 : i);
+                        StronaElementu, stonaOstanioDodanegoElementu, vertexCount < 6 || (vertexCount == 7 && angleDegrees > 299) ? -1 : i);
+
+
                     List<XPoint> getEndT1;
                     var _anglePrev = anglePrev;
                     if (i == vertexCount - 1)
@@ -1196,7 +1205,7 @@ namespace GEORGE.Client.Pages.Okna
                         _anglePrev = firstangleDegrees;
                     }
                     getEndT1 = GetEndT1(inner[next], outer[next], outer, angleDegrees, _anglePrev, angleNext, StronaElementu,
-                        stonaOstanioDodanegoElementu, vertexCount < 6 ? -1 : i);
+                        stonaOstanioDodanegoElementu, vertexCount < 6 || (vertexCount == 7 && angleDegrees > 270) ? -1 : i);
 
                     wierzcholki = new List<XPoint> {
                             getStartT1[1], getEndT1[1], getEndT1[0], getStartT1[0]

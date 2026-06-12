@@ -14,5 +14,7 @@ namespace GEORGE.Shared.ViewModels
         public double PrzesuniecieXStycznej { get; set; }
         public double PrzesuniecieYStycznej { get; set; }
         public string Strona { get; set; } = string.Empty; // Pobrane z bazy informacje o stronie lewa/prawa/góra/dół
+        public Guid ElementZewnetrznyId { get; set; }
+        public Guid ElementWewnetrznyId { get; set; }
     }
 }
