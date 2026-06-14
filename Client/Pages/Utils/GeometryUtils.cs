@@ -17,7 +17,7 @@ namespace GEORGE.Client.Pages.Utils
 
             var regions = new List<ShapeRegion>();
 
-            Console.WriteLine($"🔲 Generowanie regionów z podziału dla {shapes.Count} kształtów. {_szerokosc}x{_wysokosc} typ rama: {rama}");
+            //Console.WriteLine($"🔲 Generowanie regionów z podziału dla {shapes.Count} kształtów. {_szerokosc}x{_wysokosc} typ rama: {rama}");
 
             var shapesDoRegionow = shapes.Where(s =>
                 s is XRectangleShape or XSquareShape or XTriangleShape
@@ -80,7 +80,7 @@ namespace GEORGE.Client.Pages.Utils
                     _ => "Brak podziału"
                 };
 
-                Console.WriteLine($"🔲 Generowanie regionów z podziału dla {shapes.Count} kształtów. {_szerokosc}x{_wysokosc} typLinii: {typLinii}");
+                //Console.WriteLine($"🔲 Generowanie regionów z podziału dla {shapes.Count} kształtów. {_szerokosc}x{_wysokosc} typLinii: {typLinii}");
 
                 if (pts == null) continue;
 
@@ -293,9 +293,9 @@ namespace GEORGE.Client.Pages.Utils
 
                                 bool reversed = reverse;
 
-                                Console.WriteLine(
-                                    $"🔍 XRoundedRectangleShape match: " +
-                                    $"Start({seg.Start.X},{seg.Start.Y}) End({seg.End.X},{seg.End.Y}) Reversed={reversed}");
+                                //Console.WriteLine(
+                                //    $"🔍 XRoundedRectangleShape match: " +
+                                //    $"Start({seg.Start.X},{seg.Start.Y}) End({seg.End.X},{seg.End.Y}) Reversed={reversed}");
 
                                 ContourSegment result;
 
@@ -459,7 +459,7 @@ namespace GEORGE.Client.Pages.Utils
 
                     var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace, id, rama);
 
-                    Console.WriteLine($"🔲 Generowanie regionów PodzielRegionRekurencyjnie podzielone.Count: {podzielone.Count} id:{id}");
+                   // Console.WriteLine($"🔲 Generowanie regionów PodzielRegionRekurencyjnie podzielone.Count: {podzielone.Count} id:{id}");
 
                     int idCounter = 0;
 
@@ -598,7 +598,7 @@ namespace GEORGE.Client.Pages.Utils
 
                         r.RozpoznajTyp(r.TypKsztaltu);
 
-                        Console.WriteLine($"🔹 Region id: {r.Id} po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - RAMA");
+                       // Console.WriteLine($"🔹 Region id: {r.Id} po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - RAMA");
 
                         if (r.TypKsztaltu == "xhouseshape" && r.Wierzcholki.Count == 4)
                         {
@@ -635,7 +635,7 @@ namespace GEORGE.Client.Pages.Utils
                         .Where(l => l.DualRama || l.StalySlupek || l.RuchomySlupek)
                         .ToList();
 
-                    Console.WriteLine($"🔲 Generowanie regionów bez ramy dla shape id: {initial.Id} id: {id}");
+                    //Console.WriteLine($"🔲 Generowanie regionów bez ramy dla shape id: {initial.Id} id: {id}");
 
                     List<ShapeRegion> podzielone;
                     List<XPoint> napraw;
@@ -743,7 +743,7 @@ namespace GEORGE.Client.Pages.Utils
                                 r.RozpoznajTyp(r.TypKsztaltu);
                             }
 
-                            Console.WriteLine($"🔹 Region po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - SKRZYDŁO (bez podziału)");
+                         //   Console.WriteLine($"🔹 Region po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - SKRZYDŁO (bez podziału)");
 
                             if (r.TypKsztaltu == "xhouseshape" && r.Wierzcholki.Count == 4)
                             {
@@ -792,10 +792,11 @@ namespace GEORGE.Client.Pages.Utils
                     else
                     {
                         // SĄ LINIE DZIELĄCE - wykonaj podział
-                        Console.WriteLine($"✅ Znaleziono {linieDzielace.Count} linii dzielących - wykonuję podział");
+                        //Console.WriteLine($"✅ Znaleziono {linieDzielace.Count} linii dzielących - wykonuję podział");
                         podzielone = PodzielRegionRekurencyjnieDeterministycznie(initial, linieDzielace, id, rama);
 
-                        Console.WriteLine($"🔲 Generowanie regionów PodzielRegionRekurencyjnieDeterministycznie podzielone.Count: {podzielone.Count}");
+      
+                        //Console.WriteLine($"🔲 Generowanie regionów PodzielRegionRekurencyjnieDeterministycznie podzielone.Count: {podzielone.Count}");
 
                         foreach (var r in podzielone)
                         {
@@ -935,7 +936,7 @@ namespace GEORGE.Client.Pages.Utils
 
                             r.RozpoznajTyp(r.TypKsztaltu);
 
-                            Console.WriteLine($"🔹 Region po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - SKRZYDŁO (z podziałem)");
+                           // Console.WriteLine($"🔹 Region po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - SKRZYDŁO (z podziałem)");
 
                             if (r.TypKsztaltu == "xhouseshape" && r.Wierzcholki.Count == 4)
                             {
@@ -980,6 +981,8 @@ namespace GEORGE.Client.Pages.Utils
 
 
                             FixAndSynchronizeContour(r);
+
+                            await Task.Delay(1);
 
                             if (r.Wierzcholki.Count() < 2) r.Wierzcholki = napraw;
 
@@ -1136,12 +1139,30 @@ namespace GEORGE.Client.Pages.Utils
                             // Dopasowanie konturu do poligonu
                             var kontur = i < splitFullKontur.Count ? splitFullKontur[i] : splitFullKontur.Last();
 
+                            var bokiPoly = Enumerable.Range(0, poly.Count)
+                              .Select(i => (
+                                  Start: poly[i],
+                                  End: poly[(i + 1) % poly.Count]
+                              ))
+                              .ToList();
+
+                            var linieRegionu = r.LinieDzielace
+                                .Where(l => bokiPoly.Any(b =>
+                                    CzyToTenSamOdcinek(
+                                    new XPoint(l.X1, l.Y1),
+                                    new XPoint(l.X2, l.Y2),
+                                    b.Start,
+                                    b.End)))
+                                .ToList();
+
+                            linieRegionu.Add(line);
+
                             next.Add(new ShapeRegion
                             {
                                 Wierzcholki = poly,
                                 Kontur = kontur,
                                 TypKsztaltu = r.TypKsztaltu,
-                                LinieDzielace = r.LinieDzielace.Concat(new[] { line }).ToList(),
+                                LinieDzielace = linieRegionu,
                                 IdMaster = idMaster,
                                 Rama = rama,
                                 Id = r.Id + "_" + line.ID + "_" + Guid.NewGuid().ToString(),
@@ -1199,12 +1220,30 @@ namespace GEORGE.Client.Pages.Utils
 
                             string newId = $"{rootId}|L{indexLinii}|C{indexChild}";
 
+                            var bokiPoly = Enumerable.Range(0, poly.Count)
+                            .Select(i => (
+                                Start: poly[i],
+                                End: poly[(i + 1) % poly.Count]
+                            ))
+                            .ToList();
+
+                            var linieRegionu = r.LinieDzielace
+                                .Where(l => bokiPoly.Any(b =>
+                                    CzyToTenSamOdcinek(
+                                    new XPoint(l.X1, l.Y1),
+                                    new XPoint(l.X2, l.Y2),
+                                    b.Start,
+                                    b.End)))
+                                .ToList();
+
+                            linieRegionu.Add(line);
+
                             next.Add(new ShapeRegion
                             {
                                 Wierzcholki = poly,
                                 Kontur = kontur,
                                 TypKsztaltu = r.TypKsztaltu,
-                                LinieDzielace = r.LinieDzielace.Concat(new[] { line }).ToList(),
+                                LinieDzielace = linieRegionu,
                                 IdMaster = rootId,
                                 Rama = rama,
                                 Id = newId,
@@ -1278,7 +1317,7 @@ namespace GEORGE.Client.Pages.Utils
                 }
             }
 
-            Console.WriteLine($"PodzielKonturPoLinii Znaleziono {uniqueIntersectionPoints.Count} unikalnych punktów przecięcia");
+           // Console.WriteLine($"PodzielKonturPoLinii Znaleziono {uniqueIntersectionPoints.Count} unikalnych punktów przecięcia");
 
             if (uniqueIntersectionPoints.Count < 2)
                 return new List<List<ContourSegment>> { new List<ContourSegment>(contour) };
@@ -1291,7 +1330,7 @@ namespace GEORGE.Client.Pages.Utils
             var p1 = orderedPoints.First();
             var p2 = orderedPoints.Last();
 
-            Console.WriteLine($"PodzielKonturPoLinii P1: ({p1.X:F2},{p1.Y:F2}), P2: ({p2.X:F2},{p2.Y:F2})");
+           // Console.WriteLine($"PodzielKonturPoLinii P1: ({p1.X:F2},{p1.Y:F2}), P2: ({p2.X:F2},{p2.Y:F2})");
 
             // Krok 2: Przypisz każdy segment do lewej lub prawej strony
             var leftSegments = new List<ContourSegment>();
@@ -1358,8 +1397,8 @@ namespace GEORGE.Client.Pages.Utils
                 }
             }
 
-            Console.WriteLine($"PodzielKonturPoLinii Lewa strona: {leftSegments.Count} segmentów");
-            Console.WriteLine($"PodzielKonturPoLinii Prawa strona: {rightSegments.Count} segmentów");
+           // Console.WriteLine($"PodzielKonturPoLinii Lewa strona: {leftSegments.Count} segmentów");
+           // Console.WriteLine($"PodzielKonturPoLinii Prawa strona: {rightSegments.Count} segmentów");
 
             // Krok 3: Dodaj linię podziału
             if (leftSegments.Count > 0 && rightSegments.Count > 0)
@@ -1389,6 +1428,22 @@ namespace GEORGE.Client.Pages.Utils
             return result;
         }
 
+        private static bool CzyToTenSamOdcinek(
+        XPoint a1, XPoint a2,
+        XPoint b1, XPoint b2,
+        double eps = 0.001)
+        {
+            return
+            (
+                Distance(a1, b1) < eps &&
+                Distance(a2, b2) < eps
+            )
+            ||
+            (
+                Distance(a1, b2) < eps &&
+                Distance(a2, b1) < eps
+            );
+        }
 
         static double ProjectAlongLine(XPoint p, XLineShape line)
         {

@@ -40,6 +40,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         public const string DomyslnyTypUszczelek = "Standardowe";
         public const string DomyslnyTypOslonPrzeciwsłonecznych = "Brak";
         public const string DomyslnyTypMontazu = "Standard";
+        public string Komunikaty { get; set; }
 
         public ConstWlasciwosciOkna()
         {
@@ -66,6 +67,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             TypUszczelek = DomyslnyTypUszczelek;
             TypOslonPrzeciwsłonecznych = DomyslnyTypOslonPrzeciwsłonecznych;
             TypMontazu = DomyslnyTypMontazu;
+            Komunikaty = string.Empty;
         }
 
         /// <summary>

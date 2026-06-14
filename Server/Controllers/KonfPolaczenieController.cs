@@ -292,5 +292,42 @@ namespace GEORGE.Server.Controllers
             return Ok(existing);
         }
 
+        // Nowa metoda dla RowId (używana przez frontend)
+        [HttpPut("{rowId:guid}")]
+        public async Task<ActionResult> UpdateByRowId(Guid rowId, [FromBody] KonfPolaczenie updated)
+        {
+            if (updated == null)
+                return BadRequest("Nieprawidłowe dane");
+
+            try
+            {
+                var existing = await _context.KonfPolaczenie
+                    .FirstOrDefaultAsync(p => p.RowId == rowId);
+
+                if (existing == null)
+                    return NotFound($"Nie znaleziono połączenia o RowId: {rowId}");
+
+                // Aktualizuj tylko edytowalne właściwości
+                if (!string.IsNullOrEmpty(updated.OpisPolaczenia))
+                    existing.OpisPolaczenia = updated.OpisPolaczenia;
+
+                if (!string.IsNullOrEmpty(updated.StronaPolaczenia))
+                    existing.StronaPolaczenia = updated.StronaPolaczenia;
+
+                existing.PrzesuniecieX = updated.PrzesuniecieX;
+                existing.PrzesuniecieY = updated.PrzesuniecieY;
+                existing.PrzesuniecieXStycznej = updated.PrzesuniecieXStycznej;
+                existing.PrzesuniecieYStycznej = updated.PrzesuniecieYStycznej;
+                existing.ZapisanyKat = updated.ZapisanyKat;
+
+                await _context.SaveChangesAsync();
+                return Ok(existing);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Błąd podczas aktualizacji: {ex.Message}");
+            }
+        }
+
     }
 }

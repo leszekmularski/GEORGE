@@ -15,7 +15,7 @@
     {
         public double Value
         {
-            get => GetValue();
+            get => Math.Round(GetValue(), 1);
             set
             {
                 if (!IsReadOnly) SetValue(value);

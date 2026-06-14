@@ -806,6 +806,7 @@
         </div>
     </div>
     <Tabs OnChange="OnTabChange">
+
         <TabPane Key="0" Tab="Istniejące konfiguracje">
             <h4>
                 Lista zapisanych połączeń (@(listaPolaczen?.Count() ?? 0))
@@ -831,7 +832,7 @@
                             <th>X [mm]</th>
                             <th>Y [mm]</th>
                             <th>Kąt [°]</th>
-                            <th>Akcja</th>
+                            <th style="width: 120px;">Akcja</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -841,32 +842,31 @@
                                 <td>
                                     @if (polaczenie.RysunekPrzekroju?.Length > 20 && polaczenie.RysunekPrzekrojuStyczny?.Length > 20)
                                     {
-
                                         <a target="_blank" href="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)">
-                                            <img title="zew:@polaczenie.ElementZewnetrznyId wew:@polaczenie.ElementWewnetrznyId" src="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)"
-                                                     style="width: 150px; height: auto; object-fit: contain; border: 1px solid #ccc;" />
-
+                                            <img title="zew:@polaczenie.ElementZewnetrznyId wew:@polaczenie.ElementWewnetrznyId"
+                                                 src="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)"
+                                                 style="width: 150px; height: auto; object-fit: contain; border: 1px solid #ccc;" />
                                         </a>
                                         <a target="_blank" href="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekrojuStyczny)">
-                                            <img title="Połączenie styczne zew:@polaczenie.ElementZewnetrznyId wew:@polaczenie.ElementWewnetrznyId" src="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekrojuStyczny)"
+                                            <img title="Połączenie styczne zew:@polaczenie.ElementZewnetrznyId wew:@polaczenie.ElementWewnetrznyId"
+                                                 src="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekrojuStyczny)"
                                                  style="width: 150px; height: auto; object-fit: contain; border: 1px solid #ccc;" />
-
                                         </a>
                                     }
-                                    else if(polaczenie.RysunekPrzekroju?.Length > 20 && polaczenie.RysunekPrzekrojuStyczny?.Length < 20)
+                                    else if (polaczenie.RysunekPrzekroju?.Length > 20 && polaczenie.RysunekPrzekrojuStyczny?.Length < 20)
                                     {
                                         <a target="_blank" href="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)">
-                                            <img title="zew:@polaczenie.ElementZewnetrznyId wew:@polaczenie.ElementWewnetrznyId" src="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)"
+                                            <img title="zew:@polaczenie.ElementZewnetrznyId wew:@polaczenie.ElementWewnetrznyId"
+                                                 src="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)"
                                                  style="width: 150px; height: auto; object-fit: contain; border: 1px solid #ccc;" />
-
                                         </a>
                                     }
                                     else if (polaczenie.RysunekPrzekroju?.Length < 20 && polaczenie.RysunekPrzekrojuStyczny?.Length > 20)
                                     {
                                         <a target="_blank" href="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekrojuStyczny)">
-                                            <img title="Połączenie styczne zew:@polaczenie.ElementZewnetrznyId wew:@polaczenie.ElementWewnetrznyId" src="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekrojuStyczny)"
+                                            <img title="Połączenie styczne zew:@polaczenie.ElementZewnetrznyId wew:@polaczenie.ElementWewnetrznyId"
+                                                 src="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekrojuStyczny)"
                                                  style="width: 150px; height: auto; object-fit: contain; border: 1px solid #ccc;" />
-
                                         </a>
                                     }
                                     else
@@ -879,18 +879,113 @@
                                 <td>@polaczenie.PrzesuniecieX / @polaczenie.PrzesuniecieXStycznej</td>
                                 <td>@polaczenie.PrzesuniecieY / @polaczenie.PrzesuniecieYStycznej</td>
                                 <td>@polaczenie.ZapisanyKat</td>
-                                      <Popconfirm Title="Czy chcesz usunąć dane?"
-                                            OnConfirm="()=> deleteRow(polaczenie.RowId.ToString())"
-                                            OkText="Tak"
-                                            CancelText="Nie">
-                                    <a style="color:red">Usuń</a>
-                                </Popconfirm>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        <Tooltip Title="Edytuj połączenie">
+                                            <Button Type="primary"
+                                                    Size="small"
+                                                    Icon="@IconType.Outline.Edit"
+                                                    OnClick="() => OtworzModalEdycji(polaczenie)" />
+                                        </Tooltip>
+
+                                        <Popconfirm Title="Czy chcesz usunąć dane?"
+                                                    OnConfirm="()=> deleteRow(polaczenie.RowId.ToString())"
+                                                    OkText="Tak"
+                                                    CancelText="Nie">
+                                            <Tooltip Title="Usuń połączenie">
+                                                <Button Type="danger"
+                                                        Size="small"
+                                                        Icon="@IconType.Outline.Delete"
+                                                        Danger />
+                                            </Tooltip>
+                                        </Popconfirm>
+                                    </div>
+                                </td>
                             </tr>
                         }
                     </tbody>
                 </table>
             }
+
+            <!-- Modal edycji -->
+            <Modal Title="Edytuj połączenie"
+                   Visible="czyModalEdycjiWidoczny"
+                   OnCancel="ZamknijModalEdycji"
+                   OnOk="ZapiszEdycje"
+                   OkText="@("Zapisz")"
+                   CancelText="@("Anuluj")"
+                   Width="600">
+
+                <div class="p-3">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Opis połączenia</label>
+                        <Input @bind-Value="edytowanyOpis"
+                               class="form-control"
+                               placeholder="Wpisz opis połączenia..." />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Strona</label>
+                        <select value="@edytowanaStrona"
+                                @onchange="(e) => edytowanaStrona = e.Value?.ToString() ?? string.Empty"
+                                class="form-select">
+                            <option value="">-- Wybierz stronę --</option>
+                            <option value="lewa">Lewa</option>
+                            <option value="prawa">Prawa</option>
+                            <option value="góra">Góra</option>
+                            <option value="dół">Dół</option>
+                        </select>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Przesunięcie X [mm]</label>
+                            <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowanePrzesuniecieX"
+                                         class="form-control"
+                                         step="0.01" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Przesunięcie X styczne [mm]</label>
+                            <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowanePrzesuniecieXStycznej"
+                                         class="form-control"
+                                         step="0.01" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Przesunięcie Y [mm]</label>
+                            <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowanePrzesuniecieY"
+                                         class="form-control"
+                                         step="0.01" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Przesunięcie Y styczne [mm]</label>
+                            <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowanePrzesuniecieYStycznej"
+                                         class="form-control"
+                                         step="0.01" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Kąt [°]</label>
+                        <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowanyKat"
+                                     class="form-control"
+                                     step="0.1"
+                                     min="0"
+                                     max="360" />
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(bladEdycji))
+                    {
+                        <div class="alert alert-danger py-2 mt-3">
+                            <i class="bi bi-exclamation-triangle me-2"></i>@bladEdycji
+                        </div>
+                    }
+                </div>
+            </Modal>
         </TabPane>
+
         <TabPane Key="1" Tab="Konfigurator połączeń - przekroje">
 
             <div class="row">
@@ -1068,9 +1163,9 @@
                     </div>
                 </div>
             </div>
-       
+
         </TabPane>
-        
+
         <TabPane Key="2" Tab="Konfigurator połączeń - styczne">
 
             <div class="row">
@@ -1316,6 +1411,23 @@
 
     private bool boolStyczny = false;
 
+
+    // Zmienne dla modala edycji
+    private bool czyModalEdycjiWidoczny = false;
+    private KonfPolaczenie? edytowanePolaczenie = null;
+    private Guid? edytowanyRowId = null;
+
+    // Pola formularza edycji
+    private string edytowanyOpis = "";
+    private string edytowanaStrona = "";
+    private double edytowanePrzesuniecieX = 0;
+    private double edytowanePrzesuniecieY = 0;
+    private double edytowanePrzesuniecieXStycznej = 0;
+    private double edytowanePrzesuniecieYStycznej = 0;
+    private double edytowanyKat = 0;
+    private string bladEdycji = "";
+
+
     // Inicjalizacja
     protected override async Task OnInitializedAsync()
     {
@@ -1438,7 +1550,7 @@
         selLewaStyczne = false;
         selPrawaStyczne = false;
 
-        pierwszyModel =null;
+        pierwszyModel = null;
         drugiModel = null;
 
         combinedSvgStyczne = string.Empty;
@@ -1446,7 +1558,7 @@
 
         await JSRuntime.InvokeVoidAsync("svgHelper.resetModel2Position");
 
-        if( key == "1")
+        if (key == "1")
         {
             boolStyczny = false;
         }
@@ -1607,7 +1719,7 @@
         {
             svgParts.Add($@"
             <g id=""model1"" transform=""translate({centerX}, {centerY})"">
-            {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
+    {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
             </g>");
         }
 
@@ -1637,7 +1749,7 @@
 
             svgParts.Add($@"
             <g id=""model2"" transform=""translate({secondX}, {secondY})"">
-            {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
+    {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
             </g>");
         }
 
@@ -1646,7 +1758,7 @@
         <svg xmlns=""http://www.w3.org/2000/svg"" width=""600"" height=""600""
              viewBox=""0 0 600 600"" preserveAspectRatio=""xMidYMid meet"">
             <g id=""zoom-group"">
-            {string.Join("", svgParts)}
+    {string.Join("", svgParts)}
             </g>
         </svg>";
 
@@ -1975,40 +2087,144 @@
 
     // Uprawnienia
     private bool boolOdczyt = false;
-    private bool boolZmiana = false;
+    private bool boolZmian = false;
+    private bool boolZapis = false;
     private bool boolUsuniecia = false;
     private bool boolAdmin = false;
-    private bool boolNowy = false;
-    private string RowIdPracownika = "";
-    private string? user;
-    private bool isNotDisabled => !boolZmiana;
+    private string RowIdPracownika = "---";
+    private string RowIdDzal = "";
+    private string user = "";
     private List<UprawnieniaPracownikaViewModel>? uprawnienia;
 
     private async Task Laduj_Uprawnienia()
     {
+
         user = await LocalStorage.GetStringAsync("user");
-        if (string.IsNullOrEmpty(user)) return;
+
+        string nazwaTabeli = "KonfPolaczenie";
+
+        if (user == null)
+        {
+            return;
+        }
 
         try
         {
-            uprawnienia = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"/api/ZwrocSatus/{user}/KonfPolaczenie");
-            if (uprawnienia?.Count > 0)
+            uprawnienia = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"api/ZwrocSatus/{user}/{nazwaTabeli}");
+        }
+        catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            Console.WriteLine("Brak danych!!!");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Błąd!!! Info:{ex.Message}");
+        }
+
+        if (uprawnienia != null)
+        {
+            if (uprawnienia.Count > 0)
             {
-                var szuk = uprawnienia.FirstOrDefault(x => x.TableName == "KonfPolaczenie");
-                if (szuk != null)
+
+                var znalezioneElementy = uprawnienia.Where(uprawnienie => uprawnienie.TableName == nazwaTabeli);
+
+                if (znalezioneElementy.Count() > 0)
                 {
-                    boolOdczyt = szuk.Odczyt;
-                    boolZmiana = szuk.Zmiana;
-                    boolUsuniecia = szuk.Usuniecie;
-                    boolAdmin = szuk.Administrator;
-                    boolNowy = szuk.Zapis;
-                    RowIdPracownika = szuk.RowId;
+                    var szuk = znalezioneElementy.FirstOrDefault(x => x.TableName == nazwaTabeli);
+
+                    if (szuk != null)
+                    {
+                        boolOdczyt = szuk.Odczyt;
+                        boolZmian = szuk.Zmiana;
+                        boolUsuniecia = szuk.Usuniecie;
+                        boolAdmin = szuk.Administrator;
+                        boolZapis = szuk.Zapis;
+                        RowIdPracownika = szuk.RowId;
+                        RowIdDzal = szuk.RowIdDzialu;
+
+                    }
                 }
+            }
+        }
+    }
+
+    // Otwarcie modala edycji
+    private void OtworzModalEdycji(KonfPolaczenie polaczenie)
+    {
+        edytowanePolaczenie = polaczenie;
+        edytowanyRowId = polaczenie.RowId;
+
+        // Wypełnij formularz danymi
+        edytowanyOpis = polaczenie.OpisPolaczenia ?? "";
+        edytowanaStrona = polaczenie.StronaPolaczenia ?? "";
+        edytowanePrzesuniecieX = polaczenie.PrzesuniecieX;
+        edytowanePrzesuniecieY = polaczenie.PrzesuniecieY;
+        edytowanePrzesuniecieXStycznej = polaczenie.PrzesuniecieXStycznej;
+        edytowanePrzesuniecieYStycznej = polaczenie.PrzesuniecieYStycznej;
+        edytowanyKat = polaczenie.ZapisanyKat;
+
+        bladEdycji = "";
+        czyModalEdycjiWidoczny = true;
+    }
+
+    // Zamknięcie modala
+    private void ZamknijModalEdycji()
+    {
+        czyModalEdycjiWidoczny = false;
+        edytowanePolaczenie = null;
+        edytowanyRowId = null;
+        bladEdycji = "";
+    }
+
+    // Zapisanie zmian
+    private async Task ZapiszEdycje()
+    {
+        try
+        {
+            bladEdycji = "";
+
+            // Walidacja
+            if (string.IsNullOrWhiteSpace(edytowanaStrona))
+            {
+                bladEdycji = "Wybierz stronę połączenia";
+                return;
+            }
+
+            var updateDto = new
+            {
+                RowId = edytowanyRowId,
+                OpisPolaczenia = edytowanyOpis,
+                StronaPolaczenia = edytowanaStrona,
+                PrzesuniecieX = edytowanePrzesuniecieX,
+                PrzesuniecieY = edytowanePrzesuniecieY,
+                PrzesuniecieXStycznej = edytowanePrzesuniecieXStycznej,
+                PrzesuniecieYStycznej = edytowanePrzesuniecieYStycznej,
+                ZapisanyKat = edytowanyKat
+            };
+
+            Console.WriteLine($"🔧 Zapisywanie zmian dla RowId: {edytowanyRowId}");
+
+            var response = await Http.PutAsJsonAsync($"api/KonfPolaczenie/{edytowanyRowId}", updateDto);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Console.WriteLine("✅ Zmiany zapisane pomyślnie");
+                ZamknijModalEdycji();
+                await OdswiezDane();
+                // Opcjonalnie pokaż komunikat sukcesu
+                // await _message.Success("Zmiany zostały zapisane");
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                bladEdycji = $"Błąd zapisu: {error}";
+                Console.WriteLine($"❌ Błąd zapisu: {response.StatusCode} - {error}");
             }
         }
         catch (Exception ex)
         {
-            await _message.Error($"Błąd ładowania uprawnień: {ex.Message}");
+            bladEdycji = $"Wystąpił błąd: {ex.Message}";
+            Console.WriteLine($"❌ Wyjątek: {ex.Message}");
         }
     }
 
@@ -2022,4 +2238,15 @@
         public string? error { get; set; } // opcjonalnie
     }
 
+    public class UpdateKonfPolaczenieDto
+    {
+        public Guid RowId { get; set; }
+        public string? OpisPolaczenia { get; set; }
+        public string? StronaPolaczenia { get; set; }
+        public double PrzesuniecieX { get; set; }
+        public double PrzesuniecieY { get; set; }
+        public double PrzesuniecieXStycznej { get; set; }
+        public double PrzesuniecieYStycznej { get; set; }
+        public double ZapisanyKat { get; set; }
+    }
 }
