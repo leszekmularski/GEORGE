@@ -29,38 +29,127 @@ else
                 </div> *@
 
                 @if (Model.EditableProperties != null && Model.EditableProperties.Count > 0)
+{
+    for (int i = 0; i < Model.EditableProperties.Count; i++)
+    {
+        var index = i;
+        var prop = Model.EditableProperties[index];
+
+        <div class="mb-2">
+            @if (!prop.systemowa)
+            {
+                @if (!prop.IsReadOnly)
                 {
-                    for (int i = 0; i < Model.EditableProperties.Count; i++)
-                    {
-                        var index = i;
-                        var prop = Model.EditableProperties[index];
-
-                        <div class="mb-2">
-
-                            @if (!prop.systemowa)
-                            {
-                                @if (!prop.IsReadOnly)
-                                {
-                                    <label>@prop.Label</label>
-                                    <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
-                                                          ValueChanged="@(async (double value) => {
-                                                              Model.UpdateEditableProperty(index, value);
-                                                              await ZapiszDoRodzica();
-                                                          })"
-                                                          Style="width: 100%;" />
-                                }
-                                else if(prop.IsReadOnly)
-                                {
-                                    <label>@prop.Label</label>
-                                    <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
-                                                          Style="width: 100%;"
-                                                          Disabled="true" />
-                                }
-                            }
-
-                        </div>
-                    }
+                    <label>@prop.Label</label>
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
+                                              ValueChanged="@(async (double value) => {
+                                                  Model.UpdateEditableProperty(index, value);
+                                                  await ZapiszDoRodzica();
+                                              })"
+                                              Style="flex: 1;" />
+                        
+                                    <AntDesign.Button Type="@ButtonType.Default"
+                                                     Icon="calculator"
+                                                     OnClick="@(() => ShowCalculator(index))"
+                                                     Size="small"
+                                                     Style="height: 32px;">
+                                    </AntDesign.Button>
+                                    @if(Model.GetLinia(index))
+                                    {
+                                        <AntDesign.Button Type="@ButtonType.Default"
+                                                         Icon="pic-center"
+                                                         OnClick="@(() => PodzielLinieSymetrycznieAsync())"
+                                                         Size="small"
+                                                         Style="height: 32px;">
+                                        </AntDesign.Button>
+                                    }
+                                    </div>
                 }
+                else if(prop.IsReadOnly)
+                {
+                    <label>@prop.Label</label>
+                    <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
+                                          Style="width: 100%;"
+                                          Disabled="true" />
+                }
+            }
+        </div>
+    }
+}
+
+@* Modal kalkulatora *@
+<AntDesign.Modal Title="Kalkulator"
+                 Visible="@_calculatorVisible"
+                 OnOk="@HandleCalculatorOk"
+                 OnCancel="@HandleCalculatorCancel"
+                 Width="350">
+    
+    <div style="padding: 10px;">
+        @* Wyświetlacz *@
+        <div style="background-color: #f0f0f0; padding: 10px; margin-bottom: 10px; 
+                    text-align: right; font-size: 20px; font-weight: bold; 
+                    border: 1px solid #d9d9d9; border-radius: 4px; min-height: 40px;">
+            @(_calculatorExpression.Length > 0 ? _calculatorExpression : "0")
+        </div>
+        
+        @* Przyciski kalkulatora *@
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;">
+            @* Rząd 1 *@
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("7"))" Block>7</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("8"))" Block>8</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("9"))" Block>9</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("/"))" 
+                             Type="@ButtonType.Primary" Block>÷</AntDesign.Button>
+            
+            @* Rząd 2 *@
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("4"))" Block>4</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("5"))" Block>5</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("6"))" Block>6</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("*"))" 
+                             Type="@ButtonType.Primary" Block>×</AntDesign.Button>
+            
+            @* Rząd 3 *@
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("1"))" Block>1</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("2"))" Block>2</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("3"))" Block>3</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("-"))" 
+                             Type="@ButtonType.Primary" Block>−</AntDesign.Button>
+            
+            @* Rząd 4 *@
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("0"))" Block>0</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("."))" Block>.</AntDesign.Button>
+            <AntDesign.Button OnClick="@CalculateResult" 
+                             Type="@ButtonType.Primary" 
+                             Style="background-color: #52c41a; border-color: #52c41a;" 
+                             Block>=</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("+"))" 
+                             Type="@ButtonType.Primary" Block>+</AntDesign.Button>
+            
+            @* Dodatkowe przyciski *@
+            <AntDesign.Button OnClick="@ClearCalculator" 
+                             Type="@ButtonType.Primary" 
+                             Block>C</AntDesign.Button>
+            <AntDesign.Button OnClick="@BackspaceCalculator" Block>⌫</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("("))" Block>(</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator(")"))" Block>)</AntDesign.Button>
+        </div>
+        
+        @* Przyciski akcji *@
+        <div style="display: flex; gap: 5px; margin-top: 10px;">
+            <AntDesign.Button OnClick="@UseCurrentValue" 
+                             Type="@ButtonType.Default" 
+                             Block>
+                Użyj bieżącej wartości
+            </AntDesign.Button>
+            <AntDesign.Button OnClick="@ClearCalculator" 
+                             Type="@ButtonType.Default" 
+                             Block>
+                Wyczyść
+            </AntDesign.Button>
+        </div>
+    </div>
+</AntDesign.Modal>
 
                 <h5 class="mt-3">Kolorystyka</h5>
 
@@ -141,7 +230,7 @@ else
 
     [Parameter]
     public ConstWlasciwosciOkna? Model { get; set; }
-       
+
     [Parameter]
     public EventCallback<ConstWlasciwosciOkna> OnSave { get; set; }
 
@@ -150,4 +239,147 @@ else
         await OnSave.InvokeAsync(Model);
     }
 
+    private bool _calculatorVisible = false;
+    private string _calculatorExpression = "";
+    private int _currentEditingIndex = -1;
+
+    private void ShowCalculator(int index)
+    {
+        _currentEditingIndex = index;
+        _calculatorVisible = true;
+
+        // Opcjonalnie: załaduj aktualną wartość do kalkulatora
+        if (Model?.EditableProperties != null && index >= 0 && index < Model.EditableProperties.Count)
+        {
+            _calculatorExpression = Model.GetPropertyValue(index).ToString();
+        }
+    }
+
+    private async Task PodzielLinieSymetrycznieAsync()
+{
+    if (Model?.EditableProperties == null || Model.EditableProperties.Count == 0)
+        return;
+
+    var linieIndeksy = new List<int>();
+    
+    for (int i = 0; i < Model.EditableProperties.Count; i++)
+    {
+
+        if (Model.GetLinia(i))
+        {
+            linieIndeksy.Add(i);
+        }
+    }
+    
+    int iloscLinii = linieIndeksy.Count;
+    
+    if (iloscLinii > 0 && Model.Szerokosc > 0)
+    {
+        double odstep = Model.Szerokosc / (iloscLinii + 1);
+        
+        // Aktualizuj wszystkie linie
+        for (int i = 0; i < linieIndeksy.Count; i++)
+        {
+            int index = linieIndeksy[i];
+            double nowaPozycja = Math.Round(odstep * (i + 1), 0);
+            
+            Model.UpdateEditableProperty(index, nowaPozycja);
+        }
+        
+        // Zapisz zmiany
+        await ZapiszDoRodzica();
+        
+        Console.WriteLine($"Podzielono {iloscLinii} linii symetrycznie. Odstęp: {odstep:F2}mm");
+    }
+    else
+    {
+        // Możesz dodać powiadomienie dla użytkownika
+        Console.WriteLine("Nie można podzielić linii - brak linii lub szerokość = 0");
+    }
+}
+
+    private void AppendToCalculator(string value)
+    {
+        _calculatorExpression += value;
+    }
+
+    private void ClearCalculator()
+    {
+        _calculatorExpression = "";
+    }
+
+    private void BackspaceCalculator()
+    {
+        if (_calculatorExpression.Length > 0)
+        {
+            _calculatorExpression = _calculatorExpression.Substring(0, _calculatorExpression.Length - 1);
+        }
+    }
+
+    private void UseCurrentValue()
+    {
+        if (Model?.EditableProperties != null && _currentEditingIndex >= 0 && 
+            _currentEditingIndex < Model.EditableProperties.Count)
+        {
+            _calculatorExpression = Model.GetPropertyValue(_currentEditingIndex).ToString();
+        }
+    }
+
+    private void CalculateResult()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_calculatorExpression))
+                return;
+            
+            // Używamy DataTable do obliczenia wyrażenia
+            var dataTable = new System.Data.DataTable();
+            var result = dataTable.Compute(_calculatorExpression.Replace("×", "*").Replace("÷", "/").Replace("−", "-"), null);
+            _calculatorExpression = Convert.ToDouble(result).ToString("0.#####");
+        }
+        catch (Exception)
+        {
+            _calculatorExpression = "Błąd";
+            // Opcjonalnie: automatycznie wyczyść po chwili
+            Task.Delay(1000).ContinueWith(_ => 
+            {
+                _calculatorExpression = "";
+                InvokeAsync(StateHasChanged);
+            });
+        }
+    }
+    
+    private async Task HandleCalculatorOk()
+    {
+        if (_currentEditingIndex >= 0 && !string.IsNullOrWhiteSpace(_calculatorExpression))
+        {
+            try
+            {
+                // Oblicz wynik końcowy przed zapisaniem
+                var dataTable = new System.Data.DataTable();
+                var result = dataTable.Compute(_calculatorExpression.Replace("×", "*").Replace("÷", "/").Replace("−", "-"), null);
+                double finalValue = Convert.ToDouble(result);
+                
+                // Aktualizuj właściwość
+                Model.UpdateEditableProperty(_currentEditingIndex, finalValue);
+                await ZapiszDoRodzica();
+            }
+            catch
+            {
+                // Jeśli nie można obliczyć, spróbuj zapisać jako string
+                Model.UpdateEditableProperty(_currentEditingIndex, 0);
+                await ZapiszDoRodzica();
+            }
+        }
+        
+        _calculatorVisible = false;
+        _currentEditingIndex = -1;
+    }
+    
+    private Task HandleCalculatorCancel()
+    {
+        _calculatorVisible = false;
+        _currentEditingIndex = -1;
+        return Task.CompletedTask;
+    }
 }

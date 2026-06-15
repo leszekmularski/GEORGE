@@ -734,7 +734,7 @@
                                     <p><strong>Grubość obramowania:</strong> @ksztalt.GruboscObramowania px</p>
                                     <p><strong>Czy zawiera otwór:</strong> @(ksztalt.CzyZawieraOtwor ? "Tak" : "Nie")</p>
                                     <p><strong>Widoczny:</strong> @(ksztalt.Widoczny ? "Tak" : "Nie")</p>
-                                    <p><strong>Długość: @ksztalt.DlogoscElementu</strong></p>
+                                    <p><strong>Długość: @ksztalt.DlogoscElementu (Widoczna: @ksztalt.DlogoscWidocznaElementu)</strong></p>
                                     <p><strong>Kąt: @ksztalt.Kat</strong></p>
                                     <p><strong>Wierzchołki:</strong></p>
 
@@ -3254,12 +3254,12 @@
 
     private ShapeRegion? FindRegionAtPosition(double x, double y, bool tylkoRama)
     {
-        Console.WriteLine($"\n🔍 FindRegionAtPosition START: punkt ({x:F2}, {y:F2}), tylkoRama={tylkoRama}");
+        // Console.WriteLine($"\n🔍 FindRegionAtPosition START: punkt ({x:F2}, {y:F2}), tylkoRama={tylkoRama}");
 
         if (_regionsDualRama == null || !_regionsDualRama.Any() ||
             _regionsSkrzydlo == null || !_regionsSkrzydlo.Any())
         {
-            Console.WriteLine("❌ Brak regionów do sprawdzenia!");
+            //Console.WriteLine("❌ Brak regionów do sprawdzenia!");
             return null;
         }
 
@@ -3270,7 +3270,7 @@
         {
             if (region.Wierzcholki == null || region.Wierzcholki.Count < 2)
             {
-                Console.WriteLine($"   ⚠️ Region {region.Id} pominięty - brak wierzchołków");
+                // Console.WriteLine($"   ⚠️ Region {region.Id} pominięty - brak wierzchołków");
                 continue;
             }
 
@@ -3281,7 +3281,7 @@
                 var p1 = region.Wierzcholki[0];
                 var p2 = region.Wierzcholki[1];
 
-                Console.WriteLine($"   🔴 Test region-linia {region.Id}");
+                // Console.WriteLine($"   🔴 Test region-linia {region.Id}");
 
                 if (IsPointNearLine(
                     x, y,
@@ -3289,7 +3289,7 @@
                     p2.X, p2.Y,
                     tolerance: 6 / _aktywnaSkala))
                 {
-                    Console.WriteLine($"✅ Znaleziono region-linię: {region.Id}");
+                    // Console.WriteLine($"✅ Znaleziono region-linię: {region.Id}");
                     return region;
                 }
 
@@ -3299,7 +3299,7 @@
             // 🟢 REGION = WIELOKĄT
             if (region.Wierzcholki.Count < 3)
             {
-                Console.WriteLine($"   ⚠️ Region {region.Id} pominięty - mniej niż 3 wierzchołki");
+                // Console.WriteLine($"   ⚠️ Region {region.Id} pominięty - mniej niż 3 wierzchołki");
                 continue;
             }
 
@@ -3309,15 +3309,15 @@
             double minY = region.Wierzcholki.Min(p => p.Y);
             double maxY = region.Wierzcholki.Max(p => p.Y);
 
-            Console.WriteLine($"   Region {region.Id} bounding box: X[{minX:F2}–{maxX:F2}], Y[{minY:F2}–{maxY:F2}]");
-            Console.WriteLine($"   Punkt: X={x:F2}, Y={y:F2}");
+            //  Console.WriteLine($"   Region {region.Id} bounding box: X[{minX:F2}–{maxX:F2}], Y[{minY:F2}–{maxY:F2}]");
+            //  Console.WriteLine($"   Punkt: X={x:F2}, Y={y:F2}");
 
             bool inBoundingBox = (x >= minX && x <= maxX && y >= minY && y <= maxY);
-            Console.WriteLine($"   Punkt w bounding box? {inBoundingBox}");
+            // Console.WriteLine($"   Punkt w bounding box? {inBoundingBox}");
 
             if (!inBoundingBox)
             {
-                Console.WriteLine($"   ✗ Pomijam - punkt poza bounding box");
+                //  Console.WriteLine($"   ✗ Pomijam - punkt poza bounding box");
                 continue;
             }
 
@@ -3326,7 +3326,7 @@
             // 1️⃣ Test: punkt w wielokącie
             if (IsPointInPolygon(region.Wierzcholki, x, y))
             {
-                Console.WriteLine($"✅ Znaleziono region (wnętrze): {region.Id}");
+                //  Console.WriteLine($"✅ Znaleziono region (wnętrze): {region.Id}");
                 return region;
             }
 
@@ -3342,13 +3342,13 @@
                     b.X, b.Y,
                     tolerance: 4 / _aktywnaSkala))
                 {
-                    Console.WriteLine($"✅ Znaleziono region (krawędź): {region.Id}");
+                    // Console.WriteLine($"✅ Znaleziono region (krawędź): {region.Id}");
                     return region;
                 }
             }
         }
 
-        Console.WriteLine("❌ Nie znaleziono regionu zawierającego punkt");
+        //Console.WriteLine("❌ Nie znaleziono regionu zawierającego punkt");
         return null;
     }
 
@@ -5767,7 +5767,8 @@
             double przesY = 0;
             if (spolaczenieStrona != null)
             {
-                przesY = Math.Abs(spolaczenieStrona.PrzesuniecieY);
+               // przesY = Math.Abs(spolaczenieStrona.PrzesuniecieY);
+                przesY = spolaczenieStrona.PrzesuniecieY;
                 //Console.WriteLine($"WyliczObszarSkrzydla   Znaleziono połączenie: PrzesuniecieY={spolaczenieStrona.PrzesuniecieY}, |Y|={przesY}, Strona='{spolaczenieStrona.Strona}'");
             }
             // else
@@ -7575,7 +7576,7 @@
                     //Console.WriteLine($"*********** >>>>>> IndeksElementu: {ksztalt.IndeksElementu} Grupa: {ksztalt.Grupa} DlogoscElementu: {ksztalt.DlogoscElementu}");
 
                     await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
-                    await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"[{ksztalt.NrPozWModelu}]-{ksztalt.IndeksElementu.ToString()} [{Math.Round(ksztalt.Kat, 1).ToString()}°/{ksztalt.Strona}-{ksztalt.RodzajpolaczenAiB}]", (ksztalt.Kat == 180 ? 0 : ksztalt.Kat)); // Tekst z ID i kątem na profilu
+                    await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"[{ksztalt.NrPozWModelu}]-{ksztalt.IndeksElementu.ToString()} [{Math.Round(ksztalt.Kat, 1).ToString()}°/{ksztalt.DlogoscElementu}mm]", (ksztalt.Kat == 180 ? 0 : ksztalt.Kat)); // Tekst z ID i kątem na profilu
                 }
 
             }

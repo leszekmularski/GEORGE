@@ -1881,6 +1881,7 @@
 
         GuideDisplacementResult result;
 
+
         if (boolStyczny)
         {
             // 🔹 Tryb STYCZNY (bez prowadnic, prostokąt)
@@ -1892,6 +1893,7 @@
                 return;
             }
 
+
             result = new GuideDisplacementResult
             {
                 success = true,
@@ -1900,6 +1902,13 @@
                 przesuniecieY = Math.Round(offset.przesuniecieY, 2),
                 scale = 1
             };
+
+            if (!selSlRuchomy && !selSlStaly)
+            {
+                result.przesuniecieX = Math.Abs(offset.przesuniecieX);
+                result.przesuniecieY = Math.Abs(offset.przesuniecieY);
+            }
+
         }
         else
         {
@@ -1915,6 +1924,12 @@
 
         double przesuniecieX = Math.Round(result.przesuniecieX, 2);
         double przesuniecieY = Math.Round(result.przesuniecieY, 2);
+
+        if (!selSlRuchomy && !selSlStaly)
+        {
+            przesuniecieX = Math.Abs(result.przesuniecieX);
+            przesuniecieY = Math.Abs(result.przesuniecieY);
+        }
 
         if (pierwszyModel == null || drugiModel == null || string.IsNullOrEmpty(SelectedModelId))
         {

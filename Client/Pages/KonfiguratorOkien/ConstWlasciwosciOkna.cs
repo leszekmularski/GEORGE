@@ -82,6 +82,19 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         }
 
         /// <summary>
+        /// Pobiera wartość właściwości po indeksie
+        /// </summary>
+        public bool GetLinia(int index)
+        {
+            if (EditableProperties == null || index < 0 || index >= EditableProperties.Count)
+                return false;
+            if(EditableProperties[index].IsReadOnly)
+                return false;
+
+            return EditableProperties[index].NazwaObiektu.ToString().ToLower().Contains("linia");
+        }
+
+        /// <summary>
         /// Sprawdza czy właściwość jest tylko do odczytu
         /// </summary>
         public bool IsPropertyReadOnly(int index)

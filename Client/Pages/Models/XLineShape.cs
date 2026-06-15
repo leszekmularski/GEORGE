@@ -292,10 +292,53 @@ namespace GEORGE.Client.Pages.Models
         {
             return new()
             {
-                new EditableProperty(RuchomySlupek ? "Podział linii w osi X1" : "X1", () => X1, v => { X1 = v; if (RuchomySlupek) X2 = X1; }, NazwaObj),
-                new EditableProperty(RuchomySlupek ? "Podział linii w osi Y1" : "Y1", () => Y1, v => Y1 = v, NazwaObj, RuchomySlupek),
-                new EditableProperty(RuchomySlupek ? "Podział linii w osi X2" : "X2", () => X2, v => X2 = v, NazwaObj, RuchomySlupek),
-                new EditableProperty(RuchomySlupek ? "Podział linii w osi Y2" : "Y2", () => Y2, v => Y2 = v, NazwaObj, RuchomySlupek)
+                new EditableProperty(
+                    RuchomySlupek ? "Podział linii w osi X1" : "X1",
+                    () => X1,
+                    v => {
+                        double parsedValue = ParseExpression(v.ToString());
+                        X1 = parsedValue;
+                        if (RuchomySlupek || StalySlupek) X2 = X1;
+                        EnforceLineType();
+                        GeneratePoints();
+                    },
+                    NazwaObj),
+
+                new EditableProperty(
+                    RuchomySlupek ? "Podział linii w osi Y1" : "Y1",
+                    () => Y1,
+                    v => {
+                        double parsedValue = ParseExpression(v.ToString());
+                        Y1 = parsedValue;
+                        EnforceLineType();
+                        GeneratePoints();
+                    },
+                    NazwaObj,
+                    RuchomySlupek || StalySlupek),
+
+                new EditableProperty(
+                    RuchomySlupek ? "Podział linii w osi X2" : "X2",
+                    () => X2,
+                    v => {
+                        double parsedValue = ParseExpression(v.ToString());
+                        X2 = parsedValue;
+                        EnforceLineType();
+                        GeneratePoints();
+                    },
+                    NazwaObj,
+                    RuchomySlupek || StalySlupek),
+
+                new EditableProperty(
+                    RuchomySlupek ? "Podział linii w osi Y2" : "Y2",
+                    () => Y2,
+                    v => {
+                        double parsedValue = ParseExpression(v.ToString());
+                        Y2 = parsedValue;
+                        EnforceLineType();
+                        GeneratePoints();
+                    },
+                    NazwaObj,
+                    RuchomySlupek || StalySlupek)
             };
         }
 
@@ -312,6 +355,80 @@ namespace GEORGE.Client.Pages.Models
             ));
 
             return segments;
+        }
+
+        private double ParseExpression(string expression)
+        {
+            if (string.IsNullOrWhiteSpace(expression))
+                return 0;
+
+            // Jeśli to zwykła liczba, parsuj normalnie
+            if (double.TryParse(expression, System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out double result))
+                return result;
+
+            // Jeśli zawiera operator matematyczny, oblicz wyrażenie
+            try
+            {
+                // Prosty parser dla podstawowych działań
+                expression = expression.Replace(" ", "");
+
+                // Obsługa dodawania i odejmowania
+                if (expression.Contains('+') || expression.Contains('-'))
+                {
+                    var parts = System.Text.RegularExpressions.Regex.Split(expression, @"(?=[+-])");
+                    double sum = 0;
+                    foreach (var part in parts)
+                    {
+                        if (string.IsNullOrEmpty(part)) continue;
+                        if (part.Contains('*') || part.Contains('/'))
+                            sum += ParseMultiplicationDivision(part);
+                        else
+                            sum += double.Parse(part, System.Globalization.CultureInfo.InvariantCulture);
+                    }
+                    return sum;
+                }
+
+                // Obsługa mnożenia i dzielenia
+                return ParseMultiplicationDivision(expression);
+            }
+            catch
+            {
+                return 0; // W przypadku błędu zwróć 0
+            }
+        }
+
+        private double ParseMultiplicationDivision(string expression)
+        {
+            if (expression.Contains('*') || expression.Contains('/'))
+            {
+                var parts = System.Text.RegularExpressions.Regex.Split(expression, @"(?=[*/])");
+                double result = 1;
+                bool firstPart = true;
+
+                foreach (var part in parts)
+                {
+                    if (string.IsNullOrEmpty(part)) continue;
+
+                    if (part.StartsWith("*"))
+                    {
+                        result *= double.Parse(part.Substring(1), System.Globalization.CultureInfo.InvariantCulture);
+                    }
+                    else if (part.StartsWith("/"))
+                    {
+                        result /= double.Parse(part.Substring(1), System.Globalization.CultureInfo.InvariantCulture);
+                    }
+                    else if (firstPart)
+                    {
+                        result = double.Parse(part, System.Globalization.CultureInfo.InvariantCulture);
+                        firstPart = false;
+                    }
+                }
+
+                return result;
+            }
+
+            return double.Parse(expression, System.Globalization.CultureInfo.InvariantCulture);
         }
 
         private XPoint CalculateCentroid(List<XPoint> pts)

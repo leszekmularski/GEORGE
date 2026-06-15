@@ -490,14 +490,14 @@
                                                 </span>
                                             </td>
                                             <td>
-                                                @if (entry.Value.WierzcholkiWartosciNominalne != null && entry.Value.WierzcholkiWartosciNominalne.Count >= 2)
+                                                @if (entry.Value.Wierzcholki != null && entry.Value.Wierzcholki.Count >= 2)
                                                 {
-                                                    var minX = entry.Value.WierzcholkiWartosciNominalne.Min(p => p.X);
-                                                    var maxX = entry.Value.WierzcholkiWartosciNominalne.Max(p => p.X);
-                                                    var minY = entry.Value.WierzcholkiWartosciNominalne.Min(p => p.Y);
-                                                    var maxY = entry.Value.WierzcholkiWartosciNominalne.Max(p => p.Y);
+                                                    var minX = entry.Value.Wierzcholki.Min(p => p.X);
+                                                    var maxX = entry.Value.Wierzcholki.Max(p => p.X);
+                                                    var minY = entry.Value.Wierzcholki.Min(p => p.Y);
+                                                    var maxY = entry.Value.Wierzcholki.Max(p => p.Y);
 
-                                                    <div class="small">
+                                                    <div class="small" style="color: brown;">
                                                         <div>W: @Math.Round(maxX - minX, 1)</div>
                                                         <div>H: @Math.Round(maxY - minY, 1)</div>
                                                     </div>
