@@ -457,7 +457,7 @@ namespace GEORGE.Client.Pages.Utils
                         .Where(l => l.DualRama)
                         .ToList();
 
-                    var podzielone = PodzielRegionRekurencyjnie(initial, linieDzielace, id, rama);
+                    var podzielone = await PodzielRegionRekurencyjnie(initial, linieDzielace, id, rama);
 
                    // Console.WriteLine($"🔲 Generowanie regionów PodzielRegionRekurencyjnie podzielone.Count: {podzielone.Count} id:{id}");
 
@@ -793,7 +793,7 @@ namespace GEORGE.Client.Pages.Utils
                     {
                         // SĄ LINIE DZIELĄCE - wykonaj podział
                         //Console.WriteLine($"✅ Znaleziono {linieDzielace.Count} linii dzielących - wykonuję podział");
-                        podzielone = PodzielRegionRekurencyjnieDeterministycznie(initial, linieDzielace, id, rama);
+                        podzielone = await PodzielRegionRekurencyjnieDeterministycznie(initial, linieDzielace, id, rama);
 
       
                         //Console.WriteLine($"🔲 Generowanie regionów PodzielRegionRekurencyjnieDeterministycznie podzielone.Count: {podzielone.Count}");
@@ -999,8 +999,6 @@ namespace GEORGE.Client.Pages.Utils
         }
 
 
-
-
         // Dodaj tę funkcję pomocniczą na końcu klasy
         private static bool CzySegmentZerowejDlugosci(ContourSegment segment)
         {
@@ -1038,7 +1036,6 @@ namespace GEORGE.Client.Pages.Utils
             double dy = a.Y - b.Y;
             return Math.Sqrt(dx * dx + dy * dy);
         }
-
         public static ShapeRegion CloneRegion(ShapeRegion src, double _currentScale = 1)
         {
             if (src == null) return null!;
@@ -1081,7 +1078,6 @@ namespace GEORGE.Client.Pages.Utils
                 }).ToList() ?? new List<ContourSegment>()
             };
         }
-
         private static bool CzyProstokat(List<XPoint> punkty)
         {
             if (punkty.Count != 4) return false;
@@ -1109,7 +1105,7 @@ namespace GEORGE.Client.Pages.Utils
             return kątyProste && bokiRowne;
         }
 
-        private static List<ShapeRegion> PodzielRegionRekurencyjnie(
+        private static async Task<List<ShapeRegion>> PodzielRegionRekurencyjnie(
          ShapeRegion region,
          List<XLineShape> lines,
          string idMaster,
@@ -1127,7 +1123,7 @@ namespace GEORGE.Client.Pages.Utils
                     var splitLinie = PodzielPolygonPoLinii(r.Wierzcholki, line);
 
                     // 2️⃣ Podział konturu
-                    var splitFullKontur = PodzielKonturPoLinii(r.Kontur, line);
+                    var splitFullKontur = await PodzielKonturPoLinii(r.Kontur, line);
 
                     // ✅ Walidacja: liczba podziałów musi się zgadzać
                     if (splitLinie.Count > 1 && splitFullKontur.Count == splitLinie.Count)
@@ -1181,10 +1177,12 @@ namespace GEORGE.Client.Pages.Utils
                 wynik = next;
             }
 
+            await Task.CompletedTask;
+
             return wynik;
         }
 
-        private static List<ShapeRegion> PodzielRegionRekurencyjnieDeterministycznie(
+        private static async Task<List<ShapeRegion>> PodzielRegionRekurencyjnieDeterministycznie(
         ShapeRegion region,
         List<XLineShape> lines,
         string rootId,
@@ -1205,7 +1203,7 @@ namespace GEORGE.Client.Pages.Utils
                     var splitLinie = PodzielPolygonPoLinii(r.Wierzcholki, line);
 
                     // 2️⃣ Podział konturu
-                    var splitFullKontur = PodzielKonturPoLinii(r.Kontur, line);
+                    var splitFullKontur = await PodzielKonturPoLinii(r.Kontur, line);
 
                     if (splitLinie.Count > 1 && splitFullKontur.Count > 0)
                     {
@@ -1265,10 +1263,12 @@ namespace GEORGE.Client.Pages.Utils
                 indexLinii++;
             }
 
+            await Task.CompletedTask;
+
             return wynik;
         }
 
-        public static List<List<ContourSegment>> PodzielKonturPoLinii(
+        public static async Task<List<List<ContourSegment>>> PodzielKonturPoLinii(
             List<ContourSegment> contour,
             XLineShape line)
         {
@@ -1424,6 +1424,8 @@ namespace GEORGE.Client.Pages.Utils
 
             if (rightSegments.Count > 0)
                 result.Add(OrderSegmentsForClosedContour(rightSegments));
+
+            await Task.CompletedTask;
 
             return result;
         }

@@ -1759,13 +1759,13 @@
         {
 
             // 🔹 1️⃣ Wydłuż linie do granic kształtów
-            LineUtils.ExtendLinesToShapes(ShapeService.Shapes, 1);
+            await LineUtils.ExtendLinesToShapes(ShapeService.Shapes, 1);
 
             // 🔹 2️⃣ Rozmieść linie
-            LineUtils.DistributeLines(ShapeService.Shapes, recznaZmiana);
+            await LineUtils.DistributeLines(ShapeService.Shapes, recznaZmiana);
 
             // 🔹 3️⃣ Przytnij linie
-            LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
+            await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
 
             // 🔹 5️⃣ Generowanie regionów jeśli trzeba
             if (generujRegionyZPodzialu && constWlasciwosciOkna != null)
@@ -1811,13 +1811,19 @@
 
                 // 🔹 5️⃣ **Dopiero teraz przesuwamy wszystko do dodatniej ćwiartki**
                 // 🔹 1️⃣ Wydłuż linie do granic kształtów
-                LineUtils.ExtendLinesToShapes(ShapeService.Shapes, 1);
+                await LineUtils.ExtendLinesToShapes(ShapeService.Shapes, 1);
+
 
                 // 🔹 2️⃣ Rozmieść linie
-                LineUtils.DistributeLines(ShapeService.Shapes, recznaZmiana);
-
+                Task task = LineUtils.DistributeLines(ShapeService.Shapes, recznaZmiana);
+                await  Task.WhenAll(task);
+   
                 // 🔹 3️⃣ Przytnij linie
-                LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
+                await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
+
+                await Task.Yield();
+
+                await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
 
                 Console.WriteLine($"🗺️ Wygenerowano regiony: {_regionsDualRama.Count} rama, {_regionsSkrzydlo.Count} skrzydło");
             }

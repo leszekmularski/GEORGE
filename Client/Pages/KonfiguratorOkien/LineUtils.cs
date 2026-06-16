@@ -8,8 +8,10 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         private const double Tolerance = 0.001;
 
         // 🔹 Tworzenie kopii linii z zachowaniem właściwości
-        public static XLineShape CreateLine(XLineShape template, double x1, double y1, double x2, double y2, double scale)
+        public static async Task<XLineShape> CreateLine(XLineShape template, double x1, double y1, double x2, double y2, double scale)
         {
+            await Task.CompletedTask;
+
             return new XLineShape(x1, y1, x2, y2, scale,
                 template.NazwaObj, template.RuchomySlupek, template.PionPoziom,
                 template.DualRama, template.GenerowaneZRamy, template.StalySlupek)
@@ -19,7 +21,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         }
 
         // 🔹 Usuwanie linii całkowicie poza zamkniętymi kształtami
-        public static void RemoveLinesOutsideShapes(List<IShapeDC> shapes)
+        public static async Task RemoveLinesOutsideShapes(List<IShapeDC> shapes)
         {
             var closedShapes = shapes.Where(s => s is not XLineShape).ToList();
             var lines = shapes.OfType<XLineShape>().ToList();
@@ -37,10 +39,12 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                     shapes.Remove(line);
                 }
             }
+
+            await Task.CompletedTask;
         }
 
         // 🔹 Rozszerz linie do granic zamkniętych kształtów
-        public static void ExtendLinesToShapes(List<IShapeDC> shapes, double scaleFactor)
+        public static async Task ExtendLinesToShapes(List<IShapeDC> shapes, double scaleFactor)
         {
             var closedShapes = shapes.Where(s => s is not XLineShape).ToList();
             var lines = shapes.OfType<XLineShape>().ToList();
@@ -51,7 +55,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 {
                     var bbox = shape.GetBoundingBox();
 
-                    var extended = ExtendLineToBoundingBox(line, bbox, scaleFactor);
+                    var extended = await ExtendLineToBoundingBox(line, bbox, scaleFactor);
 
                     // zamiast usuwać i dodawać
                     line.X1 = extended.X1;
@@ -60,17 +64,21 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                     line.Y2 = extended.Y2;
                 }
             }
+
+            await Task.CompletedTask;
         }
 
 
         // 🔹 Rozmieszczenie pionowych i poziomych linii
-        public static void DistributeLines(List<IShapeDC> shapes, bool recznaZmiana)
+        public static async Task DistributeLines(List<IShapeDC> shapes, bool recznaZmiana)
         {
             var closedShapes = shapes.Where(s => s is not XLineShape).ToList();
             var lines = shapes.OfType<XLineShape>().ToList();
 
             var verticalLines = lines.Where(l => Math.Abs(l.X1 - l.X2) < Tolerance).OrderBy(l => l.X1).ToList();
             var horizontalLines = lines.Where(l => Math.Abs(l.Y1 - l.Y2) < Tolerance).OrderBy(l => l.Y1).ToList();
+
+            const double MinOffsetFromAxis = 1.0;
 
             // Pionowe
             if (verticalLines.Any() && !recznaZmiana)
@@ -90,7 +98,13 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                     int i = 1;
                     foreach (var line in verticalLines)
                     {
-                        line.X1 = line.X2 = minX + i * spacing;
+                        double x = minX + i * spacing;
+
+                        // nie pozwól umieścić linii na osi X=0
+                        if (Math.Abs(x) < Tolerance)
+                            x = MinOffsetFromAxis;
+
+                        line.X1 = line.X2 = x;
                         i++;
                     }
                 }
@@ -119,10 +133,12 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                     }
                 }
             }
+
+            await Task.CompletedTask;
         }
 
         // 🔹 Przycinanie linii do wszystkich zamkniętych kształtów
-        public static void ShortenLinesInsideShapes(List<IShapeDC> shapes, double _scaleFactor)
+        public static async Task ShortenLinesInsideShapes(List<IShapeDC> shapes, double _scaleFactor)
         {
             var closedShapes = shapes.Where(s => s is not XLineShape).ToList();
             var lines = shapes.OfType<XLineShape>().ToList();
@@ -132,48 +148,51 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 foreach (var shape in closedShapes)
                 {
                     var bbox = shape.GetBoundingBox();
-                    ShortenLineToBoundingBox(line, bbox, _scaleFactor);
+
+                    await ShortenLineToBoundingBox(line, bbox, _scaleFactor);
 
                     // Dodatkowo przycinanie do polygonów/skosów/dachu itd.
                     switch (shape)
                     {
                         case XCircleShape circle:
-                            ShortenLineInsideCircle(line, circle);
+                            await ShortenLineInsideCircle(line, circle);
                             break;
                         case XTriangleShape triangle:
-                            ShortenLineInsidePolygon(line, triangle.GetVertices());
+                            await ShortenLineInsidePolygon(line, triangle.GetVertices());
                             break;
                         case XHouseShape house:
-                            ShortenLineInsideShape(line, house.GetBoundingBox());
-                            ShortenLineToShape(line, house.GetEdges());
+                            await ShortenLineInsideShape(line, house.GetBoundingBox());
+                            await ShortenLineToShape(line, house.GetEdges());
                             break;
                         case XRoundedTopRectangleShape rounded:
-                            ShortenLineInsideEdges(line, rounded.GetEdges(),
+                            await ShortenLineInsideEdges(line, rounded.GetEdges(),
                                 new XPoint(rounded.X + rounded.Width / 2, rounded.Y + rounded.Radius), rounded.Radius);
                             break;
                         case XRoundedTopRectangleShapeFixed roundedf:
-                            ShortenLineInsideEdges(line, roundedf.GetEdges(),
+                            await ShortenLineInsideEdges(line, roundedf.GetEdges(),
                                 new XPoint(roundedf.X + roundedf.Width / 2, roundedf.Y + roundedf.Radius), roundedf.Radius);
                             break;
                         case XRoundedRectangleShape roundedRect:
-                            ShortenLineInsideEdges(line, roundedRect.GetEdges(),
+                            await ShortenLineInsideEdges(line, roundedRect.GetEdges(),
                             new XPoint(roundedRect.X + roundedRect.Width / 2, roundedRect.Y + roundedRect.Radius), roundedRect.Radius);
                             break;
                         case XTrapezoidShape trap:
-                            ShortenLineInsideShape(line, trap.GetBoundingBox());
-                            ShortenLineToShape(line, trap.GetEdges());
+                            await ShortenLineInsideShape(line, trap.GetBoundingBox());
+                            await ShortenLineToShape(line, trap.GetEdges());
                             break;
                         default:
-                            ShortenLineInsideShape(line, shape.GetBoundingBox());
+                            await ShortenLineInsideShape(line, shape.GetBoundingBox());
                             break;
                     }
                 }
             }
+
+            await Task.CompletedTask;
         }
 
         #region --- PODSTAWOWE METODY GEOMETRYCZNE ---
 
-        public static XLineShape ExtendLineToBoundingBox(XLineShape line, BoundingBox bbox, double _scaleFactor)
+        public static async Task<XLineShape> ExtendLineToBoundingBox(XLineShape line, BoundingBox bbox, double _scaleFactor)
         {
             double x1 = line.X1, y1 = line.Y1, x2 = line.X2, y2 = line.Y2;
             double dx = x2 - x1, dy = y2 - y1;
@@ -200,12 +219,14 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             double newX2 = x1 + dx * maxFactor;
             double newY2 = y1 + dy * maxFactor;
 
+            await Task.CompletedTask;
+
             return new XLineShape(newX1, newY1, newX2, newY2, _scaleFactor, line.NazwaObj, line.RuchomySlupek);
         }
-        public static void ShortenLineToBoundingBox(XLineShape line, BoundingBox bbox, double _scaleFactor)
+        public static async Task ShortenLineToBoundingBox(XLineShape line, BoundingBox bbox, double _scaleFactor)
         {
             // można użyć tego samego co w ExtendLineToBoundingBox
-            ExtendLineToBoundingBox(line, bbox, _scaleFactor);
+            await ExtendLineToBoundingBox(line, bbox, _scaleFactor);
         }
 
         public static void CheckEdgeIntersection(double x1, double y1, double x2, double y2,
@@ -251,7 +272,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
         #region --- Placeholder dla przycinania do kształtów (do uzupełnienia wg RysOkna) ---
 
-        public static void ShortenLineInsideCircle(XLineShape line, XCircleShape circle)
+        public static async Task ShortenLineInsideCircle(XLineShape line, XCircleShape circle)
         {
             List<XPoint> intersections = new List<XPoint>();
 
@@ -278,9 +299,11 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                     line.Y1 = intersections[0].Y;
                 }
             }
+
+            await Task.CompletedTask;
         }
 
-        public static void ShortenLineInsidePolygon(XLineShape line, List<XPoint> polygonVertices)
+        public static async Task ShortenLineInsidePolygon(XLineShape line, List<XPoint> polygonVertices)
         {
             List<XPoint> intersections = new List<XPoint>();
 
@@ -300,7 +323,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 .OrderBy(p => Distance(line.X1, line.Y1, p.X, p.Y))
                 .ToList();
 
-            Console.WriteLine($"ShortenLineInsidePolygon -> intersections.Count: {intersections.Count}");
+           // Console.WriteLine($"ShortenLineInsidePolygon -> intersections.Count: {intersections.Count}");
 
             if (intersections.Count == 2)
             {
@@ -322,6 +345,8 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                     line.Y1 = intersections[0].Y;
                 }
             }
+
+            await Task.CompletedTask;
         }
         private static bool IsPointInsidePolygon(double x, double y, List<XPoint> polygonVertices)
         {
@@ -341,11 +366,12 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
             return inside;
         }
-        public static void ShortenLineToShape(XLineShape line, List<(XPoint Start, XPoint End)> edges)
+
+        public static async Task ShortenLineToShape(XLineShape line, List<(XPoint Start, XPoint End)> edges)
         {
             List<XPoint> intersections = new List<XPoint>();
 
-            Console.WriteLine($"Sprawdzanie linii ({line.X1}, {line.Y1}) → ({line.X2}, {line.Y2})");
+            //Console.WriteLine($"Sprawdzanie linii ({line.X1}, {line.Y1}) → ({line.X2}, {line.Y2})");
 
             // 1️⃣ Znajdź wszystkie przecięcia linii z krawędziami domu
             foreach (var (start, end) in edges)
@@ -364,7 +390,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 .OrderBy(p => p.Y) // Sortujemy od góry do dołu
                 .ToList();
 
-            Console.WriteLine($"Znalezione przecięcia: {intersections.Count}");
+           // Console.WriteLine($"Znalezione przecięcia: {intersections.Count}");
 
             if (intersections.Count >= 2)
             {
@@ -374,7 +400,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 line.X2 = intersections[^1].X; // Ostatni element listy to dolne przecięcie (bottomY)
                 line.Y2 = intersections[^1].Y;
 
-                Console.WriteLine($"Linia obcięta do: ({line.X1}, {line.Y1}) → ({line.X2}, {line.Y2})");
+               // Console.WriteLine($"Linia obcięta do: ({line.X1}, {line.Y1}) → ({line.X2}, {line.Y2})");
             }
             else if (intersections.Count == 1)
             {
@@ -388,22 +414,25 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                     // Jeśli linia zaczyna się wewnątrz kształtu – przycinamy koniec
                     line.X2 = intersections[0].X;
                     line.Y2 = intersections[0].Y;
-                    Console.WriteLine($"Przycinam końcówkę do: ({line.X2}, {line.Y2})");
+                   // Console.WriteLine($"Przycinam końcówkę do: ({line.X2}, {line.Y2})");
                 }
                 else
                 {
                     // Jeśli linia zaczyna się na zewnątrz – przycinamy początek
                     line.X1 = intersections[0].X;
                     line.Y1 = intersections[0].Y;
-                    Console.WriteLine($"Przycinam początek do: ({line.X1}, {line.Y1})");
+                   // Console.WriteLine($"Przycinam początek do: ({line.X1}, {line.Y1})");
                 }
             }
             else
             {
                 Console.WriteLine("Brak przecięć – linia pozostaje bez zmian.");
             }
+
+            await Task.CompletedTask;
         }
-        public static void ShortenLineInsideShape(XLineShape line, BoundingBox shapeBox)
+
+        public static async Task ShortenLineInsideShape(XLineShape line, BoundingBox shapeBox)
         {
             List<XPoint> intersections = new List<XPoint>();
 
@@ -437,8 +466,11 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                     line.Y1 = intersections[0].Y;
                 }
             }
+
+            await Task.CompletedTask;
         }
-        public static void ShortenLineInsideEdges(XLineShape line, List<(XPoint Start, XPoint End)> edges, XPoint arcCenter, double radius)
+
+        public static async Task ShortenLineInsideEdges(XLineShape line, List<(XPoint Start, XPoint End)> edges, XPoint arcCenter, double radius)
         {
             List<XPoint> intersections = new List<XPoint>();
 
@@ -454,17 +486,19 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                         intersections.Add(new XPoint(ix, iy));
                     }
                 }
+
+                await Task.CompletedTask;
             }
 
             // Sprawdzenie przecięć z łukiem
             List<XPoint> arcIntersections = FindCircleLineIntersections(arcCenter, radius, line);
             intersections.AddRange(arcIntersections);
 
-            Console.WriteLine($"Znalezione przecięcia (po filtracji): {intersections.Count}");
-            foreach (var p in intersections)
-            {
-                Console.WriteLine($"Punkt przecięcia: ({p.X}, {p.Y})");
-            }
+            //Console.WriteLine($"Znalezione przecięcia (po filtracji): {intersections.Count}");
+            //foreach (var p in intersections)
+            //{
+            //    Console.WriteLine($"Punkt przecięcia: ({p.X}, {p.Y})");
+            //}
 
             intersections = intersections.Distinct()
                 .OrderBy(p => Distance(line.X1, line.Y1, p.X, p.Y))
@@ -618,7 +652,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         }
 
         // 🔹 Normalizacja wszystkich kształtów i linii do dodatniej ćwiartki
-        public static void ShiftAllShapesToPositiveQuadrant(List<IShapeDC> shapes)
+        public static async Task ShiftAllShapesToPositiveQuadrant(List<IShapeDC> shapes)
         {
             if (shapes == null || !shapes.Any()) return;
 
@@ -636,7 +670,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 shape.Move(shiftX, shiftY);
             }
 
-            Console.WriteLine($"✅ Wszystkie kształty przesunięto o X: {shiftX}, Y: {shiftY}");
+            await Task.CompletedTask;
         }
 
         #endregion

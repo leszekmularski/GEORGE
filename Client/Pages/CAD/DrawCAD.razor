@@ -1313,7 +1313,7 @@
 
         _shapes.Clear();
 
-        PrzesunDoDodatniejCwiartki(_originalShapes);
+       await PrzesunDoDodatniejCwiartki(_originalShapes);
 
         if (przesynXY)
         {
@@ -1326,14 +1326,14 @@
         // Najpierw przesuń wszystkie kształty do dodatniej ćwiartki
         //  PrzesunDoDodatniejCwiartki(_shapes);
         // Potem skaluj i wyśrodkuj
-        SkalujIZastosujPrzesuniecie(_shapes, _canvasX, _canvasY);
+        await SkalujIZastosujPrzesuniecie(_shapes, _canvasX, _canvasY);
 
         //PrzesunDoDodatniejCwiartki(_shapes);
 
         await RedrawCanvas();
     }
 
-    private void PrzesunDoDodatniejCwiartki(List<IShapeDC> shapes)
+    private static async Task PrzesunDoDodatniejCwiartki(List<IShapeDC> shapes)
     {
         if (shapes == null || shapes.Count == 0) return;
 
@@ -1377,7 +1377,9 @@
         // Weryfikacja końcowa
         double newMinX = shapes.Min(s => s.GetBoundingBox().X);
         double newMinY = shapes.Min(s => s.GetBoundingBox().Y);
-        Console.WriteLine($"[PrzesunDoDodatniejCwiartki] Min po: X={newMinX:F2}, Y={newMinY:F2}");
+
+        await Task.CompletedTask;
+
     }
 
     private void UstawPozycjeXiYnaZero(List<IShapeDC> shapes)
@@ -1396,7 +1398,7 @@
         }
     }
 
-    private void SkalujIZastosujPrzesuniecie(List<IShapeDC> shapes, double canvasWidth, double canvasHeight)
+    private async Task SkalujIZastosujPrzesuniecie(List<IShapeDC> shapes, double canvasWidth, double canvasHeight)
     {
         if (shapes == null || shapes.Count == 0)
         {
@@ -1435,6 +1437,8 @@
         }
 
         _scaleFactor = scaleFactor;
+
+        await Task.CompletedTask;
     }
 
 
@@ -1447,21 +1451,25 @@
 
         if (_selectedShapeIndex < 0 || _selectedShapeIndex >= _shapes.Count) return;
 
-        PrzesunDoDodatniejCwiartki(_shapes);
+        await PrzesunDoDodatniejCwiartki(_shapes);
 
         // 🔹 1️⃣ Usuń linie całkowicie poza kształtami
-        LineUtils.RemoveLinesOutsideShapes(_shapes);
+        await LineUtils.RemoveLinesOutsideShapes(_shapes);
 
         // 🔹 2️⃣ Wydłuż linie do granic kształtów
-        LineUtils.ExtendLinesToShapes(_shapes, _scaleFactor);
+        await LineUtils.ExtendLinesToShapes(_shapes, _scaleFactor);
 
         // 🔹 3️⃣ Rozmieść linie pionowe i poziome
-        LineUtils.DistributeLines(_shapes, false);
+        await LineUtils.DistributeLines(_shapes, false);
 
         // 🔹 4️⃣ Przytnij linie do wszystkich zamkniętych kształtów
-        LineUtils.ShortenLinesInsideShapes(_shapes, _scaleFactor);
+        await LineUtils.ShortenLinesInsideShapes(_shapes, _scaleFactor);
 
-        LineUtils.ShiftAllShapesToPositiveQuadrant(_shapes);
+        await LineUtils.ShiftAllShapesToPositiveQuadrant(_shapes);
+
+        await FitToCanvas();
+
+        await Task.Delay(100); // Daj czas na przerysowanie
 
         if (powrot) return;
 

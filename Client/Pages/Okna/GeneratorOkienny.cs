@@ -266,10 +266,10 @@ namespace GEORGE.Client.Pages.Okna
 
             var konfBottom = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeDol);
 
-            if(konfLeft == null)
+            if (konfLeft == null)
             {
                 konfLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa);
-                if(!RuchomySlupekPoLewej)
+                if (!RuchomySlupekPoLewej)
                     BledySystemowe.Add($"⚠️ Uwaga: Nie znaleziono konfiguracji dla lewej strony z typem '{slruchPoLewej}'. Użyto pierwszej dostępnej konfiguracji dla lewej strony: {konfLeft?.Nazwa ?? "BRAK-DANYCH"}. Sprawdź konfigurację systemu.");
             }
 
@@ -306,12 +306,12 @@ namespace GEORGE.Client.Pages.Okna
                 BledySystemowe.Add($"⚠️ Uwaga: Jeden lub więcej profili jest równy 0. profileLeft: {profileLeft} profileRight: {profileRight} profileTop: {profileTop} profileBottom: {profileBottom}. Sprawdź konfigurację systemu.");
             }
 
-                // Console.WriteLine($"🔧 Profile z konfiguracji przed korektą: profileLeft: {profileLeft} profileRight: {profileRight} profileTop: {profileTop} profileBottom: {profileBottom}");
+            // Console.WriteLine($"🔧 Profile z konfiguracji przed korektą: profileLeft: {profileLeft} profileRight: {profileRight} profileTop: {profileTop} profileBottom: {profileBottom}");
             if (offsetGlassLeft == 0 || offsetGlassRight == 0 || offsetGlassTop == 0 || offsetGlassBottom == 0)
             {
                 BledySystemowe.Add($"⚠️ Uwaga: Jeden lub więcej offsetów szklenia jest równy 0. offsetGlassLeft: {offsetGlassLeft} offsetGlassRight: {offsetGlassRight} offsetGlassTop: {offsetGlassTop} offsetGlassBottom: {offsetGlassBottom}. Sprawdź konfigurację systemu.");
             }
-           // Console.WriteLine($"🔧 Profile z konfiguracji przed korektą: offsetGlassLeft: {offsetGlassLeft} offsetGlassRight: {offsetGlassRight} offsetGlassTop: {offsetGlassTop} offsetGlassBottom: {offsetGlassBottom}");
+            // Console.WriteLine($"🔧 Profile z konfiguracji przed korektą: offsetGlassLeft: {offsetGlassLeft} offsetGlassRight: {offsetGlassRight} offsetGlassTop: {offsetGlassTop} offsetGlassBottom: {offsetGlassBottom}");
 
             Guid RowIdprofileLeft = konfLeft?.RowId ?? Guid.Empty;
             Guid RowIdprofileRight = konfRight?.RowId ?? Guid.Empty;
@@ -521,6 +521,8 @@ namespace GEORGE.Client.Pages.Okna
             string NazwaObiektu, string TypObiektu, List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster, XPoint mouseClik)
         {
 
+            await Task.Yield(); // wymuszenie asynchroniczności, aby uniknąć blokowania wątków UI
+
             // Console.WriteLine($"▶️ Generowanie elementów dla regionu {regionId} z typem kształtu: {typKsztalt} oraz ElementLiniowy: {ElementLiniowy} profileLeft: {profileLeft}, profileRight :{profileRight}");
 
             // Użyj oryginalnych segmentów (nieposortowanych) - one i tak będą dopasowane przez Build4SegmentContour
@@ -534,7 +536,7 @@ namespace GEORGE.Client.Pages.Okna
             {
                 if (outer == null || outer.Count < 2)
                 {
-                    Console.WriteLine("▶️ Element: brak wystarczającej liczby punktów (min. 2 wymagane).");
+                    BledySystemowe.Add($"❌ Element: brak wystarczającej liczby punktów (min. 2 wymagane) dla regionu {regionId}.");
                     return false;
                 }
 
@@ -553,17 +555,17 @@ namespace GEORGE.Client.Pages.Okna
                 // .Where(x => x.Wierzcholki.Count == 2)
                 //   .LastOrDefault();
 
-                Console.WriteLine($"▶️ Element X wartość X: {szukDaneKwadratu.Wierzcholki[0].X} dotyczy: ElementLiniowy: {ElementLiniowy} rowIdprofileLeft: {rowIdprofileLeft} rowIdprofileRight: {rowIdprofileRight} rowIdprofileTop: {rowIdprofileTop} rowIdprofileBottom: {rowIdprofileBottom}");
+                //   Console.WriteLine($"▶️ Element X wartość X: {szukDaneKwadratu.Wierzcholki[0].X} dotyczy: ElementLiniowy: {ElementLiniowy} rowIdprofileLeft: {rowIdprofileLeft} rowIdprofileRight: {rowIdprofileRight} rowIdprofileTop: {rowIdprofileTop} rowIdprofileBottom: {rowIdprofileBottom}");
 
-                if (szukDaneKwadratu != null)
-                {
-                    Console.WriteLine($"▶️ Element model.Count:{model.Count()} szukDaneKwadratu.Wierzcholki.Count: {szukDaneKwadratu?.Wierzcholki.Count()} RuchomySlupekPoLewej:{RuchomySlupekPoLewej} RuchomySlupekPoPrawej:{RuchomySlupekPoPrawej}");
+                //if (szukDaneKwadratu != null)
+                //{
+                //    Console.WriteLine($"▶️ Element model.Count:{model.Count()} szukDaneKwadratu.Wierzcholki.Count: {szukDaneKwadratu?.Wierzcholki.Count()} RuchomySlupekPoLewej:{RuchomySlupekPoLewej} RuchomySlupekPoPrawej:{RuchomySlupekPoPrawej}");
 
-                    foreach (var dk in szukDaneKwadratu.Wierzcholki)
-                    {
-                        Console.WriteLine($"▶️ ElementX:{dk.X} Y:{dk.Y}");
-                    }
-                }
+                //    foreach (var dk in szukDaneKwadratu.Wierzcholki)
+                //    {
+                //        Console.WriteLine($"▶️ ElementX:{dk.X} Y:{dk.Y}");
+                //    }
+                //}
 
                 XPoint outerStart = szukDaneKwadratu.Wierzcholki[0];
                 XPoint outerEnd = szukDaneKwadratu.Wierzcholki[1];
@@ -594,12 +596,16 @@ namespace GEORGE.Client.Pages.Okna
             int vertexCount = outer.Count;
 
             if (vertexCount < 3 && !ElementLiniowy)
-                throw new Exception("Wielokąt musi mieć co najmniej 3 wierzchołki.");
+            {
+                BledySystemowe.Add($"❌ Wielokąt musi mieć co najmniej 3 wierzchołki. Obecnie ma {vertexCount} wierzchołków. Sprawdź dane wejściowe dla regionu {regionId}.");
+                return false;
+            }
+            //throw new Exception("Wielokąt musi mieć co najmniej 3 wierzchołki.");
 
             outer = RemoveDuplicateConsecutivePoints(outer);
             inner = RemoveDuplicateConsecutivePoints(inner);
 
-            Console.WriteLine($"▶️ Generuje elementy z polygon with vertexCount: {vertexCount} vertices and joins: {polaczenia} angleDegreesElementLionowy: {angleDegreesElementLionowy}");
+            // Console.WriteLine($"▶️ Generuje elementy z polygon with vertexCount: {vertexCount} vertices and joins: {polaczenia} angleDegreesElementLionowy: {angleDegreesElementLionowy}");
 
             var parsedConnections = polaczenia.Split(';')
                 .Select(p => p.Split('-'))
@@ -657,7 +663,7 @@ namespace GEORGE.Client.Pages.Okna
                 //   Console.WriteLine($"📐 Wzorzec: kąt {kat}° → strona {strona} → typ {typ}");
             }
 
-            Console.WriteLine($"🔷🔷 Wzorzec połączeń dla stron: outer: {outer.Count} vertexCount:{vertexCount}");
+            //Console.WriteLine($"🔷🔷 Wzorzec połączeń dla stron: outer: {outer.Count} vertexCount:{vertexCount}");
 
             // =============================
             // 1️⃣ Zliczamy elementy według stron
@@ -865,7 +871,7 @@ namespace GEORGE.Client.Pages.Okna
                 double crossProductPrev = (currentDx * prevDy - currentDy * prevDx);
                 if (crossProductPrev < 0)
                 {
-                    angleDegreesStronaA = 360 - angleDegreesStronaA; // Kąt po drugiej stronie
+                    angleDegreesStronaA = Math.Abs(angleDegrees - angleDegreesStronaA); // Kąt po drugiej stronie
                 }
 
                 double crossProductNext = (currentDx * nextDy - currentDy * nextDx);
@@ -875,12 +881,20 @@ namespace GEORGE.Client.Pages.Okna
                 }
 
                 // Teraz możesz użyć angleDegreesStronaA i angleDegreesStronaB
-                // Console.WriteLine($"Wierzchołek {i}: Kąt z poprzednim = {angleDegreesStronaA:F1}°, Kąt z następnym = {angleDegreesStronaB:F1}°");
+                // Console.WriteLine($"Wierzchołek {i}: Kąt eleemntu: {angleDegrees:F1}° Kąt z poprzednim = {angleDegreesStronaA:F1}°, Kąt z następnym = {angleDegreesStronaB:F1}°");
 
-                if (angleDegreesStronaB < 20)
+                if (angleDegreesStronaB < 20 || angleDegreesStronaB > 80 && angleDegreesStronaB < 90)
                 {
                     // Jeśli kąt z następnym jest bardzo mały, traktujemy to jako prawie prostą linię → potencjalnie T1
                     rightJoin = "T2"; // połączone równym kątem
+                    BledySystemowe.Add($"⚠️ Wierzchołek element nr: {i + 1}: Kąt z następnym elementem = {angleDegreesStronaB:F1}° jest bardzo mały. Zmieniono typ połączenia na T2 dla prawego narożnika.");
+                }
+
+                if (angleDegreesStronaA < 20 && angleDegrees != 90 || angleDegreesStronaA > 80 && angleDegreesStronaA < 90)
+                {
+                    // Jeśli kąt z następnym jest bardzo mały, traktujemy to jako prawie prostą linię → potencjalnie T1
+                    leftJoin = "T2"; // połączone równym kątem
+                    BledySystemowe.Add($"⚠️ Wierzchołek element nr: {i + 1}: Kąt z poprzednim elementem = {angleDegreesStronaA:F1}° jest bardzo mały. Zmieniono typ połączenia na T2 dla lewego narożnika.");
                 }
 
                 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1049,11 +1063,11 @@ namespace GEORGE.Client.Pages.Okna
                                     {
 
                                         outerTop = FindFirstEdgeIntersectionByAngle(innerTop, 180 + angleNext, outer);
-                                        Console.WriteLine($"🔷 Wyliczono dla elementu {i + 1} angleNext: {angleNext} angleDegrees: {angleDegrees} firstangleDegrees: {firstangleDegrees} anglePrev: {anglePrev}");
+                                        // Console.WriteLine($"🔷 Wyliczono dla elementu {i + 1} angleNext: {angleNext} angleDegrees: {angleDegrees} firstangleDegrees: {firstangleDegrees} anglePrev: {anglePrev}");
                                     }
                                     else
                                     {
-                                        Console.WriteLine($"🔷 Szukanie przecięcia dla elementu {i + 1} z anglePrevDegrees: {anglePrev}");
+                                        //   Console.WriteLine($"🔷 Szukanie przecięcia dla elementu {i + 1} z anglePrevDegrees: {anglePrev}");
                                         outerTop = FindFirstEdgeIntersectionByAngle(innerTop, anglePrev, outer);
                                     }
 
@@ -1147,7 +1161,7 @@ namespace GEORGE.Client.Pages.Okna
                             }
                             else
                             {
-                                Console.WriteLine($"🔷 Szukanie przecięcia dla elementu {i + 1} z anglePrev: {anglePrev}, zmienna angleDegrees: {angleDegrees} angleNext: {angleNext} anglePrev: {anglePrev}");
+                                // Console.WriteLine($"🔷 Szukanie przecięcia dla elementu {i + 1} z anglePrev: {anglePrev}, zmienna angleDegrees: {angleDegrees} angleNext: {angleNext} anglePrev: {anglePrev}");
 
                                 if (anglePrev == -1 && vertexCount < 4)
                                 {
@@ -1225,10 +1239,10 @@ namespace GEORGE.Client.Pages.Okna
                 }
                 else if (leftJoin == "T1" && rightJoin == "T1")
                 {
-                    // Console.WriteLine($"🔷 T1/T1 element {i + 1} START isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical} vertexCount: {vertexCount} angleDegrees: {angleDegrees} firstangleDegrees: {firstangleDegrees}");
+                    //Console.WriteLine($"🔷 T1/T1 element {i + 1} START isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical} vertexCount: {vertexCount} angleDegrees: {angleDegrees} firstangleDegrees: {firstangleDegrees}");
 
                     List<XPoint> getStartT1 = GetStartT1(inner[i], outer[i], outer, angleDegrees, anglePrev, angleNext,
-                        StronaElementu, stonaOstanioDodanegoElementu, vertexCount < 6 || (vertexCount == 7 && angleDegrees > 299) ? -1 : i);
+                        StronaElementu, stonaOstanioDodanegoElementu, vertexCount < 6 || vertexCount < 6 ? -1 : i);
 
 
                     List<XPoint> getEndT1;
@@ -1238,7 +1252,7 @@ namespace GEORGE.Client.Pages.Okna
                         _anglePrev = firstangleDegrees;
                     }
                     getEndT1 = GetEndT1(inner[next], outer[next], outer, angleDegrees, _anglePrev, angleNext, StronaElementu,
-                        stonaOstanioDodanegoElementu, vertexCount < 6 || (vertexCount == 7 && angleDegrees > 270) ? -1 : i);
+                        stonaOstanioDodanegoElementu, vertexCount < 6 ? -1 : i);
 
                     wierzcholki = new List<XPoint> {
                             getStartT1[1], getEndT1[1], getEndT1[0], getStartT1[0]
@@ -1524,21 +1538,37 @@ namespace GEORGE.Client.Pages.Okna
                 }
                 else if (leftJoin == "T1" && rightJoin == "T2")
                 {
-                    Console.WriteLine($"🔷 T1/T2 element {i + 1} - kombinacja czopa (T1) ze ścięciem (T2)");
+                    //Console.WriteLine($"🔷 T1/T2 element {i + 1} - kombinacja czopa (T1) ze ścięciem (T2)");
+                    Console.WriteLine($"🔷 T1/T2 element {i + 1} START isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical} vertexCount: {vertexCount} angleDegrees: {angleDegrees} firstangleDegrees: {firstangleDegrees} angleDegreesStronaA:{angleDegreesStronaA:F1}° angleDegreesStronaB:{angleDegreesStronaB:F1}°");
+
 
                     List<XPoint> getStartT2 = GetStartT2(inner[i], outer[i]);
                     List<XPoint> getEndT2 = GetEndT2(inner[next], outer[next]);
 
+                    //List<XPoint> getStartT1 = GetStartT1(inner[i], outer[i], outer, angleDegrees, anglePrev, angleNext,
+                    //    StronaElementu, stonaOstanioDodanegoElementu, vertexCount < 6 ? -1 : i);
+
+
+                   
+
                     List<XPoint> getStartT1 = GetStartT1(inner[i], outer[i], outer, angleDegrees, anglePrev, angleNext,
-                        StronaElementu, stonaOstanioDodanegoElementu, vertexCount < 6 ? -1 : i);
-                    List<XPoint> getEndT1;
-                    var _anglePrev = anglePrev;
-                    if (i == vertexCount - 1)
+                    StronaElementu, stonaOstanioDodanegoElementu, vertexCount < 6 || vertexCount < 6 || vertexCount > 6 && angleDegrees > 270 && angleDegreesStronaA < 271 ? -1 : i);
+
+
+                    //var _anglePrev = anglePrev;
+                    //if (i == vertexCount - 1)
+                    //{
+                    //    _anglePrev = firstangleDegrees;
+                    //}
+                    //getEndT1 = GetEndT1(inner[next], outer[next], outer, angleDegrees, _anglePrev, angleNext, StronaElementu,
+                    //    stonaOstanioDodanegoElementu, vertexCount < 6 ? -1 : i);
+
+                    // List<XPoint> getEndT1;
+
+                    if(vertexCount > 6 && angleDegrees > 270 && angleDegreesStronaA < 271)
                     {
-                        _anglePrev = firstangleDegrees;
+                        getStartT2[0] = FindFirstEdgeIntersectionByAngle(getStartT1[0], angleDegrees - 180, outer);
                     }
-                    getEndT1 = GetEndT1(inner[next], outer[next], outer, angleDegrees, _anglePrev, angleNext, StronaElementu,
-                        stonaOstanioDodanegoElementu, vertexCount < 6 ? -1 : i);
 
                     wierzcholki = new List<XPoint> {
                             getStartT1[1], getEndT2[1], getEndT2[0], getStartT2[0]
@@ -2511,7 +2541,7 @@ namespace GEORGE.Client.Pages.Okna
                 BledySystemowe.Add($"Konfiguracja systemu jest pusta. Dotyczy funkcji ObliczRoznicePoziomow");
                 return 0;
             }
-          
+
             if (!slupekStaly)
             {
                 float gora = (float)konf.PoziomGora;

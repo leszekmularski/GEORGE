@@ -110,7 +110,7 @@ namespace GEORGE.Client.Pages.Models
         public List<XPoint> GetNominalPoints() => NominalPoints.Select(p => p.Clone()).ToList();
 
         private readonly double _scaleFactor;
-        public string NazwaObj { get; set; } = "Prostokąt z niepłnym łukiem u góry";
+        public string NazwaObj { get; set; } = "Prostokąt z niepełnym łukiem u góry";
         public string? KsztaltModelu { get; set; } = "XRoundedTopRectangleShapeFixed";
 
         public int IloscElementowLuki
@@ -525,11 +525,10 @@ namespace GEORGE.Client.Pages.Models
 
         new EditableProperty("Szerokość: ", () => Width, v => {
             Width = Math.Max(100, v); // To już aktualizuje radius i arcHeight w setterze
-        }, NazwaObj),
-
+        }, NazwaObj, false, false, false, false, true),
         new EditableProperty("Wysokość: ", () => Height, v => {
             Height = Math.Max(100, v); // To już aktualizuje w setterze
-        }, NazwaObj),
+        }, NazwaObj, false, false, false, false, true),
 
         new EditableProperty("Promień łuku: ", () => Radius, v => { 
             // Promień jest obliczany automatycznie, więc tylko do odczytu

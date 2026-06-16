@@ -1,10 +1,6 @@
 ﻿using Blazor.Extensions.Canvas.Canvas2D;
 using GEORGE.Client.Pages.KonfiguratorOkien;
 using GEORGE.Shared.ViewModels;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace GEORGE.Client.Pages.Models
 {
@@ -153,8 +149,8 @@ namespace GEORGE.Client.Pages.Models
         // =====================================================================
         public List<EditableProperty> GetEditableProperties() => new()
         {
-            new("X: ", () => X, v => { X = v; RegeneratePoints(); }, NazwaObj, true, true),
-            new("Y: ", () => Y, v => { Y = v; RegeneratePoints(); }, NazwaObj, true, true),
+            new("X: ", () => X, v => { X = v; RegeneratePoints(); }, NazwaObj, true, true, false, true),
+            new("Y: ", () => Y, v => { Y = v; RegeneratePoints(); }, NazwaObj, true, true, false, true),
             new("Szerokość: ", () => Width, v => { Width = v; ClampRadius(); RegeneratePoints(); }, NazwaObj, false, false, false, false, true),
             new("Wysokość: ", () => Height, v => { Height = v; ClampRadius(); RegeneratePoints(); }, NazwaObj, false, false, false, false, true),
             new("Promień naroża: ", () => Radius, v => { Radius = v; ClampRadius(); RegeneratePoints(); }, NazwaObj),
