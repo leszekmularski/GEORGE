@@ -6,7 +6,6 @@ namespace GEORGE.Client.Pages.Utils
 {
     public static class GeometryUtils
     {
-
         public static async Task<List<ShapeRegion>> GenerujRegionyZPodzialu(List<IShapeDC> shapes, double _szerokosc, double _wysokosc, bool rama)
         {
             // Console.WriteLine($"📦 Przed usunięciem duplikatów: {shapes.Count} obiektów.");

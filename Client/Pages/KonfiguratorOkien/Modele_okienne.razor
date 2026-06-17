@@ -5753,7 +5753,7 @@
         // 🔹 Pobierz przesunięcia z boków
         foreach (var bok in state.ListaKwadratow)
         {
-            bok.Strona = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(bok.KatLinii); //Popraw stronę elementu!
+           // bok.Strona = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(bok.KatLinii); //Popraw stronę elementu!
 
             // Console.WriteLine($"WyliczObszarSkrzydla   ✅ 📦 Sprawdzam bok: Element={bok.RowIdElementu}, Sąsiad={bok.RowIdSasiada}, Strona='{bok.Strona}' KatLinii: {bok.KatLinii}");
 
@@ -5797,35 +5797,37 @@
                 generator.Komunikaty.Add($"WyliczObszarSkrzydla  -> Nie znaleziono połączenia dla strony '{bok.Strona}' bok.RowIdSasiada:{bok.RowIdSasiada} bok.RowIdElementu:{bok.RowIdElementu}");
             }
 
-            string stronaNormalized = bok.Strona?.ToLower().Trim() ?? "";
+            //string stronaNormalized = bok.Strona?.ToLower().Trim() ?? "";
+
+
             //Console.WriteLine($"WyliczObszarSkrzydla   Znormalizowana strona: '{stronaNormalized}'");
 
-            switch (stronaNormalized)
+            switch (spolaczenieStrona?.Strona)
             {
                 case "lewa":
                     przesLewo = przesY;
                     ustawionoLewa = true;
-                    Console.WriteLine($"WyliczObszarSkrzydla   ✅ Ustawiono przesLewo = {przesY} spolaczenieStrona: {spolaczenieStrona?.Strona} stronaNormalized: {stronaNormalized}");
+                    Console.WriteLine($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono przesLewo = {przesY} spolaczenieStrona: {spolaczenieStrona?.Strona}");
                     break;
                 case "prawa":
                     przesPrawo = przesY;
                     ustawionoPrawa = true;
-                    Console.WriteLine($"WyliczObszarSkrzydla   ✅ Ustawiono przesPrawo = {przesY} spolaczenieStrona: {spolaczenieStrona?.Strona} stronaNormalized: {stronaNormalized}");
+                    Console.WriteLine($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono przesPrawo = {przesY} spolaczenieStrona: {spolaczenieStrona?.Strona}");
                     break;
                 case "góra":
                 case "gora":
                     przesGora = przesY;
                     ustawionoGora = true;
-                    Console.WriteLine($"WyliczObszarSkrzydla   ✅ Ustawiono przesGora = {przesY} spolaczenieStrona: {spolaczenieStrona?.Strona} stronaNormalized: {stronaNormalized}");
+                    Console.WriteLine($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono przesGora = {przesY} spolaczenieStrona: {spolaczenieStrona?.Strona}");
                     break;
                 case "dół":
                 case "dol":
                     przesDol = przesY;
                     ustawionoDol = true;
-                    Console.WriteLine($"WyliczObszarSkrzydla   ✅ Ustawiono przesDol = {przesY} spolaczenieStrona: {spolaczenieStrona?.Strona} stronaNormalized: {stronaNormalized}");
+                    Console.WriteLine($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono przesDol = {przesY} spolaczenieStrona: {spolaczenieStrona?.Strona}");
                     break;
                 default:
-                    Console.WriteLine($"WyliczObszarSkrzydla   ⚠️ Nieznana strona: '{bok.Strona}' spolaczenieStrona: {spolaczenieStrona?.Strona} stronaNormalized: {stronaNormalized}");
+                    Console.WriteLine($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ⚠️ Nieznana strona: '{bok.Strona}' spolaczenieStrona: {spolaczenieStrona?.Strona}");
                     break;
             }
 
@@ -5844,7 +5846,7 @@
                     // Console.WriteLine($"WyliczObszarSkrzydla   Fallback value: {fallback}");
 
 
-                    switch (stronaNormalized)
+                    switch (spolaczenieStrona?.Strona)
                     {
                         case "lewa":
                             if (stronaLewa)
