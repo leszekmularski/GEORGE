@@ -14,7 +14,7 @@ public static class StronaOknaHelper
         List<XPoint> outer)
     {
         if (outer == null || outer.Count < 2)
-            return OkreslStrone(angleDegrees);
+            return OkreslStroneNaPodstawieKataLinii(angleDegrees);
 
         int next = (i + 1) % outer.Count;
 
@@ -32,7 +32,7 @@ public static class StronaOknaHelper
         List<XPoint> outer)
     {
         if (outer == null || outer.Count == 0)
-            return OkreslStrone(angleDegrees);
+            return OkreslStroneNaPodstawieKataLinii(angleDegrees);
 
         // Środek całego wielokąta – stabilny punkt odniesienia
         double centerX = outer.Average(p => p.X);
@@ -44,18 +44,18 @@ public static class StronaOknaHelper
     /// <summary>
     /// Fallback – tylko kąt
     /// </summary>
-    public static string OkreslStrone(float angleDegrees)
-    {
-        angleDegrees = (angleDegrees + 360) % 360;
+    //private static string OkreslStrone(float angleDegrees)
+    //{
+    //    angleDegrees = (angleDegrees + 360) % 360;
 
-        return angleDegrees switch
-        {
-            >= 60 and < 120 => "Prawa",
-            >= 120 and < 240 => "Dół",
-            >= 240 and < 300 => "Lewa",
-            _ => "Góra"
-        };
-    }
+    //    return angleDegrees switch
+    //    {
+    //        >= 60 and < 120 => "Prawa",
+    //        >= 120 and < 240 => "Dół",
+    //        >= 240 and < 300 => "Lewa",
+    //        _ => "Góra"
+    //    };
+    //}
 
     /// <summary>
     /// WSPÓLNA logika – jedno źródło prawdy
@@ -94,7 +94,7 @@ public static class StronaOknaHelper
             return "Prawa";
 
         // ===== OSTATECZNOŚĆ – kąt =====
-        return OkreslStrone(angleDegrees);
+        return OkreslStroneNaPodstawieKataLinii(angleDegrees);
     }
 
     public static string OkreslStroneNaPodstawieKataLinii(double katLinii)

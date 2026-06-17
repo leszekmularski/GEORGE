@@ -417,6 +417,7 @@ namespace GEORGE.Client.Pages.Okna
             }
             else
             {
+
                 wewnetrznyKontur = await CalculateOffsetPolygon(
                 przeskalowanePunkty,
                 profileLeft, profileRight, profileTop, profileBottom,
@@ -654,10 +655,10 @@ namespace GEORGE.Client.Pages.Okna
             foreach (var pair in polaczenia.Split(';'))
             {
                 var parts = pair.Split('-');
-                int kat = int.Parse(parts[0]);
+                double kat = double.Parse(parts[0]);
                 string typ = parts[1];
 
-                string strona = StronaOknaHelper.OkreslStrone(kat);
+                string strona = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(kat);
                 wzorzecPolaczen[strona] = typ;
 
                 //   Console.WriteLine($"📐 Wzorzec: kąt {kat}° → strona {strona} → typ {typ}");
@@ -710,7 +711,7 @@ namespace GEORGE.Client.Pages.Okna
                     {
                         // Połączenie tej samej strony z samą sobą
                         // Używamy typu z pierwszego elementu tej strony
-                        string typ = wzorzecPolaczen.ContainsKey(stronaA) ? wzorzecPolaczen[stronaA] : "T3";
+                        string typ = wzorzecPolaczen.ContainsKey(stronaA) ? wzorzecPolaczen[stronaA] : "T2";
                         typyNaroznikow[klucz] = typ;
                         // Console.WriteLine($"🔗 Połączenie {klucz} (ta sama strona) → typ {typ}");
                     }
@@ -723,7 +724,7 @@ namespace GEORGE.Client.Pages.Okna
                         // To sugeruje, że typ pochodzi z DRUGIEJ strony w nazwie narożnika?
 
                         // Spróbujmy: typ pochodzi z DRUGIEJ strony (stronaB)
-                        string typ = wzorzecPolaczen.ContainsKey(stronaB) ? wzorzecPolaczen[stronaB] : "T3";
+                        string typ = wzorzecPolaczen.ContainsKey(stronaB) ? wzorzecPolaczen[stronaB] : "T2";
                         typyNaroznikow[klucz] = typ;
                         //  Console.WriteLine($"🔗 Połączenie {klucz} (różne strony) → typ {typ} (ze strony {stronaB})");
                     }
@@ -778,9 +779,9 @@ namespace GEORGE.Client.Pages.Okna
                 string rightJoin = typyNaroznikow[$"{currentSide}-{nextSide}"]; // prawy narożnik: bieżąca-następna
 
                 // Mapujemy strony na typy ze wzorca (tylko dla debugowania)
-                string typBiezacej = wzorzecPolaczen.ContainsKey(currentSide) ? wzorzecPolaczen[currentSide] : "T3";
-                string typPoprzedniej = wzorzecPolaczen.ContainsKey(prevSide) ? wzorzecPolaczen[prevSide] : "T3";
-                string typNastepnej = wzorzecPolaczen.ContainsKey(nextSide) ? wzorzecPolaczen[nextSide] : "T3";
+                string typBiezacej = wzorzecPolaczen.ContainsKey(currentSide) ? wzorzecPolaczen[currentSide] : "T2";
+                string typPoprzedniej = wzorzecPolaczen.ContainsKey(prevSide) ? wzorzecPolaczen[prevSide] : "T2";
+                string typNastepnej = wzorzecPolaczen.ContainsKey(nextSide) ? wzorzecPolaczen[nextSide] : "T2";
 
                 //Console.WriteLine($"▶️🔷🔷▶️ Processing element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin} " +
                 //                 $"wyliczony kąt: {angleDegrees:F2}° dla i: {i} StronaElementu: {currentSide} " +
@@ -881,20 +882,20 @@ namespace GEORGE.Client.Pages.Okna
                 }
 
                 // Teraz możesz użyć angleDegreesStronaA i angleDegreesStronaB
-                // Console.WriteLine($"Wierzchołek {i}: Kąt eleemntu: {angleDegrees:F1}° Kąt z poprzednim = {angleDegreesStronaA:F1}°, Kąt z następnym = {angleDegreesStronaB:F1}°");
+                Console.WriteLine($"Wierzchołek {i}: Kąt eleemntu: {angleDegrees:F1}° Kąt z poprzednim = {angleDegreesStronaA:F1}°, Kąt z następnym = {angleDegreesStronaB:F1}°");
 
-                if (angleDegreesStronaB < 20 || angleDegreesStronaB > 80 && angleDegreesStronaB < 90)
-                {
-                    // Jeśli kąt z następnym jest bardzo mały, traktujemy to jako prawie prostą linię → potencjalnie T1
-                    rightJoin = "T2"; // połączone równym kątem
-                    BledySystemowe.Add($"⚠️ Wierzchołek element nr: {i + 1}: Kąt z następnym elementem = {angleDegreesStronaB:F1}° jest bardzo mały. Zmieniono typ połączenia na T2 dla prawego narożnika.");
-                }
-
-                if (angleDegreesStronaA < 20 && angleDegrees != 90 || angleDegreesStronaA > 80 && angleDegreesStronaA < 90)
+                if (angleDegreesStronaA < 20 && angleDegrees != 90 && angleDegreesStronaA != 270 || Math.Abs(angleDegrees - angleDegreesStronaA) < 20 )
                 {
                     // Jeśli kąt z następnym jest bardzo mały, traktujemy to jako prawie prostą linię → potencjalnie T1
                     leftJoin = "T2"; // połączone równym kątem
                     BledySystemowe.Add($"⚠️ Wierzchołek element nr: {i + 1}: Kąt z poprzednim elementem = {angleDegreesStronaA:F1}° jest bardzo mały. Zmieniono typ połączenia na T2 dla lewego narożnika.");
+                }
+
+                if (angleDegreesStronaB < 45 && angleDegrees != 90)
+                {
+                    // Jeśli kąt z następnym jest bardzo mały, traktujemy to jako prawie prostą linię → potencjalnie T1
+                    rightJoin = "T2"; // połączone równym kątem
+                    BledySystemowe.Add($"⚠️ Wierzchołek element nr: {i + 1}: Kąt z następnym elementem = {angleDegreesStronaB:F1}° jest bardzo mały. Zmieniono typ połączenia na T2 dla prawego narożnika.");
                 }
 
                 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1539,7 +1540,7 @@ namespace GEORGE.Client.Pages.Okna
                 else if (leftJoin == "T1" && rightJoin == "T2")
                 {
                     //Console.WriteLine($"🔷 T1/T2 element {i + 1} - kombinacja czopa (T1) ze ścięciem (T2)");
-                    Console.WriteLine($"🔷 T1/T2 element {i + 1} START isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical} vertexCount: {vertexCount} angleDegrees: {angleDegrees} firstangleDegrees: {firstangleDegrees} angleDegreesStronaA:{angleDegreesStronaA:F1}° angleDegreesStronaB:{angleDegreesStronaB:F1}°");
+                    Console.WriteLine($"🔷 T1/T2 element {i + 1} START isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical} vertexCount: {vertexCount} angleDegrees: {angleDegrees} firstangleDegrees: {firstangleDegrees} angleDegreesStronaA:{angleDegreesStronaA:F1}° angleDegreesStronaB:{angleDegreesStronaB:F1}° anglePrev: {anglePrev:F1}°");
 
 
                     List<XPoint> getStartT2 = GetStartT2(inner[i], outer[i]);
@@ -1552,8 +1553,12 @@ namespace GEORGE.Client.Pages.Okna
                    
 
                     List<XPoint> getStartT1 = GetStartT1(inner[i], outer[i], outer, angleDegrees, anglePrev, angleNext,
-                    StronaElementu, stonaOstanioDodanegoElementu, vertexCount < 6 || vertexCount < 6 || vertexCount > 6 && angleDegrees > 270 && angleDegreesStronaA < 271 ? -1 : i);
+                    StronaElementu, stonaOstanioDodanegoElementu, vertexCount < 6 ? -1 : i);
 
+                    if(anglePrev == 270)
+                    {
+                        getStartT1[1] = outer[i];
+                    }
 
                     //var _anglePrev = anglePrev;
                     //if (i == vertexCount - 1)
@@ -1565,7 +1570,7 @@ namespace GEORGE.Client.Pages.Okna
 
                     // List<XPoint> getEndT1;
 
-                    if(vertexCount > 6 && angleDegrees > 270 && angleDegreesStronaA < 271)
+                    if(vertexCount > 6 && angleDegrees > 270 && angleDegreesStronaA < 271 || anglePrev == 270)
                     {
                         getStartT2[0] = FindFirstEdgeIntersectionByAngle(getStartT1[0], angleDegrees - 180, outer);
                     }
@@ -1600,13 +1605,15 @@ namespace GEORGE.Client.Pages.Okna
                     Console.WriteLine($"🔷 T3/T2 element {i + 1} - kombinacja pełnego profilu (T3) ze ścięciem (T2)");
 
                     List<XPoint> getStartT3 = GetStartT3(inner[i], outer[i], outer, angleDegrees, anglePrev, angleNext,
-                        StronaElementu, stonaOstanioDodanegoElementu, vertexCount < 6 ? -1 : i);
+                        StronaElementu, stonaOstanioDodanegoElementu, vertexCount < 6 || anglePrev == 270 ? -1 : i);
                     List<XPoint> getEndT3;
+
                     var _anglePrev = anglePrev;
                     if (i == vertexCount - 1)
                     {
                         _anglePrev = firstangleDegrees;
                     }
+
                     getEndT3 = GetEndT3(inner[next], outer[next], outer, angleDegrees, _anglePrev, angleNext,
                         StronaElementu, stonaOstanioDodanegoElementu, vertexCount < 6 ? -1 : i);
 
@@ -3837,7 +3844,7 @@ namespace GEORGE.Client.Pages.Okna
         /// <returns>The calculated length of the element.</returns>
         public float DlugoscElementu(List<XPoint> vertices)
         {
-            return (float)Odleglosc(vertices[0], vertices[1]);
+            return (float)Math.Round(Odleglosc(vertices[0], vertices[1]), 2);
         }
 
         private double Odleglosc(XPoint p1, XPoint p2)

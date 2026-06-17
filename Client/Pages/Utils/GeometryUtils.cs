@@ -1756,9 +1756,6 @@ namespace GEORGE.Client.Pages.Utils
         }
 
 
-
-
-
         static bool IsPointOnArc(XPoint p, ContourSegment arc)
         {
             if (arc.Center == null)

@@ -7,19 +7,6 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
     {
         private const double Tolerance = 0.001;
 
-        // 🔹 Tworzenie kopii linii z zachowaniem właściwości
-        public static async Task<XLineShape> CreateLine(XLineShape template, double x1, double y1, double x2, double y2, double scale)
-        {
-            await Task.CompletedTask;
-
-            return new XLineShape(x1, y1, x2, y2, scale,
-                template.NazwaObj, template.RuchomySlupek, template.PionPoziom,
-                template.DualRama, template.GenerowaneZRamy, template.StalySlupek)
-            {
-                ID = template.ID
-            };
-        }
-
         // 🔹 Usuwanie linii całkowicie poza zamkniętymi kształtami
         public static async Task RemoveLinesOutsideShapes(List<IShapeDC> shapes)
         {
@@ -673,6 +660,44 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             await Task.CompletedTask;
         }
 
+        public static async Task UstawPozycjeXiYnaZero(List<IShapeDC> shapes)
+        {
+            if (shapes == null || shapes.Count == 0) return;
+
+            // Znajdź minimalne X i Y dla WSZYSTKICH kształtów (włączając linie)
+            double minX = double.MaxValue;
+            double minY = double.MaxValue;
+
+            foreach (var shape in shapes)
+            {
+                var bbox = shape.GetBoundingBox();
+                if (bbox.Left < minX) minX = bbox.Left;
+                if (bbox.Top < minY) minY = bbox.Top;
+            }
+
+            // Oblicz wspólne przesunięcie dla wszystkich kształtów
+            double offsetX = -minX;
+            double offsetY = -minY;
+
+            Console.WriteLine($"[UstawPozycjeXiYnaZero] Przesuwam wszystkie kształty o ({offsetX:F2}, {offsetY:F2})");
+
+            // Przesuń wszystkie kształty o ten sam wektor
+            foreach (var shape in shapes)
+            {
+                shape.Move(offsetX, offsetY);
+
+                if (shape is XLineShape line)
+                {
+                    Console.WriteLine($"[UstawPozycjeXiYnaZero] Linia {line.NazwaObj}: ({line.X1:F2}, {line.Y1:F2}) -> ({line.X2:F2}, {line.Y2:F2})");
+                }
+                else
+                {
+                    Console.WriteLine($"[UstawPozycjeXiYnaZero] Shape {shape.GetType().Name}: przesunięto");
+                }
+            }
+
+            await Task.CompletedTask;
+        }
         #endregion
     }
 }

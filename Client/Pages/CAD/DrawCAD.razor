@@ -157,7 +157,7 @@
 
 <!-- Kontener na przyciski -->
 <div class="zoom-controls">
-    <button @onclick="() => FitToCanvas(true)" class="btn-zoom">🔄 Dopasuj</button>
+    <button @onclick="() => FitToCanvas()" class="btn-zoom">🔄 Dopasuj</button>
     <button @onclick="() => RysOkna()" class="btn-window">🔥 Popraw szkic OKNA</button>
     @*     <button @onclick="() => RysSymerycznychPoprzOkna()" class="btn-window">🔥 Symetryczne połączenia skrzydeł</button> *@
     <button @onclick="() => PowrotDoGenerowaniaOkna()" class="btn-window"><strong>📦 Wróć do budowy OKNA</strong></button>
@@ -432,6 +432,10 @@
         await RysOkna(true);
 
         ShapeService.Shapes.Clear(); // Czyszczenie pojedynczego kształtu, jeśli był ustawiony
+
+        await LineUtils.UstawPozycjeXiYnaZero(_shapes);
+
+        await LineUtils.ShortenLinesInsideShapes(_shapes, 1.0);
 
         ShapeService.Shapes = _shapes; // Przekazanie danych do serwisu
 
@@ -1305,7 +1309,7 @@
         _selectedShapeIndex = (_selectedShapeIndex - 1 + _shapes.Count) % _shapes.Count;
     }
 
-    private async Task FitToCanvas(bool przesynXY = false)
+    private async Task FitToCanvas()
     {
         if (_originalShapes == null || _originalShapes.Count == 0) return;
 
@@ -1313,13 +1317,7 @@
 
         _shapes.Clear();
 
-       await PrzesunDoDodatniejCwiartki(_originalShapes);
-
-        if (przesynXY)
-        {
-            UstawPozycjeXiYnaZero(_originalShapes);
-        }
-
+        await PrzesunDoDodatniejCwiartki(_originalShapes);
 
         _shapes = _originalShapes.Select(s => s.Clone()).ToList();
 
@@ -1327,6 +1325,8 @@
         //  PrzesunDoDodatniejCwiartki(_shapes);
         // Potem skaluj i wyśrodkuj
         await SkalujIZastosujPrzesuniecie(_shapes, _canvasX, _canvasY);
+
+        await Task.Delay(100); // Małe opóźnienie, aby upewnić się, że wszystkie operacje są zakończone przed ponownym rysowaniem
 
         //PrzesunDoDodatniejCwiartki(_shapes);
 
@@ -1382,22 +1382,6 @@
 
     }
 
-    private void UstawPozycjeXiYnaZero(List<IShapeDC> shapes)
-    {
-        if (shapes == null || shapes.Count == 0) return;
-
-        foreach (var shape in shapes)
-        {
-            // Metoda 1: Przez Move (przesuwa o wektor)
-            var bbox = shape.GetBoundingBox();
-            double offsetX = -bbox.X;
-            double offsetY = -bbox.Y;
-            shape.Move(offsetX, offsetY);
-
-            Console.WriteLine($"[UstawPozycjeXiYnaZero] Shape {shape.ID}: przesunięto o ({offsetX:F2}, {offsetY:F2})");
-        }
-    }
-
     private async Task SkalujIZastosujPrzesuniecie(List<IShapeDC> shapes, double canvasWidth, double canvasHeight)
     {
         if (shapes == null || shapes.Count == 0)
@@ -1441,7 +1425,6 @@
         await Task.CompletedTask;
     }
 
-
     private async Task RysOkna(bool powrot = false)
     {
         Console.WriteLine($"Sprawdzanie RysOkna --> Start");
@@ -1455,27 +1438,12 @@
 
         // 🔹 1️⃣ Usuń linie całkowicie poza kształtami
         await LineUtils.RemoveLinesOutsideShapes(_shapes);
-
-        // 🔹 2️⃣ Wydłuż linie do granic kształtów
+        await LineUtils.DistributeLines(_shapes, false);
         await LineUtils.ExtendLinesToShapes(_shapes, _scaleFactor);
 
-        // 🔹 3️⃣ Rozmieść linie pionowe i poziome
-        await LineUtils.DistributeLines(_shapes, false);
-
-        // 🔹 4️⃣ Przytnij linie do wszystkich zamkniętych kształtów
         await LineUtils.ShortenLinesInsideShapes(_shapes, _scaleFactor);
 
-        await LineUtils.ShiftAllShapesToPositiveQuadrant(_shapes);
-
         await FitToCanvas();
-
-        await Task.Delay(100); // Daj czas na przerysowanie
-
-        if (powrot) return;
-
-        //   _scaleFactor = 1;
-
-        await RedrawCanvas();
 
         Console.WriteLine("RysOkna --> Koniec");
     }
