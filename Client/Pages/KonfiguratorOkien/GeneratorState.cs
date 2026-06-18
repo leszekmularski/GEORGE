@@ -13,9 +13,11 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
         //----------------------------------------------------------------------------------------
         public List<XPoint>? Wierzcholki { get; set; }
+        public List<XPoint>? WierzcholkiWenetrznePodRysunek { get; set; }
         public List<XPoint>? WierzcholkiInner { get; set; } // wewnętrzne wierzchołki, np. dla ramy wartości śą widoczne po wstawieniu modelu, ale nie są widoczne podczas rysowania konturu
         public List<XPoint>? WierzcholkiWartosciNominalne { get; set; }
         public List<ContourSegment>? Kontur { get; set; }
+        public List<ContourSegment>? KonturWenetrznyPodRysunek { get; set; }
         public List<ContourSegment>? KonturInner { get; set; } //wewnętrzny kontur, np. dla ramy wartości śą widoczne po wstawieniu modelu, ale nie są widoczne podczas rysowania konturu
         //----------------------------------------------------------------------------------------
         public Guid RowIdSystemu { get; set; }
@@ -63,6 +65,10 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                     .Select(p => new XPoint(p.X, p.Y))
                     .ToList(),
 
+                WierzcholkiWenetrznePodRysunek = this.WierzcholkiWenetrznePodRysunek?
+                    .Select(p => new XPoint(p.X, p.Y))
+                    .ToList(),
+
                 Kontur = this.Kontur?
                     .Select(c =>
                     {
@@ -98,6 +104,40 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                     .ToList(),
 
                 KonturInner = this.KonturInner?
+                    .Select(c =>
+                    {
+                        if (c.Type == SegmentType.Arc)
+                        {
+                            // Użyj konstruktora dla łuku
+                            var segement = new ContourSegment(
+                                new XPoint(c.Start.X, c.Start.Y),
+                                new XPoint(c.End.X, c.End.Y),
+                                c.Center.HasValue ? new XPoint(c.Center.Value.X, c.Center.Value.Y) : (XPoint?)null,
+                                c.Radius,
+                                c.CounterClockwise
+                            );
+
+                            segement.Informacja = c.Informacja; // Skopiuj dodatkową informację
+
+                            return segement;
+
+                        }
+                        else
+                        {
+                            // Użyj konstruktora dla linii
+                            var segement = new ContourSegment(
+                                new XPoint(c.Start.X, c.Start.Y),
+                                new XPoint(c.End.X, c.End.Y)
+                            );
+
+                            segement.Informacja = c.Informacja; // Skopiuj dodatkową informację
+
+                            return segement;
+                        }
+                    })
+                    .ToList(),
+
+                KonturWenetrznyPodRysunek = this.KonturWenetrznyPodRysunek?
                     .Select(c =>
                     {
                         if (c.Type == SegmentType.Arc)

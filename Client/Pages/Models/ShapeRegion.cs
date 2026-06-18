@@ -13,10 +13,12 @@ namespace GEORGE.Client.Pages.Models
         /// Wierzchołki definiujące kształt regionu (np. prostokąt, trójkąt). Tylko linie
         /// </summary>
         public List<XPoint> Wierzcholki { get; set; } = new();
+        public List<XPoint>? WierzcholkiWenetrznePodRysunek { get; set; } = new();
         /// <summary>
         /// Wierzchołki definiujące kształt regionu (np. prostokąt, trójkąt, okręgi, łuki). Linie i łuki
         /// </summary>
         public List<ContourSegment> Kontur { get; set; } = new();
+        public List<ContourSegment>? KonturWenetrznyPodRysunek { get; set; } = new();
 
         /// <summary>
         /// Typ geometryczny regionu (np. prostokąt, trójkąt, trapez, inny).

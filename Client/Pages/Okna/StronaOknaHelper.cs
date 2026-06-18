@@ -101,6 +101,10 @@ public static class StronaOknaHelper
     {
         katLinii = (katLinii + 360) % 360;
 
+        // dodatkowy sektor "Góra"
+        if (katLinii >= 315 || katLinii < 45)
+            return "Góra";
+
         const double tolerancja = 12.0;
 
         bool jestPionowa =
@@ -112,16 +116,12 @@ public static class StronaOknaHelper
             Math.Abs(katLinii - 180) <= tolerancja ||
             Math.Abs(katLinii - 360) <= tolerancja;
 
-        // ===== PRZYPADKI PROSTE =====
         if (jestPozioma)
             return katLinii > 90 && katLinii < 270 ? "Dół" : "Góra";
 
         if (jestPionowa)
             return katLinii < 180 ? "Prawa" : "Lewa";
 
-        // ===== SKOŚNE – DOMINUJĄCY KIERUNEK =====
-
-        // Odległość od osi
         double distToHorizontal = Math.Min(
             Math.Abs(katLinii),
             Math.Abs(katLinii - 180));
@@ -132,15 +132,12 @@ public static class StronaOknaHelper
 
         if (distToHorizontal < distToVertical)
         {
-            // bliżej poziomu → Góra / Dół
-            // Dół tylko gdy WYRAŹNIE
             return katLinii > 120 && katLinii < 240
                 ? "Dół"
                 : "Góra";
         }
         else
         {
-            // bliżej pionu → Lewa / Prawa
             return katLinii < 180
                 ? "Prawa"
                 : "Lewa";

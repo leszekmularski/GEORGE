@@ -590,11 +590,11 @@
                                          @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
                                          draggable="true"
                                          style="cursor: grab;
-                                                                            width: auto;
-                                                                            height: auto;
-                                                                            max-width: 50px;
-                                                                            max-height: 50px;
-                                                                            border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
+                                                                                        width: auto;
+                                                                                        height: auto;
+                                                                                        max-width: 50px;
+                                                                                        max-height: 50px;
+                                                                                        border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
 
                                 }
                                 else
@@ -4564,6 +4564,8 @@
             MVCKonfModelu = generator.MVCKonfModelu,
             Kontur = generator.zewnetrznyKonturZLukami,
             KonturInner = generator.wewnetrznyKonturZLukami,
+            KonturWenetrznyPodRysunek = generator.konturWenetrznyPodRysunek,
+            WierzcholkiWenetrznePodRysunek = generator.wierzcholkiWenetrznePodRysunek,
             WybranyModel = WybranyModel,
             WybranyKsztalt = WybranyKsztalt,
             IdRegionWarstwaNizej = generator.IdRegionuPonizej,
@@ -5275,7 +5277,7 @@
 
                     await Task.WhenAll();
 
-                    await Task.Delay(450); // krótkie opóźnienie dla stabilności
+                    await Task.Delay(350); // krótkie opóźnienie dla stabilności
 
                     if (!test.Success)
                     {
@@ -5300,6 +5302,8 @@
                     state.WierzcholkiWartosciNominalne = WierzcholkiWartosciNominalne;
                     state.LinieDzielace = linieDzielace;
                     state.Kontur = regionDoDodania.Kontur;
+                    // state.KonturWenetrznyPodRysunek = regionDoDodania.KonturWenetrznyPodRysunek;
+                    // state.WierzcholkiWenetrznePodRysunek = regionDoDodania.WierzcholkiWenetrznePodRysunek;
                     generator.RuchomySlupekPoLewej = stronaLewa;
                     generator.RuchomySlupekPoPrawej = stronaPrawa;
 
@@ -5371,12 +5375,16 @@
 
         string cleanId = CleanId(state.IdRegion);
 
-        await Task.Delay(10); // krótkie opóźnienie dla stabilności
-
-        state.KonturInner = generator.wewnetrznyKonturZLukami;
+         state.KonturInner = generator.wewnetrznyKonturZLukami;
         state.WierzcholkiInner = generator.wewnetrznyKontur;
 
+        state.KonturWenetrznyPodRysunek = generator.konturWenetrznyPodRysunek;
+        state.WierzcholkiWenetrznePodRysunek = generator.wierzcholkiWenetrznePodRysunek;
+
+       
         AddOrUpdateGeneratorState(cleanId, state, generator);
+
+        await Task.CompletedTask;
 
         //await ApplyZoom(_currentScale);
 
@@ -5753,7 +5761,7 @@
         // 🔹 Pobierz przesunięcia z boków
         foreach (var bok in state.ListaKwadratow)
         {
-           // bok.Strona = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(bok.KatLinii); //Popraw stronę elementu!
+            // bok.Strona = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(bok.KatLinii); //Popraw stronę elementu!
 
             // Console.WriteLine($"WyliczObszarSkrzydla   ✅ 📦 Sprawdzam bok: Element={bok.RowIdElementu}, Sąsiad={bok.RowIdSasiada}, Strona='{bok.Strona}' KatLinii: {bok.KatLinii}");
 
@@ -5771,11 +5779,11 @@
                 polaczenieWartosci = polaczenieWartosciAllSystem.Where(x => string.Equals(x.Strona, bok.Strona, StringComparison.OrdinalIgnoreCase)
                 && x.ElementZewnetrznyId == bok.RowIdSasiada && x.ElementWewnetrznyId == bok.RowIdElementu).ToList();
                 // Console.WriteLine($"✅ WyliczObszarSkrzydla   ✅ Dane o połączeniach w systemie: {polaczenieWartosciAllSystem.Count} rekordów pasujące: {polaczenieWartosci.Count} - wszytkie z systemu");
-                if(polaczenieWartosci.Count == 0)
+                if (polaczenieWartosci.Count == 0)
                 {
                     //Próbuje wyszukać odwrotnie
                     polaczenieWartosci = polaczenieWartosciAllSystem.Where(x => string.Equals(x.Strona, bok.Strona, StringComparison.OrdinalIgnoreCase)
-                    && x.ElementZewnetrznyId ==  bok.RowIdElementu && x.ElementWewnetrznyId == bok.RowIdSasiada).ToList();
+                    && x.ElementZewnetrznyId == bok.RowIdElementu && x.ElementWewnetrznyId == bok.RowIdSasiada).ToList();
                     //Console.WriteLine($"✅ WyliczObszarSkrzydla   ✅ Dane o połączeniach w systemie: {polaczenieWartosciAllSystem.Count} rekordów pasujące: {polaczenieWartosci.Count} - wszytkie z systemu");
                 }
 
@@ -5783,6 +5791,13 @@
             }
 
             var spolaczenieStrona = polaczenieWartosci.FirstOrDefault();
+
+            if (string.IsNullOrEmpty(spolaczenieStrona?.Strona) && spolaczenieStrona != null)
+            {
+                bok.Strona = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(bok.KatLinii); //Popraw stronę elementu!
+                spolaczenieStrona.Strona = bok.Strona;
+                Console.WriteLine($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono ponownie stronę na: {bok.Strona} !!!!!!");
+            }
 
             double przesY = 0;
             if (spolaczenieStrona != null)
@@ -6711,19 +6726,19 @@
 
                     var testStrona = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(katLinii);
 
-                    if(konf.WystepujeGora)
+                    if (konf.WystepujeGora)
                     {
                         testStrona = "Góra";
                     }
-                    else if( konf.WystepujeDol)
+                    else if (konf.WystepujeDol)
                     {
                         testStrona = "Dół";
                     }
-                    else if( konf.WystepujeLewa)
+                    else if (konf.WystepujeLewa)
                     {
                         testStrona = "Lewa";
                     }
-                    else if( konf.WystepujePrawa)
+                    else if (konf.WystepujePrawa)
                     {
                         testStrona = "Prawa";
                     }
@@ -7697,7 +7712,7 @@
 
                 // Rysuj kontur
                 await DrawSingleContour(context, ksztalt.WierzcholkiZLukami); //Pojedyncze elementy
-                                                                              // await DrawSingleInnerContourKontur(context);
+                // await DrawSingleInnerContourKontur(context);
 
 
                 //await DrawOuterContourSegments(context, ksztalt.Kontur);
@@ -7742,7 +7757,13 @@
 
             await context.SetStrokeStyleAsync("#000000");
             await context.SetLineWidthAsync(2f);
+            await context.SetLineDashAsync(new float[] { 0 }); // Linia ciągła
             await context.StrokeAsync();
+
+            if (oknaMogaBycLukowe)
+            await DrawSingleKonturWewewnetrznyPodRysKontur(context); // Kontur wewnętrzny pod rys kontur)
+            else
+            await DrawSingleKonturWewnetrznyPodRysWierzcholki(context); // Kontur wewnętrzny pod rys wierzchołki
         }
         catch (Exception ex)
         {
@@ -7847,7 +7868,7 @@
         await context.SetLineWidthAsync(2f);
         await context.StrokeAsync();
 
-        // Console.WriteLine("✅ Kontur narysowany pomyślnie");
+         // Console.WriteLine("✅ Kontur narysowany pomyślnie");
     }
 
     // Funkcja pomocnicza do rysowania łuku
@@ -7888,6 +7909,39 @@
             endAngle,
             seg.CounterClockwise
         );
+    }
+
+    // Rysowanie konturu wewnętrznego w celu lepszego wyglądu rysunku
+    private async Task DrawSingleKonturWewnetrznyPodRysWierzcholki(Canvas2DContext context)
+    {
+        await context.BeginPathAsync();
+
+        foreach (var gs in _generatorStates)
+        {
+            if (gs.Value.Generator == null) continue;
+            if (gs.Value.Generator.wierzcholkiWenetrznePodRysunek == null) continue;
+
+            var innerPoints = gs.Value.Generator.wierzcholkiWenetrznePodRysunek;
+
+            // 🔴 Jeśli którykolwiek punkt ma 1 → pomiń rysowanie musi być większy niż 1, bo 0 i 1 to wartości domyślne, które oznaczają brak konturu szklenia
+            if (innerPoints.Any(p => p.X <= 1 || p.Y <= 1))
+                continue;
+
+            await context.MoveToAsync(innerPoints[0].X, innerPoints[0].Y);
+
+            for (int i = 1; i < innerPoints.Count; i++)
+            {
+                await context.LineToAsync(innerPoints[i].X, innerPoints[i].Y);
+            }
+
+            await context.ClosePathAsync();
+        }
+
+        await context.SetLineDashAsync(new float[] { 10, 5 }); // 10px kreska, 5px przerwa
+
+        await context.SetStrokeStyleAsync("Black");
+        await context.SetLineWidthAsync(1.5f);
+        await context.StrokeAsync();
     }
 
     private async Task DrawSingleGlassContour(Canvas2DContext context)
@@ -7983,7 +8037,7 @@
 
     }
 
-    private async Task DrawContourSegmentsKontur(Canvas2DContext context, List<ContourSegment> segments, string strokeColor, float lineWidth)
+    private async Task DrawContourSegmentsKontur(Canvas2DContext context, List<ContourSegment> segments, string strokeColor, float lineWidth, bool liniaPrzerywana = false)
     {
         if (segments == null || segments.Count == 0) return;
 
@@ -8046,6 +8100,16 @@
         }
 
         await context.ClosePathAsync();
+
+        if(liniaPrzerywana)
+        {
+            await context.SetLineDashAsync(new float[] { 10, 5 }); // 10px kreska, 5px przerwa
+        }
+        else
+        {
+            await context.SetLineDashAsync(new float[] { 0 }); // Linia ciągła
+        }
+
         await context.SetStrokeStyleAsync(strokeColor);
         await context.SetLineWidthAsync(lineWidth);
         await context.StrokeAsync();
@@ -8065,6 +8129,18 @@
         }
     }
 
+    // Rysowanie konturu wewnętrznego w celu lepszego wyglądu rysunku
+    private async Task DrawSingleKonturWewewnetrznyPodRysKontur(Canvas2DContext context)
+    {
+        foreach (var gs in _generatorStates)
+        {
+            if (gs.Value.Generator?.konturWenetrznyPodRysunek != null)
+            {
+                await DrawContourSegmentsKontur(context, gs.Value.Generator.konturWenetrznyPodRysunek, "Black", 1.5f, true);
+            }
+        }
+    }
+
     // Rysowanie konturu wewnętrznego
     private async Task DrawSingleInnerContourKontur(Canvas2DContext context)
     {
@@ -8075,6 +8151,7 @@
                 await DrawContourSegmentsKontur(context, gs.Value.Generator.wewnetrznyKonturZLukami, "Pink", 4f);
             }
         }
+
 
         await DrawSingleGlassContourKontur(context);
         await DrawSingleOuterContourKontur(context);

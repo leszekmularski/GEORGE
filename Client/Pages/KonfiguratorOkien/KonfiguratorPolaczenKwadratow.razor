@@ -113,7 +113,7 @@
 
 <script>
     // 🧠 Inicjalizacja namespace i stanu zoomLevel
-    let activScale = 1;
+    let activScale = window.activScale || 1;
     window.svgHelper = window.svgHelper || {};
     window.svgHelper.zoomLevel = window.svgHelper.zoomLevel || 1;
 
@@ -1570,8 +1570,11 @@
     }
 
     // Wybór modelu
-    private async Task WybierzModel(KonfModele model, bool stronaDol, bool stronaGora, bool stronaLewa, bool stronaPrawa, bool boolStyczny)
+    private async Task WybierzModel(KonfModele model, bool stronaDol, bool stronaGora, bool stronaLewa, bool stronaPrawa, bool bStyczny)
     {
+
+        boolStyczny = bStyczny; // Przypisujemy wartość przekazaną z parametru
+
         Console.WriteLine($"WybierzModel - START - stronaDol: {stronaDol}, stronaGora: {stronaGora}, stronaLewa: {stronaLewa}, stronaPrawa: {stronaPrawa}, boolStyczny: {boolStyczny}");
 
         if (!selDol && !selGora && !selLewa && !selPrawa && !selDolStyczne && !selGoraStyczne && !selLewaStyczne && !selPrawaStyczne)
@@ -1579,6 +1582,13 @@
             BladKonfiguracji = "Wybierz co najmniej jedną stronę (Dół, Góra, Lewa, Prawa).";
             return;
         }
+
+        if (model == null)
+        {
+            BladKonfiguracji = "Wybierz co najmniej jedną stronę wybrany - model jest pusty.";
+            return;
+        }
+
 
         BladKonfiguracji = "";
 
@@ -1620,7 +1630,6 @@
             {
                 warunki.Clear();
                 warunki.Add(x => x.WystepujeLewa);
-
             }
 
             // Filtrujemy rekordy spełniające WSZYSTKIE warunki
@@ -1719,7 +1728,7 @@
         {
             svgParts.Add($@"
             <g id=""model1"" transform=""translate({centerX}, {centerY})"">
-    {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
+        {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
             </g>");
         }
 
@@ -1730,16 +1739,22 @@
             double secondY = centerY + offsetY;
 
             var pasujacyWymiar = drugiModel.PoziomGora - drugiModel.PoziomDol ?? 0;
+            if (pasujacyWymiar == 0) pasujacyWymiar = 100; // Domyślny wymiar, jeśli brak danych
             double rectWidth = Math.Abs(pasujacyWymiar);
+
             double rectHeight = 100; // Domyślny rozmiar prostokąta tylko do wizualizacji
             double rectX = 0;//centerX + offsetX - rectWidth;
             double rectY = 0;//centerY + offsetY - rectHeight;
 
-            svgParts.Add($@"
+            string svtmp = $@"
             <g id=""model2"" transform=""translate({secondX}, {secondY})"">
-                <rect x=""{rectX}"" y=""{rectY}"" width=""{rectWidth}"" height=""{rectHeight}""
+                <rect x=""{rectX}"" y=""{rectY}"" width=""{(int)rectWidth}"" height=""{(int)rectHeight}""
                       fill=""#e0e0e0"" fill-opacity=""0.5"" stroke=""#000"" stroke-width=""1"" />
-            </g>");
+            </g>";
+
+            Console.WriteLine($"Dodano prostokąt zastępczy dla drugiego modelu: {svtmp}");
+
+            svgParts.Add(svtmp);
 
         }
         else if (drugiModel != null && !boolStyczny)
@@ -1749,7 +1764,7 @@
 
             svgParts.Add($@"
             <g id=""model2"" transform=""translate({secondX}, {secondY})"">
-    {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
+            {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
             </g>");
         }
 
@@ -1758,7 +1773,7 @@
         <svg xmlns=""http://www.w3.org/2000/svg"" width=""600"" height=""600""
              viewBox=""0 0 600 600"" preserveAspectRatio=""xMidYMid meet"">
             <g id=""zoom-group"">
-    {string.Join("", svgParts)}
+            {string.Join("", svgParts)}
             </g>
         </svg>";
 

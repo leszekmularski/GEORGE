@@ -18,12 +18,14 @@ namespace GEORGE.Client.Pages.Okna
 
         // Lista wierzcholkow tylko linie (w kolejnosci zgodnej z ruchem wskazowek zegara)
         public List<XPoint> Wierzcholki { get; set; } = new();
+        public List<ContourSegment> konturWenetrznyPodRysunek { get; set; } = new();
 
         // Lista wierzcholkow linie i łuki (w kolejnosci zgodnej z ruchem wskazowek zegara)
 
         public List<XPoint> wewnetrznyKontur; // przechowuje obliczony wewnętrzny kontur po offsetowaniu
 
         public List<XPoint> liniaSzkleniaKontur;// przechowuje obliczony kontur linii szklenia (jeśli dotyczy)
+        public List<XPoint> wierzcholkiWenetrznePodRysunek { get; set; } = new();
         public List<ContourSegment> zewnetrznyKonturZLukami { get; set; } = new();
 
         public List<ContourSegment> wewnetrznyKonturZLukami; // przechowuje obliczony wewnętrzny kontur po offsetowaniu
@@ -80,13 +82,22 @@ namespace GEORGE.Client.Pages.Okna
 
             if (KonfiguracjeSystemu == null || MVCKonfModelu == null)
             {
-                Console.WriteLine($"❌ AddElements Brak KonfiguracjeSystemu lub PowiazanyModel!");
+                //Console.WriteLine($"❌ AddElements Brak KonfiguracjeSystemu lub PowiazanyModel!");
+                BledySystemowe.Add("❌ Brak konfiguracji systemu lub powiązanego modelu. Upewnij się, że dane są poprawnie załadowane.");
                 return false;
             }
 
             if (EdytowanyModel == null)
             {
-                Console.WriteLine($"❌ AddElements Brak EdytowanyModel jest nie ustawiony!!!");
+                //Console.WriteLine($"❌ AddElements Brak EdytowanyModel jest nie ustawiony!!!");
+                BledySystemowe.Add("❌ Brak edytowanego modelu. Upewnij się, że model jest poprawnie załadowany.");
+                return false;
+            }
+
+            if (regions == null)
+            {
+                //Console.WriteLine($"❌ AddElements Brak EdytowanyModel jest nie ustawiony!!!");
+                BledySystemowe.Add("❌ Brak wybranego regionu. Sprawdź dane!!!");
                 return false;
             }
 
@@ -114,7 +125,8 @@ namespace GEORGE.Client.Pages.Okna
 
             if (region == null && !ElementLiniowy)
             {
-                Console.WriteLine($"❌ AddElements Nie znaleziono regionu o ID: {regionId} w AddElements - GeneratoryOkienne");
+                //Console.WriteLine($"❌ AddElements Nie znaleziono regionu o ID: {regionId} w AddElements - GeneratoryOkienne");
+                BledySystemowe.Add($"❌ Nie znaleziono regionu o ID: {regionId}. Upewnij się, że dane regionów są poprawnie załadowane i zawierają wymagany region.");
                 return false;
             }
             else if (region != null && !ElementLiniowy)
@@ -147,17 +159,19 @@ namespace GEORGE.Client.Pages.Okna
 
             if ((punkty == null || punkty.Count < 3) && !ElementLiniowy)
             {
-                Console.WriteLine($"❌ AddElements Region o ID: {regionId} ma zbyt mało punktów");
+               // Console.WriteLine($"❌ AddElements Region o ID: {regionId} ma zbyt mało punktów");
+                BledySystemowe.Add($"❌ Region o ID: {regionId} ma zbyt mało punktów. Wymagane jest co najmniej 3 punkty dla regionów nielinowych. Sprawdź dane wejściowe dla tego regionu.");
                 return false;
             }
 
             if ((punkty == null || punkty.Count < 2))
             {
-                Console.WriteLine($"❌ AddElements Region o ID: {regionId} ma zbyt mało punktów! punkty.Count: {punkty.Count}");
+                //Console.WriteLine($"❌ AddElements Region o ID: {regionId} ma zbyt mało punktów! punkty.Count: {punkty.Count}");
+                BledySystemowe.Add($"❌ Region o ID: {regionId} ma zbyt mało punktów. Wymagane jest co najmniej 2 punkty dla elementów liniowych. Sprawdź dane wejściowe dla tego regionu.");
                 return false;
             }
 
-            Console.WriteLine($"🟩 AddElements Generuj okno dla regionu ID {regionId} typu: {region.TypKsztaltu} ElementLiniowy: {ElementLiniowy} punkty.Count: {punkty.Count()}");
+            //Console.WriteLine($"🟩 AddElements Generuj okno dla regionu ID {regionId} typu: {region.TypKsztaltu} ElementLiniowy: {ElementLiniowy} punkty.Count: {punkty.Count()}");
 
             // 🧮 Bounding box
             float minX = (float)punkty.Min(p => p.X);
@@ -173,6 +187,8 @@ namespace GEORGE.Client.Pages.Okna
             var przeskalowanePunkty = new List<XPoint>(punkty); // bez skalowania – prawdziwe dane
                                                                 // Zakładam, że punktyFull to List<ContourSegment>
             var przeskalowanePunktyZLukami = new List<ContourSegment>();
+
+            var przeskalowanePunktyZLukamiPodRysynek = new List<ContourSegment>(); // bez skalowania – prawdziwe dane
 
             // 1️⃣ Usuń segmenty zerowej długości
             var bezDuplikatow = punktyZLukami
@@ -190,7 +206,7 @@ namespace GEORGE.Client.Pages.Okna
                        Math.Abs(a.Y - b.Y) < tolerance;
             }
 
-            Console.WriteLine($"🔹 przeskalowanePunktyZLukami: {przeskalowanePunktyZLukami.Count} w tym linii: {przeskalowanePunktyZLukami.Where(x => x.Type == SegmentType.Line).Count()} i łuki: {przeskalowanePunktyZLukami.Where(x => x.Type == SegmentType.Arc).Count()}");
+         //   Console.WriteLine($"🔹 przeskalowanePunktyZLukami: {przeskalowanePunktyZLukami.Count} w tym linii: {przeskalowanePunktyZLukami.Where(x => x.Type == SegmentType.Line).Count()} i łuki: {przeskalowanePunktyZLukami.Where(x => x.Type == SegmentType.Arc).Count()}");
 
             //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -296,14 +312,29 @@ namespace GEORGE.Client.Pages.Okna
             float offsetGlassTop = await ObliczRoznicePoziomowSzyba(konfTop, ElementLiniowy);
             float offsetGlassBottom = await ObliczRoznicePoziomowSzyba(konfBottom, ElementLiniowy);
 
+            float offsetKorpusWewnetrznyLeft = await ObliczRoznicePoziomowKorpusWewnetrzny(konfLeft);
+            float offsetKorpusWewnetrznyRight = await ObliczRoznicePoziomowKorpusWewnetrzny(konfRight);
+            float offsetKorpusWewnetrznyTop = await ObliczRoznicePoziomowKorpusWewnetrzny(konfTop);
+            float offsetKorpusWewnetrznyBottom = await ObliczRoznicePoziomowKorpusWewnetrzny(konfBottom);
+
             if (offsetGlassLeft > 0) offsetGlassLeft = profileLeft - offsetGlassLeft;
             if (offsetGlassRight > 0) offsetGlassRight = profileRight - offsetGlassRight;
             if (offsetGlassTop > 0) offsetGlassTop = profileTop - offsetGlassTop;
             if (offsetGlassBottom > 0) offsetGlassBottom = profileBottom - offsetGlassBottom;
 
+            if (offsetKorpusWewnetrznyLeft > 0 && !regions.FirstOrDefault().Rama) offsetKorpusWewnetrznyLeft = profileLeft - offsetKorpusWewnetrznyLeft;
+            if (offsetKorpusWewnetrznyRight > 0 && !regions.FirstOrDefault().Rama) offsetKorpusWewnetrznyRight = profileRight - offsetKorpusWewnetrznyRight;
+            if (offsetKorpusWewnetrznyTop > 0 && !regions.FirstOrDefault().Rama) offsetKorpusWewnetrznyTop = profileTop - offsetKorpusWewnetrznyTop;
+            if (offsetKorpusWewnetrznyBottom > 0 && !regions.FirstOrDefault().Rama) offsetKorpusWewnetrznyBottom = profileBottom - offsetKorpusWewnetrznyBottom;
+
             if (profileLeft == 0 || profileRight == 0 || profileTop == 0 || profileBottom == 0)
             {
                 BledySystemowe.Add($"⚠️ Uwaga: Jeden lub więcej profili jest równy 0. profileLeft: {profileLeft} profileRight: {profileRight} profileTop: {profileTop} profileBottom: {profileBottom}. Sprawdź konfigurację systemu.");
+            }
+
+            if (offsetKorpusWewnetrznyLeft == 0 || offsetKorpusWewnetrznyRight == 0 || offsetKorpusWewnetrznyTop == 0 || offsetKorpusWewnetrznyBottom == 0)
+            {
+                BledySystemowe.Add($"⚠️ Uwaga: Jeden lub więcej offsetów korpusu wewnętrznego jest równy 0. offsetKorpusWewnetrznyLeft: {offsetKorpusWewnetrznyLeft} offsetKorpusWewnetrznyRight: {offsetKorpusWewnetrznyRight} offsetKorpusWewnetrznyTop: {offsetKorpusWewnetrznyTop} offsetKorpusWewnetrznyBottom: {offsetKorpusWewnetrznyBottom}. Sprawdź konfigurację systemu.");
             }
 
             // Console.WriteLine($"🔧 Profile z konfiguracji przed korektą: profileLeft: {profileLeft} profileRight: {profileRight} profileTop: {profileTop} profileBottom: {profileBottom}");
@@ -405,6 +436,8 @@ namespace GEORGE.Client.Pages.Okna
 
                 wewnetrznyKonturZLukami = przeskalowanePunktyZLukami;
 
+                konturWenetrznyPodRysunek = przeskalowanePunktyZLukamiPodRysynek;
+
                 // Napraw punkty startowe jeśli potrzebne
                 //   wewnetrznyKonturZLukami = FixStartPoints(wewnetrznyKonturZLukami);
 
@@ -459,9 +492,19 @@ namespace GEORGE.Client.Pages.Okna
                     offsetGlassLeft, offsetGlassRight, offsetGlassTop, offsetGlassBottom,
                     false);
 
+                wierzcholkiWenetrznePodRysunek = await CalculateOffsetPolygon(
+                    przeskalowanePunkty,
+                    offsetKorpusWewnetrznyLeft, offsetKorpusWewnetrznyRight, offsetKorpusWewnetrznyTop, offsetKorpusWewnetrznyBottom,
+                    false);
+
                 //Console.WriteLine($"offsetLeft, offsetRight, offsetTop, offsetBottom, {offsetLeft}, {offsetRight}, {offsetTop}, {offsetBottom}");
                 liniaSzkleniaKonturZLukami = await CalculateOffsetPolygonKontur(przeskalowanePunktyZLukami,
                     offsetGlassLeft, offsetGlassRight, offsetGlassTop, offsetGlassBottom,
+                    false);
+
+                konturWenetrznyPodRysunek = await CalculateOffsetPolygonKontur(
+                    przeskalowanePunktyZLukami,
+                    offsetKorpusWewnetrznyLeft, offsetKorpusWewnetrznyRight, offsetKorpusWewnetrznyTop, offsetKorpusWewnetrznyBottom,
                     false);
             }
 
@@ -884,7 +927,7 @@ namespace GEORGE.Client.Pages.Okna
                 // Teraz możesz użyć angleDegreesStronaA i angleDegreesStronaB
                 Console.WriteLine($"Wierzchołek {i}: Kąt eleemntu: {angleDegrees:F1}° Kąt z poprzednim = {angleDegreesStronaA:F1}°, Kąt z następnym = {angleDegreesStronaB:F1}°");
 
-                if (angleDegreesStronaA < 20 && angleDegrees != 90 && angleDegreesStronaA != 270 || Math.Abs(angleDegrees - angleDegreesStronaA) < 20 )
+                if (angleDegreesStronaA < 20 && angleDegrees != 90 && angleDegreesStronaA != 270 || Math.Abs(angleDegrees - angleDegreesStronaA) < 20)
                 {
                     // Jeśli kąt z następnym jest bardzo mały, traktujemy to jako prawie prostą linię → potencjalnie T1
                     leftJoin = "T2"; // połączone równym kątem
@@ -1550,12 +1593,12 @@ namespace GEORGE.Client.Pages.Okna
                     //    StronaElementu, stonaOstanioDodanegoElementu, vertexCount < 6 ? -1 : i);
 
 
-                   
+
 
                     List<XPoint> getStartT1 = GetStartT1(inner[i], outer[i], outer, angleDegrees, anglePrev, angleNext,
                     StronaElementu, stonaOstanioDodanegoElementu, vertexCount < 6 ? -1 : i);
 
-                    if(anglePrev == 270)
+                    if (anglePrev == 270)
                     {
                         getStartT1[1] = outer[i];
                     }
@@ -1570,7 +1613,7 @@ namespace GEORGE.Client.Pages.Okna
 
                     // List<XPoint> getEndT1;
 
-                    if(vertexCount > 6 && angleDegrees > 270 && angleDegreesStronaA < 271 || anglePrev == 270)
+                    if (vertexCount > 6 && angleDegrees > 270 && angleDegreesStronaA < 271 || anglePrev == 270)
                     {
                         getStartT2[0] = FindFirstEdgeIntersectionByAngle(getStartT1[0], angleDegrees - 180, outer);
                     }
@@ -2601,10 +2644,34 @@ namespace GEORGE.Client.Pages.Okna
                 //Słupki stałe mają zawsze pełną wartość profilu, niezależnie od poziomów pozostałe dane z tabeli KonfPolaczenia
                 //Console.BackgroundColor = ConsoleColor.Green;
                 //Console.WriteLine("Słupki stałe mają zawsze pełną wartość profilu, niezależnie od poziomów pozostałe dane z tabeli KonfPolaczenia");
-                BledySystemowe.Add($"Słupki stałe mają zawsze pełną wartość profilu, niezależnie od poziomów pozostałe dane z tabeli KonfPolaczenia");
+                BledySystemowe.Add($"Dla słupków stałych nie wyszukano w tabeli KonfPolaczenia wartość LINIA SZKLENIA");
                 await Task.CompletedTask;
                 return 0;
             }
+
+        }
+
+        private async Task<float> ObliczRoznicePoziomowKorpusWewnetrzny(KonfSystem? konf)
+        {
+            if (konf == null)
+            {
+                BledySystemowe.Add($"Konfiguracja systemu jest pusta. Dotyczy funkcji ObliczRoznicePoziomowKorpusWewnetrzny");
+                return 0;
+            }
+ 
+                float gora = (float)konf.PoziomKorpus;
+                float dol = (float)konf.PoziomDol;
+
+                // Jeśli jedno z pól jest 0, traktuj drugie jako wartość symetryczną
+                if (gora == 0 && dol != 0)
+                    return Math.Abs(dol);
+
+                if (dol == 0 && gora != 0)
+                    return Math.Abs(gora);
+
+                await Task.CompletedTask;
+
+                return Math.Abs(gora - dol);
 
         }
 

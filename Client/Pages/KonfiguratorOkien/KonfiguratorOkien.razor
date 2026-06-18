@@ -48,13 +48,16 @@
 <script>
 
     let isDraggingOKN = false;
-    let draggedLine = null;
-    let offsetX = 0; // 🔥 Przechowuje różnicę między kliknięciem a aktualnym X
-    let deleteMode = false; // 🔥 Tryb usuwania
+    let deleteMode = window.deleteMode || false; // 🔥 Tryb usuwania
 
     // 🔥 Nowe zmienne do przechwycenia wartości prowadnic
-    let verticalGuides = {};
-    let horizontalGuides = {};
+
+    var verticalGuides = window.verticalGuides || {};
+    var horizontalGuides = window.horizontalGuides || {};
+
+    var draggedLine = window.draggedLine || null;
+    var offsetX = window.offsetX || 0;
+
 
     let zoomLevel = 1;  // 🔥 Domyślny poziom zoomu
     const zoomFactor = 1.1; // 🔥 O ile zmieniamy skalę (10%)
@@ -268,7 +271,7 @@
     draggedLine.setAttribute('y2', newY);
     }
 
-    console.log(`✅ ${draggedLine.id} nowa pozycja: x1=${draggedLine.getAttribute('x1')}, y1=${draggedLine.getAttribute('y1')}`);
+    // console.log(`✅ ${draggedLine.id} nowa pozycja: x1=${draggedLine.getAttribute('x1')}, y1=${draggedLine.getAttribute('y1')}`);
     }
     }
 
@@ -704,9 +707,6 @@
     function getGuidesData() {
     console.log("📡 Pobieram dane prowadnic...");
 
-    //let verticalGuides = {};
-    //let horizontalGuides = {};
-
     // Pobieramy wszystkie prowadnice
     document.querySelectorAll("line[id^='guide-line']").forEach(line => {
     let id = line.id;
@@ -907,6 +907,22 @@
         updateGuideValues();
     }
 
+        function getKonfSystemValues() {
+        return {
+            PionLewa: verticalGuides["guide-line-vertical"] ?? 0,
+            PionPrawa: verticalGuides["guide-line-verticalMax"] ?? 0,
+            PionOsSymetrii: verticalGuides["guide-line-verticalOsSymetrii"] ?? 0,
+            PionOdSzybaOdZew: verticalGuides["guide-line-verticalOdlSzyby"] ?? 0,
+
+            PoziomGora: horizontalGuides["guide-line-horizontal"] ?? 0,
+            PoziomDol: horizontalGuides["guide-line-horizontalMax"] ?? 0,
+            PoziomKorpus: horizontalGuides["guide-line-horizontal-korpus"] ?? 0,
+            PoziomLiniaSzkla: horizontalGuides["guide-line-horizontal-liniaSzklenia"] ?? 0,
+            PoziomLiniaOkucia: horizontalGuides["guide-line-horizontal-okucie"] ?? 0,
+            PoziomOsSymetrii: horizontalGuides["guide-line-horizontal-OsSymetrii"] ?? 0
+        };
+    }
+
 </script>
 
 <div class="d-flex align-items-center flex-wrap gap-2">
@@ -946,9 +962,13 @@
 
 <Divider Style="font-weight:bold; font-size:large; display:flex; justify-content:space-between; align-items:center;">
 
-    <Tooltip Placement="@Placement.BottomCenter" Title="Zapisz ustawienia">
-        <Button class="btn-back" Icon="@IconType.Fill.Save" Style="height:35px; padding-right:25px" OnClick="SaveLinieDXF" >Zapisz wszystkie ustawienia </Button>
-    </Tooltip>
+    @if (activeKey == "1")
+    {
+        <Tooltip Placement="@Placement.BottomCenter" Title="Zapisz ustawienia">
+            <Button class="btn-back" Icon="@IconType.Fill.Save" Style="height:35px; padding-right:25px" OnClick="SaveLinieDXF">Zapisz wszystkie ustawienia </Button>
+        </Tooltip>
+    }
+
     @if (activeKey == "2")
     {
         <Tooltip Placement="@Placement.TopRight" Title="Obróć o 90 stopni">
@@ -968,7 +988,7 @@
 
 </Divider>
 
-<Tabs DefaultActiveKey="0" @bind-ActiveKey="activeKey">
+<Tabs DefaultActiveKey="0" @bind-ActiveKey="activeKey" OnTabClick="OnTabClick">
     <TabPane Tab="Zapisane elementy w konfiguracji" Key="0">
         <h3 class="text-center mt-3">
             📌 Skonfigurowane elementy
@@ -1167,6 +1187,43 @@
                         <label class="form-label">Wartość linia: pozioma oś symetrii</label>
                         <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PoziomOsSymetrii" />
                     </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Wartość linia: Okucia</label>
+                        <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PoziomLiniaOkucia" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Wartość linia: Szklenia</label>
+                        <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PoziomLiniaSzkla" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Wartość linia: Korpus od wewnątrz</label>
+                        <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PoziomKorpus" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Wartość linia: Odsunięcie szyby</label>
+                        <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PionOdSzybaOdZew" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Wartość linia: PoziomDodatkowa6</label>
+                        <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PoziomDodatkowa6" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Wartość linia: PoziomDodatkowa7</label>
+                        <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PoziomDodatkowa7" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Wartość linia: PionDodatkowa4</label>
+                        <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PionDodatkowa4" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Wartość linia: PionDodatkowa5</label>
+                        <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PionDodatkowa5" />
+                    </div>
+
                 </div>
                 <br/>
                 <br/>
@@ -1178,7 +1235,7 @@
                 </div>
             </div>
             <br/>
-                    <br/>
+            <br/>
             <br />
         </div>
 
@@ -1288,7 +1345,7 @@
 
     private string? activeKey;
 
-    private int precyzjaZapisuLinii = 0;
+    private int precyzjaZapisuLinii = 1;
 
     protected override async Task OnInitializedAsync()
     {
@@ -1302,6 +1359,59 @@
         Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>($"api/systemy-okienne") ?? new List<SystemyOkienne>();
 
         KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>("api/konfsystem");
+    }
+
+    private async Task OnTabClick()
+    {
+        if (activeKey != "2")
+            return;
+
+        var values = await JSRuntime.InvokeAsync<KonfSystem>("getKonfSystemValues");
+
+        AktualizujProwadnice(values);
+
+        StateHasChanged();
+    }
+
+    private void AktualizujProwadnice(KonfSystem source)
+    {
+        string[] polaProwadnic =
+        {
+        nameof(KonfSystem.PionLewa),
+        nameof(KonfSystem.PionPrawa),
+        nameof(KonfSystem.PionOdSzybaOdZew),
+        nameof(KonfSystem.PionOsSymetrii),
+        nameof(KonfSystem.PionDodatkowa4),
+        nameof(KonfSystem.PionDodatkowa5),
+
+        nameof(KonfSystem.PoziomDol),
+        nameof(KonfSystem.PoziomGora),
+        nameof(KonfSystem.PoziomKorpus),
+        nameof(KonfSystem.PoziomLiniaSzkla),
+        nameof(KonfSystem.PoziomLiniaOkucia),
+        nameof(KonfSystem.PoziomOsDormas),
+        nameof(KonfSystem.PoziomOsSymetrii),
+        nameof(KonfSystem.PoziomDodatkowa6),
+        nameof(KonfSystem.PoziomDodatkowa7)
+    };
+
+        foreach (var nazwaPola in polaProwadnic)
+        {
+            var prop = typeof(KonfSystem).GetProperty(nazwaPola);
+
+            if (prop == null)
+                continue;
+
+            var nowaWartosc = prop.GetValue(source) as double?;
+
+            if (nowaWartosc.HasValue && nowaWartosc.Value != 0)
+            {
+                prop.SetValue(konfSystem, Math.Round(nowaWartosc ?? 0, precyzjaZapisuLinii));
+
+                Console.WriteLine(
+                    $"✅ Zaktualizowano {nazwaPola} = {nowaWartosc}");
+            }
+        }
     }
 
     private string RysunekToBase64(byte[]? imageData)
