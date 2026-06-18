@@ -19,909 +19,927 @@
 
 <style>
     .scaled-svg {
-    position: relative;
-    width: 505px;
-    height: 505px;
-    overflow: auto;
-    border: 1px solid #ccc;
+        position: relative;
+        width: 505px;
+        height: 505px;
+        overflow: auto;
+        border: 1px solid #ccc;
     }
 
     svg {
-    width: 100%;
-    height: 100%;
-    transform-origin: center; /* 🔥 Kluczowe dla poprawnego zoomu */
-    transition: transform 0.2s ease-in-out; /* 🔄 Płynna animacja */
+        width: 100%;
+        height: 100%;
+        transform-origin: center; /* 🔥 Kluczowe dla poprawnego zoomu */
+        transition: transform 0.2s ease-in-out; /* 🔄 Płynna animacja */
     }
 
     #guide-line-vertical, #guide-line-horizontal, #guide-line-verticalMax, #guide-line-horizontalMax {
-    pointer-events: auto;
-    opacity: 1;
-    z-index: 10; /* Przesunięcie na wierzch */
+        pointer-events: auto;
+        opacity: 1;
+        z-index: 10; /* Przesunięcie na wierzch */
     }
 
     line {
-    cursor: pointer; /* Zmieniaj kursor przy interakcji */
+        cursor: pointer; /* Zmieniaj kursor przy interakcji */
     }
 
 </style>
 
 <script>
 
-    let isDraggingOKN = false;
-    let deleteMode = window.deleteMode || false; // 🔥 Tryb usuwania
-
-    // 🔥 Nowe zmienne do przechwycenia wartości prowadnic
-
-    var verticalGuides = window.verticalGuides || {};
-    var horizontalGuides = window.horizontalGuides || {};
-
-    var draggedLine = window.draggedLine || null;
-    var offsetX = window.offsetX || 0;
-
-
-    let zoomLevel = 1;  // 🔥 Domyślny poziom zoomu
-    const zoomFactor = 1.1; // 🔥 O ile zmieniamy skalę (10%)
-
-    function zoomInSvg() {
-    console.log("🔍 Powiększam rysunek SVG!");
-    zoomLevel *= zoomFactor;
-    updateSvgZoom();
-    }
-
-    function zoomOutSvg() {
-    console.log("🔎 Pomniejszam rysunek SVG!");
-    zoomLevel /= zoomFactor;
-    updateSvgZoom();
-    }
-
-    function fitSvgToContent() {
-        console.log("🔍 Dopasowuję SVG do zawartości i koryguję współrzędne...");
-
-        const group = document.getElementById("rotate-group");
-        if (!group) {
-            console.error("❌ Nie znaleziono grupy 'rotate-group'");
-            return;
+        if (typeof isDraggingOKN === 'undefined') {
+                let isDraggingOKN = window.isDraggingOKN || false;
+        } else {
+                isDraggingOKN = window.isDraggingOKN || isDraggingOKN || false;
         }
 
-        const svg = group.closest("svg");
-        if (!svg) {
-            console.error("❌ Nie znaleziono elementu SVG");
-            return;
+        if (typeof deleteMode === 'undefined') {
+                let deleteMode = window.deleteMode || false;
+        } else {
+                deleteMode = window.deleteMode || deleteMode || false;
         }
 
-        // 1. Zapisz aktualną transformację
-        const originalTransform = group.getAttribute("transform") || "";
+        // 🔥 Nowe zmienne do przechwycenia wartości prowadnic
 
-        // 2. Tymczasowo usuń transformację, aby uzyskać prawdziwy bounding box
-        group.removeAttribute("transform");
-        const bbox = group.getBBox();
+        var verticalGuides = window.verticalGuides || {};
+        var horizontalGuides = window.horizontalGuides || {};
 
-        // 3. Przywróć transformację
-        group.setAttribute("transform", originalTransform);
+        var draggedLine = window.draggedLine || null;
+        var offsetX = window.offsetX || 0;
 
-        // 4. Oblicz minimalne wartości współrzędnych
-        const minX = bbox.x;
-        const minY = bbox.y;
-        const margin = 10;
-
-        // 5. Oblicz potrzebną korektę pozycji
-        const correctionX = -minX + margin;
-        const correctionY = -minY + margin;
-
-        // 6. Oblicz nowe wymiary
-        const newWidth = bbox.width + 2 * margin;
-        const newHeight = bbox.height + 2 * margin;
-
-        // 7. Ustaw viewBox zaczynający się od (0,0)
-        svg.setAttribute("viewBox", `0 0 ${newWidth} ${newHeight}`);
-
-        // 8. Zastosuj korektę pozycji
-        applyAbsoluteGroupTranslation(group, correctionX, correctionY);
-
-        // 9. Zresetuj zoom
-        zoomLevel = 1;
-        svg.style.transform = "scale(1)";
-
-        console.log(`✅ Wszystkie współrzędne >= ${margin}`);
-        console.log(`✅ Nowy viewBox: 0 0 ${newWidth} ${newHeight}`);
-        console.log(`✅ Korekta: X=${correctionX}, Y=${correctionY}`);
-
-        // 10. Aktualizuj prowadnice
-        updateGuideValues();
-    }
-
-    function applyAbsoluteGroupTranslation(group, tx, ty) {
-        // Pobierz aktualny obrót
-        const currentTransform = group.getAttribute("transform") || "";
-        const rotateMatch = currentTransform.match(/rotate\(([^)]+)\)/);
-
-        // Zastosuj tylko obrót + nowe przesunięcie
-        group.setAttribute("transform",
-            rotateMatch
-                ? `rotate(${rotateMatch[1]}) translate(${tx} ${ty})`
-                : `translate(${tx} ${ty})`
-        );
-    }
-
-    function resetGroupPosition(group) {
-        const currentTransform = group.getAttribute("transform") || "";
-        const rotateMatch = currentTransform.match(/rotate\(([^)]+)\)/);
-
-        group.setAttribute("transform", rotateMatch ? `rotate(${rotateMatch[1]})` : "");
-    }
-
-    function applyGroupTranslation(group, tx, ty) {
-        const currentTransform = group.getAttribute("transform") || "";
-        group.setAttribute("transform", `${currentTransform} translate(${tx} ${ty})`);
-    }
-  
-
-    function updateSvgZoom() {
-    let svgContainer = document.querySelector(".scaled-svg");
-    let svg = svgContainer.querySelector("svg");
-
-    if (!svg) {
-    console.error("❌ Nie znaleziono rysunku SVG!");
-    return;
-    }
-
-    // 🔥 Skalowanie poprzez `transform: scale()`
-    svg.style.transform = `scale(${zoomLevel})`;
-    svg.style.transformOrigin = "center";
-
-    console.log(`✅ Nowy poziom zoomu: ${zoomLevel}`);
-
-    // 🔄 Aktualizacja wartości prowadnic
-    updateGuideValues();
-    }
-
-    function enableDrag() {
-    console.log("🔧 enableDrag uruchomiony!");
-
-    let elements = document.querySelectorAll("svg line, svg circle, svg path");
-
-    //  console.log(`📊 Znaleziono ${elements.length} elementów SVG do aktywacji.`);
-
-    let activatedCount = 0;
-
-    elements.forEach((element, index) => {
-    //console.log(`🔹 [${index + 1}/${elements.length}] ID: ${element.id || "(brak)"} - Typ: ${element.tagName}`);
-
-    if (element.tagName === "line" || element.tagName === "circle" || element.tagName === "path") {
-    element.removeEventListener('mousedown', startDragOrDelete);
-    element.addEventListener('mousedown', startDragOrDelete);
-    element.dataset.dragEnabled = "true";
-    activatedCount++;
-    // console.log(`✅ Aktywowano przesuwanie dla ${element.tagName} (ID: ${element.id || "(brak)"})`);
-    } else {
-    console.warn(`⚠️ Pominięto element ${element.tagName} (ID: ${element.id || "(brak)"})`);
-    }
-    });
-
-    //console.log(`🟢 Aktywowano przesuwanie dla ${activatedCount} z ${elements.length} elementów SVG.`);
-
-    let deleteModeCheckbox = document.getElementById("deleteMode");
-    if (!deleteModeCheckbox) {
-    console.warn("⚠️ Ostrzeżenie: Nie znaleziono elementu #deleteMode! Czekam...");
-    setTimeout(enableDrag, 500);
-    return;
-    }
-
-    deleteModeCheckbox.addEventListener("change", function () {
-    deleteMode = this.checked;
-    console.log(`🗑️ Tryb usuwania: ${deleteMode ? "WŁĄCZONY" : "WYŁĄCZONY"}`);
-    });
-
-    console.log("🟢 enableDrag() zakończone!");
-    }
-
-    function startDrag(event) {
-        if (!event) {
-            console.error("❌ startDrag wywołane bez eventu!");
-            return;
-        }
-    event.preventDefault();
-    isDraggingOKN = true;
-    draggedLine = event.target;
-
-    const svg = draggedLine.closest('svg');
-    const rect = svg.getBoundingClientRect();
-    const viewBox = svg.viewBox.baseVal;
-
-    let scaleX = viewBox.width / rect.width; // Skalowanie X
-    let scaleY = viewBox.height / rect.height; // Skalowanie Y
-
-    let mouseX = (event.clientX - rect.left) * scaleX + viewBox.x;
-    let mouseY = (event.clientY - rect.top) * scaleY + viewBox.y;
-
-    if (draggedLine.id.includes('vertical')) {
-    let currentX = parseFloat(draggedLine.getAttribute('x1'));
-    offsetX = mouseX - currentX; // 🔥 Poprawiona wartość offsetX
-    }
-
-    console.log(`🚀 Rozpoczęto przeciąganie: ${draggedLine.id}, offsetX=${offsetX}`);
-
-    document.addEventListener('mousemove', drag);
-    document.addEventListener('mouseup', stopDrag);
-    }
-
-    function drag(event) {
-    if (isDraggingOKN && draggedLine) {
-    const svg = draggedLine.closest('svg');
-    const rect = svg.getBoundingClientRect();
-    const viewBox = svg.viewBox.baseVal;
-
-    let scaleX = viewBox.width / rect.width;
-    let scaleY = viewBox.height / rect.height;
-
-    let newX = (event.clientX - rect.left) * scaleX + viewBox.x - offsetX;
-    let newY = (event.clientY - rect.top) * scaleY + viewBox.y;
-
-    // 🔹 Zaokrąglenie do 2 miejsc po przecinku
-    newX = parseFloat(newX.toFixed(2));
-    newY = parseFloat(newY.toFixed(2));
-
-    //console.log(`🎯 Przesuwam ${draggedLine.id} do X=${newX}, Y=${newY}`);
-
-    if (draggedLine.id.includes('vertical')) {
-    draggedLine.setAttribute('x1', newX);
-    draggedLine.setAttribute('x2', newX);
-    } else if (draggedLine.id.includes('horizontal')) {
-    draggedLine.setAttribute('y1', newY);
-    draggedLine.setAttribute('y2', newY);
-    }
-
-    // console.log(`✅ ${draggedLine.id} nowa pozycja: x1=${draggedLine.getAttribute('x1')}, y1=${draggedLine.getAttribute('y1')}`);
-    }
-    }
-
-    // 🔥 Aktualizacja wartości w panelu bocznym
-
-    // 🔥 Mapa zamiany ID na czytelne nazwy
-    const guideLabels = {
-    "guide-line-vertical": "Linia lewa rysunku",
-    "guide-line-verticalMax": "Linia prawa rysunku",
-    "guide-line-verticalOdlSzyby": "Pionowa linia szkła",
-    "guide-line-verticalOsSymetrii": "Oś poprzeczki",
-    "guide-line-horizontal": "Linia górna rysunku",
-    "guide-line-horizontalMax": "Linia dolna rysunku",
-    "guide-line-horizontal-korpus": "Linia korpusu",
-    "guide-line-horizontal-liniaSzklenia": "Pozioma linia szkła",
-    "guide-line-horizontal-okucie": "Pozioma linia OKUCIA",
-    "guide-line-horizontal-dormas": "Pozioma linia DORMAS",
-    "guide-line-horizontal-OsSymetrii": "Oś ruchomego słupka"
-    };
-
-
-    // 🔥 Aktualizacja wartości w panelu bocznym
-       function updateGuideValues() {
-        let verticalList = document.getElementById("verticalValues");
-        let horizontalList = document.getElementById("horizontalValues");
-
-        verticalList.innerHTML = "";
-        horizontalList.innerHTML = "";
-
-        let svg = document.querySelector("svg");
-        if (!svg) {
-            console.error("❌ Nie znaleziono SVG!");
-            return;
+        if (typeof zoomLevel === 'undefined') {
+            let zoomLevel = window.zoomLevel || 1;
+        } else {
+            zoomLevel = window.zoomLevel || zoomLevel || 1;
         }
 
-        let minY = Infinity;
-        let maxY = -Infinity;
+        if (typeof zoomFactor === 'undefined') {
+            const zoomFactor = window.zoomFactor || 1.1;
+        } else {
+            zoomFactor = window.zoomFactor || zoomFactor || 1.1;
+        }
 
-        const elements = svg.querySelectorAll("line, path, circle, rect, ellipse, polygon, polyline");
+        function zoomInSvg() {
+        console.log("🔍 Powiększam rysunek SVG!");
+        zoomLevel *= zoomFactor;
+        updateSvgZoom();
+        }
 
-        elements.forEach(el => {
-            // Pobierz bounding box elementu (w lokalnych współrzędnych SVG)
-            let bbox;
-            try {
-                bbox = el.getBBox();
-            } catch (e) {
-                // Niektóre elementy mogą nie mieć bbox (np. niewidoczne)
-                bbox = null;
+        function zoomOutSvg() {
+        console.log("🔎 Pomniejszam rysunek SVG!");
+        zoomLevel /= zoomFactor;
+        updateSvgZoom();
+        }
+
+        function fitSvgToContent() {
+            console.log("🔍 Dopasowuję SVG do zawartości i koryguję współrzędne...");
+
+            const group = document.getElementById("rotate-group");
+            if (!group) {
+                console.error("❌ Nie znaleziono grupy 'rotate-group'");
+                return;
             }
-            if (bbox) {
-                if (bbox.y < minY) minY = bbox.y;
-                if ((bbox.y + bbox.height) > maxY) maxY = bbox.y + bbox.height;
+
+            const svg = group.closest("svg");
+            if (!svg) {
+                console.error("❌ Nie znaleziono elementu SVG");
+                return;
             }
-        });
 
-        // if (!isFinite(minY) || !isFinite(maxY)) {
-        //     console.warn("⚠️ Nie znaleziono poprawnych wartości Y! Ustawiam minY = 0, maxY = 100.");
-             minY = 0;
-             maxY = 100;
-        // }
+            // 1. Zapisz aktualną transformację
+            const originalTransform = group.getAttribute("transform") || "";
 
-        console.log(`📐 minY = ${minY}, maxY = ${maxY}`);
-
-        // Pionowe prowadnice - bez zmian
-        Object.keys(verticalGuides).forEach(id => {
-            let line = document.getElementById(id);
-            let color = line ? line.getAttribute("stroke") : "black";
-            let displayName = guideLabels[id] || id;
-
-            let li = document.createElement("li");
-            li.innerHTML = `<span style="background-color:${color}; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>
-            ${displayName}: ${parseFloat(verticalGuides[id].toFixed(2))}mm`;
-            verticalList.appendChild(li);
-        });
-
-        // Poziome prowadnice z flippedY względem minY
-        Object.keys(horizontalGuides).forEach(id => {
-            let line = document.getElementById(id);
-            let color = line ? line.getAttribute("stroke") : "black";
-            let originalY = horizontalGuides[id];
-            let flippedY = originalY - minY;  // 0 przy minY
-
-            let displayName = guideLabels[id] || id;
-
-            let li = document.createElement("li");
-            li.innerHTML = `<span style="background-color:${color}; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>
-            ${displayName}: ${parseFloat(flippedY.toFixed(2))}mm`;
-            horizontalList.appendChild(li);
-        });
-    }
-
-
-    function stopDrag() {
-    if (draggedLine) {
-    console.log(`🛑 Zatrzymano przeciąganie: ${draggedLine.id}`);
-
-    let testLine = document.getElementById(draggedLine.id);
-    if (!testLine) {
-    console.error(`❌ Linia ${draggedLine.id} zniknęła z DOM!`);
-    } else {
-    console.log(`✅ Linia ${draggedLine.id} nadal istnieje w DOM.`);
-    }
-
-    if (draggedLine.id.includes("vertical")) {
-    verticalGuides[draggedLine.id] = parseFloat(draggedLine.getAttribute("x1"));
-    } else if (draggedLine.id.includes("horizontal")) {
-    horizontalGuides[draggedLine.id] = parseFloat(draggedLine.getAttribute("y1"));
-    }
-
-    updateGuideValues(); // 🔥 Aktualizacja wartości po przesunięciu linii
-    }
-
-    isDraggingOKN = false;
-    draggedLine = null;
-    document.removeEventListener('mousemove', drag);
-    document.removeEventListener('mouseup', stopDrag);
-    }
-
-    // 🔥 Nowa funkcja: wybiera czy usunąć czy przesuwać
-    function startDragOrDelete(event) {
-        if (!event) {
-            console.error("❌ startDragOrDelete wywołane bez eventu!");
-            return;
-        }
-    event.preventDefault();
-
-    if (deleteMode) {
-    deleteLine(event.target);
-    } else {
-    startDrag(event);
-    }
-    }
-
-    // 🔥 Usuwanie linii
-    function deleteLine(element) {
-    console.log(`🗑️ Próbuję usunąć element: ${element.tagName}, ID: ${element.id || "brak"}`);
-
-    // Jeśli to prowadnica, NIE usuwamy jej!
-    if (element.id && element.id.includes("guide-line")) {
-    console.warn("❌ Nie można usunąć prowadnic!");
-    return;
-    }
-
-    // Sprawdzenie, czy kliknięto w element SVG
-    if (element.tagName === "line" || element.tagName === "path" || element.tagName === "circle") {
-    element.remove();
-    console.log(`✅ Usunięto element: ${element.tagName}, ID: ${element.id || "brak"}`);
-    } else {
-    console.warn("⚠️ Kliknięto w element, który nie jest linią, łukiem ani okręgiem.");
-    }
-    }
-
-    function rotateSvgElements() {
-        console.log("🔄 Obracam o 90 stopni");
-
-        let group = document.getElementById("rotate-group");
-        if (!group) return;
-
-        // Pobierz aktualną transformację
-        let currentTransform = group.getAttribute("transform") || "";
-
-        // Parsuj istniejące wartości
-        let translateMatch = currentTransform.match(/translate\((-?\d+\.?\d*)[,\s]*(-?\d+\.?\d*)\)/);
-        let rotateMatch = currentTransform.match(/rotate\(([-\d.]+)(?:[,\s]+([-\d.]+))?(?:[,\s]+([-\d.]+))?\)/);
-
-        // Wartości domyślne
-        let currentTx = 0;
-        let currentTy = 0;
-        let currentAngle = 0;
-        let cx = 0;
-        let cy = 0;
-
-        if (translateMatch) {
-            currentTx = parseFloat(translateMatch[1]);
-            currentTy = parseFloat(translateMatch[2]);
-        }
-
-        if (rotateMatch) {
-            currentAngle = parseFloat(rotateMatch[1]);
-            if (rotateMatch[3]) {
-                cx = parseFloat(rotateMatch[2]);
-                cy = parseFloat(rotateMatch[3]);
-            }
-        }
-
-        // Nowy kąt
-        const newAngle = (currentAngle + 90) % 360;
-
-        // Jeśli nie mamy środka obrotu, oblicz go
-        if (!rotateMatch) {
+            // 2. Tymczasowo usuń transformację, aby uzyskać prawdziwy bounding box
+            group.removeAttribute("transform");
             const bbox = group.getBBox();
-            cx = bbox.x + bbox.width / 2;
-            cy = bbox.y + bbox.height / 2;
+
+            // 3. Przywróć transformację
+            group.setAttribute("transform", originalTransform);
+
+            // 4. Oblicz minimalne wartości współrzędnych
+            const minX = bbox.x;
+            const minY = bbox.y;
+            const margin = 10;
+
+            // 5. Oblicz potrzebną korektę pozycji
+            const correctionX = -minX + margin;
+            const correctionY = -minY + margin;
+
+            // 6. Oblicz nowe wymiary
+            const newWidth = bbox.width + 2 * margin;
+            const newHeight = bbox.height + 2 * margin;
+
+            // 7. Ustaw viewBox zaczynający się od (0,0)
+            svg.setAttribute("viewBox", `0 0 ${newWidth} ${newHeight}`);
+
+            // 8. Zastosuj korektę pozycji
+            applyAbsoluteGroupTranslation(group, correctionX, correctionY);
+
+            // 9. Zresetuj zoom
+            zoomLevel = 1;
+            svg.style.transform = "scale(1)";
+
+            console.log(`✅ Wszystkie współrzędne >= ${margin}`);
+            console.log(`✅ Nowy viewBox: 0 0 ${newWidth} ${newHeight}`);
+            console.log(`✅ Korekta: X=${correctionX}, Y=${correctionY}`);
+
+            // 10. Aktualizuj prowadnice
+            updateGuideValues();
         }
 
-        // Zbuduj nową transformację
-        let newTransform = `rotate(${newAngle} ${cx} ${cy}) `;
-        newTransform += `translate(${currentTx} ${currentTy})`;
+        function applyAbsoluteGroupTranslation(group, tx, ty) {
+            // Pobierz aktualny obrót
+            const currentTransform = group.getAttribute("transform") || "";
+            const rotateMatch = currentTransform.match(/rotate\(([^)]+)\)/);
 
-        // Zastosuj transformację
-        group.setAttribute("transform", newTransform);
-        console.log(`🔄 Nowy kąt: ${newAngle}°, środek: (${cx}, ${cy})`);
+            // Zastosuj tylko obrót + nowe przesunięcie
+            group.setAttribute("transform",
+                rotateMatch
+                    ? `rotate(${rotateMatch[1]}) translate(${tx} ${ty})`
+                    : `translate(${tx} ${ty})`
+            );
+        }
 
-        // Aktualizuj widok
+        function resetGroupPosition(group) {
+            const currentTransform = group.getAttribute("transform") || "";
+            const rotateMatch = currentTransform.match(/rotate\(([^)]+)\)/);
+
+            group.setAttribute("transform", rotateMatch ? `rotate(${rotateMatch[1]})` : "");
+        }
+
+        function applyGroupTranslation(group, tx, ty) {
+            const currentTransform = group.getAttribute("transform") || "";
+            group.setAttribute("transform", `${currentTransform} translate(${tx} ${ty})`);
+        }
+
+
+        function updateSvgZoom() {
+        let svgContainer = document.querySelector(".scaled-svg");
+        let svg = svgContainer.querySelector("svg");
+
+        if (!svg) {
+        console.error("❌ Nie znaleziono rysunku SVG!");
+        return;
+        }
+
+        // 🔥 Skalowanie poprzez `transform: scale()`
+        svg.style.transform = `scale(${zoomLevel})`;
+        svg.style.transformOrigin = "center";
+
+        console.log(`✅ Nowy poziom zoomu: ${zoomLevel}`);
+
+        // 🔄 Aktualizacja wartości prowadnic
         updateGuideValues();
-    }
-
-    function updateTransform(dx, dy) {
-        let group = document.getElementById("rotate-group");
-        if (!group) return;
-
-        // Pobierz aktualną transformację
-        let currentTransform = group.getAttribute("transform") || "";
-
-        // Parsuj istniejące wartości
-        let translateMatch = currentTransform.match(/translate\((-?\d+\.?\d*)[,\s]*(-?\d+\.?\d*)\)/);
-        let rotateMatch = currentTransform.match(/rotate\(([-\d.]+)(?:[,\s]+([-\d.]+))?(?:[,\s]+([-\d.]+))?\)/);
-
-        // Wartości domyślne
-        let currentTx = 0;
-        let currentTy = 0;
-        let angle = 0;
-        let cx = 0;
-        let cy = 0;
-
-        // Aktualne przesunięcie
-        if (translateMatch) {
-            currentTx = parseFloat(translateMatch[1]);
-            currentTy = parseFloat(translateMatch[2]);
         }
 
-        // Aktualny obrót
-        if (rotateMatch) {
-            angle = parseFloat(rotateMatch[1]);
-            if (rotateMatch[3]) {
-                cx = parseFloat(rotateMatch[2]);
-                cy = parseFloat(rotateMatch[3]);
+        function enableDrag() {
+        console.log("🔧 enableDrag uruchomiony!");
+
+        let elements = document.querySelectorAll("svg line, svg circle, svg path");
+
+        //  console.log(`📊 Znaleziono ${elements.length} elementów SVG do aktywacji.`);
+
+        let activatedCount = 0;
+
+        elements.forEach((element, index) => {
+        //console.log(`🔹 [${index + 1}/${elements.length}] ID: ${element.id || "(brak)"} - Typ: ${element.tagName}`);
+
+        if (element.tagName === "line" || element.tagName === "circle" || element.tagName === "path") {
+        element.removeEventListener('mousedown', startDragOrDelete);
+        element.addEventListener('mousedown', startDragOrDelete);
+        element.dataset.dragEnabled = "true";
+        activatedCount++;
+        // console.log(`✅ Aktywowano przesuwanie dla ${element.tagName} (ID: ${element.id || "(brak)"})`);
+        } else {
+        console.warn(`⚠️ Pominięto element ${element.tagName} (ID: ${element.id || "(brak)"})`);
+        }
+        });
+
+        //console.log(`🟢 Aktywowano przesuwanie dla ${activatedCount} z ${elements.length} elementów SVG.`);
+
+        let deleteModeCheckbox = document.getElementById("deleteMode");
+        if (!deleteModeCheckbox) {
+        console.warn("⚠️ Ostrzeżenie: Nie znaleziono elementu #deleteMode! Czekam...");
+        setTimeout(enableDrag, 500);
+        return;
+        }
+
+        deleteModeCheckbox.addEventListener("change", function () {
+        deleteMode = this.checked;
+        console.log(`🗑️ Tryb usuwania: ${deleteMode ? "WŁĄCZONY" : "WYŁĄCZONY"}`);
+        });
+
+        console.log("🟢 enableDrag() zakończone!");
+        }
+
+        function startDrag(event) {
+            if (!event) {
+                console.error("❌ startDrag wywołane bez eventu!");
+                return;
             }
+        event.preventDefault();
+        isDraggingOKN = true;
+        draggedLine = event.target;
+
+        const svg = draggedLine.closest('svg');
+        const rect = svg.getBoundingClientRect();
+        const viewBox = svg.viewBox.baseVal;
+
+        let scaleX = viewBox.width / rect.width; // Skalowanie X
+        let scaleY = viewBox.height / rect.height; // Skalowanie Y
+
+        let mouseX = (event.clientX - rect.left) * scaleX + viewBox.x;
+        let mouseY = (event.clientY - rect.top) * scaleY + viewBox.y;
+
+        if (draggedLine.id.includes('vertical')) {
+        let currentX = parseFloat(draggedLine.getAttribute('x1'));
+        offsetX = mouseX - currentX; // 🔥 Poprawiona wartość offsetX
         }
 
-        // Transformacja wektora zgodnie z kątem
-        let [transformedDx, transformedDy] = transformVector(dx, dy, angle);
+        console.log(`🚀 Rozpoczęto przeciąganie: ${draggedLine.id}, offsetX=${offsetX}`);
 
-        // Nowe przesunięcie
-        const newTx = currentTx + transformedDx;
-        const newTy = currentTy + transformedDy;
-
-        // Zbuduj nową transformację
-        let newTransform = "";
-
-        // Dodaj obrót jeśli istnieje
-        if (angle !== 0) {
-            newTransform = `rotate(${angle} ${cx} ${cy}) `;
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', stopDrag);
         }
 
-        // Dodaj przesunięcie
-        newTransform += `translate(${newTx} ${newTy})`;
+        function drag(event) {
+        if (isDraggingOKN && draggedLine) {
+        const svg = draggedLine.closest('svg');
+        const rect = svg.getBoundingClientRect();
+        const viewBox = svg.viewBox.baseVal;
 
-        // Zastosuj nową transformację
-        group.setAttribute("transform", newTransform);
-        console.log(`✅ Nowa transformacja: ${newTransform}`);
-    }
+        let scaleX = viewBox.width / rect.width;
+        let scaleY = viewBox.height / rect.height;
 
-    function transformVector(dx, dy, angle) {
-        // Normalizuj kąt do zakresu 0-360
-        angle = angle % 360;
-        if (angle < 0) angle += 360;
+        let newX = (event.clientX - rect.left) * scaleX + viewBox.x - offsetX;
+        let newY = (event.clientY - rect.top) * scaleY + viewBox.y;
 
-        // Dla wielokrotności 90 stopni
-        if (angle === 90) return [-dy, dx];
-        if (angle === 180) return [-dx, -dy];
-        if (angle === 270) return [dy, -dx];
+        // 🔹 Zaokrąglenie do 2 miejsc po przecinku
+        newX = parseFloat(newX.toFixed(2));
+        newY = parseFloat(newY.toFixed(2));
 
-        return [dx, dy]; // Dla 0° i innych kątów
-    }
+        //console.log(`🎯 Przesuwam ${draggedLine.id} do X=${newX}, Y=${newY}`);
 
-    function shiftRightSvgElements() {
-        console.log("➡️ Przesuwam w prawo (wizualnie)");
-        updateTransform(1, 0);
-    }
+        if (draggedLine.id.includes('vertical')) {
+        draggedLine.setAttribute('x1', newX);
+        draggedLine.setAttribute('x2', newX);
+        } else if (draggedLine.id.includes('horizontal')) {
+        draggedLine.setAttribute('y1', newY);
+        draggedLine.setAttribute('y2', newY);
+        }
 
-    function shiftLeftSvgElements() {
-        console.log("⬅️ Przesuwam w lewo (wizualnie)");
-        updateTransform(-1, 0);
-    }
+        // console.log(`✅ ${draggedLine.id} nowa pozycja: x1=${draggedLine.getAttribute('x1')}, y1=${draggedLine.getAttribute('y1')}`);
+        }
+        }
 
-    function shiftUpSvgElements() {
-        console.log("⬆️ Przesuwam w górę (wizualnie)");
-        updateTransform(0, -1);
-    }
+        // 🔥 Aktualizacja wartości w panelu bocznym
 
-    function shiftDownSvgElements() {
-        console.log("⬇️ Przesuwam w dół (wizualnie)");
-        updateTransform(0, 1);
-    }
+        // 🔥 Mapa zamiany ID na czytelne nazwy
 
-    // Bardziej odporna funkcja: konwertuje SVG string -> base64 PNG
-    window.generatePngFromSvg = function (svgContent) {
-        return new Promise((resolve, reject) => {
-            try {
-                const parser = new DOMParser();
-                const svgDoc = parser.parseFromString(svgContent, "image/svg+xml");
+        window.guideLabels = window.guideLabels || {
+            "guide-line-vertical": "Linia lewa rysunku",
+            "guide-line-verticalMax": "Linia prawa rysunku",
+            "guide-line-verticalOdlSzyby": "Pionowa linia szkła",
+            "guide-line-verticalOsSymetrii": "Oś poprzeczki",
+            "guide-line-horizontal": "Linia górna rysunku",
+            "guide-line-horizontalMax": "Linia dolna rysunku",
+            "guide-line-horizontal-korpus": "Linia korpusu",
+            "guide-line-horizontal-liniaSzklenia": "Pozioma linia szkła",
+            "guide-line-horizontal-okucie": "Pozioma linia OKUCIA",
+            "guide-line-horizontal-dormas": "Pozioma linia DORMAS",
+            "guide-line-horizontal-OsSymetrii": "Oś ruchomego słupka"
+        };
 
-                // Parser error?
-                const parseError = svgDoc.querySelector("parsererror");
-                if (parseError) {
-                    console.error("generatePngFromSvg: parsererror:", parseError.textContent);
-                    reject("Błąd parsera SVG: " + parseError.textContent);
-                    return;
+
+        // 🔥 Aktualizacja wartości w panelu bocznym
+           function updateGuideValues() {
+            let verticalList = document.getElementById("verticalValues");
+            let horizontalList = document.getElementById("horizontalValues");
+
+            verticalList.innerHTML = "";
+            horizontalList.innerHTML = "";
+
+            let svg = document.querySelector("svg");
+            if (!svg) {
+                console.error("❌ Nie znaleziono SVG!");
+                return;
+            }
+
+            let minY = Infinity;
+            let maxY = -Infinity;
+
+            const elements = svg.querySelectorAll("line, path, circle, rect, ellipse, polygon, polyline");
+
+            elements.forEach(el => {
+                // Pobierz bounding box elementu (w lokalnych współrzędnych SVG)
+                let bbox;
+                try {
+                    bbox = el.getBBox();
+                } catch (e) {
+                    // Niektóre elementy mogą nie mieć bbox (np. niewidoczne)
+                    bbox = null;
                 }
-
-                const svgEl = svgDoc.documentElement;
-                if (!svgEl || svgEl.nodeName.toLowerCase() !== "svg") {
-                    console.error("generatePngFromSvg: brak elementu <svg>");
-                    reject("Brak elementu <svg> w przekazanym stringu.");
-                    return;
+                if (bbox) {
+                    if (bbox.y < minY) minY = bbox.y;
+                    if ((bbox.y + bbox.height) > maxY) maxY = bbox.y + bbox.height;
                 }
+            });
 
-                // Ensure xmlns
-                if (!svgEl.getAttribute("xmlns")) {
-                    svgEl.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+            // if (!isFinite(minY) || !isFinite(maxY)) {
+            //     console.warn("⚠️ Nie znaleziono poprawnych wartości Y! Ustawiam minY = 0, maxY = 100.");
+                 minY = 0;
+                 maxY = 100;
+            // }
+
+            console.log(`📐 minY = ${minY}, maxY = ${maxY}`);
+
+            // Pionowe prowadnice - bez zmian
+            Object.keys(verticalGuides).forEach(id => {
+                let line = document.getElementById(id);
+                let color = line ? line.getAttribute("stroke") : "black";
+                let displayName = guideLabels[id] || id;
+
+                let li = document.createElement("li");
+                li.innerHTML = `<span style="background-color:${color}; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>
+                ${displayName}: ${parseFloat(verticalGuides[id].toFixed(2))}mm`;
+                verticalList.appendChild(li);
+            });
+
+            // Poziome prowadnice z flippedY względem minY
+            Object.keys(horizontalGuides).forEach(id => {
+                let line = document.getElementById(id);
+                let color = line ? line.getAttribute("stroke") : "black";
+                let originalY = horizontalGuides[id];
+                let flippedY = originalY - minY;  // 0 przy minY
+
+                let displayName = guideLabels[id] || id;
+
+                let li = document.createElement("li");
+                li.innerHTML = `<span style="background-color:${color}; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>
+                ${displayName}: ${parseFloat(flippedY.toFixed(2))}mm`;
+                horizontalList.appendChild(li);
+            });
+        }
+
+
+        function stopDrag() {
+        if (draggedLine) {
+        console.log(`🛑 Zatrzymano przeciąganie: ${draggedLine.id}`);
+
+        let testLine = document.getElementById(draggedLine.id);
+        if (!testLine) {
+        console.error(`❌ Linia ${draggedLine.id} zniknęła z DOM!`);
+        } else {
+        console.log(`✅ Linia ${draggedLine.id} nadal istnieje w DOM.`);
+        }
+
+        if (draggedLine.id.includes("vertical")) {
+        verticalGuides[draggedLine.id] = parseFloat(draggedLine.getAttribute("x1"));
+        } else if (draggedLine.id.includes("horizontal")) {
+        horizontalGuides[draggedLine.id] = parseFloat(draggedLine.getAttribute("y1"));
+        }
+
+        updateGuideValues(); // 🔥 Aktualizacja wartości po przesunięciu linii
+        }
+
+        isDraggingOKN = false;
+        draggedLine = null;
+        document.removeEventListener('mousemove', drag);
+        document.removeEventListener('mouseup', stopDrag);
+        }
+
+        // 🔥 Nowa funkcja: wybiera czy usunąć czy przesuwać
+        function startDragOrDelete(event) {
+            if (!event) {
+                console.error("❌ startDragOrDelete wywołane bez eventu!");
+                return;
+            }
+        event.preventDefault();
+
+        if (deleteMode) {
+        deleteLine(event.target);
+        } else {
+        startDrag(event);
+        }
+        }
+
+        // 🔥 Usuwanie linii
+        function deleteLine(element) {
+        console.log(`🗑️ Próbuję usunąć element: ${element.tagName}, ID: ${element.id || "brak"}`);
+
+        // Jeśli to prowadnica, NIE usuwamy jej!
+        if (element.id && element.id.includes("guide-line")) {
+        console.warn("❌ Nie można usunąć prowadnic!");
+        return;
+        }
+
+        // Sprawdzenie, czy kliknięto w element SVG
+        if (element.tagName === "line" || element.tagName === "path" || element.tagName === "circle") {
+        element.remove();
+        console.log(`✅ Usunięto element: ${element.tagName}, ID: ${element.id || "brak"}`);
+        } else {
+        console.warn("⚠️ Kliknięto w element, który nie jest linią, łukiem ani okręgiem.");
+        }
+        }
+
+        function rotateSvgElements() {
+            console.log("🔄 Obracam o 90 stopni");
+
+            let group = document.getElementById("rotate-group");
+            if (!group) return;
+
+            // Pobierz aktualną transformację
+            let currentTransform = group.getAttribute("transform") || "";
+
+            // Parsuj istniejące wartości
+            let translateMatch = currentTransform.match(/translate\((-?\d+\.?\d*)[,\s]*(-?\d+\.?\d*)\)/);
+            let rotateMatch = currentTransform.match(/rotate\(([-\d.]+)(?:[,\s]+([-\d.]+))?(?:[,\s]+([-\d.]+))?\)/);
+
+            // Wartości domyślne
+            let currentTx = 0;
+            let currentTy = 0;
+            let currentAngle = 0;
+            let cx = 0;
+            let cy = 0;
+
+            if (translateMatch) {
+                currentTx = parseFloat(translateMatch[1]);
+                currentTy = parseFloat(translateMatch[2]);
+            }
+
+            if (rotateMatch) {
+                currentAngle = parseFloat(rotateMatch[1]);
+                if (rotateMatch[3]) {
+                    cx = parseFloat(rotateMatch[2]);
+                    cy = parseFloat(rotateMatch[3]);
                 }
+            }
 
-                // Ustal viewBox / width / height
-                let width = parseFloat(svgEl.getAttribute("width")) || NaN;
-                let height = parseFloat(svgEl.getAttribute("height")) || NaN;
-                const vb = svgEl.getAttribute("viewBox");
+            // Nowy kąt
+            const newAngle = (currentAngle + 90) % 360;
 
-                if (!vb) {
-                    if (!isFinite(width) || !isFinite(height)) {
-                        // brak viewBox i brak width/height -> ustaw domyślne wymiary
-                        width = 800;
-                        height = 800;
-                        svgEl.setAttribute("viewBox", `0 0 ${width} ${height}`);
+            // Jeśli nie mamy środka obrotu, oblicz go
+            if (!rotateMatch) {
+                const bbox = group.getBBox();
+                cx = bbox.x + bbox.width / 2;
+                cy = bbox.y + bbox.height / 2;
+            }
+
+            // Zbuduj nową transformację
+            let newTransform = `rotate(${newAngle} ${cx} ${cy}) `;
+            newTransform += `translate(${currentTx} ${currentTy})`;
+
+            // Zastosuj transformację
+            group.setAttribute("transform", newTransform);
+            console.log(`🔄 Nowy kąt: ${newAngle}°, środek: (${cx}, ${cy})`);
+
+            // Aktualizuj widok
+            updateGuideValues();
+        }
+
+        function updateTransform(dx, dy) {
+            let group = document.getElementById("rotate-group");
+            if (!group) return;
+
+            // Pobierz aktualną transformację
+            let currentTransform = group.getAttribute("transform") || "";
+
+            // Parsuj istniejące wartości
+            let translateMatch = currentTransform.match(/translate\((-?\d+\.?\d*)[,\s]*(-?\d+\.?\d*)\)/);
+            let rotateMatch = currentTransform.match(/rotate\(([-\d.]+)(?:[,\s]+([-\d.]+))?(?:[,\s]+([-\d.]+))?\)/);
+
+            // Wartości domyślne
+            let currentTx = 0;
+            let currentTy = 0;
+            let angle = 0;
+            let cx = 0;
+            let cy = 0;
+
+            // Aktualne przesunięcie
+            if (translateMatch) {
+                currentTx = parseFloat(translateMatch[1]);
+                currentTy = parseFloat(translateMatch[2]);
+            }
+
+            // Aktualny obrót
+            if (rotateMatch) {
+                angle = parseFloat(rotateMatch[1]);
+                if (rotateMatch[3]) {
+                    cx = parseFloat(rotateMatch[2]);
+                    cy = parseFloat(rotateMatch[3]);
+                }
+            }
+
+            // Transformacja wektora zgodnie z kątem
+            let [transformedDx, transformedDy] = transformVector(dx, dy, angle);
+
+            // Nowe przesunięcie
+            const newTx = currentTx + transformedDx;
+            const newTy = currentTy + transformedDy;
+
+            // Zbuduj nową transformację
+            let newTransform = "";
+
+            // Dodaj obrót jeśli istnieje
+            if (angle !== 0) {
+                newTransform = `rotate(${angle} ${cx} ${cy}) `;
+            }
+
+            // Dodaj przesunięcie
+            newTransform += `translate(${newTx} ${newTy})`;
+
+            // Zastosuj nową transformację
+            group.setAttribute("transform", newTransform);
+            console.log(`✅ Nowa transformacja: ${newTransform}`);
+        }
+
+        function transformVector(dx, dy, angle) {
+            // Normalizuj kąt do zakresu 0-360
+            angle = angle % 360;
+            if (angle < 0) angle += 360;
+
+            // Dla wielokrotności 90 stopni
+            if (angle === 90) return [-dy, dx];
+            if (angle === 180) return [-dx, -dy];
+            if (angle === 270) return [dy, -dx];
+
+            return [dx, dy]; // Dla 0° i innych kątów
+        }
+
+        function shiftRightSvgElements() {
+            console.log("➡️ Przesuwam w prawo (wizualnie)");
+            updateTransform(1, 0);
+        }
+
+        function shiftLeftSvgElements() {
+            console.log("⬅️ Przesuwam w lewo (wizualnie)");
+            updateTransform(-1, 0);
+        }
+
+        function shiftUpSvgElements() {
+            console.log("⬆️ Przesuwam w górę (wizualnie)");
+            updateTransform(0, -1);
+        }
+
+        function shiftDownSvgElements() {
+            console.log("⬇️ Przesuwam w dół (wizualnie)");
+            updateTransform(0, 1);
+        }
+
+        // Bardziej odporna funkcja: konwertuje SVG string -> base64 PNG
+        window.generatePngFromSvg = function (svgContent) {
+            return new Promise((resolve, reject) => {
+                try {
+                    const parser = new DOMParser();
+                    const svgDoc = parser.parseFromString(svgContent, "image/svg+xml");
+
+                    // Parser error?
+                    const parseError = svgDoc.querySelector("parsererror");
+                    if (parseError) {
+                        console.error("generatePngFromSvg: parsererror:", parseError.textContent);
+                        reject("Błąd parsera SVG: " + parseError.textContent);
+                        return;
+                    }
+
+                    const svgEl = svgDoc.documentElement;
+                    if (!svgEl || svgEl.nodeName.toLowerCase() !== "svg") {
+                        console.error("generatePngFromSvg: brak elementu <svg>");
+                        reject("Brak elementu <svg> w przekazanym stringu.");
+                        return;
+                    }
+
+                    // Ensure xmlns
+                    if (!svgEl.getAttribute("xmlns")) {
+                        svgEl.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+                    }
+
+                    // Ustal viewBox / width / height
+                    let width = parseFloat(svgEl.getAttribute("width")) || NaN;
+                    let height = parseFloat(svgEl.getAttribute("height")) || NaN;
+                    const vb = svgEl.getAttribute("viewBox");
+
+                    if (!vb) {
+                        if (!isFinite(width) || !isFinite(height)) {
+                            // brak viewBox i brak width/height -> ustaw domyślne wymiary
+                            width = 800;
+                            height = 800;
+                            svgEl.setAttribute("viewBox", `0 0 ${width} ${height}`);
+                        } else {
+                            // ustaw viewBox z width/height (usuwa jednostki, jeśli były)
+                            svgEl.setAttribute("viewBox", `0 0 ${width} ${height}`);
+                        }
                     } else {
-                        // ustaw viewBox z width/height (usuwa jednostki, jeśli były)
-                        svgEl.setAttribute("viewBox", `0 0 ${width} ${height}`);
-                    }
-                } else {
-                    const parts = vb.trim().split(/\s+|,/).map(Number);
-                    if (parts.length >= 4 && parts.every(p => !isNaN(p))) {
-                        const vbW = parts[2], vbH = parts[3];
-                        if (!isFinite(width)) width = vbW;
-                        if (!isFinite(height)) height = vbH;
-                        svgEl.setAttribute("width", width);
-                        svgEl.setAttribute("height", height);
-                    } else {
-                        // fallback
-                        if (!isFinite(width)) width = 800;
-                        if (!isFinite(height)) height = 800;
-                        svgEl.setAttribute("width", width);
-                        svgEl.setAttribute("height", height);
-                    }
-                }
-
-                // Serializacja
-                const svgString = new XMLSerializer().serializeToString(svgDoc);
-
-                // Uwaga: obecność <image href="..."> może powodować błędy lub tzw. tainting canvas (CORS).
-                const hasImages = svgEl.querySelectorAll("image").length > 0;
-                if (hasImages) {
-                    console.warn("generatePngFromSvg: SVG zawiera <image> — może powodować błędy lub problemy CORS.");
-                }
-
-                // Utwórz blob i objectURL
-                const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
-                const url = URL.createObjectURL(blob);
-
-                let triedDataUri = false;
-                const img = new Image();
-                img.crossOrigin = "anonymous";
-
-                img.onload = function () {
-                    try {
-                        const canvas = document.createElement("canvas");
-                        // używamy ustalonych wymiarów z atrybutów SVG
-                        canvas.width = Math.round(width);
-                        canvas.height = Math.round(height);
-
-                        // const ctx = canvas.getContext("2d"); // będzie białe tło
-                        // // opcjonalne białe tło
-                        // ctx.fillStyle = "#ffffff";
-                        // ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                        // ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-                        const ctx = canvas.getContext("2d", { willReadFrequently: true });
-
-                        // 🟢 bez tła – przezroczysty PNG
-                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-                        URL.revokeObjectURL(url);
-                        const base64 = canvas.toDataURL("image/png").split(",")[1];
-                        resolve(base64);
-                    } catch (err) {
-                        URL.revokeObjectURL(url);
-                        console.error("generatePngFromSvg: błąd rysowania na canvas:", err);
-                        reject("Błąd rysowania na canvas: " + err.message);
-                    }
-                };
-
-                img.onerror = function (e) {
-                    console.error("generatePngFromSvg: Błąd ładowania SVG do <img>:", e);
-                    // spróbuj fallbacku: data URI (może pomóc przy niektórych konfiguracjach)
-                    if (!triedDataUri) {
-                        triedDataUri = true;
-                        try {
-                            const dataUri = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgString);
-                            img.src = dataUri;
-                            return;
-                        } catch (err) {
-                            console.error("generatePngFromSvg: fallback dataURI failed:", err);
+                        const parts = vb.trim().split(/\s+|,/).map(Number);
+                        if (parts.length >= 4 && parts.every(p => !isNaN(p))) {
+                            const vbW = parts[2], vbH = parts[3];
+                            if (!isFinite(width)) width = vbW;
+                            if (!isFinite(height)) height = vbH;
+                            svgEl.setAttribute("width", width);
+                            svgEl.setAttribute("height", height);
+                        } else {
+                            // fallback
+                            if (!isFinite(width)) width = 800;
+                            if (!isFinite(height)) height = 800;
+                            svgEl.setAttribute("width", width);
+                            svgEl.setAttribute("height", height);
                         }
                     }
 
-                    URL.revokeObjectURL(url);
-                    // dla debugowania pokaż kawałek SVG
-                    console.error("generatePngFromSvg: SVG head:", svgString.substring(0, 500));
-                    reject("Błąd ładowania SVG do obrazu");
-                };
+                    // Serializacja
+                    const svgString = new XMLSerializer().serializeToString(svgDoc);
 
-                // Start load using objectURL
-                img.src = url;
-            } catch (err) {
-                console.error("generatePngFromSvg: wyjątek:", err);
-                reject("Wyjątek generatePngFromSvg: " + err.message);
-            }
+                    // Uwaga: obecność <image href="..."> może powodować błędy lub tzw. tainting canvas (CORS).
+                    const hasImages = svgEl.querySelectorAll("image").length > 0;
+                    if (hasImages) {
+                        console.warn("generatePngFromSvg: SVG zawiera <image> — może powodować błędy lub problemy CORS.");
+                    }
+
+                    // Utwórz blob i objectURL
+                    const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+                    const url = URL.createObjectURL(blob);
+
+                    let triedDataUri = false;
+                    const img = new Image();
+                    img.crossOrigin = "anonymous";
+
+                    img.onload = function () {
+                        try {
+                            const canvas = document.createElement("canvas");
+                            // używamy ustalonych wymiarów z atrybutów SVG
+                            canvas.width = Math.round(width);
+                            canvas.height = Math.round(height);
+
+                            // const ctx = canvas.getContext("2d"); // będzie białe tło
+                            // // opcjonalne białe tło
+                            // ctx.fillStyle = "#ffffff";
+                            // ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                            // ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                            const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+                            // 🟢 bez tła – przezroczysty PNG
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                            URL.revokeObjectURL(url);
+                            const base64 = canvas.toDataURL("image/png").split(",")[1];
+                            resolve(base64);
+                        } catch (err) {
+                            URL.revokeObjectURL(url);
+                            console.error("generatePngFromSvg: błąd rysowania na canvas:", err);
+                            reject("Błąd rysowania na canvas: " + err.message);
+                        }
+                    };
+
+                    img.onerror = function (e) {
+                        console.error("generatePngFromSvg: Błąd ładowania SVG do <img>:", e);
+                        // spróbuj fallbacku: data URI (może pomóc przy niektórych konfiguracjach)
+                        if (!triedDataUri) {
+                            triedDataUri = true;
+                            try {
+                                const dataUri = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgString);
+                                img.src = dataUri;
+                                return;
+                            } catch (err) {
+                                console.error("generatePngFromSvg: fallback dataURI failed:", err);
+                            }
+                        }
+
+                        URL.revokeObjectURL(url);
+                        // dla debugowania pokaż kawałek SVG
+                        console.error("generatePngFromSvg: SVG head:", svgString.substring(0, 500));
+                        reject("Błąd ładowania SVG do obrazu");
+                    };
+
+                    // Start load using objectURL
+                    img.src = url;
+                } catch (err) {
+                    console.error("generatePngFromSvg: wyjątek:", err);
+                    reject("Wyjątek generatePngFromSvg: " + err.message);
+                }
+            });
+        };
+
+        function getGuidesData() {
+        console.log("📡 Pobieram dane prowadnic...");
+
+        // Pobieramy wszystkie prowadnice
+        document.querySelectorAll("line[id^='guide-line']").forEach(line => {
+        let id = line.id;
+        let x1 = parseFloat(line.getAttribute("x1"));
+        let y1 = parseFloat(line.getAttribute("y1"));
+
+        if (id.includes("vertical")) {
+        verticalGuides[id] = x1;
+        } else if (id.includes("horizontal")) {
+        horizontalGuides[id] = y1;
+        }
         });
+
+        console.log("✅ Prowadnice pobrane:", { vertical: verticalGuides, horizontal: horizontalGuides });
+
+        return { vertical: verticalGuides, horizontal: horizontalGuides };
+        }
+
+
+        function getUpdatedSvg() {
+        let svg = document.querySelector(".scaled-svg svg");
+        if (!svg) {
+        console.error("❌ Nie znaleziono rysunku SVG!");
+        return "";
+        }
+
+        let clonedSvg = svg.cloneNode(true);
+
+        // 🔥 Naprawiamy problem z obrotem `rotate(...)`
+        clonedSvg.querySelectorAll("[transform]").forEach(element => {
+        let transformValue = element.getAttribute("transform");
+
+        if (transformValue && transformValue.includes("rotate")) {
+        // Zamiana przecinków na spacje (poprawny format dla SVG)
+        transformValue = transformValue.replace(/,/g, " ");
+        element.setAttribute("transform", transformValue);
+        }
+        });
+
+        // 📏 Znajdź rzeczywisty obszar rysunku (bez prowadnic)
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+        clonedSvg.querySelectorAll("line, path, circle, rect, ellipse, polygon, polyline").forEach(el => {
+        let xVals = [], yVals = [];
+
+        ["x", "cx", "x1", "x2"].forEach(attr => {
+        let val = parseFloat(el.getAttribute(attr) || "NaN");
+        if (!isNaN(val)) xVals.push(val);
+        });
+
+        ["y", "cy", "y1", "y2"].forEach(attr => {
+        let val = parseFloat(el.getAttribute(attr) || "NaN");
+        if (!isNaN(val)) yVals.push(val);
+        });
+
+        if (xVals.length > 0) {
+        minX = Math.min(minX, ...xVals);
+        maxX = Math.max(maxX, ...xVals);
+        }
+        if (yVals.length > 0) {
+        minY = Math.min(minY, ...yVals);
+        maxY = Math.max(maxY, ...yVals);
+        }
+        });
+
+        let width = maxX - minX;
+        let height = maxY - minY;
+
+        if (width <= 0 || height <= 0) {
+        console.error(`❌ Błąd: Wymiary SVG są niepoprawne! width=${width}, height=${height}`);
+        return new XMLSerializer().serializeToString(svg);
+        }
+
+        // 🔥 Skracamy prowadnice do granic rysunku!
+        clonedSvg.querySelectorAll("line[id^='guide-line']").forEach(line => {
+        let id = line.id;
+        if (id.includes("vertical")) {
+        let x = parseFloat(line.getAttribute("x1"));
+        if (x < minX) x = minX;
+        if (x > maxX) x = maxX;
+        line.setAttribute("x1", x);
+        line.setAttribute("x2", x);
+        line.setAttribute("y1", minY);
+        line.setAttribute("y2", maxY);
+        } else if (id.includes("horizontal")) {
+        let y = parseFloat(line.getAttribute("y1"));
+        if (y < minY) y = minY;
+        if (y > maxY) y = maxY;
+        line.setAttribute("y1", y);
+        line.setAttribute("y2", y);
+        line.setAttribute("x1", minX);
+        line.setAttribute("x2", maxX);
+        }
+        });
+
+        // 🔥 Dopasowujemy `viewBox`
+        clonedSvg.setAttribute("viewBox", `${minX} ${minY} ${width} ${height}`);
+        clonedSvg.setAttribute("width", width);
+        clonedSvg.setAttribute("height", height);
+
+        console.log(`✅ Nowe viewBox: ${minX} ${minY} ${width} ${height}`);
+
+        return new XMLSerializer().serializeToString(clonedSvg);
+        }
+
+
+        function setSvgContent(svgString) {
+        let retries = 15; // Więcej prób na wypadek opóźnień Blazora
+        let delay = 300; // Krótszy czas między próbami
+
+        function tryInsertSvg() {
+        let tabContent = document.querySelector(".ant-tabs-tab-active"); // Sprawdza aktywną zakładkę
+        let svgContainer = document.querySelector(".scaled-svg");
+
+        if (!tabContent || !svgContainer) {
+        if (retries > 0) {
+        console.warn(`❌ Nie znaleziono kontenera SVG lub zakładka nieaktywna! Próba ponownie za ${delay}ms...`);
+        retries--;
+        setTimeout(tryInsertSvg, delay);
+        } else {
+        console.error("🚨 Błąd krytyczny: Kontener SVG nadal nie został znaleziony!");
+        }
+        return;
+        }
+
+        svgContainer.innerHTML = svgString;
+        console.log("✅ Zaktualizowano SVG w Blazorze!");
+
+        // 🚀 Ponowne aktywowanie obsługi przesuwania linii
+        enableDrag();
+        }
+
+        setTimeout(tryInsertSvg, delay);
+        }
+
+        // Automatyczne przypisanie eventów po załadowaniu SVG
+        document.addEventListener('DOMContentLoaded', () => {
+        console.log("🌟 Dokument załadowany, uruchamiam enableDrag()");
+        enableDrag();
+        });
+
+        window.saveFileFromBytes = (filename, base64Data) => {
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = 'data:application/dxf;base64,' + base64Data;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
-    function getGuidesData() {
-    console.log("📡 Pobieram dane prowadnic...");
+        // Funkcja do resetowania całkowicie pozycji (użyj w razie potrzeby)
+        function fullResetSvg() {
+            const group = document.getElementById("rotate-group");
+            if (group) {
+                group.removeAttribute("transform");
+            }
 
-    // Pobieramy wszystkie prowadnice
-    document.querySelectorAll("line[id^='guide-line']").forEach(line => {
-    let id = line.id;
-    let x1 = parseFloat(line.getAttribute("x1"));
-    let y1 = parseFloat(line.getAttribute("y1"));
+            const svg = document.querySelector(".scaled-svg svg");
+            if (svg) {
+                svg.removeAttribute("viewBox");
+                svg.style.transform = "scale(1)";
+            }
 
-    if (id.includes("vertical")) {
-    verticalGuides[id] = x1;
-    } else if (id.includes("horizontal")) {
-    horizontalGuides[id] = y1;
-    }
-    });
-
-    console.log("✅ Prowadnice pobrane:", { vertical: verticalGuides, horizontal: horizontalGuides });
-
-    return { vertical: verticalGuides, horizontal: horizontalGuides };
-    }
-
-
-    function getUpdatedSvg() {
-    let svg = document.querySelector(".scaled-svg svg");
-    if (!svg) {
-    console.error("❌ Nie znaleziono rysunku SVG!");
-    return "";
-    }
-
-    let clonedSvg = svg.cloneNode(true);
-
-    // 🔥 Naprawiamy problem z obrotem `rotate(...)`
-    clonedSvg.querySelectorAll("[transform]").forEach(element => {
-    let transformValue = element.getAttribute("transform");
-
-    if (transformValue && transformValue.includes("rotate")) {
-    // Zamiana przecinków na spacje (poprawny format dla SVG)
-    transformValue = transformValue.replace(/,/g, " ");
-    element.setAttribute("transform", transformValue);
-    }
-    });
-
-    // 📏 Znajdź rzeczywisty obszar rysunku (bez prowadnic)
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-
-    clonedSvg.querySelectorAll("line, path, circle, rect, ellipse, polygon, polyline").forEach(el => {
-    let xVals = [], yVals = [];
-
-    ["x", "cx", "x1", "x2"].forEach(attr => {
-    let val = parseFloat(el.getAttribute(attr) || "NaN");
-    if (!isNaN(val)) xVals.push(val);
-    });
-
-    ["y", "cy", "y1", "y2"].forEach(attr => {
-    let val = parseFloat(el.getAttribute(attr) || "NaN");
-    if (!isNaN(val)) yVals.push(val);
-    });
-
-    if (xVals.length > 0) {
-    minX = Math.min(minX, ...xVals);
-    maxX = Math.max(maxX, ...xVals);
-    }
-    if (yVals.length > 0) {
-    minY = Math.min(minY, ...yVals);
-    maxY = Math.max(maxY, ...yVals);
-    }
-    });
-
-    let width = maxX - minX;
-    let height = maxY - minY;
-
-    if (width <= 0 || height <= 0) {
-    console.error(`❌ Błąd: Wymiary SVG są niepoprawne! width=${width}, height=${height}`);
-    return new XMLSerializer().serializeToString(svg);
-    }
-
-    // 🔥 Skracamy prowadnice do granic rysunku!
-    clonedSvg.querySelectorAll("line[id^='guide-line']").forEach(line => {
-    let id = line.id;
-    if (id.includes("vertical")) {
-    let x = parseFloat(line.getAttribute("x1"));
-    if (x < minX) x = minX;
-    if (x > maxX) x = maxX;
-    line.setAttribute("x1", x);
-    line.setAttribute("x2", x);
-    line.setAttribute("y1", minY);
-    line.setAttribute("y2", maxY);
-    } else if (id.includes("horizontal")) {
-    let y = parseFloat(line.getAttribute("y1"));
-    if (y < minY) y = minY;
-    if (y > maxY) y = maxY;
-    line.setAttribute("y1", y);
-    line.setAttribute("y2", y);
-    line.setAttribute("x1", minX);
-    line.setAttribute("x2", maxX);
-    }
-    });
-
-    // 🔥 Dopasowujemy `viewBox`
-    clonedSvg.setAttribute("viewBox", `${minX} ${minY} ${width} ${height}`);
-    clonedSvg.setAttribute("width", width);
-    clonedSvg.setAttribute("height", height);
-
-    console.log(`✅ Nowe viewBox: ${minX} ${minY} ${width} ${height}`);
-
-    return new XMLSerializer().serializeToString(clonedSvg);
-    }
-
-
-    function setSvgContent(svgString) {
-    let retries = 15; // Więcej prób na wypadek opóźnień Blazora
-    let delay = 300; // Krótszy czas między próbami
-
-    function tryInsertSvg() {
-    let tabContent = document.querySelector(".ant-tabs-tab-active"); // Sprawdza aktywną zakładkę
-    let svgContainer = document.querySelector(".scaled-svg");
-
-    if (!tabContent || !svgContainer) {
-    if (retries > 0) {
-    console.warn(`❌ Nie znaleziono kontenera SVG lub zakładka nieaktywna! Próba ponownie za ${delay}ms...`);
-    retries--;
-    setTimeout(tryInsertSvg, delay);
-    } else {
-    console.error("🚨 Błąd krytyczny: Kontener SVG nadal nie został znaleziony!");
-    }
-    return;
-    }
-
-    svgContainer.innerHTML = svgString;
-    console.log("✅ Zaktualizowano SVG w Blazorze!");
-
-    // 🚀 Ponowne aktywowanie obsługi przesuwania linii
-    enableDrag();
-    }
-
-    setTimeout(tryInsertSvg, delay);
-    }
-
-    // Automatyczne przypisanie eventów po załadowaniu SVG
-    document.addEventListener('DOMContentLoaded', () => {
-    console.log("🌟 Dokument załadowany, uruchamiam enableDrag()");
-    enableDrag();
-    });
-
-    window.saveFileFromBytes = (filename, base64Data) => {
-    const link = document.createElement('a');
-    link.download = filename;
-    link.href = 'data:application/dxf;base64,' + base64Data;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-};
-
-    // Funkcja do resetowania całkowicie pozycji (użyj w razie potrzeby)
-    function fullResetSvg() {
-        const group = document.getElementById("rotate-group");
-        if (group) {
-            group.removeAttribute("transform");
+            zoomLevel = 1;
+            console.log("✅ Zresetowano całkowicie pozycję SVG");
         }
 
-        const svg = document.querySelector(".scaled-svg svg");
-        if (svg) {
-            svg.removeAttribute("viewBox");
-            svg.style.transform = "scale(1)";
+            function flipVerticalSvg() {
+            console.log("🪞 Stosuję odbicie lustrzane w pionie...");
+
+            const group = document.getElementById("rotate-group");
+            if (!group) return;
+
+            // Pobierz aktualny bounding box
+            const bbox = group.getBBox();
+            const centerY = bbox.y + bbox.height / 2;
+
+            // Pobierz aktualną transformację
+            let currentTransform = group.getAttribute("transform") || "";
+
+            // Sprawdź czy już istnieje odbicie
+            const hasFlip = currentTransform.includes("scale(1, -1)");
+
+            if (hasFlip) {
+                // Usuń odbicie - przywróć oryginał
+                currentTransform = currentTransform
+                    .replace(/scale\(1, -1\)\s*translate\(0, [-\d.]+\)/, "")
+                    .trim();
+                group.setAttribute("transform", currentTransform);
+                console.log("✅ Usunięto odbicie lustrzane");
+            } else {
+                // Dodaj nowe odbicie
+                const flipTransform = `scale(1, -1) translate(0, ${-2 * centerY})`;
+                group.setAttribute("transform", `${currentTransform} ${flipTransform}`);
+                console.log(`✅ Dodano odbicie względem osi Y=${centerY}`);
+            }
+
+            updateGuideValues();
         }
 
-        zoomLevel = 1;
-        console.log("✅ Zresetowano całkowicie pozycję SVG");
-    }
+            function getKonfSystemValues() {
+            return {
+                PionLewa: verticalGuides["guide-line-vertical"] ?? 0,
+                PionPrawa: verticalGuides["guide-line-verticalMax"] ?? 0,
+                PionOsSymetrii: verticalGuides["guide-line-verticalOsSymetrii"] ?? 0,
+                PionOdSzybaOdZew: verticalGuides["guide-line-verticalOdlSzyby"] ?? 0,
 
-        function flipVerticalSvg() {
-        console.log("🪞 Stosuję odbicie lustrzane w pionie...");
-
-        const group = document.getElementById("rotate-group");
-        if (!group) return;
-
-        // Pobierz aktualny bounding box
-        const bbox = group.getBBox();
-        const centerY = bbox.y + bbox.height / 2;
-
-        // Pobierz aktualną transformację
-        let currentTransform = group.getAttribute("transform") || "";
-
-        // Sprawdź czy już istnieje odbicie
-        const hasFlip = currentTransform.includes("scale(1, -1)");
-
-        if (hasFlip) {
-            // Usuń odbicie - przywróć oryginał
-            currentTransform = currentTransform
-                .replace(/scale\(1, -1\)\s*translate\(0, [-\d.]+\)/, "")
-                .trim();
-            group.setAttribute("transform", currentTransform);
-            console.log("✅ Usunięto odbicie lustrzane");
-        } else {
-            // Dodaj nowe odbicie
-            const flipTransform = `scale(1, -1) translate(0, ${-2 * centerY})`;
-            group.setAttribute("transform", `${currentTransform} ${flipTransform}`);
-            console.log(`✅ Dodano odbicie względem osi Y=${centerY}`);
+                PoziomGora: horizontalGuides["guide-line-horizontal"] ?? 0,
+                PoziomDol: horizontalGuides["guide-line-horizontalMax"] ?? 0,
+                PoziomKorpus: horizontalGuides["guide-line-horizontal-korpus"] ?? 0,
+                PoziomLiniaSzkla: horizontalGuides["guide-line-horizontal-liniaSzklenia"] ?? 0,
+                PoziomLiniaOkucia: horizontalGuides["guide-line-horizontal-okucie"] ?? 0,
+                PoziomOsSymetrii: horizontalGuides["guide-line-horizontal-OsSymetrii"] ?? 0
+            };
         }
-
-        updateGuideValues();
-    }
-
-        function getKonfSystemValues() {
-        return {
-            PionLewa: verticalGuides["guide-line-vertical"] ?? 0,
-            PionPrawa: verticalGuides["guide-line-verticalMax"] ?? 0,
-            PionOsSymetrii: verticalGuides["guide-line-verticalOsSymetrii"] ?? 0,
-            PionOdSzybaOdZew: verticalGuides["guide-line-verticalOdlSzyby"] ?? 0,
-
-            PoziomGora: horizontalGuides["guide-line-horizontal"] ?? 0,
-            PoziomDol: horizontalGuides["guide-line-horizontalMax"] ?? 0,
-            PoziomKorpus: horizontalGuides["guide-line-horizontal-korpus"] ?? 0,
-            PoziomLiniaSzkla: horizontalGuides["guide-line-horizontal-liniaSzklenia"] ?? 0,
-            PoziomLiniaOkucia: horizontalGuides["guide-line-horizontal-okucie"] ?? 0,
-            PoziomOsSymetrii: horizontalGuides["guide-line-horizontal-OsSymetrii"] ?? 0
-        };
-    }
 
 </script>
 
@@ -983,7 +1001,7 @@
         <Button class="btn-back" Icon="@IconType.Outline.ZoomOut" Style="width:27px" OnClick="ZoomOutObj" />
         <Button class="btn-back" Icon="@IconType.Outline.Drag" Style="width:27px" OnClick="FitSvg" />
         <Button class="btn-back" Icon="@IconType.Outline.Swap" Style="width:27px" OnClick="FlipVertical" />
-       @*  <Button class="btn-back" Icon="@IconType.Outline.MergeCells" Style="width:27px" OnClick="FitResetSvg" /> *@
+        @*  <Button class="btn-back" Icon="@IconType.Outline.MergeCells" Style="width:27px" OnClick="FitResetSvg" /> *@
     }
 
 </Divider>
@@ -1061,11 +1079,11 @@
                     <div class="col-md-6">
                         <label class="form-label">Typ profilu</label>
                         <Select Mode="SelectMode.Default"
-                        DataSource="@_typ"
-                        @bind-Value="@konfSystem.Typ"
-                        LabelName="@nameof(Typ.Nazwa)"
-                        ValueName="@nameof(Typ.Nazwa)"
-                        Class="form-select">
+                                DataSource="@_typ"
+                                @bind-Value="@konfSystem.Typ"
+                                LabelName="@nameof(Typ.Nazwa)"
+                                ValueName="@nameof(Typ.Nazwa)"
+                                Class="form-select">
                         </Select>
                     </div>
 
@@ -1225,8 +1243,8 @@
                     </div>
 
                 </div>
-                <br/>
-                <br/>
+                <br />
+                <br />
                 <!-- Przyciski akcji -->
                 <div class="text-end">
                     <button class="btn btn-success" onclick="@SaveLinieDXF">
@@ -1234,8 +1252,8 @@
                     </button>
                 </div>
             </div>
-            <br/>
-            <br/>
+            <br />
+            <br />
             <br />
         </div>
 
@@ -1296,15 +1314,15 @@
                 }
 
                 <hr>
-                <label>Występuje:</label> 
-                <br/>
+                <label>Występuje:</label>
+                <br />
                 <label>
                     <input type="checkbox" @bind="@konfSystem.WystepujeDol" /> Na dole
                 </label>
                 <label>
                     <input type="checkbox" @bind="@konfSystem.WystepujeLewa" /> Po lewej
                 </label>
-                <br/>
+                <br />
                 <label>
                     <input type="checkbox" @bind="@konfSystem.WystepujeGora" /> U góra
                 </label>
@@ -1525,7 +1543,7 @@
 
     private async Task DownloadDxf()
     {
-        if(string.IsNullOrEmpty(SvgContent))
+        if (string.IsNullOrEmpty(SvgContent))
         {
             Console.WriteLine("⚠️ Brak SVG do pobrania DXF!");
             SelectIndesk = "plik_dxf";
@@ -1796,6 +1814,9 @@
         var svgElement = svgDoc.DocumentElement;
         if (svgElement == null) return;
 
+        width = Math.Round(width, precyzjaZapisuLinii);
+        height = Math.Round(height, precyzjaZapisuLinii);
+
         // ============================
         // 🔹 Pionowe linie
         // ============================
@@ -1944,22 +1965,22 @@
                     Console.WriteLine("Plik DXF jest pusty lub nie zawiera obsługiwanych elementów.");
 
                     _ = _notice.Error(new()
-                        {
-                            Message = "Błąd!!!",
-                            Description = "Plik DXF jest pusty lub nie zawiera obsługiwanych elementów.",
-                            Placement = NotificationPlacement.BottomLeft
-                        });
+                    {
+                        Message = "Błąd!!!",
+                        Description = "Plik DXF jest pusty lub nie zawiera obsługiwanych elementów.",
+                        Placement = NotificationPlacement.BottomLeft
+                    });
                     return;
                 }
                 else
                 {
                     _ = _notice.Info(new()
-                        {
-                            Message = "Informacja!!",
-                            Description = $"Plik DXF jest OK ilość linii: {dxf.Entities.Lines.Count()} łuków: {dxf.Entities.Arcs.Count()}, okręgów: {dxf.Entities.Circles.Count()}",
-                            Placement = NotificationPlacement.BottomLeft,
-                            Duration = 1
-                        });
+                    {
+                        Message = "Informacja!!",
+                        Description = $"Plik DXF jest OK ilość linii: {dxf.Entities.Lines.Count()} łuków: {dxf.Entities.Arcs.Count()}, okręgów: {dxf.Entities.Circles.Count()}",
+                        Placement = NotificationPlacement.BottomLeft,
+                        Duration = 1
+                    });
                 }
                 // Konwersja na SVG
                 SvgContent = Converter.ConvertToSvg(dxf);
@@ -1985,11 +2006,11 @@
             {
                 Console.WriteLine($"Błąd podczas odczytu DXF: {ex.Message}");
                 _ = _notice.Error(new()
-                    {
-                        Message = "Błąd!!!",
-                        Description = $"Błąd podczas odczytu DXF: {ex.Message}",
-                        Placement = NotificationPlacement.BottomLeft
-                    });
+                {
+                    Message = "Błąd!!!",
+                    Description = $"Błąd podczas odczytu DXF: {ex.Message}",
+                    Placement = NotificationPlacement.BottomLeft
+                });
             }
         }
     }

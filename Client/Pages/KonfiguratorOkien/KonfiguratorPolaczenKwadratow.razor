@@ -113,7 +113,12 @@
 
 <script>
     // 🧠 Inicjalizacja namespace i stanu zoomLevel
-    let activScale = window.activScale || 1;
+    if (typeof activScale === 'undefined') {
+        let activScale = window.activScale || 1;
+    } else {
+        activScale = window.activScale || activScale || 1;
+    }
+
     window.svgHelper = window.svgHelper || {};
     window.svgHelper.zoomLevel = window.svgHelper.zoomLevel || 1;
 
@@ -1752,8 +1757,6 @@
                       fill=""#e0e0e0"" fill-opacity=""0.5"" stroke=""#000"" stroke-width=""1"" />
             </g>";
 
-            Console.WriteLine($"Dodano prostokąt zastępczy dla drugiego modelu: {svtmp}");
-
             svgParts.Add(svtmp);
 
         }
@@ -2002,7 +2005,7 @@
             {
                 // --- DANE DLA ZAKŁADKI "STYCZNE" ---
                 polaczenie.PrzesuniecieXStycznej = przesuniecieX;
-                polaczenie.PrzesuniecieYStycznej = przesuniecieY + 100;//100 awatar modelu
+                polaczenie.PrzesuniecieYStycznej = przesuniecieY + 9;//9 awatar modelu
                 polaczenie.RysunekPrzekrojuStyczny = png;
 
                 if (existing != null)
