@@ -33,6 +33,7 @@ namespace GEORGE.Shared.Models
         public string? Uwagi { get; set; }
         public byte[] RysunekPrzekroju { get; set; } = Array.Empty<byte>();
         public byte[] RysunekPrzekrojuStyczny { get; set; } = Array.Empty<byte>();
+        public string? SVG { get; set; } //RYSUNEK SVG DO WYŚWIETLANIA W APLIKACJI
 
         [NotMapped]
         public KonfSystem? ElementWewnetrzny { get; set; }

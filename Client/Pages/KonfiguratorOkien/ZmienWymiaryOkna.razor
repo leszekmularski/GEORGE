@@ -44,7 +44,7 @@ else
                     <div style="display: flex; align-items: center; gap: 5px;">
                         <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
                                               ValueChanged="@(async (double value) => {
-                                                  Model.UpdateEditableProperty(index, value);
+                                                 jestZmianaSzerokosci = Model.UpdateEditableProperty(index, value);
                                                   await ZapiszDoRodzica();
                                               })"
                                               Style="flex: 1;" />
@@ -78,78 +78,78 @@ else
     }
 }
 
-@* Modal kalkulatora *@
-<AntDesign.Modal Title="Kalkulator"
-                 Visible="@_calculatorVisible"
-                 OnOk="@HandleCalculatorOk"
-                 OnCancel="@HandleCalculatorCancel"
-                 Width="350">
+                @* Modal kalkulatora *@
+                <AntDesign.Modal Title="Kalkulator"
+                                 Visible="@_calculatorVisible"
+                                 OnOk="@HandleCalculatorOk"
+                                 OnCancel="@HandleCalculatorCancel"
+                                 Width="350">
     
-    <div style="padding: 10px;">
-        @* Wyświetlacz *@
-        <div style="background-color: #f0f0f0; padding: 10px; margin-bottom: 10px; 
-                    text-align: right; font-size: 20px; font-weight: bold; 
-                    border: 1px solid #d9d9d9; border-radius: 4px; min-height: 40px;">
-            @(_calculatorExpression.Length > 0 ? _calculatorExpression : "0")
-        </div>
+                    <div style="padding: 10px;">
+                        @* Wyświetlacz *@
+                        <div style="background-color: #f0f0f0; padding: 10px; margin-bottom: 10px; 
+                                    text-align: right; font-size: 20px; font-weight: bold; 
+                                    border: 1px solid #d9d9d9; border-radius: 4px; min-height: 40px;">
+                            @(_calculatorExpression.Length > 0 ? _calculatorExpression : "0")
+                        </div>
         
-        @* Przyciski kalkulatora *@
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;">
-            @* Rząd 1 *@
-            <AntDesign.Button OnClick="@(() => AppendToCalculator("7"))" Block>7</AntDesign.Button>
-            <AntDesign.Button OnClick="@(() => AppendToCalculator("8"))" Block>8</AntDesign.Button>
-            <AntDesign.Button OnClick="@(() => AppendToCalculator("9"))" Block>9</AntDesign.Button>
-            <AntDesign.Button OnClick="@(() => AppendToCalculator("/"))" 
-                             Type="@ButtonType.Primary" Block>÷</AntDesign.Button>
+                        @* Przyciski kalkulatora *@
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;">
+                            @* Rząd 1 *@
+                            <AntDesign.Button OnClick="@(() => AppendToCalculator("7"))" Block>7</AntDesign.Button>
+                            <AntDesign.Button OnClick="@(() => AppendToCalculator("8"))" Block>8</AntDesign.Button>
+                            <AntDesign.Button OnClick="@(() => AppendToCalculator("9"))" Block>9</AntDesign.Button>
+                            <AntDesign.Button OnClick="@(() => AppendToCalculator("/"))" 
+                                             Type="@ButtonType.Primary" Block>÷</AntDesign.Button>
             
-            @* Rząd 2 *@
-            <AntDesign.Button OnClick="@(() => AppendToCalculator("4"))" Block>4</AntDesign.Button>
-            <AntDesign.Button OnClick="@(() => AppendToCalculator("5"))" Block>5</AntDesign.Button>
-            <AntDesign.Button OnClick="@(() => AppendToCalculator("6"))" Block>6</AntDesign.Button>
-            <AntDesign.Button OnClick="@(() => AppendToCalculator("*"))" 
-                             Type="@ButtonType.Primary" Block>×</AntDesign.Button>
+                            @* Rząd 2 *@
+                            <AntDesign.Button OnClick="@(() => AppendToCalculator("4"))" Block>4</AntDesign.Button>
+                            <AntDesign.Button OnClick="@(() => AppendToCalculator("5"))" Block>5</AntDesign.Button>
+                            <AntDesign.Button OnClick="@(() => AppendToCalculator("6"))" Block>6</AntDesign.Button>
+                            <AntDesign.Button OnClick="@(() => AppendToCalculator("*"))" 
+                                             Type="@ButtonType.Primary" Block>×</AntDesign.Button>
             
-            @* Rząd 3 *@
-            <AntDesign.Button OnClick="@(() => AppendToCalculator("1"))" Block>1</AntDesign.Button>
-            <AntDesign.Button OnClick="@(() => AppendToCalculator("2"))" Block>2</AntDesign.Button>
-            <AntDesign.Button OnClick="@(() => AppendToCalculator("3"))" Block>3</AntDesign.Button>
-            <AntDesign.Button OnClick="@(() => AppendToCalculator("-"))" 
-                             Type="@ButtonType.Primary" Block>−</AntDesign.Button>
+                            @* Rząd 3 *@
+                            <AntDesign.Button OnClick="@(() => AppendToCalculator("1"))" Block>1</AntDesign.Button>
+                            <AntDesign.Button OnClick="@(() => AppendToCalculator("2"))" Block>2</AntDesign.Button>
+                            <AntDesign.Button OnClick="@(() => AppendToCalculator("3"))" Block>3</AntDesign.Button>
+                            <AntDesign.Button OnClick="@(() => AppendToCalculator("-"))" 
+                                             Type="@ButtonType.Primary" Block>−</AntDesign.Button>
             
-            @* Rząd 4 *@
-            <AntDesign.Button OnClick="@(() => AppendToCalculator("0"))" Block>0</AntDesign.Button>
-            <AntDesign.Button OnClick="@(() => AppendToCalculator("."))" Block>.</AntDesign.Button>
-            <AntDesign.Button OnClick="@CalculateResult" 
-                             Type="@ButtonType.Primary" 
-                             Style="background-color: #52c41a; border-color: #52c41a;" 
-                             Block>=</AntDesign.Button>
-            <AntDesign.Button OnClick="@(() => AppendToCalculator("+"))" 
-                             Type="@ButtonType.Primary" Block>+</AntDesign.Button>
+                            @* Rząd 4 *@
+                            <AntDesign.Button OnClick="@(() => AppendToCalculator("0"))" Block>0</AntDesign.Button>
+                            <AntDesign.Button OnClick="@(() => AppendToCalculator("."))" Block>.</AntDesign.Button>
+                            <AntDesign.Button OnClick="@CalculateResult" 
+                                             Type="@ButtonType.Primary" 
+                                             Style="background-color: #52c41a; border-color: #52c41a;" 
+                                             Block>=</AntDesign.Button>
+                            <AntDesign.Button OnClick="@(() => AppendToCalculator("+"))" 
+                                             Type="@ButtonType.Primary" Block>+</AntDesign.Button>
             
-            @* Dodatkowe przyciski *@
-            <AntDesign.Button OnClick="@ClearCalculator" 
-                             Type="@ButtonType.Primary" 
-                             Block>C</AntDesign.Button>
-            <AntDesign.Button OnClick="@BackspaceCalculator" Block>⌫</AntDesign.Button>
-            <AntDesign.Button OnClick="@(() => AppendToCalculator("("))" Block>(</AntDesign.Button>
-            <AntDesign.Button OnClick="@(() => AppendToCalculator(")"))" Block>)</AntDesign.Button>
-        </div>
+                            @* Dodatkowe przyciski *@
+                            <AntDesign.Button OnClick="@ClearCalculator" 
+                                             Type="@ButtonType.Primary" 
+                                             Block>C</AntDesign.Button>
+                            <AntDesign.Button OnClick="@BackspaceCalculator" Block>⌫</AntDesign.Button>
+                            <AntDesign.Button OnClick="@(() => AppendToCalculator("("))" Block>(</AntDesign.Button>
+                            <AntDesign.Button OnClick="@(() => AppendToCalculator(")"))" Block>)</AntDesign.Button>
+                        </div>
         
-        @* Przyciski akcji *@
-        <div style="display: flex; gap: 5px; margin-top: 10px;">
-            <AntDesign.Button OnClick="@UseCurrentValue" 
-                             Type="@ButtonType.Default" 
-                             Block>
-                Użyj bieżącej wartości
-            </AntDesign.Button>
-            <AntDesign.Button OnClick="@ClearCalculator" 
-                             Type="@ButtonType.Default" 
-                             Block>
-                Wyczyść
-            </AntDesign.Button>
-        </div>
-    </div>
-</AntDesign.Modal>
+                        @* Przyciski akcji *@
+                        <div style="display: flex; gap: 5px; margin-top: 10px;">
+                            <AntDesign.Button OnClick="@UseCurrentValue" 
+                                             Type="@ButtonType.Default" 
+                                             Block>
+                                Użyj bieżącej wartości
+                            </AntDesign.Button>
+                            <AntDesign.Button OnClick="@ClearCalculator" 
+                                             Type="@ButtonType.Default" 
+                                             Block>
+                                Wyczyść
+                            </AntDesign.Button>
+                        </div>
+                    </div>
+                </AntDesign.Modal>
 
                 <h5 class="mt-3">Kolorystyka</h5>
 
@@ -234,8 +234,18 @@ else
     [Parameter]
     public EventCallback<ConstWlasciwosciOkna> OnSave { get; set; }
 
+    private bool jestZmianaSzerokosci = false;
+
     public async Task ZapiszDoRodzica()
     {
+
+        if (jestZmianaSzerokosci)
+        {
+           await PodzielLinieSymetrycznieAsync(true);
+
+           await Task.Delay(100); // Małe opóźnienie, aby upewnić się, że wszystkie aktualizacje zostały przetworzone 
+        }
+
         await OnSave.InvokeAsync(Model);
     }
 
@@ -255,9 +265,9 @@ else
         }
     }
 
-    private async Task PodzielLinieSymetrycznieAsync()
+    private async Task PodzielLinieSymetrycznieAsync(bool ustawTylkoLinie =false)
 {
-    if (Model?.EditableProperties == null || Model.EditableProperties.Count == 0)
+    if (Model?.EditableProperties == null || Model.EditableProperties.Count == 0 || Model == null)
         return;
 
     var linieIndeksy = new List<int>();
@@ -286,6 +296,7 @@ else
             Model.UpdateEditableProperty(index, nowaPozycja);
         }
         
+        if(!ustawTylkoLinie)
         // Zapisz zmiany
         await ZapiszDoRodzica();
         

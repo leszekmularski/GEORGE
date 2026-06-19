@@ -286,6 +286,7 @@ namespace GEORGE.Server.Controllers
             existing.Uwagi = updated.Uwagi;
             existing.RysunekPrzekroju = updated.RysunekPrzekroju;
             existing.RysunekPrzekrojuStyczny = updated.RysunekPrzekrojuStyczny;
+            existing.SVG = updated.SVG;
 
             await _context.SaveChangesAsync();
 

@@ -159,7 +159,7 @@ namespace GEORGE.Client.Pages.Okna
 
             if ((punkty == null || punkty.Count < 3) && !ElementLiniowy)
             {
-               // Console.WriteLine($"❌ AddElements Region o ID: {regionId} ma zbyt mało punktów");
+                // Console.WriteLine($"❌ AddElements Region o ID: {regionId} ma zbyt mało punktów");
                 BledySystemowe.Add($"❌ Region o ID: {regionId} ma zbyt mało punktów. Wymagane jest co najmniej 3 punkty dla regionów nielinowych. Sprawdź dane wejściowe dla tego regionu.");
                 return false;
             }
@@ -190,6 +190,8 @@ namespace GEORGE.Client.Pages.Okna
 
             var przeskalowanePunktyZLukamiPodRysynek = new List<ContourSegment>(); // bez skalowania – prawdziwe dane
 
+            var przeskalowanePunktyPodRysynek = new List<XPoint>(punkty); // bez skalowania – prawdziwe dane
+
             // 1️⃣ Usuń segmenty zerowej długości
             var bezDuplikatow = punktyZLukami
                 .Where(s => !PointsAreClose(s.Start, s.End))
@@ -206,7 +208,7 @@ namespace GEORGE.Client.Pages.Okna
                        Math.Abs(a.Y - b.Y) < tolerance;
             }
 
-         //   Console.WriteLine($"🔹 przeskalowanePunktyZLukami: {przeskalowanePunktyZLukami.Count} w tym linii: {przeskalowanePunktyZLukami.Where(x => x.Type == SegmentType.Line).Count()} i łuki: {przeskalowanePunktyZLukami.Where(x => x.Type == SegmentType.Arc).Count()}");
+            //   Console.WriteLine($"🔹 przeskalowanePunktyZLukami: {przeskalowanePunktyZLukami.Count} w tym linii: {przeskalowanePunktyZLukami.Where(x => x.Type == SegmentType.Line).Count()} i łuki: {przeskalowanePunktyZLukami.Where(x => x.Type == SegmentType.Arc).Count()}");
 
             //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -438,6 +440,8 @@ namespace GEORGE.Client.Pages.Okna
 
                 konturWenetrznyPodRysunek = przeskalowanePunktyZLukamiPodRysynek;
 
+                wierzcholkiWenetrznePodRysunek = przeskalowanePunktyPodRysynek;
+
                 // Napraw punkty startowe jeśli potrzebne
                 //   wewnetrznyKonturZLukami = FixStartPoints(wewnetrznyKonturZLukami);
 
@@ -469,10 +473,6 @@ namespace GEORGE.Client.Pages.Okna
                 //    }
                 //}
 
-                wewnetrznyKonturZLukami = await CalculateOffsetPolygonKontur(przeskalowanePunktyZLukami,
-                profileLeft, profileRight, profileTop, profileBottom,
-                false); // dla modeli z łukami i liniami
-
                 //Console.WriteLine($"===!=== ORYGINALNE SEGMENTY WEWNĘTRZNE ===");
                 //for (int i = 0; i < wewnetrznyKonturZLukami.Count; i++)
                 //{
@@ -487,13 +487,17 @@ namespace GEORGE.Client.Pages.Okna
                 // Napraw punkty startowe jeśli potrzebne
                 // wewnetrznyKonturZLukami = FixStartPoints(wewnetrznyKonturZLukami);
 
+                wewnetrznyKonturZLukami = await CalculateOffsetPolygonKontur(przeskalowanePunktyZLukami,
+                    profileLeft, profileRight, profileTop, profileBottom,
+                    false); // dla modeli z łukami i liniami
+
                 liniaSzkleniaKontur = await CalculateOffsetPolygon(
                     przeskalowanePunkty,
                     offsetGlassLeft, offsetGlassRight, offsetGlassTop, offsetGlassBottom,
                     false);
 
                 wierzcholkiWenetrznePodRysunek = await CalculateOffsetPolygon(
-                    przeskalowanePunkty,
+                    przeskalowanePunktyPodRysynek,
                     offsetKorpusWewnetrznyLeft, offsetKorpusWewnetrznyRight, offsetKorpusWewnetrznyTop, offsetKorpusWewnetrznyBottom,
                     false);
 
@@ -925,9 +929,9 @@ namespace GEORGE.Client.Pages.Okna
                 }
 
                 // Teraz możesz użyć angleDegreesStronaA i angleDegreesStronaB
-                Console.WriteLine($"Wierzchołek {i}: Kąt eleemntu: {angleDegrees:F1}° Kąt z poprzednim = {angleDegreesStronaA:F1}°, Kąt z następnym = {angleDegreesStronaB:F1}°");
+                Console.WriteLine($"⚠️⚠️⚠️ Wierzchołek {i}: Kąt elementu: {angleDegrees:F1}° Kąt z poprzednim = {angleDegreesStronaA:F1}°, Kąt z następnym = {angleDegreesStronaB:F1}°");
 
-                if (angleDegreesStronaA < 20 && angleDegrees != 90 && angleDegreesStronaA != 270 || Math.Abs(angleDegrees - angleDegreesStronaA) < 20)
+                if ((angleDegreesStronaA < 20 && angleDegrees != 90 && angleDegreesStronaA != 270) || (Math.Abs(angleDegrees - angleDegreesStronaA) < 20 && (int)angleDegrees - (int)angleDegreesStronaA != 0))
                 {
                     // Jeśli kąt z następnym jest bardzo mały, traktujemy to jako prawie prostą linię → potencjalnie T1
                     leftJoin = "T2"; // połączone równym kątem
@@ -2658,20 +2662,22 @@ namespace GEORGE.Client.Pages.Okna
                 BledySystemowe.Add($"Konfiguracja systemu jest pusta. Dotyczy funkcji ObliczRoznicePoziomowKorpusWewnetrzny");
                 return 0;
             }
- 
-                float gora = (float)konf.PoziomKorpus;
-                float dol = (float)konf.PoziomDol;
 
-                // Jeśli jedno z pól jest 0, traktuj drugie jako wartość symetryczną
-                if (gora == 0 && dol != 0)
-                    return Math.Abs(dol);
 
-                if (dol == 0 && gora != 0)
-                    return Math.Abs(gora);
+            float gora = (float)konf.PoziomKorpus;
+            float dol = (float)konf.PoziomDol;
 
-                await Task.CompletedTask;
+            //Console.WriteLine($"ObliczRoznicePoziomowKorpusWewnetrzny   gora: {gora} dol:{dol}");
+            // Jeśli jedno z pól jest 0, traktuj drugie jako wartość symetryczną
+            if (gora == 0 && dol != 0)
+                return Math.Abs(dol);
 
-                return Math.Abs(gora - dol);
+            if (dol == 0 && gora != 0)
+                return Math.Abs(gora);
+
+            await Task.CompletedTask;
+
+            return Math.Abs(gora - dol);
 
         }
 

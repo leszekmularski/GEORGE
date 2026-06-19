@@ -47,37 +47,17 @@
 
 <script>
 
-        if (typeof isDraggingOKN === 'undefined') {
-                let isDraggingOKN = window.isDraggingOKN || false;
-        } else {
-                isDraggingOKN = window.isDraggingOKN || isDraggingOKN || false;
-        }
+        window.isDraggingOKN ??= false;
+        window.deleteMode ??= false;
 
-        if (typeof deleteMode === 'undefined') {
-                let deleteMode = window.deleteMode || false;
-        } else {
-                deleteMode = window.deleteMode || deleteMode || false;
-        }
+        window.verticalGuides ??= {};
+        window.horizontalGuides ??= {};
 
-        // 🔥 Nowe zmienne do przechwycenia wartości prowadnic
+        window.draggedLine ??= null;
+        window.offsetX ??= 0;
 
-        var verticalGuides = window.verticalGuides || {};
-        var horizontalGuides = window.horizontalGuides || {};
-
-        var draggedLine = window.draggedLine || null;
-        var offsetX = window.offsetX || 0;
-
-        if (typeof zoomLevel === 'undefined') {
-            let zoomLevel = window.zoomLevel || 1;
-        } else {
-            zoomLevel = window.zoomLevel || zoomLevel || 1;
-        }
-
-        if (typeof zoomFactor === 'undefined') {
-            const zoomFactor = window.zoomFactor || 1.1;
-        } else {
-            zoomFactor = window.zoomFactor || zoomFactor || 1.1;
-        }
+        window.zoomLevel ??= 1;
+        window.zoomFactor ??= 1.1;
 
         function zoomInSvg() {
         console.log("🔍 Powiększam rysunek SVG!");
@@ -1065,7 +1045,13 @@
             }
             else
             {
-                <p class="text-muted text-center">Brak dostępnych.</p>
+                <div class="border rounded p-4 text-center bg-light mt-3">
+                    <div style="font-size:48px;">📂</div>
+                    <h4 class="text-secondary mt-2">Wybierz system z listy</h4>
+                    <p class="text-muted mb-0">
+                       Wybierz z listy lub dodaj pierwszy system, aby rozpocząć pracę.
+                    </p>
+                </div>
             }
         </div>
     </TabPane>
@@ -1180,69 +1166,169 @@
                 <hr class="my-4" />
 
                 <h5 class="mb-3">📏 Linie opisujące gabaryty profila</h5>
-                <div class="row">
-                    <div class="col-md-4">
-                        <label class="form-label">Wartość linia: pozima dolna</label>
-                        <input type="number" class="form-control" @bind="@konfSystem.PoziomDol" />
+               
+                  <!-- GABARYT -->
+                <div class="card border-primary mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <strong>📐 Główne linie gabarytowe</strong>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Wartość linia: pozima górna</label>
-                        <input type="number" class="form-control" @bind="@konfSystem.PoziomGora" />
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Wartość linia: pionowa lewa</label>
-                        <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PionLewa" />
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Wartość linia: pionowa prawa</label>
-                        <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PionPrawa" />
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Wartość linia: pionowa oś symetrii</label>
-                        <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PionOsSymetrii" />
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Wartość linia: pozioma oś symetrii</label>
-                        <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PoziomOsSymetrii" />
-                    </div>
+                    <div class="card-body">
+                        <div class="row">
 
-                    <div class="col-md-4">
-                        <label class="form-label">Wartość linia: Okucia</label>
-                        <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PoziomLiniaOkucia" />
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Wartość linia: Szklenia</label>
-                        <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PoziomLiniaSzkla" />
-                    </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Poziom dolny</label>
+                                <input type="number" class="form-control border-primary"
+                                       @bind="@konfSystem.PoziomDol" />
+                            </div>
 
-                    <div class="col-md-4">
-                        <label class="form-label">Wartość linia: Korpus od wewnątrz</label>
-                        <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PoziomKorpus" />
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Wartość linia: Odsunięcie szyby</label>
-                        <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PionOdSzybaOdZew" />
-                    </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Poziom górny</label>
+                                <input type="number" class="form-control border-primary"
+                                       @bind="@konfSystem.PoziomGora" />
+                            </div>
 
-                    <div class="col-md-4">
-                        <label class="form-label">Wartość linia: PoziomDodatkowa6</label>
-                        <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PoziomDodatkowa6" />
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Wartość linia: PoziomDodatkowa7</label>
-                        <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PoziomDodatkowa7" />
-                    </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Pion lewy</label>
+                                <input type="number" class="form-control border-primary"
+                                       step="0.01"
+                                       @bind="@konfSystem.PionLewa" />
+                            </div>
 
-                    <div class="col-md-4">
-                        <label class="form-label">Wartość linia: PionDodatkowa4</label>
-                        <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PionDodatkowa4" />
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Wartość linia: PionDodatkowa5</label>
-                        <input type="number" class="form-control" step="0.01" @bind="@konfSystem.PionDodatkowa5" />
-                    </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Pion prawy</label>
+                                <input type="number" class="form-control border-primary"
+                                       step="0.01"
+                                       @bind="@konfSystem.PionPrawa" />
+                            </div>
 
+                        </div>
+                    </div>
                 </div>
+
+                <!-- PIONOWE -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <strong>↕️ Linie pionowe</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+
+                            <div class="col-md-4">
+                                <label class="form-label">Oś symetrii</label>
+                                <input type="number" class="form-control"
+                                       step="0.01"
+                                       @bind="@konfSystem.PionOsSymetrii" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Odsunięcie szyby</label>
+                             
+                                @if (@konfSystem.CzyMozeBycFix)
+                                {
+                                    <input type="number" class="form-control"
+                                           step="0.01"
+                                           @bind="@konfSystem.PionOdSzybaOdZew" />
+                                }
+                                else
+                                {
+                                    <input type="number" class="form-control" style="background-color: maroon ; color: #ffe6e6;" title="Wartość pominięta w obliczeniach"
+                                           step="0.01"
+                                           @bind="@konfSystem.PionOdSzybaOdZew" />
+                                }
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Pion dodatkowa 4</label>
+                                <input type="number" class="form-control"
+                                       step="0.01"
+                                       @bind="@konfSystem.PionDodatkowa4" />
+                            </div>
+
+                            <div class="col-md-4 mt-3">
+                                <label class="form-label">Pion dodatkowa 5</label>
+                                <input type="number" class="form-control"
+                                       step="0.01"
+                                       @bind="@konfSystem.PionDodatkowa5" />
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- POZIOME -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <strong>↔️ Linie poziome</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+
+                            <div class="col-md-4">
+                                <label class="form-label">Linia korpusu</label>
+                                <input type="number" class="form-control"
+                                       step="0.01"
+                                       @bind="@konfSystem.PoziomKorpus" />
+                            </div>
+
+                            @if (@konfSystem.CzyMozeBycFix)
+                            {
+                                <div class="col-md-4">
+                                    <label class="form-label">Linia szklenia</label>
+                                    <input type="number" class="form-control"
+                                           step="0.01"
+                                           @bind="@konfSystem.PoziomLiniaSzkla" />
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="col-md-4">
+                                    <label class="form-label">Linia szklenia</label>
+                                    <input type="number" class="form-control"
+                                           step="0.01"
+                                           @bind="@konfSystem.PoziomLiniaSzkla" style="background-color: maroon ; color: #ffe6e6;" title="Wartość pominięta w obliczeniach" />
+                                </div>
+                            }
+                         
+
+                            <div class="col-md-4">
+                                <label class="form-label">Linia okuć</label>
+                                <input type="number" class="form-control"
+                                       step="0.01"
+                                       @bind="@konfSystem.PoziomLiniaOkucia" />
+                            </div>
+
+                            <div class="col-md-4 mt-3">
+                                <label class="form-label">Oś symetrii</label>
+                                <input type="number" class="form-control"
+                                       step="0.01"
+                                       @bind="@konfSystem.PoziomOsSymetrii" />
+                            </div>
+
+                            <div class="col-md-4 mt-3">
+                                <label class="form-label">Oś Dormas</label>
+                                <input type="number" class="form-control"
+                                       step="0.01"
+                                       @bind="@konfSystem.PoziomOsDormas" />
+                            </div>
+
+                            <div class="col-md-4 mt-3">
+                                <label class="form-label">Poziom dodatkowa 6</label>
+                                <input type="number" class="form-control"
+                                       step="0.01"
+                                       @bind="@konfSystem.PoziomDodatkowa6" />
+                            </div>
+
+                            <div class="col-md-4 mt-3">
+                                <label class="form-label">Poziom dodatkowa 7</label>
+                                <input type="number" class="form-control"
+                                       step="0.01"
+                                       @bind="@konfSystem.PoziomDodatkowa7" />
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
                 <br />
                 <br />
                 <!-- Przyciski akcji -->
@@ -1376,7 +1462,7 @@
 
         Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>($"api/systemy-okienne") ?? new List<SystemyOkienne>();
 
-        KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>("api/konfsystem");
+        //KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>("api/konfsystem");
     }
 
     private async Task OnTabClick()
@@ -1446,6 +1532,8 @@
     {
         SelectedSystemId = e.Value.ToString();
         Console.WriteLine($"Wybrano system o ID: {SelectedSystemId}");
+
+        KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIND_ROWID_SYS/{SelectedSystemId}");
         // Możesz dodać dalszą logikę, np. przekierowanie do szczegółów systemu
 
         await Task.CompletedTask;
@@ -1530,6 +1618,19 @@
             await _message.Warning("Nie masz uprawnień do usunięcia danych!");
             return;
         }
+
+        if (string.IsNullOrEmpty(SelectedSystemId))
+        {
+            _ = _notice.Info(new()
+            {
+                Message = "Informacja!!",
+                Description = $"Wybierz System!!!!",
+                Placement = NotificationPlacement.BottomLeft,
+                Duration = 2
+            });
+            return;
+        }
+
         await OpenModal("Potwierdzenie usunięcia", "Czy na pewno chcesz usunąć pozycję?");
 
         if (pytanieOK)
@@ -1537,7 +1638,7 @@
 
             await Http.DeleteAsync($"api/konfsystem/{id}");
             KonfiguracjeSystemu = null;
-            KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>("api/konfsystem");
+            KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIND_ROWID_SYS/{SelectedSystemId}");
         }
     }
 
@@ -1740,6 +1841,7 @@
             if (string.IsNullOrEmpty(base64Image))
             {
                 Console.WriteLine("❌ Błąd: Nie udało się pobrać obrazka PNG!");
+                await _message.Error("❌ Błąd: Nie udało się pobrać obrazka PNG!");
                 return;
             }
 
@@ -1763,7 +1865,9 @@
                 await _message.Success("✅ Dane zapisane w bazie!");
 
                 KonfiguracjeSystemu = null;
-                KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>("api/konfsystem");
+                KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIND_ROWID_SYS/{SelectedSystemId}");
+
+                await InvokeAsync(StateHasChanged);
             }
             else
             {

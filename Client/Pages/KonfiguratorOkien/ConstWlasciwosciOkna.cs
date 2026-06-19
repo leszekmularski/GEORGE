@@ -88,7 +88,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         {
             if (EditableProperties == null || index < 0 || index >= EditableProperties.Count)
                 return false;
-            if(EditableProperties[index].IsReadOnly)
+            if (EditableProperties[index].IsReadOnly)
                 return false;
 
             return EditableProperties[index].NazwaObiektu.ToString().ToLower().Contains("linia");
@@ -120,20 +120,23 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         /// Aktualizuje wartość edytowalnej właściwości po indeksie
         /// Dla record: zastępuje obiekt w liście nowym
         /// </summary>
-        public void UpdateEditableProperty(int index, double value)
+        public bool UpdateEditableProperty(int index, double value)
         {
             if (EditableProperties == null || index < 0 || index >= EditableProperties.Count)
-                return;
+                return false;
 
+            bool jestZmiana = false;
 
             var prop = EditableProperties[index];
             {
-                prop.Value = value; // Wywołuje setter -> SetValue(value)
+                //Console.WriteLine($"UpdateEditableProperty --> index: {index} prop.Label: {prop.Label} new value: {value} old walue: {prop.Value} Szerokosc: {Szerokosc}");
 
-                Console.WriteLine($"UpdateEditableProperty --> index: {index} prop.Label: {prop.Label} value: {value}");
+                prop.Value = value; // Wywołuje setter -> SetValue(value)
 
                 if (prop.Label.ToLower().StartsWith("szerokość") && prop.gabarytOkna)
                 {
+                    jestZmiana = Szerokosc != value;
+
                     Szerokosc = value;
                 }
                 else if (prop.Label.ToLower().StartsWith("wysokość") && prop.gabarytOkna)
@@ -152,6 +155,8 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 }
 
             }
+
+            return jestZmiana;
 
         }
 
