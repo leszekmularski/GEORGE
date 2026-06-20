@@ -9,6 +9,8 @@
 @using System.Net
 @using System.Xml
 @using System.Text.Json
+@using System.Text.RegularExpressions;
+@using System.Xml.Linq;
 @inject IJSRuntime JSRuntime
 @inject DxfService DxfService
 @inject DxfToSvgConverter Converter
@@ -893,6 +895,44 @@
         }
     };
 
+        window.svgHelper.isSvgReady = function() {
+        const svgEl = document.querySelector(".scaled-svg");
+        const zoomGroup = svgEl?.querySelector("#zoom-group");
+        // Sprawdzamy, czy elementy istnieją i czy grupa ma dzieci
+        return !!(svgEl && zoomGroup && zoomGroup.children.length > 0);
+    };
+
+        window.svgHelper.exportSvgStringAsPng = function(svgString) {
+        return new Promise((resolve, reject) => {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 600;
+                canvas.height = 600;
+                const ctx = canvas.getContext('2d');
+
+                const img = new Image();
+                const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(svgBlob);
+
+                img.onload = () => {
+                    ctx.drawImage(img, 0, 0);
+                    URL.revokeObjectURL(url);
+                    const pngDataUrl = canvas.toDataURL('image/png');
+                    resolve(pngDataUrl);
+                };
+
+                img.onerror = (err) => {
+                    URL.revokeObjectURL(url);
+                    reject(new Error('Nie udało się załadować SVG do PNG'));
+                };
+
+                img.src = url;
+            } catch (e) {
+                reject(e);
+            }
+        });
+    };
+
 </script>
 
 <div class="container-fluid mt-3">
@@ -918,7 +958,7 @@
             </div>
         </div>
     </div>
-    <Tabs OnChange="OnTabChange">
+    <Tabs OnChange="() => OnTabChange(activeKey, false)" @bind-ActiveKey="@activeKey" Animated>
 
         <TabPane Key="0" Tab="Istniejące konfiguracje">
             <h4>
@@ -1214,7 +1254,7 @@
                                     <Button Icon="@IconType.Outline.ZoomOut" OnClick="ZoomOutObj" Class="btn-sm btn-move" />
                                 </Tooltip>
                                 <label class="ms-2">Precyzja przesuwania:</label>
-                                <AntDesign.InputNumber @bind-Value="precyzjaPrzesuwania" Min="0" Max="50" Style="width: 60px;" />
+                                <AntDesign.InputNumber @bind-Value="precyzjaPrzesuwania" Min="1" Max="50" Style="width: 60px;" />
 
                                 <Tooltip Title="Pomiar odległości">
                                     <Button Icon="@IconType.Outline.Scan" OnClick="StartMeasurement" Class="btn-sm btn-move" />
@@ -1524,7 +1564,6 @@
 
     private bool boolStyczny = false;
 
-
     // Zmienne dla modala edycji
     private bool czyModalEdycjiWidoczny = false;
     private KonfPolaczenie? edytowanePolaczenie = null;
@@ -1547,6 +1586,7 @@
     private double edytowanyKat = 0;
     private string bladEdycji = "";
 
+    private string activeKey = "0";
 
     // Inicjalizacja
     protected override async Task OnInitializedAsync()
@@ -1663,8 +1703,10 @@
         }
     }
 
-    private async Task OnTabChange(string key)
+    private async Task OnTabChange(string key, bool manualEdit)
     {
+        if (manualEdit) return;
+
         selDol = false;
         selGora = false;
         selLewa = false;
@@ -1712,7 +1754,6 @@
             BladKonfiguracji = "Wybierz co najmniej jedną stronę wybrany - model jest pusty.";
             return;
         }
-
 
         BladKonfiguracji = "";
 
@@ -1852,7 +1893,7 @@
         {
             svgParts.Add($@"
             <g id=""model1"" transform=""translate({centerX}, {centerY})"">
-    {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
+        {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
             </g>");
         }
 
@@ -2098,7 +2139,7 @@
         // 🔹 Lista stron do zapisania (lewa/prawa/góra/dół)
         var strony = WyliczStronyPolaczenia();
 
-        Console.WriteLine($"Rozpoczynam pętle foreach (var strona in strony) Strony: {strony.Count()}");
+        Console.WriteLine($"Rozpoczynam pętle foreach (var strona in strony) Strony: {strony.Count()} svg: {svg.Length} png: {png.Length}");
 
         foreach (var strona in strony)
         {
@@ -2175,6 +2216,8 @@
 
             polaczenie.PrzesuniecieXStycznej = Math.Round(polaczenie.PrzesuniecieXStycznej, 2);
             polaczenie.PrzesuniecieYStycznej = Math.Round(polaczenie.PrzesuniecieYStycznej, 2);
+
+            polaczenie.SVG = svg;
 
             Console.WriteLine($"Zapis połączenia: boolStyczny:{boolStyczny} -> {polaczenie.ElementZewnetrznyId} + {polaczenie.ElementWewnetrznyId} Strona: {strona} X={przesuniecieX} Y={przesuniecieY} Kat={katUstawienia}");
 
@@ -2320,6 +2363,47 @@
         }
     }
 
+    private async Task<byte[]> GenerujXMLPngBezProwadnic(string svgString)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(svgString))
+            {
+                Console.WriteLine("SVG string is empty");
+                return Array.Empty<byte>();
+            }
+
+            // Wywołanie nowej funkcji JS z przekazaniem stringa SVG
+            var base64 = await JSRuntime.InvokeAsync<string>("svgHelper.exportSvgStringAsPng", svgString);
+
+            if (string.IsNullOrEmpty(base64) || base64.Length < 100)
+            {
+                Console.WriteLine("Invalid PNG data received");
+                return Array.Empty<byte>();
+            }
+
+            // Oczyszczanie prefixu data:image/png;base64,
+            var pureBase64 = base64.StartsWith("data:image/png;base64,")
+                ? base64["data:image/png;base64,".Length..]
+                : base64;
+
+            var imageData = Convert.FromBase64String(pureBase64);
+
+            if (imageData.Length < 1000) // minimalny oczekiwany rozmiar
+            {
+                Console.WriteLine("PNG file too small");
+                return Array.Empty<byte>();
+            }
+
+            return imageData;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error generating PNG from XML SVG: {ex.Message}");
+            return Array.Empty<byte>();
+        }
+    }
+
     private List<string> WyliczStronyPolaczenia()
     {
         var strony = new List<string>();
@@ -2331,7 +2415,195 @@
         return strony;
     }
 
+    // Otwarcie modala edycji
+    private async Task OtworzModalEdycji(KonfPolaczenie polaczenie)
+    {
+        edytowanePolaczenie = polaczenie;
+        edytowanyRowId = polaczenie.RowId;
 
+        // Wypełnij formularz danymi
+        edytowanyOpis = polaczenie.OpisPolaczenia ?? "";
+        edytowanaStrona = polaczenie.StronaPolaczenia ?? "";
+
+        edytowanePrzesuniecieX = polaczenie.PrzesuniecieX;
+        edytowanePrzesuniecieY = polaczenie.PrzesuniecieY;
+        edytowanePrzesuniecieXStycznej = polaczenie.PrzesuniecieXStycznej;
+        edytowanePrzesuniecieYStycznej = polaczenie.PrzesuniecieYStycznej;
+
+        old_edytowanePrzesuniecieX = polaczenie.PrzesuniecieX;
+        old_edytowanePrzesuniecieY = polaczenie.PrzesuniecieY;
+        old_edytowanePrzesuniecieXStycznej = polaczenie.PrzesuniecieXStycznej;
+        old_edytowanePrzesuniecieYStycznej = polaczenie.PrzesuniecieYStycznej;
+
+        edytowanyKat = polaczenie.ZapisanyKat;
+
+        SelectedModelId = polaczenie.RowIdModelu.ToString();
+
+        //SelectedSystemId
+        var response1 = await Http.GetAsync($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{SelectedModelId}");
+        if (!response1.IsSuccessStatusCode)
+        {
+            BladKonfiguracji = $"Błąd odczytu powiązania: {response1.StatusCode} #1";
+            Console.WriteLine(BladKonfiguracji);
+            return;
+        }
+
+        var result1 = await response1.Content.ReadFromJsonAsync<MVCKonfModele>();
+        if (result1?.KonfSystem == null || result1.KonfSystem.Count == 0)
+        {
+            BladKonfiguracji = "Brak danych powiązanych #1";
+            Console.WriteLine(BladKonfiguracji);
+            return;
+        }
+        var pasujaceSystemy1 = result1.KonfSystem.ToList();
+        var pasujacy1 = pasujaceSystemy1.First();
+
+        pierwszyModel = pasujacy1;
+        offsetX = 0; // Resetuj offset
+        offsetY = 0; // Resetuj offset
+
+        var response2 = await Http.GetAsync($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{polaczenie.ElementZewnetrznyId}");
+        if (!response2.IsSuccessStatusCode)
+        {
+            BladKonfiguracji = $"Błąd odczytu powiązania: {response2.StatusCode} #2";
+            Console.WriteLine(BladKonfiguracji);
+            return;
+        }
+
+        var result2 = await response2.Content.ReadFromJsonAsync<MVCKonfModele>();
+        if (result2?.KonfSystem == null || result2.KonfSystem.Count == 0)
+        {
+            BladKonfiguracji = "Brak danych powiązanych #2";
+            Console.WriteLine(BladKonfiguracji);
+            return;
+        }
+        var pasujaceSystemy2 = result2.KonfSystem.ToList();
+        var pasujacy2 = pasujaceSystemy2.First();
+
+        drugiModel = pasujacy2;
+
+        activeKey = "2";
+        await OnTabChange(activeKey, false);
+
+        AktualizujSvg();
+
+        await InvokeAsync(StateHasChanged);      // 2. wymuś render Blazora
+
+        await Task.Delay(100);                    // 3. krótka pauza lub: await Task.Yield();
+        await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
+        await Task.Delay(100);
+        await JSRuntime.InvokeVoidAsync("svgHelper.initGuideLines");
+
+        //     combinedSvg = polaczenie.SVG;
+        //     SvgKey = Guid.NewGuid().ToString();
+
+        //     combinedSvgStyczne = 
+        // SvgKeyStyczne = Guid.NewGuid().ToString();
+
+           Console.WriteLine($"OtworzModalEdycji: Załadowano SVG z bazy, długość: {polaczenie.SVG.Length}");
+
+
+        bladEdycji = "";
+        czyModalEdycjiWidoczny = true;
+
+        await Task.CompletedTask;
+    }
+
+    // Zamknięcie modala
+    private void ZamknijModalEdycji()
+    {
+        czyModalEdycjiWidoczny = false;
+        edytowanePolaczenie = null;
+        edytowanyRowId = null;
+        bladEdycji = "";
+    }
+
+    // Zapisanie zmian
+    private async Task ZapiszEdycje()
+    {
+        try
+        {
+            bladEdycji = "";
+
+            // Walidacja
+            if (string.IsNullOrWhiteSpace(edytowanaStrona))
+            {
+                bladEdycji = "Wybierz stronę połączenia";
+                return;
+            }
+
+            if (edytowanePrzesuniecieX != old_edytowanePrzesuniecieX || edytowanePrzesuniecieY != old_edytowanePrzesuniecieY)
+            {
+
+                await JSRuntime.InvokeVoidAsync("svgHelper.move", old_edytowanePrzesuniecieX - edytowanePrzesuniecieX, 0);
+                await Task.Delay(100); // Daj czas na renderowanie
+
+                await JSRuntime.InvokeVoidAsync("svgHelper.move", 0, old_edytowanePrzesuniecieY - edytowanePrzesuniecieY);
+                await Task.Delay(100); // Daj czas na renderowanie
+
+                // await ZmienPrzesuniecie(edytowanePrzesuniecieX, edytowanePrzesuniecieY);
+
+            }
+
+            if (edytowanePrzesuniecieXStycznej != old_edytowanePrzesuniecieXStycznej || edytowanePrzesuniecieYStycznej != old_edytowanePrzesuniecieYStycznej)
+            {
+                await JSRuntime.InvokeVoidAsync("svgHelper.move", old_edytowanePrzesuniecieX - edytowanePrzesuniecieX, 0);
+                await Task.Delay(100); // Daj czas na renderowanie
+
+                await JSRuntime.InvokeVoidAsync("svgHelper.move", 0, old_edytowanePrzesuniecieY - edytowanePrzesuniecieY);
+                await Task.Delay(100); // Daj czas na renderowanie
+
+                // await ZmienPrzesuniecie(edytowanePrzesuniecieX, edytowanePrzesuniecieY);
+            }
+
+            var svg = "";
+
+            var png = await GenerujXMLPngBezProwadnic(svg);
+
+            // Jeśli png jest puste, użyj pustej tablicy
+            var safePng = png ?? Array.Empty<byte>();
+
+            var updateDto = new
+            {
+                RowId = edytowanyRowId,
+                OpisPolaczenia = edytowanyOpis,
+                StronaPolaczenia = edytowanaStrona,
+                PrzesuniecieX = edytowanePrzesuniecieX,
+                PrzesuniecieY = edytowanePrzesuniecieY,
+                PrzesuniecieXStycznej = edytowanePrzesuniecieXStycznej,
+                PrzesuniecieYStycznej = edytowanePrzesuniecieYStycznej,
+                ZapisanyKat = edytowanyKat,
+                RysunekPrzekroju = !boolStyczny ? safePng : Array.Empty<byte>(),
+                RysunekPrzekrojuStyczny = boolStyczny ? safePng : Array.Empty<byte>(),
+                Svg = svg,
+                Uwagi = $"Ostatnia zmiana: {DateTime.Now} - [{user}]"
+            };
+
+            Console.WriteLine($"🔧 Zapisywanie zmian dla RowId: {edytowanyRowId}");
+
+            var response = await Http.PutAsJsonAsync($"api/KonfPolaczenie/{edytowanyRowId}", updateDto);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Console.WriteLine("✅ Zmiany zapisane pomyślnie");
+                ZamknijModalEdycji();
+                await OdswiezDane();
+                // Opcjonalnie pokaż komunikat sukcesu
+                // await _message.Success("Zmiany zostały zapisane");
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                bladEdycji = $"Błąd zapisu: {error}";
+                Console.WriteLine($"❌ Błąd zapisu: {response.StatusCode} - {error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            bladEdycji = $"Wystąpił błąd: {ex.Message}";
+            Console.WriteLine($"❌ Wyjątek: {ex.Message}");
+        }
+    }
 
     // Uprawnienia
     private bool boolOdczyt = false;
@@ -2396,128 +2668,6 @@
         }
     }
 
-    // Otwarcie modala edycji
-    private void OtworzModalEdycji(KonfPolaczenie polaczenie)
-    {
-        edytowanePolaczenie = polaczenie;
-        edytowanyRowId = polaczenie.RowId;
-
-        // Wypełnij formularz danymi
-        edytowanyOpis = polaczenie.OpisPolaczenia ?? "";
-        edytowanaStrona = polaczenie.StronaPolaczenia ?? "";
-
-        edytowanePrzesuniecieX = polaczenie.PrzesuniecieX;
-        edytowanePrzesuniecieY = polaczenie.PrzesuniecieY;
-        edytowanePrzesuniecieXStycznej = polaczenie.PrzesuniecieXStycznej;
-        edytowanePrzesuniecieYStycznej = polaczenie.PrzesuniecieYStycznej;
-
-        old_edytowanePrzesuniecieX = polaczenie.PrzesuniecieX;
-        old_edytowanePrzesuniecieY = polaczenie.PrzesuniecieY;
-        old_edytowanePrzesuniecieXStycznej = polaczenie.PrzesuniecieXStycznej;
-        old_edytowanePrzesuniecieYStycznej = polaczenie.PrzesuniecieYStycznej;
-
-        edytowanyKat = polaczenie.ZapisanyKat;
-
-        bladEdycji = "";
-        czyModalEdycjiWidoczny = true;
-    }
-
-    // Zamknięcie modala
-    private void ZamknijModalEdycji()
-    {
-        czyModalEdycjiWidoczny = false;
-        edytowanePolaczenie = null;
-        edytowanyRowId = null;
-        bladEdycji = "";
-    }
-
-    // Zapisanie zmian
-    private async Task ZapiszEdycje()
-    {
-        try
-        {
-            bladEdycji = "";
-
-            // Walidacja
-            if (string.IsNullOrWhiteSpace(edytowanaStrona))
-            {
-                bladEdycji = "Wybierz stronę połączenia";
-                return;
-            }
-
-            if (edytowanePrzesuniecieX != old_edytowanePrzesuniecieX || edytowanePrzesuniecieY != old_edytowanePrzesuniecieY)
-            {
-
-                await JSRuntime.InvokeVoidAsync("svgHelper.move", old_edytowanePrzesuniecieX - edytowanePrzesuniecieX, 0);
-                await Task.Delay(100); // Daj czas na renderowanie
-
-                await JSRuntime.InvokeVoidAsync("svgHelper.move", 0, old_edytowanePrzesuniecieY - edytowanePrzesuniecieY);
-                await Task.Delay(100); // Daj czas na renderowanie
-
-                // await ZmienPrzesuniecie(edytowanePrzesuniecieX, edytowanePrzesuniecieY);
-
-            }
-
-            if (edytowanePrzesuniecieXStycznej != old_edytowanePrzesuniecieXStycznej || edytowanePrzesuniecieYStycznej != old_edytowanePrzesuniecieYStycznej)
-            {
-                await JSRuntime.InvokeVoidAsync("svgHelper.move", old_edytowanePrzesuniecieX - edytowanePrzesuniecieX, 0);
-                await Task.Delay(100); // Daj czas na renderowanie
-
-                await JSRuntime.InvokeVoidAsync("svgHelper.move", 0, old_edytowanePrzesuniecieY - edytowanePrzesuniecieY);
-                await Task.Delay(100); // Daj czas na renderowanie
-
-                // await ZmienPrzesuniecie(edytowanePrzesuniecieX, edytowanePrzesuniecieY);
-            }
-
-
-            var png = await GenerujPngBezProwadnic();
-
-            var svg = await GenerujSvgBezProwadnic();
-
-            // Jeśli png jest puste, użyj pustej tablicy
-            var safePng = png ?? Array.Empty<byte>();
-
-            var updateDto = new
-            {
-                RowId = edytowanyRowId,
-                OpisPolaczenia = edytowanyOpis,
-                StronaPolaczenia = edytowanaStrona,
-                PrzesuniecieX = edytowanePrzesuniecieX,
-                PrzesuniecieY = edytowanePrzesuniecieY,
-                PrzesuniecieXStycznej = edytowanePrzesuniecieXStycznej,
-                PrzesuniecieYStycznej = edytowanePrzesuniecieYStycznej,
-                ZapisanyKat = edytowanyKat,
-                RysunekPrzekroju = !boolStyczny ? safePng : Array.Empty<byte>(),
-                RysunekPrzekrojuStyczny = boolStyczny ? safePng : Array.Empty<byte>(),
-                Svg = svg,
-                Uwagi = $"Ostatnia zmiana: {DateTime.Now} - [{user}]"
-            };
-
-            Console.WriteLine($"🔧 Zapisywanie zmian dla RowId: {edytowanyRowId}");
-
-            var response = await Http.PutAsJsonAsync($"api/KonfPolaczenie/{edytowanyRowId}", updateDto);
-
-            if (response.IsSuccessStatusCode)
-            {
-                Console.WriteLine("✅ Zmiany zapisane pomyślnie");
-                ZamknijModalEdycji();
-                await OdswiezDane();
-                // Opcjonalnie pokaż komunikat sukcesu
-                // await _message.Success("Zmiany zostały zapisane");
-            }
-            else
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                bladEdycji = $"Błąd zapisu: {error}";
-                Console.WriteLine($"❌ Błąd zapisu: {response.StatusCode} - {error}");
-            }
-        }
-        catch (Exception ex)
-        {
-            bladEdycji = $"Wystąpił błąd: {ex.Message}";
-            Console.WriteLine($"❌ Wyjątek: {ex.Message}");
-        }
-    }
 
     public class GuideDisplacementResult
     {
