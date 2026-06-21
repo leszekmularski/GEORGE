@@ -14,10 +14,11 @@ namespace GEORGE.Shared.Models
         public Guid RowIdSystem { get; set; } = Guid.NewGuid();
         public Guid RowIdModelu { get; set; } = Guid.NewGuid();
         // Element zewnętrzny np. rama
+        public Guid? RowIdModeluDrugi { get; set; } = Guid.NewGuid();
         public Guid ElementZewnetrznyId { get; set; }
-        // Element wewnętrzny np. skrzydło
+        // Element zewnątezny np. Rama
         public Guid ElementWewnetrznyId { get; set; }
-        // Strona połączenia (np. lewa, prawa, góra, dół)
+        // Element wewnętrzny np. skrzydło, słupek
         public string? StronaPolaczenia { get; set; }
         // wymiary techniczne w mm odległość pomiędzy liniami dolnymi
         public double PrzesuniecieX { get; set; } = 0;

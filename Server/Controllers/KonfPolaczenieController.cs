@@ -287,6 +287,8 @@ namespace GEORGE.Server.Controllers
             existing.RysunekPrzekroju = updated.RysunekPrzekroju;
             existing.RysunekPrzekrojuStyczny = updated.RysunekPrzekrojuStyczny;
             existing.SVG = updated.SVG;
+            existing.RowIdModelu = updated.RowIdModelu;
+            existing.RowIdModeluDrugi = updated.RowIdModeluDrugi;
 
             await _context.SaveChangesAsync();
 
@@ -320,6 +322,15 @@ namespace GEORGE.Server.Controllers
                 existing.PrzesuniecieXStycznej = updated.PrzesuniecieXStycznej;
                 existing.PrzesuniecieYStycznej = updated.PrzesuniecieYStycznej;
                 existing.ZapisanyKat = updated.ZapisanyKat;
+                existing.RysunekPrzekroju = updated.RysunekPrzekroju;
+                existing.RysunekPrzekrojuStyczny = updated.RysunekPrzekrojuStyczny;
+                existing.SVG = updated.SVG;
+                existing.RowIdModelu = updated.RowIdModelu;
+                existing.RowIdModeluDrugi = updated.RowIdModeluDrugi;
+                existing.DodatkowyWarunek = updated.DodatkowyWarunek;
+                existing.KatDo = updated.KatDo;
+                existing.KatOd = updated.KatOd;
+                existing.Uwagi = updated.Uwagi;
 
                 await _context.SaveChangesAsync();
                 return Ok(existing);

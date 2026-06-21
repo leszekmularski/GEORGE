@@ -958,7 +958,8 @@
             </div>
         </div>
     </div>
-    <Tabs OnChange="() => OnTabChange(activeKey, false)" @bind-ActiveKey="@activeKey" Animated>
+
+    <Tabs OnChange="() => OnTabChange(activeKey)" @bind-ActiveKey="@activeKey" Animated>
 
         <TabPane Key="0" Tab="Istniejące konfiguracje">
             <h4>
@@ -1038,7 +1039,7 @@
                                             <Button Type="primary"
                                                     Size="small"
                                                     Icon="@IconType.Outline.Edit"
-                                                    OnClick="() => OtworzModalEdycji(polaczenie)" />
+                                                    OnClick="() => PrzelaczIOtworz(polaczenie)" />
                                         </Tooltip>
 
                                         <Popconfirm Title="Czy chcesz usunąć dane?"
@@ -1060,83 +1061,6 @@
                 </table>
             }
 
-            <!-- Modal edycji -->
-            <Modal Title="Edytuj połączenie"
-                   Visible="czyModalEdycjiWidoczny"
-                   OnCancel="ZamknijModalEdycji"
-                   OnOk="ZapiszEdycje"
-                   OkText="@("Zapisz")"
-                   CancelText="@("Anuluj")"
-                   Width="600">
-
-                <div class="p-3">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Opis połączenia</label>
-                        <Input @bind-Value="edytowanyOpis"
-                               class="form-control"
-                               placeholder="Wpisz opis połączenia..." />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Strona</label>
-                        <select value="@edytowanaStrona"
-                                @onchange="(e) => edytowanaStrona = e.Value?.ToString() ?? string.Empty"
-                                class="form-select">
-                            <option value="">-- Wybierz stronę --</option>
-                            <option value="lewa">Lewa</option>
-                            <option value="prawa">Prawa</option>
-                            <option value="góra">Góra</option>
-                            <option value="dół">Dół</option>
-                        </select>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-6">
-                            <label class="form-label fw-bold">Przesunięcie X [mm]</label>
-                            <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowanePrzesuniecieX"
-                                                                               class="form-control"
-                                                                               step="0.01" />
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fw-bold">Przesunięcie X styczne [mm]</label>
-                            <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowanePrzesuniecieXStycznej"
-                                                                               class="form-control"
-                                                                               step="0.01" />
-                        </div>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-6">
-                            <label class="form-label fw-bold">Przesunięcie Y [mm]</label>
-                            <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowanePrzesuniecieY"
-                                                                               class="form-control"
-                                                                               step="0.01" />
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fw-bold">Przesunięcie Y styczne [mm]</label>
-                            <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowanePrzesuniecieYStycznej"
-                                                                               class="form-control"
-                                                                               step="0.01" />
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Kąt [°]</label>
-                        <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowanyKat"
-                                                                           class="form-control"
-                                                                           step="0.1"
-                                                                           min="0"
-                                                                           max="360" />
-                    </div>
-
-                    @if (!string.IsNullOrEmpty(bladEdycji))
-                    {
-                        <div class="alert alert-danger py-2 mt-3">
-                            <i class="bi bi-exclamation-triangle me-2"></i>@bladEdycji
-                        </div>
-                    }
-                </div>
-            </Modal>
         </TabPane>
 
         <TabPane Key="1" Tab="Konfigurator połączeń - przekroje">
@@ -1512,6 +1436,92 @@
         </TabPane>
 
     </Tabs>
+
+    <!-- Modal edycji -->
+    <Modal Title="Edytuj połączenie"
+           Visible="czyModalEdycjiWidoczny"
+           OnCancel="ZamknijModalEdycji"
+           OnOk="ZapiszEdycje"
+           OkText="@("Zapisz")"
+           CancelText="@("Anuluj")"
+           Width="600">
+
+        <div class="p-3">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Opis połączenia</label>
+                <Input @bind-Value="edytowanyOpis"
+                       class="form-control"
+                       placeholder="Wpisz opis połączenia..." />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Strona</label>
+                <select value="@edytowanaStrona"
+                        @onchange="(e) => edytowanaStrona = e.Value?.ToString() ?? string.Empty"
+                        class="form-select">
+                    <option value="">-- Wybierz stronę --</option>
+                    <option value="lewa">Lewa</option>
+                    <option value="prawa">Prawa</option>
+                    <option value="góra">Góra</option>
+                    <option value="dół">Dół</option>
+                </select>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-6">
+                    <label class="form-label fw-bold">Przesunięcie X [mm]</label>
+                    <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowanePrzesuniecieX"
+                                                                       class="form-control"
+                                                                       step="0.01" />
+                </div>
+                <div class="col-6">
+                    <label class="form-label fw-bold">Przesunięcie X styczne [mm]</label>
+                    <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowanePrzesuniecieXStycznej"
+                                                                       class="form-control"
+                                                                       step="0.01" />
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-6">
+                    <label class="form-label fw-bold">Przesunięcie Y [mm]</label>
+                    <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowanePrzesuniecieY"
+                                                                       class="form-control"
+                                                                       step="0.01" />
+                </div>
+                <div class="col-6">
+                    <label class="form-label fw-bold">Przesunięcie Y styczne [mm]</label>
+                    <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowanePrzesuniecieYStycznej"
+                                                                       class="form-control"
+                                                                       step="0.01" />
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Kąt [°]</label>
+                <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowanyKat"
+                                                                   class="form-control"
+                                                                   step="0.1"
+                                                                   min="0"
+                                                                   max="360" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Połączenie styczne</label>
+                <InputCheckbox @bind-Value="boolStyczny"
+                               class="form-check-input" />
+            </div>
+
+
+            @if (!string.IsNullOrEmpty(bladEdycji))
+            {
+                <div class="alert alert-danger py-2 mt-3">
+                    <i class="bi bi-exclamation-triangle me-2"></i>@bladEdycji
+                </div>
+            }
+        </div>
+    </Modal>
+
+
 </div>
 
 @code {
@@ -1522,7 +1532,8 @@
     private string SvgKeyStyczne { get; set; } = Guid.NewGuid().ToString();
     private List<SystemyOkienne> Systemy = new();
     private string? SelectedSystemId;
-    private string? SelectedModelId;
+    private string? SelectedModelPierwszyId;
+    private string? SelectedModelDrugiId;
     private List<KonfModele>? ListaModeli;
     private List<KonfSystem>? KonfiguracjeSystemu;
     private float precyzjaPrzesuwania = 5;
@@ -1703,9 +1714,8 @@
         }
     }
 
-    private async Task OnTabChange(string key, bool manualEdit)
+    private async Task OnTabChange(string key)
     {
-        if (manualEdit) return;
 
         selDol = false;
         selGora = false;
@@ -1718,6 +1728,9 @@
 
         pierwszyModel = null;
         drugiModel = null;
+
+        SelectedModelPierwszyId = "";
+        SelectedModelDrugiId = "";
 
         combinedSvgStyczne = string.Empty;
         combinedSvg = string.Empty;
@@ -1757,8 +1770,6 @@
 
         BladKonfiguracji = "";
 
-        SelectedModelId = "";
-
         Console.WriteLine("WybierzModel - START");
 
         try
@@ -1778,8 +1789,6 @@
                 Console.WriteLine(BladKonfiguracji);
                 return;
             }
-
-            SelectedModelId = model.RowId.ToString();
 
             var warunki = new List<Func<KonfSystem, bool>>();
 
@@ -1841,6 +1850,9 @@
 
             if (pierwszyModel == null)
             {
+
+                SelectedModelPierwszyId = model.RowId.ToString();
+
                 pierwszyModel = pasujacy;
                 offsetX = 0; // Resetuj offset
                 offsetY = 0; // Resetuj offset
@@ -1849,6 +1861,8 @@
             }
             else if (drugiModel == null)
             {
+                SelectedModelDrugiId = model.RowId.ToString();
+
                 drugiModel = pasujacy;
 
                 AktualizujSvg();                          // 1. generuj combinedSvg
@@ -1893,7 +1907,7 @@
         {
             svgParts.Add($@"
             <g id=""model1"" transform=""translate({centerX}, {centerY})"">
-        {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
+            {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
             </g>");
         }
 
@@ -1918,8 +1932,6 @@
                       fill=""#e0e0e0"" fill-opacity=""0.5"" stroke=""#000"" stroke-width=""1"" />
             </g>";
 
-            Console.WriteLine($"Drugi model (styczny) - {svtmp}");
-
             svgParts.Add(svtmp);
 
         }
@@ -1930,7 +1942,7 @@
 
             svgParts.Add($@"
             <g id=""model2"" transform=""translate({secondX}, {secondY})"">
-    {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
+            {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
             </g>");
         }
 
@@ -1989,6 +2001,8 @@
     {
         pierwszyModel = null;
         drugiModel = null;
+        SelectedModelPierwszyId = "";
+        SelectedModelDrugiId = "";
         offsetX = 0;
         offsetY = 0;
         BladKonfiguracji = "";
@@ -2125,7 +2139,7 @@
             przesuniecieY = Math.Abs(result.przesuniecieY);
         }
 
-        if (pierwszyModel == null || drugiModel == null || string.IsNullOrEmpty(SelectedModelId))
+        if (pierwszyModel == null || drugiModel == null || string.IsNullOrEmpty(SelectedModelPierwszyId) || string.IsNullOrEmpty(SelectedModelDrugiId))
         {
             await _message.Warning("❗ Nie wybrano obu modeli do połączenia. Błąd konfiguracji modelu :(");
             return;
@@ -2149,10 +2163,12 @@
                 ElementWewnetrznyId = drugiModel.RowId,
                 StronaPolaczenia = strona,
                 RowIdSystem = Guid.Parse(SelectedSystemId),
-                RowIdModelu = Guid.Parse(SelectedModelId),
+                RowIdModelu = Guid.Parse(SelectedModelPierwszyId),
+                RowIdModeluDrugi = Guid.Parse(SelectedModelDrugiId),
                 ZapisanyKat = katUstawienia,
                 OpisPolaczenia = $"Połączono: {pierwszyModel.Nazwa ?? "Model 1 ?"} z {drugiModel.Nazwa ?? "Model 2 ?"}",
-                Uwagi = $"Ostatnia zmiana: {DateTime.Now} - [{user}]"
+                Uwagi = $"Ostatnia zmiana: {DateTime.Now} - [{user}]",
+                DodatkowyWarunek = boolStyczny ? "STYCZNE" : "PRZEKROJE"
             };
 
             // 🔍 Sprawdź, czy istnieje już połączenie
@@ -2239,7 +2255,7 @@
             if (response.IsSuccessStatusCode)
             {
                 var zakladka = boolStyczny ? "styczna" : "przekrój";
-                await _message.Success($"✅ Zapisano stronę {strona} ({zakladka}): X={przesuniecieX:F2} mm, Y={przesuniecieY:F2} mm, kąt: {katUstawienia}°", 4);
+                await _message.Success($"✅ Zapisano stronę {strona} ({zakladka}), kąt: {katUstawienia}°", 4);
             }
             else
             {
@@ -2415,9 +2431,65 @@
         return strony;
     }
 
-    // Otwarcie modala edycji
+    private async Task PrzelaczIOtworz(KonfPolaczenie polaczenie)
+    {
+        if (polaczenie == null)
+        {
+            Console.WriteLine("PrzelaczIOtworz: polaczenie jest null");
+            return;
+        }
+        if (polaczenie.DodatkowyWarunek == "PRZEKROJE")
+        {
+            activeKey = "1";
+        }
+        else if (polaczenie.DodatkowyWarunek == "STYCZNE")
+        {
+            activeKey = "2";
+        }
+        else
+        {
+            activeKey = "0";
+        }
+
+        await Task.Delay(100);
+        await OtworzModalEdycji(polaczenie);
+        await Task.Delay(100);
+        selLewa = polaczenie.StronaPolaczenia?.ToLower() == "lewa";
+        selPrawa = polaczenie.StronaPolaczenia?.ToLower() == "prawa";
+        selGora = polaczenie.StronaPolaczenia?.ToLower() == "góra";
+        selDol = polaczenie.StronaPolaczenia?.ToLower() == "dół";
+
+        selDolStyczne = polaczenie.StronaPolaczenia?.ToLower() == "dół";
+        selGoraStyczne = polaczenie.StronaPolaczenia?.ToLower() == "góra";
+        selLewaStyczne = polaczenie.StronaPolaczenia?.ToLower() == "lewa";
+        selPrawaStyczne = polaczenie.StronaPolaczenia?.ToLower() == "prawa";
+
+    }
+
     private async Task OtworzModalEdycji(KonfPolaczenie polaczenie)
     {
+
+        await ZaladujDaneModalEdycji(polaczenie);
+
+        Console.WriteLine($"OtworzModalEdycji: Załadowano SVG z bazy, długość: {polaczenie.SVG.Length}");
+
+        await Task.Yield(); // Upewnij się, że UI zareaguje przed dalszymi operacjami
+
+        bladEdycji = "";
+        czyModalEdycjiWidoczny = true;
+
+        await Task.Yield(); // Upewnij się, że UI zareaguje przed dalszymi operacjami
+
+        //await Task.CompletedTask;
+    }
+
+    // Otwarcie modala edycji
+    private async Task ZaladujDaneModalEdycji(KonfPolaczenie polaczenie)
+    {
+
+        await JSRuntime.InvokeVoidAsync("svgHelper.resetModel2Position");
+        await Task.Delay(100);
+
         edytowanePolaczenie = polaczenie;
         edytowanyRowId = polaczenie.RowId;
 
@@ -2437,10 +2509,11 @@
 
         edytowanyKat = polaczenie.ZapisanyKat;
 
-        SelectedModelId = polaczenie.RowIdModelu.ToString();
+        SelectedModelPierwszyId = polaczenie.RowIdModelu.ToString();
+        SelectedModelDrugiId = polaczenie.RowIdModeluDrugi.ToString();
 
         //SelectedSystemId
-        var response1 = await Http.GetAsync($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{SelectedModelId}");
+        var response1 = await Http.GetAsync($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{SelectedModelPierwszyId}");
         if (!response1.IsSuccessStatusCode)
         {
             BladKonfiguracji = $"Błąd odczytu powiązania: {response1.StatusCode} #1";
@@ -2459,10 +2532,12 @@
         var pasujacy1 = pasujaceSystemy1.First();
 
         pierwszyModel = pasujacy1;
-        offsetX = 0; // Resetuj offset
-        offsetY = 0; // Resetuj offset
+        offsetX = old_edytowanePrzesuniecieXStycznej; // Ustaw wartości przesunięcia z bazy
+        offsetY = old_edytowanePrzesuniecieYStycznej; // Ustaw wartości przesunięcia z bazy
 
-        var response2 = await Http.GetAsync($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{polaczenie.ElementZewnetrznyId}");
+        Console.WriteLine($"Załadowano pierwszy model: {pierwszyModel.Nazwa} (ID: {pierwszyModel.RowId}) offsetX: {offsetX} offsetY: {offsetY}");
+
+        var response2 = await Http.GetAsync($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{SelectedModelDrugiId}");
         if (!response2.IsSuccessStatusCode)
         {
             BladKonfiguracji = $"Błąd odczytu powiązania: {response2.StatusCode} #2";
@@ -2482,9 +2557,6 @@
 
         drugiModel = pasujacy2;
 
-        activeKey = "2";
-        await OnTabChange(activeKey, false);
-
         AktualizujSvg();
 
         await InvokeAsync(StateHasChanged);      // 2. wymuś render Blazora
@@ -2494,19 +2566,6 @@
         await Task.Delay(100);
         await JSRuntime.InvokeVoidAsync("svgHelper.initGuideLines");
 
-        //     combinedSvg = polaczenie.SVG;
-        //     SvgKey = Guid.NewGuid().ToString();
-
-        //     combinedSvgStyczne = 
-        // SvgKeyStyczne = Guid.NewGuid().ToString();
-
-           Console.WriteLine($"OtworzModalEdycji: Załadowano SVG z bazy, długość: {polaczenie.SVG.Length}");
-
-
-        bladEdycji = "";
-        czyModalEdycjiWidoczny = true;
-
-        await Task.CompletedTask;
     }
 
     // Zamknięcie modala
@@ -2556,9 +2615,10 @@
                 // await ZmienPrzesuniecie(edytowanePrzesuniecieX, edytowanePrzesuniecieY);
             }
 
-            var svg = "";
+            // 🔹 Rysunek aktualnej zakładki
+            var png = await GenerujPngBezProwadnic();
 
-            var png = await GenerujXMLPngBezProwadnic(svg);
+            var svg = await GenerujSvgBezProwadnic();
 
             // Jeśli png jest puste, użyj pustej tablicy
             var safePng = png ?? Array.Empty<byte>();
@@ -2576,7 +2636,8 @@
                 RysunekPrzekroju = !boolStyczny ? safePng : Array.Empty<byte>(),
                 RysunekPrzekrojuStyczny = boolStyczny ? safePng : Array.Empty<byte>(),
                 Svg = svg,
-                Uwagi = $"Ostatnia zmiana: {DateTime.Now} - [{user}]"
+                Uwagi = $"Ostatnia zmiana: {DateTime.Now} - [{user}]",
+                DodatkowyWarunek = boolStyczny ? "STYCZNE" : "PRZEKROJE"
             };
 
             Console.WriteLine($"🔧 Zapisywanie zmian dla RowId: {edytowanyRowId}");
