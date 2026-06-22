@@ -287,6 +287,7 @@ namespace GEORGE.Server.Controllers
             existing.RysunekPrzekroju = updated.RysunekPrzekroju;
             existing.RysunekPrzekrojuStyczny = updated.RysunekPrzekrojuStyczny;
             existing.SVG = updated.SVG;
+            existing.KonfiguracjaSVG = updated.KonfiguracjaSVG;
             existing.RowIdModelu = updated.RowIdModelu;
             existing.RowIdModeluDrugi = updated.RowIdModeluDrugi;
 
@@ -325,6 +326,7 @@ namespace GEORGE.Server.Controllers
                 existing.RysunekPrzekroju = updated.RysunekPrzekroju;
                 existing.RysunekPrzekrojuStyczny = updated.RysunekPrzekrojuStyczny;
                 existing.SVG = updated.SVG;
+                existing.KonfiguracjaSVG = updated.KonfiguracjaSVG;
                 existing.RowIdModelu = updated.RowIdModelu;
                 existing.RowIdModeluDrugi = updated.RowIdModeluDrugi;
                 existing.DodatkowyWarunek = updated.DodatkowyWarunek;

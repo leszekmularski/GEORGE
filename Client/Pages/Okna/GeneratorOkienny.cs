@@ -3911,21 +3911,30 @@ namespace GEORGE.Client.Pages.Okna
         }
 
         /// <summary>
-        /// Calculates the length of an element based on its vertices.
+        /// Zwraca największą odległość pomiędzy dowolnymi dwoma punktami elementu.
         /// </summary>
-        /// <param name="vertices">List of vertices defining the shape.</param>
-        /// <returns>The calculated length of the element.</returns>
         public float DlugoscElementu(List<XPoint> vertices)
         {
-            return (float)Math.Round(Odleglosc(vertices[0], vertices[1]), 2);
-        }
+            if (vertices == null || vertices.Count < 2)
+                return 0;
 
-        private double Odleglosc(XPoint p1, XPoint p2)
-        {
-            double dx = p2.X - p1.X;
-            double dy = p2.Y - p1.Y;
-            return Math.Sqrt(dx * dx + dy * dy);
+            double minX = vertices.Min(p => p.X);
+            double maxX = vertices.Max(p => p.X);
+
+            double minY = vertices.Min(p => p.Y);
+            double maxY = vertices.Max(p => p.Y);
+
+            double width = maxX - minX;
+            double height = maxY - minY;
+
+            return (float)Math.Round(Math.Max(width, height), 2);
         }
+        //private double Odleglosc(XPoint p1, XPoint p2)
+        //{
+        //    double dx = p2.X - p1.X;
+        //    double dy = p2.Y - p1.Y;
+        //    return Math.Sqrt(dx * dx + dy * dy);
+        //}
 
         /// <summary>
         /// Sprawdza czy lista punktów jest zgodna z kierunkiem CCW (Counter-Clockwise)

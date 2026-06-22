@@ -106,7 +106,7 @@
                             }
                         </td>
                         <td>
-                            <button class="btn btn-warning btn-sm me-2" @onclick="() => Edytuj(model.Id, model.RowId.ToString(), model.NazwaKonfiguracji)">
+                            <button class="btn btn-warning btn-sm me-2" @onclick="() => Edytuj(model.Id, model.RowId.ToString(), model.NazwaKonfiguracji)" title="@model.RowId">
                                 <i class="fas fa-edit"></i> Edytuj
                             </button>
                             <button class="btn btn-danger btn-sm me-2" @onclick="() => Usun(model.Id)">
@@ -252,6 +252,7 @@
                 <div>
                     <label class="form-label">Uwagi:</label>
                     <InputText class="form-control" @bind-Value="EdytowanyModel.Uwagi" />
+                    <label class="form-label">RowIdModelu: @EdytowanyModel.RowId</label>
                 </div>
             </div>
             @*          <div class="mt-3">

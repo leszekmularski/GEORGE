@@ -314,7 +314,6 @@
         return { x: x * scale, y: y * scale };
     };
 
-
     // 🔍 Powiększenie z centrowaniem
     window.svgHelper.zoomIn = function() {
         const group = document.querySelector("#zoom-group");
@@ -933,6 +932,236 @@
         });
     };
 
+        // Dodaj do swojego skryptu
+    window.svgHelper.getCurrentSvgState = function() {
+        try {
+            const svgElement = document.querySelector(".scaled-svg");
+            if (!svgElement) {
+                console.error("SVG element not found");
+                return "";
+            }
+
+            // Głęboka kopia SVG z aktualnymi transformacjami
+            const clone = svgElement.cloneNode(true);
+
+            // Usuń niepotrzebne elementy (prowadnice, pomiary)
+            const elementsToRemove = clone.querySelectorAll([
+                '[data-name^="guide-line-"]',
+                '[id^="guide-line-"]',
+                '.measurement-line',
+                '.measurement-text'
+            ].join(','));
+
+            elementsToRemove.forEach(el => el.remove());
+
+            // Serializuj do stringa
+            const serializer = new XMLSerializer();
+            let svgString = serializer.serializeToString(clone);
+
+            // Oczyść niepotrzebne atrybuty
+            svgString = svgString.replace(/\s*data-name="[^"]*"/g, '');
+            svgString = svgString.replace(/\s*data-original-x="[^"]*"/g, '');
+            svgString = svgString.replace(/\s*data-original-y="[^"]*"/g, '');
+
+            return svgString;
+        } catch (e) {
+            console.error("getCurrentSvgState error:", e);
+            return "";
+        }
+    };
+
+    // Funkcja do przywracania SVG z bazy
+    window.svgHelper.restoreSvgFromString = function(svgString) {
+        try {
+            const container = document.querySelector(".scaled-svg");
+            if (!container) {
+                console.error("Container not found");
+                return false;
+            }
+
+            // Utwórz tymczasowy element do sparsowania SVG
+            const parser = new DOMParser();
+            const svgDoc = parser.parseFromString(svgString, "image/svg+xml");
+            const newSvg = svgDoc.querySelector("svg");
+
+            if (!newSvg) {
+                console.error("Invalid SVG string");
+                return false;
+            }
+
+            // Podmień zawartość
+            container.innerHTML = '';
+            container.appendChild(newSvg);
+
+            // Ponownie zainicjalizuj prowadnice
+            setTimeout(() => {
+                window.svgHelper.initGuideLines();
+                window.svgHelper.centerAndFit();
+            }, 100);
+
+            return true;
+        } catch (e) {
+            console.error("restoreSvgFromString error:", e);
+            return false;
+        }
+    };
+
+
+        // 📌 Przesuń model2 o BEZWZGLĘDNĄ wartość względem model1
+    window.svgHelper.moveAbsolute = function(targetX_mm, targetY_mm) {
+        const svg = document.querySelector(".scaled-svg > svg");
+        const model1 = svg?.querySelector("#model1");
+        const model2 = svg?.querySelector("#model2");
+
+        if (!model1 || !model2) {
+            console.warn("❌ moveAbsolute: Nie znaleziono model1 lub model2");
+            return null;
+        }
+
+        // Pobierz środek model1 (punkt odniesienia)
+        const getCenter = (el) => {
+            const bbox = el.getBBox();
+            const pt = svg.createSVGPoint();
+            pt.x = bbox.x + bbox.width / 2;
+            pt.y = bbox.y + bbox.height / 2;
+            const ctm = el.getCTM();
+            return pt.matrixTransform(ctm);
+        };
+
+        const center1 = getCenter(model1);
+        const center2 = getCenter(model2);
+
+        // Aktualna skala
+        const scale = window.svgHelper.zoomLevel || 1;
+
+        // Przelicznik mm → piksele (ustaw odpowiednio do swojego SVG)
+        const MM_TO_PX = window.svgHelper.MM_TO_PX_RATIO || 3.779527559;
+
+        // Oblicz aktualne przesunięcie w mm
+        const currentDx_mm = (center2.x - center1.x) / (scale * MM_TO_PX);
+        const currentDy_mm = (center2.y - center1.y) / (scale * MM_TO_PX);
+
+        // Oblicz różnicę do przesunięcia (w mm)
+        const deltaX_mm = targetX_mm - currentDx_mm;
+        const deltaY_mm = targetY_mm - currentDy_mm;
+
+        // Konwertuj różnicę na piksele i uwzględnij skalę
+        const deltaX_px = deltaX_mm * MM_TO_PX;
+        const deltaY_px = deltaY_mm * MM_TO_PX;
+
+        // Pobierz aktualną transformację model2
+        const currentTransform = model2.getAttribute("transform") || "";
+        const translateMatch = currentTransform.match(/translate\(([^)]+)\)/);
+
+        let x = 0, y = 0;
+        if (translateMatch) {
+            [x, y] = translateMatch[1].split(',').map(Number);
+        }
+
+        // Aktualizuj pozycję z uwzględnieniem skali
+        x += deltaX_px / scale;
+        y += deltaY_px / scale;
+
+        // Zachowaj obrót jeśli istnieje
+        const rotateMatch = currentTransform.match(/rotate\(([^)]+)\)/);
+        const rotate = rotateMatch ? ` rotate(${rotateMatch[1]})` : "";
+
+        // Zastosuj nową transformację
+        model2.setAttribute("transform", `translate(${x}, ${y})${rotate}`);
+
+        // Zweryfikuj nową pozycję
+        const newCenter2 = getCenter(model2);
+        const newDx_mm = (newCenter2.x - center1.x) / (scale * MM_TO_PX);
+        const newDy_mm = (newCenter2.y - center1.y) / (scale * MM_TO_PX);
+
+        console.log(`📌 moveAbsolute: przesunięto do X=${newDx_mm.toFixed(2)}mm, Y=${newDy_mm.toFixed(2)}mm`);
+        console.log(`   Docelowo: X=${targetX_mm}mm, Y=${targetY_mm}mm`);
+        console.log(`   Różnica: ΔX=${(newDx_mm - targetX_mm).toFixed(3)}mm, ΔY=${(newDy_mm - targetY_mm).toFixed(3)}mm`);
+
+        return {
+            x_mm: newDx_mm,
+            y_mm: newDy_mm,
+            targetX_mm: targetX_mm,
+            targetY_mm: targetY_mm,
+            deltaX_mm: deltaX_mm,
+            deltaY_mm: deltaY_mm,
+            success: Math.abs(newDx_mm - targetX_mm) < 0.01 && Math.abs(newDy_mm - targetY_mm) < 0.01
+        };
+    };
+
+    // 📌 Alternatywna wersja - prostsza, używa istniejącej funkcji move
+    window.svgHelper.moveAbsoluteSimple = function(targetX_mm, targetY_mm) {
+        const svg = document.querySelector(".scaled-svg > svg");
+        const model1 = svg?.querySelector("#model1");
+        const model2 = svg?.querySelector("#model2");
+
+        if (!model1 || !model2) {
+            console.warn("❌ moveAbsoluteSimple: Nie znaleziono modeli");
+            return null;
+        }
+
+        // Pobierz aktualne przesunięcie
+        const displacement = window.svgHelper.getDisplacementInMM();
+        if (!displacement) {
+            console.warn("❌ moveAbsoluteSimple: Nie można odczytać aktualnego przesunięcia");
+            return null;
+        }
+
+        // Oblicz różnicę
+        const deltaX_mm = targetX_mm - displacement.x_mm;
+        const deltaY_mm = targetY_mm - displacement.y_mm;
+
+        console.log(`📌 Aktualne: X=${displacement.x_mm}mm, Y=${displacement.y_mm}mm`);
+        console.log(`📌 Docelowe: X=${targetX_mm}mm, Y=${targetY_mm}mm`);
+        console.log(`📌 Do przesunięcia: ΔX=${deltaX_mm.toFixed(2)}mm, ΔY=${deltaY_mm.toFixed(2)}mm`);
+
+        // Użyj istniejącej funkcji move (która przyjmuje mm)
+        const result = window.svgHelper.move(deltaX_mm, deltaY_mm, 'mm');
+
+        // Zweryfikuj
+        const newDisplacement = window.svgHelper.getDisplacementInMM();
+
+        return {
+            x_mm: newDisplacement?.x_mm,
+            y_mm: newDisplacement?.y_mm,
+            targetX_mm: targetX_mm,
+            targetY_mm: targetY_mm,
+            deltaX_mm: deltaX_mm,
+            deltaY_mm: deltaY_mm,
+            success: newDisplacement &&
+                     Math.abs(newDisplacement.x_mm - targetX_mm) < 0.1 &&
+                     Math.abs(newDisplacement.y_mm - targetY_mm) < 0.1
+        };
+    };
+
+    // 📌 Funkcja pomocnicza - przesuń do pozycji z bazy danych
+    window.svgHelper.moveToSavedPosition = function(savedX_mm, savedY_mm) {
+        console.log(`🔄 Przywracanie pozycji: X=${savedX_mm}mm, Y=${savedY_mm}mm`);
+
+        // Najpierw wyzeruj pozycję
+        window.svgHelper.resetModel2Position();
+
+        // Poczekaj chwilę na render
+        setTimeout(() => {
+            // Przesuń do zapisanej pozycji
+            const result = window.svgHelper.moveAbsolute(savedX_mm, savedY_mm);
+
+            if (result && result.success) {
+                console.log(`✅ Pozycja przywrócona pomyślnie`);
+            } else {
+                console.warn(`⚠️ Pozycja może być niedokładna - różnica:
+                    ΔX=${result ? (result.x_mm - savedX_mm).toFixed(2) : '?'}mm,
+                    ΔY=${result ? (result.y_mm - savedY_mm).toFixed(2) : '?'}mm`);
+
+                // Spróbuj jeszcze raz z prostszą metodą
+                setTimeout(() => {
+                    window.svgHelper.moveAbsoluteSimple(savedX_mm, savedY_mm);
+                }, 50);
+            }
+        }, 100);
+    };
+
+
 </script>
 
 <div class="container-fluid mt-3">
@@ -1144,6 +1373,8 @@
                                         Zapisz
                                     </Button>
                                 </Tooltip>
+                                <label class="ms-2">Precyzja zapisu po przecinku:</label>
+                                <AntDesign.InputNumber @bind-Value="precyzjaZapisu" Min="0" Max="4" Style="width: 60px;" />
                             </div>
 
                             <div class="btn-group">
@@ -1336,6 +1567,8 @@
                                         Zapisz
                                     </Button>
                                 </Tooltip>
+                                <label class="ms-2">Precyzja zapisu po przecinku:</label>
+                                <AntDesign.InputNumber @bind-Value="precyzjaZapisu" Min="0" Max="4" Style="width: 60px;" />
                             </div>
 
                             <div class="btn-group">
@@ -1537,6 +1770,7 @@
     private List<KonfModele>? ListaModeli;
     private List<KonfSystem>? KonfiguracjeSystemu;
     private float precyzjaPrzesuwania = 5;
+    private int precyzjaZapisu = 1;
     private string BladKonfiguracji = string.Empty;
     private string BladKonfiguracjiStyczne = string.Empty;
 
@@ -1748,6 +1982,13 @@
         }
     }
 
+    private async Task<string> PobierzAktualnySvgZBazy()
+    {
+        // Pobierz aktualny stan SVG z przeglądarki (razem z transformacjami)
+        var svgState = await JSRuntime.InvokeAsync<string>("svgHelper.getCurrentSvgState");
+        return svgState;
+    }
+
     // Wybór modelu
     private async Task WybierzModel(KonfModele model, bool stronaDol, bool stronaGora, bool stronaLewa, bool stronaPrawa, bool bStyczny)
     {
@@ -1907,7 +2148,7 @@
         {
             svgParts.Add($@"
             <g id=""model1"" transform=""translate({centerX}, {centerY})"">
-            {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
+        {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
             </g>");
         }
 
@@ -1942,7 +2183,7 @@
 
             svgParts.Add($@"
             <g id=""model2"" transform=""translate({secondX}, {secondY})"">
-            {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
+        {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
             </g>");
         }
 
@@ -1951,7 +2192,7 @@
         <svg xmlns=""http://www.w3.org/2000/svg"" width=""600"" height=""600""
              viewBox=""0 0 600 600"" preserveAspectRatio=""xMidYMid meet"">
             <g id=""zoom-group"">
-    {string.Join("", svgParts)}
+            {string.Join("", svgParts)}
             </g>
         </svg>";
 
@@ -2106,8 +2347,8 @@
             {
                 success = true,
                 elementsFound = false,
-                przesuniecieX = Math.Round(offset.przesuniecieX, 2),
-                przesuniecieY = Math.Round(offset.przesuniecieY, 2),
+                przesuniecieX = Math.Round(offset.przesuniecieX, precyzjaZapisu),
+                przesuniecieY = Math.Round(offset.przesuniecieY, precyzjaZapisu),
                 scale = 1
             };
 
@@ -2130,8 +2371,8 @@
             }
         }
 
-        double przesuniecieX = Math.Round(result.przesuniecieX, 2);
-        double przesuniecieY = Math.Round(result.przesuniecieY, 2);
+        double przesuniecieX = Math.Round(result.przesuniecieX, precyzjaZapisu);
+        double przesuniecieY = Math.Round(result.przesuniecieY, precyzjaZapisu);
 
         if (!selSlRuchomy && !selSlStaly)
         {
@@ -2150,13 +2391,18 @@
 
         var svg = await GenerujSvgBezProwadnic();
 
+        var aktualnySvg = await JSRuntime.InvokeAsync<string>("svgHelper.getCurrentSvgState");
+
         // 🔹 Lista stron do zapisania (lewa/prawa/góra/dół)
         var strony = WyliczStronyPolaczenia();
 
         Console.WriteLine($"Rozpoczynam pętle foreach (var strona in strony) Strony: {strony.Count()} svg: {svg.Length} png: {png.Length}");
 
+        string statusZapisu = "";
+
         foreach (var strona in strony)
         {
+
             var polaczenie = new KonfPolaczenie
             {
                 ElementZewnetrznyId = pierwszyModel.RowId,
@@ -2171,8 +2417,12 @@
                 DodatkowyWarunek = boolStyczny ? "STYCZNE" : "PRZEKROJE"
             };
 
+            polaczenie.RysunekPrzekrojuStyczny = Array.Empty<byte>();
+            polaczenie.RysunekPrzekroju = Array.Empty<byte>();
+
             // 🔍 Sprawdź, czy istnieje już połączenie
             KonfPolaczenie? existing = null;
+
             try
             {
                 var responseS = await Http.GetAsync(
@@ -2207,16 +2457,16 @@
                     // zachowaj dane przekrojów, nadpisz tylko styczne
                     polaczenie.Id = existing.Id;
                     polaczenie.RowId = existing.RowId;
-                    polaczenie.PrzesuniecieX = existing.PrzesuniecieX;
-                    polaczenie.PrzesuniecieY = existing.PrzesuniecieY;
-                    polaczenie.RysunekPrzekroju = existing.RysunekPrzekroju;
+                    polaczenie.PrzesuniecieX = Math.Round(existing.PrzesuniecieX, precyzjaZapisu);
+                    polaczenie.PrzesuniecieY = Math.Round(existing.PrzesuniecieY, precyzjaZapisu);
+                    //polaczenie.RysunekPrzekrojuStyczny = existing.RysunekPrzekrojuStyczny;
                 }
             }
             else
             {
                 // --- DANE DLA ZAKŁADKI "PRZEKROJE" ---
-                polaczenie.PrzesuniecieX = przesuniecieX;
-                polaczenie.PrzesuniecieY = przesuniecieY;
+                polaczenie.PrzesuniecieX = Math.Round(przesuniecieX, precyzjaZapisu);
+                polaczenie.PrzesuniecieY = Math.Round(przesuniecieY, precyzjaZapisu);
                 polaczenie.RysunekPrzekroju = png;
 
                 if (existing != null)
@@ -2224,16 +2474,19 @@
                     // zachowaj dane styczne, nadpisz tylko przekroje
                     polaczenie.Id = existing.Id;
                     polaczenie.RowId = existing.RowId;
-                    polaczenie.PrzesuniecieXStycznej = existing.PrzesuniecieXStycznej;
-                    polaczenie.PrzesuniecieYStycznej = existing.PrzesuniecieYStycznej + 100;//100 awatar modelu
-                    polaczenie.RysunekPrzekrojuStyczny = existing.RysunekPrzekrojuStyczny;
+                    polaczenie.PrzesuniecieXStycznej = Math.Round(existing.PrzesuniecieXStycznej, precyzjaZapisu);
+                    polaczenie.PrzesuniecieYStycznej = Math.Round(existing.PrzesuniecieYStycznej, precyzjaZapisu);
+                    //polaczenie.RysunekPrzekroju = existing.RysunekPrzekroju;    
                 }
             }
 
-            polaczenie.PrzesuniecieXStycznej = Math.Round(polaczenie.PrzesuniecieXStycznej, 2);
-            polaczenie.PrzesuniecieYStycznej = Math.Round(polaczenie.PrzesuniecieYStycznej, 2);
+            polaczenie.PrzesuniecieXStycznej = Math.Round(polaczenie.PrzesuniecieXStycznej, precyzjaZapisu);
+            polaczenie.PrzesuniecieYStycznej = Math.Round(polaczenie.PrzesuniecieYStycznej, precyzjaZapisu);
 
+            //Zapis rysunków do bazy
+ 
             polaczenie.SVG = svg;
+            polaczenie.KonfiguracjaSVG = aktualnySvg;
 
             Console.WriteLine($"Zapis połączenia: boolStyczny:{boolStyczny} -> {polaczenie.ElementZewnetrznyId} + {polaczenie.ElementWewnetrznyId} Strona: {strona} X={przesuniecieX} Y={przesuniecieY} Kat={katUstawienia}");
 
@@ -2255,17 +2508,17 @@
             if (response.IsSuccessStatusCode)
             {
                 var zakladka = boolStyczny ? "styczna" : "przekrój";
-                await _message.Success($"✅ Zapisano stronę {strona} ({zakladka}), kąt: {katUstawienia}°", 4);
+                statusZapisu += $"✅ Zapisano stronę {strona} ({zakladka}), kąt: {katUstawienia}°\n";
             }
             else
             {
-                await _message.Error($"❌ Błąd zapisu strony {strona}");
+                _message.Error($"❌ Błąd zapisu strona: {strona}");
             }
 
             KonfiguracjeSystemu = null;
             listaPolaczen = null;
 
-            await Task.Delay(25);
+            await Task.Delay(15);
 
             KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIND_ROWID_SYS/{SelectedSystemId}") ?? new();
 
@@ -2296,8 +2549,14 @@
                 listaPolaczen = new();
             }
 
-            await InvokeAsync(StateHasChanged);
         }
+
+        await _message.Success(statusZapisu, 2);
+
+        activeKey = "0";
+
+        await InvokeAsync(StateHasChanged);
+
     }
 
     private async Task<string> GenerujSvgBezProwadnic()
@@ -2438,57 +2697,66 @@
             Console.WriteLine("PrzelaczIOtworz: polaczenie jest null");
             return;
         }
+
+
         if (polaczenie.DodatkowyWarunek == "PRZEKROJE")
         {
             activeKey = "1";
+            await Task.Yield(); // Upewnij się, że UI zareaguje przed dalszymi operacjami
+            selLewa = polaczenie.StronaPolaczenia?.ToLower() == "lewa";
+            selPrawa = polaczenie.StronaPolaczenia?.ToLower() == "prawa";
+            selGora = polaczenie.StronaPolaczenia?.ToLower() == "góra";
+            selDol = polaczenie.StronaPolaczenia?.ToLower() == "dół";
         }
         else if (polaczenie.DodatkowyWarunek == "STYCZNE")
         {
             activeKey = "2";
+            await Task.Yield(); // Upewnij się, że UI zareaguje przed dalszymi operacjami
+            selDolStyczne = polaczenie.StronaPolaczenia?.ToLower() == "dół";
+            selGoraStyczne = polaczenie.StronaPolaczenia?.ToLower() == "góra";
+            selLewaStyczne = polaczenie.StronaPolaczenia?.ToLower() == "lewa";
+            selPrawaStyczne = polaczenie.StronaPolaczenia?.ToLower() == "prawa";
         }
         else
         {
             activeKey = "0";
         }
 
-        await Task.Delay(100);
+        // await Task.Delay(100);
         await OtworzModalEdycji(polaczenie);
-        await Task.Delay(100);
-        selLewa = polaczenie.StronaPolaczenia?.ToLower() == "lewa";
-        selPrawa = polaczenie.StronaPolaczenia?.ToLower() == "prawa";
-        selGora = polaczenie.StronaPolaczenia?.ToLower() == "góra";
-        selDol = polaczenie.StronaPolaczenia?.ToLower() == "dół";
+        // await Task.Delay(100);
 
-        selDolStyczne = polaczenie.StronaPolaczenia?.ToLower() == "dół";
-        selGoraStyczne = polaczenie.StronaPolaczenia?.ToLower() == "góra";
-        selLewaStyczne = polaczenie.StronaPolaczenia?.ToLower() == "lewa";
-        selPrawaStyczne = polaczenie.StronaPolaczenia?.ToLower() == "prawa";
 
     }
 
     private async Task OtworzModalEdycji(KonfPolaczenie polaczenie)
     {
 
+        boolStyczny = polaczenie.DodatkowyWarunek == "STYCZNE";
+
         await ZaladujDaneModalEdycji(polaczenie);
 
         Console.WriteLine($"OtworzModalEdycji: Załadowano SVG z bazy, długość: {polaczenie.SVG.Length}");
 
-        await Task.Yield(); // Upewnij się, że UI zareaguje przed dalszymi operacjami
-
         bladEdycji = "";
+
+        await InvokeAsync(StateHasChanged);      // 2. wymuś render Blazora
+
+        await Task.Delay(10);                    // 3. krótka pauza lub: await Task.Yield();
+        await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
+        await Task.Delay(10);
+        await JSRuntime.InvokeVoidAsync("svgHelper.initGuideLines");
+
+        await Task.Yield(); // Upewnij się, że UI zareaguje przed dalszymi operacjami
         czyModalEdycjiWidoczny = true;
 
-        await Task.Yield(); // Upewnij się, że UI zareaguje przed dalszymi operacjami
-
-        //await Task.CompletedTask;
     }
 
     // Otwarcie modala edycji
     private async Task ZaladujDaneModalEdycji(KonfPolaczenie polaczenie)
     {
-
         await JSRuntime.InvokeVoidAsync("svgHelper.resetModel2Position");
-        await Task.Delay(100);
+        await Task.Delay(10);
 
         edytowanePolaczenie = polaczenie;
         edytowanyRowId = polaczenie.RowId;
@@ -2512,7 +2780,7 @@
         SelectedModelPierwszyId = polaczenie.RowIdModelu.ToString();
         SelectedModelDrugiId = polaczenie.RowIdModeluDrugi.ToString();
 
-        //SelectedSystemId
+        // Pobierz pierwszy model
         var response1 = await Http.GetAsync($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{SelectedModelPierwszyId}");
         if (!response1.IsSuccessStatusCode)
         {
@@ -2530,13 +2798,9 @@
         }
         var pasujaceSystemy1 = result1.KonfSystem.ToList();
         var pasujacy1 = pasujaceSystemy1.First();
-
         pierwszyModel = pasujacy1;
-        offsetX = old_edytowanePrzesuniecieXStycznej; // Ustaw wartości przesunięcia z bazy
-        offsetY = old_edytowanePrzesuniecieYStycznej; // Ustaw wartości przesunięcia z bazy
 
-        Console.WriteLine($"Załadowano pierwszy model: {pierwszyModel.Nazwa} (ID: {pierwszyModel.RowId}) offsetX: {offsetX} offsetY: {offsetY}");
-
+        // Pobierz drugi model
         var response2 = await Http.GetAsync($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{SelectedModelDrugiId}");
         if (!response2.IsSuccessStatusCode)
         {
@@ -2554,18 +2818,77 @@
         }
         var pasujaceSystemy2 = result2.KonfSystem.ToList();
         var pasujacy2 = pasujaceSystemy2.First();
-
         drugiModel = pasujacy2;
 
-        AktualizujSvg();
+        // 📌 SPRAWDŹ CZY MAMY ZAPISANY SVG W BAZIE
+        if (!string.IsNullOrEmpty(polaczenie.KonfiguracjaSVG))
+        {
+            // ✅ Użyj zapisanego SVG z bazy
+            if (boolStyczny)
+            {
+                combinedSvgStyczne = polaczenie.KonfiguracjaSVG;
+                SvgKeyStyczne = Guid.NewGuid().ToString();
+            }
+            else
+            {
+                combinedSvg = polaczenie.KonfiguracjaSVG;
+                SvgKey = Guid.NewGuid().ToString();
+            }
 
-        await InvokeAsync(StateHasChanged);      // 2. wymuś render Blazora
+            Console.WriteLine("📦 Wczytano SVG z bazy danych");
 
-        await Task.Delay(100);                    // 3. krótka pauza lub: await Task.Yield();
-        await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
-        await Task.Delay(100);
-        await JSRuntime.InvokeVoidAsync("svgHelper.initGuideLines");
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(100);
 
+            // Przywróć SVG z zachowaniem wszystkich transformacji
+            await JSRuntime.InvokeVoidAsync("svgHelper.restoreSvgFromString",
+                polaczenie.KonfiguracjaSVG);
+
+            await Task.Delay(50);
+            await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
+            await Task.Delay(50);
+            await JSRuntime.InvokeVoidAsync("svgHelper.initGuideLines");
+
+            Console.WriteLine("✅ SVG przywrócony z bazy - pozycje zachowane");
+        }
+        else
+        {
+            // ❌ Brak zapisanego SVG - generuj nowy z offsetami
+            Console.WriteLine("⚠️ Brak zapisanego SVG - generowanie nowego z offsetami");
+
+            double toffsetX;
+            double toffsetY;
+
+            offsetX = 0;
+            offsetY = 0;
+
+            if (boolStyczny)
+            {
+                toffsetX = old_edytowanePrzesuniecieXStycznej;
+                toffsetY = old_edytowanePrzesuniecieYStycznej;
+                offsetY = -106;
+            }
+            else
+            {
+                toffsetX = old_edytowanePrzesuniecieX;
+                toffsetY = old_edytowanePrzesuniecieY;
+            }
+
+            Console.WriteLine($"Załadowano pierwszy model: {pierwszyModel.Nazwa} (ID: {pierwszyModel.RowId}) toffsetX: {toffsetX} toffsetY: {toffsetY}");
+
+            AktualizujSvg();
+
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(10);
+            await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
+            await Task.Delay(10);
+            await JSRuntime.InvokeVoidAsync("svgHelper.initGuideLines");
+            await Task.Yield();
+            await JSRuntime.InvokeVoidAsync("svgHelper.move", toffsetX, toffsetY);
+            await Task.Delay(10);
+        }
+
+        Console.WriteLine($"✅ Modal edycji załadowany - Model1: {pierwszyModel.Nazwa}, Model2: {drugiModel.Nazwa}");
     }
 
     // Zamknięcie modala
@@ -2575,6 +2898,8 @@
         edytowanePolaczenie = null;
         edytowanyRowId = null;
         bladEdycji = "";
+
+        activeKey = "0";
     }
 
     // Zapisanie zmian
@@ -2594,11 +2919,11 @@
             if (edytowanePrzesuniecieX != old_edytowanePrzesuniecieX || edytowanePrzesuniecieY != old_edytowanePrzesuniecieY)
             {
 
-                await JSRuntime.InvokeVoidAsync("svgHelper.move", old_edytowanePrzesuniecieX - edytowanePrzesuniecieX, 0);
-                await Task.Delay(100); // Daj czas na renderowanie
-
-                await JSRuntime.InvokeVoidAsync("svgHelper.move", 0, old_edytowanePrzesuniecieY - edytowanePrzesuniecieY);
-                await Task.Delay(100); // Daj czas na renderowanie
+                //await JSRuntime.InvokeVoidAsync("svgHelper.move", edytowanePrzesuniecieX, edytowanePrzesuniecieY);
+                await JSRuntime.InvokeVoidAsync("svgHelper.moveAbsolute",
+                edytowanePrzesuniecieX,
+                edytowanePrzesuniecieY);
+                await Task.Delay(10); // Daj czas na renderowanie
 
                 // await ZmienPrzesuniecie(edytowanePrzesuniecieX, edytowanePrzesuniecieY);
 
@@ -2606,12 +2931,11 @@
 
             if (edytowanePrzesuniecieXStycznej != old_edytowanePrzesuniecieXStycznej || edytowanePrzesuniecieYStycznej != old_edytowanePrzesuniecieYStycznej)
             {
-                await JSRuntime.InvokeVoidAsync("svgHelper.move", old_edytowanePrzesuniecieX - edytowanePrzesuniecieX, 0);
-                await Task.Delay(100); // Daj czas na renderowanie
-
-                await JSRuntime.InvokeVoidAsync("svgHelper.move", 0, old_edytowanePrzesuniecieY - edytowanePrzesuniecieY);
-                await Task.Delay(100); // Daj czas na renderowanie
-
+                //await JSRuntime.InvokeVoidAsync("svgHelper.move", edytowanePrzesuniecieXStycznej, edytowanePrzesuniecieYStycznej);
+                await JSRuntime.InvokeVoidAsync("svgHelper.moveAbsolute",
+                edytowanePrzesuniecieXStycznej,
+                edytowanePrzesuniecieYStycznej);
+                await Task.Delay(10); // Daj czas na renderowanie
                 // await ZmienPrzesuniecie(edytowanePrzesuniecieX, edytowanePrzesuniecieY);
             }
 
@@ -2620,12 +2944,16 @@
 
             var svg = await GenerujSvgBezProwadnic();
 
+            var aktualnySvg = await JSRuntime.InvokeAsync<string>("svgHelper.getCurrentSvgState");
+
             // Jeśli png jest puste, użyj pustej tablicy
             var safePng = png ?? Array.Empty<byte>();
 
             var updateDto = new
             {
                 RowId = edytowanyRowId,
+                RowIdModelu = SelectedModelPierwszyId,
+                RowIdModeluDrugi = SelectedModelDrugiId,
                 OpisPolaczenia = edytowanyOpis,
                 StronaPolaczenia = edytowanaStrona,
                 PrzesuniecieX = edytowanePrzesuniecieX,
@@ -2636,7 +2964,8 @@
                 RysunekPrzekroju = !boolStyczny ? safePng : Array.Empty<byte>(),
                 RysunekPrzekrojuStyczny = boolStyczny ? safePng : Array.Empty<byte>(),
                 Svg = svg,
-                Uwagi = $"Ostatnia zmiana: {DateTime.Now} - [{user}]",
+                KonfiguracjaSVG = aktualnySvg,
+                Uwagi = $"Ostatnia zmiana: {DateTime.Now} - [{user}] - Zmiana po edycji",
                 DodatkowyWarunek = boolStyczny ? "STYCZNE" : "PRZEKROJE"
             };
 
@@ -2647,8 +2976,12 @@
             if (response.IsSuccessStatusCode)
             {
                 Console.WriteLine("✅ Zmiany zapisane pomyślnie");
-                ZamknijModalEdycji();
+
                 await OdswiezDane();
+
+                ZamknijModalEdycji();
+
+                activeKey = "0";
                 // Opcjonalnie pokaż komunikat sukcesu
                 // await _message.Success("Zmiany zostały zapisane");
             }
