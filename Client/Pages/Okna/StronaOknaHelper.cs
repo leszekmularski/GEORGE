@@ -13,6 +13,7 @@ public static class StronaOknaHelper
         int i,
         List<XPoint> outer)
     {
+
         if (outer == null || outer.Count < 2)
             return OkreslStroneNaPodstawieKataLinii(angleDegrees);
 
@@ -31,6 +32,9 @@ public static class StronaOknaHelper
         float angleDegrees,
         List<XPoint> outer)
     {
+
+      //  Console.WriteLine($"OkreslStrone: angleDegrees={angleDegrees}, outer.Count={outer?.Count}");
+
         if (outer == null || outer.Count == 0)
             return OkreslStroneNaPodstawieKataLinii(angleDegrees);
 
@@ -80,11 +84,17 @@ public static class StronaOknaHelper
             angleDegrees > 120 &&
             angleDegrees < 240;
 
+      //  Console.WriteLine($"OkreslStroneInternal: refX={refX}, refY={refY}, minX={minX}, maxX={maxX}, minY={minY}, maxY={maxY}, height={height}, width={width}, angleDegrees={angleDegrees}, isBottom={isBottom}");
+
         if (isBottom)
             return "Dół";
 
         // ===== RESZTA – WIĘKSZA SWOBODA =====
         if (refY < minY + height * 0.30)
+            return "Góra";
+
+        // dodatkowy sektor "Góra"
+        if (angleDegrees >= 315 || angleDegrees < 45)
             return "Góra";
 
         if (refX < minX + width * 0.30)

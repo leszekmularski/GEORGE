@@ -846,7 +846,7 @@ namespace GEORGE.Client.Pages.Okna
                 XPoint _innerEnd = inner[next];
                 float length = MathF.Sqrt(dx * dx + dy * dy);
 
-                StronaElementu = StronaOknaHelper.OkreslStrone(angleDegrees, i, outer);
+                StronaElementu = currentSide;
 
                 //  Console.WriteLine($"▶️ Processing element {i + 1}/{vertexCount} with joins: {leftJoin} - {rightJoin} wyliczony kąt: {angleDegrees} dla i: {i} StronaElementu: {StronaElementu} length: {length} polaczenia: {polaczenia}");
 
@@ -929,12 +929,15 @@ namespace GEORGE.Client.Pages.Okna
                 }
 
                 // Teraz możesz użyć angleDegreesStronaA i angleDegreesStronaB
-                Console.WriteLine($"⚠️⚠️⚠️ Wierzchołek {i}: Kąt elementu: {angleDegrees:F1}° Kąt z poprzednim = {angleDegreesStronaA:F1}°, Kąt z następnym = {angleDegreesStronaB:F1}°");
+                //Console.WriteLine($"⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️ Wierzchołek {i}: Kąt elementu: {angleDegrees:F1}° Kąt z poprzednim = {angleDegreesStronaA:F1}°, Kąt z następnym = {angleDegreesStronaB:F1}°");
+                //Console.WriteLine($"⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️ Wierzchołek {i}: {(Math.Abs((int)angleDegrees - (int)angleDegreesStronaA))} < 20 && {(int)angleDegrees - (int)angleDegreesStronaA} != 0)");
 
-                if ((angleDegreesStronaA < 20 && angleDegrees != 90 && angleDegreesStronaA != 270) || (Math.Abs(angleDegrees - angleDegreesStronaA) < 20 && (int)angleDegrees - (int)angleDegreesStronaA != 0))
+                if ((angleDegreesStronaA < 20 && angleDegrees != 90 && angleDegreesStronaA != 270)
+                    || (Math.Abs((int)angleDegrees - (int)angleDegreesStronaA) < 46 && (int)angleDegrees - (int)angleDegreesStronaA != 0))
                 {
                     // Jeśli kąt z następnym jest bardzo mały, traktujemy to jako prawie prostą linię → potencjalnie T1
                     leftJoin = "T2"; // połączone równym kątem
+                                     // Console.WriteLine($"⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️ Wierzchołek {i}: Kąt elementu: {angleDegrees:F1}° Kąt z poprzednim = {angleDegreesStronaA:F1}°, Kąt z następnym = {angleDegreesStronaB:F1}°");
                     BledySystemowe.Add($"⚠️ Wierzchołek element nr: {i + 1}: Kąt z poprzednim elementem = {angleDegreesStronaA:F1}° jest bardzo mały. Zmieniono typ połączenia na T2 dla lewego narożnika.");
                 }
 
@@ -1290,8 +1293,7 @@ namespace GEORGE.Client.Pages.Okna
                     //Console.WriteLine($"🔷 T1/T1 element {i + 1} START isAlmostHorizontal: {isAlmostHorizontal} isAlmostVertical: {isAlmostVertical} vertexCount: {vertexCount} angleDegrees: {angleDegrees} firstangleDegrees: {firstangleDegrees}");
 
                     List<XPoint> getStartT1 = GetStartT1(inner[i], outer[i], outer, angleDegrees, anglePrev, angleNext,
-                        StronaElementu, stonaOstanioDodanegoElementu, vertexCount < 6 || vertexCount < 6 ? -1 : i);
-
+                        StronaElementu, stonaOstanioDodanegoElementu, vertexCount < 6 ? -1 : i);
 
                     List<XPoint> getEndT1;
                     var _anglePrev = anglePrev;
@@ -2160,22 +2162,22 @@ namespace GEORGE.Client.Pages.Okna
 
 
         private List<XPoint> GetWierzcholkiStycznePodLuki(
-       int i,
-       int next,
-       int prev,
-       List<XPoint> wierzcholki,
-       List<ContourSegment> outerContourSegment,
-       List<ContourSegment> innerContourSegment,
-       string leftJoin = null,
-       string rightJoin = null,
-       List<XPoint> outer = null,
-       float angleDegrees = 0,
-       float anglePrev = 0,
-       float angleNext = 0,
-       string stronaElementu = null,
-       string stonaOstanioDodanegoElementu = null,
-       int vertexCount = 0,
-       float firstangleDegrees = 0)
+        int i,
+        int next,
+        int prev,
+        List<XPoint> wierzcholki,
+        List<ContourSegment> outerContourSegment,
+        List<ContourSegment> innerContourSegment,
+        string leftJoin = null,
+        string rightJoin = null,
+        List<XPoint> outer = null,
+        float angleDegrees = 0,
+        float anglePrev = 0,
+        float angleNext = 0,
+        string stronaElementu = null,
+        string stonaOstanioDodanegoElementu = null,
+        int vertexCount = 0,
+        float firstangleDegrees = 0)
         {
             if (i < 0 || i >= outerContourSegment.Count() || outerContourSegment.Count() < 2)
                 return wierzcholki;
@@ -2194,7 +2196,7 @@ namespace GEORGE.Client.Pages.Okna
                 return wierzcholki;
             }
 
-            Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki[{i}]: łuki - current:{currentIsArc}, prev:{prevIsArc}, next:{nextIsArc}");
+            Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki [{i} #1]: łuki - current:{currentIsArc}, prev:{prevIsArc}, next:{nextIsArc} leftJoin: {leftJoin} rightJoin: {rightJoin}");
 
             // 🔥 PRZYPADEK 1: Aktualny segment jest łukiem - użyj oryginalnej logiki
             if (currentIsArc && currentSeg.Center != null)
@@ -2207,7 +2209,37 @@ namespace GEORGE.Client.Pages.Okna
 
                 if (innerSeg != null)
                 {
-                    Console.WriteLine($"🔷 [{i}] ŁUK: używam punktów z konturu (oryginalna logika)");
+                    Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] ŁUK: używam punktów z konturu (oryginalna logika) outerContourSegment:{outerContourSegment.Count()}");
+
+
+                    //if (leftJoin != null && leftJoin == "T1" && currentSeg != null)
+                    //{
+                    //    var p1 = innerSeg.Start;
+                    //    var p2 = innerSeg.End;
+
+                    //           // wyznaczenie przecięć z outerContourSegment
+                    //    var newStart = ZnajdzPrzeciecieLukuZKonturem(
+                    //        currentSeg.Center.Value,
+                    //        p1,
+                    //        outerContourSegment);
+
+                    //    var newEnd = ZnajdzPrzeciecieLukuZKonturem(
+                    //        currentSeg.Center.Value,
+                    //        p2,
+                    //        outerContourSegment);
+            
+                    //    Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] newStart.Start: {newStart.X} -> {currentSeg.Start.X}, {newStart.Y} -> {currentSeg.Start.Y}");
+                    //    Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] newEnd.End: {newEnd.X} -> {currentSeg.End.X}, {newEnd.Y} -> {currentSeg.End.Y}");
+
+                    //    return new List<XPoint>
+                    //                    {
+                    //                        currentSeg.Start,
+                    //                        currentSeg.End,
+                    //                        newEnd,
+                    //                        newStart
+                    //                    };
+                    //}
+
                     return new List<XPoint>
                     {
                         currentSeg.Start,        // outer start
@@ -2256,7 +2288,7 @@ namespace GEORGE.Client.Pages.Okna
                         result[3] = new XPoint(prevInner.Start.X, prevInner.Start.Y);
                     }
                 }
-                Console.WriteLine($"🔷 [{i}] Lewy bok z łuku: outer=[{result[0].X:F2},{result[0].Y:F2}] inner=[{result[3].X:F2},{result[3].Y:F2}]");
+                Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #3] Lewy bok z łuku: outer=[{result[0].X:F2},{result[0].Y:F2}] inner=[{result[3].X:F2},{result[3].Y:F2}]");
             }
 
             // Prawe połączenie z łukiem
@@ -2286,10 +2318,101 @@ namespace GEORGE.Client.Pages.Okna
                         result[2] = new XPoint(nextInner.End.X, nextInner.End.Y);
                     }
                 }
-                Console.WriteLine($"🔷 [{i}] Prawy bok z łuku: outer=[{result[1].X:F2},{result[1].Y:F2}] inner=[{result[2].X:F2},{result[2].Y:F2}]");
+                Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #4] Prawy bok z łuku: outer=[{result[1].X:F2},{result[1].Y:F2}] inner=[{result[2].X:F2},{result[2].Y:F2}]");
             }
 
             return result;
+        }
+
+        private static XPoint ZnajdzPrzeciecieLukuZKonturem(
+        XPoint center,
+        XPoint arcPoint,
+        List<ContourSegment> contour)
+        {
+            double dx = arcPoint.X - center.X;
+            double dy = arcPoint.Y - center.Y;
+
+            double len = Math.Sqrt(dx * dx + dy * dy);
+
+            if (len < 0.000001)
+                return arcPoint;
+
+            dx /= len;
+            dy /= len;
+
+            // bardzo długi promień
+            var rayEnd = new XPoint(
+                center.X + dx * 100000,
+                center.Y + dy * 100000);
+
+            XPoint bestPoint = arcPoint;
+            double bestDistance = len;
+
+            foreach (var seg in contour)
+            {
+                if (seg.Type != SegmentType.Line)
+                    continue;
+
+                if (LineIntersection(
+                    center,
+                    rayEnd,
+                    seg.Start,
+                    seg.End,
+                    out XPoint intersection))
+                {
+                    double dist =
+                        Math.Sqrt(
+                            Math.Pow(intersection.X - center.X, 2) +
+                            Math.Pow(intersection.Y - center.Y, 2));
+
+                    if (dist > bestDistance)
+                    {
+                        bestDistance = dist;
+                        bestPoint = intersection;
+                    }
+                }
+            }
+
+            return bestPoint;
+        }
+
+        private static bool LineIntersection(
+        XPoint p1,
+        XPoint p2,
+        XPoint p3,
+        XPoint p4,
+        out XPoint intersection)
+        {
+            intersection = new XPoint();
+
+            double denominator =
+                (p1.X - p2.X) * (p3.Y - p4.Y) -
+                (p1.Y - p2.Y) * (p3.X - p4.X);
+
+            if (Math.Abs(denominator) < 0.000001)
+                return false;
+
+            double t =
+                ((p1.X - p3.X) * (p3.Y - p4.Y) -
+                 (p1.Y - p3.Y) * (p3.X - p4.X))
+                / denominator;
+
+            double u =
+                ((p1.X - p3.X) * (p1.Y - p2.Y) -
+                 (p1.Y - p3.Y) * (p1.X - p2.X))
+                / denominator;
+
+            if (t < 0)
+                return false;
+
+            if (u < 0 || u > 1)
+                return false;
+
+            intersection = new XPoint(
+                p1.X + t * (p2.X - p1.X),
+                p1.Y + t * (p2.Y - p1.Y));
+
+            return true;
         }
 
 
@@ -2382,7 +2505,7 @@ namespace GEORGE.Client.Pages.Okna
                 warunek = czyParzysta;
             }
 
-            //Console.WriteLine($"▶️ GetStartT1: stronaWModelu: {stronaWModelu}, stonaOstanioDodanegoElementu: {stonaOstanioDodanegoElementu}, nk: {nk}, czyParzysta: {czyParzysta} warunek: {warunek}");
+            Console.WriteLine($"▶️ GetStartT1: stronaWModelu: {stronaWModelu}, stonaOstanioDodanegoElementu: {stonaOstanioDodanegoElementu}, nk: {nk}, czyParzysta: {czyParzysta} warunek: {warunek}");
 
             if (warunek)
             {
@@ -2394,7 +2517,7 @@ namespace GEORGE.Client.Pages.Okna
                 intersections.Add(new XPoint(p1.X, p1.Y));
                 intersections.Add(new XPoint(p2.X, p2.Y));
 
-                //Console.WriteLine($"▶️ GetStartT1: OK");
+                Console.WriteLine($"▶️ GetStartT1: OK");
             }
             else
             {
@@ -2405,7 +2528,7 @@ namespace GEORGE.Client.Pages.Okna
                 intersections.Add(new XPoint(p1.X, p1.Y));
                 intersections.Add(new XPoint(p2.X, p2.Y));
 
-                //Console.WriteLine($"▶️ GetStartT1: NOK");
+                Console.WriteLine($"▶️ GetStartT1: NOK");
             }
 
             return intersections;
@@ -2432,7 +2555,7 @@ namespace GEORGE.Client.Pages.Okna
                 warunek = czyParzysta;
             }
 
-            //Console.WriteLine($"▶️ GetEndT1: stronaWModelu: {stronaWModelu}, stonaOstanioDodanegoElementu: {stonaOstanioDodanegoElementu}, nk: {nk}, czyParzysta: {czyParzysta} warunek: {warunek}");
+            Console.WriteLine($"▶️ GetEndT1: stronaWModelu: {stronaWModelu}, stonaOstanioDodanegoElementu: {stonaOstanioDodanegoElementu}, nk: {nk}, czyParzysta: {czyParzysta} warunek: {warunek}");
 
             if (warunek)
             {

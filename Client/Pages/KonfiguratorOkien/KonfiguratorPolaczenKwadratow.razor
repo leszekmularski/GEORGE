@@ -1705,13 +1705,13 @@
                     <label class="form-label fw-bold">Przesunięcie X [mm]</label>
                     <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowanePrzesuniecieX"
                                                                        class="form-control"
-                                                                       step="0.01" />
+                                                                       step="0.01" @bind-Value:after="OnPrzesuniecieChanged" />
                 </div>
                 <div class="col-6">
                     <label class="form-label fw-bold">Przesunięcie X styczne [mm]</label>
                     <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowanePrzesuniecieXStycznej"
                                                                        class="form-control"
-                                                                       step="0.01" />
+                                                                       step="0.01" @bind-Value:after="OnPrzesuniecieChanged" />
                 </div>
             </div>
 
@@ -1720,13 +1720,13 @@
                     <label class="form-label fw-bold">Przesunięcie Y [mm]</label>
                     <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowanePrzesuniecieY"
                                                                        class="form-control"
-                                                                       step="0.01" />
+                                                                       step="0.01" @bind-Value:after="OnPrzesuniecieChanged" />
                 </div>
                 <div class="col-6">
                     <label class="form-label fw-bold">Przesunięcie Y styczne [mm]</label>
                     <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowanePrzesuniecieYStycznej"
                                                                        class="form-control"
-                                                                       step="0.01" />
+                                                                       step="0.01" @bind-Value:after="OnPrzesuniecieChanged" />
                 </div>
             </div>
 
@@ -1736,7 +1736,7 @@
                                                                    class="form-control"
                                                                    step="0.1"
                                                                    min="0"
-                                                                   max="360" />
+                                                                   max="360" @bind-Value:after="OnPrzesuniecieChanged" />
             </div>
             <div class="mb-3">
                 <label class="form-label fw-bold">Połączenie styczne</label>
@@ -2148,7 +2148,7 @@
         {
             svgParts.Add($@"
             <g id=""model1"" transform=""translate({centerX}, {centerY})"">
-        {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
+    {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
             </g>");
         }
 
@@ -2183,7 +2183,7 @@
 
             svgParts.Add($@"
             <g id=""model2"" transform=""translate({secondX}, {secondY})"">
-        {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
+    {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
             </g>");
         }
 
@@ -2192,7 +2192,7 @@
         <svg xmlns=""http://www.w3.org/2000/svg"" width=""600"" height=""600""
              viewBox=""0 0 600 600"" preserveAspectRatio=""xMidYMid meet"">
             <g id=""zoom-group"">
-            {string.Join("", svgParts)}
+        {string.Join("", svgParts)}
             </g>
         </svg>";
 
@@ -2484,7 +2484,7 @@
             polaczenie.PrzesuniecieYStycznej = Math.Round(polaczenie.PrzesuniecieYStycznej, precyzjaZapisu);
 
             //Zapis rysunków do bazy
- 
+
             polaczenie.SVG = svg;
             polaczenie.KonfiguracjaSVG = aktualnySvg;
 
@@ -2902,6 +2902,38 @@
         activeKey = "0";
     }
 
+    private async Task OnPrzesuniecieChanged()
+    {
+
+        Console.WriteLine($"OnPrzesuniecieChanged: edytowanePrzesuniecieX={edytowanePrzesuniecieX}, edytowanePrzesuniecieY={edytowanePrzesuniecieY}, edytowanePrzesuniecieXStycznej={edytowanePrzesuniecieXStycznej}, edytowanePrzesuniecieYStycznej={edytowanePrzesuniecieYStycznej}");
+
+        if (edytowanePrzesuniecieX != old_edytowanePrzesuniecieX || edytowanePrzesuniecieY != old_edytowanePrzesuniecieY)
+        {
+
+            //await JSRuntime.InvokeVoidAsync("svgHelper.move", edytowanePrzesuniecieX, edytowanePrzesuniecieY);
+            await JSRuntime.InvokeVoidAsync("svgHelper.move",
+            old_edytowanePrzesuniecieX - edytowanePrzesuniecieX,
+            old_edytowanePrzesuniecieY - edytowanePrzesuniecieY);
+            await Task.Delay(10); // Daj czas na renderowanie
+            old_edytowanePrzesuniecieX = edytowanePrzesuniecieX;
+            old_edytowanePrzesuniecieY = edytowanePrzesuniecieY;
+            // await ZmienPrzesuniecie(edytowanePrzesuniecieX, edytowanePrzesuniecieY);
+
+        }
+
+        if (edytowanePrzesuniecieXStycznej != old_edytowanePrzesuniecieXStycznej || edytowanePrzesuniecieYStycznej != old_edytowanePrzesuniecieYStycznej)
+        {
+            //await JSRuntime.InvokeVoidAsync("svgHelper.move", edytowanePrzesuniecieXStycznej, edytowanePrzesuniecieYStycznej);
+            await JSRuntime.InvokeVoidAsync("svgHelper.move",
+            old_edytowanePrzesuniecieXStycznej - edytowanePrzesuniecieXStycznej,
+            old_edytowanePrzesuniecieYStycznej - edytowanePrzesuniecieYStycznej);
+            await Task.Delay(10); // Daj czas na renderowanie
+            old_edytowanePrzesuniecieXStycznej = edytowanePrzesuniecieXStycznej;
+            old_edytowanePrzesuniecieYStycznej = edytowanePrzesuniecieYStycznej;
+                                  // await ZmienPrzesuniecie(edytowanePrzesuniecieX, edytowanePrzesuniecieY);
+        }
+    }
+
     // Zapisanie zmian
     private async Task ZapiszEdycje()
     {
@@ -2916,28 +2948,28 @@
                 return;
             }
 
-            if (edytowanePrzesuniecieX != old_edytowanePrzesuniecieX || edytowanePrzesuniecieY != old_edytowanePrzesuniecieY)
-            {
+            // if (edytowanePrzesuniecieX != old_edytowanePrzesuniecieX || edytowanePrzesuniecieY != old_edytowanePrzesuniecieY)
+            // {
 
-                //await JSRuntime.InvokeVoidAsync("svgHelper.move", edytowanePrzesuniecieX, edytowanePrzesuniecieY);
-                await JSRuntime.InvokeVoidAsync("svgHelper.moveAbsolute",
-                edytowanePrzesuniecieX,
-                edytowanePrzesuniecieY);
-                await Task.Delay(10); // Daj czas na renderowanie
+            //     //await JSRuntime.InvokeVoidAsync("svgHelper.move", edytowanePrzesuniecieX, edytowanePrzesuniecieY);
+            //     await JSRuntime.InvokeVoidAsync("svgHelper.moveAbsolute",
+            //     edytowanePrzesuniecieX,
+            //     edytowanePrzesuniecieY);
+            //     await Task.Delay(10); // Daj czas na renderowanie
 
-                // await ZmienPrzesuniecie(edytowanePrzesuniecieX, edytowanePrzesuniecieY);
+            //     // await ZmienPrzesuniecie(edytowanePrzesuniecieX, edytowanePrzesuniecieY);
 
-            }
+            // }
 
-            if (edytowanePrzesuniecieXStycznej != old_edytowanePrzesuniecieXStycznej || edytowanePrzesuniecieYStycznej != old_edytowanePrzesuniecieYStycznej)
-            {
-                //await JSRuntime.InvokeVoidAsync("svgHelper.move", edytowanePrzesuniecieXStycznej, edytowanePrzesuniecieYStycznej);
-                await JSRuntime.InvokeVoidAsync("svgHelper.moveAbsolute",
-                edytowanePrzesuniecieXStycznej,
-                edytowanePrzesuniecieYStycznej);
-                await Task.Delay(10); // Daj czas na renderowanie
-                // await ZmienPrzesuniecie(edytowanePrzesuniecieX, edytowanePrzesuniecieY);
-            }
+            // if (edytowanePrzesuniecieXStycznej != old_edytowanePrzesuniecieXStycznej || edytowanePrzesuniecieYStycznej != old_edytowanePrzesuniecieYStycznej)
+            // {
+            //     //await JSRuntime.InvokeVoidAsync("svgHelper.move", edytowanePrzesuniecieXStycznej, edytowanePrzesuniecieYStycznej);
+            //     await JSRuntime.InvokeVoidAsync("svgHelper.moveAbsolute",
+            //     edytowanePrzesuniecieXStycznej,
+            //     edytowanePrzesuniecieYStycznej);
+            //     await Task.Delay(10); // Daj czas na renderowanie
+            //     // await ZmienPrzesuniecie(edytowanePrzesuniecieX, edytowanePrzesuniecieY);
+            // }
 
             // 🔹 Rysunek aktualnej zakładki
             var png = await GenerujPngBezProwadnic();
