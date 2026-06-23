@@ -1904,9 +1904,8 @@ namespace GEORGE.Client.Pages.Okna
 
                 }
 
-
                 // Budujemy pełny kontur 4-segmentowy
-                wierzcholkiZLukami = Build4SegmentContour(wierzcholkiStycznePodLuki, outerContourSegment, innerContourSegment, i + 1);
+                wierzcholkiZLukami = Build4SegmentContour(wierzcholkiStycznePodLuki, outerContourSegment, innerContourSegment, i + 1, leftJoin, rightJoin);
 
                 double regionMinX = wierzcholki.Min(p => p.X);
                 double regionMaxX = wierzcholki.Max(p => p.X);
@@ -2004,7 +2003,9 @@ namespace GEORGE.Client.Pages.Okna
         List<XPoint> wierzcholki,
         List<ContourSegment> outerContour,
         List<ContourSegment> innerContour,
-        int nri)
+        int nri,
+        string leftJoin,
+        string rightJoin)
         {
             if (wierzcholki == null || wierzcholki.Count != 4)
             {
@@ -2110,6 +2111,26 @@ namespace GEORGE.Client.Pages.Okna
 
                     var innerArcSeg = new ContourSegment(innerEnd, innerStart,
                         innerCenter, innerRadius, true);   // ← zawsze CW
+
+                    if(leftJoin == "T1")
+                    {
+                        var p1 = innerArcSeg.Start;
+                        var p2 = innerArcSeg.End;
+
+                        // wyznaczenie przecięć z outerContourSegment
+                        var newStart = ZnajdzPrzeciecieLukuZKonturem(
+                            innerArcSeg.Center.Value,
+                            p1,
+                            outerContour);
+
+                        var newEnd = ZnajdzPrzeciecieLukuZKonturem(
+                            innerArcSeg.Center.Value,
+                            p2,
+                            outerContour);
+
+                        innerArcSeg = new ContourSegment(newEnd, newStart,
+                        innerCenter, innerRadius, true);   // ← zawsze CW
+                    }
 
                     // Łączniki - proste linie
                     bool isClosedContour =
