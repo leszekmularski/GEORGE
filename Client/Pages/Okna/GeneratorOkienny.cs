@@ -2128,6 +2128,9 @@ namespace GEORGE.Client.Pages.Okna
                             p2,
                             outerContour);
 
+                        innerStart = innerArcSeg.End;
+                        innerEnd = innerArcSeg.Start;
+
                         innerArcSeg = new ContourSegment(newEnd, newStart,
                         innerCenter, innerRadius, true);   // ← zawsze CW
                     }
