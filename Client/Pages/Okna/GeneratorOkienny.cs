@@ -2112,28 +2112,34 @@ namespace GEORGE.Client.Pages.Okna
                     var innerArcSeg = new ContourSegment(innerEnd, innerStart,
                         innerCenter, innerRadius, true);   // ← zawsze CW
 
-                    if(leftJoin == "T1")
+                    if (leftJoin == "T1")
                     {
-                        var p1 = innerArcSeg.Start;
-                        var p2 = innerArcSeg.End;
 
-                        // wyznaczenie przecięć z outerContourSegment
-                        var newStart = ZnajdzPrzeciecieLukuZKonturem(
+                        innerStart = ZnajdzPrzeciecieLukuZKonturem(
                             innerArcSeg.Center.Value,
-                            p1,
-                            outerContour);
+                            innerStart,
+                            outerContour,
+                            false);
 
-                        var newEnd = ZnajdzPrzeciecieLukuZKonturem(
-                            innerArcSeg.Center.Value,
-                            p2,
-                            outerContour);
-
-                        innerStart = innerArcSeg.End;
-                        innerEnd = innerArcSeg.Start;
-
-                        innerArcSeg = new ContourSegment(newEnd, newStart,
+                        innerArcSeg = new ContourSegment(innerEnd, innerStart,
                         innerCenter, innerRadius, true);   // ← zawsze CW
+
                     }
+
+                    if (rightJoin == "T1")
+                    {
+
+                        innerEnd = ZnajdzPrzeciecieLukuZKonturem(
+                            innerArcSeg.Center.Value,
+                            innerEnd,
+                            outerContour,
+                            true);
+
+                        innerArcSeg = new ContourSegment(innerEnd, innerStart,
+                        innerCenter, innerRadius, true);   // ← zawsze CW
+
+                    }
+
 
                     // Łączniki - proste linie
                     bool isClosedContour =
@@ -2174,6 +2180,10 @@ namespace GEORGE.Client.Pages.Okna
                 }
             }
 
+            if (leftJoin == "T1" && CzyPunktLezyNaLuku(outerContour ,wierzcholki[1]))
+            {// sąsiad musi być łuk
+                wierzcholki[1] = wierzcholki[0];
+            }
             // Brak łuku - zwykłe linie (trapez lub prostokąt)
             var segments = new List<ContourSegment>();
             segments.Add(new ContourSegment(wierzcholki[0], wierzcholki[1]) { Informacja = "Góra" });
@@ -2251,7 +2261,7 @@ namespace GEORGE.Client.Pages.Okna
                     //        currentSeg.Center.Value,
                     //        p2,
                     //        outerContourSegment);
-            
+
                     //    Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] newStart.Start: {newStart.X} -> {currentSeg.Start.X}, {newStart.Y} -> {currentSeg.Start.Y}");
                     //    Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] newEnd.End: {newEnd.X} -> {currentSeg.End.X}, {newEnd.Y} -> {currentSeg.End.Y}");
 
@@ -2348,51 +2358,67 @@ namespace GEORGE.Client.Pages.Okna
             return result;
         }
 
+        private static bool CzyPunktLezyNaLuku(List<ContourSegment> contour, XPoint xyPoint)
+        {
+            const double tolerance = 0.01;
+
+            return contour.Any(seg =>
+                seg.Type == SegmentType.Arc &&
+                seg.Center != null &&
+                Math.Abs(Math.Sqrt(
+                    Math.Pow(xyPoint.X - seg.Center.Value.X, 2) +
+                    Math.Pow(xyPoint.Y - seg.Center.Value.Y, 2)) - seg.Radius) <= tolerance);
+        }
+
         private static XPoint ZnajdzPrzeciecieLukuZKonturem(
         XPoint center,
         XPoint arcPoint,
-        List<ContourSegment> contour)
+        List<ContourSegment> contour,
+        bool forward = true)
         {
             double dx = arcPoint.X - center.X;
             double dy = arcPoint.Y - center.Y;
+            double radius = Math.Sqrt(dx * dx + dy * dy);
+            double startAngle = Math.Atan2(dy, dx);
 
-            double len = Math.Sqrt(dx * dx + dy * dy);
-
-            if (len < 0.000001)
+            if (radius < 0.000001)
                 return arcPoint;
 
-            dx /= len;
-            dy /= len;
-
-            // bardzo długi promień
-            var rayEnd = new XPoint(
-                center.X + dx * 100000,
-                center.Y + dy * 100000);
-
             XPoint bestPoint = arcPoint;
-            double bestDistance = len;
+            double bestAngleDiff = double.MaxValue;
 
             foreach (var seg in contour)
             {
                 if (seg.Type != SegmentType.Line)
                     continue;
 
-                if (LineIntersection(
-                    center,
-                    rayEnd,
-                    seg.Start,
-                    seg.End,
-                    out XPoint intersection))
-                {
-                    double dist =
-                        Math.Sqrt(
-                            Math.Pow(intersection.X - center.X, 2) +
-                            Math.Pow(intersection.Y - center.Y, 2));
+                // Znajdź przecięcia okręgu z linią
+                var intersections = FindCircleLineIntersections(
+                    center, radius, seg.Start, seg.End);
 
-                    if (dist > bestDistance)
+                foreach (var intersection in intersections)
+                {
+                    double angle = Math.Atan2(
+                        intersection.Y - center.Y,
+                        intersection.X - center.X);
+
+                    double angleDiff = angle - startAngle;
+
+                    // Normalizuj różnicę kątów do [-PI, PI]
+                    while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+                    while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+                    // Sprawdź czy kierunek jest właściwy
+                    if ((forward && angleDiff > 0) || (!forward && angleDiff < 0))
                     {
-                        bestDistance = dist;
-                        bestPoint = intersection;
+                        // Pomijamy przecięcia bardzo blisko punktu startowego
+                        if (Math.Abs(angleDiff) < 0.001) continue;
+
+                        if (Math.Abs(angleDiff) < Math.Abs(bestAngleDiff))
+                        {
+                            bestAngleDiff = angleDiff;
+                            bestPoint = intersection;
+                        }
                     }
                 }
             }
@@ -2400,43 +2426,47 @@ namespace GEORGE.Client.Pages.Okna
             return bestPoint;
         }
 
-        private static bool LineIntersection(
-        XPoint p1,
-        XPoint p2,
-        XPoint p3,
-        XPoint p4,
-        out XPoint intersection)
+        // Pomocnicza funkcja do znajdowania przecięć okręgu z linią
+        private static List<XPoint> FindCircleLineIntersections(
+            XPoint center, double radius,
+            XPoint lineStart, XPoint lineEnd)
         {
-            intersection = new XPoint();
+            var intersections = new List<XPoint>();
 
-            double denominator =
-                (p1.X - p2.X) * (p3.Y - p4.Y) -
-                (p1.Y - p2.Y) * (p3.X - p4.X);
+            double dx = lineEnd.X - lineStart.X;
+            double dy = lineEnd.Y - lineStart.Y;
+            double fx = lineStart.X - center.X;
+            double fy = lineStart.Y - center.Y;
 
-            if (Math.Abs(denominator) < 0.000001)
-                return false;
+            double a = dx * dx + dy * dy;
+            double b = 2 * (fx * dx + fy * dy);
+            double c = fx * fx + fy * fy - radius * radius;
 
-            double t =
-                ((p1.X - p3.X) * (p3.Y - p4.Y) -
-                 (p1.Y - p3.Y) * (p3.X - p4.X))
-                / denominator;
+            double discriminant = b * b - 4 * a * c;
 
-            double u =
-                ((p1.X - p3.X) * (p1.Y - p2.Y) -
-                 (p1.Y - p3.Y) * (p1.X - p2.X))
-                / denominator;
+            if (discriminant >= 0)
+            {
+                discriminant = Math.Sqrt(discriminant);
 
-            if (t < 0)
-                return false;
+                double t1 = (-b + discriminant) / (2 * a);
+                double t2 = (-b - discriminant) / (2 * a);
 
-            if (u < 0 || u > 1)
-                return false;
+                if (t1 >= 0 && t1 <= 1)
+                {
+                    intersections.Add(new XPoint(
+                        lineStart.X + t1 * dx,
+                        lineStart.Y + t1 * dy));
+                }
 
-            intersection = new XPoint(
-                p1.X + t * (p2.X - p1.X),
-                p1.Y + t * (p2.Y - p1.Y));
+                if (t2 >= 0 && t2 <= 1 && Math.Abs(t1 - t2) > 0.0001)
+                {
+                    intersections.Add(new XPoint(
+                        lineStart.X + t2 * dx,
+                        lineStart.Y + t2 * dy));
+                }
+            }
 
-            return true;
+            return intersections;
         }
 
 
