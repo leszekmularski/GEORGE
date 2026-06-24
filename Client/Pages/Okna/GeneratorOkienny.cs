@@ -2180,9 +2180,24 @@ namespace GEORGE.Client.Pages.Okna
                 }
             }
 
-            if (leftJoin == "T1" && CzyPunktLezyNaLuku(outerContour ,wierzcholki[1]))
+            if (leftJoin == "T1" && CzyPunktLezyNaLuku(outerContour, wierzcholki[1]))
             {// sąsiad musi być łuk
-                wierzcholki[1] = wierzcholki[0];
+                //wierzcholki[2] = new XPoint( 0,0);
+                wierzcholki[1] = ZnajdzPrzeciecieLukuZKonturem(
+                  ZnajdzSrodekLuku(outerContour, wierzcholki[1]) ?? wierzcholki[1],
+                   wierzcholki[2],
+                   outerContour,
+                   false);
+            }
+
+            if (rightJoin == "T1" && CzyPunktLezyNaLuku(outerContour, wierzcholki[0]))
+            {// sąsiad musi być łuk
+                //wierzcholki[0] = new XPoint( 0,0);
+                wierzcholki[0] = ZnajdzPrzeciecieLukuZKonturem(
+                  ZnajdzSrodekLuku(outerContour, wierzcholki[0]) ?? wierzcholki[0],
+                   wierzcholki[3],
+                   outerContour,
+                   true);
             }
             // Brak łuku - zwykłe linie (trapez lub prostokąt)
             var segments = new List<ContourSegment>();
@@ -2368,6 +2383,22 @@ namespace GEORGE.Client.Pages.Okna
                 Math.Abs(Math.Sqrt(
                     Math.Pow(xyPoint.X - seg.Center.Value.X, 2) +
                     Math.Pow(xyPoint.Y - seg.Center.Value.Y, 2)) - seg.Radius) <= tolerance);
+        }
+
+        private static XPoint? ZnajdzSrodekLuku(List<ContourSegment> contour, XPoint xyPoint)
+        {
+            const double tolerance = 0.01;
+
+            var result = contour
+                .Where(seg => seg.Type == SegmentType.Arc && seg.Center != null)
+                .Select(seg => new { seg, dist = Math.Sqrt(Math.Pow(xyPoint.X - seg.Center!.Value.X, 2) + Math.Pow(xyPoint.Y - seg.Center!.Value.Y, 2)) })
+                .Where(item => Math.Abs(item.dist - item.seg.Radius) <= tolerance)
+                .Select(item => item.seg.Center)
+                .FirstOrDefault();
+            // Console.WriteLine($"🔴 ZnajdzSrodekLuku: Punkt ({xyPoint.X:F2};{xyPoint.Y:F2}) -> Środek łuku: {result?.X:F2};{result?.Y:F2}");
+            return result;
+
+
         }
 
         private static XPoint ZnajdzPrzeciecieLukuZKonturem(
