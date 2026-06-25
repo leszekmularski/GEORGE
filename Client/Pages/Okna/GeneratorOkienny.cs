@@ -2100,6 +2100,7 @@ namespace GEORGE.Client.Pages.Okna
                     XPoint innerStart = new XPoint(
                         innerCenter.X + innerRadius * Math.Cos(angle1),
                         innerCenter.Y + innerRadius * Math.Sin(angle1));
+
                     XPoint innerEnd = new XPoint(
                         innerCenter.X + innerRadius * Math.Cos(angle2),
                         innerCenter.Y + innerRadius * Math.Sin(angle2));
@@ -2137,6 +2138,38 @@ namespace GEORGE.Client.Pages.Okna
 
                         innerArcSeg = new ContourSegment(innerEnd, innerStart,
                         innerCenter, innerRadius, true);   // ← zawsze CW
+
+                    }
+
+                    if (leftJoin == "T3")
+                    {
+
+                        wierzcholki[0] = ZnajdzPrzeciecieLiniiZKonturem(
+                            wierzcholki[0],
+                            wierzcholki[3],
+                            outerContour,
+                            false);
+                        // wierzcholki[2] = new XPoint(0, 0);
+
+                        outerArcSeg = new ContourSegment(wierzcholki[0], wierzcholki[1],
+                            arcCenter.Value, arcRadius, false);  // ← zawsze CCW
+
+                        innerArcSeg = new ContourSegment(innerEnd, innerStart,
+                            innerCenter, innerRadius, true);   // ← zawsze CW
+
+                    }
+
+                    if (rightJoin == "T3")
+                    {
+
+                        //wierzcholki[3] = ZnajdzPrzeciecieLiniiZKonturem(
+                        //    wierzcholki[0],
+                        //    wierzcholki[3],
+                        //    outerContour,
+                        //    false);
+
+                        //outerArcSeg = new ContourSegment(wierzcholki[0], wierzcholki[3],
+                        //innerCenter, innerRadius, false);   // ← zawsze CW
 
                     }
 
@@ -2199,6 +2232,28 @@ namespace GEORGE.Client.Pages.Okna
                    outerContour,
                    true);
             }
+
+            if (leftJoin == "T3" && CzyPunktLezyNaLuku(outerContour, wierzcholki[1]))
+            {
+
+                //wierzcholki[1] = ZnajdzPrzeciecieLiniiZKonturem(
+                //                wierzcholki[1],
+                //                wierzcholki[2],
+                //                innerContour,
+                //                false);
+            }
+
+            if (rightJoin == "T3" && CzyPunktLezyNaLuku(outerContour, wierzcholki[0]))
+            {
+
+                //wierzcholki[0] = ZnajdzPrzeciecieLiniiZKonturem(
+                //               wierzcholki[0],
+                //               wierzcholki[3],
+                //               outerContour,
+                //               true);
+
+            }
+
             // Brak łuku - zwykłe linie (trapez lub prostokąt)
             var segments = new List<ContourSegment>();
             segments.Add(new ContourSegment(wierzcholki[0], wierzcholki[1]) { Informacja = "Góra" });
@@ -2399,6 +2454,109 @@ namespace GEORGE.Client.Pages.Okna
             return result;
 
 
+        }
+
+        private static XPoint ZnajdzPrzeciecieLiniiZKonturem(
+        XPoint pointA,
+        XPoint pointB,
+        List<ContourSegment> contour,
+        bool forward = true)
+        {
+            // Wektor kierunkowy linii
+            double dx = pointB.X - pointA.X;
+            double dy = pointB.Y - pointA.Y;
+            double length = Math.Sqrt(dx * dx + dy * dy);
+
+            if (length < 0.000001)
+                return pointA; // Punkty są identyczne
+
+            // Normalizacja wektora kierunkowego
+            double dirX = dx / length;
+            double dirY = dy / length;
+
+            XPoint bestPoint = pointA;
+            double bestDistance = double.MaxValue;
+
+            foreach (var seg in contour)
+            {
+                if (seg.Type != SegmentType.Line)
+                    continue;
+
+                // Znajdź przecięcie linii z segmentem
+                if (LineIntersection(
+                    pointA,
+                    new XPoint(pointA.X + dirX * 100000.0, pointA.Y + dirY * 100000.0),
+                    seg.Start,
+                    seg.End,
+                    out XPoint intersection))
+                {
+                    // Oblicz wektor od pointA do przecięcia
+                    double intDx = intersection.X - pointA.X;
+                    double intDy = intersection.Y - pointA.Y;
+
+                    // Sprawdź czy przecięcie jest w odpowiednim kierunku
+                    double dotProduct = intDx * dirX + intDy * dirY;
+
+                    // Określamy kierunek na podstawie parametru forward
+                    bool isForward = dotProduct > 0;
+
+                    if ((forward && isForward) || (!forward && !isForward))
+                    {
+                        // Oblicz odległość od pointA
+                        double distance = Math.Sqrt(intDx * intDx + intDy * intDy);
+
+                        // Pomijamy przecięcia bardzo blisko punktu startowego
+                        if (distance < 0.001)
+                            continue;
+
+                        if (distance < bestDistance)
+                        {
+                            bestDistance = distance;
+                            bestPoint = intersection;
+                        }
+                    }
+                }
+            }
+
+            Console.WriteLine(
+                $"ZnajdzPrzeciecieLiniiZKonturem: " +
+                $"line({pointA.X:F2},{pointA.Y:F2})->({pointB.X:F2},{pointB.Y:F2}) " +
+                $"result({bestPoint.X:F2},{bestPoint.Y:F2}) " +
+                $"forward={forward}, distance={bestDistance:F2}");
+
+            return bestPoint;
+        }
+
+        // Jeśli potrzebujesz zachować oryginalną funkcję pomocniczą LineIntersection,
+        // oto jej przykładowa implementacja (jeśli jeszcze nie masz):
+        private static bool LineIntersection(
+            XPoint p1, XPoint p2,
+            XPoint p3, XPoint p4,
+            out XPoint intersection)
+        {
+            intersection = new XPoint(0, 0);
+
+            double x1 = p1.X, y1 = p1.Y;
+            double x2 = p2.X, y2 = p2.Y;
+            double x3 = p3.X, y3 = p3.Y;
+            double x4 = p4.X, y4 = p4.Y;
+
+            double denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+
+            if (Math.Abs(denominator) < 0.000001)
+                return false; // Linie są równoległe
+
+            double t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denominator;
+            double u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denominator;
+
+            if (t >= 0 && u >= 0 && u <= 1) // t >= 0 dla promienia, u między 0-1 dla segmentu
+            {
+                intersection.X = x1 + t * (x2 - x1);
+                intersection.Y = y1 + t * (y2 - y1);
+                return true;
+            }
+
+            return false;
         }
 
         private static XPoint ZnajdzPrzeciecieLukuZKonturem(
