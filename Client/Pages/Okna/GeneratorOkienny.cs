@@ -1905,7 +1905,7 @@ namespace GEORGE.Client.Pages.Okna
                 }
 
                 // Budujemy pełny kontur 4-segmentowy
-                wierzcholkiZLukami = Build4SegmentContour(wierzcholkiStycznePodLuki, outerContourSegment, innerContourSegment, i + 1, leftJoin, rightJoin);
+                wierzcholkiZLukami = Build4SegmentContour(wierzcholkiStycznePodLuki, outerContourSegment, innerContourSegment, i + 1);
 
                 double regionMinX = wierzcholki.Min(p => p.X);
                 double regionMaxX = wierzcholki.Max(p => p.X);
@@ -2003,9 +2003,7 @@ namespace GEORGE.Client.Pages.Okna
         List<XPoint> wierzcholki,
         List<ContourSegment> outerContour,
         List<ContourSegment> innerContour,
-        int nri,
-        string leftJoin,
-        string rightJoin)
+        int numerElemntu)
         {
             if (wierzcholki == null || wierzcholki.Count != 4)
             {
@@ -2017,7 +2015,7 @@ namespace GEORGE.Client.Pages.Okna
                     int next = (i + 1) % wierzcholki.Count;
                     fallback.Add(new ContourSegment(wierzcholki[i], wierzcholki[next])
                     {
-                        Informacja = $"Fallback segment {i}"
+                        Informacja = $"Fallback segment {i}, dotyczy elementu: {numerElemntu}"
                     });
                 }
                 return fallback;
@@ -2113,65 +2111,68 @@ namespace GEORGE.Client.Pages.Okna
                     var innerArcSeg = new ContourSegment(innerEnd, innerStart,
                         innerCenter, innerRadius, true);   // ← zawsze CW
 
-                    if (leftJoin == "T1")
-                    {
+                    //if (leftJoin == "T1")
+                    //{
 
-                        innerStart = ZnajdzPrzeciecieLukuZKonturem(
-                            innerArcSeg.Center.Value,
-                            innerStart,
-                            outerContour,
-                            false);
+                    //    innerStart = ZnajdzPrzeciecieLukuZKonturem(
+                    //        innerArcSeg.Center.Value,
+                    //        innerStart,
+                    //        outerContour,
+                    //        false);
 
-                        innerArcSeg = new ContourSegment(innerEnd, innerStart,
-                        innerCenter, innerRadius, true);   // ← zawsze CW
+                    //    innerArcSeg = new ContourSegment(innerEnd, innerStart,
+                    //    innerCenter, innerRadius, true);   // ← zawsze CW
 
-                    }
+                    //}
 
-                    if (rightJoin == "T1")
-                    {
+                    //if (rightJoin == "T1")
+                    //{
 
-                        innerEnd = ZnajdzPrzeciecieLukuZKonturem(
-                            innerArcSeg.Center.Value,
-                            innerEnd,
-                            outerContour,
-                            true);
+                    //    innerEnd = ZnajdzPrzeciecieLukuZKonturem(
+                    //        innerArcSeg.Center.Value,
+                    //        innerEnd,
+                    //        outerContour,
+                    //        true);
 
-                        innerArcSeg = new ContourSegment(innerEnd, innerStart,
-                        innerCenter, innerRadius, true);   // ← zawsze CW
+                    //    innerArcSeg = new ContourSegment(innerEnd, innerStart,
+                    //    innerCenter, innerRadius, true);   // ← zawsze CW
 
-                    }
+                    //}
 
-                    if (leftJoin == "T3")
-                    {
+                    //if (leftJoin == "T3")
+                    //{
 
-                        wierzcholki[0] = ZnajdzPrzeciecieLiniiZKonturem(
-                            wierzcholki[0],
-                            wierzcholki[3],
-                            outerContour,
-                            false);
-                        // wierzcholki[2] = new XPoint(0, 0);
+                    //    //Console.WriteLine($"wierzcholki[0]: {wierzcholki[0]}, wierzcholki[1]: {wierzcholki[1]}, wierzcholki[2]: {wierzcholki[2]} wierzcholki[3]: {wierzcholki[3]}");
 
-                        outerArcSeg = new ContourSegment(wierzcholki[0], wierzcholki[1],
-                            arcCenter.Value, arcRadius, false);  // ← zawsze CCW
 
-                        innerArcSeg = new ContourSegment(innerEnd, innerStart,
-                            innerCenter, innerRadius, true);   // ← zawsze CW
+                    //    wierzcholki[0] = ZnajdzPrzeciecieZKonturemKat(
+                    //        wierzcholki[3],
+                    //        kataSiasiadaPrev,
+                    //        outerContour,
+                    //        false);
+                    //    // wierzcholki[2] = new XPoint(0, 0);
+                    //    var xx = wierzcholki[0];
+                    //  xx.X = wierzcholki[3].X;
 
-                    }
+                    //    outerArcSeg = new ContourSegment(xx, wierzcholki[1],
+                    //    arcCenter.Value, arcRadius, false);  // ← zawsze CCW
 
-                    if (rightJoin == "T3")
-                    {
+                    //}
 
-                        //wierzcholki[3] = ZnajdzPrzeciecieLiniiZKonturem(
-                        //    wierzcholki[0],
-                        //    wierzcholki[3],
-                        //    outerContour,
-                        //    false);
+                    //if (rightJoin == "T3")
+                    //{
 
-                        //outerArcSeg = new ContourSegment(wierzcholki[0], wierzcholki[3],
-                        //innerCenter, innerRadius, false);   // ← zawsze CW
+                    //    //   var pktX = ZnajdzPrzeciecieLiniiZKonturemKat(
+                    //    //            wierzcholki[2],
+                    //    //            kataSiasiadaNext,
+                    //    //            outerContour,
+                    //    //            false);
+                    //    //   // wierzcholki[2] = new XPoint(0, 0);
 
-                    }
+                    //    //   innerArcSeg = new ContourSegment(innerEnd, pktX,
+                    //    //innerCenter, innerRadius, true);   // ← zawsze CW
+
+                    //}
 
 
                     // Łączniki - proste linie
@@ -2213,46 +2214,46 @@ namespace GEORGE.Client.Pages.Okna
                 }
             }
 
-            if (leftJoin == "T1" && CzyPunktLezyNaLuku(outerContour, wierzcholki[1]))
-            {// sąsiad musi być łuk
-                //wierzcholki[2] = new XPoint( 0,0);
-                wierzcholki[1] = ZnajdzPrzeciecieLukuZKonturem(
-                  ZnajdzSrodekLuku(outerContour, wierzcholki[1]) ?? wierzcholki[1],
-                   wierzcholki[2],
-                   outerContour,
-                   false);
-            }
+            //if (leftJoin == "T1" && CzyPunktLezyNaLuku(outerContour, wierzcholki[1]))
+            //{// sąsiad musi być łuk
+            //    //wierzcholki[2] = new XPoint( 0,0);
+            //    wierzcholki[1] = ZnajdzPrzeciecieLukuZKonturem(
+            //      ZnajdzSrodekLuku(outerContour, wierzcholki[1]) ?? wierzcholki[1],
+            //       wierzcholki[2],
+            //       outerContour,
+            //       false);
+            //}
 
-            if (rightJoin == "T1" && CzyPunktLezyNaLuku(outerContour, wierzcholki[0]))
-            {// sąsiad musi być łuk
-                //wierzcholki[0] = new XPoint( 0,0);
-                wierzcholki[0] = ZnajdzPrzeciecieLukuZKonturem(
-                  ZnajdzSrodekLuku(outerContour, wierzcholki[0]) ?? wierzcholki[0],
-                   wierzcholki[3],
-                   outerContour,
-                   true);
-            }
+            //if (rightJoin == "T1" && CzyPunktLezyNaLuku(outerContour, wierzcholki[0]))
+            //{// sąsiad musi być łuk
+            //    //wierzcholki[0] = new XPoint( 0,0);
+            //    wierzcholki[0] = ZnajdzPrzeciecieLukuZKonturem(
+            //      ZnajdzSrodekLuku(outerContour, wierzcholki[0]) ?? wierzcholki[0],
+            //       wierzcholki[3],
+            //       outerContour,
+            //       true);
+            //}
 
-            if (leftJoin == "T3" && CzyPunktLezyNaLuku(outerContour, wierzcholki[1]))
-            {
+            //if (leftJoin == "T3" && CzyPunktLezyNaLuku(outerContour, wierzcholki[1]))
+            //{
 
-                //wierzcholki[1] = ZnajdzPrzeciecieLiniiZKonturem(
-                //                wierzcholki[1],
-                //                wierzcholki[2],
-                //                innerContour,
-                //                false);
-            }
+            //    //wierzcholki[1] = ZnajdzPrzeciecieLiniiZKonturem(
+            //    //                wierzcholki[1],
+            //    //                wierzcholki[2],
+            //    //                innerContour,
+            //    //                false);
+            //}
 
-            if (rightJoin == "T3" && CzyPunktLezyNaLuku(outerContour, wierzcholki[0]))
-            {
+            //if (rightJoin == "T3" && CzyPunktLezyNaLuku(outerContour, wierzcholki[0]))
+            //{
 
-                //wierzcholki[0] = ZnajdzPrzeciecieLiniiZKonturem(
-                //               wierzcholki[0],
-                //               wierzcholki[3],
-                //               outerContour,
-                //               true);
+            //    //wierzcholki[0] = ZnajdzPrzeciecieLiniiZKonturem(
+            //    //               wierzcholki[0],
+            //    //               wierzcholki[3],
+            //    //               outerContour,
+            //    //               true);
 
-            }
+            //}
 
             // Brak łuku - zwykłe linie (trapez lub prostokąt)
             var segments = new List<ContourSegment>();
@@ -2313,36 +2314,49 @@ namespace GEORGE.Client.Pages.Okna
 
                 if (innerSeg != null)
                 {
-                    Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] ŁUK: używam punktów z konturu (oryginalna logika) outerContourSegment:{outerContourSegment.Count()}");
+
+                    if (leftJoin != null && leftJoin == "T1" && currentSeg != null)
+                    {
+
+                        Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] ŁUK: używam punktów z konturu (oryginalna logika) outerContourSegment:{outerContourSegment.Count()}");
 
 
-                    //if (leftJoin != null && leftJoin == "T1" && currentSeg != null)
-                    //{
-                    //    var p1 = innerSeg.Start;
-                    //    var p2 = innerSeg.End;
+                        //innerStart = ZnajdzPrzeciecieLukuZKonturem(
+                        //    innerArcSeg.Center.Value,
+                        //    innerStart,
+                        //    outerContour,
+                        //    false);
 
-                    //           // wyznaczenie przecięć z outerContourSegment
-                    //    var newStart = ZnajdzPrzeciecieLukuZKonturem(
-                    //        currentSeg.Center.Value,
-                    //        p1,
-                    //        outerContourSegment);
+                        //innerArcSeg = new ContourSegment(innerEnd, innerStart,
+                        //innerCenter, innerRadius, true);   // ← zawsze CW
 
-                    //    var newEnd = ZnajdzPrzeciecieLukuZKonturem(
-                    //        currentSeg.Center.Value,
-                    //        p2,
-                    //        outerContourSegment);
 
-                    //    Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] newStart.Start: {newStart.X} -> {currentSeg.Start.X}, {newStart.Y} -> {currentSeg.Start.Y}");
-                    //    Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] newEnd.End: {newEnd.X} -> {currentSeg.End.X}, {newEnd.Y} -> {currentSeg.End.Y}");
+                        // wyznaczenie przecięć z outerContourSegment
+                        innerSeg.End = ZnajdzPrzeciecieLukuZKonturem(
+                            currentSeg.Center.Value,
+                            innerSeg.Start,
+                            outerContourSegment, 
+                            true);
 
-                    //    return new List<XPoint>
-                    //                    {
-                    //                        currentSeg.Start,
-                    //                        currentSeg.End,
-                    //                        newEnd,
-                    //                        newStart
-                    //                    };
-                    //}
+                        innerSeg.End = innerSeg.Start;
+
+                        //var newEnd = ZnajdzPrzeciecieLukuZKonturem(
+                        //    currentSeg.Center.Value,
+                        //    p2,
+                        //    outerContourSegment,
+                        //    false);
+
+                        //Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] newStart.Start: {newStart.X} -> {currentSeg.Start.X}, {newStart.Y} -> {currentSeg.Start.Y}");
+                        //Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] newEnd.End: {newEnd.X} -> {currentSeg.End.X}, {newEnd.Y} -> {currentSeg.End.Y}");
+
+                        return new List<XPoint>
+                                        {
+                                            currentSeg.Start,
+                                            currentSeg.End,
+                                            innerSeg.End,
+                                            innerSeg.Start
+                                        };
+                    }
 
                     return new List<XPoint>
                     {
@@ -2454,6 +2468,148 @@ namespace GEORGE.Client.Pages.Okna
             return result;
 
 
+        }
+
+        private static XPoint ZnajdzPrzeciecieZKonturemKat(
+        XPoint origin,
+        double angleDegrees,
+        List<ContourSegment> contour,
+        bool forward = true)
+        {
+            double angleRad = angleDegrees * Math.PI / 180.0;
+            double dirX = Math.Cos(angleRad);
+            double dirY = Math.Sin(angleRad);
+
+            XPoint bestPoint = origin;
+            double bestDistance = double.MaxValue;
+
+            foreach (var seg in contour)
+            {
+                if (seg.Type == SegmentType.Line)
+                {
+                    // Istniejąca logika dla linii
+                    XPoint farPoint = new XPoint(origin.X + dirX * 100000.0, origin.Y + dirY * 100000.0);
+                    if (LineIntersection(origin, farPoint, seg.Start, seg.End, out XPoint intersection))
+                    {
+                        double intDx = intersection.X - origin.X;
+                        double intDy = intersection.Y - origin.Y;
+                        double dotProduct = intDx * dirX + intDy * dirY;
+                        bool isForward = dotProduct > 0;
+
+                        if ((forward && isForward) || (!forward && !isForward))
+                        {
+                            double distance = Math.Sqrt(intDx * intDx + intDy * intDy);
+                            if (distance >= 0.001 && distance < bestDistance)
+                            {
+                                bestDistance = distance;
+                                bestPoint = intersection;
+                            }
+                        }
+                    }
+                }
+                else if (seg.Type == SegmentType.Arc && seg.Center.HasValue)
+                {
+                    // 1. Przecięcie prostej z okręgiem
+                    var intersections = GetRayCircleIntersections(
+                        origin, dirX, dirY, seg.Center.Value, seg.Radius);
+
+                    foreach (var pt in intersections)
+                    {
+                        double intDx = pt.X - origin.X;
+                        double intDy = pt.Y - origin.Y;
+                        double dotProduct = intDx * dirX + intDy * dirY;
+                        bool isForward = dotProduct > 0;
+
+                        if ((forward && isForward) || (!forward && !isForward))
+                        {
+                            // 2. Sprawdź czy punkt leży na łuku
+                            if (IsPointOnArc(pt, seg))
+                            {
+                                double distance = Math.Sqrt(intDx * intDx + intDy * intDy);
+                                if (distance >= 0.001 && distance < bestDistance)
+                                {
+                                    bestDistance = distance;
+                                    bestPoint = pt;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Console.WriteLine(
+                $"ZnajdzPrzeciecieZKonturemKat: " +
+                $"origin({origin.X:F2},{origin.Y:F2}) angle={angleDegrees:F1}deg " +
+                $"result({bestPoint.X:F2},{bestPoint.Y:F2}) " +
+                $"forward={forward}, distance={bestDistance:F2}");
+
+            return bestPoint;
+        }
+
+        /// <summary>
+        /// Oblicza punkty przecięcia półprostej (origin + t * (dirX,dirY), t>=0) z okręgiem.
+        /// Zwraca listę 0..2 punktów.
+        /// </summary>
+        private static List<XPoint> GetRayCircleIntersections(
+            XPoint rayOrigin, double dirX, double dirY,
+            XPoint center, double radius)
+        {
+            List<XPoint> result = new List<XPoint>();
+
+            double dx = rayOrigin.X - center.X;
+            double dy = rayOrigin.Y - center.Y;
+            double a = dirX * dirX + dirY * dirY;  // = 1
+            double b = 2 * (dx * dirX + dy * dirY);
+            double c = dx * dx + dy * dy - radius * radius;
+            double discriminant = b * b - 4 * a * c;
+
+            if (discriminant < -1e-9) return result; // brak przecięć
+
+            double sqrtDisc = Math.Sqrt(Math.Max(0, discriminant));
+            double t1 = (-b - sqrtDisc) / (2 * a);
+            double t2 = (-b + sqrtDisc) / (2 * a);
+
+            // Dodajemy tylko punkty z t >= 0 (na półprostej)
+            if (t1 >= 0)
+                result.Add(new XPoint(rayOrigin.X + t1 * dirX, rayOrigin.Y + t1 * dirY));
+            if (t2 >= 0 && Math.Abs(t2 - t1) > 1e-9)
+                result.Add(new XPoint(rayOrigin.X + t2 * dirX, rayOrigin.Y + t2 * dirY));
+
+            return result;
+        }
+
+        /// <summary>
+        /// Sprawdza, czy punkt leży na segmencie łuku (między Start a End w zadanym kierunku).
+        /// </summary>
+        private static bool IsPointOnArc(XPoint pt, ContourSegment arc)
+        {
+            if (!arc.Center.HasValue) return false;
+
+            double angle = Math.Atan2(pt.Y - arc.Center.Value.Y, pt.X - arc.Center.Value.X);
+            double startAngle = Math.Atan2(arc.Start.Y - arc.Center.Value.Y, arc.Start.X - arc.Center.Value.X);
+            double endAngle = Math.Atan2(arc.End.Y - arc.Center.Value.Y, arc.End.X - arc.Center.Value.X);
+
+            // Normalizacja kątów do [0, 2π)
+            angle = (angle + 2 * Math.PI) % (2 * Math.PI);
+            startAngle = (startAngle + 2 * Math.PI) % (2 * Math.PI);
+            endAngle = (endAngle + 2 * Math.PI) % (2 * Math.PI);
+
+            if (arc.CounterClockwise)
+            {
+                // Łuk od start do end przeciwnie do ruchu wskazówek (CCW)
+                if (startAngle <= endAngle)
+                    return angle >= startAngle && angle <= endAngle;
+                else
+                    return angle >= startAngle || angle <= endAngle;
+            }
+            else
+            {
+                // Łuk od start do end zgodnie z ruchem wskazówek (CW) – równoważnie CCW od end do start
+                if (endAngle <= startAngle)
+                    return angle <= startAngle && angle >= endAngle;
+                else
+                    return angle <= startAngle || angle >= endAngle;
+            }
         }
 
         private static XPoint ZnajdzPrzeciecieLiniiZKonturem(
