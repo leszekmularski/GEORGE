@@ -2028,6 +2028,8 @@ namespace GEORGE.Client.Pages.Okna
             double arcRadius = 0;
             bool arcCW = false;
 
+            double tolerance = 0.10; // Tolerancja odległości do łuku
+
             // Sprawdź wszystkie pary segmentów, nie tylko (0-1)
             foreach (var seg in outerContour)
             {
@@ -2041,9 +2043,10 @@ namespace GEORGE.Client.Pages.Okna
                         double distToEnd = Distance(seg.End, wierzcholki[next]);
 
                         // Sprawdź też odwrotną kolejność
-                        bool match = (distToStart < 1.0 && distToEnd < 1.0) ||
-                                    (Distance(seg.Start, wierzcholki[next]) < 1.0 &&
-                                     Distance(seg.End, wierzcholki[i]) < 1.0);
+                        bool match = (distToStart < tolerance && distToEnd < tolerance) ||
+                                    (Distance(seg.Start, wierzcholki[next]) < tolerance &&
+                                     Distance(seg.End, wierzcholki[i]) < tolerance);
+
 
                         if (match)
                         {
@@ -2284,6 +2287,8 @@ namespace GEORGE.Client.Pages.Okna
         int vertexCount = 0,
         float firstangleDegrees = 0)
         {
+            return wierzcholki;
+
             if (i < 0 || i >= outerContourSegment.Count() || outerContourSegment.Count() < 2)
                 return wierzcholki;
 
@@ -2315,48 +2320,49 @@ namespace GEORGE.Client.Pages.Okna
                 if (innerSeg != null)
                 {
 
-                    if (leftJoin != null && leftJoin == "T1" && currentSeg != null)
-                    {
+                    //if (leftJoin != null && leftJoin == "T1" && currentSeg != null)
+                    //{
 
-                        Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] ŁUK: używam punktów z konturu (oryginalna logika) outerContourSegment:{outerContourSegment.Count()}");
-
-
-                        //innerStart = ZnajdzPrzeciecieLukuZKonturem(
-                        //    innerArcSeg.Center.Value,
-                        //    innerStart,
-                        //    outerContour,
-                        //    false);
-
-                        //innerArcSeg = new ContourSegment(innerEnd, innerStart,
-                        //innerCenter, innerRadius, true);   // ← zawsze CW
+                    //    Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] ŁUK: używam punktów z konturu (oryginalna logika) outerContourSegment:{outerContourSegment.Count()}");
 
 
-                        // wyznaczenie przecięć z outerContourSegment
-                        innerSeg.End = ZnajdzPrzeciecieLukuZKonturem(
-                            currentSeg.Center.Value,
-                            innerSeg.Start,
-                            outerContourSegment, 
-                            true);
+                    //    //innerStart = ZnajdzPrzeciecieLukuZKonturem(
+                    //    //    innerArcSeg.Center.Value,
+                    //    //    innerStart,
+                    //    //    outerContour,
+                    //    //    false);
 
-                        innerSeg.End = innerSeg.Start;
+                    //    //innerArcSeg = new ContourSegment(innerEnd, innerStart,
+                    //    //innerCenter, innerRadius, true);   // ← zawsze CW
 
-                        //var newEnd = ZnajdzPrzeciecieLukuZKonturem(
-                        //    currentSeg.Center.Value,
-                        //    p2,
-                        //    outerContourSegment,
-                        //    false);
 
-                        //Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] newStart.Start: {newStart.X} -> {currentSeg.Start.X}, {newStart.Y} -> {currentSeg.Start.Y}");
-                        //Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] newEnd.End: {newEnd.X} -> {currentSeg.End.X}, {newEnd.Y} -> {currentSeg.End.Y}");
+                    //    // wyznaczenie przecięć z outerContourSegment
+                    //    //innerSeg.End = ZnajdzPrzeciecieLukuZKonturem(
+                    //    //    currentSeg.Center.Value,
+                    //    //    innerSeg.Start,
+                    //    //    outerContourSegment, 
+                    //    //    true);
 
-                        return new List<XPoint>
-                                        {
-                                            currentSeg.Start,
-                                            currentSeg.End,
-                                            innerSeg.End,
-                                            innerSeg.Start
-                                        };
-                    }
+                    //    //var newEnd = ZnajdzPrzeciecieLukuZKonturem(
+                    //    //    currentSeg.Center.Value,
+                    //    //    p2,
+                    //    //    outerContourSegment,
+                    //    //    false);
+
+                    //    //Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] newStart.Start: {newStart.X} -> {currentSeg.Start.X}, {newStart.Y} -> {currentSeg.Start.Y}");
+                    //    //Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] newEnd.End: {newEnd.X} -> {currentSeg.End.X}, {newEnd.Y} -> {currentSeg.End.Y}");
+                    //    currentSeg.Start = new XPoint(0, 0);
+                    //    currentSeg.End = new XPoint(1000, 0);
+                    //    innerSeg.Start = new XPoint(1000, 100);
+                    //    innerSeg.Start = new XPoint(0, 100);
+                    //    return new List<XPoint>
+                    //                    {
+                    //                        currentSeg.Start,
+                    //                        currentSeg.End,
+                    //                        innerSeg.End,
+                    //                        innerSeg.Start
+                    //                    };
+                    //}
 
                     return new List<XPoint>
                     {
