@@ -215,7 +215,9 @@
         }
         else
         {
-            <Divider>Ilość pozycji do zamówienia: @szybyDoZlecen.Count(), suma sztuk: @szybyDoZlecen.Sum(x => x.IloscSztuk).ToString()</Divider>
+            <Divider>Ilość pozycji do zamówienia: @szybyDoZlecen.Count(), suma sztuk: @szybyDoZlecen.Sum(x => x.IloscSztuk).ToString()
+                Suma Szerokości: @(szybyDoZlecen.Sum(x => x.IloscSztuk * x.Szerokosc) / 1000)mb Suma Wysokości: @(szybyDoZlecen.Sum(x => x.IloscSztuk * x.Wysokosc) / 100) mb
+            </Divider>
 
             <div>
                 @*              <Table TItem="SzybyDoZlecen" DataSource="@szybyDoZlecen" PageSize="@_pageSize" ScrollX="2150" Size="TableSize.Small"
