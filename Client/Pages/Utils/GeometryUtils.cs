@@ -458,7 +458,7 @@ namespace GEORGE.Client.Pages.Utils
 
                     var podzielone = await PodzielRegionRekurencyjnie(initial, linieDzielace, id, rama);
 
-                   // Console.WriteLine($"🔲 Generowanie regionów PodzielRegionRekurencyjnie podzielone.Count: {podzielone.Count} id:{id}");
+                    // Console.WriteLine($"🔲 Generowanie regionów PodzielRegionRekurencyjnie podzielone.Count: {podzielone.Count} id:{id}");
 
                     int idCounter = 0;
 
@@ -597,7 +597,7 @@ namespace GEORGE.Client.Pages.Utils
 
                         r.RozpoznajTyp(r.TypKsztaltu);
 
-                       // Console.WriteLine($"🔹 Region id: {r.Id} po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - RAMA");
+                        // Console.WriteLine($"🔹 Region id: {r.Id} po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - RAMA");
 
                         if (r.TypKsztaltu == "xhouseshape" && r.Wierzcholki.Count == 4)
                         {
@@ -742,7 +742,7 @@ namespace GEORGE.Client.Pages.Utils
                                 r.RozpoznajTyp(r.TypKsztaltu);
                             }
 
-                         //   Console.WriteLine($"🔹 Region po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - SKRZYDŁO (bez podziału)");
+                            //   Console.WriteLine($"🔹 Region po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - SKRZYDŁO (bez podziału)");
 
                             if (r.TypKsztaltu == "xhouseshape" && r.Wierzcholki.Count == 4)
                             {
@@ -794,7 +794,7 @@ namespace GEORGE.Client.Pages.Utils
                         //Console.WriteLine($"✅ Znaleziono {linieDzielace.Count} linii dzielących - wykonuję podział");
                         podzielone = await PodzielRegionRekurencyjnieDeterministycznie(initial, linieDzielace, id, rama);
 
-      
+
                         //Console.WriteLine($"🔲 Generowanie regionów PodzielRegionRekurencyjnieDeterministycznie podzielone.Count: {podzielone.Count}");
 
                         foreach (var r in podzielone)
@@ -935,7 +935,7 @@ namespace GEORGE.Client.Pages.Utils
 
                             r.RozpoznajTyp(r.TypKsztaltu);
 
-                           // Console.WriteLine($"🔹 Region po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - SKRZYDŁO (z podziałem)");
+                            // Console.WriteLine($"🔹 Region po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - SKRZYDŁO (z podziałem)");
 
                             if (r.TypKsztaltu == "xhouseshape" && r.Wierzcholki.Count == 4)
                             {
@@ -1316,7 +1316,7 @@ namespace GEORGE.Client.Pages.Utils
                 }
             }
 
-           // Console.WriteLine($"PodzielKonturPoLinii Znaleziono {uniqueIntersectionPoints.Count} unikalnych punktów przecięcia");
+            // Console.WriteLine($"PodzielKonturPoLinii Znaleziono {uniqueIntersectionPoints.Count} unikalnych punktów przecięcia");
 
             if (uniqueIntersectionPoints.Count < 2)
                 return new List<List<ContourSegment>> { new List<ContourSegment>(contour) };
@@ -1329,7 +1329,7 @@ namespace GEORGE.Client.Pages.Utils
             var p1 = orderedPoints.First();
             var p2 = orderedPoints.Last();
 
-           // Console.WriteLine($"PodzielKonturPoLinii P1: ({p1.X:F2},{p1.Y:F2}), P2: ({p2.X:F2},{p2.Y:F2})");
+            // Console.WriteLine($"PodzielKonturPoLinii P1: ({p1.X:F2},{p1.Y:F2}), P2: ({p2.X:F2},{p2.Y:F2})");
 
             // Krok 2: Przypisz każdy segment do lewej lub prawej strony
             var leftSegments = new List<ContourSegment>();
@@ -1396,8 +1396,8 @@ namespace GEORGE.Client.Pages.Utils
                 }
             }
 
-           // Console.WriteLine($"PodzielKonturPoLinii Lewa strona: {leftSegments.Count} segmentów");
-           // Console.WriteLine($"PodzielKonturPoLinii Prawa strona: {rightSegments.Count} segmentów");
+            // Console.WriteLine($"PodzielKonturPoLinii Lewa strona: {leftSegments.Count} segmentów");
+            // Console.WriteLine($"PodzielKonturPoLinii Prawa strona: {rightSegments.Count} segmentów");
 
             // Krok 3: Dodaj linię podziału
             if (leftSegments.Count > 0 && rightSegments.Count > 0)

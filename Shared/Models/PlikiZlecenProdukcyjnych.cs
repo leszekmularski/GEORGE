@@ -1,4 +1,6 @@
-﻿namespace GEORGE.Shared.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace GEORGE.Shared.Models
 {
     public class PlikiZlecenProdukcyjnych
     {
@@ -14,5 +16,21 @@
         public bool WidocznyDlaWszystkich { get; set; } = false;
         public string? OstatniaZmiana { get; set; } = "Zmiana: " + DateTime.Now.ToLongDateString();
         public long IloscPobranPliku { get; set; } = 0;
+
+        [NotMapped]
+        public Guid RowGuid
+        {
+            get
+            {
+                if (Guid.TryParse(RowId, out var guid))
+                    return guid;
+
+                return Guid.Empty;
+            }
+            set
+            {
+                RowId = value.ToString();
+            }
+        }
     }
 }

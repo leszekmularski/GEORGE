@@ -1,7 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
-using GEORGE.Shared;
-using System.Collections.Generic;
-using GEORGE.Shared.Models;
+﻿using GEORGE.Shared.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace GEORGE.Server
 {
@@ -16,7 +14,7 @@ namespace GEORGE.Server
         public DbSet<ZleceniaProdukcyjneWew>? ZleceniaProdukcyjneWew { get; set; }
         public DbSet<KartyInstrukcyjne> KartyInstrukcyjne { get; set; }
         public DbSet<RodzajeKartInstrukcyjnych> RodzajeKartInstrukcyjnych { get; set; }
-        public DbSet<PlikiZlecenProdukcyjnych> PlikiZlecenProdukcyjnych { get; set; }   
+        public DbSet<PlikiZlecenProdukcyjnych> PlikiZlecenProdukcyjnych { get; set; }
         public DbSet<KantowkaDoZlecen>? KantowkaDoZlecen { get; set; }
         public DbSet<SzybyDoZlecen>? SzybyDoZlecen { get; set; }
         public DbSet<LinieProdukcyjne>? LinieProdukcyjne { get; set; }
@@ -36,6 +34,7 @@ namespace GEORGE.Server
         public DbSet<KonfModeleElementy> KonfModeleElementy => Set<KonfModeleElementy>();
         public DbSet<KonfPolaczenie> KonfPolaczenie => Set<KonfPolaczenie>();
         public DbSet<WzorceKompletacji> WzorceKompltacji => Set<WzorceKompletacji>(); //Wersja shared: 1.0.1.5 Wersja server:1.1.2.0
+        public DbSet<Schody> Schody => Set<Schody>(); //Wersja shared: 1.0.2.4 Wersja server: 1.1.3.4
 
         //***********************************************************************************************************************************************************************************************
 
@@ -90,8 +89,8 @@ namespace GEORGE.Server
                 return false;
             }
 
-           var zlecNaLinii = await ZleceniaNaLinii
-          .FirstOrDefaultAsync(z => z.RowIdZleceniaProdukcyjne == rowid && z.RowIdLinieProdukcyjne == rowidlinia);
+            var zlecNaLinii = await ZleceniaNaLinii
+           .FirstOrDefaultAsync(z => z.RowIdZleceniaProdukcyjne == rowid && z.RowIdLinieProdukcyjne == rowidlinia);
 
             if (zlecNaLinii != null)
             {
@@ -132,7 +131,7 @@ namespace GEORGE.Server
 
             if (zlecNaLinii != null)
             {
-                
+
                 // Aktualizowanie danych
                 if (zlec.DataRozpProdukcji == DateTime.MinValue || (nowaDataProdukcji == DateTime.MinValue && zlecNaLinii.DataRozpProdukcjiNaLinii == zlec.DataRozpProdukcji))
                 {

@@ -1,7 +1,57 @@
 ﻿@page "/WybierzSchody"
 @using System.Globalization
-@using System.Net;
+@using System.Net
+@using GEORGE.Shared.Models
+@using Newtonsoft.Json
 @inject IJSRuntime JSRuntime
+@inject Utilities.ILocalStorage LocalStorage
+@inject HttpClient Http
+@inject INotificationService _notice
+@inject NavigationManager NavigationManager
+
+<script>
+        window.clipboardImage = {
+
+        readImage: async function () {
+
+            try {
+
+                const items = await navigator.clipboard.read();
+
+                for (const item of items) {
+
+                    for (const type of item.types) {
+
+                        if (type.startsWith("image/")) {
+
+                            const blob = await item.getType(type);
+
+                            return await new Promise(resolve => {
+
+                                const reader = new FileReader();
+
+                                reader.onload = () => resolve(reader.result);
+
+                                reader.readAsDataURL(blob);
+
+                            });
+                        }
+                    }
+                }
+
+                alert("Brak obrazu w schowku.");
+
+                return null;
+
+            } catch (e) {
+
+                alert("Nie udało się odczytać schowka.");
+
+                return null;
+            }
+        }
+    };
+</script>
 
 <div style="display: flex; align-items: center; gap: 10px;">
     <h3>Wybierz typ schodów</h3>
@@ -11,51 +61,560 @@
 </div>
 
 <Divider></Divider>
-<div class="nav-item px-3">
 
-    <NavLink class="nav-link" href="@{$"_14_z_l/{WebUtility.UrlEncode("Schody 1/4 zabieg w lewo")}"}">
-        <span class="oi oi-brush" style="font-weight: bold; color:firebrick" aria-hidden="true"></span> Schody 1/4 zabieg w lewo [w budowie]
-    </NavLink>
-    <NavLink class="nav-link" href="@{$"_14_z_l/{WebUtility.UrlEncode("Schody 1/4 zabieg w prawo")}"}">
-        <span class="oi oi-brush" style="font-weight: bold; color:firebrick" aria-hidden="true"></span> Schody 1/4 zabieg w prawo [w budowie]
-    </NavLink>
-    <NavLink class="nav-link" href="@{$"_14_p_l/{WebUtility.UrlEncode("Schody 1/4 podest w lewo")}"}">
-        <span class="oi oi-brush" style="font-weight: bold; color:firebrick" aria-hidden="true"></span> Schody 1/4 podest w lewo [w budowie]
-    </NavLink>
-    <NavLink class="nav-link" href="@{$"_14_p_l/{WebUtility.UrlEncode("Schody 1/4 podest w prawo")}"}">
-        <span class="oi oi-brush" style="font-weight: bold; color:firebrick" aria-hidden="true"></span> Schody 1/4 podest w prawo [w budowie]
-    </NavLink>
-    <NavLink class="nav-link" href="@{$"_24_z_l/{WebUtility.UrlEncode("Schody 2/4 zabieg w lewo")}"}">
-        <span class="oi oi-brush" aria-hidden="true"></span> Schody 2/4 zabieg w lewo [w budowie - brak rys.]
-    </NavLink>
-    <NavLink class="nav-link" href="@{$"_24_z_l/{WebUtility.UrlEncode("Schody 2/4 zabieg w prawo")}"}">
-        <span class="oi oi-brush" aria-hidden="true"></span> Schody 2/4 zabieg w prawo [w budowie - brak rys.]
-    </NavLink>
-    <NavLink class="nav-link" href="@{$"_12_p_l/{WebUtility.UrlEncode("Schody 1/2 podest w lewo")}"}">
-        <span class="oi oi-brush" aria-hidden="true"></span> Schody 1/2 podest w lewo [w budowie - brak rys.]
-    </NavLink>
-    <NavLink class="nav-link" href="@{$"_12_p_l/{WebUtility.UrlEncode("Schody 1/2 podest w prawo")}"}">
-        <span class="oi oi-brush" aria-hidden="true"></span> Schody 1/2 podest w prawo [w budowie - brak rys.]
-    </NavLink>
-    <NavLink class="nav-link" href="@{$"_p_l/{WebUtility.UrlEncode("Schody proste w lewo")}"}">
-        <span class="oi oi-brush" style="font-weight: bold; color:green" aria-hidden="true"></span> <b style="color:green">Schody proste w lewo [CNC - OK]</b>
-    </NavLink>
-@*     <NavLink class="nav-link" href="@{$"_p_l/{WebUtility.UrlEncode("Schody proste w prawo")}"}">
-        <span class="oi oi-brush" style="font-weight: bold; color:green" aria-hidden="true"></span> <b style="color:green">Schody proste w prawo [CNC - OK]</b>
-    </NavLink> *@
-    <NavLink class="nav-link" href="@{$"_k_l/{WebUtility.UrlEncode("Schody kręte w lewo")}"}">
-        <span class="oi oi-brush" aria-hidden="true" style="font-weight: bold; color:firebrick"></span> Schody kręte w lewo [w budowie]
-    </NavLink>
-    <NavLink class="nav-link" href="@{$"_k_l/{WebUtility.UrlEncode("Schody kręte w prawo")}"}">
-        <span class="oi oi-brush" aria-hidden="true" style="font-weight: bold; color:firebrick"></span> Schody kręte w prawo [w budowie]
-    </NavLink>
-</div>
+<Tabs TabPosition="@TabPosition.Left" Type="@TabType.Card" @bind-ActiveKey="activeKey" OnTabClick="OnTabClick">
 
-@code {
+    <TabPane Key="0" Tab="Typy schodów">
 
-    [Inject] private AppState AppState { get; set; } = default!;
+        <div class="nav-item px-3">
+
+            <NavLink class="nav-link"
+                     href="@($"_14_z_l/{WebUtility.UrlEncode("Schody 1/4 zabieg w lewo")}")">
+                <span class="oi oi-brush" style="font-weight:bold;color:firebrick" aria-hidden="true"></span>
+                Schody 1/4 zabieg w lewo [w budowie]
+            </NavLink>
+
+            <NavLink class="nav-link"
+                     href="@($"_14_z_l/{WebUtility.UrlEncode("Schody 1/4 zabieg w prawo")}")">
+                <span class="oi oi-brush" style="font-weight:bold;color:firebrick" aria-hidden="true"></span>
+                Schody 1/4 zabieg w prawo [w budowie]
+            </NavLink>
+
+            <NavLink class="nav-link"
+                     href="@($"_14_p_l/{WebUtility.UrlEncode("Schody 1/4 podest w lewo")}")">
+                <span class="oi oi-brush" style="font-weight:bold;color:firebrick" aria-hidden="true"></span>
+                Schody 1/4 podest w lewo [w budowie]
+            </NavLink>
+
+            <NavLink class="nav-link"
+                     href="@($"_14_p_l/{WebUtility.UrlEncode("Schody 1/4 podest w prawo")}")">
+                <span class="oi oi-brush" style="font-weight:bold;color:firebrick" aria-hidden="true"></span>
+                Schody 1/4 podest w prawo [w budowie]
+            </NavLink>
+
+            <NavLink class="nav-link"
+                     href="@($"_24_z_l/{WebUtility.UrlEncode("Schody 2/4 zabieg w lewo")}")">
+                <span class="oi oi-brush" aria-hidden="true"></span>
+                Schody 2/4 zabieg w lewo [w budowie - brak rys.]
+            </NavLink>
+
+            <NavLink class="nav-link"
+                     href="@($"_24_z_l/{WebUtility.UrlEncode("Schody 2/4 zabieg w prawo")}")">
+                <span class="oi oi-brush" aria-hidden="true"></span>
+                Schody 2/4 zabieg w prawo [w budowie - brak rys.]
+            </NavLink>
+
+            <NavLink class="nav-link"
+                     href="@($"_12_p_l/{WebUtility.UrlEncode("Schody 1/2 podest w lewo")}")">
+                <span class="oi oi-brush" aria-hidden="true"></span>
+                Schody 1/2 podest w lewo [w budowie - brak rys.]
+            </NavLink>
+
+            <NavLink class="nav-link"
+                     href="@($"_12_p_l/{WebUtility.UrlEncode("Schody 1/2 podest w prawo")}")">
+                <span class="oi oi-brush" aria-hidden="true"></span>
+                Schody 1/2 podest w prawo [w budowie - brak rys.]
+            </NavLink>
+
+            <NavLink class="nav-link"
+                     href="@($"_p_l/{WebUtility.UrlEncode("Schody proste w lewo")}")">
+                <span class="oi oi-brush" style="font-weight:bold;color:green" aria-hidden="true"></span>
+                <b style="color:green">Schody proste w lewo [CNC - OK]</b>
+            </NavLink>
+
+            @*
+            <NavLink class="nav-link"
+                     href="@($"_p_p/{WebUtility.UrlEncode("Schody proste w prawo")}")">
+                <span class="oi oi-brush" style="font-weight:bold;color:green" aria-hidden="true"></span>
+                <b style="color:green">Schody proste w prawo [CNC - OK]</b>
+            </NavLink>
+            *@
+
+            <NavLink class="nav-link"
+                     href="@($"_k_l/{WebUtility.UrlEncode("Schody kręte w lewo")}")">
+                <span class="oi oi-brush" style="font-weight:bold;color:firebrick" aria-hidden="true"></span>
+                Schody kręte w lewo [w budowie]
+            </NavLink>
+
+            <NavLink class="nav-link"
+                     href="@($"_k_l/{WebUtility.UrlEncode("Schody kręte w prawo")}")">
+                <span class="oi oi-brush" style="font-weight:bold;color:firebrick" aria-hidden="true"></span>
+                Schody kręte w prawo [w budowie]
+            </NavLink>
+
+        </div>
+
+    </TabPane>
+
+    <TabPane Key="1" Tab="Wyszukiwarka schodów">
+
+        @if (listaSchody == null)
+        {
+            <p><em>Brak danych...</em></p>
+        }
+        else if (!listaSchody.Any())
+        {
+            <p><strong>Brak danych...</strong></p>
+            <button class="btn btn-primary" @onclick="() => OtworzModalEdycji(new Schody())">Dodaj nowe schody</button>
+        }
+        else
+        {
+            <div class="card mb-3">
+
+                @if (boolZapis || boolAdmin)
+                {
+                    <div class="col-md-2">
+                        <button class="btn btn-primary" @onclick="() => OtworzModalEdycji(new Schody())">Dodaj nowe schody</button>
+                    </div>
+                }
+
+                <div class="card-body">
+
+                    <div class="row g-3 align-items-end">
+
+                        <!-- Typ -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Typ schodów</label>
+                            <Input @bind-Value="filtrTyp"
+                                   Placeholder="np. Schody proste"
+                                   AllowClear
+                                   Class="w-100" />
+                        </div>
+
+                        <!-- Wysokość -->
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold">Wysokość ±20 mm</label>
+                            <AntDesign.InputNumber @bind-Value="filtrWysokosc"
+                                                   class="form-control w-100" />
+                        </div>
+
+                        <!-- Szerokość -->
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold">Szerokość ±20 mm</label>
+                            <AntDesign.InputNumber @bind-Value="filtrSzerokosc"
+                                                   class="form-control w-100" />
+                        </div>
+
+                        <!-- Głębokość -->
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold">Głębokość ±20 mm</label>
+                            <AntDesign.InputNumber @bind-Value="filtrGlebokosc"
+                                                   class="form-control w-100" />
+                        </div>
+
+                        <!-- Button -->
+                        <div class="col-md-2">
+                            <Button Type="@ButtonType.Default"
+                                    Block
+                                    Icon="@IconType.Outline.Clear"
+                                    OnClick="WyczyscFiltry"
+                                    class="w-100"
+                                    style="height: 38px;">
+                                Wyczyść
+                            </Button>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+            <table class="table table-bordered table-striped">
+                <thead class="table-light">
+                    <tr>
+                        <th>Rysunek</th>
+                        <th>Typ</th>
+                        <th>Wysokość [mm]</th>
+                        <th>Szerokość [mm]</th>
+                        <th>Głębokość [mm]</th>
+                        <th style="width: 120px;">Akcja</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var schody in ListaSchodyFiltrowana)
+                    {
+                        <tr>
+                            <td>
+                                @if (schody.RysunekPogladowy?.Length > 20)
+                                {
+                                    <a target="_blank" href="data:image/png;base64,@Convert.ToBase64String(schody.RysunekPogladowy)">
+                                        <img title="zew:@schody.SzerokoscZabieg1 wew:@schody.SzerokoscZabieg2"
+                                             src="data:image/png;base64,@Convert.ToBase64String(schody.RysunekPogladowy)"
+                                             style="width: 150px; height: auto; object-fit: contain; border: 1px solid #ccc;" />
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Brak</span>
+                                }
+                            </td>
+                            <td>@(schody.Typ ?? "")</td>
+                            <td>@schody.Wysokosc</td>
+                            <td>@schody.Szerokosc</td>
+                            <td>@schody.Glebokosc</td>
+                            <td>
+                                <div class="d-flex gap-1">
+
+                                    <Button Type="@ButtonType.Primary"
+                                            Block
+                                            Icon="@IconType.Outline.Download"
+                                            Disabled="@(schody.RowIdPliku == Guid.Empty)"
+                                            OnClick="() => OnFileChange(schody.RowIdPliku.ToString())">
+                                        Pobierz
+                                    </Button>
+
+                                    @if (boolZmiana || boolAdmin)
+                                    {
+                                        <Tooltip Title="Edytuj">
+                                            <Button Type="primary"
+                                                    Size="small"
+                                                    Icon="@IconType.Outline.Edit"
+                                                    OnClick="() => OtworzModalEdycji(schody)" />
+                                        </Tooltip>
+                                    }
+
+                                    @if (boolUsuniecia || boolAdmin)
+                                    {
+                                        <Popconfirm Title="Czy chcesz usunąć dane?"
+                                                    OnConfirm="()=> deleteRow(schody.RowId.ToString())"
+                                                    OkText="Tak"
+                                                    CancelText="Nie">
+                                            <Tooltip Title="Usuń połączenie">
+                                                <Button Type="danger"
+                                                        Size="small"
+                                                        Icon="@IconType.Outline.Delete"
+                                                        Danger />
+                                            </Tooltip>
+                                        </Popconfirm>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+    </TabPane>
+
+</Tabs>
+
+<!-- Modal edycji -->
+<Modal Title="Dodaj / Edytuj schody do wyszukiwarki"
+       Visible="czyModalEdycjiWidoczny"
+       OnCancel="ZamknijModalEdycji"
+       OnOk="ZapiszEdycje"
+       OkText="@("Zapisz")"
+       CancelText="@("Anuluj")"
+       Width="950"
+       MaskClosable="false">
+
+    <div class="container-fluid">
+
+        <!-- DANE PODSTAWOWE -->
+        <Card Title="Dane podstawowe" Class="mb-3">
+            <div class="row">
+
+                <div class="col-md-8">
+                    <label class="form-label fw-bold">Typ schodów</label>
+
+                    <select class="form-control flex-grow-1" 
+                                @bind="@edytowaneSchody.Typ"
+                                @onclick:stopPropagation="true">
+
+                        <option value="">-- Wybierz typ schodów --</option>
+
+                        <option value="Schody 1/4 zabieg w lewo">Schody 1/4 zabieg w lewo</option>
+                        <option value="Schody 1/4 zabieg w prawo">Schody 1/4 zabieg w prawo</option>
+                        <option value="Schody 1/4 podest w lewo">Schody 1/4 podest w lewo</option>
+                        <option value="Schody 1/4 podest w prawo">Schody 1/4 podest w prawo</option>
+                        <option value="Schody 2/4 zabieg w lewo">Schody 2/4 zabieg w lewo</option>
+                        <option value="Schody 2/4 zabieg w prawo">Schody 2/4 zabieg w prawo</option>
+                        <option value="Schody 1/2 podest w lewo">Schody 1/2 podest w lewo</option>
+                        <option value="Schody 1/2 podest w prawo">Schody 1/2 podest w prawo</option>
+                        <option value="Schody 1/3 podest w lewo">Schody 1/3 podest w lewo</option>
+                        <option value="Schody 1/3 podest w prawo">Schody 1/3 podest w prawo</option>
+                        <option value="Schody proste">Schody proste</option>
+                        <option value="Schody kręte w lewo">Schody kręte w lewo</option>
+                        <option value="Schody kręte w prawo">Schody kręte w prawo</option>
+
+                    </select>
+                </div>
+
+                <div class="col-md-4 d-flex align-items-end">
+
+                    <div class="form-check">
+                        <InputCheckbox class="form-check-input"
+                                       @bind-Value="edytowaneSchody.Wycofany_z_produkcji" />
+
+                        <label class="form-check-label ms-2">
+                            Wycofane z produkcji
+                        </label>
+                    </div>
+
+                </div>
+
+            </div>
+        </Card>
+
+        <!-- WYMIARY -->
+        <Card Title="Wymiary schodów [mm]" Class="mb-3">
+
+            <div class="row">
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Szerokość</label>
+
+                    <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneSchody.Szerokosc"
+                                                                       class="form-control"
+                                                                       step="1"
+                                                                       @bind-Value:after="OnPrzesuniecieChanged" />
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Wysokość</label>
+
+                    <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneSchody.Wysokosc"
+                                                                       class="form-control"
+                                                                       step="1"
+                                                                       @bind-Value:after="OnPrzesuniecieChanged" />
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Głębokość</label>
+
+                    <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneSchody.Glebokosc"
+                                                                       class="form-control"
+                                                                       step="1"
+                                                                       @bind-Value:after="OnPrzesuniecieChanged" />
+                </div>
+
+            </div>
+
+            <hr />
+
+            <div class="row">
+
+                <div class="col-md-3 mb-3">
+                    <label class="form-label fw-bold">
+                        Szerokość zabiegu 1
+                    </label>
+
+                    <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneSchody.SzerokoscZabieg1"
+                                                                       class="form-control"
+                                                                       step="1"
+                                                                       @bind-Value:after="OnPrzesuniecieChanged" />
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <label class="form-label fw-bold">
+                        Szerokość zabiegu 2
+                    </label>
+
+                    <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneSchody.SzerokoscZabieg2"
+                                                                       class="form-control"
+                                                                       step="1"
+                                                                       @bind-Value:after="OnPrzesuniecieChanged" />
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <label class="form-label fw-bold">
+                        Głębokość zabiegu 1
+                    </label>
+
+                    <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneSchody.GlebokoscZabieg1"
+                                                                       class="form-control"
+                                                                       step="1"
+                                                                       @bind-Value:after="OnPrzesuniecieChanged" />
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <label class="form-label fw-bold">
+                        Głębokość zabiegu 2
+                    </label>
+
+                    <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneSchody.GlebokoscZabieg2"
+                                                                       class="form-control"
+                                                                       step="1"
+                                                                       @bind-Value:after="OnPrzesuniecieChanged" />
+                </div>
+
+            </div>
+
+        </Card>
+
+        <!-- PLIK PRODUKCYJNY -->
+        <Card Title="Plik produkcyjny" Class="mb-3">
+
+            <div class="row align-items-end">
+
+                <div class="col-md-10">
+
+                    <label class="form-label fw-bold">
+                        Powiązany plik
+                    </label>
+
+                    <Select DataSource="@pliki"
+                            ShowSearch
+                            AllowClear
+                            TItem="PlikiZlecenProdukcyjnych"
+                            TItemValue="Guid"
+                            @bind-Value="edytowaneSchody.RowIdPliku"
+                            LabelName="@nameof(PlikiZlecenProdukcyjnych.OryginalnaNazwaPliku)"
+                            ValueName="@nameof(PlikiZlecenProdukcyjnych.RowGuid)">
+                    </Select>
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <Button Type="@ButtonType.Primary"
+                            Block
+                            Icon="@IconType.Outline.Download"
+                            Disabled="@(edytowaneSchody.RowIdPliku == Guid.Empty)"
+                            OnClick="() => OnFileChange(edytowaneSchody.RowIdPliku.ToString())">
+                        Pobierz
+                    </Button>
+
+                </div>
+
+            </div>
+
+            @if (edytowaneSchody.RowIdPliku != Guid.Empty)
+            {
+                <div class="mt-3">
+
+                    <Tag Color="blue">
+                        RowId:
+                        @edytowaneSchody.RowIdPliku
+                    </Tag>
+
+                </div>
+            }
+
+        </Card>
+
+        <!-- RYSUNEK -->
+        <Card Title="Rysunek poglądowy" Class="mb-3">
+
+            <div class="row">
+
+                <div class="col-md-4">
+
+                    <div class="d-grid gap-2">
+
+                        <Button Type="@ButtonType.Primary"
+                                Icon="@IconType.Outline.Copy"
+                                OnClick="WklejRysunek">
+
+                            Wklej ze schowka
+
+                        </Button>
+
+                        <Button Danger
+                                Icon="@IconType.Outline.Delete"
+                                OnClick="UsunRysunek">
+
+                            Usuń rysunek
+
+                        </Button>
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-8">
+
+                    @if (edytowaneSchody.RysunekPogladowy?.Length > 0)
+                    {
+                        <div style="
+                                    min-height:250px;
+                                    display:flex;
+                                    justify-content:center;
+                                    align-items:center;
+                                    border:1px solid #d9d9d9;
+                                    border-radius:6px;
+                                    background:#fafafa;">
+
+                            <img src="@ObrazBase64"
+                                 style="
+                                            max-width:100%;
+                                            max-height:300px;
+                                            object-fit:contain;" />
+
+                        </div>
+                    }
+                    else
+                    {
+                        <div style="
+                                    min-height:250px;
+                                    display:flex;
+                                    justify-content:center;
+                                    align-items:center;
+                                    border:1px dashed #bfbfbf;
+                                    border-radius:6px;
+                                    color:gray;">
+
+                            Brak rysunku
+
+                        </div>
+                    }
+
+                </div>
+
+            </div>
+
+        </Card>
+
+        <!-- UWAGI -->
+        <Card Title="Dodatkowe informacje" Class="mb-3">
+
+            <TextArea @bind-Value="edytowaneSchody.Uwagi"
+                      Rows="4"
+                      Placeholder="Wpisz dodatkowe informacje..." />
+
+        </Card>
+
+        @if (!string.IsNullOrWhiteSpace(bladEdycji))
+        {
+            <Alert Type="@AlertType.Error"
+                   Message="@bladEdycji"
+                   ShowIcon="true"
+                   Class="mt-3" />
+        }
+
+    </div>
+
+</Modal>
+
+@code
+{
+    [Inject]
+    private AppState AppState { get; set; } = default!;
+
+    [Inject]
+    private IJSRuntime JS { get; set; } = default!;
 
     private string encodedUrl = "";
+
+    private string? activeKey = "0";
+
+    private List<Schody>? listaSchody;
+
+    private bool czyModalEdycjiWidoczny = false;
+    private string bladEdycji = "";
+    private Guid? edytowanyRowId = null;
+    private Schody? edytowaneSchody = null;
+
+    private string ObrazBase64 = "";
+    private List<PlikiZlecenProdukcyjnych> pliki = new List<PlikiZlecenProdukcyjnych>();
+    private PlikiZlecenProdukcyjnych? Plik;
+
+    private string? filtrTyp;
+
+    private double? filtrWysokosc;
+    private double? filtrSzerokosc;
+    private double? filtrGlebokosc;
 
     protected override async Task OnInitializedAsync()
     {
@@ -63,9 +622,366 @@
         {
             AppState.SomeData = "";
         }
-        await Task.CompletedTask;
 
         encodedUrl = "Schody 1/4 zabieg w lewo";
+
+        await Laduj_Uprawnienia();
+
+        await Task.CompletedTask;
+    }
+
+    private const double Tolerancja = 20.0;
+
+    private IEnumerable<Schody> ListaSchodyFiltrowana =>
+        listaSchody.Where(s =>
+
+            // Typ schodów
+            (string.IsNullOrWhiteSpace(filtrTyp)
+                || (s.Typ?.Contains(filtrTyp, StringComparison.OrdinalIgnoreCase) ?? false))
+
+            // Wysokość ±20 mm
+            && (!filtrWysokosc.HasValue
+                || Math.Abs(s.Wysokosc - filtrWysokosc.Value) <= Tolerancja)
+
+            // Szerokość ±20 mm
+            && (!filtrSzerokosc.HasValue
+                || Math.Abs(s.Szerokosc - filtrSzerokosc.Value) <= Tolerancja)
+
+            // Głębokość ±20 mm
+            && (!filtrGlebokosc.HasValue
+                || Math.Abs(s.Glebokosc - filtrGlebokosc.Value) <= Tolerancja)
+
+        );
+
+    private void WyczyscFiltry()
+    {
+        filtrTyp = "";
+
+        filtrWysokosc = null;
+        filtrSzerokosc = null;
+        filtrGlebokosc = null;
+    }
+
+    private Task OtworzModalEdycji(Schody schody)
+    {
+        edytowaneSchody = new Schody
+        {
+            Id = schody.Id,
+            RowId = schody.RowId,
+            Typ = schody.Typ,
+            Uwagi = schody.Uwagi,
+            Wysokosc = schody.Wysokosc,
+            Szerokosc = schody.Szerokosc,
+            Glebokosc = schody.Glebokosc,
+            GlebokoscZabieg1 = schody.GlebokoscZabieg1,
+            GlebokoscZabieg2 = schody.GlebokoscZabieg2,
+            SzerokoscZabieg1 = schody.SzerokoscZabieg1,
+            SzerokoscZabieg2 = schody.SzerokoscZabieg2,
+            Wycofany_z_produkcji = schody.Wycofany_z_produkcji,
+            RysunekPogladowy = schody.RysunekPogladowy?.ToArray() ?? Array.Empty<byte>(),
+            RowIdPliku = schody.RowIdPliku,
+            DataZapisu = schody.DataZapisu,
+            KtoZapisal = schody.KtoZapisal
+        };
+
+        bladEdycji = "";
+
+        ObrazBase64 = schody.RysunekPogladowy != null && schody.RysunekPogladowy.Length > 0
+            ? $"data:image/png;base64,{Convert.ToBase64String(schody.RysunekPogladowy)}"
+            : "";
+
+        czyModalEdycjiWidoczny = true;
+
+        return Task.CompletedTask;
+    }
+
+    private async Task OnFileChange(string rowIdPliku)
+    {
+        if (string.IsNullOrEmpty(rowIdPliku))
+        {
+            _ = _notice.Info(new()
+            {
+                Message = "Uwaga!!!!",
+                Description = "Zamówienie nie posiada załączonego pliku!!!",
+                Placement = NotificationPlacement.BottomLeft
+            });
+            return;
+        }
+        Plik = pliki.FirstOrDefault(p => p.RowId == rowIdPliku);
+
+        if (Plik != null)
+        {
+            await DownloadFile(Plik.NazwaPliku);
+        }
+    }
+
+    private async Task DownloadFile(string fileName)
+    {
+        try
+        {
+            //await Task.Delay(1000);  // Czekaj 2 sekundy przed próbą pobrania
+
+            // Konstrukcja pełnego URL dla plików w wwwroot/uploads/
+            var fileUrl = $"{NavigationManager.BaseUri}uploads_zlecenia/{fileName}";
+
+            if (!Uri.TryCreate(fileUrl, UriKind.Absolute, out var uri))
+            {
+                Console.WriteLine("Nieprawidłowy URL: " + fileUrl);
+                return;
+            }
+
+            using (var httpClient = new HttpClient())
+            {
+                httpClient.Timeout = TimeSpan.FromMinutes(10);
+                Console.WriteLine($"Pobieranie pliku z URL: {fileUrl}");
+
+                using (var response = await httpClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead))
+                {
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var contentStream = await response.Content.ReadAsStreamAsync();
+                        var actualFileName = Path.GetFileName(uri.LocalPath);
+
+                        using (var memoryStream = new MemoryStream())
+                        {
+                            await contentStream.CopyToAsync(memoryStream);
+                            memoryStream.Seek(0, SeekOrigin.Begin);
+
+                            // Wywołaj JavaScript do pobrania pliku
+                            await JSRuntime.InvokeVoidAsync("BlazorDownloadFile", actualFileName, memoryStream.ToArray());
+                        }
+
+                        Console.WriteLine($"Plik został pobrany i zapisany: {actualFileName}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Nie udało się pobrać pliku. {response.Content.Headers}");
+
+                        _ = _notice.Error(new()
+                        {
+                            Message = "System napotkał problem. Plik mógł zostać niepoprawnie pobrany",
+                            Description = response.Content.Headers.ToString(),
+                            Placement = NotificationPlacement.BottomLeft
+                        });
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message} / {ex.StackTrace}");
+            _ = _notice.Error(new()
+            {
+                Message = ex.Message,
+                Description = ex.StackTrace,
+                Placement = NotificationPlacement.BottomLeft
+            });
+        }
+    }
+
+
+    private async Task WklejRysunek()
+    {
+        var base64 = await JS.InvokeAsync<string>("clipboardImage.readImage");
+
+        if (!string.IsNullOrWhiteSpace(base64))
+        {
+            ObrazBase64 = base64;
+
+            var index = base64.IndexOf(',');
+
+            if (index >= 0)
+                base64 = base64[(index + 1)..];
+
+            edytowaneSchody.RysunekPogladowy =
+                Convert.FromBase64String(base64);
+
+            StateHasChanged();
+        }
+    }
+
+    private void UsunRysunek()
+    {
+        edytowaneSchody.RysunekPogladowy = Array.Empty<byte>();
+        ObrazBase64 = "";
+    }
+
+    // Zamknięcie modala
+    private void ZamknijModalEdycji()
+    {
+        czyModalEdycjiWidoczny = false;
+        edytowanyRowId = null;
+        bladEdycji = "";
+
+        edytowaneSchody = new Schody();
+    }
+
+    private async Task ZapiszEdycje()
+    {
+        try
+        {
+            bladEdycji = "";
+
+            if (string.IsNullOrWhiteSpace(edytowaneSchody.Typ))
+            {
+                bladEdycji = "Wybierz typ schodów.";
+                return;
+            }
+
+            HttpResponseMessage response;
+
+            // Nowy rekord
+            if (edytowaneSchody.Id == 0)
+            {
+                edytowaneSchody.DataZapisu = DateTime.Now;
+
+                response = await Http.PostAsJsonAsync(
+                    "api/Schody",
+                    edytowaneSchody);
+            }
+            // Edycja istniejącego
+            else
+            {
+                edytowaneSchody.DataZapisu = DateTime.Now;
+
+                response = await Http.PutAsJsonAsync(
+                    "api/Schody",
+                    edytowaneSchody);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                czyModalEdycjiWidoczny = false;
+
+                // odśwież listę
+                listaSchody = await Http.GetFromJsonAsync<List<Schody>>("api/Schody")
+                               ?? new List<Schody>();
+
+                StateHasChanged();
+            }
+            else
+            {
+                bladEdycji = await response.Content.ReadAsStringAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            bladEdycji = ex.Message;
+        }
+    }
+
+    private async Task OnPrzesuniecieChanged()
+    {
+        await Task.Delay(100); // Opcjonalne opóźnienie, aby upewnić się, że wartość została zaktualizowana
+    }
+
+
+    private async Task OnTabClick()
+    {
+        //Console.WriteLine($"Kliknięto zakładkę: {activeKey}");
+
+        if (activeKey == "0")
+        {
+            listaSchody = await Http.GetFromJsonAsync<List<Schody>>("api/Schody");
+
+            await LoadFiles();
+
+            StateHasChanged();
+        }
+
+    }
+
+    private async Task LoadFiles()
+    {
+        try
+        {
+            var response = await Http.GetAsync($"api/FileUploadZlec/all-files-sat");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var fileList = await response.Content.ReadFromJsonAsync<List<PlikiZlecenProdukcyjnych>>();
+                if (fileList != null)
+                {
+                    // Filtruj pliki, jeśli użytkownik nie jest administratorem
+                    //if (!boolAdmin)
+                    //{
+                    fileList = fileList.Where(p => p.WidocznyDlaWszystkich).ToList();
+                    //}
+
+                    // Upewnij się, że pole Uwagi nie jest null lub pusty string
+                    foreach (var itm in fileList)
+                    {
+                        itm.Uwagi ??= string.Empty;
+                    }
+
+                    pliki = fileList;
+                }
+                else
+                {
+                    pliki = new List<PlikiZlecenProdukcyjnych>();
+                }
+            }
+            else
+            {
+                // Obsługa błędów dla przypadków nieudanych odpowiedzi
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    // Obsługa przypadku 404 Not Found
+                    Console.Error.WriteLine($"404 Not Found: The file with name: SAT was not found.");
+                }
+                else
+                {
+                    // Obsługa innych błędów
+                    Console.Error.WriteLine($"Error loading files: {response.StatusCode} - {response.ReasonPhrase}");
+                }
+                pliki = new List<PlikiZlecenProdukcyjnych>();
+            }
+        }
+        catch (HttpRequestException httpRequestException)
+        {
+            // Obsługa błędów połączenia HTTP
+            Console.Error.WriteLine($"HTTP request error: {httpRequestException.Message}");
+            pliki = new List<PlikiZlecenProdukcyjnych>();
+        }
+        catch (JsonException jsonException)
+        {
+            // Obsługa błędów deserializacji JSON
+            Console.Error.WriteLine($"JSON parsing error: {jsonException.Message}");
+            pliki = new List<PlikiZlecenProdukcyjnych>();
+        }
+        catch (Exception ex)
+        {
+            // Globalna obsługa innych wyjątków
+            Console.Error.WriteLine($"An unexpected error occurred while loading files: {ex.Message}");
+            pliki = new List<PlikiZlecenProdukcyjnych>();
+        }
+    }
+
+    public async Task deleteRow(string rowId)
+    {
+        if (listaSchody == null) return;
+
+        try
+        {
+            var response = await Http.DeleteAsync($"api/Schody/{rowId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                listaSchody = await Http.GetFromJsonAsync<List<Schody>>("api/Schody") ?? new();
+
+                StateHasChanged();
+
+                Console.WriteLine("Rekord został pomyślnie usunięty.");
+            }
+            else
+            {
+                Console.WriteLine($"Błąd podczas usuwania rekordu: {response.ReasonPhrase}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"******* Błąd {ex.Message}");
+        }
     }
 
     private async Task GoBack()
@@ -73,5 +989,67 @@
         await JSRuntime.InvokeVoidAsync("history.back");
     }
 
-    
+    // Uprawnienia
+    private bool boolOdczyt = false;
+    private bool boolZmiana = false;
+    private bool boolZapis = false;
+    private bool boolUsuniecia = false;
+    private bool boolAdmin = false;
+    private string RowIdPracownika = "---";
+    private string RowIdDzal = "";
+    private string user = "";
+    private List<UprawnieniaPracownikaViewModel>? uprawnienia;
+
+    private async Task Laduj_Uprawnienia()
+    {
+
+        user = await LocalStorage.GetStringAsync("user");
+
+        string nazwaTabeli = "Schody";
+
+        if (user == null)
+        {
+            return;
+        }
+
+        try
+        {
+            uprawnienia = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"api/ZwrocSatus/{user}/{nazwaTabeli}");
+        }
+        catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            Console.WriteLine("Brak danych!!!");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Błąd!!! Info:{ex.Message}");
+        }
+
+        if (uprawnienia != null)
+        {
+            if (uprawnienia.Count > 0)
+            {
+
+                var znalezioneElementy = uprawnienia.Where(uprawnienie => uprawnienie.TableName == nazwaTabeli);
+
+                if (znalezioneElementy.Count() > 0)
+                {
+                    var szuk = znalezioneElementy.FirstOrDefault(x => x.TableName == nazwaTabeli);
+
+                    if (szuk != null)
+                    {
+                        boolOdczyt = szuk.Odczyt;
+                        boolZmiana = szuk.Zmiana;
+                        boolUsuniecia = szuk.Usuniecie;
+                        boolAdmin = szuk.Administrator;
+                        boolZapis = szuk.Zapis;
+                        RowIdPracownika = szuk.RowId;
+                        RowIdDzal = szuk.RowIdDzialu;
+
+                    }
+                }
+            }
+        }
+    }
+
 }

@@ -310,7 +310,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 .OrderBy(p => Distance(line.X1, line.Y1, p.X, p.Y))
                 .ToList();
 
-           // Console.WriteLine($"ShortenLineInsidePolygon -> intersections.Count: {intersections.Count}");
+            // Console.WriteLine($"ShortenLineInsidePolygon -> intersections.Count: {intersections.Count}");
 
             if (intersections.Count == 2)
             {
@@ -377,7 +377,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 .OrderBy(p => p.Y) // Sortujemy od góry do dołu
                 .ToList();
 
-           // Console.WriteLine($"Znalezione przecięcia: {intersections.Count}");
+            // Console.WriteLine($"Znalezione przecięcia: {intersections.Count}");
 
             if (intersections.Count >= 2)
             {
@@ -387,7 +387,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 line.X2 = intersections[^1].X; // Ostatni element listy to dolne przecięcie (bottomY)
                 line.Y2 = intersections[^1].Y;
 
-               // Console.WriteLine($"Linia obcięta do: ({line.X1}, {line.Y1}) → ({line.X2}, {line.Y2})");
+                // Console.WriteLine($"Linia obcięta do: ({line.X1}, {line.Y1}) → ({line.X2}, {line.Y2})");
             }
             else if (intersections.Count == 1)
             {
@@ -401,14 +401,14 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                     // Jeśli linia zaczyna się wewnątrz kształtu – przycinamy koniec
                     line.X2 = intersections[0].X;
                     line.Y2 = intersections[0].Y;
-                   // Console.WriteLine($"Przycinam końcówkę do: ({line.X2}, {line.Y2})");
+                    // Console.WriteLine($"Przycinam końcówkę do: ({line.X2}, {line.Y2})");
                 }
                 else
                 {
                     // Jeśli linia zaczyna się na zewnątrz – przycinamy początek
                     line.X1 = intersections[0].X;
                     line.Y1 = intersections[0].Y;
-                   // Console.WriteLine($"Przycinam początek do: ({line.X1}, {line.Y1})");
+                    // Console.WriteLine($"Przycinam początek do: ({line.X1}, {line.Y1})");
                 }
             }
             else

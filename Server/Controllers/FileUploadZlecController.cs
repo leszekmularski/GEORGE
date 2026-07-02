@@ -180,6 +180,25 @@ public class FileUploadZlecController : ControllerBase
         return Ok(files);
     }
 
+    [HttpGet("all-files-sat")]
+    public async Task<IActionResult> GetAllFilesSat()
+    {
+        try
+        {
+            var files = await _context.PlikiZlecenProdukcyjnych
+                .Where(f => f.TypPliku != null &&
+                            EF.Functions.Like(f.TypPliku, "%SAT%"))
+                .OrderBy(x => x.OryginalnaNazwaPliku)
+                .ToListAsync();
+
+            return Ok(files);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.ToString());
+        }
+    }
+
 
     [HttpPost("zmien-uwage")]
     public async Task<IActionResult> ZmienUwage(long id, [FromBody] string uwaga)
