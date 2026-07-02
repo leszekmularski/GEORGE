@@ -816,8 +816,18 @@
         edytowaneSchody = new Schody();
     }
 
+    private bool bCzekajNaZapis = false;
+
     private async Task ZapiszEdycje()
     {
+
+        if (bCzekajNaZapis)
+        {
+            return; // Jeśli już trwa zapis, nie rób nic
+        }
+
+        bCzekajNaZapis = true;
+
         try
         {
             bladEdycji = "";
@@ -825,6 +835,7 @@
             if (string.IsNullOrWhiteSpace(edytowaneSchody.Typ))
             {
                 bladEdycji = "Wybierz typ schodów.";
+                bCzekajNaZapis = false;
                 return;
             }
 
@@ -868,6 +879,8 @@
         {
             bladEdycji = ex.Message;
         }
+
+        bCzekajNaZapis = false;
     }
 
     private async Task OnPrzesuniecieChanged()
