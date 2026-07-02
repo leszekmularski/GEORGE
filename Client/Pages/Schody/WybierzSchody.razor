@@ -218,81 +218,100 @@
 
                 </div>
             </div>
-
-            <table class="table table-bordered table-striped">
-                <thead class="table-light">
-                    <tr>
-                        <th>Rysunek</th>
-                        <th>Typ</th>
-                        <th>Wysokość [mm]</th>
-                        <th>Szerokość [mm]</th>
-                        <th>Głębokość [mm]</th>
-                        <th style="width: 120px;">Akcja</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var schody in ListaSchodyFiltrowana)
-                    {
+            <Layout>
+             <Content>
+                    <table class="table table-bordered table-striped">
+                    <thead class="table-light">
                         <tr>
-                            <td>
-                                @if (schody.RysunekPogladowy?.Length > 20)
-                                {
-                                    <a target="_blank" href="data:image/png;base64,@Convert.ToBase64String(schody.RysunekPogladowy)">
-                                        <img title="zew:@schody.SzerokoscZabieg1 wew:@schody.SzerokoscZabieg2"
-                                             src="data:image/png;base64,@Convert.ToBase64String(schody.RysunekPogladowy)"
-                                             style="width: 150px; height: auto; object-fit: contain; border: 1px solid #ccc;" />
-                                    </a>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">Brak</span>
-                                }
-                            </td>
-                            <td>@(schody.Typ ?? "")</td>
-                            <td>@schody.Wysokosc</td>
-                            <td>@schody.Szerokosc</td>
-                            <td>@schody.Glebokosc</td>
-                            <td>
-                                <div class="d-flex gap-1">
-
-                                    <Button Type="@ButtonType.Primary"
-                                            Block
-                                            Icon="@IconType.Outline.Download"
-                                            Disabled="@(schody.RowIdPliku == Guid.Empty)"
-                                            OnClick="() => OnFileChange(schody.RowIdPliku.ToString())">
-                                        Pobierz
-                                    </Button>
-
-                                    @if (boolZmiana || boolAdmin)
-                                    {
-                                        <Tooltip Title="Edytuj">
-                                            <Button Type="primary"
-                                                    Size="small"
-                                                    Icon="@IconType.Outline.Edit"
-                                                    OnClick="() => OtworzModalEdycji(schody)" />
-                                        </Tooltip>
-                                    }
-
-                                    @if (boolUsuniecia || boolAdmin)
-                                    {
-                                        <Popconfirm Title="Czy chcesz usunąć dane?"
-                                                    OnConfirm="()=> deleteRow(schody.RowId.ToString())"
-                                                    OkText="Tak"
-                                                    CancelText="Nie">
-                                            <Tooltip Title="Usuń połączenie">
-                                                <Button Type="danger"
-                                                        Size="small"
-                                                        Icon="@IconType.Outline.Delete"
-                                                        Danger />
-                                            </Tooltip>
-                                        </Popconfirm>
-                                    }
-                                </div>
-                            </td>
+                            <th>Rysunek</th>
+                            <th>Typ</th>
+                            <th>Wysokość [mm]</th>
+                            <th>Szerokość [mm]</th>
+                            <th>Głębokość [mm]</th>
+                            <th style="width: 120px;">Akcja</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+
+                        @for (int i = (currnet_page - 1) * ilosc_na_stronie; i < currnet_page * ilosc_na_stronie; i++)
+                        {
+
+                        if (i >= ListaSchodyFiltrowana.Count()) // Sprawdź, czy indeks jest poza zakresem listy danych
+                        {
+                            break; // Wyjście z pętli, jeśli indeks jest poza zakresem
+                        }
+
+                            var schody = ListaSchodyFiltrowana.ElementAt(i);
+
+                            <tr>
+                                <td>
+                                    @if (schody.RysunekPogladowy?.Length > 20)
+                                    {
+                                        <a target="_blank" href="data:image/png;base64,@Convert.ToBase64String(schody.RysunekPogladowy)">
+                                            <img title="zew:@schody.SzerokoscZabieg1 wew:@schody.SzerokoscZabieg2"
+                                                 src="data:image/png;base64,@Convert.ToBase64String(schody.RysunekPogladowy)"
+                                                 style="width: 150px; height: auto; object-fit: contain; border: 1px solid #ccc;" />
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Brak</span>
+                                    }
+                                </td>
+                                <td>@(schody.Typ ?? "")</td>
+                                <td>@schody.Wysokosc</td>
+                                <td>@schody.Szerokosc</td>
+                                <td>@schody.Glebokosc</td>
+                                <td>
+                                    <div class="d-flex gap-1">
+
+                                        <Button Type="@ButtonType.Primary"
+                                                Block
+                                                Icon="@IconType.Outline.Download"
+                                                Disabled="@(schody.RowIdPliku == Guid.Empty)"
+                                                OnClick="() => OnFileChange(schody.RowIdPliku.ToString())">
+                                            Pobierz
+                                        </Button>
+
+                                        @if (boolZmiana || boolAdmin)
+                                        {
+                                            <Tooltip Title="Edytuj">
+                                                <Button Type="primary"
+                                                        Size="small"
+                                                        Icon="@IconType.Outline.Edit"
+                                                        OnClick="() => OtworzModalEdycji(schody)" />
+                                            </Tooltip>
+                                        }
+
+                                        @if (boolUsuniecia || boolAdmin)
+                                        {
+                                            <Popconfirm Title="Czy chcesz usunąć dane?"
+                                                        OnConfirm="()=> deleteRow(schody.RowId.ToString())"
+                                                        OkText="Tak"
+                                                        CancelText="Nie">
+                                                <Tooltip Title="Usuń połączenie">
+                                                    <Button Type="danger"
+                                                            Size="small"
+                                                            Icon="@IconType.Outline.Delete"
+                                                            Danger />
+                                                </Tooltip>
+                                            </Popconfirm>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                 </Content>
+                <Footer>
+                    <Pagination DefaultCurrent="@currnet_pageReplace" Total="@ListaSchodyFiltrowana.Count()" OnShowSizeChange="ZmienIloscNaStronie"
+                                PageSize="@ilosc_na_stronie" OnChange="UpdateCurrentPage" />
+                        <br />
+                        <label>Liczba załadowanych rekordów: @ListaSchodyFiltrowana.Count() / Strona @currnet_page</label>
+
+                </Footer>
+            </Layout>
         }
 
     </TabPane>
@@ -307,6 +326,7 @@
        OkText="@("Zapisz")"
        CancelText="@("Anuluj")"
        Width="950"
+       ConfirmLoading="bCzekajNaZapis"
        MaskClosable="false">
 
     <div class="container-fluid">
@@ -594,6 +614,10 @@
 
     [Inject]
     private IJSRuntime JS { get; set; } = default!;
+
+    private int currnet_page = 1;
+    private int ilosc_na_stronie = 3;
+    private int currnet_pageReplace = 1;
 
     private string encodedUrl = "";
 
@@ -995,6 +1019,29 @@
         {
             Console.WriteLine($"******* Błąd {ex.Message}");
         }
+    }
+
+    private void ZmienIloscNaStronie(PaginationEventArgs args)
+    {
+        ilosc_na_stronie = args.PageSize;
+    }
+
+    private Task UpdateCurrentPage(PaginationEventArgs args)
+    {
+       // Console.WriteLine(currnet_page);
+        currnet_page = args.Page;
+       // Console.WriteLine(currnet_page);
+
+        return SomeOtherMethod(); // Wywołanie innej metody po aktualizacji strony
+    }
+
+    private async Task SomeOtherMethod()
+    {
+
+        currnet_pageReplace = currnet_page;
+        await LocalStorage.SaveStringAsync("currnet_page", currnet_page.ToString());
+        //Console.WriteLine($"Zapisałem currnet_page : {currnet_page}");
+        await Task.CompletedTask;
     }
 
     private async Task GoBack()
