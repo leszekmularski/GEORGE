@@ -53,6 +53,78 @@
     };
 </script>
 
+<style>
+    .skeleton-wrapper {
+        padding: 20px 0;
+    }
+
+    .skeleton-card {
+        border: 1px solid #e8e8e8;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .skeleton-image {
+        width: 100%;
+        height: 200px;
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+    }
+
+    .skeleton-line {
+        height: 16px;
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+        border-radius: 4px;
+        margin-bottom: 12px;
+    }
+
+    .skeleton-line-title {
+        height: 24px;
+        width: 80%;
+    }
+
+    .skeleton-line-short {
+        width: 40%;
+    }
+
+    .skeleton-line-medium {
+        width: 60%;
+    }
+
+    @@keyframes shimmer {
+        0% {
+            background-position: -200% 0;
+        }
+
+        100% {
+            background-position: 200% 0;
+        }
+    }
+
+    .empty-state {
+        background: #f8f9fa;
+        border: 2px dashed #dee2e6;
+        border-radius: 12px;
+        padding: 4rem 2rem;
+        transition: all 0.3s ease;
+    }
+
+        .empty-state:hover {
+            border-color: #0d6efd;
+            background: #f0f7ff;
+        }
+
+    .empty-state-icon {
+        opacity: 0.7;
+    }
+</style>
+
+
 <div style="display: flex; align-items: center; gap: 10px;">
     <h3>Wybierz typ schodów</h3>
     <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
@@ -150,12 +222,39 @@
 
         @if (listaSchody == null)
         {
-            <p><em>Brak danych...</em></p>
+            <div class="skeleton-wrapper">
+                <div class="row">
+                    @for (int i = 0; i < 6; i++)
+                    {
+                        <div class="col-md-4 mb-4">
+                            <div class="card skeleton-card">
+                                <div class="skeleton-image"></div>
+                                <div class="card-body">
+                                    <div class="skeleton-line skeleton-line-title"></div>
+                                    <div class="skeleton-line skeleton-line-short"></div>
+                                    <div class="skeleton-line skeleton-line-medium"></div>
+                                    <div class="skeleton-line skeleton-line-short"></div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
         }
         else if (!listaSchody.Any())
         {
-            <p><strong>Brak danych...</strong></p>
-            <button class="btn btn-primary" @onclick="() => OtworzModalEdycji(new Schody())">Dodaj nowe schody</button>
+            <div class="text-center py-5 my-4">
+                <div class="empty-state">
+                    <div class="empty-state-icon mb-4">
+                        <i class="bi bi-door-open" style="font-size: 5rem; color: #6c757d;"></i>
+                    </div>
+                    <h4 class="text-muted mb-3">Brak schodów w bazie</h4>
+                    <p class="text-secondary mb-4">Nie masz jeszcze żadnych drzwi. Dodaj pierwsze schody, aby rozpocząć pracę.</p>
+                    <button class="btn btn-primary btn-lg" @onclick="() => OtworzModalEdycji(new Schody())">
+                        <i class="bi bi-plus-circle me-2"></i>Dodaj pierwszy model schodów
+                    </button>
+                </div>
+            </div>
         }
         else
         {
@@ -338,25 +437,102 @@
                 <div class="col-md-8">
                     <label class="form-label fw-bold">Typ schodów</label>
 
-                    <select class="form-control flex-grow-1" 
-                                @bind="@edytowaneSchody.Typ"
-                                @onclick:stopPropagation="true">
+                    <select class="form-control flex-grow-1"
+                            @bind="@edytowaneSchody.Typ"
+                            @onclick:stopPropagation="true">
 
                         <option value="">-- Wybierz typ schodów --</option>
 
-                        <option value="Schody 1/4 zabieg w lewo">Schody 1/4 zabieg w lewo</option>
-                        <option value="Schody 1/4 zabieg w prawo">Schody 1/4 zabieg w prawo</option>
-                        <option value="Schody 1/4 podest w lewo">Schody 1/4 podest w lewo</option>
-                        <option value="Schody 1/4 podest w prawo">Schody 1/4 podest w prawo</option>
-                        <option value="Schody 2/4 zabieg w lewo">Schody 2/4 zabieg w lewo</option>
-                        <option value="Schody 2/4 zabieg w prawo">Schody 2/4 zabieg w prawo</option>
-                        <option value="Schody 1/2 podest w lewo">Schody 1/2 podest w lewo</option>
-                        <option value="Schody 1/2 podest w prawo">Schody 1/2 podest w prawo</option>
-                        <option value="Schody 1/3 podest w lewo">Schody 1/3 podest w lewo</option>
-                        <option value="Schody 1/3 podest w prawo">Schody 1/3 podest w prawo</option>
-                        <option value="Schody proste">Schody proste</option>
-                        <option value="Schody kręte w lewo">Schody kręte w lewo</option>
-                        <option value="Schody kręte w prawo">Schody kręte w prawo</option>
+                        <optgroup label="Schody proste">
+                            <option value="Schody proste (bieg prosty)">Schody proste (bieg prosty)</option>
+                            <option value="Schody proste z podestem">Schody proste z podestem</option>
+                        </optgroup>
+
+                        <optgroup label="Schody zabiegowe 1/4 obrotu (90°)">
+                            <option value="Schody 1/4 zabiegowe z 3 stopniami zabiegowymi w lewo">Schody 1/4 zabiegowe z 3 stopniami zabiegowymi w lewo</option>
+                            <option value="Schody 1/4 zabiegowe z 3 stopniami zabiegowymi w prawo">Schody 1/4 zabiegowe z 3 stopniami zabiegowymi w prawo</option>
+                            <option value="Schody 1/4 zabiegowe z 4 stopniami zabiegowymi w lewo">Schody 1/4 zabiegowe z 4 stopniami zabiegowymi w lewo</option>
+                            <option value="Schody 1/4 zabiegowe z 4 stopniami zabiegowymi w prawo">Schody 1/4 zabiegowe z 4 stopniami zabiegowymi w prawo</option>
+                        </optgroup>
+
+                        <optgroup label="Schody zabiegowe 1/4 obrotu (90°) z podestem">
+                            <option value="Schody 1/4 z podestem + 3 stopnie zabiegowe w lewo">Schody 1/4 z podestem + 3 stopnie zabiegowe w lewo</option>
+                            <option value="Schody 1/4 z podestem + 3 stopnie zabiegowe w prawo">Schody 1/4 z podestem + 3 stopnie zabiegowe w prawo</option>
+                            <option value="Schody 1/4 z podestem + 4 stopnie zabiegowe w lewo">Schody 1/4 z podestem + 4 stopnie zabiegowe w lewo</option>
+                            <option value="Schody 1/4 z podestem + 4 stopnie zabiegowe w prawo">Schody 1/4 z podestem + 4 stopnie zabiegowe w prawo</option>
+                        </optgroup>
+
+                        <optgroup label="Schody zabiegowe 1/2 obrotu (180°)">
+                            <option value="Schody 1/2 zabiegowe z 3 stopniami zabiegowymi w lewo">Schody 1/2 zabiegowe z 3 stopniami zabiegowymi w lewo</option>
+                            <option value="Schody 1/2 zabiegowe z 3 stopniami zabiegowymi w prawo">Schody 1/2 zabiegowe z 3 stopniami zabiegowymi w prawo</option>
+                            <option value="Schody 1/2 zabiegowe z 4 stopniami zabiegowymi w lewo">Schody 1/2 zabiegowe z 4 stopniami zabiegowymi w lewo</option>
+                            <option value="Schody 1/2 zabiegowe z 4 stopniami zabiegowymi w prawo">Schody 1/2 zabiegowe z 4 stopniami zabiegowymi w prawo</option>
+                            <option value="Schody 1/2 zabiegowe z 5 stopniami zabiegowymi w lewo">Schody 1/2 zabiegowe z 5 stopniami zabiegowymi w lewo</option>
+                            <option value="Schody 1/2 zabiegowe z 5 stopniami zabiegowymi w prawo">Schody 1/2 zabiegowe z 5 stopniami zabiegowymi w prawo</option>
+                        </optgroup>
+
+                        <optgroup label="Schody zabiegowe 1/2 obrotu (180°) z podestem">
+                            <option value="Schody 1/2 z podestem + 3 stopnie zabiegowe w lewo">Schody 1/2 z podestem + 3 stopnie zabiegowe w lewo</option>
+                            <option value="Schody 1/2 z podestem + 3 stopnie zabiegowe w prawo">Schody 1/2 z podestem + 3 stopnie zabiegowe w prawo</option>
+                            <option value="Schody 1/2 z podestem + 4 stopnie zabiegowe w lewo">Schody 1/2 z podestem + 4 stopnie zabiegowe w lewo</option>
+                            <option value="Schody 1/2 z podestem + 4 stopnie zabiegowe w prawo">Schody 1/2 z podestem + 4 stopnie zabiegowe w prawo</option>
+                        </optgroup>
+
+                        <optgroup label="Schody zabiegowe 2/4 obrotu (180°)">
+                            <option value="Schody 2/4 zabiegowe z 3 stopniami zabiegowymi w lewo">Schody 2/4 zabiegowe z 3 stopniami zabiegowymi w lewo</option>
+                            <option value="Schody 2/4 zabiegowe z 3 stopniami zabiegowymi w prawo">Schody 2/4 zabiegowe z 3 stopniami zabiegowymi w prawo</option>
+                            <option value="Schody 2/4 zabiegowe z 4 stopniami zabiegowymi w lewo">Schody 2/4 zabiegowe z 4 stopniami zabiegowymi w lewo</option>
+                            <option value="Schody 2/4 zabiegowe z 4 stopniami zabiegowymi w prawo">Schody 2/4 zabiegowe z 4 stopniami zabiegowymi w prawo</option>
+                        </optgroup>
+
+                        <optgroup label="Schody zabiegowe 3/4 obrotu (270°)">
+                            <option value="Schody 3/4 zabiegowe z 4 stopniami zabiegowymi w lewo">Schody 3/4 zabiegowe z 4 stopniami zabiegowymi w lewo</option>
+                            <option value="Schody 3/4 zabiegowe z 4 stopniami zabiegowymi w prawo">Schody 3/4 zabiegowe z 4 stopniami zabiegowymi w prawo</option>
+                            <option value="Schody 3/4 zabiegowe z 5 stopniami zabiegowymi w lewo">Schody 3/4 zabiegowe z 5 stopniami zabiegowymi w lewo</option>
+                            <option value="Schody 3/4 zabiegowe z 5 stopniami zabiegowymi w prawo">Schody 3/4 zabiegowe z 5 stopniami zabiegowymi w prawo</option>
+                            <option value="Schody 3/4 zabiegowe z 6 stopniami zabiegowymi w lewo">Schody 3/4 zabiegowe z 6 stopniami zabiegowymi w lewo</option>
+                            <option value="Schody 3/4 zabiegowe z 6 stopniami zabiegowymi w prawo">Schody 3/4 zabiegowe z 6 stopniami zabiegowymi w prawo</option>
+                        </optgroup>
+
+                        <optgroup label="Schody kręte (spiralne)">
+                            <option value="Schody kręte w lewo (90°)">Schody kręte w lewo (90°)</option>
+                            <option value="Schody kręte w prawo (90°)">Schody kręte w prawo (90°)</option>
+                            <option value="Schody kręte w lewo (180°)">Schody kręte w lewo (180°)</option>
+                            <option value="Schody kręte w prawo (180°)">Schody kręte w prawo (180°)</option>
+                            <option value="Schody kręte w lewo (270°)">Schody kręte w lewo (270°)</option>
+                            <option value="Schody kręte w prawo (270°)">Schody kręte w prawo (270°)</option>
+                            <option value="Schody kręte w lewo (360°)">Schody kręte w lewo (360°)</option>
+                            <option value="Schody kręte w prawo (360°)">Schody kręte w prawo (360°)</option>
+                        </optgroup>
+
+                        <optgroup label="Schody z podestem (bez zabiegów)">
+                            <option value="Schody 1/3 z podestem w lewo">Schody 1/3 z podestem w lewo</option>
+                            <option value="Schody 1/3 z podestem w prawo">Schody 1/3 z podestem w prawo</option>
+                            <option value="Schody 2/3 z podestem w lewo">Schody 2/3 z podestem w lewo</option>
+                            <option value="Schody 2/3 z podestem w prawo">Schody 2/3 z podestem w prawo</option>
+                            <option value="Schody 1/2 z podestem w lewo">Schody 1/2 z podestem w lewo</option>
+                            <option value="Schody 1/2 z podestem w prawo">Schody 1/2 z podestem w prawo</option>
+                        </optgroup>
+
+                        <optgroup label="Schody dwubiegowe">
+                            <option value="Schody dwubiegowe (podest w środku)">Schody dwubiegowe (podest w środku)</option>
+                            <option value="Schody dwubiegowe zabiegowe w lewo">Schody dwubiegowe zabiegowe w lewo</option>
+                            <option value="Schody dwubiegowe zabiegowe w prawo">Schody dwubiegowe zabiegowe w prawo</option>
+                        </optgroup>
+
+                        <optgroup label="Schody wielobiegowe">
+                            <option value="Schody trzebiegowe z dwoma podestami">Schody trzebiegowe z dwoma podestami</option>
+                            <option value="Schody trzebiegowe zabiegowe">Schody trzebiegowe zabiegowe</option>
+                            <option value="Schody czterobiegowe">Schody czterobiegowe</option>
+                        </optgroup>
+
+                        <optgroup label="Schody specjalne">
+                            <option value="Schody wachlarzowe">Schody wachlarzowe</option>
+                            <option value="Schody gęsiego stopnia">Schody gęsiego stopnia</option>
+                            <option value="Schody modułowe">Schody modułowe</option>
+                            <option value="Schody zewnętrzne (terenowe)">Schody zewnętrzne (terenowe)</option>
+                            <option value="Schody przeciwpożarowe (ewakuacyjne)">Schody przeciwpożarowe (ewakuacyjne)</option>
+                        </optgroup>
 
                     </select>
                 </div>
@@ -919,6 +1095,11 @@
 
         if (activeKey == "0")
         {
+
+            StateHasChanged();
+
+            await Task.Yield(); // Upewnij się, że UI jest zaktualizowane przed pobraniem danych
+
             listaSchody = await Http.GetFromJsonAsync<List<Schody>>("api/Schody");
 
             await LoadFiles();

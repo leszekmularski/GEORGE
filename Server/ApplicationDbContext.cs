@@ -35,6 +35,7 @@ namespace GEORGE.Server
         public DbSet<KonfPolaczenie> KonfPolaczenie => Set<KonfPolaczenie>();
         public DbSet<WzorceKompletacji> WzorceKompltacji => Set<WzorceKompletacji>(); //Wersja shared: 1.0.1.5 Wersja server:1.1.2.0
         public DbSet<Schody> Schody => Set<Schody>(); //Wersja shared: 1.0.2.4 Wersja server: 1.1.3.4
+        public DbSet<Drzwi> Drzwi => Set<Drzwi>(); //Wersja shared: 1.0.2.4 Wersja server: 1.1.3.5
 
         //***********************************************************************************************************************************************************************************************
 
