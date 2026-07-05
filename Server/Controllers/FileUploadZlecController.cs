@@ -199,6 +199,25 @@ public class FileUploadZlecController : ControllerBase
         }
     }
 
+    [HttpGet("all-files-pdf")]
+    public async Task<IActionResult> GetAllFilesPdf()
+    {
+        try
+        {
+            var files = await _context.PlikiZlecenProdukcyjnych
+                .Where(f => f.TypPliku != null &&
+                            EF.Functions.Like(f.TypPliku, "%PDF%"))
+                .OrderBy(x => x.OryginalnaNazwaPliku)
+                .ToListAsync();
+
+            return Ok(files);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.ToString());
+        }
+    }
+
 
     [HttpPost("zmien-uwage")]
     public async Task<IActionResult> ZmienUwage(long id, [FromBody] string uwaga)

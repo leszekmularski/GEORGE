@@ -337,22 +337,28 @@
         }
         else
         {
-            <div class="card mb-3">
+            <div class="card shadow-sm mb-4">
+                <!-- Nagłówek karty z przyciskiem dodawania -->
+                <div class="card-header d-flex justify-content-between align-items-center bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-door-open me-2"></i>Lista drzwi
+                    </h5>
+                    @if (boolZapis || boolAdmin)
+                    {
+                        <Button Type="@ButtonType.Primary"
+                                Icon="@IconType.Outline.Plus"
+                                OnClick="() => OtworzModalEdycji(new Drzwi())">
+                            Dodaj nowe drzwi
+                        </Button>
+                    }
+                </div>
 
-                @if (boolZapis || boolAdmin)
-                {
-                    <div class="col-md-2">
-                        <button class="btn btn-primary" @onclick="() => OtworzModalEdycji(new Drzwi())">Dodaj nowe drzw</button>
-                    </div>
-                }
-
+                <!-- Ciało karty z filtrami -->
                 <div class="card-body">
-
                     <div class="row g-3 align-items-end">
-
                         <!-- Typ -->
                         <div class="col-md-4">
-                            <label class="form-label fw-bold">Typ schodów</label>
+                            <label class="form-label fw-bold">Typ drzwi</label>
                             <Input @bind-Value="filtrTyp"
                                    Placeholder="np. Drzwi jednoskrzydłowe"
                                    AllowClear
@@ -373,123 +379,120 @@
                                                    class="form-control w-100" />
                         </div>
 
-                        <!-- Głębokość -->
+                        <!-- Grubość (dostosowane do drzwi) -->
                         <div class="col-md-2">
-                            <label class="form-label fw-bold">Głębokość ±20 mm</label>
+                            <label class="form-label fw-bold">Grubość ±20 mm</label>
                             <AntDesign.InputNumber @bind-Value="filtrGrubosc"
                                                    class="form-control w-100" />
                         </div>
 
-                        <!-- Button -->
+                        <!-- Przycisk Wyczyść -->
                         <div class="col-md-2">
                             <Button Type="@ButtonType.Default"
                                     Block
                                     Icon="@IconType.Outline.Clear"
                                     OnClick="WyczyscFiltry"
-                                    class="w-100"
-                                    style="height: 38px;">
+                                    Style="height: 38px;">
                                 Wyczyść
                             </Button>
                         </div>
-
                     </div>
-
                 </div>
             </div>
-            <Layout>
-                <Content>
-                    <table class="table table-bordered table-striped">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Rysunek</th>
-                                <th>Typ</th>
-                                <th>Wysokość [mm]</th>
-                                <th>Szerokość [mm]</th>
-                                <th>Głębokość [mm]</th>
-                                <th style="width: 120px;">Akcja</th>
-                            </tr>
-                        </thead>
-                        <tbody>
 
-                            @for (int i = (currnet_page - 1) * ilosc_na_stronie; i < currnet_page * ilosc_na_stronie; i++)
+            <!-- Tabela z danymi -->
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Rysunek</th>
+                            <th>Typ</th>
+                            <th>Wysokość [mm]</th>
+                            <th>Szerokość [mm]</th>
+                            <th>Grubość [mm]</th>
+                            <th style="width: 120px;">Akcja</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = (currnet_page - 1) * ilosc_na_stronie; i < currnet_page * ilosc_na_stronie; i++)
+                        {
+                            if (i >= listaDrzwiFiltrowana.Count())
                             {
-
-                                if (i >= listaDrzwiFiltrowana.Count()) // Sprawdź, czy indeks jest poza zakresem listy danych
-                                {
-                                    break; // Wyjście z pętli, jeśli indeks jest poza zakresem
-                                }
-
-                                var schody = listaDrzwiFiltrowana.ElementAt(i);
-
-                                <tr>
-                                    <td>
-                                        @if (schody.RysunekPogladowy?.Length > 20)
-                                        {
-                                            <a target="_blank" href="data:image/png;base64,@Convert.ToBase64String(schody.RysunekPogladowy)">
-                                                <img title="grubość:@schody.Grubosc Próg:@schody.WysokoscProgu"
-                                                     src="data:image/png;base64,@Convert.ToBase64String(schody.RysunekPogladowy)"
-                                                     style="width: 150px; height: auto; object-fit: contain; border: 1px solid #ccc;" />
-                                            </a>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted">Brak</span>
-                                        }
-                                    </td>
-                                    <td>@(schody.Typ ?? "")</td>
-                                    <td>@schody.Wysokosc</td>
-                                    <td>@schody.Szerokosc</td>
-                                    <td>@schody.Grubosc</td>
-                                    <td>
-                                        <div class="d-flex gap-1">
-
-                                            <Button Type="@ButtonType.Primary"
-                                                    Block
-                                                    Icon="@IconType.Outline.Download"
-                                                    Disabled="@(schody.RowIdPliku == Guid.Empty)"
-                                                    OnClick="() => OnFileChange(schody.RowIdPliku.ToString())">
-                                                Pobierz
-                                            </Button>
-
-                                            @if (boolZmiana || boolAdmin)
-                                            {
-                                                <Tooltip Title="Edytuj">
-                                                    <Button Type="primary"
-                                                            Size="small"
-                                                            Icon="@IconType.Outline.Edit"
-                                                            OnClick="() => OtworzModalEdycji(schody)" />
-                                                </Tooltip>
-                                            }
-
-                                            @if (boolUsuniecia || boolAdmin)
-                                            {
-                                                <Popconfirm Title="Czy chcesz usunąć dane?"
-                                                            OnConfirm="()=> deleteRow(schody.RowId.ToString())"
-                                                            OkText="Tak"
-                                                            CancelText="Nie">
-                                                    <Tooltip Title="Usuń połączenie">
-                                                        <Button Type="danger"
-                                                                Size="small"
-                                                                Icon="@IconType.Outline.Delete"
-                                                                Danger />
-                                                    </Tooltip>
-                                                </Popconfirm>
-                                            }
-                                        </div>
-                                    </td>
-                                </tr>
+                                break;
                             }
-                        </tbody>
-                    </table>
-                </Content>
-                <Footer>
-                    <Pagination DefaultCurrent="@currnet_pageReplace" Total="@listaDrzwiFiltrowana.Count()" OnShowSizeChange="ZmienIloscNaStronie"
-                                PageSize="@ilosc_na_stronie" OnChange="UpdateCurrentPage" />
-                    <br />
-                    <label>Liczba załadowanych rekordów: @listaDrzwiFiltrowana.Count() / Strona @currnet_page</label>
 
-                </Footer>
-            </Layout>
+                            var drzwi = listaDrzwiFiltrowana.ElementAt(i);
+
+                            <tr>
+                                <td class="text-center">
+                                    @if (drzwi.RysunekPogladowy?.Length > 20)
+                                    {
+                                        <a target="_blank" href="data:image/png;base64,@Convert.ToBase64String(drzwi.RysunekPogladowy)">
+                                            <img title="grubość:@drzwi.Grubosc Próg:@drzwi.WysokoscProgu"
+                                                 src="data:image/png;base64,@Convert.ToBase64String(drzwi.RysunekPogladowy)"
+                                                 style="width: 120px; height: auto; object-fit: contain; border: 1px solid #ddd;" />
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Brak</span>
+                                    }
+                                </td>
+                                <td>@(drzwi.Typ ?? "")</td>
+                                <td>@drzwi.Wysokosc</td>
+                                <td>@drzwi.Szerokosc</td>
+                                <td>@drzwi.Grubosc</td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        <Button Type="@ButtonType.Primary"
+                                                Block
+                                                Icon="@IconType.Outline.Download"
+                                                Disabled="@(drzwi.RowIdPliku == Guid.Empty)"
+                                                OnClick="() => OnFileChange(drzwi.RowIdPliku.ToString())">
+                                            Pobierz
+                                        </Button>
+
+                                        @if (boolZmiana || boolAdmin)
+                                        {
+                                            <Tooltip Title="Edytuj">
+                                                <Button Type="primary"
+                                                        Size="small"
+                                                        Icon="@IconType.Outline.Edit"
+                                                        OnClick="() => OtworzModalEdycji(drzwi)" />
+                                            </Tooltip>
+                                        }
+
+                                        @if (boolUsuniecia || boolAdmin)
+                                        {
+                                            <Popconfirm Title="Czy chcesz usunąć dane?"
+                                                        OnConfirm="()=> deleteRow(drzwi.RowId.ToString())"
+                                                        OkText="Tak"
+                                                        CancelText="Nie">
+                                                <Tooltip Title="Usuń połączenie">
+                                                    <Button Type="danger"
+                                                            Size="small"
+                                                            Icon="@IconType.Outline.Delete"
+                                                            Danger />
+                                                </Tooltip>
+                                            </Popconfirm>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginacja i informacje -->
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <label class="text-muted">Liczba załadowanych rekordów: <strong>@listaDrzwiFiltrowana.Count()</strong> / Strona <strong>@currnet_page</strong></label>
+                <Pagination DefaultCurrent="@currnet_pageReplace"
+                            Total="@listaDrzwiFiltrowana.Count()"
+                            OnShowSizeChange="ZmienIloscNaStronie"
+                            PageSize="@ilosc_na_stronie"
+                            OnChange="UpdateCurrentPage" />
+            </div>
         }
 
     </TabPane>
@@ -501,367 +504,271 @@
        Visible="czyModalEdycjiWidoczny"
        OnCancel="ZamknijModalEdycji"
        OnOk="ZapiszEdycje"
-       OkText="@("Zapisz")"
-       CancelText="@("Anuluj")"
+       OkText=@("Zapisz")
+       CancelText=@("Anuluj")
        Width="950"
        ConfirmLoading="bCzekajNaZapis"
        MaskClosable="false">
 
     <div class="container-fluid">
+        <Tabs DefaultActiveKey="1">
 
-        <!-- DANE PODSTAWOWE -->
-        <Card Title="Dane podstawowe" Class="mb-3">
-            <div class="row">
+            <!-- Zakładka 1: Dane podstawowe -->
+            <TabPane Key="1" Tab="Dane podstawowe">
+                <Card Class="mb-3">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold">Typ drzwi</label>
+                            <select class="form-control flex-grow-1"
+                                    @bind="@edytowaneDrzwi.Typ"
+                                    @onclick:stopPropagation="true">
+                                <option value="">-- Wybierz typ drzwi --</option>
+                                <optgroup label="Drzwi jednoskrzydłowe">
+                                    <option value="Drzwi jednoskrzydłowe otwierane do wewnątrz">Drzwi jednoskrzydłowe otwierane do wewnątrz</option>
+                                    <option value="Drzwi jednoskrzydłowe otwierane na zewnątrz">Drzwi jednoskrzydłowe otwierane na zewnątrz</option>
+                                    <option value="Drzwi jednoskrzydłowe lewe">Drzwi jednoskrzydłowe lewe</option>
+                                    <option value="Drzwi jednoskrzydłowe prawe">Drzwi jednoskrzydłowe prawe</option>
+                                </optgroup>
+                                <optgroup label="Drzwi dwuskrzydłowe">
+                                    <option value="Drzwi dwuskrzydłowe symetryczne">Drzwi dwuskrzydłowe symetryczne</option>
+                                    <option value="Drzwi dwuskrzydłowe asymetryczne">Drzwi dwuskrzydłowe asymetryczne</option>
+                                    <option value="Drzwi dwuskrzydłowe z jednym skrzydłem aktywnym">Drzwi dwuskrzydłowe z jednym skrzydłem aktywnym</option>
+                                    <option value="Drzwi dwuskrzydłowe oba skrzydła aktywne">Drzwi dwuskrzydłowe oba skrzydła aktywne</option>
+                                </optgroup>
+                                <optgroup label="Drzwi przesuwne">
+                                    <option value="Drzwi przesuwne jednoskrzydłowe">Drzwi przesuwne jednoskrzydłowe</option>
+                                    <option value="Drzwi przesuwne dwuskrzydłowe">Drzwi przesuwne dwuskrzydłowe</option>
+                                    <option value="Drzwi przesuwne chowane w ścianę">Drzwi przesuwne chowane w ścianę</option>
+                                </optgroup>
+                                <optgroup label="Drzwi harmonijkowe">
+                                    <option value="Drzwi harmonijkowe jednoskrzydłowe">Drzwi harmonijkowe jednoskrzydłowe</option>
+                                    <option value="Drzwi harmonijkowe dwuskrzydłowe">Drzwi harmonijkowe dwuskrzydłowe</option>
+                                </optgroup>
+                                <optgroup label="Drzwi specjalne">
+                                    <option value="Drzwi przeciwpożarowe EI30">Drzwi przeciwpożarowe EI30</option>
+                                    <option value="Drzwi przeciwpożarowe EI60">Drzwi przeciwpożarowe EI60</option>
+                                    <option value="Drzwi dźwiękoszczelne">Drzwi dźwiękoszczelne</option>
+                                    <option value="Drzwi antywłamaniowe">Drzwi antywłamaniowe</option>
+                                    <option value="Drzwi szklane">Drzwi szklane</option>
+                                    <option value="Drzwi z przeszkleniem">Drzwi z przeszkleniem</option>
+                                </optgroup>
+                                <optgroup label="Drzwi zewnętrzne">
+                                    <option value="Drzwi zewnętrzne jednoskrzydłowe">Drzwi zewnętrzne jednoskrzydłowe</option>
+                                    <option value="Drzwi zewnętrzne dwuskrzydłowe">Drzwi zewnętrzne dwuskrzydłowe</option>
+                                    <option value="Drzwi balkonowe">Drzwi balkonowe</option>
+                                    <option value="Drzwi tarasowe">Drzwi tarasowe</option>
+                                </optgroup>
+                                <optgroup label="Drzwi wewnętrzne">
+                                    <option value="Drzwi wewnętrzne jednoskrzydłowe">Drzwi wewnętrzne jednoskrzydłowe</option>
+                                    <option value="Drzwi wewnętrzne dwuskrzydłowe">Drzwi wewnętrzne dwuskrzydłowe</option>
+                                    <option value="Drzwi łazienkowe">Drzwi łazienkowe</option>
+                                    <option value="Drzwi kuchenne">Drzwi kuchenne</option>
+                                </optgroup>
+                            </select>
+                        </div>
 
-                <div class="col-md-8">
-                    <label class="form-label fw-bold">Typ drzwi</label>
+                        <div class="col-md-8 mt-3">
+                            <label class="form-label fw-bold">Rodzaj wypełnienia</label>
+                            <select class="form-control flex-grow-1"
+                                    @bind="@edytowaneDrzwi.RodzajWypelnienia"
+                                    @onclick:stopPropagation="true">
+                                <option value="">-- Wybierz rodzaj wypełnienia --</option>
+                                <optgroup label="Wypełnienia szklane">
+                                    <option value="Szkło float przezroczyste">Szkło float przezroczyste</option>
+                                    <option value="Szkło float matowe">Szkło float matowe</option>
+                                    <option value="Szkło hartowane przezroczyste">Szkło hartowane przezroczyste</option>
+                                    <option value="Szkło hartowane matowe">Szkło hartowane matowe</option>
+                                    <option value="Szkło klejone (laminowane)">Szkło klejone (laminowane)</option>
+                                    <option value="Szkło ornamentowe (ryflowane)">Szkło ornamentowe (ryflowane)</option>
+                                    <option value="Szkło mleczne (opalowe)">Szkło mleczne (opalowe)</option>
+                                    <option value="Szkło kolorowe">Szkło kolorowe</option>
+                                    <option value="Szkło antywłamaniowe">Szkło antywłamaniowe</option>
+                                    <option value="Szkło dźwiękoszczelne">Szkło dźwiękoszczelne</option>
+                                    <option value="Szkło energooszczędne">Szkło energooszczędne</option>
+                                    <option value="Szkło z filtrem UV">Szkło z filtrem UV</option>
+                                </optgroup>
+                                <optgroup label="Wypełnienia drewniane">
+                                    <option value="Drewno lite (deski)">Drewno lite (deski)</option>
+                                    <option value="Drewno klejone warstwowo">Drewno klejone warstwowo</option>
+                                    <option value="Płyta MDF malowana">Płyta MDF malowana</option>
+                                    <option value="Płyta MDF fornirowana">Płyta MDF fornirowana</option>
+                                    <option value="Płyta HDF malowana">Płyta HDF malowana</option>
+                                    <option value="Płyta wiórowa laminowana">Płyta wiórowa laminowana</option>
+                                    <option value="Sklejka brzozowa">Sklejka brzozowa</option>
+                                </optgroup>
+                                <optgroup label="Wypełnienia płytowe">
+                                    <option value="Płyta paździerzowa (korkowa)">Płyta paździerzowa (korkowa)</option>
+                                    <option value="Płyta pilśniowa (celuloza)">Płyta pilśniowa (celuloza)</option>
+                                    <option value="Płyta gipsowo-kartonowa">Płyta gipsowo-kartonowa</option>
+                                    <option value="Płyta cementowo-włóknowa">Płyta cementowo-włóknowa</option>
+                                </optgroup>
+                                <optgroup label="Wypełnienia metalowe">
+                                    <option value="Blacha stalowa gładka">Blacha stalowa gładka</option>
+                                    <option value="Blacha stalowa tłoczona">Blacha stalowa tłoczona</option>
+                                    <option value="Blacha aluminiowa">Blacha aluminiowa</option>
+                                    <option value="Blacha ocynkowana">Blacha ocynkowana</option>
+                                    <option value="Blacha nierdzewna">Blacha nierdzewna</option>
+                                    <option value="Siatka metalowa">Siatka metalowa</option>
+                                    <option value="Krata metalowa">Krata metalowa</option>
+                                </optgroup>
+                                <optgroup label="Wypełnienia kompozytowe">
+                                    <option value="Kompozyt drzewno-plastikowy (WPC)">Kompozyt drzewno-plastikowy (WPC)</option>
+                                    <option value="Kompozyt włókno szklane (GRP)">Kompozyt włókno szklane (GRP)</option>
+                                    <option value="Kompozyt węglowy (CFRP)">Kompozyt węglowy (CFRP)</option>
+                                </optgroup>
+                                <optgroup label="Wypełnienia izolacyjne">
+                                    <option value="Pianka PUR (poliuretanowa)">Pianka PUR (poliuretanowa)</option>
+                                    <option value="Styropian (EPS)">Styropian (EPS)</option>
+                                    <option value="Styropian ekstrudowany (XPS)">Styropian ekstrudowany (XPS)</option>
+                                    <option value="Wełna mineralna">Wełna mineralna</option>
+                                    <option value="Wełna szklana">Wełna szklana</option>
+                                    <option value="Pianka akrylowa">Pianka akrylowa</option>
+                                </optgroup>
+                                <optgroup label="Wypełnienia specjalne">
+                                    <option value="Wypełnienie puste (bez wypełnienia)">Wypełnienie puste (bez wypełnienia)</option>
+                                    <option value="Wypełnienie kanałowe">Wypełnienie kanałowe</option>
+                                    <option value="Wypełnienie segmentowe">Wypełnienie segmentowe</option>
+                                    <option value="Wypełnienie ażurowe">Wypełnienie ażurowe</option>
+                                    <option value="Wypełnienie z przeszkleniem">Wypełnienie z przeszkleniem</option>
+                                    <option value="Wypełnienie z żaluzją (roletą)">Wypełnienie z żaluzją (roletą)</option>
+                                </optgroup>
+                                <optgroup label="Wypełnienia naturalne">
+                                    <option value="Trzcina (maty trzcinowe)">Trzcina (maty trzcinowe)</option>
+                                    <option value="Bambus">Bambus</option>
+                                    <option value="Wiklinowy">Wiklinowy</option>
+                                    <option value="Konopny">Konopny</option>
+                                </optgroup>
+                            </select>
+                        </div>
 
-                    <select class="form-control flex-grow-1"
-                            @bind="@edytowaneDrzwi.Typ"
-                            @onclick:stopPropagation="true">
-
-                        <option value="">-- Wybierz typ drzwi --</option>
-
-                        <!-- Grupa: Ilość skrzydeł -->
-                        <optgroup label="Drzwi jednoskrzydłowe">
-                            <option value="Drzwi jednoskrzydłowe otwierane do wewnątrz">Drzwi jednoskrzydłowe otwierane do wewnątrz</option>
-                            <option value="Drzwi jednoskrzydłowe otwierane na zewnątrz">Drzwi jednoskrzydłowe otwierane na zewnątrz</option>
-                            <option value="Drzwi jednoskrzydłowe lewe">Drzwi jednoskrzydłowe lewe</option>
-                            <option value="Drzwi jednoskrzydłowe prawe">Drzwi jednoskrzydłowe prawe</option>
-                        </optgroup>
-
-                        <optgroup label="Drzwi dwuskrzydłowe">
-                            <option value="Drzwi dwuskrzydłowe symetryczne">Drzwi dwuskrzydłowe symetryczne</option>
-                            <option value="Drzwi dwuskrzydłowe asymetryczne">Drzwi dwuskrzydłowe asymetryczne</option>
-                            <option value="Drzwi dwuskrzydłowe z jednym skrzydłem aktywnym">Drzwi dwuskrzydłowe z jednym skrzydłem aktywnym</option>
-                            <option value="Drzwi dwuskrzydłowe oba skrzydła aktywne">Drzwi dwuskrzydłowe oba skrzydła aktywne</option>
-                        </optgroup>
-
-                        <!-- Grupa: Sposób otwierania -->
-                        <optgroup label="Drzwi przesuwne">
-                            <option value="Drzwi przesuwne jednoskrzydłowe">Drzwi przesuwne jednoskrzydłowe</option>
-                            <option value="Drzwi przesuwne dwuskrzydłowe">Drzwi przesuwne dwuskrzydłowe</option>
-                            <option value="Drzwi przesuwne chowane w ścianę">Drzwi przesuwne chowane w ścianę</option>
-                        </optgroup>
-
-                        <optgroup label="Drzwi harmonijkowe">
-                            <option value="Drzwi harmonijkowe jednoskrzydłowe">Drzwi harmonijkowe jednoskrzydłowe</option>
-                            <option value="Drzwi harmonijkowe dwuskrzydłowe">Drzwi harmonijkowe dwuskrzydłowe</option>
-                        </optgroup>
-
-                        <!-- Grupa: Specjalne -->
-                        <optgroup label="Drzwi specjalne">
-                            <option value="Drzwi przeciwpożarowe EI30">Drzwi przeciwpożarowe EI30</option>
-                            <option value="Drzwi przeciwpożarowe EI60">Drzwi przeciwpożarowe EI60</option>
-                            <option value="Drzwi dźwiękoszczelne">Drzwi dźwiękoszczelne</option>
-                            <option value="Drzwi antywłamaniowe">Drzwi antywłamaniowe</option>
-                            <option value="Drzwi szklane">Drzwi szklane</option>
-                            <option value="Drzwi przeszkleniem">Drzwi z przeszkleniem</option>
-                        </optgroup>
-
-                        <!-- Grupa: Inne -->
-                        <optgroup label="Drzwi zewnętrzne">
-                            <option value="Drzwi zewnętrzne jednoskrzydłowe">Drzwi zewnętrzne jednoskrzydłowe</option>
-                            <option value="Drzwi zewnętrzne dwuskrzydłowe">Drzwi zewnętrzne dwuskrzydłowe</option>
-                            <option value="Drzwi balkonowe">Drzwi balkonowe</option>
-                            <option value="Drzwi tarasowe">Drzwi tarasowe</option>
-                        </optgroup>
-
-                        <optgroup label="Drzwi wewnętrzne">
-                            <option value="Drzwi wewnętrzne jednoskrzydłowe">Drzwi wewnętrzne jednoskrzydłowe</option>
-                            <option value="Drzwi wewnętrzne dwuskrzydłowe">Drzwi wewnętrzne dwuskrzydłowe</option>
-                            <option value="Drzwi łazienkowe">Drzwi łazienkowe</option>
-                            <option value="Drzwi kuchenne">Drzwi kuchenne</option>
-                        </optgroup>
-
-                    </select>
-                </div>
-
-                <div class="col-md-8">
-                    <label class="form-label fw-bold">Rodzaj wypełnienia</label>
-
-                    <select class="form-control flex-grow-1"
-                            @bind="@edytowaneDrzwi.RodzajWypelnienia"
-                            @onclick:stopPropagation="true">
-
-                        <option value="">-- Wybierz rodzaj wypełnienia --</option>
-
-                        <optgroup label="Wypełnienia szklane">
-                            <option value="Szkło float przezroczyste">Szkło float przezroczyste</option>
-                            <option value="Szkło float matowe">Szkło float matowe</option>
-                            <option value="Szkło hartowane przezroczyste">Szkło hartowane przezroczyste</option>
-                            <option value="Szkło hartowane matowe">Szkło hartowane matowe</option>
-                            <option value="Szkło klejone (laminowane)">Szkło klejone (laminowane)</option>
-                            <option value="Szkło ornamentowe (ryflowane)">Szkło ornamentowe (ryflowane)</option>
-                            <option value="Szkło mleczne (opalowe)">Szkło mleczne (opalowe)</option>
-                            <option value="Szkło kolorowe">Szkło kolorowe</option>
-                            <option value="Szkło antywłamaniowe">Szkło antywłamaniowe</option>
-                            <option value="Szkło dźwiękoszczelne">Szkło dźwiękoszczelne</option>
-                            <option value="Szkło energooszczędne">Szkło energooszczędne</option>
-                            <option value="Szkło z filtrem UV">Szkło z filtrem UV</option>
-                        </optgroup>
-
-                        <optgroup label="Wypełnienia drewniane">
-                            <option value="Drewno lite (deski)">Drewno lite (deski)</option>
-                            <option value="Drewno klejone warstwowo">Drewno klejone warstwowo</option>
-                            <option value="Płyta MDF malowana">Płyta MDF malowana</option>
-                            <option value="Płyta MDF fornirowana">Płyta MDF fornirowana</option>
-                            <option value="Płyta HDF malowana">Płyta HDF malowana</option>
-                            <option value="Płyta wiórowa laminowana">Płyta wiórowa laminowana</option>
-                            <option value="Sklejka brzozowa">Sklejka brzozowa</option>
-                        </optgroup>
-
-                        <optgroup label="Wypełnienia płytowe">
-                            <option value="Płyta paździerzowa (korkowa)">Płyta paździerzowa (korkowa)</option>
-                            <option value="Płyta pilśniowa (celuloza)">Płyta pilśniowa (celuloza)</option>
-                            <option value="Płyta gipsowo-kartonowa">Płyta gipsowo-kartonowa</option>
-                            <option value="Płyta cementowo-włóknowa">Płyta cementowo-włóknowa</option>
-                        </optgroup>
-
-                        <optgroup label="Wypełnienia metalowe">
-                            <option value="Blacha stalowa gładka">Blacha stalowa gładka</option>
-                            <option value="Blacha stalowa tłoczona">Blacha stalowa tłoczona</option>
-                            <option value="Blacha aluminiowa">Blacha aluminiowa</option>
-                            <option value="Blacha ocynkowana">Blacha ocynkowana</option>
-                            <option value="Blacha nierdzewna">Blacha nierdzewna</option>
-                            <option value="Siatka metalowa">Siatka metalowa</option>
-                            <option value="Krata metalowa">Krata metalowa</option>
-                        </optgroup>
-
-                        <optgroup label="Wypełnienia kompozytowe">
-                            <option value="Kompozyt drzewno-plastikowy (WPC)">Kompozyt drzewno-plastikowy (WPC)</option>
-                            <option value="Kompozyt włókno szklane (GRP)">Kompozyt włókno szklane (GRP)</option>
-                            <option value="Kompozyt węglowy (CFRP)">Kompozyt węglowy (CFRP)</option>
-                        </optgroup>
-
-                        <optgroup label="Wypełnienia izolacyjne">
-                            <option value="Pianka PUR (poliuretanowa)">Pianka PUR (poliuretanowa)</option>
-                            <option value="Styropian (EPS)">Styropian (EPS)</option>
-                            <option value="Styropian ekstrudowany (XPS)">Styropian ekstrudowany (XPS)</option>
-                            <option value="Wełna mineralna">Wełna mineralna</option>
-                            <option value="Wełna szklana">Wełna szklana</option>
-                            <option value="Pianka akrylowa">Pianka akrylowa</option>
-                        </optgroup>
-
-                        <optgroup label="Wypełnienia specjalne">
-                            <option value="Wypełnienie puste (bez wypełnienia)">Wypełnienie puste (bez wypełnienia)</option>
-                            <option value="Wypełnienie kanałowe">Wypełnienie kanałowe</option>
-                            <option value="Wypełnienie segmentowe">Wypełnienie segmentowe</option>
-                            <option value="Wypełnienie ażurowe">Wypełnienie ażurowe</option>
-                            <option value="Wypełnienie z przeszkleniem">Wypełnienie z przeszkleniem</option>
-                            <option value="Wypełnienie z żaluzją (roletą)">Wypełnienie z żaluzją (roletą)</option>
-                        </optgroup>
-
-                        <optgroup label="Wypełnienia naturalne">
-                            <option value="Trzcina (maty trzcinowe)">Trzcina (maty trzcinowe)</option>
-                            <option value="Bambus">Bambus</option>
-                            <option value="Wiklinowy">Wiklinowy</option>
-                            <option value="Konopny">Konopny</option>
-                        </optgroup>
-
-                    </select>
-                </div>
-
-                <div class="col-md-4 d-flex align-items-end">
-
-                    <div class="form-check">
-                        <InputCheckbox class="form-check-input"
-                                       @bind-Value="edytowaneDrzwi.Wycofany_z_produkcji" />
-
-                        <label class="form-check-label ms-2">
-                            Wycofane z produkcji
-                        </label>
+                        <div class="col-md-4 d-flex align-items-end mt-3">
+                            <div class="form-check">
+                                <InputCheckbox class="form-check-input"
+                                               @bind-Value="edytowaneDrzwi.Wycofany_z_produkcji" />
+                                <label class="form-check-label ms-2">Wycofane z produkcji</label>
+                            </div>
+                        </div>
                     </div>
+                </Card>
+            </TabPane>
 
-                </div>
-
-            </div>
-        </Card>
-
-        <!-- WYMIARY -->
-        <Card Title="Wymiary schodów [mm]" Class="mb-3">
-
-            <div class="row">
-
-                <div class="col-md-4 mb-3">
-                    <label class="form-label fw-bold">Szerokość</label>
-
-                    <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneDrzwi.Szerokosc"
-                                                                       class="form-control"
-                                                                       step="1"
-                                                                       @bind-Value:after="OnPrzesuniecieChanged" />
-                </div>
-
-                <div class="col-md-4 mb-3">
-                    <label class="form-label fw-bold">Wysokość</label>
-
-                    <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneDrzwi.Wysokosc"
-                                                                       class="form-control"
-                                                                       step="1"
-                                                                       @bind-Value:after="OnPrzesuniecieChanged" />
-                </div>
-
-                <div class="col-md-4 mb-3">
-                    <label class="form-label fw-bold">Głębokość</label>
-
-                    <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneDrzwi.Grubosc"
-                                                                       class="form-control"
-                                                                       step="1"
-                                                                       @bind-Value:after="OnPrzesuniecieChanged" />
-                </div>
-
-            </div>
-
-            <hr />
-
-            <div class="row">
-
-                <div class="col-md-3 mb-3">
-                    <label class="form-label fw-bold">
-                        Szerokość zabiegu 1
-                    </label>
-
-                    <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneDrzwi.WysokoscProgu"
-                                                                       class="form-control"
-                                                                       step="1"
-                                                                       @bind-Value:after="OnPrzesuniecieChanged" />
-                </div>
-
-            </div>
-
-        </Card>
-
-        <!-- PLIK PRODUKCYJNY -->
-        <Card Title="Plik produkcyjny" Class="mb-3">
-
-            <div class="row align-items-end">
-
-                <div class="col-md-10">
-
-                    <label class="form-label fw-bold">
-                        Powiązany plik
-                    </label>
-
-                    <Select DataSource="@pliki"
-                            ShowSearch
-                            AllowClear
-                            TItem="PlikiZlecenProdukcyjnych"
-                            TItemValue="Guid"
-                            @bind-Value="edytowaneDrzwi.RowIdPliku"
-                            LabelName="@nameof(PlikiZlecenProdukcyjnych.OryginalnaNazwaPliku)"
-                            ValueName="@nameof(PlikiZlecenProdukcyjnych.RowGuid)">
-                    </Select>
-
-                </div>
-
-                <div class="col-md-2">
-
-                    <Button Type="@ButtonType.Primary"
-                            Block
-                            Icon="@IconType.Outline.Download"
-                            Disabled="@(edytowaneDrzwi.RowIdPliku == Guid.Empty)"
-                            OnClick="() => OnFileChange(edytowaneDrzwi.RowIdPliku.ToString())">
-                        Pobierz
-                    </Button>
-
-                </div>
-
-            </div>
-
-            @if (edytowaneDrzwi.RowIdPliku != Guid.Empty)
-            {
-                <div class="mt-3">
-
-                    <Tag Color="blue">
-                        RowId:
-                        @edytowaneDrzwi.RowIdPliku
-                    </Tag>
-
-                </div>
-            }
-
-        </Card>
-
-        <!-- RYSUNEK -->
-        <Card Title="Rysunek poglądowy" Class="mb-3">
-
-            <div class="row">
-
-                <div class="col-md-4">
-
-                    <div class="d-grid gap-2">
-
-                        <Button Type="@ButtonType.Primary"
-                                Icon="@IconType.Outline.Copy"
-                                OnClick="WklejRysunek">
-
-                            Wklej ze schowka
-
-                        </Button>
-
-                        <Button Danger
-                                Icon="@IconType.Outline.Delete"
-                                OnClick="UsunRysunek">
-
-                            Usuń rysunek
-
-                        </Button>
-
+            <!-- Zakładka 2: Wymiary -->
+            <TabPane Key="2" Tab="Wymiary">
+                <Card Title="Wymiary drzwi [mm]" Class="mb-3">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Szerokość</label>
+                            <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneDrzwi.Szerokosc"
+                                                                               class="form-control"
+                                                                               step="1"
+                                                                               @bind-Value:after="OnPrzesuniecieChanged" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Wysokość</label>
+                            <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneDrzwi.Wysokosc"
+                                                                               class="form-control"
+                                                                               step="1"
+                                                                               @bind-Value:after="OnPrzesuniecieChanged" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Grubość</label>
+                            <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneDrzwi.Grubosc"
+                                                                               class="form-control"
+                                                                               step="1"
+                                                                               @bind-Value:after="OnPrzesuniecieChanged" />
+                        </div>
                     </div>
+                    <hr />
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label fw-bold">Wysokość progu</label>
+                            <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneDrzwi.WysokoscProgu"
+                                                                               class="form-control"
+                                                                               step="1"
+                                                                               @bind-Value:after="OnPrzesuniecieChanged" />
+                        </div>
+                    </div>
+                </Card>
+            </TabPane>
 
-                </div>
-
-                <div class="col-md-8">
-
-                    @if (edytowaneDrzwi.RysunekPogladowy?.Length > 0)
+            <!-- Zakładka 3: Plik i rysunek -->
+            <TabPane Key="3" Tab="Plik i rysunek">
+                <Card Title="Plik produkcyjny" Class="mb-3">
+                    <div class="row align-items-end">
+                        <div class="col-md-10">
+                            <label class="form-label fw-bold">Powiązany plik</label>
+                            <Select DataSource="@przefiltrowanePliki"
+                                    EnableSearch
+                                    AllowClear
+                                    TItem="PlikiZlecenProdukcyjnych"
+                                    TItemValue="Guid"
+                                    @bind-Value="edytowaneDrzwi.RowIdPliku"
+                                    LabelName="@nameof(PlikiZlecenProdukcyjnych.OryginalnaNazwaPliku)"
+                                    ValueName="@nameof(PlikiZlecenProdukcyjnych.RowGuid)"
+                                    OnSearch="async (string s) => await SzukajPlikow(s)">
+                            </Select>
+                        </div>
+                        <div class="col-md-2">
+                            <Button Type="@ButtonType.Primary"
+                                    Block
+                                    Icon="@IconType.Outline.Download"
+                                    Disabled="@(edytowaneDrzwi.RowIdPliku == Guid.Empty)"
+                                    OnClick="() => OnFileChange(edytowaneDrzwi.RowIdPliku.ToString())">
+                                Pobierz
+                            </Button>
+                        </div>
+                    </div>
+                    @if (edytowaneDrzwi.RowIdPliku != Guid.Empty)
                     {
-                        <div style="
-                                            min-height:250px;
-                                            display:flex;
-                                            justify-content:center;
-                                            align-items:center;
-                                            border:1px solid #d9d9d9;
-                                            border-radius:6px;
-                                            background:#fafafa;">
-
-                            <img src="@ObrazBase64"
-                                 style="
-                                                    max-width:100%;
-                                                    max-height:300px;
-                                                    object-fit:contain;" />
-
+                        <div class="mt-3">
+                            <Tag Color="blue">RowId: @edytowaneDrzwi.RowIdPliku</Tag>
                         </div>
                     }
-                    else
-                    {
-                        <div style="
-                                            min-height:250px;
-                                            display:flex;
-                                            justify-content:center;
-                                            align-items:center;
-                                            border:1px dashed #bfbfbf;
-                                            border-radius:6px;
-                                            color:gray;">
+                </Card>
 
-                            Brak rysunku
-
+                <Card Title="Rysunek poglądowy">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="d-grid gap-2">
+                                <Button Type="@ButtonType.Primary"
+                                        Icon="@IconType.Outline.Copy"
+                                        OnClick="WklejRysunek">
+                                    Wklej ze schowka
+                                </Button>
+                                <Button Danger
+                                        Icon="@IconType.Outline.Delete"
+                                        OnClick="UsunRysunek">
+                                    Usuń rysunek
+                                </Button>
+                            </div>
                         </div>
-                    }
+                        <div class="col-md-8">
+                            @if (edytowaneDrzwi.RysunekPogladowy?.Length > 0)
+                            {
+                                <div style="min-height:250px; display:flex; justify-content:center; align-items:center; border:1px solid #d9d9d9; border-radius:6px; background:#fafafa;">
+                                    <img src="@ObrazBase64" style="max-width:100%; max-height:300px; object-fit:contain;" />
+                                </div>
+                            }
+                            else
+                            {
+                                <div style="min-height:250px; display:flex; justify-content:center; align-items:center; border:1px dashed #bfbfbf; border-radius:6px; color:gray;">
+                                    Brak rysunku
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </Card>
+            </TabPane>
 
-                </div>
-
-            </div>
-
-        </Card>
-
-        <!-- UWAGI -->
-        <Card Title="Dodatkowe informacje" Class="mb-3">
-
-            <TextArea @bind-Value="edytowaneDrzwi.Uwagi"
-                      Rows="4"
-                      Placeholder="Wpisz dodatkowe informacje..." />
-
-        </Card>
+            <!-- Zakładka 4: Uwagi -->
+            <TabPane Key="4" Tab="Uwagi">
+                <Card Title="Dodatkowe informacje">
+                    <TextArea @bind-Value="edytowaneDrzwi.Uwagi"
+                              Rows="6"
+                              Placeholder="Wpisz dodatkowe informacje..." />
+                </Card>
+            </TabPane>
+        </Tabs>
 
         @if (!string.IsNullOrWhiteSpace(bladEdycji))
         {
@@ -870,11 +777,8 @@
                    ShowIcon="true"
                    Class="mt-3" />
         }
-
     </div>
-
 </Modal>
-
 
 
 @code {
@@ -950,6 +854,8 @@
     private double? filtrWysokosc;
     private double? filtrSzerokosc;
     private double? filtrGrubosc;
+
+    private List<PlikiZlecenProdukcyjnych> przefiltrowanePliki = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -1343,7 +1249,16 @@
         return Task.CompletedTask;
     }
 
-
+    private async Task SzukajPlikow(string searchTerm)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+            przefiltrowanePliki = pliki;
+        else
+            przefiltrowanePliki = pliki
+                .Where(p => p.OryginalnaNazwaPliku.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        await Task.CompletedTask;
+    }
 
     private async Task OnFileChange(string rowIdPliku)
     {
@@ -1558,7 +1473,7 @@
     {
         try
         {
-            var response = await Http.GetAsync($"api/FileUploadZlec/all-files-sat");
+            var response = await Http.GetAsync($"api/FileUploadZlec/all-files-pdf");
 
             if (response.IsSuccessStatusCode)
             {
@@ -1578,10 +1493,14 @@
                     }
 
                     pliki = fileList;
+
+                    przefiltrowanePliki = pliki;
                 }
                 else
                 {
                     pliki = new List<PlikiZlecenProdukcyjnych>();
+
+                    przefiltrowanePliki = pliki;
                 }
             }
             else
@@ -1704,11 +1623,11 @@
         }
         catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
-            Console.WriteLine("Brak danych!!!");
+            Console.WriteLine("Brak danych dotyczących uprawnień!!!");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Błąd!!! Info:{ex.Message}");
+            Console.WriteLine($"Błąd podczas ładowania uprawnień!!! Info:{ex.Message}");
         }
 
         if (uprawnienia != null)

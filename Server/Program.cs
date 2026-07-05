@@ -1,15 +1,10 @@
-using GEORGE.Server;
-using Microsoft.AspNetCore.ResponseCompression;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Identity;
-using System.Globalization;
-using AntDesign;
-using ReservationBookingSystem.Services;
 using GEORGE.Client.Pages.Administracja;
+using GEORGE.Server;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using ReservationBookingSystem.Services;
+using System.Globalization;
 using System.Text;
 
 var culture = new CultureInfo("pl-PL");
@@ -18,43 +13,26 @@ CultureInfo.DefaultThreadCurrentUICulture = culture;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Dodanie serwisów do kontenera
+// 1. Serwisy
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
-
-// Konfiguracja Kestrel z ustawieniami z appsettings.json
-builder.WebHost.ConfigureKestrel((context, options) =>
-{
-    var kestrelSection = context.Configuration.GetSection("Kestrel");
-    options.Configure(kestrelSection);
-});
-
-// Wymuszenie przekierowania na HTTPS
-builder.Services.AddHttpsRedirection(options =>
-{
-    options.RedirectStatusCode = StatusCodes.Status308PermanentRedirect;
-    options.HttpsPort = 5001; // Port HTTPS
-});
 
 // Konfiguracja Entity Framework z SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
 
-// Konfiguracja logowania
+// Logowanie
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.SetMinimumLevel(LogLevel.Debug);
 
-// Rejestracja konfiguracji MailSettings z appsettings.json
+// Mail i pliki – konfiguracja z appsettings.json
 builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
-
 builder.Services.Configure<FileSettings>(builder.Configuration.GetSection("FileSettings"));
-
-// Rejestracja MailService jako serwis
 builder.Services.AddScoped<IMailService, MailService>();
 
-// Konfiguracja obs³ugi plików statycznych (obs³uga specyficznych rozszerzeñ)
+// Pliki statyczne – rozszerzenia
 builder.Services.Configure<StaticFileOptions>(options =>
 {
     options.ContentTypeProvider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider
@@ -64,11 +42,12 @@ builder.Services.Configure<StaticFileOptions>(options =>
             [".dwg"] = "application/acad",
             [".dxf"] = "application/acad",
             [".sat"] = "application/acad",
-            [ ".p" ] = "text/plain",
+            [".p"] = "text/plain",
         }
     };
 });
 
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
@@ -79,36 +58,11 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddHttpClient();
 
-// Klucz do podpisu JWT (mo¿e byæ w appsettings.json)
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "GEORGEsupersecretkey1234567890!@#$%^&*()";
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "GEORGE";
-
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = false,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtIssuer,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
-    };
-});
-
-builder.Services.AddAuthorization();
-
 var app = builder.Build();
 
 app.UseCors("AllowAll");
 
-// 2. Œrodkowe oprogramowanie (Middleware)
-// Obs³uga œrodowiska
+// Œrodowisko – bez HSTS
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
@@ -116,26 +70,169 @@ if (app.Environment.IsDevelopment())
 else
 {
     app.UseExceptionHandler("/Error");
-    app.UseHsts();
+    // app.UseHsts(); – usuniête, nie wymuszamy HTTPS
 }
 
-// Wymuszenie HTTPS
-app.UseHttpsRedirection();
-
-// Obs³uga plików statycznych
+// Pliki statyczne
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 
-// Routing
 app.UseRouting();
 
-// Obs³uga autoryzacji
-app.UseAuthentication();
-app.UseAuthorization();
+// Brak autoryzacji – jeœli potrzebujesz JWT, przywróæ poni¿sze linie i zainstaluj pakiety
+// app.UseAuthentication();
+// app.UseAuthorization();
 
-// Mapowanie endpointów
 app.MapRazorPages();
 app.MapControllers();
 app.MapFallbackToFile("index.html");
 
 app.Run();
+
+
+
+
+
+
+
+
+
+
+
+
+//using GEORGE.Client.Pages.Administracja;
+//using GEORGE.Server;
+//using Microsoft.AspNetCore.Authentication.JwtBearer;
+//using Microsoft.EntityFrameworkCore;
+//using Microsoft.IdentityModel.Tokens;
+//using ReservationBookingSystem.Services;
+//using System.Globalization;
+//using System.Text;
+
+//var culture = new CultureInfo("pl-PL");
+//CultureInfo.DefaultThreadCurrentCulture = culture;
+//CultureInfo.DefaultThreadCurrentUICulture = culture;
+
+//var builder = WebApplication.CreateBuilder(args);
+
+//// 1. Dodanie serwisów do kontenera
+//builder.Services.AddControllersWithViews();
+//builder.Services.AddRazorPages();
+
+//// Konfiguracja Kestrel z ustawieniami z appsettings.json
+//builder.WebHost.ConfigureKestrel((context, options) =>
+//{
+//    var kestrelSection = context.Configuration.GetSection("Kestrel");
+//    options.Configure(kestrelSection);
+//});
+
+//// Wymuszenie przekierowania na HTTPS
+//builder.Services.AddHttpsRedirection(options =>
+//{
+//    options.RedirectStatusCode = StatusCodes.Status308PermanentRedirect;
+//    options.HttpsPort = 5001; // Port HTTPS
+//});
+
+//// Konfiguracja Entity Framework z SQL Server
+//builder.Services.AddDbContext<ApplicationDbContext>(options =>
+//    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+//);
+
+//// Konfiguracja logowania
+//builder.Logging.ClearProviders();
+//builder.Logging.AddConsole();
+//builder.Logging.SetMinimumLevel(LogLevel.Debug);
+
+//// Rejestracja konfiguracji MailSettings z appsettings.json
+//builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
+
+//builder.Services.Configure<FileSettings>(builder.Configuration.GetSection("FileSettings"));
+
+//// Rejestracja MailService jako serwis
+//builder.Services.AddScoped<IMailService, MailService>();
+
+//// Konfiguracja obs³ugi plików statycznych (obs³uga specyficznych rozszerzeñ)
+//builder.Services.Configure<StaticFileOptions>(options =>
+//{
+//    options.ContentTypeProvider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider
+//    {
+//        Mappings =
+//        {
+//            [".dwg"] = "application/acad",
+//            [".dxf"] = "application/acad",
+//            [".sat"] = "application/acad",
+//            [ ".p" ] = "text/plain",
+//        }
+//    };
+//});
+
+//builder.Services.AddCors(options =>
+//{
+//    options.AddPolicy("AllowAll",
+//        builder => builder.AllowAnyOrigin()
+//                          .AllowAnyMethod()
+//                          .AllowAnyHeader());
+//});
+
+//builder.Services.AddHttpClient();
+
+//// Klucz do podpisu JWT (mo¿e byæ w appsettings.json)
+//var jwtKey = builder.Configuration["Jwt:Key"] ?? "GEORGEsupersecretkey1234567890!@#$%^&*()";
+//var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "GEORGE";
+
+//builder.Services.AddAuthentication(options =>
+//{
+//    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+//    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+//})
+//.AddJwtBearer(options =>
+//{
+//    options.TokenValidationParameters = new TokenValidationParameters
+//    {
+//        ValidateIssuer = true,
+//        ValidateAudience = false,
+//        ValidateLifetime = true,
+//        ValidateIssuerSigningKey = true,
+//        ValidIssuer = jwtIssuer,
+//        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+//    };
+//});
+
+//builder.Services.AddAuthorization();
+
+//var app = builder.Build();
+
+//app.UseCors("AllowAll");
+
+//// 2. Œrodkowe oprogramowanie (Middleware)
+//// Obs³uga œrodowiska
+//if (app.Environment.IsDevelopment())
+//{
+//    app.UseWebAssemblyDebugging();
+//}
+//else
+//{
+//    app.UseExceptionHandler("/Error");
+//    app.UseHsts();
+//}
+
+//// Wymuszenie HTTPS
+//app.UseHttpsRedirection();
+
+//// Obs³uga plików statycznych
+//app.UseBlazorFrameworkFiles();
+//app.UseStaticFiles();
+
+//// Routing
+//app.UseRouting();
+
+//// Obs³uga autoryzacji
+//app.UseAuthentication();
+//app.UseAuthorization();
+
+//// Mapowanie endpointów
+//app.MapRazorPages();
+//app.MapControllers();
+//app.MapFallbackToFile("index.html");
+
+//app.Run();

@@ -134,7 +134,10 @@
 
 <Divider></Divider>
 
-<Tabs TabPosition="@TabPosition.Left" Type="@TabType.Card" @bind-ActiveKey="activeKey" OnTabClick="OnTabClick">
+<Tabs TabPosition="@TabPosition.Left"
+      Type="@TabType.Card"
+      @bind-ActiveKey="activeKey"
+      OnChange="OnTabChange">
 
     <TabPane Key="0" Tab="Typy schodów">
 
@@ -258,19 +261,25 @@
         }
         else
         {
-            <div class="card mb-3">
+            <div class="card shadow-sm mb-4">
+                <!-- Nagłówek karty z przyciskiem dodawania -->
+                <div class="card-header d-flex justify-content-between align-items-center bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-stairs me-2"></i>Lista schodów
+                    </h5>
+                    @if (boolZapis || boolAdmin)
+                    {
+                        <Button Type="@ButtonType.Primary"
+                                Icon="@IconType.Outline.Plus"
+                                OnClick="() => OtworzModalEdycji(new Schody())">
+                            Dodaj nowe schody
+                        </Button>
+                    }
+                </div>
 
-                @if (boolZapis || boolAdmin)
-                {
-                    <div class="col-md-2">
-                        <button class="btn btn-primary" @onclick="() => OtworzModalEdycji(new Schody())">Dodaj nowe schody</button>
-                    </div>
-                }
-
+                <!-- Ciało karty z filtrami -->
                 <div class="card-body">
-
                     <div class="row g-3 align-items-end">
-
                         <!-- Typ -->
                         <div class="col-md-4">
                             <label class="form-label fw-bold">Typ schodów</label>
@@ -301,26 +310,24 @@
                                                    class="form-control w-100" />
                         </div>
 
-                        <!-- Button -->
+                        <!-- Przycisk Wyczyść -->
                         <div class="col-md-2">
                             <Button Type="@ButtonType.Default"
                                     Block
                                     Icon="@IconType.Outline.Clear"
                                     OnClick="WyczyscFiltry"
-                                    class="w-100"
-                                    style="height: 38px;">
+                                    Style="height: 38px;">
                                 Wyczyść
                             </Button>
                         </div>
-
                     </div>
-
                 </div>
             </div>
-            <Layout>
-             <Content>
-                    <table class="table table-bordered table-striped">
-                    <thead class="table-light">
+
+            <!-- Tabela z danymi -->
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover">
+                    <thead class="table-dark">
                         <tr>
                             <th>Rysunek</th>
                             <th>Typ</th>
@@ -331,25 +338,23 @@
                         </tr>
                     </thead>
                     <tbody>
-
                         @for (int i = (currnet_page - 1) * ilosc_na_stronie; i < currnet_page * ilosc_na_stronie; i++)
                         {
-
-                        if (i >= ListaSchodyFiltrowana.Count()) // Sprawdź, czy indeks jest poza zakresem listy danych
-                        {
-                            break; // Wyjście z pętli, jeśli indeks jest poza zakresem
-                        }
+                            if (i >= ListaSchodyFiltrowana.Count())
+                            {
+                                break;
+                            }
 
                             var schody = ListaSchodyFiltrowana.ElementAt(i);
 
                             <tr>
-                                <td>
+                                <td class="text-center">
                                     @if (schody.RysunekPogladowy?.Length > 20)
                                     {
                                         <a target="_blank" href="data:image/png;base64,@Convert.ToBase64String(schody.RysunekPogladowy)">
                                             <img title="zew:@schody.SzerokoscZabieg1 wew:@schody.SzerokoscZabieg2"
                                                  src="data:image/png;base64,@Convert.ToBase64String(schody.RysunekPogladowy)"
-                                                 style="width: 150px; height: auto; object-fit: contain; border: 1px solid #ccc;" />
+                                                 style="width: 120px; height: auto; object-fit: contain; border: 1px solid #ddd;" />
                                         </a>
                                     }
                                     else
@@ -363,7 +368,6 @@
                                 <td>@schody.Glebokosc</td>
                                 <td>
                                     <div class="d-flex gap-1">
-
                                         <Button Type="@ButtonType.Primary"
                                                 Block
                                                 Icon="@IconType.Outline.Download"
@@ -402,15 +406,17 @@
                         }
                     </tbody>
                 </table>
-                 </Content>
-                <Footer>
-                    <Pagination DefaultCurrent="@currnet_pageReplace" Total="@ListaSchodyFiltrowana.Count()" OnShowSizeChange="ZmienIloscNaStronie"
-                                PageSize="@ilosc_na_stronie" OnChange="UpdateCurrentPage" />
-                        <br />
-                        <label>Liczba załadowanych rekordów: @ListaSchodyFiltrowana.Count() / Strona @currnet_page</label>
+            </div>
 
-                </Footer>
-            </Layout>
+            <!-- Paginacja i informacje -->
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <label class="text-muted">Liczba załadowanych rekordów: <strong>@ListaSchodyFiltrowana.Count()</strong> / Strona <strong>@currnet_page</strong></label>
+                <Pagination DefaultCurrent="@currnet_pageReplace"
+                            Total="@ListaSchodyFiltrowana.Count()"
+                            OnShowSizeChange="ZmienIloscNaStronie"
+                            PageSize="@ilosc_na_stronie"
+                            OnChange="UpdateCurrentPage" />
+            </div>
         }
 
     </TabPane>
@@ -418,6 +424,7 @@
 </Tabs>
 
 <!-- Modal edycji -->
+<!-- Modal edycji schodów -->
 <Modal Title="Dodaj / Edytuj schody do wyszukiwarki"
        Visible="czyModalEdycjiWidoczny"
        OnCancel="ZamknijModalEdycji"
@@ -429,347 +436,241 @@
        MaskClosable="false">
 
     <div class="container-fluid">
+        <Tabs DefaultActiveKey="1">
 
-        <!-- DANE PODSTAWOWE -->
-        <Card Title="Dane podstawowe" Class="mb-3">
-            <div class="row">
-
-                <div class="col-md-8">
-                    <label class="form-label fw-bold">Typ schodów</label>
-
-                    <select class="form-control flex-grow-1"
-                            @bind="@edytowaneSchody.Typ"
-                            @onclick:stopPropagation="true">
-
-                        <option value="">-- Wybierz typ schodów --</option>
-
-                        <optgroup label="Schody proste">
-                            <option value="Schody proste (bieg prosty)">Schody proste (bieg prosty)</option>
-                            <option value="Schody proste z podestem">Schody proste z podestem</option>
-                        </optgroup>
-
-                        <optgroup label="Schody zabiegowe 1/4 obrotu (90°)">
-                            <option value="Schody 1/4 zabiegowe z 3 stopniami zabiegowymi w lewo">Schody 1/4 zabiegowe z 3 stopniami zabiegowymi w lewo</option>
-                            <option value="Schody 1/4 zabiegowe z 3 stopniami zabiegowymi w prawo">Schody 1/4 zabiegowe z 3 stopniami zabiegowymi w prawo</option>
-                            <option value="Schody 1/4 zabiegowe z 4 stopniami zabiegowymi w lewo">Schody 1/4 zabiegowe z 4 stopniami zabiegowymi w lewo</option>
-                            <option value="Schody 1/4 zabiegowe z 4 stopniami zabiegowymi w prawo">Schody 1/4 zabiegowe z 4 stopniami zabiegowymi w prawo</option>
-                        </optgroup>
-
-                        <optgroup label="Schody zabiegowe 1/4 obrotu (90°) z podestem">
-                            <option value="Schody 1/4 z podestem + 3 stopnie zabiegowe w lewo">Schody 1/4 z podestem + 3 stopnie zabiegowe w lewo</option>
-                            <option value="Schody 1/4 z podestem + 3 stopnie zabiegowe w prawo">Schody 1/4 z podestem + 3 stopnie zabiegowe w prawo</option>
-                            <option value="Schody 1/4 z podestem + 4 stopnie zabiegowe w lewo">Schody 1/4 z podestem + 4 stopnie zabiegowe w lewo</option>
-                            <option value="Schody 1/4 z podestem + 4 stopnie zabiegowe w prawo">Schody 1/4 z podestem + 4 stopnie zabiegowe w prawo</option>
-                        </optgroup>
-
-                        <optgroup label="Schody zabiegowe 1/2 obrotu (180°)">
-                            <option value="Schody 1/2 zabiegowe z 3 stopniami zabiegowymi w lewo">Schody 1/2 zabiegowe z 3 stopniami zabiegowymi w lewo</option>
-                            <option value="Schody 1/2 zabiegowe z 3 stopniami zabiegowymi w prawo">Schody 1/2 zabiegowe z 3 stopniami zabiegowymi w prawo</option>
-                            <option value="Schody 1/2 zabiegowe z 4 stopniami zabiegowymi w lewo">Schody 1/2 zabiegowe z 4 stopniami zabiegowymi w lewo</option>
-                            <option value="Schody 1/2 zabiegowe z 4 stopniami zabiegowymi w prawo">Schody 1/2 zabiegowe z 4 stopniami zabiegowymi w prawo</option>
-                            <option value="Schody 1/2 zabiegowe z 5 stopniami zabiegowymi w lewo">Schody 1/2 zabiegowe z 5 stopniami zabiegowymi w lewo</option>
-                            <option value="Schody 1/2 zabiegowe z 5 stopniami zabiegowymi w prawo">Schody 1/2 zabiegowe z 5 stopniami zabiegowymi w prawo</option>
-                        </optgroup>
-
-                        <optgroup label="Schody zabiegowe 1/2 obrotu (180°) z podestem">
-                            <option value="Schody 1/2 z podestem + 3 stopnie zabiegowe w lewo">Schody 1/2 z podestem + 3 stopnie zabiegowe w lewo</option>
-                            <option value="Schody 1/2 z podestem + 3 stopnie zabiegowe w prawo">Schody 1/2 z podestem + 3 stopnie zabiegowe w prawo</option>
-                            <option value="Schody 1/2 z podestem + 4 stopnie zabiegowe w lewo">Schody 1/2 z podestem + 4 stopnie zabiegowe w lewo</option>
-                            <option value="Schody 1/2 z podestem + 4 stopnie zabiegowe w prawo">Schody 1/2 z podestem + 4 stopnie zabiegowe w prawo</option>
-                        </optgroup>
-
-                        <optgroup label="Schody zabiegowe 2/4 obrotu (180°)">
-                            <option value="Schody 2/4 zabiegowe z 3 stopniami zabiegowymi w lewo">Schody 2/4 zabiegowe z 3 stopniami zabiegowymi w lewo</option>
-                            <option value="Schody 2/4 zabiegowe z 3 stopniami zabiegowymi w prawo">Schody 2/4 zabiegowe z 3 stopniami zabiegowymi w prawo</option>
-                            <option value="Schody 2/4 zabiegowe z 4 stopniami zabiegowymi w lewo">Schody 2/4 zabiegowe z 4 stopniami zabiegowymi w lewo</option>
-                            <option value="Schody 2/4 zabiegowe z 4 stopniami zabiegowymi w prawo">Schody 2/4 zabiegowe z 4 stopniami zabiegowymi w prawo</option>
-                        </optgroup>
-
-                        <optgroup label="Schody zabiegowe 3/4 obrotu (270°)">
-                            <option value="Schody 3/4 zabiegowe z 4 stopniami zabiegowymi w lewo">Schody 3/4 zabiegowe z 4 stopniami zabiegowymi w lewo</option>
-                            <option value="Schody 3/4 zabiegowe z 4 stopniami zabiegowymi w prawo">Schody 3/4 zabiegowe z 4 stopniami zabiegowymi w prawo</option>
-                            <option value="Schody 3/4 zabiegowe z 5 stopniami zabiegowymi w lewo">Schody 3/4 zabiegowe z 5 stopniami zabiegowymi w lewo</option>
-                            <option value="Schody 3/4 zabiegowe z 5 stopniami zabiegowymi w prawo">Schody 3/4 zabiegowe z 5 stopniami zabiegowymi w prawo</option>
-                            <option value="Schody 3/4 zabiegowe z 6 stopniami zabiegowymi w lewo">Schody 3/4 zabiegowe z 6 stopniami zabiegowymi w lewo</option>
-                            <option value="Schody 3/4 zabiegowe z 6 stopniami zabiegowymi w prawo">Schody 3/4 zabiegowe z 6 stopniami zabiegowymi w prawo</option>
-                        </optgroup>
-
-                        <optgroup label="Schody kręte (spiralne)">
-                            <option value="Schody kręte w lewo (90°)">Schody kręte w lewo (90°)</option>
-                            <option value="Schody kręte w prawo (90°)">Schody kręte w prawo (90°)</option>
-                            <option value="Schody kręte w lewo (180°)">Schody kręte w lewo (180°)</option>
-                            <option value="Schody kręte w prawo (180°)">Schody kręte w prawo (180°)</option>
-                            <option value="Schody kręte w lewo (270°)">Schody kręte w lewo (270°)</option>
-                            <option value="Schody kręte w prawo (270°)">Schody kręte w prawo (270°)</option>
-                            <option value="Schody kręte w lewo (360°)">Schody kręte w lewo (360°)</option>
-                            <option value="Schody kręte w prawo (360°)">Schody kręte w prawo (360°)</option>
-                        </optgroup>
-
-                        <optgroup label="Schody z podestem (bez zabiegów)">
-                            <option value="Schody 1/3 z podestem w lewo">Schody 1/3 z podestem w lewo</option>
-                            <option value="Schody 1/3 z podestem w prawo">Schody 1/3 z podestem w prawo</option>
-                            <option value="Schody 2/3 z podestem w lewo">Schody 2/3 z podestem w lewo</option>
-                            <option value="Schody 2/3 z podestem w prawo">Schody 2/3 z podestem w prawo</option>
-                            <option value="Schody 1/2 z podestem w lewo">Schody 1/2 z podestem w lewo</option>
-                            <option value="Schody 1/2 z podestem w prawo">Schody 1/2 z podestem w prawo</option>
-                        </optgroup>
-
-                        <optgroup label="Schody dwubiegowe">
-                            <option value="Schody dwubiegowe (podest w środku)">Schody dwubiegowe (podest w środku)</option>
-                            <option value="Schody dwubiegowe zabiegowe w lewo">Schody dwubiegowe zabiegowe w lewo</option>
-                            <option value="Schody dwubiegowe zabiegowe w prawo">Schody dwubiegowe zabiegowe w prawo</option>
-                        </optgroup>
-
-                        <optgroup label="Schody wielobiegowe">
-                            <option value="Schody trzebiegowe z dwoma podestami">Schody trzebiegowe z dwoma podestami</option>
-                            <option value="Schody trzebiegowe zabiegowe">Schody trzebiegowe zabiegowe</option>
-                            <option value="Schody czterobiegowe">Schody czterobiegowe</option>
-                        </optgroup>
-
-                        <optgroup label="Schody specjalne">
-                            <option value="Schody wachlarzowe">Schody wachlarzowe</option>
-                            <option value="Schody gęsiego stopnia">Schody gęsiego stopnia</option>
-                            <option value="Schody modułowe">Schody modułowe</option>
-                            <option value="Schody zewnętrzne (terenowe)">Schody zewnętrzne (terenowe)</option>
-                            <option value="Schody przeciwpożarowe (ewakuacyjne)">Schody przeciwpożarowe (ewakuacyjne)</option>
-                        </optgroup>
-
-                    </select>
-                </div>
-
-                <div class="col-md-4 d-flex align-items-end">
-
-                    <div class="form-check">
-                        <InputCheckbox class="form-check-input"
-                                       @bind-Value="edytowaneSchody.Wycofany_z_produkcji" />
-
-                        <label class="form-check-label ms-2">
-                            Wycofane z produkcji
-                        </label>
+            <!-- Zakładka 1: Dane podstawowe -->
+            <TabPane Key="1" Tab="Dane podstawowe">
+                <Card Class="mb-3">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold">Typ schodów</label>
+                            <select class="form-control flex-grow-1"
+                                    @bind="@edytowaneSchody.Typ"
+                                    @onclick:stopPropagation="true">
+                                <option value="">-- Wybierz typ schodów --</option>
+                                <optgroup label="Schody proste">
+                                    <option value="Schody proste (bieg prosty)">Schody proste (bieg prosty)</option>
+                                    <option value="Schody proste z podestem">Schody proste z podestem</option>
+                                </optgroup>
+                                <optgroup label="Schody zabiegowe 1/4 obrotu (90°)">
+                                    <option value="Schody 1/4 zabiegowe z 3 stopniami zabiegowymi w lewo">Schody 1/4 zabiegowe z 3 stopniami zabiegowymi w lewo</option>
+                                    <option value="Schody 1/4 zabiegowe z 3 stopniami zabiegowymi w prawo">Schody 1/4 zabiegowe z 3 stopniami zabiegowymi w prawo</option>
+                                    <option value="Schody 1/4 zabiegowe z 4 stopniami zabiegowymi w lewo">Schody 1/4 zabiegowe z 4 stopniami zabiegowymi w lewo</option>
+                                    <option value="Schody 1/4 zabiegowe z 4 stopniami zabiegowymi w prawo">Schody 1/4 zabiegowe z 4 stopniami zabiegowymi w prawo</option>
+                                </optgroup>
+                                <optgroup label="Schody zabiegowe 1/4 obrotu (90°) z podestem">
+                                    <option value="Schody 1/4 z podestem + 3 stopnie zabiegowe w lewo">Schody 1/4 z podestem + 3 stopnie zabiegowe w lewo</option>
+                                    <option value="Schody 1/4 z podestem + 3 stopnie zabiegowe w prawo">Schody 1/4 z podestem + 3 stopnie zabiegowe w prawo</option>
+                                    <option value="Schody 1/4 z podestem + 4 stopnie zabiegowe w lewo">Schody 1/4 z podestem + 4 stopnie zabiegowe w lewo</option>
+                                    <option value="Schody 1/4 z podestem + 4 stopnie zabiegowe w prawo">Schody 1/4 z podestem + 4 stopnie zabiegowe w prawo</option>
+                                </optgroup>
+                                <optgroup label="Schody zabiegowe 1/2 obrotu (180°)">
+                                    <option value="Schody 1/2 zabiegowe z 3 stopniami zabiegowymi w lewo">Schody 1/2 zabiegowe z 3 stopniami zabiegowymi w lewo</option>
+                                    <option value="Schody 1/2 zabiegowe z 3 stopniami zabiegowymi w prawo">Schody 1/2 zabiegowe z 3 stopniami zabiegowymi w prawo</option>
+                                    <option value="Schody 1/2 zabiegowe z 4 stopniami zabiegowymi w lewo">Schody 1/2 zabiegowe z 4 stopniami zabiegowymi w lewo</option>
+                                    <option value="Schody 1/2 zabiegowe z 4 stopniami zabiegowymi w prawo">Schody 1/2 zabiegowe z 4 stopniami zabiegowymi w prawo</option>
+                                    <option value="Schody 1/2 zabiegowe z 5 stopniami zabiegowymi w lewo">Schody 1/2 zabiegowe z 5 stopniami zabiegowymi w lewo</option>
+                                    <option value="Schody 1/2 zabiegowe z 5 stopniami zabiegowymi w prawo">Schody 1/2 zabiegowe z 5 stopniami zabiegowymi w prawo</option>
+                                </optgroup>
+                                <optgroup label="Schody zabiegowe 1/2 obrotu (180°) z podestem">
+                                    <option value="Schody 1/2 z podestem + 3 stopnie zabiegowe w lewo">Schody 1/2 z podestem + 3 stopnie zabiegowe w lewo</option>
+                                    <option value="Schody 1/2 z podestem + 3 stopnie zabiegowe w prawo">Schody 1/2 z podestem + 3 stopnie zabiegowe w prawo</option>
+                                    <option value="Schody 1/2 z podestem + 4 stopnie zabiegowe w lewo">Schody 1/2 z podestem + 4 stopnie zabiegowe w lewo</option>
+                                    <option value="Schody 1/2 z podestem + 4 stopnie zabiegowe w prawo">Schody 1/2 z podestem + 4 stopnie zabiegowe w prawo</option>
+                                </optgroup>
+                                <optgroup label="Schody zabiegowe 2/4 obrotu (180°)">
+                                    <option value="Schody 2/4 zabiegowe z 3 stopniami zabiegowymi w lewo">Schody 2/4 zabiegowe z 3 stopniami zabiegowymi w lewo</option>
+                                    <option value="Schody 2/4 zabiegowe z 3 stopniami zabiegowymi w prawo">Schody 2/4 zabiegowe z 3 stopniami zabiegowymi w prawo</option>
+                                    <option value="Schody 2/4 zabiegowe z 4 stopniami zabiegowymi w lewo">Schody 2/4 zabiegowe z 4 stopniami zabiegowymi w lewo</option>
+                                    <option value="Schody 2/4 zabiegowe z 4 stopniami zabiegowymi w prawo">Schody 2/4 zabiegowe z 4 stopniami zabiegowymi w prawo</option>
+                                </optgroup>
+                                <optgroup label="Schody zabiegowe 3/4 obrotu (270°)">
+                                    <option value="Schody 3/4 zabiegowe z 4 stopniami zabiegowymi w lewo">Schody 3/4 zabiegowe z 4 stopniami zabiegowymi w lewo</option>
+                                    <option value="Schody 3/4 zabiegowe z 4 stopniami zabiegowymi w prawo">Schody 3/4 zabiegowe z 4 stopniami zabiegowymi w prawo</option>
+                                    <option value="Schody 3/4 zabiegowe z 5 stopniami zabiegowymi w lewo">Schody 3/4 zabiegowe z 5 stopniami zabiegowymi w lewo</option>
+                                    <option value="Schody 3/4 zabiegowe z 5 stopniami zabiegowymi w prawo">Schody 3/4 zabiegowe z 5 stopniami zabiegowymi w prawo</option>
+                                    <option value="Schody 3/4 zabiegowe z 6 stopniami zabiegowymi w lewo">Schody 3/4 zabiegowe z 6 stopniami zabiegowymi w lewo</option>
+                                    <option value="Schody 3/4 zabiegowe z 6 stopniami zabiegowymi w prawo">Schody 3/4 zabiegowe z 6 stopniami zabiegowymi w prawo</option>
+                                </optgroup>
+                                <optgroup label="Schody kręte (spiralne)">
+                                    <option value="Schody kręte w lewo (90°)">Schody kręte w lewo (90°)</option>
+                                    <option value="Schody kręte w prawo (90°)">Schody kręte w prawo (90°)</option>
+                                    <option value="Schody kręte w lewo (180°)">Schody kręte w lewo (180°)</option>
+                                    <option value="Schody kręte w prawo (180°)">Schody kręte w prawo (180°)</option>
+                                    <option value="Schody kręte w lewo (270°)">Schody kręte w lewo (270°)</option>
+                                    <option value="Schody kręte w prawo (270°)">Schody kręte w prawo (270°)</option>
+                                    <option value="Schody kręte w lewo (360°)">Schody kręte w lewo (360°)</option>
+                                    <option value="Schody kręte w prawo (360°)">Schody kręte w prawo (360°)</option>
+                                </optgroup>
+                                <optgroup label="Schody z podestem (bez zabiegów)">
+                                    <option value="Schody 1/3 z podestem w lewo">Schody 1/3 z podestem w lewo</option>
+                                    <option value="Schody 1/3 z podestem w prawo">Schody 1/3 z podestem w prawo</option>
+                                    <option value="Schody 2/3 z podestem w lewo">Schody 2/3 z podestem w lewo</option>
+                                    <option value="Schody 2/3 z podestem w prawo">Schody 2/3 z podestem w prawo</option>
+                                    <option value="Schody 1/2 z podestem w lewo">Schody 1/2 z podestem w lewo</option>
+                                    <option value="Schody 1/2 z podestem w prawo">Schody 1/2 z podestem w prawo</option>
+                                </optgroup>
+                                <optgroup label="Schody dwubiegowe">
+                                    <option value="Schody dwubiegowe (podest w środku)">Schody dwubiegowe (podest w środku)</option>
+                                    <option value="Schody dwubiegowe zabiegowe w lewo">Schody dwubiegowe zabiegowe w lewo</option>
+                                    <option value="Schody dwubiegowe zabiegowe w prawo">Schody dwubiegowe zabiegowe w prawo</option>
+                                </optgroup>
+                                <optgroup label="Schody wielobiegowe">
+                                    <option value="Schody trzebiegowe z dwoma podestami">Schody trzebiegowe z dwoma podestami</option>
+                                    <option value="Schody trzebiegowe zabiegowe">Schody trzebiegowe zabiegowe</option>
+                                    <option value="Schody czterobiegowe">Schody czterobiegowe</option>
+                                </optgroup>
+                                <optgroup label="Schody specjalne">
+                                    <option value="Schody wachlarzowe">Schody wachlarzowe</option>
+                                    <option value="Schody gęsiego stopnia">Schody gęsiego stopnia</option>
+                                    <option value="Schody modułowe">Schody modułowe</option>
+                                    <option value="Schody zewnętrzne (terenowe)">Schody zewnętrzne (terenowe)</option>
+                                    <option value="Schody przeciwpożarowe (ewakuacyjne)">Schody przeciwpożarowe (ewakuacyjne)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <div class="form-check">
+                                <InputCheckbox class="form-check-input"
+                                               @bind-Value="edytowaneSchody.Wycofany_z_produkcji" />
+                                <label class="form-check-label ms-2">Wycofane z produkcji</label>
+                            </div>
+                        </div>
                     </div>
+                </Card>
+            </TabPane>
 
-                </div>
-
-            </div>
-        </Card>
-
-        <!-- WYMIARY -->
-        <Card Title="Wymiary schodów [mm]" Class="mb-3">
-
-            <div class="row">
-
-                <div class="col-md-4 mb-3">
-                    <label class="form-label fw-bold">Szerokość</label>
-
-                    <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneSchody.Szerokosc"
-                                                                       class="form-control"
-                                                                       step="1"
-                                                                       @bind-Value:after="OnPrzesuniecieChanged" />
-                </div>
-
-                <div class="col-md-4 mb-3">
-                    <label class="form-label fw-bold">Wysokość</label>
-
-                    <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneSchody.Wysokosc"
-                                                                       class="form-control"
-                                                                       step="1"
-                                                                       @bind-Value:after="OnPrzesuniecieChanged" />
-                </div>
-
-                <div class="col-md-4 mb-3">
-                    <label class="form-label fw-bold">Głębokość</label>
-
-                    <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneSchody.Glebokosc"
-                                                                       class="form-control"
-                                                                       step="1"
-                                                                       @bind-Value:after="OnPrzesuniecieChanged" />
-                </div>
-
-            </div>
-
-            <hr />
-
-            <div class="row">
-
-                <div class="col-md-3 mb-3">
-                    <label class="form-label fw-bold">
-                        Szerokość zabiegu 1
-                    </label>
-
-                    <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneSchody.SzerokoscZabieg1"
-                                                                       class="form-control"
-                                                                       step="1"
-                                                                       @bind-Value:after="OnPrzesuniecieChanged" />
-                </div>
-
-                <div class="col-md-3 mb-3">
-                    <label class="form-label fw-bold">
-                        Szerokość zabiegu 2
-                    </label>
-
-                    <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneSchody.SzerokoscZabieg2"
-                                                                       class="form-control"
-                                                                       step="1"
-                                                                       @bind-Value:after="OnPrzesuniecieChanged" />
-                </div>
-
-                <div class="col-md-3 mb-3">
-                    <label class="form-label fw-bold">
-                        Głębokość zabiegu 1
-                    </label>
-
-                    <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneSchody.GlebokoscZabieg1"
-                                                                       class="form-control"
-                                                                       step="1"
-                                                                       @bind-Value:after="OnPrzesuniecieChanged" />
-                </div>
-
-                <div class="col-md-3 mb-3">
-                    <label class="form-label fw-bold">
-                        Głębokość zabiegu 2
-                    </label>
-
-                    <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneSchody.GlebokoscZabieg2"
-                                                                       class="form-control"
-                                                                       step="1"
-                                                                       @bind-Value:after="OnPrzesuniecieChanged" />
-                </div>
-
-            </div>
-
-        </Card>
-
-        <!-- PLIK PRODUKCYJNY -->
-        <Card Title="Plik produkcyjny" Class="mb-3">
-
-            <div class="row align-items-end">
-
-                <div class="col-md-10">
-
-                    <label class="form-label fw-bold">
-                        Powiązany plik
-                    </label>
-
-                    <Select DataSource="@pliki"
-                            ShowSearch
-                            AllowClear
-                            TItem="PlikiZlecenProdukcyjnych"
-                            TItemValue="Guid"
-                            @bind-Value="edytowaneSchody.RowIdPliku"
-                            LabelName="@nameof(PlikiZlecenProdukcyjnych.OryginalnaNazwaPliku)"
-                            ValueName="@nameof(PlikiZlecenProdukcyjnych.RowGuid)">
-                    </Select>
-
-                </div>
-
-                <div class="col-md-2">
-
-                    <Button Type="@ButtonType.Primary"
-                            Block
-                            Icon="@IconType.Outline.Download"
-                            Disabled="@(edytowaneSchody.RowIdPliku == Guid.Empty)"
-                            OnClick="() => OnFileChange(edytowaneSchody.RowIdPliku.ToString())">
-                        Pobierz
-                    </Button>
-
-                </div>
-
-            </div>
-
-            @if (edytowaneSchody.RowIdPliku != Guid.Empty)
-            {
-                <div class="mt-3">
-
-                    <Tag Color="blue">
-                        RowId:
-                        @edytowaneSchody.RowIdPliku
-                    </Tag>
-
-                </div>
-            }
-
-        </Card>
-
-        <!-- RYSUNEK -->
-        <Card Title="Rysunek poglądowy" Class="mb-3">
-
-            <div class="row">
-
-                <div class="col-md-4">
-
-                    <div class="d-grid gap-2">
-
-                        <Button Type="@ButtonType.Primary"
-                                Icon="@IconType.Outline.Copy"
-                                OnClick="WklejRysunek">
-
-                            Wklej ze schowka
-
-                        </Button>
-
-                        <Button Danger
-                                Icon="@IconType.Outline.Delete"
-                                OnClick="UsunRysunek">
-
-                            Usuń rysunek
-
-                        </Button>
-
+            <!-- Zakładka 2: Wymiary -->
+            <TabPane Key="2" Tab="Wymiary">
+                <Card Title="Wymiary schodów [mm]" Class="mb-3">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Szerokość</label>
+                            <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneSchody.Szerokosc"
+                                                                               class="form-control" step="1"
+                                                                               @bind-Value:after="OnPrzesuniecieChanged" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Wysokość</label>
+                            <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneSchody.Wysokosc"
+                                                                               class="form-control" step="1"
+                                                                               @bind-Value:after="OnPrzesuniecieChanged" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Głębokość</label>
+                            <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneSchody.Glebokosc"
+                                                                               class="form-control" step="1"
+                                                                               @bind-Value:after="OnPrzesuniecieChanged" />
+                        </div>
                     </div>
+                    <hr />
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label fw-bold">Szerokość zabiegu 1</label>
+                            <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneSchody.SzerokoscZabieg1"
+                                                                               class="form-control" step="1"
+                                                                               @bind-Value:after="OnPrzesuniecieChanged" />
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label fw-bold">Szerokość zabiegu 2</label>
+                            <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneSchody.SzerokoscZabieg2"
+                                                                               class="form-control" step="1"
+                                                                               @bind-Value:after="OnPrzesuniecieChanged" />
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label fw-bold">Głębokość zabiegu 1</label>
+                            <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneSchody.GlebokoscZabieg1"
+                                                                               class="form-control" step="1"
+                                                                               @bind-Value:after="OnPrzesuniecieChanged" />
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label fw-bold">Głębokość zabiegu 2</label>
+                            <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowaneSchody.GlebokoscZabieg2"
+                                                                               class="form-control" step="1"
+                                                                               @bind-Value:after="OnPrzesuniecieChanged" />
+                        </div>
+                    </div>
+                </Card>
+            </TabPane>
 
-                </div>
-
-                <div class="col-md-8">
-
-                    @if (edytowaneSchody.RysunekPogladowy?.Length > 0)
+            <!-- Zakładka 3: Plik i rysunek -->
+            <TabPane Key="3" Tab="Plik i rysunek">
+                <Card Title="Plik produkcyjny" Class="mb-3">
+                    <div class="row align-items-end">
+                        <div class="col-md-10">
+                            <label class="form-label fw-bold">Powiązany plik</label>
+                            <Select DataSource="@przefiltrowanePliki"
+                                    EnableSearch
+                                    AllowClear
+                                    TItem="PlikiZlecenProdukcyjnych"
+                                    TItemValue="Guid"
+                                    @bind-Value="edytowaneSchody.RowIdPliku"
+                                    LabelName="@nameof(PlikiZlecenProdukcyjnych.OryginalnaNazwaPliku)"
+                                    ValueName="@nameof(PlikiZlecenProdukcyjnych.RowGuid)"
+                                    OnSearch="async (string s) => await SzukajPlikow(s)">
+                            </Select>
+                        </div>
+                        <div class="col-md-2">
+                            <Button Type="@ButtonType.Primary"
+                                    Block
+                                    Icon="@IconType.Outline.Download"
+                                    Disabled="@(edytowaneSchody.RowIdPliku == Guid.Empty)"
+                                    OnClick="() => OnFileChange(edytowaneSchody.RowIdPliku.ToString())">
+                                Pobierz
+                            </Button>
+                        </div>
+                    </div>
+                    @if (edytowaneSchody.RowIdPliku != Guid.Empty)
                     {
-                        <div style="
-                                    min-height:250px;
-                                    display:flex;
-                                    justify-content:center;
-                                    align-items:center;
-                                    border:1px solid #d9d9d9;
-                                    border-radius:6px;
-                                    background:#fafafa;">
-
-                            <img src="@ObrazBase64"
-                                 style="
-                                            max-width:100%;
-                                            max-height:300px;
-                                            object-fit:contain;" />
-
+                        <div class="mt-3">
+                            <Tag Color="blue">RowId: @edytowaneSchody.RowIdPliku</Tag>
                         </div>
                     }
-                    else
-                    {
-                        <div style="
-                                    min-height:250px;
-                                    display:flex;
-                                    justify-content:center;
-                                    align-items:center;
-                                    border:1px dashed #bfbfbf;
-                                    border-radius:6px;
-                                    color:gray;">
+                </Card>
 
-                            Brak rysunku
-
+                <Card Title="Rysunek poglądowy">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="d-grid gap-2">
+                                <Button Type="@ButtonType.Primary"
+                                        Icon="@IconType.Outline.Copy"
+                                        OnClick="WklejRysunek">
+                                    Wklej ze schowka
+                                </Button>
+                                <Button Danger
+                                        Icon="@IconType.Outline.Delete"
+                                        OnClick="UsunRysunek">
+                                    Usuń rysunek
+                                </Button>
+                            </div>
                         </div>
-                    }
+                        <div class="col-md-8">
+                            @if (edytowaneSchody.RysunekPogladowy?.Length > 0)
+                            {
+                                <div style="min-height:250px; display:flex; justify-content:center; align-items:center; border:1px solid #d9d9d9; border-radius:6px; background:#fafafa;">
+                                    <img src="@ObrazBase64" style="max-width:100%; max-height:300px; object-fit:contain;" />
+                                </div>
+                            }
+                            else
+                            {
+                                <div style="min-height:250px; display:flex; justify-content:center; align-items:center; border:1px dashed #bfbfbf; border-radius:6px; color:gray;">
+                                    Brak rysunku
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </Card>
+            </TabPane>
 
-                </div>
-
-            </div>
-
-        </Card>
-
-        <!-- UWAGI -->
-        <Card Title="Dodatkowe informacje" Class="mb-3">
-
-            <TextArea @bind-Value="edytowaneSchody.Uwagi"
-                      Rows="4"
-                      Placeholder="Wpisz dodatkowe informacje..." />
-
-        </Card>
+            <!-- Zakładka 4: Uwagi -->
+            <TabPane Key="4" Tab="Uwagi">
+                <Card Title="Dodatkowe informacje">
+                    <TextArea @bind-Value="edytowaneSchody.Uwagi"
+                              Rows="6"
+                              Placeholder="Wpisz dodatkowe informacje..." />
+                </Card>
+            </TabPane>
+        </Tabs>
 
         @if (!string.IsNullOrWhiteSpace(bladEdycji))
         {
@@ -778,9 +679,7 @@
                    ShowIcon="true"
                    Class="mt-3" />
         }
-
     </div>
-
 </Modal>
 
 @code
@@ -799,7 +698,7 @@
 
     private string? activeKey = "0";
 
-    private List<Schody>? listaSchody;
+    private List<Schody>? listaSchody = null;
 
     private bool czyModalEdycjiWidoczny = false;
     private string bladEdycji = "";
@@ -815,6 +714,8 @@
     private double? filtrWysokosc;
     private double? filtrSzerokosc;
     private double? filtrGlebokosc;
+
+    private List<PlikiZlecenProdukcyjnych> przefiltrowanePliki = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -1088,25 +989,26 @@
         await Task.Delay(100); // Opcjonalne opóźnienie, aby upewnić się, że wartość została zaktualizowana
     }
 
-
-    private async Task OnTabClick()
+    private async Task SzukajPlikow(string searchTerm)
     {
-        //Console.WriteLine($"Kliknięto zakładkę: {activeKey}");
+        if (string.IsNullOrWhiteSpace(searchTerm))
+            przefiltrowanePliki = pliki;
+        else
+            przefiltrowanePliki = pliki
+                .Where(p => p.OryginalnaNazwaPliku.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        await Task.CompletedTask;
+    }
 
-        if (activeKey == "0")
+    private async Task OnTabChange(string key)
+    {
+        if (key == "0")
         {
 
-            StateHasChanged();
-
-            await Task.Yield(); // Upewnij się, że UI jest zaktualizowane przed pobraniem danych
-
             listaSchody = await Http.GetFromJsonAsync<List<Schody>>("api/Schody");
-
             await LoadFiles();
-
             StateHasChanged();
         }
-
     }
 
     private async Task LoadFiles()
@@ -1133,10 +1035,14 @@
                     }
 
                     pliki = fileList;
+
+                    przefiltrowanePliki = pliki;
                 }
                 else
                 {
                     pliki = new List<PlikiZlecenProdukcyjnych>();
+
+                    przefiltrowanePliki = pliki;
                 }
             }
             else
