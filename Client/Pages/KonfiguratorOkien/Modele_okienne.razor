@@ -7638,7 +7638,8 @@
                     //Console.WriteLine($"*********** >>>>>> IndeksElementu: {ksztalt.IndeksElementu} Grupa: {ksztalt.Grupa} DlogoscElementu: {ksztalt.DlogoscElementu}");
 
                     await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
-                    await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"[{ksztalt.NrPozWModelu}]-{ksztalt.IndeksElementu.ToString()} [{Math.Round(ksztalt.Kat, 1).ToString()}°/{ksztalt.DlogoscElementu}mm]", (ksztalt.Kat == 180 ? 0 : ksztalt.Kat)); // Tekst z ID i kątem na profilu
+                    //await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"[{ksztalt.NrPozWModelu}]-{ksztalt.IndeksElementu.ToString()} [{Math.Round(ksztalt.Kat, 1).ToString()}°/{ksztalt.DlogoscElementu}mm]", (ksztalt.Kat == 180 ? 0 : ksztalt.Kat)); // Tekst z ID i kątem na profilu
+                    await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"[{ksztalt.NrPozWModelu}]-{ksztalt.IndeksElementu.ToString()} [{Math.Round(ksztalt.Kat, 1).ToString()}°/{ksztalt.Strona}-{ksztalt.RodzajpolaczenAiB}]", (ksztalt.Kat == 180 ? 0 : ksztalt.Kat), true); // Tekst z ID i kątem na profilu
                 }
 
             }
@@ -7894,7 +7895,7 @@
         }
 
         // Poprawienie startu łuku, aby uniknąć przerwy od poprzedniego segmentu
-        await context.LineToAsync(seg.Start.X, seg.Start.Y);
+        await context.LineToAsync(seg.Start.X, seg.Start.Y); //??? Do ponownego sprawdzenia
 
         // Debug
         // Console.WriteLine($"  Rysowanie łuku: Center({seg.Center.Value.X:F2},{seg.Center.Value.Y:F2}), R={seg.Radius:F2}, CCW={seg.CounterClockwise}");
@@ -8178,8 +8179,8 @@
     Canvas2DContext context,
     List<XPoint> outerPoints,
     string tekst,
-    float kat // w stopniach
-    )
+    float kat, // w stopniach
+    bool smalltext = false)
     {
         if (outerPoints == null || outerPoints.Count < 2) return;
 
@@ -8192,7 +8193,7 @@
 
         // Rysowanie tekstu
         await context.SaveAsync();
-        await context.SetFontAsync("bold 28px Arial");
+        await context.SetFontAsync(smalltext ? "bold 18px Arial" : "bold 28px Arial");
         await context.SetFillStyleAsync("black");
         await context.SetTextAlignAsync(TextAlign.Center);
         await context.SetTextBaselineAsync(TextBaseline.Middle);

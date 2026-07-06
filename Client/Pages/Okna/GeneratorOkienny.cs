@@ -938,14 +938,14 @@ namespace GEORGE.Client.Pages.Okna
                     // Jeśli kąt z następnym jest bardzo mały, traktujemy to jako prawie prostą linię → potencjalnie T1
                     leftJoin = "T2"; // połączone równym kątem
                                      // Console.WriteLine($"⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️ Wierzchołek {i}: Kąt elementu: {angleDegrees:F1}° Kąt z poprzednim = {angleDegreesStronaA:F1}°, Kąt z następnym = {angleDegreesStronaB:F1}°");
-                    BledySystemowe.Add($"⚠️ Wierzchołek element nr: {i + 1}: Kąt z poprzednim elementem = {angleDegreesStronaA:F1}° jest bardzo mały. Zmieniono typ połączenia na T2 dla lewego narożnika.");
+                    BledySystemowe.Add($"⚠️ Wierzchołek element nr: {i + 1}: Kąt z poprzednim elementem = {angleDegrees} a {angleDegreesStronaA:F1}° jest bardzo mały. Zmieniono typ połączenia na T2 dla lewego narożnika.");
                 }
 
                 if (angleDegreesStronaB < 45 && angleDegrees != 90)
                 {
                     // Jeśli kąt z następnym jest bardzo mały, traktujemy to jako prawie prostą linię → potencjalnie T1
                     rightJoin = "T2"; // połączone równym kątem
-                    BledySystemowe.Add($"⚠️ Wierzchołek element nr: {i + 1}: Kąt z następnym elementem = {angleDegreesStronaB:F1}° jest bardzo mały. Zmieniono typ połączenia na T2 dla prawego narożnika.");
+                    BledySystemowe.Add($"⚠️ Wierzchołek element nr: {i + 1}: Kąt z następnym elementem = {angleDegrees} a {angleDegreesStronaB:F1}° jest bardzo mały. Zmieniono typ połączenia na T2 dla prawego narożnika.");
                 }
 
                 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1905,7 +1905,7 @@ namespace GEORGE.Client.Pages.Okna
                 }
 
                 // Budujemy pełny kontur 4-segmentowy
-                wierzcholkiZLukami = Build4SegmentContour(wierzcholkiStycznePodLuki, outerContourSegment, innerContourSegment, i + 1);
+                wierzcholkiZLukami = Build4SegmentContour(wierzcholkiStycznePodLuki, outerContourSegment, innerContourSegment, i + 1, wierzcholki, leftJoin, rightJoin);
 
                 double regionMinX = wierzcholki.Min(p => p.X);
                 double regionMaxX = wierzcholki.Max(p => p.X);
@@ -2003,7 +2003,10 @@ namespace GEORGE.Client.Pages.Okna
         List<XPoint> wierzcholki,
         List<ContourSegment> outerContour,
         List<ContourSegment> innerContour,
-        int numerElemntu)
+        int numerElemntu,
+        List<XPoint> wierzcholkiLineProste,
+        string leftJoin,
+        string rightJoin)
         {
             if (wierzcholki == null || wierzcholki.Count != 4)
             {
@@ -2020,6 +2023,19 @@ namespace GEORGE.Client.Pages.Okna
                 }
                 return fallback;
             }
+
+            //if (leftJoin == "T1" || leftJoin == "T3")
+            //{
+            //    wierzcholki[0] = wierzcholkiLineProste[0];
+            //    wierzcholki[1] = wierzcholkiLineProste[1];
+            //}
+
+            //if (rightJoin == "T1" || rightJoin == "T3")
+            //{
+            //    wierzcholki[2] = wierzcholkiLineProste[2];
+            //    wierzcholki[3] = wierzcholkiLineProste[3];
+            //}
+
 
             // Sprawdź czy któryś z wierzchołków leży na łuku
             // W miejscu gdzie szukasz łuku zewnętrznego, dodaj sprawdzenie czy oba punkty są na łuku
@@ -2054,7 +2070,7 @@ namespace GEORGE.Client.Pages.Okna
                             arcCenter = seg.Center.Value;
                             arcRadius = seg.Radius;
                             arcCW = seg.CounterClockwise;
-                            Console.WriteLine($"✅ Znaleziono łuk dla par ({i},{next})");
+                            Console.WriteLine($"✅ Build4SegmentContour: Znaleziono łuk dla par ({i};{next} dotyczy elementu: {numerElemntu})");
                             break;
                         }
                     }
@@ -2086,7 +2102,7 @@ namespace GEORGE.Client.Pages.Okna
                         {
                             //seg.CounterClockwise = false; // Wewnętrzny łuk ma przeciwną orientację
                             innerArc = seg;
-                            Console.WriteLine($"Build4SegmentContour: 🔷 Znaleziono łuk wewnętrzny: Center({seg.Center.Value.X},{seg.Center.Value.Y}) R={seg.Radius}  seg.CounterClockwise:{seg.CounterClockwise}");
+                            Console.WriteLine($"Build4SegmentContour: 🔷 Znaleziono łuk wewnętrzny: Center({seg.Center.Value.X};{seg.Center.Value.Y}) R={seg.Radius}  seg.CounterClockwise:{seg.CounterClockwise} dotyczy elementu: {numerElemntu}");
                             break;
                         }
                     }
@@ -2106,7 +2122,7 @@ namespace GEORGE.Client.Pages.Okna
                         innerCenter.X + innerRadius * Math.Cos(angle2),
                         innerCenter.Y + innerRadius * Math.Sin(angle2));
 
-                    Console.WriteLine($"Build4SegmentContour: 🔷 innerStart({innerStart.X:F2},{innerStart.Y:F2}) innerEnd({innerEnd.X:F2},{innerEnd.Y:F2})");
+                    Console.WriteLine($"Build4SegmentContour: 🔷 innerStart({innerStart.X:F2};{innerStart.Y:F2}) innerEnd({innerEnd.X:F2};{innerEnd.Y:F2} dotyczy elementu: {numerElemntu})");
 
                     var outerArcSeg = new ContourSegment(wierzcholki[0], wierzcholki[1],
                         arcCenter.Value, arcRadius, false);  // ← zawsze CCW
@@ -2287,7 +2303,6 @@ namespace GEORGE.Client.Pages.Okna
         int vertexCount = 0,
         float firstangleDegrees = 0)
         {
-            return wierzcholki;
 
             if (i < 0 || i >= outerContourSegment.Count() || outerContourSegment.Count() < 2)
                 return wierzcholki;
@@ -2340,21 +2355,35 @@ namespace GEORGE.Client.Pages.Okna
                     //    //innerSeg.End = ZnajdzPrzeciecieLukuZKonturem(
                     //    //    currentSeg.Center.Value,
                     //    //    innerSeg.Start,
-                    //    //    outerContourSegment, 
+                    //    //    outerContourSegment,
                     //    //    true);
 
-                    //    //var newEnd = ZnajdzPrzeciecieLukuZKonturem(
-                    //    //    currentSeg.Center.Value,
-                    //    //    p2,
-                    //    //    outerContourSegment,
-                    //    //    false);
+                    //    //    //var newEnd = ZnajdzPrzeciecieLukuZKonturem(
+                    //    //    //    currentSeg.Center.Value,
+                    //    //    //    p2,
+                    //    //    //    outerContourSegment,
+                    //    //    //    false);
 
-                    //    //Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] newStart.Start: {newStart.X} -> {currentSeg.Start.X}, {newStart.Y} -> {currentSeg.Start.Y}");
-                    //    //Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] newEnd.End: {newEnd.X} -> {currentSeg.End.X}, {newEnd.Y} -> {currentSeg.End.Y}");
-                    //    currentSeg.Start = new XPoint(0, 0);
-                    //    currentSeg.End = new XPoint(1000, 0);
-                    //    innerSeg.Start = new XPoint(1000, 100);
-                    //    innerSeg.Start = new XPoint(0, 100);
+                    //    //    //Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] newStart.Start: {newStart.X} -> {currentSeg.Start.X}, {newStart.Y} -> {currentSeg.Start.Y}");
+                    //    //    //Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] newEnd.End: {newEnd.X} -> {currentSeg.End.X}, {newEnd.Y} -> {currentSeg.End.Y}");
+                    //    //currentSeg.Start = new XPoint(0, 0);
+                    //    //currentSeg.End = new XPoint(200, 0);
+                    //    //innerSeg.Start = new XPoint(200, 80);
+                    //    //innerSeg.Start = new XPoint(0, 80);
+
+                    //    if (currentSeg != null)
+                    //    {
+                    //        var start = currentSeg.Start;
+                    //        start.X = innerSeg.Start.X;
+                    //        currentSeg.End = start; // Przypisz całą strukturę z powrotem
+                    //    }
+
+                    //    Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] currentSeg.Start: {currentSeg.Start.X}, {currentSeg.Start.Y}");
+                    //    Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] currentSeg.End: {currentSeg.End.X}, {currentSeg.End.Y}");
+                    //    Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] innerSeg.End: {innerSeg.End.X}, {innerSeg.End.Y}");
+                    //    Console.WriteLine($"🔴 GetWierzcholkiStycznePodLuki 🔷 [{i} #2] innerSeg.Start: {innerSeg.Start.X}, {innerSeg.Start.Y}");
+
+
                     //    return new List<XPoint>
                     //                    {
                     //                        currentSeg.Start,
