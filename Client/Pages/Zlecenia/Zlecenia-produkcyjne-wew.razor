@@ -87,6 +87,18 @@
 
 </style>
 
+<script>
+    window.clipboardCopy = {
+        copyText: function (text) {
+            navigator.clipboard.writeText(text).then(function () {
+                console.log('Skopiowano: ' + text);
+            }).catch(function (error) {
+                console.error('Błąd kopiowania: ', error);
+            });
+        }
+    };
+</script>
+
 <PageTitle>Program do wspomagania produkcji zlecenia</PageTitle>
 
 <div style="display: flex; align-items: center; gap: 10px;">
@@ -219,7 +231,10 @@ else
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Zlecenie wewnętrzne dodaj / zmień [@zlecenie.Klient]</h5>
+                <h5 class="modal-title" @onclick="() => CopyToClipboard(zlecenie.Klient)" style="cursor: pointer;">
+                    Zlecenie wewnętrzne dodaj / zmień [@zlecenie.Klient]
+                </h5>
+
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="HandleCancel">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -465,7 +480,7 @@ else
     <div class="modal-dialog" style="max-width: 70%;">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Ilość plików powiązanych: @pliki.Count()  [@zlecenie.Klient]</h5>
+                <h5 class="modal-title">Ilość plików powiązanych: @pliki.Count()  [<a href="javascript:void(0);" @onclick="() => CopyToClipboard(zlecenie.Klient)">@zlecenie.Klient</a>]</h5>
             </div>
             <div class="modal-body">
                 <Table TItem="PlikiZlecenProdukcyjnych" DataSource="@pliki" ScrollX="1350" PageSize="4" Size="TableSize.Small" 
@@ -1647,6 +1662,12 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
         // await HandleSubmit();
         // _visible = false;
         // await HideDialog();
+    }
+
+    private async Task CopyToClipboard(string text)
+    {
+        await JSRuntime.InvokeVoidAsync("clipboardCopy.copyText", text.Replace("/", "-"));
+        await _message.Success("Skopiowano do schowka!", 3);
     }
 
     public async Task HandleCancel()
