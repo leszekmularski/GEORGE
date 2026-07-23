@@ -87,49 +87,91 @@
 
 <PageTitle>Program do wspomagania produkcji zlecenia</PageTitle>
 
-<div style="display: flex; align-items: center; gap: 10px;">
-    @*   <h3 style="margin: 0;">Zlecenia Produkcyjne</h3> *@
+<div class="card mb-3">
+    <div class="card-body">
 
-    <div style="display: flex; align-items: center;padding-left:15px">
+        <div class="row g-3 align-items-end">
 
-        <Text style="margin-right: 5px;">Ilość widocznych rekordów na stronie</Text>
+            <!-- Ilość rekordów -->
+            <div class="col-auto">
+                <label class="form-label fw-bold">
+                    Ilość rekordów
+                </label>
 
-        <AntDesign.InputNumber TValue="int"
-        @bind-Value="iloscRekordow"
-        Min="2"
-        Max="250"
-        Bordered="false"
-        OnChange="@(e => OnClickChange(e))"
-        Style="width: 100px; padding: 0; border-radius: 4px;" />
+                <AntDesign.InputNumber TValue="int"
+                                       @bind-Value="iloscRekordow"
+                                       Min="2"
+                                       Max="250"
+                                       Bordered="false"
+                                       OnChange="@(e => OnClickChange(e))"
+                                       Style="width:120px;" />
+            </div>
+
+
+            <!-- Wyszukiwarka -->
+            @if (zleceniaProdukcyjne != null)
+            {
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">
+                        Klient
+                    </label>
+
+                    <Search Placeholder="Wyszukaj klienta..."
+                            AllowClear
+                            @bind-Value="szukanyKlient" />
+                </div>
+            }
+
+
+            <!-- Typ zamówienia -->
+            @if (_TypZamowienia != null)
+            {
+                <div class="col-md-3">
+
+                    <label class="form-label fw-bold">
+                        Typ zamówienia
+                    </label>
+
+                    <Select TItem="TypZamowienia"
+                            TItemValue="string"
+                            DataSource="@_TypZamowienia"
+                            @bind-Value="@filtrTypZamowienia"
+                            ValueName="@nameof(TypZamowienia.Value)"
+                            LabelName="@nameof(TypZamowienia.Name)"
+                            GroupName="@nameof(TypZamowienia.Role)"
+                            SortByLabel="@SortDirection.Ascending"
+                            SortByGroup="@SortDirection.Ascending"
+                            DefaultActiveFirstOption="false"
+                            AllowClear
+                            Style="width:100%;"
+                            OnSelectedItemChanged="OnSelectedItemChangedHandlerFiltr">
+                    </Select>
+
+                </div>
+            }
+
+
+            <!-- CheckBox -->
+            <div class="col">
+
+                <label class="form-label fw-bold">
+                    Filtr dodatkowy
+                </label>
+
+                <CheckboxGroup Options="@plainOptions"
+                               @bind-Value="@_valueFiltr"
+                               TValue="string"
+                               Disabled="@blokojFiltr"
+                               OnChange="OnChange" />
+
+            </div>
+
+        </div>
+
     </div>
-
-    @if (_TypZamowienia != null)
-    {
-        <label>Filtruj po:</label>
-        <Select TItem="TypZamowienia"
-        TItemValue="string"
-        DataSource="@_TypZamowienia"
-        @bind-Value="@filtrTypZamowienia"
-        ValueName="@nameof(TypZamowienia.Value)"
-        LabelName="@nameof(TypZamowienia.Name)"
-        GroupName="@nameof(TypZamowienia.Role)"
-        SortByLabel="@SortDirection.Ascending"
-        SortByGroup="@SortDirection.Ascending"
-        DefaultActiveFirstOption="false"
-        AllowClear
-        Style="width: 200px;" OnSelectedItemChanged="OnSelectedItemChangedHandlerFiltr">
-        </Select>
-        <CheckboxGroup Options="@plainOptions" @bind-Value="@_valueFiltr" TValue="string" Disabled="@blokojFiltr" OnChange="OnChange" />
-    }
 </div>
 
-<Divider Style="font-weight:bold; font-size:large">
-    Zlecenia Produkcyjne
-    @if (zleceniaProdukcyjne != null)
-    {
-        @($" [Ilość zarejestrowanych: {zleceniaProdukcyjne.Count()}] [Ilość przefiltrowanych: {iloscPrzefiltrowanych}]")
-    }
-</Divider>
+
 
 @if (zleceniaProdukcyjne == null)
 {
@@ -139,7 +181,16 @@
 else
 {
     <div class="highlighted-background" style="left:@(OnlyIcon ? "95px" : "260px"); width:calc(100% - @(OnlyIcon ? "95px" : "260px"))">
-        <Table TItem="ZleceniaProdukcyjne" DataSource="@zleceniaProdukcyjne"
+
+        <Divider Style="font-weight:bold; font-size:large">
+            Zlecenia Produkcyjne
+            @if (zleceniaProdukcyjne != null)
+            {
+                @($" [Ilość zarejestrowanych: {zleceniaProdukcyjne.Count()}] [Ilość przefiltrowanych: {iloscPrzefiltrowanych}]")
+            }
+        </Divider>
+
+        <Table TItem="ZleceniaProdukcyjne" DataSource="@ListaZlecenFiltrowana"
         RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "zlecenieNaN" )"
                ScrollX="1990" PageSize="@iloscRekordow" Size="TableSize.Small" OnChange="OnTableChange">
             <ActionColumn Title="Materiały" Width="155">
@@ -664,6 +715,8 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
 
     int _pageIndex = 1;
 
+    private string szukanyKlient = "";
+
     protected override async Task OnInitializedAsync()
     {
         iloscRekordow = Convert.ToInt32((await LocalStorage.GetStringAsync("zlecenie_ile_widocznych")));
@@ -796,6 +849,23 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
         }
     }
 
+    private IEnumerable<ZleceniaProdukcyjne> ListaZlecenFiltrowana
+    {
+        get
+        {
+            if (zleceniaProdukcyjne == null)
+                return Enumerable.Empty<ZleceniaProdukcyjne>();
+
+            if (string.IsNullOrWhiteSpace(szukanyKlient))
+                return zleceniaProdukcyjne;
+
+            return zleceniaProdukcyjne.Where(x =>
+                !string.IsNullOrWhiteSpace(x.Klient)
+                && x.Klient.Contains(
+                        szukanyKlient,
+                        StringComparison.OrdinalIgnoreCase));
+        }
+    }
 
     private async Task PobierzSztukiZeStolCad()
     {
