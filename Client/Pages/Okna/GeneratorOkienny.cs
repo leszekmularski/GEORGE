@@ -1905,7 +1905,7 @@ namespace GEORGE.Client.Pages.Okna
                 }
 
                 // Budujemy pełny kontur 4-segmentowy
-                wierzcholkiZLukami = Build4SegmentContour(wierzcholkiStycznePodLuki, outerContourSegment, innerContourSegment, i + 1, wierzcholki, leftJoin, rightJoin);
+                wierzcholkiZLukami = Build4SegmentContour(wierzcholkiStycznePodLuki, outerContourSegment, innerContourSegment, i + 1, wierzcholki, leftJoin, rightJoin, angleDegrees);
 
                 double regionMinX = wierzcholki.Min(p => p.X);
                 double regionMaxX = wierzcholki.Max(p => p.X);
@@ -2006,7 +2006,8 @@ namespace GEORGE.Client.Pages.Okna
         int numerElemntu,
         List<XPoint> wierzcholkiLineProste,
         string leftJoin,
-        string rightJoin)
+        string rightJoin,
+        double angleDegrees)
         {
             if (wierzcholki == null || wierzcholki.Count != 4)
             {
@@ -2233,7 +2234,7 @@ namespace GEORGE.Client.Pages.Okna
                 }
             }
 
-            //if (leftJoin == "T1" && CzyPunktLezyNaLuku(outerContour, wierzcholki[1]))
+            //if (leftJoin == "T1" && CzyPunktLezyNaLuku(outerContour, wierzcholki[1]) && angleDegrees != 90 && angleDegrees != 270)
             //{// sąsiad musi być łuk
             //    //wierzcholki[2] = new XPoint( 0,0);
             //    wierzcholki[1] = ZnajdzPrzeciecieLukuZKonturem(
@@ -2241,9 +2242,10 @@ namespace GEORGE.Client.Pages.Okna
             //       wierzcholki[2],
             //       outerContour,
             //       false);
+            //    Console.WriteLine("Build4SegmentContour: leftJoin T1 - TAK");  
             //}
 
-            //if (rightJoin == "T1" && CzyPunktLezyNaLuku(outerContour, wierzcholki[0]))
+            //if (rightJoin == "T1" && CzyPunktLezyNaLuku(outerContour, wierzcholki[0]) && angleDegrees != 90 && angleDegrees != 270)
             //{// sąsiad musi być łuk
             //    //wierzcholki[0] = new XPoint( 0,0);
             //    wierzcholki[0] = ZnajdzPrzeciecieLukuZKonturem(
@@ -2251,6 +2253,7 @@ namespace GEORGE.Client.Pages.Okna
             //       wierzcholki[3],
             //       outerContour,
             //       true);
+            //    Console.WriteLine("Build4SegmentContour: rightJoin T1 - TAK");
             //}
 
             //if (leftJoin == "T3" && CzyPunktLezyNaLuku(outerContour, wierzcholki[1]))
