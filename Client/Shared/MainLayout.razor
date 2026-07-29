@@ -80,6 +80,7 @@
                     <div class="content px-4">
                         @Body
                     </div>
+
                 </div>
             </main>
         </div>
@@ -212,6 +213,10 @@
 
     [Inject]
     private NavigationManager? navigationManager { get; set; }
+
+    private INOUT_KALKULATOR? _calculator;
+
+    public INOUT_KALKULATOR? Calculator => _calculator;
 
     private string displayInfo = "none;";
     private string classShowInfo = "";

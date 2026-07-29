@@ -1,0 +1,183 @@
+﻿@* Modal kalkulatora *@
+    <Drawer Style="position:absolute" Visible="_calculatorVisible" Placement="DrawerPlacement.Right" Title='("Kalkulator")' 
+    OnClose="CloseDrawer" Height="370">
+
+    <div style="padding: 10px;">
+        @* Wyświetlacz *@
+        <div style="background-color: #f0f0f0; padding: 10px; margin-bottom: 10px;
+                                    text-align: right; font-size: 20px; font-weight: bold;
+                                    border: 1px solid #d9d9d9; border-radius: 4px; min-height: 40px;">
+            @(_calculatorExpression.Length > 0 ? _calculatorExpression : "0")
+        </div>
+
+        @* Przyciski kalkulatora *@
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;">
+            @* Rząd 1 *@
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("7"))" Block>7</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("8"))" Block>8</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("9"))" Block>9</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("/"))"
+                              Type="@ButtonType.Primary" Block>÷</AntDesign.Button>
+
+            @* Rząd 2 *@
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("4"))" Block>4</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("5"))" Block>5</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("6"))" Block>6</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("*"))"
+                              Type="@ButtonType.Primary" Block>×</AntDesign.Button>
+
+            @* Rząd 3 *@
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("1"))" Block>1</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("2"))" Block>2</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("3"))" Block>3</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("-"))"
+                              Type="@ButtonType.Primary" Block>−</AntDesign.Button>
+
+            @* Rząd 4 *@
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("0"))" Block>0</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("."))" Block>.</AntDesign.Button>
+            <AntDesign.Button OnClick="@CalculateResult"
+                              Type="@ButtonType.Primary"
+                              Style="background-color: #52c41a; border-color: #52c41a;"
+                              Block>=</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("+"))"
+                              Type="@ButtonType.Primary" Block>+</AntDesign.Button>
+
+            @* Dodatkowe przyciski *@
+            <AntDesign.Button OnClick="@ClearCalculator"
+                              Type="@ButtonType.Primary"
+                              Block>C</AntDesign.Button>
+            <AntDesign.Button OnClick="@BackspaceCalculator" Block>⌫</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator("("))" Block>(</AntDesign.Button>
+            <AntDesign.Button OnClick="@(() => AppendToCalculator(")"))" Block>)</AntDesign.Button>
+        </div>
+
+        @* Przyciski akcji *@
+        <div style="display: flex; gap: 5px; margin-top: 10px;">
+            <AntDesign.Button OnClick="@UseCurrentValue"
+                              Type="@ButtonType.Default"
+                              Block>
+                Użyj bieżącej wartości
+            </AntDesign.Button>
+            <AntDesign.Button OnClick="@ClearCalculator"
+                              Type="@ButtonType.Default"
+                              Block>
+                Wyczyść
+            </AntDesign.Button>
+        </div>
+    </div>
+
+</Drawer>
+
+@* Przycisk do otwierania kalkulatora *@
+<AntDesign.Button OnClick="@OpenCalculator"
+                  Icon="@("calculator")"
+                  Size="small"
+                  Style="margin-left: 8px;">
+</AntDesign.Button>
+
+@code {
+    [Parameter]
+    public double Wynik { get; set; }
+
+    [Parameter]
+    public EventCallback<double> WynikChanged { get; set; }
+
+    private bool _calculatorVisible = false;
+    private string _calculatorExpression = string.Empty;
+
+    public async Task Show(double value)
+    {
+        Wynik = value;
+        _calculatorExpression = value.ToString();
+        _calculatorVisible = true;
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Hide()
+    {
+        _calculatorVisible = false;
+    }
+
+    private async Task OpenCalculator()
+    {
+        Console.WriteLine($"Otwieranie kalkulatora z wartością: {Wynik}");
+        // Inicjalizuj kalkulator z bieżącą wartością
+        if (Wynik != 0)
+        {
+            _calculatorExpression = Wynik.ToString();
+        }
+        else
+        {
+            _calculatorExpression = string.Empty;
+        }
+
+        _calculatorVisible = true;
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void CloseDrawer()
+    {
+        _calculatorVisible = false;
+    }
+
+    private void AppendToCalculator(string value)
+    {
+        _calculatorExpression += value;
+    }
+
+    private void ClearCalculator()
+    {
+        _calculatorExpression = string.Empty;
+    }
+
+    private void BackspaceCalculator()
+    {
+        if (_calculatorExpression.Length > 0)
+        {
+            _calculatorExpression = _calculatorExpression.Substring(0, _calculatorExpression.Length - 1);
+        }
+    }
+
+    private void CalculateResult()
+    {
+        try
+        {
+            var result = new System.Data.DataTable().Compute(_calculatorExpression, null);
+            _calculatorExpression = result.ToString();
+        }
+        catch
+        {
+            _calculatorExpression = "Error";
+        }
+    }
+
+    private void UseCurrentValue()
+    {
+        UpdateWynik();
+        _calculatorVisible = false;
+    }
+
+    private async Task HandleCalculatorOk()
+    {
+        UpdateWynik();
+        _calculatorVisible = false;
+    }
+
+    private void HandleCalculatorCancel()
+    {
+        _calculatorVisible = false;
+    }
+
+    private async void UpdateWynik()
+    {
+        if (double.TryParse(_calculatorExpression, System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture, out double result))
+        {
+            Wynik = result;
+            await WynikChanged.InvokeAsync(result);
+        }
+    }
+}

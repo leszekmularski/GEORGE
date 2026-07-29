@@ -14,6 +14,15 @@
     .form-item-small-margin {
     margin-bottom: 8px; /* Możesz dostosować tę wartość */
     }
+
+    .ant-modal-wrap {
+        z-index: 1000 !important;
+    }
+
+    .ant-modal-mask {
+        z-index: 1000 !important;
+    }
+
 </style>
 
 @if (!bAdmin)
@@ -22,7 +31,7 @@
 }
 else
 {
-    <AntDesign.Form Model="@elementyZamowienia" Layout="FormLayout.Horizontal" OnFinish="@HandleSubmit">
+    <AntDesign.Form Model="@elementyZamowienia" Layout="FormLayout.Horizontal" OnFinish="@HandleSubmit" >
         <Tabs DefaultActiveKey="0" @bind-ActiveKey="activeKey" TabPosition="TabPosition.Left" OnChange="OnTabClick">
             <TabPane Key="0" Tab="Pozycje zamówienia">
                 <FormItem Required Label="Wybierz producenta (dostawcę)">
@@ -70,7 +79,9 @@ else
 
                 <AntDesign.FormItem Label="Ilość">
                     <AntDesign.InputNumber Step="0.01" @bind-Value="elementyZamowienia.ElemetZamDoZlecen.IloscSztuk" Required />
+                    <INOUT_KALKULATOR @bind-Wynik="elementyZamowienia.ElemetZamDoZlecen.IloscSztuk" />
                 </AntDesign.FormItem>
+
                 <AntDesign.FormItem Label="Typ (Kod producenta)">
                     <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Typ" Placeholder="Podaj typ produktu" />
                 </AntDesign.FormItem>
