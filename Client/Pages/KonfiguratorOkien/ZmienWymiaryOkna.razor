@@ -14,21 +14,8 @@ else
             <AntDesign.Col Xs="24" Sm="12">
                 <h5>Wymiary</h5>
 
-@*                 <div class="mb-2">
-                    <label>Szerokość [mm]</label>
-                    <AntDesign.InputNumber @bind-Value="Model.Szerokosc" 
-                      Style="width: 100%;"
-                      @bind-Value:after="async () => await ZapiszDoRodzica()" />
-                </div>
 
-                <div class="mb-2">
-                    <label>Wysokość [mm]</label>
-                    <AntDesign.InputNumber @bind-Value="Model.Wysokosc" 
-                      Style="width: 100%;"
-                      @bind-Value:after="async () => await ZapiszDoRodzica()" />
-                </div> *@
-
-                @if (Model.EditableProperties != null && Model.EditableProperties.Count > 0)
+@if (Model.EditableProperties != null && Model.EditableProperties.Count > 0)
 {
     for (int i = 0; i < Model.EditableProperties.Count; i++)
     {
@@ -150,7 +137,7 @@ else
                         </div>
                     </div>
                 </AntDesign.Modal>
-
+ 
                 <h5 class="mt-3">Kolorystyka</h5>
 
                 <div class="mb-2">
@@ -199,25 +186,28 @@ else
 
                 <h5 class="mt-3">Parametry cieplne</h5>
 
-                <div class="mb-2">
+                 <div style="display: flex; align-items: center; gap: 5px;">
                     <label>Grubość pakietu</label>
                     <AntDesign.InputNumber @bind-Value="Model.GruboscPakietu" 
                                           Style="width: 100%;"
                                           OnChange="async (float value) => await ZapiszDoRodzica()" />
+                                        <INOUT_KALKULATOR @bind-WynikFloat="Model.GruboscPakietu" _sizeButton="Large"  Naglowek="Grubość pakietu"/>
                 </div>
 
-                <div class="mb-2">
+                 <div style="display: flex; align-items: center; gap: 5px;">
                     <label>Uw szyby</label>
                     <AntDesign.InputNumber @bind-Value="Model.WspolczynnikPrzepuszczalnosciCieplaSzyby" 
                                           Style="width: 100%;"
                                           OnChange="async (float value) => await ZapiszDoRodzica()" />
+                                          <INOUT_KALKULATOR @bind-WynikFloat="Model.WspolczynnikPrzepuszczalnosciCieplaSzyby" _sizeButton="Large" Naglowek="Uw szyby"/>
                 </div>
 
-                <div class="mb-2">
+                 <div style="display: flex; align-items: center; gap: 5px;">
                     <label>Uw okna</label>
                     <AntDesign.InputNumber @bind-Value="Model.WspolczynnikPrzepuszczalnosciCieplaOkna" 
                                           Style="width: 100%;"
                                           OnChange="async (float value) => await ZapiszDoRodzica()" />
+                                          <INOUT_KALKULATOR @bind-WynikFloat="Model.WspolczynnikPrzepuszczalnosciCieplaOkna" _sizeButton="Large" Naglowek="Uw okna"/>
                 </div>
             </AntDesign.Col>
 

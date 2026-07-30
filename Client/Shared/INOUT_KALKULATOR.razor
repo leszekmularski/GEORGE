@@ -1,6 +1,11 @@
-﻿@* Modal kalkulatora *@
-    <Drawer Style="position:absolute" Visible="_calculatorVisible" Placement="DrawerPlacement.Right" Title='("Kalkulator")' 
-    OnClose="CloseDrawer" Height="370">
+﻿@using System.Globalization
+@* Modal kalkulatora *@
+<Drawer Style=@($"position:absolute; padding-top:{_paddingTop}px; padding-left:50px")
+        Visible="_calculatorVisible"
+        Placement="DrawerPlacement.Center"
+        Title="@Naglowek"
+        OnClose="CloseDrawer"
+        Height="390">
 
     <div style="padding: 10px;">
         @* Wyświetlacz *@
@@ -72,16 +77,32 @@
 @* Przycisk do otwierania kalkulatora *@
 <AntDesign.Button OnClick="@OpenCalculator"
                   Icon="@("calculator")"
-                  Size="small"
+                  Size="_sizeButton"
                   Style="margin-left: 8px;">
 </AntDesign.Button>
 
 @code {
     [Parameter]
+    public float WynikFloat { get; set; }
+
+    [Parameter]
+    public EventCallback<float> WynikFloatChanged { get; set; }
+
+
+    [Parameter]
     public double Wynik { get; set; }
 
     [Parameter]
     public EventCallback<double> WynikChanged { get; set; }
+
+    [Parameter]
+    public string Naglowek { get; set; } = "Kalkulator";
+
+    [Parameter]
+    public string _paddingTop { get; set; } = "50";
+
+    [Parameter]
+    public string _sizeButton { get; set; } = "Small"; //Small Default Large
 
     private bool _calculatorVisible = false;
     private string _calculatorExpression = string.Empty;
@@ -131,6 +152,7 @@
     private void ClearCalculator()
     {
         _calculatorExpression = string.Empty;
+
     }
 
     private void BackspaceCalculator()
@@ -171,13 +193,19 @@
         _calculatorVisible = false;
     }
 
-    private async void UpdateWynik()
+    private async Task UpdateWynik()
     {
-        if (double.TryParse(_calculatorExpression, System.Globalization.NumberStyles.Float,
-            System.Globalization.CultureInfo.InvariantCulture, out double result))
+        if (double.TryParse(
+            _calculatorExpression,
+            NumberStyles.Float,
+            CultureInfo.InvariantCulture,
+            out double result))
         {
             Wynik = result;
+            WynikFloat = (float)result;
+
             await WynikChanged.InvokeAsync(result);
+            await WynikFloatChanged.InvokeAsync((float)result);
         }
     }
 }
