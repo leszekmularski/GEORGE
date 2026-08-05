@@ -590,11 +590,11 @@
                                          @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
                                          draggable="true"
                                          style="cursor: grab;
-                                                                                        width: auto;
-                                                                                        height: auto;
-                                                                                        max-width: 50px;
-                                                                                        max-height: 50px;
-                                                                                        border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
+                                                                                                    width: auto;
+                                                                                                    height: auto;
+                                                                                                    max-width: 50px;
+                                                                                                    max-height: 50px;
+                                                                                                    border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
 
                                 }
                                 else
@@ -5376,13 +5376,13 @@
 
         string cleanId = CleanId(state.IdRegion);
 
-         state.KonturInner = generator.wewnetrznyKonturZLukami;
+        state.KonturInner = generator.wewnetrznyKonturZLukami;
         state.WierzcholkiInner = generator.wewnetrznyKontur;
 
         state.KonturWenetrznyPodRysunek = generator.konturWenetrznyPodRysunek;
         state.WierzcholkiWenetrznePodRysunek = generator.wierzcholkiWenetrznePodRysunek;
 
-       
+
         AddOrUpdateGeneratorState(cleanId, state, generator);
 
         await Task.CompletedTask;
@@ -7763,9 +7763,9 @@
             await context.StrokeAsync();
 
             if (oknaMogaBycLukowe)
-            await DrawSingleKonturWewewnetrznyPodRysKontur(context); // Kontur wewnętrzny pod rys kontur)
+                await DrawSingleKonturWewewnetrznyPodRysKontur(context); // Kontur wewnętrzny pod rys kontur)
             else
-            await DrawSingleKonturWewnetrznyPodRysWierzcholki(context); // Kontur wewnętrzny pod rys wierzchołki
+                await DrawSingleKonturWewnetrznyPodRysWierzcholki(context); // Kontur wewnętrzny pod rys wierzchołki
         }
         catch (Exception ex)
         {
@@ -7870,47 +7870,28 @@
         await context.SetLineWidthAsync(2f);
         await context.StrokeAsync();
 
-         // Console.WriteLine("✅ Kontur narysowany pomyślnie");
+        // Console.WriteLine("✅ Kontur narysowany pomyślnie");
     }
 
-    // Funkcja pomocnicza do rysowania łuku
     private async Task RysujLuk(Canvas2DContext context, ContourSegment seg)
     {
         if (seg.Center == null) return;
 
-        // Oblicz kąty w radianach
-        double startAngle = Math.Atan2(seg.Start.Y - seg.Center.Value.Y, seg.Start.X - seg.Center.Value.X);
-        double endAngle = Math.Atan2(seg.End.Y - seg.Center.Value.Y, seg.End.X - seg.Center.Value.X);
+        double startAngle = Math.Atan2(
+            seg.Start.Y - seg.Center.Value.Y,
+            seg.Start.X - seg.Center.Value.X);
 
-        // Normalizacja kątów w zależności od kierunku
-        if (seg.CounterClockwise)
-        {
-            while (endAngle <= startAngle)
-                endAngle += 2 * Math.PI;
-        }
-        else
-        {
-            while (endAngle >= startAngle)
-                endAngle -= 2 * Math.PI;
-        }
+        double endAngle = Math.Atan2(
+            seg.End.Y - seg.Center.Value.Y,
+            seg.End.X - seg.Center.Value.X);
 
-        // Poprawienie startu łuku, aby uniknąć przerwy od poprzedniego segmentu
-        await context.LineToAsync(seg.Start.X, seg.Start.Y); //??? Do ponownego sprawdzenia
-
-        // Debug
-        // Console.WriteLine($"  Rysowanie łuku: Center({seg.Center.Value.X:F2},{seg.Center.Value.Y:F2}), R={seg.Radius:F2}, CCW={seg.CounterClockwise}");
-        // Console.WriteLine($"    Kąty: start={startAngle:F4} rad ({startAngle * 180 / Math.PI:F1}°), end={endAngle:F4} rad ({endAngle * 180 / Math.PI:F1}°)");
-        // Console.WriteLine($"    Delta kątów: {(endAngle - startAngle) * 180 / Math.PI:F1}°");
-
-        // Rysowanie łuku
         await context.ArcAsync(
             seg.Center.Value.X,
             seg.Center.Value.Y,
             seg.Radius,
             startAngle,
             endAngle,
-            seg.CounterClockwise
-        );
+            seg.CounterClockwise);
     }
 
     // Rysowanie konturu wewnętrznego w celu lepszego wyglądu rysunku
@@ -8103,7 +8084,7 @@
 
         await context.ClosePathAsync();
 
-        if(liniaPrzerywana)
+        if (liniaPrzerywana)
         {
             await context.SetLineDashAsync(new float[] { 10, 5 }); // 10px kreska, 5px przerwa
         }
