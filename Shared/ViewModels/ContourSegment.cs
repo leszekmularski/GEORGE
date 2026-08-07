@@ -38,19 +38,26 @@ namespace GEORGE.Shared.ViewModels
         {
             if (this.Type == SegmentType.Arc)
             {
-                return new ContourSegment(this.Start, this.End, this.Center, this.Radius, this.CounterClockwise)
+                return new ContourSegment(
+                    this.Start,
+                    this.End,
+                    this.Center,
+                    this.Radius,
+                    this.CounterClockwise)
                 {
-                    Informacja = this.Informacja
+                    Informacja = this.Informacja,
+                    IsArcFragment = this.IsArcFragment
                 };
             }
-            else
+
+            return new ContourSegment(
+                this.Start,
+                this.End)
             {
-                return new ContourSegment(this.Start, this.End)
-                {
-                    Informacja = this.Informacja
-                };
-            }
+                Informacja = this.Informacja,
+                IsArcFragment = this.IsArcFragment
+            };
         }
-    
+
     }
 }
