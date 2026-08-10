@@ -868,87 +868,251 @@ namespace GEORGE.Client.Pages.Okna
                 bool isAlmostHorizontal = Math.Abs(dy) < 1e-2;
                 bool isAlmostVertical = Math.Abs(dx) < 1e-2;
 
-                //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-                // Obliczanie kątów między liniami
-                float angleDegreesStronaA = 0; // Kąt między bieżącą linią a poprzednią
-                float angleDegreesStronaB = 0; // Kąt między bieżącą linią a następną
+                //-------------------------------------------------------------------------------------------------------------------------------
+                // USTAWIENIA AUTOMATYCZNEGO WYBORU T2
+                //-------------------------------------------------------------------------------------------------------------------------------
 
-                // Wektor bieżącej linii (od i do next)
+                // Maksymalny kąt, który traktujemy jako OSTRY narożnik.
+                // Przykład:
+                // 45°  -> każdy narożnik <= 45° będzie automatycznie T2
+                // 30°  -> tylko bardzo ostre narożniki będą T2
+                // 60°  -> również łagodniejsze narożniki będą T2
+                double katOstryT2 = 46.0;
+
+                // Tolerancja dla kąta prostego
+                double tolerancjaKataProstego = 0.01;
+
+
+                //-------------------------------------------------------------------------------------------------------------------------------
+                // OBLICZANIE KĄTÓW LEWEJ I PRAWEJ STRONY
+                //-------------------------------------------------------------------------------------------------------------------------------
+
+                // Wektor bieżącego segmentu
                 double currentDx = outerEnd.X - outerStart.X;
                 double currentDy = outerEnd.Y - outerStart.Y;
 
-                // Wektor poprzedniej linii (od prev do i)
+                // Wektor poprzedniego segmentu
                 XPoint outerPrev = outer[prev];
+
                 double prevDx = outerStart.X - outerPrev.X;
                 double prevDy = outerStart.Y - outerPrev.Y;
 
-                // Wektor następnej linii (od next do next+1)
+                // Wektor następnego segmentu
                 int next2 = (next + 1) % vertexCount;
+
                 XPoint outerNext2 = outer[next2];
+
                 double nextDx = outerNext2.X - outerEnd.X;
                 double nextDy = outerNext2.Y - outerEnd.Y;
 
-                // Oblicz kąt między bieżącą a poprzednią (StronaA)
-                double dotProductPrev = (currentDx * prevDx + currentDy * prevDy);
-                double magCurrent = Math.Sqrt(currentDx * currentDx + currentDy * currentDy);
-                double magPrev = Math.Sqrt(prevDx * prevDx + prevDy * prevDy);
 
-                if (magCurrent > 0 && magPrev > 0)
+                //-------------------------------------------------------------------------------------------------------------------------------
+                // DŁUGOŚCI WEKTORÓW
+                //-------------------------------------------------------------------------------------------------------------------------------
+
+                double magCurrent =
+                    Math.Sqrt(
+                        currentDx * currentDx +
+                        currentDy * currentDy);
+
+                double magPrev =
+                    Math.Sqrt(
+                        prevDx * prevDx +
+                        prevDy * prevDy);
+
+                double magNext =
+                    Math.Sqrt(
+                        nextDx * nextDx +
+                        nextDy * nextDy);
+
+
+                //-------------------------------------------------------------------------------------------------------------------------------
+                // KĄT BIEŻĄCY <-> POPRZEDNI
+                //
+                // Strona A = LEWA
+                //-------------------------------------------------------------------------------------------------------------------------------
+
+                float angleDegreesStronaA = 0;
+
+                if (magCurrent > 0.000001 &&
+                    magPrev > 0.000001)
                 {
-                    double cosAnglePrev = dotProductPrev / (magCurrent * magPrev);
-                    cosAnglePrev = Math.Max(-1.0, Math.Min(1.0, cosAnglePrev)); // Zabezpieczenie przed błędami zaokrągleń
-                    double angleRadPrev = Math.Acos(cosAnglePrev);
-                    angleDegreesStronaA = (float)(angleRadPrev * 180.0 / Math.PI);
+                    double dot =
+                        currentDx * prevDx +
+                        currentDy * prevDy;
+
+                    double cos =
+                        dot / (magCurrent * magPrev);
+
+                    cos = Math.Max(-1.0, Math.Min(1.0, cos));
+
+                    angleDegreesStronaA =
+                        (float)(
+                            Math.Acos(cos) *
+                            180.0 /
+                            Math.PI);
                 }
 
-                // Oblicz kąt między bieżącą a następną (StronaB)
-                double dotProductNext = (currentDx * nextDx + currentDy * nextDy);
-                double magNext = Math.Sqrt(nextDx * nextDx + nextDy * nextDy);
 
-                if (magCurrent > 0 && magNext > 0)
+                //-------------------------------------------------------------------------------------------------------------------------------
+                // KĄT BIEŻĄCY <-> NASTĘPNY
+                //
+                // Strona B = PRAWA
+                //-------------------------------------------------------------------------------------------------------------------------------
+
+                float angleDegreesStronaB = 0;
+
+                if (magCurrent > 0.000001 &&
+                    magNext > 0.000001)
                 {
-                    double cosAngleNext = dotProductNext / (magCurrent * magNext);
-                    cosAngleNext = Math.Max(-1.0, Math.Min(1.0, cosAngleNext)); // Zabezpieczenie
-                    double angleRadNext = Math.Acos(cosAngleNext);
-                    angleDegreesStronaB = (float)(angleRadNext * 180.0 / Math.PI);
+                    double dot =
+                        currentDx * nextDx +
+                        currentDy * nextDy;
+
+                    double cos =
+                        dot / (magCurrent * magNext);
+
+                    cos = Math.Max(-1.0, Math.Min(1.0, cos));
+
+                    angleDegreesStronaB =
+                        (float)(
+                            Math.Acos(cos) *
+                            180.0 /
+                            Math.PI);
                 }
 
-                // Opcjonalnie: określenie strony kąta (wewnętrzny/zewnętrzny)
-                // Możesz użyć iloczynu wektorowego do określenia orientacji
-                double crossProductPrev = (currentDx * prevDy - currentDy * prevDx);
-                if (crossProductPrev < 0)
+
+                //-------------------------------------------------------------------------------------------------------------------------------
+                // KĄTY KIERUNKOWE
+                //-------------------------------------------------------------------------------------------------------------------------------
+
+                double currentDirection =
+                    Math.Atan2(currentDy, currentDx) *
+                    180.0 /
+                    Math.PI;
+
+                double prevDirection =
+                    Math.Atan2(prevDy, prevDx) *
+                    180.0 /
+                    Math.PI;
+
+                double nextDirection =
+                    Math.Atan2(nextDy, nextDx) *
+                    180.0 /
+                    Math.PI;
+
+
+                // Normalizacja 0..360
+                currentDirection =
+                    (currentDirection + 360.0) % 360.0;
+
+                prevDirection =
+                    (prevDirection + 360.0) % 360.0;
+
+                nextDirection =
+                    (nextDirection + 360.0) % 360.0;
+
+
+                //-------------------------------------------------------------------------------------------------------------------------------
+                // RÓŻNICA KIERUNKÓW
+                //-------------------------------------------------------------------------------------------------------------------------------
+
+                double diffPrev =
+                    Math.Abs(
+                        currentDirection -
+                        prevDirection);
+
+                if (diffPrev > 180.0)
+                    diffPrev = 360.0 - diffPrev;
+
+
+                double diffNext =
+                    Math.Abs(
+                        currentDirection -
+                        nextDirection);
+
+                if (diffNext > 180.0)
+                    diffNext = 360.0 - diffNext;
+
+
+                ////-------------------------------------------------------------------------------------------------------------------------------
+                //// DEBUG
+                ////-------------------------------------------------------------------------------------------------------------------------------
+
+                //Console.WriteLine(
+                //    $"🔹🔹🔹🔹🔹🔹 Wierzchołek {i + 1} | " +
+                //    $"Kąt elementu={angleDegrees:F2}° | " +
+                //    $"A={angleDegreesStronaA:F2}° | " +
+                //    $"B={angleDegreesStronaB:F2}° | " +
+                //    $"Próg T2={katOstryT2:F2}° | " +
+                //    $"DiffA={diffPrev:F2}° | " +
+                //    $"DiffB={diffNext:F2}°");
+
+
+                //-------------------------------------------------------------------------------------------------------------------------------
+                // AUTOMATYCZNE T2 - LEWA STRONA
+                //
+                // Jeżeli rzeczywisty kąt po lewej stronie jest ostry,
+                // automatycznie ustawiamy T2.
+                //
+                // <= katOstryT2
+                //-------------------------------------------------------------------------------------------------------------------------------
+
+                bool lewyKatOstry =
+                    angleDegreesStronaA > 0.001 &&
+                    angleDegreesStronaA <= katOstryT2;
+
+
+                //-------------------------------------------------------------------------------------------------------------------------------
+                // AUTOMATYCZNE T2 - PRAWA STRONA
+                //
+                // Dokładnie ta sama zasada jak po lewej.
+                // Dzięki temu obie strony są traktowane symetrycznie.
+                //-------------------------------------------------------------------------------------------------------------------------------
+
+                bool prawyKatOstry =
+                    angleDegreesStronaB > 0.001 &&
+                    angleDegreesStronaB <= katOstryT2;
+
+
+                //-------------------------------------------------------------------------------------------------------------------------------
+                // T2 - LEWA STRONA
+                //-------------------------------------------------------------------------------------------------------------------------------
+
+                if (lewyKatOstry)
                 {
-                    angleDegreesStronaA = Math.Abs(angleDegrees - angleDegreesStronaA); // Kąt po drugiej stronie
+                    leftJoin = "T2";
+
+                    BledySystemowe.Add(
+                        $"⚠️ Wierzchołek element nr: {i + 1}: " +
+                        $"ostry kąt po lewej stronie = " +
+                        $"{angleDegreesStronaA:F1}° " +
+                        $"(próg T2 = {katOstryT2:F1}°). " +
+                        $"Automatycznie ustawiono T2 dla lewego narożnika.");
                 }
 
-                double crossProductNext = (currentDx * nextDy - currentDy * nextDx);
-                if (crossProductNext < 0)
+
+                //-------------------------------------------------------------------------------------------------------------------------------
+                // T2 - PRAWA STRONA
+                //-------------------------------------------------------------------------------------------------------------------------------
+
+                if (prawyKatOstry)
                 {
-                    angleDegreesStronaB = 360 - angleDegreesStronaB;
+                    rightJoin = "T2";
+
+                    BledySystemowe.Add(
+                        $"⚠️ Wierzchołek element nr: {i + 1}: " +
+                        $"ostry kąt po prawej stronie = " +
+                        $"{angleDegreesStronaB:F1}° " +
+                        $"(próg T2 = {katOstryT2:F1}°). " +
+                        $"Automatycznie ustawiono T2 dla prawego narożnika.");
                 }
 
-                // Teraz możesz użyć angleDegreesStronaA i angleDegreesStronaB
-                //Console.WriteLine($"⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️ Wierzchołek {i}: Kąt elementu: {angleDegrees:F1}° Kąt z poprzednim = {angleDegreesStronaA:F1}°, Kąt z następnym = {angleDegreesStronaB:F1}°");
-                //Console.WriteLine($"⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️ Wierzchołek {i}: {(Math.Abs((int)angleDegrees - (int)angleDegreesStronaA))} < 20 && {(int)angleDegrees - (int)angleDegreesStronaA} != 0)");
 
-                if ((angleDegreesStronaA < 20 && angleDegrees != 90 && angleDegreesStronaA != 270)
-                    || (Math.Abs((int)angleDegrees - (int)angleDegreesStronaA) < 46 && (int)angleDegrees - (int)angleDegreesStronaA != 0))
-                {
-                    // Jeśli kąt z następnym jest bardzo mały, traktujemy to jako prawie prostą linię → potencjalnie T1
-                    leftJoin = "T2"; // połączone równym kątem
-                                     // Console.WriteLine($"⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️ Wierzchołek {i}: Kąt elementu: {angleDegrees:F1}° Kąt z poprzednim = {angleDegreesStronaA:F1}°, Kąt z następnym = {angleDegreesStronaB:F1}°");
-                    BledySystemowe.Add($"⚠️ Wierzchołek element nr: {i + 1}: Kąt z poprzednim elementem = {angleDegrees} a {angleDegreesStronaA:F1}° jest bardzo mały. Zmieniono typ połączenia na T2 dla lewego narożnika.");
-                }
 
-                if (angleDegreesStronaB < 45 && angleDegrees != 90)
-                {
-                    // Jeśli kąt z następnym jest bardzo mały, traktujemy to jako prawie prostą linię → potencjalnie T1
-                    rightJoin = "T2"; // połączone równym kątem
-                    BledySystemowe.Add($"⚠️ Wierzchołek element nr: {i + 1}: Kąt z następnym elementem = {angleDegrees} a {angleDegreesStronaB:F1}° jest bardzo mały. Zmieniono typ połączenia na T2 dla prawego narożnika.");
-                }
 
-                //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 
                 if (sposobLaczeniaCzop)
                 {
@@ -1339,13 +1503,13 @@ namespace GEORGE.Client.Pages.Okna
                     var BottomSTT5 = midBottomIntersection;    // Środkowy dolny
                     var BottomRT5 = rightBottomIntersection;   // Prawy dolny
 
-                    //Console.WriteLine($"🔷 🔷🔷 T5-T5 TopXT5.X/Y: {TopXT5.X}/{TopXT5.Y}");
-                    //Console.WriteLine($"🔷 🔷🔷 T5-T5 BottomXT5.X/Y: {BottomXT5.X}/{BottomXT5.Y}");
-                    //Console.WriteLine($"🔷 🔷🔷 T5-T5 tmpTopST5.X/Y: {tmpTopST5.X}/{tmpTopST5.Y}");
-                    //Console.WriteLine($"🔷 🔷🔷 T5-T5 tmpTopLT5.X/Y: {tmpTopLT5.X}/{tmpTopLT5.Y}");
-                    //Console.WriteLine($"🔷 🔷🔷 T5-T5 tmpTopRT5.X/Y: {tmpTopRT5.X}/{tmpTopRT5.Y}");
-                    //Console.WriteLine($"🔷 🔷🔷 T5-T5 midTopIntersection.X/Y: {midTopIntersection.X}/{midTopIntersection.Y}");
-                    //Console.WriteLine($"🔷 🔷🔷 T5-T5 midBottomIntersection.X/Y: {midBottomIntersection.X}/{midBottomIntersection.Y}");
+                    Console.WriteLine($"🔷 🔷🔷 T5-T5 TopXT5.X/Y: {TopXT5.X}/{TopXT5.Y}");
+                    Console.WriteLine($"🔷 🔷🔷 T5-T5 BottomXT5.X/Y: {BottomXT5.X}/{BottomXT5.Y}");
+                    Console.WriteLine($"🔷 🔷🔷 T5-T5 tmpTopST5.X/Y: {tmpTopST5.X}/{tmpTopST5.Y}");
+                    Console.WriteLine($"🔷 🔷🔷 T5-T5 tmpTopLT5.X/Y: {tmpTopLT5.X}/{tmpTopLT5.Y}");
+                    Console.WriteLine($"🔷 🔷🔷 T5-T5 tmpTopRT5.X/Y: {tmpTopRT5.X}/{tmpTopRT5.Y}");
+                    Console.WriteLine($"🔷 🔷🔷 T5-T5 midTopIntersection.X/Y: {midTopIntersection.X}/{midTopIntersection.Y}");
+                    Console.WriteLine($"🔷 🔷🔷 T5-T5 midBottomIntersection.X/Y: {midBottomIntersection.X}/{midBottomIntersection.Y}");
                     // Zbierz punkty w kolejności
                     wierzcholki = new List<XPoint>
                      {
@@ -1404,10 +1568,10 @@ namespace GEORGE.Client.Pages.Okna
                     List<XPoint> getStartT1 = GetStartT1(inner[i], outer[i], outer, angleDegrees, anglePrev, angleNext,
                     StronaElementu, stonaOstanioDodanegoElementu, vertexCount < 6 ? -1 : i);
 
-                    if (anglePrev == 270)
-                    {
-                        getStartT1[1] = outer[i];
-                    }
+                    //if (anglePrev == 270)
+                    //{
+                    //    getStartT1[1] = outer[i];
+                    //}
 
                     //var _anglePrev = anglePrev;
                     //if (i == vertexCount - 1)
@@ -1419,10 +1583,10 @@ namespace GEORGE.Client.Pages.Okna
 
                     // List<XPoint> getEndT1;
 
-                    if (vertexCount > 6 && angleDegrees > 270 && angleDegreesStronaA < 271 || anglePrev == 270)
-                    {
-                        getStartT2[0] = FindFirstEdgeIntersectionByAngle(getStartT1[0], angleDegrees - 180, outer);
-                    }
+                    //if (vertexCount > 6 && angleDegrees > 270 && angleDegreesStronaA < 271 || anglePrev == 270)
+                   // {
+                      //  getStartT2[0] = FindFirstEdgeIntersectionByAngle(getStartT1[0], angleDegrees - 180, outer);
+                   // }
 
                     wierzcholki = new List<XPoint> {
                             getStartT1[1], getEndT2[1], getEndT2[0], getStartT2[0]
@@ -1741,7 +1905,6 @@ namespace GEORGE.Client.Pages.Okna
         }
 
 
-
         public List<ContourSegment> Build4SegmentContour(
         List<XPoint> wierzcholki,
         List<ContourSegment> outerContour,
@@ -1898,7 +2061,7 @@ namespace GEORGE.Client.Pages.Okna
                 adjustedVertices[0], adjustedVertices[1], filteredOuter);
             var segWewnetrzny = BuildSegmentWithArc(
                 adjustedVertices[2], adjustedVertices[3], filteredInner);
-             
+
 
             // ============================================================
             // PRZYPADEK 2.5: T3 dla skrzydła (strony Lewa/Prawa)
@@ -1923,21 +2086,79 @@ namespace GEORGE.Client.Pages.Okna
                 // [2] Dolny: adjustedVertices[2] -> adjustedVertices[3]
                 // [3] Lewy:  adjustedVertices[3] -> adjustedVertices[0]
 
-                if (rightJoin == "T3" && _stronaElementu == "Prawa")
-                    adjustedVertices[1] = new XPoint(adjustedVertices[1].X, adjustedVertices[1].Y - 250);
-                if (rightJoin == "T3" && _stronaElementu == "Lewa")
-                    adjustedVertices[0] = new XPoint(adjustedVertices[0].X, adjustedVertices[0].Y - 250);
 
-                    // Segment górny (zewnętrzny)
-                    result.Add(new ContourSegment(adjustedVertices[0], adjustedVertices[1]));
+                // Segment lewy (zewnętrzny)
+                result.Add(new ContourSegment(adjustedVertices[0], adjustedVertices[1]));
 
-                // Segment prawy
-                result.Add(new ContourSegment(adjustedVertices[1], adjustedVertices[2]));
+                if (leftJoin == "T3" && _stronaElementu == "Prawa")
+                {
+                    // Znajdź przecięcie z konturem zewnętrznym
+                    var (intersection, segment) = FindIntersectionWithOuterContour(
+                       adjustedVertices[0],
+                       adjustedVertices[1],
+                       outerContour,
+                       true); // szukamy w górę
 
-                // Segment dolny (wewnętrzny)
+                    if (segment != null)
+                    {
+                        // POPRAWNIE: start, end, center, radius, counterClockwise
+                        result.Add(new ContourSegment(
+                            intersection,     // start
+                            adjustedVertices[2],  // end
+                            segment.Center,          // center
+                            segment.Radius,          // radius
+                            segment.CounterClockwise // counterClockwise
+                        ));
+                    }
+                    else if (Distance(intersection, adjustedVertices[1]) > 0.1)
+                    {
+                        result.Add(new ContourSegment(adjustedVertices[1], adjustedVertices[2]));
+                    }
+                    else
+                    {
+                        result.Add(new ContourSegment(adjustedVertices[1], adjustedVertices[2]));
+                    }
+                }
+                else if (rightJoin == "T3" && _stronaElementu == "Lewa")
+                {
+                    // Znajdź przecięcie z konturem zewnętrznym
+                    var (intersection, segment) = FindIntersectionWithOuterContour(
+                       adjustedVertices[3],
+                       adjustedVertices[2],
+                       outerContour,
+                       true); // szukamy w górę
+
+                    if (segment != null)
+                    {
+                        // POPRAWNIE: start, end, center, radius, counterClockwise
+                        result.Add(new ContourSegment(
+                            adjustedVertices[2],     // start
+                            intersection,            // end
+                            segment.Center,          // center
+                            segment.Radius,          // radius
+                            segment.CounterClockwise // counterClockwise
+                        ));
+                    }
+                    else if (Distance(intersection, adjustedVertices[2]) > 0.1)
+                    {
+                        result.Add(new ContourSegment(adjustedVertices[1], adjustedVertices[2]));
+                    }
+                    else
+                    {
+                        result.Add(new ContourSegment(adjustedVertices[1], adjustedVertices[2]));
+                    }
+                }
+                else
+                {
+                    // Segment górny
+                    result.Add(new ContourSegment(adjustedVertices[1], adjustedVertices[2]));
+                }
+
+
+                // Segment Prawy (wewnętrzny)
                 result.Add(new ContourSegment(adjustedVertices[2], adjustedVertices[3]));
 
-                // Segment lewy
+                // Segment Dolny
                 result.Add(new ContourSegment(adjustedVertices[3], adjustedVertices[0]));
 
                 //prawa strona 1 w osi Y
@@ -1949,97 +2170,6 @@ namespace GEORGE.Client.Pages.Okna
 
                 return result;
             }
-
-            //if (isSkrzydloPion)
-            //{
-            //    Console.WriteLine($"🔷 T3 SKRZYDŁO {_stronaElementu} element={numerElemntu}");
-
-            //    var result = new List<ContourSegment>();
-
-            //    // Zewnętrzny segment (górny)
-            //    result.Add(segZewnetrzny);
-
-            //    // ============================================================
-            //    // PRAWA STRONA - przedłużamy do outerContour
-            //    // ============================================================
-            //    if (rightJoin == "T3" && _stronaElementu == "Prawa")
-            //    {
-            //        // Znajdź punkt na outerContour dla prawej strony
-            //        // Szukamy punktu o tej samej współrzędnej X co adjustedVertices[1]
-            //        XPoint pointOnContour = FindPointOnOuterContourForT3(
-            //            adjustedVertices[3],  // punkt na elemencie pionowym
-            //            adjustedVertices[2],  // punkt wewnętrzny
-            //            outerContour,
-            //            true); // szukamy w górę
-
-            //        // Sprawdź czy znaleziono punkt na outerContour
-            //        if (Distance(pointOnContour, adjustedVertices[1]) > 0.1 &&
-            //            pointOnContour.Y < adjustedVertices[1].Y)
-            //        {
-            //            // Używamy znalezionego punktu jako bevel
-            //            XPoint bevel = pointOnContour;
-
-            //            // Ścięcie: bevel -> adjustedVertices[1] (idziemy w dół do punktu na elemencie)
-            //            result.Add(new ContourSegment(bevel, adjustedVertices[1]));
-            //            // Pion: adjustedVertices[1] -> adjustedVertices[2]
-            //            result.Add(new ContourSegment(adjustedVertices[1], adjustedVertices[2]));
-            //        }
-            //        else
-            //        {
-            //            // Fallback: bezpośrednie połączenie
-            //            result.Add(new ContourSegment(adjustedVertices[1], adjustedVertices[2]));
-            //        }
-            //    }
-            //    else
-            //    {
-            //        result.Add(new ContourSegment(adjustedVertices[1], adjustedVertices[2]));
-            //    }
-
-            //    // Wewnętrzny segment (dolny)
-            //    result.Add(segWewnetrzny);
-
-            //    // ============================================================
-            //    // LEWA STRONA - przedłużamy do outerContour
-            //    // ============================================================
-            //    if (leftJoin == "T3" && _stronaElementu == "Lewa")
-            //    {
-            //        // Znajdź punkt na outerContour dla prawej strony
-            //        // Szukamy punktu o tej samej współrzędnej X co adjustedVertices[1]
-            //        XPoint pointOnContour = FindPointOnOuterContourForT3(
-            //            adjustedVertices[0],  // punkt na elemencie pionowym
-            //            adjustedVertices[3],  // punkt wewnętrzny
-            //            outerContour,
-            //            true); // szukamy w górę
-
-            //        // Sprawdź czy znaleziono punkt na outerContour
-            //        if (Distance(pointOnContour, adjustedVertices[1]) > 0.1 &&
-            //            pointOnContour.Y < adjustedVertices[1].Y)
-            //        {
-            //            // Używamy znalezionego punktu jako bevel
-            //            XPoint bevel = pointOnContour;
-
-            //         //   adjustedVertices[2] = new XPoint(adjustedVertices[2].X, adjustedVertices[2].Y - 250);
-
-            //            // Ścięcie: bevel -> adjustedVertices[1] (idziemy w dół do punktu na elemencie)
-            //            result.Add(new ContourSegment(adjustedVertices[1], adjustedVertices[0]));
-            //            // Pion: adjustedVertices[1] -> adjustedVertices[2]
-            //            result.Add(new ContourSegment(adjustedVertices[2], adjustedVertices[3]));
-            //        }
-            //        else
-            //        {
-            //            // Fallback: bezpośrednie połączenie
-            //            result.Add(new ContourSegment(adjustedVertices[1], adjustedVertices[2]));
-            //        }
-            //    }
-            //    else
-            //    {
-            //        result.Add(new ContourSegment(adjustedVertices[0], adjustedVertices[3]));
-            //    }
-
-            //    return result;
-            //}
-
-
 
 
 
@@ -2134,25 +2264,6 @@ namespace GEORGE.Client.Pages.Okna
                 segWewnetrzny,
                 new ContourSegment(adjustedVertices[3], adjustedVertices[0])
             };
-        }
-
-        private ContourSegment FindPreviousArc(
-        List<ContourSegment> contour,
-        int index)
-        {
-            if (contour == null || contour.Count == 0)
-                return null;
-
-
-            for (int i = 1; i <= contour.Count; i++)
-            {
-                int id = (index - i + contour.Count) % contour.Count;
-
-                if (contour[id].Type == SegmentType.Arc)
-                    return contour[id];
-            }
-
-            return null;
         }
 
         private static void ReplaceNearestPoint(List<XPoint> points, XPoint replacement)
@@ -2480,47 +2591,7 @@ namespace GEORGE.Client.Pages.Okna
 
             return result;
         }
-
-        private static XPoint GetT3BevelPoint(
-       XPoint outerPoint,
-       XPoint innerPoint,
-       ContourSegment arcOuter,
-       ContourSegment arcInner)
-        {
-            // kierunek pionowy
-            bool vertical =
-                Math.Abs(outerPoint.X - innerPoint.X) <
-                Math.Abs(outerPoint.Y - innerPoint.Y);
-
-
-            if (vertical)
-            {
-                // T3 pion:
-                // zachowujemy poziom (Y)
-                double y = outerPoint.Y;
-
-                double x;
-
-                // wybieramy stronę
-                if (Math.Abs(outerPoint.X) > Math.Abs(innerPoint.X))
-                {
-                    x = outerPoint.X;
-                }
-                else
-                {
-                    x = innerPoint.X;
-                }
-
-
-                return new XPoint(x, y);
-            }
-
-
-            // standard dla pozostałych przypadków
-            return new XPoint(
-                (outerPoint.X + innerPoint.X) / 2.0,
-                (outerPoint.Y + innerPoint.Y) / 2.0);
-        }
+   
         private static XPoint GetT3BevelPoint(
         XPoint start,
         XPoint end,
@@ -2637,105 +2708,39 @@ namespace GEORGE.Client.Pages.Okna
         }
 
         /// <summary>
-        /// Znajduje punkt na górnym konturze zewnętrznym (indeksy 0-3) o tej samej współrzędnej X
+        /// Znajduje przecięcie linii wyznaczonej przez dwa punkty z outerContour
+        /// Zwraca punkt przecięcia oraz dane do utworzenia segmentu (linia lub łuk)
         /// </summary>
-        private static XPoint FindPointOnOuterContour(XPoint point, List<ContourSegment> outerContour)
+        private static (XPoint intersectionPoint, ContourSegment? segment) FindIntersectionWithOuterContour(
+            XPoint point1,
+            XPoint point2,
+            List<ContourSegment> outerContour,
+            bool goUp)
         {
             if (outerContour == null || outerContour.Count == 0)
-                return point;
+                return (point2, null);
 
-            XPoint bestPoint = point;
-            double minDistance = double.MaxValue;
+            // Oblicz wektor kierunkowy linii
+            double dx = point2.X - point1.X;
+            double dy = point2.Y - point1.Y;
+            double length = Math.Sqrt(dx * dx + dy * dy);
 
-            // Szukamy tylko na górnych segmentach (indeksy 0-3)
-            int maxIndex = Math.Min(outerContour.Count, 4);
+            if (length < 0.001)
+                return (point2, null);
 
-            for (int idx = 0; idx < maxIndex; idx++)
-            {
-                var seg = outerContour[idx];
+            // Wektor jednostkowy
+            double tx = dx / length;
+            double ty = dy / length;
 
-                if (seg.Type == SegmentType.Line)
-                {
-                    double minX = Math.Min(seg.Start.X, seg.End.X);
-                    double maxX = Math.Max(seg.Start.X, seg.End.X);
+            // Przedłużenie linii
+            double extensionLength = 1000.0;
+            XPoint extendedPoint = new XPoint(
+                point1.X + tx * extensionLength,
+                point1.Y + ty * extensionLength
+            );
 
-                    if (point.X >= minX - 0.5 && point.X <= maxX + 0.5)
-                    {
-                        double t = (seg.End.X - seg.Start.X) != 0
-                            ? (point.X - seg.Start.X) / (seg.End.X - seg.Start.X)
-                            : 0;
-                        double y = seg.Start.Y + t * (seg.End.Y - seg.Start.Y);
-
-                        XPoint candidate = new XPoint(point.X, y);
-
-                        // Szukamy punktu wyżej (mniejsza Y) i bliżej
-                        if (candidate.Y < point.Y - 0.1)
-                        {
-                            double dist = Math.Abs(point.Y - candidate.Y);
-                            if (dist < minDistance)
-                            {
-                                minDistance = dist;
-                                bestPoint = candidate;
-                            }
-                        }
-                    }
-                }
-                else if (seg.Type == SegmentType.Arc && seg.Center != null)
-                {
-                    int steps = 50;
-                    for (int i = 0; i <= steps; i++)
-                    {
-                        double t = (double)i / steps;
-                        double startAngle = Math.Atan2(seg.Start.Y - seg.Center.Value.Y, seg.Start.X - seg.Center.Value.X);
-                        double endAngle = Math.Atan2(seg.End.Y - seg.Center.Value.Y, seg.End.X - seg.Center.Value.X);
-
-                        if (seg.CounterClockwise)
-                        {
-                            while (endAngle <= startAngle) endAngle += 2 * Math.PI;
-                        }
-                        else
-                        {
-                            while (endAngle >= startAngle) endAngle -= 2 * Math.PI;
-                        }
-
-                        double angle = startAngle + t * (endAngle - startAngle);
-
-                        XPoint candidate = new XPoint(
-                            seg.Center.Value.X + seg.Radius * Math.Cos(angle),
-                            seg.Center.Value.Y + seg.Radius * Math.Sin(angle)
-                        );
-
-                        if (Math.Abs(candidate.X - point.X) < 0.5)
-                        {
-                            if (candidate.Y < point.Y - 0.1)
-                            {
-                                double dist = Math.Abs(point.Y - candidate.Y);
-                                if (dist < minDistance)
-                                {
-                                    minDistance = dist;
-                                    bestPoint = candidate;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            return bestPoint;
-        }
-
-       private static XPoint FindPointOnOuterContourForT3(
-      XPoint outerPoint,
-      XPoint innerPoint,
-      List<ContourSegment> outerContour,
-      bool goUp)
-        {
-            if (outerContour == null || outerContour.Count == 0)
-                return outerPoint;
-
-            DisplayLineAngle(outerPoint, innerPoint, "FindPointOnOuterContourForT3 !!!!!");
-
-            XPoint bestPoint = outerPoint;
+            XPoint bestPoint = point2;
+            ContourSegment? bestSegment = null;
             double minDistance = double.MaxValue;
 
             // Przeszukujemy wszystkie segmenty konturu
@@ -2745,119 +2750,209 @@ namespace GEORGE.Client.Pages.Okna
 
                 if (seg.Type == SegmentType.Line)
                 {
-                    // Dla linii - znajdź punkt przecięcia z pionową linią
-                    double minX = Math.Min(seg.Start.X, seg.End.X);
-                    double maxX = Math.Max(seg.Start.X, seg.End.X);
+                    // Przecięcie z linią
+                    var intersection = GetLinesIntersectionNullable(point1, extendedPoint, seg.Start, seg.End);
 
-                    if (outerPoint.X >= minX - 0.5 && outerPoint.X <= maxX + 0.5)
+                    if (intersection.HasValue)
                     {
-                        double t = (seg.End.X - seg.Start.X) != 0
-                            ? (outerPoint.X - seg.Start.X) / (seg.End.X - seg.Start.X)
-                            : 0;
-                        double y = seg.Start.Y + t * (seg.End.Y - seg.Start.Y);
+                        double dist = Distance(point1, intersection.Value);
 
-                        XPoint candidate = new XPoint(outerPoint.X, y);
+                        // Sprawdź czy punkt jest w odpowiednim kierunku
+                        double dot = (intersection.Value.X - point1.X) * tx + (intersection.Value.Y - point1.Y) * ty;
+                        bool isForward = dot > 0;
 
-                        if (goUp && candidate.Y < outerPoint.Y - 0.1)
+                        if (isForward && dist > 0.1 && dist < minDistance)
                         {
-                            double dist = Math.Abs(outerPoint.Y - candidate.Y);
-                            if (dist < minDistance)
+                            // Sprawdź czy punkt leży na segmencie
+                            if (IsPointOnSegment(intersection.Value, seg.Start, seg.End))
                             {
                                 minDistance = dist;
-                                bestPoint = candidate;
-                            }
-                        }
-                        else if (!goUp && candidate.Y > outerPoint.Y + 0.1)
-                        {
-                            double dist = Math.Abs(outerPoint.Y - candidate.Y);
-                            if (dist < minDistance)
-                            {
-                                minDistance = dist;
-                                bestPoint = candidate;
+                                bestPoint = intersection.Value;
+                                bestSegment = seg;
                             }
                         }
                     }
                 }
                 else if (seg.Type == SegmentType.Arc && seg.Center != null)
                 {
-                    // Dla łuku - znajdź punkt na łuku o tej samej współrzędnej X
-                    // Zwiększamy liczbę kroków dla większej dokładności
-                    int steps = 100;
+                    // Przecięcie z łukiem (okręgiem)
+                    var intersections = GetLineCircleIntersections(point1, extendedPoint, seg.Center.Value, seg.Radius);
 
-                    // Oblicz kąty start i end
-                    double startAngle = Math.Atan2(seg.Start.Y - seg.Center.Value.Y, seg.Start.X - seg.Center.Value.X);
-                    double endAngle = Math.Atan2(seg.End.Y - seg.Center.Value.Y, seg.End.X - seg.Center.Value.X);
-
-                    // Normalizacja kątów dla CCW/CW
-                    if (seg.CounterClockwise)
+                    foreach (var pt in intersections)
                     {
-                        while (endAngle <= startAngle) endAngle += 2 * Math.PI;
-                    }
-                    else
-                    {
-                        while (endAngle >= startAngle) endAngle -= 2 * Math.PI;
-                    }
-
-                    // Sprawdź czy X jest w zakresie łuku
-                    double minX = Math.Min(seg.Start.X, seg.End.X);
-                    double maxX = Math.Max(seg.Start.X, seg.End.X);
-
-                    // Jeśli outerPoint.X jest poza zakresem X łuku, pomiń
-                    if (outerPoint.X < minX - 0.5 || outerPoint.X > maxX + 0.5)
-                        continue;
-
-                    for (int i = 0; i <= steps; i++)
-                    {
-                        double t = (double)i / steps;
-                        double angle = startAngle + t * (endAngle - startAngle);
-
-                        XPoint candidate = new XPoint(
-                            seg.Center.Value.X + seg.Radius * Math.Cos(angle),
-                            seg.Center.Value.Y + seg.Radius * Math.Sin(angle)
-                        );
-
-                        // Sprawdź czy X jest zbliżone (zwiększona tolerancja)
-                        if (Math.Abs(candidate.X - outerPoint.X) < 0.5)
+                        // Sprawdź czy punkt leży na łuku
+                        if (IsPointOnArc(pt, seg, 0.1))
                         {
-                            if (goUp && candidate.Y < outerPoint.Y - 0.1)
+                            double dist = Distance(point1, pt);
+
+                            // Sprawdź czy punkt jest w odpowiednim kierunku
+                            double dot = (pt.X - point1.X) * tx + (pt.Y - point1.Y) * ty;
+                            bool isForward = dot > 0;
+
+                            if (isForward && dist > 0.1 && dist < minDistance)
                             {
-                                double dist = Math.Abs(outerPoint.Y - candidate.Y);
-                                if (dist < minDistance)
-                                {
-                                    minDistance = dist;
-                                    bestPoint = candidate;
-                                }
-                            }
-                            else if (!goUp && candidate.Y > outerPoint.Y + 0.1)
-                            {
-                                double dist = Math.Abs(outerPoint.Y - candidate.Y);
-                                if (dist < minDistance)
-                                {
-                                    minDistance = dist;
-                                    bestPoint = candidate;
-                                }
+                                minDistance = dist;
+                                bestPoint = pt;
+                                bestSegment = seg;
                             }
                         }
                     }
                 }
             }
 
-            // Jeśli znaleziono punkt na outerContour
-            if (minDistance < double.MaxValue)
+            // Jeśli znaleziono przecięcie z łukiem, zwróć dane do utworzenia łuku
+            if (bestSegment != null && bestSegment.Type == SegmentType.Arc && bestSegment.Center != null)
             {
-                return bestPoint;
+                // Oblicz kąty dla łuku
+                double startAngle = Math.Atan2(bestPoint.Y - bestSegment.Center.Value.Y, bestPoint.X - bestSegment.Center.Value.X);
+                double endAngle = Math.Atan2(point1.Y - bestSegment.Center.Value.Y, point1.X - bestSegment.Center.Value.X);
+
+                // Normalizacja dla CCW/CW
+                if (bestSegment.CounterClockwise)
+                {
+                    while (endAngle <= startAngle) endAngle += 2 * Math.PI;
+                }
+                else
+                {
+                    while (endAngle >= startAngle) endAngle -= 2 * Math.PI;
+                }
+
+                // Utwórz segment łuku od bestPoint do point1
+                ContourSegment arcSegment = new ContourSegment(
+                    bestPoint,
+                    point1,
+                    bestSegment.Center.Value,
+                    bestSegment.Radius,
+                    bestSegment.CounterClockwise
+                );
+
+                return (bestPoint, arcSegment);
             }
 
-            // Fallback: przedłużenie o 30% odległości do innerPoint
-            double distToInner = Distance(outerPoint, innerPoint);
-            double extension = Math.Max(distToInner * 0.3, 10.0);
+            // Jeśli znaleziono przecięcie z linią lub nie znaleziono żadnego
+            return (bestPoint, null);
+        }
+
+        /// <summary>
+        /// Sprawdza czy punkt leży na odcinku
+        /// </summary>
+        private static bool IsPointOnSegment(XPoint point, XPoint start, XPoint end, double tolerance = 0.1)
+        {
+            double cross = (point.X - start.X) * (end.Y - start.Y) - (point.Y - start.Y) * (end.X - start.X);
+            if (Math.Abs(cross) > tolerance)
+                return false;
+
+            double dot = (point.X - start.X) * (end.X - start.X) + (point.Y - start.Y) * (end.Y - start.Y);
+            if (dot < 0)
+                return false;
+
+            double squaredLength = (end.X - start.X) * (end.X - start.X) + (end.Y - start.Y) * (end.Y - start.Y);
+            if (dot > squaredLength)
+                return false;
+
+            return true;
+        }
+
+        /// <summary>
+        /// Znajduje przecięcie dwóch linii
+        /// </summary>
+        private static XPoint? GetLinesIntersectionNullable(XPoint a1, XPoint a2, XPoint b1, XPoint b2)
+        {
+            double dx1 = a2.X - a1.X;
+            double dy1 = a2.Y - a1.Y;
+            double dx2 = b2.X - b1.X;
+            double dy2 = b2.Y - b1.Y;
+
+            double det = dx1 * dy2 - dy1 * dx2;
+
+            if (Math.Abs(det) < 1e-6)
+                return null;
+
+            double t = ((b1.X - a1.X) * dy2 - (b1.Y - a1.Y) * dx2) / det;
 
             return new XPoint(
-                outerPoint.X,
-                goUp ? outerPoint.Y - extension : outerPoint.Y + extension
+                a1.X + t * dx1,
+                a1.Y + t * dy1
             );
         }
 
+        /// <summary>
+        /// Znajduje przecięcia linii z okręgiem
+        /// </summary>
+        private static List<XPoint> GetLineCircleIntersections(
+            XPoint p1,
+            XPoint p2,
+            XPoint center,
+            double radius)
+        {
+            var result = new List<XPoint>();
+
+            double dx = p2.X - p1.X;
+            double dy = p2.Y - p1.Y;
+            double fx = p1.X - center.X;
+            double fy = p1.Y - center.Y;
+
+            double a = dx * dx + dy * dy;
+            double b = 2 * (fx * dx + fy * dy);
+            double c = fx * fx + fy * fy - radius * radius;
+
+            double discriminant = b * b - 4 * a * c;
+
+            if (discriminant < -1e-9)
+                return result;
+
+            discriminant = Math.Max(0, discriminant);
+            double sqrtD = Math.Sqrt(discriminant);
+
+            double t1 = (-b + sqrtD) / (2 * a);
+            double t2 = (-b - sqrtD) / (2 * a);
+
+            if (t1 >= 0 && t1 <= 1)
+                result.Add(new XPoint(p1.X + t1 * dx, p1.Y + t1 * dy));
+
+            if (t2 >= 0 && t2 <= 1 && Math.Abs(t1 - t2) > 0.0001)
+                result.Add(new XPoint(p1.X + t2 * dx, p1.Y + t2 * dy));
+
+            return result;
+        }
+
+        /// <summary>
+        /// Sprawdza czy punkt leży na łuku
+        /// </summary>
+        private static bool IsPointOnArc(XPoint point, ContourSegment arc, double tolerance = 0.1)
+        {
+            if (arc.Center == null)
+                return false;
+
+            double distToCenter = Distance(point, arc.Center.Value);
+            double radiusDiff = Math.Abs(distToCenter - arc.Radius);
+
+            if (radiusDiff > tolerance)
+                return false;
+
+            double angle = Math.Atan2(point.Y - arc.Center.Value.Y, point.X - arc.Center.Value.X);
+            double startAngle = Math.Atan2(arc.Start.Y - arc.Center.Value.Y, arc.Start.X - arc.Center.Value.X);
+            double endAngle = Math.Atan2(arc.End.Y - arc.Center.Value.Y, arc.End.X - arc.Center.Value.X);
+
+            angle = (angle + 2 * Math.PI) % (2 * Math.PI);
+            startAngle = (startAngle + 2 * Math.PI) % (2 * Math.PI);
+            endAngle = (endAngle + 2 * Math.PI) % (2 * Math.PI);
+
+            if (arc.CounterClockwise)
+            {
+                if (startAngle <= endAngle)
+                    return angle >= startAngle - tolerance && angle <= endAngle + tolerance;
+                else
+                    return angle >= startAngle - tolerance || angle <= endAngle + tolerance;
+            }
+            else
+            {
+                if (endAngle <= startAngle)
+                    return angle <= startAngle + tolerance && angle >= endAngle - tolerance;
+                else
+                    return angle <= startAngle + tolerance || angle >= endAngle - tolerance;
+            }
+        }
 
 
         private static void DisplayLineAngle(XPoint outerPoint, XPoint innerPoint, string nazwa = "")
@@ -2871,7 +2966,7 @@ namespace GEORGE.Client.Pages.Okna
 
             if (length < 0.001)
             {
-            
+
                 Console.WriteLine($"⚠️ {nazwa}: Punkty są identyczne lub bardzo blisko siebie!");
                 Console.WriteLine($"   outerPoint: ({outerPoint.X:F2}, {outerPoint.Y:F2})");
                 Console.WriteLine($"   innerPoint: ({innerPoint.X:F2}, {innerPoint.Y:F2})");
@@ -2915,207 +3010,6 @@ namespace GEORGE.Client.Pages.Okna
             Console.WriteLine();
         }
 
-
-        private static XPoint ExtendInnerPointToOuterContour(
-        XPoint innerPoint,
-        XPoint outerPoint,
-        XPoint otherOuterPoint,
-        List<ContourSegment> outerContour)
-        {
-            if (outerContour == null || outerContour.Count == 0)
-                return innerPoint;
-
-            // Szukamy punktu na outerContour o tej samej współrzędnej X co outerPoint
-            XPoint bestPoint = innerPoint;
-            double minDistance = double.MaxValue;
-
-            foreach (var seg in outerContour)
-            {
-                if (seg.Type == SegmentType.Line)
-                {
-                    double minX = Math.Min(seg.Start.X, seg.End.X);
-                    double maxX = Math.Max(seg.Start.X, seg.End.X);
-
-                    if (outerPoint.X >= minX - 0.5 && outerPoint.X <= maxX + 0.5)
-                    {
-                        double t = (seg.End.X - seg.Start.X) != 0
-                            ? (outerPoint.X - seg.Start.X) / (seg.End.X - seg.Start.X)
-                            : 0;
-                        double y = seg.Start.Y + t * (seg.End.Y - seg.Start.Y);
-
-                        XPoint candidate = new XPoint(outerPoint.X, y);
-
-                        // Sprawdź czy punkt jest wyżej (mniejsza Y)
-                        if (candidate.Y < outerPoint.Y)
-                        {
-                            double dist = Distance(outerPoint, candidate);
-                            if (dist < minDistance)
-                            {
-                                minDistance = dist;
-                                bestPoint = candidate;
-                            }
-                        }
-                    }
-                }
-                else if (seg.Type == SegmentType.Arc && seg.Center != null)
-                {
-                    // Sprawdź punkty na łuku
-                    int steps = 50;
-                    for (int i = 0; i <= steps; i++)
-                    {
-                        double t = (double)i / steps;
-                        double startAngle = Math.Atan2(seg.Start.Y - seg.Center.Value.Y, seg.Start.X - seg.Center.Value.X);
-                        double endAngle = Math.Atan2(seg.End.Y - seg.Center.Value.Y, seg.End.X - seg.Center.Value.X);
-
-                        if (seg.CounterClockwise)
-                        {
-                            while (endAngle <= startAngle) endAngle += 2 * Math.PI;
-                        }
-                        else
-                        {
-                            while (endAngle >= startAngle) endAngle -= 2 * Math.PI;
-                        }
-
-                        double angle = startAngle + t * (endAngle - startAngle);
-
-                        XPoint candidate = new XPoint(
-                            seg.Center.Value.X + seg.Radius * Math.Cos(angle),
-                            seg.Center.Value.Y + seg.Radius * Math.Sin(angle)
-                        );
-
-                        if (Math.Abs(candidate.X - outerPoint.X) < 0.5)
-                        {
-                            if (candidate.Y < outerPoint.Y)
-                            {
-                                double dist = Distance(outerPoint, candidate);
-                                if (dist < minDistance)
-                                {
-                                    minDistance = dist;
-                                    bestPoint = candidate;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Jeśli znaleziono punkt, użyj go
-            if (minDistance < double.MaxValue && Distance(bestPoint, innerPoint) > 0.01)
-            {
-                return bestPoint;
-            }
-
-            // Fallback - przedłużenie o 30% w górę
-            double dy = innerPoint.Y - outerPoint.Y;
-            return new XPoint(outerPoint.X, outerPoint.Y + dy * 1.3);
-        }
-
-        private static XPoint? FindRayArcIntersection(
-        XPoint rayStart,
-        XPoint rayEnd,
-        ContourSegment arc)
-        {
-            if (!arc.Center.HasValue)
-                return null;
-
-
-            double dx = rayEnd.X - rayStart.X;
-            double dy = rayEnd.Y - rayStart.Y;
-
-
-            double fx = rayStart.X - arc.Center.Value.X;
-            double fy = rayStart.Y - arc.Center.Value.Y;
-
-
-            double a = dx * dx + dy * dy;
-
-            if (a < 0.000001)
-                return null;
-
-
-            double b = 2 * (fx * dx + fy * dy);
-
-            double c = fx * fx + fy * fy -
-                       arc.Radius * arc.Radius;
-
-
-            double delta = b * b - 4 * a * c;
-
-
-            if (delta < 0)
-                return null;
-
-
-            double sqrtDelta = Math.Sqrt(delta);
-
-
-            double t1 = (-b - sqrtDelta) / (2 * a);
-            double t2 = (-b + sqrtDelta) / (2 * a);
-
-
-            List<double> candidates = new();
-
-
-            // tylko punkty w kierunku promienia
-            if (t1 >= 0 && t1 <= 1)
-                candidates.Add(t1);
-
-
-            if (t2 >= 0 && t2 <= 1)
-                candidates.Add(t2);
-
-
-            if (candidates.Count == 0)
-                return null;
-
-
-            // bierzemy najbliższy punkt
-            double t = candidates.Min();
-
-
-            XPoint p = new XPoint(
-                rayStart.X + dx * t,
-                rayStart.Y + dy * t);
-
-
-
-            // sprawdzamy czy faktycznie jest na fragmencie łuku
-            if (!IsPointOnArc(p, arc, 1.0))
-                return null;
-
-
-            return p;
-        }
-
-        private static XPoint? LineIntersection(
-        XPoint p1,
-        XPoint p2,
-        XPoint p3,
-        XPoint p4)
-        {
-            double den =
-                (p1.X - p2.X) * (p3.Y - p4.Y) -
-                (p1.Y - p2.Y) * (p3.X - p4.X);
-
-
-            if (Math.Abs(den) < 0.00001)
-                return null;
-
-
-            double x =
-                ((p1.X * p2.Y - p1.Y * p2.X) * (p3.X - p4.X) -
-                (p1.X - p2.X) * (p3.X * p4.Y - p3.Y * p4.X))
-                / den;
-
-
-            double y =
-                ((p1.X * p2.Y - p1.Y * p2.X) * (p3.Y - p4.Y) -
-                (p1.Y - p2.Y) * (p3.X * p4.Y - p3.Y * p4.X))
-                / den;
-
-
-            return new XPoint(x, y);
-        }
 
         /// <summary>
         /// Filtruje segmenty konturu dla danej strony
@@ -3236,50 +3130,6 @@ namespace GEORGE.Client.Pages.Okna
             }
 
             return null;
-        }
-
-        /// <summary>
-        /// Sprawdza czy punkt leży na łuku - ZWIĘKSZONA TOLERANCJA
-        /// </summary>
-        private static bool IsPointOnArc(XPoint point, ContourSegment arc, double tolerance = 0.1)
-        {
-            if (arc.Center == null)
-                return false;
-
-            double distToCenter = Distance(point, arc.Center.Value);
-            double radiusDiff = Math.Abs(distToCenter - arc.Radius);
-
-            // Sprawdź czy punkt leży na okręgu
-            if (radiusDiff > tolerance)
-                return false;
-
-            // Sprawdź czy punkt leży na łuku (między kątami start i end)
-            double angle = Math.Atan2(point.Y - arc.Center.Value.Y, point.X - arc.Center.Value.X);
-            double startAngle = Math.Atan2(arc.Start.Y - arc.Center.Value.Y, arc.Start.X - arc.Center.Value.X);
-            double endAngle = Math.Atan2(arc.End.Y - arc.Center.Value.Y, arc.End.X - arc.Center.Value.X);
-
-            // Normalizacja kątów do [0, 2π)
-            angle = (angle + 2 * Math.PI) % (2 * Math.PI);
-            startAngle = (startAngle + 2 * Math.PI) % (2 * Math.PI);
-            endAngle = (endAngle + 2 * Math.PI) % (2 * Math.PI);
-
-            // Sprawdź czy punkt leży między kątami start i end
-            if (arc.CounterClockwise)
-            {
-                // Łuk CCW: od startAngle do endAngle (przeciwnie do wskazówek)
-                if (startAngle <= endAngle)
-                    return angle >= startAngle - tolerance && angle <= endAngle + tolerance;
-                else
-                    return angle >= startAngle - tolerance || angle <= endAngle + tolerance;
-            }
-            else
-            {
-                // Łuk CW: od startAngle do endAngle (zgodnie z wskazówkami)
-                if (endAngle <= startAngle)
-                    return angle <= startAngle + tolerance && angle >= endAngle - tolerance;
-                else
-                    return angle <= startAngle + tolerance || angle >= endAngle - tolerance;
-            }
         }
 
 
@@ -3895,28 +3745,6 @@ namespace GEORGE.Client.Pages.Okna
             }
 
             return closest ?? origin;
-        }
-
-        private XPoint? GetLinesIntersectionNullable(XPoint a1, XPoint a2, XPoint b1, XPoint b2)
-        {
-            float dx1 = (float)(a2.X - a1.X);
-            float dy1 = (float)(a2.Y - a1.Y);
-            float dx2 = (float)(b2.X - b1.X);
-            float dy2 = (float)(b2.Y - b1.Y);
-
-            float det = dx1 * dy2 - dy1 * dx2;
-
-            if (Math.Abs(det) < 1e-6f)
-            {
-                return null; // linie są równoległe
-            }
-
-            float t = ((float)(b1.X - a1.X) * dy2 - (float)(b1.Y - a1.Y) * dx2) / det;
-
-            return new XPoint(
-                a1.X + t * dx1,
-                a1.Y + t * dy1
-            );
         }
 
         private XPoint GetHorizontalIntersection(XPoint a, XPoint b, float y)
@@ -4791,38 +4619,6 @@ namespace GEORGE.Client.Pages.Okna
                 if (d < bestD) { best = pts[i]; bestD = d; }
             }
             return best;
-        }
-
-        private List<XPoint> GetLineCircleIntersections(XPoint p1, XPoint p2, XPoint center, double radius)
-        {
-            // parametry prostej p = p1 + t*(p2-p1), t dowolne
-            double dx = p2.X - p1.X;
-            double dy = p2.Y - p1.Y;
-
-            double fx = p1.X - center.X;
-            double fy = p1.Y - center.Y;
-
-            double a = dx * dx + dy * dy;
-            double b = 2 * (fx * dx + fy * dy);
-            double c = fx * fx + fy * fy - radius * radius;
-
-            double discriminant = b * b - 4 * a * c;
-            var results = new List<XPoint>();
-            if (discriminant < -1e-9) return results;
-
-            discriminant = Math.Max(0, discriminant);
-            double sqrtD = Math.Sqrt(discriminant);
-
-            double t1 = (-b + sqrtD) / (2 * a);
-            double t2 = (-b - sqrtD) / (2 * a);
-
-            // tu rozważamy dowolne przecięcia (wielokąt offset tworzy linie nieskończone), ale preferujemy punkty na odcinku
-            var pA = new XPoint(p1.X + t1 * dx, p1.Y + t1 * dy);
-            var pB = new XPoint(p1.X + t2 * dx, p1.Y + t2 * dy);
-            results.Add(pA);
-            if (discriminant > 1e-12) results.Add(pB);
-
-            return results;
         }
 
         private List<XPoint> GetCircleCircleIntersections(XPoint c0, double r0, XPoint c1, double r1)
