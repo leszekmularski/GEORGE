@@ -859,11 +859,15 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
             if (string.IsNullOrWhiteSpace(szukanyKlient))
                 return zleceniaProdukcyjne;
 
-            return zleceniaProdukcyjne.Where(x =>
+            var wynik = zleceniaProdukcyjne.Where(x =>
                 !string.IsNullOrWhiteSpace(x.Klient)
                 && x.Klient.Contains(
                         szukanyKlient,
                         StringComparison.OrdinalIgnoreCase));
+
+            iloscPrzefiltrowanych = wynik.Count();
+
+            return wynik;
         }
     }
 

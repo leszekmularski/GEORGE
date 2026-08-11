@@ -866,16 +866,26 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
         get
         {
             if (zleceniaProdukcyjneWew == null)
+            {
+                iloscPrzefiltrowanych = 0;
                 return Enumerable.Empty<ZleceniaProdukcyjneWew>();
+            }
 
             if (string.IsNullOrWhiteSpace(szukanyNumer))
+            {
+                iloscPrzefiltrowanych = zleceniaProdukcyjneWew.Count();
                 return zleceniaProdukcyjneWew;
+            }
 
-            return zleceniaProdukcyjneWew.Where(x =>
-                !string.IsNullOrWhiteSpace(x.NumerZamowienia)
-                && x.NumerZamowienia.Contains(
-                        szukanyNumer,
-                        StringComparison.OrdinalIgnoreCase));
+            var wynik = zleceniaProdukcyjneWew.Where(x =>
+                !string.IsNullOrWhiteSpace(x.NumerZamowienia) &&
+                x.NumerZamowienia.Contains(
+                    szukanyNumer,
+                    StringComparison.OrdinalIgnoreCase));
+
+            iloscPrzefiltrowanych = wynik.Count();
+
+            return wynik;
         }
     }
 
