@@ -73,6 +73,7 @@ else
                         • R05.3 – OLIWKA<br />
                         • R01.1 – SREBRO<br />
                         • R07.2 – BIAŁY<br />
+                        • R06.2 – CZARNY<br />
                         • R05.5 – STARE ZŁOTO
                     </div>
                 </AntDesign.FormItem>
@@ -191,7 +192,65 @@ else
                 <h5 style="color:blue">@((MarkupString)wyliczonoOkapikow)</h5>
             </TabPane>
 
-            <TabPane Key="5" Tab="Pozostałe informacje">
+            <TabPane Key="5" Tab="Wylicz moskitiera ramkowa">
+                <AntDesign.Col Span="12">
+                    <img src="../Images/wyt_mos_ramowa.jpg" style="width: 100%; max-width: 400px;" />
+                </AntDesign.Col>
+                <AntDesign.Col Span="18">
+                    <!-- Nowe pola do wprowadzania wymiarów okna -->
+                     <AntDesign.Row Gutter="16">
+                        <div>
+                            <RadioGroup @bind-Value="@_valueSystem" TValue="bool" OnChange="ObliczWysokosc">
+                                <Radio Value="false">System COMFORT 68</Radio>
+                                <Radio Value="true">System COMFORT 90</Radio>
+                            </RadioGroup>
+                        </div>
+                        <br/>
+                        <AntDesign.FormItem Label="Szerokość okna">
+                        <AntDesign.InputNumber @bind-Value="szerokoscOkna"
+                                               TValue="double"
+                                               Placeholder="Podaj szerokość okna"
+                                               OnChange="ObliczSzerokosc" />
+                        </AntDesign.FormItem>
+                        <AntDesign.FormItem Label="Wysokość okna">
+                            <AntDesign.InputNumber @bind-Value="wysokoscOkna"
+                                                   Placeholder="Podaj wysokość okna"
+                                                   TValue="double"
+                                                   OnChange="ObliczWysokosc" />
+                        </AntDesign.FormItem>
+                    </AntDesign.Row>
+                    <!-- Istniejące pola, teraz tylko do odczytu -->
+                    <AntDesign.FormItem Label="Szerokość moskitiery">
+                        <AntDesign.InputNumber @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Szerokosc"
+                                               Placeholder="Wyliczona szerokość"
+                                               Disabled="false" />
+                    </AntDesign.FormItem>
+                    <AntDesign.FormItem Label="Wysokość moskitiery">
+                        <AntDesign.InputNumber @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Wysokosc"
+                                               Placeholder="Wyliczona wysokość"
+                                               Disabled="false" />
+                    </AntDesign.FormItem>
+                </AntDesign.Col>
+                <AntDesign.FormItem Label="Felc">
+                    <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Dlugosc"
+                                     Placeholder="Podaj głębokość [Felc]" />
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Opis">
+                    <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Opis"
+                                     Placeholder="Podaj opis produktu" />
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Uwagi">
+                    <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Uwagi"
+                                     Placeholder="Podaj uwagi do pozycji" />
+                </AntDesign.FormItem>
+                <AntDesign.FormItem Label="Zapisz wynik obliczeń" Class="form-item-small-margin">
+                    <Tooltip Placement="Placement.Top" Title="Dotyczy tylko systemu COMFORT">
+                        <Button OnClick="ZapiszWynikObliczenMoskitieryRamkowej">Zapisz wynik obliczeń do Nazwa produktu oraz wymiarów</Button>
+                    </Tooltip>
+                </AntDesign.FormItem>
+            </TabPane>
+
+            <TabPane Key="6" Tab="Pozostałe informacje">
                 <AntDesign.FormItem Label="Opis">
                     <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Opis" Placeholder="Podaj opis produktu" />
                 </AntDesign.FormItem>
@@ -279,6 +338,10 @@ else
     private bool drzwiOtwDoWewnatrz = false;
 
     private string wyliczonoOkapikow = "";
+
+    private double szerokoscOkna;
+    private double wysokoscOkna;
+    private bool _valueSystem; // false = COMFORT 68, true = COMFORT 90
 
     protected override async Task OnInitializedAsync()
     {
@@ -573,6 +636,15 @@ else
         activeKey = "0";
     }
 
+    public async Task ZapiszWynikObliczenMoskitieryRamkowej()
+    {
+        elementyZamowienia.ElemetZamDoZlecen.NazwaProduktu = $"Moskitiery ramkowe szer: {elementyZamowienia.ElemetZamDoZlecen.Szerokosc} wys: {elementyZamowienia.ElemetZamDoZlecen.Wysokosc} felc: {elementyZamowienia.ElemetZamDoZlecen.Dlugosc}";
+
+        await Task.CompletedTask;
+
+        activeKey = "0";
+    }
+
     public async Task ZapiszWynikObliczenWkladki()
     {
         // Funkcja zaokrąglająca w górę do najbliższej wartości będącej wielokrotnością 5
@@ -618,7 +690,17 @@ else
     private async Task OnTabClick()
     {
 
-        if(activeKey == "5" && elementyZamowienia.ElemetZamDoZlecen.RowIdZlecenia != null)
+        if (activeKey == "5" && elementyZamowienia.ElemetZamDoZlecen != null)
+        {
+            _valueSystem = false; // Domyślnie ustawiamy na COMFORT 68
+            elementyZamowienia.ElemetZamDoZlecen.Dlugosc = 16;
+            if (elementyZamowienia.ElemetZamDoZlecen.Szerokosc > 0)
+            szerokoscOkna = (double)elementyZamowienia.ElemetZamDoZlecen.Szerokosc + 182;
+            if (elementyZamowienia.ElemetZamDoZlecen.Wysokosc > 0)
+            wysokoscOkna = (double)elementyZamowienia.ElemetZamDoZlecen.Wysokosc + 181;
+
+        }
+        else if(activeKey == "6" && elementyZamowienia.ElemetZamDoZlecen.RowIdZlecenia != null)
         {
             Console.WriteLine("Wyszukuję pasujące pliki");  
             await LoadFiles(elementyZamowienia.ElemetZamDoZlecen.RowIdZlecenia);
@@ -780,6 +862,29 @@ else
                     Placement = NotificationPlacement.BottomLeft
                 });
         }
+    }
+
+    private void ObliczSzerokosc()
+    {
+        if (szerokoscOkna >0)
+        elementyZamowienia.ElemetZamDoZlecen.Szerokosc = (decimal)(szerokoscOkna - 166);
+        StateHasChanged();
+    }
+
+    private void ObliczWysokosc()
+    {
+        if (!_valueSystem)
+        {
+            if (wysokoscOkna > 0)
+            elementyZamowienia.ElemetZamDoZlecen.Wysokosc = (decimal)(wysokoscOkna - 181);
+        }
+        else
+        {
+            if (wysokoscOkna > 0)
+            elementyZamowienia.ElemetZamDoZlecen.Wysokosc = (decimal)(wysokoscOkna - 182);
+        }
+
+        StateHasChanged();
     }
 
     List<Item>? _itemsJednostki;
