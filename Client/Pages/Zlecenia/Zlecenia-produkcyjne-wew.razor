@@ -85,6 +85,13 @@
     font-size: 1.0em;
     }
 
+    .file-info {
+        font-size: 0.85rem;
+        color: #6c757d;
+        /* brak marginesu – odstępy reguluje gap */
+        white-space: nowrap; /* opcjonalnie – zapobiega zawijaniu */
+    }
+
 </style>
 
 <script>
@@ -568,26 +575,37 @@ else
                                 var item = context as PlikiZlecenProdukcyjnych;
                                 if (!string.IsNullOrEmpty(item.NazwaPliku))
                                 {
-                                    <div class="modal-footer d-flex">
+                                    <div class="modal-footer d-flex align-items-center" style="gap: 0.1rem; flex-wrap: nowrap;">
                                         @if (item.TypPliku.ToLower() == "/nc")
                                         {
-                                            <a style="font-weight: normal; color:blueviolet" @onclick="@(() => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, true, item.Id))">Pobierz plik i zamień rozszerzenie</a>
-                                            <a style="font-weight: bold; color:blue" @onclick="@(() => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, false, item.Id))">Pobierz plik  &nbsp [@item.IloscPobranPliku] &nbsp</a>
+                                            <a style="font-weight: normal; color:blueviolet;" @onclick="@(() => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, true, item.Id))">
+                                                Pobierz plik i zamień rozszerzenie
+                                            </a>
+                                            <a style="font-weight: bold; color:blue;" @onclick="@(() => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, false, item.Id))">
+                                                Pobierz plik
+                                            </a>
                                         }
                                         else
                                         {
-                                            <a style="font-weight: bold; color:blue" @onclick="@(() => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, false, item.Id))">Pobierz plik  &nbsp [@item.IloscPobranPliku] &nbsp</a>
+                                            <a style="font-weight: bold; color:blue;" @onclick="@(() => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, false, item.Id))">
+                                                Pobierz plik
+                                            </a>
                                         }
 
-                                        <Spin Spinning=@czekajNaUsuniecie>
+                                        <!-- Informacje o pobraniach – w dwóch wierszach, mniejsza czcionka -->
+                                        <div style="display: inline-flex; flex-direction: column; font-size: 0.6rem; color: #6c757d; margin-left: 0.1rem; line-height: 1.2;">
+                                            <span>[pobrań: @item.IloscPobranPliku]</span>
+                                            <span>[ostatnie: @item.DataOstatniegoPobrania]</span>
+                                        </div>
 
+                                        <Spin Spinning=@czekajNaUsuniecie>
                                             @if (boolAdmin || boolUsuniecia)
                                             {
                                                 <Popconfirm Title="Czy chcesz usunąć plik?"
-                                                OnConfirm="()=> deleteFile(item.Id, item.NazwaPliku, item.RowIdZleceniaProdukcyjne)"
-                                                OkText="Tak"
-                                                CancelText="Nie">
-                                                    <a style="color:red">Usuń plik</a>
+                                                            OnConfirm="()=> deleteFile(item.Id, item.NazwaPliku, item.RowIdZleceniaProdukcyjne)"
+                                                            OkText="Tak"
+                                                            CancelText="Nie">
+                                                    <a style="color:red; margin-left: 0.1rem;">Usuń plik</a>
                                                 </Popconfirm>
                                             }
                                         </Spin>
@@ -2027,6 +2045,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
             if (plik != null)
             {
                 plik.IloscPobranPliku = plik.IloscPobranPliku + 1;
+                plik.DataOstatniegoPobrania = DateTime.Now;
             }
         }
         else

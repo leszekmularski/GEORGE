@@ -5,8 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 	<WasmEnableSimdSupport>false</WasmEnableSimdSupport>
-	<AssemblyVersion>1.0.2.5</AssemblyVersion>
-	<FileVersion>1.0.2.5</FileVersion>
+	<AssemblyVersion>1.0.2.6</AssemblyVersion>
+	<FileVersion>1.0.2.6</FileVersion>
 	<InvariantGlobalization>false</InvariantGlobalization>
   </PropertyGroup>
 

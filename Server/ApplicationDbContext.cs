@@ -198,6 +198,7 @@ namespace GEORGE.Server
             }
 
             plik.IloscPobranPliku = plik.IloscPobranPliku + 1;
+            plik.DataOstatniegoPobrania = DateTime.Now;
             await SaveChangesAsync();
             return true;
         }
