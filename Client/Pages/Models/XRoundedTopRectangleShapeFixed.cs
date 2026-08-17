@@ -36,8 +36,8 @@ namespace GEORGE.Client.Pages.Models
                 if (Math.Abs(_width - value) > 0.001)
                 {
                     _width = Math.Max(100, value);
-                    // Aktualizuj arcHeight jeśli przekracza nowe ograniczenia
-                    _arcHeight = Math.Min(_arcHeight, _height / 2);
+                    // Łuk musi pozostać wewnątrz rzeczywistej obwiedni.
+                    _arcHeight = Math.Min(_arcHeight, GetMaximumArcHeight());
                     _radius = CalculateRadiusFromArcGeometry(_width, _arcHeight);
                     MarkGeometryDirty();
                     if (!_isUpdating)
@@ -58,9 +58,8 @@ namespace GEORGE.Client.Pages.Models
                 if (Math.Abs(_height - value) > 0.001)
                 {
                     _height = Math.Max(100, value);
-                    //_arcHeight = Math.Min(_height * 0.33, _width / 2);
-                    //_arcHeight = Math.Round(_arcHeight, 3);  
-                    // Radius nie zależy od Height
+                    _arcHeight = Math.Min(_arcHeight, GetMaximumArcHeight());
+                    _radius = CalculateRadiusFromArcGeometry(_width, _arcHeight);
                     MarkGeometryDirty();
                     if (!_isUpdating)
                     {
@@ -83,7 +82,7 @@ namespace GEORGE.Client.Pages.Models
             get => _arcHeight;
             set
             {
-                double newValue = Math.Clamp(value, 25, _height / 2);
+                double newValue = Math.Clamp(value, 25, GetMaximumArcHeight());
                 if (Math.Abs(_arcHeight - newValue) > 0.001)
                 {
                     _arcHeight = Math.Round(newValue, 3);
@@ -128,6 +127,13 @@ namespace GEORGE.Client.Pages.Models
         private bool _isInitializing = false;
         private bool _isUpdating = false;
 
+        private double GetMaximumArcHeight()
+        {
+            // Łuk górny jest wpisany w prostokąt: ArcHeight jest częścią
+            // Height, a nie dodatkową wysokością poza konturem.
+            return Math.Max(25, Math.Min(_height / 2.0, _width / 2.0));
+        }
+
         // Cache dla CalculateArcGeometry
         private (double centerX, double centerY, double startAngle, double endAngle)? _cachedArcGeometry;
         private double _lastWidth, _lastHeight, _lastArcHeight, _lastX, _lastY;
@@ -150,7 +156,9 @@ namespace GEORGE.Client.Pages.Models
             //    _arcHeight = Math.Min(_height * 0.33, _width / 2);
             //else
             //_arcHeight = Math.Clamp(arcHeight, 5, _height / 2);
-            _arcHeight = Math.Min(_height * 0.33, _width / 2);
+            _arcHeight = arcHeight > 0
+                ? Math.Clamp(arcHeight, 25, GetMaximumArcHeight())
+                : Math.Min(_height * 0.33, GetMaximumArcHeight());
 
             // Oblicz promień z geometrii łuku: R = (w² + 4h²) / (8h)
             _radius = CalculateRadiusFromArcGeometry(_width, _arcHeight);
@@ -371,7 +379,9 @@ namespace GEORGE.Client.Pages.Models
 
         public BoundingBox GetBoundingBox()
         {
-            return new BoundingBox(X, Y, Width, Height + ArcHeight, NazwaObj);
+            // ArcHeight jest zawarte w Height: podstawa łuku ma współrzędną
+            // Y + ArcHeight, a najniższy punkt konturu Y + Height.
+            return new BoundingBox(X, Y, Width, Height, NazwaObj);
         }
 
         public List<XPoint> GetVertices() => GenerateCompleteOutline(IloscElementowLuki);
@@ -479,7 +489,7 @@ namespace GEORGE.Client.Pages.Models
             Y = Y * scale + offsetY;
             Width = Math.Max(100, Width * scale);
             Height = Math.Max(100, Height * scale);
-            _arcHeight = Math.Clamp(_arcHeight, 25, Height);
+            _arcHeight = Math.Clamp(_arcHeight, 25, GetMaximumArcHeight());
             Radius = CalculateRadiusFromArcGeometry(_width, _arcHeight);
             ArcHeight = _arcHeight;
 

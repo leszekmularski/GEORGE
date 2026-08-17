@@ -93,7 +93,7 @@ namespace GEORGE.Client.Pages.Models
         {
             //  _isInitializing = true;
 
-           // Console.WriteLine($"[DEBUG] Konstruktor START {NazwaObj}: Height={height}, ArcHeight={arcHeight}");
+            // Console.WriteLine($"[DEBUG] Konstruktor START {NazwaObj}: Height={height}, ArcHeight={arcHeight}");
 
             _x = x;
             _y = y;
@@ -118,7 +118,7 @@ namespace GEORGE.Client.Pages.Models
 
             //_isInitializing = false;
 
-          //  Console.WriteLine($"[DEBUG] Konstruktor END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
+            //  Console.WriteLine($"[DEBUG] Konstruktor END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
         }
 
         // ===========================
@@ -128,7 +128,7 @@ namespace GEORGE.Client.Pages.Models
         {
             if (_isInitializing) return;
 
-           // Console.WriteLine($"[DEBUG] CalculatePointsFromProperties START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
+            // Console.WriteLine($"[DEBUG] CalculatePointsFromProperties START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
             Points = GenerateCompleteOutline(IloscElementowLuki);
             NormalizeToPositiveQuadrant();
             NominalPoints = Points.Select(p => p.Clone()).ToList();
@@ -136,7 +136,7 @@ namespace GEORGE.Client.Pages.Models
             // Oznacz geometrię jako brudną po zmianie właściwości
             MarkGeometryDirty();
 
-          //  Console.WriteLine($"[DEBUG] CalculatePointsFromProperties END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
+            //  Console.WriteLine($"[DEBUG] CalculatePointsFromProperties END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
         }
 
         // ===========================
@@ -162,7 +162,7 @@ namespace GEORGE.Client.Pages.Models
                 return _cachedArcGeometry.Value;
             }
 
-          //  Console.WriteLine($"[DEBUG] CalculateArcGeometry START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
+            //  Console.WriteLine($"[DEBUG] CalculateArcGeometry START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
 
             double leftX = X;
             double rightX = X + Width;
@@ -260,7 +260,7 @@ namespace GEORGE.Client.Pages.Models
 
         public (double centerX, double centerY, double startAngle, double endAngle) CalculateArcGeometryByArcHeight()
         {
-           // Console.WriteLine($"[DEBUG] CalculateArcGeometryByArcHeight START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
+            // Console.WriteLine($"[DEBUG] CalculateArcGeometryByArcHeight START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
 
             double chordWidth = Width;
             double sagitta = ArcHeight;
@@ -298,7 +298,7 @@ namespace GEORGE.Client.Pages.Models
             double x2, double y2,
             double x3, double y3)
         {
-           // Console.WriteLine($"[DEBUG] CircleFromThreePoints START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
+            // Console.WriteLine($"[DEBUG] CircleFromThreePoints START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
 
             double width = x3 - x1;
             double arcHeight = y1 - y2;
@@ -306,7 +306,7 @@ namespace GEORGE.Client.Pages.Models
             double cx = (x1 + x3) / 2;
             double cy = y1 + (radius - arcHeight);
 
-           // Console.WriteLine($"[DEBUG] CircleFromThreePoints END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
+            // Console.WriteLine($"[DEBUG] CircleFromThreePoints END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
             return (cx, cy, radius);
         }
 
@@ -315,7 +315,7 @@ namespace GEORGE.Client.Pages.Models
         // ===========================
         private List<XPoint> GenerateCompleteOutline(int segments)
         {
-           // Console.WriteLine($"[DEBUG] GenerateCompleteOutline START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
+            // Console.WriteLine($"[DEBUG] GenerateCompleteOutline START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
 
             var outline = new List<XPoint>();
 
@@ -360,7 +360,7 @@ namespace GEORGE.Client.Pages.Models
                 outline[i] = new XPoint(Math.Round(p.X, 4), Math.Round(p.Y, 4));
             }
 
-          //  Console.WriteLine($"[DEBUG] GenerateCompleteOutline END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
+            //  Console.WriteLine($"[DEBUG] GenerateCompleteOutline END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
 
             return outline;
         }
@@ -532,10 +532,7 @@ namespace GEORGE.Client.Pages.Models
         {
             if (_isInitializing) return new List<ContourSegment>();
 
-            Console.WriteLine($"[DEBUG] GetContourSegments START {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
-
             var segments = new List<ContourSegment>();
-            var mode = GetArcMode();
 
             double leftX = X;
             double rightX = X + Width;
@@ -543,31 +540,22 @@ namespace GEORGE.Client.Pages.Models
             double arcStartY = Y + ArcHeight;
 
             var arc = CalculateArcGeometry();
-            double cx = arc.centerX;
-            double cy = arc.centerY;
 
             var bottomLeft = new XPoint(leftX, bottomY);
             var bottomRight = new XPoint(rightX, bottomY);
             var topRight = new XPoint(rightX, arcStartY);
             var topLeft = new XPoint(leftX, arcStartY);
 
+            // Zawsze zamknięty kontur: dół, prawa, łuk, lewa.
             segments.Add(new ContourSegment(bottomLeft, bottomRight));
-
-            if (mode == ArcMode.PelnyLuk)
-                segments.Add(new ContourSegment(bottomRight, topRight));
-
+            segments.Add(new ContourSegment(bottomRight, topRight));
             segments.Add(new ContourSegment(
                 topRight,
                 topLeft,
-                new XPoint(cx, cy),
+                new XPoint(arc.centerX, arc.centerY),
                 Radius,
-                true
-            ));
-
-            if (mode == ArcMode.PelnyLuk)
-                segments.Add(new ContourSegment(topLeft, bottomLeft));
-
-            Console.WriteLine($"[DEBUG] GetContourSegments END {NazwaObj}: Height={Height}, ArcHeight={ArcHeight}");
+                false)); // CW: górna część łuku
+            segments.Add(new ContourSegment(topLeft, bottomLeft));
 
             return segments;
         }
