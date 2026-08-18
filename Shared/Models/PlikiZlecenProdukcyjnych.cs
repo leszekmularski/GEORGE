@@ -17,6 +17,7 @@ namespace GEORGE.Shared.Models
         public string? OstatniaZmiana { get; set; } = "Zmiana: " + DateTime.Now.ToLongDateString();
         public long IloscPobranPliku { get; set; } = 0;
         public DateTime DataOstatniegoPobrania { get; set; } = DateTime.MinValue;
+        public DateTime DataPierwszegoPobrania { get; set; } = DateTime.MinValue;
 
         [NotMapped]
         public Guid RowGuid

@@ -495,10 +495,10 @@
 
         </Sider>
         <hr />
-        <InputCheckbox @bind-Value="pokaKonturWewnetrzny" @onclick="() => ZmienWymiaryOkna()" /> <label>Pokaż kontury zewnętrzny i wewnętrzny, wyłącz wypełnienie</label>
-        <InputCheckbox @bind-Value="oknaMogaBycLukowe" @onclick="() => ZmienWymiaryOkna()" /> <label>Okno może być wykonane z elementów łukowych</label>
+        <InputCheckbox @bind-Value="pokaKonturWewnetrzny" @bind-Value:after="async () => await ZmienWymiaryOkna()" /> <label>Pokaż kontury zewnętrzny i wewnętrzny, wyłącz wypełnienie</label>
+        <InputCheckbox @bind-Value="oknaMogaBycLukowe" @bind-Value:after="async () => await ZmienWymiaryOkna()" /> <label>Okno może być wykonane z elementów łukowych</label>
 
-        <InputCheckbox @bind-Value="boolNieGenerujPojedynczych" @onclick="() => ZmienWymiaryOkna()" /> <label>Wyłącz generowanie pojedynczych elementów</label>
+        <InputCheckbox @bind-Value="boolNieGenerujPojedynczych" @bind-Value:after="async () => await ZmienWymiaryOkna()" /> <label>Rysuj elementy jako linie i łuki</label>
         <InputCheckbox @bind-Value="boolNieCzyscKonsole" @onclick="() => boolNieCzyscKonsole = !boolNieCzyscKonsole" /> <label>Czyść konsole</label>
 
     </Panel>
@@ -590,11 +590,11 @@
                                          @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
                                          draggable="true"
                                          style="cursor: grab;
-                                                                                                    width: auto;
-                                                                                                    height: auto;
-                                                                                                    max-width: 50px;
-                                                                                                    max-height: 50px;
-                                                                                                    border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
+                                                                                                                width: auto;
+                                                                                                                height: auto;
+                                                                                                                max-width: 50px;
+                                                                                                                max-height: 50px;
+                                                                                                                border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
 
                                 }
                                 else
@@ -676,6 +676,7 @@
                                     <strong>Typ:</strong> @ksztalt.TypKsztaltu &nbsp;|&nbsp;
                                     <strong>Grupa:</strong> @ksztalt.Grupa &nbsp;|&nbsp;
                                     <strong>ZIndex:</strong> @ksztalt.ZIndex &nbsp;|&nbsp;<br />
+                                    <strong>Typ połączenia strona Lewa / Prawa:</strong> @ksztalt.PolaczenieStronaA / @ksztalt.PolaczenieStronaB<br />
                                     <strong>RowIdElementu [Indeks]:</strong> @ksztalt.RowIdElementu &nbsp; [@ksztalt.IndeksElementu]<br />
                                     <strong>Kąt:</strong> @ksztalt.Kat <label style="color:red;"> <b>[@ksztalt.Strona] [@ksztalt.NrPozWModelu]</b></label>
                                     <strong>Offesty:</strong> L:@ksztalt.OffsetLewa G:@ksztalt.OffsetGora P:@ksztalt.OffsetPrawa D:@ksztalt.OffsetDol &nbsp; [@ksztalt.RodzajpolaczenAiB]
@@ -2279,6 +2280,8 @@
             sb.AppendLine($"Indeks elementu: {ksztalt.IndeksElementu}");
             sb.AppendLine($"Kąt: {ksztalt.Kat}°");
             sb.AppendLine($"Strona: {ksztalt.Strona}");
+            sb.AppendLine($"Połaczenie strona Lewa: {ksztalt.PolaczenieStronaA}");
+            sb.AppendLine($"Połaczenie strona Prawa: {ksztalt.PolaczenieStronaB}");
             sb.AppendLine($"Nr pozycji w modelu: {ksztalt.NrPozWModelu}");
             sb.AppendLine($"IdRegion: {ksztalt.IdRegion}");
             sb.AppendLine();

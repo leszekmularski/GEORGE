@@ -56,6 +56,8 @@ namespace GEORGE.Client.Pages.Okna
         // Informacje o kąt cięcia strona A elementu
         public float KatStronaB { get; set; } = 0.0f;
         // Informacje o kąt cięcia strona B elementu
+        public string? PolaczenieStronaA { get; set; }
+        public string? PolaczenieStronaB { get; set; }
         public float DlugoscCzopaA { get; set; }
         public float DlugoscCzopaB { get; set; }
         public float OffsetLewa { get; set; } = 0.0f;
