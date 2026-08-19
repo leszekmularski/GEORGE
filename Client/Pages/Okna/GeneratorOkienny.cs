@@ -1953,8 +1953,8 @@ namespace GEORGE.Client.Pages.Okna
                 {
                     var adjustedVerticesX = new List<XPoint>(wierzcholki);
 
-                    if(rightJoin == "T1")
-                    adjustedVerticesX[2] = FindIntersectionWithContourByAngle(adjustedVerticesX[2], angleDegrees, innerContour);
+                    if (rightJoin == "T1")
+                        adjustedVerticesX[2] = FindIntersectionWithContourByAngle(adjustedVerticesX[2], angleDegrees, innerContour);
 
                     if (rightJoin == "T3")
                         adjustedVerticesX[2] = FindIntersectionWithContourByAngle(adjustedVerticesX[2], angleDegrees, outerContour);
@@ -2143,6 +2143,7 @@ namespace GEORGE.Client.Pages.Okna
                     }
                     else if (rightT3Bevel)
                     {
+                        // zastąp istniejący blok rightT3Bevel od wywołania FindIntersectionWithOuterContour(...)
                         var (pointOnOuter, segment) = FindIntersectionWithOuterContour(
                             outerSegment.End,
                             innerSegment.End,
@@ -2157,16 +2158,24 @@ namespace GEORGE.Client.Pages.Okna
                             result.Add(new ContourSegment(pointOnOuter, outerSegment.End));
                             result.Add(new ContourSegment(outerSegment.End, innerSegment.End));
                         }
-                        else if (Distance(pointOnOuter, outerSegment.End) > 0.1 && pointOnOuter.Y < outerSegment.End.Y)
-                        {
-                            // Punkt na outerContour (linia)
-                            result.Add(new ContourSegment(pointOnOuter, outerSegment.End));
-                            result.Add(new ContourSegment(outerSegment.End, innerSegment.End));
-                        }
                         else
                         {
-                            // Fallback – bezpośrednie połączenie
-                            result.Add(new ContourSegment(outerSegment.End, innerSegment.End));
+                            // Zamiast porównania Y użyjemy iloczynu skalarnego => sprawdzamy czy punkt leży w kierunku od innerSegment.End do outerSegment.End
+                            double dirX = outerSegment.End.X - innerSegment.End.X;
+                            double dirY = outerSegment.End.Y - innerSegment.End.Y;
+                            double dot = (pointOnOuter.X - innerSegment.End.X) * dirX + (pointOnOuter.Y - innerSegment.End.Y) * dirY;
+
+                            if (Distance(pointOnOuter, outerSegment.End) > 0.1 && dot > 0)
+                            {
+                                // Punkt znajduje się "w kierunku" — traktujemy jako przecięcie na linii
+                                result.Add(new ContourSegment(pointOnOuter, outerSegment.End));
+                                result.Add(new ContourSegment(outerSegment.End, innerSegment.End));
+                            }
+                            else
+                            {
+                                // Fallback – bezpośrednie połączenie
+                                result.Add(new ContourSegment(outerSegment.End, innerSegment.End));
+                            }
                         }
                     }
                     else
