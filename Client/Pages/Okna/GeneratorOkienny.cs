@@ -1913,7 +1913,7 @@ namespace GEORGE.Client.Pages.Okna
                 List<ContourSegment> innerContour,
                 int numerElemntu,
                 string _stronaElementu,
-                List<XPoint> wierzcholkiLineProste,
+                List<XPoint> wierzcholkiLinieProste,
                 string leftJoin,
                 string rightJoin,
                 double angleDegrees)
@@ -1926,8 +1926,8 @@ namespace GEORGE.Client.Pages.Okna
             var filteredInner = GetSegmentsForSide(innerContour, _stronaElementu);
 
             Console.WriteLine($"\n🔷 Build4SegmentContour ELEMENT {numerElemntu} _stronaElementu: {_stronaElementu} - START");
-            Console.WriteLine($"   Strona: {_stronaElementu}");
-            Console.WriteLine($"   Wierzchołki: [0]({wierzcholki[0].X:F2},{wierzcholki[0].Y:F2}) [1]({wierzcholki[1].X:F2},{wierzcholki[1].Y:F2}) [2]({wierzcholki[2].X:F2},{wierzcholki[2].Y:F2}) [3]({wierzcholki[3].X:F2},{wierzcholki[3].Y:F2})");
+            Console.WriteLine($"🔷 Build4SegmentContour    Strona: {_stronaElementu}, filteredOuter -> segmenty: {filteredOuter?.Count ?? 0}, łuki: {filteredOuter?.Count(s => s.Type == SegmentType.Arc) ?? 0}");
+            Console.WriteLine($"🔷 Build4SegmentContour    Wierzchołki: [0]({wierzcholki[0].X:F2},{wierzcholki[0].Y:F2}) [1]({wierzcholki[1].X:F2},{wierzcholki[1].Y:F2}) [2]({wierzcholki[2].X:F2},{wierzcholki[2].Y:F2}) [3]({wierzcholki[3].X:F2},{wierzcholki[3].Y:F2})");
 
             int sourceIndex = numerElemntu - 1;
             int previousIndex = (sourceIndex - 1 + outerContour.Count) % outerContour.Count;
@@ -1949,13 +1949,64 @@ namespace GEORGE.Client.Pages.Okna
                 bool rightJoinIsT1orT3 = (rightJoin == "T1" || rightJoin == "T3");
                 bool leftJoinIsT1orT3 = (leftJoin == "T1" || leftJoin == "T3");
 
-                // Lewa strona – gdy lewy segment jest łukiem i leftJoin to T1/T3
-                if (_stronaElementu == "Lewa" && leftJoinIsT1orT3 &&
-                    outerSegmentLeft.Type == SegmentType.Arc && outerSegmentLeft.Center.HasValue)
+                if (_stronaElementu == "Lewa" && rightJoinIsT1orT3)
                 {
                     var adjustedVerticesX = new List<XPoint>(wierzcholki);
-                    var segZewnetrznyX = BuildSegmentWithArc(adjustedVerticesX[0], adjustedVerticesX[1], outerContour);
-                    var segWewnetrznyX = BuildSegmentWithArc(adjustedVerticesX[2], adjustedVerticesX[3], innerContour);
+
+                    if(rightJoin == "T1")
+                    adjustedVerticesX[2] = FindIntersectionWithContourByAngle(adjustedVerticesX[2], angleDegrees, innerContour);
+
+                    if (rightJoin == "T3")
+                        adjustedVerticesX[2] = FindIntersectionWithContourByAngle(adjustedVerticesX[2], angleDegrees, outerContour);
+
+                    // Segmenty zewnętrzny i wewnętrzny – już poprawne
+                    var segZewnetrznyX = BuildSegmentWithArc(adjustedVerticesX[0], adjustedVerticesX[1], filteredOuter);
+                    var segWewnetrznyX = BuildSegmentWithArc(adjustedVerticesX[2], adjustedVerticesX[3], filteredInner);
+
+                    // Dla wewnętrznego łuku odwracamy kierunek, jeśli jest łukiem
+                    if (segWewnetrznyX.Type == SegmentType.Arc && segWewnetrznyX.Center.HasValue)
+                    {
+                        segWewnetrznyX = new ContourSegment(
+                            segWewnetrznyX.End,
+                            segWewnetrznyX.Start,
+                            segWewnetrznyX.Center,
+                            segWewnetrznyX.Radius,
+                            !segWewnetrznyX.CounterClockwise
+                        );
+                    }
+
+                    // ---------- Dla T3 używamy outerContour, dla T1 innerContour ----------
+                    List<ContourSegment> contourForSide = (rightJoin == "T3") ? filteredOuter : filteredInner;
+
+                    // Segment boczny 1 (prawy) – od adjustedVerticesX[1] do adjustedVerticesX[2]
+                    var segBoczny1 = BuildSegmentWithArc(adjustedVerticesX[1], adjustedVerticesX[2], contourForSide);
+
+                    // Segment boczny 2 (lewy) – od adjustedVerticesX[3] do adjustedVerticesX[0]
+                    var segBoczny2 = BuildSegmentWithArc(adjustedVerticesX[3], adjustedVerticesX[0], contourForSide);
+
+                    return new List<ContourSegment>
+                        {
+                            segZewnetrznyX,
+                            segBoczny1,
+                            segWewnetrznyX,
+                            segBoczny2
+                        };
+                }
+
+                // Analogicznie dla prawej strony
+                if (_stronaElementu == "Prawa" && leftJoinIsT1orT3)
+                {
+                    var adjustedVerticesX = new List<XPoint>(wierzcholki);
+
+                    if (leftJoin == "T1")
+                        adjustedVerticesX[1] = FindIntersectionWithContourByAngle(adjustedVerticesX[1], angleDegrees - 180, innerContour);
+
+                    if (leftJoin == "T3")
+                        adjustedVerticesX[1] = FindIntersectionWithContourByAngle(adjustedVerticesX[1], angleDegrees - 180, outerContour);
+
+
+                    var segZewnetrznyX = BuildSegmentWithArc(adjustedVerticesX[0], adjustedVerticesX[1], filteredOuter);
+                    var segWewnetrznyX = BuildSegmentWithArc(adjustedVerticesX[2], adjustedVerticesX[3], filteredInner);
 
                     if (segWewnetrznyX.Type == SegmentType.Arc && segWewnetrznyX.Center.HasValue)
                     {
@@ -1968,42 +2019,21 @@ namespace GEORGE.Client.Pages.Okna
                         );
                     }
 
-                    return new List<ContourSegment>
-                        {
-                            segZewnetrznyX,
-                            new ContourSegment(adjustedVerticesX[1], adjustedVerticesX[2]),
-                            segWewnetrznyX,
-                            new ContourSegment(adjustedVerticesX[3], adjustedVerticesX[0])
-                        };
-                }
+                    List<ContourSegment> contourForSide = (leftJoin == "T3") ? filteredOuter : filteredInner;
 
-                // Prawa strona – gdy prawy segment jest łukiem i rightJoin to T1/T3
-                if (_stronaElementu == "Prawa" && rightJoinIsT1orT3 &&
-                    outerSegmentRight.Type == SegmentType.Arc && outerSegmentRight.Center.HasValue)
-                {
-                    var adjustedVerticesX = new List<XPoint>(wierzcholki);
-                    var segZewnetrznyX = BuildSegmentWithArc(adjustedVerticesX[0], adjustedVerticesX[1], outerContour);
-                    var segWewnetrznyX = BuildSegmentWithArc(adjustedVerticesX[2], adjustedVerticesX[3], innerContour);
-
-                    if (segWewnetrznyX.Type == SegmentType.Arc && segWewnetrznyX.Center.HasValue)
-                    {
-                        segWewnetrznyX = new ContourSegment(
-                            segWewnetrznyX.End,
-                            segWewnetrznyX.Start,
-                            segWewnetrznyX.Center,
-                            segWewnetrznyX.Radius,
-                            !segWewnetrznyX.CounterClockwise
-                        );
-                    }
+                    var segBoczny1 = BuildSegmentWithArc(adjustedVerticesX[1], adjustedVerticesX[2], contourForSide);
+                    var segBoczny2 = BuildSegmentWithArc(adjustedVerticesX[3], adjustedVerticesX[0], contourForSide);
 
                     return new List<ContourSegment>
                         {
                             segZewnetrznyX,
-                            new ContourSegment(adjustedVerticesX[1], adjustedVerticesX[2]),
+                            segBoczny1,
                             segWewnetrznyX,
-                            new ContourSegment(adjustedVerticesX[3], adjustedVerticesX[0])
+                            segBoczny2
                         };
                 }
+
+
 
                 // -------------------------------
                 // 1b. Górne boki – gdy outerSegment i innerSegment są łukami
@@ -2016,18 +2046,77 @@ namespace GEORGE.Client.Pages.Okna
                     bool rightT1Bevel = _stronaElementu == "Góra" && rightJoin == "T1" &&
                         outerContour[nextIndex].Type == SegmentType.Line;
 
-                    bool leftT3Bevel = (_stronaElementu == "Góra") && (leftJoin == "T3" || leftJoin == "T2") &&
+                    bool leftT2Bevel = (_stronaElementu == "Góra") && leftJoin == "T2" &&
                         outerContour[previousIndex].Type == SegmentType.Line;
-                    bool rightT3Bevel = (_stronaElementu == "Góra") && (rightJoin == "T3" || rightJoin == "T2") &&
+                    bool rightT2Bevel = (_stronaElementu == "Góra") && rightJoin == "T2" &&
                         outerContour[nextIndex].Type == SegmentType.Line;
 
-                    Console.WriteLine($"🔷 Build4SegmentContour ELEMENT {numerElemntu} _stronaElementu: {_stronaElementu} - leftT1Bevel: {leftT1Bevel}, rightT1Bevel: {rightT1Bevel}, leftT3Bevel: {leftT3Bevel}, rightT3Bevel: {rightT3Bevel}");
+                    bool leftT3Bevel = (_stronaElementu == "Góra") && leftJoin == "T3" &&
+                        outerContour[previousIndex].Type == SegmentType.Line;
+                    bool rightT3Bevel = (_stronaElementu == "Góra") && rightJoin == "T3" &&
+                        outerContour[nextIndex].Type == SegmentType.Line;
 
-                    var result = new List<ContourSegment>
-            {
-                new ContourSegment(outerSegment.Start, outerSegment.End,
-                    outerSegment.Center, outerSegment.Radius, false)
-            };
+
+                    var result = new List<ContourSegment>();
+
+                    if (leftT3Bevel)
+                    {
+                        var adjustedVerticesX = new List<XPoint>(wierzcholki);
+                        var segZewnetrznyX = BuildSegmentWithArc(adjustedVerticesX[0], adjustedVerticesX[1], filteredOuter);
+                        var segWewnetrznyX = BuildSegmentWithArc(adjustedVerticesX[2], adjustedVerticesX[3], filteredInner);
+
+                        if (segWewnetrznyX.Type == SegmentType.Arc && segWewnetrznyX.Center.HasValue)
+                        {
+                            segWewnetrznyX = new ContourSegment(
+                                segWewnetrznyX.End,
+                                segWewnetrznyX.Start,
+                                segWewnetrznyX.Center,
+                                segWewnetrznyX.Radius,
+                                !segWewnetrznyX.CounterClockwise
+                            );
+                        }
+
+                        return new List<ContourSegment>
+                        {
+                            segZewnetrznyX,
+                            new ContourSegment(adjustedVerticesX[1], adjustedVerticesX[2], outerSegment.Center, outerSegment.Radius, false),
+                            segWewnetrznyX,
+                            new ContourSegment(adjustedVerticesX[3], adjustedVerticesX[0], innerSegment.Center, innerSegment.Radius, true)
+                        };
+                    }
+                    if (rightT3Bevel)
+                    {
+                        var adjustedVerticesX = new List<XPoint>(wierzcholki);
+                        var segZewnetrznyX = BuildSegmentWithArc(adjustedVerticesX[0], adjustedVerticesX[1], filteredOuter);
+                        var segWewnetrznyX = BuildSegmentWithArc(adjustedVerticesX[2], adjustedVerticesX[3], filteredInner);
+
+                        if (segWewnetrznyX.Type == SegmentType.Arc && segWewnetrznyX.Center.HasValue)
+                        {
+                            segWewnetrznyX = new ContourSegment(
+                                segWewnetrznyX.End,
+                                segWewnetrznyX.Start,
+                                segWewnetrznyX.Center,
+                                segWewnetrznyX.Radius,
+                                !segWewnetrznyX.CounterClockwise
+                            );
+                        }
+
+                        return new List<ContourSegment>
+                        {
+                            segZewnetrznyX,
+                            new ContourSegment(adjustedVerticesX[1], adjustedVerticesX[2], outerSegment.Center, outerSegment.Radius, false),
+                            segWewnetrznyX,
+                            new ContourSegment(adjustedVerticesX[3], adjustedVerticesX[0], innerSegment.Center, innerSegment.Radius, true)
+                        };
+                    }
+
+                    Console.WriteLine($"🔷 Build4SegmentContour ELEMENT {numerElemntu} _stronaElementu: {_stronaElementu} - leftT1Bevel: {leftT1Bevel}, rightT1Bevel: {rightT1Bevel}, leftT2Bevel: {leftT2Bevel}, rightT2Bevel: {rightT2Bevel} leftT3Bevel: {leftT3Bevel}, rightT3Bevel: {rightT3Bevel}");
+
+                    result = new List<ContourSegment>
+                        {
+                            new ContourSegment(outerSegment.Start, outerSegment.End,
+                                outerSegment.Center, outerSegment.Radius, false)
+                        };
 
                     // ---------- Prawa strona ----------
                     if (rightT1Bevel)
@@ -2036,8 +2125,9 @@ namespace GEORGE.Client.Pages.Okna
                         result.Add(new ContourSegment(outerSegment.End, bevel));
                         result.Add(new ContourSegment(bevel, innerSegment.End));
                     }
-                    else if (rightT3Bevel)
+                    else if (rightT2Bevel)
                     {
+                        // T2: pozostaje bez zmian (szukamy wewnętrznego łuku)
                         var innerArc = FindArcBetweenPoints(innerContour, outerSegment.End, outerSegment.End, 0.1);
                         if (innerArc != null && innerArc.Center.HasValue)
                         {
@@ -2048,6 +2138,34 @@ namespace GEORGE.Client.Pages.Okna
                         }
                         else
                         {
+                            result.Add(new ContourSegment(outerSegment.End, innerSegment.End));
+                        }
+                    }
+                    else if (rightT3Bevel)
+                    {
+                        var (pointOnOuter, segment) = FindIntersectionWithOuterContour(
+                            outerSegment.End,
+                            innerSegment.End,
+                            outerContour,
+                            true); // szukamy w górę
+
+                        Console.WriteLine($"🔷🔷🔷🔷 Build4SegmentContour ELEMENT {numerElemntu} _stronaElementu: {_stronaElementu} - rightT3Bevel: {rightT3Bevel} pointOnOuter: ({pointOnOuter.X:F2},{pointOnOuter.Y:F2}) segment: {(segment != null ? "found" : "not found")}");
+
+                        if (segment != null)
+                        {
+                            // Znaleziono łuk – używamy go jako ścięcia
+                            result.Add(new ContourSegment(pointOnOuter, outerSegment.End));
+                            result.Add(new ContourSegment(outerSegment.End, innerSegment.End));
+                        }
+                        else if (Distance(pointOnOuter, outerSegment.End) > 0.1 && pointOnOuter.Y < outerSegment.End.Y)
+                        {
+                            // Punkt na outerContour (linia)
+                            result.Add(new ContourSegment(pointOnOuter, outerSegment.End));
+                            result.Add(new ContourSegment(outerSegment.End, innerSegment.End));
+                        }
+                        else
+                        {
+                            // Fallback – bezpośrednie połączenie
                             result.Add(new ContourSegment(outerSegment.End, innerSegment.End));
                         }
                     }
@@ -2066,8 +2184,9 @@ namespace GEORGE.Client.Pages.Okna
                         result.Add(new ContourSegment(innerSegment.Start, bevel));
                         result.Add(new ContourSegment(bevel, outerSegment.Start));
                     }
-                    else if (leftT3Bevel)
+                    else if (leftT2Bevel)
                     {
+                        // T2: pozostaje bez zmian
                         var innerArc = FindArcBetweenPoints(innerContour, outerSegment.Start, outerSegment.Start, 0.1);
                         if (innerArc != null && innerArc.Center.HasValue)
                         {
@@ -2081,13 +2200,42 @@ namespace GEORGE.Client.Pages.Okna
                             result.Add(new ContourSegment(innerSegment.Start, outerSegment.Start));
                         }
                     }
+                    else if (leftT3Bevel)
+                    {
+                        // T3: przedłużamy lewy pionowy element do outerContour
+                        var (pointOnOuter, segment) = FindIntersectionWithOuterContour(
+                            outerSegment.Start,
+                            innerSegment.Start,
+                            outerContour,
+                            true);
+
+                        if (segment != null)
+                        {
+                            result.Add(new ContourSegment(innerSegment.Start, pointOnOuter));
+                            result.Add(new ContourSegment(pointOnOuter, outerSegment.Start));
+                        }
+                        else if (Distance(pointOnOuter, outerSegment.Start) > 0.1 && pointOnOuter.Y < outerSegment.Start.Y)
+                        {
+                            result.Add(new ContourSegment(innerSegment.Start, pointOnOuter));
+                            result.Add(new ContourSegment(pointOnOuter, outerSegment.Start));
+                        }
+                        else
+                        {
+                            result.Add(new ContourSegment(innerSegment.Start, outerSegment.Start));
+                        }
+                    }
                     else
                     {
                         result.Add(new ContourSegment(innerSegment.Start, outerSegment.Start));
                     }
 
+                    Console.WriteLine($"🔷 Build4SegmentContour ELEMENT {numerElemntu} _stronaElementu: {_stronaElementu} - PRZYPADEK 001)");
+
                     return result;
                 }
+
+
+
             }
 
             // ============================================================
@@ -2098,7 +2246,7 @@ namespace GEORGE.Client.Pages.Okna
             // Wyjątek: gdy oba końce mają tylko linie – zwróć 4 segmenty liniowe
             if (CzyObaKonceWspolnyFragmentTylkoLinie(adjustedVertices, outerContour, innerContour, sourceIndex))
             {
-                Console.WriteLine($"🟢 Build4SegmentContour ELEMENT {numerElemntu}: oba końce mają wspólny fragment wyłącznie LINIOWY - zwracam 4 segmenty Line.");
+                Console.WriteLine($"🟢 Build4SegmentContour ELEMENT PRZYPADEK 02 {numerElemntu}: oba końce mają wspólny fragment wyłącznie LINIOWY - zwracam 4 segmenty Line.");
                 return new List<ContourSegment>
                     {
                         new ContourSegment(adjustedVertices[0], adjustedVertices[1]),
@@ -2214,6 +2362,8 @@ namespace GEORGE.Client.Pages.Okna
                 result.Add(new ContourSegment(adjustedVertices[2], adjustedVertices[3]));
                 result.Add(new ContourSegment(adjustedVertices[3], adjustedVertices[0]));
 
+                Console.WriteLine($"🔷 Build4SegmentContour ELEMENT {numerElemntu} _stronaElementu: {_stronaElementu} - PRZYPADEK 1)");
+
                 Console.WriteLine($"   adjustedVertices[0]: ({adjustedVertices[0].X:F2}, {adjustedVertices[0].Y:F2})");
                 Console.WriteLine($"   adjustedVertices[1]: ({adjustedVertices[1].X:F2}, {adjustedVertices[1].Y:F2})");
                 Console.WriteLine($"   adjustedVertices[2]: ({adjustedVertices[2].X:F2}, {adjustedVertices[2].Y:F2})");
@@ -2250,6 +2400,8 @@ namespace GEORGE.Client.Pages.Okna
                 var outerArcSegment = outerContour[previousIndex];
                 XPoint bevel = GetT1BevelPoint(adjustedVertices[2], adjustedVertices[1], outerArcSegment, outerContour);
 
+                Console.WriteLine($"🔷 Build4SegmentContour ELEMENT {numerElemntu} _stronaElementu: {_stronaElementu} - PRZYPADEK 2: T1 z łukiem (t1AfterArc: {t1AfterArc}, t1BeforeArc: {t1BeforeArc})");
+
                 return new List<ContourSegment>
                         {
                             segZewnetrzny,
@@ -2265,6 +2417,8 @@ namespace GEORGE.Client.Pages.Okna
                 var outerArcSegment = outerContour[nextIndex];
                 XPoint bevel = GetT1BevelPoint(adjustedVertices[1], adjustedVertices[2], outerArcSegment, outerContour);
 
+                Console.WriteLine($"🔷 Build4SegmentContour ELEMENT {numerElemntu} _stronaElementu: {_stronaElementu} - PRZYPADEK 3: T1 z łukiem (t1AfterArc: {t1AfterArc}, t1BeforeArc: {t1BeforeArc})");
+
                 return new List<ContourSegment>
                         {
                             segZewnetrzny,
@@ -2274,6 +2428,8 @@ namespace GEORGE.Client.Pages.Okna
                             new ContourSegment(adjustedVertices[3], adjustedVertices[0])
                         };
             }
+
+            Console.WriteLine($"🔷 Build4SegmentContour ELEMENT {numerElemntu} _stronaElementu: {_stronaElementu} - PRZYPADEK 4: T1 z łukiem (t1AfterArc: {t1AfterArc}, t1BeforeArc: {t1BeforeArc})");
 
             // ============================================================
             // PRZYPADEK 4: Standardowy kontur 4-segmentowy
@@ -2984,7 +3140,7 @@ namespace GEORGE.Client.Pages.Okna
         /// <summary>
         /// Sprawdza czy punkt leży na łuku
         /// </summary>
-        private static bool IsPointOnArc(XPoint point, ContourSegment arc, double tolerance = 0.1)
+        private static bool IsPointOnArc(XPoint point, ContourSegment arc, double tolerance = 1)
         {
             if (arc.Center == null)
                 return false;
@@ -3021,37 +3177,148 @@ namespace GEORGE.Client.Pages.Okna
 
 
         /// <summary>
-        /// Filtruje segmenty konturu dla danej strony
+        /// Filtruje segmenty konturu dla danej strony na podstawie kąta linii
         /// </summary>
         private List<ContourSegment> GetSegmentsForSide(List<ContourSegment> contour, string strona)
         {
             if (contour == null || contour.Count == 0)
                 return contour;
 
-            // Dla konturu z 7 segmentami:
-            // Indeksy: 0-3 = górne łuki, 4 = prawa linia, 5 = dolna linia, 6 = lewa linia
+            var result = new List<ContourSegment>();
 
-            switch (strona)
+            foreach (var seg in contour)
             {
-                case "Góra":
-                    // Zwróć tylko segmenty z łukami (indeksy 0-3)
-                    return contour.Take(4).ToList();
+                // Oblicz kąt linii między Start a End
+                double dx = seg.End.X - seg.Start.X;
+                double dy = seg.End.Y - seg.Start.Y;
+                double angleRad = Math.Atan2(dy, dx);
+                double angleDeg = angleRad * 180.0 / Math.PI;
+                if (angleDeg < 0) angleDeg += 360.0;
 
-                case "Prawa":
-                    // Zwróć tylko segmenty prawej strony (indeks 4)
-                    return contour.Skip(4).Take(1).ToList();
+                // Określ stronę dla tego segmentu
+                string segmentSide = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(angleDeg);
 
-                case "Dół":
-                    // Zwróć tylko segmenty dolnej strony (indeks 5)
-                    return contour.Skip(5).Take(1).ToList();
-
-                case "Lewa":
-                    // Zwróć tylko segmenty lewej strony (indeks 6)
-                    return contour.Skip(6).Take(1).ToList();
-
-                default:
-                    return contour;
+                // Jeśli segment pasuje do żądanej strony – dodaj go
+                if (segmentSide == strona)
+                    result.Add(seg);
             }
+
+            // Jeśli nie znaleziono żadnego segmentu dla danej strony, zwróć cały kontur (fallback)
+            return result.Count > 0 ? result : contour.ToList();
+        }
+        /// <summary>
+        /// Znajduje punkt przecięcia półprostej (punkt + kierunek) z konturem.
+        /// </summary>
+        /// <param name="point">Punkt startowy</param>
+        /// <param name="angleDegrees">Kąt kierunku w stopniach (0° = w prawo, 90° = w dół)</param>
+        /// <param name="contour">Kontur (outerContour lub innerContour)</param>
+        /// <param name="goForward">true = szukamy w kierunku kąta, false = przeciwnie</param>
+        /// <param name="maxDistance">Maksymalna odległość szukania</param>
+        /// <returns>Punkt na konturze lub oryginalny, jeśli nie znaleziono</returns>
+        private XPoint FindIntersectionWithContourByAngle(
+            XPoint point,
+            double angleDegrees,
+            List<ContourSegment> contour,
+            bool goForward = true,
+            double maxDistance = 1000.0)
+        {
+            if (contour == null || contour.Count == 0)
+                return point;
+
+            // Konwersja kąta na radiany i wektor kierunkowy
+            double angleRad = angleDegrees * Math.PI / 180.0;
+            double dx = Math.Cos(angleRad);
+            double dy = Math.Sin(angleRad);
+
+            if (!goForward)
+            {
+                dx = -dx;
+                dy = -dy;
+            }
+
+            // Przedłużenie punktu w zadanym kierunku
+            XPoint extendedPoint = new XPoint(
+                point.X + dx * maxDistance,
+                point.Y + dy * maxDistance
+            );
+
+            // Znajdź przecięcie z konturem (używamy istniejącej funkcji)
+            XPoint intersection = FindIntersectionWithContourT1i3(point, extendedPoint, contour);
+
+            // Sprawdź, czy przecięcie jest w odpowiednim kierunku
+            double dot = (intersection.X - point.X) * dx + (intersection.Y - point.Y) * dy;
+            if (dot > 0.1 && Distance(point, intersection) > 0.1 && Distance(point, intersection) < maxDistance)
+            {
+                return intersection;
+            }
+
+            // Jeśli nie znaleziono przecięcia, spróbuj znaleźć najbliższy punkt na konturze
+            return FindClosestPointOnContour(point, contour);
+        }
+
+        /// <summary>
+        /// Znajduje najbliższy punkt na konturze (dla przypadku, gdy nie ma przecięcia).
+        /// </summary>
+        private XPoint FindClosestPointOnContour(XPoint point, List<ContourSegment> contour)
+        {
+            if (contour == null || contour.Count == 0)
+                return point;
+
+            XPoint bestPoint = point;
+            double minDist = double.MaxValue;
+
+            foreach (var seg in contour)
+            {
+                if (seg.Type == SegmentType.Arc && seg.Center != null)
+                {
+                    // Dla łuku – rzutuj punkt na okrąg
+                    double dx = point.X - seg.Center.Value.X;
+                    double dy = point.Y - seg.Center.Value.Y;
+                    double dist = Math.Sqrt(dx * dx + dy * dy);
+                    if (dist > 0.01)
+                    {
+                        XPoint candidate = new XPoint(
+                            seg.Center.Value.X + seg.Radius * (dx / dist),
+                            seg.Center.Value.Y + seg.Radius * (dy / dist)
+                        );
+                        double d = Distance(point, candidate);
+                        if (d < minDist)
+                        {
+                            minDist = d;
+                            bestPoint = candidate;
+                        }
+                    }
+                }
+                else if (seg.Type == SegmentType.Line)
+                {
+                    // Dla linii – rzutuj punkt na odcinek
+                    XPoint candidate = ProjectPointOnSegment(point, seg.Start, seg.End);
+                    double d = Distance(point, candidate);
+                    if (d < minDist)
+                    {
+                        minDist = d;
+                        bestPoint = candidate;
+                    }
+                }
+            }
+
+            return bestPoint;
+        }
+
+        /// <summary>
+        /// Rzutuje punkt na odcinek.
+        /// </summary>
+        private XPoint ProjectPointOnSegment(XPoint point, XPoint a, XPoint b)
+        {
+            double dx = b.X - a.X;
+            double dy = b.Y - a.Y;
+            double lenSq = dx * dx + dy * dy;
+            if (lenSq < 0.0001) return a;
+
+            double t = ((point.X - a.X) * dx + (point.Y - a.Y) * dy) / lenSq;
+            t = Math.Max(0, Math.Min(1, t));
+
+            return new XPoint(a.X + t * dx, a.Y + t * dy);
         }
 
         private ContourSegment BuildSegmentWithArc(
@@ -3059,7 +3326,7 @@ namespace GEORGE.Client.Pages.Okna
             XPoint end,
             List<ContourSegment> contourToSearch)
         {
-            const double tolerance = 0.1;
+            const double tolerance = 5;
             var arc = FindArcBetweenPoints(contourToSearch, start, end, tolerance);
             if (arc == null || !arc.Center.HasValue)
                 return new ContourSegment(start, end);
@@ -3127,21 +3394,21 @@ namespace GEORGE.Client.Pages.Okna
         }
 
 
-        /// <summary>
-        /// Znajduje łuk między dwoma punktami w konturze - ZWIĘKSZONA TOLERANCJA
-        /// </summary>
-        private ContourSegment? FindArcBetweenPoints(List<ContourSegment> contour, XPoint p1, XPoint p2, double tolerance = 0.1)
+        private ContourSegment FindArcBetweenPoints(
+         List<ContourSegment> contour,
+         XPoint point1,
+         XPoint point2,
+         double tolerance = 1.0) // domyślnie 1.0
         {
             foreach (var seg in contour)
             {
                 if (seg.Type != SegmentType.Arc || !seg.Center.HasValue)
                     continue;
-                if (IsPointOnArc(p1, seg, tolerance) && IsPointOnArc(p2, seg, tolerance))
+                if (IsPointOnArc(point1, seg, tolerance) && IsPointOnArc(point2, seg, tolerance))
                     return seg;
             }
             return null;
         }
-
 
         // Odległość między dwoma punktami
         private static double Distance(XPoint a, XPoint b)
