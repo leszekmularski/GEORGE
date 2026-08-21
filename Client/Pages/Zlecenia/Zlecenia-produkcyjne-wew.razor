@@ -2046,6 +2046,10 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
             {
                 plik.IloscPobranPliku = plik.IloscPobranPliku + 1;
                 plik.DataOstatniegoPobrania = DateTime.Now;
+                if (plik.DataPierwszegoPobrania == DateTime.MinValue)
+                {
+                    plik.DataPierwszegoPobrania = DateTime.Now;
+                }
             }
         }
         else
