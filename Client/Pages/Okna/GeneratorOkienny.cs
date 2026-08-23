@@ -2390,7 +2390,7 @@ namespace GEORGE.Client.Pages.Okna
                     if (rightJoin == "T1" && outerContour.Count() > 3)
                         adjustedVerticesX[2] = FindIntersectionWithContourByAngle(adjustedVerticesX[2], angleDegrees, innerContour);
 
-                    if (rightJoin == "T3")
+                    if (rightJoin == "T3" && outerContour.Count() > 3)
                         adjustedVerticesX[2] = FindIntersectionWithContourByAngle(adjustedVerticesX[2], angleDegrees, outerContour);
 
                     // Segmenty zewnętrzny i wewnętrzny – już poprawne
@@ -3961,6 +3961,7 @@ namespace GEORGE.Client.Pages.Okna
             bool czyParzysta = (nk + 1) % 2 == 0;
 
             string prevSide = StronaOknaHelper.OkreslStrone(prevangleDegrees, next, _outer);
+            string nextSide = StronaOknaHelper.OkreslStrone(nextangleDegrees, next, _outer);
 
             // ============================================================
             // GÓRA / DÓŁ
@@ -3975,6 +3976,12 @@ namespace GEORGE.Client.Pages.Okna
                 stronaWModelu == "Dół";
 
             if (stronaWModelu == "Prawa" && prevSide == "Lewa")
+            {
+                poziomy = false;
+                czyParzysta = false;
+            }
+            //23-08-2026
+            if(nextSide == "Góra" && stronaWModelu == "Dół" || nextSide == "Dół" && stronaWModelu == "Góra")
             {
                 poziomy = false;
                 czyParzysta = false;
