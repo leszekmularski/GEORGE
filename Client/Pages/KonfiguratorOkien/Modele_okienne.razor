@@ -3179,11 +3179,44 @@
             return;
         }
 
+        Console.Clear();
+
+        Console.WriteLine($"✅ Znaleziono kształt w regionie {region.Id}: {shape.GetType().Name} ID: {shape.ID} shape.Points.Count: {shape.Points.Count()}");
+
+        if (SelectedModelType == "Słupek stały")
+        {
+            if (WybranyModel.Typ != "Słupek stały")
+            {
+                await _message.Warning($"❌ Wybrany model ({WybranyModel.Typ}) nie pasuje do typu regionu ({SelectedModelType}).", 1.5);
+                return;
+            }
+            else
+            {
+                if(shape.Points.Count() > 0)
+                {
+                    var match = ObliczWierzcholkiSlupkaStalego(shape.Points, modelX, modelY);
+                    var katLinii = ObliczKatLinii(match.Wierzcholki);
+                    katLinii %= 180; // normalizacja do [0,180), bo linia nie ma kierunku
+                    if(katLinii < 0) katLinii += 360;
+                    if(katLinii > 360) katLinii -= 360;
+                    if(katLinii < WybranyModel.KatWystapieniaZakresOdMin || katLinii > WybranyModel.KatWystapieniaZakresOdMax)
+                    {
+                        await _message.Warning($"❌ Wybrany model ({WybranyModel.Typ}) nie pasuje do kąta linii regionu ({katLinii:F2}°). Oczekiwany kąt: {WybranyModel.KatWystapieniaZakresOdMin:F2}° <-> {WybranyModel.KatWystapieniaZakresOdMax:F2}°.", 6.5);
+                        return;                        
+                    }
+                }
+
+            }
+        }
+
+
         _czekajNaZaladowanie = true;
 
         await FitToCanvas(shape, region.Id, false, region.Wierzcholki, modelX, modelY);
 
         WybranyModel = null;
+
+        await Task.Yield();
 
         // Resetuj kursor JS
         await JS.InvokeVoidAsync("ResetCursorGlobal");

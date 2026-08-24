@@ -1196,7 +1196,7 @@ namespace GEORGE.Client.Pages.Okna
                                 angleNext,
                                 StronaElementu,
                                 stonaOstanioDodanegoElementu,
-                                i, next);
+                                i, next, prev);
 
                             var _anglePrev = anglePrev;
 
@@ -1214,7 +1214,7 @@ namespace GEORGE.Client.Pages.Okna
                                 angleNext,
                                 StronaElementu,
                                 stonaOstanioDodanegoElementu,
-                                i, next
+                                i, next, prev
                                 );
 
                             wierzcholki = new List<XPoint>
@@ -1415,7 +1415,7 @@ namespace GEORGE.Client.Pages.Okna
                                 angleNext,
                                 StronaElementu,
                                 stonaOstanioDodanegoElementu,
-                                i, next);
+                                i, next, prev);
 
                             var _anglePrev = anglePrev;
 
@@ -1433,7 +1433,7 @@ namespace GEORGE.Client.Pages.Okna
                                 angleNext,
                                 StronaElementu,
                                 stonaOstanioDodanegoElementu,
-                                i, next
+                                i, next, prev
                                 );
 
                             wierzcholki = new List<XPoint>
@@ -1607,7 +1607,7 @@ namespace GEORGE.Client.Pages.Okna
                             angleNext,
                             StronaElementu,
                             stonaOstanioDodanegoElementu,
-                            i, next);
+                            i, next, prev);
 
                         int nextTriangle = (i + 1) % vertexCount;
 
@@ -1620,7 +1620,7 @@ namespace GEORGE.Client.Pages.Okna
                             angleNext,
                             StronaElementu,
                             stonaOstanioDodanegoElementu,
-                            i, next);
+                            i, next, prev);
 
                         wierzcholki = new List<XPoint>
                         {
@@ -1687,7 +1687,8 @@ namespace GEORGE.Client.Pages.Okna
                                        angleNext,
                                        StronaElementu,
                                        stonaOstanioDodanegoElementu,
-                                       i);
+                                       i,
+                                       next, prev);
 
                         List<XPoint> getEndT3;
 
@@ -1707,7 +1708,7 @@ namespace GEORGE.Client.Pages.Okna
                             angleNext,
                             StronaElementu,
                             stonaOstanioDodanegoElementu,
-                            i);
+                            i, next, prev);
 
                         wierzcholki = new List<XPoint>
                             {
@@ -1933,7 +1934,7 @@ namespace GEORGE.Client.Pages.Okna
                             angleNext,
                             StronaElementu,
                             stonaOstanioDodanegoElementu,
-                             i, next);
+                             i, next, prev);
 
                         wierzcholki = new List<XPoint> {
                             getStartT2[1], getEndT2[1], getEndT1[0], getStartT2[0]
@@ -1980,7 +1981,7 @@ namespace GEORGE.Client.Pages.Okna
                             angleNext,
                             StronaElementu,
                             stonaOstanioDodanegoElementu,
-                            i, next);
+                            i, next, prev);
 
                         wierzcholki = new List<XPoint> {
                             getStartT1[1], getEndT2[1], getEndT2[0], getStartT1[0]
@@ -2074,7 +2075,7 @@ namespace GEORGE.Client.Pages.Okna
                             angleNext,
                             StronaElementu,
                             stonaOstanioDodanegoElementu,
-                            i, next);
+                            i, next, prev);
                     }
                     else
                     {
@@ -3954,13 +3955,14 @@ namespace GEORGE.Client.Pages.Okna
         string stronaWModelu,
         string stonaOstanioDodanegoElementu,
         int nk,
-        int next)
+        int next,
+        int prev)
         {
             List<XPoint> intersections = new List<XPoint>();
 
             bool czyParzysta = (nk + 1) % 2 == 0;
 
-            string prevSide = StronaOknaHelper.OkreslStrone(prevangleDegrees, next, _outer);
+            string prevSide = StronaOknaHelper.OkreslStrone(prevangleDegrees, prev, _outer);
             string nextSide = StronaOknaHelper.OkreslStrone(nextangleDegrees, next, _outer);
 
             // ============================================================
@@ -3980,8 +3982,20 @@ namespace GEORGE.Client.Pages.Okna
                 poziomy = false;
                 czyParzysta = false;
             }
-            //23-08-2026
-            if(nextSide == "Góra" && stronaWModelu == "Dół" || nextSide == "Dół" && stronaWModelu == "Góra")
+
+            if (stronaWModelu == "Prawa" && prevSide == "Góra")
+            {
+                poziomy = false;
+                czyParzysta = false;
+            }
+
+            if ((nextSide == "Góra" || prevSide == "Góra") && stronaWModelu == "Dół")
+            {
+                poziomy = true;
+                czyParzysta = false;
+            }
+
+            if ((nextSide == "Dół" || prevSide == "Dół") && stronaWModelu == "Góra")
             {
                 poziomy = false;
                 czyParzysta = false;
@@ -4070,11 +4084,13 @@ namespace GEORGE.Client.Pages.Okna
         string stronaWModelu,
         string stonaOstanioDodanegoElementu,
         int nk,
-        int next)
+        int next,
+        int prev)
         {
             List<XPoint> intersections = new List<XPoint>();
 
             string nextSide = StronaOknaHelper.OkreslStrone(nextangleDegrees, next, _outer);
+            string prevSide = StronaOknaHelper.OkreslStrone(prevangleDegrees, prev, _outer);
 
             bool czyParzysta = (nk + 1) % 2 == 0;
             czyParzysta = false;
@@ -4084,10 +4100,33 @@ namespace GEORGE.Client.Pages.Okna
                 stronaWModelu == "Dół";
 
             if (stronaWModelu == "Góra" && nextSide == "Dół")
+            {
                 poziome = true;
+                czyParzysta = false;
+            }
+
 
             if (stronaWModelu == "Lewa" && nextSide == "Prawa" && nextangleDegrees < 180.0)
                 poziome = true;
+
+            if (stronaWModelu == "Lewa" && nextSide == "Góra")
+            {
+                poziome = false;
+                czyParzysta = true;
+            }
+
+            if (stronaWModelu == "Góra" && nextSide == "Prawa")
+            {
+                poziome = false;
+                czyParzysta = true;
+            }
+
+            if (stronaWModelu == "Góra" && prevSide == "Dół")
+            {
+                poziome = true;
+                czyParzysta = false;
+            }
+
 
             //Console.WriteLine(
             //    $"🔺 GetEndT1Triangle " +
@@ -4463,80 +4502,306 @@ namespace GEORGE.Client.Pages.Okna
         }
 
 
-        private List<XPoint> GetStartT3Triangle(XPoint _innerP, XPoint _outerP, List<XPoint> _outer, float angleDegrees,
-             float prevangleDegrees, float nextangleDegrees, string stronaWModelu,
-             string stonaOstanioDodanegoElementu, int nk)
+        private List<XPoint> GetStartT3Triangle(
+        XPoint _innerP,
+        XPoint _outerP,
+        List<XPoint> _outer,
+        float angleDegrees,
+        float prevangleDegrees,
+        float nextangleDegrees,
+        string stronaWModelu,
+        string stonaOstanioDodanegoElementu,
+        int nk,
+        int next,
+        int prev)
         {
             List<XPoint> intersections = new List<XPoint>();
 
             bool czyParzysta = (nk + 1) % 2 == 0;
 
-            bool warunek = false;
+            string prevSide = StronaOknaHelper.OkreslStrone(
+                prevangleDegrees,
+                prev,
+                _outer);
 
-            warunek = czyParzysta;
+            string nextSide = StronaOknaHelper.OkreslStrone(
+                nextangleDegrees,
+                next,
+                _outer);
 
-            warunek = !(stronaWModelu == "Lewa" || stronaWModelu == "Prawa");
-    
-            if (warunek)
+            // ============================================================
+            // T3
+            //
+            // W T3 DŁUŻSZE SĄ ELEMENTY PIONOWE:
+            //
+            //      LEWA       PRAWA
+            //        │          │
+            //        │          │
+            //        │          │
+            //
+            // Natomiast GÓRA / DÓŁ pozostają elementami krótszymi,
+            // znajdującymi się wewnątrz.
+            // ============================================================
+
+            bool pionowe =
+                stronaWModelu == "Lewa" ||
+                stronaWModelu == "Prawa";
+
+            // ============================================================
+            // Specjalne przypadki narożników
+            //
+            // Zachowujemy analogię do GetStartT1Triangle(),
+            // ale odwracamy kierunek logiki.
+            // ============================================================
+
+            if (stronaWModelu == "Góra" && prevSide == "Lewa")
             {
-                var startT1 = FindFirstEdgeIntersectionByAngle(_innerP, prevangleDegrees, _outer);
+                pionowe = false;
+                czyParzysta = false;
+            }
 
-                XPoint p1 = _innerP;
-                XPoint p2 = startT1;
-                intersections.Add(new XPoint(p1.X, p1.Y));
-                intersections.Add(new XPoint(p2.X, p2.Y));
+            if (stronaWModelu == "Dół" && prevSide == "Lewa")
+            {
+                pionowe = false;
+                czyParzysta = false;
+            }
+
+            if (stronaWModelu == "Góra" && prevSide == "Dół")
+            {
+                pionowe = false;
+                czyParzysta = true;
+            }
+
+            if (stronaWModelu == "Góra" && nextSide == "Góra")
+            {
+                czyParzysta = true;
+            }
+
+            // ============================================================
+            // LEWA / PRAWA
+            //
+            // W T3 to właśnie te elementy mają być DŁUŻSZE.
+            //
+            // Dlatego ich końce dochodzą do zewnętrznego konturu.
+            // ============================================================
+
+            if (pionowe)
+            {
+                // --------------------------------------------------------
+                // Punkt wewnętrzny -> szukamy przecięcia z outerContour
+                //
+                // Dla pionowego elementu kierunek wyznaczamy na podstawie
+                // kąta elementu.
+                // --------------------------------------------------------
+
+                XPoint startT3 = FindTriangleEdgeIntersectionByAngle(
+                    _innerP,
+                    angleDegrees - 180.0,
+                    _outer);
+
+                intersections.Add(new XPoint(
+                    startT3.X,
+                    startT3.Y));
+
+                // Drugi koniec już znajduje się na zewnętrznym konturze.
+                intersections.Add(new XPoint(
+                    _outerP.X,
+                    _outerP.Y));
+
+                return intersections;
+            }
+
+            // ============================================================
+            // GÓRA / DÓŁ
+            //
+            // W T3 są to elementy KRÓTSZE.
+            //
+            // Nie wydłużamy ich do zewnętrznego konturu tak jak
+            // elementów Lewa/Prawa.
+            // ============================================================
+
+            if (czyParzysta)
+            {
+                XPoint startT3 =
+                    FindTriangleEdgeIntersectionByAngle(
+                        _innerP,
+                        angleDegrees - 180.0,
+                        _outer);
+
+                intersections.Add(new XPoint(
+                    startT3.X,
+                    startT3.Y));
+
+                intersections.Add(new XPoint(
+                    _outerP.X,
+                    _outerP.Y));
             }
             else
             {
-                var startT1 = FindFirstEdgeIntersectionByAngle(_innerP, angleDegrees - 180, _outer);
+                XPoint startT3 =
+                    FindTriangleEdgeIntersectionByAngle(
+                        _innerP,
+                        prevangleDegrees,
+                        _outer);
 
-                XPoint p1 = startT1;
-                XPoint p2 = _outerP;
+                intersections.Add(new XPoint(
+                    _innerP.X,
+                    _innerP.Y));
 
-                intersections.Add(new XPoint(p1.X, p1.Y));
-                intersections.Add(new XPoint(p2.X, p2.Y));
+                intersections.Add(new XPoint(
+                    startT3.X,
+                    startT3.Y));
             }
 
             return intersections;
         }
-        private List<XPoint> GetEndT3Triangle(XPoint _innerP, XPoint _outerP, List<XPoint> _outer, float angleDegrees, float prevangleDegrees,
-            float nextangleDegrees, string stronaWModelu,
-            string stonaOstanioDodanegoElementu, int nk)
+
+        private List<XPoint> GetEndT3Triangle(
+         XPoint _innerP,
+         XPoint _outerP,
+         List<XPoint> _outer,
+         float angleDegrees,
+         float prevangleDegrees,
+         float nextangleDegrees,
+         string stronaWModelu,
+         string stonaOstanioDodanegoElementu,
+         int nk,
+         int next,
+        int prev)
         {
             List<XPoint> intersections = new List<XPoint>();
 
+            string nextSide = StronaOknaHelper.OkreslStrone(
+                nextangleDegrees,
+                next,
+                _outer);
+
             bool czyParzysta = (nk + 1) % 2 == 0;
 
-            bool warunek = false;
- 
-            warunek = czyParzysta;
+            // Tak jak w GetEndT1Triangle:
+            // obecnie logika parzystości jest wymuszona na false.
+            czyParzysta = false;
 
-            warunek = !(stronaWModelu == "Prawa");
+            // ============================================================
+            // T3
+            //
+            // W T3 DŁUŻSZE SĄ ELEMENTY PIONOWE:
+            //
+            //      LEWA       PRAWA
+            //        |          |
+            //        |          |
+            //        |          |
+            //
+            // GÓRA / DÓŁ są krótsze.
+            // ============================================================
 
-            if (warunek)
+            bool pionowe =
+                stronaWModelu == "Lewa" ||
+                stronaWModelu == "Prawa";
+
+            // ============================================================
+            // Dodatkowe wyjątki zachowane analogicznie do T1
+            // ============================================================
+
+            if (stronaWModelu == "Góra" &&
+                nextSide == "Dół")
             {
-                var startT1 = FindFirstEdgeIntersectionByAngle(_innerP, nextangleDegrees - 180, _outer);
+                pionowe = false;
+                czyParzysta = true;
+            }
 
-                XPoint p1 = _innerP;
-                XPoint p2 = startT1;
-                intersections.Add(new XPoint(p1.X, p1.Y));
-                intersections.Add(new XPoint(p2.X, p2.Y));
+            if (stronaWModelu == "Lewa" &&
+                nextSide == "Prawa" &&
+                nextangleDegrees < 180.0)
+            {
+                pionowe = true;
+            }
+
+
+            //Console.WriteLine(
+            //    $"🔺 GetEndT3Triangle " +
+            //    $"strona={stronaWModelu} " +
+            //    $"nk={nk} " +
+            //    $"nextSide={nextSide} " +
+            //    $"warunek={czyParzysta} " +
+            //    $"pionowe={pionowe}");
+
+            // ============================================================
+            // LEWA / PRAWA
+            //
+            // T3 -> ZAWSZE DŁUŻSZE
+            //
+            // Koniec elementu musi dojść do OUTER CONTOUR.
+            // ============================================================
+
+            if (pionowe)
+            {
+                XPoint endT3 =
+                    FindTriangleEdgeIntersectionByAngle(
+                        _innerP,
+                        angleDegrees,
+                        _outer);
+
+                intersections.Add(new XPoint(
+                    endT3.X,
+                    endT3.Y));
+
+                intersections.Add(new XPoint(
+                    _outerP.X,
+                    _outerP.Y));
+
+                Console.WriteLine(
+                    $"🔺 T3 LEWA/PRAWA END LONG " +
+                    $"P1=({endT3.X:F3},{endT3.Y:F3}) " +
+                    $"P2=({_outerP.X:F3},{_outerP.Y:F3})");
+
+                return intersections;
+            }
+
+            // ============================================================
+            // GÓRA / DÓŁ
+            //
+            // T3 -> KRÓTSZE
+            //
+            // Nie wydłużamy ich specjalnie do outerContour.
+            // Zachowujemy dotychczasową logikę drugiej gałęzi T1.
+            // ============================================================
+
+            if (czyParzysta)
+            {
+                XPoint endT3 =
+                    FindTriangleEdgeIntersectionByAngle(
+                        _innerP,
+                        angleDegrees,
+                        _outer);
+
+                intersections.Add(new XPoint(
+                    endT3.X,
+                    endT3.Y));
+
+                intersections.Add(new XPoint(
+                    _outerP.X,
+                    _outerP.Y));
             }
             else
             {
+                XPoint endT3 =
+                    FindTriangleEdgeIntersectionByAngle(
+                        _innerP,
+                        nextangleDegrees - 180.0,
+                        _outer);
 
-                var startT1 = FindFirstEdgeIntersectionByAngle(_innerP, angleDegrees, _outer);
+                intersections.Add(new XPoint(
+                    _innerP.X,
+                    _innerP.Y));
 
-                XPoint p1 = startT1;
-                XPoint p2 = _outerP;
-
-                intersections.Add(new XPoint(p1.X, p1.Y));
-                intersections.Add(new XPoint(p2.X, p2.Y));
+                intersections.Add(new XPoint(
+                    endT3.X,
+                    endT3.Y));
             }
 
             return intersections;
         }
-
 
 
         private List<XPoint> GetStartT2(XPoint _inner, XPoint _outer)

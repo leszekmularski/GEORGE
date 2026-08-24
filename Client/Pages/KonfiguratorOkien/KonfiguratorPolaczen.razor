@@ -723,15 +723,34 @@
                 if (konfSystem == null)
                     throw new InvalidOperationException("Konfiguracja systemu jest null");
 
+                byte[] imageBytes  = null;
+
                 // Wywołaj metodę
-                byte[] imageBytes = await imageGenerator.GenerateImageAsync(
-                    konfSystem,
-                    EdytowanyModel.PolaczenieNaroza,
-                    500,
-                    500,
-                    imageUrl,
-                    "#ADD8E6"
-                );
+                try
+                {
+                    imageBytes = await imageGenerator.GenerateImageAsync(
+                        konfSystem,
+                        EdytowanyModel.PolaczenieNaroza,
+                        500,
+                        500,
+                        imageUrl,
+                        "#ADD8E6");
+
+                    // Tutaj użyj imageBytes
+                    // np. zapisz do pliku, wyświetl, itp.
+                }
+                catch (ArgumentException ex)
+                {
+                    // Obsługa błędów walidacji (np. pusta lista)
+                    Console.WriteLine($"Błąd walidacji: {ex.Message}");
+                    // Możesz pokazać komunikat użytkownikowi
+                }
+                catch (Exception ex)
+                {
+                    // Obsługa innych błędów
+                    Console.WriteLine($"Nieoczekiwany błąd: {ex.Message}");
+                    // Logowanie błędu
+                }
                 // byte[] imageBytes = await imageGenerator.GenerateImageAsync(PowiazanyModel.KonfSystem ?? KonfiguracjeSystemu, EdytowanyModel.PolaczenieNaroza, 500, 500, imageUrl, "#ADD8E6");
                 //byte[] imageBytes = await imageGenerator.GenerateImageAsync(imageUrl);
 

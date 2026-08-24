@@ -872,34 +872,28 @@
             console.log("✅ Zresetowano całkowicie pozycję SVG");
         }
 
-            function flipVerticalSvg() {
+        function flipVerticalSvg() {
             console.log("🪞 Stosuję odbicie lustrzane w pionie...");
 
             const group = document.getElementById("rotate-group");
             if (!group) return;
 
-            // Pobierz aktualny bounding box
             const bbox = group.getBBox();
             const centerY = bbox.y + bbox.height / 2;
 
-            // Pobierz aktualną transformację
             let currentTransform = group.getAttribute("transform") || "";
 
-            // Sprawdź czy już istnieje odbicie
             const hasFlip = currentTransform.includes("scale(1, -1)");
 
             if (hasFlip) {
-                // Usuń odbicie - przywróć oryginał
                 currentTransform = currentTransform
                     .replace(/scale\(1, -1\)\s*translate\(0, [-\d.]+\)/, "")
                     .trim();
+
                 group.setAttribute("transform", currentTransform);
-                console.log("✅ Usunięto odbicie lustrzane");
             } else {
-                // Dodaj nowe odbicie
                 const flipTransform = `scale(1, -1) translate(0, ${-2 * centerY})`;
                 group.setAttribute("transform", `${currentTransform} ${flipTransform}`);
-                console.log(`✅ Dodano odbicie względem osi Y=${centerY}`);
             }
 
             updateGuideValues();
@@ -1049,7 +1043,7 @@
                     <div style="font-size:48px;">📂</div>
                     <h4 class="text-secondary mt-2">Wybierz system z listy</h4>
                     <p class="text-muted mb-0">
-                       Wybierz z listy lub dodaj pierwszy system, aby rozpocząć pracę.
+                        Wybierz z listy lub dodaj pierwszy system, aby rozpocząć pracę.
                     </p>
                 </div>
             }
@@ -1166,8 +1160,8 @@
                 <hr class="my-4" />
 
                 <h5 class="mb-3">📏 Linie opisujące gabaryty profila</h5>
-               
-                  <!-- GABARYT -->
+
+                <!-- GABARYT -->
                 <div class="card border-primary mb-4">
                     <div class="card-header bg-primary text-white">
                         <strong>📐 Główne linie gabarytowe</strong>
@@ -1222,7 +1216,7 @@
 
                             <div class="col-md-4">
                                 <label class="form-label">Odsunięcie szyby</label>
-                             
+
                                 @if (@konfSystem.CzyMozeBycFix)
                                 {
                                     <input type="number" class="form-control"
@@ -1288,7 +1282,7 @@
                                            @bind="@konfSystem.PoziomLiniaSzkla" style="background-color: maroon ; color: #ffe6e6;" title="Wartość pominięta w obliczeniach" />
                                 </div>
                             }
-                         
+
 
                             <div class="col-md-4">
                                 <label class="form-label">Linia okuć</label>
