@@ -20,22 +20,22 @@
 
 <style>
     .image-select {
-    width: 200px;
-    font-size: 16px;
-    padding: 5px;
+        width: 200px;
+        font-size: 16px;
+        padding: 5px;
     }
 
     .preview {
-    margin-top: 10px;
-    text-align: center;
+        margin-top: 10px;
+        text-align: center;
     }
 
-    .preview img {
-    width: 80px;
-    height: auto;
-    border-radius: 5px;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-    }
+        .preview img {
+            width: 80px;
+            height: auto;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+        }
 </style>
 
 <div class="d-flex justify-content-between align-items-center mt-3">
@@ -112,7 +112,7 @@
                             <button class="btn btn-danger btn-sm me-2" @onclick="() => Usun(model.Id)">
                                 <i class="fas fa-trash-alt"></i> Usuń
                             </button>
-    @*                         <button class="btn btn-info btn-sm" @onclick="() => PokazPowiazane(model.RowId.ToString(), model.NazwaKonfiguracji)">
+                            @*                         <button class="btn btn-info btn-sm" @onclick="() => PokazPowiazane(model.RowId.ToString(), model.NazwaKonfiguracji)">
                                 <Tooltip Placement="Placement.Bottom" Title="Kliknij aby pokazać wszytkie lub wybrane">
                                     <i class="fas fa-eye"></i> 🛠️ @(PokazanyModelRowId == model.RowId.ToString() ? $"Powiązane : {WybralesElement}" : "Pokaż wszystkie")
                                 </Tooltip>
@@ -141,11 +141,11 @@
             <div class="mb-3">
                 <label class="form-label">Typ profilu</label>
                 <Select required Mode="SelectMode.Default"
-                DataSource="@_typ"
-                @bind-Value="EdytowanyModel.Typ"
-                LabelName="@nameof(Typ.Nazwa)"
-                ValueName="@nameof(Typ.Nazwa)"
-                Class="form-select">
+                        DataSource="@_typ"
+                        @bind-Value="EdytowanyModel.Typ"
+                        LabelName="@nameof(Typ.Nazwa)"
+                        ValueName="@nameof(Typ.Nazwa)"
+                        Class="form-select">
                 </Select>
             </div>
             <div class="row">
@@ -205,7 +205,7 @@
                     <div class="col-md-6 d-flex flex-column align-items-center justify-content-center">
                         <label class="form-label">Połączenie Naroży 1:</label>
                         <div class="preview" @onclick="() => ChangeImage(1)">
-                            <img src="@SelectedImage1.ImageUrl" alt="@SelectedImage1.Name" class="img-fluid img-thumbnail shadow" title="Kąt: 0° lewy górny"/>
+                            <img src="@SelectedImage1.ImageUrl" alt="@SelectedImage1.Name" class="img-fluid img-thumbnail shadow" title="Kąt: 0° lewy górny" />
                             <p class="text-center">Wybrałeś: @SelectedImage1.Name</p>
                         </div>
                     </div>
@@ -243,7 +243,7 @@
             <div class="mt-3">
                 <div>
                     <label class="form-label">Łączenie elementów (dotyczy wyłącznie wersja typu T1 lub T3):</label>
-                    <br/>
+                    <br />
                     <Checkbox @bind-Value="EdytowanyModel.SposobLaczeniaCzop">Elementy łączone za pomocą czopa</Checkbox>
                     <br />
                     <Checkbox @bind-Value="EdytowanyModel.WidocznaNaLiscie">Czy model ma być widoczny na liście wyboru</Checkbox>
@@ -268,7 +268,7 @@
 
         </EditForm>
 
-        <br/>
+        <br />
     }
 
     @*     <h4>🛠️ Powiązania elementów</h4>
@@ -319,9 +319,8 @@
                                 }
                             </td>
                             <td>
-                                 <Checkbox 
-                                    @bind-Value="konf.CzyWybrany" 
-                                    @bind-Value:after="() => OnChangeCzyWybrany(konf.CzyWybrany, konf)">
+                                <Checkbox @bind-Value="konf.CzyWybrany"
+                                          @bind-Value:after="() => OnChangeCzyWybrany(konf.CzyWybrany, konf)">
                                     Połącz element z konfiguracją
                                 </Checkbox>
                             </td>
@@ -348,9 +347,8 @@
                                 }
                             </td>
                             <td>
-                                <Checkbox 
-                                    @bind-Value="konf.CzyWybrany" 
-                                    @bind-Value:after="() => OnChangeCzyWybrany(konf.CzyWybrany, konf)">
+                                <Checkbox @bind-Value="konf.CzyWybrany"
+                                          @bind-Value:after="() => OnChangeCzyWybrany(konf.CzyWybrany, konf)">
                                     Połącz element z konfiguracją
                                 </Checkbox>
                             </td>
@@ -415,7 +413,7 @@
         Console.WriteLine($"Wybrano system o ID: {SelectedSystemId}");
 
         if (string.IsNullOrEmpty(SelectedSystemId))
-        { 
+        {
             PowiazanyModel = null;
 
             if (KonfiguracjeSystemu != null) KonfiguracjeSystemu.Clear();
@@ -489,12 +487,12 @@
         if (string.IsNullOrEmpty(SelectedSystemId))
         {
             _ = _notice.Info(new()
-                {
-                    Message = "Informacja!!",
-                    Description = $"Wybierz system!!",
-                    Placement = NotificationPlacement.TopRight,
-                    Duration = 5
-                });
+            {
+                Message = "Informacja!!",
+                Description = $"Wybierz system!!",
+                Placement = NotificationPlacement.TopRight,
+                Duration = 5
+            });
             return;
         }
 
@@ -559,7 +557,6 @@
 
     private async Task Zapisz()
     {
-
         if (PowiazanyModel == null && PowiazanyModelPierwszyZapis != null)
         {
             PowiazanyModel = PowiazanyModelPierwszyZapis;
@@ -589,7 +586,7 @@
 
         var zaznaczoneKonfiguracje = KonfiguracjeSystemu
             .Where(k => k.CzyWybrany)
-            .ToList(); // 🔥 materializacja
+            .ToList();
 
         Console.WriteLine($"EdytowanyModel.RowId: {EdytowanyModel.RowId}");
 
@@ -602,15 +599,89 @@
 
         EdytowanyModel.RowIdSystem = Guid.Parse(SelectedSystemId);
 
+        // 🔥 GENEROWANIE OBRAZKÓW PRZED ZAPISEM MODELU
+        try
+        {
+            Console.WriteLine($"EdytowanyModel.PolaczenieNaroza: {EdytowanyModel.PolaczenieNaroza}");
 
+            var baseUrlX = Navigation.BaseUri;
+            var imageUrl = $"{baseUrlX}api/images/sosna.jpg";
+
+            if (PowiazanyModel != null || KonfiguracjeSystemu != null)
+            {
+                Console.WriteLine("Rozpoczynam generowanie imageGenerator.GenerateImageAsync");
+
+                var imageGenerator = new ImageGenerator(Http);
+                var konfSystem = PowiazanyModel?.KonfSystem ?? KonfiguracjeSystemu;
+
+                if (konfSystem != null)
+                {
+                    byte[] imageBytes = null;
+
+                    try
+                    {
+                        imageBytes = await imageGenerator.GenerateImageAsync(
+                            konfSystem,
+                            EdytowanyModel.PolaczenieNaroza,
+                            500,
+                            500,
+                            imageUrl,
+                            "#ADD8E6");
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        Console.WriteLine($"Błąd walidacji: {ex.Message}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Nieoczekiwany błąd: {ex.Message}");
+                    }
+
+                    Console.WriteLine($"Zakończono generowanie - imageBytes: {imageBytes?.Length ?? 0} bytes");
+
+                    if (imageBytes != null)
+                    {
+                        EdytowanyModel.Rysunek = imageBytes;
+                        EdytowanyModel.Ikona16x16 = ResizeImage(imageBytes, 16, 16);
+                        EdytowanyModel.Ikona32x32 = ResizeImage(imageBytes, 32, 32);
+
+                        Console.WriteLine("Wygenerowano ikony 16x16 oraz 32x32");
+                    }
+                    else
+                    {
+                        _ = _notice.Info(new()
+                        {
+                            Message = "Informacja!!",
+                            Description = "Nie wygenerowano obrazka sprawdź konfigurację! kliknij --> Pokaż wszystkie",
+                            Placement = NotificationPlacement.TopRight,
+                            Duration = 5
+                        });
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _ = _notice.Info(new()
+            {
+                Message = "Informacja!!",
+                Description = "Nie wygenerowano obrazka sprawdź konfigurację!!!!",
+                Placement = NotificationPlacement.TopRight,
+                Duration = 5
+            });
+            Console.WriteLine($"Błąd: {ex.Message} / {ex.StackTrace}");
+        }
+
+        // 🔥 ZAPIS MODELU Z OBRAZKAMI
         if (EdytowanyModel.Id == 0)
         {
             var response = await Http.PostAsJsonAsync(apiUrl, EdytowanyModel);
 
             if (response.IsSuccessStatusCode)
             {
-                EdytowanyModel = await response.Content.ReadFromJsonAsync<KonfModele>() 
-                                 ?? new KonfModele(); // 🔥 Obsługa przypadku, gdyby coś poszło nie tak
+                EdytowanyModel = await response.Content.ReadFromJsonAsync<KonfModele>()
+                                 ?? new KonfModele();
+                Console.WriteLine("✅ Utworzono nowy model z obrazkami");
             }
             else
             {
@@ -622,12 +693,17 @@
         {
             var response = await Http.PutAsJsonAsync($"{apiUrl}/{EdytowanyModel.Id}", EdytowanyModel);
 
-            if (!response.IsSuccessStatusCode)
+            if (response.IsSuccessStatusCode)
+            {
+                Console.WriteLine("✅ Zaktualizowano model z obrazkami");
+            }
+            else
             {
                 Console.WriteLine($"❌ Błąd API: {response.StatusCode}");
                 await _message.Error($"❌ Błąd API: {response.StatusCode}");
             }
         }
+
         // Pobieramy istniejące powiązania dla modelu
         var existingLinks = await Http.GetFromJsonAsync<List<KonfModeleElementy>>($"api/konfmodeleelementy/powiazania/{EdytowanyModel.RowId.ToString()}");
 
@@ -640,20 +716,17 @@
         }
         else
         {
-
             if (PowiazanyModel == null)
             {
                 _ = _notice.Info(new()
                 {
                     Message = "Informacja!!",
-                    Description = $"Brak powiązanych modeli!!!!",
+                    Description = "Brak powiązanych modeli!!!!",
                     Placement = NotificationPlacement.TopLeft,
                     Duration = 5
                 });
             }
-
         }
-
 
         foreach (var konf in zaznaczoneKonfiguracje)
         {
@@ -661,17 +734,17 @@
             if (!existingLinks.Any(x => x.RowIdElement == konf.RowId))
             {
                 nowePowiazania.Add(new KonfModeleElementy
-                    {
-                        RowId = Guid.NewGuid(),
-                        RowIdSystem = Guid.Parse(SelectedSystemId),
-                        RowIdElement = konf.RowId,
-                        RowIdKonfModele = EdytowanyModel.RowId,
-                        NazwaKonfiguracji = EdytowanyModel.NazwaKonfiguracji,
-                        KtoZapisal = user + " - " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
-                    });
+                {
+                    RowId = Guid.NewGuid(),
+                    RowIdSystem = Guid.Parse(SelectedSystemId),
+                    RowIdElement = konf.RowId,
+                    RowIdKonfModele = EdytowanyModel.RowId,
+                    NazwaKonfiguracji = EdytowanyModel.NazwaKonfiguracji,
+                    KtoZapisal = user + " - " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+                });
             }
 
-            Console.WriteLine($"EdytowanyModel dodano nowy powiązanie dla - {konf.Nazwa}");
+            Console.WriteLine($"EdytowanyModel dodano nowe powiązanie dla - {konf.Nazwa}");
         }
 
         // Usuwamy powiązania, które użytkownik odznaczył
@@ -690,118 +763,19 @@
         if (nowePowiazania.Count > 0)
         {
             await Http.PostAsJsonAsync($"api/konfmodeleelementy/powiazania", nowePowiazania);
-            Console.WriteLine($"EdytowanyModel -  Dodano nowe powiązania ilość wybranych: {nowePowiazania.Count}");
-
+            Console.WriteLine($"EdytowanyModel - Dodano nowe powiązania ilość wybranych: {nowePowiazania.Count}");
         }
-
-
-        try
-        {
-            Console.WriteLine($"EdytowanyModel.PolaczenieNaroza: {EdytowanyModel.PolaczenieNaroza}");
-
-            var baseUrlX = Navigation.BaseUri;
-            var imageUrl = $"{baseUrlX}api/images/sosna.jpg";
-
-            if (PowiazanyModel != null || KonfiguracjeSystemu != null)
-            {
-                Console.WriteLine($"Rozpoczynam generowania imageGenerator.GenerateImageAsync");
-
-                var imageGenerator = new ImageGenerator(Http);
-
-                // Sprawdź wszystkie możliwe null-e
-                if (imageGenerator == null)
-                    throw new ArgumentNullException(nameof(imageGenerator));
-
-                if (EdytowanyModel == null)
-                    throw new ArgumentNullException(nameof(EdytowanyModel));
-
-                if (PowiazanyModel == null && KonfiguracjeSystemu == null)
-                    throw new InvalidOperationException("Brak danych konfiguracyjnych");
-
-                var konfSystem = PowiazanyModel?.KonfSystem ?? KonfiguracjeSystemu;
-
-                if (konfSystem == null)
-                    throw new InvalidOperationException("Konfiguracja systemu jest null");
-
-                byte[] imageBytes  = null;
-
-                // Wywołaj metodę
-                try
-                {
-                    imageBytes = await imageGenerator.GenerateImageAsync(
-                        konfSystem,
-                        EdytowanyModel.PolaczenieNaroza,
-                        500,
-                        500,
-                        imageUrl,
-                        "#ADD8E6");
-
-                    // Tutaj użyj imageBytes
-                    // np. zapisz do pliku, wyświetl, itp.
-                }
-                catch (ArgumentException ex)
-                {
-                    // Obsługa błędów walidacji (np. pusta lista)
-                    Console.WriteLine($"Błąd walidacji: {ex.Message}");
-                    // Możesz pokazać komunikat użytkownikowi
-                }
-                catch (Exception ex)
-                {
-                    // Obsługa innych błędów
-                    Console.WriteLine($"Nieoczekiwany błąd: {ex.Message}");
-                    // Logowanie błędu
-                }
-                // byte[] imageBytes = await imageGenerator.GenerateImageAsync(PowiazanyModel.KonfSystem ?? KonfiguracjeSystemu, EdytowanyModel.PolaczenieNaroza, 500, 500, imageUrl, "#ADD8E6");
-                //byte[] imageBytes = await imageGenerator.GenerateImageAsync(imageUrl);
-
-                if (imageBytes != null)
-                {
-                    //var imageData = $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}";
-                    EdytowanyModel.Rysunek = imageBytes;
-
-                    EdytowanyModel.Ikona16x16 = ResizeImage(imageBytes, 16, 16);
-
-                    EdytowanyModel.Ikona32x32 = ResizeImage(imageBytes, 32, 32);
-                }
-                else
-                {
-                    _ = _notice.Info(new()
-                    {
-                        Message = "Informacja!!",
-                        Description = $"Nie wygenerowano obrazka sprawdź konfigurację! kliknij --> Pokaż wszystkie",
-                        Placement = NotificationPlacement.TopRight,
-                        Duration = 5
-                    });
-                }
-            }
-
-        }
-        catch (Exception ex)
-        {
-            _ = _notice.Info(new()
-            {
-                Message = "Informacja!!",
-                Description = $"Nie wygenerowano obrazka sprawdź konfigurację!!!!",
-                Placement = NotificationPlacement.TopRight,
-                Duration = 5
-            });
-            Console.WriteLine($"Błąd: {ex.Message} / {ex.StackTrace}");
-        }
-
 
         // Odświeżenie listy modeli
         ListaModeli = await Http.GetFromJsonAsync<List<KonfModele>>(apiUrl);
 
         czakajAzZmienie = false;
 
-        await _message.Info("Dane w modelu zaktualizowano!" , 1);
+        await _message.Info("Dane w modelu zaktualizowano!", 1);
 
-       await Edytuj(EdytowanyModel.Id, EdytowanyModel.RowId.ToString(), EdytowanyModel.NazwaKonfiguracji);
-
-       // EdytowanyModel = null;
+        await Edytuj(EdytowanyModel.Id, EdytowanyModel.RowId.ToString(), EdytowanyModel.NazwaKonfiguracji);
 
         PowiazanyModelPierwszyZapis = null;
-
     }
 
     private byte[] ResizeImage(byte[] imageData, int width, int height)
@@ -828,23 +802,23 @@
     {
 
         await OpenModal("Potwierdzenie usunięcia", "Czy na pewno chcesz usunąć ten element?");
-           
 
-    // Jeśli użytkownik potwierdził
-    if (pytanieOK)
-    {
-        try
+
+        // Jeśli użytkownik potwierdził
+        if (pytanieOK)
         {
-            await Http.DeleteAsync($"{apiUrl}/{id}");
-            ListaModeli = await Http.GetFromJsonAsync<List<KonfModele>>(apiUrl);
-            await PokazWszystkieZModelu(PokazanyModelRowId);
-        }
-        catch (Exception ex)
-        {
-           await _message.Error(ex.Message);
+            try
+            {
+                await Http.DeleteAsync($"{apiUrl}/{id}");
+                ListaModeli = await Http.GetFromJsonAsync<List<KonfModele>>(apiUrl);
+                await PokazWszystkieZModelu(PokazanyModelRowId);
+            }
+            catch (Exception ex)
+            {
+                await _message.Error(ex.Message);
+            }
         }
     }
-}
 
     private void Anuluj()
     {
@@ -1020,7 +994,7 @@
         return options[nextIndex];
     }
 
-    
+
     private async Task OpenModal(string _title, string _contentText)
     {
         var modalCompletionSource = new TaskCompletionSource<bool>();
@@ -1028,27 +1002,27 @@
         RenderFragment content = @<div>@_contentText</div>;
 
         var options = new ConfirmOptions()
+        {
+            Title = _title,
+            Width = 350,
+            Content = content,
+            OkText = "Tak",
+            CancelText = "Nie",
+            OnOk = async e =>
             {
-                Title = _title,
-                Width = 350,
-                Content = content,
-                OkText = "Tak",
-                CancelText = "Nie",
-                OnOk = async e =>
-                {
-                    Console.WriteLine("OnOk");
-                    pytanieOK = true;
-                    modalCompletionSource.SetResult(true);
-                    await Task.CompletedTask;
-                },
-                OnCancel = async e =>
-                {
-                    Console.WriteLine("OnCancel");
-                    pytanieOK = false;
-                    modalCompletionSource.SetResult(false);
-                    await Task.CompletedTask;
-                }
-            };
+                Console.WriteLine("OnOk");
+                pytanieOK = true;
+                modalCompletionSource.SetResult(true);
+                await Task.CompletedTask;
+            },
+            OnCancel = async e =>
+            {
+                Console.WriteLine("OnCancel");
+                pytanieOK = false;
+                modalCompletionSource.SetResult(false);
+                await Task.CompletedTask;
+            }
+        };
 
         var confirmRef = await _modalService.CreateConfirmAsync(options);
 

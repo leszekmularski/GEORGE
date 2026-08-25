@@ -36,6 +36,112 @@ namespace GEORGE.Client.Pages.Models
 
         public List<ContourSegment> ContourSegments => GetContourSegments();
 
+        // 🔥 NOWE WŁAŚCIWOŚCI DO OBLICZANIA KĄTA LINII
+
+        /// <summary>
+        /// Kąt linii w stopniach (0-180°), niezależnie od kierunku
+        /// </summary>
+        public double KatLinii
+        {
+            get
+            {
+                double dx = X2 - X1;
+                double dy = Y2 - Y1;
+
+                double katRadiany = Math.Atan2(dy, dx);
+                double katStopnie = katRadiany * (180.0 / Math.PI);
+
+                // Normalizacja do zakresu 0-180°
+                if (katStopnie < 0)
+                {
+                    katStopnie += 180;
+                }
+                else if (katStopnie >= 180)
+                {
+                    katStopnie -= 180;
+                }
+
+                return katStopnie;
+            }
+        }
+
+        /// <summary>
+        /// Kąt linii w radianach (0-π), niezależnie od kierunku
+        /// </summary>
+        public double KatLiniiRadiany
+        {
+            get
+            {
+                double dx = X2 - X1;
+                double dy = Y2 - Y1;
+
+                double katRadiany = Math.Atan2(dy, dx);
+
+                // Normalizacja do zakresu 0-π
+                if (katRadiany < 0)
+                {
+                    katRadiany += Math.PI;
+                }
+                else if (katRadiany >= Math.PI)
+                {
+                    katRadiany -= Math.PI;
+                }
+
+                return katRadiany;
+            }
+        }
+
+        /// <summary>
+        /// Pełny kąt linii w stopniach (0-360°), uwzględniający kierunek
+        /// </summary>
+        public double KatLiniiPelny
+        {
+            get
+            {
+                double dx = X2 - X1;
+                double dy = Y2 - Y1;
+
+                double katRadiany = Math.Atan2(dy, dx);
+                double katStopnie = katRadiany * (180.0 / Math.PI);
+
+                // Normalizacja do zakresu 0-360°
+                if (katStopnie < 0)
+                {
+                    katStopnie += 360;
+                }
+
+                return katStopnie;
+            }
+        }
+
+        /// <summary>
+        /// Długość linii
+        /// </summary>
+        public double DlugoscLinii
+        {
+            get
+            {
+                double dx = X2 - X1;
+                double dy = Y2 - Y1;
+                return Math.Sqrt(dx * dx + dy * dy);
+            }
+        }
+
+        /// <summary>
+        /// Sprawdza czy linia jest pionowa (kąt bliski 90°)
+        /// </summary>
+        public bool CzyPionowa => Math.Abs(Math.Abs(X2 - X1)) < 0.001;
+
+        /// <summary>
+        /// Sprawdza czy linia jest pozioma (kąt bliski 0° lub 180°)
+        /// </summary>
+        public bool CzyPozioma => Math.Abs(Math.Abs(Y2 - Y1)) < 0.001;
+
+        /// <summary>
+        /// Sprawdza czy linia jest ukośna (nie pionowa i nie pozioma)
+        /// </summary>
+        public bool CzyUkosna => !CzyPionowa && !CzyPozioma;
+
         public XLineShape(
         double x1, double y1, double x2, double y2, double scaleFactor,
         string nazwaObj, bool ruchomySlupek = false, bool pionPoziom = false,

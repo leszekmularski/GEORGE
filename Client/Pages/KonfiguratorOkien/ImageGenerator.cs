@@ -38,6 +38,8 @@ public class ImageGenerator
             double profileBottom = (model.FirstOrDefault(e => e.WystepujeDol)?.PionPrawa ?? 0) - (model.FirstOrDefault(e => e.WystepujeDol)?.PionLewa ?? 0);
             double profileLeft = (model.FirstOrDefault(e => e.WystepujeLewa)?.PionPrawa ?? 0) - (model.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0);
 
+            Console.WriteLine($"profileTop: {profileTop}, profileRight: {profileRight}, profileBottom: {profileBottom}, profileLeft: {profileLeft} lokalizacja pliku tekstury: {imageUrl}");
+
             var polaczeniaArray = polaczenia.Split(';')
                 .Select(p => p.Split('-'))
                 .Select(parts => (kat: int.Parse(parts[0]), typ: parts[1].Trim()))
@@ -52,7 +54,7 @@ public class ImageGenerator
             (Left: polaczeniaArray[1].typ, Right: polaczeniaArray[2].typ), // Right
             (Left: polaczeniaArray[2].typ, Right: polaczeniaArray[3].typ), // Bottom
             (Left: polaczeniaArray[3].typ, Right: polaczeniaArray[0].typ), // Left
-        };
+            };
 
             var frames = new List<(IPath path, Image<Rgba32> texture, Point position)>();
 
@@ -158,9 +160,35 @@ public class ImageGenerator
                 wydSzybe += (int)profileLeft;
             }
 
-            if (joinTypes[0].Left == "T5" && joinTypes[3].Right == "T5")
+            Console.WriteLine ($"topX: {topX}, topW: {topW}, rightY: {rightY}, rightH: {rightH}, bottomX: {bottomX}, bottomW: {bottomW}, leftY: {leftY}, leftH: {leftH}");
+            Console.WriteLine($"joinTypes[0].Left: {joinTypes[0].Left}, joinTypes[0].Right: {joinTypes[0].Right}");
+            Console.WriteLine($"joinTypes[1].Left: {joinTypes[1].Left}, joinTypes[1].Right: {joinTypes[1].Right}");
+            Console.WriteLine($"joinTypes[2].Left: {joinTypes[2].Left}, joinTypes[2].Right: {joinTypes[2].Right}");
+            Console.WriteLine($"joinTypes[3].Left: {joinTypes[3].Left}, joinTypes[3].Right: {joinTypes[3].Right}");
+
+            if (joinTypes[0].Left == "T5" && joinTypes[2].Right == "T5")
             {
-                AddMiterFrame(3, (int)imageWidth / 2 - (int)profileLeft / 2, leftY, (int)profileLeft, leftH, joinTypes[3].Right, joinTypes[3].Left);
+                //Rysuj słupek w pionowo
+                AddMiterFrame(3, (int)imageWidth / 2 - (int)profileLeft / 2, leftY, (int)profileLeft, leftH, joinTypes[2].Right, joinTypes[0].Left);
+
+                image.Mutate(x =>
+                {
+                    foreach (var (path, texture, pos) in frames)
+                    {
+                        if (texture != null)
+                        {
+                            // Zmiana: usunięcie wypełnienia białym kolorem
+                            x.DrawImage(texture, pos, 1f);
+                        }
+                        x.Draw(Pens.Solid(Color.Black, borderThickness), path);
+                    }
+                });
+            }
+            if (joinTypes[1].Left == "T5" && joinTypes[2].Right == "T5")
+            {
+                Console.WriteLine($"Rysuj słupek poziomo: joinTypes[1].Left: {joinTypes[1].Left}, joinTypes[2].Right: {joinTypes[2].Right}, x: {(int)imageWidth / 2 - (int)profileLeft / 2}, y: {leftY}, with: {(int)profileLeft}, height: {leftH}");
+                //Rysuj słupek poziomo
+                AddMiterFrame(3, leftY, (int)imageWidth / 2 - (int)profileLeft / 2, leftH, (int)profileLeft, joinTypes[2].Right, joinTypes[1].Left);
 
                 image.Mutate(x =>
                 {
@@ -213,6 +241,9 @@ public class ImageGenerator
 
             using var ms = new MemoryStream();
             image.SaveAsPng(ms); // Format PNG obsługuje przezroczystość
+
+            Console.WriteLine($"✅ Wygenerowano obraz o wymiarach: {imageWidth}x{imageHeight} {ms.Length} bytes");
+
             return ms.ToArray();
         }
         catch (Exception ex)

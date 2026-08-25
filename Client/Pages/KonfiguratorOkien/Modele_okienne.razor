@@ -590,11 +590,11 @@
                                          @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
                                          draggable="true"
                                          style="cursor: grab;
-                                                                                                                width: auto;
-                                                                                                                height: auto;
-                                                                                                                max-width: 50px;
-                                                                                                                max-height: 50px;
-                                                                                                                border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
+                                                                                                                                        width: auto;
+                                                                                                                                        height: auto;
+                                                                                                                                        max-width: 50px;
+                                                                                                                                        max-height: 50px;
+                                                                                                                                        border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
 
                                 }
                                 else
@@ -3121,6 +3121,11 @@
 
         var rect = await JS.InvokeAsync<DOMRect>("getCanvasBoundingRect", CanvasRef.CanvasReference);
 
+        await JS.InvokeVoidAsync("ResetCursorGlobal");
+        await Task.Yield();
+
+        Console.Clear();
+
         // Pozycja kursora względem canvasa (uwzględnia marginesy i DPI)
         double relativeX = (e.ClientX - rect.Left) * rect.ScaleX;
         double relativeY = (e.ClientY - rect.Top) * rect.ScaleY;
@@ -3146,7 +3151,14 @@
         if (SelectedModelType == "Rama" || SelectedModelType == "Słupek stały") tylkoRama = true;
 
         // 🔍 Znajdź region, w który kliknięto
-        var region = FindRegionAtPosition(modelX, modelY, tylkoRama);
+        ShapeRegion region = FindPolygonRegionAtPosition(modelX, modelY, tylkoRama);
+        ShapeRegion regionOnlyline = null;
+
+        if (SelectedModelType == "Słupek stały")
+        {
+            regionOnlyline = FindLineRegionAtPosition(modelX, modelY, true);
+        }
+
 
         if (region == null)
         {
@@ -3175,11 +3187,10 @@
                 }
             }
 
-            await _message.Warning($"❌ Nie znaleziono kształtu w regionie {region.Id} dla pozycji (X: {modelX:F2}, Y: {modelY:F2})", 1.5);
+            await _message.Warning($"❌ Nie znaleziono kształtu w regionie {region.Id} dla pozycji (X: {modelX:F2}, Y: {modelY:F2})", 3.5);
+
             return;
         }
-
-        Console.Clear();
 
         Console.WriteLine($"✅ Znaleziono kształt w regionie {region.Id}: {shape.GetType().Name} ID: {shape.ID} shape.Points.Count: {shape.Points.Count()}");
 
@@ -3192,23 +3203,25 @@
             }
             else
             {
-                if(shape.Points.Count() > 0)
+                if (regionOnlyline != null && regionOnlyline.CzyLinia)
                 {
-                    var match = ObliczWierzcholkiSlupkaStalego(shape.Points, modelX, modelY);
-                    var katLinii = ObliczKatLinii(match.Wierzcholki);
-                    katLinii %= 180; // normalizacja do [0,180), bo linia nie ma kierunku
-                    if(katLinii < 0) katLinii += 360;
-                    if(katLinii > 360) katLinii -= 360;
-                    if(katLinii < WybranyModel.KatWystapieniaZakresOdMin || katLinii > WybranyModel.KatWystapieniaZakresOdMax)
+                    double kat = regionOnlyline.KatLinii;
+                    Console.WriteLine($"Kąt linii: {kat:F2}°");
+
+                    // Sprawdzenie zakresu kąta
+                    if (kat < WybranyModel.KatWystapieniaZakresOdMin || kat > WybranyModel.KatWystapieniaZakresOdMax)
                     {
-                        await _message.Warning($"❌ Wybrany model ({WybranyModel.Typ}) nie pasuje do kąta linii regionu ({katLinii:F2}°). Oczekiwany kąt: {WybranyModel.KatWystapieniaZakresOdMin:F2}° <-> {WybranyModel.KatWystapieniaZakresOdMax:F2}°.", 6.5);
-                        return;                        
+                        await _message.Warning($"❌ Wybrany model nie pasuje do kąta linii regionu ({kat:F2}°).");
+                        return;
                     }
                 }
-
+                else
+                {
+                    await _message.Warning($"❌ Nie znaleziono linii słupka w regionie {region.Id} dla pozycji (X: {modelX:F2}, Y: {modelY:F2})", 3.5);
+                    return; 
+                }
             }
         }
-
 
         _czekajNaZaladowanie = true;
 
@@ -3297,104 +3310,263 @@
         return null;
     }
 
-    private ShapeRegion? FindRegionAtPosition(double x, double y, bool tylkoRama)
-    {
-        // Console.WriteLine($"\n🔍 FindRegionAtPosition START: punkt ({x:F2}, {y:F2}), tylkoRama={tylkoRama}");
+    // private ShapeRegion? FindRegionAtPosition(double x, double y, bool tylkoRama)
+    // {
+    //     // Console.WriteLine($"\n🔍 FindRegionAtPosition START: punkt ({x:F2}, {y:F2}), tylkoRama={tylkoRama}");
 
+    //     if (_regionsDualRama == null || !_regionsDualRama.Any() ||
+    //         _regionsSkrzydlo == null || !_regionsSkrzydlo.Any())
+    //     {
+    //         //Console.WriteLine("❌ Brak regionów do sprawdzenia!");
+    //         return null;
+    //     }
+
+    //     var regionsToCheck = tylkoRama ? _regionsDualRama : _regionsSkrzydlo;
+    //     Console.WriteLine($"   Sprawdzam {regionsToCheck.Count} regionów");
+
+    //     foreach (var region in regionsToCheck)
+    //     {
+    //         if (region.Wierzcholki == null || region.Wierzcholki.Count < 2)
+    //         {
+    //             // Console.WriteLine($"   ⚠️ Region {region.Id} pominięty - brak wierzchołków");
+    //             continue;
+    //         }
+
+    //         // 🔴 REGION = LINIA (Słupek stały)
+    //         if (SelectedModelType == "Słupek stały" &&
+    //             region.Wierzcholki.Count == 2)
+    //         {
+    //             var p1 = region.Wierzcholki[0];
+    //             var p2 = region.Wierzcholki[1];
+
+    //             // Console.WriteLine($"   🔴 Test region-linia {region.Id}");
+
+    //             if (IsPointNearLine(
+    //                 x, y,
+    //                 p1.X, p1.Y,
+    //                 p2.X, p2.Y,
+    //                 tolerance: 6 / _aktywnaSkala))
+    //             {
+    //                 // Console.WriteLine($"✅ Znaleziono region-linię: {region.Id}");
+    //                 return region;
+    //             }
+
+    //             continue;
+    //         }
+
+    //         // 🟢 REGION = WIELOKĄT
+    //         if (region.Wierzcholki.Count < 3)
+    //         {
+    //             // Console.WriteLine($"   ⚠️ Region {region.Id} pominięty - mniej niż 3 wierzchołki");
+    //             continue;
+    //         }
+
+    //         // Bounding box (optymalizacja + debug)
+    //         double minX = region.Wierzcholki.Min(p => p.X);
+    //         double maxX = region.Wierzcholki.Max(p => p.X);
+    //         double minY = region.Wierzcholki.Min(p => p.Y);
+    //         double maxY = region.Wierzcholki.Max(p => p.Y);
+
+    //         //  Console.WriteLine($"   Region {region.Id} bounding box: X[{minX:F2}–{maxX:F2}], Y[{minY:F2}–{maxY:F2}]");
+    //         //  Console.WriteLine($"   Punkt: X={x:F2}, Y={y:F2}");
+
+    //         bool inBoundingBox = (x >= minX && x <= maxX && y >= minY && y <= maxY);
+    //         // Console.WriteLine($"   Punkt w bounding box? {inBoundingBox}");
+
+    //         if (!inBoundingBox)
+    //         {
+    //             //  Console.WriteLine($"   ✗ Pomijam - punkt poza bounding box");
+    //             continue;
+    //         }
+
+    //         //Console.WriteLine($"   ✓ Przechodzę do dokładnego testu...");
+
+    //         // 1️⃣ Test: punkt w wielokącie
+    //         if (IsPointInPolygon(region.Wierzcholki, x, y))
+    //         {
+    //             //  Console.WriteLine($"✅ Znaleziono region (wnętrze): {region.Id}");
+    //             return region;
+    //         }
+
+    //         // 2️⃣ Test: punkt blisko krawędzi (KLUCZOWE dla trójkątów)
+    //         for (int i = 0; i < region.Wierzcholki.Count; i++)
+    //         {
+    //             var a = region.Wierzcholki[i];
+    //             var b = region.Wierzcholki[(i + 1) % region.Wierzcholki.Count];
+
+    //             if (IsPointNearLine(
+    //                 x, y,
+    //                 a.X, a.Y,
+    //                 b.X, b.Y,
+    //                 tolerance: 4 / _aktywnaSkala))
+    //             {
+    //                 // Console.WriteLine($"✅ Znaleziono region (krawędź): {region.Id}");
+    //                 return region;
+    //             }
+    //         }
+    //     }
+
+    //     //Console.WriteLine("❌ Nie znaleziono regionu zawierającego punkt");
+    //     return null;
+    // }
+
+    /// <summary>
+    /// Znajduje region typu LINIA (dla słupka stałego) - szuka tylko regionów z 2 wierzchołkami
+    /// </summary>
+    private ShapeRegion? FindLineRegionAtPosition(double x, double y, bool tylkoRama)
+    {
         if (_regionsDualRama == null || !_regionsDualRama.Any() ||
             _regionsSkrzydlo == null || !_regionsSkrzydlo.Any())
         {
-            //Console.WriteLine("❌ Brak regionów do sprawdzenia!");
+            Console.WriteLine("❌ Brak regionów do sprawdzenia!");
             return null;
         }
 
         var regionsToCheck = tylkoRama ? _regionsDualRama : _regionsSkrzydlo;
-        Console.WriteLine($"   Sprawdzam {regionsToCheck.Count} regionów");
+        Console.WriteLine($"🔍 FindLineRegionAtPosition: Sprawdzam {regionsToCheck.Count} regionów");
+        Console.WriteLine($"🔍 Punkt: X={x:F2}, Y={y:F2}, tylkoRama={tylkoRama}");
 
         foreach (var region in regionsToCheck)
         {
-            if (region.Wierzcholki == null || region.Wierzcholki.Count < 2)
+            // Sprawdzamy TYLKO regiony z 2 wierzchołkami (linie)
+            if (region.Wierzcholki == null || region.Wierzcholki.Count != 2)
             {
-                // Console.WriteLine($"   ⚠️ Region {region.Id} pominięty - brak wierzchołków");
                 continue;
             }
 
-            // 🔴 REGION = LINIA (Słupek stały)
-            if (SelectedModelType == "Słupek stały" &&
-                region.Wierzcholki.Count == 2)
+            var p1 = region.Wierzcholki[0];
+            var p2 = region.Wierzcholki[1];
+
+            Console.WriteLine($"🔴 Test linii {region.Id}: ({p1.X:F2},{p1.Y:F2}) -> ({p2.X:F2},{p2.Y:F2})");
+
+            // Tolerancja dla linii - można dostosować
+            double tolerance = 20 / _aktywnaSkala;
+            Console.WriteLine($"   Tolerance: {tolerance:F4}");
+
+            if (IsPointNearLine(
+                x, y,
+                p1.X, p1.Y,
+                p2.X, p2.Y,
+                tolerance))
             {
-                var p1 = region.Wierzcholki[0];
-                var p2 = region.Wierzcholki[1];
+                Console.WriteLine($"✅ Znaleziono region-linię: {region.Id}");
+                return region;
+            }
+            else
+            {
+                // Oblicz odległość punktu od linii dla debugowania
+                double distance = DistancePointToLine(x, y, p1.X, p1.Y, p2.X, p2.Y);
+                Console.WriteLine($"   ❌ Punkt za daleko. Odległość: {distance:F4}, Tolerance: {tolerance:F4}");
+            }
+        }
 
-                // Console.WriteLine($"   🔴 Test region-linia {region.Id}");
+        Console.WriteLine("❌ Nie znaleziono regionu-linii");
+        return null;
+    }
 
-                if (IsPointNearLine(
-                    x, y,
-                    p1.X, p1.Y,
-                    p2.X, p2.Y,
-                    tolerance: 6 / _aktywnaSkala))
-                {
-                    // Console.WriteLine($"✅ Znaleziono region-linię: {region.Id}");
-                    return region;
-                }
+    /// <summary>
+    /// Znajduje region typu WIELOKĄT (dla pozostałych kształtów) - szuka regionów z 3+ wierzchołkami
+    /// </summary>
+    private ShapeRegion? FindPolygonRegionAtPosition(double x, double y, bool tylkoRama)
+    {
+        if (_regionsDualRama == null || !_regionsDualRama.Any() ||
+            _regionsSkrzydlo == null || !_regionsSkrzydlo.Any())
+        {
+            Console.WriteLine("❌ Brak regionów do sprawdzenia!");
+            return null;
+        }
 
+        var regionsToCheck = tylkoRama ? _regionsDualRama : _regionsSkrzydlo;
+        Console.WriteLine($"🔍 FindPolygonRegionAtPosition: Sprawdzam {regionsToCheck.Count} regionów");
+        Console.WriteLine($"🔍 Punkt: X={x:F2}, Y={y:F2}, tylkoRama={tylkoRama}");
+
+        foreach (var region in regionsToCheck)
+        {
+            // Sprawdzamy TYLKO regiony z 3+ wierzchołkami (wielokąty)
+            if (region.Wierzcholki == null || region.Wierzcholki.Count < 3)
+            {
                 continue;
             }
 
-            // 🟢 REGION = WIELOKĄT
-            if (region.Wierzcholki.Count < 3)
-            {
-                // Console.WriteLine($"   ⚠️ Region {region.Id} pominięty - mniej niż 3 wierzchołki");
-                continue;
-            }
+            Console.WriteLine($"🟢 Test wielokąta {region.Id}: Typ={region.TypKsztaltu}, Wierzchołki={region.Wierzcholki.Count}");
 
-            // Bounding box (optymalizacja + debug)
+            // Bounding box (optymalizacja)
             double minX = region.Wierzcholki.Min(p => p.X);
             double maxX = region.Wierzcholki.Max(p => p.X);
             double minY = region.Wierzcholki.Min(p => p.Y);
             double maxY = region.Wierzcholki.Max(p => p.Y);
 
-            //  Console.WriteLine($"   Region {region.Id} bounding box: X[{minX:F2}–{maxX:F2}], Y[{minY:F2}–{maxY:F2}]");
-            //  Console.WriteLine($"   Punkt: X={x:F2}, Y={y:F2}");
+            Console.WriteLine($"   BoundingBox: X[{minX:F2}–{maxX:F2}], Y[{minY:F2}–{maxY:F2}]");
 
             bool inBoundingBox = (x >= minX && x <= maxX && y >= minY && y <= maxY);
-            // Console.WriteLine($"   Punkt w bounding box? {inBoundingBox}");
+            Console.WriteLine($"   Punkt w bounding box? {inBoundingBox}");
 
             if (!inBoundingBox)
             {
-                //  Console.WriteLine($"   ✗ Pomijam - punkt poza bounding box");
+                Console.WriteLine($"   ⏭️ Pomijam - punkt poza bounding box");
                 continue;
             }
-
-            //Console.WriteLine($"   ✓ Przechodzę do dokładnego testu...");
 
             // 1️⃣ Test: punkt w wielokącie
             if (IsPointInPolygon(region.Wierzcholki, x, y))
             {
-                //  Console.WriteLine($"✅ Znaleziono region (wnętrze): {region.Id}");
+                Console.WriteLine($"✅ Znaleziono region (wnętrze): {region.Id}");
                 return region;
             }
 
-            // 2️⃣ Test: punkt blisko krawędzi (KLUCZOWE dla trójkątów)
+            // 2️⃣ Test: punkt blisko krawędzi
+            Console.WriteLine($"   Testuję krawędzie...");
             for (int i = 0; i < region.Wierzcholki.Count; i++)
             {
                 var a = region.Wierzcholki[i];
                 var b = region.Wierzcholki[(i + 1) % region.Wierzcholki.Count];
 
+                double tolerance = 4 / _aktywnaSkala;
+
                 if (IsPointNearLine(
                     x, y,
                     a.X, a.Y,
                     b.X, b.Y,
-                    tolerance: 4 / _aktywnaSkala))
+                    tolerance))
                 {
-                    // Console.WriteLine($"✅ Znaleziono region (krawędź): {region.Id}");
+                    Console.WriteLine($"✅ Znaleziono region (krawędź): {region.Id}");
                     return region;
                 }
             }
+
+            Console.WriteLine($"   ❌ Punkt nie jest wewnątrz ani na krawędzi");
         }
 
-        //Console.WriteLine("❌ Nie znaleziono regionu zawierającego punkt");
+        Console.WriteLine("❌ Nie znaleziono regionu-wielokąta");
         return null;
+    }
+
+    /// <summary>
+    /// Pomocnicza metoda do obliczania odległości punktu od linii
+    /// </summary>
+    private double DistancePointToLine(double px, double py, double x1, double y1, double x2, double y2)
+    {
+        double dx = x2 - x1;
+        double dy = y2 - y1;
+
+        double lengthSquared = dx * dx + dy * dy;
+
+        if (lengthSquared == 0)
+        {
+            // Linia o zerowej długości
+            return Math.Sqrt((px - x1) * (px - x1) + (py - y1) * (py - y1));
+        }
+
+        // Oblicz parametr t dla rzutu punktu na linię
+        double t = ((px - x1) * dx + (py - y1) * dy) / lengthSquared;
+        t = Math.Max(0, Math.Min(1, t)); // Ogranicz do zakresu [0, 1]
+
+        // Oblicz punkt na linii najbliższy punktowi
+        double closestX = x1 + t * dx;
+        double closestY = y1 + t * dy;
+
+        // Oblicz odległość
+        return Math.Sqrt((px - closestX) * (px - closestX) + (py - closestY) * (py - closestY));
     }
 
     private bool IsPointNearLine(
@@ -5155,6 +5327,13 @@
             var polaczenieWartosciA = await PobierzPolaczeniaStyczneSlupkowe(najlepszySasiadA?.RowIdSasiada ?? Guid.Empty, najlepszySasiadA?.RowIdElementu ?? Guid.Empty, "ALL");
             var polaczenieWartosciB = await PobierzPolaczeniaStyczneSlupkowe(najlepszySasiadB?.RowIdSasiada ?? Guid.Empty, najlepszySasiadB?.RowIdElementu ?? Guid.Empty, "ALL");
 
+            if(polaczenieWartosciB == null)
+            {
+                await Task.Delay(500); // Czekaj 0,5 sekundę przed ponownym wywołaniem
+                polaczenieWartosciA = await PobierzPolaczeniaStyczneSlupkowe(najlepszySasiadA?.RowIdSasiada ?? Guid.Empty, najlepszySasiadA?.RowIdElementu ?? Guid.Empty, "ALL");
+                polaczenieWartosciB = await PobierzPolaczeniaStyczneSlupkowe(najlepszySasiadB?.RowIdSasiada ?? Guid.Empty, najlepszySasiadB?.RowIdElementu ?? Guid.Empty, "ALL");
+            }
+
             if (polaczenieWartosciA != null)
             {
                 // Console.WriteLine($"✅ Znaleziono polaczenieWartosci: {polaczenieWartosciA.Count()}");
@@ -5807,6 +5986,14 @@
             if (polaczenieWartosciAllSystem == null || polaczenieWartosciAllSystem.Count == 0)
             {
                 polaczenieWartosci = await PobierzPolaczenia(bok.RowIdSasiada, bok.RowIdElementu, bok.Strona ?? "NaN");
+
+                if(polaczenieWartosci == null)
+                {
+                    await Task.Delay(500); // Czekaj 0,5 sekundę przed ponownym wywołaniem
+                    polaczenieWartosci = await PobierzPolaczenia(bok.RowIdSasiada, bok.RowIdElementu, bok.Strona ?? "NaN");
+                }
+
+                if (polaczenieWartosciAllSystem == null || polaczenieWartosciAllSystem.Count == 0)
                 generator.BledySystemowe.Add($"⚠️ WyliczObszarSkrzydla   ✅ -> Nie znaleziono połączenia dla strony '{bok.Strona}' - Dane pobieram rekord po rekordzie");
                 //Console.WriteLine($"✅ WyliczObszarSkrzydla Dane o połączeniach w systemie: {polaczenieWartosciAllSystem.Count} rekordów - wolne działanie strona po stronie");
             }

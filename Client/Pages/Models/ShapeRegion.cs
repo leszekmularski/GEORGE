@@ -45,6 +45,128 @@ namespace GEORGE.Client.Pages.Models
 
         public string? IdRegionuPonizej { get; set; } = "WARSTWA-ZERO";
 
+        // 🔥 NOWE WŁAŚCIWOŚCI DO POBRANIA KĄTA LINII
+
+        /// <summary>
+        /// Kąt linii regionu w stopniach (0-180°), tylko dla regionów typu "Linia"
+        /// </summary>
+        public double KatLinii
+        {
+            get
+            {
+                // Sprawdź czy region jest typu "Linia" i ma dokładnie 2 wierzchołki
+                if (TypKsztaltu != "Linia" || Wierzcholki == null || Wierzcholki.Count < 2)
+                {
+                    return 0; // lub możesz rzucić wyjątek, w zależności od potrzeb
+                }
+
+                double x1 = Wierzcholki[0].X;
+                double y1 = Wierzcholki[0].Y;
+                double x2 = Wierzcholki[1].X;
+                double y2 = Wierzcholki[1].Y;
+
+                double dx = x2 - x1;
+                double dy = y2 - y1;
+
+                double katRadiany = Math.Atan2(dy, dx);
+                double katStopnie = katRadiany * (180.0 / Math.PI);
+
+                // Normalizacja do zakresu 0-180°
+                if (katStopnie < 0)
+                {
+                    katStopnie += 180;
+                }
+                else if (katStopnie >= 180)
+                {
+                    katStopnie -= 180;
+                }
+
+                return katStopnie;
+            }
+        }
+
+        /// <summary>
+        /// Kąt linii regionu w radianach (0-π), tylko dla regionów typu "Linia"
+        /// </summary>
+        public double KatLiniiRadiany
+        {
+            get
+            {
+                if (TypKsztaltu != "Linia" || Wierzcholki == null || Wierzcholki.Count < 2)
+                {
+                    return 0;
+                }
+
+                double dx = Wierzcholki[1].X - Wierzcholki[0].X;
+                double dy = Wierzcholki[1].Y - Wierzcholki[0].Y;
+
+                double katRadiany = Math.Atan2(dy, dx);
+
+                // Normalizacja do zakresu 0-π
+                if (katRadiany < 0)
+                {
+                    katRadiany += Math.PI;
+                }
+                else if (katRadiany >= Math.PI)
+                {
+                    katRadiany -= Math.PI;
+                }
+
+                return katRadiany;
+            }
+        }
+
+        /// <summary>
+        /// Pełny kąt linii w stopniach (0-360°), uwzględniający kierunek
+        /// </summary>
+        public double KatLiniiPelny
+        {
+            get
+            {
+                if (TypKsztaltu != "Linia" || Wierzcholki == null || Wierzcholki.Count < 2)
+                {
+                    return 0;
+                }
+
+                double dx = Wierzcholki[1].X - Wierzcholki[0].X;
+                double dy = Wierzcholki[1].Y - Wierzcholki[0].Y;
+
+                double katRadiany = Math.Atan2(dy, dx);
+                double katStopnie = katRadiany * (180.0 / Math.PI);
+
+                // Normalizacja do zakresu 0-360°
+                if (katStopnie < 0)
+                {
+                    katStopnie += 360;
+                }
+
+                return katStopnie;
+            }
+        }
+
+        /// <summary>
+        /// Sprawdza czy region jest typu "Linia"
+        /// </summary>
+        public bool CzyLinia => TypKsztaltu == "Linia" && Wierzcholki?.Count == 2;
+
+        /// <summary>
+        /// Długość linii (tylko dla regionów typu "Linia")
+        /// </summary>
+        public double DlugoscLinii
+        {
+            get
+            {
+                if (!CzyLinia)
+                {
+                    return 0;
+                }
+
+                double dx = Wierzcholki[1].X - Wierzcholki[0].X;
+                double dy = Wierzcholki[1].Y - Wierzcholki[0].Y;
+                return Math.Sqrt(dx * dx + dy * dy);
+            }
+        }
+
         /// <summary>
         /// Tworzy głęboką kopię obiektu ShapeRegion
         /// </summary>
@@ -54,9 +176,31 @@ namespace GEORGE.Client.Pages.Models
             {
                 // Kopiuj listę wierzchołków (głęboka kopia)
                 Wierzcholki = this.Wierzcholki?.Select(p => new XPoint(p.X, p.Y)).ToList() ?? new List<XPoint>(),
+                WierzcholkiWenetrznePodRysunek = this.WierzcholkiWenetrznePodRysunek?.Select(p => new XPoint(p.X, p.Y)).ToList() ?? new List<XPoint>(),
 
                 // Kopiuj kontur (głęboka kopia segmentów)
                 Kontur = this.Kontur?.Select(seg =>
+                {
+                    if (seg.Type == SegmentType.Arc && seg.Center.HasValue)
+                    {
+                        return new ContourSegment(
+                            new XPoint(seg.Start.X, seg.Start.Y),
+                            new XPoint(seg.End.X, seg.End.Y),
+                            new XPoint(seg.Center.Value.X, seg.Center.Value.Y),
+                            seg.Radius,
+                            seg.CounterClockwise
+                        );
+                    }
+                    else
+                    {
+                        return new ContourSegment(
+                            new XPoint(seg.Start.X, seg.Start.Y),
+                            new XPoint(seg.End.X, seg.End.Y)
+                        );
+                    }
+                }).ToList() ?? new List<ContourSegment>(),
+
+                KonturWenetrznyPodRysunek = this.KonturWenetrznyPodRysunek?.Select(seg =>
                 {
                     if (seg.Type == SegmentType.Arc && seg.Center.HasValue)
                     {
@@ -82,13 +226,14 @@ namespace GEORGE.Client.Pages.Models
                 TypLiniiDzielacej = this.TypLiniiDzielacej,
                 Rama = this.Rama,
 
-                // Kopiuj listę linii dzielących (jeśli potrzebujesz głębokiej kopii)
+                // Kopiuj listę linii dzielących
                 LinieDzielace = this.LinieDzielace?.ToList() ?? new List<XLineShape>(),
 
                 // Kopiuj identyfikatory
                 Id = this.Id,
                 IdMaster = this.IdMaster,
-                IdRegionuPonizej = this.IdRegionuPonizej
+                IdRegionuPonizej = this.IdRegionuPonizej,
+                BoundingBox = this.BoundingBox
             };
         }
 
@@ -159,6 +304,5 @@ namespace GEORGE.Client.Pages.Models
                 };
             }
         }
-
     }
 }
