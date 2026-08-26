@@ -222,7 +222,7 @@ else
             </Column>
             <Column Title="ID" @bind-Field="@context.Id" Hidden />
             <Column Title="Typ Dokumentu" @bind-Field="@context.TypZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
-            <Column Title="Numer Zamówienia" @bind-Field="@context.NumerZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable />
+            <Column Title="Numer Zamówienia" @bind-Field="@context.NumerZamowienia" Sortable OnFilter="(a, b) => a == b" Filterable Style="font-weight:bold;color:darkred;font-size: 11px;" />
             <Column Title="Data Montażu" @bind-Field="@context.DataMontazu" Style="font-weight:bold;color:red" Format="yyyy-MM-dd" Sortable />
             <Column Title="Data Produkcji" @bind-Field="@context.DataProdukcji" Style="font-weight:bold;color:orangered" Format="yyyy-MM-dd" Sortable />
             <Column Title="Data Gotowości" TData="DateTime" DataIndex="DataGotowosci" Style="font-weight:bold" Format="yyyy-MM-dd" Sortable />

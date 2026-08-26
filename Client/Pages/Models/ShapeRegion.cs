@@ -1,9 +1,5 @@
 ﻿using GEORGE.Client.Pages.KonfiguratorOkien;
 using GEORGE.Shared.ViewModels;
-using GEORGE.Client.Pages.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace GEORGE.Client.Pages.Models
 {

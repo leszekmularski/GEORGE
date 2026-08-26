@@ -284,6 +284,8 @@ namespace GEORGE.Client.Pages.Okna
 
             var konfBottom = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeDol);
 
+            bool czymozbycFIX = MVCKonfModelu.KonfSystem.Where(e => e.CzyMozeBycFix).Any();
+
             if (konfLeft == null)
             {
                 konfLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa);
@@ -329,7 +331,7 @@ namespace GEORGE.Client.Pages.Okna
             if (offsetKorpusWewnetrznyTop > 0 && !regions.FirstOrDefault().Rama) offsetKorpusWewnetrznyTop = profileTop - offsetKorpusWewnetrznyTop;
             if (offsetKorpusWewnetrznyBottom > 0 && !regions.FirstOrDefault().Rama) offsetKorpusWewnetrznyBottom = profileBottom - offsetKorpusWewnetrznyBottom;
 
-            if (profileLeft == 0 || profileRight == 0 || profileTop == 0 || profileBottom == 0)
+            if ((profileLeft == 0 || profileRight == 0 || profileTop == 0 || profileBottom == 0) && (punkty.Count() != 2))
             {
                 BledySystemowe.Add($"⚠️ Uwaga: Jeden lub więcej profili jest równy 0. profileLeft: {profileLeft} profileRight: {profileRight} profileTop: {profileTop} profileBottom: {profileBottom}. Sprawdź konfigurację systemu.");
             }
@@ -340,7 +342,7 @@ namespace GEORGE.Client.Pages.Okna
             }
 
             // Console.WriteLine($"🔧 Profile z konfiguracji przed korektą: profileLeft: {profileLeft} profileRight: {profileRight} profileTop: {profileTop} profileBottom: {profileBottom}");
-            if (offsetGlassLeft == 0 || offsetGlassRight == 0 || offsetGlassTop == 0 || offsetGlassBottom == 0)
+            if ((offsetGlassLeft == 0 || offsetGlassRight == 0 || offsetGlassTop == 0 || offsetGlassBottom == 0) && czymozbycFIX)
             {
                 BledySystemowe.Add($"⚠️ Uwaga: Jeden lub więcej offsetów szklenia jest równy 0. offsetGlassLeft: {offsetGlassLeft} offsetGlassRight: {offsetGlassRight} offsetGlassTop: {offsetGlassTop} offsetGlassBottom: {offsetGlassBottom}. Sprawdź konfigurację systemu.");
             }
@@ -361,7 +363,7 @@ namespace GEORGE.Client.Pages.Okna
             string RowNazwaprofileTop = konfTop?.Nazwa ?? "BRAK-DANYCH";
             string RowNazwaprofileBottom = konfBottom?.Nazwa ?? "BRAK-DANYCH";
 
-            if (profileLeft == 0)
+            if (profileLeft == 0 && ElementLiniowy)
             {
                 slruchPoLewej = "";
 
@@ -376,7 +378,7 @@ namespace GEORGE.Client.Pages.Okna
 
             }
 
-            if (profileRight == 0)
+            if (profileRight == 0 && ElementLiniowy)
             {
                 slruchPoPrawej = "";
 
@@ -388,6 +390,40 @@ namespace GEORGE.Client.Pages.Okna
                 RowIdprofileRight = konfRight?.RowId ?? Guid.Empty;
                 RowIndeksprofileRight = konfRight?.IndeksElementu ?? "BRAK-DANYCH";
                 RowNazwaprofileRight = konfRight?.Nazwa ?? "BRAK-DANYCH";
+
+            }
+
+            if (profileTop == 0 && ElementLiniowy)
+            {
+
+                konfTop = MVCKonfModelu.KonfSystem
+                    .FirstOrDefault(e => e.WystepujeGora);
+
+                profileTop = (float)((konfTop?.PoziomDol ?? 0) - (konfTop?.PoziomGora ?? 0));
+
+                //if (profileLeft == 0)
+                //    profileLeft = profileTop;
+
+                RowIdprofileTop = konfTop?.RowId ?? Guid.Empty;
+                RowIndeksprofileTop = konfTop?.IndeksElementu ?? "BRAK-DANYCH";
+                RowNazwaprofileTop = konfTop?.Nazwa ?? "BRAK-DANYCH";
+
+            }
+
+            if (profileBottom == 0 && ElementLiniowy)
+            {
+
+                konfBottom = MVCKonfModelu.KonfSystem
+                    .FirstOrDefault(e => e.WystepujeDol);
+
+                profileBottom = (float)((konfBottom?.PoziomDol ?? 0) - (konfBottom?.PoziomGora ?? 0));
+
+                //if (profileRight == 0)
+                //    profileRight = profileBottom;
+
+                RowIdprofileBottom = konfBottom?.RowId ?? Guid.Empty;
+                RowIndeksprofileBottom = konfBottom?.IndeksElementu ?? "BRAK-DANYCH";
+                RowNazwaprofileBottom = konfBottom?.Nazwa ?? "BRAK-DANYCH";
 
             }
 
@@ -417,11 +453,12 @@ namespace GEORGE.Client.Pages.Okna
                 }
                 else
                 {
-                    Console.WriteLine($"🔷 ElementLiniowy Nie znaleziono konfiguracji przesunięcia dla przypadku poziomego. Domyślnie ustawiono 0 przesunięć.");
-                    profileLeft = 0;
-                    profileRight = 0;
-                    profileTop = 0;
-                    profileBottom = 0;
+                    //Console.WriteLine($"🔷 ElementLiniowy Nie znaleziono konfiguracji przesunięcia dla przypadku poziomego. Domyślnie ustawiono 0 przesunięć.");
+                    //profileLeft = 0;
+                    //profileRight = 0;
+                    //profileTop = 0;
+                    //profileBottom = 0;
+                    BledySystemowe.Add($"❌ Brak konfiguracji przesunięcia dla elementu liniowego. Nie można obliczyć wewnętrznego konturu. Sprawdź dane wejściowe dla tego regionu.");
                 }
 
                 //foreach(var test in punktyRegionuMaster)
@@ -515,12 +552,14 @@ namespace GEORGE.Client.Pages.Okna
             if (wewnetrznyKonturZLukami == null)
             {
                 Console.WriteLine($"❌ Generowanie elementów zakończone niepowodzeniem dla regionu {regionId} wewnetrznyKonturZLukami == null");
+                BledySystemowe.Add($"❌ Generowanie elementów zakończone niepowodzeniem dla regionu {regionId} wewnetrznyKonturZLukami == null");
                 return false;
             }
 
             if (liniaSzkleniaKontur == null)
             {
                 Console.WriteLine($"❌ Generowanie elementów zakończone niepowodzeniem dla regionu {regionId} liniaSzkleniaKontur == null");
+                BledySystemowe.Add($"❌ Generowanie elementów zakończone niepowodzeniem dla regionu {regionId} liniaSzkleniaKontur == null");
                 return false;
             }
 
@@ -695,9 +734,11 @@ namespace GEORGE.Client.Pages.Okna
             // =============================
 
             // Najpierw parsujemy dane wzorca (kwadrat)
+            // =============================
+            // 0️⃣ Parsujemy dane wzorca
+            // =============================
             var wzorzecPolaczen = new Dictionary<string, string>(); // klucz: strona, wartość: typ
-
-            // Najpierw parsujemy dane wzorca (kwadrat)
+            var wzorzecKaty = new List<(double kat, string strona, string typ)>();
 
             foreach (var pair in polaczenia.Split(';'))
             {
@@ -706,41 +747,185 @@ namespace GEORGE.Client.Pages.Okna
                 string typ = parts[1];
 
                 string strona = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(kat);
-                wzorzecPolaczen[strona] = typ;
+                wzorzecKaty.Add((kat, strona, typ));
 
-                //   Console.WriteLine($"📐 Wzorzec: kąt {kat}° → strona {strona} → typ {typ}");
+                Console.WriteLine($"📐 Wzorzec: kąt {kat}° → strona {strona} → typ {typ}");
             }
 
-            //Console.WriteLine($"🔷🔷 Wzorzec połączeń dla stron: outer: {outer.Count} vertexCount:{vertexCount}");
+            // Utwórz mapowanie stron na typy
+            foreach (var (kat, strona, typ) in wzorzecKaty)
+            {
+                if (!wzorzecPolaczen.ContainsKey(strona))
+                {
+                    wzorzecPolaczen[strona] = typ;
+                    Console.WriteLine($"📐 Dodano stronę {strona} → {typ}");
+                }
+                else
+                {
+                    // Dla duplikatów (np. dwa razy "Góra"), dodaj przeciwną stronę
+                    string przeciwna = strona switch
+                    {
+                        "Góra" => "Dół",
+                        "Dół" => "Góra",
+                        "Prawa" => "Lewa",
+                        "Lewa" => "Prawa",
+                        _ => "Nieznana"
+                    };
+
+                    if (!wzorzecPolaczen.ContainsKey(przeciwna))
+                    {
+                        wzorzecPolaczen[przeciwna] = typ;
+                        Console.WriteLine($"📐 Dodano przeciwną stronę {przeciwna} → {typ} (z duplikatu {strona})");
+                    }
+                }
+            }
+
+            // Uzupełnij brakujące strony
+            var wszystkieStrony = new[] { "Góra", "Dół", "Prawa", "Lewa" };
+            foreach (var strona in wszystkieStrony)
+            {
+                if (!wzorzecPolaczen.ContainsKey(strona))
+                {
+                    string przeciwna = strona switch
+                    {
+                        "Góra" => "Dół",
+                        "Dół" => "Góra",
+                        "Prawa" => "Lewa",
+                        "Lewa" => "Prawa",
+                        _ => ""
+                    };
+
+                    if (przeciwna != "" && wzorzecPolaczen.ContainsKey(przeciwna))
+                    {
+                        wzorzecPolaczen[strona] = wzorzecPolaczen[przeciwna];
+                        Console.WriteLine($"📐 Uzupełniono brakującą stronę {strona} → {wzorzecPolaczen[przeciwna]} (z przeciwnej {przeciwna})");
+                    }
+                    else
+                    {
+                        string domyslnyTyp = ElementLiniowy ? "T5" : "T2";
+                        wzorzecPolaczen[strona] = domyslnyTyp;
+                        Console.WriteLine($"📐 Uzupełniono brakującą stronę {strona} → {domyslnyTyp} (domyślny)");
+                    }
+                }
+            }
+
+            // Debug: pokaż kompletny wzorzec
+            Console.WriteLine("📐 Kompletny wzorzec połączeń:");
+            foreach (var kv in wzorzecPolaczen)
+            {
+                Console.WriteLine($"   {kv.Key} → {kv.Value}");
+            }
 
             // =============================
             // 1️⃣ Zliczamy elementy według stron
             // =============================
             var elementyWedlugStron = new Dictionary<string, List<int>>(); // strona -> lista indeksów
 
-            for (int i = 0; i < vertexCount; i++)
+            // Sprawdź, czy outer ma wystarczającą liczbę punktów
+            if (outer == null || outer.Count < 2)
             {
-                int next = (i + 1) % vertexCount;
+                Console.WriteLine($"⚠️ outer ma za mało punktów: {outer?.Count ?? 0}");
+                //return;
+            }
 
-                float dx = (float)(outer[next].X - outer[i].X);
-                float dy = (float)(outer[next].Y - outer[i].Y);
+            // Dla linii (2 punkty) - specjalna obsługa
+            // Dla linii (2 punkty) - specjalna obsługa
+            if (outer.Count == 2)
+            {
+                Console.WriteLine("🔍 Wykryto linię (2 punkty) - obsługa specjalna");
+
+                var p1 = outer[0];
+                var p2 = outer[1];
+
+                // Oblicz kąt linii
+                float dx = (float)(p2.X - p1.X);
+                float dy = (float)(p2.Y - p1.Y);
                 float angleRadians = MathF.Atan2(dy, dx);
                 float angleDegrees = angleRadians * (180f / MathF.PI);
                 if (angleDegrees < 0) angleDegrees += 360f;
 
-                string strona = StronaOknaHelper.OkreslStrone(angleDegrees, i, outer);
+                Console.WriteLine($"📐 Linia: kąt {angleDegrees:F2}°");
 
-                if (!elementyWedlugStron.ContainsKey(strona))
-                    elementyWedlugStron[strona] = new List<int>();
+                // Dla linii określamy typ
+                string typLinii;
 
-                elementyWedlugStron[strona].Add(i);
+                if (ElementLiniowy)
+                {
+                    typLinii = "T5"; // Dla słupka stałego zawsze T5
+                }
+                else
+                {
+                    // Sprawdź wzorzec dla odpowiedniej strony
+                    string strona = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(angleDegrees);
+                    typLinii = wzorzecPolaczen.ContainsKey(strona) ? wzorzecPolaczen[strona] : "T2";
+                }
+
+                Console.WriteLine($"📐 Typ linii: {typLinii}");
+
+                // Określ strony
+                string stronaGlowna;
+                string stronaPrzeciwna;
+
+                if (angleDegrees >= 315 || angleDegrees < 45 || (angleDegrees >= 135 && angleDegrees < 225))
+                {
+                    // Linia pozioma
+                    stronaGlowna = "Góra";
+                    stronaPrzeciwna = "Dół";
+                }
+                else
+                {
+                    // Linia pionowa
+                    stronaGlowna = "Prawa";
+                    stronaPrzeciwna = "Lewa";
+                }
+
+                // Dodaj do elementyWedlugStron
+                elementyWedlugStron = new Dictionary<string, List<int>>();
+                elementyWedlugStron[stronaGlowna] = new List<int> { 0 };
+                elementyWedlugStron[stronaPrzeciwna] = new List<int> { 1 };
+
+                // Ustaw typy w wzorzecPolaczen
+                wzorzecPolaczen[stronaGlowna] = typLinii;
+                wzorzecPolaczen[stronaPrzeciwna] = typLinii;
+
+                Console.WriteLine($"📊 Strona {stronaGlowna}: 1 elementów - indeksy: [0], typ: {typLinii}");
+                Console.WriteLine($"📊 Strona {stronaPrzeciwna}: 1 elementów - indeksy: [1], typ: {typLinii}");
             }
+            else
+            {
+                int iloscBokow = outer.Count; // Użyj rzeczywistej liczby punktów
 
-            //// Debug: pokażmy zliczone elementy
-            //foreach (var kv in elementyWedlugStron)
-            //{
-            //    Console.WriteLine($"📊 Strona {kv.Key}: {kv.Value.Count} elementów - indeksy: [{string.Join(", ", kv.Value)}]");
-            //}
+                Console.WriteLine($"🔍 Przetwarzam wielokąt z {iloscBokow} wierzchołkami");
+
+                elementyWedlugStron = new Dictionary<string, List<int>>();
+
+                for (int i = 0; i < iloscBokow; i++)
+                {
+                    int next = (i + 1) % iloscBokow;
+
+                    float dx = (float)(outer[next].X - outer[i].X);
+                    float dy = (float)(outer[next].Y - outer[i].Y);
+                    float angleRadians = MathF.Atan2(dy, dx);
+                    float angleDegrees = angleRadians * (180f / MathF.PI);
+                    if (angleDegrees < 0) angleDegrees += 360f;
+
+                    // Użyj tej samej funkcji co dla wzorca
+                    string strona = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(angleDegrees);
+
+                    Console.WriteLine($"🔍 Krawędź {i}->{next}: kąt {angleDegrees:F2}° → strona {strona}");
+
+                    if (!elementyWedlugStron.ContainsKey(strona))
+                        elementyWedlugStron[strona] = new List<int>();
+
+                    elementyWedlugStron[strona].Add(i);
+                }
+
+                //// Wyświetl wynik
+                //foreach (var kv in elementyWedlugStron)
+                //{
+                //    Console.WriteLine($"📊 Strona {kv.Key}: {kv.Value.Count} elementów - indeksy: [{string.Join(", ", kv.Value)}]");
+                //}
+            }
 
             // =============================
             // 2️⃣ Tworzymy mapowanie typów dla narożników
@@ -757,26 +942,56 @@ namespace GEORGE.Client.Pages.Okna
                     if (stronaA == stronaB)
                     {
                         // Połączenie tej samej strony z samą sobą
-                        // Używamy typu z pierwszego elementu tej strony
-                        string typ = wzorzecPolaczen.ContainsKey(stronaA) ? wzorzecPolaczen[stronaA] : "T2";
-                        typyNaroznikow[klucz] = typ;
-                        // Console.WriteLine($"🔗 Połączenie {klucz} (ta sama strona) → typ {typ}");
+                        if (wzorzecPolaczen.ContainsKey(stronaA))
+                        {
+                            typyNaroznikow[klucz] = wzorzecPolaczen[stronaA];
+                            Console.WriteLine($"✅ Połączenie {klucz} (ta sama strona) → typ {typyNaroznikow[klucz]}");
+                        }
+                        else
+                        {
+                            typyNaroznikow[klucz] = ElementLiniowy ? "T5" : "T2";
+                            Console.WriteLine($"⚠️ BRAK WZORCA dla strony '{stronaA}'! Połączenie {klucz} → używam domyślnego {(ElementLiniowy ? "T5" : "T2")}");
+                            Komunikaty.Add($"⚠️ BRAK WZORCA dla strony '{stronaA}'! Połączenie {klucz} → używam domyślnego {(ElementLiniowy ? "T5" : "T2")}");
+                        }
                     }
                     else
                     {
-                        // 🔑 POPRAWKA: Dla różnych stron, typ pochodzi z PIERWSZEJ strony w kolejności (zgodnie z ruchem wskazówek zegara)
-                        // Ale musimy ustalić, która strona jest "pierwsza" w danym narożniku
-
-                        // W Twoim przypadku, dla narożnika Lewa-Góra, typ powinien być z Góry (T1), a nie z Lewej (T4)
-                        // To sugeruje, że typ pochodzi z DRUGIEJ strony w nazwie narożnika?
-
-                        // Spróbujmy: typ pochodzi z DRUGIEJ strony (stronaB)
-                        string typ = wzorzecPolaczen.ContainsKey(stronaB) ? wzorzecPolaczen[stronaB] : "T2";
-                        typyNaroznikow[klucz] = typ;
-                        //  Console.WriteLine($"🔗 Połączenie {klucz} (różne strony) → typ {typ} (ze strony {stronaB})");
+                        // Dla różnych stron
+                        if (wzorzecPolaczen.ContainsKey(stronaB))
+                        {
+                            typyNaroznikow[klucz] = wzorzecPolaczen[stronaB];
+                            Console.WriteLine($"✅ Połączenie {klucz} (różne strony) → typ {typyNaroznikow[klucz]} (ze strony {stronaB})");
+                        }
+                        else
+                        {
+                            typyNaroznikow[klucz] = ElementLiniowy ? "T5" : "T2";
+                            Console.WriteLine($"⚠️ BRAK WZORCA dla strony '{stronaB}'! Połączenie {klucz} → używam domyślnego {(ElementLiniowy ? "T5" : "T2")}");
+                            Komunikaty.Add($"⚠️ BRAK WZORCA dla strony '{stronaB}'! Połączenie {klucz} → używam domyślnego {(ElementLiniowy ? "T5" : "T2")}");
+                        }
                     }
                 }
             }
+
+            //// =============================
+            //// 3️⃣ Debug: pokaż wszystkie typy narożników
+            //// =============================
+            //Console.WriteLine("🔷 Typy narożników:");
+            //foreach (var kv in typyNaroznikow)
+            //{
+            //    Console.WriteLine($"   {kv.Key} → {kv.Value}");
+            //}
+
+            // =============================
+            // 4️⃣ Utwórz listę połączeń
+            // =============================
+            var listaPolaczen = new List<string>();
+            foreach (var kv in typyNaroznikow)
+            {
+                listaPolaczen.Add($"{kv.Key}:{kv.Value}");
+            }
+
+            string polaczeniaWynik = string.Join(";", listaPolaczen);
+            Console.WriteLine($"🔷 Wartość połączeń: {polaczeniaWynik}");
 
             // =============================
             // 3️⃣ Główna pętla – leftJoin / rightJoin
@@ -1077,7 +1292,7 @@ namespace GEORGE.Client.Pages.Okna
                 // T2 - LEWA STRONA
                 //-------------------------------------------------------------------------------------------------------------------------------
 
-                if (lewyKatOstry)
+                if (lewyKatOstry && leftJoin != "T5")
                 {
                     leftJoin = "T2";
 
@@ -1094,7 +1309,7 @@ namespace GEORGE.Client.Pages.Okna
                 // T2 - PRAWA STRONA
                 //-------------------------------------------------------------------------------------------------------------------------------
 
-                if (prawyKatOstry)
+                if (prawyKatOstry && rightJoin != "T5")
                 {
                     rightJoin = "T2";
 
@@ -1777,7 +1992,7 @@ namespace GEORGE.Client.Pages.Okna
                     Console.WriteLine($"🔷 T5-T5 case for element {i + 1}. isAlmostHorizontal:{isAlmostHorizontal}, isAlmostVertical:{isAlmostVertical}, daneKwadratu.Count:{daneKwadratu.Count}");
 
                     double? SzerokoscSlupka = 0;
-                    float PionOsSymetrii = 0;
+                    float OsSymetrii = 0;
 
                     if (daneKwadratu != null && daneKwadratu.Count > 0)
                     {
@@ -1785,9 +2000,39 @@ namespace GEORGE.Client.Pages.Okna
 
                         if (szerSlupka != null)
                         {
-                            PionOsSymetrii = (float)Math.Abs((float)szerSlupka.PionOsSymetrii);
-                            SzerokoscSlupka = szerSlupka.PionPrawa - szerSlupka.PionLewa;
+
+                            if (szerSlupka.WystepujeDol && szerSlupka.WystepujeGora && (!szerSlupka.WystepujeLewa || !szerSlupka.WystepujePrawa))
+                            {
+                                OsSymetrii = (float)Math.Abs((float)szerSlupka.PoziomOsSymetrii);
+                                SzerokoscSlupka = szerSlupka.PoziomGora - szerSlupka.PoziomDol;
+                            }
+                            else if (szerSlupka.WystepujeLewa && szerSlupka.WystepujePrawa)
+                            {
+                                OsSymetrii = (float)Math.Abs((float)szerSlupka.PionOsSymetrii);
+                                SzerokoscSlupka = szerSlupka.PionPrawa - szerSlupka.PionLewa;
+                            }
+                            else
+                            {
+                                BledySystemowe.Add($"⚠️ T5-T5: Brak danych dla rowIdprofileLeft: {rowIdprofileLeft}. Nie można obliczyć szerokości słupka.");
+                            }
                         }
+                        else
+                        {
+                            BledySystemowe.Add($"⚠️ T5-T5: Brak danych dla rowIdprofileLeft: {rowIdprofileLeft}. Nie można obliczyć szerokości słupka.");
+                        }
+                    }
+                    else
+                    {
+                        BledySystemowe.Add($"⚠️ T5-T5: Brak danych dla rowIdprofileLeft: {rowIdprofileLeft}. Nie można obliczyć szerokości słupka.");
+                    }
+
+                    if (SzerokoscSlupka == 0)
+                    {
+                        BledySystemowe.Add($"⚠️ T5-T5: Szerokość słupka wynosi 0 dla rowIdprofileLeft: {rowIdprofileLeft}. Nie można obliczyć szerokości słupka.");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"⚠️ T5-T5: Szerokość słupka wynosi: {SzerokoscSlupka} dla rowIdprofileLeft: {rowIdprofileLeft}.");
                     }
 
                     // Najpierw oblicz wektor kierunkowy linii

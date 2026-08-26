@@ -2882,6 +2882,7 @@
 
         //if (await DodajWybranyKwadratOkna(idRegion, Wierzcholki) == false) return; // teraz z idRegion
 
+        await Task.Yield(); // Upewnij się, że UI ma szansę się odświeżyć
 
         if (WybranyModel.Typ == "Słupek stały")
         {
@@ -2900,6 +2901,8 @@
         }
 
         await Task.Delay(20);
+
+        await Task.Yield(); // Upewnij się, że UI ma szansę się odświeżyć
 
         await DrawStructureAndRestrykcje(0);
 
@@ -3123,8 +3126,6 @@
 
         await JS.InvokeVoidAsync("ResetCursorGlobal");
         await Task.Yield();
-
-        Console.Clear();
 
         // Pozycja kursora względem canvasa (uwzględnia marginesy i DPI)
         double relativeX = (e.ClientX - rect.Left) * rect.ScaleX;
@@ -3932,6 +3933,8 @@
             // 3. Generuj obrys (BEZ automatycznego przerysowywania!)
             await GenerujObrysPozZmianieWymiarow(true, true);
 
+            await Task.Yield(); // Upewnij się, że UI ma szansę się odświeżyć
+
             // double oldWidth = ShapeService.Shapes.Max(s => s.Szerokosc);
             // double oldHeight = ShapeService.Shapes.Max(s => s.Wysokosc);
 
@@ -3953,6 +3956,8 @@
             await LineUtils.ShiftAllShapesToPositiveQuadrant(ShapeService.Shapes);
 
             PrzesunKsztaltyDoDodatniejCwiartki(ShapeService.Shapes);
+
+            await Task.Yield(); // Upewnij się, że UI ma szansę się odświeżyć
 
             //  LineUtils.ShiftAllShapesToPositiveQuadrant(ShapeService.Shapes);
 
@@ -4204,7 +4209,7 @@
 
         _czekajNaZmianeRozmiaru = false;
 
-        await Task.Delay(10);
+        await Task.Yield();
 
         await ApplyZoom();
     }
@@ -4666,7 +4671,7 @@
 
             await _message.Warning(
                 "1# Dodajesz konstrukcję z słupkiem ruchomym, Najpierw dodaj podział z osią słupka ruchomego!",
-                2.0
+                3.0
             );
             return false;
 
@@ -4686,7 +4691,7 @@
         {
             await _message.Warning(
                 "2# Dodajesz konstrukcję z słupkiem ruchomym, Najpierw dodaj podział z osią słupka ruchomego!",
-                2.0
+                3.0
             );
             return false;
         }
@@ -4695,7 +4700,7 @@
         {
             await _message.Warning(
                 "Dodajesz konstrukcję z słupkiem ruchomym, W konstrukcji nie ma podzaiłu z słupkiem ruchomym",
-                2.0
+                3.0
             );
             return false;
         }
@@ -5327,12 +5332,6 @@
             var polaczenieWartosciA = await PobierzPolaczeniaStyczneSlupkowe(najlepszySasiadA?.RowIdSasiada ?? Guid.Empty, najlepszySasiadA?.RowIdElementu ?? Guid.Empty, "ALL");
             var polaczenieWartosciB = await PobierzPolaczeniaStyczneSlupkowe(najlepszySasiadB?.RowIdSasiada ?? Guid.Empty, najlepszySasiadB?.RowIdElementu ?? Guid.Empty, "ALL");
 
-            if(polaczenieWartosciB == null)
-            {
-                await Task.Delay(500); // Czekaj 0,5 sekundę przed ponownym wywołaniem
-                polaczenieWartosciA = await PobierzPolaczeniaStyczneSlupkowe(najlepszySasiadA?.RowIdSasiada ?? Guid.Empty, najlepszySasiadA?.RowIdElementu ?? Guid.Empty, "ALL");
-                polaczenieWartosciB = await PobierzPolaczeniaStyczneSlupkowe(najlepszySasiadB?.RowIdSasiada ?? Guid.Empty, najlepszySasiadB?.RowIdElementu ?? Guid.Empty, "ALL");
-            }
 
             if (polaczenieWartosciA != null)
             {
@@ -5482,6 +5481,8 @@
                         .Select(p => new XPoint { X = p.X, Y = p.Y })
                         .ToList();
 
+                    await Task.Yield();
+
                     // ✅ Najpierw przesuń punkty
                     var test = await WyliczObszarSkrzydla(
                            state,
@@ -5491,9 +5492,9 @@
                            generator, regionDoDodania
                        );
 
-                    await Task.WhenAll();
+                    await Task.Yield();
 
-                    await Task.Delay(350); // krótkie opóźnienie dla stabilności
+                    await Task.Delay(150); // krótkie opóźnienie dla stabilności
 
                     if (!test.Success)
                     {
@@ -5890,7 +5891,7 @@
             state.ListaKwadratow[^1].OffsetBottom = przesDol;
         }
 
-        await Task.Delay(10); // placeholder dla ewentualnych operacji asynchronicznych
+        await Task.Delay(5); // placeholder dla ewentualnych operacji asynchronicznych
 
         return regionSlupka;
     }
@@ -5986,12 +5987,6 @@
             if (polaczenieWartosciAllSystem == null || polaczenieWartosciAllSystem.Count == 0)
             {
                 polaczenieWartosci = await PobierzPolaczenia(bok.RowIdSasiada, bok.RowIdElementu, bok.Strona ?? "NaN");
-
-                if(polaczenieWartosci == null)
-                {
-                    await Task.Delay(500); // Czekaj 0,5 sekundę przed ponownym wywołaniem
-                    polaczenieWartosci = await PobierzPolaczenia(bok.RowIdSasiada, bok.RowIdElementu, bok.Strona ?? "NaN");
-                }
 
                 if (polaczenieWartosciAllSystem == null || polaczenieWartosciAllSystem.Count == 0)
                 generator.BledySystemowe.Add($"⚠️ WyliczObszarSkrzydla   ✅ -> Nie znaleziono połączenia dla strony '{bok.Strona}' - Dane pobieram rekord po rekordzie");

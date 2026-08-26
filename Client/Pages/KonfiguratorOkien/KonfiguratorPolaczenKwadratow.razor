@@ -2054,9 +2054,9 @@
             if (pasujaceSystemy.Count != 1)
             {
                 BladKonfiguracji = pasujaceSystemy.Count == 0
-                    ? "Nie znaleziono pasującego systemu konfiguracyjnego. Zmień występowanie elementu. Np. zaznacz tylko lewy/górny/prawy!"
-                    : $"Znaleziono {pasujaceSystemy.Count} pasujących systemów. Wymagane jest dokładnie jedno dopasowanie.";
-                await _message.Info(BladKonfiguracji);
+                ? "Nie znaleziono pasującego systemu konfiguracyjnego. Zmień występowanie elementu. Np. zaznacz tylko lewy/górny/prawy!"
+                : $"Znaleziono {pasujaceSystemy.Count} {(pasujaceSystemy.Count == 1 ? "pasujący system" : "pasujące systemy")}. Wymagane jest dokładnie jedno dopasowanie.";
+                _message.Info(BladKonfiguracji, 5);
                 Console.WriteLine(BladKonfiguracji);
                 return;
             }
@@ -2065,7 +2065,7 @@
             if (pasujaceSystemy.Select(x => x.IndeksElementu).Distinct().Count() > 1)
             {
                 BladKonfiguracji = $"Model jest zbudowany z więcej niż jednego typu elementów. Prawdopodobnie element dolny może być różny od pozostałych. Pomiń jedną ze stron i sprawdź! [Znalezione indeksy: {string.Join(", ", pasujaceSystemy.Select(x => x.IndeksElementu).Distinct())}]";
-                await _message.Info(BladKonfiguracji);
+                await _message.Info(BladKonfiguracji ,5);
                 Console.WriteLine(BladKonfiguracji);
                 return;
             }
@@ -2082,7 +2082,7 @@
             if (pasujacy == null)
             {
                 BladKonfiguracji = "Nie znaleziono pasującego elementu. Zmień występowanie elementu. Np. zaznacz tylko lewy/górny/prawy!";
-                await _message.Info(BladKonfiguracji);
+                await _message.Info(BladKonfiguracji, 5);
                 Console.WriteLine(BladKonfiguracji);
                 return;
             }
