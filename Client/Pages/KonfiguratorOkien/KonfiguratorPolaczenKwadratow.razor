@@ -1,4 +1,4 @@
-﻿@page "/KonfiguratorPolaczenKwadratow"
+﻿@page "/KonfiguratorPolaczenKwadratow/{SelectedSystemId?}"
 @using GEORGE.Shared.Models
 @using GEORGE.Shared.Class
 @inject HttpClient Http
@@ -1167,24 +1167,42 @@
 <div class="container-fluid mt-3">
     <div class="row mb-3">
         <div class="col">
-            <div class="d-flex align-items-center gap-3">
-
-                <div class="flex-grow-1">
-                    <label class="form-label">Wybierz system:</label>
-                    <select class="form-select" @onchange="@(async (args) => await OnSystemSelected(args))">
-                        <option value="" disabled selected>-- Wybierz system --</option>
-                        @foreach (var system in Systemy)
-                        {
-                            <option value="@system.RowId">@system.Nazwa_Systemu</option>
-                        }
-                    </select>
+            @if (czekajNaZaladowanieDanych)
+            {
+                <div class="text-center mt-5">
+                    <Spin Size="large" />
+                    <p class="mt-3">Ładowanie danych, proszę czekać...</p>
                 </div>
+            }
+            else
+            {
+                <div class="d-flex align-items-stretch gap-3">
+                    <div class="flex-grow-1">
+                        <label class="form-label">Wybierz system:</label>
+                        <select class="form-select" @onchange="@(async (args) => await OnSystemSelected(args))">
+                            <option value="" disabled selected="@(string.IsNullOrEmpty(SelectedSystemId))">-- Wybierz system --</option>
+                            @foreach (var system in Systemy)
+                            {
+                                <option value="@system.RowId" selected="@(system.RowId.ToString() == SelectedSystemId)">
+                                    @system.Nazwa_Systemu
+                                </option>
+                            }
+                        </select>
+                    </div>
 
-                <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
-                    <Button class="btn btn-outline-secondary" Icon="@IconType.Fill.Backward"
-                            Style="width: 35px;" OnClick="GoBack" />
-                </Tooltip>
-            </div>
+                    <div class="d-flex align-items-end">
+                        <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
+                            <Button class="btn btn-outline-secondary d-flex align-items-center gap-2"
+                                    Icon="@IconType.Fill.Backward"
+                                    Style="height: 38px; white-space: nowrap;"
+                                    OnClick="GoBack">
+                                <span class="d-none d-md-inline">Wróć do poprzedniej strony</span>
+                                <span class="d-md-none">Wróć</span>
+                            </Button>
+                        </Tooltip>
+                    </div>
+                </div>
+            }
         </div>
     </div>
 
@@ -1338,7 +1356,7 @@
                                 <tbody>
                                     @foreach (var model in ListaModeli)
                                     {
-                                        <tr @onclick="() => WybierzModel(model, selDol, selGora, selLewa, selPrawa, false)">
+                                        <tr @onclick="() => WybierzModel(model, selDol, selGora, selLewa, selPrawa, false, selSlStaly, selSlRuchomy)">
                                             <td>@model.NazwaKonfiguracji</td>
                                             <td>@model.Typ</td>
                                             <td>
@@ -1422,7 +1440,8 @@
                     </div>
 
                     <div class="mb-2 d-flex justify-content-between">
-                        <h6>Podgląd połączenia</h6>
+                        <h6 style="color:saddlebrown">Podgląd połączenia</h6>
+                        <h6 style="color:red">W przypadku konfiguracji słupka stałego wybierz go jako pierwszy model</h6>
                         <div>
                             <Button Icon="@IconType.Outline.Fire" OnClick="@(() => RefreshSvg())" Class="btn-sm me-2">
                                 Odśwież
@@ -1513,7 +1532,7 @@
                                     {
                                         @if (pierwszyModel == null)
                                         {
-                                            <tr @onclick="() => WybierzModel(model, selDolStyczne, selGoraStyczne, selLewaStyczne, selPrawaStyczne, true)">
+                                            <tr @onclick="() => WybierzModel(model, selDolStyczne, selGoraStyczne, selLewaStyczne, selPrawaStyczne, true, selSlStaly, selSlRuchomy)">
                                                 <td>@model.NazwaKonfiguracji</td>
                                                 <td>@model.Typ</td>
                                                 <td>
@@ -1531,7 +1550,7 @@
                                         }
                                         else if (pierwszyModel != null && model.Typ.Contains("Słupek"))
                                         {
-                                            <tr @onclick="() => WybierzModel(model, selDolStyczne, selGoraStyczne, selLewaStyczne, selPrawaStyczne, true)">
+                                            <tr @onclick="() => WybierzModel(model, selDolStyczne, selGoraStyczne, selLewaStyczne, selPrawaStyczne, true, selSlStaly, selSlRuchomy)">
                                                 <td>@model.NazwaKonfiguracji</td>
                                                 <td>@model.Typ</td>
                                                 <td>
@@ -1760,11 +1779,13 @@
 @code {
     [Inject] private AppState AppState { get; set; } = default!;
 
+    [Parameter]
+    public string? SelectedSystemId { get; set; }
+
     // Dane i stan
     private string SvgKey { get; set; } = Guid.NewGuid().ToString();
     private string SvgKeyStyczne { get; set; } = Guid.NewGuid().ToString();
     private List<SystemyOkienne> Systemy = new();
-    private string? SelectedSystemId;
     private string? SelectedModelPierwszyId;
     private string? SelectedModelDrugiId;
     private List<KonfModele>? ListaModeli;
@@ -1833,11 +1854,20 @@
 
     private string activeKey = "0";
 
+    private bool czekajNaZaladowanieDanych = true;
+
     // Inicjalizacja
     protected override async Task OnInitializedAsync()
     {
         await Laduj_Uprawnienia();
         Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne") ?? new();
+
+        if (!string.IsNullOrEmpty(SelectedSystemId))
+        {
+            await OnSystemSelected(new ChangeEventArgs { Value = SelectedSystemId });
+        }
+
+        czekajNaZaladowanieDanych = false;
 
     }
 
@@ -1990,12 +2020,12 @@
     }
 
     // Wybór modelu
-    private async Task WybierzModel(KonfModele model, bool stronaDol, bool stronaGora, bool stronaLewa, bool stronaPrawa, bool bStyczny)
+    private async Task WybierzModel(KonfModele model, bool stronaDol, bool stronaGora, bool stronaLewa, bool stronaPrawa, bool bStyczny, bool bSlupekStaly, bool bSlupekRuchomy)
     {
 
         boolStyczny = bStyczny; // Przypisujemy wartość przekazaną z parametru
 
-        Console.WriteLine($"WybierzModel - START - stronaDol: {stronaDol}, stronaGora: {stronaGora}, stronaLewa: {stronaLewa}, stronaPrawa: {stronaPrawa}, boolStyczny: {boolStyczny}");
+        Console.WriteLine($"WybierzModel - START - stronaDol: {stronaDol}, stronaGora: {stronaGora}, stronaLewa: {stronaLewa}, stronaPrawa: {stronaPrawa}, boolStyczny: {boolStyczny}, bSlupekStaly: {bSlupekStaly}, bSlupekRuchomy: {bSlupekRuchomy}");
 
         if (!selDol && !selGora && !selLewa && !selPrawa && !selDolStyczne && !selGoraStyczne && !selLewaStyczne && !selPrawaStyczne)
         {
@@ -2038,8 +2068,8 @@
             if (stronaLewa) warunki.Add(x => x.WystepujeLewa);
             if (stronaPrawa) warunki.Add(x => x.WystepujePrawa);
 
-            if (selSlRuchomy) warunki.Add(x => x.Typ == "Słupek ruchomy");
-            if (selSlStaly) warunki.Add(x => x.Typ == "Słupek stały");
+            if (bSlupekRuchomy && pierwszyModel == null) warunki.Add(x => x.Typ == "Słupek ruchomy");
+            if (bSlupekStaly && pierwszyModel == null) warunki.Add(x => x.Typ == "Słupek stały");
 
             if (model.Typ.Contains("Słupek") && boolStyczny)
             {
@@ -2057,6 +2087,16 @@
                 ? "Nie znaleziono pasującego systemu konfiguracyjnego. Zmień występowanie elementu. Np. zaznacz tylko lewy/górny/prawy!"
                 : $"Znaleziono {pasujaceSystemy.Count} {(pasujaceSystemy.Count == 1 ? "pasujący system" : "pasujące systemy")}. Wymagane jest dokładnie jedno dopasowanie.";
                 _message.Info(BladKonfiguracji, 5);
+
+                BladKonfiguracji += "\r\n";
+
+                foreach (var test in pasujaceSystemy)
+                {
+                    Console.WriteLine($"Pasujący system: {test.Nazwa}, WystepujeDol: {test.WystepujeDol}, WystepujeGora: {test.WystepujeGora}, WystepujeLewa: {test.WystepujeLewa}, WystepujePrawa: {test.WystepujePrawa}, Typ: {test.Typ}");
+                    BladKonfiguracji += $"Pasujący system: {test.Nazwa}, WystepujeDol: {test.WystepujeDol}, WystepujeGora: {test.WystepujeGora}, WystepujeLewa: {test.WystepujeLewa}, WystepujePrawa: {test.WystepujePrawa}, Typ: {test.Typ}";
+                    BladKonfiguracji += "\r\n";
+                }
+
                 Console.WriteLine(BladKonfiguracji);
                 return;
             }
@@ -2065,7 +2105,7 @@
             if (pasujaceSystemy.Select(x => x.IndeksElementu).Distinct().Count() > 1)
             {
                 BladKonfiguracji = $"Model jest zbudowany z więcej niż jednego typu elementów. Prawdopodobnie element dolny może być różny od pozostałych. Pomiń jedną ze stron i sprawdź! [Znalezione indeksy: {string.Join(", ", pasujaceSystemy.Select(x => x.IndeksElementu).Distinct())}]";
-                await _message.Info(BladKonfiguracji ,5);
+                await _message.Info(BladKonfiguracji, 5);
                 Console.WriteLine(BladKonfiguracji);
                 return;
             }
@@ -2148,7 +2188,7 @@
         {
             svgParts.Add($@"
             <g id=""model1"" transform=""translate({centerX}, {centerY})"">
-    {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
+                {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
             </g>");
         }
 
@@ -2476,7 +2516,7 @@
                     polaczenie.RowId = existing.RowId;
                     polaczenie.PrzesuniecieXStycznej = Math.Round(existing.PrzesuniecieXStycznej, precyzjaZapisu);
                     polaczenie.PrzesuniecieYStycznej = Math.Round(existing.PrzesuniecieYStycznej, precyzjaZapisu);
-                    //polaczenie.RysunekPrzekroju = existing.RysunekPrzekroju;    
+                    //polaczenie.RysunekPrzekroju = existing.RysunekPrzekroju;
                 }
             }
 
@@ -2518,7 +2558,7 @@
             KonfiguracjeSystemu = null;
             listaPolaczen = null;
 
-            await Task.Delay(15);
+            await Task.Delay(10);
 
             KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIND_ROWID_SYS/{SelectedSystemId}") ?? new();
 
@@ -2930,7 +2970,7 @@
             await Task.Delay(10); // Daj czas na renderowanie
             old_edytowanePrzesuniecieXStycznej = edytowanePrzesuniecieXStycznej;
             old_edytowanePrzesuniecieYStycznej = edytowanePrzesuniecieYStycznej;
-                                  // await ZmienPrzesuniecie(edytowanePrzesuniecieX, edytowanePrzesuniecieY);
+            // await ZmienPrzesuniecie(edytowanePrzesuniecieX, edytowanePrzesuniecieY);
         }
     }
 

@@ -229,6 +229,27 @@ namespace GEORGE.Server.Controllers
             }
         }
 
+        // ✅ GET: api/konfpolaczenie/row-id-model/{rowidModelSelect}
+        [HttpGet("row-id-elementu-gdzie-uzyty/{rowidElement:guid}")]
+        public async Task<ActionResult<List<KonfPolaczenie>>> GetByRowIdElementuGdzieUzyty(Guid rowidElement)
+        {
+            try
+            {
+                var records = await _context.KonfPolaczenie
+                    .Where(p => p.ElementWewnetrznyId == rowidElement || p.ElementWewnetrznyId == rowidElement)
+                    .ToListAsync();
+
+                if (records == null || records.Count == 0)
+                    return NotFound("Nie znaleziono połączeń dla podanego systemu");
+
+                return Ok(records);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Błąd serwera: {ex.Message}");
+            }
+        }
+
         // ✅ POST: api/konfpolaczenie
         [HttpPost]
         public async Task<ActionResult> Create([FromBody] KonfPolaczenie newEntry)

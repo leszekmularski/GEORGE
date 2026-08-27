@@ -200,6 +200,10 @@ namespace GEORGE.Server
             plik.IloscPobranPliku = plik.IloscPobranPliku + 1;
             plik.DataOstatniegoPobrania = DateTime.Now;
             if(plik.DataPierwszegoPobrania == DateTime.MinValue) plik.DataPierwszegoPobrania = DateTime.Now;
+
+            if (plik.IloscPobranPliku == 0)
+                plik.DataPierwszegoPobrania = DateTime.MinValue;
+
             await SaveChangesAsync();
             return true;
         }

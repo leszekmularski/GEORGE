@@ -7,94 +7,263 @@
 @inject INotificationService _notice
 @inject Utilities.ILocalStorage LocalStorage
 @inject IJSRuntime JSRuntime
-
+@inject ConfirmService ComfirmService
 @using System.Net
+
+@if (czekajNaZaladowanieDanych)
+{
+    <div class="text-center mt-5">
+        <Spin Size="large" />
+        <p class="mt-3">Ładowanie danych, proszę czekać...</p>
+    </div>
+}
 
 <h3 class="text-center mt-3">📌 Systemy Okienne</h3>
 
 <div class="container mt-4">
-
-    <div class="d-flex justify-content-between align-items-center mt-3">
-        <button class="btn btn-primary mb-3" style="width:40%;" @onclick="DodajNowy">
-            <i class="fas fa-plus"></i> Dodaj Nowy System
-        </button>
-        <button class="btn btn-primary mb-3" @onclick="GoBack">
-            <i class="fas fa-arrow-right"></i> Wróć do poprzedniej strony
-        </button>
+    <!-- Sekcja: Dodaj nowy system -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Utwórz nowy system</h5>
+        </div>
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="mb-1"><strong>Kreator nowego systemu okiennego</strong></p>
+                    <small class="text-muted">Rozpocznij konfigurację od podstaw lub skopiuj istniejący system</small>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" @onclick="DodajNowy" style="font-size: 0.875rem;">
+                        <i class="fas fa-plus me-1"></i>Nowy system
+                    </button>
+                    <button class="btn btn-outline-primary" @onclick="KopiujSystem" style="font-size: 0.875rem;">
+                        <i class="fas fa-copy me-1"></i>Kopiuj
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <!-- Sekcja: Lista systemów i konfiguracje -->
     @if (Systemy != null && Systemy.Any())
     {
-        <table class="table table-striped table-hover">
-            <thead class="thead-dark">
-                <tr>
-                    <th>Nazwa</th>
-                    <th>Opis</th>
-                    <th>Uwagi</th>
-                    <th>Akcje</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var system in Systemy)
-                {
-                    <tr>
-                        <td>@system.Nazwa_Systemu</td>
-                        <td>@system.Opis_Systemu</td>
-                        <td>@system.Uwagi</td>
-                        <td>
-                            <button class="btn btn-warning btn-sm me-2" @onclick="() => Edytuj(system.Id)">
-                                <i class="fas fa-edit"></i> Edytuj
-                            </button>
-                            <button class="btn btn-danger btn-sm" @onclick="() => Usun(system.Id)">
-                                <i class="fas fa-trash-alt"></i> Usuń
-                            </button>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+        <div class="card shadow-sm">
+            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>Konfiguracja istniejących systemów</h5>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="showWithdrawn" @bind="showWithdrawn">
+                    <label class="form-check-label text-white" for="showWithdrawn">
+                        Pokaż wycofane z produkcji
+                    </label>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th style="width: 18%">Nazwa systemu</th>
+                                <th style="width: 22%">Opis</th>
+                                <th style="width: 10%">Status</th>
+                                <th style="width: 35%">Konfiguracje</th>
+                                <th style="width: 15%">Akcje</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var system in FilteredSystemy)
+                            {
+                                <tr class="@(system.Wycofany_z_produkcji ? "table-secondary" : "")">
+                                    <td class="align-middle">
+                                        <strong>@system.Nazwa_Systemu</strong>
+                                        @if (system.Wycofany_z_produkcji)
+                                        {
+                                            <br />
+                                            <small class="text-muted">
+                                                <i class="fas fa-calendar-times me-1"></i>Wycofany
+                                            </small>
+                                        }
+                                    </td>
+                                    <td class="align-middle">@system.Opis_Systemu</td>
+                                    <td class="align-middle">
+                                        @if (system.Wycofany_z_produkcji)
+                                        {
+                                            <span class="badge bg-secondary">Wycofany</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">Aktywny</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-wrap gap-2 align-items-center">
+                                            <!-- Konfiguracje podstawowe -->
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-outline-primary btn-sm px-3"
+                                                        @onclick="() => GoKonfiguratorNowegoElementu(system.Id, system.RowId)"
+                                                        title="Dodaj nowy profil w systemie"
+                                                        disabled="@system.Wycofany_z_produkcji">
+                                                    <i class="fas fa-layer-group me-1"></i>Profil
+                                                </button>
+                                                <button class="btn btn-outline-primary btn-sm px-3"
+                                                        @onclick="() => GoBudujModeleOkien(system.Id, system.RowId)"
+                                                        title="Buduj modele okien"
+                                                        disabled="@system.Wycofany_z_produkcji">
+                                                    <i class="fas fa-window-maximize me-1"></i>Modele
+                                                </button>
+                                            </div>
+
+                                            <!-- Konfiguracje połączeń -->
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-outline-info btn-sm px-3"
+                                                        @onclick="() => GoKonfiguratorPolaczen(system.Id, system.RowId)"
+                                                        title="Konfigurator połączeń naroży"
+                                                        disabled="@system.Wycofany_z_produkcji">
+                                                    <i class="fas fa-vector-square me-1"></i>Naroża
+                                                </button>
+                                                <button class="btn btn-outline-info btn-sm px-3"
+                                                        @onclick="() => GoKonfiguratorPolaczenKwadratow(system.Id, system.RowId)"
+                                                        title="Konfigurator połączeń rama/skrzydło/słupek"
+                                                        disabled="@system.Wycofany_z_produkcji">
+                                                    <i class="fas fa-border-all me-1"></i>Połączenia
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-column gap-1">
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-outline-warning btn-sm px-3"
+                                                        @onclick="() => Edytuj(system.Id, system.RowId)"
+                                                        title="Edytuj dane systemu">
+                                                    <i class="fas fa-edit me-1"></i>Edytuj
+                                                </button>
+                                                <button class="btn btn-outline-danger btn-sm px-3"
+                                                        @onclick="() => Usun(system.Id)"
+                                                        title="Usuń system">
+                                                    <i class="fas fa-trash me-1"></i>Usuń
+                                                </button>
+                                            </div>
+                                            <button class="btn @(system.Wycofany_z_produkcji ? "btn-success" : "btn-outline-secondary") btn-sm px-3"
+                                                    @onclick="() => ToggleWycofanie(system)"
+                                                    title="@(system.Wycofany_z_produkcji ? "Przywróć do produkcji" : "Wycofaj z produkcji")">
+                                                <i class="fas @(system.Wycofany_z_produkcji ? "fa-undo" : "fa-ban") me-1"></i>
+                                                @(system.Wycofany_z_produkcji ? "Przywróć" : "Wycofaj")
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statystyki systemów -->
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="card text-center bg-light">
+                    <div class="card-body">
+                        <h3 class="mb-0">@Systemy.Count</h3>
+                        <small class="text-muted">Wszystkie systemy</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center bg-light">
+                    <div class="card-body">
+                        <h3 class="mb-0">@Systemy.Count(s => !s.Wycofany_z_produkcji)</h3>
+                        <small class="text-muted">Aktywne</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center bg-light">
+                    <div class="card-body">
+                        <h3 class="mb-0">@Systemy.Count(s => s.Wycofany_z_produkcji)</h3>
+                        <small class="text-muted">Wycofane</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center bg-light">
+                    <div class="card-body">
+                        <button class="btn btn-link p-0" @onclick="GoBack">
+                            <i class="fas fa-arrow-left me-1"></i>Wróć
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     }
     else
     {
-        <p class="text-muted text-center">Brak dostępnych systemów okiennych.</p>
+        <div class="alert alert-info text-center">
+            <i class="fas fa-info-circle me-2"></i>
+            Brak dostępnych systemów okiennych. Rozpocznij od utworzenia nowego systemu.
+        </div>
     }
 </div>
 
 @if (EdytowanySystem != null)
 {
-    <!-- Modal -->
+    <!-- Modal dodawania/edycji systemu -->
     <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">📝 @((EdytowanySystem.Id == 0) ? "Dodaj Nowy System" : "Edytuj System")</h5>
-                    <button type="button" class="btn-close" @onclick="Anuluj"></button>
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas @((EdytowanySystem.Id == 0) ? "fa-plus-circle" : "fa-edit") me-2"></i>
+                        @((EdytowanySystem.Id == 0) ? "Dodaj Nowy System" : "Edytuj System")
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="Anuluj"></button>
                 </div>
                 <div class="modal-body">
                     <EditForm Model="EdytowanySystem" OnValidSubmit="Zapisz">
                         <DataAnnotationsValidator />
 
-                        <div class="mb-3">
-                            <label class="form-label">Nazwa Systemu:</label>
-                            <InputText class="form-control" @bind-Value="EdytowanySystem.Nazwa_Systemu" />
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-tag me-2"></i>Nazwa Systemu:
+                                </label>
+                                <InputText class="form-control" @bind-Value="EdytowanySystem.Nazwa_Systemu" />
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-align-left me-2"></i>Opis:
+                                </label>
+                                <InputTextArea class="form-control" rows="3" @bind-Value="EdytowanySystem.Opis_Systemu" />
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-sticky-note me-2"></i>Uwagi:
+                                </label>
+                                <InputTextArea class="form-control" rows="2" @bind-Value="EdytowanySystem.Uwagi" />
+                            </div>
+
+                            @if (EdytowanySystem.Id != 0)
+                            {
+                                <div class="col-md-12 mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="wycofanyCheckbox"
+                                               @bind="EdytowanySystem.Wycofany_z_produkcji">
+                                        <label class="form-check-label fw-bold" for="wycofanyCheckbox">
+                                            <i class="fas fa-ban me-2"></i>Wycofany z produkcji
+                                        </label>
+                                    </div>
+                                </div>
+                            }
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Opis:</label>
-                            <InputText class="form-control" @bind-Value="EdytowanySystem.Opis_Systemu" />
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Uwagi:</label>
-                            <InputText class="form-control" @bind-Value="EdytowanySystem.Uwagi" />
-                        </div>
-
-                        <div class="text-end">
+                        <div class="d-flex justify-content-end gap-2 mt-3">
                             <button type="submit" class="btn btn-success">
-                                <i class="fas fa-save"></i> Zapisz
+                                <i class="fas fa-save me-2"></i>Zapisz
                             </button>
                             <button type="button" class="btn btn-secondary" @onclick="Anuluj">
-                                <i class="fas fa-times"></i> Anuluj
+                                <i class="fas fa-times me-2"></i>Anuluj
                             </button>
                         </div>
                     </EditForm>
@@ -108,12 +277,19 @@
     private List<SystemyOkienne>? Systemy;
     private SystemyOkienne? EdytowanySystem;
     private string apiUrl = "api/systemy-okienne";
+    private bool showWithdrawn = false;
+
+    private bool czekajNaZaladowanieDanych = true;
+
+    private IEnumerable<SystemyOkienne> FilteredSystemy =>
+        showWithdrawn ? Systemy : Systemy?.Where(s => !s.Wycofany_z_produkcji);
 
     protected override async Task OnInitializedAsync()
     {
         await Laduj_Uprawnienia();
-
         Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>(apiUrl);
+
+        czekajNaZaladowanieDanych = false;
     }
 
     private void DodajNowy()
@@ -121,9 +297,54 @@
         EdytowanySystem = new SystemyOkienne();
     }
 
-    private async Task Edytuj(int id)
+    private void KopiujSystem()
+    {
+        // Implementacja kopiowania systemu
+        if (Systemy != null && Systemy.Any())
+        {
+            var pierwszySystem = Systemy.First();
+            EdytowanySystem = new SystemyOkienne
+            {
+                Nazwa_Systemu = pierwszySystem.Nazwa_Systemu + " - Kopia",
+                Opis_Systemu = pierwszySystem.Opis_Systemu,
+                Uwagi = "Skopiowano z: " + pierwszySystem.Nazwa_Systemu
+            };
+        }
+        else
+        {
+            DodajNowy();
+        }
+    }
+
+    private async Task Edytuj(int id, Guid rowId)
     {
         EdytowanySystem = await Http.GetFromJsonAsync<SystemyOkienne>($"{apiUrl}/{id}");
+    }
+
+    private async Task ToggleWycofanie(SystemyOkienne system)
+    {
+        if (!boolZmiana)
+        {
+            await _message.Warning("Nie masz uprawnień do zmiany danych!");
+            return;
+        }
+
+        system.Wycofany_z_produkcji = !system.Wycofany_z_produkcji;
+        system.KtoZapisal = user;
+        system.DataZapisu = DateTime.Now;
+
+        await Http.PutAsJsonAsync($"{apiUrl}/{system.Id}", system);
+        Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>(apiUrl);
+
+        await _notice.Success(new()
+        {
+            Message = "Informacja!!",
+            Description = system.Wycofany_z_produkcji
+                ? $"System '{system.Nazwa_Systemu}' został wycofany z produkcji!"
+                : $"System '{system.Nazwa_Systemu}' został przywrócony do produkcji!",
+            Placement = NotificationPlacement.BottomLeft,
+            Duration = 3
+        });
     }
 
     private async Task Zapisz()
@@ -134,14 +355,32 @@
             return;
         }
 
+        EdytowanySystem.KtoZapisal = $"Ostatnia zmiana {user} - {DateTime.Now}";
+        EdytowanySystem.DataZapisu = DateTime.Now;
+
         if (EdytowanySystem.Id == 0)
         {
             await Http.PostAsJsonAsync(apiUrl, EdytowanySystem);
+            await _notice.Success(new()
+            {
+                Message = "Informacja!!",
+                Description = $"System został dodany pomyślnie!",
+                Placement = NotificationPlacement.BottomLeft,
+                Duration = 3
+            });
         }
         else
         {
             await Http.PutAsJsonAsync($"{apiUrl}/{EdytowanySystem.Id}", EdytowanySystem);
+            await _notice.Success(new()
+            {
+                Message = "Informacja!!",
+                Description = $"System został zaktualizowany!",
+                Placement = NotificationPlacement.BottomLeft,
+                Duration = 3
+            });
         }
+
         Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>(apiUrl);
         EdytowanySystem = null;
     }
@@ -150,12 +389,32 @@
     {
         if (!boolUsuniecia)
         {
-          await  _message.Warning("Nie masz uprawnień do usunięcia danych!");
-          return;
+            await _message.Warning("Nie masz uprawnień do usunięcia danych!");
+            return;
         }
 
-        await Http.DeleteAsync($"{apiUrl}/{id}");
-        Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>(apiUrl);
+        var system = Systemy?.FirstOrDefault(s => s.Id == id);
+        if (system != null)
+        {
+            var potwierdzenie = await Comfirm($"Czy na pewno chcesz usunąć system '{system.Nazwa_Systemu}'?");
+            if (potwierdzenie)
+            {
+                await Http.DeleteAsync($"{apiUrl}/{id}");
+                Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>(apiUrl);
+                await _notice.Success(new()
+                {
+                    Message = "Informacja!!",
+                    Description = $"System został usunięty!",
+                    Placement = NotificationPlacement.BottomLeft,
+                    Duration = 3
+                });
+            }
+        }
+    }
+
+    private async Task<bool> Comfirm(string message)
+    {
+        return await ComfirmService.Show(message, "Confirm", ConfirmButtons.YesNo, ConfirmIcon.Warning) == ConfirmResult.Yes;
     }
 
     private void Anuluj()
@@ -168,7 +427,28 @@
         await JSRuntime.InvokeVoidAsync("history.back");
     }
 
+    // Metody nawigacji do konfiguratorów
+    private void GoKonfiguratorNowegoElementu(int systemId, Guid rowId)
+    {
+        Navigation.NavigateTo($"/KonfiguratorOkien/{rowId}");
+    }
 
+    private void GoBudujModeleOkien(int systemId, Guid rowId)
+    {
+        Navigation.NavigateTo($"/Modele-okienne/{rowId}");
+    }
+
+    private void GoKonfiguratorPolaczen(int systemId, Guid rowId)
+    {
+        Navigation.NavigateTo($"/KonfiguratorPolaczen/{rowId}");
+    }
+
+    private void GoKonfiguratorPolaczenKwadratow(int systemId, Guid rowId)
+    {
+        Navigation.NavigateTo($"/KonfiguratorPolaczenKwadratow/{rowId}");
+    }
+
+    // Zmienne uprawnień
     private bool boolOdczyt = false;
     private bool boolZmiana = false;
     private bool boolUsuniecia = false;
@@ -176,7 +456,6 @@
     private bool boolNowy = false;
     private string RowIdPracownika = "";
     private string? user;
-    private bool isNotDisabled => !boolZmiana;
     private List<UprawnieniaPracownikaViewModel>? uprawnienia;
 
     private async Task Laduj_Uprawnienia()
@@ -185,13 +464,10 @@
 
         if (string.IsNullOrEmpty(user))
         {
-            //NavigationManager.NavigateTo($"", true);
             return;
         }
 
         string nazwaTabeli = "SystemyOkienne";
-
-        Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");
 
         try
         {
@@ -208,27 +484,22 @@
             await _message.Error(ex.Message);
         }
 
-        if (uprawnienia != null)
+        if (uprawnienia != null && uprawnienia.Count > 0)
         {
-            if (uprawnienia.Count > 0)
+            var znalezioneElementy = uprawnienia.Where(uprawnienie => uprawnienie.TableName == nazwaTabeli);
+            if (znalezioneElementy.Any())
             {
-                var znalezioneElementy = uprawnienia.Where(uprawnienie => uprawnienie.TableName == nazwaTabeli);
-                Console.WriteLine("Znaleziono uprawnienia dla użytkownika: " + user + " w tabeli: " + nazwaTabeli + " ilość rekordów: " + znalezioneElementy.Count());
-                if (znalezioneElementy.Any())
+                var szuk = znalezioneElementy.FirstOrDefault(x => x.TableName == nazwaTabeli);
+                if (szuk != null)
                 {
-                    var szuk = znalezioneElementy.FirstOrDefault(x => x.TableName == nazwaTabeli);
-                    if (szuk != null)
-                    {
-                        boolOdczyt = szuk.Odczyt;
-                        boolZmiana = szuk.Zmiana;
-                        boolUsuniecia = szuk.Usuniecie;
-                        boolAdmin = szuk.Administrator;
-                        boolNowy = szuk.Zapis;
-                        RowIdPracownika = szuk.RowId;
-                    }
+                    boolOdczyt = szuk.Odczyt;
+                    boolZmiana = szuk.Zmiana;
+                    boolUsuniecia = szuk.Usuniecie;
+                    boolAdmin = szuk.Administrator;
+                    boolNowy = szuk.Zapis;
+                    RowIdPracownika = szuk.RowId;
                 }
             }
         }
     }
-
 }

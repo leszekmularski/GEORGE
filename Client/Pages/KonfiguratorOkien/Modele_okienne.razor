@@ -1,4 +1,4 @@
-﻿@page "/Modele-okienne"
+﻿@page "/Modele-okienne/{SelectedSystemId?}"
 @using AntDesign
 @using GEORGE.Shared.Models
 @using GEORGE.Shared.Class
@@ -548,21 +548,27 @@
     </div>
     <!-- Panel boczny z modelami -->
     <div class="wing-model-container">
-        <!-- 🔹 Wybór systemu -->
-        <Tooltip Placement="@Placement.TopRight" Title="Otwórz konfigurator nowego systemu lub wybierz go z listy">
-            <div class="d-flex">
-                @if (Systemy != null && Systemy.Any())
-                {
-                    <select class="form-select me-2" style="width:100%" @onchange="@(async (args) => await OnSystemSelected(args))">
-                        <option value="" disabled selected>-- Wybierz system --</option>
-                        @foreach (var system in Systemy)
-                        {
-                            <option value="@system.RowId">@system.Nazwa_Systemu</option>
-                        }
-                    </select>
-                }
-            </div>
-        </Tooltip>
+
+        @if (Systemy != null && Systemy.Any())
+        {
+            <!-- 🔹 Wybór systemu -->
+            <Tooltip Placement="@Placement.TopRight" Title="Otwórz konfigurator nowego systemu lub wybierz go z listy">
+                <div class="d-flex">
+                    @if (Systemy != null && Systemy.Any())
+                    {
+                        <select class="form-select me-2" style="width:100%" @onchange="@(async (args) => await OnSystemSelected(args))">
+                            <option value="" disabled selected="@(string.IsNullOrEmpty(SelectedSystemId))">-- Wybierz system --</option>
+                            @foreach (var system in Systemy)
+                            {
+                                <option value="@system.RowId" selected="@(system.RowId.ToString() == SelectedSystemId)">
+                                    @system.Nazwa_Systemu
+                                </option>
+                            }
+                        </select>
+                    }
+                </div>
+            </Tooltip>
+        }
 
         <table class="table table-striped">
             <thead>
@@ -590,11 +596,11 @@
                                          @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
                                          draggable="true"
                                          style="cursor: grab;
-                                                                                                                                        width: auto;
-                                                                                                                                        height: auto;
-                                                                                                                                        max-width: 50px;
-                                                                                                                                        max-height: 50px;
-                                                                                                                                        border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
+                                                                            width: auto;
+                                                                            height: auto;
+                                                                            max-width: 50px;
+                                                                            max-height: 50px;
+                                                                            border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
 
                                 }
                                 else
@@ -1407,6 +1413,8 @@
 </Modal>
 
 @code {
+    [Parameter]
+    public string? SelectedSystemId { get; set; }
 
     // Klasa WingModel definiująca dane dla skrzydła
     private List<KonfSystem>? KonfiguracjeSystemu;
@@ -1417,7 +1425,6 @@
 
     private string WybranyKsztalt = "prostokat";
 
-    private string SelectedSystemId = "";
     private List<KonfModele>? ListaModeli;
 
     private BECanvasComponent? CanvasRef; // Referencja do komponentu BECanvas
@@ -1506,29 +1513,45 @@
 
     protected override async Task OnInitializedAsync()
     {
-
         Console.WriteLine($"🔥🔥🔥🔥🔥🔥🔥 Modele-okienne OnInitializedAsync 🔥🔥🔥🔥🔥🔥🔥🔥");
 
         try
         {
-
             Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
 
             // Sprawdź, czy skrypt JS został poprawnie załadowany
-
             var isScriptLoaded = await JS.InvokeAsync<bool>("eval", "typeof setCanvasRef === 'function'");
             if (!isScriptLoaded)
             {
                 throw new Exception("⚠️ Skrypt dragAndDrop.js nie został poprawnie załadowany!");
             }
 
+            await Laduj_Uprawnienia();
+
+            // Przeniesione tutaj - po załadowaniu systemów
+            if (!string.IsNullOrEmpty(SelectedSystemId))
+            {
+                Console.WriteLine($"🔄 Ładuję modele dla systemu: {SelectedSystemId}");
+
+                // Najpierw załaduj konfigurację systemu
+                if (KonfiguracjeSystemu == null || !KonfiguracjeSystemu.Any())
+                {
+                    KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIND_ROWID_SYS/{SelectedSystemId}");
+                }
+
+                // Potem modele
+                if (ListaModeli == null || !ListaModeli.Any())
+                {
+                    ListaModeli = await Http.GetFromJsonAsync<List<KonfModele>>($"api/konfmodele/FIND_ONLY_TRUE/{SelectedSystemId}");
+                    Console.WriteLine($"✅ Załadowano {ListaModeli?.Count ?? 0} modeli");
+                }
+            }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"🔥 Błąd podczas inicjalizacji: {ex.Message}");
+            Console.WriteLine($"🔥 Stack trace: {ex.StackTrace}");
         }
-
-        await Laduj_Uprawnienia();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -1538,6 +1561,9 @@
             try
             {
                 Console.WriteLine("🔄 Inicjalizacja canvasu...");
+
+                // Poczekaj na zakończenie inicjalizacji
+                await Task.Delay(100);
 
                 // Inicjalizacja modal drag
                 await JS.InvokeVoidAsync("prepareModalForDrag", modalRef);
@@ -1562,27 +1588,22 @@
                 // Teraz rysujemy tylko jeśli dane są gotowe
                 if (ShapeService != null && ShapeService.Shapes.Any())
                 {
-
                     pokaKonturWewnetrzny = ShapeService.RysujTylkoKontur;
                     oknaMogaBycLukowe = ShapeService.OknaMogaBycLukowe;
 
                     constWlasciwosciOkna.Szerokosc = ShapeService.Szerokosc;
                     constWlasciwosciOkna.Wysokosc = ShapeService.Wysokosc;
-
                     constWlasciwosciOkna.EditableProperties = ShapeService.EditableProperties;
 
                     // Obserwacja resize
                     await StartResizeObserver();
 
-                    await GenerujObrysPozZmianieWymiarow(true, false); // obrys i regiony
-
-                    await ZmienWymiaryOkna(); // dopasowanie do okna i wygenerowanie obrysu
-
-                    await FitShapesToDisplayWindow();           // dopasowanie do canvas
-                    // await RenderShapesIfReady(); // <--- dodaj to
-
+                    await GenerujObrysPozZmianieWymiarow(true, false);
+                    await ZmienWymiaryOkna();
+                    await FitShapesToDisplayWindow();
                 }
 
+                await Task.Yield();
                 _isInitialized = true;
 
                 Console.WriteLine("✅ Canvas zainicjalizowany!");
@@ -1590,10 +1611,10 @@
             catch (Exception ex)
             {
                 Console.WriteLine($"🔥 Błąd inicjalizacji canvasu: {ex.Message}");
+                Console.WriteLine($"🔥 Stack trace: {ex.StackTrace}");
                 hasCanvasError = true;
                 StateHasChanged();
             }
-
         }
     }
 
@@ -3219,7 +3240,7 @@
                 else
                 {
                     await _message.Warning($"❌ Nie znaleziono linii słupka w regionie {region.Id} dla pozycji (X: {modelX:F2}, Y: {modelY:F2})", 3.5);
-                    return; 
+                    return;
                 }
             }
         }
@@ -4609,6 +4630,7 @@
             Console.WriteLine($"⚠️ Region {idRegion} NIE zawiera linii stycznych.");
         }
 
+
         generator.RuchomySlupekPoLewej = stronaLewa;
         generator.RuchomySlupekPoPrawej = stronaPrawa;
 
@@ -5605,6 +5627,8 @@
 
         //await ApplyZoom(_currentScale);
 
+        Console.WriteLine($"✅ ✅ ✅ Funkcja DodajWyranyKwadratOkna zakończyła działanie - TRUE");
+
         return true;
     }
 
@@ -5989,7 +6013,7 @@
                 polaczenieWartosci = await PobierzPolaczenia(bok.RowIdSasiada, bok.RowIdElementu, bok.Strona ?? "NaN");
 
                 if (polaczenieWartosciAllSystem == null || polaczenieWartosciAllSystem.Count == 0)
-                generator.BledySystemowe.Add($"⚠️ WyliczObszarSkrzydla   ✅ -> Nie znaleziono połączenia dla strony '{bok.Strona}' - Dane pobieram rekord po rekordzie");
+                    generator.BledySystemowe.Add($"⚠️ WyliczObszarSkrzydla   ✅ -> Nie znaleziono połączenia dla strony '{bok.Strona}' - Dane pobieram rekord po rekordzie");
                 //Console.WriteLine($"✅ WyliczObszarSkrzydla Dane o połączeniach w systemie: {polaczenieWartosciAllSystem.Count} rekordów - wolne działanie strona po stronie");
             }
             else
@@ -8529,7 +8553,14 @@
 
         //_shapes.Clear();
 
-        NavigationManager.NavigateTo("/DrawCAD");
+        if (!string.IsNullOrEmpty(SelectedSystemId))
+        {
+            NavigationManager.NavigateTo($"/DrawCAD/{SelectedSystemId}");
+        }
+        else
+        {
+            NavigationManager.NavigateTo($"/DrawCAD");
+        }
 
         Console.WriteLine("GoCAD END");
     }

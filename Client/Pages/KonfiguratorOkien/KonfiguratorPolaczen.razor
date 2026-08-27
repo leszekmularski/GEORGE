@@ -1,4 +1,4 @@
-﻿@page "/KonfiguratorPolaczen"
+﻿@page "/KonfiguratorPolaczen/{SelectedSystemId?}"
 @inject HttpClient Http
 @inject NavigationManager Navigation
 @using GEORGE.Shared.Models
@@ -49,16 +49,26 @@
 
 <div class="container mt-4">
 
+    @if (czekajNaZaladowanieDanych)
+    {
+        <div class="text-center mt-5">
+            <Spin Size="large" />
+            <p class="mt-3">Ładowanie danych, proszę czekać...</p>
+        </div>
+    }
+
     <!-- 🔹 Wybór systemu -->
     <Tooltip Placement="@Placement.TopRight" Style="width:100%;" Title="Otwórz konfigurator nowego systemu lub wybierz go z listy">
         <div class="d-flex align-items-center" style="width:100%;">
             @if (Systemy != null && Systemy.Any())
             {
                 <select class="form-select me-2" @onchange="@(async (args) => await OnSystemSelected(args))">
-                    <option value="" disabled selected>-- Wybierz system --</option>
+                    <option value="" disabled selected="@(string.IsNullOrEmpty(SelectedSystemId))">-- Wybierz system --</option>
                     @foreach (var system in Systemy)
                     {
-                        <option value="@system.RowId">@system.Nazwa_Systemu</option>
+                        <option value="@system.RowId" selected="@(system.RowId.ToString() == SelectedSystemId)">
+                            @system.Nazwa_Systemu
+                        </option>
                     }
                 </select>
             }
@@ -379,6 +389,9 @@
 <br />
 
 @code {
+    [Parameter]
+    public string? SelectedSystemId { get; set; }
+
     private bool PokazTylkoPowiazane = false;
 
     private List<SystemyOkienne>? Systemy;
@@ -390,8 +403,6 @@
     private List<KonfModele>? ListaModeli;
     private KonfModele? EdytowanyModel;
 
-    private string SelectedSystemId = "";
-
     private string? PokazanyModelRowId;
     private MVCKonfModele? PowiazanyModel;
 
@@ -399,11 +410,19 @@
 
     private bool pytanieOK = false;
 
+    private bool czekajNaZaladowanieDanych = true;
+
     protected override async Task OnInitializedAsync()
     {
         await Laduj_Uprawnienia();
 
         Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
+
+        if(!string.IsNullOrEmpty(SelectedSystemId))
+        {
+            await OnSystemSelected(new ChangeEventArgs { Value = SelectedSystemId });
+        }
+        czekajNaZaladowanieDanych = false;
     }
 
     private async Task OnSystemSelected(ChangeEventArgs e)
