@@ -5094,6 +5094,7 @@ namespace GEORGE.Client.Pages.Okna
         }
         private async Task<float> ObliczRoznicePoziomow(KonfSystem? konf, bool slupekStaly)
         {
+            //Funkcja jest odpowiedzilan za obliczenie grubości widocznej profilu
             if (konf == null)
             {
                 BledySystemowe.Add($"Konfiguracja systemu jest pusta. Dotyczy funkcji ObliczRoznicePoziomow");

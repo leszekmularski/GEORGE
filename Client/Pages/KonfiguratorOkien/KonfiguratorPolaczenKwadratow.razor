@@ -114,522 +114,745 @@
 </style>
 
 <script>
-    // 🧠 Inicjalizacja namespace i stanu zoomLevel
-    if (typeof activScale === 'undefined') {
-        let activScale = window.activScale || 1;
-    } else {
-        activScale = window.activScale || activScale || 1;
-    }
-
-    window.svgHelper = window.svgHelper || {};
-    window.svgHelper.zoomLevel = window.svgHelper.zoomLevel || 1;
-
-    // 🔄 Centrowanie i dopasowanie SVG do kontenera
-    window.svgHelper.centerAndFit = function() {
-        const svg = document.querySelector(".scaled-svg");
-        const container = document.querySelector(".scaled-svg-container");
-        const svgContent = svg?.querySelector("#zoom-group");
-
-        if (!svg || !container || !svgContent) return;
-
-        // Reset transformacji do obliczenia bounding box
-        const prevTransform = svgContent.getAttribute("transform") || "";
-        svgContent.setAttribute("transform", "");
-
-        const bbox = svgContent.getBBox();
-        svgContent.setAttribute("transform", prevTransform);
-
-        const svgWidth = svg.clientWidth;
-        const svgHeight = svg.clientHeight;
-
-        const scale = Math.min(
-            svgWidth / (bbox.width + 50),
-            svgHeight / (bbox.height + 50)
-        ) * 0.95;
-
-        const offsetX = (svgWidth - bbox.width * scale) / 2 - bbox.x * scale;
-        const offsetY = (svgHeight - bbox.height * scale) / 2 - bbox.y * scale;
-
-        activScale = scale;
-
-        svgContent.setAttribute("transform",
-            `translate(${offsetX}, ${offsetY}) scale(${scale})`);
-        window.svgHelper.zoomLevel = scale;
-
-        activScale = scale;
-    };
-
-    // 🔁 Obrót tylko drugiego modelu
-    window.svgHelper.rotateSecondModel = function() {
-        const model2 = document.querySelector("#model2");
-        if (!model2) return;
-
-        const currentTransform = model2.getAttribute("transform") || "";
-
-        // Wyodrębnij aktualne przesunięcie
-        const translateMatch = currentTransform.match(/translate\(([^)]+)\)/);
-        const translate = translateMatch ? translateMatch[0] : "translate(0, 0)";
-
-        // Wyodrębnij aktualny kąt obrotu
-        const rotateMatch = currentTransform.match(/rotate\(([-\d.]+)/);
-        const currentAngle = rotateMatch ? parseFloat(rotateMatch[1]) : 0;
-        const newAngle = (currentAngle + 90) % 360;
-
-        // Oblicz środek modelu
-        const bbox = model2.getBBox();
-        const cx = bbox.x + bbox.width / 2;
-        const cy = bbox.y + bbox.height / 2;
-
-        // Zastosuj nową transformację
-        model2.setAttribute("transform", `${translate} rotate(${newAngle}, ${cx}, ${cy})`);
-    };
-
-    // ✅ Bezpieczne tworzenie #models-group (naprawia błąd 'ancestor' i znika rysunek)
-    window.svgHelper.ensureModelsGroup = function() {
-        try {
-            const zoomGroup = document.querySelector(".scaled-svg svg #zoom-group") ||
-                              document.querySelector(".scaled-svg #zoom-group");
-            if (!zoomGroup) {
-                console.warn("[ensureModelsGroup] Brak #zoom-group");
-                return null;
-            }
-
-            // 1) Zbierz kandydatów PRZED utworzeniem grupy (TYLKO elementy z id "model" + cyfra)
-            //    -> regex /^model\d+/ zabezpiecza przed 'models-group'
-            const candidates = Array.from(zoomGroup.children)
-                .filter(el => el.id && /^model\d+/.test(el.id));
-
-            // 2) Jeśli grupa już jest, zwróć ją
-            let group = zoomGroup.querySelector("#models-group");
-            if (!group) {
-                // 3) Stwórz grupę i wstaw ją (teraz, po zebraniu kandydatów)
-                group = document.createElementNS("http://www.w3.org/2000/svg", "g");
-                group.setAttribute("id", "models-group");
-                zoomGroup.insertBefore(group, zoomGroup.firstChild);
-            }
-
-            // 4) Przenieś zebrane elementy do grupy (nie będzie tu już 'models-group' w candidates)
-            candidates.forEach(m => group.appendChild(m));
-
-            console.log("[ensureModelsGroup] Przeniesiono do #models-group:", candidates.map(m => m.id));
-            return group;
-        } catch (e) {
-            console.error("[ensureModelsGroup] błąd:", e);
-            return null;
+        // 🧠 Inicjalizacja namespace i stanu zoomLevel
+        if (typeof activScale === 'undefined') {
+            let activScale = window.activScale || 1;
+        } else {
+            activScale = window.activScale || activScale || 1;
         }
-    };
 
-    // 🔁 Bezpieczny obrót całej grupy modeli o 90°
-    window.svgHelper.rotateAllModel = function () {
-        try {
-            const group = window.svgHelper.ensureModelsGroup();
-            if (!group) {
-                console.warn("[rotateAllModel] Nie można uzyskać #models-group");
-                return;
-            }
+        window.svgHelper = window.svgHelper || {};
+        window.svgHelper.zoomLevel = window.svgHelper.zoomLevel || 1;
 
-            const currentTransform = group.getAttribute("transform") || "";
+        // 🔄 Centrowanie i dopasowanie SVG do kontenera
+        window.svgHelper.centerAndFit = function() {
+            const svg = document.querySelector(".scaled-svg");
+            const container = document.querySelector(".scaled-svg-container");
+            const svgContent = svg?.querySelector("#zoom-group");
 
-            // zachowaj translate (jeśli jest)
+            if (!svg || !container || !svgContent) return;
+
+            // Reset transformacji do obliczenia bounding box
+            const prevTransform = svgContent.getAttribute("transform") || "";
+            svgContent.setAttribute("transform", "");
+
+            const bbox = svgContent.getBBox();
+            svgContent.setAttribute("transform", prevTransform);
+
+            const svgWidth = svg.clientWidth;
+            const svgHeight = svg.clientHeight;
+
+            const scale = Math.min(
+                svgWidth / (bbox.width + 50),
+                svgHeight / (bbox.height + 50)
+            ) * 0.95;
+
+            const offsetX = (svgWidth - bbox.width * scale) / 2 - bbox.x * scale;
+            const offsetY = (svgHeight - bbox.height * scale) / 2 - bbox.y * scale;
+
+            activScale = scale;
+
+            svgContent.setAttribute("transform",
+                `translate(${offsetX}, ${offsetY}) scale(${scale})`);
+            window.svgHelper.zoomLevel = scale;
+
+            activScale = scale;
+        };
+
+        // 🔁 Obrót tylko drugiego modelu
+        window.svgHelper.rotateSecondModel = function() {
+            const model2 = document.querySelector("#model2");
+            if (!model2) return;
+
+            const currentTransform = model2.getAttribute("transform") || "";
+
+            // Wyodrębnij aktualne przesunięcie
             const translateMatch = currentTransform.match(/translate\(([^)]+)\)/);
-            const translate = translateMatch ? `translate(${translateMatch[1]})` : "";
+            const translate = translateMatch ? translateMatch[0] : "translate(0, 0)";
 
-            // odczytaj aktualny kąt (jeśli jest)
+            // Wyodrębnij aktualny kąt obrotu
             const rotateMatch = currentTransform.match(/rotate\(([-\d.]+)/);
             const currentAngle = rotateMatch ? parseFloat(rotateMatch[1]) : 0;
             const newAngle = (currentAngle + 90) % 360;
 
-            // środek grupy (bbox)
-            const bbox = group.getBBox();
+            // Oblicz środek modelu
+            const bbox = model2.getBBox();
             const cx = bbox.x + bbox.width / 2;
             const cy = bbox.y + bbox.height / 2;
 
-            group.setAttribute("transform", `${translate} rotate(${newAngle}, ${cx}, ${cy})`);
-            console.log(`[rotateAllModel] Obrócono grupę do ${newAngle}° wokół (${cx.toFixed(1)}, ${cy.toFixed(1)})`);
-        } catch (e) {
-            console.error("[rotateAllModel] błąd:", e);
-        }
-    };
+            // Zastosuj nową transformację
+            model2.setAttribute("transform", `${translate} rotate(${newAngle}, ${cx}, ${cy})`);
+        };
 
-    // 🔁 Lustrzane odbicie wszystkich modeli w poziomie względem środka SVG
-    window.svgHelper.flipAllModelsHorizontally = function () {
-        try {
-            const group = window.svgHelper.ensureModelsGroup();
-            if (!group) {
-                console.warn("[flipAllModelsHorizontally] Nie można uzyskać #models-group");
-                return;
+        // ✅ Bezpieczne tworzenie #models-group (naprawia błąd 'ancestor' i znika rysunek)
+        window.svgHelper.ensureModelsGroup = function() {
+            try {
+                const zoomGroup = document.querySelector(".scaled-svg svg #zoom-group") ||
+                                  document.querySelector(".scaled-svg #zoom-group");
+                if (!zoomGroup) {
+                    console.warn("[ensureModelsGroup] Brak #zoom-group");
+                    return null;
+                }
+
+                // 1) Zbierz kandydatów PRZED utworzeniem grupy (TYLKO elementy z id "model" + cyfra)
+                //    -> regex /^model\d+/ zabezpiecza przed 'models-group'
+                const candidates = Array.from(zoomGroup.children)
+                    .filter(el => el.id && /^model\d+/.test(el.id));
+
+                // 2) Jeśli grupa już jest, zwróć ją
+                let group = zoomGroup.querySelector("#models-group");
+                if (!group) {
+                    // 3) Stwórz grupę i wstaw ją (teraz, po zebraniu kandydatów)
+                    group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    group.setAttribute("id", "models-group");
+                    zoomGroup.insertBefore(group, zoomGroup.firstChild);
+                }
+
+                // 4) Przenieś zebrane elementy do grupy (nie będzie tu już 'models-group' w candidates)
+                candidates.forEach(m => group.appendChild(m));
+
+                console.log("[ensureModelsGroup] Przeniesiono do #models-group:", candidates.map(m => m.id));
+                return group;
+            } catch (e) {
+                console.error("[ensureModelsGroup] błąd:", e);
+                return null;
             }
+        };
 
-            // Pobierz rozmiar SVG
-            const svg = document.querySelector(".scaled-svg svg");
-            if (!svg) {
-                console.warn("[flipAllModelsHorizontally] Nie znaleziono <svg>");
-                return;
+        // 🔁 Bezpieczny obrót całej grupy modeli o 90°
+        window.svgHelper.rotateAllModel = function () {
+            try {
+                const group = window.svgHelper.ensureModelsGroup();
+                if (!group) {
+                    console.warn("[rotateAllModel] Nie można uzyskać #models-group");
+                    return;
+                }
+
+                const currentTransform = group.getAttribute("transform") || "";
+
+                // zachowaj translate (jeśli jest)
+                const translateMatch = currentTransform.match(/translate\(([^)]+)\)/);
+                const translate = translateMatch ? `translate(${translateMatch[1]})` : "";
+
+                // odczytaj aktualny kąt (jeśli jest)
+                const rotateMatch = currentTransform.match(/rotate\(([-\d.]+)/);
+                const currentAngle = rotateMatch ? parseFloat(rotateMatch[1]) : 0;
+                const newAngle = (currentAngle + 90) % 360;
+
+                // środek grupy (bbox)
+                const bbox = group.getBBox();
+                const cx = bbox.x + bbox.width / 2;
+                const cy = bbox.y + bbox.height / 2;
+
+                group.setAttribute("transform", `${translate} rotate(${newAngle}, ${cx}, ${cy})`);
+                console.log(`[rotateAllModel] Obrócono grupę do ${newAngle}° wokół (${cx.toFixed(1)}, ${cy.toFixed(1)})`);
+            } catch (e) {
+                console.error("[rotateAllModel] błąd:", e);
             }
+        };
 
-            const viewBox = svg.viewBox.baseVal;
-            const centerY = viewBox.y + viewBox.height / 2;
+        // 🔁 Lustrzane odbicie wszystkich modeli w poziomie względem środka SVG
+        window.svgHelper.flipAllModelsHorizontally = function () {
+            try {
+                const group = window.svgHelper.ensureModelsGroup();
+                if (!group) {
+                    console.warn("[flipAllModelsHorizontally] Nie można uzyskać #models-group");
+                    return;
+                }
 
-            // Pobierz aktualny transform
-            const currentTransform = group.getAttribute("transform") || "";
+                // Pobierz rozmiar SVG
+                const svg = document.querySelector(".scaled-svg svg");
+                if (!svg) {
+                    console.warn("[flipAllModelsHorizontally] Nie znaleziono <svg>");
+                    return;
+                }
 
-            // Odbicie względem osi poziomej (środek SVG w osi Y)
-            const flipTransform = `translate(0, ${2 * centerY}) scale(1, -1)`;
+                const viewBox = svg.viewBox.baseVal;
+                const centerY = viewBox.y + viewBox.height / 2;
 
-            // Zastosuj
-            group.setAttribute("transform", `${currentTransform} ${flipTransform}`);
+                // Pobierz aktualny transform
+                const currentTransform = group.getAttribute("transform") || "";
 
-            console.log(`[flipAllModelsHorizontally] Odbito względem poziomej osi SVG przy y=${centerY}`);
-        } catch (e) {
-            console.error("[flipAllModelsHorizontally] błąd:", e);
-        }
-    };
+                // Odbicie względem osi poziomej (środek SVG w osi Y)
+                const flipTransform = `translate(0, ${2 * centerY}) scale(1, -1)`;
+
+                // Zastosuj
+                group.setAttribute("transform", `${currentTransform} ${flipTransform}`);
+
+                console.log(`[flipAllModelsHorizontally] Odbito względem poziomej osi SVG przy y=${centerY}`);
+            } catch (e) {
+                console.error("[flipAllModelsHorizontally] błąd:", e);
+            }
+        };
 
 
-    // 📌 Przesuń
-        window.svgHelper.move = function(dx, dy) {
+       // 📌 Przesuń - ZACHOWUJE ODBICIE LUSTRZANE
+    window.svgHelper.move = function(dx, dy) {
         const model2 = document.querySelector("#model2");
         if (!model2) return;
 
         const currentTransform = model2.getAttribute("transform") || "";
-        const translateMatch = currentTransform.match(/translate\(([^)]+)\)/);
 
-        let x = 0, y = 0;
+        // Parsowanie aktualnej transformacji
+        let translateX = 0, translateY = 0;
+        let rotation = 0, rotCenter = null;
+        let hasFlip = false;
+        let flipX = 0;
+
+        // Wyciągnij translację
+        const translateMatch = currentTransform.match(/translate\(([-\d.]+)[,\s]+([-\d.]+)\)/);
         if (translateMatch) {
-            [x, y] = translateMatch[1].split(',').map(Number);
+            translateX = parseFloat(translateMatch[1]);
+            translateY = parseFloat(translateMatch[2]);
+        }
+
+        // Wyciągnij rotację
+        const rotateMatch = currentTransform.match(/rotate\(([-\d.]+)(?:[,\s]+([-\d.]+)[,\s]+([-\d.]+))?\)/);
+        if (rotateMatch) {
+            rotation = parseFloat(rotateMatch[1]);
+            if (rotateMatch[2] && rotateMatch[3]) {
+                rotCenter = { x: parseFloat(rotateMatch[2]), y: parseFloat(rotateMatch[3]) };
+            }
+        }
+
+        // Sprawdź i zachowaj odbicie
+        const flipMatch = currentTransform.match(/translate\(([-\d.]+)[,\s]+0\)\s*scale\(-1[,\s]+1\)/);
+        if (flipMatch) {
+            hasFlip = true;
+            flipX = parseFloat(flipMatch[1]);
         }
 
         // Aktualizuj pozycję z uwzględnieniem skali
         const scale = window.svgHelper.zoomLevel || 1;
-        x += dx / scale;
-        y += dy / scale;
+        translateX += dx / scale;
+        translateY += dy / scale;
 
-        // Zachowaj obrót jeśli istnieje
-        const rotateMatch = currentTransform.match(/rotate\(([^)]+)\)/);
-        const rotate = rotateMatch ? ` rotate(${rotateMatch[1]})` : "";
+        // Zbuduj nową transformację
+        let newTransform = `translate(${translateX}, ${translateY})`;
 
-        model2.setAttribute("transform", `translate(${x}, ${y})${rotate}`);
-
-        // Zwróć aktualną pozycję (opcjonalnie)
-        return { x: x * scale, y: y * scale };
-    };
-
-    // 🔍 Powiększenie z centrowaniem
-    window.svgHelper.zoomIn = function() {
-        const group = document.querySelector("#zoom-group");
-        if (!group) return;
-
-        const currentTransform = group.getAttribute("transform") || "";
-        const translateMatch = currentTransform.match(/translate\(([^)]+)\)/);
-        const scaleMatch = currentTransform.match(/scale\(([^)]+)\)/);
-
-        let [translateX, translateY] = translateMatch ?
-            translateMatch[1].split(',').map(Number) : [0, 0];
-        const currentScale = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
-
-        const newScale = currentScale * 1.1;
-        const scaleRatio = newScale / currentScale;
-
-        // Skoryguj przesunięcie, aby zachować centrowanie
-        const svg = document.querySelector(".scaled-svg");
-        if (svg) {
-            const centerX = svg.clientWidth / 2;
-            const centerY = svg.clientHeight / 2;
-            translateX = centerX - (centerX - translateX) * scaleRatio;
-            translateY = centerY - (centerY - translateY) * scaleRatio;
-        }
-
-        group.setAttribute("transform",
-            `translate(${translateX}, ${translateY}) scale(${newScale})`);
-        window.svgHelper.zoomLevel = newScale;
-
-        activScale = newScale;
-    };
-
-    // 🔍 Pomniejszenie z centrowaniem
-    window.svgHelper.zoomOut = function() {
-        const group = document.querySelector("#zoom-group");
-        if (!group) return;
-
-        const currentTransform = group.getAttribute("transform") || "";
-        const translateMatch = currentTransform.match(/translate\(([^)]+)\)/);
-        const scaleMatch = currentTransform.match(/scale\(([^)]+)\)/);
-
-        let [translateX, translateY] = translateMatch ?
-            translateMatch[1].split(',').map(Number) : [0, 0];
-        const currentScale = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
-
-        const newScale = currentScale / 1.1;
-        const scaleRatio = newScale / currentScale;
-
-        // Skoryguj przesunięcie, aby zachować centrowanie
-        const svg = document.querySelector(".scaled-svg");
-        if (svg) {
-            const centerX = svg.clientWidth / 2;
-            const centerY = svg.clientHeight / 2;
-            translateX = centerX - (centerX - translateX) * scaleRatio;
-            translateY = centerY - (centerY - translateY) * scaleRatio;
-        }
-
-        group.setAttribute("transform",
-            `translate(${translateX}, ${translateY}) scale(${newScale})`);
-        window.svgHelper.zoomLevel = newScale;
-
-        activScale = newScale;
-    };
-
-    // 🛠️ Zastosowanie aktualnego zoomLevel do całego SVG
-    window.svgHelper.applyZoom = function () {
-        const group = document.querySelector("#zoom-group");
-        if (!group) return;
-
-        const current = group.getAttribute("transform") || "";
-        const translateMatch = current.match(/translate\(([^)]+)\)/);
-        const translate = translateMatch ? translateMatch[0] : "translate(0, 0)";
-
-        group.setAttribute("transform", `${translate} scale(${window.svgHelper.zoomLevel})`);
-    };
-
-        // 📏 Inicjalizacja pomiaru
-    window.svgHelper.initMeasurement = function() {
-        const svg = document.querySelector(".scaled-svg");
-        if (!svg) return;
-
-        let startPoint = null;
-        let measurementLine = null;
-        let measurementText = null;
-
-        // Tworzymy elementy do pomiaru
-        const createMeasurementElements = () => {
-            measurementLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
-            measurementLine.setAttribute("stroke", "red");
-            measurementLine.setAttribute("stroke-width", "2");
-            measurementLine.setAttribute("stroke-dasharray", "5,5");
-
-            measurementText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            measurementText.setAttribute("fill", "red");
-            measurementText.setAttribute("font-size", "22");
-
-            svg.querySelector("svg").appendChild(measurementLine);
-            svg.querySelector("svg").appendChild(measurementText);
-        };
-
-        // Usuwamy elementy pomiaru
-        const removeMeasurementElements = () => {
-            if (measurementLine && measurementLine.parentNode) {
-                measurementLine.parentNode.removeChild(measurementLine);
-            }
-            if (measurementText && measurementText.parentNode) {
-                measurementText.parentNode.removeChild(measurementText);
-            }
-        };
-
-        // Obliczamy odległość między punktami
-        const calculateDistance = (x1, y1, x2, y2) => {
-            return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-        };
-
-        // Aktualizujemy linię i tekst pomiaru
-        const updateMeasurement = (x1, y1, x2, y2) => {
-            if (!measurementLine || !measurementText) return;
-
-            const distance = calculateDistance(x1, y1, x2, y2) / activScale;
-            const midX = (x1 + x2) / 2;
-            const midY = (y1 + y2) / 2;
-
-            measurementLine.setAttribute("x1", x1);
-            measurementLine.setAttribute("y1", y1);
-            measurementLine.setAttribute("x2", x2);
-            measurementLine.setAttribute("y2", y2);
-
-            measurementText.setAttribute("x", midX);
-            measurementText.setAttribute("y", midY);
-            measurementText.textContent = distance.toFixed(2) + " mm";
-        };
-
-        // Obsługa kliknięć
-        svg.addEventListener("click", (e) => {
-            if (!startPoint) {
-                // Pierwsze kliknięcie - punkt startowy
-                startPoint = {
-                    x: e.offsetX,
-                    y: e.offsetY
-                };
-                createMeasurementElements();
+        // Dodaj obrót jeśli istnieje
+        if (rotation) {
+            if (rotCenter) {
+                newTransform += ` rotate(${rotation}, ${rotCenter.x}, ${rotCenter.y})`;
             } else {
-                // Drugie kliknięcie - punkt końcowy
-                updateMeasurement(startPoint.x, startPoint.y, e.offsetX, e.offsetY);
-                startPoint = null;
-
-                // Automatyczne usunięcie po 5 sekundach
-                setTimeout(() => {
-                    removeMeasurementElements();
-                }, 5000);
+                newTransform += ` rotate(${rotation})`;
             }
-        });
-    };
-
-    // 🔄 Wyczyść pomiary
-    window.svgHelper.clearMeasurements = function() {
-        const svg = document.querySelector(".scaled-svg");
-        if (!svg) return;
-
-        const lines = svg.querySelectorAll("line[stroke='red']");
-        const texts = svg.querySelectorAll("text[fill='red']");
-
-        lines.forEach(line => line.parentNode?.removeChild(line));
-        texts.forEach(text => text.parentNode?.removeChild(text));
-    };
-
-
-    // 📐 Ulepszona funkcja pomiaru przesunięcia prowadnic
-    // Wywołaj tę funkcję po załadowaniu SVG
-    window.svgHelper.initGuideLines = function () {
-        const svgEl = document.querySelector(".scaled-svg svg");
-        if (!svgEl) {
-            console.error("[initGuideLines] Nie znaleziono <svg>");
-            return;
         }
 
-        const models = ["#model1", "#model2"];
-        models.forEach((modelId) => {
-            const model = svgEl.querySelector(modelId);
-            if (!model) {
-                console.warn(`[initGuideLines] Nie znaleziono ${modelId}`);
+        // Dodaj odbicie jeśli istnieje
+        if (hasFlip) {
+            newTransform += ` translate(${flipX}, 0) scale(-1, 1)`;
+        }
+
+        model2.setAttribute("transform", newTransform);
+
+        // Zwróć aktualną pozycję
+        return { x: translateX * scale, y: translateY * scale };
+    };
+
+        // 🔍 Powiększenie z centrowaniem
+        window.svgHelper.zoomIn = function() {
+            const group = document.querySelector("#zoom-group");
+            if (!group) return;
+
+            const currentTransform = group.getAttribute("transform") || "";
+            const translateMatch = currentTransform.match(/translate\(([^)]+)\)/);
+            const scaleMatch = currentTransform.match(/scale\(([^)]+)\)/);
+
+            let [translateX, translateY] = translateMatch ?
+                translateMatch[1].split(',').map(Number) : [0, 0];
+            const currentScale = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
+
+            const newScale = currentScale * 1.1;
+            const scaleRatio = newScale / currentScale;
+
+            // Skoryguj przesunięcie, aby zachować centrowanie
+            const svg = document.querySelector(".scaled-svg");
+            if (svg) {
+                const centerX = svg.clientWidth / 2;
+                const centerY = svg.clientHeight / 2;
+                translateX = centerX - (centerX - translateX) * scaleRatio;
+                translateY = centerY - (centerY - translateY) * scaleRatio;
+            }
+
+            group.setAttribute("transform",
+                `translate(${translateX}, ${translateY}) scale(${newScale})`);
+            window.svgHelper.zoomLevel = newScale;
+
+            activScale = newScale;
+        };
+
+        // 🔍 Pomniejszenie z centrowaniem
+        window.svgHelper.zoomOut = function() {
+            const group = document.querySelector("#zoom-group");
+            if (!group) return;
+
+            const currentTransform = group.getAttribute("transform") || "";
+            const translateMatch = currentTransform.match(/translate\(([^)]+)\)/);
+            const scaleMatch = currentTransform.match(/scale\(([^)]+)\)/);
+
+            let [translateX, translateY] = translateMatch ?
+                translateMatch[1].split(',').map(Number) : [0, 0];
+            const currentScale = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
+
+            const newScale = currentScale / 1.1;
+            const scaleRatio = newScale / currentScale;
+
+            // Skoryguj przesunięcie, aby zachować centrowanie
+            const svg = document.querySelector(".scaled-svg");
+            if (svg) {
+                const centerX = svg.clientWidth / 2;
+                const centerY = svg.clientHeight / 2;
+                translateX = centerX - (centerX - translateX) * scaleRatio;
+                translateY = centerY - (centerY - translateY) * scaleRatio;
+            }
+
+            group.setAttribute("transform",
+                `translate(${translateX}, ${translateY}) scale(${newScale})`);
+            window.svgHelper.zoomLevel = newScale;
+
+            activScale = newScale;
+        };
+
+        // 🛠️ Zastosowanie aktualnego zoomLevel do całego SVG
+        window.svgHelper.applyZoom = function () {
+            const group = document.querySelector("#zoom-group");
+            if (!group) return;
+
+            const current = group.getAttribute("transform") || "";
+            const translateMatch = current.match(/translate\(([^)]+)\)/);
+            const translate = translateMatch ? translateMatch[0] : "translate(0, 0)";
+
+            group.setAttribute("transform", `${translate} scale(${window.svgHelper.zoomLevel})`);
+        };
+
+            // 📏 Inicjalizacja pomiaru
+        window.svgHelper.initMeasurement = function() {
+            const svg = document.querySelector(".scaled-svg");
+            if (!svg) return;
+
+            let startPoint = null;
+            let measurementLine = null;
+            let measurementText = null;
+
+            // Tworzymy elementy do pomiaru
+            const createMeasurementElements = () => {
+                measurementLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                measurementLine.setAttribute("stroke", "red");
+                measurementLine.setAttribute("stroke-width", "2");
+                measurementLine.setAttribute("stroke-dasharray", "5,5");
+
+                measurementText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                measurementText.setAttribute("fill", "red");
+                measurementText.setAttribute("font-size", "22");
+
+                svg.querySelector("svg").appendChild(measurementLine);
+                svg.querySelector("svg").appendChild(measurementText);
+            };
+
+            // Usuwamy elementy pomiaru
+            const removeMeasurementElements = () => {
+                if (measurementLine && measurementLine.parentNode) {
+                    measurementLine.parentNode.removeChild(measurementLine);
+                }
+                if (measurementText && measurementText.parentNode) {
+                    measurementText.parentNode.removeChild(measurementText);
+                }
+            };
+
+            // Obliczamy odległość między punktami
+            const calculateDistance = (x1, y1, x2, y2) => {
+                return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+            };
+
+            // Aktualizujemy linię i tekst pomiaru
+            const updateMeasurement = (x1, y1, x2, y2) => {
+                if (!measurementLine || !measurementText) return;
+
+                const distance = calculateDistance(x1, y1, x2, y2) / activScale;
+                const midX = (x1 + x2) / 2;
+                const midY = (y1 + y2) / 2;
+
+                measurementLine.setAttribute("x1", x1);
+                measurementLine.setAttribute("y1", y1);
+                measurementLine.setAttribute("x2", x2);
+                measurementLine.setAttribute("y2", y2);
+
+                measurementText.setAttribute("x", midX);
+                measurementText.setAttribute("y", midY);
+                measurementText.textContent = distance.toFixed(2) + " mm";
+            };
+
+            // Obsługa kliknięć
+            svg.addEventListener("click", (e) => {
+                if (!startPoint) {
+                    // Pierwsze kliknięcie - punkt startowy
+                    startPoint = {
+                        x: e.offsetX,
+                        y: e.offsetY
+                    };
+                    createMeasurementElements();
+                } else {
+                    // Drugie kliknięcie - punkt końcowy
+                    updateMeasurement(startPoint.x, startPoint.y, e.offsetX, e.offsetY);
+                    startPoint = null;
+
+                    // Automatyczne usunięcie po 5 sekundach
+                    setTimeout(() => {
+                        removeMeasurementElements();
+                    }, 5000);
+                }
+            });
+        };
+
+        // 🔄 Wyczyść pomiary
+        window.svgHelper.clearMeasurements = function() {
+            const svg = document.querySelector(".scaled-svg");
+            if (!svg) return;
+
+            const lines = svg.querySelectorAll("line[stroke='red']");
+            const texts = svg.querySelectorAll("text[fill='red']");
+
+            lines.forEach(line => line.parentNode?.removeChild(line));
+            texts.forEach(text => text.parentNode?.removeChild(text));
+        };
+
+
+        // 📐 Ulepszona funkcja pomiaru przesunięcia prowadnic
+        // Wywołaj tę funkcję po załadowaniu SVG
+        window.svgHelper.initGuideLines = function () {
+            const svgEl = document.querySelector(".scaled-svg svg");
+            if (!svgEl) {
+                console.error("[initGuideLines] Nie znaleziono <svg>");
                 return;
             }
 
-            const guides = model.querySelectorAll('[data-name^="guide-line-"]');
-            console.log(`[initGuideLines] ${modelId} - znaleziono prowadnic: ${guides.length}`);
-
-            guides.forEach(el => {
-                const bbox = el.getBBox();
-                const pt = svgEl.createSVGPoint();
-                pt.x = bbox.x + bbox.width / 2;
-                pt.y = bbox.y + bbox.height / 2;
-
-                const ctm = el.getCTM();
-                if (!ctm) {
-                    console.warn(`[initGuideLines] Brak CTM dla`, el);
+            const models = ["#model1", "#model2"];
+            models.forEach((modelId) => {
+                const model = svgEl.querySelector(modelId);
+                if (!model) {
+                    console.warn(`[initGuideLines] Nie znaleziono ${modelId}`);
                     return;
                 }
 
-                const transformed = pt.matrixTransform(ctm);
+                const guides = model.querySelectorAll('[data-name^="guide-line-"]');
+                console.log(`[initGuideLines] ${modelId} - znaleziono prowadnic: ${guides.length}`);
 
-                if (el.getAttribute('data-name')?.includes('horizontal')) {
-                    el.setAttribute('data-original-y', transformed.y.toString());
-                } else {
-                    el.setAttribute('data-original-x', transformed.x.toString());
-                }
-            });
-        });
-    };
+                guides.forEach(el => {
+                    const bbox = el.getBBox();
+                    const pt = svgEl.createSVGPoint();
+                    pt.x = bbox.x + bbox.width / 2;
+                    pt.y = bbox.y + bbox.height / 2;
 
-    window.svgHelper.measureGuideDisplacement = function () {
-        try {
-            const svg = document.querySelector(".scaled-svg > svg");
-            if (!svg) {
-                console.error("SVG container not found");
-                return null;
-            }
-
-            const model1 = svg.querySelector("#model1");
-            const model2 = svg.querySelector("#model2");
-
-            if (!model1 || !model2) {
-                console.error("Nie znaleziono obu modeli");
-                return null;
-            }
-
-            const findGuide = (model, name) => {
-                return model.querySelector(`[data-name="${name}"]`) ||
-                       model.querySelector(`[name="${name}"]`);
-            };
-
-            const guideHorizontalModel1 = findGuide(model1, 'guide-line-horizontalMax');
-            const guideVerticalModel1 = findGuide(model1, 'guide-line-vertical');
-            const guideHorizontalModel2 = findGuide(model2, 'guide-line-horizontalMax');
-            const guideVerticalModel2 = findGuide(model2, 'guide-line-vertical');
-
-            if (!guideHorizontalModel1 || !guideVerticalModel1 ||
-                !guideHorizontalModel2 || !guideVerticalModel2) {
-                console.warn("Nie znaleziono wszystkich prowadnic");
-                return null;
-            }
-
-            const getTransformedCenter = (el) => {
-                const bbox = el.getBBox();
-                const pt = svg.createSVGPoint();
-                pt.x = bbox.x + bbox.width / 2;
-                pt.y = bbox.y + bbox.height / 2;
-                const ctm = el.getCTM();
-                return pt.matrixTransform(ctm);
-            };
-
-            const centerH1 = getTransformedCenter(guideHorizontalModel1);
-            const centerV1 = getTransformedCenter(guideVerticalModel1);
-            const centerH2 = getTransformedCenter(guideHorizontalModel2);
-            const centerV2 = getTransformedCenter(guideVerticalModel2);
-
-            const scale = window.svgHelper.zoomLevel || 1;
-
-            const displacementX = ((centerV2.x - centerV1.x) / scale);
-            const displacementY = ((centerH2.y - centerH1.y) / scale);
-
-            const round2 = (val) => Math.round(val * 100) / 100;
-
-            return {
-                success: true,
-                elementsFound: true,
-                przesuniecieX: round2(displacementX),
-                przesuniecieY: round2(displacementY),
-                scale: scale
-            };
-        } catch (error) {
-            console.error("Measurement error:", error);
-            return {
-                success: false,
-                error: error.message
-            };
-        }
-    };
-
-    function sanitizeSvg(svgElement) {
-        const numericAttributes = [
-            "x", "y", "x1", "y1", "x2", "y2", "cx", "cy", "r", "rx", "ry",
-            "width", "height", "stroke-width"
-        ];
-
-        const walk = (node) => {
-            if (node.nodeType !== 1) return;
-
-            // Normalizacja atrybutów liczbowych
-            numericAttributes.forEach(attr => {
-                if (node.hasAttribute(attr)) {
-                    const val = node.getAttribute(attr);
-                    const parsed = parseFloat(val);
-                    if (!isNaN(parsed)) {
-                        node.setAttribute(attr, parsed.toString());
+                    const ctm = el.getCTM();
+                    if (!ctm) {
+                        console.warn(`[initGuideLines] Brak CTM dla`, el);
+                        return;
                     }
-                }
-            });
 
-            // Usuń niepotrzebne atrybuty
-            ['data-name', 'data-original-x', 'data-original-y'].forEach(attr => {
-                node.removeAttribute(attr);
-            });
+                    const transformed = pt.matrixTransform(ctm);
 
-            // Rekurencyjnie przetwarzaj dzieci
-            Array.from(node.children).forEach(walk);
+                    if (el.getAttribute('data-name')?.includes('horizontal')) {
+                        el.setAttribute('data-original-y', transformed.y.toString());
+                    } else {
+                        el.setAttribute('data-original-x', transformed.x.toString());
+                    }
+                });
+            });
         };
 
-        walk(svgElement);
-    }
-
-    window.svgHelper.exportCleanedSvgAsPng = function() {
-        return new Promise((resolve) => {
+        window.svgHelper.measureGuideDisplacement = function () {
             try {
-                console.log("Starting PNG export...");
+                const svg = document.querySelector(".scaled-svg > svg");
+                if (!svg) {
+                    console.error("SVG container not found");
+                    return null;
+                }
+
+                const model1 = svg.querySelector("#model1");
+                const model2 = svg.querySelector("#model2");
+
+                if (!model1 || !model2) {
+                    console.error("Nie znaleziono obu modeli");
+                    return null;
+                }
+
+                const findGuide = (model, name) => {
+                    return model.querySelector(`[data-name="${name}"]`) ||
+                           model.querySelector(`[name="${name}"]`);
+                };
+
+                const guideHorizontalModel1 = findGuide(model1, 'guide-line-horizontalMax');
+                const guideVerticalModel1 = findGuide(model1, 'guide-line-vertical');
+                const guideHorizontalModel2 = findGuide(model2, 'guide-line-horizontalMax');
+                const guideVerticalModel2 = findGuide(model2, 'guide-line-vertical');
+
+                if (!guideHorizontalModel1 || !guideVerticalModel1 ||
+                    !guideHorizontalModel2 || !guideVerticalModel2) {
+                    console.warn("Nie znaleziono wszystkich prowadnic");
+                    return null;
+                }
+
+                const getTransformedCenter = (el) => {
+                    const bbox = el.getBBox();
+                    const pt = svg.createSVGPoint();
+                    pt.x = bbox.x + bbox.width / 2;
+                    pt.y = bbox.y + bbox.height / 2;
+                    const ctm = el.getCTM();
+                    return pt.matrixTransform(ctm);
+                };
+
+                const centerH1 = getTransformedCenter(guideHorizontalModel1);
+                const centerV1 = getTransformedCenter(guideVerticalModel1);
+                const centerH2 = getTransformedCenter(guideHorizontalModel2);
+                const centerV2 = getTransformedCenter(guideVerticalModel2);
+
+                const scale = window.svgHelper.zoomLevel || 1;
+
+                const displacementX = ((centerV2.x - centerV1.x) / scale);
+                const displacementY = ((centerH2.y - centerH1.y) / scale);
+
+                const round2 = (val) => Math.round(val * 100) / 100;
+
+                return {
+                    success: true,
+                    elementsFound: true,
+                    przesuniecieX: round2(displacementX),
+                    przesuniecieY: round2(displacementY),
+                    scale: scale
+                };
+            } catch (error) {
+                console.error("Measurement error:", error);
+                return {
+                    success: false,
+                    error: error.message
+                };
+            }
+        };
+
+        function sanitizeSvg(svgElement) {
+            const numericAttributes = [
+                "x", "y", "x1", "y1", "x2", "y2", "cx", "cy", "r", "rx", "ry",
+                "width", "height", "stroke-width"
+            ];
+
+            const walk = (node) => {
+                if (node.nodeType !== 1) return;
+
+                // Normalizacja atrybutów liczbowych
+                numericAttributes.forEach(attr => {
+                    if (node.hasAttribute(attr)) {
+                        const val = node.getAttribute(attr);
+                        const parsed = parseFloat(val);
+                        if (!isNaN(parsed)) {
+                            node.setAttribute(attr, parsed.toString());
+                        }
+                    }
+                });
+
+                // Usuń niepotrzebne atrybuty
+                ['data-name', 'data-original-x', 'data-original-y'].forEach(attr => {
+                    node.removeAttribute(attr);
+                });
+
+                // Rekurencyjnie przetwarzaj dzieci
+                Array.from(node.children).forEach(walk);
+            };
+
+            walk(svgElement);
+        }
+
+        window.svgHelper.exportCleanedSvgAsPng = function() {
+            return new Promise((resolve) => {
+                try {
+                    console.log("Starting PNG export...");
+
+                    // 1. Pobierz elementy SVG
+                    const svgElement = document.querySelector(".scaled-svg");
+                    const svgContent = svgElement?.querySelector("#zoom-group");
+
+                    if (!svgElement || !svgContent) {
+                        console.error("SVG elements not found");
+                        resolve("");
+                        return;
+                    }
+
+                    // 2. Utwórz głęboką kopię SVG
+                    const clone = svgElement.cloneNode(true);
+                    const cloneContent = clone.querySelector("#zoom-group");
+
+                    // 3. Usuń niepotrzebne elementy
+                    const elementsToRemove = [
+                        '[data-name^="guide-line-"]',
+                        '[id^="guide-line-"]',
+                        '.measurement-line',
+                        '.measurement-text'
+                    ].join(',');
+
+                    clone.querySelectorAll(elementsToRemove).forEach(el => el.remove());
+                    console.log("Removed guide elements");
+
+                    // 4. Pobierz aktualną transformację
+                    const currentTransform = svgContent.getAttribute("transform") || "";
+                    console.log("Current transform:", currentTransform);
+
+                    // 5. Przygotuj nowy SVG
+                    const newSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                    newSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+                    newSvg.setAttribute("width", "600");
+                    newSvg.setAttribute("height", "600");
+                    newSvg.setAttribute("viewBox", "0 0 600 600");
+
+                    // 6. Przenieś zawartość ZACHOWUJĄC ORYGINALNĄ TRANSFORMACJĘ
+                    const contentGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    contentGroup.setAttribute("transform", currentTransform);
+
+                    // Przenieś wszystkie dzieci zachowując ich właściwości
+                    while (cloneContent.firstChild) {
+                        contentGroup.appendChild(cloneContent.firstChild);
+                    }
+
+                    newSvg.appendChild(contentGroup);
+                    console.log("SVG content prepared:", newSvg);
+
+                    // 7. Serializacja
+                    const svgString = new XMLSerializer().serializeToString(newSvg);
+                    console.log("SVG string length:", svgString.length);
+
+                    // 8. Konwersja do obrazka
+                    const img = new Image();
+                    img.onload = function() {
+                        try {
+                            console.log("Image loaded, creating PNG...");
+                            const canvas = document.createElement("canvas");
+                            canvas.width = 600;
+                            canvas.height = 600;
+                            const ctx = canvas.getContext("2d");
+
+                            // Białe tło
+                            ctx.fillStyle = "#ffffff";
+                            ctx.fillRect(0, 0, 1200, 1200);
+
+                            // Renderuj SVG (1:1 bez dodatkowego skalowania)
+                            ctx.drawImage(img, 0, 0);
+
+                            const pngData = canvas.toDataURL("image/png");
+                            console.log("PNG created successfully");
+                            resolve(pngData);
+                        } catch (e) {
+                            console.error("Canvas error:", e);
+                            resolve("");
+                        }
+                    };
+
+                    img.onerror = function(e) {
+                        console.error("Image load error:", e);
+                        console.log("Problematic SVG:", svgString.substring(0, 500));
+                        resolve("");
+                    };
+
+                    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgString);
+                } catch (e) {
+                    console.error("Export error:", e);
+                    resolve("");
+                }
+            });
+        };
+
+        window.svgHelper.resetModel2Position = function() {
+        const svg = document.querySelector(".scaled-svg > svg");
+        const model2 = svg?.querySelector("#model2");
+        if (model2) model2.setAttribute("transform", "translate(0,0)");
+        };
+
+        window.svgHelper.getModel2Displacement = function () {
+            try {
+                const svg = document.querySelector(".scaled-svg > svg");
+                if (!svg) {
+                    console.error("getModel2Displacement: SVG not found");
+                    return { success: false, przesuniecieX: 0, przesuniecieY: 0 };
+                }
+
+                const model1 = svg.querySelector("#model1");
+                const model2 = svg.querySelector("#model2");
+
+                if (!model1 || !model2) {
+                    console.error("getModel2Displacement: one or both models not found");
+                    return { success: false, przesuniecieX: 0, przesuniecieY: 0 };
+                }
+
+                const rect1 = model1.querySelector("rect") || model1.getBBox?.() ? model1 : null;
+                const rect2 = model2.querySelector("rect") || model2.getBBox?.() ? model2 : null;
+
+                if (!rect1 || !rect2) {
+                    console.error("getModel2Displacement: rect elements not found");
+                    return { success: false, przesuniecieX: 0, przesuniecieY: 0 };
+                }
+
+                const getTransformedCenter = (el) => {
+                    const bbox = el.getBBox();
+                    const pt = svg.createSVGPoint();
+                    pt.x = bbox.x + bbox.width / 2;
+                    pt.y = bbox.y + bbox.height / 2;
+                    const ctm = el.getCTM();
+                    return pt.matrixTransform(ctm);
+                };
+
+                const c1 = getTransformedCenter(model1);
+                const c2 = getTransformedCenter(model2);
+
+                const scale = window.svgHelper.zoomLevel || 1;
+
+                const dx = (c2.x - c1.x) / scale;
+                const dy = (c2.y - c1.y) / scale;
+
+                console.log(`📏 Displacement względem model1: X=${dx.toFixed(2)}, Y=${dy.toFixed(2)}`);
+
+                return {
+                    success: true,
+                    przesuniecieX: dx,
+                    przesuniecieY: dy
+                };
+            } catch (e) {
+                console.error("getModel2Displacement error:", e);
+                return { success: false, przesuniecieX: 0, przesuniecieY: 0, error: e.message };
+            }
+
+        };
+
+            // 👇 DODAJ TUTAJ
+        window.svgHelper.updateDisplacement = function(x, y) {
+            try {
+                const model2 = document.querySelector("#model2");
+                if (!model2) {
+                    console.warn("[updateDisplacement] Nie znaleziono #model2");
+                    return;
+                }
+
+                const currentTransform = model2.getAttribute("transform") || "";
+
+                // Zachowaj istniejący obrót jeśli jest
+                const rotateMatch = currentTransform.match(/rotate\(([^)]+)\)/);
+                const rotate = rotateMatch ? ` rotate(${rotateMatch[1]})` : "";
+
+                // Uwzględnij aktualną skalę
+                const scale = window.svgHelper.zoomLevel || 1;
+                const scaledX = x * scale;
+                const scaledY = y * scale;
+
+                // Zastosuj nową pozycję
+                model2.setAttribute("transform", `translate(${scaledX}, ${scaledY})${rotate}`);
+
+                console.log(`[updateDisplacement] Przesunięto model2: X=${scaledX.toFixed(2)}, Y=${scaledY.toFixed(2)}, skala=${scale}`);
+            } catch (e) {
+                console.error("[updateDisplacement] błąd:", e);
+            }
+        };
+
+            // Eksport czystego SVG (bez prowadnic i elementów pomiarowych)
+        window.svgHelper.exportCleanedSvg = function() {
+            try {
+                console.log("Starting SVG export...");
 
                 // 1. Pobierz elementy SVG
                 const svgElement = document.querySelector(".scaled-svg");
@@ -637,24 +860,28 @@
 
                 if (!svgElement || !svgContent) {
                     console.error("SVG elements not found");
-                    resolve("");
-                    return;
+                    return "";
                 }
 
                 // 2. Utwórz głęboką kopię SVG
                 const clone = svgElement.cloneNode(true);
                 const cloneContent = clone.querySelector("#zoom-group");
 
-                // 3. Usuń niepotrzebne elementy
-                const elementsToRemove = [
-                    '[data-name^="guide-line-"]',
-                    '[id^="guide-line-"]',
-                    '.measurement-line',
-                    '.measurement-text'
-                ].join(',');
+                if (!cloneContent) {
+                    console.error("zoom-group not found in clone");
+                    return "";
+                }
 
-                clone.querySelectorAll(elementsToRemove).forEach(el => el.remove());
-                console.log("Removed guide elements");
+                // 3. Usuń niepotrzebne elementy (prowadnice, pomiary)
+                const elementsToRemove = cloneContent.querySelectorAll(
+                    '[data-name^="guide-line-"], ' +
+                    '[id^="guide-line-"], ' +
+                    '.measurement-line, ' +
+                    '.measurement-text'
+                );
+
+                elementsToRemove.forEach(el => el.remove());
+                console.log(`Removed ${elementsToRemove.length} guide/measurement elements`);
 
                 // 4. Pobierz aktualną transformację
                 const currentTransform = svgContent.getAttribute("transform") || "";
@@ -666,94 +893,236 @@
                 newSvg.setAttribute("width", "600");
                 newSvg.setAttribute("height", "600");
                 newSvg.setAttribute("viewBox", "0 0 600 600");
+                newSvg.setAttribute("preserveAspectRatio", "xMidYMid meet");
 
-                // 6. Przenieś zawartość ZACHOWUJĄC ORYGINALNĄ TRANSFORMACJĘ
+                // 6. Dodaj grupę contentu z zachowaniem transformacji
                 const contentGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                contentGroup.setAttribute("id", "zoom-group");
                 contentGroup.setAttribute("transform", currentTransform);
 
-                // Przenieś wszystkie dzieci zachowując ich właściwości
+                // Przenieś wszystkie dzieci
                 while (cloneContent.firstChild) {
                     contentGroup.appendChild(cloneContent.firstChild);
                 }
 
                 newSvg.appendChild(contentGroup);
-                console.log("SVG content prepared:", newSvg);
 
-                // 7. Serializacja
-                const svgString = new XMLSerializer().serializeToString(newSvg);
-                console.log("SVG string length:", svgString.length);
+                // 7. Serializacja do stringa
+                const serializer = new XMLSerializer();
+                let svgString = serializer.serializeToString(newSvg);
 
-                // 8. Konwersja do obrazka
-                const img = new Image();
-                img.onload = function() {
-                    try {
-                        console.log("Image loaded, creating PNG...");
-                        const canvas = document.createElement("canvas");
-                        canvas.width = 600;
-                        canvas.height = 600;
-                        const ctx = canvas.getContext("2d");
+                // 8. Oczyszczanie - usuń niepotrzebne atrybuty
+                svgString = svgString.replace(/\s*data-name="[^"]*"/g, '');
+                svgString = svgString.replace(/\s*data-original-x="[^"]*"/g, '');
+                svgString = svgString.replace(/\s*data-original-y="[^"]*"/g, '');
 
-                        // Białe tło
-                        ctx.fillStyle = "#ffffff";
-                        ctx.fillRect(0, 0, 1200, 1200);
+                // 9. Sformatuj ładnie (opcjonalnie)
+                svgString = svgString
+                    .replace(/><\//g, '>\n</')  // Dodaj nowe linie między tagami
+                    .replace(/></g, '>\n<');     // Dodaj nowe linie między sąsiednimi tagami
 
-                        // Renderuj SVG (1:1 bez dodatkowego skalowania)
-                        ctx.drawImage(img, 0, 0);
+                console.log("SVG export successful, length:", svgString.length);
+                return svgString;
 
-                        const pngData = canvas.toDataURL("image/png");
-                        console.log("PNG created successfully");
-                        resolve(pngData);
-                    } catch (e) {
-                        console.error("Canvas error:", e);
-                        resolve("");
-                    }
-                };
-
-                img.onerror = function(e) {
-                    console.error("Image load error:", e);
-                    console.log("Problematic SVG:", svgString.substring(0, 500));
-                    resolve("");
-                };
-
-                img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgString);
             } catch (e) {
-                console.error("Export error:", e);
-                resolve("");
+                console.error("SVG export error:", e);
+                return "";
             }
-        });
-    };
+        };
 
-    window.svgHelper.resetModel2Position = function() {
-    const svg = document.querySelector(".scaled-svg > svg");
-    const model2 = svg?.querySelector("#model2");
-    if (model2) model2.setAttribute("transform", "translate(0,0)");
-    };
+            window.svgHelper.isSvgReady = function() {
+            const svgEl = document.querySelector(".scaled-svg");
+            const zoomGroup = svgEl?.querySelector("#zoom-group");
+            // Sprawdzamy, czy elementy istnieją i czy grupa ma dzieci
+            return !!(svgEl && zoomGroup && zoomGroup.children.length > 0);
+        };
 
-    window.svgHelper.getModel2Displacement = function () {
-        try {
+            window.svgHelper.exportSvgStringAsPng = function(svgString) {
+            return new Promise((resolve, reject) => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 600;
+                    canvas.height = 600;
+                    const ctx = canvas.getContext('2d');
+
+                    const img = new Image();
+                    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                    const url = URL.createObjectURL(svgBlob);
+
+                    img.onload = () => {
+                        ctx.drawImage(img, 0, 0);
+                        URL.revokeObjectURL(url);
+                        const pngDataUrl = canvas.toDataURL('image/png');
+                        resolve(pngDataUrl);
+                    };
+
+                    img.onerror = (err) => {
+                        URL.revokeObjectURL(url);
+                        reject(new Error('Nie udało się załadować SVG do PNG'));
+                    };
+
+                    img.src = url;
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        };
+
+         window.svgHelper.getCurrentSvgState = function () {
+
+            try {
+
+                const svgElement =
+                    document.querySelector(".scaled-svg");
+
+                if (!svgElement) {
+                    console.error(
+                        "[getCurrentSvgState] SVG element not found"
+                    );
+
+                    return "";
+                }
+
+                // =====================================================
+                // 1. Kopia całego SVG
+                // =====================================================
+
+                const clone =
+                    svgElement.cloneNode(true);
+
+                // =====================================================
+                // 2. Usuń prowadnice i pomiary
+                // =====================================================
+
+                const elementsToRemove =
+                    clone.querySelectorAll(
+                        [
+                            '[data-name^="guide-line-"]',
+                            '[id^="guide-line-"]',
+                            '.measurement-line',
+                            '.measurement-text'
+                        ].join(',')
+                    );
+
+                elementsToRemove.forEach(
+                    el => el.remove()
+                );
+
+                // =====================================================
+                // 3. Znajdź TYLKO model2
+                // =====================================================
+
+                const model2 =
+                    clone.querySelector("#model2");
+
+                if (model2) {
+
+                    const transform =
+                        model2.getAttribute("transform") || "";
+
+                    console.log(
+                        "[getCurrentSvgState] model2 transform:",
+                        transform
+                    );
+
+                    /*
+                     * Tutaj wykonujemy bake model2.
+                     */
+
+                    bakeModel2TransformInClone(model2);
+                }
+
+                // =====================================================
+                // 4. Oczyść atrybuty pomocnicze
+                // =====================================================
+
+                clone.querySelectorAll("*").forEach(el => {
+
+                    el.removeAttribute("data-name");
+                    el.removeAttribute("data-original-x");
+                    el.removeAttribute("data-original-y");
+
+                });
+
+                // =====================================================
+                // 5. Serializacja
+                // =====================================================
+
+                const serializer =
+                    new XMLSerializer();
+
+                let svgString =
+                    serializer.serializeToString(clone);
+
+                console.log(
+                    "[getCurrentSvgState] SVG length:",
+                    svgString.length
+                );
+
+                return svgString;
+
+            }
+            catch (e) {
+
+                console.error(
+                    "[getCurrentSvgState] error:",
+                    e
+                );
+
+                return "";
+            }
+        };
+
+        // Funkcja do przywracania SVG z bazy
+        window.svgHelper.restoreSvgFromString = function(svgString) {
+            try {
+                const container = document.querySelector(".scaled-svg");
+                if (!container) {
+                    console.error("Container not found");
+                    return false;
+                }
+
+                // Utwórz tymczasowy element do sparsowania SVG
+                const parser = new DOMParser();
+                const svgDoc = parser.parseFromString(svgString, "image/svg+xml");
+                const newSvg = svgDoc.querySelector("svg");
+
+                if (!newSvg) {
+                    console.error("Invalid SVG string");
+                    return false;
+                }
+
+                // Podmień zawartość
+                container.innerHTML = '';
+                container.appendChild(newSvg);
+
+                // Ponownie zainicjalizuj prowadnice
+                setTimeout(() => {
+                    window.svgHelper.initGuideLines();
+                    window.svgHelper.centerAndFit();
+                }, 100);
+
+                return true;
+            } catch (e) {
+                console.error("restoreSvgFromString error:", e);
+                return false;
+            }
+        };
+
+
+            // 📌 Przesuń model2 o BEZWZGLĘDNĄ wartość względem model1
+        window.svgHelper.moveAbsolute = function(targetX_mm, targetY_mm) {
             const svg = document.querySelector(".scaled-svg > svg");
-            if (!svg) {
-                console.error("getModel2Displacement: SVG not found");
-                return { success: false, przesuniecieX: 0, przesuniecieY: 0 };
-            }
-
-            const model1 = svg.querySelector("#model1");
-            const model2 = svg.querySelector("#model2");
+            const model1 = svg?.querySelector("#model1");
+            const model2 = svg?.querySelector("#model2");
 
             if (!model1 || !model2) {
-                console.error("getModel2Displacement: one or both models not found");
-                return { success: false, przesuniecieX: 0, przesuniecieY: 0 };
+                console.warn("❌ moveAbsolute: Nie znaleziono model1 lub model2");
+                return null;
             }
 
-            const rect1 = model1.querySelector("rect") || model1.getBBox?.() ? model1 : null;
-            const rect2 = model2.querySelector("rect") || model2.getBBox?.() ? model2 : null;
-
-            if (!rect1 || !rect2) {
-                console.error("getModel2Displacement: rect elements not found");
-                return { success: false, przesuniecieX: 0, przesuniecieY: 0 };
-            }
-
-            const getTransformedCenter = (el) => {
+            // Pobierz środek model1 (punkt odniesienia)
+            const getCenter = (el) => {
                 const bbox = el.getBBox();
                 const pt = svg.createSVGPoint();
                 pt.x = bbox.x + bbox.width / 2;
@@ -762,406 +1131,995 @@
                 return pt.matrixTransform(ctm);
             };
 
-            const c1 = getTransformedCenter(model1);
-            const c2 = getTransformedCenter(model2);
+            const center1 = getCenter(model1);
+            const center2 = getCenter(model2);
 
+            // Aktualna skala
             const scale = window.svgHelper.zoomLevel || 1;
 
-            const dx = (c2.x - c1.x) / scale;
-            const dy = (c2.y - c1.y) / scale;
+            // Przelicznik mm → piksele (ustaw odpowiednio do swojego SVG)
+            const MM_TO_PX = window.svgHelper.MM_TO_PX_RATIO || 3.779527559;
 
-            console.log(`📏 Displacement względem model1: X=${dx.toFixed(2)}, Y=${dy.toFixed(2)}`);
+            // Oblicz aktualne przesunięcie w mm
+            const currentDx_mm = (center2.x - center1.x) / (scale * MM_TO_PX);
+            const currentDy_mm = (center2.y - center1.y) / (scale * MM_TO_PX);
+
+            // Oblicz różnicę do przesunięcia (w mm)
+            const deltaX_mm = targetX_mm - currentDx_mm;
+            const deltaY_mm = targetY_mm - currentDy_mm;
+
+            // Konwertuj różnicę na piksele i uwzględnij skalę
+            const deltaX_px = deltaX_mm * MM_TO_PX;
+            const deltaY_px = deltaY_mm * MM_TO_PX;
+
+            // Pobierz aktualną transformację model2
+            const currentTransform = model2.getAttribute("transform") || "";
+            const translateMatch = currentTransform.match(/translate\(([^)]+)\)/);
+
+            let x = 0, y = 0;
+            if (translateMatch) {
+                [x, y] = translateMatch[1].split(',').map(Number);
+            }
+
+            // Aktualizuj pozycję z uwzględnieniem skali
+            x += deltaX_px / scale;
+            y += deltaY_px / scale;
+
+            // Zachowaj obrót jeśli istnieje
+            const rotateMatch = currentTransform.match(/rotate\(([^)]+)\)/);
+            const rotate = rotateMatch ? ` rotate(${rotateMatch[1]})` : "";
+
+            // Zastosuj nową transformację
+            model2.setAttribute("transform", `translate(${x}, ${y})${rotate}`);
+
+            // Zweryfikuj nową pozycję
+            const newCenter2 = getCenter(model2);
+            const newDx_mm = (newCenter2.x - center1.x) / (scale * MM_TO_PX);
+            const newDy_mm = (newCenter2.y - center1.y) / (scale * MM_TO_PX);
+
+            console.log(`📌 moveAbsolute: przesunięto do X=${newDx_mm.toFixed(2)}mm, Y=${newDy_mm.toFixed(2)}mm`);
+            console.log(`   Docelowo: X=${targetX_mm}mm, Y=${targetY_mm}mm`);
+            console.log(`   Różnica: ΔX=${(newDx_mm - targetX_mm).toFixed(3)}mm, ΔY=${(newDy_mm - targetY_mm).toFixed(3)}mm`);
 
             return {
-                success: true,
-                przesuniecieX: dx,
-                przesuniecieY: dy
+                x_mm: newDx_mm,
+                y_mm: newDy_mm,
+                targetX_mm: targetX_mm,
+                targetY_mm: targetY_mm,
+                deltaX_mm: deltaX_mm,
+                deltaY_mm: deltaY_mm,
+                success: Math.abs(newDx_mm - targetX_mm) < 0.01 && Math.abs(newDy_mm - targetY_mm) < 0.01
             };
-        } catch (e) {
-            console.error("getModel2Displacement error:", e);
-            return { success: false, przesuniecieX: 0, przesuniecieY: 0, error: e.message };
-        }
+        };
 
-    };
+        // 📌 Alternatywna wersja - prostsza, używa istniejącej funkcji move
+        window.svgHelper.moveAbsoluteSimple = function(targetX_mm, targetY_mm) {
+            const svg = document.querySelector(".scaled-svg > svg");
+            const model1 = svg?.querySelector("#model1");
+            const model2 = svg?.querySelector("#model2");
 
-        // 👇 DODAJ TUTAJ
-    window.svgHelper.updateDisplacement = function(x, y) {
-        try {
+            if (!model1 || !model2) {
+                console.warn("❌ moveAbsoluteSimple: Nie znaleziono modeli");
+                return null;
+            }
+
+            // Pobierz aktualne przesunięcie
+            const displacement = window.svgHelper.getDisplacementInMM();
+            if (!displacement) {
+                console.warn("❌ moveAbsoluteSimple: Nie można odczytać aktualnego przesunięcia");
+                return null;
+            }
+
+            // Oblicz różnicę
+            const deltaX_mm = targetX_mm - displacement.x_mm;
+            const deltaY_mm = targetY_mm - displacement.y_mm;
+
+            console.log(`📌 Aktualne: X=${displacement.x_mm}mm, Y=${displacement.y_mm}mm`);
+            console.log(`📌 Docelowe: X=${targetX_mm}mm, Y=${targetY_mm}mm`);
+            console.log(`📌 Do przesunięcia: ΔX=${deltaX_mm.toFixed(2)}mm, ΔY=${deltaY_mm.toFixed(2)}mm`);
+
+            // Użyj istniejącej funkcji move (która przyjmuje mm)
+            const result = window.svgHelper.move(deltaX_mm, deltaY_mm, 'mm');
+
+            // Zweryfikuj
+            const newDisplacement = window.svgHelper.getDisplacementInMM();
+
+            return {
+                x_mm: newDisplacement?.x_mm,
+                y_mm: newDisplacement?.y_mm,
+                targetX_mm: targetX_mm,
+                targetY_mm: targetY_mm,
+                deltaX_mm: deltaX_mm,
+                deltaY_mm: deltaY_mm,
+                success: newDisplacement &&
+                         Math.abs(newDisplacement.x_mm - targetX_mm) < 0.1 &&
+                         Math.abs(newDisplacement.y_mm - targetY_mm) < 0.1
+            };
+        };
+
+        // 📌 Funkcja pomocnicza - przesuń do pozycji z bazy danych
+        window.svgHelper.moveToSavedPosition = function(savedX_mm, savedY_mm) {
+            console.log(`🔄 Przywracanie pozycji: X=${savedX_mm}mm, Y=${savedY_mm}mm`);
+
+            // Najpierw wyzeruj pozycję
+            window.svgHelper.resetModel2Position();
+
+            // Poczekaj chwilę na render
+            setTimeout(() => {
+                // Przesuń do zapisanej pozycji
+                const result = window.svgHelper.moveAbsolute(savedX_mm, savedY_mm);
+
+                if (result && result.success) {
+                    console.log(`✅ Pozycja przywrócona pomyślnie`);
+                } else {
+                    console.warn(`⚠️ Pozycja może być niedokładna - różnica:
+                        ΔX=${result ? (result.x_mm - savedX_mm).toFixed(2) : '?'}mm,
+                        ΔY=${result ? (result.y_mm - savedY_mm).toFixed(2) : '?'}mm`);
+
+                    // Spróbuj jeszcze raz z prostszą metodą
+                    setTimeout(() => {
+                        window.svgHelper.moveAbsoluteSimple(savedX_mm, savedY_mm);
+                    }, 50);
+                }
+            }, 100);
+        };
+
+            window.svgHelper.bakeModel2Transform = function () {
+
+            try {
+
+                const svg = document.querySelector(".scaled-svg > svg");
+
+                if (!svg) {
+                    console.warn("[bakeModel2Transform] Brak SVG");
+                    return "";
+                }
+
+                const model2 = svg.querySelector("#model2");
+
+                if (!model2) {
+                    console.warn("[bakeModel2Transform] Brak #model2");
+                    return "";
+                }
+
+                const transform = model2.getAttribute("transform") || "";
+
+                console.log(
+                    "[bakeModel2Transform] Aktualny transform:",
+                    transform
+                );
+
+                if (!transform.trim()) {
+                    console.log(
+                        "[bakeModel2Transform] model2 nie posiada transformacji."
+                    );
+
+                    return model2.outerHTML;
+                }
+
+                /*
+                 * KLUCZOWA RZECZ:
+                 *
+                 * Pobieramy macierz transformacji model2
+                 * względem SVG.
+                 */
+                const ctm = model2.getCTM();
+
+                if (!ctm) {
+                    console.warn(
+                        "[bakeModel2Transform] Nie udało się pobrać CTM."
+                    );
+
+                    return model2.outerHTML;
+                }
+
+                /*
+                 * Tworzymy kopię model2.
+                 * Oryginalny model2 na ekranie pozostaje nietknięty.
+                 */
+                const clone = model2.cloneNode(true);
+
+                /*
+                 * Transformację parenta trzeba rozłożyć
+                 * na elementy znajdujące się wewnątrz model2.
+                 */
+                const elements = clone.querySelectorAll(
+                    "line, path, circle, rect, ellipse, polygon, polyline"
+                );
+
+                /*
+                 * Macierz transformacji model2
+                 */
+                const matrixValues =
+                    `matrix(${ctm.a} ${ctm.b} ${ctm.c} ${ctm.d} ${ctm.e} ${ctm.f})`;
+
+                /*
+                 * Przenosimy transformację na wszystkie
+                 * elementy potomne.
+                 *
+                 * Nie ruszamy model1.
+                 */
+                elements.forEach(el => {
+
+                    const existing = el.getAttribute("transform");
+
+                    if (existing) {
+
+                        el.setAttribute(
+                            "transform",
+                            `${matrixValues} ${existing}`
+                        );
+
+                    } else {
+
+                        el.setAttribute(
+                            "transform",
+                            matrixValues
+                        );
+                    }
+                });
+
+                /*
+                 * Teraz usuwamy transformację z #model2
+                 */
+                clone.removeAttribute("transform");
+
+                console.log(
+                    "[bakeModel2Transform] ✅ Transformacja model2 została przeniesiona."
+                );
+
+                return clone.outerHTML;
+
+            }
+            catch (e) {
+
+                console.error(
+                    "[bakeModel2Transform] Błąd:",
+                    e
+                );
+
+                return "";
+            }
+        };
+
+            window.svgHelper.prepareSvgForSave = function () {
+
+            const svg =
+                document.querySelector(".scaled-svg");
+
+            if (!svg)
+                return "";
+
+            const clone =
+                svg.cloneNode(true);
+
+            // model2
+            const model2 =
+                clone.querySelector("#model2");
+
+            if (model2) {
+                bakeModel2TransformInClone(model2);
+            }
+
+            // prowadnice
+            clone.querySelectorAll(
+                '[data-name^="guide-line-"],' +
+                '[id^="guide-line-"],' +
+                '.measurement-line,' +
+                '.measurement-text'
+            ).forEach(el => el.remove());
+
+            // wyczyść pomocnicze atrybuty
+            clone.querySelectorAll("*").forEach(el => {
+                el.removeAttribute("data-name");
+                el.removeAttribute("data-original-x");
+                el.removeAttribute("data-original-y");
+            });
+
+            return new XMLSerializer()
+                .serializeToString(clone);
+        };
+
+            // 🔁 Lustrzane odbicie TYLKO drugiego modelu w poziomie (z wypalaniem)
+        window.svgHelper.flipSecondModelHorizontally = function() {
             const model2 = document.querySelector("#model2");
             if (!model2) {
-                console.warn("[updateDisplacement] Nie znaleziono #model2");
-                return;
+                console.warn("[flipSecondModelHorizontally] Nie znaleziono #model2");
+                return false;
             }
 
             const currentTransform = model2.getAttribute("transform") || "";
 
-            // Zachowaj istniejący obrót jeśli jest
-            const rotateMatch = currentTransform.match(/rotate\(([^)]+)\)/);
-            const rotate = rotateMatch ? ` rotate(${rotateMatch[1]})` : "";
+            // Sprawdź czy już jest odbicie
+            const hasFlip = currentTransform.includes("scale(-1, 1)") ||
+                            currentTransform.includes("scale(1, -1)");
 
-            // Uwzględnij aktualną skalę
-            const scale = window.svgHelper.zoomLevel || 1;
-            const scaledX = x * scale;
-            const scaledY = y * scale;
+            if (hasFlip) {
+                // Wypal odbicie do współrzędnych
+                window.svgHelper.bakeHorizontalFlipModel2();
+                console.log("[flipSecondModelHorizontally] Wypalono odbicie lustrzane");
+                return false;
+            } else {
+                // Dodaj odbicie poziome (względem osi Y przechodzącej przez środek modelu)
+                const bbox = model2.getBBox();
+                const cx = bbox.x + bbox.width / 2;
 
-            // Zastosuj nową pozycję
-            model2.setAttribute("transform", `translate(${scaledX}, ${scaledY})${rotate}`);
+                // Zachowaj istniejącą transformację i dodaj odbicie
+                const newTransform = currentTransform +
+                    ` translate(${2 * cx}, 0) scale(-1, 1)`;
 
-            console.log(`[updateDisplacement] Przesunięto model2: X=${scaledX.toFixed(2)}, Y=${scaledY.toFixed(2)}, skala=${scale}`);
-        } catch (e) {
-            console.error("[updateDisplacement] błąd:", e);
-        }
-    };
+                model2.setAttribute("transform", newTransform);
+                console.log("[flipSecondModelHorizontally] Dodano odbicie lustrzane");
+                return true;
+            }
+        };
 
-        // Eksport czystego SVG (bez prowadnic i elementów pomiarowych)
-    window.svgHelper.exportCleanedSvg = function() {
-        try {
-            console.log("Starting SVG export...");
+        // ============================================================
+        // WYPALENIE ODBICIA POZIOMEGO DO WSPÓŁRZĘDNYCH SVG
+        // ============================================================
 
-            // 1. Pobierz elementy SVG
-            const svgElement = document.querySelector(".scaled-svg");
-            const svgContent = svgElement?.querySelector("#zoom-group");
+        window.svgHelper.bakeHorizontalFlipModel2 = function() {
 
-            if (!svgElement || !svgContent) {
-                console.error("SVG elements not found");
-                return "";
+            console.log("🔥 Wypalam odbicie poziome model2 do współrzędnych SVG...");
+
+            const model2 = document.querySelector("#model2");
+
+            if (!model2) {
+                console.error("❌ Nie znaleziono #model2");
+                return false;
             }
 
-            // 2. Utwórz głęboką kopię SVG
-            const clone = svgElement.cloneNode(true);
-            const cloneContent = clone.querySelector("#zoom-group");
+            const transform = model2.getAttribute("transform") || "";
 
-            if (!cloneContent) {
-                console.error("zoom-group not found in clone");
-                return "";
+            // Szukamy odbicia poziomego:
+            // translate(2*cx, 0) scale(-1, 1)
+            const flipRegex =
+                /translate\s*\(\s*(-?[\d.]+)\s*,\s*0\s*\)\s*scale\s*\(\s*-1\s*,\s*1\s*\)/;
+
+            const match = transform.match(flipRegex);
+
+            if (!match) {
+                console.log("ℹ️ Nie znaleziono odbicia poziomego do wypalenia.");
+                return false;
             }
 
-            // 3. Usuń niepotrzebne elementy (prowadnice, pomiary)
-            const elementsToRemove = cloneContent.querySelectorAll(
-                '[data-name^="guide-line-"], ' +
-                '[id^="guide-line-"], ' +
-                '.measurement-line, ' +
-                '.measurement-text'
+            const translateX = parseFloat(match[1]);
+
+            // Dla:
+            // translate(2*cx, 0) scale(-1, 1)
+            //
+            // wynik:
+            // x' = 2*cx - x
+            // y' = y
+            //
+            const offsetX = translateX;
+
+            console.log(`🪞 Parametr odbicia: offsetX=${offsetX}`);
+
+            // ----------------------------------------------------------
+            // 1. Pobierz wszystkie elementy geometryczne
+            // ----------------------------------------------------------
+
+            const elements = model2.querySelectorAll(
+                "line, circle, rect, ellipse, polygon, polyline, path"
             );
 
-            elementsToRemove.forEach(el => el.remove());
-            console.log(`Removed ${elementsToRemove.length} guide/measurement elements`);
+            elements.forEach(element => {
 
-            // 4. Pobierz aktualną transformację
-            const currentTransform = svgContent.getAttribute("transform") || "";
-            console.log("Current transform:", currentTransform);
+                try {
 
-            // 5. Przygotuj nowy SVG
-            const newSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-            newSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-            newSvg.setAttribute("width", "600");
-            newSvg.setAttribute("height", "600");
-            newSvg.setAttribute("viewBox", "0 0 600 600");
-            newSvg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+                    const tag = element.tagName.toLowerCase();
 
-            // 6. Dodaj grupę contentu z zachowaniem transformacji
-            const contentGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-            contentGroup.setAttribute("id", "zoom-group");
-            contentGroup.setAttribute("transform", currentTransform);
+                    switch (tag) {
 
-            // Przenieś wszystkie dzieci
-            while (cloneContent.firstChild) {
-                contentGroup.appendChild(cloneContent.firstChild);
+                        // ------------------------------------------------
+                        // LINE
+                        // ------------------------------------------------
+                        case "line": {
+
+                            let x1 = parseFloat(element.getAttribute("x1"));
+                            let x2 = parseFloat(element.getAttribute("x2"));
+
+                            if (Number.isFinite(x1)) {
+                                element.setAttribute(
+                                    "x1",
+                                    formatSvgNumber(offsetX - x1)
+                                );
+                            }
+
+                            if (Number.isFinite(x2)) {
+                                element.setAttribute(
+                                    "x2",
+                                    formatSvgNumber(offsetX - x2)
+                                );
+                            }
+
+                            break;
+                        }
+
+                        // ------------------------------------------------
+                        // CIRCLE
+                        // ------------------------------------------------
+                        case "circle": {
+
+                            let cx = parseFloat(element.getAttribute("cx"));
+
+                            if (Number.isFinite(cx)) {
+                                element.setAttribute(
+                                    "cx",
+                                    formatSvgNumber(offsetX - cx)
+                                );
+                            }
+
+                            break;
+                        }
+
+                        // ------------------------------------------------
+                        // RECT
+                        // ------------------------------------------------
+                        case "rect": {
+
+                            let x = parseFloat(element.getAttribute("x"));
+                            let width = parseFloat(element.getAttribute("width"));
+
+                            if (
+                                Number.isFinite(x) &&
+                                Number.isFinite(width)
+                            ) {
+
+                                const newX =
+                                    offsetX - x - width;
+
+                                element.setAttribute(
+                                    "x",
+                                    formatSvgNumber(newX)
+                                );
+                            }
+
+                            break;
+                        }
+
+                        // ------------------------------------------------
+                        // ELLIPSE
+                        // ------------------------------------------------
+                        case "ellipse": {
+
+                            let cx = parseFloat(element.getAttribute("cx"));
+
+                            if (Number.isFinite(cx)) {
+
+                                element.setAttribute(
+                                    "cx",
+                                    formatSvgNumber(offsetX - cx)
+                                );
+                            }
+
+                            break;
+                        }
+
+                        // ------------------------------------------------
+                        // POLYGON / POLYLINE
+                        // ------------------------------------------------
+                        case "polygon":
+                        case "polyline": {
+
+                            const points =
+                                element.getAttribute("points");
+
+                            if (!points)
+                                break;
+
+                            const tokens =
+                                points.trim().split(/[\s,]+/);
+
+                            const result = [];
+
+                            for (let i = 0; i < tokens.length; i += 2) {
+
+                                const x = parseFloat(tokens[i]);
+                                const y = parseFloat(tokens[i + 1]);
+
+                                if (
+                                    !Number.isFinite(x) ||
+                                    !Number.isFinite(y)
+                                ) {
+                                    continue;
+                                }
+
+                                result.push(
+                                    formatSvgNumber(offsetX - x),
+                                    formatSvgNumber(y)
+                                );
+                            }
+
+                            element.setAttribute(
+                                "points",
+                                result.join(" ")
+                            );
+
+                            break;
+                        }
+
+                        // ------------------------------------------------
+                        // PATH
+                        // ------------------------------------------------
+                        case "path": {
+
+                            const d = element.getAttribute("d");
+
+                            if (!d)
+                                break;
+
+                            const newD =
+                                flipSvgPathHorizontal(d, offsetX);
+
+                            element.setAttribute("d", newD);
+
+                            break;
+                        }
+                    }
+
+                }
+                catch (err) {
+
+                    console.error(
+                        `❌ Błąd podczas wypalania ${element.tagName}:`,
+                        err
+                    );
+                }
+
+            });
+
+            // ----------------------------------------------------------
+            // 2. Usuń TYLKO transformację odbicia
+            // ----------------------------------------------------------
+
+            const newTransform =
+                transform.replace(flipRegex, "").trim();
+
+            if (newTransform) {
+                model2.setAttribute(
+                    "transform",
+                    normalizeSvgTransform(newTransform)
+                );
+            }
+            else {
+                model2.removeAttribute("transform");
             }
 
-            newSvg.appendChild(contentGroup);
-
-            // 7. Serializacja do stringa
-            const serializer = new XMLSerializer();
-            let svgString = serializer.serializeToString(newSvg);
-
-            // 8. Oczyszczanie - usuń niepotrzebne atrybuty
-            svgString = svgString.replace(/\s*data-name="[^"]*"/g, '');
-            svgString = svgString.replace(/\s*data-original-x="[^"]*"/g, '');
-            svgString = svgString.replace(/\s*data-original-y="[^"]*"/g, '');
-
-            // 9. Sformatuj ładnie (opcjonalnie)
-            svgString = svgString
-                .replace(/><\//g, '>\n</')  // Dodaj nowe linie między tagami
-                .replace(/></g, '>\n<');     // Dodaj nowe linie między sąsiednimi tagami
-
-            console.log("SVG export successful, length:", svgString.length);
-            return svgString;
-
-        } catch (e) {
-            console.error("SVG export error:", e);
-            return "";
-        }
-    };
-
-        window.svgHelper.isSvgReady = function() {
-        const svgEl = document.querySelector(".scaled-svg");
-        const zoomGroup = svgEl?.querySelector("#zoom-group");
-        // Sprawdzamy, czy elementy istnieją i czy grupa ma dzieci
-        return !!(svgEl && zoomGroup && zoomGroup.children.length > 0);
-    };
-
-        window.svgHelper.exportSvgStringAsPng = function(svgString) {
-        return new Promise((resolve, reject) => {
-            try {
-                const canvas = document.createElement('canvas');
-                canvas.width = 600;
-                canvas.height = 600;
-                const ctx = canvas.getContext('2d');
-
-                const img = new Image();
-                const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-                const url = URL.createObjectURL(svgBlob);
-
-                img.onload = () => {
-                    ctx.drawImage(img, 0, 0);
-                    URL.revokeObjectURL(url);
-                    const pngDataUrl = canvas.toDataURL('image/png');
-                    resolve(pngDataUrl);
-                };
-
-                img.onerror = (err) => {
-                    URL.revokeObjectURL(url);
-                    reject(new Error('Nie udało się załadować SVG do PNG'));
-                };
-
-                img.src = url;
-            } catch (e) {
-                reject(e);
-            }
-        });
-    };
-
-        // Dodaj do swojego skryptu
-    window.svgHelper.getCurrentSvgState = function() {
-        try {
-            const svgElement = document.querySelector(".scaled-svg");
-            if (!svgElement) {
-                console.error("SVG element not found");
-                return "";
-            }
-
-            // Głęboka kopia SVG z aktualnymi transformacjami
-            const clone = svgElement.cloneNode(true);
-
-            // Usuń niepotrzebne elementy (prowadnice, pomiary)
-            const elementsToRemove = clone.querySelectorAll([
-                '[data-name^="guide-line-"]',
-                '[id^="guide-line-"]',
-                '.measurement-line',
-                '.measurement-text'
-            ].join(','));
-
-            elementsToRemove.forEach(el => el.remove());
-
-            // Serializuj do stringa
-            const serializer = new XMLSerializer();
-            let svgString = serializer.serializeToString(clone);
-
-            // Oczyść niepotrzebne atrybuty
-            svgString = svgString.replace(/\s*data-name="[^"]*"/g, '');
-            svgString = svgString.replace(/\s*data-original-x="[^"]*"/g, '');
-            svgString = svgString.replace(/\s*data-original-y="[^"]*"/g, '');
-
-            return svgString;
-        } catch (e) {
-            console.error("getCurrentSvgState error:", e);
-            return "";
-        }
-    };
-
-    // Funkcja do przywracania SVG z bazy
-    window.svgHelper.restoreSvgFromString = function(svgString) {
-        try {
-            const container = document.querySelector(".scaled-svg");
-            if (!container) {
-                console.error("Container not found");
-                return false;
-            }
-
-            // Utwórz tymczasowy element do sparsowania SVG
-            const parser = new DOMParser();
-            const svgDoc = parser.parseFromString(svgString, "image/svg+xml");
-            const newSvg = svgDoc.querySelector("svg");
-
-            if (!newSvg) {
-                console.error("Invalid SVG string");
-                return false;
-            }
-
-            // Podmień zawartość
-            container.innerHTML = '';
-            container.appendChild(newSvg);
-
-            // Ponownie zainicjalizuj prowadnice
-            setTimeout(() => {
-                window.svgHelper.initGuideLines();
-                window.svgHelper.centerAndFit();
-            }, 100);
+            console.log(
+                `✅ Odbicie zostało wypalone. Pozostała transformacja: ${
+                    model2.getAttribute("transform") || "(brak)"
+                }`
+            );
 
             return true;
-        } catch (e) {
-            console.error("restoreSvgFromString error:", e);
-            return false;
-        }
-    };
-
-
-        // 📌 Przesuń model2 o BEZWZGLĘDNĄ wartość względem model1
-    window.svgHelper.moveAbsolute = function(targetX_mm, targetY_mm) {
-        const svg = document.querySelector(".scaled-svg > svg");
-        const model1 = svg?.querySelector("#model1");
-        const model2 = svg?.querySelector("#model2");
-
-        if (!model1 || !model2) {
-            console.warn("❌ moveAbsolute: Nie znaleziono model1 lub model2");
-            return null;
-        }
-
-        // Pobierz środek model1 (punkt odniesienia)
-        const getCenter = (el) => {
-            const bbox = el.getBBox();
-            const pt = svg.createSVGPoint();
-            pt.x = bbox.x + bbox.width / 2;
-            pt.y = bbox.y + bbox.height / 2;
-            const ctm = el.getCTM();
-            return pt.matrixTransform(ctm);
         };
 
-        const center1 = getCenter(model1);
-        const center2 = getCenter(model2);
 
-        // Aktualna skala
-        const scale = window.svgHelper.zoomLevel || 1;
+        // ============================================================
+        // Pomocnicze formatowanie liczb
+        // ============================================================
 
-        // Przelicznik mm → piksele (ustaw odpowiednio do swojego SVG)
-        const MM_TO_PX = window.svgHelper.MM_TO_PX_RATIO || 3.779527559;
+        function formatSvgNumber(value) {
 
-        // Oblicz aktualne przesunięcie w mm
-        const currentDx_mm = (center2.x - center1.x) / (scale * MM_TO_PX);
-        const currentDy_mm = (center2.y - center1.y) / (scale * MM_TO_PX);
+            if (!Number.isFinite(value))
+                return "0";
 
-        // Oblicz różnicę do przesunięcia (w mm)
-        const deltaX_mm = targetX_mm - currentDx_mm;
-        const deltaY_mm = targetY_mm - currentDy_mm;
-
-        // Konwertuj różnicę na piksele i uwzględnij skalę
-        const deltaX_px = deltaX_mm * MM_TO_PX;
-        const deltaY_px = deltaY_mm * MM_TO_PX;
-
-        // Pobierz aktualną transformację model2
-        const currentTransform = model2.getAttribute("transform") || "";
-        const translateMatch = currentTransform.match(/translate\(([^)]+)\)/);
-
-        let x = 0, y = 0;
-        if (translateMatch) {
-            [x, y] = translateMatch[1].split(',').map(Number);
+            return Number(value.toFixed(6)).toString();
         }
 
-        // Aktualizuj pozycję z uwzględnieniem skali
-        x += deltaX_px / scale;
-        y += deltaY_px / scale;
 
-        // Zachowaj obrót jeśli istnieje
-        const rotateMatch = currentTransform.match(/rotate\(([^)]+)\)/);
-        const rotate = rotateMatch ? ` rotate(${rotateMatch[1]})` : "";
+        // ============================================================
+        // Normalizacja transform
+        // ============================================================
 
-        // Zastosuj nową transformację
-        model2.setAttribute("transform", `translate(${x}, ${y})${rotate}`);
+        function normalizeSvgTransform(transform) {
 
-        // Zweryfikuj nową pozycję
-        const newCenter2 = getCenter(model2);
-        const newDx_mm = (newCenter2.x - center1.x) / (scale * MM_TO_PX);
-        const newDy_mm = (newCenter2.y - center1.y) / (scale * MM_TO_PX);
-
-        console.log(`📌 moveAbsolute: przesunięto do X=${newDx_mm.toFixed(2)}mm, Y=${newDy_mm.toFixed(2)}mm`);
-        console.log(`   Docelowo: X=${targetX_mm}mm, Y=${targetY_mm}mm`);
-        console.log(`   Różnica: ΔX=${(newDx_mm - targetX_mm).toFixed(3)}mm, ΔY=${(newDy_mm - targetY_mm).toFixed(3)}mm`);
-
-        return {
-            x_mm: newDx_mm,
-            y_mm: newDy_mm,
-            targetX_mm: targetX_mm,
-            targetY_mm: targetY_mm,
-            deltaX_mm: deltaX_mm,
-            deltaY_mm: deltaY_mm,
-            success: Math.abs(newDx_mm - targetX_mm) < 0.01 && Math.abs(newDy_mm - targetY_mm) < 0.01
-        };
-    };
-
-    // 📌 Alternatywna wersja - prostsza, używa istniejącej funkcji move
-    window.svgHelper.moveAbsoluteSimple = function(targetX_mm, targetY_mm) {
-        const svg = document.querySelector(".scaled-svg > svg");
-        const model1 = svg?.querySelector("#model1");
-        const model2 = svg?.querySelector("#model2");
-
-        if (!model1 || !model2) {
-            console.warn("❌ moveAbsoluteSimple: Nie znaleziono modeli");
-            return null;
+            return transform
+                .replace(/,/g, " ")
+                .replace(/\s+/g, " ")
+                .trim();
         }
 
-        // Pobierz aktualne przesunięcie
-        const displacement = window.svgHelper.getDisplacementInMM();
-        if (!displacement) {
-            console.warn("❌ moveAbsoluteSimple: Nie można odczytać aktualnego przesunięcia");
-            return null;
-        }
 
-        // Oblicz różnicę
-        const deltaX_mm = targetX_mm - displacement.x_mm;
-        const deltaY_mm = targetY_mm - displacement.y_mm;
+        // ============================================================
+        // ODBICIE PATH W POZIOMIE
+        // ============================================================
 
-        console.log(`📌 Aktualne: X=${displacement.x_mm}mm, Y=${displacement.y_mm}mm`);
-        console.log(`📌 Docelowe: X=${targetX_mm}mm, Y=${targetY_mm}mm`);
-        console.log(`📌 Do przesunięcia: ΔX=${deltaX_mm.toFixed(2)}mm, ΔY=${deltaY_mm.toFixed(2)}mm`);
+        function flipSvgPathHorizontal(d, offsetX) {
 
-        // Użyj istniejącej funkcji move (która przyjmuje mm)
-        const result = window.svgHelper.move(deltaX_mm, deltaY_mm, 'mm');
+            const tokens =
+                d.match(/[a-zA-Z]|[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?/g);
 
-        // Zweryfikuj
-        const newDisplacement = window.svgHelper.getDisplacementInMM();
+            if (!tokens)
+                return d;
 
-        return {
-            x_mm: newDisplacement?.x_mm,
-            y_mm: newDisplacement?.y_mm,
-            targetX_mm: targetX_mm,
-            targetY_mm: targetY_mm,
-            deltaX_mm: deltaX_mm,
-            deltaY_mm: deltaY_mm,
-            success: newDisplacement &&
-                     Math.abs(newDisplacement.x_mm - targetX_mm) < 0.1 &&
-                     Math.abs(newDisplacement.y_mm - targetY_mm) < 0.1
-        };
-    };
+            const commandParams = {
 
-    // 📌 Funkcja pomocnicza - przesuń do pozycji z bazy danych
-    window.svgHelper.moveToSavedPosition = function(savedX_mm, savedY_mm) {
-        console.log(`🔄 Przywracanie pozycji: X=${savedX_mm}mm, Y=${savedY_mm}mm`);
+                M: 2,
+                L: 2,
+                H: 1,
+                V: 1,
+                C: 6,
+                S: 4,
+                Q: 4,
+                T: 2,
+                A: 7,
+                Z: 0
+            };
 
-        // Najpierw wyzeruj pozycję
-        window.svgHelper.resetModel2Position();
+            let result = [];
 
-        // Poczekaj chwilę na render
-        setTimeout(() => {
-            // Przesuń do zapisanej pozycji
-            const result = window.svgHelper.moveAbsolute(savedX_mm, savedY_mm);
+            let i = 0;
+            let command = null;
 
-            if (result && result.success) {
-                console.log(`✅ Pozycja przywrócona pomyślnie`);
-            } else {
-                console.warn(`⚠️ Pozycja może być niedokładna - różnica:
-                    ΔX=${result ? (result.x_mm - savedX_mm).toFixed(2) : '?'}mm,
-                    ΔY=${result ? (result.y_mm - savedY_mm).toFixed(2) : '?'}mm`);
+            let currentX = 0;
+            let currentY = 0;
 
-                // Spróbuj jeszcze raz z prostszą metodą
-                setTimeout(() => {
-                    window.svgHelper.moveAbsoluteSimple(savedX_mm, savedY_mm);
-                }, 50);
+            let startX = 0;
+            let startY = 0;
+
+            while (i < tokens.length) {
+
+                if (/[a-zA-Z]/.test(tokens[i])) {
+
+                    command = tokens[i];
+                    i++;
+
+                    if (command.toUpperCase() === "Z") {
+
+                        result.push("Z");
+
+                        currentX = startX;
+                        currentY = startY;
+
+                        continue;
+                    }
+                }
+
+                if (!command)
+                    break;
+
+                const upper = command.toUpperCase();
+                const relative = command === command.toLowerCase();
+
+                const count = commandParams[upper];
+
+                if (count === undefined)
+                    break;
+
+                if (i + count > tokens.length)
+                    break;
+
+                const values = [];
+
+                for (let j = 0; j < count; j++) {
+                    values.push(parseFloat(tokens[i + j]));
+                }
+
+                i += count;
+
+                switch (upper) {
+
+                    // --------------------------------------------------
+                    // M
+                    // --------------------------------------------------
+
+                    case "M": {
+
+                        let x = values[0];
+                        let y = values[1];
+
+                        if (relative) {
+                            x += currentX;
+                            y += currentY;
+                        }
+
+                        const newX = offsetX - x;
+
+                        result.push(
+                            "M",
+                            formatSvgNumber(newX),
+                            formatSvgNumber(y)
+                        );
+
+                        currentX = x;
+                        currentY = y;
+
+                        startX = x;
+                        startY = y;
+
+                        break;
+                    }
+
+                    // --------------------------------------------------
+                    // L
+                    // --------------------------------------------------
+
+                    case "L": {
+
+                        let x = values[0];
+                        let y = values[1];
+
+                        if (relative) {
+                            x += currentX;
+                            y += currentY;
+                        }
+
+                        const newX = offsetX - x;
+
+                        result.push(
+                            "L",
+                            formatSvgNumber(newX),
+                            formatSvgNumber(y)
+                        );
+
+                        currentX = x;
+                        currentY = y;
+
+                        break;
+                    }
+
+                    // --------------------------------------------------
+                    // H -> L
+                    // --------------------------------------------------
+
+                    case "H": {
+
+                        let x = values[0];
+
+                        if (relative)
+                            x += currentX;
+
+                        const newX = offsetX - x;
+
+                        result.push(
+                            "L",
+                            formatSvgNumber(newX),
+                            formatSvgNumber(currentY)
+                        );
+
+                        currentX = x;
+
+                        break;
+                    }
+
+                    // --------------------------------------------------
+                    // V -> L
+                    // --------------------------------------------------
+
+                    case "V": {
+
+                        let y = values[0];
+
+                        if (relative)
+                            y += currentY;
+
+                        result.push(
+                            "L",
+                            formatSvgNumber(offsetX - currentX),
+                            formatSvgNumber(y)
+                        );
+
+                        currentY = y;
+
+                        break;
+                    }
+
+                    // --------------------------------------------------
+                    // C
+                    // --------------------------------------------------
+
+                    case "C": {
+
+                        let x1 = values[0];
+                        let y1 = values[1];
+
+                        let x2 = values[2];
+                        let y2 = values[3];
+
+                        let x = values[4];
+                        let y = values[5];
+
+                        if (relative) {
+
+                            x1 += currentX;
+                            y1 += currentY;
+
+                            x2 += currentX;
+                            y2 += currentY;
+
+                            x += currentX;
+                            y += currentY;
+                        }
+
+                        result.push(
+                            "C",
+
+                            formatSvgNumber(offsetX - x1),
+                            formatSvgNumber(y1),
+
+                            formatSvgNumber(offsetX - x2),
+                            formatSvgNumber(y2),
+
+                            formatSvgNumber(offsetX - x),
+                            formatSvgNumber(y)
+                        );
+
+                        currentX = x;
+                        currentY = y;
+
+                        break;
+                    }
+
+                    // --------------------------------------------------
+                    // S
+                    // --------------------------------------------------
+
+                    case "S": {
+
+                        let x2 = values[0];
+                        let y2 = values[1];
+
+                        let x = values[2];
+                        let y = values[3];
+
+                        if (relative) {
+
+                            x2 += currentX;
+                            y2 += currentY;
+
+                            x += currentX;
+                            y += currentY;
+                        }
+
+                        result.push(
+                            "S",
+
+                            formatSvgNumber(offsetX - x2),
+                            formatSvgNumber(y2),
+
+                            formatSvgNumber(offsetX - x),
+                            formatSvgNumber(y)
+                        );
+
+                        currentX = x;
+                        currentY = y;
+
+                        break;
+                    }
+
+                    // --------------------------------------------------
+                    // Q
+                    // --------------------------------------------------
+
+                    case "Q": {
+
+                        let x1 = values[0];
+                        let y1 = values[1];
+
+                        let x = values[2];
+                        let y = values[3];
+
+                        if (relative) {
+
+                            x1 += currentX;
+                            y1 += currentY;
+
+                            x += currentX;
+                            y += currentY;
+                        }
+
+                        result.push(
+                            "Q",
+
+                            formatSvgNumber(offsetX - x1),
+                            formatSvgNumber(y1),
+
+                            formatSvgNumber(offsetX - x),
+                            formatSvgNumber(y)
+                        );
+
+                        currentX = x;
+                        currentY = y;
+
+                        break;
+                    }
+
+                    // --------------------------------------------------
+                    // T
+                    // --------------------------------------------------
+
+                    case "T": {
+
+                        let x = values[0];
+                        let y = values[1];
+
+                        if (relative) {
+
+                            x += currentX;
+                            y += currentY;
+                        }
+
+                        result.push(
+                            "T",
+                            formatSvgNumber(offsetX - x),
+                            formatSvgNumber(y)
+                        );
+
+                        currentX = x;
+                        currentY = y;
+
+                        break;
+                    }
+
+                    // --------------------------------------------------
+                    // A - łuk
+                    // --------------------------------------------------
+
+                    case "A": {
+
+                        let rx = values[0];
+                        let ry = values[1];
+                        let rotation = values[2];
+                        let largeArc = values[3];
+                        let sweep = values[4];
+
+                        let x = values[5];
+                        let y = values[6];
+
+                        if (relative) {
+
+                            x += currentX;
+                            y += currentY;
+                        }
+
+                        // Odbicie względem osi pionowej:
+                        //
+                        // rx - bez zmian
+                        // ry - bez zmian
+                        // rotation -> -rotation
+                        // sweep -> odwrotność
+
+                        const newRotation =
+                            -rotation;
+
+                        const newSweep =
+                            sweep ? 0 : 1;
+
+                        result.push(
+                            "A",
+
+                            formatSvgNumber(rx),
+                            formatSvgNumber(ry),
+                            formatSvgNumber(newRotation),
+
+                            formatSvgNumber(largeArc),
+                            formatSvgNumber(newSweep),
+
+                            formatSvgNumber(offsetX - x),
+                            formatSvgNumber(y)
+                        );
+
+                        currentX = x;
+                        currentY = y;
+
+                        break;
+                    }
+
+                    default:
+                        console.warn(
+                            "⚠️ Nieobsługiwana komenda PATH:",
+                            upper
+                        );
+
+                        break;
+                }
             }
-        }, 100);
-    };
 
-
+            return result.join(" ");
+        }
 </script>
 
 <div class="container-fluid mt-3">
@@ -1396,7 +2354,10 @@
                             </div>
 
                             <div class="btn-group">
-                                <Tooltip Title="Lustro elementów. Odbicie w poziome">
+                                <Tooltip Title="Lustro ostatniego elementu">
+                                    <Button Icon="@IconType.Outline.Swap" OnClick="FlipSecondModel" Class="btn-sm btn-move" />
+                                </Tooltip>
+                                <Tooltip Title="Lustro elementów. Odbicie w poziome wszystkich elementów">
                                     <Button Icon="@IconType.Outline.Swap" OnClick="MirrorObjAll" Class="btn-sm btn-move" />
                                 </Tooltip>
                                 <Tooltip Title="Obróć wszystko">
@@ -1441,7 +2402,7 @@
 
                     <div class="mb-2 d-flex justify-content-between">
                         <h6 style="color:saddlebrown">Podgląd połączenia</h6>
-                        <h6 style="color:red">W przypadku konfiguracji słupka stałego wybierz go jako pierwszy model</h6>
+                        <h6 style="color:red">W przypadku konfiguracji słupka stałego wybierz go jako pierwszy model. Strona góra/dół określa skrzydło</h6>
                         <div>
                             <Button Icon="@IconType.Outline.Fire" OnClick="@(() => RefreshSvg())" Class="btn-sm me-2">
                                 Odśwież
@@ -2198,10 +3159,22 @@
             double secondX = centerX + offsetX;
             double secondY = centerY + offsetY;
 
-            var pasujacyWymiar = drugiModel.PoziomGora - drugiModel.PoziomDol ?? 0;
-            pasujacyWymiar = Math.Abs(pasujacyWymiar);
-            if (pasujacyWymiar == 0) pasujacyWymiar = 5; // Domyślny wymiar, jeśli brak danych
-            double rectWidth = pasujacyWymiar;
+            var pasujacyPierwszy = pierwszyModel.PionLewa - pierwszyModel.PionPrawa ?? 0;
+            pasujacyPierwszy = Math.Abs(pasujacyPierwszy);
+
+            var pasujacyWymiarY = drugiModel.PoziomGora - drugiModel.PoziomDol ?? 0;
+            var pasujacyWymiarX = drugiModel.PionLewa - drugiModel.PionPrawa ?? 0;
+            pasujacyWymiarY = Math.Abs(pasujacyWymiarY);
+            pasujacyWymiarX = Math.Abs(pasujacyWymiarX);
+            if (pasujacyWymiarY == 0) pasujacyWymiarY = 5; // Domyślny wymiar, jeśli brak danych
+            if (pasujacyWymiarX == 0) pasujacyWymiarX = 5; // Domyślny wymiar, jeśli brak danych
+
+            // Obliczamy odległość każdego wymiaru od wartości pasujacyPierwszy
+            double roznicaY = Math.Abs(pasujacyPierwszy - pasujacyWymiarY);
+            double roznicaX = Math.Abs(pasujacyPierwszy - pasujacyWymiarX);
+
+            // Wybieramy ten wymiar, którego różnica jest mniejsza (jest bliższy pasujacyPierwszy)
+            double rectWidth = (roznicaY < roznicaX) ? pasujacyWymiarY : pasujacyWymiarX;
 
             double rectHeight = 100; // Domyślny rozmiar prostokąta tylko do wizualizacji
             double rectX = 0;//centerX + offsetX - rectWidth;
@@ -2223,7 +3196,7 @@
 
             svgParts.Add($@"
             <g id=""model2"" transform=""translate({secondX}, {secondY})"">
-    {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
+            {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
             </g>");
         }
 
@@ -2321,9 +3294,17 @@
 
     private async Task RotateObj()
     {
+        await JSRuntime.InvokeVoidAsync("svgHelper.bakeHorizontalFlipModel2");
+
         await JSRuntime.InvokeVoidAsync("svgHelper.rotateSecondModel");
 
         katUstawienia = (katUstawienia + 90) % 360;
+    }
+
+
+    private async Task FlipSecondModel()
+    {
+        await JSRuntime.InvokeVoidAsync("svgHelper.flipSecondModelHorizontally");
     }
 
     private async Task MirrorObjAll()
@@ -2333,6 +3314,9 @@
 
     private async Task RotateObjAll()
     {
+
+        await JSRuntime.InvokeVoidAsync("svgHelper.bakeHorizontalFlipModel2");
+
         await JSRuntime.InvokeVoidAsync("svgHelper.rotateAllModel");
 
         katUstawienia = (katUstawienia + 90) % 360;
@@ -2365,6 +3349,10 @@
 
     private async Task SaveAllPosition()
     {
+
+        //await JSRuntime.InvokeVoidAsync("svgHelper.bakeHorizontalFlipModel2");
+
+        await Task.Yield(); // Daj czas na zakończenie operacji w JS
 
         await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
         await Task.Delay(200);
@@ -2599,41 +3587,56 @@
 
     }
 
+
     private async Task<string> GenerujSvgBezProwadnic()
     {
         try
         {
             // 1. Wymuś aktualizację UI
-            StateHasChanged();
-            await Task.Delay(100); // Czekaj na renderowanie
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(100);
 
             // 2. Sprawdź, czy SVG jest gotowy
-            var isReady = await JSRuntime.InvokeAsync<bool>("svgHelper.isSvgReady");
+            var isReady = await JSRuntime.InvokeAsync<bool>(
+                "svgHelper.isSvgReady");
+
             if (!isReady)
             {
                 Console.WriteLine("SVG not ready, waiting...");
                 await Task.Delay(500);
 
-                // Spróbuj wymusić centrowanie
-                await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
+                await JSRuntime.InvokeVoidAsync(
+                    "svgHelper.centerAndFit");
+
                 await Task.Delay(300);
             }
 
-            // 3. Pobierz czysty SVG
-            var svgString = await JSRuntime.InvokeAsync<string>("svgHelper.exportCleanedSvg");
+            // 3. Pobierz SVG przygotowane specjalnie do zapisu
+            //    - bez prowadnic
+            //    - bez elementów pomiarowych
+            //    - transformacja model2 zostaje wypalona
+            var svgForSave =
+                await JSRuntime.InvokeAsync<string>(
+                    "svgHelper.prepareSvgForSave");
 
-            if (string.IsNullOrEmpty(svgString) || svgString.Length < 100)
+            // 4. Walidacja
+            if (string.IsNullOrEmpty(svgForSave) ||
+                svgForSave.Length < 100)
             {
                 Console.WriteLine("Invalid SVG data received");
                 return string.Empty;
             }
 
-            Console.WriteLine($"SVG generated successfully, length: {svgString.Length}");
-            return svgString;
+            Console.WriteLine(
+                $"SVG generated successfully, length: {svgForSave.Length}");
+
+            return svgForSave;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error generating SVG: {ex.Message}");
+            Console.WriteLine(
+                $"Error generating SVG: {ex.Message}");
+
             return string.Empty;
         }
     }
