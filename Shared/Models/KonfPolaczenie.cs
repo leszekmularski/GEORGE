@@ -37,6 +37,15 @@ namespace GEORGE.Shared.Models
         public string? SVG { get; set; } //RYSUNEK SVG DO WYŚWIETLANIA W APLIKACJI
         public string? KonfiguracjaSVG { get; set; } //KONFIGURACJA RYSUNKU SVG DO WYŚWIETLANIA W APLIKACJI DO PÓŹNIEJSZEJ MODYFIKACJI
 
+        // 📌 NOWE POLA DO ZAPISU POZYCJI
+        public double? Model2PozycjaX { get; set; }
+        public double? Model2PozycjaY { get; set; }
+        public string? ZoomTransform { get; set; }
+        public double? ZoomLevel { get; set; }
+
+        // Opcjonalnie - pozycja całej grupy modeli
+        public string? ModelsGroupTransform { get; set; }
+
         [NotMapped]
         public KonfSystem? ElementWewnetrzny { get; set; }
 

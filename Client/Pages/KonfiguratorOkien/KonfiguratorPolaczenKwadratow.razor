@@ -2120,6 +2120,36 @@
 
             return result.join(" ");
         }
+
+            // 📌 Przesuń przy edycji
+    window.svgHelper.moveonlyedit = function(dx, dy) {
+        const model2 = document.querySelector("#model2");
+        if (!model2) return;
+
+        const currentTransform = model2.getAttribute("transform") || "";
+        const translateMatch = currentTransform.match(/translate\(([^)]+)\)/);
+
+        let x = 0, y = 0;
+        if (translateMatch) {
+            [x, y] = translateMatch[1].split(',').map(Number);
+        }
+
+        // Aktualizuj pozycję z uwzględnieniem skali
+        const scale = window.svgHelper.zoomLevel || 1;
+        x += dx / scale;
+        y += dy / scale;
+
+        // Zachowaj obrót jeśli istnieje
+        const rotateMatch = currentTransform.match(/rotate\(([^)]+)\)/);
+        const rotate = rotateMatch ? ` rotate(${rotateMatch[1]})` : "";
+
+        model2.setAttribute("transform", `translate(${x}, ${y})${rotate}`);
+
+        // Zwróć aktualną pozycję (opcjonalnie)
+        return { x: x * scale, y: y * scale };
+    };
+
+
 </script>
 
 <div class="container-fluid mt-3">
@@ -2685,13 +2715,13 @@
                     <label class="form-label fw-bold">Przesunięcie X [mm]</label>
                     <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowanePrzesuniecieX"
                                                                        class="form-control"
-                                                                       step="0.01" @bind-Value:after="OnPrzesuniecieChanged" />
+                                                                       step="1.5" @bind-Value:after="OnPrzesuniecieChanged" />
                 </div>
                 <div class="col-6">
                     <label class="form-label fw-bold">Przesunięcie X styczne [mm]</label>
                     <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowanePrzesuniecieXStycznej"
                                                                        class="form-control"
-                                                                       step="0.01" @bind-Value:after="OnPrzesuniecieChanged" />
+                                                                       step="1.5" @bind-Value:after="OnPrzesuniecieChanged" />
                 </div>
             </div>
 
@@ -2700,13 +2730,13 @@
                     <label class="form-label fw-bold">Przesunięcie Y [mm]</label>
                     <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowanePrzesuniecieY"
                                                                        class="form-control"
-                                                                       step="0.01" @bind-Value:after="OnPrzesuniecieChanged" />
+                                                                       step="1.5" @bind-Value:after="OnPrzesuniecieChanged" />
                 </div>
                 <div class="col-6">
                     <label class="form-label fw-bold">Przesunięcie Y styczne [mm]</label>
                     <Microsoft.AspNetCore.Components.Forms.InputNumber @bind-Value="edytowanePrzesuniecieYStycznej"
                                                                        class="form-control"
-                                                                       step="0.01" @bind-Value:after="OnPrzesuniecieChanged" />
+                                                                       step="1.5" @bind-Value:after="OnPrzesuniecieChanged" />
                 </div>
             </div>
 
@@ -3954,7 +3984,7 @@
         {
 
             //await JSRuntime.InvokeVoidAsync("svgHelper.move", edytowanePrzesuniecieX, edytowanePrzesuniecieY);
-            await JSRuntime.InvokeVoidAsync("svgHelper.move",
+            await JSRuntime.InvokeVoidAsync("svgHelper.moveonlyedit",
             old_edytowanePrzesuniecieX - edytowanePrzesuniecieX,
             old_edytowanePrzesuniecieY - edytowanePrzesuniecieY);
             await Task.Delay(10); // Daj czas na renderowanie
@@ -3967,7 +3997,7 @@
         if (edytowanePrzesuniecieXStycznej != old_edytowanePrzesuniecieXStycznej || edytowanePrzesuniecieYStycznej != old_edytowanePrzesuniecieYStycznej)
         {
             //await JSRuntime.InvokeVoidAsync("svgHelper.move", edytowanePrzesuniecieXStycznej, edytowanePrzesuniecieYStycznej);
-            await JSRuntime.InvokeVoidAsync("svgHelper.move",
+            await JSRuntime.InvokeVoidAsync("svgHelper.moveonlyedit",
             old_edytowanePrzesuniecieXStycznej - edytowanePrzesuniecieXStycznej,
             old_edytowanePrzesuniecieYStycznej - edytowanePrzesuniecieYStycznej);
             await Task.Delay(10); // Daj czas na renderowanie

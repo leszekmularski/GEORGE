@@ -2605,9 +2605,9 @@ namespace GEORGE.Client.Pages.Okna
             var filteredOuter = GetSegmentsForSide(outerContour, _stronaElementu);
             var filteredInner = GetSegmentsForSide(innerContour, _stronaElementu);
 
-            Console.WriteLine($"\n🔷 Build4SegmentContour ELEMENT {numerElemntu} _stronaElementu: {_stronaElementu} - START");
-            Console.WriteLine($"🔷 Build4SegmentContour    Strona: {_stronaElementu}, filteredOuter -> segmenty: {filteredOuter?.Count ?? 0}, łuki: {filteredOuter?.Count(s => s.Type == SegmentType.Arc) ?? 0}");
-            Console.WriteLine($"🔷 Build4SegmentContour    Wierzchołki: [0]({wierzcholki[0].X:F2},{wierzcholki[0].Y:F2}) [1]({wierzcholki[1].X:F2},{wierzcholki[1].Y:F2}) [2]({wierzcholki[2].X:F2},{wierzcholki[2].Y:F2}) [3]({wierzcholki[3].X:F2},{wierzcholki[3].Y:F2})");
+            //Console.WriteLine($"\n🔷 Build4SegmentContour ELEMENT {numerElemntu} _stronaElementu: {_stronaElementu} - START");
+            //Console.WriteLine($"🔷 Build4SegmentContour    Strona: {_stronaElementu}, filteredOuter -> segmenty: {filteredOuter?.Count ?? 0}, łuki: {filteredOuter?.Count(s => s.Type == SegmentType.Arc) ?? 0}");
+            //Console.WriteLine($"🔷 Build4SegmentContour    Wierzchołki: [0]({wierzcholki[0].X:F2},{wierzcholki[0].Y:F2}) [1]({wierzcholki[1].X:F2},{wierzcholki[1].Y:F2}) [2]({wierzcholki[2].X:F2},{wierzcholki[2].Y:F2}) [3]({wierzcholki[3].X:F2},{wierzcholki[3].Y:F2})");
 
             int sourceIndex = numerElemntu - 1;
             int previousIndex = (sourceIndex - 1 + outerContour.Count) % outerContour.Count;
@@ -2664,7 +2664,7 @@ namespace GEORGE.Client.Pages.Okna
                     // Segment boczny 2 (lewy) – od adjustedVerticesX[3] do adjustedVerticesX[0]
                     var segBoczny2 = BuildSegmentWithArc(adjustedVerticesX[3], adjustedVerticesX[0], contourForSide);
 
-                    Console.WriteLine($"\n🔷 Build4SegmentContour ELEMENT {numerElemntu} _stronaElementu: {_stronaElementu} - RETURN 1");
+                   // Console.WriteLine($"\n🔷 Build4SegmentContour ELEMENT {numerElemntu} _stronaElementu: {_stronaElementu} - RETURN 1");
 
                     return new List<ContourSegment>
                         {
@@ -2724,7 +2724,7 @@ namespace GEORGE.Client.Pages.Okna
                         var segBoczny1 = BuildSegmentWithArc(adjustedVerticesX[1], adjustedVerticesX[2], contourForSide);
                         var segBoczny2 = BuildSegmentWithArc(adjustedVerticesX[3], adjustedVerticesX[0], contourForSide);
 
-                        Console.WriteLine($"\n🔷 Build4SegmentContour ELEMENT {numerElemntu} _stronaElementu: {_stronaElementu} - RETURN 3");
+                      // Console.WriteLine($"\n🔷 Build4SegmentContour ELEMENT {numerElemntu} _stronaElementu: {_stronaElementu} - RETURN 3");
 
                         return new List<ContourSegment>
                         {

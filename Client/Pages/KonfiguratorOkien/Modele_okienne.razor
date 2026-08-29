@@ -4082,8 +4082,8 @@
                                 generator, wybranyRegionSkrzydlo
                             );
 
-                            await Task.WhenAll();
-                            await Task.Delay(450); // Krótkie opóźnienie dla stabilności
+                            await Task.Yield(); // Upewnij się, że UI ma szansę się odświeżyć
+                            await Task.Delay(100); // Krótkie opóźnienie dla stabilności
 
                             if (test == null)
                             {
@@ -5994,12 +5994,12 @@
             // Opcjonalnie: rzuć wyjątek lub obsłuż błąd
         }
 
-        //await Task.WhenAll(); // jeśli masz inne równoległe operacje do wykonania
-        await Task.Delay(100); // krótkie opóźnienie dla stabilności krótszy czas jest problem z pobieraniem danych z systemu, dłuższy czas powoduje lagi w interfejsie przy dużej ilości danych o połączeniach
-
         await Task.Yield(); // placeholder dla ewentualnych operacji asynchronicznych
 
-        // 🔹 Pobierz przesunięcia z boków
+        //await Task.WhenAll(); // jeśli masz inne równoległe operacje do wykonania
+        await Task.Delay(50); // krótkie opóźnienie dla stabilności krótszy czas jest problem z pobieraniem danych z systemu, dłuższy czas powoduje lagi w interfejsie przy dużej ilości danych o połączeniach
+
+            // 🔹 Pobierz przesunięcia z boków
         foreach (var bok in state.ListaKwadratow)
         {
             // bok.Strona = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(bok.KatLinii); //Popraw stronę elementu!
@@ -6033,21 +6033,22 @@
                 // generator.BledySystemowe.Add($"x.ElementZewnetrznyId == {bok.RowIdSasiada} && x.ElementWewnetrznyId == {bok.RowIdElementu} polaczenieWartosci wyszukano: {polaczenieWartosci.Count()}");
             }
 
-            var spolaczenieStrona = polaczenieWartosci.FirstOrDefault();
+            var s_polaczenieStrona = polaczenieWartosci.FirstOrDefault();
 
-            if (string.IsNullOrEmpty(spolaczenieStrona?.Strona) && spolaczenieStrona != null)
+            if (string.IsNullOrEmpty(s_polaczenieStrona?.Strona) && s_polaczenieStrona != null)
             {
                 bok.Strona = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(bok.KatLinii); //Popraw stronę elementu!
-                spolaczenieStrona.Strona = bok.Strona;
+                s_polaczenieStrona.Strona = bok.Strona;
                 Console.WriteLine($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono ponownie stronę na: {bok.Strona} !!!!!!");
             }
 
             double przesY = 0;
-            if (spolaczenieStrona != null)
+
+            if (s_polaczenieStrona != null)
             {
-                // przesY = Math.Abs(spolaczenieStrona.PrzesuniecieY);
-                przesY = spolaczenieStrona.PrzesuniecieY;
-                //Console.WriteLine($"WyliczObszarSkrzydla   Znaleziono połączenie: PrzesuniecieY={spolaczenieStrona.PrzesuniecieY}, |Y|={przesY}, Strona='{spolaczenieStrona.Strona}'");
+                // przesY = Math.Abs(s_polaczenieStrona.PrzesuniecieY);
+                przesY = s_polaczenieStrona.PrzesuniecieY;
+                //Console.WriteLine($"WyliczObszarSkrzydla   Znaleziono połączenie: PrzesuniecieY={s_polaczenieStrona.PrzesuniecieY}, |Y|={przesY}, Strona='{s_polaczenieStrona.Strona}'");
             }
             else
             {
@@ -6059,33 +6060,33 @@
 
 
             //Console.WriteLine($"WyliczObszarSkrzydla   Znormalizowana strona: '{stronaNormalized}'");
-
-            switch (spolaczenieStrona?.Strona)
+        
+            switch (s_polaczenieStrona?.Strona)
             {
                 case "lewa":
                     przesLewo = przesY;
                     ustawionoLewa = true;
-                    Console.WriteLine($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono przesLewo = {przesY} spolaczenieStrona: {spolaczenieStrona?.Strona}");
+                    Console.WriteLine($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono przesLewo = {przesY} s_polaczenieStrona: {s_polaczenieStrona?.Strona}");
                     break;
                 case "prawa":
                     przesPrawo = przesY;
                     ustawionoPrawa = true;
-                    Console.WriteLine($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono przesPrawo = {przesY} spolaczenieStrona: {spolaczenieStrona?.Strona}");
+                    Console.WriteLine($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono przesPrawo = {przesY} s_polaczenieStrona: {s_polaczenieStrona?.Strona}");
                     break;
                 case "góra":
                 case "gora":
                     przesGora = przesY;
                     ustawionoGora = true;
-                    Console.WriteLine($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono przesGora = {przesY} spolaczenieStrona: {spolaczenieStrona?.Strona}");
+                    Console.WriteLine($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono przesGora = {przesY} s_polaczenieStrona: {s_polaczenieStrona?.Strona}");
                     break;
                 case "dół":
                 case "dol":
                     przesDol = przesY;
                     ustawionoDol = true;
-                    Console.WriteLine($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono przesDol = {przesY} spolaczenieStrona: {spolaczenieStrona?.Strona}");
+                    Console.WriteLine($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono przesDol = {przesY} s_polaczenieStrona: {s_polaczenieStrona?.Strona}");
                     break;
                 default:
-                    Console.WriteLine($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ⚠️ Nieznana strona: '{bok.Strona}' spolaczenieStrona: {spolaczenieStrona?.Strona}");
+                    Console.WriteLine($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ⚠️ Nieznana strona: '{bok.Strona}' s_polaczenieStrona: {s_polaczenieStrona?.Strona}");
                     break;
             }
 
@@ -6104,7 +6105,7 @@
                     // Console.WriteLine($"WyliczObszarSkrzydla   Fallback value: {fallback}");
 
 
-                    switch (spolaczenieStrona?.Strona)
+                    switch (s_polaczenieStrona?.Strona)
                     {
                         case "lewa":
                             if (stronaLewa)
@@ -6416,6 +6417,7 @@
             }
 
             WyrobWymiaryOpis opisy = new WyrobWymiaryOpis(constWlasciwosciOkna.Szerokosc, constWlasciwosciOkna.Wysokosc, SelectedModelType ?? "", $"Nie wyszukano indesku elementu dla strony: {strona}");
+           
             infoObiekt.Add(opisy);
 
             return new List<PrzesuniecieDto>();
@@ -6469,6 +6471,7 @@
             }
 
             WyrobWymiaryOpis opisy = new WyrobWymiaryOpis(constWlasciwosciOkna.Szerokosc, constWlasciwosciOkna.Wysokosc, SelectedModelType ?? "", $"Nie wyszukano indesku elementu dla strony: {strona}");
+            
             infoObiekt.Add(opisy);
 
             return new List<PrzesuniecieDto>();
