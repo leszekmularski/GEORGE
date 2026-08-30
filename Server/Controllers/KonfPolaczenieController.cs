@@ -285,6 +285,14 @@ namespace GEORGE.Server.Controllers
         [HttpPut]
         public async Task<ActionResult> Update([FromBody] KonfPolaczenie updated)
         {
+            Console.WriteLine($"🔍 API PUT otrzymuje:");
+            Console.WriteLine($"   Id: {updated?.Id}");
+            Console.WriteLine($"   Model2PozycjaX: {updated?.Model2PozycjaX}");
+            Console.WriteLine($"   Model2PozycjaY: {updated?.Model2PozycjaY}");
+            Console.WriteLine($"   ZoomTransform: {updated?.ZoomTransform}");
+            Console.WriteLine($"   ZoomLevel: {updated?.ZoomLevel}");
+            Console.WriteLine($"   ModelsGroupTransform: {updated?.ModelsGroupTransform}");
+
             if (updated == null || updated.Id == 0)
                 return BadRequest("Nieprawidłowe dane");
 
@@ -312,7 +320,26 @@ namespace GEORGE.Server.Controllers
             existing.RowIdModelu = updated.RowIdModelu;
             existing.RowIdModeluDrugi = updated.RowIdModeluDrugi;
 
-            await _context.SaveChangesAsync();
+            // 🔹 KLUCZOWE: Dodaj aktualizację pól pozycji!
+            existing.Model2PozycjaX = updated.Model2PozycjaX;
+            existing.Model2PozycjaY = updated.Model2PozycjaY;
+            existing.ZoomTransform = updated.ZoomTransform;
+            existing.ZoomLevel = updated.ZoomLevel;
+            existing.ModelsGroupTransform = updated.ModelsGroupTransform;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                Console.WriteLine($"✅ API PUT: Zapisano pomyślnie");
+                Console.WriteLine($"   Model2PozycjaX: {existing.Model2PozycjaX}");
+                Console.WriteLine($"   Model2PozycjaY: {existing.Model2PozycjaY}");
+                Console.WriteLine($"   ZoomLevel: {existing.ZoomLevel}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ API PUT - błąd zapisu: {ex.Message}");
+                return StatusCode(500, ex.Message);
+            }
 
             return Ok(existing);
         }
@@ -321,6 +348,14 @@ namespace GEORGE.Server.Controllers
         [HttpPut("{rowId:guid}")]
         public async Task<ActionResult> UpdateByRowId(Guid rowId, [FromBody] KonfPolaczenie updated)
         {
+            Console.WriteLine($"🔍 API PUT ByRowId otrzymuje:");
+            Console.WriteLine($"   RowId: {rowId}");
+            Console.WriteLine($"   Model2PozycjaX: {updated?.Model2PozycjaX}");
+            Console.WriteLine($"   Model2PozycjaY: {updated?.Model2PozycjaY}");
+            Console.WriteLine($"   ZoomTransform: {updated?.ZoomTransform}");
+            Console.WriteLine($"   ZoomLevel: {updated?.ZoomLevel}");
+            Console.WriteLine($"   ModelsGroupTransform: {updated?.ModelsGroupTransform}");
+
             if (updated == null)
                 return BadRequest("Nieprawidłowe dane");
 
@@ -355,11 +390,36 @@ namespace GEORGE.Server.Controllers
                 existing.KatOd = updated.KatOd;
                 existing.Uwagi = updated.Uwagi;
 
-                await _context.SaveChangesAsync();
-                return Ok(existing);
+                // 🔹 KLUCZOWE: Dodaj aktualizację pól pozycji!
+                // Używaj ?? existing, aby zachować stare wartości jeśli nowe są null
+                existing.Model2PozycjaX = updated.Model2PozycjaX ?? existing.Model2PozycjaX;
+                existing.Model2PozycjaY = updated.Model2PozycjaY ?? existing.Model2PozycjaY;
+                existing.ZoomTransform = updated.ZoomTransform ?? existing.ZoomTransform;
+                existing.ZoomLevel = updated.ZoomLevel ?? existing.ZoomLevel;
+                existing.ModelsGroupTransform = updated.ModelsGroupTransform ?? existing.ModelsGroupTransform;
+
+                try
+                {
+                    await _context.SaveChangesAsync();
+
+                    Console.WriteLine($"✅ API PUT ByRowId: Zapisano pomyślnie");
+                    Console.WriteLine($"   Model2PozycjaX: {existing.Model2PozycjaX}");
+                    Console.WriteLine($"   Model2PozycjaY: {existing.Model2PozycjaY}");
+                    Console.WriteLine($"   ZoomTransform: {existing.ZoomTransform}");
+                    Console.WriteLine($"   ZoomLevel: {existing.ZoomLevel}");
+                    Console.WriteLine($"   ModelsGroupTransform: {existing.ModelsGroupTransform}");
+
+                    return Ok(existing);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"❌ API PUT ByRowId - błąd zapisu: {ex.Message}");
+                    return StatusCode(500, $"Błąd podczas zapisu: {ex.Message}");
+                }
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"❌ API PUT ByRowId - błąd ogólny: {ex.Message}");
                 return StatusCode(500, $"Błąd podczas aktualizacji: {ex.Message}");
             }
         }
