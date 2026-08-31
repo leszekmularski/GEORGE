@@ -365,12 +365,19 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (ShapeService == null)
+        if (ShapeService == null || ShapeService.EditableProperties == null || _originalShapes == null)
         {
-            Console.WriteLine("ShapeService jest null. Upewnij się, że jest poprawnie zainstalowany i wstrzyknięty.");
+            Console.WriteLine("ShapeService jest null. Ustawiam domyślne wartości...");
+
+            ShapeService.RysujTylkoKontur = false;
+            ShapeService.OknaMogaBycLukowe = true;
+
+            ShapeService.Szerokosc = 1250;
+            ShapeService.Wysokosc = 1000;
+            ShapeService.EditableProperties = new List<EditableProperty>();
             return;
         }
-
+  
         _originalShapes = ShapeService.Shapes.Select(s => s.Clone()).ToList(); // Odbiór danych z serwisu
 
         if (_originalShapes != null)

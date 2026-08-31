@@ -561,74 +561,296 @@
             });
         };
 
+
         window.svgHelper.measureGuideDisplacement = function () {
-            try {
-                const svg = document.querySelector(".scaled-svg > svg");
-                if (!svg) {
-                    console.error("SVG container not found");
-                    return null;
-                }
+        try {
+            // ============================================================
+            // POBRANIE GŁÓWNEGO SVG
+            // ============================================================
 
-                const model1 = svg.querySelector("#model1");
-                const model2 = svg.querySelector("#model2");
+            const svg = document.querySelector(".scaled-svg > svg");
 
-                if (!model1 || !model2) {
-                    console.error("Nie znaleziono obu modeli");
-                    return null;
-                }
-
-                const findGuide = (model, name) => {
-                    return model.querySelector(`[data-name="${name}"]`) ||
-                           model.querySelector(`[name="${name}"]`);
-                };
-
-                const guideHorizontalModel1 = findGuide(model1, 'guide-line-horizontalMax');
-                const guideVerticalModel1 = findGuide(model1, 'guide-line-vertical');
-                const guideHorizontalModel2 = findGuide(model2, 'guide-line-horizontalMax');
-                const guideVerticalModel2 = findGuide(model2, 'guide-line-vertical');
-
-                if (!guideHorizontalModel1 || !guideVerticalModel1 ||
-                    !guideHorizontalModel2 || !guideVerticalModel2) {
-                    console.warn("Nie znaleziono wszystkich prowadnic");
-                    return null;
-                }
-
-                const getTransformedCenter = (el) => {
-                    const bbox = el.getBBox();
-                    const pt = svg.createSVGPoint();
-                    pt.x = bbox.x + bbox.width / 2;
-                    pt.y = bbox.y + bbox.height / 2;
-                    const ctm = el.getCTM();
-                    return pt.matrixTransform(ctm);
-                };
-
-                const centerH1 = getTransformedCenter(guideHorizontalModel1);
-                const centerV1 = getTransformedCenter(guideVerticalModel1);
-                const centerH2 = getTransformedCenter(guideHorizontalModel2);
-                const centerV2 = getTransformedCenter(guideVerticalModel2);
-
-                const scale = window.svgHelper.zoomLevel || 1;
-
-                const displacementX = ((centerV2.x - centerV1.x) / scale);
-                const displacementY = ((centerH2.y - centerH1.y) / scale);
-
-                const round2 = (val) => Math.round(val * 100) / 100;
-
-                return {
-                    success: true,
-                    elementsFound: true,
-                    przesuniecieX: round2(displacementX),
-                    przesuniecieY: round2(displacementY),
-                    scale: scale
-                };
-            } catch (error) {
-                console.error("Measurement error:", error);
-                return {
-                    success: false,
-                    error: error.message
-                };
+            if (!svg) {
+                console.error("SVG container not found");
+                return null;
             }
-        };
+
+
+            // ============================================================
+            // POBRANIE MODELI
+            // ============================================================
+
+            const model1 = svg.querySelector("#model1");
+            const model2 = svg.querySelector("#model2");
+
+            if (!model1 || !model2) {
+                console.error("Nie znaleziono obu modeli");
+                return null;
+            }
+
+
+            // ============================================================
+            // FUNKCJA SZUKAJĄCA PROWADNICY W MODELU
+            //
+            // Dotychczasowe prowadnice pozostają wyszukiwane dokładnie
+            // tak jak wcześniej.
+            // ============================================================
+
+            const findGuide = (model, name) => {
+                return model.querySelector(`[data-name="${name}"]`) ||
+                       model.querySelector(`[name="${name}"]`);
+            };
+
+
+            // ============================================================
+            // PODSTAWOWE PROWADNICE - MODEL 1
+            // ============================================================
+
+            const guideHorizontalModel1 =
+                findGuide(model1, "guide-line-horizontalMax");
+
+            const guideVerticalModel1 =
+                findGuide(model1, "guide-line-vertical");
+
+
+            // ============================================================
+            // PODSTAWOWE PROWADNICE - MODEL 2
+            // ============================================================
+
+            const guideHorizontalModel2 =
+                findGuide(model2, "guide-line-horizontalMax");
+
+            const guideVerticalModel2 =
+                findGuide(model2, "guide-line-vertical");
+
+
+            // ============================================================
+            // SPRAWDZENIE PODSTAWOWYCH PROWADNIC
+            //
+            // To jest dotychczasowa logika measureGuideDisplacement().
+            // ============================================================
+
+            if (!guideHorizontalModel1 ||
+                !guideVerticalModel1 ||
+                !guideHorizontalModel2 ||
+                !guideVerticalModel2) {
+
+                console.warn(
+                    "Nie znaleziono wszystkich podstawowych prowadnic"
+                );
+
+                return null;
+            }
+
+
+            // ============================================================
+            // FUNKCJA POBIERAJĄCA WARTOŚĆ PROWADNICY
+            //
+            // Korzystamy z istniejących globalnych obiektów:
+            //
+            // verticalGuides
+            // horizontalGuides
+            //
+            // Tak samo jak w getKonfSystemValues().
+            // ============================================================
+
+            const getVerticalGuideValue = (name) => {
+
+                if (typeof verticalGuides === "undefined" ||
+                    verticalGuides === null) {
+
+                    console.warn(
+                        "Obiekt verticalGuides nie jest dostępny"
+                    );
+
+                    return 0;
+                }
+
+                return verticalGuides[name] ?? 0;
+            };
+
+
+            const getHorizontalGuideValue = (name) => {
+
+                if (typeof horizontalGuides === "undefined" ||
+                    horizontalGuides === null) {
+
+                    console.warn(
+                        "Obiekt horizontalGuides nie jest dostępny"
+                    );
+
+                    return 0;
+                }
+
+                return horizontalGuides[name] ?? 0;
+            };
+
+
+            // ============================================================
+            // OSIE SYMETRII
+            //
+            // PIONOWA:
+            // guide-line-verticalOsSymetrii
+            //
+            // POZIOMA:
+            // guide-line-horizontal-OsSymetrii
+            //
+            // Nazwy są dokładnie takie same jak w
+            // getKonfSystemValues().
+            // ============================================================
+
+            const verticalOsSymetrii =
+                getVerticalGuideValue(
+                    "guide-line-verticalOsSymetrii"
+                );
+
+            const horizontalOsSymetrii =
+                getHorizontalGuideValue(
+                    "guide-line-horizontal-OsSymetrii"
+                );
+
+
+            // ============================================================
+            // FUNKCJA WYZNACZAJĄCA ŚRODEK ELEMENTU
+            // W GLOBALNYM UKŁADZIE SVG
+            // ============================================================
+
+            const getTransformedCenter = (el) => {
+
+                const bbox = el.getBBox();
+
+                const pt = svg.createSVGPoint();
+
+                pt.x = bbox.x + bbox.width / 2;
+                pt.y = bbox.y + bbox.height / 2;
+
+                const ctm = el.getCTM();
+
+                if (!ctm) {
+                    throw new Error(
+                        "Nie można pobrać transformacji CTM elementu SVG."
+                    );
+                }
+
+                return pt.matrixTransform(ctm);
+            };
+
+
+            // ============================================================
+            // ŚRODKI PODSTAWOWYCH PROWADNIC
+            // ============================================================
+
+            const centerH1 =
+                getTransformedCenter(guideHorizontalModel1);
+
+            const centerV1 =
+                getTransformedCenter(guideVerticalModel1);
+
+            const centerH2 =
+                getTransformedCenter(guideHorizontalModel2);
+
+            const centerV2 =
+                getTransformedCenter(guideVerticalModel2);
+
+
+            // ============================================================
+            // ZOOM
+            // ============================================================
+
+            const scale = window.svgHelper.zoomLevel || 1;
+
+
+            // ============================================================
+            // DOTYCHCZASOWE OBLICZENIE PRZESUNIĘCIA
+            //
+            // NIE ZMIENIAMY TEJ LOGIKI.
+            // ============================================================
+
+            const displacementX =
+                (centerV2.x - centerV1.x) / scale;
+
+            const displacementY =
+                (centerH2.y - centerH1.y) / scale;
+
+
+            // ============================================================
+            // WYNIK
+            //
+            // WAŻNE:
+            // Nie wykonujemy tutaj Math.round().
+            //
+            // JavaScript zwraca pełną dokładność.
+            // Zaokrąglenie wykonasz w C# za pomocą:
+            //
+            // Math.Round(..., precyzjaZapisu)
+            // ============================================================
+
+            return {
+
+                success: true,
+
+                elementsFound: true,
+
+                // Dotychczasowe przesunięcie
+                przesuniecieX: displacementX,
+                przesuniecieY: displacementY,
+
+                // ========================================================
+                // OSIE SYMETRII
+                // ========================================================
+
+                verticalOsSymetrii: verticalOsSymetrii,
+
+                horizontalOsSymetrii: horizontalOsSymetrii,
+
+                // ========================================================
+                // DODATKOWO ZWRACAMY WARTOŚCI PODSTAWOWYCH PROWADNIC
+                //
+                // Nie są konieczne do obecnego obliczenia, ale mogą być
+                // bardzo przydatne podczas debugowania.
+                // ========================================================
+
+                pionLewa: getVerticalGuideValue(
+                    "guide-line-vertical"
+                ),
+
+                pionPrawa: getVerticalGuideValue(
+                    "guide-line-verticalMax"
+                ),
+
+                poziomGora: getHorizontalGuideValue(
+                    "guide-line-horizontal"
+                ),
+
+                poziomDol: getHorizontalGuideValue(
+                    "guide-line-horizontalMax"
+                ),
+
+                // ========================================================
+                // ZOOM
+                // ========================================================
+
+                scale: scale
+            };
+
+        }
+        catch (error) {
+
+            console.error(
+                "Measurement error:",
+                error
+            );
+
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    };
+
+
+
+
 
         function sanitizeSvg(svgElement) {
             const numericAttributes = [
@@ -821,33 +1043,30 @@
         };
 
             // 👇 DODAJ TUTAJ
-        window.svgHelper.updateDisplacement = function(x, y) {
-            try {
-                const model2 = document.querySelector("#model2");
-                if (!model2) {
-                    console.warn("[updateDisplacement] Nie znaleziono #model2");
-                    return;
-                }
-
-                const currentTransform = model2.getAttribute("transform") || "";
-
-                // Zachowaj istniejący obrót jeśli jest
-                const rotateMatch = currentTransform.match(/rotate\(([^)]+)\)/);
-                const rotate = rotateMatch ? ` rotate(${rotateMatch[1]})` : "";
-
-                // Uwzględnij aktualną skalę
-                const scale = window.svgHelper.zoomLevel || 1;
-                const scaledX = x * scale;
-                const scaledY = y * scale;
-
-                // Zastosuj nową pozycję
-                model2.setAttribute("transform", `translate(${scaledX}, ${scaledY})${rotate}`);
-
-                console.log(`[updateDisplacement] Przesunięto model2: X=${scaledX.toFixed(2)}, Y=${scaledY.toFixed(2)}, skala=${scale}`);
-            } catch (e) {
-                console.error("[updateDisplacement] błąd:", e);
+            window.svgHelper.updateDisplacement = function(x, y) {
+        try {
+            const model2 = document.querySelector("#model2");
+            if (!model2) {
+                console.warn("[updateDisplacement] Nie znaleziono #model2");
+                return false;
             }
-        };
+
+            const currentTransform = model2.getAttribute("transform") || "";
+
+            // Zachowaj istniejący obrót jeśli jest
+            const rotateMatch = currentTransform.match(/rotate\(([^)]+)\)/);
+            const rotate = rotateMatch ? ` rotate(${rotateMatch[1]})` : "";
+
+            // Zastosuj nową pozycję
+            model2.setAttribute("transform", `translate(${x}, ${y})${rotate}`);
+
+            console.log(`[updateDisplacement] Przesunięto model2: X=${x.toFixed(2)}, Y=${y.toFixed(2)}`);
+            return true;
+        } catch (e) {
+            console.error("[updateDisplacement] błąd:", e);
+            return false;
+        }
+    };
 
             // Eksport czystego SVG (bez prowadnic i elementów pomiarowych)
         window.svgHelper.exportCleanedSvg = function() {
@@ -968,229 +1187,355 @@
             });
         };
 
-         window.svgHelper.getCurrentSvgState = function () {
-
-            try {
-
-                const svgElement =
-                    document.querySelector(".scaled-svg");
-
-                if (!svgElement) {
-                    console.error(
-                        "[getCurrentSvgState] SVG element not found"
-                    );
-
-                    return "";
-                }
-
-                // =====================================================
-                // 1. Kopia całego SVG
-                // =====================================================
-
-                const clone =
-                    svgElement.cloneNode(true);
-
-                // =====================================================
-                // 2. Usuń prowadnice i pomiary
-                // =====================================================
-
-                const elementsToRemove =
-                    clone.querySelectorAll(
-                        [
-                            '[data-name^="guide-line-"]',
-                            '[id^="guide-line-"]',
-                            '.measurement-line',
-                            '.measurement-text'
-                        ].join(',')
-                    );
-
-                elementsToRemove.forEach(
-                    el => el.remove()
-                );
-
-                // =====================================================
-                // 3. Znajdź TYLKO model2
-                // =====================================================
-
-                const model2 =
-                    clone.querySelector("#model2");
-
-                if (model2) {
-
-                    const transform =
-                        model2.getAttribute("transform") || "";
-
-                    console.log(
-                        "[getCurrentSvgState] model2 transform:",
-                        transform
-                    );
-
-                    /*
-                     * Tutaj wykonujemy bake model2.
-                     */
-
-                    bakeModel2TransformInClone(model2);
-                }
-
-                // =====================================================
-                // 4. Oczyść atrybuty pomocnicze
-                // =====================================================
-
-                clone.querySelectorAll("*").forEach(el => {
-
-                    el.removeAttribute("data-name");
-                    el.removeAttribute("data-original-x");
-                    el.removeAttribute("data-original-y");
-
-                });
-
-                // =====================================================
-                // 5. Serializacja
-                // =====================================================
-
-                const serializer =
-                    new XMLSerializer();
-
-                let svgString =
-                    serializer.serializeToString(clone);
-
-                console.log(
-                    "[getCurrentSvgState] SVG length:",
-                    svgString.length
-                );
-
-                return svgString;
-
-            }
-            catch (e) {
-
-                console.error(
-                    "[getCurrentSvgState] error:",
-                    e
-                );
-
-                return "";
-            }
-        };
-
-        // Funkcja do przywracania SVG z bazy
-        window.svgHelper.restoreSvgFromString = function(svgString) {
-            try {
-                const container = document.querySelector(".scaled-svg");
-                if (!container) {
-                    console.error("Container not found");
-                    return false;
-                }
-
-                // Utwórz tymczasowy element do sparsowania SVG
-                const parser = new DOMParser();
-                const svgDoc = parser.parseFromString(svgString, "image/svg+xml");
-                const newSvg = svgDoc.querySelector("svg");
-
-                if (!newSvg) {
-                    console.error("Invalid SVG string");
-                    return false;
-                }
-
-                // Podmień zawartość
-                container.innerHTML = '';
-                container.appendChild(newSvg);
-
-                // Ponownie zainicjalizuj prowadnice
-                setTimeout(() => {
-                    window.svgHelper.initGuideLines();
-                    window.svgHelper.centerAndFit();
-                }, 100);
-
-                return true;
-            } catch (e) {
-                console.error("restoreSvgFromString error:", e);
+            function bakeModel2TransformInClone(model2) {
+        try {
+            if (!model2) {
+                console.warn("[bakeModel2TransformInClone] Brak model2");
                 return false;
             }
-        };
 
+            const transform = model2.getAttribute("transform") || "";
 
-            // 📌 Przesuń model2 o BEZWZGLĘDNĄ wartość względem model1
-        window.svgHelper.moveAbsolute = function(targetX_mm, targetY_mm) {
-            const svg = document.querySelector(".scaled-svg > svg");
-            const model1 = svg?.querySelector("#model1");
-            const model2 = svg?.querySelector("#model2");
+            console.log(
+                "[bakeModel2TransformInClone] Aktualny transform:",
+                transform
+            );
+
+            if (!transform.trim()) {
+                console.log(
+                    "[bakeModel2TransformInClone] Brak transformacji."
+                );
+                return true;
+            }
+
+            /*
+             * UWAGA:
+             * model2 znajduje się już w KLONIE.
+             *
+             * getCTM() zwraca transformację względem
+             * dokumentu SVG.
+             */
+            const ctm = model2.getCTM();
+
+            if (!ctm) {
+                console.warn(
+                    "[bakeModel2TransformInClone] Nie udało się pobrać CTM."
+                );
+                return false;
+            }
+
+            /*
+             * Pobieramy wszystkie elementy geometryczne
+             * znajdujące się wewnątrz model2.
+             */
+            const elements = model2.querySelectorAll(
+                "line, path, circle, rect, ellipse, polygon, polyline"
+            );
+
+            const matrixValues =
+                `matrix(${ctm.a} ${ctm.b} ${ctm.c} ${ctm.d} ${ctm.e} ${ctm.f})`;
+
+            elements.forEach(el => {
+
+                const existingTransform =
+                    el.getAttribute("transform");
+
+                if (existingTransform) {
+
+                    el.setAttribute(
+                        "transform",
+                        `${matrixValues} ${existingTransform}`
+                    );
+
+                } else {
+
+                    el.setAttribute(
+                        "transform",
+                        matrixValues
+                    );
+                }
+            });
+
+            /*
+             * Usuwamy transformację z model2.
+             */
+            model2.removeAttribute("transform");
+
+            console.log(
+                "[bakeModel2TransformInClone] ✅ Transformacja została wypalona w klonie."
+            );
+
+            return true;
+
+        } catch (e) {
+
+            console.error(
+                "[bakeModel2TransformInClone] ❌ Błąd:",
+                e
+            );
+
+            return false;
+        }
+    }
+
+    window.svgHelper.getCurrentSvgState = function () {
+        try {
+            const svgElement = document.querySelector(".scaled-svg");
+            if (!svgElement) {
+                console.error("[getCurrentSvgState] SVG element not found");
+                return "";
+            }
+
+            // Klonuj cały SVG
+            const clone = svgElement.cloneNode(true);
+
+            // Usuń prowadnice i pomiary
+            const elementsToRemove = clone.querySelectorAll(
+                '[data-name^="guide-line-"], ' +
+                '[id^="guide-line-"], ' +
+                '.measurement-line, ' +
+                '.measurement-text'
+            );
+            elementsToRemove.forEach(el => el.remove());
+
+            // WAŻNE: NIE wypalaj transformacji model2!
+            // Zachowaj ją jako atrybut transform
+
+            // Sprawdź transformację model2 w klonie
+            const model2Clone = clone.querySelector("#model2");
+            if (model2Clone) {
+                const originalModel2 = document.querySelector("#model2");
+                const originalTransform = originalModel2?.getAttribute("transform") || "";
+
+                console.log("[getCurrentSvgState] Oryginalna transformacja model2:", originalTransform);
+
+                // Zachowaj oryginalną transformację
+                if (originalTransform) {
+                    model2Clone.setAttribute("transform", originalTransform);
+                }
+            }
+
+            // Oczyść atrybuty pomocnicze
+            clone.querySelectorAll("*").forEach(el => {
+                el.removeAttribute("data-name");
+                el.removeAttribute("data-original-x");
+                el.removeAttribute("data-original-y");
+            });
+
+            // Serializacja
+            const serializer = new XMLSerializer();
+            let svgString = serializer.serializeToString(clone);
+
+            console.log("[getCurrentSvgState] Zapisano SVG z transformacją model2");
+            return svgString;
+        } catch (e) {
+            console.error("[getCurrentSvgState] error:", e);
+            return "";
+        }
+    };
+        // Funkcja do przywracania SVG z bazy
+            window.svgHelper.restoreSvgFromString = function(svgString) {
+        try {
+            console.log("🔄 restoreSvgFromString - start");
+
+            const container = document.querySelector(".scaled-svg");
+            if (!container) {
+                console.error("❌ Container .scaled-svg not found");
+                return false;
+            }
+
+            // Wyczyść kontener
+            container.innerHTML = '';
+
+            // Sprawdź czy mamy do czynienia z div czy bezpośrednio svg
+            let svgElement = null;
+
+            // Opcja 1: Jeśli string zawiera div.scaled-svg
+            if (svgString.includes('<div')) {
+                console.log("📦 String zawiera div - używam innerHTML");
+
+                // Tymczasowy kontener do parsowania
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = svgString;
+
+                // Znajdź svg w kontenerze
+                svgElement = tempDiv.querySelector('svg');
+
+                if (!svgElement) {
+                    console.error("❌ Nie znaleziono <svg> w stringu");
+                    return false;
+                }
+
+                // Klonuj element SVG
+                const clonedSvg = svgElement.cloneNode(true);
+                container.appendChild(clonedSvg);
+
+            } else if (svgString.includes('<svg')) {
+                console.log("📦 String zawiera bezpośrednio <svg>");
+
+                // Parsuj jako XML
+                const parser = new DOMParser();
+                const svgDoc = parser.parseFromString(svgString, "image/svg+xml");
+
+                // Sprawdź błędy parsowania
+                const parserError = svgDoc.querySelector("parsererror");
+                if (parserError) {
+                    console.error("❌ Błąd parsowania:", parserError.textContent);
+
+                    // Próbuj alternatywnie z innerHTML
+                    container.innerHTML = svgString;
+                    svgElement = container.querySelector('svg');
+
+                    if (!svgElement) {
+                        return false;
+                    }
+                } else {
+                    svgElement = svgDoc.querySelector('svg');
+
+                    if (!svgElement) {
+                        console.error("❌ Brak <svg> po parsowaniu");
+                        return false;
+                    }
+
+                    // Importuj i dodaj do kontenera
+                    const importedSvg = document.importNode(svgElement, true);
+                    container.appendChild(importedSvg);
+                }
+            } else {
+                console.error("❌ String nie zawiera ani <div> ani <svg>");
+                return false;
+            }
+
+            // Upewnij się, że mamy właściwe atrybuty SVG
+            if (svgElement) {
+                if (!svgElement.getAttribute('width')) {
+                    svgElement.setAttribute('width', '600');
+                }
+                if (!svgElement.getAttribute('height')) {
+                    svgElement.setAttribute('height', '600');
+                }
+                if (!svgElement.getAttribute('viewBox')) {
+                    svgElement.setAttribute('viewBox', '0 0 600 600');
+                }
+                if (!svgElement.getAttribute('preserveAspectRatio')) {
+                    svgElement.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+                }
+            }
+
+            console.log("✅ SVG przywrócony pomyślnie");
+            return true;
+
+        } catch (e) {
+            console.error("❌ restoreSvgFromString error:", e);
+
+            // Ostateczna próba - bezpośredni innerHTML
+            try {
+                const container = document.querySelector(".scaled-svg");
+                if (container) {
+                    container.innerHTML = svgString;
+                    console.log("✅ SVG przywrócony przez innerHTML (fallback)");
+                    return true;
+                }
+            } catch (e2) {
+                console.error("❌ Fallback też zawiódł:", e2);
+            }
+
+            return false;
+        }
+    };
+
+        window.svgHelper.cleanupSvgContainer = function() {
+        const container = document.querySelector(".scaled-svg");
+        if (!container) return;
+
+        // Usuń niepotrzebne atrybuty xmlns z div
+        const divs = container.querySelectorAll('div[xmlns]');
+        divs.forEach(div => div.removeAttribute('xmlns'));
+
+        // Upewnij się, że SVG ma właściwe atrybuty
+        const svg = container.querySelector('svg');
+        if (svg) {
+            svg.removeAttribute('xmlns:xhtml');
+            svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        }
+    };
+
+    // 📌 Przesuń model2 o BEZWZGLĘDNĄ wartość względem model1
+       window.svgHelper.moveAbsolute = function(targetX_mm, targetY_mm) {
+        try {
+            console.log("🔄 moveAbsolute - start");
+
+            // Znajdź SVG na różne sposoby
+            let svg = document.querySelector(".scaled-svg svg");
+            if (!svg) {
+                svg = document.querySelector(".scaled-svg-container svg");
+            }
+            if (!svg) {
+                svg = document.querySelector("svg");
+            }
+
+            console.log("🔍 SVG znaleziony:", !!svg);
+
+            // Znajdź modele
+            let model1 = svg?.querySelector("#model1");
+            let model2 = svg?.querySelector("#model2");
+
+            if (!model1 || !model2) {
+                // Spróbuj znaleźć modele w całym dokumencie
+                model1 = document.querySelector("#model1");
+                model2 = document.querySelector("#model2");
+            }
+
+            console.log("🔍 Model1:", !!model1, "Model2:", !!model2);
 
             if (!model1 || !model2) {
                 console.warn("❌ moveAbsolute: Nie znaleziono model1 lub model2");
-                return null;
+                return false;
             }
 
-            // Pobierz środek model1 (punkt odniesienia)
+            // Pobierz pozycję model1
             const getCenter = (el) => {
-                const bbox = el.getBBox();
-                const pt = svg.createSVGPoint();
-                pt.x = bbox.x + bbox.width / 2;
-                pt.y = bbox.y + bbox.height / 2;
-                const ctm = el.getCTM();
-                return pt.matrixTransform(ctm);
+                try {
+                    const bbox = el.getBBox();
+                    const pt = svg.createSVGPoint();
+                    pt.x = bbox.x + bbox.width / 2;
+                    pt.y = bbox.y + bbox.height / 2;
+                    const ctm = el.getCTM();
+                    return pt.matrixTransform(ctm);
+                } catch (e) {
+                    console.warn("Błąd getCenter:", e);
+                    return { x: 0, y: 0 };
+                }
             };
 
             const center1 = getCenter(model1);
-            const center2 = getCenter(model2);
+            console.log("📐 Środek model1:", center1.x, center1.y);
 
-            // Aktualna skala
-            const scale = window.svgHelper.zoomLevel || 1;
+            // Konwersja mm na piksele
+            const MM_TO_PX = 3.779527559;
 
-            // Przelicznik mm → piksele (ustaw odpowiednio do swojego SVG)
-            const MM_TO_PX = window.svgHelper.MM_TO_PX_RATIO || 3.779527559;
+            // Oblicz nową pozycję model2 w pikselach
+            const deltaX_px = targetX_mm * MM_TO_PX;
+            const deltaY_px = targetY_mm * MM_TO_PX;
 
-            // Oblicz aktualne przesunięcie w mm
-            const currentDx_mm = (center2.x - center1.x) / (scale * MM_TO_PX);
-            const currentDy_mm = (center2.y - center1.y) / (scale * MM_TO_PX);
+            // Nowa pozycja model2 = pozycja model1 + przesunięcie
+            // Ale uwaga: model1 jest na translate(300, 300), więc używamy tej pozycji
+            const newX = 300 + deltaX_px;
+            const newY = 300 + deltaY_px;
 
-            // Oblicz różnicę do przesunięcia (w mm)
-            const deltaX_mm = targetX_mm - currentDx_mm;
-            const deltaY_mm = targetY_mm - currentDy_mm;
+            console.log(`📐 Nowa pozycja model2: (${newX.toFixed(2)}, ${newY.toFixed(2)})`);
 
-            // Konwertuj różnicę na piksele i uwzględnij skalę
-            const deltaX_px = deltaX_mm * MM_TO_PX;
-            const deltaY_px = deltaY_mm * MM_TO_PX;
+            // Ustaw transformację model2
+            model2.setAttribute("transform", `translate(${newX}, ${newY})`);
 
-            // Pobierz aktualną transformację model2
-            const currentTransform = model2.getAttribute("transform") || "";
-            const translateMatch = currentTransform.match(/translate\(([^)]+)\)/);
+            console.log(`✅ moveAbsolute: Model2 przesunięty do (${newX.toFixed(2)}, ${newY.toFixed(2)})`);
 
-            let x = 0, y = 0;
-            if (translateMatch) {
-                [x, y] = translateMatch[1].split(',').map(Number);
-            }
-
-            // Aktualizuj pozycję z uwzględnieniem skali
-            x += deltaX_px / scale;
-            y += deltaY_px / scale;
-
-            // Zachowaj obrót jeśli istnieje
-            const rotateMatch = currentTransform.match(/rotate\(([^)]+)\)/);
-            const rotate = rotateMatch ? ` rotate(${rotateMatch[1]})` : "";
-
-            // Zastosuj nową transformację
-            model2.setAttribute("transform", `translate(${x}, ${y})${rotate}`);
-
-            // Zweryfikuj nową pozycję
-            const newCenter2 = getCenter(model2);
-            const newDx_mm = (newCenter2.x - center1.x) / (scale * MM_TO_PX);
-            const newDy_mm = (newCenter2.y - center1.y) / (scale * MM_TO_PX);
-
-            console.log(`📌 moveAbsolute: przesunięto do X=${newDx_mm.toFixed(2)}mm, Y=${newDy_mm.toFixed(2)}mm`);
-            console.log(`   Docelowo: X=${targetX_mm}mm, Y=${targetY_mm}mm`);
-            console.log(`   Różnica: ΔX=${(newDx_mm - targetX_mm).toFixed(3)}mm, ΔY=${(newDy_mm - targetY_mm).toFixed(3)}mm`);
-
-            return {
-                x_mm: newDx_mm,
-                y_mm: newDy_mm,
-                targetX_mm: targetX_mm,
-                targetY_mm: targetY_mm,
-                deltaX_mm: deltaX_mm,
-                deltaY_mm: deltaY_mm,
-                success: Math.abs(newDx_mm - targetX_mm) < 0.01 && Math.abs(newDy_mm - targetY_mm) < 0.01
-            };
-        };
+            return true;
+        } catch (e) {
+            console.error("❌ moveAbsolute error:", e);
+            return false;
+        }
+    };
 
         // 📌 Alternatywna wersja - prostsza, używa istniejącej funkcji move
         window.svgHelper.moveAbsoluteSimple = function(targetX_mm, targetY_mm) {
@@ -2121,35 +2466,320 @@
             return result.join(" ");
         }
 
-            // 📌 Przesuń przy edycji
-    window.svgHelper.moveonlyedit = function(dx, dy) {
+        // 📌 Przesuń przy edycji
+           window.svgHelper.moveonlyedit = function(dx, dy) {
         const model2 = document.querySelector("#model2");
         if (!model2) return;
 
         const currentTransform = model2.getAttribute("transform") || "";
-        const translateMatch = currentTransform.match(/translate\(([^)]+)\)/);
+        console.log("🔄 moveonlyedit - aktualna transformacja:", currentTransform);
+        console.log("📐 Przesunięcie o:", dx, dy);
 
-        let x = 0, y = 0;
+        // Parsowanie aktualnej transformacji
+        let translateX = 0, translateY = 0;
+        let rotation = 0, rotCenter = null;
+        let hasFlipX = false, hasFlipY = false;
+        let flipXOffset = 0, flipYOffset = 0;
+
+        // Wyciągnij translację
+        const translateMatch = currentTransform.match(/translate\(([-\d.]+)[,\s]+([-\d.]+)\)/);
         if (translateMatch) {
-            [x, y] = translateMatch[1].split(',').map(Number);
+            translateX = parseFloat(translateMatch[1]);
+            translateY = parseFloat(translateMatch[2]);
+        }
+
+        // Wyciągnij rotację
+        const rotateMatch = currentTransform.match(/rotate\(([-\d.]+)(?:[,\s]+([-\d.]+)[,\s]+([-\d.]+))?\)/);
+        if (rotateMatch) {
+            rotation = parseFloat(rotateMatch[1]);
+            if (rotateMatch[2] && rotateMatch[3]) {
+                rotCenter = { x: parseFloat(rotateMatch[2]), y: parseFloat(rotateMatch[3]) };
+            }
+        }
+
+        // Sprawdź i zachowaj odbicie poziome (scale(-1, 1))
+        const flipXMatch = currentTransform.match(/translate\(([-\d.]+)[,\s]+0\)\s*scale\(-1[,\s]+1\)/);
+        if (flipXMatch) {
+            hasFlipX = true;
+            flipXOffset = parseFloat(flipXMatch[1]);
+            console.log("🔍 Znaleziono odbicie poziome, offset:", flipXOffset);
+        }
+
+        // Sprawdź i zachowaj odbicie pionowe (scale(1, -1))
+        const flipYMatch = currentTransform.match(/translate\(0[,\s]+([-\d.]+)\)\s*scale\(1[,\s]+-1\)/);
+        if (flipYMatch) {
+            hasFlipY = true;
+            flipYOffset = parseFloat(flipYMatch[1]);
+            console.log("🔍 Znaleziono odbicie pionowe, offset:", flipYOffset);
         }
 
         // Aktualizuj pozycję z uwzględnieniem skali
         const scale = window.svgHelper.zoomLevel || 1;
-        x += dx / scale;
-        y += dy / scale;
 
-        // Zachowaj obrót jeśli istnieje
-        const rotateMatch = currentTransform.match(/rotate\(([^)]+)\)/);
-        const rotate = rotateMatch ? ` rotate(${rotateMatch[1]})` : "";
+        // WAŻNE: Jeśli mamy odbicie poziome, odwróć kierunek przesunięcia X
+        let adjustedDx = dx;
+        let adjustedDy = dy;
 
-        model2.setAttribute("transform", `translate(${x}, ${y})${rotate}`);
+        if (hasFlipX) {
+            adjustedDx = -dx; // Odwróć kierunek X przy odbiciu poziomym
+            console.log("🔄 Odwracam kierunek X z powodu odbicia poziomego");
+        }
 
-        // Zwróć aktualną pozycję (opcjonalnie)
-        return { x: x * scale, y: y * scale };
+        if (hasFlipY) {
+            adjustedDy = -dy; // Odwróć kierunek Y przy odbiciu pionowym
+            console.log("🔄 Odwracam kierunek Y z powodu odbicia pionowego");
+        }
+
+        translateX += adjustedDx / scale;
+        translateY += adjustedDy / scale;
+
+        console.log("📐 Nowa translacja:", translateX, translateY);
+
+        // Zbuduj nową transformację
+        let newTransform = `translate(${translateX}, ${translateY})`;
+
+        // Dodaj obrót jeśli istnieje
+        if (rotation) {
+            if (rotCenter) {
+                newTransform += ` rotate(${rotation}, ${rotCenter.x}, ${rotCenter.y})`;
+            } else {
+                newTransform += ` rotate(${rotation})`;
+            }
+        }
+
+        // Dodaj odbicie poziome jeśli istnieje
+        if (hasFlipX) {
+            newTransform += ` translate(${flipXOffset}, 0) scale(-1, 1)`;
+        }
+
+        // Dodaj odbicie pionowe jeśli istnieje
+        if (hasFlipY) {
+            newTransform += ` translate(0, ${flipYOffset}) scale(1, -1)`;
+        }
+
+        console.log("✅ Nowa transformacja:", newTransform);
+
+        model2.setAttribute("transform", newTransform);
+
+        // Zwróć aktualną pozycję
+        return { x: translateX * scale, y: translateY * scale };
     };
 
+        // Pobierz aktualną pozycję model2
+    window.svgHelper.getModel2Position = function() {
+        const model2 = document.querySelector("#model2");
+        if (!model2) return null;
 
+        const transform = model2.getAttribute("transform") || "";
+        const translateMatch = transform.match(/translate\(([-\d.]+)[,\s]+([-\d.]+)\)/);
+
+        if (translateMatch) {
+            return {
+                x: parseFloat(translateMatch[1]),
+                y: parseFloat(translateMatch[2]),
+                transform: transform
+            };
+        }
+
+        return {
+            x: 0,
+            y: 0,
+            transform: transform
+        };
+    };
+
+    // Funkcja do ładowania SVG z zachowaniem transformacji
+        window.svgHelper.loadSvgPreserveTransform = function(svgString) {
+        try {
+            console.log("🔄 loadSvgPreserveTransform - start");
+
+            // Znajdź kontener
+            let container = document.querySelector('.scaled-svg');
+            if (!container) {
+                container = document.querySelector('.scaled-svg-container');
+            }
+
+            if (!container) {
+                console.error("❌ Nie znaleziono kontenera");
+                return false;
+            }
+
+            console.log("✅ Znaleziono kontener:", container.className);
+
+            // Parsuj string SVG
+            const parser = new DOMParser();
+            const svgDoc = parser.parseFromString(svgString, "image/svg+xml");
+
+            // Sprawdź błędy parsowania
+            const parserError = svgDoc.querySelector("parsererror");
+            if (parserError) {
+                console.error("❌ Błąd parsowania SVG");
+                return false;
+            }
+
+            // Znajdź nowy SVG
+            let newSvg = svgDoc.querySelector("svg");
+            if (!newSvg) {
+                const divWithSvg = svgDoc.querySelector("div");
+                if (divWithSvg) {
+                    newSvg = divWithSvg.querySelector("svg");
+                }
+            }
+
+            if (!newSvg) {
+                console.error("❌ Nie znaleziono <svg> w stringu");
+                return false;
+            }
+
+            // Zapisz transformacje z nowego SVG
+            const newZoomGroup = newSvg.querySelector("#zoom-group");
+            const newModel1 = newSvg.querySelector("#model1");
+            const newModel2 = newSvg.querySelector("#model2");
+
+            const zoomTransform = newZoomGroup?.getAttribute("transform") || "";
+            const model1Transform = newModel1?.getAttribute("transform") || "";
+            const model2Transform = newModel2?.getAttribute("transform") || "";
+
+            console.log("📐 Transformacje z zapisu:", {
+                zoomGroup: zoomTransform,
+                model1: model1Transform,
+                model2: model2Transform
+            });
+
+            // Wyczyść kontener i wstaw nowy SVG
+            container.innerHTML = '';
+            container.appendChild(newSvg);
+
+            // Upewnij się, że transformacje są zachowane
+            const finalZoomGroup = container.querySelector("#zoom-group");
+            const finalModel1 = container.querySelector("#model1");
+            const finalModel2 = container.querySelector("#model2");
+
+            if (finalZoomGroup && zoomTransform) {
+                finalZoomGroup.setAttribute("transform", zoomTransform);
+            }
+
+            if (finalModel1 && model1Transform) {
+                finalModel1.setAttribute("transform", model1Transform);
+            }
+
+            if (finalModel2 && model2Transform) {
+                finalModel2.setAttribute("transform", model2Transform);
+            } else if (finalModel2) {
+                // Jeśli model2 nie ma transformacji, ustaw domyślną
+                finalModel2.setAttribute("transform", "translate(0, 0)");
+            }
+
+            console.log("✅ SVG załadowane z zachowaniem transformacji");
+            return true;
+        } catch (e) {
+            console.error("❌ Błąd w loadSvgPreserveTransform:", e);
+            return false;
+        }
+    };
+
+    window.svgHelper.getCurrentSvgStateWithTransform = function() {
+        try {
+            const container = document.querySelector(".scaled-svg") ||
+                             document.querySelector(".scaled-svg-container");
+            if (!container) return "";
+
+            const clone = container.cloneNode(true);
+
+            // Usuń prowadnice
+            clone.querySelectorAll(
+                '[data-name^="guide-line-"], ' +
+                '[id^="guide-line-"], ' +
+                '.measurement-line, ' +
+                '.measurement-text'
+            ).forEach(el => el.remove());
+
+            // ZACHOWAJ transformację model2 bez zmian
+            const model2Clone = clone.querySelector("#model2");
+            const model2Original = document.querySelector("#model2");
+
+            if (model2Clone && model2Original) {
+                const transform = model2Original.getAttribute("transform") || "";
+                if (transform) {
+                    model2Clone.setAttribute("transform", transform);
+                }
+            }
+
+            // Oczyść atrybuty pomocnicze
+            clone.querySelectorAll("*").forEach(el => {
+                el.removeAttribute("data-name");
+                el.removeAttribute("data-original-x");
+                el.removeAttribute("data-original-y");
+            });
+
+            return new XMLSerializer().serializeToString(clone);
+        } catch (e) {
+            console.error("getCurrentSvgStateWithTransform error:", e);
+            return "";
+        }
+    };
+
+    // Funkcja do debugowania struktury DOM
+    window.svgHelper.debugDomStructure = function() {
+        const result = {
+            bodyChildren: [],
+            svgElements: [],
+            modalElements: []
+        };
+
+        // Sprawdź wszystkie dzieci body
+        Array.from(document.body.children).forEach(child => {
+            result.bodyChildren.push({
+                tag: child.tagName,
+                id: child.id,
+                className: child.className
+            });
+        });
+
+        // Znajdź wszystkie elementy SVG
+        document.querySelectorAll('svg').forEach(svg => {
+            result.svgElements.push({
+                id: svg.id,
+                className: svg.className,
+                parent: svg.parentElement?.className
+            });
+        });
+
+        // Znajdź elementy modal
+        document.querySelectorAll('[class*="modal"]').forEach(modal => {
+            result.modalElements.push({
+                className: modal.className,
+                children: modal.children.length
+            });
+        });
+
+        console.log('🔍 Debug DOM Structure:', result);
+        return result;
+    };
+
+        // Funkcja do debugowania model2
+    window.svgHelper.debugModel2 = function() {
+        const model2 = document.querySelector('#model2');
+        if (!model2) {
+            console.error('❌ Model2 nie istnieje');
+            return null;
+        }
+
+        console.log('📊 Model2 debug:');
+        console.log('  - Tag:', model2.tagName);
+        console.log('  - Transform:', model2.getAttribute('transform'));
+        console.log('  - Dzieci:', model2.children.length);
+        console.log('  - BBox:', model2.getBBox());
+        console.log('  - HTML:', model2.innerHTML.substring(0, 200));
+
+        return {
+            exists: true,
+            transform: model2.getAttribute('transform'),
+            childrenCount: model2.children.length,
+            bbox: model2.getBBox(),
+            html: model2.innerHTML.substring(0, 200)
+        };
+    };
 </script>
 
 <div class="container-fluid mt-3">
@@ -2432,7 +3062,7 @@
 
                     <div class="mb-2 d-flex justify-content-between">
                         <h6 style="color:saddlebrown">Podgląd połączenia</h6>
-                        <h6 style="color:red">W przypadku konfiguracji słupka stałego wybierz go jako pierwszy model. Strona góra/dół określa skrzydło</h6>
+                        <h6 style="color:red">W przypadku konfiguracji słupka stałego wybierz go jako pierwszy model. Strona góra/dół określa skrzydło. <br /> Uwaga! Nadrzędną osią symetrii jest oś pionowa.</h6>
                         <div>
                             <Button Icon="@IconType.Outline.Fire" OnClick="@(() => RefreshSvg())" Class="btn-sm me-2">
                                 Odśwież
@@ -2768,10 +3398,10 @@
 </div>
 
 @code {
-    [Inject] private AppState AppState { get; set; } = default!;
+        [Inject] private AppState AppState { get; set; } = default!;
 
-    [Parameter]
-    public string? SelectedSystemId { get; set; }
+        [Parameter]
+        public string? SelectedSystemId { get; set; }
 
     // Dane i stan
     private string SvgKey { get; set; } = Guid.NewGuid().ToString();
@@ -3179,7 +3809,7 @@
         {
             svgParts.Add($@"
             <g id=""model1"" transform=""translate({centerX}, {centerY})"">
-                {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
+    {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
             </g>");
         }
 
@@ -3226,7 +3856,7 @@
 
             svgParts.Add($@"
             <g id=""model2"" transform=""translate({secondX}, {secondY})"">
-            {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
+    {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
             </g>");
         }
 
@@ -3235,7 +3865,7 @@
         <svg xmlns=""http://www.w3.org/2000/svg"" width=""600"" height=""600""
              viewBox=""0 0 600 600"" preserveAspectRatio=""xMidYMid meet"">
             <g id=""zoom-group"">
-        {string.Join("", svgParts)}
+    {string.Join("", svgParts)}
             </g>
         </svg>";
 
@@ -3389,6 +4019,8 @@
 
         GuideDisplacementResult result;
 
+        // boolStyczny oznacza, że użytkownik wybrał tryb STYCZNY (bez prowadnic, prostokąt) np dosunięcie modelu 2 do modelu 1 czyli słupka do ramy
+
         if (boolStyczny)
         {
             // 🔹 Tryb STYCZNY (bez prowadnic, prostokąt)
@@ -3403,10 +4035,26 @@
 
             result = new GuideDisplacementResult
             {
-                success = true,
-                elementsFound = false,
+                success = offset.success,
+                elementsFound = offset.elementsFound,
+
                 przesuniecieX = Math.Round(offset.przesuniecieX, precyzjaZapisu),
                 przesuniecieY = Math.Round(offset.przesuniecieY, precyzjaZapisu),
+
+                verticalOsSymetriiX1 = Math.Round(offset.verticalOsSymetriiX1, precyzjaZapisu),
+
+                verticalOsSymetriiY1 = Math.Round(offset.verticalOsSymetriiY1, precyzjaZapisu),
+
+                horizontalOsSymetriiX1 = Math.Round(offset.horizontalOsSymetriiX1, precyzjaZapisu),
+
+                horizontalOsSymetriiY1 = Math.Round(offset.horizontalOsSymetriiY1, precyzjaZapisu),
+                verticalOsSymetriiX2 = Math.Round(offset.verticalOsSymetriiX2, precyzjaZapisu),
+
+                verticalOsSymetriiY2 = Math.Round(offset.verticalOsSymetriiY2, precyzjaZapisu),
+                horizontalOsSymetriiX2 = Math.Round(offset.horizontalOsSymetriiX2, precyzjaZapisu),
+
+                horizontalOsSymetriiY2 = Math.Round(offset.horizontalOsSymetriiY2, precyzjaZapisu),
+
                 scale = 1
             };
 
@@ -3432,6 +4080,19 @@
         double przesuniecieX = Math.Round(result.przesuniecieX, precyzjaZapisu);
         double przesuniecieY = Math.Round(result.przesuniecieY, precyzjaZapisu);
 
+
+        double verticalOsSymetriiX1 = Math.Round(result.verticalOsSymetriiX1, precyzjaZapisu);
+        double verticalOsSymetriiY1 = Math.Round(result.verticalOsSymetriiY1, precyzjaZapisu);
+
+        double horizontalOsSymetriiX1 = Math.Round(result.horizontalOsSymetriiX1, precyzjaZapisu);
+        double horizontalOsSymetriiY1 = Math.Round(result.horizontalOsSymetriiY1, precyzjaZapisu);
+
+        double verticalOsSymetriiX2 = Math.Round(result.verticalOsSymetriiX2, precyzjaZapisu);
+        double verticalOsSymetriiY2 = Math.Round(result.verticalOsSymetriiY2, precyzjaZapisu);
+
+        double horizontalOsSymetriiX2 = Math.Round(result.horizontalOsSymetriiX2, precyzjaZapisu);
+        double horizontalOsSymetriiY2 = Math.Round(result.horizontalOsSymetriiY2, precyzjaZapisu);
+
         if (!selSlRuchomy && !selSlStaly)
         {
             przesuniecieX = Math.Abs(result.przesuniecieX);
@@ -3442,6 +4103,39 @@
         {
             await _message.Warning("❗ Nie wybrano obu modeli do połączenia. Błąd konfiguracji modelu :(");
             return;
+        }
+
+        if (pierwszyModel.Typ.Contains("Słupek stały"))
+        {
+            bool pionS;
+
+            if (pierwszyModel.KatWystapieniaZakresOdMin == 0 &&
+                pierwszyModel.KatWystapieniaZakresOdMax == 360)
+            {
+                // Dowolny kąt
+                pionS = true;
+            }
+            else if (pierwszyModel.KatWystapieniaZakresOdMin == 0 &&
+                     pierwszyModel.KatWystapieniaZakresOdMax == 0)
+            {
+                // Kierunek poziomy
+                pionS = false;
+            }
+            else
+            {
+                // Pozostałe zakresy
+                // tutaj zależy od tego, czy zakres wskazuje na kierunek poziomy
+                pionS = true;
+            }
+
+            if (pionS)
+            {
+                przesuniecieY = verticalOsSymetriiX1 - przesuniecieY;
+            }
+            else
+            {
+                przesuniecieY = horizontalOsSymetriiY1 - przesuniecieY;
+            }
         }
 
         // 🔹 Rysunek aktualnej zakładki
@@ -3616,7 +4310,6 @@
         await InvokeAsync(StateHasChanged);
 
     }
-
 
     private async Task<string> GenerujSvgBezProwadnic()
     {
@@ -3804,131 +4497,262 @@
 
     private async Task OtworzModalEdycji(KonfPolaczenie polaczenie)
     {
-
         boolStyczny = polaczenie.DodatkowyWarunek == "STYCZNE";
 
+        // Najpierw pokaż modal
+        czyModalEdycjiWidoczny = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(100);
+
+        // Potem załaduj dane
         await ZaladujDaneModalEdycji(polaczenie);
 
         Console.WriteLine($"OtworzModalEdycji: Załadowano SVG z bazy, długość: {polaczenie.SVG.Length}");
 
         bladEdycji = "";
 
-        await InvokeAsync(StateHasChanged);      // 2. wymuś render Blazora
+        var debugResult = await JSRuntime.InvokeAsync<string>("svgHelper.debugModel2");
+        Console.WriteLine($"Debug model2: {debugResult}");
 
-        await Task.Delay(10);                    // 3. krótka pauza lub: await Task.Yield();
-        await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
-        await Task.Delay(10);
-        await JSRuntime.InvokeVoidAsync("svgHelper.initGuideLines");
-
-        await Task.Yield(); // Upewnij się, że UI zareaguje przed dalszymi operacjami
-        czyModalEdycjiWidoczny = true;
-
+        await InvokeAsync(StateHasChanged);
     }
 
     // Otwarcie modala edycji
     private async Task ZaladujDaneModalEdycji(KonfPolaczenie polaczenie)
     {
-        await JSRuntime.InvokeVoidAsync("svgHelper.resetModel2Position");
-        await Task.Delay(10);
-
-        edytowanePolaczenie = polaczenie;
-        edytowanyRowId = polaczenie.RowId;
-
-        // Wypełnij formularz danymi
-        edytowanyOpis = polaczenie.OpisPolaczenia ?? "";
-        edytowanaStrona = polaczenie.StronaPolaczenia ?? "";
-
-        edytowanePrzesuniecieX = polaczenie.PrzesuniecieX;
-        edytowanePrzesuniecieY = polaczenie.PrzesuniecieY;
-        edytowanePrzesuniecieXStycznej = polaczenie.PrzesuniecieXStycznej;
-        edytowanePrzesuniecieYStycznej = polaczenie.PrzesuniecieYStycznej;
-
-        old_edytowanePrzesuniecieX = polaczenie.PrzesuniecieX;
-        old_edytowanePrzesuniecieY = polaczenie.PrzesuniecieY;
-        old_edytowanePrzesuniecieXStycznej = polaczenie.PrzesuniecieXStycznej;
-        old_edytowanePrzesuniecieYStycznej = polaczenie.PrzesuniecieYStycznej;
-
-        edytowanyKat = polaczenie.ZapisanyKat;
-
-        SelectedModelPierwszyId = polaczenie.RowIdModelu.ToString();
-        SelectedModelDrugiId = polaczenie.RowIdModeluDrugi.ToString();
-
-        // Pobierz pierwszy model
-        var response1 = await Http.GetAsync($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{SelectedModelPierwszyId}");
-        if (!response1.IsSuccessStatusCode)
+        try
         {
-            BladKonfiguracji = $"Błąd odczytu powiązania: {response1.StatusCode} #1";
-            Console.WriteLine(BladKonfiguracji);
-            return;
-        }
+            Console.WriteLine("🔄 Rozpoczynam ładowanie danych modal edycji...");
 
-        var result1 = await response1.Content.ReadFromJsonAsync<MVCKonfModele>();
-        if (result1?.KonfSystem == null || result1.KonfSystem.Count == 0)
-        {
-            BladKonfiguracji = "Brak danych powiązanych #1";
-            Console.WriteLine(BladKonfiguracji);
-            return;
-        }
-        var pasujaceSystemy1 = result1.KonfSystem.ToList();
-        var pasujacy1 = pasujaceSystemy1.First();
-        pierwszyModel = pasujacy1;
+            // Resetuj pozycję model2 przed załadowaniem
+            await JSRuntime.InvokeVoidAsync("svgHelper.resetModel2Position");
+            await Task.Delay(50);
 
-        // Pobierz drugi model
-        var response2 = await Http.GetAsync($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{SelectedModelDrugiId}");
-        if (!response2.IsSuccessStatusCode)
-        {
-            BladKonfiguracji = $"Błąd odczytu powiązania: {response2.StatusCode} #2";
-            Console.WriteLine(BladKonfiguracji);
-            return;
-        }
+            // Przypisz podstawowe dane
+            edytowanePolaczenie = polaczenie;
+            edytowanyRowId = polaczenie.RowId;
 
-        var result2 = await response2.Content.ReadFromJsonAsync<MVCKonfModele>();
-        if (result2?.KonfSystem == null || result2.KonfSystem.Count == 0)
-        {
-            BladKonfiguracji = "Brak danych powiązanych #2";
-            Console.WriteLine(BladKonfiguracji);
-            return;
-        }
-        var pasujaceSystemy2 = result2.KonfSystem.ToList();
-        var pasujacy2 = pasujaceSystemy2.First();
-        drugiModel = pasujacy2;
+            // Wypełnij formularz danymi
+            edytowanyOpis = polaczenie.OpisPolaczenia ?? "";
+            edytowanaStrona = polaczenie.StronaPolaczenia ?? "";
 
-        // 📌 SPRAWDŹ CZY MAMY ZAPISANY SVG W BAZIE
-        if (!string.IsNullOrEmpty(polaczenie.KonfiguracjaSVG))
-        {
-            // ✅ Użyj zapisanego SVG z bazy
-            if (boolStyczny)
+            edytowanePrzesuniecieX = polaczenie.PrzesuniecieX;
+            edytowanePrzesuniecieY = polaczenie.PrzesuniecieY;
+            edytowanePrzesuniecieXStycznej = polaczenie.PrzesuniecieXStycznej;
+            edytowanePrzesuniecieYStycznej = polaczenie.PrzesuniecieYStycznej;
+
+            old_edytowanePrzesuniecieX = polaczenie.PrzesuniecieX;
+            old_edytowanePrzesuniecieY = polaczenie.PrzesuniecieY;
+            old_edytowanePrzesuniecieXStycznej = polaczenie.PrzesuniecieXStycznej;
+            old_edytowanePrzesuniecieYStycznej = polaczenie.PrzesuniecieYStycznej;
+
+            edytowanyKat = polaczenie.ZapisanyKat;
+
+            SelectedModelPierwszyId = polaczenie.RowIdModelu.ToString();
+            SelectedModelDrugiId = polaczenie.RowIdModeluDrugi.ToString();
+
+            Console.WriteLine($"📋 Podstawowe dane przypisane. Model1 ID: {SelectedModelPierwszyId}, Model2 ID: {SelectedModelDrugiId}");
+
+            // Pobierz pierwszy model
+            Console.WriteLine("🌐 Pobieram pierwszy model z API...");
+            var response1 = await Http.GetAsync($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{SelectedModelPierwszyId}");
+            if (!response1.IsSuccessStatusCode)
             {
-                combinedSvgStyczne = polaczenie.KonfiguracjaSVG;
-                SvgKeyStyczne = Guid.NewGuid().ToString();
+                BladKonfiguracji = $"Błąd odczytu powiązania: {response1.StatusCode} #1";
+                Console.WriteLine($"❌ {BladKonfiguracji}");
+                return;
+            }
+
+            var result1 = await response1.Content.ReadFromJsonAsync<MVCKonfModele>();
+            if (result1?.KonfSystem == null || result1.KonfSystem.Count == 0)
+            {
+                BladKonfiguracji = "Brak danych powiązanych #1";
+                Console.WriteLine($"❌ {BladKonfiguracji}");
+                return;
+            }
+            var pasujaceSystemy1 = result1.KonfSystem.ToList();
+            var pasujacy1 = pasujaceSystemy1.First();
+            pierwszyModel = pasujacy1;
+            Console.WriteLine($"✅ Pobrano pierwszy model: {pierwszyModel.Nazwa}");
+
+            // Pobierz drugi model
+            Console.WriteLine("🌐 Pobieram drugi model z API...");
+            var response2 = await Http.GetAsync($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{SelectedModelDrugiId}");
+            if (!response2.IsSuccessStatusCode)
+            {
+                BladKonfiguracji = $"Błąd odczytu powiązania: {response2.StatusCode} #2";
+                Console.WriteLine($"❌ {BladKonfiguracji}");
+                return;
+            }
+
+            var result2 = await response2.Content.ReadFromJsonAsync<MVCKonfModele>();
+            if (result2?.KonfSystem == null || result2.KonfSystem.Count == 0)
+            {
+                BladKonfiguracji = "Brak danych powiązanych #2";
+                Console.WriteLine($"❌ {BladKonfiguracji}");
+                return;
+            }
+            var pasujaceSystemy2 = result2.KonfSystem.ToList();
+            var pasujacy2 = pasujaceSystemy2.First();
+            drugiModel = pasujacy2;
+            Console.WriteLine($"✅ Pobrano drugi model: {drugiModel.Nazwa}");
+
+            // 📌 WAŻNE: Najpierw pokaż modal
+            czyModalEdycjiWidoczny = true;
+
+            // Wygeneruj SVG jeśli nie istnieje
+            if (string.IsNullOrEmpty(combinedSvg) && string.IsNullOrEmpty(combinedSvgStyczne))
+            {
+                AktualizujSvg();
+            }
+
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(500); // Poczekaj na pełny render
+
+            // 📌 SPRAWDŹ CZY MAMY ZAPISANY SVG W BAZIE
+            if (!string.IsNullOrEmpty(polaczenie.KonfiguracjaSVG))
+            {
+                Console.WriteLine("📦 Wczytano SVG z bazy danych");
+                Console.WriteLine($"📏 Długość SVG: {polaczenie.KonfiguracjaSVG.Length} znaków");
+
+                // Załaduj SVG z zachowaniem transformacji
+                var loadResult = await JSRuntime.InvokeAsync<bool>("svgHelper.loadSvgPreserveTransform",
+                    polaczenie.KonfiguracjaSVG);
+
+                if (loadResult)
+                {
+                    Console.WriteLine("✅ SVG załadowane z zachowaniem transformacji");
+
+                    // Poczekaj na pełne załadowanie
+                    await Task.Delay(300);
+
+                    // Sprawdź transformację model2
+                    var model2Transform = await JSRuntime.InvokeAsync<string>("eval",
+                        "(function() { const m2 = document.querySelector('#model2'); return m2 ? (m2.getAttribute('transform') || 'BRAK') : 'NIE ISTNIEJE'; })()");
+
+                    Console.WriteLine($"📐 Transformacja model2: {model2Transform}");
+
+                    // Jeśli model2 ma zapisaną transformację, zachowaj ją
+                    if (model2Transform != "BRAK" && model2Transform != "NIE ISTNIEJE" &&
+                        !string.IsNullOrEmpty(model2Transform) && model2Transform != "null")
+                    {
+                        Console.WriteLine("✅ Model2 ma zapisaną transformację - zachowuję ją bez zmian");
+                    }
+                    else
+                    {
+                        // Model2 nie ma transformacji - zastosuj zapisane przesunięcie
+                        Console.WriteLine("⚠️ Model2 nie ma transformacji, stosuję zapisane przesunięcie");
+
+                        // Pobierz zapisane przesunięcie
+                        double savedX = boolStyczny ? polaczenie.PrzesuniecieXStycznej : polaczenie.PrzesuniecieX;
+                        double savedY = boolStyczny ? polaczenie.PrzesuniecieYStycznej : polaczenie.PrzesuniecieY;
+
+                        Console.WriteLine($"📐 Zapisane przesunięcie: X={savedX}, Y={savedY}");
+
+                        // Pobierz aktualną skalę zoom-group
+                        var scaleResult = await JSRuntime.InvokeAsync<double>("eval",
+                            "(function() { const zg = document.querySelector('#zoom-group'); if (!zg) return 1; const transform = zg.getAttribute('transform') || ''; const match = transform.match(/scale\\(([^)]+)\\)/); return match ? parseFloat(match[1]) : 1; })()");
+
+                        Console.WriteLine($"📐 Skala zoom-group: {scaleResult}");
+
+                        // Konwersja mm na piksele
+                        double mmToPx = 3.779527559;
+                        double deltaX = (savedX * mmToPx) / scaleResult;
+                        double deltaY = (savedY * mmToPx) / scaleResult;
+
+                        // Model1 jest na translate(300, 300)
+                        double newX = 300 + deltaX;
+                        double newY = 300 + deltaY;
+
+                        Console.WriteLine($"📐 Nowa pozycja model2: X={newX:F2}, Y={newY:F2}");
+
+                        // Ustaw transformację model2
+                        var setResult = await JSRuntime.InvokeAsync<bool>("eval", $@"
+                        (function() {{
+                            const model2 = document.querySelector('#model2');
+                            if (!model2) {{
+                                console.error('Brak model2');
+                                return false;
+                            }}
+
+                            model2.setAttribute('transform', 'translate({newX.ToString(System.Globalization.CultureInfo.InvariantCulture)}, {newY.ToString(System.Globalization.CultureInfo.InvariantCulture)})');
+
+                            console.log('Model2 ustawiony na: translate({newX:F2}, {newY:F2})');
+                            return true;
+                        }})()
+                    ");
+
+                        if (setResult)
+                        {
+                            Console.WriteLine($"✅ Model2 ustawiony na pozycji: X={newX:F2}, Y={newY:F2}");
+                        }
+                    }
+
+                    // Sprawdź czy są prowadnice
+                    var hasGuides = await JSRuntime.InvokeAsync<bool>("eval",
+                        "(function() { return document.querySelectorAll('[data-name^=\"guide-line-\"]').length > 0; })()");
+
+                    if (hasGuides)
+                    {
+                        await JSRuntime.InvokeVoidAsync("svgHelper.initGuideLines");
+                        Console.WriteLine("✅ Prowadnice zainicjalizowane");
+                    }
+
+                    // NIE wywołuj centerAndFit - to zepsuje pozycje!
+
+                    Console.WriteLine("✅ SVG przywrócony z bazy - pozycje zachowane");
+                }
+                else
+                {
+                    Console.WriteLine("❌ Nie udało się załadować SVG z bazy");
+                }
             }
             else
             {
-                combinedSvg = polaczenie.KonfiguracjaSVG;
-                SvgKey = Guid.NewGuid().ToString();
+                Console.WriteLine("⚠️ Brak zapisanego SVG - generowanie nowego z offsetami");
+
+                double toffsetX;
+                double toffsetY;
+
+                offsetX = 0;
+                offsetY = 0;
+
+                if (boolStyczny)
+                {
+                    toffsetX = old_edytowanePrzesuniecieXStycznej;
+                    toffsetY = old_edytowanePrzesuniecieYStycznej;
+                    offsetY = -106;
+                }
+                else
+                {
+                    toffsetX = old_edytowanePrzesuniecieX;
+                    toffsetY = old_edytowanePrzesuniecieY;
+                }
+
+                Console.WriteLine($"Załadowano pierwszy model: {pierwszyModel.Nazwa} (ID: {pierwszyModel.RowId}) toffsetX: {toffsetX} toffsetY: {toffsetY}");
+
+                await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
+                await Task.Delay(100);
+                await JSRuntime.InvokeVoidAsync("svgHelper.initGuideLines");
+                await Task.Delay(50);
+                await JSRuntime.InvokeVoidAsync("svgHelper.move", toffsetX, toffsetY);
+                await Task.Delay(50);
             }
 
-            Console.WriteLine("📦 Wczytano SVG z bazy danych");
-
-            await InvokeAsync(StateHasChanged);
-            await Task.Delay(100);
-
-            // Przywróć SVG z zachowaniem wszystkich transformacji
-            await JSRuntime.InvokeVoidAsync("svgHelper.restoreSvgFromString",
-                polaczenie.KonfiguracjaSVG);
-
-            await Task.Delay(50);
-            await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
-            await Task.Delay(50);
-            await JSRuntime.InvokeVoidAsync("svgHelper.initGuideLines");
-
-            Console.WriteLine("✅ SVG przywrócony z bazy - pozycje zachowane");
+            Console.WriteLine($"✅ Modal edycji załadowany - Model1: {pierwszyModel.Nazwa}, Model2: {drugiModel.Nazwa}");
         }
-        else
+        catch (Exception ex)
         {
-            // ❌ Brak zapisanego SVG - generuj nowy z offsetami
-            Console.WriteLine("⚠️ Brak zapisanego SVG - generowanie nowego z offsetami");
+            Console.WriteLine($"❌ Błąd w ZaladujDaneModalEdycji: {ex.Message}");
+            Console.WriteLine($"❌ Stack trace: {ex.StackTrace}");
+            BladKonfiguracji = $"Błąd ładowania danych: {ex.Message}";
+        }
+    }
 
+    private async Task GenerujNowySvg()
+    {
+        try
+        {
             double toffsetX;
             double toffsetY;
 
@@ -3947,23 +4771,24 @@
                 toffsetY = old_edytowanePrzesuniecieY;
             }
 
-            Console.WriteLine($"Załadowano pierwszy model: {pierwszyModel.Nazwa} (ID: {pierwszyModel.RowId}) toffsetX: {toffsetX} toffsetY: {toffsetY}");
+            Console.WriteLine($"Generuję nowy SVG. Model1: {pierwszyModel.Nazwa}, offsetX: {toffsetX}, offsetY: {toffsetY}");
 
             AktualizujSvg();
 
             await InvokeAsync(StateHasChanged);
-            await Task.Delay(10);
+            await Task.Delay(100);
             await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
-            await Task.Delay(10);
+            await Task.Delay(100);
             await JSRuntime.InvokeVoidAsync("svgHelper.initGuideLines");
             await Task.Yield();
             await JSRuntime.InvokeVoidAsync("svgHelper.move", toffsetX, toffsetY);
-            await Task.Delay(10);
+            await Task.Delay(50);
         }
-
-        Console.WriteLine($"✅ Modal edycji załadowany - Model1: {pierwszyModel.Nazwa}, Model2: {drugiModel.Nazwa}");
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Błąd generowania nowego SVG: {ex.Message}");
+        }
     }
-
     // Zamknięcie modala
     private void ZamknijModalEdycji()
     {
@@ -3977,36 +4802,79 @@
 
     private async Task OnPrzesuniecieChanged()
     {
-
         Console.WriteLine($"OnPrzesuniecieChanged: edytowanePrzesuniecieX={edytowanePrzesuniecieX}, edytowanePrzesuniecieY={edytowanePrzesuniecieY}, edytowanePrzesuniecieXStycznej={edytowanePrzesuniecieXStycznej}, edytowanePrzesuniecieYStycznej={edytowanePrzesuniecieYStycznej}");
 
-        if (edytowanePrzesuniecieX != old_edytowanePrzesuniecieX || edytowanePrzesuniecieY != old_edytowanePrzesuniecieY)
+        // Sprawdź aktualną transformację model2
+        var currentTransform = await JSRuntime.InvokeAsync<string>("eval",
+            "(function() { const m2 = document.querySelector('#model2'); return m2 ? (m2.getAttribute('transform') || '') : ''; })()");
+
+        Console.WriteLine($"📐 Aktualna transformacja model2: {currentTransform}");
+
+        // Sprawdź czy jesteśmy w trybie stycznym czy przekrojów
+        bool isStyczne = boolStyczny;
+
+        if (isStyczne)
         {
+            // Tryb styczny
+            if (edytowanePrzesuniecieXStycznej != old_edytowanePrzesuniecieXStycznej ||
+                edytowanePrzesuniecieYStycznej != old_edytowanePrzesuniecieYStycznej)
+            {
+                // Oblicz różnicę
+                double deltaX = edytowanePrzesuniecieXStycznej - old_edytowanePrzesuniecieXStycznej;
+                double deltaY = edytowanePrzesuniecieYStycznej - old_edytowanePrzesuniecieYStycznej;
 
-            //await JSRuntime.InvokeVoidAsync("svgHelper.move", edytowanePrzesuniecieX, edytowanePrzesuniecieY);
-            await JSRuntime.InvokeVoidAsync("svgHelper.moveonlyedit",
-            old_edytowanePrzesuniecieX - edytowanePrzesuniecieX,
-            old_edytowanePrzesuniecieY - edytowanePrzesuniecieY);
-            await Task.Delay(10); // Daj czas na renderowanie
-            old_edytowanePrzesuniecieX = edytowanePrzesuniecieX;
-            old_edytowanePrzesuniecieY = edytowanePrzesuniecieY;
-            // await ZmienPrzesuniecie(edytowanePrzesuniecieX, edytowanePrzesuniecieY);
+                Console.WriteLine($"📐 Przesuwam model2 o: deltaX={deltaX}, deltaY={deltaY}");
 
+                // Sprawdź czy model2 ma odbicie lustrzane
+                var hasFlip = await JSRuntime.InvokeAsync<bool>("eval",
+                    "(function() { const m2 = document.querySelector('#model2'); if (!m2) return false; const t = m2.getAttribute('transform') || ''; return t.includes('scale(-1') || t.includes('scale(1, -1)'); })()");
+
+                if (hasFlip)
+                {
+                    Console.WriteLine("🔄 Model2 ma odbicie lustrzane - odwracam kierunek");
+                    // Nie odwracaj tutaj - funkcja JavaScript sama to obsłuży
+                }
+
+                // Użyj poprawionej funkcji moveonlyedit
+                await JSRuntime.InvokeVoidAsync("svgHelper.moveonlyedit", deltaX, deltaY);
+
+                await Task.Delay(10);
+
+                // Aktualizuj stare wartości
+                old_edytowanePrzesuniecieXStycznej = edytowanePrzesuniecieXStycznej;
+                old_edytowanePrzesuniecieYStycznej = edytowanePrzesuniecieYStycznej;
+            }
         }
-
-        if (edytowanePrzesuniecieXStycznej != old_edytowanePrzesuniecieXStycznej || edytowanePrzesuniecieYStycznej != old_edytowanePrzesuniecieYStycznej)
+        else
         {
-            //await JSRuntime.InvokeVoidAsync("svgHelper.move", edytowanePrzesuniecieXStycznej, edytowanePrzesuniecieYStycznej);
-            await JSRuntime.InvokeVoidAsync("svgHelper.moveonlyedit",
-            old_edytowanePrzesuniecieXStycznej - edytowanePrzesuniecieXStycznej,
-            old_edytowanePrzesuniecieYStycznej - edytowanePrzesuniecieYStycznej);
-            await Task.Delay(10); // Daj czas na renderowanie
-            old_edytowanePrzesuniecieXStycznej = edytowanePrzesuniecieXStycznej;
-            old_edytowanePrzesuniecieYStycznej = edytowanePrzesuniecieYStycznej;
-            // await ZmienPrzesuniecie(edytowanePrzesuniecieX, edytowanePrzesuniecieY);
+            // Tryb przekrojów
+            if (edytowanePrzesuniecieX != old_edytowanePrzesuniecieX ||
+                edytowanePrzesuniecieY != old_edytowanePrzesuniecieY)
+            {
+                // Oblicz różnicę
+                double deltaX = edytowanePrzesuniecieX - old_edytowanePrzesuniecieX;
+                double deltaY = edytowanePrzesuniecieY - old_edytowanePrzesuniecieY;
+
+                Console.WriteLine($"📐 Przesuwam model2 o: deltaX={deltaX}, deltaY={deltaY}");
+
+                // Sprawdź czy model2 ma odbicie lustrzane
+                var hasFlip = await JSRuntime.InvokeAsync<bool>("eval",
+                    "(function() { const m2 = document.querySelector('#model2'); if (!m2) return false; const t = m2.getAttribute('transform') || ''; return t.includes('scale(-1') || t.includes('scale(1, -1)'); })()");
+
+                Console.WriteLine($"🔄 Model2 ma odbicie lustrzane: {hasFlip}");
+
+                // Użyj poprawionej funkcji moveonlyedit
+                await JSRuntime.InvokeVoidAsync("svgHelper.moveonlyedit", deltaX, deltaY);
+
+                await Task.Delay(10);
+
+                // Aktualizuj stare wartości
+                old_edytowanePrzesuniecieX = edytowanePrzesuniecieX;
+                old_edytowanePrzesuniecieY = edytowanePrzesuniecieY;
+            }
         }
     }
-
+   
     // Zapisanie zmian
     private async Task ZapiszEdycje()
     {
@@ -4172,10 +5040,33 @@
     {
         public bool success { get; set; }
         public bool elementsFound { get; set; }
+
         public double przesuniecieX { get; set; }
         public double przesuniecieY { get; set; }
+
         public double scale { get; set; }
-        public string? error { get; set; } // opcjonalnie
+
+        // ============================================================
+        // OSIE SYMETRII - MODEL 1
+        // ============================================================
+
+        public double verticalOsSymetriiX1 { get; set; }
+        public double verticalOsSymetriiY1 { get; set; }
+
+        public double horizontalOsSymetriiX1 { get; set; }
+        public double horizontalOsSymetriiY1 { get; set; }
+
+        // ============================================================
+        // OSIE SYMETRII - MODEL 2
+        // ============================================================
+
+        public double verticalOsSymetriiX2 { get; set; }
+        public double verticalOsSymetriiY2 { get; set; }
+
+        public double horizontalOsSymetriiX2 { get; set; }
+        public double horizontalOsSymetriiY2 { get; set; }
+
+        public string? error { get; set; }
     }
 
     public class UpdateKonfPolaczenieDto
