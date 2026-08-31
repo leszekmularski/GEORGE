@@ -4093,6 +4093,9 @@
         double horizontalOsSymetriiX2 = Math.Round(result.horizontalOsSymetriiX2, precyzjaZapisu);
         double horizontalOsSymetriiY2 = Math.Round(result.horizontalOsSymetriiY2, precyzjaZapisu);
 
+        Console.WriteLine($"svgHelper - Przesunięcie X: {przesuniecieX}, Przesunięcie Y: {przesuniecieY} verticalOsSymetriiX1: {verticalOsSymetriiX1} verticalOsSymetriiY1: {verticalOsSymetriiY1}");
+        Console.WriteLine($"svgHelper - horizontalOsSymetriiX1: {horizontalOsSymetriiX1} horizontalOsSymetriiY1: {horizontalOsSymetriiY1} verticalOsSymetriiX2: {verticalOsSymetriiX2}");
+
         if (!selSlRuchomy && !selSlStaly)
         {
             przesuniecieX = Math.Abs(result.przesuniecieX);
