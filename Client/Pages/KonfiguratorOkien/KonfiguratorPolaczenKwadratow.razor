@@ -3835,18 +3835,16 @@
                        placeholder="Wpisz opis połączenia..." />
             </div>
 
-            <div class="mb-3">
-                <label class="form-label fw-bold">Strona</label>
-                <select value="@edytowanaStrona"
-                        @onchange="(e) => edytowanaStrona = e.Value?.ToString() ?? string.Empty"
-                        class="form-select">
-                    <option value="">-- Wybierz stronę --</option>
-                    <option value="lewa">Lewa</option>
-                    <option value="prawa">Prawa</option>
-                    <option value="góra">Góra</option>
-                    <option value="dół">Dół</option>
-                </select>
-            </div>
+            <select @bind="edytowanaStrona"
+                    class="form-select">
+
+                <option value="">-- Wybierz stronę --</option>
+                <option value="lewa">Lewa</option>
+                <option value="prawa">Prawa</option>
+                <option value="góra">Góra</option>
+                <option value="dół">Dół</option>
+
+            </select>
 
             <div class="row mb-3">
                 <div class="col-6">
