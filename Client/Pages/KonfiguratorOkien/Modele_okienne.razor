@@ -2907,7 +2907,7 @@
 
         if (WybranyModel.Typ == "Słupek stały")
         {
-            var match = ObliczWierzcholkiSlupkaStalego(Wierzcholki, klikX, klikY);
+            var match = await ObliczWierzcholkiSlupkaStalego(Wierzcholki, klikX, klikY);
 
             var WierzcholkiST = match.Wierzcholki;
             var RegionIds = match.RegionIds;
@@ -2936,10 +2936,10 @@
 
     }
 
-    private SlupekMatchResult ObliczWierzcholkiSlupkaStalego(
-        List<XPoint> wierzcholki,
-        double klikX,
-        double klikY)
+    private async Task<SlupekMatchResult> ObliczWierzcholkiSlupkaStalego(
+    List<XPoint> wierzcholki,
+    double klikX,
+    double klikY)
     {
         var best = new SlupekMatchResult();
         double bestDist = double.MaxValue;
@@ -2956,6 +2956,31 @@
             .ToList();
 
         Console.WriteLine($"🔍 ObliczWierzcholkiSlupkaStalego - liczba regionów: {wszystkieRegiony.Count}");
+
+        var _powiazanyModel = await Http.GetFromJsonAsync<MVCKonfModele>($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{WybranyModel.RowId}");
+
+        await Task.Yield(); // Upewnij się, że UI ma szansę się odświeżyć
+
+        double szer_slupka = 82;//Wartość domyślna szerokości słupka, można ją zmienić w zależności od wymagań
+
+        double os_symetrii_slupka = 0;
+
+        if(_powiazanyModel == null)
+        {
+            await _message.Warning($"❌ Wybrany model nie ma powiązanych elementów!!!.",15);
+
+            os_symetrii_slupka = szer_slupka / 2;
+        }
+        else
+        {
+            var konfSystem = _powiazanyModel.KonfSystem.FirstOrDefault();
+
+            szer_slupka = konfSystem?.PoziomDol != null && konfSystem.PoziomGora != null ? konfSystem.PoziomDol.Value - konfSystem.PoziomGora.Value : 82;
+
+            os_symetrii_slupka = konfSystem?.PoziomOsSymetrii != null ? konfSystem.PoziomOsSymetrii.Value : szer_slupka / 2;
+
+            szer_slupka = Math.Abs(szer_slupka);
+        }
 
         foreach (var reg in wszystkieRegiony)
         {
@@ -2981,7 +3006,7 @@
         if (best.Wierzcholki.Count == 2)
         {
             Console.WriteLine("🔍 Znaleziono linię słupka - tworzę prostokąt");
-            best.Wierzcholki = UtworzProstokatWokolLinii(best.Wierzcholki, 82.0); // 82 = grubość słupka
+            best.Wierzcholki = UtworzProstokatWokolLinii(best.Wierzcholki, szer_slupka, os_symetrii_slupka); // 82 = grubość słupka
         }
 
         Console.WriteLine($"🔍 Wynik końcowy: znaleziono {best.Wierzcholki.Count} punktów, {best.RegionIds.Count} regionów");
@@ -2989,55 +3014,92 @@
         return best;
     }
 
-    // Nowa pomocnicza funkcja do tworzenia prostokąta wokół linii
-    private List<XPoint> UtworzProstokatWokolLinii(List<XPoint> linia, double grubosc)
+    private List<XPoint> UtworzProstokatWokolLinii(
+      List<XPoint> linia,
+      double grubosc,
+      double os_symetrii_slupka)
     {
-        if (linia.Count != 2) return linia;
+        if (linia == null || linia.Count != 2)
+            return linia;
 
         var p1 = linia[0];
         var p2 = linia[1];
 
-        // Sprawdź orientację
         bool pionowy = Math.Abs(p1.X - p2.X) < 1e-6;
         bool poziomy = Math.Abs(p1.Y - p2.Y) < 1e-6;
 
-        List<XPoint> prostokat = new List<XPoint>();
-        double halfGrubosc = grubosc / 2;
+        var prostokat = new List<XPoint>();
+
+        // Oś symetrii określa odległość osi od jednego z boków.
+        //
+        // np.:
+        // szerokość = 110
+        // oś = 55  -> [-55, +55]
+        // oś = 0   -> [0, +110]
+        // oś = 110 -> [-110, 0]
+        //
+        // Dla osi = 1:
+        // [-1, +109]
+
+        double odleglosc1 = os_symetrii_slupka;
+        double odleglosc2 = grubosc - os_symetrii_slupka;
+
+        // Zabezpieczenie przed wartościami spoza zakresu.
+        odleglosc1 = Math.Clamp(odleglosc1, 0, grubosc);
+        odleglosc2 = Math.Clamp(odleglosc2, 0, grubosc);
 
         if (pionowy)
         {
-            // Linia pionowa
             double x = p1.X;
+
             double y1 = Math.Min(p1.Y, p2.Y);
             double y2 = Math.Max(p1.Y, p2.Y);
 
-            prostokat.Add(new XPoint(x - halfGrubosc, y1)); // lewy dolny
-            prostokat.Add(new XPoint(x + halfGrubosc, y1)); // prawy dolny
-            prostokat.Add(new XPoint(x + halfGrubosc, y2)); // prawy górny
-            prostokat.Add(new XPoint(x - halfGrubosc, y2)); // lewy górny
+            // Oś linii znajduje się pomiędzy dwoma bokami.
+            double xLewy = x - odleglosc1;
+            double xPrawy = x + odleglosc2;
+
+            prostokat.Add(new XPoint(xLewy, y1));
+            prostokat.Add(new XPoint(xPrawy, y1));
+            prostokat.Add(new XPoint(xPrawy, y2));
+            prostokat.Add(new XPoint(xLewy, y2));
         }
         else if (poziomy)
         {
-            // Linia pozioma
             double y = p1.Y;
+
             double x1 = Math.Min(p1.X, p2.X);
             double x2 = Math.Max(p1.X, p2.X);
 
-            prostokat.Add(new XPoint(x1, y - halfGrubosc)); // lewy dolny
-            prostokat.Add(new XPoint(x2, y - halfGrubosc)); // prawy dolny
-            prostokat.Add(new XPoint(x2, y + halfGrubosc)); // prawy górny
-            prostokat.Add(new XPoint(x1, y + halfGrubosc)); // lewy górny
+            double yGora = y - odleglosc1;
+            double yDol = y + odleglosc2;
+
+            prostokat.Add(new XPoint(x1, yGora));
+            prostokat.Add(new XPoint(x2, yGora));
+            prostokat.Add(new XPoint(x2, yDol));
+            prostokat.Add(new XPoint(x1, yDol));
         }
         else
         {
-            // Linia skośna - zostawiamy oryginalną linię
-            Console.WriteLine($"⚠️ Linia słupka jest skośna - nie tworzę prostokąta");
+            Console.WriteLine(
+                "⚠️ Linia słupka jest skośna - nie tworzę prostokąta");
+
             return linia;
         }
 
-        Console.WriteLine($"🔍 Utworzono prostokąt z {prostokat.Count} punktami");
+        Console.WriteLine(
+            $"🔍 Utworzono prostokąt słupka: " +
+            $"grubość={grubosc:F2}, oś={os_symetrii_slupka:F2}");
+
+        // for (int i = 0; i < prostokat.Count; i++)
+        // {
+        //     Console.WriteLine(
+        //         $"   P{i}=({prostokat[i].X:F2}; {prostokat[i].Y:F2})");
+        // }
+
         return prostokat;
     }
+
 
     private bool _isRedrawing;
 
@@ -3246,6 +3308,8 @@
         }
 
         _czekajNaZaladowanie = true;
+
+        await Task.Delay(10);
 
         await FitToCanvas(shape, region.Id, false, region.Wierzcholki, modelX, modelY);
 
@@ -4680,7 +4744,7 @@
         {
             await _message.Warning(
                 "Błąd wyboru modelu!!!!",
-                2.0
+                2.5
             );
             return false;
         }
@@ -7883,8 +7947,8 @@
                     //Console.WriteLine($"*********** >>>>>> IndeksElementu: {ksztalt.IndeksElementu} Grupa: {ksztalt.Grupa} DlogoscElementu: {ksztalt.DlogoscElementu}");
 
                     await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
-                    //await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"[{ksztalt.NrPozWModelu}]-{ksztalt.IndeksElementu.ToString()} [{Math.Round(ksztalt.Kat, 1).ToString()}°/{ksztalt.DlogoscElementu}mm]", (ksztalt.Kat == 180 ? 0 : ksztalt.Kat)); // Tekst z ID i kątem na profilu
-                    await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"[{ksztalt.NrPozWModelu}]-{ksztalt.IndeksElementu.ToString()} [{Math.Round(ksztalt.Kat, 1).ToString()}°/{ksztalt.Strona}-{ksztalt.RodzajpolaczenAiB}]", (ksztalt.Kat == 180 ? 0 : ksztalt.Kat), true); // Tekst z ID i kątem na profilu
+                    await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"[{ksztalt.NrPozWModelu}]-{ksztalt.IndeksElementu.ToString()} [{Math.Round(ksztalt.Kat, 1).ToString()}°/{ksztalt.DlogoscElementu}mm]", (ksztalt.Kat == 180 ? 0 : ksztalt.Kat)); // Tekst z ID i kątem na profilu
+                    //await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"[{ksztalt.NrPozWModelu}]-{ksztalt.IndeksElementu.ToString()} [{Math.Round(ksztalt.Kat, 1).ToString()}°/{ksztalt.Strona}-{ksztalt.RodzajpolaczenAiB}]", (ksztalt.Kat == 180 ? 0 : ksztalt.Kat), true); // Tekst z ID i kątem na profilu
                 }
 
             }
@@ -8018,30 +8082,30 @@
         }
     }
 
-    private (float left, float right, float top, float bottom) GetOffsetsForGroup(string grupa)
-    {
-        float grLewo = 82;
-        float grPrawo = 82;
-        float grGora = 82;
-        float grDol = 92;
+    // private (float left, float right, float top, float bottom) GetOffsetsForGroup(string grupa)
+    // {
+    //     float grLewo = 82;
+    //     float grPrawo = 82;
+    //     float grGora = 82;
+    //     float grDol = 92;
 
-        return grupa switch
-        {
-            "Lewo" => (grLewo, 0, 0, 0),
-            "Lewa" => (grLewo, 0, 0, 0),
+    //     return grupa switch
+    //     {
+    //         "Lewo" => (grLewo, 0, 0, 0),
+    //         "Lewa" => (grLewo, 0, 0, 0),
 
-            "Prawo" => (0, grPrawo, 0, 0),
-            "Prawa" => (0, grPrawo, 0, 0),
+    //         "Prawo" => (0, grPrawo, 0, 0),
+    //         "Prawa" => (0, grPrawo, 0, 0),
 
-            "Gora" => (0, 0, grGora, 0),
-            "Góra" => (0, 0, grGora, 0),
+    //         "Gora" => (0, 0, grGora, 0),
+    //         "Góra" => (0, 0, grGora, 0),
 
-            "Dol" => (0, 0, 0, grDol),
-            "Dół" => (0, 0, 0, grDol),
+    //         "Dol" => (0, 0, 0, grDol),
+    //         "Dół" => (0, 0, 0, grDol),
 
-            _ => (grLewo, grPrawo, grGora, grDol)
-        };
-    }
+    //         _ => (grLewo, grPrawo, grGora, grDol)
+    //     };
+    // }
 
     private async Task DrawSingleContour(Canvas2DContext context, List<XPoint> outerPoints)
     {

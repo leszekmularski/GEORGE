@@ -10,6 +10,439 @@
 @inject ConfirmService ComfirmService
 @using System.Net
 
+
+<style>
+    /* ==========================================
+               SIATKA 2 x 2
+               ========================================== */
+
+    .action-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(280px, 1fr));
+        gap: 12px;
+    }
+
+
+    /* ==========================================
+               PRZYCISK
+               ========================================== */
+
+    .action-card {
+        position: relative;
+        display: flex;
+        align-items: center;
+        width: 100%;
+        min-width: 0;
+        min-height: 76px;
+        padding: 10px 14px 10px 10px;
+        border: 1px solid;
+        border-radius: 10px;
+        background: #fff;
+        cursor: pointer;
+        text-align: left;
+        overflow: hidden;
+        box-sizing: border-box;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+    }
+
+
+    /* ==========================================
+               IKONA
+               ========================================== */
+
+    .action-icon {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        max-width: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9px;
+        margin-right: 13px;
+        font-size: 1.3rem;
+        flex-shrink: 0;
+    }
+
+
+    /* ==========================================
+               KONTENER TEKSTU
+               ========================================== */
+
+    .action-content {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-width: 0;
+        line-height: 1.2;
+        overflow: hidden;
+    }
+
+
+    /* ==========================================
+               TYTUŁ
+               ========================================== */
+
+    .action-title {
+        display: block;
+        font-size: 0.95rem;
+        font-weight: 700;
+        margin-bottom: 4px;
+        line-height: 1.25;
+        white-space: normal;
+        overflow-wrap: break-word;
+        word-break: normal;
+    }
+
+
+    /* ==========================================
+               OPIS
+               ========================================== */
+
+    .action-description {
+        display: block;
+        font-size: 0.74rem;
+        color: #6c757d;
+        line-height: 1.25;
+        white-space: normal;
+        overflow-wrap: break-word;
+        word-break: normal;
+    }
+
+
+    /* ==========================================
+               STRZAŁKA
+               ========================================== */
+
+    .action-arrow {
+        font-size: 0.8rem;
+        margin-left: 10px;
+        flex-shrink: 0;
+        opacity: 0.3;
+        transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+
+    /* ==========================================
+               HOVER
+               ========================================== */
+
+    .action-card:not(:disabled):hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 14px rgba(0, 0, 0, 0.10);
+    }
+
+    .action-primary:not(:disabled):hover {
+        border-color: #0d6efd;
+        background: #f8fbff;
+    }
+
+    .action-info:not(:disabled):hover {
+        border-color: #0dcaf0;
+        background: #f7fdff;
+    }
+
+    .action-card:not(:disabled):hover .action-arrow {
+        opacity: 1;
+        transform: translateX(3px);
+    }
+
+
+    /* ==========================================
+               KLIK
+               ========================================== */
+
+    .action-card:not(:disabled):active {
+        transform: translateY(0);
+        box-shadow: none;
+    }
+
+
+    /* ==========================================
+               DISABLED
+               ========================================== */
+
+    .action-card:disabled {
+        cursor: not-allowed;
+        opacity: 0.45;
+        filter: grayscale(20%);
+    }
+
+        .action-card:disabled .action-arrow {
+            display: none;
+        }
+
+
+    /* ==========================================
+               MNIEJSZE EKRANY
+               ========================================== */
+
+    @@media (max-width: 900px) {
+        .action-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+
+    /* ==========================================
+               BARDZO MAŁE EKRANY
+               ========================================== */
+
+    @@media (max-width: 500px) {
+        .action-card {
+            min-height: 70px;
+            padding-right: 10px;
+        }
+
+        .action-icon {
+            width: 42px;
+            height: 42px;
+            min-width: 42px;
+            max-width: 42px;
+            margin-right: 10px;
+        }
+
+        .action-title {
+            font-size: 0.88rem;
+        }
+
+        .action-description {
+            font-size: 0.7rem;
+        }
+    }
+
+    /* ==========================================
+           ZARZĄDZANIE SYSTEMEM
+           ========================================== */
+
+    .system-admin-section {
+        width: 100%;
+        margin-top: 14px;
+    }
+
+
+    /* ==========================================
+           NAGŁÓWEK
+           ========================================== */
+
+    .admin-title {
+        color: #6c757d;
+    }
+
+
+    /* ==========================================
+           SIATKA
+           ========================================== */
+
+    .admin-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+
+    /* ==========================================
+           KARTA ADMINISTRACYJNA
+           ========================================== */
+
+    .admin-card {
+        position: relative;
+        display: flex;
+        align-items: center;
+        width: 100%;
+        min-width: 0;
+        height: 68px;
+        padding: 8px 12px 8px 8px;
+        border: 1px solid;
+        border-radius: 10px;
+        background: #fff;
+        cursor: pointer;
+        text-align: left;
+        box-sizing: border-box;
+        overflow: hidden;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+    }
+
+
+    /* ==========================================
+           IKONA
+           ========================================== */
+
+    .admin-icon {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        max-width: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        margin-right: 11px;
+        font-size: 1.15rem;
+        flex-shrink: 0;
+    }
+
+
+    /* ==========================================
+           TEKST
+           ========================================== */
+
+    .admin-content {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-width: 0;
+        line-height: 1.2;
+        overflow: hidden;
+    }
+
+    .admin-card-title {
+        display: block;
+        font-size: 0.88rem;
+        font-weight: 700;
+        margin-bottom: 3px;
+        line-height: 1.2;
+        white-space: normal;
+    }
+
+    .admin-card-description {
+        display: block;
+        font-size: 0.70rem;
+        color: #6c757d;
+        line-height: 1.2;
+        white-space: normal;
+    }
+
+
+    /* ==========================================
+           STRZAŁKA
+           ========================================== */
+
+    .admin-arrow {
+        margin-left: 8px;
+        font-size: 0.75rem;
+        opacity: 0.25;
+        flex-shrink: 0;
+        transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+
+    /* ==========================================
+           EDYTUJ - WARNING
+           ========================================== */
+
+    .admin-warning {
+        border-color: #ffe69c;
+        color: #664d03;
+    }
+
+        .admin-warning .admin-icon {
+            background: #fff3cd;
+            color: #ff9800;
+        }
+
+
+    /* ==========================================
+           USUŃ - DANGER
+           ========================================== */
+
+    .admin-danger {
+        border-color: #f1aeb5;
+        color: #842029;
+    }
+
+        .admin-danger .admin-icon {
+            background: #f8d7da;
+            color: #dc3545;
+        }
+
+
+    /* ==========================================
+           STATUS
+           ========================================== */
+
+    .admin-status {
+        grid-column: 1 / -1;
+        border-color: #c6c8ca;
+        color: #41464b;
+    }
+
+        .admin-status .admin-icon {
+            background: #e9ecef;
+            color: #6c757d;
+        }
+
+
+        /* ==========================================
+           STATUS - AKTYWNY / PRZYWRÓCONY
+           ========================================== */
+
+        .admin-status:has(.bi-arrow-counterclockwise) {
+            border-color: #a3cfbb;
+            color: #0f5132;
+        }
+
+            .admin-status:has(.bi-arrow-counterclockwise) .admin-icon {
+                background: #d1e7dd;
+                color: #198754;
+            }
+
+
+    /* ==========================================
+           HOVER
+           ========================================== */
+
+    .admin-card:not(:disabled):hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.09);
+    }
+
+    .admin-warning:not(:disabled):hover {
+        border-color: #ffc107;
+        background: #fffdf5;
+    }
+
+    .admin-danger:not(:disabled):hover {
+        border-color: #dc3545;
+        background: #fff8f8;
+    }
+
+    .admin-status:not(:disabled):hover {
+        border-color: #6c757d;
+        background: #f8f9fa;
+    }
+
+    .admin-card:not(:disabled):hover .admin-arrow {
+        opacity: 0.8;
+        transform: translateX(3px);
+    }
+
+
+    /* ==========================================
+           KLIK
+           ========================================== */
+
+    .admin-card:not(:disabled):active {
+        transform: translateY(0);
+        box-shadow: none;
+    }
+
+
+    /* ==========================================
+           MAŁE EKRANY
+           ========================================== */
+
+    @@media (max-width: 900px) {
+        .admin-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .admin-status {
+            grid-column: auto;
+        }
+    }
+</style>
+
 @if (czekajNaZaladowanieDanych)
 {
     <div class="text-center mt-5">
@@ -95,64 +528,229 @@
                                         }
                                     </td>
                                     <td>
-                                        <div class="d-flex flex-wrap gap-2 align-items-center">
-                                            <!-- Konfiguracje podstawowe -->
-                                            <div class="btn-group" role="group">
-                                                <button class="btn btn-outline-primary btn-sm px-3"
-                                                        @onclick="() => GoKonfiguratorNowegoElementu(system.Id, system.RowId)"
-                                                        title="Dodaj nowy profil w systemie"
-                                                        disabled="@system.Wycofany_z_produkcji">
-                                                    <i class="fas fa-layer-group me-1"></i>Profil
-                                                </button>
-                                                <button class="btn btn-outline-primary btn-sm px-3"
-                                                        @onclick="() => GoBudujModeleOkien(system.Id, system.RowId)"
-                                                        title="Buduj modele okien"
-                                                        disabled="@system.Wycofany_z_produkcji">
-                                                    <i class="fas fa-window-maximize me-1"></i>Modele
-                                                </button>
+
+                                        <div class="action-panel">
+
+                                            <!-- =============================== -->
+                                            <!-- KONFIGURACJA MODELI -->
+                                            <!-- =============================== -->
+                                            <div class="action-section">
+
+                                                <div class="action-section-title">
+                                                    <i class="bi bi-gear-wide-connected me-2"></i>
+                                                    KONFIGURACJA MODELI
+                                                </div>
+
+                                                <div class="action-grid">
+
+                                                    <!-- 1. Profile -->
+                                                    <button type="button"
+                                                            class="action-card action-primary"
+                                                            @onclick="() => GoKonfiguratorNowegoElementu(system.Id, system.RowId)"
+                                                            title="Dodaj nowy profil w systemie"
+                                                            disabled="@system.Wycofany_z_produkcji">
+
+                                                        <span class="action-icon">
+                                                            <i class="bi bi-layers"></i>
+                                                        </span>
+
+                                                        <span class="action-content">
+                                                            <span class="action-title">
+                                                                Profile
+                                                            </span>
+
+                                                            <span class="action-description">
+                                                                Konfiguracje profili
+                                                            </span>
+                                                        </span>
+
+                                                        <i class="bi bi-chevron-right action-arrow"></i>
+
+                                                    </button>
+
+
+                                                    <!-- 2. Buduj modele -->
+                                                    <button type="button"
+                                                            class="action-card action-primary"
+                                                            @onclick="() => GoBudujModeleOkien(system.Id, system.RowId)"
+                                                            title="Buduj modele okien"
+                                                            disabled="@system.Wycofany_z_produkcji">
+
+                                                        <span class="action-icon">
+                                                            <i class="bi bi-window"></i>
+                                                        </span>
+
+                                                        <span class="action-content">
+                                                            <span class="action-title">
+                                                                Buduj modele
+                                                            </span>
+
+                                                            <span class="action-description">
+                                                                Modele okien
+                                                            </span>
+                                                        </span>
+
+                                                        <i class="bi bi-chevron-right action-arrow"></i>
+
+                                                    </button>
+
+
+                                                    <!-- 3. Modele i naroża -->
+                                                    <button type="button"
+                                                            class="action-card action-info"
+                                                            @onclick="() => GoKonfiguratorPolaczen(system.Id, system.RowId)"
+                                                            title="Konfigurator nowych modeli oraz połączeń naroży"
+                                                            disabled="@system.Wycofany_z_produkcji">
+
+                                                        <span class="action-icon">
+                                                            <i class="bi bi-bounding-box"></i>
+                                                        </span>
+
+                                                        <span class="action-content">
+                                                            <span class="action-title">
+                                                                Modele i naroża
+                                                            </span>
+
+                                                            <span class="action-description">
+                                                                Modele oraz połączenia narożne
+                                                            </span>
+                                                        </span>
+
+                                                        <i class="bi bi-chevron-right action-arrow"></i>
+
+                                                    </button>
+
+
+                                                    <!-- 4. Połączenia -->
+                                                    <button type="button"
+                                                            class="action-card action-info"
+                                                            @onclick="() => GoKonfiguratorPolaczenKwadratow(system.Id, system.RowId)"
+                                                            title="Konfigurator połączeń rama / skrzydło / słupek"
+                                                            disabled="@system.Wycofany_z_produkcji">
+
+                                                        <span class="action-icon">
+                                                            <i class="bi bi-grid-3x3-gap"></i>
+                                                        </span>
+
+                                                        <span class="action-content">
+                                                            <span class="action-title">
+                                                                Połączenia elementów
+                                                            </span>
+
+                                                            <span class="action-description">
+                                                                Rama / skrzydło / słupek
+                                                            </span>
+                                                        </span>
+
+                                                        <i class="bi bi-chevron-right action-arrow"></i>
+
+                                                    </button>
+
+                                                </div>
+
                                             </div>
 
-                                            <!-- Konfiguracje połączeń -->
-                                            <div class="btn-group" role="group">
-                                                <button class="btn btn-outline-info btn-sm px-3"
-                                                        @onclick="() => GoKonfiguratorPolaczen(system.Id, system.RowId)"
-                                                        title="Konfigurator połączeń naroży"
-                                                        disabled="@system.Wycofany_z_produkcji">
-                                                    <i class="fas fa-vector-square me-1"></i>Naroża
-                                                </button>
-                                                <button class="btn btn-outline-info btn-sm px-3"
-                                                        @onclick="() => GoKonfiguratorPolaczenKwadratow(system.Id, system.RowId)"
-                                                        title="Konfigurator połączeń rama/skrzydło/słupek"
-                                                        disabled="@system.Wycofany_z_produkcji">
-                                                    <i class="fas fa-border-all me-1"></i>Połączenia
-                                                </button>
-                                            </div>
                                         </div>
+
                                     </td>
                                     <td>
-                                        <div class="d-flex flex-column gap-1">
-                                            <div class="btn-group" role="group">
-                                                <button class="btn btn-outline-warning btn-sm px-3"
+                                        <div class="system-admin-section">
+
+                                            <div class="action-section-title admin-title">
+                                                <i class="bi bi-sliders me-2"></i>
+                                                ZARZĄDZANIE SYSTEMEM
+                                            </div>
+
+                                            <div class="admin-grid">
+
+                                                <!-- EDYTUJ -->
+                                                <button type="button"
+                                                        class="admin-card admin-warning"
                                                         @onclick="() => Edytuj(system.Id, system.RowId)"
                                                         title="Edytuj dane systemu">
-                                                    <i class="fas fa-edit me-1"></i>Edytuj
+
+                                                    <span class="admin-icon">
+                                                        <i class="bi bi-pencil-square"></i>
+                                                    </span>
+
+                                                    <span class="admin-content">
+                                                        <span class="admin-card-title">
+                                                            Edytuj
+                                                        </span>
+
+                                                        <span class="admin-card-description">
+                                                            Dane systemu
+                                                        </span>
+                                                    </span>
+
+                                                    <i class="bi bi-chevron-right admin-arrow"></i>
+
                                                 </button>
-                                                <button class="btn btn-outline-danger btn-sm px-3"
+
+
+                                                <!-- USUŃ -->
+                                                <button type="button"
+                                                        class="admin-card admin-danger"
                                                         @onclick="() => Usun(system.Id)"
                                                         title="Usuń system">
-                                                    <i class="fas fa-trash me-1"></i>Usuń
+
+                                                    <span class="admin-icon">
+                                                        <i class="bi bi-trash3"></i>
+                                                    </span>
+
+                                                    <span class="admin-content">
+                                                        <span class="admin-card-title">
+                                                            Usuń
+                                                        </span>
+
+                                                        <span class="admin-card-description">
+                                                            Usuń system
+                                                        </span>
+                                                    </span>
+
+                                                    <i class="bi bi-chevron-right admin-arrow"></i>
+
                                                 </button>
+
+
+                                                <!-- WYCOFAJ / PRZYWRÓĆ -->
+                                                <button type="button"
+                                                        class="admin-card admin-status"
+                                                        @onclick="() => ToggleWycofanie(system)"
+                                                        title="@(system.Wycofany_z_produkcji
+                                                                                                                                    ? "Przywróć system do produkcji"
+                                                                                                                                    : "Wycofaj system z produkcji")">
+
+                                            <span class="admin-icon">
+                                                <i class="bi @(system.Wycofany_z_produkcji
+                                                                                                                          ? "bi-arrow-counterclockwise"
+                                                                                                                          : "bi-slash-circle")"></i>
+                                                                                                                                       </span>
+
+                                            <span class="admin-content">
+                                                <span class="admin-card-title">
+                                                    @(system.Wycofany_z_produkcji
+                                                                                                        ? "Przywróć do produkcji"
+                                                                                                        : "Wycofaj z produkcji")
+                                                                                                                            </span>
+
+                                                <span class="admin-card-description">
+                                                    @(system.Wycofany_z_produkcji
+                                                                                                        ? "Aktywuj system ponownie"
+                                                                                                        : "Dezaktywuj system")
+                                                </span>
+                                            </span>
+
+                                                    <i class="bi bi-chevron-right admin-arrow"></i>
+
+                                                </button>
+
                                             </div>
-                                            <button class="btn @(system.Wycofany_z_produkcji ? "btn-success" : "btn-outline-secondary") btn-sm px-3"
-                                                    @onclick="() => ToggleWycofanie(system)"
-                                                    title="@(system.Wycofany_z_produkcji ? "Przywróć do produkcji" : "Wycofaj z produkcji")">
-                                                <i class="fas @(system.Wycofany_z_produkcji ? "fa-undo" : "fa-ban") me-1"></i>
-                                                @(system.Wycofany_z_produkcji ? "Przywróć" : "Wycofaj")
-                                            </button>
+
                                         </div>
                                     </td>
                                 </tr>
-                            }
+                                                }
                         </tbody>
                     </table>
                 </div>

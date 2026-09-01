@@ -2008,8 +2008,10 @@ namespace GEORGE.Client.Pages.Okna
                             }
                             else if (szerSlupka.WystepujeLewa && szerSlupka.WystepujePrawa)
                             {
-                                OsSymetrii = (float)Math.Abs((float)szerSlupka.PionOsSymetrii);
-                                SzerokoscSlupka = szerSlupka.PionPrawa - szerSlupka.PionLewa;
+                                //OsSymetrii = (float)Math.Abs((float)szerSlupka.PionOsSymetrii);
+                                //SzerokoscSlupka = szerSlupka.PionPrawa - szerSlupka.PionLewa;
+                                OsSymetrii = (float)Math.Abs((float)szerSlupka.PoziomOsSymetrii);
+                                SzerokoscSlupka = szerSlupka.PoziomGora - szerSlupka.PoziomDol;
                             }
                             else
                             {
@@ -2086,23 +2088,73 @@ namespace GEORGE.Client.Pages.Okna
                         Y = TopXT5.Y + uyT5 * (t * dlugosc)
                     };
 
-                    // Oblicz połowę szerokości słupka
-                    double polowaSzerokosci = SzerokoscSlupka.HasValue ? SzerokoscSlupka.Value / 2.0 : 0;
 
-                    // Prawidłowe przypisanie punktów lewy/prawy:
-                    // - Punkt LEWY (LT5) to punkt przesunięty w lewo od osi (przeciwnie do wektora prostopadłego)
-                    // - Punkt PRAWY (RT5) to punkt przesunięty w prawo od osi (zgodnie z wektorem prostopadłym)
+                    // ============================================================
+                    // SZEROKOŚĆ I POŁOŻENIE OSI SŁUPKA
+                    // ============================================================
+
+                    // Szerokość zawsze traktujemy jako wartość dodatnią.
+                    double szerokoscSlupka = Math.Abs(SzerokoscSlupka ?? 0);
+
+                    // OsSymetrii = odległość osi od LEWEJ krawędzi słupka
+                    double odlegloscOsiDoLewej = Math.Abs(OsSymetrii);
+
+                    // Jeżeli oś jest poza słupkiem, ograniczamy ją do jego szerokości
+                    odlegloscOsiDoLewej = Math.Clamp(
+                        odlegloscOsiDoLewej,
+                        0,
+                        szerokoscSlupka);
+
+                    // Odległość osi od PRAWEJ krawędzi
+                    double odlegloscOsiDoPrawej =
+                        szerokoscSlupka - odlegloscOsiDoLewej;
+
+                    // Dodatkowe zabezpieczenie
+                    odlegloscOsiDoPrawej = Math.Clamp(
+                        odlegloscOsiDoPrawej,
+                        0,
+                        szerokoscSlupka);
+
+
+                    // ============================================================
+                    // PUNKTY LEWY / PRAWY WZGLĘDEM OSI
+                    // ============================================================
+
+                    // LEWY punkt - od osi w kierunku przeciwnym
+                    // do wektora prostopadłego
                     tmpTopLT5 = new XPoint
                     {
-                        X = tmpTopST5.X - vxT5 * polowaSzerokosci,
-                        Y = tmpTopST5.Y - vyT5 * polowaSzerokosci
+                        X = tmpTopST5.X - vxT5 * odlegloscOsiDoLewej,
+                        Y = tmpTopST5.Y - vyT5 * odlegloscOsiDoLewej
                     };
 
+                    // PRAWY punkt - od osi zgodnie
+                    // z wektorem prostopadłym
                     tmpTopRT5 = new XPoint
                     {
-                        X = tmpTopST5.X + vxT5 * polowaSzerokosci,
-                        Y = tmpTopST5.Y + vyT5 * polowaSzerokosci
+                        X = tmpTopST5.X + vxT5 * odlegloscOsiDoPrawej,
+                        Y = tmpTopST5.Y + vyT5 * odlegloscOsiDoPrawej
                     };
+
+
+
+                    //// Oblicz połowę szerokości słupka
+                    //double polowaSzerokosci = SzerokoscSlupka.HasValue ? SzerokoscSlupka.Value / 2.0 : 0;
+
+                    //// Prawidłowe przypisanie punktów lewy/prawy:
+                    //// - Punkt LEWY (LT5) to punkt przesunięty w lewo od osi (przeciwnie do wektora prostopadłego)
+                    //// - Punkt PRAWY (RT5) to punkt przesunięty w prawo od osi (zgodnie z wektorem prostopadłym)
+                    //tmpTopLT5 = new XPoint
+                    //{
+                    //    X = tmpTopST5.X - vxT5 * polowaSzerokosci,
+                    //    Y = tmpTopST5.Y - vyT5 * polowaSzerokosci
+                    //};
+
+                    //tmpTopRT5 = new XPoint
+                    //{
+                    //    X = tmpTopST5.X + vxT5 * polowaSzerokosci,
+                    //    Y = tmpTopST5.Y + vyT5 * polowaSzerokosci
+                    //};
 
                     // Teraz znajdź przecięcia z konturem
                     XPoint leftTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopLT5, TopXT5, BottomXT5, punktyRegionuMaster, forward: false);
@@ -2664,7 +2716,7 @@ namespace GEORGE.Client.Pages.Okna
                     // Segment boczny 2 (lewy) – od adjustedVerticesX[3] do adjustedVerticesX[0]
                     var segBoczny2 = BuildSegmentWithArc(adjustedVerticesX[3], adjustedVerticesX[0], contourForSide);
 
-                   // Console.WriteLine($"\n🔷 Build4SegmentContour ELEMENT {numerElemntu} _stronaElementu: {_stronaElementu} - RETURN 1");
+                    // Console.WriteLine($"\n🔷 Build4SegmentContour ELEMENT {numerElemntu} _stronaElementu: {_stronaElementu} - RETURN 1");
 
                     return new List<ContourSegment>
                         {
@@ -2724,7 +2776,7 @@ namespace GEORGE.Client.Pages.Okna
                         var segBoczny1 = BuildSegmentWithArc(adjustedVerticesX[1], adjustedVerticesX[2], contourForSide);
                         var segBoczny2 = BuildSegmentWithArc(adjustedVerticesX[3], adjustedVerticesX[0], contourForSide);
 
-                      // Console.WriteLine($"\n🔷 Build4SegmentContour ELEMENT {numerElemntu} _stronaElementu: {_stronaElementu} - RETURN 3");
+                        // Console.WriteLine($"\n🔷 Build4SegmentContour ELEMENT {numerElemntu} _stronaElementu: {_stronaElementu} - RETURN 3");
 
                         return new List<ContourSegment>
                         {
@@ -5120,7 +5172,7 @@ namespace GEORGE.Client.Pages.Okna
             else
             {
                 //Słupki stałe mają zawsze pełną wartość profilu, niezależnie od poziomów pozostałe dane z tabeli KonfPolaczenia
-                BledySystemowe.Add($"Słupki stałe mają zawsze pełną wartość profilu, niezależnie od poziomów pozostałe dane z tabeli KonfPolaczenia");
+                Komunikaty.Add($"Słupki stałe mają zawsze pełną wartość profilu, niezależnie od poziomów pozostałe dane z tabeli KonfPolaczenia");
                 await Task.CompletedTask;
                 return 0;
             }

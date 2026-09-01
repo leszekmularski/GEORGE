@@ -111,6 +111,316 @@
         font-family: Arial, sans-serif;
         user-select: none;
     }
+
+    /* ==========================================================
+       GŁÓWNY STICKY PANEL
+       ========================================================== */
+
+    .connection-sticky-panel {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        background: #ffffff;
+        border-bottom: 1px solid #dee2e6;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+        padding: 10px 12px 8px;
+        margin-bottom: 8px;
+    }
+
+
+    /* ==========================================================
+       GÓRNY PASEK
+       ========================================================== */
+
+    .connection-main-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+
+    /* ==========================================================
+       ZAPIS
+       ========================================================== */
+
+    .connection-save-group {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-shrink: 0;
+    }
+
+    .connection-save-button {
+        min-width: 85px;
+        font-weight: 600;
+    }
+
+    .connection-setting {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+    }
+
+        .connection-setting label {
+            margin: 0;
+            font-size: 0.78rem;
+            color: #495057;
+        }
+
+
+    /* ==========================================================
+       NARZĘDZIA
+       ========================================================== */
+
+    .connection-tools {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        flex: 1;
+        justify-content: flex-end;
+    }
+
+
+    /* ==========================================================
+       GRUPA NARZĘDZI
+       ========================================================== */
+
+    .tool-group {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding-left: 8px;
+        border-left: 1px solid #e9ecef;
+    }
+
+        .tool-group:first-child {
+            border-left: none;
+            padding-left: 0;
+        }
+
+    .tool-group-title {
+        display: none;
+    }
+
+    .tool-buttons {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+    }
+
+
+    /* ==========================================================
+       USTAWIENIE PRECYZJI
+       ========================================================== */
+
+    .tool-setting-group {
+        padding-left: 10px;
+    }
+
+    .tool-setting {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+        .tool-setting label {
+            margin: 0;
+            font-size: 0.75rem;
+            color: #6c757d;
+            white-space: nowrap;
+        }
+
+
+    /* ==========================================================
+       PASEK PODGLĄDU
+       ========================================================== */
+
+    .connection-preview-toolbar {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 15px;
+        margin-top: 9px;
+        padding-top: 8px;
+        border-top: 1px solid #f0f0f0;
+    }
+
+
+    /* ==========================================================
+       TYTUŁ PODGLĄDU
+       ========================================================== */
+
+    .preview-heading {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        color: saddlebrown;
+        font-size: 0.9rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+        .preview-heading i {
+            font-size: 1rem;
+        }
+
+
+    /* ==========================================================
+       OSTRZEŻENIE
+       ========================================================== */
+
+    .preview-warning {
+        display: flex;
+        align-items: flex-start;
+        gap: 7px;
+        color: #dc3545;
+        font-size: 0.72rem;
+        line-height: 1.3;
+    }
+
+        .preview-warning i {
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+
+    /* ==========================================================
+       PRZYCISKI PODGLĄDU
+       ========================================================== */
+
+    .preview-actions {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        white-space: nowrap;
+    }
+
+    .preview-refresh {
+        border-color: #ffc107;
+    }
+
+
+    /* ==========================================================
+       STATUS
+       ========================================================== */
+
+    .status-message {
+        display: flex;
+        align-items: center;
+        min-height: 38px;
+        margin-bottom: 8px;
+        padding: 7px 12px;
+        border-left: 4px solid #0d6efd;
+        border-radius: 5px;
+        background: #f8f9fa;
+        color: #495057;
+        font-size: 0.82rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+
+    /* ==========================================================
+       PUSTY SVG
+       ========================================================== */
+
+    .svg-empty-state {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        padding: 30px;
+    }
+
+
+    /* ==========================================================
+       RESPONSYWNOŚĆ
+       ========================================================== */
+
+    @@media (max-width: 1200px) {
+        .connection-main-toolbar
+
+    {
+        align-items: flex-start;
+    }
+
+    .connection-tools {
+        justify-content: flex-start;
+    }
+
+    .connection-preview-toolbar {
+        grid-template-columns: 1fr auto;
+    }
+
+    .preview-warning {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
+
+    }
+
+
+    @@media (max-width: 800px) {
+        .connection-sticky-panel
+
+    {
+        padding: 8px;
+    }
+
+    .connection-main-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .connection-save-group {
+        justify-content: flex-start;
+    }
+
+    .connection-tools {
+        justify-content: flex-start;
+    }
+
+    .connection-preview-toolbar {
+        grid-template-columns: 1fr;
+    }
+
+    .preview-warning {
+        grid-column: auto;
+        grid-row: auto;
+    }
+
+    .preview-actions {
+        justify-content: flex-start;
+    }
+
+    }
+
+
+    @@media (max-width: 550px) {
+        .connection-save-group
+
+    {
+        flex-wrap: wrap;
+    }
+
+    .connection-tools {
+        gap: 4px;
+    }
+
+    .tool-group {
+        border-left: none;
+        padding-left: 0;
+    }
+
+    .connection-preview-toolbar {
+        gap: 8px;
+    }
+
+    }
 </style>
 
 <script>
@@ -287,7 +597,7 @@
 
 
        // 📌 Przesuń - ZACHOWUJE ODBICIE LUSTRZANE
-    window.svgHelper.move = function(dx, dy) {
+       window.svgHelper.move = function(dx, dy) {
         const model2 = document.querySelector("#model2");
         if (!model2) return;
 
@@ -562,23 +872,14 @@
         };
 
 
-        window.svgHelper.measureGuideDisplacement = function () {
+    window.svgHelper.measureGuideDisplacement = function () {
         try {
-            // ============================================================
-            // POBRANIE GŁÓWNEGO SVG
-            // ============================================================
-
             const svg = document.querySelector(".scaled-svg > svg");
 
             if (!svg) {
                 console.error("SVG container not found");
                 return null;
             }
-
-
-            // ============================================================
-            // POBRANIE MODELI
-            // ============================================================
 
             const model1 = svg.querySelector("#model1");
             const model2 = svg.querySelector("#model2");
@@ -588,12 +889,8 @@
                 return null;
             }
 
-
             // ============================================================
-            // FUNKCJA SZUKAJĄCA PROWADNICY W MODELU
-            //
-            // Dotychczasowe prowadnice pozostają wyszukiwane dokładnie
-            // tak jak wcześniej.
+            // SZUKANIE PROWADNIC
             // ============================================================
 
             const findGuide = (model, name) => {
@@ -601,21 +898,11 @@
                        model.querySelector(`[name="${name}"]`);
             };
 
-
-            // ============================================================
-            // PODSTAWOWE PROWADNICE - MODEL 1
-            // ============================================================
-
             const guideHorizontalModel1 =
                 findGuide(model1, "guide-line-horizontalMax");
 
             const guideVerticalModel1 =
                 findGuide(model1, "guide-line-vertical");
-
-
-            // ============================================================
-            // PODSTAWOWE PROWADNICE - MODEL 2
-            // ============================================================
 
             const guideHorizontalModel2 =
                 findGuide(model2, "guide-line-horizontalMax");
@@ -623,96 +910,17 @@
             const guideVerticalModel2 =
                 findGuide(model2, "guide-line-vertical");
 
-
-            // ============================================================
-            // SPRAWDZENIE PODSTAWOWYCH PROWADNIC
-            //
-            // To jest dotychczasowa logika measureGuideDisplacement().
-            // ============================================================
-
             if (!guideHorizontalModel1 ||
                 !guideVerticalModel1 ||
                 !guideHorizontalModel2 ||
                 !guideVerticalModel2) {
 
-                console.warn(
-                    "Nie znaleziono wszystkich podstawowych prowadnic"
-                );
-
+                console.warn("Nie znaleziono wszystkich prowadnic");
                 return null;
             }
 
-
             // ============================================================
-            // FUNKCJA POBIERAJĄCA WARTOŚĆ PROWADNICY
-            //
-            // Korzystamy z istniejących globalnych obiektów:
-            //
-            // verticalGuides
-            // horizontalGuides
-            //
-            // Tak samo jak w getKonfSystemValues().
-            // ============================================================
-
-            const getVerticalGuideValue = (name) => {
-
-                if (typeof verticalGuides === "undefined" ||
-                    verticalGuides === null) {
-
-                    console.warn(
-                        "Obiekt verticalGuides nie jest dostępny"
-                    );
-
-                    return 0;
-                }
-
-                return verticalGuides[name] ?? 0;
-            };
-
-
-            const getHorizontalGuideValue = (name) => {
-
-                if (typeof horizontalGuides === "undefined" ||
-                    horizontalGuides === null) {
-
-                    console.warn(
-                        "Obiekt horizontalGuides nie jest dostępny"
-                    );
-
-                    return 0;
-                }
-
-                return horizontalGuides[name] ?? 0;
-            };
-
-
-            // ============================================================
-            // OSIE SYMETRII
-            //
-            // PIONOWA:
-            // guide-line-verticalOsSymetrii
-            //
-            // POZIOMA:
-            // guide-line-horizontal-OsSymetrii
-            //
-            // Nazwy są dokładnie takie same jak w
-            // getKonfSystemValues().
-            // ============================================================
-
-            const verticalOsSymetrii =
-                getVerticalGuideValue(
-                    "guide-line-verticalOsSymetrii"
-                );
-
-            const horizontalOsSymetrii =
-                getHorizontalGuideValue(
-                    "guide-line-horizontal-OsSymetrii"
-                );
-
-
-            // ============================================================
-            // FUNKCJA WYZNACZAJĄCA ŚRODEK ELEMENTU
-            // W GLOBALNYM UKŁADZIE SVG
+            // ŚRODEK PROWADNICY W GLOBALNYM UKŁADZIE SVG
             // ============================================================
 
             const getTransformedCenter = (el) => {
@@ -735,9 +943,8 @@
                 return pt.matrixTransform(ctm);
             };
 
-
             // ============================================================
-            // ŚRODKI PODSTAWOWYCH PROWADNIC
+            // ŚRODKI PROWADNIC
             // ============================================================
 
             const centerH1 =
@@ -752,18 +959,16 @@
             const centerV2 =
                 getTransformedCenter(guideVerticalModel2);
 
-
             // ============================================================
             // ZOOM
             // ============================================================
 
             const scale = window.svgHelper.zoomLevel || 1;
 
-
             // ============================================================
             // DOTYCHCZASOWE OBLICZENIE PRZESUNIĘCIA
             //
-            // NIE ZMIENIAMY TEJ LOGIKI.
+            // Nic tutaj nie zmieniamy.
             // ============================================================
 
             const displacementX =
@@ -772,17 +977,107 @@
             const displacementY =
                 (centerH2.y - centerH1.y) / scale;
 
+            // ============================================================
+            // ODCZYT TRANSFORMACJI MODEL2
+            // ============================================================
+
+            const transform =
+                model2.getAttribute("transform") || "";
+
+            console.log(
+                "[measureGuideDisplacement] transform model2:",
+                transform
+            );
+
+            // ============================================================
+            // KĄT OBROTU
+            //
+            // Szukamy:
+            // rotate(90)
+            // rotate(90, x, y)
+            // ============================================================
+
+            let katObrotu = 0;
+
+            const rotateMatch =
+                transform.match(/rotate\(\s*(-?\d+(?:\.\d+)?)/);
+
+            if (rotateMatch) {
+                katObrotu = parseFloat(rotateMatch[1]);
+            }
+
+            // Normalizacja kąta do zakresu 0-359.999...
+            katObrotu = ((katObrotu % 360) + 360) % 360;
+
+            // ============================================================
+            // ODBICIE LUSTRZANE
+            //
+            // Obsługujemy przede wszystkim:
+            //
+            // scale(-1, 1)
+            //
+            // oraz:
+            //
+            // scale(-1)
+            // ============================================================
+
+            let odbicieLustrzane = false;
+
+            const scaleFlipMatch =
+                transform.match(
+                    /scale\(\s*(-?\d+(?:\.\d+)?)(?:\s*[, ]\s*(-?\d+(?:\.\d+)?))?\s*\)/
+                );
+
+            if (scaleFlipMatch) {
+
+                const scaleX =
+                    parseFloat(scaleFlipMatch[1]);
+
+                const scaleY =
+                    scaleFlipMatch[2] !== undefined
+                        ? parseFloat(scaleFlipMatch[2])
+                        : scaleX;
+
+                // Odbicie w osi X/Y
+                if (scaleX < 0 || scaleY < 0) {
+                    odbicieLustrzane = true;
+                }
+            }
+
+            // ============================================================
+            // DEBUG
+            // ============================================================
+
+            console.log(
+                "[measureGuideDisplacement] Przesunięcie X:",
+                displacementX
+            );
+
+            console.log(
+                "[measureGuideDisplacement] Przesunięcie Y:",
+                displacementY
+            );
+
+            console.log(
+                "[measureGuideDisplacement] Kąt obrotu:",
+                katObrotu
+            );
+
+            console.log(
+                "[measureGuideDisplacement] Odbicie lustrzane:",
+                odbicieLustrzane
+            );
 
             // ============================================================
             // WYNIK
             //
-            // WAŻNE:
-            // Nie wykonujemy tutaj Math.round().
+            // UWAGA:
+            // Nie zaokrąglamy tutaj wartości.
+            // Zaokrąglenie wykonasz w C#:
             //
-            // JavaScript zwraca pełną dokładność.
-            // Zaokrąglenie wykonasz w C# za pomocą:
-            //
-            // Math.Round(..., precyzjaZapisu)
+            // Math.Round(result.przesuniecieX, precyzjaZapisu)
+            // Math.Round(result.przesuniecieY, precyzjaZapisu)
+            // Math.Round(result.katObrotu, precyzjaZapisu)
             // ============================================================
 
             return {
@@ -791,44 +1086,13 @@
 
                 elementsFound: true,
 
-                // Dotychczasowe przesunięcie
                 przesuniecieX: displacementX,
+
                 przesuniecieY: displacementY,
 
-                // ========================================================
-                // OSIE SYMETRII
-                // ========================================================
+                katObrotu: katObrotu,
 
-                verticalOsSymetrii: verticalOsSymetrii,
-
-                horizontalOsSymetrii: horizontalOsSymetrii,
-
-                // ========================================================
-                // DODATKOWO ZWRACAMY WARTOŚCI PODSTAWOWYCH PROWADNIC
-                //
-                // Nie są konieczne do obecnego obliczenia, ale mogą być
-                // bardzo przydatne podczas debugowania.
-                // ========================================================
-
-                pionLewa: getVerticalGuideValue(
-                    "guide-line-vertical"
-                ),
-
-                pionPrawa: getVerticalGuideValue(
-                    "guide-line-verticalMax"
-                ),
-
-                poziomGora: getHorizontalGuideValue(
-                    "guide-line-horizontal"
-                ),
-
-                poziomDol: getHorizontalGuideValue(
-                    "guide-line-horizontalMax"
-                ),
-
-                // ========================================================
-                // ZOOM
-                // ========================================================
+                odbicieLustrzane: odbicieLustrzane,
 
                 scale: scale
             };
@@ -843,11 +1107,16 @@
 
             return {
                 success: false,
+                elementsFound: false,
+                przesuniecieX: 0,
+                przesuniecieY: 0,
+                katObrotu: 0,
+                odbicieLustrzane: false,
+                scale: window.svgHelper.zoomLevel || 1,
                 error: error.message
             };
         }
     };
-
 
 
 
@@ -1042,8 +1311,8 @@
 
         };
 
-            // 👇 DODAJ TUTAJ
-            window.svgHelper.updateDisplacement = function(x, y) {
+        // 👇 DODAJ TUTAJ
+        window.svgHelper.updateDisplacement = function(x, y) {
         try {
             const model2 = document.querySelector("#model2");
             if (!model2) {
@@ -3001,93 +3270,318 @@
                 </div>
 
                 <div class="col-md-8">
-                    <div class="controls-container">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
+
+                    <!-- ========================================================= -->
+                    <!-- STAŁY / STICKY PANEL NARZĘDZI                             -->
+                    <!-- ========================================================= -->
+                    <div class="connection-sticky-panel">
+
+                        <!-- ===================================================== -->
+                        <!-- GÓRNY WIERSZ - ZAPIS                                  -->
+                        <!-- ===================================================== -->
+                        <div class="connection-main-toolbar">
+
+                            <!-- ZAPIS -->
+                            <div class="connection-save-group">
+
                                 <Tooltip Title="Zapisz ustawienia">
-                                    <Button Icon="@IconType.Fill.Save" OnClick="SaveAllPosition" Class="btn btn-primary me-2">
+                                    <Button Icon="@IconType.Fill.Save"
+                                            OnClick="SaveAllPosition"
+                                            Class="connection-save-button">
                                         Zapisz
                                     </Button>
                                 </Tooltip>
-                                <label class="ms-2">Precyzja zapisu po przecinku:</label>
-                                <AntDesign.InputNumber @bind-Value="precyzjaZapisu" Min="0" Max="4" Style="width: 60px;" />
+
+                                <div class="connection-setting">
+                                    <label>
+                                        Precyzja zapisu:
+                                    </label>
+
+                                    <AntDesign.InputNumber @bind-Value="precyzjaZapisu"
+                                                           Min="0"
+                                                           Max="4"
+                                                           Style="width: 60px;" />
+                                </div>
+
                             </div>
 
-                            <div class="btn-group">
-                                <Tooltip Title="Lustro ostatniego elementu">
-                                    <Button Icon="@IconType.Outline.Swap" OnClick="FlipSecondModel" Class="btn-sm btn-move" />
-                                </Tooltip>
-                                <Tooltip Title="Lustro elementów. Odbicie w poziome wszystkich elementów">
-                                    <Button Icon="@IconType.Outline.Swap" OnClick="MirrorObjAll" Class="btn-sm btn-move" />
-                                </Tooltip>
-                                <Tooltip Title="Obróć wszystko">
-                                    <Button Icon="@IconType.Outline.Undo" OnClick="RotateObjAll" Class="btn-sm btn-move" />
-                                </Tooltip>
-                                <Tooltip Title="Obróć drugi model">
-                                    <Button Icon="@IconType.Outline.Redo" OnClick="RotateObj" Class="btn-sm btn-move" />
-                                </Tooltip>
-                                <Tooltip Title="Przesuń w lewo (1px)">
-                                    <Button Icon="@IconType.Outline.ArrowLeft" OnClick="MoveLeftObj" Class="btn-sm btn-move" />
-                                </Tooltip>
-                                <Tooltip Title="Przesuń w prawo (1px)">
-                                    <Button Icon="@IconType.Outline.ArrowRight" OnClick="MoveRightObj" Class="btn-sm btn-move" />
-                                </Tooltip>
-                                <Tooltip Title="Przesuń w górę (1px)">
-                                    <Button Icon="@IconType.Outline.ArrowUp" OnClick="MoveUpObj" Class="btn-sm btn-move" />
-                                </Tooltip>
-                                <Tooltip Title="Przesuń w dół (1px)">
-                                    <Button Icon="@IconType.Outline.ArrowDown" OnClick="MoveDownObj" Class="btn-sm btn-move" />
-                                </Tooltip>
-                                <Tooltip Title="Dopasuj widok">
-                                    <Button Icon="@IconType.Outline.Drag" OnClick="ZoomAllObj" Class="btn-sm btn-move" />
-                                </Tooltip>
-                                <Tooltip Title="Powiększ">
-                                    <Button Icon="@IconType.Outline.ZoomIn" OnClick="ZoomInObj" Class="btn-sm btn-move" />
-                                </Tooltip>
-                                <Tooltip Title="Pomniejsz">
-                                    <Button Icon="@IconType.Outline.ZoomOut" OnClick="ZoomOutObj" Class="btn-sm btn-move" />
-                                </Tooltip>
-                                <label class="ms-2">Precyzja przesuwania:</label>
-                                <AntDesign.InputNumber @bind-Value="precyzjaPrzesuwania" Min="1" Max="50" Style="width: 60px;" />
 
-                                <Tooltip Title="Pomiar odległości">
-                                    <Button Icon="@IconType.Outline.Scan" OnClick="StartMeasurement" Class="btn-sm btn-move" />
-                                </Tooltip>
-                                <Tooltip Title="Wyczyść pomiary">
-                                    <Button Icon="@IconType.Outline.Close" OnClick="ClearMeasurements" Class="btn-sm btn-move" />
-                                </Tooltip>
+                            <!-- NARZĘDZIA -->
+                            <div class="connection-tools">
+
+                                <!-- LUSTRO -->
+                                <div class="tool-group">
+
+                                    <span class="tool-group-title">
+                                        <i class="bi bi-symmetry-horizontal me-1"></i>
+                                        Odbicie
+                                    </span>
+
+                                    <div class="tool-buttons">
+
+                                        <Tooltip Title="Lustro ostatniego elementu">
+                                            <Button Icon="@IconType.Outline.Swap"
+                                                    OnClick="FlipSecondModel"
+                                                    Class="btn-sm btn-move" />
+                                        </Tooltip>
+
+                                        <Tooltip Title="Lustro elementów - odbicie wszystkich elementów w poziomie">
+                                            <Button Icon="@IconType.Outline.Swap"
+                                                    OnClick="MirrorObjAll"
+                                                    Class="btn-sm btn-move" />
+                                        </Tooltip>
+
+                                    </div>
+
+                                </div>
+
+
+                                <!-- OBRÓT -->
+                                <div class="tool-group">
+
+                                    <span class="tool-group-title">
+                                        <i class="bi bi-arrow-repeat me-1"></i>
+                                        Obrót
+                                    </span>
+
+                                    <div class="tool-buttons">
+
+                                        <Tooltip Title="Obróć wszystko">
+                                            <Button Icon="@IconType.Outline.Undo"
+                                                    OnClick="RotateObjAll"
+                                                    Class="btn-sm btn-move" />
+                                        </Tooltip>
+
+                                        <Tooltip Title="Obróć drugi model">
+                                            <Button Icon="@IconType.Outline.Redo"
+                                                    OnClick="RotateObj"
+                                                    Class="btn-sm btn-move" />
+                                        </Tooltip>
+
+                                    </div>
+
+                                </div>
+
+
+                                <!-- PRZESUWANIE -->
+                                <div class="tool-group">
+
+                                    <span class="tool-group-title">
+                                        <i class="bi bi-arrows-move me-1"></i>
+                                        Przesuwanie
+                                    </span>
+
+                                    <div class="tool-buttons">
+
+                                        <Tooltip Title="Przesuń w lewo">
+                                            <Button Icon="@IconType.Outline.ArrowLeft"
+                                                    OnClick="MoveLeftObj"
+                                                    Class="btn-sm btn-move" />
+                                        </Tooltip>
+
+                                        <Tooltip Title="Przesuń w prawo">
+                                            <Button Icon="@IconType.Outline.ArrowRight"
+                                                    OnClick="MoveRightObj"
+                                                    Class="btn-sm btn-move" />
+                                        </Tooltip>
+
+                                        <Tooltip Title="Przesuń w górę">
+                                            <Button Icon="@IconType.Outline.ArrowUp"
+                                                    OnClick="MoveUpObj"
+                                                    Class="btn-sm btn-move" />
+                                        </Tooltip>
+
+                                        <Tooltip Title="Przesuń w dół">
+                                            <Button Icon="@IconType.Outline.ArrowDown"
+                                                    OnClick="MoveDownObj"
+                                                    Class="btn-sm btn-move" />
+                                        </Tooltip>
+
+                                    </div>
+
+                                </div>
+
+
+                                <!-- WIDOK -->
+                                <div class="tool-group">
+
+                                    <span class="tool-group-title">
+                                        <i class="bi bi-display me-1"></i>
+                                        Widok
+                                    </span>
+
+                                    <div class="tool-buttons">
+
+                                        <Tooltip Title="Dopasuj widok">
+                                            <Button Icon="@IconType.Outline.Drag"
+                                                    OnClick="ZoomAllObj"
+                                                    Class="btn-sm btn-move" />
+                                        </Tooltip>
+
+                                        <Tooltip Title="Powiększ">
+                                            <Button Icon="@IconType.Outline.ZoomIn"
+                                                    OnClick="ZoomInObj"
+                                                    Class="btn-sm btn-move" />
+                                        </Tooltip>
+
+                                        <Tooltip Title="Pomniejsz">
+                                            <Button Icon="@IconType.Outline.ZoomOut"
+                                                    OnClick="ZoomOutObj"
+                                                    Class="btn-sm btn-move" />
+                                        </Tooltip>
+
+                                    </div>
+
+                                </div>
+
+
+                                <!-- PRECYZJA PRZESUWANIA -->
+                                <div class="tool-group tool-setting-group">
+
+                                    <span class="tool-group-title">
+                                        <i class="bi bi-rulers me-1"></i>
+                                        Dokładność
+                                    </span>
+
+                                    <div class="tool-setting">
+
+                                        <label>
+                                            Przesuwanie:
+                                        </label>
+
+                                        <AntDesign.InputNumber @bind-Value="precyzjaPrzesuwania"
+                                                               Min="1"
+                                                               Max="50"
+                                                               Style="width: 60px;" />
+
+                                    </div>
+
+                                </div>
+
+
+                                <!-- POMIARY -->
+                                <div class="tool-group">
+
+                                    <span class="tool-group-title">
+                                        <i class="bi bi-rulers me-1"></i>
+                                        Pomiar
+                                    </span>
+
+                                    <div class="tool-buttons">
+
+                                        <Tooltip Title="Pomiar odległości">
+                                            <Button Icon="@IconType.Outline.Scan"
+                                                    OnClick="StartMeasurement"
+                                                    Class="btn-sm btn-move" />
+                                        </Tooltip>
+
+                                        <Tooltip Title="Wyczyść pomiary">
+                                            <Button Icon="@IconType.Outline.Close"
+                                                    OnClick="ClearMeasurements"
+                                                    Class="btn-sm btn-move" />
+                                        </Tooltip>
+
+                                    </div>
+
+                                </div>
+
                             </div>
+
                         </div>
+
+
+                        <!-- ===================================================== -->
+                        <!-- WIERSZ PODGLĄDU                                       -->
+                        <!-- ===================================================== -->
+                        <div class="connection-preview-toolbar">
+
+                            <!-- TYTUŁ -->
+                            <div class="preview-heading">
+
+                                <i class="bi bi-eye"></i>
+
+                                <span>
+                                    Podgląd połączenia
+                                </span>
+
+                            </div>
+
+
+                            <!-- OSTRZEŻENIE -->
+                            <div class="preview-warning">
+
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+
+                                <span>
+                                    W przypadku konfiguracji słupka stałego wybierz go jako pierwszy model.
+                                    Strona góra/dół określa skrzydło.
+                                    <strong>Nadrzędną osią symetrii jest oś pozioma.</strong>
+                                </span>
+
+                            </div>
+
+
+                            <!-- AKCJE -->
+                            <div class="preview-actions">
+
+                                <Tooltip Title="Odśwież podgląd">
+                                    <Button Icon="@IconType.Outline.Fire"
+                                            OnClick="@(() => RefreshSvg())"
+                                            Class="btn-sm preview-refresh">
+                                        Odśwież
+                                    </Button>
+                                </Tooltip>
+
+                                <Tooltip Title="Wyczyść podgląd">
+                                    <Button Icon="@IconType.Outline.Clear"
+                                            OnClick="@(() => DelSvg())"
+                                            Class="btn-sm btn-danger">
+                                        Wyczyść
+                                    </Button>
+                                </Tooltip>
+
+                            </div>
+
+                        </div>
+
                     </div>
 
-                    <div class="mb-2 d-flex justify-content-between">
-                        <h6 style="color:saddlebrown">Podgląd połączenia</h6>
-                        <h6 style="color:red">W przypadku konfiguracji słupka stałego wybierz go jako pierwszy model. Strona góra/dół określa skrzydło. <br /> Uwaga! Nadrzędną osią symetrii jest oś pionowa.</h6>
-                        <div>
-                            <Button Icon="@IconType.Outline.Fire" OnClick="@(() => RefreshSvg())" Class="btn-sm me-2">
-                                Odśwież
-                            </Button>
-                            <Button Icon="@IconType.Outline.Clear" OnClick="@(() => DelSvg())" Class="btn-sm btn-danger">
-                                Wyczyść
-                            </Button>
-                        </div>
-                    </div>
 
+                    <!-- ========================================================= -->
+                    <!-- STATUS MODELI                                             -->
+                    <!-- ========================================================= -->
                     @if (pierwszyModel != null || drugiModel != null)
                     {
                         <div class="status-message">
+
                             @if (pierwszyModel != null && drugiModel == null)
                             {
-                                <span>Pierwszy model wybrany: <strong>@pierwszyModel.Nazwa</strong></span>
+                                <span>
+                                    <i class="bi bi-1-circle-fill me-1"></i>
+                                    Pierwszy model wybrany:
+                                    <strong>@pierwszyModel.Nazwa</strong>
+                                </span>
                             }
                             else if (pierwszyModel != null && drugiModel != null)
                             {
-                                <span>Połączono: <strong>@pierwszyModel.Nazwa</strong> z <strong>@drugiModel.Nazwa</strong></span>
+                                <span>
+                                    <i class="bi bi-link-45deg me-1"></i>
+                                    Połączono:
+                                    <strong>@pierwszyModel.Nazwa</strong>
+                                    <span class="mx-1">→</span>
+                                    <strong>@drugiModel.Nazwa</strong>
+                                </span>
                             }
+
                         </div>
                     }
 
+
+                    <!-- ========================================================= -->
+                    <!-- OBSZAR SVG                                                 -->
+                    <!-- ========================================================= -->
                     <div class="scaled-svg-container">
+
                         @if (!string.IsNullOrEmpty(combinedSvg))
                         {
                             <div class="scaled-svg" @key="SvgKey">
@@ -3096,20 +3590,34 @@
                         }
                         else
                         {
-                            <div class="d-flex flex-column justify-content-center align-items-center h-100">
+                            <div class="svg-empty-state">
+
                                 <div class="alert alert-info mb-3">
+
+                                    <i class="bi bi-window me-2"></i>
+
                                     Wybierz modele ramy, skrzydła lub poprzeczki
+
                                 </div>
+
                                 @if (!string.IsNullOrEmpty(BladKonfiguracji))
                                 {
                                     <div class="alert alert-warning">
+
+                                        <i class="bi bi-exclamation-triangle me-2"></i>
+
                                         @BladKonfiguracji
+
                                     </div>
                                 }
+
                             </div>
                         }
+
                     </div>
+
                 </div>
+
             </div>
 
         </TabPane>
@@ -3398,10 +3906,10 @@
 </div>
 
 @code {
-        [Inject] private AppState AppState { get; set; } = default!;
+    [Inject] private AppState AppState { get; set; } = default!;
 
-        [Parameter]
-        public string? SelectedSystemId { get; set; }
+    [Parameter]
+    public string? SelectedSystemId { get; set; }
 
     // Dane i stan
     private string SvgKey { get; set; } = Guid.NewGuid().ToString();
@@ -4041,19 +4549,9 @@
                 przesuniecieX = Math.Round(offset.przesuniecieX, precyzjaZapisu),
                 przesuniecieY = Math.Round(offset.przesuniecieY, precyzjaZapisu),
 
-                verticalOsSymetriiX1 = Math.Round(offset.verticalOsSymetriiX1, precyzjaZapisu),
+                katObrotu = offset.katObrotu,
 
-                verticalOsSymetriiY1 = Math.Round(offset.verticalOsSymetriiY1, precyzjaZapisu),
-
-                horizontalOsSymetriiX1 = Math.Round(offset.horizontalOsSymetriiX1, precyzjaZapisu),
-
-                horizontalOsSymetriiY1 = Math.Round(offset.horizontalOsSymetriiY1, precyzjaZapisu),
-                verticalOsSymetriiX2 = Math.Round(offset.verticalOsSymetriiX2, precyzjaZapisu),
-
-                verticalOsSymetriiY2 = Math.Round(offset.verticalOsSymetriiY2, precyzjaZapisu),
-                horizontalOsSymetriiX2 = Math.Round(offset.horizontalOsSymetriiX2, precyzjaZapisu),
-
-                horizontalOsSymetriiY2 = Math.Round(offset.horizontalOsSymetriiY2, precyzjaZapisu),
+                odbicieLustrzane = offset.odbicieLustrzane,
 
                 scale = 1
             };
@@ -4080,21 +4578,6 @@
         double przesuniecieX = Math.Round(result.przesuniecieX, precyzjaZapisu);
         double przesuniecieY = Math.Round(result.przesuniecieY, precyzjaZapisu);
 
-
-        double verticalOsSymetriiX1 = Math.Round(result.verticalOsSymetriiX1, precyzjaZapisu);
-        double verticalOsSymetriiY1 = Math.Round(result.verticalOsSymetriiY1, precyzjaZapisu);
-
-        double horizontalOsSymetriiX1 = Math.Round(result.horizontalOsSymetriiX1, precyzjaZapisu);
-        double horizontalOsSymetriiY1 = Math.Round(result.horizontalOsSymetriiY1, precyzjaZapisu);
-
-        double verticalOsSymetriiX2 = Math.Round(result.verticalOsSymetriiX2, precyzjaZapisu);
-        double verticalOsSymetriiY2 = Math.Round(result.verticalOsSymetriiY2, precyzjaZapisu);
-
-        double horizontalOsSymetriiX2 = Math.Round(result.horizontalOsSymetriiX2, precyzjaZapisu);
-        double horizontalOsSymetriiY2 = Math.Round(result.horizontalOsSymetriiY2, precyzjaZapisu);
-
-        Console.WriteLine($"svgHelper - Przesunięcie X: {przesuniecieX}, Przesunięcie Y: {przesuniecieY} verticalOsSymetriiX1: {verticalOsSymetriiX1} verticalOsSymetriiY1: {verticalOsSymetriiY1}");
-        Console.WriteLine($"svgHelper - horizontalOsSymetriiX1: {horizontalOsSymetriiX1} horizontalOsSymetriiY1: {horizontalOsSymetriiY1} verticalOsSymetriiX2: {verticalOsSymetriiX2}");
 
         if (!selSlRuchomy && !selSlStaly)
         {
@@ -4133,11 +4616,15 @@
 
             if (pionS)
             {
-                przesuniecieY = verticalOsSymetriiX1 - przesuniecieY;
+                Console.WriteLine($"Przesunięcie Y (pionowy słupek): {przesuniecieY} -> {(drugiModel.PionOsSymetrii ?? 0)}");
+                przesuniecieY = przesuniecieY - (drugiModel.PionOsSymetrii ?? 0);
+
             }
             else
             {
-                przesuniecieY = horizontalOsSymetriiY1 - przesuniecieY;
+                Console.WriteLine($"Przesunięcie Y (poziomy słupek): {przesuniecieY} -> {(drugiModel.PoziomOsSymetrii ?? 0)}");
+                przesuniecieY = przesuniecieY - (drugiModel.PoziomOsSymetrii ?? 0);
+
             }
         }
 
@@ -4877,7 +5364,7 @@
             }
         }
     }
-   
+
     // Zapisanie zmian
     private async Task ZapiszEdycje()
     {
@@ -5038,7 +5525,6 @@
         }
     }
 
-
     public class GuideDisplacementResult
     {
         public bool success { get; set; }
@@ -5047,30 +5533,15 @@
         public double przesuniecieX { get; set; }
         public double przesuniecieY { get; set; }
 
+        public double katObrotu { get; set; }
+
+        public bool odbicieLustrzane { get; set; }
+
         public double scale { get; set; }
-
-        // ============================================================
-        // OSIE SYMETRII - MODEL 1
-        // ============================================================
-
-        public double verticalOsSymetriiX1 { get; set; }
-        public double verticalOsSymetriiY1 { get; set; }
-
-        public double horizontalOsSymetriiX1 { get; set; }
-        public double horizontalOsSymetriiY1 { get; set; }
-
-        // ============================================================
-        // OSIE SYMETRII - MODEL 2
-        // ============================================================
-
-        public double verticalOsSymetriiX2 { get; set; }
-        public double verticalOsSymetriiY2 { get; set; }
-
-        public double horizontalOsSymetriiX2 { get; set; }
-        public double horizontalOsSymetriiY2 { get; set; }
 
         public string? error { get; set; }
     }
+
 
     public class UpdateKonfPolaczenieDto
     {
