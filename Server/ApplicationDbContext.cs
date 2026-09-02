@@ -159,6 +159,7 @@ namespace GEORGE.Server
             plik.OryginalnaNazwaPliku = nazwaPliku;
             plik.DataZapisu = DateTime.Now;
             plik.IloscPobranPliku = 0; // Zeruje ilość pobrań po zmianie nazwy pliku
+            plik.DataPierwszegoPobrania = DateTime.MinValue; // Zeruje datę pierwszego pobrania
             plik.OstatniaZmiana = "Zmiana. Uwagi: " + DateTime.Now.ToLongDateString();
             await SaveChangesAsync();
             return true;

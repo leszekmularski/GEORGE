@@ -3825,7 +3825,8 @@
            OnOk="ZapiszEdycje"
            OkText="@("Zapisz")"
            CancelText="@("Anuluj")"
-           Width="600">
+           Width="600"
+           ConfirmLoading="czekajNaZapis">
 
         <div class="p-3">
             <div class="mb-3">
@@ -4614,14 +4615,14 @@
 
             if (pionS)
             {
-                Console.WriteLine($"Przesunięcie Y (pionowy słupek): {przesuniecieY} -> {(drugiModel.PionOsSymetrii ?? 0)}");
-                przesuniecieY = przesuniecieY - (drugiModel.PionOsSymetrii ?? 0);
+                Console.WriteLine($"🔷🔷🔷🔷 Przesunięcie Y (pionowy słupek): {przesuniecieY} -> {(pierwszyModel.PionOsSymetrii ?? 0)}");
+                przesuniecieY = przesuniecieY - (pierwszyModel.PionOsSymetrii ?? 0);
 
             }
             else
             {
-                Console.WriteLine($"Przesunięcie Y (poziomy słupek): {przesuniecieY} -> {(drugiModel.PoziomOsSymetrii ?? 0)}");
-                przesuniecieY = przesuniecieY - (drugiModel.PoziomOsSymetrii ?? 0);
+                Console.WriteLine($"🔷🔷🔷🔷 Przesunięcie Y (poziomy słupek): {przesuniecieY} -> {(pierwszyModel.PoziomOsSymetrii ?? 0)}");
+                przesuniecieY = przesuniecieY - (pierwszyModel.PoziomOsSymetrii ?? 0);
 
             }
         }
@@ -5363,9 +5364,28 @@
         }
     }
 
+    bool czekajNaZapis = false;
     // Zapisanie zmian
     private async Task ZapiszEdycje()
     {
+        if(!boolAdmin && !boolZmian)
+        {
+            _ = _notice.Warning(new()
+            {
+                Message = "Uwaga!!!!",
+                Description = "Nie posiadasz uprawnień do zmiany danych!!",
+                Placement = NotificationPlacement.BottomLeft
+            });
+            return;
+        }
+
+        if (czekajNaZapis)
+        {
+            return;
+        }
+
+        czekajNaZapis = true;
+
         try
         {
             bladEdycji = "";
@@ -5458,6 +5478,8 @@
             bladEdycji = $"Wystąpił błąd: {ex.Message}";
             Console.WriteLine($"❌ Wyjątek: {ex.Message}");
         }
+
+        czekajNaZapis = false;
     }
 
     // Uprawnienia
