@@ -29,21 +29,53 @@
     svg {
         width: 100%;
         height: 100%;
-        transform-origin: center; /* 🔥 Kluczowe dla poprawnego zoomu */
-        transition: transform 0.2s ease-in-out; /* 🔄 Płynna animacja */
+        transform-origin: center;
+        transition: transform 0.2s ease-in-out;
     }
 
     #guide-line-vertical, #guide-line-horizontal, #guide-line-verticalMax, #guide-line-horizontalMax {
         pointer-events: auto;
         opacity: 1;
-        z-index: 10; /* Przesunięcie na wierzch */
+        z-index: 10;
     }
 
     line {
-        cursor: pointer; /* Zmieniaj kursor przy interakcji */
+        cursor: pointer;
     }
 
+    /* Poprawione style dla przycisku */
+    .btn-add-profile {
+        width: 100% !important;
+        min-width: 200px !important;
+        max-width: none !important;
+        display: inline-block !important;
+        padding: 2px 20px !important;
+        font-size: 1.0rem !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.5px !important;
+        border: none !important;
+        border-radius: 8px !important;
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+        color: white !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+        white-space: nowrap !important;
+        text-align: center !important;
+        line-height: 1.5 !important;
+    }
+
+        .btn-add-profile:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2) !important;
+            background: linear-gradient(135deg, #218838 0%, #1aa179 100%) !important;
+        }
+
+        .btn-add-profile:active {
+            transform: translateY(0) !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        }
 </style>
+
 
 <script>
 
@@ -1623,13 +1655,6 @@
 
 <Divider Style="font-weight:bold; font-size:large; display:flex; justify-content:space-between; align-items:center;">
 
-    @if (activeKey == "1")
-    {
-        <Tooltip Placement="@Placement.BottomCenter" Title="Zapisz ustawienia">
-            <Button class="btn-back" Icon="@IconType.Fill.Save" Style="height:35px; padding-right:25px" OnClick="SaveLinieDXF">Zapisz wszystkie ustawienia </Button>
-        </Tooltip>
-    }
-
     @if (activeKey == "2")
     {
         <Tooltip Placement="@Placement.TopRight" Title="Obróć o 90 stopni">
@@ -1651,16 +1676,22 @@
 
 <Tabs DefaultActiveKey="0" @bind-ActiveKey="activeKey" OnTabClick="OnTabClick">
     <TabPane Tab="Zapisane elementy w konfiguracji" Key="0">
-        <h3 class="text-center mt-3">
-            📌 Skonfigurowane elementy
+        <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+            <h3 class="mb-0" style="width:50%">
+                📌 Skonfigurowane elementy
+            </h3>
+
             @if (KonfiguracjeSystemu != null && KonfiguracjeSystemu.Any())
             {
-                <Tooltip Placement="@Placement.TopRight" Title="Dodaj nowy element konstrukcyjny">
-                    <Button class="btn-back" Icon="@IconType.Outline.NodeIndex" OnClick="DodajNowy">Dodaj nowy profil</Button>
+                <Tooltip Placement="@Placement.TopRight" Title="Dodaj nowy element konstrukcyjny" Style="width:50%">
+                    <Button class="btn-add-profile"
+                            Icon="@IconType.Outline.NodeIndex"
+                            OnClick="DodajNowy">
+                        ➕ Dodaj nowy profil
+                    </Button>
                 </Tooltip>
             }
-        </h3>
-
+        </div>
         <div class="container mt-4">
             @*             <button class="btn btn-primary mb-3" @onclick="DodajNowy">
                 <i class="fas fa-plus"></i> Dodaj Nowy System
@@ -1723,7 +1754,12 @@
     </TabPane>
     <TabPane Tab="Opis systemu" Key="1">
         <div class="container mt-4">
-            <h4 class="mb-3">📝 Konfiguracja Systemu</h4>
+            <h4 class="mb-3 d-flex justify-content-between align-items-center">
+                <span>📝 Konfiguracja Systemu</span>
+                <button class="btn btn-primary btn-sm" @onclick="PrzewinDoZapisu" style="width:50%">
+                    💾 Przejdź do zapisu
+                </button>
+            </h4>
 
             <div class="card p-3">
                 <div class="row">
@@ -1999,8 +2035,8 @@
                 <br />
                 <!-- Przyciski akcji -->
                 <div class="text-end">
-                    <button class="btn btn-success" onclick="@SaveLinieDXF">
-                        <i class="fas fa-save"></i> Zapisz zmiany
+                    <button class="btn btn-success" style="width:100%" onclick="@SaveLinieDXF">
+                        <i class="fas fa-save"></i>💾 Zapisz zmiany
                     </button>
                 </div>
             </div>
@@ -2011,14 +2047,23 @@
 
     </TabPane>
     <TabPane Tab="Linie oraz rysunek DXF" Key="2">
-        <h6>
-            Podgląd DXF
-            <Button OnClick="RefreshSvg" Icon="@IconType.Outline.Fire" Style="margin-left: 10px;">
-                🔄 Odśwież rysunek
-            </Button>
-            <button class="btn btn-info" @onclick="DownloadDxf">Pobierz DXF</button>
-        </h6>
+        <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+            <a href="#" @onclick="@(() => activeKey = "1")"
+               @onclick:preventDefault="true"
+               class="btn btn-primary btn-sm"
+               role="button">
+                💾 Przejdź do zapisu
+            </a>
+ 
+            <button class="btn btn-outline-secondary btn-sm" @onclick="RefreshSvg">
+                🔄 Odśwież
+            </button>
 
+            <button class="btn btn-info text-white btn-sm" @onclick="DownloadDxf">
+                📥 Pobierz DXF
+            </button>
+            <span class="badge bg-secondary fs-6" style="width:50%">Podgląd profilu pobranego z DXF</span>
+        </div>
         <!-- Wrapper dla SVG i wartości linii -->
         <div style="display: flex; align-items: flex-start; gap: 15px;">
 
@@ -2090,7 +2135,19 @@
 
         </div>
 
-        <InputFile OnChange="HandleSelected" multiple accept=".dxf">Wybierz pliki DXF</InputFile>
+        <div class="card border-success mb-3 w-100">
+            <div class="card-body d-flex align-items-center p-3">
+                <i class="fas fa-file-dxf fa-2x text-success me-3"></i>
+                <div class="flex-grow-1">
+                    <h6 class="card-title mb-1">Plik DXF z przekrojem profilu</h6>
+                    <small class="text-muted">Format: .dxf</small>
+                </div>
+                <label class="btn btn-success py-2 px-3">
+                    📁 Wybierz plik
+                    <InputFile OnChange="HandleSelected" multiple accept=".dxf" class="d-none" />
+                </label>
+            </div>
+        </div>
 
     </TabPane>
 </Tabs>
@@ -2287,6 +2344,8 @@
         SvgKey = Guid.NewGuid().ToString();
         konfSystem = new KonfSystem();
 
+        RowIdElemntuModelu = Guid.Empty;
+
         activeKey = "2";
 
         await Task.CompletedTask;
@@ -2478,6 +2537,19 @@
             return;
         }
 
+        if (!konfSystem.WystepujeGora && !konfSystem.WystepujeDol && !konfSystem.WystepujeLewa && !konfSystem.WystepujePrawa)
+        {
+            activeKey = "1";
+            _ = _notice.Info(new()
+            {
+                Message = "Informacja!!",
+                Description = $"Zaznacz przynajmniej jedną opcję występowania!!!!",
+                Placement = NotificationPlacement.BottomLeft,
+                Duration = 3
+            });
+            return;
+        }
+
         if (string.IsNullOrEmpty(konfSystem.Nazwa) || string.IsNullOrEmpty(konfSystem.IndeksElementu))
         {
             activeKey = "1";
@@ -2488,6 +2560,27 @@
                 Description = $"Podaj Nazwę oraz Indeks elementu!!!!",
                 Placement = NotificationPlacement.BottomLeft,
                 Duration = 2
+            });
+            return;
+        }
+
+        if( KonfiguracjeSystemu == null)
+        {
+            KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIND_ROWID_SYS/{SelectedSystemId}");
+        }
+
+        var czyJestTakiIndeks = KonfiguracjeSystemu.Any(k => k.IndeksElementu == konfSystem.IndeksElementu);
+
+        if(czyJestTakiIndeks && konfSystem.Id == 0)
+        {
+            activeKey = "1";
+
+            _ = _notice.Info(new()
+            {
+                Message = $"Informacja!! dotyczy: {konfSystem.IndeksElementu}",
+                Description = $"Taki indeks już w bazie danych!!!!",
+                Placement = NotificationPlacement.BottomLeft,
+                Duration = 3
             });
             return;
         }
@@ -2838,6 +2931,15 @@
         await JSRuntime.InvokeVoidAsync("history.back");
     }
 
+    private async Task PrzewinDoZapisu()
+    {
+        await JSRuntime.InvokeVoidAsync("window.scrollTo", new
+        {
+            top = 999999,
+            behavior = "smooth"
+        });
+    }
+
     private bool boolOdczyt = false;
     private bool boolZmiana = false;
     private bool boolUsuniecia = false;
@@ -2947,6 +3049,7 @@
         // Czekaj na zakończenie działania modalu
         await modalCompletionSource.Task;
     }
+
 
     record Typ(string Nazwa);
     private List<Typ> _typ = new List<Typ>

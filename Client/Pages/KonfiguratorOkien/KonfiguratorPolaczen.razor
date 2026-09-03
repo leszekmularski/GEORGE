@@ -38,6 +38,20 @@
         }
 </style>
 
+<script>
+    window.PrzewinDoElementu = (element) => {
+        if (element) {
+            element.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    };
+
+</script>
+
+<div @ref="goraStronyRef"></div>
+
 <div class="d-flex justify-content-between align-items-center mt-3">
     <h3 class="text-center flex-grow-1">
         📌 Konfigurator połączeń elementów
@@ -84,305 +98,326 @@
 
     @if (ListaModeli != null && ListaModeli.Any())
     {
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Nazwa</th>
-                    <th>Typ</th>
-                    <th>Zakres Kąta</th>
-                    <th>Zakres Promienia</th>
-                    <th>Wymiary</th>
-                    <th>Miniaturka</th>
-                    <th>Akcje</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var model in ListaModeli)
-                {
+        <Spin Spinning="czekajNaZaladowanieDanychEdycji">
+            <table class="table table-striped">
+                <thead>
                     <tr>
-                        <td>@model.NazwaKonfiguracji</td>
-                        <td>@model.Typ</td>
-                        <td>@model.KatWystapieniaZakresOdMin° - @model.KatWystapieniaZakresOdMax°</td>
-                        <td>@model.PromienWystapieniaZakresOdMin mm - @model.PromienWystapieniaZakresOdMax mm</td>
-                        <td>@model.KonstrMinSzer x @model.KonstrMinWys → @model.KonstrMaxSzer x @model.KonstrMaxWys</td>
-                        <td>
-                            @if (model.Rysunek != null && model.Rysunek.Length > 0)
-                            {
-                                <img src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)" width="60" height="60" />
-                            }
-                            else
-                            {
-                                <span class="text-muted">Brak</span>
-                            }
-                        </td>
-                        <td>
-                            <button class="btn btn-warning btn-sm me-2" @onclick="() => Edytuj(model.Id, model.RowId.ToString(), model.NazwaKonfiguracji)" title="@model.RowId">
-                                <i class="fas fa-edit"></i> Edytuj
-                            </button>
-                            <button class="btn btn-danger btn-sm me-2" @onclick="() => Usun(model.Id)">
-                                <i class="fas fa-trash-alt"></i> Usuń
-                            </button>
-                            @*<button class="btn btn-info btn-sm" @onclick="() => PokazPowiazane(model.RowId.ToString(), model.NazwaKonfiguracji)">
-                                <Tooltip Placement="Placement.Bottom" Title="Kliknij aby pokazać wszytkie lub wybrane">
-                                    <i class="fas fa-eye"></i> 🛠️ @(PokazanyModelRowId == model.RowId.ToString() ? $"Powiązane : {WybralesElement}" : "Pokaż wszystkie")
-                                </Tooltip>
-                            </button> *@
-                        </td>
+                        <th>Nazwa</th>
+                        <th>Typ</th>
+                        <th>Zakres Kąta</th>
+                        <th>Zakres Promienia</th>
+                        <th>Wymiary</th>
+                        <th>Miniaturka</th>
+                        <th>Akcje</th>
                     </tr>
-                }
-            </tbody>
+                </thead>
+                <tbody>
+                    @foreach (var model in ListaModeli)
+                    {
+                        <tr>
+                            <td>@model.NazwaKonfiguracji</td>
+                            <td>@model.Typ</td>
+                            <td>@model.KatWystapieniaZakresOdMin° - @model.KatWystapieniaZakresOdMax°</td>
+                            <td>@model.PromienWystapieniaZakresOdMin mm - @model.PromienWystapieniaZakresOdMax mm</td>
+                            <td>@model.KonstrMinSzer x @model.KonstrMinWys → @model.KonstrMaxSzer x @model.KonstrMaxWys</td>
+                            <td>
+                                @if (model.Rysunek != null && model.Rysunek.Length > 0)
+                                {
+                                    <img src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)" width="60" height="60" />
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Brak</span>
+                                }
+                            </td>
+                            <td>
 
-        </table>
+                                <button class="btn btn-warning btn-sm me-2" @onclick="(() => EdytujIModel(model))" title="@model.RowId">
+                                    <i class="fas fa-edit"></i> Edytuj
+                                </button>
+
+                                <button class="btn btn-danger btn-sm me-2" @onclick="() => Usun(model.Id)">
+                                    <i class="fas fa-trash-alt"></i> Usuń
+                                </button>
+                            </td>
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+        </Spin>
     }
     else
     {
         <p class="text-muted">Brak zapisanych modeli.</p>
     }
 
+    <div @ref="edytowanyModelRef"></div>
+
     @if (EdytowanyModel != null)
     {
         <EditForm Model="EdytowanyModel" OnValidSubmit="Zapisz">
             <DataAnnotationsValidator />
-            <h4>@(EdytowanyModel.Id == 0 ? "Dodaj Nowy Model" : "Edytuj Model")</h4>
-            <div class="mb-3">
-                <label class="form-label">Nazwa konfigurajcji:</label>
-                <InputText required class="form-control" @bind-Value="EdytowanyModel.NazwaKonfiguracji" />
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Typ profilu</label>
-                <Select required Mode="SelectMode.Default"
-                        DataSource="@_typ"
-                        @bind-Value="EdytowanyModel.Typ"
-                        LabelName="@nameof(Typ.Nazwa)"
-                        ValueName="@nameof(Typ.Nazwa)"
-                        Class="form-select">
-                </Select>
-            </div>
-            <div class="row">
-                <div class="col">
-                    <label class="form-label">Minimalna szerokość konstrukcji:</label>
-                    <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control" @bind-Value="EdytowanyModel.KonstrMinSzer" />
-                </div>
-                <div class="col">
-                    <label class="form-label">Minimalna wysokość konstrukcji:</label>
-                    <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control" @bind-Value="EdytowanyModel.KonstrMinWys" />
-                </div>
-            </div>
-            <div class="row">
-                <div class="col">
-                    <label class="form-label">Maksymalna szerokość konstrukcji:</label>
-                    <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control" @bind-Value="EdytowanyModel.KonstrMaxSzer" />
-                </div>
-                <div class="col">
-                    <label class="form-label">Maksymalna wysokość konstrukcji:</label>
-                    <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control" @bind-Value="EdytowanyModel.KonstrMaxWys" />
-                </div>
-            </div>
-            <div class="row">
-                <div class="col">
-                    <label class="form-label">Kąt (min):</label>
-                    <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control" @bind-Value="EdytowanyModel.KatWystapieniaZakresOdMin" />
-                </div>
-                <div class="col">
-                    <label class="form-label">Kąt (max):</label>
-                    <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control" @bind-Value="EdytowanyModel.KatWystapieniaZakresOdMax" />
-                </div>
-            </div>
-            <div class="row mt-2">
-                <div class="col">
-                    <label class="form-label">Promień (min):</label>
-                    <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control" @bind-Value="EdytowanyModel.PromienWystapieniaZakresOdMin" />
-                </div>
-                <div class="col">
-                    <label class="form-label">Promień (max):</label>
-                    <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control" @bind-Value="EdytowanyModel.PromienWystapieniaZakresOdMax" />
-                </div>
-            </div>
-            <div class="row">
-                <div class="col">
-                    <label class="form-label">Naddatek na zgrzew na stronę:</label>
-                    <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control" @bind-Value="EdytowanyModel.NaddatekNaZgrzewNaStrone" />
-                </div>
-                <div class="col">
-                    <label class="form-label">Zwiększ długość elementy gdy łączone elementy nie mają 90 stopni:</label>
-                    <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control" @bind-Value="EdytowanyModel.ZwiekszNaddatekGdyKatInny90" />
-                </div>
-            </div>
 
-            <div class="container-fluid h-100 d-flex flex-column justify-content-center align-items-center">
-                <div class="row w-100 flex-grow-1">
-                    <!-- Połączenie Naroży 1 -->
-                    <div class="col-md-6 d-flex flex-column align-items-center justify-content-center">
-                        <label class="form-label">Połączenie Naroży 1:</label>
-                        <div class="preview" @onclick="() => ChangeImage(1)">
-                            <img src="@SelectedImage1.ImageUrl" alt="@SelectedImage1.Name" class="img-fluid img-thumbnail shadow" title="Kąt: 0° lewy górny" />
-                            <p class="text-center">Wybrałeś: @SelectedImage1.Name</p>
+            <div class="row">
+                <!-- LEWA KOLUMNA: Parametry modelu -->
+                <div class="col-md-7">
+                    <div class="card mb-3">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-info-circle me-2"></i>
+                                @(EdytowanyModel.Id == 0 ? "Dodaj Nowy Model" : "Edytuj Model")
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Podstawowe informacje -->
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label small">Nazwa konfiguracji:</label>
+                                    <InputText required class="form-control form-control-sm" @bind-Value="EdytowanyModel.NazwaKonfiguracji" />
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label small">Typ profilu:</label>
+                                    <Select required Mode="SelectMode.Default"
+                                            DataSource="@_typ"
+                                            @bind-Value="EdytowanyModel.Typ"
+                                            LabelName="@nameof(Typ.Nazwa)"
+                                            ValueName="@nameof(Typ.Nazwa)"
+                                            Class="form-select form-select-sm">
+                                    </Select>
+                                </div>
+                            </div>
+
+                            <!-- Wymiary -->
+                            <div class="row">
+                                <div class="col-md-3 mb-2">
+                                    <label class="form-label small">Min. szerokość:</label>
+                                    <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control form-control-sm" @bind-Value="EdytowanyModel.KonstrMinSzer" />
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <label class="form-label small">Min. wysokość:</label>
+                                    <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control form-control-sm" @bind-Value="EdytowanyModel.KonstrMinWys" />
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <label class="form-label small">Max. szerokość:</label>
+                                    <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control form-control-sm" @bind-Value="EdytowanyModel.KonstrMaxSzer" />
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <label class="form-label small">Max. wysokość:</label>
+                                    <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control form-control-sm" @bind-Value="EdytowanyModel.KonstrMaxWys" />
+                                </div>
+                            </div>
+
+                            <!-- Kąty i promienie -->
+                            <div class="row">
+                                <div class="col-md-3 mb-2">
+                                    <label class="form-label small">Kąt (min):</label>
+                                    <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control form-control-sm" @bind-Value="EdytowanyModel.KatWystapieniaZakresOdMin" />
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <label class="form-label small">Kąt (max):</label>
+                                    <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control form-control-sm" @bind-Value="EdytowanyModel.KatWystapieniaZakresOdMax" />
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <label class="form-label small">Promień (min):</label>
+                                    <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control form-control-sm" @bind-Value="EdytowanyModel.PromienWystapieniaZakresOdMin" />
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <label class="form-label small">Promień (max):</label>
+                                    <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control form-control-sm" @bind-Value="EdytowanyModel.PromienWystapieniaZakresOdMax" />
+                                </div>
+                            </div>
+
+                            <!-- Dodatkowe parametry -->
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label small">Naddatek na zgrzew:</label>
+                                    <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control form-control-sm" @bind-Value="EdytowanyModel.NaddatekNaZgrzewNaStrone" />
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label small">Zwiększ gdy kąt ≠ 90°:</label>
+                                    <Microsoft.AspNetCore.Components.Forms.InputNumber class="form-control form-control-sm" @bind-Value="EdytowanyModel.ZwiekszNaddatekGdyKatInny90" />
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Połączenie Naroży 2 -->
-                    <div class="col-md-6 d-flex flex-column align-items-center justify-content-center">
-                        <label class="form-label">Połączenie Naroży 2:</label>
-                        <div class="preview" @onclick="() => ChangeImage(2)">
-                            <img src="@SelectedImage2.ImageUrl" alt="@SelectedImage2.Name" class="img-fluid img-thumbnail shadow" title="Kąt: 90° górny prawy" />
-                            <p class="text-center">Wybrałeś: @SelectedImage2.Name</p>
+                    <!-- Połączenia naroży -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-puzzle-piece me-2"></i>
+                                Połączenia naroży
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label small">Naroże 1 (0°):</label>
+                                    <div class="preview" @onclick="() => ChangeImage(1)">
+                                        <img src="@SelectedImage1.ImageUrl" alt="@SelectedImage1.Name" class="img-fluid img-thumbnail shadow-sm" style="max-height: 120px;" />
+                                        <p class="text-center small mb-0">@SelectedImage1.Name</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label small">Naroże 2 (90°):</label>
+                                    <div class="preview" @onclick="() => ChangeImage(2)">
+                                        <img src="@SelectedImage2.ImageUrl" alt="@SelectedImage2.Name" class="img-fluid img-thumbnail shadow-sm" style="max-height: 120px;" />
+                                        <p class="text-center small mb-0">@SelectedImage2.Name</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label small">Naroże 4 (270°):</label>
+                                    <div class="preview" @onclick="() => ChangeImage(4)">
+                                        <img src="@SelectedImage4.ImageUrl" alt="@SelectedImage4.Name" class="img-fluid img-thumbnail shadow-sm" style="max-height: 120px;" />
+                                        <p class="text-center small mb-0">@SelectedImage4.Name</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label small">Naroże 3 (180°):</label>
+                                    <div class="preview" @onclick="() => ChangeImage(3)">
+                                        <img src="@SelectedImage3.ImageUrl" alt="@SelectedImage3.Name" class="img-fluid img-thumbnail shadow-sm" style="max-height: 120px;" />
+                                        <p class="text-center small mb-0">@SelectedImage3.Name</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="row w-100 flex-grow-1">
-                    <!-- Połączenie Naroży 4 -->
-                    <div class="col-md-6 d-flex flex-column align-items-center justify-content-center">
-                        <label class="form-label">Połączenie Naroży 4:</label>
-                        <div class="preview" @onclick="() => ChangeImage(4)">
-                            <img src="@SelectedImage4.ImageUrl" alt="@SelectedImage4.Name" class="img-fluid img-thumbnail shadow" title="Kąt: 270° dolny lewy" />
-                            <p class="text-center">Wybrałeś: @SelectedImage4.Name</p>
+                <!-- PRAWA KOLUMNA: Powiązania elementów -->
+                <div class="col-md-5">
+
+                    @if (KonfiguracjeSystemu != null && KonfiguracjeSystemu.Any())
+                    {
+                        <div class="card mb-3">
+
+                            <Divider>Wybierz i powiąż elementy</Divider>
+
+                            <h5>
+                                🛠️ Powiązania elementów dla Modelu: @(PokazanyModelRowId != null ? $"->{WybralesElement}" : "Wszystkie")
+
+                                <button class="btn btn-info btn-sm" @onclick="() => PokazWszystkieZModelu(PokazanyModelRowId)">
+                                    <i class="fas fa-eye"></i> 🛠️ Pokaż wszystkie
+                                </button>
+
+                            </h5>
+
+                            <div class="card-header bg-success text-white">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-link me-2"></i>
+                                        Powiązania
+                                    </h6>
+                                    <span class="badge bg-light text-dark small">
+                                        @(PokazanyModelRowId != null ? WybralesElement : "Wszystkie")
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                                @{
+                                    var listaKonf = PowiazanyModel == null ? KonfiguracjeSystemu : PowiazanyModel.KonfSystem;
+                                }
+
+                                @foreach (var konf in listaKonf)
+                                {
+                                    <div class="card mb-2 @(konf.CzyWybrany ? "border-success" : "")"
+                                         style="cursor: pointer; transition: all 0.3s ease;"
+                                         @onclick="() => ToggleWybrany(konf)">
+                                        <div class="card-body p-2">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div class="form-check form-switch mb-0">
+                                                    <input class="form-check-input" type="checkbox"
+                                                           checked="@konf.CzyWybrany"
+                                                           @onchange="(e) => ToggleWybrany(konf, e)"
+                                                           @onclick:stopPropagation="true"
+                                                           id="check-@konf.RowId">
+                                                    <label class="form-check-label fw-bold small" for="check-@konf.RowId">
+                                                        @konf.Nazwa
+                                                    </label>
+                                                </div>
+                                                <span class="badge @(konf.CzyWybrany ? "bg-success" : "bg-secondary") small">
+                                                    @(konf.CzyWybrany ? "✓" : "○")
+                                                </span>
+                                            </div>
+
+                                            <div class="d-flex align-items-center mt-1">
+                                                @if (konf.Rysunek != null && konf.Rysunek.Length > 0)
+                                                {
+                                                    <img src="@RysunekToBase64(konf.Rysunek)" alt="Miniatura"
+                                                         class="rounded me-2" style="width: 40px; height: 40px; object-fit: cover;" />
+                                                }
+                                                <div>
+                                                    <small class="text-muted d-block">
+                                                        <strong>Indeks:</strong> @konf.IndeksElementu
+                                                    </small>
+                                                    @if (!string.IsNullOrEmpty(konf.Uwagi))
+                                                    {
+                                                        <small class="text-muted d-block">
+                                                            <i class="fas fa-info-circle me-1"></i>@konf.Uwagi
+                                                        </small>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
                         </div>
-                    </div>
-                    <!-- Połączenie Naroży 3 -->
-                    <div class="col-md-6 d-flex flex-column align-items-center justify-content-center">
-                        <label class="form-label">Połączenie Naroży 3:</label>
-                        <div class="preview" @onclick="() => ChangeImage(3)">
-                            <img src="@SelectedImage3.ImageUrl" alt="@SelectedImage3.Name" class="img-fluid img-thumbnail shadow" title="Kąt: 180° prawy dolny" />
-                            <p class="text-center">Wybrałeś: @SelectedImage3.Name</p>
+                    }
+
+                    <!-- Dodatkowe opcje -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-secondary text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-cog me-2"></i>
+                                Opcje dodatkowe
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox"
+                                       @bind="EdytowanyModel.SposobLaczeniaCzop"
+                                       id="czop">
+                                <label class="form-check-label small" for="czop">
+                                    Elementy łączone za pomocą czopa
+                                </label>
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox"
+                                       @bind="EdytowanyModel.WidocznaNaLiscie"
+                                       id="widocznosc">
+                                <label class="form-check-label small" for="widocznosc">
+                                    Model widoczny na liście wyboru
+                                </label>
+                            </div>
+
+                            <label class="form-label small">Uwagi:</label>
+                            <InputText class="form-control form-control-sm" @bind-Value="EdytowanyModel.Uwagi" />
+                            <small class="text-muted d-block mt-1">RowIdModelu: @EdytowanyModel.RowId</small>
                         </div>
                     </div>
                 </div>
+
             </div>
 
-            <div class="mt-3">
-                <div>
-                    <label class="form-label">Łączenie elementów (dotyczy wyłącznie wersja typu T1 lub T3):</label>
-                    <br />
-                    <Checkbox @bind-Value="EdytowanyModel.SposobLaczeniaCzop">Elementy łączone za pomocą czopa</Checkbox>
-                    <br />
-                    <Checkbox @bind-Value="EdytowanyModel.WidocznaNaLiscie">Czy model ma być widoczny na liście wyboru</Checkbox>
-                </div>
-                <br />
-                <div>
-                    <label class="form-label">Uwagi:</label>
-                    <InputText class="form-control" @bind-Value="EdytowanyModel.Uwagi" />
-                    <label class="form-label">RowIdModelu: @EdytowanyModel.RowId</label>
-                </div>
-            </div>
-            @*          <div class="mt-3">
-                <label class="form-label">Obrazek DXF:</label>
-                <InputFile OnChange="WczytajRysunek" />
-            </div> *@
+            <!-- Przyciski zapisu na dole -->
             <Spin Spinning="czakajAzZmienie" Size="SpinSize.Large">
-                <div class="mt-3">
-                    <button type="submit" class="btn btn-primary">Zapisz edytowany model</button>
-                    <button type="button" class="btn btn-secondary ms-2" @onclick="Anuluj">Anuluj</button>
+                <div class="d-flex gap-2 mb-4">
+                    <button type="submit" class="btn btn-primary btn-lg" style="width: 40%;">
+                        <i class="fas fa-save me-2"></i>Zapisz edytowany model
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-lg" @onclick="Anuluj">
+                        <i class="fas fa-times me-2"></i>Anuluj
+                    </button>
                 </div>
             </Spin>
-
         </EditForm>
-
-        <br />
     }
 
-    @*     <h4>🛠️ Powiązania elementów</h4>
-    <button class="btn btn-info mb-3" @onclick="TogglePowiazane">
-        <i class="fas fa-eye"></i> @(PokazTylkoPowiazane ? "Pokaż wszystkie" : "Pokaż powiązane elementy")
-    </button> *@
-
-    @if (KonfiguracjeSystemu != null && KonfiguracjeSystemu.Any())
-    {
-        <Divider>Wybierz i powiąż elementy</Divider>
-
-        <h5>
-            🛠️ Powiązania elementów dla Modelu: @(PokazanyModelRowId != null ? $"->{WybralesElement}" : "Wszystkie")
-
-            <button class="btn btn-info btn-sm" @onclick="() => PokazWszystkieZModelu(PokazanyModelRowId)">
-                <i class="fas fa-eye"></i> 🛠️ Pokaż wszystkie
-            </button>
-
-        </h5>
-
-        <table class="table table-striped table-hover">
-            <thead class="thead-dark">
-                <tr>
-                    <th>Nazwa</th>
-                    <th>Indeks</th>
-                    <th>Uwagi</th>
-                    <th>Miniaturka</th>
-                    <th>Akcje</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (PowiazanyModel == null)
-                {
-                    @foreach (var konf in KonfiguracjeSystemu)
-                    {
-                        <tr>
-                            <td>@konf.Nazwa</td>
-                            <td>@konf.IndeksElementu</td>
-                            <td>@konf.Uwagi</td>
-                            <td>
-                                @if (konf.Rysunek != null && konf.Rysunek.Length > 0)
-                                {
-                                    <img src="@RysunekToBase64(konf.Rysunek)" alt="Miniatura" style="width: 50px; height: auto;" />
-                                }
-                                else
-                                {
-                                    <span class="text-muted">Brak</span>
-                                }
-                            </td>
-                            <td>
-                                <Checkbox @bind-Value="konf.CzyWybrany"
-                                          @bind-Value:after="() => OnChangeCzyWybrany(konf.CzyWybrany, konf)">
-                                    Połącz element z konfiguracją
-                                </Checkbox>
-                            </td>
-                        </tr>
-                    }
-                }
-                else
-                {
-
-                    @foreach (var konf in PowiazanyModel.KonfSystem)
-                    {
-                        <tr>
-                            <td>@konf.Nazwa</td>
-                            <td>@konf.IndeksElementu</td>
-                            <td>@konf.Uwagi</td>
-                            <td>
-                                @if (konf.Rysunek != null && konf.Rysunek.Length > 0)
-                                {
-                                    <img src="@RysunekToBase64(konf.Rysunek)" alt="Miniatura" style="width: 50px; height: auto;" />
-                                }
-                                else
-                                {
-                                    <span class="text-muted">Brak</span>
-                                }
-                            </td>
-                            <td>
-                                <Checkbox @bind-Value="konf.CzyWybrany"
-                                          @bind-Value:after="() => OnChangeCzyWybrany(konf.CzyWybrany, konf)">
-                                    Połącz element z konfiguracją
-                                </Checkbox>
-                            </td>
-                        </tr>
-                    }
-
-                }
-
-            </tbody>
-        </table>
-    }
-    else
-    {
-        <Divider>Wybierz i powiąż elementy (Następnie zapisz)</Divider>
-
-        <h5>
-            🛠️ Powiązania elementów dla Modelu: @(PokazanyModelRowId != null ? $"->{WybralesElement}" : "Wszystkie")
-
-            <button class="btn btn-info btn-sm" @onclick="() => PokazWszystkieZModelu(PokazanyModelRowId)">
-                <i class="fas fa-eye"></i> 🛠️ Pokaż wszystkie
-            </button>
-
-        </h5>
-    }
 </div>
 
 <br />
@@ -391,6 +426,9 @@
 @code {
     [Parameter]
     public string? SelectedSystemId { get; set; }
+
+    private ElementReference edytowanyModelRef;
+    private ElementReference goraStronyRef;
 
     private bool PokazTylkoPowiazane = false;
 
@@ -418,11 +456,23 @@
 
         Systemy = await Http.GetFromJsonAsync<List<SystemyOkienne>>("api/systemy-okienne");
 
-        if(!string.IsNullOrEmpty(SelectedSystemId))
+        if (!string.IsNullOrEmpty(SelectedSystemId))
         {
             await OnSystemSelected(new ChangeEventArgs { Value = SelectedSystemId });
         }
         czekajNaZaladowanieDanych = false;
+    }
+
+    private async Task ToggleWybrany(KonfSystem konf)
+    {
+        konf.CzyWybrany = !konf.CzyWybrany;
+        await OnChangeCzyWybrany(konf.CzyWybrany, konf);
+    }
+
+    private async Task ToggleWybrany(KonfSystem konf, ChangeEventArgs e)
+    {
+        konf.CzyWybrany = (bool)e.Value;
+        await OnChangeCzyWybrany(konf.CzyWybrany, konf);
     }
 
     private async Task OnSystemSelected(ChangeEventArgs e)
@@ -501,6 +551,7 @@
         StateHasChanged(); // Wymusza odświeżenie UI
     }
 
+    bool czekajNaZaladowanieDanychWszytkich = false;
     private async Task PokazWszystkieZModelu(string rowId)
     {
         if (string.IsNullOrEmpty(SelectedSystemId))
@@ -515,6 +566,8 @@
             return;
         }
 
+        czekajNaZaladowanieDanychWszytkich = true;
+
         KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIND_ROWID_SYS/{SelectedSystemId}");
 
         ListaModeli = await Http.GetFromJsonAsync<List<KonfModele>>("api/konfmodele/");
@@ -524,6 +577,9 @@
         PowiazanyModel = null;
 
         StateHasChanged(); // Wymusza odświeżenie UI
+
+
+        czekajNaZaladowanieDanychWszytkich = false;
 
     }
 
@@ -547,6 +603,16 @@
             KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIND_ROWID_SYS/{SelectedSystemId}");
     }
 
+    bool czekajNaZaladowanieDanychEdycji = false;
+    private async Task EdytujIModel(KonfModele model)
+    {
+        czekajNaZaladowanieDanychEdycji = true;
+        await Edytuj(model.Id, model.RowId.ToString(), model.NazwaKonfiguracji);
+        await Task.Delay(50);
+        await PrzewinDoElementu(edytowanyModelRef);
+        czekajNaZaladowanieDanychEdycji = false;
+    }
+
     private async Task Edytuj(int id, string rowId, string nazwaWybaranego)
     {
         Console.WriteLine($"Edytuj: {id} - {rowId} - {nazwaWybaranego}");
@@ -558,6 +624,19 @@
             Console.WriteLine($"----------> EdytowanyModel: {EdytowanyModel.NazwaKonfiguracji}");
         }
 
+    }
+
+    // Funkcja przewijania do elementu
+    private async Task PrzewinDoElementu(ElementReference element)
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("PrzewinDoElementu", element);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Błąd przewijania: {ex.Message}");
+        }
     }
 
     private async Task OnChangeCzyWybrany(bool checkedValue, KonfSystem konf)
@@ -576,6 +655,8 @@
 
     private async Task Zapisz()
     {
+        if (czekajNaZaladowanieDanychWszytkich) return;
+
         if (PowiazanyModel == null && PowiazanyModelPierwszyZapis != null)
         {
             PowiazanyModel = PowiazanyModelPierwszyZapis;
@@ -604,17 +685,17 @@
         }
 
         var zaznaczoneKonfiguracje = KonfiguracjeSystemu
-            .Where(k => k.CzyWybrany)
-            .ToList();
+        .Where(k => k.CzyWybrany)
+        .ToList();
 
         Console.WriteLine($"EdytowanyModel.RowId: {EdytowanyModel.RowId}");
 
         czakajAzZmienie = true;
 
         EdytowanyModel.PolaczenieNaroza = $"{SelectedImage1?.Value ?? "0-T0"};" +
-                                       $"{SelectedImage2?.Value ?? "0-T0"};" +
-                                       $"{SelectedImage3?.Value ?? "0-T0"};" +
-                                       $"{SelectedImage4?.Value ?? "0-T0"}";
+        $"{SelectedImage2?.Value ?? "0-T0"};" +
+        $"{SelectedImage3?.Value ?? "0-T0"};" +
+        $"{SelectedImage4?.Value ?? "0-T0"}";
 
         EdytowanyModel.RowIdSystem = Guid.Parse(SelectedSystemId);
 
@@ -640,12 +721,12 @@
                     try
                     {
                         imageBytes = await imageGenerator.GenerateImageAsync(
-                            konfSystem,
-                            EdytowanyModel.PolaczenieNaroza,
-                            500,
-                            500,
-                            imageUrl,
-                            "#ADD8E6");
+                        konfSystem,
+                        EdytowanyModel.PolaczenieNaroza,
+                        500,
+                        500,
+                        imageUrl,
+                        "#ADD8E6");
                     }
                     catch (ArgumentException ex)
                     {
@@ -701,7 +782,7 @@
             if (response.IsSuccessStatusCode)
             {
                 EdytowanyModel = await response.Content.ReadFromJsonAsync<KonfModele>()
-                                 ?? new KonfModele();
+                ?? new KonfModele();
                 Console.WriteLine("✅ Utworzono nowy model z obrazkami");
             }
             else
@@ -770,9 +851,9 @@
 
         // Usuwamy powiązania, które użytkownik odznaczył
         var usunPowiazania = existingLinks?
-            .Where(x => !KonfiguracjeSystemu.Any(k => k.CzyWybrany && k.RowId == x.RowIdElement))
-            .Select(x => x.Id)
-            .ToList();
+        .Where(x => !KonfiguracjeSystemu.Any(k => k.CzyWybrany && k.RowId == x.RowIdElement))
+        .Select(x => x.Id)
+        .ToList();
 
         if (usunPowiazania?.Count > 0)
         {
@@ -792,11 +873,17 @@
 
         czakajAzZmienie = false;
 
-        await _message.Info("Dane w modelu zaktualizowano!", 1);
+        _message.Info("Dane w modelu zaktualizowano!", 3);
 
-        await Edytuj(EdytowanyModel.Id, EdytowanyModel.RowId.ToString(), EdytowanyModel.NazwaKonfiguracji);
+       // await Edytuj(EdytowanyModel.Id, EdytowanyModel.RowId.ToString(), EdytowanyModel.NazwaKonfiguracji);
 
         PowiazanyModelPierwszyZapis = null;
+
+        EdytowanyModel = null;
+
+        // Po zapisie przewiń na górę strony
+        await Task.Delay(100);
+        await PrzewinDoElementu(goraStronyRef);
     }
 
     private byte[] ResizeImage(byte[] imageData, int width, int height)
@@ -927,52 +1014,52 @@
 
     record Typ(string Nazwa);
     private List<Typ> _typ = new List<Typ>
-        {
-            new Typ(""),
-            new Typ("Rama"),
-            new Typ("Skrzydło"),
-            new Typ("Skrzydło z słupkiem ruchomym"),
-            new Typ("Słupek stały"),
-            new Typ("Listwa przyszybowa"),
-        };
+    {
+    new Typ(""),
+    new Typ("Rama"),
+    new Typ("Skrzydło"),
+    new Typ("Skrzydło z słupkiem ruchomym"),
+    new Typ("Słupek stały"),
+    new Typ("Listwa przyszybowa"),
+    };
 
     // Lista dostępnych opcji
     private List<ImageOption> ImageOptions1 = new()
     {
-        new ImageOption { Name = "Nie wybrano", Value = "0-T0", ImageUrl = "images/GL_0_NULL.png" },
-        new ImageOption { Name = "Typ 1", Value = "0-T1", ImageUrl = "images/GL_180_T1.png" },
-        new ImageOption { Name = "Typ 2", Value = "0-T2", ImageUrl = "images/GL_180_T2.png" },
-        new ImageOption { Name = "Typ 3", Value = "0-T3", ImageUrl = "images/GL_180_T3.png" },
-        new ImageOption { Name = "Typ 5", Value = "0-T5", ImageUrl = "images/SL_180_T5.png" }
+    new ImageOption { Name = "Nie wybrano", Value = "0-T0", ImageUrl = "images/GL_0_NULL.png" },
+    new ImageOption { Name = "Typ 1", Value = "0-T1", ImageUrl = "images/GL_180_T1.png" },
+    new ImageOption { Name = "Typ 2", Value = "0-T2", ImageUrl = "images/GL_180_T2.png" },
+    new ImageOption { Name = "Typ 3", Value = "0-T3", ImageUrl = "images/GL_180_T3.png" },
+    new ImageOption { Name = "Typ 5", Value = "0-T5", ImageUrl = "images/SL_180_T5.png" }
     };
 
     private List<ImageOption> ImageOptions2 = new()
     {
-        new ImageOption { Name = "Nie wybrano", Value = "0-T0", ImageUrl = "images/GL_0_NULL.png" },
-        new ImageOption { Name = "Typ 1", Value = "90-T1", ImageUrl = "images/GL_90_T1.png" },
-        new ImageOption { Name = "Typ 2", Value = "90-T2", ImageUrl = "images/GL_90_T2.png" },
-        new ImageOption { Name = "Typ 3", Value = "90-T3", ImageUrl = "images/GL_90_T3.png" },
-        new ImageOption { Name = "Typ 5", Value = "90-T5", ImageUrl = "images/SL_90_T5.png" },
+    new ImageOption { Name = "Nie wybrano", Value = "0-T0", ImageUrl = "images/GL_0_NULL.png" },
+    new ImageOption { Name = "Typ 1", Value = "90-T1", ImageUrl = "images/GL_90_T1.png" },
+    new ImageOption { Name = "Typ 2", Value = "90-T2", ImageUrl = "images/GL_90_T2.png" },
+    new ImageOption { Name = "Typ 3", Value = "90-T3", ImageUrl = "images/GL_90_T3.png" },
+    new ImageOption { Name = "Typ 5", Value = "90-T5", ImageUrl = "images/SL_90_T5.png" },
     };
 
     private List<ImageOption> ImageOptions3 = new()
     {
-        new ImageOption { Name = "Nie wybrano", Value = "0-T0", ImageUrl = "images/GL_0_NULL.png" },
-        new ImageOption { Name = "Typ 1", Value = "180-T1", ImageUrl = "images/GL_0_T1.png" },
-        new ImageOption { Name = "Typ 2", Value = "180-T2", ImageUrl = "images/GL_0_T2.png" },
-        new ImageOption { Name = "Typ 3", Value = "180-T3", ImageUrl = "images/GL_0_T3.png" },
-        new ImageOption { Name = "Typ 4", Value = "180-T4", ImageUrl = "images/GL_0_T4.png" },
-        new ImageOption { Name = "Typ 5", Value = "180-T5", ImageUrl = "images/SL_0_T5.png" },
+    new ImageOption { Name = "Nie wybrano", Value = "0-T0", ImageUrl = "images/GL_0_NULL.png" },
+    new ImageOption { Name = "Typ 1", Value = "180-T1", ImageUrl = "images/GL_0_T1.png" },
+    new ImageOption { Name = "Typ 2", Value = "180-T2", ImageUrl = "images/GL_0_T2.png" },
+    new ImageOption { Name = "Typ 3", Value = "180-T3", ImageUrl = "images/GL_0_T3.png" },
+    new ImageOption { Name = "Typ 4", Value = "180-T4", ImageUrl = "images/GL_0_T4.png" },
+    new ImageOption { Name = "Typ 5", Value = "180-T5", ImageUrl = "images/SL_0_T5.png" },
     };
 
     private List<ImageOption> ImageOptions4 = new()
     {
-        new ImageOption { Name = "Nie wybrano", Value = "270-T0", ImageUrl = "images/GL_0_NULL.png" },
-        new ImageOption { Name = "Typ 1", Value = "270-T1", ImageUrl = "images/GL_270_T1.png" },
-        new ImageOption { Name = "Typ 2", Value = "270-T2", ImageUrl = "images/GL_270_T2.png" },
-        new ImageOption { Name = "Typ 3", Value = "270-T3", ImageUrl = "images/GL_270_T3.png" },
-        new ImageOption { Name = "Typ 4", Value = "270-T4", ImageUrl = "images/GL_270_T4.png" },
-        new ImageOption { Name = "Typ 5", Value = "270-T5", ImageUrl = "images/SL_270_T5.png" }
+    new ImageOption { Name = "Nie wybrano", Value = "270-T0", ImageUrl = "images/GL_0_NULL.png" },
+    new ImageOption { Name = "Typ 1", Value = "270-T1", ImageUrl = "images/GL_270_T1.png" },
+    new ImageOption { Name = "Typ 2", Value = "270-T2", ImageUrl = "images/GL_270_T2.png" },
+    new ImageOption { Name = "Typ 3", Value = "270-T3", ImageUrl = "images/GL_270_T3.png" },
+    new ImageOption { Name = "Typ 4", Value = "270-T4", ImageUrl = "images/GL_270_T4.png" },
+    new ImageOption { Name = "Typ 5", Value = "270-T5", ImageUrl = "images/SL_270_T5.png" }
     };
 
     private ImageOption? SelectedImage1;

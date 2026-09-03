@@ -33,10 +33,15 @@ public class ImageGenerator
             // Zmiana: tworzenie obrazu z przezroczystym tłem zamiast białego
             using var image = new Image<Rgba32>(imageWidth, imageHeight, Color.Transparent);
 
-            double profileTop = (model.FirstOrDefault(e => e.WystepujeGora)?.PionPrawa ?? 0) - (model.FirstOrDefault(e => e.WystepujeGora)?.PionLewa ?? 0);
-            double profileRight = (model.FirstOrDefault(e => e.WystepujePrawa)?.PionPrawa ?? 0) - (model.FirstOrDefault(e => e.WystepujePrawa)?.PionLewa ?? 0);
-            double profileBottom = (model.FirstOrDefault(e => e.WystepujeDol)?.PionPrawa ?? 0) - (model.FirstOrDefault(e => e.WystepujeDol)?.PionLewa ?? 0);
-            double profileLeft = (model.FirstOrDefault(e => e.WystepujeLewa)?.PionPrawa ?? 0) - (model.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0);
+            double profileTop = (model.FirstOrDefault(e => e.WystepujeGora)?.PoziomGora ?? 0) - (model.FirstOrDefault(e => e.WystepujeGora)?.PoziomDol ?? 0);
+            double profileRight = (model.FirstOrDefault(e => e.WystepujePrawa)?.PionLewa ?? 0) - (model.FirstOrDefault(e => e.WystepujePrawa)?.PionPrawa ?? 0);
+            double profileBottom = (model.FirstOrDefault(e => e.WystepujeDol)?.PoziomGora ?? 0) - (model.FirstOrDefault(e => e.WystepujeDol)?.PoziomDol ?? 0);
+            double profileLeft = (model.FirstOrDefault(e => e.WystepujeLewa)?.PionLewa ?? 0) - (model.FirstOrDefault(e => e.WystepujeLewa)?.PionPrawa ?? 0);
+
+            profileTop = Math.Abs(profileTop);
+            profileRight = Math.Abs(profileRight);
+            profileBottom = Math.Abs(profileBottom);
+            profileLeft = Math.Abs(profileLeft);
 
             Console.WriteLine($"profileTop: {profileTop}, profileRight: {profileRight}, profileBottom: {profileBottom}, profileLeft: {profileLeft} lokalizacja pliku tekstury: {imageUrl}");
 

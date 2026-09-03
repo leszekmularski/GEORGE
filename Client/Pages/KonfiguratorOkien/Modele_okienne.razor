@@ -539,6 +539,7 @@
     <!-- Kontener na przyciski -->
     <div class="zoom-controls">
         <label>@mousePosition skala: @((int)(_aktywnaSkala * 100))</label>
+        <button @onclick="async () => { KonfiguracjeSystemu = null; ListaModeli = null; await PobierzDaneSystemu(); }" class="btn-zoom" title="Odśwież dane">🔄</button>
         <button @onclick="PokazWlasciwosciOkna" class="btn-zoom" title="Wymiary okien zmień">📖</button>
         <button @onclick="UsunOstatniObiekt" class="btn-zoom" title="Usuń ostatni obiekt">🗑️</button>
         <button @onclick="ZoomIn" class="btn-zoom">➕</button>
@@ -573,7 +574,7 @@
         <table class="table table-striped">
             <thead>
                 <tr>
-                    <th>Typ</th>
+                    <th>Nazwa</th>
                     <th>Wymiary</th>
                     <th>Miniaturka</th>
                 </tr>
@@ -584,7 +585,7 @@
                     @foreach (var model in ListaModeli)
                     {
                         <tr>
-                            <td>@model.Typ</td>
+                            <td>@model.NazwaKonfiguracji</td>
                             <td>@model.KonstrMinSzer x @model.KonstrMinWys → @model.KonstrMaxSzer x @model.KonstrMaxWys</td>
                             <td>
                                 @if (model.Rysunek != null && model.Ikona32x32.Length > 0)
@@ -1528,24 +1529,8 @@
 
             await Laduj_Uprawnienia();
 
-            // Przeniesione tutaj - po załadowaniu systemów
-            if (!string.IsNullOrEmpty(SelectedSystemId))
-            {
-                Console.WriteLine($"🔄 Ładuję modele dla systemu: {SelectedSystemId}");
+            await PobierzDaneSystemu();
 
-                // Najpierw załaduj konfigurację systemu
-                if (KonfiguracjeSystemu == null || !KonfiguracjeSystemu.Any())
-                {
-                    KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIND_ROWID_SYS/{SelectedSystemId}");
-                }
-
-                // Potem modele
-                if (ListaModeli == null || !ListaModeli.Any())
-                {
-                    ListaModeli = await Http.GetFromJsonAsync<List<KonfModele>>($"api/konfmodele/FIND_ONLY_TRUE/{SelectedSystemId}");
-                    Console.WriteLine($"✅ Załadowano {ListaModeli?.Count ?? 0} modeli");
-                }
-            }
         }
         catch (Exception ex)
         {
@@ -1616,6 +1601,30 @@
                 StateHasChanged();
             }
         }
+    }
+
+    private async Task PobierzDaneSystemu()
+    {
+        // Przeniesione tutaj - po załadowaniu systemów
+        if (!string.IsNullOrEmpty(SelectedSystemId))
+        {
+            Console.WriteLine($"🔄 Ładuję modele dla systemu: {SelectedSystemId}");
+
+            // Najpierw załaduj konfigurację systemu
+            if (KonfiguracjeSystemu == null || !KonfiguracjeSystemu.Any())
+            {
+                KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIND_ROWID_SYS/{SelectedSystemId}");
+            }
+
+            // Potem modele
+            if (ListaModeli == null || !ListaModeli.Any())
+            {
+                ListaModeli = await Http.GetFromJsonAsync<List<KonfModele>>($"api/konfmodele/FIND_ONLY_TRUE/{SelectedSystemId}");
+                Console.WriteLine($"✅ Załadowano {ListaModeli?.Count ?? 0} modeli");
+            }
+        }
+
+        await Task.CompletedTask;
     }
 
     // Metoda do pobierania i aktualizacji rozmiaru z .display-window

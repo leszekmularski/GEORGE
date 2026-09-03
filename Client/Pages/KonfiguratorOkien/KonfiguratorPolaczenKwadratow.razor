@@ -736,140 +736,275 @@
             group.setAttribute("transform", `${translate} scale(${window.svgHelper.zoomLevel})`);
         };
 
-            // 📏 Inicjalizacja pomiaru
-        window.svgHelper.initMeasurement = function() {
-            const svg = document.querySelector(".scaled-svg");
-            if (!svg) return;
+    // 📏 Poprawiona inicjalizacja pomiaru
+    window.svgHelper.initMeasurement = function() {
+        console.log("📏 Inicjalizacja pomiaru...");
 
-            let startPoint = null;
-            let measurementLine = null;
-            let measurementText = null;
+        const container = document.querySelector(".scaled-svg");
+        if (!container) {
+            console.error("❌ Nie znaleziono kontenera .scaled-svg");
+            return false;
+        }
 
-            // Tworzymy elementy do pomiaru
-            const createMeasurementElements = () => {
-                measurementLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                measurementLine.setAttribute("stroke", "red");
-                measurementLine.setAttribute("stroke-width", "2");
-                measurementLine.setAttribute("stroke-dasharray", "5,5");
+        const svg = container.querySelector("svg");
+        if (!svg) {
+            console.error("❌ Nie znaleziono elementu <svg> w kontenerze");
+            return false;
+        }
 
-                measurementText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                measurementText.setAttribute("fill", "red");
-                measurementText.setAttribute("font-size", "22");
+        console.log("✅ Znaleziono SVG");
 
-                svg.querySelector("svg").appendChild(measurementLine);
-                svg.querySelector("svg").appendChild(measurementText);
-            };
+        let startPoint = null;
+        let measurementLine = null;
+        let measurementText = null;
+        let isMeasurementActive = false;
 
-            // Usuwamy elementy pomiaru
-            const removeMeasurementElements = () => {
-                if (measurementLine && measurementLine.parentNode) {
-                    measurementLine.parentNode.removeChild(measurementLine);
-                }
-                if (measurementText && measurementText.parentNode) {
-                    measurementText.parentNode.removeChild(measurementText);
-                }
-            };
+        // Tworzymy elementy do pomiaru
+        const createMeasurementElements = () => {
+            removeMeasurementElements();
 
-            // Obliczamy odległość między punktami
-            const calculateDistance = (x1, y1, x2, y2) => {
-                return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-            };
+            measurementLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            measurementLine.setAttribute("stroke", "red");
+            measurementLine.setAttribute("stroke-width", "2");
+            measurementLine.setAttribute("stroke-dasharray", "5,5");
+            measurementLine.setAttribute("class", "measurement-line");
+            measurementLine.setAttribute("pointer-events", "none");
 
-            // Aktualizujemy linię i tekst pomiaru
-            const updateMeasurement = (x1, y1, x2, y2) => {
-                if (!measurementLine || !measurementText) return;
+            measurementText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            measurementText.setAttribute("fill", "red");
+            measurementText.setAttribute("font-size", "22");
+            measurementText.setAttribute("class", "measurement-text");
+            measurementText.setAttribute("pointer-events", "none");
 
-                const distance = calculateDistance(x1, y1, x2, y2) / activScale;
-                const midX = (x1 + x2) / 2;
-                const midY = (y1 + y2) / 2;
-
-                measurementLine.setAttribute("x1", x1);
-                measurementLine.setAttribute("y1", y1);
-                measurementLine.setAttribute("x2", x2);
-                measurementLine.setAttribute("y2", y2);
-
-                measurementText.setAttribute("x", midX);
-                measurementText.setAttribute("y", midY);
-                measurementText.textContent = distance.toFixed(2) + " mm";
-            };
-
-            // Obsługa kliknięć
-            svg.addEventListener("click", (e) => {
-                if (!startPoint) {
-                    // Pierwsze kliknięcie - punkt startowy
-                    startPoint = {
-                        x: e.offsetX,
-                        y: e.offsetY
-                    };
-                    createMeasurementElements();
-                } else {
-                    // Drugie kliknięcie - punkt końcowy
-                    updateMeasurement(startPoint.x, startPoint.y, e.offsetX, e.offsetY);
-                    startPoint = null;
-
-                    // Automatyczne usunięcie po 5 sekundach
-                    setTimeout(() => {
-                        removeMeasurementElements();
-                    }, 5000);
-                }
-            });
+            // WAŻNE: Dodaj do zoom-group, aby elementy były w tym samym układzie współrzędnych
+            const zoomGroup = svg.querySelector("#zoom-group");
+            if (zoomGroup) {
+                zoomGroup.appendChild(measurementLine);
+                zoomGroup.appendChild(measurementText);
+            } else {
+                svg.appendChild(measurementLine);
+                svg.appendChild(measurementText);
+            }
         };
 
-        // 🔄 Wyczyść pomiary
-        window.svgHelper.clearMeasurements = function() {
-            const svg = document.querySelector(".scaled-svg");
-            if (!svg) return;
-
-            const lines = svg.querySelectorAll("line[stroke='red']");
-            const texts = svg.querySelectorAll("text[fill='red']");
-
-            lines.forEach(line => line.parentNode?.removeChild(line));
-            texts.forEach(text => text.parentNode?.removeChild(text));
+        const removeMeasurementElements = () => {
+            if (measurementLine && measurementLine.parentNode) {
+                measurementLine.parentNode.removeChild(measurementLine);
+            }
+            if (measurementText && measurementText.parentNode) {
+                measurementText.parentNode.removeChild(measurementText);
+            }
+            measurementLine = null;
+            measurementText = null;
         };
 
+        const calculateDistance = (x1, y1, x2, y2) => {
+            return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+        };
 
-        // 📐 Ulepszona funkcja pomiaru przesunięcia prowadnic
-        // Wywołaj tę funkcję po załadowaniu SVG
-        window.svgHelper.initGuideLines = function () {
-            const svgEl = document.querySelector(".scaled-svg svg");
-            if (!svgEl) {
-                console.error("[initGuideLines] Nie znaleziono <svg>");
+        // Konwersja współrzędnych ekranowych na współrzędne SVG
+        const getSvgCoordinates = (event) => {
+            const rect = svg.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            // Pobierz transformację zoom-group
+            const zoomGroup = svg.querySelector("#zoom-group");
+            if (!zoomGroup) {
+                return { x, y };
+            }
+
+            const transform = zoomGroup.getAttribute("transform") || "";
+            console.log("📐 Transformacja zoom-group:", transform);
+
+            // Parsuj transformację
+            const translateMatch = transform.match(/translate\(([-\d.]+)[,\s]+([-\d.]+)\)/);
+            const scaleMatch = transform.match(/scale\(([-\d.]+)\)/);
+
+            if (!translateMatch || !scaleMatch) {
+                console.warn("⚠️ Nie można sparsować transformacji");
+                return { x, y };
+            }
+
+            const translateX = parseFloat(translateMatch[1]);
+            const translateY = parseFloat(translateMatch[2]);
+            const scale = parseFloat(scaleMatch[1]);
+
+            console.log(`📐 translate(${translateX}, ${translateY}) scale(${scale})`);
+            console.log(`📐 Kliknięcie ekranowe: (${x.toFixed(2)}, ${y.toFixed(2)})`);
+
+            // Odwrotna transformacja: najpierw odejmij translację, potem podziel przez skalę
+            const svgX = (x - translateX) / scale;
+            const svgY = (y - translateY) / scale;
+
+            console.log(`📐 Współrzędne SVG: (${svgX.toFixed(2)}, ${svgY.toFixed(2)})`);
+
+            return { x: svgX, y: svgY };
+        };
+
+        // Aktualizujemy linię i tekst pomiaru
+        const updateMeasurement = (x1, y1, x2, y2) => {
+            if (!measurementLine || !measurementText) return;
+
+            // WAŻNE: Nie dziel przez skalę, bo współrzędne są już w układzie SVG
+            const distance = calculateDistance(x1, y1, x2, y2);
+
+            console.log(`📏 Obliczanie odległości:`);
+            console.log(`   Punkt 1: (${x1.toFixed(2)}, ${y1.toFixed(2)})`);
+            console.log(`   Punkt 2: (${x2.toFixed(2)}, ${y2.toFixed(2)})`);
+            console.log(`   Odległość: ${distance.toFixed(2)}`);
+
+            const midX = (x1 + x2) / 2;
+            const midY = (y1 + y2) / 2;
+
+            measurementLine.setAttribute("x1", x1);
+            measurementLine.setAttribute("y1", y1);
+            measurementLine.setAttribute("x2", x2);
+            measurementLine.setAttribute("y2", y2);
+
+            measurementText.setAttribute("x", midX);
+            measurementText.setAttribute("y", midY);
+
+            // Konwersja na mm - zakładając, że 1 jednostka SVG = 1mm
+            // Możesz dostosować przelicznik
+            const mmPerUnit = 1; // Zmień jeśli potrzebujesz innego przelicznika
+            const distanceInMm = distance * mmPerUnit;
+
+            measurementText.textContent = distanceInMm.toFixed(2) + " mm";
+
+            console.log(`📏 Pomiar: ${distanceInMm.toFixed(2)} mm`);
+        };
+
+        // Obsługa kliknięć
+        const handleClick = (event) => {
+            // Ignoruj kliknięcia na przyciskach i kontrolkach
+            if (event.target.closest('button, input, select, [data-no-measure]')) {
                 return;
             }
 
-            const models = ["#model1", "#model2"];
-            models.forEach((modelId) => {
-                const model = svgEl.querySelector(modelId);
-                if (!model) {
-                    console.warn(`[initGuideLines] Nie znaleziono ${modelId}`);
+            if (!isMeasurementActive) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            const coords = getSvgCoordinates(event);
+
+            console.log(`🖱️ Kliknięcie w: (${coords.x.toFixed(2)}, ${coords.y.toFixed(2)})`);
+
+            if (!startPoint) {
+                // Pierwsze kliknięcie - punkt startowy
+                startPoint = coords;
+                createMeasurementElements();
+                console.log("📍 Punkt startowy ustawiony");
+            } else {
+                // Drugie kliknięcie - punkt końcowy
+                updateMeasurement(startPoint.x, startPoint.y, coords.x, coords.y);
+                console.log("📍 Punkt końcowy - pomiar zakończony");
+
+                startPoint = null;
+
+                setTimeout(() => {
+                    removeMeasurementElements();
+                    console.log("🧹 Elementy pomiarowe usunięte");
+                }, 5000);
+            }
+        };
+
+        // Usuń stary nasłuchiwacz i dodaj nowy
+        container.removeEventListener("click", handleClick);
+        container.addEventListener("click", handleClick);
+
+        window.svgHelper.setMeasurementActive = function(active) {
+            isMeasurementActive = active;
+            if (!active) {
+                startPoint = null;
+                removeMeasurementElements();
+            }
+            console.log(`📏 Pomiar ${active ? 'AKTYWNY' : 'NIEAKTYWNY'}`);
+        };
+
+        // Domyślnie pomiar jest aktywny
+        isMeasurementActive = true;
+
+        console.log("✅ Pomiar zainicjalizowany i aktywny");
+        return true;
+    };
+
+    // Funkcja do włączania pomiaru
+    window.svgHelper.startMeasurement = function() {
+        if (window.svgHelper.setMeasurementActive) {
+            window.svgHelper.setMeasurementActive(true);
+            return true;
+        }
+        return false;
+    };
+
+    // Funkcja do wyłączania pomiaru
+    window.svgHelper.stopMeasurement = function() {
+        if (window.svgHelper.setMeasurementActive) {
+            window.svgHelper.setMeasurementActive(false);
+            return true;
+        }
+        return false;
+    };
+
+    // Funkcja czyszczenia pomiarów
+    window.svgHelper.clearMeasurements = function() {
+        const svg = document.querySelector(".scaled-svg svg") ||
+                   document.querySelector("svg");
+        if (!svg) return;
+
+        const measurementElements = svg.querySelectorAll('.measurement-line, .measurement-text');
+        measurementElements.forEach(el => el.parentNode?.removeChild(el));
+
+        console.log("🧹 Pomiary wyczyszczone");
+    };
+
+
+    // 📐 Ulepszona funkcja pomiaru przesunięcia prowadnic
+    // Wywołaj tę funkcję po załadowaniu SVG
+    window.svgHelper.initGuideLines = function () {
+        const svgEl = document.querySelector(".scaled-svg svg");
+        if (!svgEl) {
+            console.error("[initGuideLines] Nie znaleziono <svg>");
+            return;
+        }
+
+        const models = ["#model1", "#model2"];
+        models.forEach((modelId) => {
+            const model = svgEl.querySelector(modelId);
+            if (!model) {
+                console.warn(`[initGuideLines] Nie znaleziono ${modelId}`);
+                return;
+            }
+
+            const guides = model.querySelectorAll('[data-name^="guide-line-"]');
+            console.log(`[initGuideLines] ${modelId} - znaleziono prowadnic: ${guides.length}`);
+
+            guides.forEach(el => {
+                const bbox = el.getBBox();
+                const pt = svgEl.createSVGPoint();
+                pt.x = bbox.x + bbox.width / 2;
+                pt.y = bbox.y + bbox.height / 2;
+
+                const ctm = el.getCTM();
+                if (!ctm) {
+                    console.warn(`[initGuideLines] Brak CTM dla`, el);
                     return;
                 }
 
-                const guides = model.querySelectorAll('[data-name^="guide-line-"]');
-                console.log(`[initGuideLines] ${modelId} - znaleziono prowadnic: ${guides.length}`);
+                const transformed = pt.matrixTransform(ctm);
 
-                guides.forEach(el => {
-                    const bbox = el.getBBox();
-                    const pt = svgEl.createSVGPoint();
-                    pt.x = bbox.x + bbox.width / 2;
-                    pt.y = bbox.y + bbox.height / 2;
-
-                    const ctm = el.getCTM();
-                    if (!ctm) {
-                        console.warn(`[initGuideLines] Brak CTM dla`, el);
-                        return;
-                    }
-
-                    const transformed = pt.matrixTransform(ctm);
-
-                    if (el.getAttribute('data-name')?.includes('horizontal')) {
-                        el.setAttribute('data-original-y', transformed.y.toString());
-                    } else {
-                        el.setAttribute('data-original-x', transformed.x.toString());
-                    }
-                });
+                if (el.getAttribute('data-name')?.includes('horizontal')) {
+                    el.setAttribute('data-original-y', transformed.y.toString());
+                } else {
+                    el.setAttribute('data-original-x', transformed.x.toString());
+                }
             });
-        };
+        });
+    };
 
 
     window.svgHelper.measureGuideDisplacement = function () {
@@ -3097,7 +3232,7 @@
 
         <TabPane Key="0" Tab="Istniejące konfiguracje">
             <h4>
-                Lista zapisanych połączeń (@(listaPolaczen?.Count() ?? 0))
+                Lista zapisanych połączeń (@(FiltrowanePolaczenia?.Count() ?? 0))
                 <Button Icon="@IconType.Outline.Read" OnClick="OdswiezDane" />
             </h4>
 
@@ -3111,6 +3246,27 @@
             }
             else
             {
+                <div class="d-flex align-items-center gap-2 mb-3">
+
+                    <span class="fw-bold">Pokaż:</span>
+
+                    <Button Type="@(filtrPolaczen == "WSZYSTKIE" ? ButtonType.Primary : ButtonType.Default)"
+                            OnClick="@(() => UstawFiltr("WSZYSTKIE"))">
+                        Wszystkie
+                    </Button>
+
+                    <Button Type="@(filtrPolaczen == "STYCZNE" ? ButtonType.Primary : ButtonType.Default)"
+                            OnClick="@(() => UstawFiltr("STYCZNE"))">
+                        Tylko styczne
+                    </Button>
+
+                    <Button Type="@(filtrPolaczen == "PRZEKROJE" ? ButtonType.Primary : ButtonType.Default)"
+                            OnClick="@(() => UstawFiltr("PRZEKROJE"))">
+                        Tylko przekroje
+                    </Button>
+
+                </div>
+
                 <table class="table table-bordered table-striped">
                     <thead class="table-light">
                         <tr>
@@ -3124,7 +3280,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var polaczenie in listaPolaczen)
+                        @foreach (var polaczenie in FiltrowanePolaczenia)
                         {
                             <tr>
                                 <td>
@@ -3474,7 +3630,9 @@
                                                     OnClick="StartMeasurement"
                                                     Class="btn-sm btn-move" />
                                         </Tooltip>
-
+                                        <Tooltip Title="Pokaż wartości przesunięć w osi X i Y">
+                                            <Button Icon="@IconType.Outline.Info" OnClick="PokazWartosciPrzesuniecia" Class="btn-sm btn-move" />
+                                        </Tooltip>
                                         <Tooltip Title="Wyczyść pomiary">
                                             <Button Icon="@IconType.Outline.Close"
                                                     OnClick="ClearMeasurements"
@@ -3756,6 +3914,9 @@
                                 <Tooltip Title="Pomiar odległości">
                                     <Button Icon="@IconType.Outline.Scan" OnClick="StartMeasurement" Class="btn-sm btn-move" />
                                 </Tooltip>
+                                <Tooltip Title="Pokaż wartości przesunięć w osi X i Y">
+                                    <Button Icon="@IconType.Outline.Info" OnClick="PokazWartosciPrzesuniecia" Class="btn-sm btn-move" />
+                                </Tooltip>
                                 <Tooltip Title="Wyczyść pomiary">
                                     <Button Icon="@IconType.Outline.Close" OnClick="ClearMeasurements" Class="btn-sm btn-move" />
                                 </Tooltip>
@@ -3918,7 +4079,7 @@
     private string? SelectedModelDrugiId;
     private List<KonfModele>? ListaModeli;
     private List<KonfSystem>? KonfiguracjeSystemu;
-    private float precyzjaPrzesuwania = 5;
+    private float precyzjaPrzesuwania = 10;
     private int precyzjaZapisu = 1;
     private string BladKonfiguracji = string.Empty;
     private string BladKonfiguracjiStyczne = string.Empty;
@@ -3983,6 +4144,8 @@
     private string activeKey = "0";
 
     private bool czekajNaZaladowanieDanych = true;
+
+    private string filtrPolaczen = "WSZYSTKIE";
 
     // Inicjalizacja
     protected override async Task OnInitializedAsync()
@@ -4363,7 +4526,7 @@
 
             svgParts.Add($@"
             <g id=""model2"" transform=""translate({secondX}, {secondY})"">
-    {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
+            {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
             </g>");
         }
 
@@ -4456,6 +4619,26 @@
     private async Task ZoomAllObj() => await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
     private async Task GoBack() => await JSRuntime.InvokeVoidAsync("history.back");
 
+    private async Task PokazWartosciPrzesuniecia() 
+    {
+        // Pobierz wynik przesunięcia
+        var result = await PobierzWynikPrzesuniecia();
+
+        if (result == null)
+        {
+            return; // Błąd został już obsłużony w funkcji PobierzWynikPrzesuniecia
+        }
+
+        _ = _notice.Info(new()
+        {
+            Message = "Informacja !!!!",
+            Description = $"Aktualne przesunięcie modelu 2 względem modelu 1: X = {result.przesuniecieX} mm, Y = {result.przesuniecieY} mm",
+            Placement = NotificationPlacement.Top,
+            Duration = 6.0
+        });
+
+    }
+
     private async Task ZoomInObj() => await JSRuntime.InvokeVoidAsync("svgHelper.zoomIn");
     private async Task ZoomOutObj() => await JSRuntime.InvokeVoidAsync("svgHelper.zoomOut");
 
@@ -4497,6 +4680,7 @@
 
     private async Task ClearMeasurements()
     {
+        await JSRuntime.InvokeVoidAsync("svgHelper.stopMeasurement");
         await JSRuntime.InvokeVoidAsync("svgHelper.clearMeasurements");
     }
 
@@ -4507,6 +4691,9 @@
         przesuniecieX = noweX;
         przesuniecieY = noweY;
 
+        await JSRuntime.InvokeVoidAsync("svgHelper.stopMeasurement");
+        Console.WriteLine("📏 Pomiar wyłączony");
+
         // Wyślij do JS, aby zaktualizował SVG
         await JSRuntime.InvokeVoidAsync("svgHelper.updateDisplacement", noweX, noweY);
 
@@ -4516,116 +4703,17 @@
 
     private async Task SaveAllPosition()
     {
+        // Pobierz wynik przesunięcia
+        var result = await PobierzWynikPrzesuniecia();
 
-        //await JSRuntime.InvokeVoidAsync("svgHelper.bakeHorizontalFlipModel2");
-
-        await Task.Yield(); // Daj czas na zakończenie operacji w JS
-
-        await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
-        await Task.Delay(200);
-
-        GuideDisplacementResult result;
-
-        // boolStyczny oznacza, że użytkownik wybrał tryb STYCZNY (bez prowadnic, prostokąt) np dosunięcie modelu 2 do modelu 1 czyli słupka do ramy
-
-        if (boolStyczny)
+        if (result == null)
         {
-            // 🔹 Tryb STYCZNY (bez prowadnic, prostokąt)
-            var offset = await JSRuntime.InvokeAsync<GuideDisplacementResult>("svgHelper.getModel2Displacement");
-
-            if (offset == null || !offset.success)
-            {
-                await _message.Warning("❗ Nie udało się odczytać przesunięcia modelu 2 (tryb styczny). Nie zapisano przesunięcia.", 5);
-                return;
-            }
-
-
-            result = new GuideDisplacementResult
-            {
-                success = offset.success,
-                elementsFound = offset.elementsFound,
-
-                przesuniecieX = Math.Round(offset.przesuniecieX, precyzjaZapisu),
-                przesuniecieY = Math.Round(offset.przesuniecieY, precyzjaZapisu),
-
-                katObrotu = offset.katObrotu,
-
-                odbicieLustrzane = offset.odbicieLustrzane,
-
-                scale = 1
-            };
-
-            if (!selSlRuchomy && !selSlStaly)
-            {
-                result.przesuniecieX = Math.Abs(offset.przesuniecieX);
-                result.przesuniecieY = Math.Abs(offset.przesuniecieY);
-            }
-
-        }
-        else
-        {
-            // 🔹 Tryb NORMALNY (z prowadnicami)
-            result = await JSRuntime.InvokeAsync<GuideDisplacementResult>("svgHelper.measureGuideDisplacement");
-
-            if (result?.success != true || !result.elementsFound)
-            {
-                await _message.Warning(result?.error ?? "❗ Nie można znaleźć prowadnic w rysunku SVG");
-                return;
-            }
+            return; // Błąd został już obsłużony w funkcji PobierzWynikPrzesuniecia
         }
 
-        double przesuniecieX = Math.Round(result.przesuniecieX, precyzjaZapisu);
-        double przesuniecieY = Math.Round(result.przesuniecieY, precyzjaZapisu);
+        double przesuniecieX = result.przesuniecieX;
+        double przesuniecieY = result.przesuniecieY;
 
-
-        if (!selSlRuchomy && !selSlStaly)
-        {
-            przesuniecieX = Math.Abs(result.przesuniecieX);
-            przesuniecieY = Math.Abs(result.przesuniecieY);
-        }
-
-        if (pierwszyModel == null || drugiModel == null || string.IsNullOrEmpty(SelectedModelPierwszyId) || string.IsNullOrEmpty(SelectedModelDrugiId))
-        {
-            await _message.Warning("❗ Nie wybrano obu modeli do połączenia. Błąd konfiguracji modelu :(");
-            return;
-        }
-
-        if (pierwszyModel.Typ.Contains("Słupek stały"))
-        {
-            bool pionS;
-
-            if (pierwszyModel.KatWystapieniaZakresOdMin == 0 &&
-                pierwszyModel.KatWystapieniaZakresOdMax == 360)
-            {
-                // Dowolny kąt
-                pionS = true;
-            }
-            else if (pierwszyModel.KatWystapieniaZakresOdMin == 0 &&
-                     pierwszyModel.KatWystapieniaZakresOdMax == 0)
-            {
-                // Kierunek poziomy
-                pionS = false;
-            }
-            else
-            {
-                // Pozostałe zakresy
-                // tutaj zależy od tego, czy zakres wskazuje na kierunek poziomy
-                pionS = true;
-            }
-
-            if (pionS)
-            {
-                Console.WriteLine($"🔷🔷🔷🔷 Przesunięcie Y (pionowy słupek): {przesuniecieY} -> {(pierwszyModel.PionOsSymetrii ?? 0)}");
-                przesuniecieY = przesuniecieY - (pierwszyModel.PionOsSymetrii ?? 0);
-
-            }
-            else
-            {
-                Console.WriteLine($"🔷🔷🔷🔷 Przesunięcie Y (poziomy słupek): {przesuniecieY} -> {(pierwszyModel.PoziomOsSymetrii ?? 0)}");
-                przesuniecieY = przesuniecieY - (pierwszyModel.PoziomOsSymetrii ?? 0);
-
-            }
-        }
 
         // 🔹 Rysunek aktualnej zakładki
         var png = await GenerujPngBezProwadnic();
@@ -4800,6 +4888,120 @@
 
     }
 
+    private async Task<GuideDisplacementResult> PobierzWynikPrzesuniecia()
+    {
+        //await JSRuntime.InvokeVoidAsync("svgHelper.bakeHorizontalFlipModel2");
+
+        await Task.Yield(); // Daj czas na zakończenie operacji w JS
+
+        await JSRuntime.InvokeVoidAsync("svgHelper.stopMeasurement");
+        Console.WriteLine("📏 Pomiar wyłączony");
+        
+        await Task.Delay(50);
+        await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
+        await Task.Delay(150);
+
+        GuideDisplacementResult result;
+
+        // boolStyczny oznacza, że użytkownik wybrał tryb STYCZNY (bez prowadnic, prostokąt) np dosunięcie modelu 2 do modelu 1 czyli słupka do ramy
+
+        if (boolStyczny)
+        {
+            // 🔹 Tryb STYCZNY (bez prowadnic, prostokąt)
+            var offset = await JSRuntime.InvokeAsync<GuideDisplacementResult>("svgHelper.getModel2Displacement");
+
+            if (offset == null || !offset.success)
+            {
+                await _message.Warning("❗ Nie udało się odczytać przesunięcia modelu 2 (tryb styczny). Nie zapisano przesunięcia.", 5);
+                return null;
+            }
+
+            result = new GuideDisplacementResult
+            {
+                success = offset.success,
+                elementsFound = offset.elementsFound,
+                przesuniecieX = Math.Round(offset.przesuniecieX, precyzjaZapisu),
+                przesuniecieY = Math.Round(offset.przesuniecieY, precyzjaZapisu),
+                katObrotu = offset.katObrotu,
+                odbicieLustrzane = offset.odbicieLustrzane,
+                scale = 1
+            };
+
+            if (!selSlRuchomy && !selSlStaly)
+            {
+                result.przesuniecieX = Math.Abs(offset.przesuniecieX);
+                result.przesuniecieY = Math.Abs(offset.przesuniecieY);
+            }
+        }
+        else
+        {
+            // 🔹 Tryb NORMALNY (z prowadnicami)
+            result = await JSRuntime.InvokeAsync<GuideDisplacementResult>("svgHelper.measureGuideDisplacement");
+
+            if (result?.success != true || !result.elementsFound)
+            {
+                await _message.Warning(result?.error ?? "❗ Nie można znaleźć prowadnic w rysunku SVG");
+                return null;
+            }
+        }
+
+        double przesuniecieX = Math.Round(result.przesuniecieX, precyzjaZapisu);
+        double przesuniecieY = Math.Round(result.przesuniecieY, precyzjaZapisu);
+
+        if (!selSlRuchomy && !selSlStaly)
+        {
+            przesuniecieX = Math.Abs(result.przesuniecieX);
+            przesuniecieY = Math.Abs(result.przesuniecieY);
+        }
+
+        if (pierwszyModel == null || drugiModel == null || string.IsNullOrEmpty(SelectedModelPierwszyId) || string.IsNullOrEmpty(SelectedModelDrugiId))
+        {
+            await _message.Warning("❗ Nie wybrano obu modeli do połączenia. Błąd konfiguracji modelu :(");
+            return null;
+        }
+
+        if (pierwszyModel.Typ.Contains("Słupek stały"))
+        {
+            bool pionS;
+
+            if (pierwszyModel.KatWystapieniaZakresOdMin == 0 &&
+                pierwszyModel.KatWystapieniaZakresOdMax == 360)
+            {
+                // Dowolny kąt
+                pionS = true;
+            }
+            else if (pierwszyModel.KatWystapieniaZakresOdMin == 0 &&
+                     pierwszyModel.KatWystapieniaZakresOdMax == 0)
+            {
+                // Kierunek poziomy
+                pionS = false;
+            }
+            else
+            {
+                // Pozostałe zakresy
+                // tutaj zależy od tego, czy zakres wskazuje na kierunek poziomy
+                pionS = true;
+            }
+
+            if (pionS)
+            {
+                Console.WriteLine($"🔷🔷🔷🔷 Przesunięcie Y (pionowy słupek): {przesuniecieY} -> {(pierwszyModel.PionOsSymetrii ?? 0)}");
+                przesuniecieY = Math.Abs(przesuniecieY - (pierwszyModel.PionOsSymetrii ?? 0));
+            }
+            else
+            {
+                Console.WriteLine($"🔷🔷🔷🔷 Przesunięcie Y (poziomy słupek): {przesuniecieY} -> {(pierwszyModel.PoziomOsSymetrii ?? 0)}");
+                przesuniecieY = Math.Abs(przesuniecieY - (pierwszyModel.PoziomOsSymetrii ?? 0));
+            }
+        }
+
+        // Aktualizacja wyniku o ostateczne wartości
+        result.przesuniecieX = Math.Round(przesuniecieX, precyzjaZapisu);
+        result.przesuniecieY = Math.Round(przesuniecieY, precyzjaZapisu);
+
+        return result;
+    }
+
     private async Task<string> GenerujSvgBezProwadnic()
     {
         try
@@ -4943,6 +5145,11 @@
         if (selDol || selDolStyczne) strony.Add("dół");
         Console.WriteLine($"WyliczStronyPolaczenia: {string.Join(", ", strony)}");
         return strony;
+    }
+
+    private void UstawFiltr(string filtr)
+    {
+        filtrPolaczen = filtr;
     }
 
     private async Task PrzelaczIOtworz(KonfPolaczenie polaczenie)
@@ -5480,6 +5687,26 @@
         }
 
         czekajNaZapis = false;
+    }
+
+    private IEnumerable<dynamic> FiltrowanePolaczenia
+    {
+        get
+        {
+            if (listaPolaczen == null)
+                return Enumerable.Empty<dynamic>();
+
+            return filtrPolaczen switch
+            {
+                "STYCZNE" => listaPolaczen
+                    .Where(x => x.DodatkowyWarunek == "STYCZNE"),
+
+                "PRZEKROJE" => listaPolaczen
+                    .Where(x => x.DodatkowyWarunek == "PRZEKROJE"),
+
+                _ => listaPolaczen
+            };
+        }
     }
 
     // Uprawnienia
