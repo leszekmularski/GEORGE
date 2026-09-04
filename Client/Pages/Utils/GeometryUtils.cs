@@ -1059,6 +1059,9 @@ namespace GEORGE.Client.Pages.Utils
                         l.DualRama,
                         l.GenerowaneZRamy
                     )
+                    {
+                        SplitGroupId = l.SplitGroupId
+                    }
                 ).ToList() ?? new List<XLineShape>(),
                 Wierzcholki = src.Wierzcholki?
                     .Select(p => new XPoint { X = p.X, Y = p.Y })

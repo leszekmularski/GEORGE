@@ -1863,7 +1863,7 @@
     private bool punktyWidoczne = false;
     private bool pokazModalUsuwania = false;
     private bool pokazKomunikatKopiowania = false;
-    private bool pokazWidokSzczegolowy = true;
+    private bool pokazWidokSzczegolowy = false;
 
     // Ustawienia wyświetlania
     private bool rozwinJson = false;
@@ -2686,8 +2686,10 @@
         }
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         Console.WriteLine("GeneratorStateViewer initialized.");
+
+        await PokazSzczegoly(null);
     }
 }

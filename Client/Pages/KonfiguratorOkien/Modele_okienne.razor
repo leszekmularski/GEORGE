@@ -470,9 +470,31 @@
 <Collapse Animation>
 
     <Panel Header="Informacje o wyrobie restrykcje, ustawienia wyświetlania" Key="2" class="scrollable-panel">
+        <br />
+        <InputCheckbox @bind-Value="pokaKonturWewnetrzny" @bind-Value:after="async () => await ZmienWymiaryOkna()" /> <label>Pokaż kontury zewnętrzny i wewnętrzny, wyłącz wypełnienie</label>
+        <InputCheckbox @bind-Value="oknaMogaBycLukowe" @bind-Value:after="async () => await ZmienWymiaryOkna()" /> <label>Okno może być wykonane z elementów łukowych</label>
+
+        <InputCheckbox @bind-Value="boolNieGenerujPojedynczych" @bind-Value:after="async () => await ZmienWymiaryOkna()" /> <label>Rysuj elementy jako linie i łuki</label>
+        <InputCheckbox @bind-Value="boolNieCzyscKonsole" @onclick="() => boolNieCzyscKonsole = !boolNieCzyscKonsole" /> <label>Czyść konsole</label>
+
         <Sider class="info-panel">
             <h4 style="color:aquamarine;">🛠️ Informacja o wyrobie:</h4>
-
+            @if (_generator.BledySystemowe != null && _generator.BledySystemowe.Any())
+            {
+                @foreach (var blad in _generator.BledySystemowe)
+                {
+                    <p style="color: red; font-size: 12px;">❌ @blad</p>
+                }
+            }
+            <hr />
+            @if (_generator.Komunikaty != null && _generator.Komunikaty.Any())
+            {
+                @foreach (var komunikat in _generator.Komunikaty)
+                {
+                    <p style="color: yellow; font-size: 12px;">⚠️ @komunikat</p>
+                }
+            }
+            <hr />
             @if (infoObiekt != null && infoObiekt.Any())
             {
                 <p class="entries-count"> 📌 Liczba wpisów: <strong>@infoObiekt.Count()</strong></p>
@@ -494,12 +516,7 @@
             }
 
         </Sider>
-        <hr />
-        <InputCheckbox @bind-Value="pokaKonturWewnetrzny" @bind-Value:after="async () => await ZmienWymiaryOkna()" /> <label>Pokaż kontury zewnętrzny i wewnętrzny, wyłącz wypełnienie</label>
-        <InputCheckbox @bind-Value="oknaMogaBycLukowe" @bind-Value:after="async () => await ZmienWymiaryOkna()" /> <label>Okno może być wykonane z elementów łukowych</label>
 
-        <InputCheckbox @bind-Value="boolNieGenerujPojedynczych" @bind-Value:after="async () => await ZmienWymiaryOkna()" /> <label>Rysuj elementy jako linie i łuki</label>
-        <InputCheckbox @bind-Value="boolNieCzyscKonsole" @onclick="() => boolNieCzyscKonsole = !boolNieCzyscKonsole" /> <label>Czyść konsole</label>
 
     </Panel>
     <Panel Header="Materiały" Key="3" class="scrollable-panel">
@@ -580,30 +597,41 @@
                 </tr>
             </thead>
             <tbody>
+
                 @if (ListaModeli != null)
                 {
-                    @foreach (var model in ListaModeli)
+                    @foreach (var model in FiltrowaneModele)
                     {
                         <tr>
                             <td>@model.NazwaKonfiguracji</td>
-                            <td>@model.KonstrMinSzer x @model.KonstrMinWys → @model.KonstrMaxSzer x @model.KonstrMaxWys</td>
+
+                            <td>
+                                @model.KonstrMinSzer x @model.KonstrMinWys
+                                →
+                                @model.KonstrMaxSzer x @model.KonstrMaxWys
+                            </td>
+
                             <td>
                                 @if (model.Rysunek != null && model.Ikona32x32.Length > 0)
                                 {
                                     <img id="@($"wing-{model.Typ}")"
                                          src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
-                                         @onclick='@(() => WybierzModel(model))'
-                                         @ondragstart='@(e => JS.InvokeVoidAsync("SetCurrentModel", model.Typ, model.RowId))'
-                                         @onmouseout='@(e => JS.InvokeVoidAsync("ResetCursor"))'
-                                         draggable="true"
-                                         style="cursor: grab;
-                                                                            width: auto;
-                                                                            height: auto;
-                                                                            max-width: 50px;
-                                                                            max-height: 50px;
-                                                                            border: @(model == WybranyModel ? "4px solid #007bff" : "none")" />
-
-                                }
+                                         @onclick="@(() => WybierzModel(model))"
+                                         @ondragstart="@(e => JS.InvokeVoidAsync(
+                                         "SetCurrentModel",
+                                                                                                                                                 model.Typ,
+                                                                                                                                                 model.RowId))"
+                             @onmouseout="@(e => JS.InvokeVoidAsync("ResetCursor"))"
+                             draggable="true"
+                             style="cursor: grab;
+                                width: auto;
+                                height: auto;
+                                max-width: 50px;
+                                max-height: 50px;
+                                border: @(model == WybranyModel
+                                                                                                                                           ? "4px solid #007bff"
+                                                                                                                                           : "none")" />
+                                                }
                                 else
                                 {
                                     <span class="text-muted">Brak</span>
@@ -612,6 +640,7 @@
                         </tr>
                     }
                 }
+
             </tbody>
         </table>
     </div>
@@ -1625,6 +1654,25 @@
         }
 
         await Task.CompletedTask;
+    }
+
+    private IEnumerable<KonfModele> FiltrowaneModele
+    {
+        get
+        {
+            if (ListaModeli == null)
+                return Enumerable.Empty<KonfModele>();
+
+            var liczbaRam = _generatorStates
+                .Count(x => x.Value?.WybranyModel?.Typ == "Rama");
+
+            if (liczbaRam == 0)
+            {
+                return ListaModeli.Where(x => x.Typ == "Rama");
+            }
+
+            return ListaModeli.Where(x => x.Typ != "Rama");
+        }
     }
 
     // Metoda do pobierania i aktualizacji rozmiaru z .display-window
@@ -2764,6 +2812,7 @@
             return;
 
         var ostatni = _generatorStates.Keys.LastOrDefault();
+
         if (string.IsNullOrWhiteSpace(ostatni))
             return;
 
@@ -2775,7 +2824,6 @@
             _ksztaltyNaRegion.Remove(state.IdRegion);
             ksztalty = _ksztaltyNaRegion.Values.SelectMany(x => x).ToList();
         }
-
 
         //  await ClearCanvas();
 
@@ -2918,16 +2966,43 @@
         {
             var match = await ObliczWierzcholkiSlupkaStalego(Wierzcholki, klikX, klikY);
 
+            Console.WriteLine($"🔍 FitToCanvas --> Słupek stały: znaleziono {match.Wierzcholki.Count} wierzchołków, {match.RegionIds.Count} regionów, kąt={match.KatLiniSlupka:F2}");
+
             var WierzcholkiST = match.Wierzcholki;
             var RegionIds = match.RegionIds;
 
-            if (!await DodajWybranyKwadratOkna(idRegion, WierzcholkiST, klikX, klikY, true, RegionIds, Wierzcholki, match.KatLiniSlupka))
+            string inf = await DodajWybranyKwadratOkna(idRegion, WierzcholkiST, klikX, klikY, true, RegionIds, Wierzcholki, match.KatLiniSlupka);
+
+            if (inf != "")
+            {
+                _ = _notice.Info(new()
+                {
+                    Message = inf,
+                    Description = "Nie udało się wstawić elementu do konstrukcji",
+                    Placement = NotificationPlacement.BottomLeft,
+                    Duration = 6
+                });
+
                 return;
+            }
+
         }
         else
         {
-            if (!await DodajWybranyKwadratOkna(idRegion, Wierzcholki, klikX, klikY, false, null, null, -1))
+            var inf2 = await DodajWybranyKwadratOkna(idRegion, Wierzcholki, klikX, klikY, false, null, null, -1);
+            if (inf2 != "")
+            {
+                _ = _notice.Info(new()
+                {
+                    Message = inf2,
+                    Description = "Nie udało się wstawić elementu do konstrukcji",
+                    Placement = NotificationPlacement.BottomLeft,
+                    Duration = 6
+                });
+
                 return;
+            }
+
         }
 
         await Task.Delay(20);
@@ -2974,9 +3049,9 @@
 
         double os_symetrii_slupka = 0;
 
-        if(_powiazanyModel == null)
+        if (_powiazanyModel == null)
         {
-            await _message.Warning($"❌ Wybrany model nie ma powiązanych elementów!!!.",15);
+            await _message.Warning($"❌ Wybrany model nie ma powiązanych elementów!!!.", 15);
 
             os_symetrii_slupka = szer_slupka / 2;
         }
@@ -3018,7 +3093,12 @@
             best.Wierzcholki = UtworzProstokatWokolLinii(best.Wierzcholki, szer_slupka, os_symetrii_slupka); // 82 = grubość słupka
         }
 
-        Console.WriteLine($"🔍 Wynik końcowy: znaleziono {best.Wierzcholki.Count} punktów, {best.RegionIds.Count} regionów");
+        Console.WriteLine($"🔍 Wynik końcowy: znaleziono {best.KatLiniSlupka} {best.Wierzcholki.Count} punktów, {best.RegionIds.Count} regionów");
+
+        // foreach (var p in best.Wierzcholki)
+        // {
+        //     Console.WriteLine($"🔍 Wynik końcowy: Punkt: X:({p.X:F2}, Y:{p.Y:F2})");
+        // }
 
         return best;
     }
@@ -3318,7 +3398,7 @@
 
         _czekajNaZaladowanie = true;
 
-        await Task.Delay(10);
+        await Task.Delay(50);
 
         await FitToCanvas(shape, region.Id, false, region.Wierzcholki, modelX, modelY);
 
@@ -3330,6 +3410,8 @@
         await JS.InvokeVoidAsync("ResetCursorGlobal");
 
         _czekajNaZaladowanie = false;
+
+        Console.WriteLine($"✅ Zakończono dopasowanie modelu do regionu {region.Id}");
 
     }
 
@@ -4079,7 +4161,7 @@
             {
                 string cleanId = genState.Value.IdRegion;
 
-                //Console.WriteLine($"🔄 Przetwarzam region cleanId:{cleanId} genState.Value.WybranyModel.Typ?.Trim(): {genState.Value.WybranyModel.Typ?.Trim()}");
+                Console.WriteLine($"🔄 Przetwarzam region cleanId:{cleanId} genState.Value.WybranyModel.Typ?.Trim(): {genState.Value.WybranyModel.Typ?.Trim()}");
 
                 var region = wszystkieRegiony.FirstOrDefault(r => r.Id == cleanId);
                 if (region == null)
@@ -4112,7 +4194,7 @@
                 var generator = genState.Value.Generator;
                 if (generator == null)
                 {
-                    // Console.WriteLine($"⚠ Brak generatora dla cleanId: {cleanId}");
+                    Console.WriteLine($"⚠ Brak generatora dla cleanId: {cleanId}");
                     continue;
                 }
 
@@ -4188,7 +4270,7 @@
                     var wybranyRegionSlupek = _regionsDualRama.Concat(_regionsSkrzydlo)
                         .FirstOrDefault(r => r.Id == region.Id);
 
-                    // Console.WriteLine($"📐 WyliczObszarSlupkaStalego -> r => r.Id == region.Id == {region.Id}");
+                    Console.WriteLine($"📐 WyliczObszarSlupkaStalego -> r => r.Id == region.Id == {region.Id}");
 
                     if (wybranyRegionSlupek != null)
                     {
@@ -4224,6 +4306,7 @@
                         );
                     }
                 }
+
                 // Dodaj elementy do generatora
                 var daneKwadratow = genState.Value.ListaKwadratow ?? new List<DaneKwadratu>();
 
@@ -4239,9 +4322,9 @@
                           _lastMouseClick, boolNieCzyscKonsole
                       );
 
-                    if (!ok)
+                    if (ok != "")
                     {
-                        //_message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Sprawdź wymiary i kształt regionu.");
+                        _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Sprawdź wymiary i kształt regionu. Błąd: {ok}");
                         generator.Komunikaty.Add($"Nie można wygenerować elementów dla regionu {cleanId}. Sprawdź wymiary i kształt regionu.");
                     }
                 }
@@ -4258,9 +4341,9 @@
                         _lastMouseClick, boolNieCzyscKonsole
                     );
 
-                    if (!ok)
+                    if (ok != "")
                     {
-                        _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Sprawdź wymiary i kształt regionu.");
+                        _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Sprawdź wymiary i kształt regionu. Błąd: {ok}");
                         generator.Komunikaty.Add($"Nie można wygenerować elementów dla regionu {cleanId}. Sprawdź wymiary i kształt regionu.");
                     }
 
@@ -4359,13 +4442,13 @@
         return wynik;
     }
 
-    private async Task<bool> DodajWybranyKwadratOkna(string idRegion, List<XPoint> wierzcholki, double klikX, double klikY, bool slupekStaly,
+    private async Task<string> DodajWybranyKwadratOkna(string idRegion, List<XPoint> wierzcholki, double klikX, double klikY, bool slupekStaly,
         List<string> idSlupka, List<XPoint> wierzcholkiMaster, double katSlupkaStalego)
     {
         if (SelectedModelType == null || string.IsNullOrEmpty(SelectedModelType))
         {
             Console.WriteLine("❌ SelectedModelType jest puste, nie można kontynuować.");
-            return false;
+            return "❌ SelectedModelType jest puste, nie można kontynuować.";
         }
 
         if (_generatorStates != null && _generatorStates.Count == 0)
@@ -4373,7 +4456,7 @@
             if (SelectedModelType.Trim() != "Rama")
             {
                 await _message.Info($"Wybierz konstrukcję typu rama!!!");
-                return false;
+                return $"Wybierz konstrukcję typu rama!!!";
             }
         }
 
@@ -4411,14 +4494,14 @@
                 {
                     Console.WriteLine($"⚠️ Nie znaleziono powiązanego modelu dla SelectedRowIdType: {SelectedRowIdType}");
                     await _message.Error($"⚠️ Nie znaleziono powiązanego modelu dla SelectedRowIdType: {SelectedRowIdType}");
-                    return false;
+                    return $"⚠️ Nie znaleziono powiązanego modelu dla SelectedRowIdType: {SelectedRowIdType}";
                 }
             }
             else
             {
                 Console.WriteLine($"⚠️ Nieprawidłowy SelectedRowIdType: {SelectedRowIdType}");
                 await _message.Error($"⚠️ Nieprawidłowy SelectedRowIdType: {SelectedRowIdType}");
-                return false;
+                return $"⚠️ Nieprawidłowy SelectedRowIdType: {SelectedRowIdType}";
 
             }
         }
@@ -4427,7 +4510,7 @@
             if (string.IsNullOrEmpty(SelectedSystemId))
             {
                 Console.WriteLine("❌ KonfiguracjeSystemu jest puste, nie można kontynuować.");
-                return false;
+                return "❌ KonfiguracjeSystemu jest puste, nie można kontynuować.";
             }
 
             var kofiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIND_ROWID_SYS/{SelectedSystemId}");
@@ -4445,7 +4528,7 @@
         if (regionReferencyjny == null || regionReferencyjny.Wierzcholki == null)
         {
             Console.WriteLine("❌ Brak regionu referencyjnego.");
-            return false;
+            return "❌ Brak regionu referencyjnego.";
         }
 
         var wszystkieRegiony = _regionsDualRama.Concat(_regionsSkrzydlo);
@@ -4728,7 +4811,7 @@
                         "Brak słupka ruchomego w regionie skrzydła. Dodaj wcześniej słupek ruchomy do konstrukcji.",
                         2.0
                     );
-                    return false;
+                    return "Brak słupka ruchomego w regionie skrzydła. Dodaj wcześniej słupek ruchomy do konstrukcji.";
                 }
 
             }
@@ -4745,7 +4828,7 @@
         //     .SelectMany(x => x.Value) // spłaszczamy kolekcje regionów
         //     .Count(v => v.TypLiniiDzielacej == "Słupek ruchomy");
 
-        if (generator.MVCKonfModelu == null || generator.MVCKonfModelu.KonfModele == null || generator == null) return false;
+        if (generator.MVCKonfModelu == null || generator.MVCKonfModelu.KonfModele == null || generator == null) return "Generator jest pusty";
 
         int ileRegionDRZawieraSlupekRuchomy = generator.MVCKonfModelu.KonfModele.Where(x => x.Typ == "Skrzydło z słupkiem ruchomym").Count();
 
@@ -4755,7 +4838,7 @@
                 "Błąd wyboru modelu!!!!",
                 2.5
             );
-            return false;
+            return "Błąd wyboru modelu!!!!";
         }
 
         // Console.WriteLine($"🟩 Ile regionów skrzydła zawiera słupek ruchomy: {ileRegionWSkrzydleZawieraSlupekRuchomy} - Ile regionów DR zawiera słupek ruchomy: {ileRegionDRZawieraSlupekRuchomy} - SelectedModelType: {SelectedModelType} -> ileJestDodanychSlRuchWRegionach: {ileJestDodanychSlRuchWRegionach} Wybrany typ {WybranyModel.Typ}");
@@ -4768,7 +4851,7 @@
                 "1# Dodajesz konstrukcję z słupkiem ruchomym, Najpierw dodaj podział z osią słupka ruchomego!",
                 3.0
             );
-            return false;
+            return "1# Dodajesz konstrukcję z słupkiem ruchomym, Najpierw dodaj podział z osią słupka ruchomego!";
 
         }
 
@@ -4788,7 +4871,7 @@
                 "2# Dodajesz konstrukcję z słupkiem ruchomym, Najpierw dodaj podział z osią słupka ruchomego!",
                 3.0
             );
-            return false;
+            return "2# Dodajesz konstrukcję z słupkiem ruchomym, Najpierw dodaj podział z osią słupka ruchomego!";
         }
 
         if (ileRegionWSkrzydleZawieraSlupekRuchomy == 0 && WybranyModel.Typ == "Skrzydło z słupkiem ruchomym")
@@ -4797,7 +4880,7 @@
                 "Dodajesz konstrukcję z słupkiem ruchomym, W konstrukcji nie ma podzaiłu z słupkiem ruchomym",
                 3.0
             );
-            return false;
+            return "Dodajesz konstrukcję z słupkiem ruchomym, W konstrukcji nie ma podzaiłu z słupkiem ruchomym";
         }
 
         double minX = 0;
@@ -4825,7 +4908,7 @@
                 if (regionPoints == null || regionPoints.Count < 3)
                 {
                     //Console.WriteLine("❌ Wybrany region nie zawiera wystarczającej liczby punktów!");
-                    return false;
+                    return "❌ Wybrany region nie zawiera wystarczającej liczby punktów!";
                 }
 
                 generator.IdRegionuPonizej = wybranyRegionDualRama.IdRegionuPonizej ?? idRegion;
@@ -4851,10 +4934,10 @@
                 generator.RuchomySlupekPoPrawej = false;
 
                 var ok = await generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama, null, null, _lastMouseClick, boolNieCzyscKonsole);//Rama nie ma sąsiada dla tego null
-                if (!ok)
+                if (ok != "")
                 {
-                    _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Sprawdź wymiary i kształt regionu.");
-                    generator.BledySystemowe.Add($"Nie można wygenerować elementów dla regionu {idRegion}. Sprawdź wymiary i kształt regionu.");
+                    _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Sprawdź wymiary i kształt regionu. Błąd: {ok}");
+                    generator.BledySystemowe.Add($"Nie można wygenerować elementów dla regionu {idRegion}. Sprawdź wymiary i kształt regionu. Błąd: {ok}");
                 }
             }
         }
@@ -5138,7 +5221,7 @@
                 // 🔹 1. PRIORYTET: "Słupek ruchomy" Z PASUJĄCYM KIERUNKIEM
                 // Console.WriteLine($"✅✅✅✅ 🔍 Szukam typ --> Słupek ruchomy Z PASUJĄCYM KIERUNKIEM Kąt: {katSzukaj}°");
 
-                if (sasiedzi == null) return false;
+                if (sasiedzi == null) return "Nie znaleziono sąsiadów";
 
                 najlepszySasiad = sasiedzi
                 .Where(s => s.WybranyTyp == "Słupek ruchomy" && KierunekPasuje(s) && !SelectedModelType.Trim().Contains(s.WybranyTyp))
@@ -5308,7 +5391,7 @@
             if (!styczneLinie.Any())
             {
                 Console.WriteLine($"✅ Region {idRegion} nie zawiera słupka stałego.");
-                return false;
+                return "✅ Region nie zawiera słupka stałego.";
             }
 
             //  Console.WriteLine($"🔹🔹🔹🔹🔹🔹 Znaleziono {styczneLinie.Count} potencjalnych linii dla słupka stałego");
@@ -5372,7 +5455,7 @@
                 //Console.WriteLine($"⚠️ Nie znaleziono linii z TypLiniiDzielacej='Słupek stały'. Szukam poziomej linii jako zamiennika... klikY: {klikY}");
                 _message.Warning("Nie znaleziono linii stycznych we wskazanym obszarze!!!");
                 generator.BledySystemowe.Add($"⚠️ Nie znaleziono linii z TypLiniiDzielacej='Słupek stały'. Szukam poziomej linii jako zamiennika... klikY: {klikY}");
-                return false;
+                return $"⚠️ Nie znaleziono linii z TypLiniiDzielacej='Słupek stały'. Szukam poziomej linii jako zamiennika... klikY: {klikY}";
             }
 
             // foreach (var linia in liniaStala.Wierzcholki)
@@ -5383,7 +5466,7 @@
             if (liniaStala == null)
             {
                 //Console.WriteLine("❌ Nadal nie znaleziono poprawnej linii słupka (brak dwóch różnych punktów lub pionowej linii).");
-                return false;
+                return "❌ Nadal nie znaleziono poprawnej linii słupka (brak dwóch różnych punktów lub pionowej linii).";
             }
 
             DaneKwadratu najlepszySasiadA = state.ListaKwadratow.Find(k => k.Strona.ToLower() == "góra" || k.Strona.ToLower() == "gora");
@@ -5524,15 +5607,15 @@
                       _lastMouseClick, boolNieCzyscKonsole
                   );
 
-                if (!ok)
+                if (ok != "")
                 {
-                    _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Sprawdź wymiary i kształt regionu.");
+                    _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Sprawdź wymiary i kształt regionu. Błąd: {ok}");
                     generator.Komunikaty.Add($"❌ Nie można wygenerować elementów dla regionu {idRegion}. Sprawdź wymiary i kształt regionu.");
                 }
 
             }
 
-            //Console.WriteLine($"📐📐📐 Słupek stały zakończony pomyślnie --> wierzcholkiMaster.Count: {wierzcholkiMaster.Count()} idRegion: {idRegion} 📐📐📐");
+            Console.WriteLine($"📐📐📐 Słupek stały zakończony pomyślnie --> wierzcholkiMaster.Count: {wierzcholkiMaster.Count()} idRegion: {idRegion} 📐📐📐");
 
         }
 
@@ -5549,7 +5632,7 @@
                 if (regionPointsSkrzydlo == null || regionPointsSkrzydlo.Count < 3)
                 {
                     Console.WriteLine("❌ Wybrany region nie zawiera wystarczającej liczby punktów!");
-                    return false;
+                    return "❌ Wybrany region nie zawiera wystarczającej liczby punktów!";
                 }
 
                 generator.IdRegionuPonizej = wybranyRegionSkrzydlo.IdRegionuPonizej ?? idRegion + "-BLAD";
@@ -5622,10 +5705,10 @@
                     // 5. Dodaj elementy
                     var ok = await generator.AddElements(new List<ShapeRegion> { regionDoDodania }, idRegion, _generatorStates, _regionsSkrzydlo, state.ListaKwadratow, null, _lastMouseClick, boolNieCzyscKonsole);
 
-                    if (!ok)
+                    if (ok != "")
                     {
-                        _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Sprawdź wymiary i kształt regionu.");
-                        generator.Komunikaty.Add($"❌ Nie można wygenerować elementów dla regionu {idRegion}. Sprawdź wymiary i kształt regionu.");
+                        _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Sprawdź wymiary i kształt regionu. Błąd: {ok}");
+                        generator.Komunikaty.Add($"❌ Nie można wygenerować elementów dla regionu {idRegion}. Sprawdź wymiary i kształt regionu. Błąd: {ok}");
                     }
 
                 }
@@ -5650,7 +5733,7 @@
         {
             // Console.WriteLine($"❌ Brak elementów do rysowania! Dla: {WybranyModel.NazwaKonfiguracji}");
             generator.Komunikaty.Add($"❌ Brak elementów do rysowania! Dla: {WybranyModel.NazwaKonfiguracji}");
-            return false;
+            return $"❌ Brak elementów do rysowania! Dla: {WybranyModel.NazwaKonfiguracji}";
         }
 
         // Console.WriteLine($"📦📦📦 Generowanie elementów ListaKwadratow: {state.ListaKwadratow.Count}.");
@@ -5702,7 +5785,7 @@
 
         Console.WriteLine($"✅ ✅ ✅ Funkcja DodajWyranyKwadratOkna zakończyła działanie - TRUE");
 
-        return true;
+        return "";
     }
 
     private double ObliczKat(SasiadInfo sasiad)
@@ -6072,7 +6155,7 @@
         //await Task.WhenAll(); // jeśli masz inne równoległe operacje do wykonania
         await Task.Delay(50); // krótkie opóźnienie dla stabilności krótszy czas jest problem z pobieraniem danych z systemu, dłuższy czas powoduje lagi w interfejsie przy dużej ilości danych o połączeniach
 
-            // 🔹 Pobierz przesunięcia z boków
+        // 🔹 Pobierz przesunięcia z boków
         foreach (var bok in state.ListaKwadratow)
         {
             // bok.Strona = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(bok.KatLinii); //Popraw stronę elementu!
@@ -6133,7 +6216,7 @@
 
 
             //Console.WriteLine($"WyliczObszarSkrzydla   Znormalizowana strona: '{stronaNormalized}'");
-        
+
             switch (s_polaczenieStrona?.Strona)
             {
                 case "lewa":
@@ -6490,7 +6573,7 @@
             }
 
             WyrobWymiaryOpis opisy = new WyrobWymiaryOpis(constWlasciwosciOkna.Szerokosc, constWlasciwosciOkna.Wysokosc, SelectedModelType ?? "", $"Nie wyszukano indesku elementu dla strony: {strona}");
-           
+
             infoObiekt.Add(opisy);
 
             return new List<PrzesuniecieDto>();
@@ -6544,7 +6627,7 @@
             }
 
             WyrobWymiaryOpis opisy = new WyrobWymiaryOpis(constWlasciwosciOkna.Szerokosc, constWlasciwosciOkna.Wysokosc, SelectedModelType ?? "", $"Nie wyszukano indesku elementu dla strony: {strona}");
-            
+
             infoObiekt.Add(opisy);
 
             return new List<PrzesuniecieDto>();
@@ -7837,9 +7920,9 @@
 
             var ok = await generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama, null, null, _lastMouseClick);
 
-            if (!ok)
+            if (ok != "")
             {
-                _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Sprawdź wymiary i kształt regionu.");
+                _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Sprawdź wymiary i kształt regionu. Błąd: {ok}");
             }
         }
         else if (wybranyRegionSkrzydlo != null && !czyRegionZawieraSlupekStaly)
@@ -7858,9 +7941,9 @@
 
             var ok = await generator.AddElements(new List<ShapeRegion> { wybranyRegionSkrzydlo }, idRegion, _generatorStates, _regionsSkrzydlo, null, null, _lastMouseClick);
 
-            if (!ok)
+            if (ok != "")
             {
-                _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Sprawdź wymiary i kształt regionu.");
+                _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Sprawdź wymiary i kształt regionu. Błąd: {ok}");
             }
         }
         else

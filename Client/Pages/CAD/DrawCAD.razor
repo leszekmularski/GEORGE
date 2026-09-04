@@ -751,9 +751,91 @@
 
         Console.WriteLine($"Dodano nowy kształt: {newShape.GetType().Name}");
 
-        _shapes.Add(newShape);
+        if (newShape is XLineShape newLine)
+        {
+            AddLineSplitAtExistingLineIntersections(newLine);
+        }
+        else
+        {
+            _shapes.Add(newShape);
+        }
 
         await RedrawCanvas();
+    }
+
+    /// <summary>
+    /// Dodaje nową linię. Jeżeli przecina ona wcześniejsze linie, dzieli wyłącznie
+    /// nową linię w punktach przecięć; wcześniej narysowane linie nie są zmieniane.
+    /// </summary>
+    private void AddLineSplitAtExistingLineIntersections(XLineShape newLine)
+    {
+        const double tolerance = 0.001;
+        var splitPoints = new List<(double Parameter, double X, double Y)>();
+
+        foreach (var existingLine in _shapes.OfType<XLineShape>())
+        {
+            if (!LineUtils.FindIntersection(
+                    newLine.X1, newLine.Y1, newLine.X2, newLine.Y2,
+                    existingLine.X1, existingLine.Y1, existingLine.X2, existingLine.Y2,
+                    out var intersectionX, out var intersectionY))
+            {
+                continue;
+            }
+
+            var parameter = GetLineParameter(newLine, intersectionX, intersectionY);
+
+            // Przecięcie na końcu nowej linii nie wymaga jej dzielenia.
+            if (parameter <= tolerance || parameter >= 1 - tolerance)
+            {
+                continue;
+            }
+
+            // Jedno miejsce może należeć do kilku wcześniej narysowanych odcinków.
+            if (splitPoints.All(point => Math.Abs(point.Parameter - parameter) > tolerance))
+            {
+                splitPoints.Add((parameter, intersectionX, intersectionY));
+            }
+        }
+
+        if (splitPoints.Count == 0)
+        {
+            _shapes.Add(newLine);
+            return;
+        }
+
+        splitPoints.Sort((first, second) => first.Parameter.CompareTo(second.Parameter));
+
+        var startX = newLine.X1;
+        var startY = newLine.Y1;
+        foreach (var splitPoint in splitPoints)
+        {
+            _shapes.Add(CreateLineSegment(newLine, startX, startY, splitPoint.X, splitPoint.Y));
+            startX = splitPoint.X;
+            startY = splitPoint.Y;
+        }
+
+        _shapes.Add(CreateLineSegment(newLine, startX, startY, newLine.X2, newLine.Y2));
+    }
+
+    private static double GetLineParameter(XLineShape line, double x, double y)
+    {
+        var deltaX = line.X2 - line.X1;
+        var deltaY = line.Y2 - line.Y1;
+
+        return Math.Abs(deltaX) >= Math.Abs(deltaY)
+            ? (x - line.X1) / deltaX
+            : (y - line.Y1) / deltaY;
+    }
+
+    private XLineShape CreateLineSegment(XLineShape source, double x1, double y1, double x2, double y2)
+    {
+        return new XLineShape(
+            x1, y1, x2, y2, _scaleFactor, source.NazwaObj,
+            source.RuchomySlupek, source.PionPoziom, source.DualRama,
+            source.GenerowaneZRamy, source.StalySlupek)
+        {
+            SplitGroupId = source.SplitGroupId ?? source.ID
+        };
     }
 
 

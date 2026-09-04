@@ -5,6 +5,7 @@
 @using GEORGE.Client.Pages
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
 @using AntDesign
 @inject IMessageService _message
 @inject PdfReaderService PdfReaderService
@@ -27,67 +28,67 @@
     <style>
         /* Styl dla linków */
         .custom-link {
-        color: blue;
+            color: blue;
         }
 
         .custom-linkszy {
-        color: darkblue;
+            color: darkblue;
         }
 
         /* Główna tabela z przewijaniem */
         .highlighted-background {
-        background-color: white;
-        overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
-        max-height: calc(100vh - 55px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 55px */
-        width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 260px */
-        box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu rozmiarów */
-        position: absolute;
-        left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
-        top: 55px; /* Ustawia górną krawędź 55px od góry okna */
+            background-color: white;
+            overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
+            max-height: calc(100vh - 55px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 55px */
+            width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 260px */
+            box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu rozmiarów */
+            position: absolute;
+            left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
+            top: 55px; /* Ustawia górną krawędź 55px od góry okna */
         }
 
         /* Klasa "uwaga" z mocnym podświetleniem */
         .uwaga, .uwaga > td {
-        background-color: #ff4d4d !important; /* Mocny czerwony */
-        color: white !important; /* Biały tekst dla lepszej widoczności */
-        font-weight: bold; /* Pogrubienie tekstu */
-        border: 2px solid red; /* Czerwona ramka */
-        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Delikatny cień dla głębi */
-        transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Płynna zmiana koloru i cienia */
+            background-color: #ff4d4d !important; /* Mocny czerwony */
+            color: white !important; /* Biały tekst dla lepszej widoczności */
+            font-weight: bold; /* Pogrubienie tekstu */
+            border: 2px solid red; /* Czerwona ramka */
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Delikatny cień dla głębi */
+            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Płynna zmiana koloru i cienia */
         }
 
-        .uwaga:hover, .uwaga:hover > td {
-        background-color: antiquewhite !important; /* Zmiana tła na jasnoróżowy przy najechaniu */
-        color: black !important; /* Tekst zmienia się na czarny przy najechaniu */
-        box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.3); /* Większy cień przy najechaniu */
-        font-size: 1.0em; /* Zachowanie wielkości czcionki */
-        }
+            .uwaga:hover, .uwaga:hover > td {
+                background-color: antiquewhite !important; /* Zmiana tła na jasnoróżowy przy najechaniu */
+                color: black !important; /* Tekst zmienia się na czarny przy najechaniu */
+                box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.3); /* Większy cień przy najechaniu */
+                font-size: 1.0em; /* Zachowanie wielkości czcionki */
+            }
 
         /* Klasa "zamowiono" z wyrazistymi stylami */
         .zamowiono, .zamowiono > td {
-        background-color: lightseagreen !important; /* Wyrazisty zielony */
-        color: black !important; /* Czarny tekst dla kontrastu */
-        font-weight: normal; /* Normalny tekst */
-        border: 1px solid black; /* Czarna ramka */
-        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Delikatny cień dla głębi */
-        transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Płynna zmiana stylów */
+            background-color: lightseagreen !important; /* Wyrazisty zielony */
+            color: black !important; /* Czarny tekst dla kontrastu */
+            font-weight: normal; /* Normalny tekst */
+            border: 1px solid black; /* Czarna ramka */
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Delikatny cień dla głębi */
+            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Płynna zmiana stylów */
         }
 
-        .zamowiono:hover, .zamowiono:hover > td {
-        background-color: mediumslateblue !important; /* Zmiana tła na fioletowy przy najechaniu */
-        font-size: 1.0em; /* Zachowanie wielkości czcionki */
-        }
+            .zamowiono:hover, .zamowiono:hover > td {
+                background-color: mediumslateblue !important; /* Zmiana tła na fioletowy przy najechaniu */
+                font-size: 1.0em; /* Zachowanie wielkości czcionki */
+            }
 
         /* Klasa "zrealizowano" z zielonym podświetleniem */
         .zrealizowano, .zrealizowano > td {
-        background-color: forestgreen !important; /* Mocny zielony dla zrealizowanych zamówień */
-        color: white; /* Biały tekst dla lepszej widoczności */
+            background-color: forestgreen !important; /* Mocny zielony dla zrealizowanych zamówień */
+            color: white; /* Biały tekst dla lepszej widoczności */
         }
 
-        .zrealizowano:hover, .zrealizowano:hover > td {
-        background-color: mediumslateblue !important; /* Zmiana tła na fioletowy przy najechaniu */
-        font-size: 1.0em; /* Zachowanie wielkości czcionki */
-        }
+            .zrealizowano:hover, .zrealizowano:hover > td {
+                background-color: mediumslateblue !important; /* Zmiana tła na fioletowy przy najechaniu */
+                font-size: 1.0em; /* Zachowanie wielkości czcionki */
+            }
     </style>
 
     <meta charset="utf-8" />
@@ -179,7 +180,7 @@
         document.body.removeChild(a);
         }
 
-        
+
         window.saveAsExcelExcelPozycje = (base64Excel, fileName) => {
             const binary = atob(base64Excel);
             const bytes = new Uint8Array(binary.length);
@@ -239,16 +240,16 @@
                     <Button Type="reset" Icon="@IconType.Fill.Copy" OnClick="@(CopyElementyChekToClipboard)" />
                 </Tooltip>
                 <Tooltip Placement="@Placement.Top" Title="Wklej skopiowane pozycje z innego zamówienia!">
-                    <Button type="button" class="btn btn-sm btn-light" Icon="@IconType.Outline.PaperClip" OnClick="@(async ()=> { await PasteElementyFromClipboard(ConfirmButtons.YesNo); })"></Button>
+                    <Button type="button" class="btn btn-sm btn-light" Icon="@IconType.Outline.PaperClip" OnClick="@(async () => { await PasteElementyFromClipboard(ConfirmButtons.YesNo); })"></Button>
                 </Tooltip>
                 <Button Type="reset" OnClick="@(ExportToExcel)">
-                    Zapisz do pliku CSV - wszystko
+                    Plik CSV - wszystko
                 </Button>
                 <Tooltip Placement="@Placement.BottomCenter" Title="Zapisz do pliku CSV - tylko wymagane">
                     <Button Type="reset" Icon="@IconType.Fill.FileExcel" OnClick="@(ExportSelectedColumnsToExcel)" />
                 </Tooltip>
                 <Button Type="reset" OnClick="@(ExportSelectedColumnsItemsToExcel)">
-                    Zapisz do pliku CSV - zaznaczone
+                    Plik CSV - zaznaczone
                 </Button>
                 <Tooltip Placement="@Placement.BottomCenter" Title="Zapisz sformatowany dokument EXCEL.">
                     <Button Type="reset" Icon="@IconType.Fill.FileExcel" OnClick="@(ZapiszExcelPozycjePoStronieKlienta)" />
@@ -259,6 +260,9 @@
                 <Tooltip Placement="@Placement.BottomCenter" Title="Zaznaczone zapisz do pliku txt (format VBH)">
                     <Button Type="reset" Icon="@IconType.Fill.FileText" OnClick="@(ExportSelectedColumnsToVBH)" />
                 </Tooltip>
+                <Tooltip Placement="@Placement.BottomCenter" Title="Zrób z zaznaczonych nową grupę kompletu okuć">
+                    <Button Type="reset" Icon="@IconType.Fill.Gold" OnClick="@(ExportSelectedToGroup)" />
+                </Tooltip>
                 <Button OnClick="PrzelaczWidok">
                     @(pokazujTylkoNiezamowione ? "Pokaż wszystkie" : "Pokaż tylko niezamówione")
                 </Button>
@@ -267,17 +271,17 @@
             else
             {
                 <Tooltip Placement="@Placement.Top" Title="Wklej skopiowane pozycje z innego zamówienia!">
-                    <Button type="button" class="btn btn-sm btn-light" Icon="@IconType.Outline.PaperClip" OnClick="@(async ()=> { await PasteElementyFromClipboard(ConfirmButtons.YesNo); })"></Button>
+                    <Button type="button" class="btn btn-sm btn-light" Icon="@IconType.Outline.PaperClip" OnClick="@(async () => { await PasteElementyFromClipboard(ConfirmButtons.YesNo); })"></Button>
                 </Tooltip>
             }
             <Tooltip Placement="@Placement.BottomCenter" Style="width: 50px;" Title="Ilość widocznych rekordów">
                 <AntDesign.InputNumber TValue="int"
-                @bind-Value="_pageSize"
-                Min="2"
-                Max="25"
-                Bordered="false"
-                OnChange="@(e => OnClickChange(e))"
-                Style="width: 100%; padding: 0; border-radius: 4px; color:navajowhite" />
+                                       @bind-Value="_pageSize"
+                                       Min="2"
+                                       Max="25"
+                                       Bordered="false"
+                                       OnChange="@(e => OnClickChange(e))"
+                                       Style="width: 100%; padding: 0; border-radius: 4px; color:navajowhite" />
             </Tooltip>
 
             <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
@@ -300,64 +304,64 @@
                     <Divider>Ilość pozycji do zamówienia: @elementyDoZlecen.Count(), suma sztuk: @elementyDoZlecen.Sum(x => x.ElemetZamDoZlecen.IloscSztuk).ToString()</Divider>
 
                     <Table TItem="ElemetZamDoZlecenWithProducent" DataSource="elementyDoZlecen" PageSize="@_pageSize"
-                    Loading="_loading" ScrollX="2950" Size="TableSize.Small" RowKey="x => x?.ElemetZamDoZlecen?.Id"
-                    @bind-SelectedRows="_items"
-                    RowClassName="@(x =>
-                            x?.Data?.ElemetZamDoZlecen?.Opis?.ToUpper().StartsWith("SPRAWDZ") == true ? "uwaga" :
-                            (x?.Data?.ElemetZamDoZlecen?.CzyZamowiono == true ? (x?.Data?.ElemetZamDoZlecen?.DataDostarczenia > DateTime.MinValue ? "zrealizowano" :
-                            "zamowiono") :
-                            (x?.Data?.ElemetZamDoZlecen?.DataDostarczenia > DateTime.MinValue ? "zrealizowano" :
-                            "move-class")))">
-                        <ColumnDefinitions Context="context">
-                            <Selection Width="25px" />
-                            <PropertyColumn Title="ID" Property="c=>c.ElemetZamDoZlecen.Id" Hidden />
-                            <PropertyColumn Width="250" Title="Nazwa Producenta" Property="c=>c.ProducentIMiejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable />
-                            <PropertyColumn Title="Nazwa Produktu" Width="280" Property="c=>c.ElemetZamDoZlecen.NazwaProduktu" Sortable Filterable></PropertyColumn>@* DefaultSortOrder="SortDirection.Ascending" *@
-                            <PropertyColumn Width="250" Title="Numer Katalogowy" Property="c=>c.ElemetZamDoZlecen.NumerKatalogowy" Sortable Filterable />
-                            <PropertyColumn Width="160" Title="Kolor" Property="c=>c.ElemetZamDoZlecen.Kolor" Sortable />
-                            <PropertyColumn Width="160" Title="Typ" Property="c=>c.ElemetZamDoZlecen.Typ" Sortable />
-                            <PropertyColumn Width="60" Title="Jednostka" Property="c=>c.ElemetZamDoZlecen.Jednostka" />
-                            <PropertyColumn Title="Ilość" Width="50px" Property="c=>c.ElemetZamDoZlecen.IloscSztuk" />
-                            <PropertyColumn Width="95" Title="Data Zamówienia" Property="c=>c.ElemetZamDoZlecen.DataZamowienia" Format="yyyy-MM-dd" />
-                            <Column Title="Czy zam." TData="ElemetZamDoZlecenWithProducent">
-                                <Template>
-                                    <Checkbox @bind-Checked="@context.ElemetZamDoZlecen.CzyZamowiono" OnChange="(e)=>Handle(e, context.ElemetZamDoZlecen.Id)" Disabled="isNotDisabled" />
-                                </Template>
-                            </Column>
-                            <Column Title="Poz. dost." TData="ElemetZamDoZlecenWithProducent">
-                                <Template>
-                                    <Checkbox @bind-Checked="@context.ElemetZamDoZlecen.PozDostarczono" OnChange="(e)=>HandleDost(e, context.ElemetZamDoZlecen.Id, context.ElemetZamDoZlecen.RowIdZlecenia, context.ElemetZamDoZlecen.RowIdProducent)" Disabled="isNotDisabled" />
-                                </Template>
-                            </Column>
+                           Loading="_loading" ScrollX="2950" Size="TableSize.Small" RowKey="x => x?.ElemetZamDoZlecen?.Id"
+                           @bind-SelectedRows="_items"
+                           RowClassName="@(x =>
+                                                                                  x?.Data?.ElemetZamDoZlecen?.Opis?.ToUpper().StartsWith("SPRAWDZ") == true ? "uwaga" :
+                                                                                  (x?.Data?.ElemetZamDoZlecen?.CzyZamowiono == true ? (x?.Data?.ElemetZamDoZlecen?.DataDostarczenia > DateTime.MinValue ? "zrealizowano" :
+                                                                                  "zamowiono") :
+                                                                                  (x?.Data?.ElemetZamDoZlecen?.DataDostarczenia > DateTime.MinValue ? "zrealizowano" :
+                                                                                  "move-class")))">
+                <ColumnDefinitions Context="context">
+                    <Selection Width="25px" />
+                    <PropertyColumn Title="ID" Property="c => c.ElemetZamDoZlecen.Id" Hidden />
+                    <PropertyColumn Width="250" Title="Nazwa Producenta" Property="c => c.ProducentIMiejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable />
+                    <PropertyColumn Title="Nazwa Produktu" Width="280" Property="c => c.ElemetZamDoZlecen.NazwaProduktu" Sortable Filterable></PropertyColumn>@* DefaultSortOrder="SortDirection.Ascending" *@
+                    <PropertyColumn Width="250" Title="Numer Katalogowy" Property="c => c.ElemetZamDoZlecen.NumerKatalogowy" Sortable Filterable />
+                    <PropertyColumn Width="160" Title="Kolor" Property="c => c.ElemetZamDoZlecen.Kolor" Sortable />
+                    <PropertyColumn Width="160" Title="Typ" Property="c => c.ElemetZamDoZlecen.Typ" Sortable />
+                    <PropertyColumn Width="60" Title="Jednostka" Property="c => c.ElemetZamDoZlecen.Jednostka" />
+                    <PropertyColumn Title="Ilość" Width="50px" Property="c => c.ElemetZamDoZlecen.IloscSztuk" />
+                    <PropertyColumn Width="95" Title="Data Zamówienia" Property="c => c.ElemetZamDoZlecen.DataZamowienia" Format="yyyy-MM-dd" />
+                    <Column Title="Czy zam." TData="ElemetZamDoZlecenWithProducent">
+                        <Template>
+                            <Checkbox @bind-Checked="@context.ElemetZamDoZlecen.CzyZamowiono" OnChange="(e) => Handle(e, context.ElemetZamDoZlecen.Id)" Disabled="isNotDisabled" />
+                        </Template>
+                    </Column>
+                    <Column Title="Poz. dost." TData="ElemetZamDoZlecenWithProducent">
+                        <Template>
+                            <Checkbox @bind-Checked="@context.ElemetZamDoZlecen.PozDostarczono" OnChange="(e) => HandleDost(e, context.ElemetZamDoZlecen.Id, context.ElemetZamDoZlecen.RowIdZlecenia, context.ElemetZamDoZlecen.RowIdProducent)" Disabled="isNotDisabled" />
+                        </Template>
+                    </Column>
 
-                            <PropertyColumn Width="160" Title="Opis" Property="c=>c.ElemetZamDoZlecen.Opis" />
+                            <PropertyColumn Width="160" Title="Opis" Property="c => c.ElemetZamDoZlecen.Opis" />
 
-                            <PropertyColumn Title="Szerokość" Property="c=>c.ElemetZamDoZlecen.Szerokosc" />
-                            <PropertyColumn Title="Wysokość" Property="c=>c.ElemetZamDoZlecen.Wysokosc" />
-                            <PropertyColumn Title="Długość" Property="c=>c.ElemetZamDoZlecen.Dlugosc" />
-                            <PropertyColumn Title="Objętość" Property="c=>c.ElemetZamDoZlecen.Objetosc" />
-                            <PropertyColumn Title="Uwagi" Width="460" Property="c=>c.ElemetZamDoZlecen.Uwagi" />
-                            <PropertyColumn Width="195" Title="Autor zmian" Property="c=>c.ElemetZamDoZlecen.KtoZapisal" />
+                            <PropertyColumn Title="Szerokość" Property="c => c.ElemetZamDoZlecen.Szerokosc" />
+                            <PropertyColumn Title="Wysokość" Property="c => c.ElemetZamDoZlecen.Wysokosc" />
+                            <PropertyColumn Title="Długość" Property="c => c.ElemetZamDoZlecen.Dlugosc" />
+                            <PropertyColumn Title="Objętość" Property="c => c.ElemetZamDoZlecen.Objetosc" />
+                            <PropertyColumn Title="Uwagi" Width="460" Property="c => c.ElemetZamDoZlecen.Uwagi" />
+                            <PropertyColumn Width="195" Title="Autor zmian" Property="c => c.ElemetZamDoZlecen.KtoZapisal" />
 
                             <!-- Przykład kolumny dla daty z formatowaniem -->
-                            <PropertyColumn Width="95" Title="Data Zapisu" Property="c=>c.ElemetZamDoZlecen.DataZapisu" Format="yyyy-MM-dd HH:mm:ss" />
+                            <PropertyColumn Width="95" Title="Data Zapisu" Property="c => c.ElemetZamDoZlecen.DataZapisu" Format="yyyy-MM-dd HH:mm:ss" />
                             <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
                             <ActionColumn Title="Akcja" Width="100" Fixed="right">
-                                @if (boolAdmin || boolZmiana)
+                        @if (boolAdmin || boolZmiana)
                                 {
                                     <Popconfirm Placement="@Placement.Left" Title="Czy chcesz edytować pozycję?"
-                                    OnConfirm="()=> editRow(context.ElemetZamDoZlecen.Id)"
-                                    OkText="Tak"
-                                    CancelText="Nie">
+                                                OnConfirm="()=> editRow(context.ElemetZamDoZlecen.Id)"
+                                                OkText="Tak"
+                                                CancelText="Nie">
                                         <a>Edytuj</a>
                                     </Popconfirm>
                                 }
                                 @if (boolAdmin || boolUsuniecia)
                                 {
                                     <Popconfirm Placement="@Placement.Left" Title="Czy chcesz usunąć pozycję?"
-                                    OnConfirm="()=> deleteRow(context.ElemetZamDoZlecen.Id)"
-                                    OkText="Tak"
-                                    CancelText="Nie">
+                                                OnConfirm="()=> deleteRow(context.ElemetZamDoZlecen.Id)"
+                                                OkText="Tak"
+                                                CancelText="Nie">
                                         <a style="color:red">Usuń</a>
                                     </Popconfirm>
                                 }
@@ -459,6 +463,18 @@
         </div>
     </div>
 
+    <Modal Title="@("Dodaj nowy wzorzec kompletacji")"
+           Visible="@_visible"
+           OnOk="@HandleOk"
+           OnCancel="@HandleCancel"
+           Footer=@footer>
+        <p>Podaj nazwę wzorca.</p>
+        <TextArea ShowCount MaxLength=125 OnChange="onChange" @bind-Value="selName" />
+        <p style="color:red">@infoDodaj</p>
+        <p style="color:yellowgreen">GUID: @selValue</p>
+    </Modal>
+
+
 </body>
 </html>
 
@@ -511,23 +527,23 @@
         await Laduj_Uprawnienia();
 
         elementyZamowienia = new ElemetZamDoZlecenWithProducent
-                {
-                    ElemetZamDoZlecen = new ElemetZamDoZlecen
-                    {
-                        Id = 0,
-                        RowIdZlecenia = RowIdZlecenia,
-                        DataZamowienia = DateTime.MinValue,
-                        DataRealizacji = DateTime.MinValue,
-                        DataZapisu = DateTime.Now,
-                        KtoZapisal = "Autor zmiany: " + user
-                    },
-                    ProducenciPodwykonawcy = new ProducenciPodwykonawcy
-                    {
+        {
+            ElemetZamDoZlecen = new ElemetZamDoZlecen
+            {
+                Id = 0,
+                RowIdZlecenia = RowIdZlecenia,
+                DataZamowienia = DateTime.MinValue,
+                DataRealizacji = DateTime.MinValue,
+                DataZapisu = DateTime.Now,
+                KtoZapisal = "Autor zmiany: " + user
+            },
+            ProducenciPodwykonawcy = new ProducenciPodwykonawcy
+            {
                 // Przypisz odpowiednie wartości dla właściwości ProducenciPodwykonawcy
-                        NazwaProducenta = "" // Przykładowa wartość
-                    },
-                    DodatkowaInformacja = "Dane z dnia" + DateTime.Now
-                };
+                NazwaProducenta = "" // Przykładowa wartość
+            },
+            DodatkowaInformacja = "Dane z dnia" + DateTime.Now
+        };
 
         if (AppState != null)
         {
@@ -922,7 +938,7 @@
         {
             var emailSubject = Uri.EscapeDataString("Zamówienie z firmy GEORGE z dnia: " + DateTime.Now.ToShortDateString());
             var emailBody = Uri.EscapeDataString(
-            $"<html>Dotyczy: { dotyczyZlecenia}\n" +
+            $"<html>Dotyczy: {dotyczyZlecenia}\n" +
             "Nazwa Produktu\tNumer Katalogowy\tTyp\tIlość\tJednostka\tKolor\n" +
                 "--------------\t-----------------\t-----\t---------\t--------\n" +
                 string.Join("\n", _items.Select(k =>
@@ -1156,6 +1172,329 @@
         }
     }
 
+
+    // Dodaj te pola do sekcji @code (obok innych pól)
+    private bool _productAdd = false;
+    private string? selName;
+    private Guid selValue = Guid.Empty;
+    private Guid selValueClone = Guid.Empty;
+    private string? infoDodaj = "";
+    private WzorceKompletacji? _editowanyWzorzec;
+    private List<WzorceKompletacji>? wzorzecSzczegoly;
+    private List<WzorceKompletacji> wzorzecSzczegolyAll = new();
+    private List<WzorceKompletacji>? wzorzecSzczegolyDistinct;
+
+
+    // Metoda wywoływana po kliknięciu przycisku - pokazuje modal
+    private async Task ExportSelectedToGroup()
+    {
+        try
+        {
+            // Sprawdzenie, czy są zaznaczone elementy
+            if (_items == null || !_items.Any())
+            {
+                Console.WriteLine("Brak zaznaczonych elementów do utworzenia grupy.");
+                await _message.Info("Brak zaznaczonych elementów do utworzenia grupy.");
+                return;
+            }
+
+            // Sprawdzenie uprawnień
+            if (!boolZmiana && boolAdmin)
+            {
+                _ = _notice.Info(new()
+                {
+                    Message = "Nie posiadasz uprawnień do tworzenia grup.",
+                    Description = "Uwaga!!!",
+                    Placement = NotificationPlacement.BottomLeft
+                });
+                return;
+            }
+
+            // Pobierz pierwszy element jako wzorzec
+            var firstElement = _items.First().ElemetZamDoZlecen;
+
+            // Przygotuj dane dla modala
+            _productAdd = true;
+            infoDodaj = "";
+            selName = $"{firstElement.NazwaProduktu} - KOPIA";
+            selValue = Guid.NewGuid();
+            selValueClone = Guid.Parse(firstElement.RowIdProducent);
+
+            // Pokaż modal
+            _visible = true;
+
+            Console.WriteLine($"Pokazuję modal dla nowej grupy. Nazwa: {selName}, Nowe ID: {selValue}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Błąd podczas przygotowania modala: {ex.Message}");
+            await _message.Error($"Wystąpił błąd: {ex.Message}");
+        }
+    }
+
+    // Zmodyfikowana metoda HandleOk - obsługuje klonowanie zaznaczonych elementów
+    private async Task HandleOk(MouseEventArgs e)
+    {
+        infoDodaj = "";
+        selName = selName?.Trim();
+
+        Console.WriteLine($"Rozpoczyna akcję HandleOk --> _productAdd: {_productAdd}. selValue: {selValue} selName: {selName} selValueClone: {selValueClone}");
+
+        // Sprawdź, czy mamy elementy do sklonowania (zaznaczone elementy)
+        if (_productAdd && _items != null && _items.Any())
+        {
+            await CloneSelectedElementsToNewGroup();
+            return;
+        }
+
+        // Sprawdź, czy nazwa już istnieje
+        if (wzorzecSzczegolyAll != null && wzorzecSzczegolyAll.Any(w => w.NazwaWzorca == selName))
+        {
+            Console.WriteLine("Nazwa wzorca już istnieje.");
+            infoDodaj = "Nazwa wzorca już istnieje.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(selName))
+        {
+            infoDodaj = "Nazwa wzorca jest wymagana.";
+            return;
+        }
+
+        if (selValue == Guid.Empty)
+        {
+            infoDodaj = "RowId wzorca jest pusty.";
+            return;
+        }
+
+        _loading = true;
+
+        if (_productAdd && selValueClone == Guid.Empty)
+        {
+            // Zwykłe dodawanie nowego wzorca
+            _editowanyWzorzec = new WzorceKompletacji
+            {
+                RowIdWzorca = selValue,
+                NazwaWzorca = selName,
+                NumerKatalogowy = "Podaj numer katalogowy",
+                NazwaProduktu = "Podaj nazwę produktu",
+                Typ = "Podaj typ",
+                Ilosc = 0,
+                Jednostka = "szt.",
+                Dlugosc = 0,
+            };
+
+            var response = await Http.PostAsJsonAsync("api/WzorceKompletacji", _editowanyWzorzec);
+
+            if (response.IsSuccessStatusCode)
+            {
+                wzorzecSzczegoly?.Add(_editowanyWzorzec);
+                wzorzecSzczegolyAll = wzorzecSzczegoly ?? new();
+                wzorzecSzczegolyDistinct = wzorzecSzczegoly
+                    .GroupBy(wz => wz.NazwaWzorca)
+                    .Select(g => g.First())
+                    .ToList();
+
+                infoDodaj = "Nowy wzorzec dodany.";
+                StateHasChanged();
+                await Task.Delay(1100);
+                _visible = false;
+            }
+            else
+            {
+                var msg = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Błąd: {msg}");
+                infoDodaj = $"Błąd: {msg}";
+            }
+        }
+        else if (_productAdd && selValueClone != Guid.Empty)
+        {
+            // Klonowanie istniejącego wzorca (bez zaznaczonych elementów)
+            Console.WriteLine("Klonuje wzorzec z danymi Wysyłany JSON: "
+                + System.Text.Json.JsonSerializer.Serialize(_editowanyWzorzec));
+
+            string nowaNazwa = Uri.EscapeDataString(selName);
+
+            var response = await Http.PostAsync(
+                $"api/WzorceKompletacji/clone/{selValueClone}/{nowaNazwa}",
+                null
+            );
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<CloneResult>();
+                await _message.Success($"Sklonowano grupę. Nowe RowId: {result.NewRowId}", 2);
+                await Task.Delay(1500);
+                _visible = false;
+            }
+            else
+            {
+                await _message.Error("Błąd podczas klonowania danych!");
+            }
+        }
+        else
+        {
+            // Zmiana nazwy wzorca
+            Console.WriteLine("Zmieniam nazwę wzorca: " + selName);
+            Console.WriteLine("Zmieniam id wzorca: " + selValue.ToString());
+
+            var request = new { NowaNazwaGrupy = selName };
+            var response = await Http.PutAsJsonAsync(
+                $"api/WzorceKompletacji/all/{selValue.ToString()}",
+                request
+            );
+
+            if (response.IsSuccessStatusCode)
+            {
+                StateHasChanged();
+                await Task.Delay(1500);
+                _visible = false;
+            }
+            else
+            {
+                var msg = await response.Content.ReadAsStringAsync();
+                if (string.IsNullOrWhiteSpace(msg))
+                {
+                    msg = $"Kod błędu: {(int)response.StatusCode} ({response.ReasonPhrase})";
+                }
+                infoDodaj = $"Błąd: {msg}";
+            }
+        }
+
+        _loading = false;
+    }
+
+    // Metoda do klonowania zaznaczonych elementów
+    private async Task CloneSelectedElementsToNewGroup()
+    {
+        try
+        {
+            _loading = true;
+
+            var firstElement = _items.First().ElemetZamDoZlecen;
+            var newGroupName = selName;
+            var newGroupId = selValue;
+
+            // Sprawdź, czy nazwa już istnieje
+            if (wzorzecSzczegolyAll != null && wzorzecSzczegolyAll.Any(w => w.NazwaWzorca == newGroupName))
+            {
+                Console.WriteLine("Nazwa wzorca już istnieje.");
+                infoDodaj = "Nazwa wzorca już istnieje.";
+                _loading = false;
+                return;
+            }
+
+            // Utwórz nowy wzorzec na podstawie pierwszego elementu
+            var nowyWzorzec = new WzorceKompletacji
+            {
+                RowIdWzorca = newGroupId,
+                NazwaWzorca = newGroupName,
+                NumerKatalogowy = firstElement.NumerKatalogowy ?? "Podaj numer katalogowy",
+                NazwaProduktu = firstElement.NazwaProduktu ?? "Podaj nazwę produktu",
+                Typ = firstElement.Typ ?? "Podaj typ",
+                Ilosc = firstElement.IloscSztuk,
+                Jednostka = firstElement.Jednostka ?? "szt.",
+                Dlugosc = firstElement.Dlugosc,
+            };
+
+            // Wyślij do API - utworzenie nowej grupy
+            Console.WriteLine("Tworzę nową grupę. Wysyłany JSON: "
+                + System.Text.Json.JsonSerializer.Serialize(nowyWzorzec));
+
+            var response = await Http.PostAsJsonAsync("api/WzorceKompletacji", nowyWzorzec);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var msg = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Błąd: {msg}");
+                infoDodaj = $"Błąd: {msg}";
+                await _message.Error($"Błąd podczas tworzenia grupy: {msg}");
+                _loading = false;
+                return;
+            }
+
+            // Klonuj wszystkie zaznaczone elementy do nowej grupy
+            var cloneTasks = _items.Select(async item =>
+            {
+                var element = item.ElemetZamDoZlecen;
+                var cloneResponse = await Http.PostAsJsonAsync(
+                    $"api/WzorceKompletacji/clone/{element.RowIdProducent}/{Uri.EscapeDataString(newGroupName)}",
+                    new
+                    {
+                        NewGroupId = newGroupId,
+                        RowIdProducent = RemoveWhitespace(element.RowIdProducent),
+                        NazwaProduktu = RemoveWhitespace(element.NazwaProduktu),
+                        NumerKatalogowy = RemoveWhitespace(element.NumerKatalogowy),
+                        Typ = RemoveWhitespace(element.Typ),
+                        IloscSztuk = element.IloscSztuk,
+                        Jednostka = element.Jednostka,
+                        Kolor = element.Kolor,
+                        Dlugosc = element.Dlugosc,
+                        Szerokosc = element.Szerokosc,
+                        Wysokosc = element.Wysokosc,
+                    }
+                );
+
+                return cloneResponse;
+            });
+
+            var cloneResults = await Task.WhenAll(cloneTasks);
+
+            // Sprawdź wyniki klonowania
+            var failedClones = cloneResults.Count(r => !r.IsSuccessStatusCode);
+
+            if (failedClones > 0)
+            {
+                Console.WriteLine($"Nie udało się sklonować {failedClones} elementów.");
+                await _message.Warning($"Utworzono grupę, ale {failedClones} elementów nie zostało sklonowanych.");
+                infoDodaj = $"Utworzono grupę, ale {failedClones} elementów nie zostało sklonowanych.";
+            }
+            else
+            {
+                await _message.Success($"Pomyślnie utworzono nową grupę '{newGroupName}' z {_items.Count()} elementów.", 2);
+                infoDodaj = $"Utworzono nową grupę '{newGroupName}' z {_items.Count()} elementów.";
+            }
+
+            // Wyczyść zaznaczenie
+            _items = null;
+
+            StateHasChanged();
+
+            await Task.Delay(1500);
+
+            _visible = false;
+            _loading = false;
+
+            // Nawigacja po zakończeniu
+            Navigation.NavigateTo("/KompletacjaOkuc-okienne");
+        }
+        catch (Exception ex)
+        {
+            _loading = false;
+            Console.WriteLine($"Błąd ogólny: {ex.Message}");
+            await _message.Error($"Wystąpił nieoczekiwany błąd: {ex.Message}");
+            infoDodaj = $"Błąd: {ex.Message}";
+        }
+    }
+
+    // Metoda HandleCancel dla modala
+    private void HandleCancel(MouseEventArgs e)
+    {
+        _visible = false;
+        _visible = false;
+        _productAdd = false;
+        selName = null;
+        selValue = Guid.Empty;
+        selValueClone = Guid.Empty;
+        infoDodaj = "";
+    }
+
+    // Metoda onChange dla TextArea
+    private void onChange(string value)
+    {
+        selName = value;
+    }
+
     private async Task PasteElementyFromClipboard(ConfirmButtons confirmButtons)
     {
         // Treść komunikatu i tytuł
@@ -1255,7 +1594,7 @@
                 Console.WriteLine("Dane zostały pomyślnie zapisane.");
                 elementyDoZlecen = await Http.GetFromJsonAsync<List<ElemetZamDoZlecenWithProducent>>($"api/ElementyDoZlecen/rowid/{RowIdZlecenia}");
                 if (elementyDoZlecen != null) oryginalElementyDoZlecen = elementyDoZlecen.DeepCopyList();
-                _message.Success($"Dane zostały pomyślnie zapisane. ilość nowych wpisów: {elementyDoZlecenC.Count()}" , 1);
+                _message.Success($"Dane zostały pomyślnie zapisane. ilość nowych wpisów: {elementyDoZlecenC.Count()}", 1);
             }
             else
             {
@@ -1393,27 +1732,27 @@
         RenderFragment content = @<div>@_contentText</div>;
 
         var options = new ConfirmOptions()
+        {
+            Title = _title,
+            Width = 350,
+            Content = content,
+            OkText = "Tak",
+            CancelText = "Nie",
+            OnOk = async e =>
             {
-                Title = _title,
-                Width = 350,
-                Content = content,
-                OkText = "Tak",
-                CancelText = "Nie",
-                OnOk = async e =>
-                {
-                    Console.WriteLine("OnOk");
-                    pytanieOK = true;
-                    modalCompletionSource.SetResult(true);
-                    await Task.CompletedTask;
-                },
-                OnCancel = async e =>
-                {
-                    Console.WriteLine("OnCancel");
-                    pytanieOK = false;
-                    modalCompletionSource.SetResult(false);
-                    await Task.CompletedTask;
-                }
-            };
+                Console.WriteLine("OnOk");
+                pytanieOK = true;
+                modalCompletionSource.SetResult(true);
+                await Task.CompletedTask;
+            },
+            OnCancel = async e =>
+            {
+                Console.WriteLine("OnCancel");
+                pytanieOK = false;
+                modalCompletionSource.SetResult(false);
+                await Task.CompletedTask;
+            }
+        };
 
         var confirmRef = await _modalService.CreateConfirmAsync(options);
 
@@ -1470,11 +1809,11 @@
         catch (Exception ex)
         {
             _ = _notice.Error(new()
-                {
-                    Message = ex.Message,
-                    Description = ex.StackTrace,
-                    Placement = NotificationPlacement.BottomLeft
-                });
+            {
+                Message = ex.Message,
+                Description = ex.StackTrace,
+                Placement = NotificationPlacement.BottomLeft
+            });
         }
     }
 
@@ -1491,21 +1830,21 @@
             if (decimal.TryParse(item.Szerokosc, out numSzerokosc))
             {
                 var elementyZamowienia = new ElemetZamDoZlecenWithProducent
+                {
+                    ElemetZamDoZlecen = new ElemetZamDoZlecen
                     {
-                        ElemetZamDoZlecen = new ElemetZamDoZlecen
-                        {
-                            RowIdZlecenia = RowIdZlecenia,
-                            Szerokosc = string.IsNullOrEmpty(item.Szerokosc) ? 0 : numSzerokosc,
-                            Wysokosc = string.IsNullOrEmpty(item.Wysokosc) ? 0 : decimal.Parse(item.Wysokosc),
-                            NazwaProduktu = item.NazwaProduktu,
-                            IloscSztuk = string.IsNullOrEmpty(item.IloscSztuk) ? 0 : int.Parse(item.IloscSztuk),
-                            DataZamowienia = DateTime.Now,
-                            DataRealizacji = DateTime.Now.AddDays(14),
-                            DataZapisu = DateTime.Now,
-                            KtoZapisal = "Autor zmiany: " + user
-                        },
-                        DodatkowaInformacja = "Dane zaimportowano z PDF" // Zamiast Uwagi
-                    };
+                        RowIdZlecenia = RowIdZlecenia,
+                        Szerokosc = string.IsNullOrEmpty(item.Szerokosc) ? 0 : numSzerokosc,
+                        Wysokosc = string.IsNullOrEmpty(item.Wysokosc) ? 0 : decimal.Parse(item.Wysokosc),
+                        NazwaProduktu = item.NazwaProduktu,
+                        IloscSztuk = string.IsNullOrEmpty(item.IloscSztuk) ? 0 : int.Parse(item.IloscSztuk),
+                        DataZamowienia = DateTime.Now,
+                        DataRealizacji = DateTime.Now.AddDays(14),
+                        DataZapisu = DateTime.Now,
+                        KtoZapisal = "Autor zmiany: " + user
+                    },
+                    DodatkowaInformacja = "Dane zaimportowano z PDF" // Zamiast Uwagi
+                };
 
                 zamowieniaall.Add(elementyZamowienia);
             }
@@ -1650,23 +1989,23 @@
         }
 
         elementyZamowienia = new ElemetZamDoZlecenWithProducent
+        {
+            ElemetZamDoZlecen = new ElemetZamDoZlecen
             {
-                ElemetZamDoZlecen = new ElemetZamDoZlecen
-                {
-                    Id = 0,
-                    RowIdZlecenia = RowIdZlecenia,
-                    DataZamowienia = DateTime.MinValue,
-                    DataRealizacji = DateTime.MinValue,
-                    DataZapisu = DateTime.Now,
-                    KtoZapisal = "Autor zmiany: " + user
-                },
-                ProducenciPodwykonawcy = new ProducenciPodwykonawcy
-                {
-                    // Przypisz odpowiednie wartości dla właściwości ProducenciPodwykonawcy
-                    NazwaProducenta = "" // Przykładowa wartość
-                },
-                DodatkowaInformacja = "Dane z dnia" + DateTime.Now + zapisZWersji
-            };
+                Id = 0,
+                RowIdZlecenia = RowIdZlecenia,
+                DataZamowienia = DateTime.MinValue,
+                DataRealizacji = DateTime.MinValue,
+                DataZapisu = DateTime.Now,
+                KtoZapisal = "Autor zmiany: " + user
+            },
+            ProducenciPodwykonawcy = new ProducenciPodwykonawcy
+            {
+                // Przypisz odpowiednie wartości dla właściwości ProducenciPodwykonawcy
+                NazwaProducenta = "" // Przykładowa wartość
+            },
+            DodatkowaInformacja = "Dane z dnia" + DateTime.Now + zapisZWersji
+        };
 
         cid = -1;
 
@@ -1780,4 +2119,28 @@
             }
         }
     }
+
+    public class Data
+    {
+        public string? NazwaWzorca { get; set; }
+        public Guid RowIdWzorca { get; set; }
+
+        public NestedData[] NestedData { get; set; }
+    }
+
+    public class CloneResult
+    {
+        public Guid NewRowId { get; set; }
+        public int Count { get; set; }
+    }
+
+    private RenderFragment footer => @<div>
+    <Button OnClick="@HandleOk"
+            Type="ButtonType.Primary"
+            Loading="@_loading">
+        @(!_productAdd ? "Zmień nazwę wzorca" : "Dodaj nowy wzorzec")
+    </Button>
+    <Button OnClick="@HandleCancel">Anuluj</Button>
+</div>
+    ;
 }

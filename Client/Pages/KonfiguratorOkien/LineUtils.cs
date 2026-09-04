@@ -36,19 +36,27 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             var closedShapes = shapes.Where(s => s is not XLineShape).ToList();
             var lines = shapes.OfType<XLineShape>().ToList();
 
-            foreach (var line in lines)
+            foreach (var lineGroup in GroupRelatedLines(lines))
             {
                 foreach (var shape in closedShapes)
                 {
                     var bbox = shape.GetBoundingBox();
 
-                    var extended = await ExtendLineToBoundingBox(line, bbox, scaleFactor);
-
-                    // zamiast usuwać i dodawać
-                    line.X1 = extended.X1;
-                    line.Y1 = extended.Y1;
-                    line.X2 = extended.X2;
-                    line.Y2 = extended.Y2;
+                    if (lineGroup.Count == 1)
+                    {
+                        var line = lineGroup[0];
+                        var extended = await ExtendLineToBoundingBox(line, bbox, scaleFactor);
+                        SetLineEndpoints(line, extended.X1, extended.Y1, extended.X2, extended.Y2);
+                    }
+                    else
+                    {
+                        // Segmenty jednej podzielonej linii mają wspólną obwiednię.
+                        // Wydłużamy tylko jej końce zewnętrzne, bez nadpisywania
+                        // punktów podziału między segmentami.
+                        var envelope = CreateGroupEnvelope(lineGroup);
+                        var extended = await ExtendLineToBoundingBox(envelope, bbox, scaleFactor);
+                        SetGroupOuterEndpoints(lineGroup, extended.X1, extended.Y1, extended.X2, extended.Y2);
+                    }
                 }
             }
 
@@ -62,28 +70,31 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             var closedShapes = shapes.Where(s => s is not XLineShape).ToList();
             var lines = shapes.OfType<XLineShape>().ToList();
 
-            var verticalLines = lines.Where(l => Math.Abs(l.X1 - l.X2) < Tolerance).OrderBy(l => l.X1).ToList();
-            var horizontalLines = lines.Where(l => Math.Abs(l.Y1 - l.Y2) < Tolerance).OrderBy(l => l.Y1).ToList();
+            var verticalLineGroups = GroupLinesForDistribution(
+                lines.Where(l => Math.Abs(l.X1 - l.X2) < Tolerance),
+                line => line.X1);
+            var horizontalLineGroups = GroupLinesForDistribution(
+                lines.Where(l => Math.Abs(l.Y1 - l.Y2) < Tolerance),
+                line => line.Y1);
 
             const double MinOffsetFromAxis = 1.0;
 
             // Pionowe
-            if (verticalLines.Any() && !recznaZmiana)
+            if (verticalLineGroups.Any() && !recznaZmiana)
             {
                 double minX = closedShapes.Min(s => s.GetBoundingBox().Left);
                 double maxX = closedShapes.Max(s => s.GetBoundingBox().Right);
                 double centerX = (minX + maxX) / 2.0;
 
-                if (verticalLines.Count == 1)
+                if (verticalLineGroups.Count == 1)
                 {
-                    var line = verticalLines.First();
-                    line.X1 = line.X2 = centerX;
+                    SetVerticalGroupPosition(verticalLineGroups.First(), centerX);
                 }
                 else
                 {
-                    double spacing = (maxX - minX) / (verticalLines.Count + 1);
+                    double spacing = (maxX - minX) / (verticalLineGroups.Count + 1);
                     int i = 1;
-                    foreach (var line in verticalLines)
+                    foreach (var lineGroup in verticalLineGroups)
                     {
                         double x = minX + i * spacing;
 
@@ -91,31 +102,30 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                         if (Math.Abs(x) < Tolerance)
                             x = MinOffsetFromAxis;
 
-                        line.X1 = line.X2 = x;
+                        SetVerticalGroupPosition(lineGroup, x);
                         i++;
                     }
                 }
             }
 
             // Poziome
-            if (horizontalLines.Any() && !recznaZmiana)
+            if (horizontalLineGroups.Any() && !recznaZmiana)
             {
                 double minY = closedShapes.Min(s => s.GetBoundingBox().Top);
                 double maxY = closedShapes.Max(s => s.GetBoundingBox().Bottom);
                 double centerY = (minY + maxY) / 2.0;
 
-                if (horizontalLines.Count == 1)
+                if (horizontalLineGroups.Count == 1)
                 {
-                    var line = horizontalLines.First();
-                    line.Y1 = line.Y2 = centerY;
+                    SetHorizontalGroupPosition(horizontalLineGroups.First(), centerY);
                 }
                 else
                 {
-                    double spacing = (maxY - minY) / (horizontalLines.Count + 1);
+                    double spacing = (maxY - minY) / (horizontalLineGroups.Count + 1);
                     int i = 1;
-                    foreach (var line in horizontalLines)
+                    foreach (var lineGroup in horizontalLineGroups)
                     {
-                        line.Y1 = line.Y2 = minY + i * spacing;
+                        SetHorizontalGroupPosition(lineGroup, minY + i * spacing);
                         i++;
                     }
                 }
@@ -124,57 +134,175 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             await Task.CompletedTask;
         }
 
+        private static List<List<XLineShape>> GroupLinesForDistribution(
+            IEnumerable<XLineShape> lines,
+            Func<XLineShape, double> coordinate)
+        {
+            return GroupRelatedLines(lines)
+                .OrderBy(group => group.Average(coordinate))
+                .ToList();
+        }
+
+        private static List<List<XLineShape>> GroupRelatedLines(IEnumerable<XLineShape> lines)
+        {
+            return lines
+                // Niepodzielona linia stanowi własną grupę. Segmenty dzielone
+                // posiadają wspólny SplitGroupId i muszą być przekształcane razem.
+                .GroupBy(line => line.SplitGroupId ?? line.ID)
+                .Select(group => group.ToList())
+                .ToList();
+        }
+
+        private static XLineShape CreateGroupEnvelope(IReadOnlyCollection<XLineShape> lineGroup)
+        {
+            var (start, end) = GetGroupOuterEndpoints(lineGroup);
+            var envelope = (XLineShape)lineGroup.First().Clone();
+
+            SetLineEndpoints(envelope, start.X, start.Y, end.X, end.Y);
+            return envelope;
+        }
+
+        private static void SetGroupOuterEndpoints(
+            IReadOnlyCollection<XLineShape> lineGroup,
+            double startX,
+            double startY,
+            double endX,
+            double endY)
+        {
+            var (start, end) = GetGroupOuterEndpoints(lineGroup);
+            SetEndpoint(start, startX, startY);
+            SetEndpoint(end, endX, endY);
+        }
+
+        private static (LineEndpoint Start, LineEndpoint End) GetGroupOuterEndpoints(
+            IReadOnlyCollection<XLineShape> lineGroup)
+        {
+            var reference = lineGroup
+                .OrderByDescending(line => Math.Pow(line.X2 - line.X1, 2) + Math.Pow(line.Y2 - line.Y1, 2))
+                .First();
+
+            var deltaX = reference.X2 - reference.X1;
+            var deltaY = reference.Y2 - reference.Y1;
+            var endpoints = lineGroup.SelectMany(line => new[]
+            {
+                new LineEndpoint(line, true, line.X1, line.Y1),
+                new LineEndpoint(line, false, line.X2, line.Y2)
+            });
+
+            double Project(LineEndpoint endpoint) =>
+                (endpoint.X - reference.X1) * deltaX + (endpoint.Y - reference.Y1) * deltaY;
+
+            return (endpoints.OrderBy(Project).First(), endpoints.OrderByDescending(Project).First());
+        }
+
+        private static void SetEndpoint(LineEndpoint endpoint, double x, double y)
+        {
+            if (endpoint.IsStart)
+            {
+                endpoint.Line.X1 = x;
+                endpoint.Line.Y1 = y;
+            }
+            else
+            {
+                endpoint.Line.X2 = x;
+                endpoint.Line.Y2 = y;
+            }
+        }
+
+        private static void SetLineEndpoints(XLineShape line, double x1, double y1, double x2, double y2)
+        {
+            line.X1 = x1;
+            line.Y1 = y1;
+            line.X2 = x2;
+            line.Y2 = y2;
+        }
+
+        private readonly record struct LineEndpoint(XLineShape Line, bool IsStart, double X, double Y);
+
+        private static void SetVerticalGroupPosition(IEnumerable<XLineShape> lineGroup, double x)
+        {
+            foreach (var line in lineGroup)
+            {
+                line.X1 = line.X2 = x;
+            }
+        }
+
+        private static void SetHorizontalGroupPosition(IEnumerable<XLineShape> lineGroup, double y)
+        {
+            foreach (var line in lineGroup)
+            {
+                line.Y1 = line.Y2 = y;
+            }
+        }
+
         // 🔹 Przycinanie linii do wszystkich zamkniętych kształtów
         public static async Task ShortenLinesInsideShapes(List<IShapeDC> shapes, double _scaleFactor)
         {
             var closedShapes = shapes.Where(s => s is not XLineShape).ToList();
             var lines = shapes.OfType<XLineShape>().ToList();
 
-            foreach (var line in lines)
+            foreach (var lineGroup in GroupRelatedLines(lines))
             {
                 foreach (var shape in closedShapes)
                 {
-                    var bbox = shape.GetBoundingBox();
-
-                    await ShortenLineToBoundingBox(line, bbox, _scaleFactor);
-
-                    // Dodatkowo przycinanie do polygonów/skosów/dachu itd.
-                    switch (shape)
+                    if (lineGroup.Count == 1)
                     {
-                        case XCircleShape circle:
-                            await ShortenLineInsideCircle(line, circle);
-                            break;
-                        case XTriangleShape triangle:
-                            await ShortenLineInsidePolygon(line, triangle.GetVertices());
-                            break;
-                        case XHouseShape house:
-                            await ShortenLineInsideShape(line, house.GetBoundingBox());
-                            await ShortenLineToShape(line, house.GetEdges());
-                            break;
-                        case XRoundedTopRectangleShape rounded:
-                            await ShortenLineInsideEdges(line, rounded.GetEdges(),
-                                new XPoint(rounded.X + rounded.Width / 2, rounded.Y + rounded.Radius), rounded.Radius);
-                            break;
-                        case XRoundedTopRectangleShapeFixed roundedf:
-                            await ShortenLineInsideEdges(line, roundedf.GetEdges(),
-                                new XPoint(roundedf.X + roundedf.Width / 2, roundedf.Y + roundedf.Radius), roundedf.Radius);
-                            break;
-                        case XRoundedRectangleShape roundedRect:
-                            await ShortenLineInsideEdges(line, roundedRect.GetEdges(),
-                            new XPoint(roundedRect.X + roundedRect.Width / 2, roundedRect.Y + roundedRect.Radius), roundedRect.Radius);
-                            break;
-                        case XTrapezoidShape trap:
-                            await ShortenLineInsideShape(line, trap.GetBoundingBox());
-                            await ShortenLineToShape(line, trap.GetEdges());
-                            break;
-                        default:
-                            await ShortenLineInsideShape(line, shape.GetBoundingBox());
-                            break;
+                        await ShortenLineInsideShapeForBoundary(lineGroup[0], shape, _scaleFactor);
+                    }
+                    else
+                    {
+                        // Przycinamy całą linię źródłową i przenosimy wynik wyłącznie
+                        // na jej zewnętrzne końce. Wewnętrzne punkty podziału zostają.
+                        var envelope = CreateGroupEnvelope(lineGroup);
+                        await ShortenLineInsideShapeForBoundary(envelope, shape, _scaleFactor);
+                        SetGroupOuterEndpoints(lineGroup, envelope.X1, envelope.Y1, envelope.X2, envelope.Y2);
                     }
                 }
             }
 
             await Task.CompletedTask;
+        }
+
+        private static async Task ShortenLineInsideShapeForBoundary(
+            XLineShape line,
+            IShapeDC shape,
+            double scaleFactor)
+        {
+            await ShortenLineToBoundingBox(line, shape.GetBoundingBox(), scaleFactor);
+
+            // Dodatkowo przycinanie do polygonów/skosów/dachu itd.
+            switch (shape)
+            {
+                case XCircleShape circle:
+                    await ShortenLineInsideCircle(line, circle);
+                    break;
+                case XTriangleShape triangle:
+                    await ShortenLineInsidePolygon(line, triangle.GetVertices());
+                    break;
+                case XHouseShape house:
+                    await ShortenLineInsideShape(line, house.GetBoundingBox());
+                    await ShortenLineToShape(line, house.GetEdges());
+                    break;
+                case XRoundedTopRectangleShape rounded:
+                    await ShortenLineInsideEdges(line, rounded.GetEdges(),
+                        new XPoint(rounded.X + rounded.Width / 2, rounded.Y + rounded.Radius), rounded.Radius);
+                    break;
+                case XRoundedTopRectangleShapeFixed roundedf:
+                    await ShortenLineInsideEdges(line, roundedf.GetEdges(),
+                        new XPoint(roundedf.X + roundedf.Width / 2, roundedf.Y + roundedf.Radius), roundedf.Radius);
+                    break;
+                case XRoundedRectangleShape roundedRect:
+                    await ShortenLineInsideEdges(line, roundedRect.GetEdges(),
+                        new XPoint(roundedRect.X + roundedRect.Width / 2, roundedRect.Y + roundedRect.Radius), roundedRect.Radius);
+                    break;
+                case XTrapezoidShape trap:
+                    await ShortenLineInsideShape(line, trap.GetBoundingBox());
+                    await ShortenLineToShape(line, trap.GetEdges());
+                    break;
+                default:
+                    await ShortenLineInsideShape(line, shape.GetBoundingBox());
+                    break;
+            }
         }
 
         #region --- PODSTAWOWE METODY GEOMETRYCZNE ---

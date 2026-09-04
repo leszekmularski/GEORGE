@@ -69,10 +69,10 @@ namespace GEORGE.Client.Pages.Okna
             liniaSzkleniaKontur = new List<XPoint>();
             Komunikaty = new List<string>();
         }
-        public async Task<bool> AddElements(List<ShapeRegion> regions, string regionId, Dictionary<string, GeneratorState> generatorStates, List<ShapeRegion> regionAdd,
+        public async Task<string> AddElements(List<ShapeRegion> regions, string regionId, Dictionary<string, GeneratorState> generatorStates, List<ShapeRegion> regionAdd,
             List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster, XPoint mouseClik, bool kasujKonsole = false)
         {
-            if (regions == null) return false;
+            if (regions == null) return "Brak regionu";
 
             if (_jsRuntime != null && kasujKonsole)
             {
@@ -84,21 +84,21 @@ namespace GEORGE.Client.Pages.Okna
             {
                 //Console.WriteLine($"❌ AddElements Brak KonfiguracjeSystemu lub PowiazanyModel!");
                 BledySystemowe.Add("❌ Brak konfiguracji systemu lub powiązanego modelu. Upewnij się, że dane są poprawnie załadowane.");
-                return false;
+                return "❌ Brak konfiguracji systemu lub powiązanego modelu. Upewnij się, że dane są poprawnie załadowane.";
             }
 
             if (EdytowanyModel == null)
             {
                 //Console.WriteLine($"❌ AddElements Brak EdytowanyModel jest nie ustawiony!!!");
                 BledySystemowe.Add("❌ Brak edytowanego modelu. Upewnij się, że model jest poprawnie załadowany.");
-                return false;
+                return "❌ Brak edytowanego modelu. Upewnij się, że model jest poprawnie załadowany.";
             }
 
             if (regions == null)
             {
                 //Console.WriteLine($"❌ AddElements Brak EdytowanyModel jest nie ustawiony!!!");
                 BledySystemowe.Add("❌ Brak wybranego regionu. Sprawdź dane!!!");
-                return false;
+                return "❌ Brak wybranego regionu. Sprawdź dane!!!";
             }
 
             //Console.WriteLine($"➡️ AddElements EdytowanyModel.PolaczenieNaroza: {EdytowanyModel.PolaczenieNaroza} daneKwadratu.Count: {(daneKwadratu == null ? "NULL" : daneKwadratu.Count())}");
@@ -127,7 +127,7 @@ namespace GEORGE.Client.Pages.Okna
             {
                 //Console.WriteLine($"❌ AddElements Nie znaleziono regionu o ID: {regionId} w AddElements - GeneratoryOkienne");
                 BledySystemowe.Add($"❌ Nie znaleziono regionu o ID: {regionId}. Upewnij się, że dane regionów są poprawnie załadowane i zawierają wymagany region.");
-                return false;
+                return $"❌ Nie znaleziono regionu o ID: {regionId}. Upewnij się, że dane regionów są poprawnie załadowane i zawierają wymagany region.";
             }
             else if (region != null && !ElementLiniowy)
             {
@@ -161,14 +161,14 @@ namespace GEORGE.Client.Pages.Okna
             {
                 // Console.WriteLine($"❌ AddElements Region o ID: {regionId} ma zbyt mało punktów");
                 BledySystemowe.Add($"❌ Region o ID: {regionId} ma zbyt mało punktów. Wymagane jest co najmniej 3 punkty dla regionów nielinowych. Sprawdź dane wejściowe dla tego regionu.");
-                return false;
+                return $"❌ Region o ID: {regionId} ma zbyt mało punktów. Wymagane jest co najmniej 3 punkty dla regionów nielinowych. Sprawdź dane wejściowe dla tego regionu.";
             }
 
             if ((punkty == null || punkty.Count < 2))
             {
                 //Console.WriteLine($"❌ AddElements Region o ID: {regionId} ma zbyt mało punktów! punkty.Count: {punkty.Count}");
                 BledySystemowe.Add($"❌ Region o ID: {regionId} ma zbyt mało punktów. Wymagane jest co najmniej 2 punkty dla elementów liniowych. Sprawdź dane wejściowe dla tego regionu.");
-                return false;
+                return $"❌ Region o ID: {regionId} ma zbyt mało punktów. Wymagane jest co najmniej 2 punkty dla elementów liniowych. Sprawdź dane wejściowe dla tego regionu.";
             }
 
             //Console.WriteLine($"🟩 AddElements Generuj okno dla regionu ID {regionId} typu: {region.TypKsztaltu} ElementLiniowy: {ElementLiniowy} punkty.Count: {punkty.Count()}");
@@ -553,14 +553,14 @@ namespace GEORGE.Client.Pages.Okna
             {
                 Console.WriteLine($"❌ Generowanie elementów zakończone niepowodzeniem dla regionu {regionId} wewnetrznyKonturZLukami == null");
                 BledySystemowe.Add($"❌ Generowanie elementów zakończone niepowodzeniem dla regionu {regionId} wewnetrznyKonturZLukami == null");
-                return false;
+                return $"❌ Generowanie elementów zakończone niepowodzeniem dla regionu {regionId} wewnetrznyKonturZLukami == null";
             }
 
             if (liniaSzkleniaKontur == null)
             {
                 Console.WriteLine($"❌ Generowanie elementów zakończone niepowodzeniem dla regionu {regionId} liniaSzkleniaKontur == null");
                 BledySystemowe.Add($"❌ Generowanie elementów zakończone niepowodzeniem dla regionu {regionId} liniaSzkleniaKontur == null");
-                return false;
+                return $"❌ Generowanie elementów zakończone niepowodzeniem dla regionu {regionId} liniaSzkleniaKontur == null";
             }
 
             var okLine = await GenerateGenericElementsWithJoins(
@@ -587,12 +587,14 @@ namespace GEORGE.Client.Pages.Okna
             if (okLine)
             {
                 Console.WriteLine($"✅ Generowanie elementów zakończone sukcesem dla regionu {regionId}");
-                return true;
+                Komunikaty.Add($"✅ Generowanie elementów zakończone sukcesem dla regionu {regionId}");
+                return "";
             }
             else
             {
                 Console.WriteLine($"❌ Generowanie elementów zakończone niepowodzeniem dla regionu {regionId} okLine: {okLine}");
-                return false;
+                BledySystemowe.Add($"❌ Generowanie elementów zakończone niepowodzeniem dla regionu {regionId} okLine: {okLine}");
+                return $"❌ Generowanie elementów zakończone niepowodzeniem dla regionu {regionId} okLine: {okLine}";
             }
 
         }
@@ -2512,9 +2514,10 @@ namespace GEORGE.Client.Pages.Okna
                         break;
                 }
 
-                if (angleDegreesElementLionowy != angleDegrees && ElementLiniowy) break;
+               // if (angleDegreesElementLionowy != angleDegrees && ElementLiniowy) break; ///??? Po co to jest?
 
                 if (rowIdprofileLeft != Guid.Empty)
+                {
                     ElementyRamyRysowane.Add(new KsztaltElementu
                     {
                         NrPozWModelu = i + 1,
@@ -2546,8 +2549,16 @@ namespace GEORGE.Client.Pages.Okna
                         PolaczenieStronaA = leftJoin,
                         PolaczenieStronaB = rightJoin
                     });
+                }
+                else
+                {
+                    BledySystemowe.Add($"⚠️ Brak danych dla rowIdprofileLeft: {rowIdprofileLeft}. Nie mogę dodać elementu {i + 1} do ElementyRamyRysowane.");
+                    Console.WriteLine($"⚠️ Brak danych dla rowIdprofileLeft: {rowIdprofileLeft}. Nie mogę dodać elementu {i + 1} do ElementyRamyRysowane.");
+                    return false;
+                }
 
-                stonaOstanioDodanegoElementu = StronaElementu;
+
+                    stonaOstanioDodanegoElementu = StronaElementu;
 
                 // Console.WriteLine($"▶️▶️▶️▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - > rowIdProfil:{rowIdProfil} Angle: {angleDegrees}° leftJoin:{leftJoin} rightJoin:{rightJoin}");
 

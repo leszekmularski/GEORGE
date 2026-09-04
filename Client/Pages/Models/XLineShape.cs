@@ -34,6 +34,12 @@ namespace GEORGE.Client.Pages.Models
 
         public string ID { get; set; } = Guid.NewGuid().ToString();
 
+        /// <summary>
+        /// Identyfikator linii źródłowej dla odcinków powstałych po jej podziale.
+        /// Brak wartości oznacza zwykłą, niepodzieloną linię.
+        /// </summary>
+        public string? SplitGroupId { get; set; }
+
         public List<ContourSegment> ContourSegments => GetContourSegments();
 
         // 🔥 NOWE WŁAŚCIWOŚCI DO OBLICZANIA KĄTA LINII
@@ -309,8 +315,13 @@ namespace GEORGE.Client.Pages.Models
 
         public IShapeDC Clone()
         {
-            return new XLineShape(X1, Y1, X2, Y2, _scaleFactor, NazwaObj,
-                RuchomySlupek, PionPoziom, DualRama, GenerowaneZRamy, StalySlupek);
+            var clone = new XLineShape(X1, Y1, X2, Y2, _scaleFactor, NazwaObj,
+                RuchomySlupek, PionPoziom, DualRama, GenerowaneZRamy, StalySlupek)
+            {
+                SplitGroupId = SplitGroupId
+            };
+
+            return clone;
         }
 
         public async Task Draw(Canvas2DContext ctx)
