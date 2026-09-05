@@ -1216,7 +1216,7 @@
             // Przygotuj dane dla modala
             _productAdd = true;
             infoDodaj = "";
-            selName = $"{firstElement.NazwaProduktu} - KOPIA";
+            selName = $"{firstElement.NazwaProduktu} - KOPIA (Popraw przed zapisem)";
             selValue = Guid.NewGuid();
             selValueClone = Guid.Parse(firstElement.RowIdProducent);
 
@@ -1324,7 +1324,7 @@
             {
                 var result = await response.Content.ReadFromJsonAsync<CloneResult>();
                 await _message.Success($"Sklonowano grupę. Nowe RowId: {result.NewRowId}", 2);
-                await Task.Delay(1500);
+                await Task.Delay(1000);
                 _visible = false;
             }
             else
@@ -1384,75 +1384,56 @@
                 return;
             }
 
-            // Utwórz nowy wzorzec na podstawie pierwszego elementu
-            var nowyWzorzec = new WzorceKompletacji
-            {
-                RowIdWzorca = newGroupId,
-                NazwaWzorca = newGroupName,
-                NumerKatalogowy = firstElement.NumerKatalogowy ?? "Podaj numer katalogowy",
-                NazwaProduktu = firstElement.NazwaProduktu ?? "Podaj nazwę produktu",
-                Typ = firstElement.Typ ?? "Podaj typ",
-                Ilosc = firstElement.IloscSztuk,
-                Jednostka = firstElement.Jednostka ?? "szt.",
-                Dlugosc = firstElement.Dlugosc,
-            };
-
-            // Wyślij do API - utworzenie nowej grupy
-            Console.WriteLine("Tworzę nową grupę. Wysyłany JSON: "
-                + System.Text.Json.JsonSerializer.Serialize(nowyWzorzec));
-
-            var response = await Http.PostAsJsonAsync("api/WzorceKompletacji", nowyWzorzec);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var msg = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"Błąd: {msg}");
-                infoDodaj = $"Błąd: {msg}";
-                await _message.Error($"Błąd podczas tworzenia grupy: {msg}");
-                _loading = false;
-                return;
-            }
-
-            // Klonuj wszystkie zaznaczone elementy do nowej grupy
-            var cloneTasks = _items.Select(async item =>
+            // Przygotuj listę wszystkich elementów do zapisania (w tym pierwszy)
+            var elementsToSave = _items.Select(item =>
             {
                 var element = item.ElemetZamDoZlecen;
-                var cloneResponse = await Http.PostAsJsonAsync(
-                    $"api/WzorceKompletacji/clone/{element.RowIdProducent}/{Uri.EscapeDataString(newGroupName)}",
-                    new
-                    {
-                        NewGroupId = newGroupId,
-                        RowIdProducent = RemoveWhitespace(element.RowIdProducent),
-                        NazwaProduktu = RemoveWhitespace(element.NazwaProduktu),
-                        NumerKatalogowy = RemoveWhitespace(element.NumerKatalogowy),
-                        Typ = RemoveWhitespace(element.Typ),
-                        IloscSztuk = element.IloscSztuk,
-                        Jednostka = element.Jednostka,
-                        Kolor = element.Kolor,
-                        Dlugosc = element.Dlugosc,
-                        Szerokosc = element.Szerokosc,
-                        Wysokosc = element.Wysokosc,
-                    }
-                );
 
-                return cloneResponse;
+                return new WzorceKompletacji
+                {
+                    RowIdWzorca = newGroupId,
+                    NazwaWzorca = newGroupName,
+                    RowIdProducent = RemoveWhitespace(element.RowIdProducent),
+                    NazwaProduktu = RemoveWhitespace(element.NazwaProduktu),
+                    NumerKatalogowy = RemoveWhitespace(element.NumerKatalogowy),
+                    Typ = RemoveWhitespace(element.Typ),
+                    Ilosc = element.IloscSztuk,
+                    Jednostka = element.Jednostka,
+                    Kolor = element.Kolor,
+                    Dlugosc = element.Dlugosc,
+                    Szerokosc = element.Szerokosc,
+                    Wysokosc = element.Wysokosc,
+                };
+            }).ToList();
+
+            Console.WriteLine($"Tworzę nową grupę '{newGroupName}' z {elementsToSave.Count} elementami.");
+
+            // Zapisuj wszystkie elementy jeden po drugim
+            var addTasks = elementsToSave.Select(async newElement =>
+            {
+                Console.WriteLine($"Dodaję element: {newElement.NazwaProduktu}");
+
+                // Wyślij POST z nowym elementem do API
+                var addResponse = await Http.PostAsJsonAsync("api/WzorceKompletacji", newElement);
+
+                return addResponse;
             });
 
-            var cloneResults = await Task.WhenAll(cloneTasks);
+            var addResults = await Task.WhenAll(addTasks);
 
-            // Sprawdź wyniki klonowania
-            var failedClones = cloneResults.Count(r => !r.IsSuccessStatusCode);
+            // Sprawdź wyniki dodawania
+            var failedAdds = addResults.Count(r => !r.IsSuccessStatusCode);
 
-            if (failedClones > 0)
+            if (failedAdds > 0)
             {
-                Console.WriteLine($"Nie udało się sklonować {failedClones} elementów.");
-                await _message.Warning($"Utworzono grupę, ale {failedClones} elementów nie zostało sklonowanych.");
-                infoDodaj = $"Utworzono grupę, ale {failedClones} elementów nie zostało sklonowanych.";
+                Console.WriteLine($"Nie udało się dodać {failedAdds} elementów.");
+                await _message.Warning($"Utworzono grupę, ale {failedAdds} elementów nie zostało dodanych.");
+                infoDodaj = $"Utworzono grupę, ale {failedAdds} elementów nie zostało dodanych.";
             }
             else
             {
-                await _message.Success($"Pomyślnie utworzono nową grupę '{newGroupName}' z {_items.Count()} elementów.", 2);
-                infoDodaj = $"Utworzono nową grupę '{newGroupName}' z {_items.Count()} elementów.";
+                await _message.Success($"Pomyślnie utworzono nową grupę '{newGroupName}' z {elementsToSave.Count} elementami.", 2);
+                infoDodaj = $"Utworzono nową grupę '{newGroupName}' z {elementsToSave.Count} elementami.";
             }
 
             // Wyczyść zaznaczenie
@@ -1460,13 +1441,13 @@
 
             StateHasChanged();
 
-            await Task.Delay(1500);
+            await Task.Delay(800);
 
             _visible = false;
             _loading = false;
 
             // Nawigacja po zakończeniu
-            Navigation.NavigateTo("/KompletacjaOkuc-okienne");
+            Navigation.NavigateTo("/KompletacjaOkuc");
         }
         catch (Exception ex)
         {
