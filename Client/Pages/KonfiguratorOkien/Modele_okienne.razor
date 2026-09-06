@@ -605,7 +605,7 @@
                         <tr>
                             <td>@model.NazwaKonfiguracji</td>
 
-                            <td>
+                            <td style="font-size:10px">
                                 @model.KonstrMinSzer x @model.KonstrMinWys
                                 →
                                 @model.KonstrMaxSzer x @model.KonstrMaxWys
@@ -618,9 +618,9 @@
                                          src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
                                          @onclick="@(() => WybierzModel(model))"
                                          @ondragstart="@(e => JS.InvokeVoidAsync(
-                                         "SetCurrentModel",
-                                                                                                                                                 model.Typ,
-                                                                                                                                                 model.RowId))"
+                                        "SetCurrentModel",
+                                        model.Typ,
+                                        model.RowId))"
                              @onmouseout="@(e => JS.InvokeVoidAsync("ResetCursor"))"
                              draggable="true"
                              style="cursor: grab;
@@ -629,8 +629,8 @@
                                 max-width: 50px;
                                 max-height: 50px;
                                 border: @(model == WybranyModel
-                                                                                                                                           ? "4px solid #007bff"
-                                                                                                                                           : "none")" />
+                                            ? "4px solid #007bff"
+                                            : "none")" />
                                                 }
                                 else
                                 {
