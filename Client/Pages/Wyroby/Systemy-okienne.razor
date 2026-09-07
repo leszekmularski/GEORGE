@@ -495,11 +495,11 @@
                     <table class="table table-hover mb-0">
                         <thead class="table-dark">
                             <tr>
-                                <th style="width: 18%">Nazwa systemu</th>
-                                <th style="width: 20%">Opis</th>
-                                <th style="width: 10%">Status</th>
-                                <th style="width: 31%">Konfiguracje</th>
-                                <th style="width: 21%">Akcje</th>
+                                <th style="width: 13%">Nazwa systemu</th>
+                                <th style="width: 17%">Opis</th>
+                                <th style="width: 6%">Status</th>
+                                <th style="width: 28%">Konfiguracje</th>
+                                <th style="width: 36%">Akcje</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -718,26 +718,26 @@
                                                         class="admin-card admin-status"
                                                         @onclick="() => ToggleWycofanie(system)"
                                                         title="@(system.Wycofany_z_produkcji
-                                                                                                                ? "Przywróć system"
-                                                                                                                : "Wycofaj system")">
+                                                                        ? "Przywróć system"
+                                                                        : "Wycofaj system")">
 
                                             <span class="admin-icon">
                                                 <i class="bi @(system.Wycofany_z_produkcji
-                                                                                                               ? "bi-arrow-counterclockwise"
-                                                                                                               : "bi-slash-circle")"></i>
-                                                                                                                            </span>
+                                                            ? "bi-arrow-counterclockwise"
+                                                            : "bi-slash-circle")"></i>
+                                                                        </span>
 
                                             <span class="admin-content">
                                                 <span class="admin-card-title">
                                                     @(system.Wycofany_z_produkcji
-                                                                                                        ? "Przywróć"
-                                                                                                        : "Wycofaj")
-                                                                                                                </span>
+                                                                        ? "Przywróć"
+                                                                        : "Wycofaj")
+                                                                                </span>
 
                                                 <span class="admin-card-description">
                                                     @(system.Wycofany_z_produkcji
-                                                                                                        ? "Aktywuj system ponownie"
-                                                                                                        : "Dezaktywuj system")
+                                                                        ? "Aktywuj system ponownie"
+                                                                        : "Dezaktywuj system")
                                                 </span>
                                             </span>
 
