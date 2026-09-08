@@ -5360,9 +5360,10 @@
                 WypelnienieZewnetrzne = generator.KolorZewnetrzny,
                 GruboscObramowania = 2.0f,
                 ZIndex = generator.Zindeks,
-                Przesuniecia = (polaczenieWartosciA ?? new List<Przesuniecie>()).Concat(polaczenieWartosciB ?? new List<Przesuniecie>()).ToList(),
+                Przesuniecia = polaczenieWartosciA.Concat(polaczenieWartosciB).ToList(),
                 SasiadStronaAB = sasiadStronaAB
             });
+
 
             state.ZIndeks = generator.Zindeks;
             state.WierzcholkiWartosciNominalne = liniaStalaWierzcholki;
