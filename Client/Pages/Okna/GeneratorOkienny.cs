@@ -2514,7 +2514,7 @@ namespace GEORGE.Client.Pages.Okna
                         break;
                 }
 
-               // if (angleDegreesElementLionowy != angleDegrees && ElementLiniowy) break; ///??? Po co to jest?
+                // if (angleDegreesElementLionowy != angleDegrees && ElementLiniowy) break; ///??? Po co to jest?
 
                 if (rowIdprofileLeft != Guid.Empty)
                 {
@@ -2558,7 +2558,7 @@ namespace GEORGE.Client.Pages.Okna
                 }
 
 
-                    stonaOstanioDodanegoElementu = StronaElementu;
+                stonaOstanioDodanegoElementu = StronaElementu;
 
                 // Console.WriteLine($"▶️▶️▶️▶️ Element {i + 1}/{vertexCount} dodałem do ElementyRamyRysowane. Total elements now: {ElementyRamyRysowane.Count} - > rowIdProfil:{rowIdProfil} Angle: {angleDegrees}° leftJoin:{leftJoin} rightJoin:{rightJoin}");
 

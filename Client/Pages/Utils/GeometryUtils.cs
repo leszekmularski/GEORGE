@@ -624,7 +624,13 @@ namespace GEORGE.Client.Pages.Utils
 
                     }
 
-                    regions.AddRange(podzielone);
+                    foreach (var region in podzielone)
+                    {
+                        if (!CzyRegionJuzIstnieje(regions, region))
+                        {
+                            regions.Add(region);
+                        }
+                    }
                 }
                 else
                 {
@@ -989,14 +995,147 @@ namespace GEORGE.Client.Pages.Utils
 
                     }
 
-                    regions.AddRange(podzielone);
+                    foreach (var region in podzielone)
+                    {
+                        if (!CzyRegionJuzIstnieje(regions, region))
+                        {
+                            regions.Add(region);
+                        }
+                    }
                 }
             }
 
-            await Task.Delay(1);
+            regions = UsunDuplikatyRegionow(regions);
+            // Ponowna, ciągła numeracja regionów
+            PoprawNumeracjeRegionow(regions);
+
+            await Task.Yield();
+
             return regions;
         }
 
+        private static void PoprawNumeracjeRegionow(List<ShapeRegion> regions)
+        {
+            if (regions == null || regions.Count == 0)
+                return;
+
+            // Numeracja od 0
+            int idCounter = 0;
+
+            foreach (var region in regions)
+            {
+                if (region == null)
+                    continue;
+
+                if (string.IsNullOrWhiteSpace(region.Id))
+                {
+                    region.Id = idCounter.ToString();
+                    idCounter++;
+                    continue;
+                }
+
+                // Szukamy ostatniego znaku '|'
+                int separatorIndex = region.Id.LastIndexOf('|');
+
+                if (separatorIndex >= 0)
+                {
+                    // Zachowujemy wszystko przed "|"
+                    string prefiks = region.Id.Substring(0, separatorIndex);
+
+                    region.Id = prefiks + "|" + idCounter;
+                }
+                else
+                {
+                    // Jeżeli Id nie zawiera "|", zachowujemy je jako prefiks
+                    region.Id = region.Id + "|" + idCounter;
+                }
+
+                idCounter++;
+            }
+        }
+
+        private static bool CzyRegionJuzIstnieje(
+        List<ShapeRegion> regions,
+        ShapeRegion region,
+        double tolerancja = 0.01)
+        {
+            return regions.Any(r =>
+                CzyTakieSameKontury(r.Kontur, region.Kontur, tolerancja));
+        }
+
+        // Usuwanie duplikatów regionów na podstawie konturów
+        private static List<ShapeRegion> UsunDuplikatyRegionow(
+        List<ShapeRegion> regions,
+        double tolerancja = 0.01)
+        {
+            var wynik = new List<ShapeRegion>();
+
+            foreach (var region in regions)
+            {
+                if (region?.Kontur == null || region.Kontur.Count == 0)
+                    continue;
+
+                if (!CzyRegionJuzIstnieje(wynik, region, tolerancja))
+                {
+                    wynik.Add(region);
+                }
+            }
+
+            return wynik;
+        }
+
+        private static bool CzyTakieSameKontury(
+        List<ContourSegment>? kontur1,
+        List<ContourSegment>? kontur2,
+        double tolerancja = 0.01)
+        {
+            if (ReferenceEquals(kontur1, kontur2))
+                return true;
+
+            if (kontur1 == null || kontur2 == null)
+                return false;
+
+            if (kontur1.Count != kontur2.Count)
+                return false;
+
+            for (int i = 0; i < kontur1.Count; i++)
+            {
+                var a = kontur1[i];
+                var b = kontur2[i];
+
+                if (a.Type != b.Type)
+                    return false;
+
+                // Start
+                if (Distance(a.Start, b.Start) > tolerancja)
+                    return false;
+
+                // End
+                if (Distance(a.End, b.End) > tolerancja)
+                    return false;
+
+                // Łuk
+                if (a.Type == SegmentType.Arc)
+                {
+                    if (a.Center.HasValue != b.Center.HasValue)
+                        return false;
+
+                    if (a.Center.HasValue && b.Center.HasValue)
+                    {
+                        if (Distance(a.Center.Value, b.Center.Value) > tolerancja)
+                            return false;
+                    }
+
+                    if (Math.Abs(a.Radius - b.Radius) > tolerancja)
+                        return false;
+
+                    if (a.CounterClockwise != b.CounterClockwise)
+                        return false;
+                }
+            }
+
+            return true;
+        }
 
         // Dodaj tę funkcję pomocniczą na końcu klasy
         private static bool CzySegmentZerowejDlugosci(ContourSegment segment)

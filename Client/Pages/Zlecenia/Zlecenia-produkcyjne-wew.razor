@@ -201,7 +201,6 @@
 else
 {
 
-
     <div class="highlighted-background" style="left:@(OnlyIcon ? "95px" : "260px"); width:calc(100% - @(OnlyIcon ? "95px" : "260px"))">
         <Divider Style="font-weight:bold; font-size:large">
             Zlecenia Produkcyjne Wewnętrzne
@@ -212,6 +211,7 @@ else
         </Divider>
         <Table TItem="ZleceniaProdukcyjneWew" DataSource="@ListaZlecenFiltrowana"
         RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "zlecenieNaN" )"
+               @bind-PageIndex="@AktualnaStrona"
                ScrollX="1990" PageSize="@iloscRekordow" Size="TableSize.Small" @ref="tableRef" OnChange="OnTableChange">
             <ActionColumn Title="Materiały" Width="155">
                 <a @onclick="() => DodajKantowke(context)" class="custom-link">Kantówka</a>
@@ -879,21 +879,18 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
         }
     }
 
+    private int AktualnaStrona { get; set; } = 1;
+    private int OstanioWyszukano { get; set; } = 1;
     private IEnumerable<ZleceniaProdukcyjneWew> ListaZlecenFiltrowana
     {
         get
         {
+
             if (zleceniaProdukcyjneWew == null)
-            {
-                iloscPrzefiltrowanych = 0;
                 return Enumerable.Empty<ZleceniaProdukcyjneWew>();
-            }
 
             if (string.IsNullOrWhiteSpace(szukanyNumer))
-            {
-                iloscPrzefiltrowanych = zleceniaProdukcyjneWew.Count();
                 return zleceniaProdukcyjneWew;
-            }
 
             var wynik = zleceniaProdukcyjneWew.Where(x =>
                 !string.IsNullOrWhiteSpace(x.NumerZamowienia) &&
@@ -901,8 +898,17 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
                     szukanyNumer,
                     StringComparison.OrdinalIgnoreCase));
 
-            iloscPrzefiltrowanych = wynik.Count();
+            Console.WriteLine($"Filtrowanie: {szukanyNumer}, Wynik: {wynik.Count()} iloscPrzefiltrowanych: {iloscPrzefiltrowanych} AktualnaStrona: {AktualnaStrona}");
 
+            if (OstanioWyszukano != wynik.Count())
+            {
+                OstanioWyszukano = wynik.Count();
+
+                AktualnaStrona = 1;
+            }
+   
+            iloscPrzefiltrowanych = wynik.Count();
+  
             return wynik;
         }
     }
@@ -1370,6 +1376,9 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
 
     private void OnTableChange(QueryModel<ZleceniaProdukcyjneWew> queryModel)
     {
+
+         AktualnaStrona = queryModel.PageIndex;
+
         if (zleceniaProdukcyjneWew == null)
         {
             iloscPrzefiltrowanych = 0;
@@ -1419,6 +1428,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
         }
 
         iloscPrzefiltrowanych = filteredData.Count();
+
         Console.WriteLine($"Ostateczna liczba rekordów: {iloscPrzefiltrowanych}");
     }
 

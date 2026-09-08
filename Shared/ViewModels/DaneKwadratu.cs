@@ -25,6 +25,7 @@ namespace GEORGE.Shared.ViewModels
         public string? WypelnienieZewnetrzne { get; set; }
         public float GruboscObramowania { get; set; } = 2.0f;
         public int ZIndex { get; set; } = 0;
+        public bool SasiadStronaAB { get; set; } = false;
         public bool wyborSasiadOK { get; set; } = false; //czy znaleziono sąsiada o podobnym kierunku linii (równoległego)
         public bool CzyLiniaSkosna()
         {
