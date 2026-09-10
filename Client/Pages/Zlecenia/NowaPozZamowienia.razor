@@ -695,7 +695,7 @@ else
             _valueSystem = false; // Domyślnie ustawiamy na COMFORT 68
             elementyZamowienia.ElemetZamDoZlecen.Dlugosc = 16;
             if (elementyZamowienia.ElemetZamDoZlecen.Szerokosc > 0)
-            szerokoscOkna = (double)elementyZamowienia.ElemetZamDoZlecen.Szerokosc + 182;
+            szerokoscOkna = (double)elementyZamowienia.ElemetZamDoZlecen.Szerokosc + 169;
             if (elementyZamowienia.ElemetZamDoZlecen.Wysokosc > 0)
             wysokoscOkna = (double)elementyZamowienia.ElemetZamDoZlecen.Wysokosc + 181;
 
@@ -866,7 +866,7 @@ else
 
     private void ObliczSzerokosc()
     {
-        if (szerokoscOkna >0)
+        if (szerokoscOkna > 0)
         elementyZamowienia.ElemetZamDoZlecen.Szerokosc = (decimal)(szerokoscOkna - 169);
         StateHasChanged();
     }
