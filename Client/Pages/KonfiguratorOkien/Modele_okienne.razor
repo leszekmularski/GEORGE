@@ -619,8 +619,8 @@
                                          @onclick="@(() => WybierzModel(model))"
                                          @ondragstart="@(e => JS.InvokeVoidAsync(
                                          "SetCurrentModel",
-                                                                                                                                                                                         model.Typ,
-                                                                                                                                                                                         model.RowId))"
+                                                                                                                                                                                                                                                                                model.Typ,
+                                                                                                                                                                                                                                                                                model.RowId))"
                              @onmouseout="@(e => JS.InvokeVoidAsync("ResetCursor"))"
                              draggable="true"
                              style="cursor: grab;
@@ -629,8 +629,8 @@
                                 max-width: 50px;
                                 max-height: 50px;
                                 border: @(model == WybranyModel
-                                                             ? "4px solid #007bff"
-                                                             : "none")" />
+                                                                                                                                                    ? "4px solid #007bff"
+                                                                                                                                                    : "none")" />
                                                 }
                                 else
                                 {
@@ -5464,7 +5464,9 @@
                 WypelnienieZewnetrzne = generator.KolorZewnetrzny,
                 GruboscObramowania = 2.0f,
                 ZIndex = generator.Zindeks,
-                Strona = stronaZFunkcji
+                Strona = stronaZFunkcji,
+                WierzcholkiSasiadaA = new List<XPoint>(),
+                WierzcholkiSasiadaB = new List<XPoint>()
             });
 
             //if (SelectedModelType.ToLower().Trim() == "słupek stały") break;
@@ -5488,55 +5490,41 @@
 
             // 🔹 Spróbuj znaleźć linię typu „Słupek stały”
             var liniaStala = styczneLinie
-                .Where(s =>
-                    !string.IsNullOrWhiteSpace(s.TypLiniiDzielacej) &&
-                    s.TypLiniiDzielacej.ToLower().Contains("słupek") &&
-                    s.Wierzcholki != null &&
-                    s.Wierzcholki.Count == 2)
-                .GroupBy(s => new
-                {
-                    X1 = Math.Round(s.Wierzcholki[0].X, 2),
-                    Y1 = Math.Round(s.Wierzcholki[0].Y, 2),
-                    X2 = Math.Round(s.Wierzcholki[1].X, 2),
-                    Y2 = Math.Round(s.Wierzcholki[1].Y, 2),
-                    Typ = s.TypLiniiDzielacej
-                })
-                .Select(g => g.First()) // usuwa duplikaty
-                .FirstOrDefault(s =>
-                    Math.Abs(s.Wierzcholki[0].X - s.Wierzcholki[1].X) > 0.01 ||
-                    Math.Abs(s.Wierzcholki[0].Y - s.Wierzcholki[1].Y) > 0.01);
+            .Where(s =>
+                !string.IsNullOrWhiteSpace(s.TypLiniiDzielacej) &&
+                s.TypLiniiDzielacej.ToLower().Contains("słupek") &&
+                s.Wierzcholki != null &&
+                s.Wierzcholki.Count == 2 &&
+                (
+                    // pionowa
+                    (Math.Abs(s.Wierzcholki[0].X - s.Wierzcholki[1].X) < 0.01 &&
+                     Math.Abs(s.Wierzcholki[0].Y - s.Wierzcholki[1].Y) > 0.01)
+                    ||
+                    // pozioma
+                    (Math.Abs(s.Wierzcholki[0].X - s.Wierzcholki[1].X) > 0.01 &&
+                     Math.Abs(s.Wierzcholki[0].Y - s.Wierzcholki[1].Y) < 0.01)
+                ))
+            .GroupBy(s => new
+            {
+                X1 = Math.Round(s.Wierzcholki![0].X, 2),
+                Y1 = Math.Round(s.Wierzcholki[0].Y, 2),
+                X2 = Math.Round(s.Wierzcholki[1].X, 2),
+                Y2 = Math.Round(s.Wierzcholki[1].Y, 2),
+                Typ = s.TypLiniiDzielacej
+            })
+            .Select(g => g.First()) // usuwa duplikaty
+            .OrderBy(s => OdlegloscPunktuOdOdcinka(
+                klikX, klikY,
+                s.Wierzcholki![0], s.Wierzcholki[1]))  // ⬅️ liczy się TYLKO odległość
+            .FirstOrDefault();
 
             // foreach (var linia in styczneLinie)
             // {
             //     Console.WriteLine($"🔹 Sprawdzana linia: {linia.Id}, TypLiniiDzielacej: '{linia.TypLiniiDzielacej}', Wierzcholki: {linia.Wierzcholki[0].X},{linia.Wierzcholki[0].Y} → {linia.Wierzcholki[1].X},{linia.Wierzcholki[1].Y}");
             // }
 
-            liniaStala = styczneLinie
-            .Where(s =>
-                s.Wierzcholki != null &&
-                s.Wierzcholki.Count == 2 &&
-                s.TypLiniiDzielacej == "Słupek stały" &&
-                Math.Abs(s.Wierzcholki[0].X - s.Wierzcholki[1].X) < 0.01 &&  // linia pionowa
-                Math.Abs(s.Wierzcholki[0].Y - s.Wierzcholki[1].Y) > 0.01)    // nie pozioma
-            .OrderBy(s => Math.Abs(s.Wierzcholki[0].X - klikX))              // najbliżej kliknięcia
-            .FirstOrDefault();
+            liniaStala = ZnajdzNajblizszaLinieStala(styczneLinie, klikX, klikY);
 
-            //}
-
-            if (liniaStala == null)
-            {
-                // Console.WriteLine($"⚠️ Nie znaleziono linii z TypLiniiDzielacej='Słupek stały'. Szukam pionowej linii jako zamiennika... klikX: {klikX}");
-
-                liniaStala = styczneLinie
-            .Where(s =>
-                s.Wierzcholki != null &&
-                s.Wierzcholki.Count == 2 &&
-                s.TypLiniiDzielacej == "Słupek stały" &&
-                Math.Abs(s.Wierzcholki[0].X - s.Wierzcholki[1].X) > 0.01 &&  // linia pozioma
-                Math.Abs(s.Wierzcholki[0].Y - s.Wierzcholki[1].Y) < 0.01)    // nie pionowa
-            .OrderBy(s => Math.Abs(s.Wierzcholki[0].Y - klikY))              // najbliżej kliknięcia
-            .FirstOrDefault();
-            }
 
             if (liniaStala == null)
             {
@@ -5557,26 +5545,64 @@
                 return "❌ Nadal nie znaleziono poprawnej linii słupka (brak dwóch różnych punktów lub pionowej linii).";
             }
 
-            // foreach(var test in state.ListaKwadratow)
+            var katSzukaj = ObliczKatLinii(liniaStala.Wierzcholki);
+
+            // 🔹 Zbierz wszystkie stany (z null-checkiem na liście)
+            var _all_stale = _generatorStates.Values
+                .Where(gs => gs?.ListaKwadratow != null)
+                .ToList();
+
+            _all_stale.Add(state); // Dodaj bieżący stan, jeśli nie jest już w liście)
+
+            // 🔹 Log — wypisz WSZYSTKIE DaneKwadratu ze WSZYSTKICH stanów
+            foreach (var gs in _all_stale)
+            {
+                foreach (var test in gs.ListaKwadratow)
+                {
+                    Console.WriteLine(
+                        $"🔹🔹🔹🔹🔹🔹 ListaKwadratow: " +
+                        $"RegionId: {gs.IdRegion}, " +
+                        $"RowIdElementu: {test.RowIdElementu}, " +
+                        $"RowIdSasiada: {test.RowIdSasiada}, " +
+                        $"Strona: {test.Strona}, " +
+                        $"KatLinii: {test.KatLinii}, " +
+                        $"ZIndex: {test.ZIndex}");
+                }
+            }
+
+            string stronaB = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(katSzukaj + 90);
+            string stronaA = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(katSzukaj + 270);
+
+            // 🔹 Szukaj sąsiadów we WSZYSTKICH stanach (nie tylko w bieżącym)
+            DaneKwadratu? najlepszySasiadA = _all_stale
+                .SelectMany(gs => gs.ListaKwadratow)
+                .Where(x => x.RowIdSasiada != Guid.Empty) // Filtruj tylko te, które mają RowIdSasiada)
+                .FirstOrDefault(k =>
+                    k != null &&
+                    !string.IsNullOrWhiteSpace(k.Strona) &&
+                    string.Equals(k.Strona, stronaA, StringComparison.OrdinalIgnoreCase));
+
+            DaneKwadratu? najlepszySasiadB = _all_stale
+                .SelectMany(gs => gs.ListaKwadratow)
+                .Where(x => x.RowIdSasiada != Guid.Empty) // Filtruj tylko te, które mają RowIdSasiada)
+                .FirstOrDefault(k =>
+                    k != null &&
+                    !string.IsNullOrWhiteSpace(k.Strona) &&
+                    string.Equals(k.Strona, stronaB, StringComparison.OrdinalIgnoreCase));
+
+
+            // if (najlepszySasiadA == null)
             // {
-            //     Console.WriteLine($"🔹🔹🔹🔹🔹🔹 ListaKwadratow: RowIdElementu: {test.RowIdElementu}, RowIdSasiada: {test.RowIdSasiada}, Strona: {test.Strona} ZIndex: {test.ZIndex}");
+            //     najlepszySasiadA = state.ListaKwadratow.Find(k => k.Strona.ToLower() == "lewa");
             // }
 
-            DaneKwadratu najlepszySasiadA = state.ListaKwadratow.Find(k => k.Strona.ToLower() == "góra" || k.Strona.ToLower() == "gora");
-            DaneKwadratu najlepszySasiadB = state.ListaKwadratow.Find(k => k.Strona.ToLower() == "dół" | k.Strona.ToLower() == "dol");
+            // if (najlepszySasiadB == null)
+            // {
+            //     najlepszySasiadB = state.ListaKwadratow.Find(k => k.Strona.ToLower() == "prawa");
+            // }
 
-            if (najlepszySasiadA == null)
-            {
-                najlepszySasiadA = state.ListaKwadratow.Find(k => k.Strona.ToLower() == "lewa");
-            }
-
-            if (najlepszySasiadB == null)
-            {
-                najlepszySasiadB = state.ListaKwadratow.Find(k => k.Strona.ToLower() == "prawa");
-            }
-
-            //Console.WriteLine($"🔹 Najlepszy sąsiad A (góra/lewa): {(najlepszySasiadA != null ? $"RowIdElementu: {najlepszySasiadA.RowIdSasiada}, Strona: {najlepszySasiadA.Strona}" : "NIE-ZNALEZIONO")}");
-            //Console.WriteLine($"🔹 Najlepszy sąsiad B (dół/prawa): {(najlepszySasiadB != null ? $"RowIdElementu: {najlepszySasiadB.RowIdSasiada}, Strona: {najlepszySasiadB.Strona}" : "NIE-ZNALEZIONO")}");
+            Console.WriteLine($"🔹🔹🔹🔹🔹🔹 Najlepszy sąsiad A (góra/lewa) Kąt: {katSzukaj}: {(najlepszySasiadA != null ? $"RowIdElementu: {najlepszySasiadA.RowIdSasiada}, Strona: {najlepszySasiadA.Strona} / {stronaA}" : "NIE-ZNALEZIONO")}");
+            Console.WriteLine($"🔹🔹🔹🔹🔹🔹 Najlepszy sąsiad B (dół/prawa) Kąt: {katSzukaj}:  {(najlepszySasiadB != null ? $"RowIdElementu: {najlepszySasiadB.RowIdSasiada}, Strona: {najlepszySasiadB.Strona} / {stronaB}" : "NIE-ZNALEZIONO")}");
 
             // 🔹 Określ orientację
             bool pionowy = Math.Abs(liniaStala.Wierzcholki[0].X - liniaStala.Wierzcholki[1].X) < 0.01;
@@ -5586,7 +5612,7 @@
             // Console.WriteLine($"📏 Rozpoznano linię: {orientacja} Ilość linii stycznych: {styczneLinie.Count()}");
 
             // 🔹 Oblicz kąt
-            var katSzukaj = ObliczKatLinii(liniaStala.Wierzcholki);
+
 
             // Console.WriteLine($"📐 Kąt słupka stałego: {katSzukaj:F2}° X0:{liniaStala.Wierzcholki[0].X} Y0:{liniaStala.Wierzcholki[0].Y} X1:{liniaStala.Wierzcholki[1].X} Y1:{liniaStala.Wierzcholki[1].Y}");
 
@@ -5626,6 +5652,7 @@
                 generator.Komunikaty.Add($"⚠️ Nie znaleziono informacji o połączeniach elementów słupków w konfiguratorze!!! Sprawdź konfigurację sąsiadów dla RowIdElementu: {najlepszySasiadB?.RowIdElementu ?? Guid.Empty} i RowIdSasiada: {najlepszySasiadB?.RowIdSasiada ?? Guid.Empty}");
             }
 
+
             // 🔹 Zapisz dane do stanu (jeśli znaleziono sąsiada)
             state.ListaKwadratow.Add(new DaneKwadratu
             {
@@ -5645,7 +5672,7 @@
                 OffsetTop = 0,
                 OffsetLeft = 0,
                 OffsetRight = 0,
-                Strona = "Środek",
+                Strona = stronaA + "-" + stronaB,
                 BoolElementLinia = true,
                 TypKsztaltu = generator.TypKsztaltu,
                 WypelnienieWewnetrzne = generator.KolorWewnetrzny,
@@ -5653,8 +5680,8 @@
                 GruboscObramowania = 2.0f,
                 ZIndex = generator.Zindeks,
                 Przesuniecia = polaczenieWartosciA.Union(polaczenieWartosciB).ToList(),
-                WierzcholkiSasiadaA =  najlepszySasiadA?.Wierzcholki ?? new List<XPoint>(),
-                WierzcholkiSasiadaB =  najlepszySasiadB?.Wierzcholki ?? new List<XPoint>(),
+                WierzcholkiSasiadaA = najlepszySasiadA.WierzcholkiSasiadaA ?? new List<XPoint>(),
+                WierzcholkiSasiadaB = najlepszySasiadB.WierzcholkiSasiadaB ?? new List<XPoint>()
 
             });
 
@@ -6788,6 +6815,50 @@
         return new List<KonfPolaczenie>();
     }
 
+    private ShapeRegion? ZnajdzNajblizszaLinieStala(
+    List<ShapeRegion> styczneLinie,
+    double klikX,
+    double klikY)
+    {
+        return styczneLinie
+            .Where(s =>
+                s.Wierzcholki != null &&
+                s.Wierzcholki.Count == 2 &&
+                s.TypLiniiDzielacej == "Słupek stały" &&
+                (
+                    (Math.Abs(s.Wierzcholki[0].X - s.Wierzcholki[1].X) < 0.01 &&
+                     Math.Abs(s.Wierzcholki[0].Y - s.Wierzcholki[1].Y) > 0.01)
+                    ||
+                    (Math.Abs(s.Wierzcholki[0].X - s.Wierzcholki[1].X) > 0.01 &&
+                     Math.Abs(s.Wierzcholki[0].Y - s.Wierzcholki[1].Y) < 0.01)
+                ))
+            .OrderBy(s => OdlegloscPunktuOdOdcinka(klikX, klikY, s.Wierzcholki![0], s.Wierzcholki[1]))
+            .FirstOrDefault();
+    }
+
+    private static double OdlegloscPunktuOdOdcinka(
+    double px, double py,
+    XPoint a, XPoint b)
+    {
+        double dx = b.X - a.X;
+        double dy = b.Y - a.Y;
+        double dlugoscKw = dx * dx + dy * dy;
+
+        if (dlugoscKw < 1e-12)
+            return Math.Sqrt((px - a.X) * (px - a.X) + (py - a.Y) * (py - a.Y)); // punkt == odcinek
+
+        // rzut punktu na prostą, obcięty do [0,1]
+        double t = ((px - a.X) * dx + (py - a.Y) * dy) / dlugoscKw;
+        t = Math.Max(0, Math.Min(1, t));
+
+        double najblizszyX = a.X + t * dx;
+        double najblizszyY = a.Y + t * dy;
+
+        double ex = px - najblizszyX;
+        double ey = py - najblizszyY;
+        return Math.Sqrt(ex * ex + ey * ey);
+    }
+
     private static double ObliczKatLinii(List<XPoint> linia)
     {
         if (linia == null || linia.Count < 2)
@@ -7471,7 +7542,7 @@
                 Strona = strona,
                 JestSkosna = jestSkosna,
                 KierunekSkosny = strona,
-                WierzcholkiSasiada = wynik.FindLastIndex(x => x.WierzcholkiSasiada != null) >= 0 ? wynik.FindLast(x => x.WierzcholkiSasiada != null).WierzcholkiSasiada : new List<XPoint>(),
+                WierzcholkiSasiada = new List<XPoint>(),
             });
 
             if (SelectedModelType != "Rama" && !ruchomySlupekPoLewej && !ruchomySlupekPoPrawej)
@@ -9075,10 +9146,11 @@
         public string KierunekSkosny { get; set; } = "";
         public string Strona { get; set; } = "";
 
-        public Guid RowIdSasiadaStronaA { get; set; } = Guid.Empty;// RowId elementu sąsiada przecinającego stronę A
-        public Guid RowIdSasiadaStronaB { get; set; } = Guid.Empty;//RowId elementu sąsiada przecinającego stronę B
+        // public Guid RowIdSasiadaStronaA { get; set; } = Guid.Empty;// RowId elementu sąsiada przecinającego stronę A
+        // public Guid RowIdSasiadaStronaB { get; set; } = Guid.Empty;//RowId elementu sąsiada przecinającego stronę B
 
         public List<XPoint> WierzcholkiSasiada { get; set; } = new();
+        // public List<XPoint> WierzcholkiSasiadaB { get; set; } = new();
     }
 
     public class SlupekMatchResult

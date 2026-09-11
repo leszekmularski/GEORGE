@@ -1363,6 +1363,42 @@
                                                             <span class="property-label">RowId Sąsiada strona B:</span>
                                                             <span class="property-value">@kwadrat.RowIdSasiadaStronaB</span>
                                                         </div>
+                                                        <div class="property">
+                                                            <span class="property-label">Punkty sąsiada strona A</span>
+                                                            <span class="property-value">
+                                                                @if (kwadrat.WierzcholkiSasiadaA is not null && kwadrat.WierzcholkiSasiadaA.Any())
+                                                                {
+                                                                    <ul>
+                                                                        @foreach (var p in kwadrat.WierzcholkiSasiadaA)
+                                                                        {
+                                                                            <li>@($"X: {p.X}; Y: {p.Y}")</li>
+                                                                        }
+                                                                    </ul>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <em>Brak danych</em>
+                                                                }
+                                                            </span>
+                                                        </div>
+                                                        <div class="property">
+                                                            <span class="property-label">Punkty sąsiada strona B</span>
+                                                            <span class="property-value">
+                                                                @if (kwadrat.WierzcholkiSasiadaB is not null && kwadrat.WierzcholkiSasiadaB.Any())
+                                                                {
+                                                                    <ul>
+                                                                        @foreach (var p in kwadrat.WierzcholkiSasiadaB)
+                                                                        {
+                                                                            <li>@($"X: {p.X}; Y: {p.Y}")</li>
+                                                                        }
+                                                                    </ul>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <em>Brak danych</em>
+                                                                }
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -2690,6 +2726,12 @@
     {
         Console.WriteLine("GeneratorStateViewer initialized.");
 
-        await PokazSzczegoly(null);
+        // //await PokazSzczegoly(null);
+
+        // pokazWidokSzczegolowy = true;
+
+        // await Task.Yield();
+
+        // ToggleWidokSzczegolowy();
     }
 }

@@ -63,6 +63,8 @@ namespace GEORGE.Shared.ViewModels
                 RowIdSasiadaStronaA = this.RowIdSasiadaStronaA,
                 RowIdSasiadaStronaB = this.RowIdSasiadaStronaB,
                 RowIdRegionuSasiada = this.RowIdRegionuSasiada,
+                WierzcholkiSasiadaA = this.WierzcholkiSasiadaA,
+                WierzcholkiSasiadaB = this.WierzcholkiSasiadaB,
 
                 KatLinii = this.KatLinii,
                 Strona = this.Strona,
@@ -73,7 +75,7 @@ namespace GEORGE.Shared.ViewModels
                 OffsetRight = this.OffsetRight,
                 ZIndex = this.ZIndex,
                 WypelnienieZewnetrzne = this.WypelnienieZewnetrzne,
-                WypelnienieWewnetrzne = this.WypelnienieWewnetrzne, 
+                WypelnienieWewnetrzne = this.WypelnienieWewnetrzne,
                 wyborSasiadOK = this.wyborSasiadOK,
                 GruboscObramowania = this.GruboscObramowania,
                 TypKsztaltu = this.TypKsztaltu,
