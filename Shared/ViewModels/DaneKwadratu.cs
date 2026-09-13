@@ -7,12 +7,12 @@ namespace GEORGE.Shared.ViewModels
         public List<ContourSegment>? Kontur { get; set; } //punkty wierzchołków pojedynczej linii
         public List<PrzesuniecieDto>? Przesuniecia { get; set; } //lista przesunięć z tabeli KonfPolaczenie
         public Guid RowIdElementu { get; set; } //id elementu w bazie danych
+        public string? RowIdRegionu { get; set; } //id elementu w bazie danych guid + id pozycji
         public Guid RowIdSasiada { get; set; } //id elementu w bazie danych sąsiad równoległy
         public Guid RowIdSasiadaStronaA { get; set; } = Guid.Empty; //id elementu w bazie danych sąsiad strona A przecinający (góra/lewa)
         public Guid RowIdSasiadaStronaB { get; set; } = Guid.Empty; //id elementu w bazie danych sąsiad strona B przecinający (dół/prawa)
         public List<XPoint>? WierzcholkiSasiadaA { get; set; } //punkty wierzchołków pojedynczej linii
         public List<XPoint>? WierzcholkiSasiadaB { get; set; } //punkty wierzchołków pojedynczej linii
-        public string? RowIdRegionuSasiada { get; set; } //id elementu w bazie danych
         public float KatLinii { get; set; } //kierunek linii w stopniach
         public string? Strona { get; set; } //kierunek linii w stopniach
         public double OffsetTop { get; set; } = 0; //odległość linii od górnej krawędzi elementu pobrana z bazy danych
@@ -45,42 +45,71 @@ namespace GEORGE.Shared.ViewModels
         {
             return new DaneKwadratu
             {
-                Wierzcholki = this.Wierzcholki != null
-                    ? this.Wierzcholki.Select(p => new XPoint(p.X, p.Y)).ToList()
-                    : null,
-                Przesuniecia = this.Przesuniecia != null
-                    ? this.Przesuniecia.Select(p => new PrzesuniecieDto
+                Wierzcholki = this.Wierzcholki?
+                    .Select(p => new XPoint(p.X, p.Y)).ToList(),
+
+                Kontur = this.Kontur?
+                    .Select(c =>
+                    {
+                        ContourSegment seg;
+                        if (c.Type == SegmentType.Arc)
+                        {
+                            seg = new ContourSegment(
+                                new XPoint(c.Start.X, c.Start.Y),
+                                new XPoint(c.End.X, c.End.Y),
+                                c.Center.HasValue ? new XPoint(c.Center.Value.X, c.Center.Value.Y) : (XPoint?)null,
+                                c.Radius,
+                                c.CounterClockwise);
+                        }
+                        else
+                        {
+                            seg = new ContourSegment(
+                                new XPoint(c.Start.X, c.Start.Y),
+                                new XPoint(c.End.X, c.End.Y));
+                        }
+                        seg.Informacja = c.Informacja;
+                        return seg;
+                    })
+                    .ToList(),
+
+                Przesuniecia = this.Przesuniecia?
+                    .Select(p => new PrzesuniecieDto
                     {
                         PrzesuniecieX = p.PrzesuniecieX,
                         PrzesuniecieY = p.PrzesuniecieY,
                         PrzesuniecieXStycznej = p.PrzesuniecieXStycznej,
                         PrzesuniecieYStycznej = p.PrzesuniecieYStycznej,
-                        Strona = p.Strona
-                    }).ToList()
-                    : null,
+                        Strona = p.Strona,
+                        ElementWewnetrznyId = p.ElementWewnetrznyId,
+                        ElementZewnetrznyId = p.ElementZewnetrznyId
+                    }).ToList(),
+
                 RowIdElementu = this.RowIdElementu,
+                RowIdRegionu = this.RowIdRegionu,
                 RowIdSasiada = this.RowIdSasiada,
                 RowIdSasiadaStronaA = this.RowIdSasiadaStronaA,
                 RowIdSasiadaStronaB = this.RowIdSasiadaStronaB,
-                RowIdRegionuSasiada = this.RowIdRegionuSasiada,
-                WierzcholkiSasiadaA = this.WierzcholkiSasiadaA,
-                WierzcholkiSasiadaB = this.WierzcholkiSasiadaB,
+
+                // 🔧 GŁĘBOKA kopia list sąsiadów
+                WierzcholkiSasiadaA = this.WierzcholkiSasiadaA?
+                    .Select(p => new XPoint(p.X, p.Y)).ToList(),
+                WierzcholkiSasiadaB = this.WierzcholkiSasiadaB?
+                    .Select(p => new XPoint(p.X, p.Y)).ToList(),
 
                 KatLinii = this.KatLinii,
                 Strona = this.Strona,
-
                 OffsetTop = this.OffsetTop,
                 OffsetBottom = this.OffsetBottom,
                 OffsetLeft = this.OffsetLeft,
                 OffsetRight = this.OffsetRight,
-                ZIndex = this.ZIndex,
-                WypelnienieZewnetrzne = this.WypelnienieZewnetrzne,
-                WypelnienieWewnetrzne = this.WypelnienieWewnetrzne,
-                wyborSasiadOK = this.wyborSasiadOK,
-                GruboscObramowania = this.GruboscObramowania,
+                BoolElementLinia = this.BoolElementLinia,
                 TypKsztaltu = this.TypKsztaltu,
-
-                BoolElementLinia = this.BoolElementLinia
+                WypelnienieWewnetrzne = this.WypelnienieWewnetrzne,
+                WypelnienieZewnetrzne = this.WypelnienieZewnetrzne,
+                GruboscObramowania = this.GruboscObramowania,
+                ZIndex = this.ZIndex,
+                SasiadStronaAB = this.SasiadStronaAB,
+                wyborSasiadOK = this.wyborSasiadOK,
             };
         }
 

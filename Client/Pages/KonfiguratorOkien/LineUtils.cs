@@ -807,22 +807,22 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             double offsetX = -minX;
             double offsetY = -minY;
 
-            Console.WriteLine($"[UstawPozycjeXiYnaZero] Przesuwam wszystkie kształty o ({offsetX:F2}, {offsetY:F2})");
+            //Console.WriteLine($"[UstawPozycjeXiYnaZero] Przesuwam wszystkie kształty o ({offsetX:F2}, {offsetY:F2})");
 
-            // Przesuń wszystkie kształty o ten sam wektor
-            foreach (var shape in shapes)
-            {
-                shape.Move(offsetX, offsetY);
+            //// Przesuń wszystkie kształty o ten sam wektor
+            //foreach (var shape in shapes)
+            //{
+            //    shape.Move(offsetX, offsetY);
 
-                if (shape is XLineShape line)
-                {
-                    Console.WriteLine($"[UstawPozycjeXiYnaZero] Linia {line.NazwaObj}: ({line.X1:F2}, {line.Y1:F2}) -> ({line.X2:F2}, {line.Y2:F2})");
-                }
-                else
-                {
-                    Console.WriteLine($"[UstawPozycjeXiYnaZero] Shape {shape.GetType().Name}: przesunięto");
-                }
-            }
+            //    if (shape is XLineShape line)
+            //    {
+            //        Console.WriteLine($"[UstawPozycjeXiYnaZero] Linia {line.NazwaObj}: ({line.X1:F2}, {line.Y1:F2}) -> ({line.X2:F2}, {line.Y2:F2})");
+            //    }
+            //    else
+            //    {
+            //        Console.WriteLine($"[UstawPozycjeXiYnaZero] Shape {shape.GetType().Name}: przesunięto");
+            //    }
+            //}
 
             await Task.CompletedTask;
         }
