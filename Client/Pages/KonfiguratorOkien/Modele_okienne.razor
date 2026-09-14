@@ -3131,13 +3131,14 @@
                 best.KatLiniSlupka = ObliczKatLinii(pkt);
 
                 Console.WriteLine($"🔍 Nowy najlepszy: Region ID {reg.Id}, dist={dist}");
+
             }
         }
 
         // Jeśli znaleziono linię, stwórz prostokąt 4 punktowy
         if (best.Wierzcholki.Count == 2)
         {
-            Console.WriteLine("🔍 Znaleziono linię słupka - tworzę prostokąt");
+            Console.WriteLine($"🔍 Znaleziono linię słupka - tworzę prostokąt dla regionu: {best.RegionIds[0]}");
             best.Wierzcholki = UtworzProstokatWokolLinii(best.Wierzcholki, szer_slupka, os_symetrii_slupka); // 82 = grubość słupka
         }
 
@@ -3224,9 +3225,11 @@
             return linia;
         }
 
-        Console.WriteLine(
-            $"🔍 Utworzono prostokąt słupka: " +
-            $"grubość={grubosc:F2}, oś={os_symetrii_slupka:F2}");
+        // Console.Clear();
+
+        // Console.WriteLine(
+        //     $"🔍 Utworzono prostokąt słupka: " +
+        //     $"grubość={grubosc:F2}, oś={os_symetrii_slupka:F2}");
 
         // for (int i = 0; i < prostokat.Count; i++)
         // {
@@ -4505,7 +4508,7 @@
     double katSlupkaStalego,
     List<XPoint> wierzcholkiST)
     {
-        Console.Clear(); // ⚠️ Wywalone — tracisz logi między wywołaniami
+       // Console.Clear(); // ⚠️ Wywalone — tracisz logi między wywołaniami
 
         // 1. Walidacja wstępna
         var walidacja = WalidujWejscie();
@@ -5266,7 +5269,8 @@
             GruboscObramowania = 2.0f,
             Przesuniecia = polaczenieWartosciA.Union(polaczenieWartosciB).ToList(),
             WierzcholkiSasiadaA = najlepszySasiadA?.WierzcholkiSasiadaA ?? new List<XPoint>(),
-            WierzcholkiSasiadaB = najlepszySasiadB?.WierzcholkiSasiadaB ?? new List<XPoint>()
+            WierzcholkiSasiadaB = najlepszySasiadB?.WierzcholkiSasiadaB ?? new List<XPoint>(),
+            LiniaStala = liniaStalaWierzcholki,
         });
 
         Console.WriteLine($"🔹 Najlepszy A i B zapisane do state.ListaKwadratow: A:{state.ListaKwadratow[^1].RowIdSasiadaStronaA} B: {state.ListaKwadratow[^1].RowIdSasiadaStronaA}");

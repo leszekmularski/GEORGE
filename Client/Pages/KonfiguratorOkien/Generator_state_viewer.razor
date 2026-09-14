@@ -1899,7 +1899,7 @@
     private bool punktyWidoczne = false;
     private bool pokazModalUsuwania = false;
     private bool pokazKomunikatKopiowania = false;
-    private bool pokazWidokSzczegolowy = false;
+    private bool pokazWidokSzczegolowy = true;
 
     // Ustawienia wyświetlania
     private bool rozwinJson = false;
@@ -2089,7 +2089,7 @@
     {
         wybranyStan = stan;
         szczegolyWidoczne = true;
-        pokazWidokSzczegolowy = false;
+        pokazWidokSzczegolowy = true;
         aktywnaZakladka = 0;
 
         StateHasChanged();

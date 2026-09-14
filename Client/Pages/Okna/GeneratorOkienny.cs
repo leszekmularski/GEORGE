@@ -445,6 +445,12 @@ namespace GEORGE.Client.Pages.Okna
                 konturWenetrznyPodRysunek = przeskalowanePunktyZLukamiPodRysynek;
                 wierzcholkiWenetrznePodRysunek = przeskalowanePunktyPodRysynek;
 
+                //foreach (var punkt in punktyRegionuMaster)
+                //{
+                //    Console.WriteLine($"🔷 T5-T5 punktyRegionuMaster: #1 X={punkt.X}, Y={punkt.Y}");
+                //}
+
+
                 punktyRegionuMaster = await CalculateOffsetPolygon(
                     punktyRegionuMaster,
                     profileLeft, profileRight, profileTop, profileBottom,
@@ -498,7 +504,7 @@ namespace GEORGE.Client.Pages.Okna
                 BledySystemowe.Add($"❌ Generowanie niepowiodło się dla regionu {regionId} liniaSzkleniaKontur == null");
                 return $"❌ Generowanie niepowiodło się dla regionu {regionId} liniaSzkleniaKontur == null";
             }
-
+            //regionAdd
             var okLine = await GenerateGenericElementsWithJoins(
                 przeskalowanePunkty,
                 wewnetrznyKontur,
@@ -2006,9 +2012,22 @@ namespace GEORGE.Client.Pages.Okna
                         Console.WriteLine($"⚠️ T5-T5: Szerokość słupka wynosi: {SzerokoscSlupka} dla rowIdprofileLeft: {rowIdprofileLeft}.");
                     }
 
-                    // Najpierw oblicz wektor kierunkowy linii
-                    XPoint TopXT5 = new XPoint { X = inner[0].X, Y = inner[0].Y };
-                    XPoint BottomXT5 = new XPoint { X = inner[1].X, Y = inner[1].Y };
+                    //foreach (var kwadrat in daneKwadratu.Where(x => x.LiniaStala != null && x.LiniaStala.Count > 1))
+                    //{
+                    //    Console.WriteLine($"🔷 🔷 🔷 Kwadrat — LiniaStala ma {kwadrat.LiniaStala.Count} punktów:");
+
+                    //    foreach (var punkt in kwadrat.LiniaStala)
+                    //    {
+                    //        Console.WriteLine($"   🔷 🔷 🔷 X={punkt.X}, Y={punkt.Y}");
+                    //    }
+                    //}
+
+                    XPoint TopXT5 = new XPoint { X = daneKwadratu.Where(x => x.LiniaStala != null && x.LiniaStala.Count() > 1).LastOrDefault().Wierzcholki[0].X, Y = daneKwadratu.Where(x => x.LiniaStala != null && x.LiniaStala.Count() > 1).LastOrDefault().Wierzcholki[0].Y };
+                    XPoint BottomXT5 = new XPoint { X = daneKwadratu.Where(x => x.LiniaStala != null && x.LiniaStala.Count() > 1).LastOrDefault().Wierzcholki[1].X, Y = daneKwadratu.Where(x => x.LiniaStala != null && x.LiniaStala.Count() > 1).LastOrDefault().Wierzcholki[1].Y };
+
+                    //// Najpierw oblicz wektor kierunkowy linii
+                    //XPoint TopXT5 = new XPoint { X = inner[0].X, Y = inner[0].Y };
+                    //XPoint BottomXT5 = new XPoint { X = inner[1].X, Y = inner[1].Y };
 
                     XPoint tmpTopST5 = new XPoint { };
                     XPoint tmpTopLT5 = new XPoint { };
@@ -2125,14 +2144,21 @@ namespace GEORGE.Client.Pages.Okna
                     //    Y = tmpTopST5.Y + vyT5 * polowaSzerokosci
                     //};
 
-                    // Teraz znajdź przecięcia z konturem
-                    XPoint leftTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopLT5, TopXT5, BottomXT5, punktyRegionuMaster, forward: false);
-                    XPoint midTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopST5, TopXT5, BottomXT5, punktyRegionuMaster, forward: false);
-                    XPoint rightTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopRT5, TopXT5, BottomXT5, punktyRegionuMaster, forward: false);
+                    //foreach (var punkt in punktyRegionuMaster)
+                    //{
+                    //    Console.WriteLine($"🔷 T5-T5 punktyRegionuMaster: #2 X={punkt.X}, Y={punkt.Y}");
+                    //}
 
-                    XPoint leftBottomIntersection = FindFirstEdgeIntersectionByVector(tmpTopLT5, TopXT5, BottomXT5, punktyRegionuMaster, forward: true);
-                    XPoint midBottomIntersection = FindFirstEdgeIntersectionByVector(tmpTopST5, TopXT5, BottomXT5, punktyRegionuMaster, forward: true);
-                    XPoint rightBottomIntersection = FindFirstEdgeIntersectionByVector(tmpTopRT5, TopXT5, BottomXT5, punktyRegionuMaster, forward: true);
+                    var punkyRegionuMasterModyfikowane = PrepareRegionPoints(TopXT5, BottomXT5, punktyRegionuMaster);
+
+                    // Teraz znajdź przecięcia z konturem
+                    XPoint leftTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopLT5, TopXT5, BottomXT5, punkyRegionuMasterModyfikowane, forward: false);
+                    XPoint midTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopST5, TopXT5, BottomXT5, punkyRegionuMasterModyfikowane, forward: false);
+                    XPoint rightTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopRT5, TopXT5, BottomXT5, punkyRegionuMasterModyfikowane, forward: false);
+
+                    XPoint leftBottomIntersection = FindFirstEdgeIntersectionByVector(tmpTopLT5, TopXT5, BottomXT5, punkyRegionuMasterModyfikowane, forward: true);
+                    XPoint midBottomIntersection = FindFirstEdgeIntersectionByVector(tmpTopST5, TopXT5, BottomXT5, punkyRegionuMasterModyfikowane, forward: true);
+                    XPoint rightBottomIntersection = FindFirstEdgeIntersectionByVector(tmpTopRT5, TopXT5, BottomXT5, punkyRegionuMasterModyfikowane, forward: true);
 
                     // Prawidłowe przypisanie nazw (poprawione!)
                     var TopLT5 = leftTopIntersection;      // Lewy górny
@@ -2538,6 +2564,38 @@ namespace GEORGE.Client.Pages.Okna
             return true;
         }
 
+        private List<XPoint> PrepareRegionPoints(XPoint top, XPoint bottom, List<XPoint> source)
+        {
+            if (source == null || source.Count == 0)
+                return new List<XPoint>();
+
+            double dx = bottom.X - top.X;
+            double dy = bottom.Y - top.Y;
+            bool isVertical = Math.Abs(dy) >= Math.Abs(dx);
+
+            if (isVertical)
+            {
+                double minY = Math.Min(top.Y, bottom.Y);
+                double maxY = Math.Max(top.Y, bottom.Y);
+
+                return source.Select(p => new XPoint
+                {
+                    X = p.X,
+                    Y = p.Y < minY ? minY : (p.Y > maxY ? maxY : p.Y)
+                }).ToList();
+            }
+            else
+            {
+                double minX = Math.Min(top.X, bottom.X);
+                double maxX = Math.Max(top.X, bottom.X);
+
+                return source.Select(p => new XPoint
+                {
+                    X = p.X < minX ? minX : (p.X > maxX ? maxX : p.X),
+                    Y = p.Y
+                }).ToList();
+            }
+        }
         /// <summary>
         /// Obraca listę segmentów tak, aby pierwszy segment rozpoczynał się
         /// w wybranym narożniku.

@@ -29,6 +29,8 @@ namespace GEORGE.Shared.ViewModels
         public int ZIndex { get; set; } = 0;
         public bool SasiadStronaAB { get; set; } = false;
         public bool wyborSasiadOK { get; set; } = false; //czy znaleziono sąsiada o podobnym kierunku linii (równoległego)
+        public List<XPoint> LiniaStala { get; set; } = new List<XPoint>(); //punkty wierzchołków pojedynczej linii słupka
+
         public bool CzyLiniaSkosna()
         {
             return KatLinii != 0 && KatLinii != 90 && KatLinii != 180 && KatLinii != 270;
@@ -110,6 +112,8 @@ namespace GEORGE.Shared.ViewModels
                 ZIndex = this.ZIndex,
                 SasiadStronaAB = this.SasiadStronaAB,
                 wyborSasiadOK = this.wyborSasiadOK,
+                LiniaStala = this.LiniaStala?
+                    .Select(p => new XPoint(p.X, p.Y)).ToList()
             };
         }
 
