@@ -83,6 +83,11 @@ namespace GEORGE.Client.Pages.Okna
         {
             if (regions == null) return "Brak regionu";
 
+            Guid callId = Guid.NewGuid();
+
+            Console.WriteLine(
+                $"▶ START AddElements: {callId}, regionId={regionId}");
+
             if (_jsRuntime != null && kasujKonsole)
             {
                 await _jsRuntime.InvokeVoidAsync("console.clear");
@@ -363,7 +368,7 @@ namespace GEORGE.Client.Pages.Okna
                     .Where(s => s.Przesuniecia != null &&
                                 s.Przesuniecia.Count > 0 &&
                                 s.Wierzcholki != null &&
-                                s.Wierzcholki.Count >= 2)
+                                s.Wierzcholki.Count > 1)
                     .Select(s => new
                     {
                         Wpis = s,
@@ -374,7 +379,8 @@ namespace GEORGE.Client.Pages.Okna
                     .OrderBy(x => x.Odleglosc)
                     .ToList();
 
-                Console.WriteLine($"🔷 ElementLiniowy: znaleziono {kandydaci.Count} wyluczony region:{regionId} wpisów z Przesunieciami:");
+                Console.WriteLine($"🔷 ElementLiniowy: znaleziono {kandydaci.Count} aktywny:{regionId} wpisów z Przesunieciami:");
+
                 foreach (var k in kandydaci)
                 {
                     Console.WriteLine($"   {k.Wpis.RowIdElementu} (strona={k.Wpis.Strona}) " +
@@ -411,14 +417,30 @@ namespace GEORGE.Client.Pages.Okna
                         Console.WriteLine($"⚠️ ElementLiniowy: fallback też nie znalazł nic");
                 }
 
+                konfPolaczenia = konfPolaczenia
+                .Where(x =>
+                    x.ElementWewnetrznyId == RowIdprofileTop ||
+                    x.ElementZewnetrznyId == RowIdprofileTop)
+                .GroupBy(x => new
+                {
+                    x.ElementWewnetrznyId,
+                    x.ElementZewnetrznyId,
+                    x.Strona
+                })
+                .Select(g => g.First())
+                .ToList();
+
                 if (konfPolaczenia != null && konfPolaczenia.Count > 0)
                 {
                     var szukPionA = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
                         p.Strona.Equals("Góra", StringComparison.OrdinalIgnoreCase))?.PrzesuniecieYStycznej ?? 0);
+
                     var szukPionB = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
                         p.Strona.Equals("Dół", StringComparison.OrdinalIgnoreCase))?.PrzesuniecieYStycznej ?? 0);
+
                     var szukPoziomA = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
                         p.Strona.Equals("Lewa", StringComparison.OrdinalIgnoreCase))?.PrzesuniecieYStycznej ?? 0);
+
                     var szukPoziomB = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
                         p.Strona.Equals("Prawa", StringComparison.OrdinalIgnoreCase))?.PrzesuniecieYStycznej ?? 0);
 
@@ -429,6 +451,30 @@ namespace GEORGE.Client.Pages.Okna
                     profileRight = (float)szukPoziomB;
                     profileTop = (float)szukPionA;
                     profileBottom = (float)szukPionB;
+    
+                    Console.WriteLine("===== PRZED FOREACH =====");
+
+                    Console.WriteLine(
+                        $"Liczba konfiguracji: {konfPolaczenia?.Count}");
+
+                    if(konfPolaczenia != null)
+                    foreach (var test in konfPolaczenia)
+                    {
+                        Console.WriteLine(
+                            $"{test.PrzesuniecieYStycznej} - " +
+                            $"wew: {test.ElementWewnetrznyId} " +
+                            $"zew: {test.ElementZewnetrznyId} " +
+                            $"- {test.Strona}");
+                    }
+
+                    Console.WriteLine("===== PO FOREACH =====");
+
+                    Console.WriteLine($"profileLeft: {profileLeft}");
+                    Console.WriteLine($"profileRight: {profileRight}");
+                    Console.WriteLine($"profileTop: {profileTop}");
+                    Console.WriteLine($"profileBottom: {profileBottom}");
+
+                    Console.WriteLine("===== PRZED CALCULATE OFFSET =====");
 
                     Console.WriteLine($"🔷 ElementLiniowy ({((liniaPionowa) ? "PION" : "POZIOM")}) — " +
                         $"dopasowane wpisy: {konfPolaczenia.Count}, " +
@@ -504,6 +550,9 @@ namespace GEORGE.Client.Pages.Okna
                 BledySystemowe.Add($"❌ Generowanie niepowiodło się dla regionu {regionId} liniaSzkleniaKontur == null");
                 return $"❌ Generowanie niepowiodło się dla regionu {regionId} liniaSzkleniaKontur == null";
             }
+
+            Console.WriteLine(
+                $"[AddElements {callId}] PRZED GenerateGenericElementsWithJoins");
             //regionAdd
             var okLine = await GenerateGenericElementsWithJoins(
                 przeskalowanePunkty,
@@ -524,6 +573,13 @@ namespace GEORGE.Client.Pages.Okna
                 daneKwadratu,
                 punktyRegionuMaster,
                 mouseClik);
+
+            Console.WriteLine(
+    $"[AddElements {callId}] PO GenerateGenericElementsWithJoins: " +
+    $"wynik={okLine}");
+
+            Console.WriteLine(
+    $"◀ KONIEC AddElements: {callId}, regionId={regionId}");
 
             if (okLine)
             {
@@ -1965,6 +2021,11 @@ namespace GEORGE.Client.Pages.Okna
                 else if (leftJoin == "T5" && rightJoin == "T5")
                 {
                     Console.WriteLine($"🔷 T5-T5 case for element {i + 1}. isAlmostHorizontal:{isAlmostHorizontal}, isAlmostVertical:{isAlmostVertical}, daneKwadratu.Count:{daneKwadratu.Count}");
+
+                    Console.WriteLine($"🔷 T5-T5 ElementLiniowy " +
+                    $"profileLeft: {profileLeft}, profileRight: {profileRight}, " +
+                   $"profileTop: {profileTop}, profileBottom: {profileBottom}");
+
 
                     double? SzerokoscSlupka = 0;
                     float OsSymetrii = 0;

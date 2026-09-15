@@ -5231,15 +5231,15 @@
 
 
         // Pobierz połączenia
-        var polaczenieWartosciA = await PobierzPolaczeniaStyczneSlupkowe(
+        var polaczenieWartosciA = await Task.WhenAll(PobierzPolaczeniaStyczneSlupkowe(
             rowId,
             najlepszySasiadA?.RowIdElementu ?? Guid.Empty,
-            "ALL");
+            "ALL"));
 
-        var polaczenieWartosciB = await PobierzPolaczeniaStyczneSlupkowe(
+        var polaczenieWartosciB = await Task.WhenAll(PobierzPolaczeniaStyczneSlupkowe(
             rowId,
             najlepszySasiadB?.RowIdElementu ?? Guid.Empty,
-            "ALL");
+            "ALL"));
 
         if (polaczenieWartosciA == null)
             generator.Komunikaty.Add("⚠️ Brak połączeń dla strony A");
@@ -5267,7 +5267,12 @@
             WypelnienieWewnetrzne = generator.KolorWewnetrzny,
             WypelnienieZewnetrzne = generator.KolorZewnetrzny,
             GruboscObramowania = 2.0f,
-            Przesuniecia = polaczenieWartosciA.Union(polaczenieWartosciB).ToList(),
+
+            Przesuniecia = polaczenieWartosciA
+            .Concat(polaczenieWartosciB)
+            .SelectMany(x => x)
+            .ToList(),
+
             WierzcholkiSasiadaA = najlepszySasiadA?.WierzcholkiSasiadaA ?? new List<XPoint>(),
             WierzcholkiSasiadaB = najlepszySasiadB?.WierzcholkiSasiadaB ?? new List<XPoint>(),
             LiniaStala = liniaStalaWierzcholki,

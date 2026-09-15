@@ -113,8 +113,8 @@
     }
 
     /* ==========================================================
-       GŁÓWNY STICKY PANEL
-       ========================================================== */
+           GŁÓWNY STICKY PANEL
+           ========================================================== */
 
     .connection-sticky-panel {
         position: sticky;
@@ -129,8 +129,8 @@
 
 
     /* ==========================================================
-       GÓRNY PASEK
-       ========================================================== */
+           GÓRNY PASEK
+           ========================================================== */
 
     .connection-main-toolbar {
         display: flex;
@@ -142,8 +142,8 @@
 
 
     /* ==========================================================
-       ZAPIS
-       ========================================================== */
+           ZAPIS
+           ========================================================== */
 
     .connection-save-group {
         display: flex;
@@ -172,8 +172,8 @@
 
 
     /* ==========================================================
-       NARZĘDZIA
-       ========================================================== */
+           NARZĘDZIA
+           ========================================================== */
 
     .connection-tools {
         display: flex;
@@ -186,8 +186,8 @@
 
 
     /* ==========================================================
-       GRUPA NARZĘDZI
-       ========================================================== */
+           GRUPA NARZĘDZI
+           ========================================================== */
 
     .tool-group {
         display: flex;
@@ -214,8 +214,8 @@
 
 
     /* ==========================================================
-       USTAWIENIE PRECYZJI
-       ========================================================== */
+           USTAWIENIE PRECYZJI
+           ========================================================== */
 
     .tool-setting-group {
         padding-left: 10px;
@@ -236,8 +236,8 @@
 
 
     /* ==========================================================
-       PASEK PODGLĄDU
-       ========================================================== */
+           PASEK PODGLĄDU
+           ========================================================== */
 
     .connection-preview-toolbar {
         display: grid;
@@ -251,8 +251,8 @@
 
 
     /* ==========================================================
-       TYTUŁ PODGLĄDU
-       ========================================================== */
+           TYTUŁ PODGLĄDU
+           ========================================================== */
 
     .preview-heading {
         display: flex;
@@ -270,8 +270,8 @@
 
 
     /* ==========================================================
-       OSTRZEŻENIE
-       ========================================================== */
+           OSTRZEŻENIE
+           ========================================================== */
 
     .preview-warning {
         display: flex;
@@ -289,8 +289,8 @@
 
 
     /* ==========================================================
-       PRZYCISKI PODGLĄDU
-       ========================================================== */
+           PRZYCISKI PODGLĄDU
+           ========================================================== */
 
     .preview-actions {
         display: flex;
@@ -305,8 +305,8 @@
 
 
     /* ==========================================================
-       STATUS
-       ========================================================== */
+           STATUS
+           ========================================================== */
 
     .status-message {
         display: flex;
@@ -324,8 +324,8 @@
 
 
     /* ==========================================================
-       PUSTY SVG
-       ========================================================== */
+           PUSTY SVG
+           ========================================================== */
 
     .svg-empty-state {
         display: flex;
@@ -338,88 +338,79 @@
 
 
     /* ==========================================================
-       RESPONSYWNOŚĆ
-       ========================================================== */
+           RESPONSYWNOŚĆ
+           ========================================================== */
 
     @@media (max-width: 1200px) {
-        .connection-main-toolbar
+        .connection-main-toolbar {
+            align-items: flex-start;
+        }
 
-    {
-        align-items: flex-start;
-    }
+        .connection-tools {
+            justify-content: flex-start;
+        }
 
-    .connection-tools {
-        justify-content: flex-start;
-    }
+        .connection-preview-toolbar {
+            grid-template-columns: 1fr auto;
+        }
 
-    .connection-preview-toolbar {
-        grid-template-columns: 1fr auto;
-    }
-
-    .preview-warning {
-        grid-column: 1 / -1;
-        grid-row: 2;
-    }
-
+        .preview-warning {
+            grid-column: 1 / -1;
+            grid-row: 2;
+        }
     }
 
 
     @@media (max-width: 800px) {
-        .connection-sticky-panel
+        .connection-sticky-panel {
+            padding: 8px;
+        }
 
-    {
-        padding: 8px;
-    }
+        .connection-main-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+        }
 
-    .connection-main-toolbar {
-        flex-direction: column;
-        align-items: stretch;
-    }
+        .connection-save-group {
+            justify-content: flex-start;
+        }
 
-    .connection-save-group {
-        justify-content: flex-start;
-    }
+        .connection-tools {
+            justify-content: flex-start;
+        }
 
-    .connection-tools {
-        justify-content: flex-start;
-    }
+        .connection-preview-toolbar {
+            grid-template-columns: 1fr;
+        }
 
-    .connection-preview-toolbar {
-        grid-template-columns: 1fr;
-    }
+        .preview-warning {
+            grid-column: auto;
+            grid-row: auto;
+        }
 
-    .preview-warning {
-        grid-column: auto;
-        grid-row: auto;
-    }
-
-    .preview-actions {
-        justify-content: flex-start;
-    }
-
+        .preview-actions {
+            justify-content: flex-start;
+        }
     }
 
 
     @@media (max-width: 550px) {
-        .connection-save-group
+        .connection-save-group {
+            flex-wrap: wrap;
+        }
 
-    {
-        flex-wrap: wrap;
-    }
+        .connection-tools {
+            gap: 4px;
+        }
 
-    .connection-tools {
-        gap: 4px;
-    }
+        .tool-group {
+            border-left: none;
+            padding-left: 0;
+        }
 
-    .tool-group {
-        border-left: none;
-        padding-left: 0;
-    }
-
-    .connection-preview-toolbar {
-        gap: 8px;
-    }
-
+        .connection-preview-toolbar {
+            gap: 8px;
+        }
     }
 </style>
 
@@ -4479,7 +4470,7 @@
         {
             svgParts.Add($@"
             <g id=""model1"" transform=""translate({centerX}, {centerY})"">
-    {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
+                {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
             </g>");
         }
 
@@ -4619,7 +4610,7 @@
     private async Task ZoomAllObj() => await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
     private async Task GoBack() => await JSRuntime.InvokeVoidAsync("history.back");
 
-    private async Task PokazWartosciPrzesuniecia() 
+    private async Task PokazWartosciPrzesuniecia()
     {
         // Pobierz wynik przesunięcia
         var result = await PobierzWynikPrzesuniecia();
@@ -4896,7 +4887,7 @@
 
         await JSRuntime.InvokeVoidAsync("svgHelper.stopMeasurement");
         Console.WriteLine("📏 Pomiar wyłączony");
-        
+
         await Task.Delay(50);
         await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
         await Task.Delay(150);
@@ -5575,7 +5566,7 @@
     // Zapisanie zmian
     private async Task ZapiszEdycje()
     {
-        if(!boolAdmin && !boolZmian)
+        if (!boolAdmin && !boolZmian)
         {
             _ = _notice.Warning(new()
             {
