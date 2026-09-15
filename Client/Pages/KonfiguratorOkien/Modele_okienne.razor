@@ -2900,7 +2900,7 @@
         _regionsSkrzydlo[_selectedShapeIndex].Kontur =
             ShapeService.Shapes[_selectedShapeIndex].GetContourSegments();
 
-        await GenerujObrysPozZmianieWymiarow(false, false);
+        await GenerujObrysPozZmianieWymiarow(false, true);
 
         await ZmienWymiaryOkna(true);
         // await FitShapesToDisplayWindow();

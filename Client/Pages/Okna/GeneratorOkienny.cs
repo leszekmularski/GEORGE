@@ -2596,6 +2596,7 @@ namespace GEORGE.Client.Pages.Okna
                 }).ToList();
             }
         }
+
         /// <summary>
         /// Obraca listę segmentów tak, aby pierwszy segment rozpoczynał się
         /// w wybranym narożniku.

@@ -1298,11 +1298,11 @@
 
         if (Plik != null)
         {
-            await DownloadFile(Plik.NazwaPliku);
+            await DownloadFile(Plik.NazwaPliku, Plik.OryginalnaNazwaPliku);
         }
     }
 
-    private async Task DownloadFile(string fileName)
+    private async Task DownloadFile(string fileName, string oryginalnaNazwa)
     {
         try
         {
@@ -1327,7 +1327,7 @@
                     if (response.IsSuccessStatusCode)
                     {
                         var contentStream = await response.Content.ReadAsStreamAsync();
-                        var actualFileName = Path.GetFileName(uri.LocalPath);
+                        //var actualFileName = Path.GetFileName(uri.LocalPath);
 
                         using (var memoryStream = new MemoryStream())
                         {
@@ -1335,10 +1335,10 @@
                             memoryStream.Seek(0, SeekOrigin.Begin);
 
                             // Wywołaj JavaScript do pobrania pliku
-                            await JS.InvokeVoidAsync("BlazorDownloadFile", actualFileName, memoryStream.ToArray());
+                            await JS.InvokeVoidAsync("BlazorDownloadFile", "RD-" + oryginalnaNazwa, memoryStream.ToArray());
                         }
 
-                        Console.WriteLine($"Plik został pobrany i zapisany: {actualFileName}");
+                        Console.WriteLine($"Plik został pobrany i zapisany: {"RD-" + oryginalnaNazwa}");
                     }
                     else
                     {

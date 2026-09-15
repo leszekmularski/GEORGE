@@ -270,10 +270,10 @@ namespace GEORGE.Client.Pages.Models
             EnforceLineType();
 
             Points = new List<XPoint>
-        {
-            new XPoint(X1, Y1),
-            new XPoint(X2, Y2)
-        };
+                    {
+                        new XPoint(X1, Y1),
+                        new XPoint(X2, Y2)
+                    };
 
             NominalPoints = Points.Select(p => new XPoint(p.X, p.Y)).ToList();
         }
@@ -410,7 +410,7 @@ namespace GEORGE.Client.Pages.Models
             return new()
             {
                 new EditableProperty(
-                    RuchomySlupek ? "Podział linii w osi X1" : "X1",
+                    RuchomySlupek ? "Podział linii w osi X1" : "X1 ",
                     () => X1,
                     v => {
                         double parsedValue = ParseExpression(v.ToString());
@@ -422,19 +422,40 @@ namespace GEORGE.Client.Pages.Models
                     NazwaObj),
 
                 new EditableProperty(
-                    RuchomySlupek ? "Podział linii w osi Y1" : "Y1",
-                    () => Y1,
-                    v => {
-                        double parsedValue = ParseExpression(v.ToString());
-                        Y1 = parsedValue;
-                        EnforceLineType();
-                        GeneratePoints();
-                    },
-                    NazwaObj,
-                    RuchomySlupek || StalySlupek),
+                RuchomySlupek ? "Podział linii w osi Y1" : "Y1 ",
+                () => Y1,
+                v =>
+                {
+                    double parsedValue = ParseExpression(v.ToString());
+
+                    // Y1 jest wartością edytowaną
+                    Y1 = parsedValue;
+
+                    // Dla stałego słupka drugi koniec ma mieć ten sam Y
+                    if (StalySlupek)
+                        Y2 = Y1;
+
+                    // Wymuszamy tylko zależności, które nie mogą zmienić Y1
+                    EnforceLineType();
+
+                    // Aktualizacja punktów
+                    Points = new List<XPoint>
+                    {
+                        new XPoint(X1, Y1),
+                        new XPoint(X2, Y2)
+                    };
+
+                    NominalPoints = Points
+                        .Select(p => new XPoint(p.X, p.Y))
+                        .ToList();
+
+                    UpdateSize();
+                },
+                NazwaObj,
+                RuchomySlupek),
 
                 new EditableProperty(
-                    RuchomySlupek ? "Podział linii w osi X2" : "X2",
+                    RuchomySlupek ? "Podział linii w osi X2" : "X2 ",
                     () => X2,
                     v => {
                         double parsedValue = ParseExpression(v.ToString());
@@ -446,7 +467,7 @@ namespace GEORGE.Client.Pages.Models
                     RuchomySlupek || StalySlupek),
 
                 new EditableProperty(
-                    RuchomySlupek ? "Podział linii w osi Y2" : "Y2",
+                    RuchomySlupek ? "Podział linii w osi Y2" : "Y2 ",
                     () => Y2,
                     v => {
                         double parsedValue = ParseExpression(v.ToString());
@@ -455,7 +476,19 @@ namespace GEORGE.Client.Pages.Models
                         GeneratePoints();
                     },
                     NazwaObj,
-                    RuchomySlupek || StalySlupek)
+                    RuchomySlupek || StalySlupek),
+
+                new EditableProperty(
+                    RuchomySlupek ? "Kąt linii" : "Kąt w stopniach " ,
+                    () => KatLinii,
+                    v => {
+                        EnforceLineType();
+                        GeneratePoints();
+                    },
+                    NazwaObj,
+                    true,
+                    false,
+                    false),
             };
         }
 
