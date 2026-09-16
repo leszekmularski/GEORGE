@@ -3001,7 +3001,8 @@
 
     }
 
-    private async Task FitToCanvas(IShapeDC targetShape, string idRegion, bool skalaAutomatyczna, List<XPoint> Wierzcholki, List<XPoint> _wierzcholkiST, double klikX, double klikY)
+    private async Task FitToCanvas(IShapeDC targetShape, string idRegion, bool skalaAutomatyczna, List<XPoint> Wierzcholki, 
+        List<XPoint> _wierzcholkiST, double klikX, double klikY)
     {
 
         Console.WriteLine($"🔍 FitToCanvas --> Dopasowano do shape: scale={_aktywnaSkala:F2}");
@@ -3144,7 +3145,7 @@
             best.Wierzcholki = UtworzProstokatWokolLinii(best.Wierzcholki, szer_slupka, os_symetrii_slupka); // 82 = grubość słupka
         }
 
-        Console.WriteLine($"🔍 Wynik końcowy: znaleziono {best.KatLiniSlupka} {best.Wierzcholki.Count} punktów, {best.RegionIds.Count} regionów");
+        Console.WriteLine($"🔍 Wynik końcowy: znaleziono best: {best.KatLiniSlupka} {best.Wierzcholki.Count} punktów, {best.RegionIds.Count} regionów");
 
         // foreach (var p in best.Wierzcholki)
         // {
@@ -3227,17 +3228,17 @@
             return linia;
         }
 
-        // Console.Clear();
+        Console.Clear();
 
-        // Console.WriteLine(
-        //     $"🔍 Utworzono prostokąt słupka: " +
-        //     $"grubość={grubosc:F2}, oś={os_symetrii_slupka:F2}");
+        Console.WriteLine(
+            $"🔍 Utworzono prostokąt słupka: " +
+            $"grubość={grubosc:F2}, oś={os_symetrii_slupka:F2}");
 
-        // for (int i = 0; i < prostokat.Count; i++)
-        // {
-        //     Console.WriteLine(
-        //         $"   P{i}=({prostokat[i].X:F2}; {prostokat[i].Y:F2})");
-        // }
+        for (int i = 0; i < prostokat.Count; i++)
+        {
+            Console.WriteLine(
+                $"   P X:{i}=({prostokat[i].X:F2}; Y:{prostokat[i].Y:F2})");
+        }
 
         return prostokat;
     }
@@ -4559,7 +4560,7 @@
         {
             var wynikSlupka = await ObsluzSlupekStaly(
                 state, generator, styczneLinie, wszystkieRegiony,
-                klikX, klikY, idRegion, wierzcholkiMaster);
+                klikX, klikY, idRegion, wierzcholkiMaster, wierzcholki);
 
             if (wynikSlupka != "")
                 return wynikSlupka;
@@ -4583,7 +4584,7 @@
         }
 
         // 13. Zapisz stan końcowy
-        await ZapiszStanKonowy(state, generator, idRegion, slupekStaly, idSlupka, wierzcholki, klikX, klikY);
+        await ZapiszStanKoncowy(state, generator, idRegion, slupekStaly, idSlupka, wierzcholki, klikX, klikY);
 
         await Task.CompletedTask;
         Console.WriteLine($"✅ DodajWybranyKwadratOkna zakończone");
@@ -5141,7 +5142,8 @@
     double klikX,
     double klikY,
     string idRegion,
-    List<XPoint> wierzcholkiMaster)
+    List<XPoint> wierzcholkiMaster,
+    List<XPoint> wierzcholkiWyliczone)
     {
         if (!styczneLinie.Any())
         {
@@ -5616,7 +5618,7 @@
         return "";
     }
 
-    private async Task ZapiszStanKonowy(
+    private async Task ZapiszStanKoncowy(
     GeneratorState state,
     Generator generator,
     string idRegion,
@@ -5661,56 +5663,6 @@
 
         await Task.CompletedTask;
     }
-
-    // private static double OdlegloscPunktuOdOdcinka(
-    // double px, double py, XPoint a, XPoint b)
-    // {
-    //     double dx = b.X - a.X;
-    //     double dy = b.Y - a.Y;
-    //     double dlugoscKw = dx * dx + dy * dy;
-
-    //     if (dlugoscKw < 1e-12)
-    //         return Math.Sqrt((px - a.X) * (px - a.X) + (py - a.Y) * (py - a.Y));
-
-    //     double t = ((px - a.X) * dx + (py - a.Y) * dy) / dlugoscKw;
-    //     t = Math.Max(0, Math.Min(1, t));
-
-    //     double nx = a.X + t * dx;
-    //     double ny = a.Y + t * dy;
-
-    //     double ex = px - nx;
-    //     double ey = py - ny;
-    //     return Math.Sqrt(ex * ex + ey * ey);
-    // }
-
-    // private static double OdlegloscOdKwadratu(DaneKwadratu? k, double px, double py)
-    // {
-    //     if (k?.Wierzcholki == null || k.Wierzcholki.Count < 2)
-    //         return double.MaxValue;
-
-    //     // Odległość od środka odcinka
-    //     double sx = (k.Wierzcholki[0].X + k.Wierzcholki[1].X) / 2;
-    //     double sy = (k.Wierzcholki[0].Y + k.Wierzcholki[1].Y) / 2;
-    //     double dx = sx - px;
-    //     double dy = sy - py;
-    //     return Math.Sqrt(dx * dx + dy * dy);
-    // }
-
-    // private ShapeRegion? ZnajdzNajblizszaLinieStala(
-    //     List<ShapeRegion> styczneLinie,
-    //     double klikX,
-    //     double klikY)
-    // {
-    //     return styczneLinie
-    //         .Where(s =>
-    //             s.Wierzcholki != null &&
-    //             s.Wierzcholki.Count == 2 &&
-    //             s.TypLiniiDzielacej != null &&
-    //             s.TypLiniiDzielacej.ToLower().Contains("słupek"))
-    //         .OrderBy(s => OdlegloscPunktuOdOdcinka(
-    //             klikX, klikY, s.Wierzcholki![0], s.Wierzcholki[1]))
-    //         .FirstOrDefault();
-    // }
 
     private void LogWszystkieKwadraty(
         List<GeneratorState> stany,
