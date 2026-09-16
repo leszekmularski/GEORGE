@@ -1881,7 +1881,6 @@
             return;
         }
 
-
         try
         {
 
@@ -2814,6 +2813,7 @@
             // 3. Renderuj ramkę (jeśli potrzebna)
             await RenderFrame();
 
+
             // Console.WriteLine($"🎨 Narysowano {ShapeService.Shapes.Count} kształtów");
         }
         catch (Exception ex)
@@ -2845,6 +2845,8 @@
 
             // // 5. Dla pewności wyczyść jeszcze raz
             await _context.ClearRectAsync(0, 0, CanvasWidth, CanvasHeight);
+
+            await Task.Yield();
 
             // Console.WriteLine("✅ Canvas wyczyszczony");
         }
@@ -3348,7 +3350,7 @@
         var rect = await JS.InvokeAsync<DOMRect>("getCanvasBoundingRect", CanvasRef.CanvasReference);
 
         await JS.InvokeVoidAsync("ResetCursorGlobal");
-        await Task.Yield();
+        await Task.Delay(10);
 
         // Pozycja kursora względem canvasa (uwzględnia marginesy i DPI)
         double relativeX = (e.ClientX - rect.Left) * rect.ScaleX;
@@ -4292,7 +4294,6 @@
                             );
 
                             await Task.Yield(); // Upewnij się, że UI ma szansę się odświeżyć
-                            await Task.Delay(100); // Krótkie opóźnienie dla stabilności
 
                             if (test == null)
                             {
@@ -5226,20 +5227,26 @@
             Console.WriteLine($"❌ WYJĄTEK B: {ex.Message}\n{ex.StackTrace}");
         }
 
-        Console.WriteLine($"🔹 Najlepszy A: {najlepszySasiadA?.RowIdElementu} (strona={najlepszySasiadA?.Strona})");
-        Console.WriteLine($"🔹 Najlepszy B: {najlepszySasiadB?.RowIdElementu} (strona={najlepszySasiadB?.Strona})");
+        Guid _najlepszySasiadA = najlepszySasiadA?.RowIdElementu ?? Guid.Empty;
 
+        Guid _najlepszySasiadB = najlepszySasiadB?.RowIdElementu ?? Guid.Empty;
+
+
+        Console.WriteLine($"🔹🔹🔹 Najlepszy A: {_najlepszySasiadA} (strona={najlepszySasiadA?.Strona})");
+        Console.WriteLine($"🔹🔹🔹 Najlepszy B: {_najlepszySasiadB} (strona={najlepszySasiadB?.Strona})");
 
         // Pobierz połączenia
-        var polaczenieWartosciA = await Task.WhenAll(PobierzPolaczeniaStyczneSlupkowe(
+        var polaczenieWartosciA =
+            await PobierzPolaczeniaStyczneSlupkowe(
             rowId,
-            najlepszySasiadA?.RowIdElementu ?? Guid.Empty,
-            "ALL"));
+            _najlepszySasiadA,
+            "ALL");
 
-        var polaczenieWartosciB = await Task.WhenAll(PobierzPolaczeniaStyczneSlupkowe(
-            rowId,
-            najlepszySasiadB?.RowIdElementu ?? Guid.Empty,
-            "ALL"));
+        var polaczenieWartosciB =
+            await PobierzPolaczeniaStyczneSlupkowe(
+                rowId,
+                _najlepszySasiadB,
+                "ALL");
 
         if (polaczenieWartosciA == null)
             generator.Komunikaty.Add("⚠️ Brak połączeń dla strony A");
@@ -5270,7 +5277,6 @@
 
             Przesuniecia = polaczenieWartosciA
             .Concat(polaczenieWartosciB)
-            .SelectMany(x => x)
             .ToList(),
 
             WierzcholkiSasiadaA = najlepszySasiadA?.WierzcholkiSasiadaA ?? new List<XPoint>(),
@@ -5575,7 +5581,6 @@
             wybranyRegionSkrzydlo);
 
         await Task.Yield();
-        await Task.Delay(150);
 
         if (!test.Success)
         {
@@ -6657,6 +6662,10 @@
 
     private async Task<List<PrzesuniecieDto>> PobierzPolaczeniaStyczneSlupkowe(Guid zewId, Guid wewId, string strona)
     {
+             Console.WriteLine(
+        $"🟢 [CLIENT START] zewId={zewId} | wewId={wewId} | strona={strona}");
+
+        
         if (zewId == Guid.Empty || wewId == Guid.Empty || string.IsNullOrWhiteSpace(strona))
         {
             if (infoObiekt == null)
@@ -6693,6 +6702,10 @@
                         Console.WriteLine($"📦 PobierzPolaczenia-> : PrzesuniecieX: {item.PrzesuniecieX}, PrzesuniecieY: {item.PrzesuniecieY}");
                     }
                 }
+
+                Console.WriteLine(
+               $"🟣 [CLIENT END] zewId={zewId} | wewId={wewId} | " +
+               $"wyników={lista?.Count ?? 0}");
 
                 return lista ?? new List<PrzesuniecieDto>();
             }

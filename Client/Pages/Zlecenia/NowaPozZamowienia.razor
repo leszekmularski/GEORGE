@@ -469,7 +469,11 @@ else
     public async Task HandleAddNew()
     {
         if (submitOk)
+        {
+            if (elementyZamowienia != null && elementyZamowienia.ElemetZamDoZlecen.CzyZamowiono) elementyZamowienia.ElemetZamDoZlecen.DataZamowienia = DateTime.Now;
             await HandleCancel();
+        }
+
     }
 
     public async Task HandleCancel()

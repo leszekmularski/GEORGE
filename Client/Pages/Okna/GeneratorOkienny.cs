@@ -451,21 +451,21 @@ namespace GEORGE.Client.Pages.Okna
                     profileRight = (float)szukPoziomB;
                     profileTop = (float)szukPionA;
                     profileBottom = (float)szukPionB;
-    
+
                     Console.WriteLine("===== PRZED FOREACH =====");
 
                     Console.WriteLine(
                         $"Liczba konfiguracji: {konfPolaczenia?.Count}");
 
-                    if(konfPolaczenia != null)
-                    foreach (var test in konfPolaczenia)
-                    {
-                        Console.WriteLine(
-                            $"{test.PrzesuniecieYStycznej} - " +
-                            $"wew: {test.ElementWewnetrznyId} " +
-                            $"zew: {test.ElementZewnetrznyId} " +
-                            $"- {test.Strona}");
-                    }
+                    if (konfPolaczenia != null)
+                        foreach (var test in konfPolaczenia)
+                        {
+                            Console.WriteLine(
+                                $"{test.PrzesuniecieYStycznej} - " +
+                                $"wew: {test.ElementWewnetrznyId} " +
+                                $"zew: {test.ElementZewnetrznyId} " +
+                                $"- {test.Strona}");
+                        }
 
                     Console.WriteLine("===== PO FOREACH =====");
 
@@ -575,8 +575,8 @@ namespace GEORGE.Client.Pages.Okna
                 mouseClik);
 
             Console.WriteLine(
-    $"[AddElements {callId}] PO GenerateGenericElementsWithJoins: " +
-    $"wynik={okLine}");
+            $"[AddElements {callId}] PO GenerateGenericElementsWithJoins: " +
+            $"wynik={okLine}");
 
             Console.WriteLine(
     $"◀ KONIEC AddElements: {callId}, regionId={regionId}");

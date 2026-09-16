@@ -138,6 +138,8 @@ namespace GEORGE.Server.Controllers
         {
             try
             {
+               // Console.WriteLine($"🔍 GetShifts: zewId={zewId}, wewId={wewId}, strona={strona}");
+
                 var query = _context.KonfPolaczenie
                 .Where(p =>
                     p.ElementZewnetrznyId == zewId && p.ElementWewnetrznyId == wewId ||
