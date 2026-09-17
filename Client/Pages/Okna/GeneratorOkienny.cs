@@ -578,8 +578,7 @@ namespace GEORGE.Client.Pages.Okna
             $"[AddElements {callId}] PO GenerateGenericElementsWithJoins: " +
             $"wynik={okLine}");
 
-            Console.WriteLine(
-    $"◀ KONIEC AddElements: {callId}, regionId={regionId}");
+            Console.WriteLine($"◀ KONIEC AddElements: {callId}, regionId={regionId}");
 
             if (okLine)
             {
@@ -2212,7 +2211,7 @@ namespace GEORGE.Client.Pages.Okna
 
                     if (daneKwadratu != null)
                     {
- 
+
                         int idx = 0;
                         foreach (var d in daneKwadratu)
                         {
@@ -2239,7 +2238,7 @@ namespace GEORGE.Client.Pages.Okna
                         }
                     }
 
-                    if (StronaElementu.ToLower() == "góra" )
+                    if (StronaElementu.ToLower() == "góra")
                     {
                         TopXT5 = ApplyOffsetToPointST(TopXT5, daneKwadratu, true, angleDegrees);
                         BottomXT5 = ApplyOffsetToPointST(BottomXT5, daneKwadratu, true, angleDegrees);
