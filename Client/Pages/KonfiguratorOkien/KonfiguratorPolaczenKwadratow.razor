@@ -113,8 +113,8 @@
     }
 
     /* ==========================================================
-           GŁÓWNY STICKY PANEL
-           ========================================================== */
+               GŁÓWNY STICKY PANEL
+               ========================================================== */
 
     .connection-sticky-panel {
         position: sticky;
@@ -129,8 +129,8 @@
 
 
     /* ==========================================================
-           GÓRNY PASEK
-           ========================================================== */
+               GÓRNY PASEK
+               ========================================================== */
 
     .connection-main-toolbar {
         display: flex;
@@ -142,8 +142,8 @@
 
 
     /* ==========================================================
-           ZAPIS
-           ========================================================== */
+               ZAPIS
+               ========================================================== */
 
     .connection-save-group {
         display: flex;
@@ -172,8 +172,8 @@
 
 
     /* ==========================================================
-           NARZĘDZIA
-           ========================================================== */
+               NARZĘDZIA
+               ========================================================== */
 
     .connection-tools {
         display: flex;
@@ -186,8 +186,8 @@
 
 
     /* ==========================================================
-           GRUPA NARZĘDZI
-           ========================================================== */
+               GRUPA NARZĘDZI
+               ========================================================== */
 
     .tool-group {
         display: flex;
@@ -214,8 +214,8 @@
 
 
     /* ==========================================================
-           USTAWIENIE PRECYZJI
-           ========================================================== */
+               USTAWIENIE PRECYZJI
+               ========================================================== */
 
     .tool-setting-group {
         padding-left: 10px;
@@ -236,8 +236,8 @@
 
 
     /* ==========================================================
-           PASEK PODGLĄDU
-           ========================================================== */
+               PASEK PODGLĄDU
+               ========================================================== */
 
     .connection-preview-toolbar {
         display: grid;
@@ -251,8 +251,8 @@
 
 
     /* ==========================================================
-           TYTUŁ PODGLĄDU
-           ========================================================== */
+               TYTUŁ PODGLĄDU
+               ========================================================== */
 
     .preview-heading {
         display: flex;
@@ -270,8 +270,8 @@
 
 
     /* ==========================================================
-           OSTRZEŻENIE
-           ========================================================== */
+               OSTRZEŻENIE
+               ========================================================== */
 
     .preview-warning {
         display: flex;
@@ -289,8 +289,8 @@
 
 
     /* ==========================================================
-           PRZYCISKI PODGLĄDU
-           ========================================================== */
+               PRZYCISKI PODGLĄDU
+               ========================================================== */
 
     .preview-actions {
         display: flex;
@@ -305,8 +305,8 @@
 
 
     /* ==========================================================
-           STATUS
-           ========================================================== */
+               STATUS
+               ========================================================== */
 
     .status-message {
         display: flex;
@@ -324,8 +324,8 @@
 
 
     /* ==========================================================
-           PUSTY SVG
-           ========================================================== */
+               PUSTY SVG
+               ========================================================== */
 
     .svg-empty-state {
         display: flex;
@@ -338,8 +338,8 @@
 
 
     /* ==========================================================
-           RESPONSYWNOŚĆ
-           ========================================================== */
+               RESPONSYWNOŚĆ
+               ========================================================== */
 
     @@media (max-width: 1200px) {
         .connection-main-toolbar {
@@ -1247,198 +1247,198 @@
 
 
 
-        function sanitizeSvg(svgElement) {
-            const numericAttributes = [
-                "x", "y", "x1", "y1", "x2", "y2", "cx", "cy", "r", "rx", "ry",
-                "width", "height", "stroke-width"
-            ];
+    function sanitizeSvg(svgElement) {
+        const numericAttributes = [
+            "x", "y", "x1", "y1", "x2", "y2", "cx", "cy", "r", "rx", "ry",
+            "width", "height", "stroke-width"
+        ];
 
-            const walk = (node) => {
-                if (node.nodeType !== 1) return;
+        const walk = (node) => {
+            if (node.nodeType !== 1) return;
 
-                // Normalizacja atrybutów liczbowych
-                numericAttributes.forEach(attr => {
-                    if (node.hasAttribute(attr)) {
-                        const val = node.getAttribute(attr);
-                        const parsed = parseFloat(val);
-                        if (!isNaN(parsed)) {
-                            node.setAttribute(attr, parsed.toString());
-                        }
+            // Normalizacja atrybutów liczbowych
+            numericAttributes.forEach(attr => {
+                if (node.hasAttribute(attr)) {
+                    const val = node.getAttribute(attr);
+                    const parsed = parseFloat(val);
+                    if (!isNaN(parsed)) {
+                        node.setAttribute(attr, parsed.toString());
                     }
-                });
-
-                // Usuń niepotrzebne atrybuty
-                ['data-name', 'data-original-x', 'data-original-y'].forEach(attr => {
-                    node.removeAttribute(attr);
-                });
-
-                // Rekurencyjnie przetwarzaj dzieci
-                Array.from(node.children).forEach(walk);
-            };
-
-            walk(svgElement);
-        }
-
-        window.svgHelper.exportCleanedSvgAsPng = function() {
-            return new Promise((resolve) => {
-                try {
-                    console.log("Starting PNG export...");
-
-                    // 1. Pobierz elementy SVG
-                    const svgElement = document.querySelector(".scaled-svg");
-                    const svgContent = svgElement?.querySelector("#zoom-group");
-
-                    if (!svgElement || !svgContent) {
-                        console.error("SVG elements not found");
-                        resolve("");
-                        return;
-                    }
-
-                    // 2. Utwórz głęboką kopię SVG
-                    const clone = svgElement.cloneNode(true);
-                    const cloneContent = clone.querySelector("#zoom-group");
-
-                    // 3. Usuń niepotrzebne elementy
-                    const elementsToRemove = [
-                        '[data-name^="guide-line-"]',
-                        '[id^="guide-line-"]',
-                        '.measurement-line',
-                        '.measurement-text'
-                    ].join(',');
-
-                    clone.querySelectorAll(elementsToRemove).forEach(el => el.remove());
-                    console.log("Removed guide elements");
-
-                    // 4. Pobierz aktualną transformację
-                    const currentTransform = svgContent.getAttribute("transform") || "";
-                    console.log("Current transform:", currentTransform);
-
-                    // 5. Przygotuj nowy SVG
-                    const newSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-                    newSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-                    newSvg.setAttribute("width", "600");
-                    newSvg.setAttribute("height", "600");
-                    newSvg.setAttribute("viewBox", "0 0 600 600");
-
-                    // 6. Przenieś zawartość ZACHOWUJĄC ORYGINALNĄ TRANSFORMACJĘ
-                    const contentGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-                    contentGroup.setAttribute("transform", currentTransform);
-
-                    // Przenieś wszystkie dzieci zachowując ich właściwości
-                    while (cloneContent.firstChild) {
-                        contentGroup.appendChild(cloneContent.firstChild);
-                    }
-
-                    newSvg.appendChild(contentGroup);
-                    console.log("SVG content prepared:", newSvg);
-
-                    // 7. Serializacja
-                    const svgString = new XMLSerializer().serializeToString(newSvg);
-                    console.log("SVG string length:", svgString.length);
-
-                    // 8. Konwersja do obrazka
-                    const img = new Image();
-                    img.onload = function() {
-                        try {
-                            console.log("Image loaded, creating PNG...");
-                            const canvas = document.createElement("canvas");
-                            canvas.width = 600;
-                            canvas.height = 600;
-                            const ctx = canvas.getContext("2d");
-
-                            // Białe tło
-                            ctx.fillStyle = "#ffffff";
-                            ctx.fillRect(0, 0, 1200, 1200);
-
-                            // Renderuj SVG (1:1 bez dodatkowego skalowania)
-                            ctx.drawImage(img, 0, 0);
-
-                            const pngData = canvas.toDataURL("image/png");
-                            console.log("PNG created successfully");
-                            resolve(pngData);
-                        } catch (e) {
-                            console.error("Canvas error:", e);
-                            resolve("");
-                        }
-                    };
-
-                    img.onerror = function(e) {
-                        console.error("Image load error:", e);
-                        console.log("Problematic SVG:", svgString.substring(0, 500));
-                        resolve("");
-                    };
-
-                    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgString);
-                } catch (e) {
-                    console.error("Export error:", e);
-                    resolve("");
                 }
             });
+
+            // Usuń niepotrzebne atrybuty
+            ['data-name', 'data-original-x', 'data-original-y'].forEach(attr => {
+                node.removeAttribute(attr);
+            });
+
+            // Rekurencyjnie przetwarzaj dzieci
+            Array.from(node.children).forEach(walk);
         };
 
-        window.svgHelper.resetModel2Position = function() {
-        const svg = document.querySelector(".scaled-svg > svg");
-        const model2 = svg?.querySelector("#model2");
-        if (model2) model2.setAttribute("transform", "translate(0,0)");
-        };
+        walk(svgElement);
+    }
 
-        window.svgHelper.getModel2Displacement = function () {
+    window.svgHelper.exportCleanedSvgAsPng = function() {
+        return new Promise((resolve) => {
             try {
-                const svg = document.querySelector(".scaled-svg > svg");
-                if (!svg) {
-                    console.error("getModel2Displacement: SVG not found");
-                    return { success: false, przesuniecieX: 0, przesuniecieY: 0 };
+                console.log("Starting PNG export...");
+
+                // 1. Pobierz elementy SVG
+                const svgElement = document.querySelector(".scaled-svg");
+                const svgContent = svgElement?.querySelector("#zoom-group");
+
+                if (!svgElement || !svgContent) {
+                    console.error("SVG elements not found");
+                    resolve("");
+                    return;
                 }
 
-                const model1 = svg.querySelector("#model1");
-                const model2 = svg.querySelector("#model2");
+                // 2. Utwórz głęboką kopię SVG
+                const clone = svgElement.cloneNode(true);
+                const cloneContent = clone.querySelector("#zoom-group");
 
-                if (!model1 || !model2) {
-                    console.error("getModel2Displacement: one or both models not found");
-                    return { success: false, przesuniecieX: 0, przesuniecieY: 0 };
+                // 3. Usuń niepotrzebne elementy
+                const elementsToRemove = [
+                    '[data-name^="guide-line-"]',
+                    '[id^="guide-line-"]',
+                    '.measurement-line',
+                    '.measurement-text'
+                ].join(',');
+
+                clone.querySelectorAll(elementsToRemove).forEach(el => el.remove());
+                console.log("Removed guide elements");
+
+                // 4. Pobierz aktualną transformację
+                const currentTransform = svgContent.getAttribute("transform") || "";
+                console.log("Current transform:", currentTransform);
+
+                // 5. Przygotuj nowy SVG
+                const newSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                newSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+                newSvg.setAttribute("width", "600");
+                newSvg.setAttribute("height", "600");
+                newSvg.setAttribute("viewBox", "0 0 600 600");
+
+                // 6. Przenieś zawartość ZACHOWUJĄC ORYGINALNĄ TRANSFORMACJĘ
+                const contentGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                contentGroup.setAttribute("transform", currentTransform);
+
+                // Przenieś wszystkie dzieci zachowując ich właściwości
+                while (cloneContent.firstChild) {
+                    contentGroup.appendChild(cloneContent.firstChild);
                 }
 
-                const rect1 = model1.querySelector("rect") || model1.getBBox?.() ? model1 : null;
-                const rect2 = model2.querySelector("rect") || model2.getBBox?.() ? model2 : null;
+                newSvg.appendChild(contentGroup);
+                console.log("SVG content prepared:", newSvg);
 
-                if (!rect1 || !rect2) {
-                    console.error("getModel2Displacement: rect elements not found");
-                    return { success: false, przesuniecieX: 0, przesuniecieY: 0 };
-                }
+                // 7. Serializacja
+                const svgString = new XMLSerializer().serializeToString(newSvg);
+                console.log("SVG string length:", svgString.length);
 
-                const getTransformedCenter = (el) => {
-                    const bbox = el.getBBox();
-                    const pt = svg.createSVGPoint();
-                    pt.x = bbox.x + bbox.width / 2;
-                    pt.y = bbox.y + bbox.height / 2;
-                    const ctm = el.getCTM();
-                    return pt.matrixTransform(ctm);
+                // 8. Konwersja do obrazka
+                const img = new Image();
+                img.onload = function() {
+                    try {
+                        console.log("Image loaded, creating PNG...");
+                        const canvas = document.createElement("canvas");
+                        canvas.width = 600;
+                        canvas.height = 600;
+                        const ctx = canvas.getContext("2d");
+
+                        // Białe tło
+                        ctx.fillStyle = "#ffffff";
+                        ctx.fillRect(0, 0, 1200, 1200);
+
+                        // Renderuj SVG (1:1 bez dodatkowego skalowania)
+                        ctx.drawImage(img, 0, 0);
+
+                        const pngData = canvas.toDataURL("image/png");
+                        console.log("PNG created successfully");
+                        resolve(pngData);
+                    } catch (e) {
+                        console.error("Canvas error:", e);
+                        resolve("");
+                    }
                 };
 
-                const c1 = getTransformedCenter(model1);
-                const c2 = getTransformedCenter(model2);
-
-                const scale = window.svgHelper.zoomLevel || 1;
-
-                const dx = (c2.x - c1.x) / scale;
-                const dy = (c2.y - c1.y) / scale;
-
-                console.log(`📏 Displacement względem model1: X=${dx.toFixed(2)}, Y=${dy.toFixed(2)}`);
-
-                return {
-                    success: true,
-                    przesuniecieX: dx,
-                    przesuniecieY: dy
+                img.onerror = function(e) {
+                    console.error("Image load error:", e);
+                    console.log("Problematic SVG:", svgString.substring(0, 500));
+                    resolve("");
                 };
+
+                img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgString);
             } catch (e) {
-                console.error("getModel2Displacement error:", e);
-                return { success: false, przesuniecieX: 0, przesuniecieY: 0, error: e.message };
+                console.error("Export error:", e);
+                resolve("");
+            }
+        });
+    };
+
+    window.svgHelper.resetModel2Position = function() {
+    const svg = document.querySelector(".scaled-svg > svg");
+    const model2 = svg?.querySelector("#model2");
+    if (model2) model2.setAttribute("transform", "translate(0,0)");
+    };
+
+    window.svgHelper.getModel2Displacement = function () {
+        try {
+            const svg = document.querySelector(".scaled-svg > svg");
+            if (!svg) {
+                console.error("getModel2Displacement: SVG not found");
+                return { success: false, przesuniecieX: 0, przesuniecieY: 0 };
             }
 
-        };
+            const model1 = svg.querySelector("#model1");
+            const model2 = svg.querySelector("#model2");
 
-        // 👇 DODAJ TUTAJ
-        window.svgHelper.updateDisplacement = function(x, y) {
+            if (!model1 || !model2) {
+                console.error("getModel2Displacement: one or both models not found");
+                return { success: false, przesuniecieX: 0, przesuniecieY: 0 };
+            }
+
+            const rect1 = model1.querySelector("rect") || model1.getBBox?.() ? model1 : null;
+            const rect2 = model2.querySelector("rect") || model2.getBBox?.() ? model2 : null;
+
+            if (!rect1 || !rect2) {
+                console.error("getModel2Displacement: rect elements not found");
+                return { success: false, przesuniecieX: 0, przesuniecieY: 0 };
+            }
+
+            const getTransformedCenter = (el) => {
+                const bbox = el.getBBox();
+                const pt = svg.createSVGPoint();
+                pt.x = bbox.x + bbox.width / 2;
+                pt.y = bbox.y + bbox.height / 2;
+                const ctm = el.getCTM();
+                return pt.matrixTransform(ctm);
+            };
+
+            const c1 = getTransformedCenter(model1);
+            const c2 = getTransformedCenter(model2);
+
+            const scale = window.svgHelper.zoomLevel || 1;
+
+            const dx = (c2.x - c1.x) / scale;
+            const dy = (c2.y - c1.y) / scale;
+
+            console.log(`📏 Displacement względem model1: X=${dx.toFixed(2)}, Y=${dy.toFixed(2)}`);
+
+            return {
+                success: true,
+                przesuniecieX: dx,
+                przesuniecieY: dy
+            };
+        } catch (e) {
+            console.error("getModel2Displacement error:", e);
+            return { success: false, przesuniecieX: 0, przesuniecieY: 0, error: e.message };
+        }
+
+    };
+
+
+    window.svgHelper.updateDisplacement = function(x, y) {
         try {
             const model2 = document.querySelector("#model2");
             if (!model2) {
@@ -3175,6 +3175,25 @@
             html: model2.innerHTML.substring(0, 200)
         };
     };
+
+    function openImageInNewTab(base64Data) {
+        // Zamień base64 na Blob
+        var byteCharacters = atob(base64Data);
+        var byteNumbers = new Array(byteCharacters.length);
+        for (var i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        var byteArray = new Uint8Array(byteNumbers);
+        var blob = new Blob([byteArray], { type: 'image/png' });
+        var blobUrl = URL.createObjectURL(blob);
+
+        var win = window.open(blobUrl, '_blank');
+        if (!win) {
+            alert('Proszę zezwolić na wyskakujące okna.');
+        }
+        // Zwolnij URL po chwili, aby nie zajmować pamięci
+        setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 10000);
+    }
 </script>
 
 <div class="container-fluid mt-3">
@@ -3277,12 +3296,14 @@
                                 <td>
                                     @if (polaczenie.RysunekPrzekroju?.Length > 20 && polaczenie.RysunekPrzekrojuStyczny?.Length > 20)
                                     {
-                                        <a target="_blank" href="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)">
-                                            <img title="zew:@polaczenie.ElementZewnetrznyId wew:@polaczenie.ElementWewnetrznyId"
+
+                                        <a href="#" onclick="event.preventDefault(); openImageInNewTab('@Convert.ToBase64String(polaczenie.RysunekPrzekroju)')">
+                                            <img title="zew:@polaczenie.ElementZewnetrznyId &nbsp; wew:@polaczenie.ElementWewnetrznyId"
                                                  src="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)"
-                                                 style="width: 150px; height: auto; object-fit: contain; border: 1px solid #ccc;" />
+                                                 style="width: 120px; height: auto; object-fit: contain; border: 1px solid #ddd;" />
                                         </a>
-                                        <a target="_blank" href="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekrojuStyczny)">
+
+                                         <a href="#" onclick="event.preventDefault(); openImageInNewTab('@Convert.ToBase64String(polaczenie.RysunekPrzekrojuStyczny)')">
                                             <img title="Połączenie styczne zew:@polaczenie.ElementZewnetrznyId wew:@polaczenie.ElementWewnetrznyId"
                                                  src="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekrojuStyczny)"
                                                  style="width: 150px; height: auto; object-fit: contain; border: 1px solid #ccc;" />
@@ -3290,7 +3311,7 @@
                                     }
                                     else if (polaczenie.RysunekPrzekroju?.Length > 20 && polaczenie.RysunekPrzekrojuStyczny?.Length < 20)
                                     {
-                                        <a target="_blank" href="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)">
+                                        <a href="#" onclick="event.preventDefault(); openImageInNewTab('@Convert.ToBase64String(polaczenie.RysunekPrzekroju)')">
                                             <img title="zew:@polaczenie.ElementZewnetrznyId wew:@polaczenie.ElementWewnetrznyId"
                                                  src="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)"
                                                  style="width: 150px; height: auto; object-fit: contain; border: 1px solid #ccc;" />
@@ -3298,7 +3319,7 @@
                                     }
                                     else if (polaczenie.RysunekPrzekroju?.Length < 20 && polaczenie.RysunekPrzekrojuStyczny?.Length > 20)
                                     {
-                                        <a target="_blank" href="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekrojuStyczny)">
+                                        <a href="#" onclick="event.preventDefault(); openImageInNewTab('@Convert.ToBase64String(polaczenie.RysunekPrzekrojuStyczny)')">
                                             <img title="Połączenie styczne zew:@polaczenie.ElementZewnetrznyId wew:@polaczenie.ElementWewnetrznyId"
                                                  src="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekrojuStyczny)"
                                                  style="width: 150px; height: auto; object-fit: contain; border: 1px solid #ccc;" />

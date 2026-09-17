@@ -3076,6 +3076,7 @@
     double klikX,
     double klikY)
     {
+        //Fumkcja tylko dla słupków stałych, które mają 2 wierzcholki i są linią prostą wywołanie tylko z FitToCanvas
         var best = new SlupekMatchResult();
         double bestDist = double.MaxValue;
 
@@ -3228,8 +3229,7 @@
             return linia;
         }
 
-        Console.Clear();
-
+   
         Console.WriteLine(
             $"🔍 Utworzono prostokąt słupka: " +
             $"grubość={grubosc:F2}, oś={os_symetrii_slupka:F2}");
@@ -6257,8 +6257,8 @@
                 if (konf != null)
                 {
                     double fallback = -((konf.PoziomDol ?? 0) - (konf.PoziomOsSymetrii ?? 0));
-                    // Console.WriteLine($"WyliczObszarSkrzydla   Konfiguracja znaleziona: PoziomDol={konf.PoziomDol}, PoziomOsSymetrii={konf.PoziomOsSymetrii}");
-                    // Console.WriteLine($"WyliczObszarSkrzydla   Fallback value: {fallback}");
+                    Console.WriteLine($"WyliczObszarSkrzydla   Konfiguracja znaleziona: PoziomDol={konf.PoziomDol}, PoziomOsSymetrii={konf.PoziomOsSymetrii}");
+                    Console.WriteLine($"WyliczObszarSkrzydla   Fallback value: {fallback}");
 
 
                     switch (s_polaczenieStrona?.Strona)

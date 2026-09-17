@@ -370,7 +370,7 @@
                                 <td class="text-center">
                                     @if (schody.RysunekPogladowy?.Length > 20)
                                     {
-                                        <a href="#" onclick="openImageInNewTab('@Convert.ToBase64String(schody.RysunekPogladowy)')">
+                                        <a href="#" onclick="event.preventDefault(); openImageInNewTab('@Convert.ToBase64String(schody.RysunekPogladowy)')">
                                             <img title="zew:@schody.SzerokoscZabieg1 wew:@schody.SzerokoscZabieg2"
                                                  src="data:image/png;base64,@Convert.ToBase64String(schody.RysunekPogladowy)"
                                                  style="width: 120px; height: auto; object-fit: contain; border: 1px solid #ddd;" />

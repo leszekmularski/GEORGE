@@ -2210,6 +2210,59 @@ namespace GEORGE.Client.Pages.Okna
                     //    Console.WriteLine($"🔷 T5-T5 punktyRegionuMaster: #2 X={punkt.X}, Y={punkt.Y}");
                     //}
 
+                    if (daneKwadratu != null)
+                    {
+ 
+                        int idx = 0;
+                        foreach (var d in daneKwadratu)
+                        {
+                            Console.WriteLine($"-- daneKwadratu[{idx}] --");
+                            if (d?.Przesuniecia == null)
+                            {
+                                Console.WriteLine("   Przesuniecia: NULL");
+                            }
+                            else
+                            {
+                                Console.WriteLine($"   Przesuniecia count: {d.Przesuniecia.Count}");
+                                int pIdx = 0;
+                                foreach (var p in d.Przesuniecia)
+                                {
+                                    Console.WriteLine(
+                                        $"   [{pIdx}] Strona='{p.Strona}', " +
+                                        $"PrzesuniecieX={p.PrzesuniecieX}, PrzesuniecieY={p.PrzesuniecieY}, " +
+                                        $"PrzesuniecieXStycznej={p.PrzesuniecieXStycznej}, PrzesuniecieYStycznej={p.PrzesuniecieYStycznej}, " +
+                                        $"ElementZewnetrznyId={p.ElementZewnetrznyId}, ElementWewnetrznyId={p.ElementWewnetrznyId}");
+                                    pIdx++;
+                                }
+                            }
+                            idx++;
+                        }
+                    }
+
+                    if (StronaElementu.ToLower() == "góra" )
+                    {
+                        TopXT5 = ApplyOffsetToPointST(TopXT5, daneKwadratu, true, angleDegrees);
+                        BottomXT5 = ApplyOffsetToPointST(BottomXT5, daneKwadratu, true, angleDegrees);
+                    }
+                    else if (StronaElementu.ToLower() == "dół")
+                    {
+                        TopXT5 = ApplyOffsetToPointST(TopXT5, daneKwadratu, false, angleDegrees);
+                        BottomXT5 = ApplyOffsetToPointST(BottomXT5, daneKwadratu, false, angleDegrees);
+                    }
+                    else if (StronaElementu.ToLower() == "prawa")
+                    {
+                        TopXT5 = ApplyOffsetToPointST(TopXT5, daneKwadratu, true, angleDegrees);
+                        BottomXT5 = ApplyOffsetToPointST(BottomXT5, daneKwadratu, true, angleDegrees);
+                    }
+                    else if (StronaElementu.ToLower() == "lewa")
+                    {
+                        TopXT5 = ApplyOffsetToPointST(TopXT5, daneKwadratu, false, angleDegrees);
+                        BottomXT5 = ApplyOffsetToPointST(BottomXT5, daneKwadratu, false, angleDegrees);
+                    }
+
+
+                    // Przygotuj zmodyfikowaną listę punktów regionu master a w nim punktyRegionuMasterModyfikowane, które są przesunięte wzdłuż wektora prostopadłego do linii T5-T5 
+                    // z uwzględnieniem szerokości słupka i położenia osi symetrii oraz offsetów w systemie
                     var punkyRegionuMasterModyfikowane = PrepareRegionPoints(TopXT5, BottomXT5, punktyRegionuMaster);
 
                     // Teraz znajdź przecięcia z konturem
@@ -2623,6 +2676,84 @@ namespace GEORGE.Client.Pages.Okna
             await Task.CompletedTask;
 
             return true;
+        }
+
+        /// <summary>
+        /// Przesuwa pojedynczy punkt o wektor z rekordu dopasowanego po stronie wyznaczonej z kąta.
+        /// - Kąt blisko 0° / 180°  → linia pozioma  → przesuwamy tylko X (strona "lewa"/"prawa")
+        /// - Kąt blisko 90° / 270° → linia pionowa  → przesuwamy tylko Y (strona "góra"/"dół")
+        /// Fallback rekordu: Strona = "dół".
+        /// </summary>
+        private XPoint ApplyOffsetToPointST(XPoint point, List<DaneKwadratu> daneKwadratu, bool znak_minus, float angleDegrees)
+        {
+            if (point.IsEmpty || daneKwadratu == null)
+                return point;
+
+            var wszystkie = daneKwadratu
+                .Where(d => d?.Przesuniecia != null)
+                .SelectMany(d => d.Przesuniecia)
+                .ToList();
+
+            // === 1. Normalizacja kąta do zakresu [0, 360) ===
+            double angle = ((angleDegrees % 360) + 360) % 360;
+
+            // === 2. Wyznaczenie strony na podstawie kąta ===
+            // Zaokrąglamy do najbliższej osi: pozioma (0/180) albo pionowa (90/270).
+            string strona;
+            if (angle >= 315 || angle < 45)
+            {
+                strona = "prawa";   // linia pozioma, kierunek w prawo
+            }
+            else if (angle >= 45 && angle < 135)
+            {
+                strona = "dół";     // linia pionowa, kierunek w dół (Y rośnie w dół)
+            }
+            else if (angle >= 135 && angle < 225)
+            {
+                strona = "lewa";    // linia pozioma, kierunek w lewo
+            }
+            else // 225–315
+            {
+                strona = "góra";    // linia pionowa, kierunek w górę
+            }
+
+            // === 3. Wybór rekordu ===
+            var rekord = wszystkie
+                .FirstOrDefault(p => string.Equals(p.Strona, strona, StringComparison.OrdinalIgnoreCase))
+                ?? wszystkie.FirstOrDefault(p => string.Equals(p.Strona, "dół", StringComparison.OrdinalIgnoreCase));
+
+            if (rekord == null)
+            {
+                Console.WriteLine($"[ApplyOffsetToPointST] Brak rekordu dla Strona='{strona}' i fallbacku 'dół' — zwracam punkt bez zmian.");
+                return point;
+            }
+
+            // === 4. Wyliczenie przesunięcia ===
+            double shiftX = 0;
+            double shiftY = 0;
+
+            if (strona == "góra" || strona == "dół")
+            {
+                // Przesuwamy TYLKO Y
+                shiftY = Math.Abs(rekord.PrzesuniecieYStycznej);
+                if (znak_minus) shiftY = -shiftY;
+            }
+            else // "lewa" / "prawa"
+            {
+                // Przesuwamy TYLKO X
+                shiftX = Math.Abs(rekord.PrzesuniecieYStycznej);
+                if (znak_minus) shiftX = -shiftX;
+            }
+
+            Console.WriteLine($"[ApplyOffsetToPointST] angle={angleDegrees}° → strona='{strona}', " +
+                              $"użyty rekord Strona='{rekord.Strona}', znak_minus={znak_minus}, " +
+                              $"shiftX={shiftX}, shiftY={shiftY}");
+
+            return new XPoint
+            {
+                X = point.X + shiftX,
+                Y = point.Y + shiftY
+            };
         }
 
         private List<XPoint> PrepareRegionPoints(XPoint top, XPoint bottom, List<XPoint> source)

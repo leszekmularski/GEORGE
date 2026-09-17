@@ -65,7 +65,7 @@ namespace GEORGE.Server.Controllers
                                 .FirstOrDefault(),
 
                     DodatkowaInformacja = "Dane z dnia: " + DateTime.Now
-                }).OrderByDescending(x => x.ElemetZamDoZlecen.DataZamowienia)
+                }).OrderByDescending(x => x.ElemetZamDoZlecen.DataZapisu)
                 .ToListAsync();
 
             if (zamowieniaWithProducent == null || zamowieniaWithProducent.Count == 0)

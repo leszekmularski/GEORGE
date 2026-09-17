@@ -63,7 +63,7 @@
         }
     };
 
-        function openImageInNewTab(base64Data) {
+    function openImageInNewTab(base64Data) {
         // Zamień base64 na Blob
         var byteCharacters = atob(base64Data);
         var byteNumbers = new Array(byteCharacters.length);
@@ -446,8 +446,8 @@
                                 <td class="text-center">
                                     @if (drzwi.RysunekPogladowy?.Length > 20)
                                     {
-                                        <a href="#" onclick="openImageInNewTab('@Convert.ToBase64String(drzwi.RysunekPogladowy)')">
-                                            <img title="grubość:@drzwi.Grubosc Próg:@drzwi.WysokoscProgu"
+                                        <a href="#" onclick="event.preventDefault(); openImageInNewTab('@Convert.ToBase64String(drzwi.RysunekPogladowy)')">
+                                            <img title="grubość:@drzwi.Grubosc &nbsp; Próg:@drzwi.WysokoscProgu"
                                                  src="data:image/png;base64,@Convert.ToBase64String(drzwi.RysunekPogladowy)"
                                                  style="width: 120px; height: auto; object-fit: contain; border: 1px solid #ddd;" />
                                         </a>
