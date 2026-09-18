@@ -2081,9 +2081,21 @@ namespace GEORGE.Client.Pages.Okna
                     //        Console.WriteLine($"   🔷 🔷 🔷 X={punkt.X}, Y={punkt.Y}");
                     //    }
                     //}
+                    var liniaStala = daneKwadratu
+                        .Where(x => x.LiniaStala != null && x.LiniaStala.Count() > 1)
+                        .LastOrDefault();
 
-                    XPoint TopXT5 = new XPoint { X = daneKwadratu.Where(x => x.LiniaStala != null && x.LiniaStala.Count() > 1).LastOrDefault().Wierzcholki[0].X, Y = daneKwadratu.Where(x => x.LiniaStala != null && x.LiniaStala.Count() > 1).LastOrDefault().Wierzcholki[0].Y };
-                    XPoint BottomXT5 = new XPoint { X = daneKwadratu.Where(x => x.LiniaStala != null && x.LiniaStala.Count() > 1).LastOrDefault().Wierzcholki[1].X, Y = daneKwadratu.Where(x => x.LiniaStala != null && x.LiniaStala.Count() > 1).LastOrDefault().Wierzcholki[1].Y };
+                    XPoint TopXT5 = new XPoint
+                    {
+                        X = liniaStala.Wierzcholki[0].X,
+                        Y = liniaStala.Wierzcholki[0].Y
+                    };
+
+                    XPoint BottomXT5 = new XPoint
+                    {
+                        X = liniaStala.Wierzcholki[1].X,
+                        Y = liniaStala.Wierzcholki[1].Y
+                    };
 
                     //// Najpierw oblicz wektor kierunkowy linii
                     //XPoint TopXT5 = new XPoint { X = inner[0].X, Y = inner[0].Y };
@@ -2238,27 +2250,18 @@ namespace GEORGE.Client.Pages.Okna
                         }
                     }
 
-                    if (StronaElementu.ToLower() == "góra")
-                    {
-                        TopXT5 = ApplyOffsetToPointST(TopXT5, daneKwadratu, true, angleDegrees);
-                        BottomXT5 = ApplyOffsetToPointST(BottomXT5, daneKwadratu, true, angleDegrees);
-                    }
-                    else if (StronaElementu.ToLower() == "dół")
-                    {
-                        TopXT5 = ApplyOffsetToPointST(TopXT5, daneKwadratu, false, angleDegrees);
-                        BottomXT5 = ApplyOffsetToPointST(BottomXT5, daneKwadratu, false, angleDegrees);
-                    }
-                    else if (StronaElementu.ToLower() == "prawa")
-                    {
-                        TopXT5 = ApplyOffsetToPointST(TopXT5, daneKwadratu, true, angleDegrees);
-                        BottomXT5 = ApplyOffsetToPointST(BottomXT5, daneKwadratu, true, angleDegrees);
-                    }
-                    else if (StronaElementu.ToLower() == "lewa")
-                    {
-                        TopXT5 = ApplyOffsetToPointST(TopXT5, daneKwadratu, false, angleDegrees);
-                        BottomXT5 = ApplyOffsetToPointST(BottomXT5, daneKwadratu, false, angleDegrees);
-                    }
+                    // Przesunięcie punktu TopXT5 względem linii T5–T5:
+                    // Raz na cały przebieg — pobierz linię T5–T5
+                    var liniaT5 = daneKwadratu
+                        .Where(x => x.LiniaStala != null && x.LiniaStala.Count() > 1)
+                        .LastOrDefault()
+                        ?.Wierzcholki
+                        ?.ToList() ?? new List<XPoint>();
 
+
+                    TopXT5 = ApplyOffsetToPointST(TopXT5, liniaT5, daneKwadratu);
+               
+                    BottomXT5 = ApplyOffsetToPointST(BottomXT5, liniaT5, daneKwadratu);
 
                     // Przygotuj zmodyfikowaną listę punktów regionu master a w nim punktyRegionuMasterModyfikowane, które są przesunięte wzdłuż wektora prostopadłego do linii T5-T5 
                     // z uwzględnieniem szerokości słupka i położenia osi symetrii oraz offsetów w systemie
@@ -2678,74 +2681,94 @@ namespace GEORGE.Client.Pages.Okna
         }
 
         /// <summary>
-        /// Przesuwa pojedynczy punkt o wektor z rekordu dopasowanego po stronie wyznaczonej z kąta.
-        /// - Kąt blisko 0° / 180°  → linia pozioma  → przesuwamy tylko X (strona "lewa"/"prawa")
-        /// - Kąt blisko 90° / 270° → linia pionowa  → przesuwamy tylko Y (strona "góra"/"dół")
-        /// Fallback rekordu: Strona = "dół".
+        /// Przesuwa punkt NA ZEWNĄTRZ obszaru wyznaczonego przez listę punktów linii.
+        /// Punkty wewnątrz obszaru NIE są zmieniane.
+        ///
+        /// Konwencja: Y rośnie w DÓŁ (SVG/Canvas).
         /// </summary>
-        private XPoint ApplyOffsetToPointST(XPoint point, List<DaneKwadratu> daneKwadratu, bool znak_minus, float angleDegrees)
+        private XPoint ApplyOffsetToPointST(
+            XPoint point,
+            List<XPoint> linia,
+            List<DaneKwadratu> daneKwadratu)
         {
-            if (point.IsEmpty || daneKwadratu == null)
+            if (point.IsEmpty || linia == null || linia.Count < 2 || daneKwadratu == null)
                 return point;
 
+            // === Wyznaczenie top i bottom z listy punktów linii ===
+            // Bierzemy pierwszy i ostatni punkt — jeśli linia ma więcej wierzchołków,
+            // można to zmienić na np. min/max po Y.
+            XPoint top = linia.First();
+            XPoint bottom = linia.Last();
+
+            // === Orientacja linii ===
+            double dx = bottom.X - top.X;
+            double dy = bottom.Y - top.Y;
+            bool isVertical = Math.Abs(dy) >= Math.Abs(dx);
+
+            // === Czy punkt jest WEWNĄTRZ obszaru ===
+            bool wewnatrz;
+            if (isVertical)
+            {
+                double minY = Math.Min(top.Y, bottom.Y);
+                double maxY = Math.Max(top.Y, bottom.Y);
+                wewnatrz = point.Y >= minY && point.Y <= maxY;
+            }
+            else
+            {
+                double minX = Math.Min(top.X, bottom.X);
+                double maxX = Math.Max(top.X, bottom.X);
+                wewnatrz = point.X >= minX && point.X <= maxX;
+            }
+
+            if (wewnatrz)
+            {
+                Console.WriteLine($"[ApplyOffsetToPointST] point=({point.X};{point.Y}) wewnątrz obszaru — bez zmian.");
+                return point;
+            }
+
+            // === Po której stronie linii leży punkt ===
+            double liniaX = (top.X + bottom.X) / 2.0;
+            double liniaY = (top.Y + bottom.Y) / 2.0;
+
+            string strona;
+            if (isVertical)
+                strona = point.X < liniaX ? "lewa" : "prawa";
+            else
+                strona = point.Y < liniaY ? "góra" : "dół";
+
+            // === Wybór rekordu ===
             var wszystkie = daneKwadratu
                 .Where(d => d?.Przesuniecia != null)
                 .SelectMany(d => d.Przesuniecia)
                 .ToList();
 
-            // === 1. Normalizacja kąta do zakresu [0, 360) ===
-            double angle = ((angleDegrees % 360) + 360) % 360;
-
-            // === 2. Wyznaczenie strony na podstawie kąta ===
-            // Zaokrąglamy do najbliższej osi: pozioma (0/180) albo pionowa (90/270).
-            string strona;
-            if (angle >= 315 || angle < 45)
-            {
-                strona = "prawa";   // linia pozioma, kierunek w prawo
-            }
-            else if (angle >= 45 && angle < 135)
-            {
-                strona = "dół";     // linia pionowa, kierunek w dół (Y rośnie w dół)
-            }
-            else if (angle >= 135 && angle < 225)
-            {
-                strona = "lewa";    // linia pozioma, kierunek w lewo
-            }
-            else // 225–315
-            {
-                strona = "góra";    // linia pionowa, kierunek w górę
-            }
-
-            // === 3. Wybór rekordu ===
             var rekord = wszystkie
                 .FirstOrDefault(p => string.Equals(p.Strona, strona, StringComparison.OrdinalIgnoreCase))
                 ?? wszystkie.FirstOrDefault(p => string.Equals(p.Strona, "dół", StringComparison.OrdinalIgnoreCase));
 
             if (rekord == null)
             {
-                Console.WriteLine($"[ApplyOffsetToPointST] Brak rekordu dla Strona='{strona}' i fallbacku 'dół' — zwracam punkt bez zmian.");
+                Console.WriteLine($"[ApplyOffsetToPointST] Brak rekordu dla Strona='{strona}' — bez zmian.");
                 return point;
             }
 
-            // === 4. Wyliczenie przesunięcia ===
+            // === Przesunięcie NA ZEWNĄTRZ ===
             double shiftX = 0;
             double shiftY = 0;
+            double styczna = Math.Abs(rekord.PrzesuniecieYStycznej);
 
-            if (strona == "góra" || strona == "dół")
+            switch (strona)
             {
-                // Przesuwamy TYLKO Y
-                shiftY = Math.Abs(rekord.PrzesuniecieYStycznej);
-                if (znak_minus) shiftY = -shiftY;
-            }
-            else // "lewa" / "prawa"
-            {
-                // Przesuwamy TYLKO X
-                shiftX = Math.Abs(rekord.PrzesuniecieYStycznej);
-                if (znak_minus) shiftX = -shiftX;
+                case "góra": shiftY = -styczna; break;
+                case "dół": shiftY = +styczna; break;
+                case "lewa": shiftX = -styczna; break;
+                case "prawa": shiftX = +styczna; break;
             }
 
-            Console.WriteLine($"[ApplyOffsetToPointST] angle={angleDegrees}° → strona='{strona}', " +
-                              $"użyty rekord Strona='{rekord.Strona}', znak_minus={znak_minus}, " +
+            Console.WriteLine($"[ApplyOffsetToPointST] point=({point.X};{point.Y}), " +
+                              $"top=({top.X};{top.Y}), bottom=({bottom.X};{bottom.Y}), " +
+                              $"isVertical={isVertical}, wewnatrz={wewnatrz}, strona='{strona}', " +
+                              $"rekord='{rekord.Strona}', styczna={styczna}, " +
                               $"shiftX={shiftX}, shiftY={shiftY}");
 
             return new XPoint

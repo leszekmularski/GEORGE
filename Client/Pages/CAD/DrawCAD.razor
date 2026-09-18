@@ -157,7 +157,7 @@
 
 <!-- Kontener na przyciski -->
 <div class="zoom-controls">
-    <button @onclick="() => FitToCanvas()" class="btn-zoom">🔄 Dopasuj</button>
+    <button @onclick="() => FitToCanvasCAD()" class="btn-zoom">🔄 Dopasuj</button>
     <button @onclick="() => RysOkna()" class="btn-window">🔥 Popraw szkic OKNA</button>
     @*     <button @onclick="() => RysSymerycznychPoprzOkna()" class="btn-window">🔥 Symetryczne połączenia skrzydeł</button> *@
     <button @onclick="() => PowrotDoGenerowaniaOkna()" class="btn-window"><strong>📦 Wróć do budowy OKNA</strong></button>
@@ -418,7 +418,7 @@
             {
                 //  await RedrawCanvas();     // <- teraz canvas już istnieje w DOM
 
-                await FitToCanvas();
+                await FitToCanvasCAD();
 
                 StateHasChanged();
             }
@@ -766,6 +766,8 @@
     /// <summary>
     /// Dodaje nową linię. Jeżeli przecina ona wcześniejsze linie, dzieli wyłącznie
     /// nową linię w punktach przecięć; wcześniej narysowane linie nie są zmieniane.
+    /// Wszystkie segmenty powstałe z podziału dostają wspólny SplitGroupId,
+    /// dzięki czemu LineUtils traktuje je jako jedną grupę.
     /// </summary>
     private void AddLineSplitAtExistingLineIntersections(XLineShape newLine)
     {
@@ -791,30 +793,46 @@
             }
 
             // Jedno miejsce może należeć do kilku wcześniej narysowanych odcinków.
-            if (splitPoints.All(point => Math.Abs(point.Parameter - parameter) > tolerance))
+            if (splitPoints.All(point => Math.Abs(point.Parameter - parameter) >= tolerance))
             {
                 splitPoints.Add((parameter, intersectionX, intersectionY));
             }
         }
 
+        // Brak przecięć — dodajemy linię bez zmian, ale z nadanym SplitGroupId,
+        // żeby ewentualne późniejsze operacje miały spójny identyfikator.
         if (splitPoints.Count == 0)
         {
+            newLine.SplitGroupId ??= newLine.ID;
             _shapes.Add(newLine);
             return;
         }
 
         splitPoints.Sort((first, second) => first.Parameter.CompareTo(second.Parameter));
 
+        // Ustawiamy wspólny SplitGroupId na oryginalnej linii PRZED podziałem.
+        // Dzięki temu wszystkie segmenty — i ewentualne późniejsze operacje
+        // (ExtendLinesToShapes, ShortenLinesInsideShapes, DistributeLines) —
+        // będą traktowane jako jedna grupa.
+        var groupId = newLine.SplitGroupId ?? newLine.ID;
+        newLine.SplitGroupId = groupId;
+
         var startX = newLine.X1;
         var startY = newLine.Y1;
+
         foreach (var splitPoint in splitPoints)
         {
-            _shapes.Add(CreateLineSegment(newLine, startX, startY, splitPoint.X, splitPoint.Y));
+            var segment = CreateLineSegment(newLine, startX, startY, splitPoint.X, splitPoint.Y);
+            segment.SplitGroupId = groupId;   // wymuszenie tego samego groupId
+            _shapes.Add(segment);
+
             startX = splitPoint.X;
             startY = splitPoint.Y;
         }
 
-        _shapes.Add(CreateLineSegment(newLine, startX, startY, newLine.X2, newLine.Y2));
+        var lastSegment = CreateLineSegment(newLine, startX, startY, newLine.X2, newLine.Y2);
+        lastSegment.SplitGroupId = groupId;
+        _shapes.Add(lastSegment);
     }
 
     private static double GetLineParameter(XLineShape line, double x, double y)
@@ -830,14 +848,18 @@
     private XLineShape CreateLineSegment(XLineShape source, double x1, double y1, double x2, double y2)
     {
         return new XLineShape(
-            x1, y1, x2, y2, _scaleFactor, source.NazwaObj,
-            source.RuchomySlupek, source.PionPoziom, source.DualRama,
-            source.GenerowaneZRamy, source.StalySlupek)
+            x1, y1, x2, y2,
+            _scaleFactor,
+            source.NazwaObj,
+            source.RuchomySlupek,
+            source.PionPoziom,
+            source.DualRama,
+            source.GenerowaneZRamy,
+            source.StalySlupek)
         {
             SplitGroupId = source.SplitGroupId ?? source.ID
         };
     }
-
 
     private double CalculateRadius()
     {
@@ -1409,7 +1431,7 @@
         _selectedShapeIndex = (_selectedShapeIndex - 1 + _shapes.Count) % _shapes.Count;
     }
 
-    private async Task FitToCanvas()
+    private async Task FitToCanvasCAD()
     {
         if (_originalShapes == null || _originalShapes.Count == 0) return;
 
@@ -1543,7 +1565,7 @@
 
         await LineUtils.ShortenLinesInsideShapes(_shapes, _scaleFactor);
 
-        await FitToCanvas();
+        await FitToCanvasCAD();
 
         Console.WriteLine("RysOkna --> Koniec");
     }

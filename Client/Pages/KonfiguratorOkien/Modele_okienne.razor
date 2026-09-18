@@ -1894,6 +1894,11 @@
 
             await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
 
+            await Task.Yield(); // Małe opóźnienie dla stabilności
+            await LineUtils.DistributeLines(ShapeService.Shapes, recznaZmiana);
+
+            await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
+
             await Task.Delay(150); // Małe opóźnienie dla stabilności
 
             // 🔹 5️⃣ Generowanie regionów jeśli trzeba
@@ -1951,6 +1956,11 @@
 
                 // 🔹 3️⃣ Przytnij linie
                 await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
+
+                await Task.Yield(); // Małe opóźnienie dla stabilności
+            await LineUtils.DistributeLines(ShapeService.Shapes, recznaZmiana);
+
+            await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
 
                 Console.WriteLine($"🗺️ Wygenerowano regiony: {_regionsDualRama.Count} rama, {_regionsSkrzydlo.Count} skrzydło");
             }
