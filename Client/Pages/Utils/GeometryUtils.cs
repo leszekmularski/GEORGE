@@ -2241,5 +2241,79 @@ namespace GEORGE.Client.Pages.Utils
 
             return result;
         }
+
+        // Dodaj na górze pliku:
+        // using GEORGE.Client.Pages.KonfiguratorOkien;
+
+        // Dodaj u góry pliku:
+        // using GEORGE.Client.Pages.KonfiguratorOkien;
+
+        public static void FixContourIntersections(List<IShapeDC> shapes, List<ShapeRegion> regions, double tolerance = 0.5)
+        {
+            if (regions == null || regions.Count == 0) return;
+            var lines = shapes.OfType<XLineShape>().ToList();
+            if (!lines.Any()) return;
+
+            foreach (var region in regions)
+            {
+                if (region.Kontur == null || region.Kontur.Count == 0) continue;
+
+                for (int si = 0; si < region.Kontur.Count; si++)
+                {
+                    var seg = region.Kontur[si];
+
+                    foreach (var line in lines)
+                    {
+                        // 1) Szukaj punktu przecięcia segmentu konturu z linią dzielącą
+                        if (LineUtils.FindIntersection(
+                                seg.Start.X, seg.Start.Y, seg.End.X, seg.End.Y,
+                                line.X1, line.Y1, line.X2, line.Y2,
+                                out double ix, out double iy))
+                        {
+                            // Użyj LineUtils.Distance (4 double)
+                            if (LineUtils.Distance(seg.Start.X, seg.Start.Y, ix, iy) <= tolerance)
+                                seg.Start = new XPoint(ix, iy);
+                            if (LineUtils.Distance(seg.End.X, seg.End.Y, ix, iy) <= tolerance)
+                                seg.End = new XPoint(ix, iy);
+                        }
+                        else
+                        {
+                            // 2) Projektuj końce segmentu na odcinek linii i przyklej jeśli blisko
+                            XPoint ProjectOntoLineSegment(XPoint pt, XLineShape l, out double dist, out bool onSegment)
+                            {
+                                double lx1 = l.X1, ly1 = l.Y1, lx2 = l.X2, ly2 = l.Y2;
+                                double dx = lx2 - lx1, dy = ly2 - ly1;
+                                double denom = dx * dx + dy * dy;
+                                dist = double.MaxValue;
+                                onSegment = false;
+                                if (denom < 1e-9) return pt;
+                                double t = ((pt.X - lx1) * dx + (pt.Y - ly1) * dy) / denom;
+                                if (t < 0 || t > 1) return pt; // poza odcinkiem
+                                double px = lx1 + t * dx;
+                                double py = ly1 + t * dy;
+                                dist = LineUtils.Distance(pt.X, pt.Y, px, py);
+                                onSegment = true;
+                                return new XPoint(px, py);
+                            }
+
+                            var ps = ProjectOntoLineSegment(seg.Start, line, out double ds, out bool onS);
+                            if (onS && ds <= tolerance) seg.Start = ps;
+
+                            var pe = ProjectOntoLineSegment(seg.End, line, out double de, out bool onE);
+                            if (onE && de <= tolerance) seg.End = pe;
+                        }
+                    }
+
+                    // zapisujemy zmieniony segment (unikamy ref na właściwości)
+                    region.Kontur[si] = seg;
+                }
+
+                // usuń zerowe segmenty
+                region.Kontur = region.Kontur
+                    .Where(s => !(Math.Abs(s.Start.X - s.End.X) < 1e-6 && Math.Abs(s.Start.Y - s.End.Y) < 1e-6))
+                    .ToList();
+            }
+        }
+
     }
 }

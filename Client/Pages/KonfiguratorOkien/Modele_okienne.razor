@@ -619,8 +619,8 @@
                                          @onclick="@(() => WybierzModel(model))"
                                          @ondragstart="@(e => JS.InvokeVoidAsync(
                                          "SetCurrentModel",
-                                                                                                                                                                                                                                                                                                                                                                                                                                 model.Typ,
-                                                                                                                                                                                                                                                                                                                                                                                                                                 model.RowId))"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                              model.Typ,
+                                                                                                                                                                                                                                                                                                                                                                                                                                                              model.RowId))"
                              @onmouseout="@(e => JS.InvokeVoidAsync("ResetCursor"))"
                              draggable="true"
                              style="cursor: grab;
@@ -629,8 +629,8 @@
                                 max-width: 50px;
                                 max-height: 50px;
                                 border: @(model == WybranyModel
-                                                                                                                                                                                                                                                                                                     ? "4px solid #007bff"
-                                                                                                                                                                                                                                                                                                     : "none")" />
+                                                                                                                                                                                                                                                                                                                                  ? "4px solid #007bff"
+                                                                                                                                                                                                                                                                                                                                  : "none")" />
                                                 }
                                 else
                                 {
@@ -1884,8 +1884,6 @@
         try
         {
 
-            // // 🔹 1️⃣ Wydłuż linie do granic kształtów
-
             await LineUtils.UstawPozycjeXiYnaZero(ShapeService.Shapes);
 
             await LineUtils.ExtendLinesToShapes(ShapeService.Shapes, 1);
@@ -1895,15 +1893,19 @@
             await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
 
             await Task.Yield(); // Małe opóźnienie dla stabilności
+
             await LineUtils.DistributeLines(ShapeService.Shapes, recznaZmiana);
 
             await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
 
-            await Task.Delay(150); // Małe opóźnienie dla stabilności
+            await Task.Delay(50); // Małe opóźnienie dla stabilności
 
             // 🔹 5️⃣ Generowanie regionów jeśli trzeba
             if (generujRegionyZPodzialu && constWlasciwosciOkna != null)
             {
+                GeometryUtils.FixContourIntersections(ShapeService.Shapes, _regionsDualRama, 0.5);
+                GeometryUtils.FixContourIntersections(ShapeService.Shapes, _regionsSkrzydlo, 0.5);
+
                 _regionsDualRama = await GeometryUtils.GenerujRegionyZPodzialu(
                      ShapeService.Shapes,
                      constWlasciwosciOkna.Szerokosc,
@@ -1947,20 +1949,21 @@
                 // 🔹 5️⃣ **Dopiero teraz przesuwamy wszystko do dodatniej ćwiartki**
                 // 🔹 1️⃣ Wydłuż linie do granic kształtów
 
-                await LineUtils.UstawPozycjeXiYnaZero(ShapeService.Shapes);
+                // await LineUtils.UstawPozycjeXiYnaZero(ShapeService.Shapes);
 
-                await LineUtils.ExtendLinesToShapes(ShapeService.Shapes, 1);
-                // 🔹 2️⃣ Rozmieść linie
-                await LineUtils.DistributeLines(ShapeService.Shapes, recznaZmiana);
+                // await LineUtils.ExtendLinesToShapes(ShapeService.Shapes, 1);
+                // // 🔹 2️⃣ Rozmieść linie
+                // await LineUtils.DistributeLines(ShapeService.Shapes, recznaZmiana);
 
 
-                // 🔹 3️⃣ Przytnij linie
-                await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
+                // // 🔹 3️⃣ Przytnij linie
+                // await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
 
-                await Task.Yield(); // Małe opóźnienie dla stabilności
-            await LineUtils.DistributeLines(ShapeService.Shapes, recznaZmiana);
+                // await Task.Yield(); // Małe opóźnienie dla stabilności
 
-            await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
+                // await LineUtils.DistributeLines(ShapeService.Shapes, recznaZmiana);
+
+                // await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
 
                 Console.WriteLine($"🗺️ Wygenerowano regiony: {_regionsDualRama.Count} rama, {_regionsSkrzydlo.Count} skrzydło");
             }
@@ -3011,7 +3014,7 @@
 
     }
 
-    private async Task FitToCanvas(IShapeDC targetShape, string idRegion, bool skalaAutomatyczna, List<XPoint> Wierzcholki, 
+    private async Task FitToCanvas(IShapeDC targetShape, string idRegion, bool skalaAutomatyczna, List<XPoint> Wierzcholki,
         List<XPoint> _wierzcholkiST, double klikX, double klikY)
     {
 
@@ -3239,7 +3242,7 @@
             return linia;
         }
 
-   
+
         Console.WriteLine(
             $"🔍 Utworzono prostokąt słupka: " +
             $"grubość={grubosc:F2}, oś={os_symetrii_slupka:F2}");
@@ -4520,7 +4523,7 @@
     double katSlupkaStalego,
     List<XPoint> wierzcholkiST)
     {
-       // Console.Clear(); // ⚠️ Wywalone — tracisz logi między wywołaniami
+        // Console.Clear(); // ⚠️ Wywalone — tracisz logi między wywołaniami
 
         // 1. Walidacja wstępna
         var walidacja = WalidujWejscie();
@@ -6624,10 +6627,10 @@
 
     private async Task<List<PrzesuniecieDto>> PobierzPolaczeniaStyczneSlupkowe(Guid zewId, Guid wewId, string strona)
     {
-             Console.WriteLine(
-        $"🟢 [CLIENT START] zewId={zewId} | wewId={wewId} | strona={strona}");
+        Console.WriteLine(
+   $"🟢 [CLIENT START] zewId={zewId} | wewId={wewId} | strona={strona}");
 
-        
+
         if (zewId == Guid.Empty || wewId == Guid.Empty || string.IsNullOrWhiteSpace(strona))
         {
             if (infoObiekt == null)

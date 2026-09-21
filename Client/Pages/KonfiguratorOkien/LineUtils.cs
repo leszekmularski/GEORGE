@@ -340,8 +340,9 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         }
         public static async Task ShortenLineToBoundingBox(XLineShape line, BoundingBox bbox, double _scaleFactor)
         {
-            // można użyć tego samego co w ExtendLineToBoundingBox
-            await ExtendLineToBoundingBox(line, bbox, _scaleFactor);
+            // Poprawka: wynik funkcji ExtendLineToBoundingBox należy zastosować na oryginalnej linii
+            var extended = await ExtendLineToBoundingBox(line, bbox, _scaleFactor);
+            SetLineEndpoints(line, extended.X1, extended.Y1, extended.X2, extended.Y2);
         }
 
         public static void CheckEdgeIntersection(double x1, double y1, double x2, double y2,
@@ -807,22 +808,11 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             double offsetX = -minX;
             double offsetY = -minY;
 
-            //Console.WriteLine($"[UstawPozycjeXiYnaZero] Przesuwam wszystkie kształty o ({offsetX:F2}, {offsetY:F2})");
-
-            //// Przesuń wszystkie kształty o ten sam wektor
-            //foreach (var shape in shapes)
-            //{
-            //    shape.Move(offsetX, offsetY);
-
-            //    if (shape is XLineShape line)
-            //    {
-            //        Console.WriteLine($"[UstawPozycjeXiYnaZero] Linia {line.NazwaObj}: ({line.X1:F2}, {line.Y1:F2}) -> ({line.X2:F2}, {line.Y2:F2})");
-            //    }
-            //    else
-            //    {
-            //        Console.WriteLine($"[UstawPozycjeXiYnaZero] Shape {shape.GetType().Name}: przesunięto");
-            //    }
-            //}
+            // Zastosuj przesunięcie do wszystkich kształtów (wcześniej było zakomentowane)
+            foreach (var shape in shapes)
+            {
+                shape.Move(offsetX, offsetY);
+            }
 
             await Task.CompletedTask;
         }
