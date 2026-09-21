@@ -79,7 +79,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
             const double MinOffsetFromAxis = 1.0;
 
-            // Pionowe
+            // 🔹 PIONOWE
             if (verticalLineGroups.Any() && !recznaZmiana)
             {
                 double minX = closedShapes.Min(s => s.GetBoundingBox().Left);
@@ -88,7 +88,12 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
                 if (verticalLineGroups.Count == 1)
                 {
-                    SetVerticalGroupPosition(verticalLineGroups.First(), centerX);
+                    var group = verticalLineGroups.First();
+                    double oldX = group[0].X1;
+                    double newX = centerX;
+
+                    SetVerticalGroupPosition(group, newX);
+                    MoveAttachedPoints(lines, oldX, newX, isVertical: true);
                 }
                 else
                 {
@@ -97,18 +102,18 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                     foreach (var lineGroup in verticalLineGroups)
                     {
                         double x = minX + i * spacing;
-
-                        // nie pozwól umieścić linii na osi X=0
                         if (Math.Abs(x) < Tolerance)
                             x = MinOffsetFromAxis;
 
+                        double oldX = lineGroup[0].X1;
                         SetVerticalGroupPosition(lineGroup, x);
+                        MoveAttachedPoints(lines, oldX, x, isVertical: true);
                         i++;
                     }
                 }
             }
 
-            // Poziome
+            // 🔹 POZIOME
             if (horizontalLineGroups.Any() && !recznaZmiana)
             {
                 double minY = closedShapes.Min(s => s.GetBoundingBox().Top);
@@ -117,7 +122,12 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
                 if (horizontalLineGroups.Count == 1)
                 {
-                    SetHorizontalGroupPosition(horizontalLineGroups.First(), centerY);
+                    var group = horizontalLineGroups.First();
+                    double oldY = group[0].Y1;
+                    double newY = centerY;
+
+                    SetHorizontalGroupPosition(group, newY);
+                    MoveAttachedPoints(lines, oldY, newY, isVertical: false);
                 }
                 else
                 {
@@ -125,13 +135,77 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                     int i = 1;
                     foreach (var lineGroup in horizontalLineGroups)
                     {
-                        SetHorizontalGroupPosition(lineGroup, minY + i * spacing);
+                        double y = minY + i * spacing;
+                        double oldY = lineGroup[0].Y1;
+                        SetHorizontalGroupPosition(lineGroup, y);
+                        MoveAttachedPoints(lines, oldY, y, isVertical: false);
                         i++;
                     }
                 }
             }
 
             await Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Przesuwa wszystkie punkty innych linii (końce i punkty podziału), które leżą
+        /// na starej pozycji grupy (oldCoord), na nową pozycję (newCoord).
+        /// Działa dla grupy pionowej (isVertical=true, przesuwa X) lub poziomej (false, przesuwa Y).
+        /// </summary>
+        private static void MoveAttachedPoints(
+            List<XLineShape> allLines,
+            double oldCoord,
+            double newCoord,
+            bool isVertical,
+            double tolerance = 1.0)
+        {
+            if (Math.Abs(oldCoord - newCoord) < 0.001)
+            {
+                Console.WriteLine($"[MOVE_ATTACHED] oldCoord == newCoord ({oldCoord:F3}), pomijam.");
+                return;
+            }
+
+            Console.WriteLine($"[MOVE_ATTACHED] Przesuwam punkty z {(isVertical ? "X" : "Y")}={oldCoord:F3} na {newCoord:F3}");
+
+            int movedCount = 0;
+
+            foreach (var line in allLines)
+            {
+                if (isVertical)
+                {
+                    // Przesuń końce linii, które mają X blisko oldCoord
+                    if (Math.Abs(line.X1 - oldCoord) <= tolerance)
+                    {
+                        Console.WriteLine($"[MOVE_ATTACHED]   Line {line.ID}: X1 {line.X1:F3} -> {newCoord:F3}");
+                        line.X1 = newCoord;
+                        movedCount++;
+                    }
+                    if (Math.Abs(line.X2 - oldCoord) <= tolerance)
+                    {
+                        Console.WriteLine($"[MOVE_ATTACHED]   Line {line.ID}: X2 {line.X2:F3} -> {newCoord:F3}");
+                        line.X2 = newCoord;
+                        movedCount++;
+                    }
+                }
+                else
+                {
+                    // Przesuń końce linii, które mają Y blisko oldCoord
+                    if (Math.Abs(line.Y1 - oldCoord) <= tolerance)
+                    {
+                        Console.WriteLine($"[MOVE_ATTACHED]   Line {line.ID}: Y1 {line.Y1:F3} -> {newCoord:F3}");
+                        line.Y1 = newCoord;
+                        movedCount++;
+                    }
+                    if (Math.Abs(line.Y2 - oldCoord) <= tolerance)
+                    {
+                        Console.WriteLine($"[MOVE_ATTACHED]   Line {line.ID}: Y2 {line.Y2:F3} -> {newCoord:F3}");
+                        line.Y2 = newCoord;
+                        movedCount++;
+                    }
+                }
+            }
+
+            Console.WriteLine($"[MOVE_ATTACHED] Przesunięto {movedCount} punktów.");
         }
 
         private static List<List<XLineShape>> GroupLinesForDistribution(
