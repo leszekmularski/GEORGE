@@ -161,11 +161,11 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         {
             if (Math.Abs(oldCoord - newCoord) < 0.001)
             {
-                Console.WriteLine($"[MOVE_ATTACHED] oldCoord == newCoord ({oldCoord:F3}), pomijam.");
+                // Console.WriteLine($"[MOVE_ATTACHED] oldCoord == newCoord ({oldCoord:F3}), pomijam.");
                 return;
             }
 
-            Console.WriteLine($"[MOVE_ATTACHED] Przesuwam punkty z {(isVertical ? "X" : "Y")}={oldCoord:F3} na {newCoord:F3}");
+            // Console.WriteLine($"[MOVE_ATTACHED] Przesuwam punkty z {(isVertical ? "X" : "Y")}={oldCoord:F3} na {newCoord:F3}");
 
             int movedCount = 0;
 
@@ -176,13 +176,13 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                     // Przesuń końce linii, które mają X blisko oldCoord
                     if (Math.Abs(line.X1 - oldCoord) <= tolerance)
                     {
-                        Console.WriteLine($"[MOVE_ATTACHED]   Line {line.ID}: X1 {line.X1:F3} -> {newCoord:F3}");
+                        //Console.WriteLine($"[MOVE_ATTACHED]   Line {line.ID}: X1 {line.X1:F3} -> {newCoord:F3}");
                         line.X1 = newCoord;
                         movedCount++;
                     }
                     if (Math.Abs(line.X2 - oldCoord) <= tolerance)
                     {
-                        Console.WriteLine($"[MOVE_ATTACHED]   Line {line.ID}: X2 {line.X2:F3} -> {newCoord:F3}");
+                        //Console.WriteLine($"[MOVE_ATTACHED]   Line {line.ID}: X2 {line.X2:F3} -> {newCoord:F3}");
                         line.X2 = newCoord;
                         movedCount++;
                     }
@@ -192,20 +192,20 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                     // Przesuń końce linii, które mają Y blisko oldCoord
                     if (Math.Abs(line.Y1 - oldCoord) <= tolerance)
                     {
-                        Console.WriteLine($"[MOVE_ATTACHED]   Line {line.ID}: Y1 {line.Y1:F3} -> {newCoord:F3}");
+                        //Console.WriteLine($"[MOVE_ATTACHED]   Line {line.ID}: Y1 {line.Y1:F3} -> {newCoord:F3}");
                         line.Y1 = newCoord;
                         movedCount++;
                     }
                     if (Math.Abs(line.Y2 - oldCoord) <= tolerance)
                     {
-                        Console.WriteLine($"[MOVE_ATTACHED]   Line {line.ID}: Y2 {line.Y2:F3} -> {newCoord:F3}");
+                        //Console.WriteLine($"[MOVE_ATTACHED]   Line {line.ID}: Y2 {line.Y2:F3} -> {newCoord:F3}");
                         line.Y2 = newCoord;
                         movedCount++;
                     }
                 }
             }
 
-            Console.WriteLine($"[MOVE_ATTACHED] Przesunięto {movedCount} punktów.");
+            //Console.WriteLine($"[MOVE_ATTACHED] Przesunięto {movedCount} punktów.");
         }
 
         private static List<List<XLineShape>> GroupLinesForDistribution(
