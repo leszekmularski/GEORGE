@@ -8,15 +8,10 @@ namespace GEORGE.Client.Pages.Utils
     {
         public static async Task<List<ShapeRegion>> GenerujRegionyZPodzialu(List<IShapeDC> shapes, double _szerokosc, double _wysokosc, bool rama)
         {
-            // Console.WriteLine($"📦 Przed usunięciem duplikatów: {shapes.Count} obiektów.");
             shapes = UsunDuplikatyShape(shapes);
-            //Console.WriteLine($"📦 Po usunięciu duplikatów: {shapes.Count} obiektów.");
-
-            await Task.Delay(10); // Pozwól na aktualizację UI przed ciężką pracą 
+            await Task.Delay(10);
 
             var regions = new List<ShapeRegion>();
-
-            //Console.WriteLine($"🔲 Generowanie regionów z podziału dla {shapes.Count} kształtów. {_szerokosc}x{_wysokosc} typ rama: {rama}");
 
             var shapesDoRegionow = shapes.Where(s =>
                 s is XRectangleShape or XSquareShape or XTriangleShape
@@ -27,22 +22,22 @@ namespace GEORGE.Client.Pages.Utils
 
             if (!shapesDoRegionow.Any()) return regions;
 
-            double minX = shapesDoRegionow.Min(s => s.GetBoundingBox().X);
-            double minY = shapesDoRegionow.Min(s => s.GetBoundingBox().Y);
-            double maxX = shapesDoRegionow.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
-            double maxY = shapesDoRegionow.Max(s => s.GetBoundingBox().Y + s.GetBoundingBox().Height);
+            //double minX = shapesDoRegionow.Min(s => s.GetBoundingBox().X);
+            //double minY = shapesDoRegionow.Min(s => s.GetBoundingBox().Y);
+            //double maxX = shapesDoRegionow.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
+            //double maxY = shapesDoRegionow.Max(s => s.GetBoundingBox().Y + s.GetBoundingBox().Height);
 
-            double scaleX = (double)_szerokosc / (maxX - minX);
-            double scaleY = (double)_wysokosc / (maxY - minY);
-            double offsetX = -minX * scaleX;
-            double offsetY = -minY * scaleY;
+            //double scaleX = (double)_szerokosc / (maxX - minX);
+            //double scaleY = (double)_wysokosc / (maxY - minY);
+            //double offsetX = -minX * scaleX;
+            //double offsetY = -minY * scaleY;
 
-            foreach (var shape in shapes)
-            {
-                shape.Transform(scaleX, scaleY, offsetX, offsetY);
-                shape.Szerokosc = _szerokosc;
-                shape.Wysokosc = _wysokosc;
-            }
+            //foreach (var shape in shapes)
+            //{
+            //    shape.Transform(scaleX, scaleY, offsetX, offsetY);
+            //    shape.Szerokosc = _szerokosc;
+            //    shape.Wysokosc = _wysokosc;
+            //}
 
             foreach (var shape in shapes)
             {
@@ -2243,4 +2238,5 @@ namespace GEORGE.Client.Pages.Utils
         }
 
     }
+
 }

@@ -619,8 +619,8 @@
                                          @onclick="@(() => WybierzModel(model))"
                                          @ondragstart="@(e => JS.InvokeVoidAsync(
                                          "SetCurrentModel",
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           model.Typ,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           model.RowId))"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                              model.Typ,
+                                                                                                                                                                                                                                                                                                                                                                                                                                                              model.RowId))"
                              @onmouseout="@(e => JS.InvokeVoidAsync("ResetCursor"))"
                              draggable="true"
                              style="cursor: grab;
@@ -629,8 +629,8 @@
                                 max-width: 50px;
                                 max-height: 50px;
                                 border: @(model == WybranyModel
-                                                                                                                                                                                                                                                                                                                                                               ? "4px solid #007bff"
-                                                                                                                                                                                                                                                                                                                                                               : "none")" />
+                                                                                                                                                                                                                                                                                                                                  ? "4px solid #007bff"
+                                                                                                                                                                                                                                                                                                                                  : "none")" />
                                                 }
                                 else
                                 {
@@ -1577,6 +1577,7 @@
                 throw new Exception("⚠️ Skrypt dragAndDrop.js nie został poprawnie załadowany!");
             }
 
+
             await Laduj_Uprawnienia();
 
             await PobierzDaneSystemu();
@@ -1623,6 +1624,8 @@
                 // Teraz rysujemy tylko jeśli dane są gotowe
                 if (ShapeService != null && ShapeService.Shapes.Any())
                 {
+                    bool poprawSH = false;
+  
                     pokaKonturWewnetrzny = ShapeService.RysujTylkoKontur;
                     oknaMogaBycLukowe = ShapeService.OknaMogaBycLukowe;
 
@@ -1637,6 +1640,15 @@
                     await ZmienWymiaryOkna();
                     await FitShapesToDisplayWindow();
                 }
+                else
+                {
+                    Console.WriteLine("⚠️ Brak kształtów do wyświetlenia na canvasie.");
+                    constWlasciwosciOkna = new ConstWlasciwosciOkna();
+                    constWlasciwosciOkna.Szerokosc = 1250;
+                    constWlasciwosciOkna.Wysokosc = 100;
+                    constWlasciwosciOkna.EditableProperties = new List<EditableProperty>();
+                }
+
 
                 await Task.Yield();
                 _isInitialized = true;
@@ -1786,13 +1798,10 @@
     {
         if (czejaNaZoom) return;
         czejaNaZoom = true;
-
         try
         {
             if (_context == null || !_isInitialized || _constWlasciwosciOkna || _czekajNaZmianeRozmiaru)
-                return; // ignorujemy resize podczas inicjalizacji
-
-            Console.WriteLine("⚠️ HandleResize - START 🔄 Zmiana rozmiaru na: {width}x{height}");
+                return;
 
             CanvasWidth = (long)width * 5;
             CanvasHeight = (long)height * 5;
@@ -1800,22 +1809,17 @@
             if (ShapeService != null && ShapeService.Shapes.Any())
             {
                 await ApplyZoom();
-                await Task.Delay(10); // Małe opóźnienie dla stabilności
-                //await FitShapesToDisplayWindow();
+                await Task.Delay(10);
             }
-            // // else
-            // // {
-            // //     await ApplyZoom();
-            // // }
-
-            // // StateHasChanged();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"⚠️ Błąd obsługi zmiany rozmiaru: {ex.Message}");
         }
-
-        czejaNaZoom = false;
+        finally
+        {
+            czejaNaZoom = false;   // ⬅️ ZAWSZE
+        }
     }
 
     private async Task FitShapesToDisplayWindow()
@@ -1881,102 +1885,51 @@
             return;
         }
 
-        Console.WriteLine($"🔄 Generowanie obrysu po zmianie wymiarów... generujRegionyZPodzialu={generujRegionyZPodzialu}, recznaZmiana={recznaZmiana}");
-
         try
         {
-
+            // 1. Ustaw shapes w dodatniej ćwiartce (JEDEN raz)
             await LineUtils.UstawPozycjeXiYnaZero(ShapeService.Shapes);
 
+            // 2. Wydłuż i przytnij linie
             await LineUtils.ExtendLinesToShapes(ShapeService.Shapes, 1);
-            // 🔹 2️⃣ Rozmieść linie
-            await LineUtils.DistributeLines(ShapeService.Shapes, recznaZmiana);
-
             await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
 
-            await Task.Yield(); // Małe opóźnienie dla stabilności
+            // 3. Rozmieść linie TYLKO gdy recznaZmiana == false
+            //    (przy zmianie wymiarów linie mają zachować swoje proporcje)
+            if (!recznaZmiana)
+            {
+                await LineUtils.DistributeLines(ShapeService.Shapes, false);
+                await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
+            }
 
-            // await LineUtils.DistributeLines(ShapeService.Shapes, recznaZmiana);
+            await Task.Yield();
 
-            // await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
-
-            await Task.Delay(50); // Małe opóźnienie dla stabilności
-
-            // 🔹 5️⃣ Generowanie regionów jeśli trzeba
+            // 4. Generuj regiony (jeśli trzeba) — PO ustabilizowaniu shapes
             if (generujRegionyZPodzialu && constWlasciwosciOkna != null)
             {
-
                 _regionsDualRama = await GeometryUtils.GenerujRegionyZPodzialu(
-                     ShapeService.Shapes,
-                     constWlasciwosciOkna.Szerokosc,
-                     constWlasciwosciOkna.Wysokosc,
-                     true
-                 );
+                    ShapeService.Shapes,
+                    constWlasciwosciOkna.Szerokosc,
+                    constWlasciwosciOkna.Wysokosc,
+                    true);
 
                 _regionsSkrzydlo = await GeometryUtils.GenerujRegionyZPodzialu(
-                     ShapeService.Shapes,
-                     constWlasciwosciOkna.Szerokosc,
-                     constWlasciwosciOkna.Wysokosc,
-                     false
-                 );
+                    ShapeService.Shapes,
+                    constWlasciwosciOkna.Szerokosc,
+                    constWlasciwosciOkna.Wysokosc,
+                    false);
 
-
-                // Kopiuj i zmień ID
-                // _regionsSkrzydlo = _regionsDualRama.Select(r =>
-                // {
-                //     var kopia = r.Clone();
-                //     kopia.Id = Guid.NewGuid().ToString();
-                //     kopia.Rama = false; // Zmień flagę na skrzydło
-                //     return kopia;
-                // }).ToList();
-
-                // foreach (var test in _regionsDualRama)
-                // {
-                //     foreach (var test2 in test.Kontur)
-                //     {
-                //         Console.WriteLine($"🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️ Region RAMA {test.Id} - Kontur Start: X={test2.Start.X}, Y={test2.Start.Y}, End: X={test2.End.X}, Y={test2.End.Y} - Typ {test2.Type.ToString()}");
-                //     }
-                // }
-
-                // foreach (var test in _regionsSkrzydlo)
-                // {
-                //     foreach (var test2 in test.Kontur)
-                //     {
-                //         Console.WriteLine($"🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️🗺️ Region SKRZYDŁO {test.Id} - Kontur Start: X={test2.Start.X}, Y={test2.Start.Y}, End: X={test2.End.X}, Y={test2.End.Y} - Typ {test2.Type.ToString()}");
-                //     }
-                // }
-
-                // 🔹 5️⃣ **Dopiero teraz przesuwamy wszystko do dodatniej ćwiartki**
-                // 🔹 1️⃣ Wydłuż linie do granic kształtów
-
-                // await LineUtils.UstawPozycjeXiYnaZero(ShapeService.Shapes);
-
-                // await LineUtils.ExtendLinesToShapes(ShapeService.Shapes, 1);
-                // // 🔹 2️⃣ Rozmieść linie
-                // await LineUtils.DistributeLines(ShapeService.Shapes, recznaZmiana);
-
-
-                // // 🔹 3️⃣ Przytnij linie
-                // await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
-
-                // await Task.Yield(); // Małe opóźnienie dla stabilności
-
-                // await LineUtils.DistributeLines(ShapeService.Shapes, recznaZmiana);
-
-                // await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
-
-                Console.WriteLine($"🗺️ Wygenerowano regiony: {_regionsDualRama.Count} rama, {_regionsSkrzydlo.Count} skrzydło");
+                Console.WriteLine($"🗺️ Regiony: {_regionsDualRama.Count} rama, {_regionsSkrzydlo.Count} skrzydło");
             }
 
             Console.WriteLine("✅ Generowanie obrysu zakończone");
-
-            await Task.CompletedTask;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"🔥 Błąd generowania obrysu: {ex.Message}");
+            Console.WriteLine($"🔥 Błąd generowania obrysu: {ex.Message}\n{ex.StackTrace}");
         }
     }
+
 
     private bool TryGetVerticalSpanInTriangle(
     double x,
@@ -2701,84 +2654,78 @@
 
     private async Task HandleZapis()
     {
-        // Wywołanie zapisu w komponencie ZmienWymiaryOkna
-
         if (zmienWymiaryOknaRef == null) return;
 
-        _constWlasciwosciOkna = false; // zamknie modal
+        _constWlasciwosciOkna = false;
 
-        _czekajNaZmianeRozmiaru = true;
+        try
+        {
+            _czekajNaZmianeRozmiaru = true;
+            _czekajNaZaladowanie = true;
 
-        await zmienWymiaryOknaRef.ZapiszDoRodzica();
-
-        _czekajNaZaladowanie = true;
-
-        await ZmienWymiaryOkna();
-
-        _czekajNaZaladowanie = false;
-
-        await OnlyRestrykcje();
-
-        // await FitShapesToDisplayWindow();
-
-        // await ZmienWymiaryOkna();
-
-        // await Task.Delay(5); // Krótkie opóźnienie dla płynności
-
-        //_czekajNaZmianeRozmiaru = false;
-
-        //await InvokeAsync(StateHasChanged);
-
+            await zmienWymiaryOknaRef.ZapiszDoRodzica();  // → PrzyjmijZmiany
+            await ZmienWymiaryOkna();
+            await OnlyRestrykcje();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"🔥 HandleZapis: {ex.Message}");
+        }
+        finally
+        {
+            _czekajNaZaladowanie = false;
+            _czekajNaZmianeRozmiaru = false;
+        }
     }
-    // Odbiór zmienionych danych z dziecka
+
     private async Task PrzyjmijZmiany(ConstWlasciwosciOkna zmieniony)
     {
-        if (constWlasciwosciOkna != null && zmieniony != null)
+        if (constWlasciwosciOkna == null || zmieniony == null) return;
+
+        constWlasciwosciOkna.EditableProperties = zmieniony.EditableProperties;
+
+        foreach (var shape in ShapeService.Shapes)
         {
-            constWlasciwosciOkna.EditableProperties = zmieniony.EditableProperties;
-
-            // Oznacz wszystkie kształty jako "brudne" do przeliczenia
-            foreach (var shape in ShapeService.Shapes)
-            {
-                // Jeśli shape ma metodę do odświeżania, wywołaj ją
-                if (shape is IRefreshable refreshable)
-                {
-                    refreshable.Refresh();
-                }
-            }
-
-            // Przesuń wszystkie kształty do dodatniej ćwiartki
-            PrzesunKsztaltyDoDodatniejCwiartki(ShapeService.Shapes);
-
-            // Wymuś całkowite przerysowanie
-            await ClearCanvas();
-
-            await RenderFrame();
-
-            StateHasChanged();
-
-            Console.WriteLine($"Zmieniono właściwości: {zmieniony.EditableProperties?.Count ?? 0} właściwości");
+            if (shape is IRefreshable refreshable)
+                refreshable.Refresh();
         }
+
+        PrzesunKsztaltyDoDodatniejCwiartki(ShapeService.Shapes);
+
+        // ⬇️ NIE rysuj tutaj — zrobi to ZmienWymiaryOkna / HandleZapis
+        // await ClearCanvas();
+        // await RenderFrame();
+
+        Console.WriteLine($"Zmieniono właściwości: {zmieniony.EditableProperties?.Count ?? 0}");
+        await Task.CompletedTask;
     }
 
     private void PrzesunKsztaltyDoDodatniejCwiartki(List<IShapeDC> shapes)
     {
         if (shapes == null || shapes.Count == 0) return;
 
-        // Znajdź minimalne współrzędne
-        double minX = shapes.Min(s => s.GetBoundingBox().X);
-        double minY = shapes.Min(s => s.GetBoundingBox().Y);
+        double minX = double.MaxValue;
+        double minY = double.MaxValue;
 
-        // Oblicz offset, aby przesunąć minimalne wartości do 0
-        // (z małym marginesem, jeśli chcesz)
-        double offsetX = -minX;  // Przesuwa minX dokładnie do 0
-        double offsetY = -minY;  // Przesuwa minY dokładnie do 0
+        foreach (var shape in shapes)
+        {
+            try
+            {
+                var bb = shape.GetBoundingBox();
+                if (bb.X < minX) minX = bb.X;
+                if (bb.Y < minY) minY = bb.Y;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Błąd GetBoundingBox dla kształtu: {ex.Message}");
+            }
+        }
 
-        // Opcjonalnie: dodaj mały margines (odkomentuj jeśli potrzebujesz)
-        // offsetX += 10;
-        // offsetY += 10;
+        if (minX == double.MaxValue) return; // nic nie policzono
 
-        // Przesuń tylko jeśli trzeba
+        double offsetX = -minX;
+        double offsetY = -minY;
+
         if (Math.Abs(offsetX) > 0.001 || Math.Abs(offsetY) > 0.001)
         {
             foreach (var shape in shapes)
@@ -2786,11 +2733,7 @@
                 shape.Move(offsetX, offsetY);
             }
 
-            // Sprawdź czy przesunięcie zadziałało
-            double newMinX = shapes.Min(s => s.GetBoundingBox().X);
-            double newMinY = shapes.Min(s => s.GetBoundingBox().Y);
-            Console.WriteLine($"[PrzesunKsztaltyDoDodatniejCwiartki] Przesunięto o ({offsetX:F2}, {offsetY:F2})");
-            Console.WriteLine($"[PrzesunKsztaltyDoDodatniejCwiartki] Nowe minimum: ({newMinX:F2}, {newMinY:F2})");
+            Console.WriteLine($"[Przesun] offset=({offsetX:F2}, {offsetY:F2})");
         }
     }
 
@@ -4134,145 +4077,129 @@
         }
     }
 
+    private bool _zmienWymiaryWToku = false;
     private async Task ZmienWymiaryOkna(bool regenerujShapeService = true)
     {
+
+    if (_zmienWymiaryWToku)
+    {
+        Console.WriteLine("⚠️ ZmienWymiaryOkna już trwa — pomijam");
+        return;
+    }
+
+    _zmienWymiaryWToku = true;
+
         if (ShapeService?.Shapes == null || !ShapeService.Shapes.Any())
         {
+            //Console.WriteLine("❌ ZmienWymiaryOkna: Brak kształtów do przeskalowania!");
             _message.Warning("Brak kształtów do przeskalowania. Najpierw wygeneruj obrys, a następnie spróbuj ponownie.", 2.0);
             return;
         }
 
         try
         {
+            // Console.WriteLine("🔄 Rozpoczynam zmianę wymiarów okna...");
+
             if (infoObiekt != null) infoObiekt.Clear();
 
-            // ─────────────────────────────────────────────────────────────
-            // 1. WYLICZENIE STARYCH I NOWYCH WYMIARÓW
-            // ─────────────────────────────────────────────────────────────
-            var zamknieteKsztalty = ShapeService.Shapes
-                .Where(s => s != null && s is not XLineShape)
-                .ToList();
-
-            if (!zamknieteKsztalty.Any())
-            {
-                _message.Warning("Brak kształtów zamkniętych do przeskalowania.", 2.0);
-                return;
-            }
-
-            double oldWidth = zamknieteKsztalty.Max(s => s.Szerokosc);
-            double oldHeight = zamknieteKsztalty.Max(s => s.Wysokosc);
+            double oldWidth = ShapeService.Shapes.Max(s => s.Szerokosc);
+            double oldHeight = ShapeService.Shapes.Max(s => s.Wysokosc);
 
             double newWidth = constWlasciwosciOkna.Szerokosc;
             double newHeight = constWlasciwosciOkna.Wysokosc;
 
-            if (oldWidth <= 0 || oldHeight <= 0 || newWidth <= 0 || newHeight <= 0)
-            {
-                Console.WriteLine($"⚠ ZmienWymiaryOkna: nieprawidłowe wymiary " +
-                                  $"(old: {oldWidth}x{oldHeight}, new: {newWidth}x{newHeight}) — pomijam skalowanie");
-                return;
-            }
-
-            double scaleX = newWidth / oldWidth;
-            double scaleY = newHeight / oldHeight;
-
-            Console.WriteLine($"📏 Zmiana wymiarów: {oldWidth}x{oldHeight} → {newWidth}x{newHeight} " +
-                              $"(scaleX={scaleX:F4}, scaleY={scaleY:F4})");
-
             _generator.Szerokosc = newWidth;
             _generator.Wysokosc = newHeight;
 
-            // ─────────────────────────────────────────────────────────────
-            // 2. SKALOWANIE LINII (proporcjonalne — zachowuje kierunek!)
-            // ─────────────────────────────────────────────────────────────
-            foreach (var line in ShapeService.Shapes.OfType<XLineShape>())
+            //Console.WriteLine($"📏 Zmiana wymiarów #1: {oldWidth}x{oldHeight} → {newWidth}x{newHeight} oraz zmiana w generatorze.");
+
+            // 2. Aktualizacja wymiarów kształtów
+            foreach (var shape in ShapeService.Shapes)
             {
-                if (line == null) continue;
-
-                line.X1 *= scaleX;
-                line.Y1 *= scaleY;
-                line.X2 *= scaleX;
-                line.Y2 *= scaleY;
-            }
-
-            // ─────────────────────────────────────────────────────────────
-            // 3. ZMIANA WYMIARÓW KSZTAŁTOM ZAMKNIĘTYM (bez linii!)
-            //    Używamy GetBoundingBox + Move, bo IShapeDC nie ma X/Y.
-            // ─────────────────────────────────────────────────────────────
-            foreach (var shape in zamknieteKsztalty)
-            {
-                var bbox = shape.GetBoundingBox();
-
-                // Nowa pozycja po skalowaniu
-                double newX = bbox.Left * scaleX;
-                double newY = bbox.Top * scaleY;
-
-                // Move dodaje deltę do obecnej pozycji
-                shape.Move(newX - bbox.Left, newY - bbox.Top);
-
-                // Nowe wymiary
-                shape.Szerokosc = newWidth;
-                shape.Wysokosc = newHeight;
-
-                // Specjalne przypadki
-                if (shape is XCircleShape circle)
+                if (shape != null && shape.GetType() == typeof(XCircleShape))
                 {
-                    // Okrąg skalujemy średnią skalą, bo nie może być elipsą
-                    circle.Radius *= Math.Min(scaleX, scaleY);
+                    newHeight = constWlasciwosciOkna.Szerokosc;
+                    constWlasciwosciOkna.Wysokosc = constWlasciwosciOkna.Szerokosc;
+                }
+
+                if (shape != null)
+                {
+                    shape.Szerokosc = newWidth;
+                    shape.Wysokosc = newHeight;
                 }
             }
 
-            // ─────────────────────────────────────────────────────────────
-            // 4. GENEROWANIE OBRYSU
-            // ─────────────────────────────────────────────────────────────
+            // 3. Generuj obrys (BEZ automatycznego przerysowywania!)
             await GenerujObrysPozZmianieWymiarow(true, true);
 
-            await Task.Yield();
+            await Task.Yield(); // Upewnij się, że UI ma szansę się odświeżyć
 
-            // ─────────────────────────────────────────────────────────────
-            // 5. PRZESUNIĘCIE DO DODATNIEJ ĆWIARTKI — TYLKO RAZ
-            // ─────────────────────────────────────────────────────────────
-            await LineUtils.ShiftAllShapesToPositiveQuadrant(ShapeService.Shapes);
+            // double oldWidth = ShapeService.Shapes.Max(s => s.Szerokosc);
+            // double oldHeight = ShapeService.Shapes.Max(s => s.Wysokosc);
 
-            await Task.Yield();
+            // double newWidth = constWlasciwosciOkna.Szerokosc;
+            // double newHeight = constWlasciwosciOkna.Wysokosc;
 
-            // ─────────────────────────────────────────────────────────────
-            // 6. PRZYGOTOWANIE LISTY REGIONÓW
-            // ─────────────────────────────────────────────────────────────
+            // Console.WriteLine($"📏 Zmiana wymiarów #2: {oldWidth}x{oldHeight} → {newWidth}x{newHeight}");
+
+            // 2. Aktualizacja wymiarów kształtów
+            foreach (var shape in ShapeService.Shapes)
+            {
+                if (shape != null)
+                {
+                    shape.Szerokosc = newWidth;
+                    shape.Wysokosc = newHeight;
+                }
+            }
+
+            //await LineUtils.ShiftAllShapesToPositiveQuadrant(ShapeService.Shapes);
+
+            PrzesunKsztaltyDoDodatniejCwiartki(ShapeService.Shapes);
+
+            await Task.Yield(); // Upewnij się, że UI ma szansę się odświeżyć
+
+            // 3. Generuj obrys (bez generowania regionów — tylko linie)
+            await GenerujObrysPozZmianieWymiarow(false, true);
+
+            // 4. Przygotuj listę regionów
             var wszystkieRegiony = _regionsDualRama.Concat(_regionsSkrzydlo).ToList();
+            //Console.WriteLine($"🗺️ Regiony: dual={_regionsDualRama.Count}, skrzydło={_regionsSkrzydlo.Count}");
 
-            // ─────────────────────────────────────────────────────────────
-            // 7. TYMCZASOWE PRZECHOWANIE NOWYCH KSZTAŁTÓW
-            // ─────────────────────────────────────────────────────────────
+            // 5. Tymczasowe przechowanie nowych kształtów
             var noweKsztalty = new List<KsztaltElementu>();
             var noweKsztaltyNaRegion = new Dictionary<string, List<KsztaltElementu>>();
 
-            // ─────────────────────────────────────────────────────────────
-            // 8. PRZETWARZANIE STANÓW GENERATORÓW
-            // ─────────────────────────────────────────────────────────────
+            // 6. Przetwarzaj stany generatorów
             var obrGen = _generatorStates.OrderBy(x => x.Value.ZIndeks).ToList();
+
+            // foreach (var genState in obrGen)
+            // {
+            //     Console.WriteLine($"🔄 Przetwarzam region: {genState.Value.IdRegion}");
+            // }
 
             foreach (var genState in obrGen)
             {
                 string cleanId = genState.Value.IdRegion;
 
-                Console.WriteLine($"🔄 Przetwarzam region cleanId:{cleanId} " +
-                                  $"Typ: {genState.Value.WybranyModel.Typ?.Trim()}");
+                Console.WriteLine($"🔄 Przetwarzam region cleanId:{cleanId} genState.Value.WybranyModel.Typ?.Trim(): {genState.Value.WybranyModel.Typ?.Trim()}");
 
                 var region = wszystkieRegiony.FirstOrDefault(r => r.Id == cleanId);
                 if (region == null)
                 {
+                    // Console.WriteLine($"⚠ Brak regionu dla cleanId:{cleanId}");
                     await _message.Error($"❌ Nie znaleziono regionu dla {cleanId}. Sprawdź konfigurację regionów.");
                     continue;
                 }
 
-                // ── Aktualizacja konturu w stanie generatora ──
+                // Aktualizuj wierzchołki w stanie generatora
                 if (region.Kontur != null && region.Kontur.Any())
                 {
                     var nowyKontur = region.Kontur.Select(p => p.Clone()).ToList();
                     genState.Value.Kontur = nowyKontur;
+
+                    //Console.WriteLine($"📐 Nowe wierzchołki linii i łuków dla cleanId: {cleanId} TypKsztaltu: {region.TypKsztaltu} --> {region.Wierzcholki.Max(x => x.X)}x{region.Wierzcholki.Max(x => x.Y)}");
                 }
 
-                // ── Aktualizacja wierzchołków ──
                 if (region.Wierzcholki != null && region.Wierzcholki.Any())
                 {
                     var nowe = region.Wierzcholki.Select(p => new XPoint(p.X, p.Y)).ToList();
@@ -4280,6 +4207,8 @@
                     genState.Value.Wierzcholki = nowe;
                     genState.Value.WierzcholkiWartosciNominalne = nowe;
                     genState.Value.StaryRegionOrigin = region.Wierzcholki.First();
+
+                    //  Console.WriteLine($"📐 Nowe wierzchołki linii dla cleanId: {cleanId} TypKsztaltu: {region.TypKsztaltu} --> {region.Wierzcholki.Max(x => x.X)}x{region.Wierzcholki.Max(x => x.Y)}");
                 }
 
                 var generator = genState.Value.Generator;
@@ -4289,26 +4218,21 @@
                     continue;
                 }
 
-                // ── Czyszczenie starych elementów ──
+                // Wyczyść stare elementy
                 generator.ElementyRamyRysowane.Clear();
-                generator.constWlasciwosciOkna = constWlasciwosciOkna;
 
-                // ── Wyliczenie nowych kwadratów ──
+                generator.constWlasciwosciOkna = constWlasciwosciOkna;
+                // Wylicz nowe kwadraty
                 genState.Value.ListaKwadratow = await WyliczKwadratyPoZmianieAsync(region);
                 _generatorStates[cleanId].ListaKwadratow = genState.Value.ListaKwadratow;
 
-                // ─────────────────────────────────────────────────────────
-                // OBSŁUGA SKRZYDEŁ
-                // ─────────────────────────────────────────────────────────
-                if (genState.Value.WybranyModel.Typ?.Trim() == "Skrzydło" ||
-                    genState.Value.WybranyModel.Typ?.Trim() == "Skrzydło z słupkiem ruchomym")
+                // Obsługa specjalna dla skrzydeł
+                if (genState.Value.WybranyModel.Typ?.Trim() == "Skrzydło" || genState.Value.WybranyModel.Typ?.Trim() == "Skrzydło z słupkiem ruchomym")
                 {
                     var wybranyRegionSkrzydlo = _regionsSkrzydlo.FirstOrDefault(r => r.Id == region.Id);
-
                     if (wybranyRegionSkrzydlo != null)
                     {
-                        generator.IdRegionuPonizej = wybranyRegionSkrzydlo.IdRegionuPonizej
-                                                     ?? region.Id + "-BLAD";
+                        generator.IdRegionuPonizej = wybranyRegionSkrzydlo.IdRegionuPonizej ?? region.Id + "-BLAD";
 
                         var minX = wybranyRegionSkrzydlo.Wierzcholki.Min(p => p.X);
                         var maxX = wybranyRegionSkrzydlo.Wierzcholki.Max(p => p.X);
@@ -4320,137 +4244,144 @@
                         generator.Zindeks = SelectedModelType == "Skrzydło z słupkiem ruchomym" ? 2 : 3;
                         generator.CzyElementJestRama = false;
 
+                        // Wylicz obszar skrzydła
                         if (wybranyRegionSkrzydlo.Wierzcholki != null)
                         {
                             double przesLewo = 0, przesPrawo = 0, przesGora = 0, przesDol = 0;
-
+                            //Funkcja w Zmień wymiary
                             var test = await WyliczObszarSkrzydla(
                                 _generatorStates[cleanId],
                                 przesLewo, przesPrawo,
                                 przesGora, przesDol,
                                 generator.RuchomySlupekPoLewej, generator.RuchomySlupekPoPrawej,
-                                generator, wybranyRegionSkrzydlo);
+                                generator, wybranyRegionSkrzydlo
+                            );
 
-                            await Task.Yield();
+                            await Task.Yield(); // Upewnij się, że UI ma szansę się odświeżyć
 
                             if (test == null)
                             {
-                                await _message.Error($"Nie można wyliczyć obszaru skrzydła dla regionu {cleanId}.");
-                                generator.BledySystemowe.Add(
-                                    $"Nie można wyliczyć obszaru skrzydła dla regionu {cleanId}.");
+                                // Console.WriteLine($"⚠️ Nie można wyliczyć obszaru skrzydła dla regionu {cleanId}");
+                                await _message.Error($"Nie można wyliczyć obszaru skrzydła dla regionu {cleanId}. Sprawdź wymiary i kształt regionu.");
+                                generator.BledySystemowe.Add($"Nie można wyliczyć obszaru skrzydła dla regionu {cleanId}. Sprawdź wymiary i kształt regionu.");
                             }
                             else if (test.Warning)
                             {
                                 generator.Komunikaty.Add(test.ErrorMessage ?? "");
                             }
+
                         }
                         else
                         {
-                            await _message.Error($"❌ Region skrzydła {cleanId} nie ma wierzchołków.");
-                            generator.Komunikaty.Add($"❌ Region skrzydła {cleanId} nie ma wierzchołków.");
+                            await _message.Error($"❌ Region skrzydła {cleanId} nie ma wierzchołków. Nie można wyliczyć obszaru.");
+                            generator.Komunikaty.Add($"❌ Region skrzydła {cleanId} nie ma wierzchołków. Nie można wyliczyć obszaru.");
                         }
                     }
                     else
                     {
-                        await _message.Error($"❌ Nie znaleziono regionu skrzydła dla {cleanId}.");
-                        generator.Komunikaty.Add($"❌ Nie znaleziono regionu skrzydła dla {cleanId}.");
+                        await _message.Error($"❌ Nie znaleziono regionu skrzydła dla {cleanId}. Sprawdź wymiary i kształt regionu.");
+                        generator.Komunikaty.Add($"❌ Nie znaleziono regionu skrzydła dla {cleanId}. Sprawdź wymiary i kształt regionu.");
                     }
                 }
 
-                // ─────────────────────────────────────────────────────────
-                // OBSŁUGA SŁUPKA STAŁEGO
-                // ─────────────────────────────────────────────────────────
                 if (genState.Value.WybranyModel.Typ?.Trim() == "Słupek stały")
                 {
                     var wybranyRegionSlupek = _regionsDualRama.Concat(_regionsSkrzydlo)
                         .FirstOrDefault(r => r.Id == region.Id);
 
-                    Console.WriteLine($"📐 WyliczObszarSlupkaStalego -> region.Id == {region.Id}");
+                    Console.WriteLine($"📐 WyliczObszarSlupkaStalego -> r => r.Id == region.Id == {region.Id}");
 
                     if (wybranyRegionSlupek != null)
                     {
-                        var konfPolaczenia = genState.Value.ListaKwadratow
-                            .FirstOrDefault(s => s.Przesuniecia != null)?.Przesuniecia;
+                        // Pobierz przesunięcia z konfiguracji
+                        var konfPolaczenia = genState.Value.ListaKwadratow.FirstOrDefault(s => s.Przesuniecia != null)?.Przesuniecia;
 
                         double przesLewo = 0, przesPrawo = 0, przesGora = 0, przesDol = 0;
 
                         if (konfPolaczenia != null && konfPolaczenia.Count > 0)
                         {
+                            // Dla słupka pionowego - przesunięcia poziome (lewo/prawo) wpływają na pozycję X
+                            // a przesunięcia pionowe (góra/dół) wpływają na długość
                             przesGora = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
-                                p.Strona.ToLower() == "góra" || p.Strona.ToLower() == "gora")
-                                ?.PrzesuniecieYStycznej ?? 0);
+                                p.Strona.ToLower() == "góra" || p.Strona.ToLower() == "gora")?.PrzesuniecieYStycznej ?? 0);
                             przesDol = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
-                                p.Strona.ToLower() == "dół" || p.Strona.ToLower() == "dol")
-                                ?.PrzesuniecieYStycznej ?? 0);
+                                p.Strona.ToLower() == "dół" || p.Strona.ToLower() == "dol")?.PrzesuniecieYStycznej ?? 0);
                             przesLewo = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
-                                p.Strona.ToLower() == "lewa")
-                                ?.PrzesuniecieYStycznej ?? 0);
+                                p.Strona.ToLower() == "lewa")?.PrzesuniecieYStycznej ?? 0);
                             przesPrawo = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
-                                p.Strona.ToLower() == "prawa")
-                                ?.PrzesuniecieYStycznej ?? 0);
+                                p.Strona.ToLower() == "prawa")?.PrzesuniecieYStycznej ?? 0);
+
+                            // Opcjonalnie: profileLeft = (float)przesLewo; // jeśli potrzebujesz gdzieś indziej
                         }
 
                         await WyliczObszarSlupkaStalego(
                             _generatorStates[cleanId],
-                            przesLewo, przesPrawo, przesGora, przesDol,
-                            generator, wybranyRegionSlupek);
+                            przesLewo,
+                            przesPrawo,
+                            przesGora,
+                            przesDol,
+                            generator,
+                            wybranyRegionSlupek
+                        );
                     }
                 }
 
-                // ─────────────────────────────────────────────────────────
-                // DODAWANIE ELEMENTÓW DO GENERATORA
-                // ─────────────────────────────────────────────────────────
+                // Dodaj elementy do generatora
                 var daneKwadratow = genState.Value.ListaKwadratow ?? new List<DaneKwadratu>();
 
-                string ok;
                 if (generator.CzyElementJestRama)
                 {
-                    ok = await generator.AddElements(
-                        new List<ShapeRegion> { region },
-                        cleanId,
-                        _generatorStates,
-                        _regionsDualRama,
-                        daneKwadratow,
-                        wszystkieRegiony.FirstOrDefault(f => f.Rama)?.Wierzcholki,
-                        _lastMouseClick,
-                        boolNieCzyscKonsole);
+                    var ok = await generator.AddElements(
+                          new List<ShapeRegion> { region },
+                          cleanId,
+                          _generatorStates,
+                          _regionsDualRama,
+                          daneKwadratow,
+                          wszystkieRegiony.FirstOrDefault(f => f.Rama).Wierzcholki,
+                          _lastMouseClick, boolNieCzyscKonsole
+                      );
+
+                    if (ok != "")
+                    {
+                        _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Sprawdź wymiary i kształt regionu. Błąd: {ok}");
+                        generator.Komunikaty.Add($"Nie można wygenerować elementów dla regionu {cleanId}. Sprawdź wymiary i kształt regionu.");
+                    }
                 }
                 else
                 {
-                    ok = await generator.AddElements(
+
+                    var ok = await generator.AddElements(
                         new List<ShapeRegion> { region },
                         cleanId,
                         _generatorStates,
                         _regionsSkrzydlo,
                         daneKwadratow,
-                        wszystkieRegiony.FirstOrDefault(f => f.Rama)?.Wierzcholki,
-                        _lastMouseClick,
-                        boolNieCzyscKonsole);
+                        wszystkieRegiony.FirstOrDefault(f => f.Rama).Wierzcholki,
+                        _lastMouseClick, boolNieCzyscKonsole
+                    );
+
+                    if (ok != "")
+                    {
+                        _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Sprawdź wymiary i kształt regionu. Błąd: {ok}");
+                        generator.Komunikaty.Add($"Nie można wygenerować elementów dla regionu {cleanId}. Sprawdź wymiary i kształt regionu.");
+                    }
+
                 }
 
-                if (!string.IsNullOrEmpty(ok))
-                {
-                    _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. " +
-                                   $"Sprawdź wymiary i kształt regionu. Błąd: {ok}");
-                    generator.Komunikaty.Add(
-                        $"Nie można wygenerować elementów dla regionu {cleanId}. " +
-                        $"Sprawdź wymiary i kształt regionu.");
-                }
-
-                // ── Zapis wygenerowanych kształtów ──
+                // Zapisz wygenerowane kształty do tymczasowej kolekcji
                 if (generator.ElementyRamyRysowane.Any())
                 {
                     noweKsztaltyNaRegion[cleanId] = new List<KsztaltElementu>(generator.ElementyRamyRysowane);
                     noweKsztalty.AddRange(generator.ElementyRamyRysowane);
+
+                    //  Console.WriteLine($"✅ Wygenerowano {generator.ElementyRamyRysowane.Count} kształtów dla {cleanId}");
                 }
 
-                // ── Aktualizacja stanu generatora ──
+                // Aktualizuj stan generatora
                 AddOrUpdateGeneratorState(cleanId, genState.Value, generator);
             }
 
-            // ─────────────────────────────────────────────────────────────
-            // 9. SYNCHRONIZACJA: ATOMOWA ZAMIENA STARYCH KSZTAŁTÓW NA NOWE
-            // ─────────────────────────────────────────────────────────────
+            // 7. SYNCHRONIZACJA: Zamień stare kształty na nowe (ATOMOWO)
             lock (_ksztaltyNaRegion)
             {
                 _ksztaltyNaRegion.Clear();
@@ -4462,13 +4393,19 @@
                 ksztalty.Clear();
                 ksztalty.AddRange(noweKsztalty);
             }
+            //  await Task.Delay(10); // Krótkie opóźnienie dla stabilności
 
-            Console.WriteLine("✅ ZmienWymiaryOkna zakończono pomyślnie");
+            // Console.WriteLine($"✅ ZmienWymiaryOkna zakończono pomyślnie");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"🔥 Błąd w ZmienWymiaryOkna: {ex.Message}, {ex.StackTrace}");
             await _message.Error($"Błąd zmiany wymiarów: {ex.Message}. Sprawdź konsolę!", 5);
+        }
+        finally
+        {
+            _zmienWymiaryWToku = false;
+            _czekajNaZmianeRozmiaru = false;
         }
 
         _czekajNaZmianeRozmiaru = false;
@@ -8931,10 +8868,6 @@
             ShapeService.OknaMogaBycLukowe = oknaMogaBycLukowe;
             ShapeService.UpdateShapes(ShapeService.Shapes, constWlasciwosciOkna.Szerokosc, constWlasciwosciOkna.Wysokosc);
             Console.WriteLine("GoCAD Ustawiono zmienne w ShapeService");
-        }
-        else
-        {
-            Console.WriteLine("GoCAD NIE Ustawiono zmiennych w ShapeService");
         }
 
         Console.WriteLine("GoCAD Próba nawigacji → /DrawCAD");

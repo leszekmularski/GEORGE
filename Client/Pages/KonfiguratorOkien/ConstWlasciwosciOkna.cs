@@ -14,8 +14,8 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         public MVCKonfModele? MVCKonfModelu { get; set; }
         public KonfModele? WybranyModel { get; set; }
         public List<DaneKwadratu>? ListaKwadratow { get; set; }
-        public double Szerokosc { get; set; } = 1250;
-        public double Wysokosc { get; set; } = 1000;
+        public double Szerokosc { get; set; } = 0;
+        public double Wysokosc { get; set; } = 0;
 
         // POPRAWIONE: Dodaj inicjalizację
         public List<EditableProperty> EditableProperties { get; set; } = new();

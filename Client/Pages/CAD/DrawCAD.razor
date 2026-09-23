@@ -365,7 +365,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (ShapeService == null || ShapeService.EditableProperties == null)
+        if (ShapeService == null || ShapeService.EditableProperties == null || _originalShapes == null)
         {
             Console.WriteLine("ShapeService jest null. Ustawiam domyślne wartości...");
 
@@ -377,7 +377,7 @@
             ShapeService.EditableProperties = new List<EditableProperty>();
             return;
         }
-  
+
         _originalShapes = ShapeService.Shapes.Select(s => s.Clone()).ToList(); // Odbiór danych z serwisu
 
         if (_originalShapes != null)
@@ -450,9 +450,10 @@
 
         ShapeService.Shapes = _shapes; // Przekazanie danych do serwisu
 
+
         //ShapeService.Shapes = new List<IShapeDC>(_shapes);
 
-        if(!string.IsNullOrEmpty(SelectedSystemId))
+        if (!string.IsNullOrEmpty(SelectedSystemId))
         {
             Navigation.NavigateTo($"/Modele-okienne/{SelectedSystemId}");
         }
@@ -460,7 +461,7 @@
         {
             Navigation.NavigateTo("/Modele-okienne");
         }
-  
+
         await Task.CompletedTask;
     }
 
@@ -740,8 +741,8 @@
             "trapezoidLeft" => new XTrapezoidShape(left, top, left + width, top + height, 0.6, _scaleFactor, 1),
             "trapezoidRight" => new XTrapezoidShape(left, top, left + width, top + height, 0.6, _scaleFactor, 2),
             "rounded_rect" => new XRoundedRectangleShape(left, top, width, height, height / 2, _scaleFactor),
-            "rounded_rect_left" => new XRoundedRectangleShapeLeft(left, top, width, height, height/2, _scaleFactor),
-            "rounded_rect_right" => new XRoundedRectangleShapeRight(left, top, width, height, height/2, _scaleFactor),
+            "rounded_rect_left" => new XRoundedRectangleShapeLeft(left, top, width, height, height / 2, _scaleFactor),
+            "rounded_rect_right" => new XRoundedRectangleShapeRight(left, top, width, height, height / 2, _scaleFactor),
             "house" => new XHouseShape(left, top, width, height, height * 0.5, height * 0.5, _scaleFactor),
             "rounded_top_rect" => new XRoundedTopRectangleShape(xR, yR, widthR, heightR, radius, arcHeight, _scaleFactor),
             "rounded_top_rect_fixed" => new XRoundedTopRectangleShapeFixed(left, top, width, height, radius, arcHeight, _scaleFactor),
@@ -981,7 +982,7 @@
     {
         // Reset i czyszczenie
         _shapes.Clear();
-        if (_originalShapes !=null) _originalShapes.Clear();
+        if (_originalShapes != null) _originalShapes.Clear();
         await ClearCanvas();
         await Task.Delay(50);
         await _ctx.SetStrokeStyleAsync("black");
@@ -1601,7 +1602,7 @@
     private string FormatValue(double value)
     {
         // Wyświetla z przecinkiem dla polskiego użytkownika
-        return value.ToString().Replace(",",".");
+        return value.ToString().Replace(",", ".");
     }
-   
+
 }

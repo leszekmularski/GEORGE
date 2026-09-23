@@ -67,8 +67,21 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         // 🔹 Rozmieszczenie pionowych i poziomych linii
         public static async Task DistributeLines(List<IShapeDC> shapes, bool recznaZmiana)
         {
-            var closedShapes = shapes.Where(s => s is not XLineShape).ToList();
+            // ⚠️ NIE rozmieszczaj linii, jeśli użytkownik już je ustawił
+            if (recznaZmiana) return;
+
+            // Sprawdź, czy linie są w domyślnych pozycjach (np. wszystkie w X=0)
             var lines = shapes.OfType<XLineShape>().ToList();
+            bool wszystkieWDomyslnychPozycjach = lines.All(l =>
+                Math.Abs(l.X1) < 1.0 || Math.Abs(l.X1 - l.X2) < 0.001);
+
+            if (!wszystkieWDomyslnychPozycjach)
+            {
+                Console.WriteLine("⏭️ DistributeLines: linie już są rozmieszczone, pomijam");
+                return;
+            }
+
+            var closedShapes = shapes.Where(s => s is not XLineShape).ToList();
 
             var verticalLineGroups = GroupLinesForDistribution(
                 lines.Where(l => Math.Abs(l.X1 - l.X2) < Tolerance),
