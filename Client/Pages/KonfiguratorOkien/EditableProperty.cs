@@ -11,7 +11,8 @@
         bool slupekRuchomy = false,
         bool pionPoziom = false,
         bool systemowa = false,
-        bool gabarytOkna = false)
+        bool gabarytOkna = false,
+        string? ShapeId = null)
     {
         public double Value
         {
@@ -22,6 +23,13 @@
             }
         }
         public EditableProperty SetObjectName(string newName) => this with { NazwaObiektu = newName };
+
+        public bool IsSkosna { get; init; } = false;
+
+        public bool IsPionowa { get; init; } = false;   // linia pionowa (X1 == X2)
+        public bool IsPozioma { get; init; } = false;   // linia pozioma (Y1 == Y2)
+
+        public string? SplitGroupId { get; init; }
     }
 
 }

@@ -16,6 +16,7 @@ namespace GEORGE.Client.Pages.Models
         public bool StalySlupek { get; set; } = false;
         public bool PionPoziom { get; set; } = false;
         public bool DualRama { get; set; } = false;
+        public bool IsSkosna { get; set; } = false;
 
         private double _scaleFactor = 1.0;
 
@@ -151,7 +152,7 @@ namespace GEORGE.Client.Pages.Models
         public XLineShape(
         double x1, double y1, double x2, double y2, double scaleFactor,
         string nazwaObj, bool ruchomySlupek = false, bool pionPoziom = false,
-        bool dualRama = false, bool generowaneZRamy = false, bool stalySlupek = false)
+        bool dualRama = false, bool generowaneZRamy = false, bool stalySlupek = false, bool isSkosna = false)
         {
             // Normalizacja punktów: zawsze X1 ≤ X2, a dla równych X - Y1 ≤ Y2
             if (Math.Abs(x1 - x2) > 0.001)
@@ -199,6 +200,7 @@ namespace GEORGE.Client.Pages.Models
             DualRama = dualRama;
             GenerowaneZRamy = generowaneZRamy;
             StalySlupek = stalySlupek;
+            IsSkosna = isSkosna;
 
             // Teraz EnforceLineType musi brać pod uwagę, że punkty są już posortowane
             EnforceLineTypePreservingOrder();
@@ -318,7 +320,12 @@ namespace GEORGE.Client.Pages.Models
             var clone = new XLineShape(X1, Y1, X2, Y2, _scaleFactor, NazwaObj,
                 RuchomySlupek, PionPoziom, DualRama, GenerowaneZRamy, StalySlupek)
             {
-                SplitGroupId = SplitGroupId
+                SplitGroupId = SplitGroupId,
+
+                // 🔥 Głębokie kopie list – konstruktor i tak je odtworzy przez GeneratePoints(),
+                // ale to zabezpiecza na wypadek zmiany konstruktora
+                Points = this.Points?.Select(p => new XPoint(p.X, p.Y)).ToList() ?? new(),
+                NominalPoints = this.NominalPoints?.Select(p => new XPoint(p.X, p.Y)).ToList() ?? new(),
             };
 
             return clone;
@@ -407,6 +414,13 @@ namespace GEORGE.Client.Pages.Models
 
         public List<EditableProperty> GetEditableProperties()
         {
+            // ⭐ Policz raz dla całej linii
+            bool czyPionowa = CzyPionowa;
+            bool czyPozioma = CzyPozioma;
+            bool czySkosna = CzyUkosna;
+            string? splitGroupId = SplitGroupId;
+            string id = this.ID;
+
             return new()
             {
                 new EditableProperty(
@@ -419,40 +433,42 @@ namespace GEORGE.Client.Pages.Models
                         EnforceLineType();
                         GeneratePoints();
                     },
-                    NazwaObj),
+                    NazwaObj,
+                    IsReadOnly: RuchomySlupek || StalySlupek,
+                    ShapeId: id)
+                {
+                    IsPionowa = czyPionowa,
+                    IsPozioma = czyPozioma,
+                    IsSkosna = czySkosna,
+                    SplitGroupId = splitGroupId
+                },
 
                 new EditableProperty(
-                RuchomySlupek ? "Podział linii w osi Y1" : "Y1 ",
-                () => Y1,
-                v =>
+                    RuchomySlupek ? "Podział linii w osi Y1" : "Y1 ",
+                    () => Y1,
+                    v => {
+                        double parsedValue = ParseExpression(v.ToString());
+                        Y1 = parsedValue;
+                        if (StalySlupek) Y2 = Y1;
+                        EnforceLineType();
+
+                        Points = new List<XPoint>
+                        {
+                            new XPoint(X1, Y1),
+                            new XPoint(X2, Y2)
+                        };
+                        NominalPoints = Points.Select(p => new XPoint(p.X, p.Y)).ToList();
+                        UpdateSize();
+                    },
+                    NazwaObj,
+                    IsReadOnly: RuchomySlupek || StalySlupek,
+                    ShapeId: id)
                 {
-                    double parsedValue = ParseExpression(v.ToString());
-
-                    // Y1 jest wartością edytowaną
-                    Y1 = parsedValue;
-
-                    // Dla stałego słupka drugi koniec ma mieć ten sam Y
-                    if (StalySlupek)
-                        Y2 = Y1;
-
-                    // Wymuszamy tylko zależności, które nie mogą zmienić Y1
-                    EnforceLineType();
-
-                    // Aktualizacja punktów
-                    Points = new List<XPoint>
-                    {
-                        new XPoint(X1, Y1),
-                        new XPoint(X2, Y2)
-                    };
-
-                    NominalPoints = Points
-                        .Select(p => new XPoint(p.X, p.Y))
-                        .ToList();
-
-                    UpdateSize();
+                    IsPionowa = czyPionowa,
+                    IsPozioma = czyPozioma,
+                    IsSkosna = czySkosna,
+                    SplitGroupId = splitGroupId
                 },
-                NazwaObj,
-                RuchomySlupek),
 
                 new EditableProperty(
                     RuchomySlupek ? "Podział linii w osi X2" : "X2 ",
@@ -464,7 +480,14 @@ namespace GEORGE.Client.Pages.Models
                         GeneratePoints();
                     },
                     NazwaObj,
-                    RuchomySlupek || StalySlupek),
+                    IsReadOnly: RuchomySlupek || StalySlupek,
+                    ShapeId: id)
+                {
+                    IsPionowa = czyPionowa,
+                    IsPozioma = czyPozioma,
+                    IsSkosna = czySkosna,
+                    SplitGroupId = splitGroupId
+                },
 
                 new EditableProperty(
                     RuchomySlupek ? "Podział linii w osi Y2" : "Y2 ",
@@ -476,22 +499,33 @@ namespace GEORGE.Client.Pages.Models
                         GeneratePoints();
                     },
                     NazwaObj,
-                    RuchomySlupek || StalySlupek),
+                    IsReadOnly: RuchomySlupek || StalySlupek,
+                    ShapeId: id)
+                {
+                    IsPionowa = czyPionowa,
+                    IsPozioma = czyPozioma,
+                    IsSkosna = czySkosna,
+                    SplitGroupId = splitGroupId
+                },
 
                 new EditableProperty(
-                    RuchomySlupek ? "Kąt linii" : "Kąt w stopniach " ,
+                    RuchomySlupek ? "Kąt linii" : "Kąt w stopniach ",
                     () => KatLinii,
                     v => {
                         EnforceLineType();
                         GeneratePoints();
                     },
                     NazwaObj,
-                    true,
-                    false,
-                    false),
+                    IsReadOnly: true,
+                    ShapeId: id)
+                {
+                    IsPionowa = czyPionowa,
+                    IsPozioma = czyPozioma,
+                    IsSkosna = czySkosna,
+                    SplitGroupId = splitGroupId
+                },
             };
         }
-
         public List<ContourSegment> GetContourSegments()
         {
             var segments = new List<ContourSegment>();

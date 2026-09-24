@@ -29,12 +29,39 @@ else
                 {
                     <label>@prop.Label</label>
                     <div style="display: flex; align-items: center; gap: 5px;">
-                        <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
-                                              ValueChanged="@(async (double value) => {
-                                                 jestZmianaSzerokosci = Model.UpdateEditableProperty(index, value);
-                                                  await ZapiszDoRodzica();
-                                              })"
-                                              Style="flex: 1;" />
+                                        <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
+                                            ValueChanged="@(async (double value) =>
+                                                {
+                                                    var prop = Model.EditableProperties[index];
+
+                                                    // ⭐ Sprawdź, jaki to typ zmiany
+                                                    var label = prop.Label?.ToLower() ?? "";
+                                                    bool czySzerokosc = label.StartsWith("szerokość") && prop.gabarytOkna;
+                                                    bool czyWysokosc = label.StartsWith("wysokość") && prop.gabarytOkna;
+                                                    bool czyPromien = label.StartsWith("promień okna") && prop.gabarytOkna;
+                                                    bool czyKwadrat = label.StartsWith("wymiar okna kwadratowego") && prop.gabarytOkna;
+
+                                                    bool czyWymiar = czySzerokosc || czyWysokosc || czyPromien || czyKwadrat;
+
+                                                    // Aktualizuj model (zwraca true, jeśli wymiar faktycznie się zmienił)
+                                                    jestZmianaSzerokosci = Model.UpdateEditableProperty(index, value);
+
+                                                    if (czyWymiar && jestZmianaSzerokosci)
+                                                    {
+                                                    // ⭐ Zmiana wymiaru → rozstaw linie TYLKO w zmienionej osi
+                                                        bool rozstawPionowe = czySzerokosc || czyPromien || czyKwadrat;
+                                                        bool rozstawPoziome = czyWysokosc || czyPromien || czyKwadrat;
+
+                                                        await PodzielLinieSymetrycznieAsync(true,
+                                                            pionowe: rozstawPionowe,
+                                                            poziome: rozstawPoziome);
+                                                    }
+                                                    // ⭐ Zmiana pojedynczej linii → nic nie rób,
+                                                    //    użytkownik świadomie przesuwa linię
+
+                                                    StateHasChanged();
+                                                })"
+                                           Style="flex: 1;" />
                         
                                     <AntDesign.Button Type="@ButtonType.Default"
                                                      Icon="calculator"
@@ -228,13 +255,9 @@ else
 
     public async Task ZapiszDoRodzica()
     {
-
-        if (jestZmianaSzerokosci)
-        {
-           await PodzielLinieSymetrycznieAsync(true);
-
-           await Task.Delay(100); // Małe opóźnienie, aby upewnić się, że wszystkie aktualizacje zostały przetworzone 
-        }
+        // ⭐ NIE wywołuj PodzielLinieSymetrycznieAsync tutaj.
+        // Użytkownik sam klika przycisk "pic-center" (ikona), żeby rozstawić linie.
+        // Automatyczne wywołanie przy każdym zapisie psuje układ linii.
 
         await OnSave.InvokeAsync(Model);
     }
@@ -255,49 +278,80 @@ else
         }
     }
 
-    private async Task PodzielLinieSymetrycznieAsync(bool ustawTylkoLinie =false)
-{
-    if (Model?.EditableProperties == null || Model.EditableProperties.Count == 0 || Model == null)
-        return;
+    private async Task PodzielLinieSymetrycznieAsync(
+      bool ustawTylkoLinie = false,
+      bool pionowe = true,
+      bool poziome = true)
+    {
+        if (Model?.EditableProperties == null || Model.EditableProperties.Count == 0 || Model == null)
+            return;
 
-    var linieIndeksy = new List<int>();
-    
-    for (int i = 0; i < Model.EditableProperties.Count; i++)
-    {
+        Console.WriteLine($"📐 PodzielLinie: START, Szerokosc={Model.Szerokosc}, Wysokosc={Model.Wysokosc}, pionowe={pionowe}, poziome={poziome}");
 
-        if (Model.GetLinia(i))
+        // ⭐ Grupuj po SplitGroupId ?? ShapeId — segmenty tej samej linii w jednej grupie
+        var grupy = Model.EditableProperties
+            .Select((p, i) => (Index: i, Prop: p))
+            .Where(x => x.Prop.ShapeId != null &&
+                        !x.Prop.IsSkosna &&
+                        !string.IsNullOrEmpty(x.Prop.NazwaObiektu) &&
+                        x.Prop.NazwaObiektu.ToLower().Contains("linia"))
+            .GroupBy(x => x.Prop.SplitGroupId ?? x.Prop.ShapeId)
+            .ToList();
+
+        var liniePionowe = new List<(int Index, string GroupId, string Label)>();
+        var liniePoziome = new List<(int Index, string GroupId, string Label)>();
+
+        foreach (var grupa in grupy)
         {
-            linieIndeksy.Add(i);
+            // ⭐ W każdej grupie szukaj JEDNEJ właściwości X1 (pionowa) i JEDNEJ Y1 (pozioma)
+            var x1Prop = grupa.FirstOrDefault(g => g.Prop.IsPionowa &&
+                (g.Prop.Label?.ToLower().StartsWith("x1") == true ||
+                 g.Prop.Label?.ToLower().Contains("w osi x1") == true));
+
+            var y1Prop = grupa.FirstOrDefault(g => g.Prop.IsPozioma &&
+                (g.Prop.Label?.ToLower().StartsWith("y1") == true ||
+                 g.Prop.Label?.ToLower().Contains("w osi y1") == true));
+
+            if (x1Prop.Prop != null)
+                liniePionowe.Add((x1Prop.Index, grupa.Key!, x1Prop.Prop.Label ?? ""));
+
+            if (y1Prop.Prop != null)
+                liniePoziome.Add((y1Prop.Index, grupa.Key!, y1Prop.Prop.Label ?? ""));
         }
-    }
-    
-    int iloscLinii = linieIndeksy.Count;
-    
-    if (iloscLinii > 0 && Model.Szerokosc > 0)
-    {
-        double odstep = Model.Szerokosc / (iloscLinii + 1);
-        
-        // Aktualizuj wszystkie linie
-        for (int i = 0; i < linieIndeksy.Count; i++)
+
+        Console.WriteLine($"📐 PodzielLinie: pionowe={liniePionowe.Count}, poziome={liniePoziome.Count}");
+
+        // Rozstaw PIONOWE grupy (każda grupa = jedna linia)
+        if (pionowe && liniePionowe.Count > 0 && Model.Szerokosc > 0)
         {
-            int index = linieIndeksy[i];
-            double nowaPozycja = Math.Round(odstep * (i + 1), 0);
-            
-            Model.UpdateEditableProperty(index, nowaPozycja);
+            double odstep = Model.Szerokosc / (liniePionowe.Count + 1);
+
+            for (int i = 0; i < liniePionowe.Count; i++)
+            {
+                var (index, groupId, label) = liniePionowe[i];
+                double nowaPozycja = Math.Round(odstep * (i + 1), 0);
+                Model.UpdateEditableProperty(index, nowaPozycja);
+                Console.WriteLine($"📐 PION: grupa={groupId}, index={index}, '{label}' → {nowaPozycja}");
+            }
         }
-        
-        if(!ustawTylkoLinie)
-        // Zapisz zmiany
-        await ZapiszDoRodzica();
-        
-      //  Console.WriteLine($"Podzielono {iloscLinii} linii symetrycznie. Odstęp: {odstep:F2}mm");
+
+        // Rozstaw POZIOME grupy
+        if (poziome && liniePoziome.Count > 0 && Model.Wysokosc > 0)
+        {
+            double odstep = Model.Wysokosc / (liniePoziome.Count + 1);
+
+            for (int i = 0; i < liniePoziome.Count; i++)
+            {
+                var (index, groupId, label) = liniePoziome[i];
+                double nowaPozycja = Math.Round(odstep * (i + 1), 0);
+                Model.UpdateEditableProperty(index, nowaPozycja);
+                Console.WriteLine($"📐 POZ: grupa={groupId}, index={index}, '{label}' → {nowaPozycja}");
+            }
+        }
+
+        if (!ustawTylkoLinie)
+            await ZapiszDoRodzica();
     }
-    else
-    {
-        // Możesz dodać powiadomienie dla użytkownika
-        Console.WriteLine("Nie można podzielić linii - brak linii lub szerokość = 0");
-    }
-}
 
     private void AppendToCalculator(string value)
     {

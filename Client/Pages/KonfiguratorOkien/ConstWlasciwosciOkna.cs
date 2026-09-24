@@ -82,7 +82,11 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         }
 
         /// <summary>
-        /// Pobiera wartość właściwości po indeksie
+        /// Sprawdza, czy właściwość jest "pozycją podziału" linii (pionowej lub poziomej).
+        /// Zwraca false dla:
+        /// - właściwości tylko do odczytu
+        /// - linii skośnych (IsSkosna == true)
+        /// - właściwości X2, Y2, Kąt (zwraca true tylko dla X1 i Y1)
         /// </summary>
         public bool GetLinia(int index)
         {
@@ -91,7 +95,27 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             if (EditableProperties[index].IsReadOnly)
                 return false;
 
-            return EditableProperties[index].NazwaObiektu.ToString().ToLower().Contains("linia");
+            var prop = EditableProperties[index];
+
+            // Wyklucz skośne
+            if (prop.IsSkosna) return false;
+
+            // Sprawdź, czy to linia
+            if (string.IsNullOrEmpty(prop.NazwaObiektu) ||
+                !prop.NazwaObiektu.ToLower().Contains("linia"))
+                return false;
+
+            var label = prop.Label?.ToLower() ?? "";
+
+            // ⭐ Dla PIONOWEJ — zwróć true tylko dla X1
+            if (prop.IsPionowa)
+                return label.StartsWith("x1") || label.Contains("w osi x1");
+
+            // ⭐ Dla POZIOMEJ — zwróć true tylko dla Y1
+            if (prop.IsPozioma)
+                return label.StartsWith("y1") || label.Contains("w osi y1");
+
+            return false;
         }
 
         /// <summary>
@@ -116,10 +140,6 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             return EditableProperties[index].Label;
         }
 
-        /// <summary>
-        /// Aktualizuje wartość edytowalnej właściwości po indeksie
-        /// Dla record: zastępuje obiekt w liście nowym
-        /// </summary>
         public bool UpdateEditableProperty(int index, double value)
         {
             if (EditableProperties == null || index < 0 || index >= EditableProperties.Count)
@@ -129,35 +149,33 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
             var prop = EditableProperties[index];
             {
-                //Console.WriteLine($"UpdateEditableProperty --> index: {index} prop.Label: {prop.Label} new value: {value} old walue: {prop.Value} Szerokosc: {Szerokosc}");
-
                 prop.Value = value; // Wywołuje setter -> SetValue(value)
 
                 if (prop.Label.ToLower().StartsWith("szerokość") && prop.gabarytOkna)
                 {
                     jestZmiana = Szerokosc != value;
-
                     Szerokosc = value;
                 }
                 else if (prop.Label.ToLower().StartsWith("wysokość") && prop.gabarytOkna)
                 {
+                    jestZmiana = Wysokosc != value;   // ⭐ DODANE
                     Wysokosc = value;
                 }
                 else if (prop.Label.ToLower().StartsWith("promień okna") && prop.gabarytOkna)
                 {
                     Wysokosc = value * 2;
                     Szerokosc = value * 2;
+                    jestZmiana = true;                 // ⭐ też zwracamy true
                 }
                 else if (prop.Label.ToLower().StartsWith("wymiar okna kwadratowego") && prop.gabarytOkna)
                 {
                     Wysokosc = value;
                     Szerokosc = value;
+                    jestZmiana = true;                 // ⭐ też zwracamy true
                 }
-
             }
 
             return jestZmiana;
-
         }
 
         /// <summary>

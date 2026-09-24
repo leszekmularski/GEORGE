@@ -903,6 +903,160 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
             await Task.CompletedTask;
         }
+
+        /// <summary>
+        /// Skaluje WSZYSTKIE kształty proporcjonalnie (jedna skala) tak, aby ich wspólny
+        /// bounding box zmieścił się w prostokącie (0,0)-(docelowaSzerokosc, docelowaWysokosc).
+        /// Wynik jest wyśrodkowany w prostokącie. Zachowuje proporcje — nie rozciąga.
+        /// MUTUJE shapes (wywołuje shape.Transform).
+        /// </summary>
+        public static void SkalujShapesDoWymiarowZachowujacProporcje(
+            List<IShapeDC> shapes,
+            double docelowaSzerokosc,
+            double docelowaWysokosc)
+        {
+            if (shapes == null || shapes.Count == 0) return;
+
+            // 1. Wspólny bounding box wszystkich kształtów
+            double minX = double.MaxValue, minY = double.MaxValue;
+            double maxX = double.MinValue, maxY = double.MinValue;
+
+            foreach (var shape in shapes)
+            {
+                var bb = shape.GetBoundingBox();
+                if (bb.Left < minX) minX = bb.Left;
+                if (bb.Top < minY) minY = bb.Top;
+                if (bb.Left + bb.Width > maxX) maxX = bb.Left + bb.Width;
+                if (bb.Top + bb.Height > maxY) maxY = bb.Top + bb.Height;
+            }
+
+            double aktualnaSzerokosc = maxX - minX;
+            double aktualnaWysokosc = maxY - minY;
+
+            if (aktualnaSzerokosc < 0.001 || aktualnaWysokosc < 0.001)
+            {
+                Console.WriteLine("⚠️ SkalujShapesDoWymiarowZachowujacProporcje: zerowy bbox, pomijam");
+                return;
+            }
+
+            // 2. Jedna skala — Math.Min, żeby zmieścić w prostokącie
+            double skala = Math.Min(
+                docelowaSzerokosc / aktualnaSzerokosc,
+                docelowaWysokosc / aktualnaWysokosc);
+
+            // 3. Wyśrodkowanie w prostokącie docelowym
+            double nowaSzerokosc = aktualnaSzerokosc * skala;
+            double nowaWysokosc = aktualnaWysokosc * skala;
+            double offsetX = (docelowaSzerokosc - nowaSzerokosc) / 2.0 - minX * skala;
+            double offsetY = (docelowaWysokosc - nowaWysokosc) / 2.0 - minY * skala;
+
+            Console.WriteLine($"📐 SkalujShapes (proporcje): {aktualnaSzerokosc:F1}x{aktualnaWysokosc:F1} → " +
+                              $"{nowaSzerokosc:F1}x{nowaWysokosc:F1} " +
+                              $"(skala={skala:F4}, offset=({offsetX:F1},{offsetY:F1}))");
+
+            // 4. Transform — jedna skala dla X i Y
+            foreach (var shape in shapes)
+            {
+                shape.Transform(skala, skala, offsetX, offsetY);
+                shape.Szerokosc = docelowaSzerokosc;
+                shape.Wysokosc = docelowaWysokosc;
+            }
+        }
+
+        /// <summary>
+        /// Skaluje WSZYSTKIE kształty tak, aby ich wspólny bounding box dokładnie
+        /// wypełnił prostokąt (0,0)-(docelowaSzerokosc, docelowaWysokosc).
+        /// Używa OSOBNYCH skal X i Y — rozciąga (może zniekształcić proporcje).
+        /// Ta sama logika co w GeometryUtils.GenerujRegionyZPodzialu — dzięki temu
+        /// shapes i regiony są w identycznych współrzędnych.
+        /// MUTUJE shapes (wywołuje shape.Transform).
+        /// </summary>
+        public static void SkalujShapesDoWymiarowRozciagajac(
+            List<IShapeDC> shapes,
+            double docelowaSzerokosc,
+            double docelowaWysokosc)
+        {
+            if (shapes == null || shapes.Count == 0) return;
+
+            // 1. Wspólny bounding box
+            double minX = double.MaxValue, minY = double.MaxValue;
+            double maxX = double.MinValue, maxY = double.MinValue;
+
+            foreach (var shape in shapes)
+            {
+                var bb = shape.GetBoundingBox();
+                if (bb.Left < minX) minX = bb.Left;
+                if (bb.Top < minY) minY = bb.Top;
+                if (bb.Left + bb.Width > maxX) maxX = bb.Left + bb.Width;
+                if (bb.Top + bb.Height > maxY) maxY = bb.Top + bb.Height;
+            }
+
+            double aktualnaSzerokosc = maxX - minX;
+            double aktualnaWysokosc = maxY - minY;
+
+            if (aktualnaSzerokosc < 0.001 || aktualnaWysokosc < 0.001)
+            {
+                Console.WriteLine("⚠️ SkalujShapesDoWymiarowRozciagajac: zerowy bbox, pomijam");
+                return;
+            }
+
+            // 2. IDENTYCZNA logika jak w GeometryUtils.GenerujRegionyZPodzialu
+            double scaleX = docelowaSzerokosc / aktualnaSzerokosc;
+            double scaleY = docelowaWysokosc / aktualnaWysokosc;
+            double offsetX = -minX * scaleX;
+            double offsetY = -minY * scaleY;
+
+            Console.WriteLine($"📐 SkalujShapes (rozciąganie): {aktualnaSzerokosc:F1}x{aktualnaWysokosc:F1} → " +
+                              $"{docelowaSzerokosc:F1}x{docelowaWysokosc:F1} " +
+                              $"(scaleX={scaleX:F4}, scaleY={scaleY:F4})");
+
+            // 3. Transform — osobne skale
+            foreach (var shape in shapes)
+            {
+                shape.Transform(scaleX, scaleY, offsetX, offsetY);
+                shape.Szerokosc = docelowaSzerokosc;
+                shape.Wysokosc = docelowaWysokosc;
+            }
+        }
+
+        /// <summary>
+        /// Skaluje shapes tak, aby pasowały do docelowego prostokąta.
+        /// W przeciwieństwie do SkalujShapesDoWymiarowRozciagajac, ta funkcja:
+        /// - skaluje X i Y NIEZALEŻNIE
+        /// - ale NIE wymusza, że szerokość == docelowaSzerokosc
+        /// - skaluje o (docelowaSzerokosc / oryginalnaSzerokosc) w X
+        ///   i (docelowaWysokosc / oryginalnaWysokosc) w Y
+        ///
+        /// Efekt: zmiana tylko szerokości nie zmienia wysokości (bo skala Y = 1.0).
+        /// </summary>
+        public static void SkalujShapesOsiami(
+            List<IShapeDC> shapes,
+            double staraSzerokosc,
+            double staraWysokosc,
+            double nowaSzerokosc,
+            double nowaWysokosc)
+        {
+            if (shapes == null || shapes.Count == 0) return;
+            if (staraSzerokosc < 0.001 || staraWysokosc < 0.001)
+            {
+                Console.WriteLine("⚠️ SkalujShapesOsiami: zerowa stara szerokość/wysokość, pomijam");
+                return;
+            }
+
+            double scaleX = nowaSzerokosc / staraSzerokosc;
+            double scaleY = nowaWysokosc / staraWysokosc;
+
+            Console.WriteLine($"📐 SkalujShapesOsiami: scaleX={scaleX:F4}, scaleY={scaleY:F4}");
+
+            // Skalujemy względem (0,0) — shapes są już w dodatniej ćwiartce
+            foreach (var shape in shapes)
+            {
+                shape.Transform(scaleX, scaleY, 0, 0);
+                shape.Szerokosc = nowaSzerokosc;
+                shape.Wysokosc = nowaWysokosc;
+            }
+        }
+
         #endregion
     }
 }

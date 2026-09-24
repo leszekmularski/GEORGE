@@ -81,7 +81,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 Wysokosc = this.Wysokosc,
                 Points = this.Points.Select(p => p.Clone()).ToList(),
                 NominalPoints = this.NominalPoints.Select(p => p.Clone()).ToList(),
-                KsztaltModelu = this.KsztaltModelu, 
+                KsztaltModelu = this.KsztaltModelu
             };
         }
 

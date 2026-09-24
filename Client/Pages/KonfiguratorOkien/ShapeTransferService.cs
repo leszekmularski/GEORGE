@@ -27,7 +27,7 @@
             if (Shapes != null && Shapes.Any())
             {
                 bool ukrySzerokoscIWysokosc = false;
-                var s = Shapes.FirstOrDefault()?.GetEditableProperties().FirstOrDefault(x => x.Label.Contains("Promień Okna:", StringComparison.OrdinalIgnoreCase)  
+                var s = Shapes.FirstOrDefault()?.GetEditableProperties().FirstOrDefault(x => x.Label.Contains("Promień Okna:", StringComparison.OrdinalIgnoreCase)
                 || x.Label.Contains("Wymiar okna kwadratowego", StringComparison.OrdinalIgnoreCase) && x.gabarytOkna);
 
                 if (s != null)
