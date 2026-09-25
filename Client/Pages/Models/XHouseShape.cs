@@ -144,32 +144,44 @@ namespace GEORGE.Client.Pages.Models
 
         public List<EditableProperty> GetEditableProperties() => new()
         {
+            // ⭐ X: — gabarytOkna = TRUE
             new EditableProperty("X: ", () => X, v => {
                 X = v;
                 UpdatePoints();
-            }, NazwaObj, true, true, false, true),
+            }, NazwaObj, true, true, false, true, true),
+            //             IsRO  slR   pp    sys   gabarytOkna
+            //             5     6     7     8     9
+
+            // ⭐ Y: — gabarytOkna = TRUE
             new EditableProperty("Y: ", () => Y, v => {
                 Y = v;
                 UpdatePoints();
-            }, NazwaObj, true, true, false, true),
+            }, NazwaObj, true, true, false, true, true),
+
+            // ⭐ Szerokość: — gabarytOkna = TRUE
             new EditableProperty("Szerokość: ", () => Width, v => {
                 Width = v;
                 UpdatePoints();
             }, NazwaObj, false, false, false, false, true),
+
+            // ⭐ Wysokość: — gabarytOkna = TRUE
             new EditableProperty("Wysokość: ", () => Height, v => {
                 Height = v;
                 UpdatePoints();
             }, NazwaObj, false, false, false, false, true),
+
+            // ⭐ Wysokość bok lewy: — gabarytOkna = TRUE
             new EditableProperty("Wysokość bok lewy: ", () => HeightLeft, v => {
                 HeightLeft = v;
                 UpdatePoints();
-            }, NazwaObj),
+            }, NazwaObj, false, false, false, false, true),
+
+            // ⭐ Wysokość bok prawy: — gabarytOkna = TRUE
             new EditableProperty("Wysokość bok prawy: ", () => HeightRight, v => {
                 HeightRight = v;
                 UpdatePoints();
-            }, NazwaObj)
+            }, NazwaObj, false, false, false, false, true),
         };
-
         public void Scale(double factor)
         {
             Width *= factor;

@@ -2750,20 +2750,38 @@
 
         constWlasciwosciOkna.EditableProperties = zmieniony.EditableProperties;
 
+        // // Log PRZED
+        // foreach (var p in constWlasciwosciOkna.EditableProperties.Where(x =>
+        //     !string.IsNullOrEmpty(x.NazwaObiektu) && x.NazwaObiektu.ToLower().Contains("linia")))
+        // {
+        //     Console.WriteLine($"🔍 PRZED Refresh: Label='{p.Label}', Value={p.Value}");
+        // }
+
         foreach (var shape in ShapeService.Shapes)
         {
             if (shape is IRefreshable refreshable)
                 refreshable.Refresh();
         }
 
+        // // Log PO Refresh
+        // foreach (var p in constWlasciwosciOkna.EditableProperties.Where(x =>
+        //     !string.IsNullOrEmpty(x.NazwaObiektu) && x.NazwaObiektu.ToLower().Contains("linia")))
+        // {
+        //     Console.WriteLine($"🔍 PO Refresh: Label='{p.Label}', Value={p.Value}");
+        // }
+
         PrzesunKsztaltyDoDodatniejCwiartki(ShapeService.Shapes);
 
-        // ⬇️ NIE rysuj tutaj — zrobi to ZmienWymiaryOkna / HandleZapis
-        // await ClearCanvas();
-        // await RenderFrame();
+        // // Log PO Przesun
+        // foreach (var p in constWlasciwosciOkna.EditableProperties.Where(x =>
+        //     !string.IsNullOrEmpty(x.NazwaObiektu) && x.NazwaObiektu.ToLower().Contains("linia")))
+        // {
+        //     Console.WriteLine($"🔍 PO Przesun: Label='{p.Label}', Value={p.Value}");
+        // }
+
+        await Task.CompletedTask;
 
         Console.WriteLine($"Zmieniono właściwości: {zmieniony.EditableProperties?.Count ?? 0}");
-        await Task.CompletedTask;
     }
 
     private void PrzesunKsztaltyDoDodatniejCwiartki(List<IShapeDC> shapes)
@@ -4324,11 +4342,12 @@
                     var wybranyRegionSlupek = _regionsDualRama.Concat(_regionsSkrzydlo)
                         .FirstOrDefault(r => r.Id == region.Id);
 
-                    Console.WriteLine($"📐 WyliczObszarSlupkaStalego -> r => r.Id == region.Id == {region.Id}");
+                    Console.WriteLine($"📐 WyliczObszarSlupkaStalego -> r => r.Id == region.Id == {region.Id} && wybranyRegionSlupek: {wybranyRegionSlupek?.Id}");
 
                     if (wybranyRegionSlupek != null)
                     {
-                        var konfPolaczenia = genState.Value.ListaKwadratow.FirstOrDefault(s => s.Przesuniecia != null)?.Przesuniecia;
+                        var konfPolaczenia = genState.Value.ListaKwadratow?
+                            .FirstOrDefault(s => s.Przesuniecia != null)?.Przesuniecia;
 
                         double przesLewo = 0, przesPrawo = 0, przesGora = 0, przesDol = 0;
 
@@ -4346,13 +4365,14 @@
 
                         await WyliczObszarSlupkaStalego(
                             _generatorStates[cleanId],
-                            przesLewo,
-                            przesPrawo,
-                            przesGora,
-                            przesDol,
-                            generator,
-                            wybranyRegionSlupek
-                        );
+                            przesLewo, przesPrawo, przesGora, przesDol,
+                            generator, wybranyRegionSlupek);
+
+                        // ⭐⭐⭐ NOWE: Zaktualizuj ListaKwadratow słupka na podstawie nowego regionu
+                        AktualizujDaneKwadratuSlupka(
+                            genState.Value.ListaKwadratow,
+                            wybranyRegionSlupek,
+                            cleanId);
                     }
                 }
 
@@ -6090,6 +6110,13 @@
         if (regionSlupka == null || regionSlupka.Wierzcholki == null || regionSlupka.Wierzcholki.Count < 2)
             return null;
 
+        // Console.WriteLine($"📐 WyliczObszarSlupkaStalego -> ANALIZA DANYCH");
+
+        // foreach(var p in regionSlupka.Wierzcholki)
+        // {
+        //     Console.WriteLine($"   Wierzcholek: X={p.X}, Y={p.Y}");
+        // } 
+
         var punkty = regionSlupka.Wierzcholki;
 
         double minX = punkty.Min(p => p.X);
@@ -6152,6 +6179,42 @@
         await Task.Delay(5); // placeholder dla ewentualnych operacji asynchronicznych
 
         return regionSlupka;
+    }
+
+    /// <summary>
+    /// Aktualizuje LiniaStala i Wierzcholki w DaneKwadratu słupka stałego,
+    /// na podstawie aktualnego regionu słupka (po zmianie wymiarów).
+    /// </summary>
+    private void AktualizujDaneKwadratuSlupka(
+        List<DaneKwadratu>? listaKwadratow,
+        ShapeRegion regionSlupka,
+        string cleanId)
+    {
+        if (listaKwadratow == null || listaKwadratow.Count == 0) return;
+        if (regionSlupka?.Wierzcholki == null || regionSlupka.Wierzcholki.Count < 2) return;
+
+        // ⭐ Nowe wierzchołki linii słupka — bierzemy tylko 2 (Start i End)
+        // (regionSlupka może mieć 4 wierzchołki jeśli to prostokąt słupka)
+        var nowaStala = new List<XPoint>
+    {
+        new XPoint(regionSlupka.Wierzcholki[0].X, regionSlupka.Wierzcholki[0].Y),
+        new XPoint(regionSlupka.Wierzcholki[^1].X, regionSlupka.Wierzcholki[^1].Y)
+    };
+
+        Console.WriteLine($"🔧 AktualizujDaneKwadratuSlupka dla {cleanId}:");
+        Console.WriteLine($"   Nowa linia stała: ({nowaStala[0].X}, {nowaStala[0].Y}) → ({nowaStala[1].X}, {nowaStala[1].Y})");
+
+        foreach (var dk in listaKwadratow)
+        {
+            // ⭐ Interesują nas tylko elementy liniowe (słupek)
+            if (!dk.BoolElementLinia) continue;
+
+            // Zachowaj istniejące przesunięcia (Przesuniecia) — są niezależne od pozycji
+            dk.LiniaStala = nowaStala;
+            dk.Wierzcholki = new List<XPoint>(nowaStala);
+
+            Console.WriteLine($"   ✅ Zaktualizowano DaneKwadratu: RowIdElementu={dk.RowIdElementu}");
+        }
     }
 
     private async Task<WynikObliczen> WyliczObszarSkrzydla(
@@ -8104,164 +8167,164 @@
     }
 
 
-    private async Task GenerujElementyDlaRegionu(string idRegion, float szerokosc, float wysokosc)
-    {
+    // private async Task GenerujElementyDlaRegionu(string idRegion, float szerokosc, float wysokosc)
+    // {
 
-        if (!_generatorStates.TryGetValue(idRegion, out var state))
-        {
-            //await GenerujObrysPozZmianieWymiarow(true);
+    //     if (!_generatorStates.TryGetValue(idRegion, out var state))
+    //     {
+    //         //await GenerujObrysPozZmianieWymiarow(true);
 
-            Console.WriteLine($"❌ Brak stanu generatora dla regionu {idRegion}, żeden model nie został dodany!");
-            return;
-        }
-        else
-        {
-            await GenerujObrysPozZmianieWymiarow(true, false);
+    //         Console.WriteLine($"❌ Brak stanu generatora dla regionu {idRegion}, żeden model nie został dodany!");
+    //         return;
+    //     }
+    //     else
+    //     {
+    //         await GenerujObrysPozZmianieWymiarow(true, false);
 
-        }
+    //     }
 
-        var generator = new Generator(JS)
-        {
-            //KonfiguracjeSystemu = state.PowiazaneModele,
-            RowIdSystemu = state.RowIdSystemu,
-            MVCKonfModelu = state.MVCKonfModelu,
-            TypKsztaltu = state.WybranyKsztalt,
-            EdytowanyModel = state.WybranyModel,
-            ElementLiniowy = state.ElementLiniowy,
-        };
-
-
-        var wybranyRegionDualRama = _regionsDualRama.FirstOrDefault(r => r.Id == idRegion);
-        var wybranyRegionSkrzydlo = _regionsSkrzydlo.FirstOrDefault(r => r.Id == idRegion);
-
-        // Sprawdź, czy region skrzydła ma linię dzielącą z ruchomym słupkiem
-        bool czyRegionZawieraSlupekRuchomy = _regionsSkrzydlo?.Any(x => x.TypLiniiDzielacej == "Słupek ruchomy") == true;
-
-        bool czyRegionZawieraSlupekStaly = _regionsDualRama?.Any(x => x.TypLiniiDzielacej == "Słupek stały") == true;
-
-        Console.WriteLine($"✅ czyRegionZawieraSlupekStaly: {czyRegionZawieraSlupekStaly}");
-
-        if (czyRegionZawieraSlupekRuchomy)
-        {
-            Console.WriteLine($"✅ GenerujElementyDlaRegionu-> Region {idRegion} zawiera słupek ruchomy. Kontynuuję generowanie elementów.");
-
-            // Sprawdź, czy istnieje "Słupek ruchomy" w jakimkolwiek PowiazanymModelu (lista)
-            bool czyZawieraSlupekRuchomyWPowiazanymModelu = StateContainer.States
-                 .Any(state =>
-                     state.Value.MVCKonfModelu != null &&
-                     state.Value.MVCKonfModelu.KonfSystem != null &&
-                     state.Value.MVCKonfModelu.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy")
-                 );
+    //     var generator = new Generator(JS)
+    //     {
+    //         //KonfiguracjeSystemu = state.PowiazaneModele,
+    //         RowIdSystemu = state.RowIdSystemu,
+    //         MVCKonfModelu = state.MVCKonfModelu,
+    //         TypKsztaltu = state.WybranyKsztalt,
+    //         EdytowanyModel = state.WybranyModel,
+    //         ElementLiniowy = state.ElementLiniowy,
+    //     };
 
 
-            if (!czyZawieraSlupekRuchomyWPowiazanymModelu)
-            {
-                // Sprawdź, czy istnieje "Słupek ruchomy" w pojedynczym PowiazanymModelu (np. generator)
-                bool czySlupekRuchomyWPojedynczymModelu = generator.MVCKonfModelu != null &&
-                    generator.MVCKonfModelu.KonfSystem != null &&
-                    generator.MVCKonfModelu.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy");
+    //     var wybranyRegionDualRama = _regionsDualRama.FirstOrDefault(r => r.Id == idRegion);
+    //     var wybranyRegionSkrzydlo = _regionsSkrzydlo.FirstOrDefault(r => r.Id == idRegion);
 
-                if (!czySlupekRuchomyWPojedynczymModelu)
-                {
-                    await _message.Warning(
-                        "Brak słupka ruchomego w regionie skrzydła. Dodaj słupek ruchomy do systemu.",
-                        2.0
-                    );
-                    return;
-                }
-            }
-        }
+    //     // Sprawdź, czy region skrzydła ma linię dzielącą z ruchomym słupkiem
+    //     bool czyRegionZawieraSlupekRuchomy = _regionsSkrzydlo?.Any(x => x.TypLiniiDzielacej == "Słupek ruchomy") == true;
 
-        double minX = 0, maxX = 0, minY = 0, maxY = 0;
+    //     bool czyRegionZawieraSlupekStaly = _regionsDualRama?.Any(x => x.TypLiniiDzielacej == "Słupek stały") == true;
 
-        if (wybranyRegionDualRama != null && !czyRegionZawieraSlupekStaly)
-        {
-            var regionPoints = wybranyRegionDualRama.Wierzcholki;
-            if (regionPoints == null || regionPoints.Count < 3) return;
+    //     Console.WriteLine($"✅ czyRegionZawieraSlupekStaly: {czyRegionZawieraSlupekStaly}");
 
-            minX = regionPoints.Min(p => p.X);
-            maxX = regionPoints.Max(p => p.X);
-            minY = regionPoints.Min(p => p.Y);
-            maxY = regionPoints.Max(p => p.Y);
+    //     if (czyRegionZawieraSlupekRuchomy)
+    //     {
+    //         Console.WriteLine($"✅ GenerujElementyDlaRegionu-> Region {idRegion} zawiera słupek ruchomy. Kontynuuję generowanie elementów.");
 
-            generator.Szerokosc = (float)(maxX - minX);
-            generator.Wysokosc = (float)(maxY - minY);
-            generator.Zindeks = 0;
+    //         // Sprawdź, czy istnieje "Słupek ruchomy" w jakimkolwiek PowiazanymModelu (lista)
+    //         bool czyZawieraSlupekRuchomyWPowiazanymModelu = StateContainer.States
+    //              .Any(state =>
+    //                  state.Value.MVCKonfModelu != null &&
+    //                  state.Value.MVCKonfModelu.KonfSystem != null &&
+    //                  state.Value.MVCKonfModelu.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy")
+    //              );
 
-            var ok = await generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama,
-                null, null, _lastMouseClick, false, state.MVCKonfModelu?.KonfModeleElementy?.FirstOrDefault()?.RowIdElement); // w przypadku słupka podaj jego id w state.MVCKonfModelu.KonfModeleElementy.FirstOrDefault().RowIdElement
 
-            if (ok != "")
-            {
-                _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Sprawdź wymiary i kształt regionu. Błąd: {ok}");
-            }
-        }
-        else if (wybranyRegionSkrzydlo != null && !czyRegionZawieraSlupekStaly)
-        {
-            var regionPoints = wybranyRegionSkrzydlo.Wierzcholki;
-            if (regionPoints == null || regionPoints.Count < 3) return;
+    //         if (!czyZawieraSlupekRuchomyWPowiazanymModelu)
+    //         {
+    //             // Sprawdź, czy istnieje "Słupek ruchomy" w pojedynczym PowiazanymModelu (np. generator)
+    //             bool czySlupekRuchomyWPojedynczymModelu = generator.MVCKonfModelu != null &&
+    //                 generator.MVCKonfModelu.KonfSystem != null &&
+    //                 generator.MVCKonfModelu.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy");
 
-            minX = regionPoints.Min(p => p.X);
-            maxX = regionPoints.Max(p => p.X);
-            minY = regionPoints.Min(p => p.Y);
-            maxY = regionPoints.Max(p => p.Y);
+    //             if (!czySlupekRuchomyWPojedynczymModelu)
+    //             {
+    //                 await _message.Warning(
+    //                     "Brak słupka ruchomego w regionie skrzydła. Dodaj słupek ruchomy do systemu.",
+    //                     2.0
+    //                 );
+    //                 return;
+    //             }
+    //         }
+    //     }
 
-            generator.Szerokosc = (float)(maxX - minX);
-            generator.Wysokosc = (float)(maxY - minY);
-            generator.Zindeks = 1;
+    //     double minX = 0, maxX = 0, minY = 0, maxY = 0;
 
-            var ok = await generator.AddElements(new List<ShapeRegion> { wybranyRegionSkrzydlo }, idRegion, _generatorStates, _regionsSkrzydlo,
-                null, null, _lastMouseClick, false, state.MVCKonfModelu?.KonfModeleElementy?.FirstOrDefault()?.RowIdElement);
+    //     if (wybranyRegionDualRama != null && !czyRegionZawieraSlupekStaly)
+    //     {
+    //         var regionPoints = wybranyRegionDualRama.Wierzcholki;
+    //         if (regionPoints == null || regionPoints.Count < 3) return;
 
-            if (ok != "")
-            {
-                _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Sprawdź wymiary i kształt regionu. Błąd: {ok}");
-            }
-        }
-        else
-        {
-            Console.WriteLine($"❌ GenerujElementyDlaRegionu-> Nie znaleziono regionu o ID {idRegion}");
-            return;
-        }
+    //         minX = regionPoints.Min(p => p.X);
+    //         maxX = regionPoints.Max(p => p.X);
+    //         minY = regionPoints.Min(p => p.Y);
+    //         maxY = regionPoints.Max(p => p.Y);
 
-        // Skalowanie i przesunięcie jeśli zmieniasz szerokość/wysokość
-        double shapeMinX = generator.ElementyRamyRysowane.Min(e => e.Wierzcholki.Min(p => p.X));
-        double shapeMaxX = generator.ElementyRamyRysowane.Max(e => e.Wierzcholki.Max(p => p.X));
-        double shapeMinY = generator.ElementyRamyRysowane.Min(e => e.Wierzcholki.Min(p => p.Y));
-        double shapeMaxY = generator.ElementyRamyRysowane.Max(e => e.Wierzcholki.Max(p => p.Y));
+    //         generator.Szerokosc = (float)(maxX - minX);
+    //         generator.Wysokosc = (float)(maxY - minY);
+    //         generator.Zindeks = 0;
 
-        double shapeWidth = shapeMaxX - shapeMinX;
-        double shapeHeight = shapeMaxY - shapeMinY;
-        double regionWidth = maxX - minX;
-        double regionHeight = maxY - minY;
+    //         var ok = await generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama,
+    //             null, null, _lastMouseClick, false, state.MVCKonfModelu?.KonfModeleElementy?.FirstOrDefault()?.RowIdElement); // w przypadku słupka podaj jego id w state.MVCKonfModelu.KonfModeleElementy.FirstOrDefault().RowIdElement
 
-        double scale = Math.Min(regionWidth / shapeWidth, regionHeight / shapeHeight);
+    //         if (ok != "")
+    //         {
+    //             _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Sprawdź wymiary i kształt regionu. Błąd: {ok}");
+    //         }
+    //     }
+    //     else if (wybranyRegionSkrzydlo != null && !czyRegionZawieraSlupekStaly)
+    //     {
+    //         var regionPoints = wybranyRegionSkrzydlo.Wierzcholki;
+    //         if (regionPoints == null || regionPoints.Count < 3) return;
 
-        double offsetX = minX - shapeMinX * scale;
-        double offsetY = minY - shapeMinY * scale;
+    //         minX = regionPoints.Min(p => p.X);
+    //         maxX = regionPoints.Max(p => p.X);
+    //         minY = regionPoints.Min(p => p.Y);
+    //         maxY = regionPoints.Max(p => p.Y);
 
-        foreach (var ksztalt in generator.ElementyRamyRysowane)
-        {
-            if (ksztalt.Wierzcholki != null)
-            {
-                for (int i = 0; i < ksztalt.Wierzcholki.Count; i++)
-                {
-                    var p = ksztalt.Wierzcholki[i];
-                    ksztalt.Wierzcholki[i] = new XPoint(
-                        p.X * scale + offsetX,
-                        p.Y * scale + offsetY
-                    );
-                }
+    //         generator.Szerokosc = (float)(maxX - minX);
+    //         generator.Wysokosc = (float)(maxY - minY);
+    //         generator.Zindeks = 1;
 
-            }
-        }
+    //         var ok = await generator.AddElements(new List<ShapeRegion> { wybranyRegionSkrzydlo }, idRegion, _generatorStates, _regionsSkrzydlo,
+    //             null, null, _lastMouseClick, false, state.MVCKonfModelu?.KonfModeleElementy?.FirstOrDefault()?.RowIdElement);
 
-        _ksztaltyNaRegion[idRegion] = new List<KsztaltElementu>(generator.ElementyRamyRysowane);
-        ksztalty = _ksztaltyNaRegion.Values.SelectMany(k => k).ToList();
+    //         if (ok != "")
+    //         {
+    //             _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Sprawdź wymiary i kształt regionu. Błąd: {ok}");
+    //         }
+    //     }
+    //     else
+    //     {
+    //         Console.WriteLine($"❌ GenerujElementyDlaRegionu-> Nie znaleziono regionu o ID {idRegion}");
+    //         return;
+    //     }
 
-        // Console.WriteLine($"✅ Wygenerowano elementy dla regionu {idRegion} po skalowaniu.");
-        await Task.CompletedTask;
-    }
+    //     // Skalowanie i przesunięcie jeśli zmieniasz szerokość/wysokość
+    //     double shapeMinX = generator.ElementyRamyRysowane.Min(e => e.Wierzcholki.Min(p => p.X));
+    //     double shapeMaxX = generator.ElementyRamyRysowane.Max(e => e.Wierzcholki.Max(p => p.X));
+    //     double shapeMinY = generator.ElementyRamyRysowane.Min(e => e.Wierzcholki.Min(p => p.Y));
+    //     double shapeMaxY = generator.ElementyRamyRysowane.Max(e => e.Wierzcholki.Max(p => p.Y));
+
+    //     double shapeWidth = shapeMaxX - shapeMinX;
+    //     double shapeHeight = shapeMaxY - shapeMinY;
+    //     double regionWidth = maxX - minX;
+    //     double regionHeight = maxY - minY;
+
+    //     double scale = Math.Min(regionWidth / shapeWidth, regionHeight / shapeHeight);
+
+    //     double offsetX = minX - shapeMinX * scale;
+    //     double offsetY = minY - shapeMinY * scale;
+
+    //     foreach (var ksztalt in generator.ElementyRamyRysowane)
+    //     {
+    //         if (ksztalt.Wierzcholki != null)
+    //         {
+    //             for (int i = 0; i < ksztalt.Wierzcholki.Count; i++)
+    //             {
+    //                 var p = ksztalt.Wierzcholki[i];
+    //                 ksztalt.Wierzcholki[i] = new XPoint(
+    //                     p.X * scale + offsetX,
+    //                     p.Y * scale + offsetY
+    //                 );
+    //             }
+
+    //         }
+    //     }
+
+    //     _ksztaltyNaRegion[idRegion] = new List<KsztaltElementu>(generator.ElementyRamyRysowane);
+    //     ksztalty = _ksztaltyNaRegion.Values.SelectMany(k => k).ToList();
+
+    //     // Console.WriteLine($"✅ Wygenerowano elementy dla regionu {idRegion} po skalowaniu.");
+    //     await Task.CompletedTask;
+    // }
 
     private async Task RenderFrame(bool calculate = true)
     {

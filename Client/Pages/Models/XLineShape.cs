@@ -429,12 +429,12 @@ namespace GEORGE.Client.Pages.Models
                     v => {
                         double parsedValue = ParseExpression(v.ToString());
                         X1 = parsedValue;
-                        if (RuchomySlupek || StalySlupek) X2 = X1;
+                        if (czyPionowa || RuchomySlupek) X2 = X1;
                         EnforceLineType();
                         GeneratePoints();
                     },
                     NazwaObj,
-                    IsReadOnly: RuchomySlupek || StalySlupek,
+                    IsReadOnly: czyPozioma,
                     ShapeId: id)
                 {
                     IsPionowa = czyPionowa,
@@ -449,7 +449,7 @@ namespace GEORGE.Client.Pages.Models
                     v => {
                         double parsedValue = ParseExpression(v.ToString());
                         Y1 = parsedValue;
-                        if (StalySlupek) Y2 = Y1;
+                        if (czyPozioma) Y2 = Y1;
                         EnforceLineType();
 
                         Points = new List<XPoint>
@@ -461,7 +461,7 @@ namespace GEORGE.Client.Pages.Models
                         UpdateSize();
                     },
                     NazwaObj,
-                    IsReadOnly: RuchomySlupek || StalySlupek,
+                    IsReadOnly: RuchomySlupek || czyPionowa,
                     ShapeId: id)
                 {
                     IsPionowa = czyPionowa,
@@ -480,7 +480,7 @@ namespace GEORGE.Client.Pages.Models
                         GeneratePoints();
                     },
                     NazwaObj,
-                    IsReadOnly: RuchomySlupek || StalySlupek,
+                    IsReadOnly: RuchomySlupek || czyPozioma,
                     ShapeId: id)
                 {
                     IsPionowa = czyPionowa,
@@ -499,7 +499,7 @@ namespace GEORGE.Client.Pages.Models
                         GeneratePoints();
                     },
                     NazwaObj,
-                    IsReadOnly: RuchomySlupek || StalySlupek,
+                    IsReadOnly: czyPionowa,
                     ShapeId: id)
                 {
                     IsPionowa = czyPionowa,
@@ -508,20 +508,17 @@ namespace GEORGE.Client.Pages.Models
                     SplitGroupId = splitGroupId
                 },
 
-                new EditableProperty(
+               new EditableProperty(
                     RuchomySlupek ? "Kąt linii" : "Kąt w stopniach ",
                     () => KatLinii,
-                    v => {
-                        EnforceLineType();
-                        GeneratePoints();
-                    },
+                    v => { EnforceLineType(); GeneratePoints(); },
                     NazwaObj,
                     IsReadOnly: true,
                     ShapeId: id)
                 {
-                    IsPionowa = czyPionowa,
-                    IsPozioma = czyPozioma,
-                    IsSkosna = czySkosna,
+                    IsPionowa = false,        // ⭐ Kąt nie jest pionową
+                    IsPozioma = false,        // ⭐ Kąt nie jest poziomą
+                    IsSkosna = false,         // ⭐ Kąt nie jest skośną
                     SplitGroupId = splitGroupId
                 },
             };

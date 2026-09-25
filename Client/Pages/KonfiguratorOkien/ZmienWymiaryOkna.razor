@@ -9,164 +9,397 @@ else
     <EditForm Model="Model">
         <DataAnnotationsValidator />
 
-        <AntDesign.Row Gutter="16">
+        <AntDesign.Tabs DefaultActiveKey="1" Type="@TabType.Line">
 
-            <AntDesign.Col Xs="24" Sm="12">
-                <h5>Wymiary</h5>
+            @* ═══════════════════════════════════════════════════════════ *@
+            @* ZAKŁADKA 1: WYMIARY                                         *@
+            @* ═══════════════════════════════════════════════════════════ *@
+            <AntDesign.TabPane Key="1" Tab="Wymiary">
+                @{
+                    // ⭐ Pokazujemy TYLKO właściwości z gabarytOkna = true
+                    var wymiaryProps = Model.EditableProperties
+                    .Select((p, i) => (Index: i, Prop: p))
+                    .Where(x => x.Prop.gabarytOkna && !x.Prop.systemowa)
+                    .ToList();
+                }
 
-
-@if (Model.EditableProperties != null && Model.EditableProperties.Count > 0)
-{
-    for (int i = 0; i < Model.EditableProperties.Count; i++)
-    {
-        var index = i;
-        var prop = Model.EditableProperties[index];
-
-        <div class="mb-2">
-            @if (!prop.systemowa)
-            {
-                @if (!prop.IsReadOnly)
+                @if (wymiaryProps.Any())
                 {
-                    <label>@prop.Label</label>
-                    <div style="display: flex; align-items: center; gap: 5px;">
-                                        <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
-                                            ValueChanged="@(async (double value) =>
-                                                {
-                                                    var prop = Model.EditableProperties[index];
+                    @foreach (var (index, prop) in wymiaryProps)
+                    {
+                        <div class="mb-3" style="padding: 8px; border-bottom: 1px solid #f0f0f0;">
+                            <label style="font-weight: 500; color: #333; display: block; margin-bottom: 4px;">
+                                @prop.Label
+                            </label>
 
-                                                    // ⭐ Sprawdź, jaki to typ zmiany
-                                                    var label = prop.Label?.ToLower() ?? "";
-                                                    bool czySzerokosc = label.StartsWith("szerokość") && prop.gabarytOkna;
-                                                    bool czyWysokosc = label.StartsWith("wysokość") && prop.gabarytOkna;
-                                                    bool czyPromien = label.StartsWith("promień okna") && prop.gabarytOkna;
-                                                    bool czyKwadrat = label.StartsWith("wymiar okna kwadratowego") && prop.gabarytOkna;
+                            @if (!prop.IsReadOnly)
+                            {
+                                <div style="display: flex; align-items: center; gap: 5px;">
+                                    <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
+                                                           ValueChanged="@(async (double value) =>
+                                                            {
+                                                                var currentProp = Model.EditableProperties[index];
+                                                                var lbl = currentProp.Label?.ToLower() ?? "";
 
-                                                    bool czyWymiar = czySzerokosc || czyWysokosc || czyPromien || czyKwadrat;
+                                                                bool czySzerokosc = lbl.StartsWith("szerokość");
+                                                                bool czyWysokosc = lbl.StartsWith("wysokość");
+                                                                bool czyPromien = lbl.StartsWith("promień okna");
+                                                                bool czyKwadrat = lbl.StartsWith("wymiar okna kwadratowego");
 
-                                                    // Aktualizuj model (zwraca true, jeśli wymiar faktycznie się zmienił)
-                                                    jestZmianaSzerokosci = Model.UpdateEditableProperty(index, value);
+                                                                jestZmianaSzerokosci = Model.UpdateEditableProperty(index, value);
 
-                                                    if (czyWymiar && jestZmianaSzerokosci)
-                                                    {
-                                                    // ⭐ Zmiana wymiaru → rozstaw linie TYLKO w zmienionej osi
-                                                        bool rozstawPionowe = czySzerokosc || czyPromien || czyKwadrat;
-                                                        bool rozstawPoziome = czyWysokosc || czyPromien || czyKwadrat;
+                                                                if (jestZmianaSzerokosci)
+                                                                {
+                                                                    bool rozstawPionowe = czySzerokosc || czyPromien || czyKwadrat;
+                                                                    bool rozstawPoziome = czyWysokosc || czyPromien || czyKwadrat;
 
-                                                        await PodzielLinieSymetrycznieAsync(true,
-                                                            pionowe: rozstawPionowe,
-                                                            poziome: rozstawPoziome);
-                                                    }
-                                                    // ⭐ Zmiana pojedynczej linii → nic nie rób,
-                                                    //    użytkownik świadomie przesuwa linię
+                                                                    await PodzielLinieSymetrycznieAsync(true,
+                                                                        pionowe: rozstawPionowe,
+                                                                        poziome: rozstawPoziome);
+                                                                }
 
-                                                    StateHasChanged();
-                                                })"
+                                                                StateHasChanged();
+                                                            })"
                                            Style="flex: 1;" />
-                        
+
                                     <AntDesign.Button Type="@ButtonType.Default"
-                                                     Icon="calculator"
-                                                     OnClick="@(() => ShowCalculator(index))"
-                                                     Size="small"
-                                                     Style="height: 32px;">
-                                    </AntDesign.Button>
-                                    @if(Model.GetLinia(index))
-                                    {
-                                        <AntDesign.Button Type="@ButtonType.Default"
-                                                         Icon="pic-center"
-                                                         OnClick="@(() => PodzielLinieSymetrycznieAsync())"
-                                                         Size="small"
-                                                         Style="height: 32px;">
-                                        </AntDesign.Button>
-                                    }
-                                    </div>
+                                                        Icon="calculator"
+                                                        OnClick="@(() => ShowCalculator(index))"
+                                                        Size="small"
+                                                        Style="height: 32px;" />
+                                </div>
+                                }
+                            else
+                            {
+                                <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
+                                                       Style="width: 100%;"
+                                                       Disabled="true" />
+                            }
+                        </div>
+                    }
                 }
-                else if(prop.IsReadOnly)
+                else
                 {
-                    <label>@prop.Label</label>
-                    <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
-                                          Style="width: 100%;"
-                                          Disabled="true" />
+                    <p class="text-muted">Brak właściwości wymiarów.</p>
                 }
-            }
-        </div>
-    }
-}
+            </AntDesign.TabPane>
 
-                @* Modal kalkulatora *@
-                <AntDesign.Modal Title="Kalkulator"
-                                 Visible="@_calculatorVisible"
-                                 OnOk="@HandleCalculatorOk"
-                                 OnCancel="@HandleCalculatorCancel"
-                                 Width="350">
-    
-                    <div style="padding: 10px;">
-                        @* Wyświetlacz *@
-                        <div style="background-color: #f0f0f0; padding: 10px; margin-bottom: 10px; 
-                                    text-align: right; font-size: 20px; font-weight: bold; 
-                                    border: 1px solid #d9d9d9; border-radius: 4px; min-height: 40px;">
-                            @(_calculatorExpression.Length > 0 ? _calculatorExpression : "0")
-                        </div>
-        
-                        @* Przyciski kalkulatora *@
-                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;">
-                            @* Rząd 1 *@
-                            <AntDesign.Button OnClick="@(() => AppendToCalculator("7"))" Block>7</AntDesign.Button>
-                            <AntDesign.Button OnClick="@(() => AppendToCalculator("8"))" Block>8</AntDesign.Button>
-                            <AntDesign.Button OnClick="@(() => AppendToCalculator("9"))" Block>9</AntDesign.Button>
-                            <AntDesign.Button OnClick="@(() => AppendToCalculator("/"))" 
-                                             Type="@ButtonType.Primary" Block>÷</AntDesign.Button>
-            
-                            @* Rząd 2 *@
-                            <AntDesign.Button OnClick="@(() => AppendToCalculator("4"))" Block>4</AntDesign.Button>
-                            <AntDesign.Button OnClick="@(() => AppendToCalculator("5"))" Block>5</AntDesign.Button>
-                            <AntDesign.Button OnClick="@(() => AppendToCalculator("6"))" Block>6</AntDesign.Button>
-                            <AntDesign.Button OnClick="@(() => AppendToCalculator("*"))" 
-                                             Type="@ButtonType.Primary" Block>×</AntDesign.Button>
-            
-                            @* Rząd 3 *@
-                            <AntDesign.Button OnClick="@(() => AppendToCalculator("1"))" Block>1</AntDesign.Button>
-                            <AntDesign.Button OnClick="@(() => AppendToCalculator("2"))" Block>2</AntDesign.Button>
-                            <AntDesign.Button OnClick="@(() => AppendToCalculator("3"))" Block>3</AntDesign.Button>
-                            <AntDesign.Button OnClick="@(() => AppendToCalculator("-"))" 
-                                             Type="@ButtonType.Primary" Block>−</AntDesign.Button>
-            
-                            @* Rząd 4 *@
-                            <AntDesign.Button OnClick="@(() => AppendToCalculator("0"))" Block>0</AntDesign.Button>
-                            <AntDesign.Button OnClick="@(() => AppendToCalculator("."))" Block>.</AntDesign.Button>
-                            <AntDesign.Button OnClick="@CalculateResult" 
-                                             Type="@ButtonType.Primary" 
-                                             Style="background-color: #52c41a; border-color: #52c41a;" 
-                                             Block>=</AntDesign.Button>
-                            <AntDesign.Button OnClick="@(() => AppendToCalculator("+"))" 
-                                             Type="@ButtonType.Primary" Block>+</AntDesign.Button>
-            
-                            @* Dodatkowe przyciski *@
-                            <AntDesign.Button OnClick="@ClearCalculator" 
-                                             Type="@ButtonType.Primary" 
-                                             Block>C</AntDesign.Button>
-                            <AntDesign.Button OnClick="@BackspaceCalculator" Block>⌫</AntDesign.Button>
-                            <AntDesign.Button OnClick="@(() => AppendToCalculator("("))" Block>(</AntDesign.Button>
-                            <AntDesign.Button OnClick="@(() => AppendToCalculator(")"))" Block>)</AntDesign.Button>
-                        </div>
-        
-                        @* Przyciski akcji *@
-                        <div style="display: flex; gap: 5px; margin-top: 10px;">
-                            <AntDesign.Button OnClick="@UseCurrentValue" 
-                                             Type="@ButtonType.Default" 
-                                             Block>
-                                Użyj bieżącej wartości
-                            </AntDesign.Button>
-                            <AntDesign.Button OnClick="@ClearCalculator" 
-                                             Type="@ButtonType.Default" 
-                                             Block>
-                                Wyczyść
-                            </AntDesign.Button>
-                        </div>
-                    </div>
-                </AntDesign.Modal>
- 
-                <h5 class="mt-3">Kolorystyka</h5>
+            @* ═══════════════════════════════════════════════════════════ *@
+            @* ZAKŁADKA 2: LINIE (pionowe + poziome + szczegóły)            *@
+            @* ═══════════════════════════════════════════════════════════ *@
+            <AntDesign.TabPane Key="2" Tab="Linie">
+                @{
+                    // ⭐ Zbierz wszystkie właściwości linii
+                    var wszystkieLinie = Model.EditableProperties
+                    .Select((p, i) => (Index: i, Prop: p))
+                    .Where(x => !x.Prop.gabarytOkna &&
+                    !string.IsNullOrEmpty(x.Prop.NazwaObiektu) &&
+                    x.Prop.NazwaObiektu.ToLower().Contains("linia"))
+                    .ToList();
 
+                    // ⭐ Grupuj właściwości po linii (SplitGroupId ?? ShapeId)
+                    var grupyLinii = wszystkieLinie
+                    .GroupBy(x => x.Prop.SplitGroupId ?? x.Prop.ShapeId)
+                    .ToList();
+
+                    // ⭐ Linia pionowa = grupa, która ma właściwość z IsPionowa = true
+                    var liniePionowe = grupyLinii
+                    .Where(g => g.Any(x => x.Prop.IsPionowa))
+                    .ToList();
+
+                    // ⭐ Linia pozioma
+                    var liniePoziome = grupyLinii
+                    .Where(g => g.Any(x => x.Prop.IsPozioma))
+                    .ToList();
+
+                    // ⭐ Linia skośna
+                    var linieSkosne = grupyLinii
+                    .Where(g => g.Any(x => x.Prop.IsSkosna))
+                    .ToList();
+
+                    // ⭐ Diagnostyka
+                    var wszystkieLinieBezFlag = wszystkieLinie
+                    .Where(x => !x.Prop.IsPionowa
+                    && !x.Prop.IsPozioma
+                    && !x.Prop.IsSkosna
+                    && x.Prop.Label?.Trim() != "Kąt w stopniach"
+                    && x.Prop.Label?.Trim() != "Kąt linii")
+                    .ToList();
+                }
+
+                @* ═══════════════════════════════════════════════════════════ *@
+                @* DIAGNOSTYKA — widoczna na górze                                *@
+                @* ═══════════════════════════════════════════════════════════ *@
+                <div style="background: #fffbe6; padding: 8px; margin-bottom: 10px;
+                    border: 1px solid #ffe58f; border-radius: 4px; font-size: 12px;">
+                    🔍 <b>Linie:</b>
+                    wszystkich=@grupyLinii.Count,
+                    pionowe=@liniePionowe.Count,
+                    poziome=@liniePoziome.Count,
+                    skośne=@linieSkosne.Count
+                </div>
+
+                @if (!wszystkieLinie.Any())
+                {
+                    <p class="text-muted">Brak właściwości linii (NazwaObiektu nie zawiera "linia").</p>
+                }
+                else
+                {
+                    @* ═══════════════════════════════════════════════════════════ *@
+                    @* SEKCJA: LINIE PIONOWE                                          *@
+                    @* ═══════════════════════════════════════════════════════════ *@
+                    @if (liniePionowe.Any())
+                    {
+                        <h6 style="margin-top: 10px; color: #1890ff;">
+                            📏 Linie pionowe (@liniePionowe.Count)
+                        </h6>
+
+                        <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                            <AntDesign.Button Type="@ButtonType.Primary"
+                                              Icon="pic-center"
+                                              Size="small"
+                                              OnClick="@(() => PodzielLinieSymetrycznieAsync(false, pionowe: true, poziome: false))">
+                                Rozstaw pionowe
+                            </AntDesign.Button>
+                        </div>
+
+                        <div style="max-height: 400px; overflow-y: auto; padding: 5px; margin-bottom: 15px;">
+
+                            @{
+                                int licznikPion = 0;
+                            }
+
+                            @foreach (var grupa in liniePionowe)
+                            {
+                                licznikPion++;
+
+                                <div style="border: 2px solid #91d5ff; border-radius: 6px;
+                                                padding: 10px; margin-bottom: 12px; background: white;
+                                                box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+
+                                    @* Nagłówek linii *@
+                                    <div style="background: #e6f7ff; padding: 6px 10px; border-radius: 4px;
+                                                    margin-bottom: 10px; display: flex; justify-content: space-between;
+                                                    align-items: center;">
+                                        <b style="color: #1890ff;">📏 Linia pionowa #@licznikPion</b>
+                                        <span style="color: #888; font-size: 11px;">
+                                            ID: @(grupa.Key?.Length >= 8 ? grupa.Key.Substring(0, 8) + "..." : grupa.Key)
+                                        </span>
+                                    </div>
+
+                                    @* Właściwości linii *@
+                                    @foreach (var (index, prop) in grupa.Where(x => !x.Prop.IsReadOnly))
+                                    {
+                                        <div style="padding: 5px; margin-bottom: 6px; border-bottom: 1px dashed #f0f0f0;">
+                                            <label style="font-weight: 500; color: #333; display: block;
+                                                                  margin-bottom: 3px; font-size: 13px;">
+                                                @prop.Label
+                                            </label>
+
+                                            <div style="display: flex; align-items: center; gap: 5px;">
+                                                <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
+                                                                       ValueChanged="@(async (double value) =>
+                                                                        {
+                                                                            Model.UpdateEditableProperty(index, value);
+                                                                            StateHasChanged();
+                                                                        })"
+                                                   Disabled="@prop.IsReadOnly"
+                                                   Style="flex: 1;" />
+
+                                                    <AntDesign.Button Type="@ButtonType.Default"
+                                                                        Icon="calculator"
+                                                                        OnClick="@(() => ShowCalculator(index))"
+                                                                        Size="small"
+                                                                        Style="height: 32px;" />
+                                                </div>
+                                            </div>
+                                        }
+
+                                    @* Właściwości tylko do odczytu (np. Kąt) *@
+                                    @foreach (var (index, prop) in grupa.Where(x => x.Prop.IsReadOnly))
+                                    {
+                                        <div style="padding: 5px; margin-bottom: 6px;">
+                                            <label style="font-weight: 500; color: #888; display: block;
+                                                                  margin-bottom: 3px; font-size: 13px;">
+                                                @prop.Label
+                                            </label>
+
+                                            <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
+                                                                   Style="width: 100%;"
+                                                                   Disabled="true" />
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    @* ═══════════════════════════════════════════════════════════ *@
+                    @* SEKCJA: LINIE POZIOME                                          *@
+                    @* ═══════════════════════════════════════════════════════════ *@
+                    @if (liniePoziome.Any())
+                    {
+                        <h6 style="margin-top: 10px; color: #52c41a;">
+                            📐 Linie poziome (@liniePoziome.Count)
+                        </h6>
+
+                        <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                            <AntDesign.Button Type="@ButtonType.Primary"
+                                              Icon="pic-center"
+                                              Size="small"
+                                              OnClick="@(() => PodzielLinieSymetrycznieAsync(false, pionowe: false, poziome: true))">
+                                Rozstaw poziome
+                            </AntDesign.Button>
+                        </div>
+
+                        <div style="max-height: 400px; overflow-y: auto; padding: 5px; margin-bottom: 15px;">
+
+                            @{
+                                int licznikPoz = 0;
+                            }
+
+                            @foreach (var grupa in liniePoziome)
+                            {
+                                licznikPoz++;
+
+                                <div style="border: 2px solid #b7eb8f; border-radius: 6px;
+                                                padding: 10px; margin-bottom: 12px; background: white;
+                                                box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+
+                                    <div style="background: #f6ffed; padding: 6px 10px; border-radius: 4px;
+                                                    margin-bottom: 10px; display: flex; justify-content: space-between;
+                                                    align-items: center;">
+                                        <b style="color: #52c41a;">📐 Linia pozioma #@licznikPoz</b>
+                                        <span style="color: #888; font-size: 11px;">
+                                            ID: @(grupa.Key?.Length >= 8 ? grupa.Key.Substring(0, 8) + "..." : grupa.Key)
+                                        </span>
+                                    </div>
+
+                                    @foreach (var (index, prop) in grupa.Where(x => !x.Prop.IsReadOnly))
+                                    {
+                                        <div style="padding: 5px; margin-bottom: 6px; border-bottom: 1px dashed #f0f0f0;">
+                                            <label style="font-weight: 500; color: #333; display: block;
+                                                                  margin-bottom: 3px; font-size: 13px;">
+                                                @prop.Label
+                                            </label>
+
+                                            <div style="display: flex; align-items: center; gap: 5px;">
+                                                <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
+                                                                       ValueChanged="@(async (double value) =>
+                                                                        {
+                                                                            Model.UpdateEditableProperty(index, value);
+                                                                            StateHasChanged();
+                                                                        })"
+                                                   Style="flex: 1;" />
+
+                                                <AntDesign.Button Type="@ButtonType.Default"
+                                                                    Icon="calculator"
+                                                                    OnClick="@(() => ShowCalculator(index))"
+                                                                    Size="small"
+                                                                    Style="height: 32px;" />
+                                            </div>
+                                                                                                   </div>
+                                        }
+
+                                    @foreach (var (index, prop) in grupa.Where(x => x.Prop.IsReadOnly))
+                                    {
+                                        <div style="padding: 5px; margin-bottom: 6px;">
+                                            <label style="font-weight: 500; color: #888; display: block;
+                                                                  margin-bottom: 3px; font-size: 13px;">
+                                                @prop.Label
+                                            </label>
+
+                                            <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
+                                                                   Style="width: 100%;"
+                                                                   Disabled="true" />
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    @* ═══════════════════════════════════════════════════════════ *@
+                    @* SEKCJA: LINIE SKOŚNE                                           *@
+                    @* ═══════════════════════════════════════════════════════════ *@
+                    @if (linieSkosne.Any())
+                    {
+                        <h6 style="margin-top: 10px; color: #fa8c16;">
+                            📐 Linie skośne (@linieSkosne.Count)
+                        </h6>
+
+                        <div style="max-height: 400px; overflow-y: auto; padding: 5px; margin-bottom: 15px;">
+
+                            @{
+                                int licznikSko = 0;
+                            }
+
+                            @foreach (var grupa in linieSkosne)
+                            {
+                                licznikSko++;
+
+                                <div style="border: 2px solid #ffd591; border-radius: 6px;
+                                                padding: 10px; margin-bottom: 12px; background: white;
+                                                box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+
+                                    <div style="background: #fff7e6; padding: 6px 10px; border-radius: 4px;
+                                                    margin-bottom: 10px; display: flex; justify-content: space-between;
+                                                    align-items: center;">
+                                        <b style="color: #fa8c16;">📐 Linia skośna #@licznikSko</b>
+                                        <span style="color: #888; font-size: 11px;">
+                                            ID: @(grupa.Key?.Length >= 8 ? grupa.Key.Substring(0, 8) + "..." : grupa.Key)
+                                        </span>
+                                    </div>
+
+                                    @foreach (var (index, prop) in grupa.Where(x => !x.Prop.IsReadOnly))
+                                    {
+                                        <div style="padding: 5px; margin-bottom: 6px; border-bottom: 1px dashed #f0f0f0;">
+                                            <label style="font-weight: 500; color: #333; display: block;
+                                                                  margin-bottom: 3px; font-size: 13px;">
+                                                @prop.Label
+                                            </label>
+
+                                            <div style="display: flex; align-items: center; gap: 5px;">
+                                                <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
+                                                                       ValueChanged="@(async (double value) =>
+                                                                        {
+                                                                            Model.UpdateEditableProperty(index, value);
+                                                                            StateHasChanged();
+                                                                        })"
+                                                   Style="flex: 1;" />
+
+                                                <AntDesign.Button Type="@ButtonType.Default"
+                                                                    Icon="calculator"
+                                                                    OnClick="@(() => ShowCalculator(index))"
+                                                                    Size="small"
+                                                                    Style="height: 32px;" />
+                                                                                                       </div>
+                                                                                                   </div>
+                                        }
+
+                                    @foreach (var (index, prop) in grupa.Where(x => x.Prop.IsReadOnly))
+                                    {
+                                        <div style="padding: 5px; margin-bottom: 6px;">
+                                            <label style="font-weight: 500; color: #888; display: block;
+                                                                  margin-bottom: 3px; font-size: 13px;">
+                                                @prop.Label
+                                            </label>
+
+                                            <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
+                                                                   Style="width: 100%;"
+                                                                   Disabled="true" />
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+            </AntDesign.TabPane>
+            @* ═══════════════════════════════════════════════════════════ *@
+            @* ZAKŁADKA 3: KOLORYSTYKA                                     *@
+            @* ═══════════════════════════════════════════════════════════ *@
+            <AntDesign.TabPane Key="3" Tab="Kolorystyka">
                 <div class="mb-2">
                     <label>Kolor zewnętrzny</label>
                     <AntDesign.Input @bind-Value="Model.KolorZewnetrzny" Style="width: 100%;" />
@@ -181,11 +414,12 @@ else
                     <label>Kolor szyby</label>
                     <AntDesign.Input @bind-Value="Model.KolorSzyby" Style="width: 100%;" />
                 </div>
-            </AntDesign.Col>
+            </AntDesign.TabPane>
 
-            <AntDesign.Col Xs="24" Sm="12">
-                <h5>Szczegóły techniczne</h5>
-
+            @* ═══════════════════════════════════════════════════════════ *@
+            @* ZAKŁADKA 4: SZCZEGÓŁY TECHNICZNE                            *@
+            @* ═══════════════════════════════════════════════════════════ *@
+            <AntDesign.TabPane Key="4" Tab="Szczegóły techniczne">
                 <div class="mb-2">
                     <label>Typ szyby</label>
                     <AntDesign.Input @bind-Value="Model.TypSzyby" Style="width: 100%;" />
@@ -210,41 +444,99 @@ else
                     <label>Typ montażu</label>
                     <AntDesign.Input @bind-Value="Model.TypMontazu" Style="width: 100%;" />
                 </div>
+            </AntDesign.TabPane>
 
-                <h5 class="mt-3">Parametry cieplne</h5>
-
-                 <div style="display: flex; align-items: center; gap: 5px;">
-                    <label>Grubość pakietu</label>
-                    <AntDesign.InputNumber @bind-Value="Model.GruboscPakietu" 
-                                          Style="width: 100%;"
-                                          OnChange="async (float value) => await ZapiszDoRodzica()" />
-                                        <INOUT_KALKULATOR @bind-WynikFloat="Model.GruboscPakietu" _sizeButton="Large"  Naglowek="Grubość pakietu"/>
+            @* ═══════════════════════════════════════════════════════════ *@
+            @* ZAKŁADKA 5: PARAMETRY CIEPLNE                               *@
+            @* ═══════════════════════════════════════════════════════════ *@
+            <AntDesign.TabPane Key="5" Tab="Parametry cieplne">
+                <div style="display: flex; align-items: center; gap: 5px; margin-bottom: 10px;">
+                    <label style="width: 150px;">Grubość pakietu</label>
+                    <AntDesign.InputNumber @bind-Value="Model.GruboscPakietu"
+                                           Style="flex: 1;"
+                                           OnChange="async (float value) => await ZapiszDoRodzica()" />
+                    <INOUT_KALKULATOR @bind-WynikFloat="Model.GruboscPakietu" _sizeButton="Large" Naglowek="Grubość pakietu" />
                 </div>
 
-                 <div style="display: flex; align-items: center; gap: 5px;">
-                    <label>Uw szyby</label>
-                    <AntDesign.InputNumber @bind-Value="Model.WspolczynnikPrzepuszczalnosciCieplaSzyby" 
-                                          Style="width: 100%;"
-                                          OnChange="async (float value) => await ZapiszDoRodzica()" />
-                                          <INOUT_KALKULATOR @bind-WynikFloat="Model.WspolczynnikPrzepuszczalnosciCieplaSzyby" _sizeButton="Large" Naglowek="Uw szyby"/>
+                <div style="display: flex; align-items: center; gap: 5px; margin-bottom: 10px;">
+                    <label style="width: 150px;">Uw szyby</label>
+                    <AntDesign.InputNumber @bind-Value="Model.WspolczynnikPrzepuszczalnosciCieplaSzyby"
+                                           Style="flex: 1;"
+                                           OnChange="async (float value) => await ZapiszDoRodzica()" />
+                    <INOUT_KALKULATOR @bind-WynikFloat="Model.WspolczynnikPrzepuszczalnosciCieplaSzyby" _sizeButton="Large" Naglowek="Uw szyby" />
                 </div>
 
-                 <div style="display: flex; align-items: center; gap: 5px;">
-                    <label>Uw okna</label>
-                    <AntDesign.InputNumber @bind-Value="Model.WspolczynnikPrzepuszczalnosciCieplaOkna" 
-                                          Style="width: 100%;"
-                                          OnChange="async (float value) => await ZapiszDoRodzica()" />
-                                          <INOUT_KALKULATOR @bind-WynikFloat="Model.WspolczynnikPrzepuszczalnosciCieplaOkna" _sizeButton="Large" Naglowek="Uw okna"/>
+                <div style="display: flex; align-items: center; gap: 5px; margin-bottom: 10px;">
+                    <label style="width: 150px;">Uw okna</label>
+                    <AntDesign.InputNumber @bind-Value="Model.WspolczynnikPrzepuszczalnosciCieplaOkna"
+                                           Style="flex: 1;"
+                                           OnChange="async (float value) => await ZapiszDoRodzica()" />
+                    <INOUT_KALKULATOR @bind-WynikFloat="Model.WspolczynnikPrzepuszczalnosciCieplaOkna" _sizeButton="Large" Naglowek="Uw okna" />
                 </div>
-            </AntDesign.Col>
+            </AntDesign.TabPane>
 
-        </AntDesign.Row>
-
+        </AntDesign.Tabs>
     </EditForm>
+
+    @* ═══════════════════════════════════════════════════════════ *@
+    @* MODAL KALKULATORA — POZA EditForm i POZA Tabs               *@
+    @* ═══════════════════════════════════════════════════════════ *@
+    @if (_calculatorVisible)
+    {
+        <AntDesign.Modal Title="Kalkulator"
+                         Visible="true"
+                         OnOk="@HandleCalculatorOk"
+                         OnCancel="@HandleCalculatorCancel"
+                         Width="350">
+            <div style="padding: 10px;">
+                <div style="background-color: #f0f0f0; padding: 10px; margin-bottom: 10px;
+                                                    text-align: right; font-size: 20px; font-weight: bold;
+                                                    border: 1px solid #d9d9d9; border-radius: 4px; min-height: 40px;">
+                    @(_calculatorExpression.Length > 0 ? _calculatorExpression : "0")
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;">
+                    <AntDesign.Button OnClick="@(() => AppendToCalculator("7"))" Block>7</AntDesign.Button>
+                    <AntDesign.Button OnClick="@(() => AppendToCalculator("8"))" Block>8</AntDesign.Button>
+                    <AntDesign.Button OnClick="@(() => AppendToCalculator("9"))" Block>9</AntDesign.Button>
+                    <AntDesign.Button OnClick="@(() => AppendToCalculator("/"))" Type="@ButtonType.Primary" Block>÷</AntDesign.Button>
+
+                    <AntDesign.Button OnClick="@(() => AppendToCalculator("4"))" Block>4</AntDesign.Button>
+                    <AntDesign.Button OnClick="@(() => AppendToCalculator("5"))" Block>5</AntDesign.Button>
+                    <AntDesign.Button OnClick="@(() => AppendToCalculator("6"))" Block>6</AntDesign.Button>
+                    <AntDesign.Button OnClick="@(() => AppendToCalculator("*"))" Type="@ButtonType.Primary" Block>×</AntDesign.Button>
+
+                    <AntDesign.Button OnClick="@(() => AppendToCalculator("1"))" Block>1</AntDesign.Button>
+                    <AntDesign.Button OnClick="@(() => AppendToCalculator("2"))" Block>2</AntDesign.Button>
+                    <AntDesign.Button OnClick="@(() => AppendToCalculator("3"))" Block>3</AntDesign.Button>
+                    <AntDesign.Button OnClick="@(() => AppendToCalculator("-"))" Type="@ButtonType.Primary" Block>−</AntDesign.Button>
+
+                    <AntDesign.Button OnClick="@(() => AppendToCalculator("0"))" Block>0</AntDesign.Button>
+                    <AntDesign.Button OnClick="@(() => AppendToCalculator("."))" Block>.</AntDesign.Button>
+                    <AntDesign.Button OnClick="@CalculateResult" Type="@ButtonType.Primary"
+                                      Style="background-color: #52c41a; border-color: #52c41a;" Block>=</AntDesign.Button>
+                    <AntDesign.Button OnClick="@(() => AppendToCalculator("+"))" Type="@ButtonType.Primary" Block>+</AntDesign.Button>
+
+                    <AntDesign.Button OnClick="@ClearCalculator" Type="@ButtonType.Primary" Block>C</AntDesign.Button>
+                    <AntDesign.Button OnClick="@BackspaceCalculator" Block>⌫</AntDesign.Button>
+                    <AntDesign.Button OnClick="@(() => AppendToCalculator("("))" Block>(</AntDesign.Button>
+                    <AntDesign.Button OnClick="@(() => AppendToCalculator(")"))" Block>)</AntDesign.Button>
+                </div>
+
+                <div style="display: flex; gap: 5px; margin-top: 10px;">
+                    <AntDesign.Button OnClick="@UseCurrentValue" Type="@ButtonType.Default" Block>
+                        Użyj bieżącej wartości
+                    </AntDesign.Button>
+                    <AntDesign.Button OnClick="@ClearCalculator" Type="@ButtonType.Default" Block>
+                        Wyczyść
+                    </AntDesign.Button>
+                </div>
+            </div>
+        </AntDesign.Modal>
+    }
 }
 
 @code {
-
     [Parameter]
     public ConstWlasciwosciOkna? Model { get; set; }
 
@@ -255,10 +547,6 @@ else
 
     public async Task ZapiszDoRodzica()
     {
-        // ⭐ NIE wywołuj PodzielLinieSymetrycznieAsync tutaj.
-        // Użytkownik sam klika przycisk "pic-center" (ikona), żeby rozstawić linie.
-        // Automatyczne wywołanie przy każdym zapisie psuje układ linii.
-
         await OnSave.InvokeAsync(Model);
     }
 
@@ -269,26 +557,20 @@ else
     private void ShowCalculator(int index)
     {
         _currentEditingIndex = index;
+        _calculatorExpression = Model?.GetPropertyValue(index).ToString() ?? "";
         _calculatorVisible = true;
-
-        // Opcjonalnie: załaduj aktualną wartość do kalkulatora
-        if (Model?.EditableProperties != null && index >= 0 && index < Model.EditableProperties.Count)
-        {
-            _calculatorExpression = Model.GetPropertyValue(index).ToString();
-        }
     }
 
     private async Task PodzielLinieSymetrycznieAsync(
-      bool ustawTylkoLinie = false,
-      bool pionowe = true,
-      bool poziome = true)
+        bool ustawTylkoLinie = false,
+        bool pionowe = true,
+        bool poziome = true)
     {
         if (Model?.EditableProperties == null || Model.EditableProperties.Count == 0 || Model == null)
             return;
 
         Console.WriteLine($"📐 PodzielLinie: START, Szerokosc={Model.Szerokosc}, Wysokosc={Model.Wysokosc}, pionowe={pionowe}, poziome={poziome}");
 
-        // ⭐ Grupuj po SplitGroupId ?? ShapeId — segmenty tej samej linii w jednej grupie
         var grupy = Model.EditableProperties
             .Select((p, i) => (Index: i, Prop: p))
             .Where(x => x.Prop.ShapeId != null &&
@@ -303,7 +585,6 @@ else
 
         foreach (var grupa in grupy)
         {
-            // ⭐ W każdej grupie szukaj JEDNEJ właściwości X1 (pionowa) i JEDNEJ Y1 (pozioma)
             var x1Prop = grupa.FirstOrDefault(g => g.Prop.IsPionowa &&
                 (g.Prop.Label?.ToLower().StartsWith("x1") == true ||
                  g.Prop.Label?.ToLower().Contains("w osi x1") == true));
@@ -321,7 +602,6 @@ else
 
         Console.WriteLine($"📐 PodzielLinie: pionowe={liniePionowe.Count}, poziome={liniePoziome.Count}");
 
-        // Rozstaw PIONOWE grupy (każda grupa = jedna linia)
         if (pionowe && liniePionowe.Count > 0 && Model.Szerokosc > 0)
         {
             double odstep = Model.Szerokosc / (liniePionowe.Count + 1);
@@ -335,7 +615,6 @@ else
             }
         }
 
-        // Rozstaw POZIOME grupy
         if (poziome && liniePoziome.Count > 0 && Model.Wysokosc > 0)
         {
             double odstep = Model.Wysokosc / (liniePoziome.Count + 1);
@@ -353,27 +632,18 @@ else
             await ZapiszDoRodzica();
     }
 
-    private void AppendToCalculator(string value)
-    {
-        _calculatorExpression += value;
-    }
-
-    private void ClearCalculator()
-    {
-        _calculatorExpression = "";
-    }
+    private void AppendToCalculator(string value) => _calculatorExpression += value;
+    private void ClearCalculator() => _calculatorExpression = "";
 
     private void BackspaceCalculator()
     {
         if (_calculatorExpression.Length > 0)
-        {
             _calculatorExpression = _calculatorExpression.Substring(0, _calculatorExpression.Length - 1);
-        }
     }
 
     private void UseCurrentValue()
     {
-        if (Model?.EditableProperties != null && _currentEditingIndex >= 0 && 
+        if (Model?.EditableProperties != null && _currentEditingIndex >= 0 &&
             _currentEditingIndex < Model.EditableProperties.Count)
         {
             _calculatorExpression = Model.GetPropertyValue(_currentEditingIndex).ToString();
@@ -386,51 +656,46 @@ else
         {
             if (string.IsNullOrWhiteSpace(_calculatorExpression))
                 return;
-            
-            // Używamy DataTable do obliczenia wyrażenia
+
             var dataTable = new System.Data.DataTable();
             var result = dataTable.Compute(_calculatorExpression.Replace("×", "*").Replace("÷", "/").Replace("−", "-"), null);
             _calculatorExpression = Convert.ToDouble(result).ToString("0.#####");
         }
-        catch (Exception)
+        catch
         {
             _calculatorExpression = "Błąd";
-            // Opcjonalnie: automatycznie wyczyść po chwili
-            Task.Delay(1000).ContinueWith(_ => 
+            Task.Delay(1000).ContinueWith(_ =>
             {
                 _calculatorExpression = "";
                 InvokeAsync(StateHasChanged);
             });
         }
     }
-    
+
     private async Task HandleCalculatorOk()
     {
         if (_currentEditingIndex >= 0 && !string.IsNullOrWhiteSpace(_calculatorExpression))
         {
             try
             {
-                // Oblicz wynik końcowy przed zapisaniem
                 var dataTable = new System.Data.DataTable();
                 var result = dataTable.Compute(_calculatorExpression.Replace("×", "*").Replace("÷", "/").Replace("−", "-"), null);
                 double finalValue = Convert.ToDouble(result);
-                
-                // Aktualizuj właściwość
+
                 Model.UpdateEditableProperty(_currentEditingIndex, finalValue);
                 await ZapiszDoRodzica();
             }
             catch
             {
-                // Jeśli nie można obliczyć, spróbuj zapisać jako string
                 Model.UpdateEditableProperty(_currentEditingIndex, 0);
                 await ZapiszDoRodzica();
             }
         }
-        
+
         _calculatorVisible = false;
         _currentEditingIndex = -1;
     }
-    
+
     private Task HandleCalculatorCancel()
     {
         _calculatorVisible = false;

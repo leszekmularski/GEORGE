@@ -542,11 +542,11 @@ namespace GEORGE.Client.Pages.Models
 
         new EditableProperty("Promień łuku: ", () => Radius, v => { 
             // Promień jest obliczany automatycznie, więc tylko do odczytu
-        }, NazwaObj, true),
+        }, NazwaObj, false, false, false, false, true),
 
         new EditableProperty("Wysokość łuku: ", () => ArcHeight, v => {
             ArcHeight = Math.Clamp(v, 25, Height); // Setter sam przeliczy radius
-        }, NazwaObj),
+        }, NazwaObj, false, false, false, false, true),
 
         new EditableProperty("Podział na elementy: ", () => IloscElementowLuki, v => {
             int newValue = (int)Math.Round(v / 2.0) * 2;

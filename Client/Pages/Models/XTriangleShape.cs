@@ -204,9 +204,9 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         // ---------------------------------------------------------
         public List<EditableProperty> GetEditableProperties() => new()
         {
-            new EditableProperty("Lewa podstawa X: ", () => BaseX1, v => { BaseX1 = v; NominalPoints = GeneratePoints(); ApplyScaleToPoints(); Szerokosc = BaseWidth; Wysokosc = Height; }, NazwaObj),
-            new EditableProperty("Pozycja Y podstawy: ", () => BaseY, v => { BaseY = v; NominalPoints = GeneratePoints(); ApplyScaleToPoints(); Szerokosc = BaseWidth; Wysokosc = Height; }, NazwaObj),
-            new EditableProperty("Szerokość podstawy: ", () => BaseWidth, v => { BaseWidth = v; NominalPoints = GeneratePoints(); ApplyScaleToPoints(); Szerokosc = BaseWidth; Wysokosc = Height; }, NazwaObj),
+            new EditableProperty("Lewa podstawa X: ", () => BaseX1, v => { BaseX1 = v; NominalPoints = GeneratePoints(); ApplyScaleToPoints(); Szerokosc = BaseWidth; Wysokosc = Height; }, NazwaObj, false, false, false, false, true),
+            new EditableProperty("Pozycja Y podstawy: ", () => BaseY, v => { BaseY = v; NominalPoints = GeneratePoints(); ApplyScaleToPoints(); Szerokosc = BaseWidth; Wysokosc = Height; }, NazwaObj, false, false, false, false, true),
+            new EditableProperty("Szerokość podstawy: ", () => BaseWidth, v => { BaseWidth = v; NominalPoints = GeneratePoints(); ApplyScaleToPoints(); Szerokosc = BaseWidth; Wysokosc = Height; }, NazwaObj, false, false, false, false, true),
             new EditableProperty("Wysokość: ", () => Height, v => { Height = v; NominalPoints = GeneratePoints(); ApplyScaleToPoints(); Szerokosc = BaseWidth; Wysokosc = Height; }, NazwaObj, false, false, false, false, true)
         };
 

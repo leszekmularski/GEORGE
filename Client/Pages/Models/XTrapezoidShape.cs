@@ -206,7 +206,7 @@ namespace GEORGE.Client.Pages.Models
         new("Pozycja X: ", () => X, v => X = v, NazwaObj, true, true, false, true, false),
         new("Pozycja Y: ", () => Y, v => Y = v, NazwaObj, true, true,false, true, false),
         new("Szerokość podstawy: ", () => BaseWidth, v => BaseWidth = v, NazwaObj, false, false, false, false, true),
-        new("Szerokość góry: ", () => TopWidth, v => TopWidth = Math.Clamp(v, 10, BaseWidth - 10), NazwaObj),
+        new("Szerokość góry: ", () => TopWidth, v => TopWidth = Math.Clamp(v, 10, BaseWidth - 10), NazwaObj, false, false, false, false, true),
         new("Wysokość: ", () => Height, v => Height = v, NazwaObj, false, false, false, false, true)
     };
 
