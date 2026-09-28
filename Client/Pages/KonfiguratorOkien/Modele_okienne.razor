@@ -1888,7 +1888,7 @@
     }
 
     //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    private async Task GenerujObrysPozZmianieWymiarow(bool generujRegionyZPodzialu, bool recznaZmiana)
+    private async Task GenerujObrysPozZmianieWymiarow(bool generujRegionyZPodzialu, bool recznaZmiana, bool przeliczObszarponownie = false)
     {
         if (ShapeService == null || !ShapeService.Shapes.Any())
         {
@@ -1916,7 +1916,7 @@
             await Task.Yield();
 
             // 3. Skalowanie — TYLKO przy pierwszym skalowaniu
-            if (generujRegionyZPodzialu && constWlasciwosciOkna != null)
+            if (generujRegionyZPodzialu && constWlasciwosciOkna != null || przeliczObszarponownie)
             {
                 double nowaSzer = constWlasciwosciOkna.Szerokosc;
                 double nowaWys = constWlasciwosciOkna.Wysokosc;
@@ -2730,7 +2730,7 @@
             _czekajNaZaladowanie = true;
 
             await zmienWymiaryOknaRef.ZapiszDoRodzica();  // → PrzyjmijZmiany
-            await ZmienWymiaryOkna();
+            await ZmienWymiaryOkna(true, true);
             await OnlyRestrykcje();
         }
         catch (Exception ex)
@@ -4163,7 +4163,7 @@
 
     private bool _zmienWymiaryWToku = false;
 
-    private async Task ZmienWymiaryOkna(bool regenerujShapeService = true)
+    private async Task ZmienWymiaryOkna(bool regenerujShapeService = true, bool przeliczObszarponownie = false)
     {
         if (_zmienWymiaryWToku)
         {
@@ -4203,7 +4203,9 @@
             }
 
             // 2. Wygeneruj obrys + regiony RAZ
-            await GenerujObrysPozZmianieWymiarow(true, true);
+   
+            await GenerujObrysPozZmianieWymiarow(true, true, przeliczObszarponownie);
+
 
             await Task.Yield();
 
