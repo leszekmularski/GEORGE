@@ -2216,10 +2216,10 @@ namespace GEORGE.Client.Pages.Okna
                     //    Y = tmpTopST5.Y + vyT5 * polowaSzerokosci
                     //};
 
-                    //foreach (var punkt in punktyRegionuMaster)
-                    //{
-                    //    Console.WriteLine($"🔷 T5-T5 punktyRegionuMaster: #2 X={punkt.X}, Y={punkt.Y}");
-                    //}
+                    foreach (var punkt in punktyRegionuMaster)
+                    {
+                        Console.WriteLine($"🔷 T5-T5 punktyRegionuMaster: #2 X={punkt.X}, Y={punkt.Y}");
+                    }
 
                     if (daneKwadratu != null)
                     {
@@ -2258,23 +2258,42 @@ namespace GEORGE.Client.Pages.Okna
                         ?.Wierzcholki
                         ?.ToList() ?? new List<XPoint>();
 
-
+                    // Offset
                     TopXT5 = ApplyOffsetToPointST(TopXT5, liniaT5, daneKwadratu);
-               
                     BottomXT5 = ApplyOffsetToPointST(BottomXT5, liniaT5, daneKwadratu);
 
-                    // Przygotuj zmodyfikowaną listę punktów regionu master a w nim punktyRegionuMasterModyfikowane, które są przesunięte wzdłuż wektora prostopadłego do linii T5-T5 
-                    // z uwzględnieniem szerokości słupka i położenia osi symetrii oraz offsetów w systemie
-                    var punkyRegionuMasterModyfikowane = PrepareRegionPoints(TopXT5, BottomXT5, punktyRegionuMaster);
+                    bool stronaA = daneKwadratu
+                        .FirstOrDefault(x => x.SasiadSlupekStronaA) != null;
+
+                    bool stronaB = daneKwadratu
+                        .FirstOrDefault(x => x.SasiadSlupekStronaB) != null;
+
+                    // Wywołaj PrepareRegionPoints z flagami
+                    List<XPoint> punktyRegionuMasterModyfikowane;
+
+                    if (!stronaA && !stronaB)
+                    {
+                        punktyRegionuMasterModyfikowane = punktyRegionuMaster; // Jeśli nie ma sąsiadów, użyj oryginalnych punktów
+                    }
+                    else
+                    {
+                        punktyRegionuMasterModyfikowane = PrepareRegionPoints(
+                        TopXT5,
+                        BottomXT5,
+                        punktyRegionuMaster,
+                        stronaA,
+                        stronaB);
+                    }
+
 
                     // Teraz znajdź przecięcia z konturem
-                    XPoint leftTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopLT5, TopXT5, BottomXT5, punkyRegionuMasterModyfikowane, forward: false);
-                    XPoint midTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopST5, TopXT5, BottomXT5, punkyRegionuMasterModyfikowane, forward: false);
-                    XPoint rightTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopRT5, TopXT5, BottomXT5, punkyRegionuMasterModyfikowane, forward: false);
+                    XPoint leftTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopLT5, TopXT5, BottomXT5, punktyRegionuMasterModyfikowane, forward: false);
+                    XPoint midTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopST5, TopXT5, BottomXT5, punktyRegionuMasterModyfikowane, forward: false);
+                    XPoint rightTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopRT5, TopXT5, BottomXT5, punktyRegionuMasterModyfikowane, forward: false);
 
-                    XPoint leftBottomIntersection = FindFirstEdgeIntersectionByVector(tmpTopLT5, TopXT5, BottomXT5, punkyRegionuMasterModyfikowane, forward: true);
-                    XPoint midBottomIntersection = FindFirstEdgeIntersectionByVector(tmpTopST5, TopXT5, BottomXT5, punkyRegionuMasterModyfikowane, forward: true);
-                    XPoint rightBottomIntersection = FindFirstEdgeIntersectionByVector(tmpTopRT5, TopXT5, BottomXT5, punkyRegionuMasterModyfikowane, forward: true);
+                    XPoint leftBottomIntersection = FindFirstEdgeIntersectionByVector(tmpTopLT5, TopXT5, BottomXT5, punktyRegionuMasterModyfikowane, forward: true);
+                    XPoint midBottomIntersection = FindFirstEdgeIntersectionByVector(tmpTopST5, TopXT5, BottomXT5, punktyRegionuMasterModyfikowane, forward: true);
+                    XPoint rightBottomIntersection = FindFirstEdgeIntersectionByVector(tmpTopRT5, TopXT5, BottomXT5, punktyRegionuMasterModyfikowane, forward: true);
 
                     // Prawidłowe przypisanie nazw (poprawione!)
                     var TopLT5 = leftTopIntersection;      // Lewy górny
@@ -2778,37 +2797,168 @@ namespace GEORGE.Client.Pages.Okna
             };
         }
 
-        private List<XPoint> PrepareRegionPoints(XPoint top, XPoint bottom, List<XPoint> source)
+        /// <summary>
+        /// Przycina kontur source do odcinka top–bottom, ale TYLKO dla tych końców,
+        /// które zostały zmienione (topZmieniony / bottomZmieniony).
+        ///
+        /// - topZmieniony    == false → punkty z t < 0 pozostają bez zmian
+        /// - bottomZmieniony == false → punkty z t > alen pozostają bez zmian
+        /// - topZmieniony    == true  → punkty z t < 0 są przycinane do t = 0
+        /// - bottomZmieniony == true  → punkty z t > alen są przycinane do t = alen
+        /// </summary>
+        private List<XPoint> PrepareRegionPoints(
+            XPoint top,
+            XPoint bottom,
+            List<XPoint> source,
+            bool topZmieniony,
+            bool bottomZmieniony,
+            bool enableLogs = false)
         {
             if (source == null || source.Count == 0)
+            {
+                if (enableLogs)
+                    Console.WriteLine("🟡 PrepareRegionPoints: source == null lub pusty – zwracam pustą listę");
                 return new List<XPoint>();
-
-            double dx = bottom.X - top.X;
-            double dy = bottom.Y - top.Y;
-            bool isVertical = Math.Abs(dy) >= Math.Abs(dx);
-
-            if (isVertical)
-            {
-                double minY = Math.Min(top.Y, bottom.Y);
-                double maxY = Math.Max(top.Y, bottom.Y);
-
-                return source.Select(p => new XPoint
-                {
-                    X = p.X,
-                    Y = p.Y < minY ? minY : (p.Y > maxY ? maxY : p.Y)
-                }).ToList();
             }
-            else
-            {
-                double minX = Math.Min(top.X, bottom.X);
-                double maxX = Math.Max(top.X, bottom.X);
 
-                return source.Select(p => new XPoint
-                {
-                    X = p.X < minX ? minX : (p.X > maxX ? maxX : p.X),
-                    Y = p.Y
-                }).ToList();
+            // ====== SZYBKI WYJŚCIE – nic się nie zmieniło ======
+            if (!topZmieniony && !bottomZmieniony)
+            {
+                if (enableLogs)
+                    Console.WriteLine("🟦 PrepareRegionPoints – POMINIĘTE (brak zmian w TopXT5 / BottomXT5)");
+
+                return source.Select(p => new XPoint(p.X, p.Y)).ToList();
             }
+
+            // ====== LOG WEJŚCIA ======
+            if (enableLogs)
+            {
+                Console.WriteLine("═══════════════════════════════════════════════");
+                Console.WriteLine("🟦 PrepareRegionPoints – START");
+                Console.WriteLine($"   top             = ({top.X:F3}, {top.Y:F3})");
+                Console.WriteLine($"   bottom          = ({bottom.X:F3}, {bottom.Y:F3})");
+                Console.WriteLine($"   topZmieniony    = {topZmieniony}");
+                Console.WriteLine($"   bottomZmieniony = {bottomZmieniony}");
+                Console.WriteLine($"   source.Count    = {source.Count}");
+                Console.WriteLine("   source (przed):");
+                for (int i = 0; i < source.Count; i++)
+                    Console.WriteLine($"     [{i}] ({source[i].X:F3}, {source[i].Y:F3})");
+            }
+
+            // ====== GEOMETRIA OSI ======
+            double ax = bottom.X - top.X;
+            double ay = bottom.Y - top.Y;
+            double alenSq = ax * ax + ay * ay;
+
+            if (alenSq < 1e-12)
+            {
+                if (enableLogs)
+                    Console.WriteLine("🟠 PrepareRegionPoints: oś zerowej długości – zwracam kopię źródła");
+
+                return source.Select(p => new XPoint(p.X, p.Y)).ToList();
+            }
+
+            double alen = Math.Sqrt(alenSq);
+            double ux = ax / alen;   // jednostkowy wzdłuż osi
+            double uy = ay / alen;
+
+            // Normalna prostopadła
+            double nx = -uy;
+            double ny = ux;
+
+            // Zakres klampowania wzdłuż osi
+            double tMin = 0.0;
+            double tMax = alen;
+
+            // ====== LOG DECYZJI ======
+            if (enableLogs)
+            {
+                Console.WriteLine("───────────────────────────────────────────────");
+                Console.WriteLine($"   alen       = {alen:F6}");
+                Console.WriteLine($"   ux, uy     = ({ux:F6}, {uy:F6})");
+                Console.WriteLine($"   nx, ny     = ({nx:F6}, {ny:F6})");
+                Console.WriteLine($"   tMin, tMax = ({tMin:F3}, {tMax:F3})");
+
+                string aktywnaGora = topZmieniony ? "AKTYWNE (klampuj t<0)" : "POMINIĘTE (t<0 bez zmian)";
+                string aktywnyDol = bottomZmieniony ? "AKTYWNE (klampuj t>alen)" : "POMINIĘTE (t>alen bez zmian)";
+
+                Console.WriteLine($"   GÓRA (t<0)     : {aktywnaGora}");
+                Console.WriteLine($"   DÓŁ  (t>alen)  : {aktywnyDol}");
+                Console.WriteLine("───────────────────────────────────────────────");
+            }
+
+            // ====== PRZETWARZANIE PUNKTÓW ======
+            var result = new List<XPoint>(source.Count);
+
+            int ileGora = 0;
+            int ileDol = 0;
+            int ileBezZmian = 0;
+
+            for (int i = 0; i < source.Count; i++)
+            {
+                var p = source[i];
+
+                // Współrzędne w układzie osi (względem top)
+                double vx = p.X - top.X;
+                double vy = p.Y - top.Y;
+
+                double t = vx * ux + vy * uy;   // wzdłuż osi
+                double s = vx * nx + vy * ny;   // w poprzek osi
+
+                double tClamped = t;
+                string powod = null;
+
+                // === GÓRA: klampuj tylko jeśli topZmieniony ===
+                if (topZmieniony && t < tMin)
+                {
+                    tClamped = tMin;
+                    powod = "GÓRA";
+                    ileGora++;
+                }
+
+                // === DÓŁ: klampuj tylko jeśli bottomZmieniony ===
+                if (bottomZmieniony && t > tMax)
+                {
+                    tClamped = tMax;
+                    powod = "DÓŁ";
+                    ileDol++;
+                }
+
+                // === Jeśli żadna flaga nie zadziałała – punkt bez zmian ===
+                if (powod == null)
+                    ileBezZmian++;
+
+                bool changed = Math.Abs(tClamped - t) > 1e-9;
+
+                // Odtworzenie punktu
+                var q = new XPoint(
+                    top.X + tClamped * ux + s * nx,
+                    top.Y + tClamped * uy + s * ny
+                );
+
+                result.Add(q);
+
+                if (enableLogs && changed)
+                {
+                    Console.WriteLine(
+                        $"   [{i}] ({p.X:F3}, {p.Y:F3})  t={t,10:F3}  s={s,10:F3}  →  " +
+                        $"PRZYCIĘTY ({q.X:F3}, {q.Y:F3})  [{powod}, t={tClamped:F3}]");
+                }
+            }
+
+            // ====== LOG WYJŚCIA ======
+            if (enableLogs)
+            {
+                Console.WriteLine("───────────────────────────────────────────────");
+                Console.WriteLine($"   Podsumowanie: przycięto GÓRA={ileGora}, DÓŁ={ileDol}, bez zmian={ileBezZmian}");
+                Console.WriteLine("   result (po):");
+                for (int i = 0; i < result.Count; i++)
+                    Console.WriteLine($"     [{i}] ({result[i].X:F3}, {result[i].Y:F3})");
+                Console.WriteLine("🟩 PrepareRegionPoints – KONIEC");
+                Console.WriteLine("═══════════════════════════════════════════════");
+            }
+
+            return result;
         }
 
         /// <summary>
@@ -5634,6 +5784,7 @@ namespace GEORGE.Client.Pages.Okna
 
             return closest.Value;
         }
+
         // Tworzy offset zamkniętego konturu do środka o zadaną wartość
 
         private XPoint FindFirstEdgeIntersectionByAngle(

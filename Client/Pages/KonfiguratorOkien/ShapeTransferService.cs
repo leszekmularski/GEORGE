@@ -8,7 +8,7 @@
         public double Szerokosc { get; set; } = 0;
         public double Wysokosc { get; set; } = 0;
         public bool RysujTylkoKontur { get; set; } = false;
-        public bool OknaMogaBycLukowe { get; set; } = false;
+        public bool OknaMogaBycLukowe { get; set; } = true;
         public List<EditableProperty> EditableProperties { get; set; } = new();
 
         public void UpdateShapes(List<IShapeDC> shapes, double szerokosc, double wysokosc)

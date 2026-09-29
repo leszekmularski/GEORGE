@@ -38,6 +38,7 @@ public class ZwrocSatusController : Controller
                     Zapis = x.Uprawnienie.Zapis,
                     Zmiana = x.Uprawnienie.Zmiana,
                     Usuniecie = x.Uprawnienie.Usuniecie,
+                    PlikiUkryte = x.Uprawnienie.PlikiUkryte,
                     Administrator = x.Uprawnienie.Administrator,
                     RowIdRejestrejestrow = x.Uprawnienie.RowIdRejestrejestrow,
                     Uwagi = x.Uprawnienie.Uwagi,

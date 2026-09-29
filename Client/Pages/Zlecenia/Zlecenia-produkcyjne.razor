@@ -901,7 +901,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
             }
 
             iloscPrzefiltrowanych = wynik.Count();
-           
+
             return wynik;
         }
     }
@@ -1147,6 +1147,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
                     // Filtruj pliki, jeśli użytkownik nie jest administratorem
                     if (!boolAdmin)
                     {
+                        if (!boolPlikiUkryte)
                         fileList = fileList.Where(p => p.WidocznyDlaWszystkich).ToList();
                     }
 
@@ -1404,7 +1405,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
                         czekajNaPobranie = false;
 
                         _message.Success($"Plik został pobrany i zapisany: {oryginalfileName}", 5);
-   
+
 
                         await ZwiekszLicznikPobranPliku(id);
                     }
@@ -1952,7 +1953,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
         }
         //NazwaRejestru = WebUtility.UrlEncode(NazwaRejestru);
 
-       if (e.FileCount > 10)
+        if (e.FileCount > 10)
         {
             bladZapisuPliku = $"Nie można dodać więcej niż 10 plików. Zaznaczono: {e.FileCount}";
             await OpenWithPlacement(NotificationPlacement.TopLeft, bladZapisuPliku);
@@ -1974,7 +1975,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
             Console.WriteLine($"api/FileUploadZlec/upload/{zlecenie.RowId}/{tmpFileName}");
 
             // 🔑 pobierz token z localStorage
-             var token = await LocalStorage.GetStringAsync("authToken");
+            var token = await LocalStorage.GetStringAsync("authToken");
 
             // 🔎 sprawdź datę ważności
             if (!string.IsNullOrWhiteSpace(token))
@@ -2112,6 +2113,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
     private bool boolNowy = false;
     private bool boolUsuniecia = false;
     private bool boolAdmin = false;
+    private bool boolPlikiUkryte = false;
     private string RowIdPracownika = "";
     private string? user;
     private bool isNotDisabled => !boolZmiana;
@@ -2163,6 +2165,8 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
                         boolAdmin = szuk.Administrator;
                         boolNowy = szuk.Zapis;
                         RowIdPracownika = szuk.RowId;
+                        boolPlikiUkryte = szuk.PlikiUkryte;
+
                     }
                 }
             }

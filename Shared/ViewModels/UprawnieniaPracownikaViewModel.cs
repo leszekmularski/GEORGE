@@ -5,6 +5,7 @@
     public bool Zapis { get; set; }
     public bool Zmiana { get; set; }
     public bool Usuniecie { get; set; }
+    public bool PlikiUkryte { get; set; }
     public bool Administrator { get; set; }
     public string? TableName { get; set; }
     public string? RowId { get; set; }

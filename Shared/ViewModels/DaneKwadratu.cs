@@ -21,6 +21,9 @@ namespace GEORGE.Shared.ViewModels
         public double OffsetRight { get; set; } = 0;
         public bool BoolElementLinia { get; set; } = false; //czy element jest linią
 
+        public bool SasiadSlupekStronaA { get; set; } = false; //czy sąsiad strona A jest słupkiem
+        public bool SasiadSlupekStronaB { get; set; } = false; //czy sąsiad strona B jest słupkiem
+
         // Dodaj te właściwości jeśli są potrzebne:
         public string? TypKsztaltu { get; set; }
         public string? WypelnienieWewnetrzne { get; set; }
@@ -111,6 +114,8 @@ namespace GEORGE.Shared.ViewModels
                 GruboscObramowania = this.GruboscObramowania,
                 ZIndex = this.ZIndex,
                 SasiadStronaAB = this.SasiadStronaAB,
+                SasiadSlupekStronaA = this.SasiadSlupekStronaA,
+                SasiadSlupekStronaB = this.SasiadSlupekStronaB,
                 wyborSasiadOK = this.wyborSasiadOK,
                 LiniaStala = this.LiniaStala?
                     .Select(p => new XPoint(p.X, p.Y)).ToList()

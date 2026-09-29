@@ -143,7 +143,8 @@ else
                                     <th> Zapis </th>
                                     <th>-Zmiana-</th>
                                     <th> Usunięcie </th>
-                                    <th>-Administrator-</th>
+                                    <th>-Pokaż Pliki Ukryte-</th>
+                                    <th>Administrator-</th>
                                     <th>Dotyczy tabeli</th>
                                     <th>Uwagi</th>
                                     <th>Data utworzenia</th>
@@ -174,6 +175,7 @@ else
                                     <td><input type="checkbox" @bind="@pracownikupr.Zapis" style="width: 100%;" /></td>
                                     <td><input type="checkbox" @bind="@pracownikupr.Zmiana" style="width: 100%;" /></td>
                                     <td><input type="checkbox" @bind="@pracownikupr.Usuniecie" style="width: 100%;" /></td>
+                                    <td><input type="checkbox" @bind="@pracownikupr.PlikiUkryte" style="width: 100%;" /></td>
                                     <td><input type="checkbox" @bind="@pracownikupr.Administrator" style="width: 100%;" /></td>
                                     <td><input type="text" @bind="@pracownikupr.TableName" style="width: 100%;" readonly /></td>
                                     <td><input type="text" @bind="@pracownikupr.Uwagi" style="width: 100%;" /></td>
@@ -554,6 +556,7 @@ else
                 Zapis = uprawnienia.Zapis,
                 Zmiana = uprawnienia.Zmiana,
                 Usuniecie = uprawnienia.Usuniecie,
+                PlikiUkryte = uprawnienia.PlikiUkryte,
                 Administrator = uprawnienia.Administrator,
                 RowIdRejestrejestrow = uprawnienia.RowIdRejestrejestrow,
                 Uwagi = uprawnienia.Uwagi,

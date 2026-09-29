@@ -58,6 +58,7 @@ namespace GEORGE.Server.Controllers
                         x.Uprawnienie.Zapis,
                         x.Uprawnienie.Zmiana,
                         x.Uprawnienie.Usuniecie,
+                        x.Uprawnienie.PlikiUkryte,
                         x.Uprawnienie.Administrator,
                         x.Uprawnienie.RowIdRejestrejestrow,
                         x.Uprawnienie.Uwagi,

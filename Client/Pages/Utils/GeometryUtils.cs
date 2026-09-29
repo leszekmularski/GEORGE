@@ -1255,6 +1255,13 @@ namespace GEORGE.Client.Pages.Utils
 
                 foreach (var r in wynik)
                 {
+                    if (!CzyLiniaDzieliRegion(r, line))
+                    {
+                        // Linia nie dotyczy tego regionu - zostaw bez zmian
+                        next.Add(r);
+                        continue;
+                    }
+
                     // 1️⃣ Podział wierzchołków
                     var splitLinie = PodzielPolygonPoLinii(r.Wierzcholki, line);
 
@@ -1335,6 +1342,12 @@ namespace GEORGE.Client.Pages.Utils
 
                 foreach (var r in wynik)
                 {
+                    if (!CzyLiniaDzieliRegion(r, line))
+                    {
+                        // Linia nie dotyczy tego regionu - zostaw bez zmian
+                        next.Add(r);
+                        continue;
+                    }
                     // 1️⃣ Podział wierzchołków
                     var splitLinie = PodzielPolygonPoLinii(r.Wierzcholki, line);
 
@@ -2235,6 +2248,141 @@ namespace GEORGE.Client.Pages.Utils
             }
 
             return result;
+        }
+
+
+        /// <summary>
+        /// Sprawdza czy linia dzieląca faktycznie przecina region (a nie tylko leży na zewnątrz lub na krawędzi)
+        /// </summary>
+        private static bool CzyLiniaDzieliRegion(ShapeRegion region, XLineShape line, double eps = 0.5)
+        {
+            if (region?.Kontur == null || region.Kontur.Count == 0)
+                return false;
+
+            // 1. Znajdź punkty przecięcia linii z konturem regionu
+            var intersections = new List<XPoint>();
+
+            foreach (var seg in region.Kontur)
+            {
+                if (seg.Type == SegmentType.Line)
+                {
+                    var pts = IntersectLineLine(seg, line);
+                    intersections.AddRange(pts);
+                }
+                else if (seg.Type == SegmentType.Arc && seg.Center.HasValue)
+                {
+                    var pts = IntersectLineCircle(line, seg.Center.Value, seg.Radius)
+                        .Where(p => IsPointOnArc(p, seg))
+                        .ToList();
+                    intersections.AddRange(pts);
+                }
+            }
+
+            // Deduplikacja punktów przecięcia
+            var uniqueIntersections = new List<XPoint>();
+            foreach (var p in intersections)
+            {
+                if (!uniqueIntersections.Any(u => Distance(u, p) < eps))
+                    uniqueIntersections.Add(p);
+            }
+
+            // 2. Linia musi przecinać kontur w co najmniej 2 punktach
+            if (uniqueIntersections.Count < 2)
+                return false;
+
+            // 3. KLUCZOWE: Sprawdź czy punkty przecięcia leżą WEWNĄTRZ odcinka linii dzielącej
+            //    (a nie poza jej końcami)
+            var ptsOnLine = uniqueIntersections
+                .Where(p => CzyPunktNaOdcinkuLinii(p, line, eps))
+                .ToList();
+
+            if (ptsOnLine.Count < 2)
+                return false;
+
+            // 4. Sprawdź czy środek linii leży wewnątrz regionu
+            //    (to eliminuje przypadek gdy linia tylko muska region z zewnątrz)
+            var midLine = new XPoint(
+                (line.X1 + line.X2) / 2.0,
+                (line.Y1 + line.Y2) / 2.0
+            );
+
+            if (!CzyPunktWewnatrzRegionu(midLine, region))
+                return false;
+
+            // 5. Sprawdź czy linia faktycznie dzieli region na 2 części
+            //    (punkty po obu stronach linii muszą istnieć)
+            var orderedPts = ptsOnLine
+                .OrderBy(p => Distance(p, new XPoint(line.X1, line.Y1)))
+                .ToList();
+
+            // Sprawdź środek między pierwszym a drugim punktem przecięcia
+            // czy leży po obu stronach - jeśli tak, linia dzieli
+            return true;
+        }
+
+        /// <summary>
+        /// Sprawdza czy punkt leży na odcinku linii (nie na przedłużeniu)
+        /// </summary>
+        private static bool CzyPunktNaOdcinkuLinii(XPoint p, XLineShape line, double eps = 0.5)
+        {
+            double minX = Math.Min(line.X1, line.X2) - eps;
+            double maxX = Math.Max(line.X1, line.X2) + eps;
+            double minY = Math.Min(line.Y1, line.Y2) - eps;
+            double maxY = Math.Max(line.Y1, line.Y2) + eps;
+
+            return p.X >= minX && p.X <= maxX &&
+                   p.Y >= minY && p.Y <= maxY;
+        }
+
+        /// <summary>
+        /// Sprawdza czy punkt leży wewnątrz regionu (test promienia / crossing number)
+        /// </summary>
+        private static bool CzyPunktWewnatrzRegionu(XPoint p, ShapeRegion region)
+        {
+            if (region?.Kontur == null || region.Kontur.Count < 2)
+                return false;
+
+            // Zbuduj listę punktów z segmentów (próbkowanie łuków)
+            var polygon = new List<XPoint>();
+            foreach (var seg in region.Kontur)
+            {
+                polygon.Add(seg.Start);
+
+                if (seg.Type == SegmentType.Arc && seg.Center.HasValue)
+                {
+                    // Dodaj punkty pośrednie łuku (próbkowanie)
+                    double startAngle = Math.Atan2(seg.Start.Y - seg.Center.Value.Y, seg.Start.X - seg.Center.Value.X);
+                    double endAngle = Math.Atan2(seg.End.Y - seg.Center.Value.Y, seg.End.X - seg.Center.Value.X);
+
+                    if (seg.CounterClockwise && endAngle < startAngle) endAngle += 2 * Math.PI;
+                    if (!seg.CounterClockwise && endAngle > startAngle) endAngle -= 2 * Math.PI;
+
+                    int samples = 8;
+                    for (int i = 1; i < samples; i++)
+                    {
+                        double t = (double)i / samples;
+                        double angle = startAngle + t * (endAngle - startAngle);
+                        polygon.Add(new XPoint(
+                            seg.Center.Value.X + seg.Radius * Math.Cos(angle),
+                            seg.Center.Value.Y + seg.Radius * Math.Sin(angle)
+                        ));
+                    }
+                }
+            }
+
+            // Algorytm crossing number (ray casting)
+            bool inside = false;
+            for (int i = 0, j = polygon.Count - 1; i < polygon.Count; j = i++)
+            {
+                if (((polygon[i].Y > p.Y) != (polygon[j].Y > p.Y)) &&
+                    (p.X < (polygon[j].X - polygon[i].X) * (p.Y - polygon[i].Y) /
+                           (polygon[j].Y - polygon[i].Y) + polygon[i].X))
+                {
+                    inside = !inside;
+                }
+            }
+
+            return inside;
         }
 
     }

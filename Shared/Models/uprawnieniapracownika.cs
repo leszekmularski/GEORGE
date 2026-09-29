@@ -18,6 +18,7 @@ namespace GEORGE.Shared.Models
         public bool Zapis { get; set; }
         public bool Zmiana { get; set; }
         public bool Usuniecie { get; set; }
+        public bool PlikiUkryte { get; set; } = false;
         public bool Administrator { get; set; }
         public string? Uwagi { get; set; }
         public DateTime Datautowrzenia { get; set; }

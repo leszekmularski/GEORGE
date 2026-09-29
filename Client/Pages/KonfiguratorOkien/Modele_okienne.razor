@@ -1595,6 +1595,7 @@
     private bool _pierwszeSkalowanieZakonczone = false;
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        
         if (firstRender && CanvasRef != null && !_disposed)
         {
             try
@@ -1618,7 +1619,6 @@
                     _dotNetHelper = DotNetObjectReference.Create(this);
                     await JS.InvokeVoidAsync("setDotNetHelper", _dotNetHelper);
                 }
-
 
                 if (ShapeService != null && ShapeService.Shapes.Any())
                 {
@@ -1655,6 +1655,7 @@
                     await GenerujObrysPozZmianieWymiarow(true, false);
                     await ZmienWymiaryOkna();
                     await FitShapesToDisplayWindow();
+              
                 }
                 else
                 {
@@ -1663,6 +1664,7 @@
                 }
 
                 await Task.Yield();
+
                 _isInitialized = true;
 
                 Console.WriteLine("✅ Canvas zainicjalizowany!");
@@ -1817,6 +1819,7 @@
 
             CanvasWidth = (long)width * 5;
             CanvasHeight = (long)height * 5;
+
 
             if (ShapeService != null && ShapeService.Shapes.Any())
             {
@@ -3714,7 +3717,7 @@
             Console.WriteLine($"🔴 Test linii {region.Id}: ({p1.X:F2},{p1.Y:F2}) -> ({p2.X:F2},{p2.Y:F2})");
 
             // Tolerancja dla linii - można dostosować
-            double tolerance = 20 / _aktywnaSkala;
+            double tolerance = 26 / _aktywnaSkala;
             Console.WriteLine($"   Tolerance: {tolerance:F4}");
 
             if (IsPointNearLine(
@@ -5196,6 +5199,8 @@
                 RowIdSasiada = najlepszySasiad?.RowIdElementu ?? Guid.Empty,
                 RowIdSasiadaStronaA = najlepszySasiad?.RowIdElementu ?? Guid.Empty,  // ➕ dodaj
                 RowIdSasiadaStronaB = najlepszySasiad?.RowIdElementu ?? Guid.Empty,  // ➕ dodaj
+                SasiadSlupekStronaA = najlepszySasiad.SasiadToSlupek,
+                SasiadSlupekStronaB = najlepszySasiad.SasiadToSlupek,
             });
         }
     }
@@ -5274,7 +5279,7 @@
             _all_stale.Add(state);
 
         // Log
-        LogWszystkieKwadraty(_all_stale, klikX, klikY);
+        // LogWszystkieKwadraty(_all_stale, klikX, klikY);// W razie koniczności włącz logi w konsoli
 
         // Ustal strony (z poprawioną kolejnością)
         string stronaA = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(katSzukaj + 270);
@@ -5384,6 +5389,8 @@
             WierzcholkiSasiadaA = najlepszySasiadA?.WierzcholkiSasiadaA ?? new List<XPoint>(),
             WierzcholkiSasiadaB = najlepszySasiadB?.WierzcholkiSasiadaB ?? new List<XPoint>(),
             LiniaStala = liniaStalaWierzcholki,
+            SasiadSlupekStronaA = najlepszySasiadA.SasiadSlupekStronaA,
+            SasiadSlupekStronaB = najlepszySasiadB.SasiadSlupekStronaB
         });
 
         Console.WriteLine($"🔹 Najlepszy A i B zapisane do state.ListaKwadratow: A:{state.ListaKwadratow[^1].RowIdSasiadaStronaA} B: {state.ListaKwadratow[^1].RowIdSasiadaStronaA}");
@@ -7392,7 +7399,8 @@
                             WystepujePrawa = konf.WystepujePrawa,
                             JestSkosna = true,
                             KierunekSkosny = strona,
-                            WierzcholkiSasiada = innaLinia
+                            WierzcholkiSasiada = innaLinia,
+                            SasiadToSlupek = konf.Typ?.ToLower().Contains("słupek stały") ?? false
                         });
 
                         Console.WriteLine($"✅ ZnajdzSasiada -> Add 1 Dodano skośnego sąsiada: {stan.IdRegion}, Kąt: {katSasiada:F1}°, Typ: {konf.Typ} jestSkosna: {jestSkosna} Lewa: {konf.WystepujeDol} ID: {konf.RowId}");
@@ -7419,7 +7427,8 @@
                                 WystepujeDol = konf.WystepujeDol,
                                 WystepujeLewa = konf.WystepujeLewa,
                                 WystepujePrawa = konf.WystepujePrawa,
-                                WierzcholkiSasiada = innaLinia
+                                WierzcholkiSasiada = innaLinia,
+                                SasiadToSlupek = konf.Typ?.ToLower().Contains("słupek stały") ?? false
                             });
                         }
                         else if ((Math.Abs(katLinii - 270) <= katTolerancja) && konf.WystepujePrawa)
@@ -7441,7 +7450,8 @@
                                 WystepujeDol = konf.WystepujeDol,
                                 WystepujeLewa = konf.WystepujeLewa,
                                 WystepujePrawa = konf.WystepujePrawa,
-                                WierzcholkiSasiada = innaLinia
+                                WierzcholkiSasiada = innaLinia,
+                                SasiadToSlupek = konf.Typ?.ToLower().Contains("słupek stały") ?? false
                             });
                         }
                     }
@@ -7467,7 +7477,8 @@
                                 WystepujeDol = konf.WystepujeDol,
                                 WystepujeLewa = konf.WystepujeLewa,
                                 WystepujePrawa = konf.WystepujePrawa,
-                                WierzcholkiSasiada = innaLinia
+                                WierzcholkiSasiada = innaLinia,
+                                SasiadToSlupek = konf.Typ?.ToLower().Contains("słupek stały") ?? false
                             });
                         }
                         else if ((Math.Abs(katLinii) <= katTolerancja || (Math.Abs(katLinii - 180) <= katTolerancja)) && konf.WystepujeDol)
@@ -7489,7 +7500,8 @@
                                 WystepujeDol = konf.WystepujeDol,
                                 WystepujeLewa = konf.WystepujeLewa,
                                 WystepujePrawa = konf.WystepujePrawa,
-                                WierzcholkiSasiada = innaLinia
+                                WierzcholkiSasiada = innaLinia,
+                                SasiadToSlupek = konf.Typ?.ToLower().Contains("słupek stały") ?? false
                             });
                         }
                     }
@@ -8167,166 +8179,6 @@
     {
         return (b.X - a.X) * (c.Y - a.Y) - (b.Y - a.Y) * (c.X - a.X);
     }
-
-
-    // private async Task GenerujElementyDlaRegionu(string idRegion, float szerokosc, float wysokosc)
-    // {
-
-    //     if (!_generatorStates.TryGetValue(idRegion, out var state))
-    //     {
-    //         //await GenerujObrysPozZmianieWymiarow(true);
-
-    //         Console.WriteLine($"❌ Brak stanu generatora dla regionu {idRegion}, żeden model nie został dodany!");
-    //         return;
-    //     }
-    //     else
-    //     {
-    //         await GenerujObrysPozZmianieWymiarow(true, false);
-
-    //     }
-
-    //     var generator = new Generator(JS)
-    //     {
-    //         //KonfiguracjeSystemu = state.PowiazaneModele,
-    //         RowIdSystemu = state.RowIdSystemu,
-    //         MVCKonfModelu = state.MVCKonfModelu,
-    //         TypKsztaltu = state.WybranyKsztalt,
-    //         EdytowanyModel = state.WybranyModel,
-    //         ElementLiniowy = state.ElementLiniowy,
-    //     };
-
-
-    //     var wybranyRegionDualRama = _regionsDualRama.FirstOrDefault(r => r.Id == idRegion);
-    //     var wybranyRegionSkrzydlo = _regionsSkrzydlo.FirstOrDefault(r => r.Id == idRegion);
-
-    //     // Sprawdź, czy region skrzydła ma linię dzielącą z ruchomym słupkiem
-    //     bool czyRegionZawieraSlupekRuchomy = _regionsSkrzydlo?.Any(x => x.TypLiniiDzielacej == "Słupek ruchomy") == true;
-
-    //     bool czyRegionZawieraSlupekStaly = _regionsDualRama?.Any(x => x.TypLiniiDzielacej == "Słupek stały") == true;
-
-    //     Console.WriteLine($"✅ czyRegionZawieraSlupekStaly: {czyRegionZawieraSlupekStaly}");
-
-    //     if (czyRegionZawieraSlupekRuchomy)
-    //     {
-    //         Console.WriteLine($"✅ GenerujElementyDlaRegionu-> Region {idRegion} zawiera słupek ruchomy. Kontynuuję generowanie elementów.");
-
-    //         // Sprawdź, czy istnieje "Słupek ruchomy" w jakimkolwiek PowiazanymModelu (lista)
-    //         bool czyZawieraSlupekRuchomyWPowiazanymModelu = StateContainer.States
-    //              .Any(state =>
-    //                  state.Value.MVCKonfModelu != null &&
-    //                  state.Value.MVCKonfModelu.KonfSystem != null &&
-    //                  state.Value.MVCKonfModelu.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy")
-    //              );
-
-
-    //         if (!czyZawieraSlupekRuchomyWPowiazanymModelu)
-    //         {
-    //             // Sprawdź, czy istnieje "Słupek ruchomy" w pojedynczym PowiazanymModelu (np. generator)
-    //             bool czySlupekRuchomyWPojedynczymModelu = generator.MVCKonfModelu != null &&
-    //                 generator.MVCKonfModelu.KonfSystem != null &&
-    //                 generator.MVCKonfModelu.KonfSystem.Any(ks => ks.Typ == "Słupek ruchomy");
-
-    //             if (!czySlupekRuchomyWPojedynczymModelu)
-    //             {
-    //                 await _message.Warning(
-    //                     "Brak słupka ruchomego w regionie skrzydła. Dodaj słupek ruchomy do systemu.",
-    //                     2.0
-    //                 );
-    //                 return;
-    //             }
-    //         }
-    //     }
-
-    //     double minX = 0, maxX = 0, minY = 0, maxY = 0;
-
-    //     if (wybranyRegionDualRama != null && !czyRegionZawieraSlupekStaly)
-    //     {
-    //         var regionPoints = wybranyRegionDualRama.Wierzcholki;
-    //         if (regionPoints == null || regionPoints.Count < 3) return;
-
-    //         minX = regionPoints.Min(p => p.X);
-    //         maxX = regionPoints.Max(p => p.X);
-    //         minY = regionPoints.Min(p => p.Y);
-    //         maxY = regionPoints.Max(p => p.Y);
-
-    //         generator.Szerokosc = (float)(maxX - minX);
-    //         generator.Wysokosc = (float)(maxY - minY);
-    //         generator.Zindeks = 0;
-
-    //         var ok = await generator.AddElements(new List<ShapeRegion> { wybranyRegionDualRama }, idRegion, _generatorStates, _regionsDualRama,
-    //             null, null, _lastMouseClick, false, state.MVCKonfModelu?.KonfModeleElementy?.FirstOrDefault()?.RowIdElement); // w przypadku słupka podaj jego id w state.MVCKonfModelu.KonfModeleElementy.FirstOrDefault().RowIdElement
-
-    //         if (ok != "")
-    //         {
-    //             _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Sprawdź wymiary i kształt regionu. Błąd: {ok}");
-    //         }
-    //     }
-    //     else if (wybranyRegionSkrzydlo != null && !czyRegionZawieraSlupekStaly)
-    //     {
-    //         var regionPoints = wybranyRegionSkrzydlo.Wierzcholki;
-    //         if (regionPoints == null || regionPoints.Count < 3) return;
-
-    //         minX = regionPoints.Min(p => p.X);
-    //         maxX = regionPoints.Max(p => p.X);
-    //         minY = regionPoints.Min(p => p.Y);
-    //         maxY = regionPoints.Max(p => p.Y);
-
-    //         generator.Szerokosc = (float)(maxX - minX);
-    //         generator.Wysokosc = (float)(maxY - minY);
-    //         generator.Zindeks = 1;
-
-    //         var ok = await generator.AddElements(new List<ShapeRegion> { wybranyRegionSkrzydlo }, idRegion, _generatorStates, _regionsSkrzydlo,
-    //             null, null, _lastMouseClick, false, state.MVCKonfModelu?.KonfModeleElementy?.FirstOrDefault()?.RowIdElement);
-
-    //         if (ok != "")
-    //         {
-    //             _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Sprawdź wymiary i kształt regionu. Błąd: {ok}");
-    //         }
-    //     }
-    //     else
-    //     {
-    //         Console.WriteLine($"❌ GenerujElementyDlaRegionu-> Nie znaleziono regionu o ID {idRegion}");
-    //         return;
-    //     }
-
-    //     // Skalowanie i przesunięcie jeśli zmieniasz szerokość/wysokość
-    //     double shapeMinX = generator.ElementyRamyRysowane.Min(e => e.Wierzcholki.Min(p => p.X));
-    //     double shapeMaxX = generator.ElementyRamyRysowane.Max(e => e.Wierzcholki.Max(p => p.X));
-    //     double shapeMinY = generator.ElementyRamyRysowane.Min(e => e.Wierzcholki.Min(p => p.Y));
-    //     double shapeMaxY = generator.ElementyRamyRysowane.Max(e => e.Wierzcholki.Max(p => p.Y));
-
-    //     double shapeWidth = shapeMaxX - shapeMinX;
-    //     double shapeHeight = shapeMaxY - shapeMinY;
-    //     double regionWidth = maxX - minX;
-    //     double regionHeight = maxY - minY;
-
-    //     double scale = Math.Min(regionWidth / shapeWidth, regionHeight / shapeHeight);
-
-    //     double offsetX = minX - shapeMinX * scale;
-    //     double offsetY = minY - shapeMinY * scale;
-
-    //     foreach (var ksztalt in generator.ElementyRamyRysowane)
-    //     {
-    //         if (ksztalt.Wierzcholki != null)
-    //         {
-    //             for (int i = 0; i < ksztalt.Wierzcholki.Count; i++)
-    //             {
-    //                 var p = ksztalt.Wierzcholki[i];
-    //                 ksztalt.Wierzcholki[i] = new XPoint(
-    //                     p.X * scale + offsetX,
-    //                     p.Y * scale + offsetY
-    //                 );
-    //             }
-
-    //         }
-    //     }
-
-    //     _ksztaltyNaRegion[idRegion] = new List<KsztaltElementu>(generator.ElementyRamyRysowane);
-    //     ksztalty = _ksztaltyNaRegion.Values.SelectMany(k => k).ToList();
-
-    //     // Console.WriteLine($"✅ Wygenerowano elementy dla regionu {idRegion} po skalowaniu.");
-    //     await Task.CompletedTask;
-    // }
 
     private async Task RenderFrame(bool calculate = true)
     {
@@ -9177,11 +9029,10 @@
         public string KierunekSkosny { get; set; } = "";
         public string Strona { get; set; } = "";
 
-        // public Guid RowIdSasiadaStronaA { get; set; } = Guid.Empty;// RowId elementu sąsiada przecinającego stronę A
-        // public Guid RowIdSasiadaStronaB { get; set; } = Guid.Empty;//RowId elementu sąsiada przecinającego stronę B
+        public bool SasiadToSlupek { get; set; } = false;
 
         public List<XPoint> WierzcholkiSasiada { get; set; } = new();
-        // public List<XPoint> WierzcholkiSasiadaB { get; set; } = new();
+
     }
 
     public class SlupekMatchResult
