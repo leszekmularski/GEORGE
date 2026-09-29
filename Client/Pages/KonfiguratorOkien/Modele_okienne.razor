@@ -619,8 +619,8 @@
                                          @onclick="@(() => WybierzModel(model))"
                                          @ondragstart="@(e => JS.InvokeVoidAsync(
                                          "SetCurrentModel",
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           model.Typ,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           model.RowId))"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        model.Typ,
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        model.RowId))"
                              @onmouseout="@(e => JS.InvokeVoidAsync("ResetCursor"))"
                              draggable="true"
                              style="cursor: grab;
@@ -629,8 +629,8 @@
                                 max-width: 50px;
                                 max-height: 50px;
                                 border: @(model == WybranyModel
-                                                                                                                                                                                                                                                                                                                                                               ? "4px solid #007bff"
-                                                                                                                                                                                                                                                                                                                                                               : "none")" />
+                                                                                                                                                                                                                                                                                                                                                                                            ? "4px solid #007bff"
+                                                                                                                                                                                                                                                                                                                                                                                            : "none")" />
                                                 }
                                 else
                                 {
@@ -1437,14 +1437,18 @@
     </div>
 </div>
 
-<Modal Title="Podgląd danych wygenerowanych "
+<Modal Title="Podgląd danych wygenerowanych"
        Visible="@_generatorState"
        OnOk="@HandleCancel"
        OnCancel="@HandleCancel"
        Maximizable="@true"
        Centered="@true"
        DefaultMaximized="@true">
-    <Generator_state_viewer StateContainer="StateContainer"></Generator_state_viewer>
+
+    <Generator_state_viewer @key="_generatorViewerKey"
+                            StateContainer="StateContainer">
+    </Generator_state_viewer>
+
 </Modal>
 
 <Modal Title="Właściwości okna"
@@ -1464,6 +1468,8 @@
 @code {
     [Parameter]
     public string? SelectedSystemId { get; set; }
+
+    private Guid _generatorViewerKey = Guid.NewGuid();
 
     // Klasa WingModel definiująca dane dla skrzydła
     private List<KonfSystem>? KonfiguracjeSystemu;
@@ -1595,7 +1601,7 @@
     private bool _pierwszeSkalowanieZakonczone = false;
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        
+
         if (firstRender && CanvasRef != null && !_disposed)
         {
             try
@@ -1655,7 +1661,7 @@
                     await GenerujObrysPozZmianieWymiarow(true, false);
                     await ZmienWymiaryOkna();
                     await FitShapesToDisplayWindow();
-              
+
                 }
                 else
                 {
@@ -2647,6 +2653,8 @@
             await _message.Warning("Brak zapisanych stanów generatora.", 1.5);
             return;
         }
+
+        _generatorViewerKey = Guid.NewGuid();
 
         await Task.Delay(5); // Krótkie opóźnienie dla płynności
 
@@ -4206,7 +4214,7 @@
             }
 
             // 2. Wygeneruj obrys + regiony RAZ
-   
+
             await GenerujObrysPozZmianieWymiarow(true, true, przeliczObszarponownie);
 
 
@@ -5199,8 +5207,8 @@
                 RowIdSasiada = najlepszySasiad?.RowIdElementu ?? Guid.Empty,
                 RowIdSasiadaStronaA = najlepszySasiad?.RowIdElementu ?? Guid.Empty,  // ➕ dodaj
                 RowIdSasiadaStronaB = najlepszySasiad?.RowIdElementu ?? Guid.Empty,  // ➕ dodaj
-                SasiadSlupekStronaA = najlepszySasiad.SasiadToSlupek,
-                SasiadSlupekStronaB = najlepszySasiad.SasiadToSlupek,
+                SasiadSlupekStronaA = najlepszySasiad.SasiadToSlupekStronaA,
+                SasiadSlupekStronaB = najlepszySasiad.SasiadToSlupekStronaB,
             });
         }
     }
@@ -5369,6 +5377,8 @@
             RowIdSasiada = Guid.Empty,
             RowIdSasiadaStronaA = najlepszySasiadA?.RowIdElementu ?? Guid.Empty,
             RowIdSasiadaStronaB = najlepszySasiadB?.RowIdElementu ?? Guid.Empty,
+            SasiadSlupekStronaA = najlepszySasiadA?.SasiadSlupekStronaA ?? false,
+            SasiadSlupekStronaB = najlepszySasiadB?.SasiadSlupekStronaB ?? false,
             RowIdRegionu = idRegion,
             KatLinii = (float)katSzukaj,
             OffsetBottom = 0,
@@ -5388,9 +5398,7 @@
 
             WierzcholkiSasiadaA = najlepszySasiadA?.WierzcholkiSasiadaA ?? new List<XPoint>(),
             WierzcholkiSasiadaB = najlepszySasiadB?.WierzcholkiSasiadaB ?? new List<XPoint>(),
-            LiniaStala = liniaStalaWierzcholki,
-            SasiadSlupekStronaA = najlepszySasiadA.SasiadSlupekStronaA,
-            SasiadSlupekStronaB = najlepszySasiadB.SasiadSlupekStronaB
+            LiniaStala = liniaStalaWierzcholki
         });
 
         Console.WriteLine($"🔹 Najlepszy A i B zapisane do state.ListaKwadratow: A:{state.ListaKwadratow[^1].RowIdSasiadaStronaA} B: {state.ListaKwadratow[^1].RowIdSasiadaStronaA}");
@@ -5510,7 +5518,7 @@
 
         // 5. Najbliższy w kierunku
         var najlepszy = unikalni.First().K;
-        Console.WriteLine($"✅ Zwrócono: {najlepszy.RowIdElementu} (Strona='{najlepszy.Strona}')");
+        Console.WriteLine($"✅ Zwrócono: {najlepszy.RowIdElementu} (Strona='{najlepszy.Strona}') SasiadSlupekStronaA:{najlepszy.SasiadSlupekStronaA} SasiadSlupekStronaB:{najlepszy.SasiadSlupekStronaB} SasiadSlupekStronaA: {najlepszy.SasiadSlupekStronaA} SasiadSlupekStronaB: {najlepszy.SasiadSlupekStronaB}");
 
         return najlepszy;
     }
@@ -6124,7 +6132,7 @@
         // foreach(var p in regionSlupka.Wierzcholki)
         // {
         //     Console.WriteLine($"   Wierzcholek: X={p.X}, Y={p.Y}");
-        // } 
+        // }
 
         var punkty = regionSlupka.Wierzcholki;
 
@@ -6764,9 +6772,7 @@
 
     private async Task<List<PrzesuniecieDto>> PobierzPolaczeniaStyczneSlupkowe(Guid zewId, Guid wewId, string strona)
     {
-        Console.WriteLine(
-   $"🟢 [CLIENT START] zewId={zewId} | wewId={wewId} | strona={strona}");
-
+        Console.WriteLine($"🟢 [CLIENT START] zewId={zewId} | wewId={wewId} | strona={strona}");
 
         if (zewId == Guid.Empty || wewId == Guid.Empty || string.IsNullOrWhiteSpace(strona))
         {
@@ -7360,21 +7366,27 @@
 
                     var testStrona = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(katLinii);
 
+                    bool sasiadToSlupek = false;
+
                     if (konf.WystepujeGora)
                     {
                         testStrona = "Góra";
+                        sasiadToSlupek = konf.Typ?.ToLower().Contains("słupek stały") ?? false;
                     }
                     else if (konf.WystepujeDol)
                     {
                         testStrona = "Dół";
+                        sasiadToSlupek = konf.Typ?.ToLower().Contains("słupek stały") ?? false;
                     }
                     else if (konf.WystepujeLewa)
                     {
                         testStrona = "Lewa";
+                        sasiadToSlupek = konf.Typ?.ToLower().Contains("słupek stały") ?? false;
                     }
                     else if (konf.WystepujePrawa)
                     {
                         testStrona = "Prawa";
+                        sasiadToSlupek = konf.Typ?.ToLower().Contains("słupek stały") ?? false;
                     }
 
                     Console.WriteLine($"✅ ZnajdzSasiada -> Add -1 Info sąsiad: {stan.IdRegion}, Kąt: {katSasiada:F1}°, Typ: {konf.Typ} jestSkosna: {jestSkosna} ID: {konf.RowId}");
@@ -7400,7 +7412,8 @@
                             JestSkosna = true,
                             KierunekSkosny = strona,
                             WierzcholkiSasiada = innaLinia,
-                            SasiadToSlupek = konf.Typ?.ToLower().Contains("słupek stały") ?? false
+                            SasiadToSlupekStronaA = sasiadToSlupek,
+                            SasiadToSlupekStronaB = sasiadToSlupek
                         });
 
                         Console.WriteLine($"✅ ZnajdzSasiada -> Add 1 Dodano skośnego sąsiada: {stan.IdRegion}, Kąt: {katSasiada:F1}°, Typ: {konf.Typ} jestSkosna: {jestSkosna} Lewa: {konf.WystepujeDol} ID: {konf.RowId}");
@@ -7428,7 +7441,8 @@
                                 WystepujeLewa = konf.WystepujeLewa,
                                 WystepujePrawa = konf.WystepujePrawa,
                                 WierzcholkiSasiada = innaLinia,
-                                SasiadToSlupek = konf.Typ?.ToLower().Contains("słupek stały") ?? false
+                                SasiadToSlupekStronaA = sasiadToSlupek,
+                                SasiadToSlupekStronaB = sasiadToSlupek
                             });
                         }
                         else if ((Math.Abs(katLinii - 270) <= katTolerancja) && konf.WystepujePrawa)
@@ -7451,7 +7465,8 @@
                                 WystepujeLewa = konf.WystepujeLewa,
                                 WystepujePrawa = konf.WystepujePrawa,
                                 WierzcholkiSasiada = innaLinia,
-                                SasiadToSlupek = konf.Typ?.ToLower().Contains("słupek stały") ?? false
+                                SasiadToSlupekStronaA = sasiadToSlupek,
+                                SasiadToSlupekStronaB = sasiadToSlupek
                             });
                         }
                     }
@@ -7478,7 +7493,8 @@
                                 WystepujeLewa = konf.WystepujeLewa,
                                 WystepujePrawa = konf.WystepujePrawa,
                                 WierzcholkiSasiada = innaLinia,
-                                SasiadToSlupek = konf.Typ?.ToLower().Contains("słupek stały") ?? false
+                                SasiadToSlupekStronaA = sasiadToSlupek,
+                                SasiadToSlupekStronaB = sasiadToSlupek
                             });
                         }
                         else if ((Math.Abs(katLinii) <= katTolerancja || (Math.Abs(katLinii - 180) <= katTolerancja)) && konf.WystepujeDol)
@@ -7501,7 +7517,8 @@
                                 WystepujeLewa = konf.WystepujeLewa,
                                 WystepujePrawa = konf.WystepujePrawa,
                                 WierzcholkiSasiada = innaLinia,
-                                SasiadToSlupek = konf.Typ?.ToLower().Contains("słupek stały") ?? false
+                                SasiadToSlupekStronaA = sasiadToSlupek,
+                                SasiadToSlupekStronaB = sasiadToSlupek
                             });
                         }
                     }
@@ -9029,7 +9046,8 @@
         public string KierunekSkosny { get; set; } = "";
         public string Strona { get; set; } = "";
 
-        public bool SasiadToSlupek { get; set; } = false;
+        public bool SasiadToSlupekStronaA { get; set; } = false;
+        public bool SasiadToSlupekStronaB { get; set; } = false;
 
         public List<XPoint> WierzcholkiSasiada { get; set; } = new();
 
