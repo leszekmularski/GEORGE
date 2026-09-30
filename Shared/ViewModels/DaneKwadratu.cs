@@ -11,6 +11,8 @@ namespace GEORGE.Shared.ViewModels
         public Guid RowIdSasiada { get; set; } //id elementu w bazie danych sąsiad równoległy
         public Guid RowIdSasiadaStronaA { get; set; } = Guid.Empty; //id elementu w bazie danych sąsiad strona A przecinający (góra/lewa)
         public Guid RowIdSasiadaStronaB { get; set; } = Guid.Empty; //id elementu w bazie danych sąsiad strona B przecinający (dół/prawa)
+        public bool SasiadSlupekStronaA { get; set; } = false; //czy sąsiad strona A lub B jest słupkiem
+        public bool SasiadSlupekStronaB { get; set; } = false; //czy sąsiad strona A lub B jest słupkiem
         public List<XPoint>? WierzcholkiSasiadaA { get; set; } //punkty wierzchołków pojedynczej linii
         public List<XPoint>? WierzcholkiSasiadaB { get; set; } //punkty wierzchołków pojedynczej linii
         public float KatLinii { get; set; } //kierunek linii w stopniach
@@ -20,9 +22,6 @@ namespace GEORGE.Shared.ViewModels
         public double OffsetLeft { get; set; } = 0;
         public double OffsetRight { get; set; } = 0;
         public bool BoolElementLinia { get; set; } = false; //czy element jest linią
-
-        public bool SasiadSlupekStronaA { get; set; } = false; //czy sąsiad strona A lub B jest słupkiem
-        public bool SasiadSlupekStronaB { get; set; } = false; //czy sąsiad strona A lub B jest słupkiem
 
         // Dodaj te właściwości jeśli są potrzebne:
         public string? TypKsztaltu { get; set; }

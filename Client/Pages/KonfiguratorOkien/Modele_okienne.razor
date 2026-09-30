@@ -5327,7 +5327,7 @@
         try
         {
             najlepszySasiadA = WybierzNajblizszegoSasiada(wszystkieKwadraty, stronaA, klikX, klikY, liniaStalaWierzcholki);
-            Console.WriteLine($"🔹 Najlepszy A: {najlepszySasiadA?.RowIdElementu} (strona={najlepszySasiadA?.Strona})");
+            Console.WriteLine($"🔹 Najlepszy A: {najlepszySasiadA?.RowIdElementu} (strona={najlepszySasiadA?.Strona}) (SasiadSlupekStronaA: {najlepszySasiadA?.SasiadSlupekStronaA}, SasiadSlupekStronaB: {najlepszySasiadA?.SasiadSlupekStronaB})");
         }
         catch (Exception ex)
         {
@@ -5337,7 +5337,7 @@
         try
         {
             najlepszySasiadB = WybierzNajblizszegoSasiada(wszystkieKwadraty, stronaB, klikX, klikY, liniaStalaWierzcholki);
-            Console.WriteLine($"🔹 Najlepszy B: {najlepszySasiadB?.RowIdElementu} (strona={najlepszySasiadB?.Strona})");
+            Console.WriteLine($"🔹 Najlepszy B: {najlepszySasiadB?.RowIdElementu} (strona={najlepszySasiadB?.Strona}) (SasiadSlupekStronaA: {najlepszySasiadB?.SasiadSlupekStronaA}, SasiadSlupekStronaB: {najlepszySasiadB?.SasiadSlupekStronaB})");
         }
         catch (Exception ex)
         {
@@ -5349,8 +5349,8 @@
         Guid _najlepszySasiadB = najlepszySasiadB?.RowIdElementu ?? Guid.Empty;
 
 
-        Console.WriteLine($"🔹🔹🔹 Najlepszy A: {_najlepszySasiadA} (strona={najlepszySasiadA?.Strona})");
-        Console.WriteLine($"🔹🔹🔹 Najlepszy B: {_najlepszySasiadB} (strona={najlepszySasiadB?.Strona})");
+        Console.WriteLine($"🔹🔹🔹 Najlepszy A: {_najlepszySasiadA} (strona={najlepszySasiadA?.Strona}) {najlepszySasiadA?.SasiadSlupekStronaA} / {najlepszySasiadA?.SasiadSlupekStronaB}");
+        Console.WriteLine($"🔹🔹🔹 Najlepszy B: {_najlepszySasiadB} (strona={najlepszySasiadB?.Strona}) {najlepszySasiadB?.SasiadSlupekStronaA} / {najlepszySasiadB?.SasiadSlupekStronaB}");
 
         // Pobierz połączenia
         var polaczenieWartosciA =
@@ -5403,7 +5403,7 @@
             LiniaStala = liniaStalaWierzcholki
         });
 
-        Console.WriteLine($"🔹 Najlepszy A i B zapisane do state.ListaKwadratow: A:{state.ListaKwadratow[^1].RowIdSasiadaStronaA} B: {state.ListaKwadratow[^1].RowIdSasiadaStronaA}");
+        Console.WriteLine($"🔹 Najlepszy A i B zapisane do state.ListaKwadratow: A:{state.ListaKwadratow[^1].RowIdSasiadaStronaA} B: {state.ListaKwadratow[^1].RowIdSasiadaStronaB}");
 
         // Aktualizacja stanu
         state.ZIndeks = generator.Zindeks;
@@ -5520,7 +5520,8 @@
 
         // 5. Najbliższy w kierunku
         var najlepszy = unikalni.First().K;
-        Console.WriteLine($"✅ Zwrócono: {najlepszy.RowIdElementu} (Strona='{najlepszy.Strona}') SasiadSlupekStronaA:{najlepszy.SasiadSlupekStronaA} SasiadSlupekStronaB:{najlepszy.SasiadSlupekStronaB} SasiadSlupekStronaA: {najlepszy.SasiadSlupekStronaA} SasiadSlupekStronaB: {najlepszy.SasiadSlupekStronaB}");
+
+        Console.WriteLine($"✅ Zwrócono: {najlepszy.RowIdElementu} (Strona='{najlepszy.Strona}') SasiadSlupekStronaA:{najlepszy.SasiadSlupekStronaA} SasiadSlupekStronaB:{najlepszy.SasiadSlupekStronaB}");
 
         return najlepszy;
     }

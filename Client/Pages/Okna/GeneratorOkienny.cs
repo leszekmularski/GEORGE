@@ -281,8 +281,10 @@ namespace GEORGE.Client.Pages.Okna
             Guid RowIdprofileTop = konfTop?.RowId ?? Guid.Empty;
             Guid RowIdprofileBottom = konfBottom?.RowId ?? Guid.Empty;
 
-            Guid rowIdElementuStronaA;
-            Guid rowIdElementuStronaB;
+            bool SlupekprofileLeft = konfLeft?.Typ?.Trim().Contains("słupek stały", StringComparison.OrdinalIgnoreCase) ?? false;
+            bool SlupekprofileRight = konfRight?.Typ?.Trim().Contains("słupek stały", StringComparison.OrdinalIgnoreCase) ?? false;
+            bool SlupekprofileTop = konfTop?.Typ?.Trim().Contains("słupek stały", StringComparison.OrdinalIgnoreCase) ?? false;
+            bool SlupekprofileBottom = konfBottom?.Typ?.Trim().Contains("słupek stały", StringComparison.OrdinalIgnoreCase) ?? false;
 
             string RowIndeksprofileLeft = konfLeft?.IndeksElementu ?? "BRAK-DANYCH";
             string RowIndeksprofileRight = konfRight?.IndeksElementu ?? "BRAK-DANYCH";
@@ -302,6 +304,7 @@ namespace GEORGE.Client.Pages.Okna
                 RowIdprofileLeft = konfLeft?.RowId ?? Guid.Empty;
                 RowIndeksprofileLeft = konfLeft?.IndeksElementu ?? "BRAK-DANYCH";
                 RowNazwaprofileLeft = konfLeft?.Nazwa ?? "BRAK-DANYCH";
+                SlupekprofileLeft = konfLeft?.Typ?.Trim().Contains("słupek stały", StringComparison.OrdinalIgnoreCase) ?? false;
             }
 
             if (profileRight == 0 && ElementLiniowy)
@@ -312,6 +315,7 @@ namespace GEORGE.Client.Pages.Okna
                 RowIdprofileRight = konfRight?.RowId ?? Guid.Empty;
                 RowIndeksprofileRight = konfRight?.IndeksElementu ?? "BRAK-DANYCH";
                 RowNazwaprofileRight = konfRight?.Nazwa ?? "BRAK-DANYCH";
+                SlupekprofileRight = konfRight?.Typ?.Trim().Contains("słupek stały", StringComparison.OrdinalIgnoreCase) ?? false;
             }
 
             if (profileTop == 0 && ElementLiniowy)
@@ -321,6 +325,7 @@ namespace GEORGE.Client.Pages.Okna
                 RowIdprofileTop = konfTop?.RowId ?? Guid.Empty;
                 RowIndeksprofileTop = konfTop?.IndeksElementu ?? "BRAK-DANYCH";
                 RowNazwaprofileTop = konfTop?.Nazwa ?? "BRAK-DANYCH";
+                SlupekprofileTop = konfTop?.Typ?.Trim().Contains("słupek stały", StringComparison.OrdinalIgnoreCase) ?? false;
             }
 
             if (profileBottom == 0 && ElementLiniowy)
@@ -330,12 +335,11 @@ namespace GEORGE.Client.Pages.Okna
                 RowIdprofileBottom = konfBottom?.RowId ?? Guid.Empty;
                 RowIndeksprofileBottom = konfBottom?.IndeksElementu ?? "BRAK-DANYCH";
                 RowNazwaprofileBottom = konfBottom?.Nazwa ?? "BRAK-DANYCH";
+                SlupekprofileBottom = konfBottom?.Typ?.Trim().Contains("słupek stały", StringComparison.OrdinalIgnoreCase) ?? false;
             }
 
             string NazwaObiektu = MVCKonfModelu.KonfSystem.First().Nazwa ?? "";
             string TypObiektu = MVCKonfModelu.KonfSystem.First().Typ ?? "";
-
-
 
             Console.WriteLine($"📐Generator ----> region.TypKsztaltu: {region.TypKsztaltu} " +
                 $"profileLeft: {profileLeft}, profileRight: {profileRight}, " +
@@ -577,6 +581,7 @@ namespace GEORGE.Client.Pages.Okna
                 regionId,
                 RowIdprofileLeft, RowIdprofileRight, RowIdprofileTop, RowIdprofileBottom,
                 RowIndeksprofileLeft, RowIndeksprofileRight, RowIndeksprofileTop, RowIndeksprofileBottom,
+                SlupekprofileLeft, SlupekprofileRight, SlupekprofileTop, SlupekprofileBottom,
                 RowNazwaprofileLeft, RowNazwaprofileRight, RowNazwaprofileTop, RowNazwaprofileBottom,
                 NazwaObiektu,
                 TypObiektu,
@@ -645,14 +650,15 @@ namespace GEORGE.Client.Pages.Okna
             string typKsztalt, string polaczenia, bool sposobLaczeniaCzop, List<KonfSystem> model, string regionId,
             Guid rowIdprofileLeft, Guid rowIdprofileRight, Guid rowIdprofileTop, Guid rowIdprofileBottom,
             string rowIndeksprofileLeft, string rowIndeksprofileRight, string rowIndeksprofileTop, string rowIndeksprofileBottom,
+            bool slupekprofileLeft, bool slupekprofileRight, bool slupekprofileTop, bool slupekprofileBottom,
             string rowNazwaprofileLeft, string rowNazwaprofileRight, string rowNazwaprofileTop, string rowNazwaprofileBottom,
             string NazwaObiektu, string TypObiektu, List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster,
             List<KonfModeleElementy> konfModeleElementy,
             XPoint mouseClik)
         {
 
-            // await Task.Yield(); // wymuszenie asynchroniczności, aby uniknąć blokowania wątków UI
-
+            await Task.Yield(); // wymuszenie asynchroniczności, aby uniknąć blokowania wątków UI
+            await Task.Delay(20);
             // Console.WriteLine($"▶️ Generowanie elementów dla regionu {regionId} z typem kształtu: {typKsztalt} oraz ElementLiniowy: {ElementLiniowy} profileLeft: {profileLeft}, profileRight :{profileRight}");
 
             // Użyj oryginalnych segmentów (nieposortowanych) - one i tak będą dopasowane przez Build4SegmentContour
@@ -2240,14 +2246,14 @@ namespace GEORGE.Client.Pages.Okna
                         int idx = 0;
                         foreach (var d in daneKwadratu)
                         {
-                            Console.WriteLine($"-- daneKwadratu[{idx}] --");
+                            //Console.WriteLine($"-- daneKwadratu[{idx}] --");
                             if (d?.Przesuniecia == null)
                             {
                                 Console.WriteLine("   Przesuniecia: NULL");
                             }
                             else
                             {
-                                Console.WriteLine($"   Przesuniecia count: {d.Przesuniecia.Count}");
+                                // Console.WriteLine($"   Przesuniecia count: {d.Przesuniecia.Count}");
                                 int pIdx = 0;
                                 foreach (var p in d.Przesuniecia)
                                 {
@@ -2279,7 +2285,7 @@ namespace GEORGE.Client.Pages.Okna
                         .FirstOrDefault(x => x.SasiadSlupekStronaA) != null;
 
                     bool stronaB = daneKwadratu
-                        .FirstOrDefault(x => x.SasiadSlupekStronaA) != null;
+                        .FirstOrDefault(x => x.SasiadSlupekStronaB) != null;
 
                     // Wywołaj PrepareRegionPoints z flagami
                     List<XPoint> punktyRegionuMasterModyfikowane;
@@ -2626,7 +2632,6 @@ namespace GEORGE.Client.Pages.Okna
                 string nazwaElemntu;
                 string indeksElementu;
 
-
                 Guid rowIdElementuStronaA;
                 Guid rowIdElementuStronaB;
                 bool elementToSlupekStronaA = false;
@@ -2642,6 +2647,10 @@ namespace GEORGE.Client.Pages.Okna
 
                         rowIdElementuStronaA = rowIdprofileBottom;
                         rowIdElementuStronaB = rowIdprofileTop;
+
+                        elementToSlupekStronaA = slupekprofileBottom;
+                        elementToSlupekStronaB = slupekprofileTop;
+
                         break;
                     case "Prawa":
                         rowIdProfil = rowIdprofileRight;
@@ -2650,6 +2659,10 @@ namespace GEORGE.Client.Pages.Okna
 
                         rowIdElementuStronaA = rowIdprofileTop;
                         rowIdElementuStronaB = rowIdprofileBottom;
+
+                        elementToSlupekStronaA = slupekprofileTop;
+                        elementToSlupekStronaB = slupekprofileBottom;
+
                         break;
                     case "Góra":
                         rowIdProfil = rowIdprofileTop;
@@ -2658,6 +2671,9 @@ namespace GEORGE.Client.Pages.Okna
 
                         rowIdElementuStronaA = rowIdprofileLeft;
                         rowIdElementuStronaB = rowIdprofileRight;
+
+                        elementToSlupekStronaA = slupekprofileLeft;
+                        elementToSlupekStronaB = slupekprofileRight;
 
                         break;
                     case "Dół":
@@ -2668,6 +2684,9 @@ namespace GEORGE.Client.Pages.Okna
                         rowIdElementuStronaA = rowIdprofileLeft;
                         rowIdElementuStronaB = rowIdprofileRight;
 
+                        elementToSlupekStronaA = slupekprofileLeft;
+                        elementToSlupekStronaB = slupekprofileRight;
+
                         break;
                     default:
                         rowIdProfil = rowIdprofileLeft;
@@ -2676,24 +2695,25 @@ namespace GEORGE.Client.Pages.Okna
 
                         rowIdElementuStronaA = Guid.Empty;
                         rowIdElementuStronaB = Guid.Empty;
+
+                        elementToSlupekStronaA = false;
+                        elementToSlupekStronaB = false;
                         break;
                 }
 
+       
                 //foreach (var test in konfModeleElementy)
                 //{
                 //    Console.WriteLine($"test: RowIdElement: {test.RowIdElement} NazwaKonfiguracji:{test.NazwaKonfiguracji} Typ:{test.Typ}");
                 //}
 
 
-            
+
                 // if (angleDegreesElementLionowy != angleDegrees && ElementLiniowy) break; ///??? Po co to jest?
 
                 if (rowIdProfil != Guid.Empty)
                 {
-                    Console.WriteLine($"test: rowIdElementuStronaA: {rowIdElementuStronaA.ToString()} rowIdElementuStronaB: {rowIdElementuStronaB.ToString()}");
-
-                    elementToSlupekStronaA = konfModeleElementy.SingleOrDefault(s => s.RowIdElement == rowIdElementuStronaA)?.Typ?.Trim().Contains("słupek stały", StringComparison.OrdinalIgnoreCase) ?? false;
-                    elementToSlupekStronaB = konfModeleElementy.SingleOrDefault(s => s.RowIdElement == rowIdElementuStronaB)?.Typ?.Trim().Contains("słupek stały", StringComparison.OrdinalIgnoreCase) ?? false;
+                    Console.WriteLine($"!!test: rowIdElementuStronaA: {rowIdElementuStronaA.ToString()} rowIdElementuStronaB: {rowIdElementuStronaB.ToString()} elementToSlupekStronaA: {elementToSlupekStronaA} elementToSlupekStronaB: {elementToSlupekStronaB}");
 
                     ElementyRamyRysowane.Add(new KsztaltElementu
                     {
