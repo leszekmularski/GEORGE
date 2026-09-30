@@ -8,6 +8,7 @@
         public Guid RowIdElement { get; set; }
         public Guid RowIdKonfModele { get; set; }
         public string? NazwaKonfiguracji { get; set; }
+        public string? Typ { get; set; }
         public DateTime DataZapisu { get; set; } = DateTime.Now;
         public string? KtoZapisal { get; set; } = "NaN";
     }

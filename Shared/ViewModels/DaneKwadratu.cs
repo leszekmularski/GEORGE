@@ -21,8 +21,8 @@ namespace GEORGE.Shared.ViewModels
         public double OffsetRight { get; set; } = 0;
         public bool BoolElementLinia { get; set; } = false; //czy element jest linią
 
-        public bool SasiadSlupekStronaA { get; set; } = false; //czy sąsiad strona A jest słupkiem
-        public bool SasiadSlupekStronaB { get; set; } = false; //czy sąsiad strona B jest słupkiem
+        public bool SasiadSlupekStronaA { get; set; } = false; //czy sąsiad strona A lub B jest słupkiem
+        public bool SasiadSlupekStronaB { get; set; } = false; //czy sąsiad strona A lub B jest słupkiem
 
         // Dodaj te właściwości jeśli są potrzebne:
         public string? TypKsztaltu { get; set; }

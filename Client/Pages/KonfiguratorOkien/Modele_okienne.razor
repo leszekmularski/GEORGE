@@ -1706,6 +1706,8 @@
             }
         }
 
+        await ApplyZoom();
+
         await Task.CompletedTask;
     }
 
@@ -5161,7 +5163,7 @@
                 state.IdRegion, state.Id,
                 WybranyModel.Typ == "Skrzydło z słupkiem ruchomym",
                 WybranyModel.Typ == "Słupek stały",
-                katSlupkaStalego, wierzcholkiST, 0.1f);
+                katSlupkaStalego, wierzcholkiST, generator.ElementyRamyRysowane, 0.1f);
 
                 Console.WriteLine($"🔍 ZnajdzSasiada zwróciło {sasiedzi?.Count ?? 0} sąsiadów");
             }
@@ -5205,10 +5207,10 @@
                 WierzcholkiSasiadaA = new List<XPoint>(),
                 WierzcholkiSasiadaB = new List<XPoint>(),
                 RowIdSasiada = najlepszySasiad?.RowIdElementu ?? Guid.Empty,
-                RowIdSasiadaStronaA = najlepszySasiad?.RowIdElementu ?? Guid.Empty,  // ➕ dodaj
-                RowIdSasiadaStronaB = najlepszySasiad?.RowIdElementu ?? Guid.Empty,  // ➕ dodaj
-                SasiadSlupekStronaA = najlepszySasiad.SasiadToSlupekStronaA,
-                SasiadSlupekStronaB = najlepszySasiad.SasiadToSlupekStronaB,
+                RowIdSasiadaStronaA = najlepszySasiad?.SasiadStronaA ?? Guid.Empty,  // ➕ dodaj
+                RowIdSasiadaStronaB = najlepszySasiad?.SasiadStronaB ?? Guid.Empty,  // ➕ dodaj
+                SasiadSlupekStronaA = najlepszySasiad?.SasiadToSlupekStronaA ?? false,
+                SasiadSlupekStronaB = najlepszySasiad?.SasiadToSlupekStronaB ?? false,
             });
         }
     }
@@ -5377,8 +5379,8 @@
             RowIdSasiada = Guid.Empty,
             RowIdSasiadaStronaA = najlepszySasiadA?.RowIdElementu ?? Guid.Empty,
             RowIdSasiadaStronaB = najlepszySasiadB?.RowIdElementu ?? Guid.Empty,
-            SasiadSlupekStronaA = najlepszySasiadA?.SasiadSlupekStronaA ?? false,
-            SasiadSlupekStronaB = najlepszySasiadB?.SasiadSlupekStronaB ?? false,
+            SasiadSlupekStronaA = najlepszySasiadA.SasiadSlupekStronaA,
+            SasiadSlupekStronaB = najlepszySasiadB.SasiadSlupekStronaB,
             RowIdRegionu = idRegion,
             KatLinii = (float)katSzukaj,
             OffsetBottom = 0,
@@ -7143,9 +7145,16 @@
       bool szukajNieRownoleglych,
       double katSlupkaStalego,
       List<XPoint> wierzcholkiST,
+      List<KsztaltElementu> ksztaltElementu,
       double tolerancja)
     {
         //  Console.WriteLine($"🔍 ZnajdzSasiada start funkcji");
+
+        Guid stronaElementuA = Guid.Empty;
+        Guid stronaElementuB = Guid.Empty;
+
+        bool sasiadToSlupekStronaA = false;
+        bool sasiadToSlupekStronaB = false;
 
         var pasujace = new List<SasiadInfo>();
 
@@ -7176,7 +7185,7 @@
         double katLinii = Math.Atan2(dy, dx) * 180.0 / Math.PI;
         katLinii = (katLinii + 360) % 360; // normalizacja do 0–360°
 
-        //Console.WriteLine($"📐 ZnajdzSasiada -> Rzeczywisty kąt linii: {katLinii:F1}°, Parametr kat: {kat}°");
+        // Console.WriteLine($"📐 ZnajdzSasiada -> Rzeczywisty kąt linii: {katLinii:F1}°, Parametr kat: {kat}°");
 
         // 🔹 Określ typ linii z większą tolerancją
         const double katTolerancja = 44.9; // Zwiększona tolerancja dla kątów skośnych
@@ -7185,21 +7194,41 @@
         bool jestPozioma = Math.Abs(katLinii) <= katTolerancja || Math.Abs(katLinii - 180) <= katTolerancja;
         bool jestSkosna = !jestPionowa && !jestPozioma;
 
-        //  Console.WriteLine($"📐 ZnajdzSasiada -> Typ linii: Pionowa={jestPionowa}, Pozioma={jestPozioma}, Skośna={jestSkosna}");
-
         var ileModelMaSlupkowStalych = wszystkieStany.SelectMany(s => s.ListaKwadratow.FindAll(x => x.BoolElementLinia)).Count();
 
-        // Console.WriteLine($"🔍 ZnajdzSasiada -> Szukam sąsiada dla linii o kącie {kat}° w regionie {obecnyRegionId}");
+        var stanyDoPrzeszukania = wszystkieStany?
+            .Where(s => s.WierzcholkiWartosciNominalne != null && s.Id != id)
+            .OrderByDescending(s => s.Id)
+            .ToList();
 
-        var stanyDoPrzeszukania = wszystkieStany
-                    .Where(s => s.WierzcholkiWartosciNominalne != null && s.Id != id)
-                    .OrderByDescending(s => s.Id)
-                    .ToList();
 
-        // foreach(var test in stanyDoPrzeszukania)
-        // {
-        //     Console.WriteLine($"🔍 ZnajdzSasiada -> stanyDoPrzeszukania: IdRegion = {test.IdRegion ?? "<null>"}");
-        // }
+        if (ksztaltElementu != null)
+        {
+            Console.WriteLine($"🔍 ZnajdzSasiada -> ksztaltElementu - OK Count: {ksztaltElementu.Count}");
+
+            foreach(var test in ksztaltElementu)
+            {
+                Console.WriteLine($"🔍 ZnajdzSasiada test Kat: {test.Kat}");
+            }
+
+            var wybranyKsztalID = ksztaltElementu.FirstOrDefault(s => s.Kat == kat);
+
+            if (wybranyKsztalID != null)
+            {
+                stronaElementuA = wybranyKsztalID.RowIdElementuStronaA;
+                stronaElementuB = wybranyKsztalID.RowIdElementuStronaB;
+
+                sasiadToSlupekStronaA = wybranyKsztalID.ElementToSlupekStronaA;
+                sasiadToSlupekStronaB = wybranyKsztalID.ElementToSlupekStronaB;
+
+                Console.WriteLine($"🔍 ZnajdzSasiada -> wybranyKsztalID - OK kat: {kat} stronaElementuA: {stronaElementuA}, stronaElementuB: {stronaElementuB}");
+            }
+            else
+            {
+                Console.WriteLine($"🔍 ZnajdzSasiada -> wybranyKsztalID - NOK kat: {kat}");
+            }
+        }
+
 
         foreach (var stan in stanyDoPrzeszukania)
         {
@@ -7221,7 +7250,6 @@
                 double dy2 = q2.Y - q1.Y;
                 // 🔹 Kąt sąsiada
                 double katSasiada = (Math.Atan2(q2.Y - q1.Y, q2.X - q1.X) * 180.0 / Math.PI + 360) % 360;
-
 
                 // 🔹 Normalizujemy kąty do zakresu 0-180 dla porównania (linie mają 2 kierunki)
                 double katLiniiNorm = katLinii % 180;
@@ -7366,27 +7394,23 @@
 
                     var testStrona = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(katLinii);
 
-                    bool sasiadToSlupek = false;
+       
 
                     if (konf.WystepujeGora)
                     {
                         testStrona = "Góra";
-                        sasiadToSlupek = konf.Typ?.ToLower().Contains("słupek stały") ?? false;
                     }
                     else if (konf.WystepujeDol)
                     {
                         testStrona = "Dół";
-                        sasiadToSlupek = konf.Typ?.ToLower().Contains("słupek stały") ?? false;
                     }
                     else if (konf.WystepujeLewa)
                     {
                         testStrona = "Lewa";
-                        sasiadToSlupek = konf.Typ?.ToLower().Contains("słupek stały") ?? false;
                     }
                     else if (konf.WystepujePrawa)
                     {
                         testStrona = "Prawa";
-                        sasiadToSlupek = konf.Typ?.ToLower().Contains("słupek stały") ?? false;
                     }
 
                     Console.WriteLine($"✅ ZnajdzSasiada -> Add -1 Info sąsiad: {stan.IdRegion}, Kąt: {katSasiada:F1}°, Typ: {konf.Typ} jestSkosna: {jestSkosna} ID: {konf.RowId}");
@@ -7412,8 +7436,10 @@
                             JestSkosna = true,
                             KierunekSkosny = strona,
                             WierzcholkiSasiada = innaLinia,
-                            SasiadToSlupekStronaA = sasiadToSlupek,
-                            SasiadToSlupekStronaB = sasiadToSlupek
+                            SasiadToSlupekStronaA = sasiadToSlupekStronaA,
+                            SasiadToSlupekStronaB = sasiadToSlupekStronaB,
+                            SasiadStronaA = stronaElementuA,
+                            SasiadStronaB = stronaElementuB
                         });
 
                         Console.WriteLine($"✅ ZnajdzSasiada -> Add 1 Dodano skośnego sąsiada: {stan.IdRegion}, Kąt: {katSasiada:F1}°, Typ: {konf.Typ} jestSkosna: {jestSkosna} Lewa: {konf.WystepujeDol} ID: {konf.RowId}");
@@ -7441,8 +7467,10 @@
                                 WystepujeLewa = konf.WystepujeLewa,
                                 WystepujePrawa = konf.WystepujePrawa,
                                 WierzcholkiSasiada = innaLinia,
-                                SasiadToSlupekStronaA = sasiadToSlupek,
-                                SasiadToSlupekStronaB = sasiadToSlupek
+                                SasiadToSlupekStronaA = sasiadToSlupekStronaA,
+                                SasiadToSlupekStronaB = sasiadToSlupekStronaB,
+                                SasiadStronaA = stronaElementuA,
+                                SasiadStronaB = stronaElementuB
                             });
                         }
                         else if ((Math.Abs(katLinii - 270) <= katTolerancja) && konf.WystepujePrawa)
@@ -7465,8 +7493,10 @@
                                 WystepujeLewa = konf.WystepujeLewa,
                                 WystepujePrawa = konf.WystepujePrawa,
                                 WierzcholkiSasiada = innaLinia,
-                                SasiadToSlupekStronaA = sasiadToSlupek,
-                                SasiadToSlupekStronaB = sasiadToSlupek
+                                SasiadToSlupekStronaA = sasiadToSlupekStronaA,
+                                SasiadToSlupekStronaB = sasiadToSlupekStronaB,
+                                SasiadStronaA = stronaElementuA,
+                                SasiadStronaB = stronaElementuB
                             });
                         }
                     }
@@ -7493,8 +7523,10 @@
                                 WystepujeLewa = konf.WystepujeLewa,
                                 WystepujePrawa = konf.WystepujePrawa,
                                 WierzcholkiSasiada = innaLinia,
-                                SasiadToSlupekStronaA = sasiadToSlupek,
-                                SasiadToSlupekStronaB = sasiadToSlupek
+                                SasiadToSlupekStronaA = sasiadToSlupekStronaA,
+                                SasiadToSlupekStronaB = sasiadToSlupekStronaB,
+                                SasiadStronaA = stronaElementuA,
+                                SasiadStronaB = stronaElementuB
                             });
                         }
                         else if ((Math.Abs(katLinii) <= katTolerancja || (Math.Abs(katLinii - 180) <= katTolerancja)) && konf.WystepujeDol)
@@ -7517,8 +7549,10 @@
                                 WystepujeLewa = konf.WystepujeLewa,
                                 WystepujePrawa = konf.WystepujePrawa,
                                 WierzcholkiSasiada = innaLinia,
-                                SasiadToSlupekStronaA = sasiadToSlupek,
-                                SasiadToSlupekStronaB = sasiadToSlupek
+                                SasiadToSlupekStronaA = sasiadToSlupekStronaA,
+                                SasiadToSlupekStronaB = sasiadToSlupekStronaB,
+                                SasiadStronaA = stronaElementuA,
+                                SasiadStronaB = stronaElementuB
                             });
                         }
                     }
@@ -7536,6 +7570,8 @@
         // 🔹 Filtracja wyników
         List<SasiadInfo> wynik = pasujace.Where(x => (int)x.KatSasiada == (int)kat).OrderBy(p => p.Id).ToList();
 
+        Guid sasiadStronaA = Guid.Empty;
+        Guid sasiadStronaB = Guid.Empty;
 
         // 🔹 Priorytet dla słupków stałych
         if (wynik.Count > 0 && wynik.Any(x => x.ZIndeks == 1))
@@ -7549,6 +7585,7 @@
                 var sasiedziZIndeks1 = wynik.Where(x => x.ZIndeks == 1).ToList();
                 var wybrany = sasiedziZIndeks1.First();
                 wynik = new List<SasiadInfo> { wybrany };
+
                 Console.WriteLine($"🔍 ZnajdzSasiada -> 🔹 Priorytet dla słupków stałych Wybrano sąsiada ze ZIndeks == {wybrany.ZIndeks}");
             }
             else
@@ -7599,6 +7636,10 @@
                 JestSkosna = jestSkosna,
                 KierunekSkosny = strona,
                 WierzcholkiSasiada = new List<XPoint>(),
+                SasiadToSlupekStronaA = sasiadToSlupekStronaA,
+                SasiadToSlupekStronaB = sasiadToSlupekStronaB,
+                SasiadStronaA = stronaElementuA,
+                SasiadStronaB = stronaElementuB
             });
 
             if (SelectedModelType != "Rama" && !ruchomySlupekPoLewej && !ruchomySlupekPoPrawej)
@@ -7618,12 +7659,12 @@
         // for (int i = 0; i < wynik.Count; i++)
         // {
         //     var sasiad = wynik[i];
-        //     Console.WriteLine($"🔍 ZnajdzSasiada -> Pasujący sąsiad zwracam wyniki #{i + 1}/{wynik.Count()}: IdRegion={sasiad.IdRegionu}, " +
+        //     Console.WriteLine($"🔍 ZnajdzSasiada -> Pasujący sąsiad zwracam wyniki #{i + 1}/{wynik.Count()}: IdRegion={sasiad.IdRegionu}, SasiadToSlupek: {sasiad.SasiadToSlupek}," +
         //     $"sasiad.RowIdElementu={sasiad.RowIdElementu}, ZIndeks={sasiad.ZIndeks}, KatLinii={sasiad.KatLinii:F1}°, KatSasiada={sasiad.KatSasiada:F1}°, " +
         //     $"Typ={sasiad.WybranyTyp} WystepujeDol: {sasiad.WystepujeDol} WystepujeGora: {sasiad.WystepujeGora} WystepujeLewa: {sasiad.WystepujeLewa} WystepujePrawa: {sasiad.WystepujePrawa}");
         // }
 
-        // Console.WriteLine($"🔍 ZnajdzSasiada -> Znaleziono {wynik.Count} sąsiadów");
+      //  Console.WriteLine($"🔍 ZnajdzSasiada -> Znaleziono {wynik.Count} sąsiadów");
 
         await Task.CompletedTask;
 
@@ -9046,8 +9087,10 @@
         public string KierunekSkosny { get; set; } = "";
         public string Strona { get; set; } = "";
 
-        public bool SasiadToSlupekStronaA { get; set; } = false;
-        public bool SasiadToSlupekStronaB { get; set; } = false;
+        public bool SasiadToSlupekStronaA { get; set; } = false;// Czy sąsiad jest słupkiem
+        public bool SasiadToSlupekStronaB { get; set; } = false;// Czy sąsiad jest słupkiem
+        public Guid SasiadStronaA { get; set; }
+        public Guid SasiadStronaB { get; set; }
 
         public List<XPoint> WierzcholkiSasiada { get; set; } = new();
 

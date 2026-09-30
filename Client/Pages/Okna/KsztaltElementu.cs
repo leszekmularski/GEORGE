@@ -58,6 +58,12 @@ namespace GEORGE.Client.Pages.Okna
         // Informacje o kąt cięcia strona B elementu
         public string? PolaczenieStronaA { get; set; }
         public string? PolaczenieStronaB { get; set; }
+        public Guid RowIdElementuStronaA { get; set; } = Guid.Empty;
+        public Guid RowIdElementuStronaB { get; set; } = Guid.Empty;
+
+        public bool ElementToSlupekStronaA { get; set; } = false;
+        public bool ElementToSlupekStronaB { get; set; } = false;
+
         public float DlugoscCzopaA { get; set; }
         public float DlugoscCzopaB { get; set; }
         public float OffsetLewa { get; set; } = 0.0f;
@@ -129,6 +135,11 @@ namespace GEORGE.Client.Pages.Okna
                 DlugoscCzopaA = this.DlugoscCzopaA,
                 DlugoscCzopaB = this.DlugoscCzopaB,
                 NrPozWModelu = this.NrPozWModelu,
+                RowIdElementuStronaA = this.RowIdElementuStronaA,
+                RowIdElementuStronaB = this.RowIdElementuStronaB,
+                RodzajpolaczenAiB = this.RodzajpolaczenAiB,
+                ElementToSlupekStronaA = this.ElementToSlupekStronaA,
+                ElementToSlupekStronaB = this.ElementToSlupekStronaB
             };
         }
 
