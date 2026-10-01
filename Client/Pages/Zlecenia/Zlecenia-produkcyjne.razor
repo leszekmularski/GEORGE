@@ -670,6 +670,21 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
     </div>
 </div>
 
+<Modal Title="@($"Zamówione elementy do: {dotyczyZlecenia}")"
+       Visible="@_modalElementyDoZlecen"
+       OnCancel="ZamknijElementyDoZlecen"
+       Footer="null"
+       Width="1200">
+
+    @if (_modalElementyDoZlecen)
+    {
+        <Elementy_do_zlecen
+            RowIdZlecenia="@_rowIdElementyDoZlecen"
+            typ="@_trybElementyDoZlecen" />
+    }
+
+</Modal>
+
 
 @code {
 
@@ -1253,9 +1268,23 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
         navigationManager.NavigateTo($"/Kantowka-do-zlecen/{row.RowId}/zew");
     }
 
+    private string _rowIdElementyDoZlecen;
+    private string _trybElementyDoZlecen = "zew";
+    private bool _modalElementyDoZlecen = false;
+    private string? dotyczyZlecenia;
+
     private void DodajZamowienia(ZleceniaProdukcyjne row)
     {
-        navigationManager.NavigateTo($"/Elementy-do-zlecen/{row.RowId}/zew");
+        _rowIdElementyDoZlecen = row.RowId;
+        _trybElementyDoZlecen = "zew";
+        dotyczyZlecenia = row.Klient + " " + row.NumerZlecenia;
+
+        _modalElementyDoZlecen = true;
+    }
+
+    private void ZamknijElementyDoZlecen()
+    {
+        _modalElementyDoZlecen = false;
     }
 
     private void DodajSzybe(ZleceniaProdukcyjne row)

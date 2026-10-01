@@ -19,6 +19,9 @@ namespace GEORGE.Shared.Models
         // Element zewnątezny np. Rama
         public Guid ElementWewnetrznyId { get; set; }
         // Element wewnętrzny np. skrzydło, słupek
+        public bool ElementZewnetrznyToSlupek { get; set; } = false;
+        // Element zewnątezny np. Rama
+        public bool ElementWewnetrznyToSlupek { get; set; } = false;
         public string? StronaPolaczenia { get; set; }
         // wymiary techniczne w mm odległość pomiędzy liniami dolnymi
         public double PrzesuniecieX { get; set; } = 0;

@@ -281,11 +281,6 @@ namespace GEORGE.Client.Pages.Okna
             Guid RowIdprofileTop = konfTop?.RowId ?? Guid.Empty;
             Guid RowIdprofileBottom = konfBottom?.RowId ?? Guid.Empty;
 
-            bool SlupekprofileLeft = konfLeft?.Typ?.Trim().Contains("słupek stały", StringComparison.OrdinalIgnoreCase) ?? false;
-            bool SlupekprofileRight = konfRight?.Typ?.Trim().Contains("słupek stały", StringComparison.OrdinalIgnoreCase) ?? false;
-            bool SlupekprofileTop = konfTop?.Typ?.Trim().Contains("słupek stały", StringComparison.OrdinalIgnoreCase) ?? false;
-            bool SlupekprofileBottom = konfBottom?.Typ?.Trim().Contains("słupek stały", StringComparison.OrdinalIgnoreCase) ?? false;
-
             string RowIndeksprofileLeft = konfLeft?.IndeksElementu ?? "BRAK-DANYCH";
             string RowIndeksprofileRight = konfRight?.IndeksElementu ?? "BRAK-DANYCH";
             string RowIndeksprofileTop = konfTop?.IndeksElementu ?? "BRAK-DANYCH";
@@ -304,7 +299,6 @@ namespace GEORGE.Client.Pages.Okna
                 RowIdprofileLeft = konfLeft?.RowId ?? Guid.Empty;
                 RowIndeksprofileLeft = konfLeft?.IndeksElementu ?? "BRAK-DANYCH";
                 RowNazwaprofileLeft = konfLeft?.Nazwa ?? "BRAK-DANYCH";
-                SlupekprofileLeft = konfLeft?.Typ?.Trim().Contains("słupek stały", StringComparison.OrdinalIgnoreCase) ?? false;
             }
 
             if (profileRight == 0 && ElementLiniowy)
@@ -315,7 +309,6 @@ namespace GEORGE.Client.Pages.Okna
                 RowIdprofileRight = konfRight?.RowId ?? Guid.Empty;
                 RowIndeksprofileRight = konfRight?.IndeksElementu ?? "BRAK-DANYCH";
                 RowNazwaprofileRight = konfRight?.Nazwa ?? "BRAK-DANYCH";
-                SlupekprofileRight = konfRight?.Typ?.Trim().Contains("słupek stały", StringComparison.OrdinalIgnoreCase) ?? false;
             }
 
             if (profileTop == 0 && ElementLiniowy)
@@ -325,7 +318,6 @@ namespace GEORGE.Client.Pages.Okna
                 RowIdprofileTop = konfTop?.RowId ?? Guid.Empty;
                 RowIndeksprofileTop = konfTop?.IndeksElementu ?? "BRAK-DANYCH";
                 RowNazwaprofileTop = konfTop?.Nazwa ?? "BRAK-DANYCH";
-                SlupekprofileTop = konfTop?.Typ?.Trim().Contains("słupek stały", StringComparison.OrdinalIgnoreCase) ?? false;
             }
 
             if (profileBottom == 0 && ElementLiniowy)
@@ -335,7 +327,6 @@ namespace GEORGE.Client.Pages.Okna
                 RowIdprofileBottom = konfBottom?.RowId ?? Guid.Empty;
                 RowIndeksprofileBottom = konfBottom?.IndeksElementu ?? "BRAK-DANYCH";
                 RowNazwaprofileBottom = konfBottom?.Nazwa ?? "BRAK-DANYCH";
-                SlupekprofileBottom = konfBottom?.Typ?.Trim().Contains("słupek stały", StringComparison.OrdinalIgnoreCase) ?? false;
             }
 
             string NazwaObiektu = MVCKonfModelu.KonfSystem.First().Nazwa ?? "";
@@ -439,13 +430,38 @@ namespace GEORGE.Client.Pages.Okna
                 .Select(g => g.First())
                 .ToList();
 
+                bool stronaA = daneKwadratu
+                .FirstOrDefault(x => x.SasiadSlupekStronaA) != null;
+
+                bool stronaB = daneKwadratu
+                    .FirstOrDefault(x => x.SasiadSlupekStronaB) != null;
+
                 if (konfPolaczenia != null && konfPolaczenia.Count > 0)
                 {
-                    var szukPionA = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
-                        p.Strona.Equals("Góra", StringComparison.OrdinalIgnoreCase))?.PrzesuniecieYStycznej ?? 0);
+                    var szukPionA = Math.Abs(
+                            konfPolaczenia.FirstOrDefault(p =>
+                                p.Strona.Equals("Góra", StringComparison.OrdinalIgnoreCase) &&
+                                (
+                                    !stronaB ||
+                                    p.ElementWewnetrznyToSlupek == true ||
+                                    p.ElementZewnetrznyToSlupek == true
+                                )
+                            )?.PrzesuniecieYStycznej ?? 0
+                        );
 
-                    var szukPionB = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
-                        p.Strona.Equals("Dół", StringComparison.OrdinalIgnoreCase))?.PrzesuniecieYStycznej ?? 0);
+                    var szukPionB = Math.Abs(
+                                konfPolaczenia.FirstOrDefault(p =>
+                                    p.Strona.Equals("Dół", StringComparison.OrdinalIgnoreCase) &&
+                                    (
+                                        !stronaB ||
+                                        p.ElementWewnetrznyToSlupek == true ||
+                                        p.ElementZewnetrznyToSlupek == true
+                                    )
+                                )?.PrzesuniecieYStycznej ?? 0
+                            );
+
+                    //var szukPionB = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
+                    //    p.Strona.Equals("Dół", StringComparison.OrdinalIgnoreCase))?.PrzesuniecieYStycznej ?? 0);
 
                     var szukPoziomA = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
                         p.Strona.Equals("Lewa", StringComparison.OrdinalIgnoreCase))?.PrzesuniecieYStycznej ?? 0);
@@ -505,45 +521,37 @@ namespace GEORGE.Client.Pages.Okna
                 //    Console.WriteLine($"🔷 T5-T5 punktyRegionuMaster: #1 X={punkt.X}, Y={punkt.Y}");
                 //}
 
-
                 punktyRegionuMaster = await CalculateOffsetPolygon(
                     punktyRegionuMaster,
-                    profileLeft, profileRight, profileTop, profileBottom,
-                    false);
+                    profileLeft, profileRight, profileTop, profileBottom, stronaA, stronaB);
             }
             else
             {
                 wewnetrznyKontur = await CalculateOffsetPolygon(
                     przeskalowanePunkty,
-                    profileLeft, profileRight, profileTop, profileBottom,
-                    false);
+                    profileLeft, profileRight, profileTop, profileBottom);
 
                 wewnetrznyKonturZLukami = await CalculateOffsetPolygonKontur(
                     przeskalowanePunktyZLukami,
-                    profileLeft, profileRight, profileTop, profileBottom,
-                    false);
+                    profileLeft, profileRight, profileTop, profileBottom);
 
                 liniaSzkleniaKontur = await CalculateOffsetPolygon(
                     przeskalowanePunkty,
-                    offsetGlassLeft, offsetGlassRight, offsetGlassTop, offsetGlassBottom,
-                    false);
+                    offsetGlassLeft, offsetGlassRight, offsetGlassTop, offsetGlassBottom);
 
                 wierzcholkiWenetrznePodRysunek = await CalculateOffsetPolygon(
                     przeskalowanePunktyPodRysynek,
                     offsetKorpusWewnetrznyLeft, offsetKorpusWewnetrznyRight,
-                    offsetKorpusWewnetrznyTop, offsetKorpusWewnetrznyBottom,
-                    false);
+                    offsetKorpusWewnetrznyTop, offsetKorpusWewnetrznyBottom);
 
                 liniaSzkleniaKonturZLukami = await CalculateOffsetPolygonKontur(
                     przeskalowanePunktyZLukami,
-                    offsetGlassLeft, offsetGlassRight, offsetGlassTop, offsetGlassBottom,
-                    false);
+                    offsetGlassLeft, offsetGlassRight, offsetGlassTop, offsetGlassBottom);
 
                 konturWenetrznyPodRysunek = await CalculateOffsetPolygonKontur(
                     przeskalowanePunktyZLukami,
                     offsetKorpusWewnetrznyLeft, offsetKorpusWewnetrznyRight,
-                    offsetKorpusWewnetrznyTop, offsetKorpusWewnetrznyBottom,
-                    false);
+                    offsetKorpusWewnetrznyTop, offsetKorpusWewnetrznyBottom);
             }
 
             if (wewnetrznyKonturZLukami == null)
@@ -567,7 +575,7 @@ namespace GEORGE.Client.Pages.Okna
                                     .Where(x => x.MVCKonfModelu?.KonfModeleElementy != null)
                                     .SelectMany(x => x.MVCKonfModelu.KonfModeleElementy)
                                     .ToList();
-            //regionAdd
+            //regionAdd - Uwaga Strona słupka A lub B liczona jest w funkcji GenerateGenericElementsWithJoins!!!
             var okLine = await GenerateGenericElementsWithJoins(
                 przeskalowanePunkty,
                 wewnetrznyKontur,
@@ -581,7 +589,6 @@ namespace GEORGE.Client.Pages.Okna
                 regionId,
                 RowIdprofileLeft, RowIdprofileRight, RowIdprofileTop, RowIdprofileBottom,
                 RowIndeksprofileLeft, RowIndeksprofileRight, RowIndeksprofileTop, RowIndeksprofileBottom,
-                SlupekprofileLeft, SlupekprofileRight, SlupekprofileTop, SlupekprofileBottom,
                 RowNazwaprofileLeft, RowNazwaprofileRight, RowNazwaprofileTop, RowNazwaprofileBottom,
                 NazwaObiektu,
                 TypObiektu,
@@ -650,7 +657,6 @@ namespace GEORGE.Client.Pages.Okna
             string typKsztalt, string polaczenia, bool sposobLaczeniaCzop, List<KonfSystem> model, string regionId,
             Guid rowIdprofileLeft, Guid rowIdprofileRight, Guid rowIdprofileTop, Guid rowIdprofileBottom,
             string rowIndeksprofileLeft, string rowIndeksprofileRight, string rowIndeksprofileTop, string rowIndeksprofileBottom,
-            bool slupekprofileLeft, bool slupekprofileRight, bool slupekprofileTop, bool slupekprofileBottom,
             string rowNazwaprofileLeft, string rowNazwaprofileRight, string rowNazwaprofileTop, string rowNazwaprofileBottom,
             string NazwaObiektu, string TypObiektu, List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster,
             List<KonfModeleElementy> konfModeleElementy,
@@ -658,7 +664,7 @@ namespace GEORGE.Client.Pages.Okna
         {
 
             await Task.Yield(); // wymuszenie asynchroniczności, aby uniknąć blokowania wątków UI
-            await Task.Delay(20);
+            await Task.Delay(10);
             // Console.WriteLine($"▶️ Generowanie elementów dla regionu {regionId} z typem kształtu: {typKsztalt} oraz ElementLiniowy: {ElementLiniowy} profileLeft: {profileLeft}, profileRight :{profileRight}");
 
             // Użyj oryginalnych segmentów (nieposortowanych) - one i tak będą dopasowane przez Build4SegmentContour
@@ -798,7 +804,7 @@ namespace GEORGE.Client.Pages.Okna
                 string strona = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(kat);
                 wzorzecKaty.Add((kat, strona, typ));
 
-                Console.WriteLine($"📐 Wzorzec: kąt {kat}° → strona {strona} → typ {typ}");
+                //Console.WriteLine($"📐 Wzorzec: kąt {kat}° → strona {strona} → typ {typ}");
             }
 
             // Utwórz mapowanie stron na typy
@@ -807,7 +813,7 @@ namespace GEORGE.Client.Pages.Okna
                 if (!wzorzecPolaczen.ContainsKey(strona))
                 {
                     wzorzecPolaczen[strona] = typ;
-                    Console.WriteLine($"📐 Dodano stronę {strona} → {typ}");
+                    //Console.WriteLine($"📐 Dodano stronę {strona} → {typ}");
                 }
                 else
                 {
@@ -859,11 +865,11 @@ namespace GEORGE.Client.Pages.Okna
             }
 
             // Debug: pokaż kompletny wzorzec
-            Console.WriteLine("📐 Kompletny wzorzec połączeń:");
-            foreach (var kv in wzorzecPolaczen)
-            {
-                Console.WriteLine($"   {kv.Key} → {kv.Value}");
-            }
+            //Console.WriteLine("📐 Kompletny wzorzec połączeń:");
+            //foreach (var kv in wzorzecPolaczen)
+            //{
+            //    Console.WriteLine($"   {kv.Key} → {kv.Value}");
+            //}
 
             // =============================
             // 1️⃣ Zliczamy elementy według stron
@@ -944,7 +950,7 @@ namespace GEORGE.Client.Pages.Okna
             {
                 int iloscBokow = outer.Count; // Użyj rzeczywistej liczby punktów
 
-                Console.WriteLine($"🔍 Przetwarzam wielokąt z {iloscBokow} wierzchołkami");
+                // Console.WriteLine($"🔍 Przetwarzam wielokąt z {iloscBokow} wierzchołkami");
 
                 elementyWedlugStron = new Dictionary<string, List<int>>();
 
@@ -961,7 +967,7 @@ namespace GEORGE.Client.Pages.Okna
                     // Użyj tej samej funkcji co dla wzorca
                     string strona = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(angleDegrees);
 
-                    Console.WriteLine($"🔍 Krawędź {i}->{next}: kąt {angleDegrees:F2}° → strona {strona}");
+                    //Console.WriteLine($"🔍 Krawędź {i}->{next}: kąt {angleDegrees:F2}° → strona {strona}");
 
                     if (!elementyWedlugStron.ContainsKey(strona))
                         elementyWedlugStron[strona] = new List<int>();
@@ -994,7 +1000,7 @@ namespace GEORGE.Client.Pages.Okna
                         if (wzorzecPolaczen.ContainsKey(stronaA))
                         {
                             typyNaroznikow[klucz] = wzorzecPolaczen[stronaA];
-                            Console.WriteLine($"✅ Połączenie {klucz} (ta sama strona) → typ {typyNaroznikow[klucz]}");
+                            //Console.WriteLine($"✅ Połączenie {klucz} (ta sama strona) → typ {typyNaroznikow[klucz]}");
                         }
                         else
                         {
@@ -1009,7 +1015,7 @@ namespace GEORGE.Client.Pages.Okna
                         if (wzorzecPolaczen.ContainsKey(stronaB))
                         {
                             typyNaroznikow[klucz] = wzorzecPolaczen[stronaB];
-                            Console.WriteLine($"✅ Połączenie {klucz} (różne strony) → typ {typyNaroznikow[klucz]} (ze strony {stronaB})");
+                            //Console.WriteLine($"✅ Połączenie {klucz} (różne strony) → typ {typyNaroznikow[klucz]} (ze strony {stronaB})");
                         }
                         else
                         {
@@ -2249,7 +2255,7 @@ namespace GEORGE.Client.Pages.Okna
                             //Console.WriteLine($"-- daneKwadratu[{idx}] --");
                             if (d?.Przesuniecia == null)
                             {
-                                Console.WriteLine("   Przesuniecia: NULL");
+                                Console.WriteLine($"   Przesuniecia: NULL dla daneKwadratu[{idx}]");
                             }
                             else
                             {
@@ -2296,6 +2302,7 @@ namespace GEORGE.Client.Pages.Okna
                     }
                     else
                     {
+                        //Przytnij wystające punkty regionu master w zależności od tego, czy sąsiad jest po stronie A czy B
                         punktyRegionuMasterModyfikowane = PrepareRegionPoints(
                         TopXT5,
                         BottomXT5,
@@ -2634,8 +2641,6 @@ namespace GEORGE.Client.Pages.Okna
 
                 Guid rowIdElementuStronaA;
                 Guid rowIdElementuStronaB;
-                bool elementToSlupekStronaA = false;
-                bool elementToSlupekStronaB = false;
 
 
                 switch (StronaElementu)
@@ -2648,9 +2653,6 @@ namespace GEORGE.Client.Pages.Okna
                         rowIdElementuStronaA = rowIdprofileBottom;
                         rowIdElementuStronaB = rowIdprofileTop;
 
-                        elementToSlupekStronaA = slupekprofileBottom;
-                        elementToSlupekStronaB = slupekprofileTop;
-
                         break;
                     case "Prawa":
                         rowIdProfil = rowIdprofileRight;
@@ -2659,9 +2661,6 @@ namespace GEORGE.Client.Pages.Okna
 
                         rowIdElementuStronaA = rowIdprofileTop;
                         rowIdElementuStronaB = rowIdprofileBottom;
-
-                        elementToSlupekStronaA = slupekprofileTop;
-                        elementToSlupekStronaB = slupekprofileBottom;
 
                         break;
                     case "Góra":
@@ -2672,9 +2671,6 @@ namespace GEORGE.Client.Pages.Okna
                         rowIdElementuStronaA = rowIdprofileLeft;
                         rowIdElementuStronaB = rowIdprofileRight;
 
-                        elementToSlupekStronaA = slupekprofileLeft;
-                        elementToSlupekStronaB = slupekprofileRight;
-
                         break;
                     case "Dół":
                         rowIdProfil = rowIdprofileBottom;
@@ -2683,9 +2679,6 @@ namespace GEORGE.Client.Pages.Okna
 
                         rowIdElementuStronaA = rowIdprofileLeft;
                         rowIdElementuStronaB = rowIdprofileRight;
-
-                        elementToSlupekStronaA = slupekprofileLeft;
-                        elementToSlupekStronaB = slupekprofileRight;
 
                         break;
                     default:
@@ -2696,12 +2689,10 @@ namespace GEORGE.Client.Pages.Okna
                         rowIdElementuStronaA = Guid.Empty;
                         rowIdElementuStronaB = Guid.Empty;
 
-                        elementToSlupekStronaA = false;
-                        elementToSlupekStronaB = false;
                         break;
                 }
 
-       
+
                 //foreach (var test in konfModeleElementy)
                 //{
                 //    Console.WriteLine($"test: RowIdElement: {test.RowIdElement} NazwaKonfiguracji:{test.NazwaKonfiguracji} Typ:{test.Typ}");
@@ -2713,7 +2704,7 @@ namespace GEORGE.Client.Pages.Okna
 
                 if (rowIdProfil != Guid.Empty)
                 {
-                    Console.WriteLine($"!!test: rowIdElementuStronaA: {rowIdElementuStronaA.ToString()} rowIdElementuStronaB: {rowIdElementuStronaB.ToString()} elementToSlupekStronaA: {elementToSlupekStronaA} elementToSlupekStronaB: {elementToSlupekStronaB}");
+                    // Console.WriteLine($"!!test: rowIdElementuStronaA: {rowIdElementuStronaA.ToString()} rowIdElementuStronaB: {rowIdElementuStronaB.ToString()}");
 
                     ElementyRamyRysowane.Add(new KsztaltElementu
                     {
@@ -2746,9 +2737,7 @@ namespace GEORGE.Client.Pages.Okna
                         PolaczenieStronaA = leftJoin,
                         PolaczenieStronaB = rightJoin,
                         RowIdElementuStronaA = rowIdElementuStronaA,
-                        RowIdElementuStronaB = rowIdElementuStronaB,
-                        ElementToSlupekStronaA = elementToSlupekStronaA,
-                        ElementToSlupekStronaB = elementToSlupekStronaB,
+                        RowIdElementuStronaB = rowIdElementuStronaB
                     });
                 }
                 else
@@ -2834,8 +2823,8 @@ namespace GEORGE.Client.Pages.Okna
                 .ToList();
 
             var rekord = wszystkie
-                .FirstOrDefault(p => string.Equals(p.Strona, strona, StringComparison.OrdinalIgnoreCase))
-                ?? wszystkie.FirstOrDefault(p => string.Equals(p.Strona, "dół", StringComparison.OrdinalIgnoreCase));
+                .FirstOrDefault(p => string.Equals(p.Strona.ToLower(), strona.ToLower(), StringComparison.OrdinalIgnoreCase))
+                ?? wszystkie.FirstOrDefault(p => string.Equals(p.Strona.ToLower(), "dół", StringComparison.OrdinalIgnoreCase));
 
             if (rekord == null)
             {
@@ -5107,7 +5096,7 @@ namespace GEORGE.Client.Pages.Okna
                 warunek = czyParzysta;
             }
 
-            Console.WriteLine($"▶️ GetStartT1: stronaWModelu: {stronaWModelu}, stonaOstanioDodanegoElementu: {stonaOstanioDodanegoElementu}, nk: {nk}, czyParzysta: {czyParzysta} warunek: {warunek}");
+            // Console.WriteLine($"▶️ GetStartT1: stronaWModelu: {stronaWModelu}, stonaOstanioDodanegoElementu: {stonaOstanioDodanegoElementu}, nk: {nk}, czyParzysta: {czyParzysta} warunek: {warunek}");
 
             if (warunek)
             {
@@ -5119,7 +5108,7 @@ namespace GEORGE.Client.Pages.Okna
                 intersections.Add(new XPoint(p1.X, p1.Y));
                 intersections.Add(new XPoint(p2.X, p2.Y));
 
-                Console.WriteLine($"▶️ GetStartT1: OK");
+                // Console.WriteLine($"▶️ GetStartT1: OK");
             }
             else
             {
@@ -5130,7 +5119,7 @@ namespace GEORGE.Client.Pages.Okna
                 intersections.Add(new XPoint(p1.X, p1.Y));
                 intersections.Add(new XPoint(p2.X, p2.Y));
 
-                Console.WriteLine($"▶️ GetStartT1: NOK");
+                // Console.WriteLine($"▶️ GetStartT1: NOK");
             }
 
             return intersections;
@@ -6044,12 +6033,16 @@ namespace GEORGE.Client.Pages.Okna
         float profileRight,
         float profileTop,
         float profileBottom,
-        bool elementLiniowy)
+        bool slupekPoStronieA = false,
+        bool slupekPoStronieB = false)
         {
             int count = points.Count;
 
-            //if (count > 0)
-            //    Console.WriteLine($"🔷CalculateOffsetPolygon Calculating offset polygon for {count} X:{points[0].X} Y:{points[0].Y} elementLiniowy:{elementLiniowy} points with profiles L:{profileLeft}, R:{profileRight}, T:{profileTop}, B:{profileBottom}");
+            if (count > 0)
+            {
+                Console.WriteLine($"🔷CalculateOffsetPolygon Calculating offset polygon for {count} X:{points[0].X} Y:{points[0].Y} slupekPoStroanieA:{slupekPoStronieA} slupekPoStroanieB:{slupekPoStronieB} points with profiles L:{profileLeft}, R:{profileRight}, T:{profileTop}, B:{profileBottom}");
+            }
+
 
             if (count < 2)
             {
@@ -6057,63 +6050,6 @@ namespace GEORGE.Client.Pages.Okna
                 return points; // Nie można utworzyć wielokąta z mniej niż 2 punktów, zwróć oryginalne punkty
             }
             //  throw new ArgumentException("Figura musi mieć co najmniej 2 punkty.");
-
-            // 🟢 OBSŁUGA ELEMENTÓW LINIOWYCH (np. słupków)
-            if (elementLiniowy)
-            {
-                var p1 = points[0];
-                var p2 = points[1];
-
-                float dx = (float)(p2.X - p1.X);
-                float dy = (float)(p2.Y - p1.Y);
-                double length = Math.Sqrt(dx * dx + dy * dy);
-                if (length < 1e-6f) return points;
-
-                // jednostkowy wektor kierunku i normalna
-                float tx = (float)(dx / length);
-                float ty = (float)(dy / length);
-                float nx = -ty;
-                float ny = tx;
-
-                // 🔥 OKREŚLENIE STRONY NA PODSTAWIE KĄTA
-                float angleRadians = MathF.Atan2(dy, dx);
-                float angleDegrees = angleRadians * (180f / MathF.PI);
-                if (angleDegrees < 0) angleDegrees += 360f;
-
-                string side = StronaOknaHelper.OkreslStrone(angleDegrees, 0, points);
-
-                float offsetX = 0f;
-                float offsetY = 0f;
-
-                // 🔥 POPRAWIONE: Przesunięcie DO WNĘTRZA
-                // Dla elementów liniowych przesuwamy cały odcinek
-                switch (side)
-                {
-                    case "Góra":
-                        // Góra przesuwa się w dół (ujemny Y)
-                        offsetY = -profileTop;
-                        break;
-                    case "Dół":
-                        // Dół przesuwa się w górę (dodatni Y)
-                        offsetY = profileBottom;
-                        break;
-                    case "Lewa":
-                        // Lewa przesuwa się w prawo (dodatni X)
-                        offsetX = profileLeft;
-                        break;
-                    case "Prawa":
-                        // Prawa przesuwa się w lewo (ujemny X)
-                        offsetX = -profileRight;
-                        break;
-                }
-
-                // Console.WriteLine($"🔷CalculateOffsetPolygon Element liniowy: strona {side}, offsetX={offsetX}, offsetY={offsetY}");
-
-                var p1Offset = new XPoint(p1.X + offsetX, p1.Y + offsetY);
-                var p2Offset = new XPoint(p2.X + offsetX, p2.Y + offsetY);
-
-                return new List<XPoint> { p1Offset, p2Offset };
-            }
 
             // 🟢 OBSŁUGA WIELOKĄTA
             if (count < 3)
@@ -6164,12 +6100,12 @@ namespace GEORGE.Client.Pages.Okna
                 {
                     case "Góra":
                         // Góra - chcemy przesunąć w dół (zgodnie z normalną zewnętrzną)
-                        offsetValue = profileTop;
+                        offsetValue = slupekPoStronieA ? profileBottom : profileTop;
                         usePositiveNormal = false; // używamy normalnej (w dół)
                         break;
                     case "Dół":
                         // Dół - chcemy przesunąć w górę (przeciwnie do normalnej zewnętrznej)
-                        offsetValue = profileBottom;
+                        offsetValue = slupekPoStronieB ? profileTop : profileBottom;
                         usePositiveNormal = false; // używamy przeciwnej normalnej (w górę)
                         break;
                     case "Lewa":
@@ -6238,94 +6174,13 @@ namespace GEORGE.Client.Pages.Okna
         float profileLeft,
         float profileRight,
         float profileTop,
-        float profileBottom,
-        bool elementLiniowy)
+        float profileBottom)
         {
             if (segments == null || segments.Count == 0)
                 return new List<ContourSegment>();
 
             const double EPS = 1e-6;
             const double TOLERANCJA = 0.01;
-
-            // 🟢 OBSŁUGA ELEMENTÓW LINIOWYCH (np. słupków)
-            if (elementLiniowy && segments.Count == 2)
-            {
-                var seg1 = segments[0];
-                var seg2 = segments[1];
-
-                // Zakładamy, że element liniowy składa się z dwóch segmentów liniowych
-                if (seg1.Type == SegmentType.Line && seg2.Type == SegmentType.Line)
-                {
-                    // Weź punkty początkowe obu segmentów (lub początek pierwszego i koniec drugiego)
-                    var p1 = seg1.Start;
-                    var p2 = seg2.End; // lub seg1.End i seg2.Start, zależnie od struktury
-
-                    double dx = p2.X - p1.X;
-                    double dy = p2.Y - p1.Y;
-                    double length = Math.Sqrt(dx * dx + dy * dy);
-
-                    if (length > EPS)
-                    {
-                        // Określenie kąta i strony
-                        double angleRadians = Math.Atan2(dy, dx);
-                        double angleDegrees = angleRadians * (180.0 / Math.PI);
-                        if (angleDegrees < 0) angleDegrees += 360.0;
-
-                        string side = StronaOknaHelper.OkreslStrone((float)angleDegrees, 0, null);
-
-                        double offsetX = 0;
-                        double offsetY = 0;
-
-                        // Przesunięcie DO WNĘTRZA - analogicznie jak w CalculateOffsetPolygon
-                        switch (side)
-                        {
-                            case "Góra":
-                                // Góra przesuwa się w dół (ujemny Y)
-                                offsetY = -profileTop;
-                                break;
-                            case "Dół":
-                                // Dół przesuwa się w górę (dodatni Y)
-                                offsetY = profileBottom;
-                                break;
-                            case "Lewa":
-                                // Lewa przesuwa się w prawo (dodatni X)
-                                offsetX = profileLeft;
-                                break;
-                            case "Prawa":
-                                // Prawa przesuwa się w lewo (ujemny X)
-                                offsetX = -profileRight;
-                                break;
-                        }
-
-                        // Tworzymy przesunięte segmenty
-                        var newSeg1Start = new XPoint(seg1.Start.X + offsetX, seg1.Start.Y + offsetY);
-                        var newSeg1End = new XPoint(seg1.End.X + offsetX, seg1.End.Y + offsetY);
-                        var newSeg2Start = new XPoint(seg2.Start.X + offsetX, seg2.Start.Y + offsetY);
-                        var newSeg2End = new XPoint(seg2.End.X + offsetX, seg2.End.Y + offsetY);
-
-                        var resultX = new List<ContourSegment>
-                {
-                    new ContourSegment(newSeg1Start, newSeg1End)
-                    {
-                        Informacja = seg1.Informacja ?? side
-                    },
-                    new ContourSegment(newSeg2Start, newSeg2End)
-                    {
-                        Informacja = seg2.Informacja ?? side
-                    }
-                };
-
-                        return resultX;
-                    }
-                }
-                else
-                {
-                    // Jeśli segmenty nie są liniowe, zwróć oryginał
-                    //Console.WriteLine("⚠️ Element liniowy z niestandardowymi segmentami - zwracam oryginał");
-                    BledySystemowe.Add("Element liniowy z niestandardowymi segmentami - zwracam oryginał");
-                    return segments;
-                }
-            }
 
             var offsetSegments = new List<ContourSegment>();
             var arcRadiusCache = new Dictionary<string, float>();

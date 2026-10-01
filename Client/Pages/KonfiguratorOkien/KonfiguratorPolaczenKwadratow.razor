@@ -4150,6 +4150,9 @@
     private double old_edytowanePrzesuniecieXStycznej = 0;
     private double old_edytowanePrzesuniecieYStycznej = 0;
 
+    private bool old_ElementZewnetrznyToSlupek = false;
+    private bool old_ElementWewnetrznyToSlupek = false;
+
     private double edytowanyKat = 0;
     private string bladEdycji = "";
 
@@ -4755,7 +4758,9 @@
                 ZapisanyKat = katUstawienia,
                 OpisPolaczenia = $"Połączono: {pierwszyModel.Nazwa ?? "Model 1 ?"} z {drugiModel.Nazwa ?? "Model 2 ?"}",
                 Uwagi = $"Ostatnia zmiana: {DateTime.Now} - [{user}]",
-                DodatkowyWarunek = boolStyczny ? "STYCZNE" : "PRZEKROJE"
+                DodatkowyWarunek = boolStyczny ? "STYCZNE" : "PRZEKROJE",
+                ElementZewnetrznyToSlupek = pierwszyModel.Typ.Contains("Słupek stały"),
+                ElementWewnetrznyToSlupek = drugiModel.Typ.Contains("Słupek stały"),
             };
 
             polaczenie.RysunekPrzekrojuStyczny = Array.Empty<byte>();
@@ -5259,6 +5264,9 @@
             SelectedModelPierwszyId = polaczenie.RowIdModelu.ToString();
             SelectedModelDrugiId = polaczenie.RowIdModeluDrugi.ToString();
 
+            old_ElementZewnetrznyToSlupek = polaczenie.ElementZewnetrznyToSlupek;
+            old_ElementWewnetrznyToSlupek = polaczenie.ElementWewnetrznyToSlupek;
+
             Console.WriteLine($"📋 Podstawowe dane przypisane. Model1 ID: {SelectedModelPierwszyId}, Model2 ID: {SelectedModelDrugiId}");
 
             // Pobierz pierwszy model
@@ -5666,7 +5674,9 @@
                 Svg = svg,
                 KonfiguracjaSVG = aktualnySvg,
                 Uwagi = $"Ostatnia zmiana: {DateTime.Now} - [{user}] - Zmiana po edycji",
-                DodatkowyWarunek = boolStyczny ? "STYCZNE" : "PRZEKROJE"
+                DodatkowyWarunek = boolStyczny ? "STYCZNE" : "PRZEKROJE",
+                ElementZewnetrznyToSlupek = old_ElementZewnetrznyToSlupek,
+                ElementWewnetrznyToSlupek = old_ElementWewnetrznyToSlupek
             };
 
             Console.WriteLine($"🔧 Zapisywanie zmian dla RowId: {edytowanyRowId}");

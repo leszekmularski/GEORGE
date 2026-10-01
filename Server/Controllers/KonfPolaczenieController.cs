@@ -1,11 +1,7 @@
-﻿using DocumentFormat.OpenXml.Drawing.Spreadsheet;
-using GEORGE.Shared.Models;            // <-- lub odpowiednią dla KonfPolaczenie
+﻿using GEORGE.Shared.Models;            // <-- lub odpowiednią dla KonfPolaczenie
 using GEORGE.Shared.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace GEORGE.Server.Controllers
 {
@@ -93,18 +89,20 @@ namespace GEORGE.Server.Controllers
                 .Where(p =>
                     p.RowIdSystem == sysId);
 
-                 var records = await query
-                    .Select(p => new PrzesuniecieDto
-                    {
-                        PrzesuniecieX = p.PrzesuniecieX == 0 ? 1 : p.PrzesuniecieX,
-                        PrzesuniecieY = p.PrzesuniecieY == 0 ? 1 : p.PrzesuniecieY,
-                        PrzesuniecieXStycznej = p.PrzesuniecieXStycznej == 0 ? 1 : p.PrzesuniecieXStycznej,
-                        PrzesuniecieYStycznej = p.PrzesuniecieYStycznej == 0 ? 1 : p.PrzesuniecieYStycznej,
-                        ElementWewnetrznyId = p.ElementWewnetrznyId,
-                        ElementZewnetrznyId = p.ElementZewnetrznyId,
-                        Strona = p.StronaPolaczenia ?? "BRAK DANYCH W BAZIE" // Jeśli StronaPolaczenia jest null, ustawiamy "NaN"
-                    })
-                    .ToListAsync();
+                var records = await query
+                   .Select(p => new PrzesuniecieDto
+                   {
+                       PrzesuniecieX = p.PrzesuniecieX == 0 ? 1 : p.PrzesuniecieX,
+                       PrzesuniecieY = p.PrzesuniecieY == 0 ? 1 : p.PrzesuniecieY,
+                       PrzesuniecieXStycznej = p.PrzesuniecieXStycznej == 0 ? 1 : p.PrzesuniecieXStycznej,
+                       PrzesuniecieYStycznej = p.PrzesuniecieYStycznej == 0 ? 1 : p.PrzesuniecieYStycznej,
+                       ElementWewnetrznyId = p.ElementWewnetrznyId,
+                       ElementZewnetrznyId = p.ElementZewnetrznyId,
+                       Strona = p.StronaPolaczenia ?? "BRAK DANYCH W BAZIE", // Jeśli StronaPolaczenia jest null, ustawiamy "NaN"
+                       ElementZewnetrznyToSlupek = p.ElementZewnetrznyToSlupek,
+                       ElementWewnetrznyToSlupek = p.ElementWewnetrznyToSlupek
+                   })
+                   .ToListAsync();
 
                 if (records == null || records.Count == 0)
                 {
@@ -138,18 +136,18 @@ namespace GEORGE.Server.Controllers
         {
             try
             {
-               // Console.WriteLine($"🔍 GetShifts: zewId={zewId}, wewId={wewId}, strona={strona}");
+                // Console.WriteLine($"🔍 GetShifts: zewId={zewId}, wewId={wewId}, strona={strona}");
 
                 var query = _context.KonfPolaczenie
                 .Where(p =>
                     p.ElementZewnetrznyId == zewId && p.ElementWewnetrznyId == wewId ||
                     p.ElementZewnetrznyId == wewId && p.ElementWewnetrznyId == zewId);
 
-                    // Dodajemy warunek na stronę tylko jeśli strona NIE jest "ALL"
-                    if (!string.Equals(strona, "ALL", StringComparison.OrdinalIgnoreCase))
-                    {
-                        query = query.Where(p => p.StronaPolaczenia.ToLower() == strona.ToLower());
-                    }
+                // Dodajemy warunek na stronę tylko jeśli strona NIE jest "ALL"
+                if (!string.Equals(strona, "ALL", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = query.Where(p => p.StronaPolaczenia.ToLower() == strona.ToLower());
+                }
 
                 var records = await query
                     .Select(p => new PrzesuniecieDto
@@ -160,7 +158,9 @@ namespace GEORGE.Server.Controllers
                         PrzesuniecieYStycznej = p.PrzesuniecieYStycznej == 0 ? 1 : p.PrzesuniecieYStycznej,
                         ElementWewnetrznyId = p.ElementWewnetrznyId,
                         ElementZewnetrznyId = p.ElementZewnetrznyId,
-                        Strona = p.StronaPolaczenia ?? "BRAK DANYCH W BAZIE" // Jeśli StronaPolaczenia jest null, ustawiamy "NaN"
+                        Strona = p.StronaPolaczenia ?? "BRAK DANYCH W BAZIE", // Jeśli StronaPolaczenia jest null, ustawiamy "NaN"
+                        ElementZewnetrznyToSlupek = p.ElementZewnetrznyToSlupek,
+                        ElementWewnetrznyToSlupek = p.ElementWewnetrznyToSlupek
                     })
                     .ToListAsync();
 
@@ -328,6 +328,8 @@ namespace GEORGE.Server.Controllers
             existing.ZoomTransform = updated.ZoomTransform;
             existing.ZoomLevel = updated.ZoomLevel;
             existing.ModelsGroupTransform = updated.ModelsGroupTransform;
+            existing.ElementZewnetrznyToSlupek = updated.ElementZewnetrznyToSlupek;
+            existing.ElementWewnetrznyToSlupek = updated.ElementWewnetrznyToSlupek;
 
             try
             {
@@ -399,6 +401,8 @@ namespace GEORGE.Server.Controllers
                 existing.ZoomTransform = updated.ZoomTransform ?? existing.ZoomTransform;
                 existing.ZoomLevel = updated.ZoomLevel ?? existing.ZoomLevel;
                 existing.ModelsGroupTransform = updated.ModelsGroupTransform ?? existing.ModelsGroupTransform;
+                existing.ElementZewnetrznyToSlupek = updated.ElementZewnetrznyToSlupek;
+                existing.ElementWewnetrznyToSlupek = updated.ElementWewnetrznyToSlupek;
 
                 try
                 {

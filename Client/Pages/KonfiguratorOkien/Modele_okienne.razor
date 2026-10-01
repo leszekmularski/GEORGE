@@ -619,8 +619,8 @@
                                          @onclick="@(() => WybierzModel(model))"
                                          @ondragstart="@(e => JS.InvokeVoidAsync(
                                          "SetCurrentModel",
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        model.Typ,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        model.RowId))"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     model.Typ,
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     model.RowId))"
                              @onmouseout="@(e => JS.InvokeVoidAsync("ResetCursor"))"
                              draggable="true"
                              style="cursor: grab;
@@ -629,8 +629,8 @@
                                 max-width: 50px;
                                 max-height: 50px;
                                 border: @(model == WybranyModel
-                                                                                                                                                                                                                                                                                                                                                                                            ? "4px solid #007bff"
-                                                                                                                                                                                                                                                                                                                                                                                            : "none")" />
+                                                                                                                                                                                                                                                                                                                                                                                                                         ? "4px solid #007bff"
+                                                                                                                                                                                                                                                                                                                                                                                                                         : "none")" />
                                                 }
                                 else
                                 {
@@ -1634,6 +1634,8 @@
                     constWlasciwosciOkna.EditableProperties = ShapeService.EditableProperties;
 
                     await StartResizeObserver();
+
+                    await Task.Yield();
 
                     // ⭐ Ustaw DOMYŚLNE wymiary 1250x1000
                     const double DOMYSLNA_SZEROKOSC = 1250;
@@ -2930,6 +2932,8 @@
 
         //  await ClearCanvas();
 
+        Console.Clear();
+
         isTextureLoaded = false;
 
         await Task.Delay(10);
@@ -3700,7 +3704,10 @@
     /// <summary>
     /// Znajduje region typu LINIA (dla słupka stałego) - szuka tylko regionów z 2 wierzchołkami
     /// </summary>
-    private ShapeRegion? FindLineRegionAtPosition(double x, double y, bool tylkoRama)
+    private ShapeRegion? FindLineRegionAtPosition(
+    double x,
+    double y,
+    bool tylkoRama)
     {
         if (_regionsDualRama == null || !_regionsDualRama.Any() ||
             _regionsSkrzydlo == null || !_regionsSkrzydlo.Any())
@@ -3709,14 +3716,25 @@
             return null;
         }
 
-        var regionsToCheck = tylkoRama ? _regionsDualRama : _regionsSkrzydlo;
-        Console.WriteLine($"🔍 FindLineRegionAtPosition: Sprawdzam {regionsToCheck.Count} regionów");
-        Console.WriteLine($"🔍 Punkt: X={x:F2}, Y={y:F2}, tylkoRama={tylkoRama}");
+        var regionsToCheck = tylkoRama
+            ? _regionsDualRama
+            : _regionsSkrzydlo;
+
+        Console.WriteLine(
+            $"🔍 FindLineRegionAtPosition: {regionsToCheck.Count} regionów");
+
+        Console.WriteLine(
+            $"🔍 Kliknięcie: X={x:F2}, Y={y:F2}, tylkoRama={tylkoRama}");
+
+        double tolerance = 26.0 / (_aktywnaSkala / 2);
+
+        ShapeRegion? najblizszyRegion = null;
+        double najmniejszaOdleglosc = double.MaxValue;
 
         foreach (var region in regionsToCheck)
         {
-            // Sprawdzamy TYLKO regiony z 2 wierzchołkami (linie)
-            if (region.Wierzcholki == null || region.Wierzcholki.Count != 2)
+            if (region.Wierzcholki == null ||
+                region.Wierzcholki.Count != 2)
             {
                 continue;
             }
@@ -3724,31 +3742,37 @@
             var p1 = region.Wierzcholki[0];
             var p2 = region.Wierzcholki[1];
 
-            Console.WriteLine($"🔴 Test linii {region.Id}: ({p1.X:F2},{p1.Y:F2}) -> ({p2.X:F2},{p2.Y:F2})");
-
-            // Tolerancja dla linii - można dostosować
-            double tolerance = 26 / _aktywnaSkala;
-            Console.WriteLine($"   Tolerance: {tolerance:F4}");
-
-            if (IsPointNearLine(
+            double distance = DistancePointToLine(
                 x, y,
                 p1.X, p1.Y,
-                p2.X, p2.Y,
-                tolerance))
+                p2.X, p2.Y);
+
+            Console.WriteLine(
+                $"🔴 {region.Id}: " +
+                $"({p1.X:F2};{p1.Y:F2}) -> ({p2.X:F2};{p2.Y:F2}) " +
+                $"odległość={distance:F4}, tolerance={tolerance:F4}");
+
+            if (distance <= tolerance &&
+                distance < najmniejszaOdleglosc)
             {
-                Console.WriteLine($"✅ Znaleziono region-linię: {region.Id}");
-                return region;
-            }
-            else
-            {
-                // Oblicz odległość punktu od linii dla debugowania
-                double distance = DistancePointToLine(x, y, p1.X, p1.Y, p2.X, p2.Y);
-                Console.WriteLine($"   ❌ Punkt za daleko. Odległość: {distance:F4}, Tolerance: {tolerance:F4}");
+                najmniejszaOdleglosc = distance;
+                najblizszyRegion = region;
             }
         }
 
-        Console.WriteLine("❌ Nie znaleziono regionu-linii");
-        return null;
+        if (najblizszyRegion != null)
+        {
+            Console.WriteLine(
+                $"✅ NAJBLIŻSZY REGION: {najblizszyRegion.Id}, " +
+                $"odległość={najmniejszaOdleglosc:F4}");
+        }
+        else
+        {
+            Console.WriteLine(
+                $"❌ Nie znaleziono linii w tolerancji {tolerance:F4}");
+        }
+
+        return najblizszyRegion;
     }
 
     /// <summary>
@@ -5327,7 +5351,7 @@
         try
         {
             najlepszySasiadA = WybierzNajblizszegoSasiada(wszystkieKwadraty, stronaA, klikX, klikY, liniaStalaWierzcholki);
-            Console.WriteLine($"🔹 Najlepszy A: {najlepszySasiadA?.RowIdElementu} (strona={najlepszySasiadA?.Strona}) (SasiadSlupekStronaA: {najlepszySasiadA?.SasiadSlupekStronaA}, SasiadSlupekStronaB: {najlepszySasiadA?.SasiadSlupekStronaB})");
+            Console.WriteLine($"🔹 Najlepszy A: {najlepszySasiadA?.RowIdElementu} (strona={najlepszySasiadA?.Strona}) (SasiadSlupekStronaA: {najlepszySasiadA?.SasiadSlupekStronaA})");
         }
         catch (Exception ex)
         {
@@ -5337,7 +5361,7 @@
         try
         {
             najlepszySasiadB = WybierzNajblizszegoSasiada(wszystkieKwadraty, stronaB, klikX, klikY, liniaStalaWierzcholki);
-            Console.WriteLine($"🔹 Najlepszy B: {najlepszySasiadB?.RowIdElementu} (strona={najlepszySasiadB?.Strona}) (SasiadSlupekStronaA: {najlepszySasiadB?.SasiadSlupekStronaA}, SasiadSlupekStronaB: {najlepszySasiadB?.SasiadSlupekStronaB})");
+            Console.WriteLine($"🔹 Najlepszy B: {najlepszySasiadB?.RowIdElementu} (strona={najlepszySasiadB?.Strona}) (SasiadSlupekStronaA: {najlepszySasiadB?.SasiadSlupekStronaA})");
         }
         catch (Exception ex)
         {
@@ -5349,8 +5373,8 @@
         Guid _najlepszySasiadB = najlepszySasiadB?.RowIdElementu ?? Guid.Empty;
 
 
-        Console.WriteLine($"🔹🔹🔹 Najlepszy A: {_najlepszySasiadA} (strona={najlepszySasiadA?.Strona}) {najlepszySasiadA?.SasiadSlupekStronaA} / {najlepszySasiadA?.SasiadSlupekStronaB}");
-        Console.WriteLine($"🔹🔹🔹 Najlepszy B: {_najlepszySasiadB} (strona={najlepszySasiadB?.Strona}) {najlepszySasiadB?.SasiadSlupekStronaA} / {najlepszySasiadB?.SasiadSlupekStronaB}");
+        Console.WriteLine($"🔹🔹🔹 Najlepszy A: {_najlepszySasiadA} {najlepszySasiadA?.TypKsztaltu} (strona={najlepszySasiadA?.Strona}) {najlepszySasiadA?.SasiadSlupekStronaA}");
+        Console.WriteLine($"🔹🔹🔹 Najlepszy B: {_najlepszySasiadB} {najlepszySasiadB?.TypKsztaltu} (strona={najlepszySasiadB?.Strona}) {najlepszySasiadB?.SasiadSlupekStronaA}");
 
         // Pobierz połączenia
         var polaczenieWartosciA =
@@ -5370,17 +5394,17 @@
         if (polaczenieWartosciB == null)
             generator.Komunikaty.Add("⚠️ Brak połączeń dla strony B");
 
-
+        //Wybieram zawsze A w SasiadSlupekStronaA ponieważ funkcja zwaraca tylko jedną stronę osobno najlepszySasiadB?.SasiadSlupekStronaB lub najlepszySasiadA?.SasiadSlupekStronaB pomijam w tym fragmncie
         // Zapisz DaneKwadratu dla słupka stałego
         state.ListaKwadratow.Add(new DaneKwadratu
         {
             Wierzcholki = liniaStalaWierzcholki,
             RowIdElementu = rowId,
             RowIdSasiada = Guid.Empty,
-            RowIdSasiadaStronaA = najlepszySasiadA?.RowIdElementu ?? Guid.Empty,
-            RowIdSasiadaStronaB = najlepszySasiadB?.RowIdElementu ?? Guid.Empty,
-            SasiadSlupekStronaA = najlepszySasiadA.SasiadSlupekStronaA,
-            SasiadSlupekStronaB = najlepszySasiadB.SasiadSlupekStronaB,
+            RowIdSasiadaStronaA = _najlepszySasiadA,
+            RowIdSasiadaStronaB = _najlepszySasiadB,
+            SasiadSlupekStronaA = najlepszySasiadA?.SasiadSlupekStronaA ?? false, // zobacz wpis powyżej
+            SasiadSlupekStronaB = najlepszySasiadB?.SasiadSlupekStronaA ?? false, // zobacz wpis powyżej
             RowIdRegionu = idRegion,
             KatLinii = (float)katSzukaj,
             OffsetBottom = 0,
@@ -5520,6 +5544,16 @@
 
         // 5. Najbliższy w kierunku
         var najlepszy = unikalni.First().K;
+
+        var element = _generatorStates.Values
+        .Where(s => s.MVCKonfModelu?.KonfModeleElementy != null)
+        .SelectMany(s => s.MVCKonfModelu.KonfModeleElementy)
+        .FirstOrDefault(e => e.RowIdElement == najlepszy.RowIdElementu);
+
+        if (element != null)
+        {
+            najlepszy.SasiadSlupekStronaA = element.Typ?.Trim().Equals("słupek stały", StringComparison.OrdinalIgnoreCase) ?? false;
+        }
 
         Console.WriteLine($"✅ Zwrócono: {najlepszy.RowIdElementu} (Strona='{najlepszy.Strona}') SasiadSlupekStronaA:{najlepszy.SasiadSlupekStronaA} SasiadSlupekStronaB:{najlepszy.SasiadSlupekStronaB}");
 
@@ -7205,12 +7239,12 @@
 
         if (ksztaltElementu != null)
         {
-            Console.WriteLine($"🔍 ZnajdzSasiada -> ksztaltElementu - OK Count: {ksztaltElementu.Count}");
+            // Console.WriteLine($"🔍 ZnajdzSasiada -> ksztaltElementu - OK Count: {ksztaltElementu.Count}");
 
-            foreach(var test in ksztaltElementu)
-            {
-                Console.WriteLine($"🔍 ZnajdzSasiada test Kat: {test.Kat}");
-            }
+            // foreach(var test in ksztaltElementu)
+            //{
+            //   Console.WriteLine($"🔍 ZnajdzSasiada test Kat: {test.Kat}");
+            // }
 
             var wybranyKsztalID = ksztaltElementu.FirstOrDefault(s => s.Kat == kat);
 
@@ -7286,8 +7320,8 @@
                     out var znalezionaLinia,
                     out var czyPoczatek))
                 {
-                    Console.WriteLine($"🔍 ZnajdzSasiada Znaleziono przecięcie z linią stanu!");
-                    Console.WriteLine($"🔍 ZnajdzSasiada Typ przecięcia: {(czyPoczatek ? "początek" : "koniec")} linii");
+                    // Console.WriteLine($"🔍 ZnajdzSasiada Znaleziono przecięcie z linią stanu!");
+                    // Console.WriteLine($"🔍 ZnajdzSasiada Typ przecięcia: {(czyPoczatek ? "początek" : "koniec")} linii");
                     punktNaPoczatkuLubKoncu = true;
                 }
 
@@ -7310,7 +7344,7 @@
                 // DODAJ OBLICZENIE ODLEGŁOŚCI:
                 double odleglosc = ObliczOdlegloscMiedzyRownoleglymi(p1, p2, q1, q2);
 
-                Console.WriteLine($"🔍 ZnajdzSasiada 📏 Odległość między liniami: {odleglosc:F3}, szukajNieRownoleglych: {szukajNieRownoleglych} przecinajaSie: {przecinajaSie},  tolerancja: {tolerancja} katSlupkaStalego: {katSlupkaStalego} katLiniiNorm={katLiniiNorm:F1}°, katLinii: {katLinii}°, kat: {kat}°, katSasiadaNorm={katSasiadaNorm:F1}° ");
+                // Console.WriteLine($"🔍 ZnajdzSasiada 📏 Odległość między liniami: {odleglosc:F3}, szukajNieRownoleglych: {szukajNieRownoleglych} przecinajaSie: {przecinajaSie},  tolerancja: {tolerancja} katSlupkaStalego: {katSlupkaStalego} katLiniiNorm={katLiniiNorm:F1}°, katLinii: {katLinii}°, kat: {kat}°, katSasiadaNorm={katSasiadaNorm:F1}° ");
 
                 // Zmień warunek nakładania z uwzględnieniem odległości:
                 bool nakladaja = CzyNakladajaSieDowolne(p1, p2, q1, q2, tolerancja, kat) && odleglosc <= tolerancja;
@@ -7351,7 +7385,7 @@
                     if (punktNaPoczatkuLubKoncu && przecinajaSie)
                     {
                         czyDodac = true;
-                        Console.WriteLine($"🔍 ZnajdzSasiada -> Dodano sąsiada ze względu na przecięcie w punkcie początkowym lub końcowym linii. IdRegion: {stan.IdRegion}, Kąt: {katSasiada:F1}°, Typ: {stan.WybranyModel.NazwaKonfiguracji}");
+                        //Console.WriteLine($"🔍 ZnajdzSasiada -> Dodano sąsiada ze względu na przecięcie w punkcie początkowym lub końcowym linii. IdRegion: {stan.IdRegion}, Kąt: {katSasiada:F1}°, Typ: {stan.WybranyModel.NazwaKonfiguracji}");
                     }
                     // else
                     // {
@@ -7395,7 +7429,7 @@
 
                     var testStrona = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(katLinii);
 
-       
+
 
                     if (konf.WystepujeGora)
                     {
@@ -7414,7 +7448,7 @@
                         testStrona = "Prawa";
                     }
 
-                    Console.WriteLine($"✅ ZnajdzSasiada -> Add -1 Info sąsiad: {stan.IdRegion}, Kąt: {katSasiada:F1}°, Typ: {konf.Typ} jestSkosna: {jestSkosna} ID: {konf.RowId}");
+                    //Console.WriteLine($"✅ ZnajdzSasiada -> Add -1 Info sąsiad: {stan.IdRegion}, Kąt: {katSasiada:F1}°, Typ: {konf.Typ} jestSkosna: {jestSkosna} ID: {konf.RowId}");
 
                     // 🔹 Dla linii skośnych wybieramy wszystkie pasujące konfiguracje
                     if (jestSkosna)
@@ -7443,14 +7477,14 @@
                             SasiadStronaB = stronaElementuB
                         });
 
-                        Console.WriteLine($"✅ ZnajdzSasiada -> Add 1 Dodano skośnego sąsiada: {stan.IdRegion}, Kąt: {katSasiada:F1}°, Typ: {konf.Typ} jestSkosna: {jestSkosna} Lewa: {konf.WystepujeDol} ID: {konf.RowId}");
+                        // Console.WriteLine($"✅ ZnajdzSasiada -> Add 1 Dodano skośnego sąsiada: {stan.IdRegion}, Kąt: {katSasiada:F1}°, Typ: {konf.Typ} jestSkosna: {jestSkosna} Lewa: {konf.WystepujeDol} ID: {konf.RowId}");
                     }
                     else if (jestPionowa)
                     {
                         // 🔹 Dla linii pionowych sprawdź strony
                         if ((Math.Abs(katLinii - 90) <= katTolerancja) && konf.WystepujeLewa)
                         {
-                            Console.WriteLine($"✅ ZnajdzSasiada -> Add jestPionowa: {jestPionowa} oraz {Math.Abs(katLinii - 90)} <= {katTolerancja} && {konf.WystepujeLewa}");
+                            // Console.WriteLine($"✅ ZnajdzSasiada -> Add jestPionowa: {jestPionowa} oraz {Math.Abs(katLinii - 90)} <= {katTolerancja} && {konf.WystepujeLewa}");
 
                             pasujace.Add(new SasiadInfo
                             {
@@ -7476,7 +7510,7 @@
                         }
                         else if ((Math.Abs(katLinii - 270) <= katTolerancja) && konf.WystepujePrawa)
                         {
-                            Console.WriteLine($"✅ ZnajdzSasiada -> Add 2 jestPionowa: {jestPionowa} oraz {Math.Abs(katLinii - 270)} <= {katTolerancja} && {konf.WystepujePrawa} Prawa: {konf.WystepujeDol} ID: {konf.RowId}");
+                            //Console.WriteLine($"✅ ZnajdzSasiada -> Add 2 jestPionowa: {jestPionowa} oraz {Math.Abs(katLinii - 270)} <= {katTolerancja} && {konf.WystepujePrawa} Prawa: {konf.WystepujeDol} ID: {konf.RowId}");
 
                             pasujace.Add(new SasiadInfo
                             {
@@ -7506,7 +7540,7 @@
                         // 🔹 Dla linii poziomych sprawdź górę/dół
                         if ((Math.Abs(katLinii) <= katTolerancja || (Math.Abs(katLinii - 360) <= katTolerancja)) && konf.WystepujeGora)
                         {
-                            Console.WriteLine($"✅ ZnajdzSasiada -> Add 3 jestPionowa: {jestPionowa} oraz {Math.Abs(katLinii)} i {Math.Abs(katLinii - 360)} <= {katTolerancja} && {konf.WystepujeGora} Góra: {konf.WystepujeDol} ID: {konf.RowId}");
+                            //Console.WriteLine($"✅ ZnajdzSasiada -> Add 3 jestPionowa: {jestPionowa} oraz {Math.Abs(katLinii)} i {Math.Abs(katLinii - 360)} <= {katTolerancja} && {konf.WystepujeGora} Góra: {konf.WystepujeDol} ID: {konf.RowId}");
 
                             pasujace.Add(new SasiadInfo
                             {
@@ -7532,7 +7566,7 @@
                         }
                         else if ((Math.Abs(katLinii) <= katTolerancja || (Math.Abs(katLinii - 180) <= katTolerancja)) && konf.WystepujeDol)
                         {
-                            Console.WriteLine($"✅ ZnajdzSasiada -> Add 4 jestPionowa: {jestPionowa} oraz {Math.Abs(katLinii)} i {Math.Abs(katLinii - 180)} <= {katTolerancja} && Dół: {konf.WystepujeDol} ID: {konf.RowId}");
+                            //Console.WriteLine($"✅ ZnajdzSasiada -> Add 4 jestPionowa: {jestPionowa} oraz {Math.Abs(katLinii)} i {Math.Abs(katLinii - 180)} <= {katTolerancja} && Dół: {konf.WystepujeDol} ID: {konf.RowId}");
 
                             pasujace.Add(new SasiadInfo
                             {
@@ -7665,7 +7699,7 @@
         //     $"Typ={sasiad.WybranyTyp} WystepujeDol: {sasiad.WystepujeDol} WystepujeGora: {sasiad.WystepujeGora} WystepujeLewa: {sasiad.WystepujeLewa} WystepujePrawa: {sasiad.WystepujePrawa}");
         // }
 
-      //  Console.WriteLine($"🔍 ZnajdzSasiada -> Znaleziono {wynik.Count} sąsiadów");
+        //  Console.WriteLine($"🔍 ZnajdzSasiada -> Znaleziono {wynik.Count} sąsiadów");
 
         await Task.CompletedTask;
 
@@ -8050,7 +8084,7 @@
             Odleglosc(poczatek, punkt) +
             Odleglosc(punkt, koniec);
 
-        Console.WriteLine($"🔍 PunktLezyNaOdcinku -> return={Math.Abs(suma - dlugoscOdcinka) <= tolerancja}");
+        //Console.WriteLine($"🔍 PunktLezyNaOdcinku -> return={Math.Abs(suma - dlugoscOdcinka) <= tolerancja}");
 
         return Math.Abs(suma - dlugoscOdcinka) <= tolerancja;
     }
@@ -8242,8 +8276,6 @@
     private async Task RenderFrame(bool calculate = true)
     {
 
-        await Task.Yield(); // Upewnij się, że UI ma czas na odświeżenie
-
         try
         {
             if (_context == null || _disposed || _czekajNaZmianeRozmiaru)
@@ -8273,7 +8305,7 @@
                 var baseUrl = Navigation.BaseUri;
                 var imageUrl = $"{baseUrl}api/images/{woodPatternName}";
 
-                Console.WriteLine($"RenderFrame -> ksztalty: {ksztalty.Count()}");
+               // Console.WriteLine($"RenderFrame -> ksztalty: {ksztalty.Count()}");
 
                 // Rysowanie każdego kształtu
                 foreach (var ksztalt in ksztalty)
@@ -8324,7 +8356,7 @@
 
             // await _context.SaveAsync();
 
-            // await Task.Delay(50); // Krótkie opóźnienie dla płynności
+           await Task.Delay(50); // Krótkie opóźnienie dla płynności
 
             // StateHasChanged();
         }

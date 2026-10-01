@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-/// Klasa do przechowywania informacji o przesunięciach elementów, takich jak linie, w bazie danych.
+﻿/// Klasa do przechowywania informacji o przesunięciach elementów, takich jak linie, w bazie danych.
 namespace GEORGE.Shared.ViewModels
 {
     public class PrzesuniecieDto
@@ -16,5 +10,7 @@ namespace GEORGE.Shared.ViewModels
         public string Strona { get; set; } = string.Empty; // Pobrane z bazy informacje o stronie lewa/prawa/góra/dół
         public Guid ElementZewnetrznyId { get; set; }
         public Guid ElementWewnetrznyId { get; set; }
+        public bool ElementZewnetrznyToSlupek { get; set; }
+        public bool ElementWewnetrznyToSlupek { get; set; }
     }
 }

@@ -85,7 +85,9 @@ namespace GEORGE.Shared.ViewModels
                         PrzesuniecieYStycznej = p.PrzesuniecieYStycznej,
                         Strona = p.Strona,
                         ElementWewnetrznyId = p.ElementWewnetrznyId,
-                        ElementZewnetrznyId = p.ElementZewnetrznyId
+                        ElementZewnetrznyId = p.ElementZewnetrznyId,
+                        ElementWewnetrznyToSlupek = p.ElementWewnetrznyToSlupek,
+                        ElementZewnetrznyToSlupek = p.ElementZewnetrznyToSlupek
                     }).ToList(),
 
                 RowIdElementu = this.RowIdElementu,
