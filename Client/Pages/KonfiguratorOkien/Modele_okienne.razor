@@ -5552,6 +5552,7 @@
 
         if (element != null)
         {
+            //tylko SasiadSlupekStronaA ponieważ funkcja zwarca tylko jedną stronę!!!
             najlepszy.SasiadSlupekStronaA = element.Typ?.Trim().Equals("słupek stały", StringComparison.OrdinalIgnoreCase) ?? false;
         }
 

@@ -3,6 +3,7 @@ using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.Models;
 using GEORGE.Shared.ViewModels;
 using Microsoft.JSInterop;
+using System;
 using System.Data;
 
 namespace GEORGE.Client.Pages.Okna
@@ -438,30 +439,34 @@ namespace GEORGE.Client.Pages.Okna
 
                 if (konfPolaczenia != null && konfPolaczenia.Count > 0)
                 {
-                    var szukPionA = Math.Abs(
-                            konfPolaczenia.FirstOrDefault(p =>
-                                p.Strona.Equals("Góra", StringComparison.OrdinalIgnoreCase) &&
-                                (
-                                    !stronaB ||
-                                    p.ElementWewnetrznyToSlupek == true ||
-                                    p.ElementZewnetrznyToSlupek == true
-                                )
-                            )?.PrzesuniecieYStycznej ?? 0
-                        );
 
-                    var szukPionB = Math.Abs(
-                                konfPolaczenia.FirstOrDefault(p =>
-                                    p.Strona.Equals("Dół", StringComparison.OrdinalIgnoreCase) &&
-                                    (
-                                        !stronaB ||
-                                        p.ElementWewnetrznyToSlupek == true ||
-                                        p.ElementZewnetrznyToSlupek == true
-                                    )
-                                )?.PrzesuniecieYStycznej ?? 0
-                            );
+                    var tmpkonfPolaczenia = konfPolaczenia ?? new List<PrzesuniecieDto>();
 
-                    //var szukPionB = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
-                    //    p.Strona.Equals("Dół", StringComparison.OrdinalIgnoreCase))?.PrzesuniecieYStycznej ?? 0);
+                    // Jeśli którakolwiek flaga ustawiona → zawężamy do wpisów, gdzie któryś element jest słupkiem
+                    if (stronaA || stronaB)
+                    {
+                        //  Console.WriteLine($"🔷 ElementLiniowy #1: zawężono wpisy do tych, gdzie któryś element jest słupkiem — pozostało {konfPolaczenia.Count} wpisów");
+
+                        //foreach (var p in konfPolaczenia)
+                        //{
+                        //    Console.WriteLine($"🔷 ElementLiniowy #1: F   {p.ElementWewnetrznyId} (wew) {p.ElementZewnetrznyId} (zew) strona={p.Strona} " +
+                        //        $"wewToSlupek={p.ElementWewnetrznyToSlupek} zewToSlupek={p.ElementZewnetrznyToSlupek}");
+                        //}
+
+                        tmpkonfPolaczenia = konfPolaczenia
+                            .Where(p =>
+                                p.ElementWewnetrznyToSlupek == stronaA &&
+                                p.ElementZewnetrznyToSlupek == stronaB)
+                            .ToList();
+
+                      //  Console.WriteLine($"🔷 ElementLiniowy #2: zawężono wpisy do tych, gdzie któryś element jest słupkiem — pozostało {tmpkonfPolaczenia.Count} wpisów");
+                    }
+
+                    var szukPionA = Math.Abs(tmpkonfPolaczenia.FirstOrDefault(p =>
+                        p.Strona.Equals(stronaA ? "Dół" : "Góra", StringComparison.OrdinalIgnoreCase))?.PrzesuniecieYStycznej ?? 0);
+
+                    var szukPionB = Math.Abs(tmpkonfPolaczenia.FirstOrDefault(p =>
+                        p.Strona.Equals(stronaB ? "Góra" : "Dół", StringComparison.OrdinalIgnoreCase))?.PrzesuniecieYStycznej ?? 0);
 
                     var szukPoziomA = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
                         p.Strona.Equals("Lewa", StringComparison.OrdinalIgnoreCase))?.PrzesuniecieYStycznej ?? 0);
@@ -480,7 +485,7 @@ namespace GEORGE.Client.Pages.Okna
                     Console.WriteLine("===== PRZED FOREACH =====");
 
                     Console.WriteLine(
-                        $"Liczba konfiguracji: {konfPolaczenia?.Count}");
+                        $"Liczba konfiguracji: {konfPolaczenia?.Count} stronaA: {stronaA} stronaB: {stronaB}");
 
                     if (konfPolaczenia != null)
                         foreach (var test in konfPolaczenia)
@@ -489,6 +494,8 @@ namespace GEORGE.Client.Pages.Okna
                                 $"{test.PrzesuniecieYStycznej} - " +
                                 $"wew: {test.ElementWewnetrznyId} " +
                                 $"zew: {test.ElementZewnetrznyId} " +
+                                $"wew słupek: {test.ElementWewnetrznyToSlupek} " +
+                                $"zew słupek: {test.ElementZewnetrznyToSlupek} " +
                                 $"- {test.Strona}");
                         }
 
