@@ -21,68 +21,68 @@
 
 <style>
     .custom-link {
-    color: blue;
+        color: blue;
     }
 
     .custom-linkszy {
-    color: darkblue;
+        color: darkblue;
     }
 
     .highlighted-background {
-    background-color: white;
-    overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
-    max-height: calc(100vh - 155px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 155px */
-    width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 260px */
-    box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu wysokości */
-    position: absolute;
-    left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
-    top: 155px; /* Ustawia górną krawędź 155px od góry okna */
+        background-color: white;
+        overflow: auto; /* Dodaje paski przewijania, gdy zawartość przekracza rozmiar kontenera */
+        max-height: calc(100vh - 155px); /* Maksymalna wysokość kontenera dopasowana do wysokości okna minus 155px */
+        width: calc(100% - 260px); /* Ustawia szerokość na 100% okna minus 260px */
+        box-sizing: border-box; /* Uwzględnia padding i border w obliczaniu wysokości */
+        position: absolute;
+        left: 260px; /* Ustawia lewą krawędź 260px od lewej strony okna */
+        top: 155px; /* Ustawia górną krawędź 155px od góry okna */
     }
 
     .zlealizowano, .zlealizowano > td {
-    background-color: forestgreen !important;
+        background-color: forestgreen !important;
     }
 
-    .zlealizowano:hover, .zlealizowano:hover > td {
-    background-color: lime !important;
-    font-size: 1.0em;
-    }
+        .zlealizowano:hover, .zlealizowano:hover > td {
+            background-color: lime !important;
+            font-size: 1.0em;
+        }
 
     .zlecenie, .zlecenie > td {
-    background-color: lightblue !important;
+        background-color: lightblue !important;
     }
 
-    .zlecenie:hover, .zlecenie:hover > td {
-    background-color: lime !important;
-    font-size: 1.0em;
-    }
+        .zlecenie:hover, .zlecenie:hover > td {
+            background-color: lime !important;
+            font-size: 1.0em;
+        }
 
     .zlecenieNaN, .zlecenieNaN > td {
-    background-color: white !important;
+        background-color: white !important;
     }
 
-    .zlecenieNaN:hover, .zlecenieNaN:hover > td {
-    background-color: lime !important;
-    font-size: 1.0em;
-    }
+        .zlecenieNaN:hover, .zlecenieNaN:hover > td {
+            background-color: lime !important;
+            font-size: 1.0em;
+        }
 
     /* Nowe klasy dla PDF i DXF */
     .pdf-class {
-    background-color: lightyellow; /* Kolor tła dla plików PDF */
+        background-color: lightyellow; /* Kolor tła dla plików PDF */
     }
 
     .dxf-class {
-    background-color: lightgreen; /* Kolor tła dla plików DXF */
+        background-color: lightgreen; /* Kolor tła dla plików DXF */
     }
 
     .pdf-class:hover, .pdf-class:hover > td {
-    background-color: lime !important;
-    font-size: 1.0em;
+        background-color: lime !important;
+        font-size: 1.0em;
     }
 
     .dxf-class:hover, .dxf-class:hover > td {
-    background-color: lime !important;
-    font-size: 1.0em;
+        background-color: lime !important;
+        font-size: 1.0em;
     }
 
     .file-info {
@@ -92,6 +92,128 @@
         white-space: nowrap; /* opcjonalnie – zapobiega zawijaniu */
     }
 
+    .action-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        font-size: 12px;
+        line-height: 1.2;
+        border: 1px solid #d0d0d0;
+        border-radius: 4px;
+        background: #f8f9fa;
+        color: #333;
+        cursor: pointer;
+        transition: all .15s ease;
+        white-space: nowrap;
+    }
+
+        .action-btn:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        .action-btn i {
+            font-size: 14px;
+        }
+
+    .action-btn--warning {
+        color: chocolate;
+        border-color: chocolate;
+    }
+
+    .action-btn--purple {
+        color: darkviolet;
+        border-color: darkviolet;
+    }
+
+    .action-btn--info {
+        color: #0d6efd;
+        border-color: #0d6efd;
+    }
+
+    .action-btn--dark {
+        color: #212529;
+        font-weight: 600;
+    }
+
+    .file-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .file-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        font-size: 12.5px;
+        line-height: 1.35;
+        font-family: inherit;
+        border: 1px solid transparent;
+        border-radius: 5px;
+        background: #f8f9fa;
+        cursor: pointer;
+        text-align: left;
+        transition: background .15s ease, border-color .15s ease, transform .1s ease;
+        white-space: nowrap;
+    }
+
+        .file-btn:hover {
+            background: #eef2f7;
+            border-color: #cfd6dd;
+            transform: translateX(1px);
+        }
+
+        .file-btn:active {
+            transform: translateX(0);
+        }
+
+    /* Ikona – spójny rozmiar i wyrównanie */
+    .file-btn__icon {
+        flex-shrink: 0;
+        width: 16px;
+        height: 16px;
+    }
+
+    /* Tekst – lekko rozstrzelony, czytelniejszy */
+    .file-btn__text {
+        font-size: 12.5px;
+        letter-spacing: .1px;
+    }
+
+    /* Warianty kolorystyczne */
+    .file-btn--download {
+        color: #0d6efd;
+        font-weight: 500;
+    }
+
+        .file-btn--download .file-btn__icon {
+            color: #0d6efd;
+        }
+
+    .file-btn--convert {
+        color: #6f42c1; /* fiolet – sugeruje konwersję */
+        font-weight: 500;
+        background: #f6f2fb; /* delikatne tło różnicujące */
+        border-color: #e2d6f3;
+    }
+
+        .file-btn--convert .file-btn__icon {
+            color: #6f42c1;
+        }
+
+        .file-btn--convert:hover {
+            background: #ede4f8;
+            border-color: #c9b3e8;
+        }
 </style>
 
 <script>
@@ -210,17 +332,37 @@ else
             }
         </Divider>
         <Table TItem="ZleceniaProdukcyjneWew" DataSource="@ListaZlecenFiltrowana"
-        RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "zlecenieNaN" )"
+               RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "zlecenieNaN" )"
                @bind-PageIndex="@AktualnaStrona"
                ScrollX="1990" PageSize="@iloscRekordow" Size="TableSize.Small" @ref="tableRef" OnChange="OnTableChange">
-            <ActionColumn Title="Materiały" Width="155">
-                <a @onclick="() => DodajKantowke(context)" class="custom-link">Kantówka</a>
-                <a @onclick="() => DodajSzybe(context)" class="custom-linkszy">Szyby</a>
-                <br />
-                <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">Pozycje</a>
-                <a @onclick="() => DodajWyrob(context)" class="custom-link" style="color:darkviolet; width:38px">Dodaj</a>
-                <a @onclick="() => DodajZamowienia(context)">Zamówienia</a>
-                <a style="font-weight: bold" @onclick="() => FileEdit(context, 1)">Pliki</a>
+            <ActionColumn Title="Akcje" Width="180">
+                <div class="action-grid">
+                    <button class="action-btn" @onclick="() => DodajKantowke(context)" title="Dodaj kantówkę">
+                        <i class="bi bi-border-style"></i><span>📐 Kantówka</span>
+                    </button>
+                    <button class="file-btn file-btn--glass"
+                            title="Dodaj szyby"
+                            @onclick="() => DodajSzybe(context)">
+                        <svg class="file-btn__icon" xmlns="http://www.w3.org/2000/svg"
+                             width="16" height="16" fill="currentColor"
+                             viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                            <path d="M2 2.5A1.5 1.5 0 0 1 3.5 1h9A1.5 1.5 0 0 1 14 2.5v11a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 13.5zm1.5-.5a.5.5 0 0 0-.5.5V7h4V2zm4.5 0v5h5V2.5a.5.5 0 0 0-.5-.5zM13 8H8v5h4.5a.5.5 0 0 0 .5-.5zm-6 5V8H3v4.5a.5.5 0 0 0 .5.5z" />
+                        </svg>
+                        <span class="file-btn__text">Szyby</span>
+                    </button>
+                    <button class="action-btn action-btn--warning" @onclick="() => DodajCzasyWykonaia(context)" title="Pozycje">
+                        <i class="bi bi-list-check"></i><span>📋 Pozycje</span>
+                    </button>
+             @*        <button class="action-btn action-btn--purple" @onclick="() => DodajWyrob(context)" title="Dodaj wyrób">
+                        <i class="bi bi-plus-circle"></i><span>➕ Dodaj</span>
+                    </button> *@
+                    <button class="action-btn action-btn--info" @onclick="() => DodajZamowienia(context)" title="Zamówienia">
+                        <i class="bi bi-cart"></i><span>🛒Zamówienia</span>
+                    </button>
+                    <button class="action-btn action-btn--dark" @onclick="() => FileEdit(context, 1)" title="Pliki">
+                        <i class="bi bi-folder2-open"></i><span>📂 Pliki</span>
+                    </button>
+                </div>
             </ActionColumn>
             <Column Width="230" Title="Status" TData="string">
                 @if (context.Tags != null)
@@ -241,12 +383,12 @@ else
             <Column Title="Data Produkcji" @bind-Field="@context.DataProdukcji" Style="font-weight:bold;color:red" Format="yyyy-MM-dd" Sortable />
             <Column Title="Data Gotowości" TData="DateTime" DataIndex="DataGotowosci" Style="font-weight:bold" Format="yyyy-MM-dd" Sortable />
             <Column Title="Klient" Width="195" @bind-Field="@context.Klient" Style="font-weight:bold" Sortable OnFilter="(a, b) => a == b" Filterable />
-            <Column Title="Nazwa Produktu" @bind-Field="@context.NazwaProduktu" Sortable Filterable/>
+            <Column Title="Nazwa Produktu" @bind-Field="@context.NazwaProduktu" Sortable Filterable />
             <Column Title="Adres" Width="135" @bind-Field="@context.Adres" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Miejscowość" @bind-Field="@context.Miejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Telefon" @bind-Field="@context.Telefon" Sortable />
             <Column Title="CWZ" @bind-Field="@context.JednostkiNaZlecenie" Style="width:30px" Sortable />
-            <PropertyColumn Property="c=>context.ZlecZrealizowane"></PropertyColumn>
+            <PropertyColumn Property="c => context.ZlecZrealizowane"></PropertyColumn>
 
             <!-- Przykład kolumny dla danych zagnieżdżonych -->
             <Column Title="Numer Zlecenia" TData="string" DataIndex="NumerZlecenia" Style="width:38px" />
@@ -257,17 +399,17 @@ else
             <!-- Przykład kolumny z niestandardowym renderowaniem komórki -->
             <ActionColumn Title="Akcja" Width="100" Fixed="right">
                 <Popconfirm Placement="@Placement.Left" Title="Czy chcesz edytować pozycję?"
-                OnConfirm="()=> editRow(context.Id)"
-                OkText="Tak"
-                CancelText="Nie">
+                            OnConfirm="()=> editRow(context.Id)"
+                            OkText="Tak"
+                            CancelText="Nie">
                     <a>Edytuj</a>
                 </Popconfirm>
                 @if (boolAdmin || boolUsuniecia)
                 {
                     <Popconfirm Placement="@Placement.Left" Title="Czy chcesz usunąć pozycję?"
-                    OnConfirm="()=> delRow(context.Id, context.RowId)"
-                    OkText="Tak"
-                    CancelText="Nie">
+                                OnConfirm="()=> delRow(context.Id, context.RowId)"
+                                OkText="Tak"
+                                CancelText="Nie">
                         <a style="color:red">Usuń</a>
                     </Popconfirm>
                 }
@@ -300,16 +442,16 @@ else
                                 <AntDesign.Col Span="12">
                                     <AntDesign.FormItem Label="Typ Dokumentu">
                                         <Select TItem="TypZamowienia"
-                                        TItemValue="string"
-                                        DataSource="@_TypZamowienia"
-                                        @bind-Value="@zlecenie.TypZamowienia"
-                                        ValueName="@nameof(TypZamowienia.Value)"
-                                        LabelName="@nameof(TypZamowienia.Name)"
-                                        GroupName="@nameof(TypZamowienia.Role)"
-                                        SortByLabel="@SortDirection.Ascending"
-                                        SortByGroup="@SortDirection.Ascending"
-                                        DefaultActiveFirstOption="true"
-                                        Style="width: 200px;" OnSelectedItemChanged="OnSelectedItemChangedHandler">
+                                                TItemValue="string"
+                                                DataSource="@_TypZamowienia"
+                                                @bind-Value="@zlecenie.TypZamowienia"
+                                                ValueName="@nameof(TypZamowienia.Value)"
+                                                LabelName="@nameof(TypZamowienia.Name)"
+                                                GroupName="@nameof(TypZamowienia.Role)"
+                                                SortByLabel="@SortDirection.Ascending"
+                                                SortByGroup="@SortDirection.Ascending"
+                                                DefaultActiveFirstOption="true"
+                                                Style="width: 200px;" OnSelectedItemChanged="OnSelectedItemChangedHandler">
                                         </Select>
                                     </AntDesign.FormItem>
                                 </AntDesign.Col>
@@ -373,7 +515,7 @@ else
                             </AntDesign.Row>
                         </TabPane>
 
-                        <TabPane Key="twDaty" Tab=@($"Daty  w zleceniu")>
+                        <TabPane Key="twDaty" Tab=@($"Daty w zleceniu")>
                             <!-- Section for Date Fields -->
                             <AntDesign.Row Gutter="16">
                                 <AntDesign.Col Span="12">
@@ -425,7 +567,7 @@ else
                                 <AntDesign.Col Span="12">
                                     <AntDesign.FormItem Label="Nazwa Produktu">
                                         <AutoComplete Placeholder="Nazwa Produktu" @bind-Value="@zlecenie.NazwaProduktu" Options="optionsProdukt" CompareWith="CompareWith"
-                                        OnSelectionChange="OnSelectionChangeProdukt">
+                                                      OnSelectionChange="OnSelectionChangeProdukt">
                                             <OptionTemplate Context="option">
                                                 <AutoCompleteOption Value="@option.Value" Label="@option.Label">
                                                 </AutoCompleteOption>
@@ -533,8 +675,8 @@ else
                 <h5 class="modal-title">Ilość plików powiązanych: @pliki.Count()  [<a href="javascript:void(0);" @onclick="() => CopyToClipboard(zlecenie.Klient)">@zlecenie.Klient</a>]</h5>
             </div>
             <div class="modal-body">
-                <Table TItem="PlikiZlecenProdukcyjnych" DataSource="@pliki" ScrollX="1350" PageSize="4" Size="TableSize.Small" 
-                RowClassName="@(x => x.Data.TypPliku.ToLower() == "/pdf" ? "pdf-class" : x.Data.TypPliku.ToLower() == "/dxf" || x.Data.TypPliku.ToLower() == "/dwg" ? "dxf-class" : "zlecenieNaN")">
+                <Table TItem="PlikiZlecenProdukcyjnych" DataSource="@pliki" ScrollX="1350" PageSize="4" Size="TableSize.Small"
+                       RowClassName="@(x => x.Data.TypPliku.ToLower() == "/pdf" ? "pdf-class" : x.Data.TypPliku.ToLower() == "/dxf" || x.Data.TypPliku.ToLower() == "/dwg" ? "dxf-class" : "zlecenieNaN")">
                     <Column Title="ID" @bind-Field="@context.Id" Hidden />
                     <Column Title="Nazwa pliku" @bind-Field="@context.NazwaPliku" OnFilter="(a, b) => a == b" Width="100px" Style="font-size:10px" />
                     <Column Title="Oryginalna nazwa pliku" Style="color:blue; font-weight:bold" @bind-Field="@context.OryginalnaNazwaPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
@@ -548,16 +690,16 @@ else
                                     <Tooltip Placement="@Placement.Left" Title="Generuj Dokument Produkcyjny">
 
                                         <Button Type="ButtonType.Primary"
-                                        Icon="@IconType.Outline.FilePdf"
-                                        Loading="_onlyIconLoadingPdf"
-                                        OnClick="@(e => WydrukProdukcyjny(context.NazwaPliku))" />
+                                                Icon="@IconType.Outline.FilePdf"
+                                                Loading="_onlyIconLoadingPdf"
+                                                OnClick="@(e => WydrukProdukcyjny(context.NazwaPliku))" />
 
                                     </Tooltip>
                                 }
                                 if (boolAdmin)
                                 {
                                     <label>Widoczny dla wszystkich:</label>
-                                    <Checkbox Placeholder="Widoczny dla wszystkich." @bind-Value="@context.WidocznyDlaWszystkich" OnChange="@( () => ZmienWidocznosc(context.Id, context.WidocznyDlaWszystkich))" />
+                                    <Checkbox Placeholder="Widoczny dla wszystkich." @bind-Value="@context.WidocznyDlaWszystkich" OnChange="@(() => ZmienWidocznosc(context.Id, context.WidocznyDlaWszystkich))" />
 
                                     var uniqueId = $"{context.Id}";
                                     <InputFile id="@uniqueId" OnChange="@(e => ReplaceUploadFiles(e, context.NazwaPliku, context.Id))" hidden multiple />
@@ -570,32 +712,53 @@ else
                                     </Upload>
                                 }
 
-                                <Input Placeholder="Podaj uwagę." @bind-Value="@context.Uwagi" MaxLength="55" ReadOnly="@isNotDisabled" OnBlur="@( () => ZmienUwage(context.Id, context.Uwagi))" />
+                                <Input Placeholder="Podaj uwagę." @bind-Value="@context.Uwagi" MaxLength="55" ReadOnly="@isNotDisabled" OnBlur="@(() => ZmienUwage(context.Id, context.Uwagi))" />
 
                                 var item = context as PlikiZlecenProdukcyjnych;
                                 if (!string.IsNullOrEmpty(item.NazwaPliku))
                                 {
                                     <div class="modal-footer d-flex align-items-center" style="gap: 0.1rem; flex-wrap: nowrap;">
-                                        @if (item.TypPliku.ToLower() == "/nc")
-                                        {
-                                            <a style="font-weight: normal; color:blueviolet;" @onclick="@(() => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, true, item.Id))">
-                                                Pobierz plik i zamień rozszerzenie
-                                            </a>
-                                            <a style="font-weight: bold; color:blue;" @onclick="@(() => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, false, item.Id))">
-                                                Pobierz plik
-                                            </a>
+                                        @{
+                                            var isNc = string.Equals(item.TypPliku, "/nc", StringComparison.OrdinalIgnoreCase);
                                         }
-                                        else
-                                        {
-                                            <a style="font-weight: bold; color:blue;" @onclick="@(() => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, false, item.Id))">
-                                                Pobierz plik
-                                            </a>
-                                        }
+
+                                        <div class="file-actions">
+                                            @if (isNc)
+                                            {
+                                                <button class="file-btn file-btn--convert"
+                                                        title="Pobierz plik i zamień rozszerzenie"
+                                                        @onclick="() => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, true, item.Id)">
+                                                    <!-- ikona zamiany -->
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="file-btn__icon bi bi-arrow-repeat" viewBox="0 0 16 16">
+                                                        <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41m-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9" />
+                                                        <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5 5 0 0 0 8 3M3.1 9a5 5 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9z" />
+                                                    </svg>
+
+                                                    <span class="file-btn__text">
+                                                        Pobierz i&nbsp;<strong>zamień rozszerzenie</strong>
+                                                    </span>
+                                                </button>
+                                            }
+
+                                            <button class="file-btn file-btn--download"
+                                                    title="Pobierz plik w oryginalnym formacie"
+                                                    @onclick="() => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, false, item.Id)">
+                                                <!-- ikona pobierania -->
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="file-btn__icon bi bi-download" viewBox="0 0 16 16">
+                                                    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5" />
+                                                    <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z" />
+                                                </svg>
+
+                                                <span class="file-btn__text">
+                                                    Pobierz <strong>plik</strong>
+                                                </span>
+                                            </button>
+                                        </div>
 
                                         <!-- Informacje o pobraniach – w dwóch wierszach, mniejsza czcionka -->
                                         <div style="display: inline-flex; flex-direction: column; font-size: 0.6rem; color: #6c757d; margin-left: 0.1rem; line-height: 1.2;">
                                             <span>[pobrań: @item.IloscPobranPliku]</span>
-                                            <span>[pierwsze: @item.DataPierwszegoPobrania] <br/> [ostatnie: @item.DataOstatniegoPobrania] </span>
+                                            <span>[pierwsze: @item.DataPierwszegoPobrania] <br /> [ostatnie: @item.DataOstatniegoPobrania] </span>
                                         </div>
 
                                         <Spin Spinning=@czekajNaUsuniecie>
@@ -651,7 +814,7 @@ else
 </div>
 
 <div class="modal fade @classShowPDFWP" tabindex="-1"
-style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute;
+     style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute;
             width: 100%; height: 100vh; max-width: 100%; max-height: 100vh; overflow: auto;">
     <div class="modal-dialog modal-lg" style="width: 100%; max-width: 100%; margin: 0;">
         <div class="modal-content" style="height: 100%; width: 100%;">
@@ -759,7 +922,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
     protected override async Task OnInitializedAsync()
     {
         iloscRekordow = Convert.ToInt32((await LocalStorage.GetStringAsync("zlecenie_ile_widocznych")));
-        if(iloscRekordow == 0) iloscRekordow = 6;
+        if (iloscRekordow == 0) iloscRekordow = 6;
 
         await SearchProdukt();
 
@@ -837,11 +1000,11 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
             {
                 Console.WriteLine($"Dokument musi być ZLECENIEM");
                 _ = _notice.Info(new()
-                    {
-                        Message = "Uwaga. Nie dodałem nowego numeru!",
-                        Description = $"Dokument musi być ZLECENIEM",
-                        Placement = NotificationPlacement.BottomLeft
-                    });
+                {
+                    Message = "Uwaga. Nie dodałem nowego numeru!",
+                    Description = $"Dokument musi być ZLECENIEM",
+                    Placement = NotificationPlacement.BottomLeft
+                });
                 return;
             }
 
@@ -921,9 +1084,9 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
 
                 AktualnaStrona = 1;
             }
-   
+
             iloscPrzefiltrowanych = wynik.Count();
-  
+
             return wynik;
         }
     }
@@ -937,22 +1100,22 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
         if (wykazPozycjiDoZlecenia != null && wykazPozycjiDoZlecenia.Count == 0)
         {
             _ = _notice.Info(new()
-                {
-                    Message = "Brak danych.",
-                    Description = $"Nie zmieniłem ilości",
-                    Placement = NotificationPlacement.BottomLeft
-                });
+            {
+                Message = "Brak danych.",
+                Description = $"Nie zmieniłem ilości",
+                Placement = NotificationPlacement.BottomLeft
+            });
             return;
         }
 
         zlecenie.Ilosc = wykazPozycjiDoZlecenia.Sum(x => x.IloscOkien);
 
         _ = _notice.Success(new()
-            {
-                Message = "Uwaga.",
-                Description = $"Zmieniłem ilość",
-                Placement = NotificationPlacement.BottomLeft
-            });
+        {
+            Message = "Uwaga.",
+            Description = $"Zmieniłem ilość",
+            Placement = NotificationPlacement.BottomLeft
+        });
         return;
 
     }
@@ -985,11 +1148,11 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
                 Console.WriteLine($"File uploaded successfully. URL: {result?.url}");
 
                 _ = _notice.Success(new()
-                    {
-                        Message = "Plik zastąpiłem.",
-                        Description = $"{result?.url}",
-                        Placement = NotificationPlacement.BottomLeft
-                    });
+                {
+                    Message = "Plik zastąpiłem.",
+                    Description = $"{result?.url}",
+                    Placement = NotificationPlacement.BottomLeft
+                });
                 //Dodaj akjcę zapisu do bazy danych
                 //zleceniaProdukcyjne.LinkDoKartyNaSerwerze = result?.url;
             }
@@ -999,11 +1162,11 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
                 bladZapisuPliku = $"Błąd przy zapisie pliku na serwerze. {response.Content.ReadAsStringAsync().Result} --> {DateTime.Now}";
 
                 _ = _notice.Error(new()
-                    {
-                        Message = "Błąd przy zapisie pliku na serwerze.",
-                        Description = $"{response.Content.ReadAsStringAsync().Result}",
-                        Placement = NotificationPlacement.BottomLeft
-                    });
+                {
+                    Message = "Błąd przy zapisie pliku na serwerze.",
+                    Description = $"{response.Content.ReadAsStringAsync().Result}",
+                    Placement = NotificationPlacement.BottomLeft
+                });
 
             }
         }
@@ -1277,11 +1440,11 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
                         Console.WriteLine($"Nie udało się pobrać pliku. {response.Content.Headers}");
 
                         _ = _notice.Error(new()
-                            {
-                                Message = "System napotkał problem. Plik mógł zostać niepoprawnie pobrany",
-                                Description = response.Content.Headers.ToString(),
-                                Placement = NotificationPlacement.BottomLeft
-                            });
+                        {
+                            Message = "System napotkał problem. Plik mógł zostać niepoprawnie pobrany",
+                            Description = response.Content.Headers.ToString(),
+                            Placement = NotificationPlacement.BottomLeft
+                        });
 
                         czekajNaPobranie = false;
                     }
@@ -1292,11 +1455,11 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
         {
             Console.WriteLine($"Wystąpił błąd podczas pobierania pliku: {ex.Message} / {ex.StackTrace}");
             _ = _notice.Error(new()
-                {
-                    Message = ex.Message,
-                    Description = ex.StackTrace,
-                    Placement = NotificationPlacement.BottomLeft
-                });
+            {
+                Message = ex.Message,
+                Description = ex.StackTrace,
+                Placement = NotificationPlacement.BottomLeft
+            });
 
             czekajNaPobranie = false;
         }
@@ -1319,7 +1482,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
             }
             await DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, true, item.Id);
             ilePobralem++;
-        } 
+        }
 
         czekajNaPobranie = false;
         isLoadingAll = false;
@@ -1345,7 +1508,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
             {
                 Console.WriteLine($"Usuwam: {fileUrl}");
                 // If record deletion is successful, proceed to delete the file
-                var fileResponse = await Http.DeleteAsync($"api/FileUploadZlec/delete-file/{fileUrl}");;
+                var fileResponse = await Http.DeleteAsync($"api/FileUploadZlec/delete-file/{fileUrl}"); ;
 
                 if (fileResponse.IsSuccessStatusCode)
                 {
@@ -1393,7 +1556,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
     private void OnTableChange(QueryModel<ZleceniaProdukcyjneWew> queryModel)
     {
 
-         AktualnaStrona = queryModel.PageIndex;
+        AktualnaStrona = queryModel.PageIndex;
 
         if (zleceniaProdukcyjneWew == null)
         {
@@ -1591,12 +1754,12 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
         catch (Exception ex)
         {
             _ = _notice.Error(new()
-                {
-                    Message = "Błąd generowania dokumentu.",
-                    Description = $"{ex.Message}",
-                    Placement = NotificationPlacement.BottomLeft,
-                    Duration = 12,
-                });
+            {
+                Message = "Błąd generowania dokumentu.",
+                Description = $"{ex.Message}",
+                Placement = NotificationPlacement.BottomLeft,
+                Duration = 12,
+            });
 
         }
         _onlyIconLoadingPdf = false;
@@ -1720,7 +1883,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
 
         czyZamowienie = true;
 
-        if (zlecenie!= null && zlecenie.TypZamowienia != null)
+        if (zlecenie != null && zlecenie.TypZamowienia != null)
         {
             if (zlecenie.TypZamowienia.Contains("Zlecenie")) czyZamowienie = false;
         }
@@ -1940,14 +2103,14 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
     private async Task HandleSelected(InputFileChangeEventArgs e)
     {
 
-        Console.WriteLine("HandleSelected --> Start"); 
+        Console.WriteLine("HandleSelected --> Start");
 
-        if(!boolAdmin && !boolZmiana)
+        if (!boolAdmin && !boolZmiana)
         {
             bladZapisuPliku = $"Nie masz uprawnień do zapisu plików";
             await OpenWithPlacement(NotificationPlacement.BottomRight, bladZapisuPliku);
             return;
-        } 
+        }
 
         bool wiocznyDlaWszystkich = false;
         if (!boolAdmin)
@@ -2018,7 +2181,7 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
             {
                 token = $"empty-token-for-{user}";
             }
-            
+
             // // ustaw Authorization Bearer
             Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
@@ -2038,11 +2201,11 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
                 bladZapisuPliku = $"Błąd przy zapisie pliku na serwerze. {response.Content.ReadAsStringAsync().Result} --> {DateTime.Now}";
 
                 _ = _notice.Error(new()
-                    {
-                        Message = "Błąd przy zapisie pliku na serwerze.",
-                        Description = $"{response.Content.ReadAsStringAsync().Result}",
-                        Placement = NotificationPlacement.BottomLeft
-                    });
+                {
+                    Message = "Błąd przy zapisie pliku na serwerze.",
+                    Description = $"{response.Content.ReadAsStringAsync().Result}",
+                    Placement = NotificationPlacement.BottomLeft
+                });
 
             }
         }
@@ -2063,11 +2226,11 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
     private async Task OpenWithPlacement(NotificationPlacement placement, string text)
     {
         var config = new NotificationConfig()
-            {
-                Message = $"Ważna informacja!",
-                Description = text,
-                Placement = placement
-            };
+        {
+            Message = $"Ważna informacja!",
+            Description = text,
+            Placement = placement
+        };
 #if DEBUG
     config.Duration = 0;
 #endif
@@ -2119,9 +2282,9 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
             if (listaprodukt != null)
             {
                 optionsProdukt = listaprodukt.Select(kod => new ObjectValueProduktOption()
-                    {
-                        value = kod.ToString()
-                    }).ToArray();
+                {
+                    value = kod.ToString()
+                }).ToArray();
 
                 zlecenie.NazwaProduktu = zlecenie.NazwaProduktu;
 

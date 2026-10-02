@@ -2,9 +2,10 @@
 using GEORGE.Shared.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
+using System.Net;
+using System.Threading.Tasks;
 using static iText.StyledXmlParser.Jsoup.Select.Evaluator;
 
 namespace GEORGE.Server.Controllers
@@ -134,6 +135,98 @@ namespace GEORGE.Server.Controllers
             return Ok(result);
         }
 
+        [HttpGet("gatunek/{gatunek}")]
+        public async Task<ActionResult<List<KantowkaDoZlecenViewModel>>> GetZleceniaProdukcyjneSzukGatunekAsync(string gatunek)
+        {
+
+            gatunek = WebUtility.UrlDecode(gatunek ?? string.Empty);
+
+            var zleceniaProdukcyjne = await _context.KantowkaDoZlecen
+                .Where(k => EF.Functions.Like(k.GatunekKantowki, $"%{gatunek}%"))
+                .Join(_context.ZleceniaProdukcyjne,
+                      kantowka => kantowka.RowIdZlecenia,
+                      zlecenie => zlecenie.RowId,
+                      (kantowka, zlecenie) => new KantowkaDoZlecenViewModel
+                      {
+                          Id = kantowka.Id,
+                          RowIdZlecenia = kantowka.RowIdZlecenia,
+                          GatunekKantowki = kantowka.GatunekKantowki,
+                          Przekroj = kantowka.Przekroj,
+                          NazwaProduktu = kantowka.NazwaProduktu,
+                          KodProduktu = kantowka.KodProduktu,
+                          Uwagi = kantowka.Uwagi,
+                          DlugoscZamawiana = kantowka.DlugoscZamawiana,
+                          DlugoscNaGotowo = kantowka.DlugoscNaGotowo,
+                          DlugoscNaGotowoGrupa = kantowka.DlugoscNaGotowoGrupa,
+                          IloscSztuk = kantowka.IloscSztuk,
+                          DataZamowienia = kantowka.DataZamowienia,
+                          DataRealizacji = kantowka.DataRealizacji,
+                          DataZapisu = kantowka.DataZapisu,
+                          KtoZapisal = kantowka.KtoZapisal,
+                          OstatniaZmiana = kantowka.OstatniaZmiana,
+                          MaterialZeStanMagazyn = kantowka.MaterialZeStanMagazyn,
+                          PozDostarczono = kantowka.PozDostarczono,
+                          DataDostarczenia = kantowka.DataDostarczenia,
+                          WyslanoDoZamowien = kantowka.WyslanoDoZamowien,
+                          RowIdPliku = kantowka.RowIdPliku,
+                          TylkoKlient = zlecenie.Klient,
+                          ZleceniaProdukcyjne = zlecenie
+                      })
+                .ToListAsync();
+
+            var zleceniaProdukcyjneWew = await _context.KantowkaDoZlecen
+                .Where(k => EF.Functions.Like(k.GatunekKantowki, $"%{gatunek}%"))
+                .Join(_context.ZleceniaProdukcyjneWew,
+                      kantowka => kantowka.RowIdZlecenia,
+                      zlecenieWew => zlecenieWew.RowId,
+                      (kantowka, zlecenieWew) => new KantowkaDoZlecenViewModel
+                      {
+                          Id = kantowka.Id,
+                          RowIdZlecenia = kantowka.RowIdZlecenia,
+                          GatunekKantowki = kantowka.GatunekKantowki,
+                          Przekroj = kantowka.Przekroj,
+                          NazwaProduktu = kantowka.NazwaProduktu,
+                          KodProduktu = kantowka.KodProduktu,
+                          Uwagi = kantowka.Uwagi,
+                          DlugoscZamawiana = kantowka.DlugoscZamawiana,
+                          DlugoscNaGotowo = kantowka.DlugoscNaGotowo,
+                          DlugoscNaGotowoGrupa = kantowka.DlugoscNaGotowoGrupa,
+                          IloscSztuk = kantowka.IloscSztuk,
+                          DataZamowienia = kantowka.DataZamowienia,
+                          DataRealizacji = kantowka.DataRealizacji,
+                          DataZapisu = kantowka.DataZapisu,
+                          KtoZapisal = kantowka.KtoZapisal,
+                          OstatniaZmiana = kantowka.OstatniaZmiana,
+                          MaterialZeStanMagazyn = kantowka.MaterialZeStanMagazyn,
+                          PozDostarczono = kantowka.PozDostarczono,
+                          DataDostarczenia = kantowka.DataDostarczenia,
+                          WyslanoDoZamowien = kantowka.WyslanoDoZamowien,
+                          RowIdPliku = kantowka.RowIdPliku,
+                          TylkoKlient = zlecenieWew.Klient,
+                          ZleceniaProdukcyjne = new ZleceniaProdukcyjne
+                          {
+                              Id = zlecenieWew.Id,
+                              RowId = zlecenieWew.RowId,
+                              NumerZamowienia = zlecenieWew.NumerZamowienia,
+                              Klient = zlecenieWew.Klient,
+                              NumerZlecenia = zlecenieWew.NumerZlecenia,
+                              Adres = zlecenieWew.Adres,
+                              Miejscowosc = zlecenieWew.Miejscowosc,
+                          }
+                      })
+                .ToListAsync();
+
+            // Połączenie wyników i sortowanie
+            var result = zleceniaProdukcyjne
+                .Union(zleceniaProdukcyjneWew)
+                .OrderByDescending(x => x.DataZapisu)
+                .ThenBy(x => x.Przekroj)
+                .ThenBy(x => x.DlugoscZamawiana)
+                .ThenBy(x => x.DlugoscNaGotowo)
+                .ToList();
+
+            return Ok(result);
+        }
 
 
         [HttpPost]

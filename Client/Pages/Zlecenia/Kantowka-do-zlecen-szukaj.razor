@@ -21,63 +21,63 @@
     <style>
         /* Styl dla linków */
         .custom-link {
-        color: blue;
+            color: blue;
         }
 
         .custom-linkszy {
-        color: darkblue;
+            color: darkblue;
         }
 
         /* Główna tabela */
         .highlighted-background {
-        background-color: white;
-        overflow: auto; /* Dodaje paski przewijania w razie potrzeby */
-        max-height: calc(100vh - 55px); /* Maksymalna wysokość dostosowana do rozmiaru okna */
-        width: calc(100% - 260px); /* Ustawia szerokość na 100% minus 260px */
-        box-sizing: border-box; /* Uwzględnia padding i border w rozmiarze */
-        position: absolute;
-        left: 260px; /* Lewa krawędź 260px od lewej */
-        top: 55px; /* Górna krawędź 55px od góry */
+            background-color: white;
+            overflow: auto; /* Dodaje paski przewijania w razie potrzeby */
+            max-height: calc(100vh - 55px); /* Maksymalna wysokość dostosowana do rozmiaru okna */
+            width: calc(100% - 260px); /* Ustawia szerokość na 100% minus 260px */
+            box-sizing: border-box; /* Uwzględnia padding i border w rozmiarze */
+            position: absolute;
+            left: 260px; /* Lewa krawędź 260px od lewej */
+            top: 55px; /* Górna krawędź 55px od góry */
         }
 
         /* Klasy podświetlające */
         .zrealizowano, .zrealizowano > td {
-        background-color: forestgreen !important;
-        color: white; /* Kontrastujący kolor tekstu */
+            background-color: forestgreen !important;
+            color: white; /* Kontrastujący kolor tekstu */
         }
 
-        /* Podświetlenie w przypadku najechania myszką */
-        .zrealizowano:hover, .zrealizowano:hover > td {
-        background-color: mediumslateblue !important;
-        font-size: 1.0em;
-        }
+            /* Podświetlenie w przypadku najechania myszką */
+            .zrealizowano:hover, .zrealizowano:hover > td {
+                background-color: mediumslateblue !important;
+                font-size: 1.0em;
+            }
 
         /* Zamówiono */
         .zamowiono, .zamowiono > td {
-        background-color: lightblue !important;
-        color: black; /* Kontrastujący kolor tekstu */
+            background-color: lightblue !important;
+            color: black; /* Kontrastujący kolor tekstu */
         }
 
-        .zamowiono:hover, .zamowiono:hover > td {
-        background-color: mediumslateblue !important;
-        font-size: 1.0em;
-        }
+            .zamowiono:hover, .zamowiono:hover > td {
+                background-color: mediumslateblue !important;
+                font-size: 1.0em;
+            }
 
         /* ZlecenieNaN */
         .zlecenieNaN, .zlecenieNaN > td {
-        background-color: whitesmoke !important;
-        color: black; /* Kontrastujący kolor tekstu */
+            background-color: whitesmoke !important;
+            color: black; /* Kontrastujący kolor tekstu */
         }
 
-        .zlecenieNaN:hover, .zlecenieNaN:hover > td {
-        background-color: mediumslateblue !important;
-        font-size: 1.0em;
-        }
+            .zlecenieNaN:hover, .zlecenieNaN:hover > td {
+                background-color: mediumslateblue !important;
+                font-size: 1.0em;
+            }
 
         /* Klasa zawsze podświetlonego wiersza */
         .highlighted-row, .highlighted-row > td {
-        background-color: yellow !important; /* Zmienna podświetlenia */
-        color: black !important; /* Kontrastujący kolor tekstu */
+            background-color: yellow !important; /* Zmienna podświetlenia */
+            color: black !important; /* Kontrastujący kolor tekstu */
         }
     </style>
 
@@ -177,10 +177,15 @@
     <div class="highlighted-background" style="left:@(OnlyIcon ? "95px" : "260px"); width:calc(100% - @(OnlyIcon ? "95px" : "260px"))">
         <h6 style="color:brown; padding-top:5px">Wyszukaj kantówkę po długości</h6>
         <Text>Wyszukaj po długości:</Text>
-        <AntDesign.InputNumber @bind-Value="@_int_dlugosc" />
+        <AntDesign.InputNumber @bind-Value="@int_dlugosc" />
         <Text>Wyszukaj w zakresie</Text>
-        <AntDesign.InputNumber @bind-Value="@_int_zakres" />
+        <AntDesign.InputNumber @bind-Value="@int_zakres" />
         <Button Icon="@IconType.Outline.Search" OnClick="SzukZakres">Szukaj</Button>
+        &nbsp; &nbsp;
+
+        <Search Type="text" @bind-Value="@gatunekSzukaj" Placeholder="Wpisz gatunek" WrapperStyle="width: 200px;" AllowClear OnSearch="SzukGatunek" />
+
+        &nbsp; &nbsp;
         <Tooltip Placement="@Placement.TopRight" Title="Wróć do poprzedniej strony">
             <Button class="btn-back" Icon="@IconType.Fill.Backward" OnClick="GoBack"></Button>
         </Tooltip>
@@ -195,25 +200,25 @@
             <Divider>Ilość pozycji do zamówienia: @kantowkaDoZlecen.Count(), suma sztuk: @kantowkaDoZlecen.Sum(x => x.IloscSztuk).ToString()</Divider>
             <div>
                 <Table TItem="KantowkaDoZlecenViewModel" DataSource="@kantowkaDoZlecen" ScrollX="1950" PageSize="@_pageSize" Size="TableSize.Small"
-                RowClassName="@(x => x?.Data?.WyslanoDoZamowien == true ? (x?.Data?.PozDostarczono == true ? "zrealizowano" : "zamowiono") : 
-                        (x?.Data?.PozDostarczono == true ? "zrealizowano" : "zlecenieNaN"))">
-                    <Column Title="ID" @bind-Field="@context.Id" Hidden />
-                    <Column Title="Klient" @bind-Field="@context.TylkoKlient" Sortable Filterable />
-                    <Column Title="Gatunek" @bind-Field="@context.GatunekKantowki" Sortable OnFilter="(a, b) => a == b" Filterable />
-                    <Column Title="Przekrój" @bind-Field="@context.Przekroj" Sortable OnFilter="(a, b) => a == b" Filterable />
-                    <Column Title="Opis" @bind-Field="@context.NazwaProduktu" Sortable />
-                    <Column Title="Długość na gotowo" @bind-Field="@context.DlugoscNaGotowo" Sortable OnFilter="(a, b) => a == b" Filterable />
-                    <Column Width="150" Title="Długość na gotowo cd." @bind-Field="@context.DlugoscNaGotowoGrupa" Sortable OnFilter="(a, b) => a == b" Filterable />
-                    <Column Title="Długość zamówiona" @bind-Field="@context.DlugoscZamawiana" Sortable OnFilter="(a, b) => a == b" Filterable />
-                    <Column Title="Ilość sztuk" @bind-Field="@context.IloscSztuk" Sortable />
-                    <Column Title="Wykoż. materiał ze stanu" TData="KantowkaDoZlecenViewModel">
-                        <Template>
-                            <Checkbox @bind-Checked="@context.MaterialZeStanMagazyn" Disabled />
-                        </Template>
-                    </Column>
-                    <Column Width="350" Title="Uwagi" @bind-Field="@context.Uwagi" Sortable />
-                    <Column Title="Autor zmian" @bind-Field="@context.KtoZapisal" Sortable />
-                    <Column Title="Wysłano do zamówienia" @bind-Field="@context.WyslanoDoZamowien" Hidden />
+                       RowClassName="@(x => x?.Data?.WyslanoDoZamowien == true ? (x?.Data?.PozDostarczono == true ? "zrealizowano" : "zamowiono") :
+                                               (x?.Data?.PozDostarczono == true ? "zrealizowano" : "zlecenieNaN"))">
+                <Column Title="ID" @bind-Field="@context.Id" Hidden />
+                <Column Title="Klient" @bind-Field="@context.TylkoKlient" Sortable Filterable />
+                <Column Title="Gatunek" @bind-Field="@context.GatunekKantowki" Sortable OnFilter="(a, b) => a == b" Filterable />
+                <Column Title="Przekrój" @bind-Field="@context.Przekroj" Sortable OnFilter="(a, b) => a == b" Filterable />
+                <Column Title="Opis" @bind-Field="@context.NazwaProduktu" Sortable />
+                <Column Title="Długość na gotowo" @bind-Field="@context.DlugoscNaGotowo" Sortable OnFilter="(a, b) => a == b" Filterable />
+                <Column Width="150" Title="Długość na gotowo cd." @bind-Field="@context.DlugoscNaGotowoGrupa" Sortable OnFilter="(a, b) => a == b" Filterable />
+                <Column Title="Długość zamówiona" @bind-Field="@context.DlugoscZamawiana" Sortable OnFilter="(a, b) => a == b" Filterable />
+                <Column Title="Ilość sztuk" @bind-Field="@context.IloscSztuk" Sortable />
+                <Column Title="Wykoż. materiał ze stanu" TData="KantowkaDoZlecenViewModel">
+                    <Template>
+                        <Checkbox @bind-Checked="@context.MaterialZeStanMagazyn" Disabled />
+                    </Template>
+                </Column>
+                <Column Width="350" Title="Uwagi" @bind-Field="@context.Uwagi" Sortable />
+                <Column Title="Autor zmian" @bind-Field="@context.KtoZapisal" Sortable />
+                <Column Title="Wysłano do zamówienia" @bind-Field="@context.WyslanoDoZamowien" Hidden />
 
 
                     <!-- Przykład kolumny dla daty z formatowaniem -->
@@ -227,7 +232,7 @@
 
             </div>
 
-        }
+                }
 
     </div>
 </body>
@@ -241,8 +246,10 @@
 
     private List<KantowkaDoZlecenViewModel>? kantowkaDoZlecen;
 
-    int _int_dlugosc = 0;
-    int _int_zakres = 250;
+    int int_dlugosc = 0;
+    int int_zakres = 250;
+
+    string gatunekSzukaj = "";
 
     int _pageSize = 7;
 
@@ -276,7 +283,26 @@
     {
         try
         {
-            kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecenViewModel>>($"api/KantowkaDoZlecen/dlugosc/{_int_dlugosc}/zakres/{_int_zakres}");
+            kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecenViewModel>>($"api/KantowkaDoZlecen/dlugosc/{int_dlugosc}/zakres/{int_zakres}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"******* Błąd {ex.Message}");
+        }
+
+    }
+
+    private async Task SzukGatunek()
+    {
+        if (gatunekSzukaj.Length < 3)
+        {
+            return;
+        }
+
+        try
+        {
+
+            kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecenViewModel>>($"api/KantowkaDoZlecen/gatunek/{WebUtility.UrlEncode(gatunekSzukaj ?? string.Empty)}");
         }
         catch (Exception ex)
         {
@@ -289,7 +315,6 @@
     {
         await JSRuntime.InvokeVoidAsync("history.back");
     }
-
 
 
     private bool boolOdczyt = false;

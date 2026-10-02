@@ -224,7 +224,10 @@
                 <Button Type="reset" Icon="@IconType.Fill.Mail" OnClick="@(SendElementCheckToEmailViaSmtp)" />
             </Tooltip>
             <Tooltip Placement="@Placement.BottomCenter" Title="Zapisz sformatowany dokument EXCEL.">
-                <Button Type="reset" Icon="@IconType.Fill.FileExcel" OnClick="@(ZapiszExcelKantowkiPoStronieKlienta)" />
+                <Button Type="reset" Icon="@IconType.Fill.FileExcel" OnClick="@(() => ZapiszExcelKantowkiPoStronieKlienta(false))" />
+            </Tooltip>
+            <Tooltip Placement="@Placement.BottomCenter" Title="Zapisz sformatowany dokument EXCEL na produkcje.">
+                <Button Type="reset" Icon="@IconType.Fill.FileExcel" OnClick="@(() => ZapiszExcelKantowkiPoStronieKlienta(true))" />
             </Tooltip>
             <Button Type="reset" OnClick="@(UstawDateZamowienia)">
                 Kantówkę zamówiono (wygeneruj wpis do zamówień)
@@ -593,7 +596,7 @@
 
                     if (zleceniaProdukcyjne != null && zleceniaProdukcyjne.Count > 0)
                     {
-                        dotyczyZlecenia = $"{zleceniaProdukcyjne[0].TypZamowienia} / {zleceniaProdukcyjne[0].NumerZamowienia} / {zleceniaProdukcyjne[0].Klient}";
+                        dotyczyZlecenia = $"{zleceniaProdukcyjne[0].NumerZamowienia} / {zleceniaProdukcyjne[0].Klient}";
                         dotyczyKlienta = zleceniaProdukcyjne[0].Klient ?? "";
                     }
                 }
@@ -632,7 +635,7 @@
         }
     }
 
-    private async Task ZapiszExcelKantowkiPoStronieKlienta()
+    private async Task ZapiszExcelKantowkiPoStronieKlienta(bool czyNaProdukcje)
     {
         if (kantowkaDoZlecen == null || !kantowkaDoZlecen.Any())
         {
@@ -640,7 +643,12 @@
             return;
         }
 
-        // 📊 Sortowanie danych
+        int iloscKolumn = czyNaProdukcje ? 6 : 5;
+
+        // ============================================================
+        // SORTOWANIE
+        // ============================================================
+
         var danePosortowane = kantowkaDoZlecen
             .OrderBy(k => k.GatunekKantowki)
             .ThenBy(k => k.Przekroj)
@@ -650,24 +658,73 @@
         using var workbook = new ClosedXML.Excel.XLWorkbook();
         var worksheet = workbook.Worksheets.Add("Zamówienie");
 
+        // ============================================================
+        // WIERSZ 1 - NAGŁÓWKI
+        // ============================================================
+
         worksheet.Cell(1, 1).Value = "Gatunek kantówki";
         worksheet.Cell(1, 2).Value = "Przekrój";
         worksheet.Cell(1, 3).Value = "Nazwa produktu";
         worksheet.Cell(1, 4).Value = "Długość zamówiona";
         worksheet.Cell(1, 5).Value = "Ilość sztuk";
 
-        for (int col = 1; col <= 5; col++)
+        if (czyNaProdukcje)
         {
-            var cell = worksheet.Cell(1, col);
-            cell.Style.Font.Bold = true;
-            cell.Style.Font.FontSize = 14;
-            cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
-            cell.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
-            cell.Style.Border.InsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
-            cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+            worksheet.Cell(1, 6).Value = "Długość na gotowo (grupa)";
         }
 
-        int row = 2;
+        // ============================================================
+        // WIERSZ 2
+        // Scalanie komórek i wpisanie dotyczyZlecenia
+        // ============================================================
+
+        if (czyNaProdukcje)
+        {
+            // A:F
+            worksheet.Range(2, 1, 2, 6).Merge();
+            worksheet.Cell(2, 1).Value = dotyczyKlienta;
+        }
+        else
+        {
+            // A:E
+            worksheet.Range(2, 1, 2, 5).Merge();
+            worksheet.Cell(2, 1).Value = dotyczyKlienta;
+        }
+
+        // ============================================================
+        // FORMATOWANIE WIERSZA 1 I 2
+        // ============================================================
+
+        for (int rowNaglowka = 1; rowNaglowka <= 2; rowNaglowka++)
+        {
+            for (int col = 1; col <= iloscKolumn; col++)
+            {
+                var cell = worksheet.Cell(rowNaglowka, col);
+
+                cell.Style.Font.Bold = true;
+                cell.Style.Font.FontSize = 14;
+                cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
+
+                cell.Style.Border.OutsideBorder =
+                    ClosedXML.Excel.XLBorderStyleValues.Thin;
+
+                cell.Style.Border.InsideBorder =
+                    ClosedXML.Excel.XLBorderStyleValues.Thin;
+
+                cell.Style.Alignment.Horizontal =
+                    ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+
+                cell.Style.Alignment.Vertical =
+                    ClosedXML.Excel.XLAlignmentVerticalValues.Center;
+            }
+        }
+
+        // ============================================================
+        // DANE
+        // ============================================================
+
+        int row = 3;
+
         foreach (var k in danePosortowane)
         {
             worksheet.Cell(row, 1).Value = k.GatunekKantowki;
@@ -676,31 +733,124 @@
             worksheet.Cell(row, 4).Value = k.DlugoscZamawiana;
             worksheet.Cell(row, 5).Value = k.IloscSztuk;
 
-            for (int col = 1; col <= 5; col++)
+            if (czyNaProdukcje)
+            {
+                worksheet.Cell(row, 6).Value = k.DlugoscNaGotowoGrupa;
+            }
+
+            for (int col = 1; col <= iloscKolumn; col++)
             {
                 var cell = worksheet.Cell(row, col);
+
                 cell.Style.Font.FontSize = 14;
-                cell.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
-                cell.Style.Border.InsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
-                cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Left;
-                cell.Style.Alignment.Vertical = ClosedXML.Excel.XLAlignmentVerticalValues.Center;
+
+                cell.Style.Border.OutsideBorder =
+                    ClosedXML.Excel.XLBorderStyleValues.Thin;
+
+                cell.Style.Border.InsideBorder =
+                    ClosedXML.Excel.XLBorderStyleValues.Thin;
+
+                cell.Style.Alignment.Horizontal =
+                    ClosedXML.Excel.XLAlignmentHorizontalValues.Left;
+
+                cell.Style.Alignment.Vertical =
+                    ClosedXML.Excel.XLAlignmentVerticalValues.Center;
             }
 
             row++;
         }
 
+        // ============================================================
+        // PODSUMOWANIE - SUMA DŁUGOŚCI DLA KAŻDEGO PRZEKROJU
+        // ============================================================
+
+        var grupyPrzekrojow = danePosortowane
+            .GroupBy(k => k.Przekroj)
+            .ToList();
+
+        foreach (var grupa in grupyPrzekrojow)
+        {
+            // Suma = ilość sztuk × długość zamawiana
+            var sumaDlugosci = grupa.Sum(k =>
+                k.IloscSztuk * k.DlugoscZamawiana);
+
+            sumaDlugosci = sumaDlugosci / 1000; //przeliczenie na mb
+
+            if (czyNaProdukcje)
+            {
+                worksheet.Range(row, 1, row, 4).Merge();
+                worksheet.Cell(row, 1).Value =
+                    $"Suma {grupa.Key}";
+
+                worksheet.Range(row, 5, row, 6).Merge();
+                worksheet.Cell(row, 5).Value =
+                    sumaDlugosci + " mb";
+            }
+            else
+            {
+                worksheet.Range(row, 1, row, 4).Merge();
+                worksheet.Cell(row, 1).Value =
+                    $"Suma {grupa.Key}";
+
+                worksheet.Range(row, 5, row, 5).Merge();
+                worksheet.Cell(row, 5).Value =
+                    sumaDlugosci + " mb";
+            }
+
+            // Formatowanie wiersza podsumowania
+            for (int col = 1; col <= iloscKolumn; col++)
+            {
+                var cell = worksheet.Cell(row, col);
+
+                cell.Style.Font.Bold = true;
+                cell.Style.Font.FontSize = 14;
+
+                cell.Style.Border.OutsideBorder =
+                    ClosedXML.Excel.XLBorderStyleValues.Thin;
+
+                cell.Style.Border.InsideBorder =
+                    ClosedXML.Excel.XLBorderStyleValues.Thin;
+
+                cell.Style.Alignment.Horizontal =
+                    ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+
+                cell.Style.Alignment.Vertical =
+                    ClosedXML.Excel.XLAlignmentVerticalValues.Center;
+            }
+
+            row++;
+        }
+
+        // ============================================================
+        // SZEROKOŚCI KOLUMN
+        // ============================================================
+
         worksheet.Columns().AdjustToContents();
 
+        // ============================================================
+        // ZAPIS PLIKU
+        // ============================================================
+
         await using var stream = new MemoryStream();
+
         workbook.SaveAs(stream);
+
         stream.Position = 0;
 
         var base64 = Convert.ToBase64String(stream.ToArray());
 
-        string nazwaKlienta = Regex.Replace(dotyczyKlienta ?? "klient", $"[{Regex.Escape(new string(Path.GetInvalidFileNameChars()))}]", "_");
+        string nazwaKlienta = Regex.Replace(
+            dotyczyKlienta ?? "klient",
+            $"[{Regex.Escape(new string(Path.GetInvalidFileNameChars()))}]",
+            "_");
+
         string fileName = $"Zamowienie_{nazwaKlienta}.xlsx";
 
-        await JSRuntime.InvokeVoidAsync("saveAsExcelKantowki", base64, fileName);
+        await JSRuntime.InvokeVoidAsync(
+            "saveAsExcelKantowki",
+            base64,
+            fileName);
+
         await _message.Success("Plik Excel został pobrany.");
     }
 

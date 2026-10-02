@@ -89,6 +89,57 @@
         /* brak marginesu – odstępy reguluje gap */
         white-space: nowrap; /* opcjonalnie – zapobiega zawijaniu */
     }
+
+    .action-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        font-size: 12px;
+        line-height: 1.2;
+        border: 1px solid #d0d0d0;
+        border-radius: 4px;
+        background: #f8f9fa;
+        color: #333;
+        cursor: pointer;
+        transition: all .15s ease;
+        white-space: nowrap;
+    }
+
+        .action-btn:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        .action-btn i {
+            font-size: 14px;
+        }
+
+    .action-btn--warning {
+        color: chocolate;
+        border-color: chocolate;
+    }
+
+    .action-btn--purple {
+        color: darkviolet;
+        border-color: darkviolet;
+    }
+
+    .action-btn--info {
+        color: #0d6efd;
+        border-color: #0d6efd;
+    }
+
+    .action-btn--dark {
+        color: #212529;
+        font-weight: 600;
+    }
 </style>
 
 <PageTitle>Program do wspomagania produkcji zlecenia</PageTitle>
@@ -200,14 +251,36 @@ else
         RowClassName="@(x => x.Data.ZlecZrealizowane ? "zlealizowano" : x.Data.TypZamowienia=="Zlecenie" ? "zlecenie" : "zlecenieNaN" )"
                @bind-PageIndex="@AktualnaStrona"
                ScrollX="1990" PageSize="@iloscRekordow" Size="TableSize.Small" OnChange="OnTableChange">
-            <ActionColumn Title="Materiały" Width="155">
-                <a @onclick="() => DodajKantowke(context)" class="custom-link">Kantówka</a>
-                <a @onclick="() => DodajSzybe(context)" class="custom-linkszy">Szyby</a>
-                <br />
-                <a @onclick="() => DodajCzasyWykonaia(context)" class="custom-link" style="color:chocolate; width:38px">T.W.Z / Pozycje</a>
-                <a @onclick="() => DodajZamowienia(context)">Zamówienia</a>
-                <a style="font-weight: bold" @onclick="() => FileEdit(context , 1)">Pliki</a>
+            <ActionColumn Title="Akcje" Width="180">
+                <div class="action-grid">
+                    <button class="action-btn" @onclick="() => DodajKantowke(context)" title="Dodaj kantówkę">
+                        <i class="bi bi-border-style"></i><span>📐 Kantówka</span>
+                    </button>
+                    <button class="file-btn file-btn--glass"
+                            title="Dodaj szyby"
+                            @onclick="() => DodajSzybe(context)">
+                        <svg class="file-btn__icon" xmlns="http://www.w3.org/2000/svg"
+                             width="16" height="16" fill="currentColor"
+                             viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                            <path d="M2 2.5A1.5 1.5 0 0 1 3.5 1h9A1.5 1.5 0 0 1 14 2.5v11a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 13.5zm1.5-.5a.5.5 0 0 0-.5.5V7h4V2zm4.5 0v5h5V2.5a.5.5 0 0 0-.5-.5zM13 8H8v5h4.5a.5.5 0 0 0 .5-.5zm-6 5V8H3v4.5a.5.5 0 0 0 .5.5z" />
+                        </svg>
+                        <span class="file-btn__text">Szyby</span>
+                    </button>
+                    <button class="action-btn action-btn--warning" @onclick="() => DodajCzasyWykonaia(context)" title="Pozycje">
+                        <i class="bi bi-list-check"></i><span>📋 Pozycje</span>
+                    </button>
+                    @*        <button class="action-btn action-btn--purple" @onclick="() => DodajWyrob(context)" title="Dodaj wyrób">
+                        <i class="bi bi-plus-circle"></i><span>➕ Dodaj</span>
+                    </button> *@
+                    <button class="action-btn action-btn--info" @onclick="() => DodajZamowienia(context)" title="Zamówienia">
+                        <i class="bi bi-cart"></i><span>🛒Zamówienia</span>
+                    </button>
+                    <button class="action-btn action-btn--dark" @onclick="() => FileEdit(context, 1)" title="Pliki">
+                        <i class="bi bi-folder2-open"></i><span>📂 Pliki</span>
+                    </button>
+                </div>
             </ActionColumn>
+
             <Column Width="230" Title="Status" TData="string">
                 @if (context.Tags != null)
                 {

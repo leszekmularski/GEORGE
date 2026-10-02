@@ -3,7 +3,6 @@ using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.Models;
 using GEORGE.Shared.ViewModels;
 using Microsoft.JSInterop;
-using System;
 using System.Data;
 
 namespace GEORGE.Client.Pages.Okna
@@ -440,43 +439,62 @@ namespace GEORGE.Client.Pages.Okna
                 if (konfPolaczenia != null && konfPolaczenia.Count > 0)
                 {
 
-                    var tmpkonfPolaczenia = konfPolaczenia ?? new List<PrzesuniecieDto>();
+                    var szukPionA = Math.Abs(
+                        konfPolaczenia.FirstOrDefault(p =>
+                            p.Strona.Equals(
+                                stronaA ? "Dół" : "Góra",
+                                StringComparison.OrdinalIgnoreCase)
+                            &&
+                            p.ElementWewnetrznyToSlupek
+                            &&
+                            p.ElementZewnetrznyToSlupek == stronaA
+                        )?.PrzesuniecieYStycznej ?? 0
+                    );
 
-                    // Jeśli którakolwiek flaga ustawiona → zawężamy do wpisów, gdzie któryś element jest słupkiem
-                    if (stronaA || stronaB)
+                    var szukPionB = Math.Abs(
+                        konfPolaczenia.FirstOrDefault(p =>
+                            p.Strona.Equals(
+                                stronaB ? "Góra" : "Dół",
+                                StringComparison.OrdinalIgnoreCase)
+                            &&
+                            p.ElementWewnetrznyToSlupek
+                            &&
+                            p.ElementZewnetrznyToSlupek == stronaB
+                        )?.PrzesuniecieYStycznej ?? 0
+                    );
+
+                    if (szukPionA == 0)
                     {
-                        //  Console.WriteLine($"🔷 ElementLiniowy #1: zawężono wpisy do tych, gdzie któryś element jest słupkiem — pozostało {konfPolaczenia.Count} wpisów");
-
-                        //foreach (var p in konfPolaczenia)
-                        //{
-                        //    Console.WriteLine($"🔷 ElementLiniowy #1: F   {p.ElementWewnetrznyId} (wew) {p.ElementZewnetrznyId} (zew) strona={p.Strona} " +
-                        //        $"wewToSlupek={p.ElementWewnetrznyToSlupek} zewToSlupek={p.ElementZewnetrznyToSlupek}");
-                        //}
-
-                        tmpkonfPolaczenia = konfPolaczenia
-                            .Where(p =>
-                                p.ElementWewnetrznyToSlupek == stronaA &&
-                                p.ElementZewnetrznyToSlupek == stronaB)
-                            .ToList();
-
-                      //  Console.WriteLine($"🔷 ElementLiniowy #2: zawężono wpisy do tych, gdzie któryś element jest słupkiem — pozostało {tmpkonfPolaczenia.Count} wpisów");
+                        szukPionA = Math.Abs(
+                            konfPolaczenia.FirstOrDefault(p =>
+                                p.Strona.Equals("Góra",
+                                    StringComparison.OrdinalIgnoreCase)
+                            )?.PrzesuniecieYStycznej ?? 0
+                        );
                     }
 
-                    var szukPionA = Math.Abs(tmpkonfPolaczenia.FirstOrDefault(p =>
-                        p.Strona.Equals(stronaA ? "Dół" : "Góra", StringComparison.OrdinalIgnoreCase))?.PrzesuniecieYStycznej ?? 0);
+                    if (szukPionB == 0)
+                    {
+                        szukPionA = Math.Abs(
+                            konfPolaczenia.FirstOrDefault(p =>
+                                p.Strona.Equals("Dół",
+                                    StringComparison.OrdinalIgnoreCase)
+                            )?.PrzesuniecieYStycznej ?? 0
+                        );
+                    }
 
-                    var szukPionB = Math.Abs(tmpkonfPolaczenia.FirstOrDefault(p =>
-                        p.Strona.Equals(stronaB ? "Góra" : "Dół", StringComparison.OrdinalIgnoreCase))?.PrzesuniecieYStycznej ?? 0);
+                    var szukPoziomA = Math.Abs(
+                        konfPolaczenia.FirstOrDefault(p =>
+                            p.Strona.Equals("Lewa", StringComparison.OrdinalIgnoreCase)
+                        )?.PrzesuniecieYStycznej ?? 0
+                    );
 
-                    var szukPoziomA = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
-                        p.Strona.Equals("Lewa", StringComparison.OrdinalIgnoreCase))?.PrzesuniecieYStycznej ?? 0);
+                    var szukPoziomB = Math.Abs(
+                        konfPolaczenia.FirstOrDefault(p =>
+                            p.Strona.Equals("Prawa", StringComparison.OrdinalIgnoreCase)
+                        )?.PrzesuniecieYStycznej ?? 0
+                    );
 
-                    var szukPoziomB = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
-                        p.Strona.Equals("Prawa", StringComparison.OrdinalIgnoreCase))?.PrzesuniecieYStycznej ?? 0);
-
-                    // ⚠️ Dla linii pionowej — Lewa/Prawa dają szerokość, Góra/Dół dają wysokość
-                    // Dla linii poziomej — Góra/Dół dają wysokość, Lewa/Prawa dają szerokość
-                    // (zależnie od semantyki Twoich danych — zweryfikuj!)
                     profileLeft = (float)szukPoziomA;
                     profileRight = (float)szukPoziomB;
                     profileTop = (float)szukPionA;
@@ -2300,6 +2318,20 @@ namespace GEORGE.Client.Pages.Okna
                     bool stronaB = daneKwadratu
                         .FirstOrDefault(x => x.SasiadSlupekStronaB) != null;
 
+                    if (stronaA)
+                    {
+                        var sasiadA = daneKwadratu.FirstOrDefault(x => x.SasiadSlupekStronaA);
+                        if (sasiadA != null)
+                            sasiadA.OsuniecieSlupekStronaA = profileTop;
+                    }
+
+                    if (stronaB)
+                    {
+                        var sasiadB = daneKwadratu.FirstOrDefault(x => x.SasiadSlupekStronaB);
+                        if (sasiadB != null)
+                            sasiadB.OsuniecieSlupekStronaB = profileBottom;
+                    }
+
                     // Wywołaj PrepareRegionPoints z flagami
                     List<XPoint> punktyRegionuMasterModyfikowane;
 
@@ -2309,13 +2341,17 @@ namespace GEORGE.Client.Pages.Okna
                     }
                     else
                     {
-                        //Przytnij wystające punkty regionu master w zależności od tego, czy sąsiad jest po stronie A czy B
+                        // Przytnij wystające punkty regionu master w zależności od tego, czy sąsiad jest po stronie A czy B
+
                         punktyRegionuMasterModyfikowane = PrepareRegionPoints(
                         TopXT5,
                         BottomXT5,
                         punktyRegionuMaster,
                         stronaA,
-                        stronaB);
+                        stronaB,
+                        profileTop,
+                        profileBottom);
+
                     }
 
 
@@ -2865,14 +2901,15 @@ namespace GEORGE.Client.Pages.Okna
             };
         }
 
+
         /// <summary>
-        /// Przycina kontur source do odcinka top–bottom, ale TYLKO dla tych końców,
-        /// które zostały zmienione (topZmieniony / bottomZmieniony).
+        /// Przycina kontur source do odcinka top–bottom, z możliwością dodatkowego
+        /// zwężenia zakresu od góry (przesuniecieTop) i od dołu (przesuniecieBottom).
         ///
-        /// - topZmieniony    == false → punkty z t < 0 pozostają bez zmian
+        /// - topZmieniony == false → punkty z t < 0 pozostają bez zmian
+        /// - topZmieniony == true  → punkty z t < (0 + przesuniecieTop) są przycinane
         /// - bottomZmieniony == false → punkty z t > alen pozostają bez zmian
-        /// - topZmieniony    == true  → punkty z t < 0 są przycinane do t = 0
-        /// - bottomZmieniony == true  → punkty z t > alen są przycinane do t = alen
+        /// - bottomZmieniony == true  → punkty z t > (alen - przesuniecieBottom) są przycinane
         /// </summary>
         private List<XPoint> PrepareRegionPoints(
             XPoint top,
@@ -2880,6 +2917,8 @@ namespace GEORGE.Client.Pages.Okna
             List<XPoint> source,
             bool topZmieniony,
             bool bottomZmieniony,
+            double przesuniecieTop,
+            double przesuniecieBottom,
             bool enableLogs = false)
         {
             if (source == null || source.Count == 0)
@@ -2903,11 +2942,13 @@ namespace GEORGE.Client.Pages.Okna
             {
                 Console.WriteLine("═══════════════════════════════════════════════");
                 Console.WriteLine("🟦 PrepareRegionPoints – START");
-                Console.WriteLine($"   top             = ({top.X:F3}, {top.Y:F3})");
-                Console.WriteLine($"   bottom          = ({bottom.X:F3}, {bottom.Y:F3})");
-                Console.WriteLine($"   topZmieniony    = {topZmieniony}");
-                Console.WriteLine($"   bottomZmieniony = {bottomZmieniony}");
-                Console.WriteLine($"   source.Count    = {source.Count}");
+                Console.WriteLine($"   top                = ({top.X:F3}, {top.Y:F3})");
+                Console.WriteLine($"   bottom             = ({bottom.X:F3}, {bottom.Y:F3})");
+                Console.WriteLine($"   topZmieniony       = {topZmieniony}");
+                Console.WriteLine($"   bottomZmieniony    = {bottomZmieniony}");
+                Console.WriteLine($"   przesuniecieTop    = {przesuniecieTop:F3}");
+                Console.WriteLine($"   przesuniecieBottom = {przesuniecieBottom:F3}");
+                Console.WriteLine($"   source.Count       = {source.Count}");
                 Console.WriteLine("   source (przed):");
                 for (int i = 0; i < source.Count; i++)
                     Console.WriteLine($"     [{i}] ({source[i].X:F3}, {source[i].Y:F3})");
@@ -2934,24 +2975,45 @@ namespace GEORGE.Client.Pages.Okna
             double nx = -uy;
             double ny = ux;
 
-            // Zakres klampowania wzdłuż osi
-            double tMin = 0.0;
-            double tMax = alen;
+            // ====== PROGI Z PRZESUNIĘCIEM ======
+            // Bazowe progi: 0 i alen (końce odcinka top–bottom).
+            // Przesunięcie zwęża zakres:
+            //   górny próg idzie w dół  o przesuniecieTop    → tMin = 0 + przesuniecieTop
+            //   dolny próg idzie w górę o przesuniecieBottom → tMax = alen − przesuniecieBottom
+            double tMin = 0.0 + (topZmieniony ? przesuniecieTop : 0.0);
+            double tMax = alen - (bottomZmieniony ? przesuniecieBottom : 0.0);
+
+            // Zabezpieczenie: gdyby przesunięcia były większe niż długość odcinka
+            if (tMin > tMax)
+            {
+                // Zwiń do środka – nic sensownego nie da się przyciąć
+                double mid = (tMin + tMax) / 2.0;
+                tMin = mid;
+                tMax = mid;
+
+                if (enableLogs)
+                    Console.WriteLine("🟠 PrepareRegionPoints: przesunięcia większe niż długość odcinka – zwiń do środka");
+            }
 
             // ====== LOG DECYZJI ======
             if (enableLogs)
             {
                 Console.WriteLine("───────────────────────────────────────────────");
-                Console.WriteLine($"   alen       = {alen:F6}");
-                Console.WriteLine($"   ux, uy     = ({ux:F6}, {uy:F6})");
-                Console.WriteLine($"   nx, ny     = ({nx:F6}, {ny:F6})");
-                Console.WriteLine($"   tMin, tMax = ({tMin:F3}, {tMax:F3})");
+                Console.WriteLine($"   alen        = {alen:F6}");
+                Console.WriteLine($"   ux, uy      = ({ux:F6}, {uy:F6})");
+                Console.WriteLine($"   nx, ny      = ({nx:F6}, {ny:F6})");
+                Console.WriteLine($"   tMin, tMax  = ({tMin:F3}, {tMax:F3})");
 
-                string aktywnaGora = topZmieniony ? "AKTYWNE (klampuj t<0)" : "POMINIĘTE (t<0 bez zmian)";
-                string aktywnyDol = bottomZmieniony ? "AKTYWNE (klampuj t>alen)" : "POMINIĘTE (t>alen bez zmian)";
+                string aktywnaGora = topZmieniony
+                    ? $"AKTYWNE (klampuj t<{tMin:F3})"
+                    : "POMINIĘTE (t<0 bez zmian)";
 
-                Console.WriteLine($"   GÓRA (t<0)     : {aktywnaGora}");
-                Console.WriteLine($"   DÓŁ  (t>alen)  : {aktywnyDol}");
+                string aktywnyDol = bottomZmieniony
+                    ? $"AKTYWNE (klampuj t>{tMax:F3})"
+                    : "POMINIĘTE (t>alen bez zmian)";
+
+                Console.WriteLine($"   GÓRA  : {aktywnaGora}");
+                Console.WriteLine($"   DÓŁ   : {aktywnyDol}");
                 Console.WriteLine("───────────────────────────────────────────────");
             }
 

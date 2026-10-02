@@ -189,6 +189,122 @@ namespace GEORGE.Server.Controllers
             }
         }
 
+        [HttpGet("find-shifts-slupek/{zewId:guid}/{wewId:guid}/{strona}")]
+        public async Task<ActionResult<List<PrzesuniecieDto>>> GetShiftsSlupek(
+            Guid zewId, Guid wewId, string strona)
+        {
+            try
+            {
+                // ============================================================
+                // 1) Pobierz PoziomOsSymetrii z KonfSystem dla zewId
+                //    (osobne, proste zapytanie – brak kombinowania w LINQ)
+                // ============================================================
+                double? poziomOsSymetrii = await _context.KonfSystem
+                    .Where(k => k.RowId == zewId)
+                    .Select(k => k.PoziomOsSymetrii)
+                    .FirstOrDefaultAsync();
+
+                Console.WriteLine(
+                    $"🔍 GetShiftsSlupek: zewId={zewId}, wewId={wewId}, strona={strona}, " +
+                    $"PoziomOsSymetrii={(poziomOsSymetrii?.ToString("F3") ?? "null")}");
+
+                // ============================================================
+                // 2) Zapytanie bazowe do KonfPolaczenie
+                // ============================================================
+                var query = _context.KonfPolaczenie
+                    .Where(p =>
+                        (p.ElementZewnetrznyId == zewId && p.ElementWewnetrznyId == wewId) ||
+                        (p.ElementZewnetrznyId == wewId && p.ElementWewnetrznyId == zewId));
+
+                // Warunek na stronę tylko jeśli NIE jest "ALL"
+                if (!string.Equals(strona, "ALL", StringComparison.OrdinalIgnoreCase))
+                {
+                    string stronaLower = strona.ToLower();
+                    query = query.Where(p => p.StronaPolaczenia.ToLower() == stronaLower);
+                }
+
+                // ============================================================
+                // 3) Materializacja – proste mapowanie, bez korekty
+                // ============================================================
+                var records = await query
+                    .Select(p => new PrzesuniecieDto
+                    {
+                        PrzesuniecieX = p.PrzesuniecieX == 0 ? 1 : p.PrzesuniecieX,
+                        PrzesuniecieY = p.PrzesuniecieY == 0 ? 1 : p.PrzesuniecieY,
+                        PrzesuniecieXStycznej = p.PrzesuniecieXStycznej == 0 ? 1 : p.PrzesuniecieXStycznej,
+                        PrzesuniecieYStycznej = p.PrzesuniecieYStycznej == 0 ? 1 : p.PrzesuniecieYStycznej,
+                        ElementWewnetrznyId = p.ElementWewnetrznyId,
+                        ElementZewnetrznyId = p.ElementZewnetrznyId,
+                        Strona = p.StronaPolaczenia ?? "BRAK DANYCH W BAZIE",
+                        ElementZewnetrznyToSlupek = p.ElementZewnetrznyToSlupek,
+                        ElementWewnetrznyToSlupek = p.ElementWewnetrznyToSlupek
+                    })
+                    .ToListAsync();
+
+                // ============================================================
+                // 4) Jeśli brak wyników – zwróć domyślny rekord
+                // ============================================================
+                if (records == null || records.Count == 0)
+                {
+                    double domyslneYStycznej = 1.0;
+
+                    if (poziomOsSymetrii.HasValue)
+                        domyslneYStycznej -= poziomOsSymetrii.Value;
+
+                    records = new List<PrzesuniecieDto>
+                    {
+                        new PrzesuniecieDto
+                        {
+                            PrzesuniecieX = 1,
+                            PrzesuniecieY = 1,
+                            PrzesuniecieXStycznej = 1,
+                            PrzesuniecieYStycznej = domyslneYStycznej,
+                            Strona = "NaN"
+                        }
+                    };
+
+                    Console.WriteLine(
+                        $"⚠️ Brak wyników w KonfPolaczenie – zwracam domyślny rekord. " +
+                        $"zew={zewId} wew={wewId} strona={strona} " +
+                        $"(PoziomOsSymetrii={(poziomOsSymetrii?.ToString("F3") ?? "null")})");
+
+                    return records;
+                }
+
+                // ============================================================
+                // 5) Korekta PrzesuniecieYStycznej po materializacji
+                //    PrzesuniecieYStycznej = PrzesuniecieYStycznej - PoziomOsSymetrii
+                // ============================================================
+                if (poziomOsSymetrii.HasValue)
+                {
+                    foreach (var r in records)
+                    {
+                        double przed = r.PrzesuniecieYStycznej;
+                        r.PrzesuniecieYStycznej = przed - poziomOsSymetrii.Value;
+
+                        Console.WriteLine(
+                            $"   korekta: PrzesuniecieYStycznej {przed:F3} - {poziomOsSymetrii.Value:F3} " +
+                            $"= {r.PrzesuniecieYStycznej:F3}  (Strona={r.Strona})");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine(
+                        $"   brak PoziomOsSymetrii dla zewId={zewId} – PrzesuniecieYStycznej bez korekty");
+                }
+
+                // ============================================================
+                // 6) Zwróć wynik
+                // ============================================================
+                return records;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ GetShiftsSlupek – wyjątek: {ex.Message}");
+                return StatusCode(500, $"Błąd serwera: {ex.Message}");
+            }
+        }
+
         // ✅ GET: api/konfpolaczenie/row-id-system/{rowidSystem}
         [HttpGet("row-id-system/{rowidSystem:guid}")]
         public async Task<ActionResult<List<KonfPolaczenie>>> GetByRowIdSystem(Guid rowidSystem)

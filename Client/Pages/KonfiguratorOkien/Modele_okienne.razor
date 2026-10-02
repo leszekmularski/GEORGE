@@ -2847,6 +2847,12 @@
         if (_context == null || ShapeService?.Shapes == null)
             return;
 
+        if (ListaModeli == null || !ListaModeli.Any())
+        {
+            Console.WriteLine("RenderFrame -> Brak modeli do narysowania.");
+            return;
+        }
+
         try
         {
             // 1. Narysuj strukturę i restrykcje (jeśli potrzebne)
@@ -5329,7 +5335,6 @@
         DaneKwadratu? najlepszySasiadA = null;
         DaneKwadratu? najlepszySasiadB = null;
 
-
         // Przygotuj wierzchołki linii stałej
         var liniaStalaWierzcholki = new List<XPoint>
         {
@@ -5381,13 +5386,13 @@
             await PobierzPolaczeniaStyczneSlupkowe(
             rowId,
             _najlepszySasiadA,
-            "ALL");
+            "ALL", najlepszySasiadA?.SasiadSlupekStronaA ?? false);
 
         var polaczenieWartosciB =
             await PobierzPolaczeniaStyczneSlupkowe(
                 rowId,
                 _najlepszySasiadB,
-                "ALL");
+                "ALL", najlepszySasiadB?.SasiadSlupekStronaA ?? false);
 
         if (polaczenieWartosciA == null)
             generator.Komunikaty.Add("⚠️ Brak połączeń dla strony A");
@@ -5405,6 +5410,8 @@
             RowIdSasiadaStronaB = _najlepszySasiadB,
             SasiadSlupekStronaA = najlepszySasiadA?.SasiadSlupekStronaA ?? false, // zobacz wpis powyżej
             SasiadSlupekStronaB = najlepszySasiadB?.SasiadSlupekStronaA ?? false, // zobacz wpis powyżej
+            OsuniecieSlupekStronaA = polaczenieWartosciA?.FirstOrDefault()?.PrzesuniecieYStycznej ?? 0.0f,
+            OsuniecieSlupekStronaB = polaczenieWartosciB?.FirstOrDefault()?.PrzesuniecieYStycznej ?? 0.0f,
             RowIdRegionu = idRegion,
             KatLinii = (float)katSzukaj,
             OffsetBottom = 0,
@@ -6808,7 +6815,7 @@
         return new List<PrzesuniecieDto>();
     }
 
-    private async Task<List<PrzesuniecieDto>> PobierzPolaczeniaStyczneSlupkowe(Guid zewId, Guid wewId, string strona)
+    private async Task<List<PrzesuniecieDto>> PobierzPolaczeniaStyczneSlupkowe(Guid zewId, Guid wewId, string strona, bool slupekStaly)
     {
         Console.WriteLine($"🟢 [CLIENT START] zewId={zewId} | wewId={wewId} | strona={strona}");
 
@@ -6835,7 +6842,10 @@
         {
             Console.WriteLine($"📦 PobierzPolaczenia-> Pobieram przesunięcia zewnątrz: {zewId} wewnątrz: {wewId} strona: {strona}");
 
-            var response = await Http.GetAsync($"api/konfpolaczenie/find-shifts/{zewId}/{wewId}/{strona}");
+            string endpoint = slupekStaly ? "find-shifts-slupek" : "find-shifts";
+
+            var response = await Http.GetAsync(
+                $"api/konfpolaczenie/{endpoint}/{zewId}/{wewId}/{strona}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -7600,7 +7610,7 @@
         // int iLicz = 1;
         // foreach (var sasiad in pasujace)
         // {
-        //     Console.WriteLine($"🔍 ZnajdzSasiada -> {iLicz++}/{pasujace.Count()} Pasujący sąsiad: RowIdElementu={sasiad.RowIdElementu}, IdRegionu={sasiad.IdRegionu}, ZIndeks={sasiad.ZIndeks}, Kąt={sasiad.KatSasiada:F1}°, Typ={sasiad.WybranyTyp}, KatSasiada={sasiad.KatSasiada}");
+        //     Console.WriteLine($"🔍 ZnajdzSasiada -> {iLicz++}/{pasujace.Count()} Pasujący sąsiad: RowIdElementu={sasiad.RowIdElementu}, IdRegionu={sasiad.IdRegionu}, ZIndeks={sasiad.ZIndeks}, Kąt={sasiad.KatSasiada:F1}°, Typ={sasiad.WybranyTyp}, KatSasiada={sasiad.KatSasiada} ZIndeks={sasiad.ZIndeks}");
         // }
 
         // 🔹 Filtracja wyników
@@ -7618,7 +7628,7 @@
             if (wynik.Count == 1)
             {
                 // Jeśli tylko jeden, wybierz go
-                var sasiedziZIndeks1 = wynik.Where(x => x.ZIndeks == 1).ToList();
+                var sasiedziZIndeks1 = wynik.OrderByDescending(x => x.ZIndeks).ToList();
                 var wybrany = sasiedziZIndeks1.First();
                 wynik = new List<SasiadInfo> { wybrany };
 
@@ -8282,6 +8292,17 @@
             if (_context == null || _disposed || _czekajNaZmianeRozmiaru)
                 return;
 
+            if (ksztalty == null || !ksztalty.Any())
+            {
+                Console.WriteLine("RenderFrame -> Brak kształtów z wierzchołkami z łukami do narysowania.");
+                return;
+            }
+
+            if (ListaModeli == null || !ListaModeli.Any())
+            {
+                Console.WriteLine("RenderFrame -> Brak modeli do narysowania.");
+                return;
+            }
             // ZAPISZ stan na początku
             await _context.SaveAsync();
 
@@ -8296,11 +8317,11 @@
             {
                 ksztalty = ksztalty.Where(k => k.WierzcholkiZLukami.Count() > 0).ToList();
 
-                if (ksztalty == null || !ksztalty.Any())
-                {
-                    Console.WriteLine("RenderFrame -> Brak kształtów z wierzchołkami z łukami do narysowania.");
-                    return;
-                }
+                // if (ksztalty == null || !ksztalty.Any())
+                // {
+                //     Console.WriteLine("RenderFrame -> Brak kształtów z wierzchołkami z łukami do narysowania.");
+                //     return;
+                // }
 
                 // Przygotowanie tekstury
                 var baseUrl = Navigation.BaseUri;
