@@ -354,7 +354,7 @@ namespace GEORGE.Server.Controllers
             try
             {
                 var records = await _context.KonfPolaczenie
-                    .Where(p => p.ElementWewnetrznyId == rowidElement || p.ElementWewnetrznyId == rowidElement)
+                    .Where(p => (p.ElementWewnetrznyId == rowidElement || p.ElementWewnetrznyId == rowidElement) && p.DodatkowyWarunek != "STYCZNE")
                     .ToListAsync();
 
                 if (records == null || records.Count == 0)

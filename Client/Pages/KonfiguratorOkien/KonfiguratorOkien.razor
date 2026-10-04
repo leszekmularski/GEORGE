@@ -1621,6 +1621,155 @@
         return result.join(" ");
     }
 
+    // ============================================================
+    // NAPRAWA PROWADNIC — przycina je do rzeczywistego obszaru rysunku
+    // Wywołanie: fixGuidesToDrawing()  (JS / konsola)
+    //            JSRuntime.InvokeAsync<bool>("fixGuidesToDrawing")  (Blazor)
+    // ============================================================
+
+        window.fixGuidesToDrawing = function () {
+        console.log("🛠️ fixGuidesToDrawing: start");
+
+        const svg = document.querySelector(".scaled-svg svg");
+        if (!svg) {
+            console.error("❌ fixGuidesToDrawing: brak SVG");
+            return false;
+        }
+
+        const group = document.getElementById("rotate-group");
+        if (!group) {
+            console.error("❌ fixGuidesToDrawing: brak #rotate-group");
+            return false;
+        }
+
+        // ----------------------------------------------------------
+        // 1. Bbox rysunku (bez prowadnic) — teraz W UKŁADZIE GRUPY
+        // ----------------------------------------------------------
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        let elementCount = 0;
+
+        group.querySelectorAll("line, path, circle, rect, ellipse, polygon, polyline").forEach(el => {
+            if (el.id && el.id.startsWith("guide-line")) return;
+
+            let bbox;
+            try { bbox = el.getBBox(); } catch (e) { return; }
+            if (!bbox || (bbox.width === 0 && bbox.height === 0)) return;
+
+            if (bbox.x < minX) minX = bbox.x;
+            if (bbox.y < minY) minY = bbox.y;
+            if (bbox.x + bbox.width > maxX) maxX = bbox.x + bbox.width;
+            if (bbox.y + bbox.height > maxY) maxY = bbox.y + bbox.height;
+
+            elementCount++;
+        });
+
+        if (!isFinite(minX) || !isFinite(minY) || !isFinite(maxX) || !isFinite(maxY) ||
+            maxX <= minX || maxY <= minY) {
+            console.error(`❌ fixGuidesToDrawing: nieprawidłowy bbox rysunku`);
+            return false;
+        }
+
+        console.log(`📐 bbox rysunku (w układzie grupy): X[${minX.toFixed(2)}, ${maxX.toFixed(2)}], Y[${minY.toFixed(2)}, ${maxY.toFixed(2)}] (${elementCount} el.)`);
+
+        // ----------------------------------------------------------
+        // 2. Prowadnice PIONOWE — X w zakresie, Y = pełna wysokość
+        // ----------------------------------------------------------
+        let fixedVertical = 0;
+        group.querySelectorAll("line[id^='guide-line-vertical']").forEach(line => {
+            const id = line.id;
+            let x = parseFloat(line.getAttribute("x1"));
+            if (!isFinite(x)) return;
+
+            const clampedX = Math.max(minX, Math.min(maxX, x));
+
+            line.setAttribute("x1", clampedX);
+            line.setAttribute("x2", clampedX);
+            line.setAttribute("y1", minY);
+            line.setAttribute("y2", maxY);
+
+            verticalGuides[id] = clampedX;
+            fixedVertical++;
+            console.log(`  ↕️ ${id}: X ${x.toFixed(2)} → ${clampedX.toFixed(2)}, Y ${minY.toFixed(2)}..${maxY.toFixed(2)}`);
+        });
+
+        // ----------------------------------------------------------
+        // 3. Prowadnice POZIOME — Y w zakresie, X = pełna szerokość
+        // ----------------------------------------------------------
+        let fixedHorizontal = 0;
+        group.querySelectorAll("line[id^='guide-line-horizontal']").forEach(line => {
+            const id = line.id;
+            let y = parseFloat(line.getAttribute("y1"));
+            if (!isFinite(y)) return;
+
+            const clampedY = Math.max(minY, Math.min(maxY, y));
+
+            line.setAttribute("x1", minX);
+            line.setAttribute("x2", maxX);
+            line.setAttribute("y1", clampedY);
+            line.setAttribute("y2", clampedY);
+
+            horizontalGuides[id] = clampedY;
+            fixedHorizontal++;
+            console.log(`  ↔️ ${id}: Y ${y.toFixed(2)} → ${clampedY.toFixed(2)}, X ${minX.toFixed(2)}..${maxX.toFixed(2)}`);
+        });
+
+        // ----------------------------------------------------------
+        // 4. ViewBox — obejmuje CAŁĄ grupę (rysunek + prowadnice + transform)
+        // ----------------------------------------------------------
+        let groupBBox;
+        try {
+            groupBBox = group.getBBox();
+        } catch (e) {
+            console.error("❌ fixGuidesToDrawing: group.getBBox() rzuciło wyjątek:", e);
+            return false;
+        }
+
+        // Jeśli grupa ma transform (np. rotate), to bbox grupy jest w układzie
+        // lokalnym grupy, ale viewBox SVG jest w układzie globalnym.
+        // Dlatego trzeba przekształcić 4 narożniki bboxa przez CTM grupy.
+        const M = group.getCTM();
+        const corners = [
+            { x: groupBBox.x,                    y: groupBBox.y },
+            { x: groupBBox.x + groupBBox.width,  y: groupBBox.y },
+            { x: groupBBox.x,                    y: groupBBox.y + groupBBox.height },
+            { x: groupBBox.x + groupBBox.width,  y: groupBBox.y + groupBBox.height }
+        ];
+
+        let vbMinX = Infinity, vbMinY = Infinity, vbMaxX = -Infinity, vbMaxY = -Infinity;
+        corners.forEach(p => {
+            const tx = M.a * p.x + M.c * p.y + M.e;
+            const ty = M.b * p.x + M.d * p.y + M.f;
+            if (tx < vbMinX) vbMinX = tx;
+            if (ty < vbMinY) vbMinY = ty;
+            if (tx > vbMaxX) vbMaxX = tx;
+            if (ty > vbMaxY) vbMaxY = ty;
+        });
+
+        const margin = 10;
+        const vbX = vbMinX - margin;
+        const vbY = vbMinY - margin;
+        const vbW = (vbMaxX - vbMinX) + 2 * margin;
+        const vbH = (vbMaxY - vbMinY) + 2 * margin;
+
+        svg.setAttribute("viewBox", `${vbX} ${vbY} ${vbW} ${vbH}`);
+        svg.setAttribute("width",  vbW);
+        svg.setAttribute("height", vbH);
+
+        console.log(`🔲 Nowy viewBox: ${vbX.toFixed(2)} ${vbY.toFixed(2)} ${vbW.toFixed(2)} ${vbH.toFixed(2)}`);
+
+        // ----------------------------------------------------------
+        // 5. Panel wartości
+        // ----------------------------------------------------------
+        try {
+            if (typeof updateGuideValues === "function") updateGuideValues();
+        } catch (e) {
+            console.warn("⚠️ updateGuideValues rzuciło wyjątek:", e);
+        }
+
+        console.log(`✅ fixGuidesToDrawing: ${fixedVertical} pionowych, ${fixedHorizontal} poziomych`);
+        return true;
+    };
+
 </script>
 
 @if (czekajNaZaladowanieDanych)
@@ -2057,6 +2206,10 @@
  
             <button class="btn btn-outline-secondary btn-sm" @onclick="RefreshSvg">
                 🔄 Odśwież
+            </button>
+
+            <button class="btn btn-outline-secondary btn-sm" @onclick="FixGuides">
+                🗺️ Napraw prowadnice
             </button>
 
             <button class="btn btn-info text-white btn-sm" @onclick="DownloadDxf">
@@ -2514,6 +2667,39 @@
             Console.WriteLine(
                 $"❌ Błąd FlipVertical: {ex.Message}"
             );
+        }
+    }
+
+    private async Task FixGuides()
+    {
+        try
+        {
+            bool ok = await JSRuntime.InvokeAsync<bool>("fixGuidesToDrawing");
+
+            if (ok)
+            {
+                // 🔥 Pobierz naprawiony SVG i zapisz do stanu, DOPIERO POTEM zmień SvgKey
+
+                SvgContent = await JSRuntime.InvokeAsync<string>("getUpdatedSvg");
+
+                SvgKey = Guid.NewGuid().ToString();
+
+                StateHasChanged();
+                await _message.Success("✅ Prowadnice naprawione!");
+            }
+            else
+            {
+                await _message.Warning("⚠️ Nie udało się naprawić prowadnic (brak rysunku?).");
+            }
+        }
+        catch (JSException ex)
+        {
+            Console.WriteLine($"❌ JSException: {ex.Message}");
+            await _message.Error($"❌ Błąd JS: {ex.Message}");
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.WriteLine($"❌ InvalidOperationException: {ex.Message}");
         }
     }
 

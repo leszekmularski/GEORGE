@@ -6,7 +6,8 @@ namespace GEORGE.Client.Pages.Utils
 {
     public static class GeometryUtils
     {
-        public static async Task<List<ShapeRegion>> GenerujRegionyZPodzialu(List<IShapeDC> shapes, double _szerokosc, double _wysokosc, bool rama)
+        public static async Task<List<ShapeRegion>> GenerujRegionyZPodzialu(List<IShapeDC> shapes, double _szerokosc,
+            double _wysokosc, bool rama, Dictionary<string, GeneratorState>? stareStany = null)
         {
             shapes = UsunDuplikatyShape(shapes);
             await Task.Delay(10);
@@ -38,6 +39,7 @@ namespace GEORGE.Client.Pages.Utils
             //    shape.Szerokosc = _szerokosc;
             //    shape.Wysokosc = _wysokosc;
             //}
+
 
             foreach (var shape in shapes)
             {
@@ -339,7 +341,7 @@ namespace GEORGE.Client.Pages.Utils
                                 return result;
                             }
 
-                        FallbackLine:
+                            FallbackLine:
 
                             var lineSeg = new ContourSegment(p, next)
                             {
@@ -1001,14 +1003,152 @@ namespace GEORGE.Client.Pages.Utils
             }
 
             regions = UsunDuplikatyRegionow(regions);
-            // Ponowna, ciągła numeracja regionów
-            PoprawNumeracjeRegionow(regions);
+
+            // ============================================================
+            // ⭐ DOPASOWANIE STARYCH ID Z _generatorStates
+            // ============================================================
+            if (stareStany != null && stareStany.Count > 0)
+            {
+                DopasujStareIdDoNowychRegionow(regions, stareStany, _szerokosc, _wysokosc, rama);
+            }
+            else
+            {
+                // Pierwsza generacja — normalna numeracja
+                PoprawNumeracjeRegionow(regions);
+            }
 
             await Task.Yield();
 
             return regions;
         }
 
+        /// <summary>
+        /// Dopasowuje stare Id z _generatorStates do nowo wygenerowanych regionów.
+        /// 
+        /// Kryteria dopasowania:
+        ///   1. Rola: CzyElementJestRama == region.Rama (rama vs skrzydło).
+        ///   2. Rola: WybranyModel.Typ vs region.TypKsztaltu (jeśli da się dopasować).
+        ///   3. Pozycja: środek ciężkości regionu w procentach szerokości/wysokości okna
+        ///      (niezależne od skalowania).
+        /// 
+        /// Nie zmienia niczego, jeśli stare Stany mają inną liczbę elementów niż nowe regiony.
+        /// </summary>
+        private static void DopasujStareIdDoNowychRegionow(
+            List<ShapeRegion> nowe,
+            Dictionary<string, GeneratorState> stareStany,
+            double szerokosc,
+            double wysokosc,
+            bool rama)
+        {
+            if (nowe == null || nowe.Count == 0) return;
+
+            // ============================================================
+            // 1. Odfiltruj stany pasujące do tej roli (rama/skrzydło)
+            // ============================================================
+            var starePasujace = stareStany.Values
+                .Where(s => !string.IsNullOrEmpty(s.IdRegion))
+                .Where(s => s.CzyElementJestRama == rama)
+                .ToList();
+
+            // Fallback: jeśli nic nie ma po roli, weź wszystkie (starsze stany mogą nie mieć flagi)
+            if (starePasujace.Count == 0)
+            {
+                starePasujace = stareStany.Values
+                    .Where(s => !string.IsNullOrEmpty(s.IdRegion))
+                    .ToList();
+
+                Console.WriteLine($"🆔 DopasujStareId [{rama}]: brak stanów pasujących po roli — biorę wszystkie ({starePasujace.Count})");
+            }
+
+            if (starePasujace.Count == 0)
+            {
+                Console.WriteLine($"🆔 DopasujStareId [{rama}]: brak starych stanów — zostawiam nowe Id");
+                return;
+            }
+
+            // ============================================================
+            // 2. Funkcja pomocnicza: środek ciężkości w procentach
+            // ============================================================
+            (double cx, double cy) SrodekProcentowy(List<XPoint>? wierzcholki)
+            {
+                if (wierzcholki == null || wierzcholki.Count == 0)
+                    return (0.5, 0.5);
+
+                double minX = wierzcholki.Min(p => p.X);
+                double maxX = wierzcholki.Max(p => p.X);
+                double minY = wierzcholki.Min(p => p.Y);
+                double maxY = wierzcholki.Max(p => p.Y);
+
+                double cx = (minX + maxX) / 2.0;
+                double cy = (minY + maxY) / 2.0;
+
+                // Zabezpieczenie przed dzieleniem przez 0
+                double sx = szerokosc > 1 ? szerokosc : 1;
+                double sy = wysokosc > 1 ? wysokosc : 1;
+
+                return (cx / sx, cy / sy);
+            }
+
+            // ============================================================
+            // 3. Dopasowanie zachłanne (greedy) po odległości procentowej
+            // ============================================================
+            var uzyte = new HashSet<string>();
+            int dopasowane = 0;
+
+            foreach (var nowy in nowe)
+            {
+                var (cxN, cyN) = SrodekProcentowy(nowy.Wierzcholki);
+
+                // Kandydaci: stare stany jeszcze nie użyte
+                var kandydaci = starePasujace
+                    .Where(s => !uzyte.Contains(s.IdRegion!))
+                    .ToList();
+
+                if (kandydaci.Count == 0) break;
+
+                // Priorytet: zgodność typu (jeśli da się odczytać typ modelu)
+                // np. region.TypKsztaltu = "prostokąt", model.Typ = "Rama" — nie ma sensu porównywać wprost,
+                // więc porównujemy tylko po procencie pozycji + roli (już odfiltrowane).
+
+                // Wybierz najbliższy po procencie
+                var najlepszy = kandydaci
+                    .OrderBy(s =>
+                    {
+                        var (cxS, cyS) = SrodekProcentowy(s.WierzcholkiWartosciNominalne ?? s.Wierzcholki);
+                        return (cxN - cxS) * (cxN - cxS) + (cyN - cyS) * (cyN - cyS);
+                    })
+                    .FirstOrDefault();
+
+                if (najlepszy != null)
+                {
+                    var staryId = najlepszy.IdRegion!;
+
+                    nowy.Id = staryId;
+                    nowy.IdMaster = najlepszy.MVCKonfModelu?.KonfModele?.FirstOrDefault()?.RowId.ToString() ?? staryId;
+                    uzyte.Add(staryId);
+                    dopasowane++;
+
+                    Console.WriteLine($"   🆔 {nowy.TypKsztaltu} → '{staryId}' " +
+                                      $"(nowy cx/cy={cxN:F2}/{cyN:F2})");
+                }
+            }
+
+            Console.WriteLine($"🆔 DopasujStareId [{rama}]: dopasowano {dopasowane}/{nowe.Count} regionów " +
+                              $"(starych stanów: {starePasujace.Count})");
+
+            // ============================================================
+            // 4. Regiony bez dopasowania — nadaj im nowe Id z prefiksem
+            // ============================================================
+            int noweId = 0;
+            foreach (var region in nowe)
+            {
+                if (string.IsNullOrEmpty(region.Id))
+                {
+                    region.Id = $"NEW-{rama}-{noweId++}";
+                    Console.WriteLine($"   ⚠️ Region bez dopasowania → nadano nowe Id: {region.Id}");
+                }
+            }
+        }
         private static void PoprawNumeracjeRegionow(List<ShapeRegion> regions)
         {
             if (regions == null || regions.Count == 0)

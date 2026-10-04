@@ -619,8 +619,8 @@
                                          @onclick="@(() => WybierzModel(model))"
                                          @ondragstart="@(e => JS.InvokeVoidAsync(
                                          "SetCurrentModel",
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     model.Typ,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     model.RowId))"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  model.Typ,
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  model.RowId))"
                              @onmouseout="@(e => JS.InvokeVoidAsync("ResetCursor"))"
                              draggable="true"
                              style="cursor: grab;
@@ -629,8 +629,8 @@
                                 max-width: 50px;
                                 max-height: 50px;
                                 border: @(model == WybranyModel
-                                                                                                                                                                                                                                                                                                                                                                                                                         ? "4px solid #007bff"
-                                                                                                                                                                                                                                                                                                                                                                                                                         : "none")" />
+                                                                                                                                                                                                                                                                                                                                                                                                                                                      ? "4px solid #007bff"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                      : "none")" />
                                                 }
                                 else
                                 {
@@ -1976,10 +1976,10 @@
 
                 // 4. Generuj regiony z przeskalowanych shapes
                 _regionsDualRama = await GeometryUtils.GenerujRegionyZPodzialu(
-                    ShapeService.Shapes, nowaSzer, nowaWys, rama: true);
+                    ShapeService.Shapes, nowaSzer, nowaWys, rama: true, stareStany: _generatorStates);
 
                 _regionsSkrzydlo = await GeometryUtils.GenerujRegionyZPodzialu(
-                    ShapeService.Shapes, nowaSzer, nowaWys, rama: false);
+                    ShapeService.Shapes, nowaSzer, nowaWys, rama: false, stareStany: _generatorStates );
 
                 Console.WriteLine($"🗺️ Regiony: {_regionsDualRama.Count} rama, {_regionsSkrzydlo.Count} skrzydło");
             }
@@ -2745,7 +2745,7 @@
             _czekajNaZaladowanie = true;
 
             await zmienWymiaryOknaRef.ZapiszDoRodzica();  // → PrzyjmijZmiany
-            await ZmienWymiaryOkna(true, true);
+            await ZmienWymiaryOkna(true, false);
             await OnlyRestrykcje();
         }
         catch (Exception ex)
@@ -3069,6 +3069,12 @@
     {
 
         Console.WriteLine($"🔍 FitToCanvas --> Dopasowano do shape: scale={_aktywnaSkala:F2}");
+
+        if (WybranyModel == null)
+        {
+            _message.Error("Wybierz ponownie model!!!");
+            return;
+        }
 
         // await DrawStructureAndRestrykcje(0);
 
@@ -4248,7 +4254,7 @@
             // 2. Wygeneruj obrys + regiony RAZ
 
             await GenerujObrysPozZmianieWymiarow(true, true, przeliczObszarponownie);
-
+            Console.WriteLine($"🗺️ Regiony po zmianie wymiarów: dual={_regionsDualRama.Count}, skrzydło={_regionsSkrzydlo.Count} przeliczObszarponownie:{przeliczObszarponownie}");
 
             await Task.Yield();
 
@@ -4285,6 +4291,7 @@
                 if (region == null)
                 {
                     await _message.Error($"❌ Nie znaleziono regionu dla {cleanId}. Sprawdź konfigurację regionów.");
+                    Console.WriteLine($"❌ Nie znaleziono regionu dla {cleanId}. Sprawdź konfigurację regionów.");
                     continue;
                 }
 
@@ -4701,12 +4708,30 @@
         // 10. Obsłuż słupek stały (jeśli wybrany)
         if (SelectedModelType.Trim().Equals("Słupek stały", StringComparison.OrdinalIgnoreCase))
         {
-            var wynikSlupka = await ObsluzSlupekStaly(
-                state, generator, styczneLinie, wszystkieRegiony,
-                klikX, klikY, idRegion, wierzcholkiMaster, wierzcholki);
 
-            if (wynikSlupka != "")
-                return wynikSlupka;
+            {
+                try
+                {
+                    var wynikSlupka = await ObsluzSlupekStaly(
+                    state, generator, styczneLinie, wszystkieRegiony,
+                    klikX, klikY, idRegion, wierzcholkiMaster, wierzcholki);
+
+                    if (wynikSlupka != "")
+                        return wynikSlupka;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"🔥🔥🔥 WYJĄTEK w ObsluzSlupekStaly:");
+                    Console.WriteLine($"   Typ: {ex.GetType().Name}");
+                    Console.WriteLine($"   Message: {ex.Message}");
+                    Console.WriteLine($"   StackTrace:\n{ex.StackTrace}");
+
+                    generator.BledySystemowe.Add(
+                        $"🔥 ObsluzSlupekStaly: {ex.GetType().Name}: {ex.Message}");
+
+                    return $"🔥 ObsluzSlupekStaly: {ex.Message}";
+                }
+            }
         }
 
         // 11. Obsłuż skrzydło / skrzydło ze słupkiem ruchomym
@@ -5360,7 +5385,8 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ WYJĄTEK A: {ex.Message}\n{ex.StackTrace}");
+            Console.WriteLine($"🔥 WYJĄTEK A: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"🔥 StackTrace A:\n{ex.StackTrace}");
         }
 
         try
@@ -5370,7 +5396,8 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ WYJĄTEK B: {ex.Message}\n{ex.StackTrace}");
+            Console.WriteLine($"🔥 WYJĄTEK B: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"🔥 StackTrace B:\n{ex.StackTrace}");
         }
 
         Guid _najlepszySasiadA = najlepszySasiadA?.RowIdElementu ?? Guid.Empty;
@@ -5454,6 +5481,16 @@
                 idRegion.Length >= 35 &&
                 r.IdMaster.Contains(idRegion.Substring(0, 35)));
 
+            Console.WriteLine($"🔎 ObsluzSlupekStaly PRZED AddElements:");
+            Console.WriteLine($"   state.ListaKwadratow.Count = {state.ListaKwadratow.Count}");
+            foreach (var dk in state.ListaKwadratow)
+            {
+                Console.WriteLine($"   - RowIdElementu={dk.RowIdElementu}, " +
+                    $"LiniaStala.Count={dk.LiniaStala?.Count ?? 0}, " +
+                    $"Wierzcholki.Count={dk.Wierzcholki?.Count ?? 0}, " +
+                    $"BoolElementLinia={dk.BoolElementLinia}, " +
+                    $"Przesuniecia.Count={dk.Przesuniecia?.Count ?? 0}");
+            }
             var ok = await generator.AddElements(
                 new List<ShapeRegion> { regionKlikniety },
                 idRegion,
@@ -5552,10 +5589,25 @@
         // 5. Najbliższy w kierunku
         var najlepszy = unikalni.First().K;
 
-        var element = _generatorStates.Values
-        .Where(s => s.MVCKonfModelu?.KonfModeleElementy != null)
-        .SelectMany(s => s.MVCKonfModelu.KonfModeleElementy)
-        .FirstOrDefault(e => e.RowIdElement == najlepszy.RowIdElementu);
+        KonfModeleElementy? element = null;
+
+        foreach (var s in _generatorStates.Values)
+        {
+            var lista = s?.MVCKonfModelu?.KonfModeleElementy;
+            if (lista == null) continue;
+
+            foreach (var e in lista)
+            {
+                if (e == null) continue;                            // ⬅️ ochrona przed null w liście
+                if (e.RowIdElement == najlepszy.RowIdElementu)
+                {
+                    element = e;
+                    break;
+                }
+            }
+
+            if (element != null) break;
+        }
 
         if (element != null)
         {
@@ -8327,7 +8379,7 @@
                 var baseUrl = Navigation.BaseUri;
                 var imageUrl = $"{baseUrl}api/images/{woodPatternName}";
 
-               // Console.WriteLine($"RenderFrame -> ksztalty: {ksztalty.Count()}");
+                // Console.WriteLine($"RenderFrame -> ksztalty: {ksztalty.Count()}");
 
                 // Rysowanie każdego kształtu
                 foreach (var ksztalt in ksztalty)
@@ -8378,7 +8430,7 @@
 
             // await _context.SaveAsync();
 
-           await Task.Delay(50); // Krótkie opóźnienie dla płynności
+            await Task.Delay(50); // Krótkie opóźnienie dla płynności
 
             // StateHasChanged();
         }
