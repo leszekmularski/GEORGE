@@ -4491,26 +4491,26 @@
 
                 if(daneKwadratow == null || !daneKwadratow.Any())
                 {
-                    await _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu.");
+                    //await _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu.");
                     generator.Komunikaty.Add($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu.");
                     continue;
                 }
                 if(_generatorStates == null)
                 {
-                    await _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu. --_generatorStates -- NULL");
+                    //await _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu. --_generatorStates -- NULL");
                     generator.Komunikaty.Add($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu.");
                     continue;
                 }
 
                 if(_regionsDualRama == null)
                 {
-                    await _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu. --_regionsDualRama -- NULL");
+                    //await _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu. --_regionsDualRama -- NULL");
                     generator.Komunikaty.Add($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu.");
                     continue;
                 }
                 if(wszystkieRegiony == null)
                 {
-                    await _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu. --wszystkieRegiony -- NULL");
+                    //await _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu. --wszystkieRegiony -- NULL");
                     generator.Komunikaty.Add($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu.");
                     continue;
                 }
@@ -5271,6 +5271,7 @@
                 generator.Szerokosc = (float)(regionPoints.Max(p => p.X) - regionPoints.Min(p => p.X));
                 generator.Wysokosc = (float)(regionPoints.Max(p => p.Y) - regionPoints.Min(p => p.Y));
                 generator.CzyElementJestRama = false;
+                generator.ElementLiniowy = SelectedModelType.Trim().Equals("Słupek stały", StringComparison.OrdinalIgnoreCase);
 
                 var ok = await generator.AddElements(
                     new List<ShapeRegion> { wybranyRegionDualRama },

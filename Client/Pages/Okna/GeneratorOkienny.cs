@@ -166,7 +166,7 @@ namespace GEORGE.Client.Pages.Okna
             else if (ElementLiniowy)
             {
                 region = regions.FirstOrDefault(r => r.Id != null);
-                Console.WriteLine($"❌ AddElements Region o ID: {regionId} region.Wierzcholki.Count():{region.Wierzcholki.Count()}");
+                Console.WriteLine($"✅ AddElements Region o ID: {regionId} region.Wierzcholki.Count():{region.Wierzcholki.Count()}");
                 punkty = region.Wierzcholki;
                 punktyZLukami = region.Kontur;
             }
