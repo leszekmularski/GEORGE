@@ -502,12 +502,19 @@ namespace GEORGE.Client.Pages.Models
         {
             return new XRoundedTopRectangleShape(X, Y, Width, Height, Radius, ArcHeight, _scaleFactor)
             {
-                ID = Guid.NewGuid().ToString(),
-                Points = Points.Select(p => p.Clone()).ToList(),
-                NominalPoints = NominalPoints.Select(p => p.Clone()).ToList(),
                 NazwaObj = NazwaObj,
                 Radius = Radius,
                 ArcHeight = ArcHeight,
+
+                ID = this.ID,
+                Szerokosc = this.Szerokosc,
+                Wysokosc = this.Wysokosc,
+                KsztaltModelu = this.KsztaltModelu,
+                Points = this.Points?.Select(p => new XPoint(p.X, p.Y)).ToList() ?? new(),
+                NominalPoints = this.NominalPoints?.Select(p => new XPoint(p.X, p.Y)).ToList() ?? new(),
+                X = this.X,
+                Y = this.Y,
+
             };
         }
 

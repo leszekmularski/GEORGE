@@ -15,6 +15,68 @@
 @using AntDesign.TableModels
 @using System.ComponentModel.DataAnnotations
 
+<style>
+    /* Główny kontener paska akcji */
+    .action-bar {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        padding: 16px;
+        background-color: #f9f9f9;
+        border-radius: 8px;
+        border: 1px solid #f0f0f0;
+    }
+
+    /* Grupa przycisków administratora */
+    .admin-actions {
+        display: flex;
+        align-items: center;
+        gap: 16px; /* Zastępuje marginesy na sztywno */
+    }
+
+    /* Link usuwania stylizowany na delikatny przycisk alarmowy */
+    .btn-delete {
+        color: #ff4d4f;
+        font-weight: 500;
+        transition: color 0.3s;
+        cursor: pointer;
+    }
+
+        .btn-delete:hover {
+            color: #ff7875;
+        }
+
+    /* Kontener na statystyki/podsumowanie */
+    .stats-container {
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+    }
+
+    /* Pojedyncza sekcja statystyk jako mini-karta */
+    .stats-card {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .stats-label {
+        font-size: 12px;
+        color: #8c8c8c;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .stats-value {
+        font-size: 16px;
+        font-weight: 600;
+        color: #262626;
+    }
+
+</style>
+
 <Tabs Animated @bind-ActiveKey="@activeKey" OnChange="ShowData">
     <TabPane Tab="Czasy na liniach" Key="1">
         <Checkbox @bind-Checked="isCheckedZastapPozycje">Zastąp pozycje przed wklejeniem</Checkbox>
@@ -267,21 +329,60 @@
                 </ChildContent>
             </Table>
 
-            @if (boolAdmin || boolUsuniecia)
-            {
-                <Popconfirm Title="Czy chcesz usunąć dane do zlecenia?"
-                            OnConfirm="()=> DellAllData()"
-                            OkText="Tak"
-                            CancelText="Nie">
-                    <a style="color:red">Usuń wszystkie dane</a>
-                </Popconfirm>
-                <label style="inset-inline-start:inherit; padding-left:255px">Ilość pozycji: @iloszSztukPoz / Sztuk: @sumailoszSztukPoz / Skrzydeł: @sumailoszSkrzydelPoz</label>
-            }
-            @if (boolAdmin || boolNowy)
-            {
-                <Button Icon="@IconType.Fill.Copy" Style="padding-left:15px; margin-left:60px" @onclick="() => AddNew()"> Dodaj pusty rekord</Button>
+            <div class="action-bar">
+                <!-- Sekcja 1: Akcje administracyjne -->
+                @if (boolAdmin)
+                {
+                    <div class="admin-actions">
+                        @if (boolUsuniecia)
+                        {
+                            <Popconfirm Title="Czy chcesz usunąć dane do zlecenia?"
+                                        OnConfirm="DellAllData"
+                                        OkText="Tak"
+                                        CancelText="Nie">
+                                <a class="btn-delete">
+                                    <Icon Type="Delete" /> Usuń wszystkie dane
+                                </a>
+                            </Popconfirm>
+                        }
 
-            }
+                        @if (boolNowy)
+                        {
+                            <Button Danger Icon="IconType.Fill.Copy"
+                                    OnClick="AddNew"
+                                    Type="ButtonType.Primary"
+                                    Ghost>
+                                Dodaj pusty rekord
+                            </Button>
+                        }
+                    </div>
+                }
+
+                <!-- Sekcja 2: Podsumowanie (Statystyki zlecenia) -->
+                <div class="stats-container">
+                    <div class="stats-card">
+                        <span class="stats-label">Ilość pozycji:</span>
+                        <span class="stats-value">@iloszSztukPoz Sztuk</span>
+                    </div>
+                    <div class="stats-card">
+                        <span class="stats-label">Suma skrzydeł:</span>
+                        <span class="stats-value">@sumailoszSkrzydelPoz szt.</span>
+                    </div>
+                    <div class="stats-card">
+                        <span class="stats-label">Suma powierzchni:</span>
+                        <span class="stats-value">@sumaPowM2 m²</span>
+                    </div>
+                    <div class="stats-card">
+                        <span class="stats-label">Suma obwodu:</span>
+                        <span class="stats-value">@sumaObwod mb</span>
+                    </div>
+                    <div class="stats-card">
+                        <span class="stats-label">Suma parapetów (podwalin):</span>
+                        <span class="stats-value">@sumaObwodTylkoDol mb</span>
+                    </div>
+                </div>
+            </div>
+
         }
         else
         {
@@ -316,6 +417,9 @@
     int iloszSztukPoz = 0;
     int sumailoszSztukPoz = 0;
     int sumailoszSkrzydelPoz = 0;
+    float sumaPowM2 = 0;
+    float sumaObwod= 0;
+    float sumaObwodTylkoDol = 0;
 
     private bool isCheckedZastapPozycje = true;
 
@@ -461,6 +565,11 @@
             iloszSztukPoz = wykazPozycjiDoZlecenia.Count();
             sumailoszSztukPoz = wykazPozycjiDoZlecenia.Sum(x => x.IloscOkien); 
             sumailoszSkrzydelPoz = wykazPozycjiDoZlecenia.Sum(x => x.Iloscskrzydel);
+
+            sumaPowM2 = wykazPozycjiDoZlecenia.Sum(x => (x.Szerokosc / 1000) * (x.Wysokosc / 1000) * x.IloscOkien);
+
+            sumaObwod = wykazPozycjiDoZlecenia.Sum(x => 2 * ((x.Szerokosc / 1000) + (x.Wysokosc / 1000)) * x.IloscOkien);
+            sumaObwodTylkoDol = wykazPozycjiDoZlecenia.Sum(x => (x.Szerokosc / 1000) * x.IloscOkien);
         }
 
         StateHasChanged();

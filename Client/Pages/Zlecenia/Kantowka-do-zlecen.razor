@@ -545,6 +545,8 @@
     private string? Uimie = "";
     private string? Unazwisko = "";
 
+    private string formatPlikuImport = "NaN";
+
     protected override async Task OnInitializedAsync()
     {
         _pageSize = Convert.ToInt32((await LocalStorage.GetStringAsync("kantowka_ile_widocznych")));
@@ -1003,7 +1005,7 @@
 
             // Wyświetl wynik
             await ShowConfirmIcon(ConfirmIcon.Info, $"Suma sztuk sztang do produkcji wyliczona z listy cięć: {sumailoscSztuk} na podstawie ilości skrzydeł i ram: {sumailoscSztukRama + sumailoscSztukSkrzydlo}");
-        
+
         }
     }
 
@@ -1144,21 +1146,135 @@
 
     private async Task HandleFileSelected(InputFileChangeEventArgs e)
     {
-        var file = e.File;
-        if (file != null)
+        try
         {
-            var path = Path.GetTempFileName();
-            await using (var stream = file.OpenReadStream())
-            await using (var fileStream = new FileStream(path, FileMode.Create))
+            var file = e.File;
+
+            if (file == null)
+                return;
+
+            // ---------------------------------------------------------
+            // MAKSYMALNY ROZMIAR
+            // ---------------------------------------------------------
+            if (file.Size > 10 * 1024 * 1024)
             {
-                await stream.CopyToAsync(fileStream);
+                await _message.Error(
+                    "Plik jest zbyt duży. Maksymalny rozmiar to 10 MB.");
+
+                return;
             }
 
-            pdfContent = PdfReaderService.ReadPdfTable(path);
-            zestawienie = PdfDataParser.ParsePdfData(pdfContent);
+            // ---------------------------------------------------------
+            // PDF
+            // ---------------------------------------------------------
+            if (file.ContentType == "application/pdf")
+            {
+                var path = Path.GetTempFileName();
 
-            StateHasChanged();
+                try
+                {
+                    await using (var stream = file.OpenReadStream(
+                        maxAllowedSize: 10 * 1024 * 1024))
+                    await using (var fileStream = new FileStream(
+                        path,
+                        FileMode.Create))
+                    {
+                        await stream.CopyToAsync(fileStream);
+                    }
 
+                    pdfContent = PdfReaderService.ReadPdfTable(path);
+
+                    zestawienie =
+                        PdfDataParser.ParsePdfData(pdfContent);
+
+                    Console.WriteLine(
+                        $"PDF: odczytano {zestawienie?.ListaCieci.Count ?? 0} pozycji.");
+
+                        formatPlikuImport = "PDF";
+
+                    StateHasChanged();
+                }
+                finally
+                {
+                    try
+                    {
+                        if (File.Exists(path))
+                            File.Delete(path);
+                    }
+                    catch
+                    {
+                        // Nic nie robimy, jeśli nie udało się usunąć pliku tymczasowego
+                    }
+                }
+
+                return;
+            }
+
+            // ---------------------------------------------------------
+            // EXCEL XLSX
+            // ---------------------------------------------------------
+            if (file.ContentType ==
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                || file.Name.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
+            {
+                await using var stream = file.OpenReadStream(
+                    maxAllowedSize: 10 * 1024 * 1024);
+
+                using var memoryStream = new MemoryStream();
+
+                await stream.CopyToAsync(memoryStream);
+
+                memoryStream.Position = 0;
+
+                var parser = new PDF.ExcelDataParser();
+
+                zestawienie =
+                    parser.ParseExcelData(memoryStream);
+
+                Console.WriteLine(
+                    $"Excel: odbiorca = {zestawienie.Odbiorca}");
+
+                Console.WriteLine(
+                    $"Excel: liczba pozycji = {zestawienie.ListaCieci.Count}");
+
+                formatPlikuImport = "EXCEL";
+
+                StateHasChanged();
+
+                return;
+            }
+
+            // ---------------------------------------------------------
+            // XLS - obecnie nieobsługiwany
+            // ---------------------------------------------------------
+            if (file.ContentType == "application/vnd.ms-excel"
+                || file.ContentType == "application/xls"
+                || file.Name.EndsWith(".xls", StringComparison.OrdinalIgnoreCase))
+            {
+                await _message.Error(
+                    "Format XLS nie jest jeszcze obsługiwany. " +
+                    "Zapisz plik jako XLSX.");
+
+                return;
+            }
+
+            // ---------------------------------------------------------
+            // NIEPOPRAWNY FORMAT
+            // ---------------------------------------------------------
+            await _message.Error(
+                "Niepoprawny format pliku. Proszę wybrać plik PDF lub Excel.");
+
+            Console.WriteLine(
+                $"Niepoprawny format pliku: {file.ContentType}");
+        }
+        catch (Exception ex)
+        {
+            await _notice.Error(new()
+            {
+                Message = "Błąd podczas importowania pliku.",
+                Description = ex.Message + Environment.NewLine + ex.StackTrace,
+                Placement = NotificationPlacement.BottomLeft
+            });
         }
     }
 
@@ -1208,7 +1324,7 @@
                     Przekroj = item.Kolor,
                     NazwaProduktu = item.Symbol,
                     KodProduktu = "",
-                    Uwagi = "Zaimportowano z PDF dnia: " + DateTime.Now + xversion,
+                    Uwagi = $"Zaimportowano z {formatPlikuImport} dnia: " + DateTime.Now + xversion,
                     DlugoscZamawiana = int.Parse(item.WymiarNaZamowienie),
                     DlugoscNaGotowo = int.Parse(item.Wymiar),
                     DlugoscNaGotowoGrupa = item.Wymiar,
@@ -1280,7 +1396,7 @@
                     Przekroj = g.Key.Przekroj,
                     NazwaProduktu = g.FirstOrDefault()?.Symbol ?? "",
                     KodProduktu = "",
-                    Uwagi = "Zaimportowano z PDF dnia: " + DateTime.Now + xversion,
+                    Uwagi = $"Zaimportowano z {formatPlikuImport} dnia: " + DateTime.Now + xversion,
                     DlugoscZamawiana = g.Key.DlugoscZamawiana,
                     DlugoscNaGotowo = g.FirstOrDefault()?.Wymiar != null ? int.Parse(g.FirstOrDefault().Wymiar) : 0,
                     DlugoscNaGotowoGrupa = string.Join("; ", g.Select(item => item.Wymiar)),

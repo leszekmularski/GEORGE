@@ -129,7 +129,19 @@ namespace GEORGE.Client.Pages.Models
                 _scaleFactor, Typ);
 
             // KLONOWANIE NOMINALNYCH PUNKTÓW
-            clone.NominalPoints = NominalPoints.Select(p => new XPoint(p.X, p.Y)).ToList();
+
+            clone.ID = this.ID;
+            clone.Szerokosc = this.Szerokosc;
+            clone.Wysokosc = this.Wysokosc;
+            clone.KsztaltModelu = this.KsztaltModelu;
+            clone.Points = this.Points?.Select(p => new XPoint(p.X, p.Y)).ToList() ?? new();
+            clone.NominalPoints = this.NominalPoints?.Select(p => new XPoint(p.X, p.Y)).ToList() ?? new();
+            clone.X = this.X;
+            clone.Y = this.Y;
+            clone.BaseWidth = this.BaseWidth;
+            clone.TopWidth = this.TopWidth;
+            clone.Height = this.Height;
+            clone.Typ = this.Typ;
 
             return clone;
         }

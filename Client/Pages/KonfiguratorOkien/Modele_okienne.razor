@@ -1901,7 +1901,10 @@
     }
 
     //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    private async Task GenerujObrysPozZmianieWymiarow(bool generujRegionyZPodzialu, bool recznaZmiana, bool przeliczObszarponownie = false)
+    private async Task GenerujObrysPozZmianieWymiarow(
+    bool generujRegionyZPodzialu,
+    bool recznaZmiana,
+    bool przeliczObszarponownie = false)
     {
         if (ShapeService == null || !ShapeService.Shapes.Any())
         {
@@ -1909,79 +1912,132 @@
             return;
         }
 
+        // ⭐ DIAGNOSTYKA – wypisz WSZYSTKIE linie w shapes (nie tylko DualRama)
+        var wszystkieLinie = ShapeService.Shapes.OfType<XLineShape>().ToList();
+        Console.WriteLine($"═══════════════════════════════════════════════");
+        Console.WriteLine($"🔍 GenerujRegionyZPodzialu: shapes={ShapeService.Shapes.Count}, linie={wszystkieLinie.Count}");
+        foreach (var l in wszystkieLinie)
+        {
+            Console.WriteLine($"   Line ID={l.ID.Substring(0, Math.Min(8, l.ID.Length))} " +
+                              $"({l.X1:F0},{l.Y1:F0}) → ({l.X2:F0},{l.Y2:F0})  " +
+                              $"DualRama={l.DualRama} Ruchomy={l.RuchomySlupek} " +
+                              $"Staly={l.StalySlupek} GenerowaneZRamy={l.GenerowaneZRamy} " +
+                              $"SplitGroupId={l.SplitGroupId?.Substring(0, Math.Min(8, l.SplitGroupId?.Length ?? 0)) ?? "null"}");
+        }
+        Console.WriteLine($"═══════════════════════════════════════════════");
+
         try
         {
+            // ============================================================
             // 1. Ustaw shapes w dodatniej ćwiartce
+            // ============================================================
             await LineUtils.UstawPozycjeXiYnaZero(ShapeService.Shapes);
-
-            // 2. ⭐ ZAWSZE wydłuż i przytnij linie do nowych granic kształtów
-            await LineUtils.ExtendLinesToShapes(ShapeService.Shapes, 1);
-            await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
-
-            // 3. Równomierne rozstawienie TYLKO gdy recznaZmiana == false
-            //    (przy zmianie wymiarów z modala linie są już rozstawione przez PodzielLinieSymetrycznieAsync)
-            if (!recznaZmiana)
-            {
-                await LineUtils.DistributeLines(ShapeService.Shapes, false);
-                await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
-            }
 
             await Task.Yield();
 
-            // 3. Skalowanie — TYLKO przy pierwszym skalowaniu
-            if (generujRegionyZPodzialu && constWlasciwosciOkna != null || przeliczObszarponownie)
+            // ============================================================
+            // 2. SKALOWANIE – ZAWSZE, względem aktualnego bboxa
+            //    (nie ma sensu śledzić _staraSzerokoscPrzedZmiana)
+            // ============================================================
+            if ((generujRegionyZPodzialu && constWlasciwosciOkna != null)
+                || przeliczObszarponownie)
             {
                 double nowaSzer = constWlasciwosciOkna.Szerokosc;
                 double nowaWys = constWlasciwosciOkna.Wysokosc;
 
-                double staraSzer, staraWys;
+                // ⭐ Aktualny bbox przed skalowaniem (do logu)
+                var bbPrzed = ShapeService.Shapes.Select(s => s.GetBoundingBox()).ToList();
+                double aktSzer = bbPrzed.Max(b => b.Left + b.Width) - bbPrzed.Min(b => b.Left);
+                double aktWys = bbPrzed.Max(b => b.Top + b.Height) - bbPrzed.Min(b => b.Top);
 
-                if (!_pierwszeSkalowanieZakonczone)
+                Console.WriteLine($"📐 GenerujObrys: SKALUJĘ {aktSzer:F1}x{aktWys:F1} → {nowaSzer:F1}x{nowaWys:F1}");
+
+                // ⭐ Skaluj ZAWSZE (nie tylko przy pierwszym przebiegu)
+                LineUtils.SkalujShapesDoWymiarowRozciagajac(
+                    ShapeService.Shapes,
+                    nowaSzer,
+                    nowaWys);
+
+                await Task.Yield();
+
+                // ============================================================
+                // 3. WYŚRODKOWANIE LINII – po skalowaniu
+                //    (recznaZmiana == true → zachowaj ręczne pozycje)
+                // ============================================================
+
+
+                if (!recznaZmiana)
                 {
-                    var bb = ShapeService.Shapes.Select(s => s.GetBoundingBox()).ToList();
-                    staraSzer = bb.Max(b => b.Left + b.Width) - bb.Min(b => b.Left);
-                    staraWys = bb.Max(b => b.Top + b.Height) - bb.Min(b => b.Top);
-
-                    Console.WriteLine($"📐 GenerujObrys [PIERWSZE]: bbox {staraSzer:F1}x{staraWys:F1} → {nowaSzer:F1}x{nowaWys:F1}");
-                }
-                else
-                {
-                    staraSzer = _staraSzerokoscPrzedZmiana;
-                    staraWys = _staraWysokoscPrzedZmiana;
-
-                    Console.WriteLine($"📐 GenerujObrys [KOLEJNE]: {staraSzer:F1}x{staraWys:F1} → {nowaSzer:F1}x{nowaWys:F1}");
-                }
-
-                // ⭐ Skaluj TYLKO przy pierwszym skalowaniu
-                if (!_pierwszeSkalowanieZakonczone && staraSzer > 0.001 && staraWys > 0.001)
-                {
-                    Console.WriteLine($"📐 GenerujObrys: SKALUJĘ");
-                    LineUtils.SkalujShapesOsiami(
+                    await LineUtils.DistributeLines(
                         ShapeService.Shapes,
-                        staraSzer,
-                        staraWys,
-                        nowaSzer,
-                        nowaWys);
+                        recznaZmiana: false,
+                        wymusWysrodkowanie: true);  // ⭐ wymuś wyśrodkowanie
+
+                    Console.WriteLine("📏 Wyśrodkowano linie");
                 }
                 else
                 {
-                    Console.WriteLine($"⏭️ GenerujObrys: POMIJAM skalowanie");
+                    Console.WriteLine("⏭️ Pomijam wyśrodkowanie (recznaZmiana = true)");
                 }
 
                 await Task.Yield();
 
+                // ============================================================
+                // 4. WYDŁUŻ + PRZYTNIJ do nowych granic kształtów
+                //    (po skalowaniu i wyśrodkowaniu)
+                // ============================================================
+                await LineUtils.ExtendLinesToShapes(ShapeService.Shapes, 1);
+                await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
+
+                await Task.Yield();
+
+                // ============================================================
+                // 5. Zaktualizuj cache wymiarów
+                // ============================================================
                 _staraSzerokoscPrzedZmiana = nowaSzer;
                 _staraWysokoscPrzedZmiana = nowaWys;
                 _pierwszeSkalowanieZakonczone = true;
 
-                // 4. Generuj regiony z przeskalowanych shapes
+                // ============================================================
+                // 6. Generuj regiony z przeskalowanych shapes
+                // ============================================================
                 _regionsDualRama = await GeometryUtils.GenerujRegionyZPodzialu(
                     ShapeService.Shapes, nowaSzer, nowaWys, rama: true, stareStany: _generatorStates);
 
                 _regionsSkrzydlo = await GeometryUtils.GenerujRegionyZPodzialu(
-                    ShapeService.Shapes, nowaSzer, nowaWys, rama: false, stareStany: _generatorStates );
+                    ShapeService.Shapes, nowaSzer, nowaWys, rama: false, stareStany: _generatorStates);
 
-                Console.WriteLine($"🗺️ Regiony: {_regionsDualRama.Count} rama, {_regionsSkrzydlo.Count} skrzydło");
+                // ⭐ DIAGNOSTYKA
+                foreach (var r in _regionsDualRama)
+                {
+                    if (r.Wierzcholki == null || r.Wierzcholki.Count < 2)
+                        Console.WriteLine($"⚠️ Region RAMA {r.Id} ({r.TypKsztaltu}): Wierzcholki.Count={r.Wierzcholki?.Count ?? 0}");
+
+                    if (r.Kontur == null || r.Kontur.Count < 1)
+                        Console.WriteLine($"⚠️ Region RAMA {r.Id} ({r.TypKsztaltu}): Kontur.Count={r.Kontur?.Count ?? 0}");
+                }
+
+                foreach (var r in _regionsSkrzydlo)
+                {
+                    if (r.Wierzcholki == null || r.Wierzcholki.Count < 2)
+                        Console.WriteLine($"⚠️ Region SKRZYDŁO {r.Id} ({r.TypKsztaltu}): Wierzcholki.Count={r.Wierzcholki?.Count ?? 0}");
+                }
+            }
+            else
+            {
+                // ============================================================
+                // Bez skalowania – tylko dopasowanie linii do aktualnych kształtów
+                // ============================================================
+                if (!recznaZmiana)
+                {
+                    await LineUtils.DistributeLines(
+                        ShapeService.Shapes,
+                        recznaZmiana: false,
+                        wymusWysrodkowanie: false);
+                }
+
+                await LineUtils.ExtendLinesToShapes(ShapeService.Shapes, 1);
+                await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
             }
 
             Console.WriteLine("✅ Generowanie obrysu zakończone");
@@ -4433,6 +4489,32 @@
                 // -----------------------------------------------------
                 var daneKwadratow = genState.Value.ListaKwadratow ?? new List<DaneKwadratu>();
 
+                if(daneKwadratow == null || !daneKwadratow.Any())
+                {
+                    await _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu.");
+                    generator.Komunikaty.Add($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu.");
+                    continue;
+                }
+                if(_generatorStates == null)
+                {
+                    await _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu. --_generatorStates -- NULL");
+                    generator.Komunikaty.Add($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu.");
+                    continue;
+                }
+
+                if(_regionsDualRama == null)
+                {
+                    await _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu. --_regionsDualRama -- NULL");
+                    generator.Komunikaty.Add($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu.");
+                    continue;
+                }
+                if(wszystkieRegiony == null)
+                {
+                    await _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu. --wszystkieRegiony -- NULL");
+                    generator.Komunikaty.Add($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu.");
+                    continue;
+                }
+
                 if (generator.CzyElementJestRama)
                 {
                     var ok = await generator.AddElements(
@@ -5124,41 +5206,117 @@
 
         generator.ElementLiniowy = SelectedModelType.Trim() == "Słupek stały";
 
-        // Rama — obsługa specjalna
-        if (SelectedModelType.Trim() == "Rama")
+        ShapeRegion wybranyRegionDualRama = new ShapeRegion();
+
+        // ⭐ Wyciągnij prefiks z idRegion (obsługa formatów: "abc|0" i "abc|L0|C0")
+        string prefiksIdRegion = idRegion?.Split('|').FirstOrDefault() ?? "";
+
+        // ⭐ Wybierz właściwą kolekcję regionów
+        bool czyRama = SelectedModelType.Trim() == "Rama";
+        var regionsDoUzycia = czyRama ? _regionsDualRama : _regionsSkrzydlo;
+
+        Console.WriteLine($"🔍 UtworzStanGeneratora: SelectedModelType='{SelectedModelType}', " +
+                          $"idRegion='{idRegion}', prefiks='{prefiksIdRegion}', " +
+                          $"regionsDoUzycia={regionsDoUzycia.Count} (rama={czyRama})");
+
+        // ⭐ Dopasuj po prefiksie
+        wybranyRegionDualRama = regionsDoUzycia
+            .FirstOrDefault(r => r.Id != null && r.Id.StartsWith(prefiksIdRegion))
+            ?? new ShapeRegion();
+
+        Console.WriteLine($"   → znaleziony Typ='{wybranyRegionDualRama.TypKsztaltu}', " +
+                          $"Wierzcholki={wybranyRegionDualRama.Wierzcholki?.Count ?? 0}");
+
+        // ⭐ Specjalna obsługa dla ramy
+        if (czyRama)
         {
-            var wybranyRegionDualRama = _regionsDualRama.FirstOrDefault(r => r.Id == idRegion);
-
             if (wybranyRegionDualRama?.Wierzcholki == null || wybranyRegionDualRama.Wierzcholki.Count < 3)
-                throw new InvalidOperationException("❌ Wybrany region nie zawiera wystarczającej liczby punktów!");
-
-            var regionPoints = wybranyRegionDualRama.Wierzcholki;
-
-            generator.IdRegionuPonizej = wybranyRegionDualRama.IdRegionuPonizej ?? idRegion;
-            linieDzielace = wybranyRegionDualRama.TypLiniiDzielacej ?? "Brak";
-            generator.Szerokosc = (float)(regionPoints.Max(p => p.X) - regionPoints.Min(p => p.X));
-            generator.Wysokosc = (float)(regionPoints.Max(p => p.Y) - regionPoints.Min(p => p.Y));
-            generator.Zindeks = 0;
-            generator.CzyElementJestRama = true;
-            generator.RuchomySlupekPoLewej = false;
-            generator.RuchomySlupekPoPrawej = false;
-
-            var ok = await generator.AddElements(
-                new List<ShapeRegion> { wybranyRegionDualRama },
-                idRegion, _generatorStates, _regionsDualRama, null, null,
-                _lastMouseClick, boolNieCzyscKonsole);
-
-            if (ok != "")
             {
-                _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Błąd: {ok}");
-                generator.BledySystemowe.Add($"Nie można wygenerować elementów dla regionu {idRegion}. Błąd: {ok}");
+                Console.WriteLine($"⚠️ Region RAMY {idRegion} ma za mało wierzchołków: {wybranyRegionDualRama?.Wierzcholki?.Count ?? 0}");
+            }
+            else
+            {
+                var regionPoints = wybranyRegionDualRama.Wierzcholki;
+
+                generator.IdRegionuPonizej = wybranyRegionDualRama.IdRegionuPonizej ?? idRegion;
+                linieDzielace = wybranyRegionDualRama.TypLiniiDzielacej ?? "Brak";
+                generator.Szerokosc = (float)(regionPoints.Max(p => p.X) - regionPoints.Min(p => p.X));
+                generator.Wysokosc = (float)(regionPoints.Max(p => p.Y) - regionPoints.Min(p => p.Y));
+                generator.Zindeks = 0;
+                generator.CzyElementJestRama = true;
+                generator.RuchomySlupekPoLewej = false;
+                generator.RuchomySlupekPoPrawej = false;
+
+                var ok = await generator.AddElements(
+                    new List<ShapeRegion> { wybranyRegionDualRama },
+                    idRegion, _generatorStates, _regionsDualRama, null, null,
+                    _lastMouseClick, boolNieCzyscKonsole);
+
+                if (ok != "")
+                {
+                    _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Błąd: {ok}");
+                    generator.BledySystemowe.Add($"Nie można wygenerować elementów dla regionu {idRegion}. Błąd: {ok}");
+                }
+            }
+        }
+        else
+        {
+            // ⭐ Skrzydło / Słupek stały / Słupek ruchomy
+            if (wybranyRegionDualRama?.Wierzcholki != null && wybranyRegionDualRama.Wierzcholki.Count >= 2)
+            {
+                var regionPoints = wybranyRegionDualRama.Wierzcholki;
+
+                generator.IdRegionuPonizej = wybranyRegionDualRama.IdRegionuPonizej ?? idRegion;
+                linieDzielace = wybranyRegionDualRama.TypLiniiDzielacej ?? "Brak";
+                generator.Szerokosc = (float)(regionPoints.Max(p => p.X) - regionPoints.Min(p => p.X));
+                generator.Wysokosc = (float)(regionPoints.Max(p => p.Y) - regionPoints.Min(p => p.Y));
+                generator.CzyElementJestRama = false;
+
+                var ok = await generator.AddElements(
+                    new List<ShapeRegion> { wybranyRegionDualRama },
+                    idRegion, _generatorStates, _regionsSkrzydlo, null, null,
+                    _lastMouseClick, boolNieCzyscKonsole);
+
+                if (ok != "")
+                {
+                    _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Błąd: {ok}");
+                    generator.BledySystemowe.Add($"Nie można wygenerować elementów dla regionu {idRegion}. Błąd: {ok}");
+                }
             }
         }
 
+        // ⭐ Ustal TypKsztaltu (z regionu, a jeśli "nieokreślony" – rozpoznaj po wierzchołkach)
+        string typKsztaltu = wybranyRegionDualRama.TypKsztaltu;
+
+        if ((typKsztaltu == "nieokreślony" || string.IsNullOrEmpty(typKsztaltu)) &&
+            wybranyRegionDualRama.Wierzcholki?.Count >= 2)
+        {
+            int count = wybranyRegionDualRama.Wierzcholki.Count;
+            typKsztaltu = count switch
+            {
+                2 => "Linia",
+                3 => "Trójkąt",
+                4 => "Trapezoid",
+                _ => "niestandardowy"
+            };
+            Console.WriteLine($"🔧 Rozpoznano TypKsztaltu dla {idRegion}: '{typKsztaltu}' ({count} wierzchołków)");
+        }
+
+        // ⭐ Ustal Wierzcholki (z regionu, a jeśli puste – z generatora)
+        var wierzcholkiDoStanu = wybranyRegionDualRama.Wierzcholki?.Count >= 2
+            ? wybranyRegionDualRama.Wierzcholki.Select(p => new XPoint(p.X, p.Y)).ToList()
+            : generator.ElementyRamyRysowane
+                .SelectMany(k => k.Wierzcholki ?? new List<XPoint>())
+                .Distinct()
+                .ToList();
+
         var state = new GeneratorState
         {
-            Id = _generatorStates.Count + 1,
+            IdMaster = wybranyRegionDualRama.IdMaster ?? prefiksIdRegion,
+            TypKsztaltu = typKsztaltu,
+            Rama = czyRama,
             IdRegion = idRegion,
+            Id = _generatorStates.Count + 1,
             ZIndeks = generator.Zindeks,
             RowIdSystemu = Guid.Parse(SelectedSystemId),
             RowIdModelu = Guid.TryParse(SelectedRowIdType, out var rowIdModelu) ? rowIdModelu : null,
@@ -5170,10 +5328,7 @@
             WybranyModel = WybranyModel,
             WybranyKsztalt = WybranyKsztalt,
             IdRegionWarstwaNizej = generator.IdRegionuPonizej,
-            Wierzcholki = generator.ElementyRamyRysowane
-                .SelectMany(k => k.Wierzcholki ?? new List<XPoint>())
-                .Distinct()
-                .ToList(),
+            Wierzcholki = wierzcholkiDoStanu,                    // ⭐ z regionu lub generatora
             WierzcholkiWartosciNominalne = WierzcholkiWartosciNominalne,
             WierzcholkiInner = generator.wewnetrznyKontur,
             LinieDzielace = linieDzielace,

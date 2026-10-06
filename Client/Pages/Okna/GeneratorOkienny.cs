@@ -40,6 +40,10 @@ namespace GEORGE.Client.Pages.Okna
         public List<string> Komunikaty { get; set; } = new();
         public List<string> BledySystemowe { get; set; } = new();
 
+        // ⭐ NOWE POLA – do stabilnego dopasowania po zmianie wymiarów
+        public string? IdMaster { get; set; }
+        public string? TypKsztaltu { get; set; }
+
         // ============================================================
         // KONSTRUKTOR
         // ============================================================
@@ -115,6 +119,12 @@ namespace GEORGE.Client.Pages.Okna
         {
             if (regions == null) return "Brak regionu";
 
+            if (regions == null) return "Brak regionu";
+
+            // ⭐ ZABEZPIECZENIE
+            daneKwadratu ??= new List<DaneKwadratu>();
+            punktyRegionuMaster ??= new List<XPoint>();
+
             Guid callId = Guid.NewGuid();
             Console.WriteLine($"▶ START AddElements: {callId}, regionId={regionId}");
 
@@ -176,17 +186,8 @@ namespace GEORGE.Client.Pages.Okna
                 return $"❌ Region o ID: {regionId} ma zbyt mało punktów (≥2).";
             }
 
-            var przeskalowanePunkty = new List<XPoint>(punkty);
-            var przeskalowanePunktyZLukami = new List<ContourSegment>();
-            var przeskalowanePunktyZLukamiPodRysynek = new List<ContourSegment>();
-            var przeskalowanePunktyPodRysynek = new List<XPoint>(punkty);
-
             bool PointsAreClose(XPoint a, XPoint b, double tolerance = 0.001)
                 => Math.Abs(a.X - b.X) < tolerance && Math.Abs(a.Y - b.Y) < tolerance;
-
-            przeskalowanePunktyZLukami = punktyZLukami
-                .Where(s => !PointsAreClose(s.Start, s.End))
-                .ToList();
 
             string slruchPoPrawej = RuchomySlupekPoPrawej ? "Słupek ruchomy" : "";
             string slruchPoLewej = RuchomySlupekPoLewej ? "Słupek ruchomy" : "";
@@ -196,14 +197,48 @@ namespace GEORGE.Client.Pages.Okna
                 slruchPoPrawej = "";
                 slruchPoLewej = "";
 
-                Wierzcholki = region.LinieDzielace?
-                    .SelectMany(l => l.Points)
-                    .ToList() ?? new List<XPoint>();
+                // Element liniowy reprezentuje jeden, kliknięty odcinek dzielący.
+                // Nie wolno przekazywać konturu całego regionu ani łączyć wszystkich
+                // linii dzielących: po podziale regionu kontur regionu może być pusty,
+                // a połączone odcinki nie tworzą poprawnego wielokąta.
+                var wybranaLinia = region.LinieDzielace?
+                    .Where(l => l?.Points?.Count >= 2 && l.DlugoscLinii > 0.001)
+                    .Select(l => new
+                    {
+                        Linia = l,
+                        Odleglosc = OdlegloscPunktuOdOdcinka(
+                            mouseClik.X, mouseClik.Y, l.Points[0], l.Points[1])
+                    })
+                    .OrderBy(x => x.Odleglosc)
+                    .FirstOrDefault()
+                    ?.Linia;
 
-                zewnetrznyKonturZLukami = region.LinieDzielace?
-                    .SelectMany(l => l.ContourSegments)
-                    .ToList() ?? new List<ContourSegment>();
+                if (wybranaLinia != null)
+                {
+                    punkty = wybranaLinia.Points
+                        .Select(p => new XPoint(p.X, p.Y))
+                        .ToList();
+                    punktyZLukami = wybranaLinia.ContourSegments
+                        .Select(s => s.Clone())
+                        .ToList();
+                }
+                else
+                {
+                    BledySystemowe.Add(
+                        $"⚠️ Brak poprawnej linii dzielącej dla elementu liniowego w regionie {regionId}. " +
+                        "Użyto geometrii regionu.");
+                }
+
+                Wierzcholki = new List<XPoint>(punkty);
+                zewnetrznyKonturZLukami = punktyZLukami.Select(s => s.Clone()).ToList();
             }
+
+            var przeskalowanePunkty = new List<XPoint>(punkty);
+            var przeskalowanePunktyZLukami = punktyZLukami
+                .Where(s => !PointsAreClose(s.Start, s.End))
+                .ToList();
+            var przeskalowanePunktyZLukamiPodRysynek = new List<ContourSegment>();
+            var przeskalowanePunktyPodRysynek = new List<XPoint>(punkty);
 
             var konfLeft = MVCKonfModelu.KonfSystem.FirstOrDefault(e => e.WystepujeLewa &&
                 (string.IsNullOrEmpty(slruchPoLewej) || e.Typ == slruchPoLewej));
@@ -2876,10 +2911,35 @@ namespace GEORGE.Client.Pages.Okna
             double nextangleDegrees,
             double prevangleDegrees)
         {
+            int sourceIndex = numerElemntu - 1;
+
+            // W czasie zmiany wymiarów kontury są przebudowywane etapami. Nie
+            // wykonuj modulo przez Count == 0 ani nie indeksuj pustego konturu.
+            // Dla takiego przejściowego stanu zwróć poprawny prosty czworokąt;
+            // łuki zostaną odtworzone w kolejnym pełnym przeliczeniu.
+            if (wierzcholki == null || wierzcholki.Count < 4)
+            {
+                BledySystemowe.Add(
+                    $"⚠️ Build4SegmentContour: za mało wierzchołków dla elementu {numerElemntu} " +
+                    $"({wierzcholki?.Count ?? 0}).");
+                return new List<ContourSegment>();
+            }
+
+            if (outerContour == null || innerContour == null ||
+                outerContour.Count == 0 || innerContour.Count == 0 ||
+                sourceIndex < 0 || sourceIndex >= outerContour.Count || sourceIndex >= innerContour.Count)
+            {
+                BledySystemowe.Add(
+                    $"⚠️ Build4SegmentContour: niekompletny kontur dla elementu {numerElemntu} " +
+                    $"(outer={outerContour?.Count ?? 0}, inner={innerContour?.Count ?? 0}, index={sourceIndex}). " +
+                    "Zastosowano kontur liniowy do czasu ponownego przeliczenia geometrii.");
+
+                return BuildLinearFourSegmentContour(wierzcholki);
+            }
+
             var filteredOuter = GetSegmentsForSide(outerContour, _stronaElementu);
             var filteredInner = GetSegmentsForSide(innerContour, _stronaElementu);
 
-            int sourceIndex = numerElemntu - 1;
             int previousIndex = (sourceIndex - 1 + outerContour.Count) % outerContour.Count;
             int nextIndex = (sourceIndex + 1) % outerContour.Count;
 
@@ -3270,6 +3330,17 @@ namespace GEORGE.Client.Pages.Okna
                 new ContourSegment(adjustedVertices[1], adjustedVertices[2]),
                 segWewnetrzny,
                 new ContourSegment(adjustedVertices[3], adjustedVertices[0])
+            };
+        }
+
+        private static List<ContourSegment> BuildLinearFourSegmentContour(IReadOnlyList<XPoint> vertices)
+        {
+            return new List<ContourSegment>
+            {
+                new(vertices[0], vertices[1]),
+                new(vertices[1], vertices[2]),
+                new(vertices[2], vertices[3]),
+                new(vertices[3], vertices[0])
             };
         }
 

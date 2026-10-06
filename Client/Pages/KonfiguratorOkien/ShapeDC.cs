@@ -13,7 +13,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         public List<XPoint> NominalPoints { get; set; } = new();
 
         public List<XPoint> GetPoints() => Points;
-        public List<XPoint> GetNominalPoints() => NominalPoints.Select(p => p.Clone()).ToList();
+        public List<XPoint> GetNominalPoints() => NominalPoints.Select(p => new XPoint(p.X, p.Y)).ToList();
 
         public Task Draw(Canvas2DContext ctx) => Task.CompletedTask;
 
@@ -29,7 +29,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         public void Scale(double factor)
         {
             if (NominalPoints.Count == 0)
-                NominalPoints = Points.Select(p => p.Clone()).ToList();
+                NominalPoints = Points.Select(p => new XPoint(p.X, p.Y)).ToList();
 
             Points = NominalPoints
                 .Select(p => new XPoint(p.X * factor, p.Y * factor))
@@ -48,7 +48,11 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
         public void Transform(double scaleX, double scaleY, double offsetX, double offsetY)
         {
-            Points = Points
+            // ⭐ Skaluj zawsze od NominalPoints (oryginalnych wartości)
+            if (NominalPoints == null || NominalPoints.Count == 0)
+                NominalPoints = Points.Select(p => new XPoint(p.X, p.Y)).ToList();
+
+            Points = NominalPoints
                 .Select(p => new XPoint(p.X * scaleX + offsetX, p.Y * scaleY + offsetY))
                 .ToList();
         }
@@ -70,7 +74,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         }
 
         // ---------------------------------------------------------
-        // Clone
+        // Clone – głęboka kopia WSZYSTKICH właściwości
         // ---------------------------------------------------------
         public IShapeDC Clone()
         {
@@ -79,19 +83,27 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 ID = this.ID,
                 Szerokosc = this.Szerokosc,
                 Wysokosc = this.Wysokosc,
-                Points = this.Points.Select(p => p.Clone()).ToList(),
-                NominalPoints = this.NominalPoints.Select(p => p.Clone()).ToList(),
-                KsztaltModelu = this.KsztaltModelu
+                KsztaltModelu = this.KsztaltModelu,
+
+                // ⭐ Głębokie kopie z zabezpieczeniem null
+                Points = this.Points?.Select(p => new XPoint(p.X, p.Y)).ToList() ?? new(),
+                NominalPoints = this.NominalPoints?.Select(p => new XPoint(p.X, p.Y)).ToList() ?? new()
             };
         }
 
         // ---------------------------------------------------------
-        // UpdatePoints
+        // UpdatePoints – NIE nadpisuje NominalPoints
         // ---------------------------------------------------------
         public void UpdatePoints(List<XPoint> newPoints)
         {
-            Points = newPoints.Select(p => p.Clone()).ToList();
-            NominalPoints = newPoints.Select(p => p.Clone()).ToList();
+            if (newPoints == null) return;
+
+            // ⭐ Aktualizuj TYLKO Points
+            Points = newPoints.Select(p => new XPoint(p.X, p.Y)).ToList();
+
+            // ⭐ NominalPoints aktualizuj TYLKO jeśli są puste
+            if (NominalPoints == null || NominalPoints.Count == 0)
+                NominalPoints = newPoints.Select(p => new XPoint(p.X, p.Y)).ToList();
         }
 
         // 🔹 Implementacja metody dla ShapeDC
@@ -104,13 +116,15 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
             for (int i = 0; i < NominalPoints.Count; i++)
             {
-                var start = NominalPoints[i].Clone();
-                var end = NominalPoints[(i + 1) % NominalPoints.Count].Clone(); // zamyka kontur
+                var start = new XPoint(NominalPoints[i].X, NominalPoints[i].Y);
+                var end = new XPoint(
+                    NominalPoints[(i + 1) % NominalPoints.Count].X,
+                    NominalPoints[(i + 1) % NominalPoints.Count].Y);
+
                 segments.Add(new ContourSegment(start, end));
             }
 
             return segments;
         }
-
     }
 }

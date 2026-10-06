@@ -125,8 +125,15 @@ namespace GEORGE.Client.Pages.Models
         public IShapeDC Clone()
         {
             var c = new XRoundedRectangleShape(X, Y, Width, Height, Radius, _scaleFactor);
-            c.Points = Points.Select(p => new XPoint(p.X, p.Y)).ToList();
-            c.NominalPoints = NominalPoints.Select(p => new XPoint(p.X, p.Y)).ToList();
+            c.ID = this.ID;
+            c.Szerokosc = this.Szerokosc;
+            c.Wysokosc = this.Wysokosc;
+            c.KsztaltModelu = this.KsztaltModelu;
+            c.Points = this.Points?.Select(p => new XPoint(p.X, p.Y)).ToList() ?? new();
+            c.NominalPoints = this.NominalPoints?.Select(p => new XPoint(p.X, p.Y)).ToList() ?? new();
+            c.IloscElementowLuki = this.IloscElementowLuki;
+            c.X = this.X;
+            c.Y = this.Y;
             return c;
         }
 

@@ -424,11 +424,11 @@
                        Loading="_loading" ScrollX="2950" Size="TableSize.Small" RowKey="x => x?.ElemetZamDoZlecen?.Id"
                        @bind-SelectedRows="_items"
                        RowClassName="@(x =>
-                                                                                                         x?.Data?.ElemetZamDoZlecen?.Opis?.ToUpper().StartsWith("SPRAWDZ") == true ? "uwaga" :
-                                                                                                         (x?.Data?.ElemetZamDoZlecen?.CzyZamowiono == true ? (x?.Data?.ElemetZamDoZlecen?.DataDostarczenia > DateTime.MinValue ? "zrealizowano" :
-                                                                                                         "zamowiono") :
-                                                                                                         (x?.Data?.ElemetZamDoZlecen?.DataDostarczenia > DateTime.MinValue ? "zrealizowano" :
-                                                                                                         "move-class")))">
+                                    x?.Data?.ElemetZamDoZlecen?.Opis?.ToUpper().StartsWith("SPRAWDZ") == true ? "uwaga" :
+                                    (x?.Data?.ElemetZamDoZlecen?.CzyZamowiono == true ? (x?.Data?.ElemetZamDoZlecen?.DataDostarczenia > DateTime.MinValue ? "zrealizowano" :
+                                    "zamowiono") :
+                                    (x?.Data?.ElemetZamDoZlecen?.DataDostarczenia > DateTime.MinValue ? "zrealizowano" :
+                                    "move-class")))">
             <ColumnDefinitions Context="context">
                 <Selection Width="25px" />
                 <PropertyColumn Title="ID" Property="c => c.ElemetZamDoZlecen.Id" Hidden />
@@ -580,7 +580,7 @@
 </div>
 
 <Modal Title="@("Dodaj nowy wzorzec kompletacji")"
-       Visible="@_visible"
+       Visible="@_visibleGrup"
        OnOk="@HandleOk"
        OnCancel="@HandleCancel"
        Footer=@footer>
@@ -612,6 +612,8 @@
     private bool _visible = false;
     private string display = "none;";
     private string classShow = "";
+
+    private bool _visibleGrup = false;
 
     private long cid = -1;
 
@@ -1334,7 +1336,7 @@
             selValueClone = Guid.Parse(firstElement.RowIdProducent);
 
             // Pokaż modal
-            _visible = true;
+            _visibleGrup = true;
 
             Console.WriteLine($"Pokazuję modal dla nowej grupy. Nazwa: {selName}, Nowe ID: {selValue}");
         }
@@ -1411,7 +1413,7 @@
                 infoDodaj = "Nowy wzorzec dodany.";
                 StateHasChanged();
                 await Task.Delay(1100);
-                _visible = false;
+                _visibleGrup = false;
             }
             else
             {
@@ -1438,7 +1440,7 @@
                 var result = await response.Content.ReadFromJsonAsync<CloneResult>();
                 await _message.Success($"Sklonowano grupę. Nowe RowId: {result.NewRowId}", 2);
                 await Task.Delay(1000);
-                _visible = false;
+                _visibleGrup = false;
             }
             else
             {
@@ -1461,7 +1463,7 @@
             {
                 StateHasChanged();
                 await Task.Delay(1500);
-                _visible = false;
+                _visibleGrup = false;
             }
             else
             {
@@ -2062,7 +2064,7 @@
 
     public async Task HandleCancel()
     {
-        _visible = false;
+        _visibleGrup = false;
         await HideDialog();
     }
 

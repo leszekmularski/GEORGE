@@ -1,4 +1,5 @@
 ﻿@using GEORGE.Client.Pages.Models
+@inject GEORGE.Client.Pages.KonfiguratorOkien.ShapeTransferService ShapeService
 
 @if (Model == null)
 {
@@ -562,75 +563,175 @@ else
     }
 
     private async Task PodzielLinieSymetrycznieAsync(
-        bool ustawTylkoLinie = false,
-        bool pionowe = true,
-        bool poziome = true)
+    bool ustawTylkoLinie = false,
+    bool pionowe = true,
+    bool poziome = true)
     {
-        if (Model?.EditableProperties == null || Model.EditableProperties.Count == 0 || Model == null)
+        if (Model?.EditableProperties == null || Model.EditableProperties.Count == 0)
             return;
 
-        Console.WriteLine($"📐 PodzielLinie: START, Szerokosc={Model.Szerokosc}, Wysokosc={Model.Wysokosc}, pionowe={pionowe}, poziome={poziome}");
+        Console.WriteLine($"📐 PodzielLinie: START, Szerokosc={Model.Szerokosc}, Wysokosc={Model.Wysokosc}");
 
-        var grupy = Model.EditableProperties
+        // ============================================================
+        // FAZA 1 – ustaw pozycje linii
+        // ============================================================
+        var grupyWlasciwosci = Model.EditableProperties
             .Select((p, i) => (Index: i, Prop: p))
-            .Where(x => x.Prop.ShapeId != null &&
-                        !x.Prop.IsSkosna &&
-                        !string.IsNullOrEmpty(x.Prop.NazwaObiektu) &&
-                        x.Prop.NazwaObiektu.ToLower().Contains("linia"))
+            .Where(x => x.Prop.ShapeId != null && !string.IsNullOrEmpty(x.Prop.NazwaObiektu))
             .GroupBy(x => x.Prop.SplitGroupId ?? x.Prop.ShapeId)
             .ToList();
 
-        var liniePionowe = new List<(int Index, string GroupId, string Label)>();
-        var liniePoziome = new List<(int Index, string GroupId, string Label)>();
+        var liniePionowe = new List<(List<int> IndexesX1, List<int> IndexesX2, string GroupId)>();
+        var liniePoziome = new List<(List<int> IndexesY1, List<int> IndexesY2, string GroupId)>();
 
-        foreach (var grupa in grupy)
+        foreach (var grupa in grupyWlasciwosci)
         {
-            var x1Prop = grupa.FirstOrDefault(g => g.Prop.IsPionowa &&
+            var x1Props = grupa.Where(g => g.Prop.IsPionowa &&
                 (g.Prop.Label?.ToLower().StartsWith("x1") == true ||
-                 g.Prop.Label?.ToLower().Contains("w osi x1") == true));
+                 g.Prop.Label?.ToLower().Contains("w osi x1") == true))
+                .Select(g => g.Index).ToList();
 
-            var y1Prop = grupa.FirstOrDefault(g => g.Prop.IsPozioma &&
+            var x2Props = grupa.Where(g => g.Prop.IsPionowa &&
+                (g.Prop.Label?.ToLower().StartsWith("x2") == true ||
+                 g.Prop.Label?.ToLower().Contains("w osi x2") == true))
+                .Select(g => g.Index).ToList();
+
+            var y1Props = grupa.Where(g => g.Prop.IsPozioma &&
                 (g.Prop.Label?.ToLower().StartsWith("y1") == true ||
-                 g.Prop.Label?.ToLower().Contains("w osi y1") == true));
+                 g.Prop.Label?.ToLower().Contains("w osi y1") == true))
+                .Select(g => g.Index).ToList();
 
-            if (x1Prop.Prop != null)
-                liniePionowe.Add((x1Prop.Index, grupa.Key!, x1Prop.Prop.Label ?? ""));
+            var y2Props = grupa.Where(g => g.Prop.IsPozioma &&
+                (g.Prop.Label?.ToLower().StartsWith("y2") == true ||
+                 g.Prop.Label?.ToLower().Contains("w osi y2") == true))
+                .Select(g => g.Index).ToList();
 
-            if (y1Prop.Prop != null)
-                liniePoziome.Add((y1Prop.Index, grupa.Key!, y1Prop.Prop.Label ?? ""));
+            if (x1Props.Any())
+                liniePionowe.Add((x1Props, x2Props, grupa.Key!));
+
+            if (y1Props.Any())
+                liniePoziome.Add((y1Props, y2Props, grupa.Key!));
         }
 
         Console.WriteLine($"📐 PodzielLinie: pionowe={liniePionowe.Count}, poziome={liniePoziome.Count}");
 
+        // Ustaw X dla pionowych
         if (pionowe && liniePionowe.Count > 0 && Model.Szerokosc > 0)
         {
             double odstep = Model.Szerokosc / (liniePionowe.Count + 1);
 
             for (int i = 0; i < liniePionowe.Count; i++)
             {
-                var (index, groupId, label) = liniePionowe[i];
                 double nowaPozycja = Math.Round(odstep * (i + 1), 0);
-                Model.UpdateEditableProperty(index, nowaPozycja);
-                Console.WriteLine($"📐 PION: grupa={groupId}, index={index}, '{label}' → {nowaPozycja}");
+                var (indexesX1, indexesX2, groupId) = liniePionowe[i];
+
+                Console.WriteLine($"📐 PION grupa={groupId}: X → {nowaPozycja}");
+
+                foreach (var idx in indexesX1)
+                    Model.UpdateEditableProperty(idx, nowaPozycja);
+
+                foreach (var idx in indexesX2)
+                    Model.UpdateEditableProperty(idx, nowaPozycja);
             }
         }
 
+        // Ustaw Y dla poziomych
         if (poziome && liniePoziome.Count > 0 && Model.Wysokosc > 0)
         {
             double odstep = Model.Wysokosc / (liniePoziome.Count + 1);
 
             for (int i = 0; i < liniePoziome.Count; i++)
             {
-                var (index, groupId, label) = liniePoziome[i];
                 double nowaPozycja = Math.Round(odstep * (i + 1), 0);
-                Model.UpdateEditableProperty(index, nowaPozycja);
-                Console.WriteLine($"📐 POZ: grupa={groupId}, index={index}, '{label}' → {nowaPozycja}");
+                var (indexesY1, indexesY2, groupId) = liniePoziome[i];
+
+                Console.WriteLine($"📐 POZ grupa={groupId}: Y → {nowaPozycja}");
+
+                foreach (var idx in indexesY1)
+                    Model.UpdateEditableProperty(idx, nowaPozycja);
+
+                foreach (var idx in indexesY2)
+                    Model.UpdateEditableProperty(idx, nowaPozycja);
             }
         }
+
+        // ============================================================
+        // FAZA 2 – napraw linie-punkty w ShapeService.Shapes
+        // ============================================================
+        NaprawZdegenerowaneLinie(ShapeService.Shapes, Model.Szerokosc, Model.Wysokosc);
 
         if (!ustawTylkoLinie)
             await ZapiszDoRodzica();
     }
+
+    private static void NaprawZdegenerowaneLinie(
+     List<IShapeDC> shapes, double szerokosc, double wysokosc)
+    {
+        var linie = shapes.OfType<XLineShape>().ToList();
+
+        // ⭐ Znajdź linie poziome (Y wewnątrz okna, nie na krawędziach)
+        var liniePoziomeY = linie
+        .Where(l => Math.Abs(l.Y1 - l.Y2) < 0.001)   // pozioma
+        .Where(l => l.Y1 > 0.5 && l.Y1 < wysokosc - 0.5)  // nie na krawędziach
+        .Select(l => l.Y1)
+        .Distinct()
+        .OrderBy(y => y)
+        .ToList();
+
+        // ⭐ Zbierz granice: 0, linie poziome, wysokosc
+        var granice = new List<double> { 0 };
+        granice.AddRange(liniePoziomeY);
+        granice.Add(wysokosc);
+        granice = granice.Distinct().OrderBy(y => y).ToList();
+
+        Console.WriteLine($"🔧 NaprawZdegenerowaneLinie: granice Y = [{string.Join(", ", granice.Select(g => g.ToString("F0")))}]");
+
+        // ⭐ Grupuj punkty-pionowe po X
+        var punktyPionowe = linie
+            .Where(l => Math.Abs(l.X1 - l.X2) < 0.001 &&
+                        Math.Abs(l.Y1 - l.Y2) < 0.001)  // punkt
+            .Where(l => l.StalySlupek || l.RuchomySlupek || l.DualRama)
+            .GroupBy(l => Math.Round(l.X1, 0))
+            .ToList();
+
+        foreach (var grupaX in punktyPionowe)
+        {
+            // ⭐ Sortuj punkty w grupie po Y (od góry do dołu)
+            var punkty = grupaX.OrderBy(l => l.Y1).ToList();
+
+            Console.WriteLine($"🔧 Grupa X={grupaX.Key:F0}: {punkty.Count} punktów, " +
+                              $"przedziały={granice.Count - 1}");
+
+            // ⭐ KLUCZOWE: przypisz kolejne przedziały do kolejnych punktów
+            for (int i = 0; i < punkty.Count; i++)
+            {
+                var line = punkty[i];
+
+                double yStart, yEnd;
+
+                if (i < granice.Count - 1)
+                {
+                    // ⭐ Punkt i-ty → przedział i-ty
+                    yStart = granice[i];
+                    yEnd = granice[i + 1];
+                }
+                else
+                {
+                    // Więcej punktów niż przedziałów – ostatni przedział
+                    yStart = granice[granice.Count - 2];
+                    yEnd = granice[granice.Count - 1];
+                }
+
+                line.X2 = line.X1;
+                line.Y1 = yStart;
+                line.Y2 = yEnd;
+
+                Console.WriteLine($"🔧 Naprawa pionowej {line.ID.Substring(0, 8)}: " +
+                                  $"({line.X1:F0},{line.Y1:F0})→({line.X2:F0},{line.Y2:F0})");
+            }
+        }
+    }
+
 
     private void AppendToCalculator(string value) => _calculatorExpression += value;
     private void ClearCalculator() => _calculatorExpression = "";

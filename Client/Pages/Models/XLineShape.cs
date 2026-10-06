@@ -43,11 +43,10 @@ namespace GEORGE.Client.Pages.Models
 
         public List<ContourSegment> ContourSegments => GetContourSegments();
 
-        // 🔥 NOWE WŁAŚCIWOŚCI DO OBLICZANIA KĄTA LINII
+        // =====================================================================
+        // WŁAŚCIWOŚCI POCHODNE (kąt, długość, orientacja)
+        // =====================================================================
 
-        /// <summary>
-        /// Kąt linii w stopniach (0-180°), niezależnie od kierunku
-        /// </summary>
         public double KatLinii
         {
             get
@@ -58,23 +57,13 @@ namespace GEORGE.Client.Pages.Models
                 double katRadiany = Math.Atan2(dy, dx);
                 double katStopnie = katRadiany * (180.0 / Math.PI);
 
-                // Normalizacja do zakresu 0-180°
-                if (katStopnie < 0)
-                {
-                    katStopnie += 180;
-                }
-                else if (katStopnie >= 180)
-                {
-                    katStopnie -= 180;
-                }
+                if (katStopnie < 0) katStopnie += 180;
+                else if (katStopnie >= 180) katStopnie -= 180;
 
                 return katStopnie;
             }
         }
 
-        /// <summary>
-        /// Kąt linii w radianach (0-π), niezależnie od kierunku
-        /// </summary>
         public double KatLiniiRadiany
         {
             get
@@ -84,23 +73,13 @@ namespace GEORGE.Client.Pages.Models
 
                 double katRadiany = Math.Atan2(dy, dx);
 
-                // Normalizacja do zakresu 0-π
-                if (katRadiany < 0)
-                {
-                    katRadiany += Math.PI;
-                }
-                else if (katRadiany >= Math.PI)
-                {
-                    katRadiany -= Math.PI;
-                }
+                if (katRadiany < 0) katRadiany += Math.PI;
+                else if (katRadiany >= Math.PI) katRadiany -= Math.PI;
 
                 return katRadiany;
             }
         }
 
-        /// <summary>
-        /// Pełny kąt linii w stopniach (0-360°), uwzględniający kierunek
-        /// </summary>
         public double KatLiniiPelny
         {
             get
@@ -111,19 +90,12 @@ namespace GEORGE.Client.Pages.Models
                 double katRadiany = Math.Atan2(dy, dx);
                 double katStopnie = katRadiany * (180.0 / Math.PI);
 
-                // Normalizacja do zakresu 0-360°
-                if (katStopnie < 0)
-                {
-                    katStopnie += 360;
-                }
+                if (katStopnie < 0) katStopnie += 360;
 
                 return katStopnie;
             }
         }
 
-        /// <summary>
-        /// Długość linii
-        /// </summary>
         public double DlugoscLinii
         {
             get
@@ -135,63 +107,33 @@ namespace GEORGE.Client.Pages.Models
         }
 
         /// <summary>
-        /// Sprawdza czy linia jest pionowa (kąt bliski 90°)
+        /// Linia pionowa: |X2 - X1| ≈ 0
         /// </summary>
-        public bool CzyPionowa => Math.Abs(Math.Abs(X2 - X1)) < 0.001;
+        public bool CzyPionowa => Math.Abs(X2 - X1) < 0.001;
 
         /// <summary>
-        /// Sprawdza czy linia jest pozioma (kąt bliski 0° lub 180°)
+        /// Linia pozioma: |Y2 - Y1| ≈ 0
         /// </summary>
-        public bool CzyPozioma => Math.Abs(Math.Abs(Y2 - Y1)) < 0.001;
+        public bool CzyPozioma => Math.Abs(Y2 - Y1) < 0.001;
 
         /// <summary>
-        /// Sprawdza czy linia jest ukośna (nie pionowa i nie pozioma)
+        /// Linia skośna: nie pionowa i nie pozioma
         /// </summary>
         public bool CzyUkosna => !CzyPionowa && !CzyPozioma;
 
+        // =====================================================================
+        // KONSTRUKTOR – BEZ SORTOWANIA PUNKTÓW
+        // =====================================================================
+
         public XLineShape(
-        double x1, double y1, double x2, double y2, double scaleFactor,
-        string nazwaObj, bool ruchomySlupek = false, bool pionPoziom = false,
-        bool dualRama = false, bool generowaneZRamy = false, bool stalySlupek = false, bool isSkosna = false)
+            double x1, double y1, double x2, double y2, double scaleFactor,
+            string nazwaObj, bool ruchomySlupek = false, bool pionPoziom = false,
+            bool dualRama = false, bool generowaneZRamy = false,
+            bool stalySlupek = false, bool isSkosna = false)
         {
-            // Normalizacja punktów: zawsze X1 ≤ X2, a dla równych X - Y1 ≤ Y2
-            if (Math.Abs(x1 - x2) > 0.001)
-            {
-                // Różne X - sortujemy po X
-                if (x1 > x2)
-                {
-                    // Zamiana X
-                    X1 = x2;
-                    Y1 = y2;
-                    X2 = x1;
-                    Y2 = y1;
-                }
-                else
-                {
-                    X1 = x1;
-                    Y1 = y1;
-                    X2 = x2;
-                    Y2 = y2;
-                }
-            }
-            else
-            {
-                // Prawie równe X (linia pionowa) - sortujemy po Y
-                if (y1 > y2)
-                {
-                    X1 = x2;
-                    Y1 = y2;
-                    X2 = x1;
-                    Y2 = y1;
-                }
-                else
-                {
-                    X1 = x1;
-                    Y1 = y1;
-                    X2 = x2;
-                    Y2 = y2;
-                }
-            }
+            // ⭐ ZACHOWAJ ORYGINALNY KIERUNEK (bez sortowania)
+            X1 = x1; Y1 = y1;
+            X2 = x2; Y2 = y2;
 
             _scaleFactor = scaleFactor;
             NazwaObj = nazwaObj;
@@ -202,102 +144,59 @@ namespace GEORGE.Client.Pages.Models
             StalySlupek = stalySlupek;
             IsSkosna = isSkosna;
 
-            // Teraz EnforceLineType musi brać pod uwagę, że punkty są już posortowane
-            EnforceLineTypePreservingOrder();
-            UpdateSize();
-            GeneratePoints();
-        }
-
-        private void EnforceLineTypePreservingOrder()
-        {
-            if (RuchomySlupek)
-            {
-                // Zachowaj X1 jako referencyjny, X2 = X1
-                X2 = X1;
-            }
-
-            if (PionPoziom)
-            {
-                if (Math.Abs(X1 - X2) > 0.001)
-                {
-                    // Linia pozioma - ustaw Y2 = Y1 (zachowaj Y1)
-                    Y2 = Y1;
-                }
-                else
-                {
-                    // Linia pionowa - ustaw X2 = X1 (zachowaj X1)
-                    X2 = X1;
-                }
-            }
-
-            // Po modyfikacjach, upewnij się że nadal X1 ≤ X2
-            if (X1 > X2)
-            {
-                SwapPoints();
-            }
-            else if (Math.Abs(X1 - X2) < 0.001 && Y1 > Y2)
-            {
-                // Prawie pionowa linia - upewnij się że Y1 ≤ Y2
-                SwapPoints();
-            }
-        }
-        private void SwapPoints()
-        {
-            double tempX = X1;
-            double tempY = Y1;
-            X1 = X2;
-            Y1 = Y2;
-            X2 = tempX;
-            Y2 = tempY;
-        }
-
-        private void UpdatePointsAfterTransform()
-        {
-            Points = new List<XPoint>
-        {
-            new XPoint(X1, Y1),
-            new XPoint(X2, Y2)
-        };
-
-            NominalPoints = new List<XPoint>
-        {
-            new XPoint(X1, Y1),
-            new XPoint(X2, Y2)
-        };
-        }
-
-        public void GeneratePoints()
-        {
-            // Wywołaj EnforceLineType TYLKO gdy generujemy punkty od nowa
             EnforceLineType();
-
-            Points = new List<XPoint>
-                    {
-                        new XPoint(X1, Y1),
-                        new XPoint(X2, Y2)
-                    };
-
-            NominalPoints = Points.Select(p => new XPoint(p.X, p.Y)).ToList();
+            UpdateSize();
+            UpdatePoints();
         }
+
+        // =====================================================================
+        // WYMUSZANIE TYPU LINII – POMIJA SKOSY
+        // =====================================================================
 
         public void EnforceLineType()
         {
             if (RuchomySlupek)
+            {
+                // Ruchomy słupek: wymuś pionową linię w X1
                 X2 = X1;
+                return;
+            }
+
+            // Skosne linie – nie wymuszamy typu
+            if (IsSkosna)
+                return;
 
             if (PionPoziom)
             {
-                if (Math.Abs(X1 - X2) > 0.01)
-                    Y2 = Y1;     // pozioma
+                double dx = Math.Abs(X2 - X1);
+                double dy = Math.Abs(Y2 - Y1);
+
+                if (dx >= dy)
+                    Y2 = Y1;   // pozioma
                 else
-                    X2 = X1;     // pionowa
+                    X2 = X1;   // pionowa
             }
         }
 
-        private void UpdateSize()
+        // =====================================================================
+        // AKTUALIZACJA PUNKTÓW – BEZ EnforceLineType
+        // =====================================================================
+
+        public void GeneratePoints()
         {
-            Szerokosc = Math.Abs(X2 - X1);
-            Wysokosc = Math.Abs(Y2 - Y1);
+            // ⭐ BEZ EnforceLineType – typ jest już wymuszony wcześniej
+            UpdatePoints();
+        }
+
+        private void UpdatePoints()
+        {
+            Points = new List<XPoint>
+            {
+                new XPoint(X1, Y1),
+                new XPoint(X2, Y2)
+            };
+
+            NominalPoints = Points.Select(p => new XPoint(p.X, p.Y)).ToList();
         }
 
         public void UpdatePoints(List<XPoint> newPoints)
@@ -310,30 +209,47 @@ namespace GEORGE.Client.Pages.Models
             X2 = newPoints[1].X;
             Y2 = newPoints[1].Y;
 
-            EnforceLineType();
+            // ⭐ NIE wymuszaj typu – punkty są źródłem prawdy
             UpdateSize();
-            GeneratePoints();
+            UpdatePoints();
         }
+
+        private void UpdateSize()
+        {
+            Szerokosc = Math.Abs(X2 - X1);
+            Wysokosc = Math.Abs(Y2 - Y1);
+        }
+
+        // =====================================================================
+        // KLONOWANIE – ZACHOWUJE WSZYSTKIE FLAGI I ID
+        // =====================================================================
 
         public IShapeDC Clone()
         {
-            var clone = new XLineShape(X1, Y1, X2, Y2, _scaleFactor, NazwaObj,
-                RuchomySlupek, PionPoziom, DualRama, GenerowaneZRamy, StalySlupek)
+            var clone = new XLineShape(
+                X1, Y1, X2, Y2, _scaleFactor, NazwaObj,
+                RuchomySlupek, PionPoziom, DualRama, GenerowaneZRamy,
+                StalySlupek, IsSkosna)
             {
                 SplitGroupId = SplitGroupId,
-
-                // 🔥 Głębokie kopie list – konstruktor i tak je odtworzy przez GeneratePoints(),
-                // ale to zabezpiecza na wypadek zmiany konstruktora
+                ID = this.ID,
                 Points = this.Points?.Select(p => new XPoint(p.X, p.Y)).ToList() ?? new(),
                 NominalPoints = this.NominalPoints?.Select(p => new XPoint(p.X, p.Y)).ToList() ?? new(),
+
+                Szerokosc = this.Szerokosc,
+                Wysokosc = this.Wysokosc,
+                KsztaltModelu = this.KsztaltModelu
             };
 
             return clone;
         }
 
+        // =====================================================================
+        // RYSOWANIE
+        // =====================================================================
+
         public async Task Draw(Canvas2DContext ctx)
         {
-            GeneratePoints();
             UpdateSize();
 
             if (RuchomySlupek)
@@ -350,6 +266,10 @@ namespace GEORGE.Client.Pages.Models
             await ctx.StrokeAsync();
         }
 
+        // =====================================================================
+        // PRZESUWANIE / SKALOWANIE / TRANSFORMACJA
+        // =====================================================================
+
         public void Move(double offsetX, double offsetY)
         {
             X1 += offsetX;
@@ -357,8 +277,8 @@ namespace GEORGE.Client.Pages.Models
             X2 += offsetX;
             Y2 += offsetY;
 
-            GeneratePoints();
             UpdateSize();
+            UpdatePoints();
         }
 
         public void Scale(double factor)
@@ -371,11 +291,10 @@ namespace GEORGE.Client.Pages.Models
             X2 = cx + (X2 - cx) * factor;
             Y2 = cy + (Y2 - cy) * factor;
 
-            GeneratePoints();
             UpdateSize();
+            UpdatePoints();
         }
 
-        // ✔️ WYMAGANA przez interfejs metoda — brakowało jej!
         public void Transform(double scale, double offsetX, double offsetY)
         {
             X1 = X1 * scale + offsetX;
@@ -383,12 +302,10 @@ namespace GEORGE.Client.Pages.Models
             X2 = X2 * scale + offsetX;
             Y2 = Y2 * scale + offsetY;
 
-            GeneratePoints();
-            UpdatePointsAfterTransform();
             UpdateSize();
+            UpdatePoints();
         }
 
-        // Druga metoda Transform (zgodnie z interfejsem)
         public void Transform(double scaleX, double scaleY, double offsetX, double offsetY)
         {
             X1 = X1 * scaleX + offsetX;
@@ -396,9 +313,8 @@ namespace GEORGE.Client.Pages.Models
             X2 = X2 * scaleX + offsetX;
             Y2 = Y2 * scaleY + offsetY;
 
-            GeneratePoints();
-            UpdatePointsAfterTransform();
             UpdateSize();
+            UpdatePoints();
         }
 
         public BoundingBox GetBoundingBox()
@@ -412,64 +328,73 @@ namespace GEORGE.Client.Pages.Models
             );
         }
 
+        // =====================================================================
+        // WŁAŚCIWOŚCI EDYTOWALNE – DYNAMICZNE CZY PIONOWA/POZIOMA
+        // =====================================================================
+
         public List<EditableProperty> GetEditableProperties()
         {
-            // ⭐ Policz raz dla całej linii
-            bool czyPionowa = CzyPionowa;
-            bool czyPozioma = CzyPozioma;
-            bool czySkosna = CzyUkosna;
             string? splitGroupId = SplitGroupId;
             string id = this.ID;
 
+            // Statyczne wartości do wyświetlania w UI (nie do logiki)
+            bool czyPionowaStatic = CzyPionowa;
+            bool czyPoziomaStatic = CzyPozioma;
+            bool czySkosnaStatic = CzyUkosna;
+
             return new()
             {
+                // ============ X1 ============
                 new EditableProperty(
                     RuchomySlupek ? "Podział linii w osi X1" : "X1 ",
                     () => X1,
                     v => {
                         double parsedValue = ParseExpression(v.ToString());
                         X1 = parsedValue;
-                        if (czyPionowa || RuchomySlupek) X2 = X1;
+
+                        // ⭐ Dynamicznie: jeśli po zmianie linia jest pionowa, dopasuj X2
+                        if (CzyPionowa || RuchomySlupek) X2 = X1;
+
                         EnforceLineType();
-                        GeneratePoints();
+                        UpdateSize();
+                        UpdatePoints();
                     },
                     NazwaObj,
-                    IsReadOnly: czyPozioma,
+                    IsReadOnly: czyPoziomaStatic,
                     ShapeId: id)
                 {
-                    IsPionowa = czyPionowa,
-                    IsPozioma = czyPozioma,
-                    IsSkosna = czySkosna,
+                    IsPionowa = czyPionowaStatic,
+                    IsPozioma = czyPoziomaStatic,
+                    IsSkosna = czySkosnaStatic,
                     SplitGroupId = splitGroupId
                 },
 
+                // ============ Y1 ============
                 new EditableProperty(
                     RuchomySlupek ? "Podział linii w osi Y1" : "Y1 ",
                     () => Y1,
                     v => {
                         double parsedValue = ParseExpression(v.ToString());
                         Y1 = parsedValue;
-                        if (czyPozioma) Y2 = Y1;
-                        EnforceLineType();
 
-                        Points = new List<XPoint>
-                        {
-                            new XPoint(X1, Y1),
-                            new XPoint(X2, Y2)
-                        };
-                        NominalPoints = Points.Select(p => new XPoint(p.X, p.Y)).ToList();
+                        // ⭐ Dynamicznie: jeśli po zmianie linia jest pozioma, dopasuj Y2
+                        if (CzyPozioma) Y2 = Y1;
+
+                        EnforceLineType();
                         UpdateSize();
+                        UpdatePoints();
                     },
                     NazwaObj,
-                    IsReadOnly: RuchomySlupek || czyPionowa,
+                    IsReadOnly: RuchomySlupek || czyPionowaStatic,
                     ShapeId: id)
                 {
-                    IsPionowa = czyPionowa,
-                    IsPozioma = czyPozioma,
-                    IsSkosna = czySkosna,
+                    IsPionowa = czyPionowaStatic,
+                    IsPozioma = czyPoziomaStatic,
+                    IsSkosna = czySkosnaStatic,
                     SplitGroupId = splitGroupId
                 },
 
+                // ============ X2 ============
                 new EditableProperty(
                     RuchomySlupek ? "Podział linii w osi X2" : "X2 ",
                     () => X2,
@@ -477,18 +402,20 @@ namespace GEORGE.Client.Pages.Models
                         double parsedValue = ParseExpression(v.ToString());
                         X2 = parsedValue;
                         EnforceLineType();
-                        GeneratePoints();
+                        UpdateSize();
+                        UpdatePoints();
                     },
                     NazwaObj,
-                    IsReadOnly: RuchomySlupek || czyPozioma,
+                    IsReadOnly: RuchomySlupek || czyPoziomaStatic,
                     ShapeId: id)
                 {
-                    IsPionowa = czyPionowa,
-                    IsPozioma = czyPozioma,
-                    IsSkosna = czySkosna,
+                    IsPionowa = czyPionowaStatic,
+                    IsPozioma = czyPoziomaStatic,
+                    IsSkosna = czySkosnaStatic,
                     SplitGroupId = splitGroupId
                 },
 
+                // ============ Y2 ============
                 new EditableProperty(
                     RuchomySlupek ? "Podział linii w osi Y2" : "Y2 ",
                     () => Y2,
@@ -496,33 +423,40 @@ namespace GEORGE.Client.Pages.Models
                         double parsedValue = ParseExpression(v.ToString());
                         Y2 = parsedValue;
                         EnforceLineType();
-                        GeneratePoints();
+                        UpdateSize();
+                        UpdatePoints();
                     },
                     NazwaObj,
-                    IsReadOnly: czyPionowa,
+                    IsReadOnly: czyPionowaStatic,
                     ShapeId: id)
                 {
-                    IsPionowa = czyPionowa,
-                    IsPozioma = czyPozioma,
-                    IsSkosna = czySkosna,
+                    IsPionowa = czyPionowaStatic,
+                    IsPozioma = czyPoziomaStatic,
+                    IsSkosna = czySkosnaStatic,
                     SplitGroupId = splitGroupId
                 },
 
-               new EditableProperty(
+                // ============ Kąt (tylko odczyt) ============
+                new EditableProperty(
                     RuchomySlupek ? "Kąt linii" : "Kąt w stopniach ",
                     () => KatLinii,
-                    v => { EnforceLineType(); GeneratePoints(); },
+                    v => { /* tylko odczyt */ },
                     NazwaObj,
                     IsReadOnly: true,
                     ShapeId: id)
                 {
-                    IsPionowa = false,        // ⭐ Kąt nie jest pionową
-                    IsPozioma = false,        // ⭐ Kąt nie jest poziomą
-                    IsSkosna = false,         // ⭐ Kąt nie jest skośną
+                    IsPionowa = false,
+                    IsPozioma = false,
+                    IsSkosna = false,
                     SplitGroupId = splitGroupId
                 },
             };
         }
+
+        // =====================================================================
+        // KONTUR (dla generatora regionów)
+        // =====================================================================
+
         public List<ContourSegment> GetContourSegments()
         {
             var segments = new List<ContourSegment>();
@@ -538,23 +472,23 @@ namespace GEORGE.Client.Pages.Models
             return segments;
         }
 
+        // =====================================================================
+        // PARSER WYRAŻEŃ (bez zmian)
+        // =====================================================================
+
         private double ParseExpression(string expression)
         {
             if (string.IsNullOrWhiteSpace(expression))
                 return 0;
 
-            // Jeśli to zwykła liczba, parsuj normalnie
             if (double.TryParse(expression, System.Globalization.NumberStyles.Any,
                 System.Globalization.CultureInfo.InvariantCulture, out double result))
                 return result;
 
-            // Jeśli zawiera operator matematyczny, oblicz wyrażenie
             try
             {
-                // Prosty parser dla podstawowych działań
                 expression = expression.Replace(" ", "");
 
-                // Obsługa dodawania i odejmowania
                 if (expression.Contains('+') || expression.Contains('-'))
                 {
                     var parts = System.Text.RegularExpressions.Regex.Split(expression, @"(?=[+-])");
@@ -570,12 +504,11 @@ namespace GEORGE.Client.Pages.Models
                     return sum;
                 }
 
-                // Obsługa mnożenia i dzielenia
                 return ParseMultiplicationDivision(expression);
             }
             catch
             {
-                return 0; // W przypadku błędu zwróć 0
+                return 0;
             }
         }
 
@@ -610,20 +543,6 @@ namespace GEORGE.Client.Pages.Models
             }
 
             return double.Parse(expression, System.Globalization.CultureInfo.InvariantCulture);
-        }
-
-        private XPoint CalculateCentroid(List<XPoint> pts)
-        {
-            double cx = 0;
-            double cy = 0;
-
-            foreach (var p in pts)
-            {
-                cx += p.X;
-                cy += p.Y;
-            }
-
-            return new XPoint(cx / pts.Count, cy / pts.Count);
         }
     }
 }

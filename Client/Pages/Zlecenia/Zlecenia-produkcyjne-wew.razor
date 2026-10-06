@@ -385,7 +385,7 @@ else
             <Column Title="Klient" Width="195" @bind-Field="@context.Klient" Style="font-weight:bold" Sortable OnFilter="(a, b) => a == b" Filterable />
             <Column Title="Nazwa Produktu" @bind-Field="@context.NazwaProduktu" Sortable Filterable />
             <Column Title="Adres" Width="135" @bind-Field="@context.Adres" Sortable OnFilter="(a, b) => a == b" Filterable />
-            <Column Title="Miejscowość" @bind-Field="@context.Miejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable />
+            <Column Title="Miejscowość" @bind-Field="@context.Miejscowosc" Sortable OnFilter="(a, b) => a == b" Filterable Style="font-weight:bold;color:darkblue;font-size: 12px;" />
             <Column Title="Telefon" @bind-Field="@context.Telefon" Sortable />
             <Column Title="CWZ" @bind-Field="@context.JednostkiNaZlecenie" Style="width:30px" Sortable />
             <PropertyColumn Property="c => context.ZlecZrealizowane"></PropertyColumn>

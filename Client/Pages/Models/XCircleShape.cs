@@ -112,11 +112,20 @@ namespace GEORGE.Client.Pages.Models
 
         public IShapeDC Clone()
         {
-            return new XCircleShape(X, Y, Radius, _scaleFactor)
+            return new XCircleShape
             {
-                NazwaObj = this.NazwaObj,
-                Points = this._points.Select(p => new XPoint(p.X, p.Y)).ToList(),
-                NominalPoints = this.NominalPoints.Select(p => p.Clone()).ToList()
+                ID = this.ID,
+                Szerokosc = this.Szerokosc,
+                Wysokosc = this.Wysokosc,
+                KsztaltModelu = this.KsztaltModelu,
+                Points = this.Points?.Select(p => new XPoint(p.X, p.Y)).ToList() ?? new(),
+                NominalPoints = this.NominalPoints?.Select(p => new XPoint(p.X, p.Y)).ToList() ?? new(),
+
+                // ⭐ Właściwości podklasy
+                X = this.X,
+                Y = this.Y,
+                Radius = this.Radius,
+                IloscElementowLuki = this.IloscElementowLuki,
             };
         }
 

@@ -172,6 +172,17 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
             // Zachowujemy też dokładne punkty nominalne (gdyby były modyfikowane ręcznie)
             clone.NominalPoints = this.NominalPoints.Select(p => p.Clone()).ToList();
+
+            clone.BaseX1 = this.BaseX1;
+            clone.BaseY = this.BaseY;
+            clone.BaseWidth = this.BaseWidth;   
+            clone.Height = this.Height;
+
+            clone.Szerokosc = this.Szerokosc;
+            clone.Wysokosc = this.Wysokosc;
+            clone.KsztaltModelu = this.KsztaltModelu;
+            clone.Points = this.Points?.Select(p => new XPoint(p.X, p.Y)).ToList() ?? new();
+
             clone.ApplyScaleToPoints();
 
             return clone;

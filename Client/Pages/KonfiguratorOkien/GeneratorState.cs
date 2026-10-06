@@ -44,6 +44,11 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
         public Generator? Generator { get; set; }
 
+        // ⭐ NOWE POLA – do stabilnego dopasowania po zmianie wymiarów
+        public string? IdMaster { get; set; }
+        public string? TypKsztaltu { get; set; }
+        public bool Rama { get; set; }
+
         public GeneratorState Clone()
         {
             return new GeneratorState
@@ -182,6 +187,10 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
                 SlupekRuchomyPoLewejStronie = this.SlupekRuchomyPoLewejStronie,
                 SlupekRuchomyPoPrawejStronie = this.SlupekRuchomyPoPrawejStronie,
+
+                IdMaster = this.IdMaster,
+                TypKsztaltu = this.TypKsztaltu,
+                Rama = this.Rama,
 
                 ListaKwadratow = this.ListaKwadratow?
                     .Select(q => q.Clone())

@@ -215,11 +215,16 @@ namespace GEORGE.Client.Pages.Models
 
         public IShapeDC Clone()
         {
-            return new XRoundedRectangleShapeRight(X, Y, Width, Height, Radius, _scaleFactor)
+            return new XRoundedRectangleShapeLeft(X, Y, Width, Height, Radius, _scaleFactor)
             {
-                Points = Points.Select(p => p.Clone()).ToList(),
-                NominalPoints = NominalPoints.Select(p => p.Clone()).ToList(),
-                NazwaObj = NazwaObj
+                ID = this.ID,
+                Szerokosc = this.Szerokosc,
+                Wysokosc = this.Wysokosc,
+                KsztaltModelu = this.KsztaltModelu,
+                Points = this.Points?.Select(p => new XPoint(p.X, p.Y)).ToList() ?? new(),
+                NominalPoints = this.NominalPoints?.Select(p => new XPoint(p.X, p.Y)).ToList() ?? new(),
+                X = this.X,
+                Y = this.Y,
             };
         }
 

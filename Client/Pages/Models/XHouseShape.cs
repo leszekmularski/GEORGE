@@ -101,10 +101,14 @@ namespace GEORGE.Client.Pages.Models
         {
             var clone = new XHouseShape(X, Y, Width, Height, HeightLeft, HeightRight, _scaleFactor)
             {
-                NazwaObj = this.NazwaObj,
-                // Kopiuj punkty, a nie referencje
-                Points = this.Points.Select(p => new XPoint(p.X, p.Y)).ToList(),
-                NominalPoints = this.NominalPoints.Select(p => new XPoint(p.X, p.Y)).ToList()
+                ID = this.ID,
+                Szerokosc = this.Szerokosc,
+                Wysokosc = this.Wysokosc,
+                KsztaltModelu = this.KsztaltModelu,
+                Points = this.Points?.Select(p => new XPoint(p.X, p.Y)).ToList() ?? new(),
+                NominalPoints = this.NominalPoints?.Select(p => new XPoint(p.X, p.Y)).ToList() ?? new(),
+                X = this.X,
+                Y = this.Y,
             };
             return clone;
         }

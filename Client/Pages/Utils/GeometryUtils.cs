@@ -341,7 +341,7 @@ namespace GEORGE.Client.Pages.Utils
                                 return result;
                             }
 
-                            FallbackLine:
+                        FallbackLine:
 
                             var lineSeg = new ContourSegment(p, next)
                             {
@@ -452,6 +452,18 @@ namespace GEORGE.Client.Pages.Utils
                         .OfType<XLineShape>()
                         .Where(l => l.DualRama)
                         .ToList();
+
+                    // ⭐ DIAGNOSTYKA
+                    Console.WriteLine($"═══════════════════════════════════════════════");
+                    Console.WriteLine($"🔍 RAMA: linieDzielace={linieDzielace.Count}");
+                    foreach (var l in linieDzielace)
+                    {
+                        Console.WriteLine($"   Line ID={l.ID.Substring(0, 8)} " +
+                                          $"({l.X1:F0},{l.Y1:F0}) → ({l.X2:F0},{l.Y2:F0})  " +
+                                          $"DualRama={l.DualRama} Ruchomy={l.RuchomySlupek} Staly={l.StalySlupek} " +
+                                          $"SplitGroupId={l.SplitGroupId?.Substring(0, 8) ?? "null"}");
+                    }
+                    Console.WriteLine($"═══════════════════════════════════════════════");
 
                     var podzielone = await PodzielRegionRekurencyjnie(initial, linieDzielace, id, rama);
 
@@ -1033,122 +1045,160 @@ namespace GEORGE.Client.Pages.Utils
         /// 
         /// Nie zmienia niczego, jeśli stare Stany mają inną liczbę elementów niż nowe regiony.
         /// </summary>
+
         private static void DopasujStareIdDoNowychRegionow(
-            List<ShapeRegion> nowe,
-            Dictionary<string, GeneratorState> stareStany,
-            double szerokosc,
-            double wysokosc,
-            bool rama)
+        List<ShapeRegion> nowe,
+        Dictionary<string, GeneratorState> stareStany,
+        double szerokosc,
+        double wysokosc,
+        bool rama)
         {
             if (nowe == null || nowe.Count == 0) return;
 
-            // ============================================================
-            // 1. Odfiltruj stany pasujące do tej roli (rama/skrzydło)
-            // ============================================================
+            // Odfiltruj stany pasujące do roli
             var starePasujace = stareStany.Values
                 .Where(s => !string.IsNullOrEmpty(s.IdRegion))
                 .Where(s => s.CzyElementJestRama == rama)
                 .ToList();
 
-            // Fallback: jeśli nic nie ma po roli, weź wszystkie (starsze stany mogą nie mieć flagi)
             if (starePasujace.Count == 0)
             {
-                starePasujace = stareStany.Values
-                    .Where(s => !string.IsNullOrEmpty(s.IdRegion))
-                    .ToList();
-
-                Console.WriteLine($"🆔 DopasujStareId [{rama}]: brak stanów pasujących po roli — biorę wszystkie ({starePasujace.Count})");
-            }
-
-            if (starePasujace.Count == 0)
-            {
-                Console.WriteLine($"🆔 DopasujStareId [{rama}]: brak starych stanów — zostawiam nowe Id");
+                Console.WriteLine($"🆔 DopasujStareId [{rama}]: brak starych stanów – zostawiam nowe Id");
                 return;
             }
 
-            // ============================================================
-            // 2. Funkcja pomocnicza: środek ciężkości w procentach
-            // ============================================================
-            (double cx, double cy) SrodekProcentowy(List<XPoint>? wierzcholki)
+            Console.WriteLine($"═══════════════════════════════════════════════");
+            Console.WriteLine($"🔍 DopasujStareId [{rama}]: starePasujace={starePasujace.Count}");
+            foreach (var s in starePasujace.Take(10))
             {
-                if (wierzcholki == null || wierzcholki.Count == 0)
-                    return (0.5, 0.5);
-
-                double minX = wierzcholki.Min(p => p.X);
-                double maxX = wierzcholki.Max(p => p.X);
-                double minY = wierzcholki.Min(p => p.Y);
-                double maxY = wierzcholki.Max(p => p.Y);
-
-                double cx = (minX + maxX) / 2.0;
-                double cy = (minY + maxY) / 2.0;
-
-                // Zabezpieczenie przed dzieleniem przez 0
-                double sx = szerokosc > 1 ? szerokosc : 1;
-                double sy = wysokosc > 1 ? wysokosc : 1;
-
-                return (cx / sx, cy / sy);
+                Console.WriteLine($"   IdRegion='{s.IdRegion}' | " +
+                                  $"Typ='{s.TypKsztaltu ?? "NULL"}' | " +
+                                  $"Rama={s.CzyElementJestRama} | " +
+                                  $"Wierzcholki={s.Wierzcholki?.Count ?? -1} | " +
+                                  $"Orientacja={OkreslOrientacjeStanu(s)}");
             }
+            Console.WriteLine($"═══════════════════════════════════════════════");
 
-            // ============================================================
-            // 3. Dopasowanie zachłanne (greedy) po odległości procentowej
-            // ============================================================
-            var uzyte = new HashSet<string>();
+            // ⭐ Grupuj nowe regiony po TypKsztaltu + orientacja (BEZ IdMaster)
+            var noweGrupy = nowe
+                .GroupBy(r => new
+                {
+                    Typ = r.TypKsztaltu ?? "nieznany",
+                    Orientacja = OkreslOrientacje(r)
+                })
+                .ToList();
+
+            // ⭐ Grupuj stare stany po TypKsztaltu + orientacja (BEZ IdRegion, BEZ IdMaster)
+            var stareGrupy = starePasujace
+                .GroupBy(s => new
+                {
+                    Typ = s.TypKsztaltu ?? "nieznany",
+                    Orientacja = OkreslOrientacjeStanu(s)
+                })
+                .ToList();
+
+            Console.WriteLine($"🆔 DopasujStareId [{rama}]: " +
+                              $"nowe grupy={noweGrupy.Count}, stare grupy={stareGrupy.Count}");
+            foreach (var g in stareGrupy)
+                Console.WriteLine($"   stara grupa: Typ={g.Key.Typ}, Orientacja={g.Key.Orientacja}, Count={g.Count()}");
+
             int dopasowane = 0;
 
-            foreach (var nowy in nowe)
+            foreach (var grupaNowa in noweGrupy)
             {
-                var (cxN, cyN) = SrodekProcentowy(nowy.Wierzcholki);
+                // ⭐ Znajdź pasującą grupę starych po Typ + Orientacja
+                var grupaStara = stareGrupy.FirstOrDefault(g =>
+                    g.Key.Typ == grupaNowa.Key.Typ &&
+                    g.Key.Orientacja == grupaNowa.Key.Orientacja);
 
-                // Kandydaci: stare stany jeszcze nie użyte
-                var kandydaci = starePasujace
-                    .Where(s => !uzyte.Contains(s.IdRegion!))
+                if (grupaStara == null)
+                {
+                    Console.WriteLine($"   ⚠️ Brak starych stanów dla: Typ={grupaNowa.Key.Typ}, " +
+                                      $"Orientacja={grupaNowa.Key.Orientacja}");
+                    continue;
+                }
+
+                // ⭐ Sortuj po pozycji (X dla pionowych, Y dla poziomych – ale sortuj po obu)
+                var nowePosortowane = grupaNowa
+                    .OrderBy(r => SrodekCiezkosci(r).Y)   // ⭐ Y najpierw (dla pionowych)
+                    .ThenBy(r => SrodekCiezkosci(r).X)
                     .ToList();
 
-                if (kandydaci.Count == 0) break;
+                var starePosortowane = grupaStara
+                    .OrderBy(s => SrodekCiezkosciStanu(s).Y)
+                    .ThenBy(s => SrodekCiezkosciStanu(s).X)
+                    .ToList();
 
-                // Priorytet: zgodność typu (jeśli da się odczytać typ modelu)
-                // np. region.TypKsztaltu = "prostokąt", model.Typ = "Rama" — nie ma sensu porównywać wprost,
-                // więc porównujemy tylko po procencie pozycji + roli (już odfiltrowane).
+                Console.WriteLine($"   📊 Grupa {grupaNowa.Key.Typ}/{grupaNowa.Key.Orientacja}: " +
+                                  $"nowe={nowePosortowane.Count}, stare={starePosortowane.Count}");
 
-                // Wybierz najbliższy po procencie
-                var najlepszy = kandydaci
-                    .OrderBy(s =>
-                    {
-                        var (cxS, cyS) = SrodekProcentowy(s.WierzcholkiWartosciNominalne ?? s.Wierzcholki);
-                        return (cxN - cxS) * (cxN - cxS) + (cyN - cyS) * (cyN - cyS);
-                    })
-                    .FirstOrDefault();
-
-                if (najlepszy != null)
+                // Dopasuj po kolei
+                int minCount = Math.Min(nowePosortowane.Count, starePosortowane.Count);
+                for (int i = 0; i < minCount; i++)
                 {
-                    var staryId = najlepszy.IdRegion!;
+                    var nowy = nowePosortowane[i];
+                    var stary = starePosortowane[i];
 
-                    nowy.Id = staryId;
-                    nowy.IdMaster = najlepszy.MVCKonfModelu?.KonfModele?.FirstOrDefault()?.RowId.ToString() ?? staryId;
-                    uzyte.Add(staryId);
+                    nowy.Id = stary.IdRegion!;
+                    nowy.IdMaster = stary.IdMaster ?? stary.IdRegion;
                     dopasowane++;
 
-                    Console.WriteLine($"   🆔 {nowy.TypKsztaltu} → '{staryId}' " +
-                                      $"(nowy cx/cy={cxN:F2}/{cyN:F2})");
+                    Console.WriteLine($"   🆔 {nowy.TypKsztaltu} " +
+                                      $"(nowy Y={SrodekCiezkosci(nowy).Y:F0}, stary Y={SrodekCiezkosciStanu(stary).Y:F0}) " +
+                                      $"→ '{stary.IdRegion}'");
                 }
             }
 
-            Console.WriteLine($"🆔 DopasujStareId [{rama}]: dopasowano {dopasowane}/{nowe.Count} regionów " +
-                              $"(starych stanów: {starePasujace.Count})");
-
-            // ============================================================
-            // 4. Regiony bez dopasowania — nadaj im nowe Id z prefiksem
-            // ============================================================
-            int noweId = 0;
-            foreach (var region in nowe)
-            {
-                if (string.IsNullOrEmpty(region.Id))
-                {
-                    region.Id = $"NEW-{rama}-{noweId++}";
-                    Console.WriteLine($"   ⚠️ Region bez dopasowania → nadano nowe Id: {region.Id}");
-                }
-            }
+            Console.WriteLine($"🆔 DopasujStareId [{rama}]: dopasowano {dopasowane}/{nowe.Count}");
         }
+
+
+        private static string OkreslOrientacje(ShapeRegion r)
+        {
+            if (r.Wierzcholki == null || r.Wierzcholki.Count < 2) return "brak";
+
+            double minX = r.Wierzcholki.Min(p => p.X);
+            double maxX = r.Wierzcholki.Max(p => p.X);
+            double minY = r.Wierzcholki.Min(p => p.Y);
+            double maxY = r.Wierzcholki.Max(p => p.Y);
+
+            double dx = maxX - minX;
+            double dy = maxY - minY;
+
+            if (dx < 0.001 && dy >= 0.001) return "pionowa";
+            if (dy < 0.001 && dx >= 0.001) return "pozioma";
+            return "brak";
+        }
+
+        private static string OkreslOrientacjeStanu(GeneratorState s)
+        {
+            if (s.Wierzcholki == null || s.Wierzcholki.Count < 2) return "brak";
+
+            double minX = s.Wierzcholki.Min(p => p.X);
+            double maxX = s.Wierzcholki.Max(p => p.X);
+            double minY = s.Wierzcholki.Min(p => p.Y);
+            double maxY = s.Wierzcholki.Max(p => p.Y);
+
+            double dx = maxX - minX;
+            double dy = maxY - minY;
+
+            if (dx < 0.001 && dy >= 0.001) return "pionowa";
+            if (dy < 0.001 && dx >= 0.001) return "pozioma";
+            return "brak";
+        }
+
+        private static (double X, double Y) SrodekCiezkosci(ShapeRegion r)
+        {
+            if (r.Wierzcholki == null || r.Wierzcholki.Count == 0) return (0, 0);
+            return (r.Wierzcholki.Average(p => p.X), r.Wierzcholki.Average(p => p.Y));
+        }
+
+        private static (double X, double Y) SrodekCiezkosciStanu(GeneratorState s)
+        {
+            if (s.Wierzcholki == null || s.Wierzcholki.Count == 0) return (0, 0);
+            return (s.Wierzcholki.Average(p => p.X), s.Wierzcholki.Average(p => p.Y));
+        }
+
         private static void PoprawNumeracjeRegionow(List<ShapeRegion> regions)
         {
             if (regions == null || regions.Count == 0)
@@ -1466,10 +1516,10 @@ namespace GEORGE.Client.Pages.Utils
         }
 
         private static async Task<List<ShapeRegion>> PodzielRegionRekurencyjnieDeterministycznie(
-        ShapeRegion region,
-        List<XLineShape> lines,
-        string rootId,
-        bool rama)
+            ShapeRegion region,
+            List<XLineShape> lines,
+            string rootId,
+            bool rama)
         {
             // Początkowa lista wyników zawiera oryginalny region
             var wynik = new List<ShapeRegion> { region };
@@ -1482,17 +1532,105 @@ namespace GEORGE.Client.Pages.Utils
 
                 foreach (var r in wynik)
                 {
+                    // ⭐ Sprawdź, czy linia dzieli ten region
                     if (!CzyLiniaDzieliRegion(r, line))
                     {
-                        // Linia nie dotyczy tego regionu - zostaw bez zmian
                         next.Add(r);
                         continue;
                     }
-                    // 1️⃣ Podział wierzchołków
-                    var splitLinie = PodzielPolygonPoLinii(r.Wierzcholki, line);
 
-                    // 2️⃣ Podział konturu
+                    // ============================================================
+                    // ⭐ PRZYPADEK SPECJALNY: region jest LINIĄ (2 wierzchołki)
+                    //    i linia dzieląca przecina ją w środku odcinka
+                    // ============================================================
+                    if (r.TypKsztaltu == "linia" && r.Wierzcholki != null && r.Wierzcholki.Count == 2)
+                    {
+                        Console.WriteLine($"🔍 Region LINIA {r.Id}: " +
+                      $"({r.Wierzcholki[0].X:F0},{r.Wierzcholki[0].Y:F0}) → " +
+                      $"({r.Wierzcholki[1].X:F0},{r.Wierzcholki[1].Y:F0})");
+                        Console.WriteLine($"   Testuję z linią {line.ID.Substring(0, 8)}: " +
+                                          $"({line.X1:F0},{line.Y1:F0}) → ({line.X2:F0},{line.Y2:F0})");
+
+                        var p1 = r.Wierzcholki[0];
+                        var p2 = r.Wierzcholki[1];
+
+                        // Znajdź punkt przecięcia linii dzielącej z odcinkiem p1–p2
+                        if (ObliczPrzeciecieOdcinkow(p1, p2, line, out var pt) &&
+                            CzyPunktWewnatrzOdcinka(pt, p1, p2))
+                        {
+
+                            Console.WriteLine($"   Przecięcie w ({pt.X:F1},{pt.Y:F1})");
+                            Console.WriteLine($"   Czy punkt wewnątrz odcinka: {CzyPunktWewnatrzOdcinka(pt, p1, p2)}");
+
+                            Console.WriteLine($"   ✂️ Podział LINII {r.Id}: " +
+                                              $"({p1.X:F0},{p1.Y:F0})→({p2.X:F0},{p2.Y:F0}) " +
+                                              $"w punkcie ({pt.X:F0},{pt.Y:F0})");
+
+                            // Segment A: p1 → pt
+                            var segA = new ShapeRegion
+                            {
+                                IdMaster = r.IdMaster ?? rootId,
+                                Id = $"{r.Id}_A",
+                                Wierzcholki = new List<XPoint> { new(p1.X, p1.Y), new(pt.X, pt.Y) },
+                                Kontur = new List<ContourSegment>
+                        {
+                            new ContourSegment(
+                                new XPoint(p1.X, p1.Y),
+                                new XPoint(pt.X, pt.Y))
+                            { Informacja = "kontur ramowy XLineShape" }
+                        },
+                                TypKsztaltu = "linia",
+                                Rama = rama,
+                                TypLiniiDzielacej = r.TypLiniiDzielacej,
+                                LinieDzielace = new List<XLineShape>(r.LinieDzielace ?? new()) { line }
+                            };
+
+                            // Segment B: pt → p2
+                            var segB = new ShapeRegion
+                            {
+                                IdMaster = r.IdMaster ?? rootId,
+                                Id = $"{r.Id}_B",
+                                Wierzcholki = new List<XPoint> { new(pt.X, pt.Y), new(p2.X, p2.Y) },
+                                Kontur = new List<ContourSegment>
+                        {
+                            new ContourSegment(
+                                new XPoint(pt.X, pt.Y),
+                                new XPoint(p2.X, p2.Y))
+                            { Informacja = "kontur ramowy XLineShape" }
+                        },
+                                TypKsztaltu = "linia",
+                                Rama = rama,
+                                TypLiniiDzielacej = r.TypLiniiDzielacej,
+                                LinieDzielace = new List<XLineShape>(r.LinieDzielace ?? new()) { line }
+                            };
+
+                            next.Add(segA);
+                            next.Add(segB);
+                            continue;  // przejdź do następnego regionu
+                        }
+                        else
+                        {
+                            // Linia nie przecina tego odcinka – zostaw bez zmian
+                            Console.WriteLine($"   ⏭️ Linia {line.ID?.Substring(0, 8)} nie przecina " +
+                                              $"odcinka {r.Id} w środku – zostawiam");
+                            next.Add(r);
+                            continue;
+                        }
+                    }
+
+                    // ============================================================
+                    // STANDARDOWY PODZIAŁ – region ma zamknięty kontur (prostokąt, trapez itp.)
+                    // ============================================================
+                    var splitLinie = PodzielPolygonPoLinii(r.Wierzcholki, line);
                     var splitFullKontur = await PodzielKonturPoLinii(r.Kontur, line);
+
+                    // ⭐ Zabezpieczenie przed pustym konturem
+                    if (splitFullKontur == null || splitFullKontur.Count == 0)
+                    {
+                        Console.WriteLine($"   ⚠️ Podział regionu {r.Id}: splitFullKontur pusty – zostawiam oryginał");
+                        next.Add(r);
+                        continue;
+                    }
 
                     if (splitLinie.Count > 1 && splitFullKontur.Count > 0)
                     {
@@ -1503,24 +1641,33 @@ namespace GEORGE.Client.Pages.Utils
                             var poly = splitLinie[i];
 
                             // Dopasowanie konturu do poligonu
-                            var kontur = i < splitFullKontur.Count ? splitFullKontur[i] : splitFullKontur.Last();
+                            var kontur = i < splitFullKontur.Count
+                                ? splitFullKontur[i]
+                                : splitFullKontur.Last();
+
+                            // ⭐ Zabezpieczenie: kontur musi mieć co najmniej 1 segment
+                            if (kontur == null || kontur.Count == 0)
+                            {
+                                Console.WriteLine($"   ⚠️ Region {r.Id} child {i}: pusty kontur – pomijam");
+                                continue;
+                            }
 
                             string newId = $"{rootId}|L{indexLinii}|C{indexChild}";
 
                             var bokiPoly = Enumerable.Range(0, poly.Count)
-                            .Select(i => (
-                                Start: poly[i],
-                                End: poly[(i + 1) % poly.Count]
-                            ))
-                            .ToList();
+                                .Select(idx => (
+                                    Start: poly[idx],
+                                    End: poly[(idx + 1) % poly.Count]
+                                ))
+                                .ToList();
 
-                            var linieRegionu = r.LinieDzielace
+                            var linieRegionu = (r.LinieDzielace ?? new List<XLineShape>())
                                 .Where(l => bokiPoly.Any(b =>
                                     CzyToTenSamOdcinek(
-                                    new XPoint(l.X1, l.Y1),
-                                    new XPoint(l.X2, l.Y2),
-                                    b.Start,
-                                    b.End)))
+                                        new XPoint(l.X1, l.Y1),
+                                        new XPoint(l.X2, l.Y2),
+                                        b.Start,
+                                        b.End)))
                                 .ToList();
 
                             linieRegionu.Add(line);
@@ -1531,7 +1678,7 @@ namespace GEORGE.Client.Pages.Utils
                                 Kontur = kontur,
                                 TypKsztaltu = r.TypKsztaltu,
                                 LinieDzielace = linieRegionu,
-                                IdMaster = rootId,
+                                IdMaster = r.IdMaster ?? rootId,
                                 Rama = rama,
                                 Id = newId,
                                 TypLiniiDzielacej = r.TypLiniiDzielacej
@@ -1555,6 +1702,57 @@ namespace GEORGE.Client.Pages.Utils
             await Task.CompletedTask;
 
             return wynik;
+        }
+
+        /// <summary>
+        /// Oblicza punkt przecięcia odcinka p1–p2 z linią dzielącą (nieskończoną).
+        /// Zwraca true, jeśli przecięcie istnieje.
+        /// </summary>
+        private static bool ObliczPrzeciecieOdcinkow(
+            XPoint p1, XPoint p2, XLineShape line, out XPoint pt)
+        {
+            pt = new XPoint();
+
+            double x1 = p1.X, y1 = p1.Y;
+            double x2 = p2.X, y2 = p2.Y;
+            double x3 = line.X1, y3 = line.Y1;
+            double x4 = line.X2, y4 = line.Y2;
+
+            double denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+            if (Math.Abs(denom) < 1e-9)
+                return false;  // równoległe
+
+            double px = ((x1 * y2 - y1 * x2) * (x3 - x4) -
+                         (x1 - x2) * (x3 * y4 - y3 * x4)) / denom;
+            double py = ((x1 * y2 - y1 * x2) * (y3 - y4) -
+                         (y1 - y2) * (x3 * y4 - y3 * x4)) / denom;
+
+            pt = new XPoint(px, py);
+            return true;
+        }
+
+        /// <summary>
+        /// Sprawdza, czy punkt leży wewnątrz odcinka p1–p2 (nie na końcach).
+        /// </summary>
+        private static bool CzyPunktWewnatrzOdcinka(XPoint pt, XPoint p1, XPoint p2, double eps = 0.5)
+        {
+            // Sprawdź, czy punkt leży na odcinku
+            double minX = Math.Min(p1.X, p2.X) - eps;
+            double maxX = Math.Max(p1.X, p2.X) + eps;
+            double minY = Math.Min(p1.Y, p2.Y) - eps;
+            double maxY = Math.Max(p1.Y, p2.Y) + eps;
+
+            if (pt.X < minX || pt.X > maxX || pt.Y < minY || pt.Y > maxY)
+                return false;
+
+            // Sprawdź, czy punkt nie leży zbyt blisko końców (żeby nie tworzyć zerowych odcinków)
+            double d1 = Distance(pt, p1);
+            double d2 = Distance(pt, p2);
+
+            if (d1 < eps || d2 < eps)
+                return false;  // zbyt blisko końca – to nie jest prawdziwy podział
+
+            return true;
         }
 
         public static async Task<List<List<ContourSegment>>> PodzielKonturPoLinii(
@@ -1802,8 +2000,18 @@ namespace GEORGE.Client.Pages.Utils
 
         private static List<ContourSegment> OrderSegmentsForClosedContour(List<ContourSegment> segments)
         {
+            // ⭐ Zabezpieczenie przed pustą listą
+            if (segments == null || segments.Count == 0)
+            {
+                Console.WriteLine("⚠️ OrderSegmentsForClosedContour: pusta lista – zwracam pustą");
+                return new List<ContourSegment>();
+            }
+
             if (segments.Count <= 1)
+            {
+                Console.WriteLine($"   ⏭️ OrderSegments: 1 segment, zwracam bez zmian");
                 return segments;
+            }
 
             segments = RemoveDuplicateSegments(segments);
             segments = segments.Where(s => !CzySegmentZerowejDlugosci(s)).ToList();
@@ -1848,8 +2056,23 @@ namespace GEORGE.Client.Pages.Utils
                 currentEnd = nextSegment.End;
             }
 
-            // ⭐⭐⭐ NORMALIZACJA DO CCW - ZACHOWUJĄC LICZBĘ SEGMENTÓW ⭐⭐⭐
+            Console.WriteLine($"   🔄 OrderSegments: {segments.Count} segmentów, " +
+                             $"po normalizacji: {ordered.Count} segmentów");
+
             ordered = NormalizeContourToCCW(ordered);
+
+            if (ordered.Count > 0)
+            {
+                Console.WriteLine($"   → po normalizacji: ({ordered[0].Start.X:F0},{ordered[0].Start.Y:F0}) → " +
+                                  $"({ordered[0].End.X:F0},{ordered[0].End.Y:F0})");
+            }
+
+            // ⭐ Zabezpieczenie przed pustym wynikiem
+            if (ordered == null || ordered.Count == 0)
+            {
+                Console.WriteLine("⚠️ OrderSegmentsForClosedContour: ordered puste – zwracam oryginał");
+                return segments;
+            }
 
             return ordered;
         }
@@ -1859,7 +2082,9 @@ namespace GEORGE.Client.Pages.Utils
         /// </summary>
         private static List<ContourSegment> NormalizeContourToCCW(List<ContourSegment> segments)
         {
-            if (segments == null || segments.Count < 2)
+            // ⭐ Dla konturów liniowych (≤ 2 segmenty) NIC nie rób.
+            //    Normalizacja orientacji nie ma sensu dla linii ani prostych łuków.
+            if (segments == null || segments.Count <= 2)
                 return segments;
 
             // 1. Sprawdź orientację konturu
@@ -1868,10 +2093,10 @@ namespace GEORGE.Client.Pages.Utils
             // 2. Jeśli nie jest CCW, odwróć cały kontur (ZACHOWUJĄC LICZBĘ SEGMENTÓW)
             if (!isCCW)
             {
-                segments.Reverse();  // Odwróć kolejność
+                segments.Reverse();
                 for (int i = 0; i < segments.Count; i++)
                 {
-                    segments[i] = ReverseSegment(segments[i]);  // Odwróć każdy segment
+                    segments[i] = ReverseSegment(segments[i]);
                 }
             }
 
@@ -1896,33 +2121,34 @@ namespace GEORGE.Client.Pages.Utils
                 }
             }
 
-            // ⭐⭐⭐ 6. SYCHRONIZACJA: Napraw połączenia między segmentami
-            for (int i = 0; i < segments.Count; i++)
+            // 6. Synchronizacja – napraw połączenia między segmentami.
+            //    Wykonujemy TYLKO dla konturów o ≥ 3 segmentach,
+            //    bo dla 1–2 segmentów "naprawa" może zepsuć kierunek.
+            if (segments.Count >= 3)
             {
-                var current = segments[i];
-                var next = segments[(i + 1) % segments.Count];
-
-                // Jeśli koniec bieżącego nie pasuje do początku następnego
-                if (Distance(current.End, next.Start) > 0.01)
+                for (int i = 0; i < segments.Count; i++)
                 {
-                    // Popraw koniec bieżącego segmentu
-                    if (current.Type == SegmentType.Arc && current.Center != null)
+                    var current = segments[i];
+                    var next = segments[(i + 1) % segments.Count];
+
+                    if (Distance(current.End, next.Start) > 0.01)
                     {
-                        // Dla łuku - utwórz nowy łuk z poprawionym końcem
-                        var correctedArc = new ContourSegment(
-                            current.Start,
-                            next.Start,  // Użyj początku następnego segmentu
-                            current.Center.Value,
-                            current.Radius,
-                            current.CounterClockwise
-                        );
-                        segments[i] = correctedArc;
-                    }
-                    else
-                    {
-                        // Dla linii - utwórz nową linię z poprawionym końcem
-                        var correctedLine = new ContourSegment(current.Start, next.Start);
-                        segments[i] = correctedLine;
+                        if (current.Type == SegmentType.Arc && current.Center != null)
+                        {
+                            var correctedArc = new ContourSegment(
+                                current.Start,
+                                next.Start,
+                                current.Center.Value,
+                                current.Radius,
+                                current.CounterClockwise
+                            );
+                            segments[i] = correctedArc;
+                        }
+                        else
+                        {
+                            var correctedLine = new ContourSegment(current.Start, next.Start);
+                            segments[i] = correctedLine;
+                        }
                     }
                 }
             }
@@ -2399,7 +2625,26 @@ namespace GEORGE.Client.Pages.Utils
             if (region?.Kontur == null || region.Kontur.Count == 0)
                 return false;
 
-            // 1. Znajdź punkty przecięcia linii z konturem regionu
+            // ⭐ Przypadek specjalny: region jest linią (2 wierzchołki)
+            if (region.Wierzcholki != null && region.Wierzcholki.Count == 2 &&
+                region.TypKsztaltu == "linia")
+            {
+                var p1 = region.Wierzcholki[0];
+                var p2 = region.Wierzcholki[1];
+
+                // Sprawdź, czy linia dzieląca przecina odcinek w środku
+                if (ObliczPrzeciecieOdcinkow(p1, p2, line, out var pt) &&
+                    CzyPunktWewnatrzOdcinka(pt, p1, p2))
+                {
+                    Console.WriteLine($"   ✅ CzyLiniaDzieliRegion: TAK (linia) " +
+                              $"przecięcie w ({pt.X:F1},{pt.Y:F1})");
+                    return true;
+                }
+
+                return false;
+            }
+
+            // Standardowy przypadek: kontur zamknięty
             var intersections = new List<XPoint>();
 
             foreach (var seg in region.Kontur)
@@ -2418,7 +2663,7 @@ namespace GEORGE.Client.Pages.Utils
                 }
             }
 
-            // Deduplikacja punktów przecięcia
+            // Deduplikacja
             var uniqueIntersections = new List<XPoint>();
             foreach (var p in intersections)
             {
@@ -2426,12 +2671,10 @@ namespace GEORGE.Client.Pages.Utils
                     uniqueIntersections.Add(p);
             }
 
-            // 2. Linia musi przecinać kontur w co najmniej 2 punktach
+            // Kontur zamknięty – potrzeba ≥ 2 punktów przecięcia
             if (uniqueIntersections.Count < 2)
                 return false;
 
-            // 3. KLUCZOWE: Sprawdź czy punkty przecięcia leżą WEWNĄTRZ odcinka linii dzielącej
-            //    (a nie poza jej końcami)
             var ptsOnLine = uniqueIntersections
                 .Where(p => CzyPunktNaOdcinkuLinii(p, line, eps))
                 .ToList();
@@ -2439,8 +2682,6 @@ namespace GEORGE.Client.Pages.Utils
             if (ptsOnLine.Count < 2)
                 return false;
 
-            // 4. Sprawdź czy środek linii leży wewnątrz regionu
-            //    (to eliminuje przypadek gdy linia tylko muska region z zewnątrz)
             var midLine = new XPoint(
                 (line.X1 + line.X2) / 2.0,
                 (line.Y1 + line.Y2) / 2.0
@@ -2449,14 +2690,6 @@ namespace GEORGE.Client.Pages.Utils
             if (!CzyPunktWewnatrzRegionu(midLine, region))
                 return false;
 
-            // 5. Sprawdź czy linia faktycznie dzieli region na 2 części
-            //    (punkty po obu stronach linii muszą istnieć)
-            var orderedPts = ptsOnLine
-                .OrderBy(p => Distance(p, new XPoint(line.X1, line.Y1)))
-                .ToList();
-
-            // Sprawdź środek między pierwszym a drugim punktem przecięcia
-            // czy leży po obu stronach - jeśli tak, linia dzieli
             return true;
         }
 
