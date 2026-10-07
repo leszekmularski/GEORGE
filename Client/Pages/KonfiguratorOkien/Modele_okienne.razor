@@ -1903,8 +1903,7 @@
     //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     private async Task GenerujObrysPozZmianieWymiarow(
     bool generujRegionyZPodzialu,
-    bool recznaZmiana,
-    bool przeliczObszarponownie = false)
+    bool recznaZmiana)
     {
         if (ShapeService == null || !ShapeService.Shapes.Any())
         {
@@ -1939,8 +1938,7 @@
             // 2. SKALOWANIE – ZAWSZE, względem aktualnego bboxa
             //    (nie ma sensu śledzić _staraSzerokoscPrzedZmiana)
             // ============================================================
-            if ((generujRegionyZPodzialu && constWlasciwosciOkna != null)
-                || przeliczObszarponownie)
+            if (generujRegionyZPodzialu && constWlasciwosciOkna != null)
             {
                 double nowaSzer = constWlasciwosciOkna.Szerokosc;
                 double nowaWys = constWlasciwosciOkna.Wysokosc;
@@ -2001,6 +1999,7 @@
                 // ============================================================
                 // 6. Generuj regiony z przeskalowanych shapes
                 // ============================================================
+
                 _regionsDualRama = await GeometryUtils.GenerujRegionyZPodzialu(
                     ShapeService.Shapes, nowaSzer, nowaWys, rama: true, stareStany: _generatorStates);
 
@@ -2801,7 +2800,7 @@
             _czekajNaZaladowanie = true;
 
             await zmienWymiaryOknaRef.ZapiszDoRodzica();  // → PrzyjmijZmiany
-            await ZmienWymiaryOkna(true, false);
+            await ZmienWymiaryOkna(strukturaZmieniona: false);
             await OnlyRestrykcje();
         }
         catch (Exception ex)
@@ -4268,7 +4267,7 @@
 
     private bool _zmienWymiaryWToku = false;
 
-    private async Task ZmienWymiaryOkna(bool regenerujShapeService = true, bool przeliczObszarponownie = false)
+    private async Task ZmienWymiaryOkna(bool strukturaZmieniona = true)
     {
         if (_zmienWymiaryWToku)
         {
@@ -4309,8 +4308,8 @@
 
             // 2. Wygeneruj obrys + regiony RAZ
 
-            await GenerujObrysPozZmianieWymiarow(true, true, przeliczObszarponownie);
-            Console.WriteLine($"🗺️ Regiony po zmianie wymiarów: dual={_regionsDualRama.Count}, skrzydło={_regionsSkrzydlo.Count} przeliczObszarponownie:{przeliczObszarponownie}");
+            await GenerujObrysPozZmianieWymiarow(true, true);
+            Console.WriteLine($"🗺️ Regiony po zmianie wymiarów: dual={_regionsDualRama.Count}, skrzydło={_regionsSkrzydlo.Count}");
 
             await Task.Yield();
 
@@ -4342,8 +4341,15 @@
                 string cleanId = genState.Value.IdRegion;
 
                 Console.WriteLine($"🔄 Przetwarzam region cleanId:{cleanId} typ: {genState.Value.WybranyModel.Typ?.Trim()}");
+                Console.WriteLine($"🔍 ZmienWymiary: cleanId={cleanId} " +
+                      $"Typ={genState.Value.WybranyModel?.Typ} " +
+                      $"ListaKwadratow.Count={genState.Value.ListaKwadratow?.Count ?? 0}");
 
                 var region = wszystkieRegiony.FirstOrDefault(r => r.Id == cleanId);
+                Console.WriteLine($"   region: {(region == null ? "NULL" : region.Id)} " +
+                                    $"Typ={region?.TypKsztaltu} " +
+                                    $"Wierzcholki={region?.Wierzcholki?.Count ?? 0}");
+
                 if (region == null)
                 {
                     await _message.Error($"❌ Nie znaleziono regionu dla {cleanId}. Sprawdź konfigurację regionów.");
@@ -4381,8 +4387,19 @@
                 generator.constWlasciwosciOkna = constWlasciwosciOkna;
 
                 // Wylicz nowe kwadraty
-                genState.Value.ListaKwadratow = await WyliczKwadratyPoZmianieAsync(region);
-                _generatorStates[cleanId].ListaKwadratow = genState.Value.ListaKwadratow;
+                // ⭐ Dla słupków stałych NIE regeneruj ListaKwadratow – użyj istniejących
+                bool toSlupekStaly = genState.Value.WybranyModel?.Typ?.Trim() == "Słupek stały";
+
+                if (!toSlupekStaly)
+                {
+                    genState.Value.ListaKwadratow = await WyliczKwadratyPoZmianieAsync(region);
+                    _generatorStates[cleanId].ListaKwadratow = genState.Value.ListaKwadratow;
+                }
+                else
+                {
+                    Console.WriteLine($"⏭️ Słupek stały {cleanId}: zachowuję istniejące ListaKwadratow " +
+                                      $"({genState.Value.ListaKwadratow?.Count ?? 0} wpisów)");
+                }
 
                 // -----------------------------------------------------
                 // Obsługa specjalna dla skrzydeł
@@ -4488,32 +4505,6 @@
                 // Dodaj elementy do generatora
                 // -----------------------------------------------------
                 var daneKwadratow = genState.Value.ListaKwadratow ?? new List<DaneKwadratu>();
-
-                if(daneKwadratow == null || !daneKwadratow.Any())
-                {
-                    //await _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu.");
-                    generator.Komunikaty.Add($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu.");
-                    continue;
-                }
-                if(_generatorStates == null)
-                {
-                    //await _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu. --_generatorStates -- NULL");
-                    generator.Komunikaty.Add($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu.");
-                    continue;
-                }
-
-                if(_regionsDualRama == null)
-                {
-                    //await _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu. --_regionsDualRama -- NULL");
-                    generator.Komunikaty.Add($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu.");
-                    continue;
-                }
-                if(wszystkieRegiony == null)
-                {
-                    //await _message.Error($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu. --wszystkieRegiony -- NULL");
-                    generator.Komunikaty.Add($"Nie można wygenerować elementów dla regionu {cleanId}. Brak danych kwadratów. Sprawdź wymiary i kształt regionu.");
-                    continue;
-                }
 
                 if (generator.CzyElementJestRama)
                 {
@@ -5206,118 +5197,71 @@
 
         generator.ElementLiniowy = SelectedModelType.Trim() == "Słupek stały";
 
-        ShapeRegion wybranyRegionDualRama = new ShapeRegion();
-
-        // ⭐ Wyciągnij prefiks z idRegion (obsługa formatów: "abc|0" i "abc|L0|C0")
-        string prefiksIdRegion = idRegion?.Split('|').FirstOrDefault() ?? "";
-
-        // ⭐ Wybierz właściwą kolekcję regionów
-        bool czyRama = SelectedModelType.Trim() == "Rama";
-        var regionsDoUzycia = czyRama ? _regionsDualRama : _regionsSkrzydlo;
-
-        Console.WriteLine($"🔍 UtworzStanGeneratora: SelectedModelType='{SelectedModelType}', " +
-                          $"idRegion='{idRegion}', prefiks='{prefiksIdRegion}', " +
-                          $"regionsDoUzycia={regionsDoUzycia.Count} (rama={czyRama})");
-
-        // ⭐ Dopasuj po prefiksie
-        wybranyRegionDualRama = regionsDoUzycia
-            .FirstOrDefault(r => r.Id != null && r.Id.StartsWith(prefiksIdRegion))
-            ?? new ShapeRegion();
-
-        Console.WriteLine($"   → znaleziony Typ='{wybranyRegionDualRama.TypKsztaltu}', " +
-                          $"Wierzcholki={wybranyRegionDualRama.Wierzcholki?.Count ?? 0}");
-
-        // ⭐ Specjalna obsługa dla ramy
-        if (czyRama)
+        // Rama — obsługa specjalna
+        if (SelectedModelType.Trim() == "Rama")
         {
+            var wybranyRegionDualRama = _regionsDualRama.FirstOrDefault(r => r.Id == idRegion);
+
             if (wybranyRegionDualRama?.Wierzcholki == null || wybranyRegionDualRama.Wierzcholki.Count < 3)
+                throw new InvalidOperationException("❌ Wybrany region nie zawiera wystarczającej liczby punktów!");
+
+            var regionPoints = wybranyRegionDualRama.Wierzcholki;
+
+            generator.IdRegionuPonizej = wybranyRegionDualRama.IdRegionuPonizej ?? idRegion;
+            linieDzielace = wybranyRegionDualRama.TypLiniiDzielacej ?? "Brak";
+            generator.Szerokosc = (float)(regionPoints.Max(p => p.X) - regionPoints.Min(p => p.X));
+            generator.Wysokosc = (float)(regionPoints.Max(p => p.Y) - regionPoints.Min(p => p.Y));
+            generator.Zindeks = 0;
+            generator.CzyElementJestRama = true;
+            generator.RuchomySlupekPoLewej = false;
+            generator.RuchomySlupekPoPrawej = false;
+
+            var ok = await generator.AddElements(
+                new List<ShapeRegion> { wybranyRegionDualRama },
+                idRegion, _generatorStates, _regionsDualRama, null, null,
+                _lastMouseClick, boolNieCzyscKonsole);
+
+            if (ok != "")
             {
-                Console.WriteLine($"⚠️ Region RAMY {idRegion} ma za mało wierzchołków: {wybranyRegionDualRama?.Wierzcholki?.Count ?? 0}");
+                _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Błąd: {ok}");
+                generator.BledySystemowe.Add($"❌ Nie można wygenerować elementów dla regionu {idRegion}. Błąd: {ok}");
+            }
+        }
+
+        // ⭐ Pobierz region, z którego powstał ten stan
+        var regionDoStanu = _regionsDualRama.FirstOrDefault(r => r.Id == idRegion)
+                         ?? _regionsSkrzydlo.FirstOrDefault(r => r.Id == idRegion);
+
+        // ⭐ Ustaw IdMaster i TypKsztaltu z regionu
+        generator.IdMaster = regionDoStanu?.IdMaster ?? idRegion;
+        generator.TypKsztaltu = regionDoStanu?.TypKsztaltu ?? "nieznany";
+
+        // ⭐ Ustaw TypKsztaltu – najpierw z regionu, potem fallback
+        string typKsztaltu = regionDoStanu?.TypKsztaltu;
+
+        if (string.IsNullOrEmpty(typKsztaltu) || typKsztaltu == "nieokreślony")
+        {
+            if (regionDoStanu?.Wierzcholki?.Count >= 2)
+            {
+                int count = regionDoStanu.Wierzcholki.Count;
+                typKsztaltu = count switch
+                {
+                    2 => "Linia",
+                    3 => "Trójkąt",
+                    4 => "Trapezoid",
+                    _ => "niestandardowy"
+                };
             }
             else
             {
-                var regionPoints = wybranyRegionDualRama.Wierzcholki;
-
-                generator.IdRegionuPonizej = wybranyRegionDualRama.IdRegionuPonizej ?? idRegion;
-                linieDzielace = wybranyRegionDualRama.TypLiniiDzielacej ?? "Brak";
-                generator.Szerokosc = (float)(regionPoints.Max(p => p.X) - regionPoints.Min(p => p.X));
-                generator.Wysokosc = (float)(regionPoints.Max(p => p.Y) - regionPoints.Min(p => p.Y));
-                generator.Zindeks = 0;
-                generator.CzyElementJestRama = true;
-                generator.RuchomySlupekPoLewej = false;
-                generator.RuchomySlupekPoPrawej = false;
-
-                var ok = await generator.AddElements(
-                    new List<ShapeRegion> { wybranyRegionDualRama },
-                    idRegion, _generatorStates, _regionsDualRama, null, null,
-                    _lastMouseClick, boolNieCzyscKonsole);
-
-                if (ok != "")
-                {
-                    _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Błąd: {ok}");
-                    generator.BledySystemowe.Add($"Nie można wygenerować elementów dla regionu {idRegion}. Błąd: {ok}");
-                }
+                typKsztaltu = SelectedModelType ?? "nieznany";
             }
         }
-        else
-        {
-            // ⭐ Skrzydło / Słupek stały / Słupek ruchomy
-            if (wybranyRegionDualRama?.Wierzcholki != null && wybranyRegionDualRama.Wierzcholki.Count >= 2)
-            {
-                var regionPoints = wybranyRegionDualRama.Wierzcholki;
-
-                generator.IdRegionuPonizej = wybranyRegionDualRama.IdRegionuPonizej ?? idRegion;
-                linieDzielace = wybranyRegionDualRama.TypLiniiDzielacej ?? "Brak";
-                generator.Szerokosc = (float)(regionPoints.Max(p => p.X) - regionPoints.Min(p => p.X));
-                generator.Wysokosc = (float)(regionPoints.Max(p => p.Y) - regionPoints.Min(p => p.Y));
-                generator.CzyElementJestRama = false;
-                generator.ElementLiniowy = SelectedModelType.Trim().Equals("Słupek stały", StringComparison.OrdinalIgnoreCase);
-
-                var ok = await generator.AddElements(
-                    new List<ShapeRegion> { wybranyRegionDualRama },
-                    idRegion, _generatorStates, _regionsSkrzydlo, null, null,
-                    _lastMouseClick, boolNieCzyscKonsole);
-
-                if (ok != "")
-                {
-                    _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Błąd: {ok}");
-                    generator.BledySystemowe.Add($"Nie można wygenerować elementów dla regionu {idRegion}. Błąd: {ok}");
-                }
-            }
-        }
-
-        // ⭐ Ustal TypKsztaltu (z regionu, a jeśli "nieokreślony" – rozpoznaj po wierzchołkach)
-        string typKsztaltu = wybranyRegionDualRama.TypKsztaltu;
-
-        if ((typKsztaltu == "nieokreślony" || string.IsNullOrEmpty(typKsztaltu)) &&
-            wybranyRegionDualRama.Wierzcholki?.Count >= 2)
-        {
-            int count = wybranyRegionDualRama.Wierzcholki.Count;
-            typKsztaltu = count switch
-            {
-                2 => "Linia",
-                3 => "Trójkąt",
-                4 => "Trapezoid",
-                _ => "niestandardowy"
-            };
-            Console.WriteLine($"🔧 Rozpoznano TypKsztaltu dla {idRegion}: '{typKsztaltu}' ({count} wierzchołków)");
-        }
-
-        // ⭐ Ustal Wierzcholki (z regionu, a jeśli puste – z generatora)
-        var wierzcholkiDoStanu = wybranyRegionDualRama.Wierzcholki?.Count >= 2
-            ? wybranyRegionDualRama.Wierzcholki.Select(p => new XPoint(p.X, p.Y)).ToList()
-            : generator.ElementyRamyRysowane
-                .SelectMany(k => k.Wierzcholki ?? new List<XPoint>())
-                .Distinct()
-                .ToList();
 
         var state = new GeneratorState
         {
-            IdMaster = wybranyRegionDualRama.IdMaster ?? prefiksIdRegion,
-            TypKsztaltu = typKsztaltu,
-            Rama = czyRama,
-            IdRegion = idRegion,
             Id = _generatorStates.Count + 1,
+            IdRegion = idRegion,
             ZIndeks = generator.Zindeks,
             RowIdSystemu = Guid.Parse(SelectedSystemId),
             RowIdModelu = Guid.TryParse(SelectedRowIdType, out var rowIdModelu) ? rowIdModelu : null,
@@ -5329,7 +5273,10 @@
             WybranyModel = WybranyModel,
             WybranyKsztalt = WybranyKsztalt,
             IdRegionWarstwaNizej = generator.IdRegionuPonizej,
-            Wierzcholki = wierzcholkiDoStanu,                    // ⭐ z regionu lub generatora
+            Wierzcholki = generator.ElementyRamyRysowane
+                .SelectMany(k => k.Wierzcholki ?? new List<XPoint>())
+                .Distinct()
+                .ToList(),
             WierzcholkiWartosciNominalne = WierzcholkiWartosciNominalne,
             WierzcholkiInner = generator.wewnetrznyKontur,
             LinieDzielace = linieDzielace,
@@ -5337,7 +5284,11 @@
             SlupekRuchomyPoPrawejStronie = stronaPrawa,
             ListaKwadratow = new List<DaneKwadratu>(),
             ElementLiniowy = generator.ElementLiniowy,
-            CzyElementJestRama = generator.CzyElementJestRama
+            CzyElementJestRama = generator.CzyElementJestRama,
+            IdMaster = regionDoStanu?.IdMaster ?? idRegion,
+            TypKsztaltu = typKsztaltu,       // ⭐ ustaw z regionu
+            Rama = generator.CzyElementJestRama,
+
         };
 
         await Task.CompletedTask;
@@ -5659,8 +5610,8 @@
 
             if (ok != "")
             {
-                _message.Error($"Nie można wygenerować elementów dla regionu {idRegion}. Błąd: {ok}");
-                generator.Komunikaty.Add($"❌ Nie można wygenerować elementów dla regionu {idRegion}.");
+                _message.Error($"Nie można wygenerować elementów dla regionu typ ObsluzSlupekStaly {idRegion}. Błąd: {ok}");
+                generator.Komunikaty.Add($"❌ Nie można wygenerować elementów dla regionu typ Słupek Staly {idRegion}.");
             }
         }
 
@@ -6456,34 +6407,60 @@
     /// na podstawie aktualnego regionu słupka (po zmianie wymiarów).
     /// </summary>
     private void AktualizujDaneKwadratuSlupka(
-        List<DaneKwadratu>? listaKwadratow,
-        ShapeRegion regionSlupka,
-        string cleanId)
+     List<DaneKwadratu>? listaKwadratow,
+     ShapeRegion regionSlupka,
+     string cleanId)
     {
         if (listaKwadratow == null || listaKwadratow.Count == 0) return;
         if (regionSlupka?.Wierzcholki == null || regionSlupka.Wierzcholki.Count < 2) return;
 
-        // ⭐ Nowe wierzchołki linii słupka — bierzemy tylko 2 (Start i End)
-        // (regionSlupka może mieć 4 wierzchołki jeśli to prostokąt słupka)
-        var nowaStala = new List<XPoint>
-    {
-        new XPoint(regionSlupka.Wierzcholki[0].X, regionSlupka.Wierzcholki[0].Y),
-        new XPoint(regionSlupka.Wierzcholki[^1].X, regionSlupka.Wierzcholki[^1].Y)
-    };
+        // ⭐ Wyznacz linię słupka:
+        //   - dla 2 wierzchołków: to jest linia (A→B)
+        //   - dla 4 wierzchołków (prostokąt): to jest oś (środek między krótszymi bokami)
+        XPoint a, b;
 
-        Console.WriteLine($"🔧 AktualizujDaneKwadratuSlupka dla {cleanId}:");
-        Console.WriteLine($"   Nowa linia stała: ({nowaStala[0].X}, {nowaStala[0].Y}) → ({nowaStala[1].X}, {nowaStala[1].Y})");
+        if (regionSlupka.Wierzcholki.Count == 2)
+        {
+            a = regionSlupka.Wierzcholki[0];
+            b = regionSlupka.Wierzcholki[1];
+        }
+        else
+        {
+            // Dla prostokąta – oś pionowa lub pozioma
+            double minX = regionSlupka.Wierzcholki.Min(p => p.X);
+            double maxX = regionSlupka.Wierzcholki.Max(p => p.X);
+            double minY = regionSlupka.Wierzcholki.Min(p => p.Y);
+            double maxY = regionSlupka.Wierzcholki.Max(p => p.Y);
+
+            double width = maxX - minX;
+            double height = maxY - minY;
+
+            if (height > width)
+            {
+                // Pionowa oś – X = środek, Y od min do max
+                double midX = (minX + maxX) / 2;
+                a = new XPoint(midX, minY);
+                b = new XPoint(midX, maxY);
+            }
+            else
+            {
+                // Pozioma oś – Y = środek, X od min do max
+                double midY = (minY + maxY) / 2;
+                a = new XPoint(minX, midY);
+                b = new XPoint(maxX, midY);
+            }
+        }
+
+        var nowaStala = new List<XPoint> { new(a.X, a.Y), new(b.X, b.Y) };
+
+        Console.WriteLine($"🔧 AktualizujDaneKwadratuSlupka {cleanId}: " +
+                          $"LiniaStala ({a.X:F1},{a.Y:F1}) → ({b.X:F1},{b.Y:F1})");
 
         foreach (var dk in listaKwadratow)
         {
-            // ⭐ Interesują nas tylko elementy liniowe (słupek)
             if (!dk.BoolElementLinia) continue;
-
-            // Zachowaj istniejące przesunięcia (Przesuniecia) — są niezależne od pozycji
             dk.LiniaStala = nowaStala;
             dk.Wierzcholki = new List<XPoint>(nowaStala);
-
-            Console.WriteLine($"   ✅ Zaktualizowano DaneKwadratu: RowIdElementu={dk.RowIdElementu}");
         }
     }
 

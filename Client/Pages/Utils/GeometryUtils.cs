@@ -467,7 +467,7 @@ namespace GEORGE.Client.Pages.Utils
 
                     var podzielone = await PodzielRegionRekurencyjnie(initial, linieDzielace, id, rama);
 
-                    // Console.WriteLine($"🔲 Generowanie regionów PodzielRegionRekurencyjnie podzielone.Count: {podzielone.Count} id:{id}");
+                    Console.WriteLine($"🔲 Generowanie regionów PodzielRegionRekurencyjnie podzielone.Count: {podzielone.Count} id:{id}");
 
                     int idCounter = 0;
 
@@ -1201,7 +1201,11 @@ namespace GEORGE.Client.Pages.Utils
 
         private static void PoprawNumeracjeRegionow(List<ShapeRegion> regions)
         {
+  
             if (regions == null || regions.Count == 0)
+                return;
+
+            if (regions.FirstOrDefault(x => x.TypKsztaltu.ToLower() == "linia") != null)
                 return;
 
             // Numeracja od 0
@@ -2625,19 +2629,28 @@ namespace GEORGE.Client.Pages.Utils
             if (region?.Kontur == null || region.Kontur.Count == 0)
                 return false;
 
-            // ⭐ Przypadek specjalny: region jest linią (2 wierzchołki)
-            if (region.Wierzcholki != null && region.Wierzcholki.Count == 2 &&
-                region.TypKsztaltu == "linia")
+            // ⭐ Skaluj eps do rozmiaru regionu
+            if (region.Wierzcholki != null && region.Wierzcholki.Count > 0)
+            {
+                double minX = region.Wierzcholki.Min(p => p.X);
+                double maxX = region.Wierzcholki.Max(p => p.X);
+                double minY = region.Wierzcholki.Min(p => p.Y);
+                double maxY = region.Wierzcholki.Max(p => p.Y);
+                double rozmiar = Math.Max(maxX - minX, maxY - minY);
+                eps = Math.Max(eps, rozmiar * 0.005);
+            }
+
+            // ⭐ Przypadek specjalny: region jest linią (2 wierzchołki) – niezależnie od TypKsztaltu
+            if (region.Wierzcholki != null && region.Wierzcholki.Count == 2)
             {
                 var p1 = region.Wierzcholki[0];
                 var p2 = region.Wierzcholki[1];
 
-                // Sprawdź, czy linia dzieląca przecina odcinek w środku
                 if (ObliczPrzeciecieOdcinkow(p1, p2, line, out var pt) &&
                     CzyPunktWewnatrzOdcinka(pt, p1, p2))
                 {
                     Console.WriteLine($"   ✅ CzyLiniaDzieliRegion: TAK (linia) " +
-                              $"przecięcie w ({pt.X:F1},{pt.Y:F1})");
+                                      $"przecięcie w ({pt.X:F1},{pt.Y:F1})");
                     return true;
                 }
 
@@ -2671,25 +2684,43 @@ namespace GEORGE.Client.Pages.Utils
                     uniqueIntersections.Add(p);
             }
 
-            // Kontur zamknięty – potrzeba ≥ 2 punktów przecięcia
             if (uniqueIntersections.Count < 2)
+            {
+                Console.WriteLine($"   ❌ CzyLiniaDzieliRegion: region {region.Id} – " +
+                                  $"{uniqueIntersections.Count} przecięć (<2) – FALSE");
                 return false;
+            }
 
             var ptsOnLine = uniqueIntersections
                 .Where(p => CzyPunktNaOdcinkuLinii(p, line, eps))
                 .ToList();
 
             if (ptsOnLine.Count < 2)
+            {
+                Console.WriteLine($"   ❌ CzyLiniaDzieliRegion: region {region.Id} – " +
+                                  $"{ptsOnLine.Count} punktów na odcinku linii (<2) – FALSE");
                 return false;
+            }
 
-            var midLine = new XPoint(
-                (line.X1 + line.X2) / 2.0,
-                (line.Y1 + line.Y2) / 2.0
-            );
+            // ⭐ Sprawdź kilka punktów wzdłuż linii – jeśli którykolwiek jest wewnątrz, linia dzieli
+            var punktyTestowe = new List<XPoint>
+            {
+                new XPoint(line.X1 + (line.X2 - line.X1) * 0.25, line.Y1 + (line.Y2 - line.Y1) * 0.25),
+                new XPoint(line.X1 + (line.X2 - line.X1) * 0.5,  line.Y1 + (line.Y2 - line.Y1) * 0.5),
+                new XPoint(line.X1 + (line.X2 - line.X1) * 0.75, line.Y1 + (line.Y2 - line.Y1) * 0.75),
+            };
 
-            if (!CzyPunktWewnatrzRegionu(midLine, region))
+            bool jakikolwiekWewnatrz = punktyTestowe.Any(p => CzyPunktWewnatrzRegionu(p, region));
+
+            if (!jakikolwiekWewnatrz)
+            {
+                Console.WriteLine($"   ❌ CzyLiniaDzieliRegion: region {region.Id} – " +
+                                  $"żaden z 3 punktów testowych nie jest wewnątrz – FALSE");
                 return false;
+            }
 
+            Console.WriteLine($"   ✅ CzyLiniaDzieliRegion: region {region.Id} – TRUE " +
+                              $"({uniqueIntersections.Count} przecięć, {ptsOnLine.Count} na odcinku)");
             return true;
         }
 

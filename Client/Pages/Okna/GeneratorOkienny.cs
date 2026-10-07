@@ -148,6 +148,13 @@ namespace GEORGE.Client.Pages.Okna
 
             Region = regionAdd;
 
+            Console.WriteLine($"🔍 AddElements: szukam regionu '{regionId}'");
+            Console.WriteLine($"   regions: {regions.Count}");
+            foreach (var r in regions.Take(20))
+            {
+                Console.WriteLine($"      Id='{r.Id}' Typ={r.TypKsztaltu} Rama={r.Rama}");
+            }
+
             var region = regions.FirstOrDefault(r => r.Id == regionId);
 
             List<XPoint> punkty = new List<XPoint>();
@@ -447,6 +454,7 @@ namespace GEORGE.Client.Pages.Okna
                 else
                 {
                     BledySystemowe.Add($"❌ Brak konfiguracji przesunięcia dla elementu liniowego.");
+                    Console.WriteLine($"❌ Brak konfiguracji przesunięcia dla elementu liniowego [AddElemnts]. konfPolaczenia.Count = {konfPolaczenia.Count}");
                 }
 
                 wewnetrznyKontur = przeskalowanePunkty;
@@ -585,7 +593,7 @@ namespace GEORGE.Client.Pages.Okna
             string? oryginalnyRegionId = null)
         {
             await Task.Yield();
-            await Task.Delay(10);
+            await Task.Delay(2);
 
             // 1. Walidacja + przygotowanie outer/inner
             var walidacja = WalidujIWstepniePrzygotuj(
@@ -662,6 +670,7 @@ namespace GEORGE.Client.Pages.Okna
                 if (!wynik.Ok)
                 {
                     if (wynik.Blad != null) BledySystemowe.Add(wynik.Blad);
+                    Console.WriteLine($"❌ Błąd w WyznaczWierzcholkiDlaBoku dla regionu {regionId}: {wynik.Blad}");
                     continue;
                 }
 

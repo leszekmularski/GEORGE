@@ -680,6 +680,16 @@ else
 
         // ⭐ Zbierz granice: 0, linie poziome, wysokosc
         var granice = new List<double> { 0 };
+        // ⭐ Usuń duplikaty z tolerancją
+        granice = granice
+            .OrderBy(y => y)
+            .Aggregate(new List<double>(), (acc, y) =>
+            {
+                if (acc.Count == 0 || Math.Abs(acc.Last() - y) > 0.5)
+                    acc.Add(y);
+                return acc;
+            });
+
         granice.AddRange(liniePoziomeY);
         granice.Add(wysokosc);
         granice = granice.Distinct().OrderBy(y => y).ToList();
@@ -720,6 +730,13 @@ else
                     // Więcej punktów niż przedziałów – ostatni przedział
                     yStart = granice[granice.Count - 2];
                     yEnd = granice[granice.Count - 1];
+                }
+
+                // ⭐ Zabezpieczenie przed zerową długością
+                if (Math.Abs(yEnd - yStart) < 0.5)
+                {
+                    Console.WriteLine($"⚠️ NaprawZdegenerowaneLinie: przedział zerowy dla punktu Y={line.Y1:F0}. Pomijam.");
+                    continue;
                 }
 
                 line.X2 = line.X1;
