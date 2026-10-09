@@ -66,16 +66,16 @@ namespace GEORGE.Server.Controllers
             }
         }
 
-        [HttpPost("save-all/{kasujPrzedZapisem}")]
-        public async Task<ActionResult> SaveAll(List<ElemetZamDoZlecen> kantowki, bool kasujPrzedZapisem)
+        [HttpPost("saveAll/{kasujPrzedZapisem}")]
+        public async Task<ActionResult> SaveAll(List<ElemetZamDoZlecen> elemnty, bool kasujPrzedZapisem)
         {
             try
             {
                 // Sprawdź, czy są jakieś rekordy do usunięcia
                 var rowIdZleceniaPattern = "ABCD---"; // Przykładowy wzorzec
-                if(kantowki.Count > 0)
+                if(elemnty.Count > 0)
                 {
-                    rowIdZleceniaPattern = kantowki[0].RowIdZlecenia;
+                    rowIdZleceniaPattern = elemnty[0].RowIdZlecenia;
                 }
                 var recordsToDelete = await _context.ElemetZamDoZlecen
                     .Where(k => k.RowIdZlecenia == rowIdZleceniaPattern)
@@ -85,7 +85,7 @@ namespace GEORGE.Server.Controllers
                 if(kasujPrzedZapisem) _context.ElemetZamDoZlecen.RemoveRange(recordsToDelete);
 
                 // Dodaj nowe rekordy
-                _context.ElemetZamDoZlecen.AddRange(kantowki);
+                _context.ElemetZamDoZlecen.AddRange(elemnty);
 
                 // Zapisz zmiany w bazie danych
                 await _context.SaveChangesAsync();
@@ -99,6 +99,96 @@ namespace GEORGE.Server.Controllers
             }
         }
 
+        [HttpPost("saveAllWithProducent/{kasujPrzedZapisem}")]
+        public async Task<ActionResult> SaveAllWithProducent(List<ElemetZamDoZlecenWithProducent> elemnty, bool kasujPrzedZapisem)
+        {
+            try
+            {
+                if (elemnty == null || elemnty.Count == 0)
+                {
+                    return BadRequest("Brak danych do zapisania.");
+                }
+
+                // ---------------------------------------------------------
+                // Pobieramy właściwe rekordy ElemetZamDoZlecen
+                // ---------------------------------------------------------
+
+                var elementyDoZapisu = elemnty
+                    .Where(x => x.ElemetZamDoZlecen != null)
+                    .Select(x => x.ElemetZamDoZlecen!)
+                    .ToList();
+
+                if (elementyDoZapisu.Count == 0)
+                {
+                    return BadRequest(
+                        "Brak prawidłowych elementów ElemetZamDoZlecen.");
+                }
+
+
+                // ---------------------------------------------------------
+                // RowId zlecenia pobieramy z właściwego obiektu
+                // ---------------------------------------------------------
+
+                var rowIdZlecenia =
+                    elementyDoZapisu[0].RowIdZlecenia;
+
+                if (string.IsNullOrEmpty(rowIdZlecenia))
+                {
+                    return BadRequest(
+                        "Brak RowIdZlecenia w danych do zapisania.");
+                }
+
+
+                // ---------------------------------------------------------
+                // Pobieramy istniejące rekordy dla zlecenia
+                // ---------------------------------------------------------
+
+                var recordsToDelete =
+                    await _context.ElemetZamDoZlecen
+                        .Where(k =>
+                            k.RowIdZlecenia == rowIdZlecenia)
+                        .ToListAsync();
+
+
+                // ---------------------------------------------------------
+                // Kasowanie poprzednich danych
+                // ---------------------------------------------------------
+
+                if (kasujPrzedZapisem)
+                {
+                    _context.ElemetZamDoZlecen.RemoveRange(
+                        recordsToDelete);
+                }
+
+
+                // ---------------------------------------------------------
+                // Dodajemy nowe rekordy
+                // ---------------------------------------------------------
+
+                _context.ElemetZamDoZlecen.AddRange(
+                    elementyDoZapisu);
+
+
+                // ---------------------------------------------------------
+                // Zapis do bazy
+                // ---------------------------------------------------------
+
+                await _context.SaveChangesAsync();
+
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Błąd podczas zapisywania ElemetZamDoZlecenWithProducent.");
+
+                return StatusCode(
+                    500,
+                    "Wystąpił błąd podczas przetwarzania żądania.");
+            }
+        }
 
         [HttpPut("{id}")]
         public async Task<ActionResult> UpdateElementyDoZleceneAsync(long id, ElemetZamDoZlecen pozEl)

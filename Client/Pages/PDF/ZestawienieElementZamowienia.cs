@@ -20,20 +20,21 @@ namespace GEORGE.Client.Pages.PDF
         public string? Lp { get; set; }
         public string? RowIdZlecenia { get; set; }
         public string? RowIdProducent { get; set; }
-        public string? Szerokosc { get; set; }
-        public string? Wysokosc { get; set; }
-        public string? Dlugosc { get; set; }
-        public string? Waga { get; set; }
-        public string? Powierzchnia { get; set; }
-        public string? Objetosc { get; set; }
-        public string? CenaNetto { get; set; }
-        public string? Typ { get; set; }
-        public string? NumerKatalogowy { get; set; }
-        public string? NazwaProduktu { get; set; }
-        public string? Opis { get; set; }
-        public string? Kolor { get; set; }
+        public string? Szerokosc { get; set; } = "0";
+        public string? Wysokosc { get; set; } = "0";
+        public string? Dlugosc { get; set; } = "0";
+        public string? Waga { get; set; } = "0";
+        public string? Powierzchnia { get; set; } = "0";
+        public string? Objetosc { get; set; } = "0";
+        public string? CenaNetto { get; set; } = "0";
+        public string? Waluta { get; set; } = "";
+        public string? Typ { get; set; } = "";
+        public string? NumerKatalogowy { get; set; } = "";
+        public string? NazwaProduktu { get; set; } = "";
+        public string? Opis { get; set; } = "";
+        public string? Kolor { get; set; } = "";
         public string IloscSztuk { get; set; } = "0";
-        public string? Uwagi { get; set; }
+        public string? Uwagi { get; set; } = "";
         public DateTime DataZamowienia { get; set; } = DateTime.Now;
         public DateTime DataRealizacji { get; set; } = DateTime.Now.AddDays(14);
         public DateTime DataZapisu { get; set; } = DateTime.Now;
@@ -42,6 +43,7 @@ namespace GEORGE.Client.Pages.PDF
         public bool CzyZamowiono { get; set; } = false;
         public bool PozDostarczono { get; set; } = false;
         public DateTime DataDostarczenia { get; set; } = DateTime.MinValue;
+        public string JednostakaMiary { get; set; } = "szt.";
     }
 
     public class PdfDataParserElementy

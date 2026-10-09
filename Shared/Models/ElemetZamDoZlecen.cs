@@ -16,6 +16,7 @@ namespace GEORGE.Shared.Models
         public decimal? Powierzchnia { get; set; } = 0;
         public decimal? Objetosc { get; set; } = 0;
         public decimal? CenaNetto { get; set; } = 0;
+        public string? Waluta { get; set; } = "";
         public string? Jednostka { get; set; } = "";
         public string? Typ { get; set; } = "";
         public string? NumerKatalogowy { get; set; } = "";

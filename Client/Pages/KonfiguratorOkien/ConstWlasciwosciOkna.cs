@@ -146,36 +146,176 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 return false;
 
             bool jestZmiana = false;
-
             var prop = EditableProperties[index];
-            {
-                prop.Value = value; // Wywołuje setter -> SetValue(value)
 
-                if (prop.Label.ToLower().StartsWith("szerokość") && prop.gabarytOkna)
-                {
-                    jestZmiana = Szerokosc != value;
-                    Szerokosc = value;
-                }
-                else if (prop.Label.ToLower().StartsWith("wysokość") && prop.gabarytOkna)
-                {
-                    jestZmiana = Wysokosc != value;   // ⭐ DODANE
-                    Wysokosc = value;
-                }
-                else if (prop.Label.ToLower().StartsWith("promień okna") && prop.gabarytOkna)
-                {
-                    Wysokosc = value * 2;
-                    Szerokosc = value * 2;
-                    jestZmiana = true;                 // ⭐ też zwracamy true
-                }
-                else if (prop.Label.ToLower().StartsWith("wymiar okna kwadratowego") && prop.gabarytOkna)
-                {
-                    Wysokosc = value;
-                    Szerokosc = value;
-                    jestZmiana = true;                 // ⭐ też zwracamy true
-                }
+            // ⭐ Zapamiętaj starą wartość
+            double staraWartosc = prop.Value;
+
+            prop.Value = value;
+
+            // ⭐ Propaguj ruch linii (X1/X2/Y1/Y2) na inne linie
+            if (Math.Abs(staraWartosc - value) > 0.01
+                && !prop.gabarytOkna
+                && prop.ShapeId != null)
+            {
+                PropagujRuchLinii(prop, staraWartosc, value);
+            }
+
+            // ─── Reszta (szerokość, wysokość itd.) ───
+            if (prop.Label.ToLower().StartsWith("szerokość") && prop.gabarytOkna)
+            {
+                jestZmiana = Szerokosc != value;
+                Szerokosc = value;
+            }
+            else if (prop.Label.ToLower().StartsWith("wysokość") && prop.gabarytOkna)
+            {
+                jestZmiana = Wysokosc != value;
+                Wysokosc = value;
+            }
+            else if (prop.Label.ToLower().StartsWith("promień okna") && prop.gabarytOkna)
+            {
+                Wysokosc = value * 2;
+                Szerokosc = value * 2;
+                jestZmiana = true;
+            }
+            else if (prop.Label.ToLower().StartsWith("wymiar okna kwadratowego") && prop.gabarytOkna)
+            {
+                Wysokosc = value;
+                Szerokosc = value;
+                jestZmiana = true;
             }
 
             return jestZmiana;
+        }
+
+        /// <summary>
+        /// Po zmianie właściwości linii (X1, X2, Y1, Y2) – przesuwa końce innych linii,
+        /// które miały koniec w starym punkcie.
+        /// </summary>
+        /// <summary>
+        /// Po edycji X1/X2/Y1/Y2 linii – przesuwa końce innych linii, które leżały
+        /// NA starej pozycji edytowanej linii (na jej osi i w zakresie).
+        /// </summary>
+        private void PropagujRuchLinii(
+        EditableProperty zmienionaProp,
+        double staraWartosc,
+        double nowaWartosc,
+        double tolerancja = 1.0)
+        {
+            var label = zmienionaProp.Label?.ToLower() ?? "";
+
+            bool toX1 = label.StartsWith("x1") || label.Contains("w osi x1");
+            bool toX2 = label.StartsWith("x2") || label.Contains("w osi x2");
+            bool toY1 = label.StartsWith("y1") || label.Contains("w osi y1");
+            bool toY2 = label.StartsWith("y2") || label.Contains("w osi y2");
+
+            if (!toX1 && !toX2 && !toY1 && !toY2) return;
+
+            bool liniaPozioma = (toY1 || toY2);
+            bool liniaPionowa = (toX1 || toX2);
+
+            double staraOs = staraWartosc;
+            double nowaOs = nowaWartosc;
+            double minZakres, maxZakres;
+
+            if (liniaPozioma)
+            {
+                var x1Prop = EditableProperties.FirstOrDefault(p =>
+                    p.ShapeId == zmienionaProp.ShapeId && (p.Label?.ToLower().StartsWith("x1") == true));
+                var x2Prop = EditableProperties.FirstOrDefault(p =>
+                    p.ShapeId == zmienionaProp.ShapeId && (p.Label?.ToLower().StartsWith("x2") == true));
+
+                double lineX1 = x1Prop?.Value ?? 0;
+                double lineX2 = x2Prop?.Value ?? 0;
+                minZakres = Math.Min(lineX1, lineX2) - tolerancja;
+                maxZakres = Math.Max(lineX1, lineX2) + tolerancja;
+            }
+            else
+            {
+                var y1Prop = EditableProperties.FirstOrDefault(p =>
+                    p.ShapeId == zmienionaProp.ShapeId && (p.Label?.ToLower().StartsWith("y1") == true));
+                var y2Prop = EditableProperties.FirstOrDefault(p =>
+                    p.ShapeId == zmienionaProp.ShapeId && (p.Label?.ToLower().StartsWith("y2") == true));
+
+                double lineY1 = y1Prop?.Value ?? 0;
+                double lineY2 = y2Prop?.Value ?? 0;
+                minZakres = Math.Min(lineY1, lineY2) - tolerancja;
+                maxZakres = Math.Max(lineY1, lineY2) + tolerancja;
+            }
+
+            Console.WriteLine(
+                $"🔗 PropagujRuchLinii: '{(liniaPozioma ? "POZIOMA" : "PIONOWA")}' " +
+                $"os: {staraOs:F1} → {nowaOs:F1}, zakres: [{minZakres:F1}..{maxZakres:F1}]");
+
+            int propagowane = 0;
+
+            for (int i = 0; i < EditableProperties.Count; i++)
+            {
+                var other = EditableProperties[i];
+                if (other.ShapeId == zmienionaProp.ShapeId) continue;
+                if (other.gabarytOkna) continue;
+                if (string.IsNullOrEmpty(other.NazwaObiektu) ||
+                    !other.NazwaObiektu.ToLower().Contains("linia"))
+                    continue;
+
+                var otherLabel = other.Label?.ToLower() ?? "";
+                bool otherIsX1 = otherLabel.StartsWith("x1") || otherLabel.Contains("w osi x1");
+                bool otherIsX2 = otherLabel.StartsWith("x2") || otherLabel.Contains("w osi x2");
+                bool otherIsY1 = otherLabel.StartsWith("y1") || otherLabel.Contains("w osi y1");
+                bool otherIsY2 = otherLabel.StartsWith("y2") || otherLabel.Contains("w osi y2");
+
+                if (!otherIsX1 && !otherIsX2 && !otherIsY1 && !otherIsY2) continue;
+
+                // Znajdź parę (drugą współrzędną)
+                string otherSzukany = otherIsX1 ? "y1" : otherIsX2 ? "y2" : otherIsY1 ? "x1" : "x2";
+
+                var otherPara = EditableProperties.FirstOrDefault(p =>
+                    p.ShapeId == other.ShapeId &&
+                    (p.Label?.ToLower().StartsWith(otherSzukany) == true ||
+                     p.Label?.ToLower().Contains($"w osi {otherSzukany}") == true));
+
+                if (otherPara == null) continue;
+
+                double ptX = (otherIsX1 || otherIsX2) ? other.Value : otherPara.Value;
+                double ptY = (otherIsY1 || otherIsY2) ? other.Value : otherPara.Value;
+
+                if (liniaPozioma)
+                {
+                    if (Math.Abs(ptY - staraOs) < tolerancja &&
+                        ptX >= minZakres && ptX <= maxZakres)
+                    {
+                        if (otherIsY1 || otherIsY2)
+                        {
+                            // ⭐ KLUCZOWA POPRAWKA: SetValue zamiast Value
+                            other.SetValue(nowaOs);
+                            propagowane++;
+
+                            Console.WriteLine(
+                                $"   ✅ Y: '{other.Label}' ({other.ShapeId?.Substring(0, 8)}) " +
+                                $"({ptX:F1},{ptY:F1}) → Y={nowaOs:F1}");
+                        }
+                    }
+                }
+                else
+                {
+                    if (Math.Abs(ptX - staraOs) < tolerancja &&
+                        ptY >= minZakres && ptY <= maxZakres)
+                    {
+                        if (otherIsX1 || otherIsX2)
+                        {
+                            // ⭐ SetValue zamiast Value
+                            other.SetValue(nowaOs);
+                            propagowane++;
+
+                            Console.WriteLine(
+                                $"   ✅ X: '{other.Label}' ({other.ShapeId?.Substring(0, 8)}) " +
+                                $"({ptX:F1},{ptY:F1}) → X={nowaOs:F1}");
+                        }
+                    }
+                }
+            }
+
+            Console.WriteLine($"   🔗 propagowano {propagowane} właściwości");
         }
 
         /// <summary>

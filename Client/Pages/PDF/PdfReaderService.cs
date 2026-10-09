@@ -1,12 +1,7 @@
-﻿using netDxf;
-using System.Reflection.PortableExecutable;
-using System.Text;
-using System;
-using System.IO;
-using iText.Kernel.Pdf;
+﻿using iText.Kernel.Pdf;
 using iText.Kernel.Pdf.Canvas.Parser;
 using iText.Kernel.Pdf.Canvas.Parser.Listener;
-using iText.Kernel.Geom;
+using System.Text;
 public class PdfReaderService
 {
     public string ReadPdfTable(string filePath)

@@ -136,9 +136,15 @@ else
                 <AntDesign.FormItem Label="Objętość">
                     <AntDesign.InputNumber @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Objetosc" />
                 </AntDesign.FormItem>
-                <AntDesign.FormItem Label="Cena Netto">
-                    <AntDesign.InputNumber @bind-Value="elementyZamowienia.ElemetZamDoZlecen.CenaNetto" />
-                </AntDesign.FormItem>
+                <div style="display: flex;">
+                    <AntDesign.FormItem Label="Cena Netto">
+                        <AntDesign.InputNumber @bind-Value="elementyZamowienia.ElemetZamDoZlecen.CenaNetto" />
+                    </AntDesign.FormItem>
+                    <AntDesign.FormItem Label="Waluta" Style="padding-left:15px">
+                        <AntDesign.Input @bind-Value="elementyZamowienia.ElemetZamDoZlecen.Waluta" />
+                    </AntDesign.FormItem>
+                </div>
+
             </TabPane>
 
             <TabPane Key="3" Tab="Wylicz wkładkę">

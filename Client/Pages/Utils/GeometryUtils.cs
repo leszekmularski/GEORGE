@@ -1953,11 +1953,30 @@ namespace GEORGE.Client.Pages.Utils
         /// </summary>
         private static void FixAndSynchronizeContour(ShapeRegion region)
         {
-
             if (region == null || region.Kontur == null || region.Kontur.Count == 0)
                 return;
 
-            // 1. Najpierw napraw połączenia między segmentami
+            // ⭐ Dla konturów 1-2 segmentów NIE naprawiaj połączeń.
+            //    Dla 1 segmentu next == current, więc Distance(current.End, next.Start)
+            //    zawsze > 0.01 (dla niezerowej linii) → tworzy zerowy segment.
+            if (region.Kontur.Count <= 2)
+            {
+                // Punkty to początki segmentów
+                var punkty = region.Kontur.Select(s => s.Start).ToList();
+                region.Wierzcholki = punkty;
+
+                Console.WriteLine($"🔧 FixAndSynchronizeContour: region {region.Id} ma {region.Kontur.Count} segmentów – pomijam naprawę połączeń");
+
+                if (region.Kontur.Count > 0)
+                {
+                    var seg = region.Kontur[0];
+                    Console.WriteLine($"   Segment: ({seg.Start.X:F1},{seg.Start.Y:F1}) → ({seg.End.X:F1},{seg.End.Y:F1})");
+                }
+
+                return;
+            }
+
+            // ⭐ Dla ≥ 3 segmentów – napraw połączenia (prawdziwa naprawa konturu)
             for (int i = 0; i < region.Kontur.Count; i++)
             {
                 var current = region.Kontur[i];
@@ -1965,7 +1984,6 @@ namespace GEORGE.Client.Pages.Utils
 
                 if (Distance(current.End, next.Start) > 0.01)
                 {
-                    // Popraw koniec bieżącego segmentu
                     if (current.Type == SegmentType.Arc && current.Center != null)
                     {
                         var corrected = new ContourSegment(
@@ -1985,7 +2003,7 @@ namespace GEORGE.Client.Pages.Utils
                 }
             }
 
-            // 2. Zbuduj PUNKTY z początków segmentów (to jest kluczowe!)
+            // Zbuduj PUNKTY z początków segmentów
             var newPoints = new List<XPoint>();
             foreach (var seg in region.Kontur)
             {
@@ -1994,13 +2012,11 @@ namespace GEORGE.Client.Pages.Utils
 
             region.Wierzcholki = newPoints;
 
-            // 3. Sprawdź czy liczba punktów zgadza się z liczbą segmentów
             if (region.Wierzcholki.Count != region.Kontur.Count)
             {
-                Console.WriteLine($"⚠️ Naprawiono: punkty({region.Wierzcholki.Count}) == segmenty({region.Kontur.Count})");
+                Console.WriteLine($"⚠️ Naprawiono: punkty({region.Wierzcholki.Count}) != segmenty({region.Kontur.Count})");
             }
         }
-
 
         private static List<ContourSegment> OrderSegmentsForClosedContour(List<ContourSegment> segments)
         {

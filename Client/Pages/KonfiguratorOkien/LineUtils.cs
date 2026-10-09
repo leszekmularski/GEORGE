@@ -102,6 +102,30 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
             foreach (var lineGroup in GroupRelatedLines(lines))
             {
+                // ⭐ Grupa NIEKOLINIOWA – użytkownik zmienił położenie jednej linii w grupie.
+                //    Nie traktuj grupy jako całości – rozciągnij każdą linię OSOBNO.
+                if (lineGroup.Count > 1 && !CzyGrupaJestKoliniowa(lineGroup))
+                {
+                    Console.WriteLine($"⚠️ ExtendLinesToShapes: grupa {lineGroup.First().SplitGroupId} NIEKOLINIOWA " +
+                                      $"(użytkownik zmienił położenie) – traktuję każdą linię osobno");
+
+                    foreach (var line in lineGroup)
+                    {
+                        Console.WriteLine($"   Line {line.ID?.Substring(0, 8)}: " +
+                                          $"({line.X1:F1},{line.Y1:F1}) → ({line.X2:F1},{line.Y2:F1})");
+
+                        foreach (var shape in closedShapes)
+                        {
+                            var bbox = shape.GetBoundingBox();
+                            var extended = await ExtendLineToBoundingBox(line, bbox, scaleFactor);
+                            SetLineEndpoints(line, extended.X1, extended.Y1, extended.X2, extended.Y2);
+                        }
+                    }
+
+                    continue;
+                }
+
+                // Grupa koliniowa – traktuj jako jedną podzieloną linię
                 foreach (var shape in closedShapes)
                 {
                     var bbox = shape.GetBoundingBox();
@@ -114,9 +138,6 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                     }
                     else
                     {
-                        // Segmenty jednej podzielonej linii mają wspólną obwiednię.
-                        // Wydłużamy tylko jej końce zewnętrzne, bez nadpisywania
-                        // punktów podziału między segmentami.
                         var envelope = CreateGroupEnvelope(lineGroup);
                         var extended = await ExtendLineToBoundingBox(envelope, bbox, scaleFactor);
                         SetGroupOuterEndpoints(lineGroup, extended.X1, extended.Y1, extended.X2, extended.Y2);
@@ -128,64 +149,193 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         }
 
         /// <summary>
+        /// Sprawdza, czy linie w grupie leżą na tej samej osi (pion lub poziom).
+        /// Jeśli tak – można je traktować jako jedną linię i tworzyć wspólną envelope.
+        /// Jeśli nie – użytkownik zmienił ręcznie położenie jednej z nich i grupy nie wolno łączyć.
+        /// </summary>
+        private static bool CzyGrupaJestKoliniowa(IReadOnlyCollection<XLineShape> lineGroup)
+        {
+            if (lineGroup.Count <= 1) return true;
+
+            var first = lineGroup.First();
+
+            bool firstVertical = Math.Abs(first.X2 - first.X1) < Tolerance;
+            bool firstHorizontal = Math.Abs(first.Y2 - first.Y1) < Tolerance;
+
+            if (!firstVertical && !firstHorizontal)
+            {
+                // Pierwsza linia skośna – grupa „koliniowa”, jeśli wszystkie są tą samą skośną
+                foreach (var line in lineGroup.Skip(1))
+                {
+                    double dx1 = first.X2 - first.X1, dy1 = first.Y2 - first.Y1;
+                    double dx2 = line.X2 - line.X1, dy2 = line.Y2 - line.Y1;
+
+                    // Sprawdź równoległość (iloczyn wektorowy = 0)
+                    double cross = dx1 * dy2 - dy1 * dx2;
+                    if (Math.Abs(cross) > 0.5) return false;
+
+                    // Sprawdź, czy leżą na tej samej prostej
+                    double cross2 = dx1 * (line.Y1 - first.Y1) - dy1 * (line.X1 - first.X1);
+                    if (Math.Abs(cross2) > 0.5) return false;
+                }
+                return true;
+            }
+
+            if (firstVertical)
+            {
+                // Wszystkie muszą mieć to samo X
+                foreach (var line in lineGroup.Skip(1))
+                {
+                    if (Math.Abs(line.X1 - first.X1) > 0.5) return false;
+                    if (Math.Abs(line.X2 - first.X2) > 0.5) return false;
+                }
+                return true;
+            }
+
+            // Poziome
+            foreach (var line in lineGroup.Skip(1))
+            {
+                if (Math.Abs(line.Y1 - first.Y1) > 0.5) return false;
+                if (Math.Abs(line.Y2 - first.Y2) > 0.5) return false;
+            }
+            return true;
+        }
+
+        /// <summary>
         /// Wydłuża linię do krawędzi bounding boxa.
         /// ⭐ Poprawka: przekazuje WSZYSTKIE flagi linii (w tym IsSkosna).
         /// </summary>
         public static async Task<XLineShape> ExtendLineToBoundingBox(
-            XLineShape line, BoundingBox bbox, double _scaleFactor)
+           XLineShape line,
+           BoundingBox bbox,
+           double scaleFactor)
         {
-            double x1 = line.X1, y1 = line.Y1, x2 = line.X2, y2 = line.Y2;
-            double dx = x2 - x1, dy = y2 - y1;
+            double x1 = line.X1;
+            double y1 = line.Y1;
+            double x2 = line.X2;
+            double y2 = line.Y2;
+
+            double dx = x2 - x1;
+            double dy = y2 - y1;
 
             XLineShape result;
 
-            // === PIONOWA ===
+            // ============================================================
+            // PIONOWA
+            // ============================================================
+            // X MUSI POZOSTAĆ STAŁY.
+            // Wydłużamy wyłącznie Y.
+            // ============================================================
             if (Math.Abs(dx) < Tolerance)
             {
+                double fixedX = (x1 + x2) / 2.0;
+
                 result = new XLineShape(
-                    x1, bbox.Y,
-                    x2, bbox.Y + bbox.Height,
-                    _scaleFactor, line.NazwaObj,
-                    line.RuchomySlupek, line.PionPoziom, line.DualRama,
-                    line.GenerowaneZRamy, line.StalySlupek, line.IsSkosna);
+                    fixedX,
+                    bbox.Y,
+                    fixedX,
+                    bbox.Y + bbox.Height,
+                    scaleFactor,
+                    line.NazwaObj,
+                    line.RuchomySlupek,
+                    line.PionPoziom,
+                    line.DualRama,
+                    line.GenerowaneZRamy,
+                    line.StalySlupek,
+                    line.IsSkosna)
+                {
+                    ID = line.ID,
+                    SplitGroupId = line.SplitGroupId
+                };
+
+                await Task.CompletedTask;
+                return result;
             }
-            // === POZIOMA ===
-            else if (Math.Abs(dy) < Tolerance)
+
+            // ============================================================
+            // POZIOMA
+            // ============================================================
+            // Y MUSI POZOSTAĆ STAŁY.
+            // Wydłużamy wyłącznie X.
+            // ============================================================
+            if (Math.Abs(dy) < Tolerance)
             {
+                double fixedY = (y1 + y2) / 2.0;
+
                 result = new XLineShape(
-                    bbox.X, y1,
-                    bbox.X + bbox.Width, y2,
-                    _scaleFactor, line.NazwaObj,
-                    line.RuchomySlupek, line.PionPoziom, line.DualRama,
-                    line.GenerowaneZRamy, line.StalySlupek, line.IsSkosna);
+                    bbox.X,
+                    fixedY,
+                    bbox.X + bbox.Width,
+                    fixedY,
+                    scaleFactor,
+                    line.NazwaObj,
+                    line.RuchomySlupek,
+                    line.PionPoziom,
+                    line.DualRama,
+                    line.GenerowaneZRamy,
+                    line.StalySlupek,
+                    line.IsSkosna)
+                {
+                    ID = line.ID,
+                    SplitGroupId = line.SplitGroupId
+                };
+
+                await Task.CompletedTask;
+                return result;
             }
-            // === SKOŚNA ===
-            else
+
+            // ============================================================
+            // SKOŚNA
+            // ============================================================
+            // Dla linii ukośnych pozostawiamy dotychczasowy mechanizm.
+            // ============================================================
+
+            double leftFactor = (bbox.X - x1) / dx;
+            double rightFactor = ((bbox.X + bbox.Width) - x1) / dx;
+
+            double topFactor = (bbox.Y - y1) / dy;
+            double bottomFactor = ((bbox.Y + bbox.Height) - y1) / dy;
+
+            double minFactor = Math.Min(
+                leftFactor,
+                Math.Min(
+                    rightFactor,
+                    Math.Min(topFactor, bottomFactor)));
+
+            double maxFactor = Math.Max(
+                leftFactor,
+                Math.Max(
+                    rightFactor,
+                    Math.Max(topFactor, bottomFactor)));
+
+            double newX1 = x1 + dx * minFactor;
+            double newY1 = y1 + dy * minFactor;
+
+            double newX2 = x1 + dx * maxFactor;
+            double newY2 = y1 + dy * maxFactor;
+
+            result = new XLineShape(
+                newX1,
+                newY1,
+                newX2,
+                newY2,
+                scaleFactor,
+                line.NazwaObj,
+                line.RuchomySlupek,
+                line.PionPoziom,
+                line.DualRama,
+                line.GenerowaneZRamy,
+                line.StalySlupek,
+                line.IsSkosna)
             {
-                double leftFactor = (bbox.X - x1) / dx;
-                double rightFactor = ((bbox.X + bbox.Width) - x1) / dx;
-                double topFactor = (bbox.Y - y1) / dy;
-                double bottomFactor = ((bbox.Y + bbox.Height) - y1) / dy;
-
-                double minFactor = Math.Min(leftFactor, Math.Min(rightFactor, Math.Min(topFactor, bottomFactor)));
-                double maxFactor = Math.Max(leftFactor, Math.Max(rightFactor, Math.Max(topFactor, bottomFactor)));
-
-                double newX1 = x1 + dx * minFactor;
-                double newY1 = y1 + dy * minFactor;
-                double newX2 = x1 + dx * maxFactor;
-                double newY2 = y1 + dy * maxFactor;
-
-                result = new XLineShape(
-                    newX1, newY1,
-                    newX2, newY2,
-                    _scaleFactor, line.NazwaObj,
-                    line.RuchomySlupek, line.PionPoziom, line.DualRama,
-                    line.GenerowaneZRamy, line.StalySlupek, line.IsSkosna);
-            }
+                ID = line.ID,
+                SplitGroupId = line.SplitGroupId
+            };
 
             await Task.CompletedTask;
             return result;
         }
+
 
         // =====================================================================
         // PRZYCINANIE LINII DO BBOX (prawdziwe skracanie)
@@ -242,7 +392,6 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         // =====================================================================
         // PRZYCINANIE LINII DO WSZYSTKICH ZAMKNIĘTYCH KSZTAŁTÓW
         // =====================================================================
-
         public static async Task ShortenLinesInsideShapes(List<IShapeDC> shapes, double _scaleFactor)
         {
             var closedShapes = shapes.Where(s => s is not XLineShape).ToList();
@@ -250,6 +399,22 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
             foreach (var lineGroup in GroupRelatedLines(lines))
             {
+                // ⭐ Grupa NIEKOLINIOWA – traktuj każdą linię osobno
+                if (lineGroup.Count > 1 && !CzyGrupaJestKoliniowa(lineGroup))
+                {
+                    Console.WriteLine($"⚠️ ShortenLinesInsideShapes: grupa {lineGroup.First().SplitGroupId} NIEKOLINIOWA – traktuję osobno");
+
+                    foreach (var line in lineGroup)
+                    {
+                        foreach (var shape in closedShapes)
+                        {
+                            await ShortenLineInsideShapeForBoundary(line, shape, _scaleFactor);
+                        }
+                    }
+                    continue;
+                }
+
+                // Grupa koliniowa – traktuj jako jedną linię
                 foreach (var shape in closedShapes)
                 {
                     if (lineGroup.Count == 1)
@@ -470,10 +635,23 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
         private static List<List<XLineShape>> GroupRelatedLines(IEnumerable<XLineShape> lines)
         {
-            return lines
+            var grupy = lines
                 .GroupBy(line => line.SplitGroupId ?? line.ID)
                 .Select(group => group.ToList())
                 .ToList();
+
+            Console.WriteLine($"🔍 GroupRelatedLines: {lines.Count()} linii → {grupy.Count} grup");
+            foreach (var g in grupy)
+            {
+                Console.WriteLine($"   Grupa {(g.First().SplitGroupId ?? g.First().ID)?.Substring(0, 8) ?? "null"}: {g.Count} linii");
+                foreach (var l in g)
+                {
+                    Console.WriteLine($"      Line {l.ID?.Substring(0, 8)}: " +
+                                      $"({l.X1:F1},{l.Y1:F1}) → ({l.X2:F1},{l.Y2:F1})");
+                }
+            }
+
+            return grupy;
         }
 
         // =====================================================================
@@ -497,14 +675,28 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             return envelope;
         }
 
+
         private static void SetGroupOuterEndpoints(
-            IReadOnlyCollection<XLineShape> lineGroup,
-            double startX, double startY,
-            double endX, double endY)
+        IReadOnlyCollection<XLineShape> lineGroup,
+        double startX, double startY,
+        double endX, double endY)
         {
             var (start, end) = GetGroupOuterEndpoints(lineGroup);
             SetEndpoint(start, startX, startY);
             SetEndpoint(end, endX, endY);
+
+            // ⭐ Walidacja: po ustawieniu endpoints sprawdź, czy grupa nadal jest koliniowa
+            if (!CzyGrupaJestKoliniowa(lineGroup))
+            {
+                Console.WriteLine($"⚠️ SetGroupOuterEndpoints: grupa NIEKOLINIOWA po ustawieniu! " +
+                                  $"SplitGroupId = {lineGroup.First().SplitGroupId}");
+
+                foreach (var line in lineGroup)
+                {
+                    Console.WriteLine($"   Line {line.ID?.Substring(0, 8)}: " +
+                                      $"({line.X1:F1},{line.Y1:F1}) → ({line.X2:F1},{line.Y2:F1})");
+                }
+            }
         }
 
         /// <summary>
@@ -1105,12 +1297,26 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
             foreach (var shape in shapes)
             {
+                if (shape is XLineShape line)
+                {
+                    Console.WriteLine(
+                        $"🔵 PRZED Transform LINE {line.ID.Substring(0, Math.Min(8, line.ID.Length))}: " +
+                        $"({line.X1:F2},{line.Y1:F2}) → ({line.X2:F2},{line.Y2:F2})");
+                }
+
                 shape.Transform(scaleX, scaleY, offsetX, offsetY);
 
                 if (shape is not XLineShape)
                 {
                     shape.Szerokosc = docelowaSzerokosc;
                     shape.Wysokosc = docelowaWysokosc;
+                }
+
+                if (shape is XLineShape linePo)
+                {
+                    Console.WriteLine(
+                        $"🔴 PO Transform LINE {linePo.ID.Substring(0, Math.Min(8, linePo.ID.Length))}: " +
+                        $"({linePo.X1:F2},{linePo.Y1:F2}) → ({linePo.X2:F2},{linePo.Y2:F2})");
                 }
             }
 

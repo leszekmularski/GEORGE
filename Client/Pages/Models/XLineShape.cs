@@ -342,26 +342,34 @@ namespace GEORGE.Client.Pages.Models
             bool czyPoziomaStatic = CzyPozioma;
             bool czySkosnaStatic = CzyUkosna;
 
+            // ⭐ Kierunek z chwili utworzenia właściwości (nie zmienia się w trakcie edycji)
+            bool liniaJestPionowa = czyPionowaStatic || RuchomySlupek;
+            bool liniaJestPozioma = czyPoziomaStatic;
+
             return new()
             {
-                // ============ X1 ============
-                new EditableProperty(
-                    RuchomySlupek ? "Podział linii w osi X1" : "X1 ",
-                    () => X1,
-                    v => {
-                        double parsedValue = ParseExpression(v.ToString());
-                        X1 = parsedValue;
+            // ============ X1 ============
+            new EditableProperty(
+                RuchomySlupek ? "Podział linii w osi X1" : "X1 ",
+                () => X1,
+                v => {
+                    double parsedValue = ParseExpression(v.ToString());
 
-                        // ⭐ Dynamicznie: jeśli po zmianie linia jest pionowa, dopasuj X2
-                        if (CzyPionowa || RuchomySlupek) X2 = X1;
+                    //// ⭐ Sprawdź kierunek PRZED zmianą
+                    //bool bylaPionowa = Math.Abs(X2 - X1) < 0.001;
+                    //bool bylaOsiowa = bylaPionowa || RuchomySlupek || StalySlupek;
 
-                        EnforceLineType();
-                        UpdateSize();
-                        UpdatePoints();
-                    },
-                    NazwaObj,
-                    IsReadOnly: czyPoziomaStatic,
-                    ShapeId: id)
+                    X1 = parsedValue;
+
+                    // ⭐ Jeśli linia była pionowa / słupkowa – przesuń całą linię
+                    if (liniaJestPionowa) X2 = X1;
+
+                    UpdateSize();
+                    UpdatePoints();
+                },
+                NazwaObj,
+                IsReadOnly: liniaJestPozioma,
+                ShapeId: id)
                 {
                     IsPionowa = czyPionowaStatic,
                     IsPozioma = czyPoziomaStatic,
@@ -369,24 +377,27 @@ namespace GEORGE.Client.Pages.Models
                     SplitGroupId = splitGroupId
                 },
 
-                // ============ Y1 ============
-                new EditableProperty(
-                    RuchomySlupek ? "Podział linii w osi Y1" : "Y1 ",
-                    () => Y1,
-                    v => {
-                        double parsedValue = ParseExpression(v.ToString());
-                        Y1 = parsedValue;
+            // ============ Y1 ============
+            new EditableProperty(
+                RuchomySlupek ? "Podział linii w osi Y1" : "Y1 ",
+                () => Y1,
+                v => {
+                    double parsedValue = ParseExpression(v.ToString());
 
-                        // ⭐ Dynamicznie: jeśli po zmianie linia jest pozioma, dopasuj Y2
-                        if (CzyPozioma) Y2 = Y1;
+                    // ⭐ Sprawdź kierunek PRZED zmianą
+                   // bool bylaPozioma = Math.Abs(Y2 - Y1) < 0.001;
 
-                        EnforceLineType();
-                        UpdateSize();
-                        UpdatePoints();
-                    },
-                    NazwaObj,
-                    IsReadOnly: RuchomySlupek || czyPionowaStatic,
-                    ShapeId: id)
+                    Y1 = parsedValue;
+
+                    // ⭐ Jeśli linia była pozioma – przesuń całą linię
+                    if (liniaJestPozioma) Y2 = Y1;
+
+                    UpdateSize();
+                    UpdatePoints();
+                },
+                NazwaObj,
+                IsReadOnly: liniaJestPionowa,
+                ShapeId: id)
                 {
                     IsPionowa = czyPionowaStatic,
                     IsPozioma = czyPoziomaStatic,
@@ -394,20 +405,28 @@ namespace GEORGE.Client.Pages.Models
                     SplitGroupId = splitGroupId
                 },
 
-                // ============ X2 ============
-                new EditableProperty(
-                    RuchomySlupek ? "Podział linii w osi X2" : "X2 ",
-                    () => X2,
-                    v => {
-                        double parsedValue = ParseExpression(v.ToString());
-                        X2 = parsedValue;
-                        EnforceLineType();
-                        UpdateSize();
-                        UpdatePoints();
-                    },
-                    NazwaObj,
-                    IsReadOnly: RuchomySlupek || czyPoziomaStatic,
-                    ShapeId: id)
+            // ============ X2 ============
+            new EditableProperty(
+                RuchomySlupek ? "Podział linii w osi X2" : "X2 ",
+                () => X2,
+                v => {
+                    double parsedValue = ParseExpression(v.ToString());
+
+                    // ⭐ Sprawdź kierunek PRZED zmianą
+                    bool bylaPionowa = Math.Abs(X2 - X1) < 0.001;
+                    bool bylaOsiowa = bylaPionowa || RuchomySlupek || StalySlupek;
+
+                    X2 = parsedValue;
+
+                    // ⭐ Jeśli linia była pionowa / słupkowa – przesuń całą linię
+                    if (bylaOsiowa) X1 = X2;
+
+                    UpdateSize();
+                    UpdatePoints();
+                },
+                NazwaObj,
+                IsReadOnly: liniaJestPionowa || liniaJestPozioma,
+                ShapeId: id)
                 {
                     IsPionowa = czyPionowaStatic,
                     IsPozioma = czyPoziomaStatic,
@@ -415,20 +434,27 @@ namespace GEORGE.Client.Pages.Models
                     SplitGroupId = splitGroupId
                 },
 
-                // ============ Y2 ============
-                new EditableProperty(
-                    RuchomySlupek ? "Podział linii w osi Y2" : "Y2 ",
-                    () => Y2,
-                    v => {
-                        double parsedValue = ParseExpression(v.ToString());
-                        Y2 = parsedValue;
-                        EnforceLineType();
-                        UpdateSize();
-                        UpdatePoints();
-                    },
-                    NazwaObj,
-                    IsReadOnly: czyPionowaStatic,
-                    ShapeId: id)
+            // ============ Y2 ============
+            new EditableProperty(
+                RuchomySlupek ? "Podział linii w osi Y2" : "Y2 ",
+                () => Y2,
+                v => {
+                    double parsedValue = ParseExpression(v.ToString());
+
+                    // ⭐ Sprawdź kierunek PRZED zmianą
+                    bool bylaPozioma = Math.Abs(Y2 - Y1) < 0.001;
+
+                    Y2 = parsedValue;
+
+                    // ⭐ Jeśli linia była pozioma – przesuń całą linię
+                    if (bylaPozioma && !StalySlupek && !RuchomySlupek) Y1 = Y2;
+
+                    UpdateSize();
+                    UpdatePoints();
+                },
+                NazwaObj,
+                IsReadOnly: liniaJestPozioma || liniaJestPionowa,
+                ShapeId: id)
                 {
                     IsPionowa = czyPionowaStatic,
                     IsPozioma = czyPoziomaStatic,
@@ -436,14 +462,14 @@ namespace GEORGE.Client.Pages.Models
                     SplitGroupId = splitGroupId
                 },
 
-                // ============ Kąt (tylko odczyt) ============
-                new EditableProperty(
-                    RuchomySlupek ? "Kąt linii" : "Kąt w stopniach ",
-                    () => KatLinii,
-                    v => { /* tylko odczyt */ },
-                    NazwaObj,
-                    IsReadOnly: true,
-                    ShapeId: id)
+            // ============ Kąt (tylko odczyt) ============
+            new EditableProperty(
+                RuchomySlupek ? "Kąt linii" : "Kąt w stopniach ",
+                () => KatLinii,
+                v => { /* tylko odczyt */ },
+                NazwaObj,
+                IsReadOnly: true,
+                ShapeId: id)
                 {
                     IsPionowa = false,
                     IsPozioma = false,

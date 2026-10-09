@@ -1,4 +1,5 @@
-﻿@using GEORGE.Shared.Models
+﻿@using GEORGE.Client.Pages.PDF
+@using GEORGE.Shared.Models
 @using GEORGE.Shared.ViewModels
 @using GEORGE.Shared.Class
 @using GEORGE.Client.Pages
@@ -456,7 +457,8 @@
                         <PropertyColumn Title="Szerokość" Property="c => c.ElemetZamDoZlecen.Szerokosc" />
                         <PropertyColumn Title="Wysokość" Property="c => c.ElemetZamDoZlecen.Wysokosc" />
                         <PropertyColumn Title="Długość" Property="c => c.ElemetZamDoZlecen.Dlugosc" />
-                        <PropertyColumn Title="Objętość" Property="c => c.ElemetZamDoZlecen.Objetosc" />
+                        <PropertyColumn Title="Cena NETTO" Property="c => c.ElemetZamDoZlecen.CenaNetto" />
+                        <PropertyColumn Title="Waluta" Property="c => c.ElemetZamDoZlecen.Waluta" />
                         <PropertyColumn Title="Uwagi" Width="460" Property="c => c.ElemetZamDoZlecen.Uwagi" />
                         <PropertyColumn Width="195" Title="Autor zmian" Property="c => c.ElemetZamDoZlecen.KtoZapisal" />
 
@@ -496,10 +498,26 @@
     <div class="elementy-import">
         <div>
             <div class="elementy-import-row">
-                <label for="fileInput" class="elementy-import-label">
-                    Wybierz plik ze Stolcad z listą materiałów (C:\STOLCAD\Rob\PrnPdf - zestawienie elementów):
-                </label>
-                <InputFile id="fileInput" OnChange="HandleFileSelected" />
+                <div class="form-group border rounded p-3" style="max-width: 65%;">
+                    <!-- Opis powiązany z polem wyboru -->
+                    <label for="fileInput" class="form-label"> Wybierz plik ze Stolcad z listą materiałów (C:\STOLCAD\Rob\PrnPdf - zestawienie elementów):</label>
+
+                    <InputFile id="fileInput"
+                               class="form-control"
+                               accept="application/pdf"
+                               OnChange="HandleFileSelected"/>
+                </div>
+                <div class="form-group border rounded p-3" style="max-width: 35%;">
+                    <!-- Opis powiązany z polem wyboru -->
+                    <label for="fileInput" class="form-label">Wybierz plik oferty VBH POLSKA SP. Z O.O. (tylko PDF):</label>
+
+                    <!-- Poprawiony komponent InputFile -->
+                    <InputFile id="fileInput"
+                               class="form-control"
+                               accept="application/pdf"
+                               OnChange="HandleFileSelectedOf" />
+                </div>
+
 
                 <Button Type="@ButtonType.Link" style="font-size:1.0em; height:30px; margin-top:0; font-style:revert-layer; color:brown" @onclick="() => PasteStolcad()">
                     Wklej ze schowka elementyZamowienia z STOLCAD [ODWOŁANIA]
@@ -512,7 +530,7 @@
             {
                 <div>
                     <Divider></Divider>
-                    <Button Type="@ButtonType.Primary" Style="width:99%" Disabled="@isNotDisabled" OnClick="SaveAll">Zapisz wyszystkie zapisane z poniższej tabeli</Button>
+                    <Button Type="@ButtonType.Primary" Style="width:99%" Disabled="@isNotDisabled" OnClick="SaveAll">Zapisz wszystkie zapisane z poniższej tabeli</Button>
                 </div>
 
                 <div class="elementy-import-preview">
@@ -528,9 +546,11 @@
                                 <th>Szerokość</th>
                                 <th>Wysokość</th>
                                 <th>Ilość</th>
+                                <th>Jednostka</th>
                                 <th>Nazwa Produktu</th>
                                 <th>Numer Katalogowy</th>
-                                <th>Powierchnia</th>
+                                <th>Cena Netto</th>
+                                <th>Powierzchnia</th>
                                 <th>Uwagi</th>
                             </tr>
                         </thead>
@@ -542,8 +562,10 @@
                                     <td>@item.Szerokosc</td>
                                     <td>@item.Wysokosc</td>
                                     <td>@item.IloscSztuk</td>
+                                    <td>@item.JednostakaMiary</td>
                                     <td>@item.NazwaProduktu</td>
                                     <td>@item.NumerKatalogowy</td>
+                                    <td>@item.CenaNetto</td>
                                     <td>@item.Powierzchnia</td>
                                     <td>@item.Uwagi</td>
                                 </tr>
@@ -568,7 +590,7 @@
             <div class="modal-body">
                 @if (elementyDoZlecen != null && elementyZamowienia.ElemetZamDoZlecen != null)
                 {
-                    <NowaPozZamowienia elementyZamowienia="elementyZamowienia" elementyDoZlecen="elementyDoZlecen" OnButtonClicked="CloseModal" user="user" />
+                    <NowaPozZamowienia elementyZamowienia="elementyZamowienia" elementyDoZlecen="elementyDoZlecen" OnButtonClicked="CloseModal" user="@user" />
                 }
                 else
                 {
@@ -589,7 +611,6 @@
     <p style="color:red">@infoDodaj</p>
     <p style="color:yellowgreen">GUID: @selValue</p>
 </Modal>
-
 
 @code {
     [Parameter]
@@ -1299,6 +1320,8 @@
     private List<WzorceKompletacji> wzorzecSzczegolyAll = new();
     private List<WzorceKompletacji>? wzorzecSzczegolyDistinct;
 
+    private bool importDanychOfertaVBH = false;
+
 
     // Metoda wywoływana po kliknięciu przycisku - pokazuje modal
     private async Task ExportSelectedToGroup()
@@ -1683,7 +1706,7 @@
         try
         {
             // var response = await httpClient.PostAsJsonAsync($"api/ElementyDoZlecen", elementyDoZlecenC);
-            var response = await Http.PostAsJsonAsync($"api/elementyDoZlecen/save-all/{false}", elementyDoZlecenC);
+            var response = await Http.PostAsJsonAsync($"api/elementyDoZlecen/saveAll/{false}", elementyDoZlecenC);
 
             if (response.IsSuccessStatusCode)
             {
@@ -1890,6 +1913,92 @@
         }
     }
 
+    private async Task HandleFileSelectedOf(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+
+            if (file == null)
+                return;
+
+            if (file.Size > 10 * 1024 * 1024)
+            {
+                await _message.Error(
+                    "Plik jest zbyt duży. Maksymalny rozmiar to 10 MB.");
+
+                return;
+            }
+
+            if (file.ContentType == "application/pdf")
+            {
+                var path = Path.GetTempFileName();
+
+                try
+                {
+                    await using (var stream = file.OpenReadStream(
+                        maxAllowedSize: 10 * 1024 * 1024))
+                    await using (var fileStream = new FileStream(
+                        path,
+                        FileMode.Create))
+                    {
+                        await stream.CopyToAsync(fileStream);
+                    }
+
+                    pdfContent =
+                        PdfReaderService.ReadPdfTable(path);
+
+                    var parser = new OfertaPdfParser();
+
+                    zestawienie =
+                        parser.ParsePdfData(pdfContent);
+
+                    Console.WriteLine(
+                        $"Oferta: {zestawienie.ListaElementow.Count} pozycji");
+
+                    foreach (var item in zestawienie.ListaElementow)
+                    {
+                        Console.WriteLine(
+                            $"{item.Lp} | " +
+                            $"{item.NumerKatalogowy} | " +
+                            $"{item.Typ} | " +
+                            $"{item.NazwaProduktu} | " +
+                            $"{item.IloscSztuk} {item.Opis}");
+                    }
+
+                    importDanychOfertaVBH = true;
+
+                    StateHasChanged();
+                }
+                finally
+                {
+                    try
+                    {
+                        if (File.Exists(path))
+                            File.Delete(path);
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                return;
+            }
+
+            await _message.Error(
+                "Niepoprawny format pliku. Proszę wybrać plik PDF.");
+        }
+        catch (Exception ex)
+        {
+            await _notice.Error(new()
+            {
+                Message = "Błąd podczas importowania pliku.",
+                Description = ex.Message + Environment.NewLine + ex.StackTrace,
+                Placement = NotificationPlacement.BottomLeft
+            });
+        }
+    }
+
     private async Task PasteStolcad()
     {
         try
@@ -1919,6 +2028,50 @@
         zamowieniaall = new List<ElemetZamDoZlecenWithProducent>();
 
         if (zestawienie == null) return;
+
+        if(string.IsNullOrEmpty(RowIdZlecenia))
+        {
+            await _message.Error("Brak RowId zlecenia. Nie można zapisać danych.");
+            return;
+        }
+
+        if (importDanychOfertaVBH)
+        {
+            var producenci = await Http.GetFromJsonAsync<List<ProducenciPodwykonawcy>>("api/ProducenciPodwykonawcy");
+
+            if (producenci == null)
+            {
+                await _message.Error("Nie udało się pobrać listy producentów.");
+
+                return;
+            }
+
+            var id_producena =
+                producenci
+                    .FirstOrDefault(p =>
+                        !string.IsNullOrEmpty(p.NazwaProducenta) &&
+                        p.NazwaProducenta.Contains(
+                            "VBH",
+                            StringComparison.OrdinalIgnoreCase))
+                    ?.RowId;
+
+            if (string.IsNullOrEmpty(id_producena))
+            {
+                await _message.Error(
+                    "Nie znaleziono producenta VBH. Nie można zapisać danych.");
+
+                return;
+            }
+
+            foreach (var item in zestawienie.ListaElementow)
+            {
+                item.RowIdProducent = id_producena;
+                item.Waluta = "€";//VBH Robi ofertę w €
+            }
+
+            importDanychOfertaVBH = false;
+        }
+  
         @foreach (var item in zestawienie.ListaElementow)
         {
             decimal numSzerokosc;
@@ -1929,15 +2082,25 @@
                 {
                     ElemetZamDoZlecen = new ElemetZamDoZlecen
                     {
+                        RowIdProducent = item.RowIdProducent,
                         RowIdZlecenia = RowIdZlecenia,
                         Szerokosc = string.IsNullOrEmpty(item.Szerokosc) ? 0 : numSzerokosc,
                         Wysokosc = string.IsNullOrEmpty(item.Wysokosc) ? 0 : decimal.Parse(item.Wysokosc),
                         NazwaProduktu = item.NazwaProduktu,
                         IloscSztuk = string.IsNullOrEmpty(item.IloscSztuk) ? 0 : int.Parse(item.IloscSztuk),
-                        DataZamowienia = DateTime.Now,
-                        DataRealizacji = DateTime.Now.AddDays(14),
+                        NumerKatalogowy = item.NumerKatalogowy,
+                        DataZamowienia = DateTime.MinValue,
+                        DataRealizacji = DateTime.MinValue,
                         DataZapisu = DateTime.Now,
-                        KtoZapisal = "Autor zmiany: " + user
+                        KtoZapisal = "Autor zmiany: " + user,
+                        DataDostarczenia = DateTime.MinValue,
+                        CenaNetto = string.IsNullOrEmpty(item.CenaNetto) ? 0 : decimal.Parse(item.CenaNetto),
+                        Objetosc = 0,
+                        Dlugosc = 0,
+                        Waga = 0,
+                        Kolor = "",
+                        Waluta = item.Waluta,
+                        Jednostka = item.JednostakaMiary,
                     },
                     DodatkowaInformacja = "Dane zaimportowano z PDF" // Zamiast Uwagi
                 };
@@ -1950,21 +2113,33 @@
         try
         {
             // Wyślij dane do API
-            var response = await Http.PostAsJsonAsync($"api/elementyDoZlecen/save-all/{isCheckedDelAll}", zamowieniaall);
+            var response = await Http.PostAsJsonAsync($"api/ElementyDoZlecen/saveAllWithProducent/{isCheckedDelAll}", zamowieniaall);
 
             if (response.IsSuccessStatusCode)
             {
-                // Operacja zakończona sukcesem
                 Console.WriteLine("Dane zostały zapisane pomyślnie.");
 
-                elementyDoZlecen = await Http.GetFromJsonAsync<List<ElemetZamDoZlecenWithProducent>>($"api/ElementyDoZlecen/rowid/{RowIdZlecenia}");
+                elementyDoZlecen =
+                    await Http.GetFromJsonAsync<List<ElemetZamDoZlecenWithProducent>>(
+                        $"api/ElementyDoZlecen/rowid/{RowIdZlecenia}");
 
                 zestawienie = null;
             }
             else
             {
-                // Obsłuż błąd
-                Console.WriteLine("Wystąpił błąd podczas zapisywania danych.");
+                string blad = await response.Content.ReadAsStringAsync();
+
+                Console.WriteLine(
+                    $"❌ Błąd zapisu danych.");
+
+                Console.WriteLine(
+                    $"Status HTTP: {(int)response.StatusCode} {response.StatusCode}");
+
+                Console.WriteLine(
+                    $"Odpowiedź API: {blad}");
+
+                await _message.Error(
+                    $"Błąd zapisu danych: {blad}");
             }
         }
         catch (Exception ex)
