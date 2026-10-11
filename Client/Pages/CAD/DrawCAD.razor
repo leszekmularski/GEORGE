@@ -439,28 +439,32 @@
 
     private async Task PowrotDoGenerowaniaOkna()
     {
-
         await RysOkna(true);
 
-        ShapeService.Shapes.Clear(); // Czyszczenie pojedynczego kształtu, jeśli był ustawiony
+        // 🔴 Ostrzeżenie: jeśli nie ma żadnej linii podziału, skrzydła nie będą dostępne
+        var linie = _shapes.OfType<XLineShape>().ToList();
+        if (linie.Count == 0)
+        {
+            Console.WriteLine("⚠️ UWAGA: Brak linii podziału — po powrocie nie będzie można dodać skrzydeł.");
+            // Opcjonalnie: await JSRuntime.InvokeVoidAsync("alert",
+            //     "Brak linii podziału. Dodasz tylko ramę. Aby dodać skrzydła, narysuj linię słupka stałego.");
+        }
 
+        foreach (var test in _shapes)
+        {
+            Console.WriteLine($"🔹 Kształt: {test.GetType().Name}, ID: {test.ID}, Wymiary: {test.Szerokosc:F1} x {test.Wysokosc:F1}");
+        }
+
+        ShapeService.Shapes.Clear();
         await LineUtils.UstawPozycjeXiYnaZero(_shapes);
-
         await LineUtils.ShortenLinesInsideShapes(_shapes, 1.0);
 
-        ShapeService.Shapes = _shapes; // Przekazanie danych do serwisu
-
-
-        //ShapeService.Shapes = new List<IShapeDC>(_shapes);
+        ShapeService.Shapes = _shapes;
 
         if (!string.IsNullOrEmpty(SelectedSystemId))
-        {
             Navigation.NavigateTo($"/Modele-okienne/{SelectedSystemId}");
-        }
         else
-        {
             Navigation.NavigateTo("/Modele-okienne");
-        }
 
         await Task.CompletedTask;
     }
@@ -848,6 +852,7 @@
 
     private XLineShape CreateLineSegment(XLineShape source, double x1, double y1, double x2, double y2)
     {
+        Console.WriteLine($"Tworzenie segmentu linii: ({x1:F2}, {y1:F2}) -> ({x2:F2}, {y2:F2}) SplitGroupId = {source.SplitGroupId ?? source.ID}");
         return new XLineShape(
             x1, y1, x2, y2,
             _scaleFactor,

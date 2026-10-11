@@ -1433,5 +1433,163 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
             return (minX, minY, maxX, maxY);
         }
+
+        /// <summary>
+        /// Rozciąga lub skraca linie podziału, zachowując styczność:
+        /// - Pionowe: górny/dolny koniec do najbliższej poziomej ALBO do obrysu okna
+        /// - Poziome: lewy/prawy koniec do najbliższej pionowej ALBO do obrysu okna
+        /// 
+        /// W przeciwieństwie do ExtendLinesToShapes – każda linia idzie OSOBNO
+        /// (nawet jeśli grupa jest niekoliniowa), a końce są przyciągane do
+        /// najbliższej PRZECINAJĄCEJ linii, nie do granic całego obrysu.
+        /// </summary>
+        /// <summary>
+        /// Rozciąga lub skraca linie podziału, zachowując styczność:
+        /// - Pionowe: górny/dolny koniec do najbliższej poziomej ALBO do obrysu okna
+        /// - Poziome: lewy/prawy koniec do najbliższej pionowej ALBO do obrysu okna
+        /// 
+        /// W przeciwieństwie do ExtendLinesToShapes – każda linia idzie OSOBNO
+        /// (nawet jeśli grupa jest niekoliniowa), a końce są przyciągane do
+        /// najbliższej PRZECINAJĄCEJ linii, nie do granic całego obrysu.
+        /// </summary>
+        public static async Task ExtendOrShortenLinesWithTangencyAsync(
+      List<IShapeDC> shapes,
+      double tolerancja = 0.5)
+        {
+            var closedShapes = shapes.Where(s => s is not XLineShape).ToList();
+            var lines = shapes.OfType<XLineShape>().ToList();
+
+            if (closedShapes.Count == 0 || lines.Count == 0)
+                return;
+
+            double minX = closedShapes.Min(s => s.GetBoundingBox().Left);
+            double maxX = closedShapes.Max(s => s.GetBoundingBox().Right);
+            double minY = closedShapes.Min(s => s.GetBoundingBox().Top);
+            double maxY = closedShapes.Max(s => s.GetBoundingBox().Bottom);
+
+            Console.WriteLine($"📐 ExtendOrShortenLinesWithTangency: obrys " +
+                              $"X[{minX:F1}..{maxX:F1}] Y[{minY:F1}..{maxY:F1}]");
+
+            // ─────────────────────────────────────────────────────────────
+            // 1. PIONOWE
+            // ─────────────────────────────────────────────────────────────
+            var pionowe = lines.Where(l => Math.Abs(l.X2 - l.X1) < Tolerance).ToList();
+
+            foreach (var pionowa in pionowe)
+            {
+                double x = (pionowa.X1 + pionowa.X2) / 2.0;
+
+                // Poziome, które przecinają tę pionową (X pionowej w zakresie X poziomej)
+                var poziomePrzecinajace = lines
+                    .Where(l => Math.Abs(l.Y2 - l.Y1) < Tolerance)
+                    .Where(l => l != pionowa)
+                    .Select(l => new { L = l, Y = (l.Y1 + l.Y2) / 2.0, X1 = Math.Min(l.X1, l.X2), X2 = Math.Max(l.X1, l.X2) })
+                    .Where(o => x >= o.X1 - tolerancja && x <= o.X2 + tolerancja)
+                    .Select(o => o.Y)
+                    .Distinct()
+                    .OrderBy(y => y)
+                    .ToList();
+
+                double gornyKoniec = Math.Min(pionowa.Y1, pionowa.Y2);
+                double dolnyKoniec = Math.Max(pionowa.Y1, pionowa.Y2);
+
+                // ⭐ Logika: górny koniec pionowej przyciągnij do najbliższej poziomej
+                //    POWYŻEJ lub równej — ale nie dalej niż obrys.
+                //    Jeśli brak poziomej powyżej → obrys (minY).
+                var poziomychPowyzej = poziomePrzecinajace
+                    .Where(y => y <= gornyKoniec + tolerancja)
+                    .ToList();
+                var poziomychPonizej = poziomePrzecinajace
+                    .Where(y => y >= dolnyKoniec - tolerancja)
+                    .ToList();
+
+                // ⭐ KLUCZOWA ZMIANA: rozważ obrys jako "linię" o Y=minY/maxY
+                //    Dopasuj do najbliższej z {obrys, poziome}
+                double yGora = minY;
+                if (poziomychPowyzej.Any())
+                    yGora = Math.Max(minY, poziomychPowyzej.Max());
+
+                double yDol = maxY;
+                if (poziomychPonizej.Any())
+                    yDol = Math.Min(maxY, poziomychPonizej.Min());
+
+                if (yGora >= yDol)
+                {
+                    Console.WriteLine($"   ⚠️ Pionowa {pionowa.ID?.Substring(0, 8)}: " +
+                                      $"yGora({yGora:F1}) >= yDol({yDol:F1}) — pomijam");
+                    continue;
+                }
+
+                Console.WriteLine($"   📏 Pionowa X={x:F1}: Y[{gornyKoniec:F1}..{dolnyKoniec:F1}] → [{yGora:F1}..{yDol:F1}]");
+
+                pionowa.X1 = x;
+                pionowa.Y1 = yGora;
+                pionowa.X2 = x;
+                pionowa.Y2 = yDol;
+            }
+
+            // ─────────────────────────────────────────────────────────────
+            // 2. POZIOME
+            // ─────────────────────────────────────────────────────────────
+            var poziome = lines.Where(l => Math.Abs(l.Y2 - l.Y1) < Tolerance).ToList();
+
+            foreach (var pozioma in poziome)
+            {
+                double y = (pozioma.Y1 + pozioma.Y2) / 2.0;
+
+                // Pionowe, które przecinają tę poziomą
+                // ⭐ ALE: pionowa MUSI być W ŚRODKU poziomej, nie na końcu!
+                //    W przeciwnym razie pionowa leżąca na końcu poziomej
+                //    nie pozwalałaby jej rozciągnąć do pełnej szerokości.
+                var pionowePrzecinajace = lines
+                    .Where(l => Math.Abs(l.X2 - l.X1) < Tolerance)
+                    .Where(l => l != pozioma)
+                    .Select(l => new { L = l, X = (l.X1 + l.X2) / 2.0, Y1 = Math.Min(l.Y1, l.Y2), Y2 = Math.Max(l.Y1, l.Y2) })
+                    .Where(o => y >= o.Y1 - tolerancja && y <= o.Y2 + tolerancja)
+                    .Select(o => o.X)
+                    .Distinct()
+                    .OrderBy(x => x)
+                    .ToList();
+
+                double lewyKoniec = Math.Min(pozioma.X1, pozioma.X2);
+                double prawyKoniec = Math.Max(pozioma.X1, pozioma.X2);
+
+                // ⭐ KLUCZOWA POPRAWKA: nie ograniczaj do pionowych na końcach poziomej
+                //    Tylko do tych, które są WEWNĄTRZ (lewy < x < prawy) w stosunku do
+                //    aktualnych końców poziomej ZE STREFĄ TOLERANCJI.
+
+                // Lewy koniec: najbliższa pionowa PO LEWEJ od aktualnego lewego końca
+                // (jeśli istnieje). Inaczej — minX.
+                var pionowychPoLewej = pionowePrzecinajace
+                    .Where(x => x < lewyKoniec - tolerancja)   // ⭐ ściśle mniejsze
+                    .ToList();
+
+                // Prawy koniec: najbliższa pionowa PO PRAWEJ
+                var pionowychPoPrawej = pionowePrzecinajace
+                    .Where(x => x > prawyKoniec + tolerancja)   // ⭐ ściśle większe
+                    .ToList();
+
+                double xLewy = pionowychPoLewej.Any() ? pionowychPoLewej.Max() : minX;
+                double xPrawy = pionowychPoPrawej.Any() ? pionowychPoPrawej.Min() : maxX;
+
+                // ⭐ Gdyby się okazało że po korekcie xLewy > xPrawy — rozciągnij do obrysu
+                if (xLewy >= xPrawy)
+                {
+                    Console.WriteLine($"   ⚠️ Pozioma Y={y:F1}: xLewy({xLewy:F1}) >= xPrawy({xPrawy:F1}) — używam obrysu");
+                    xLewy = minX;
+                    xPrawy = maxX;
+                }
+
+                Console.WriteLine($"   📏 Pozioma Y={y:F1}: X[{lewyKoniec:F1}..{prawyKoniec:F1}] → [{xLewy:F1}..{xPrawy:F1}]");
+
+                pozioma.X1 = xLewy;
+                pozioma.Y1 = y;
+                pozioma.X2 = xPrawy;
+                pozioma.Y2 = y;
+            }
+
+            await Task.CompletedTask;
+        }
+
     }
 }

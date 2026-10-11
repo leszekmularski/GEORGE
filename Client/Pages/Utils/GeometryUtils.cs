@@ -629,8 +629,16 @@ namespace GEORGE.Client.Pages.Utils
                             }
                         }
 
-                        r.Id = id + "|" + idCounter++;
-
+                        var linie = shapes.OfType<XLineShape>().ToList();
+                        if (linie.Count == 0)
+                        {
+                            r.Id = (rama ? id + "R" : id) + "|" + idCounter++;
+                        }
+                        else
+                        {
+                            r.Id = id + "|" + idCounter++;
+                        }
+                            
                     }
 
                     foreach (var region in podzielone)

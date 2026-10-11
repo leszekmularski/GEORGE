@@ -2115,14 +2115,169 @@ namespace GEORGE.Client.Pages.Okna
             // ============================================================
             // 11. PRZECIĘCIA Z KONTUREM
             // ============================================================
-            XPoint leftTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopLT5, TopXT5, BottomXT5, punktyRegionuMasterModyfikowane, forward: false);
-            XPoint midTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopST5, TopXT5, BottomXT5, punktyRegionuMasterModyfikowane, forward: false);
-            XPoint rightTopIntersection = FindFirstEdgeIntersectionByVector(tmpTopRT5, TopXT5, BottomXT5, punktyRegionuMasterModyfikowane, forward: false);
+            // ═══════════════════════════════════════════════════════════════════════
+            //  PRZECIĘCIA Z KONTUREM (wersja Ex z detekcją znalezienia)
+            // ═══════════════════════════════════════════════════════════════════════
 
-            XPoint leftBottomIntersection = FindFirstEdgeIntersectionByVector(tmpTopLT5, TopXT5, BottomXT5, punktyRegionuMasterModyfikowane, forward: true);
-            XPoint midBottomIntersection = FindFirstEdgeIntersectionByVector(tmpTopST5, TopXT5, BottomXT5, punktyRegionuMasterModyfikowane, forward: true);
-            XPoint rightBottomIntersection = FindFirstEdgeIntersectionByVector(tmpTopRT5, TopXT5, BottomXT5, punktyRegionuMasterModyfikowane, forward: true);
+            Console.WriteLine("═══════════════════════════════════════════════");
+            Console.WriteLine("🔷 T5-T5: Wyszukiwanie przecięć z konturem");
+            Console.WriteLine($"   TopXT5    = ({TopXT5.X:F1}, {TopXT5.Y:F1})");
+            Console.WriteLine($"   BottomXT5 = ({BottomXT5.X:F1}, {BottomXT5.Y:F1})");
+            Console.WriteLine($"   tmpTopLT5 = ({tmpTopLT5.X:F1}, {tmpTopLT5.Y:F1})");
+            Console.WriteLine($"   tmpTopST5 = ({tmpTopST5.X:F1}, {tmpTopST5.Y:F1})");
+            Console.WriteLine($"   tmpTopRT5 = ({tmpTopRT5.X:F1}, {tmpTopRT5.Y:F1})");
+            Console.WriteLine($"   polygon.Count = {punktyRegionuMasterModyfikowane.Count}");
+            Console.WriteLine("═══════════════════════════════════════════════");
 
+            // ─── GÓRA (forward: false — w kierunku przeciwnym do osi słupka) ───
+            var resLeftTop = FindFirstEdgeIntersectionByVectorEx(
+                tmpTopLT5, TopXT5, BottomXT5, punktyRegionuMasterModyfikowane, forward: false);
+            XPoint leftTopIntersection = resLeftTop.Punkt;
+
+            var resMidTop = FindFirstEdgeIntersectionByVectorEx(
+                tmpTopST5, TopXT5, BottomXT5, punktyRegionuMasterModyfikowane, forward: false);
+            XPoint midTopIntersection = resMidTop.Punkt;
+
+            var resRightTop = FindFirstEdgeIntersectionByVectorEx(
+                tmpTopRT5, TopXT5, BottomXT5, punktyRegionuMasterModyfikowane, forward: false);
+            XPoint rightTopIntersection = resRightTop.Punkt;
+
+            // ─── DÓŁ (forward: true — w kierunku osi słupka) ───
+            var resLeftBottom = FindFirstEdgeIntersectionByVectorEx(
+                tmpTopLT5, TopXT5, BottomXT5, punktyRegionuMasterModyfikowane, forward: true);
+            XPoint leftBottomIntersection = resLeftBottom.Punkt;
+
+            var resMidBottom = FindFirstEdgeIntersectionByVectorEx(
+                tmpTopST5, TopXT5, BottomXT5, punktyRegionuMasterModyfikowane, forward: true);
+            XPoint midBottomIntersection = resMidBottom.Punkt;
+
+            var resRightBottom = FindFirstEdgeIntersectionByVectorEx(
+                tmpTopRT5, TopXT5, BottomXT5, punktyRegionuMasterModyfikowane, forward: true);
+            XPoint rightBottomIntersection = resRightBottom.Punkt;
+
+            // ═══════════════════════════════════════════════════════════════════════
+            //  RAPORT ZBIORCZY
+            // ═══════════════════════════════════════════════════════════════════════
+            Console.WriteLine("═══════════════════════════════════════════════");
+            Console.WriteLine("🔷 T5-T5: RAPORT PRZECIĘĆ");
+            Console.WriteLine($"   leftTop       ({resLeftTop.Znaleziono,5}) → ({leftTopIntersection.X:F1}, {leftTopIntersection.Y:F1})");
+            Console.WriteLine($"   midTop        ({resMidTop.Znaleziono,5}) → ({midTopIntersection.X:F1}, {midTopIntersection.Y:F1})");
+            Console.WriteLine($"   rightTop      ({resRightTop.Znaleziono,5}) → ({rightTopIntersection.X:F1}, {rightTopIntersection.Y:F1})");
+            Console.WriteLine($"   leftBottom    ({resLeftBottom.Znaleziono,5}) → ({leftBottomIntersection.X:F1}, {leftBottomIntersection.Y:F1})");
+            Console.WriteLine($"   midBottom     ({resMidBottom.Znaleziono,5}) → ({midBottomIntersection.X:F1}, {midBottomIntersection.Y:F1})");
+            Console.WriteLine($"   rightBottom   ({resRightBottom.Znaleziono,5}) → ({rightBottomIntersection.X:F1}, {rightBottomIntersection.Y:F1})");
+
+            int liczbaZnalezionych =
+                (resLeftTop.Znaleziono ? 1 : 0) +
+                (resMidTop.Znaleziono ? 1 : 0) +
+                (resRightTop.Znaleziono ? 1 : 0) +
+                (resLeftBottom.Znaleziono ? 1 : 0) +
+                (resMidBottom.Znaleziono ? 1 : 0) +
+                (resRightBottom.Znaleziono ? 1 : 0);
+
+            Console.WriteLine($"   Znaleziono przecięć: {liczbaZnalezionych}/6");
+
+            // ═══════════════════════════════════════════════════════════════════════
+            //  DETEKCJA KLINA (nie wszystkie przecięcia znalezione)
+            // ═══════════════════════════════════════════════════════════════════════
+            bool goraJestKlinem = !resLeftTop.Znaleziono || !resRightTop.Znaleziono;
+            bool dolJestKlinem = !resLeftBottom.Znaleziono || !resRightBottom.Znaleziono;
+
+            if (goraJestKlinem || dolJestKlinem)
+            {
+                Console.WriteLine($"🔺 T5-T5: WYKRYTO KLIN (gora={goraJestKlinem}, dół={dolJestKlinem})");
+
+                // ⭐ GÓRA KLINA — jedna krawędź słupka wychodzi poza obrys → użyj fallbacku obrysu
+                if (goraJestKlinem)
+                {
+                    // Jeśli lewa nie znaleziona — ekstrapoluj z prawej + szerokości słupka
+                    if (!resLeftTop.Znaleziono)
+                    {
+                        // Użyj prawego punktu jako referencji (jeśli znaleziony) albo środka
+                        var reference = resRightTop.Znaleziono ? rightTopIntersection : midTopIntersection;
+
+                        // Przesuń w lewo o wektor prostopadły do osi słupka
+                        leftTopIntersection = new XPoint(
+                            reference.X - vxT5 * szerokoscSlupka,
+                            reference.Y - vyT5 * szerokoscSlupka);
+
+                        Console.WriteLine($"   🔧 leftTop (klin) → ({leftTopIntersection.X:F1}, {leftTopIntersection.Y:F1})");
+                    }
+
+                    if (!resRightTop.Znaleziono)
+                    {
+                        var reference = resLeftTop.Znaleziono ? leftTopIntersection : midTopIntersection;
+
+                        rightTopIntersection = new XPoint(
+                            reference.X + vxT5 * szerokoscSlupka,
+                            reference.Y + vyT5 * szerokoscSlupka);
+
+                        Console.WriteLine($"   🔧 rightTop (klin) → ({rightTopIntersection.X:F1}, {rightTopIntersection.Y:F1})");
+                    }
+                }
+
+                // ⭐ DÓŁ KLINA
+                if (dolJestKlinem)
+                {
+                    if (!resLeftBottom.Znaleziono)
+                    {
+                        var reference = resRightBottom.Znaleziono ? rightBottomIntersection : midBottomIntersection;
+
+                        leftBottomIntersection = new XPoint(
+                            reference.X - vxT5 * szerokoscSlupka,
+                            reference.Y - vyT5 * szerokoscSlupka);
+
+                        Console.WriteLine($"   🔧 leftBottom (klin) → ({leftBottomIntersection.X:F1}, {leftBottomIntersection.Y:F1})");
+                    }
+
+                    if (!resRightBottom.Znaleziono)
+                    {
+                        var reference = resLeftBottom.Znaleziono ? leftBottomIntersection : midBottomIntersection;
+
+                        rightBottomIntersection = new XPoint(
+                            reference.X + vxT5 * szerokoscSlupka,
+                            reference.Y + vyT5 * szerokoscSlupka);
+
+                        Console.WriteLine($"   🔧 rightBottom (klin) → ({rightBottomIntersection.X:F1}, {rightBottomIntersection.Y:F1})");
+                    }
+                }
+            }
+
+            // ═══════════════════════════════════════════════════════════════════════
+            //  WALIDACJA KOŃCOWA — jeśli któryś punkt nadal jest podejrzany
+            // ═══════════════════════════════════════════════════════════════════════
+            bool IsSuspiciousPoint(XPoint p, double minX, double minY, double maxX, double maxY)
+            {
+                // Punkt podejrzany jeśli poza obszarem konstrukcji z dużym marginesem
+                const double margin = 1000;
+                return p.X < minX - margin || p.X > maxX + margin ||
+                       p.Y < minY - margin || p.Y > maxY + margin ||
+                       (p.X < 0 && p.Y < 0 && Math.Abs(p.X + 1) < 0.01 && Math.Abs(p.Y + 1) < 0.01);
+            }
+
+            // Sprawdź granice konstrukcji na podstawie punktów regionu
+            double minX = punktyRegionuMasterModyfikowane.Min(p => p.X);
+            double maxX = punktyRegionuMasterModyfikowane.Max(p => p.X);
+            double minY = punktyRegionuMasterModyfikowane.Min(p => p.Y);
+            double maxY = punktyRegionuMasterModyfikowane.Max(p => p.Y);
+
+            var podejrzane = new List<string>();
+            if (IsSuspiciousPoint(leftTopIntersection, minX, minY, maxX, maxY)) podejrzane.Add("leftTop");
+            if (IsSuspiciousPoint(midTopIntersection, minX, minY, maxX, maxY)) podejrzane.Add("midTop");
+            if (IsSuspiciousPoint(rightTopIntersection, minX, minY, maxX, maxY)) podejrzane.Add("rightTop");
+            if (IsSuspiciousPoint(leftBottomIntersection, minX, minY, maxX, maxY)) podejrzane.Add("leftBottom");
+            if (IsSuspiciousPoint(midBottomIntersection, minX, minY, maxX, maxY)) podejrzane.Add("midBottom");
+            if (IsSuspiciousPoint(rightBottomIntersection, minX, minY, maxX, maxY)) podejrzane.Add("rightBottom");
+
+            if (podejrzane.Any())
+            {
+                Console.WriteLine($"⚠️ T5-T5: PODEJRZANE PUNKTY: {string.Join(", ", podejrzane)}");
+                Console.WriteLine($"   Granice konstrukcji: X[{minX:F0}..{maxX:F0}], Y[{minY:F0}..{maxY:F0}]");
+            }
+
+            Console.WriteLine("═══════════════════════════════════════════════");
+
+            // ─── DALSZE PRZYPISANIE ───
             var TopLT5 = leftTopIntersection;
             var TopST5 = midTopIntersection;
             var TopRT5 = rightTopIntersection;
@@ -2131,9 +2286,6 @@ namespace GEORGE.Client.Pages.Okna
             var BottomSTT5 = midBottomIntersection;
             var BottomRT5 = rightBottomIntersection;
 
-            // ============================================================
-            // 12. CZWOROKĄT SŁUPKA
-            // ============================================================
             var wierzcholki = new List<XPoint>
             {
                 TopRT5,
@@ -2144,10 +2296,31 @@ namespace GEORGE.Client.Pages.Okna
 
             Console.WriteLine($"🔷 T5-T5 -> czworokąt słupka: {wierzcholki.Count} punktów");
 
+            var TopLT5S = leftTopIntersection;
+            var TopST5S = midTopIntersection;
+            var TopRT5S = rightTopIntersection;
+
+            var BottomLT5S = leftBottomIntersection;
+            var BottomSTT5S = midBottomIntersection;
+            var BottomRT5S = rightBottomIntersection;
+
+            // ============================================================
+            // 12. CZWOROKĄT SŁUPKA
+            // ============================================================
+            var wierzcholkiS = new List<XPoint>
+            {
+                TopRT5S,
+                TopLT5S,
+                BottomLT5S,
+                BottomRT5S
+            };
+
+            Console.WriteLine($"🔷 T5-T5 -> czworokąt słupka: {wierzcholkiS.Count} punktów");
+
             return new WynikWierzcholkow
             {
                 Ok = true,
-                Wierzcholki = wierzcholki,
+                Wierzcholki = wierzcholkiS,
                 DodajA = false,
                 DodajB = false
             };
@@ -2652,12 +2825,294 @@ namespace GEORGE.Client.Pages.Okna
             return closest ?? origin;
         }
 
+        /// <summary>
+        /// Znajduje pierwsze przecięcie promienia (basePoint + kierunek dirStart→dirEnd)
+        /// z krawędziami wielokąta polygon.
+        /// 
+        /// Zwraca krotkę (punkt, znaleziono):
+        ///   - (punkt, true)   — znaleziono przecięcie z krawędzią obrysu
+        ///   - (punkt, false)  — brak przecięcia (użyto fallbacku: rzut basePoint na najbliższą krawędź)
+        /// 
+        /// Dodatkowo loguje wszystkie punkty wejściowe w polygon oraz wynik każdej iteracji.
+        /// </summary>
+        private (XPoint Punkt, bool Znaleziono) FindFirstEdgeIntersectionByVectorEx(
+        XPoint basePoint, XPoint dirStart, XPoint dirEnd,
+        List<XPoint> polygon, bool forward = true, double tolerance = 0.01)
+        {
+            // ═══════════════════════════════════════════════════════════
+            // LOG WEJŚCIA
+            // ═══════════════════════════════════════════════════════════
+            Console.WriteLine("───────────────────────────────────────────────");
+            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx");
+            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   basePoint = ({basePoint.X:F2}, {basePoint.Y:F2})");
+            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   dirStart  = ({dirStart.X:F2}, {dirStart.Y:F2})");
+            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   dirEnd    = ({dirEnd.X:F2}, {dirEnd.Y:F2})");
+            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   forward   = {forward}");
+            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   tolerance = {tolerance}");
+            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   polygon.Count = {polygon?.Count ?? 0}");
+
+            if (polygon == null || polygon.Count < 3)
+            {
+                Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   ⚠️ polygon ma < 3 punktów — zwracam basePoint, znaleziono=false");
+                return (basePoint, false);
+            }
+
+            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   📍 Punkty w polygon:");
+            for (int k = 0; k < polygon.Count; k++)
+                Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx      [{k}] ({polygon[k].X:F2}, {polygon[k].Y:F2})");
+
+            // ═══════════════════════════════════════════════════════════
+            // KROK 0: SPRAWDŹ CZY basePoint JEST WEWNĄTRZ POLYGONU
+            //         Jeśli nie — przesuń go w JEDNEJ osi do środka konturu
+            // ═══════════════════════════════════════════════════════════
+            XPoint effectiveBase = basePoint;
+
+            bool baseWewnatrz = IsPointInPolygon(basePoint, polygon);
+
+            if (!baseWewnatrz)
+            {
+                Console.WriteLine($"   ⚠️ basePoint ({basePoint.X:F2}, {basePoint.Y:F2}) POZA polygonem");
+
+                // Oblicz centroid polygonu (środek konturu)
+                double centroidX = polygon.Average(p => p.X);
+                double centroidY = polygon.Average(p => p.Y);
+
+                // ⭐ Spróbuj przesunąć w X — czy punkt (centroidX, basePoint.Y) jest wewnątrz?
+                var tryX = new XPoint(centroidX, basePoint.Y);
+                bool tryXWewnatrz = IsPointInPolygon(tryX, polygon);
+
+                // ⭐ Spróbuj przesunąć w Y — czy punkt (basePoint.X, centroidY) jest wewnątrz?
+                var tryY = new XPoint(basePoint.X, centroidY);
+                bool tryYWewnatrz = IsPointInPolygon(tryY, polygon);
+
+                Console.WriteLine($"   🔍 Test przesunięcia:");
+                Console.WriteLine($"      X → ({tryX.X:F1}, {tryX.Y:F1}) wewnątrz={tryXWewnatrz}");
+                Console.WriteLine($"      Y → ({tryY.X:F1}, {tryY.Y:F1}) wewnątrz={tryYWewnatrz}");
+
+                if (tryXWewnatrz && tryYWewnatrz)
+                {
+                    // ⭐ Oba działają — wybierz ten z mniejszą zmianą
+                    double zmianaX = Math.Abs(tryX.X - basePoint.X);
+                    double zmianaY = Math.Abs(tryY.Y - basePoint.Y);
+
+                    if (zmianaX <= zmianaY)
+                    {
+                        effectiveBase = tryX;
+                        Console.WriteLine($"   🔄 Wybrano X (mniejsza zmiana: {zmianaX:F1} vs {zmianaY:F1})");
+                    }
+                    else
+                    {
+                        effectiveBase = tryY;
+                        Console.WriteLine($"   🔄 Wybrano Y (mniejsza zmiana: {zmianaY:F1} vs {zmianaX:F1})");
+                    }
+                }
+                else if (tryXWewnatrz)
+                {
+                    effectiveBase = tryX;
+                    Console.WriteLine($"   🔄 Wybrano X (jedyna działająca)");
+                }
+                else if (tryYWewnatrz)
+                {
+                    effectiveBase = tryY;
+                    Console.WriteLine($"   🔄 Wybrano Y (jedyna działająca)");
+                }
+                else
+                {
+                    // ⭐ Ostatnia deska ratunku: przesuń do centroidu w obu osiach
+                    effectiveBase = new XPoint(centroidX, centroidY);
+                    Console.WriteLine($"   🔄 Fallback: przesuwam do centroidu ({centroidX:F1}, {centroidY:F1})");
+                }
+
+                Console.WriteLine($"   ✅ effectiveBase = ({effectiveBase.X:F2}, {effectiveBase.Y:F2})");
+            }
+            else
+            {
+                Console.WriteLine($"   ✅ basePoint jest WEWNĄTRZ polygonu — bez zmian");
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            // OBLICZ KIERUNEK (na podstawie oryginalnych dirStart/dirEnd)
+            // ═══════════════════════════════════════════════════════════
+            double dx = dirEnd.X - dirStart.X;
+            double dy = dirEnd.Y - dirStart.Y;
+            double len = Math.Sqrt(dx * dx + dy * dy);
+
+            if (len < 1e-8)
+            {
+                dx = 0;
+                dy = forward ? 1 : -1;
+                Console.WriteLine($"   ⚠️ Kierunek zerowy — używam domyślnego: ({dx}, {dy})");
+            }
+            else
+            {
+                dx /= len;
+                dy /= len;
+                if (!forward) { dx = -dx; dy = -dy; }
+                Console.WriteLine($"   ➡️ Kierunek jednostkowy: ({dx:F4}, {dy:F4})");
+            }
+
+            XPoint? closest = null;
+            double minDistSq = double.MaxValue;
+
+            // ═══════════════════════════════════════════════════════════
+            // ITERACJA PO KRAWĘDZIACH — używamy effectiveBase
+            // ═══════════════════════════════════════════════════════════
+            for (int i = 0; i < polygon.Count; i++)
+            {
+                int next = (i + 1) % polygon.Count;
+
+                var inter = GetLinesIntersectionNullable(
+                    effectiveBase,
+                    new XPoint(effectiveBase.X + dx * 10000.0, effectiveBase.Y + dy * 10000.0),
+                    polygon[i], polygon[next]);
+
+                if (!inter.HasValue)
+                {
+                    // Sprawdź końce krawędzi
+                    foreach (var pt in new[] { polygon[i], polygon[next] })
+                    {
+                        double cross = Math.Abs((pt.X - effectiveBase.X) * dy - (pt.Y - effectiveBase.Y) * dx);
+                        if (cross > tolerance) continue;
+
+                        double dot = (pt.X - effectiveBase.X) * dx + (pt.Y - effectiveBase.Y) * dy;
+                        if (dot >= -tolerance)
+                        {
+                            double distSq = (pt.X - effectiveBase.X) * (pt.X - effectiveBase.X) +
+                                            (pt.Y - effectiveBase.Y) * (pt.Y - effectiveBase.Y);
+                            if (distSq < minDistSq && distSq > tolerance)
+                            {
+                                minDistSq = distSq;
+                                closest = pt;
+                                Console.WriteLine($"      [{i}] koniec krawędzi: ({pt.X:F2}, {pt.Y:F2}) distSq={distSq:F2}");
+                            }
+                        }
+                    }
+                    continue;
+                }
+
+                var p = inter.Value;
+
+                double dotInter = (p.X - effectiveBase.X) * dx + (p.Y - effectiveBase.Y) * dy;
+                if (dotInter < -tolerance)
+                {
+                    Console.WriteLine($"      [{i}] przecięcie za plecami: ({p.X:F2}, {p.Y:F2}) dot={dotInter:F2}");
+                    continue;
+                }
+
+                double distSqInter = (p.X - effectiveBase.X) * (p.X - effectiveBase.X) +
+                                     (p.Y - effectiveBase.Y) * (p.Y - effectiveBase.Y);
+
+                if (distSqInter < tolerance)
+                {
+                    Console.WriteLine($"      [{i}] przecięcie zbyt blisko: ({p.X:F2}, {p.Y:F2})");
+                    continue;
+                }
+
+                Console.WriteLine($"      [{i}] ✅ przecięcie: ({p.X:F2}, {p.Y:F2}) distSq={distSqInter:F2}");
+
+                if (distSqInter < minDistSq)
+                {
+                    minDistSq = distSqInter;
+                    closest = p;
+                }
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            // ZNALEZIONO PRZECIĘCIE
+            // ═══════════════════════════════════════════════════════════
+            if (closest.HasValue)
+            {
+                Console.WriteLine($"   🎯 WYNIK: ({closest.Value.X:F2}, {closest.Value.Y:F2}) znaleziono=true");
+                Console.WriteLine("───────────────────────────────────────────────");
+                return (closest.Value, true);
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            // FALLBACK — brak przecięcia
+            // ═══════════════════════════════════════════════════════════
+            Console.WriteLine($"   ⚠️ Brak przecięcia — fallback (rzut na obrys)");
+
+            XPoint? nearest = null;
+            double nearestDist = double.MaxValue;
+
+            for (int i = 0; i < polygon.Count; i++)
+            {
+                int next = (i + 1) % polygon.Count;
+                var proj = ProjectPointOnSegment(effectiveBase, polygon[i], polygon[next]);
+                double d = (proj.X - effectiveBase.X) * (proj.X - effectiveBase.X) +
+                           (proj.Y - effectiveBase.Y) * (proj.Y - effectiveBase.Y);
+
+                double dot = (proj.X - effectiveBase.X) * dx + (proj.Y - effectiveBase.Y) * dy;
+                if (dot < -tolerance) continue;
+
+                if (d < nearestDist)
+                {
+                    nearestDist = d;
+                    nearest = proj;
+                }
+            }
+
+            if (nearest.HasValue)
+            {
+                Console.WriteLine($"   🎯 WYNIK FALLBACK: ({nearest.Value.X:F2}, {nearest.Value.Y:F2}) znaleziono=false");
+                Console.WriteLine("───────────────────────────────────────────────");
+                return (nearest.Value, false);
+            }
+
+            Console.WriteLine($"   ❌ Brak kandydata — zwracam effectiveBase, znaleziono=false");
+            Console.WriteLine("───────────────────────────────────────────────");
+            return (effectiveBase, false);
+        }
+
+
+        /// <summary>
+        /// Sprawdza czy punkt jest wewnątrz wielokąta (algorytm ray casting).
+        /// </summary>
+        private static bool IsPointInPolygon(XPoint p, List<XPoint> polygon)
+        {
+            if (polygon == null || polygon.Count < 3)
+                return false;
+
+            bool inside = false;
+            int n = polygon.Count;
+
+            for (int i = 0, j = n - 1; i < n; j = i++)
+            {
+                double xi = polygon[i].X;
+                double yi = polygon[i].Y;
+                double xj = polygon[j].X;
+                double yj = polygon[j].Y;
+
+                // Sprawdź czy punkt leży dokładnie na krawędzi
+                if (Math.Abs(xi - p.X) < 0.001 && Math.Abs(yi - p.Y) < 0.001)
+                    return true;
+
+                bool intersect = ((yi > p.Y) != (yj > p.Y));
+
+                if (intersect)
+                {
+                    double denominator = yj - yi;
+                    if (Math.Abs(denominator) < 1e-9) continue;
+
+                    double intersectX = (xj - xi) * (p.Y - yi) / denominator + xi;
+
+                    if (Math.Abs(p.X - intersectX) < 0.001)  // na krawędzi
+                        return true;
+
+                    if (p.X < intersectX)
+                        inside = !inside;
+                }
+            }
+
+            return inside;
+        }
+
         // ============================================================
         // FindFirstEdgeIntersectionByVector
         // ============================================================
         private XPoint FindFirstEdgeIntersectionByVector(
-            XPoint basePoint, XPoint dirStart, XPoint dirEnd,
-            List<XPoint> polygon, bool forward = true, double tolerance = 0.01)
+        XPoint basePoint, XPoint dirStart, XPoint dirEnd,
+        List<XPoint> polygon, bool forward = true, double tolerance = 0.01)
         {
             double dx = dirEnd.X - dirStart.X;
             double dy = dirEnd.Y - dirStart.Y;
@@ -2726,8 +3181,39 @@ namespace GEORGE.Client.Pages.Okna
                 }
             }
 
+            // ⭐ NOWY FALLBACK: zamiast (-1,-1) — najbliższy punkt na obrysie
             if (!closest.HasValue)
-                return new XPoint { X = -1, Y = -1 };
+            {
+                Console.WriteLine($"⚠️ FindFirstEdgeIntersectionByVector: brak przecięcia, używam fallbacku dla ({basePoint.X:F1},{basePoint.Y:F1})");
+
+                // Rzutuj basePoint na najbliższą krawędź obrysu
+                XPoint? nearest = null;
+                double nearestDist = double.MaxValue;
+
+                for (int i = 0; i < polygon.Count; i++)
+                {
+                    int next = (i + 1) % polygon.Count;
+                    var proj = ProjectPointOnSegment(basePoint, polygon[i], polygon[next]);
+                    double d = (proj.X - basePoint.X) * (proj.X - basePoint.X) +
+                               (proj.Y - basePoint.Y) * (proj.Y - basePoint.Y);
+
+                    // Preferuj punkty w kierunku promienia
+                    double dot = (proj.X - basePoint.X) * dx + (proj.Y - basePoint.Y) * dy;
+                    if (dot < -tolerance) continue;
+
+                    if (d < nearestDist)
+                    {
+                        nearestDist = d;
+                        nearest = proj;
+                    }
+                }
+
+                if (nearest.HasValue)
+                    return nearest.Value;
+
+                // Ostatni fallback — zwróć basePoint (żeby nie psuć geometrii)
+                return basePoint;
+            }
 
             return closest.Value;
         }
@@ -4733,7 +5219,7 @@ namespace GEORGE.Client.Pages.Okna
             bool bottomZmieniony,
             double przesuniecieTop,
             double przesuniecieBottom,
-            bool enableLogs = false)
+            bool enableLogs = true)
         {
             if (source == null || source.Count == 0)
             {

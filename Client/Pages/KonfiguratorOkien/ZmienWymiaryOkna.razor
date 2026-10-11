@@ -54,21 +54,25 @@ else
                                                                     bool rozstawPionowe = czySzerokosc || czyPromien || czyKwadrat;
                                                                     bool rozstawPoziome = czyWysokosc || czyPromien || czyKwadrat;
 
-                                                                    await PodzielLinieSymetrycznieAsync(true,
-                                                                        pionowe: rozstawPionowe,
-                                                                        poziome: rozstawPoziome);
+                                                                    bool rozciagnij = czySzerokosc || czyWysokosc || czyPromien || czyKwadrat;
+
+                                                                    await PodzielLinieSymetrycznieAsync(
+                                                                    ustawTylkoLinie: true,
+                                                                    pionowe: rozstawPionowe,
+                                                                    poziome: rozstawPoziome,
+                                                                    rozciagnijLinie: rozciagnij); 
                                                                 }
 
                                                                 StateHasChanged();
                                                             })"
                                            Style="flex: 1;" />
 
-                                    <AntDesign.Button Type="@ButtonType.Default"
-                                                        Icon="calculator"
-                                                        OnClick="@(() => ShowCalculator(index))"
-                                                        Size="small"
-                                                        Style="height: 32px;" />
-                                </div>
+                                                                                                <AntDesign.Button Type="@ButtonType.Default"
+                                                                                                                  Icon="calculator"
+                                                                                                                  OnClick="@(() => ShowCalculator(index))"
+                                                                                                                  Size="small"
+                                                                                                                  Style="height: 32px;" />
+                                                                                            </div>
                                 }
                             else
                             {
@@ -132,7 +136,7 @@ else
                 @* DIAGNOSTYKA — widoczna na górze                                *@
                 @* ═══════════════════════════════════════════════════════════ *@
                 <div style="background: #fffbe6; padding: 8px; margin-bottom: 10px;
-                    border: 1px solid #ffe58f; border-radius: 4px; font-size: 12px;">
+                border: 1px solid #ffe58f; border-radius: 4px; font-size: 12px;">
                     🔍 <b>Linie:</b>
                     wszystkich=@grupyLinii.Count,
                     pionowe=@liniePionowe.Count,
@@ -175,53 +179,48 @@ else
                                 licznikPion++;
 
                                 <div style="border: 2px solid #91d5ff; border-radius: 6px;
-                                                padding: 10px; margin-bottom: 12px; background: white;
-                                                box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                                                    padding: 10px; margin-bottom: 12px; background: white;
+                                                                    box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
 
                                     @* Nagłówek linii *@
                                     <div style="background: #e6f7ff; padding: 6px 10px; border-radius: 4px;
-                                                    margin-bottom: 10px; display: flex; justify-content: space-between;
-                                                    align-items: center;">
+                                                                        margin-bottom: 10px; display: flex; justify-content: space-between;
+                                                                        align-items: center;">
                                         <b style="color: #1890ff;">📏 Linia pionowa #@licznikPion</b>
                                         <span style="color: #888; font-size: 11px;">
-                                            ID: @(grupa.Key?.Length >= 8 ? grupa.Key.Substring(0, 8) + "..." : grupa.Key)
+                                            ID: @(grupa.Key?.Length >= 50 ? grupa.Key.Substring(0, 50) + "..." : grupa.Key)
                                         </span>
                                     </div>
 
-                                    @* Właściwości linii *@
+                                    @* Właściwości linii — edytowalne *@
                                     @foreach (var (index, prop) in grupa.Where(x => !x.Prop.IsReadOnly))
                                     {
                                         <div style="padding: 5px; margin-bottom: 6px; border-bottom: 1px dashed #f0f0f0;">
                                             <label style="font-weight: 500; color: #333; display: block;
-                                                                  margin-bottom: 3px; font-size: 13px;">
+                                                                                      margin-bottom: 3px; font-size: 13px;">
                                                 @prop.Label
                                             </label>
 
                                             <div style="display: flex; align-items: center; gap: 5px;">
                                                 <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
-                                                                       ValueChanged="@(async (double value) =>
-                                                                        {
-                                                                            Model.UpdateEditableProperty(index, value);
-                                                                            StateHasChanged();
-                                                                        })"
-                                                   Disabled="@prop.IsReadOnly"
-                                                   Style="flex: 1;" />
+                                                                       ValueChanged="@(async (double value) => await HandleLiniaPionowaChange(index, value))"
+                                                                       Style="flex: 1;" />
 
-                                                    <AntDesign.Button Type="@ButtonType.Default"
-                                                                        Icon="calculator"
-                                                                        OnClick="@(() => ShowCalculator(index))"
-                                                                        Size="small"
-                                                                        Style="height: 32px;" />
-                                                </div>
+                                                <AntDesign.Button Type="@ButtonType.Default"
+                                                                  Icon="calculator"
+                                                                  OnClick="@(() => ShowCalculator(index))"
+                                                                  Size="small"
+                                                                  Style="height: 32px;" />
                                             </div>
-                                        }
+                                        </div>
+                                    }
 
                                     @* Właściwości tylko do odczytu (np. Kąt) *@
                                     @foreach (var (index, prop) in grupa.Where(x => x.Prop.IsReadOnly))
                                     {
                                         <div style="padding: 5px; margin-bottom: 6px;">
                                             <label style="font-weight: 500; color: #888; display: block;
-                                                                  margin-bottom: 3px; font-size: 13px;">
+                                                                                      margin-bottom: 3px; font-size: 13px;">
                                                 @prop.Label
                                             </label>
 
@@ -264,49 +263,47 @@ else
                                 licznikPoz++;
 
                                 <div style="border: 2px solid #b7eb8f; border-radius: 6px;
-                                                padding: 10px; margin-bottom: 12px; background: white;
-                                                box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                                                    padding: 10px; margin-bottom: 12px; background: white;
+                                                                    box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
 
                                     <div style="background: #f6ffed; padding: 6px 10px; border-radius: 4px;
-                                                    margin-bottom: 10px; display: flex; justify-content: space-between;
-                                                    align-items: center;">
+                                                                        margin-bottom: 10px; display: flex; justify-content: space-between;
+                                                                        align-items: center;">
                                         <b style="color: #52c41a;">📐 Linia pozioma #@licznikPoz</b>
                                         <span style="color: #888; font-size: 11px;">
-                                            ID: @(grupa.Key?.Length >= 8 ? grupa.Key.Substring(0, 8) + "..." : grupa.Key)
+                                            ID: @(grupa.Key?.Length >= 50 ? grupa.Key.Substring(0, 50) + "..." : grupa.Key)
                                         </span>
                                     </div>
 
+                                    @* Właściwości linii — edytowalne *@
                                     @foreach (var (index, prop) in grupa.Where(x => !x.Prop.IsReadOnly))
                                     {
                                         <div style="padding: 5px; margin-bottom: 6px; border-bottom: 1px dashed #f0f0f0;">
                                             <label style="font-weight: 500; color: #333; display: block;
-                                                                  margin-bottom: 3px; font-size: 13px;">
+                                                                                      margin-bottom: 3px; font-size: 13px;">
                                                 @prop.Label
                                             </label>
 
                                             <div style="display: flex; align-items: center; gap: 5px;">
                                                 <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
-                                                                       ValueChanged="@(async (double value) =>
-                                                                        {
-                                                                            Model.UpdateEditableProperty(index, value);
-                                                                            StateHasChanged();
-                                                                        })"
-                                                   Style="flex: 1;" />
+                                                                       ValueChanged="@(async (double value) => await HandleLiniaPoziomaChange(index, value))"
+                                                                       Style="flex: 1;" />
 
                                                 <AntDesign.Button Type="@ButtonType.Default"
-                                                                    Icon="calculator"
-                                                                    OnClick="@(() => ShowCalculator(index))"
-                                                                    Size="small"
-                                                                    Style="height: 32px;" />
+                                                                  Icon="calculator"
+                                                                  OnClick="@(() => ShowCalculator(index))"
+                                                                  Size="small"
+                                                                  Style="height: 32px;" />
                                             </div>
-                                                                                                   </div>
-                                        }
+                                        </div>
+                                    }
 
+                                    @* Właściwości tylko do odczytu *@
                                     @foreach (var (index, prop) in grupa.Where(x => x.Prop.IsReadOnly))
                                     {
                                         <div style="padding: 5px; margin-bottom: 6px;">
                                             <label style="font-weight: 500; color: #888; display: block;
-                                                                  margin-bottom: 3px; font-size: 13px;">
+                                                                                      margin-bottom: 3px; font-size: 13px;">
                                                 @prop.Label
                                             </label>
 
@@ -340,49 +337,47 @@ else
                                 licznikSko++;
 
                                 <div style="border: 2px solid #ffd591; border-radius: 6px;
-                                                padding: 10px; margin-bottom: 12px; background: white;
-                                                box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                                                    padding: 10px; margin-bottom: 12px; background: white;
+                                                                    box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
 
                                     <div style="background: #fff7e6; padding: 6px 10px; border-radius: 4px;
-                                                    margin-bottom: 10px; display: flex; justify-content: space-between;
-                                                    align-items: center;">
+                                                                        margin-bottom: 10px; display: flex; justify-content: space-between;
+                                                                        align-items: center;">
                                         <b style="color: #fa8c16;">📐 Linia skośna #@licznikSko</b>
                                         <span style="color: #888; font-size: 11px;">
-                                            ID: @(grupa.Key?.Length >= 8 ? grupa.Key.Substring(0, 8) + "..." : grupa.Key)
+                                            ID: @(grupa.Key?.Length >= 50 ? grupa.Key.Substring(0, 50) + "..." : grupa.Key)
                                         </span>
                                     </div>
 
+                                    @* Właściwości linii — edytowalne *@
                                     @foreach (var (index, prop) in grupa.Where(x => !x.Prop.IsReadOnly))
                                     {
                                         <div style="padding: 5px; margin-bottom: 6px; border-bottom: 1px dashed #f0f0f0;">
                                             <label style="font-weight: 500; color: #333; display: block;
-                                                                  margin-bottom: 3px; font-size: 13px;">
+                                                                                      margin-bottom: 3px; font-size: 13px;">
                                                 @prop.Label
                                             </label>
 
                                             <div style="display: flex; align-items: center; gap: 5px;">
                                                 <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
-                                                                       ValueChanged="@(async (double value) =>
-                                                                        {
-                                                                            Model.UpdateEditableProperty(index, value);
-                                                                            StateHasChanged();
-                                                                        })"
-                                                   Style="flex: 1;" />
+                                                                       ValueChanged="@(async (double value) => await HandleLiniaSkosnaChange(index, value))"
+                                                                       Style="flex: 1;" />
 
                                                 <AntDesign.Button Type="@ButtonType.Default"
-                                                                    Icon="calculator"
-                                                                    OnClick="@(() => ShowCalculator(index))"
-                                                                    Size="small"
-                                                                    Style="height: 32px;" />
-                                                                                                       </div>
-                                                                                                   </div>
-                                        }
+                                                                  Icon="calculator"
+                                                                  OnClick="@(() => ShowCalculator(index))"
+                                                                  Size="small"
+                                                                  Style="height: 32px;" />
+                                            </div>
+                                        </div>
+                                    }
 
+                                    @* Właściwości tylko do odczytu *@
                                     @foreach (var (index, prop) in grupa.Where(x => x.Prop.IsReadOnly))
                                     {
                                         <div style="padding: 5px; margin-bottom: 6px;">
                                             <label style="font-weight: 500; color: #888; display: block;
-                                                                  margin-bottom: 3px; font-size: 13px;">
+                                                                                      margin-bottom: 3px; font-size: 13px;">
                                                 @prop.Label
                                             </label>
 
@@ -397,6 +392,7 @@ else
                     }
                 }
             </AntDesign.TabPane>
+
             @* ═══════════════════════════════════════════════════════════ *@
             @* ZAKŁADKA 3: KOLORYSTYKA                                     *@
             @* ═══════════════════════════════════════════════════════════ *@
@@ -491,8 +487,8 @@ else
                          Width="350">
             <div style="padding: 10px;">
                 <div style="background-color: #f0f0f0; padding: 10px; margin-bottom: 10px;
-                                                    text-align: right; font-size: 20px; font-weight: bold;
-                                                    border: 1px solid #d9d9d9; border-radius: 4px; min-height: 40px;">
+                                                            text-align: right; font-size: 20px; font-weight: bold;
+                                                            border: 1px solid #d9d9d9; border-radius: 4px; min-height: 40px;">
                     @(_calculatorExpression.Length > 0 ? _calculatorExpression : "0")
                 </div>
 
@@ -562,107 +558,577 @@ else
         _calculatorVisible = true;
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    //  HANDLER: zmiana właściwości linii PIONOWEJ
+    //  Reguła: zmiana X pionowej → tylko ta pionowa się rusza
+    //          zmiana Y1/Y2 pionowej → pionowa przyciąga się do najbliższej poziomej
+    // ═══════════════════════════════════════════════════════════════
+    private async Task HandleLiniaPionowaChange(int index, double value)
+    {
+        if (Model == null) return;
+
+        var prop = Model.EditableProperties[index];
+        var lbl = prop.Label?.ToLower() ?? "";
+        bool czyX = lbl.StartsWith("x1") || lbl.StartsWith("x2");
+
+        Model.UpdateEditableProperty(index, value);
+
+        // ⭐ Jeśli edytowano X pionowej i jest konflikt SplitGroupId z inną pionową
+        //    o innym X — rozdziel grupy
+        if (czyX && !string.IsNullOrEmpty(prop.SplitGroupId))
+        {
+            RozdzielKonfliktGrupPionowych(prop.SplitGroupId!);
+        }
+
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+
+    private void RozdzielKonfliktGrupPionowych(string groupId)
+    {
+        // Znajdź wszystkie pionowe w tej grupie (właściwości)
+        var pionoweWgrupie = Model!.EditableProperties
+            .Select((p, i) => (Index: i, Prop: p))
+            .Where(x => x.Prop.SplitGroupId == groupId && x.Prop.IsPionowa)
+            .GroupBy(x => x.Prop.ShapeId)
+            .ToList();
+
+        if (pionoweWgrupie.Count <= 1) return;
+
+        Console.WriteLine($"⚠️ RozdzielKonfliktGrupPionowych: grupa {groupId} ma {pionoweWgrupie.Count} różnych pionowych");
+
+        // ⭐ 1. Zaktualizuj EditableProperties
+        var mapaShapeIdNaNowyGroupId = new Dictionary<string, string>();
+
+        foreach (var g in pionoweWgrupie)
+        {
+            var noweGroupId = Guid.NewGuid().ToString();
+            mapaShapeIdNaNowyGroupId[g.Key!] = noweGroupId;
+
+            foreach (var (i, p) in g)
+            {
+                p.SplitGroupId = noweGroupId;
+            }
+
+            Console.WriteLine($"   → ShapeId {g.Key?.Substring(0, 8)} dostał nowy SplitGroupId={noweGroupId.Substring(0, 8)}");
+        }
+
+        // ⭐ 2. Zaktualizuj ShapeService.Shapes — to jest KLUCZOWE!
+        if (ShapeService?.Shapes != null)
+        {
+            foreach (var line in ShapeService.Shapes.OfType<XLineShape>())
+            {
+                if (line.ID != null && mapaShapeIdNaNowyGroupId.TryGetValue(line.ID, out var nowyGroupId))
+                {
+                    line.SplitGroupId = nowyGroupId;
+                    Console.WriteLine($"   🔧 Shape {line.ID.Substring(0, 8)}: SplitGroupId → {nowyGroupId.Substring(0, 8)}");
+                }
+            }
+        }
+    }
+
+
+    // ═══════════════════════════════════════════════════════════════
+    //  HANDLER: zmiana właściwości linii POZIOMEJ
+    //  Reguła: zmiana Y poziomej → automatycznie dopasuj końce pionowych stycznych
+    //          zmiana X poziomej (jeśli w ogóle) → nic
+    // ═══════════════════════════════════════════════════════════════
+    private async Task HandleLiniaPoziomaChange(int index, double value)
+    {
+        if (Model == null || index < 0 || index >= Model.EditableProperties.Count)
+            return;
+
+        var prop = Model.EditableProperties[index];
+        var lbl = prop.Label?.ToLower() ?? "";
+
+        Console.WriteLine($"🟢 HandleLiniaPoziomaChange: index={index}, " +
+                          $"label='{prop.Label}', value={value}");
+
+        // 1. Zapisz wartość
+        Model.UpdateEditableProperty(index, value);
+
+        // 2. Rozpoznaj którą właściwość edytowano
+        bool czyY = lbl.StartsWith("y1") || lbl.StartsWith("y2") ||
+                    lbl.Contains("w osi y1") || lbl.Contains("w osi y2");
+
+        if (czyY)
+        {
+            // ⭐ KLUCZOWE: propaguj styczność — pionowe końce dopasuj do poziomych
+            await PropagujStycznoscPionowychDoPoziomychAsync();
+        }
+
+        StateHasChanged();
+    }
+
+
+    // ═══════════════════════════════════════════════════════════════
+    //  HANDLER: zmiana właściwości linii SKOŚNEJ
+    // ═══════════════════════════════════════════════════════════════
+    private async Task HandleLiniaSkosnaChange(int index, double value)
+    {
+        if (Model == null || index < 0 || index >= Model.EditableProperties.Count)
+            return;
+
+        Model.UpdateEditableProperty(index, value);
+
+        Console.WriteLine($"🟠 HandleLiniaSkosnaChange: index={index}, value={value}");
+
+        // Skośne — brak automatycznej propagacji (użytkownik edytuje ręcznie)
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+
+
+    // ═══════════════════════════════════════════════════════════════
+    //  PROPAGACJA STYCZNOŚCI — pionowe końce dopasuj do poziomych
+    // ═══════════════════════════════════════════════════════════════
+    private async Task PropagujStycznoscPionowychDoPoziomychAsync()
+    {
+        if (Model == null) return;
+
+        // Zbierz Y wszystkich poziomych
+        var pozycjePoziome = new List<double>();
+
+        var liniePoziome = Model.EditableProperties
+            .Select((p, i) => (Index: i, Prop: p))
+            .Where(x => x.Prop.IsPozioma &&
+                        (x.Prop.Label?.ToLower().StartsWith("y1") == true ||
+                         x.Prop.Label?.ToLower().Contains("w osi y1") == true))
+            .Select(x => Model.GetPropertyValue(x.Index))
+            .ToList();
+
+        pozycjePoziome.AddRange(liniePoziome);
+
+        // Granice: 0, Y poziomych, Wysokosc
+        var wszystkieGraniceY = new List<double> { 0 };
+        wszystkieGraniceY.AddRange(pozycjePoziome);
+        wszystkieGraniceY.Add(Model.Wysokosc);
+        wszystkieGraniceY = wszystkieGraniceY
+            .Distinct()
+            .OrderBy(y => y)
+            .ToList();
+
+        Console.WriteLine($"📐 PropagujStycznosc: granice Y = " +
+                          $"[{string.Join(", ", wszystkieGraniceY.Select(g => g.ToString("F0")))}]");
+
+        // Znajdź wszystkie pionowe (grupy)
+        var grupyPionowe = Model.EditableProperties
+            .Select((p, i) => (Index: i, Prop: p))
+            .Where(x => x.Prop.IsPionowa)
+            .GroupBy(x => x.Prop.SplitGroupId ?? x.Prop.ShapeId)
+            .ToList();
+
+        foreach (var grupa in grupyPionowe)
+        {
+            string gid = grupa.Key ?? "";
+
+            // Pobierz aktualne Y1, Y2 pionowej
+            var y1Prop = grupa.FirstOrDefault(x =>
+                x.Prop.Label?.ToLower().StartsWith("y1") == true ||
+                x.Prop.Label?.ToLower().Contains("w osi y1") == true);
+
+            var y2Prop = grupa.FirstOrDefault(x =>
+                x.Prop.Label?.ToLower().StartsWith("y2") == true ||
+                x.Prop.Label?.ToLower().Contains("w osi y2") == true);
+
+            if (y1Prop.Prop == null || y2Prop.Prop == null)
+            {
+                Console.WriteLine($"   ⏭️ Pionowa {gid}: brak Y1/Y2 — pomijam");
+                continue;
+            }
+
+            double y1Akt = Model.GetPropertyValue(y1Prop.Index);
+            double y2Akt = Model.GetPropertyValue(y2Prop.Index);
+
+            // Znajdź nowe granice
+            double noweY1 = ZnajdzNajblizszaGranice(wszystkieGraniceY, y1Akt, "dolna");
+            double noweY2 = ZnajdzNajblizszaGranice(wszystkieGraniceY, y2Akt, "gorna");
+
+            if (noweY1 >= noweY2)
+            {
+                Console.WriteLine($"   ⚠️ Pionowa {gid}: noweY1({noweY1:F0}) >= noweY2({noweY2:F0}) — pomijam");
+                continue;
+            }
+
+            Console.WriteLine($"   📏 Pionowa {gid}: Y [{y1Akt:F0},{y2Akt:F0}] → [{noweY1:F0},{noweY2:F0}]");
+
+            Model.UpdateEditableProperty(y1Prop.Index, noweY1);
+            Model.UpdateEditableProperty(y2Prop.Index, noweY2);
+        }
+
+        await Task.CompletedTask;
+    }
+
+
+    // ═══════════════════════════════════════════════════════════════
+    //  PRZYCIĄGNIJ PIONOWĄ DO POZIOMEJ (ręczna zmiana Y pionowej)
+    // ═══════════════════════════════════════════════════════════════
+    private async Task PrzyciagnijPionowaDoPoziomej(string? groupId)
+    {
+        if (Model == null || string.IsNullOrEmpty(groupId)) return;
+
+        // Zbierz Y wszystkich poziomych + granice okna
+        var granice = new List<double> { 0 };
+        granice.AddRange(
+            Model.EditableProperties
+                .Where(p => p.IsPozioma &&
+                            (p.Label?.ToLower().StartsWith("y1") == true ||
+                             p.Label?.ToLower().Contains("w osi y1") == true))
+                .Select(p => p.Value));
+        granice.Add(Model.Wysokosc);
+        granice = granice.Distinct().OrderBy(y => y).ToList();
+
+        // Znajdź Y1/Y2 tej pionowej
+        var pionoweProps = Model.EditableProperties
+            .Select((p, i) => (Index: i, Prop: p))
+            .Where(x => (x.Prop.SplitGroupId ?? x.Prop.ShapeId) == groupId &&
+                        x.Prop.IsPionowa)
+            .ToList();
+
+        var y1 = pionoweProps.FirstOrDefault(x =>
+            x.Prop.Label?.ToLower().StartsWith("y1") == true);
+        var y2 = pionoweProps.FirstOrDefault(x =>
+            x.Prop.Label?.ToLower().StartsWith("y2") == true);
+
+        if (y1.Prop == null || y2.Prop == null) return;
+
+        double y1v = Model.GetPropertyValue(y1.Index);
+        double y2v = Model.GetPropertyValue(y2.Index);
+
+        // Przyciągnij
+        double newY1 = ZnajdzNajblizszaGranice(granice, y1v, "dolna");
+        double newY2 = ZnajdzNajblizszaGranice(granice, y2v, "gorna");
+
+        if (newY1 < newY2)
+        {
+            Model.UpdateEditableProperty(y1.Index, newY1);
+            Model.UpdateEditableProperty(y2.Index, newY2);
+            Console.WriteLine($"   🧲 Przyciągnięto pionową {groupId}: Y → [{newY1:F0},{newY2:F0}]");
+        }
+
+        await Task.CompletedTask;
+    }
+
+
+    // ═══════════════════════════════════════════════════════════════
+    //  POMOCNICZA: najbliższa granica Y
+    // ═══════════════════════════════════════════════════════════════
+    private double ZnajdzNajblizszaGranice(List<double> granice, double y, string preferencja)
+    {
+        if (granice == null || granice.Count == 0)
+            return y;
+
+        if (preferencja == "dolna")
+        {
+            var kandydaci = granice.Where(g => g <= y + 0.5).ToList();
+            return kandydaci.Any() ? kandydaci.Max() : granice.Min();
+        }
+        else
+        {
+            var kandydaci = granice.Where(g => g >= y - 0.5).ToList();
+            return kandydaci.Any() ? kandydaci.Min() : granice.Max();
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  PODZIEL LINIE SYMETRYCZNIE — wersja poprawiona
+    // ═══════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Rozstawia linie symetrycznie.
+    ///
+    /// WAŻNE: grupowanie robimy po SplitGroupId ?? ShapeId, ale TYLKO w obrębie
+    /// tej samej orientacji (pionowe osobno, poziome osobno). Grupa która zawiera
+    /// i pionowe i poziome jest traktowana jako błąd i logowana.
+    ///
+    /// Po rozstawieniu linii wywołujemy propagację styczności (Y pionowych
+    /// dopasowuje się do najbliższej poziomej, z którą się styka).
+    /// </summary>
     private async Task PodzielLinieSymetrycznieAsync(
-    bool ustawTylkoLinie = false,
-    bool pionowe = true,
-    bool poziome = true)
+        bool ustawTylkoLinie = false,
+        bool pionowe = true,
+        bool poziome = true,
+        bool rozciagnijLinie = false)
     {
         if (Model?.EditableProperties == null || Model.EditableProperties.Count == 0)
             return;
 
         Console.WriteLine($"📐 PodzielLinie: START, Szerokosc={Model.Szerokosc}, Wysokosc={Model.Wysokosc}");
 
-        // ============================================================
-        // FAZA 1 – ustaw pozycje linii
-        // ============================================================
+        // ─────────────────────────────────────────────────────────────
+        // 1. Zbuduj grupy właściwości – każda grupa = jedna linia logiczna
+        // ─────────────────────────────────────────────────────────────
         var grupyWlasciwosci = Model.EditableProperties
             .Select((p, i) => (Index: i, Prop: p))
             .Where(x => x.Prop.ShapeId != null && !string.IsNullOrEmpty(x.Prop.NazwaObiektu))
             .GroupBy(x => x.Prop.SplitGroupId ?? x.Prop.ShapeId)
             .ToList();
 
-        var liniePionowe = new List<(List<int> IndexesX1, List<int> IndexesX2, string GroupId)>();
-        var liniePoziome = new List<(List<int> IndexesY1, List<int> IndexesY2, string GroupId)>();
+        // ─────────────────────────────────────────────────────────────
+        // 2. Rozdziel grupy po orientacji — NIE mieszamy pionowych z poziomymi
+        // ─────────────────────────────────────────────────────────────
+        var grupyPionowe = new List<(List<int> IndexesX1, List<int> IndexesX2, string GroupId)>();
+        var grupyPoziome = new List<(List<int> IndexesY1, List<int> IndexesY2, string GroupId)>();
 
         foreach (var grupa in grupyWlasciwosci)
         {
-            var x1Props = grupa.Where(g => g.Prop.IsPionowa &&
-                (g.Prop.Label?.ToLower().StartsWith("x1") == true ||
-                 g.Prop.Label?.ToLower().Contains("w osi x1") == true))
+            bool maPionowa = grupa.Any(g => g.Prop.IsPionowa);
+            bool maPozioma = grupa.Any(g => g.Prop.IsPozioma);
+
+            // ⚠️ Grupa mieszana — to błąd, ale logujemy i próbujemy uratować
+            //    traktując ją jako DWIE osobne logiczne linie.
+            if (maPionowa && maPozioma)
+            {
+                Console.WriteLine($"⚠️ Grupa MIESZANA klucz='{grupa.Key}' — rozbijam na pionową i poziomą");
+            }
+
+            // Zbierz X1/X2 z części pionowej
+            var x1Props = grupa
+                .Where(g => g.Prop.IsPionowa &&
+                    (g.Prop.Label?.ToLower().StartsWith("x1") == true ||
+                     g.Prop.Label?.ToLower().Contains("w osi x1") == true))
                 .Select(g => g.Index).ToList();
 
-            var x2Props = grupa.Where(g => g.Prop.IsPionowa &&
-                (g.Prop.Label?.ToLower().StartsWith("x2") == true ||
-                 g.Prop.Label?.ToLower().Contains("w osi x2") == true))
+            var x2Props = grupa
+                .Where(g => g.Prop.IsPionowa &&
+                    (g.Prop.Label?.ToLower().StartsWith("x2") == true ||
+                     g.Prop.Label?.ToLower().Contains("w osi x2") == true))
                 .Select(g => g.Index).ToList();
 
-            var y1Props = grupa.Where(g => g.Prop.IsPozioma &&
-                (g.Prop.Label?.ToLower().StartsWith("y1") == true ||
-                 g.Prop.Label?.ToLower().Contains("w osi y1") == true))
+            // Zbierz Y1/Y2 z części poziomej
+            var y1Props = grupa
+                .Where(g => g.Prop.IsPozioma &&
+                    (g.Prop.Label?.ToLower().StartsWith("y1") == true ||
+                     g.Prop.Label?.ToLower().Contains("w osi y1") == true))
                 .Select(g => g.Index).ToList();
 
-            var y2Props = grupa.Where(g => g.Prop.IsPozioma &&
-                (g.Prop.Label?.ToLower().StartsWith("y2") == true ||
-                 g.Prop.Label?.ToLower().Contains("w osi y2") == true))
+            var y2Props = grupa
+                .Where(g => g.Prop.IsPozioma &&
+                    (g.Prop.Label?.ToLower().StartsWith("y2") == true ||
+                     g.Prop.Label?.ToLower().Contains("w osi y2") == true))
                 .Select(g => g.Index).ToList();
 
-            if (x1Props.Any())
-                liniePionowe.Add((x1Props, x2Props, grupa.Key!));
+            // ⚠️ KLUCZ: dodajemy do listy TYLKO jeśli grupa ma odpowiednią orientację
+            //    i NIE jest grupą mieszaną (albo — jeśli mieszana — dodajemy do obu list)
+            if (x1Props.Any() && (!maPozioma || maPionowa))
+            {
+                grupyPionowe.Add((x1Props, x2Props, grupa.Key!));
+            }
 
-            if (y1Props.Any())
-                liniePoziome.Add((y1Props, y2Props, grupa.Key!));
+            if (y1Props.Any() && (!maPionowa || maPozioma))
+            {
+                grupyPoziome.Add((y1Props, y2Props, grupa.Key!));
+            }
         }
 
-        Console.WriteLine($"📐 PodzielLinie: pionowe={liniePionowe.Count}, poziome={liniePoziome.Count}");
+        Console.WriteLine($"📐 PodzielLinie: pionowe={grupyPionowe.Count}, poziome={grupyPoziome.Count}");
 
-        // Ustaw X dla pionowych
-        if (pionowe && liniePionowe.Count > 0 && Model.Szerokosc > 0)
+        // ─────────────────────────────────────────────────────────────
+        // 3. Rozstaw PIONOWE symetrycznie (X równo rozłożone w szerokości)
+        // ─────────────────────────────────────────────────────────────
+        if (pionowe && grupyPionowe.Count > 0 && Model.Szerokosc > 0)
         {
-            double odstep = Model.Szerokosc / (liniePionowe.Count + 1);
+            double odstep = Model.Szerokosc / (grupyPionowe.Count + 1);
 
-            for (int i = 0; i < liniePionowe.Count; i++)
+            for (int i = 0; i < grupyPionowe.Count; i++)
             {
-                double nowaPozycja = Math.Round(odstep * (i + 1), 0);
-                var (indexesX1, indexesX2, groupId) = liniePionowe[i];
+                double nowaPozycjaX = Math.Round(odstep * (i + 1), 0);
+                var (indexesX1, indexesX2, groupId) = grupyPionowe[i];
 
-                Console.WriteLine($"📐 PION grupa={groupId}: X → {nowaPozycja}");
+                Console.WriteLine($"📐 PION grupa={groupId}: X → {nowaPozycjaX}");
 
                 foreach (var idx in indexesX1)
-                    Model.UpdateEditableProperty(idx, nowaPozycja);
+                    Model.UpdateEditableProperty(idx, nowaPozycjaX);
 
                 foreach (var idx in indexesX2)
-                    Model.UpdateEditableProperty(idx, nowaPozycja);
+                    Model.UpdateEditableProperty(idx, nowaPozycjaX);
             }
         }
 
-        // Ustaw Y dla poziomych
-        if (poziome && liniePoziome.Count > 0 && Model.Wysokosc > 0)
+        // ─────────────────────────────────────────────────────────────
+        // 4. Rozstaw POZIOME symetrycznie (Y równo rozłożone w wysokości)
+        // ─────────────────────────────────────────────────────────────
+        if (poziome && grupyPoziome.Count > 0 && Model.Wysokosc > 0)
         {
-            double odstep = Model.Wysokosc / (liniePoziome.Count + 1);
+            double odstep = Model.Wysokosc / (grupyPoziome.Count + 1);
 
-            for (int i = 0; i < liniePoziome.Count; i++)
+            for (int i = 0; i < grupyPoziome.Count; i++)
             {
-                double nowaPozycja = Math.Round(odstep * (i + 1), 0);
-                var (indexesY1, indexesY2, groupId) = liniePoziome[i];
+                double nowaPozycjaY = Math.Round(odstep * (i + 1), 0);
+                var (indexesY1, indexesY2, groupId) = grupyPoziome[i];
 
-                Console.WriteLine($"📐 POZ grupa={groupId}: Y → {nowaPozycja}");
+                Console.WriteLine($"📐 POZ grupa={groupId}: Y → {nowaPozycjaY}");
 
                 foreach (var idx in indexesY1)
-                    Model.UpdateEditableProperty(idx, nowaPozycja);
+                    Model.UpdateEditableProperty(idx, nowaPozycjaY);
 
                 foreach (var idx in indexesY2)
-                    Model.UpdateEditableProperty(idx, nowaPozycja);
+                    Model.UpdateEditableProperty(idx, nowaPozycjaY);
             }
         }
 
-        // ============================================================
-        // FAZA 2 – napraw linie-punkty w ShapeService.Shapes
-        // ============================================================
+        // ─────────────────────────────────────────────────────────────
+        // 5. ⭐ PROPAGACJA STYCZNOŚCI — pionowe końce dopasowują się do poziomych
+        // ─────────────────────────────────────────────────────────────
+        PropagujStycznoscPionowychDoPoziomych(
+            grupyPionowe,
+            grupyPoziome);
+
+        // ─────────────────────────────────────────────────────────────
+        // 6. Napraw zdegenerowane linie (punkty → odcinki)
+        // ─────────────────────────────────────────────────────────────
         NaprawZdegenerowaneLinie(ShapeService.Shapes, Model.Szerokosc, Model.Wysokosc);
+
+        if (rozciagnijLinie)
+        {
+            Console.WriteLine("📐 PodzielLinie: rozciągam linie do shapes (zmiana wymiarów)");
+
+            await LineUtils.ExtendOrShortenLinesWithTangencyAsync(ShapeService.Shapes, 0.5);
+            await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
+        }
 
         if (!ustawTylkoLinie)
             await ZapiszDoRodzica();
     }
+
+
+    // ═══════════════════════════════════════════════════════════════
+    //  PROPAGACJA STYCZNOŚCI
+    //  Dla każdej pionowej:
+    //    - Y1 dopasuj do najbliższej poziomej, która jest powyżej / na Y1
+    //    - Y2 dopasuj do najbliższej poziomej, która jest poniżej / na Y2
+    // ═══════════════════════════════════════════════════════════════
+
+    private void PropagujStycznoscPionowychDoPoziomych(
+        List<(List<int> IndexesX1, List<int> IndexesX2, string GroupId)> grupyPionowe,
+        List<(List<int> IndexesY1, List<int> IndexesY2, string GroupId)> grupyPoziome)
+    {
+        if (grupyPionowe.Count == 0 || grupyPoziome.Count == 0)
+        {
+            Console.WriteLine("📐 PropagujStycznosc: brak pionowych lub poziomych — pomijam");
+            return;
+        }
+
+        // Zbierz aktualne Y wszystkich poziomych (jako lista dostępnych granic)
+        // Każda grupa pozioma ma konkretne Y1=Y2 (linia pozioma).
+        var pozycjePoziome = new List<double>();
+        foreach (var (y1Idxs, y2Idxs, gid) in grupyPoziome)
+        {
+            double y = 0;
+            if (y1Idxs.Any())
+                y = Model!.GetPropertyValue(y1Idxs[0]);
+
+            pozycjePoziome.Add(y);
+        }
+        pozycjePoziome = pozycjePoziome.Distinct().OrderBy(y => y).ToList();
+
+        Console.WriteLine($"📐 PropagujStycznosc: Y poziomych = [{string.Join(", ", pozycjePoziome.Select(p => p.ToString("F0")))}]");
+
+        // Dodaj granice okna: 0 i Wysokosc — pionowe zawsze muszą dochodzić do krawędzi okna
+        var wszystkieGraniceY = new List<double> { 0 };
+        wszystkieGraniceY.AddRange(pozycjePoziome);
+        wszystkieGraniceY.Add(Model!.Wysokosc);
+        wszystkieGraniceY = wszystkieGraniceY.Distinct().OrderBy(y => y).ToList();
+
+        // Dla każdej pionowej: znajdź przedział, w którym się znajduje
+        foreach (var (x1Idxs, x2Idxs, gid) in grupyPionowe)
+        {
+            if (!x1Idxs.Any())
+                continue;
+
+            // Aktualna pozycja X pionowej
+            double xPion = Model!.GetPropertyValue(x1Idxs[0]);
+
+            // Aktualne Y pionowej (przed propagacją)
+            // Trzeba znaleźć właściwości Y1/Y2 dla tej grupy — ale w grupyPionowe
+            // trzymamy tylko indeksy X1/X2, więc musimy zajrzeć do Model
+            double y1Aktual = ZnajdzY1DlaGrupy(gid);
+            double y2Aktual = ZnajdzY2DlaGrupy(gid);
+
+            Console.WriteLine($"📐 Pionowa {gid}: aktualne Y=[{y1Aktual:F0}, {y2Aktual:F0}]");
+
+            // ⭐ Znajdź nowe granice: najbliższa granica <= y1Aktual i najbliższa >= y2Aktual
+            double noweY1 = ZnajdzNajblizszaGranice(wszystkieGraniceY, y1Aktual, preferencja: "dolna");
+            double noweY2 = ZnajdzNajblizszaGranice(wszystkieGraniceY, y2Aktual, preferencja: "gorna");
+
+            // Zabezpieczenie — Y1 nie może być większe od Y2
+            if (noweY1 >= noweY2)
+            {
+                Console.WriteLine($"⚠️ Pionowa {gid}: noweY1 ({noweY1:F0}) >= noweY2 ({noweY2:F0}) — pomijam");
+                continue;
+            }
+
+            Console.WriteLine($"📐 Pionowa {gid}: nowe Y=[{noweY1:F0}, {noweY2:F0}]");
+
+            // Zaktualizuj Y1 i Y2 dla tej konkretnej grupy pionowej
+            UstawY1DlaGrupy(gid, noweY1);
+            UstawY2DlaGrupy(gid, noweY2);
+        }
+    }
+
+
+    // ═══════════════════════════════════════════════════════════════
+    //  POMOCNICZE — wyszukiwanie Y1/Y2 i ustawianie w Model
+    // ═══════════════════════════════════════════════════════════════
+
+    private double ZnajdzY1DlaGrupy(string groupId)
+    {
+        var y1Prop = Model!.EditableProperties
+            .Select((p, i) => (Index: i, Prop: p))
+            .FirstOrDefault(x =>
+                (x.Prop.SplitGroupId ?? x.Prop.ShapeId) == groupId &&
+                x.Prop.IsPionowa &&
+                (x.Prop.Label?.ToLower().StartsWith("y1") == true ||
+                 x.Prop.Label?.ToLower().Contains("w osi y1") == true));
+
+        return y1Prop.Prop != null ? Model.GetPropertyValue(y1Prop.Index) : 0;
+    }
+
+    private double ZnajdzY2DlaGrupy(string groupId)
+    {
+        var y2Prop = Model!.EditableProperties
+            .Select((p, i) => (Index: i, Prop: p))
+            .FirstOrDefault(x =>
+                (x.Prop.SplitGroupId ?? x.Prop.ShapeId) == groupId &&
+                x.Prop.IsPionowa &&
+                (x.Prop.Label?.ToLower().StartsWith("y2") == true ||
+                 x.Prop.Label?.ToLower().Contains("w osi y2") == true));
+
+        return y2Prop.Prop != null ? Model.GetPropertyValue(y2Prop.Index) : 0;
+    }
+
+    private void UstawY1DlaGrupy(string groupId, double y)
+    {
+        var y1Props = Model!.EditableProperties
+            .Select((p, i) => (Index: i, Prop: p))
+            .Where(x =>
+                (x.Prop.SplitGroupId ?? x.Prop.ShapeId) == groupId &&
+                x.Prop.IsPionowa &&
+                (x.Prop.Label?.ToLower().StartsWith("y1") == true ||
+                 x.Prop.Label?.ToLower().Contains("w osi y1") == true))
+            .Select(x => x.Index)
+            .ToList();
+
+        foreach (var idx in y1Props)
+            Model.UpdateEditableProperty(idx, y);
+    }
+
+    private void UstawY2DlaGrupy(string groupId, double y)
+    {
+        var y2Props = Model!.EditableProperties
+            .Select((p, i) => (Index: i, Prop: p))
+            .Where(x =>
+                (x.Prop.SplitGroupId ?? x.Prop.ShapeId) == groupId &&
+                x.Prop.IsPionowa &&
+                (x.Prop.Label?.ToLower().StartsWith("y2") == true ||
+                 x.Prop.Label?.ToLower().Contains("w osi y2") == true))
+            .Select(x => x.Index)
+            .ToList();
+
+        foreach (var idx in y2Props)
+            Model.UpdateEditableProperty(idx, y);
+    }
+
 
     private static void NaprawZdegenerowaneLinie(
      List<IShapeDC> shapes, double szerokosc, double wysokosc)

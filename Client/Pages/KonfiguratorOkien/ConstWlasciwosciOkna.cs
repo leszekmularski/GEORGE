@@ -196,11 +196,18 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         /// Po edycji X1/X2/Y1/Y2 linii – przesuwa końce innych linii, które leżały
         /// NA starej pozycji edytowanej linii (na jej osi i w zakresie).
         /// </summary>
+        /// <summary>
+        /// Propaguje ruch linii:
+        /// - Zmiana X pionowej → NIC nie propaguj (pionowe X są niezależne)
+        /// - Zmiana Y poziomej → przesuń końce pionowych stycznych (Y1/Y2 tych pionowych)
+        /// - Zmiana X poziomej → NIC
+        /// - Zmiana Y pionowej → NIC (użytkownik sam decyduje)
+        /// </summary>
         private void PropagujRuchLinii(
-        EditableProperty zmienionaProp,
-        double staraWartosc,
-        double nowaWartosc,
-        double tolerancja = 1.0)
+            EditableProperty zmienionaProp,
+            double staraWartosc,
+            double nowaWartosc,
+            double tolerancja = 1.0)
         {
             var label = zmienionaProp.Label?.ToLower() ?? "";
 
@@ -211,15 +218,52 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
             if (!toX1 && !toX2 && !toY1 && !toY2) return;
 
-            bool liniaPozioma = (toY1 || toY2);
-            bool liniaPionowa = (toX1 || toX2);
+            bool zmianaX = (toX1 || toX2);
+            bool zmianaY = (toY1 || toY2);
 
-            double staraOs = staraWartosc;
-            double nowaOs = nowaWartosc;
-            double minZakres, maxZakres;
+            bool liniaPozioma = zmienionaProp.IsPozioma;
+            bool liniaPionowa = zmienionaProp.IsPionowa;
 
-            if (liniaPozioma)
+            // ═══════════════════════════════════════════════════════════
+            // REGUŁA 1: Zmiana X pionowej → NIC nie propaguj
+            // ═══════════════════════════════════════════════════════════
+            if (liniaPionowa && zmianaX)
             {
+                Console.WriteLine(
+                    $"🔗 PropagujRuchLinii: PIONOWA zmiana X ({staraWartosc:F1}→{nowaWartosc:F1}) " +
+                    $"— brak propagacji (pionowe X są niezależne)");
+                return;
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            // REGUŁA 2: Zmiana Y pionowej → NIC nie propaguj
+            //           (użytkownik ręcznie ustawia koniec pionowej)
+            // ═══════════════════════════════════════════════════════════
+            if (liniaPionowa && zmianaY)
+            {
+                Console.WriteLine(
+                    $"🔗 PropagujRuchLinii: PIONOWA zmiana Y ({staraWartosc:F1}→{nowaWartosc:F1}) " +
+                    $"— brak propagacji (ręczna edycja końca pionowej)");
+                return;
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            // REGUŁA 3: Zmiana X poziomej → NIC nie propaguj (rzadkie)
+            // ═══════════════════════════════════════════════════════════
+            if (liniaPozioma && zmianaX)
+            {
+                Console.WriteLine(
+                    $"🔗 PropagujRuchLinii: POZIOMA zmiana X ({staraWartosc:F1}→{nowaWartosc:F1}) " +
+                    $"— brak propagacji");
+                return;
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            // REGUŁA 4: Zmiana Y poziomej → przesuń końce pionowych stycznych
+            // ═══════════════════════════════════════════════════════════
+            if (liniaPozioma && zmianaY)
+            {
+                // Zakres X poziomej — w nim szukamy pionowych stycznych
                 var x1Prop = EditableProperties.FirstOrDefault(p =>
                     p.ShapeId == zmienionaProp.ShapeId && (p.Label?.ToLower().StartsWith("x1") == true));
                 var x2Prop = EditableProperties.FirstOrDefault(p =>
@@ -227,95 +271,63 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
                 double lineX1 = x1Prop?.Value ?? 0;
                 double lineX2 = x2Prop?.Value ?? 0;
-                minZakres = Math.Min(lineX1, lineX2) - tolerancja;
-                maxZakres = Math.Max(lineX1, lineX2) + tolerancja;
-            }
-            else
-            {
-                var y1Prop = EditableProperties.FirstOrDefault(p =>
-                    p.ShapeId == zmienionaProp.ShapeId && (p.Label?.ToLower().StartsWith("y1") == true));
-                var y2Prop = EditableProperties.FirstOrDefault(p =>
-                    p.ShapeId == zmienionaProp.ShapeId && (p.Label?.ToLower().StartsWith("y2") == true));
+                double minZakres = Math.Min(lineX1, lineX2) - tolerancja;
+                double maxZakres = Math.Max(lineX1, lineX2) + tolerancja;
 
-                double lineY1 = y1Prop?.Value ?? 0;
-                double lineY2 = y2Prop?.Value ?? 0;
-                minZakres = Math.Min(lineY1, lineY2) - tolerancja;
-                maxZakres = Math.Max(lineY1, lineY2) + tolerancja;
-            }
+                Console.WriteLine(
+                    $"🔗 PropagujRuchLinii: POZIOMA zmiana Y {staraWartosc:F1}→{nowaWartosc:F1}, " +
+                    $"zakres X: [{minZakres:F1}..{maxZakres:F1}]");
 
-            Console.WriteLine(
-                $"🔗 PropagujRuchLinii: '{(liniaPozioma ? "POZIOMA" : "PIONOWA")}' " +
-                $"os: {staraOs:F1} → {nowaOs:F1}, zakres: [{minZakres:F1}..{maxZakres:F1}]");
+                int propagowane = 0;
 
-            int propagowane = 0;
-
-            for (int i = 0; i < EditableProperties.Count; i++)
-            {
-                var other = EditableProperties[i];
-                if (other.ShapeId == zmienionaProp.ShapeId) continue;
-                if (other.gabarytOkna) continue;
-                if (string.IsNullOrEmpty(other.NazwaObiektu) ||
-                    !other.NazwaObiektu.ToLower().Contains("linia"))
-                    continue;
-
-                var otherLabel = other.Label?.ToLower() ?? "";
-                bool otherIsX1 = otherLabel.StartsWith("x1") || otherLabel.Contains("w osi x1");
-                bool otherIsX2 = otherLabel.StartsWith("x2") || otherLabel.Contains("w osi x2");
-                bool otherIsY1 = otherLabel.StartsWith("y1") || otherLabel.Contains("w osi y1");
-                bool otherIsY2 = otherLabel.StartsWith("y2") || otherLabel.Contains("w osi y2");
-
-                if (!otherIsX1 && !otherIsX2 && !otherIsY1 && !otherIsY2) continue;
-
-                // Znajdź parę (drugą współrzędną)
-                string otherSzukany = otherIsX1 ? "y1" : otherIsX2 ? "y2" : otherIsY1 ? "x1" : "x2";
-
-                var otherPara = EditableProperties.FirstOrDefault(p =>
-                    p.ShapeId == other.ShapeId &&
-                    (p.Label?.ToLower().StartsWith(otherSzukany) == true ||
-                     p.Label?.ToLower().Contains($"w osi {otherSzukany}") == true));
-
-                if (otherPara == null) continue;
-
-                double ptX = (otherIsX1 || otherIsX2) ? other.Value : otherPara.Value;
-                double ptY = (otherIsY1 || otherIsY2) ? other.Value : otherPara.Value;
-
-                if (liniaPozioma)
+                for (int i = 0; i < EditableProperties.Count; i++)
                 {
-                    if (Math.Abs(ptY - staraOs) < tolerancja &&
-                        ptX >= minZakres && ptX <= maxZakres)
-                    {
-                        if (otherIsY1 || otherIsY2)
-                        {
-                            // ⭐ KLUCZOWA POPRAWKA: SetValue zamiast Value
-                            other.SetValue(nowaOs);
-                            propagowane++;
+                    var other = EditableProperties[i];
 
-                            Console.WriteLine(
-                                $"   ✅ Y: '{other.Label}' ({other.ShapeId?.Substring(0, 8)}) " +
-                                $"({ptX:F1},{ptY:F1}) → Y={nowaOs:F1}");
-                        }
-                    }
-                }
-                else
-                {
-                    if (Math.Abs(ptX - staraOs) < tolerancja &&
-                        ptY >= minZakres && ptY <= maxZakres)
-                    {
-                        if (otherIsX1 || otherIsX2)
-                        {
-                            // ⭐ SetValue zamiast Value
-                            other.SetValue(nowaOs);
-                            propagowane++;
+                    if (other.ShapeId == zmienionaProp.ShapeId) continue;
+                    if (other.gabarytOkna) continue;
+                    if (!other.IsPionowa) continue;   // ⭐ TYLKO pionowe
 
-                            Console.WriteLine(
-                                $"   ✅ X: '{other.Label}' ({other.ShapeId?.Substring(0, 8)}) " +
-                                $"({ptX:F1},{ptY:F1}) → X={nowaOs:F1}");
-                        }
-                    }
+                    if (string.IsNullOrEmpty(other.NazwaObiektu) ||
+                        !other.NazwaObiektu.ToLower().Contains("linia"))
+                        continue;
+
+                    var otherLabel = other.Label?.ToLower() ?? "";
+                    bool otherIsX1 = otherLabel.StartsWith("x1") || otherLabel.Contains("w osi x1");
+                    bool otherIsX2 = otherLabel.StartsWith("x2") || otherLabel.Contains("w osi x2");
+                    bool otherIsY1 = otherLabel.StartsWith("y1") || otherLabel.Contains("w osi y1");
+                    bool otherIsY2 = otherLabel.StartsWith("y2") || otherLabel.Contains("w osi y2");
+
+                    // Interesują nas tylko Y1/Y2 innych pionowych
+                    if (!otherIsY1 && !otherIsY2) continue;
+
+                    // ⭐ Sprawdź czy ten koniec pionowej DOTYKA starej pozycji poziomej
+                    if (Math.Abs(other.Value - staraWartosc) >= tolerancja) continue;
+
+                    // ⭐ Sprawdź czy X pionowej jest w zakresie X poziomej
+                    string xParaLabel = otherIsY1 ? "x1" : "x2";
+                    var otherXPara = EditableProperties.FirstOrDefault(p =>
+                        p.ShapeId == other.ShapeId &&
+                        (p.Label?.ToLower().StartsWith(xParaLabel) == true ||
+                         p.Label?.ToLower().Contains($"w osi {xParaLabel}") == true));
+
+                    if (otherXPara == null) continue;
+
+                    double otherX = otherXPara.Value;
+
+                    if (otherX < minZakres || otherX > maxZakres) continue;
+
+                    // ⭐ Propaguj — zmień Y tego końca pionowej
+                    other.SetValue(nowaWartosc);
+                    propagowane++;
+
+                    Console.WriteLine(
+                        $"   ✅ Y: '{other.Label}' (ShapeId={other.ShapeId?.Substring(0, 8)}) " +
+                        $"X={otherX:F1} — koniec pionowej stycznej → Y={nowaWartosc:F1}");
                 }
+
+                Console.WriteLine($"   🔗 propagowano {propagowane} właściwości");
             }
-
-            Console.WriteLine($"   🔗 propagowano {propagowane} właściwości");
         }
 
         /// <summary>
