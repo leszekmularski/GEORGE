@@ -2286,41 +2286,26 @@ namespace GEORGE.Client.Pages.Okna
             var BottomSTT5 = midBottomIntersection;
             var BottomRT5 = rightBottomIntersection;
 
+            //// ============================================================
+            //// 12. CZWOROKĄT SŁUPKA JEST ZBIORCEM PUNKTÓW (TopRT5S, TopST5S, TopLT5S, BottomLT5S, BottomSTT5S, BottomRT5S)
+            //// ============================================================
+
             var wierzcholki = new List<XPoint>
             {
                 TopRT5,
+                TopST5,
                 TopLT5,
                 BottomLT5,
+                BottomSTT5,
                 BottomRT5
             };
 
             Console.WriteLine($"🔷 T5-T5 -> czworokąt słupka: {wierzcholki.Count} punktów");
 
-            var TopLT5S = leftTopIntersection;
-            var TopST5S = midTopIntersection;
-            var TopRT5S = rightTopIntersection;
-
-            var BottomLT5S = leftBottomIntersection;
-            var BottomSTT5S = midBottomIntersection;
-            var BottomRT5S = rightBottomIntersection;
-
-            // ============================================================
-            // 12. CZWOROKĄT SŁUPKA
-            // ============================================================
-            var wierzcholkiS = new List<XPoint>
-            {
-                TopRT5S,
-                TopLT5S,
-                BottomLT5S,
-                BottomRT5S
-            };
-
-            Console.WriteLine($"🔷 T5-T5 -> czworokąt słupka: {wierzcholkiS.Count} punktów");
-
             return new WynikWierzcholkow
             {
                 Ok = true,
-                Wierzcholki = wierzcholkiS,
+                Wierzcholki = wierzcholki,
                 DodajA = false,
                 DodajB = false
             };
@@ -2379,6 +2364,13 @@ namespace GEORGE.Client.Pages.Okna
             bool czyParzysta = (nk + 1) % 2 == 0;
             bool warunek = false;
 
+            Console.WriteLine(
+                $"GetEndT1 DEBUG: strona={stronaWModelu}, nk={nk}, " +
+                $"warunek={warunek}, angle={angleDegrees:F3}, " +
+                $"next={nextangleDegrees:F3}, " +
+                $"innerP=({_innerP.X:F3}; {_innerP.Y:F3}), " +
+                $"outerP=({_outerP.X:F3}; {_outerP.Y:F3})");
+
             if (nk < 0)
             {
                 warunek =
@@ -2395,17 +2387,35 @@ namespace GEORGE.Client.Pages.Okna
 
             Console.WriteLine($"▶️ GetEndT1: stronaWModelu: {stronaWModelu}, stonaOstanioDodanegoElementu: {stonaOstanioDodanegoElementu}, nk: {nk}, czyParzysta: {czyParzysta} warunek: {warunek}");
 
+
             if (warunek)
             {
-                var startT1 = FindFirstEdgeIntersectionByAngle(_innerP, angleDegrees, _outer);
-                intersections.Add(new XPoint(startT1.X, startT1.Y));
+                var punktPrzeciecia = FindFirstEdgeIntersectionByAngle(
+                    _innerP,
+                    angleDegrees,
+                    _outer);
+
+                Console.WriteLine(
+                    $"GetEndT1 TRUE: przecięcie=({punktPrzeciecia.X:F3}; " +
+                    $"{punktPrzeciecia.Y:F3}), outerP=({_outerP.X:F3}; {_outerP.Y:F3})");
+
+                intersections.Add(new XPoint(punktPrzeciecia.X, punktPrzeciecia.Y));
                 intersections.Add(new XPoint(_outerP.X, _outerP.Y));
             }
             else
             {
-                var startT1 = FindFirstEdgeIntersectionByAngle(_innerP, nextangleDegrees - 180, _outer);
+                var punktPrzeciecia = FindFirstEdgeIntersectionByAngle(
+                    _innerP,
+                    nextangleDegrees - 180,
+                    _outer);
+
+                Console.WriteLine(
+                    $"GetEndT1 FALSE: kąt={nextangleDegrees - 180:F3}, " +
+                    $"przecięcie=({punktPrzeciecia.X:F3}; {punktPrzeciecia.Y:F3}), " +
+                    $"innerP=({_innerP.X:F3}; {_innerP.Y:F3})");
+
                 intersections.Add(new XPoint(_innerP.X, _innerP.Y));
-                intersections.Add(new XPoint(startT1.X, startT1.Y));
+                intersections.Add(new XPoint(punktPrzeciecia.X, punktPrzeciecia.Y));
             }
 
             return intersections;
@@ -2839,17 +2849,17 @@ namespace GEORGE.Client.Pages.Okna
         XPoint basePoint, XPoint dirStart, XPoint dirEnd,
         List<XPoint> polygon, bool forward = true, double tolerance = 0.01)
         {
-            // ═══════════════════════════════════════════════════════════
-            // LOG WEJŚCIA
-            // ═══════════════════════════════════════════════════════════
-            Console.WriteLine("───────────────────────────────────────────────");
-            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx");
-            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   basePoint = ({basePoint.X:F2}, {basePoint.Y:F2})");
-            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   dirStart  = ({dirStart.X:F2}, {dirStart.Y:F2})");
-            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   dirEnd    = ({dirEnd.X:F2}, {dirEnd.Y:F2})");
-            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   forward   = {forward}");
-            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   tolerance = {tolerance}");
-            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   polygon.Count = {polygon?.Count ?? 0}");
+            //// ═══════════════════════════════════════════════════════════
+            //// LOG WEJŚCIA
+            //// ═══════════════════════════════════════════════════════════
+            //Console.WriteLine("───────────────────────────────────────────────");
+            //Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx");
+            //Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   basePoint = ({basePoint.X:F2}, {basePoint.Y:F2})");
+            //Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   dirStart  = ({dirStart.X:F2}, {dirStart.Y:F2})");
+            //Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   dirEnd    = ({dirEnd.X:F2}, {dirEnd.Y:F2})");
+            //Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   forward   = {forward}");
+            //Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   tolerance = {tolerance}");
+            //Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   polygon.Count = {polygon?.Count ?? 0}");
 
             if (polygon == null || polygon.Count < 3)
             {
@@ -2857,9 +2867,9 @@ namespace GEORGE.Client.Pages.Okna
                 return (basePoint, false);
             }
 
-            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   📍 Punkty w polygon:");
-            for (int k = 0; k < polygon.Count; k++)
-                Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx      [{k}] ({polygon[k].X:F2}, {polygon[k].Y:F2})");
+            //Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   📍 Punkty w polygon:");
+            //for (int k = 0; k < polygon.Count; k++)
+            //    Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx      [{k}] ({polygon[k].X:F2}, {polygon[k].Y:F2})");
 
             // ═══════════════════════════════════════════════════════════
             // KROK 0: SPRAWDŹ CZY basePoint JEST WEWNĄTRZ POLYGONU
@@ -2885,9 +2895,9 @@ namespace GEORGE.Client.Pages.Okna
                 var tryY = new XPoint(basePoint.X, centroidY);
                 bool tryYWewnatrz = IsPointInPolygon(tryY, polygon);
 
-                Console.WriteLine($"   🔍 Test przesunięcia:");
-                Console.WriteLine($"      X → ({tryX.X:F1}, {tryX.Y:F1}) wewnątrz={tryXWewnatrz}");
-                Console.WriteLine($"      Y → ({tryY.X:F1}, {tryY.Y:F1}) wewnątrz={tryYWewnatrz}");
+                //Console.WriteLine($"   🔍 Test przesunięcia:");
+                //Console.WriteLine($"      X → ({tryX.X:F1}, {tryX.Y:F1}) wewnątrz={tryXWewnatrz}");
+                //Console.WriteLine($"      Y → ({tryY.X:F1}, {tryY.Y:F1}) wewnątrz={tryYWewnatrz}");
 
                 if (tryXWewnatrz && tryYWewnatrz)
                 {
@@ -2898,36 +2908,36 @@ namespace GEORGE.Client.Pages.Okna
                     if (zmianaX <= zmianaY)
                     {
                         effectiveBase = tryX;
-                        Console.WriteLine($"   🔄 Wybrano X (mniejsza zmiana: {zmianaX:F1} vs {zmianaY:F1})");
+                        //Console.WriteLine($"   🔄 Wybrano X (mniejsza zmiana: {zmianaX:F1} vs {zmianaY:F1})");
                     }
                     else
                     {
                         effectiveBase = tryY;
-                        Console.WriteLine($"   🔄 Wybrano Y (mniejsza zmiana: {zmianaY:F1} vs {zmianaX:F1})");
+                        //Console.WriteLine($"   🔄 Wybrano Y (mniejsza zmiana: {zmianaY:F1} vs {zmianaX:F1})");
                     }
                 }
                 else if (tryXWewnatrz)
                 {
                     effectiveBase = tryX;
-                    Console.WriteLine($"   🔄 Wybrano X (jedyna działająca)");
+                    //Console.WriteLine($"   🔄 Wybrano X (jedyna działająca)");
                 }
                 else if (tryYWewnatrz)
                 {
                     effectiveBase = tryY;
-                    Console.WriteLine($"   🔄 Wybrano Y (jedyna działająca)");
+                    //Console.WriteLine($"   🔄 Wybrano Y (jedyna działająca)");
                 }
                 else
                 {
                     // ⭐ Ostatnia deska ratunku: przesuń do centroidu w obu osiach
                     effectiveBase = new XPoint(centroidX, centroidY);
-                    Console.WriteLine($"   🔄 Fallback: przesuwam do centroidu ({centroidX:F1}, {centroidY:F1})");
+                    //Console.WriteLine($"   🔄 Fallback: przesuwam do centroidu ({centroidX:F1}, {centroidY:F1})");
                 }
 
-                Console.WriteLine($"   ✅ effectiveBase = ({effectiveBase.X:F2}, {effectiveBase.Y:F2})");
+                //Console.WriteLine($"   ✅ effectiveBase = ({effectiveBase.X:F2}, {effectiveBase.Y:F2})");
             }
             else
             {
-                Console.WriteLine($"   ✅ basePoint jest WEWNĄTRZ polygonu — bez zmian");
+                //Console.WriteLine($"   ✅ basePoint jest WEWNĄTRZ polygonu — bez zmian");
             }
 
             // ═══════════════════════════════════════════════════════════
@@ -2941,14 +2951,14 @@ namespace GEORGE.Client.Pages.Okna
             {
                 dx = 0;
                 dy = forward ? 1 : -1;
-                Console.WriteLine($"   ⚠️ Kierunek zerowy — używam domyślnego: ({dx}, {dy})");
+                //Console.WriteLine($"   ⚠️ Kierunek zerowy — używam domyślnego: ({dx}, {dy})");
             }
             else
             {
                 dx /= len;
                 dy /= len;
                 if (!forward) { dx = -dx; dy = -dy; }
-                Console.WriteLine($"   ➡️ Kierunek jednostkowy: ({dx:F4}, {dy:F4})");
+                // Console.WriteLine($"   ➡️ Kierunek jednostkowy: ({dx:F4}, {dy:F4})");
             }
 
             XPoint? closest = null;
@@ -2995,7 +3005,7 @@ namespace GEORGE.Client.Pages.Okna
                 double dotInter = (p.X - effectiveBase.X) * dx + (p.Y - effectiveBase.Y) * dy;
                 if (dotInter < -tolerance)
                 {
-                    Console.WriteLine($"      [{i}] przecięcie za plecami: ({p.X:F2}, {p.Y:F2}) dot={dotInter:F2}");
+                    //Console.WriteLine($"      [{i}] przecięcie za plecami: ({p.X:F2}, {p.Y:F2}) dot={dotInter:F2}");
                     continue;
                 }
 
@@ -3004,11 +3014,11 @@ namespace GEORGE.Client.Pages.Okna
 
                 if (distSqInter < tolerance)
                 {
-                    Console.WriteLine($"      [{i}] przecięcie zbyt blisko: ({p.X:F2}, {p.Y:F2})");
+                    //Console.WriteLine($"      [{i}] przecięcie zbyt blisko: ({p.X:F2}, {p.Y:F2})");
                     continue;
                 }
 
-                Console.WriteLine($"      [{i}] ✅ przecięcie: ({p.X:F2}, {p.Y:F2}) distSq={distSqInter:F2}");
+                //Console.WriteLine($"      [{i}] ✅ przecięcie: ({p.X:F2}, {p.Y:F2}) distSq={distSqInter:F2}");
 
                 if (distSqInter < minDistSq)
                 {
@@ -3022,15 +3032,15 @@ namespace GEORGE.Client.Pages.Okna
             // ═══════════════════════════════════════════════════════════
             if (closest.HasValue)
             {
-                Console.WriteLine($"   🎯 WYNIK: ({closest.Value.X:F2}, {closest.Value.Y:F2}) znaleziono=true");
-                Console.WriteLine("───────────────────────────────────────────────");
+                // Console.WriteLine($"   🎯 WYNIK: ({closest.Value.X:F2}, {closest.Value.Y:F2}) znaleziono=true");
+                //Console.WriteLine("───────────────────────────────────────────────");
                 return (closest.Value, true);
             }
 
             // ═══════════════════════════════════════════════════════════
             // FALLBACK — brak przecięcia
             // ═══════════════════════════════════════════════════════════
-            Console.WriteLine($"   ⚠️ Brak przecięcia — fallback (rzut na obrys)");
+            //  Console.WriteLine($"   ⚠️ Brak przecięcia — fallback (rzut na obrys)");
 
             XPoint? nearest = null;
             double nearestDist = double.MaxValue;
@@ -3054,13 +3064,13 @@ namespace GEORGE.Client.Pages.Okna
 
             if (nearest.HasValue)
             {
-                Console.WriteLine($"   🎯 WYNIK FALLBACK: ({nearest.Value.X:F2}, {nearest.Value.Y:F2}) znaleziono=false");
-                Console.WriteLine("───────────────────────────────────────────────");
+                // Console.WriteLine($"   🎯 WYNIK FALLBACK: ({nearest.Value.X:F2}, {nearest.Value.Y:F2}) znaleziono=false");
+                //Console.WriteLine("───────────────────────────────────────────────");
                 return (nearest.Value, false);
             }
 
-            Console.WriteLine($"   ❌ Brak kandydata — zwracam effectiveBase, znaleziono=false");
-            Console.WriteLine("───────────────────────────────────────────────");
+            //Console.WriteLine($"   ❌ Brak kandydata — zwracam effectiveBase, znaleziono=false");
+            //Console.WriteLine("───────────────────────────────────────────────");
             return (effectiveBase, false);
         }
 
@@ -3105,117 +3115,6 @@ namespace GEORGE.Client.Pages.Okna
             }
 
             return inside;
-        }
-
-        // ============================================================
-        // FindFirstEdgeIntersectionByVector
-        // ============================================================
-        private XPoint FindFirstEdgeIntersectionByVector(
-        XPoint basePoint, XPoint dirStart, XPoint dirEnd,
-        List<XPoint> polygon, bool forward = true, double tolerance = 0.01)
-        {
-            double dx = dirEnd.X - dirStart.X;
-            double dy = dirEnd.Y - dirStart.Y;
-            double len = Math.Sqrt(dx * dx + dy * dy);
-
-            if (len < 1e-8)
-            {
-                dx = 0;
-                dy = forward ? 1 : -1;
-            }
-            else
-            {
-                dx /= len;
-                dy /= len;
-                if (!forward) { dx = -dx; dy = -dy; }
-            }
-
-            XPoint? closest = null;
-            double minDistSq = double.MaxValue;
-
-            for (int i = 0; i < polygon.Count; i++)
-            {
-                int next = (i + 1) % polygon.Count;
-
-                var inter = GetLinesIntersectionNullable(
-                    basePoint,
-                    new XPoint(basePoint.X + dx * 10000.0, basePoint.Y + dy * 10000.0),
-                    polygon[i], polygon[next]);
-
-                if (!inter.HasValue)
-                {
-                    foreach (var pt in new[] { polygon[i], polygon[next] })
-                    {
-                        double cross = Math.Abs((pt.X - basePoint.X) * dy - (pt.Y - basePoint.Y) * dx);
-                        if (cross > tolerance) continue;
-
-                        double dot = (pt.X - basePoint.X) * dx + (pt.Y - basePoint.Y) * dy;
-                        if (dot >= -tolerance)
-                        {
-                            double distSq = (pt.X - basePoint.X) * (pt.X - basePoint.X) +
-                                            (pt.Y - basePoint.Y) * (pt.Y - basePoint.Y);
-                            if (distSq < minDistSq && distSq > tolerance)
-                            {
-                                minDistSq = distSq;
-                                closest = pt;
-                            }
-                        }
-                    }
-                    continue;
-                }
-
-                var p = inter.Value;
-
-                double dotInter = (p.X - basePoint.X) * dx + (p.Y - basePoint.Y) * dy;
-                if (dotInter < -tolerance) continue;
-
-                double distSqInter = (p.X - basePoint.X) * (p.X - basePoint.X) +
-                                     (p.Y - basePoint.Y) * (p.Y - basePoint.Y);
-
-                if (distSqInter < tolerance) continue;
-
-                if (distSqInter < minDistSq)
-                {
-                    minDistSq = distSqInter;
-                    closest = p;
-                }
-            }
-
-            // ⭐ NOWY FALLBACK: zamiast (-1,-1) — najbliższy punkt na obrysie
-            if (!closest.HasValue)
-            {
-                Console.WriteLine($"⚠️ FindFirstEdgeIntersectionByVector: brak przecięcia, używam fallbacku dla ({basePoint.X:F1},{basePoint.Y:F1})");
-
-                // Rzutuj basePoint na najbliższą krawędź obrysu
-                XPoint? nearest = null;
-                double nearestDist = double.MaxValue;
-
-                for (int i = 0; i < polygon.Count; i++)
-                {
-                    int next = (i + 1) % polygon.Count;
-                    var proj = ProjectPointOnSegment(basePoint, polygon[i], polygon[next]);
-                    double d = (proj.X - basePoint.X) * (proj.X - basePoint.X) +
-                               (proj.Y - basePoint.Y) * (proj.Y - basePoint.Y);
-
-                    // Preferuj punkty w kierunku promienia
-                    double dot = (proj.X - basePoint.X) * dx + (proj.Y - basePoint.Y) * dy;
-                    if (dot < -tolerance) continue;
-
-                    if (d < nearestDist)
-                    {
-                        nearestDist = d;
-                        nearest = proj;
-                    }
-                }
-
-                if (nearest.HasValue)
-                    return nearest.Value;
-
-                // Ostatni fallback — zwróć basePoint (żeby nie psuć geometrii)
-                return basePoint;
-            }
-
-            return closest.Value;
         }
 
         // ============================================================
@@ -3318,9 +3217,13 @@ namespace GEORGE.Client.Pages.Okna
         // ============================================================
         // FindIntersectionWithContourByAngle / FindClosestPointOnContour / ProjectPointOnSegment
         // ============================================================
+
         private XPoint FindIntersectionWithContourByAngle(
-            XPoint point, double angleDegrees, List<ContourSegment> contour,
-            bool goForward = true, double maxDistance = 1000.0)
+            XPoint point,
+            double angleDegrees,
+            List<ContourSegment> contour,
+            bool goForward = true,
+            double maxDistance = 1000.0)
         {
             if (contour == null || contour.Count == 0)
                 return point;
@@ -3329,17 +3232,251 @@ namespace GEORGE.Client.Pages.Okna
             double dx = Math.Cos(angleRad);
             double dy = Math.Sin(angleRad);
 
-            if (!goForward) { dx = -dx; dy = -dy; }
+            if (!goForward)
+            {
+                dx = -dx;
+                dy = -dy;
+            }
 
-            XPoint extendedPoint = new XPoint(point.X + dx * maxDistance, point.Y + dy * maxDistance);
+            const double eps = 1e-7;
 
-            XPoint intersection = FindIntersectionWithContourT1i3(point, extendedPoint, contour);
+            XPoint? bestPoint = null;
+            double bestT = double.PositiveInfinity;
 
-            double dot = (intersection.X - point.X) * dx + (intersection.Y - point.Y) * dy;
-            if (dot > 0.1 && Distance(point, intersection) > 0.1 && Distance(point, intersection) < maxDistance)
-                return intersection;
+            foreach (var segment in contour)
+            {
+                List<(XPoint Point, double T)> intersections;
 
-            return FindClosestPointOnContour(point, contour);
+                if (segment.Type == SegmentType.Line)
+                {
+                    intersections = IntersectRayWithLineSegment(
+                        point, dx, dy, segment, eps);
+                }
+                else if (segment.Type == SegmentType.Arc)
+                {
+                    intersections = IntersectRayWithArc(
+                        point, dx, dy, segment, eps);
+                }
+                else
+                {
+                    continue;
+                }
+
+                foreach (var candidate in intersections)
+                {
+                    if (candidate.T <= eps ||
+                        candidate.T > maxDistance + eps)
+                    {
+                        continue;
+                    }
+
+                    if (candidate.T < bestT)
+                    {
+                        bestT = candidate.T;
+                        bestPoint = candidate.Point;
+                    }
+                }
+            }
+
+            if (bestPoint.HasValue)
+            {
+                Console.WriteLine(
+                    $"✅ Przecięcie konturu: " +
+                    $"({bestPoint.Value.X:F3};{bestPoint.Value.Y:F3}), " +
+                    $"kąt={angleDegrees:F3}, dystans={bestT:F3}");
+
+                return bestPoint.Value;
+            }
+
+            Console.WriteLine(
+                $"⚠️ Nie znaleziono przecięcia konturu. " +
+                $"Punkt=({point.X:F3};{point.Y:F3}), " +
+                $"kąt={angleDegrees:F3}, maxDistance={maxDistance:F3}");
+
+            // Brak przecięcia: nie zwracamy punktu pozornego
+            // z FindClosestPointOnContour().
+            return point;
+        }
+
+
+        private List<(XPoint Point, double T)> IntersectRayWithLineSegment(
+            XPoint origin,
+            double dx,
+            double dy,
+            ContourSegment segment,
+            double eps)
+        {
+            var result = new List<(XPoint Point, double T)>();
+
+            double ax = segment.Start.X;
+            double ay = segment.Start.Y;
+
+            double sx = segment.End.X - ax;
+            double sy = segment.End.Y - ay;
+
+            double denominator = dx * sy - dy * sx;
+
+            double qx = ax - origin.X;
+            double qy = ay - origin.Y;
+
+            // Linie równoległe lub współliniowe.
+            if (Math.Abs(denominator) < eps)
+            {
+                double cross = qx * dy - qy * dx;
+
+                if (Math.Abs(cross) >= eps)
+                    return result;
+
+                // Współliniowe: końce odcinka są kandydatami.
+                double t1 = qx * dx + qy * dy;
+
+                double t2 =
+                    (segment.End.X - origin.X) * dx +
+                    (segment.End.Y - origin.Y) * dy;
+
+                if (t1 > eps)
+                    result.Add((segment.Start, t1));
+
+                if (t2 > eps)
+                    result.Add((segment.End, t2));
+
+                return result;
+            }
+
+            double t = (qx * sy - qy * sx) / denominator;
+            double u = (qx * dy - qy * dx) / denominator;
+
+            // t określa odległość wzdłuż promienia.
+            // u musi należeć do odcinka [0,1].
+            if (t > eps && u >= -eps && u <= 1.0 + eps)
+            {
+                result.Add((
+                    new XPoint(
+                        origin.X + t * dx,
+                        origin.Y + t * dy),
+                    t));
+            }
+
+            return result;
+        }
+
+
+        private List<(XPoint Point, double T)> IntersectRayWithArc(
+            XPoint origin,
+            double dx,
+            double dy,
+            ContourSegment segment,
+            double eps)
+        {
+            var result = new List<(XPoint Point, double T)>();
+
+            if (!segment.Center.HasValue || segment.Radius <= eps)
+                return result;
+
+            XPoint center = segment.Center.Value;
+            double radius = segment.Radius;
+
+            double fx = origin.X - center.X;
+            double fy = origin.Y - center.Y;
+
+            // Przecięcie promienia z okręgiem:
+            // |origin + t * d - center|^2 = radius^2.
+            // Wektor d jest jednostkowy.
+            double b = 2.0 * (fx * dx + fy * dy);
+            double c = fx * fx + fy * fy - radius * radius;
+
+            double discriminant = b * b - 4.0 * c;
+
+            if (discriminant < -eps)
+                return result;
+
+            discriminant = Math.Max(0.0, discriminant);
+
+            double sqrtD = Math.Sqrt(discriminant);
+
+            double t1 = (-b - sqrtD) / 2.0;
+            double t2 = (-b + sqrtD) / 2.0;
+
+            AddCandidate(t1);
+
+            if (Math.Abs(t2 - t1) > eps)
+                AddCandidate(t2);
+
+            return result;
+
+            void AddCandidate(double t)
+            {
+                if (t <= eps)
+                    return;
+
+                XPoint candidate = new XPoint(
+                    origin.X + t * dx,
+                    origin.Y + t * dy);
+
+                if (IsPointOnArc(candidate, segment, eps))
+                    result.Add((candidate, t));
+            }
+        }
+
+
+        private bool IsPointOnArc(
+            XPoint point,
+            ContourSegment segment,
+            double eps = 1e-7)
+        {
+            if (!segment.Center.HasValue || segment.Radius <= eps)
+                return false;
+
+            XPoint center = segment.Center.Value;
+
+            double distance = Distance(point, center);
+
+            if (Math.Abs(distance - segment.Radius) > 1e-5)
+                return false;
+
+            double startAngle = Math.Atan2(
+                segment.Start.Y - center.Y,
+                segment.Start.X - center.X);
+
+            double endAngle = Math.Atan2(
+                segment.End.Y - center.Y,
+                segment.End.X - center.X);
+
+            double pointAngle = Math.Atan2(
+                point.Y - center.Y,
+                point.X - center.X);
+
+            const double twoPi = 2.0 * Math.PI;
+
+            double Normalize(double angle)
+            {
+                angle %= twoPi;
+
+                if (angle < 0)
+                    angle += twoPi;
+
+                return angle;
+            }
+
+            double start = Normalize(startAngle);
+            double end = Normalize(endAngle);
+            double candidate = Normalize(pointAngle);
+
+            double totalSweep;
+            double candidateSweep;
+
+            if (segment.CounterClockwise)
+            {
+                totalSweep = Normalize(end - start);
+                candidateSweep = Normalize(candidate - start);
+            }
+            else
+            {
+                totalSweep = Normalize(start - end);
+                candidateSweep = Normalize(start - candidate);
+            }
+
+            return candidateSweep <= totalSweep + eps;
         }
 
         private XPoint FindClosestPointOnContour(XPoint point, List<ContourSegment> contour)
@@ -3456,11 +3593,41 @@ namespace GEORGE.Client.Pages.Okna
                 {
                     var adjustedVerticesX = new List<XPoint>(wierzcholki);
 
-                    if (rightJoin == "T1" && outerContour.Count() > 3)
-                        adjustedVerticesX[2] = FindIntersectionWithContourByAngle(adjustedVerticesX[2], angleDegrees, innerContour);
+                    Console.WriteLine(
+                        $"🔬 LEWA T1/T3: element={numerElemntu}, " +
+                        $"kąt={angleDegrees:F3}, rightJoin={rightJoin}");
 
-                    if (rightJoin == "T3" && outerContour.Count() > 3)
-                        adjustedVerticesX[2] = FindIntersectionWithContourByAngle(adjustedVerticesX[2], angleDegrees, outerContour);
+                    Console.WriteLine(
+                        $"   Punkt wejściowy V[2]=({adjustedVerticesX[2].X:F3}; " +
+                        $"{adjustedVerticesX[2].Y:F3})");
+
+                    if (rightJoin == "T1" && outerContour.Count > 3)
+                    {
+                        var intersection = FindIntersectionWithContourByAngle(
+                            adjustedVerticesX[2],
+                            angleDegrees,
+                            innerContour);
+
+                        Console.WriteLine(
+                            $"   Przecięcie T1=({intersection.X:F3}; " +
+                            $"{intersection.Y:F3})");
+
+                        adjustedVerticesX[2] = intersection;
+                    }
+
+                    if (rightJoin == "T3" && outerContour.Count > 3)
+                    {
+                        var intersection = FindIntersectionWithContourByAngle(
+                            adjustedVerticesX[2],
+                            angleDegrees,
+                            outerContour);
+
+                        Console.WriteLine(
+                            $"   Przecięcie T3=({intersection.X:F3}; " +
+                            $"{intersection.Y:F3})");
+
+                        adjustedVerticesX[2] = intersection;
+                    }
 
                     var segZewnetrznyX = BuildSegmentWithArc(adjustedVerticesX[0], adjustedVerticesX[1], filteredOuter);
                     var segWewnetrznyX = BuildSegmentWithArc(adjustedVerticesX[2], adjustedVerticesX[3], filteredInner);
@@ -3678,7 +3845,24 @@ namespace GEORGE.Client.Pages.Okna
             // ============================================================
             var adjustedVertices = new List<XPoint>(wierzcholki);
 
-            if (CzyObaKonceWspolnyFragmentTylkoLinie(adjustedVertices, outerContour, innerContour, sourceIndex))
+            Console.WriteLine(
+               $"🔍 Build4SegmentContour: element={numerElemntu}, " +
+               $"strona={_stronaElementu}, leftJoin={leftJoin}, rightJoin={rightJoin}");
+
+            for (int i = 0; i < adjustedVertices.Count; i++)
+            {
+                Console.WriteLine(
+                    $"   V[{i}] = ({adjustedVertices[i].X:F3}; " +
+                    $"{adjustedVertices[i].Y:F3})");
+            }
+
+            bool tylkoLinie = CzyObaKonceWspolnyFragmentTylkoLinie(
+                adjustedVertices, outerContour, innerContour, sourceIndex);
+
+            Console.WriteLine(
+                $"   CzyObaKonceWspolnyFragmentTylkoLinie={tylkoLinie}");
+
+            if (CzyObaKonceWspolnyFragmentTylkoLinie(adjustedVertices, outerContour, innerContour, sourceIndex) && adjustedVertices.Count == 4)
             {
                 Console.WriteLine($"🟢 Build4SegmentContour ELEMENT {numerElemntu}: linie.");
                 return new List<ContourSegment>
@@ -3717,21 +3901,26 @@ namespace GEORGE.Client.Pages.Okna
 
             // PRZYPADEK 2.4: T5 — słupek stały
             bool isT5 = leftJoin == "T5" || rightJoin == "T5";
-            if (isT5 && adjustedVertices.Count == 4)
+            if (isT5 && adjustedVertices.Count >= 4)
             {
                 var contoursForT5 = new List<ContourSegment>(outerContour.Count + innerContour.Count);
                 contoursForT5.AddRange(outerContour);
                 contoursForT5.AddRange(innerContour);
 
                 var firstEnd = BuildSegmentWithArc(adjustedVertices[0], adjustedVertices[1], contoursForT5);
-                var secondEnd = BuildSegmentWithArc(adjustedVertices[2], adjustedVertices[3], contoursForT5);
+                var secondEnd1 = BuildSegmentWithArc(adjustedVertices[2], adjustedVertices[3], contoursForT5);
+                var secondEnd2 = BuildSegmentWithArc(adjustedVertices[4], adjustedVertices[5], contoursForT5);
+                //var secondEnd3 = BuildSegmentWithArc(adjustedVertices[5], adjustedVertices[0], contoursForT5);
 
                 return new List<ContourSegment>
                 {
                     firstEnd,
                     new ContourSegment(adjustedVertices[1], adjustedVertices[2]),
-                    secondEnd,
-                    new ContourSegment(adjustedVertices[3], adjustedVertices[0])
+                    secondEnd1,
+                    new ContourSegment(adjustedVertices[3], adjustedVertices[4]),
+                    secondEnd2,
+                    new ContourSegment(adjustedVertices[5], adjustedVertices[0]),
+
                 };
             }
 
@@ -4079,7 +4268,7 @@ namespace GEORGE.Client.Pages.Okna
 
                     foreach (var pt in intersections)
                     {
-                        if (IsPointOnArc(pt, seg, 0.1))
+                        if (IsPointOnArcOnlyPoint(pt, seg, 0.1))
                         {
                             double dist = Distance(point1, pt);
                             double dot = (pt.X - point1.X) * tx + (pt.Y - point1.Y) * ty;
@@ -4182,7 +4371,7 @@ namespace GEORGE.Client.Pages.Okna
         // ============================================================
         // IsPointOnArc / Distance / GetSegmentsForSide
         // ============================================================
-        private static bool IsPointOnArc(XPoint point, ContourSegment arc, double tolerance = 1)
+        private static bool IsPointOnArcOnlyPoint(XPoint point, ContourSegment arc, double tolerance = 1)
         {
             if (arc.Center == null) return false;
 

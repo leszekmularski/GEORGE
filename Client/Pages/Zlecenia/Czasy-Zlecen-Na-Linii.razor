@@ -349,10 +349,16 @@
                         @if (boolNowy)
                         {
                             <Button Danger Icon="IconType.Fill.Copy"
-                                    OnClick="AddNew"
+                                    OnClick="() => AddNew(false)"
                                     Type="ButtonType.Primary"
                                     Ghost>
                                 Dodaj pusty rekord
+                            </Button>
+                            <Button Danger Icon="IconType.Fill.Copy"
+                                    OnClick="() => AddNew(true)"
+                                    Type="ButtonType.Primary"
+                                    Ghost>
+                                Dodaj pusty rekord dla drzwi (popraw wymiary)
                             </Button>
                         }
                     </div>
@@ -718,7 +724,7 @@
             iloszSztukPoz = wykazPozycjiDoZlecenia.Count();
     }
 
-    private async Task AddNew()
+    private async Task AddNew(bool pusteDlaDrzwi)
     {
         var pozDoZlecen = new PozDoZlecen
             {
@@ -726,17 +732,17 @@
                 RowIdZlecenia = RowIdZlecenia,
                 RowIdLiniiProdukcyjnej = "---",
                 Nr = wykazPozycjiDoZlecenia == null ? 1 : wykazPozycjiDoZlecenia.Count() + 1,
-                IloscOkien = 0,
+                IloscOkien = pusteDlaDrzwi ? 1 : 0,
                 JednostkiOkienDoPoz = 0,
                 JednostkiOkienSumaDoPoz = 0,
                 JednostkiOkienDoPozZrobione = 0,
-                Szerokosc = 0,
-                Wysokosc = 0,
-                System = "",
+                Szerokosc = pusteDlaDrzwi ? 1100 : 0,
+                Wysokosc = pusteDlaDrzwi ? 2100 : 0,
+                System = pusteDlaDrzwi ? "Drzwi grubość 90mm" : "",
                 Technologia = "",
-                Kolor = "",
+                Kolor = pusteDlaDrzwi ? "Afromosia" : "",
                 Ciezar1Sztuki = 0,
-                Iloscskrzydel = 0,
+                Iloscskrzydel = pusteDlaDrzwi ? 1: 0,
                 Szyba = "",
                 OstatniaZmiana = "Dodano dnia:" + DateTime.Now,
                 KtoZapisal = user,

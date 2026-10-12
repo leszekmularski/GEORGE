@@ -14,8 +14,8 @@ namespace GEORGE.Client.Pages.Models
         public string NazwaObj { get; set; } = "Linia";
         public bool RuchomySlupek { get; set; } = false;
         public bool StalySlupek { get; set; } = false;
-        public bool PionPoziom { get; set; } = false;
         public bool DualRama { get; set; } = false;
+        public bool PionPoziom { get; set; } = false;
         public bool IsSkosna { get; set; } = false;
 
         private double _scaleFactor = 1.0;

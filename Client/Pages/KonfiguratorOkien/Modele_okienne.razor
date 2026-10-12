@@ -619,8 +619,8 @@
                                          @onclick="@(() => WybierzModel(model))"
                                          @ondragstart="@(e => JS.InvokeVoidAsync(
                                          "SetCurrentModel",
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      model.Typ,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      model.RowId))"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   model.Typ,
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   model.RowId))"
                              @onmouseout="@(e => JS.InvokeVoidAsync("ResetCursor"))"
                              draggable="true"
                              style="cursor: grab;
@@ -629,8 +629,8 @@
                                 max-width: 50px;
                                 max-height: 50px;
                                 border: @(model == WybranyModel
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          ? "4px solid #007bff"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          : "none")" />
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       ? "4px solid #007bff"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       : "none")" />
                                                 }
                                 else
                                 {
@@ -1586,6 +1586,10 @@
                 throw new Exception("⚠️ Skrypt dragAndDrop.js nie został poprawnie załadowany!");
             }
 
+            await GenerujObrysPozZmianieWymiarow(true, false, false);
+            await Task.Yield();
+            StateHasChanged();
+
             await Laduj_Uprawnienia();
 
             await PobierzDaneSystemu();
@@ -1608,7 +1612,7 @@
             {
                 Console.WriteLine("🔄 Inicjalizacja canvasu...");
 
-                await Task.Delay(100);
+                await Task.Delay(50);
 
                 await JS.InvokeVoidAsync("prepareModalForDrag", modalRef);
                 await JS.InvokeVoidAsync("enableModalDrag", modalRef);
@@ -1635,7 +1639,7 @@
 
                     await StartResizeObserver();
 
-                    await Task.Yield();
+                    // await Task.Yield();
 
                     // ⭐ Ustaw DOMYŚLNE wymiary 1250x1000
                     const double DOMYSLNA_SZEROKOSC = 1250;
@@ -1660,8 +1664,8 @@
                         ShapeService.Wysokosc = DOMYSLNA_WYSOKOSC;
                     }
 
-                    await GenerujObrysPozZmianieWymiarow(true, false, false);
-                   // await ZmienWymiaryOkna(strukturaZmieniona: true, wymusWysrodkowanie: true);
+                    //await GenerujObrysPozZmianieWymiarow(true, false, false);
+                    // await ZmienWymiaryOkna(strukturaZmieniona: true, wymusWysrodkowanie: true);
                     await FitShapesToDisplayWindow();
 
                 }
@@ -2019,21 +2023,21 @@
                 }
 
 
-                // Console.WriteLine("══════════ LINIE PO EXTEND / SHORTEN ══════════");
+                Console.WriteLine("══════════ LINIE PO EXTEND / SHORTEN ══════════");
 
-                // foreach (var l in ShapeService.Shapes.OfType<XLineShape>())
-                // {
-                //     Console.WriteLine(
-                //         $"Line ID={l.ID.Substring(0, Math.Min(8, l.ID.Length))} " +
-                //         $"({l.X1:F2},{l.Y1:F2}) → ({l.X2:F2},{l.Y2:F2}) " +
-                //         $"DualRama={l.DualRama} " +
-                //         $"Ruchomy={l.RuchomySlupek} " +
-                //         $"Staly={l.StalySlupek} " +
-                //         $"GenerowaneZRamy={l.GenerowaneZRamy} " +
-                //         $"SplitGroupId={l.SplitGroupId}");
-                // }
+                foreach (var l in ShapeService.Shapes.OfType<XLineShape>())
+                {
+                    Console.WriteLine(
+                        $"Line ID={l.ID.Substring(0, Math.Min(8, l.ID.Length))} " +
+                        $"({l.X1:F2},{l.Y1:F2}) → ({l.X2:F2},{l.Y2:F2}) " +
+                        $"DualRama={l.DualRama} " +
+                        $"Ruchomy={l.RuchomySlupek} " +
+                        $"Staly={l.StalySlupek} " +
+                        $"GenerowaneZRamy={l.GenerowaneZRamy} " +
+                        $"SplitGroupId={l.SplitGroupId}");
+                }
 
-                // Console.WriteLine("══════════════════════════════════════════════");
+                Console.WriteLine("══════════════════════════════════════════════");
 
                 await Task.Yield();
 
@@ -2789,9 +2793,17 @@
         _constWlasciwosciOkna = true;
     }
 
-    private void HandleWOCancel(MouseEventArgs e)
+    private async Task HandleWOCancel(MouseEventArgs e)
     {
+
         _constWlasciwosciOkna = false;
+
+        // await Task.Yield(); // Czekaj na zakończenie zamykania modalnego okna
+
+        StateHasChanged(); // Odśwież widok po zamknięciu okna
+
+        await ApplyZoom();
+
     }
 
     private async Task HandleZapis()
@@ -4414,9 +4426,10 @@
                 // Jeśli ma taki warunek, należy wywołać jej
                 // wewnętrzną metodę roboczą bez tego warunku.
 
+
                 _zmienWymiaryWToku = false;
 
-                await ZmienWymiaryOkna(wymusWysrodkowanie: false);
+                await ZmienWymiaryOkna(strukturaZmieniona: true, wymusWysrodkowanie: false, generujPonownieLinie: false);
 
             }
 
@@ -4841,7 +4854,8 @@
 
     private bool _zmienWymiaryWToku = false;
 
-    private async Task ZmienWymiaryOkna(bool strukturaZmieniona = true, bool wymusWysrodkowanie = true)
+    private async Task ZmienWymiaryOkna(bool strukturaZmieniona = true,
+        bool wymusWysrodkowanie = true, bool generujPonownieLinie = true)
     {
         if (_zmienWymiaryWToku)
         {
@@ -4900,7 +4914,8 @@
             //     "════════════════════════════════════════════════════════════");
 
             // 2. Wygeneruj obrys + regiony RAZ
-            await GenerujObrysPozZmianieWymiarow(true, false, wymusWysrodkowanie);
+            if (generujPonownieLinie)
+                await GenerujObrysPozZmianieWymiarow(false, false, wymusWysrodkowanie);
 
             // // 2. Wygeneruj obrys + regiony RAZ
 
@@ -6132,8 +6147,9 @@
 
         try
         {
-            najlepszySasiadA = WybierzNajblizszegoSasiada(wszystkieKwadraty, stronaA, klikX, klikY, liniaStalaWierzcholki);
-            Console.WriteLine($"🔹 Najlepszy A: {najlepszySasiadA?.RowIdElementu} (strona={najlepszySasiadA?.Strona}) (SasiadSlupekStronaA: {najlepszySasiadA?.SasiadSlupekStronaA})");
+            //najlepszySasiadA = WybierzNajblizszegoSasiada(wszystkieKwadraty, stronaA, klikX, klikY, liniaStalaWierzcholki);
+            najlepszySasiadA = WybierzNajblizszegoSasiadaZKsztaltow(ksztalty, wszystkieKwadraty, stronaA, klikX, klikY, liniaStalaWierzcholki);
+            Console.WriteLine($"🔹 Najlepszy A: {najlepszySasiadA?.RowIdElementu} (strona={najlepszySasiadA?.Strona}) (SasiadSlupekStronaA: {najlepszySasiadA?.SasiadSlupekStronaA}) Kąt Sąsiada:{najlepszySasiadA?.KatLinii}");
         }
         catch (Exception ex)
         {
@@ -6143,8 +6159,9 @@
 
         try
         {
-            najlepszySasiadB = WybierzNajblizszegoSasiada(wszystkieKwadraty, stronaB, klikX, klikY, liniaStalaWierzcholki);
-            Console.WriteLine($"🔹 Najlepszy B: {najlepszySasiadB?.RowIdElementu} (strona={najlepszySasiadB?.Strona}) (SasiadSlupekStronaA: {najlepszySasiadB?.SasiadSlupekStronaA})");
+            //najlepszySasiadB = WybierzNajblizszegoSasiada(wszystkieKwadraty, stronaB, klikX, klikY, liniaStalaWierzcholki);
+            najlepszySasiadB = WybierzNajblizszegoSasiadaZKsztaltow(ksztalty, wszystkieKwadraty, stronaB, klikX, klikY, liniaStalaWierzcholki);
+            Console.WriteLine($"🔹 Najlepszy B: {najlepszySasiadB?.RowIdElementu} (strona={najlepszySasiadB?.Strona}) (SasiadSlupekStronaA: {najlepszySasiadB?.SasiadSlupekStronaA})  Kąt Sąsiada:{najlepszySasiadB?.KatLinii}");
         }
         catch (Exception ex)
         {
@@ -6266,6 +6283,22 @@
         if (wszystkieKwadraty == null || wszystkieKwadraty.Count == 0)
             return null;
 
+
+        Console.WriteLine($"🔍 WybierzNajblizszegoSasiada(strona='{strona}', klik=({klikX:F1},{klikY:F1}))");
+        Console.WriteLine($"   wszyscy przecinający kierunek (bez linii stałej) ALL: {wszystkieKwadraty.Count}");
+        for (int i = 0; i < Math.Min(wszystkieKwadraty.Count, 10); i++)
+        {
+            var x = wszystkieKwadraty[i];
+            Console.WriteLine($"   [{i}] {x.RowIdElementu} - {x.KatLinii} - RowIdRegionu:{x.RowIdRegionu}");
+
+            var czyElementJestDodany = ksztalty.Where(r => r?.RowIdElementu == x.RowIdElementu && r?.Kat == x.KatLinii)
+            .ToList();
+            if (czyElementJestDodany != null && czyElementJestDodany.Count > 0)
+            {
+                Console.WriteLine($"   [{i}] {x.RowIdElementu} - {x.KatLinii} - RowIdRegionu:{x.RowIdRegionu} - Element już dodany do listy ksztalty");
+            }
+        }
+
         // 1. Zbierz kandydatów, którzy:
         //    - nie są linią stałą (wykluczenie samego siebie)
         //    - przecinają kierunek
@@ -6363,6 +6396,255 @@
 
         return najlepszy;
     }
+
+
+    private DaneKwadratu? WybierzNajblizszegoSasiadaZKsztaltow(
+        List<KsztaltElementu> ksztalty,
+        List<DaneKwadratu> wszystkieKwadraty,
+        string strona,
+        double klikX,
+        double klikY,
+        List<XPoint> liniaStalaWierzcholki)
+    {
+        if (ksztalty == null || ksztalty.Count == 0)
+            return null;
+
+        const double tolerancja = 0.001;
+
+        Console.WriteLine(
+            $"🔍 WybierzNajblizszegoSasiadaZKsztaltow(" +
+            $"strona='{strona}', klik=({klikX:F1},{klikY:F1}))");
+
+        // 1. Wyszukaj kształty z poprawnymi wierzchołkami.
+        var kandydaci = ksztalty
+            .Where(k => k != null &&
+                        k.Wierzcholki != null &&
+                        k.Wierzcholki.Count >= 2 &&
+                        k.Widoczny)
+            .Where(k => !CzyTeSameWierzcholki(
+                k.Wierzcholki, liniaStalaWierzcholki, tolerancja))
+            .Select(k =>
+            {
+                // Środek kształtu
+                double cx = k.Wierzcholki.Average(p => p.X);
+                double cy = k.Wierzcholki.Average(p => p.Y);
+
+                // Przecięcie kierunku z odcinkami obrysu kształtu
+                var przeciecie = ZnajdzPrzeciecieKsztaltu(
+                    k.Wierzcholki, klikX, klikY, strona, tolerancja);
+
+                return new
+                {
+                    Ksztalt = k,
+                    Cx = cx,
+                    Cy = cy,
+                    Przecina = przeciecie.Przecina,
+                    Odleglosc = przeciecie.Odleglosc,
+                    Punkt = przeciecie.Punkt
+                };
+            })
+            .Where(x => x.Przecina)
+            .ToList();
+
+        // 2. Deduplikacja po RowIdElementu.
+        var unikalni = kandydaci
+            .GroupBy(x => x.Ksztalt.RowIdElementu)
+            .Select(g => g.OrderBy(x => x.Odleglosc).First())
+            .OrderBy(x => x.Odleglosc)
+            .ToList();
+
+        Console.WriteLine(
+            $"   Kształty przecinające kierunek: {kandydaci.Count}, " +
+            $"po deduplikacji: {unikalni.Count}");
+
+        foreach (var x in unikalni.Take(10))
+        {
+            Console.WriteLine(
+                $"   RowId={x.Ksztalt.RowIdElementu}, " +
+                $"Kat={x.Ksztalt.Kat}, Region={x.Ksztalt.IdRegion}, " +
+                $"Środek=({x.Cx:F1},{x.Cy:F1}), " +
+                $"Odległość={x.Odleglosc:F2}, " +
+                $"Przecięcie=({x.Punkt.X:F1},{x.Punkt.Y:F1})");
+        }
+
+        // 3. Wybierz najbliższy kształt.
+        var najlepszyKsztalt = unikalni.FirstOrDefault()?.Ksztalt;
+
+        if (najlepszyKsztalt == null)
+        {
+            Console.WriteLine(
+                $"⚠️ Nie znaleziono kształtu przecinającego kierunek '{strona}'.");
+
+            return null;
+        }
+
+        // 4. Odszukaj odpowiadający obiekt DaneKwadratu.
+        //    Właściwości geometryczne pochodzą z ksztalty,
+        //    ale wynik pozostaje typu DaneKwadratu.
+        DaneKwadratu? najlepszy = wszystkieKwadraty
+            .Where(k => k != null &&
+                        k.RowIdElementu == najlepszyKsztalt.RowIdElementu &&
+                        k.KatLinii == najlepszyKsztalt.Kat)
+            .FirstOrDefault();
+
+        if (najlepszy == null)
+        {
+            Console.WriteLine(
+                $"⚠️ Kształt {najlepszyKsztalt.RowIdElementu} " +
+                $"nie ma odpowiadającego obiektu DaneKwadratu.");
+
+            return null;
+        }
+
+        // 5. Ustaw informację o sąsiedzie będącym stałym słupkiem.
+        KonfModeleElementy? element = null;
+
+        foreach (var s in _generatorStates.Values)
+        {
+            var lista = s?.MVCKonfModelu?.KonfModeleElementy;
+            if (lista == null)
+                continue;
+
+            element = lista.FirstOrDefault(e =>
+                e != null &&
+                e.RowIdElement == najlepszy.RowIdElementu);
+
+            if (element != null)
+                break;
+        }
+
+        if (element != null)
+        {
+            najlepszy.SasiadSlupekStronaA =
+                string.Equals(
+                    element.Typ?.Trim(),
+                    "słupek stały",
+                    StringComparison.OrdinalIgnoreCase);
+        }
+
+        Console.WriteLine(
+            $"✅ Zwrócono: {najlepszy.RowIdElementu}, " +
+            $"Strona='{najlepszy.Strona}', " +
+            $"SasiadSlupekStronaA={najlepszy.SasiadSlupekStronaA}");
+
+        return najlepszy;
+    }
+
+    private bool CzyTeSameWierzcholki(
+        List<XPoint>? a,
+        List<XPoint>? b,
+        double tolerancja = 0.001)
+    {
+        if (a == null || b == null ||
+            a.Count < 2 || b.Count < 2)
+        {
+            return false;
+        }
+
+        var a0 = a[0];
+        var a1 = a[^1];
+        var b0 = b[0];
+        var b1 = b[^1];
+
+        bool zgodnie =
+            Math.Abs(a0.X - b0.X) <= tolerancja &&
+            Math.Abs(a0.Y - b0.Y) <= tolerancja &&
+            Math.Abs(a1.X - b1.X) <= tolerancja &&
+            Math.Abs(a1.Y - b1.Y) <= tolerancja;
+
+        bool odwrotnie =
+            Math.Abs(a0.X - b1.X) <= tolerancja &&
+            Math.Abs(a0.Y - b1.Y) <= tolerancja &&
+            Math.Abs(a1.X - b0.X) <= tolerancja &&
+            Math.Abs(a1.Y - b0.Y) <= tolerancja;
+
+        return zgodnie || odwrotnie;
+    }
+
+
+    private (bool Przecina, double Odleglosc, XPoint Punkt)
+        ZnajdzPrzeciecieKsztaltu(
+            List<XPoint> wierzcholki,
+            double klikX,
+            double klikY,
+            string strona,
+            double tolerancja = 0.001)
+    {
+        var punktNajlepszy = new XPoint(0, 0);
+        double najlepszaOdleglosc = double.MaxValue;
+
+        double dx = 0;
+        double dy = 0;
+
+        switch (strona.Trim().ToLowerInvariant())
+        {
+            case "lewa":
+            case "left":
+                dx = -1;
+                break;
+
+            case "prawa":
+            case "right":
+                dx = 1;
+                break;
+
+            case "góra":
+            case "gora":
+            case "top":
+                dy = -1;
+                break;
+
+            case "dół":
+            case "dol":
+            case "bottom":
+                dy = 1;
+                break;
+
+            default:
+                return (false, double.MaxValue, punktNajlepszy);
+        }
+
+        for (int i = 0; i < wierzcholki.Count; i++)
+        {
+            var a = wierzcholki[i];
+            var b = wierzcholki[(i + 1) % wierzcholki.Count];
+
+            double sx = b.X - a.X;
+            double sy = b.Y - a.Y;
+
+            double mianownik = dx * sy - dy * sx;
+
+            if (Math.Abs(mianownik) <= tolerancja)
+                continue;
+
+            double ax = a.X - klikX;
+            double ay = a.Y - klikY;
+
+            double t = (ax * sy - ay * sx) / mianownik;
+            double u = (ax * dy - ay * dx) / mianownik;
+
+            if (t < -tolerancja ||
+                u < -tolerancja ||
+                u > 1 + tolerancja)
+            {
+                continue;
+            }
+
+            if (t < najlepszaOdleglosc)
+            {
+                najlepszaOdleglosc = Math.Max(0, t);
+
+                punktNajlepszy = new XPoint(
+                    klikX + t * dx,
+                    klikY + t * dy);
+            }
+        }
+
+        return najlepszaOdleglosc < double.MaxValue
+            ? (true, najlepszaOdleglosc, punktNajlepszy)
+            : (false, double.MaxValue, punktNajlepszy);
+    }
+
 
     /// <summary>
     /// Sprawdza, czy jakikolwiek odcinek kandydata przecina promień wychodzący z kliknięcia

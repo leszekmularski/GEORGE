@@ -638,7 +638,7 @@ namespace GEORGE.Client.Pages.Utils
                         {
                             r.Id = id + "|" + idCounter++;
                         }
-                            
+
                     }
 
                     foreach (var region in podzielone)
@@ -1209,7 +1209,7 @@ namespace GEORGE.Client.Pages.Utils
 
         private static void PoprawNumeracjeRegionow(List<ShapeRegion> regions)
         {
-  
+
             if (regions == null || regions.Count == 0)
                 return;
 

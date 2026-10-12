@@ -521,6 +521,8 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             var horizontalLineGroups = GroupLinesForDistribution(
                 lines.Where(l => Math.Abs(l.Y1 - l.Y2) < Tolerance),
                 line => line.Y1);
+            // Zachowujemy pierwotną kolejność linii z kolekcji shapes.
+
 
             const double MinOffsetFromAxis = 1.0;
 
@@ -600,6 +602,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
             await Task.CompletedTask;
         }
+     
         private static void MoveAttachedPoints(
             List<XLineShape> allLines,
             double oldCoord,
@@ -1262,46 +1265,77 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             double docelowaSzerokosc,
             double docelowaWysokosc)
         {
-            if (shapes == null || shapes.Count == 0) return;
+            if (shapes == null || shapes.Count == 0)
+                return;
 
-            // Wymiar docelowy opisuje obrys okna, a nie obwiednię linii
-            // podziału. Linie mogą chwilowo wystawać poza kontur (przed
-            // przycięciem), więc nie mogą wpływać na współczynniki skali.
-            var shapesKonturu = shapes.Where(shape => shape is not XLineShape).ToList();
-            var shapesDoObwiedni = shapesKonturu.Count > 0 ? shapesKonturu : shapes;
-            var (minX, minY, maxX, maxY) = ObliczWspolnyBBox(shapesDoObwiedni);
+            if (docelowaSzerokosc <= 0 || docelowaWysokosc <= 0)
+            {
+                Console.WriteLine(
+                    "⚠️ SkalujShapesDoWymiarowRozciagajac: " +
+                    "docelowa szerokość lub wysokość jest nieprawidłowa.");
+                return;
+            }
+
+            // Wymiar docelowy opisuje obrys okna, a nie obwiednię linii podziału.
+            // Linie nie mogą wpływać na współczynniki skali.
+            var shapesKonturu = shapes
+                .Where(shape => shape is not XLineShape)
+                .ToList();
+
+            var shapesDoObwiedni = shapesKonturu.Count > 0
+                ? shapesKonturu
+                : shapes.ToList();
+
+            var (minX, minY, maxX, maxY) =
+                ObliczWspolnyBBox(shapesDoObwiedni);
 
             double aktualnaSzerokosc = maxX - minX;
             double aktualnaWysokosc = maxY - minY;
 
-            if (aktualnaSzerokosc < 0.001 || aktualnaWysokosc < 0.001)
+            if (aktualnaSzerokosc < 0.001 ||
+                aktualnaWysokosc < 0.001)
             {
-                Console.WriteLine("⚠️ SkalujShapesDoWymiarowRozciagajac: zerowy bbox, pomijam");
+                Console.WriteLine(
+                    "⚠️ SkalujShapesDoWymiarowRozciagajac: zerowy bbox, pomijam");
                 return;
             }
 
             double scaleX = docelowaSzerokosc / aktualnaSzerokosc;
             double scaleY = docelowaWysokosc / aktualnaWysokosc;
+
             double offsetX = -minX * scaleX;
             double offsetY = -minY * scaleY;
 
-            Console.WriteLine($"📐 SkalujShapes (rozciąganie): {aktualnaSzerokosc:F1}x{aktualnaWysokosc:F1} → " +
-                              $"{docelowaSzerokosc:F1}x{docelowaWysokosc:F1} " +
-                              $"(scaleX={scaleX:F4}, scaleY={scaleY:F4})");
+            Console.WriteLine(
+                $"📐 SkalujShapes (rozciąganie): " +
+                $"{aktualnaSzerokosc:F1}x{aktualnaWysokosc:F1} → " +
+                $"{docelowaSzerokosc:F1}x{docelowaWysokosc:F1} " +
+                $"(scaleX={scaleX:F4}, scaleY={scaleY:F4})");
 
-            // Zapamiętaj kierunek linii osiowych przed skalowaniem. Osobne
-            // skale X/Y zachowują go matematycznie, jednak błąd numeryczny
-            // powiększony np. z 1250 mm do 3250 mm później powodował, że
-            // przycinanie uznawało linię pionową za poziomą albo skośną.
-            var kierunkiOsiowe = ZapamietajKierunkiOsiowe(shapes.OfType<XLineShape>());
+            // Zapamiętujemy kierunki osiowe przed skalowaniem.
+            var kierunkiOsiowe =
+                ZapamietajKierunkiOsiowe(shapes.OfType<XLineShape>());
 
-            foreach (var shape in shapes)
+            // Kopia zachowuje kolejność obiektów z oryginalnej listy.
+            // Nie sortujemy linii ani nie zmieniamy ich ról konstrukcyjnych.
+            var shapesWKolejnosci = shapes.ToList();
+
+            Console.WriteLine(
+                $"📋 Skalowanie obiektów w pierwotnej kolejności: " +
+                $"{shapesWKolejnosci.Count}");
+
+            foreach (var shape in shapesWKolejnosci)
             {
                 if (shape is XLineShape line)
                 {
                     Console.WriteLine(
-                        $"🔵 PRZED Transform LINE {line.ID.Substring(0, Math.Min(8, line.ID.Length))}: " +
-                        $"({line.X1:F2},{line.Y1:F2}) → ({line.X2:F2},{line.Y2:F2})");
+                        $"🔵 PRZED Transform LINE " +
+                        $"{line.ID.Substring(0, Math.Min(8, line.ID.Length))}: " +
+                        $"({line.X1:F2},{line.Y1:F2}) → " +
+                        $"({line.X2:F2},{line.Y2:F2}) | " +
+                        $"Staly={line.StalySlupek}, " +
+                        $"Ruchomy={line.RuchomySlupek}, " +
+                        $"DualRama={line.DualRama}");
                 }
 
                 shape.Transform(scaleX, scaleY, offsetX, offsetY);
@@ -1315,12 +1349,22 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 if (shape is XLineShape linePo)
                 {
                     Console.WriteLine(
-                        $"🔴 PO Transform LINE {linePo.ID.Substring(0, Math.Min(8, linePo.ID.Length))}: " +
-                        $"({linePo.X1:F2},{linePo.Y1:F2}) → ({linePo.X2:F2},{linePo.Y2:F2})");
+                        $"🔴 PO Transform LINE " +
+                        $"{linePo.ID.Substring(0, Math.Min(8, linePo.ID.Length))}: " +
+                        $"({linePo.X1:F2},{linePo.Y1:F2}) → " +
+                        $"({linePo.X2:F2},{linePo.Y2:F2}) | " +
+                        $"Staly={linePo.StalySlupek}, " +
+                        $"Ruchomy={linePo.RuchomySlupek}, " +
+                        $"DualRama={linePo.DualRama}");
                 }
             }
 
+            // Przywracamy kierunki pionowe i poziome po transformacji.
             PrzywrocKierunkiOsiowe(kierunkiOsiowe);
+
+            Console.WriteLine(
+                "✅ SkalujShapesDoWymiarowRozciagajac: " +
+                "skalowanie zakończone, kolejność listy zachowana.");
         }
 
         private static Dictionary<XLineShape, bool> ZapamietajKierunkiOsiowe(
