@@ -844,152 +844,187 @@ else
     /// Po rozstawieniu linii wywołujemy propagację styczności (Y pionowych
     /// dopasowuje się do najbliższej poziomej, z którą się styka).
     /// </summary>
-    private async Task PodzielLinieSymetrycznieAsync(
-        bool ustawTylkoLinie = false,
-        bool pionowe = true,
-        bool poziome = true,
-        bool rozciagnijLinie = false)
+  private async Task PodzielLinieSymetrycznieAsync(
+    bool ustawTylkoLinie = false,
+    bool pionowe = true,
+    bool poziome = true,
+    bool rozciagnijLinie = false)
+{
+    if (Model?.EditableProperties == null || Model.EditableProperties.Count == 0)
+        return;
+
+    Console.WriteLine($"📐 PodzielLinie: START, Szerokosc={Model.Szerokosc}, Wysokosc={Model.Wysokosc}");
+
+    // ─────────────────────────────────────────────────────────────
+    // 1. Zbuduj grupy właściwości – każda grupa = jedna linia logiczna
+    // ─────────────────────────────────────────────────────────────
+    var grupyWlasciwosci = Model.EditableProperties
+        .Select((p, i) => (Index: i, Prop: p))
+        .Where(x => x.Prop.ShapeId != null && !string.IsNullOrEmpty(x.Prop.NazwaObiektu))
+        .GroupBy(x => x.Prop.SplitGroupId ?? x.Prop.ShapeId)
+        .ToList();
+
+    // ─────────────────────────────────────────────────────────────
+    // 2. Rozdziel grupy po orientacji — NIE mieszamy pionowych z poziomymi
+    // ─────────────────────────────────────────────────────────────
+    var grupyPionowe = new List<(List<int> IndexesX1, List<int> IndexesX2, string GroupId)>();
+    var grupyPoziome = new List<(List<int> IndexesY1, List<int> IndexesY2, string GroupId)>();
+
+    foreach (var grupa in grupyWlasciwosci)
     {
-        if (Model?.EditableProperties == null || Model.EditableProperties.Count == 0)
-            return;
+        bool maPionowa = grupa.Any(g => g.Prop.IsPionowa);
+        bool maPozioma = grupa.Any(g => g.Prop.IsPozioma);
 
-        Console.WriteLine($"📐 PodzielLinie: START, Szerokosc={Model.Szerokosc}, Wysokosc={Model.Wysokosc}");
+        // ⚠️ Grupa mieszana — to błąd, ale logujemy i próbujemy uratować
+        //    traktując ją jako DWIE osobne logiczne linie.
+        if (maPionowa && maPozioma)
+        {
+            Console.WriteLine($"⚠️ Grupa MIESZANA klucz='{grupa.Key}' — rozbijam na pionową i poziomą");
+        }
 
-        // ─────────────────────────────────────────────────────────────
-        // 1. Zbuduj grupy właściwości – każda grupa = jedna linia logiczna
-        // ─────────────────────────────────────────────────────────────
-        var grupyWlasciwosci = Model.EditableProperties
-            .Select((p, i) => (Index: i, Prop: p))
-            .Where(x => x.Prop.ShapeId != null && !string.IsNullOrEmpty(x.Prop.NazwaObiektu))
-            .GroupBy(x => x.Prop.SplitGroupId ?? x.Prop.ShapeId)
+        // Zbierz X1/X2 z części pionowej
+        var x1Props = grupa
+            .Where(g => g.Prop.IsPionowa &&
+                (g.Prop.Label?.ToLower().StartsWith("x1") == true ||
+                 g.Prop.Label?.ToLower().Contains("w osi x1") == true))
+            .Select(g => g.Index).ToList();
+
+        var x2Props = grupa
+            .Where(g => g.Prop.IsPionowa &&
+                (g.Prop.Label?.ToLower().StartsWith("x2") == true ||
+                 g.Prop.Label?.ToLower().Contains("w osi x2") == true))
+            .Select(g => g.Index).ToList();
+
+        // Zbierz Y1/Y2 z części poziomej
+        var y1Props = grupa
+            .Where(g => g.Prop.IsPozioma &&
+                (g.Prop.Label?.ToLower().StartsWith("y1") == true ||
+                 g.Prop.Label?.ToLower().Contains("w osi y1") == true))
+            .Select(g => g.Index).ToList();
+
+        var y2Props = grupa
+            .Where(g => g.Prop.IsPozioma &&
+                (g.Prop.Label?.ToLower().StartsWith("y2") == true ||
+                 g.Prop.Label?.ToLower().Contains("w osi y2") == true))
+            .Select(g => g.Index).ToList();
+
+        // ⚠️ KLUCZ: dodajemy do listy TYLKO jeśli grupa ma odpowiednią orientację
+        //    i NIE jest grupą mieszaną (albo — jeśli mieszana — dodajemy do obu list)
+        if (x1Props.Any() && (!maPozioma || maPionowa))
+        {
+            grupyPionowe.Add((x1Props, x2Props, grupa.Key!));
+        }
+
+        if (y1Props.Any() && (!maPionowa || maPozioma))
+        {
+            grupyPoziome.Add((y1Props, y2Props, grupa.Key!));
+        }
+    }
+
+    Console.WriteLine($"📐 PodzielLinie: pionowe={grupyPionowe.Count}, poziome={grupyPoziome.Count}");
+
+    // ─────────────────────────────────────────────────────────────
+    // 3. Rozstaw PIONOWE symetrycznie (X równo rozłożone w szerokości)
+    //    ⭐ SORTUJ grupy po aktualnym X żeby nie zamieniać kolejności
+    // ─────────────────────────────────────────────────────────────
+    if (pionowe && grupyPionowe.Count > 0 && Model.Szerokosc > 0)
+    {
+        double odstep = Model.Szerokosc / (grupyPionowe.Count + 1);
+
+        // ⭐ Sortuj grupy po aktualnym X (rosnąco — od lewej do prawej)
+        var grupyPionowePosortowane = grupyPionowe
+            .OrderBy(g => Model.GetPropertyValue(g.IndexesX1[0]))
             .ToList();
 
-        // ─────────────────────────────────────────────────────────────
-        // 2. Rozdziel grupy po orientacji — NIE mieszamy pionowych z poziomymi
-        // ─────────────────────────────────────────────────────────────
-        var grupyPionowe = new List<(List<int> IndexesX1, List<int> IndexesX2, string GroupId)>();
-        var grupyPoziome = new List<(List<int> IndexesY1, List<int> IndexesY2, string GroupId)>();
-
-        foreach (var grupa in grupyWlasciwosci)
+        Console.WriteLine($"📐 PION — sortowanie grup po X (od lewej do prawej):");
+        for (int k = 0; k < grupyPionowePosortowane.Count; k++)
         {
-            bool maPionowa = grupa.Any(g => g.Prop.IsPionowa);
-            bool maPozioma = grupa.Any(g => g.Prop.IsPozioma);
-
-            // ⚠️ Grupa mieszana — to błąd, ale logujemy i próbujemy uratować
-            //    traktując ją jako DWIE osobne logiczne linie.
-            if (maPionowa && maPozioma)
-            {
-                Console.WriteLine($"⚠️ Grupa MIESZANA klucz='{grupa.Key}' — rozbijam na pionową i poziomą");
-            }
-
-            // Zbierz X1/X2 z części pionowej
-            var x1Props = grupa
-                .Where(g => g.Prop.IsPionowa &&
-                    (g.Prop.Label?.ToLower().StartsWith("x1") == true ||
-                     g.Prop.Label?.ToLower().Contains("w osi x1") == true))
-                .Select(g => g.Index).ToList();
-
-            var x2Props = grupa
-                .Where(g => g.Prop.IsPionowa &&
-                    (g.Prop.Label?.ToLower().StartsWith("x2") == true ||
-                     g.Prop.Label?.ToLower().Contains("w osi x2") == true))
-                .Select(g => g.Index).ToList();
-
-            // Zbierz Y1/Y2 z części poziomej
-            var y1Props = grupa
-                .Where(g => g.Prop.IsPozioma &&
-                    (g.Prop.Label?.ToLower().StartsWith("y1") == true ||
-                     g.Prop.Label?.ToLower().Contains("w osi y1") == true))
-                .Select(g => g.Index).ToList();
-
-            var y2Props = grupa
-                .Where(g => g.Prop.IsPozioma &&
-                    (g.Prop.Label?.ToLower().StartsWith("y2") == true ||
-                     g.Prop.Label?.ToLower().Contains("w osi y2") == true))
-                .Select(g => g.Index).ToList();
-
-            // ⚠️ KLUCZ: dodajemy do listy TYLKO jeśli grupa ma odpowiednią orientację
-            //    i NIE jest grupą mieszaną (albo — jeśli mieszana — dodajemy do obu list)
-            if (x1Props.Any() && (!maPozioma || maPionowa))
-            {
-                grupyPionowe.Add((x1Props, x2Props, grupa.Key!));
-            }
-
-            if (y1Props.Any() && (!maPionowa || maPozioma))
-            {
-                grupyPoziome.Add((y1Props, y2Props, grupa.Key!));
-            }
+            var g = grupyPionowePosortowane[k];
+            double aktX = Model.GetPropertyValue(g.IndexesX1[0]);
+            Console.WriteLine($"   [{k}] grupa={g.GroupId.Substring(0, Math.Min(8, g.GroupId.Length))} " +
+                              $"aktualne X={aktX:F1} → nowe X={Math.Round(odstep * (k + 1), 0):F1}");
         }
 
-        Console.WriteLine($"📐 PodzielLinie: pionowe={grupyPionowe.Count}, poziome={grupyPoziome.Count}");
-
-        // ─────────────────────────────────────────────────────────────
-        // 3. Rozstaw PIONOWE symetrycznie (X równo rozłożone w szerokości)
-        // ─────────────────────────────────────────────────────────────
-        if (pionowe && grupyPionowe.Count > 0 && Model.Szerokosc > 0)
+        for (int i = 0; i < grupyPionowePosortowane.Count; i++)
         {
-            double odstep = Model.Szerokosc / (grupyPionowe.Count + 1);
+            double nowaPozycjaX = Math.Round(odstep * (i + 1), 0);
+            var (indexesX1, indexesX2, groupId) = grupyPionowePosortowane[i];
 
-            for (int i = 0; i < grupyPionowe.Count; i++)
-            {
-                double nowaPozycjaX = Math.Round(odstep * (i + 1), 0);
-                var (indexesX1, indexesX2, groupId) = grupyPionowe[i];
+            double aktX = Model.GetPropertyValue(indexesX1[0]);
+            Console.WriteLine($"📐 PION grupa={groupId.Substring(0, Math.Min(8, groupId.Length))}: " +
+                              $"X {aktX:F1} → {nowaPozycjaX}");
 
-                Console.WriteLine($"📐 PION grupa={groupId}: X → {nowaPozycjaX}");
+            foreach (var idx in indexesX1)
+                Model.UpdateEditableProperty(idx, nowaPozycjaX);
 
-                foreach (var idx in indexesX1)
-                    Model.UpdateEditableProperty(idx, nowaPozycjaX);
-
-                foreach (var idx in indexesX2)
-                    Model.UpdateEditableProperty(idx, nowaPozycjaX);
-            }
+            foreach (var idx in indexesX2)
+                Model.UpdateEditableProperty(idx, nowaPozycjaX);
         }
-
-        // ─────────────────────────────────────────────────────────────
-        // 4. Rozstaw POZIOME symetrycznie (Y równo rozłożone w wysokości)
-        // ─────────────────────────────────────────────────────────────
-        if (poziome && grupyPoziome.Count > 0 && Model.Wysokosc > 0)
-        {
-            double odstep = Model.Wysokosc / (grupyPoziome.Count + 1);
-
-            for (int i = 0; i < grupyPoziome.Count; i++)
-            {
-                double nowaPozycjaY = Math.Round(odstep * (i + 1), 0);
-                var (indexesY1, indexesY2, groupId) = grupyPoziome[i];
-
-                Console.WriteLine($"📐 POZ grupa={groupId}: Y → {nowaPozycjaY}");
-
-                foreach (var idx in indexesY1)
-                    Model.UpdateEditableProperty(idx, nowaPozycjaY);
-
-                foreach (var idx in indexesY2)
-                    Model.UpdateEditableProperty(idx, nowaPozycjaY);
-            }
-        }
-
-        // ─────────────────────────────────────────────────────────────
-        // 5. ⭐ PROPAGACJA STYCZNOŚCI — pionowe końce dopasowują się do poziomych
-        // ─────────────────────────────────────────────────────────────
-        PropagujStycznoscPionowychDoPoziomych(
-            grupyPionowe,
-            grupyPoziome);
-
-        // ─────────────────────────────────────────────────────────────
-        // 6. Napraw zdegenerowane linie (punkty → odcinki)
-        // ─────────────────────────────────────────────────────────────
-        NaprawZdegenerowaneLinie(ShapeService.Shapes, Model.Szerokosc, Model.Wysokosc);
-
-        if (rozciagnijLinie)
-        {
-            Console.WriteLine("📐 PodzielLinie: rozciągam linie do shapes (zmiana wymiarów)");
-
-            await LineUtils.ExtendOrShortenLinesWithTangencyAsync(ShapeService.Shapes, 0.5);
-            await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
-        }
-
-        if (!ustawTylkoLinie)
-            await ZapiszDoRodzica();
     }
+
+    // ─────────────────────────────────────────────────────────────
+    // 4. Rozstaw POZIOME symetrycznie (Y równo rozłożone w wysokości)
+    //    ⭐ SORTUJ grupy po aktualnym Y żeby nie zamieniać kolejności
+    // ─────────────────────────────────────────────────────────────
+    if (poziome && grupyPoziome.Count > 0 && Model.Wysokosc > 0)
+    {
+        double odstep = Model.Wysokosc / (grupyPoziome.Count + 1);
+
+        // ⭐ Sortuj grupy po aktualnym Y (rosnąco — od góry do dołu)
+        var grupyPoziomePosortowane = grupyPoziome
+            .OrderBy(g => Model.GetPropertyValue(g.IndexesY1[0]))
+            .ToList();
+
+        Console.WriteLine($"📐 POZ — sortowanie grup po Y (od góry do dołu):");
+        for (int k = 0; k < grupyPoziomePosortowane.Count; k++)
+        {
+            var g = grupyPoziomePosortowane[k];
+            double aktY = Model.GetPropertyValue(g.IndexesY1[0]);
+            Console.WriteLine($"   [{k}] grupa={g.GroupId.Substring(0, Math.Min(8, g.GroupId.Length))} " +
+                              $"aktualne Y={aktY:F1} → nowe Y={Math.Round(odstep * (k + 1), 0):F1}");
+        }
+
+        for (int i = 0; i < grupyPoziomePosortowane.Count; i++)
+        {
+            double nowaPozycjaY = Math.Round(odstep * (i + 1), 0);
+            var (indexesY1, indexesY2, groupId) = grupyPoziomePosortowane[i];
+
+            double aktY = Model.GetPropertyValue(indexesY1[0]);
+            Console.WriteLine($"📐 POZ grupa={groupId.Substring(0, Math.Min(8, groupId.Length))}: " +
+                              $"Y {aktY:F1} → {nowaPozycjaY}");
+
+            foreach (var idx in indexesY1)
+                Model.UpdateEditableProperty(idx, nowaPozycjaY);
+
+            foreach (var idx in indexesY2)
+                Model.UpdateEditableProperty(idx, nowaPozycjaY);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 5. ⭐ PROPAGACJA STYCZNOŚCI — pionowe końce dopasowują się do poziomych
+    // ─────────────────────────────────────────────────────────────
+    PropagujStycznoscPionowychDoPoziomych(
+        grupyPionowe,
+        grupyPoziome);
+
+    // ─────────────────────────────────────────────────────────────
+    // 6. Napraw zdegenerowane linie (punkty → odcinki)
+    // ─────────────────────────────────────────────────────────────
+    NaprawZdegenerowaneLinie(ShapeService.Shapes, Model.Szerokosc, Model.Wysokosc);
+
+    if (rozciagnijLinie)
+    {
+        Console.WriteLine("📐 PodzielLinie: rozciągam linie do shapes (zmiana wymiarów)");
+
+        await LineUtils.ExtendOrShortenLinesWithTangencyAsync(ShapeService.Shapes, 0.5);
+        await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
+    }
+
+    if (!ustawTylkoLinie)
+        await ZapiszDoRodzica();
+}
+
 
 
     // ═══════════════════════════════════════════════════════════════

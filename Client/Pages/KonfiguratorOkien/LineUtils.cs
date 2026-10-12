@@ -1331,8 +1331,8 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                     Console.WriteLine(
                         $"🔵 PRZED Transform LINE " +
                         $"{line.ID.Substring(0, Math.Min(8, line.ID.Length))}: " +
-                        $"({line.X1:F2},{line.Y1:F2}) → " +
-                        $"({line.X2:F2},{line.Y2:F2}) | " +
+                        $"({line.X1:F2};{line.Y1:F2}) → " +
+                        $"({line.X2:F2};{line.Y2:F2}) | " +
                         $"Staly={line.StalySlupek}, " +
                         $"Ruchomy={line.RuchomySlupek}, " +
                         $"DualRama={line.DualRama}");
