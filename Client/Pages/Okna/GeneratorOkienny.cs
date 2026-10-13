@@ -2849,17 +2849,17 @@ namespace GEORGE.Client.Pages.Okna
         XPoint basePoint, XPoint dirStart, XPoint dirEnd,
         List<XPoint> polygon, bool forward = true, double tolerance = 0.01)
         {
-            //// ═══════════════════════════════════════════════════════════
-            //// LOG WEJŚCIA
-            //// ═══════════════════════════════════════════════════════════
-            //Console.WriteLine("───────────────────────────────────────────────");
-            //Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx");
-            //Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   basePoint = ({basePoint.X:F2}, {basePoint.Y:F2})");
-            //Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   dirStart  = ({dirStart.X:F2}, {dirStart.Y:F2})");
-            //Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   dirEnd    = ({dirEnd.X:F2}, {dirEnd.Y:F2})");
-            //Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   forward   = {forward}");
-            //Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   tolerance = {tolerance}");
-            //Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   polygon.Count = {polygon?.Count ?? 0}");
+            // ═══════════════════════════════════════════════════════════
+            // LOG WEJŚCIA
+            // ═══════════════════════════════════════════════════════════
+            Console.WriteLine("───────────────────────────────────────────────");
+            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx");
+            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   basePoint = ({basePoint.X:F2}, {basePoint.Y:F2})");
+            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   dirStart  = ({dirStart.X:F2}, {dirStart.Y:F2})");
+            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   dirEnd    = ({dirEnd.X:F2}, {dirEnd.Y:F2})");
+            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   forward   = {forward}");
+            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   tolerance = {tolerance}");
+            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   polygon.Count = {polygon?.Count ?? 0}");
 
             if (polygon == null || polygon.Count < 3)
             {
@@ -2867,13 +2867,17 @@ namespace GEORGE.Client.Pages.Okna
                 return (basePoint, false);
             }
 
-            //Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   📍 Punkty w polygon:");
-            //for (int k = 0; k < polygon.Count; k++)
-            //    Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx      [{k}] ({polygon[k].X:F2}, {polygon[k].Y:F2})");
+            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   📍 Punkty w polygon:");
+            for (int k = 0; k < polygon.Count; k++)
+                Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx      [{k}] ({polygon[k].X:F2}, {polygon[k].Y:F2})");
 
             // ═══════════════════════════════════════════════════════════
             // KROK 0: SPRAWDŹ CZY basePoint JEST WEWNĄTRZ POLYGONU
             //         Jeśli nie — przesuń go w JEDNEJ osi do środka konturu
+            // ═══════════════════════════════════════════════════════════
+            // ═══════════════════════════════════════════════════════════
+            // KROK 0: SPRAWDŹ CZY basePoint JEST WEWNĄTRZ POLYGONU
+            //         Jeśli nie — przesuń TYLKO WZDŁUŻ OSI LINII (nie prostopadle)
             // ═══════════════════════════════════════════════════════════
             XPoint effectiveBase = basePoint;
 
@@ -2883,61 +2887,64 @@ namespace GEORGE.Client.Pages.Okna
             {
                 Console.WriteLine($"   ⚠️ basePoint ({basePoint.X:F2}, {basePoint.Y:F2}) POZA polygonem");
 
-                // Oblicz centroid polygonu (środek konturu)
                 double centroidX = polygon.Average(p => p.X);
                 double centroidY = polygon.Average(p => p.Y);
 
-                // ⭐ Spróbuj przesunąć w X — czy punkt (centroidX, basePoint.Y) jest wewnątrz?
-                var tryX = new XPoint(centroidX, basePoint.Y);
-                bool tryXWewnatrz = IsPointInPolygon(tryX, polygon);
+                // ⭐ Wyznacz kierunek linii (na podstawie dirStart → dirEnd)
+                double lineDx = dirEnd.X - dirStart.X;
+                double lineDy = dirEnd.Y - dirStart.Y;
+                double lineLen = Math.Sqrt(lineDx * lineDx + lineDy * lineDy);
 
-                // ⭐ Spróbuj przesunąć w Y — czy punkt (basePoint.X, centroidY) jest wewnątrz?
-                var tryY = new XPoint(basePoint.X, centroidY);
-                bool tryYWewnatrz = IsPointInPolygon(tryY, polygon);
-
-                //Console.WriteLine($"   🔍 Test przesunięcia:");
-                //Console.WriteLine($"      X → ({tryX.X:F1}, {tryX.Y:F1}) wewnątrz={tryXWewnatrz}");
-                //Console.WriteLine($"      Y → ({tryY.X:F1}, {tryY.Y:F1}) wewnątrz={tryYWewnatrz}");
-
-                if (tryXWewnatrz && tryYWewnatrz)
+                if (lineLen < 1e-8)
                 {
-                    // ⭐ Oba działają — wybierz ten z mniejszą zmianą
-                    double zmianaX = Math.Abs(tryX.X - basePoint.X);
-                    double zmianaY = Math.Abs(tryY.Y - basePoint.Y);
-
-                    if (zmianaX <= zmianaY)
-                    {
-                        effectiveBase = tryX;
-                        //Console.WriteLine($"   🔄 Wybrano X (mniejsza zmiana: {zmianaX:F1} vs {zmianaY:F1})");
-                    }
-                    else
-                    {
-                        effectiveBase = tryY;
-                        //Console.WriteLine($"   🔄 Wybrano Y (mniejsza zmiana: {zmianaY:F1} vs {zmianaX:F1})");
-                    }
-                }
-                else if (tryXWewnatrz)
-                {
-                    effectiveBase = tryX;
-                    //Console.WriteLine($"   🔄 Wybrano X (jedyna działająca)");
-                }
-                else if (tryYWewnatrz)
-                {
-                    effectiveBase = tryY;
-                    //Console.WriteLine($"   🔄 Wybrano Y (jedyna działająca)");
+                    // Linia zerowej długości — fallback do centroidu
+                    effectiveBase = new XPoint(centroidX, centroidY);
+                    Console.WriteLine($"   🔄 Linia zerowej długości — używam centroidu ({centroidX:F1}, {centroidY:F1})");
                 }
                 else
                 {
-                    // ⭐ Ostatnia deska ratunku: przesuń do centroidu w obu osiach
-                    effectiveBase = new XPoint(centroidX, centroidY);
-                    //Console.WriteLine($"   🔄 Fallback: przesuwam do centroidu ({centroidX:F1}, {centroidY:F1})");
+                    double dirX = lineDx / lineLen;
+                    double dirY = lineDy / lineLen;
+
+                    // ⭐ Określ, czy linia jest bardziej pionowa czy pozioma
+                    bool lineIsVertical = Math.Abs(dirY) >= Math.Abs(dirX);
+
+                    XPoint candidate;
+
+                    if (lineIsVertical)
+                    {
+                        // ⭐ Linia pionowa: zmień TYLKO Y, zachowaj X
+                        candidate = new XPoint(basePoint.X, centroidY);
+                        Console.WriteLine(
+                            $"   🔄 Linia PIONOWA — przesuwam tylko Y: " +
+                            $"({basePoint.X:F1}, {basePoint.Y:F1}) → ({candidate.X:F1}, {candidate.Y:F1})");
+                    }
+                    else
+                    {
+                        // ⭐ Linia pozioma: zmień TYLKO X, zachowaj Y
+                        candidate = new XPoint(centroidX, basePoint.Y);
+                        Console.WriteLine(
+                            $"   🔄 Linia POZIOMA — przesuwam tylko X: " +
+                            $"({basePoint.X:F1}, {basePoint.Y:F1}) → ({candidate.X:F1}, {candidate.Y:F1})");
+                    }
+
+                    effectiveBase = candidate;
+
+                    // ⭐ Informacyjny check: czy po przesunięciu wzdłuż osi jesteśmy wewnątrz?
+                    bool poPrzesunieciuWewnatrz = IsPointInPolygon(effectiveBase, polygon);
+                    Console.WriteLine($"   🔍 Po przesunięciu wzdłuż osi: wewnątrz={poPrzesunieciuWewnatrz}");
+
+                    // ⭐ UWAGA: nawet jeśli NIE jesteśmy wewnątrz, NIE przesuwamy prostopadle.
+                    //    Zwracamy punkt na osi linii — dalsza logika (promień) nie znajdzie
+                    //    przecięcia, jeśli polygon jest zły. To jest sygnał do naprawy
+                    //    wyboru polygonu wyżej w pipeline.
                 }
 
-                //Console.WriteLine($"   ✅ effectiveBase = ({effectiveBase.X:F2}, {effectiveBase.Y:F2})");
+                Console.WriteLine($"   ✅ effectiveBase = ({effectiveBase.X:F2}, {effectiveBase.Y:F2})");
             }
             else
             {
-                //Console.WriteLine($"   ✅ basePoint jest WEWNĄTRZ polygonu — bez zmian");
+                Console.WriteLine($"   ✅ basePoint jest WEWNĄTRZ polygonu — bez zmian");
             }
 
             // ═══════════════════════════════════════════════════════════
@@ -2951,14 +2958,14 @@ namespace GEORGE.Client.Pages.Okna
             {
                 dx = 0;
                 dy = forward ? 1 : -1;
-                //Console.WriteLine($"   ⚠️ Kierunek zerowy — używam domyślnego: ({dx}, {dy})");
+                Console.WriteLine($"   ⚠️ Kierunek zerowy — używam domyślnego: ({dx}, {dy})");
             }
             else
             {
                 dx /= len;
                 dy /= len;
                 if (!forward) { dx = -dx; dy = -dy; }
-                // Console.WriteLine($"   ➡️ Kierunek jednostkowy: ({dx:F4}, {dy:F4})");
+                Console.WriteLine($"   ➡️ Kierunek jednostkowy: ({dx:F4}, {dy:F4})");
             }
 
             XPoint? closest = null;
@@ -3014,11 +3021,11 @@ namespace GEORGE.Client.Pages.Okna
 
                 if (distSqInter < tolerance)
                 {
-                    //Console.WriteLine($"      [{i}] przecięcie zbyt blisko: ({p.X:F2}, {p.Y:F2})");
+                    Console.WriteLine($"      [{i}] przecięcie zbyt blisko: ({p.X:F2}, {p.Y:F2})");
                     continue;
                 }
 
-                //Console.WriteLine($"      [{i}] ✅ przecięcie: ({p.X:F2}, {p.Y:F2}) distSq={distSqInter:F2}");
+                Console.WriteLine($"      [{i}] ✅ przecięcie: ({p.X:F2}, {p.Y:F2}) distSq={distSqInter:F2}");
 
                 if (distSqInter < minDistSq)
                 {
@@ -3032,15 +3039,15 @@ namespace GEORGE.Client.Pages.Okna
             // ═══════════════════════════════════════════════════════════
             if (closest.HasValue)
             {
-                // Console.WriteLine($"   🎯 WYNIK: ({closest.Value.X:F2}, {closest.Value.Y:F2}) znaleziono=true");
-                //Console.WriteLine("───────────────────────────────────────────────");
+                Console.WriteLine($"   🎯 WYNIK: ({closest.Value.X:F2}, {closest.Value.Y:F2}) znaleziono=true");
+                Console.WriteLine("───────────────────────────────────────────────");
                 return (closest.Value, true);
             }
 
             // ═══════════════════════════════════════════════════════════
             // FALLBACK — brak przecięcia
             // ═══════════════════════════════════════════════════════════
-            //  Console.WriteLine($"   ⚠️ Brak przecięcia — fallback (rzut na obrys)");
+            Console.WriteLine($"   ⚠️ Brak przecięcia — fallback (rzut na obrys)");
 
             XPoint? nearest = null;
             double nearestDist = double.MaxValue;
@@ -3064,13 +3071,13 @@ namespace GEORGE.Client.Pages.Okna
 
             if (nearest.HasValue)
             {
-                // Console.WriteLine($"   🎯 WYNIK FALLBACK: ({nearest.Value.X:F2}, {nearest.Value.Y:F2}) znaleziono=false");
-                //Console.WriteLine("───────────────────────────────────────────────");
+                Console.WriteLine($"   🎯 WYNIK FALLBACK: ({nearest.Value.X:F2}, {nearest.Value.Y:F2}) znaleziono=false");
+                Console.WriteLine("───────────────────────────────────────────────");
                 return (nearest.Value, false);
             }
 
-            //Console.WriteLine($"   ❌ Brak kandydata — zwracam effectiveBase, znaleziono=false");
-            //Console.WriteLine("───────────────────────────────────────────────");
+            Console.WriteLine($"   ❌ Brak kandydata — zwracam effectiveBase, znaleziono=false");
+            Console.WriteLine("───────────────────────────────────────────────");
             return (effectiveBase, false);
         }
 

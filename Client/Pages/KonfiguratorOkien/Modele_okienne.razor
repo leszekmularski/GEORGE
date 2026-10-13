@@ -1459,9 +1459,13 @@
        Centered="true"
        Maximizable="true">
 
-    <ZmienWymiaryOkna Model="constWlasciwosciOkna"
-                      OnSave="PrzyjmijZmiany">
-    </ZmienWymiaryOkna>
+    <div @onkeydown="ObsluzKlawisz"
+         tabindex="0">
+
+        <ZmienWymiaryOkna Model="constWlasciwosciOkna"
+                          OnSave="PrzyjmijZmiany" />
+
+    </div>
 
 </Modal>
 
@@ -2804,6 +2808,14 @@
 
         await ApplyZoom();
 
+    }
+
+    private async Task ObsluzKlawisz(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleZapis();
+        }
     }
 
     private async Task HandleZapis()

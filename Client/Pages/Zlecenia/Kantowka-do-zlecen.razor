@@ -773,8 +773,7 @@
         foreach (var grupa in grupyPrzekrojow)
         {
             // Suma = ilość sztuk × długość zamawiana
-            var sumaDlugosci = grupa.Sum(k =>
-                k.IloscSztuk * k.DlugoscZamawiana);
+            var sumaDlugosci = MathF.Round(grupa.Sum(k => k.IloscSztuk * k.DlugoscZamawiana), 2);
 
             sumaDlugosci = sumaDlugosci / 1000; //przeliczenie na mb
 

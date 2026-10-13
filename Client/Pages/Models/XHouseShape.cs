@@ -71,28 +71,28 @@ namespace GEORGE.Client.Pages.Models
                 .ToList();
 
         }
-
         public void UpdatePoints(List<XPoint> newPoints = null)
         {
+            // Odtwarzamy właściwości z punktów tylko wtedy,
+            // gdy punkty zostały jawnie przekazane z zewnątrz.
             if (newPoints != null && newPoints.Count >= 5)
             {
-                // Aktualizuj właściwości na podstawie nowych punktów (nominalnych)
-                X = newPoints[0].X;
+                X = newPoints.Min(p => p.X);
                 Y = newPoints.Min(p => p.Y);
 
                 double minX = newPoints.Min(p => p.X);
                 double maxX = newPoints.Max(p => p.X);
+
                 Width = maxX - minX;
 
                 double maxY = newPoints.Max(p => p.Y);
                 Height = maxY - Y;
 
-                // Oblicz wysokości boków
-                HeightLeft = newPoints[4].Y - newPoints[0].Y; // Lewa ściana: punkt 4 - punkt 0
-                HeightRight = newPoints[3].Y - newPoints[2].Y; // Prawa ściana: punkt 3 - punkt 2
+                HeightLeft = newPoints[4].Y - newPoints[0].Y;
+                HeightRight = newPoints[3].Y - newPoints[2].Y;
             }
 
-            // Po aktualizacji właściwości, generuj punkty
+            // Generowanie punktów nie zmienia już wartości właściwości.
             GenerateNominalPoints();
             GenerateScaledPoints();
         }
@@ -148,44 +148,43 @@ namespace GEORGE.Client.Pages.Models
 
         public List<EditableProperty> GetEditableProperties() => new()
         {
-            // ⭐ X: — gabarytOkna = TRUE
-            new EditableProperty("X: ", () => X, v => {
+            new EditableProperty("X: ", () => X, v =>
+            {
                 X = v;
                 UpdatePoints();
             }, NazwaObj, true, true, false, true, true),
-            //             IsRO  slR   pp    sys   gabarytOkna
-            //             5     6     7     8     9
 
-            // ⭐ Y: — gabarytOkna = TRUE
-            new EditableProperty("Y: ", () => Y, v => {
+            new EditableProperty("Y: ", () => Y, v =>
+            {
                 Y = v;
                 UpdatePoints();
             }, NazwaObj, true, true, false, true, true),
 
-            // ⭐ Szerokość: — gabarytOkna = TRUE
-            new EditableProperty("Szerokość: ", () => Width, v => {
+            new EditableProperty("Szerokość: ", () => Width, v =>
+            {
                 Width = v;
                 UpdatePoints();
             }, NazwaObj, false, false, false, false, true),
 
-            // ⭐ Wysokość: — gabarytOkna = TRUE
-            new EditableProperty("Wysokość: ", () => Height, v => {
+            new EditableProperty("Wysokość: ", () => Height, v =>
+            {
                 Height = v;
                 UpdatePoints();
             }, NazwaObj, false, false, false, false, true),
 
-            // ⭐ Wysokość bok lewy: — gabarytOkna = TRUE
-            new EditableProperty("Wysokość bok lewy: ", () => HeightLeft, v => {
+            new EditableProperty("Wysokość bok lewy: ", () => HeightLeft, v =>
+            {
                 HeightLeft = v;
                 UpdatePoints();
             }, NazwaObj, false, false, false, false, true),
 
-            // ⭐ Wysokość bok prawy: — gabarytOkna = TRUE
-            new EditableProperty("Wysokość bok prawy: ", () => HeightRight, v => {
+            new EditableProperty("Wysokość bok prawy: ", () => HeightRight, v =>
+            {
                 HeightRight = v;
                 UpdatePoints();
             }, NazwaObj, false, false, false, false, true),
         };
+
         public void Scale(double factor)
         {
             Width *= factor;

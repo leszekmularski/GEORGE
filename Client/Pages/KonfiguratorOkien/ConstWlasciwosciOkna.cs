@@ -16,6 +16,8 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         public List<DaneKwadratu>? ListaKwadratow { get; set; }
         public double Szerokosc { get; set; } = 0;
         public double Wysokosc { get; set; } = 0;
+        public double HeightLeft { get; set; } = 0;
+        public double HeightRight { get; set; } = 0;
 
         // POPRAWIONE: Dodaj inicjalizację
         public List<EditableProperty> EditableProperties { get; set; } = new();
@@ -139,53 +141,149 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
             return EditableProperties[index].Label;
         }
-
         public bool UpdateEditableProperty(int index, double value)
         {
-            if (EditableProperties == null || index < 0 || index >= EditableProperties.Count)
+            if (EditableProperties == null ||
+                index < 0 ||
+                index >= EditableProperties.Count)
+            {
                 return false;
+            }
 
-            bool jestZmiana = false;
             var prop = EditableProperties[index];
 
-            // ⭐ Zapamiętaj starą wartość
+            if (prop == null)
+                return false;
+
             double staraWartosc = prop.Value;
 
+            bool zmianaWartosci =
+                Math.Abs(staraWartosc - value) > 0.01;
+
+            Console.WriteLine(
+                $"[UpdateEditableProperty] START: " +
+                $"Index={index}, Label='{prop.Label}', " +
+                $"Stara={staraWartosc}, Nowa={value}, " +
+                $"ZmianaWartosci={zmianaWartosci}, " +
+                $"GabarytOkna={prop.gabarytOkna}");
+
+            // Aktualizacja wartości edytowanej właściwości.
             prop.Value = value;
 
-            // ⭐ Propaguj ruch linii (X1/X2/Y1/Y2) na inne linie
-            if (Math.Abs(staraWartosc - value) > 0.01
-                && !prop.gabarytOkna
-                && prop.ShapeId != null)
+            // Propagacja ruchu linii, jeśli to nie jest gabaryt okna.
+            if (zmianaWartosci &&
+                !prop.gabarytOkna &&
+                prop.ShapeId != null)
             {
                 PropagujRuchLinii(prop, staraWartosc, value);
             }
 
-            // ─── Reszta (szerokość, wysokość itd.) ───
-            if (prop.Label.ToLower().StartsWith("szerokość") && prop.gabarytOkna)
+            bool jestZmianaGabarytow = false;
+
+            if (prop.gabarytOkna && !string.IsNullOrWhiteSpace(prop.Label))
             {
-                jestZmiana = Szerokosc != value;
-                Szerokosc = value;
-            }
-            else if (prop.Label.ToLower().StartsWith("wysokość") && prop.gabarytOkna)
-            {
-                jestZmiana = Wysokosc != value;
-                Wysokosc = value;
-            }
-            else if (prop.Label.ToLower().StartsWith("promień okna") && prop.gabarytOkna)
-            {
-                Wysokosc = value * 2;
-                Szerokosc = value * 2;
-                jestZmiana = true;
-            }
-            else if (prop.Label.ToLower().StartsWith("wymiar okna kwadratowego") && prop.gabarytOkna)
-            {
-                Wysokosc = value;
-                Szerokosc = value;
-                jestZmiana = true;
+                string label = prop.Label.Trim().ToLowerInvariant();
+
+                if (label.StartsWith("szerokość"))
+                {
+                    jestZmianaGabarytow =
+                        Math.Abs(Szerokosc - value) > 0.01;
+
+                    Szerokosc = value;
+                }
+                else if (label.StartsWith("wysokość bok lewy"))
+                {
+                    // Zmieniamy wyłącznie lewy bok.
+                    jestZmianaGabarytow =
+                        Math.Abs(HeightLeft - value) > 0.01;
+
+                    HeightLeft = value;
+                }
+                else if (label.StartsWith("wysokość bok prawy"))
+                {
+                    // Zmieniamy wyłącznie prawy bok.
+                    jestZmianaGabarytow =
+                        Math.Abs(HeightRight - value) > 0.01;
+
+                    HeightRight = value;
+                }
+                else if (label.StartsWith("wysokość"))
+                {
+                    // Wysokość całkowita okna.
+                    jestZmianaGabarytow =
+                        Math.Abs(Wysokosc - value) > 0.01;
+
+                    Wysokosc = value;
+                }
+                else if (label.StartsWith("promień okna"))
+                {
+                    double nowyWymiar = value * 2.0;
+
+                    jestZmianaGabarytow =
+                        Math.Abs(Szerokosc - nowyWymiar) > 0.01 ||
+                        Math.Abs(Wysokosc - nowyWymiar) > 0.01;
+
+                    Szerokosc = nowyWymiar;
+                    Wysokosc = nowyWymiar;
+                }
+                else if (label.StartsWith("wymiar okna kwadratowego"))
+                {
+                    jestZmianaGabarytow =
+                        Math.Abs(Szerokosc - value) > 0.01 ||
+                        Math.Abs(Wysokosc - value) > 0.01;
+
+                    Szerokosc = value;
+                    Wysokosc = value;
+                }
             }
 
-            return jestZmiana;
+            //if (prop.gabarytOkna && !string.IsNullOrWhiteSpace(prop.Label))
+            //{
+            //    string label = prop.Label.Trim().ToLowerInvariant();
+
+            //    if (label.StartsWith("szerokość"))
+            //    {
+            //        jestZmianaGabarytow =
+            //            Math.Abs(Szerokosc - value) > 0.01;
+
+            //        Szerokosc = value;
+            //    }
+            //    else if (label.StartsWith("wysokość"))
+            //    {
+            //        jestZmianaGabarytow =
+            //            Math.Abs(Wysokosc - value) > 0.01;
+
+            //        Wysokosc = value;
+            //    }
+            //    else if (label.StartsWith("promień okna"))
+            //    {
+            //        double nowaSzerokosc = value * 2.0;
+            //        double nowaWysokosc = value * 2.0;
+
+            //        jestZmianaGabarytow =
+            //            Math.Abs(Szerokosc - nowaSzerokosc) > 0.01 ||
+            //            Math.Abs(Wysokosc - nowaWysokosc) > 0.01;
+
+            //        Szerokosc = nowaSzerokosc;
+            //        Wysokosc = nowaWysokosc;
+            //    }
+            //    else if (label.StartsWith("wymiar okna kwadratowego"))
+            //    {
+            //        jestZmianaGabarytow =
+            //            Math.Abs(Szerokosc - value) > 0.01 ||
+            //            Math.Abs(Wysokosc - value) > 0.01;
+
+            //        Szerokosc = value;
+            //        Wysokosc = value;
+            //    }
+            //}
+
+            Console.WriteLine(
+                $"[UpdateEditableProperty] KONIEC: " +
+                $"Szerokosc={Szerokosc}, Wysokosc={Wysokosc}, " +
+                $"JestZmianaGabarytow={jestZmianaGabarytow}");
+
+            return jestZmianaGabarytow;
         }
 
         /// <summary>

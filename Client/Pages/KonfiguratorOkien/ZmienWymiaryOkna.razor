@@ -42,14 +42,16 @@ else
                                                                 var currentProp = Model.EditableProperties[index];
                                                                 var lbl = currentProp.Label?.ToLower() ?? "";
 
-                                                                bool czySzerokosc = lbl.StartsWith("szerokość");
-                                                                bool czyWysokosc = lbl.StartsWith("wysokość");
-                                                                bool czyPromien = lbl.StartsWith("promień okna");
-                                                                bool czyKwadrat = lbl.StartsWith("wymiar okna kwadratowego");
+                                                                bool czySzerokosc = lbl.Trim().StartsWith("szerokość");
+                                                                bool czyWysokosc = lbl.Trim().StartsWith("wysokość");
+                                                                bool czyPromien = lbl.Trim().StartsWith("promień okna");
+                                                                bool czyKwadrat = lbl.Trim().StartsWith("wymiar okna kwadratowego");
 
-                                                                jestZmianaSzerokosci = Model.UpdateEditableProperty(index, value);
+                                                                jestZmianaGabarytow = Model.UpdateEditableProperty(index, value);
 
-                                                                if (jestZmianaSzerokosci)
+                                                                Console.WriteLine($"[DEBUG] ZmienWymiaryOkna.razor: ValueChanged dla index={index}, Label='{lbl}', Nowa wartość={value}, jestZmianaGabarytow={jestZmianaGabarytow}");
+
+                                                                if (jestZmianaGabarytow)
                                                                 {
                                                                     bool rozstawPionowe = czySzerokosc || czyPromien || czyKwadrat;
                                                                     bool rozstawPoziome = czyWysokosc || czyPromien || czyKwadrat;
@@ -67,12 +69,12 @@ else
                                                             })"
                                            Style="flex: 1;" />
 
-                                                                                                <AntDesign.Button Type="@ButtonType.Default"
-                                                                                                                  Icon="calculator"
-                                                                                                                  OnClick="@(() => ShowCalculator(index))"
-                                                                                                                  Size="small"
-                                                                                                                  Style="height: 32px;" />
-                                                                                            </div>
+                                    <AntDesign.Button Type="@ButtonType.Default"
+                                                        Icon="calculator"
+                                                        OnClick="@(() => ShowCalculator(index))"
+                                                        Size="small"
+                                                        Style="height: 32px;" />
+                                </div>
                                 }
                             else
                             {
@@ -540,7 +542,7 @@ else
     [Parameter]
     public EventCallback<ConstWlasciwosciOkna> OnSave { get; set; }
 
-    private bool jestZmianaSzerokosci = false;
+    private bool jestZmianaGabarytow = false;
 
     public async Task ZapiszDoRodzica()
     {
