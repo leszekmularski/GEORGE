@@ -23,8 +23,253 @@
             new bootstrap.Tab(triggerEl);
         });
     }
-</script>
 
+    window.disposeCanvas = function (canvasId) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        // Wyczyść bitmapę i zmniejsz do 0 – nawet jeśli element zostanie w DOM, nie będzie widoczny
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        canvas.width = 0;
+        canvas.height = 0;
+        canvas.style.display = 'none';
+    };
+
+    // ==================== Rysowanie konturu na canvas ====================
+    window.drawContourOnCanvas = function (canvasId, outerSegments, innerSegments, options) {
+        options = options || {};
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+
+        const dpr = window.devicePixelRatio || 1;
+        const cssW = canvas.clientWidth || 900;
+        const cssH = canvas.clientHeight || 600;
+        canvas.width = cssW * dpr;
+        canvas.height = cssH * dpr;
+
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+
+        const W = cssW, H = cssH;
+        const bgColor = options.bgColor || '#1e1e1e';
+        const outerColor = options.outerColor || '#0d6efd';
+        const innerColor = options.innerColor || '#28a745';
+
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, W, H);
+
+        const all = [];
+        if (outerSegments) all.push(...outerSegments);
+        if (innerSegments) all.push(...innerSegments);
+
+        if (all.length === 0) {
+            ctx.fillStyle = '#888';
+            ctx.font = '14px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Brak danych do wyświetlenia', W / 2, H / 2);
+            return;
+        }
+
+        // --- Obliczanie granic ---
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const seg of all) {
+            minX = Math.min(minX, seg.start.x, seg.end.x);
+            minY = Math.min(minY, seg.start.y, seg.end.y);
+            maxX = Math.max(maxX, seg.start.x, seg.end.x);
+            maxY = Math.max(maxY, seg.start.y, seg.end.y);
+
+            if (seg.type === 'Arc' && seg.center && seg.radius > 0) {
+                minX = Math.min(minX, seg.center.x - seg.radius);
+                minY = Math.min(minY, seg.center.y - seg.radius);
+                maxX = Math.max(maxX, seg.center.x + seg.radius);
+                maxY = Math.max(maxY, seg.center.y + seg.radius);
+            }
+        }
+
+        const padding = 60;
+        const rangeX = maxX - minX;
+        const rangeY = maxY - minY;
+        const availW = W - 2 * padding;
+        const availH = H - 2 * padding;
+        const scale = Math.min(availW / (rangeX || 1), availH / (rangeY || 1));
+        const offsetX = padding + (availW - rangeX * scale) / 2 - minX * scale;
+        const offsetY = padding + (availH - rangeY * scale) / 2 - minY * scale;
+
+        function tx(x) { return offsetX + x * scale; }
+        // Odwrócenie osi Y — model rysowany od dołu do góry (Y rośnie w górę ekranu)
+        function ty(y) { return offsetY + y * scale; }
+
+        // --- Osie 0,0 ---
+        ctx.lineWidth = 1;
+        if (tx(0) >= 0 && tx(0) <= W) {
+            ctx.strokeStyle = 'rgba(255,120,120,0.35)';
+            ctx.beginPath();
+            ctx.moveTo(tx(0), 0);
+            ctx.lineTo(tx(0), H);
+            ctx.stroke();
+        }
+        if (ty(0) >= 0 && ty(0) <= H) {
+            ctx.strokeStyle = 'rgba(120,255,120,0.35)';
+            ctx.beginPath();
+            ctx.moveTo(0, ty(0));
+            ctx.lineTo(W, ty(0));
+            ctx.stroke();
+        }
+
+        // --- Rysowanie segmentów (linie + łuki jako polilinia) ---
+        function drawSegments(segments, color, lineWidth) {
+            if (!segments || segments.length === 0) return;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            for (const seg of segments) {
+                ctx.beginPath();
+                if (seg.type === 'Arc' && seg.center && seg.radius > 0) {
+                    const cx = seg.center.x, cy = seg.center.y, r = seg.radius;
+                    const startAngle = Math.atan2(seg.start.y - cy, seg.start.x - cx);
+                    const endAngle = Math.atan2(seg.end.y - cy, seg.end.x - cx);
+
+                    let sweep;
+                    if (seg.counterClockwise) {
+                        sweep = endAngle - startAngle;
+                        while (sweep < 0) sweep += 2 * Math.PI;
+                    } else {
+                        sweep = endAngle - startAngle;
+                        while (sweep > 0) sweep -= 2 * Math.PI;
+                    }
+
+                    const steps = Math.max(24, Math.ceil(Math.abs(sweep) * 30 / Math.PI));
+                    for (let i = 0; i <= steps; i++) {
+                        const t = i / steps;
+                        const a = startAngle + sweep * t;
+                        const px = cx + r * Math.cos(a);
+                        const py = cy + r * Math.sin(a);
+                        if (i === 0) ctx.moveTo(tx(px), ty(py));
+                        else ctx.lineTo(tx(px), ty(py));
+                    }
+                } else {
+                    ctx.moveTo(tx(seg.start.x), ty(seg.start.y));
+                    ctx.lineTo(tx(seg.end.x), ty(seg.end.y));
+                }
+                ctx.stroke();
+            }
+        }
+
+        if (innerSegments && innerSegments.length > 0) {
+            drawSegments(innerSegments, innerColor, 2);
+        }
+        drawSegments(outerSegments, outerColor, 2.5);
+
+        // --- Wierzchołki + dymki z wartościami ---
+        if (options.showVertices !== false) {
+            const drawn = new Set();
+            const pointIndex = [];   // unikalne punkty w kolejności pojawiania się
+
+            for (const seg of all) {
+                for (const pt of [seg.start, seg.end]) {
+                    const key = `${pt.x.toFixed(3)}_${pt.y.toFixed(3)}`;
+                    if (drawn.has(key)) continue;
+                    drawn.add(key);
+                    pointIndex.push(pt);
+
+                    const sx = tx(pt.x), sy = ty(pt.y);
+                    ctx.beginPath();
+                    ctx.fillStyle = '#ffc107';
+                    ctx.arc(sx, sy, 3, 0, 2 * Math.PI);
+                    ctx.fill();
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+            }
+
+            // --- DYMKI Z WARTOŚCIAMI PUNKTÓW ---
+            if (options.showPointLabels === true) {
+                ctx.font = '10px Consolas, monospace';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+
+                for (let i = 0; i < pointIndex.length; i++) {
+                    const pt = pointIndex[i];
+                    const sx = tx(pt.x), sy = ty(pt.y);
+
+                    const text = `P${i}: X=${pt.x.toFixed(1)} Y=${pt.y.toFixed(1)}`;
+                    const textW = ctx.measureText(text).width + 8;
+                    const boxH = 14;
+
+                    // Ustalenie pozycji dymka – staramy się nie zasłaniać punktu
+                    let bx = sx + 6;
+                    let by = sy - boxH - 4;
+
+                    // Korekta gdy wychodzi za prawą krawędź
+                    if (bx + textW > W - 4) bx = sx - textW - 6;
+                    // Korekta gdy wychodzi za górną krawędź
+                    if (by < 4) by = sy + 6;
+                    // Korekta gdy wychodzi za lewą krawędź
+                    if (bx < 4) bx = sx + 6;
+                    // Korekta gdy wychodzi za dolną krawędź
+                    if (by + boxH > H - 4) by = sy - boxH - 4;
+
+                    // Łącznik od punktu do dymka
+                    ctx.strokeStyle = 'rgba(255,193,7,0.6)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(sx, sy);
+                    ctx.lineTo(bx, by + boxH / 2);
+                    ctx.stroke();
+
+                    // Tło dymka
+                    ctx.fillStyle = 'rgba(30,30,30,0.92)';
+                    ctx.fillRect(bx, by, textW, boxH);
+                    ctx.strokeStyle = '#ffc107';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(bx + 0.5, by + 0.5, textW - 1, boxH - 1);
+
+                    // Tekst
+                    ctx.fillStyle = '#ffc107';
+                    ctx.fillText(text, bx + 4, by + boxH / 2 + 0.5);
+                }
+            }
+        }
+
+        // --- Etykiety segmentów ---
+        if (options.showLabels !== false) {
+            ctx.font = '11px Consolas, monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            for (let i = 0; i < all.length; i++) {
+                const seg = all[i];
+                const mx = (seg.start.x + seg.end.x) / 2;
+                const my = (seg.start.y + seg.end.y) / 2;
+                const sx = tx(mx), sy = ty(my);
+                const label = (seg.type === 'Arc' ? 'A' : 'L') + i;
+                const textW = ctx.measureText(label).width + 6;
+                ctx.fillStyle = 'rgba(0,0,0,0.65)';
+                ctx.fillRect(sx - textW / 2, sy - 8, textW, 16);
+                ctx.fillStyle = '#fff';
+                ctx.fillText(label, sx, sy);
+            }
+        }
+
+        // --- Info ---
+        if (options.showDimensions !== false) {
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillStyle = bgColor === '#ffffff' ? '#000' : '#ddd';
+            ctx.fillText(`W: ${rangeX.toFixed(2)}  H: ${rangeY.toFixed(2)}  Skala: ${scale.toFixed(3)}`, 10, 10);
+            ctx.fillText(
+                `Segmentów: ${all.length} (zew: ${outerSegments?.length || 0}, wew: ${innerSegments?.length || 0})`,
+                10, 28);
+        }
+    };
+</script>
 
 <style>
     /* STYLE GŁÓWNE */
@@ -257,6 +502,24 @@
     .light-theme .hljs-punctuation {
         color: #24292e !important;
         opacity: 0.7;
+    }
+
+    /* NOWE: Canvas */
+    .canvas-view canvas {
+        background-color: #1e1e1e;
+    }
+
+    .json-panel {
+        overflow: hidden; /* panel nie wypuści nic poza swój prostokąt */
+    }
+
+    .json-content {
+        position: relative; /* kontekst dla dzieci */
+    }
+
+    .canvas-view canvas {
+        display: block;
+        max-width: 100%;
     }
 </style>
 
@@ -1224,7 +1487,7 @@
                 <div class="card-body p-0">
                     <div class="json-toolbar px-3 py-2 d-flex justify-content-between align-items-center"
                          style="background-color: @(ciemnyMotyw ? "#2d2d2d" : "#f8f9fa");
-                                                border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
+                                                                border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
                         <div class="d-flex align-items-center gap-3">
                             <span class="@(ciemnyMotyw ? "text-light" : "text-dark") fw-semibold">
                                 <i class="bi bi-layout-split me-1"></i> Widok szczegółowy
@@ -1232,32 +1495,42 @@
                         </div>
                         <div class="btn-group">
                             <button class="btn btn-sm @(aktywnaZakladka == 0 ? "btn-primary" : "btn-outline-primary")"
-                                    @onclick="() => aktywnaZakladka = 0">
+                                    @onclick="() => SwitchTab(0)">
                                 <i class="bi bi-grid-3x3-gap me-1"></i> Kontury proste
                             </button>
                             <button class="btn btn-sm @(aktywnaZakladka == 1 ? "btn-primary" : "btn-outline-primary")"
-                                    @onclick="() => aktywnaZakladka = 1">
+                                    @onclick="() => SwitchTab(1)">
                                 <i class="bi bi-geo-alt me-1"></i> Punkty
                             </button>
                             <button class="btn btn-sm @(aktywnaZakladka == 4 ? "btn-primary" : "btn-outline-primary")"
-                                    @onclick="() => aktywnaZakladka = 4">
+                                    @onclick="() => SwitchTab(4)">
                                 <i class="bi bi-info-circle me-1"></i> Kontury proste i łukowe
                             </button>
                             <button class="btn btn-sm @(aktywnaZakladka == 2 ? "btn-primary" : "btn-outline-primary")"
-                                    @onclick="() => aktywnaZakladka = 2">
+                                    @onclick="() => SwitchTab(2)">
                                 <i class="bi bi-puzzle me-1"></i> Elementy konstrukcji
                             </button>
                             <button class="btn btn-sm @(aktywnaZakladka == 3 ? "btn-primary" : "btn-outline-primary")"
-                                    @onclick="() => aktywnaZakladka = 3">
+                                    @onclick="() => SwitchTab(3)">
                                 <i class="bi bi-info-circle me-1"></i> Podsumowanie
+                            </button>
+                            <!-- ==================== NOWE ZAKŁADKI ==================== -->
+                            <button class="btn btn-sm @(aktywnaZakladka == 5 ? "btn-primary" : "btn-outline-primary")"
+                                    @onclick="() => SwitchTab(5)">
+                                <i class="bi bi-pencil-square me-1"></i> Rysunek
+                            </button>
+                            <button class="btn btn-sm @(aktywnaZakladka == 6 ? "btn-primary" : "btn-outline-primary")"
+                                    @onclick="() => SwitchTab(6)">
+                                <i class="bi bi-bounding-box me-1"></i> Rysunek + wewn.
                             </button>
                         </div>
                     </div>
 
                     <div class="json-content @(rozwinJson ? "expanded" : "")"
+                         @key="aktywnaZakladka"
                          style="max-height: @(rozwinJson ? "80vh" : "500px");
-                                                background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;
-                                                padding: 20px;">
+                            background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;
+                            padding: 20px;">
 
                         @if (aktywnaZakladka == 0 && wybranyStan?.ListaKwadratow != null)
                         {
@@ -1274,13 +1547,13 @@
                                         <div class="col-md-6 mb-3">
                                             <div class="card h-100 @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
                                                 <div class="card-header d-flex justify-content-between align-items-center
-                                                                                            @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
+                                                                                                                            @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
                                                     <div>
                                                         <span class="badge @GetStronaBadgeClass(kwadrat.Strona)">
                                                             @GetStronaIcon(kwadrat.Strona) @kwadrat.Strona?.ToUpper()
                                                         </span>
                                                         <span class="ms-2 badge bg-info">Kąt: @kwadrat.KatLinii°</span>
-                                                        
+
                                                     </div>
                                                     <div>
                                                         <small class="text-muted">@kwadrat.RowIdElementu.ToString()</small>
@@ -1411,7 +1684,7 @@
                                         </div>
                                     }
                                 </div>
-                            
+
                             </div>
                         }
                         else if (aktywnaZakladka == 1)
@@ -1468,7 +1741,7 @@
                                         <div class="col-md-6 mb-3">
                                             <div class="card h-100 @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
                                                 <div class="card-header d-flex justify-content-between align-items-center
-                                                                                            @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
+                                                                                                                            @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
                                                     <div>
                                                         <span class="badge @(element.Typ == "Rama" ? "bg-warning text-dark" : "bg-info")">
                                                             @element.Typ
@@ -1733,7 +2006,7 @@
                                         <div class="col-md-6 mb-3">
                                             <div class="card h-100 @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
                                                 <div class="card-header d-flex justify-content-between align-items-center
-                                                                                                    @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
+                                                                                                                                    @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
                                                     <div>
                                                         <span class="badge @(segment.Type == SegmentType.Arc ? "bg-warning text-dark" : "bg-info")">
                                                             @(segment.Type == SegmentType.Arc ? "Łuk" : "Linia")
@@ -1826,6 +2099,66 @@
                                 </div>
                             </div>
                         }
+                        <!-- ==================== NOWA ZAKŁADKA 5: RYSUNEK ZEWNĘTRZNY ==================== -->
+                        else if (aktywnaZakladka == 5 && wybranyStan?.Kontur != null)
+                        {
+                            @if (widocznyRysunek1)
+                            {
+                                <div class="canvas-view">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-0">
+                                            <i class="bi bi-pencil-square me-2"></i>
+                                            Rysunek konturu zewnętrznego (@wybranyStan.Kontur.Count segmentów)
+                                        </h5>
+                                        <button class="btn btn-sm @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                                @onclick="() => RedrawCanvas(5)">
+                                            <i class="bi bi-arrow-clockwise me-1"></i> Odśwież
+                                        </button>
+                                    </div>
+                                <div id="tab1" class="canvas-container" style="padding:0px;background-color: transparent;border: 0px; will-change: transform; transform: translateZ(0)">
+                                        <canvas id="contour-canvas-5"
+                                                style="width:100%; height:600px; display:block; border-radius:8px;
+                                                 border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");" ></canvas>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        <!-- ==================== NOWA ZAKŁADKA 6: RYSUNEK ZEWN + WEWN ==================== -->
+                        else if (aktywnaZakladka == 6 && wybranyStan?.Kontur != null)
+                        {
+                            @if (widocznyRysunek2)
+                            {
+                                <div class="canvas-view">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-0">
+                                            <i class="bi bi-bounding-box me-2"></i>
+                                            Rysunek konturu zewnętrznego + wewnętrznego
+                                        </h5>
+                                        <button class="btn btn-sm @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                                @onclick="() => RedrawCanvas(6)">
+                                            <i class="bi bi-arrow-clockwise me-1"></i> Odśwież
+                                        </button>
+                                    </div>
+                                    <div class="mb-2 small @(ciemnyMotyw ? "text-light" : "text-dark")">
+                                        <span class="badge" style="background:#0d6efd;">■ Zewnętrzny</span>
+                                        @if (wybranyStan.KonturInner != null && wybranyStan.KonturInner.Count > 0)
+                                        {
+                                            <span class="badge ms-2" style="background:#28a745;">■ Wewnętrzny</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge ms-2 bg-secondary">Brak konturu wewnętrznego</span>
+                                        }
+                                </div>
+
+                                <div id="tab2" class="canvas-container" style="padding:0px;background-color: transparent;border: 0px; will-change: transform; transform: translateZ(0)">
+                                    <canvas id="contour-canvas-6"
+                                            style="width:100%; height:600px; display:block; border-radius:8px;
+                                                                                   border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
+                                </div>
+                            </div>
+                            }
+                        }
                     </div>
                 </div>
             }
@@ -1835,7 +2168,7 @@
                 <div class="card-body p-0">
                     <div class="json-toolbar px-3 py-2 d-flex justify-content-between align-items-center"
                          style="background-color: @(ciemnyMotyw ? "#2d2d2d" : "#f8f9fa");
-                                                border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
+                                                                border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
                         <div class="d-flex align-items-center gap-3">
                             <div class="form-check form-switch mb-0">
                                 <input class="form-check-input" type="checkbox" @bind="zawijajTekst" />
@@ -1854,7 +2187,7 @@
                     </div>
                     <div class="json-content @(rozwinJson ? "expanded" : "") @(zawijajTekst ? "wrap-text" : "")"
                          style="max-height: @(rozwinJson ? "80vh" : "500px");
-                                                background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;">
+                                                                background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;">
                         @if (uzyjHighlightJS)
                         {
                             <HighlightCode Language="json" Code="@GetFormattedJson()" />
@@ -1862,8 +2195,8 @@
                         else
                         {
                             <pre style="margin: 0; padding: 20px; color: @(ciemnyMotyw ? "#f8f8f2" : "#24292e");
-                                                               font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-                                                               font-size: 13px; line-height: 1.5; overflow-x: auto;">@GetFormattedJson()</pre>
+                                                                                       font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+                                                                                       font-size: 13px; line-height: 1.5; overflow-x: auto;">@GetFormattedJson()</pre>
                         }
 
                     </div>
@@ -1922,7 +2255,9 @@
 
     private string AktywnaZakladka = "outer";
 
-
+    // NOWE: śledzenie ostatnio rysowanej zakładki (do auto-rerenderu canvasa)
+    private int _lastRenderedTab = -1;
+    private string? _lastRenderedStanId = null;
 
     private readonly JsonSerializerOptions jsonOptions = new()
     {
@@ -2086,6 +2421,7 @@
                 </tbody>
             </table>
         </div>
+
     ;
     }
 
@@ -2097,6 +2433,8 @@
         szczegolyWidoczne = true;
         pokazWidokSzczegolowy = true;
         aktywnaZakladka = 0;
+        _lastRenderedTab = -1;
+        _lastRenderedStanId = null;
 
         StateHasChanged();
 
@@ -2707,8 +3045,89 @@
                }}");
     }
 
-    // ========== LIFECYCLE ==========
+    // ========== NOWE: OBSŁUGA ZAKŁADEK + RYSOWANIE NA CANVAS ==========
+    bool widocznyRysunek1 = false;
+    bool widocznyRysunek2 = false;
+    private async Task SwitchTab(int tab)
+    {
+        if (tab == 5 || tab == 6)
+        {
+            if (tab == 5)
+            {
+                widocznyRysunek1 = true;
+            }
+            else
+            {
+                widocznyRysunek1 = false;
+                widocznyRysunek2 = true;
+            }
 
+        }
+        else
+        {
+            widocznyRysunek1 = false;
+            widocznyRysunek2 = false;
+        }
+
+        aktywnaZakladka = tab;
+
+        StateHasChanged();
+        // Reszta dzieje się w OnAfterRenderAsync – tam canvas już istnieje w DOM
+        await Task.CompletedTask;
+    }
+
+
+
+    bool pokazWartosciPunktow = true;
+    private async Task RedrawCanvas(int tabIndex)
+    {
+        if (wybranyStan == null) return;
+
+        object? Project(List<ContourSegment>? segs) =>
+            segs?.Select(s => new
+            {
+                type = s.Type.ToString(),
+                start = new { x = s.Start.X, y = s.Start.Y },
+                end = new { x = s.End.X, y = s.End.Y },
+                center = s.Center.HasValue
+                    ? new { x = s.Center.Value.X, y = s.Center.Value.Y }
+                    : (object?)null,
+                radius = s.Radius,
+                counterClockwise = s.CounterClockwise,
+                informacja = s.Informacja
+            }).ToList();
+
+        var outer = Project(wybranyStan.Kontur);
+        var inner = (tabIndex == 6) ? Project(wybranyStan.KonturInner) : null;
+
+        // Daj Blazorowi chwilę na wstawienie elementu canvas do DOM
+        await Task.Delay(50);
+
+        try
+        {
+            await JSRuntime.InvokeVoidAsync(
+                "drawContourOnCanvas",
+                $"contour-canvas-{tabIndex}",
+                outer,
+                inner,
+               new
+               {
+                   bgColor = ciemnyMotyw ? "#1e1e1e" : "#ffffff",
+                   outerColor = "#0d6efd",
+                   innerColor = "#28a745",
+                   showVertices = true,
+                   showLabels = true,
+                   showDimensions = true,
+                   showPointLabels = pokazWartosciPunktow   // <-- NOWE
+               });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Błąd rysowania canvas: {ex.Message}");
+        }
+    }
+
+    // ========== LIFECYCLE ==========
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -2716,15 +3135,18 @@
             try
             {
                 await JSRuntime.InvokeVoidAsync("initializeTabs");
-
                 var isAvailable = await JSRuntime.InvokeAsync<bool>("eval", "!!window.hljs");
                 uzyjHighlightJS = isAvailable;
+            }
+            catch { uzyjHighlightJS = false; }
+        }
 
-            }
-            catch
-            {
-                uzyjHighlightJS = false;
-            }
+        // Jeśli jesteśmy na zakładce rysunku i widok szczegółowy jest aktywny,
+        // zawsze przerysuj – RedrawCanvas jest idempotentny i szybki.
+        if (szczegolyWidoczne && pokazWidokSzczegolowy &&
+            (aktywnaZakladka == 5 || aktywnaZakladka == 6))
+        {
+            await RedrawCanvas(aktywnaZakladka);
         }
     }
 
@@ -2732,12 +3154,7 @@
     {
         Console.WriteLine("GeneratorStateViewer initialized.");
         szczegolyWidoczne = false;
-        // //await PokazSzczegoly(null);
 
-        // pokazWidokSzczegolowy = true;
-
-         await Task.Yield();
-
-        // ToggleWidokSzczegolowy();
+        await Task.Yield();
     }
 }
