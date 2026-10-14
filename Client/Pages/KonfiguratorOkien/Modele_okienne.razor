@@ -4670,13 +4670,18 @@
             var daneKwadratow = genState.Value.ListaKwadratow ?? new List<DaneKwadratu>();
             var regionsList = generator.CzyElementJestRama ? _regionsDualRama : _regionsSkrzydlo;
 
+            // ⭐ Znajdź WŁAŚCIWY region nadrzędny dla tego słupka
+            var regionNadrzedny = ZnajdzRegionNadrzednyDlaStanu(region, wszystkieRegiony);
+
+            Console.WriteLine($"   🎯 Region nadrzędny: {regionNadrzedny?.Id ?? "NULL"}");
+
             var ok = await generator.AddElements(
                 new List<ShapeRegion> { region },
                 cleanId,
                 _generatorStates,
                 regionsList,
                 daneKwadratow,
-                wszystkieRegiony.FirstOrDefault(f => f.Rama)?.Wierzcholki,
+                regionNadrzedny?.Wierzcholki,   // ← ✅ NOWE
                 _lastMouseClick,
                 boolNieCzyscKonsole);
 
@@ -5586,6 +5591,67 @@
         }
 
         return region;
+    }
+
+    /// <summary>
+    /// Znajduje region nadrzędny (Rama=true) który ZAWIERA oś słupka/ślemięcia.
+    ///
+    /// Problem: gdy rama jest podzielona przez DualRama na kilka regionów
+    /// (np. Domek → Trapezoid + Domek + Trapezoid), to
+    /// `wszystkieRegiony.FirstOrDefault(f => f.Rama)` zwraca PIERWSZY region
+    /// (lewy trapezoid), a nie ten, w którym faktycznie jest słupek.
+    ///
+    /// Rozwiązanie: bierzemy środek osi słupka i szukamy regionu,
+    /// który geometrycznie go zawiera.
+    /// </summary>
+    private ShapeRegion? ZnajdzRegionNadrzednyDlaStanu(
+        ShapeRegion? regionStanu,
+        List<ShapeRegion> wszystkieRegiony)
+    {
+        if (regionStanu?.Wierzcholki == null || regionStanu.Wierzcholki.Count < 2)
+        {
+            var fallback = wszystkieRegiony.FirstOrDefault(r => r.Rama);
+            Console.WriteLine($"   ⚠️ ZnajdzRegionNadrzedny: brak wierzchołków stanu — fallback: {fallback?.Id}");
+            return fallback;
+        }
+
+        // ⭐ Punkt na osi słupka — środek geometryczny
+        var osPunkt = new XPoint(
+            (regionStanu.Wierzcholki[0].X + regionStanu.Wierzcholki[^1].X) / 2.0,
+            (regionStanu.Wierzcholki[0].Y + regionStanu.Wierzcholki[^1].Y) / 2.0);
+
+        Console.WriteLine($"🔍 ZnajdzRegionNadrzedny: szukam dla os=({osPunkt.X:F1}, {osPunkt.Y:F1})");
+
+        // ⭐ Wszystkie regiony z Rama=true
+        var kandydaci = wszystkieRegiony
+            .Where(r => r.Rama && r.Wierzcholki != null && r.Wierzcholki.Count >= 3)
+            .ToList();
+
+        Console.WriteLine($"   Kandydatów (Rama=true): {kandydaci.Count}");
+
+        foreach (var k in kandydaci)
+        {
+            double minX = k.Wierzcholki!.Min(p => p.X);
+            double maxX = k.Wierzcholki.Max(p => p.X);
+            double minY = k.Wierzcholki.Min(p => p.Y);
+            double maxY = k.Wierzcholki.Max(p => p.Y);
+
+            bool zawiera = IsPointInPolygon(k.Wierzcholki!, osPunkt.X, osPunkt.Y);
+
+            Console.WriteLine($"   test {k.Id?.Substring(0, Math.Min(8, k.Id.Length))}: " +
+                              $"X=[{minX:F0}..{maxX:F0}], Y=[{minY:F0}..{maxY:F0}] " +
+                              $"zawiera={zawiera}");
+
+            if (zawiera)
+            {
+                Console.WriteLine($"   ✅ Wybrano region nadrzędny: {k.Id}");
+                return k;
+            }
+        }
+
+        var fallbackRama = wszystkieRegiony.FirstOrDefault(r => r.Rama);
+        Console.WriteLine($"   ⚠️ Żaden region nie zawiera osi — fallback: {fallbackRama?.Id}");
+        return fallbackRama;
     }
 
     private List<ShapeRegion> WyznaczZawarteRegiony(
