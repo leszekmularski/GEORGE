@@ -2099,9 +2099,9 @@
                                 </div>
                             </div>
                         }
-                        <!-- ==================== NOWA ZAKŁADKA 5: RYSUNEK ZEWNĘTRZNY ==================== -->
                         else if (aktywnaZakladka == 5 && wybranyStan?.Kontur != null)
                         {
+                            <!-- ==================== NOWA ZAKŁADKA 5: RYSUNEK ZEWNĘTRZNY ==================== -->
                             @if (widocznyRysunek1)
                             {
                                 <div class="canvas-view">
@@ -2123,11 +2123,16 @@
                                 </div>
                             }
                         }
-                        <!-- ==================== NOWA ZAKŁADKA 6: RYSUNEK ZEWN + WEWN ==================== -->
                         else if (aktywnaZakladka == 6 && wybranyStan?.Kontur != null)
                         {
+                        <!-- ==================== NOWA ZAKŁADKA 6: RYSUNEK ZEWN + WEWN ==================== -->
                             @if (widocznyRysunek2)
                             {
+                                <div class="mb-3" style="color: aquamarine;">
+                                    <input type="checkbox" @bind="pokazWartosciPunktow" id="pokazPunkty" />
+                                    <label for="pokazPunkty">Pokaż wartości punktów</label>
+                                </div>
+
                                 <div class="canvas-view">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
                                         <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-0">
@@ -2258,6 +2263,8 @@
     // NOWE: śledzenie ostatnio rysowanej zakładki (do auto-rerenderu canvasa)
     private int _lastRenderedTab = -1;
     private string? _lastRenderedStanId = null;
+
+    bool pokazWartosciPunktow = true;
 
     private readonly JsonSerializerOptions jsonOptions = new()
     {
@@ -3055,6 +3062,7 @@
             if (tab == 5)
             {
                 widocznyRysunek1 = true;
+                widocznyRysunek2 = false;
             }
             else
             {
@@ -3076,9 +3084,6 @@
         await Task.CompletedTask;
     }
 
-
-
-    bool pokazWartosciPunktow = true;
     private async Task RedrawCanvas(int tabIndex)
     {
         if (wybranyStan == null) return;

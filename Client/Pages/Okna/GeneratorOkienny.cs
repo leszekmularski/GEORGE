@@ -3009,6 +3009,14 @@ namespace GEORGE.Client.Pages.Okna
 
                 var p = inter.Value;
 
+                //// ⭐ KLUCZOWA POPRAWKA: czy punkt leży W SEGMENCIE (nie tylko na prostej)?
+                //if (!IsPointOnSegment(p, polygon[i], polygon[next], tolerance: 0.5))
+                //{
+                //    Console.WriteLine($"      [{i}] ❌ punkt ({p.X:F2}, {p.Y:F2}) poza segmentem " +
+                //                      $"[{polygon[i].X:F1},{polygon[i].Y:F1}]→[{polygon[next].X:F1},{polygon[next].Y:F1}] — odrzucam");
+                //    continue;
+                //}
+
                 double dotInter = (p.X - effectiveBase.X) * dx + (p.Y - effectiveBase.Y) * dy;
                 if (dotInter < -tolerance)
                 {
@@ -3080,6 +3088,7 @@ namespace GEORGE.Client.Pages.Okna
             Console.WriteLine("───────────────────────────────────────────────");
             return (effectiveBase, false);
         }
+
 
 
         /// <summary>
@@ -4312,7 +4321,7 @@ namespace GEORGE.Client.Pages.Okna
         // ============================================================
         // IsPointOnSegment
         // ============================================================
-        private static bool IsPointOnSegment(XPoint point, XPoint start, XPoint end, double tolerance = 0.1)
+        private static bool IsPointOnSegment(XPoint point, XPoint start, XPoint end, double tolerance = 0.5)
         {
             double cross = (point.X - start.X) * (end.Y - start.Y) - (point.Y - start.Y) * (end.X - start.X);
             if (Math.Abs(cross) > tolerance) return false;
@@ -4325,6 +4334,25 @@ namespace GEORGE.Client.Pages.Okna
 
             return true;
         }
+
+        //private static bool IsPointOnSegment(XPoint p, XPoint a, XPoint b, double tolerance = 0.5)
+        //{
+        //    // Test bounding box — wystarczający dla odcinków prostych
+        //    double minX = Math.Min(a.X, b.X) - tolerance;
+        //    double maxX = Math.Max(a.X, b.X) + tolerance;
+        //    double minY = Math.Min(a.Y, b.Y) - tolerance;
+        //    double maxY = Math.Max(a.Y, b.Y) + tolerance;
+
+        //    if (p.X < minX || p.X > maxX || p.Y < minY || p.Y > maxY)
+        //        return false;
+
+        //    // Opcjonalnie: dodatkowy test „czy współliniowy" (dla odcinków ukośnych)
+        //    double cross = (b.X - a.X) * (p.Y - a.Y) - (b.Y - a.Y) * (p.X - a.X);
+        //    double len = Math.Sqrt((b.X - a.X) * (b.X - a.X) + (b.Y - a.Y) * (b.Y - a.Y));
+
+        //    if (len < 1e-9) return false;
+        //    return Math.Abs(cross / len) <= tolerance;
+        //}
 
         // ============================================================
         // GetLinesIntersectionNullable
