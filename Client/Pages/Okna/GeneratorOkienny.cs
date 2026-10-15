@@ -42,6 +42,7 @@ namespace GEORGE.Client.Pages.Okna
 
         // ⭐ NOWE POLA – do stabilnego dopasowania po zmianie wymiarów
         public string? IdMaster { get; set; }
+        public string? IdRegionKsztaltuSlupekStaly { get; set; }
         public string? TypKsztaltu { get; set; }
 
         // ============================================================
@@ -461,6 +462,40 @@ namespace GEORGE.Client.Pages.Okna
                 wewnetrznyKonturZLukami = przeskalowanePunktyZLukami;
                 konturWenetrznyPodRysunek = przeskalowanePunktyZLukamiPodRysynek;
                 wierzcholkiWenetrznePodRysunek = przeskalowanePunktyPodRysynek;
+
+               // Console.Clear();
+
+                Console.WriteLine($"📋 regionAdd.Count = {regionAdd?.Count ?? 0}");
+                foreach (var r in regionAdd ?? Enumerable.Empty<ShapeRegion>())
+                    Console.WriteLine($"   '{r.Id}'");
+
+                Console.WriteLine($"🧩 [WEJŚCIE] regionId = '{regionId}'");
+                Console.WriteLine($"🧩 [WEJŚCIE] regions.Count = {regions?.Count ?? 0}");
+                foreach (var r in regions ?? Enumerable.Empty<ShapeRegion>())
+                    Console.WriteLine($"🧩 [WEJŚCIE]    regions[i].Id = '{r.Id}'");
+
+                var znaleziony = regionAdd.FirstOrDefault(x => x.Id == regionId);
+
+                Console.WriteLine($"🔍 regionId            = '{regionId}'");
+                Console.WriteLine($"🔍 znaleziony          = {(znaleziony == null ? "NULL" : "OK")}");
+                Console.WriteLine($"🔍 znaleziony?.Id      = '{znaleziony?.Id}'");
+                Console.WriteLine($"🔍 znaleziony?.IdMaster      = '{znaleziony?.IdMaster}'");
+                Console.WriteLine($"🔍 znaleziony?.Wierzcholki == null ? {znaleziony?.Wierzcholki == null}");
+
+                if (znaleziony == null)
+                {
+                    Console.WriteLine($"❌ NIE ZNALEZIONO REGIONU — używam starej wartości punktyRegionuMaster filtr: regionId == {regionId}");
+                    Console.WriteLine("   Dostępne Id w regions:");
+                    foreach (var r in regions)
+                        Console.WriteLine($"     - '{r.Id}'");
+                }
+                else
+                {
+                    punktyRegionuMaster = znaleziony.Wierzcholki ?? punktyRegionuMaster;
+                }
+
+          
+                Console.WriteLine($"🔷 ElementLiniowy: punktyRegionuMaster.Count = {punktyRegionuMaster.Count} regionId: {regionId}");
 
                 punktyRegionuMaster = await CalculateOffsetPolygon(
                     punktyRegionuMaster,

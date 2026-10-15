@@ -4623,7 +4623,7 @@
         foreach (var genState in obrGen)
         {
             Console.WriteLine($"🔄 Iteracja: klucz='{genState.Key}', IdRegion='{genState.Value.IdRegion}'");
-            string cleanId = genState.Value.IdRegion;
+            string cleanId = genState.Value.IdRegion ?? "";
 
             var region = wszystkieRegiony.FirstOrDefault(r => r.Id == cleanId);
             if (region == null)
@@ -4965,9 +4965,31 @@
 
             var obrGen = _generatorStates.OrderBy(x => x.Value.ZIndeks).ToList();
 
+            Console.WriteLine("═══ STANY vs REGIONY ═══");
+            foreach (var kv in _generatorStates)
+            {
+                Console.WriteLine($"  state key = '{kv.Key}'");
+                Console.WriteLine($"     IdRegion       = '{kv.Value.IdRegion}'");
+                Console.WriteLine($"     IdMaster       = '{kv.Value.IdMaster}'");
+                Console.WriteLine($"     Typ            = '{kv.Value.WybranyModel?.Typ}'");
+            }
+
+            Console.WriteLine("═══ REGIONY ═══");
+            foreach (var r in wszystkieRegiony)
+            {
+                Console.WriteLine($"  region.Id       = '{r.Id}'");
+                Console.WriteLine($"     IdMaster      = '{r.IdMaster}'");
+                Console.WriteLine($"     TypKsztaltu   = '{r.TypKsztaltu}'");
+            }
+
             foreach (var genState in obrGen)
             {
                 string cleanId = genState.Value.IdRegion;
+
+                if (genState.Value.WybranyModel.Typ?.Trim() == "Słupek stały")
+                {
+                    cleanId = genState.Value.IdMaster;
+                }
 
                 Console.WriteLine($"🔄 Przetwarzam region cleanId:{cleanId} typ: {genState.Value.WybranyModel.Typ?.Trim()}");
                 Console.WriteLine($"🔍 ZmienWymiary: cleanId={cleanId} " +
@@ -5094,40 +5116,42 @@
                 // if (genState.Value.WybranyModel.Typ?.Trim() == "Słupek stały")
                 // {
                 //     var wybranyRegionSlupek = _regionsDualRama.Concat(_regionsSkrzydlo)
-                //         .FirstOrDefault(r => r.Id == region.Id);
+                //         .FirstOrDefault(r => r.Id == genState.Value.IdMaster);
 
-                //     Console.WriteLine($"📐 WyliczObszarSlupkaStalego -> r => r.Id == region.Id == {region.Id} && wybranyRegionSlupek: {wybranyRegionSlupek?.Id}");
+                //     cleanId = wybranyRegionSlupek?.Id ?? "";
 
-                //     if (wybranyRegionSlupek != null)
-                //     {
-                //         var konfPolaczenia = genState.Value.ListaKwadratow?
-                //             .FirstOrDefault(s => s.Przesuniecia != null)?.Przesuniecia;
+                //  Console.WriteLine($"📐 WyliczObszarSlupkaStalego -> r => r.Id == region.Id == {region.Id} && wybranyRegionSlupek: {wybranyRegionSlupek?.Id}");
 
-                //         double przesLewo = 0, przesPrawo = 0, przesGora = 0, przesDol = 0;
+                // //     if (wybranyRegionSlupek != null)
+                // //     {
+                // //         var konfPolaczenia = genState.Value.ListaKwadratow?
+                // //             .FirstOrDefault(s => s.Przesuniecia != null)?.Przesuniecia;
 
-                //         if (konfPolaczenia != null && konfPolaczenia.Count > 0)
-                //         {
-                //             przesGora = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
-                //                 p.Strona.ToLower() == "góra" || p.Strona.ToLower() == "gora")?.PrzesuniecieYStycznej ?? 0);
-                //             przesDol = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
-                //                 p.Strona.ToLower() == "dół" || p.Strona.ToLower() == "dol")?.PrzesuniecieYStycznej ?? 0);
-                //             przesLewo = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
-                //                 p.Strona.ToLower() == "lewa")?.PrzesuniecieYStycznej ?? 0);
-                //             przesPrawo = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
-                //                 p.Strona.ToLower() == "prawa")?.PrzesuniecieYStycznej ?? 0);
-                //         }
+                // //         double przesLewo = 0, przesPrawo = 0, przesGora = 0, przesDol = 0;
 
-                //         // await WyliczObszarSlupkaStalego(
-                //         //     _generatorStates[cleanId],
-                //         //     przesLewo, przesPrawo, przesGora, przesDol,
-                //         //     generator, wybranyRegionSlupek);
+                // //         if (konfPolaczenia != null && konfPolaczenia.Count > 0)
+                // //         {
+                // //             przesGora = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
+                // //                 p.Strona.ToLower() == "góra" || p.Strona.ToLower() == "gora")?.PrzesuniecieYStycznej ?? 0);
+                // //             przesDol = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
+                // //                 p.Strona.ToLower() == "dół" || p.Strona.ToLower() == "dol")?.PrzesuniecieYStycznej ?? 0);
+                // //             przesLewo = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
+                // //                 p.Strona.ToLower() == "lewa")?.PrzesuniecieYStycznej ?? 0);
+                // //             przesPrawo = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
+                // //                 p.Strona.ToLower() == "prawa")?.PrzesuniecieYStycznej ?? 0);
+                // //         }
 
-                //         // // ⭐⭐⭐ NOWE: Zaktualizuj ListaKwadratow słupka na podstawie nowego regionu
-                //         // AktualizujDaneKwadratuSlupka(
-                //         //     genState.Value.ListaKwadratow,
-                //         //     wybranyRegionSlupek,
-                //         //     cleanId);
-                //     }
+                // //         // await WyliczObszarSlupkaStalego(
+                // //         //     _generatorStates[cleanId],
+                // //         //     przesLewo, przesPrawo, przesGora, przesDol,
+                // //         //     generator, wybranyRegionSlupek);
+
+                // //         // // ⭐⭐⭐ NOWE: Zaktualizuj ListaKwadratow słupka na podstawie nowego regionu
+                // //         // AktualizujDaneKwadratuSlupka(
+                // //         //     genState.Value.ListaKwadratow,
+                // //         //     wybranyRegionSlupek,
+                // //         //     cleanId);
+                // //     }
                 // }
 
                 // -----------------------------------------------------
@@ -5624,7 +5648,7 @@
 
         // ⭐ Wszystkie regiony z Rama=true
         var kandydaci = wszystkieRegiony
-            .Where(r => r.Rama && r.Wierzcholki != null && r.Wierzcholki.Count >= 3)
+            .Where(r => r.Rama && r.Wierzcholki != null && r.Wierzcholki.Count >= 3 && r.Id != regionStanu.Id)
             .ToList();
 
         Console.WriteLine($"   Kandydatów (Rama=true): {kandydaci.Count}");
@@ -5960,6 +5984,9 @@
 
         // ⭐ Ustaw IdMaster i TypKsztaltu z regionu
         generator.IdMaster = regionDoStanu?.IdMaster ?? idRegion;
+
+        generator.IdRegionKsztaltuSlupekStaly = generator?.IdRegionuPonizej ?? idRegion ;
+
         generator.TypKsztaltu = regionDoStanu?.TypKsztaltu ?? "nieznany";
 
         // ⭐ Ustaw TypKsztaltu – najpierw z regionu, potem fallback
@@ -6316,6 +6343,7 @@
         generator.RuchomySlupekPoLewej = state.SlupekRuchomyPoLewejStronie;
         generator.RuchomySlupekPoPrawej = state.SlupekRuchomyPoPrawejStronie;
         generator.ElementLiniowy = true;
+        generator.IdRegionKsztaltuSlupekStaly = rowId.ToString();
 
         // Znajdź region kliknięty (najbliższy, nie pierwszy)
         var regionKlikniety = ZnajdzRegionKlikniety(wszystkieRegiony, klikX, klikY, 55.0);
