@@ -42,7 +42,6 @@ namespace GEORGE.Client.Pages.Okna
 
         // ⭐ NOWE POLA – do stabilnego dopasowania po zmianie wymiarów
         public string? IdMaster { get; set; }
-        public string? IdRegionKsztaltuSlupekStaly { get; set; }
         public string? TypKsztaltu { get; set; }
 
         // ============================================================

@@ -2814,6 +2814,7 @@
     {
         if (e.Key == "Enter")
         {
+            await Task.Delay(250); // Krótkie opóźnienie dla płynności
             await HandleZapis();
         }
     }
@@ -4986,10 +4987,6 @@
             {
                 string cleanId = genState.Value.IdRegion;
 
-                if (genState.Value.WybranyModel.Typ?.Trim() == "Słupek stały")
-                {
-                    cleanId = genState.Value.IdMaster;
-                }
 
                 Console.WriteLine($"🔄 Przetwarzam region cleanId:{cleanId} typ: {genState.Value.WybranyModel.Typ?.Trim()}");
                 Console.WriteLine($"🔍 ZmienWymiary: cleanId={cleanId} " +
@@ -4997,6 +4994,12 @@
                       $"ListaKwadratow.Count={genState.Value.ListaKwadratow?.Count ?? 0}");
 
                 var region = wszystkieRegiony.FirstOrDefault(r => r.Id == cleanId);
+
+                if (genState.Value.WybranyModel.Typ?.Trim() == "Słupek stały")
+                {
+                    region = wszystkieRegiony.FirstOrDefault(r => r.Id == genState.Value.IdRegionWarstwaNizej);
+                }
+
                 Console.WriteLine($"   region: {(region == null ? "NULL" : region.Id)} " +
                                     $"Typ={region?.TypKsztaltu} " +
                                     $"Wierzcholki={region?.Wierzcholki?.Count ?? 0}");
@@ -5985,7 +5988,7 @@
         // ⭐ Ustaw IdMaster i TypKsztaltu z regionu
         generator.IdMaster = regionDoStanu?.IdMaster ?? idRegion;
 
-        generator.IdRegionKsztaltuSlupekStaly = generator?.IdRegionuPonizej ?? idRegion ;
+        generator.IdRegionuPonizej = generator?.IdRegionuPonizej ?? idRegion;
 
         generator.TypKsztaltu = regionDoStanu?.TypKsztaltu ?? "nieznany";
 
@@ -6343,7 +6346,7 @@
         generator.RuchomySlupekPoLewej = state.SlupekRuchomyPoLewejStronie;
         generator.RuchomySlupekPoPrawej = state.SlupekRuchomyPoPrawejStronie;
         generator.ElementLiniowy = true;
-        generator.IdRegionKsztaltuSlupekStaly = rowId.ToString();
+        generator.IdRegionuPonizej = najlepszySasiadA.RowIdRegionu;
 
         // Znajdź region kliknięty (najbliższy, nie pierwszy)
         var regionKlikniety = ZnajdzRegionKlikniety(wszystkieRegiony, klikX, klikY, 55.0);
@@ -9355,6 +9358,7 @@
 
         // Ustawiamy poprawny RegionID w samym stanie
         state.IdRegion = regionId;
+        state.IdRegionWarstwaNizej = generator.IdRegionuPonizej;
         state.Generator = generator;
 
         // Nadpisanie lub dodanie
